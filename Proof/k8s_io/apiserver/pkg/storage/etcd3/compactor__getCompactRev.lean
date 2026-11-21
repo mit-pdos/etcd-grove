@@ -164,8 +164,8 @@ theorem compactor.getCompactRev.wp_proof
     iunfold go_etcd_io.etcd.cache.v3.statusErrOk at Hse
     ihave ⟨⟨%em, #HeS0⟩, -, -, %HF⟩ := Hse $$ %ei %rfl
     ihave #HeS := go_etcd_io.etcd.cache.v3.errorMsgIs_errorStringSpec _ _ $$ HeS0
-    ihave #HeS' : EtcdGrove.fmt.stringMethodSpec ei go!"Error" $$ []
-    · rw [show EtcdGrove.fmt.stringMethodSpec ei go!"Error" =
+    ihave #HeS' : _root_.Perennial.fmt.stringMethodSpec ei go!"Error" $$ []
+    · rw [show _root_.Perennial.fmt.stringMethodSpec ei go!"Error" =
         go_etcd_io.etcd.cache.v3.errorStringSpec ei from rfl]
       iexact HeS
     ihave #Pf : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []

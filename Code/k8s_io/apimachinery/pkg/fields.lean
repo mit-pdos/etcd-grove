@@ -82,8 +82,6 @@ attribute [irreducible] TransformFunc.ty
 
 opaque Requirement.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque UnescapedRune.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
 opaque notEqualOperator [GooseExts] [GoGlobalContext] : val
 
 opaque doubleEqualOperator [GooseExts] [GoGlobalContext] : val
@@ -490,22 +488,38 @@ attribute [instance] InvalidEscapeSequence.TypeAssumptions.type_repr
   InvalidEscapeSequence.TypeAssumptions.method_set
   InvalidEscapeSequence.TypeAssumptions.ptr_method_set
 
-opaque UnescapedRune.nonempty_type : NonemptyType.{0}
-def UnescapedRune : Type := UnescapedRune.nonempty_type.type
-instance UnescapedRune.nonempty : Nonempty UnescapedRune := UnescapedRune.nonempty_type.property
-opaque UnescapedRune.zero_val : ZeroVal UnescapedRune := ⟨Classical.ofNonempty⟩
-attribute [instance] UnescapedRune.zero_val
+structure UnescapedRune [GooseExts] where
+  mk ::
+  r' : w32
+
+noncomputable instance UnescapedRune.zero_val [GooseExts] : ZeroVal UnescapedRune :=
+  ⟨UnescapedRune.mk zeroValDef⟩
+
+@[reducible] noncomputable def UnescapedRune.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"r" go.rune)]
+
+@[irreducible] noncomputable def UnescapedRune.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  UnescapedRune.fieldsUnsealed
+
+noncomputable instance equals_unfold_UnescapedRune [GooseExts] [GoGlobalContext] :
+    EqualsUnfold UnescapedRune.fields UnescapedRune.fieldsUnsealed :=
+  ⟨by unfold UnescapedRune.fields; rfl⟩
+
+@[reducible] noncomputable def UnescapedRune.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType UnescapedRune.fields)
 
 class UnescapedRune.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UnescapedRune.underlying UnescapedRune
   underlying : go.UnderlyingDirectedEq UnescapedRune.ty UnescapedRune.underlying
-  isUnderlying : go.IsUnderlying UnescapedRune.underlying UnescapedRune.underlying
+  get_r : ∀ (x : UnescapedRune), go.IsGoStepPureDetTagged under (StructFieldGet UnescapedRune.underlying go!"r") #x (Val #(x.r'))
+  set_r : ∀ (x : UnescapedRune) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet UnescapedRune.underlying go!"r") (PairV #x #y) (Val #(({ x with r' := y } : UnescapedRune)))
   method_set : go.MethodSetIs UnescapedRune.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnescapedRune.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] UnescapedRune.TypeAssumptions.type_repr
   UnescapedRune.TypeAssumptions.underlying
-  UnescapedRune.TypeAssumptions.isUnderlying
+  UnescapedRune.TypeAssumptions.get_r
+  UnescapedRune.TypeAssumptions.set_r
   UnescapedRune.TypeAssumptions.method_set
   UnescapedRune.TypeAssumptions.ptr_method_set
 

@@ -1,13 +1,12 @@
 /-
-The proof of `Spec/fmt/ErrorfLeaf.lean`, over Perennial's model of `fmt.Errorf`
-(`Perennial/TrustedCode/fmt.lean`: `errors.New(format)`, the arguments ignored), as
-`fmt.ErrorfErrs.wp_proof`; the spec's header says why the model may be used for these arguments.
+The proof of `Spec/fmt/ErrorfLeaf.lean`, from Perennial's `fmt.wp_Errorf` (fmtmodel, 2026-11-20;
+until then over Perennial's previous model of `fmt.Errorf`, `errors.New(format)`, which ignored the
+arguments).
 -/
 module
 
 public import Spec.fmt.ErrorfLeaf
-public import Perennial.Proof.errors.NewVar
-public import Proof.errors.ErrorStringOk
+public import Perennial.Proof.fmt
 
 @[expose] public section
 
@@ -25,21 +24,40 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [_root_.Perennial.fmt.Assumptions] [_root_.Perennial.errors.Assumptions]
 
+/-- From Perennial's `fmt.wp_Errorf` (fmtmodel, 2026-11-20): its error (`fmt.errorfErr`) is an
+`*errors.errorString`, a `*fmt.wrapError` or a `*fmt.wrapErrors`, with `Error() string`, no `Format`,
+and an `Error()` returning the message; none of the three has an `Errors` method (goose's method
+sets: `Error`; `Error`, `Unwrap`; `Error`, `Unwrap`). -/
 theorem fmt.ErrorfLeaf.wp_proof :
     fmt.ErrorfLeaf.spec (GF := GF) (hG := hG) := by
   intro format args_sl xs dq
-  wp_start as ⟨Hsl, -⟩
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %x #Herr
+  iintro %Φ ⟨#Hpkg, Hsl, Hok⟩ HΦ
+  wp_apply (_root_.Perennial.fmt.wp_Errorf format args_sl xs dq) $$ [$Hpkg $Hsl $Hok]
+    as %err ⟨Hsl, %s, -, Herr⟩
+  iunfold _root_.Perennial.fmt.errorfErr at Herr
+  icases Herr with ⟨%hp, #HE, -⟩
   iapply HΦ
   iframe Hsl
   isplitr
-  · iapply errorString_errOk
-    iexact Herr
+  · unfold errOk
+    isplitr
+    · ipureintro; exact ⟨hp.2.1, hp.2.2.1⟩
+    imodintro
+    iintro %Ψ HΨ
+    iapply HE
+    inext
+    iapply HΨ
   · ipureintro
-    have h := (go.MethodSetIs.method_set_is
-      (t := go.GoType.PointerType errors.errorString.ty) go!"Errors")
-    simp only [go.methodSetLookup] at h
-    simpa using h
+    rcases hp.2.2.2 with h | h | h <;> rw [h]
+    · have h := (go.MethodSetIs.method_set_is
+        (t := go.GoType.PointerType errors.errorString.ty) go!"Errors")
+      simpa [go.methodSetLookup] using h
+    · have h := (go.MethodSetIs.method_set_is
+        (t := go.GoType.PointerType _root_.Perennial.fmt.wrapError.ty) go!"Errors")
+      simpa [go.methodSetLookup] using h
+    · have h := (go.MethodSetIs.method_set_is
+        (t := go.GoType.PointerType _root_.Perennial.fmt.wrapErrors.ty) go!"Errors")
+      simpa [go.methodSetLookup] using h
 
 end proof
 

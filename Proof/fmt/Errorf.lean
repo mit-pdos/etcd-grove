@@ -1,11 +1,12 @@
 /-
-The trust boundary: `fmt.Errorf` for arguments that are not all of predeclared basic types
-(Perennial's model of `Errorf` calls no method of its arguments, so it is faithful only for
-those, and its `fmt.wp_Errorf` is stated for them only).
+`fmt.Errorf` for arguments whose `Error()`/`String()` Go calls: from Perennial's `fmt.wp_Errorf`
+(fmtmodel, 2026-11-20: Perennial's model formats and calls the arguments' methods as Go does; until
+then an axiom here).
 -/
 module
 
 public import Spec.fmt.Errorf
+public import Perennial.Proof.fmt
 
 @[expose] public section
 
@@ -14,7 +15,7 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI
+open Iris Iris.BI Iris.ProofMode
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -23,13 +24,25 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.fmt.Assumptions]
 
-/-- **The trust boundary**: Go's `fmt.Errorf` formats its arguments and returns a non-nil
-error (`*fmt.wrapError`, `*fmt.wrapErrors` or `*errors.errorString`) whose `Error()` returns
-the formatted string, which it computed; none of the three has a `Format` method (their method
-sets are `Error` and `Unwrap`, or `Error`; 2026-11-04: the post says so). For the arguments `fmt.argsOk` allows it calls only
-their `Error()`/`String()` methods, which return a string without effects by that premise;
-it only reads the arguments' slice. -/
-axiom fmt.Errorf.wp_proof : fmt.Errorf.spec (GF := GF) (hG := hG)
+theorem fmt.Errorf.wp_proof : fmt.Errorf.spec (GF := GF) (hG := hG) := by
+  intro format args_sl xs dq
+  iintro %Φ ⟨#Hpkg, Hsl, Hok⟩ HΦ
+  wp_apply (_root_.Perennial.fmt.wp_Errorf format args_sl xs dq) $$ [$Hpkg $Hsl $Hok]
+    as %err ⟨Hsl, %s, %-, Herr⟩
+  iunfold _root_.Perennial.fmt.errorfErr at Herr
+  icases Herr with ⟨%hpure, #HE, -⟩
+  obtain ⟨hptr, hF, hE, -⟩ := hpure
+  iapply HΦ
+  iframe
+  isplitr
+  · rw [fmt.stringMethodSpec_unfold]
+    imodintro
+    iintro %Ψ HΨ
+    iapply HE
+    inext
+    iapply HΨ
+  · ipureintro
+    exact ⟨⟨hF, hE⟩, hptr⟩
 
 end proof
 

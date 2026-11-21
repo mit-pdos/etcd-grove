@@ -167,8 +167,8 @@ theorem conditionalProgressRequestor.run.wp_proof
               · ipureintro; rfl
               iintro %sl ⟨Hsl, -⟩
               ihave ⟨#HeS0, %HeF⟩ := Herr $$ %e %rfl
-              ihave #HeS : EtcdGrove.fmt.stringMethodSpec e go!"Error" $$ []
-              · rw [show EtcdGrove.fmt.stringMethodSpec e go!"Error" = errorStringSpec e from rfl]
+              ihave #HeS : _root_.Perennial.fmt.stringMethodSpec e go!"Error" $$ []
+              · rw [show _root_.Perennial.fmt.stringMethodSpec e go!"Error" = errorStringSpec e from rfl]
                 iexact HeS0
               wp_apply wp_Printf $$ [$Hfmt $Hsl] as %nb %e2 -
               · fmt_args_ok

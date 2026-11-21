@@ -108,7 +108,7 @@ theorem storage.Preconditions.Check.wp_proof
           (try wp_auto)
           ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
           · iPkgInit
-          wp_apply _root_.Perennial.fmt.wp_Sprintf _ _ _ _ ?wf $$ [$Hfmt $Hargs] as %msg ⟨-, %hmsg⟩
+          wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ _ ?wf $$ [$Hfmt $Hargs] as %msg ⟨-, %hmsg⟩
           case wf =>
             rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]
             simp only [List.set_cons_succ, List.set_cons_zero]
@@ -195,7 +195,7 @@ theorem storage.Preconditions.Check.wp_proof
             (try wp_auto)
             ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
             · iPkgInit
-            wp_apply _root_.Perennial.fmt.wp_Sprintf _ _ _ _ ?wf $$ [$Hfmt $Hargs] as %msg ⟨-, %hmsg⟩
+            wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ _ ?wf $$ [$Hfmt $Hargs] as %msg ⟨-, %hmsg⟩
             case wf =>
               rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]
               simp only [List.set_cons_succ, List.set_cons_zero]
@@ -236,7 +236,7 @@ theorem storage.Preconditions.Check.wp_proof
         (try wp_auto)
         ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
         · iPkgInit
-        wp_apply _root_.Perennial.fmt.wp_Sprintf _ _ _ _ ?wf $$ [$Hfmt $Hargs] as %msg ⟨-, %hmsg⟩
+        wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ _ ?wf $$ [$Hfmt $Hargs] as %msg ⟨-, %hmsg⟩
         case wf =>
           rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]
           simp only [List.set_cons_succ, List.set_cons_zero]

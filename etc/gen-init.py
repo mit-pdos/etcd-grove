@@ -257,8 +257,8 @@ SPECIAL = {}
 # (prove-errinits, 2026-11-19) translated `errors.New` / verb-less `fmt.Errorf` package variables:
 # the steps of the initializer of `x`, Perennial's `errors.wp_New_errorString` (`%x<x> #M<x>`) or, with
 # the message cell, `EtcdGrove.wp_New_errorString_cell` (`%x<x> ⟨#M<x>, #C<x>⟩`); a `fmt.Errorf`
-# unfolds its trusted model, `errors.New(format)` (Go's `Errorf` without verbs or `%w` returns
-# `errors.New(format)` too).
+# without `%` goes through `EtcdGrove.fmt.wp_Errorf_noPct` (Perennial's `fmt.wp_Errorf`: Go's `Errorf`
+# without verbs returns `errors.New(format)`; fmtmodel, 2026-11-20: until then it unfolded the model).
 NEWVAR_IMPORTS = ['Perennial.Proof.errors.NewVar']
 NEWVAR_CELL_IMPORTS = ['Proof.errors.NewVarCell']
 
@@ -268,8 +268,14 @@ def newvar_steps(x, cell=False, errorf=None):
     # `errors.New(format)`, as the model does; `etc/errorf-wrap-check.py`)
     if errorf is not None:
         assert '%' not in errorf, (x, errorf)
-    pre = ['try wp_auto'] + ([f'-- `fmt.Errorf({json.dumps(errorf)})`: no verb, Go returns `errors.New` of the format, as Perennial\'s model',
-                              'wp_func_call', 'wp_call', 'try wp_auto'] if errorf is not None else [])
+    if errorf is not None:
+        # (fmtmodel, 2026-11-20) through Perennial's `fmt.wp_Errorf` (`EtcdGrove.fmt.wp_Errorf_noPct`)
+        pat = f'⟨#M{x}, #C{x}⟩' if cell else f'⟨#M{x}, -⟩'
+        return ['try wp_auto',
+                f'-- `fmt.Errorf({json.dumps(errorf)})`: no verb, Go returns `errors.New` of the format',
+                f'wp_apply (EtcdGrove.fmt.wp_Errorf_noPct _ _ (by decide)) $$ [] as %x{x} {pat}',
+                '· iframe #; iapply ownSlice_nil']
+    pre = ['try wp_auto']
     if cell:
         return pre + [f'wp_apply EtcdGrove.wp_New_errorString_cell as %x{x} ⟨#M{x}, #C{x}⟩']
     return pre + [f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{x} #M{x}']
@@ -281,7 +287,8 @@ def newvars_cfg(cfg, names, cell=False, errorf={}):
     cfg.setdefault('before', {}).update(
         {x: newvar_steps(x, cell, errorf.get(x)) for x in names})
     imps = cfg.setdefault('imports', [])
-    imps += [m for m in NEWVAR_IMPORTS + (NEWVAR_CELL_IMPORTS if cell else []) if m not in imps]
+    imps += [m for m in NEWVAR_IMPORTS + (NEWVAR_CELL_IMPORTS if cell else []) +
+             (['Proof.fmt.OutLemmas'] if errorf else []) if m not in imps]
     return cfg
 
 _ETCD_ERRMSGS = dict(ErrUnknownMethod="etcdserver: unknown method",
@@ -374,7 +381,7 @@ trust-boundary axioms `<X>_init`).''',
                 'try wp_auto',
                 'wp_apply (wp_mapInsert (K := GoString) (V := GoSlice) go.string) $$ Hss as Hss', 'try wp_auto']],
             # (const-inits, 2026-11-19) `errMemberNotFound = fmt.Errorf("member not found")`, translated
-            'errMemberNotFound': ['wp_apply (_root_.Perennial.fmt.wp_Errorf go!"member not found" slice.nil [] _root_.Perennial.fmt.ArgsWf.nil) $$ [] as %emnf -',
+            'errMemberNotFound': ['wp_apply (_root_.Perennial.fmt.wp_Errorf_argsWf go!"member not found" slice.nil [] _root_.Perennial.fmt.ArgsWf.nil) $$ [] as %emnf -',
                                   '· iframe #; iapply ownSlice_nil', 'try wp_auto'],
             # (raft-entsize, route H1, 2026-11-10) `Message{Type: MsgHeartbeat.Enum()}`, translated:
             # `Enum`'s proof, the literal stored, frozen at its content `hbC` (`hbMsg_init`)
@@ -1285,23 +1292,40 @@ SPECIAL['encoding.base64'] = dict(
     doc='''Its fact (`base64Init`, `encoding/base64/Base.lean`; the auth plan's E2x, 2026-10-26;
 k8s 7e-2, 2026-11-09): `StdEncoding` and `RawURLEncoding` hold fixed `*Encoding`s whose
 `EncodeToString` returns the standard encoding (`stdEnc`), resp. the URL encoding without padding
-(`rawUrlEnc`), of its argument's bytes, stated as the method call's own WP (the type is axiomatized).
-Its initializer runs its variables' untranslated initializers (`base64.go`); the trust-boundary
-axioms `StdEncoding_init` and `RawURLEncoding_init` state the ones the fact reads
-(`NewEncoding(encodeStd)`, `URLEncoding.WithPadding(NoPadding)`: fixed `*Encoding`s whose
-`EncodeToString` allocates its output buffer, `Encode`s into it and returns it as a string: no
-panic, no write to its argument), `opaqueInitsOk` the others.''',
-    custom={'StdEncoding': dict(
-        doc='/-- `StdEncoding = NewEncoding(encodeStd)` (`base64.go`): a fixed `*Encoding` (Go never writes the variable after) whose `EncodeToString` returns the standard base64 encoding `stdEnc` of its argument\'s bytes, reading and keeping the slice. -/',
-        post='_root_.Perennial.encoding.base64.stdEncInit (GF := GF)',
-        pat='#H@'),
-            'RawURLEncoding': dict(
-        doc='/-- `RawURLEncoding = URLEncoding.WithPadding(NoPadding)` (`base64.go`): a fixed `*Encoding` (Go never writes the variable after) whose `EncodeToString` returns the URL base64 encoding without padding `rawUrlEnc` of its argument\'s bytes, reading and keeping the slice (stage 7e-2, `notes/k8s-7e-2-draft.md` §5.4, attacked T15). -/',
-        post='_root_.Perennial.encoding.base64.rawUrlEncInit (GF := GF)',
-        pat='#H@')},
-    finish=FIN_PRE[:6] + ['isplitl []', '· imodintro; itrivial', 'imodintro',
-            'unfold _root_.Perennial.encoding.base64.base64Init', 'isplitl', '· iexact HStdEncoding',
-            'iexact HRawURLEncoding'],
+(`rawUrlEnc`), of its argument's bytes, stated as the method call's own WP.
+Its initializer allocates its four variables and runs their translated initializers (`base64.go`,
+translated with their bodies since 2026-11-20, prove-b64clock; until then the trust-boundary axioms
+`StdEncoding_init`, `RawURLEncoding_init` and `opaqueInitsOk`): `NewEncoding` of the two alphabets
+(`NewEncoding.wp_proof`; valid alphabets, `stdAlphabet_ok`, `urlAlphabet_ok`), and `WithPadding(NoPadding)`
+of each (`Encoding.WithPadding.wp_proof`); the fact's parts from `EncodeToString`'s spec
+(`stdEncInit_intro`, `rawUrlEncInit_intro`).''',
+    imports=['Proof.encoding.base64.NewEncoding', 'Proof.encoding.base64.Encoding__WithPadding',
+             'Proof.encoding.base64.Encoding__EncodeToString', 'Proof.encoding.base64.Encoding__EncodedLen',
+             'Proof.encoding.base64.Encoding__Encode', 'Proof.encoding.base64.InitFacts'],
+    alloc_types={'StdEncoding': 'Loc', 'URLEncoding': 'Loc', 'RawStdEncoding': 'Loc', 'RawURLEncoding': 'Loc'},
+    before={'$end': [
+        'try wp_auto',
+        'wp_apply (EtcdGrove.base64.NewEncoding.wp_proof _ (by exact EtcdGrove.base64.stdAlphabet_ok.1)',
+        '    (by exact EtcdGrove.base64.stdAlphabet_ok.2.1) (by exact EtcdGrove.base64.stdAlphabet_ok.2.2.1)',
+        '    (by exact EtcdGrove.base64.stdAlphabet_ok.2.2.2)) as %eS ⟨%encS, HeS, %hS⟩',
+        'try wp_auto',
+        'wp_apply (EtcdGrove.base64.NewEncoding.wp_proof _ (by exact EtcdGrove.base64.urlAlphabet_ok.1)',
+        '    (by exact EtcdGrove.base64.urlAlphabet_ok.2.1) (by exact EtcdGrove.base64.urlAlphabet_ok.2.2.1)',
+        '    (by exact EtcdGrove.base64.urlAlphabet_ok.2.2.2)) as %eU ⟨%encU, HeU, %hU⟩',
+        'try wp_auto',
+        'wp_apply (EtcdGrove.base64.Encoding.WithPadding.wp_proof eS encS _) $$ HeS as %eRS ⟨HeS, HeRS⟩',
+        'try wp_auto',
+        'wp_apply (EtcdGrove.base64.Encoding.WithPadding.wp_proof eU encU _) $$ HeU as %eRU ⟨HeU, HeRU⟩',
+        'try wp_auto']},
+    finish=['ipersist HStdEncoding', 'ipersist HRawURLEncoding', 'ipersist HeS', 'ipersist HeRU'] +
+           FIN_PRE[:6] + ['isplitl []', '· imodintro; itrivial', 'imodintro',
+            'unfold _root_.Perennial.encoding.base64.base64Init', 'isplitl',
+            '· iapply (EtcdGrove.base64.stdEncInit_intro (EtcdGrove.base64.Encoding.EncodeToString.wp_proof',
+            '      EtcdGrove.base64.Encoding.EncodedLen.wp_proof EtcdGrove.base64.Encoding.Encode.wp_proof)',
+            '    eS encS hS.1 hS.2) $$ HStdEncoding HeS',
+            'iapply (EtcdGrove.base64.rawUrlEncInit_intro (EtcdGrove.base64.Encoding.EncodeToString.wp_proof',
+            '    EtcdGrove.base64.Encoding.EncodedLen.wp_proof EtcdGrove.base64.Encoding.Encode.wp_proof)',
+            '  eRU { encU with padChar\' := W32 (-1) } hU.1 rfl) $$ HRawURLEncoding HeRU'],
 )
 
 SPECIAL['k8s_io.apiserver.pkg.storage'] = dict(
@@ -3167,7 +3191,7 @@ TextMapCarrier = MapCarrier{}`, ...) and `versionPart = fmt.Sprintf("%.2X", supp
         'try wp_auto',
         'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %svp ⟨Svp, -⟩',
         'try wp_auto',
-        'wp_apply _root_.Perennial.fmt.wp_Sprintf _ _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ '
+        'wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ '
         '(_root_.Perennial.fmt.IntArgValue.int _) _root_.Perennial.fmt.ArgsWf.nil) $$ [$Svp] as %rvp -',
         'try wp_auto']},
 )
@@ -3241,7 +3265,7 @@ around its name (`color.Add`, `fmt.Sprintf`; `Level.String`/`CapitalString` of t
         '    | wp_apply (wp_mapInsert (K := w8) (V := GoString) _) $$ HL as HL',
         '    | wp_apply (wp_mapInsert (K := w8) (V := GoString) _) $$ HU as HU',
         '    | (wp_apply (wp_slice_literal (l := [_, _])); isplitr; (· ipureintro; rfl); iintro %sl ⟨Ssl, -⟩; '
-        'try wp_auto; wp_apply _root_.Perennial.fmt.wp_Sprintf _ _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ '
+        'try wp_auto; wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ '
         '(_root_.Perennial.fmt.IntArgValue.uint8 _) (_root_.Perennial.fmt.ArgsWf.cons_string _ _ '
         '_root_.Perennial.fmt.ArgsWf.nil)) $$ [$Ssl] as %r -)',
         '    | wp_method_call',
@@ -3254,6 +3278,98 @@ around its name (`color.Add`, `fmt.Sprintf`; `Level.String`/`CapitalString` of t
     imports=['Proof.go_uber_org.zap.internal.pool.New'],
     heavy=True,
 ), ['errUnmarshalNilLevel'])
+# (prove-initleft, 2026-11-21) zapcore's fact: `DefaultClock` holds a fixed `systemClock` (zap's `NewNop` loads it)
+SPECIAL[_ZC]['doc'] = SPECIAL[_ZC]['doc'].replace("Its fact is `True`.", "Its fact: `DefaultClock` holds a fixed `systemClock` (zap's `NewNop`, which zap's\ninitializer runs, loads it; prove-initleft, 2026-11-21: until then `True`).")
+SPECIAL[_ZC]['finish'] = ['ipersist HDefaultClock'] + FIN_PRE[:6] + [
+    'imodintro', f'iexists (zero_val {_ZC}.systemClock)', 'itrivial']
+# (prove-initleft, 2026-11-21) zap's package variables, translated but `_minTimeInt64`/`_maxTimeInt64`
+# (Perennial's `time.Unix` is names only) and `_sinkRegistry`
+_Z = 'go_uber_org.zap'
+_ZENC = (f'(go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.{_ZC}.EncoderConfig.ty] false '
+         f'[_root_.Perennial.{_ZC}.Encoder.ty, go.error]))')
+SPECIAL[_Z] = newvars_cfg(dict(
+    doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+their translated initializers (prove-initleft, 2026-11-21; until then the trust-boundary axiom
+`opaqueInitsOk` covered them all): `errNoEncoderNameSpecified` (`errors.New`), the encoder constructors (a
+map literal of two func literals), `_errArrayElemPool` (`pool.New`, proved), `_globalL = NewNop()`
+(`zapcore.NewNopCore()`, `zapcore.AddSync(io.Discard)` over any writer, `zapcore.DefaultClock` from
+zapcore's fact), `_globalS = _globalL.Sugar()` (a copy of the logger) and the interface assertion
+`var _ internal.LeveledEnabler = AtomicLevel{}`; `_minTimeInt64`/`_maxTimeInt64` (`time.Unix`, names only
+in Perennial) and `_sinkRegistry` (`newSinkRegistry`) stay untranslated, `opaqueInitsOk`.''',
+    alloc_types={'_encoderNameToConstructor': 'Loc', '_errArrayElemPool': 'Loc', '_globalL': 'Loc',
+                 '_globalS': 'Loc'},
+    before={
+        '_encoderNameToConstructor': map_lit_steps('Henc', 'GoString', 'GoFunc', 'go.string', _ZENC, 2),
+        '_errArrayElemPool': _zc_pool('pea'),
+        '_globalL': ['try wp_auto',
+                     'ihave #HNN : (iprop(isPkgInit (PROP := IProp GF) pkg_id.io ∗ isPkgInit (PROP := IProp GF) '
+                     'pkg_id.go_uber_org.zap.zapcore) : IProp GF) $$ []',
+                     '· isplitl []', '  · iexact {Hd:io}', '  · iexact {Hd:go_uber_org.zap.zapcore}',
+                     'wp_apply EtcdGrove.zap_wp_NewNop_init $$ HNN as %lgl ⟨%vgl, Hgl⟩', 'try wp_auto'],
+        '_globalS': ['try wp_auto', 'wp_apply (EtcdGrove.zap_wp_Sugar_init lgl vgl) $$ Hgl as %sgl Hgl', 'try wp_auto'],
+    },
+    pre=[
+        'section zapinit',
+        'variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]',
+        'variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [sem : go.Semantics]',
+        'variable [package_sem : _root_.Perennial.go_uber_org.zap.Assumptions]',
+        '',
+        '/-- (prove-initleft) `zapcore.AddSync(w)` returns, whatever the writer (a type switch: `w` itself if',
+        'it is a `WriteSyncer`, else `writerWrapper{w}`). -/',
+        'theorem EtcdGrove.zap_wp_AddSync_init (w : GoInterface) :',
+        '    {{ (True : IProp GF) }} (App (Val (@! _root_.Perennial.go_uber_org.zap.zapcore.AddSync)) (Val #w))',
+        '    {{ (r : GoInterface), RET #r; True }} := by',
+        '  wp_start',
+        '  wp_auto',
+        '  rcases w with wo | _',
+        '  · wp_auto',
+        '    cases hws : go.typeSetContains wo.ty _root_.Perennial.go_uber_org.zap.zapcore.WriteSyncer.ty',
+        '    all_goals (wp_auto; iapply HΦ; itrivial)',
+        '  · wp_auto',
+        '    iapply HΦ',
+        '    itrivial',
+        '',
+        '/-- (prove-initleft) `zap.NewNop()` before zap\'s `isPkgInit`: a new `Logger` (its body: `NewNopCore()`,',
+        '`AddSync(io.Discard)`, `zapcore.DefaultClock`, from io\'s and zapcore\'s facts). -/',
+        'theorem EtcdGrove.zap_wp_NewNop_init :',
+        '    {{ isPkgInit (PROP := IProp GF) pkg_id.io ∗ isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap.zapcore }}',
+        '      (App (Val (@! _root_.Perennial.go_uber_org.zap.NewNop)) (Val #()))',
+        '    {{ (l : Loc), RET #l; ∃ v : _root_.Perennial.go_uber_org.zap.Logger, l ↦ v }} := by',
+        '  wp_start',
+        '  ihave #IO : (_root_.Perennial.io.isInit : IProp GF) $$ []',
+        '  · iapply isPkgInit_access $$ Hpkg',
+        '  iNamed IO',
+        '  icases HDiscard with ⟨%wd, #HDiscard⟩',
+        '  ihave #ZC : (iprop(∃ c : _root_.Perennial.go_uber_org.zap.zapcore.systemClock, typedPointsto (globalAddr',
+        '      _root_.Perennial.go_uber_org.zap.zapcore.DefaultClock) c DFrac.discard) : IProp GF) $$ []',
+        '  · iapply isPkgInit_access $$ Hpkg2',
+        '  icases ZC with ⟨%dc, #HDC⟩',
+        '  wp_auto',
+        '  wp_func_call',
+        '  wp_call',
+        '  wp_auto',
+        '  wp_apply EtcdGrove.zap_wp_AddSync_init as %ws -',
+        '  try wp_auto',
+        '  iapply HΦ',
+        '  iexists _',
+        '  iframe',
+        '',
+        '/-- (prove-initleft) `l.Sugar()` on a `Logger`: a copy of it (`clone`), its caller skip plus 2. -/',
+        'theorem EtcdGrove.zap_wp_Sugar_init (l : Loc) (v : _root_.Perennial.go_uber_org.zap.Logger) :',
+        '    {{ (l ↦ v : IProp GF) }}',
+        '      (App (Val (l @!! go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty @!! go!"Sugar")) (Val #()))',
+        '    {{ (s : Loc), RET #s; l ↦ v }} := by',
+        '  wp_start as Hl',
+        '  wp_auto',
+        '  wp_method_call',
+        '  wp_call',
+        '  wp_auto',
+        '  iapply HΦ',
+        '  iframe',
+        '',
+        'end zapinit'],
+    imports=['Proof.go_uber_org.zap.internal.pool.New'],
+), ['errNoEncoderNameSpecified'])
 _FG = 'go_etcd_io.etcd.pkg.v3.featuregate'
 SPECIAL['go_etcd_io.etcd.server.v3.features'] = dict(
     doc='''Its fact is `True`. Its initializer initializes its imports, allocates

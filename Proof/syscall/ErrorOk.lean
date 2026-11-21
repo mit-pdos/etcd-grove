@@ -64,8 +64,8 @@ theorem wp_arbitraryString' :
 
 /-- `Errno(e).Error()` returns some string. -/
 theorem errno_stringMethodSpec (e : w64) :
-    ⊢ EtcdGrove.fmt.stringMethodSpec (GF := GF) ⟨syscall.Errno.ty, #e⟩ go!"Error" := by
-  unfold EtcdGrove.fmt.stringMethodSpec
+    ⊢ _root_.Perennial.fmt.stringMethodSpec (GF := GF) ⟨syscall.Errno.ty, #e⟩ go!"Error" := by
+  unfold _root_.Perennial.fmt.stringMethodSpec
   imodintro
   iintro %Φ HΦ
   simp only [method_unfold]

@@ -1,0 +1,7 @@
+# (prove-initleft, 2026-11-21) types only: the interface `LeveledEnabler`, which zap's
+# `var _ internal.LeveledEnabler = AtomicLevel{}` (`level.go`) asserts `AtomicLevel` implements.
+translate = ["!*"]
+imports = ["!*", "go.uber.org/zap/zapcore"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

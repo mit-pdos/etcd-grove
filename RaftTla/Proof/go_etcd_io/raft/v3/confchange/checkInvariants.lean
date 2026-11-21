@@ -244,7 +244,7 @@ theorem confchange.checkInvariants.wp_proof
         · ipureintro; rfl
         iintro %sl' ⟨Hsl', -⟩
         wp_auto
-        wp_apply _root_.Perennial.fmt.wp_Errorf _ _ _ ?wf $$ [$Hsl'] as %e #He
+        wp_apply _root_.Perennial.fmt.wp_Errorf_argsWf _ _ _ ?wf $$ [$Hsl'] as %e #He
         case wf => raft_args_wf
         unfold forMapPostcondition
         iright; iright; iright
@@ -344,7 +344,7 @@ theorem confchange.checkInvariants.wp_proof
         · ipureintro; rfl
         iintro %sl' ⟨Hsl', -⟩
         wp_auto
-        wp_apply _root_.Perennial.fmt.wp_Errorf _ _ _ ?wf $$ [$Hsl'] as %e #He
+        wp_apply _root_.Perennial.fmt.wp_Errorf_argsWf _ _ _ ?wf $$ [$Hsl'] as %e #He
         case wf => raft_args_wf
         unfold forMapPostcondition
         iright; iright; iright
@@ -386,7 +386,7 @@ theorem confchange.checkInvariants.wp_proof
       · ipureintro; rfl
       iintro %sl' ⟨Hsl', -⟩
       wp_auto
-      wp_apply _root_.Perennial.fmt.wp_Errorf _ _ _ ?wf $$ [$Hsl'] as %e #He
+      wp_apply _root_.Perennial.fmt.wp_Errorf_argsWf _ _ _ ?wf $$ [$Hsl'] as %e #He
       case wf => raft_args_wf
       unfold forMapPostcondition
       iright; iright; iright
@@ -452,7 +452,7 @@ theorem confchange.checkInvariants.wp_proof
       · ipureintro; rfl
       iintro %sl' ⟨Hsl', -⟩
       wp_auto
-      wp_apply _root_.Perennial.fmt.wp_Errorf _ _ _ ?wf $$ [$Hsl'] as %e #He
+      wp_apply _root_.Perennial.fmt.wp_Errorf_argsWf _ _ _ ?wf $$ [$Hsl'] as %e #He
       case wf => raft_args_wf
       unfold forMapPostcondition
       iright; iright; iright
@@ -479,7 +479,7 @@ theorem confchange.checkInvariants.wp_proof
       · ipureintro; rfl
       iintro %sl' ⟨Hsl', -⟩
       wp_auto
-      wp_apply _root_.Perennial.fmt.wp_Errorf _ _ _ ?wf $$ [$Hsl'] as %e #He
+      wp_apply _root_.Perennial.fmt.wp_Errorf_argsWf _ _ _ ?wf $$ [$Hsl'] as %e #He
       case wf => raft_args_wf
       unfold forMapPostcondition
       iright; iright; iright
@@ -538,7 +538,7 @@ theorem confchange.checkInvariants.wp_proof
       · ipureintro; rfl
       iintro %sl' ⟨Hsl', -⟩
       wp_auto
-      wp_apply _root_.Perennial.fmt.wp_Errorf _ _ _ ?wf $$ [$Hsl'] as %e #He
+      wp_apply _root_.Perennial.fmt.wp_Errorf_argsWf _ _ _ ?wf $$ [$Hsl'] as %e #He
       case wf => raft_args_wf
       unfold forMapPostcondition
       iright; iright; iright
@@ -606,7 +606,7 @@ theorem confchange.checkInvariants.wp_proof
         wp_auto
         ihave Hnil : (slice.nil ↦* ([] : List GoAny)) $$ []
         · iapply ownSlice_nil
-        wp_apply _root_.Perennial.fmt.wp_Errorf _ _ _ ?wf $$ [$Hnil] as %e #He
+        wp_apply _root_.Perennial.fmt.wp_Errorf_argsWf _ _ _ ?wf $$ [$Hnil] as %e #He
         case wf => raft_args_wf
         iapply HΦ
         iframe Htrk Hprs
@@ -619,7 +619,7 @@ theorem confchange.checkInvariants.wp_proof
     · -- "cfg.LearnersNext must be nil when not joint"
       ihave Hnil : (slice.nil ↦* ([] : List GoAny)) $$ []
       · iapply ownSlice_nil
-      wp_apply _root_.Perennial.fmt.wp_Errorf _ _ _ ?wf $$ [$Hnil] as %e #He
+      wp_apply _root_.Perennial.fmt.wp_Errorf_argsWf _ _ _ ?wf $$ [$Hnil] as %e #He
       case wf => raft_args_wf
       iapply HΦ
       iframe Htrk Hprs

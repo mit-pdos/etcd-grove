@@ -4,7 +4,8 @@ Package initialization of `go_uber_org.zap.zapcore`
 `InitLinked.lean` (2026-11-19: the proof applies other packages' `wp_initialize'` and
 functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
 
-Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+Its fact: `DefaultClock` holds a fixed `systemClock` (zap's `NewNop`, which zap's
+initializer runs, loads it; prove-initleft, 2026-11-21: until then `True`). Its initializer initializes its imports, allocates its variables and runs
 their translated initializers and its translated `init` (prove-misc, 2026-11-20; until then the
 trust-boundary axioms `opaqueInitsOk` and `initFuncsOk`): the pools (`pool.New`, proved), the interface
 assertions, `nullLiteralBytes`, `errUnmarshalNilLevel` (`errors.New`), the level colors (a map literal)

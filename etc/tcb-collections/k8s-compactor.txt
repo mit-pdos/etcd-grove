@@ -12,7 +12,6 @@ axiom Client.Endpoints.wp_proof
 axiom context.WithCancelValCtx.wp_proof
 axiom envVerifyOffTok
 axiom errors.IsStatusErr.wp_proof
-axiom fmt.Errorf.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof
 axiom grpcAddrIsRaw

@@ -17,9 +17,6 @@ axiom NewLoggableTxnRequest.wp_proof
 axiom NewMaintenance.wp_proof
 axiom Perennial.bufio.opaqueInitsOk
 axiom Perennial.crypto.tls.opaqueInitsOk
-axiom Perennial.encoding.base64.RawURLEncoding_init
-axiom Perennial.encoding.base64.StdEncoding_init
-axiom Perennial.encoding.base64.opaqueInitsOk
 axiom Perennial.encoding.json.initFuncsOk
 axiom Perennial.encoding.json.opaqueInitsOk
 axiom Perennial.github_com.Masterminds.semver.v3.initFuncsOk
@@ -124,10 +121,6 @@ axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
 axiom etcdserverpb.AlarmType.String.wp_proof
 axiom features.NewDefaultServerFeatureGate.wp_proof
-axiom fmt.Errorf.wp_proof
-axiom fmt.ErrorfPlain.wp_proof
-axiom fmt.SprintfArgs.wp_proof
-axiom fmt.SprintfClientPtr.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom goose_adequacy_start
 axiom grpc.ChainStreamInterceptor.wp_proof
@@ -297,6 +290,7 @@ axiom resolver.EtcdManualResolver.Close.wp_proof
 axiom resolver.EtcdManualResolver.SetEndpoints.wp_proof
 axiom resolver.New.wp_proof
 axiom rpctypes.errDesc_etcdError
+axiom rpctypes.errDesc_wrapError
 axiom schema.MustUnsafeGetAllLeases.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
 axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof

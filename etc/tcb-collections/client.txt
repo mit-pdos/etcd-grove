@@ -31,8 +31,6 @@ axiom errors.IsStatusErr.wp_proof
 axiom etcdResolverOwn
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
-axiom fmt.Errorf.wp_proof
-axiom fmt.SprintfClientPtr.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof
@@ -107,6 +105,7 @@ axiom resolver.EtcdManualResolver.Close.wp_proof
 axiom resolver.EtcdManualResolver.SetEndpoints.wp_proof
 axiom resolver.New.wp_proof
 axiom rpctypes.errDesc_etcdError
+axiom rpctypes.errDesc_wrapError
 axiom sort.SliceIsSorted.wp_proof
 axiom sort.Sort.wp_anyLess
 axiom sort.Stable.wp_proof

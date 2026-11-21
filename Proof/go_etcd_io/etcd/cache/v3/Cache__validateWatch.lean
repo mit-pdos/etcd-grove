@@ -50,8 +50,8 @@ theorem Cache.validateWatch.wp_proof
   · iapply isPkgInit_access $$ Hpkg
   icases Hci with ⟨-, ⟨%eUR, #HeURp⟩, ⟨%eKR, #HeKR⟩, -, -, #HUR⟩
   ihave ⟨#HeUR', %HfUR⟩ := HUR $$ HeURp
-  ihave #HeUR : EtcdGrove.fmt.stringMethodSpec eUR go!"Error" $$ []
-  · rw [show EtcdGrove.fmt.stringMethodSpec eUR go!"Error" = errorStringSpec eUR from rfl]
+  ihave #HeUR : _root_.Perennial.fmt.stringMethodSpec eUR go!"Error" $$ []
+  · rw [show _root_.Perennial.fmt.stringMethodSpec eUR go!"Error" = errorStringSpec eUR from rfl]
     iexact HeUR'
   ihave #Hcl : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
@@ -72,7 +72,7 @@ theorem Cache.validateWatch.wp_proof
     iexists e
     isplitr
     · ipureintro; simp
-    rw [show errorStringSpec e = EtcdGrove.fmt.stringMethodSpec e go!"Error" from rfl]; iexact HeS
+    rw [show errorStringSpec e = _root_.Perennial.fmt.stringMethodSpec e go!"Error" from rfl]; iexact HeS
   have HprevKV : o.prevKV = false := by simpa using Hif
   wp_apply wp_IsFragment $$ [$op $Ho] as op
   wp_if_destruct
@@ -90,7 +90,7 @@ theorem Cache.validateWatch.wp_proof
     iexists e
     isplitr
     · ipureintro; simp
-    rw [show errorStringSpec e = EtcdGrove.fmt.stringMethodSpec e go!"Error" from rfl]; iexact HeS
+    rw [show errorStringSpec e = _root_.Perennial.fmt.stringMethodSpec e go!"Error" from rfl]; iexact HeS
   have Hfragment : o.fragment = false := by simpa using Hif
   wp_apply wp_IsCreatedNotify $$ [$op $Ho] as op
   wp_if_destruct
@@ -108,7 +108,7 @@ theorem Cache.validateWatch.wp_proof
     iexists e
     isplitr
     · ipureintro; simp
-    rw [show errorStringSpec e = EtcdGrove.fmt.stringMethodSpec e go!"Error" from rfl]; iexact HeS
+    rw [show errorStringSpec e = _root_.Perennial.fmt.stringMethodSpec e go!"Error" from rfl]; iexact HeS
   have HcreatedNotify : o.createdNotify = false := by simpa using Hif
   wp_apply wp_IsFilterPut $$ [$op $Ho] as op
   wp_if_destruct
@@ -126,7 +126,7 @@ theorem Cache.validateWatch.wp_proof
     iexists e
     isplitr
     · ipureintro; simp
-    rw [show errorStringSpec e = EtcdGrove.fmt.stringMethodSpec e go!"Error" from rfl]; iexact HeS
+    rw [show errorStringSpec e = _root_.Perennial.fmt.stringMethodSpec e go!"Error" from rfl]; iexact HeS
   have HfilterPut : o.filterPut = false := by simpa using Hif
   wp_apply wp_IsFilterDelete $$ [$op $Ho] as op
   wp_if_destruct
@@ -144,7 +144,7 @@ theorem Cache.validateWatch.wp_proof
     iexists e
     isplitr
     · ipureintro; simp
-    rw [show errorStringSpec e = EtcdGrove.fmt.stringMethodSpec e go!"Error" from rfl]; iexact HeS
+    rw [show errorStringSpec e = _root_.Perennial.fmt.stringMethodSpec e go!"Error" from rfl]; iexact HeS
   have HfilterDelete : o.filterDelete = false := by simpa using Hif
   have hu : o.watchUnsupported = false := by simp [OpModel.watchUnsupported, HprevKV, Hfragment, HcreatedNotify, HfilterPut, HfilterDelete]
   wp_apply wp_string_to_bytes key as %ssl ⟨Hssl, -⟩

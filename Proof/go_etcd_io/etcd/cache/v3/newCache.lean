@@ -55,7 +55,7 @@ theorem newCache.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply fmt.wp_Errorf _ _ _ ?wf $$ [$Hfmt $Hsl] as %e -
+    wp_apply _root_.Perennial.fmt.wp_Errorf_argsWf _ _ _ ?wf $$ [$Hfmt $Hsl] as %e -
     case wf =>
       try simp only [show sint.nat (W64 (0 + 1)) = 1 by rfl, List.set_cons_succ, List.set_cons_zero]
       repeat' first
@@ -75,7 +75,7 @@ theorem newCache.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply fmt.wp_Errorf _ _ _ ?wf $$ [$Hfmt $Hsl] as %e -
+    wp_apply _root_.Perennial.fmt.wp_Errorf_argsWf _ _ _ ?wf $$ [$Hfmt $Hsl] as %e -
     case wf =>
       try simp only [show sint.nat (W64 (0 + 1)) = 1 by rfl, List.set_cons_succ, List.set_cons_zero]
       repeat' first

@@ -13,6 +13,7 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/go_etcd_io/etcd/server/v3/storage/wal/Link\.lean
 axiom binary.ReadInt64LE.wp_proof
+axiom fmt.ErrorfStrs.wp_proof
 axiom fmt.SprintfWalName.wp_proof
 axiom fmt.SscanfWalName.wp_proof
 axiom io.ReadFull.wp_proof

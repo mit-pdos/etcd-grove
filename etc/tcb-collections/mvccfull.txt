@@ -58,7 +58,6 @@ axiom dataDirAbsent
 axiom dataDirFresh
 axiom dataDirsApart
 axiom envVerifyOffTok
-axiom fmt.Errorf.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom goose_adequacy_start
 axiom httpProtoFree
@@ -86,6 +85,7 @@ axiom proto.Marshal.wp_proof
 axiom proto.Unmarshal.wp_proof
 axiom reflect.DeepEqual.wp_proof_pgidSet
 axiom rpctypes.errDesc_etcdError
+axiom rpctypes.errDesc_wrapError
 axiom schema.MustUnsafeGetAllLeases.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
 axiom semver.Version.String.wp_proof
