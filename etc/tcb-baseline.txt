@@ -69,7 +69,6 @@ axiom Perennial.k8s_io.apimachinery.pkg.api.meta.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.api.validate.content.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.apis.meta.v1.initFuncsOk
 axiom Perennial.k8s_io.apimachinery.pkg.apis.meta.v1.opaqueInitsOk
-axiom Perennial.k8s_io.apimachinery.pkg.fields.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.runtime.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.util.validation.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.util.version.opaqueInitsOk
@@ -260,9 +259,7 @@ axiom http.respWriteHeader_ok
 axiom http.respWrite_ok
 axiom httpProtoFree
 axiom httputil.GracefulClose.wp_proof
-axiom io.CopyN.wp_proof
 axiom io.MultiReader.wp_proof
-axiom io.NewSectionReader.wp_proof
 axiom io.Pipe.wp_proof
 axiom io.PipeWriter.CloseWithError.wp_proof
 axiom klog.Background.wp_proof

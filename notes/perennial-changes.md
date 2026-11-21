@@ -17,6 +17,21 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Goose keeps a struct axiomatized when a field's type is another package's alias (2026-11-21, prove-k8s4)
+
+- **Limitation.** `translate_types` fails a type whose definition mentions an alias of another package
+  (`goose/util/autotypes.go`: "alias from another package"), whatever that package's translation does with
+  the alias. So `watch.FakeWatcher`/`RaceFreeFakeWatcher` (field `logger klog.Logger`, klog translating
+  `Logger = logr.Logger`) stay opaque, and the `var _ Interface = &FakeWatcher{}` checks of `watch`'s
+  initializer cannot be stepped: `watch.opaqueInitsOk` stays.
+- **Workaround.** None: the axiom stays.
+- **Proposed change.** Goose decides such an alias with the imported package's own translation decision
+  (its configuration in the same configuration directory, extended by `ExtendFilter`), with the goose example
+  `xpkgalias`: Perennial PR mit-pdos/perennial#646 (in review). Then `watch.toml` imports `sync` and klog and
+  translates `DefaultChanSize` and `_` (`/shared/tmp/k8s4/watch-toml.patch`), and gen-init proves `watch`'s
+  initializer.
+- **Status.** Open (PR #646 in review).
+
 ### `strconv.Atoi` had no body: landed in Perennial `78ac98e99`, not yet in the pin (2026-11-21, prove-metrics3)
 
 - **Limitation.** Perennial translated `strconv` without `Atoi`, so otel trace's `firstEnv` (`maxSpan =
@@ -280,6 +295,12 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   written` left", the type assertions `src.(WriterTo)` (a `*LimitedReader` has none) and
   `dst.(ReaderFrom)` (excluded by `writerPlain`) by the method sets goose emits. The axioms then
   become theorems with the same statements. Not yet proposed.
+- **Status.** DONE (stdlib3, 2026-11-21): Perennial `9097e1e6d` translates the seven (`io.toml`);
+  etcd-grove proves both specs over the translation (`Proof/io/NewSectionReader.lean`,
+  `Proof/io/CopyN.lean`). `io.secReader` is now defined (the struct's points-to, with
+  `NewSectionReader`'s premises), and `io.readerAtOk`'s post says the error is well-typed
+  (`io.ptrTyped`: comparing it with `io.EOF` must step; `os.File.readerAtOk` proves it). The proofs
+  stayed in etcd-grove (the contracts are etcd-grove's); moving them to Perennial is still open.
 
 ### `wp_auto`'s free-variable checks were exponential on struct values: landed, in the pin since `3afd77e35` (2026-11-18, perf2; pin bump 2026-11-19)
 
@@ -1803,6 +1824,17 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Status.** Recorded only.
 
 ## Landed
+
+### `strings.NewReplacer` and `Replacer` not translated (2026-11-21, prove-k8s4; landed 2026-11-21, Perennial `60800ea5e`, in the pin since the ncfupd bump)
+
+- **Missing.** Perennial's `strings` translated neither `NewReplacer` nor `Replacer`'s definition (its `once
+  sync.Once` and `r replacer` fields: `strings.toml` imported neither `sync` nor `io`).
+- **Needed by.** k8s `fields`' `valueEscaper = strings.NewReplacer(...)` (`fields.opaqueInitsOk`).
+- **Change.** `strings.toml` translates `NewReplacer` and imports `sync` and `io` (as Go's `strings` does);
+  `strings.NewReplacer.spec` (an even number of strings: a new `Replacer` holding a copy, `strings.ownReplacer`)
+  proved; `strings.initialize'.wp_proof` takes io's and sync's init specs. On Perennial `lean` as `60800ea5e`;
+  pinned with the ncfupd bump (`2ca9ce4d1d`). (Briefly pinned as a cherry-pick, `b3f7173f8`, since lean's
+  commits in between need etcd-grove changes of their own).
 
 ### Goose: a struct field (or type argument) of type `rune` fails to translate (2026-11-20, prove-b64clock; landed 2026-11-21, Perennial `1a1bb0633`, `ef31258ab`, `c8e356cb1`; pin bumped 2026-11-21)
 
