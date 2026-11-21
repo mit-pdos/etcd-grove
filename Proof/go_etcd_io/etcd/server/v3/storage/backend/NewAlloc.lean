@@ -9,6 +9,7 @@ counterpart); 2026-10-17, branch `construct`.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.NewLemmas
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.BmStock
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvNew
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.CommitLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.HooksLoeb
@@ -246,39 +247,6 @@ theorem rep_zip2 (n : Nat) (A B : IProp GF) :
     iframe Ha1 Hb1
     iapply ih $$ [$Ha $Hb]
 
-/-- One copy and `rdSlotsN` copies. -/
-theorem rep_one_slots (A : IProp GF) :
-    ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), A) ⊢
-      A ∗ [∗list] _x ∈ List.replicate rdSlotsN (), A := by
-  rw [← rdSlotsN_add_one, List.replicate_succ]
-  iintro H
-  icases BigSepL.bigSepL_cons.1 $$ H with ⟨H1, H⟩
-  iframe
-
-/-- **`b.mu`'s read slots past the batch transaction's** (backend-snapshot B3), one for each
-reader's token, as one opaque resource: irreducible, so that framing in `newBackend` (whose context
-holds other lists of `actualMaxReaders` slots) never unifies it with them (a replicated list of about
-`2 ^ 30` elements: 61 GB, 2026-11-21). -/
-@[irreducible] def bmStock (b db : Loc) : IProp GF :=
-  iprop([∗list] _x ∈ List.replicate rdSlotsN (),
-    sync.ownRWMutex (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db))
-
-theorem bmStock_unfold (b db : Loc) :
-    bmStock (GF := GF) b db ⊣⊢ [∗list] _x ∈ List.replicate rdSlotsN (),
-      sync.ownRWMutex (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) := by
-  unfold bmStock; exact .rfl
-
-/-- `b.mu`'s slots from its initialization: the batch transaction's and the stock. -/
-theorem bm_slots_split (b db : Loc) :
-    ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
-      sync.ownRWMutex (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db)) ⊢
-    sync.ownRWMutex (GF := GF) (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗
-      bmStock b db := by
-  refine (rep_one_slots _).trans ?_
-  iintro ⟨H1, H⟩
-  iframe H1
-  iapply (bmStock_unfold b db).2
-  iexact H
 
 theorem cacheInv_alloc (γ : BNames) :
     ghostMapAuth (GF := GF) γ.cached 1 (∅ : GMap (w64 × Nat) Bool) ∗
