@@ -29,13 +29,13 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 variable [go_etcd_io.bbolt.Assumptions] [go_uber_org.zap.Assumptions] [_root_.Perennial.time.Assumptions]
 
-theorem backend.batchTxBuffered.Commit.wp_proof
+theorem backend.batchTxBuffered.Commit.wp_proofCnt
     (hlock : backend.batchTx.lock.spec (GF := GF) (hG := hG))
     (hC : backend.batchTxBuffered.commit.spec (GF := GF) (hG := hG))
     (hBU : backend.batchTx.Unlock.spec (GF := GF) (hG := hG)) :
-    backend.batchTxBuffered.Commit.spec (GF := GF) (hG := hG) := by
-  intro γ P W Pk b t qo X Y
-  wp_start as ⟨#Hb, #Ht, Ho, Htok, HX, #Hrq⟩
+    backend.batchTxBuffered.Commit.specCnt (GF := GF) (hG := hG) := by
+  intro γ P W Pk b t qo X Y n
+  wp_start as ⟨#Hb, #Ht, Ho, Htok, HX, #Hrq, #Hlb⟩
   unfold bOpen
   icases Ho with ⟨Ho, Hcls⟩
   icases isBackend_b γ P W Pk b $$ Hb with
@@ -47,7 +47,8 @@ theorem backend.batchTxBuffered.Commit.wp_proof
   · iframe #
   ihave Hl := batchLocked_W γ P b st $$ Hl
   ihave #Hacc0 := rbAcc_nil (hG := hG) γ (fun n _ v => v = bktOf st.S n) iprop(True) ⊤
-  wp_apply (hC γ P W Pk b t rt st false false 0 0 X Y (vData P (st.C, st.R)) false [] iprop(True) ⊤ CoPset.subseteq_top) $$ [$Hl $HWR Htok $HX] as ⟨HY, -, HWR, -, Hpost⟩
+  wp_apply (hC γ P W Pk b t rt st false false 0 0 X Y (vData P (st.C, st.R)) false [] iprop(True) ⊤ n iprop(True)
+      CoPset.subseteq_top) $$ [$Hl $HWR Htok $HX HWv] as ⟨HY, -, HWR, -, Hpost, Hcnt⟩
   · iframe #
     isplitr
     · ipureintro
@@ -63,8 +64,13 @@ theorem backend.batchTxBuffered.Commit.wp_proof
     unfold payIn
     rw [if_neg (by decide), if_pos rfl]
     iframe Htok
-    ipureintro; exact ⟨List.nodup_nil, Or.inl rfl⟩
+    isplitr
+    · ipureintro; exact ⟨List.nodup_nil, Or.inl rfl⟩
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    iframe
+    try iframe #
   try simp only [Bool.false_eq_true, ↓reduceIte]
+  icases Hcnt with ⟨#Hlb', HWv⟩
   icases Hpost with ⟨%st2, %db2, Hown, Hph2, Hg2, %Hfin, -⟩
   wp_method_call
   wp_call
@@ -87,6 +93,22 @@ theorem backend.batchTxBuffered.Commit.wp_proof
       exact Hfin.1
   iapply HΦ
   iframe
+  iframe #
+
+/-- `Commit.spec`, from `Commit.specCnt` at the trivial lower bound. -/
+theorem backend.batchTxBuffered.Commit.wp_proof
+    (hlock : backend.batchTx.lock.spec (GF := GF) (hG := hG))
+    (hC : backend.batchTxBuffered.commit.spec (GF := GF) (hG := hG))
+    (hBU : backend.batchTx.Unlock.spec (GF := GF) (hG := hG)) :
+    backend.batchTxBuffered.Commit.spec (GF := GF) (hG := hG) := by
+  intro γ P W Pk b t qo X Y
+  wp_start_folded as ⟨#Hb, #Ht, Ho, Htok, HX, #Hrq⟩
+  ihave #Hlb := backend.cntLb_zero (GF := GF) γ
+  wp_apply (backend.batchTxBuffered.Commit.wp_proofCnt hlock hC hBU γ P W Pk b t qo X Y 0)
+      $$ [$Ho $Htok $HX] as ⟨Ho, HY, -⟩
+  · iframe #
+  iapply HΦ
+  iframe Ho HY
 
 end proof
 

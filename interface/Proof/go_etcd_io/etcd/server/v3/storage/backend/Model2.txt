@@ -229,6 +229,9 @@ structure backend.BParams : Type where
   limit : w64
   FV : Prop
 
+theorem backend.pend_add_one_ne {p : w64} (h0 : 0 ≤ sint.Z p) (h1 : sint.Z p < 2 ^ 58) : p + W64 1 ≠
+    W64 0
+
 def backend.fkAbsB (P : backend.BParams) (B : GMap w64 (List backend.Ent)) : Prop :=
   ∀ (n k : GoString) (i : w64),
     backend.fkKey n k → P.BT !! n = some i → ∀ (e : backend.Ent), e ∈ backend.bkOf B i → e.fst ≠ k
@@ -273,7 +276,7 @@ def backend.sessWf (P : backend.BParams) (st : backend.BSess) : Prop :=
                   (st.pend = W64 0 → ∀ (i : w64), backend.bkOf st.R.bks i = []) ∧
                     (st.ndel = W64 0 →
                         backend.agreeOff P.HB (backend.dget st.S) (backend.ovB P.BT st.W.bks (backend.viewOf P st))) ∧
-                      backend.safeSt P st
+                      backend.safeSt P st ∧ (st.pend = W64 0 → st.S = st.C)
 
 def backend.fkOk (P : backend.BParams) (f : Nat) (w : Bool) (st : backend.BSess) : Prop :=
   (f = 0 → backend.fkAbsSt P st) ∧ (w = true → backend.fkWfSt P st)
@@ -425,6 +428,9 @@ def backend.safeRv (P : backend.BParams) (rv : backend.RView) : Prop :=
 
 def backend.idsOk (P : backend.BParams) (B : GMap w64 (List backend.Ent)) : Prop :=
   ∀ (i : w64) (es : List backend.Ent), B !! i = some es → ∃ n, P.BT !! n = some i
+
+theorem backend.sessWf_pendC {P : backend.BParams} {st : backend.BSess} (h : backend.sessWf P st)
+    (hp : st.pend = W64 0) : st.S = st.C
 
 def backend.rangeLimit (endKey : GoString) (limit : w64) : w64 :=
   if endKey = [] then W64 1 else if sint.Z limit ≤ 0 then W64 (2 ^ 63 - 1) else limit

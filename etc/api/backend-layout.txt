@@ -418,3 +418,5 @@ Spec.go_etcd_io.etcd.server.v3.storage.backend.unsafeForEach Perennial.EtcdGrove
 Spec.go_etcd_io.etcd.server.v3.storage.backend.unsafeForEach Perennial.EtcdGrove.unsafeForEach.spec  # missing: a spec file declares its spec
 Spec.go_etcd_io.etcd.server.v3.storage.backend.unsafeRange Perennial.EtcdGrove.backend.unsafeRange.spec  # exposed by a spec file (def)
 Spec.go_etcd_io.etcd.server.v3.storage.backend.unsafeRange Perennial.EtcdGrove.unsafeRange.spec  # missing: a spec file declares its spec
+Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__Commit Perennial.EtcdGrove.backend.batchTxBuffered.Commit.wp_proofCnt  # exposed by a proof file (theorem)
+Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__Commit Perennial.EtcdGrove.backend.batchTxBuffered.Commit.specCnt  # exposed by a spec file (def)

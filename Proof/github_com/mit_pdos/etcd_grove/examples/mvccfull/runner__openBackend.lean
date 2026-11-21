@@ -45,7 +45,7 @@ private theorem wp_DefaultBackendConfig' (lg : Loc) :
   wp_start as #Hpkg
   ihave Hbi : (backendInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hbi with ⟨-, -, -, -, -, #Hbi, #Hbl, #Hms⟩
+  icases Hbi with ⟨-, -, -, -, -, #Hbi, #Hbl, #Hms, -⟩
   wp_auto
   iapply HΦ
   ipureintro
