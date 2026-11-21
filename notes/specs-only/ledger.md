@@ -3534,3 +3534,17 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `EtcdServer.Process`) and `Transport.Start`'s premise and `trFixed` (to `Transport.Send`). Converges to the spec plan's
   `v2stats.isServerStats`.
 - **Decision.** Applied (prove-rafthttpfix, 2026-11-20).
+
+## 2026-11-20: `proto.SizeMessage` claims `0 ≤ n` of a message with shared sub-messages (prove-rafthttpfix)
+
+- **Spec.** `proto.SizeMessage.spec` (`Spec/google_golang_org/protobuf/proto/SizeMessage.lean`, a trust-boundary axiom);
+  `rafthttp.msgAppV2Decoder.decode.spec`; the stream path's codec parameter.
+- **Defect.** As recorded by prove-protootel the same day (`notes/axiom-review/proto-size-wrap.md` on its branch):
+  protobuf-go's size sum wraps, and `msgPtsC` admits a repeated entry pointer and unowned responses, so `0 ≤ n` is false.
+- **Evidence.** prove-protootel's `examples/axiomcx/protosizewrap`; `notes/axiom-review/proto-sizemessage-fix.md`.
+- **Proposed change.** Two forms: over `msgPtsC`, no claim on the result; over `msgPtsCC l … c` with `c.resps = []`,
+  `msgSize c < 2^63 → sint.Z n = msgSize c` (as `proto.SizePb`). The two counting callers discharge the bound:
+  `snapshotHandler.ServeHTTP` from `decodeLimit`'s 64 MiB and `MsgDecC`; `streamReader.decodeLoop` from `msgSizeOk`, now
+  unconditional (the stream codec's `Sz` is `True`, every sender's bundle being bounded; the msgappv2 decoder's post
+  `Sz → msgSizeOk c`, heartbeats included).
+- **Decision.** Applied (prove-rafthttpfix, 2026-11-20).

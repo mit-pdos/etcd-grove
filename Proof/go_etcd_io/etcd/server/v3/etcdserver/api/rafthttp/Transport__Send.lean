@@ -157,7 +157,7 @@ theorem rafthttp.Transport.Send.wp_proof
       by_cases ha : st.msg.Type' = MsgApp
       · rw [_root_.decide_eq_true ha]
         (try wp_auto)
-        wp_apply hSize ml _ _ _ st $$ [] as %sz -
+        wp_apply hSize.1 ml _ _ _ st $$ [] as %sz -
         · iframe #
         wp_apply hSendApp ss sz $$ []
         · iframe #; ipureintro; exact Hssnn
@@ -186,6 +186,8 @@ theorem rafthttp.Transport.Send.wp_proof
           (Φ := fun id g => iprop(remoteOk Rh lid id R g)) hr $$ Hro
         simp only [Option.getD_some, Option.isSome_some, _root_.decide_true]
         (try wp_auto)
+        -- (rafthttpfix) the pipeline's content fact at the payload's `Sz`
+        ihave #Hbd2 := msgSzC_mono (Sz' := Rh.γn.N.Sz) (fun _ => trivial) _ _ $$ Hbd
         wp_apply hRemoteSend Rh lid st.msg.To' R g ml $$ [HO]
         · iframe #
           iunfold pipeMsg; iexists st; iframe; iframe #; ipureintro

@@ -103,7 +103,7 @@ theorem EtcdServer.Process.wp_proof
     (try wp_auto)
     wp_apply wp_String sm'.msg.From' as %fs -
     (try wp_auto)
-    wp_apply wp_SizeMessage ml _ _ _ sm' $$ [Hm] as %sz ⟨Hm, -⟩
+    wp_apply wp_SizeMessage.1 ml _ _ _ sm' $$ [Hm] as %sz Hm
     · iframe #; iframe Hm
     (try wp_auto)
     wp_apply wp_RecvAppendReq st fs sz
