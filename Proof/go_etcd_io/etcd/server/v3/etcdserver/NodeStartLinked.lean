@@ -79,7 +79,7 @@ theorem raftNode_of_StartNode
   icases Hboot with ⟨#Hnboot, HrS, Hvac⟩
   wp_apply (wp_bnr E γr b ss wal cl sd dq bv cv lok γs [] ν pv ps ctxs
     (fun K => iprop(memStorInv bv.storage' γs γr.cl K ∗
-      memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)))) .fresh)
+      memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)))) .fresh (snapshotValid γr.cl) (fun _ => by iintro H; iexact H))
     $$ [Hb Hc Hbs Hpeers HrS Hvac]
     as %r Hpost
   · iframe #; iframe Hb Hc Hpeers
@@ -95,7 +95,7 @@ theorem raftNode_of_StartNode
     isplitl [Hvac]
     · iExactEq Hvac; rfl
     iExactEq HrS; rfl
-  icases Hpost with ⟨%n, %γw, %f, %st, %Hnames, #Hnode, Hrun, Hbpost, #Hidri, #Hsti, Hrd1, Hrd2,
+  icases Hpost with ⟨%n, %γw, %f, %st, %Hnames, #Hnode, Hrun, #Hpin, Hbpost, #Hidri, #Hsti, Hrd1, Hrd2,
     Hbuilt, Hb, Hpeers, ⟨#Hminv, Hmeta⟩⟩
   simp only [rnBootPost, RNBoot.P]
   icases Hbpost with ⟨#Hsfresh, Hdrv, HrS, Hncfg⟩
@@ -286,7 +286,7 @@ theorem raftNode_of_RestartNode
   wp_apply (wp_bnr E γr b ss wal cl sd dq bv cv lok γs [] ν pv [] ctxs
     (fun K => iprop(memStorInv bv.storage' γs γr.cl K ∗ memStorMeta bv.storage' γs σ.hs ∗
       memSnapNone γs (walSnapCS σ cs)))
-    (.restart σ cs S A₀.length (Membership.simple γr.cfg) A₀))
+    (.restart σ cs S A₀.length (Membership.simple γr.cfg) A₀) (snapshotValid γr.cl) (fun _ => by iintro H; iexact H))
     $$ [Hb Hc Hbs Hpeers HrS Hvac]
     as %r Hpost
   · iframe #; iframe Hb Hc Hpeers
@@ -306,7 +306,7 @@ theorem raftNode_of_RestartNode
     isplitl [HrS]
     · iExactEq HrS; rfl
     iExactEq Hconf; rfl
-  icases Hpost with ⟨%n, %γw, %f, %st, %Hnames, #Hnode, Hrun, Hbpost, #Hidri, #Hsti, Hrd1, Hrd2,
+  icases Hpost with ⟨%n, %γw, %f, %st, %Hnames, #Hnode, Hrun, #Hpin, Hbpost, #Hidri, #Hsti, Hrd1, Hrd2,
     Hbuilt, Hb, Hpeers, ⟨#Hminv, Hmeta, Hsnone⟩⟩
   simp only [rnBootPost, RNBoot.P]
   icases Hbpost with ⟨%l, #Hl, %Hll, Hdrv, HrS, Hncfg⟩

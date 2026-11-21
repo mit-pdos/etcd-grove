@@ -41452,3 +41452,14 @@ contracts (`attemptPre conn om …`, `clientAttemptMd conn om md`, `clientOpAuOn
 Axioms restated (none added): `AppendToOutgoingContext`, `withVersion`, `streamKeyFromCtx`,
 `WithCancelValCtx`, `WithTimeoutBackgroundMd`, `ClientConn.NewStream` (and the meaning of
 `ClientConn.Invoke`'s and `WithRequireLeader`'s through `grpcInvokerOk`/`outgoingCtxOkC`).
+
+### Match a queued snapshot to the server’s apply job (2026-11-20)
+
+A message in `msgSnapC` keeps its own Ready observation. The apply job
+keeps the observation from the batch it is applying. These can be different
+batches. At equal sender and apply terms, the two observations bound a
+restored snapshot directly. For an image obtained from memory storage, use
+its origin at bootstrap, its creator’s applied-index lower bound, or its
+local installation receipt. The saved node location identifies the
+incarnation that installed the snapshot. The server rule leaves the apply
+thread’s index authority available for the remainder of the job.
