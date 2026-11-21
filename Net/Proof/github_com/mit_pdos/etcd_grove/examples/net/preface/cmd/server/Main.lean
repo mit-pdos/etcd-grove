@@ -43,8 +43,7 @@ theorem wp_main
     (γm : GName) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.net.preface.cmd.server ∗
         pfInvs γm ∗
-        ⌜(G (Gg := hG.goose_globalGS)).plan !! srvAddr =
-          some (extLocalGS netExt (L := hG.goose_localGS)).host⌝ }}
+        ⌜addrOk srvAddr = true⌝ }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
   wp_start as ⟨#Hinvs, %Hplan⟩

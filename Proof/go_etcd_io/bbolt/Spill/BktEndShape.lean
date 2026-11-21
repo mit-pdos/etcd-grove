@@ -90,9 +90,9 @@ tree's pages) plain. -/
 theorem rootShape_of_els {P : Pages} {hwm root : Nat} {lo hi : Option (List w8)} {h : Nat}
     {S : List Nat} {E : List El} (hs : sTree P hwm root lo hi h S) (hE : treeEls P root = E)
     (hel : ∀ e ∈ E, e.1 % 2 = bucketLeafFlag ∧ (0 < e.2.1.length ∧ e.2.1.length ≤ maxKeySize) ∧
-      e.2.1.length + e.2.2.length ≤ bboltEntryMax)
+      entryBytesFit e.2.1.length e.2.2.length)
     (hnest : ∀ e ∈ E, ∀ bpg, bktLeafPg (treePages P root) e.2.2 bpg → ∀ j < pageCount bpg,
-      leafFlags bpg j % 2 = 0 ∧ 0 < leafKsize bpg j ∧ leafKsize bpg j + leafVsize bpg j ≤ bboltEntryMax) :
+      leafFlags bpg j % 2 = 0 ∧ 0 < leafKsize bpg j ∧ entryBytesFit (leafKsize bpg j) (leafVsize bpg j)) :
     rootShape (treePages P root) root := by
   intro id pg hown hpg hl i hix
   have hown' := ownHas_le (treePages_le P root) hown

@@ -7,19 +7,20 @@ example measured on Linux in `examples/net/semantics/` (its `doc.go` indexes the
 `D1`...), and an `example` of `GooseLang/Ext/Net/Tests.lean` (outside the trust base) that the
 relations allow or exclude what the Go example shows; `notes/net-tcp.md` gives the reasons
 (`notes/net-tcp-v3-plan.md` for v3, D14-D21; `notes/dsverify-net-port-plan.md`, phase 2, for v3.3,
-D23-D25).
+D23-D25; `notes/net-tcp.md`, v3.4, for the network without a plan).
 
-**Version v3.3** (2026-11-19). History: v1 (2026-11-12, every byte ever sent and a `broken` flag),
+**Version v3.4** (2026-11-20). History: v1 (2026-11-12, every byte ever sent and a `broken` flag),
 v2 (observable state only: the unread bytes and a status), v2.1 (a failing `Write` may write
 nothing; id 0 names nothing; the deployment, D13), v3 (Go's error values and D14-D21), v3.1 (a
 `Write` is Go's loop of steps, D2/D15: v3's one-step `Write` could time out only with a deadline set
 at its start; the v3 review's R1, `notes/axiom-review/tcp-semantics.md`), v3.2 (every operation may
 stutter, which is how waiting is modeled, and an invalid use panics: D22, the convention of
 Perennial's Grove extension), v3.3 (the network `"tcp4"`, D23; socket options, D24; Go's write
-lock, D25: before it two `Write`s of one end could interleave their steps, which Go excludes).
+lock, D25: before it two `Write`s of one end could interleave their steps, which Go excludes),
+v3.4 (no plan and no hosts: any machine may listen at any valid address, D6, D13, D20, D21; it only
+adds behaviours, each starting from a step that was a panic: `notes/net-tcp.md`, v3.4).
 
-**State: only what a program can observe.** The global state (`NetGlobal`) is the deployment's
-plan (each address the program may use, and the host that may listen at it) and the connections.
+**State: only what a program can observe.** The global state (`NetGlobal`) is the connections.
 A connection (`NetConn`) has the address it was dialed to, whether it has been accepted, two ends
 (the dialer's `false`, the acceptor's `true`) and two directions. A direction (`NetDir`, from one
 end to the other) is the bytes written and not yet read, oldest first, and its status: `open` (the
@@ -27,8 +28,11 @@ writer may write more), `fin` (the writer shut its write side, by `Close` or `Cl
 `cut` (the connection broke: a reset, a kernel timeout, the death of the peer's process or
 machine). An end (`NetEnd`) is whether `Close` was called on it, and whether a read deadline and a
 write deadline are set; and each end has a write lock (`NetConn.lock`, D25), held by a `Write` of
-that end between its first step and its last, which a program sees in the order of the bytes. A node's local state (`NetLocal`) is its host and its listeners (each an
-address and whether it is open). Nothing records past operations.
+that end between its first step and its last, which a program sees in the order of the bytes. A
+node's local state (`NetLocal`) is its listeners (each the address it was asked to listen at, a
+valid address or a wildcard, and whether it is open). Nothing records past operations.
+**Initial states** (`NetLocal.init`, `NetGlobal.init`): a node has no listener, and the network
+no connection.
 
 **Handles.** A connection end is named by a 64-bit id, `2 c + s` for the connection `c` and the
 side `s` (0 the dialer, 1 the acceptor); a listener by a 64-bit id of its node. An operation on an
@@ -98,19 +102,26 @@ call's error (an `*os.SyscallError` around a `syscall.Errno`: `ECONNRESET`, `EPI
   on a closed end; otherwise the deadline is set if the time is not Go's zero time (`timeIsZero`,
   Go's `Time.IsZero`) and cleared if it is. Deadline values are not modeled: with a deadline set,
   any operation of that kind may time out.
-* D6 `"Listen"` of an address `a` (`ListenAt`, D21 for the wildcards): a panic (D22) unless `a` is
-  in the plan with this node's host. A new open listener at `a`; or a `sys` failure, which is the
-  only outcome if this node already has an open listener at `a` (`EADDRINUSE`).
+* D6 `"Listen"` of an address `a` (D21 for the wildcards): a panic (D22) unless `a` is valid
+  (`listenOk`: `addrOk`, D20, or a wildcard with a valid port, D21). A new open listener at `a`; or
+  a `sys` failure (`EADDRINUSE`; `EADDRNOTAVAIL`, an address that is not this machine's), which is
+  the only outcome if this node (a process: its `NetLocal`) already has an open listener at `a`.
+  Any node may listen at any valid address: the model does not know which machine owns an address (v3.4; the soundness
+  argument is `notes/net-tcp.md`'s: a `Listen` the kernel refuses is a failure the model allows,
+  and a connection the kernel delivers reaches a listener at its address on its owner, which the
+  model allows to accept it). Which machine listens where is the proofs' business (a ghost token
+  per address, `Ghost.lean`).
 * D7 `"Accept"` of a listener `l`: only `closed` once `l` is closed. Otherwise a connection dialed
-  to `l`'s address and not yet accepted, now accepted; or a `sys` failure; until one of these, it
-  waits (a stutter, D22). Pending
-  connections belong to the address, not to a listener, because a node's step sees only its own
-  local state and the network (Perennial's step relation): a `Dial` cannot see whether another node
-  listens, and a crash cannot reset connections. So a connection dialed when no listener was open,
-  or before the listening node's crash, may be accepted later: more than Linux, which refuses or
-  resets it, an outcome the dialer sees as a failure or a cut, which the model also allows.
-* D8 `"Dial"` of `a`: a panic (D22) unless `a` is in the plan. A new connection to `a`, not yet
-  accepted,
+  to an address `l` takes (`lisAccepts`: its own, or any address with its port for a wildcard,
+  D21) and not yet accepted, now accepted; or a `sys` failure; until one of these, it waits (a
+  stutter, D22). Pending connections belong to the address, not to a listener, because a node's
+  step sees only its own local state and the network (Perennial's step relation): a `Dial` cannot
+  see whether another node listens, and a crash cannot reset connections. So a connection dialed
+  when no listener was open, or before the listening node's crash, may be accepted later, by any
+  listener that takes its address, on any machine: more than Linux, which refuses or resets it,
+  an outcome the dialer sees as a failure or a cut, which the model also allows.
+* D8 `"Dial"` of `a`: a panic (D22) unless `a` is valid (`addrOk`, D20). A new connection to `a`,
+  not yet accepted,
   both ends fresh and both directions open and empty; or a `sys` failure (refused, unreachable);
   or (D16) a `sys` failure that leaves a connection to `a`, pending, whose dialer's end is closed
   and whose direction from it is `fin` and empty (`NetConn.abandoned`): Go's `connect` gives up
@@ -125,19 +136,22 @@ call's error (an `*os.SyscallError` around a `syscall.Errno`: `ECONNRESET`, `EPI
 
 **Crashes** (D10, `crash`): a node's crash (or its process's exit, D11) leaves the network as it is
 (DistLang's crash keeps the global state, and an extension's crash relation is node-local). Its
-listeners are gone (`lis` empty), so the restarted node may listen at its addresses again. What
-its peers see of its connections (a FIN, a reset, or nothing) is covered by cuts (D1, D2). The host
-is kept.
+listeners are gone (`lis` empty: `crash_init`), so the restarted node may listen at its addresses
+again. What its peers see of its connections (a FIN, a reset, or nothing) is covered by cuts (D1,
+D2).
 
-**The deployment** (D13), which every theorem over this semantics assumes. *Well-formed plan
-addresses* (D20, `Deploy.lean`'s `PlanWellFormed`, decidable, a premise of the theorems): each plan
-string is the canonical spelling `a.b.c.d:p` of an IPv4 unicast address (not `0.0.0.0/8`, not
-`224.0.0.0` and above) and a port outside Linux's default ephemeral range 32768-60999 (and not 0),
-so that a `Dial` with no listener cannot connect to itself, and no two plan strings alias
-(`TestAddressAliases`); `Listen` and `Dial` compare strings, as the kernel then does. *A closed
-world* (stated in prose only): no process outside the system's nodes listens at, or dials, the
-plan's addresses (an outside listener at a server's address would accept its clients:
-`examples/axiomcx/tcp-squat`). *The target configuration*: Linux 7.0 with its default sysctls,
+**The deployment** (D13), which every theorem over this semantics assumes. *Valid addresses* (D20,
+`addrOk`, decidable): `Listen` and `Dial` take the canonical spelling `a.b.c.d:p` of an IPv4
+unicast address (not `0.0.0.0/8`, not `224.0.0.0` and above) and a port outside Linux's default
+ephemeral range 32768-60999 (and not 0), so that a `Dial` with no listener cannot connect to
+itself, and no two valid strings alias (`TestAddressAliases`); `Listen` and `Dial` compare
+strings, as the kernel then does; any other string panics (D22), but `Listen`'s wildcards (D21).
+*A closed world* (stated in prose only): no process other than the deployment's nodes, on any
+machine (the deployment's own included), accepts a connection a node dials, or dials a connection
+a node's listener can accept (a squatter listening at a server's address would accept its
+clients: `examples/axiomcx/tcp-squat`; an outside dialer would make connections no node's `Dial`
+made; the v3.4 review's F1, `notes/axiom-review/tcp-semantics.md`). *The target
+configuration*: Linux 7.0 with its default sysctls,
 Go 1.27.3 (its listeners' default, MPTCP when available, behaves as TCP for every decision here),
 measured in `examples/net/semantics/`.
 
@@ -149,8 +163,9 @@ goroutines blocked on one socket can panic in Go where the model says it cannot.
 
 **What is not modeled** (D12). Memory exhaustion in the kernel (`ENOMEM`/`ENOBUFS`: a failure of a
 live connection that is not a cut, and the bare `Errno` of a failed `epoll_ctl` registration in
-`Accept` or `Dial`), as the file extensions' allocation failures. Addresses are the plan's strings
-and the wildcards of D21, compared as strings; `Listen` or `Dial` of any other string panics (D22).
+`Accept` or `Dial`), as the file extensions' allocation failures. Addresses are the valid strings
+(D20) and the wildcards of D21, compared as strings; `Listen` or `Dial` of any other string panics
+(D22).
 Port `0`, TLS, UDP, Unix sockets, the deadlines' values, the keepalive probes' timing (D24: their
 failure is a cut), the listeners' deadlines and socket options: not modeled (the methods are not
 modeled either, so a program calling them is stuck: no model, no proof).
@@ -167,13 +182,14 @@ modeled either, so a program calling them is stuck: no model, no proof).
   (`Net/TrustedCode/net.lean`).
 * D19 `DialTimeout`: `"Dial"`; its model may turn a failure into a timeout (`net`'s `errTimeout`, or
   `poll.ErrDeadlineExceeded`: `Net/TrustedCode/net.lean`), and D16 applies.
-* D20 the plan's well-formedness (D13, `Deploy.lean`).
-* D21 wildcard `Listen` (`ListenAt`): `":p"`, `"0.0.0.0:p"`, `"[::]:p"` (not themselves plan
-  addresses) listen at the plan address with the port `p`, which must be at this node's host and
-  the plan's only address with that port (a panic otherwise, D22): on one machine a wildcard
-  listener takes every local address with its port (`TestAddressAliases`, `TestWildcardListen`).
+* D20 valid addresses (D13, `addrOk`).
+* D21 wildcard `Listen` (`wildOk`, `lisAccepts`): `":p"`, `"0.0.0.0:p"`, `"[::]:p"`, `p` a valid
+  port spelled canonically (a panic otherwise, D22), listen at every address with the port `p`:
+  its `Accept` takes a connection dialed to any address whose port is `p`. On one machine a
+  wildcard listener takes every local address with its port (`TestAddressAliases`,
+  `TestWildcardListen`); the model lets it take any, which only adds behaviours.
 * D23 the network `"tcp4"` (`Net/TrustedCode/net.lean`): `Listen`, `Dial`, `DialTimeout` of
-  `"tcp4"` are those of `"tcp"` (the extension sees only the address: the plan's IPv4 addresses
+  `"tcp4"` are those of `"tcp"` (the extension sees only the address: the valid IPv4 addresses
   and D21's wildcards, which with `"tcp4"` take every IPv4 address too, `"[::]:p"` included); the
   network is kept in the `TCPConn` and the `TCPListener` (Go's `netFD.net`; an accepted connection
   gets its listener's) and is the `Net` of their `*OpError`s (`TestTcp4`). Any other network: a
@@ -216,10 +232,10 @@ modeled either, so a program calling them is stuck: no model, no proof).
 
   | operation | argument, state | outcomes besides the stutter |
   |---|---|---|
-  | `Listen` | `#a`, `ListenAt plan host a a0` | D6: a new open listener at `a0`, or `sys` (only `sys` with one open at `a0`) |
-  | `Listen` | `#a`, no such `a0`: not a plan address at this host, another node's, a wildcard whose port is not unique, any other string | `Panic` (a violation of the deployment, D13) |
-  | `Dial` | `#a`, a plan address | D8, D16: a new connection, `sys`, or `sys` leaving it abandoned |
-  | `Dial` | `#a`, not a plan address | `Panic` (D13) |
+  | `Listen` | `#a`, `listenOk a` (valid, D20, or a valid wildcard, D21) | D6: a new open listener at `a`, or `sys` (only `sys` with one open at `a`) |
+  | `Listen` | `#a`, not `listenOk a`: not canonical, not IPv4 unicast, port 0 or ephemeral, a hostname, any other string | `Panic` (a violation of the deployment, D13) |
+  | `Dial` | `#a`, `addrOk a` (D20) | D8, D16: a new connection, `sys`, or `sys` leaving it abandoned |
+  | `Dial` | `#a`, not `addrOk a` (a wildcard among them) | `Panic` (D13) |
   | `Accept` | `#l`, a listener of this node | D7: `closed` if it is closed; if open, `sys` or a pending connection accepted |
   | `LisClose` | `#l`, a listener of this node | D9: `LisCloseOutcome` (success if open, `closed` if not) |
   | `Accept`, `LisClose` | `#l`, no listener `l` of this node (`0` among them) | `Panic` (unreachable: the models check for `0`, and ids are unforgeable) |
@@ -339,23 +355,27 @@ def NetConn.setLock (c : NetConn) : Bool → Bool → NetConn
 
 /-- The network. -/
 structure NetGlobal where
-  /-- The deployment: each address the program may use, and the host that may listen at it. -/
-  plan : GMap GoString GoString
   /-- Every connection dialed, by number. -/
   conns : GMap Nat NetConn
 
-instance : Inhabited NetGlobal := ⟨⟨∅, ∅⟩⟩
+instance : Inhabited NetGlobal := ⟨⟨∅⟩⟩
 
 /-- The network with the connection `c` set to `cn`. -/
 def NetGlobal.setConn (g : NetGlobal) (c : Nat) (cn : NetConn) : NetGlobal :=
   { g with conns := g.conns.insert c cn }
 
-/-- A node's state: its host, and its listeners (each its address and whether it is open). -/
+/-- A node's state: its listeners (each the address it listens at, as given to `Listen`, and
+whether it is open). -/
 structure NetLocal where
-  host : GoString
   lis : GMap w64 (GoString × Bool)
 
-instance : Inhabited NetLocal := ⟨⟨default, ∅⟩⟩
+instance : Inhabited NetLocal := ⟨⟨∅⟩⟩
+
+/-- A machine's initial state: no listener. -/
+def NetLocal.init (L : NetLocal) : Prop := L.lis = ∅
+
+/-- The network's initial state: no connection. -/
+def NetGlobal.init (g : NetGlobal) : Prop := g.conns = ∅
 
 /-- The id of the end `s` of the connection `c`. -/
 def endId (c : Nat) (s : Bool) : w64 := BitVec.ofNat 64 (2 * c + if s then 1 else 0)
@@ -535,14 +555,70 @@ def portOf (a : GoString) : Option GoString :=
   | [] => none
   | _ :: p => some p
 
-/-- D6, D21. `Listen` of the string `a` by a node at `host` listens at the plan address `a0`: `a`
-itself, in the plan at `host`; or, for a wildcard `a` with port `p` that is not itself in the
-plan, the plan's only address with the port `p`, at `host` (so `a0` is unique:
-`listenAt_unique`). -/
-def ListenAt (plan : GMap GoString GoString) (host a a0 : GoString) : Prop :=
-  plan !! a0 = some host ∧
-  (a0 = a ∨ (plan !! a = none ∧ ∃ p, wildPort a = some p ∧ portOf a0 = some p ∧
-    ∀ x, (plan !! x).isSome → portOf x = some p → x = a0))
+/-- `c` is an ASCII decimal digit. -/
+def isDigit (c : w8) : Bool := 48 ≤ c.toNat && c.toNat ≤ 57
+
+/-- The value of the decimal digits `s` after `acc`, if they are all digits. -/
+def digitsVal : GoString → Nat → Option Nat
+  | [], acc => some acc
+  | c :: s, acc => if isDigit c then digitsVal s (acc * 10 + (c.toNat - 48)) else none
+
+/-- The value of a canonical decimal numeral: digits, at least one, no leading zero. -/
+def decNat : GoString → Option Nat
+  | [] => none
+  | [c] => digitsVal [c] 0
+  | c :: d :: s => if c.toNat = 48 then none else digitsVal (c :: d :: s) 0
+
+/-- `s` split at every `sep` (`cur`: the current piece, reversed). -/
+def splitBy (sep : w8) : GoString → GoString → List GoString
+  | [], cur => [cur.reverse]
+  | c :: s, cur => if c.toNat = sep.toNat then cur.reverse :: splitBy sep s [] else splitBy sep s (c :: cur)
+
+/-- `a` as a canonical `a.b.c.d:p`: its four octets' values and its port's. -/
+def parseAddr (a : GoString) : Option (Nat × Nat × Nat × Nat × Nat) :=
+  match splitBy 58 a [] with
+  | [ip, p] =>
+    match splitBy 46 ip [] with
+    | [x1, x2, x3, x4] =>
+      match decNat x1, decNat x2, decNat x3, decNat x4, decNat p with
+      | some n1, some n2, some n3, some n4, some port => some (n1, n2, n3, n4, port)
+      | _, _, _, _, _ => none
+    | _ => none
+  | _ => none
+
+/-- D20. The port `p` is valid: not 0, and outside Linux's default ephemeral range
+(`net.ipv4.ip_local_port_range`, 32768-60999), so that a `Dial` to a port with no listener cannot
+connect to itself (TCP's simultaneous open with its own ephemeral port, which Go's `selfConnect`
+guard retries only twice, `tcpsock_posix.go`). -/
+def portOk (p : Nat) : Bool := 1 ≤ p && p ≤ 65535 && (p < 32768 || 60999 < p)
+
+/-- D20. `a` is a valid address: the canonical spelling `a.b.c.d:p` (decimal, no leading zeros) of
+an IPv4 address that is not `0.0.0.0/8` (Linux's "this network", where a `Dial` reaches the local
+host) and below `224.0.0.0` (multicast, reserved, broadcast: no TCP connection), and a valid port
+(`portOk`). Canonical spellings of distinct `IP:port` pairs name distinct sockets, and none is a
+wildcard or a hostname, so no two valid strings alias (`examples/net/semantics/addr_test.go`,
+`TestAddressAliases`). Loopback (`127.0.0.0/8`) is allowed. -/
+def addrOk (a : GoString) : Bool :=
+  match parseAddr a with
+  | some (n1, n2, n3, n4, p) =>
+    1 ≤ n1 && n1 < 224 && n2 ≤ 255 && n3 ≤ 255 && n4 ≤ 255 && portOk p
+  | none => false
+
+/-- D21. `a` is a wildcard spelling with a valid port, spelled canonically. -/
+def wildOk (a : GoString) : Bool :=
+  match wildPort a with
+  | some p => match decNat p with
+    | some n => portOk n
+    | none => false
+  | none => false
+
+/-- D6, D21. `Listen` takes `a`: a valid address, or a valid wildcard. -/
+def listenOk (a : GoString) : Bool := addrOk a || wildOk a
+
+/-- D7, D21. A listener at `la` (as given to `Listen`) takes connections dialed to `a`: `la`
+itself, or, for a wildcard, any address with its port. -/
+def lisAccepts (la a : GoString) : Prop :=
+  la = a ∨ ∃ p, wildPort la = some p ∧ portOf a = some p
 
 /-! ## The step relation -/
 
@@ -608,7 +684,7 @@ def NewConn (g : NetGlobal) (c : Nat) : Prop :=
 
 /-- D8, D16. `"Dial"` of `a`. -/
 def DialStep (a : GoString) (g : NetGlobal) (e' : Expr) (g' : NetGlobal) : Prop :=
-  (g.plan !! a).isSome ∧
+  addrOk a = true ∧
   ((e' = Val (failV .sys) ∧ g' = g) ∨
    (∃ c, NewConn g c ∧ e' = Val (PairV (#(endId c false)) (#(W64 0))) ∧
      g' = g.setConn c (NetConn.fresh a)) ∨
@@ -620,17 +696,16 @@ def AcceptStep (a : GoString) (isOpen : Bool) (g : NetGlobal) (e' : Expr) (g' : 
     Prop :=
   (isOpen = false ∧ e' = Val (failV .closed) ∧ g' = g) ∨
   (isOpen = true ∧ e' = Val (failV .sys) ∧ g' = g) ∨
-  (isOpen = true ∧ ∃ c cn, g.conns !! c = some cn ∧ cn.addr = a ∧ cn.accepted = false ∧
+  (isOpen = true ∧ ∃ c cn, g.conns !! c = some cn ∧ lisAccepts a cn.addr ∧ cn.accepted = false ∧
     2 * c + 1 < 2 ^ 64 ∧
     e' = Val (PairV (#(endId c true)) (#(W64 0))) ∧
     g' = g.setConn c { cn with accepted := true })
 
-/-- D6, D21. `"Listen"` of `a` by the node with state `L`, at the plan address `a0`. -/
-def ListenStep (a : GoString) (g : NetGlobal) (L : NetLocal) (e' : Expr) (L' : NetLocal) : Prop :=
-  ∃ a0, ListenAt g.plan L.host a a0 ∧
-  ((e' = Val (failV .sys) ∧ L' = L) ∨
-   ((∀ l, L.lis !! l ≠ some (a0, true)) ∧ ∃ l, l ≠ 0 ∧ L.lis !! l = none ∧
-     e' = Val (PairV (#l) (#(W64 0))) ∧ L' = { L with lis := L.lis.insert l (a0, true) }))
+/-- D6, D21. `"Listen"` of the valid address or wildcard `a` by the node with state `L`. -/
+def ListenStep (a : GoString) (L : NetLocal) (e' : Expr) (L' : NetLocal) : Prop :=
+  (e' = Val (failV .sys) ∧ L' = L) ∨
+  ((∀ l, L.lis !! l ≠ some (a, true)) ∧ ∃ l, l ≠ 0 ∧ L.lis !! l = none ∧
+    e' = Val (PairV (#l) (#(W64 0))) ∧ L' = { L with lis := L.lis.insert l (a, true) })
 
 /-- D9, D17. `"LisClose"` of the listener `(a, isOpen)`: the result and the listener after. -/
 def LisCloseOutcome (isOpen : Bool) (res : Option NetErr) (isOpen' : Bool) : Prop :=
@@ -656,8 +731,8 @@ on the network `g`: each operation's step on a valid argument, else a panic (D22
 def IsNetStep (op : String) (v : val) (L : NetLocal) (g : NetGlobal) (e' : Expr) (L' : NetLocal)
     (g' : NetGlobal) : Prop :=
   match op with
-  | "Listen" => OrInvalid (∃ a a0 : GoString, v = #a ∧ ListenAt g.plan L.host a a0)
-      (∃ a : GoString, v = #a ∧ ListenStep a g L e' L' ∧ g' = g) L g e' L' g'
+  | "Listen" => OrInvalid (∃ a : GoString, v = #a ∧ listenOk a = true)
+      (∃ a : GoString, v = #a ∧ listenOk a = true ∧ ListenStep a L e' L' ∧ g' = g) L g e' L' g'
   | "Accept" => OrInvalid (∃ (l : w64) (x : GoString × Bool), v = #l ∧ L.lis !! l = some x)
       (∃ (l : w64) (a : GoString) (o : Bool), v = #l ∧ L.lis !! l = some (a, o) ∧
         AcceptStep a o g e' g' ∧ L' = L) L g e' L' g'
@@ -665,7 +740,7 @@ def IsNetStep (op : String) (v : val) (L : NetLocal) (g : NetGlobal) (e' : Expr)
       (∃ (l : w64) (a : GoString) (o : Bool) (res : Option NetErr) (o' : Bool),
         v = #l ∧ L.lis !! l = some (a, o) ∧ g' = g ∧ LisCloseOutcome o res o' ∧
         e' = Val (#(errCode res)) ∧ L' = { L with lis := L.lis.insert l (a, o') }) L g e' L' g'
-  | "Dial" => OrInvalid (∃ a : GoString, v = #a ∧ (g.plan !! a).isSome)
+  | "Dial" => OrInvalid (∃ a : GoString, v = #a ∧ addrOk a = true)
       (∃ a : GoString, v = #a ∧ DialStep a g e' g' ∧ L' = L) L g e' L' g'
   | "Read" => OrInvalid
       (∃ (e n : w64) (c : Nat) (s : Bool), v = PairV (#e) (#n) ∧ EndOf g e c s)
@@ -715,10 +790,18 @@ def NetStep (op : String) (v : val) (h : GMap Loc (NonAtomic val)) (L : NetLocal
 
 end step
 
-/-- D10. A crash keeps the host and drops the listeners. -/
+/-- D10. A crash drops the listeners. -/
 instance net_semantics : ExtSemantics netExt where
   step := NetStep
   crash L L' := L' = { L with lis := ∅ }
+
+/-- A crash leaves a machine in an initial state. -/
+theorem crash_init (L L' : NetLocal) (h : net_semantics.crash L L') : L'.init := by
+  subst h; rfl
+
+/-- The initial states are inhabited. -/
+example : NetLocal.init ⟨∅⟩ := rfl
+example : NetGlobal.init ⟨∅⟩ := rfl
 
 end Net
 

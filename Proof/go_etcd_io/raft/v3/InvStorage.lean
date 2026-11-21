@@ -416,6 +416,34 @@ theorem ksnCerts_mem (sn : StorNames) (K : List SnapTrip) (k : SnapTrip) (h : k 
   obtain ⟨i, hi⟩ := List.getElem?_of_mem h
   iapply (BigSepL.bigSepL_lookup (Φ := fun _ k => ksnCert (GF := GF) sn k) hi) $$ HK
 
+/-- Every successful restore ends at the new log boundary. Later log
+operations can advance that boundary, so all recorded indices remain below it. -/
+def logRestoreCerts (sn : StorNames) (K : List SnapTrip) (base : w64) : IProp GF :=
+  iprop(ksnCerts sn K ∗ ⌜∀ k ∈ K, uint.Z k.sid.index' ≤ uint.Z base⌝)
+
+instance (sn : StorNames) (K : List SnapTrip) (base : w64) :
+    Persistent (logRestoreCerts (GF := GF) sn K base) := by
+  unfold logRestoreCerts; infer_instance
+
+theorem logRestoreCerts_nil (sn : StorNames) (base : w64) :
+    ⊢ logRestoreCerts (GF := GF) sn [] base := by
+  unfold logRestoreCerts
+  isplitr
+  · iapply ksnCerts_nil
+  ipureintro; simp
+
+theorem logRestoreCerts_snoc (sn : StorNames) (K : List SnapTrip) (base : w64) (k : SnapTrip)
+    (hle : uint.Z base ≤ uint.Z k.sid.index') :
+    ⊢ logRestoreCerts (GF := GF) sn K base -∗ ksnCert sn k -∗ logRestoreCerts sn (K ++ [k]) k.sid.index' := by
+  unfold logRestoreCerts
+  iintro ⟨#Hc, %hb⟩ #Hk
+  isplitr
+  · iapply ksnCerts_snoc sn K k $$ Hc Hk
+  ipureintro; intro x hx
+  rcases List.mem_append.1 hx with hx | hx
+  · exact Int.le_trans (hb x hx) hle
+  · cases List.mem_singleton.1 hx; exact Int.le_refl _
+
 end certs
 
 /-! ## Raft's view of its storage (U8 v2)

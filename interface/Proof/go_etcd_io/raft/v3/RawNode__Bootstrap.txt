@@ -31,10 +31,12 @@ theorem RawNode.Bootstrap.wp_proof [package_sem : Assumptions] (wp_raft_becomeFo
                                           bootInit γ md id (listToSet ps) bootLog ∗
                                             isCommitted γ bootLog ∗
                                               certLink γ s.gh.sn ∗
-                                                trCapB γ.reTrace γ r id (bootCfg ps) false (bootPhase ps id)
-                                                    (bootAt ps id 2) ∗
-                                                  trNoCut γ.reTrace (GoInterface.ok si) ∗
-                                                    (⌜γ.reNoSnap = false⌝ ∨ storCapF (GoInterface.ok si) 1) -∗
+                                                (snapHistoryOwn s.gh.sn.history 0 0 ∗
+                                                    installHistoryOwn s.gh.sn.installs 0 []) ∗
+                                                  trCapB γ.reTrace γ r id (bootCfg ps) false (bootPhase ps id)
+                                                      (bootAt ps id 2) ∗
+                                                    trNoCut γ.reTrace (GoInterface.ok si) ∗
+                                                      (⌜γ.reNoSnap = false⌝ ∨ storCapF (GoInterface.ok si) 1) -∗
                                 (▷
                                     ∀ err,
                                       ⌜err = GoInterface.nil⌝ ∗

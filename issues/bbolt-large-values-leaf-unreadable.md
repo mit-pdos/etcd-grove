@@ -79,3 +79,5 @@ with the fix and 23 GB under `-race`, more than bbolt's 16 GB CI runners. Altern
 the data start in the accessors (leaves the `uint32` wrap); lower `MaxValueSize` to a quarter of
 `MaxAllocSize` (rejects values that work today). Complements `bbolt-max-value-size-unusable`
 (a single entry too large for any page cannot be split; merge clean).
+
+The verification fork uses a verified size-aware split on branch `goose-lean-leaf-size`. The original two-value commit and readback test passed on the amd64 build VM. [Fork regression](bbolt-put-refuses-readable-entry.md)

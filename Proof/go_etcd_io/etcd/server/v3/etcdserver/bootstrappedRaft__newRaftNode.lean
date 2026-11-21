@@ -40,6 +40,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
     bootstrappedRaft.newRaftNode.spec (GF := GF) (hG := hG) := by
   intro E γr b ss wal cl sd dq bv cv lok γs pre ν pv ps ctxs Q bt
   letI := srvStor (GF := GF) γr
+  intro SV hPers hValid
   wp_start as Hpre
   iNamed Hpre
   obtain ⟨Hhb, Hwal, HtrC⟩ := Hraft
@@ -62,10 +63,10 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
       n_ptr ↦ interface.mkOk (go.GoType.PointerType node.ty) #nn ∗ b_ptr ↦ b ∗
       b.[bootstrappedRaft, go!"config"] ↦{dq} bv.config' ∗
       b.[bootstrappedRaft, go!"peers"] ↦{dq} bv.peers' ∗ bv.peers' ↦*{dq} pv ∗
-      isNode nn γr.cl srvClusterN cv.ID' ∗ nodeRunning nn γr.cl srvClusterN 1 ∗
+      isNode nn γr.cl srvClusterN cv.ID' ∗ nodeRunning nn γr.cl srvClusterN 1 ∗ nodeTagPin γr.cl nn SV ∗
       rnBootPost γr nn K bv cv ps ctxs bt ∗ Q K)
     at next with [n b configB peersB Hc Hpeers Hboot] as ⟨%nn, %K, n, b, configB, peersB, Hpeers,
-      #Hnode, Hrun, Hbpost, HQ⟩
+      #Hnode, Hrun, #Hpin, Hbpost, HQ⟩
   · cases bt with
     | fresh =>
       iunfold rnBootPre at Hboot
@@ -107,10 +108,10 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
       wp_apply (wp_StartNode γr γr.cl srvClusterN ps ctxs bv.config' cv lok
           ⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩
           memSnapEmpty.Metadata'.ConfState' (raftState γr.cl cv.ID' RaftState.init) Q
-          bv.peers' dq pv (snapshotValid γr.cl) (fun _ => by iintro H; iexact H) Hcfg.valid Hcfg.logger Hcfg.storage Hcfg.inflight Hcfg.noForwarding
+          bv.peers' dq pv SV hValid Hcfg.valid Hcfg.logger Hcfg.storage Hcfg.inflight Hcfg.noForwarding
           Hcfg.readOnly Hcfg.ccValidation Hcfg.sizes Hcfg.noAsync (fun _ => Hcfg.maxMsg) Hcfg.applied
           rfl rfl rfl rfl rfl Hcfg.peers Hcfg.traceLogger HtrC) $$ [Hc Hbs Hboot Hvac Hau Hpeers]
-        as %nd ⟨%n', %K, %Hnd, #Hfresh, #Hnode, Hdrv, Hncfg, Hrun, -, Hrst, HQ, Hpeers⟩
+        as %nd ⟨%n', %K, %Hnd, #Hfresh, #Hnode, Hdrv, Hncfg, Hrun, #Hpin, Hrst, HQ, Hpeers⟩
       · iframe #; iframe Hc Hpeers Hboot Hvac Hau
         iExactEq Hbs; rfl
       subst Hnd
@@ -118,7 +119,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
       isplitr
       · itrivial
       iexists n', K
-      iframe n b configB peersB Hpeers Hnode Hrun HQ
+      iframe n b configB peersB Hpeers Hnode Hrun Hpin HQ
       simp only [rnBootPost]
       iframe Hfresh Hrst Hncfg
       iExactEq Hdrv; rfl
@@ -166,12 +167,12 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
       wp_apply (wp_RestartNode γr γr.cl srvClusterN bv.config' cv lok
           ⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩ σ cs a m
           (fun S'' => iprop(raftState γr.cl cv.ID' S'' ∗ ⌜S'' = S⌝)) Q
-          (snapshotValid γr.cl) (fun _ => by iintro H; iexact H) Hcfg.valid Hcfg.logger Hcfg.storage Hcfg.inflight Hcfg.noForwarding
+          SV hValid Hcfg.valid Hcfg.logger Hcfg.storage Hcfg.inflight Hcfg.noForwarding
           Hcfg.readOnly Hcfg.ccValidation Hcfg.sizes Hcfg.noAsync (fun _ => Hcfg.maxMsg)
           (Or.inl (by rw [Hcfg.applied]; rfl)) (by rw [Hcfg.applied]; simpa using Hba) Hac Hboot Hcs Hnsm
           Hcfg.traceLogger HtrC)
         $$ [Hc Hbs Hvac Hau]
-        as %nd ⟨%n', %S', %l, %K, %Hnd, #Hnode, #Hl, %Hll, %-, Hdrv, Hncfg, Hrun, -, Hrst, HQ⟩
+        as %nd ⟨%n', %S', %l, %K, %Hnd, #Hnode, #Hl, %Hll, %-, Hdrv, Hncfg, Hrun, #Hpin, Hrst, HQ⟩
       · iframe #; iframe Hc Hvac Hau
         rw [Hcfg.applied]
         iExactEq Hbs; rfl
@@ -180,7 +181,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
       isplitr
       · itrivial
       iexists n', K
-      iframe n b configB peersB Hpeers Hnode Hrun HQ
+      iframe n b configB peersB Hpeers Hnode Hrun Hpin HQ
       simp only [rnBootPost]
       iexists l
       iframe Hl Hncfg
@@ -237,7 +238,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   · rw [hwal]; iexact Hrd1
   ihave Hrd2' : walStorRd st γw.wal.h $$ [Hrd2]
   · rw [hwal]; iexact Hrd2
-  iframe Hnode Hst' Hrd1' Hrd2' Hbuilt Hb Hpeers HQ Hrun Hbpost
+  iframe Hnode Hst' Hrd1' Hrd2' Hbuilt Hb Hpeers HQ Hrun Hpin Hbpost
   -- the closure meets `isRNIDRemoved`
   iunfold isRNIDRemoved
   iintro !> %id' %Φ' !> - HΦ'

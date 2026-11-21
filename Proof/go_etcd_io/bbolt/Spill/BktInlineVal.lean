@@ -55,7 +55,7 @@ theorem sum_wSz_ge (ws : List WEntry) : 16 * ws.length ≤ (ws.map wSz).sum := b
 theorem inlineVal_ok {ib : InBucket} {ws : List WEntry} {ins : List Inode} (h0 : ib.root' = W64 0)
     (hsort : wsSorted ws)
     (hpl : ∀ w ∈ ws, w.flags.toNat % 2 = 0 ∧ 0 < w.key.length ∧
-      w.key.length + w.value.length ≤ bboltEntryMax)
+      entryBytesFit w.key.length w.value.length)
     (hlens : insLens ins ws) (hlen : ins.length = ws.length) (hsz : insSize ins ≤ 1024)
     (P : Pages) (hwm : Nat) :
     (wsMs ws).length < 0xFFFF ∧ pageFits (wsMs ws) ∧
@@ -80,7 +80,7 @@ theorem inlineVal_ok {ib : InBucket} {ws : List WEntry} {ins : List Inode} (h0 :
         ws[i].value⟩ := by
     intro i hi; simp [wsMs]
   have hpl' : ∀ i (hi : i < ws.length), (ws[i]).flags.toNat % 2 = 0 ∧ 0 < (ws[i]).key.length ∧
-      (ws[i]).key.length + (ws[i]).value.length ≤ bboltEntryMax :=
+      entryBytesFit (ws[i]).key.length (ws[i]).value.length :=
     fun i hi => hpl _ (List.getElem_mem hi)
   have hcnt : pageCount (wPage (W64 0) true (wsMs ws) (W32 0) []) = ws.length := by
     rw [wPage_count hn, hml]

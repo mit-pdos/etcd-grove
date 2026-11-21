@@ -60,7 +60,7 @@ def piecesOK (X : WX) (bl pl : Loc) (P : Pages) (hwm : Nat) (lo hi : Option (Lis
   ∀ i x, ps[i]? = some x → ∃ rl, X.node bl x.l = some rl ∧ x.l ∈ X.live ∧
     rl.nv.bucket' = bl ∧ rl.nv.spilled' = true ∧ rl.cs = [] ∧ rl.nv.parent' = pl ∧
     rl.nv.pgid' = x.id ∧ rl.key = x.k ∧ 0 < rl.ws.length ∧ keyIn lo hi x.k ∧
-    0 < x.k.length ∧ x.k.length ≤ bboltEntryMax ∧
+    0 < x.k.length ∧ x.k.length ≤ branchKeyMax ∧
     fTree P hwm x.id.toNat x.k (childHi hi (pcKey ps) ps.length i) h x.S (treeEls P x.id.toNat)
 
 /-- **The parent `rp'` after its child's spill** (the child's entry `j` replaced by the pieces'

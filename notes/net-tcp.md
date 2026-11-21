@@ -148,6 +148,63 @@ checked by `decide`), and the target configuration (Linux 7.0 defaults, Go 1.27.
   "split" of overlapping `Write`s) and a probe mode `concwrite` adds a certified sample. `IP.To4`
   translated; `SplitHostPort`, `ParseIP`, `IP.String`, `IP.Equal` stay names only (below,
   "Address helpers"). Review: `notes/axiom-review/tcp-semantics.md`, v3.3.
+- **v3.4 (2026-11-20, branch `net-noplan`, the user's request for kvnet's top-level theorem,
+  `notes/kvnet-robust-goal.md` on branch `worktree-kvnet-toplevel-statement`)**: **no plan and no
+  hosts**. `NetGlobal` is the connections only and `NetLocal` the listeners only (each the string
+  given to `Listen`). An address is valid if `addrOk` (D20: canonical `a.b.c.d:p`, IPv4 unicast,
+  port nonzero and outside the ephemeral range; moved from `Deploy.lean` into `Impl.lean`); `Listen`
+  takes a valid address or a wildcard with a valid canonical port (`listenOk`, D21), `Dial` a valid
+  address; anything else panics (D22). `Listen` gives a new listener or `sys`, only `sys` if this
+  node (process) already has an open listener at that string; **any node may listen at any valid
+  address**. `Accept` takes any connection pending at an address its listener takes (`lisAccepts`:
+  its own string, or for a wildcard any address with its port, D7, D21). `Dial`, `Read`, `Write`,
+  `Close`, `CloseWrite`, the deadlines, `LisClose` and crashes (the listeners dropped, the
+  connections kept) are unchanged. Initial states: `NetLocal.init` (no listener), `NetGlobal.init`
+  (no connection); `crash_init`: a crash leaves a machine in `init`.
+
+  *It only adds behaviours.* Every v3.3 step is a v3.4 step: a v3.3 `Listen` resolved to a plan
+  address at this host, which is valid (`PlanWellFormed`) or a wildcard with a canonical valid port;
+  v3.4 stores the string given (`a`, not the resolved `a0`) and its `Accept` takes every connection
+  v3.3's did (`a0` has the wildcard's port, so `lisAccepts a a0`); a plan address is valid, so every
+  v3.3 `Dial` is a v3.4 one. The new steps all start from a state and argument where v3.3 panicked
+  (a `Listen` at another host's address, or at a valid address not in the plan; a `Dial` of a valid
+  address not in the plan; a wildcard whose port was not unique in the plan), and a `Panic` was
+  never a step a proof allowed (D22: a proof shows the program never makes the call). So a program
+  proved robust under v3.3 is robust under v3.4, and v3.4's theorems need no premise about a plan.
+
+  *Soundness against Linux* (the target configuration, D13). (1) A `Listen` the kernel refuses is a
+  failure the model allows: every `Listen` may fail `sys`, which covers `EADDRNOTAVAIL` (the address
+  is not one of this machine's, `TestListenNotLocal`) and `EADDRINUSE` (another socket, of this
+  process or another, holds it: `TestListenTwice`, `TestListenTakenByOtherProcess`); the only
+  outcome the model excludes is a second successful `Listen` at a string this node (process)
+  already listens at, which Linux refuses (`EADDRINUSE`: Go sets `SO_REUSEADDR`, not
+  `SO_REUSEPORT`); two nodes on one machine may both succeed in the model, which only adds
+  behaviours. (2) A connection the kernel delivers is one the
+  model's `Accept` may return: a connection dialed to the valid address `a` reaches the machine
+  that owns `a`'s IP, and there a listener bound to `a` itself or to a wildcard with `a`'s port
+  (canonical spellings do not alias, D20, `TestAddressAliases`); that listener, at `a` or at the
+  wildcard, takes `a` in the model (`lisAccepts`), and the model lets any machine's listener that
+  takes `a` accept it, the owner's among them. The model allows more: a listener at `a` on a
+  machine that does not own `a` cannot exist on Linux (its `Listen` failed), and a wildcard takes
+  only local addresses on Linux, any in the model. (3) Pending connections belong to the address
+  and survive a crash (D7, unchanged): a connection dialed to a crashed incarnation may be accepted
+  by the next (more than Linux, which resets it; the dialer's view of a reset is a cut, which the
+  model allows too). (4) The closed world, restated without the plan, in terms of nodes and
+  reachability (the v3.4 review's F1-F3, `notes/axiom-review/tcp-semantics.md`): no process other
+  than the deployment's nodes, on any machine (the deployment's own included), accepts a
+  connection a node dials, or dials a connection a node's listener can accept (a squatter
+  listening at a server's address would accept its clients, `examples/axiomcx/tcp-squat`; an
+  outside dialer would make connections no node's `Dial` made).
+
+  Which machine listens where is the proofs' business now: the start resources give every valid
+  address's pending set (finitely many valid addresses, `Deploy.lean`'s `addrList`; `netStart`),
+  and a proof keeps exclusivity in its own ghost state. Updated: the specs (`net.Listen.spec` takes
+  `listenOk`, `net.Dial.spec`/`DialTimeout.spec` and `Listener.Accept.spec` take `addrOk`, no
+  `netPlan`), the kits' `KitDeploy` (distinct valid addresses, no connection, no listener) and
+  bridge, the seven examples (their plan and host premises dropped), the Lean replay (witness
+  version 2) and the Python checker (`examples/net/conform/check/README.md`), the Go examples
+  (`TestListenNotLocal`, the D6/D7/D13/D20/D21 rows of `examples/net/semantics/doc.go`). Review:
+  `notes/axiom-review/tcp-semantics.md`, v3.4.
 
 ## The resources and specs
 

@@ -72,7 +72,7 @@ theorem NewRawNode.wp_proof
   ihave #Hhp := hsROC_hsRO _ _ $$ Hhp
   ihave Hphys := Hpb $$ Hcore
   obtain ⟨Hwf, Ht, Hv, Hl, Hr, Hvs, Ho, Hpv, Hcq, Hp, Hse, Hue, Hsd, Hcm, Hap, Happ', Hun, Hsn, Hsg', Hlsn, Hgh,
-    Hrst, Hrpd, Hsdr', Hdom, Hdtk⟩ := Hpost
+    Hrst, Hrpd, Hsdr', Hdom, Hdtk, Hksn⟩ := Hpost
   have Hrel : NStateRel s (restartPState hs σ) :=
     newRaft_post_restart hs σ s ⟨Hwf, Ht, Hv, Hl, Hr, Hvs, Ho⟩ Hp Hse Hue Hcm Hrst Hrpd
   icases ownRaftPhysC_logwf _ r cv.ID' s $$ Hphys with ⟨%Hlw, Hphys⟩
@@ -97,7 +97,7 @@ theorem NewRawNode.wp_proof
     · simp only; iapply ownSliceCap_nil
     ipureintro
     refine ⟨Hrel, ⟨Ht, Hv, Hr, Ho, Hrst, Hrpd⟩,
-      ⟨Hp, Hse, Hue, Hsd, Hcm, Happ', Hap, Hun, Hsn, Hsg', Hdtk⟩, by rw [Hgh], Hpv, Hsdr', Hdom,
+      ⟨Hp, Hse, Hue, Hsd, Hcm, Happ', Hap, Hun, Hsn, Hsg', Hdtk, Hksn⟩, by rw [Hgh], Hpv, Hsdr', Hdom,
       by simp only [hardstateVal, nodeHardstate]; rw [Ht, Hv, Hcm], ?_, ?_⟩
     · simp only [softstateVal, nodeSoftstate]; rw [Hr]; rfl
     · rw [Hue, Hse, Hp] at Hrw
