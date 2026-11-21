@@ -9,7 +9,11 @@ runs their translated initializers (`errors.go`: `errors.New` calls; until 2026-
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
+public import Perennial.Proof.context.Link
 public import Perennial.Proof.errors.Link
+public import Proof.github_com.Masterminds.semver.v3.Init
+public import Proof.go_etcd_io.etcd.api.v3.version.Init
+public import Proof.go_uber_org.zap.Init
 public import Perennial.Proof.errors.NewVar
 public import Proof.runtime.PkgInitExt
 
@@ -52,8 +56,13 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrNoInflightDowngrade _ as HErrNoInflightDowngrade
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrDowngradeInProcess _ as HErrDowngradeInProcess
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrInvalidDowngradeTargetVersion _ as HErrInvalidDowngradeTargetVersion
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.context _root_.Perennial.context.initialize'
+      EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.errors _root_.Perennial.errors.initialize'
-      EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
+      EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
+  wp_apply (_root_.Perennial.go_etcd_io.etcd.api.v3.version.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
+  wp_apply (_root_.Perennial.go_uber_org.zap.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (_root_.Perennial.github_com.Masterminds.semver.v3.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of ErrInvalidDowngradeTargetVersion))
   try wp_auto
   wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrInvalidDowngradeTargetVersion #MErrInvalidDowngradeTargetVersion

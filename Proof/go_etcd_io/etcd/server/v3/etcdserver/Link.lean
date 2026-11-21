@@ -1912,7 +1912,7 @@ theorem EtcdServer.wp_ensureLeadership :
 
 theorem EtcdServer.wp_waitAppliedIndex :
     EtcdServer.waitAppliedIndex.spec (GF := GF) (hG := hG) :=
-  EtcdServer.waitAppliedIndex.wp_proof
+  EtcdServer.waitAppliedIndex.wp_proof EtcdServer.wp_getCommittedIndex
 
 theorem EtcdServer.wp_waitLeader :
     EtcdServer.waitLeader.spec (GF := GF) (hG := hG) :=

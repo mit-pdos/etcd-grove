@@ -3567,3 +3567,27 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   their `_members` forms, so that every program's names are checked by the kernel where its closed theorem is
   proved; the closed theorems' statements do not change.
 - **Decision.** Applied (prove-promdeep, 2026-11-20; a strengthening of an axiom's premise, discharged at every use).
+
+## 2026-11-20: `txn.ApplySecObserve` panics on a non-UTF-8 label (prove-etcdserver)
+
+- **Spec.** `txn.ApplySecObserve.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/txn/ApplySecObserve.lean`), an axiom
+  until this change.
+- **Defect.** Held for any `version`, `op`; the body is `applySec.WithLabelValues(version, op, FormatBool(success))
+  .Observe(...)` (`metrics.go:59-61`), and prometheus' `WithLabelValues` panics on a label value that is not valid UTF-8
+  (client_golang v1.24.1 `histogram.go:1263`, `validateLabelValues`, `labels.go:166`).
+- **Evidence.** Code reading; `notes/axiom-review/etcdserver-observers-v2stats.md`.
+- **Proposed change.** Premise `⌜utf8Valid version ∧ utf8Valid op⌝`; the three `dispatch` proofs pass `"v3"` and a literal
+  operation name (`by decide`).
+- **Decision.** Applied (prove-etcdserver, 2026-11-20), and the function proved (its body translated).
+
+## 2026-11-20: `v2stats.ServerStats.RecvAppendReq`/`SendAppendReq` panic on a zero `ServerStats` (prove-etcdserver)
+
+- **Spec.** `v2stats.ServerStats.RecvAppendReq.spec`, `v2stats.ServerStats.SendAppendReq.spec` (axioms).
+- **Defect.** Premise only `st ≠ null`; a zero `&v2stats.ServerStats{}` (exported type) has nil rate queues, and
+  `statsQueue.Insert` (`queue.go:62-63`, `q.rwl.Lock()`) dereferences nil: Go panics, the axiom proves the call returns.
+  Only `NewServerStats` allocates the queues.
+- **Evidence.** Code reading (`v2stats/server.go:91-128`, `queue.go`); `notes/axiom-review/etcdserver-observers-v2stats.md`.
+- **Proposed change.** A persistent `v2stats.isServerStats st` (the queues allocated, the stats' lock), given by
+  `NewServerStats`' post and required by both methods (and `BecomeLeader`, for the lock); threaded through the server's
+  and the transport's invariants to `EtcdServer.Process` and `Transport.Send`.
+- **Decision.** Open: recorded only (the callers' invariants are rafthttp's, another group's files on 2026-11-20).
