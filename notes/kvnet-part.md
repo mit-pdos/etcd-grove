@@ -160,3 +160,75 @@ Proved, no axiom or `sorry` (`lake build KvNet`: 2749 jobs):
   `below`, `sleep`, `checker.randomID`, `checker.changeID`, `checker.randomChange` (kvdurablenoax's,
   ported; kvreconf's `ccTransOk` restated in `kvcheck/Defs.lean`, its module naming kvreconf's
   translation), `checker.fresh` (each number issued once: `issued γ w n` exclusive).
+
+## The replica layer: plan (2026-11-21, after the crash law; not started)
+
+Go text, kvnet's `replica.go`/`storage.go`/`codec.go` against kvdurablenoax's `kv.go`/`storage.go`
+(function by function, the package name aside; `/tmp`-free method: the functions' bodies compared
+with the package path normalized):
+
+- **The same text** (copy+rename by `RENAME_KVNET`, as the codecs): `newStorage`, `image.{applySnapshot,
+  append,createSnapshot,compact}` (only the panic strings differ: unreached), `Storage.{ApplySnapshot,
+  SetHardState,Append,CreateSnapshot,Compact,snapIndex,InitialState,Snapshot,encode}`, `openStorage`,
+  `encodeState`/`decodeState`, `putMap`/`getMap`, `less`/`sortStrings`, `readCtx`/`decodeReadCtx`,
+  `validConf` (a comment differs), `fits`, `oneIn`/`below`; `Replica.{request,applyOp,answer,propose}`.
+- **Small edits**: `Replica.{snapshot,install,applyEntry,applyConf}` and `run` (the counters are
+  `r.stats.add(StX)` indices, not `&r.stats.X` fields: `Stats.add`'s spec, proved); `contents` (also
+  returns `r.cs`).
+- **Differs**: `newReplica` (no `stopc`/`runDone`/`tickDone`/`snapDone`/`seqs`); `ticker` and
+  `snapshotter` (`for range` over the ticker's and `snapc`'s channels, no stop clause); `run` (the
+  `Ready` received without the stop select; `send` is `Transport.Send`, which takes each message's
+  `F.msgOk`: the seam of the server side); `persist` (no `crashed` flag, returns nothing: the crash is
+  the machine's, decision C); `read(seq, key, timeout)` (the client's sequence number: a second read of
+  the same `seq` returns no answer while one waits; the context's facts come with the request,
+  `F.readOk id seq key`, not from `readSeqs`).
+- **Gone**: `readSeqs.next`, `Replica.{stop,crash,conf}`; kvdurablenoax's `Cluster` (kvnet's driver is
+  kvcheck over the network).
+
+**What the copies need besides the Go**: kvdurablenoax's proofs stand on kvreconf's shared lemma modules
+(`DefsCluster`, `RunFrozen`, `RunBatch`, `BagSend`, `ReadLemmas`, `ConfStep`, `ClientLemmas`, `ReadSlot`,
+`Halves`, `PureLemmas`, ...), which import kvreconf's `Base`, so its translation. RaftNoAx has that
+translation for this reason (a part of project kvreconf); **KvNet should get it the same way** (a third
+`Part` of project kvreconf, root `KvNet`), then copy-part takes those modules as RaftNoAx does. The
+alternative, splitting each of them into pure and translation-naming halves, is larger.
+
+**What does not copy**: kvdurablenoax's `Defs.lean` (`isRep`, `isReplica`, `KdNames`, the file
+invariant over `durableExt`: `Proof/.../lib/durable/Files`) and everything built on its field layout
+(`DefsLaws`, `RunInv`, `RunDmu`, `Alloc`, `StartLemmas`): kvnet's `Replica` struct differs (no stop
+channels, no `seqs`, `stats` a `*Stats` of counters) and its file is the bodied `durable` over fsExt. A
+kvnet `Defs.lean` is written fresh from it, field by field, keeping the store-level parts (`rkvInv`,
+`opSlot`, `readSlot`, `waitP`, `kvLb`, `kvCore`: kvreconf's model, copied from kvdurablenoax's `Defs`
+into a module of their own first, so both stores share them).
+
+**Draft specs** (over kvnet's names `γ : KnNames`, the cluster `γ.r.cluster`, `rep γ id r`):
+
+- `Replica.propose(op, timeout)`: kvdurable's, unchanged: `{{ isRep γ id r ∗ d ↪[γ.r.ops]□ γp ∗
+  op ↦*□ d }} … {{ v ok; if ok then waitP γ d v }}`; with `F.opOk d := ∃ γp, d ↪[γ.r.ops]□ γp` and
+  `F.ansOp := waitP γ`, this is the server side's `Replica.propose.spec F rep`.
+- `Replica.read(seq, key, timeout)`: `{{ isRep γ id r ∗ F.readOk id seq key }} … {{ v ok; if ok then
+  F.ansRead id seq key v }}`, `F.readOk`/`F.ansRead` as in `notes/kvnet-protocol.md`'s table (the
+  context minted by the client, `kd_mint_next`'s facts; the answer `kvLb`-based after `readCtxAfter`).
+- `Replica.run(send, …)`: kvdurable's, with `send` the transport's `Send` (`Transport.Send.spec`: each
+  message with `msgPtsC`, `F.msgOk src st` and the frame bound, given by raft's `node.Ready` facts,
+  `sentMsg`, at `F`'s instance after B) and without the stop clause (it never returns: partial).
+- `Replica.persist()` (decision C): under `dmu`, `durable.Write(file, encode())` over fsExt's
+  `Write.spec` (WalTester's, copied): the write's update opens the generation's crash invariant
+  `inv (body ∨ crashed ∗ tok)` holding `durInv`/`durSt`, the writer's half of the store's per-id ghost
+  and `StorageHolds S (decode cur-or-alt)`, and fires the batch's *enter* (`readyEnter`, under
+  `notCrashed`) at `durWriteSync` (not at the rename: a crash between them restores the old file).
+  Same two forms as kvdurable's (`spec`, `specRun`), without the `ok` result.
+- `StartNode(cfg)` (node.go): `durable.Read(file)` (fsExt; the crash invariant's `crashed` side gives
+  `durBoot`), `openStorage` (copied), then raft's `RestartNode` at the id's armed vacancy
+  (`nodeVacantA γ id x`, from the crash invariant of the previous generation, `nodeVacant_arm`), the AU
+  over `raftState` built from the file's decoding (`StorageHolds`), `newTransport`/`start`
+  (`start_bag` per peer queue), `newReplica`, the goroutines. Its spec is the server side's
+  `StartNode.spec F rep cf S` with `S` the id's start resources (vacancy, file, per-id ghost).
+
+**Hypotheses kept for B** (as the server side's): every cluster-facing fact through `KvFacts F`
+(`msgOk`, `opOk`, `readOk`, `ansOp`, `ansRead`) and `stepLaw`/`confLaw`; the store invariant `rkvInv`
+and raft's `isCluster` passed as persistent premises (their allocation, at `GooseGlobalGS`, is B's).
+
+**Order** (once builds are allowed): (1) kvreconf's translation into KvNet (goose part) and the reused
+proofs of the same text; (2) the store-level `Defs` split in the main tree (rkvInv & co. into a module
+both stores import); (3) kvnet `Defs` and the small-edit proofs; (4) `persist` and `run` (decision C);
+(5) `read(seq)`, `StartNode`.
