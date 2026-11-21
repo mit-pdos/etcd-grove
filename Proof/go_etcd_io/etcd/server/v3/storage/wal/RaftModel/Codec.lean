@@ -12,8 +12,8 @@ marshaller parameter `Mr` writes, its encoding, and the decoders `U` reads them 
   varint fields).
 - **Hard states** (`raftpb.HardState`, three proto2 `optional uint64`s, `raft.proto:101-105`):
   `WalHsC` its wire content, `hsEnc` the bytes protobuf-go writes for it (tags 1, 2, 3, then the
-  unknown fields; **the trusted fact that protobuf-go writes these bytes does not exist yet**:
-  `raftpb.HardState` is not a registered type, `PbSchema.lean`, so no `proto` spec covers it; U4 log),
+  unknown fields; the trusted fact that protobuf-go writes these bytes is the registered
+  `raftpb.HardState`'s `hsEncC_ok`, `PbHardState.lean`, wal-item3, 2026-11-21),
   `walHsCanon h` the canonical content (all nil when empty, as `&raftpb.HardState{}` is; else all set,
   as raft's `hardState()` builds it, `raft.go:504-510`), `walDecHs` the decoder of canonical
   encodings (`walHsCanon_enc_inj`), and the encoding's bound (`walHsCanon_enc_len`: at most 33 bytes).
@@ -121,7 +121,7 @@ def WalHsC.model (c : WalHsC) : HardStateM :=
   ⟨c.term.getD (W64 0), c.vote.getD (W64 0), c.commit.getD (W64 0)⟩
 
 /-- **The bytes protobuf-go writes for a `raftpb.HardState` holding `c`** (fields in number order,
-then the unknown fields; see the file header: not yet a trusted fact). -/
+then the unknown fields; see the file header: `hsEncC_ok`). -/
 def hsEnc (c : WalHsC) : List w8 :=
   optVarintField 1 (c.term.map uint.nat) ++ optVarintField 2 (c.vote.map uint.nat) ++
     optVarintField 3 (c.commit.map uint.nat) ++ c.uf

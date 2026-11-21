@@ -34,6 +34,7 @@ public import GeneratedProof.encoding.json
 public import GeneratedProof.google_golang_org.grpc.stats
 public import GeneratedProof.go_opentelemetry_io.otel.propagation
 public import GeneratedProof.net.http
+public import Proof.net.http.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.errors.Base
@@ -715,16 +716,7 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.google_golang_
 
 end google_golang_org.grpc.stats
 
--- `net/http` (names only, no translated import; moved from the server's `BaseApply.lean`, prove-misc,
--- 2026-11-20: otel's `propagation` imports it)
-namespace net.http
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.net.http :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.net.http :=
-  build_get_is_pkg_init_wf
-
-end net.http
+-- `net/http`'s instance: `Proof/net/http/Base.lean` (prove-http3, 2026-11-21)
 
 -- otel's `propagation` (names only but its package variables: otelgrpc imports it for
 -- `var _ propagation.TextMapCarrier = metadataSupplier{}`; prove-misc, 2026-11-20)

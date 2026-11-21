@@ -71,7 +71,7 @@ sys.dont_write_bytecode = True
 sys.path.insert(0, os.path.join(ROOT, "etc"))
 import proof_roots  # noqa: E402
 
-MIN_REGS = 38  # + the WAL pbRecordC_reg, pbSnapC_reg (2026-11-15)
+MIN_REGS = 39  # + the WAL pbRecordC_reg, pbSnapC_reg (2026-11-15); + pbHsC_reg (wal-item3, 2026-11-21)
 ALLOW = os.path.join(ROOT, "etc", "model-param-allow.txt")
 # a registry's model type (an R1 hit's `type`): the family a pair entry's registry accepts
 REG_FAMILY = {"Perennial.EtcdGrove.grpcReqModelOf": "Perennial.EtcdGrove.ProtoMsg",

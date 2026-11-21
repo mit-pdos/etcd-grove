@@ -1,5 +1,11 @@
 /-
-`apierrors.NewInternalError` (`k8s.io/apimachinery/pkg/api/errors/errors.go`): a 500: the status `Failure`, reason `InternalError`, code 500. The trust boundary: its message formats an error (`%v`), which Perennial's `fmt.Sprintf` model does not cover; names only. Lean-first (no Rocq counterpart).
+`apierrors.NewInternalError` (`k8s.io/apimachinery/pkg/api/errors/errors.go`): a 500: the status `Failure`, reason `InternalError`, code 500. Proved over its body since prove-k8s3 (2026-11-21: Perennial's `fmt.Sprintf` model formats its message's `%v` of an error under `fmt.argsOk`); until then a trust-boundary axiom. Lean-first (no Rocq counterpart).
+
+(prove-k8s3, 2026-11-21; `notes/specs-only/ledger.md`) The precondition also says that the error's
+method set has `Error() string` (`fmt.noArgStringSig`), which Go's type system gives every non-nil
+`error` (its dynamic type implements `error`) but the model does not (an interface value's type is
+not tied to its static interface): `fmt`'s `%v` of it calls `Error()` because it is an `error`
+(`handleMethods`' `case error`), which `fmt.argOk` states by that method-set entry.
 
 (apierrors-fix, 2026-11-17; HasStatusCause fix (a), `notes/hasstatuscause-later-view.md`) The
 post also gives the details, read-only, with one cause of type `""` (`statusDetailsAt st [c]`): Go
@@ -37,14 +43,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.apimachinery.pkg.api.errors.Assumptions]
 
-/-- `apierrors.NewInternalError(err)`, of a non-nil error without `Format` whose `Error()` returns: a 500: the
+/-- `apierrors.NewInternalError(err)`, of a non-nil error without `Format` whose `Error() string` returns: a 500: the
 status `Failure`, reason `InternalError`, code 500, with details holding one cause of type `""`
 (see the file header). -/
 abbrev NewInternalError.spec : Prop :=
   ∀ (err : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.api.errors ∗
       ∃ ei : GoInterfaceOk, ⌜err = GoInterface.ok ei⌝ ∗ fmt.stringMethodSpec ei go!"Error" ∗
-        ⌜methodSet ei.ty !! go!"Format" = none⌝ }}
+        ⌜methodSet ei.ty !! go!"Format" = none ∧
+          methodSet ei.ty !! go!"Error" = some fmt.noArgStringSig⌝ }}
     (App (Val (@! k8s_io.apimachinery.pkg.api.errors.NewInternalError)) (Val #err))
   {{ (p : Loc), RET #p; ∃ (st : k8s_io.apimachinery.pkg.apis.«meta».v1.Status)
       (c : k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause),

@@ -12,8 +12,9 @@ GroupResource__String_ptr:
 Int63n:
 NewAlreadyExists: GroupResource__String_ptr
 NewBadRequest:
-NewConflict:
 NewNotFound: GroupResource__String_ptr
+# (prove-k8s2, 2026-11-21) over its body: Perennial's Sprintf formats its %v of an error
+NewConflict: GroupResource__String_ptr
 NewResourceExpired:
 NewTimeoutError:
 Now: =_root_.Perennial.time.wp_Now

@@ -191,7 +191,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_func_call
   wp_call
   try wp_auto
-  wp_apply klogWrapper_toLoggerV2
+  haveI : google_golang_org.grpc.grpclog.LoggerV2.ty ≤u google_golang_org.grpc.grpclog.internal.LoggerV2.underlying := ⟨(go.underlying_unfold (t := google_golang_org.grpc.grpclog.LoggerV2.ty)).trans (go.underlying_unfold (t := google_golang_org.grpc.grpclog.internal.LoggerV2.ty))⟩
   try wp_auto
   wp_apply (EtcdGrove.grpclog.SetLoggerV2.wp_proof _
       (k8s_io.apiserver.pkg.storage.etcd3.klogWrapper_ne_componentData _))

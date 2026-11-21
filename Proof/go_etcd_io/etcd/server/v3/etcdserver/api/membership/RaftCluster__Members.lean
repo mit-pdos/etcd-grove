@@ -148,7 +148,7 @@ theorem membership.RaftCluster.Members.wp_proof
       (Φ := fun (k : w64) (m : Loc) => membership.memberAt (GF := GF) m (1 : Qp).half
         ((mem !! k).getD default)) Hvv).1 $$ Hmems
       with ⟨Hown, Hmclose⟩
-    wp_apply hClone vv _ _ $$ [Hown] as %mc ⟨Hown, Hmc⟩
+    wp_apply hClone vv _ _ $$ [Hown] as %mc ⟨Hown, Hmc, -⟩
     · iframe #; iframe Hown
     ihave Hmems := Hmclose $$ [Hown]
     · iexact Hown

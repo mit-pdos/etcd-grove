@@ -1,5 +1,5 @@
 /-
-`apierrors.NewConflict` (`k8s.io/apimachinery/pkg/api/errors/errors.go`): a 409: the status `Failure`, reason `Conflict`, code 409. The trust boundary: its message formats an error (`%v`), which Perennial's `fmt.Sprintf` model does not cover; names only. Lean-first (no Rocq counterpart).
+`apierrors.NewConflict` (`k8s.io/apimachinery/pkg/api/errors/errors.go`): a 409: the status `Failure`, reason `Conflict`, code 409. Proved over its body since prove-k8s2 (2026-11-21: Perennial's `fmt.Sprintf` model now formats its message's `%v` of an error under `fmt.argsOk`); until then a trust-boundary axiom. Lean-first (no Rocq counterpart).
 
 (apierrors-fix, 2026-11-17; HasStatusCause fix (a), `notes/hasstatuscause-later-view.md`) The
 post also gives the details, read-only, with no causes (`statusDetailsAt st []`): Go sets `Details`

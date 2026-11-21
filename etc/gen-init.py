@@ -1452,21 +1452,6 @@ over Perennial's translation since 2026-11-20).''',
     pre=['section toLoggerV2',
          'variable [GooseExts] [GooseSemantics] [GooseInterp]',
          'variable [go_gctx : GoGlobalContext]',
-         'variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]',
-         'variable [sem : go.Semantics]',
-         '',
-         '/-- **The trust boundary: `logger.go`\'s conversion of a `klogWrapper` to `grpclog.LoggerV2`** (an',
-         'interface: a struct converted to it is the interface holding it). `type LoggerV2',
-         'internal.LoggerV2` names a package this translation does not import, so the type is',
-         'axiomatized (Goose\'s gap G3, `notes/k8s-etcd3-goose.md`) and the conversion does not step; the',
-         'axiom says it returns the interface holding the `klogWrapper` (what Perennial\'s',
-         '`convert_to_interface` gives a non-interface type; since 2026-11-20, prove-grpcsmall, so that',
-         '`SetLoggerV2`\'s premise, not a `*componentData`, is discharged: it returned some interface). -/',
-         'axiom k8s_io.apiserver.pkg.storage.etcd3.klogWrapper_toLoggerV2 (v : val) :',
-         '    {{ (True : IProp GF) }}',
-         '      (App (Val (GoInstruction (Convert k8s_io.apiserver.pkg.storage.etcd3.klogWrapper.ty',
-         '        google_golang_org.grpc.grpclog.LoggerV2.ty))) (Val v))',
-         '    {{ RET #(interface.mkOk k8s_io.apiserver.pkg.storage.etcd3.klogWrapper.ty v); True }}',
          '',
          '/-- A `klogWrapper` is not grpc\'s `*componentData` (`SetLoggerV2`\'s premise). -/',
          'theorem k8s_io.apiserver.pkg.storage.etcd3.klogWrapper_ne_componentData (v w : val) :',
@@ -1511,7 +1496,15 @@ over Perennial's translation since 2026-11-20).''',
                      '  iframe HendpointsMap Hem',
                      '  iapply BigSepM.bigSepM_empty.2',
                      '  itrivial'],
-        'init.«1»': ['wp_apply klogWrapper_toLoggerV2', 'try wp_auto',
+        # (prove-k8s3, 2026-11-21) the conversion of the `klogWrapper` to grpclog's `LoggerV2` steps
+        # (grpclog imports `grpclog/internal`, so `LoggerV2` is an interface); until then the
+        # trust-boundary axiom `klogWrapper_toLoggerV2`
+        # (`grpclog.LoggerV2` is a named `internal.LoggerV2`: `≤u` has no transitive instance)
+        'init.«1»': ['haveI : google_golang_org.grpc.grpclog.LoggerV2.ty ≤u '
+                     'google_golang_org.grpc.grpclog.internal.LoggerV2.underlying := '
+                     '⟨(go.underlying_unfold (t := google_golang_org.grpc.grpclog.LoggerV2.ty)).trans '
+                     '(go.underlying_unfold (t := google_golang_org.grpc.grpclog.internal.LoggerV2.ty))⟩',
+                     'try wp_auto',
                      'wp_apply (EtcdGrove.grpclog.SetLoggerV2.wp_proof _',
                      '    (k8s_io.apiserver.pkg.storage.etcd3.klogWrapper_ne_componentData _))',
                      'try wp_auto'],
@@ -1848,7 +1841,7 @@ initializer allocates `closec`, initializes its imports and runs its translated 
     before={'$end': [
         'wp_apply chan.wp_make1 (V := Unit) as %ch %γ ⟨#His_ch, %Hcap, Hch⟩',
         'wp_apply_core chan.wp_close (V := Unit) ch γ $$ His_ch',
-        'iintro -', 'unfold closeAu', 'iapply fupd_mask_intro Std.LawfulSet.empty_subset',
+        'iintro -', 'unfold closeAu', 'iapply ncfupd_of_fupd', 'iapply fupd_mask_intro Std.LawfulSet.empty_subset',
         'iintro Hmask', 'inext', 'iexists .Idle', 'iframe Hch', 'dsimp only', 'iintro Hch',
         'imod Hmask with -', 'imodintro', 'wp_auto']},
     finish=['ipersist Hclosec',
@@ -3173,6 +3166,32 @@ trust-boundary axiom `initFuncsOk` says returns.''',
     before={'cache': map_lit_steps('Hc', 'GoString', 'Loc', 'go.string',
         f'(go.GoType.PointerType {_GL}.componentData.ty)', 0)},
 )
+# (prove-http3, 2026-11-21) net/textproto: `CanonicalMIMEHeaderKey`'s interned keys
+_TP = 'net.textproto'
+def _tp_lit(x, n):
+    return ['try wp_auto', f'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %s{x} ⟨S{x}, -⟩', 'try wp_auto'] if n else \
+        ['try wp_auto', f'wp_apply wp_string_to_bytes _ as %s{x} ⟨S{x}, -⟩', 'try wp_auto']
+SPECIAL[_TP] = dict(
+    doc='''Its fact (`textprotoInit`, `Proof/net/textproto/Base.lean`; prove-http3, 2026-11-21):
+`commonHeaderOnce` is the `sync.Once` of `initCommonHeader`, whose action owns the variable
+`commonHeader`. Its initializer allocates its variables, initializes its imports and runs their
+translated initializers: `errMessageTooLarge = errors.New(...)` (Perennial's `errors.wp_New`) and the
+byte slices `colon`, `nl`, `crnl`, `dotcrnl`; the zero `commonHeaderOnce` and the variable
+`commonHeader` then make the `Once` (Perennial's `sync.init_Once`).''',
+    alloc_types={'errMessageTooLarge': 'GoInterface', 'colon': 'GoSlice', 'nl': 'GoSlice',
+                 'commonHeader': 'Loc', 'commonHeaderOnce': '_root_.Perennial.sync.Once',
+                 'crnl': 'GoSlice', 'dotcrnl': 'GoSlice'},
+    before={'$end': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New as %xE -']
+            + _tp_lit('colon', False) + _tp_lit('nl', False) + _tp_lit('crnl', True)
+            + _tp_lit('dotcrnl', True) + [
+            'ihave HP : (net.textproto.commonHeaderVar : IProp GF) $$ [HcommonHeader]',
+            '· unfold net.textproto.commonHeaderVar; iexists _; iexact HcommonHeader',
+            'imod (_root_.Perennial.sync.init_Once _ _ net.textproto.commonHeaderOk ⊤) $$ [HcommonHeaderOnce HP] with #HOnce',
+            '· iframe',
+            'try wp_auto']},
+    finish=FIN_PRE[:6] + ['imodintro', 'unfold net.textproto.textprotoInit net.textproto.textprotoInitLC',
+                          'iexact HOnce'],
+)
 _OP = 'go_opentelemetry_io.otel.propagation'
 SPECIAL[_OP] = dict(
     doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
@@ -3427,6 +3446,16 @@ their translated initializers: `UnstructuredJSONScheme`, an empty struct literal
                 '⟨(go.underlying_unfold (t := k8s_io.apimachinery.pkg.runtime.Codec.ty)).trans '
                 '(go.underlying_unfold (t := k8s_io.apimachinery.pkg.runtime.Serializer.ty))⟩'],
             '$end': ['try wp_auto', 'repeat (wp_alloc_anon; try wp_auto)']})
+# (prove-k8s3, 2026-11-21) grpclog's `internal`, imported (types only) so that grpclog's `LoggerV2`
+# is its interface: its variables' initializers, translated.
+SPECIAL['google_golang_org.grpc.grpclog.internal'] = dict(doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+their translated initializers (prove-k8s3, 2026-11-21): `severityName`, a slice literal, and the
+function values `sprintf`, `sprint`, `sprintln` (`fmt`'s) and `exit` (`os.Exit`).''',
+    alloc_types=_ALLOC_ANY,
+    before={'severityName': ['try wp_auto',
+                'wp_apply (wp_slice_literal (l := [go!"INFO", go!"WARNING", go!"ERROR", go!"FATAL"])); '
+                'isplitr; (· ipureintro; rfl); iintro %sn -',
+                'try wp_auto']})
 SPECIAL['k8s_io.apimachinery.pkg.util.wait'] = dict(doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
 their translated initializers (prove-k8s, 2026-11-20; until then the trust-boundary axiom
 `opaqueInitsOk`): `ErrWaitTimeout` (`ErrorInterrupted` of an `errors.New` error, translated),

@@ -41,7 +41,8 @@ theorem node.Tick.wp_proof : node.Tick.spec (GF := GF) (hG := hG) := by
       · iexact Htickc
       unfold nonblockingSendAu nonblockingSendAuInner
       isplit
-      · iinv Htickinv with Hi Hclose
+      · iapply ncfupd_of_fupd
+        iinv Htickinv with Hi Hclose
         imod lc_fupd_elim_later $$ Hlc1 Hi with Hi
         unfold tickInv
         icases Hi with ⟨%l, Hoc, Hcr⟩
