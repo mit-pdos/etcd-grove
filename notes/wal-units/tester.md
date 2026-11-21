@@ -575,3 +575,31 @@ The exact premises it would carry:
    on it.
 2. B3 option (a) in the WAL layer (`Create.specFresh` proved), then `Boot` over the proved spec.
 3. The closed theorem (the user's).
+
+# Twelfth session (branch `wal-safe`, 2026-11-21, etcd-grove-03's delegate): survey for U7; a pre-switch crash gap
+
+No Lean changed. Every tester function is proved (108 modules under `WalTester/Proof/.../examples/etcd/wal/`,
+no `sorry`, no `axiom`; `Boot`, `Main`, `tBoot0`, `tester_crash`, `tBootCrash`, `InitLinked.wp_initialize'`).
+`Link.lean` links all 107 results; `wp_Boot`/`wp_Main` take 29 hypotheses. What is left is U7: the adequacy
+assembly over `fsSQ_crash_adequacy`, the TopLevel files, and the hypotheses. Three blockers:
+
+1. **A crash before the shared-mode switch (new).** `wp_osShareE` is a WP lemma: it reads the state interpretation
+   at the program's first step. But `fsSQ_crash_adequacy`'s `Hwp` must hand over the crash continuation
+   *before* the WP, and `RealCrashNsteps` allows a crash after 0 steps of a generation. In generation 0
+   that window holds only `osTree` and pure facts, so `osTreeCrash_take` handles it, as in seglog. In a
+   generation after a crash it holds `TCrashed L' e V'`, whose `walStart L'`, `trFile L'` and `durFound L'`
+   no lemma carries across a second crash. tcrash.md's "For U7" assumes the old `TBoot` is available to
+   the crash continuation; it is not before the switch. Options, each in a shared area:
+   (a) an accessor form of the switch (`wp_osShareE_acc`, threading a fupd so that a "box" invariant
+   `(osTree ∗ pre) ∨ (switched resources)` can be opened at the switch), plus re-crash lemmas for
+   `walStart` (S/) and `durFound`/`durFoundTmp` (the part's durable), about 2 sessions;
+   (b, recommended) a crash interpretation or adequacy variant that starts every generation in the shared
+   mode, so no program has the window (etcd's restart, C6, will need the same), an extension-level change;
+   (c) a premise on executions (no crash before the first fs step): false of real runs, not recommended.
+2. **`BootFo` of every crashed tree** (tcrash.md): needs the WAL's `walFoRes`.
+3. **Hypotheses**: the model laws are dischargeable now (`walPb_laws`, `walRaftHsO_own`, `walRaftU_*`).
+   The Perennial-gap specs are pending. `proto.UnmarshalWalRecordE` is the user's.
+   **`WAL.renameWALUnlock.spec` is false as stated** (its header, the ledger), so it can never be a premise
+   of a closed theorem.
+The draft closed statement, with its premises and axioms, is in the coordinator's log
+(`/shared/tmp/coord-03/walsafe-log.md`); stating it is the user's hard stop.
