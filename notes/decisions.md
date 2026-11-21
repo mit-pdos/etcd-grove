@@ -28063,6 +28063,12 @@ restarts.
 
 ## The merged snapshot's index guard (2026-10-31, S1 · the user's decision (B))
 
+**2026-11-20, R2.** Raft already records the snapshots it has restored in
+`LogState.ksn`. The unstable snapshot path returns membership in that list.
+Carry membership through the outbox and the Ready handout so a later proof
+can recover the incoming message that installed the snapshot.
+
+
 *Superseded on 2026-11-20 by the decision to carry the snapshot source through raft's API below.*
 
 **2026-10-31 · accepted**
