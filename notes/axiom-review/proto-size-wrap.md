@@ -67,3 +67,5 @@ true and unchanged: two byte slices and scalars, no repeated message field, so m
 The spec plan's `SpecPlan/Spec/google_golang_org/protobuf/proto/Size.lean` already states the
 wrapped size (`n = W64 (encSize c)`): the fix converges to it. Ledger: `notes/specs-only/ledger.md`,
 2026-11-20.
+
+**`SizeMessage` fixed (prove-rafthttpfix, 2026-11-20)**: `notes/axiom-review/proto-sizemessage-fix.md` (two forms; the stream receiver's size facts made unconditional).

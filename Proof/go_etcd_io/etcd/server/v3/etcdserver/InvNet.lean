@@ -44,7 +44,7 @@ def srvProcOk (γn : NetNames GF) (s : Loc) (id : w64) (γd : GName) : IProp GF 
   iprop(∃ (l c st : Loc) (γ : RNNames GF),
     srvLgAddr s ↦□ l ∗ zapLoggerOk l ∗ srvMemberIDAddr s ↦□ id ∗ ⌜γ.id = id⌝ ∗
     srvClusterAddr s ↦□ c ∗ membership.isRaftCluster c ∗
-    srvStatsAddr s ↦□ st ∗ ⌜st ≠ null⌝ ∗
+    srvStatsAddr s ↦□ st ∗ ⌜st ≠ null⌝ ∗ v2stats.isServerStats st ∗
     rnNodeAddr (srvRAddr s) ↦□ rnNodeIface γ ∗ rnStepIfc γ (rnNodeIface γ) ∗
     srvClusterOk γ.srv ∗ ⌜γn.N = srvNet γ.node⌝ ∗ ⌜γ.node.snapLoc id = some γd⌝)
 

@@ -42,3 +42,5 @@ which Goose does not translate), required by `RecvAppendReq` and `SendAppendReq`
 `ServerStats` field), so the fact must be threaded through the server's construction and the
 transport's invariants (rafthttp's files, another group's on 2026-11-20): left for that change.
 Not reachable from etcd: etcd only passes `NewServerStats`' result.
+
+**Fixed (prove-rafthttpfix, 2026-11-20)**: `notes/axiom-review/v2stats-serverstats-queues.md` (`v2stats.isServerStats`).
