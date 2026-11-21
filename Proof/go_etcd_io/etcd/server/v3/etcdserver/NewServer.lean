@@ -698,7 +698,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       (srvGrantGuard ρ.rd.kv.lg on) (fun _ => True) (backend.rbData d.P D) (decide (m = .mono))
       [] (fun _ => W64 0) [] trivial HlP hrecs (by simp) (List.Perm.refl _))
     $$ [Hopen Hwl Hrbo]
-    as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlmode, #Hlcfg, -, #Hlexp, #Hlgd, Hlrd, Hlown, HlWt, HlEv, Hlrvk, Hro, HleOn, #Hlbe, Hlstop, -, -, #Hllk'⟩
+    as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlmode, #Hlcfg, -, #Hlexp, #Hlgd, Hlrd, Hlown, HlWt, HlEv, Hlrvk, Hro, HleOn, #Hlbe, Hlstop, -, -⟩
   · iframe HB Hclok
     -- (2026-11-02, the backend-auth-split stage) at every bucket: `rbOwn` is `rbPart ⊤`, and the
     -- lessor gives the boot its tracked buckets idle (`rbOwnIn ⊤`)
@@ -730,8 +730,6 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   imod (lease.lessorAt_empty γl ⊤ (fun _ _ => CoPset.mem_full)) $$ [$Hlrdinv $HlEv]
     with ⟨#Hl0, HlEv⟩
   ihave ⟨Hlt1, HltS⟩ := (ghostVar_split_half (GF := GF) γlt 1 ([] : List w64)).1 $$ Hlt
-  -- (the auth plan's E3zb) its `Lookup`'s weaker clause
-  ihave #Hllk := lookupOk_of_guard lp (srvGrantGuard ρ.rd.kv.lg on) $$ Hllk'
   (try wp_auto)
   -- `auth.NewTokenProvider`
   ihave #Hapkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []
@@ -1643,12 +1641,10 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- hook (`snap_isApplyLessor`, `snap_isAuthStore`, as the snapshot walk's)
   ihave #HlinvM : lease.lessorInv lp (mvcc.api.mvccLeases γm) $$ []
   · rw [Hγl]; iexact Hlinv
-  ihave #HllkO : lessorLookupOk lp $$ []
-  · iunfold lessorLookupOk; iexact Hllk
   ihave #Hapl := snap_isApplyLessor h49 h50 h51 h52 h53 h54 h55 h56 h95 M alst astl lp bc.cl'
       ({ d with cm := true } : mvcc.KBReal) γm (mvcc.api.mvccW d.gx)
       (batchLockInv γA (metaTM d.γB d.P)) hook Hhknn HlP
-    $$ [$Hpkg $Hlbe $Hlcfg $HllkO $HlinvM $HBs $Hhooks]
+    $$ [$Hpkg $Hlbe $Hlcfg $HlinvM $HBs $Hhooks]
   ihave #Hast0 := snap_isAuthStore M alst astl lp bc.cl' RD ({ d with cm := true } : mvcc.KBReal)
       (mvcc.api.mvccW d.gx) (batchLockInv γA (metaTM d.γB d.P)) hook Hhknn $$ [$HisAuth $HBs $Hhooks]
   ihave #Hast : apply.isAuthStore ast (fun _ => batchLockInv γA (metaTM d.γB d.P)) hook
@@ -1788,8 +1784,6 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       isplitr
       · iExactEq Hsdir
         rw [Hγn.1, HρRaft]; rfl
-      isplitr
-      · iunfold lessorLookupOk; iexact Hllk
       isplitr
       · iexists _; iexact Hvcn
       isplitr
