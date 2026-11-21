@@ -2,13 +2,16 @@
 Package initialization of `k8s_io.apimachinery.pkg.fields`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports and runs the untranslated
-initializers of its variables (`X.init`, axioms of the translation), which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking.
+Its fact is `True`. Its initializer allocates its variables, initializes its imports and runs their
+translated initializers (`selector.go`): `valueEscaper = strings.NewReplacer(...)` of three pairs
+(Perennial's `strings.wp_NewReplacer`, translated since Perennial 60800ea5e) and `termOperators`, a slice
+literal of the operator constants (prove-k8s4, 2026-11-21; until then the trust-boundary axiom
+`opaqueInitsOk`).
 -/
 module
 
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Base
+public import Perennial.Proof.strings.Link
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -26,25 +29,6 @@ local macro "mem_tac" : tactic =>
   `(tactic| repeat (first | exact List.Mem.head _ | apply List.Mem.tail))
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-
-section opaqueInits
-namespace k8s_io.apimachinery.pkg.fields
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- **The trust boundary: `k8s_io.apimachinery.pkg.fields`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([valueEscaper.init,
-        termOperators.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
-end k8s_io.apimachinery.pkg.fields
-end opaqueInits
 
 section init
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -66,8 +50,21 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
-  wp_apply (opaqueInitsOk valueEscaper.init (by mem_tac))
-  wp_apply (opaqueInitsOk termOperators.init (by mem_tac))
+  wp_apply wp_GlobalAlloc (V := GoSlice) termOperators _ as HtermOperators
+  wp_apply wp_GlobalAlloc (V := Loc) valueEscaper _ as HvalueEscaper
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.strings _root_.Perennial.strings.initialize'
+      EtcdGrove.ExternalInit.strings _root_.Perennial.strings.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
+  -- translated initializer of valueEscaper))
+  -- translated initializer of termOperators))
+  try wp_auto
+  wp_apply (wp_slice_literal (l := [go!"\\", go!"\\\\", go!",", go!"\\,", go!"=", go!"\\="])); isplitr; (· ipureintro; rfl); iintro %pEsc ⟨SEsc, -⟩
+  try wp_auto
+  wp_apply (_root_.Perennial.strings.wp_NewReplacer _
+      [go!"\\", go!"\\\\", go!",", go!"\\,", go!"=", go!"\\="] _ (by decide)) $$ [SEsc] as %r ⟨-, -⟩
+  · iframe SEsc
+  try wp_auto
+  wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %pOps ⟨-, -⟩
+  try wp_auto
   iframe Hown
   is_pkg_init_finish
 
