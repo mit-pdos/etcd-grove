@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-The Go pin at `34f5142d062b` removes the snapshot-index comparison in
+**Last updated:** 2026-11-21 (**k8s round 2, after the fmt pin bump: `apierrors.NewConflict` proved over its body** (extlib group `k8s2`; branch `prove-k8s2c/2026-11-21`): Perennial's `Sprintf` (pin `c8e356cb1`, `fmt.argsOk`) now formats its message's `%v` of an error and `%q` of a string, so `NewConflict` (`errors.go:232`) is translated and proved from its unchanged spec (precondition `fmt.argOk err`). Axioms removed: `apierrors.NewConflict.wp_proof` (1), none added. Not done: `NewInternalError`, whose spec's precondition gives `Error()`'s WP but not that `Error() string` is in the error's method set, which `fmt.argOk` asks (adding it would strengthen a caller-visible premise))
 `applyAll`. The merge proof obtains its bound from the two Ready batches,
 the snapshot's origin and the actual Go apply cursor, including during replay. The pin retains the
 message-term check and the post-restart replay deferral. The WAL upgrade
