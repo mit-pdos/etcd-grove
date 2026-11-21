@@ -394,7 +394,7 @@ theorem lease.lessor.Revoke.wp_proof
       · iPkgInit
       ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []
       · iapply isPkgInit_access $$ Hsch
-      icases Hsi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%bL, #HLeaseG, -⟩⟩
+      icases Hsi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%bL, #HLeaseG, -⟩, -⟩
       wp_apply (hUDL ⟨go.GoType.PointerType
           go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty, #t⟩ «$a1_ptr» (DFrac.own 1) _ bL
           iprop(mvccTxn (interface.mkOk tyX vX) γ trace (.write σ₀ (ks'.map mvcc.Change.del)) ∗

@@ -148,7 +148,7 @@ theorem v3rpc.Server.wp_proof
   iunfold v3rpc.grpcCfgOk at Hc
   icases Hc with ⟨#HKV, #Hws, #Hkv, #Hids, #Hlg0, #Hlg0n, #Hlg, #Hlgn, #Hqb, #Hmid, #Hn, %Hmx, #Hwd,
     #Hlead, #Hcl, #Hrc, #Hlk, #Hch, #Hstop, #Htm, #Het, #Hm, #Hfg, #Hgate, #Hmt, #Htr, #Htsl,
-    #Htos, #Hmcs⟩
+    #Htos, #Hmcs, #Hmvcc⟩
   ihave #Hlg0o := zapLoggerOk_orNil _ $$ Hlg0n
   -- the six `ServiceDesc`s: `v3rpc`'s package fact (item 8)
   ihave #Hdescs : (v3rpc.svcDescsOk : IProp GF) $$ []
@@ -411,7 +411,7 @@ theorem v3rpc.Server.wp_proof
   wp_apply (hRegH gs hs) $$ [Hgs] as ⟨%rs, %srs, Hgs, %Hrs1, %Hrs2⟩
   · iframe; iframe #; ipureintro; decide
   (try wp_auto)
-  wp_apply (hNewM s C.A C.lg0 C.wsl hn) as %mv %Hmv
+  wp_apply (hNewM s C.A C.lg0 C.wsl hn C.E.γ) as %mv %Hmv
   · iframe #
   obtain ⟨pmt, rfl⟩ := Hmv
   (try wp_auto)

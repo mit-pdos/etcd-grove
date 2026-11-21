@@ -109,7 +109,7 @@ def isServerBuiltOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPro
     "#HmetaSnap" ∷ srvMetaSnap γ ∗
     "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce γn.node.reg γn.node.cl γn.key ms γn.γs ai₀ at₀ γr.cursor γn.nl γn.snap0) ∗
     "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗
-    "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
+    "Hrdone" ∷ rnWorkerStartTok γn (srvRAddr s) ∗
     "#HNR" ∷ □ (|==> idCred ρ.ids 1) ∗
     "#Hcv" ∷ clusterVersionOk s ∗
     "#Hcci" ∷ context.isClosedchanInit ∗

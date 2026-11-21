@@ -25,7 +25,10 @@ def MemoryStorage.Entries.spec : Prop :=
                                     (γs.sz = true → uint.nat maxSize ≤ entsCutMax → entsCut maxSize cs)⌝) ∗
                             ⌜es ≠ [] ∧
                                 s.cap = s.len ∧
-                                  es <+: List.take (uint.nat hi - uint.nat lo) (List.drop (uint.nat lo - k) (a ++ b))⌝) -∗
+                                  es <+: List.take (uint.nat hi - uint.nat lo) (List.drop (uint.nat lo - k) (a ++ b)) ∧
+                                    (maxSize = W64 (-1) →
+                                      es =
+                                        List.take (uint.nat hi - uint.nat lo) (List.drop (uint.nat lo - k) (a ++ b)))⌝) -∗
                   Φ (intoVal s, intoVal err)) -∗
             WP
               ((((intoVal
