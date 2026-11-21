@@ -518,7 +518,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   ipersist HwatchBatchMaxRevs
   ipersist HrestoreChunkKeys
   ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []
-  · iapply isPkgInit_access $$ Hd5
+  · iapply isPkgInit_access $$ Hd6
   icases Hsi with ⟨-, -, -, -, -, #HSK, #HFK, -⟩
   ihave #VCP : (EtcdGrove.errVarCell ErrCompacted go!"mvcc: required revision has been compacted" : IProp GF) $$ []
   · unfold EtcdGrove.errVarCell; iexists _; iframe HErrCompacted CCP
