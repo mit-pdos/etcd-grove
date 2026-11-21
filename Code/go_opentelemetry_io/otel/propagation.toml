@@ -1,0 +1,9 @@
+# Types and names only, but the package variables (prove-misc, 2026-11-20): the interface
+# assertions (`var _ TextMapCarrier = MapCarrier{}`, ...), `versionPart` (`fmt.Sprintf`), so that
+# the package's initializer is translated whole (no `opaqueInitsOk`). otelgrpc imports it for
+# `TextMapCarrier` (`var _ propagation.TextMapCarrier = metadataSupplier{}`).
+translate = ["!*", "_", "versionPart", "supportedVersion", "handleExtractErrOnce"]
+imports = ["!*", "fmt", "net/http", "sync", "context"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

@@ -49,7 +49,6 @@ axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.pkg.v3.featuregate.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Tracer_init
 axiom Perennial.go_etcd_io.etcd.server.v3.auth.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.linkHeartbeatSize_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.toGRPCErrorMap_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.opaqueInitsOk
@@ -63,7 +62,6 @@ axiom Perennial.go_etcd_io.etcd.server.v3.storage.schema.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.schema.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.opaqueInitsOk
-axiom Perennial.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.opaqueInitsOk
 axiom Perennial.go_opentelemetry_io.otel.attribute.opaqueInitsOk
 axiom Perennial.go_opentelemetry_io.otel.trace.opaqueInitsOk
 axiom Perennial.go_uber_org.zap.opaqueInitsOk
@@ -79,9 +77,7 @@ axiom Perennial.google_golang_org.grpc.health.initFuncsOk
 axiom Perennial.google_golang_org.grpc.health.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.initFuncsOk
 axiom Perennial.google_golang_org.grpc.metadata.initFuncsOk
-axiom Perennial.google_golang_org.grpc.metadata.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.opaqueInitsOk
-axiom Perennial.google_golang_org.grpc.reflection.opaqueInitsOk
 axiom Perennial.hash.crc32.opaqueInitsOk
 axiom Perennial.internal.bytealg.initFuncsOk
 axiom Perennial.internal.runtime.sys.opaqueInitsOk
@@ -234,7 +230,6 @@ axiom rafthttp.netErrNotRemoved_ok
 axiom rafthttp.newStreamRoundTripper.wp_proof
 axiom rate.Every.wp_proof
 axiom rate.Limiter.Wait.wp_proof
-axiom rate.NewLimiter.wp_proof
 axiom recEncC_ok
 axiom reflect.DeepEqual.wp_proof_pgidSet
 axiom reflect.ValueOf.wp_proof
@@ -246,10 +241,7 @@ axiom schema.membershipBackend.MustDeleteMemberFromBackend.wp_proof
 axiom schema.membershipBackend.MustReadMembersFromBackend.wp_proof
 axiom schema.membershipBackend.MustSaveMemberToBackend.wp_proof
 axiom semver.MustParse.wp_proof
-axiom semver.New.wp_proof
 axiom semver.Version.LessThan.wp_proof
-axiom semver.Version.Major.wp_proof
-axiom semver.Version.Minor.wp_proof
 axiom semver.Version.String.wp_proof
 axiom semver.semverValid_simple
 axiom snap.NewMessage.wp_proof

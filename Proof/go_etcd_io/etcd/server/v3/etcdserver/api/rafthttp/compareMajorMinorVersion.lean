@@ -32,22 +32,22 @@ theorem rafthttp.compareMajorMinorVersion.wp_proof
     (hMinor : semver.Version.Minor.spec (GF := GF) (hG := hG))
     (hLT : semver.Version.LessThan.spec (GF := GF) (hG := hG)) :
     rafthttp.compareMajorMinorVersion.spec (GF := GF) (hG := hG) := by
-  intro a b Ha Hb
-  wp_start as -
+  intro a b x y Hann Hbnn
+  wp_start as ⟨#Ha, #Hb⟩
   ihave #Hsp : isPkgInit (PROP := IProp GF) pkg_id.github_com.Masterminds.semver.v3 $$ []
   · iPkgInit
   wp_auto
-  wp_apply hMajor a $$ [] as %ma -
-  · iframe #; ipureintro; exact Ha
-  wp_apply hMinor a $$ [] as %mi -
-  · iframe #; ipureintro; exact Ha
-  wp_apply hNew as %na %Hna
+  wp_apply hMajor a DFrac.discard x $$ [] as -
+  · iframe #
+  wp_apply hMinor a DFrac.discard x $$ [] as -
+  · iframe #
+  wp_apply hNew as %na ⟨%Hna, %oa, -⟩
   (try wp_auto)
-  wp_apply hMajor b $$ [] as %mb -
-  · iframe #; ipureintro; exact Hb
-  wp_apply hMinor b $$ [] as %mib -
-  · iframe #; ipureintro; exact Hb
-  wp_apply hNew as %nb %Hnb
+  wp_apply hMajor b DFrac.discard y $$ [] as -
+  · iframe #
+  wp_apply hMinor b DFrac.discard y $$ [] as -
+  · iframe #
+  wp_apply hNew as %nb ⟨%Hnb, %ob, -⟩
   (try wp_auto)
   wp_apply hLT na nb $$ [] as %b1 -
   · iframe #; ipureintro; exact ⟨Hna, Hnb⟩

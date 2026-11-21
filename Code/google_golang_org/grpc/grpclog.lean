@@ -49,8 +49,6 @@ opaque DepthLoggerV2.underlying [GooseExts] [GoGlobalContext] : go.GoType
 noncomputable def cache [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/grpclog.cache"
 
-opaque cache.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def Component [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/grpclog.Component"
 
@@ -142,10 +140,14 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (package.init pkg_id.google_golang_org.grpc.grpclog)) (Lam BAnon
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.string (go.GoType.PointerType componentData.ty))))) (LiteralValue []))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
   (App (Val doExecute)
-  (App (Val cache.init) (Val #()))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string (go.GoType.PointerType componentData.ty))))) (Pair (App (Val (GoInstruction (GlobalVarAddr cache))) (Val #())) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc cache (go.GoType.MapType go.string (go.GoType.PointerType componentData.ty)))) (Val #()))))))))
 
 structure componentData [GooseExts] where
   mk ::
