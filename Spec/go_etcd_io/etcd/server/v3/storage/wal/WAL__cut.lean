@@ -1,10 +1,14 @@
 /-
-`(*wal.WAL).cut` over `fsExt` (W2 of `notes/wal-fsext-plan.md`): the statement `Save` takes as a
-hypothesis (W6), for W2 to prove or restate. Lean-first.
+`(*wal.WAL).cut` over `fsExt` (W2 of `notes/wal-fsext-plan.md`). One spec (wal-fsfix2, 2026-11-20: the
+former `cut.spec` and `cut.specNoErr` merged, as `Save.spec` in wal-link L1a), parameterised by the files
+with no I/O error (`Sio`, `FsStepSat (NoIoErr Sio)`) and the lock and map premise at `Sio`
+(`FsStepSat (NoMapLockErr Sio)`): the error arm only when `Sio` does not cover every inode (`walCov`).
+Proved in `Proof/go_etcd_io/etcd/server/v3/storage/wal/WAL__cut.lean`. Lean-first.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Handle
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleShared
+public import GooseLang.Ext.Fs.FilteredSem
 
 @[expose] public section
 
@@ -23,6 +27,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
+variable {Sio : IoSet} [FsStepSat (NoIoErr Sio)] [FsStepSat (NoMapLockErr Sio)]
 
 /-- **`w.cut()`** (S/wal.go:875-965) of a handle with every record encoded (`rest = 0`): the tail
 truncated at the encoder's offset and synced, a new segment named after the history's last index
@@ -31,7 +36,10 @@ started at the history's length (`cuts ++ [|H|]`), its headers (`Crc`, the metad
 |H|`). The new handle's tail is the new segment (inode, ghost names and encoder offset fresh), its
 stream (the headers) ending below `2 ^ 43` (the room a no-error spec needs, `walFreshRoom`; unit
 `noioerr`).
-*Error*: the handle lost. The bound on the pipeline's count (`h.pc`, the files the handle's pipeline
+*Error* (only when `Sio` misses an inode, `¬ walCov Sio`): the handle lost. When `Sio` covers every
+inode, the WAL directory fits (`DirFits dir`) and `Sio` covers its children's paths (the paths `cut` opens,
+renames and locks: `N.tmp` and the new segment's name; `WalA.fits`/`covP`), and the old tail's stream ends
+at most at `maxBytes` (its flush, `sync`). The bound on the pipeline's count (`h.pc`, the files the handle's pipeline
 has handed over since this `Open`/`Create`, `walPipeH`): its `count` is a Go `int`, and its
 `count % 2` (the next file's name) is a signed remainder (`Pipe.lean`); the caller supplies it
 (W6: per-lifetime receipts, `notes/bounds-plan.md`). The cuts below `|H|` and `|H|` a cut position
@@ -49,6 +57,8 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.spec (P : WalPbIn GF) (Mr :
   (∀ b ∈ h.cuts, b < h.H.length) → h.cuts.Pairwise (· < ·) →
   walCutPos (h.H.map WalOpG.toM) h.H.length → 0 < h.H.length →
   h.md.length + (Mr.encState h.st).length < 2 ^ 42 →
+  (walCov Sio → DirFits dir ∧ ∀ b, Sio.path (child dir b)) →
+  (walCov Sio → h.o0 + h.out.length + h.pend.length ≤ maxBytes) →
   {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walHandleIn P Mr w dir h TailMetaW }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"cut")) (Val #()))
   {{ (err : GoInterface), RET #err;
@@ -56,7 +66,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.spec (P : WalPbIn GF) (Mr :
           ⌜h'.H = h.H ∧ h'.md = h.md ∧ h'.cuts = h.cuts ++ [h.H.length] ∧ h'.rest = 0 ∧ h'.st = h.st ∧
             h'.enti = h.enti ∧ h'.snapi = h.snapi ∧ h'.pc = h.pc + 1 ∧
             h'.o0 + h'.out.length + h'.pend.length ≤ 2 ^ 43⌝ ∗ WalFs.walSyncedLb dir h.H.length) ∨
-      ⌜err ≠ GoInterface.nil⌝ }}
+      ⌜err ≠ GoInterface.nil ∧ ¬ walCov Sio⌝ }}
 
 end spec
 

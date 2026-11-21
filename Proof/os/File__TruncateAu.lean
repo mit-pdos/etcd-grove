@@ -175,7 +175,7 @@ theorem os.File.Truncate.wp_proofAu : os.File.Truncate.specAu (GF := GF) (hG := 
     unfold os.truncAuW
     wp_apply wp_osFtruncateStart_auW fd sz dq d m0 xs0 hwr hsz (by rw [hmaps0]; exact hmaps)
       hl _ $$ Hinv Hosfd Hau as %t %n %- Hosfd Hau
-    wp_apply wp_osFtruncateFinish_au t d.ino sz.toNat m0 xs0 n _ $$ Hinv Hau as %e ⟨Hr, HK⟩
+    wp_apply wp_osFtruncateFinish_au t d.ino sz.toNat m0 xs0 n _ $$ Hinv Hau as %e ⟨Hr, HK⟩ %hne
     rw [hsz0] at hl
     have hann : ∀ tc rz,
         (m0.announce (min m0.size sz.toNat) (rsHi true m0.size sz.toNat) sz.toNat).withTc tc rz =
@@ -244,7 +244,7 @@ theorem os.File.Truncate.wp_proofAu : os.File.Truncate.specAu (GF := GF) (hG := 
         · isplitl [] <;> iassumption
         iright
         isplitr
-        · ipureintro; intro h; cases h
+        · ipureintro; exact ⟨fun h => (by cases h), hne he0'⟩
         icases HS with (H | ⟨%xs1, %tc, %rz, %hxs1, Hm, Hb⟩)
         · ileft; iexact H
         · iright; unfold os.ftUndoneH; iexists xs1
@@ -268,7 +268,7 @@ theorem os.File.Truncate.wp_proofAu : os.File.Truncate.specAu (GF := GF) (hG := 
     wp_apply wp_osFtruncateStart_auW fd sz dq d ((rsPost true m sz.toNat sz.toNat).withTc tc0 rz0) []
       hwr hsz (by rw [hdmaps]; exact hmaps) (by rw [hdsz]; simp) _ $$ Hinv Hosfd Hau
       as %t %n %- Hosfd Hau
-    wp_apply wp_osFtruncateFinish_au t d.ino sz.toNat _ [] n _ $$ Hinv Hau as %e ⟨Hr, HK⟩
+    wp_apply wp_osFtruncateFinish_au t d.ino sz.toNat _ [] n _ $$ Hinv Hau as %e ⟨Hr, HK⟩ %hne
     ihave Hd : os.ftDoneH d.ino m sz.toNat zs $$ [Hr Hbs]
     · iapply os.truncOutH_again _ m tc0 rz0 sz.toNat n e zs hzs htc0.1 htc0.2 $$ [Hr Hbs]; iframe
     by_cases he4 : e = W64 4
@@ -300,7 +300,7 @@ theorem os.File.Truncate.wp_proofAu : os.File.Truncate.specAu (GF := GF) (hG := 
         isplitl []
         · isplitl [] <;> iassumption
         iright
-        ipureintro; intro h; cases h
+        ipureintro; exact ⟨fun h => (by cases h), hne he0⟩
 
 end proof
 

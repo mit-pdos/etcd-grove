@@ -7,7 +7,7 @@ trusted models of `Net/TrustedCode/net.lean` that build Go's values from the ext
 it, and outputs a **witness** of an admitted run that a later step replays through Lean
 (`notes/net-tcp-v3-plan.md`, E10). It adapts dsverify-lab's `harness/conform` (Wing & Gong's search
 with Lowe's memo, lazy breaks, lazy prefixes, components, ends paired by 4-tuple;
-`notes/net-tcp-dsverify-survey.md` §2) to our model: pending connections belong to an address, a
+`notes/net-tcp-dsverify-survey.md` §2) to our model: pending connections belong to an address (a component per port), a
 cut is per direction, crashes are node-local, errors have kinds and Go shapes, `CloseWrite`,
 D16's abandoned dials, D17, D21's wildcards, (v3.1) a `Write` that is a loop of steps, and (v3.2,
 D22) waits as stutters, which leave no step.
@@ -33,14 +33,27 @@ another `Write` of the end takes no step until it ends (the "split" of overlappi
 calls are out of scope); `"tcp4"` (D23) stays out of the checker's scope, as every network but
 `"tcp"` was (no traced program uses it; the checker and the Lean replay would have to follow each
 socket's network into its errors' `Net`).
+v3.4 (2026-11-20, `notes/net-tcp.md`, v3.4): **no plan and no hosts**. `NetGlobal` is the
+connections only and `NetLocal` the listeners only (`NetGlobal.init`, `NetLocal.init`: none of
+either). `Listen` of `a` is valid iff `listenOk a` (`addrOk a`, D20: the canonical `a.b.c.d:p` of an
+IPv4 unicast address with a valid port, `portOk`; or `wildOk a`, D21: `":p"`, `"0.0.0.0:p"`,
+`"[::]:p"` with `p` a canonical valid port), and listens at `a` itself (the string given), on any
+node; `Dial` of `a` is valid iff `addrOk a`; an `Accept` of a listener at `la` takes a pending
+connection dialed to `x` iff `lisAccepts la x` (`la = x`, or `la` a wildcard and `x` has its port);
+a crash drops the listeners. Before, `Listen` resolved its address through `ListenAt plan host a
+a0` (a plan address at this node's host, or a wildcard's unique plan address with its port) and
+`Dial` needed a plan address, and the checker inferred the plan (`--plan` gave one). In the
+checker: `listen_at`, `listen_resolve`, `plan_well_formed`, `keys_distinct` and `--plan` are gone;
+`port_ok`, `wild_ok`, `listen_ok`, `lis_accepts` are new; an address component became a **port**
+component (a listener takes only connections dialed to its port); the witness is version 2.
 
 | file | what |
 |---|---|
-| `model.py` | the literal transcription of Impl.lean's relations and steps, and of Deploy.lean's `PlanWellFormed` (the table below) |
+| `model.py` | the literal transcription of Impl.lean's relations and steps (the table below) |
 | `mapping.py` | from a traced call's result to the extension's, by net.lean: the shape rules and the error kinds |
 | `lazy.py` | the search's states and steps: the model with its hidden choices taken lazily (exact: "Lazy cuts and prefixes") |
 | `lincheck.py` | the linearization search (Wing & Gong, Lowe's memo; several successors, optional operations, operations of several steps, precedence) |
-| `checker.py` | loading, nodes and crashes, mapping and scope, the plan, pairing, components, the searches, the report |
+| `checker.py` | loading, nodes and crashes, mapping and scope, the addresses, pairing, components, the searches, the report |
 | `replay.py` | the witness: the components merged into one linearization, made concrete, replayed through `model.py` |
 | `trace.py` | reads trace directories and `.tar.gz` samples (the format of `../README.md`) |
 | `conform_check.py` | the command (`--calls-out`: the calls file the Lean replay reads) |
@@ -63,9 +76,7 @@ cd examples && go test ./net/conform/check                                      
 ```
 
 Python 3 (3.8 or later), the standard library only. `PATH` is a run directory, a directory of
-them (every directory with `.jsonl` files is a run), or a sample `.tar.gz`. `--plan FILE` gives the
-plan (a JSON list of `[address, host]` pairs, hosts being node names) instead of inferring it.
-`check` exits 2 if a run is NOT ADMITTED.
+them (every directory with `.jsonl` files is a run), or a sample `.tar.gz`. `check` exits 2 if a run is NOT ADMITTED.
 
 **Verdicts**, per run:
 
@@ -75,9 +86,9 @@ plan (a JSON list of `[address, host]` pairs, hosts being node names) instead of
   why), or a Go value net.lean cannot build (shape), or the clocks are not comparable, or (a
   checker bug) the witness does not replay.
 - **OUT OF SCOPE**: no such finding, but the run has operations the model has no step for
-  (unmodeled APIs, non-plan addresses, port 0, an ill-formed plan, zero-value sockets); the rest is
-  checked all the same, a component that fails only with out-of-scope operations in it is
-  *inconclusive*, and if every component passes the witness is still built (for the extended plan).
+  (unmodeled APIs, invalid addresses, port 0, zero-value sockets); the rest is checked all the
+  same, a component that fails only with out-of-scope operations in it is *inconclusive*, and if
+  every component passes the witness is still built.
 
 ## From traces to the model
 
@@ -103,25 +114,27 @@ changed string is a warning, not a finding.
 
 **Scope** (no step in the model): `Unmodeled` APIs (a socket they touch makes its component
 inconclusive if it fails; one they make is out of scope with its operations); operations on `nil` or
-`u` sockets; networks other than `"tcp"`; Dials and Listens of addresses no plan can have (not a
-canonical `a.b.c.d:p`: `localhost:...`; their connections are left out of the check, and an Accept
-of one is left out of its address's: it changes nothing the others see); a Listen whose
-`ListenAt` has no address (a wildcard whose port two plan addresses share); port 0 (checked as a
-Listen of the address the kernel gave it, as if the plan had it); a plan not `PlanWellFormed` (D20:
-an ephemeral port, port 0; checked under it all the same).
+`u` sockets; networks other than `"tcp"`; a Dial of an address that is not valid (`addrOk`, D20:
+`localhost:...`, an ephemeral port, a wildcard; the model panics; its connection is left out of the
+check, and an Accept of it is left out of its port's: it changes nothing the others see); a Listen
+of one that is neither valid nor a valid wildcard (`listenOk`); port 0 (D12; a Listen of port 0
+that succeeded is checked as a Listen of the port the kernel gave it, which is in scope only if
+that port is valid: Linux gives an ephemeral one by default).
 
-**The plan** (D13): `--plan`, else inferred: each Listen's canonical address (resolved, for port 0)
-at the host of the node that listened there (two nodes listening at one address: out of scope),
-each Dial's canonical address (if no node listens there, at a host no node has), each wildcard
-Listen's port resolved to the plan's only address with it (or `127.0.0.1:p` if none). Hosts are
-node names.
+**Addresses** (v3.4: no plan). The model knows no plan and no host: any node may listen at any
+valid address or wildcard, two nodes at one address included (the kernel refuses a `Listen` at an
+address that is not its machine's, `EADDRNOTAVAIL`, a `sys` failure the model allows), and a
+listener at `la` takes the connections dialed to any `x` with `lisAccepts la x`. The checker reads
+each Listen's and Dial's address from the trace, checks it (`listen_ok`, `addr_ok`), and uses it
+for nothing else than the components (by port) and the steps' arguments.
 
 **Nodes and crashes** (D10, D11): a node is a `node` name; its processes, ordered by their headers'
 start times, are its incarnations when each ended (its driver's `exit` event, else its last record)
-before the next started; processes of one name that overlap are distinct nodes with the same host
-(the semantics run's test binary and its children). Between two incarnations the node crashes:
-its listeners vanish, its connections stay. In the search the crash is an operation of the address
-components at its host, after every operation of the old process (precedence) and before every
+before the next started; processes of one name that overlap are distinct nodes of that name (the
+semantics run's test binary and its children; the witness keeps the name as each node's `host`, to
+match processes, which the model does not see). Between two incarnations the node crashes:
+its listeners vanish, its connections stay. In the search the crash is an operation of the port
+components the node has operations in, after every operation of the old process (precedence) and before every
 operation of the node's later ones (precedence too), its interval from the old process's death
 bound (its `exit` event, else the next's start) to the next's start. A record after its process's
 `exit` event is a clock finding (and the crash then cannot be placed: NOT ADMITTED). Operations
@@ -143,14 +156,17 @@ connection with its 4-tuple". (No real run is NOT ADMITTED.)
 The model's global state is a product of independent parts, and so is the trace (dsverify-lab's
 decomposition, adapted):
 
-- **an address** `a0` of the plan: the listeners at it of the nodes whose host is `plan[a0]` (each
-  node's `NetLocal.lis` restricted to `a0`), and the `accepted` flags of the connections dialed to it;
-  its operations are the Listens resolving to it (`ListenAt`), the Accepts and Closes of those
-  listeners, the Dials of it, and the crashes of its host's nodes;
+- **a port** `p` (v3.4; before, an address of the plan): the listeners, of every node, at an
+  address or a wildcard with the port `p` (each node's `NetLocal.lis` restricted to them), and the
+  `accepted` flags of the connections dialed to addresses with the port `p`; its operations are the
+  Listens of those addresses, the Accepts and Closes of those listeners, the Dials of those
+  addresses, and the crashes of the nodes with operations in it. A listener takes only connections
+  with its port (`lisAccepts`: its own address, or a wildcard's port), so ports are independent;
+  addresses of one port are not (a wildcard takes them all);
 - **a connection**: its two ends and two directions; its operations are the Reads, Writes, Closes,
   CloseWrites and SetDeadlines of its two ends.
 
-No step reads two parts: `AcceptStep` reads the listener and the address's connections' flags,
+No step reads two parts: `AcceptStep` reads the listener and the port's connections' flags,
 `DialStep` adds a connection (pending at its address, its ends and directions fresh), the end
 operations read one connection. A connection's operations come after the Dial or Accept that made
 its end (program order; real time in the trace). So a run is admitted iff every component is (under
@@ -273,23 +289,25 @@ process's death bound. Their result is unobserved; the lazy successors are:
 - a Close, CloseWrite, SetDeadline: its effect (CloseWrite's sys is the state as it is);
 - dropped, in every case.
 
-**Accepts no Dial returned.** In an address component, a connection a failed Dial left (D16, `NetConn.
+**Accepts no Dial returned.** In a port component, a connection a failed Dial left (D16, `NetConn.
 abandoned`) or an unfinished Dial made (it may have succeeded) is an anonymous *token*: a failed
 Dial always leaves one (more pending connections constrain nothing: an Accept may take one or not,
 nothing needs one absent), an unfinished one too, and an Accept that no Dial returned takes one.
-Tokens are interchangeable: each is taken by at most one Accept, and the connection component of such
+Tokens of one address are interchangeable (the state counts them per address; an Accept tries
+each address with a token that its listener takes, `lisAccepts`, and records the one it took as its
+choice, `{"token": address}`): each is taken by at most one Accept, and the connection component of such
 an Accept has only its acceptor's operations, whose outcomes are the same from `NetConn.abandoned`
 and `NetConn.fresh` (the up direction, ε fin or ε open, gives a reader the same results: EOF, sys,
 timeout, no bytes; the down direction is fresh in both). An Accept left unfinished, or a Listen, is
 dropped (leaving a connection pending, or a listener closed, dominates). The witness gives each such
-Accept the first token of its address in witness order, and turns the tokens no Accept took back
+Accept the first token, in witness order, of the address the search chose for it, and turns the tokens no Accept took back
 into plain failures (or leaves the unfinished Dials out).
 
 ## The witness
 
 Each component's linearization gets points: an operation's (or a Write step's) point is the
 latest call time of it and of every step before it in that linearization (a point in its interval,
-non-decreasing along it). The witness is every component's steps sorted by point (an address's
+non-decreasing along it). The witness is every component's steps sorted by point (a port's
 before a connection's at the same point), with each node's crashes at its old process's death
 bound plus 1 ns (after every step of the old process, at or before the next's start). That order
 respects real time and every component's order, but for crashes against Dials of other nodes,
@@ -298,13 +316,13 @@ direction with bytes or open, keeping nothing; sys of one not cut, keeping every
 marked: a retro cut) and replayed through `model.py`: every step must satisfy `model.net_step` (on a
 one-connection `NetGlobal`: no step reads or writes another connection) or `model.crash`.
 
-**The format** (`--witness DIR` writes `<run>.witness.json`), version 1:
+**The format** (`--witness DIR` writes `<run>.witness.json`), version 2 (v3.4; version 1 had a
+top-level `plan`, a list of `[address, host]`, and `plan_well_formed`, and a `Listen` step's `a0`,
+the plan address it listened at):
 
 ```
-{ "format": "net-witness", "version": 1, "run": "<the run's path>",
-  "plan": [["127.0.0.1:7101", "server"], ...],      // the plan (Impl: NetGlobal.plan), as a list
-  "plan_well_formed": true,                          // Deploy.lean's PlanWellFormed of that list
-  "nodes": [{"node": "server", "host": "server", "procs": [pid, ...]}, ...],
+{ "format": "net-witness", "version": 2, "run": "<the run's path>",
+  "nodes": [{"node": "server", "host": "server", "procs": [pid, ...]}, ...],  // host: the traces' name, to match processes
   "conns": 12,                                       // connections numbered 1..conns (Impl: NewConn)
   "retro_cuts": 0,                                   // Reads marked to cut (the corner)
   "steps": [ <step>, ... ] }                         // the linearization, in order
@@ -318,10 +336,10 @@ Read's EOF):
 
 | `op` | arguments | `res` | Lean |
 |---|---|---|---|
-| `Listen` | `addr` (the string passed), `a0` (`ListenAt`'s plan address) | `{code}`; on success `lis` (the listener id) | `ListenStep` |
+| `Listen` | `addr` (the string passed, or for port 0 the kernel's port: the listener's address) | `{code}`; on success `lis` (the listener id) | `listenOk`, `ListenStep` |
 | `Accept` | `lis` | `{code}`; on success `conn` (its number) and `end` (`endId conn true`) | `AcceptStep` |
 | `LisClose` | `lis` | `{code}` | `LisCloseOutcome` |
-| `Dial` | `addr` | `{code: 0, conn, end}`, `{code: 3}` (no connection), or `{code: 3, abandoned: conn}` (D16) | `DialStep` |
+| `Dial` | `addr` | `{code: 0, conn, end}`, `{code: 3}` (no connection), or `{code: 3, abandoned: conn}` (D16) | `addrOk`, `DialStep` |
 | `Read` | `conn`, `side` (0 the dialer, 1 the acceptor), `end` (`endId`), `n` | `{code}`; for bytes `k` (ReadAvail's `k`, their count) and `data` (hex); `cut`: null, or `{keep}`, the prefix the cut keeps (ReadOutcome's `∃ k`) | `ReadStep` |
 | `Write` | `conn`, `side`, `end`, `data` (hex: the bytes not yet written, `rs`), `part` (the step's number in its call), `last` | `{k, code}`: the count the step adds, its code | `WriteStep` |
 | `Close`, `CloseWrite` | `conn`, `side`, `end` | `{code}` | `CloseStep`, `CloseWriteStep` |
@@ -340,7 +358,7 @@ calls (next section).
 `net-replay WITNESS CALLS` (`GooseLang/Ext/Net/Replay.lean`, its `main`; built by
 `lake build net-replay`, at `.lake/build/bin/net-replay`) replays a witness against Impl.lean's
 definitions themselves and against the run's traced calls, and prints `CERTIFIED`, or
-`NOT CERTIFIED: step i: why` (or the plan, or a call, for failures that are not one step's); it
+`NOT CERTIFIED: step i: why` (or a call, for failures that are not one step's); it
 exits 0 or 1. `certify.py` runs the whole chain:
 
 ```
@@ -363,14 +381,15 @@ python3 -B check/certify.py [PATH...] [--out DIR] [--json rows.json]          # 
 
 **What the replay checks**, in one walk over the witness's steps (the first failure is reported):
 
-- **(a)** the plan is `PlanWellFormed` (Deploy.lean), decided (`planWellFormedB`).
-- **(b)** from the initial state (the network of the plan with no connection; each witness node with
-  its host and no listener), each step is a step of the model, decided on the state the replay
+- **(a)** (until v3.4: the plan is `PlanWellFormed`; there is no plan now, and each `Listen` and
+  `Dial` checks its address in (b).)
+- **(b)** from the initial state (no connection; each witness node with no listener), each step is a step of the model, decided on the state the replay
   threads: the connections (pending, accepted, D16's abandoned ones) and each node's listeners
   (cleared by a `Crash` step). The step's hidden choices are the witness's (a `Dial`'s connection
-  number, a `Listen`'s listener id and plan address `a0`, a `Read`'s cut `keep`); the state after is
-  computed from them and the relation decided on it: `ListenAt` and the new listener (`ListenStep`),
-  the pending connection at the listener's address (`AcceptStep`), `NewConn` (`DialStep`),
+  number, a `Listen`'s listener id, a `Read`'s cut `keep`); the state after is
+  computed from them and the relation decided on it: `listenOk` and the new listener (`ListenStep`),
+  a pending connection the listener takes (`lisAccepts`, `AcceptStep`), `addrOk` and `NewConn`
+  (`DialStep`),
   `ReadOutcome`, `WriteOutcome`, `CloseOutcome`, `CloseWriteOutcome`, `DeadlineOutcome`,
   `LisCloseOutcome`, `IsEnd` (`Replay.step`).
 - **(c)** every traced call is linearized: every call is in scope (no `Unmodeled` API, no `nil` or
@@ -393,16 +412,15 @@ python3 -B check/certify.py [PATH...] [--out DIR] [--json rows.json]          # 
   (error kinds, EOF), the success of an Accept, Dial or Listen; and the sockets: every operation on
   a connection or listener is a step on the end (connection and side) or listener the step of the
   call that made the socket returned. The accepted connection is thus the one the model's Accept
-  returned (a pending one at the address), whatever its 4-tuple: the model's addresses are arbitrary
+  returned (a pending one the listener takes), whatever its 4-tuple: the model's addresses are arbitrary
   (D18), and the checker's pairing by 4-tuple is not trusted.
 
-**What is proved** (`Replay.lean`, `checkSteps_sound`; `main` runs `checkSteps` for (a) and (b)):
+**What is proved** (`Replay.lean`, `checkSteps_sound`; `main` runs `checkSteps` for (b)):
 
 ```
-theorem checkSteps_sound [GooseExts] [GoGlobalContext] {plan nodes ss w'}
-    (h : checkSteps plan nodes ss = .ok w') :
-    PlanWellFormed plan ∧
-    Exec ⟨GMap.ofList plan, ∅⟩ (fun n => (alGet nodes n).map (fun host => ⟨host, ∅⟩))
+theorem checkSteps_sound [GooseExts] [GoGlobalContext] {nodes : List String} {ss w'}
+    (h : checkSteps nodes ss = .ok w') :
+    Exec ⟨∅⟩ (fun n => if n ∈ nodes then some ⟨∅⟩ else none)
       (ss.map (fun s => s.op.toEv s.node)) w'.global w'.loc
 ```
 
@@ -414,7 +432,7 @@ operation, the argument the trusted model passes it (`PairV (#e) (#n)` for a Rea
 expression it steps to (its result value). The proof is `step_sound` per step, from the deciders'
 lemmas (`GooseLang/Ext/Net/Decide.lean`) and the replay's association lists standing for the
 model's `GMap`s (`World.global`, `World.loc`, `ofList_alSet`). The deciders, each with its proved
-`= true ↔` lemma against the relation of Impl.lean or Deploy.lean (an existential decided at the
+`= true ↔` lemma against the relation of Impl.lean (an existential decided at the
 instance the witness gives):
 
 | decider | relation | existentials |
@@ -423,8 +441,8 @@ instance the witness gives):
 | `readOutcomeB` | `ReadOutcome st d n r d'` | the cut's `∃ k`: `cutKeep r d'`, its only candidate (`cut_unique`) |
 | `writeOutcomeB` | `WriteOutcome st d rs k res d'` | none (`k` the step's) |
 | `closeOutcomeB`, `closeWriteOutcomeB`, `deadlineOutcomeB`, `lisCloseOutcomeB`, `isEndB` | `CloseOutcome`, `CloseWriteOutcome`, `DeadlineOutcome`, `LisCloseOutcome`, `IsEnd` | none |
-| `listenAtB pl host a a0` | `ListenAt (GMap.ofList pl) host a a0` | `∃ p`: `wildPort a`; its `∀ x` over the plan list |
-| `planWellFormedB` | `PlanWellFormed` | none (it is a `Bool` equation) |
+| `lisAcceptsB la a` | `lisAccepts la a` | `∃ p`: `wildPort la` |
+| `listenOk`, `addrOk` | themselves | none (`Bool`s) |
 
 Their atoms avoid walking a direction's megabytes where they can (`lenGe`, `appendEqB`, and
 `bytesEqB`, equal at once when the two lists are the same object: Lean's `withPtrEqDecEq`, a
@@ -475,7 +493,7 @@ hold megabytes (the buffers filled), whose `List w8` the steps copy (a write app
 | shutdown/TestProcesses | 236 | 0.0 | 0.1 | 0.10 | 11 / 1 / 3 |
 
 **Negative tests** (`certify.py`, on the sample; each must be NOT CERTIFIED at the step, or the
-plan or call, it touched, with the expected reason): a Write step's `k` changed (the loop then goes
+call, it touched, with the expected reason): a Write step's `k` changed (the loop then goes
 on: `last` wrong); a Read's `k` not its bytes' count; a Read of one byte of the two the trace read;
 a forged EOF (not `ReadOutcome`); a forged EOF the model allows (with a cut keeping nothing) but the
 trace did not see (its code); a wrong error kind (an Accept on a closed listener failing sys:
@@ -483,19 +501,23 @@ trace did not see (its code); a wrong error kind (an Accept on a closed listener
 the trace and the witness agreeing on them (only the model refuses); an unmodeled call; an error net.lean
 cannot build (a closed-end error with `Timeout()` true); a plain Dial's deadline error (it maps to
 `timeout`, which the witness's `sys` failure is not); an Accept returning another connection; a
-call's step missing; a step after its call returned; two steps swapped (`t` order); an ill-formed
-plan (an ephemeral port); a crash left out (the restarted node's next step is not of its current
+call's step missing; a step after its call returned; two steps swapped (`t` order); (v3.4, in place
+of version 1's ill-formed plan, the witness and the calls tampered together so that only the model
+refuses) a Listen of an invalid address (`127.0.0.1:40000`, an ephemeral port: not `listenOk`), a
+failed Dial of one (not `addrOk`), and a Listen moved to the next port, so that the Accept of a
+connection dialed to the old one is refused (not `lisAccepts`: "not at the address"); a crash left out (the restarted node's next step is not of its current
 incarnation); a crash before the old process's last record; a Write step of other bytes than the
-call's `b[nn:]`. All 19 are rejected where expected.
+call's `b[nn:]`. 21 in all (before v3.4, with the ill-formed plan, 19 were rejected where expected;
+the v3.4 set has not been run yet).
 
 ## The model, transcribed (`model.py`)
 
-| Impl.lean / Deploy.lean | model.py | notes |
+| Impl.lean | model.py | notes |
 |---|---|---|
 | `NetStatus`, `NetDir`, `NetDir.fresh`, `NetEnd`, `NetEnd.fresh`, `NetConn` | `OPEN/FIN/CUT`, `NetDir`, `DIR_FRESH`, `NetEnd`, `END_FRESH`, `NetConn` | side False = 0, the dialer |
 | `NetConn.fresh`, `NetConn.abandoned` | `conn_fresh`, `conn_abandoned` | |
 | `NetConn.endSt`, `.out`, `.setEnd`, `.setOut` | `end_st`, `out`, `set_end`, `set_out` | |
-| `NetGlobal`, `NetGlobal.setConn`, `NetLocal` | `NetGlobal`, `.set_conn`, `NetLocal` | dicts, copied on update |
+| `NetGlobal`, `NetGlobal.setConn`, `NetLocal`, `NetGlobal.init`, `NetLocal.init` | `NetGlobal`, `.set_conn`, `NetLocal`, `global_init`, `local_init` | dicts, copied on update (v3.4: no plan, no host) |
 | `endId`, `IsEnd` | `end_id`, `is_end`, `decode_end` | |
 | `NetErr`, `NetErr.code`, `errCode` | `CLOSED/TIMEOUT/SYS`, `ERR_CODE`, `err_code` | |
 | `ReadRes`, `readRes`'s EOF code | `R_BYTES`, `R_EOF`, `R_ERR`, `EOF_CODE` | |
@@ -503,20 +525,21 @@ call's `b[nn:]`. All 19 are rejected where expected.
 | `ReadOutcome` | `read_outcome` | the cut's `∃ k` given (`keep`) or at its only candidate; tested against every k |
 | `WriteOutcome` | `write_outcome` | one step of the Write loop (v3.1) |
 | `NetDir.shut`, `CloseOutcome`, `CloseWriteOutcome`, `DeadlineOutcome`, `timeIsZero` | `shut`, `close_outcome`, `close_write_outcome`, `deadline_outcome`, `time_is_zero` | |
-| `stripPrefix`, `wildPort`, `portOf`, `ListenAt` | `strip_prefix`, `wild_port`, `port_of`, `listen_at`, `listen_resolve` | `listen_resolve`: the unique a0 (`listenAt_unique`) |
+| `stripPrefix`, `wildPort`, `portOf` | `strip_prefix`, `wild_port`, `port_of` | |
+| `isDigit`, `digitsVal`, `decNat`, `splitBy`, `parseAddr`, `portOk`, `addrOk`, `wildOk`, `listenOk`, `lisAccepts` | `is_digit`, `digits_val`, `dec_nat`, `split_by`, `parse_addr`, `port_ok`, `addr_ok`, `wild_ok`, `listen_ok`, `lis_accepts` | `lis_accepts`' `∃ p` at `wildPort la`; `addr_port` (the component's key) is the checker's |
 | `ReadStep`, `WriteStep`, `CloseStep`, `CloseWriteStep`, `SetDeadlineStep` | `read_step`, `write_step`, `close_step`, `close_write_step`, `set_deadline_step` | e' as its value |
-| `failV`, `NewConn`, `DialStep`, `AcceptStep`, `ListenStep`, `LisCloseOutcome` | `fail_v`, `new_conn`, `dial_step`, `accept_step`, `listen_step`, `lis_close_outcome` | the `∃ c`, `∃ l`, `∃ a0` at their only candidates |
-| `NetStep` | `net_step` | not the `Any*` operations (the trusted models' choices, not trace steps) |
+| `failV`, `NewConn`, `DialStep`, `AcceptStep`, `ListenStep`, `LisCloseOutcome` | `fail_v`, `new_conn`, `dial_step`, `accept_step`, `listen_step`, `lis_close_outcome` | the `∃ c`, `∃ l` at their only candidates |
+| `NetStep` (`IsNetStep`) | `net_step` | not the `Any*` operations (the trusted models' choices, not trace steps); `Listen` checks `listenOk`, as `IsNetStep` |
 | `net_semantics.crash` | `crash` | |
-| `isDigit`, `digitsVal`, `decNat`, `splitBy`, `parseAddr`, `addrOk`, `keysDistinct`, `PlanWellFormed` | `is_digit`, `digits_val`, `dec_nat`, `split_by`, `parse_addr`, `addr_ok`, `keys_distinct`, `plan_well_formed` | |
 | net.lean: `model.kindErr`, `model.connErr`, `model.opError`, `model.errFlag`, each `*.impl`'s Op, Source, Addr, Syscall | `mapping.py`: `err_kind`, `map_call`, `GO_OP`, `SYSCALL`, `SOURCE_NIL` | read backwards: a Go value to the extension's result |
 | net.lean: `model.writeLoop` (`conn.Write.impl`) | `lazy.write`, `replay.py`'s Write steps | count the sum, error the failing step's |
 
-## Tests (`test_check.py`, 77 tests, about 15 s; `go test ./net/conform/check` runs them)
+## Tests (`test_check.py`, 88 tests, about 10 s; `go test ./net/conform/check` runs them)
 
 - **The model**: `read_outcome`'s decision of its `∃ k` against trying every k, on every small
-  state; Tests.lean's read examples; Write steps; Close; `ListenAt` (wildcards, a shared port);
-  Deploy.lean's examples of `PlanWellFormed`; `DialStep` (D16), `AcceptStep`.
+  state; Tests.lean's read examples; Write steps; Close; `addrOk`'s examples (D20); `listenOk`
+  and `wildOk` (D21); `lisAccepts`; `ListenStep` (any address, only sys with one open at it);
+  `DialStep` (D16, invalid addresses), `AcceptStep` (a wildcard's, another address's).
 - **Lazy against eager**: 3000 random histories of one connection (two ends; Reads, Writes, Closes,
   CloseWrites, deadlines; some calls cut short; random intervals; results from a random execution
   of the model, then some perturbed), half aimed at the corner (Writes, CloseWrites and the peer's
@@ -535,7 +558,9 @@ call's `b[nn:]`. All 19 are rejected where expected.
   half-close; a killed writer's unfinished Write partly read; a server killed and restarted (its
   crash, the listener reopened); the corner admitted through a retro cut (`cut: {keep: 1}` on the
   peer's Read); a cut by a Write's failure, then CloseWrite, then a Write; calls in progress at
-  exit; a reused 4-tuple.
+  exit; a reused 4-tuple; (v3.4) a wildcard taking two addresses with its port; a wildcard and an
+  address listener on one node, the wildcard accepting a failed Dial's connection to another address;
+  two nodes listening at one address; a Listen at a non-local address failing `EADDRNOTAVAIL`.
 - **Negative** hand-made traces, each NOT ADMITTED at the operation the test names: bytes invented,
   reordered, read twice, read before their Write began, read past what was written; a short
   successful Write; `closed` from a Read of an open end (its Close began after); read and write
@@ -546,18 +571,21 @@ call's `b[nn:]`. All 19 are rejected where expected.
   closed end succeeding; the corner with no cut point (a Write, and a partial `closed` one, after
   CloseWrite), and the corner's discarded bytes read; an Accept by a process after its exit event,
   its node restarted; two open listeners at one address; Accept on a closed listener returning sys;
+  (v3.4) an Accept of a connection dialed to another address, of a failed Dial's to another address,
+  and by a wildcard of another port;
   an Accept no Dial explains, and one whose failed Dial began after it returned; data read from an
   abandoned connection; two Accepts of one failed Dial; a plain Dial failing with a deadline error;
   shapes: a closed error with Timeout true, EOF wrapped, EOF from Write, a bare Errno, a wrong Op, a
   wrong Syscall, bytes with an error, a Read of n > 0 returning nothing, a nil LocalAddr; two time
   namespaces.
-- **Scope**: an unmodeled API; an explicit plan without the address; port 0 (out of scope, every
-  component admitted, a witness); a hostname Dial; an Accept timeout after an unmodeled listener
+- **Scope**: an unmodeled API; a Listen and a Dial of an ephemeral port (not `listenOk`, `addrOk`);
+  port 0 (out of scope; with a valid kernel port every component admitted, a witness; with an
+  ephemeral one, out of the model); a hostname Dial; an Accept timeout after an unmodeled listener
   deadline (inconclusive, not a finding).
 - **The sample** (`../testdata/*.tar.gz`, 14 runs): all ADMITTED, with witnesses.
 - **Mutants of the sample** (`mutate.py`, 3 of each kind per run): all rejected.
 - **Certification** (`certify.py`, `certify_test.go`, about 22 s; skipped unless the replay is built
-  or `NET_CERTIFY=1`, which builds it): the sample's 14 witnesses CERTIFIED in Lean, and 19
+  or `NET_CERTIFY=1`, which builds it): the sample's 14 witnesses CERTIFIED in Lean, and 21
   tampered witnesses (or calls) NOT CERTIFIED where expected ("Certification in Lean").
 
 ## Results (2026-11-14, the collection of `../README.md` in `/tmp/net-collect`, 22 runs)
@@ -596,8 +624,9 @@ several steps (every one a race or a deadline), calls cut short in it:
 Writes' sys failures cut too.) The semantics run is out of scope for port 0 everywhere (40
 listeners, D12), its zero-value sockets (EINVAL), 51 `TCPConn.SyscallConn`, 2 `SetLinger`,
 `TCPListener.SetDeadline` (its Accept's timeout: the only inconclusive component), and
-TestAddressAliases' `localhost:P` Dials and `:P` wildcard listening at 127.0.0.1:P and 127.0.0.2:P
-(no `ListenAt` address); every other component of it is admitted.
+TestAddressAliases' `localhost:P` Dials and (under v3.3) `:P` wildcard listening at 127.0.0.1:P and
+127.0.0.2:P (no `ListenAt` address; v3.4 takes such a wildcard); every other component of it is
+admitted. (These results are v3.3's; not rerun under v3.4.)
 
 **Mutation** (`conform_check.py mutate /tmp/net-collect/traces -n 5`, the 21 admitted runs):
 786 of 786 mutants rejected (100%), 87 s: m-flip 94/94, m-short 98/98, m-closeerr 104/104,
@@ -631,7 +660,7 @@ mutated it rejected 795 of 828, every miss one of its mutants.)
   ("Certification in Lean"); a NOT ADMITTED one is not (the search's completeness, and so a
   refutation, rests on the exactness argument and `model.py`).
 - The pairing of ends by 4-tuple (above); an unpaired Accept is explained by any failed or
-  unfinished Dial of its address, not by its host.
+  unfinished Dial of an address its listener takes, on any node.
 - Splits of overlapping Writes of one end are tried only up to 64 bytes left (a failure past that
   is inconclusive).
 - The tracer sees `net`'s API: each call's effect is taken to be within its traced interval.

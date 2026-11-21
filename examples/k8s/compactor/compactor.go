@@ -19,10 +19,10 @@
 // recorded revision, the key's values increasing, one interval between reaching a revision and
 // compacting it) are compactor_test.go's.
 //
-// MainPartition runs the same workload on three members under network partitions, as
-// examples/etcd/partition's (examples/lib/cluster3): every client dials every member's bridge, so
-// the shared compactor is registered at the three bridge addresses; Main's checks hold for every
-// schedule.
+// MainPartition runs the same workload on k members under network partitions, as
+// examples/k8s/etcd3's (examples/lib/cluster3's partitioner): every client dials every member's
+// bridge, so the shared compactor is registered at the k bridge addresses; Main's checks hold for
+// every schedule.
 //
 // The API servers run Kubernetes' default configuration: ListFromCacheSnapshot (beta, on by default
 // since 1.34) makes NewCompactor also start its watch loop, which follows compact_rev_key through a
@@ -36,12 +36,14 @@ import (
 	"time"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.etcd.io/etcd/server/v3/etcdserver"
 	"go.uber.org/zap"
 	"k8s.io/apiserver/pkg/storage/etcd3"
 	"k8s.io/utils/clock"
 
 	"github.com/mit-pdos/etcd-grove/examples/lib/cluster3"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
+	"github.com/mit-pdos/etcd-grove/third_party/bridge"
 )
 
 // The client address: the string net.Listen is given is the client's endpoint, verbatim.
@@ -50,18 +52,76 @@ const clientAddr = "127.0.0.1:23976"
 // The member's peer address (not served: the cluster has no other member).
 const peerAddr = "127.0.0.1:23986"
 
-// MainPartition's cluster (cluster3.Config): three members, each with its peer, client and bridge
-// address (the API servers' clients dial the bridges), its own token and names, and snapshots as
-// examples/etcd/partition's (a member a cut kept behind is caught up by a snapshot).
-func clusterConfig() cluster3.Config {
-	return cluster3.Config{
-		Token: "k8scompactorp", Name1: "k8scompactorp-1", Name2: "k8scompactorp-2",
-		Name3: "k8scompactorp-3",
-		Peer1: "127.0.0.1:23941", Peer2: "127.0.0.1:23942", Peer3: "127.0.0.1:23943",
-		Client1: "127.0.0.1:23931", Client2: "127.0.0.1:23932", Client3: "127.0.0.1:23933",
-		Bridge1: "127.0.0.1:23951", Bridge2: "127.0.0.1:23952", Bridge3: "127.0.0.1:23953",
-		SnapCount: 1, SnapCatchUp: 1,
+// MainPartition's cluster: k members, 1 <= k <= 600 (the premise on the member ids; TestMemberIDs of
+// examples/k8s/all), as examples/k8s/etcd3's. Member i (from 0) is named k8scompactorN-i; its peer
+// address is 127.0.0.1:(PeerBase+i) (its one peer URL http://<addr>, served by its raft handler), its
+// client address 127.0.0.1:(ClientBase+i) (served by its gRPC server), and its bridge's address
+// 127.0.0.1:(BridgeBase+i) (the bridge to its client address, which the API servers' clients dial).
+// Disjoint from examples/k8s/etcd3's (20000-22999) for every two member counts up to 1000, and below
+// Linux's ephemeral ports.
+const (
+	PeerBase   uint64 = 23000
+	ClientBase uint64 = 24000
+	BridgeBase uint64 = 25000
+)
+
+// Token is the cluster's token (etcd's --initial-cluster-token), from which, with its peer URL, etcd
+// computes each member's id. It is the first "k8scompactorN-<i>" at which the ids' 16 low bits are
+// distinct and not 0 for the first 600 members together with examples/k8s/etcd3's first 1000 (the
+// premise on the ids of a process running both drivers; examples/k8s/all's TestMemberIDs checks it).
+const Token = "k8scompactorN-235946"
+
+// The members' snapshot settings (examples/etcd/partition's): a disk snapshot every SnapCount
+// applied entries, raft's log then compacted to SnapCatchUp entries below it, so that a member a cut
+// kept behind is caught up by a snapshot.
+const (
+	SnapCount   uint64 = 1
+	SnapCatchUp uint64 = 1
+)
+
+// bridgeAddr is member i's bridge address, 127.0.0.1:(BridgeBase+i), the number in decimal (as
+// etcdstart.Members writes the members' addresses).
+func bridgeAddr(i uint64) string {
+	return "127.0.0.1:" + strconv.FormatUint(BridgeBase+i, 10)
+}
+
+// holdToken sleeps forever: startCluster runs it on a goroutine of its own beside each member's gRPC
+// server, which touches no lock; the proof hands that goroutine's thread token to the member's
+// serving (as examples/k8s/etcd3's).
+func holdToken() {
+	for {
+		time.Sleep(time.Hour)
 	}
+}
+
+// startCluster starts the k members of a new cluster (etcdstart.Members, etcdstart.StartMembers:
+// each member's auto-compactor off, every compaction a client's), then, for each member in order,
+// its gRPC server on its client address (etcdstart.Serve, with a holdToken goroutine beside it) and a
+// bridge to that address (cluster3.StartBridge), as examples/k8s/etcd3's startCluster. It returns the
+// members, the bridges and the bridges' addresses, and false if a step failed.
+func startCluster(k uint64, lg *zap.Logger) ([]*etcdserver.EtcdServer, []bridge.Bridge, []string,
+	bool) {
+	ms := etcdstart.Members("k8scompactorN", k, PeerBase, ClientBase)
+	srvs, err := etcdstart.StartMembers(ms, Token, SnapCount, SnapCatchUp, lg)
+	if err != nil {
+		return nil, nil, nil, false
+	}
+	brs := make([]bridge.Bridge, k)
+	baddrs := make([]string, k)
+	for i := uint64(0); i < k; i++ {
+		go holdToken()
+		if err := etcdstart.Serve(srvs[i], ms[i].Client); err != nil {
+			return nil, nil, nil, false
+		}
+		ba := bridgeAddr(i)
+		br, err := cluster3.StartBridge(ba, ms[i].Client)
+		if err != nil {
+			return nil, nil, nil, false
+		}
+		brs[i] = br
+		baddrs[i] = ba
+	}
+	return srvs, brs, baddrs, true
 }
 
 // The key the compactors coordinate through (etcd3's compactRevKey).
@@ -209,22 +269,24 @@ func Main() {
 	wg.Wait()
 }
 
-// MainPartition is Main's workload on a three-member cluster under network partitions (K6 of
-// notes/k8s-compactor-plan.md): the cluster started in Kubernetes' deployment of etcd, every
-// compaction a client's (cluster3.StartCluster: the members' auto-compactor off), a client of
-// every member's bridge that waits for the cluster to serve, a partitioner on sched
-// (cluster3.Partitioner: peer cuts and mends, client blackholes and drops) and the writer on that
-// client, then the API servers as Main's, each with its own client of every bridge, until every API
-// server has stopped its compactor and made its checks. An error before the API servers start ends
-// MainPartition without a check.
-func MainPartition(sched []cluster3.Step) {
+// MainPartition is Main's workload on a k-member cluster under network partitions (K6 of
+// notes/k8s-compactor-plan.md; k members since notes/k8s-compactor-n-plan.md): the cluster started in
+// Kubernetes' deployment of etcd, every compaction a client's (startCluster: the members'
+// auto-compactor off), a client of every member's bridge that waits for the cluster to serve, a
+// partitioner on sched (cluster3.Partitioner: peer cuts and mends, client blackholes and drops) and
+// the writer on that client, then the API servers as Main's, each with its own client of every
+// bridge, until every API server has stopped its compactor and made its checks. An error before the
+// API servers start, or k = 0, ends MainPartition without a check.
+func MainPartition(k uint64, sched []cluster3.Step) {
+	if k == 0 {
+		return
+	}
 	lg := zap.NewNop()
-	cfg := clusterConfig()
-	srvs, brs, ok := cluster3.StartCluster(cfg, lg)
+	srvs, brs, baddrs, ok := startCluster(k, lg)
 	if !ok {
 		return
 	}
-	wcli, err := cluster3.NewClient(cfg, lg)
+	wcli, err := etcdstart.NewClients(baddrs, lg)
 	if err != nil {
 		return
 	}
@@ -236,7 +298,7 @@ func MainPartition(sched []cluster3.Step) {
 
 	var wg sync.WaitGroup
 	for i := 0; i < servers+sharedServers; i++ {
-		cli, err := cluster3.NewClient(cfg, lg)
+		cli, err := etcdstart.NewClients(baddrs, lg)
 		if err != nil {
 			break
 		}

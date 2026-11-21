@@ -40,7 +40,7 @@ abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync.spec : Prop :=
   {{ (e : w64), RET #(errnoErr e); os.ownFile f fd name dqf ∗ osFd fd dq d ∗
       ((⌜e = 0⌝ ∗ osMeta d.ino (DFrac.own 1) m.synced ∗
           osBytes d.ino lo (DFrac.own 1) (xs.map (fun x => durB x.1))) ∨
-       (⌜e ≠ 0 ∧ e ≠ EINTR⌝ ∗ osMeta d.ino (DFrac.own 1) m ∗
+       (⌜e ≠ 0 ∧ e ≠ EINTR ∧ ¬ FsNoErrIno⌝ ∗ osMeta d.ino (DFrac.own 1) m ∗
           osBytes d.ino lo (DFrac.own 1) xs)) }}
 
 end spec

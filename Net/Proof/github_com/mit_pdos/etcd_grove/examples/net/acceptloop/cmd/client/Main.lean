@@ -44,8 +44,8 @@ theorem wp_main
     (wp_Add : sync.WaitGroup.Add.spec (GF := GF) (hG := hG))
     (wp_Done : sync.WaitGroup.Done.spec (GF := GF) (hG := hG))
     (wp_Wait : sync.WaitGroup.Wait.spec (GF := GF) (hG := hG))
-    (γm : GName) (h : GoString) :
-    {{ isPkgInit (PROP := IProp GF) pkg ∗ echoInvs γm ∗ netPlan G srvAddr h }}
+    (γm : GName) :
+    {{ isPkgInit (PROP := IProp GF) pkg ∗ echoInvs γm ∗ ⌜addrOk srvAddr = true⌝ }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
   wp_start as ⟨#Hinvs, #Hplan⟩
@@ -58,7 +58,7 @@ theorem wp_main
   · iPkgInit
   icases wire.ed_init $$ Hwire with ⟨%ed, #Hed⟩
   (try wp_auto)
-  wp_apply wp_Call wp_Dial wp_ReadFull wp_Write wp_Close wp_Add wp_Done wp_Wait γm h eof ed $$ []
+  wp_apply wp_Call wp_Dial wp_ReadFull wp_Write wp_Close wp_Add wp_Done wp_Wait γm eof ed $$ []
   · iframe Hinvs Hplan Heof Hed
   (try wp_auto)
   iapply HΦ

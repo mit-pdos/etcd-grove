@@ -5,7 +5,9 @@ public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.context
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart
+public import GeneratedProof.github_com.mit_pdos.etcd_grove.third_party.bridge
 public import GeneratedProof.go_etcd_io.etcd.client.v3
+public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver
 public import GeneratedProof.go_uber_org.zap
 public import GeneratedProof.k8s_io.apiserver.pkg.storage.etcd3
 public import GeneratedProof.k8s_io.utils.clock
