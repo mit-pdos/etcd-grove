@@ -175,7 +175,8 @@ def ReadyRestFacts (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM
       (readyDurable st.durable (phsNext st.hardState h) (some l) es).last ∧
     uint.nat st.hardState.Commit' < uint.nat l.snap.Metadata'.Index' ∧
     uint.nat l.snap.Metadata'.Index' ≤ uint.nat (phsNext st.hardState h).Commit' ∧
-    (∀ e ∈ es, uint.Z e.Type' ≤ 2)
+    (∀ e ∈ es, uint.Z e.Type' ≤ 2) ∧
+    (es.Pairwise fun a b => uint.nat a.Term' ≤ uint.nat b.Term' ∧ uint.nat a.Index' < uint.nat b.Index')
   | none =>
     uint.nat st.hardState.Commit' ≤ uint.nat (phsNext st.hardState h).Commit' ∧
     uint.nat (phsNext st.hardState h).Commit' ≤
@@ -189,7 +190,8 @@ def ReadyRestFacts (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM
         uint.nat (readyDurable st.durable (phsNext st.hardState h) none es).base.index']? =
         some (e.toEntryM (W64 (st.delivered.length + 1 + j)))) ∧
     (∀ e0, es.head? = some e0 → uint.nat st.hardState.Commit' < uint.nat e0.Index') ∧
-    (∀ e ∈ es, uint.Z e.Type' ≤ 2)
+    (∀ e ∈ es, uint.Z e.Type' ≤ 2) ∧
+    (es.Pairwise fun a b => uint.nat a.Term' ≤ uint.nat b.Term' ∧ uint.nat a.Index' < uint.nat b.Index')
 
 /-! ### The configuration, abstractly (2026-10-27, for etcd's server: moved from the draft) -/
 

@@ -23,6 +23,7 @@ public import Proof.go_etcd_io.bbolt.InitLinked
 public import Proof.go_etcd_io.bbolt.errors.Init
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Init
 public import Proof.go_uber_org.zap.InitLinked
+public import Proof.syscall.Init
 public import Proof.github_com.prometheus.client_golang.prometheus.NewCounter
 public import Proof.github_com.prometheus.client_golang.prometheus.NewGauge
 public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogram
@@ -83,17 +84,20 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoInterface) spillSec _ as HspillSec
   wp_apply wp_GlobalAlloc (V := GoInterface) rebalanceSec _ as HrebalanceSec
   wp_apply wp_GlobalAlloc (V := GoInterface) commitSec _ as HcommitSec
+  wp_apply wp_GlobalAlloc (V := Loc) boltOpenOptions _ as HboltOpenOptions
   wp_apply wp_GlobalAlloc (V := w64) minSnapshotWarningTimeout _ as HminSnapshotWarningTimeout
   wp_apply wp_GlobalAlloc (V := w64) InitialMmapSize _ as HInitialMmapSize
   wp_apply wp_GlobalAlloc (V := w64) defragLimit _ as HdefragLimit
   wp_apply wp_GlobalAlloc (V := w64) defaultBatchInterval _ as HdefaultBatchInterval
   wp_apply wp_GlobalAlloc (V := w64) defaultBatchLimit _ as HdefaultBatchLimit
   wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.sort _root_.Perennial.sort.initialize'
-      EtcdGrove.ExternalInit.sort _root_.Perennial.sort.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+      EtcdGrove.ExternalInit.sort _root_.Perennial.sort.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd17⟩
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.encoding.hex.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd16⟩
-  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.encoding.hex.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.github_com.prometheus.client_golang.prometheus.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd15⟩
-  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.github_com.prometheus.client_golang.prometheus.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.syscall.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd14⟩
   wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.bbolt.errors.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd13⟩
@@ -134,7 +138,9 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of defragLimit))
   -- translated initializer of InitialMmapSize))
   -- translated initializer of minSnapshotWarningTimeout))
-  wp_apply boltOpenOptions_init as ⟨%pboltOpenOptions, HboltOpenOptions, #SboltOpenOptions⟩
+  -- translated initializer of boltOpenOptions))
+  try wp_auto
+  irename : (_ ↦ (_ : _root_.Perennial.go_etcd_io.bbolt.Options) : IProp GF) => HpbOO
   -- translated initializer of commitSec))
   wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bcommitSec BcommitSec
   try wp_auto
@@ -186,6 +192,10 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BsnapshotTransferSec as %csnapshotTransferSec ⟨#CsnapshotTransferSec, %NsnapshotTransferSec⟩
   try wp_auto
+  ihave #EsnapshotTransferSec : (go_etcd_io.etcd.server.v3.storage.backend.histSpec csnapshotTransferSec : IProp GF) $$ []
+  · iunfold EtcdGrove.prometheus.metric.histSpec at CsnapshotTransferSec
+    unfold go_etcd_io.etcd.server.v3.storage.backend.histSpec
+    iexact CsnapshotTransferSec
   -- translated initializer of isDefragActive))
   wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cisDefragActive ⟨#CisDefragActive, #DisDefragActive, %NisDefragActive⟩
   try wp_auto
@@ -256,10 +266,16 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   ipersist HrebalanceSec
   ipersist HspillSec
   ipersist HwriteSec
+  ipersist HsnapshotTransferSec
+  ipersist HminSnapshotWarningTimeout
   ipersist HboltOpenOptions
+  ipersist HpbOO
   ipersist HdefaultBatchInterval
   ipersist HdefaultBatchLimit
   ipersist HInitialMmapSize
+  ihave #HbOO : (EtcdGrove.backend.boltOpenOptionsOk : IProp GF) $$ []
+  · iapply EtcdGrove.backend.boltOpenOptionsOk_intro $$ HboltOpenOptions HpbOO
+    ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
   iframe Hown
   imodintro
   isplitr
@@ -267,7 +283,8 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
     exact isPanic_intoVal _
   is_pkg_init_finish
   imodintro
-  unfold backendInit EtcdGrove.backend.boltOpenOptionsOk
+  unfold backendInit
+  rw [show (W64 30000000000 : w64) = W64 30 * W64 1000000000 from by decide]
   iframe #
   rw [show (W64 100000000 : w64) = W64 100 * W64 1000000 from by decide]
   iexact HdefaultBatchInterval

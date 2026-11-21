@@ -39,9 +39,11 @@ const (
 )
 
 // Token is the cluster's token (etcd's --initial-cluster-token), from which, with its peer URL,
-// etcd computes each member's id: the first authN-<n> whose first 1000 members' ids have distinct
-// nonzero 16 low bits (TestMemberIDs).
-const Token = "authN-1286"
+// etcd computes each member's id: the first authN-<n> whose first 300 members' ids have distinct
+// nonzero 16 low bits, also from the ids of examples/etcd/all's other clusters (etcd_safe's Hlow;
+// TestMemberIDs here and there). Above 300 members the ids are not checked: etcd_authN_safe's
+// premise on them may be false there.
+const Token = "authN-133"
 
 // newUserClient connects a client of addr that authenticates as user name with password pw
 // (auth3's: clientv3.New calls Authenticate when it dials, and the token is sent with every

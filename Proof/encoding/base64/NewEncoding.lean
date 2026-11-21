@@ -46,6 +46,7 @@ theorem base64.NewEncoding.wp_proof :
   have hz1 : (zero_val _root_.Perennial.encoding.base64.Encoding).encode'.arr = List.replicate 64 0 := rfl
   have hz2 : (zero_val _root_.Perennial.encoding.base64.Encoding).decodeMap'.arr =
     List.replicate 256 0 := rfl
+  have hzs : (zero_val _root_.Perennial.encoding.base64.Encoding).strict' = false := rfl
   have hdmi : _root_.Perennial.encoding.base64.decodeMapInitialize =
     #(List.replicate 256 (W8 255) : GoString) := by set_option maxRecDepth 100000 in rfl
   simp only [hz1, hz2, hdmi, hlen, List.length_replicate, List.take_length, List.drop_of_length_le (Nat.le_refl _)]
@@ -128,15 +129,16 @@ theorem base64.NewEncoding.wp_proof :
     simp only [Bool.false_eq_true, ↓reduceIte]
     subst hi64
     try wp_auto
+    rw [hzs]
     iapply HΦ
     iexists (_root_.Perennial.encoding.base64.Encoding.mk (array.mk 64 s) (array.mk 256 (base64.dmAfter s 64))
-      (W32 61) (zero_val _root_.Perennial.encoding.base64.Encoding).strict')
+      (W32 61) false)
     isplitl [Henc Hdm Hpad Hstrict]
     · iapply base64.enc_close _ _ _ Hnn
       unfold base64.encFields
       rw [List.take_of_length_le (by omega)] 
       iframe
-    ipureintro; exact ⟨rfl, rfl⟩
+    ipureintro; exact ⟨rfl, rfl, by dsimp only, rfl⟩
 
 end proof
 

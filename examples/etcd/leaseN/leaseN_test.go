@@ -20,6 +20,11 @@ import (
 // maxMembers is the bound of etcd_leaseN_safe's member count.
 const maxMembers = 1000
 
+// idMembers is the member count up to which TestMemberIDs checks the ids (at Token): etcd_safe's
+// bound on this cluster (examples/etcd/all, whose TestMemberIDs checks them also against its other
+// clusters' ids). Above it etcd_leaseN_safe's premises on the ids are not checked, and may be false.
+const idMembers = 300
+
 // idsOf returns the member ids etcd computes for Main(k)'s cluster (from the peer URLs and the
 // cluster token, as bootstrap does), without starting it.
 func idsOf(t *testing.T, k uint64) []types.ID {
@@ -40,10 +45,10 @@ func idsOf(t *testing.T, k uint64) []types.ID {
 }
 
 // TestMemberIDs checks etcd_leaseN_safe's premise on the member ids (putgetN's BootFacts: their 16
-// low bits distinct and not 0) for every member count 1 <= k <= maxMembers, from the ids etcd
+// low bits distinct and not 0) for every member count 1 <= k <= idMembers, from the ids etcd
 // computes for Main(k)'s cluster. It starts no cluster.
 func TestMemberIDs(t *testing.T) {
-	for k := uint64(1); k <= maxMembers; k++ {
+	for k := uint64(1); k <= idMembers; k++ {
 		ids := idsOf(t, k)
 		if uint64(len(ids)) != k {
 			t.Fatalf("k=%d: %d ids", k, len(ids))

@@ -10,9 +10,9 @@ theorem backend.newPostK_named (γ : backend.BNames) (P : backend.BParams) (W Pk
     backend.isBackend γ P (W γ) (Pk γ) b ∗ "#HnSC" ∷ backend.isStopChans γ P (W γ) (Pk γ) b ∗ "HnK"
     ∷ K γ ∗ "HnV" ∷ backend.bViewC γ 1 (backend.vData P (D, { bks := ∅, ver := W64 0 })) true ∗
     "HnH" ∷ backend.plHook γ func.nil ∗ "HnRB" ∷ backend.rbOwn γ (backend.rbData P D) ∗ ("HnRT" ∷
-    [∗list] _x ∈ List.replicate sync.rwmutex.actualMaxReaders.toNat (), backend.rdTok γ P b) ∗
-    "HnDl" ∷ backend.dlInit γ ∗ "HnFk" ∷ backend.fkCl γ P D ∗ "HnSr" ∷ backend.srSlot b ∗ "HnTok" ∷
-    backend.rbClaimToks γ P fun x => True
+    [∗list] _x ∈ List.replicate backend.rdSlotsN (), backend.rdTok γ P b) ∗ "HnDl" ∷ backend.dlInit
+    γ ∗ "HnFk" ∷ backend.fkCl γ P D ∗ "HnSr" ∷ backend.srSlot b ∗ "HnTok" ∷ backend.rbClaimToks γ P
+    fun x => True
 
 theorem backend.thinV_intro (γ : backend.BNames) (vd L : backend.VData) : (⌜∀ (nk : GoString ×
     GoString) (v : GoString), vd !! nk = some v → L !! nk = some v⌝ ∗ □ ∀ nk, ⌜L !! nk ≠ none ∧ vd
@@ -61,8 +61,8 @@ theorem backend.newPost_named (γ : backend.BNames) (P : backend.BParams) (W Pk 
     "HnOpen" ∷ backend.bOpen γ 1 ∗ "HnV" ∷ backend.bViewC γ 1 (backend.vData P (D, { bks := ∅, ver
     := W64 0 })) true ∗ "HnH" ∷ backend.plHook γ func.nil ∗ "HnWb" ∷ ownToks γ.wb backend.wbInit ∗
     "HnRB" ∷ backend.rbOwn γ (backend.rbData P D) ∗ ("HnRT" ∷ [∗list] _x ∈ List.replicate
-    sync.rwmutex.actualMaxReaders.toNat (), backend.rdTok γ P b) ∗ "HnDl" ∷ backend.dlInit γ ∗
-    "HnFk" ∷ backend.fkCl γ P D ∗ "HnSr" ∷ backend.srSlot b
+    backend.rdSlotsN (), backend.rdTok γ P b) ∗ "HnDl" ∷ backend.dlInit γ ∗ "HnFk" ∷ backend.fkCl γ
+    P D ∗ "HnSr" ∷ backend.srSlot b
 
 theorem backend.hkPut_of_not_HK (γ : backend.BNames) (P : backend.BParams) (n k : GoString) (S :
     backend.Data) (h : P.HK n k = false) : ⊢ backend.hkPut γ P n k S

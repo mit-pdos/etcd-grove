@@ -58,7 +58,9 @@ theorem v2stats.NewLeaderStats.wp_proof (wp_NewNop : zap.NewNop.spec (GF := GF) 
     iunfold v2stats.lsFollowers
     iexists m, ∅
     iframe #; iframe
-    ipureintro; intro k v h; simp at h
+    isplitr
+    · ipureintro; intro k v h; simp at h
+    imodintro; iintro %k %v %h; simp at h
 
 end proof
 

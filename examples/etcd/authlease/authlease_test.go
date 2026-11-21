@@ -22,6 +22,11 @@ import (
 // maxMembers is the bound of etcd_authlease_safe's member count.
 const maxMembers = 1000
 
+// idMembers is the member count up to which TestMemberIDs checks the ids (at Token): etcd_safe's
+// bound on this cluster (examples/etcd/all, whose TestMemberIDs checks them also against its other
+// clusters' ids). Above it etcd_authlease_safe's premises on the ids are not checked, and may be false.
+const idMembers = 300
+
 // idsOf returns the member ids etcd computes for Main(k)'s cluster (from the peer URLs and the
 // cluster token, as bootstrap does), in the members' order, without starting it.
 func idsOf(t *testing.T, k uint64) []types.ID {
@@ -52,12 +57,12 @@ func idsOf(t *testing.T, k uint64) []types.ID {
 }
 
 // TestMemberIDs checks etcd_authlease_safe's premises on the member ids for every member count
-// 1 <= k <= maxMembers: BootCore's (their 16 low bits distinct and not 0) and leaseIdsApart (their
+// 1 <= k <= idMembers: BootCore's (their 16 low bits distinct and not 0) and leaseIdsApart (their
 // 15 low bits distinct). A member's id depends only on its peer URL and the token, so the ids of
-// k members are the first k of maxMembers': checking maxMembers checks every k. It starts no
+// k members are the first k of idMembers': checking idMembers checks every k. It starts no
 // cluster.
 func TestMemberIDs(t *testing.T) {
-	ids := idsOf(t, maxMembers)
+	ids := idsOf(t, idMembers)
 	seen16 := map[uint64]bool{}
 	seen15 := map[uint64]bool{}
 	for i, id := range ids {
@@ -72,11 +77,11 @@ func TestMemberIDs(t *testing.T) {
 		seen16[l16] = true
 		seen15[l15] = true
 	}
-	for _, k := range []uint64{1, 2, 3, 7, 500} {
+	for _, k := range []uint64{1, 2, 3, 7, 200} {
 		got := idsOf(t, k)
 		for i := range got {
 			if got[i] != ids[i] {
-				t.Fatalf("k=%d: member %d's id %x, not the 1000 members' %x", k, i, got[i], ids[i])
+				t.Fatalf("k=%d: member %d's id %x, not the %d members' %x", k, i, got[i], idMembers, ids[i])
 			}
 		}
 	}

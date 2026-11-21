@@ -132,6 +132,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__Com
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__DeleteRange
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__Put
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__Range
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__RangeStream
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__Txn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.logUnaryRequestStats
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.membersToProtoMembers
@@ -576,9 +577,9 @@ theorem wp_NewLeaseServer :
     EtcdGrove.v3rpc.NewLeaseServer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.NewLeaseServer.wp_proof wp_newHeader zap.wp_NewNop
 
-theorem wp_NewMaintenanceServer :
+theorem wp_NewMaintenanceServer [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.v3rpc.NewMaintenanceServer.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.NewMaintenanceServer.wp_proof
+  EtcdGrove.v3rpc.NewMaintenanceServer.wp_proof EtcdServer.wp_KV mvcc.api.mvccApi_watchableStore_HashStorage_wp_api wp_newHeader zap.wp_NewNop
 
 theorem wp_NewQuotaKVServer :
     EtcdGrove.v3rpc.NewQuotaKVServer.spec (GF := GF) (hG := hG) :=
@@ -752,7 +753,7 @@ theorem grpc_prometheus.ServerMetrics.wp_InitializeMetrics :
     EtcdGrove.grpc_prometheus.ServerMetrics.InitializeMetrics.spec (GF := GF) (hG := hG) :=
   EtcdGrove.grpc_prometheus.ServerMetrics.InitializeMetrics.wp_proof
 
-theorem wp_Server :
+theorem wp_Server [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.v3rpc.Server.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.Server.wp_proof grpc.wp_CustomCodec grpc.wp_StatsHandler otelgrpc.wp_NewServerHandler grpc.wp_ChainUnaryInterceptor grpc.wp_ChainStreamInterceptor grpc.wp_MaxRecvMsgSize grpc.wp_MaxSendMsgSize grpc.wp_MaxConcurrentStreams grpc.wp_NewServer wp_getServerMetrics wp_newLogUnaryInterceptor grpc_prometheus.ServerMetrics.wp_UnaryServerInterceptor wp_newUnaryInterceptor grpc_prometheus.ServerMetrics.wp_StreamServerInterceptor wp_newStreamInterceptor config.ServerConfig.wp_MaxRequestBytesWithOverhead wp_NewQuotaKVServer etcdserverpb.wp_RegisterKVServer wp_NewWatchServer etcdserverpb.wp_RegisterWatchServer wp_NewQuotaLeaseServer etcdserverpb.wp_RegisterLeaseServer wp_NewClusterServer etcdserverpb.wp_RegisterClusterServer wp_NewAuthServer etcdserverpb.wp_RegisterAuthServer health.wp_NewServer wp_newHealthNotifier grpc_health_v1.wp_RegisterHealthServer wp_NewMaintenanceServer etcdserverpb.wp_RegisterMaintenanceServer grpc_prometheus.ServerMetrics.wp_InitializeMetrics
 
@@ -891,6 +892,10 @@ theorem wp_filterNoPut :
 theorem kvServer.wp_Compact :
     EtcdGrove.v3rpc.kvServer.Compact.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.kvServer.Compact.wp_proof AuthAdmin.wp_isPermitted wp_togRPCError header.wp_fill
+
+theorem kvServer.wp_RangeStream :
+    EtcdGrove.v3rpc.kvServer.RangeStream.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.kvServer.RangeStream.wp_proof wp_checkRangeStreamRequest wp_togRPCError headerFillingRangeStream.wp_Send EtcdServer.wp_RangeStream
 
 theorem storage.wp_NewBackendQuota :
     EtcdGrove.storage.NewBackendQuota.spec (GF := GF) (hG := hG) :=

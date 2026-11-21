@@ -23,7 +23,9 @@
 //
 // A refusal is any error. Nothing requires a permitted call to succeed: an error from a step of the
 // set-up, of the lease set-up, of a barrier, of root's reads or of u's last revocation ends Main
-// with Failed. No lease expires during the run (the TTL is 600 seconds; the run takes seconds).
+// with Failed. No lease expires during the run: the TTL is etcd's MaxLeaseTTL (about 285 years), so
+// that the process-wide premise that no lease expires (lease.leasesNoExpiry) holds however long the
+// process runs, also when examples/etcd/all runs this example beside unbounded workloads.
 //
 // With the examples' peers (the raft handler only), a permitted TimeToLive or KeepAlive at a member
 // other than the leader reports the lease absent (TTL -1, no keys): the follower's forwarding to
@@ -57,14 +59,19 @@ const (
 )
 
 // Token is the cluster's token (etcd's --initial-cluster-token), from which, with its peer URL,
-// etcd computes each member's id: the first authlease-<n> whose first 1000 members' ids have
-// distinct 15 low bits and nonzero 16 low bits (TestMemberIDs). LeaseGrant gives a grant with no
+// etcd computes each member's id: the first authlease-<n> whose first 300 members' ids have
+// distinct 15 low bits and nonzero 16 low bits, the 16 low bits also distinct from the ids of
+// examples/etcd/all's other clusters (etcd_safe's Hlow; TestMemberIDs here and there). Above 300
+// members the ids are not checked: etcd_authlease_safe's premises on them may be false there. LeaseGrant gives a grant with no
 // ID its member's next request id with bit 63 cleared, which keeps 15 bits of the member id
 // (issues/etcd-lease-id-mask-member-prefix.md): with these ids no two members' lease ids collide.
-const Token = "authlease-3354335"
+const Token = "authlease-1787"
 
-// The TTL the leases are granted with, in seconds: far longer than the run.
-const grantTTL = 600
+// The TTL the leases are granted with, in seconds: etcd's lease.MaxLeaseTTL, the largest Grant
+// accepts (lessor.go refuses only a TTL above it), so that no lease of the run ever expires, however
+// long the process runs (examples/etcd/all's etcd_safe composes this example with workloads of any
+// length, under the one process-wide premise lease.leasesNoExpiry).
+const grantTTL = 9000000000
 
 // The users' passwords (authkv's SetUp's), and the token no provider issued (authkv's).
 const (

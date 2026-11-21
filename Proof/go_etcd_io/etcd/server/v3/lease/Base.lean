@@ -34,7 +34,7 @@ public import Perennial.Proof.context
 public import Perennial.Proof.errors
 public import Perennial.Proof.sort
 public import Code.go_etcd_io.etcd.api.v3.version
-public import GeneratedProof.go_etcd_io.etcd.api.v3.version
+public import Proof.go_etcd_io.etcd.api.v3.version.PkgInit
 public import Code.go_etcd_io.etcd.server.v3.lease.leasepb
 public import GeneratedProof.go_etcd_io.etcd.server.v3.lease.leasepb
 public import Code.container.heap
@@ -107,13 +107,16 @@ instance counterSpec_persistent (c : GoInterfaceOk) : Persistent (counterSpec (G
 `ErrLeaseTTLTooLarge` (`leaseErrVar`), `forever` (the zero `time.Time`), the counters
 `leaseGranted`, `leaseRevoked` and the histogram `leaseTotalTTLs`; `ErrLeaseNotFound`'s message
 cell (`errVarCell`, D19k: what tells it apart from the server's `ErrNoSpace`); `ErrNotPrimary`
-(`leaseErrVar`; the lease-renew plan, 2026-11-01: `LeaseRenew` returns it). -/
+(`leaseErrVar`; the lease-renew plan, 2026-11-01: `LeaseRenew` returns it); (prove-ps2-renew,
+2026-11-21) the counter `leaseRenewed` (`Renew`'s `Inc()`), beside `leaseRevoked` (grouped with it,
+so that the clients' patterns, which name the facts by position, stay as they were). -/
 abbrev leaseInit : IProp GF :=
   iprop(leaseErrVar ErrLeaseNotFound ∗ leaseErrVar ErrLeaseExists ∗
     leaseErrVar ErrLeaseTTLTooLarge ∗
     globalAddr forever ↦□ (zero_val _root_.Perennial.time.Time) ∗
     (∃ c : GoInterfaceOk, globalAddr leaseGranted ↦□ GoInterface.ok c ∗ counterSpec c) ∗
-    (∃ c : GoInterfaceOk, globalAddr leaseRevoked ↦□ GoInterface.ok c ∗ counterSpec c) ∗
+    ((∃ c : GoInterfaceOk, globalAddr leaseRevoked ↦□ GoInterface.ok c ∗ counterSpec c) ∗
+      (∃ c : GoInterfaceOk, globalAddr leaseRenewed ↦□ GoInterface.ok c ∗ counterSpec c)) ∗
     (∃ h : GoInterfaceOk, globalAddr leaseTotalTTLs ↦□ GoInterface.ok h ∗
       go_etcd_io.etcd.server.v3.storage.backend.histSpec h) ∗
     EtcdGrove.errVarCell ErrLeaseNotFound go!"lease not found" ∗

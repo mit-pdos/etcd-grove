@@ -1,9 +1,12 @@
 /-
-`HasRevisionFilters` (`range.go`). Lean-first; see `InvRange.lean`, `RangeModel.lean`.
+`HasRevisionFilters` (`range.go`). Lean-first; see `InvRange.lean`, `RangeModel.lean`. The request at
+any fraction of its rewritable fields, given back (`txn.rangeRequestAt`; auth-mediation M3, 2026-11-21:
+the gRPC layer's `checkRangeStreamRequest` checks a streamed request it owns; was `rangeRequestIs`).
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvRange
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.RequestAt
 
 @[expose] public section
 
@@ -26,11 +29,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
 /-- `HasRevisionFilters(r)`: the request `r` (denoting `o`) has a revision filter. -/
 abbrev txn.HasRevisionFilters.spec : Prop :=
-  ∀ (r : Loc) (o : OpFull),
+  ∀ (r : Loc) (dq : DFrac) (o : OpFull),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
-      txn.rangeRequestIs r o }}
+      txn.rangeRequestAt r dq o }}
     (App (Val (@! txn.HasRevisionFilters)) (Val #r))
-  {{ RET #(txn.hasRevFilters o); True }}
+  {{ RET #(txn.hasRevFilters o); txn.rangeRequestAt r dq o }}
 
 end spec
 

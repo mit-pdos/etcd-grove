@@ -557,7 +557,12 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
         (try wp_auto)
         (try dsimp only)
         ihave #HP := HPromote $$ %dur
-        wp_apply HP
+        -- (prove-ps2-promote) `Promote` borrows the thread token (its sort's `Remaining()`)
+        iunfold srvGoRes at Hgr
+        icases Hgr with ⟨Hwgr, Htk⟩
+        wp_apply HP $$ [$Htk] as Htk
+        ihave Hgr : srvGoRes s $$ [Hwgr Htk]
+        · iunfold srvGoRes; iframe
         (try wp_auto)
         iapply HΦ
         iframe Hbe Hst Hlr Hgr Hmr HFS HKV HRS
@@ -795,7 +800,12 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
         (try wp_auto)
         (try dsimp only)
         ihave #HP := HPromote $$ %dur
-        wp_apply HP
+        -- (prove-ps2-promote) `Promote` borrows the thread token (its sort's `Remaining()`)
+        iunfold srvGoRes at Hgr
+        icases Hgr with ⟨Hwgr, Htk⟩
+        wp_apply HP $$ [$Htk] as Htk
+        ihave Hgr : srvGoRes s $$ [Hwgr Htk]
+        · iunfold srvGoRes; iframe
         (try wp_auto)
         tail_skip
     · -- data: the applier, in one critical section after the hook, or without writes
@@ -1612,7 +1622,12 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
         (try wp_auto)
         (try dsimp only)
         ihave #HP := HPromote $$ %dur
-        wp_apply HP
+        -- (prove-ps2-promote) `Promote` borrows the thread token (its sort's `Remaining()`)
+        iunfold srvGoRes at Hgr
+        icases Hgr with ⟨Hwgr, Htk⟩
+        wp_apply HP $$ [$Htk] as Htk
+        ihave Hgr : srvGoRes s $$ [Hwgr Htk]
+        · iunfold srvGoRes; iframe
         (try wp_auto)
         iapply HΦ
         iframe Hbe Hst Hlr Hgr Hmr HFS HKV HRS
@@ -1874,7 +1889,12 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
         (try wp_auto)
         (try dsimp only)
         ihave #HP := HPromote $$ %dur
-        wp_apply HP
+        -- (prove-ps2-promote) `Promote` borrows the thread token (its sort's `Remaining()`)
+        iunfold srvGoRes at Hgr
+        icases Hgr with ⟨Hwgr, Htk⟩
+        wp_apply HP $$ [$Htk] as Htk
+        ihave Hgr : srvGoRes s $$ [Hwgr Htk]
+        · iunfold srvGoRes; iframe
         (try wp_auto)
         tail_skip
     · -- data: the applier, in one critical section after the hook, or without writes

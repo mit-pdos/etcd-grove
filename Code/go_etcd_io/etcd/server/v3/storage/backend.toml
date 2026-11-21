@@ -43,9 +43,9 @@ translate = ["!*",
   "backend.SizeInUse", "backend.run", "backend.Close", "backend.Commits", "backend.begin",
   "backend.unsafeBegin", "backend.OpenReadTxN", "backend.LockForSafeRangeDelete",
   "backend.UnlockForSafeRangeDelete", "backend.Snapshot", "snapshot.Close",
-  # config_linux.go (boltOpenOptions names only: it is syscall's MAP_POPULATE, which Perennial
-  # does not translate)
-  "BackendConfig.mmapSize",
+  # config_linux.go (prove-etcdint3, 2026-11-21: `boltOpenOptions` translated, over project
+  # bboltfs's `syscall.MAP_POPULATE`; until then names only)
+  "BackendConfig.mmapSize", "boltOpenOptions",
   # the promoted methods of embedded fields (goose's MethodUnfold wrappers): readTx's and
   # concurrentReadTx's baseReadTx; txReadBuffer's txBuffer; batchTx's sync.Mutex;
   # batchTxBuffered's batchTx
@@ -56,7 +56,7 @@ translate = ["!*",
   "batchTxBuffered.UnsafeRange", "batchTxBuffered.UnsafeForEach",
   "batchTxBuffered.safePending", "batchTxBuffered.TryLock",
   # snapshot's *bolt.Tx
-  "snapshot.WriteTo", "snapshot.Size",
+  "snapshot.UnsafeRange", "snapshot.UnsafeForEach", "snapshot.WriteTo", "snapshot.Size",
   # (etcdstorage, 2026-11-20) verify.go's lock checks, over `verify.IsVerificationEnabled` (proved over
   # `os.Getenv`'s spec: `ETCD_VERIFY` off); `insideApply`/`insideUnittest` (the goroutine's stack,
   # `runtime/debug`) stay names only, not reached with the checks off
@@ -65,7 +65,7 @@ translate = ["!*",
   # (etcdstorage, 2026-11-20) the consistency check, over `verify.Verify`'s spec with assertions off: its
   # closure is not run (`unsafeVerifyTxConsistency`, `go-cmp`'s `Diff`, stays names only)
   "VerifyBackendConsistency"]
-imports = ["!*", "bytes", "encoding/hex", "errors", "fmt", "io", "math", "sort", "sync", "sync/atomic", "time",
+imports = ["!*", "bytes", "encoding/hex", "errors", "fmt", "io", "math", "sort", "sync", "sync/atomic", "syscall", "time",
   "go.uber.org/zap", "go.etcd.io/bbolt", "go.etcd.io/bbolt/errors",
   "go.etcd.io/etcd/client/pkg/v3/verify",
   "github.com/prometheus/client_golang/prometheus", "github.com/dustin/go-humanize"]

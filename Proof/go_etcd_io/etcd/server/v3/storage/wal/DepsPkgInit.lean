@@ -1,6 +1,7 @@
 /-
 The package-initialization instances of the WAL's imports with no fact (`True`) that nothing else
-declares: `pkg/v3/crc` and `hash/crc32`; and the imports giving the others' (zap, `zapcore`, semver,
+declares: `pkg/v3/crc` (and `hash/crc32` until 2026-11-21, now with a fact of its own,
+`Proof/hash/crc32/PkgInit.lean`); and the imports giving the others' (zap, `zapcore`, semver,
 prometheus, `pkg/v3/pbutil`, `hash`, `proto`, ...: their own `PkgInit.lean`s, raft's `Base.lean`).
 (`fileutil`'s, with a fact: `Proof/go_etcd_io/etcd/client/pkg/v3/fileutil/PkgInit.lean`.) Their
 `wp_initialize'`: the generated `Init.lean`s (`etc/gen-init.py`). WAL package init, 2026-11-13; one
@@ -13,7 +14,7 @@ public import Proof.github_com.Masterminds.semver.v3.PkgInit
 public import Proof.github_com.prometheus.client_golang.prometheus.PkgInit
 public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.PkgInit
 public import Proof.hash.PkgInit
-public import GeneratedProof.hash.crc32
+public import Proof.hash.crc32.PkgInit
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.crc
 public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.fileutil
 public import Proof.go_etcd_io.raft.v3.Base
@@ -50,10 +51,6 @@ variable [sem : go.Semantics]
 
 namespace go_etcd_io.etcd.server.v3.storage.wal
 
-instance crc32_isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.hash.crc32 :=
-  define_is_pkg_init iprop(True)
-instance crc32_get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.hash.crc32 :=
-  build_get_is_pkg_init_wf
 instance crc_isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.crc :=
   define_is_pkg_init iprop(True)
 instance crc_get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.crc :=

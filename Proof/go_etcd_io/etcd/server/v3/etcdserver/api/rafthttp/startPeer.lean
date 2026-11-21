@@ -166,7 +166,9 @@ theorem rafthttp.startPeer.wp_proof
     (hBackground : context.Background.spec (GF := GF) (hG := hG)) :
     rafthttp.startPeer.spec (GF := GF) (hG := hG) := by
   intro Rh t lid γd R urls uvs pid fs Hne Hurls Hfs Hmem Hnp Hpm
-  wp_start as ⟨#Htr, #Hus⟩
+  wp_start as ⟨#Htr, #Hus, #Hfsok⟩
+  ihave #Hfso : (⌜fs = null⌝ ∨ v2stats.isFollowerStats fs) $$ []
+  · iright; iexact Hfsok
   ihave #Htr' := Htr
   iunfold trFixed at Htr'
   icases Htr' with ⟨%lg, %ls, %ss, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr, #Hlg, #Hlgz,

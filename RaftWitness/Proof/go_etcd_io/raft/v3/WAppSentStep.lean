@@ -26,10 +26,10 @@ variable [GooseExts]
 /-- What `StepC.sendWApp` asks of a request `m` at the protocol state `p` of the configuration
 `c`, but the role. -/
 def SendWAppOk (c : CfgM) (id : w64) (p : PState) (m : Msg) : Prop :=
-  c.wit ≠ W64 0 ∧ c.wit ∈ c.incoming ∧ exclOf c p ≠ c.wit ∧ exclOf c p ∈ c.incoming ∧
+  c.wit ≠ W64 0 ∧ c.wit ∈ c.incoming ∧ (exclOf c p ≠ c.wit ∨ (p.rsx = W64 0 ∧ p.sub ≠ W64 0)) ∧ exclOf c p ∈ c.incoming ∧
   ∃ (i : w64) (e : EntryM) (vs : List w64),
     plogEntryAt p.base p.log i = some e ∧ e.Term' = p.term ∧ e.Subterm' = p.sub ∧
-    GMap.size c.incoming / 2 ≤ GMap.size (ackedBy p i ∩ rsVoters c p) ∧
+    witnessWriteCount (GMap.size c.incoming) p.rsx ≤ GMap.size (ackedBy p i ∩ rsVoters c p) ∧
     vs ≡ₚ GMap.elements (rsVoters c p) ∧
     m = Msg.mkV .wapp id c.wit p.term false i p.term p.sub (W64 0) [] vs []
 
@@ -43,7 +43,7 @@ theorem SendWAppOk.congr {c : CfgM} {id : w64} {p p' : PState} {m : Msg}
   have hr : rsVoters c p' = rsVoters c p := by unfold rsVoters; rw [he]
   have ha : ∀ i, ackedBy p' i = ackedBy p i := by intro i; unfold ackedBy; rw [hm]
   unfold SendWAppOk at *
-  rw [he, hr, hb, hl, ht, hs]
+  rw [he, hr, hb, hl, ht, hs, hx]
   simp only [ha]
   exact H
 
@@ -105,7 +105,7 @@ theorem WAppSent.ok {c : CfgM} {id : w64} {s : NState} {m : Msg} (p : PState)
   have Hrep := (Hok.1 w).1 (by rw [Hres]; rfl)
   unfold EpochOkC at Hep
   have Hbare : s.ep ≠ EpochM.bare (W64 0) := by
-    intro h; apply Hnone; left; rw [h]; simp [EpochM.bare, RSM.bare, RSM.rep]
+    intro h; apply Hnone; rw [h]; simp [OltqNone, EpochM.bare, RSM.bare, RSM.rep]
   have Hw : c.wit ≠ W64 0 := by
     intro h; rw [if_pos h] at Hep; exact Hbare Hep
   rw [if_neg Hw] at Hep
@@ -144,15 +144,98 @@ theorem WAppSent.ok {c : CfgM} {id : w64} {s : NState} {m : Msg} (p : PState)
   have Hrsv : rsVoters c p = s.ep.rs0.nwv := by
     unfold rsVoters; rw [Hexclp, Hnwv, Hwit]
   refine ⟨Hw, Hwin, ?_, ?_, i, e, vs0, ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · rw [Hexclp, ← Hwit]; exact Hxw
+  · left; rw [Hexclp, ← Hwit]; exact Hxw
   · rw [Hexclp]; exact Hxin
   · rw [Hpb, Hpl]; exact He
   · rw [Hpt]; exact Het
   · rw [Hps]; exact Hes
-  · rw [Hrsv]
-    have Hc := ((Hok.2 _ i Hres).1 Hr0 (Hwit ▸ rfl))
+  · rw [Hrsv, Hpx, Hrsx, witnessWriteCount, if_neg Hxnz]
+    have Hc := (Hok.2 _ i Hres).1 (by simp [Hr0]) (Hwit ▸ rfl)
+    rw [Hr0] at Hc
     exact countGe_rsAcked_le p Hpm Hi0 Hc
   · rw [Hrsv]; exact Hvs0
+  · rw [Hpt, Hps]; simp [wAbs, wappMsg]
+
+/-- Reset excludes the witness from both replication sets, so a request must come from
+a changed epoch. This holds for both the first subterm and a configuration reset. -/
+theorem WAppSent.not_reset {c : CfgM} {id : w64} {s : NState} {m : Msg}
+    (H : WAppSent c id s m) (w0 w1 sub : w64) :
+    s.ep ≠ resetEpoch c.incoming c.outgoing w0 w1 sub := by
+  obtain ⟨_, _, _, _, _, _, _, hn, _⟩ := H
+  intro hr
+  apply hn
+  unfold OltqNone
+  rw [hr]
+  unfold resetEpoch
+  split <;> simp [rsReset, EpochM.bare, RSM.bare, RSM.rep]
+
+/-- A send in a joint configuration with a shared witness is justified by the
+incoming half's regular acknowledgements in either orientation. The epoch is the
+result of ChangeReplicationSet, with the protocol's existing bound on subterms. -/
+theorem WAppSent.ok_shared {c : CfgM} {id : w64} {s : NState} {m : Msg}
+    (p : PState) (old : EpochM)
+    (Hchg : ChangeEpochOk c.incoming c.outgoing c.wit c.wit old s.ep)
+    (Hbound : uint.Z old.sub + 1 < 2 ^ 64)
+    (Hw : c.wit ≠ W64 0) (Hi : c.wit ∈ c.incoming) (Ho : c.wit ∈ c.outgoing)
+    (H0 : W64 0 ∉ c.incoming)
+    (Hpt : p.term = s.term) (Hpb : p.base = s.logst.prev)
+    (Hpl : p.log = s.logst.sents ++ s.logst.uents) (Hps : p.sub = s.ep.sub)
+    (Hpx : p.rsx = epochRsx s.ep) (Hpm : p.matched = prvalsMatch s.prvals)
+    (H : WAppSent c id s m) : SendWAppOk c id p m := by
+  obtain ⟨w, i, e, vs0, vs1, res, rfl, -, Hok, Hres, Hi0, He, Het, Hes, Hvs0, -⟩ := H
+  obtain ⟨Hsub, Hwf, -⟩ := Hchg
+  rcases Hwf with ⟨h, -⟩ | ⟨-, Hin, Hout⟩
+  · exact absurd h Hw
+  obtain ⟨Hwi, Hxi, Hnwv⟩ := Hin
+  have Hwo := Hout.1
+  rw [if_pos Hi] at Hwi
+  rw [if_pos Ho] at Hwo
+  have Hsh : sharedWitness s.ep = true := by
+    apply decide_eq_true
+    exact ⟨Hwi ▸ Hw, Hwi.trans Hwo.symm⟩
+  have Hww : w = c.wit := by
+    rcases (Hok.1 w).1 (by rw [Hres]; rfl) with ⟨-, hw⟩ | ⟨-, hw⟩
+    · exact hw.symm.trans Hwi
+    · exact hw.symm.trans Hwo
+  subst w
+  have Hcount := (Hok.2 _ _ Hres).1 (by simp [Hsh]) Hwi
+  have Hactual := countGe_rsAcked_le p Hpm Hi0 Hcount
+  have Hnz : s.ep.sub ≠ W64 0 := by
+    rw [Hsub]
+    word
+  have Hxmem : s.ep.rs0.excl ∈ c.incoming := by
+    rcases Hxi with h | ⟨h, -⟩
+    · rwa [h, Hwi]
+    · exact h
+  have Hxnz : s.ep.rs0.excl ≠ W64 0 := fun h => H0 (h ▸ Hxmem)
+  have Hxp : exclOf c p = s.ep.rs0.excl := by
+    unfold exclOf
+    rw [Hpx]
+    unfold epochRsx
+    by_cases hx : s.ep.rs0.excl = s.ep.rs0.wit
+    · rw [if_pos hx, if_pos rfl, hx, Hwi]
+    · rw [if_neg hx, if_neg Hxnz]
+  have Hrs : rsVoters c p = s.ep.rs0.nwv := by
+    unfold rsVoters; rw [Hxp, Hnwv, Hwi]
+  have Hneq : c.incoming ≠ ∅ := by intro h; rw [h] at Hi; exact GMap.not_elem_of_empty _ Hi
+  have Hrule : witnessWriteCount (GMap.size c.incoming) p.rsx =
+      witnessRegularCount c.incoming s.ep.rs0.rep := by
+    rw [Hpx]
+    unfold epochRsx witnessWriteCount witnessRegularCount RSM.rep
+    by_cases hx : s.ep.rs0.excl = s.ep.rs0.wit
+    · simp only [hx, ite_true, ne_eq, not_true_eq_false, and_false, decide_false,
+        Bool.false_eq_true, ite_false, Hneq]
+    · have hrep : s.ep.rs0.wit ≠ W64 0 ∧ s.ep.rs0.excl ≠ s.ep.rs0.wit := ⟨Hwi ▸ Hw, hx⟩
+      rw [if_neg hx, if_neg Hxnz, decide_eq_true hrep, if_pos rfl]
+  refine ⟨Hw, Hi, ?_, Hxp ▸ Hxmem, i, e, vs0, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · by_cases hx : s.ep.rs0.excl = s.ep.rs0.wit
+    · right; exact ⟨by rw [Hpx]; simp [epochRsx, hx], Hps ▸ Hnz⟩
+    · left; rw [Hxp, ← Hwi]; exact hx
+  · rw [Hpb, Hpl]; exact He
+  · rw [Hpt]; exact Het
+  · rw [Hps]; exact Hes
+  · rw [Hrule, Hrs]; exact Hactual
+  · rw [Hrs]; exact Hvs0
   · rw [Hpt, Hps]; simp [wAbs, wappMsg]
 
 end bridge

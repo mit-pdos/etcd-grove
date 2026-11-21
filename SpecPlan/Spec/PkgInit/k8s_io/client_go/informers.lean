@@ -4,7 +4,7 @@ module
 public import GeneratedProof.k8s_io.client_go.informers
 public import SpecPlan.Spec.PkgInit.Base
 public import Perennial.Proof.context.Base
-public import SpecPlan.Spec.PkgInit.reflect
+public import Perennial.Proof.reflect.Base
 public import Perennial.Proof.sync.Base
 public import Perennial.Proof.time.Base
 public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.apis.«meta».v1

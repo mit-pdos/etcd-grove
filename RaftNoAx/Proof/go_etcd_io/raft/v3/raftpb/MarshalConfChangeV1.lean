@@ -9,6 +9,7 @@ public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.appendVarint
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.appendEnum
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.appendBytes
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.CCCodecLen
+public import RaftNoAx.Proof.go_etcd_io.raft.v3.CCWireRoundtrip
 
 @[expose] public section
 
@@ -39,6 +40,15 @@ theorem raftpb.MarshalConfChangeV1.wp_proof
   have hp : p' = p := by simp at Hc; exact (GoGlobalContext.intoVal_inj_loc Hc).symm
   subst hp
   ihave %Hcl := ownSlice_len $$ Hcs
+  ihave #Hsaved : pbMsg raftpb.ConfChange p' uf $$ []
+  · iexact Hpb
+  iunfold pbMsg at Hpb
+  icases Hpb with ⟨⟨%st, %sc, %us, #Hst, #Hsc, #Hus, #Huf⟩, %Hwire⟩
+  have Hschema : ufWire ccSchema uf := by
+    change ufWire (pbSchemaOf raftpb.ConfChange.ty) uf at Hwire
+    simpa [pbSchemaOf, raftpb.Entry.ty, raftpb.Message.ty, raftpb.Snapshot.ty,
+      raftpb.SnapshotMetadata.ty, raftpb.ConfState.ty, raftpb.HardState.ty,
+      raftpb.ConfChange.ty] using Hwire
   wp_auto
   rw [decide_eq_false Hnn]
   wp_auto
@@ -118,9 +128,9 @@ theorem raftpb.MarshalConfChangeV1.wp_proof
     ipureintro; rfl
   wp_join iprop(∃ (cur : GoSlice) (o4 : Option (List w8)), "c" ∷ c_ptr ↦ p' ∗ "b" ∷ b_ptr ↦ cur ∗
       "Hb" ∷ cur ↦* (ccEncOpt (W8 8) ccVarint o1 ++ ccEncOpt (W8 16) ccEnumEnc o2 ++ ccEncOpt (W8 24) ccVarint o3 ++ ccEncOpt (W8 34) ccBytesEnc o4) ∗
-      "HC" ∷ p'.[raftpb.ConfChange, go!"Context"] ↦{dq} cs ∗
+      "Hcap" ∷ ownSliceCap w8 cur (DFrac.own 1) ∗ "HC" ∷ p'.[raftpb.ConfChange, go!"Context"] ↦{dq} cs ∗
       "%Ho4" ∷ ⌜o4.getD [] = m.context ∧ ∀ x, o4 = some x → x.length < 2 ^ 64⌝) with [c b Hb Hcap HC]
-      as ⟨%cur4, %o4, c, b, Hb, HC, %Ho4⟩
+      as ⟨%cur4, %o4, c, b, Hb, Hcap, HC, %Ho4⟩
   · iexists _, none
     simp only [ccEncOpt, List.append_nil]
     iframe
@@ -144,16 +154,17 @@ theorem raftpb.MarshalConfChangeV1.wp_proof
     cases h
     have : sint.nat cs.len < 2 ^ 64 := by word
     omega
+  wp_apply wp_slice_append $$ [$Hb $Hcap $Huf] as %out ⟨Hout, -, -⟩
   iapply HΦ
   iframe
   have hm : m = ⟨o2.getD (W32 0), o3.getD (W64 0), o4.getD [], o1.getD (W64 0)⟩ := by
     cases m; simp only at Ho1 Ho2 Ho3 Ho4; rw [Ho1, Ho2, Ho3, Ho4.1]
   isplitl
-  · iframe cT cN cI Hcs Hpb
+  · iframe cT cN cI Hcs Hsaved
     ipureintro; exact ⟨rfl, Hnn⟩
   ipureintro
   refine ⟨?_, ?_⟩
-  · rw [hm]; exact ccDecodeV1_enc o1 o2 o3 o4 Ho4.2
+  · rw [hm]; exact ccWireV1_enc o1 o2 o3 o4 Ho4.2 uf Hschema
   · intro _
     rw [hm]
     exact ccEncodeV1_length_le o1 o2 o3 o4 Ho4.2 uf

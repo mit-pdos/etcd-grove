@@ -946,7 +946,7 @@ theorem tie_law (Fr : Prop) (hFr : ¬ Fr) (γl : GName) (γs : KVSNames) (γt : 
   icases Hwt' with ⟨%γr2, #Hpr2, Hwt'⟩
   ihave %H2 := lease.lessorPinR_agree γl γr γr2 $$ [$Hpr $Hpr2]
   subst H2
-  ihave %Hag := monoListAuthOwn_agree γr.2.2.2.2.2 _ _ ws1 ws $$ Hwi Hwt'
+  ihave %Hag := monoListAuthOwn_agree γr.2.2.2.2.2.1 _ _ ws1 ws $$ Hwi Hwt'
   obtain ⟨-, Hag⟩ := Hag
   subst ws1
   iunfold lessorAt at Hi

@@ -11,6 +11,10 @@ def mvcc.hashStorageOk (h : Loc) : IProp GF :=
           DFrac.discard ∗
         zapLoggerOk lg)
 
-def (sealed) mvcc.kvHasherOk : go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher → Prop
+def mvcc.kvHasherOk (h : go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher) : IProp GF :=
+  iprop(∃ d tab c,
+      ⌜h.hash' = interface.mkOk hash.crc32.digest.ty.PointerType (intoVal d)⌝ ∗
+        typedPointsto d { crc' := c, tab' := tab } (DFrac.own 1) ∗
+          typedPointsto tab hash.crc32.castagnoliTableArr DFrac.discard)
 
 theorem mvcc.hashStorageOk_persistent (h : Loc) : Persistent (mvcc.hashStorageOk h)

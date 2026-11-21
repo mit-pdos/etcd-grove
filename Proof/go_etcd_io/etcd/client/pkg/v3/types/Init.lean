@@ -7,7 +7,7 @@ variable).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.PkgInit
 public import Perennial.Proof.strconv.Link
 public import Proof.net.url.Init
 public import Proof.runtime.PkgInitExt

@@ -32,8 +32,8 @@ The rules:
   `links_pending`, as a `?` callee of the other modes, and takes those it reaches (since
   2026-11-17, stage S1 of `notes/bbolt-integration-plan.md`; until then all of them).
 - **Premises** that are not specs are given by `PREMISES` (type pattern -> term): facts proved
-  elsewhere (`errnoErrOk_holds`), a trust-boundary axiom shared with the server
-  (`sort.«Sort».wp_anyLess`), and the freelist implementations' contracts
+  elsewhere (`errnoErrOk_holds`), a linked result shared with the server
+  (`sort.«Sort».wp_anyLess`, an axiom until 2026-11-21), and the freelist implementations' contracts
   (`internal.freelist.impl_contract` of the callees `FLCallees` they rest on).
 - **The backend's `_kv` specs** (`bbolt.Tx.Size_kv.spec`, ...: the backend's corollaries of the
   triples over its vocabulary, stages S1 and S1b, and the axioms `Open_kv` and `DB.Close_kv`)
@@ -69,9 +69,9 @@ PREMISES = [
      "Proof.go_etcd_io.bbolt.Mmap.Infra"),
     (r"TxExclWGap \(GF := GF\)", "_root_.Perennial.EtcdGrove.bbolt.txExclWGap_holds", None,
      "Proof.go_etcd_io.bbolt.Tx__Rollback"),
-    # `sort.Sort` for any `Less`: the trust-boundary axiom the server's `lessor.Leases` takes too
+    # `sort.Sort` for any `Less`: the linked result the server's `lessor.Leases` takes too
     (r"sort\.«Sort»\.anyLessSpec \(GF := GF\) \(hG := hG\)",
-     "_root_.Perennial.EtcdGrove.sort.«Sort».wp_anyLess", None, "Proof.sort.SortAnyLess"),
+     "_root_.Perennial.EtcdGrove.sort.«Sort».wp_anyLess", None, "Proof.sort.SortAnyLessLinked"),
     # `delete` at `pidSet` (a defined map type), Perennial's `wp_mapDelete_underlying`
     # (`internal/freelist/Lemmas/HashDelete.lean`; until 2026-11-17 a gap of Perennial's semantics
     # and a hypothesis of `links_pending`)

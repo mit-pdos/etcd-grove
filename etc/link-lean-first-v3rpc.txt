@@ -53,9 +53,10 @@ headerFillingRangeStream__Send: header__fillWithoutRevision
 # `applyErrIs`'s tree (`applyErrIs_walk`): Go tests `errors.Is(err, ErrLeaseNotFound)` twice.
 LeaseServer__LeaseTimeToLive: =_root_.Perennial.errors.wp_Is togRPCError header__fill
 LeaseServer__LeaseLeases: =_root_.Perennial.errors.wp_Is togRPCError header__fill
-# Not verified: `kvServer.RangeStream` (the server's `RangeStream`, the streaming read, is out of
-# the request path's model: no contract for it) and `kvServer.Compact` (`AuthAdmin.isPermitted`
-# and the server's `Compact`: compaction is out of the model, as in the apply package).
+# auth-mediation M3 (2026-11-21): `kvServer.RangeStream`, over the server's `RangeStream` (linked
+# in the server's Link: `@`) with the stream wrapped (`headerFillingRangeStream.Send`).
+EtcdServer__RangeStream: @
+kvServer__RangeStream: checkRangeStreamRequest togRPCError headerFillingRangeStream__Send EtcdServer__RangeStream
 #
 # Unit P3b: the server end of the gRPC boundary (notes/decisions.md, "The server end of the gRPC
 # boundary"). The generated server-side handlers of the KV service (api/etcdserverpb/
@@ -189,9 +190,11 @@ newStreamInterceptor: monitorLeader api_IsCapabilityEnabled EtcdServer__MemberID
 # side is the trust boundary (axioms, `Proof/google_golang_org/grpc/InvGrpcServer.lean`): its options,
 # `NewServer`, `Server.RegisterService` (under the generated `Register*Server`, proved), grpc's health
 # service and grpc-prometheus's metrics; otelgrpc's stats handler, prometheus's `Register`. etcd's
-# `NewMaintenanceServer` is assumed (an axiom: its literal stores a `version.Server`, axiomatized
-# by the translation). The server's getters `Cluster`, `FeatureEnabled` are linked in its Link (`@`).
+# `NewMaintenanceServer` is proved (2026-11-21; until then an axiom, its literal storing a
+# `version.Server` the translation axiomatized) over the store's `HashStorage` (mvcc's API, `=`).
+# The server's getters `Cluster`, `FeatureEnabled`, `KV` are linked in its Link (`@`).
 EtcdServer__Cluster: @
+EtcdServer__KV: @
 EtcdServer__FeatureEnabled: @
 grpc_CustomCodec:
 grpc_StatsHandler:
@@ -221,7 +224,7 @@ RegisterLeaseServer: grpc_Server__RegisterService
 RegisterClusterServer: grpc_Server__RegisterService
 RegisterAuthServer: grpc_Server__RegisterService
 RegisterMaintenanceServer: grpc_Server__RegisterService
-NewMaintenanceServer:
+NewMaintenanceServer: EtcdServer__KV =mvcc.api.mvccApi_watchableStore_HashStorage_wp_api newHeader zap_NewNop
 NewLeaseServer: newHeader zap_NewNop
 NewQuotaLeaseServer: NewLeaseServer
 # The client lease's stage (c), its workload-free half (2026-10-18): lease.go's unary handlers over

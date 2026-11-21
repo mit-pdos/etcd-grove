@@ -56,9 +56,8 @@ it is `grpc.start`'s premise.
 
 **grpc-prometheus's server metrics** (`promSrvMetrics m`, persistent, axiomatized): a
 `*ServerMetrics` `m` made by `NewServerMetrics` (its counters and histograms, safe from any
-goroutine), whose interceptors are transparent; `promSrvMetricsOpt o`: `o` is one of the
-provider's own `ServerMetricsOption`s (`WithServerHandlingTimeHistogram()`), which only set the
-metrics' configuration.
+goroutine), whose interceptors are transparent. (Its options, `promSrvMetricsOpt`, are defined in
+`Proof/github_com/grpc_ecosystem/go_grpc_middleware/providers/prometheus/Defs.lean`.)
 -/
 module
 
@@ -140,9 +139,6 @@ axiom promSrvMetrics_persistent {GF : BundledGFunctors} [GooseExts] (m : Loc) :
   Persistent (promSrvMetrics (GF := GF) m)
 
 attribute [instance] promSrvMetrics_persistent
-
-/-- **`o` is one of grpc-prometheus's own server-metrics options** (see the file header). -/
-axiom promSrvMetricsOpt [GooseExts] (o : GoFunc) : Prop
 
 section pure
 variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]

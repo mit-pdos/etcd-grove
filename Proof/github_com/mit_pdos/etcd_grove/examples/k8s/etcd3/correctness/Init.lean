@@ -13,6 +13,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctnes
 public import Perennial.Proof.context.Link
 public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.math.Link
+public import Perennial.Proof.reflect.Link
 public import Perennial.Proof.slices.Link
 public import Perennial.Proof.strconv.Link
 public import Perennial.Proof.strings.Link
@@ -25,7 +26,6 @@ public import Proof.k8s_io.apimachinery.pkg.runtime.Init
 public import Proof.k8s_io.apimachinery.pkg.watch.Init
 public import Proof.k8s_io.apiserver.pkg.storage.Init
 public import Proof.maps.Init
-public import Proof.reflect.Init
 
 @[expose] public section
 

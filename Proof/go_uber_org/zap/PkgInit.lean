@@ -18,6 +18,9 @@ public import Perennial.Proof.errors
 public import Perennial.Proof.sort
 public import Perennial.Proof.context
 public import Perennial.Proof.bytes
+public import Perennial.Proof.math
+public import Proof.os.PkgInit
+public import Proof.net.url.PkgInit
 
 @[expose] public section
 
@@ -80,7 +83,9 @@ end go_uber_org.zap.internal
 namespace go_uber_org.zap
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_uber_org.zap :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init iprop(∃ tmin tmax : _root_.Perennial.time.Time,
+    typedPointsto (globalAddr go_uber_org.zap._minTimeInt64) tmin DFrac.discard ∗
+    typedPointsto (globalAddr go_uber_org.zap._maxTimeInt64) tmax DFrac.discard)
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_uber_org.zap :=
   build_get_is_pkg_init_wf
 

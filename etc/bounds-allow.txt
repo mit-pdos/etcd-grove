@@ -7,10 +7,17 @@
 # The cache's prefix bound (`2 ^ 28`): one API pair (`New`, `newCache`), local (B5).
 shared-limit ^Spec/go_etcd_io/etcd/cache/v3/(New|newCache)\.lean$
 stock storage/backend/RdPool\.lean  # the backend's reader pool (the backend-auth-split stage, 2026-11-02): the owner of `readTx.mu`'s reader slots builds its pool from the constructor's slots and their open shares, and counts the remainder (`rdStock`)
+stock ^Proof/go_etcd_io/etcd/server/v3/storage/backend/BmStock\.lean$  # (backend-snapshot B3, 2026-11-21) the owner of `b.mu`'s reader slots: the constructor's slots past the batch transaction's, one in each reader's token (`rdTok`'s `bmSlot`)
 
 # The lessor's reader pool, made of its lock's spare slots by the lock's owner, the lease package
 # (the lease-src plan, 2026-11-02).
 stock ^Proof/go_etcd_io/etcd/server/v3/lease/RdPool\.lean$
+# (prove-ps2-promote, 2026-11-21) The lessor's own methods that sort its leases (`Leases`, `Promote`: `sort.Sort`
+# of `leasesByExpiry`, whose `Less` calls `Remaining()`), by the owner of the leases' `expiryMu` reader pools
+# (`isLeaseObj`'s leveled pool, which exists under `threadBound GF ≤ 2^30 - 1`) and of the lease map's time
+# receipt (`lessorMu`'s `⧖ |M|`, which bounds the sort's length under `receiptBound GF ≤ 2^62`).
+spec-thread ^Spec/go_etcd_io/etcd/server/v3/lease/lessor__(Leases|Promote)\.lean$
+spec-receipt ^Spec/go_etcd_io/etcd/server/v3/lease/lessor__(Leases|Promote)\.lean$
 
 # The store's readers, by their owner, mvcc (R-D1, 2026-11-04): the wait group's invariant holds the
 # readers its two loops leave at `Done` (`wsLoopN`), `watchableStore.Close` returns them, and the
@@ -129,3 +136,7 @@ spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/(lib/etcdstart/Serve|e
 # their open shares (`AuthRealPool`: the generic pool; `AuthRealLife`: its release; `AuthRealSrv`: the
 # tickets handed to the pools at the server's start).
 stock ^Proof/go_etcd_io/etcd/server/v3/etcdserver/AuthReal(Pool|Life|Srv)\.lean$
+
+# `tickMu`'s pools of reader slots (srvloops2, 2026-11-21, bounds B2 for `tickMu`), made by the lock's
+# owner, the raft wrapper's install (`isRaftNode_of_rnParts`), from the fresh lock's slots, half per level.
+stock ^Proof/go_etcd_io/etcd/server/v3/etcdserver/NodeStart\.lean$

@@ -9,6 +9,7 @@ counterpart); 2026-10-17, branch `construct`.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.NewLemmas
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.BmStock
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvNew
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.CommitLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.HooksLoeb
@@ -48,7 +49,7 @@ theorem rv0_safe (P : BParams) (D : Data) : safeRv P (rv0 D) := by
 
 theorem st0_freeOk (P : BParams) (D : Data) (tx : Loc) (hP : P.Wf) : freeOk P (st0 D tx) := by
   have hview : viewOf P (st0 D tx) = dget D := ovB_empty _ _ _ (fun i => bkOf_empty i)
-  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ?_, rfl, ?_, rfl, fun _ _ => rfl⟩
+  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, fun _ => rfl⟩, ?_, rfl, ?_, rfl, fun _ _ => rfl⟩
   · intro id es h; simp [st0] at h
   · intro id es h; simp [st0, rb0] at h
   · intro i es h; simp [st0] at h
@@ -215,9 +216,37 @@ theorem dgv_quarters {A : Type} [Pos.Countable A] (γ : GName) (a : A) :
   rw [DFrac.op_own, Qp.half_add_half]
   iexact H
 
-theorem rdMax_split : rdMax = (rdMax - Int.toNat sync.rwmutex.actualMaxReaders) +
-    Int.toNat sync.rwmutex.actualMaxReaders := by
-  rw [sync.rwmutex.actualMaxReaders_unseal]; decide
+theorem rdMax_split : rdMax = (rdMax - rdSlotsN) + rdSlotsN := by
+  unfold rdSlotsN; rw [sync.rwmutex.actualMaxReaders_unseal]; decide
+
+/-- The first `m` of `n ≥ m` copies. -/
+theorem rep_le (n m : Nat) (h : m ≤ n) (A : IProp GF) :
+    ([∗list] _x ∈ List.replicate n (), A) ⊢ [∗list] _x ∈ List.replicate m (), A := by
+  obtain ⟨k, rfl⟩ : ∃ k, n = m + k := ⟨n - m, by omega⟩
+  rw [← List.replicate_append_replicate]
+  iintro H
+  icases BigSepL.bigSepL_append.1 $$ H with ⟨H, -⟩
+  iexact H
+
+/-- Copies of `A` and as many of `B`, as copies of `A ∗ B`. -/
+theorem rep_zip2 (n : Nat) (A B : IProp GF) :
+    ([∗list] _x ∈ List.replicate n (), A) ∗ ([∗list] _x ∈ List.replicate n (), B) ⊢
+      [∗list] _x ∈ List.replicate n (), iprop(A ∗ B) := by
+  induction n with
+  | zero =>
+    simp only [List.replicate]
+    iintro -
+    iapply BigSepL.bigSepL_nil.2
+    itrivial
+  | succ n ih =>
+    simp only [List.replicate]
+    iintro ⟨Ha, Hb⟩
+    icases BigSepL.bigSepL_cons.1 $$ Ha with ⟨Ha1, Ha⟩
+    icases BigSepL.bigSepL_cons.1 $$ Hb with ⟨Hb1, Hb⟩
+    iapply BigSepL.bigSepL_cons.2
+    iframe Ha1 Hb1
+    iapply ih $$ [$Ha $Hb]
+
 
 theorem cacheInv_alloc (γ : BNames) :
     ghostMapAuth (GF := GF) γ.cached 1 (∅ : GMap (w64 × Nat) Bool) ∗
@@ -439,10 +468,11 @@ theorem actualMaxReaders_pos' : 0 < Int.toNat sync.rwmutex.actualMaxReaders := b
   rw [sync.rwmutex.actualMaxReaders_unseal]; omega
 
 /-- Reader tokens from the slots and the readers' budget tokens. -/
-theorem rep_rdTok (n : Nat) (γ : BNames) (P : BParams) (b rt tm : Loc) :
-    bF go!"readTx" b ↦□ rt ∗ rtmuOf (baseOf rt) ↦□ tm ∗
+theorem rep_rdTok (n : Nat) (γ : BNames) (P : BParams) (b rt tm db : Loc) :
+    bDB γ db ∗ bF go!"readTx" b ↦□ rt ∗ rtmuOf (baseOf rt) ↦□ tm ∗
       ([∗list] _x ∈ List.replicate n (),
-        iprop(sync.ownRWMutex (rmuOf (baseOf rt)) (rtRes γ P rt) ∗
+        iprop((sync.ownRWMutex (rmuOf (baseOf rt)) (rtRes γ P rt) ∗
+            sync.ownRWMutex (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db)) ∗
           sync.ownRWMutex tm (fun q => tmTok γ q) ∗ ownToks γ.rdt 1)) ⊢
       [∗list] _x ∈ List.replicate n (), rdTok (GF := GF) γ P b := by
   induction n with
@@ -453,17 +483,26 @@ theorem rep_rdTok (n : Nat) (γ : BNames) (P : BParams) (b rt tm : Loc) :
     itrivial
   | succ n ih =>
     simp only [List.replicate]
-    iintro ⟨#Hrt, #Htm, H⟩
-    icases BigSepL.bigSepL_cons.1 $$ H with ⟨⟨Hr, Ht, Hk⟩, H⟩
+    iintro ⟨#Hdb, #Hrt, #Htm, H⟩
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨⟨⟨Hr, Hm⟩, Ht, Hk⟩, H⟩
     iapply BigSepL.bigSepL_cons.2
-    isplitl [Hr Ht Hk]
-    · unfold rdTok crTok
+    isplitl [Hr Hm Ht Hk]
+    · unfold rdTok crTok bmSlot
       iexists rt
-      iframe Hrt Hr
-      iexists tm
-      iframe
-      iframe #
-    · iapply ih $$ [$Hrt $Htm $H]
+      isplitr
+      · iexact Hrt
+      isplitl [Hr]
+      · iexact Hr
+      isplitl [Ht Hk]
+      · iexists rt, tm
+        isplitr
+        · iexact Hrt
+        isplitr
+        · iexact Htm
+        iframe Ht Hk
+      iexists db
+      iframe Hm Hdb
+    · iapply ih $$ [$Hdb $Hrt $Htm $H]
 
 end alloc
 section alloc2
@@ -490,11 +529,13 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
     bF go!"lg" b ↦□ lg ∗ zapLoggerOk lg ∗ bF go!"hooks" b ↦□ h ∗ beOf t ↦□ b ∗ rtmuOf (baseOf rt) ↦□ tm ∗
     bF go!"stopc" b ↦□ sc ∗ bF go!"donec" b ↦□ dc ∗ metricsInv b ∗
     sync.isRWMutexGuard (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗
-    sync.ownRWMutex (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗ isDB db γd ∗
+    sync.ownRWMutex (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗
+    -- (backend-snapshot B3) `b.mu`'s other read slots, one for each reader's token
+    bmStock b db ∗ isDB db γd ∗
     dbFile db γd path ∗
     muOf t ↦ (false : Bool) ∗ txFOf t ↦ wtx ∗ pendOf t ↦ (W64 0) ∗ delOf t ↦ (W64 0) ∗
     ownWB (wbOf t) ⟨∅, ∅⟩ ∗ bF go!"txPostLockInsideApplyHook" b ↦ func.nil ∗
-    ownDB db γd D ∗ ownWTx wtx γd D D ∗ txDB wtx γd db ∗
+    ownDB db γd D ∗ dbHalf γd D ∗ ownWTx wtx γd D D ∗ txDB wtx γd db ∗
     sync.rwmutex.isRWMutex (rmuOf (baseOf rt)) γrw (nroot.@"rw") ∗
     sync.rwmutex.ownRWMutex γrw (rwmutex.RLocked 0) ∗
     ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
@@ -513,8 +554,8 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
     |={⊤}=> ∃ γ : BNames, ⌜γ.db = γd⌝ ∗ bFile γ path ∗ newPostK γ P W Pk K b D ∗
       isStopChansAt γ P (W γ) (Pk γ) b sc dc γsc γdc ∗ ownBroadcastChan dc γdc (bDoneEsc γ P (W γ) (Pk γ)) .Pending ∗ runTok γ ∗
       dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗ ghostVar γ.used (1 : Qp).half 0 := by
-  iintro ⟨#Hvoff, #Hhk, Hmk, #Ht, #Hrt, #Hlim, #Hlg, #Hzl, #Hh, #Hbe, #Htm, #Hsc, #Hdc, #Hmi, #Hmug, Hmus,
-    #Hdb, #Hdbfile, Hmx, Htxf, Hpend, Hdel, Hwb, Hphk, Hown, Hwtx, #Hwdb, #Hrw, Hst, Hrtoks, Hrtx, Hlive,
+  iintro ⟨#Hvoff, #Hhk, Hmk, #Ht, #Hrt, #Hlim, #Hlg, #Hzl, #Hh, #Hbe, #Htm, #Hsc, #Hdc, #Hmi, #Hmug, Hmus, Hbmus,
+    #Hdb, #Hdbfile, Hmx, Htxf, Hpend, Hdel, Hwb, Hphk, Hown, Hhalf, Hwtx, #Hwdb, #Hrw, Hst, Hrtoks, Hrtx, Hlive,
     Hrwg, Hwg, Hrb1, Hrb2, Hm, Hcm, Hcmm, Htmz, Hcmu, Hcbuf, Hcver, #Hscc, Hsco,
     #Hdcc, Hdco, Hsr⟩
   -- the ghost names
@@ -533,7 +574,11 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
   imod ownTokAuth_alloc (GF := GF) with ⟨%gwb, Hwba⟩
   imod ownTokAuth_alloc (GF := GF) with ⟨%grdt, Hrdta⟩
   imod ghostVar_alloc () with ⟨%gtxa, Htxa⟩
-  imod ghostVar_alloc () with ⟨%gtxb, -⟩
+  -- (backend-snapshot B2) the registry's map and commit counter, their names on `γ.txb`
+  imod ghost_map_alloc_empty (K := Nat) (V := GName × GName × Nat) with ⟨%gregm, Hregm⟩
+  imod mono_nat_own_alloc (GF := GF) 0 with ⟨%gregc, Hregc, -⟩
+  imod dghostVar_alloc ((gregm, gregc) : GName × GName) with ⟨%gtxb, Hgtxb⟩
+  imod dghostVar_persist gtxb 1 ((gregm, gregc) : GName × GName) $$ Hgtxb with #Hgtxb
   imod ghostVar_alloc ((rv0 D, false) : RView × Bool) with ⟨%grvs, Hrvs⟩
   imod ghostVar_alloc () with ⟨%gcvw, Hcvw⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%gwbc, Hwbc, -⟩
@@ -731,13 +776,31 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
     rw [sync.rwmutex.actualMaxReaders_unseal]; omega
   icases rep_guard _ hn (rmuOf (baseOf rt)) (rtRes γ P rt) $$ Hrmus with ⟨Hrmus, #Hrg⟩
   icases rep_guard _ hn tm (fun q => tmTok γ q) $$ Htms with ⟨Htms, #Htg⟩
+  -- (backend-snapshot B1) the commit invariant, with the committed data's other half
+  imod inv_alloc cmtN ⊤ (cmtBody γ P (W γ) (Pk γ)) $$ [Hhalf Hregm Hregc] with #Hcmt
+  · inext
+    unfold cmtBody cmtRegs
+    ileft
+    iexists D
+    iframe Hhalf
+    isplitr
+    · rw [show ((D, (⟨∅, W64 0⟩ : RBuf)) : RView) = rv0 D from rfl]
+      iexact Hfkr
+    iexists gregm, gregc, 0, ∅
+    iframe Hregc Hregm
+    isplitr
+    · unfold cmtNames; iexact Hgtxb
+    iapply BigSepM.bigSepM_empty.2
+    iempintro
   -- the backend
   ihave #Hnh : isBackendNH γ P (W γ) (Pk γ) b h $$ []
   · unfold isBackendNH
     iintro !>
     iexists t, rt, tm, db, lg
     iframe #
-    ipureintro; exact hP
+    isplitr
+    · ipureintro; exact hP
+    unfold cmtInv; iexact Hcmt
   ihave #Hb : isBackend γ P (W γ) (Pk γ) b $$ []
   · iapply isBackend_of_hooks γ P (W γ) (Pk γ) b h
     iframe #
@@ -748,13 +811,20 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
   imod stop_init γ P (W γ) (Pk γ) sc dc γsc γdc b $$ [Hsco Hdco Hsdn Hrq] with ⟨#Hstop, Hdcp⟩
   · iframe
     iframe #
-  -- the readers' tokens
-  ihave Hrds := rep_zip (Int.toNat sync.rwmutex.actualMaxReaders)
-    (sync.ownRWMutex (rmuOf (baseOf rt)) (rtRes γ P rt)) (sync.ownRWMutex tm (fun q => tmTok γ q))
+  -- the readers' tokens (backend-snapshot B3: `rdSlotsN` of them, each with a slot of `b.mu`)
+  have hle : rdSlotsN ≤ Int.toNat sync.rwmutex.actualMaxReaders := by have := rdSlotsN_add_one; omega
+  ihave Hrmus := rep_le _ _ hle _ $$ Hrmus
+  ihave Htms := rep_le _ _ hle _ $$ Htms
+  ihave Hbmus := (bmStock_unfold b db).1 $$ Hbmus
+  ihave Hrmus := rep_zip2 rdSlotsN _ _ $$ [$Hrmus $Hbmus]
+  ihave Hrds := rep_zip rdSlotsN
+    iprop(sync.ownRWMutex (rmuOf (baseOf rt)) (rtRes γ P rt) ∗
+      sync.ownRWMutex (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db))
+    (sync.ownRWMutex tm (fun q => tmTok γ q))
     γ.rdt $$ [Hrmus Htms Hrdtt]
   · iframe Hrmus Htms
     iexact Hrdtt
-  ihave Hrds := rep_rdTok (Int.toNat sync.rwmutex.actualMaxReaders) γ P b rt tm $$ [Hrds]
+  ihave Hrds := rep_rdTok rdSlotsN γ P b rt tm db $$ [Hrds]
   · iframe #
     iexact Hrds
   imodintro
