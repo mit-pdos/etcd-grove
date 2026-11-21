@@ -595,7 +595,6 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revisio
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.newPeriodic
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.newRevision
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.verifyConsistentIndexIsLatest
-public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.IsVerificationEnabled
 public import Proof.go_etcd_io.etcd.api.v3.version.Cluster
 public import Proof.go_etcd_io.etcd.api.v3.version.LessThan
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.New
@@ -1021,10 +1020,6 @@ theorem schema.wp_MustUnsafeSaveConfStateToBackend :
 theorem storage.BackendHooks.wp_OnPreCommitUnsafe :
     storage.BackendHooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG) :=
   storage.BackendHooks.OnPreCommitUnsafe.wp_proof schema.wp_MustUnsafeSaveConfStateToBackend backend.batchTxBuffered.wp_UnsafePut schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket
-
-theorem verify.wp_IsVerificationEnabled :
-    verify.IsVerificationEnabled.spec (GF := GF) (hG := hG) :=
-  verify.IsVerificationEnabled.wp_proof os.wp_Getenv strings.wp_ToLower
 
 theorem schema.wp_UnsafeReadConsistentIndex :
     schema.UnsafeReadConsistentIndex.spec (GF := GF) (hG := hG) :=
