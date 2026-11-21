@@ -34,6 +34,10 @@ The replay fork still needs its own successful server build and gates.
 The VM checked the constructor that carries the initial replay-term slice
 into `raftNodeConfig`. It also checked that cutting an overwritten term
 range or joining adjacent equal-term ranges preserves earlier lookups.
+The VM checked `replayTerms_prefix` for the full slice expression
+`r[:n:n]`. It retains the readable prefix and gives the writer zero
+spare capacity, so the next append cannot overwrite an earlier Ready.
+It also checked the translated empty-entry return of `appendEntries`.
 
 Three obligations still need proofs.
 
