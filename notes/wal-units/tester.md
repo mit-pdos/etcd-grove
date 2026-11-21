@@ -603,3 +603,57 @@ assembly over `fsSQ_crash_adequacy`, the TopLevel files, and the hypotheses. Thr
    of a closed theorem.
 The draft closed statement, with its premises and axioms, is in the coordinator's log
 (`/shared/tmp/coord-03/walsafe-log.md`); stating it is the user's hard stop.
+
+# Handoff (branch `wal-safe`, 2026-11-21, etcd-grove-03's delegate): steps 2 and 3 not started
+
+**State.** `wal-safe` is lean `b7b2bb0dca` (Perennial pin `d648cfe22`) merged, plus:
+- (b1): `GooseLang/Ext/Fs/CrashAdequacyAcc.lean` (`goose_crash_adequacy_acc`, a local copy of Perennial's crash
+  adequacy whose `Hwp` gets one update of the extensions' local ctx at each generation's start; recorded in
+  `notes/perennial-changes.md`), `GooseLang/Ext/Fs/TreeSharedKit.lean` (the switch in two halves:
+  `treeCtx_switchG`, `osSwitchKit_open`; `wp_osShareE_acc`), `GooseLang/Ext/Fs/AdequacyShared.lean`
+  (**`fsSQ_crash_adequacyShared`**: every generation switched to the shared mode before its WP).
+- Step 1: `renameWALUnlock.spec` gone (ledger 2026-11-21). `os.Rename.specDirS(nc)` witnesses its errors
+  (`NoErrSpecsRenameDir.lean`); `renameWAL`/`wal.Create(.specFresh)` take
+  `FsNoErrOn (· = dir) ∧ PathFits (dir ++ ".tmp") ∧ PathFits dir`; the tester's `Boot`/`Main` take `tWalFsOk area`.
+- Everything builds: the WAL Link and the tester's Links (3586 jobs). No sorry, no axiom added.
+- The coordinator's log, with the decisions and the draft closed statement, is `/shared/tmp/coord-03/walsafe-log.md`.
+
+**Next: step 2, `walFoRes`** (discharges `BootFo` of every crashed tree, `tester_crash`'s `hfo`; main-tree WAL
+proofs; approved by the coordinator). The design is in `notes/wal-fsext-w4c-plan.md`, U3 log, third session
+("`hfo`: condition checked, design"). Its crash side is proved: `Proof/.../storage/wal/BootFilesOnly.lean`
+(`HistNoDir`, `regionCrashed_filesOnly`). What remains is the invariant side, a framed conjunct of `walInv` (claims
+`fl` at half, `HistNoDir` of them and of the WAL directories' claims), maintained by the updates listed there:
+(1) the pipeline's `0.tmp`/`1.tmp`, (2) `Create`'s `nm.tmp` (mkdir, `.touch`, first segment,
+`RemoveAll(nm.tmp)`, the rename), (3) `Repair`'s `.broken` file, (4) the WAL directories' new versions,
+files-only (`cut`, `Create`'s commit, `Repair`, `renameWAL`), (5) the open point `cleanupWAL`.
+**First decide** between the full design and the plan's cheaper alternative for (2): drop `TmpOk` for a
+general-subtree `os.RemoveAll` spec (`SubCover`), and let `tmpClTouch` accept a directory `.touch`. Then only
+`nm` (1, 3, 4) needs `fl`. Note that `BootFo`'s second conjunct ("no `nm.tmp` is a file") is what `TmpOk` needs.
+Afterwards `walInv_crash` exports `BootFo V'.now jr`, and `tester_crash`'s `hfo` and `TCrashed`'s carried fact go.
+Then, if cheap, remove `renameWALPost`'s dead arm 2 (and `Create`'s handling of it, `Create.lean` ~line 1185).
+
+**Then: step 3, the tester's wiring** onto `fsSQ_crash_adequacyShared`
+(`WalTester/Proof/.../etcd/wal/`, new modules; the closed statement itself is the user's hard stop):
+- `P L V := ownGoState ∅ (or σ's) ∗ (first boot: ⌜V = (m₀, [])⌝ and the world facts) ∨ TCrashed e V`.
+- `Hstart`: `P L (m₀, [])`.
+- `Hwp`: from `osShared R V` (= `tBoot0`'s/`tBootCrash`'s inputs: `osSharedInv`, `osAboveInv`, `osCallPerms`,
+  the claims; `osLogLb` unused), get `TBoot e`, then `TBoot_run` gives `TRun` for `initialize'; Main` and
+  the crash tokens. The crash frame: `tester_crash` (it returns `osTree L' ∗ TCrashed L'`, the frame's shape).
+- The semantics: `fsExtsSemanticsWithS (StepPrem.and (NoIoErr allIo) (NoMapLockErr allIo)) (fun st st' => W1 walCodec st st')`.
+  `tWalFsOk` comes from `fsNoErrOn_of` and the area premise.
+- `ReceiptBoundLe GF (2^62)` from `receiptBound GF = N` (bound the executions' length, as etcd's results do).
+- The Link hypotheses: instantiate `P := walRaftP`, `U := walRaftU`, `HsO := walRaftHsO` (`RaftModel/Laws.lean`).
+  The Perennial-gap specs stay hypotheses: list them in the draft statement for the user.
+
+**Pitfalls.**
+- Build only through `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-d64.json build …`
+  (Perennial worktree `/shared/perennial-d648cfe22`).
+- `etc/lean-check.py` with `LAKE_OPTS=--packages=…` still runs `lake setup-file`, which cloned Perennial into
+  `.lake/packages/perennial` (d648) and builds there. It works, but its first check of a file deep in the
+  tree is slow. `lake build` of the module is the reliable check.
+- `etc/gen-link.py --walfs`/`--wal-tester` print the Link to stdout: redirect it to the Link file.
+- In Iris proofs, `unfold X` acts on the whole goal, the context included; use `iunfold X at H` for one
+  hypothesis (an `unfold osTree` before `treeCtx_switchG` unfolded the goal's later `osTree`).
+- A crash frame gets no later (crashes need no step between them), so it can only read timeless contents out of
+  an invariant: a box invariant cannot carry a client's crash continuation (`notes/perennial-changes.md`, the entry
+  of 2026-11-21).
