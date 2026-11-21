@@ -523,7 +523,7 @@ local macro "range_tailOn" : tactic => `(tactic| (
       $$ [resp err Hsr Hlr Hown0 Hard] as %serr Hds
   · iframe #
     isplitr
-    · iintro %a %info %dq !> %Φ' ⟨Ha, Hard⟩ HΦ'
+    · iintro %a %info %dq !> %Φ' ⟨Ha, Hard, HGc⟩ HΦ'
       wp_auto
       rw [Haui]
       (try wp_auto)
@@ -535,7 +535,7 @@ local macro "range_tailOn" : tactic => `(tactic| (
       ihave #HpE := authApplyErrIs_apply perr $$ HpE0
       wp_auto
       iapply HΦ'
-      iframe Ha Hard HpE0
+      iframe Ha Hard HGc HpE0
       isplitr
       · iintro %Hpn
         subst Hpn
@@ -551,7 +551,7 @@ local macro "range_tailOn" : tactic => `(tactic| (
         rw [Ho, hM]; simp only [txn.rangeOpOf.proj_key]
         iexact Hpr
     isplitr
-    · iintro !> %Φ' ⟨⟨Hresp, Herr, Hsr, Hlr⟩, Hown0⟩ HΦ'
+    · iintro !> %Φ' ⟨⟨Hresp, Herr, Hsr, Hlr⟩, Hown0, -⟩ HΦ'
       wp_auto
       wp_apply hLg s w.lg $$ [Hlr] as ⟨-, Hlr⟩
       · iframe #; iframe Hlr

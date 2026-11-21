@@ -3519,4 +3519,24 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** (a) `txn.Range.spec` takes the request at a fraction, the four rewritten fields owned or at
   `dq`, and gives it back; (b) the response gives `ownSliceCap` of each key (down through mvcc's API spec, where the keys
   are unmarshalled). Alternatives in `notes/auth-mediation-handoff.md` (M3).
-- **Decision.** Pending (etcd-grove-03).
+- **Decision.** (B), the user's choice (2026-11-21, via etcd-grove-03): `rangeStream` stays names only, with one
+  trust-boundary spec (`Spec/.../etcdserver/EtcdServer__rangeStream.lean`: it sends only through `rs`, each chunk of
+  the range under the check the caller gives it), independently attacked (`notes/axiom-review/rangestream.md`:
+  survives, with F1 applied, the request's new key given back without its contents); `EtcdServer.RangeStream` and
+  `kvServer.RangeStream` proved over it. (A), this entry's proposed change, is the later replacement; it needs the
+  fork to carry upstream's `bytes.Clone` of the last key (etcd-io/etcd@9acc0ebe37,
+  `nonissues/etcd-rangestream-keysonly-index-key-race.md`), without which the append races in Go and the body is
+  not provable.
+
+## 2026-11-21: `doSerialize`'s `get` is not told that `chk` passed (auth-mediation M3)
+
+- **Spec.** `EtcdServer.doSerialize.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__doSerialize.lean`).
+- **Defect.** Too weak for a `get` with effects that need the check: `get`'s precondition was `G` alone, so a `get`
+  that sends (`RangeStream`'s pages, inside `get`) cannot show each send came after a passed check; and `chk` could
+  read only its own arguments, not a request `get` later rewrites (owned in `G`).
+- **Evidence.** The M3 proof of `EtcdServer.RangeStream` (worktree `/shared/etcd-grove-authm3`).
+- **Proposed change.** `get`'s precondition adds `∃ info, C info ∗ infoBoundM E.authOn s E tok info` with `C`
+  persistent (a Lean instance premise; every caller's is); `chk`'s triple frames `G`. A stronger spec; Range, Txn and
+  `ModeSpecs.spec_off` adjust (`specOff` takes the same premise on `C`).
+- **Decision.** Decided by etcd-grove-03 (2026-11-21: a stronger proved spec); the `G` frame on `chk`, the obvious
+  filling (a weaker requirement on the caller's `chk`), decided by the M3 agent.
