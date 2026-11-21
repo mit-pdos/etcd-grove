@@ -145,6 +145,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.raftpb.Assumptions]
+variable [package_sem' : go_etcd_io.raft.v3.Assumptions]
 
 /-- **A hard state's struct literal**: its value, which, stored anywhere, is a decoded hard state at
 some wire content with the model `m`. -/
@@ -167,7 +168,6 @@ theorem treeWp_hsTree (m : HardStateM) (Φ : val → IProp GF) :
   isplitr
   · ipureintro; exact isPanic_intoVal pc
   simp [litBody, strctKes, kesσ, envσ]
-  repeat (isplitr; · ipureintro; trivial)
   wp_auto
   iapply H
   iintro %l Hl
@@ -187,12 +187,18 @@ theorem treeWp_hsTree (m : HardStateM) (Φ : val → IProp GF) :
     · iexists pt, pv, pc, _, _, _
       isplitr
       · ipureintro; exact Hnn
+      simp only
       iframe
+      isplitr; · iexact c1
+      isplitr; · iexact c2
+      isplitr; · iexact c3
+      iexact Hnil
     · ipureintro; exact ufWire_nil _
   · ipureintro
     cases m
     simp only [WalHsC.model] at h1 h2 h3 ⊢
     rw [← h1, ← h2, ← h3]
+    rfl
 
 /-- **`pbHsC`'s decoded model is satisfiable** by the generic store. -/
 theorem pbHsC_sat : (pbHsM (GF := GF)).Sat := by

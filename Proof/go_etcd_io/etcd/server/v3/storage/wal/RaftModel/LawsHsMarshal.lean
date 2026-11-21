@@ -65,7 +65,7 @@ theorem walRaftP_marshalHs (wp_Marshal : proto.MarshalPb.spec (GF := GF) (hG := 
   iframe
   ipureintro
   rintro rfl
-  rw [← Hlen.1] at hpos
+  rw [Hlen.1] at hpos
   simp [slice.nil] at hpos
 
 /-- **`MarshalHsLaw`** of the server's instance (its hard states and state codec are the raftpb

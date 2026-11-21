@@ -1,6 +1,19 @@
 # wal-item3 handoff
 
-## START HERE (2026-11-21 b1) — sources written, NOT BUILT (disk full while seeding); next: seed, build, gates
+## START HERE (2026-11-21 b2) — STOPPED: `rnNewStorageOk_law_holds` needs `[UntypedRuneSemantics]`
+
+- `.lake/build` seeded (coordinator's build at 3c8804f01f). Built and fixed: `PbHardState` (section `sat` needs
+  `[go_etcd_io.raft.v3.Assumptions]` for `optCell_freeze`; frame by hand), `LawsHsMarshal` (`rw [Hlen.1]`),
+  `bootstrappedRaft__newRaftNode` builds. `#Htd, #Hns⟩` → `#Htd⟩` in the 17 Mains/start proofs. Server `Link`
+  regenerated (only diff: the import and `rnNewStorageOk_law_holds` passed); the other 59 Links unchanged.
+- **Stop (closed statements):** `RnNewStorageLinked` fails: the WAL `Link`'s results take the hypothesis class
+  `[UntypedRuneSemantics]` (`Proof/internal/filepathlite/UntypedRune.lean`; `filepath.join`/`filepathlite.Base`/
+  `FromSlash`, reached by storage `Save` → WAL `Save` → `cut`). Proving the law from the WAL makes every closed
+  theorem over the server take `[UntypedRuneSemantics]` (a new semantic premise, none takes it today; would go
+  in `etc/gen-link.py`'s `SEM_PREMISES`). Options in the report; awaiting etcd-grove-03.
+- Not run yet: full build, gates, STATUS.
+
+## Previous START HERE (2026-11-21 b1) — sources written, NOT BUILT (disk full while seeding); next: seed, build, gates
 
 - Worktree `/shared/etcd-grove-walitem3`, branch `wal-item3` off lean `3c8804f01f` (pin c44b74871:
   `--packages=/shared/tmp/manifest-c44.json`, `PERENNIAL_DIR=/shared/perennial-c44b74871`). Decisions: `questions.md`.

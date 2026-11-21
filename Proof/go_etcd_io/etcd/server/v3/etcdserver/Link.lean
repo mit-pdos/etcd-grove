@@ -632,6 +632,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeApiLink
 public import Proof.sort.SortAnyLess
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeStartLinked
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RnNewStorageLinked
 public import Proof.context.Link
 public import Proof.fmt.Link
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
@@ -2903,7 +2904,7 @@ theorem wp_newRaftNode :
 
 theorem bootstrappedRaft.wp_newRaftNode :
     bootstrappedRaft.newRaftNode.spec (GF := GF) (hG := hG) :=
-  bootstrappedRaft.newRaftNode.wp_proof srvApi_wp_StartNode srvApi_wp_RestartNode EtcdGrove.wp_newRaftNode
+  bootstrappedRaft.newRaftNode.wp_proof srvApi_wp_StartNode srvApi_wp_RestartNode EtcdGrove.wp_newRaftNode rnNewStorageOk_law_holds
 
 theorem bootstrappedStorage.wp_Close :
     bootstrappedStorage.Close.spec (GF := GF) (hG := hG) :=
