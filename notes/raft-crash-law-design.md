@@ -314,3 +314,43 @@ Also noted, for whichever is chosen:
   `ownRaftGhost`. Two armed invariants of one id can be told apart with NC (both left disjuncts
   would hold the full `terms` authority) if the namespace includes the names;
 - `NodeNames` is the natural carrier of the arm's names.
+
+## (h) Option 2 of (g), decided and found not to remove the token (2026-11-21)
+
+**Decision** (the coordinating session, 2026-11-21): option 2 of (g). The slot's virtual-map
+variable gets a fresh ghost name per generation, recorded in `slotInv`, and the running node keeps
+`V`'s half. A crash (or a stop) re-allocates the next generation's variable from the entered maps,
+using `slotLive 1 g` from the crash invariant. The crash invariant holds `slotLive 1 g` and the
+four leader-side authorities; the win and the trace update take `notCrashed` per (f). `NodeNames`
+carries the crash names, and a stop checks the client's names against the run's. Option 3 / (b3)
+is deferred as a later simplification that keeps the API.
+
+**Finding** (the implementing session, before any Lean change). Option 2 does not let
+`slot_open`'s readers do without `notCrashed`. What they need is not the half of `V` but the
+relation between `V` and the **entered maps** `E` in `slotInv`: `DurLe E V`, used to look up a
+durable fragment (an entered vote or acknowledgement) in `durShares ½ E`, then conclude it is in
+`V`. A crash ends the generation, and the next one enters new batches into the same `E`, which
+`V_old` does not contain. So a step of a thread of the dead generation (a zombie, which the logic
+must cover: a ghost step lemma `P ={E}=∗ Q` is an entailment over all worlds, including those
+after the crash) cannot get `DurLe E V`:
+- with the name switched, its half no longer agrees with `slotInv`'s;
+- with the old name's half frozen in `slotInv` at `V_old`, `DurLe E V_old` stops holding as soon as
+  the next generation enters anything.
+
+`E` is one authority shared across generations, so it cannot be frozen per generation either. The
+general rule, sharpening (a)'s note on `notCrashed`: a thread needs `notCrashed` not only to
+**update** state a crash rule may change, but also to **read** state that a later generation will
+change. The entered maps are such state, and the ordinary steps listed in (g) read them.
+
+So with any design in which the restarted node enters into the same entered maps, `slot_open`'s
+readers need `notCrashed` regardless of where `V`'s half lives. The real choice is:
+1. **(g)'s option 1:** NC through every ghost step. This needs the lemma
+   `WP e {{ v, |NC={E}=> Φ v }} ⊢ WP e {{ Φ }}` for a non-value `e`, for the `raft.Step` arms whose
+   ghost step runs at the return, and `HookGate` NC everywhere in the traced instance. Option 2's
+   per-generation name then buys nothing, and `V`'s half can stay in the crash invariant as in (b1).
+2. **Entered maps per generation** (route 2's direction: per-incarnation names for the promise
+   authorities too). This needs new protocol reasoning about fragments across generations, (b2)'s
+   cost and more.
+
+Nothing implemented, no decisions.md or ledger entry: the decision of this section is not carried
+out until one of the two is chosen.
