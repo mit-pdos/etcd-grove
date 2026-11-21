@@ -312,7 +312,7 @@ theorem winBody_push (γr : LessorRdNames) (hs : List LSnap) (τ σ' : LSnap) (w
     lessorWinBody (GF := GF) γr hs ∗ winOwn γr w ⊢ lessorWinBody γr (hs ++ [σ']) ∗ winOwn γr w := by
   unfold lessorWinBody winOwn
   iintro ⟨⟨%ws, Ha, %Hok⟩, %ws0, Ho, %Hw⟩
-  ihave %Hag := monoListAuthOwn_agree γr.2.2.2.2.2 _ _ ws ws0 $$ Ha Ho
+  ihave %Hag := monoListAuthOwn_agree γr.2.2.2.2.2.1 _ _ ws ws0 $$ Ha Ho
   obtain ⟨-, rfl⟩ := Hag
   isplitl [Ha]
   · iexists ws; iframe Ha; ipureintro
@@ -360,7 +360,7 @@ theorem win_push (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (w : Opti
   ihave %H1 := lessorPinR_agree γl γr γr1 $$ [$Hpr $Hp1]
   ihave %H2 := lessorPinR_agree γl γr γr2 $$ [$Hpr $Hp2]
   subst H1; subst H2
-  ihave %Hag := monoListAuthOwn_agree γr.2.2.2.2.2 _ _ ws0 ws $$ Hwo Hwt
+  ihave %Hag := monoListAuthOwn_agree γr.2.2.2.2.2.1 _ _ ws0 ws $$ Hwo Hwt
   obtain ⟨-, rfl⟩ := Hag
   obtain ⟨T, hT⟩ := Hlast
   obtain ⟨hσ, hlen⟩ := getLast?_getElem? hT
@@ -373,11 +373,11 @@ theorem win_push (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (w : Opti
   obtain ⟨-, rfl⟩ := Hh
   iunfold lessorWinBody at HW
   icases HW with ⟨%ws1, Hwi, %HWok⟩
-  ihave %Hag := monoListAuthOwn_agree γr.2.2.2.2.2 _ _ ws0 ws1 $$ Hwo Hwi
+  ihave %Hag := monoListAuthOwn_agree γr.2.2.2.2.2.1 _ _ ws0 ws1 $$ Hwo Hwi
   obtain ⟨-, rfl⟩ := Hag
-  ihave Hfull := (win_full γr.2.2.2.2.2 ws0).2 $$ [$Hwi $Hwo $Hwt]
+  ihave Hfull := (win_full γr.2.2.2.2.2.1 ws0).2 $$ [$Hwi $Hwo $Hwt]
   imod monoListAuthOwn_update_app [(hs.length - 1, x)] $$ Hfull with ⟨Hfull, -⟩
-  icases (win_full γr.2.2.2.2.2 _).1 $$ Hfull with ⟨Hwi, Hwo, Hwt⟩
+  icases (win_full γr.2.2.2.2.2.1 _).1 $$ Hfull with ⟨Hwi, Hwo, Hwt⟩
   imod Hclose $$ [Hh HS HU HQ Hwi] with -
   · inext; iunfold lessorRdBody; iexists hs, Sm0; iframe Hh HS HU Htie Hids HQ
     isplitr
@@ -431,7 +431,7 @@ theorem win_wit (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (w : Optio
   obtain ⟨-, rfl⟩ := Hh
   iunfold lessorWinBody at HW
   icases HW with ⟨%ws1, Hwi, %HWok⟩
-  ihave %Hag := monoListAuthOwn_agree γr.2.2.2.2.2 _ _ ws0 ws1 $$ Hwo Hwi
+  ihave %Hag := monoListAuthOwn_agree γr.2.2.2.2.2.1 _ _ ws0 ws1 $$ Hwo Hwi
   obtain ⟨-, rfl⟩ := Hag
   have hs_lt : s < hs.length := by
     unfold lastWin at Hw

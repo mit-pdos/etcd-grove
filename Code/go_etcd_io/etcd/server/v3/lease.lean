@@ -1476,6 +1476,20 @@ noncomputable def lessor.ExpiredLeasesC.impl [GooseExts] [GoGlobalContext] : val
   (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.SliceType (go.GoType.PointerType Lease.ty)))))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.SliceType (go.GoType.PointerType Lease.ty)))))) (Var "$res0"))))))
 
+/-- go: lessor.go:615:19 -/
+noncomputable def lessor.Stop.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "le"
+  (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (Let "le" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType lessor.ty)))) (Var "le"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Fst (App (Val (chan.receive (go.GoType.StructType []))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"doneC"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le")))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"stopC"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le"))))
+  (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Var "$a0")))))))
+  (Val #()))))
+
 /-- go: lessor.go:689:19 -/
 noncomputable def lessor.clearScheduledLeasesCheckpoints.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "le"
@@ -2288,6 +2302,7 @@ class lessor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   ptr_Recover_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"Recover" lessor.Recover.impl
   ptr_Revoke_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"Revoke" lessor.Revoke.impl
   ptr_SetRangeDeleter_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"SetRangeDeleter" lessor.SetRangeDeleter.impl
+  ptr_Stop_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"Stop" lessor.Stop.impl
   ptr_clearLeaseExpiredNotifier_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"clearLeaseExpiredNotifier" lessor.clearLeaseExpiredNotifier.impl
   ptr_clearScheduledLeasesCheckpoints_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"clearScheduledLeasesCheckpoints" lessor.clearScheduledLeasesCheckpoints.impl
   ptr_initAndRecover_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"initAndRecover" lessor.initAndRecover.impl
@@ -2350,6 +2365,7 @@ attribute [instance] lessor.TypeAssumptions.type_repr
   lessor.TypeAssumptions.ptr_Recover_unfold
   lessor.TypeAssumptions.ptr_Revoke_unfold
   lessor.TypeAssumptions.ptr_SetRangeDeleter_unfold
+  lessor.TypeAssumptions.ptr_Stop_unfold
   lessor.TypeAssumptions.ptr_clearLeaseExpiredNotifier_unfold
   lessor.TypeAssumptions.ptr_clearScheduledLeasesCheckpoints_unfold
   lessor.TypeAssumptions.ptr_initAndRecover_unfold

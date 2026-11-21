@@ -3862,3 +3862,22 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   as `Leases.spec` does; the server's callers (`LessorOk.lean`'s contract, `NewServer`'s promotion on becoming
   leader) supply them. Not applied: it changes the server's lessor contract.
 - **Decision.** Open (the axiom stays).
+
+## 2026-11-21: the lessor's `demotec` and stop channels get ghost state (prove-ps2-lease)
+
+- **Spec.** `lease.lessor.Demote.spec`, `lease.lessor.Stop.spec`, `lease.lessorStopTok`
+  (`Spec/go_etcd_io/etcd/server/v3/lease/`, `Proof/.../lease/LessorBackend.lean`; all three axioms), and what
+  `lessorInv` says of `demotec` (`InvLessor.lean`'s `lessorExtra`).
+- **Defect.** Not provable over the real code: `Demote`'s `close(le.demotec)` needs a close right the invariant did
+  not keep (`demotec` sits in `le.mu`'s fractional guard); `Stop`'s `close(le.stopC); <-le.doneC` needs the channels,
+  which the opaque `lessorStopTok` did not name.
+- **Evidence.** `lessor.go:534-550`, `:615-618`; the translations (`lessor.Demote.impl`, `lessor.Stop.impl`, the
+  latter translated by this change).
+- **Proposed change.** `lessorStopTok` defined (the two fields read-only, `stopC`'s broadcast close right, `doneC`'s
+  receive side); `demotec`'s state per channel in an invariant with a close token, the current token in a lessor
+  invariant tied by a ghost variable (`LessorRdNames`' seventh name) half in `lessorExtra` (which takes the lessor's
+  `γl`). `Demote.spec`'s statement is unchanged but stated at `HasLC.hasLC` (its only callers, the server's, are;
+  the channel close needs it). The assumed `NewLessor`, `Promote` and `Renew` keep their statements; their claims about
+  the ghost state are checked in `notes/axiom-review/lessor-demotec-stop.md`.
+- **Decision.** Applied (prove-ps2-lease, 2026-11-21): `Demote`, `Stop` proved, `lessorStopTok` and its `Timeless`
+  instance retired.

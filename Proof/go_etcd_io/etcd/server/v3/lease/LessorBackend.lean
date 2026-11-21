@@ -35,6 +35,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
 public import Perennial.Golang.Theory.Chan.Idioms.Bag
+public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
 public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseRecord
 public import Proof.go_etcd_io.etcd.server.v3.lease.MvccShapes
 
@@ -200,11 +201,17 @@ instance lessorExpiredC_persistent (lp : Loc) (GA : w64 → IProp GF) :
     Persistent (lessorExpiredC (GF := GF) lp GA) := by
   unfold lessorExpiredC; infer_instance
 
-/-- (2026-11-04, R2b-3c part 2, the user's approval; trust boundary) **The right to stop the lessor
-`lp` once**: `NewLessor` gives it, `lessor.Stop` takes it (`close(le.stopC)`, which a second call
-would make panic). Exclusive by use: nothing duplicates it. -/
-axiom lessorStopTok (lp : Loc) : IProp GF
-@[instance] axiom lessorStopTok_timeless (lp : Loc) : Timeless (lessorStopTok (GF := GF) lp)
+/-- **The right to stop the lessor `lp` once** (2026-11-04, R2b-3c part 2, the user's approval;
+an opaque axiom until prove-ps2-lease, 2026-11-21): `NewLessor` gives it, `lessor.Stop` takes it.
+Its `stopC` and `doneC` (read-only: `newLessor` sets them, `lessor.go:238-239`, nothing writes
+them after) are broadcast channels (Perennial's `ownBroadcastChan`, nothing ever sent, closed at
+most once): this right holds `stopC`'s close right (`.Pending`: `close(le.stopC)`, which a second
+call would make panic, is `Stop`'s alone; the expiry loop and `Renew` only receive on it, with the
+channel's persistent `.Unknown`), and `doneC`'s receive side (`.Unknown`: `runLoop`'s deferred
+`close(le.doneC)`, `lessor.go:621`, holds its close right). -/
+def lessorStopTok (lp : Loc) : IProp GF :=
+  iprop(∃ (c d : GoChan) (γc γd : ChanNames), lF go!"stopC" lp ↦□ c ∗ lF go!"doneC" lp ↦□ d ∗
+    ownBroadcastChan c γc iprop(True) .Pending ∗ ownBroadcastChan d γd iprop(True) .Unknown)
 
 end defs
 

@@ -226,14 +226,29 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   every TTL above them.
 * (Auth-lease S4 item 7b, decided by etcd-grove-03 2026-11-17, `questions.md` "Item 7b step 1") **The
   windows** (`lessorWinTie γl []`, `winsOk`, `itemsLive`), ghost state only: a mono-list allocated at `[]`
-  (`mono_list_own_alloc`) with the readers' names (their sixth, `γr.2.2.2.2.2`; the requests map is their fifth's
+  (`mono_list_own_alloc`) with the readers' names (their sixth, `γr.2.2.2.2.2.1`; the requests map is their fifth's
   first, `γr.2.2.2.2.1`), its authority split a half to the readers' invariant, a quarter to the owner (`leaseOwn`'s
   closers, whose open window `lastWin [] = none` is `leaseOwn`'s), a quarter to the caller (`lessorWinTie`). The
   invariant's `winsOk hs []` holds of any history (no window), and `itemsLive` of the single initial snapshot, whose
   item map is empty. No Go state is read or written for it; `Attach`, `Detach`, `Grant`, `Revoke` and `Recover`
   (proved) keep the facts at every push.
 * (2026-11-04, R2b-3c part 2, the user's approval) **The right to stop it** (`lessorStopTok lp`,
-  for `lessor.Stop`): `newLessor` makes `stopC`, which only `Stop` closes; one right, given here. -/
+  for `lessor.Stop`): `newLessor` makes `stopC`, which only `Stop` closes; one right, given here.
+  (prove-ps2-lease, 2026-11-21: until then an opaque axiom; now a definition, `LessorBackend.lean`.)
+  What it claims, and why it is true: `stopC` and `doneC` are fresh unbuffered channels
+  (`make(chan struct{})`, `lessor.go:238-239`), fields written only by the struct literal, so
+  read-only (`lF "stopC" lp ↦□ c`, `lF "doneC" lp ↦□ d`); each is made a broadcast channel
+  (Perennial's `alloc_broadcast_chan`, ghost state only, at `Q = True`), nothing is ever sent on
+  either. The caller gets `stopC`'s close right (`.Pending`); the lessor keeps its receive side
+  (`.Unknown`, persistent) for `runLoop`'s `select` and `revokeExpiredLeases`' (`lessor.go:632,654`)
+  and `Renew`'s (`:426`). `doneC`'s close right goes to the `runLoop` goroutine, whose deferred
+  `close(le.doneC)` (`:621`) is the only close of it; the caller gets its receive side
+  (`.Unknown`). So nothing of the Go code is assumed beyond what the original opaque right said.
+* (prove-ps2-lease, 2026-11-21) **`demotec`** (inside `lessorInv`: `lessorExtra`'s `demoteTie`, at the
+  readers' names' seventh, `γr.2.2.2.2.2.2`): `newLessor` leaves `demotec` nil (the struct literal
+  names no `demotec`, `lessor.go:225-242`), so a ghost variable allocated at `chan.nil`, half in the
+  lock's guard, half in the invariant `demoteOuter` (allocated here, at `nil`: its left disjunct).
+  Ghost state only; `Promote` (assumed) and `Demote` (proved) keep it. -/
 abbrev lease.NewLessor.spec : Prop :=
   ∀ (lg : Loc) (cl : GoInterface) (cfg : go_etcd_io.etcd.server.v3.lease.LessorConfig)
     (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp) (GA : w64 → IProp GF)
