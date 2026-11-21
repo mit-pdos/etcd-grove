@@ -2207,11 +2207,11 @@ theorem busy_isNode_lb (γn : NodeNames) (id : w64) (n : Loc) (ds es : List Entr
   iframe Hn Hlb Hr
 
 /-- Snapshot sources for the messages handed out by one node instance. -/
-def snapSources (γ : Cluster) (n : Loc) (ms : List QMsg) : IProp GF :=
-  iprop(∃ γn : NodeNames, nodeTabOk γ n γn ∗ qSrcs γn.sn ms)
+def snapSources (γ : Cluster) (n : Loc) (id : w64) (ms : List QMsg) : IProp GF :=
+  iprop(∃ γn : NodeNames, nodeTabOk γ n γn ∗ readyMsgOrigins γ.raft id γn.sn ms)
 
-instance snapSources_persistent (γ : Cluster) (n : Loc) (ms : List QMsg) :
-    Persistent (snapSources (GF := GF) γ n ms) := by
+instance snapSources_persistent (γ : Cluster) (n : Loc) (id : w64) (ms : List QMsg) :
+    Persistent (snapSources (GF := GF) γ n id ms) := by
   unfold snapSources
   haveI (γn : NodeNames) := nodeTabOk_persistent (GF := GF) γ n γn
   infer_instance
@@ -2222,7 +2222,7 @@ abbrev readyPost (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeD
     (rd : Ready) : IProp GF :=
   iprop(∃ (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan)
       (ms : List QMsg) (ss : Option (w64 × StateType)),
-    snapSources γ n ms ∗
+    snapSources γ n id ms ∗
     committedEntriesAt rd.CommittedEntries' st.delivered.length ce ∗
     isCommittedLogLb γ (st.delivered ++ ce) ∗
     (∃ rs, readStatesPts rd.ReadStates' rs ∗
@@ -2293,7 +2293,7 @@ abbrev readyPostT (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : Node
     (rd : Ready) : IProp GF :=
   iprop(∃ (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan)
       (ms : List QMsg) (ss : Option (w64 × StateType)),
-    snapSources γ n ms ∗
+    snapSources γ n id ms ∗
     committedEntriesAt rd.CommittedEntries' st.delivered.length ce ∗
     isCommittedLogLb γ (st.delivered ++ ce) ∗
     (∃ rs, readStatesPts rd.ReadStates' rs ∗
@@ -2869,8 +2869,8 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
   ihave Hcl := readyToksClaim_of_elem n γ N γn ms Hnok $$ Htab Hel
   iunfold readyCut at Hcut
   icases Hcut with ⟨%x, %S', %W, %ss, Hdx, Hbw, Hpend, %HS', #HtS', #Hss, #Hmw, #Hlead, #Hmss, #Hsrcs, %Hrf⟩
-  ihave #HsrcsN : snapSources γ n ms $$ []
-  · unfold snapSources; iexists γn; iframe Htab Hsrcs
+  ihave #HsrcsN : snapSources γ n γn.id ms $$ []
+  · unfold snapSources; iexists γn; iframe Htab; rw [← Hγr]; iexact Hsrcs
   ihave #Hmss' : iprop([∗list] q ∈ ms, snapToOk γ.raft γn.id q.st) $$ []
   · rw [← Hγr]; iexact Hmss
   ihave %Hx := dghostVar_agree _ _ _ _ _ $$ Hdur Hdx

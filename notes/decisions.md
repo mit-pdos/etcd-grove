@@ -39920,6 +39920,16 @@ etcd-grove-81; a restricting change, no further round).**
   `Open`'s docstring) state the wrap-first branch; the masked nonissue's upstreaming option "keep the
   masked success for old-named WALs" brings F-W4a2-2 back.
 
+### Preserve the incoming message through an outgoing Ready
+
+Raft's log records every successful restore in this node instance. A queued
+snapshot from the unstable log carries membership in that history. When
+`readyWithoutAccept` selects its outgoing messages, the Ready keeps the history
+and the selection's membership proof together. The public Ready carries the
+driver's node ID, so its restore evidence identifies a leader different from
+that very node. Restart and Bootstrap establish that the local history starts
+empty. The apply-order comparison is the next part of the index-guard proof.
+
 ## WAL W4b: the history and read lemmas, the crash views, and the purged read (2026-11-12 · plan approved by etcd-grove-81, `/shared/tmp/wal-spec/w4b/plan.md`; C2's premises chosen by the proof, as the plan allows; CP3 approved by etcd-grove-81 under the user's delegation, 2026-11-12: `walCommitLe` as C2's premise, the guard dropped, C4 without `walNoDormant` · branch `wal-w4b`)
 
 Proved only: two unlinked modules over the W4a/W4a.1/W4a.2 axioms, no axiom, `sorry`, opaque or
