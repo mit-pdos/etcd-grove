@@ -250,6 +250,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
+variable [CrashGS GF] in
 /-- **A heartbeat's receive line's phase step, at a candidate of its term**: the server to the
 step-down's (`rtfSrv`, the intermediate shape, up to `toC`) then to `hbSrv` of it, its response added. -/
 theorem phaseStepR_candHb (id : w64) (c : CfgM) (s : NState) (m : MessageM) (ents : List EntryM) (evt : w64)
@@ -297,6 +298,7 @@ theorem phaseStepR_candHb (id : w64) (c : CfgM) (s : NState) (m : MessageM) (ent
   rw [hsrc] at this
   exact lineEffect_mid_mono this (fun v hv => by rw [hv]; exact hux)
 
+variable [CrashGS GF] in
 /-- **The facts of a heartbeat's receive line, at a candidate of its term** (`FxPresR` at
 `recvPhantoms m`, none): at the intermediate state the step-down's (`simFx_rtf`), at the result the
 follower heartbeat's (`simFx_hb`) from it. -/
@@ -466,6 +468,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
+variable [CrashGS GF] in
 /-- **The resources of a receive path with a skipped `BecomeFollower` line**: after the receive line
 (`G0`) raft's ghost state and the capability at the pinned share with the receive event last (`Λr`);
 after the preamble (`G1`) the same with `Λ1` (`Λr` when the preamble logs nothing); after the step-down
@@ -486,10 +489,12 @@ def bfR (bt : Bool) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64
   Gp2 := fun _ => iprop(⌜False⌝)
   Gc := fun _ _ _ => iprop(⌜False⌝)
 
+variable [CrashGS GF] in
 /-- **A heartbeat of the node's term at a candidate.** -/
 def CandHb (s : NState) (m : MessageM) : Prop :=
   m.Type' = MsgHeartbeat ∧ m.Term' = s.term ∧ s.role = .candidate
 
+variable [CrashGS GF] in
 /-- **`raft.Step`'s traced bundle on a heartbeat of the node's term at a candidate**: the receive line
 (the specification's two rounds, `ReturnToFollowerState` then the heartbeat handling, the commit raised
 with the certificates the heartbeat's raft facts give, `ownRaftGhost_hbFacts`), raft's `BecomeFollower`

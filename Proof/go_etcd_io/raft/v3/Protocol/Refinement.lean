@@ -103,6 +103,7 @@ theorem rdCount_replOk (id : w64) (s : PState) (ms : List Msg) (h : ∀ m ∈ ms
   intro m hm
   rcases h m hm with h' | h' <;> simp [h'.1]
 
+variable [CrashGS GF] in
 theorem propsOf_replOk (id : w64) (s : PState) (ms : List Msg) (h : ∀ m ∈ ms, ReplOk id s m) :
     propsOf ms = [] :=
   propsOf_eq_nil ms (fun m hm => by rcases h m hm with h' | h' <;> simp [h'.1])
@@ -172,6 +173,7 @@ private theorem outbox_snoc (γ : RaftNames) (id : w64) (s : PState) (πc : List
 /-- (stage II helpers) Projections of the protocol's state transformers, for `simp only ... at`. -/
 theorem padoptLeader_term (s : PState) (src : w64) : (padoptLeader s src).term = s.term := rfl
 theorem padoptLeader_outbox (s : PState) (src : w64) : (padoptLeader s src).outbox = s.outbox := rfl
+variable [CrashGS GF] in
 theorem padoptLeader_role (s : PState) (src : w64) : (padoptLeader s src).role = .follower := rfl
 
 variable [CrashGS GF] in
@@ -564,6 +566,7 @@ theorem commitIn_ackIn (γ : RaftNames) (ldr t : w64) (bL : entryID) (l fp F : L
     unfold ackIn; iright
     iexists ldr, bL, l; iframe Hp; ipureintro; omega
 
+variable [CrashGS GF] in
 /-- (2026-11-01, durability stage II(d), approved repair 1) `commitIn_ackIn` with the leader's full
 log (`ackInF`). -/
 theorem commitIn_ackInF (γ : RaftNames) (ldr t : w64) (bL : entryID) (l fp F : List EntryM)
@@ -860,6 +863,7 @@ private theorem campOwn_leader (γ : RaftNames) (id : w64) (camps : GMap w64 (Li
 private theorem acksOk_leader (γ : RaftNames) (s : PState) (acks : GMap (w64 × w64) Unit) :
     s.role = .leader → ⊢ acksOk (GF := GF) γ s acks := by
   intro H; unfold acksOk; rw [H]; exact true_intro
+variable [CrashGS GF] in
 private theorem campOwn_cand (γ : RaftNames) (id : w64) (camps : GMap w64 (List EntryM × w64))
     (s : PState) (F : List EntryM) :
     s.role = .candidate → campOwn (GF := GF) γ id camps s F = iprop(⌜camps !! s.term = some (F, s.commit)⌝) := by
@@ -867,6 +871,7 @@ private theorem campOwn_cand (γ : RaftNames) (id : w64) (camps : GMap w64 (List
 
 -- END HELPERS (Lean addition)
 
+variable [CrashGS GF] in
 variable [CrashGS GF] in
 /-- (2026-11-11, trace-check Q8 stage 1 slice 25b) **A won election's last phase, pending**: from the
 candidate `s` whose win is registered and whose term log is allocated (`ownRaftGhost_step_win_reg`,
@@ -887,6 +892,7 @@ def winPend (γ : RaftNames) (c : CfgM) (id : w64) (s : PState) (md : Bool) : IP
     ∀ E, ⌜↑(crashNs γ id) ⊆ E⌝ -∗ notCrashed -∗ ⧖ n ={E}=∗ notCrashed ∗
       ownRaftGhost γ id (psendMsgs (pwinState id s mt) ([pselfAck id (pwinState id s mt)] ++ ms)) md)
 
+variable [CrashGS GF] in
 variable [CrashGS GF] in
 /-- (2026-11-11, trace-check Q8 stage 1 slice 25b) **`Step.win` in three phases, the first**: the
 win's registration (`win_register`, election safety: the commit invariant's registry half open), the
@@ -1523,6 +1529,7 @@ theorem ownRaftGhost_step_win_entry (E : CoPset) (γ : RaftNames) (c : CfgM) (id
   iapply Hp $$ %mt %ms %n %Hpre %E %HE Hnc Hrcpt
 
 variable [CrashGS GF] in
+variable [CrashGS GF] in
 /-- `Step.win`: allocate the term log -- recording the candidate's base and log, and
 holding the leader's entry -- and acknowledge the old and the new last index. (2026-11-11, trace-check
 Q8 stage 1 slice 25b) The composition of its three phases: the registration
@@ -2008,6 +2015,7 @@ theorem ownRaftGhost_step_app_stale (γ : RaftNames) (id : w64) (s : PState) (m 
   exact ownRaftGhost_step_stale γ id s m (Or.inl Hty) Hfid Hterm Hrole
 
 variable [CrashGS GF] in
+variable [CrashGS GF] in
 /-- (2026-10-19, D21 M3) A follower's rejection of a leader's append, in a cluster with a non-empty
 bootstrap log, is of an index past the bootstrap log (both logs hold it, and the follower's commit
 index is at least its length), with a hint at least `1` (the walk stops at the bootstrap log's
@@ -2142,6 +2150,7 @@ theorem ownRaftGhost_step_app_reject (γ : RaftNames) (id : w64) (s : PState) (m
 
 /-! ### An acknowledged index is within a leader's log (2026-10-16, stage R8a) -/
 
+variable [CrashGS GF] in
 variable [CrashGS GF] in
 /-- At a leader, an `ackIn` of its term is at most its last index: the prefix the witness names is
 of its own term log (`leadLogOwn`: every index in the term log is at most the last index, and the
@@ -2284,6 +2293,7 @@ theorem ownRaftGhost_leader_last (γ : RaftNames) (id : w64) (s : PState) :
   · ipureintro; exact Hfollower_votes
   · ipureintro; exact Hrole_ok
 
+variable [CrashGS GF] in
 /-- (stage II helper) The event history only grows with the pending list. -/
 theorem virt_evs_prefix (W : DurMaps) (π : List Prom) : W.evs <+: (virt W π).evs := by
   induction π generalizing W with
@@ -2575,6 +2585,7 @@ theorem ownRaftGhost_step_heartbeat (γ : RaftNames) (id : w64) (s : PState) (m 
   · lcm_mono
   · rd_mono
 
+variable [CrashGS GF] in
 variable [CrashGS GF] in
 /-- `Step.appAccept`. The new log is the old one cut at the first conflict, if any, and
 the batch appended (`plogMaybeAppend_inv`); the batch is the leader's (`isMessage`'s
@@ -3064,11 +3075,13 @@ private theorem entData_mapIdx_stampF (γ : RaftNames) (ents : List EntryM)
     iapply (BigSepL.bigSepL_cons (Φ := fun _ (e : EntryM) => entData (GF := GF) γ e)).2
     iframe He' Hes'
 
+variable [CrashGS GF] in
 private theorem entData_mapIdx_stamp (γ : RaftNames) (t L : w64) (ents : List EntryM) :
     ⊢ ([∗list] e ∈ ents, propData (GF := GF) γ e) -∗ ([∗list] e ∈ ents, entTk γ e) ==∗
       [∗list] x ∈ ents.mapIdx (stamp t L), entData γ x :=
   entData_mapIdx_stampF γ ents (stamp t L) (fun k e => ⟨t, L + W64 1 + W64 k, rfl⟩)
 
+variable [CrashGS GF] in
 variable [CrashGS GF] in
 /-- `Step.propose`: the stamped entries go into the leader's term log
 (`term_log_insert_stamped`), which gives each its `isEntryR` (the first after the old
@@ -3633,6 +3646,7 @@ theorem ownRaftGhost_step_snap_fastfwd (γ : RaftNames) (id : w64) (s : PState) 
   · lcm_mono
   · rd_mono
 
+variable [CrashGS GF] in
 /-- A snapshot message shows its prefix (2026-10-14, reconfiguration stage B8): some prefix of
 the full log, recorded (`logRecs`), ends at the snapshot's entry id -- the sender's committed
 prefix up to it (its leader prefix, `isMessage_snap_inv`, taken to the index), committed
@@ -3655,6 +3669,7 @@ theorem isMessage_snap_prefix (γ : RaftNames) (m : Msg) (Hty : m.ty = .snap) :
   iframe Hcm
   iapply logRecs_take $$ HrLf
 
+variable [CrashGS GF] in
 variable [CrashGS GF] in
 /-- `Step.snapRestore`: the log is replaced by the snapshot -- no entries after the new
 base, so no records to keep; the compacted prefix is the leader's full log up to the
@@ -3947,6 +3962,7 @@ theorem ownRaftGhost_rdN (γ : RaftNames) (id : w64) (s s' : PState) (ms : List 
   · lcm_mono
   · iexact Hrd
 
+variable [CrashGS GF] in
 theorem isMessage_readIndex_tr (γ : RaftNames) (m m' : Msg) :
     m.ty = .readIndex → m'.ty = .readIndex → m'.entries = m.entries →
     ⊢ isMessage (GF := GF) γ m -∗ isMessage γ m' := by
@@ -4003,6 +4019,7 @@ theorem ownRaftGhost_step_read_pend (γ : RaftNames) (id : w64) (s : PState) (m 
   · rw [show [(pm, m.entries)].length + rdCount ([] : List Msg) = 1 from rfl]
     iexact Hcr
 
+variable [CrashGS GF] in
 variable [CrashGS GF] in
 /-- A request arriving at the leader, read at its commit index (its record `((c, commit),
 d)`, `rqRecOk`): appended to the term's registry with its credit (which bounds the new
@@ -4289,6 +4306,7 @@ theorem HbAckOk_prefix (v : w64) (k : Nat) (recs0 recs : List RqRec) :
   subst h
   exact HbAckOk_app v k recs0 more hk
 
+variable [CrashGS GF] in
 /-- Confirming every record of a list at once, given a confirmation of one from a resource `X`
 that the confirmations keep (2026-10-14, stage B5: in the dynamic mode `X` holds the vote table,
 which `lc_core` reads). -/
@@ -4311,6 +4329,7 @@ theorem confirm_all (γ : RaftNames) (T : w64) (Q : GSet w64) (X : IProp GF)
     iapply (BigSepL.bigSepL_cons).2
     iframe Hok1 Hoks
 
+variable [CrashGS GF] in
 variable [CrashGS GF] in
 /-- An acknowledgement of position `q` by `src` (a heartbeat response's, `HbAckOk` of a
 prefix of the term's registry), then the requests up to a position `N` a quorum
@@ -4654,6 +4673,7 @@ theorem ownRaftGhost_step_read_ack (γ : RaftNames) (c : CfgM) (id : w64)
       iframe Hvirt Hlg Hrd' Hresp
   iapply ownRaftGhost_respondAll γ id _ _ $$ Hown Hresp
 
+variable [CrashGS GF] in
 variable [CrashGS GF] in
 /-- A request at a leader whose commit index is at an entry of its term, at a configuration whose
 only voter is the leader itself (2026-10-14, the single-voter read-index fix,
@@ -5446,6 +5466,7 @@ theorem regs_frame {A B C D : IProp GF} (γ : RaftNames)
   imodintro
   iframe Hregs Hd
 
+variable [CrashGS GF] in
 /-- Opening the commit invariant's registry half around a ghost step, with one later credit
 (2026-10-14, stage R): the step may commit several times (a derivation of the transitive
 closure), each commit firing updates that live under the invariant's later, so the half stays
@@ -5484,6 +5505,7 @@ def lastRec (γ : RaftNames) (L : Int) : IProp GF :=
 instance lastRec_persistent (γ : RaftNames) (L : Int) : Persistent (lastRec (GF := GF) γ L) := by
   unfold lastRec; infer_instance
 
+variable [CrashGS GF] in
 /-- The time receipt of a last index past the bootstrap log (`isEntry_receipt`). -/
 theorem lastRec_receipt (γ : RaftNames) (L : Int) :
     ⊢ lastRec (GF := GF) γ L ==∗ ⧖ (L.toNat - γ.reBoot.length) := by
@@ -5538,6 +5560,7 @@ theorem rcpt_frame {P : IProp GF} {k : Nat} (h : ⊢ P) : ⊢ ⧖ k -∗ P := by
   iintro -
   iapply h
 
+variable [CrashGS GF] in
 /-- A step that consumes no proposal drops the received messages' tickets (D21 M6). -/
 theorem tks_drop {k : Nat} {R A B T C D : IProp GF} {E : CoPset}
     (h : ⊢ ⧖ k -∗ R -∗ A -∗ B -∗ C ={E}=∗ D) : ⊢ ⧖ k -∗ R -∗ A -∗ B -∗ T -∗ C ={E}=∗ D := by
@@ -5554,6 +5577,7 @@ theorem nc_frame {k : Nat} {R A B T C D : IProp GF} {E : CoPset}
   imodintro
   iframe
 
+variable [CrashGS GF] in
 variable [CrashGS GF] in
 /-- The refinement (2026-10-14, reconfiguration stage B2: at a configuration `c`, the
 relation `StepC`), with the commit invariant's registry half open (2026-10-14, stage R): a

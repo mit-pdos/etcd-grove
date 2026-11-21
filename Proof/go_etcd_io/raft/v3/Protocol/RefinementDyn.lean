@@ -169,6 +169,7 @@ theorem noApp1 {dec : CCDec} {c0 : CCState} {m : Msg} (h : m.ty ≠ .app) :
   intro r1 m' hm hty _
   rw [List.mem_singleton] at hm; subst hm; exact absurd hty h
 
+variable [CrashGS GF] in
 theorem noApp0 {dec : CCDec} {c0 : CCState} :
     ∀ (r1 : RState) (m' : Msg), m' ∈ ([] : List Msg) → m'.ty = .app → RInv dec c0 r1 →
       AppKnow r1 m' := by
@@ -187,6 +188,7 @@ def ownRaftGhostR (γ : RaftNames) (dec : CCDec) (c0 : CCState) (id : w64) (r : 
     IProp GF :=
   iprop(ownRaftGhost γ id r.p true ∗ ⌜RInv dec c0 r⌝ ∗ logRecs γ base0 r.fp)
 
+variable [CrashGS GF] in
 /-- The step environment, from `RInv`: the full prefix, I1, the configuration index (the
 commit index at a candidate, `RInv.cand_cfg`), I3 at a leader. (2026-10-28, stage U0: with no
 snapshot pending; since stage U3 the configuration is the fold of the full log's prefix also with
@@ -235,6 +237,7 @@ theorem ownRaftGhost_logRecs (γ : RaftNames) (id : w64) (s : PState) (md : Bool
   iframe Hr
   ipureintro; exact Hw
 
+variable [CrashGS GF] in
 /-- What a received `MsgApp` tells the dynamic receiver (`AppKnow`), from its knowledge. -/
 theorem appKnow_of_msg (γ : RaftNames) (r : RState) (m : Msg) (Hty : m.ty = .app)
     (Hdyn : γ.reDyn ≠ none) (HwR : PlogWf base0 r.full) :
@@ -252,6 +255,7 @@ theorem appKnow_of_msg (γ : RaftNames) (r : RState) (m : Msg) (Hty : m.ty = .ap
     (by rw [← toNat_uZ]; exact HI1) HRA
 
 
+variable [CrashGS GF] in
 variable [CrashGS GF] in
 /-- The dynamic refinement (2026-10-14, stage B5): a `StepR` derivation at the dynamic
 configurations (`AdmS dec c0 S`: the fold of the prefix, among `S`) updates the node's

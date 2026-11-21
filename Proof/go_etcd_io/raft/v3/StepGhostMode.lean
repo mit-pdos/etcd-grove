@@ -542,6 +542,7 @@ def ctCommitted (γ : RaftNames) (sn : StorNames) : IProp GF :=
     ⌜∀ (i : Nat) (t : w64), (i, t) ∈ sn.ct → i ≤ sn.c0 →
       1 ≤ i ∧ (Lc[i - 1]?).map EntryM.Term' = some t⌝)
 
+variable [CrashGS GF] in
 instance ctCommitted_persistent (γ : RaftNames) (sn : StorNames) :
     Persistent (ctCommitted (GF := GF) γ sn) := by
   unfold ctCommitted; infer_instance
@@ -750,6 +751,7 @@ message (`isRaftMsg`'s transfer clause). -/
 def xfW (γ : RaftNames) (s : NState) : IProp GF :=
   iprop([∗map] p ↦ _u ∈ s.gh.xw, isLeader γ p.1 p.2)
 
+variable [CrashGS GF] in
 instance xfW_persistent (γ : RaftNames) (s : NState) : Persistent (xfW (GF := GF) γ s) := by
   unfold xfW; infer_instance
 
@@ -807,6 +809,7 @@ theorem ghostRest_voters_ne (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) 
     ipureintro; exact Hd
 
 
+variable [CrashGS GF] in
 /-- (D22 S-b′3) The certificate link, read out. -/
 theorem ghostRest_certLink (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
     ghostRest (GF := GF) γ md c id s ⊢ certLink γ s.gh.sn ∗ ghostRest γ md c id s := by
@@ -905,10 +908,12 @@ private theorem ownRaftGhost_leadInfo (γ : RaftNames) (id : w64) (ps : PState) 
   · ipureintro; exact Hfollower_votes
   · ipureintro; exact Hrole_ok
 
+variable [CrashGS GF] in
 private theorem leaderWit_isLeader' (γ : RaftNames) (id : w64) (ps : PState)
     (h : ps.role = .leader) : leaderWit (GF := GF) γ id ps ⊢ isLeader γ id ps.term := by
   unfold leaderWit; simp only [h]; exact .rfl
 
+variable [CrashGS GF] in
 variable [CrashGS GF] in
 /-- (raft-final, 2026-10-29, U7: the design's §2.1) **The node's leader leads its term**: from
 `leadW` for another node, from `LeadOk` and `leaderWit` for itself (a node records itself only as
@@ -943,6 +948,7 @@ theorem ownStepGhost_lead (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s
   ipureintro; exact Hn
 
 variable [CrashGS GF] in
+variable [CrashGS GF] in
 /-- (raft-final, 2026-10-29, U7: the design's §2.1) **A stamped transfer request to the node at its
 term finds it with no leader, if it is a follower**: the request's witness (`isLeader γ id T`, from
 `isRaftMsg`) and the node's leader's (`ownStepGhost_lead`) agree (`isLeader_unique`), and a node
@@ -973,6 +979,7 @@ theorem ownStepGhost_xferRefute (γ : RaftNames) (md : GMode) (c : CfgM) (id : w
     · ipureintro; intro h1 h2; exact absurd ⟨h2, h1⟩ hc
     iexact H
 
+variable [CrashGS GF] in
 /-- Recording a witnessed pair in `NGhost.xw`. -/
 private theorem xfW_insert (γ : RaftNames) (s : NState) (p : w64 × w64) :
     isLeader (GF := GF) γ p.1 p.2 ∗ xfW γ s ⊢
@@ -991,6 +998,7 @@ private theorem xfW_insert (γ : RaftNames) (s : NState) (p : w64 × w64) :
       (Φ := fun (q : w64 × w64) (_ : Unit) => isLeader (GF := GF) γ q.1 q.2) (m := s.gh.xw)
       (i := p) (x := ()) (Option.not_isSome_iff_eq_none.1 hin)).2
 
+variable [CrashGS GF] in
 variable [CrashGS GF] in
 /-- (raft-final, 2026-10-29, U7: the design's §2.2) **Recording a stamped transfer request**: the
 node's leader and term, with the leader's witness (`ownStepGhost_lead`), into `NGhost.xw`. What
@@ -1045,6 +1053,7 @@ theorem ownStepGhost_inv (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s 
   iintro ⟨Hg, -⟩
   iapply ownRaftGhost_inv_md γ id (toPState s) $$ Hg
 
+variable [CrashGS GF] in
 /-- `ackIn` at equal arguments (2026-10-16, stage R8a): for an `ackIn` stated at a term and an index
 that are only definitionally the ones a lemma wants (`(toPState s).term`, `(absMsg …).index`). -/
 theorem ackIn_cast (γ : RaftNames) {t t' i i' : w64} (ht : t = t') (hi : i = i') :
@@ -1220,6 +1229,7 @@ theorem ghost_stepCD (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : Me
     show xfW (GF := GF) γ s' = xfW γ s by unfold xfW; rw [Hng.1]]
   iframe Hcl Hx
 
+variable [CrashGS GF] in
 /-- Two code states that the mode's ghost state reads alike (2026-10-14, stage B7 part 2): the
 same protocol state, `applied`, pending snapshot and (at a leader) `pendingConfIndex`. -/
 theorem rOf_congr {s s' : NState} (g : RGh) (hp : toPState s' = toPState s)
@@ -1249,6 +1259,7 @@ theorem ownStepGhost_congr (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) {
     have hr := rOf_congr g hp ha hs hpci
     rw [hp, hr, hn, hst, hx]
 
+variable [CrashGS GF] in
 /-- What the mode keeps beyond `ownRaftGhost` survives a change of the code state that keeps
 what it reads (2026-10-14, stage B7 part 2): the log, its boundary, the commit index, the term,
 the role, `applied`, the pending snapshot and `pciR` -- e.g. a `Ready`'s drain of the outbox
@@ -1311,6 +1322,7 @@ def GMode.SnapOkIf (γ : RaftNames) (id : w64) : GMode → SnapshotM → CSLists
       ∀ T, γ.reTracked = some T → (snapCfg sv scfg).voters ∪ (snapCfg sv scfg).learners ⊆ T⌝)
   | .dyn _ _ _ _, sv, scfg => raftSnapCert γ (snapTrip sv scfg)
 
+variable [CrashGS GF] in
 instance GMode.SnapOkIf_persistent (γ : RaftNames) (id : w64) (md : GMode) (sv : SnapshotM)
     (scfg : CSLists) : Persistent (md.SnapOkIf (GF := GF) γ id sv scfg) := by
   cases md <;> unfold GMode.SnapOkIf <;> infer_instance
@@ -1374,6 +1386,7 @@ theorem ownRaftGhost_logOk (γ : RaftNames) (id : w64) (s : PState) {md : Bool} 
   ipureintro; exact Hl
 
 variable [CrashGS GF] in
+variable [CrashGS GF] in
 /-- (2026-11-10, trace-check Q8 stage 1 slice 10) **The receipt-bound law**: in a cluster whose time
 receipts' bound past its bootstrap log is at most `traceNumBound` (the traced cluster's; `readyFits`
 states `receiptBound GF + Cluster.bootLen ≤ 2 ^ 61` at the node API, `InvNode.lean`), a node's last
@@ -1402,6 +1415,7 @@ theorem ownRaftGhost_traceBound (γ : RaftNames) (id : w64) (s : PState) {md : B
   have hc := Hok.2.2
   constructor <;> omega
 
+variable [CrashGS GF] in
 variable [CrashGS GF] in
 /-- A `MsgSnap` branch's step updates the mode's ghost state (2026-10-14, stage B8): statically
 `ownRaftGhost_stepC`, the configuration afterwards still the ghost state's (`GMode.SnapOkIf`);

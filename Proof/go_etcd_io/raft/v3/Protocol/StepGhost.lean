@@ -154,6 +154,7 @@ private theorem leadLogOwn_nl (γ : RaftNames) (s : PState) (terms : GMap w64 Te
   · contradiction
   · rfl
 
+variable [CrashGS GF] in
 private theorem matchedOk_nl (γ : RaftNames) (id : w64) (s : PState) (fp : List EntryM) :
     s.role ≠ .leader → matchedOk (GF := GF) γ id s fp = iprop(True) := by
   intro H
@@ -356,6 +357,7 @@ theorem take_prefix_le {A : Type _} (l : List A) (n m : Nat) :
   have : l.take n = (l.take m).take n := by rw [List.take_take, Nat.min_eq_left H]
   rw [this]; exact List.take_prefix _ _
 
+variable [CrashGS GF] in
 /-- A log that grows past the commit index keeps its committed prefix. -/
 theorem cprefix_app (fp : List EntryM) (s : PState) (es : List EntryM) :
     uint.Z s.commit ≤ ((fp ++ s.log).length : Int) →
@@ -568,6 +570,7 @@ theorem AcksTerm_insert (s : PState) (acks : GMap (w64 × w64) Unit) (t i : w64)
   · subst Hkk; exact Ht
   · rw [GMap.lookup_insert_ne _ _ (Ne.symm Hkk)] at Hk; exact H k Hk
 
+variable [CrashGS GF] in
 /-- The per-acknowledgement invariants of a new acknowledgement, at the node's term: its
 history, and nothing for the vote-time logs (they are of terms up to this one). -/
 theorem ack_invs_insert (γ : RaftNames) (s : PState) (kl : Option w64)
@@ -592,6 +595,7 @@ theorem ack_invs_insert (γ : RaftNames) (s : PState) (kl : Option w64)
     iintro %Hlt
     exact absurd Hlt (by simp only; omega)
 
+variable [CrashGS GF] in
 variable [CrashGS GF] in
 /-- A node acknowledges at its own term, with the justification `acksOk` asks of it and
 the history `histsOk` asks of it. (2026-10-31, durability stage I-1: the acknowledgement is a
@@ -661,6 +665,7 @@ private theorem leadLogOwn_l (γ : RaftNames) (s : PState) (terms : GMap w64 Ter
   unfold leadLogOwn
   rw [H]
 
+variable [CrashGS GF] in
 private theorem campOwn_l (γ : RaftNames) (id : w64) (camps : GMap w64 (List EntryM × w64))
     (s : PState) (F : List EntryM) :
     s.role = .leader → campOwn (GF := GF) γ id camps s F =
@@ -802,6 +807,7 @@ theorem ownLogGhost_stepDown (γ : RaftNames) (id : w64) (s s' : PState) (kl : O
   iexists γm, terms, fp, γw, wins
   iframe # ∗ <;> iframe %
 
+variable [CrashGS GF] in
 /-- A full log with records that starts with a non-empty bootstrap log has an entry of term `1`
 at index `1`: a bound on its terms bounds `1` (2026-10-16, stage R8b, D12). -/
 theorem boot_term_le (γ : RaftNames) (F : List EntryM) (T : w64) :
@@ -854,6 +860,7 @@ theorem ownLogGhost_boot (γ : RaftNames) (id : w64) (s : PState) (kl : Option w
   isplitr; · ipureintro; exact ⟨Hf, Hbpre⟩
   iexact Hfrecs
 
+variable [CrashGS GF] in
 variable [CrashGS GF] in
 /-- `Step.campaign`, on the log ghost state: record the campaign log (the full log,
 unchanged since) and, for the self-vote, the vote-time log -- with the histories of
@@ -1062,6 +1069,7 @@ theorem ownLogGhost_campaign (γ : RaftNames) (id : w64) (s : PState) (kl : Opti
   ipureintro; exact ⟨Hf, rfl⟩
 
 variable [CrashGS GF] in
+variable [CrashGS GF] in
 /-- A first vote, on the log ghost state: record the vote-time log, which has the
 histories of all acknowledgements, at the node's bound -- the term, or the term plus one
 if it knows the term's leader. (2026-10-31, durability stage I-1: a pending `Prom.vote` for `c`,
@@ -1128,6 +1136,7 @@ private theorem ite_pos_elim {PROP : Type _} [BI PROP] {c : Prop} [Decidable c] 
     (h : c) : (if c then P else Q) ⊢ P := by
   rw [ite_eq_left_iff.mpr (fun hn => absurd h hn)]
 
+variable [CrashGS GF] in
 /-- (Lean helper.) One entry's record in a log with records, at any base. -/
 private theorem logRecs_lookup_b (γ : RaftNames) (b : entryID) (es : List EntryM)
     (k : Nat) (e : EntryM) :
@@ -1140,6 +1149,7 @@ private theorem logRecs_lookup_b (γ : RaftNames) (b : entryID) (es : List Entry
   ihave #He' := BigSepL.bigSepL_lookup He $$ H
   iapply ite_pos_elim _ _ Hr $$ He'
 
+variable [CrashGS GF] in
 /-- What a leader's `MsgSnap` carries beyond its leadership. `Qed` since 2026-10-03
 (admitted from 2026-10-02 as a client assumption, before `SnapOk` carried the commit
 bound and the log fact): `isCommittedIdx` is `isCommittedIdx_le` of the commit index;
@@ -1211,6 +1221,7 @@ theorem cfgCommitted_of_env (γ : RaftNames) (id : w64) (c : CfgM) (s : PState) 
     isplitr; · iexact HMR
     ipureintro; exact HR.2.2.2.1
 
+variable [CrashGS GF] in
 /-- What a leader's broadcast carries, from what the leader holds. -/
 theorem replOk_message (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
     (fp : List EntryM) (c : CfgM) :
@@ -1360,6 +1371,7 @@ theorem crashNs_diff_sub (E : CoPset) (γ : RaftNames) (id : w64) (x : CrashName
   rw [Iris.Std.LawfulSet.mem_diff] at hp ⊢
   exact ⟨hp.1, fun h => hp.2 (crashN_sub γ id x p h)⟩
 
+variable [CrashGS GF] in
 /-- The slot is outside every crash invariant. -/
 theorem slotN_diff_crash (E : CoPset) (γ : RaftNames) (id : w64) :
     ↑(slotN γ id) ⊆ E → ↑(slotN γ id) ⊆ E \ ↑(crashNs γ id) := by
@@ -1432,6 +1444,7 @@ theorem slot_open (Em : CoPset) (γ : RaftNames) (id : w64) (γs : SlotNames) (V
     ipureintro; exact ⟨Hdom, Hcur, Hb⟩
   imodintro; ipureintro; trivial
 
+variable [CrashGS GF] in
 /-- The crash invariants are outside the slot's mask. -/
 theorem crashNs_diff_slot (E : CoPset) (γ : RaftNames) (id : w64) :
     ↑(crashNs γ id) ⊆ E → ↑(crashNs γ id) ⊆ E \ ↑(slotN γ id) := by
@@ -1510,6 +1523,7 @@ theorem durShares_ack (γ : RaftNames) (id : w64) (q : Qp) (E : DurMaps) (γa' :
   iframe Hv Ha Hc Hl He
   ipureintro; exact Hn
 
+variable [CrashGS GF] in
 /-- An entered campaign record's fragment against the authority share. -/
 theorem durShares_camp (γ : RaftNames) (id : w64) (q : Qp) (E : DurMaps) (γc' : GName) (T : w64)
     (F : List EntryM) (k : w64) :
@@ -1554,6 +1568,7 @@ theorem slot_campK (Em : CoPset) (γ : RaftNames) (id : w64) (γs : SlotNames) (
   rw [Hnone] at Hsome
   cases Hsome
 
+variable [CrashGS GF] in
 /-- An event history's lower bound against the authority share. -/
 theorem durShares_evs (γ : RaftNames) (id : w64) (q : Qp) (E : DurMaps) (γe' : GName) (L : List Aev) :
     γ.reEvs !! id = some γe' →

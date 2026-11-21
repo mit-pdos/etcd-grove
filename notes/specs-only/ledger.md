@@ -25,6 +25,28 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-21: raft's node API -- `isCluster` holds one machine's heap (the node table), and the node predicates agree on a node's names only through it
+
+- **Spec.** `Spec/go_etcd_io/raft/v3/StartNode.lean`, `RestartNode.lean` and the `node.*` method specs;
+  `InvNode.lean`'s `isNode`, `nodeRunning`, `nodeDriver`, `nodeStopped`, `nodeConfig`, `nodeTagPin`,
+  `nodeArm`, the snapshot-source and ready-token facts; `InvNodeRule.lean`'s `isCluster`. SpecPlan's
+  raft node specs, likewise.
+- **Defect.** Not local enough for a distributed client. `isCluster` contains `nodeTabInv`, which keeps
+  `n ↦□` for every node, so it can be neither allocated in a distributed adequacy theorem's `Hstart`
+  (only `[GooseGlobalGS]`) nor held by another machine. Keyed by `Loc`, the table also breaks across
+  generations: a new heap can reuse a dead node's address.
+- **Evidence.** `notes/kvnet-proof-plan.md` gap 2 and decision B; `notes/raft-cluster-global.md` (a),
+  (b).
+- **Proposed change.** An opaque node handle `nh : NodeH` (location and names; `nh.loc` for code
+  values):
+  - the node predicates take `nh` in place of `n : Loc`;
+  - `StartNode`/`RestartNode` return `∃ nh, ⌜nd = … #nh.loc⌝ ∗ …`;
+  - the node table goes, and `isCluster` is global.
+  The shared predicates and the allocation lemmas are stated at `[GooseGlobalGS]` (their statements
+  unchanged). Clients: kv, kvreconf, kvdurable, the etcd server, etcdstart, the trace check.
+- **Decision.** Accepted (the coordinating session, 2026-11-21, option 3 of
+  `notes/raft-cluster-global.md`); being applied on branch `raft-cluster-global`.
+
 ## 2026-11-21: raft's node API -- no node of an id is restartable after a real crash (`nodeVacant` returns only from `node.Stop`)
 
 - **Spec.** `Spec/go_etcd_io/raft/v3/StartNode.lean`, `RestartNode.lean`, `node__Stop.lean`,

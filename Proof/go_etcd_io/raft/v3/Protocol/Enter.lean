@@ -89,6 +89,7 @@ theorem durShares_agree (γ : RaftNames) (id : w64) (q1 q2 : Qp) (E1 E2 : DurMap
   simp only at E1v E1a E1c E1l E1e
   subst E1v E1a E1c E1l E1e; rfl
 
+variable [CrashGS GF] in
 /-- The slot invariant is inside raft's namespace. -/
 theorem slotN_raftN (γ : RaftNames) (id : w64) : (↑(slotN γ id) : CoPset) ⊆ ↑(raftN γ) :=
   fun p hp => nclose_subseteq (raftN γ) "slot" p (nclose_subseteq _ _ p hp)
@@ -326,6 +327,7 @@ theorem promsJust_cons (γ : RaftNames) (id : w64) (W : DurMaps) (p : Prom) (π 
   unfold promsJust
   exact BigSepL.bigSepL_cons
 
+variable [CrashGS GF] in
 /-- (stage II helper, 2026-11-01, approved repair 1) **The acknowledgements' leaders of a pending
 list's maps** (`ackInF`), given the fragments of maps above them: the entered ones' (given), and
 each pending acknowledgement's from its justification. -/
@@ -361,6 +363,7 @@ theorem acksInF_virt (γ : RaftNames) (id : w64) (W : DurMaps) :
     | vote T c d Fv => rw [show (V.add (.vote T c d Fv)).acks = V.acks from rfl]; iexact Hm
     | camp T F k => rw [show (V.add (.camp T F k)).acks = V.acks from rfl]; iexact Hm
 
+variable [CrashGS GF] in
 variable [CrashGS GF] in
 /-- (stage II helper) **The durable invariants at the cut**, from the volatile ones: the cut
 state `S'` has the node's term, vote and commit, and its full log (`DurFull`), with its base at
@@ -543,6 +546,7 @@ theorem durI1_of_full (γ : RaftNames) (S : RaftState) (F : List EntryM) (c : w6
   rw [Hfe, He, List.take_append_drop]
   exact HI
 
+variable [CrashGS GF] in
 /-- (2026-11-02, stage II (p)) **I1 at a restart**: the durable half's I1 at `S.wcommit`
 (`durI1`), re-based at a base `b` within `S`'s log, at a commit `c ≥ S.wcommit` (`ConfI1.mono`);
 and the re-based log is `S`'s full log (`DurFull`). -/
@@ -590,6 +594,7 @@ theorem durI1_rebase (γ : RaftNames) (id : w64) (S : RaftState) (Ed : DurMaps) 
   · rw [← HF, Hn0, List.take_left]
     exact HfullS
 
+variable [CrashGS GF] in
 variable [CrashGS GF] in
 /-- **The cut** (at a `Ready`, `InvRawnodeReady`'s handout, beside `ownRaftGhost_drain`): the outbox
 drained to `o'`, its messages `out` with their read credits and tickets, and the promises made since
@@ -950,6 +955,7 @@ theorem mint_one (Em : CoPset) (γ : RaftNames) (id : w64) (X : DurMaps) (p : Pr
       iframe Hfl Hvlog
     iexists γe; iframe Hlbn; ipureintro; exact Hγe
 
+variable [CrashGS GF] in
 /-- Entering a pending list, in order. -/
 theorem mint_list (Em : CoPset) (γ : RaftNames) (id : w64) :
     ∀ (π : List Prom) (X : DurMaps),
@@ -973,6 +979,7 @@ theorem mint_list (Em : CoPset) (γ : RaftNames) (id : w64) :
     iapply mint_list Em γ id π (X.add p) HlE Hf2 (AcksEvs_add X p Hae) Hsort
       $$ Hci Hsh Hfrg' Hj2
 
+variable [CrashGS GF] in
 variable [CrashGS GF] in
 /-- **Entering a batch** (the client's *enter*, under the node's generation): its promises minted
 in order in the authorities (`vote_insert`, `ghost_map_insert_persist` of the acknowledgements,
@@ -1392,6 +1399,7 @@ theorem durPers_restart_acks (E : CoPset) (γ : RaftNames) (id : w64) (S : RaftS
   imodintro
   iexact Hres
 
+variable [CrashGS GF] in
 /-- (stage II helper) Every key of a map whose fragments carry `campKey` is an entered campaign's
 term. -/
 theorem keys_camps {V : Type} (γ : RaftNames) (id : w64) (q : Qp) (E : DurMaps)
@@ -1424,6 +1432,7 @@ theorem keys_camps {V : Type} (γ : RaftNames) (id : w64) (q : Qp) (E : DurMaps)
     · rw [GMap.lookup_insert_ne _ _ htk] at ht
       exact HIH t ht
 
+variable [CrashGS GF] in
 /-- (stage II helper) A key bounded by the entered campaigns, at a follower of `S.term`. -/
 private theorem key_ok_follower (S : RaftState) (E : DurMaps) (s : PState) (t : w64) :
     (∀ T, (E.camps !! T).isSome → uint.Z T ≤ uint.Z S.term) → s.term = S.term →
@@ -1436,6 +1445,7 @@ private theorem key_ok_follower (S : RaftState) (E : DurMaps) (s : PState) (t : 
   · left; exact h
   · right; exact ⟨uint_Z_inj.mp (by omega), by decide⟩
 
+variable [CrashGS GF] in
 variable [CrashGS GF] in
 /-- **A restart** (in `RestartNode`, when its update fires; R8: the durable half given back,
 unchanged): the vacant slot and the durable half at `S` give the volatile half of a follower of
@@ -1683,6 +1693,7 @@ instance committedJust_persistent' (γ : RaftNames) (l : List EntryM) :
     Persistent (committedJust (GF := GF) γ l) := by
   unfold committedJust; infer_instance
 
+variable [CrashGS GF] in
 /-- (stage II helper) The bootstrap log is committed, well-formed and has its records. -/
 private theorem boot_facts (E : CoPset) (γ : RaftNames) :
     ↑(raftN γ) ⊆ E →
@@ -2028,6 +2039,7 @@ theorem raft_start_boot (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool} (x 
     rw [show (bootPState γ.reBoot).outbox = [] from rfl]; iapply msgsTks_nil
   ipureintro; exact Hmd
 
+variable [CrashGS GF] in
 /-- **The slot moved to the next generation** (a stop's and a crash's): the virtual maps reset to
 the entered ones, the generation bumped, the next generation's queue free -- so that a batch cut in
 the old generation and not entered can no longer be. -/
@@ -2081,6 +2093,7 @@ theorem slot_bump (E : CoPset) (γ : RaftNames) (id : w64) (γs : SlotNames) (V 
   iexists E0
   iframe Hvirt Hgen Hfree
 
+variable [CrashGS GF] in
 variable [CrashGS GF] in
 /-- **A stop** (R8; review 1's N6: the read credits and proposal tickets the volatile half holds
 are dropped; 2026-11-21, the crash invariant): the volatile half and the whole generation (the

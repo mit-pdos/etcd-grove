@@ -41759,3 +41759,31 @@ later generation changes (h). So every ghost step takes the token: `ncfupd`,
 - A client with its own `[AllG GF]` (kvdurable) names the token by the notation `notCrashedG`,
   which is the state interpretation's `gooseAllG` instance. A bare `notCrashed` would resolve to the
   client's own instance and not match raft's.
+
+## Raft's cluster vocabulary independent of machine and generation (2026-11-21 · the coordinating session · branch `raft-cluster-global`)
+
+**Decision.** kvnet's decision B, option 3 of `notes/raft-cluster-global.md`:
+- The node-level predicates take an opaque node handle `nh : NodeH` (location and names), which
+  `StartNode`/`RestartNode` return.
+- The node table (`nodeTabInv`: a ghost map from node locations to names, with `n ↦□` for each)
+  leaves `isCluster` and goes away: the handle carries the names, so the descriptions of one node
+  agree by construction.
+- The shared predicates (`isCluster`, `sentMsg`, `msgCredits`, `raftState`, `nodeVacant`, `confAt`,
+  `isCommittedLogLb`, `snapshotCert`, `confPolicy`, the stores' invariants) and the allocation lemmas
+  are defined in sections with only `[G : GooseGlobalGS]` (`gooseInvGS` a local instance). Under
+  `HeapGS` a client's use elaborates with `G := hG.goose_globalGS`; `InvApi`'s first section checked
+  that the two instance paths unify.
+- `[CrashGS GF]` (per generation) is taken per declaration (`variable [CrashGS GF] in`), not per
+  section. A section variable made every lemma of its file take it.
+
+**Why.**
+- `isCluster` must be allocated in `goose_dist_mixed_crash_adequacy`'s `Hstart` and held by
+  kvnet's checking client on another machine.
+- A global node table cannot keep the heap facts its freshness needs: they are each generation's.
+  Keyed by address, it also breaks when a restarted heap reuses one.
+
+**Rejected.**
+- A registry keyed by a per-generation ghost name: freshness would need heap-name-parametric
+  points-to, a Perennial change.
+- A per-generation table: agreement would need a unique per-generation anchor, which is not
+  available.

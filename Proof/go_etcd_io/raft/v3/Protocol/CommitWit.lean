@@ -103,6 +103,7 @@ theorem hsWit_of_phsWit (γ : RaftNames) (h : HardStateM) (n : Nat)
   · ileft; ipureintro; exact H
   · iright; iframe H; ipureintro; exact Hn
 
+variable [CrashGS GF] in
 /-- A witness bounds every shorter committed log. -/
 theorem hsWit_mono (γ : RaftNames) (h : HardStateM) (n m : Nat) (H : m ≤ n) :
     hsWit (GF := GF) γ h n ⊢ hsWit γ h m := by

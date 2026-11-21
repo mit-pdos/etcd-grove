@@ -28,6 +28,7 @@ section ghost
 variable [GooseExts]
 variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
+variable [CrashGS GF] in
 /-- **A record's term is at least `1`**, in every cluster: a leader's term is its campaign's,
 nonzero; a boot entry's is `1`. -/
 theorem isEntryR_term_one (γ : RaftNames) (e : EntryM) (pt : w64) :

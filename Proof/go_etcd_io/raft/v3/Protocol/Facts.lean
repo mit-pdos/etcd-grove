@@ -57,6 +57,7 @@ any `app` (`isMessage` carries it). All four are proved (the last two since 2026
 from the acknowledgement invariant `acksOk` and from arithmetic). -/
 
 variable [CrashGS GF] in
+variable [CrashGS GF] in
 /-- `handleHeartbeat`'s `commitTo(m.Commit)` panics if `lastIndex() < m.Commit`. It does
 not: the leader sends `Commit ≤ pr.Match`, and `isMessage` carries the receiver's
 acknowledgement of `pr.Match` in `m.term`. The receiver acknowledges only at its own term
@@ -134,6 +135,7 @@ theorem app_recv_wf (γ : RaftNames) (id : w64) (ps : PState) (m : Msg) {md : Bo
   iintro - ⟨%Hpay, -⟩
   ipureintro; exact Hpay
 
+variable [CrashGS GF] in
 variable [CrashGS GF] in
 /-- `maybeAppend` panics if the first conflicting index is at or below the commit index
 (`ci ≤ l.committed`). Under `maybeAppend`'s caller's premise `committed ≤ m.Index` that is
@@ -574,6 +576,7 @@ theorem prop_collect (γ : RaftNames) (E : CoPset) (d : List w8)
   imodintro
   iapply Hiff $$ HQ'
 
+variable [CrashGS GF] in
 /-- The data of a committed log's entries. -/
 theorem committed_data (γ : RaftNames) (E : CoPset) (l : List EntryM) :
     ↑(raftN γ) ⊆ E →
@@ -1748,6 +1751,7 @@ section lemmas
 variable [GooseExts]
 variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
+variable [CrashGS GF] in
 /-- No read credit (2026-10-13). -/
 theorem rdCred_zero (γ : RaftNames) : ⊢ |==> rdCred (GF := GF) γ 0 := by
   unfold rdCred

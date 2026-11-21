@@ -379,6 +379,7 @@ theorem doomed_intro (γ : RaftNames) (T t n : w64) (G : List EntryM) (a : w64) 
 section inv
 variable [InvGS GF]
 
+variable [CrashGS GF] in
 /-- An index of a log past the leader's campaign log `l0` is in the leader's term-log authority
 `M`, hence at most `L` (2026-10-16, stage R8a): the index `z` (in range of `w64`) names an entry of
 `l` past `l0`, which has a fragment of `γt` (`leadFrags`). -/
@@ -404,6 +405,7 @@ private theorem leadFrags_idx_le (γt : GName) (M : GMap w64 (EntryM × w64)) (l
   have Hw := Hwf _ _ He (by omega)
   ipureintro; omega
 
+variable [CrashGS GF] in
 variable [CrashGS GF] in
 /-- A log of the leader of `s.term` (`leadPrefix`) is within the leader's own log (2026-10-16,
 stage R8a, D11; the core of `ownLogGhost_within`, which takes the full log): the prefix names
@@ -644,6 +646,7 @@ theorem rqRecOk_confirm_dyn (γ : RaftNames) (T L : w64) (r : RqRec) (FL F0L : L
       rw [take_agree_le Htk.symm (by have := Hwo1.2.1; omega), Hwo1.2.2.2.1]
 
 
+variable [CrashGS GF] in
 /-- A campaign's term is nonzero: its log's terms are all below it, the boundary's
 term `0` (at index `0`) among them. -/
 theorem CampOk.term_nz {T : w64} {F : List EntryM} (H : CampOk T F) : T ≠ W64 0 := by
@@ -654,6 +657,7 @@ theorem CampOk.term_nz {T : w64} {F : List EntryM} (H : CampOk T F) : T ≠ W64 
   rw [hT] at this
   exact Int.lt_irrefl _ this
 
+variable [CrashGS GF] in
 variable [CrashGS GF] in
 /-- A candidate's or a leader's term is nonzero (2026-10-10): it holds the record of its
 campaign at that term (`campOwn`), and a campaign does not wrap the term (`CampOk`).
@@ -700,6 +704,7 @@ theorem ownLogGhost_commitIn (γ : RaftNames) (id : w64) (s : PState) (kl : Opti
   isplitr; · ipureintro; exact ⟨Hfull.1, Hlog_ok⟩
   iframe Hfrecs Hrecs Hcommit
 
+variable [CrashGS GF] in
 /-- The term at an index of a log whose entries all have term `1` (2026-10-16, stage R8b: the
 bootstrap log). -/
 private theorem plogTermAt_ones (L : List EntryM) (c : w64) :
@@ -724,6 +729,7 @@ private theorem ownLogGhost_boot_commit (γ : RaftNames) (id : w64) (s : PState)
   iNamed H
   ipureintro; exact Hboot
 
+variable [CrashGS GF] in
 variable [CrashGS GF] in
 /-- The case split at the leader's arrival: the global committed log `P` is justified by a
 commit at a term `t`; above `T` it dooms the request, at `T` it is the leader's own (at most
@@ -826,6 +832,7 @@ theorem read_arrive_core (γ : RaftNames) (id : w64) (s : PState) (c : List w8)
           have := Hmono s.commit n s.term t (by omega) HGi HGn
           exfalso; omega
 
+variable [CrashGS GF] in
 theorem leaderWit_leader (γ : RaftNames) (id : w64) (s : PState) (h : s.role = .leader) :
     leaderWit (GF := GF) γ id s = isLeader γ id s.term := by
   unfold leaderWit; rw [h]
