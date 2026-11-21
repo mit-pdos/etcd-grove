@@ -200,3 +200,45 @@ opens: `raftN γ .@ "crash" .@ id` is disjoint from `slotN`, `raftLogN`, `raftRe
 `⊤`-masked statement is checked when its lemma changes); and plan B's `nodeTabInv` (`InvApi.lean:1696`):
 a new heap can reuse a dead node's location, so `RestartNode`'s table insert must move to a
 per-generation table before kvnet's restart proof, independently of this law.
+
+## (e) Gap found when implementation started (2026-11-21)
+
+Checked first, as (d) asks: the traced instance's win. Route 1 as written does not cover it: one of
+the six pieces is held **outside any fancy update, across physical steps**, so the invariant cannot
+hold it at every crash point.
+
+- `wonGate_rep`'s sibling `wonGate_bl` (`TracedRaftStepRecvVoteRespWon.lean:159-221`) is the
+  `"Hgbl"` gate, a `HookGate` update at `⊤` that the caller runs before `traceBecomeLeader`. There
+  `ghost_stepWin_reg` (`TracedWinGhost.lean:174`) does the registration and **lends out the term map's
+  authority** `ghostMapAuth γm 1 terms` with its return wand. Both go into `trCapB_hookGate` as the
+  line's `FxPresUT`/`FxPresU` (`TracedCap.lean:1132`; review round 5's E1: "the new leader's term log
+  is created inside the line's step, after its freshness is read").
+- That `FxPresU` runs when the trace's atomic update commits (`TraceFire`'s
+  `AU <{ ∃∃ L, traceAuth L }> @ ⊤, ∅ <{ traceAuth (L ++ [e]), COMM Q }>`). The commit happens in the
+  logger's `TraceEvent` at its linearization point, under the recorder's lock (`isTraceLogger`,
+  `RaftTla/.../InvTraceLogger.lean:95`). Inside the line's update, `simFx_becomeLeaderW`
+  (`TracedRaftStepRecvVoteRespWonFx.lean:84`) uses the authority twice: to read freshness
+  (`becomeLeader_hyps`, `TraceSimLeader.lean:61,94,170`) and to insert the term log.
+- So from the gate to the logger's commit, the authority sits in the atomic update's private part.
+  That span includes the hook call, `traceNodeEvent`'s allocations of the event and the logger's
+  lock. A crash in it finds the left disjunct of `nodeCrashInv` without `terms`. The note's
+  "every change to `X` happens inside one fancy update" (soundness, Atomicity) is false here. Making
+  `StepG`'s gates NC does not help: the gate is not where the insert happens.
+
+The proof text is shared by both trees (`etc/gen-raft-tla.py`), and the definitions too
+(`ownLogGhost`). So the traced win must change even though the traced cluster never crashes. Two
+ways out, neither in this note:
+1. **An NC trace update.** `TraceFire`'s atomic update and `isTraceLogger`'s contract carry
+   `notCrashed` in their atomic pre- and postcondition, so the logger's linearization point supplies
+   it (`wp_atomic_nc`). `ghost_stepWin_reg` then lends the view half and `nodeCrashInv` instead of
+   the authority, and `FxPresU` opens the invariant itself. This changes the logger contract
+   (`RaftTla`'s hand-written `InvTraceLogger`, tracecheck's recorder proof), `TraceFire`'s lemmas
+   (`traceFire_nop`/`_mono`/`N`) and `trCapB_hookGate`. The hooks' proofs only pass the update
+   through.
+2. **Allocate the term log at the gate, before the line.** This redoes E1: `becomeLeader_hyps`'s
+   freshness argument would need to work with `terms !! T` already set to the new full log. That is
+   new reasoning in the trace simulation.
+
+Nothing was implemented: the user (or the next design round) picks one of these first. Every other
+update point the note lists (the untraced win's inserts in `Refinement.lean`, cut, enter,
+start/restart/stop) was not contradicted by this check.
