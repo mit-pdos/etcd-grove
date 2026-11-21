@@ -438,7 +438,7 @@ and with transfer off every queued message `SentMsgOk` -- and, 2026-10-22, D38a,
 `AppFrom` in every mode.) -/
 def XfOk (id : w64) (s : NState) (l : List QMsg) : Prop :=
   (∀ m ∈ l, SentMsgShape m.st) ∧
-  (∀ m ∈ l, AppFrom id m.st) ∧
+  (∀ m ∈ l, replicationFrom id m.st) ∧
   (∀ m ∈ l, m.st.msg.Type' = MsgTransferLeader → m.st.msg.Term' ≠ W64 0 →
      (s.gh.xw !! (m.st.msg.To', m.st.msg.Term')).isSome) ∧
   ((s.role = .leader ∨ s.role = .candidate) → s.term ≠ W64 0) ∧
@@ -509,7 +509,7 @@ theorem XfOk.xw_insert {id : w64} {s : NState} {l : List QMsg} (H : XfOk id s l)
 
 /-- A message queued: its own facts. -/
 theorem XfOk.snoc {id : w64} {s : NState} {l : List QMsg} {q : QMsg} (H : XfOk id s l)
-    (hsh : SentMsgShape q.st) (hfr : AppFrom id q.st)
+    (hsh : SentMsgShape q.st) (hfr : replicationFrom id q.st)
     (hxw : q.st.msg.Type' = MsgTransferLeader → q.st.msg.Term' ≠ W64 0 →
       (s.gh.xw !! (q.st.msg.To', q.st.msg.Term')).isSome)
     (hty : s.gh.tr.isSome → mtypeOf q.st.msg.Type' ≠ none)
@@ -2741,7 +2741,7 @@ theorem ownRaftPhysC_msgs (r : Loc) (id : w64) (s : NState) :
            ⌜s.gh.ns = true → ∀ x ∈ a.toList, x.ty ≠ .snap⌝ -∗
            -- (raft-final, 2026-10-29, U7) the shape raft sends, a `MsgApp` the node's own, a
            -- stamped transfer request recorded (`XfOk`; until then the modes' facts, D21 M2r)
-           ⌜SentMsgShape st' ∧ AppFrom id st' ∧
+           ⌜SentMsgShape st' ∧ replicationFrom id st' ∧
              (st'.msg.Type' = MsgTransferLeader → st'.msg.Term' ≠ W64 0 →
                (s.gh.xw !! (st'.msg.To', st'.msg.Term')).isSome) ∧
              -- (2026-11-12, trace-check implementation step 3) at a traced node of a described type
@@ -2824,7 +2824,7 @@ theorem ownRaftPhysC_msgsAA (r : Loc) (id : w64) (s : NState) :
            ⌜s.gh.ns = true → ∀ x ∈ a.toList, x.ty ≠ .snap⌝ -∗
            -- (raft-final, 2026-10-29, U7) the shape raft sends, a `MsgApp` the node's own, a
            -- stamped transfer request recorded (`XfOk`; until then the modes' facts, D21 M2r)
-           ⌜SentMsgShape st' ∧ AppFrom id st' ∧
+           ⌜SentMsgShape st' ∧ replicationFrom id st' ∧
              (st'.msg.Type' = MsgTransferLeader → st'.msg.Term' ≠ W64 0 →
                (s.gh.xw !! (st'.msg.To', st'.msg.Term')).isSome) ∧
              -- (2026-11-12, trace-check implementation step 3) at a traced node of a described type

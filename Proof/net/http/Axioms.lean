@@ -13,6 +13,7 @@ agree on its protocol (the file header of `Boundary.lean`).
 module
 
 public import Proof.net.http.Boundary
+public import Proof.net.http.Proved
 
 @[expose] public section
 
@@ -125,9 +126,6 @@ axiom HeaderGetOwnPtr_ok : HeaderGetOwnPtr_spec (GF := GF)
 
 /-- (rafthttp stage 6e) a request's `URL` field, read-only (`reqURL_spec`). -/
 axiom reqURL_ok : reqURL_spec (GF := GF)
-
-/-- (rafthttp stage 6e) `http.StatusText` (`StatusText_spec`). -/
-axiom StatusText_ok : StatusText_spec (GF := GF)
 
 /-- (rafthttp stage 6e) `url.URL.String` of any URL (`URLStringAny_spec`; restated 2026-10-27, D22
 J-T: a URL of only `http` and a plain host renders as `http://` and the host). -/

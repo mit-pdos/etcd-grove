@@ -45,10 +45,18 @@ theorem startDone_eq (γ : Cluster) (id : w64) : startDone (GF := GF) γ id = st
 theorem StartNode.tracedSpec_of_gated (h : StartNode.gatedSpec (GF := GF)) :
     StartNode.tracedSpec (GF := GF) := by
   intro γ N vs ctxs c cv lok si csm Q F peers dq pv h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14
-    h15 h16
+    h15 h16 h17
   rw [startTraceC_eq, startDone_eq]
-  exact h γ N vs ctxs c cv lok si csm Q F peers dq pv h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14
-    h15 h16
+  iintro %Φ Hpre HΦ
+  iapply h γ N vs ctxs c cv lok si csm Q F peers dq pv (snapshotValid γ)
+    (fun _ => by iintro H; iexact H) h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14
+    h15 h16 h17 $$ Hpre
+  inext
+  iintro %nd ⟨%n, %K, %Hnd, Hfresh, Hnode, Hdrv, Hcfg, Hrun, -, HQ, HF, Hp, Hdone⟩
+  iapply HΦ
+  iexists n, K
+  iframe
+  ipureintro; exact Hnd
 
 end spec
 

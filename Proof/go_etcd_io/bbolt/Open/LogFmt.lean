@@ -46,7 +46,7 @@ theorem fmtVerbs_statErr :
     fmtVerbs go!"failed to get db file's stats (%s): %v" = some [W8 115, W8 118] := by decide
 set_option maxRecDepth 20000 in
 theorem fmtVerbs_metaErr :
-    fmtVerbs go!"failed to read db file's meta pages (%s): %v" = some [W8 115, W8 118] := by decide
+    fmtVerbs go!"failed to read db file's initial pages (%s): %v" = some [W8 115, W8 118] := by decide
 set_option maxRecDepth 20000 in
 theorem fmtVerbs_initErr :
     fmtVerbs go!"failed to initialize db file (%s): %v" = some [W8 115, W8 118] := by decide
