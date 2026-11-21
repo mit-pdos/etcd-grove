@@ -113,7 +113,11 @@ theorem storeIndex.addIndexers.wp_proof
     simp only [go.arrayLiteralSize, List.foldl]
     (try wp_auto)
     wp_apply (wp_Errorf_setArgs _ _ _ (by
-      intro a ha; simp only [List.mem_singleton] at ha; exact ⟨r, ha⟩)) $$ [$Hl1] as %err -
+      intro a ha; simp only [List.mem_singleton] at ha; exact ⟨r, ha⟩)) $$ [$Hl1 Hr] as %err -
+    · iapply BigSepL.bigSepL_singleton.2
+      iexists r, DFrac.own 1, sr
+      iframe Hr
+      ipureintro; rfl
     (try wp_auto)
     iapply HΦ
     iframe

@@ -38,9 +38,9 @@ variable [package_sem : k8s_io.apimachinery.pkg.util.validation.field.Assumption
 theorem ErrorType.string_stringMethodSpec
     (wp_SprintfArgs : EtcdGrove.fmt.SprintfArgs.spec (GF := GF) (hG := hG)) (t : GoString) :
     isPkgInit (PROP := IProp GF) pkg_id.fmt ⊢
-      EtcdGrove.fmt.stringMethodSpec (GF := GF) ⟨ErrorType.ty, #t⟩ go!"String" := by
+      _root_.Perennial.fmt.stringMethodSpec (GF := GF) ⟨ErrorType.ty, #t⟩ go!"String" := by
   iintro #Hinit
-  unfold EtcdGrove.fmt.stringMethodSpec
+  unfold _root_.Perennial.fmt.stringMethodSpec
   imodintro
   iintro %Φ HΦ
   simp only [method_unfold]
@@ -115,7 +115,7 @@ theorem Error.wp_ErrorBody
        · fmt_args_ok)
     | ((try simp only [method_unfold])
        (try wp_auto)
-       iunfold EtcdGrove.fmt.stringMethodSpec at HTs
+       iunfold _root_.Perennial.fmt.stringMethodSpec at HTs
        wp_apply HTs as %s1)
     wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as -
     wp_if_destruct
@@ -133,11 +133,11 @@ theorem Error.wp_ErrorBody
 theorem Error.error_stringMethodSpec
     (wp_SprintfArgs : EtcdGrove.fmt.SprintfArgs.spec (GF := GF) (hG := hG)) (e : Loc) :
     isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.validation.field ∗ errorOk e ⊢
-      EtcdGrove.fmt.stringMethodSpec (GF := GF) ⟨go.GoType.PointerType Error.ty, #e⟩ go!"Error" := by
+      _root_.Perennial.fmt.stringMethodSpec (GF := GF) ⟨go.GoType.PointerType Error.ty, #e⟩ go!"Error" := by
   iintro ⟨#Hpkg, #He⟩
   iunfold errorOk at He
   icases He with ⟨%v, #He, %Hty, %Hbad⟩
-  unfold EtcdGrove.fmt.stringMethodSpec
+  unfold _root_.Perennial.fmt.stringMethodSpec
   imodintro
   iintro %Φ HΦ
   simp only [method_unfold]

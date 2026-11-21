@@ -257,8 +257,8 @@ SPECIAL = {}
 # (prove-errinits, 2026-11-19) translated `errors.New` / verb-less `fmt.Errorf` package variables:
 # the steps of the initializer of `x`, Perennial's `errors.wp_New_errorString` (`%x<x> #M<x>`) or, with
 # the message cell, `EtcdGrove.wp_New_errorString_cell` (`%x<x> ⟨#M<x>, #C<x>⟩`); a `fmt.Errorf`
-# unfolds its trusted model, `errors.New(format)` (Go's `Errorf` without verbs or `%w` returns
-# `errors.New(format)` too).
+# without `%` goes through `EtcdGrove.fmt.wp_Errorf_noPct` (Perennial's `fmt.wp_Errorf`: Go's `Errorf`
+# without verbs returns `errors.New(format)`; fmtmodel, 2026-11-20: until then it unfolded the model).
 NEWVAR_IMPORTS = ['Perennial.Proof.errors.NewVar']
 NEWVAR_CELL_IMPORTS = ['Proof.errors.NewVarCell']
 
@@ -268,8 +268,14 @@ def newvar_steps(x, cell=False, errorf=None):
     # `errors.New(format)`, as the model does; `etc/errorf-wrap-check.py`)
     if errorf is not None:
         assert '%' not in errorf, (x, errorf)
-    pre = ['try wp_auto'] + ([f'-- `fmt.Errorf({json.dumps(errorf)})`: no verb, Go returns `errors.New` of the format, as Perennial\'s model',
-                              'wp_func_call', 'wp_call', 'try wp_auto'] if errorf is not None else [])
+    if errorf is not None:
+        # (fmtmodel, 2026-11-20) through Perennial's `fmt.wp_Errorf` (`EtcdGrove.fmt.wp_Errorf_noPct`)
+        pat = f'⟨#M{x}, #C{x}⟩' if cell else f'⟨#M{x}, -⟩'
+        return ['try wp_auto',
+                f'-- `fmt.Errorf({json.dumps(errorf)})`: no verb, Go returns `errors.New` of the format',
+                f'wp_apply (EtcdGrove.fmt.wp_Errorf_noPct _ _ (by decide)) $$ [] as %x{x} {pat}',
+                '· iframe #; iapply ownSlice_nil']
+    pre = ['try wp_auto']
     if cell:
         return pre + [f'wp_apply EtcdGrove.wp_New_errorString_cell as %x{x} ⟨#M{x}, #C{x}⟩']
     return pre + [f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{x} #M{x}']
@@ -281,7 +287,8 @@ def newvars_cfg(cfg, names, cell=False, errorf={}):
     cfg.setdefault('before', {}).update(
         {x: newvar_steps(x, cell, errorf.get(x)) for x in names})
     imps = cfg.setdefault('imports', [])
-    imps += [m for m in NEWVAR_IMPORTS + (NEWVAR_CELL_IMPORTS if cell else []) if m not in imps]
+    imps += [m for m in NEWVAR_IMPORTS + (NEWVAR_CELL_IMPORTS if cell else []) +
+             (['Proof.fmt.OutLemmas'] if errorf else []) if m not in imps]
     return cfg
 
 _ETCD_ERRMSGS = dict(ErrUnknownMethod="etcdserver: unknown method",
@@ -374,7 +381,7 @@ trust-boundary axioms `<X>_init`).''',
                 'try wp_auto',
                 'wp_apply (wp_mapInsert (K := GoString) (V := GoSlice) go.string) $$ Hss as Hss', 'try wp_auto']],
             # (const-inits, 2026-11-19) `errMemberNotFound = fmt.Errorf("member not found")`, translated
-            'errMemberNotFound': ['wp_apply (_root_.Perennial.fmt.wp_Errorf go!"member not found" slice.nil [] _root_.Perennial.fmt.ArgsWf.nil) $$ [] as %emnf -',
+            'errMemberNotFound': ['wp_apply (_root_.Perennial.fmt.wp_Errorf_argsWf go!"member not found" slice.nil [] _root_.Perennial.fmt.ArgsWf.nil) $$ [] as %emnf -',
                                   '· iframe #; iapply ownSlice_nil', 'try wp_auto'],
             # (raft-entsize, route H1, 2026-11-10) `Message{Type: MsgHeartbeat.Enum()}`, translated:
             # `Enum`'s proof, the literal stored, frozen at its content `hbC` (`hbMsg_init`)
@@ -3147,7 +3154,7 @@ TextMapCarrier = MapCarrier{}`, ...) and `versionPart = fmt.Sprintf("%.2X", supp
         'try wp_auto',
         'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %svp ⟨Svp, -⟩',
         'try wp_auto',
-        'wp_apply _root_.Perennial.fmt.wp_Sprintf _ _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ '
+        'wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ '
         '(_root_.Perennial.fmt.IntArgValue.int _) _root_.Perennial.fmt.ArgsWf.nil) $$ [$Svp] as %rvp -',
         'try wp_auto']},
 )
@@ -3221,7 +3228,7 @@ around its name (`color.Add`, `fmt.Sprintf`; `Level.String`/`CapitalString` of t
         '    | wp_apply (wp_mapInsert (K := w8) (V := GoString) _) $$ HL as HL',
         '    | wp_apply (wp_mapInsert (K := w8) (V := GoString) _) $$ HU as HU',
         '    | (wp_apply (wp_slice_literal (l := [_, _])); isplitr; (· ipureintro; rfl); iintro %sl ⟨Ssl, -⟩; '
-        'try wp_auto; wp_apply _root_.Perennial.fmt.wp_Sprintf _ _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ '
+        'try wp_auto; wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ '
         '(_root_.Perennial.fmt.IntArgValue.uint8 _) (_root_.Perennial.fmt.ArgsWf.cons_string _ _ '
         '_root_.Perennial.fmt.ArgsWf.nil)) $$ [$Ssl] as %r -)',
         '    | wp_method_call',

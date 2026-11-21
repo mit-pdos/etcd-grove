@@ -41348,6 +41348,22 @@ need validity. The next step is to preserve the pin at node startup and the sour
 This supersedes the October 31 decision to retain the server's snapshot-index guard.
 The invariant argument and remaining obligations are in [the removal plan](snapguard-removal-plan.md).
 
+## fmtmodel: Perennial's `fmt` model calls what Go calls; the `fmt` specs rest on its spec
+
+**2026-11-20 · accepted (group `fmtmodel`, Perennial `79517dbdf`)** · supersedes in part "`fmt.Errorf`
+with `%w`: no fact from the model" (2026-11-06) and its 2026-11-18 supersession: there is no unfaithful
+model left to keep facts from. Perennial's models of `Sprintf`, `Printf` and `Errorf` now format up to
+the first directive they do not interpret, call the arguments' `Error()`/`String()` that Go calls (under a
+directive-aware premise, `fmt.argsOk`, moved to Perennial from `Spec/fmt/Errorf.lean`), print `%p`
+without reading memory, and `Errorf` returns Go's error by its `%w` directives (`fmt.errorfErr`). Where
+Go reflects into a struct, slice or map, or would call a `Format`/`GoString`, the model is stuck. So the
+proofs here use Perennial's `fmt.wp_Errorf`/`wp_Sprintf`/`wp_Printf` (`Proof/fmt/`), and the calls the
+model does not cover (slices, maps) are trust-boundary axioms (`fmt.ErrorfStrs`, `fmt.ErrorfSlice`,
+`fmt.SprintfSlice`, `cache.wp_Errorf_setArgs`, `appslisters.wp_Errorf_labelArgs`), no longer theorems
+over a model that ignored the arguments. `fmt.ErrorfWrap` keeps its disjunctive post (callers unchanged)
+but is proved through the right disjunct, Go's `*wrapError`. `etc/errorf-wrap-check.py` stays, empty, as
+the gate on any new step into the model's unfolding.
+
 ## Recover the snapshot record across legacy WAL filenames (2026-11-20)
 
 The last filename at or below the requested snapshot index can start too late

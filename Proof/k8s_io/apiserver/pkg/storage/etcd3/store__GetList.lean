@@ -153,7 +153,7 @@ theorem store.GetList.wp_proof
   isplitr
   · ipureintro; rfl
   iintro %fsl ⟨Hfsl, -⟩
-  wp_apply (_root_.Perennial.fmt.wp_Sprintf _ _ _ (DFrac.own 1) (by
+  wp_apply (_root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ (DFrac.own 1) (by
     refine _root_.Perennial.fmt.ArgsWf.cons_other go.bool #opts.Recursive' _ ?_ ?_ ?_ .nil
     · simp [go.bool, go.string]
     · have hb : ¬ _root_.Perennial.fmt.IsIntType go.bool := by

@@ -48,7 +48,7 @@ theorem storage.NewTooLargeResourceVersionError.wp_proof
   isplitr
   · ipureintro; rfl
   iintro %asl ⟨Hasl, -⟩
-  wp_apply (_root_.Perennial.fmt.wp_Sprintf _ _ _ (DFrac.own 1) (by
+  wp_apply (_root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ (DFrac.own 1) (by
     exact _root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.uint64 _)
       (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.uint64 _) _root_.Perennial.fmt.ArgsWf.nil)))
     $$ [$Hasl] as %s -

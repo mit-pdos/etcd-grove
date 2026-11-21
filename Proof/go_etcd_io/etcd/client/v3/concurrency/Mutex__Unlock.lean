@@ -121,7 +121,7 @@ theorem Mutex.Unlock.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG)) 
   isplitr
   · ipureintro; rfl
   iintro %sl ⟨Hsl, -⟩
-  wp_apply fmt.wp_Errorf _ _ _ ?wf $$ [$Hsl] as %e -
+  wp_apply _root_.Perennial.fmt.wp_Errorf_argsWf _ _ _ ?wf $$ [$Hsl] as %e -
   case wf =>
     rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]
     simp only [List.set_cons_succ, List.set_cons_zero]

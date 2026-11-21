@@ -92,7 +92,7 @@ theorem SplitMetaNamespaceKey.wp_proof : SplitMetaNamespaceKey.spec (GF := GF) (
     iintro %l1 ⟨Hl1, -⟩
     simp only [go.arrayLiteralSize, List.foldl]
     wp_auto
-    wp_apply (fmt.wp_Errorf _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_string key []
+    wp_apply (_root_.Perennial.fmt.wp_Errorf_argsWf _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_string key []
       _root_.Perennial.fmt.ArgsWf.nil)) $$ [$Hl1] as %err #Herr
     iapply HΦ; ipureintro; simp
 

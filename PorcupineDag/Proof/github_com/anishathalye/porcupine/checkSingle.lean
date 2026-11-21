@@ -342,7 +342,7 @@ theorem checkSingle.wp_proof
         isplitr
         · ipureintro; rfl
         iintro %psl ⟨Hpsl, -⟩
-        wp_apply _root_.Perennial.fmt.wp_Printf _ _ _ _ (fmt.ArgsWf.cons_int _ _ _ (fmt.IntArgValue.int pv) fmt.ArgsWf.nil)
+        wp_apply _root_.Perennial.fmt.wp_Printf_argsWf _ _ _ _ (fmt.ArgsWf.cons_int _ _ _ (fmt.IntArgValue.int pv) fmt.ArgsWf.nil)
           $$ [Hpsl] as %n %e2 -
         · iframe
         iapply HΦ
@@ -366,7 +366,7 @@ theorem checkSingle.wp_proof
       isplitr
       · ipureintro; rfl
       iintro %psl ⟨Hpsl, -⟩
-      wp_apply _root_.Perennial.fmt.wp_Printf _ _ _ _ (fmt.ArgsWf.cons_int _ _ _ (fmt.IntArgValue.int pv) fmt.ArgsWf.nil) $$ [Hpsl]
+      wp_apply _root_.Perennial.fmt.wp_Printf_argsWf _ _ _ _ (fmt.ArgsWf.cons_int _ _ _ (fmt.IntArgValue.int pv) fmt.ArgsWf.nil) $$ [Hpsl]
         as %n %e2 -
       · iframe
       wp_for_post
@@ -406,7 +406,7 @@ theorem checkSingle.wp_proof
         isplitr
         · ipureintro; rfl
         iintro %psl ⟨Hpsl, -⟩
-        wp_apply _root_.Perennial.fmt.wp_Printf _ _ _ _ (fmt.ArgsWf.cons_int _ _ _ (fmt.IntArgValue.int pv) fmt.ArgsWf.nil)
+        wp_apply _root_.Perennial.fmt.wp_Printf_argsWf _ _ _ _ (fmt.ArgsWf.cons_int _ _ _ (fmt.IntArgValue.int pv) fmt.ArgsWf.nil)
           $$ [Hpsl] as %n %e2 -
         · iframe
         wp_for_post
