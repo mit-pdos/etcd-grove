@@ -409,6 +409,18 @@ def entriesAt (ents : List Loc) (ms : List EntryModel) : IProp GF :=
     □ (∀ (n : Nat) (e : Loc) (m : EntryModel), ⌜ents[n]? = some e⌝ -∗ ⌜ms[n]? = some m⌝ -∗
       entryAt e m))
 
+/-- A suffix of entries is modelled by the suffix of the models. -/
+theorem entriesAt_drop (ents : List Loc) (ms : List EntryModel) (k : Nat) :
+    entriesAt (GF := GF) ents ms ⊢ entriesAt (ents.drop k) (ms.drop k) := by
+  iunfold entriesAt
+  iintro ⟨%Hl, #H⟩
+  isplitr
+  · ipureintro; simp [Hl]
+  imodintro
+  iintro %n %e %m %He %Hm
+  rw [List.getElem?_drop] at He Hm
+  iapply H $$ %(k + n) %e %m %He %Hm
+
 instance entriesAt_persistent (ents : List Loc) (ms : List EntryModel) :
     Persistent (entriesAt (GF := GF) ents ms) := by
   unfold entriesAt; infer_instance

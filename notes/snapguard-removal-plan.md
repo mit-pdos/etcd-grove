@@ -40,7 +40,11 @@ that the Ready log covers the durable index and supplies its entry term.
 The ordinary apply proof now constructs the merged message, bundles the frozen
 database with the Raft evidence, and sends it when its Ready supplies that term
 history. The checked run loop transports the evidence from the apply channel.
-The remaining producer is the Raft worker.
+The VM then checked the complete translated `replayTerms.appendEntries` on
+arbitrary prior runs and ordered entry batches. It proves suffix replacement,
+partial-run clipping, mixed-term scans and coalescing, and leaves every older
+Ready readable. The remaining producer is the Raft worker, including its
+initial WAL state and the relation between each Ready and those physical runs.
 The earlier checkpoints below record which parts were checked independently.
 
 The public Grove pin removes the index comparison at `7bc6d14671`; the
@@ -71,8 +75,8 @@ the bootstrap case for a nonempty batch with equal endpoint terms. From
 a nil receiver the translated method returns one run with the actual
 first and last indices and the first term. `replayBatch_ordered` derives
 term ordering for sublists of a recorded full Raft log. This justifies
-the endpoint shortcut when the input is tied to that log. Mixed terms
-and updates to an existing history are still open.
+the endpoint shortcut when the input is tied to that log. The later complete update proof above covers mixed terms
+and updates to an existing history.
 
 The ordinary apply proof now carries the initial backend log from the server
 constructor to the job. Its durable index is below a commit certified in the

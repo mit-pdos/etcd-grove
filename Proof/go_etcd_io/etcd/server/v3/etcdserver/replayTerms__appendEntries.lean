@@ -67,6 +67,43 @@ theorem replayFold_same (es : List EntryModel) (pre : List replayTermRun) (r : r
     | cons x xs =>
       simp [next, List.getLast?_cons_cons, List.getLast?_eq_some_getLast (List.cons_ne_nil x xs)]
 
+/-- Removing a processed prefix from the entries and adding its single run gives
+the same remaining fold as the whole batch. -/
+theorem replayFold_group (pre : List replayTermRun) (e : EntryModel) (es : List EntryModel)
+    (c : Nat) (hc : 0 < c) (hb : c ≤ (e :: es).length)
+    (ht : ∀ (i : Nat) (hi : i < (e :: es).length), i < c → (e :: es)[i].term = e.term) :
+    ((e :: es).drop c).foldl replayAddEntry
+        (replayJoin pre ⟨e.index, (e :: es)[c - 1].index, e.term⟩) =
+      (e :: es).foldl replayAddEntry pre := by
+  suffices hpre : ((e :: es).take c).foldl replayAddEntry pre =
+      replayJoin pre ⟨e.index, (e :: es)[c - 1].index, e.term⟩ by
+    rw [← hpre, ← List.foldl_append, List.take_append_drop]
+  cases c with
+  | zero => omega
+  | succ k =>
+    have hk : k < (e :: es).length := by omega
+    have hlast : ((e :: es).take (k + 1)).getLast? = some (e :: es)[k] := by
+      rw [List.getLast?_eq_getElem?, List.length_take, Nat.min_eq_left hb]
+      simp only [Nat.add_sub_cancel, List.getElem?_take, Nat.lt_succ_self, ↓reduceIte]
+      exact List.getElem?_eq_getElem hk
+    rw [List.take_succ_cons] at hlast ⊢
+    have hall : ∀ x ∈ es.take k, x.term = e.term := by
+      intro x hx
+      obtain ⟨j, hj, hget⟩ := List.mem_iff_getElem.mp hx
+      have hjes : j < es.length := by simp only [List.length_take] at hj; omega
+      have hjk : j < k := by simp only [List.length_take] at hj; omega
+      have hterm := ht (j + 1) (by simp; omega) (by omega)
+      simpa only [List.getElem_cons_succ, ← hget, List.getElem_take] using hterm
+    rw [List.foldl_cons, replayAddEntry, replayFold_same _ _ _ hall]
+    cases tail : es.take k with
+    | nil =>
+      rw [tail] at hlast
+      simpa using congrArg (fun z : Option EntryModel => (z.map EntryModel.index).getD e.index) hlast
+        |> fun h => congrArg (fun i => replayJoin pre ⟨e.index, i, e.term⟩) h
+    | cons x xs =>
+      rw [tail, List.getLast?_cons_cons] at hlast
+      simp [hlast]
+
 /-- The third index in `r[:n:n]` gives the writer a prefix with no writable slack.
 The old Ready can continue reading every run, including the discarded suffix. -/
 theorem replayTerms_prefix (r : GoSlice) (runs : List replayTermRun) (n : w64)
