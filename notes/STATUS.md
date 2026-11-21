@@ -14,7 +14,9 @@ record is `notes/decisions.md`; the Rocq development's notes are on branch `main
 
 Raft's public `sentMsg_localSnapshotLeader` law identifies a snapshot's sender
 as the local elected leader in its message term. Ready also exposes the
-snapshot's source. Proving the index bound in the etcd server still requires
+snapshot's source. A snapshot installed locally carries its incoming message’s
+matching index and log term and evidence for its foreign elected sender.
+Proving the index bound in the etcd server still requires
 the ordering between a local restore, a Ready handout and its application.
 See `notes/snapguard-removal-plan.md`.
 

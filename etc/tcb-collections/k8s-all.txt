@@ -17,7 +17,6 @@ axiom Client.roundRobinQuorumBackoff.wp_proof
 axiom Client.streamClientInterceptor.wp_proof
 axiom DescribeConfChange.wp_proof
 axiom EtcdServer.adjustTicks.wp_proof
-axiom EtcdServer.leaseTimeToLive.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorCompactHash.wp_proof
 axiom EtcdServer.monitorDowngrade.wp_proof
@@ -210,8 +209,6 @@ axiom fmt.Errorf.wp_proof
 axiom fmt.ErrorfPlain.wp_proof
 axiom fmt.SprintfArgs.wp_proof
 axiom fmt.SprintfClientPtr.wp_proof
-axiom fmt.SprintfID.wp_proof
-axiom fmt.SprintfNamed.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom goose_adequacy_start
 axiom grpc.ChainStreamInterceptor.wp_proof
@@ -363,12 +360,6 @@ axiom pbCompactionResponseT_reg
 axiom pbDeleteRangeRequestT_reg
 axiom pbDeleteRangeResponseT_reg
 axiom pbEntryC_reg
-axiom pbLeaseGrantRequestT_reg
-axiom pbLeaseGrantResponseT_reg
-axiom pbLeaseLeasesRequestT_reg
-axiom pbLeaseLeasesResponseT_reg
-axiom pbLeaseTimeToLiveRequestT_reg
-axiom pbLeaseTimeToLiveResponseT_reg
 axiom pbMessageC_reg
 axiom pbPutRequestT_reg
 axiom pbPutResponseT_reg

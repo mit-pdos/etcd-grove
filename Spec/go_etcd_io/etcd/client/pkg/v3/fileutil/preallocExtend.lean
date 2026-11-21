@@ -7,7 +7,9 @@ The premises are `preallocExtendTrunc`'s (the file at most `sizeInBytes` long, u
 known), `sizeInBytes` positive (`Preallocate` skips 0), and `errors`' package initialized (for
 `errors.As`). Post: the offset unchanged, the file grown to some `w` between its size and
 `sizeInBytes`, all of it on success (`preGrown`: the new bytes a zero run), and on success the
-zeros known from the page cache on (`OsMeta.ZeroPg`) if they were. Proved in
+zeros known from the page cache on (`OsMeta.ZeroPg`) if they were; an error only when the file system
+can fail on an inode (`¬ FsNoErrIno`: a covered `fallocate` below `maxBytes` returns 0, so the fallback
+is not reached either). Proved in
 `Proof/go_etcd_io/etcd/client/pkg/v3/fileutil/preallocExtend.lean`. Lean-first.
 -/
 module
@@ -43,7 +45,8 @@ abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtend.spec : Prop :=
     (App (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtend)) (Val #f))
       (Val #sz))
   {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ os.ownOff f o ∗ osFd fd dq d ∗
-      ∃ w : Nat, ⌜m.size ≤ w ∧ w ≤ sz.toNat ∧ (err = interface.nil → w = sz.toNat)⌝ ∗
+      ∃ w : Nat, ⌜m.size ≤ w ∧ w ≤ sz.toNat ∧ (err = interface.nil → w = sz.toNat) ∧
+          (err ≠ interface.nil → ¬ Fs.FsNoErrIno)⌝ ∗
         preGrown d.ino m w (err = interface.nil ∧ m.ZeroPg) }}
 
 end spec

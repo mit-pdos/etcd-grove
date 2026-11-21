@@ -329,10 +329,8 @@ theorem v3rpc.Server.wp_proof
     SrvOptKind.unary, SrvOptKind.stream, List.nil_append, List.append_nil]
   (try wp_auto)
   iunfold v3rpc.svcDescsOk at Hdescs
-  icases Hdescs with ⟨⟨%kmds, %ksds, #HdKV, %HkvD⟩, ⟨%wsds, #HdW, %HwD⟩, ⟨%lmds, %lsds, #HdL, %HlD⟩, HdC, ⟨%amds, %asds, #HdA, %HaD⟩, HdM⟩
-  iunfold v3rpc.descOk at HdC HdM
-  icases HdC with ⟨%cmds, %csds, #HdC, %HcD⟩
-  icases HdM with ⟨%mmds, %msds, #HdM, %HmD⟩
+  icases Hdescs with ⟨⟨%kmds, %ksds, #HdKV, %HkvD⟩, ⟨%wsds, #HdW, %HwD⟩, ⟨%lmds, %lsds, #HdL, %HlD⟩,
+    ⟨%cmds, %csds, #HdC, %HcD⟩, ⟨%amds, %asds, #HdA, %HaD⟩, ⟨%mmds, %msds, #HdM, %HmD⟩⟩
   ihave #HdKV := v3rpc.pbDescIs_grpc _ _ _ _ _ $$ HdKV
   ihave #HdW := v3rpc.pbDescIs_grpc _ _ _ _ _ $$ HdW
   ihave #HdL := v3rpc.pbDescIs_grpc _ _ _ _ _ $$ HdL
@@ -387,9 +385,10 @@ theorem v3rpc.Server.wp_proof
   wp_apply (hRegC gs _ _ _ _ _ _ _ _ cmds csds) $$ [Hgs] as Hgs
   · iframe; iframe #
     ipureintro
-    refine ⟨by decide, ⟨etcdserverpb.ClusterServer.ty, ⟨_, _⟩, rfl, rfl, ?_⟩, HcD.1,
-      ⟨_, rfl, v3rpc.ServerMethodSets.cluster_te⟩, HcD.2⟩
-    exact v3rpc.ServerMethodSets.cluster_impl
+    refine ⟨by decide, ⟨etcdserverpb.ClusterServer.ty, ⟨_, _⟩, rfl, rfl, ?_⟩,
+      v3rpc.clusterDesc_nodup cmds csds HcD, ⟨_, rfl, v3rpc.ServerMethodSets.cluster_te⟩, ?_⟩
+    · exact v3rpc.ServerMethodSets.cluster_impl
+    · rw [HcD.2]; intro sd hsd; cases hsd
   (try wp_auto)
   wp_apply (hNewA s) as %pa #Hpa
   (try wp_auto)
@@ -419,41 +418,40 @@ theorem v3rpc.Server.wp_proof
   wp_apply (hRegM gs _ _ _ _ _ _ _ _ mmds msds) $$ [Hgs] as Hgs
   · iframe; iframe #
     ipureintro
-    refine ⟨by decide, ⟨etcdserverpb.MaintenanceServer.ty, ⟨_, _⟩, rfl, rfl, ?_⟩, HmD.1,
-      ⟨_, rfl, v3rpc.ServerMethodSets.maint_te⟩, HmD.2⟩
+    refine ⟨by decide, ⟨etcdserverpb.MaintenanceServer.ty, ⟨_, _⟩, rfl, rfl, ?_⟩,
+      v3rpc.maintDesc_nodup mmds msds ⟨HmD.1, HmD.2.1⟩, ⟨_, rfl, v3rpc.ServerMethodSets.maint_te⟩,
+      HmD.2.2⟩
     exact v3rpc.ServerMethodSets.maint_impl
   (try wp_auto)
   wp_apply (hInit pm gs) $$ [Hgs] as Hgs
   · iframe; iframe #
   (try wp_auto)
   iapply HΦ
-  iexists q, p, pw, pa, ql, lp, il, im, iu, ims, is, _, _, _, cid, mid', lcid, lmid,
+  iexists q, p, pw, pa, ql, lp, pc, pmt, il, im, iu, ims, is, _, _, _, cid, mid', lcid, lmid,
     ⟨s, C.E, C.wsl, C.tag, cidw, midw, lgw, C.m + W64 (512 * 1024)⟩
   iframe Hgs
   isplitr
   · ipureintro
-    constructor
-    · intro x hx
-      have := v3rpc.kvRegs_sub q kmds HkvD.1 x hx
-      simp [List.mem_append, this]
-    constructor
-    · have := v3rpc.watchSReg_mem pw wsds HwD.1
-      simp [List.mem_append, this]
-    constructor
-    · intro x hx
-      have := v3rpc.authRegs_sub pa amds HaD.1 x hx
-      simp [List.mem_append, this]
-    constructor
-    · intro x hx
-      have := v3rpc.leaseRegs_sub ql lmds HlD.1 x hx
-      simp [List.mem_append, this]
-    constructor
-    · have := v3rpc.leaseSReg_mem ql lsds HlD.2.1
-      simp [List.mem_append, this]
+    refine ⟨rs, srs, ?_, ?_, Hrs1, ?_⟩
+    · rw [v3rpc.descRegs_funcs _ kmds v3rpc.kvDescFuncs _ HkvD.1,
+        v3rpc.descRegs_funcs _ lmds v3rpc.leaseDescFuncs _ HlD.1,
+        v3rpc.descRegs_funcs _ cmds v3rpc.clusterDescFuncs _ HcD.1,
+        v3rpc.descRegs_funcs _ amds v3rpc.authDescFuncs _ HaD.1,
+        v3rpc.descRegs_funcs _ mmds v3rpc.maintDescFuncs _ HmD.1]
+      simp only [descRegs, List.map_nil, List.nil_append, List.append_nil, List.append_assoc]
+      rfl
+    · rw [v3rpc.descSRegs_funcs _ ksds [(go!"RangeStream", functions etcdserverpb._KV_RangeStream_Handler [])] _ HkvD.2.1,
+        v3rpc.descSRegs_funcs _ wsds [(go!"Watch", functions etcdserverpb._Watch_Watch_Handler [])] _ HwD.1,
+        v3rpc.descSRegs_funcs _ lsds [(go!"LeaseKeepAlive", functions etcdserverpb._Lease_LeaseKeepAlive_Handler [])] _ HlD.2.1,
+        v3rpc.descSRegs_funcs _ msds [(go!"Snapshot", functions etcdserverpb._Maintenance_Snapshot_Handler [])] _ HmD.2.1,
+        show csds = [] from HcD.2]
+      simp only [HaD.2, List.map_eq_nil_iff.mp HaD.2, descSRegs, List.map_nil, List.map_cons,
+        List.nil_append, List.append_nil, List.append_assoc]
+      rfl
     · exact v3rpc.server_nodup kmds lmds cmds amds mmds ksds wsds lsds csds asds msds _ _ _ _ _ _
         rs srs (v3rpc.kvDesc_nodup kmds ksds ⟨HkvD.1, HkvD.2.1⟩) (v3rpc.watchDesc_nodup wsds HwD.1)
-        (v3rpc.leaseDesc_nodup lmds lsds ⟨HlD.1, HlD.2.1⟩) HcD.1
-        (v3rpc.authDesc_nodup amds asds HaD) HmD.1 Hrs2 Hrs1
+        (v3rpc.leaseDesc_nodup lmds lsds ⟨HlD.1, HlD.2.1⟩) (v3rpc.clusterDesc_nodup cmds csds HcD)
+        (v3rpc.authDesc_nodup amds asds HaD) (v3rpc.maintDesc_nodup mmds msds ⟨HmD.1, HmD.2.1⟩) Hrs2 Hrs1
   iframe
   iframe #
   ipureintro

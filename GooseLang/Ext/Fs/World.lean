@@ -283,8 +283,8 @@ theorem treeFrame_setFd (st : OsState) (fd : w64) (d d0 : OsFd) (h0 : st.proc.fd
 
 /-- A lock call's step leaves the tree alone. -/
 theorem treeFrame_lockStep [GooseExts] [GoGlobalContext] {st : OsState} {k : LockKind} {fd : w64}
-    {d : OsFd} {req : Option Bool} {nb : Bool} {e' : Expr} {st' : OsState}
-    (hd : st.proc.fds !! fd = some d) (h : LockStep st k fd d req nb e' st') : TreeFrame st st' := by
+    {d : OsFd} {req : Option Bool} {nb : Bool} {w e' : Expr} {st' : OsState}
+    (hd : st.proc.fds !! fd = some d) (h : LockStep st k fd d req nb w e' st') : TreeFrame st st' := by
   rcases lockStep_cases h with rfl | ⟨x, rfl⟩
   · exact TreeFrame.refl _
   · exact treeFrame_setFd _ _ _ _ hd
@@ -611,14 +611,15 @@ theorem wp_os_step (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPani
   iintro %e' %h' %st' %Hst
   iapply Hc $$ %e' %h' %st' %Hst.1
 
-/-- The lifting of a lock call or `Close` (`LockOp`), a data operation: as `wp_os_step`, with the
-locks' interpretation (`lockCtx`) handed to the step's proof and back. -/
-theorem wp_os_stepL (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPanic = false)
+/-- `wp_os_stepL`, whose continuation also gets the semantics' own step (as `wp_os_stepX`: what a
+premise on steps says of it, `FsStepSat`). -/
+theorem wp_os_stepLX (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPanic = false)
     (hE : ↑osN ⊆ E) (ho : DataOp o) (hM : o ≠ "Mmap" := by decide) :
     ⊢ osInv (L := L) -∗
       (∀ st Γb Γm Γf Γt h, osWorld st Γb Γm Γf Γt h -∗ lockCtx (gooseOsGS (L := L)) st ==∗
         ⌜∃ e' h' st', FsStepV o v h st () e' h' st' ()⌝ ∗
-        ▷ ∀ e' h' st', ⌜FsStepV o v h st () e' h' st' ()⌝ ==∗
+        ▷ ∀ e' h' st', ⌜FsStepV o v h st () e' h' st' () ∧
+            ExtSemantics.step (E := fsExt) o v h st () e' h' st' ()⌝ ==∗
           ∃ Γb' Γm' Γf' Γt', osWorld st' Γb' Γm' Γf' Γt' h' ∗ lockCtx (gooseOsGS (L := L)) st' ∗
             WP e' @ s; E {{ Φ }}) -∗
       WP (ExternalOp fsExt.name o (Val v)) @ s; E {{ Φ }} := by
@@ -646,9 +647,10 @@ theorem wp_os_stepL (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPan
       (fun _ _ _ _ _ h1 h2 => mapsTo_unique Hwc.1 h1 h2) (Or.inl Hst)
   inext
   iintro %e' %h' %σ' %g' %Hst -
-  have Hst := fsStepV_of_ne hM (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ Hst)
+  have Hst2 := And.intro (fsStepV_of_ne hM (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ Hst)) Hst
+  have Hst := Hst2.1
   imod Hclose2
-  imod Hcont $$ %e' %h' %σ' %Hst with ⟨%Γb', %Γm', %Γf', %Γt', Hw, Hlk, Hwp⟩
+  imod Hcont $$ %e' %h' %σ' %Hst2 with ⟨%Γb', %Γm', %Γf', %Γt', Hw, Hlk, Hwp⟩
   unfold osWorld
   icases Hw with ⟨%Hwc', HAb, HAm, HAf, HAt, Htok, Hcells, Hheap⟩
   imod gVar_update _ _ _ (cellView σ', GMap.size σ'.proc.inflight) $$ Hv Hv' with ⟨Hv, Hv'⟩
@@ -669,6 +671,28 @@ theorem wp_os_stepL (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPan
   · have : (ExtInterp.globalCtx (E := fsExt) (extGlobalGS fsExt) g' : IProp GF) =
         iprop(True) := rfl
     rw [this]; itrivial
+
+/-- The lifting of a lock call or `Close` (`LockOp`), a data operation: as `wp_os_step`, with the
+locks' interpretation (`lockCtx`) handed to the step's proof and back. -/
+theorem wp_os_stepL (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPanic = false)
+    (hE : ↑osN ⊆ E) (ho : DataOp o) (hM : o ≠ "Mmap" := by decide) :
+    ⊢ osInv (L := L) -∗
+      (∀ st Γb Γm Γf Γt h, osWorld st Γb Γm Γf Γt h -∗ lockCtx (gooseOsGS (L := L)) st ==∗
+        ⌜∃ e' h' st', FsStepV o v h st () e' h' st' ()⌝ ∗
+        ▷ ∀ e' h' st', ⌜FsStepV o v h st () e' h' st' ()⌝ ==∗
+          ∃ Γb' Γm' Γf' Γt', osWorld st' Γb' Γm' Γf' Γt' h' ∗ lockCtx (gooseOsGS (L := L)) st' ∗
+            WP e' @ s; E {{ Φ }}) -∗
+      WP (ExternalOp fsExt.name o (Val v)) @ s; E {{ Φ }} := by
+  iintro #Hinv HF
+  iapply wp_os_stepLX o v Φ hv hE ho hM $$ Hinv
+  iintro %st %Γb %Γm %Γf %Γt %h Hw Hlk
+  imod HF $$ %st %Γb %Γm %Γf %Γt %h Hw Hlk with ⟨%Hex, Hc⟩
+  imodintro
+  isplitr
+  · ipureintro; exact Hex
+  inext
+  iintro %e' %h' %st' %Hst
+  iapply Hc $$ %e' %h' %st' %Hst.1
 
 /-- A resource of the legacy mode: with the shared mode's interpretation, a contradiction. A legacy
 step's proof holds one (`osTree`, `osCall`, `osDirFd`), which tells it the mode. -/

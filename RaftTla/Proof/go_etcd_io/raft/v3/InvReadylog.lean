@@ -107,6 +107,11 @@ def logStableTo (ls : LogState) (id : entryID) : LogState :=
               inprogress := w64Max ls.inprogress (id.index' + W64 1) }
   else ls
 
+theorem logStableTo_ksn (ls : LogState) (id : entryID) :
+    (logStableTo ls id).ksn = ls.ksn := by
+  unfold logStableTo
+  split <;> rfl
+
 /-- (2026-10-25, T-M M2b) `stableTo` moves entries from the unstable part to the stable one: their
 concatenation, the log, is unchanged. -/
 theorem logStableTo_concat (ls : LogState) (id : entryID) :
