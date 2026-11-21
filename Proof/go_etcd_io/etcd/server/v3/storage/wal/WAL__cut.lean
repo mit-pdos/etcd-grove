@@ -145,7 +145,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   iunfold walHandleIn at Hh
   icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j,
     %rc, Hlg, #Hzap, Hdir, Hdf, Hdff, Hmd, #Hmds, Hsp, #Hst, Hdec, Hrc, Hns, #Hmu, Henti, Hsnapi,
-    He, %Hen, Henc, Htw, Hdh, Hlocks, Hls, Hcap, %Hlt, Hlks, #Hltf, Hfp, Hpipe, #Henv, #Hcrc, #Hwpk, Hopen, %Hpure⟩
+    He, %Hen, Henc, Htw, Hdh, Hlocks, Hls, Hcap, %Hlt, #Hlks, #Hltf, Hfp, Hpipe, #Henv, #Hcrc, #Hwpk, Hopen, %Hpure⟩
   obtain ⟨hsplit, hfd, hoff, hsz, hidx, hidx1⟩ := Hpure
   obtain ⟨ls, rfl⟩ := List.getLast?_eq_some_iff.1 Hlt
   rw [List.dropLast_concat]
@@ -199,7 +199,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     simp only
     rw [List.dropLast_concat]
     iframe Hlg Hzap Hdir Hdf Hdff Hmd Hmds Hsp Hst Hdec Hrc Hns Hmu Henti Hsnapi He Henc Htw Hdh
-      Hlocks Hls Hcap Hltf Hfp Hpipe Henv Hcrc Hwpk Hopen
+      Hlocks Hls Hcap Hlks Hltf Hfp Hpipe Henv Hcrc Hwpk Hopen
     ipureintro
     exact ⟨Hen, by simp, hsplit, hfd, Nat.le_refl _, by omega, hidx, hidx1⟩
   icases Hsy with (⟨%he, Hh, #Hsyn⟩ | %he)
@@ -232,7 +232,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   iunfold walHandleIn at Hh
   icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j,
     %rc, Hlg, #Hzap, Hdir, Hdf, Hdff, Hmd, #Hmds, Hsp, #Hst, Hdec, Hrc, Hns, #Hmu, Henti, Hsnapi,
-    He, %Hen, Henc, Htw, Hdh, Hlocks, Hls, Hcap, %Hlt, Hlks, #Hltf, Hfp, Hpipe, #Henv, #Hcrc, #Hwpk, Hopen, %Hpure⟩
+    He, %Hen, Henc, Htw, Hdh, Hlocks, Hls, Hcap, %Hlt, #Hlks, #Hltf, Hfp, Hpipe, #Henv, #Hcrc, #Hwpk, Hopen, %Hpure⟩
   obtain ⟨hsplit, hfd, hoff, hsz, hidx, hidx1⟩ := Hpure
   obtain ⟨ls, rfl⟩ := List.getLast?_eq_some_iff.1 Hlt
   try rw [h1H]
@@ -862,7 +862,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   rw [hcrc']
   simp only
   iframe Hlg Hzap Hdir Hdf Hdff Hmd Hmds Hspf Hst Hdec Hrc Hns Hmu Henti Hsnapi He Hlocks Hls Hcap
-    Hlf3 Hfp Henv Hcrc Hwpk Henc3
+    Hlks Hlf3 Hfp Henv Hcrc Hwpk Henc3
   isplitr
   · ipureintro; exact he3
   isplitl [Hf3 Hfd3 Hlk3 Hoff3 Htk HmG HbG Hv]

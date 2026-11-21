@@ -316,6 +316,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
     %lfs, %fp, %rc, %j, Hdecf, Hdec, ⟨#Hdenv, %hIoN⟩, ⟨%X, %hj, %gs, %fls, Hn, Hout, ⟨Htf, Hnf⟩, #Hk, %Hgs,
     %Hfs, Hfallback, #Hlks⟩, Hlocks, Hls, Hcap, Hrc, Hfp, ⟨%hrc, Hpipe⟩, He, Hst, Hmd, Henti, Hsnapi, Hns,
     #Hmu, #Henv, #Hcrc, Hbefore⟩
+  iapply fupd_wp
+  ipersist Hbefore
+  imodintro
   -- `w.dirFile`'s inode is the read tie's (the directory keys agree)
   icases walDirKey_agree dir jd j Xd X $$ Hkd Hk with %hjd
   ihave #Henv0 := Henv
@@ -1067,7 +1070,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             · unfold walHandleIn
               iexists lg, df, p', e, fp, lt, fl, mdv, locks, ls ++ [lt], fdl, dfd, child dir gl.name, dir, jd,
                 func.nil
-              iframe Hlg Hzap Hdir Hdff Hdf Hmd Hst Hhs' Hdecf Hrc Hns Hmu Henti Hsnapi He Hlocks Hls Hcap
+              iframe Hbefore Hlg Hzap Hdir Hdff Hdf Hmd Hst Hhs' Hdecf Hrc Hns Hmu Henti Hsnapi He Hlocks Hls Hcap
                 HltL Hfp Hpipe Henv Hcrc Hpkg Hopen
               isplitr
               · unfold recBytes
@@ -1241,22 +1244,6 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
               wp_if_destruct
               · -- `offset > len(ents)`: `ErrSliceOutOfRange`
                 by_cases htry : st.matched = false ∧ fb ≠ null
-                case' neg =>
-                  by_cases hm : st.matched = false
-                  case' pos =>
-                    have hf : fb = null := by
-                      by_cases hn : fb = null
-                      · exact hn
-                      · exact False.elim (htry ⟨hm, hn⟩)
-                    (try wp_auto)
-                    simp only [hm, hf, Bool.not_false, intoVal_eq_iff, _root_.decide_true, Bool.not_true,
-                      Bool.false_eq_true, ↓reduceIte]
-                    (try wp_auto)
-                  case' neg =>
-                    have ht : st.matched = true := by cases h : st.matched <;> simp_all only [Bool.false_eq_true, not_true_eq_false, not_false_eq_true]
-                    (try wp_auto)
-                    simp only [ht, Bool.not_true, Bool.false_eq_true, ↓reduceIte]
-                    (try wp_auto)
                 case' pos =>
                   obtain ⟨hm, hfb⟩ := htry
                   (try wp_auto)
@@ -1300,8 +1287,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
                   icases HP with ⟨HprobePath, HphR, Hn, Hout, Htf⟩
                   ihave Hph : osCallPerm (callKey W.roots dir) (1 : Qp).half.half $$ [HphR]
                   · rw [hWR]; iexact HphR
-                  cases errP with
-                  | ok err =>
+                  cases errP
+                  case' ok err =>
                     (try wp_auto)
                     wp_for_post
                     ihave Hst := streams_loop fs fsD kD k hkD $$ [Hleft Hdec]
@@ -1324,7 +1311,23 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
                     isplitr
                     · ipureintro; simp
                     iexact Hrf
-                  | nil =>
+                  case' nil =>
+                    (try wp_auto)
+                case' neg =>
+                  by_cases hm : st.matched = false
+                  case' pos =>
+                    have hf : fb = null := by
+                      by_cases hn : fb = null
+                      · exact hn
+                      · exact False.elim (htry ⟨hm, hn⟩)
+                    (try wp_auto)
+                    simp only [hm, hf, Bool.not_false, intoVal_eq_iff, _root_.decide_true, Bool.not_true,
+                      Bool.false_eq_true, ↓reduceIte]
+                    (try wp_auto)
+                  case' neg =>
+                    have ht : st.matched = true := by cases h : st.matched <;> simp_all only [Bool.false_eq_true, not_true_eq_false, not_false_eq_true]
+                    (try wp_auto)
+                    simp only [ht, Bool.not_true, Bool.false_eq_true, ↓reduceIte]
                     (try wp_auto)
                 all_goals
                   ihave #Hwi : (wal.walInit : IProp GF) $$ []

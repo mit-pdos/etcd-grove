@@ -41246,3 +41246,19 @@ need validity. The next step is to preserve the pin at node startup and the sour
 
 This supersedes the October 31 decision to retain the server's snapshot-index guard.
 The invariant argument and remaining obligations are in [the removal plan](snapguard-removal-plan.md).
+
+## Recover the snapshot record across legacy WAL filenames (2026-11-20)
+
+The last filename at or below the requested snapshot index can start too late
+on WALs written before the cut rule accounted for snapshots. When the normal
+scan cannot find the record, recovery now examines earlier segments, starting
+with the nearest. A match extends the locked range and restarts decoding. The
+extended scan validates the CRC and snapshot term and returns the committed
+hard state and subsequent entries. The locks also retain earlier segments
+whose snapshot would otherwise disappear during purge.
+
+The verifier’s disk invariant covers the current writer. For that layout the
+public ReadAll proof follows the actual CRC seeds, lock filenames, and snapshot
+records to establish that earlier files cannot supply a missing match. The Go
+upgrade regression covers the older layout in read-only and writable modes,
+then purges and reopens the WAL. [Finding and regression](../issues/etcd-wal-upgrade-legacy-segment-name.md)

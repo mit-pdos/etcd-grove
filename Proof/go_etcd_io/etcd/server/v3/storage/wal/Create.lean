@@ -823,6 +823,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     irename «$r0» => Hwal
     generalize «$r0_ptr» = wl at *
     iStructNamed Hwal
+    ipersist snapBefore
     imod sync.init_Mutex (BI.pure True : IProp GF) ⊤
       (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"mu" wl) $$ mu [] with #Hmu
     · inext; ipureintro; trivial
