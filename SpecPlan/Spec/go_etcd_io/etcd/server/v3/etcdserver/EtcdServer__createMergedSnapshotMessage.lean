@@ -1,4 +1,9 @@
 /-
+Historical design for the four-argument method. The production specification at
+`Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__createMergedSnapshotMessage.lean`
+covers the send during restart replay. Porting this independent design requires its
+apply batch to carry the retained entry terms and recovered configuration.
+
 `(*EtcdServer).createMergedSnapshotMessage(m, snapt, snapi, confState)` (`snapshot_merge.go:31-54`):
 commit the KV, take a backend snapshot, stream it through a pipe, and replace `m`'s snapshot by one
 at the applied index and term with the thread's `ConfState` (a copy) and no data.

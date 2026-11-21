@@ -115,6 +115,13 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_proof
   · iPkgInit
   ihave #Psch : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema $$ []
   · iPkgInit
+  ihave #Pmeta : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema.snapshotmeta $$ []
+  · iPkgInit
+  ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Psch
+  icases Hsi with ⟨⟨%bk, #Hmeta, -⟩, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
+    ⟨%membersBucket, #HmembersBucket⟩, ⟨%confKey, #HconfKey, #HconfBytes⟩⟩
+  ihave #Hbucket := mvcc.meta_isBucket hID hName hSafe bk $$ [$Psch $Hmeta]
   wp_bind (If _ _ _)
   iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ backend.snapOpenQ sp D γd 1 ∗
     snapi_ptr ↦ (if uint.Z snapi < uint.Z ci then ci else snapi) ∗
@@ -196,14 +203,14 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_proof
         iintro %v ⟨%hv, snapt⟩
         subst v
         (try wp_auto)
-        wp_apply hreadCfg lg sp γd $$ [$Psch $Pbe $Hsn] as %cp ⟨Hsn, Hcfg⟩
+        wp_apply hreadCfg lg sp γd bk confKey $$ [$Pmeta $Pbe $Hbucket $HconfBytes $Hsn] as %cp ⟨Hsn, Hcfg⟩
         (try wp_auto)
         wp_if_destruct
         · (try simp only [↓reduceIte])
           icases Hcfg with %hread
           unfold replayMemberRead at hread
           (try wp_auto)
-          wp_apply hread $$ [$Psch $Pbe $Hsn] as %mp ⟨Hsn, Hmap⟩
+          wp_apply hread membersBucket $$ [$Pmeta $Pbe $HmembersBucket $Hsn] as %mp ⟨Hsn, Hmap⟩
           iunfold replaySnapshotMembers at Hmap
           icases Hmap with ⟨%ptrs, %memberID, %learner, Hptrs, #Hmembers, %hmembers⟩
           (try wp_auto)

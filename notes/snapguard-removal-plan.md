@@ -2,7 +2,7 @@
 
 ## Replay metadata and the recovered commit
 
-This branch pins etcd `995dedf00f36`, which includes the RangeStream fix
+This branch pins etcd `d7c7f6434abc`, which includes the RangeStream fix
 at `4416a5786` and the replay repair at `03c73a97acff`. When the backend is ahead of the
 apply cursor, the sender labels its snapshot with the index, entry term
 and configuration of the frozen database. A pre-3.5 backend can lack the
@@ -47,8 +47,11 @@ Every ordinary Ready preserves the term of the pending backend index as
 entries are appended or overwritten. An installed snapshot advances the apply
 cursor past the initial image. The linked worker supplies the resulting term
 history to each apply job, and the apply worker sends the labelled image.
-The VM built the linked server successfully. The repository-wide checks
-for the replay pin are in progress.
+The VM built the linked server and the entire repository. The first trust
+check found that the mvccfull workload inherited JSON and membership initialization
+from the snapshot readers. Revision `d7c7f6434abc` shares the readers in
+`storage/schema/snapshotmeta`, outside the workload's dependency table.
+The rerun uses the Perennial pin on public `lean` at `88c3789867`.
 
 The public Grove pin removes the index comparison at `7bc6d14671`. The
 original replay report and failing test are on `lean` at `044d40223c`.

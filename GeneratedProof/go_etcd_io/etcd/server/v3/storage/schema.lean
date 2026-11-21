@@ -4,22 +4,16 @@ module
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.bytes
 public import Perennial.GeneratedProof.encoding.binary
-public import GeneratedProof.encoding.json
-public import Perennial.GeneratedProof.fmt
 public import GeneratedProof.github_com.Masterminds.semver.v3
 public import GeneratedProof.go_etcd_io.etcd.api.v3.authpb
 public import GeneratedProof.go_etcd_io.etcd.api.v3.etcdserverpb
 public import GeneratedProof.go_etcd_io.etcd.api.v3.version
-public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.types
 public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.verify
 public import GeneratedProof.go_etcd_io.etcd.server.v3.auth
-public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.membership
 public import GeneratedProof.go_etcd_io.etcd.server.v3.lease.leasepb
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.backend
-public import GeneratedProof.go_etcd_io.raft.v3.raftpb
 public import GeneratedProof.go_uber_org.zap
 public import GeneratedProof.google_golang_org.protobuf.proto
-public import Perennial.GeneratedProof.log
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.server.v3.storage.schema
 

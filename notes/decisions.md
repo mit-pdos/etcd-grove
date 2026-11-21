@@ -41521,6 +41521,11 @@ metadata in the same bbolt read transaction. For older databases it uses
 the immutable log for the Ready being applied to recover the entry term,
 and the membership in that database to recover the configuration.
 
+The sender and the schema package use the same readers for the saved
+configuration and membership. Keeping these functions in the snapshotmeta
+package lets the sender verify the decoders without importing their
+initialization dependencies into the MVCC proof.
+
 The startup worker reads the retained log from the same MemoryStorage that
 RestartNode takes. Each Ready carries its own immutable view of the term runs.
 Replacing entries after the committed backend index preserves the term even

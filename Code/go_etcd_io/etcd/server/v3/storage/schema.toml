@@ -14,7 +14,7 @@
 # their initializers are translated (`etc/gen-init.py`), not trust-boundary axioms. (2026-11-19) `UnsafeDeleteLease` with
 # `leaseIDToBytes` (and `leasepb`).
 translate = ["!*", "UnsafeReadConsistentIndex", "ReadConsistentIndex", "UnsafeUpdateConsistentIndex", "UnsafeUpdateConsistentIndexForce", "unsafeUpdateConsistentIndex", "Meta", "MetaConsistentIndexKeyName", "MetaTermKeyName", "UnsafeCreateMetaBucket", "Key", "keyBucketName", "metaBucketName", "bucket.ID", "bucket.Name", "bucket.String", "bucket.IsSafeRangeBucket", "NewAlarmBackend", "NewAuthBackend",
-  "NewMembershipBackend", "UnsafeConfStateFromBackend", "UnsafeReadMembers", "mustParseMemberIDFromBytes",
+  "NewMembershipBackend",
   "UnsafeCreateAuthRolesBucket", "revBytesLen", "authEnabled", "authDisabled",
   "Auth", "AuthUsers", "AuthRoles", "authBucketName", "authUsersBucketName", "authRolesBucketName",
   "Lease", "leaseBucketName", "UnsafeCreateLeaseBucket", "UnsafeDeleteLease", "leaseIDToBytes",
@@ -37,7 +37,7 @@ translate = ["!*", "UnsafeReadConsistentIndex", "ReadConsistentIndex", "UnsafeUp
   # `version`'s `semver` versions, schema.go) with `addNewField` (changes.go), and the interface
   # assertions `var _ auth.AuthBackend = (*authBackend)(nil)`, ... (auth.go)
   "schemaChanges", "addNewField", "_"]
-imports = ["!*", "encoding/json", "log", "fmt", "go.etcd.io/etcd/client/pkg/v3/types", "go.etcd.io/etcd/server/v3/etcdserver/api/membership", "go.etcd.io/raft/v3/raftpb", "github.com/Masterminds/semver/v3", "go.etcd.io/etcd/api/v3/version", "bytes", "encoding/binary", "google.golang.org/protobuf/proto", "go.etcd.io/etcd/api/v3/authpb", "go.etcd.io/etcd/server/v3/storage/backend", "go.etcd.io/etcd/client/pkg/v3/verify",
+imports = ["!*", "github.com/Masterminds/semver/v3", "go.etcd.io/etcd/api/v3/version", "bytes", "encoding/binary", "google.golang.org/protobuf/proto", "go.etcd.io/etcd/api/v3/authpb", "go.etcd.io/etcd/server/v3/storage/backend", "go.etcd.io/etcd/client/pkg/v3/verify",
   "go.uber.org/zap", "go.etcd.io/etcd/server/v3/auth", "go.etcd.io/etcd/api/v3/etcdserverpb",
   "go.etcd.io/etcd/server/v3/lease/leasepb"]
 

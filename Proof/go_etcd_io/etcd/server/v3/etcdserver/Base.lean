@@ -119,6 +119,7 @@ abbrev schemaInit : IProp GF :=
     (∃ s : GoSlice, globalAddr authEnabled ↦□ s ∗ s ↦*□ [W8 1]) ∗
     (∃ s : GoSlice, globalAddr authDisabled ↦□ s ∗ s ↦*□ [W8 0]) ∗
     (∃ b : GoInterface, globalAddr Lease ↦□ b ∗ bucketIs b (W64 3) leaseName false) ∗
+    (∃ b : GoInterface, globalAddr Members ↦□ b) ∗
     (∃ s : GoSlice, globalAddr MetaConfStateName ↦□ s ∗ s ↦*□ (go!"confState" : GoString)))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema :=

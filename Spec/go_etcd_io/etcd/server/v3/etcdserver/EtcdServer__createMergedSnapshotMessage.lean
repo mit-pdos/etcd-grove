@@ -1,5 +1,5 @@
 /-
-`s.createMergedSnapshotMessage(m, snapt, snapi, confState)` (`snapshot_merge.go`): the merged
+`s.createMergedSnapshotMessage(m, snapt, snapi, confState, terms, boot)` (`snapshot_merge.go`): the merged
 snapshot message. Lean-first (no Rocq counterpart); D22 S-h, 2026-10-20 (`notes/decisions.md`, "D22
 S-h carried out"); the vocabulary is `InvSnapSend.lean`. (A `True`-postcondition axiom until D19p,
 2026-10-18, which removed it as false.)
@@ -64,20 +64,23 @@ def replaySnapshotMembers (γ : ServerRaftNames) (mp : Loc) : IProp GF :=
 /-- Recovery from the absent configuration key reads the members in the same
 transaction that will be streamed. -/
 def replayMemberRead (γs : ServerRaftNames) (D : backend.Data) (lg sp : Loc) (γ : GName) : Prop :=
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-    isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ backend.snapOpenQ sp D γ 1 }}
-    (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.UnsafeReadMembers)) (Val #lg))
-      (Val #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.snapshot.ty) #sp)))
+  ∀ (bucket : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema.snapshotmeta ∗
+    isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+    globalAddr go_etcd_io.etcd.server.v3.storage.schema.Members ↦□ bucket ∗ backend.snapOpenQ sp D γ 1 }}
+    (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.snapshotmeta.ReadMembers)) (Val #lg))
+      (Val #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.snapshot.ty) #sp))) (Val #bucket))
   {{ (mp : Loc), RET (PairV #mp #GoInterface.nil); backend.snapOpenQ sp D γ 1 ∗ replaySnapshotMembers γs mp }}
 
 /-- A modern configuration decodes directly. An absent key makes the frozen
 members available to the translated recovery loop. -/
 def replayConfigRead (γs : ServerRaftNames) (D : backend.Data) : Prop :=
-  ∀ (lg sp : Loc) (γ : GName),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-    isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ backend.snapOpenQ sp D γ 1 }}
-    (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.UnsafeConfStateFromBackend)) (Val #lg))
-      (Val #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.snapshot.ty) #sp)))
+  ∀ (lg sp : Loc) (γ : GName) (bucket : GoInterface) (key : GoSlice),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema.snapshotmeta ∗
+    isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ backend.isBucket bucket mvcc.metaBI ∗
+    key ↦*□ (go!"confState" : GoString) ∗ backend.snapOpenQ sp D γ 1 }}
+    (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.snapshotmeta.ReadConfState)) (Val #lg))
+      (Val #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.snapshot.ty) #sp))) (Val #bucket)) (Val #key))
   {{ (p : Loc), RET #p; backend.snapOpenQ sp D γ 1 ∗
     (if p = null then ⌜replayMemberRead (GF := GF) γs D lg sp γ⌝ else epCsVoters γs p) }}
 

@@ -339,10 +339,10 @@ PROJECTS = [
         # `RangeStream` data race cherry-picked (etcd-io/etcd@9acc0ebe37: `rangeStream`'s next key is
         # `append(bytes.Clone(lastKey), 0)`, no longer an append into mvcc's index key;
         # nonissues/etcd-rangestream-keysonly-index-key-race.md).
-        # goose-lean-replay-storage-history keeps the legacy WAL recovery and RangeStream fixes.
+        # goose-lean-replay-snapshot-readers keeps the legacy WAL recovery and RangeStream fixes.
         # Same-term snapshots stream the backend during restart replay. The label comes from the
         # frozen image and its Ready's retained entry terms (issues/etcd-merged-snapshot-replay-failure.md).
-        rev="995dedf00f366702d1090a9a0702c2bbc57eaa5d",
+        rev="d7c7f6434abce9ad25ac5152b4e74a322fbec8c5",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
@@ -384,6 +384,7 @@ PROJECTS = [
             "go.etcd.io/etcd/server/v3/etcdserver/cindex",
             "go.etcd.io/etcd/server/v3/etcdserver",
             "go.etcd.io/etcd/server/v3/storage/schema",
+            "go.etcd.io/etcd/server/v3/storage/schema/snapshotmeta",
             # with bodies (pkg/v3/adt.toml): the interval tree of mvcc's watcher groups
             "go.etcd.io/etcd/pkg/v3/adt",
             # with bodies (etcdserver/txn.toml): the server's Range, Put, DeleteRange, Txn over

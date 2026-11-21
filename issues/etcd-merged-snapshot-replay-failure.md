@@ -48,3 +48,7 @@ The recovered suffix now comes from MemoryStorage before RestartNode takes
 ownership. All four send cases and the immutable-log test pass on this pin.
 A startup test covers an empty log, a snapshot with no later entries, and
 a suffix spanning three terms. [Fork revision](https://github.com/upamanyus/etcd/commit/995dedf00f366702d1090a9a0702c2bbc57eaa5d)
+
+The shared frozen-metadata readers also pass the replay regressions and the
+schema package tests on `d7c7f6434abc`. Existing schema callers and the
+snapshot sender use the same decoders. [Fork revision](https://github.com/upamanyus/etcd/commit/d7c7f6434abce9ad25ac5152b4e74a322fbec8c5)

@@ -11,7 +11,8 @@
 inside Proof/go_etcd_io/etcd/server/v3/storage/backend/
 inside Spec/go_etcd_io/etcd/server/v3/storage/backend/
 exempt (^|/)(Link|MainLinked|Results|Adequacy\w*)\.lean$
-root go_etcd_io.etcd.server.v3.storage.backend
+# The backend declares its specs and proofs under EtcdGrove.backend.
+root go_etcd_io.etcd.server.v3.storage
 
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.Base
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.BatchLemmas
