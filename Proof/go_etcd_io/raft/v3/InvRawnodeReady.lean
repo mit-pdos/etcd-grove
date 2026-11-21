@@ -1583,12 +1583,12 @@ pending snapshot is the loan's (`SnapRdy`), whose receiver-local fact the node k
 theorem ownRawNodeReady_loanLoc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (rd : Ready) (ce es : List EntryM) (ms : List QMsg) (h : Bool) (l : SnapLoan) :
     ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms h (some l) ⊢
-      (snapLocal γ id l.snap.Metadata'.Index' ∗
-        ⌜(γ.reBoot.length : Int) < uint.Z l.snap.Metadata'.Index'⌝) ∗
+      ((snapLocal γ id l.snap.Metadata'.Index' ∗
+        ⌜(γ.reBoot.length : Int) < uint.Z l.snap.Metadata'.Index'⌝) ∗ restoredSnapSource γ id (snapId l.snap)) ∗
       ownRawNodeReady γ rn id rs rd ce es ms h (some l) := by
   iintro H
-  ihave #Hss : iprop(snapLocal γ id l.snap.Metadata'.Index' ∗
-      ⌜(γ.reBoot.length : Int) < uint.Z l.snap.Metadata'.Index'⌝) $$ [H]
+  ihave #Hss : iprop((snapLocal γ id l.snap.Metadata'.Index' ∗
+      ⌜(γ.reBoot.length : Int) < uint.Z l.snap.Metadata'.Index'⌝) ∗ restoredSnapSource γ id (snapId l.snap)) $$ [H]
   · iunfold ownRawNodeReady at H
     icases H with ⟨%s, %cf, %fp, %ds, %rnv, %sv, %hprev, H⟩
     iNamed H

@@ -28093,6 +28093,11 @@ from today's definitions); (D) term-tagged ghost state across the raft loop, the
 apply thread (a project of its own). Dropping the premise from `sentMsg_replaceSnapshot` was
 declined (the user, 2026-10-31).
 
+The public Ready contract carries the incoming protocol message for each
+successfully restored snapshot. `nodeRestoreSource_leader` identifies a
+foreign elected sender from that evidence. The server still needs to relate
+the restore to the applied Ready batches to discharge the index guard.
+
 ## `applyAll`'s merge branch (S1) (2026-10-31)
 
 **2026-10-31 · accepted (the parent session's S1 plan; the two holes are S2's)**

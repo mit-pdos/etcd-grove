@@ -85,12 +85,14 @@ theorem rafthttp.checkClusterCompatibilityFromHeader.wp_proof
   · iframe #
   (try wp_auto)
   -- the peer's server version, or a panic
-  wp_apply hServerVersion hm hs $$ [] as %rsv %Hrsv
+  wp_apply hServerVersion hm hs $$ [] as %rsv Hrsv
   · iframe #
-  rcases Hrsv with ⟨rs, rfl, Hrsnn⟩ | ⟨-, p, rfl⟩
+  icases Hrsv with (⟨%rs, %xrs, %Hc, #Hxrs⟩ | %Hc)
   rotate_left
-  · wp_auto
+  · obtain ⟨-, p, rfl⟩ := Hc
+    wp_auto
     iapply HΦ; ileft; ipureintro; exact Or.inr ⟨p, rfl⟩
+  obtain ⟨rfl, Hrsnn⟩ := Hc
   (try wp_auto)
   rw [_root_.decide_eq_false Hrsnn]
   (try wp_auto)
@@ -98,19 +100,22 @@ theorem rafthttp.checkClusterCompatibilityFromHeader.wp_proof
   · iframe #; ipureintro; exact Hrsnn
   (try wp_auto)
   -- the peer's minimum cluster version, or a panic
-  wp_apply hMinCluster hm hs $$ [] as %rmv %Hrmv
+  wp_apply hMinCluster hm hs $$ [] as %rmv Hrmv
   · iframe #
-  rcases Hrmv with ⟨rm, rfl, Hrmnn⟩ | ⟨p, rfl⟩
+  icases Hrmv with (⟨%rm, %xrm, %Hc, #Hxrm⟩ | %Hc)
   rotate_left
-  · wp_auto
+  · obtain ⟨p, rfl⟩ := Hc
+    wp_auto
     iapply HΦ; ileft; ipureintro; exact Or.inr ⟨p, rfl⟩
+  obtain ⟨rfl, Hrmnn⟩ := Hc
   (try wp_auto)
   rw [_root_.decide_eq_false Hrmnn]
   (try wp_auto)
   wp_apply hString rm $$ [] as %rms -
   · iframe #; ipureintro; exact Hrmnn
   (try wp_auto)
-  wp_apply (hCheckVC _ rs rm Hrsnn Hrmnn) as %ls %lm %verr ⟨%Hlsnn, %Hlmnn⟩
+  wp_apply hCheckVC _ rs rm xrs xrm Hrsnn Hrmnn $$ [] as %ls %lm %verr ⟨⟨%Hlsnn, %Hlmnn⟩, ⟨%xls, #Hxls⟩, ⟨%xlm, #Hxlm⟩⟩
+  · iframe #
   (try wp_auto)
   rw [_root_.decide_eq_false Hlsnn]
   (try wp_auto)

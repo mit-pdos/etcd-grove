@@ -55,25 +55,6 @@ noncomputable instance v1AlphaServerStreamAdapter_into_val_typed :
 end def_
 end v1AlphaServerStreamAdapter
 
-namespace GRPCServer
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.reflection.Assumptions]
-
-noncomputable instance GRPCServer_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.reflection.GRPCServer :=
-  sorry -- axiomatized type
-
-noncomputable instance GRPCServer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.reflection.GRPCServer google_golang_org.grpc.reflection.GRPCServer.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end GRPCServer
-
 namespace ExtensionResolver
 section def_
 
