@@ -43,7 +43,8 @@ noncomputable def Sometimes.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Sometimes.ty
 
-opaque Inf [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def Inf [GooseExts] [GoGlobalContext] : val :=
+  #(W64 9218868437227405311)
 
 @[reducible] noncomputable def InfDuration [GooseExts] [GoGlobalContext] : val :=
   #(W64 9223372036854775807)
@@ -53,6 +54,32 @@ noncomputable def Every [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def NewLimiter [GooseExts] [GoGlobalContext] : GoString :=
   go!"golang.org/x/time/rate.NewLimiter"
+
+/-- Every converts a minimum time interval between events to a Limit.
+
+    go: rate.go:25:6 -/
+noncomputable def Every.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "interval"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Limit.ty))) (App (Val (GoInstruction (GoZeroVal Limit.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "interval" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "interval"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoDiv Limit.ty))) (Pair (Val #(W64 4607182418800017408)) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Duration.ty) go!"Seconds"))) (Var "interval")) (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Limit.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "interval")) (Val #(W64 0)))))
+  (Let "$r0" (Val Inf)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Limit.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad Limit.ty))) (Var "$res0")))))
 
 /-- NewLimiter returns a new Limiter that allows events up to rate r and permits
     bursts of at most b tokens.
@@ -371,6 +398,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Limiter_instance : Limiter.TypeAssumptions
   Reservation_instance : Reservation.TypeAssumptions
   Sometimes_instance : Sometimes.TypeAssumptions
+  Every_unfold : FuncUnfold Every [] Every.impl
   NewLimiter_unfold : FuncUnfold NewLimiter [] NewLimiter.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
@@ -380,6 +408,7 @@ attribute [instance] Assumptions.Limit_instance
   Assumptions.Limiter_instance
   Assumptions.Reservation_instance
   Assumptions.Sometimes_instance
+  Assumptions.Every_unfold
   Assumptions.NewLimiter_unfold
   Assumptions.import_context_Assumption
   Assumptions.import_sync_Assumption
