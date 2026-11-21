@@ -1,5 +1,6 @@
 /-
-The trust boundary: `encoding/binary`'s `Write` of an integer (names-only in Perennial).
+The trust boundary: `encoding/binary`'s `Write` of a value of a named type with underlying type
+`uint8`, which takes `Write`'s reflection path (see the spec).
 -/
 module
 

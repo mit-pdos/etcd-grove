@@ -28,7 +28,7 @@ theorem backend.batchTx.commit.wp_proof [go_etcd_io.bbolt.Assumptions] [go_uber_
                             typedPointsto (backend.bF go!"db" b) db (DFrac.own q)) ∗
                           dghostVar γ.opn (DFrac.own (Qp.half 1).half) false ∗
                             (if stop = true then backend.stopPay γ else F ∗ backend.cntLb γ n) ∗
-                              ⌜st.pend = W64 0 → st.S = st.C⌝ -∗
+                              backend.fkRd γ P (st.S, { bks := ∅, ver := W64 0 }) ∗ ⌜st.pend = W64 0 → st.S = st.C⌝ -∗
             ▷
                 ((sync.ownRWMutex (backend.bF go!"mu" b) fun q =>
                       typedPointsto (backend.bF go!"db" b) db (DFrac.own q)) ∗

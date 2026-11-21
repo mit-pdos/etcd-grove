@@ -4,6 +4,8 @@ module
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.bytes
 public import Perennial.GeneratedProof.context
+public import Perennial.GeneratedProof.crypto.rand
+public import GeneratedProof.encoding.base64
 public import Perennial.GeneratedProof.errors
 public import Perennial.GeneratedProof.fmt
 public import GeneratedProof.github_com.prometheus.client_golang.prometheus
@@ -14,6 +16,7 @@ public import GeneratedProof.go_etcd_io.etcd.pkg.v3.adt
 public import GeneratedProof.go_uber_org.zap
 public import GeneratedProof.golang_org.x.crypto.bcrypt
 public import GeneratedProof.google_golang_org.grpc.metadata
+public import Perennial.GeneratedProof.math.big
 public import Perennial.GeneratedProof.sort
 public import Perennial.GeneratedProof.strconv
 public import Perennial.GeneratedProof.strings

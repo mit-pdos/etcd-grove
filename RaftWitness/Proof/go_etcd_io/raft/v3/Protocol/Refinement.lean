@@ -4961,9 +4961,9 @@ the step's environment (`dynEnv`): the entry's subterm prefix's configuration is
 theorem ownRaftGhost_wapp (γ : RaftNames) (c : CfgM)
     (Hwi : γ.reDyn ≠ none → c.wit ∈ c.incoming) (id : w64) (s : PState)
     (i : w64) (e : EntryM) (vs : List w64) :
-    s.role = .leader → exclOf c s ≠ c.wit → exclOf c s ∈ c.incoming →
+    s.role = .leader → (exclOf c s ≠ c.wit ∨ (s.rsx = W64 0 ∧ s.sub ≠ W64 0)) → exclOf c s ∈ c.incoming →
     plogEntryAt s.base s.log i = some e → e.Term' = s.term → e.Subterm' = s.sub →
-    size c.incoming / 2 ≤ size (ackedBy s i ∩ rsVoters c s) →
+    witnessWriteCount (size c.incoming) s.rsx ≤ size (ackedBy s i ∩ rsVoters c s) →
     vs ≡ₚ elements (rsVoters c s) →
     ⊢ dynEnv γ id c s -∗ ownRaftGhost (GF := GF) γ id s md -∗
       isMessage γ (Msg.mkV .wapp id c.wit s.term false i s.term s.sub (W64 0) [] vs []) ∗
@@ -5009,13 +5009,16 @@ theorem ownRaftGhost_wapp (γ : RaftNames) (c : CfgM)
   obtain ⟨Hx, HPs⟩ := Hxp
   -- (2026-10-20) not of the first subterm, which excludes the witness itself
   icases wOwn_sub0 γ id s Hr $$ Hwg with %Hs0
-  have Hσ0 : s.sub ≠ W64 0 := fun h => by
-    have := Hs0 h; unfold exclOf at Hxw; rw [if_pos this] at Hxw; exact Hxw rfl
-  have Hex : exclOf c s = s.rsx := by
-    unfold exclOf at Hxw ⊢
-    by_cases h0 : s.rsx = W64 0
-    · rw [if_pos h0] at Hxw; exact absurd rfl Hxw
-    · rw [if_neg h0]
+  have Hσ0 : s.sub ≠ W64 0 := by
+    rcases Hxw with h | ⟨-, h⟩
+    · intro hz; have hx := Hs0 hz
+      exact h (by simp only [exclOf, hx, ite_true])
+    · exact h
+  have Hxne : x ≠ γ.reWit := by
+    intro heq
+    rcases Hxw with h | ⟨h, -⟩
+    · exact h (by simp only [exclOf, ← Hx, heq, if_neg Hwnz, Hcw])
+    · exact Hwnz (heq.symm.trans (Hx.trans h))
   -- (2026-10-20) the entry's prefix's configuration is the step's; the witness is its voter
   have Hcwnz : c.wit ≠ W64 0 := by rw [Hcw]; exact Hwnz
   ihave %HcPw : ⌜CfgAt γ P c ∧ γ.reWit ∈ c.incoming⌝ $$ []
@@ -5032,17 +5035,18 @@ theorem ownRaftGhost_wapp (γ : RaftNames) (c : CfgM)
       ipureintro
       exact ⟨by rw [HPs]; exact HL Hr Hσ0 Hcwnz, by rw [← Hcw]; exact Hwi Hdyn⟩
   obtain ⟨HcP, HwI⟩ := HcPw
-  have Hrs : rsVoters c s = c.incoming \ ({[γ.reWit]} ∪ {[x]}) := by
-    unfold rsVoters; rw [Hex, Hcw, Hx]
+  have Hrs : rsVoters c s = c.incoming \ ({[γ.reWit]} ∪ {[if x = W64 0 then γ.reWit else x]}) := by
+    unfold rsVoters exclOf; rw [Hcw, ← Hx]
   rw [Hrs] at Hsz Hvs
-  rw [Hex, ← Hx] at Hxin
-  rw [Hex, Hcw, ← Hx] at Hxw
-  ihave #Hacks : iprop([∗map] h ↦ _u ∈ toMap (ackedBy s i ∩ (c.incoming \ ({[γ.reWit]} ∪ {[x]}))),
+  unfold exclOf at Hxin
+  rw [Hcw, ← Hx] at Hxin
+  rw [← Hx] at Hsz
+  ihave #Hacks : iprop([∗map] h ↦ _u ∈ toMap (ackedBy s i ∩ (c.incoming \ ({[γ.reWit]} ∪ {[if x = W64 0 then γ.reWit else x]}))),
       ∃ i', ⌜uint.Z i ≤ uint.Z i'⌝ ∗ ackReg (GF := GF) γ h s.term i') $$ []
   · rw [matchedOk_leader γ s Hr]
     iapply BigSepM.bigSepM_forall_elim
     iintro %v %u %Hv
-    have Hv' : v ∈ ackedBy s i ∩ (c.incoming \ ({[γ.reWit]} ∪ {[x]})) :=
+    have Hv' : v ∈ ackedBy s i ∩ (c.incoming \ ({[γ.reWit]} ∪ {[if x = W64 0 then γ.reWit else x]})) :=
       (GMap.elem_of_gset _ _).mpr (by cases u; exact Hv)
     rw [GMap.elem_of_intersection, GMap.elem_of_difference, GMap.elem_of_union,
       GMap.elem_of_singleton, GMap.elem_of_singleton] at Hv'
@@ -5064,7 +5068,7 @@ theorem ownRaftGhost_wapp (γ : RaftNames) (c : CfgM)
   · unfold isMessage
     simp only [Hcw, Hwnz, ne_eq, not_false_eq_true, _root_.and_self, ↓reduceIte]
     -- (2026-10-20) at the step's configuration, of the entry's item's prefix
-    iexists x, P, c, ackedBy s i ∩ (c.incoming \ ({[γ.reWit]} ∪ {[x]}))
+    iexists x, P, c, ackedBy s i ∩ (c.incoming \ ({[γ.reWit]} ∪ {[if x = W64 0 then γ.reWit else x]}))
     isplitr
     · ipureintro
       refine ⟨trivial, fun v => ?_, Hvs.nodup_iff.mpr (GMap.NoDup_elements _)⟩
@@ -5072,7 +5076,7 @@ theorem ownRaftGhost_wapp (γ : RaftNames) (c : CfgM)
     unfold wJust
     isplitr
     · ipureintro
-      refine ⟨Hwnz, HcP, Hcw, HwI, Hxin, Hxw, ?_, Hsz, ?_⟩
+      refine ⟨Hwnz, HcP, Hcw, HwI, Hxin, Hxne, ?_, Hsz, ?_⟩
       · rw [GMap.elem_of_subseteq]; intro v hv
         rw [GMap.elem_of_intersection] at hv; exact hv.2
       refine ⟨?_, Hσ0⟩

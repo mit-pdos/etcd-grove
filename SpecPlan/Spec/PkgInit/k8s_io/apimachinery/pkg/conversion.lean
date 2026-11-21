@@ -3,7 +3,7 @@ module
 
 public import GeneratedProof.k8s_io.apimachinery.pkg.conversion
 public import SpecPlan.Spec.PkgInit.Base
-public import SpecPlan.Spec.PkgInit.reflect
+public import Perennial.Proof.reflect.Base
 
 @[expose] public section
 noncomputable section

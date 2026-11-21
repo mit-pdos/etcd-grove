@@ -1284,18 +1284,29 @@ def revInv (st : Loc) (M : AuthMode) : IProp GF :=
 
 /-- **The auth store** at `as` (persistent), its backend's read resource `R`, its mode `M`: the
 atomic `revision`'s invariant, the read-only `lg` (not nil) and `tokenProvider` with its contract,
-and the guards of its three locks (`beMu`'s holds `be` with its contract in the mode). -/
+the guards of its three locks (`beMu`'s holds `be` with its contract in the mode), and the read-only
+`bcryptCost` (set by `NewAuthStore`'s composite literal, never written; prove-authcrypto, 2026-11-21). -/
 def authInv (st : Loc) (R : IProp GF) (M : AuthMode) : IProp GF :=
   iprop(⌜st ≠ null⌝ ∗ inv (nroot.@"authRev") (revInv st M) ∗
     (∃ lg : Loc, aF go!"lg" st ↦□ lg ∗ zapLoggerOk lg) ∗
     sync.isRWMutexGuard (aF go!"beMu" st) (beP st R M) ∗
     (∃ tp : TokenProvider, aF go!"tokenProvider" st ↦□ tp ∗ tokenProviderOk tp M) ∗
     sync.isRWMutexGuard (aF go!"enabledMu" st) (enabledP st M) ∗
-    sync.isRWMutexGuard (aF go!"rangePermCacheMu" st) (cacheP st M))
+    sync.isRWMutexGuard (aF go!"rangePermCacheMu" st) (cacheP st M) ∗
+    -- (prove-authcrypto, 2026-11-21) the read-only `bcryptCost`, which `selectPassword` reads
+    (∃ c : w64, aF go!"bcryptCost" st ↦□ c))
 
 instance authInv_persistent (st : Loc) (R : IProp GF) (M : AuthMode) :
     Persistent (authInv (GF := GF) st R M) := by
   unfold authInv; infer_instance
+
+/-- The store's `bcryptCost`, read-only, from its invariant. -/
+theorem authInv_bcryptCost (st : Loc) (R : IProp GF) (M : AuthMode) :
+    authInv (GF := GF) st R M ⊢ ∃ c : w64, aF go!"bcryptCost" st ↦□ c := by
+  iintro #H
+  iunfold authInv at H
+  icases H with ⟨-, -, -, -, -, -, -, #Hc⟩
+  iexact Hc
 
 /-- **Every recorded state is below the cap** (H5, 2026-10-29): the store's revision invariant keeps
 a quarter of the history with the cap's lower bound at it (`revCur`), so a recorded state `s` at `i`

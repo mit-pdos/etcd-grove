@@ -3,6 +3,8 @@ module
 
 public import GeneratedProof.golang_org.x.crypto.bcrypt
 public import SpecPlan.Spec.PkgInit.Base
+public import SpecPlan.Spec.PkgInit.encoding.base64
+public import Perennial.Proof.errors.Base
 
 @[expose] public section
 noncomputable section

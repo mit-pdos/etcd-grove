@@ -34,7 +34,6 @@ axiom Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.schema.initFuncsOk
 axiom Perennial.go_opentelemetry_io.otel.attribute.opaqueInitsOk
 axiom Perennial.go_opentelemetry_io.otel.trace.opaqueInitsOk
-axiom Perennial.golang_org.x.crypto.bcrypt.opaqueInitsOk
 axiom Perennial.golang_org.x.sys.unix.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.codes.initFuncsOk
 axiom Perennial.google_golang_org.grpc.credentials.opaqueInitsOk
@@ -44,7 +43,6 @@ axiom Perennial.google_golang_org.grpc.opaqueInitsOk
 axiom Perennial.internal.runtime.sys.opaqueInitsOk
 axiom Perennial.net.opaqueInitsOk
 axiom Perennial.net.url.opaqueInitsOk
-axiom Perennial.reflect.opaqueInitsOk
 axiom Perennial.runtime.GOARCH_amd64
 axiom Perennial.runtime.GOOS_linux
 axiom Perennial.runtime.initFuncsOk
@@ -61,8 +59,6 @@ axiom go_humanize.Bytes.wp_proof
 axiom goose_adequacy_start
 axiom httpProtoFree
 axiom lease.NewLessor.wp_proof
-axiom lease.lessor.Stop.wp_proof
-axiom lease.lessorStopTok
 axiom mvcc.hashStorage.Store.wp_proof
 axiom netAddrFree
 axiom os.Getenv.wp_proof

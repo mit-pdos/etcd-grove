@@ -124,6 +124,12 @@ class Project:
     # the parallel tree `RaftWitness/`; raft v3.7 was one, the parallel tree `Raft37/` the
     # raft proof was ported into).
     root: str = ""
+    # Standard-library packages the translation takes from their models in models/ (e.g.
+    # ["net/rpc", "net/http"]; models/goroot.py's STD_MODELS) instead of the toolchain's source:
+    # goose runs on a GOROOT of links whose packages' Go files are the models' (models/goroot.py
+    # farm; goose's go/packages reads files from disk, so a `go build -overlay` file in GOFLAGS
+    # would not reach it). None: the toolchain's own source, as every other project.
+    std_models: list = None
 
     @property
     def env(self):
@@ -831,6 +837,32 @@ PROJECTS = [
         owned=["models_lab"],
     ),
     Project(
+        name="models-net",
+        # Our models of standard-library packages (models/README.md; notes/dsverify-net-port-plan.md,
+        # phase 5.2): `net/rpc` and `net/http`, Go 1.27.3's source with the parts goose cannot take
+        # or that are the hard core replaced (models/net/{rpc,http}, marked MODEL; the difference:
+        # models/diff.py), translated from the models (std_models: a GOROOT of links,
+        # models/goroot.py). Into the part `Net/` (`Net/Code/net/{rpc,http}.lean`, inside project
+        # net's `net`, which leaves them to this project), with `net` the part's.
+        repo=None,
+        rev=None,
+        local="models",
+        root="Net",
+        # (`bufio`: the main tree's translation, as for project etcd's part)
+        # (`net/url`, `path`, `crypto/tls`: the main tree's names-only translations; `net/textproto` and the
+        # vendored `httpguts`, which the model's server calls, names only here)
+        lean_roots=["models.lab=Net", "net=Net", "os=", "syscall=", "io/fs=", "internal/poll=",
+                    "internal/syscall=", "bufio=", "net/url=", "path=", "crypto/tls=", "vendor=Net",
+                    "golang.org/x/net/http/httpguts=Net", "go/token=Net"],
+        packages=["net/rpc", "net/http", "net/textproto", "vendor/golang.org/x/net/http/httpguts",
+                  "go/token"],
+        owned=[os.path.join("net", "rpc"), os.path.join("net", "http"),
+               os.path.join("net", "textproto"),
+               os.path.join("vendor", "golang_org", "x", "net", "http", "httpguts"),
+               os.path.join("go", "token")],
+        std_models=["net/rpc", "net/http"],
+    ),
+    Project(
         name="durablekv",
         # kv made durable (`examples/raft/kvfile`): each replica's raft state in a file of the
         # durable package, rewritten whole before the messages that depend on it are sent;
@@ -1396,14 +1428,13 @@ PROJECTS = [
         # The witness experiment (notes/raft-witness.md; a candidate implementation of
         # etcd-io/raft#133, not merged upstream): branch raft-witness-goose-lean of the etcd
         # fork, etcd-io/raft#168 rebased onto raft37-goose-lean-a1 (project raft's pin) with
-        # the fixes of notes/raft-witness-vs-pr168.md, at 99cb9e2d9 (a witness shared by both
-        # halves of a joint configuration is sent an entry only if both replicate to it;
-        # notes/raft-witness-reconfig.md), then (2026-11-10, premise fixes 2) project raft's fourth fix, `ConfState.Equivalent`
-        # comparing configurations, at 3e3ed2d. Translated into the parallel tree RaftWitness
+        # the fixes of notes/raft-witness-vs-pr168.md and the ConfState.Equivalent fix
+        # at 3e3ed2d. Branch raft-witness-goose-lean-joint-progress computes the index
+        # supported by both halves when they share a witness. Translated into RaftWitness
         # (modules RaftWitness.Code.go_etcd_io.raft.v3*, ...), which nothing outside it imports;
         # the same packages as project raft, configured by RaftWitness/Code/**.toml.
         repo="https://github.com/upamanyus/etcd",
-        rev="3e3ed2d2974287a24803a1772d1a4216cc5aee05",
+        rev="13190826c05a3e8357e7a9041db70ab5a0644582",
         root="RaftWitness",
         # raft's `proto` import is the main tree's names-only `Code.google_golang_org.protobuf.proto`
         lean_roots=["go.etcd.io/raft/v3=RaftWitness", "google.golang.org=", "os=", "io/fs="],
@@ -1433,6 +1464,9 @@ PROJECTS = [
         local=os.path.join("examples", "k8s", "etcd3"),
         lean_roots=["k8s.io=", "go.etcd.io/etcd=", "google.golang.org=", "go.uber.org=", "os=", "io/fs=",
                     "go.opentelemetry.io=", "net=", "encoding/json=", "encoding/base64=",
+                    # (prove-authcrypto, 2026-11-21) base64's decoder's big-endian stores
+                    # (Code/internal/byteorder.toml), with their bodies
+                    "internal/byteorder=",
                     "path=", "github.com/mit-pdos/etcd-grove=",
                     "github.com/anishathalye/porcupine=",
                     # the etcd project's names-only translations, which client-go's workqueue
@@ -1593,6 +1627,7 @@ PROJECTS = [
             "k8s.io/utils/trace",
             "encoding/json",
             "encoding/base64",
+            "internal/byteorder",
             # types only (the context sweep's fixes, 2026-11-13): runtime/trace's context key
             "runtime/trace",
             # (`path` is the etcd project's, with the bodies rafthttp needs: `Code/path.toml`)
@@ -1647,7 +1682,7 @@ PROJECTS = [
                os.path.join("encoding", "json"),
                os.path.join("github_com", "go_logr"),
                os.path.join("github_com", "spf13"),
-               os.path.join("encoding", "base64"),
+               os.path.join("encoding", "base64"), os.path.join("internal", "byteorder"),
                os.path.join("runtime", "trace"),
                os.path.join("github_com", "google"), "maps",
                os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8s", "etcd3")],
@@ -2074,18 +2109,47 @@ def pinned_perennial():
     return checkout(p["url"], p["rev"], os.path.join(WORK, "perennial")), p["rev"]
 
 
-def lean_files(d, owned):
-    """The `.lean` files under `d/{Code,GeneratedProof}/` at the paths `owned`."""
+def lean_files(d, owned, others=()):
+    """The `.lean` files under `d/{Code,GeneratedProof}/` at the paths `owned`, but for those at
+    the paths `others` (owned by another translation into the same module root: `net/rpc` of
+    project models-net inside project net's `net`)."""
     out = {}
     for sub in ("Code", "GeneratedProof"):
+        skip = {os.path.join(d, sub, x) for x in others}
         for o in owned:
             base = os.path.join(d, sub, o)
             paths = [base + ".lean"] if os.path.isfile(base + ".lean") else []
             for dp, _, fs in os.walk(base):
                 paths.extend(os.path.join(dp, f) for f in fs if f.endswith(".lean"))
             for path in paths:
+                if any(path == x + ".lean" or path.startswith(x + os.sep) for x in skip):
+                    continue
                 out[os.path.relpath(path, d)] = open(path, encoding="utf-8").read()
     return out
+
+
+def others_owned(root, owned):
+    """The paths other translations into module root `root` own below one of `owned`."""
+    out = []
+    for p in PROJECTS:
+        for r, _, _, o2 in pieces(p):
+            if r != root:
+                continue
+            out.extend(x for x in o2 if x not in owned
+                       and any(x.startswith(o + os.sep) for o in owned))
+    return out
+
+
+def std_models_env(proj):
+    """The environment goose runs in: for a project with std_models, a GOROOT of links whose
+    modelled packages' Go files are the models' (models/goroot.py), made afresh."""
+    if not proj.std_models:
+        return None
+    sys.path.insert(0, os.path.join(ROOT, "models"))
+    import goroot
+    farm = goroot.make_farm(os.path.join(WORK, "goroot-" + proj.name), proj.std_models)
+    return dict(os.environ, GOROOT=farm, GOTOOLCHAIN="local",
+                PATH=os.path.join(farm, "bin") + os.pathsep + os.environ.get("PATH", ""))
 
 
 def pieces(proj):
@@ -2133,6 +2197,7 @@ def translate(proj, src, bindir, perennial_rev, desc, check):
     try:
         # path relative to ROOT -> (new content or None, old content or None)
         new, old = {}, {}
+        env = std_models_env(proj)
         for i, (root, lean_roots, packages, owned) in enumerate(pieces(proj)):
             lib_dir = os.path.join(ROOT, root)
             piece_out = os.path.join(out, str(i))
@@ -2143,10 +2208,11 @@ def translate(proj, src, bindir, perennial_rev, desc, check):
             for tool, sub in (("goose", "Code"), ("proofgen", "GeneratedProof")):
                 run([os.path.join(bindir, tool)] + roots +
                     ["-out", os.path.join(piece_out, sub), "-configdir", config, "-dir", src]
-                    + packages)
-            for f, c in lean_files(piece_out, owned).items():
+                    + packages, env=env)
+            others = others_owned(root, owned)
+            for f, c in lean_files(piece_out, owned, others).items():
                 new[os.path.join(root, f)] = (c, os.path.join(piece_out, f))
-            for f, c in lean_files(lib_dir, owned).items():
+            for f, c in lean_files(lib_dir, owned, others).items():
                 old[os.path.join(root, f)] = c
         newc = {f: c for f, (c, _) in new.items()}
         changed = sorted(f for f in newc.keys() | old.keys() if newc.get(f) != old.get(f))

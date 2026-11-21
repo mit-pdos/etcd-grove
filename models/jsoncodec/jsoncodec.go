@@ -356,6 +356,37 @@ func ValueEnd(b []byte, i uint64) uint64 {
 	return i + n
 }
 
+// Nesting returns the deepest nesting of arrays and objects in b, a valid JSON text (0 for a
+// scalar): the generated encoders add it to the depth a raw value is written at, against
+// MaxDepth, as real encoding/json's encoder counts its nesting across a RawMessage.
+func Nesting(b []byte) uint64 {
+	depth := uint64(0)
+	max := uint64(0)
+	inStr := false
+	i := 0
+	for i < len(b) {
+		c := b[i]
+		if inStr {
+			if c == '\\' {
+				i++
+			} else if c == '"' {
+				inStr = false
+			}
+		} else if c == '"' {
+			inStr = true
+		} else if c == '[' || c == '{' {
+			depth++
+			if depth > max {
+				max = depth
+			}
+		} else if c == ']' || c == '}' {
+			depth--
+		}
+		i++
+	}
+	return max
+}
+
 // ---------------------------------------------------------------------------------------------
 // Encoding (the generated encoders' helpers)
 
@@ -370,6 +401,15 @@ type Error struct {
 func (e *Error) Error() string {
 	return "json: " + e.Msg
 }
+
+// NotModelled is the value these functions (and the generated codec) panic with where real
+// encoding/json does something the model does not reproduce (a string outside the plain subset,
+// a type the codec does not know): the models' convention (models/README.md), so that a proof
+// that the program does not panic shows it never gets there.
+type NotModelled string
+
+// NotModelled marks the value as the models' panic.
+func (NotModelled) NotModelled() {}
 
 // AppendRaw appends s's bytes to b.
 func AppendRaw(b []byte, s string) []byte {
@@ -388,7 +428,7 @@ func AppendString(b []byte, s string) []byte {
 	i := 0
 	for i < len(s) {
 		if !plainByte(s[i]) || htmlByte(s[i]) {
-			panic("json model: a string outside the model's plain subset")
+			panic(NotModelled("json model: a string outside the model's plain subset"))
 		}
 		i++
 	}
@@ -420,6 +460,23 @@ func AppendQuotedUint(b []byte, x uint64) []byte {
 	return append(b2, '"')
 }
 
+// AppendInt appends x in decimal, with a '-' if it is negative (strconv.AppendInt(b, x, 10)).
+func AppendInt(b []byte, x int64) []byte {
+	if x >= 0 {
+		return AppendUint(b, uint64(x))
+	}
+	// the magnitude of x, also for the smallest int64
+	m := uint64(-(x + 1)) + 1
+	return AppendUint(append(b, '-'), m)
+}
+
+// AppendQuotedInt appends x in decimal in quotes (a field with the ",string" option).
+func AppendQuotedInt(b []byte, x int64) []byte {
+	b1 := append(b, '"')
+	b2 := AppendInt(b1, x)
+	return append(b2, '"')
+}
+
 // AppendBool appends true or false.
 func AppendBool(b []byte, x bool) []byte {
 	if x {
@@ -443,7 +500,7 @@ func AppendCompact(b []byte, raw []byte) ([]byte, bool) {
 		c := raw[i]
 		if inStr {
 			if htmlByte(c) || c == '\\' || c >= 0x80 {
-				panic("json model: '<', '>', '&', an escape or a non-ASCII byte in a MarshalJSON string (outside the model)")
+				panic(NotModelled("json model: '<', '>', '&', an escape or a non-ASCII byte in a MarshalJSON string (outside the model)"))
 			}
 			if c == '"' {
 				inStr = false
@@ -477,7 +534,7 @@ func Str(b []byte, i uint64) (string, uint64) {
 	j := i + 1
 	for b[j] != '"' {
 		if b[j] == '\\' || b[j] >= 0x80 {
-			panic("json model: decoding a string with an escape or a non-ASCII byte (outside the model's plain subset)")
+			panic(NotModelled("json model: decoding a string with an escape or a non-ASCII byte (outside the model's plain subset)"))
 		}
 		j++
 	}
@@ -600,6 +657,7 @@ func QuotedUint(b []byte, i uint64, max uint64) (uint64, uint64, uint64) {
 	if c != '"' {
 		return 0, TypeErr, k
 	}
+	noEscape(b, j+1, k-1)
 	if k-j == 6 && b[j+1] == 'n' && b[j+2] == 'u' && b[j+3] == 'l' && b[j+4] == 'l' {
 		return 0, Keep, k
 	}
@@ -608,6 +666,107 @@ func QuotedUint(b []byte, i uint64, max uint64) (uint64, uint64, uint64) {
 		return 0, TypeErr, k
 	}
 	return x, Set, k
+}
+
+// noEscape panics if b[i:j] (a string's contents) has an escape sequence: real encoding/json
+// unescapes a ",string" field's string before parsing it (an escaped digit is a digit), which the
+// model does not.
+func noEscape(b []byte, i uint64, j uint64) {
+	k := i
+	for k < j {
+		if b[k] == '\\' {
+			panic(NotModelled("json model: an escape sequence in a \",string\" field's string (outside the model's plain subset)"))
+		}
+		k++
+	}
+}
+
+// Int decodes the value at or after i into a signed integer in [-max-1, max] (max >= 9; max+1 a
+// power of two): a number with no fraction or exponent, '-' allowed. It returns the number, the
+// status and the index after the value.
+func Int(b []byte, i uint64, max uint64) (int64, uint64, uint64) {
+	j, c := At(b, i)
+	k := ValueEnd(b, j)
+	if c == 'n' {
+		return 0, Keep, k
+	}
+	return signed(b, j, k, max, false), statusOf(b, j, k, max, false), k
+}
+
+// QuotedInt decodes the value at or after i into a signed integer field tagged ",string": a
+// string holding an optional sign ('+' or '-') and decimal digits (leading zeros allowed), in
+// range (strconv.ParseInt(s, 10, bits)); null and the string "null" leave the field unchanged.
+func QuotedInt(b []byte, i uint64, max uint64) (int64, uint64, uint64) {
+	j, c := At(b, i)
+	k := ValueEnd(b, j)
+	if c == 'n' {
+		return 0, Keep, k
+	}
+	if c != '"' {
+		return 0, TypeErr, k
+	}
+	noEscape(b, j+1, k-1)
+	if k-j == 6 && b[j+1] == 'n' && b[j+2] == 'u' && b[j+3] == 'l' && b[j+4] == 'l' {
+		return 0, Keep, k
+	}
+	return signed(b, j+1, k-1, max, true), statusOf(b, j+1, k-1, max, true), k
+}
+
+// signedParts splits b[i:j] into its sign and digits: (negative, the index of the first digit,
+// ok). A '-' is allowed; a '+' only if plus (strconv.ParseInt's syntax; a JSON number has none).
+func signedParts(b []byte, i uint64, j uint64, plus bool) (bool, uint64, bool) {
+	if i >= j {
+		return false, i, false
+	}
+	if b[i] == '-' {
+		return true, i + 1, true
+	}
+	if b[i] == '+' {
+		return false, i + 1, plus
+	}
+	if !isDigit(b[i]) {
+		return false, i, false
+	}
+	return false, i, true
+}
+
+// statusOf is Set if b[i:j] is a signed integer in [-max-1, max] (signedParts' syntax, then
+// Digits), else TypeErr.
+func statusOf(b []byte, i uint64, j uint64, max uint64, plus bool) uint64 {
+	neg, d, ok := signedParts(b, i, j, plus)
+	if !ok {
+		return TypeErr
+	}
+	lim := max
+	if neg {
+		lim = max + 1
+	}
+	_, ok2 := Digits(b, d, j, lim)
+	if !ok2 {
+		return TypeErr
+	}
+	return Set
+}
+
+// signed is the value of b[i:j] when statusOf says Set (else 0).
+func signed(b []byte, i uint64, j uint64, max uint64, plus bool) int64 {
+	neg, d, ok := signedParts(b, i, j, plus)
+	if !ok {
+		return 0
+	}
+	lim := max
+	if neg {
+		lim = max + 1
+	}
+	m, ok2 := Digits(b, d, j, lim)
+	if !ok2 {
+		return 0
+	}
+	if neg {
+		// -m, also for m = max+1 (the smallest value)
+		return -int64(m-1) - 1
+	}
+	return int64(m)
 }
 
 // String decodes the value at or after i into a string.

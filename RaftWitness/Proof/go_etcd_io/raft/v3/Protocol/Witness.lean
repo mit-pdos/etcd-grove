@@ -320,7 +320,7 @@ theorem wGhost_write (γ : RaftNames) (st : WState) (m : Msg) :
   intro Hty Hd Hwnz Ht Hnl
   have Hm' : isMessage (GF := GF) γ m = iprop(∃ (x : w64) (P : List EntryM) (c : CfgM)
       (H : GSet w64),
-      ⌜m.logterm = m.term ∧ (∀ v, v ∈ m.voters ↔ v ∈ c.incoming \ ({[γ.reWit]} ∪ {[x]})) ∧
+      ⌜m.logterm = m.term ∧ (∀ v, v ∈ m.voters ↔ v ∈ c.incoming \ ({[γ.reWit]} ∪ {[if x = W64 0 then γ.reWit else x]})) ∧
         m.voters.Nodup⌝ ∗
       wJust γ m.term m.sub m.index x P c H) := by
     simp only [isMessage, Hty]; rw [if_pos ⟨Hd, Hwnz⟩]
