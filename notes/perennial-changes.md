@@ -3296,6 +3296,14 @@ parameter.
 
 ## 2026-11-20: `time.After` and the timers have no clock content (clockwork's real clock)
 
+**Done (2026-11-21, prove-clock; Perennial `2a3d3f7d1`):** Perennial models the runtime's monotonic
+clock (a model-only cell allocated by `asynctimerchan`'s trusted initializer, readings a CAS loop
+that only advances it), `time.After` waits for it, `time.clockLb n` is its lower bound, and
+`time.After.spec` gives `T ≥ n` and values carrying `Ψ T` derived from `clockLb (T + d)`
+(`time.After.spec_pkgInit` is the old shape). clockwork's axioms are definitions over it.
+`runtimeNano`/`runtimeNow`/the other timers still read arbitrary values (future work: their specs
+would take `isPkgInit time`).
+
 - **The gap.** Perennial's `time.After(d)` spec gives a bag of times with no logical content
   (`isChanBag γ ch (fun _ => True)`), and `time.Now` arbitrary readings; there is no ghost clock that
   a receive on `After`'s channel bounds from below. The model (`TrustedCode/time.lean`) agrees: `NewTimer`'s

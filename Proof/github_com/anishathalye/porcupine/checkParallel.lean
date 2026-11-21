@@ -186,7 +186,7 @@ theorem checkParallel.wp_proof
   wp_join iprop(∃ tc : GoChan, timeout_ptr ↦ dur ∗ timeoutChan_ptr ↦ tc ∗ (⌜tc = chan.nil⌝ ∨
       ∃ γ, ⌜0 < sint.Z dur⌝ ∗ isChanBag γ tc (V := time.Time) (fun _ => iprop(True))))
     with [timeoutChan timeout] as ⟨%tc, timeout, timeoutChan, Htc⟩
-  · wp_apply time.wp_After as %tch %γa #Htch
+  · wp_apply (time.After.spec_pkgInit time.wp_After _) as %tch %γa #Htch
     isplitr
     · ipureintro; rfl
     iexists tch

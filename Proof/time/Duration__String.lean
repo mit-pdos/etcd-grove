@@ -1,12 +1,16 @@
 /-
-The trust boundary: `time.Duration.String` (not in Perennial's translation of `time`; total, and
-it reads only its receiver).
+The proof of `time.Duration.String`: Perennial's (translated: `format` into a 32-byte buffer, every
+index in bounds; some string). Lean-first.
 -/
 module
 
 public import Spec.time.Duration__String
+public import Perennial.Spec.time.Duration__String
+import Perennial.Proof.time.Link
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
@@ -22,9 +26,8 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.time.Assumptions]
 
-/-- **The trust boundary**: Go's `Duration.String` formats the duration into a local buffer
-and returns it as a string; it does not panic and touches no other memory. -/
-axiom time.Duration.String.wp_proof : time.Duration.String.spec (GF := GF) (hG := hG)
+theorem time.Duration.String.wp_proof : time.Duration.String.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.time.Duration.wp_String
 
 end proof
 
