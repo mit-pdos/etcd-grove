@@ -17,6 +17,33 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `strconv.Atoi` had no body: landed in Perennial `78ac98e99`, not yet in the pin (2026-11-21, prove-metrics3)
+
+- **Limitation.** Perennial translated `strconv` without `Atoi`, so otel trace's `firstEnv` (`maxSpan =
+  newSpanLimits()`, `trace/auto.go:622-690`, v1.47.0) could not be stepped and stays in
+  `go_opentelemetry_io.otel.trace.opaqueInitsOk`.
+- **Landed.** Perennial `78ac98e99` (on `lean`): `strconv.Atoi` and `internal/strconv.Atoi` translated, with
+  specs (a nil error, `ErrSyntax` or `ErrRange`, wrapped by `toError` in `strconv`; the number unspecified) and
+  proofs.
+- **Status.** Waiting for a pin bump past Perennial `7ad4f91b1` (its crash-token channel updates need
+  `ncfupd_of_fupd` in this repository's channel proofs: the coordinator's). Then: translate otel trace's
+  `maxSpan`, `newSpanLimits`, `firstEnv` (over `os.Getenv`'s spec and `strconv.wp_Atoi`) and its other
+  initializers (`/shared/tmp/extlib-metrics3-triage.md`).
+
+### `-x` of a `float64` does not step: `Float64Semantics` has no `GoNeg` (2026-11-21, prove-metrics3)
+
+- **Limitation.** `FloatOps` has `float64Neg`/`float32Neg`, but `Float64Semantics`/`Float32Semantics`
+  (`Perennial/Golang/Defn/Predeclared.lean`) give no rule for `GoUnOp GoNeg go.float64` (only the untyped
+  constant's `neg_untyped_float`), so a run-time float negation is stuck.
+- **Needed by.** x/time/rate's token bucket: `reserveN`'s `lim.limit.durationFromTokens(-tokens)` (`rate.go:357`),
+  which `Limiter.Reserve` and `Limiter.Wait` run (their axioms stay; the rest of the bucket, `advance`,
+  `durationFromTokens`, `tokensFromDuration`, the lock, steps: draft proofs in `/shared/tmp/metrics3/rate-draft/`).
+- **Workaround here.** None: the two functions stay trust-boundary axioms.
+- **Proposed (general).** `neg_float64 (v : w64) : ⟦GoUnOp GoNeg go.float64, #v⟧ ⤳[under] #(float64Neg v)` and its
+  `float32` twin, completing the existing scheme (a trusted-semantics change: Perennial's `fix-semantics` workflow,
+  with the user's sign-off).
+- **Status.** Not started.
+
 ### Float facts: `FloatOps` has no laws, so no float-dependent panic can be excluded (2026-11-20, prove-promdeep)
 
 - **Limitation.** `FloatOps` (`Perennial/Golang/Defn/PostLang.lean`) is a field of the semantics class with no laws:

@@ -73,11 +73,15 @@ abbrev audit.auditKeyAny : GoInterface :=
 abbrev utiltrace.traceKeyAny : GoInterface :=
   interface.mkOk k8s_io.utils.trace.ContextTraceKey.ty #(zero_val k8s_io.utils.trace.ContextTraceKey)
 
-/-- What `utiltrace.FromContext`'s callers accept: not a `*Trace`, or one `utiltrace` made. -/
+/-- What `utiltrace.FromContext`'s callers accept: not a `*Trace`, or one `utiltrace` made, a
+`*Trace` pointer as an `any` (prove-metrics3, 2026-11-21: the pointer made explicit, which Go's
+typing guarantees of an interface whose dynamic type is `*Trace` but the model does not derive;
+`FromContext` stores the asserted value in a `*Trace` variable). -/
 def utiltrace.traceRes (v : GoInterface) : Prop :=
   (∀ vi : GoInterfaceOk, v = GoInterface.ok vi →
       vi.ty ≠ go.GoType.PointerType k8s_io.utils.trace.Trace.ty) ∨
-    utiltrace.builtTrace v
+    ((∃ t : Loc, v = interface.mkOk (go.GoType.PointerType k8s_io.utils.trace.Trace.ty) #t) ∧
+      utiltrace.builtTrace v)
 
 /-- `runtime/trace`'s `traceContextKey{}` as `ctx.Value` takes it. -/
 abbrev rtrace.traceKeyAny : GoInterface :=

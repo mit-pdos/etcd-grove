@@ -236,7 +236,6 @@ axiom grpc_prometheus.NewServerMetrics.wp_proof
 axiom grpc_prometheus.ServerMetrics.InitializeMetrics.wp_proof
 axiom grpc_prometheus.ServerMetrics.StreamServerInterceptor.wp_proof
 axiom grpc_prometheus.ServerMetrics.UnaryServerInterceptor.wp_proof
-axiom grpc_prometheus.WithServerHandlingTimeHistogram.wp_proof
 axiom grpclog.SetLoggerV2.wp_proof
 axiom health.NewServer.wp_proof
 axiom health.Server.SetServingStatus.wp_proof
@@ -369,7 +368,6 @@ axiom peer.Peer.String.wp_proof
 axiom probing.NewHandler.wp_proof
 axiom probing.NewProber.wp_proof
 axiom promSrvMetrics
-axiom promSrvMetricsOpt
 axiom promSrvMetrics_persistent
 axiom prometheus.CounterVec.WithLabelValues.wp_proof
 axiom prometheus.ExponentialBuckets.wp_proof
@@ -416,7 +414,6 @@ axiom rafthttp.Transport.ActiveSince.wp_proof
 axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.netErrNotRemoved_ok
 axiom rand.Int63n.wp_proof
-axiom rate.Every.wp_proof
 axiom rate.Limiter.Reserve.wp_proof
 axiom rate.Limiter.Wait.wp_proof
 axiom recEncC_ok
@@ -488,7 +485,6 @@ axiom traceutil.Trace.LogWithStepThreshold.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
 axiom tracing.Span.AddEvent.wp_proof
 axiom tracing.Span.End.wp_proof
-axiom tracing.SpanFromContext.wp_proof
 axiom tracing.Start.wp_proof
 axiom transport.NewTimeoutTransport.wp_proof
 axiom txn.WarnOfExpensiveRequest.wp_proof

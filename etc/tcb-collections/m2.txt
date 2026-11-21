@@ -168,7 +168,6 @@ axiom grpc_prometheus.NewServerMetrics.wp_proof
 axiom grpc_prometheus.ServerMetrics.InitializeMetrics.wp_proof
 axiom grpc_prometheus.ServerMetrics.StreamServerInterceptor.wp_proof
 axiom grpc_prometheus.ServerMetrics.UnaryServerInterceptor.wp_proof
-axiom grpc_prometheus.WithServerHandlingTimeHistogram.wp_proof
 axiom health.NewServer.wp_proof
 axiom health.Server.SetServingStatus.wp_proof
 axiom http.CloseIdleConnections_ok
@@ -234,7 +233,6 @@ axiom pbutil.MustUnmarshalMessage.wp_proof
 axiom peer.Peer.String.wp_proof
 axiom probing.NewProber.wp_proof
 axiom promSrvMetrics
-axiom promSrvMetricsOpt
 axiom promSrvMetrics_persistent
 axiom prometheus.CounterVec.WithLabelValues.wp_proof
 axiom prometheus.ExponentialBuckets.wp_proof
@@ -272,7 +270,6 @@ axiom proto.UnmarshalPb.wp_proof
 axiom rafthttp.Transport.ActiveSince.wp_proof
 axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.netErrNotRemoved_ok
-axiom rate.Every.wp_proof
 axiom rate.Limiter.Wait.wp_proof
 axiom recEncC_ok
 axiom reflect.DeepEqual.wp_proof_pgidSet

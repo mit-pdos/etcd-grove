@@ -970,7 +970,8 @@ v2stats_ServerStats__SendAppendReq:
 raftpb_MessageType__String: strconv_Itoa
 strconv_Itoa:
 probing_NewProber:
-rate_Every:
+# (prove-metrics3, 2026-11-21) proved over the real code
+rate_Every: time_Duration__Seconds_ptr
 types_IDFromString:
 strings_TrimSuffix:
 fmt_ErrorfPlain:
