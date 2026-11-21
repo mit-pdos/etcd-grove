@@ -657,3 +657,67 @@ Then, if cheap, remove `renameWALPost`'s dead arm 2 (and `Create`'s handling of 
 - A crash frame gets no later (crashes need no step between them), so it can only read timeless contents out of
   an invariant: a box invariant cannot carry a client's crash continuation (`notes/perennial-changes.md`, the entry
   of 2026-11-21).
+
+# Handoff (branch `wal-safe`, 2026-11-21, session 3 of etcd-grove-03's delegates): step 2 part (A) done, (B) designed
+
+**State** (head after this note's commit; no axiom, no `sorry`, WAL Link and tester Links green at Perennial
+`d648cfe22`):
+- **Decision (step 2):** the plan's cheaper alternative for `nm.tmp` (drop `TmpOk` for a general-subtree
+  `os.RemoveAll` spec **proved** over the existing model `TrustedCode/os.lean` `RemoveAll.impl`; no new axiom or
+  trusted model), the full design for the WAL directories. Why: the full design for `nm.tmp` needs the same
+  RemoveAll recursion plus AU-shaped `TouchDirAll`/`RemoveAll` and every `Create` step on `nm.tmp` under the
+  invariant. A directory `.touch` makes `Create`'s probe fail and `Create` return an error with nothing
+  committed; the tester's `Boot` returns `StatusDown` (wal.go:636), so that error arm is harmless.
+- **(A) done** (`f2f58a363d`): `HistFo.lean` (`HistFoP P n j N h`: no version a crash at commit bound `n` may
+  leave holds a directory at a name of `N` satisfying `P`; `.mono`, `.log`, `.of_coh`, `.of_boot`, `.cur`,
+  `.crash`; `HistFoN` = `P := (· ∉ walTmps)`; `NoDirX`). `WalsNamed`'s per-layout body has a third conjunct
+  `∀ N hj, (lay.j, N, hj) ∈ cl → HistFoN n lay.j N hj`, kept by every producer (cut, purge, Repair's create and
+  removal via `nonwalHist_pure`'s new `hcd`, `walsNamed_create` (new premises `hA`, `hJo`), drop (new `hA`),
+  cover, moved, mono, tail). `walInv_alloc`/`walsNamed_start` take the boot tree's `NoDirX` (`hfo`).
+- **(A2) done** (`38d50f478a`): `walCrash_pure` also says each new layout's directory is an old layout's;
+  `crash_noDirX`; `walInv_crash`'s pure post has `∀ nm J, walNameOk nm → V'.now.entry jr nm = some (.dir J) →
+  NoDirX (entsOf V'.now J)` (after `TreeWf`).
+- `3ac1bca1b9`: `BootFoRest` (`BootCrashSub.lean`: the pipeline names of the WAL directories hold no
+  directory; `nm.tmp` directories files only; no `nm.tmp` a file) and `bootFo_of`; `tester_crash`'s `hfo` is now
+  `BootFoRest V'.now e.jr`.
+
+**Next (B): the pipeline names `0.tmp`/`1.tmp`** (gives `BootFoRest.1`). Design, checked against the code:
+- `tmpClaim j b` holds **half** the claim (`osNames j (.only [b]) ½ h ∗ tmpEnt …`); the invariant holds the other
+  half inside `walTmpParked` (part of `walParked`, so `walInvBody` keeps its shape and stays timeless): for every
+  `dir ↦ J ∈ Jt`, `[∗list] b ∈ walTmps, ∃ h n0, osNames J (.only [b]) ½ h ∗ osCommitLb n0 ∗ ⌜HistFoP (fun _ => True)
+  n0 J (.only [b]) h⌝`, beside the existing `if dir ∈ T then emp else walTmpsRes J`. Not a separate invariant:
+  `inv` is not timeless, and the crash frame has no later.
+- `pipeFile`'s `osNames … 1 h` becomes ½; `pipeQ`/`pipeLeft` follow `tmpClaim`.
+- The pipeline must open `walInv` at its logs: put `∃ C Mr jr r X, walInv C Mr R jr r ∗ walDirKey dir j X` in
+  `isFilePipe` (both persistent: `walDirKey` is `↪□`). In the AU, `walDirKeysAuth K` agrees `K !! dir = (j, X)`,
+  `DirKeysOk.1` gives the layout `Ls !! dir` with `lay.j = j`, and `walTmpParked`'s `Jt ⊇` the layouts' gives
+  `J`'s halves. Pipeline creators (`newFilePipeline` callers: `CreateHandle`, `Handle`, openAtIndex) supply it.
+- The log sites (each through the existing `…Snc` os specs with `q = r = ½` and an AU opening `walInv`, then
+  `HistFoP.log` with the new entry a file or a removal): `filePipeline.alloc` (`wp_createTmp`,
+  `os.OpenFile.specCreateTruncSnc`; `wp_truncS` logs no name), `run`'s `os.Remove` on `donec`
+  (`PipeLemmas.wp_removeTmp`, `os.Remove.specFileSnc`), `Close`'s leftover removal (`CloseLaw.lean:85`), `cut`'s
+  rename (`CutPipe`/`CutAu`: already inside `walInv`'s AU, also update the source half). Unfold sites of
+  `tmpClaim` to revisit: `CreatePre:130`, `BootCrashRes:260`, `CutPipe:40`, `PipeLemmas:193,404`, `CloseLaw:85`,
+  `CreateUnmint:70`, `filePipeline__alloc:161`, `openAtIndexLemmas:211`; `walTmpParked`'s 21 uses (`Parked`,
+  `CreateKeys` (Create adds the new `J`'s halves at its commit: histories all below its commit bound,
+  `HistFoP.of_coh`), `Tail*`, `CutAuLemmas`, `PurgeAuLemmas`, `Crash`).
+- Boot: `walInv_alloc` splits each `walTmpsRes J` into halves (`HistFoP.of_boot`, the boot history's cur from
+  `tmpEnt`). Crash: `walInv_crash` runs `crashRest_region` on the halves (with their `osCommitLb n0`) and exports
+  "no directory at `walTmps` of every WAL directory", which gives `BootFoRest.1`.
+
+**Then (D): `nm.tmp`** (gives `BootFoRest.2`/`.3`): `os.RemoveAll.specSubS` (any entry at `d/b`, every directory
+under it whole, `SubCover`; post: the claims back, `b` and its subtree some sub-forest of what they were, or `b`
+gone), proved by Löb induction over `model.removeAllFrom` (reuse `RemoveAllFrom`/`RemoveAllLeaf`/`RemoveAllParts`);
+`TouchDirAll` with a directory `.touch` (an error arm; an `os.OpenFile` spec answering `EISDIR` on a directory,
+proved over the semantics); `walAreaRes` without `TmpOk`, `tmpClTouch` accepting any entry; `Create`'s proof over
+them (`CreateTmp.wp_removeAllTmp`). Then `BootFo` loses its `nm.tmp` parts, `tester_crash`'s `hfo` goes, and
+`TCrashed`'s carried fact with it. Then, if cheap, `renameWALPost`'s dead arm 2 (`Create.lean` ~1185).
+
+**Then step 3** (the tester's wiring onto `fsSQ_crash_adequacyShared`), as the previous handoff says; the hard
+stop before the closed statement stands.
+
+**Pitfalls (new).** `rotate_left`/`rotate_right` after a `refine` with a new last `?_` (to prove the new
+conjunct before the old bullets); `rw [Prod.mk.injEq, Prod.mk.injEq] at he` rather than `simp only`, which may
+drop a component that reduces (a layout's `.j` through `cutLay`/`purgeLayP`). A `lake build` of
+`Proof.go_etcd_io.etcd.server.v3.storage.wal.Link` after an `Inv.lean` definition change took about 25 minutes
+in one slot (3329 jobs).
