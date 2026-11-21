@@ -783,6 +783,8 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
     ileft
     iexists D
     iframe Hhalf
+    isplitr
+    · iexact Hfkr
     iexists gregm, gregc, 0, ∅
     iframe Hregc Hregm
     isplitr

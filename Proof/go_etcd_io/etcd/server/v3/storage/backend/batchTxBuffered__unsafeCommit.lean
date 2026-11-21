@@ -257,6 +257,11 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
         simp only [↓reduceIte]
         rw [e1, hns]
         exact armStep_win γ P W Pk Qw path st' Lb L' nc (by simpa using Hdlc.2)
+    -- (backend-snapshot B4) the readers' bound at the writer's contents, for the commit invariant
+    icases fkHalf_rd γ P st' (st'.S, ⟨∅, W64 0⟩)
+      (fun f w h => fkOkRvG_empty (C := st'.S) (W64 0)
+        (fkOkRvG_of (fkOkG_commit (C' := st'.S) (tx' := st'.tx) (cnt' := st'.cnt) (Or.inl rfl) f w h)))
+      $$ Hfkh with ⟨Hfkh, #HfkS⟩
     wp_apply (hBC γ P W Pk b t db st' false nc _ hA) $$
         [Htxf Hpend Hwtx $Hdb $Htxdb $Hmu $Hopn HWc HrtCm HWR Hv Hpre Hhkd Hfkh] as ⟨Hmu, Hres⟩
     · iframe #
@@ -366,6 +371,11 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
         exact ⟨hfo, hv, by simp [commitSt], Hs.2.2.2.1⟩
       iexact Hbv
   · simp only [↓reduceIte]
+    -- (backend-snapshot B4) the readers' bound at the writer's contents, for the commit invariant
+    icases fkHalf_rd γ P st' (st'.S, ⟨∅, W64 0⟩)
+      (fun f w h => fkOkRvG_empty (C := st'.S) (W64 0)
+        (fkOkRvG_of (fkOkG_commit (C' := st'.S) (tx' := st'.tx) (cnt' := st'.cnt) (Or.inl rfl) f w h)))
+      $$ Hfkh with ⟨Hfkh, #HfkS⟩
     wp_apply (hBC γ P W Pk b t db st' true nc iprop(False) (fun _ => by iintro ⟨H, -⟩; iexfalso; iexact H)) $$
         [Htxf Hpend Hwtx $Hdb $Htxdb $Hmu $Hopn Hsp] as ⟨Hmu, Hres⟩
     · iframe #
