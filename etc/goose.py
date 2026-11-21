@@ -71,10 +71,10 @@ GO_TOOLCHAIN = "go1.27.3"
 RAFT_REV = "d2c16c558247d0a07b96986fc348a003dad80f6e"
 
 # The part RaftNoAx (raft without hand-written axioms, notes/raft-noax-part.md): project raft-noax's
-# pin (the fork's branch raft37-goose-lean-noax, notes/raft-noax.md), and project kvdurable-noax's
+# pin (the fork's branch raft37-goose-lean-noax-wire-core, notes/raft-noax.md), and project kvdurable-noax's
 # source directory and Go package, examples/raft/kvdurablenoax (`etc/copy-part.py`, which reads these,
 # renames the copied kvdurable proofs' package accordingly).
-RAFT_NOAX_REV = "91e2ea70f48377487eccbf01bf80dd9787fac450"
+RAFT_NOAX_REV = "e98d795867e6d626df1cc4e71faa00c1c1f42764"
 KVDURABLE_NOAX_DIR = os.path.join("examples", "raft", "kvdurablenoax")
 KVDURABLE_NOAX_PKG = "github.com/mit-pdos/etcd-grove/examples/raft/kvdurablenoax"
 
@@ -1396,14 +1396,13 @@ PROJECTS = [
         # The witness experiment (notes/raft-witness.md; a candidate implementation of
         # etcd-io/raft#133, not merged upstream): branch raft-witness-goose-lean of the etcd
         # fork, etcd-io/raft#168 rebased onto raft37-goose-lean-a1 (project raft's pin) with
-        # the fixes of notes/raft-witness-vs-pr168.md, at 99cb9e2d9 (a witness shared by both
-        # halves of a joint configuration is sent an entry only if both replicate to it;
-        # notes/raft-witness-reconfig.md), then (2026-11-10, premise fixes 2) project raft's fourth fix, `ConfState.Equivalent`
-        # comparing configurations, at 3e3ed2d. Translated into the parallel tree RaftWitness
+        # the fixes of notes/raft-witness-vs-pr168.md and the ConfState.Equivalent fix
+        # at 3e3ed2d. Branch raft-witness-goose-lean-joint-progress computes the index
+        # supported by both halves when they share a witness. Translated into RaftWitness
         # (modules RaftWitness.Code.go_etcd_io.raft.v3*, ...), which nothing outside it imports;
         # the same packages as project raft, configured by RaftWitness/Code/**.toml.
         repo="https://github.com/upamanyus/etcd",
-        rev="3e3ed2d2974287a24803a1772d1a4216cc5aee05",
+        rev="13190826c05a3e8357e7a9041db70ab5a0644582",
         root="RaftWitness",
         # raft's `proto` import is the main tree's names-only `Code.google_golang_org.protobuf.proto`
         lean_roots=["go.etcd.io/raft/v3=RaftWitness", "google.golang.org=", "os=", "io/fs="],
@@ -1433,6 +1432,9 @@ PROJECTS = [
         local=os.path.join("examples", "k8s", "etcd3"),
         lean_roots=["k8s.io=", "go.etcd.io/etcd=", "google.golang.org=", "go.uber.org=", "os=", "io/fs=",
                     "go.opentelemetry.io=", "net=", "encoding/json=", "encoding/base64=",
+                    # (prove-authcrypto, 2026-11-21) base64's decoder's big-endian stores
+                    # (Code/internal/byteorder.toml), with their bodies
+                    "internal/byteorder=",
                     "path=", "github.com/mit-pdos/etcd-grove=",
                     "github.com/anishathalye/porcupine=",
                     # the etcd project's names-only translations, which client-go's workqueue
@@ -1593,6 +1595,7 @@ PROJECTS = [
             "k8s.io/utils/trace",
             "encoding/json",
             "encoding/base64",
+            "internal/byteorder",
             # types only (the context sweep's fixes, 2026-11-13): runtime/trace's context key
             "runtime/trace",
             # (`path` is the etcd project's, with the bodies rafthttp needs: `Code/path.toml`)
@@ -1647,7 +1650,7 @@ PROJECTS = [
                os.path.join("encoding", "json"),
                os.path.join("github_com", "go_logr"),
                os.path.join("github_com", "spf13"),
-               os.path.join("encoding", "base64"),
+               os.path.join("encoding", "base64"), os.path.join("internal", "byteorder"),
                os.path.join("runtime", "trace"),
                os.path.join("github_com", "google"), "maps",
                os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8s", "etcd3")],

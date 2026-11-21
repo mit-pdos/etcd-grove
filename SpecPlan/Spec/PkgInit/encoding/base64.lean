@@ -3,6 +3,8 @@ module
 
 public import GeneratedProof.encoding.base64
 public import SpecPlan.Spec.PkgInit.Base
+public import SpecPlan.Spec.PkgInit.internal.byteorder
+public import Perennial.Proof.strconv.Base
 
 @[expose] public section
 noncomputable section

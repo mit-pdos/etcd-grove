@@ -3861,8 +3861,55 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** `Promote.spec` takes the level-0 token (`levelTok lessorLvl`, given back) and the two bounds,
   as `Leases.spec` does; the server's callers (`LessorOk.lean`'s contract, `NewServer`'s promotion on becoming
   leader) supply them. Not applied: it changes the server's lessor contract.
-- **Decision.** Open (the axiom stays).
+- **Decision.** Applied (prove-ps2-promote, 2026-11-21; heads-up on #10, no objection): `Promote.spec` takes
+  `levelTok lessorLvl` (given back) and the two bounds, and is proved over the real code (the axiom retired). The
+  server's lessor contract (`lessorOk`, InvApplier.lean) has `Promote` take the caller's `threadTok` (given back; it
+  lends level 0, `threadTok_level0`), and `lessorOk_of_lessorInv` takes the two bounds, which `NewServer`/`NewServerR`
+  give from theirs (`threadBound GF ≤ 2^28`, `receiptBound GF ≤ 2^48`); the apply thread's `applyEntryNormal` pays
+  the token from its `srvGoRes`. No spec of the server changes.
 
+## 2026-11-21: the auth store's `selectPassword` reads `as.bcryptCost` (prove-authcrypto)
+
+- **Spec.** `auth.authStore.selectPassword.spec` (`Spec/go_etcd_io/etcd/server/v3/auth/`; a trust-boundary axiom
+  until this change, the method names only).
+- **Defect.** Not provable over the real code: its bcrypt branch is `bcrypt.GenerateFromPassword([]byte(password),
+  as.bcryptCost)` (`store.go:420-426`), a load of the store's `bcryptCost` field, and the premise gave only
+  `st ≠ null`.
+- **Evidence.** The translation (`Code/go_etcd_io/etcd/server/v3/auth.lean`, `authStore.selectPassword.impl`).
+- **Proposed change.** The premise takes the field read-only (`∃ c, aF "bcryptCost" st ↦□ c`); `authInv` holds it
+  (its last conjunct; `NewAuthStore`'s composite literal sets it and nothing writes it: `NewAuthStoreOn`'s proof
+  already had it persistent), `authInv_bcryptCost` hands it out; the four callers (`UserAdd`, its two `sure`
+  variants, `UserChangePassword`) pass it. `NewAuthStore`'s axiom is unchanged (its contracts do not mention
+  `authInv`).
+- **Decision.** Applied (prove-authcrypto, 2026-11-21).
+
+## 2026-11-21: bcrypt's `GenerateFromPassword` returns `nil` with its error (prove-authcrypto)
+
+- **Spec.** `bcrypt.GenerateFromPassword.spec` (a trust-boundary axiom).
+- **Defect.** Too weak for `selectPassword`'s post (`∃ bs, b ↦*□ bs` on every path): the error disjunct said nothing
+  of the returned slice.
+- **Evidence.** `bcrypt.go:95-104` (x/crypto v0.57.0): both error returns are `return nil, err`.
+- **Proposed change.** The error disjunct also states `h = slice.nil` (a strengthening of the axiom, true of the
+  code; `EtcdServer.UserAdd`'s two uses drop it).
+- **Decision.** Applied (prove-authcrypto, 2026-11-21).
+## 2026-11-21: the lessor's `demotec` and stop channels get ghost state (prove-ps2-lease)
+
+- **Spec.** `lease.lessor.Demote.spec`, `lease.lessor.Stop.spec`, `lease.lessorStopTok`
+  (`Spec/go_etcd_io/etcd/server/v3/lease/`, `Proof/.../lease/LessorBackend.lean`; all three axioms), and what
+  `lessorInv` says of `demotec` (`InvLessor.lean`'s `lessorExtra`).
+- **Defect.** Not provable over the real code: `Demote`'s `close(le.demotec)` needs a close right the invariant did
+  not keep (`demotec` sits in `le.mu`'s fractional guard); `Stop`'s `close(le.stopC); <-le.doneC` needs the channels,
+  which the opaque `lessorStopTok` did not name.
+- **Evidence.** `lessor.go:534-550`, `:615-618`; the translations (`lessor.Demote.impl`, `lessor.Stop.impl`, the
+  latter translated by this change).
+- **Proposed change.** `lessorStopTok` defined (the two fields read-only, `stopC`'s broadcast close right, `doneC`'s
+  receive side); `demotec`'s state per channel in an invariant with a close token, the current token in a lessor
+  invariant tied by a ghost variable (`LessorRdNames`' seventh name) half in `lessorExtra` (which takes the lessor's
+  `γl`). `Demote.spec`'s statement is unchanged but stated at `HasLC.hasLC` (its only callers, the server's, are;
+  the channel close needs it). The assumed `NewLessor`, `Promote` and `Renew` keep their statements; their claims about
+  the ghost state are checked in `notes/axiom-review/lessor-demotec-stop.md`.
+- **Decision.** Applied (prove-ps2-lease, 2026-11-21): `Demote`, `Stop` proved, `lessorStopTok` and its `Timeless`
+  instance retired.
 ## 2026-11-21: `v3rpc.NewMaintenanceServer` lacks the watchable store's `isMvcc` (prove-ps2-nms)
 
 - **Spec.** `v3rpc.NewMaintenanceServer.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/`; a
@@ -3892,6 +3939,19 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   Ready. The public storage spec retains the bounded-read prefix guarantee
   and identifies the complete interval for the unlimited case.
   [Replay regression](../../issues/etcd-merged-snapshot-replay-failure.md).
+## 2026-11-21: `types.URLs.StringSlice` owns nothing of the URLs it reads (prove-ps2-misc)
+
+- **Spec.** `types.URLs.StringSlice.spec` (`Spec/go_etcd_io/etcd/client/pkg/v3/types/URLs__StringSlice.lean`; a
+  trust-boundary axiom until this change, `client/pkg/v3/types` names-only but for `URLs.Len` and `ID.String`).
+- **Defect.** Not provable over the real code: the premise was `p ≠ null` alone (true of Go by type safety), but the
+  pointer wrapper loads `*p` and the body reads `us[i]` and calls `url.URL.String` on each element
+  (`client/pkg/types/urls.go:79-86`), which needs the slice and the elements (`http.URLStringAny_spec` takes
+  `p ↦{dq} u`). The post was `True`.
+- **Evidence.** The translation (`Code/go_etcd_io/etcd/client/pkg/v3/types.lean`, `URLs.StringSlice.impl`).
+- **Proposed change.** Under the approved ownership rule (2026-11-21): the premise takes `p ↦{dq} sl ∗ sl ↦*□ us`
+  (the post gives `p ↦{dq} sl` back, and the fresh output slice of as many strings). Its one caller, `NewServer`
+  (and `NewServerR`) on `cfg.ClientURLs`, holds the field and `cfg.ClientURLs' ↦*□ U.client` (`bootCfgRO`).
+- **Decision.** Applied (prove-ps2-misc, 2026-11-21): `URLs.StringSlice` translated and proved, the axiom retired.
 ## 2026-11-21: `FollowerStats.Fail` takes the stats' mutex (prove-ps2)
 
 - **Spec.** `v2stats.FollowerStats.Fail.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v2stats/`; a
@@ -3924,3 +3984,21 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   thread lends the one it holds (`apply.bkRT`). The observation `Q` and the rest are unchanged.
 - **Decision.** Taken under the user's direction of 2026-11-20 ("make your own choice ... the top-level robustness theorems
   should have fewer axioms"): it retires the `backend.Snapshot` axiom from every collection that reaches it.
+
+## 2026-11-21: `lessor.Renew` proved; `stopC` and `revokec` close-once channels (prove-ps2-renew)
+
+- **Spec.** `lease.lessor.Renew.spec` (`Spec/go_etcd_io/etcd/server/v3/lease/lessor__Renew.lean`; a names-only
+  trust-boundary axiom until this change), unchanged. The definitions under it: `lease.lessorStopTok`
+  (`LessorBackend.lean`), `lessorExtra`, `leaseMeta`, `revokeCloser` (`InvLessor.lean`), `leaseInit` (`Base.lean`).
+- **Defect.** Not provable over the real code with the invariant as it was: `Renew`'s `select` receives on the lease's
+  `revokec` (whose whole channel state was the revoker's `revokeCloser`), on `stopC` (a broadcast channel whose receive
+  side nothing in `lessorInv` held, and `ownBroadcastChan` is stated at `HasLC.hasLC` only, the lessor's invariant at any
+  `hlc`), and `leaseRenewed.Inc()` calls a counter `leaseInit` did not describe.
+- **Evidence.** `lessor.go:396-456`; the translation (`lessor.Renew.impl`).
+- **Proposed change.** `revokec` and `stopC` close-once channels as `demotec` already was (`onceChanInv`, `onceRecv`,
+  renamed from `demoteChanInv`/`demoteRecv`): `revokeCloser c` the channel's `onceRecv` and close token, `leaseMeta`'s
+  `revokec` its `revokeRecv`; `lessorStopTok` `stopC`'s close token, `lessorExtra` its `lessorStopRecv`; `leaseInit` adds
+  `leaseRenewed`'s `counterSpec` (grouped with `leaseRevoked`'s). No spec a caller sees changes; `NewLessor`'s axiom
+  claims more of its result (checked: `notes/axiom-review/lessor-demotec-stop.md`, prove-ps2-renew section).
+- **Decision.** Applied (prove-ps2-renew, 2026-11-21): `Renew` and `Lease.expired` translated and proved, the axiom
+  retired; `NewLease`, `initAndRecover`, `Grant`, `Revoke`, `Stop` re-proved over the new definitions.

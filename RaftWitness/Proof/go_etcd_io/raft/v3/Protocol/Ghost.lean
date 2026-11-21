@@ -1741,19 +1741,16 @@ instance ackReg_timeless (γ : RaftNames) (v t i : w64) :
     Timeless (ackReg (GF := GF) γ v t i) := by
   unfold ackReg; infer_instance
 
-/-- (2026-10-19, witness support) What a leader's witness request carries
-(`sendAppendToWitness`), of the entry `idx` of its term `t`'s log: its item `(idx, σ, (x, P))` of
-the leader's subterm list (subterm `σ`, whose replication set excludes the voter `x`, not the
-witness, at the configuration `c` of the prefix `P`, 2026-10-20), the entry within the leader's
-log (`ackIn`), and the replication set's incoming voters `H`, `quorum - 1` of them, that
-acknowledged it in `t`. (In a joint configuration whose halves share the witness, the code sends
-the witness an entry only when both halves have it in their replication sets, fork `99cb9e2d9`, so
-the incoming half's acknowledgements are there; `notes/raft-witness-vs-pr168/joint-oltq.md`.) -/
+/-- A witness request identifies the entry in the leader's log and subterm history.
+Its incoming regular acknowledgers `H` belong to the recorded replication set.
+When the incoming half selected the witness, `x` is the excluded regular voter
+and quorum minus one acknowledgements suffice. With `x = 0` the incoming half
+excluded the witness, so the request carries a full regular majority. -/
 def wJust (γ : RaftNames) (t σ idx x : w64) (P : List EntryM) (c : CfgM) (H : GSet w64) :
     IProp GF :=
   iprop(⌜γ.reWit ≠ W64 0 ∧ CfgAt γ P c ∧ c.wit = γ.reWit ∧ γ.reWit ∈ c.incoming ∧
-      x ∈ c.incoming ∧ x ≠ γ.reWit ∧
-      H ⊆ c.incoming \ ({[γ.reWit]} ∪ {[x]}) ∧ size c.incoming / 2 ≤ size H ∧ 1 ≤ uint.Z idx ∧
+      (if x = W64 0 then γ.reWit else x) ∈ c.incoming ∧ x ≠ γ.reWit ∧
+      H ⊆ c.incoming \ ({[γ.reWit]} ∪ {[if x = W64 0 then γ.reWit else x]}) ∧ witnessWriteCount (size c.incoming) x ≤ size H ∧ 1 ≤ uint.Z idx ∧
       σ ≠ W64 0⌝ ∗
     (∃ ldr, isLeader γ ldr t ∗ subRec γ ldr t idx σ x P) ∗ ackIn γ t idx ∗
     [∗map] h ↦ _u ∈ toMap H, ∃ i', ⌜uint.Z idx ≤ uint.Z i'⌝ ∗ ackReg γ h t i')
@@ -1770,7 +1767,7 @@ the replication set's incoming voters; none at the start. -/
 def wStJust (γ : RaftNames) (st : WState) : IProp GF :=
   if st.lt = W64 0 then iprop(⌜st.ls = W64 0 ∧ st.rs = []⌝)
   else iprop(∃ (x : w64) (P : List EntryM) (c : CfgM) (H : GSet w64),
-    ⌜(∀ v, v ∈ st.rs ↔ v ∈ c.incoming \ ({[γ.reWit]} ∪ {[x]})) ∧ st.rs.Nodup⌝ ∗
+    ⌜(∀ v, v ∈ st.rs ↔ v ∈ c.incoming \ ({[γ.reWit]} ∪ {[if x = W64 0 then γ.reWit else x]})) ∧ st.rs.Nodup⌝ ∗
     wJust γ st.lt st.ls st.li x P c H)
 
 instance wStJust_persistent (γ : RaftNames) (st : WState) :

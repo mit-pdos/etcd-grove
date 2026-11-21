@@ -43,7 +43,7 @@ theorem auth.authStore.refreshRangePermCache.wp_proof
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   iunfold authInv at Hinv
-  icases Hinv with ⟨%Hst, -, ⟨%lg, #Hlg, #Hlgnn⟩, -, -, -, #Hguard⟩
+  icases Hinv with ⟨%Hst, -, ⟨%lg, #Hlg, #Hlgnn⟩, -, -, -, #Hguard, -⟩
   ihave #Hrd2 : authReaderOk (GF := GF) ti Hs $$ []
   · iexact Hrd
   iunfold authReaderOk at Hrd2

@@ -19,7 +19,7 @@ public import Perennial.Proof.bytes.Base
 public import Perennial.Proof.math.Base
 public import Perennial.Proof.sort.Base
 public import Perennial.Proof.fmt.Base
-public import SpecPlan.Spec.PkgInit.reflect
+public import Perennial.Proof.reflect.Base
 public import Perennial.Proof.strings.Base
 
 @[expose] public section

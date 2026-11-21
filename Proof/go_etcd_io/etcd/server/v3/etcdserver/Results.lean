@@ -1211,14 +1211,15 @@ theorem lessor_txn_contract (lp : Loc) (γl : GName) :
 /-- **The server's lessor contract, of the real lessor** (unit 9, 2026-10-13): the lessor at `lp`
 (`lease.lessorInv`, its configuration, its `expiredC` at the server's grant guard, D19n, the
 lease-grant plan's D1) meets `lessorOk`: `ExpiredLeasesC` proved,
-`Promote` and `Demote` the trust boundary (`lease.lessor.Promote.wp_proof`,
-`lease.lessor.Demote.wp_proof`). -/
-theorem lessor_server_contract (lp : Loc) (γl : GName) (lg on : Bool) :
+`Demote` proved (prove-ps2-lease, 2026-11-21), `Promote` proved (prove-ps2-promote, 2026-11-21),
+under the bounds its sort needs. -/
+theorem lessor_server_contract (hb : threadBound GF ≤ 2 ^ 30 - 1) (hr : receiptBound GF ≤ 2 ^ 62)
+    (lp : Loc) (γl : GName) (lg on : Bool) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ lease.lessorInv lp γl ∗
       lease.lessorCfg lp ∗ lease.lessorExpiredC lp (srvGrantGuard lg on) ⊢
       lessorOk lg on (lease.lessorIface lp) :=
   lessorOk_of_lessorInv lease.lessor.wp_Promote lease.lessor.wp_Demote
-    lease.lessor.wp_ExpiredLeasesC lp γl lg on
+    lease.lessor.wp_ExpiredLeasesC hb hr lp γl lg on
 
 /-- **The apply package's lessor contract, of the real lessor** (unit 9, 2026-10-13): the lessor
 at `lp` (`lease.lessorInv`, its configuration, its backend's contract for the `Lease` bucket,

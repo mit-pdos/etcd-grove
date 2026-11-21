@@ -598,7 +598,9 @@ theorem srvGrantGuard_expired_off (lg on : Bool) (ls : GoSlice) :
   · rfl
   · exact absurd (Hg.2 h) Hnx
 
-/-- `l` is a `lease.Lessor` whose `Promote` returns (in memory: no backend writes); and
+/-- `l` is a `lease.Lessor` whose `Promote` returns (in memory: no backend writes), on a thread
+holding its token (`threadTok`, given back; prove-ps2-promote, 2026-11-21: the real `Promote`'s sort
+and `Remaining()` borrow reader slots of the leases' `expiryMu` with its level 0); and
 (2026-10-13, the request path's unit 4c: the server's `run`) whose `Demote` returns and whose
 `ExpiredLeasesC` returns a channel of slices of expired leases under the server's grant guard
 `srvGrantGuard lg on` (`lease.expiredLeases`; the lease-expiry plan's X4, 2026-11-04: until then a
@@ -612,7 +614,7 @@ and auth mode (`E.lg`, `E.authMode.isOn`). -/
 def lessorOk (lg on : Bool) (l : GoInterface) : IProp GF :=
   iprop(∃ li : GoInterfaceOk, ⌜l = GoInterface.ok li⌝ ∗
     □ (∀ d : w64,
-      {{ True }} (App (Val #(methods li.ty go!"Promote" li.v)) (Val #d)) {{ RET #(); True }}) ∗
+      {{ threadTok }} (App (Val #(methods li.ty go!"Promote" li.v)) (Val #d)) {{ RET #(); threadTok }}) ∗
     □ ({{ True }} (App (Val #(methods li.ty go!"Demote" li.v)) (Val #())) {{ RET #(); True }}) ∗
     □ ({{ True }} (App (Val #(methods li.ty go!"ExpiredLeasesC" li.v)) (Val #()))
       {{ (c : GoChan), RET #c; ∃ γc : ChanNames,

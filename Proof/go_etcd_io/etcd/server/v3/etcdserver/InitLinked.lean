@@ -64,7 +64,7 @@ public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.go_opentelemetry_io.otel.attribute.Init
 public import Proof.go_opentelemetry_io.otel.trace.Init
 public import Proof.go_uber_org.zap.InitLinked
-public import Proof.golang_org.x.crypto.bcrypt.Init
+public import Proof.golang_org.x.crypto.bcrypt.InitLinked
 public import Proof.net.http.Init
 public import Proof.github_com.prometheus.client_golang.prometheus.NewCounter
 public import Proof.github_com.prometheus.client_golang.prometheus.NewGauge

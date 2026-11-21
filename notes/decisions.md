@@ -41609,3 +41609,39 @@ syncer and encoder; one that panics (a user `WriteSyncer`) makes `check`'s and `
 of Go. `loggerOther` requires zap's own encoders, write syncers and level enablers, or ones whose
 methods return without panicking. No proof depended on the looser reading (only `NewNop` produces
 `zapLoggerOk`).
+
+## Configuration changes use protobuf wire order on the noax fork (2026-11-21)
+
+A Raft caller can receive a configuration change from a different protobuf
+encoder. An optional field, including one inside a nested change, must survive
+a decode and re-encode. The producer of a configuration entry also controls field
+order and can repeat a field. The old fork accepted only the ordering its own
+encoder wrote. The public formatter regression demonstrates the difference for
+both message versions. [Issue and regression](../issues/raft-noax-confchange-wire-compat.md).
+
+The repaired implementation decodes fields in wire order. The last decoded
+singular field supplies its value, repeated changes accumulate, and unknown
+fields keep their original value bytes. Its group scanner checks matching
+end tags and the same depth bound as protobuf-go. The Lean wire model ties a
+successful skip to the protobuf grammar used when allocating a message, and
+shows any field admitted by that grammar can be skipped. The encoder proof uses
+both facts to account for extension bytes in nested changes and both top-level
+messages. [Noax codec proofs](raft-noax-codec.md).
+
+## An index supported by both halves for a shared Raft witness
+
+**2026-11-21 · accepted**
+
+The original fork fix for the joint-configuration election bug dropped the
+witness request when exactly one half selected it. The Go regression
+demonstrates that a live majority in each half can then stall indefinitely
+under the same availability pattern.
+
+The new tracker computes each half's index from the regular acknowledgers in
+its replication set. A half selecting the witness needs quorum minus one. A
+half excluding it needs a full regular majority. The shared witness receives
+the lower index. In the second case, the larger group of acknowledgers still
+intersects the regular votes of a candidate checked against the stored set.
+The protocol proof uses this intersection for leader completeness. The etcd
+server uses the separate ordinary Raft implementation, and the witness example
+uses a static cluster. [Regression and fix](../issues/raft-witness-joint-progress.md)

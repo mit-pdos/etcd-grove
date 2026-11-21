@@ -275,9 +275,13 @@ public import RaftNoAx.Proof.go_etcd_io.raft.v3.raftpb.confStatesEqual
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.raftpb.consumeBytes
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.raftpb.consumeEnum
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.raftpb.consumeField
+public import RaftNoAx.Proof.go_etcd_io.raft.v3.raftpb.consumeTag
+public import RaftNoAx.Proof.go_etcd_io.raft.v3.raftpb.consumeUnknown
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.raftpb.consumeVarint
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.raftpb.idsEqual
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.raftpb.marshalConfChangeSingle
+public import RaftNoAx.Proof.go_etcd_io.raft.v3.raftpb.skipField
+public import RaftNoAx.Proof.go_etcd_io.raft.v3.raftpb.skipScalar
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.raftpb.unmarshalConfChangeSingle
 public import RaftNoAx.Proof.crypto.rand.Int
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.readOnly__AckedIndex
@@ -1136,6 +1140,10 @@ theorem raftpb.wp_consumeVarint :
     raftpb.consumeVarint.spec (GF := GF) (hG := hG) :=
   raftpb.consumeVarint.wp_proof
 
+theorem raftpb.wp_consumeTag :
+    raftpb.consumeTag.spec (GF := GF) (hG := hG) :=
+  raftpb.consumeTag.wp_proof raftpb.wp_consumeVarint
+
 theorem raftpb.wp_consumeEnum :
     raftpb.consumeEnum.spec (GF := GF) (hG := hG) :=
   raftpb.consumeEnum.wp_proof raftpb.wp_consumeVarint
@@ -1148,17 +1156,33 @@ theorem raftpb.wp_consumeBytes :
     raftpb.consumeBytes.spec (GF := GF) (hG := hG) :=
   raftpb.consumeBytes.wp_proof raftpb.wp_consumeField
 
+theorem raftpb.wp_skipScalar :
+    raftpb.skipScalar.spec (GF := GF) (hG := hG) :=
+  raftpb.skipScalar.wp_proof raftpb.wp_consumeField raftpb.wp_consumeVarint
+
+theorem raftpb.wp_skipField :
+    raftpb.skipField.spec (GF := GF) (hG := hG) :=
+  raftpb.skipField.wp_proof raftpb.wp_skipScalar raftpb.wp_consumeVarint
+
+theorem raftpb.wp_appendVarint :
+    raftpb.appendVarint.spec (GF := GF) (hG := hG) :=
+  raftpb.appendVarint.wp_proof
+
+theorem raftpb.wp_consumeUnknown :
+    raftpb.consumeUnknown.spec (GF := GF) (hG := hG) :=
+  raftpb.consumeUnknown.wp_proof raftpb.wp_skipField raftpb.wp_appendVarint
+
 theorem raftpb.wp_UnmarshalConfChangeV1 :
     raftpb.UnmarshalConfChangeV1.spec (GF := GF) (hG := hG) :=
-  raftpb.UnmarshalConfChangeV1.wp_proof raftpb.wp_consumeVarint raftpb.wp_consumeEnum raftpb.wp_consumeBytes
+  raftpb.UnmarshalConfChangeV1.wp_proof raftpb.wp_consumeTag raftpb.wp_consumeVarint raftpb.wp_consumeEnum raftpb.wp_consumeBytes raftpb.wp_consumeUnknown
 
 theorem raftpb.wp_unmarshalConfChangeSingle :
     raftpb.unmarshalConfChangeSingle.spec (GF := GF) (hG := hG) :=
-  raftpb.unmarshalConfChangeSingle.wp_proof raftpb.wp_consumeEnum raftpb.wp_consumeVarint
+  raftpb.unmarshalConfChangeSingle.wp_proof raftpb.wp_consumeTag raftpb.wp_consumeEnum raftpb.wp_consumeVarint raftpb.wp_consumeUnknown
 
 theorem raftpb.wp_UnmarshalConfChangeV2 :
     raftpb.UnmarshalConfChangeV2.spec (GF := GF) (hG := hG) :=
-  raftpb.UnmarshalConfChangeV2.wp_proof raftpb.wp_consumeEnum raftpb.wp_consumeField raftpb.wp_unmarshalConfChangeSingle raftpb.wp_consumeBytes
+  raftpb.UnmarshalConfChangeV2.wp_proof raftpb.wp_consumeTag raftpb.wp_consumeEnum raftpb.wp_consumeField raftpb.wp_unmarshalConfChangeSingle raftpb.wp_consumeBytes raftpb.wp_consumeUnknown
 
 theorem raftpb.ConfChange.wp_GetType :
     raftpb.ConfChange.GetType.spec (GF := GF) (hG := hG) :=
@@ -1223,10 +1247,6 @@ theorem raftpb.ConfChange.wp_AsV1 :
 theorem raftpb.ConfChangeV2.wp_AsV1 :
     raftpb.ConfChangeV2.AsV1.spec (GF := GF) (hG := hG) :=
   raftpb.ConfChangeV2.AsV1.wp_proof
-
-theorem raftpb.wp_appendVarint :
-    raftpb.appendVarint.spec (GF := GF) (hG := hG) :=
-  raftpb.appendVarint.wp_proof
 
 theorem raftpb.wp_appendEnum :
     raftpb.appendEnum.spec (GF := GF) (hG := hG) :=

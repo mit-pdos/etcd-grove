@@ -448,9 +448,13 @@ theorem NewServer.wp_proofRG
   (try wp_auto)
   -- the configuration, field by field from here on
   iStructNamed cfg
-  ihave %HcuNN := typedPointsto_not_null _ _ _ $$ ClientURLs
-  wp_apply h13 as %cus -
-  · ipureintro; exact HcuNN
+  -- (prove-ps2-misc, 2026-11-21) the field and the URLs, read-only (`bootCfgRO`)
+  ihave #HcU : cfg.ClientURLs' ↦*□ U.client $$ []
+  · iunfold bootCfgRO at Hcfgro
+    icases Hcfgro with ⟨-, #H, -⟩
+    iexact H
+  wp_apply h13 $$ [ClientURLs] as %cus ⟨ClientURLs, -⟩
+  · iframe ClientURLs; iframe #
   (try wp_auto)
   -- the request ids' generator, the notifiers
   ihave #Hipkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.idutil $$ []
@@ -1608,10 +1612,13 @@ theorem NewServer.wp_proofRG
   iNamedPrefix Hrn' "N"
   -- the lessor
   -- (the lease-expiry plan's X4) at the environment's grant flag and auth mode (`M.isOn = on`)
+  -- (prove-ps2-promote) the bounds `Promote`'s sort needs, from the construction's
+  have Hb30 : threadBound GF ≤ 2 ^ 30 - 1 := by omega
+  have Hr62 : receiptBound GF ≤ 2 ^ 62 := Nat.le_trans Hrb (Nat.pow_le_pow_right (by decide) (by decide))
   ihave #Hlok : lessorOk ρ.rd.kv.lg M.isOn (lease.lessorIface lp) $$ []
   · icases HM with %HM'
     rw [HM'.1]
-    iapply lessorOk_of_lessorInv h57 h58 h59 lp γl ρ.rd.kv.lg false
+    iapply lessorOk_of_lessorInv h57 h58 h59 Hb30 Hr62 lp γl ρ.rd.kv.lg false
     iframe Hlexp Hlcfg Hlinv Hlspkg
   -- (R8) the lessor's and the auth store's apply contracts at the store's backend and the frozen
   -- hook (`snap_isApplyLessor`, `snap_isAuthStore`, as the snapshot walk's)

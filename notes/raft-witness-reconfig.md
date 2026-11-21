@@ -1,5 +1,10 @@
 # The witness across reconfiguration (W5 analysis, 2026-10-20)
 
+**2026-11-21.** The fork now sends to a shared witness when only one half needs
+its vote. The other half supplies a regular majority at the offered index.
+The original counting argument and its historical guard are recorded below.
+[Revised rule and regressions](../issues/raft-witness-joint-progress.md)
+
 **Correction (2026-10-20, W5-Lean).** The "`K = C(T, s)` joint" case below is wrong for the code
 as it was (through fork `9ed005d46`): `OneLessThanQuorumInReplicationSet` sent the witness of both
 halves an entry when only one half had it in its replication set, so the witness's write was

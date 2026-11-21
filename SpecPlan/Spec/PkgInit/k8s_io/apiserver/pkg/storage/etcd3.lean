@@ -36,7 +36,7 @@ public import Perennial.Proof.sync.atomic.Base
 public import Perennial.Proof.bytes.Base
 public import Perennial.Proof.iter.Base
 public import SpecPlan.Spec.PkgInit.path
-public import SpecPlan.Spec.PkgInit.reflect
+public import Perennial.Proof.reflect.Base
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.client.v3.kubernetes
 public import SpecPlan.Spec.PkgInit.go_opentelemetry_io.otel.«attribute»
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.codes

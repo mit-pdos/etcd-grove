@@ -30,7 +30,11 @@ theorem lease.NewLease.wp_proof : lease.NewLease.spec (GF := GF) (hG := hG) := b
   wp_start as -
   (try wp_auto)
   wp_apply wp_map_make1 (K := LeaseItem) (V := Unit) as %sm Hsm
-  wp_apply chan.wp_make1 (V := Unit) as %c %γc ⟨#Hch, -, Hown⟩
+  wp_apply +noauto chan.wp_make1 (V := Unit) as %c %γc ⟨#Hch, -, Hown⟩
+  -- (prove-ps2-renew) `revokec` a close-once channel: its invariant and its close token
+  imod (token_alloc (GF := GF)) with ⟨%γt, Htok⟩
+  imod (inv_alloc onceChanN ⊤ (onceChanInv γc γt)) $$ [Hown] with #Hci
+  · inext; iunfold onceChanInv; iexists .Idle; dsimp only; iframe Hown
   (try wp_auto)
   irename «$r0» => Hl
   generalize «$r0_ptr» = l at *
@@ -41,7 +45,9 @@ theorem lease.NewLease.wp_proof : lease.NewLease.spec (GF := GF) (hG := hG) := b
   · ipureintro; exact Hnn
   iframe
   iunfold revokeCloser
-  iexists γc; iframe Hch Hown
+  iexists γt; iframe Htok
+  iunfold onceRecv
+  iexists γc; iframe Hch Hci
 
 end proof
 

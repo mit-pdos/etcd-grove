@@ -18,7 +18,7 @@ public import SpecPlan.Spec.PkgInit.k8s_io.klog.v2
 public import SpecPlan.Spec.PkgInit.k8s_io.utils.clock
 public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.util.sets
 public import SpecPlan.Spec.PkgInit.k8s_io.utils.trace
-public import SpecPlan.Spec.PkgInit.reflect
+public import Perennial.Proof.reflect.Base
 public import SpecPlan.Spec.PkgInit.container.heap
 public import Perennial.Proof.sync.atomic.Base
 public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.runtime.schema
