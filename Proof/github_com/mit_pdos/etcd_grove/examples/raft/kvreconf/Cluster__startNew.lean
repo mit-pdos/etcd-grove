@@ -137,12 +137,13 @@ theorem Cluster.startNew.wp_proof
       (fun S => iprop(raftState γr.cluster nid S ∗ ⌜S = RaftState.init⌝))
       (fun K => iprop(memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
         memStorInvP ms γs (kvrJ γr.cluster K)))
+      (snapshotValid γr.cluster) (fun _ => by iintro H; iexact H)
       HcV HcLg HcSt HcM HcDP HcRO HcDC HcSz HcAS (fun h => absurd Hmd h) (Or.inl (by rw [HcAp]; rfl))
       (by rw [HcAp]; simp [StorContents.b]) (by simp [StorContents.commit])
       (by rw [Hbl0]; simp [StorContents.commit]) (bootCS_is vs Hvnd)
       (fun h => by have := clusterNoSnap_boot _ h; omega) HcTL Htr0)
     $$ [$Hraft $Hcv $Hlogger Hboot Hvac Hau]
-    as %nd ⟨%n, %S, %l, %K, %Hnd, #HisNode, #Hl, %Hlen, %-, Hdrv, Hncfg, Hrun, ⟨HrS, %HS⟩, Hmeta, #HmsInv⟩
+    as %nd ⟨%n, %S, %l, %K, %Hnd, #HisNode, #Hl, %Hlen, %-, Hdrv, Hncfg, Hrun, -, ⟨HrS, %HS⟩, Hmeta, #HmsInv⟩
   · have hA : uint.nat cv.Applied' = 0 := by rw [HcAp]; rfl
     rw [HcID, ← Hiface, hA]
     iframe Hboot Hvac Hic Hca0 Hfits

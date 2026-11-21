@@ -100,6 +100,7 @@ axiom Perennial.k8s_io.apimachinery.pkg.fields.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.labels.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.runtime.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.util.runtime.opaqueInitsOk
+axiom Perennial.k8s_io.apimachinery.pkg.util.validation.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.util.version.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.util.wait.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.watch.opaqueInitsOk
@@ -530,6 +531,9 @@ axiom semver.Version.Major.wp_proof
 axiom semver.Version.Minor.wp_proof
 axiom semver.Version.String.wp_proof
 axiom semver.semverValid_simple
+axiom slices.Clone.wp_proof
+axiom slices.Concat.wp_proof
+axiom slices.ContainsFunc.wp_proof
 axiom snap.NewMessage.wp_proof
 axiom snap.Snapshotter.DBFilePath.wp_proof
 axiom snap.Snapshotter.SaveDBFrom.wp_proof
@@ -600,6 +604,8 @@ axiom v3rpc.logUnaryRequestStats.wp_proof
 axiom v3rpc.pbWatchRequestT_reg
 axiom v3rpc.pbWatchResponseT_reg
 axiom v3rpc.wp_WithTimeout_weak
+axiom validation.IsDNS1123Subdomain.wp_proof
+axiom validation.IsDomainPrefixedKey.wp_proof
 axiom verify.Verify.wp_proof
 axiom verifyEnvOff
 axiom version.Cluster.wp_proof
