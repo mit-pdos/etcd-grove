@@ -1,17 +1,21 @@
 # wal-item3 handoff
 
-## START HERE (2026-11-21 b2) — STOPPED: `rnNewStorageOk_law_holds` needs `[UntypedRuneSemantics]`
+## START HERE (2026-11-21 b3) — option (c): registration landed, `rnNewStorageOk` stays; build + gates
 
-- `.lake/build` seeded (coordinator's build at 3c8804f01f). Built and fixed: `PbHardState` (section `sat` needs
-  `[go_etcd_io.raft.v3.Assumptions]` for `optCell_freeze`; frame by hand), `LawsHsMarshal` (`rw [Hlen.1]`),
-  `bootstrappedRaft__newRaftNode` builds. `#Htd, #Hns⟩` → `#Htd⟩` in the 17 Mains/start proofs. Server `Link`
-  regenerated (only diff: the import and `rnNewStorageOk_law_holds` passed); the other 59 Links unchanged.
-- **Stop (closed statements):** `RnNewStorageLinked` fails: the WAL `Link`'s results take the hypothesis class
-  `[UntypedRuneSemantics]` (`Proof/internal/filepathlite/UntypedRune.lean`; `filepath.join`/`filepathlite.Base`/
-  `FromSlash`, reached by storage `Save` → WAL `Save` → `cut`). Proving the law from the WAL makes every closed
-  theorem over the server take `[UntypedRuneSemantics]` (a new semantic premise, none takes it today; would go
-  in `etc/gen-link.py`'s `SEM_PREMISES`). Options in the report; awaiting etcd-grove-03.
-- Not run yet: full build, gates, STATUS.
+- Decided by etcd-grove-03 (option (c), `questions.md`): land the `raftpb.HardState` registration (`hsSchema`,
+  `hsEncC_ok`, `pbHsC_reg`, opaque `hsDecode`), `walSrvP_marshalHs`, `walStorSpecs_holds` and
+  `rnNewStorageOk_law_holds` (`RnNewStorageLinked.lean`, under `[UntypedRuneSemantics] [os.fileStat.FieldAssumptions]
+  [os.file.FieldAssumptions]`), imported by the server `Link` (tcb sees it) but NOT passed to `newRaftNode`.
+  Every spec/premise/closed statement is lean's (the b1 `#Hns` removals reverted to 3c8804f01f).
+- **Route to removing `rnNewStorageOk`** (b): Perennial's `UntypedIntSemantics` gains `string(c)` / `==` of untyped
+  runes (or Goose folds constant expressions): `notes/perennial-changes.md`, "Operations on untyped rune constants
+  have no step". Then: `=rnNewStorageOk_law_holds` callee of `bootstrappedRaft__newRaftNode` (link list), the law as
+  the proof's hypothesis, `#Hns` out of newRaftNode/NodeStart/NewServer(R)/`commonPremises`/`OneMember`/auth/
+  leaseexpiry/putget3 Defs and the Mains' `icases` (the b1 diff, commit 72ce32ea4e, is the template).
+  No Perennial branch started (coordinator).
+- Follow-up note: `InvProto.lean` calls `PbEncC.enc` "an opaque per-type encoder" though `hsEnc`/`snapEnc` are
+  transparent (trusted wording, left as is).
+- Next: full timed build, gates (tcb `--check --update`: +2 axioms and the opaque), STATUS, land stop.
 
 ## Previous START HERE (2026-11-21 b1) — sources written, NOT BUILT (disk full while seeding); next: seed, build, gates
 

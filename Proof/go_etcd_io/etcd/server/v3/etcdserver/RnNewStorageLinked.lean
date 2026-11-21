@@ -4,8 +4,15 @@ tiers"): the storage methods' specs at every open WAL `h` (`walStorSpecs_holds`:
 over the WAL's linked result at the server's message model `walSrvP`/`walSrvMr` and `h`'s file-system instances,
 the instance's laws from `walSrvPb_laws` and `walSrvP_marshalHs`, the latter over `proto.MarshalPb`'s trust
 boundary at the registered `raftpb.HardState`, `RaftModel/PbHardState.lean`), and from them and `NewStorage`'s
-proof the law `rnNewStorageOk.law` (`rnNewStorageOk_law_holds`), which `bootstrappedRaft.newRaftNode`'s proof
-takes and the server's `Link` passes. Until wal-item3 `rnNewStorageOk` was a premise of every closed theorem.
+proof the law `rnNewStorageOk.law` (`rnNewStorageOk_law_holds`). Both take the semantic hypothesis
+`[UntypedRuneSemantics]`, as the WAL `Link`'s results do (`filepath.join`, `filepathlite.Base`/`FromSlash`:
+`string(Separator)`, `Separator == '/'`; and `os`'s `fileStat`/`file` field assumptions, which the server's
+package assumptions do not include), so `bootstrappedRaft.newRaftNode` does not take the law yet:
+`rnNewStorageOk` stays its spec's premise, and every closed theorem's, until Perennial's semantics steps those
+operations of untyped constants (`notes/perennial-changes.md`, "Operations on untyped rune constants have no
+step"); then `newRaftNode`'s proof takes `rnNewStorageOk.law` (an `=rnNewStorageOk_law_holds` callee) and the
+premise goes (decided by etcd-grove-03, 2026-11-21, option (c)). The server's `Link` imports this module, so
+the trust-base report sees these results.
 -/
 module
 
@@ -40,6 +47,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+variable [UntypedRuneSemantics] [os.fileStat.FieldAssumptions] [os.file.FieldAssumptions]
 
 /-- **The storage methods' specs at every open WAL** (see the file header). -/
 theorem walStorSpecs_holds (h : WalH GF) : walStorSpecs h := by

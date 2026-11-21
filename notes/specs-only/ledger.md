@@ -3503,7 +3503,7 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   and discharge it by `rfl`.
 - **Decision.** Applied (prove-reflectfmt, 2026-11-20; a strengthening of the premise, the callers' obligation discharged).
 
-## 2026-11-21: `rnNewStorageOk` proved: `raftpb.HardState` registered, the premise out of every closed statement (wal-item3)
+## 2026-11-21: `rnNewStorageOk` proved: `raftpb.HardState` registered (wal-item3; the premise stays, option (c))
 
 - **Spec.** `bootstrappedRaft.newRaftNode.spec` (premise `#Hns : rnNewStorageOk`), `NodeStart`'s two boot statements,
   `NewServer.spec`, `NewServerR`'s spec, etcdstart's `commonPremises`, `OneMember.premises`, the auth, leaseexpiry
@@ -3519,3 +3519,8 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   storage proofs at every `WalH` (`RnNewStorageLinked.lean`: `walStorSpecs_holds`, `rnNewStorageOk_law_holds`), and
   take `rnNewStorageOk.law` in `newRaftNode`'s proof (an `=` callee) instead of the premise.
 - **Decision.** Approved by the user, 2026-11-20, via etcd-grove-03 (option (a); the predecessor's form accepted).
+  **Amended 2026-11-21 (etcd-grove-03, option (c)):** the WAL's linked results take the semantic hypothesis
+  `[UntypedRuneSemantics]` (`filepath`), so taking the law in `newRaftNode` would add it to every closed statement.
+  Landed: the registration, `walSrvP_marshalHs`, `walStorSpecs_holds`, `rnNewStorageOk_law_holds` (under the class);
+  `rnNewStorageOk` stays the premise of the specs and closed theorems above, unchanged, until Perennial steps those
+  operations (`notes/perennial-changes.md`, "Operations on untyped rune constants have no step").

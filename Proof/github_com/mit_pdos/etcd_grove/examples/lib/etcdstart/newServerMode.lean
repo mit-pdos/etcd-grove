@@ -58,7 +58,7 @@ theorem newServerMode.wp_proof
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   iunfold bootPremise at Hboot
   iunfold commonPremises at Hcom
-  icases Hcom with ⟨#Hzap, #Htd⟩
+  icases Hcom with ⟨#Hzap, #Htd, #Hns⟩
   iunfold memberBoot at Hmb
   icases Hmb with ⟨%Hρ, %Hnsn, Hnboot, #Hsrl, #Hidc, #Hidk, #HNZ0, #Hpmint, #Hrdctx,
     Hids, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hreg, %γd, %Hsloc, Hsdir⟩
@@ -191,7 +191,7 @@ theorem newServerMode.wp_proofRestart
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   iunfold bootPremiseR at Hboot
   iunfold commonPremises at Hcom
-  icases Hcom with ⟨#Hzap, #Htd⟩
+  icases Hcom with ⟨#Hzap, #Htd, #Hns⟩
   -- the restarted incarnation's names, from the cluster's facts at the stopped ones
   imod (memberRestartFacts_alloc hne γ ρ id) $$ Hrfs with ⟨%ρ', %E₀, %Φs, %Hρ', Hmb⟩
   iunfold memberRestartBoot at Hmb

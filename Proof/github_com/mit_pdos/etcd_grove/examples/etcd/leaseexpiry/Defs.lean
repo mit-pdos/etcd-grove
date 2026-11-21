@@ -26,8 +26,7 @@ triple of a function the program calls, D19a's second kind):
 * `proto.Marshal`'s contract at the bootstrap log's conf changes (`bootMarshal`; 2026-10-27, until
   then part of `bootstrap`'s contract's postcondition), which the cluster's allocation takes;
 * the raft wrapper's trust-boundary contracts (`NodeStartSpec`'s): `rnLoggerZapOk`,
-  `rnTimeoutDetectorOk` (wal-item3, 2026-11-21: `rnNewStorageOk` gone, proved over the real WAL,
-  `rnNewStorageOk_law_holds`; 2026-10-30, the repair:
+  `rnTimeoutDetectorOk`, `rnNewStorageOk` (2026-10-30, the repair:
   `rnStopOkStarted` gone, the node's `Stop` is proved; 2026-11-03, the boot premises: `rnTickerOk`
   gone, a theorem of the `time` specs, `rnTickerOk_of_time`; premise-fixes-4, 2026-11-10:
   `rnSetLoggerOk` gone, false in the model, raft's `SetLogger` proved over the package
@@ -134,7 +133,7 @@ def premises (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     -- premise; until then `bootstrap`'s contract gave it)
     bootMarshal [id] ctxs (LogEntry.toEntries boot 0) ∗
     -- the raft wrapper's trust-boundary contracts (`NodeStartSpec`'s)
-    rnLoggerZapOk ∗ rnTimeoutDetectorOk)
+    rnLoggerZapOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk)
 
 instance premises_persistent (N : Nat) (id : w64) (ctxs : List (List w8))
     (boot : List LogEntry) : Persistent (premises (GF := GF) N id ctxs boot) := by
