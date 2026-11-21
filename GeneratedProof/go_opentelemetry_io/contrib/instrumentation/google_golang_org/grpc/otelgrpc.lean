@@ -2,6 +2,8 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.go_opentelemetry_io.otel.propagation
+public import GeneratedProof.google_golang_org.grpc.metadata
 public import GeneratedProof.google_golang_org.grpc.stats
 public import Perennial.Golang.Theory
 public import Code.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc
@@ -64,12 +66,33 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.Assumptions]
 
 noncomputable instance metadataSupplier_typed_pointsto :
-    TypedPointsto (GF := GF) go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.metadataSupplier :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.metadataSupplier where
+  typedPointstoDef l v dq := iprop(
+    "metadata" ∷ typedPointsto (structFieldRef go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.metadataSupplier go!"metadata" l) v.metadata' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance metadataSupplier_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.metadataSupplier go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.metadataSupplier.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.metadataSupplier go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.metadataSupplier.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance metadataSupplier_access_load_metadata (l : Loc) (v : go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.metadataSupplier) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.metadataSupplier go!"metadata" l) v.metadata' dq)
+      (typedPointsto (structFieldRef go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.metadataSupplier go!"metadata" l) v.metadata' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance metadataSupplier_access_store_metadata (l : Loc) (v : go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.metadataSupplier) (metadata' : google_golang_org.grpc.metadata.MD) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.metadataSupplier go!"metadata" l) v.metadata' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.metadataSupplier go!"metadata" l) metadata' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with metadata' := metadata' } : go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.metadataSupplier) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end metadataSupplier
