@@ -3559,3 +3559,25 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   ("M4 proposal"); the exact error-branch form (`appliedErrM`, the outcome bound in the same existential as the result,
   so the tie is not vacuous) decided by the M4 agent. It reaches the five admin kinds the mode-`on` proposer admits
   (`adminPropOk`: AuthEnable, UserAdd, RoleAdd, UserGrantRole, RoleGrantPermission), not the other seven Auth rows.
+
+## 2026-11-21: `rnNewStorageOk` proved: `raftpb.HardState` registered (wal-item3; the premise stays, option (c))
+
+- **Spec.** `bootstrappedRaft.newRaftNode.spec` (premise `#Hns : rnNewStorageOk`), `NodeStart`'s two boot statements,
+  `NewServer.spec`, `NewServerR`'s spec, etcdstart's `commonPremises`, `OneMember.premises`, the auth, leaseexpiry
+  and putget3 `Defs` (`rnNewStorageOk` a conjunct of each), hence every closed theorem over them.
+- **Defect.** `rnNewStorageOk` (`NewStorage`'s contract) was a premise although wal-link L3 proved it from the storage
+  specs (`rnNewStorageOk_holds`), whose WAL `Save`/`SaveSnapshot` took the unproved `WalPbIn.MarshalHsLaw`
+  (`pbutil.MustMarshalMessage` of a `*raftpb.HardState`): `raftpb.HardState` was not a registered protobuf type, so
+  no `proto` spec covered its encoding (ledger 2026-11-20, wal-fsfix2 item 3's stop).
+- **Evidence.** wal-fsfix2 a8's survey; `etc/gen-link.py --walfs`'s Link (`h_WalPbIn_MarshalHsLaw`, 8 results).
+- **Proposed change.** Option (a): register `raftpb.HardState` like `walpb.Snapshot` (trusted: `hsSchema` in
+  `pbSchemaOf`, `hsEncC_ok`, `pbHsC_reg`; Go: `examples/stdlib/walpb/hardstate_test.go`, `etc/pbschema-check.py` with
+  two negative tests on HardState), prove `MarshalHsLaw` over `proto.MarshalPb.spec` (`walSrvP_marshalHs`), link the
+  storage proofs at every `WalH` (`RnNewStorageLinked.lean`: `walStorSpecs_holds`, `rnNewStorageOk_law_holds`), and
+  take `rnNewStorageOk.law` in `newRaftNode`'s proof (an `=` callee) instead of the premise.
+- **Decision.** Approved by the user, 2026-11-20, via etcd-grove-03 (option (a); the predecessor's form accepted).
+  **Amended 2026-11-21 (etcd-grove-03, option (c)):** the WAL's linked results take the semantic hypothesis
+  `[UntypedRuneSemantics]` (`filepath`), so taking the law in `newRaftNode` would add it to every closed statement.
+  Landed: the registration, `walSrvP_marshalHs`, `walStorSpecs_holds`, `rnNewStorageOk_law_holds` (under the class);
+  `rnNewStorageOk` stays the premise of the specs and closed theorems above, unchanged, until Perennial steps those
+  operations (`notes/perennial-changes.md`, "Operations on untyped rune constants have no step").
