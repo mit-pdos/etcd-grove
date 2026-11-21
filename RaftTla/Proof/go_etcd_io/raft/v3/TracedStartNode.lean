@@ -117,9 +117,9 @@ private theorem snapValid_raftCert (γ : Cluster) (N : Namespace) (E : CoPset) (
 
 /-- (auth-lease S4, 2026-11-16, L-r5) **In the cluster's no-snapshot mode, a storage meeting the
 contract is never compacted past `1`** (`storCapF`): its bound's justification (`storBnd`) caps it. -/
-private theorem isStorage_storCapF (γ : Cluster) (K : GName) (st : Storage) :
-    ⊢ EtcdGrove.isStorage (GF := GF) γ K st -∗
-      (⌜γ.raft.reNoSnap = false⌝ ∨ storCapF st 1) ∗ EtcdGrove.isStorage γ K st := by
+private theorem isStorage_storCapF (γ : Cluster) (K : GName) (st : Storage) (SV : SnapshotM → IProp GF) :
+    ⊢ EtcdGrove.isStorage (GF := GF) γ K st SV -∗
+      (⌜γ.raft.reNoSnap = false⌝ ∨ storCapF st 1) ∗ EtcdGrove.isStorage γ K st SV := by
   iintro Hst
   unfold EtcdGrove.isStorage
   ihave #Hst := Hst
@@ -218,9 +218,10 @@ private theorem storDL_raftDL (γ : Cluster) (K : GName) (sn : StorNames) (sv : 
 /-- **The certificate link of fresh storage names** (`certLink`): their `SV` pin the API's
 `snapshotValid`, their snapshot pin raft's certificate. -/
 private theorem certLink_make (γ : Cluster) (N : Namespace) (HU : UniNames γ N) (sn : StorNames)
+    (Cert : SnapshotM → IProp GF) (hCert : ∀ sv, Cert sv ⊢ EtcdGrove.snapshotValid γ sv)
     (hsz : sn.sz = γ.raft.maxData.isSome) :
     ⊢ clusterInv (GF := GF) γ N -∗
-      savedPredOwn sn.gsv DFrac.discard (EtcdGrove.snapshotValid (GF := GF) γ) -∗
+      savedPredOwn sn.gsv DFrac.discard Cert -∗
       savedPredOwn sn.gk DFrac.discard (raftSnapCertD (GF := GF) γ.raft) -∗
       ctCommitted γ.raft sn -∗ certLink γ.raft sn := by
   iintro #Hci #Hsv #Hgk #Hct
@@ -242,11 +243,12 @@ private theorem certLink_make (γ : Cluster) (N : Namespace) (HU : UniNames γ N
     unfold svCert
     icases Hc with ⟨%SV, #Hp, #HSV⟩
     ihave #Heq := saved_pred_agree sn.gsv DFrac.discard DFrac.discard SV
-      (EtcdGrove.snapshotValid (GF := GF) γ) sv $$ Hp Hsv
+      Cert sv $$ Hp Hsv
     ihave Hv : ▷ EtcdGrove.snapshotValid (GF := GF) γ sv $$ []
     · inext
       ihave Hiff := internalEq_iff _ _ $$ Heq
       icases Hiff with ⟨Hiff, -⟩
+      iapply hCert sv
       iapply Hiff $$ HSV
     have : Timeless (EtcdGrove.snapshotValid (GF := GF) γ sv) := by
       have : ∀ s, Timeless (snapMadeU (GF := GF) γ s) := fun s => by
@@ -348,7 +350,7 @@ private theorem wp_StartNode_impl
     (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
     EtcdGrove.StartNode.gatedSpec (GF := GF) (hG := hG) := by
   unfold EtcdGrove.StartNode.gatedSpec
-  intro γ N vs ctxs c cv lok si csm Q F peers dq pv H1 H2 H3 H4 H5 H6 H7 H8 H9 Hmx Happ Hv Hvo Hl Hln
+  intro γ N vs ctxs c cv lok si csm Q F peers dq pv Cert hpCert hCert H1 H2 H3 H4 H5 H6 H7 H8 H9 Hmx Happ Hv Hvo Hl Hln
     Hal Hvs
   wp_start as ⟨Hc, #Hlg, #Hboot, Hvac, HAU, Hrs, Hpeers, #Hctx, Hstt⟩
   ihave #Hboot0 := Hboot
@@ -428,7 +430,7 @@ private theorem wp_StartNode_impl
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%ga, Hga, #Hga0⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%gg, Hgg, -⟩
   imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := w64) with ⟨%gdd, Hgd⟩
-  imod saved_pred_alloc (EtcdGrove.snapshotValid (GF := GF) γ) DFrac.discard trivial
+  imod saved_pred_alloc Cert DFrac.discard trivial
     with ⟨%gsv, #Hsv⟩
   imod saved_pred_alloc (raftSnapCertD (GF := GF) γ.raft) DFrac.discard trivial with ⟨%gk, #Hgk⟩
   let sn : StorNames :=
@@ -443,7 +445,7 @@ private theorem wp_StartNode_impl
     isplitr
     · iapply isCommitted_mono γ.raft [] _ (List.nil_prefix) $$ Hcmt
     ipureintro; intro i t h; simp [sn] at h
-  ihave #Hlink := certLink_make γ N HU sn rfl $$ Hci Hsv Hgk Hct
+  ihave #Hlink := certLink_make γ N HU sn Cert hCert rfl $$ Hci Hsv Hgk Hct
   ihave HA : storAuths (GF := GF) sn σv $$ [Hga Hgg Hgd]
   · unfold storAuths storCaught
     iframe Hgg
@@ -514,14 +516,14 @@ private theorem wp_StartNode_impl
         ihave H := nodeCommitLbU_zero (GF := GF) γ K
         iExactEq H; rfl
       -- (step 5) the storage's no-compaction, from the client's contract (traced)
-      icases isStorage_trNoCut γ K _ $$ Hst with ⟨Hst, #Hnc⟩
+      icases isStorage_trNoCut γ K _ Cert $$ Hst with ⟨Hst, #Hnc⟩
       -- (auth-lease S4, L-r5) the storage's cap in the cluster's no-snapshot mode (`Bootstrap`'s)
-      icases isStorage_storCapF γ K _ $$ Hst with ⟨#Hnscap, Hst⟩
+      icases isStorage_storCapF γ K _ Cert $$ Hst with ⟨#Hnscap, Hst⟩
       imodintro
       isplitl [Hst]
       · iapply isStorage_of_V
         unfold isStorageV
-        iexists EtcdGrove.snapshotValid (GF := GF) γ, EtcdGrove.storBnd (GF := GF) γ K,
+        iexists Cert, EtcdGrove.storBnd (GF := GF) γ K,
           EtcdGrove.nodeCommitLb (GF := GF) γ K
         isplitl [Hst]
         · iunfold EtcdGrove.isStorage at Hst
@@ -535,7 +537,8 @@ private theorem wp_StartNode_impl
           iapply storBnd_raftBnd γ K sn c' $$ HKn Hga0 Hb
         · iintro !> %sv Hv Hd
           imodintro
-          iapply storDL_raftDL γ K sn sv $$ HKn Hv Hd
+          ihave Hvalid := hCert sv $$ Hv
+          iapply storDL_raftDL γ K sn sv $$ HKn Hvalid Hd
       isplitl [Hsh HA]
       · iunfold storHolds at Hsh
         icases Hsh with ⟨%e0, %He0, #Hc0, #Hl0, -, Hown, Hend⟩
@@ -634,6 +637,11 @@ private theorem wp_StartNode_impl
   haveI := nodeTabOk_persistent (GF := GF) γ np γn
   ihave #Htb : nodeTabOk (GF := GF) γ np γn $$ []
   · unfold nodeTabOk; iexact Hte
+  ihave #Htag : EtcdGrove.nodeTagPin γ np Cert $$ []
+  · iunfold EtcdGrove.nodeTagPin
+    iexists γn
+    iframe Htb
+    iExactEq Hsv; rfl
   ihave Hlive1 : nodeLiveRaw (GF := GF) γn 1 $$ [Hlive1 Hgen1]
   · unfold nodeLiveRaw; iframe Hlive1 Hgen1
   ihave Hlive2 : nodeLiveRaw (GF := GF) γn 1 $$ [Hlive2 Hgen2]
@@ -704,7 +712,7 @@ private theorem wp_StartNode_impl
   -- (step 5, A8.3) the completion witness, `setupNode`'s
   ihave HsD : startDoneB (GF := GF) γ cv.ID' $$ []
   · unfold startDoneB Cluster.trace; iExactEq HbD; rfl
-  iframe HQ HF Hpeers HsD
+  iframe HQ HF Hpeers HsD Htag
   ihave #HisN : EtcdGrove.isNode (GF := GF) np γ N cv.ID' $$ []
   · iunfold EtcdGrove.isNode
     unfold isNode
@@ -798,19 +806,19 @@ open Iris.ProofMode in
 witness `True`). -/
 theorem StartNode.spec_of_gatedSpec (h : StartNode.gatedSpec (GF := GF) (hG := hG)) :
     StartNode.spec (GF := GF) (hG := hG) := by
-  intro γ N vs ctxs c cv lok si csm Q F peers dq pv H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14
+  intro γ N vs ctxs c cv lok si csm Q F peers dq pv Cert hpCert hCert H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14
     H15 H16 H17 Htlk HtrC
   iintro %Φ ⟨#Hpkg, Hc, #Hlg, #Hb, Hvac, HAU, Hrs, Hpeers, #Hctx⟩ HΦ
-  iapply h γ N vs ctxs c cv lok si csm Q F peers dq pv H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14
+  iapply h γ N vs ctxs c cv lok si csm Q F peers dq pv Cert hCert H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14
     H15 H16 H17 $$ [Hc Hvac HAU Hrs Hpeers]
   · iframe Hpkg Hc Hlg Hb Hvac HAU Hrs Hpeers Hctx
     iapply (startTrace_untraced γ N vs cv HtrC).2
     ipureintro; exact Htlk
   inext
-  iintro %nd ⟨%n, %K, %Hnd, H1, H2, H3, H4, H5, HQ, HF, Hp, -⟩
+  iintro %nd ⟨%n, %K, %Hnd, H1, H2, H3, H4, H5, Htag, HQ, HF, Hp, -⟩
   iapply HΦ
   iexists n, K
-  iframe H1 H2 H3 H4 H5 HQ HF Hp
+  iframe H1 H2 H3 H4 H5 Htag HQ HF Hp
   ipureintro; exact Hnd
 
 end proof
