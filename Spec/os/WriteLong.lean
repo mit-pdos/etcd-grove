@@ -13,7 +13,9 @@ where only the first `A` bytes have the data's byte among their candidates; the 
 old ones), except that the page cache known zero past the size is as the last attempt that landed its
 whole chunk, ending at `E` (`E ≤ j`; `0` if none), left it (`pwPostE`: `pwCz m off E E`, which a chunk
 landing whole raises). On success `j = A = E = len(b)` (the `OsMeta` is `pwPost m off len(b) len(b)`)
-and the result is `(len(b), nil)`, as `File__WriteAt.lean` says; on failure `(0, err)`. When
+and the result is `(len(b), nil)`, as `File__WriteAt.lean` says; on failure `(0, err)`, only when the file
+system can fail on an inode or the write ends past `maxBytes` (`¬ FsNoErrIno ∨ maxBytes < off + len(b)`,
+wal-fsfix2). When
 `len(b) ≤ maxRW` the one chunk is all of `b`: `A = len(b)`, and `pwPostE` is `pwPost`. `j` is a page
 cut of the write (`PwCut`) or the end of a chunk that landed whole (`PwCutE`: a chunk of `2^30` bytes
 from an offset off a page boundary ends off one too). Ledger, 2026-11-14. WAL W6 (2026-11-13, `wal-bridge`); proved in
@@ -23,6 +25,7 @@ module
 
 public import Proof.os.Base
 public import Spec.fmt.ErrorOk
+public import GooseLang.Ext.Fs.FsNoErr
 
 @[expose] public section
 
@@ -87,7 +90,7 @@ abbrev os.File.WriteAt.specLong : Prop :=
           E ≤ j ∧ (j = A → E = A) ∧
           os.PwOutA m off.toNat data A j xs ys ∧ os.PwCutE off.toNat data.length j E ∧
           ((j = data.length ∧ n = W64 data.length ∧ err = interface.nil) ∨
-           (n = W64 0 ∧ err ≠ interface.nil))⌝ ∗
+           (n = W64 0 ∧ err ≠ interface.nil ∧ (¬ FsNoErrIno ∨ maxBytes < off.toNat + data.length)))⌝ ∗
         osMeta d.ino (DFrac.own 1) (os.pwPostE m off.toNat A j E) ∗
         osBytes d.ino (off.toNat) (DFrac.own 1) ys ∗
         mcellsAny m.maps (off.toNat) (off.toNat + data.length) ∗

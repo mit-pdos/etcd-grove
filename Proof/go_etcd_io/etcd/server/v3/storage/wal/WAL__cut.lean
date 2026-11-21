@@ -1,7 +1,9 @@
 /-
 The proof of `Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__cut.lean` (W2).
 **Proved** (no `sorry`), over the hypothesis `WAL.sync.specCut` (step 2, with W6's `sync`) and the callees'
-specs; step 1's truncate is `os.File.Truncate.wp_specWalTail` (`TruncWalTail.lean`, `wal-tc10`) over
+specs. Every callee's error comes with a witness that the file system can fail (wal-fsfix2: `¬ FsNoErrIno`,
+`pipeErrW dir`, or a child path of `dir` not covered or too long), which `Sio`'s premises refute when it
+covers every inode (`Fs.fsNoErrOn_of`, with the spec's `DirFits dir` and path coverage); step 1's truncate is `os.File.Truncate.wp_specWalTail` (`TruncWalTail.lean`, `wal-tc10`) over
 `os.File.Truncate.specAu`. Steps 7-8: the directory fsync
 (`fileutil.Fsync.specDirS`) and `CutFin.lean`'s `walInv_cutSynced` at the next step (`wp_notCrashed_acc`);
 `Close`, `LockFile` over `openWALFiles.lean`'s `walOpen_triple` (`os.OpenFile.wp_fileS` of the renamed name),
@@ -109,14 +111,13 @@ theorem cut_off_toInt (a b : Nat) (h : a + b ≤ 0xffffffff000) :
 -- (the proof term's instantiation at the end of the declaration exceeds the default budget)
 set_option maxHeartbeats 1000000 in
 theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAssumptions]
-    [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions] (P : WalPbIn GF) (Mr : WalMarshal)
+    [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions] {Sio : IoSet} [FsStepSat (NoIoErr Sio)]
+    [FsStepSat (NoMapLockErr Sio)] (P : WalPbIn GF) (Mr : WalMarshal)
     (wp_tail : go_etcd_io.etcd.server.v3.storage.wal.WAL.tail.spec (GF := GF) (hG := hG))
     (wp_Truncate : os.File.Truncate.specAu (GF := GF) (hG := hG))
-    (wp_syncCut : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specCut (W := W) P Mr)
-    (_wp_sync : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.spec (W := W) P Mr)
-    (_wp_saveState : go_etcd_io.etcd.server.v3.storage.wal.WAL.saveState.spec (W := W) P Mr)
-    (_wp_saveCrc : go_etcd_io.etcd.server.v3.storage.wal.WAL.saveCrc.spec (GF := GF) (hG := hG))
-    (_wp_encode : go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.specG (GF := GF) (hG := hG))
+    (wp_syncCut : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specCut (Sio := Sio) (W := W) P Mr)
+    (_wp_saveCrc : go_etcd_io.etcd.server.v3.storage.wal.WAL.saveCrc.specNE (GF := GF) (hG := hG))
+    (_wp_encode : go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.specGNE (GF := GF) (hG := hG))
     (_wp_Open : go_etcd_io.etcd.server.v3.storage.wal.filePipeline.Open.spec (GF := GF) (hG := hG))
     (_wp_Rename : os.Rename.specFileSnc (GF := GF) (hG := hG))
     (wp_FsyncDir : go_etcd_io.etcd.client.pkg.v3.fileutil.Fsync.specDirS (GF := GF) (hG := hG))
@@ -139,8 +140,16 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     (wp_Fdatasync : go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync.spec (GF := GF) (hG := hG))
     (wp_syncPreL : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specPreL (GF := GF) (hG := hG))
     (wp_saveStatePre : go_etcd_io.etcd.server.v3.storage.wal.WAL.saveState.specPre P Mr) :
-    go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.spec (W := W) P Mr := by
-  intro R jr r w dir h hrest hst hcnt hcuts hsorted hcpos hpos hmdsz
+    go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.spec (Sio := Sio) (W := W) P Mr := by
+  intro R jr r w dir h hrest hst hcnt hcuts hsorted hcpos hpos hmdsz hcov hroom
+  -- the callees' error witnesses, refuted when `Sio` covers every inode
+  have hrefIno : ¬ FsNoErrIno → ¬ walCov Sio := fun hn hc =>
+    hn (Fs.fsNoErrOn_of Sio hc (fun _ h => h.elim))
+  have hrefChild : ∀ b : GoString, b.length ≤ 255 →
+      ¬ (FsNoErrOn (· = child dir b) ∧ PathFits (child dir b)) → ¬ walCov Sio := fun b hb hn hc =>
+    hn ⟨Fs.fsNoErrOn_of Sio hc (fun p hp => hp ▸ (hcov hc).2 b), pathFits_of_dirFits (hcov hc).1 hb⟩
+  have hrefPipe : pipeErrW dir → ¬ walCov Sio := fun hw hc =>
+    hw ⟨(hcov hc).1, Fs.fsNoErrOn_of Sio hc (fun p ⟨b, hp⟩ => hp ▸ (hcov hc).2 b)⟩
   wp_start as ⟨#Harea, Hh⟩
   iunfold walHandleIn at Hh
   icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j,
@@ -178,18 +187,22 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     iexists m, bs
     iframe Hm Hbs Hv
     ipureintro; exact hmb
-  icases Htr with (⟨%he, Htw⟩ | %he)
+  icases Htr with (⟨%he, Htw⟩ | ⟨%he, %hw⟩)
   rotate_left
   · rcases terr with ei | _
     rotate_left
     · exact absurd rfl he
     wp_auto
     iapply HΦ
-    iright; ipureintro; exact he
+    iright; ipureintro
+    refine ⟨he, fun hc => ?_⟩
+    rcases hw with hw | hw
+    · exact hrefIno hw hc
+    · have := hroom hc; omega
   subst he
   wp_auto
   -- step 2: sync
-  wp_apply (wp_syncCut R jr r w dir { h with sz := h.o0 + h.out.length } hrest rfl)
+  wp_apply (wp_syncCut R jr r w dir { h with sz := h.o0 + h.out.length } hrest rfl hroom)
     $$ [Hlg Hdir Hdf Hdff Hmd Hsp Hdec Hrc Hns Henti Hsnapi He Henc Htw Hdh Hlocks Hls Hcap Hlks Hfp
       Hpipe Hopen] as %serr Hsy
   · iframe Harea
@@ -206,7 +219,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   rotate_left
   · rcases serr with ei | _
     rotate_left
-    · exact absurd rfl he
+    · exact absurd rfl he.1
     wp_auto
     iapply HΦ
     iright; ipureintro; exact he
@@ -323,14 +336,14 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     · ipureintro; exact hnp
     · ipureintro; exact ⟨hfpn, hRpW⟩
   wp_apply (wp_walPipeH_open _wp_Open fp dir j h.pc hcnt) $$ [$Hpipe] as %ntl %oerr Hop
-  icases Hop with (⟨%he, %γp, %Rp, %dqp, %szp, %np, #Hisfp, Hmain, Hpf, %hnp⟩ | %he)
+  icases Hop with (⟨%he, %γp, %Rp, %dqp, %szp, %np, #Hisfp, Hmain, Hpf, %hnp⟩ | ⟨%he, %hw⟩)
   rotate_left
   · rcases oerr with ei | _
     rotate_left
     · exact absurd rfl he
     (try wp_auto)
     iapply HΦ
-    iright; ipureintro; exact he
+    iright; ipureintro; exact ⟨he, hrefPipe hw⟩
   subst he
   (try wp_auto)
   -- step 5: the headers, on the owned `N.tmp`
@@ -380,16 +393,17 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     rw [tailStream_recs, tailRecs_cut Mr h.H h.md h.cuts hsorted' hle']
   have hL : (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length ≤ 0xffffffff000 := by
     rw [hTS]; exact cutHdrs_fit Mr h.md _ _ (by rw [← hst]; exact hmdsz)
+  have hL43 : (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length ≤ 2 ^ 43 := by
+    rw [hTS]; exact cutHdrs_room Mr h.md _ _ (by rw [← hst]; exact hmdsz)
   icases (osZerosA_unfold i2 0 m2.size (DFrac.own 1)).1 $$ Hz2 with ⟨%zs2, %hzs2, Hz2⟩
   ihave HW0 := os.fileW_start f2 fd2 (child dir (pipeTmp np)) (DFrac.own 1) (DFrac.own 1)
     (⟨i2, false, true, lo2, lk2⟩ : OsFd) m2 0 (zs2.map (fun c => ((0 : w8), c)))
     hlo2 (Nat.zero_le _) (by simp [hzs2]) $$ [Hf2 Hfd2 Hoff2 Hm2 Hz2]
   · iframe
-  ihave #Hws := os.File.writerStreamI wp_WriteAt f2 fd2 (child dir (pipeTmp np)) (DFrac.own 1)
+  ihave #HwsP := os.File.writerStreamINE wp_WriteAt f2 fd2 (child dir (pipeTmp np)) (DFrac.own 1)
     (DFrac.own 1) (⟨i2, false, true, lo2, lk2⟩ : OsFd) m2
     (zs2.map (fun c => ((0 : w8), c))) (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length
-    hfd2 rfl hmaps2 (by omega) $$ Hos
-  ihave #HwsP := (io.writerStream_P _ _ _ _).1 $$ Hws
+    hfd2 rfl hmaps2 (by omega) (by unfold maxBytes; omega) $$ Hos
   ihave HW0' : os.fileWI f2 fd2 (child dir (pipeTmp np)) (DFrac.own 1) (DFrac.own 1)
     (⟨i2, false, true, lo2, lk2⟩ : OsFd) m2 (zs2.map (fun c => ((0 : w8), c))) []
     $$ [HW0]
@@ -406,14 +420,14 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     $$ [HwsP] [He Henc2 HW0'] as %serr1 ⟨%pend1, He, Henc2, Hr1⟩
   · iexact HwsP
   · iframe; iframe #
-  icases Hr1 with (⟨%ys1, ⟨%he1, %hys1⟩, HW1⟩ | ⟨%a1, %b1, ⟨%he1, -, -⟩, -⟩)
+  icases Hr1 with (⟨%ys1, ⟨%he1, %hys1⟩, HW1⟩ | ⟨%a1, %b1, ⟨%he1, -, -⟩, -, %hw1⟩)
   rotate_left
   · rcases serr1 with ei | _
     rotate_left
     · exact absurd rfl he1
     (try wp_auto)
     iapply HΦ
-    iright; ipureintro; exact he1
+    iright; ipureintro; exact ⟨he1, hrefIno hw1⟩
   subst he1
   (try wp_auto)
   -- `encode(&Record{Type: MetadataType, Data: w.metadata})`
@@ -444,14 +458,14 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     isplitr
     · iexact Hmds
     · ipureintro; trivial
-  icases Hr2 with (⟨%ys2, ⟨%he2', %hys2⟩, HW2⟩ | ⟨%a2, %b2, ⟨%he2', -, -⟩, -⟩)
+  icases Hr2 with (⟨%ys2, ⟨%he2', %hys2⟩, HW2⟩ | ⟨%a2, %b2, ⟨%he2', -, -⟩, -, %hw2⟩)
   rotate_left
   · rcases serr2 with ei | _
     rotate_left
     · exact absurd rfl he2'
     (try wp_auto)
     iapply HΦ
-    iright; ipureintro; exact he2'
+    iright; ipureintro; exact ⟨he2', hrefIno hw2⟩
   subst he2'
   (try wp_auto)
   -- `saveState(w.state)`
@@ -475,10 +489,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
         (⟨i2, false, true, lo2, lk2⟩ : OsFd) m2 (zs2.map (fun c => ((0 : w8), c)))
         ([] ++ ys1 ++ ys2 ++ ys3) ∗
       ⌜ys3 ++ pend3 = pend2 ++ (if hsEmptyP h.st then [] else stateFrame Mr
-        (hash.crc32.crc32c (hash.crc32.crc32c c0 []) h.md) h.st)⌝) ∨ ⌜serr3 ≠ GoInterface.nil⌝
+        (hash.crc32.crc32c (hash.crc32.crc32c c0 []) h.md) h.st)⌝) ∨
+      ⌜serr3 ≠ GoInterface.nil ∧ ¬ FsNoErrIno⌝
     $$ [Hr3]
   · icases Hr3 with (⟨%hE, Hspf, Henc2, HW3⟩ | ⟨%hNE, Hspf, %pend3, Henc2,
-      (⟨%ys3, ⟨%he3, %hys3⟩, HW3⟩ | ⟨%a3, %b3, ⟨%he3, -, -⟩, -⟩)⟩)
+      (⟨%ys3, ⟨%he3, %hys3⟩, HW3⟩ | ⟨%a3, %b3, ⟨%he3, -, -⟩, -, %hw3⟩)⟩)
     · ileft
       isplitr
       · ipureintro; exact hE.1
@@ -493,15 +508,15 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
       rw [crcAfter_cutHdrs, if_neg hNE]
       iframe
       ipureintro; rw [if_neg hNE]; exact hys3
-    · iright; ipureintro; exact he3
-  icases Hu with (⟨%he3, %pend3, %ys3, Hspf, Henc2, HW3, %hys3⟩ | %he3)
+    · iright; ipureintro; exact ⟨he3, hw3⟩
+  icases Hu with (⟨%he3, %pend3, %ys3, Hspf, Henc2, HW3, %hys3⟩ | ⟨%he3, %hw3⟩)
   rotate_left
   · rcases serr3 with ei | _
     rotate_left
     · exact absurd rfl he3
     (try wp_auto)
     iapply HΦ
-    iright; ipureintro; exact he3
+    iright; ipureintro; exact ⟨he3, hrefIno hw3⟩
   subst he3
   (try wp_auto)
   -- `w.sync()`: the headers flushed and `N.tmp` fdatasynced
@@ -531,28 +546,34 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   wp_apply (wp_syncPreL w lg dir mds h.md e2 (ls ++ [lt]) ntl f2 h.snapi h.enti _ _ _
       (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length ([] ++ ys1 ++ ys2 ++ ys3) pend3 _
       hlenL hsyncOk)
-    $$ [Hws] [Hlg Hdir Hmd Hns Henti Hsnapi He Hlocks Hls Hcap Henc2 HW3] as %serr4 ⟨Hpre, Henc2, Hr4⟩
-  · iexact Hws
+    $$ [HwsP] [Hlg Hdir Hmd Hns Henti Hsnapi He Hlocks Hls Hcap Henc2 HW3] as %serr4 ⟨Hpre, Henc2, Hr4⟩
+  · iexact HwsP
   · iframe Henv Hzpk Henc2 HW3
     iunfold walPreInL
     iexists locks'
     iframe
     iframe #
     ipureintro; exact he2
-  icases Hr4 with (⟨%he4, HS⟩ | ⟨%he4, -⟩)
+  icases Hr4 with (⟨%he4, HS⟩ | ⟨%he4, (⟨-, %hw4⟩ | ⟨%hw4, -⟩)⟩)
   rotate_left
   · rcases serr4 with ei | _
     rotate_left
     · exact absurd rfl he4
     (try wp_auto)
     iapply HΦ
-    iright; ipureintro; exact he4
+    iright; ipureintro; exact ⟨he4, hrefIno hw4⟩
+  · rcases serr4 with ei | _
+    rotate_left
+    · exact absurd rfl he4
+    (try wp_auto)
+    iapply HΦ
+    iright; ipureintro; exact ⟨he4, hrefIno hw4⟩
   subst he4
   rw [hall]
   iunfold walPreInL at Hpre
   icases Hpre with ⟨%locks'', Hlg, -, Hdir, Hmd, -, Hns, -, Henti, Hsnapi, He, -, Hlocks, Hls,
     Hcap, -⟩
-  iclear Hbw0 Hpw0 Hcf0 Hb0 Hbs0 Hu0 Hus0 Hl0 Hws HwsP
+  iclear Hbw0 Hpw0 Hcf0 Hb0 Hbs0 Hu0 Hus0 Hl0 HwsP
   (try wp_auto)
   -- the new segment's offset: the headers' end
   wp_apply (wp_tail w locks'' (ls ++ [lt]) ntl (DFrac.own 1) (DFrac.own 1)) $$ [Hlocks Hls]
@@ -674,8 +695,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   rcases rerr with ei | _
   · (try wp_auto)
     iapply HΦ
-    iright; ipureintro; nofun
-  obtain ⟨⟨x, s0⟩, rfl⟩ := Option.isSome_iff_exists.1 (hro rfl)
+    iright; ipureintro
+    refine ⟨nofun, fun hc => hro.2 nofun ⟨Fs.fsNoErrOn_of Sio hc (fun p hp => hp ▸ (hcov hc).2 _),
+      pathFits_of_dirFits (hcov hc).1 (by
+        have : (pipeTmp np).length = 5 := by unfold pipeTmp; split <;> rfl
+        omega),
+      pathFits_of_dirFits (hcov hc).1 (by rw [walFileName_length]; omega)⟩⟩
+  obtain ⟨⟨x, s0⟩, rfl⟩ := Option.isSome_iff_exists.1 (hro.1 rfl)
   generalize hbt : walFileName (sq + 1) (max (uint.nat h.enti) (uint.nat h.snapi) + 1) = bt
     at hbtw hcurbt hbX hlt hg ⊢
   generalize hL : (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length = L
@@ -704,10 +730,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   icases Hfr with (⟨%hfe, -⟩ | ⟨%hfe, #Hcm⟩)
   · rcases ferr with ei | _
     rotate_left
-    · exact absurd rfl hfe
+    · exact absurd rfl hfe.1
     (try wp_auto)
     iapply HΦ
-    iright; ipureintro; nofun
+    iright; ipureintro; exact ⟨nofun, hrefIno hfe.2⟩
   subst hfe
   (try wp_auto)
   iapply wp_notCrashed_acc
@@ -755,22 +781,26 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   · iPkgInit
   have hbn : NameOk bt := by rw [← hbt]; exact walFileName_nameOk _ _
   wp_apply (wp_LockFile (child dir bt) (W64 1) (W32 384) _ Unit _ _
-      (walOpen_triple Rd dir bt (DFrac.own qd) j g.ino (.except X) (DFrac.own (1 : Qp).half)
+      (walOpen_tripleW Rd dir bt (DFrac.own qd) j g.ino (.except X) (DFrac.own (1 : Qp).half)
         (hj.log x (renFileEnt j (pipeTmp np) j bt g.ino hj s0) (<[bt := .file g.ino]> hj.cur))
         (1 : Qp).half.half (W64 1) (by simp only [OpenFlagsOk, O_CREAT, O_TRUNC, O_CLOEXEC]; decide)
         (by decide) hbn hbX (GMap.lookup_insert _ _ _)) (by decide))
     $$ [Hpd Hcw Hperm] as %lf3 %lerr Hlp
   · iframe; iframe #
-  iunfold fileutil.lockPost at Hlp
-  icases Hlp with ⟨%u, (⟨%hle, ⟨Hpd, Hcw, Hperm⟩, %f3, %fd3, %i3, %k3, ⟨%hfd3, %hi3⟩, #Hlf3, Hf3, Hoff3, Hfd3, Hlk3, #Hkind3⟩ |
-    ⟨⟨%hle, -⟩, -⟩)⟩
+  iunfold fileutil.lockPostW at Hlp
+  icases Hlp with ⟨%u, (⟨%hle, ⟨Hpd, Hcw, Hperm, -⟩, %f3, %fd3, %i3, %k3, ⟨%hfd3, %hi3⟩, #Hlf3, Hf3, Hoff3, Hfd3, Hlk3, #Hkind3⟩ |
+    ⟨⟨%hle, -⟩, %lb, ⟨-, -, -, %hlo⟩, %hlk⟩)⟩
   rotate_left
   · rcases lerr with ei | _
     rotate_left
     · exact absurd rfl hle
     (try wp_auto)
     iapply HΦ
-    iright; ipureintro; nofun
+    iright; ipureintro
+    refine ⟨nofun, fun hc => ?_⟩
+    cases lb
+    · exact hrefChild bt (by rw [← hbt, walFileName_length]; omega) (hlo rfl) hc
+    · exact hrefIno (hlk rfl) hc
   subst hle hi3
   (try wp_auto)
   -- `newTail.Seek(off, io.SeekStart)`

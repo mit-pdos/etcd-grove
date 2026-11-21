@@ -5,13 +5,12 @@ distributed program's adequacy theorem (`goose_dist_crash_adequacy`, Perennial's
 `DistAdequacy.lean`) is instantiated with.
 
 **A crash** keeps the network's ghost state, as the network itself (it is global). A node's
-local ghost state after a crash (`net_crash_interp`) has the same host and universal camera and
-fresh ghost maps of listeners and of their addresses, empty, as the crash leaves the node's listeners
-(`Impl.lean`'s `crash`); `crashStart` says the host is kept.
+local ghost state after a crash (`net_crash_interp`) has the same universal camera and fresh ghost
+maps of listeners and of their addresses, empty, as the crash leaves the node's listeners
+(`Impl.lean`'s `crash`); `crashStart` gives nothing.
 
-**Start resources**: the network's (`netStart`: the plan's persistent entries and every plan
-address's pending set, empty), and a node's host and listeners (none, for a node that starts with
-none).
+**Start resources**: the network's (`netStart`: every valid address's pending set, empty), and a
+node's listeners (none, for a node that starts with none).
 -/
 module
 
@@ -27,26 +26,24 @@ namespace Net
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
 
-/-- A crash: the node's listeners' ghost map made anew (empty), the host kept. -/
+/-- A crash: the node's listeners' ghost map made anew (empty). -/
 instance net_crash_interp : ExtCrashInterp netExt where
-  crashStart hL hL' := iprop(⌜hL'.host = hL.host⌝)
+  crashStart _ _ := iprop(emp)
   local_crash _ _ hL σ σ' h := by
     obtain rfl := (show σ' = { σ with lis := ∅ } from h)
     letI := hL.allG
     unfold ExtInterp.localCtx net_interp netLocalCtx
     simp only
-    iintro ⟨%Hhost, -⟩
+    iintro -
     imod ghost_map_alloc_empty (K := w64) (V := GoString × Bool) with ⟨%γ, H⟩
     imod ghost_map_alloc_empty (K := w64) (V := GoString) with ⟨%γa, Ha⟩
     imodintro
-    iexists (⟨hL.allG, hL.host, γ, γa⟩ : NetLocalGS _)
+    iexists (⟨hL.allG, γ, γa⟩ : NetLocalGS _)
     have he : lisAddrs (∅ : GMap w64 (GoString × Bool)) = ∅ := by
       apply GMap.ext; intro k; unfold lisAddrs; rw [GMap.lookup_fmap]; rfl
     simp only
     rw [he]
     iframe H Ha
-    ipureintro
-    exact Hhost
 
 /-- The extensions of a networked program over TCP. -/
 @[reducible] def netExts : GooseExts := ⟨[netExt]⟩
@@ -96,20 +93,14 @@ noncomputable instance netGpreS : GooseGpreS netGF where
 section start
 variable [GoGlobalContext] {GF : BundledGFunctors}
 
-/-- The global start resources of `[netExt]`: the plan and the pending sets. -/
+/-- The global start resources of `[netExt]`: the pending sets. -/
 theorem net_globalStart [G : GooseGlobalGS .hasLC GF] (g : ExtsGlobalState exts) :
     extsGlobalStart (GF := GF) g ⊢ netStart (extGlobalGS netExt) (extGlobal netExt g) :=
   sep_elim_left
 
-/-- The local start resources of `[netExt]` for a node: its host and its listeners. -/
+/-- The local start resources of `[netExt]` for a node: its listeners. -/
 theorem net_localStart [L : GooseLocalGS GF] (σ : ExtsLocalState exts) :
     extsLocalStart (GF := GF) σ ⊢ lisStart (extLocalGS netExt (L := L)) (extLocal netExt σ) :=
-  sep_elim_left
-
-/-- The crash resources of `[netExt]`: the new generation's host is the old one's. -/
-theorem net_crashStart (L L' : GooseLocalGS GF) :
-    extsCrashStart (GF := GF) L L' ⊢
-      ⌜(extLocalGS netExt (L := L')).host = (extLocalGS netExt (L := L)).host⌝ :=
   sep_elim_left
 
 end start

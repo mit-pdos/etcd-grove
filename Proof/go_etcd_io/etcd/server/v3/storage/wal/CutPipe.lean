@@ -44,7 +44,7 @@ theorem tmpClaim_absent (j : Ino) (b : GoString) (h : NamesH) (hb : h.cur !! b =
   simp only [tmpEnt]
   iempintro
 
-/-- **`w.fp.Open()` from the handle's pipeline.** -/
+/-- **`w.fp.Open()` from the handle's pipeline**; an error witnessed (`pipeErrW dir`). -/
 theorem wp_walPipeH_open
     (wp_Open : go_etcd_io.etcd.server.v3.storage.wal.filePipeline.Open.spec (GF := GF) (hG := hG))
     (fp : Loc) (dir : GoString) (j : Ino) (k : Nat) (hk : k + 2 < 2 ^ 63) :
@@ -55,7 +55,7 @@ theorem wp_walPipeH_open
         (⌜err = interface.nil⌝ ∗ ∃ (γ : PipeNames) (R : Roots) (dq : DFrac) (sz : w64)
             (n : Nat), isFilePipe fp γ R dir dq j sz ∗ pipeMain γ (n + 1) ∗ pipeFile j dir n lf ∗
             ⌜n ≤ k ∧ R = W.roots⌝) ∨
-        ⌜err ≠ interface.nil⌝ }} := by
+        ⌜err ≠ interface.nil ∧ pipeErrW dir⌝ }} := by
   iintro %Φ Hp HΦ
   iunfold walPipeH at Hp
   icases Hp with ⟨%γ, %R, %dq, %sz, %n, #Hfp, Hmain, Hc, %hn2, %hfr⟩
@@ -67,7 +67,7 @@ theorem wp_walPipeH_open
   inext
   iintro %lf %err Hr
   iapply HΦ
-  icases Hr with (⟨%he, Hmain, Hf⟩ | ⟨⟨%he, -⟩, -⟩)
+  icases Hr with (⟨%he, Hmain, Hf⟩ | ⟨⟨%he, -, %hw⟩, -⟩)
   · ileft
     isplitr
     · ipureintro; exact he
@@ -77,7 +77,7 @@ theorem wp_walPipeH_open
     · iexact Hfp
     ipureintro; exact ⟨hn, hfr.2⟩
   · iright
-    ipureintro; exact he
+    ipureintro; exact ⟨he, hw⟩
 
 /-- **The handle's pipeline after a cut**: the claim on the renamed file's name, `pipeTmp n`, is
 the one the next `Open` hands back. -/

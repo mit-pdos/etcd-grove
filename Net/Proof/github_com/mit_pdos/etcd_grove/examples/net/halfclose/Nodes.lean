@@ -388,17 +388,16 @@ theorem wp_Serve
     (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
     (γm : GName) (x : Loc) :
     {{ isPkgInit (PROP := IProp GF) pkg ∗ hcInvs γm ∗
-        ⌜(G (Gg := hG.goose_globalGS)).plan !! srvAddr =
-          some (extLocalGS netExt (L := hG.goose_localGS)).host⌝ ∗
+        ⌜addrOk srvAddr = true⌝ ∗
         globalAddr io.EOF ↦□ interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x }}
       (App (Val (@! Serve)) (Val #()))
     {{ RET #(); True }} := by
   wp_start as ⟨#Hinvs, %Hplan, #Heof⟩
   icases hcInvs_elim γm $$ Hinvs with ⟨#HaddrInv, #HhcInv⟩
   (try wp_auto)
-  wp_apply wp_Listen go!"tcp" net.tcpNet_tcp srvAddr srvAddr $$ []
+  wp_apply wp_Listen go!"tcp" net.tcpNet_tcp srvAddr $$ []
     as %li %err (⟨%Herr, %l, #Hli, Hlis, #Hla⟩ | ⟨%xa, #Hxa, HE⟩)
-  · ipureintro; exact listenAt_self Hplan
+  · ipureintro; exact Hplan
   · -- listening: the accept loop
     subst Herr
     unfold net.isListener
@@ -442,8 +441,8 @@ theorem wp_Call
     (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
     (wp_CloseWrite : net.TCPConn.CloseWrite.spec (GF := GF) (hG := hG))
     (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
-    (γm : GName) (h : GoString) (x : Loc) :
-    {{ isPkgInit (PROP := IProp GF) pkg ∗ hcInvs γm ∗ netPlan G srvAddr h ∗
+    (γm : GName) (x : Loc) :
+    {{ isPkgInit (PROP := IProp GF) pkg ∗ hcInvs γm ∗ ⌜addrOk srvAddr = true⌝ ∗
         globalAddr io.EOF ↦□ interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x }}
       (App (Val (@! Call)) (Val #()))
     {{ RET #(); True }} := by
@@ -453,7 +452,7 @@ theorem wp_Call
   · iPkgInit
   icases wire.ed_of_poll $$ Hpoll with ⟨%ed, #Hed⟩
   (try wp_auto)
-  wp_apply wp_Dial go!"tcp" net.tcpNet_tcp srvAddr h iprop(True) (fun cn => clientProto γm cn) $$ []
+  wp_apply wp_Dial go!"tcp" net.tcpNet_tcp srvAddr iprop(True) (fun cn => clientProto γm cn) $$ []
     as %c %err (⟨%Herr, %cn, #Hc, Hcp⟩ | ⟨-, %xa, #Hxa, HE⟩)
   · iframe Hplan
     isplit

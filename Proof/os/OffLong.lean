@@ -115,7 +115,8 @@ theorem os.File.Write.wp_long (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) 
             osMeta d.ino (DFrac.own 1) (pwPost m o.toNat data.length data.length) ∗
             osBytes d.ino o.toNat (DFrac.own 1) ys ∗ os.ownOff f (o + W64 data.length)) ∨
          (∃ (j A E : Nat) (ys : List ByteG), ⌜err ≠ interface.nil ∧ j ≤ A ∧ A ≤ data.length ∧
-              os.PwOutA m o.toNat data A j xs ys ∧ os.PwCutE o.toNat data.length j E⌝ ∗
+              os.PwOutA m o.toNat data A j xs ys ∧ os.PwCutE o.toNat data.length j E ∧
+              (¬ FsNoErrIno ∨ maxBytes < o.toNat + data.length)⌝ ∗
             osMeta d.ino (DFrac.own 1) (os.pwPostE m o.toNat A j E) ∗
             osBytes d.ino o.toNat (DFrac.own 1) ys ∗ os.ownOff f (W64 (-1)))) ∗
         fmtErrorOkOrNil err }} := by
@@ -159,7 +160,7 @@ theorem os.File.Write.wp_long (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) 
   obtain ⟨hjA, hAn, -, -, hEA, hout, hcut, hr⟩ := Hres
   cases err with
   | nil =>
-    rcases hr with ⟨rfl, rfl, -⟩ | ⟨-, h⟩
+    rcases hr with ⟨rfl, rfl, -⟩ | ⟨-, h, -⟩
     rotate_left
     · exact absurd rfl h
     have hA : A = data.length := by omega
@@ -184,7 +185,9 @@ theorem os.File.Write.wp_long (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) 
     iexists j, A, E, ys
     iframe Hm Hbs
     isplitr
-    · ipureintro; exact ⟨fun h => (nomatch h), hjA, hAn, hout, hcut⟩
+    · ipureintro
+      exact ⟨fun h => (nomatch h), hjA, hAn, hout, hcut,
+        by rcases hr with ⟨-, -, h⟩ | ⟨-, -, hw⟩; exact absurd h (nomatch ·); exact hw⟩
     iexists inner; iframe; iassumption
 
 end proof

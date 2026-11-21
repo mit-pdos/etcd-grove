@@ -10,6 +10,7 @@ fraction, and the attempt fails with no effect (`wp_osRenameAbsentS`).
 module
 
 public import Spec.os.RenameS
+public import GooseLang.Ext.Fs.NoErrSpecsRename
 @[expose] public section
 
 noncomputable section
@@ -69,7 +70,8 @@ theorem os.Rename.wp_proofFileSnc : os.Rename.specFileSnc (GF := GF) (hG := hG) 
   ihave HSt : iprop((osAUnc iprop(osNames j N (DFrac.own r1) h ∗ osNames j' N' (DFrac.own r2) h')
       (renFileOut j j' i N N' bs bt h h' (DFrac.own r1) (DFrac.own r2)) Q ∗
       osNames j N (DFrac.own q1) h ∗ osNames j' N' (DFrac.own q2) h') ∨
-    (∃ xs, Q (some xs) ∗ renFileOut j j' i N N' bs bt h h' (DFrac.own q1) (DFrac.own q2) (some xs)))
+    (∃ xs, ⌜¬ (FsNoErrOn (· = child d' bt) ∧ PathFits (child d bs) ∧ PathFits (child d' bt))⌝ ∗ Q (some xs) ∗
+      renFileOut j j' i N N' bs bt h h' (DFrac.own q1) (DFrac.own q2) (some xs)))
     $$ [Hau Hn1 Hn2]
   · ileft; iframe
   iloeb as IH generalizing Hperm Hp Hp' HSt HΦ
@@ -77,7 +79,7 @@ theorem os.Rename.wp_proofFileSnc : os.Rename.specFileSnc (GF := GF) (hG := hG) 
   wp_apply +noauto wp_osCallBeginS R _ qc (max h.next h'.next) CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
-  icases HSt with (⟨Hau, Hn1, Hn2⟩ | ⟨%xs, HQ, Hout⟩)
+  icases HSt with (⟨Hau, Hn1, Hn2⟩ | ⟨%xs, %hnW, HQ, Hout⟩)
   · wp_apply +noauto (wp_aunc_step "Rename" _
       iprop(osNames j N (DFrac.own r1) h ∗ osNames j' N' (DFrac.own r2) h')
       (renFileOut j j' i N N' bs bt h h' (DFrac.own r1) (DFrac.own r2)) Q) $$ Hau [Hn1 Hn2 Hk Hp Hp' HΦ]
@@ -86,10 +88,10 @@ theorem os.Rename.wp_proofFileSnc : os.Rename.specFileSnc (GF := GF) (hG := hG) 
     · iframe
     ihave Hw2 := (osNames_join j' N' q2 r2 h' hq2).1 $$ [Hn2 Hr2]
     · iframe
-    iapply wp_osRenameFileS R d bs d' bt j j' i N N' dq dq' h h' t s0 qc hbs hbt hN hN' hkey hsrc
+    iapply wp_osRenameFileSW R d bs d' bt j j' i N N' dq dq' h h' t s0 qc hbs hbt hN hN' hkey hsrc
       htgt (Nat.le_trans (Nat.le_max_left _ _) hs) (Nat.le_trans (Nat.le_max_right _ _) hs) hsr
       osN_sub_au osShN_sub_au $$ Hos Hsi Hp Hp' Hw1 Hw2 Hk
-    iintro %e Hperm Hp Hp' Hres
+    iintro %e Hperm Hp Hp' Hres %hne
     icases Hres with (⟨%he, Hw1, Hw2⟩ | ⟨%x, Hlog, Hw1, Hw2⟩)
     · icases (osNames_join j N q1 r1 h hq1).2 $$ Hw1 with ⟨Hn1, Hr1⟩
       icases (osNames_join j' N' q2 r2 h' hq2).2 $$ Hw2 with ⟨Hn2, Hr2⟩
@@ -117,7 +119,7 @@ theorem os.Rename.wp_proofFileSnc : os.Rename.specFileSnc (GF := GF) (hG := hG) 
         iapply HΦ
         iframe
         isplitr
-        · ipureintro; intro hc; cases hc
+        · ipureintro; exact ⟨fun hc => (by cases hc), fun _ => hne he⟩
         unfold renFileOut logOut claimOut; iframe
     · icases (osNames_join j N q1 r1 _ hq1).2 $$ Hw1 with ⟨Hn1, Hr1⟩
       icases (osNames_join j' N' q2 r2 _ hq2).2 $$ Hw2 with ⟨Hn2, Hr2⟩
@@ -139,6 +141,7 @@ theorem os.Rename.wp_proofFileSnc : os.Rename.specFileSnc (GF := GF) (hG := hG) 
         wp_auto
         iapply IH $$ Hperm Hp Hp' [HQ Hout] HΦ
         iright; iexists (x, s0); iframe
+        ipureintro; exact hne (by rw [he4]; decide)
       rw [decide_eq_false (show e ≠ W64 4 from he4)]
       wp_auto
       by_cases he0 : e = W64 0
@@ -146,14 +149,14 @@ theorem os.Rename.wp_proofFileSnc : os.Rename.specFileSnc (GF := GF) (hG := hG) 
         wp_auto
         iapply HΦ
         iframe
-        ipureintro; intro _; rfl
+        ipureintro; exact ⟨fun _ => rfl, fun hc => absurd rfl hc⟩
       rw [decide_eq_false (show e ≠ W64 0 from he0)]
       wp_auto
       wp_apply wp_linkError
       iintro %le
       iapply HΦ
       iframe
-      ipureintro; intro _; rfl
+      ipureintro; exact ⟨fun _ => rfl, fun _ => hne he0⟩
   · obtain ⟨x, sx⟩ := xs
     isimp only [renFileOut, logOut, claimOut] at Hout
     icases Hout with ⟨⟨%hlo, Hlo⟩, Hn1, Hn2⟩
@@ -174,6 +177,7 @@ theorem os.Rename.wp_proofFileSnc : os.Rename.specFileSnc (GF := GF) (hG := hG) 
       wp_auto
       iapply IH $$ Hperm Hp Hp' [HQ Hout] HΦ
       iright; iexists (x, sx); iframe
+      ipureintro; exact hnW
     rw [decide_eq_false (show e ≠ W64 4 from he4)]
     wp_auto
     rw [decide_eq_false (show e ≠ W64 0 from he)]
@@ -182,7 +186,7 @@ theorem os.Rename.wp_proofFileSnc : os.Rename.specFileSnc (GF := GF) (hG := hG) 
     iintro %le
     iapply HΦ
     iframe
-    ipureintro; intro _; rfl
+    ipureintro; exact ⟨fun _ => rfl, fun _ => hnW⟩
 
 /-- `specFileS` from `specFileSnc`: an `osAU` is an `osAUnc`. -/
 theorem os.Rename.wp_proofFileS : os.Rename.specFileS (GF := GF) (hG := hG) := by

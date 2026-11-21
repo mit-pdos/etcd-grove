@@ -119,7 +119,7 @@ theorem repBroken_tripleOld (R : Roots) (dir : GoString) (dq dqn : DFrac) (j : I
   iapply HΨ
   unfold fileutil.openPost
   iexists ()
-  icases Hr with (⟨%fd, %hres, Hf, Hoff, Hfd⟩ | ⟨%herr, Hok⟩)
+  icases Hr with (⟨%fd, %hres, Hf, Hoff, Hfd⟩ | ⟨%herr, Hok, -⟩)
   · obtain ⟨rfl, hfd⟩ := hres
     ileft
     isplitr

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The conformance checker's command (README.md, "Running it").
 
-  conform_check.py check PATH... [--plan FILE] [--witness DIR] [--calls-out DIR] [-v]
+  conform_check.py check PATH... [--witness DIR] [--calls-out DIR] [-v]
       check each run (a trace directory, a directory of them, or a .tar.gz of the sample);
       exit 0 if every run is ADMITTED or OUT OF SCOPE with no finding, 2 if one is NOT ADMITTED;
       --calls-out writes each run's processes and calls, verbatim, for the Lean replay
@@ -22,13 +22,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import checker  # noqa: E402
 import trace as T  # noqa: E402
-
-
-def _plan(path):
-    if path is None:
-        return None
-    with open(path) as fp:
-        return [tuple(x) for x in json.load(fp)]
 
 
 def _runs(paths):
@@ -68,7 +61,7 @@ def calls_json(run):
 def cmd_check(a):
     bad = 0
     for run in _runs(a.paths):
-        res = checker.check_run(run, plan=_plan(a.plan), limit=a.limit, replay=not a.no_replay)
+        res = checker.check_run(run, limit=a.limit, replay=not a.no_replay)
         print(checker.report(res, verbose=a.verbose))
         if res["verdict"] == "NOT ADMITTED":
             bad += 1
@@ -100,7 +93,7 @@ def witness_stats(w):
 def cmd_table(a):
     rows = []
     for run in _runs(a.paths):
-        res = checker.check_run(run, plan=_plan(a.plan), limit=a.limit, replay=not a.no_replay)
+        res = checker.check_run(run, limit=a.limit, replay=not a.no_replay)
         st = res["stats"]
         calls = sum(v for k, v in st.items() if k.startswith("calls "))
         hard = [f for f in res["findings"] if f.kind in checker.HARD]
@@ -130,11 +123,11 @@ def cmd_mutate(a):
     import mutate
     tot = rej = 0
     for run in _runs(a.paths):
-        v = checker.check_run(run, plan=_plan(a.plan), replay=False)["verdict"]
+        v = checker.check_run(run, replay=False)["verdict"]
         if v != "ADMITTED":
             print(f"{run.name}: {v}, not mutated (only admitted runs are)")
             continue
-        res, missed = mutate.run(run, n=a.n, seed=a.seed, plan=_plan(a.plan))
+        res, missed = mutate.run(run, n=a.n, seed=a.seed)
         for kind, (t, r) in sorted(res.items()):
             print(f"{run.name}: {kind}: {r}/{t} rejected")
             tot += t
@@ -151,7 +144,6 @@ def main():
     for name in ("check", "table", "mutate"):
         p = sub.add_parser(name)
         p.add_argument("paths", nargs="+")
-        p.add_argument("--plan", help="a JSON list of [address, host] pairs (default: inferred)")
         p.add_argument("--limit", type=int, default=5_000_000, help="search steps per component")
         p.add_argument("--no-replay", action="store_true", help="do not build and replay the witness")
         p.add_argument("-v", "--verbose", action="store_true")
