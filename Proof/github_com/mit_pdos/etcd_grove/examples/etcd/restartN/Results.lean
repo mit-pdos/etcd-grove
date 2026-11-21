@@ -93,8 +93,10 @@ requires the snapshot catch-up.
   client ranges apart).
 - `ids`, `Hlen`, `Hbf` (`BootFacts`, putgetN's): the `k` member ids in the members' order (their 16 low
   bits distinct and not `0`), the peers in `bootstrap`'s order (a permutation of them) and the bootstrap
-  log, as Go computes them; at the token `restartN-1440` `TestMemberIDs` checks the ids for every
-  `k ≤ 1000`.
+  log, as Go computes them; at the token `restartN-11208` `TestMemberIDs` checks the ids for every
+  `k ≤ 300` and across the clusters of `examples/etcd/all` (until 2026-11-21 `restartN-1440`, at the ports
+  29000/30000, every `k ≤ 1000`): above 300, `Hbf` may be false of the real ids, and the theorem then says
+  nothing.
 - `Haf`, `Hbuq`, `Hdbo`: sizes of the auth records, the backend's quota, the WAL's and the disk's saves.
 - `HNs` (`namesUnclaimed`): the program's metric names (`initNames`: its closure's registering packages', mustreg 2026-11-20) are claimed by no one else at start.
 - `HAs` (`addrsUnclaimed`): the `k` peer addresses are free at start; no client address is served.

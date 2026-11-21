@@ -113,6 +113,9 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          # (2026-11-20, notes/k8s-unified-scope.md) the one closed Kubernetes theorem's program: the two
          # drivers at once; no package variable, its fact `True` (`Base.lean`), so no `SPECIAL`
          'github_com.mit_pdos.etcd_grove.examples.k8s.all',
+         # (2026-11-21, notes/etcd-unified-scope.md) the one closed etcd theorem's program: eleven
+         # drivers at once; no package variable, its fact `True` (`Base.lean`), so no `SPECIAL`
+         'github_com.mit_pdos.etcd_grove.examples.etcd.all',
          # KEP-6404 (2026-10-26): the watch cache and its store
          'k8s_io.apiserver.pkg.storage.cacher',
          # client-go's leaf libraries (2026-10-26, notes/k8s-clientgo-goose.md; `util/flowcontrol`
@@ -4382,7 +4385,9 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.putget':
             'github_com.mit_pdos.etcd_grove.examples.raft.kvdurable':
             'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.k8s.all':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/all/PkgTable.lean'}
+            'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/all/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.all':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/all/PkgTable.lean'}
 # (R10, 2026-11-07) mvcc's randomized tester
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccrand'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/PkgTable.lean'

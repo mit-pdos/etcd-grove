@@ -34,7 +34,7 @@ namespace github_com.mit_pdos.etcd_grove.examples.etcd.authlease
   #(W64 17000)
 
 @[reducible] noncomputable def Token [GooseExts] [GoGlobalContext] : val :=
-  #(go!"authlease-3354335")
+  #(go!"authlease-1787")
 
 @[reducible] noncomputable def grantTTL [GooseExts] [GoGlobalContext] : val :=
   #(600 : Int)
@@ -99,7 +99,7 @@ noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
 /-- newUserClient connects a client of addr that authenticates as user name with password pw
     (auth3's).
 
-    go: authlease.go:88:6 -/
+    go: authlease.go:90:6 -/
 noncomputable def newUserClient.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Lam "name"
@@ -139,7 +139,7 @@ noncomputable def newUserClient.impl [GooseExts] [GoGlobalContext] : val :=
 /-- reqCtx is a request's context, with the request timeout; the bad principal's carries its token
     (authkv's).
 
-    go: authlease.go:102:6 -/
+    go: authlease.go:104:6 -/
 noncomputable def reqCtx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "who"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.Context.ty))) (Val #())))
@@ -193,7 +193,7 @@ noncomputable def reqCtx.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- refused panics if err is nil: a request the auth state refuses who returned no error.
 
-    go: authlease.go:111:6 -/
+    go: authlease.go:113:6 -/
 noncomputable def refused.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "who"
   (Lam "what"
@@ -214,7 +214,7 @@ noncomputable def refused.impl [GooseExts] [GoGlobalContext] : val :=
     reports whether it succeeded (auth3's): the member has then applied every entry committed
     before the read.
 
-    go: authlease.go:120:6 -/
+    go: authlease.go:122:6 -/
 noncomputable def barrier.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Lam "lg"
@@ -291,7 +291,7 @@ noncomputable def barrier.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- barriers runs barrier at every member, and reports whether every one succeeded.
 
-    go: authlease.go:132:6 -/
+    go: authlease.go:134:6 -/
 noncomputable def barriers.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ms"
   (Lam "lg"
@@ -333,7 +333,7 @@ noncomputable def barriers.impl [GooseExts] [GoGlobalContext] : val :=
 /-- grantPut grants a lease through cli and puts k with it; it reports the lease and whether both
     succeeded.
 
-    go: authlease.go:143:6 -/
+    go: authlease.go:145:6 -/
 noncomputable def grantPut.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cli"
   (Lam "k"
@@ -451,7 +451,7 @@ noncomputable def grantPut.impl [GooseExts] [GoGlobalContext] : val :=
 /-- noAuth is check 1: who (the client with no token, or the one with the invalid token) is refused
     every lease method on id.
 
-    go: authlease.go:161:6 -/
+    go: authlease.go:163:6 -/
 noncomputable def noAuth.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cli"
   (Lam "who"
@@ -639,7 +639,7 @@ noncomputable def noAuth.impl [GooseExts] [GoGlobalContext] : val :=
 /-- foreign is checks 4 and 5 (and 3's refusal): who is refused the revocation of id, its
     TimeToLive with keys and the listing of the leases, id holding a key who may not touch.
 
-    go: authlease.go:186:6 -/
+    go: authlease.go:188:6 -/
 noncomputable def foreign.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cli"
   (Lam "who"
@@ -758,7 +758,7 @@ noncomputable def foreign.impl [GooseExts] [GoGlobalContext] : val :=
 /-- absent reports whether root's Get of k through cli succeeded and found no key; it panics if
     the Get succeeded and found one (what the caller expects to be absent).
 
-    go: authlease.go:203:6 -/
+    go: authlease.go:205:6 -/
 noncomputable def absent.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "root"
   (Lam "k"
@@ -831,7 +831,7 @@ noncomputable def absent.impl [GooseExts] [GoGlobalContext] : val :=
 /-- run is the set-up, the lease set-up and the checks (see the package comment) on the started
     members srvs of the members ms (len(srvs) = len(ms) >= 1).
 
-    go: authlease.go:218:6 -/
+    go: authlease.go:220:6 -/
 noncomputable def run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "srvs"
   (Lam "ms"
@@ -1392,7 +1392,7 @@ noncomputable def run.impl [GooseExts] [GoGlobalContext] : val :=
     then runs the lease set-up and checks across them (run), and returns its result (auth.Ok,
     auth.Failed); k = 0, or a member that fails to start, ends Main with auth.Failed.
 
-    go: authlease.go:325:6 -/
+    go: authlease.go:327:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "k"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))

@@ -12,9 +12,12 @@ trust base of each printed in the build log (`#print axioms`). Lean-first (no Ro
   for every member count `1 ≤ k ≤ 1000`. Its statement was approved by the user, 2026-11-16, via
   etcd-grove-02 (`notes/leaseN-plan.md` §2.1).
 
-**The cluster token.** `leaseN-2422`, the first `leaseN-<i>` at which putgetN's `BootFacts` (the ids' 16 low
-bits distinct and not `0`) holds for every `k ≤ 1000`; `TestMemberIDs` (`examples/etcd/leaseN/leaseN_test.go`)
-checks it from the ids etcd computes. No member grants a lease, so the ids' 15 low bits need not be distinct.
+**The cluster token.** `leaseN-1302`, the first `leaseN-<i>` at which putgetN's `BootFacts` (the ids' 16 low
+bits distinct and not `0`) holds for every `k ≤ 300` and across the clusters of `examples/etcd/all`;
+`TestMemberIDs` (`examples/etcd/leaseN/leaseN_test.go`) checks it from the ids etcd computes. No member grants a
+lease, so the ids' 15 low bits need not be distinct. Until 2026-11-21 the token was `leaseN-2422`, checked for every `k ≤ 1000`; the theorem's `k ≤ 1000`
+stays (its proof needs only the ports' bound), but its premise `BootFacts` is checked only for `k ≤ 300`: above,
+it may be false of the real ids, and the theorem then says nothing.
 -/
 module
 

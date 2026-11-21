@@ -8,10 +8,13 @@ Rocq counterpart).
   returns `Ok` or `Failed` (`Spec/.../authlease/Main.lean`), for `1 ≤ k ≤ 1000`.
 * **`etcd_authlease_safe`** (`Adequacy.lean`'s `etcd_authlease_adequate`): the closed theorem (Draft §2).
 
-**The cluster token.** The program's token is `authlease-3354335`, which appears only in the program and its
+**The cluster token.** The program's token is `authlease-1787`, which appears only in the program and its
 premises: the first `authlease-<i>` at which putgetN's `BootFacts` premise and `leaseIdsApart` (the member ids'
-15 low bits distinct) hold for every `k ≤ 1000`; `TestMemberIDs` (`examples/etcd/authlease/authlease_test.go`)
-checks it for every `k`, from the ids etcd computes, without starting a cluster.
+15 low bits distinct) hold for every `k ≤ 300`, and `BootFacts` across the clusters of `examples/etcd/all`;
+`TestMemberIDs` (`examples/etcd/authlease/authlease_test.go`) checks it for every `k ≤ 300`, from the ids etcd
+computes, without starting a cluster. Until 2026-11-21 the token was `authlease-3354335`, checked for every `k ≤ 1000`; the theorem's `k ≤ 1000`
+stays (its proof needs only the ports' bound), but its premises on the ids are checked only for `k ≤ 300`: above,
+they may be false of the real ids, and the theorem then says nothing.
 -/
 module
 

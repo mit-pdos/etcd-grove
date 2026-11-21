@@ -2,9 +2,12 @@
 // (notes/etcd-unified-scope.md, after notes/k8s-unified-scope.md): eleven etcd examples, each on a
 // cluster of its own, at once, in one process -- the KV part (txnlinfaultsN's partitioned
 // linearizability workload on k1 members, partition's watch workload under partitions on three,
-// compactwatch's revision compactor and cache's watch cache on one member each), the auth part
-// (authN on k2 members, authlease on k3), the lease part (leaseN on k4, leaseexpiryN on k5,
-// leasecatchup's snapshot catch-up on three) and the restart part (restartN on k6, restart1 on one).
+// compactwatch's revision compactor, compacted's periodic compactor under a Put and a Get, and cache's
+// watch cache, on one member each), the auth part (authN on k2 members, authlease on k3), the lease
+// part (leaseN on k4, leasecatchup's snapshot catch-up on three) and the restart part (restartN on k5,
+// restart1 on one). (leaseexpiryN is not among them: its leases expire, which authlease's and
+// leasecatchup's premise lease.leasesNoExpiry, a claim about every lessor of the process, excludes;
+// notes/etcd-unified-scope.md §2.2 C.)
 // The drivers are called unchanged. Their clusters' member names, data directories and tokens are
 // disjoint; their addresses must be too (TestAddrs), and the member ids of all their members must
 // have distinct 16 low bits (TestMemberIDs), which etcd's request-id generators need of the
@@ -21,10 +24,10 @@ import (
 	"github.com/mit-pdos/etcd-grove/examples/etcd/authN"
 	"github.com/mit-pdos/etcd-grove/examples/etcd/authlease"
 	"github.com/mit-pdos/etcd-grove/examples/etcd/cache"
+	"github.com/mit-pdos/etcd-grove/examples/etcd/compacted"
 	"github.com/mit-pdos/etcd-grove/examples/etcd/compactwatch"
 	"github.com/mit-pdos/etcd-grove/examples/etcd/leaseN"
 	"github.com/mit-pdos/etcd-grove/examples/etcd/leasecatchup"
-	"github.com/mit-pdos/etcd-grove/examples/etcd/leaseexpiryN"
 	"github.com/mit-pdos/etcd-grove/examples/etcd/partition"
 	"github.com/mit-pdos/etcd-grove/examples/etcd/restart1"
 	"github.com/mit-pdos/etcd-grove/examples/etcd/restartN"
@@ -55,15 +58,17 @@ func spawn(wg *sync.WaitGroup, f func()) {
 // KV is the KV part: txnlinfaultsN.Main(k1, clients, ops, sched1) (k1 members under partitions,
 // porcupine's check of the history), partition.MainWatch(nw, nops, sched2) (three members under
 // partitions, watches), compactwatch.Main() (one member, the revision auto-compactor, compacted
-// watches) and cache.Main(cnw, cnops) (one member, the periodic auto-compactor, etcd's watch cache),
-// at once; it returns when all have. Their results are dropped: a failed check is a panic.
+// watches), compacted.Main() (one member, the periodic auto-compactor, a Put then a Get of its key)
+// and cache.Main(cnw, cnops) (one member, the periodic auto-compactor, etcd's watch cache), at once;
+// it returns when all have. Their results are dropped: a failed check is a panic.
 func KV(k1 uint64, clients int, ops int, sched1 []cluster3.Step, nw int, nops int,
 	sched2 []cluster3.Step, cnw int, cnops int) {
 	var wg sync.WaitGroup
-	wg.Add(3)
+	wg.Add(4)
 	spawn(&wg, func() { txnlinfaultsN.Main(k1, clients, ops, sched1) })
 	spawn(&wg, func() { partition.MainWatch(nw, nops, sched2) })
 	spawn(&wg, func() { compactwatch.Main() })
+	spawn(&wg, func() { compacted.Main() })
 	cache.Main(cnw, cnops)
 	wg.Wait()
 }
@@ -78,24 +83,22 @@ func Auth(k2 uint64, k3 uint64) {
 	wg.Wait()
 }
 
-// Lease is the lease part: leaseN.Main(k4) (k4 members, lease reads), leaseexpiryN.Main(k5) (k5
-// members, leases expiring) and leasecatchup.Main() (three members, a lessor recovered from a
-// snapshot), at once; it returns when all have.
-func Lease(k4 uint64, k5 uint64) {
+// Lease is the lease part: leaseN.Main(k4) (k4 members, lease reads) and leasecatchup.Main() (three
+// members, a lessor recovered from a snapshot), at once; it returns when both have.
+func Lease(k4 uint64) {
 	var wg sync.WaitGroup
-	wg.Add(2)
+	wg.Add(1)
 	spawn(&wg, func() { leaseN.Main(k4) })
-	spawn(&wg, func() { leaseexpiryN.Main(k5) })
 	leasecatchup.Main()
 	wg.Wait()
 }
 
-// Restart is the restart part: restartN.Main(k6) (a member of k6 stopped and restarted) and
+// Restart is the restart part: restartN.Main(k5) (a member of k5 stopped and restarted) and
 // restart1.Main() (the one member stopped and restarted), at once; it returns when both have.
-func Restart(k6 uint64) {
+func Restart(k5 uint64) {
 	var wg sync.WaitGroup
 	wg.Add(1)
-	spawn(&wg, func() { restartN.Main(k6) })
+	spawn(&wg, func() { restartN.Main(k5) })
 	restart1.Main()
 	wg.Wait()
 }
@@ -103,13 +106,12 @@ func Restart(k6 uint64) {
 // Main runs the four parts at once, three on goroutines of their own (spawn) and Restart on its own
 // thread, and returns when all have (a process ends when its main returns).
 func Main(k1 uint64, clients int, ops int, sched1 []cluster3.Step, nw int, nops int,
-	sched2 []cluster3.Step, cnw int, cnops int, k2 uint64, k3 uint64, k4 uint64, k5 uint64,
-	k6 uint64) {
+	sched2 []cluster3.Step, cnw int, cnops int, k2 uint64, k3 uint64, k4 uint64, k5 uint64) {
 	var wg sync.WaitGroup
 	wg.Add(3)
 	spawn(&wg, func() { KV(k1, clients, ops, sched1, nw, nops, sched2, cnw, cnops) })
 	spawn(&wg, func() { Auth(k2, k3) })
-	spawn(&wg, func() { Lease(k4, k5) })
-	Restart(k6)
+	spawn(&wg, func() { Lease(k4) })
+	Restart(k5)
 	wg.Wait()
 }

@@ -19,14 +19,15 @@ txnlinfaultsN's results (`examples/etcd/txnlinfaultsN/txnlinfaultsN.go`; `notes/
   partition's premises and putgetN's generalization of the three members to a list; no new premise. Its
   statement was approved by the user, 2026-11-15, via etcd-grove-81 (`notes/txnlinfaultsN-draft.md`).
 
-**The cluster token.** The program's token is `txnlinfaultsN-6255`, which appears only in the program and its
+**The cluster token.** The program's token is `txnlinfaultsN-12748`, which appears only in the program and its
 premises (the members' configurations in `etcd_txnlinfaultsN.premises`). etcd computes each member's id
 from its peer URL and the token, and `BootFacts` (putgetN's) requires the ids' 16 low bits distinct and not
 `0` (etcd's request and lease ids carry them as the member's prefix). For a token chosen at random that
 fails for some `k ≤ 1000` (the birthday bound of 16 bits), which would make the theorem vacuous at those `k`;
-putgetN's token does not carry over, since the peer URLs differ. `txnlinfaultsN-6255` is the first
+putgetN's token does not carry over, since the peer URLs differ. `txnlinfaultsN-12748` is the first
 `txnlinfaultsN-<i>` at which the premise holds for every `k ≤ 1000` (member `i`'s id is the same in every
-cluster of more than `i` members, so the check at `k = 1000` covers every `k`); `TestMemberIDs`
+cluster of more than `i` members, so the check at `k = 1000` covers every `k`) and across the clusters of
+`examples/etcd/all` (the others at `k ≤ 300`; until 2026-11-21 `txnlinfaultsN-6255`); `TestMemberIDs`
 (`examples/etcd/txnlinfaultsN/txnlinfaultsN_test.go`) checks it for every `k`, from the ids etcd computes,
 without starting a cluster.
 -/

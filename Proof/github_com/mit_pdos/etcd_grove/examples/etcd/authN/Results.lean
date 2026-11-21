@@ -9,11 +9,13 @@ trust base of each printed in the build log (`#print axioms`). Lean-first (no Ro
   member count `1 ≤ k ≤ 1000`. Its statement, with the principals at members `0`, `1 mod k` and `2 mod k`,
   was approved by the user, 2026-11-16, via etcd-grove-81 (`notes/authN-draft.md`).
 
-**The cluster token.** The program's token is `authN-1286`, which appears only in the program and its premises
+**The cluster token.** The program's token is `authN-133`, which appears only in the program and its premises
 (the members' configurations in `etcd_authN.premises`): the first `authN-<i>` at which putgetN's `BootFacts`
-premise (the member ids' 16 low bits distinct and not `0`) holds for every `k ≤ 1000`; `TestMemberIDs`
-(`examples/etcd/authN/authN_test.go`) checks it for every `k`, from the ids etcd computes, without starting a
-cluster.
+premise (the member ids' 16 low bits distinct and not `0`) holds for every `k ≤ 300` and across the
+clusters of `examples/etcd/all`; `TestMemberIDs` (`examples/etcd/authN/authN_test.go`) checks it for every
+`k ≤ 300`, from the ids etcd computes, without starting a cluster. Until 2026-11-21 the token was `authN-1286`, checked for every `k ≤ 1000`; the theorem's `k ≤ 1000`
+stays (its proof needs only the ports' bound), but its premise `BootFacts` is checked only for `k ≤ 300`: above,
+it may be false of the real ids, and the theorem then says nothing.
 -/
 module
 

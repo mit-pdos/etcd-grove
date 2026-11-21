@@ -18,7 +18,6 @@ import (
 	"github.com/mit-pdos/etcd-grove/examples/etcd/authN"
 	"github.com/mit-pdos/etcd-grove/examples/etcd/authlease"
 	"github.com/mit-pdos/etcd-grove/examples/etcd/leaseN"
-	"github.com/mit-pdos/etcd-grove/examples/etcd/leaseexpiryN"
 	"github.com/mit-pdos/etcd-grove/examples/etcd/restartN"
 	"github.com/mit-pdos/etcd-grove/examples/etcd/txnlinfaultsN"
 	"github.com/mit-pdos/etcd-grove/examples/lib/cluster3"
@@ -26,8 +25,18 @@ import (
 	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 )
 
-// maxMembers is the drivers' own bound on each k-member part's member count (k1, ..., k6).
+// maxMembers is the drivers' own bound on each k-member part's member count (k1, ..., k5).
 const maxMembers = 1000
+
+// idBound is etcd_safe's bound on a k-member part's member count (notes/etcd-unified-scope.md §2.2 B,
+// decision N2): the member count up to which the 16 low bits of the ids of the process's every member
+// are distinct (TestMemberIDs), txnlinfaultsN's 1000 and the other parts' 300.
+func idBound(pfx string) int {
+	if pfx == "txnlinfaultsN" {
+		return 1000
+	}
+	return 300
+}
 
 // A k-member part: its members are etcdstart.Members(pfx, k, peerBase, clientBase) at token; bridged
 // says its members' gRPC APIs are behind bridges at bridgeBase+i (txnlinfaultsN), clientServed that
@@ -48,14 +57,13 @@ func kParts() []kPart {
 		{"authN", authN.PeerBase, authN.ClientBase, authN.Token, true, 0},
 		{"authlease", authlease.PeerBase, authlease.ClientBase, authlease.Token, true, 0},
 		{"leaseN", leaseN.PeerBase, leaseN.ClientBase, leaseN.Token, true, 0},
-		{"leaseexpiryN", leaseexpiryN.PeerBase, leaseexpiryN.ClientBase, leaseexpiryN.Token, true, 0},
 		{"restartN", restartN.PeerBase, restartN.ClientBase, restartN.Token, false, 0},
 	}
 }
 
 // A part of fixed members: each member's name and peer address, the cluster's token, and the
 // addresses the part listens on. Copied from the drivers (partition's and leasecatchup's config,
-// compactwatch's, cache's and restart1's constants: unexported there).
+// compactwatch's, compacted's, cache's and restart1's constants: unexported there).
 type fixedPart struct {
 	names   []string
 	peers   []string
@@ -78,6 +86,7 @@ func fixedParts() []fixedPart {
 		// one-member clusters: the token is the member's name, the peer address is not served
 		{[]string{"compactkv"}, []string{"127.0.0.1:23804"}, "compactkv", []string{"127.0.0.1:23794"}},
 		{[]string{"cachekv"}, []string{"127.0.0.1:23883"}, "cachekv", []string{"127.0.0.1:23873"}},
+		{[]string{"putgetc"}, []string{"127.0.0.1:23801"}, "putgetc", []string{"127.0.0.1:23791"}},
 		{[]string{"restart1"}, []string{"127.0.0.1:23811"}, "restart1", nil},
 	}
 }
@@ -96,9 +105,8 @@ func memberID(t *testing.T, name string, peer string, token string) uint64 {
 	return uint64(cl.MemberIDs()[0])
 }
 
-// TestAddrs checks that the addresses the parts listen on are disjoint (it fails at lean's ports:
-// authN's and restartN's peer ranges are both 29000+i, notes/etcd-unified-scope.md §2.1; stage E1
-// moves restartN's), at every part's largest
+// TestAddrs checks that the addresses the parts listen on are disjoint (until 2026-11-21 authN's and
+// restartN's peer ranges were both 29000+i, notes/etcd-unified-scope.md §2.2 A), at every part's largest
 // member count (a k-member part's addresses at k are a prefix of those at maxMembers), and that
 // every port is at most 65535.
 func TestAddrs(t *testing.T) {
@@ -163,34 +171,20 @@ func lowOk(ids []uint64) bool {
 	return true
 }
 
-// largestUniformK is the largest K <= maxMembers such that the ids of every part, the k-member
-// parts at K members each, have distinct, nonzero 16 low bits (so at every k1, ..., k6 <= K).
-func largestUniformK(kids map[string][]uint64, fixed []uint64) int {
-	for K := 0; K <= maxMembers; K++ {
-		all := append([]uint64{}, fixed...)
-		for _, p := range kParts() {
-			all = append(all, kids[p.pfx][:K]...)
-		}
-		if !lowOk(all) {
-			return K - 1
-		}
-	}
-	return maxMembers
-}
-
-// TestMemberIDs measures etcd_safe's premise Hlow (examples/k8s/all's, notes/etcd-unified-scope.md
-// §2.3): the 16 low bits of the ids of the process's every member distinct and not 0. Each driver's
-// own TestMemberIDs checks it within its cluster for every k <= 1000; across the eleven clusters it
-// holds only up to a smaller uniform bound, which this test reports, and checks at the bound
-// ETCDALL_MAXK (default uniformK).
+// TestMemberIDs checks etcd_safe's premise Hlow (examples/k8s/all's, notes/etcd-unified-scope.md
+// §2.2 B): the 16 low bits of the ids of the process's every member distinct and not 0, the
+// k-member parts at their bounds (idBound; a part's members at k are the first k at its bound, so
+// that checks every smaller k too). It also reports, for the record, the collisions with every
+// k-member part at maxMembers (which no choice of tokens avoids: about 4000 values in 65536).
 func TestMemberIDs(t *testing.T) {
 	kids, fixed := idsOf(t)
-	if !lowOk(fixed) {
-		t.Errorf("the fixed parts' ids collide")
+	all := append([]uint64{}, fixed...)
+	for _, p := range kParts() {
+		all = append(all, kids[p.pfx][:idBound(p.pfx)]...)
 	}
-	K := largestUniformK(kids, fixed)
-	t.Logf("largest uniform member count with distinct low 16 bits: K = %d", K)
-	// the collisions at maxMembers, for the record
+	if !lowOk(all) {
+		t.Errorf("Hlow fails at the bounds")
+	}
 	byLow := map[uint64][]string{}
 	for _, p := range kParts() {
 		for i, id := range kids[p.pfx] {
@@ -209,28 +203,11 @@ func TestMemberIDs(t *testing.T) {
 		}
 	}
 	sort.Slice(lows, func(i, j int) bool { return lows[i] < lows[j] })
-	t.Logf("at k1 = ... = k6 = %d: %d colliding members over %d low halves", maxMembers, n, len(lows))
+	t.Logf("at k1 = ... = k5 = %d: %d colliding members over %d low halves", maxMembers, n, len(lows))
 	for _, low := range lows[:min(5, len(lows))] {
 		t.Logf("  low %#04x: %v", low, byLow[low])
 	}
-	want := uniformK
-	if s := os.Getenv("ETCDALL_MAXK"); s != "" {
-		v, err := strconv.Atoi(s)
-		if err != nil {
-			t.Fatal(err)
-		}
-		want = v
-	}
-	if K < want {
-		t.Errorf("Hlow fails below the bound %d (holds up to %d)", want, K)
-	}
 }
-
-// uniformK is the bound TestMemberIDs checks by default: the largest uniform member count at which
-// Hlow holds at lean's tokens and ports (measured in E0, 2026-11-21: 70; 79 with restartN moved to
-// 14000/15000). Stage E1's token changes raise it (notes/etcd-unified-scope.md §2.3: the bounds
-// etcd_safe states are an open decision, N2).
-const uniformK = 70
 
 // isolate returns the steps that, after delay, cut member m from the k-1 others.
 func isolate(delay time.Duration, k int, m int) []cluster3.Step {
@@ -289,16 +266,16 @@ func TestMainRun(t *testing.T) {
 	k := uint64(3)
 	if s := os.Getenv("ETCDALL_K"); s != "" {
 		v, err := strconv.ParseUint(s, 10, 64)
-		if err != nil || v < 3 || v > maxMembers {
-			t.Fatalf("ETCDALL_K=%q: not a member count in 3..%d", s, maxMembers)
+		if err != nil || v < 3 || v > 300 {
+			t.Fatalf("ETCDALL_K=%q: not a member count in 3..300", s)
 		}
 		k = v
 	}
 	t.Chdir(t.TempDir())
 	walarea.ResetFamily(t, "txnlinfaultsN", "linkv3p", "authN", "authlease", "leaseN",
-		"leaseexpiryN", "leasecatchup", "restartN")
-	walarea.Reset(t, "compactkv", "cachekv", "restart1")
+		"leasecatchup", "restartN")
+	walarea.Reset(t, "compactkv", "putgetc", "cachekv", "restart1")
 	start := time.Now()
-	Main(k, 3, 150, schedule(int(k)), 3, 300, schedule(3), 4, 25, k, k, k, k, k)
+	Main(k, 3, 150, schedule(int(k)), 3, 300, schedule(3), 4, 25, k, k, k, k)
 	t.Logf("Main(k = %d) took %v", k, time.Since(start))
 }

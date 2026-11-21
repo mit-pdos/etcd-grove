@@ -1,6 +1,6 @@
 /-
 **authlease's `Main(k)`: its named premises and vocabulary** (auth-lease S4, `notes/auth-lease-s4-draft.md`
-§2, 2026-11-18; authN's `Defs.lean` at the token `authlease-3354335` and the ports 16000/17000).
+§2, 2026-11-18; authN's `Defs.lean` at the token `authlease-1787` and the ports 16000/17000).
 Lean-first (no Rocq counterpart). putgetN's (`putgetN/Defs.lean`) at auth3's configuration (the simple
 token provider), for the `k` members of `examples/etcd/authlease/authlease.go`.
 
@@ -9,13 +9,13 @@ named `authlease-i`, peer address `127.0.0.1:(16000+i)`, client address `127.0.0
 member's client address is served (`startOf`).
 
 **The pure facts** (putgetN's `BootFacts`, reused): the member ids `ids` in the members' order (etcd's, from
-each peer URL and the cluster token `authlease-3354335`; `TestMemberIDs` checks their 16 low bits distinct
-and not `0` for every `k ≤ 1000`), the peers `ps` in `bootstrap`'s order, a permutation of the ids,
+each peer URL and the cluster token `authlease-1787`; `TestMemberIDs` checks their 16 low bits distinct
+and not `0` for every `k ≤ 300`, the bound of `examples/etcd/all`), the peers `ps` in `bootstrap`'s order, a permutation of the ids,
 and the bootstrap log.
 
 **The Iris premises** (`premises`, persistent): putgetN's at auth3's configuration: `bootstrap`'s
 contract for every member (`etcdstart.bootPremiseOn`: `bootPremise` with `AuthToken = "simple"`, auth3's
-`bootPremise` at the token `authlease-3354335`), `proto.Marshal`'s contract at the bootstrap log's conf
+`bootPremise` at the token `authlease-1787`), `proto.Marshal`'s contract at the bootstrap log's conf
 changes (`bootMarshal`), the raft wrapper's trust-boundary contracts (`etcdstart.commonPremises`).
 -/
 module
@@ -43,7 +43,7 @@ variable [GooseExts]
 abbrev members (k : Nat) : List GMember := membersOf go!"authlease" k (W64 16000) (W64 17000)
 
 /-- The cluster's token (`Token`). -/
-abbrev token : GoString := go!"authlease-3354335"
+abbrev token : GoString := go!"authlease-1787"
 
 /-- **The program's start bundles** (name, peer address, client address): every member's. -/
 def startOf (ms : List GMember) : List (GoString × GoString × Option GoString) :=

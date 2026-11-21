@@ -57,11 +57,13 @@ const (
 )
 
 // Token is the cluster's token (etcd's --initial-cluster-token), from which, with its peer URL,
-// etcd computes each member's id: the first authlease-<n> whose first 1000 members' ids have
-// distinct 15 low bits and nonzero 16 low bits (TestMemberIDs). LeaseGrant gives a grant with no
+// etcd computes each member's id: the first authlease-<n> whose first 300 members' ids have
+// distinct 15 low bits and nonzero 16 low bits, the 16 low bits also distinct from the ids of
+// examples/etcd/all's other clusters (etcd_safe's Hlow; TestMemberIDs here and there). Above 300
+// members the ids are not checked: etcd_authlease_safe's premises on them may be false there. LeaseGrant gives a grant with no
 // ID its member's next request id with bit 63 cleared, which keeps 15 bits of the member id
 // (issues/etcd-lease-id-mask-member-prefix.md): with these ids no two members' lease ids collide.
-const Token = "authlease-3354335"
+const Token = "authlease-1787"
 
 // The TTL the leases are granted with, in seconds: far longer than the run.
 const grantTTL = 600
