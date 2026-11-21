@@ -922,18 +922,22 @@ theorem lisAddrs_lookup (m : GMap w64 (GoString × Bool)) (l : w64) :
   unfold lisAddrs; rw [GMap.lookup_fmap]
 
 /-- D6. `Listen` of the valid address `a` (`addrOk`; not a wildcard, D21, which the semantics allows
-and this spec does not cover): a failure, or a new open listener at `a` (and its address,
-persistent). -/
+and this spec does not cover), by the holder of `a`'s listening token (`netLisTok`, taken and given
+back by an atomic update at the step, so that it may live in an invariant): a failure, or a new
+open listener at `a` (and its address, persistent). -/
 theorem wp_net_Listen (a : GoString) (Φ : val → IProp GF) :
     ⌜addrOk a = true⌝ -∗
+    (|={E,∅}=> netLisTok netG a ∗ (netLisTok netG a ={∅,E}=∗ True)) -∗
     (Φ (failV .sys) ∧ ∀ l : w64, ⌜l ≠ 0⌝ -∗ netLis (netL (L := L)) l a true -∗
       netLisAt (netL (L := L)) l a -∗ Φ (PairV (#l) (#(W64 0)))) -∗
     WP (ExternalOp netExt.name "Listen" (Val (#a))) @ sk; E {{ Φ }} := by
   letI := (netL (L := L)).allG
-  iintro %Hok HΦ
+  iintro %Hok Htok HΦ
   iapply wp_net_op "Listen" (#a) (by simp) Φ
   inext
   iintro %σ %g %e' %σ' %g' %Hst Hl Hg
+  imod Htok with ⟨Ht, Hk⟩
+  imod Hk $$ Ht with -
   unfold netLocalCtx
   icases Hl with ⟨Hlis, Hat⟩
   obtain ⟨a', Hv, -, Hcase, rfl⟩ :=

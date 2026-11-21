@@ -146,11 +146,16 @@ theorem echo_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     unfold netStart
     have Hpe : PartialMap.get? pendInit srvAddr = some ∅ := by
       rw [gmap_get?_eq]; exact addrSpace_lookup_ok _ (by decide)
+    icases Hnet with ⟨Hnet, Htoks⟩
     ihave Hpend := (BigSepM.bigSepM_lookup (Φ := fun a S => netPend (extGlobalGS netExt) a S) Hpe)
       $$ Hnet
+    have Hte : PartialMap.get? (addrSpace ()) srvAddr = some () := by
+      rw [gmap_get?_eq]; exact addrSpace_lookup_ok _ (by decide)
+    ihave Htk := (BigSepM.bigSepM_lookup (Φ := fun a (_ : Unit) => netLisTok (extGlobalGS netExt) a)
+      Hte) $$ Htoks
     have HGp : addrOk srvAddr = true := by decide
     -- echo's protocol: the connections' states (none yet), then the address's invariant
-    imod echoInvs_alloc (Gg := G) $$ Hpend with ⟨%γm, #Hinvs⟩
+    imod echoInvs_alloc (Gg := G) $$ Hpend Htk with ⟨%γm, #Hinvs⟩
     imodintro
     simp only [system]
     unfold nodeStart

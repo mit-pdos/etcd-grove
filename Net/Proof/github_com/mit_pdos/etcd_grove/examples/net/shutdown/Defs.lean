@@ -261,7 +261,7 @@ theorem loop_accept_au (γm : GName) (hL : NetLocalGS GF) (l : w64) (γo : GName
   iinv Ha with Hai Hclose'
   · exact ndot_mask nroot "shutdown_addr" "shutdown_lis" (by decide)
   unfold addrInv
-  icases Hai with ⟨%S, >Hpend, >Hdeps⟩
+  icases Hai with ⟨>Htk, %S, >Hpend, >Hdeps⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   iexists o, S
@@ -269,8 +269,9 @@ theorem loop_accept_au (γm : GName) (hL : NetLocalGS GF) (l : w64) (γo : GName
   isplit
   · iintro Hlis Hpend
     imod Hmask
-    imod Hclose' $$ [Hpend Hdeps] with -
+    imod Hclose' $$ [Htk Hpend Hdeps] with -
     · inext
+      iframe Htk
       iexists S
       iframe Hpend Hdeps
     imod Hclose $$ [Hlis Hh] with -
@@ -285,8 +286,9 @@ theorem loop_accept_au (γm : GName) (hL : NetLocalGS GF) (l : w64) (γo : GName
       rw [gmap_get?_eq]; exact (GMap.elem_of_gset _ _).1 HcS
     icases (BigSepM.bigSepM_delete hl).1 $$ Hdeps with ⟨Hp, Hdeps⟩
     rw [Net.setMap_delete]
-    imod Hclose' $$ [Hpend Hdeps] with -
+    imod Hclose' $$ [Htk Hpend Hdeps] with -
     · inext
+      iframe Htk
       iexists S \ {[cn]}
       iframe Hpend Hdeps
     imod Hclose $$ [Hlis Hh] with -
@@ -338,7 +340,7 @@ theorem closed_accept_au (γm : GName) (hL : NetLocalGS GF) (l : w64) (γo : GNa
   iinv Ha with Hai Hclose'
   · exact ndot_mask nroot "shutdown_addr" "shutdown_lis" (by decide)
   unfold addrInv
-  icases Hai with ⟨%S, >Hpend, >Hdeps⟩
+  icases Hai with ⟨>Htk, %S, >Hpend, >Hdeps⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   iexists false, S
@@ -346,8 +348,9 @@ theorem closed_accept_au (γm : GName) (hL : NetLocalGS GF) (l : w64) (γo : GNa
   isplit
   · iintro Hlis Hpend
     imod Hmask
-    imod Hclose' $$ [Hpend Hdeps] with -
+    imod Hclose' $$ [Htk Hpend Hdeps] with -
     · inext
+      iframe Htk
       iexists S
       iframe Hpend Hdeps
     imod Hclose $$ [Hlis Hh'] with -

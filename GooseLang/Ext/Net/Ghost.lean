@@ -4,6 +4,10 @@ resources are the extension's state, piece by piece, and nothing else (no histor
 
 **The network's resources** (global, all in the one `AllG GF` of the ghost state, `NetGS`):
 
+* `netLisTok a` (exclusive, one per valid address, from the start resources): the right to listen
+  at `a`, which `Listen` of `a` takes (`wp_net_Listen`, by an atomic update, so that the token may
+  live in an invariant: a node that re-listens at its address after every restart keeps it there),
+  so that a proof can show that only its holder ever listens at `a`.
 * `netPend a S` (exclusive, one per valid address, `addrOk`, from the start resources: the valid
   addresses are finitely many, `Deploy.lean`'s `addrSpace`): `S` is the set of the
   connections dialed to `a` and not yet accepted. `Dial` adds to it and `Accept` takes from it, as
@@ -118,6 +122,8 @@ structure NetGS (GF : BundledGFunctors) where
   allG : AllG GF
   γnames : GName
   γpend : GName
+  /-- The listening tokens (`netLisTok`). -/
+  γtok : GName
 
 /-- The local ghost state: the universal camera and its listeners' ghost map. -/
 structure NetLocalGS (GF : BundledGFunctors) where
@@ -207,6 +213,10 @@ def netConnAt (hG : NetGS GF) (c : Nat) (a : GoString) : IProp GF :=
 def netPend (hG : NetGS GF) (a : GoString) (S : GSet Nat) : IProp GF :=
   letI := hG.allG; ghostMapElem hG.γpend a (.own 1) S
 
+/-- The right to listen at the valid address `a` (exclusive: `netLisTok_excl`). -/
+def netLisTok (hG : NetGS GF) (a : GoString) : IProp GF :=
+  letI := hG.allG; ghostMapElem hG.γtok a (.own 1) ()
+
 /-- The listener `l` of this node, at `a`, open if `o`. -/
 def netLis (hL : NetLocalGS GF) (l : w64) (a : GoString) (o : Bool) : IProp GF :=
   letI := hL.allG; ghostMapElem hL.γlis l (.own 1) (a, o)
@@ -239,6 +249,16 @@ instance netLisAt_timeless (hL : NetLocalGS GF) l a : Timeless (netLisAt hL l a)
   unfold netLisAt; letI := hL.allG; infer_instance
 instance netLisAt_persistent (hL : NetLocalGS GF) l a : Persistent (netLisAt hL l a) := by
   unfold netLisAt; letI := hL.allG; infer_instance
+instance netLisTok_timeless (hG : NetGS GF) a : Timeless (netLisTok hG a) := by
+  unfold netLisTok; letI := hG.allG; infer_instance
+
+theorem netLisTok_excl (hG : NetGS GF) (a : GoString) :
+    netLisTok hG a ∗ netLisTok hG a ⊢ (False : IProp GF) := by
+  letI := hG.allG
+  unfold netLisTok
+  iintro ⟨H1, H2⟩
+  icases ghostMapElem_valid_2 a hG.γtok (.own 1) (.own 1) () () $$ H1 H2 with %⟨H, -⟩
+  exact absurd H (Iris.CMRA.not_valid_excl_op_left (x := DFrac.own (1 : Qp)))
 
 end defs
 
@@ -251,9 +271,11 @@ variable {GF : BundledGFunctors}
 connection. -/
 def pendInit : GMap GoString (GSet Nat) := addrSpace (∅ : GSet Nat)
 
-/-- The start resources of the network: every valid address's (empty) pending set. -/
+/-- The start resources of the network: every valid address's (empty) pending set and its
+listening token. -/
 def netStart (hG : NetGS GF) (_g : NetGlobal) : IProp GF :=
-  iprop([∗map] a ↦ S ∈ pendInit, netPend hG a S)
+  iprop(([∗map] a ↦ S ∈ pendInit, netPend hG a S) ∗
+    [∗map] a ↦ _u ∈ addrSpace (), netLisTok hG a)
 
 theorem pendOk_init (g : NetGlobal) (h : g.conns = ∅) : PendOk g pendInit := by
   refine ⟨fun a => ?_, fun a S c hS => ?_, fun c cn hc => ?_⟩
@@ -267,8 +289,9 @@ theorem net_global_init (hPre : NetGpreS GF) (g : NetGlobal) (hg : g.conns = ∅
   letI := hPre.allG
   imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := ConnNames) with ⟨%γn, Hn⟩
   imod ghost_map_alloc (GF := GF) pendInit with ⟨%γp, Hp, Hps⟩
+  imod ghost_map_alloc (GF := GF) (addrSpace ()) with ⟨%γt, -, Hts⟩
   imodintro
-  iexists (⟨hPre.allG, γn, γp⟩ : NetGS GF)
+  iexists (⟨hPre.allG, γn, γp, γt⟩ : NetGS GF)
   isplitl [Hn Hp]
   · unfold netCtx
     iexists ∅, pendInit
@@ -277,8 +300,8 @@ theorem net_global_init (hPre : NetGpreS GF) (g : NetGlobal) (hg : g.conns = ∅
     · ipureintro
       exact ⟨fun c => by simp [hg, gmap_get?_eq], pendOk_init g hg⟩
     · rw [hg]; iapply BigSepM.bigSepM_empty.2; iempintro
-  · unfold netStart netPend
-    iexact Hps
+  · unfold netStart netPend netLisTok
+    iframe Hps Hts
 
 /-- The start resources of a node: its listeners. -/
 def lisStart (hL : NetLocalGS GF) (L : NetLocal) : IProp GF :=

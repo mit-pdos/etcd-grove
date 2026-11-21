@@ -41305,3 +41305,30 @@ available to one of four branch entries. Every key accepted by `Put` fits
 this bound. `entryBytesFit_legacy` also covers every key and value admitted
 by the previous file model. The fork's regression and the upstream split
 problem are in `issues/bbolt-put-refuses-readable-entry.md`.
+
+## The listening token and the net+fs bundle (2026-11-21 · the user's request · branch `net-noplan`, stages B and C)
+
+**Token.** `netLisTok a` (`Ghost.lean`): exclusive, one per valid address, in the network's start
+resources beside the pending sets. `wp_net_Listen` and `net.Listen.spec` take it by an atomic update
+(`|={⊤,∅}=> netLisTok a ∗ (netLisTok a ={∅,⊤}=∗ True)`), given at the extension's `Listen` step and
+taken back. So the token may live in an invariant, and a proof shows that only the holders of that
+invariant ever listen at `a`. It survives crashes because no generation ever holds it across a step:
+a replica that re-listens after every restart opens the same invariant each time
+(`wire.listen_au`, from the address's invariant, which now carries the token; `Proto.listen_au`,
+from `addrProto`, whose `inv (lisTokN a) (netLisTok a)` `addr_set_proto` allocates from
+`addrUnset`).
+
+Rejected: moving the token into the node's local interpretation while a listener is open, and
+handing it back on a crash through `crashStart`. `ExtInterp.local_init` gets no global ghost state,
+so the local interpretation cannot name the global token map; it would need a Perennial change.
+Rejected too: a framed token in the node's recovery precondition. The running generation needs it
+for `Listen`, and the recovery wand made at boot needs it too; Perennial-Lean has no crash borrows.
+Pending connections are keyed by address, not by listener or incarnation (`wire.addrInv`,
+`Proto.addrInvP`), so a restarted node's `Accept` takes the deposits made for a crashed one (D7).
+
+**Bundle.** `GooseLang/Ext/NetFs/Adequacy.lean`: `kvnetExts := ⟨[Net.netExt, Fs.fsExt]⟩`, its
+semantics, interpretation and crash interpretation are Perennial's `ExtTuple` of each extension's
+own. It also has: both `HasExt` instances, `kvnetGF`/`kvnetGpreS`, the projections of the start and
+crash resources onto each extension's, and `kvnet_dist_crash_adequacy`
+(`goose_dist_crash_adequacy` at `kvnetGF`, with the initial-state conditions discharged from
+`NetGlobal.init` and `FsInit`). There is no change to the file extension.
