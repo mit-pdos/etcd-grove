@@ -163,7 +163,8 @@ theorem wp_Serve
   icases echoInvs_elim γm $$ Hinvs with ⟨#HaddrInv, #HechoInv⟩
   (try wp_auto)
   wp_apply wp_Listen go!"tcp" net.tcpNet_tcp srvAddr as %li %err (⟨%Herr, %l, #Hli, Hlis, #Hla⟩ | ⟨%x, -, #HE⟩)
-  · ipureintro; exact Hla0
+  · iframe %Hla0
+    iapply wire.listen_au addrN srvAddr _ $$ HaddrInv
   · -- listening: the accept loop
     subst Herr
     unfold net.isListener

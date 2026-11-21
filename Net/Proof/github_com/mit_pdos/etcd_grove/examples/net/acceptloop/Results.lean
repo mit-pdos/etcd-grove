@@ -165,8 +165,13 @@ theorem acceptloop_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semant
     unfold netStart
     have Hpe : PartialMap.get? pendInit srvAddr = some ∅ := by
       rw [gmap_get?_eq]; exact addrSpace_lookup_ok _ (by decide)
+    icases Hnet with ⟨Hnet, Htoks⟩
     ihave Hpend := (BigSepM.bigSepM_lookup (Φ := fun a S => netPend (extGlobalGS netExt) a S) Hpe)
       $$ Hnet
+    have Hte : PartialMap.get? (addrSpace ()) srvAddr = some () := by
+      rw [gmap_get?_eq]; exact addrSpace_lookup_ok _ (by decide)
+    ihave Htk := (BigSepM.bigSepM_lookup (Φ := fun a (_ : Unit) => netLisTok (extGlobalGS netExt) a)
+      Hte) $$ Htoks
     have HGp : addrOk srvAddr = true := by decide
     -- the protocol: the connections' echo state (none yet), then the address's invariant
     letI := (extGlobalGS netExt (G := G)).allG
@@ -178,7 +183,7 @@ theorem acceptloop_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semant
       iframe Hm
       iapply BigSepM.bigSepM_empty.2
       iempintro
-    imod wire.addrInv_alloc addrN srvAddr (connProto (Gg := G) γm) $$ Hpend with #HaddrInv
+    imod wire.addrInv_alloc addrN srvAddr (connProto (Gg := G) γm) $$ Hpend Htk with #HaddrInv
     imodintro
     simp only [system]
     unfold nodeStart
