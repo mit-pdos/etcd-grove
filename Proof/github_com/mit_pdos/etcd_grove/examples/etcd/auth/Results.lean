@@ -33,20 +33,18 @@ counterpart).
 * **`authkv_SetUp`** (`Link.lean`'s `etcd_auth.wp_SetUp`; E2h, the auth-mode merge's 5b): `SetUp`,
   through a client with no user, at etcd's Auth specs, from the client's view of the auth history:
   on success the history frozen at a log whose auth state is `setupSt r`, published.
-* **`etcd_auth_safe`** (`Adequacy.lean`'s `etcd_auth_adequate`; the `etcd_auth_safe` Scope's S2,
-  2026-11-13): the closed theorem. Every real execution of `n` steps of `authkv`'s initialization
-  followed by `Main()`, from a fresh state with one thread, has no stuck thread, no thread ended in
-  a panic (so none of `Main`'s checks failed), and the main thread's result, if any, is `0`, `1`
-  or `2`; under watchkv's hypotheses at authkv's configuration (`Adequacy.lean`'s header).
+
+**The closed theorem retired (2026-11-21, the user's decision D2 of `notes/etcd-unified-scope.md`).**
+Its closed theorem `etcd_auth_safe` (with its `_adequate` and `_robust` forms, `Adequacy.lean`, `PkgTable.lean`, `TopLevelDefs.lean` and the
+`TopLevelRobustness.lean` pair) is gone: the one closed etcd theorem `etcd_safe` (`examples/etcd/all`,
+`Proof/github_com/mit_pdos/etcd_grove/examples/etcd/all/Results.lean`) subsumes it (`notes/etcd-unified-scope.md` §1.3, §4); the function triples here stay.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Adequacy
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.startServer
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Results
-public import Robustness.Statement
 
 @[expose] public section
 
@@ -147,80 +145,6 @@ theorem authkv_token_one_user {GF : BundledGFunctors} [AllG GF] (γa : auth.Auth
     (t u1 u2 : GoString) : auth.tokIssued (GF := GF) γa t u1 ∗ auth.tokIssued γa t u2 ⊢ ⌜u1 = u2⌝ :=
   auth.tokIssued_agree γa t u1 u2
 
-section adequacy
-attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
-variable [go_gctx : GoGlobalContext]
-
-/-- **The authentication example is safe, in the operational semantics** (`etcd_auth_adequate`,
-see `Adequacy.lean`'s header for the program and the hypotheses).
-
-**What the result does not say** (the `etcd_auth_safe` Scope's section 3):
-* liveness: a run where the start, `Serve`, the client, a set-up step or a user's client fails
-  returns `Failed` before any auth check runs, and the theorem holds of it;
-* `Failed` at root's last `Put` and `WatchEnded` (either watch's `Collect`) skip the history's
-  check (`CheckHistory`) or `u`'s watch check: that no write the auth state refuses was applied
-  is checked only on runs that return `Ok` (`Collect`'s spec says nothing of the events read
-  when it fails); the checks of `Work` (every refused request returned an error, every reply holds
-  only keys its principal may read) have all run by then;
-* a refusal is any error (`refused`): a timeout counts, not only the auth errors, so a refused
-  write the server applied while the client timed out is caught only on `Ok` runs;
-* not exercised: a wrong password, token expiry, admin requests by non-root users after enable,
-  role or permission changes during the workload (`ErrAuthOldRevision`), auth disable, watches
-  inside `[a, b)` by `v` or the unauthenticated principals, the kind of error returned; the
-  set-up's puts are admitted at any revision (`SetupWrite`);
-* `u`'s permitted requests need not succeed: a server that refuses every workload request still
-  returns `Ok` (`authkv_test.go`'s `TestMainRun` shows they succeed in practice; the theorem does
-  not);
-* password checking is not verified: `bcrypt.CompareHashAndPassword`'s axiom promises nothing
-  about its answer (D-AU6), so `Authenticate` may accept or refuse any password as far as the
-  proof knows;
-* only the simple token provider (`AuthToken = "simple"`), not JWT;
-* client-certificate (TLS) authentication is off: the server's TLS identity is absent
-  (`srvTLSId_false`);
-* the check that a refused principal's watch reports nothing sees only the events delivered
-  before `refusedWatchTimeout` (2 s);
-* the history's check attributes a write to the principal its key names (`writerK`, the `who` of
-  `x/<who>/…`), not to the client that sent it: sound because the workload writes only its own
-  principal's keys (`keyOf x who n`), so a write of `x/<who>/…` in the history was sent by `who`
-  (or is a set-up put) and checking it against `who`'s permissions checks its sender's. -/
-theorem etcd_auth_safe [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
-    [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
-    [log.NewModel]
-    (Hctx : ∀ hG : HeapGS .hasLC putgetGF, ContextReadErrs (GF := putgetGF) (hG := heapAt hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC putgetGF, ContextErrsClient (GF := putgetGF) (hG := heapAt hG lctx))
-    (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (Hbf : etcd_putget.BootFacts id ctxs boot)
-    (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
-    (HNs : prometheus.namesUnclaimed authkvProgram authkvNames)
-    (HAs : addrsUnclaimed authkvProgram [go!"127.0.0.1:23916"])
-    (HDs : dataDirsAbsent authkvProgram [go!"/tmp/etcd-grove-data/authkv.etcd"])
-    (HEnv : verifyEnvOff authkvProgram)
-    (n : Nat)
-    (Hprem : ∀ hG : HeapGS .hasLC putgetGF,
-      ⊢ etcd_auth.premises (GF := putgetGF) (hG := heapAt hG lctx) n id ctxs boot)
-    (σ : state) (g : GlobalState)
-    (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
-    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
-    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"/tmp/etcd-grove-data/authkv.etcd"])
-    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
-    (Hthreads : σ.threads = 1)
-    (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
-    (Hsteps : RealNstepsBelow (2 ^ 28) n ([authkvProgram], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 12 ≤ 2 ^ 40) :
-    (∀ v t2', t2 = Val v :: t2' → v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) ∧
-    (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  etcd_auth_adequate Hctx Hcec id ctxs boot Hbf Haf Hbuq Hrf Hdbo HNs HAs HDs HEnv n Hprem
-    σ g Hfs HWal Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
-
-end adequacy
-
 #print axioms authkv_Main
 #print axioms authkv_Permitted
 #print axioms authkv_granted_iff
@@ -234,8 +158,6 @@ end adequacy
 #print axioms authkv_SetUp
 #print axioms authkv_bad_unbound
 #print axioms authkv_startServer
-#print axioms etcd_auth_adequate
-#print axioms etcd_auth_safe
 
 end EtcdGrove
 end Perennial

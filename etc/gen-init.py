@@ -4320,52 +4320,8 @@ def gen_ext():
 
 # The programs whose closed theorem needs the package table of their import closure (item 9,
 # D19r, 2026-10-18): the root package and the module of the generated table.
-PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.putget':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putget/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.restart1':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/restart1/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.restart':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/restart/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.restartN':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/restartN/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.compacted':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/compacted/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/compactwatch/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.lease':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/lease/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.leasegrant':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leasegrant/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiry':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiry/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leasecatchup/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.putget3':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putget3/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.putgetN':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putgetN/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.leaseN':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseN/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN':
+PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/txnlinfaultsN/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.partition':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/partition/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.txnlin':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/txnlin/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.watch':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/watch/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.cache':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/cache/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.auth':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.auth3':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.authN':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/authN/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.authlease':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/authlease/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter':
             'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/counter/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkv':

@@ -871,41 +871,24 @@ own check never failed), and the main thread's result, if any, is as stated. The
   correctness (no termination). Premise `⌜HistOk ops⌝`, in the precondition (2026-11-03). PR #46
   upstream (unmerged) decides a stricter property; its own proof is the part `PorcupineDag/`
   ("Porcupine PR #46" below; `notes/decisions.md`, "Porcupine: sound and complete").
-- **`etcd_putget_safe`** (`examples/etcd/putget/Results.lean`): one etcd member in process, its gRPC
-  server, a client, a `Put` then a `Get` of the key; returns `#()` (the `Get` saw the `Put`).
-  Premises (D19a's kinds; `notes/decisions.md`, D19r): the package assumptions (the method-set
-  facts are theorems of them since 2026-10-27), `ContextReadErrs` and, since the calls have
-  request timeouts (2026-10-23, D-T4), `ContextErrsClient`, the boot facts (`BootFacts`), the
-  environment premises `authRecordsFit` (until 2026-11-12 also `ckptEffectsOk`, deleted), `apply.backendUnderQuota`,
-  `storage.dbOpensOk`, unclaimed prometheus names and addresses, `putget.premises`,
-  `n + 2 ≤ 2^28` (J8a-6, 2026-11-01: the transport's thread pool; was `2^31`; the write-back budget
-  `n + 7 ≤ backend.wbInit` derived from it since 2026-11-01).
-- **`etcd_putget3_safe`** (`examples/etcd/putget3/Results.lean`): putget's with three members, each serving
-  raft on its peer listener; putget's premises for three members.
-- **`etcd_txnlin_safe`** (`examples/etcd/txnlin/Results.lean`): one member, the robustness tester's KV
-  workload (gets, lists, puts, deletes, transactions, compare-and-sets; no leases, no stale
-  reads) against the model of etcd's KV; `Ok` or `Unknown`. putget's premises at linkvtxn's
-  configuration and `Run`'s bounds on `clients` and `ops`.
-- **`etcd_partition_safe`** (`examples/etcd/partition/Results.lean`): three members whose peer links a schedule
-  cuts and mends, and whose client links (through copies of etcd's test bridge) it blackholes,
-  unblackholes and drops; three clients each of every member (failover, default retries);
-  linkvtxn's workload; `Ok` or `Unknown`, **for every schedule**. The members take a snapshot
-  every other entry and keep one entry below it (`SnapCount = SnapCatchUp = 1`, 2026-11-01), so
-  that a member a cut or a late start left behind is caught up by a snapshot (`TestMainRun`
-  reports how often). putget3's premises, `Run`'s
-  bounds, the schedule's length `< 2^63`, `n + 2 ≤ 2^28` (was `2^29`).
-- **`etcd_partition_watch_safe`** (same file): watchkv's workload over the partitioned cluster, a prefix
-  watch through the first client, resumed at any member after a cut; result `0`, `1` or `2`
-  (`WatchOk`/`WatchFailed`/`WatchEnded`), for every schedule. `etcd_partition_safe`'s premises but
-  `Run`'s bounds, and watchkv's watcher classes and bounds.
-- **`etcd_watch_safe`** (`examples/etcd/watch/Results.lean`): one member, `nw` writers, a prefix watch
-  from revision 1; the check that the watched events are exactly the writes (revisions `2, 3,
-  ...`, every successful put at its revision) never fails; result `0`, `1` or `2`. putget's
-  premises, the client watcher's classes (`ErrorStringNoGRPCStatus`, `ContextErrsClient`, the
-  `errors`/`fmt`/`rpctypes` assumptions), `0 ≤ nw < 2^31`, `nw * nops < 2^62`, `n + 2 ≤ 2^28` (was `2^29`).
-- **`etcd_cache_safe`** (`examples/etcd/cache/Results.lean`): watchkv's program with the watch through
-  etcd's `cache` (from revision 2); the same result; `etcd_watch_safe`'s premises at cachekv's
-  configuration.
+- **`etcd_safe`** (`Proof/github_com/mit_pdos/etcd_grove/examples/etcd/all/Results.lean`, from `Adequacy.lean`'s
+  `etcd_adequate_of`; robustness form `etcd_robust`; 2026-11-21, `notes/etcd-unified-scope.md`): `examples/etcd/all` --
+  in one process, twelve drivers in four parts: KV (txnlinfaultsN on `k₁ ≤ 1000` members under a partition schedule,
+  partition's `MainWatch` on three, compactwatch, compacted, cache), Auth (authN on `k₂ ≤ 300`, authlease on
+  `k₃ ≤ 300`), Lease (leaseN on `k₄ ≤ 300`, leasecatchup on three), Restart (restartN on `3 ≤ k₅ ≤ 300`, restart1) --
+  does not panic. Premises: the drivers' premises and `Hlow` (the process's member ids' 16 low bits distinct).
+- **`etcd_leaseexpiryN_safe`** (`examples/etcd/leaseexpiryN/Results.lean`; robustness form `etcd_leaseexpiryN_robust`):
+  `k ≤ 1000` members, a lease of the minimum TTL granted through each, then listed once gone: the listing never has it.
+  Kept apart from `etcd_safe` (decision N1: its expiry contradicts `lease.leasesNoExpiry`, which authlease and
+  leasecatchup take).
+
+Retired (2026-11-21, the user's decision D2, stage E4 of `notes/etcd-unified-scope.md`), subsumed by `etcd_safe`:
+`etcd_putget_safe`, `etcd_putget3_safe`, `etcd_putgetN_safe`, `etcd_txnlin_safe`, `etcd_partition_safe`,
+`etcd_partition_watch_safe`, `etcd_compacted_safe`, `etcd_watch_safe`, `etcd_auth_safe`, `etcd_auth3_safe`,
+`etcd_lease_safe`, `etcd_leasegrant_safe`, `etcd_leaseexpiry_safe`, `etcd_restart3_safe`, and the composed drivers'
+own `etcd_{authN,authlease,leaseN,restartN,txnlinfaultsN,cache,compactwatch,leasecatchup,restart1}_safe` (with their
+`_adequate`/`_robust` forms; §1.3 of the scope says what each loses). The drivers' function triples (`*_Main` in each
+`Results.lean`) stay.
 - **The witness part**
   (`RaftWitness/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvwitness/Results.lean`):
   `raft_kv_porcupine_safe` (the kv example on the witness raft) and **`raft_kvwitness_porcupine_safe`**

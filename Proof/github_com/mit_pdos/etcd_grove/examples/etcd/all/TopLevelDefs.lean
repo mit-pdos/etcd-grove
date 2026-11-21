@@ -14,11 +14,12 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.all.PkgTable
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN.Dir
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.TopLevelDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authN.Dir
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.Dir
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.Dir
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.TopLevelDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.Defs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restartN.Dir
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.SchedLit
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
@@ -115,6 +116,31 @@ def etcdProgram [GoSemanticsFunctions] (k₁ : Nat) (clients ops : w64)
 /-- The metric names the program's initialization registers (its closure's `PRE_RES` packages', D16):
 its `initNames`. -/
 def etcdNames : List GoString := _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.all.initNames
+
+/-- The program's addresses: the three members' peer addresses, their client addresses, and the
+bridges' addresses (2026-10-21, `notes/client-cut-plan.md`; partition's, moved here unchanged when its closed theorems
+retired, 2026-11-21). -/
+def linkv3pAddrs : List GoString :=
+  [etcd_partition.peerAddr₁, etcd_partition.peerAddr₂, etcd_partition.peerAddr₃,
+    etcd_partition.clientAddr₁, etcd_partition.clientAddr₂, etcd_partition.clientAddr₃,
+    etcd_partition.bridgeAddr₁, etcd_partition.bridgeAddr₂, etcd_partition.bridgeAddr₃]
+
+/-- The program's addresses: the three members' peer addresses, their client addresses, and the
+bridges' addresses (`clusterCfg`'s; leasecatchup's, moved here unchanged when its closed theorem retired,
+2026-11-21). -/
+def leasecatchupAddrs : List GoString :=
+  [etcd_leasecatchup.clusterCfg.Peer1', etcd_leasecatchup.clusterCfg.Peer2',
+    etcd_leasecatchup.clusterCfg.Peer3',
+    etcd_leasecatchup.clusterCfg.Client1', etcd_leasecatchup.clusterCfg.Client2',
+    etcd_leasecatchup.clusterCfg.Client3',
+    etcd_leasecatchup.clusterCfg.Bridge1', etcd_leasecatchup.clusterCfg.Bridge2',
+    etcd_leasecatchup.clusterCfg.Bridge3']
+
+/-- The members' data directories `<name>.etcd` (sweep repairs 1, W3/W4: until then their WAL directories). -/
+def leasecatchupDataDirs : List GoString :=
+  [(memberDataDir etcd_leasecatchup.clusterCfg.Name1'),
+    (memberDataDir etcd_leasecatchup.clusterCfg.Name2'),
+    (memberDataDir etcd_leasecatchup.clusterCfg.Name3')]
 
 /-- **The program's addresses** (those it listens on), cluster by cluster in the parts' order:
 txnlinfaultsN's `k₁` members' peer and client addresses and bridges; partition's three members' and
