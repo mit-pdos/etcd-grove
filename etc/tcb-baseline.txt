@@ -238,10 +238,6 @@ axiom http.CloseIdleConnections_ok
 axiom http.Error_ok
 axiom http.Flush_ok
 axiom http.Handle_ok
-axiom http.HeaderGetOwnPtr_ok
-axiom http.HeaderGetPtr_ok
-axiom http.HeaderSetPtr_ok
-axiom http.HeaderSet_ok
 axiom http.NewRequest_ok
 axiom http.NewServeMux_ok
 axiom http.ReadAll_any_ok
@@ -272,7 +268,6 @@ axiom io.MultiReader.wp_proof
 axiom io.NewSectionReader.wp_proof
 axiom io.Pipe.wp_proof
 axiom io.PipeWriter.CloseWithError.wp_proof
-axiom io.ReadFull.wp_proof
 axiom klog.Background.wp_proof
 axiom klog.Errorf.wp_proof
 axiom klog.V.wp_proof

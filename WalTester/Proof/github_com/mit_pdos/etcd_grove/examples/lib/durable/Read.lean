@@ -10,7 +10,7 @@ module
 public import WalTester.Spec.github_com.mit_pdos.etcd_grove.examples.lib.durable.Read
 public import WalTester.Spec.github_com.mit_pdos.etcd_grove.examples.lib.durable.tryRead
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.lib.durable.Inv
-public import GooseLang.Ext.Fs.NotCrashedAcc
+public import Perennial.GooseLang.NotCrashed
 
 @[expose] public section
 

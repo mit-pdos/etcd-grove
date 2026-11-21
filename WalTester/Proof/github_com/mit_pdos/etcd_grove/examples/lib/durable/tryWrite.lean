@@ -20,7 +20,7 @@ public import Spec.os.File__Sync
 public import Spec.os.File__SyncS
 public import Spec.os.File__Close
 public import Proof.os.NsS
-public import GooseLang.Ext.Fs.NotCrashedAcc
+public import Perennial.GooseLang.NotCrashed
 public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings.Base
 
 @[expose] public section

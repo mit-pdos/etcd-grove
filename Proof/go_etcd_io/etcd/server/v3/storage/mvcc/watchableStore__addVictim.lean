@@ -29,6 +29,7 @@ theorem mvcc.bag_nb_send_au {V : Type} [Pos.Countable V] [ZeroVal V] [TypedPoint
     ⊢ isChanBag γ ch (fun _ : V => iprop(True)) -∗ Φ -∗ nonblockingSendAuInner γ v Φ := by
   rw [isChanBag_unseal]; unfold isChanBagDef nonblockingSendAuInner
   iintro ⟨#Hch, #Hinv⟩ HΦ
+  iapply ncfupd_of_fupd
   iinv Hinv with Hi Hclose
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask

@@ -58,6 +58,7 @@ theorem spsc_send_au_inv (γ : SpscNames) (ch : Loc) (P : Int → V → IProp GF
   unfold sendAu
   iintro #Hchan #Hinv #Hnc ⟨Hlc1, Hlc2, Hlc3⟩ HT Hacc Hcont
   imod lc_fupd_elim_later (E := ⊤) $$ Hlc1 Hcont with Hcont
+  iapply ncfupd_of_fupd
   iinv Hinv with Hi Hclose
   imod lc_fupd_elim_later (E := ⊤ \ ↑nroot) $$ Hlc2 Hi with ⟨Hi, HX⟩
   icases spscInv_elim _ _ _ $$ Hi with ⟨%s, %sent0, %recv, Hch, HsentI, HrecvI, %Hrel, Hm⟩
@@ -110,6 +111,7 @@ theorem spsc_send_au_inv (γ : SpscNames) (ch : Loc) (P : Int → V → IProp GF
       · iexact HX
     imodintro
     unfold sendNestedAu
+    iapply ncfupd_of_fupd
     iinv Hinv with Hi Hclose
     imod lc_fupd_elim_later (E := ⊤ \ ↑nroot) $$ Hlc3 Hi with ⟨Hi, HX⟩
     icases spscInv_elim _ _ _ $$ Hi with ⟨%s, %sent1, %recv1, Hch, HsentI, HrecvI, %Hrel, Hm⟩

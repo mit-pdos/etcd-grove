@@ -1840,7 +1840,7 @@ initializer allocates `closec`, initializes its imports and runs its translated 
     before={'$end': [
         'wp_apply chan.wp_make1 (V := Unit) as %ch %γ ⟨#His_ch, %Hcap, Hch⟩',
         'wp_apply_core chan.wp_close (V := Unit) ch γ $$ His_ch',
-        'iintro -', 'unfold closeAu', 'iapply fupd_mask_intro Std.LawfulSet.empty_subset',
+        'iintro -', 'unfold closeAu', 'iapply ncfupd_of_fupd', 'iapply fupd_mask_intro Std.LawfulSet.empty_subset',
         'iintro Hmask', 'inext', 'iexists .Idle', 'iframe Hch', 'dsimp only', 'iintro Hch',
         'imod Hmask with -', 'imodintro', 'wp_auto']},
     finish=['ipersist Hclosec',
@@ -3164,6 +3164,32 @@ trust-boundary axiom `initFuncsOk` says returns.''',
     alloc_types={'cache': 'Loc'},
     before={'cache': map_lit_steps('Hc', 'GoString', 'Loc', 'go.string',
         f'(go.GoType.PointerType {_GL}.componentData.ty)', 0)},
+)
+# (prove-http3, 2026-11-21) net/textproto: `CanonicalMIMEHeaderKey`'s interned keys
+_TP = 'net.textproto'
+def _tp_lit(x, n):
+    return ['try wp_auto', f'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %s{x} ⟨S{x}, -⟩', 'try wp_auto'] if n else \
+        ['try wp_auto', f'wp_apply wp_string_to_bytes _ as %s{x} ⟨S{x}, -⟩', 'try wp_auto']
+SPECIAL[_TP] = dict(
+    doc='''Its fact (`textprotoInit`, `Proof/net/textproto/Base.lean`; prove-http3, 2026-11-21):
+`commonHeaderOnce` is the `sync.Once` of `initCommonHeader`, whose action owns the variable
+`commonHeader`. Its initializer allocates its variables, initializes its imports and runs their
+translated initializers: `errMessageTooLarge = errors.New(...)` (Perennial's `errors.wp_New`) and the
+byte slices `colon`, `nl`, `crnl`, `dotcrnl`; the zero `commonHeaderOnce` and the variable
+`commonHeader` then make the `Once` (Perennial's `sync.init_Once`).''',
+    alloc_types={'errMessageTooLarge': 'GoInterface', 'colon': 'GoSlice', 'nl': 'GoSlice',
+                 'commonHeader': 'Loc', 'commonHeaderOnce': '_root_.Perennial.sync.Once',
+                 'crnl': 'GoSlice', 'dotcrnl': 'GoSlice'},
+    before={'$end': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New as %xE -']
+            + _tp_lit('colon', False) + _tp_lit('nl', False) + _tp_lit('crnl', True)
+            + _tp_lit('dotcrnl', True) + [
+            'ihave HP : (net.textproto.commonHeaderVar : IProp GF) $$ [HcommonHeader]',
+            '· unfold net.textproto.commonHeaderVar; iexists _; iexact HcommonHeader',
+            'imod (_root_.Perennial.sync.init_Once _ _ net.textproto.commonHeaderOk ⊤) $$ [HcommonHeaderOnce HP] with #HOnce',
+            '· iframe',
+            'try wp_auto']},
+    finish=FIN_PRE[:6] + ['imodintro', 'unfold net.textproto.textprotoInit net.textproto.textprotoInitLC',
+                          'iexact HOnce'],
 )
 _OP = 'go_opentelemetry_io.otel.propagation'
 SPECIAL[_OP] = dict(

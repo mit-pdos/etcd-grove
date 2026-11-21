@@ -462,9 +462,10 @@ buffer or a waiting receiver, asks nothing). -/
 theorem recvAu_nonblocking {V : Type} [Pos.Countable V] [ZeroVal V] (γ : ChanNames) (Φ : V → Bool → IProp GF) :
     ⊢ recvAu γ V Φ -∗ nonblockingRecvAuInner γ V Φ := by
   unfold recvAu nonblockingRecvAuInner
-  iintro Hau
-  imod Hau with Hau
+  iintro Hau Hnc
+  imod Hau $$ Hnc with ⟨Hnc, Hau⟩
   imodintro
+  iframe Hnc
   inext
   icases Hau with ⟨%s, Hoc, Hcont⟩
   iexists s

@@ -16,7 +16,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.wal.CreateFresh
 public import Spec.go_uber_org.zap.NewNop
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.StepLive
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.BootAu
-public import GooseLang.Ext.Fs.NotCrashedAcc
+public import Perennial.GooseLang.NotCrashed
 import Batteries.Tactic.PermuteGoals
 
 @[expose] public section
