@@ -67,9 +67,11 @@ Fails closed: the check exits 1, naming what is missing, when a Go source tree i
 -- `.lake/goose/<project>` of bbolt, etcd, or any project an axiom's package maps to (`PROJECTS`, per
 part: RaftWitness's raft is `raft-witness`), a package of such a project, or the toolchain's GOROOT
 (`go env GOROOT`) -- and when an axiom's package has no source and is not a known third-party
-package (`THIRD_PARTY`, an explicit list). It also refuses fewer than `MIN_SCANNED` scanned axioms:
-raise the floor to the count `reader-slot: ok (...)` prints when axioms are added (in the same
-commit); lower it only with a reason. Every file's axiom is checked, also when its name occurs in
+package (`THIRD_PARTY`, an explicit list). It also refuses more than `MAX_UNSCANNED` unscanned axioms
+(a scanner regression shows as axioms it no longer reads): proving an axiom never raises the count,
+so no proof edits the ceiling; raise it only when an axiom of a package it cannot read is added
+(in the same commit, saying which). Until 2026-11-21 a floor on the scanned count (`MIN_SCANNED`),
+which every proved scanned axiom had to lower, so concurrent branches conflicted on it. Every file's axiom is checked, also when its name occurs in
 another file (RaftWitness's copies of main-tree modules, `k8s.io/api`'s two `Resource`s), each tree
 against its own sources.
 
@@ -103,13 +105,17 @@ usage: etc/reader-slot-check.py [-v]   (exit 1 on a holder axiom whose pre consu
                                         missing pair, a closer that does not release the lock or
                                         whose post returns no token, an allow entry whose locks or
                                         pairing do not match, a missing source tree, or fewer than
-                                        MIN_SCANNED axioms scanned)
+                                        MAX_UNSCANNED axioms unscanned)
 """
 import os
 import pathlib
 import re
 import subprocess
 import sys
+
+MAX_UNSCANNED = 139  # 2026-11-21 (lean 7407abe3d4: 300 axioms, 161 scanned, 139 unscanned). Replaces the floor MIN_SCANNED (its history: git log -S MIN_SCANNED), which every proved scanned axiom lowered, so parallel branches conflicted on it. A proof never raises the unscanned count; a scanner regression (a source tree or package no longer read) does. Raise it only with a new axiom of a package this check cannot read, in the same commit, saying which.
+# MIN_SCANNED below is no longer checked (kept unchanged so that branches lowering it still merge); delete it
+# once no open branch edits it.
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 TOKENS = re.compile(r'\b(threadTok|levelTok|rdTok|ownThreadLoan)\b')
@@ -1228,13 +1234,14 @@ def main():
     if bad:
         print(f'reader-slot: FAILED ({len(bad)} of {len(holders)} slot-holding axioms)', file=sys.stderr)
         return 1
-    if nscan < MIN_SCANNED:
-        print(f'reader-slot: FAILED: {nscan} axioms scanned, below the floor MIN_SCANNED = {MIN_SCANNED} '
-              f'(-v lists the unscanned)', file=sys.stderr)
+    if nun > MAX_UNSCANNED:
+        print(f'reader-slot: FAILED: {nun} axioms unscanned, above the ceiling MAX_UNSCANNED = {MAX_UNSCANNED} '
+              f'(-v lists them; a new axiom of a package this check cannot read raises it, in the same commit)',
+              file=sys.stderr)
         return 1
     print(f'reader-slot: ok ({len(holders)} slot-holding axioms, each paid and paired, or allowed: '
           f'{" ".join(sorted(holders))}; {len(ax)} axioms in {len({(b, r) for _, b, r in ax})} files: '
-          f'{nscan} scanned (floor {MIN_SCANNED}), {nun} unscanned ({nthird} third-party, '
+          f'{nscan} scanned, {nun} unscanned (ceiling {MAX_UNSCANNED}; {nthird} third-party, '
           f'{nun - nthird} with no Go function of the name))')
     return 0
 
