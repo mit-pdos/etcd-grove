@@ -22,8 +22,6 @@ roots ^wp_newSnapshotReaderCloser$
 roots ^EtcdServer\.wp_sendMergedSnap$
 axiom DescribeConfChange.wp_proof
 axiom apply.irrDecode_utf8
-axiom backend.ValidateCalledInsideApply.wp_proof
-axiom backend.ValidateCalledOutSideApply.wp_proof
 axiom backend.backend.Snapshot.wp_proof
 axiom binary.ReadUint64.wp_proof
 axiom binary.WriteUint64.wp_proof
@@ -106,7 +104,6 @@ axiom sort.SliceIsSorted.wp_proof
 axiom sort.Sort.wp_anyLess
 axiom sort.Stable.wp_proof
 axiom sort.StringSlice.Sort.wp_proof
-axiom storage.BackendQuota.Cost.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
 axiom strconv.FormatUint.wp_proof
@@ -122,7 +119,6 @@ axiom types.NewURLs.wp_proof
 axiom v2stats.FollowerStats.Fail.wp_proof
 axiom v2stats.FollowerStats.Succ.wp_proof
 axiom v3alarm.AlarmStore.restore.wp_proof
-axiom verify.Verify.wp_proof
 axiom zap.Logger.Fatal.wp_proof
 axiom zap.Logger.Panic.wp_proof
 axiom zap.Logger.check.wp_proof

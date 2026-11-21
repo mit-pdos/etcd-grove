@@ -5,6 +5,7 @@
 The bugs with a valid failing Go test (format: [README.md](README.md)); the findings without one are in [../nonissues/](../nonissues/INDEX.md).
 
 ## Not reported (75)
+## Not reported (74)
 
 | Issue | Blocks proof | Upstream links |
 |---|---|---|

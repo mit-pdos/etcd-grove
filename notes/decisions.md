@@ -41238,8 +41238,48 @@ client_golang v1.24.1 (`MetricVec.Describe` sends its one descriptor; variable l
 
 **Not done:** auth, lease, backend and mvcc register only too, but their closures are reached by
 `mvccrand` and `mvccfull`, whose closed theorems have no `namesUnclaimed` premise: making them
-`PRE_RES` would add that premise, so their `initFuncsOk` stay. `ownInitRes` (the one-package form)
+`PRE_RES` would add that premise, so their `initFuncsOk` stay. (Superseded 2026-11-20 by the next
+entry: done, with that premise.) `ownInitRes` (the one-package form)
 stays in `PkgInit.lean`, unused: deleting it rebuilds every module.
+
+## auth, lease, backend and mvcc register too: mvccrand and mvccfull take `namesUnclaimed` (2026-11-20 · the user's decision · branch `prove-etcdstorage/2026-11-20`)
+
+The previous entry left the four packages' `init()` names-only (`initFuncsOk`), because registering
+their metrics through `PRE_RES` puts the premise `namesUnclaimed` on every closed theorem whose
+program reaches them, and mvccrand's and mvccfull's had none.
+
+**Decision (the user, 2026-11-20, via the coordinator):** extend `namesUnclaimed` to cover them.
+`init.0` of auth (1 metric), lease (4), backend (8) and mvcc (23) is translated and stepped by
+`etc/gen-init.py` (`register(...)`, as the mustreg packages); `mvccrand_adequate`/`mvccrand_robust`
+and `mvccfull_adequate`/`mvccfull_safe`/`mvccfull_robust` take `prometheus.namesUnclaimed` of the
+program's `initNames` (`mvccrandNames`, `mvccfullMetricNames`; until then `[]` was passed to
+`goose_adequacy_start`), and every etcd program's name list (its root's `initNames`) grows by the
+36 names. No other etcd code registers them (grep of the pinned source for the names and the
+`auth`/`lease`/`mvcc` subsystems outside the four `metrics.go`, as mustreg did).
+
+Six of the registered metrics are `NewGaugeFunc` gauges, whose spec posted nothing:
+`NewGaugeFunc.spec` now posts `nameOk (fqName ns sub name) → collectorName g (fqName ns sub name)`
+(a strengthening, true of client_golang v1.24.1: `gauge.go:306` builds one descriptor of that name
+with no labels, `collector.go:113`'s `selfCollector.Describe` sends it); the generator `decide`s the
+name's validity.
+
+
+## `ETCD_VERIFY` read through `os.Getenv`'s spec, not assumed per check (2026-11-20 · the coordinator's group `etcdstorage` · branch `prove-etcdstorage/2026-11-20`)
+
+Sweep repairs 1 (B4) gave each of etcd's `ETCD_VERIFY` checks (`backend.ValidateCalled{Inside,OutSide}Apply`,
+`ValidateCalledInsideUnittest`, `VerifyBackendConsistency`) an axiom taking the token `envVerifyOff`;
+`verify.Verify` was an axiom too.
+
+**Decision:** the one function that reads the environment says it: `os.Getenv`'s post gives
+`envVerifyOff -∗ ⌜key = "ETCD_VERIFY" → etcdVerifyOffValue v⌝`, and `strings.ToLower`'s post says
+exactly when its result is a given lower-case ASCII word (`strings.lowersTo`, `Proof/strings/Lower.lean`:
+the rune-by-rune rule with the two non-ASCII runes Go lower-cases to ASCII, U+0130 and U+212A,
+measured). Both are strengthenings of existing trust-boundary axioms (posts were `True`); the world
+assumption `verifyEnvOff` is unchanged. `verify.IsVerificationEnabled`, `Verify`, the three lock checks
+and `VerifyBackendConsistency` are translated and proved; `Verify`'s premise is weakened to
+"`f` returns true, or `envVerifyOff`" (its five callers take the first, `ileft`), so
+`VerifyBackendConsistency` need not prove the backend consistent. Review:
+`notes/axiom-review/getenv-etcd-verify.md`.
 
 ## The net extension without a plan (v3.4) (2026-11-20 · the user's decision · branch `net-noplan`)
 

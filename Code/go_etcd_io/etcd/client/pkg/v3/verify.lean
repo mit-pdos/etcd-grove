@@ -2,6 +2,8 @@
 module
 
 public import Perennial.Code.fmt
+public import Code.os
+public import Perennial.Code.strings
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -31,11 +33,14 @@ noncomputable def VerifyFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] VerifyFunc.ty
 
-opaque envVerify [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def envVerify [GooseExts] [GoGlobalContext] : val :=
+  #(go!"ETCD_VERIFY")
 
-opaque envVerifyValueAll [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def envVerifyValueAll [GooseExts] [GoGlobalContext] : val :=
+  #(go!"all")
 
-opaque envVerifyValueAssert [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def envVerifyValueAssert [GooseExts] [GoGlobalContext] : val :=
+  #(go!"assert")
 
 noncomputable def getEnvVerify [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/pkg/v3/verify.getEnvVerify"
@@ -61,6 +66,96 @@ noncomputable def verifier [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def Assert [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/pkg/v3/verify.Assert"
 
+/-- go: verify.go:32:6 -/
+noncomputable def getEnvVerify.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val envVerify))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.os.Getenv []))) (Val #())) (Var "$a0")))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strings.ToLower []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")))))
+
+/-- go: verify.go:36:6 -/
+noncomputable def IsVerificationEnabled.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "verification"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "verification" (App (Val (GoInstruction (GoAlloc VerificationType.ty))) (Var "verification"))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve getEnvVerify []))) (Val #())) (Val #()))
+  (Let "env" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "env")) (Val envVerifyValueAll))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "env")) (Let "$a0" (App (Val (GoInstruction (GoLoad VerificationType.ty))) (Var "verification"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strings.ToLower []))) (Val #())) (Var "$a0"))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "env") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
+
+/-- Verify performs verification if the assertions are enabled.
+    In the default setup running in tests and skipped in the production code.
+
+    go: verify.go:69:6 -/
+noncomputable def Verify.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "msg"
+  (Lam "f"
+  (Seq (App (Val exceptionDo)
+  (Let "f" (App (Val (GoInstruction (GoAlloc VerifyFunc.ty))) (Var "f"))
+  (Let "msg" (App (Val (GoInstruction (GoAlloc go.string))) (Var "msg"))
+  (If (Let "$a0" (Val envVerifyValueAssert)
+  (App (App (Val (GoInstruction (FuncResolve IsVerificationEnabled []))) (Val #())) (Var "$a0")))
+  (Let "__p" (App (App (Val (GoInstruction (GoLoad VerifyFunc.ty))) (Var "f")) (Val #()))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "details" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string go.any)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.string go.any)))) (Val #())))
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "msg"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.any)))) (Var "details"))
+  (App (App (App (App (Val (GoInstruction (FuncResolve verifier []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.any)))) (Pair (Var "details") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r0"))))))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Val #()))))
+
+/-- go: verify.go:78:6 -/
+noncomputable def verifier.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "condition"
+  (Lam "msg"
+  (Lam "details"
+  (Seq (App (Val exceptionDo)
+  (Let "details" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string go.any)))) (Var "details"))
+  (Let "msg" (App (Val (GoInstruction (GoAlloc go.string))) (Var "msg"))
+  (Let "condition" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "condition"))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "condition")))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Let "$a0" (Val #(go!"%s. details: %v."))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "msg")))
+  (Let "$sl1" (App (Val (GoInstruction (Convert (go.GoType.MapType go.string go.any) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.any)))) (Var "details")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (Val #())))))
+
 /-- Assert will panic with a given formatted message if the given condition is false.
 
     go: verify.go:85:6 -/
@@ -83,7 +178,7 @@ noncomputable def Assert.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.pkg.v3.verify where
-  pkgImportedPkgs := [pkg_id.fmt]
+  pkgImportedPkgs := [pkg_id.fmt, pkg_id.os, pkg_id.strings]
 
 opaque «_».init [GooseExts] [GoGlobalContext] : val
 
@@ -91,8 +186,14 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.client.pkg.v3.verify)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val _root_.Perennial.fmt.initialize') (Val #())))))))
+  (App (Val _root_.Perennial.fmt.initialize') (Val #())))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.os.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.strings.initialize') (Val #()))))))))
 
 abbrev VerificationType [GooseExts] : Type := GoString
 
@@ -125,13 +226,25 @@ attribute [instance] VerifyFunc.TypeAssumptions.underlying
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   VerificationType_instance : VerificationType.TypeAssumptions
   VerifyFunc_instance : VerifyFunc.TypeAssumptions
+  getEnvVerify_unfold : FuncUnfold getEnvVerify [] getEnvVerify.impl
+  IsVerificationEnabled_unfold : FuncUnfold IsVerificationEnabled [] IsVerificationEnabled.impl
+  Verify_unfold : FuncUnfold Verify [] Verify.impl
+  verifier_unfold : FuncUnfold verifier [] verifier.impl
   Assert_unfold : FuncUnfold Assert [] Assert.impl
   import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
+  import_os_Assumption : _root_.Perennial.os.Assumptions
+  import_strings_Assumption : _root_.Perennial.strings.Assumptions
 
 attribute [instance] Assumptions.VerificationType_instance
   Assumptions.VerifyFunc_instance
+  Assumptions.getEnvVerify_unfold
+  Assumptions.IsVerificationEnabled_unfold
+  Assumptions.Verify_unfold
+  Assumptions.verifier_unfold
   Assumptions.Assert_unfold
   Assumptions.import_fmt_Assumption
+  Assumptions.import_os_Assumption
+  Assumptions.import_strings_Assumption
 
 end go_etcd_io.etcd.client.pkg.v3.verify
 

@@ -29,8 +29,6 @@ axiom EtcdServer.waitLeader.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom RangeRequest.String.wp_proof
 axiom api.IsCapabilityEnabled.wp_proof
-axiom backend.ValidateCalledInsideApply.wp_proof
-axiom backend.ValidateCalledOutSideApply.wp_proof
 axiom bcrypt.GenerateFromPassword.wp_proof
 axiom context.WithValue.wp_proof
 axiom context.madeCancelCtx_of_isCancelCtx
@@ -127,7 +125,6 @@ axiom v3rpc.logUnaryRequestStats.wp_proof
 axiom v3rpc.pbWatchRequestT_reg
 axiom v3rpc.pbWatchResponseT_reg
 axiom v3rpc.wp_WithTimeout_weak
-axiom verify.Verify.wp_proof
 axiom zap.Logger.Fatal.wp_proof
 axiom zap.Logger.Panic.wp_proof
 axiom zap.Logger.check.wp_proof

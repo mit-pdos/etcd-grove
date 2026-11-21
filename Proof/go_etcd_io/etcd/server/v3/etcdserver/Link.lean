@@ -1280,7 +1280,7 @@ theorem storage.BackendHooks.wp_SetConfState :
 
 theorem backend.wp_VerifyBackendConsistency :
     backend.VerifyBackendConsistency.spec (GF := GF) (hG := hG) :=
-  backend.VerifyBackendConsistency.wp_proof
+  backend.VerifyBackendConsistency.wp_proof verify.wp_Verify
 
 theorem io.wp_Pipe :
     io.Pipe.spec (GF := GF) (hG := hG) :=
