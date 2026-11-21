@@ -194,7 +194,8 @@ PROJECTS = [
         # translations. Modules
         # Code.go_etcd_io.bbolt*, GeneratedProof.go_etcd_io.bbolt*.
         repo="https://github.com/upamanyus/bbolt",
-        rev="42c80a7ed7d7f32877b08551879e51a2d7ca1816",
+        # Split oversized leaves and admit all individually readable key/value pairs.
+        rev="ca88bb6a8339da5d5c29eccf120e1b621021b4f9",
         lean_roots=["go.etcd.io/bbolt=", "golang.org/x/sys=", "syscall=", "hash=",
                     "encoding/hex=", "os=", "io/fs="],
         packages=[

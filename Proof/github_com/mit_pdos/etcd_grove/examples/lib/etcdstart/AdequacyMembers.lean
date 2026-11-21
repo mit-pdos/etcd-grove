@@ -118,11 +118,12 @@ theorem etcd_adequate_members [hPre : GooseGpreS GF] [lctx : GoLocalContext] [go
         iprop(([∗list] m ∈ ms, etcdstart.memberStartRes (hG := heapWith hG lctx) m.1 m.2) ∗ [∗list] b ∈ Bs, netAddrFree b)
         init body φ)
     (hNs : Ns.Nodup := by decide +kernel)
-    (hmsL : ∀ m ∈ ms, m.1.length ≤ 200 := by decide) :
+    (hmsL : ∀ m ∈ ms, m.1.length ≤ 200 := by decide)
+    (hNsIds : prometheus.descIdsDistinct Ns := by decide +kernel) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   etcd_adequate init body φ hφ As hAs hAsLit Ds hDs σ g Hinitg Hinitw Hlctx Hinit Hthreads HNs HAs HDs HEnv
-    n κs t2 σ2 Hsteps (hNs := hNs) fun hG HN HT =>
+    n κs t2 σ2 Hsteps (hNs := hNs) (hNsIds := hNsIds) fun hG HN HT =>
       progOk_pre (hG := heapWith hG lctx) _ _ _ init body φ (sep_reassoc5 _ _ _ _ _)
         (progOk_walAreas (hG := heapWith hG lctx) ⟨hPre.goosePreGAllG⟩ _ _ init body φ hbody σ
           Hinitw.2.1 Ds hDs HWal (by rw [HN]; exact hn) (walDirsFit_of_names ms Ds hD hmsL)
@@ -156,11 +157,12 @@ theorem etcd_adequate_alloc_members [hPre : GooseGpreS GF] [lctx : GoLocalContex
           iprop((([∗list] m ∈ ms, etcdstart.memberStartRes (hG := heapWith hG lctx) m.1 m.2) ∗
             [∗list] b ∈ Bs, netAddrFree b) ∗ T x) init body φ)
     (hNs : Ns.Nodup := by decide +kernel)
-    (hmsL : ∀ m ∈ ms, m.1.length ≤ 200 := by decide) :
+    (hmsL : ∀ m ∈ ms, m.1.length ≤ 200 := by decide)
+    (hNsIds : prometheus.descIdsDistinct Ns := by decide +kernel) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   etcd_adequate_alloc init body φ hφ As hAs hAsLit Ds hDs σ g Hinitg Hinitw Hlctx Hinit Hthreads HNs HAs
-    HDs HEnv n κs t2 σ2 Hsteps (hNs := hNs) fun hG HN HT => by
+    HDs HEnv n κs t2 σ2 Hsteps (hNs := hNs) (hNsIds := hNsIds) fun hG HN HT => by
       obtain ⟨X, T, Halloc, Hp⟩ := Hprog hG HN HT
       exact ⟨X, T, Halloc, fun x => progOk_pre (hG := heapWith hG lctx) _ _ _ init body φ
         sep_assoc.2

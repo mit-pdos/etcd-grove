@@ -109,7 +109,7 @@ theorem pcInv_init' {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     (hend : spEnd X w bl n rn O lo hi h D N E X' w' r' st T) (hlens : insLens r'.ins r'.ws)
     (hd : objsDisj X'.t) (X2 : WX) (xs : List (Loc × node × List Inode)) (wss : List (List WEntry)) (pl : Loc)
     (rp' : NRec) (hsr : splitRel (X'.nilCh bl n r') X2 bl n r'.nilCh xs wss pl rp')
-    (hfit : ∀ x ∈ xs, pieceFits 4096 x.2.2 ∧ (2 ≤ xs.length → 2 ≤ x.2.2.length)) :
+    (hfit : ∀ x ∈ xs, pieceFitFor x.2.1.isLeaf' 4096 x.2.2 ∧ (2 ≤ xs.length → pieceMin x.2.1.isLeaf' ≤ x.2.2.length)) :
     pcInv X w bl n rn O lo hi h D N E cs xs pl 0 X2 w' st := by
   obtain ⟨Es, Ds, hEl, hDl, hEf, hents, hDk, hDn, hPd, hsl⟩ := tail_init_ents hpre hsp hend hsr
   obtain ⟨bs, j, hcs, hpar⟩ := tail_init_par hpre hsp hend hsr
