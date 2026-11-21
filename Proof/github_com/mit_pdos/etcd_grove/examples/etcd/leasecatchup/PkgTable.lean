@@ -537,7 +537,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h84 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.storage.schema (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h13, h78, h38, h27, h49, h79, h82, h24, h76, h83, True.intro⟩
+    exact ⟨h13, h78, h38, h27, h49, h79, h82, h24, h76, h83, h46, h47, True.intro⟩
   have h85 : GetIsPkgInitProp pkg_id.encoding.json (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl

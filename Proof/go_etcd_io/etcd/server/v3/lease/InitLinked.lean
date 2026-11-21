@@ -16,7 +16,7 @@ public import Proof.container.heap.Init
 public import Proof.github_com.Masterminds.semver.v3.Init
 public import Proof.github_com.prometheus.client_golang.prometheus.Init
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Init
-public import Proof.go_etcd_io.etcd.api.v3.version.Init
+public import Proof.go_etcd_io.etcd.api.v3.version.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.lease.leasepb.Init
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.InitLinked

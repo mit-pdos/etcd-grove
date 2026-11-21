@@ -13,6 +13,8 @@ public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.auth
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.api.v3.authpb
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.client.pkg.v3.verify
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.lease.leasepb
+public import SpecPlan.Spec.PkgInit.github_com.Masterminds.semver.v3
+public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.api.v3.version
 
 @[expose] public section
 noncomputable section
