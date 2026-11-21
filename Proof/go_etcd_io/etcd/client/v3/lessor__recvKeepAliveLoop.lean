@@ -119,7 +119,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
           cases bnl
           · (try wp_auto)
             wp_for_post
-            wp_apply +noauto time.wp_After as %tch %γt #Htch
+            wp_apply +noauto (time.After.spec_pkgInit time.wp_After _) as %tch %γt #Htch
             (try wp_auto)
             ihave #Hsc2 : iprop(context.isContextDef sc scd) $$ [Hscc]
             · iexact Hscc
@@ -231,7 +231,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
             · iframe #
             (try wp_auto)
             wp_for_post
-            wp_apply +noauto time.wp_After as %tch %γt #Htch
+            wp_apply +noauto (time.After.spec_pkgInit time.wp_After _) as %tch %γt #Htch
             (try wp_auto)
             ihave #Hsc2 : iprop(context.isContextDef sc scd) $$ [Hscc]
             · iexact Hscc
@@ -431,7 +431,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
           cases bnl
           · (try wp_auto)
             wp_for_post
-            wp_apply +noauto time.wp_After as %tch %γt #Htch
+            wp_apply +noauto (time.After.spec_pkgInit time.wp_After _) as %tch %γt #Htch
             (try wp_auto)
             ihave #Hsc2 : iprop(context.isContextDef sc scd) $$ [Hscc]
             · iexact Hscc
@@ -543,7 +543,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
             · iframe #
             (try wp_auto)
             wp_for_post
-            wp_apply +noauto time.wp_After as %tch %γt #Htch
+            wp_apply +noauto (time.After.spec_pkgInit time.wp_After _) as %tch %γt #Htch
             (try wp_auto)
             ihave #Hsc2 : iprop(context.isContextDef sc scd) $$ [Hscc]
             · iexact Hscc
@@ -742,7 +742,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
       · iframe #
       cases b
       · (try wp_auto)
-        wp_apply +noauto time.wp_After as %tch %γt #Htch
+        wp_apply +noauto (time.After.spec_pkgInit time.wp_After _) as %tch %γt #Htch
         (try wp_auto)
         ihave #Hsc2 : iprop(context.isContextDef sc scd) $$ [Hscc]
         · iexact Hscc

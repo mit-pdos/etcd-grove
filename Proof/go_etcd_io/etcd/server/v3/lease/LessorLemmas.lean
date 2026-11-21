@@ -1048,6 +1048,7 @@ theorem wp_revokec_close {ty : go.GoType} {dir : go.ChanDir}
   iapply chan.wp_close (ct := ty) (V := Unit) c γc $$ Hch
   iintro _
   unfold closeAu
+  iapply ncfupd_of_fupd
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   inext

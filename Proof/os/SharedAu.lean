@@ -18,7 +18,7 @@ module
 public import GooseLang.Ext.Fs.TreeShared
 public import Proof.os.CrashFile
 public import Iris.BI.Lib.Atomic
-public import GooseLang.Ext.Fs.NotCrashedAcc
+public import Perennial.GooseLang.NotCrashed
 
 @[expose] public section
 

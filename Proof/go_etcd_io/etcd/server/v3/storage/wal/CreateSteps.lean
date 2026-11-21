@@ -5,7 +5,7 @@ implementation log", tenth session)
 
 The steps of `CreateDropStep.lean`, `CreateMergeStep.lean` and `CreateMint.lean` act on the
 invariant's contents; `Create`'s body takes them at a program step, where the generation's
-`notCrashed` is at hand (`wp_notCrashed_acc`, `GooseLang/Ext/Fs/NotCrashedAcc.lean`): `walInv_step`
+`notCrashed` is at hand (`wp_notCrashed_acc`, `Perennial's `GooseLang/NotCrashed.lean``): `walInv_step`
 opens the invariant with it (`walInv_open`), runs a step on the contents and closes it again. The
 wrappers below are the five steps in that form, at any mask holding the WAL's and the file system's
 shared invariants (`⊤` at a program step: `walN_osShN_top`).
