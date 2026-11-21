@@ -443,6 +443,8 @@ theorem RunConcurrent.wp_proof
       ihave Hsp := probeA_startPre γ tcRaftN γd tn (tcConfig k ms «$v1_ptr») Htr Hvoters rfl rfl
         (by simp) (by rw [Hbl, Hbf.1]; exact (Nat.max_eq_left (by decide : 2 ≤ 3)).symm ▸ Hrb) $$ Hvk Hdir Hsim Htl'
       icases Hsp with ⟨#Hnb, Hvac, Hrs0, Hstc⟩
+      -- (2026-11-21, the crash invariant) the vacancy armed (the harness never crashes)
+      imod nodeVacant_armD γ k ⊤ $$ Hvac with ⟨%x, Hvac⟩
       ihave Hau := tc_startAu γ tcRaftN k $$ Hrs0
       ihave Hboot := tc_bootStorage wp_InitialState wp_LastIndex wp_FirstIndex wp_Term wp_Entries
         wp_Snapshot ms γs γ (fun _ => memStorMeta ms γs tcBootContents.hs)
@@ -464,9 +466,9 @@ theorem RunConcurrent.wp_proof
             (by show sint.Z (W64 256) < 2 ^ 62; decide) rfl rfl rfl
             (Or.inr (by show ~~~W64 0 ≠ W64 0; decide)) rfl (fun h => absurd Hmd h)
             rfl rfl rfl rfl rfl rfl
-            tcPeers_ids.symm)
+            tcPeers_ids.symm x)
           $$ [«$r0» Hau Hboot Hvac Hsl Hstc]
-          as %nd ⟨%n, %K, %Hnd, -, #HisNode, Hdrv, Hncfg, Hrun, Hrs, Hmeta, Hsl, #Hsd⟩
+          as %nd ⟨%n, %K, %Hnd, -, #HisNode, Hdrv, Hncfg, Hrun, -, Hrs, Hmeta, Hsl, #Hsd⟩
         · iframe Hlog Hnb Hpctx «$r0» Hvac Hau Hsl Hstc
           iExactEq Hboot; rfl
         -- the replica's record, appended

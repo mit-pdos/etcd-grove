@@ -87,6 +87,7 @@ theorem Cluster.startNew.wp_proof
   icases Hcl' with ⟨#Hic, -, -, -, -, -⟩
   have HnU : nid ∉ U := by rw [HdomU]; omega
   imod joinAuth_join γ.r.cluster kdRaftN U nid HnU Hnid0 $$ [$Hic $Hjoin] with ⟨Hjoin, HrS, Hvac⟩
+  imod nodeVacant_armD γ.r.cluster nid ⊤ $$ Hvac with Hvac
   -- the id's file: its invariant at no contents, the writer's half for `start`
   have e2 : uint.nat (nid + W64 1) = uint.nat nid + 1 := by word
   have Hfr : raft_kvreconf.freshIdsM γ.max (uint.nat nid) =

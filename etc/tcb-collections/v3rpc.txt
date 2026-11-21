@@ -22,7 +22,6 @@
 # (`grpc.serve`, `grpcServerAt`, `grpcServes`, `grpcServes_persistent`; `etcd_kv_served`'s, in the
 # client's collection).
 roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/(Link|Results)\.lean$
-axiom EtcdServer.ensureLeadership.wp_proof
 axiom EtcdServer.leaseTimeToLive.wp_proof
 axiom EtcdServer.rangeStream.wp_proof
 axiom NewLoggableTxnRequest.wp_proof

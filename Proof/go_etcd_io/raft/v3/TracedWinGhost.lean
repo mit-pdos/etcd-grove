@@ -174,14 +174,14 @@ theorem ghost_stepWin_reg (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s
     (m : MessageM) (ents : List EntryM) (Hto : m.To' = id) (Hteq : m.Term' = s.term)
     (Hrole : s.role = .candidate)
     (Hq : JQuorum c (granted (recordVote s.votes m.From' (!m.Reject')))) :
-    ⊢ isMessage (GF := GF) γ (absMsg .voteResp m ents) -∗ ownStepGhost γ md c id s ={⊤}=∗
-      isLeader γ id s.term ∗
+    ⊢ notCrashed -∗ isMessage (GF := GF) γ (absMsg .voteResp m ents) -∗ ownStepGhost γ md c id s ={⊤}=∗
+      notCrashed ∗ isLeader γ id s.term ∗
       ∃ fp : List EntryM, ⌜FullOk (toPState s).base fp⌝ ∗ isCamp γ id s.term (fp ++ (toPState s).log) ∗
         logRecs γ base0 (fp ++ (toPState s).log) ∗
         ∃ (γm : GName) (terms : GMap w64 TermRec),
-          ⌜γ.reTerms !! id = some γm ∧ terms !! s.term = none⌝ ∗ ghostMapAuth γm 1 terms ∗
-          (ghostMapAuth γm 1 terms ==∗ leadFull γ s.term (fp ++ (toPState s).log) ∗
-            winGhost γ md c id s m) := by
+          ⌜γ.reTerms !! id = some γm ∧ terms !! s.term = none⌝ ∗ cview γ id CrashNames.t (1 : Qp).half terms ∗
+          (∀ E, ⌜↑(crashNs γ id) ⊆ E⌝ -∗ notCrashed -∗ cview γ id CrashNames.t (1 : Qp).half terms ={E}=∗
+            notCrashed ∗ leadFull γ s.term (fp ++ (toPState s).log) ∗ winGhost γ md c id s m) := by
   have Hnp : s.role ≠ .preCandidate := by rw [Hrole]; decide
   have Hpr : (toPState s).role = .candidate := by rw [toPState_role, Hrole]; rfl
   have Hvs := toPState_votedState s m Hnp
@@ -189,7 +189,7 @@ theorem ghost_stepWin_reg (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s
     have hv := toPState_votes_nonpre s Hnp
     rw [Hvs]; simp only [hv]; exact Hq
   have Hr' : (toPState (votedState s m)).role = .candidate := by rw [Hvs]; exact Hpr
-  iintro #Hm Hgs
+  iintro Hnc #Hm Hgs
   iunfold ownStepGhost at Hgs
   icases Hgs with ⟨Hg, Hrest⟩
   icases ghostRest_dynEnv_vote γ md c id s m ents Hto Hteq Hrole $$ Hrest with ⟨#Henv, Hrest⟩
@@ -210,11 +210,11 @@ theorem ghost_stepWin_reg (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s
   rw [show (toPState (votedState s m)).term = s.term from rfl,
     show (toPState (votedState s m)).base = (toPState s).base from rfl,
     show (toPState (votedState s m)).log = (toPState s).log from rfl] at Hreg0
-  ihave Hreg := Hreg0 $$ Henv Hg
+  ihave Hreg := Hreg0 $$ Hnc Henv Hg
   ihave Hreg := fupd_top_of_reg γ _ $$ Hreg
-  imod Hreg with ⟨#Hl, %fp, %Hfp, #Hc, #Hrec, %γm, %terms, %Hfree, Ha, Hw⟩
+  imod Hreg with ⟨Hnc, #Hl, %fp, %Hfp, #Hc, #Hrec, %γm, %terms, %Hfree, Ha, Hw⟩
   imodintro
-  iframe Hl
+  iframe Hnc Hl
   iexists fp
   iframe Hc Hrec
   isplitr
@@ -223,10 +223,10 @@ theorem ghost_stepWin_reg (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s
   iframe Ha
   isplitr
   · ipureintro; exact Hfree
-  iintro Ha
-  imod Hw $$ Ha with ⟨#Hf, Hp⟩
+  iintro %E %HE Hnc Ha
+  imod Hw $$ %E %HE Hnc Ha with ⟨Hnc, #Hf, Hp⟩
   imodintro
-  iframe Hf
+  iframe Hnc Hf
   iunfold winGhost
   iframe Hp Hrest
 
@@ -242,13 +242,13 @@ theorem ghost_stepWin_entry (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) 
     (Hmt : prvalsMatch pvs = resetMatched id (logLast s.logst) s.prvals)
     (Hnw : plogLastIndexZ (toPState s).base (toPState s).log + 1 < 2 ^ 64)
     (hsa : MsgTrOk γ (selfAck id (becomeLeaderLog id (votedState s m)))) :
-    ⊢ isMessage (GF := GF) γ (absMsg .voteResp m ents) -∗
+    ⊢ notCrashed -∗ isMessage (GF := GF) γ (absMsg .voteResp m ents) -∗
       ⧖ ((plogLastIndexZ (toPState s).base (toPState s).log).toNat - γ.reBoot.length + 1) -∗
-      winGhost γ md c id s m ==∗ ownStepGhost γ md c id (wonStateW id s m pvs) := by
+      winGhost γ md c id s m ={⊤}=∗ notCrashed ∗ ownStepGhost γ md c id (wonStateW id s m pvs) := by
   have Hnp : s.role ≠ .preCandidate := by rw [Hrole]; decide
   have Hvs := toPState_votedState s m Hnp
   have Hstep := stepCD_wonW c id s m ents pvs Hto Hteq Hrole Hid Hq Hmt
-  iintro #Hm #Hrc Hw
+  iintro Hnc #Hm #Hrc Hw
   iunfold winGhost at Hw
   icases Hw with ⟨Hp, Hrest⟩
   -- the ghost state at the won state (`toPState_becomeLeader`)
@@ -258,14 +258,16 @@ theorem ghost_stepWin_entry (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) 
     rw [toPState_becomeLeader]; simp
   have HLv : plogLastIndexZ (toPState (votedState s m)).base (toPState (votedState s m)).log =
       plogLastIndexZ (toPState s).base (toPState s).log := by rw [Hvs]
-  imod ownRaftGhost_step_win_entry γ c id (toPState (votedState s m)) (prvalsMatch pvs) []
+  imod ownRaftGhost_step_win_entry ⊤ γ c id (toPState (votedState s m)) (prvalsMatch pvs) []
       ((plogLastIndexZ (toPState s).base (toPState s).log).toNat - γ.reBoot.length + 1)
       (by rw [HLv]; exact Hnw)
       (by rw [Hmt]; exact resetMatched_leader_ok id (votedState s m) Hid _ rfl rfl)
       (by simp) (by simp) (by simp) (by simp)
       (by rw [HLv]; have := plogLastIndexZ_nonneg (toPState s).base (toPState s).log; omega)
-    $$ Hrc Hp with Hg
+      CoPset.subseteq_top
+    $$ Hnc Hrc Hp with ⟨Hnc, Hg⟩
   rw [← Hps]
+  iframe Hnc
   iunfold ownStepGhost
   iframe Hg
   -- the rest of the mode's ghost state, by the whole step

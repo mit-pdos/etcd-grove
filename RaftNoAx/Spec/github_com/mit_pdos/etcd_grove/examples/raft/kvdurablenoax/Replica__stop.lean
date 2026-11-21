@@ -37,7 +37,7 @@ abbrev Replica.stop.spec : Prop :=
   ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r : Loc),
   {{ repStopper γ vs dir id r }}
     (App (Val (r @!! go.GoType.PointerType kReplicaTy @!! go!"stop")) (Val #()))
-  {{ RET #(); nodeVacant γ.r.cluster id ∗
+  {{ RET #(); (∃ x, nodeVacantA γ.r.cluster id x) ∗
       ∃ (n st sts sq : Loc) (ρ : KdRepNames), isReplicaR γ vs dir id r n st sts sq ρ ∗
         ∃ v : Option GName × RaftState, ghostVar ρ.ph.ph (1 : Qp).half v }}
 

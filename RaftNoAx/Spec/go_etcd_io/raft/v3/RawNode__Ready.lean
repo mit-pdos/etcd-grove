@@ -86,7 +86,7 @@ durable half `ownDurGhost` from `rs.dur` to the batch's state, which also gives 
 and the batch's fragments `durFrags γ id W`, what `Advance` takes) and at role leader at once
 (`Hlead`); the read states as before. -/
 abbrev RawNode.Ready.spec : Prop :=
-  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (q : Qp) (g : Nat),
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (x : CrashNames) (rs : RNState) (q : Qp) (g : Nat),
   rs.steps = [] →
   rs.unpersisted = [] →
   -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
@@ -97,7 +97,7 @@ abbrev RawNode.Ready.spec : Prop :=
       "Hrn" ∷ ownRawNode γ rn id rs ∗
       -- (2026-11-01, durability stage II (k)) the node's generation `g` of its id's slot: a share
       -- (the node being live), and its free queue, in which the `Ready` cuts its batch
-      "Hlive" ∷ slotLive γ id q g ∗ "Hfree" ∷ slotFree γ id g }}
+      "Hlive" ∷ genView γ id x q g ∗ "Hfree" ∷ slotFree γ id g }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Ready")) (Val #()))
   {{ (rd : Ready) (ce es : List EntryM) (ms : List QMsg)
       (sts : List ReadStateM) (h : HardStateM) (steps : List Pending) (L : Option SnapLoan)
@@ -107,16 +107,16 @@ abbrev RawNode.Ready.spec : Prop :=
                   outlb := 0, unst := false, phs := phsNext rs.phs h, psnap := false,
                   slent := L, dur := readyDurable rs.dur (phsNext rs.phs h) L es,
                   role := roleAfter rs.role ss, bw := W } ∗
-      "Hlive" ∷ slotLive γ id q g ∗
+      "Hlive" ∷ genView γ id x q g ∗
       -- (2026-11-01, durability stage II (k)) **enter** (the node API's `readyEnter`): when the
       -- application enters the batch's durable state (`readyDurable`; a durable application: in the
       -- write that makes it durable), with a share of the generation (a stopped node's batch is
       -- dead), the durable half moves to it, and it gets the generation's free queue (for the next
       -- `Ready`), the batch's fragments (`durFrags`, what `Advance` takes: `RawNode.Advance.spec`)
       -- and the messages' `isRaftMsg` (until then given here outright)
-      "Henter" ∷ (∀ (E : CoPset) (q' : Qp), ⌜↑(raftN γ) ⊆ E⌝ -∗
-        ownDurGhost γ id rs.dur ∗ slotLive γ id q' g ={E}=∗
-          ownDurGhost γ id (readyDurable rs.dur (phsNext rs.phs h) L es) ∗ slotLive γ id q' g ∗
+      "Henter" ∷ (∀ (E : CoPset) (q' : Qp), ⌜↑(raftN γ) ⊆ E⌝ -∗ notCrashed -∗
+        ownDurGhost γ id rs.dur ∗ genView γ id x q' g ={E}=∗
+          notCrashed ∗ ownDurGhost γ id (readyDurable rs.dur (phsNext rs.phs h) L es) ∗ genView γ id x q' g ∗
           slotFree γ id g ∗ durFrags γ id W ∗ [∗list] q ∈ ms, isRaftMsg γ id q.st) ∗
       -- (2026-11-01, durability stage II (k)) at role leader (after the `Ready`'s soft state) the
       -- messages may be sent first (the node API's `readyLeaderMsgs`)

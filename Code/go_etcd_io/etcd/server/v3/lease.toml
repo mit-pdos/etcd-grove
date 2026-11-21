@@ -4,8 +4,7 @@
 # lessor.go, lease.go and lease_queue.go; unit 9), with bodies; (the lease-read plan, 2026-10-31)
 # `Leases` (the server's `LeaseLeases`), with its sort's `leasesByExpiry` and `Remaining`.
 # (pgaps, 2026-11-21) `scheduleCheckpointIfNeeded`, with its body (`int64(d.Seconds())`: Perennial
-# steps a float-to-integer conversion to an arbitrary integer). Names only: the rest (the
-# expiry loop, ...).
+# steps a float-to-integer conversion to an arbitrary integer). Names only: the rest.
 # Lessor is an interface (the apply thread calls its Promote), so the packages its methods'
 # signatures name are imported (Checkpointer's context and request type, Recover's backend).
 # `sync` for the struct `Lease` (its locks), whose `ID` the server's apply package reads;
@@ -38,12 +37,19 @@ translate = ["!*",
   "leasesByExpiry.Less", "leasesByExpiry.Swap", "Lease.Remaining",
   "LeaseQueue.Len", "LeaseQueue.Less", "LeaseQueue.Swap", "LeaseQueue.Push", "LeaseQueue.Pop",
   "newLeaseExpiredNotifier", "LeaseExpiredNotifier.RegisterOrUpdate",
+  # (prove-ps2-newlessor3, 2026-11-21) the constructor and the expiry loop, with their bodies:
+  # `NewLessor.spec` proved over them (one trust-boundary axiom left, `Lease.expired`'s payload,
+  # `lease.expiredPayload`), with the notifier's `Len`, `Peek`, `Unregister`
+  "NewLessor", "newLessor", "lessor.runLoop", "lessor.revokeExpiredLeases",
+  "lessor.checkpointScheduledLeases", "lessor.findExpiredLeases", "lessor.expireExists",
+  "lessor.findDueScheduledCheckpoints",
+  "LeaseExpiredNotifier.Len", "LeaseExpiredNotifier.Peek", "LeaseExpiredNotifier.Unregister",
   # the lease-expiry plan's S1 (2026-11-03, the user's): the snapshot's restore, proved
   "lessor.Recover", "lessor.initAndRecover", "LeaseExpiredNotifier.Init",
   # (prove-errinits, 2026-11-19) the remaining package variables: constants and a counter
   "defaultLeaseRevokeRate", "leaseCheckpointRate", "defaultLeaseCheckpointInterval",
   "maxLeaseCheckpointBatchSize", "defaultExpiredleaseRetryInterval", "leaseRenewed"]
-imports = ["!*", "container/heap", "context", "sort", "sync", "time", "errors",
+imports = ["!*", "container/heap", "context", "sort", "sync", "time", "errors", "math",
   "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/version",
   "go.etcd.io/etcd/server/v3/lease/leasepb",
   "go.etcd.io/etcd/server/v3/storage/backend", "go.etcd.io/etcd/server/v3/storage/schema",

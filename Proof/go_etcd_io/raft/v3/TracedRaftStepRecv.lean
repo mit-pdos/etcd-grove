@@ -1011,8 +1011,20 @@ theorem hookGateOpt_fupd_recv (tr : Option GName) (r : Loc) (oE : Option (TraceE
   iintro H
   iunfold HookGateOpt at H
   iunfold HookGateOpt
+  iintro Hnc
   imod H with H
-  iexact H
+  iapply H $$ Hnc
+
+/-- (2026-11-21, the crash invariant) A receive gate's update that needs the token (a ghost step
+over raft's ghost state): the gate's own `notCrashed`, lent to it and given back. -/
+theorem hookGateOpt_nc_recv (tr : Option GName) (r : Loc) (oE : Option (TraceEv → Prop)) (Q : IProp GF) :
+    iprop(notCrashed -∗ |={⊤}=> notCrashed ∗ HookGateOpt tr r oE Q) ⊢ HookGateOpt tr r oE Q := by
+  iintro H
+  iunfold HookGateOpt
+  iintro Hnc
+  imod H $$ Hnc with ⟨Hnc, H⟩
+  iunfold HookGateOpt at H
+  iapply H $$ Hnc
 
 /-- A resource framed into a hook gate's result. -/
 theorem hookGateOpt_frame (tr : Option GName) (r : Loc) (oE : Option (TraceEv → Prop)) (X Q : IProp GF) :
@@ -1020,8 +1032,10 @@ theorem hookGateOpt_frame (tr : Option GName) (r : Loc) (oE : Option (TraceEv �
   iintro ⟨HX, H⟩
   iunfold HookGateOpt at H
   iunfold HookGateOpt
-  imod H with ⟨%tl, #Htl, %Hok, H⟩
+  iintro Hnc
+  imod H $$ Hnc with ⟨Hnc, %tl, #Htl, %Hok, H⟩
   imodintro
+  iframe Hnc
   iexists tl
   iframe Htl
   isplitr

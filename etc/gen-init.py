@@ -1916,6 +1916,9 @@ other untranslated initializers run.''',
         'leaseTotalTTLs': metric_steps_to('leaseTotalTTLs', 'hist', 'go_etcd_io.etcd.server.v3.storage.backend.histSpec')},
     finish=['ipersist HErrNotPrimary', 'ipersist HErrLeaseNotFound', 'ipersist HErrLeaseExists', 'ipersist HErrLeaseTTLTooLarge',
             'ipersist Hforever', 'ipersist HleaseGranted', 'ipersist HleaseRevoked', 'ipersist HleaseRenewed',
+            # (prove-ps2-newlessor3, 2026-11-21) `leaseConsts`, what `newLessor` and the expiry loop read
+            'ipersist HdefaultLeaseRevokeRate', 'ipersist HleaseCheckpointRate', 'ipersist HmaxLeaseCheckpointBatchSize',
+            'ipersist HdefaultLeaseCheckpointInterval', 'ipersist HdefaultExpiredleaseRetryInterval',
             'ipersist HleaseTotalTTLs',
             'ihave #TNP := EtcdGrove.errorMsg_triple _ _ _ $$ MNP',
             'ihave #TNF := EtcdGrove.errorMsg_triple _ _ _ $$ MNF',
@@ -1927,7 +1930,12 @@ other untranslated initializers run.''',
             'ihave #VEx : (EtcdGrove.errVarCell ErrLeaseExists go!"lease already exists" : IProp GF) $$ []',
             '· unfold EtcdGrove.errVarCell; iexists _; iframe HErrLeaseExists CEx',
             'ihave #VTL : (EtcdGrove.errVarCell ErrLeaseTTLTooLarge go!"too large lease TTL" : IProp GF) $$ []',
-            '· unfold EtcdGrove.errVarCell; iexists _; iframe HErrLeaseTTLTooLarge CTL'] + FIN_PRE[:6] + [
+            '· unfold EtcdGrove.errVarCell; iexists _; iframe HErrLeaseTTLTooLarge CTL',
+            # (prove-ps2-newlessor3, 2026-11-21) the rates and intervals
+            'ihave #HlC : (leaseConsts : IProp GF) $$ []',
+            '· unfold leaseConsts; iframe HdefaultLeaseRevokeRate HleaseCheckpointRate HmaxLeaseCheckpointBatchSize',
+            '  isplitr; · iexists _; iexact HdefaultLeaseCheckpointInterval',
+            '  iexists _; iexact HdefaultExpiredleaseRetryInterval'] + FIN_PRE[:6] + [
             'imodintro', 'unfold leaseInit leaseErrVar', 'iframe #', 'dsimp only', 'iframe #',
             'repeat (first | (isplitl []; · (ipureintro; first | exact EtcdGrove.errorString_errLeaf _ | exact EtcdGrove.errorString_leaf _)) | (ipureintro; first | exact EtcdGrove.errorString_errLeaf _ | exact EtcdGrove.errorString_leaf _))'],
 )

@@ -42,7 +42,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 TraceSim
 
 section facts
 variable [GooseExts]
-variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [CrashGS GF]
 
 /-- An in-range entry of a log with records has a record. -/
 theorem logRecs_isEntry (γ : RaftNames) (b : entryID) (es : List EntryM) (k : Nat) (e : EntryM)

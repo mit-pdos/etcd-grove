@@ -37,7 +37,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 `γ.reTrace = some γd`, with the term ceiling below the trace's bound and the receipts' fit, and the
 handed-out messages' tokens. -/
 abbrev RawNode.Ready.tracedTriple : Prop :=
-  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (q : Qp) (g : Nat) (γd : GName),
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (x : CrashNames) (rs : RNState) (q : Qp) (g : Nat) (γd : GName),
   rs.steps = [] →
   rs.unpersisted = [] →
   γ.reTrace = some γd →
@@ -45,7 +45,7 @@ abbrev RawNode.Ready.tracedTriple : Prop :=
   receiptBound GF + γ.reBoot.length ≤ traceNumBound →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs ∗
-      "Hlive" ∷ slotLive γ id q g ∗ "Hfree" ∷ slotFree γ id g }}
+      "Hlive" ∷ genView γ id x q g ∗ "Hfree" ∷ slotFree γ id g }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Ready")) (Val #()))
   {{ (rd : Ready) (ce es : List EntryM) (ms : List QMsg)
       (sts : List ReadStateM) (h : HardStateM) (steps : List Pending) (L : Option SnapLoan)
@@ -55,10 +55,10 @@ abbrev RawNode.Ready.tracedTriple : Prop :=
                   outlb := 0, unst := false, phs := phsNext rs.phs h, psnap := false,
                   slent := L, dur := readyDurable rs.dur (phsNext rs.phs h) L es,
                   role := roleAfter rs.role ss, bw := W } ∗
-      "Hlive" ∷ slotLive γ id q g ∗
-      "Henter" ∷ (∀ (E : CoPset) (q' : Qp), ⌜↑(raftN γ) ⊆ E⌝ -∗
-        ownDurGhost γ id rs.dur ∗ slotLive γ id q' g ={E}=∗
-          ownDurGhost γ id (readyDurable rs.dur (phsNext rs.phs h) L es) ∗ slotLive γ id q' g ∗
+      "Hlive" ∷ genView γ id x q g ∗
+      "Henter" ∷ (∀ (E : CoPset) (q' : Qp), ⌜↑(raftN γ) ⊆ E⌝ -∗ notCrashed -∗
+        ownDurGhost γ id rs.dur ∗ genView γ id x q' g ={E}=∗
+          notCrashed ∗ ownDurGhost γ id (readyDurable rs.dur (phsNext rs.phs h) L es) ∗ genView γ id x q' g ∗
           slotFree γ id g ∗ durFrags γ id W ∗ [∗list] q ∈ ms, isRaftMsg γ id q.st) ∗
       "#Hlead" ∷ (⌜roleAfter rs.role ss = StateLeader⌝ -∗ [∗list] q ∈ ms, isRaftMsg γ id q.st) ∗
       -- (restart S7.3, `RawNode.Ready.spec`'s) each message's `MsgSnap` facts, outright
@@ -94,7 +94,7 @@ theorem RawNode.Ready.traced
     (wp_RawNode_readyWithoutAccept : RawNode.readyWithoutAccept.spec (GF := GF) (hG := hG))
     (wp_RawNode_acceptReady : RawNode.acceptReady.spec (GF := GF) (hG := hG)) :
     RawNode.Ready.tracedTriple (GF := GF) (hG := hG) := by
-  intro γ rn id rs q g γd Hsteps0 Hunp0 HtrG Htcb Hfit
+  intro γ rn id x rs q g γd Hsteps0 Hunp0 HtrG Htcb Hfit
   wp_start as H
   iNamed H
   wp_auto
@@ -102,9 +102,14 @@ theorem RawNode.Ready.traced
     as %rd %ce %es %ms %sts %h %L H
   iNamed H
   ihave #HhardO := hsOptC_hsOpt _ _ $$ Hhard
-  imod ownRawNodeReady_handout ⊤ γ rn id rs rd ce es ms L q g h CoPset.subseteq_top
-    $$ HhardO Hlive Hfree Hrn
-    with ⟨%W, %ss0, Hrn, Happ, #Hfrz, #Hdk, Hcr, -, -, Hlive, Hpb, #Hss0, %Hssn0, #Hmw, #Hml, #Hmss, #Hsrcs, -⟩
+  iapply (wp_ncfupd _ _ rfl)
+  unfold ncfupd
+  iintro Hnc
+  imod ownRawNodeReady_handout ⊤ γ rn id rs rd ce es ms L x q g h CoPset.subseteq_top CoPset.subseteq_top
+    $$ HhardO Hnc Hlive Hfree Hrn
+    with ⟨Hnc, %W, %ss0, Hrn, Happ, #Hfrz, #Hdk, Hcr, -, -, Hlive, Hpb, #Hss0, %Hssn0, #Hmw, #Hml, #Hmss, #Hsrcs, -⟩
+  imodintro
+  iframe Hnc
   wp_apply wp_RawNode_acceptReady γ rn id { rs with bw := W } rd ce es ms h L
     (fun _ => ⟨Htcb, Hfit⟩) $$ [$Hrn $HhardO]
     as %steps %ss H
@@ -118,12 +123,12 @@ theorem RawNode.Ready.traced
   isplitl [Hrn]
   · iExactEq Hrn; rfl
   isplitl [Hpb]
-  · iintro %E %q' %HE ⟨Hd, Hl⟩
-    imod raft_enter E γ id rs.dur q' g (readyDurable rs.dur (phsNext rs.phs h) L es) W HE
-      (RaftState.next_wcommit _ _ _ _ _ _) $$ Hd Hl Hpb
-      with ⟨Hd, Hl, Hf, #Hfr⟩
+  · iintro %E %q' %HE Hnc ⟨Hd, Hl⟩
+    imod raft_enter E γ id rs.dur x q' g (readyDurable rs.dur (phsNext rs.phs h) L es) W HE
+      (RaftState.next_wcommit _ _ _ _ _ _) $$ Hnc Hd Hl Hpb
+      with ⟨Hnc, Hd, Hl, Hf, #Hfr⟩
     imodintro
-    iframe Hd Hl Hf Hfr
+    iframe Hnc Hd Hl Hf Hfr
     iapply bigSepL_wand_pers (durFrags (GF := GF) γ id W) (fun q : QMsg => isRaftMsg γ id q.st) ms
       $$ Hmw Hfr
   isplitr

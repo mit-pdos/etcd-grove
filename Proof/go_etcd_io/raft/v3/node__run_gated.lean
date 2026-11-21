@@ -972,11 +972,15 @@ theorem node.run.gated_of
     iunfold nodeLiveRaw at Hlive
     icases Hlive with ⟨Hlv, Hsl⟩
     icases durRest_false_open γ rs $$ Hdr with ⟨Hdur, ⟨%Wb, Hbw⟩, Hfree⟩
-    ihave Hsl : slotLive γ.raft id (1 : Qp).half γ.gen $$ [Hsl]
+    ihave Hsl : genView γ.raft id γ.cx (1 : Qp).half γ.gen $$ [Hsl]
     · rw [← Hgid]; iexact Hsl
     ihave Hfree : slotFree γ.raft id γ.gen $$ [Hfree]
     · rw [← Hgid]; iexact Hfree
-    iapply sendAu_fupd
+    -- (2026-11-21, the crash invariant) the send's update lends the crash token (Perennial's
+    -- channel updates are crash-token updates): the cut below needs it
+    iapply sendAu_ncfupd
+    unfold ncfupd
+    iintro Hnc
     ihave Hcx : iprop(|={⊤}=> (□ ∀ l : SnapLoan, ⌜L = some l⌝ -∗
         raftSnapCertD γ.raft (snapTrip l.snap l.snap.Metadata'.ConfState'.lists)) ∗
         ownRawNodeReady γ.raft nv.rn' id rs rdv' ce es ms false L) $$ [Hrn]
@@ -1014,11 +1018,13 @@ theorem node.run.gated_of
       with ⟨#Hld, Hrn⟩
     -- (2026-11-01, durability stage II (k)/(n)) the hand-out and the cut, inside the send's update
     ihave #HhhO := hsOptC_hsOpt _ _ $$ Hhh
-    imod ownRawNodeReady_handout ⊤ γ.raft nv.rn' id rs rdv' ce es ms L (1 : Qp).half γ.gen h
-      CoPset.subseteq_top $$ HhhO Hsl Hfree Hrn
-      with ⟨%W, %ss, Hrn, Happ, #Hcef, #Hdk, Hcr, Htk, #Hri, Hsl, Hpb, #Hss1, %Hssn1, Hmw, #Hlead, #Hmss, #Hsrcs, #Hobs, %Hrf⟩
+    imod ownRawNodeReady_handout ⊤ γ.raft nv.rn' id rs rdv' ce es ms L γ.cx (1 : Qp).half γ.gen h
+      CoPset.subseteq_top CoPset.subseteq_top $$ HhhO Hnc Hsl Hfree Hrn
+      with ⟨Hnc, %W, %ss, Hrn, Happ, #Hcef, #Hdk, Hcr, Htk, #Hri, Hsl, Hpb, #Hss1, %Hssn1, Hmw, #Hlead, #Hmss, #Hsrcs, #Hobs, %Hrf⟩
     -- (step 4) the escrow's key for the handed-out messages (the driver's claim), at the commit
     imod rtk_keyG γ.raft γ.esc ms ⊤ (by solve_ndisj) $$ Hrtki Hrtk with ⟨Hrtk, Hel⟩
+    imodintro
+    iframe Hnc
     iapply handshake_send_au_upd (t := Ready.ty) γ.readyc nv.readyc' rdv' (readyP γ) iprop(True) _
       $$ [$Hlc1 $Hlc2 $Hlc3] Hreadyc
     -- (2026-10-15, stage N) the committed log handed out grows, a lower bound for the driver;
@@ -1111,7 +1117,6 @@ theorem node.run.gated_of
       isplitr
       · iapply termLB_le γ.bud rs.tc _ (by rw [readyDurable_term]; exact Htc) $$ Hlb'
       ipureintro; exact Hrf
-    try imodintro
     inext
     iintro -
     wp_auto

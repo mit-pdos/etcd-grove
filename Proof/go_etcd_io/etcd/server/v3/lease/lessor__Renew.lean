@@ -17,6 +17,7 @@ public import Spec.go_etcd_io.etcd.server.v3.lease.Lease__Remaining
 public import Spec.go_etcd_io.etcd.server.v3.lease.Lease__refresh
 public import Spec.go_etcd_io.etcd.server.v3.lease.LeaseExpiredNotifier__RegisterOrUpdate
 public import Proof.go_etcd_io.etcd.server.v3.lease.LessorLemmas
+public import Proof.go_etcd_io.etcd.server.v3.lease.NotifCell
 
 @[expose] public section
 
@@ -105,7 +106,7 @@ theorem lease.lessor.Renew.wp_proof
   icases Hdt with ⟨%γr', #Hpr', Hgv, #Hout⟩
   wp_auto_lc 1
   iapply fupd_wp
-  imod demote_recv γr'.2.2.2.2.2.2 _ dc hdc $$ [$Hlc1 $Hgv $Hout] with ⟨Hgv, %γtd, #Hdr⟩
+  imod demote_recv γr'.2.2.2.2.2.2.1 _ dc hdc $$ [$Hlc1 $Hgv $Hout] with ⟨Hgv, %γtd, #Hdr⟩
   imodintro
   ihave Hdt : demoteTie γl _ dc $$ [Hgv]
   · iunfold demoteTie; iexists γr'; iframe Hpr' Hout Hgv
@@ -241,12 +242,14 @@ theorem lease.lessor.Renew.wp_proof
       Hhist⟩
     iunfold lessorExtra at Hx
     icases Hx with ⟨%dc, %np, %h, %hx, %bl, Hdc, Hnp, Hnot, Hh, Hhq, Hcp, Hmeta, Hbl, Hdt, #Hstr'⟩
+    imod (notif_wopen lp γl np ⊤ (fun _ _ => CoPset.mem_full)) $$ [$Hnp $Hnot] with ⟨Hnp, Hnot, Hntk⟩
     (try wp_auto)
     wp_apply (wp_map_lookup1 LeaseID.ty (go.GoType.PointerType Lease.ty) lm M id) $$ HM as HM
     cases hM' : M.lookup id with
     | none =>
       simp only [Option.getD_none]
       (try wp_auto)
+      imod (notif_wclose lp γl np ⊤ (fun _ _ => CoPset.mem_full)) $$ [$Hnp $Hnot $Hntk] with ⟨Hnp, Hnot⟩
       wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hdc Hnp Hnot Hh Hhq Hcp
           Hmeta Hbl Hdt Hhist]
       · iframe #
@@ -280,8 +283,10 @@ theorem lease.lessor.Renew.wp_proof
       (try wp_auto)
       iStructNamed «$r0»
       ipersist id
-      wp_apply (hReg np «$r0_ptr» _ (W64 0)) $$ [$Hpkg $Hnot id time index] as Hnot
-      · iunfold lwtAt; iframe; iframe #
+      iunfold notifierAt at Hnot
+      icases Hnot with ⟨%Mn, Hnot⟩
+      wp_apply (hReg np «$r0_ptr» _ (W64 0) Mn) $$ [$Hpkg $Hnot id time index] as Hnot
+      · ileft; iunfold lwtAt; iframe; iframe #
       (try wp_auto)
       ihave Hmeta := Hmeta $$ [Hrem Hexp]
       · iunfold leaseMeta
@@ -291,6 +296,7 @@ theorem lease.lessor.Renew.wp_proof
         isplitl [Hrem]
         · iexists r; iexact Hrem
         iexists e'; iexact Hexp
+      imod (notif_wclose lp γl np ⊤ (fun _ _ => CoPset.mem_full)) $$ [$Hnp $Hnot $Hntk] with ⟨Hnp, Hnot⟩
       wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hdc Hnp Hnot Hh Hhq Hcp
           Hmeta Hbl Hdt Hhist]
       · iframe #
