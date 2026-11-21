@@ -364,8 +364,6 @@ noncomputable def linkHeartbeatMessage [GooseExts] [GoGlobalContext] : GoString 
 noncomputable def linkHeartbeatSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.linkHeartbeatSize"
 
-opaque linkHeartbeatSize.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def errMemberRemoved [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.errMemberRemoved"
 
@@ -8152,6 +8150,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(go!"/raft"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (GlobalVarAddr RaftPrefix))) (Val #())))
@@ -8390,6 +8389,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (Let "$v0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty go!"Enum"))) (Val #(W32 8))) (Val #()))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Type")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty) (Var "$v0")))])))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (App (Val (GoInstruction (GlobalVarAddr linkHeartbeatMessage))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.protobuf.proto.Size []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val #(go!"the member has been permanently removed from the cluster"))
   (Let "$a1" (Val #slice.nil)
@@ -8406,7 +8407,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr errMemberRemoved))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val linkHeartbeatSize.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (GlobalVarAddr linkHeartbeatSize))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr linkHeartbeatMessage))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -8601,6 +8602,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (go.GlobalAlloc supportedStream (go.GoType.MapType go.string (go.GoType.SliceType streamType.ty)))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc linkHeartbeatMessage _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc linkHeartbeatSize go.int)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc errMemberRemoved go.error)) (Val #()))))))
   (App (Val doExecute)

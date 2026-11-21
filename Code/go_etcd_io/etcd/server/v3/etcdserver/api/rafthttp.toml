@@ -14,10 +14,11 @@ translate = ["*",
   # proved by `etc/gen-init.py` over `MustRegister`'s spec with the names' registration rights
   "!addPeerToProber", "!monitorProbingStatus",
   "!NewListener", "!NewRoundTripper", "!newStreamRoundTripper",
-  # `linkHeartbeatSize`'s initializer (`proto.Size`) untranslated, the axiom `linkHeartbeatSize_init`;
   # (prove-errinits, 2026-11-19) the `errors.New`/`fmt.Errorf` errors translated (until then
-  # untranslated, the axiom `errorsNewVarsInit`)
-  "!linkHeartbeatSize"]
+  # untranslated, the axiom `errorsNewVarsInit`); (prove-misc, 2026-11-20) `linkHeartbeatSize`'s
+  # initializer (`proto.Size`) translated, over `proto.SizePb`'s spec (until then the axiom
+  # `linkHeartbeatSize_init`)
+  ]
 # (2026-10-24, rafthttp stage 6d) `ProbingPrefix`, `RaftStreamPrefix` and `RaftSnapshotPrefix`
 # translated: `path.Join(RaftPrefix, ...)`, their values facts of `rafthttpInit`
 imports = ["!*", "bytes", "context", "encoding/binary", "errors", "fmt", "io", "net", "net/http",
