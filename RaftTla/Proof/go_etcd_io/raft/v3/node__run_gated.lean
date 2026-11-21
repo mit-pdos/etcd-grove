@@ -1118,7 +1118,6 @@ theorem node.run.gated_of
       isplitr
       · iapply termLB_le γ.bud rs.tc _ (by rw [readyDurable_term]; exact Htc) $$ Hlb'
       ipureintro; exact Hrf
-    try imodintro
     inext
     iintro -
     wp_auto

@@ -974,7 +974,7 @@ theorem readySnapSources_installed_le (γ : Cluster) (n : Loc) (id handoutTerm :
   icases Ho with ⟨%obs, %hbound, #Hmark, -⟩
   ihave %Hei := ApiImpl.nodeTabOk_agree γ n gn gi $$ Htab Htabi
   have iki : gn.sn.installs = gi.sn.installs :=
-    congrArg (fun k : ApiImpl.CfgNames => k.2.2.2.2.2.2.2.2.2.2.2.2.2.2) Hei
+    congrArg (fun k : ApiImpl.CfgNames => k.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) Hei
   ihave #Hi' : installSeen gn.sn.installs (uint.nat sv.Metadata'.Index') $$ []
   · rw [iki]; iexact Hi
   icases Hknown $$ %q %hq %sv %(And.intro ht hsv) Hi' with ⟨%k, %hk⟩
