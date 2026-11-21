@@ -3092,6 +3092,42 @@ def raftIdSlot (γ : RaftNames) (id : w64) : IProp GF :=
 section crash3
 variable [CrashGS GF]
 
+/-- (2026-11-21, the crash invariant) **A share `q` of the generation `g` of an arm of node `id`**:
+the client's and `run`'s (half each of the view's half); the invariant keeps the slot's share
+(`slotLive 1 g`). What *enter* and the cut read the generation through, and the stop bumps. -/
+def genView (γ : RaftNames) (id : w64) (x : CrashNames) (q : Qp) (g : Nat) : IProp GF :=
+  iprop(nodeCrashInv γ id x ∗ ghostVar x.g q.half g)
+
+instance genView_fractional (γ : RaftNames) (id : w64) (x : CrashNames) (g : Nat) :
+    Fractional (fun q => genView (GF := GF) γ id x q g) where
+  fractional p q := by
+    unfold genView
+    constructor
+    · iintro ⟨#Hi, Hv⟩
+      icases ((ghostVar_half_fractional (GF := GF) x.g g).fractional p q).1 $$ Hv with ⟨H1, H2⟩
+      iframe Hi H1 H2
+    · iintro ⟨⟨#Hi, H1⟩, ⟨-, H2⟩⟩
+      iframe Hi
+      iapply ((ghostVar_half_fractional (GF := GF) x.g g).fractional p q).2
+      iframe H1 H2
+
+/-- (2026-11-21, the crash invariant) **No node of `id` runs, armed** (`nodeVacantA`'s body): the
+views of the six pieces, which are in the arm's crash invariant, the generation's queue free, and
+the invariants the slot's are. What a stop gives back and a start or restart takes. -/
+def raftArmed (γ : RaftNames) (id : w64) (x : CrashNames) : IProp GF :=
+  iprop(∃ (V : DurMaps) (g : Nat) (terms : GMap w64 TermRec) (wins : GMap w64 (GSet w64))
+      (lcm rqm : GMap w64 GName), ⌜id ≠ W64 0⌝ ∗
+    ghostVar x.v (1 : Qp).half V ∗ ghostVar x.g (1 : Qp).half g ∗
+    ghostVar x.t (1 : Qp).half terms ∗ ghostVar x.w (1 : Qp).half wins ∗
+    ghostVar x.l (1 : Qp).half lcm ∗ ghostVar x.q (1 : Qp).half rqm ∗
+    slotFree γ id g ∗ nodeCrashInv γ id x ∗ slotInv γ id ∗ raftCommitInv γ ∗ rdCredInv γ)
+
+/-- (2026-11-21, the crash invariant) **An arm's crash token**: what turns the dead generation's
+`crashed` into the vacant slot (`raft_crash`). -/
+def raftCrashTok (γ : RaftNames) (id : w64) (x : CrashNames) : IProp GF :=
+  iprop(dghostVar x.tok (DFrac.own 1) () ∗ nodeCrashInv γ id x ∗ slotInv γ id ∗ raftCommitInv γ ∗
+    rdCredInv γ ∗ ⌜id ≠ W64 0⌝)
+
 def ownLogGhost (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : DurMaps) :
     IProp GF :=
   iprop(∃ γm, ∃ (terms : GMap w64 TermRec),
