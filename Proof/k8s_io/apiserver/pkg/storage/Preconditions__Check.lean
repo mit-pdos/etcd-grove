@@ -3,14 +3,14 @@ Lean-first (no Rocq counterpart). The proof of `(*storage.Preconditions).Check`:
 preconditions return at once; otherwise `meta.Accessor` gives the object back as a
 `metav1.Object` (`metaAt`'s type-set fact), and each set precondition is compared with the
 object's `GetUID`/`GetResourceVersion` (`metaAt`'s methods), a mismatch formatted
-(`fmt.SprintfNamed`: two `types.UID`s, or two strings) into `NewInvalidObjError`.
+(Perennial's `fmt.wp_Sprintf`: two `types.UID`s, a methodless named string type, or two strings) into `NewInvalidObjError`.
 -/
 module
 
 public import Spec.k8s_io.apiserver.pkg.storage.Preconditions__Check
 public import Spec.k8s_io.apiserver.pkg.storage.NewInvalidObjError
 public import Spec.k8s_io.apimachinery.pkg.api.meta.Accessor
-public import Spec.fmt.SprintfNamed
+public import Perennial.Proof.fmt
 
 @[expose] public section
 
@@ -33,8 +33,7 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.Assumptions]
 
 theorem storage.Preconditions.Check.wp_proof
     (wp_Accessor : apimeta.Accessor.spec (GF := GF) (hG := hG))
-    (wp_NewInvalidObjError : storage.NewInvalidObjError.spec (GF := GF) (hG := hG))
-    (wp_SprintfNamed : fmt.SprintfNamed.spec (GF := GF) (hG := hG)) :
+    (wp_NewInvalidObjError : storage.NewInvalidObjError.spec (GF := GF) (hG := hG)) :
     storage.Preconditions.Check.spec (GF := GF) (hG := hG) := by
   intro pp ⟨pu, pr⟩ key obj R uid rvs
   wp_start as ⟨#Hpre, #Hmeta, HR⟩
@@ -109,17 +108,12 @@ theorem storage.Preconditions.Check.wp_proof
           (try wp_auto)
           ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
           · iPkgInit
-          wp_apply wp_SprintfNamed $$ [$Hfmt $Hargs] as %msg ⟨-, %hmsg⟩
-          · ipureintro
-            intro a ha
-            rw [show sint.nat (W64 (0 + 1)) = 1 by rfl] at ha
-            simp only [List.set_cons_succ, List.set_cons_zero, List.mem_cons, List.not_mem_nil,
-              or_false] at ha
-            rcases ha with rfl | rfl
-            · exact Or.inl ((_root_.Perennial.fmt.ArgsWf.cons_string r []
-                _root_.Perennial.fmt.ArgsWf.nil) _ (List.mem_singleton_self _))
-            · exact Or.inl ((_root_.Perennial.fmt.ArgsWf.cons_string rvs []
-                _root_.Perennial.fmt.ArgsWf.nil) _ (List.mem_singleton_self _))
+          wp_apply _root_.Perennial.fmt.wp_Sprintf _ _ _ _ ?wf $$ [$Hfmt $Hargs] as %msg ⟨-, %hmsg⟩
+          case wf =>
+            rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]
+            simp only [List.set_cons_succ, List.set_cons_zero]
+            exact _root_.Perennial.fmt.ArgsWf.cons_string _ _
+              (_root_.Perennial.fmt.ArgsWf.cons_string _ _ _root_.Perennial.fmt.ArgsWf.nil)
           (try wp_auto)
           have hm : msg = KPre.failMsg ⟨none, some r⟩ uid rvs := by
             rw [show sint.nat (W64 (0 + 1)) = 1 by rfl] at hmsg
@@ -201,17 +195,12 @@ theorem storage.Preconditions.Check.wp_proof
             (try wp_auto)
             ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
             · iPkgInit
-            wp_apply wp_SprintfNamed $$ [$Hfmt $Hargs] as %msg ⟨-, %hmsg⟩
-            · ipureintro
-              intro a ha
-              rw [show sint.nat (W64 (0 + 1)) = 1 by rfl] at ha
-              simp only [List.set_cons_succ, List.set_cons_zero, List.mem_cons, List.not_mem_nil,
-                or_false] at ha
-              rcases ha with rfl | rfl
-              · exact Or.inl ((_root_.Perennial.fmt.ArgsWf.cons_string r []
-                  _root_.Perennial.fmt.ArgsWf.nil) _ (List.mem_singleton_self _))
-              · exact Or.inl ((_root_.Perennial.fmt.ArgsWf.cons_string rvs []
-                  _root_.Perennial.fmt.ArgsWf.nil) _ (List.mem_singleton_self _))
+            wp_apply _root_.Perennial.fmt.wp_Sprintf _ _ _ _ ?wf $$ [$Hfmt $Hargs] as %msg ⟨-, %hmsg⟩
+            case wf =>
+              rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]
+              simp only [List.set_cons_succ, List.set_cons_zero]
+              exact _root_.Perennial.fmt.ArgsWf.cons_string _ _
+                (_root_.Perennial.fmt.ArgsWf.cons_string _ _ _root_.Perennial.fmt.ArgsWf.nil)
             (try wp_auto)
             have hm : msg = KPre.failMsg ⟨some u, some r⟩ u rvs := by
               rw [show sint.nat (W64 (0 + 1)) = 1 by rfl] at hmsg
@@ -247,22 +236,21 @@ theorem storage.Preconditions.Check.wp_proof
         (try wp_auto)
         ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
         · iPkgInit
-        wp_apply wp_SprintfNamed $$ [$Hfmt $Hargs] as %msg ⟨-, %hmsg⟩
-        · ipureintro
-          have hU : _root_.Perennial.fmt.IsBasicType
-              (underlying k8s_io.apimachinery.pkg.types.UID.ty) := by
-            rw [show underlying k8s_io.apimachinery.pkg.types.UID.ty = go.string
-              from go.IsUnderlying.is_underlying]
-            simp [_root_.Perennial.fmt.IsBasicType]
-          have hn : ∃ n, k8s_io.apimachinery.pkg.types.UID.ty = go.GoType.Named n [] ∧
-              n ∈ EtcdGrove.fmt.methodlessNamedTypes :=
-            ⟨go!"k8s.io/apimachinery/pkg/types.UID", by simp [k8s_io.apimachinery.pkg.types.UID.ty],
-              by simp [EtcdGrove.fmt.methodlessNamedTypes]⟩
-          intro a ha
-          rw [show sint.nat (W64 (0 + 1)) = 1 by rfl] at ha
-          simp only [List.set_cons_succ, List.set_cons_zero, List.mem_cons, List.not_mem_nil,
-            or_false] at ha
-          rcases ha with rfl | rfl <;> exact Or.inr ⟨hn, hU⟩
+        wp_apply _root_.Perennial.fmt.wp_Sprintf _ _ _ _ ?wf $$ [$Hfmt $Hargs] as %msg ⟨-, %hmsg⟩
+        case wf =>
+          rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]
+          simp only [List.set_cons_succ, List.set_cons_zero]
+          have hUs : k8s_io.apimachinery.pkg.types.UID.ty ≠ go.string := by
+            simp [k8s_io.apimachinery.pkg.types.UID.ty, go.string]
+          have hUi : ¬ _root_.Perennial.fmt.IsIntType k8s_io.apimachinery.pkg.types.UID.ty := by
+            simp [_root_.Perennial.fmt.IsIntType, k8s_io.apimachinery.pkg.types.UID.ty, go.int,
+              go.int64, go.int32, go.int16, go.int8, go.uint, go.uint64, go.uint32, go.uint16,
+              go.uint8]
+          have hUm :=
+            _root_.Perennial.fmt.NoFmtMethods.of_methodSetIs_nil k8s_io.apimachinery.pkg.types.UID.ty
+          exact _root_.Perennial.fmt.ArgsWf.cons_named_string _ _ _ hUs hUi go.IsUnderlying.is_underlying
+            hUm (_root_.Perennial.fmt.ArgsWf.cons_named_string _ _ _ hUs hUi
+              go.IsUnderlying.is_underlying hUm _root_.Perennial.fmt.ArgsWf.nil)
         (try wp_auto)
         have hUi : ¬ _root_.Perennial.fmt.IsIntType k8s_io.apimachinery.pkg.types.UID.ty := by
           simp [_root_.Perennial.fmt.IsIntType, k8s_io.apimachinery.pkg.types.UID.ty, go.int,

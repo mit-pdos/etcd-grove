@@ -58,7 +58,8 @@ local macro "ka_log_ret" lbl:term:max : tactic => `(tactic| (
     wp_auto
     wp_apply +noauto HErr $$ HE as %cerr HE
     wp_auto
-    wp_apply hICE as %bc -
+    wp_apply hICE $$ [Hsok] as %bc -
+    · iframe #
     wp_if_destruct
     · wp_apply hZE as %f -
       wp_apply wp_slice_literal (l := [f])
@@ -135,7 +136,7 @@ local macro "ka_send" t:term:max : tactic => `(tactic| (
     iapply HSd $$ [Hstt HDn]
     · iframe; iframe #
     iintro !> %serr Hsr
-    icases Hsr with (⟨%Hserr, Hstt⟩ | ⟨%Hne', #Hse', Hstt⟩)
+    icases Hsr with (⟨%Hserr, Hstt⟩ | ⟨%Hne', #Hse', #Hsok, Hstt⟩)
     rotate_left
     · rcases serr with ei | _
       · ka_log_ret go!"send"
@@ -202,7 +203,7 @@ theorem v3rpc.LeaseServer.leaseKeepAlive.wp_proof
   rw [Hsi]
   wp_apply HRecv $$ Hrt as %req %err Hrr
   icases Hrr with (⟨%Herr, %q, ⟨%v, Hreq, %Hqv⟩, HUpq, Hrt⟩ | ⟨#Heofi, %Hne, Hrt, #Hcl⟩ |
-    ⟨%Hne, #Hse, Hrt⟩)
+    ⟨%Hne, #Hse, #Hsok, Hrt⟩)
   · -- a request
     subst Herr
     wp_apply hIs (· = GoInterface.nil) (fun _ => False) GoInterface.nil (GoInterface.ok eofE)

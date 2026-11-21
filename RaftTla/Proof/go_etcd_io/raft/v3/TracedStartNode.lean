@@ -12,7 +12,7 @@ both modes since step 5), and `StartNode.spec_of_gatedSpec`, the untraced instan
 completion witness from `setupNode`. Raft-internal. -/
 module
 
-public import Proof.go_etcd_io.raft.v3.SnapshotHistory
+public import RaftTla.Proof.go_etcd_io.raft.v3.SnapshotHistory
 public import RaftTla.Spec.go_etcd_io.raft.v3.StartNode
 public import RaftTla.Proof.go_etcd_io.raft.v3.TracedApiDraft
 import all RaftTla.Proof.go_etcd_io.raft.v3.TracedApiDraft

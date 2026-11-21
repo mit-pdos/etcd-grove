@@ -93,7 +93,7 @@ theorem rootLoc_kept {X X' : WX} {bl : Loc} (h : rootLoc X bl) (hkept : bktKept 
     · rw [length_of_dat e.2.2.1]; exact n1 (by rw [← nodeSim_parent e]; exact hp)
     · rw [length_of_dat e.2.2.1]; exact n2 (by rw [← nodeSim_isLeaf e]; exact hl)
     · obtain ⟨w, hw, he⟩ := mem_of_dat e.2.2.1 hw'
-      rw [wDat_key he, wDat_value he]; exact n3 w hw
+      rw [wDat_key he, wDat_value he, wDat_pgid he]; exact n3 w hw
 
 /-- **A child's state through a kept step** (its bucket kept, its slots untouched). -/
 theorem childSt_kept {X0 X X' : WX} {w w' : WDb} {txid : w64} {c : Loc} {D : List Nat} {s : KSt}

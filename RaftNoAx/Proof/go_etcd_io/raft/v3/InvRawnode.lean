@@ -84,7 +84,7 @@ DecidableEq`. (`hs_empty_abs`'s port `hsEmptyAbs` had no user and is gone, 2026-
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.SnapshotHistory
+public import RaftNoAx.Proof.go_etcd_io.raft.v3.SnapshotHistory
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.ApiVocab
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.NetMsgOk
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.InvReadylog
@@ -2250,7 +2250,7 @@ this snapshot. The local Raft term equals the foreign leader's sending term. -/
 def timedRestore (γ : RaftNames) (id : w64) (sn : StorNames) (k : SnapTrip) : IProp GF :=
   iprop(∃ (m : Msg) (front : Nat),
     ⌜m.ty = .snap ∧ m.src ≠ id ∧ m.index = k.sid.index' ∧ m.logterm = k.sid.term' ∧
-      uint.nat k.sid.index' ≤ front⌝ ∗ isMessage γ m ∗ snapHistoryMark sn.history (uint.nat m.term) front)
+      uint.nat k.sid.index' ≤ front⌝ ∗ isMessage γ m ∗ snapHistoryMark sn (uint.nat m.term) front)
 
 instance (γ : RaftNames) (id : w64) (sn : StorNames) (k : SnapTrip) :
     Persistent (timedRestore (GF := GF) γ id sn k) := by unfold timedRestore; infer_instance
@@ -2288,7 +2288,7 @@ theorem restoreLedger_step (γ : RaftNames) (id : w64) (sn : StorNames) {s s' : 
       rw [hk, maxRestored_append]; simp [k, maxRestored]
     unfold restoreLedger
     icases Hl with ⟨Ha, #Hks⟩
-    imod snapHistory_record sn.history (uint.nat s.term) (maxRestored s.logst.ksn)
+    imod snapHistory_record sn (uint.nat s.term) (maxRestored s.logst.ksn)
       (uint.nat s'.term) (maxRestored s'.logst.ksn) (by word) (by rw [hmx]; exact Nat.le_max_left _ _) $$ Ha
       with ⟨Ha, #Hmark⟩
     imodintro; iframe Ha
@@ -2309,10 +2309,10 @@ theorem restoreLedger_step (γ : RaftNames) (id : w64) (sn : StorNames) {s s' : 
 /-- The term and snapshot frontier observed at a Ready handout. -/
 theorem restoreLedger_ready (γ : RaftNames) (id : w64) (sn : StorNames) (s : NState) :
     ⊢ restoreLedger (GF := GF) γ id sn s ==∗ restoreLedger γ id sn s ∗
-      snapHistoryMark sn.history (uint.nat s.term) (maxRestored s.logst.ksn) := by
+      snapHistoryMark sn (uint.nat s.term) (maxRestored s.logst.ksn) := by
   unfold restoreLedger
   iintro ⟨Ha, #Hks⟩
-  imod snapHistory_record sn.history _ _ _ _ (Nat.le_refl _) (Nat.le_refl _) $$ Ha with ⟨Ha, #Hm⟩
+  imod snapHistory_record sn _ _ _ _ (Nat.le_refl _) (Nat.le_refl _) $$ Ha with ⟨Ha, #Hm⟩
   imodintro; iframe Ha Hks Hm
 
 /-- Information captured when the leader stamps a snapshot message. Later
@@ -2321,7 +2321,7 @@ def restoreAtSend (γ : RaftNames) (id : w64) (sn : StorNames) (k : SnapTrip) (t
   iprop(∃ (m : Msg) (front : Nat),
     ⌜m.ty = .snap ∧ m.src ≠ id ∧ m.index = k.sid.index' ∧ m.logterm = k.sid.term' ∧
       uint.nat k.sid.index' ≤ front ∧ uint.nat m.term ≤ uint.nat term⌝ ∗
-    isMessage γ m ∗ snapHistoryMark sn.history (uint.nat m.term) front)
+    isMessage γ m ∗ snapHistoryMark sn (uint.nat m.term) front)
 
 instance (γ : RaftNames) (id : w64) (sn : StorNames) (k : SnapTrip) (term : w64) :
     Persistent (restoreAtSend (GF := GF) γ id sn k term) := by unfold restoreAtSend; infer_instance
@@ -2334,7 +2334,7 @@ theorem restoreLedger_send (γ : RaftNames) (id : w64) (sn : StorNames) (s : NSt
   ihave #H := Hks $$ %k %hk
   iunfold timedRestore at H
   icases H with ⟨%m, %front, %hm, #Hm, #Hmark⟩
-  icases snapHistory_mark_bound sn.history _ _ _ _ $$ Ha Hmark with ⟨Ha, %hb⟩
+  icases snapHistory_mark_bound sn _ _ _ _ $$ Ha Hmark with ⟨Ha, %hb⟩
   iframe Ha Hks
   iexists m, front
   iframe Hm Hmark
@@ -2347,7 +2347,7 @@ bounds the snapshot's index. -/
 theorem restoredSend_index_le (γ : RaftNames) (id term : w64) (sn : StorNames)
     (k : SnapTrip) (index : Nat) :
     ⊢ restoreAtSend (GF := GF) γ id sn k term -∗ isLeader γ id term -∗
-      snapHistoryMark sn.history (uint.nat term) index -∗ ⌜uint.nat k.sid.index' ≤ index⌝ := by
+      snapHistoryMark sn (uint.nat term) index -∗ ⌜uint.nat k.sid.index' ≤ index⌝ := by
   unfold restoreAtSend
   iintro ⟨%m, %front, %h, #Hmsg, #Hmark⟩ #Hlocal #Hready
   obtain ⟨hty, hsrc, -, -, hindex, hterm⟩ := h
@@ -2357,7 +2357,7 @@ theorem restoredSend_index_le (γ : RaftNames) (id term : w64) (sn : StorNames)
     ihave %hid := isLeader_unique γ m.src id term $$ Hsrc Hlocal
     exact False.elim (hsrc hid)
   have hlt : uint.nat m.term < uint.nat term := by word
-  ihave %hi := snapHistory_index_le sn.history _ _ _ _ hlt $$ Hmark Hready
+  ihave %hi := snapHistory_index_le sn _ _ _ _ hlt $$ Hmark Hready
   ipureintro; exact Nat.le_trans hindex hi
 
 /-- The pending snapshot came from a different member's certified snapshot

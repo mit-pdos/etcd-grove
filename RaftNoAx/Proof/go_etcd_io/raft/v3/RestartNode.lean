@@ -2,7 +2,7 @@
 /- Lean-first (no Rocq counterpart). -/
 module
 
-public import Proof.go_etcd_io.raft.v3.SnapshotHistory
+public import RaftNoAx.Proof.go_etcd_io.raft.v3.SnapshotHistory
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.RestartNode
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.newNode
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.node__run

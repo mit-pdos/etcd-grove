@@ -331,6 +331,126 @@ theorem node.splitIndex.wp_proof (hK : internal.common.Inode.Key.spec (GF := GF)
     rw [show W64 ((idx.toNat : Nat) : Int) = idx by word]
     iapply HΦ; iframe
 
+
+/-- The proposed split uses at most the signed length of the inode slice. -/
+abbrev node.readableLeafPrefix.spec : Prop :=
+  ∀ (n : Loc) (nv : node) (ins : List Inode) (dq dqi : DFrac) (bound : w64),
+  insBnd ins → bound.toNat ≤ ins.length →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ n ↦{dq} nv ∗ nv.inodes' ↦*{dqi} ins }}
+    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"readableLeafPrefix")) (Val #bound))
+  {{ RET #(W64 (leafPrefixLen 0 0 (ins.take bound.toNat) : Int)); n ↦{dq} nv ∗ nv.inodes' ↦*{dqi} ins }}
+
+theorem node.readableLeafPrefix.wp_proof (hK : internal.common.Inode.Key.spec (GF := GF) (hG := hG))
+    (hV : internal.common.Inode.Value.spec (GF := GF) (hG := hG)) :
+    node.readableLeafPrefix.spec (GF := GF) (hG := hG) := by
+  intro nl nv ins dq dqs bound Hbnd Hend
+  wp_start as ⟨Hn, Hs⟩
+  ihave %Hsl := ownSlice_len _ _ _ $$ Hs
+  icases typedPointsto_not_null_dup _ _ _ $$ Hn with ⟨Hn, %Hnn⟩
+  have Hlen : ins.length < 2 ^ 63 := by rw [Hsl.1]; word
+  have Hbound : sint.Z bound = (bound.toNat : Int) := by word
+  wp_auto
+  irename «end» => Hboundp
+  ihave IH : (∃ (j : w64) (sz : Nat),
+      "i" ∷ i_ptr ↦ j ∗ "used" ∷ used_ptr ↦ W64 (sz : Int) ∗
+      "Hs" ∷ nv.inodes' ↦*{dqs} ins ∗ "Hn" ∷ nl ↦{dq} nv ∗
+      "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.nat j ≤ bound.toNat ∧ (sint.nat j = 0 → sz = 0) ∧ sz < 2 ^ 60 ∧
+        sint.nat j + leafPrefixLen (sint.nat j) sz ((ins.take bound.toNat).drop (sint.nat j)) =
+          leafPrefixLen 0 0 (ins.take bound.toNat)⌝ : IProp GF) $$ [i used Hs Hn]
+  · iexists W64 0, 0
+    simp only [named]
+    iframe
+    ipureintro
+    exact ⟨by word, by word, fun _ => trivial, by decide, by change 0 + leafPrefixLen 0 0 (_root_.List.drop 0 _) = _; simp⟩
+  wp_for IH
+  try wp_auto
+  by_cases hloop : sint.Z j < sint.Z bound
+  · simp only [hloop, decide_true, ↓reduceIte]
+    iStructNamed Hn
+    try wp_auto
+    have hjn : sint.nat j < bound.toNat := by word
+    have hjl : sint.Z j < sint.Z nv.inodes'.len := by rw [Hsl.1] at Hend; word
+    rw [if_pos (show 0 ≤ sint.Z j ∧ sint.Z j < sint.Z nv.inodes'.len from ⟨Hj.1, hjl⟩)]
+    have hji : sint.nat j < ins.length := by omega
+    list_elem ins (sint.Z j).toNat as it
+    icases ownSlice_elem_acc (sint.Z j) it _ _ ins Hj.1 Hit_lookup $$ Hs with ⟨Hit, Hback⟩
+    try wp_auto
+    ihave Hn : (nl ↦{dq} nv : IProp GF) $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
+    · iapply typedPointsto_combine _ _ _ Hnn
+      simp only [TypedPointsto.typedPointstoDef]
+      iframe
+    wp_apply hK $$ [$Hit] as Hit
+    try wp_auto
+    wp_apply hV $$ [$Hit] as Hit
+    try unfold internal.common.LeafPageElementSize
+    try unfold internal.common.MaxAllocSize
+    try wp_auto
+    ihave Hs := Hback $$ Hit
+    rw [list_set_lookup_self _ _ _ Hit_lookup]
+    have hsz := Hbnd it (List.mem_of_getElem? Hit_lookup)
+    have hsum : sz + inSz it < 2 ^ 64 := by omega
+    have hword : W64 (sz : Int) + (W64 16 + it.key'.len + it.value'.len) =
+        W64 ((sz + inSz it : Nat) : Int) := by unfold inSz; word
+    have hds : (ins.take bound.toNat).drop (sint.nat j) =
+        it :: (ins.take bound.toNat).drop (sint.nat j + 1) :=
+      by
+        have hi : sint.nat j < (ins.take bound.toNat).length := by simp; omega
+        rw [List.drop_eq_getElem_cons hi]
+        have he : (ins.take bound.toNat)[sint.nat j] = it := by
+          rw [List.getElem_take]; exact (List.getElem?_eq_some_iff.1 Hit_lookup).2
+        rw [he]
+    have hmodel := Hj.2.2.2.2
+    rw [hds, leafPrefixLen] at hmodel
+    rw [show sint.Z (W64 0) = 0 from rfl]
+    by_cases h0 : 0 < sint.Z j
+    · rw [decide_eq_true h0]
+      try wp_auto
+      rw [hword]
+      try wp_auto
+      wp_if_destruct
+      · have hlarge : leafWindow < sz + inSz it := by unfold leafWindow; word
+        rw [if_pos ⟨by word, hlarge⟩, Nat.add_zero] at hmodel
+        wp_for_post
+        try wp_auto
+        rw [← hmodel]
+        have hjw : W64 (sint.nat j : Int) = j := by word
+        rw [hjw]
+        iapply HΦ; iframe
+      · have hsmall : sz + inSz it ≤ leafWindow := by unfold leafWindow; word
+        rw [if_neg (by omega : ¬ (0 < sint.nat j ∧ leafWindow < sz + inSz it))] at hmodel
+        wp_for_post
+        iframe
+        iexists j + W64 1, sz + inSz it
+        rw [← hword]
+        iframe
+        ipureintro
+        have hs : sint.nat (j + W64 1) = sint.nat j + 1 := by word
+        rw [hs]
+        exact ⟨by word, by omega, by omega, by unfold leafWindow at hsmall; omega, by omega⟩
+    · rw [decide_eq_false h0]
+      try wp_auto
+      have hj0 : sint.nat j = 0 := by word
+      rw [hj0, if_neg (by omega)] at hmodel
+      wp_for_post
+      iframe
+      iexists j + W64 1, sz + inSz it
+      rw [← hword]
+      iframe
+      ipureintro
+      have hs : sint.nat (j + W64 1) = 1 := by word
+      rw [hs]
+      refine ⟨by word, by omega, by omega, ?_, by simpa using hmodel⟩
+      -- The empty prefix has used no space.
+      have := Hj.2.2.1 hj0
+      omega
+  · simp only [hloop, decide_false, Bool.false_eq_true, ↓reduceIte]
+    try wp_auto
+    have he : sint.nat j = bound.toNat := by word
+    have hmodel := Hj.2.2.2.2
+    rw [he, List.drop_of_length_le (by simp; omega), leafPrefixLen, Nat.add_zero] at hmodel
+    rw [← hmodel, show W64 (bound.toNat : Int) = bound by word]
+    iapply HΦ; iframe
+
 end proof
 
 end bbolt

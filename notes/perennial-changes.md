@@ -17,6 +17,64 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Float facts: `FloatOps` has no laws, so no float-dependent panic can be excluded (2026-11-20, prove-promdeep)
+
+- **Limitation.** `FloatOps` (`Perennial/Golang/Defn/PostLang.lean`) is a field of the semantics class with no laws:
+  `float64Leb`, `float64Add`, `uint64ToFloat64`, ... are arbitrary functions. A proof cannot show
+  `¬ (float64(n) < 0)` for an unsigned `n`, nor relate the float order to the bits' order, and an axiom here stating
+  such a fact would be false of some instance (inconsistent), so a local workaround can only keep the whole function
+  behind an axiom.
+- **Needed by.** prometheus (`/shared/tmp/extlib-promdeep-triage.md`): `counter.Add`'s `if v < 0 { panic }` (inside
+  `NewCounter`'s and `CounterVec.WithLabelValues`'s posts, `metric.counterSpec`), `newHistogram`'s bucket checks
+  (`bucketsOk` is stated over the bits' order), `ExponentialBuckets` (exact doubling); also x/time/rate's token bucket
+  and `lessor.Promote` (smalllibs, etcdstorage).
+- **Workaround here.** The functions stay trust-boundary axioms.
+- **Proposed (general).** IEEE-754 binary64 facts as assumptions of the semantics (a `FloatLaws` class over
+  `FloatOps`, required by `go.Semantics` or by the packages that need it): the order of finite non-negative floats is
+  their bits' order, `uint64ToFloat64`/`int64ToFloat64` of a non-negative integer is non-negative and finite, NaN
+  compares false, doubling a normal float whose result is normal adds `2^52` to its bits. Or a full model (Lean's
+  `Float` is opaque to the kernel; a bit-level IEEE model would be checkable). Each law is true of Go's `float64`.
+- **Status.** Not started.
+
+### `fmt`'s models that call the arguments' formatting methods, `%p`, and `Errorf`'s `%w`: what retires this repository's `fmt` axioms (2026-11-20, prove-reflectfmt)
+
+- **Limitation.** Perennial's models of `Sprintf`, `Printf` and `Errorf` (`Perennial/TrustedCode/fmt.lean`) never
+  call an argument's method, so their specs admit only `fmt.ArgsWf` arguments (predeclared basic types, methodless
+  named integers and strings); `Errorf` is `errors.New(format)` (no formatting, no `%w`); `%p` and `%0Nx` give
+  arbitrary output; `Sscanf` has no model. Go's `fmt` itself cannot be translated (reflection on every argument,
+  `sync.Pool`, float formatting).
+- **Needed by.** The eight `fmt` axioms left here after prove-reflectfmt (2026-11-20): `fmt.Errorf`, `fmt.ErrorfPlain`,
+  `fmt.Printf`, `fmt.SprintfArgs` (arguments whose `Error()`/`String()` `fmt` calls: `fmt.argsOk`),
+  `fmt.SprintfClientPtr` (`%p` of a pointer), `fmt.SprintfWalName` (`%016x`), `fmt.Sscanf` (`%d`),
+  `fmt.SscanfWalName` (`%016x-%016x.wal`). Also the proofs over the model outside its faithful domain
+  (`fmt.ErrorfErrs`, `fmt.ErrorfStrs`, `fmt.ErrorfWrap`, client-go's `wp_Errorf_setArgs`), whose faithfulness is
+  argued in their headers, not checked.
+- **Proposed (general, not shaped by one caller; one Perennial branch, three steps).**
+  1. *Formatting methods.* The models' per-argument step (`formatArg`) does what `printArg`/`handleMethods` do on a
+     non-`%T`/`%p` verb, for the cases a spec admits: for a method verb (`v s x X q`, not `#v`) an argument whose
+     dynamic type has `Error() string` (and no `Format`) gets its `Error()` called, else one with `String() string`
+     (and no `Format`, no `Error`) its `String()`, the result formatted as a string (exactly for `%s`/`%v`,
+     arbitrary otherwise); any other non-basic argument stays outside the spec. The specs' premise becomes this
+     repository's directive-aware `fmt.argsOk mv format xs` (`Spec/fmt/Errorf.lean`: `fmt.fmtDirectives`,
+     `fmt.argOkAt`, `fmt.stringMethodSpec`), moved to Perennial with its tests (`examples/premisefix/fmtarg`, the
+     three fmt-soundness attacks), and the posts keep `SprintfOut` with the method results as `StrArgValue`s.
+     Retires `fmt.SprintfArgs`, `fmt.Printf` and, with step 3, `fmt.Errorf`.
+  2. *`%p`.* `formatArg` at `p` of a pointer, func, map, chan or unsafe pointer returns an arbitrary string without
+     reading memory (Go's `printArg` does `%p` first, `fmt/print.go:686-693`); the premise admits such an argument
+     under `p` only (`fmt.SprintfClientArgOkAt`'s rule, for any pointer type). Retires `fmt.SprintfClientPtr`, and
+     bbolt's `(*Options).String` (the 2026-11-17 entry below).
+  3. *`Errorf`.* The model formats as `Sprintf` does, then returns `errors.New(s)` when no directive's verb is `w`
+     (Go's `case 0`, `fmt/errors.go`), else a fresh `*fmt.wrapError`/`*fmt.wrapErrors` holding the `%w` arguments
+     (translated: both are plain structs with `Error`/`Unwrap`); the spec says which. Retires `fmt.ErrorfPlain` (its
+     post is the no-`w` case) and lets `fmt.ErrorfWrap`/`fmt.ErrorfErrs` rest on a faithful model.
+  Together with the `%0Nx` and `Sscanf` proposals (the 2026-11-13 entry "`Sprintf`'s `%0Nx`, `Sscanf`'s `%0Nx`"),
+  every `fmt` axiom here goes.
+- **Workaround here.** The axioms, each narrowed to the calls etcd makes; prove-reflectfmt (2026-11-20) retired
+  `fmt.SprintfNamed` and `fmt.SprintfID` (their calls are within Perennial's `fmt.wp_Sprintf` since `ArgWf` admits
+  methodless named integers and strings, or within `fmt.SprintfArgs`) and fixed `fmt.SprintfClientPtr`'s premise
+  (`notes/axiom-review/sprintfclientptr.md`).
+- **Status.** Proposed only (the Perennial branch is the `stdlib` agent's at the time).
+
 ### `wp_apply` with a `have`-local spec can close the goal with `sorry` (2026-11-20, k8s-authz)
 
 - **Limitation.** In `Proof/k8s_io/apimachinery/pkg/util/errors/aggregate__visit.lean`, `have hrec :=
@@ -1250,7 +1308,9 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Proposed.** `ArgWf` admits a named type with `fmt.NoFmtMethods` whatever its basic underlying
   type (the output of a non-integer one arbitrary from its directive on, as `SprintfOut.other`); with
   `NoFmtMethods` from goose's method sets, the list and the axiom go.
-- **Status.** Not started.
+- **Status.** Done in Perennial (`ArgWf`'s `IsStrArgType`: a named string type without formatting methods, holding a
+  string; `ArgsWf.cons_named_string`); `fmt.SprintfNamed` and `fmt.methodlessNamedTypes` retired (prove-reflectfmt,
+  2026-11-20): `Preconditions.Check`, `Mutex.tryAcquire` and `Election.Campaign` call Perennial's `fmt.wp_Sprintf`.
 
 ### Specs: `fmt`'s `ArgWf` for a method-less map argument (2026-10-27, client-go informers)
 
@@ -3132,3 +3192,37 @@ parameter.
   (`(st.items.map (storeKeyL ∘ key)).Nodup`), so the order does not matter there.
 - **Proposed (general).** Fix the two docstrings ("the first binding of a key wins"); documentation only.
   **Status.** Recorded only.
+
+## 2026-11-20: `≤u` has no transitive instance (a named type whose underlying is another named interface; branch `prove-k8s`)
+
+- **The gap.** `go.UnderlyingEq` (`≤u`, `Perennial/Golang/Theory/PostLifting.lean`) has only the
+  reflexive instance and one `<u` step (`unfold_to_underlying_eq`), unlike `↓u` (`is_underlying_unfold`
+  chains). So converting a value to an interface type declared as another named interface (apimachinery's
+  `type Codec Serializer`) does not step: `convert_to_interface` needs `Codec.ty ≤u go.InterfaceType _`,
+  two `<u` steps away.
+- **Worked around locally.** The one place it is needed (`unstructured`'s initializer,
+  `UnstructuredJSONScheme runtime.Codec = unstructuredJSONScheme{}`): a local `haveI` of the two-step
+  instance (`etc/gen-init.py`, `Proof/k8s_io/apimachinery/pkg/apis/meta/v1/unstructured/Init.lean`).
+- **Proposed (general).** A transitive instance `[t <u t'] [t' ≤u u] : t ≤u u` (as for `↓u`; `<u` is
+  directed, so search terminates). **Status.** Recorded only.
+
+## 2026-11-20: `time.After` and the timers have no clock content (clockwork's real clock)
+
+- **The gap.** Perennial's `time.After(d)` spec gives a bag of times with no logical content
+  (`isChanBag γ ch (fun _ => True)`), and `time.Now` arbitrary readings; there is no ghost clock that
+  a receive on `After`'s channel bounds from below. clockwork's `NewRealClock` (`After` is
+  `time.After`) therefore cannot be proved to give `clockwork.clockOk` (`After`'s values come only
+  once `clockLb γc (T + d)`), and its ghost predicates (`clockLb`, `stampAt`, `realClock` and their
+  laws, 9 axioms with `NewRealClock.wp_proof`) stay axioms.
+- **Worked around locally.** The clockwork axioms (`Proof/github_com/jonboulle/clockwork/Defs.lean`).
+- **Proposed (general).** A monotonic ghost clock in Perennial's `time` model (`runtimeNano`'s readings
+  bounded below by a persistent `clockLb`, `After`/`NewTimer`/`Sleep` firing only past `now + d`),
+  from which clockwork's predicates would be definitions. **Status.** Recorded only (prove-smalllibs).
+
+## 2026-11-20: `time.Duration.Seconds` is names-only (x/time/rate's `Every`)
+
+- **The gap.** `Duration.Seconds` (`float64(sec) + float64(nsec)/1e9`) is not translated in Perennial's
+  `time`, and a float constant (`rate.Inf = Limit(math.MaxFloat64)`) translates opaque, so
+  `rate.Every` (`1 / Limit(interval.Seconds())`) cannot be stepped; its axiom stays.
+- **Proposed (general).** Translate `Duration.Seconds` (and `Minutes`, `Hours`) over the uninterpreted
+  `FloatOps`; float constants as their bits. **Status.** Recorded only (prove-smalllibs).
