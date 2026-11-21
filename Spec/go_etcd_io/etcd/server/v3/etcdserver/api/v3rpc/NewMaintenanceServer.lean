@@ -29,11 +29,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 
 /-- **`NewMaintenanceServer(s, hn)`** returns a new `*authMaintenanceServer` as a
 `MaintenanceServer` (over a `*maintenanceServer` holding the server in its roles, its KV's hash
-storage, `newHeader(s)`, a version adapter and the health notifier `hn`). -/
+storage, `newHeader(s)`, a version adapter and the health notifier `hn`). The server's watchable
+store `wsl` is an mvcc store (`isMvcc`, persistent: what its `HashStorage()` takes; ownership, which
+the type `*watchableStore` alone does not give). -/
 abbrev v3rpc.NewMaintenanceServer.spec : Prop :=
-  ∀ (s : Loc) (A : v3rpc.KVAns GF) (lg0 wsl : Loc) (hn : GoInterface),
+  ∀ (s : Loc) (A : v3rpc.KVAns GF) (lg0 wsl : Loc) (hn : GoInterface) (γ : mvcc.api.MvccName),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ v3rpc.raftKV s A ∗ srvCfgFieldAddr s go!"Logger" ↦□ lg0 ∗
-      srvKVAddr s ↦□ v3rpc.wsIface wsl }}
+      srvKVAddr s ↦□ v3rpc.wsIface wsl ∗ □ mvcc.api.isMvcc (v3rpc.wsIface wsl) γ }}
     (App (App (Val (@! v3rpc.NewMaintenanceServer)) (Val #s)) (Val #hn))
   {{ (v : GoInterface), RET #v; ∃ p : Loc,
       ⌜v = interface.mkOk (go.GoType.PointerType v3rpc.authMaintenanceServer.ty) #p⌝ }}
