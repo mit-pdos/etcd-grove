@@ -1,5 +1,6 @@
 # Types and names only (item 4, the server start): the interface `ServiceInfoProvider`, the type
 # of the parameter of grpc-prometheus's `ServerMetrics.InitializeMetrics`, to which
-# `v3rpc.Server` converts its `*grpc.Server`.
-translate = ["!*", "ServiceInfoProvider"]
+# `v3rpc.Server` converts its `*grpc.Server`. (prove-grpcext, 2026-11-20) `var _ GRPCServer = (*grpc.Server)(nil)`
+# translated (with the interface `GRPCServer`): its initializer is a conversion `etc/gen-init.py` steps through.
+translate = ["!*", "ServiceInfoProvider", "GRPCServer", "_"]
 imports = ["!*", "google.golang.org/grpc"]

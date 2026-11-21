@@ -33,7 +33,7 @@ public import Proof.k8s_io.apimachinery.pkg.util.runtime.Init
 public import Proof.k8s_io.apimachinery.pkg.util.wait.Init
 public import Proof.k8s_io.apimachinery.pkg.watch.Init
 public import Proof.k8s_io.apiserver.pkg.audit.Init
-public import Proof.k8s_io.apiserver.pkg.endpoints.request.Init
+public import Proof.k8s_io.apiserver.pkg.endpoints.request.InitLinked
 public import Proof.k8s_io.apiserver.pkg.features.Init
 public import Proof.k8s_io.apiserver.pkg.storage.InitLinked
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.consistency.Init

@@ -816,7 +816,7 @@ theorem readySnapSources_msgSnap (γ : Cluster) (n : Loc) (ms : List QMsg)
   iexists sv
   isplitr
   · ipureintro; exact Hsv
-  icases Hc with (Hc | Hc)
+  icases Hc with (Hc | ⟨Hc, -⟩)
   · ileft
     ihave %He := ApiImpl.nodeTabOk_agree γ n γn γp $$ Htab Htabp
     have Hkey : γn.sn.gsv = γp.sn.gsv := congrArg (fun k : ApiImpl.CfgNames => k.2.2.2.2.2.2.2.1) He

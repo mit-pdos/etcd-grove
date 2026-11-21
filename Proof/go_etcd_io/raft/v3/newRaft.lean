@@ -994,7 +994,7 @@ theorem newRaft.wp_proof
     ihave Hcap2 := ownSliceCap_nil (V := Loc) (GF := GF)
     ihave Hob := outboxRel_nil (GF := GF)
     ihave #Hns0 := NsCap.off (GF := GF) (interface.ok si)
-    ihave #Hsc0 : qSrcs (GF := GF) sn ([] ++ []) $$ []
+    ihave #Hsc0 : qSrcs (GF := GF) sn ([] ++ []) (· ∈ ([] : List SnapTrip)) $$ []
     · rw [List.append_nil]; iapply qSrcs_nil
     let rv2 : raft :=
       { id' := cv'.ID', Term' := hs.Term', Vote' := hs.Vote', readStates' := slice.nil, raftLog' := l,
@@ -1468,7 +1468,7 @@ theorem newRaft.wp_proof
     ihave Hcap2 := ownSliceCap_nil (V := Loc) (GF := GF)
     ihave Hob := outboxRel_nil (GF := GF)
     ihave #Hns0 := NsCap.off (GF := GF) (interface.ok si)
-    ihave #Hsc0 : qSrcs (GF := GF) sn ([] ++ []) $$ []
+    ihave #Hsc0 : qSrcs (GF := GF) sn ([] ++ []) (· ∈ ([] : List SnapTrip)) $$ []
     · rw [List.append_nil]; iapply qSrcs_nil
     let rv2 : raft :=
       { id' := cv'.ID', Term' := hs.Term', Vote' := hs.Vote', readStates' := slice.nil, raftLog' := l,

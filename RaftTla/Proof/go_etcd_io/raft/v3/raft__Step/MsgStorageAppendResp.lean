@@ -212,7 +212,7 @@ theorem wp_Step_MsgStorageAppendResp_none (_P : raft.Step.Postulates (GF := GF) 
       ⟨(logStableTo_fields _ _).2.2.2.2.1, (logStableTo_fields _ _).2.2.1,
         logStableTo_storage _ _, by unfold logStableTo; split <;> exact Int.le_refl _⟩
     ihave Hphys := Hback $$ %_ Hlog
-      %(LogGhOk.of_off Hghoff Hkp (SnpOk.stableTo _ HghL.1.2.1) ((logStableTo_sn _ _).trans HghL.1.2.2) (logStableTo_storage _ _))
+      %(LogGhOk.of_off Hghoff Hkp (SnpOk.stableTo _ HghL.1.2.1) ((logStableTo_sn _ _).trans HghL.1.2.2) (logStableTo_storage _ _) (by rw [logStableTo_ksn]; exact List.Subset.refl _))
       %(fun _ => by rw [logLast_stableTo]; exact Int.le_refl _)
     wp_apply wp_GetSnapshot_none _Q _ _ _ _ _ Hsn $$ [$Hm] as Hm
     try wp_auto
@@ -423,7 +423,7 @@ theorem ackOpen (c : CfgM) (r : Loc) (id : w64) (s : NState) (sv : SnapshotM)
   obtain ⟨h1, h2, h3, h4, h5, h6, -, -, -⟩ := ackLog_fields s.logst sv
   have Hkeep0 : LogNsKeep s (ackLog s.logst (some sv)) :=
     fun _ => ⟨h1, h5, h6, by rw [h4]; exact Int.le_refl _⟩
-  iapply Hback $$ %_ Hlog %(LogGhOk.of_off Hghoff Hkeep0 (SnpOk.ackL _ Hgh0.1.2.1) ((ackLog_sn _ _).trans Hgh0.1.2.2) h6)
+  iapply Hback $$ %_ Hlog %(LogGhOk.of_off Hghoff Hkeep0 (SnpOk.ackL _ Hgh0.1.2.1) ((ackLog_sn _ _).trans Hgh0.1.2.2) h6 (by cases h : s.logst.sat <;> simp [ackLog, h]))
     %(fun _ => logLast_le_of_fields (by rw [h1]) (by rw [h2]) (by rw [h3]))
 
 -- (2026-10-21) 4000000, not 1000000: under a parallel full build this proof ran out of 1000000
@@ -627,7 +627,7 @@ theorem wp_Step_MsgStorageAppendResp_snap (_P : raft.Step.Postulates (GF := GF) 
         fun _ => ⟨g5, g3, logStableTo_storage _ _, by
           unfold logStableTo; split <;> exact Int.le_refl _⟩
       ihave Hphys := Hback $$ %_ Hlog
-        %(LogGhOk.of_off Hghoff Hkeep1 (SnpOk.stableTo _ HghW.1.2.1) ((logStableTo_sn _ _).trans HghW.1.2.2) (logStableTo_storage _ _))
+        %(LogGhOk.of_off Hghoff Hkeep1 (SnpOk.stableTo _ HghW.1.2.1) ((logStableTo_sn _ _).trans HghW.1.2.2) (logStableTo_storage _ _) (by rw [logStableTo_ksn]; exact List.Subset.refl _))
         %(fun _ => by rw [logLast_stableTo]; exact Int.le_refl _)
       wp_apply wp_GetSnapshot_some _Q _ _ _ _ _ sv rfl $$ [$Hm] as %ps ⟨%Hps, Hsv, Hmb⟩
       rw [decide_eq_false Hps]

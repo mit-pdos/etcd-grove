@@ -3,6 +3,7 @@ module
 
 public import GeneratedProof.k8s_io.apimachinery.pkg.labels
 public import SpecPlan.Spec.PkgInit.Base
+public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.selection
 
 @[expose] public section
 noncomputable section

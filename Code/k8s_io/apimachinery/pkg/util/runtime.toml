@@ -1,7 +1,10 @@
 # Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
 # notes/k8s-etcd3-goose.md).
-translate = ["!*"]
-imports = ["!*"]
+# (prove-k8s, 2026-11-20) the variables' initializers (until then `opaqueInitsOk`): `ReallyCrash`,
+# `PanicHandlers` and `ErrorHandlers` (slice literals of function values, one `backoffError`'s, with its
+# body), over `context`, `time` (`time.Now`) and `sync` (the backoff's mutex).
+translate = ["!*", "ReallyCrash", "PanicHandlers", "ErrorHandlers", "backoffError"]
+imports = ["!*", "context", "time", "sync"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
