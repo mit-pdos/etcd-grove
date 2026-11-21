@@ -106,3 +106,36 @@ has no `Link` or `Results`, so `etc/tcb-report.py` has no root in it.
 
 As kvnet's proof grows, its modules become roots (they are the part's own files) and the copies
 follow their imports.
+
+## kvnet's network glue (2026-11-21)
+
+Proved in the part, no axiom or `sorry` (`lake build KvNet`: 2717 jobs; `KvNet/{Spec,Proof}/.../kvnet/`):
+
+- **Reused from kvdurablenoax** (the same Go text; `etc/copy-part.py`'s `RENAME_KVNET` copies the
+  specs and proofs with the package path and the namespace `raft_kvdurable` renamed, `KVNET_REUSED`
+  roots them until kvnet's `Link.lean`): `putUint64`/`getUint64`, `putBytes`/`getBytes`,
+  `putIDs`/`getIDs`, `putEntry`/`getEntry`, `putSnapshot`/`getSnapshot`, `withTimeout`; the pure codec
+  `Codec.lean`. kvnet's `Base.lean` is the part's own (`IsPkgInit`, fact `True` until kvnet's
+  initializer).
+- **Frames** (byte level, a reader/writer predicate and a persistent accessor over `netEnd`/`netDir`,
+  as Net's `wire.ReadFull`): `writeAll`, `readFull`, `writeFrame` (writes `putB body`), `readFrame`
+  (on success the bytes read are `putB l`, `l.length ≤ 2^26`, the slice holds `l`).
+- **`closeAfter`**: the caller hands over `R`, its right to close (with an accessor to `Conn.Close`'s
+  update); the timer and the returned `disarm` race for it under the mutex: `disarm` returns `true`
+  and `R` back if it won.
+- **Message codec** (`Wire.lean`: `encMsg`, `MsgWf`): `putMsg` (`msgPtsC … st` gives
+  `B ++ encMsg st`), `getMsg` (from `encMsg st`, a fresh message holding `{ st with resps := [] }`),
+  `putConfState`/`getConfState` (`encConf`).
+- **Addresses** (`Addrs.lean`): `SplitAddrs` (`splitBy 44`), `JoinAddrs` (`intercalate ","`, round
+  trip `splitAddrs_joinAddrs` for a nonempty list of comma-free addresses), `decimal`, `AddrOk`
+  (returns exactly `Net.addrOk a`: `goAddrOk_eq`, a pure equivalence of the Go scan with the
+  extension's parser), `ValidAddrs`, `ValidCluster`.
+
+Open (decisions for the coordinator):
+- `getMsg` takes `st.ents = [] ∨ st.snap = none`: the reused `getEntry` spec reads persistent bytes
+  (`↦*□`), `getSnapshot` owned ones (`↦*`), and entries precede the snapshot. No raft message has both,
+  but the fix is to generalize kvdurable's `getEntry` spec (main tree) to `↦*{dq}` and regenerate.
+- `getMsg`'s proper-prefix rejection (`TestMsgRoundTrip`) needs the decoders' specs on short input,
+  which have no place yet (the decoders' spec files here are copies).
+- `AddrOk` (and `ValidAddrs`/`ValidCluster`) takes `a.length + 1 < 2^63`: at `len(a) = 2^63-1` its
+  loop's `i+1` wraps and `a[i]` panics (no real string is that long).
