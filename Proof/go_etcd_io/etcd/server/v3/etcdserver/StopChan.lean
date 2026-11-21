@@ -116,6 +116,7 @@ theorem stop_chan_receive (ch : GoChan) (γ : ChanNames) (Q : IProp GF)
       recvAu γ Unit Φ := by
   unfold ownStopChan isStopChanInternal recvAu
   iintro ⟨%γch, ⟨#His_ch, #Hinv⟩, Hown⟩ HΦ
+  iapply ncfupd_of_fupd
   iinv Hinv with Hi Hclose
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
@@ -158,6 +159,7 @@ theorem stop_close_au (ch : GoChan) (γch : ChanNames) (Q : IProp GF) (Φ : IPro
   unfold isStopChanInternal
   icases Hint' with ⟨#His_ch, #Hinv⟩
   unfold closeAu
+  iapply ncfupd_of_fupd
   iinv Hinv with Hi Hclose
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
@@ -215,6 +217,7 @@ theorem stop_chan_nonblocking_receive_open (ch : GoChan) (γ : ChanNames)
   unfold isStopChanInternal
   icases Hint' with ⟨#His_ch, #Hinv⟩
   unfold nonblockingRecvAuAlt
+  iapply ncfupd_of_fupd
   iinv Hinv with Hi Hclose
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
@@ -250,6 +253,7 @@ theorem stop_chan_nonblocking_receive_done (ch : GoChan) (γ : ChanNames)
   unfold isStopChanInternal
   icases Hint' with ⟨#His_ch, #Hinv⟩
   unfold nonblockingRecvAuAlt
+  iapply ncfupd_of_fupd
   iinv Hinv with Hi Hclose
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask

@@ -39,7 +39,7 @@ theorem sleep.wp_proof (wp_below : below.spec (GF := GF) (hG := hG))
   try wp_auto
   wp_apply wp_below as %k -
   try wp_auto
-  wp_apply (lc := 2) wp_After as %tch %γt #Htch
+  wp_apply (lc := 2) (time.After.spec_pkgInit wp_After _) as %tch %γt #Htch
   try wp_auto
   wp_apply_core chan.wp_select_blocking
   iapply BigAndL.bigAndL_cons.2

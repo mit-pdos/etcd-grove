@@ -215,6 +215,7 @@ theorem never_recv_au {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] [Pos.C
     ⊢ inv N (ownChan γ V (.Buffered [])) -∗ recvAu γ V Φ := by
   iintro #Hinv
   unfold recvAu
+  iapply ncfupd_of_fupd
   iinv Hinv with Hi Hclose
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro -

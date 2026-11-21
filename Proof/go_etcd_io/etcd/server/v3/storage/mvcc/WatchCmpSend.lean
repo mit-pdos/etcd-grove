@@ -66,6 +66,7 @@ theorem cmp_send_inner (γ : WsNames) (w : Loc) (γw : WatcherNames) (r : WatchR
   iunfold watcherFilters at Hfok
   icases Hfok with ⟨%fs, #Hfi, #Hsf⟩
   unfold nonblockingSendAuInner
+  iapply ncfupd_of_fupd
   iinv Hinv with Hi Hclose
   all_goals try exact CoPset.subseteq_top
   iapply fupd_mask_intro Std.LawfulSet.empty_subset

@@ -5,7 +5,7 @@
 The WAL's tail is crash-tracked: the invariant (`walInv`, `Inv.lean`) holds half of its `OsMeta` and
 bytes, the handle the other half (`walTailW`, `Handle.lean`). A `pwrite` on it is two steps of the
 extension (`PWriteStart`, `PWriteFinish`, `GooseLang/Ext/Fs/Write.lean`); each opens `walInv`, with
-`notCrashed` (`wp_atomic_nc`, `GooseLang/Ext/Fs/NotCrashedAcc.lean`), and keeps its crash condition:
+`notCrashed` (`wp_atomic_nc`, `Perennial's `GooseLang/NotCrashed.lean``), and keeps its crash condition:
 
 * **the start** (`wp_tailPWriteStart`): the handle's halves and the invariant's make the file's
   `OsMeta` and the written range whole; the step's token goes into the invariant with the halves of

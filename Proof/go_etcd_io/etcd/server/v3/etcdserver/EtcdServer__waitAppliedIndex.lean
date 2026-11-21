@@ -82,7 +82,7 @@ theorem EtcdServer.waitAppliedIndex.wp_proof
     iunfold waitBcast at Hawc
     iexact Hawc
   icases bcastOrClosed_receive _ _ $$ Hawc' with ⟨%γaw, #Hawch, #Hawr⟩
-  wp_apply time.wp_After as %tch %γa #Htch
+  wp_apply (time.After.spec_pkgInit time.wp_After _) as %tch %γa #Htch
   (try wp_auto)
   wp_apply_core chan.wp_select_blocking
   iapply BigAndL.bigAndL_cons.2
