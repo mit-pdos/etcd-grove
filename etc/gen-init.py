@@ -2826,7 +2826,7 @@ specs; until 2026-11-19 the trust-boundary axioms `<X>_init`),
              for i, x in enumerate(_V_HIST)] +
             ['-- `traceutil.Tracer`',
              'ihave Hti : (go_etcd_io.etcd.pkg.v3.traceutil.traceutilInit : IProp GF) $$ []',
-             '· iapply isPkgInit_access $$ Hd44',
+             '· iapply isPkgInit_access $$ Hd45',
              'icases Hti with #HTR',
              '-- the progress interval\'s lock and what it guards (`progressReportInterval`, `10 * time.Minute`)',
              'imod (sync.init_RWMutex EtcdGrove.v3rpc.intervalP EtcdGrove.v3rpc.intervalMu (E := ⊤)) $$ [HprogressReportInterval] HprogressReportIntervalMu with HIS',
@@ -3063,6 +3063,26 @@ its untranslated `init` function (it sets `internal.CanonicalString`, another pa
 which the trust-boundary axiom `initFuncsOk` says returns.''',
     alloc_types={'strToCode': 'Loc'},
     before={'strToCode': map_lit_steps('Hsc', 'GoString', 'w32', 'go.string', f'{_GC}.Code.ty', 17)},
+)
+_GM = 'google_golang_org.grpc.metadata'
+SPECIAL[_GM] = dict(
+    doc='''Its fact is `True`. Its initializer allocates `loggableMetadataKeys`, initializes its imports, runs
+its variable's translated initializer, a map literal of the keys `MD.String` prints (prove-grpcext,
+2026-11-20; until then the trust-boundary axiom `opaqueInitsOk`), and its untranslated `init` function
+(it sets `internal.FromOutgoingContextRaw`, another package's variable), which the trust-boundary
+axiom `initFuncsOk` says returns.''',
+    alloc_types={'loggableMetadataKeys': 'Loc'},
+    before={'loggableMetadataKeys': map_lit_steps('Hlk', 'GoString', 'Bool', 'go.string', 'go.bool', 10)},
+)
+_GL = 'google_golang_org.grpc.grpclog'
+SPECIAL[_GL] = dict(
+    doc='''Its fact is `True`. Its initializer initializes its imports, allocates `cache` and runs its
+translated initializer, an empty map literal (prove-grpcext, 2026-11-20; until then the trust-boundary
+axiom `opaqueInitsOk`), and its untranslated `init` function (`SetLoggerV2(newLoggerV2())`), which the
+trust-boundary axiom `initFuncsOk` says returns.''',
+    alloc_types={'cache': 'Loc'},
+    before={'cache': map_lit_steps('Hc', 'GoString', 'Loc', 'go.string',
+        f'(go.GoType.PointerType {_GL}.componentData.ty)', 0)},
 )
 _OP = 'go_opentelemetry_io.otel.propagation'
 SPECIAL[_OP] = dict(

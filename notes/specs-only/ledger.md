@@ -3262,7 +3262,45 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** Premise `⌜ctxErr ≠ nil⌝ ∨ statusErrOk err`. The receive-error callers have `statusErrOk`; the
   send-error callers (`sendLoop`, `leaseKeepAlive`) have only `streamErr` from `srvStreamIs`'s `Send`, which would have to
   carry `statusErrOk` too (true of grpc, but an extension of the trusted server model's assumption).
-- **Decision.** Open: recorded only (the brief's "skip if discharging is hard").
+- **Decision.** Open: recorded only (the brief's "skip if discharging is hard"). Then applied by prove-grpcext
+  (2026-11-20, next entry), with the spec plan's unconditional form (`errView err` there, `statusErrOk err` here).
+
+## 2026-11-20: `isClientCtxErr` proved; the server stream's `Send` errors are status errors (prove-grpcext)
+
+- **Spec.** `v3rpc.isClientCtxErr.spec`; the trusted server stream `srvRawStreamIs` (`Proof/google_golang_org/grpc/
+  InvGrpcStream.lean`), its `SendMsg` clause, and the derived `srvRawStreamIsW`, `srvStreamIs`.
+- **Defect.** The previous entry: `isClientCtxErr` had no premise and `FromError` needs `statusErrOk`; a send error had
+  only `streamErr`.
+- **Evidence.** grpc v1.84.0 `stream.go:1808-1860`: `serverStream.SendMsg` returns `prepareMsg`'s errors (`encode`'s and
+  `compress`'s `status.Errorf`), `status.Errorf(codes.ResourceExhausted, ...)` for an oversized message, or
+  `toRPCErr(ss.s.Write(...))`, which passes `io.EOF` through and makes `*status.Error`s of the rest (`rpc_util.go`); the
+  same errors `RecvMsg` returns, for which the model already promised `statusErrOk` (premise fixes 7,
+  `examples/premisefix/ctxvalue` `TestRealStreamErrors`). grpc-prometheus's `monitoredServerStream.SendMsg` and etcd's
+  `serverStreamWithCtx` return the wrapped stream's error unchanged.
+- **Proposed change.** `statusErrOk err` in `srvRawStreamIs`'s `SendMsg` error branch (a strengthening of the trusted
+  model's promise, justified above) and in the derived predicates; `isClientCtxErr` takes `statusErrOk err` (as the spec
+  plan's `errView err`); its callers (`watchServer.Watch`, from `recvLoop`'s post; `sendLoop`, `leaseKeepAlive`, from
+  `Send`'s and `Recv`'s) pass it. `isClientCtxErr` translated (`v3rpc.toml`) and proved over `status.FromError`'s spec and
+  `strings.HasPrefix`/`HasSuffix`: its axiom goes.
+- **Decision.** Applied (prove-grpcext, 2026-11-20).
+
+## 2026-11-20: grpc's generic stream wrappers relate their Lean types to their Go types (prove-grpcext)
+
+- **Spec.** `grpc.Generic{Client,Server}Stream.{Send,Recv,Context}.spec`, `GenericClientStream.CloseSend.spec`
+  (`Spec/google_golang_org/grpc/Generic*Stream__*.lean`), axioms until this change.
+- **Defect.** Each quantified over the Lean types `V`, `W` of the wrapper's points-to (`structFieldRef
+  (GenericClientStream V W) ...`) with nothing relating them to the Go types `T`, `U` of the method: the body's field access
+  (`StructFieldRef (GenericClientStream.ty T U)`) is at `structFieldRef` of the Lean type that represents the Go type
+  (`TypeRepr`), so for unrelated `V`, `W` the precondition's cell is not the one the body reads. And `Send`'s premise was the
+  wrapped `SendMsg`'s WP for any postcondition, while the body returns its result through its named `error` result (a typed
+  store and load).
+- **Evidence.** The proofs (`Proof/google_golang_org/grpc/Generic*Stream__*.lean`, over the bodies the pinned Goose now
+  emits for the generic types' methods).
+- **Proposed change.** `[TypeRepr T V] [TypeRepr U W]` (with their `ZeroVal`s); `Send`'s premise's postcondition
+  `v, ∃ err : GoInterface, ⌜v = #err⌝ ∗ Φ v` (as `Recv`'s already was). The two users (`srvStreamIs_of_raw`,
+  `cliBidiStreamIs_of_raw`) take the instances, which their callers (the generated handler, the watch and keep-alive stubs)
+  have for the messages' types; their `SendMsg` triples give `error` values.
+- **Decision.** Applied (prove-grpcext, 2026-11-20): the seven axioms are theorems.
 
 ## 2026-11-20: `snap.Message.GetTo` takes raftpb's initialization (prove-grpcsmall)
 
@@ -3317,3 +3355,27 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   limiter does not keep, and no method writes `ok`/`timeToAct`, x/time/rate v0.16.0 `rate.go:162-230`);
   `Wait`'s takes the mutex (true: every method takes `lim.mu` before touching the fields).
 - **Decision.** Applied (prove-smalllibs, 2026-11-20).
+
+## 2026-11-20: `fmt.SprintfClientPtr` admits any directive for a `*clientv3.Client` (prove-reflectfmt)
+
+- **Spec.** `fmt.SprintfClientPtr.spec` (`Spec/fmt/SprintfClientPtr.lean`), a trust-boundary axiom.
+- **Defect.** False as stated: any format, the client unowned. Under `%v`/`%s` (or as an `EXTRA`) Go prints a pointer to a
+  struct by its fields (`fmt/print.go:902-911`), reading `*c` and calling the `String`/`Error` of its exported fields'
+  values (`print.go:756-763`); only `%p` (`print.go:686-693`) reads nothing.
+- **Evidence.** Code reading of go1.27.3; `examples/axiomcx/sprintfclientptr` (a real `Client` whose `KV` has a
+  `String()`); `notes/axiom-review/sprintfclientptr.md`.
+- **Proposed change.** A directive-aware premise, `fmt.SprintfClientArgsOk format xs`: the directives parse and a
+  `*Client` argument is consumed by a `%p` (none left over as an `EXTRA`). The one caller (`Client.dial`, `"%s://%p/%s"`)
+  discharges it.
+- **Decision.** Applied (prove-reflectfmt, 2026-11-20; a strengthening of the premise, the caller's obligation discharged).
+
+## 2026-11-20: `encoding.json.Unmarshal` gives back the caller's slices as fresh (prove-reflectfmt)
+
+- **Spec.** `encoding.json.Unmarshal.spec` (`Spec/encoding/json/Unmarshal.lean`), a trust-boundary axiom.
+- **Defect.** False as stated: for any `p ↦ v` the post owns the decoded `PeerURLs`/`ClientURLs` in full, but
+  `encoding/json` decodes into the field's existing slice, reusing its backing array (`decode.go:553-556`): a non-nil
+  `v.PeerURLs` the caller still owns comes back aliased, two full points-tos of one cell.
+- **Evidence.** Code reading of go1.27.3; `examples/axiomcx/jsonunmarshalalias`; `notes/axiom-review/json-unmarshal-alias.md`.
+- **Proposed change.** Premise: both URL slices of `v` are `nil`. Both callers decode into `new(ConfigChangeContext)`
+  and discharge it by `rfl`.
+- **Decision.** Applied (prove-reflectfmt, 2026-11-20; a strengthening of the premise, the callers' obligation discharged).
