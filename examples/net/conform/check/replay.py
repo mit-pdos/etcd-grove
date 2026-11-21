@@ -14,8 +14,9 @@ it (EOF of a direction with bytes left or open: keeping nothing; a sys error of 
 keeping every byte), except a Read marked to cut (keeping every byte): when a Write's result needs
 its direction cut and it is shut (FIN), the direction's reader's last Read before it is marked and
 the replay starts over (lazy.py's `a`: that is the cut gamma has). A connection no Dial returned
-(an Accept's) is the first one pending at its address that a failed or unfinished Dial left (in
-witness order); a failed Dial whose connection no Accept took is a plain failure; an unfinished
+(an Accept's) is the first one pending at the address the search chose for it (lazy.py's
+`accept`, choice {"token": address}, an address its listener takes) that a failed or unfinished
+Dial left (in witness order); a failed Dial whose connection no Accept took is a plain failure; an unfinished
 Dial no Accept needed is left out.
 
 Each model step is checked on the connections it touches only (a one-connection NetGlobal): the
@@ -27,7 +28,7 @@ import model as M
 import lazy as Z
 
 FORMAT = "net-witness"
-VERSION = 1
+VERSION = 2  # v3.4: no plan, and a Listen step has no `a0` (it listens at its own address)
 
 
 class ReplayError(Exception):
@@ -62,7 +63,7 @@ def _entries(ck):
 def build(ck):
     ents = _entries(ck)
     # connections no Dial returned: each unmatched Accept takes the first token (in witness order)
-    # of its address not taken yet
+    # of the address the search chose for it, not taken yet
     queue = {}
     token_of = {}   # entry index of an Accept -> entry index of the Dial whose connection it took
     used = set()
@@ -71,13 +72,14 @@ def build(ck):
             continue
         c = cp.calls[i]
         if c.op in ("Dial", "DialTimeout") and isinstance(ch, dict):
-            queue.setdefault(cp.key, []).append(x)
+            queue.setdefault(c.b.get("addr", "").encode(), []).append(x)
         elif c.op == "Accept" and c.e is not None:
             m = ck.mapped[id(c)]
             if m.res[0] == "ok" and ck.accept_conn.get(id(c)) is None:
-                q = queue.get(cp.key, [])
+                a = (ch or {}).get("token")
+                q = queue.get(a, [])
                 if not q:
-                    raise ReplayError(f"{c.where()}: no connection no Dial returned is pending at {cp.key}")
+                    raise ReplayError(f"{c.where()}: no connection no Dial returned is pending at {a}")
                 token_of[x] = q.pop(0)
                 used.add(token_of[x])
     marks = set()
@@ -135,9 +137,8 @@ def _write_after(est, d, rs, k, res):
 
 
 def _replay(ck, ents, token_of, used, marks):
-    plan = ck.plan
     conns = {}
-    local = {ch.name: M.NetLocal(ch.host, {}) for ch in ck.chains}
+    local = {ch.name: M.NetLocal({}) for ch in ck.chains}
     conn_num = {}
     token_conn = {}
     lis_num = {}
@@ -147,10 +148,10 @@ def _replay(ck, ents, token_of, used, marks):
     wprog = {}       # (component, op) -> the bytes a Write call's steps have taken so far
     wpart = {}       # (component, op) -> the number of its steps so far
     steps = []
-    G0 = M.NetGlobal(plan, {})
+    G0 = M.NetGlobal({})
 
     def one(c, cn):
-        return M.NetGlobal(plan, {c: cn})
+        return M.NetGlobal({c: cn})
 
     def fail(x, what):
         raise ReplayError(f"witness step {len(steps)} ({what}) is not a step of model.py")
@@ -159,7 +160,7 @@ def _replay(ck, ents, token_of, used, marks):
         if kind == "crash":
             chain, idx = cp, i
             L = local[chain.name]
-            L2 = M.NetLocal(L.host, {})
+            L2 = M.NetLocal({})
             if not M.crash(L, L2):
                 fail(x, "crash")
             local[chain.name] = L2
@@ -178,12 +179,11 @@ def _replay(ck, ents, token_of, used, marks):
             node = item["node"]
             L = local[node]
             if c.op == "Listen":
-                a = ck.lenient.get(id(c), c.b.get("addr", "").encode())
-                a0 = ck.listen_a0[id(c)]
+                a = ck.listen_addr[id(c)]
                 if m.res[0] == "ok":
                     lid = next_lid[node]
                     next_lid[node] += 1
-                    L2 = M.NetLocal(L.host, {**L.lis, lid: (a0, True)})
+                    L2 = M.NetLocal({**L.lis, lid: (a, True)})
                     e2 = (lid, 0)
                     lis_num[(c.proc.pid, m.res[1]["id"])] = (node, lid)
                 else:
@@ -191,7 +191,7 @@ def _replay(ck, ents, token_of, used, marks):
                 if not M.net_step("Listen", a, L, G0, e2, L2, G0):
                     fail(x, f"Listen {a}")
                 local[node] = L2
-                st.update(op="Listen", node=node, addr=a.decode(), a0=a0.decode(),
+                st.update(op="Listen", node=node, addr=a.decode(),
                           res={"code": e2[1], **({"lis": e2[0]} if e2[1] == 0 else {})})
             elif c.op == "Accept":
                 lnode, lid = lis_num[(c.proc.pid, c.id)]
@@ -218,7 +218,7 @@ def _replay(ck, ents, token_of, used, marks):
                 lnode, lid = lis_num[(c.proc.pid, c.id)]
                 res = None if pending else m.res
                 a, o = L.lis[lid]
-                L2 = M.NetLocal(L.host, {**L.lis, lid: (a, False)})
+                L2 = M.NetLocal({**L.lis, lid: (a, False)})
                 e2 = M.err_code(res)
                 if not M.net_step("LisClose", lid, L, G0, e2, L2, G0):
                     fail(x, "LisClose")
@@ -362,8 +362,6 @@ def _replay(ck, ents, token_of, used, marks):
         stp["i"] = i
     return {
         "format": FORMAT, "version": VERSION, "run": ck.run.name,
-        "plan": [[a.decode(), h.decode()] for a, h in ck.plan_list],
-        "plan_well_formed": M.plan_well_formed(ck.plan_list),
         "nodes": [{"node": ch.name, "host": ch.host.decode(), "procs": [p.pid for p in ch.procs]}
                   for ch in ck.chains],
         "conns": next_conn - 1,

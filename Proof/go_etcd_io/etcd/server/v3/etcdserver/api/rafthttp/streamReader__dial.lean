@@ -317,9 +317,12 @@ theorem rafthttp.streamReader.dial.wp_proof
   ihave #Hvi : iprop(globalAddr go_etcd_io.etcd.api.v3.version.Version ↦□ go!"3.8.0-alpha.0" ∗
       (∃ v : github_com.Masterminds.semver.v3.Version,
         globalAddr go_etcd_io.etcd.api.v3.version.V3_6 ↦□ v) ∗
-      globalAddr go_etcd_io.etcd.api.v3.version.MinClusterVersion ↦□ go!"3.0.0") $$ []
+      globalAddr go_etcd_io.etcd.api.v3.version.MinClusterVersion ↦□ go!"3.0.0" ∗
+      (∃ v7 v8 : github_com.Masterminds.semver.v3.Version,
+        globalAddr go_etcd_io.etcd.api.v3.version.V3_7 ↦□ v7 ∗
+        globalAddr go_etcd_io.etcd.api.v3.version.V3_8 ↦□ v8)) $$ []
   · iapply isPkgInit_access $$ Hpver
-  icases Hvi with ⟨#HVer, -, #HMCV⟩
+  icases Hvi with ⟨#HVer, -, #HMCV, -⟩
   wp_auto
   -- the URL: one of the peer's, its path the stream's
   wp_apply hPick pk (peerURL Rh pid) $$ [] as %u %Hu
@@ -463,22 +466,20 @@ theorem rafthttp.streamReader.dial.wp_proof
       rw [Hsv _ (by decide)]
       exact Hrh0
     (try wp_auto)
-    wp_apply hServerVersion rhm rhs $$ [] as %rvv %Hrvv
+    wp_apply hServerVersion rhm rhs $$ [] as %rvv Hrvv
     · iframe #
-    obtain ⟨rv, rfl, Hrv⟩ : ∃ v : Loc, rvv = #v ∧ v ≠ null := by
-      rcases Hrvv with h | ⟨Hn, -⟩
-      · exact h
-      · exact absurd Hvh Hn
+    icases Hrvv with (⟨%rv, %xrv, %Hc, #Hxrv⟩ | %Hn)
+    rotate_left
+    · exact absurd Hvh Hn.1
+    obtain ⟨rfl, Hrv⟩ := Hc
     (try wp_auto)
     ihave #Hsp : isPkgInit (PROP := IProp GF) pkg_id.github_com.Masterminds.semver.v3 $$ []
     · iPkgInit
-    wp_apply (semver.MustParse.pure hMP _) as %lvv %Hlv
-    obtain ⟨lv, rfl, Hlvnn⟩ : ∃ v : Loc, lvv = #v ∧ v ≠ null := by
-      rcases Hlv with ⟨-, h⟩ | ⟨Hn, -⟩
-      · exact h
-      · exact absurd (semver.semverValid_simple _ (by decide)) Hn
+    wp_apply (semver.MustParse.valid hMP _ (semver.semverValid_simple _ (by decide)))
+      as %lv %xlv ⟨%Hlvnn, #Hxlv⟩
     (try wp_auto)
-    wp_apply hCompare rv lv Hrv Hlvnn as %c -
+    wp_apply hCompare rv lv xrv xlv Hrv Hlvnn $$ [] as %c -
+    · iframe #
     (try wp_auto)
     iunfold EtcdGrove.errorsNewVar at HUS HMR HIV HCM
     icases HUS with ⟨%xUS, #HxUS, #HxUSM⟩
@@ -488,7 +489,8 @@ theorem rafthttp.streamReader.dial.wp_proof
     by_cases hc : c = W64 (-1)
     · rw [_root_.decide_eq_true hc]
       (try wp_auto)
-      wp_apply hCheckSS rv _ Hrv as %b -
+      wp_apply hCheckSS rv xrv _ Hrv $$ [] as %b -
+      · iframe #
       (try wp_auto)
       cases b
       · -- an older peer without this stream type

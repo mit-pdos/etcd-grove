@@ -149,7 +149,7 @@ theorem watchGRPCStream.run.wp_proof
     imod monoListLbOwn_nil (GF := GF) (A := v3rpc.WatchRespM) γs.down with #Hlb0
     ihave Hepst := client.epochSt_first G γs γc0 mi (auth.mdTokenOf md0) $$ Hep
     ihave Hepst : iprop(∃ tok, client.epochSt G γs 0 mi tok ∗ ⌜∃ md, tok = auth.mdTokenOf md ∧
-        clientAttemptMd (V0.atIdx mi).conn (GoInterface.ok G.ctx) md⌝) $$ [Hepst]
+        clientAttemptMd (V0.atIdx mi).conn G.omd md⌝) $$ [Hepst]
     · iexists _; iframe Hepst; ipureintro; exact ⟨md0, rfl, Hmi.2⟩
     -- (W3b) the first epoch, at the stream's member `mi`
     ihave #HGmi := client.isWGS_atIdx V0 G callSl mi Hmi.1 $$ HG0
@@ -374,7 +374,7 @@ theorem watchGRPCStream.run.wp_proof
         ⟨Hpsa, #Hps0⟩
       let Ppre : WsPrm GF := WsPrm.mk P0.o P0.rev P0.ctx P0.cs P0.key P0.ed P0.cn P0.pn P0.wbl
         P0.flt P0.retc P0.γret «$r0_ptr» (EtcdWatchNames.mk G.γr γcur γcur2 (cplOf P0)) outc recvc G.γr γhi γh2 γx
-        P0.sr γps P0.kv P0.Q P0.n P0.bd
+        P0.sr γps P0.kv P0.Q P0.n P0.bd P0.omd
       imod start_spsc (V := go_etcd_io.etcd.client.v3.WatchResponse) outc
         (outcElem V.kv Ppre.γ P0.o P0.Q (wsRow V Ppre)) (fun _ => iprop(True)) γo
         $$ Houtc [Houto] with ⟨%γsp, #Hosp, Hoprod, Hocons⟩
@@ -383,7 +383,7 @@ theorem watchGRPCStream.run.wp_proof
         $$ Hrecvc Hrecvo with ⟨%γrr, #Hrsp, Hrprod, Hrcons2⟩
       let P : WsPrm GF := WsPrm.mk P0.o P0.rev P0.ctx P0.cs P0.key P0.ed P0.cn P0.pn P0.wbl
         P0.flt P0.retc P0.γret «$r0_ptr» (EtcdWatchNames.mk γsp γcur γcur2 (cplOf P0)) outc recvc γrr γhi γh2 γx
-        P0.sr γps P0.kv P0.Q P0.n P0.bd
+        P0.sr γps P0.kv P0.Q P0.n P0.bd P0.omd
       have eq1 : (isSpsc γsp outc (outcElem V.kv Ppre.γ P0.o P0.Q (wsRow V Ppre))
           (fun _ => iprop(True)) : IProp GF) =
           isSpsc P.γ.spsc P.outc (outcElem V.kv P.γ P.o P.Q (wsRow V P))
@@ -729,7 +729,7 @@ theorem watchGRPCStream.run.wp_proof
       icases client.respcE_at V G γs b rcv.length mi tok p (by omega) hmi hmw $$ [Hepst Hel] with ⟨Hepst, Hel⟩
       · iframe
       ihave Hepst : iprop(∃ tok', client.epochSt G γs b mi tok' ∗ ⌜∃ md, tok' = auth.mdTokenOf md ∧
-          clientAttemptMd V.conn (GoInterface.ok G.ctx) md⌝) $$ [Hepst]
+          clientAttemptMd V.conn G.omd md⌝) $$ [Hepst]
       · iexists tok; iframe Hepst; ipureintro; exact Htok
       have hj : rcv.length - b = S.Dm.length := by omega
       rw [hj]
@@ -1139,7 +1139,7 @@ theorem watchGRPCStream.run.wp_proof
                   isplitr
                   · ipureintro; exact ⟨Hcrg, Hlorr⟩
                   isplitr
-                  · iapply wsIs_row V P tok G.ctx Htok Hkey
+                  · iapply wsIs_row V P tok G.omd Htok Hkey
                     iframe Hconn HP
                     irevert Hauthd
                     rw [hrR]
@@ -1458,7 +1458,7 @@ theorem watchGRPCStream.run.wp_proof
                 isplitr
                 · ipureintro; exact ⟨Hcrg, Hlorr⟩
                 isplitr
-                · iapply wsIs_row V P tok G.ctx Htok Hkey
+                · iapply wsIs_row V P tok G.omd Htok Hkey
                   iframe Hconn HP
                   irevert Hauthd
                   rw [hrR]
@@ -2566,7 +2566,7 @@ theorem watchGRPCStream.run.wp_proof
       icases Herr with ⟨%Hen, #Herrk, #Hsec, Hpback⟩
       ihave #Hse := closeErrOk_status _ $$ Hsec
       wp_auto
-      wp_apply +noauto wp_isHaltErr G.ctx G.cd err $$ [] as %bh %Hbh
+      wp_apply +noauto wp_isHaltErr G.ctx G.cd err $$ [] as %bh -
       · iframe Hse HGctx
       cases bh
       · -- (D25) not a halting error: no leader, or a reconnection
@@ -2659,7 +2659,7 @@ theorem watchGRPCStream.run.wp_proof
         ihave Hepst := client.epochSt_open G γs' sent.length γc' mi2 (auth.mdTokenOf md2) eps $$ [Hep Hend]
         · iframe
         ihave Hepst : iprop(∃ tok, client.epochSt G γs' sent.length mi2 tok ∗ ⌜∃ md,
-            tok = auth.mdTokenOf md ∧ clientAttemptMd (V.atIdx mi2).conn (GoInterface.ok G.ctx) md⌝)
+            tok = auth.mdTokenOf md ∧ clientAttemptMd (V.atIdx mi2).conn G.omd md⌝)
           $$ [Hepst]
         · iexists _; iframe Hepst; ipureintro; exact ⟨md2, rfl, Hmi2.2⟩
         ihave Hels := Hels' $$ %γs' %mi2

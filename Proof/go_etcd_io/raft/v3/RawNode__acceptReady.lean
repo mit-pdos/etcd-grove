@@ -269,7 +269,9 @@ theorem RawNode.acceptReady.wp_proof
   icases ghostRest_certLink γ _ cf id _ $$ Hrest with ⟨#Hlink, Hrest⟩
   -- (raft-final) the transfer records' witnesses, for the self-addressed responses' `isRaftMsg`
   icases ghostRest_xfW γ _ cf id _ $$ Hrest with ⟨#Hxw, Hrest⟩
-  imod qCerts_of_srcs γ _ (ms1 ++ ms2) ⊤ CoPset.subseteq_top $$ Hlink Hscert with #Hqc
+  ihave #HscertAll := qSrcs_mono _ (ms1 ++ ms2) (· ∈ s.logst.ksn) (fun _ => True)
+    (fun _ _ => trivial) $$ Hscert
+  imod qCerts_of_srcs γ _ (ms1 ++ ms2) ⊤ CoPset.subseteq_top $$ Hlink HscertAll with #Hqc
   icases ownRaftGhost_storedRecs_keep _ _ _ $$ Hghost with ⟨Hghost, #Hlr⟩
   icases ownRaftGhost_terms_le _ _ _ $$ Hghost with ⟨%Htle, Hghost⟩
   -- (2026-11-11, slice 28n) at a traced cluster, the log's numbers within the trace's bound, for the
@@ -1141,6 +1143,11 @@ theorem RawNode.acceptReady.wp_proof
   iframe Hss
   isplitr
   · ipureintro; exact Hssn
+  ihave #Hhist' : restoredSnapHistory γ id (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst.ksn $$ []
+  · rw [Hlogst, Haf6, Hf_ksn]; iexact Hhist
+  ihave Hledger' := restoreLedger_keep γ id rs.sn (s := s)
+    (s' := readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length))
+    (Int.le_refl _) (by rw [Hlogst, Haf6, Hf_ksn]) (by rw [HcmN]; exact Int.le_refl _) (fun _ h _ => False.elim (List.not_mem_nil h)) $$ Hledger
   ihave #Hsloc' := snapLocOk_keep γ id (o' := (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst.snap)
     (.inl (by rw [Hlogst, Haf2, Hf_snap])) $$ Hsloc
   -- (U8 v2) the certified height after the `Ready`: the committed log handed out
@@ -1217,7 +1224,7 @@ theorem RawNode.acceptReady.wp_proof
     ⟨fun h => readyNstate_guard (Hpvoff.1 h), Hpvoff.2.1, Hpvoff.2.2.1, Hpvoff.2.2.2.1,
       readyNstate_snapFol Hpvoff.2.2.2.2⟩ rfl rfl
     (by rw [Hlogst, Haf4, Hf_cm]; exact Hrs_clb) HrnflN HloanN
-    HsdtN HroleN HphsN $$ Hrn Hphys Hghost Hsdrf Hpsp Hph Hsteps Hsteps_cap Hpend Hcommitted Hstrecs' Hloanc Hsloc' [] Hrntr
+    HsdtN HroleN HphsN $$ Hrn Hphys Hghost Hsdrf Hpsp Hph Hsteps Hsteps_cap Hpend Hcommitted Hstrecs' Hloanc Hsloc' Hhist' Hledger' [] Hrntr
   · -- (durability stage II, G2; (i)) the `Ready` keeps the durable state's tie: the batch handed out
     -- (`readyDurable`) is what the storage holds once it is appended, the whole log (`durFull_cut`)
     have Hp' : (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst.prev = s.logst.prev := by

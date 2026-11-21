@@ -364,8 +364,6 @@ noncomputable def linkHeartbeatMessage [GooseExts] [GoGlobalContext] : GoString 
 noncomputable def linkHeartbeatSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.linkHeartbeatSize"
 
-opaque linkHeartbeatSize.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def errMemberRemoved [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.errMemberRemoved"
 
@@ -7564,6 +7562,71 @@ noncomputable def urlPicker.unreachable.impl [GooseExts] [GoGlobalContext] : val
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef urlPicker.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType urlPicker.ty)))) (Var "p")))) (Val #()))))))))
   (Val #()))))
 
+/-- NewRoundTripper returns a roundTripper used to send requests
+    to rafthttp listener of remote peers.
+
+    go: util.go:47:6 -/
+noncomputable def NewRoundTripper.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "tlsInfo"
+  (Lam "dialTimeout"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.net.http.RoundTripper.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.net.http.RoundTripper.ty))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "dialTimeout" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "dialTimeout"))
+  (Let "tlsInfo" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo.ty))) (Var "tlsInfo"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo.ty))) (Var "tlsInfo"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "dialTimeout"))
+  (Let "$a2" (Val #(W64 0))
+  (Let "$a3" (Val #(W64 0))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.NewTimeoutTransport []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.net.http.Transport.ty) _root_.Perennial.net.http.RoundTripper.ty))) (Var "$ret0"))
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.net.http.RoundTripper.ty))) (Pair (Var "$res0") (Var "$r0")))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.net.http.RoundTripper.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
+
+/-- newStreamRoundTripper returns a roundTripper used to send stream requests
+    to rafthttp listener of remote peers.
+    Read/write timeout is set for stream roundTripper to promptly
+    find out broken status, which minimizes the number of messages
+    sent on broken connection.
+
+    go: util.go:59:6 -/
+noncomputable def newStreamRoundTripper.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "tlsInfo"
+  (Lam "dialTimeout"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.net.http.RoundTripper.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.net.http.RoundTripper.ty))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "dialTimeout" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "dialTimeout"))
+  (Let "tlsInfo" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo.ty))) (Var "tlsInfo"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo.ty))) (Var "tlsInfo"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "dialTimeout"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GlobalVarAddr ConnReadTimeout))) (Val #())))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GlobalVarAddr ConnWriteTimeout))) (Val #())))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.NewTimeoutTransport []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.net.http.Transport.ty) _root_.Perennial.net.http.RoundTripper.ty))) (Var "$ret0"))
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.net.http.RoundTripper.ty))) (Pair (Var "$res0") (Var "$r0")))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.net.http.RoundTripper.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
+
 /-- createPostRequest creates a HTTP POST request that sends raft message.
 
     go: util.go:64:6 -/
@@ -8152,6 +8215,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(go!"/raft"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (GlobalVarAddr RaftPrefix))) (Val #())))
@@ -8390,6 +8454,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (Let "$v0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty go!"Enum"))) (Val #(W32 8))) (Val #()))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Type")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty) (Var "$v0")))])))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (App (Val (GoInstruction (GlobalVarAddr linkHeartbeatMessage))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.protobuf.proto.Size []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val #(go!"the member has been permanently removed from the cluster"))
   (Let "$a1" (Val #slice.nil)
@@ -8406,7 +8472,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr errMemberRemoved))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val linkHeartbeatSize.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (GlobalVarAddr linkHeartbeatSize))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr linkHeartbeatMessage))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -8601,6 +8667,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (go.GlobalAlloc supportedStream (go.GoType.MapType go.string (go.GoType.SliceType streamType.ty)))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc linkHeartbeatMessage _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc linkHeartbeatSize go.int)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc errMemberRemoved go.error)) (Val #()))))))
   (App (Val doExecute)
@@ -10410,6 +10478,8 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   startStreamWriter_unfold : FuncUnfold startStreamWriter [] startStreamWriter.impl
   checkStreamSupport_unfold : FuncUnfold checkStreamSupport [] checkStreamSupport.impl
   newURLPicker_unfold : FuncUnfold newURLPicker [] newURLPicker.impl
+  NewRoundTripper_unfold : FuncUnfold NewRoundTripper [] NewRoundTripper.impl
+  newStreamRoundTripper_unfold : FuncUnfold newStreamRoundTripper [] newStreamRoundTripper.impl
   createPostRequest_unfold : FuncUnfold createPostRequest [] createPostRequest.impl
   checkPostResponse_unfold : FuncUnfold checkPostResponse [] checkPostResponse.impl
   reportCriticalError_unfold : FuncUnfold reportCriticalError [] reportCriticalError.impl
@@ -10500,6 +10570,8 @@ attribute [instance] Assumptions.encoder_instance
   Assumptions.startStreamWriter_unfold
   Assumptions.checkStreamSupport_unfold
   Assumptions.newURLPicker_unfold
+  Assumptions.NewRoundTripper_unfold
+  Assumptions.newStreamRoundTripper_unfold
   Assumptions.createPostRequest_unfold
   Assumptions.checkPostResponse_unfold
   Assumptions.reportCriticalError_unfold

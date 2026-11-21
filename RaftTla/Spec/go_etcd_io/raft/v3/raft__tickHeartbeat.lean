@@ -78,8 +78,7 @@ abbrev raft.tickHeartbeat.spec : Prop :=
       "Hghost" ∷ ownStepGhost γ md c id s' ∗
       "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
       -- (2026-11-01, durability stage II (m)) and the term and the vote as the model moves them
-      "%Hcm" ∷ ⌜uint.Z s.logst.committed ≤ uint.Z s'.logst.committed ∧
-        PVoteLe (toPState s) (toPState s')⌝ ∗
+      "%Hcm" ∷ ⌜TickProgress s s'⌝ ∗
       "%Htick" ∷ ⌜TickStep s s'⌝ ∗
       -- (slice 12) no heartbeat: the first part's resource; else the heartbeat `Step`'s
       "HG" ∷ ((∃ s1 : NState, ⌜s' = s1 ∨ s' = { s1 with lt := W64 0 }⌝ ∗ Gm s1) ∨ Gout s') }}

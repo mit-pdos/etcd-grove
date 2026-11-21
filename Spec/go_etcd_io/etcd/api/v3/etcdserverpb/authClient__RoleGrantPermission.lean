@@ -32,12 +32,12 @@ encoding is below `grpcMsgMax` (2026-10-30: grpc marshals before it checks a siz
 `grpcInvokerOk`). -/
 abbrev etcdserverpb.authClient.RoleGrantPermission.spec : Prop :=
   ∀ (ac conn : Loc) (addr : List GoString)
-    (Spec : GrpcSpecMd (GF := GF) pbAuthRoleGrantPermissionRequest pbAuthRoleGrantPermissionResponse) (Φ : Unit → IProp GF) (ctx : GoInterfaceOk)
+    (Spec : GrpcSpecMd (GF := GF) pbAuthRoleGrantPermissionRequest pbAuthRoleGrantPermissionResponse) (Φ : Unit → IProp GF) (ctx : GoInterfaceOk) (om : GrpcMd)
     (cd : context.ContextDesc (IProp GF)) (inp : Loc) (m : (pbAuthRoleGrantPermissionRequest (GF := GF)).M)
     (opts : GoSlice) (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ authStubAt ac conn ∗
       isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Auth/RoleGrantPermission" Spec ∗
-      □ ▷ attemptPre conn (GoInterface.ok ctx) Spec m Φ ∗ ctxOk ctx cd ∗
+      metadata.outMD ctx om ∗ □ ▷ attemptPre conn om Spec m Φ ∗ ctxOk ctx cd ∗
       (pbAuthRoleGrantPermissionRequest (GF := GF)).send inp m ∗ opts ↦*□ vs ∗ callOptsOk vs ∗
       ⌜(pbAuthRoleGrantPermissionRequest (GF := GF)).wireLen m < grpcMsgMax⌝ }}
     (App (App (App (Val (ac @!! go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.authClient.ty @!! go!"RoleGrantPermission"))

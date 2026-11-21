@@ -4,15 +4,16 @@
 
 `k8s_robust`: the closed theorem of `examples/k8s/all` (`notes/k8s-unified-scope.md`, the user's
 decisions of 2026-11-20) as an instance of the generic robustness statement (`Robustness/Statement.lean`,
-`Robust crashing stable g bound`: in every execution of the machines that may crash and restart and of
+`Robust crashing stable g threads bound`: in every execution of the machines that may crash and restart and of
 those that never crash, each a fresh Go process, of fewer than `bound` steps, no thread is stuck and
 none has an unrecovered panic). The program runs, in one process and at once, the Kubernetes etcd3
-store's workload on `k` etcd members under the partition schedule `steps₁` (porcupine checks the
+store's workload on `k₁` etcd members under the partition schedule `steps₁` (porcupine checks the
 history against the driver's model of the store, and the driver panics if it is not linearizable) and
-Kubernetes' compactor run by five API servers and a writer on three more members under the schedule
+Kubernetes' compactor run by five API servers and a writer on `k₂` more members under the schedule
 `steps₂` (each API server panics if its compactor's revision decreases or runs ahead of the cluster):
-so no such check fails, for every `1 ≤ k ≤ 1000` and every two schedules. It replaces the two
-drivers' five separate theorems (retired 2026-11-20). This file only states it (to audit); the proof
+so no such check fails, for every `1 ≤ k₁ ≤ 1000`, every `1 ≤ k₂ ≤ 600` and every two schedules. It
+replaces the two drivers' five separate theorems (retired 2026-11-20); the compactor's cluster has `k₂`
+members since 2026-11-20 (`notes/k8s-compactor-n-plan.md`, approved by the user), three before. This file only states it (to audit); the proof
 is in `Proof/github_com/mit_pdos/etcd_grove/examples/k8s/all/TopLevelRobustness.lean`.
 
 **The premises** are the union of the two drivers' theorems' (`k8s_etcd3_partition_safe`'s and
@@ -24,7 +25,9 @@ step bound), `time.After`'s contract (the compactor's), the file system's initia
 WAL areas; and one new premise, `Hlow`: the 16 low bits of the ids of the process's every member
 (both clusters') are distinct, the precondition of the trusted model of etcd's request-id generator
 (`TrustedCode/go_etcd_io/etcd/pkg/v3/idutil.lean`: no two generators of the process issue one id),
-checked for every `k ≤ 1000` by `examples/k8s/all`'s `TestMemberIDs`. The proof does not use it: it
+checked for every `k₁ ≤ 1000` and `k₂ ≤ 600` by `examples/k8s/all`'s `TestMemberIDs` (the bound on
+`k₂`: with the store's 1000 ids fixed, no compactor token keeps 1000 more distinct; the plan's §3).
+The proof does not use it: it
 states the condition under which that trusted model is faithful (each cluster's own `BootFacts` states
 it for that cluster, `BootCore.lowNodup`).
 -/
@@ -78,14 +81,16 @@ def k8s_robust.spec : Prop :=
     (Hcec : ∀ hG : HeapGS .hasLC k8sGF, ContextErrsClient (GF := k8sGF) (hG := k8sHeapAt hG lctx))
     (Hafter : ∀ hG : HeapGS .hasLC k8sGF,
       EtcdGrove.clock.RealClock.After.spec (GF := k8sGF) (hG := k8sHeapAt hG lctx))
-    -- the store's cluster: `k` members
-    (k : Nat) (hk1 : 1 ≤ k) (hk : k ≤ 1000) (ids : List w64) (ps : List w64) (ctxs : List (List w8))
-    (boot : List LogEntry) (Hlen : ids.length = k) (Hbf : k8s_etcd3N.BootFacts ids ps ctxs boot)
-    -- the compactor's cluster: three members
-    (id₁ id₂ id₃ : w64) (ps' : List w64) (ctxs' : List (List w8)) (boot' : List LogEntry)
-    (Hbf' : cluster3.BootFacts id₁ id₂ id₃ ps' ctxs' boot')
+    -- the store's cluster: `k₁` members
+    (k₁ : Nat) (hk₁1 : 1 ≤ k₁) (hk₁ : k₁ ≤ 1000) (ids : List w64) (ps : List w64)
+    (ctxs : List (List w8)) (boot : List LogEntry) (Hlen : ids.length = k₁)
+    (Hbf : k8s_etcd3N.BootFacts ids ps ctxs boot)
+    -- the compactor's cluster: `k₂` members
+    (k₂ : Nat) (hk₂1 : 1 ≤ k₂) (hk₂ : k₂ ≤ 600) (ids' : List w64) (ps' : List w64)
+    (ctxs' : List (List w8)) (boot' : List LogEntry) (Hlen' : ids'.length = k₂)
+    (Hbf' : k8s_compactorN.BootFacts ids' ps' ctxs' boot')
     -- the process's every member: their ids' 16 low bits distinct (idutil's trusted model)
-    (Hlow : ((ids ++ [id₁, id₂, id₃]).map (fun id => uint.Z id % 2 ^ 16)).Nodup)
+    (Hlow : ((ids ++ ids').map (fun id => uint.Z id % 2 ^ 16)).Nodup)
     (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit)
     (Hdbo : storage.diskOk)
     -- the store's workload
@@ -96,19 +101,19 @@ def k8s_robust.spec : Prop :=
     -- the two partition schedules
     (steps₁ steps₂ : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step)
     (Hsteps₁ : steps₁.length < 2 ^ 63) (Hsteps₂ : steps₂.length < 2 ^ 63)
-    (HNs : prometheus.namesUnclaimed (k8sProgram k clients ops watchers wops steps₁ steps₂) k8sNames)
-    (HAs : addrsUnclaimed (k8sProgram k clients ops watchers wops steps₁ steps₂) (k8sAddrs k))
-    (HDs : dataDirsAbsent (k8sProgram k clients ops watchers wops steps₁ steps₂) (k8sDirs k))
-    (HEnv : verifyEnvOff (k8sProgram k clients ops watchers wops steps₁ steps₂))
+    (HNs : prometheus.namesUnclaimed (k8sProgram k₁ clients ops watchers wops steps₁ k₂ steps₂) k8sNames)
+    (HAs : addrsUnclaimed (k8sProgram k₁ clients ops watchers wops steps₁ k₂ steps₂) (k8sAddrs k₁ k₂))
+    (HDs : dataDirsAbsent (k8sProgram k₁ clients ops watchers wops steps₁ k₂ steps₂) (k8sDirs k₁ k₂))
+    (HEnv : verifyEnvOff (k8sProgram k₁ clients ops watchers wops steps₁ k₂ steps₂))
     (Hprem₁ : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC k8sGF,
-      ⊢ k8s_etcd3N.premises (GF := k8sGF) (hG := k8sHeapAt hG lctx) k n ids ps ctxs boot)
+      ⊢ k8s_etcd3N.premises (GF := k8sGF) (hG := k8sHeapAt hG lctx) k₁ n ids ps ctxs boot)
     (Hprem₂ : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC k8sGF,
-      ⊢ cluster3.premises (GF := k8sGF) (hG := k8sHeapAt hG lctx) k8s_compactor.clusterCfg n
-        id₁ id₂ id₃ ps' ctxs' boot')
+      ⊢ k8s_compactorN.premises (GF := k8sGF) (hG := k8sHeapAt hG lctx) k₂ n ids' ps' ctxs' boot')
     (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
-    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (k8sDirs k)),
-    Robustness.Robust [] [(k8sProgram k clients ops watchers wops steps₁ steps₂, σ)] g (2 ^ 28 - 1)
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (k8sDirs k₁ k₂)),
+    Robustness.Robust [] [(k8sProgram k₁ clients ops watchers wops steps₁ k₂ steps₂, σ)] g
+      (threads := 2 ^ 28) (bound := 2 ^ 28 - 1)
 
 end adequacy
 end EtcdGrove

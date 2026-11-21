@@ -68,7 +68,7 @@ theorem srv_netRaftOk
   · iintro !> %x %st %Φ !> - HΦ
     ihave #Hok' := Hok
     iunfold srvProcOk at Hok'
-    icases Hok' with ⟨%l, %c, %stp, %γ, -, -, -, -, -, -, -, -, #Hn, #Hsi, -, -, -⟩
+    icases Hok' with ⟨%l, %c, %stp, %γ, -, -, -, -, -, -, -, -, -, #Hn, #Hsi, -, -, -⟩
     wp_apply wp_ReportSnapshot γ s x st
     · iframe #
     iapply HΦ; itrivial

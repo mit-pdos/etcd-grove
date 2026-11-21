@@ -5,13 +5,13 @@
 The program the one closed Kubernetes theorem (`k8s_safe`, `notes/k8s-unified-scope.md`) is about, and
 the other definitions its statement names: the ghost-state bundle (the k8s etcd3 driver's, with
 iris-lean's non-atomic invariants for porcupine), the read package's metric names, and the two
-clusters' addresses and data directories, the store's (`k8s_etcd3N`, `k` members) then the
-compactor's (`k8s_compactor.clusterCfg`, three members).
+clusters' addresses and data directories, the store's (`k8s_etcd3N`, `k₁` members) then the
+compactor's (`k8s_compactorN`, `k₂` members; `notes/k8s-compactor-n-plan.md`).
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.DirN
-public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Cluster
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.DirN
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.all.PkgTable
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.SchedLit
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartRes
@@ -88,42 +88,32 @@ section adequacy
 
 variable [go_gctx : GoGlobalContext]
 
-/-- **The program**: `k8sall`'s initialization, then `Main(k, clients, ops, watchers, wops, sched1,
-sched2)` with the two schedules `steps₁` (the store's cluster) and `steps₂` (the compactor's) built as
-slice literals (`schedLit`). -/
-def k8sProgram [GoSemanticsFunctions] (k : Nat) (clients ops watchers wops : w64)
-    (steps₁ steps₂ : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) : Expr :=
+/-- **The program**: `k8sall`'s initialization, then `Main(k1, clients, ops, watchers, wops, sched1,
+k2, sched2)` with the two member counts `k₁` (the store's cluster) and `k₂` (the compactor's) and the
+two schedules `steps₁` and `steps₂` built as slice literals (`schedLit`). -/
+def k8sProgram [GoSemanticsFunctions] (k₁ : Nat) (clients ops watchers wops : w64)
+    (steps₁ : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) (k₂ : Nat)
+    (steps₂ : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) : Expr :=
   github_com.mit_pdos.etcd_grove.examples.k8s.all.initialize' #() ;;
-  App (App (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.all.Main))
-    (Val #(W64 (k : Int)))) (Val #clients)) (Val #ops)) (Val #watchers)) (Val #wops))
-    (schedLit steps₁)) (schedLit steps₂)
+  App (App (App (App (App (App (App (App
+    (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.all.Main))
+    (Val #(W64 (k₁ : Int)))) (Val #clients)) (Val #ops)) (Val #watchers)) (Val #wops))
+    (schedLit steps₁)) (Val #(W64 (k₂ : Int)))) (schedLit steps₂)
 
 /-- The metric names the program's initialization registers (its closure's `PRE_RES` packages', D16;
 mustreg, 2026-11-20, until then the read package's two, `readRegPerm`): its `initNames`. -/
 def k8sNames : List GoString := _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.all.initNames
 
-/-- The compactor cluster's addresses: its three members' peer addresses, their client addresses and
-their bridges' addresses (`k8s_compactor.clusterCfg`'s). -/
-def k8sCompactorAddrs : List GoString :=
-  [k8s_compactor.clusterCfg.Peer1', k8s_compactor.clusterCfg.Peer2', k8s_compactor.clusterCfg.Peer3',
-    k8s_compactor.clusterCfg.Client1', k8s_compactor.clusterCfg.Client2',
-    k8s_compactor.clusterCfg.Client3',
-    k8s_compactor.clusterCfg.Bridge1', k8s_compactor.clusterCfg.Bridge2',
-    k8s_compactor.clusterCfg.Bridge3']
-
-/-- The compactor cluster's members' data directories `<name>.etcd`. -/
-def k8sCompactorDirs : List GoString :=
-  [(memberDataDir k8s_compactor.clusterCfg.Name1'),
-    (memberDataDir k8s_compactor.clusterCfg.Name2'),
-    (memberDataDir k8s_compactor.clusterCfg.Name3')]
-
-/-- **The program's addresses**: the store cluster's (`k8s_etcd3N.k8setcd3NAddrs k`: its `k` members'
-peer and client addresses and its bridges'), then the compactor cluster's. -/
-def k8sAddrs (k : Nat) : List GoString := k8s_etcd3N.k8setcd3NAddrs k ++ k8sCompactorAddrs
+/-- **The program's addresses**: the store cluster's (`k8s_etcd3N.k8setcd3NAddrs k₁`: its `k₁` members'
+peer and client addresses and its bridges'), then the compactor cluster's
+(`k8s_compactorN.k8scompactorNAddrs k₂`, likewise). -/
+def k8sAddrs (k₁ k₂ : Nat) : List GoString :=
+  k8s_etcd3N.k8setcd3NAddrs k₁ ++ k8s_compactorN.k8scompactorNAddrs k₂
 
 /-- **The program's data directories**: the store cluster's `k8setcd3N-i.etcd`, then the compactor
-cluster's `k8scompactorp-{1,2,3}.etcd`. -/
-def k8sDirs (k : Nat) : List GoString := k8s_etcd3N.k8setcd3NDirs k ++ k8sCompactorDirs
+cluster's `k8scompactorN-j.etcd`. -/
+def k8sDirs (k₁ k₂ : Nat) : List GoString :=
+  k8s_etcd3N.k8setcd3NDirs k₁ ++ k8s_compactorN.k8scompactorNDirs k₂
 
 end adequacy
 end EtcdGrove

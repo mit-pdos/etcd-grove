@@ -28,7 +28,7 @@ theorem setupNode.wp_proof
     setupNode.spec (GF := GF) (hG := hG) := by
   intro γ md c cv lok si sn σ hs csm R R' peers dq pv ps ctxs bootLog P1 P2 P3 P4 P5 P6 P7 P8 P9 Hmx Hsnz P10
     S1 S2 S3 S4 S5 S6 Hhs Q1 Q2 Q3 Q4 Q5 Hfl0 Hun R1 R2 R3 R4 R5 R6 R7 R8 R9 Htrc
-  wp_start as ⟨Hc, #Hlg, HR, #HFI, #HLI, #HIS, Hpeers, #Hctx, #Hmarshal, Hghost, #Hcommitted, #Hcl,
+  wp_start as ⟨Hc, #Hlg, HR, #HFI, #HLI, #HIS, Hpeers, #Hctx, #Hmarshal, Hghost, #Hcommitted, #Hcl, Hhistory,
     Hcs⟩
   ihave %Hplen := ownSlice_len $$ Hpeers
   have Hpvne : pv ≠ [] := by
@@ -97,7 +97,7 @@ theorem setupNode.wp_proof
   wp_apply wp_RawNode_Bootstrap γ md rn r cv.ID' si cv.StepDownOnRemoval' cv.PreVote' s peers dq pv ps
     ctxs bootLog R1 R2 R3 R4 R5 R6 R7 R8 R9 Hgtr
     (fun h => ⟨(Htrc h).1, by rw [Hcq]; exact (Htrc h).2.1, (Htrc h).2.2⟩)
-    $$ [$Hfresh $Hpeers $Hctx $Hmarshal $Hghost $Hcommitted $Hcl $Hcap $Hnc $Hnscap]
+    $$ [$Hfresh $Hpeers $Hctx $Hmarshal $Hghost $Hcommitted $Hcl $Hhistory $Hcap $Hnc $Hnscap]
     as %err2 ⟨%Herr2, Hrn, Hpeers, #HbD⟩
   subst Herr2
   wp_auto

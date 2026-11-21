@@ -9,7 +9,9 @@ whole `OsMeta` and bytes cut off at `FtruncateStart` (its owner knows the state 
 halves, by agreement with its own) and commits with the token (`rsTok`, kept by the update's owner
 while the change is in flight); its commit is the second, which lends the token at `FtruncateFinish`
 and commits with what the step left (`rsOutT`, whole), giving the caller its halves (`os.truncOutH`)
-and `K` back. The post is `File__Truncate.lean`'s at half (`os.ftDoneH`, `os.ftUndoneH`), with `K`.
+and `K` back. The post is `File__Truncate.lean`'s at half (`os.ftDoneH`, `os.ftUndoneH`), with `K`; an
+error only when the file system can fail on an inode or the target is past `maxBytes` (`¬ FsNoErrIno ∨
+maxBytes < sz`, wal-fsfix2: `NoIoErr` covers `FtruncateFinish`).
 Proof: `Proof/os/File__TruncateAu.lean` (proved: the loop of `File__Truncate.lean`'s proof over
 `wp_osFtruncateStart_auW`/`wp_osFtruncateFinish_au`). Lean-first.
 
@@ -22,6 +24,7 @@ module
 public import Proof.os.ResizeAuW
 public import Proof.os.TcKnows
 public import Spec.fmt.ErrorOk
+public import GooseLang.Ext.Fs.FsNoErr
 
 @[expose] public section
 
@@ -115,7 +118,7 @@ abbrev os.File.Truncate.specAu : Prop :=
     (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Truncate")) (Val #sz))
   {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ osFd fd dq d ∗ K ∗
       ((⌜err = interface.nil⌝ ∗ ∃ zs, os.ftDoneH d.ino m sz.toNat zs) ∨
-       (⌜err ≠ interface.nil⌝ ∗
+       (⌜err ≠ interface.nil ∧ (¬ FsNoErrIno ∨ maxBytes < sz.toNat)⌝ ∗
          ((∃ zs, os.ftDoneH d.ino m sz.toNat zs) ∨
           ∃ xs' : List ByteG, ⌜xs'.map Prod.fst = xs.map Prod.fst⌝ ∗
             os.ftUndoneH d.ino m sz.toNat xs'))) ∗

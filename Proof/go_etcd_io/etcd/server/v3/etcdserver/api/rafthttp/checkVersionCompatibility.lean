@@ -51,34 +51,32 @@ theorem rafthttp.checkVersionCompatibility.wp_proof
     (hString : semver.Version.String.spec (GF := GF) (hG := hG))
     (hErrorf : fmt.Errorf.spec (GF := GF) (hG := hG)) :
     rafthttp.checkVersionCompatibility.spec (GF := GF) (hG := hG) := by
-  intro name server minCluster Hs Hm
-  wp_start as -
+  intro name server minCluster xs xm Hs Hm
+  wp_start as ⟨#Hxs, #Hxm⟩
   ihave #Hpver : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.version $$ []
   · iPkgInit
   ihave #Hvi : iprop(globalAddr go_etcd_io.etcd.api.v3.version.Version ↦□ go!"3.8.0-alpha.0" ∗
       (∃ v : github_com.Masterminds.semver.v3.Version,
         globalAddr go_etcd_io.etcd.api.v3.version.V3_6 ↦□ v) ∗
-      globalAddr go_etcd_io.etcd.api.v3.version.MinClusterVersion ↦□ go!"3.0.0") $$ []
+      globalAddr go_etcd_io.etcd.api.v3.version.MinClusterVersion ↦□ go!"3.0.0" ∗
+      (∃ v7 v8 : github_com.Masterminds.semver.v3.Version,
+        globalAddr go_etcd_io.etcd.api.v3.version.V3_7 ↦□ v7 ∗
+        globalAddr go_etcd_io.etcd.api.v3.version.V3_8 ↦□ v8)) $$ []
   · iapply isPkgInit_access $$ Hpver
-  icases Hvi with ⟨#HVer, -, #HMCV⟩
+  icases Hvi with ⟨#HVer, -, #HMCV, -⟩
   ihave #Hsp : isPkgInit (PROP := IProp GF) pkg_id.github_com.Masterminds.semver.v3 $$ []
   · iPkgInit
   ihave #Hfp : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
   · iPkgInit
   wp_auto
-  wp_apply (semver.MustParse.pure hMP _) as %lsv %Hls
-  obtain ⟨ls, rfl, Hlsnn⟩ : ∃ v : Loc, lsv = #v ∧ v ≠ null := by
-    rcases Hls with ⟨-, h⟩ | ⟨Hn, -⟩
-    · exact h
-    · exact absurd (semver.semverValid_simple _ (by decide)) Hn
+  wp_apply (semver.MustParse.valid hMP _ (semver.semverValid_simple _ (by decide)))
+    as %ls %xls ⟨%Hlsnn, #Hls⟩
   (try wp_auto)
-  wp_apply (semver.MustParse.pure hMP _) as %lmv %Hlm
-  obtain ⟨lm, rfl, Hlmnn⟩ : ∃ v : Loc, lmv = #v ∧ v ≠ null := by
-    rcases Hlm with ⟨-, h⟩ | ⟨Hn, -⟩
-    · exact h
-    · exact absurd (semver.semverValid_simple _ (by decide)) Hn
+  wp_apply (semver.MustParse.valid hMP _ (semver.semverValid_simple _ (by decide)))
+    as %lm %xlm ⟨%Hlmnn, #Hlm⟩
   (try wp_auto)
-  wp_apply hCompare server lm Hs Hlmnn as %c1 -
+  wp_apply hCompare server lm xs xlm Hs Hlmnn $$ [] as %c1 -
+  · iframe #
   (try wp_auto)
   wp_if_destruct
   · wp_apply wp_slice_literal (V := GoInterface)
@@ -104,9 +102,13 @@ theorem rafthttp.checkVersionCompatibility.wp_proof
         · ipureintro; fmt_method_facts
       itrivial
     (try wp_auto)
-    iapply HΦ; ipureintro; exact ⟨Hlsnn, Hlmnn⟩
+    iapply HΦ
+    isplitr
+    · ipureintro; exact ⟨Hlsnn, Hlmnn⟩
+    isplitl [] <;> (iexists _; iassumption)
   (try wp_auto)
-  wp_apply hCompare minCluster ls Hm Hlsnn as %c2 -
+  wp_apply hCompare minCluster ls xm xls Hm Hlsnn $$ [] as %c2 -
+  · iframe #
   (try wp_auto)
   wp_if_destruct
   · wp_apply wp_slice_literal (V := GoInterface)
@@ -132,9 +134,15 @@ theorem rafthttp.checkVersionCompatibility.wp_proof
         · ipureintro; fmt_method_facts
       itrivial
     (try wp_auto)
-    iapply HΦ; ipureintro; exact ⟨Hlsnn, Hlmnn⟩
+    iapply HΦ
+    isplitr
+    · ipureintro; exact ⟨Hlsnn, Hlmnn⟩
+    isplitl [] <;> (iexists _; iassumption)
   (try wp_auto)
-  iapply HΦ; ipureintro; exact ⟨Hlsnn, Hlmnn⟩
+  iapply HΦ
+  isplitr
+  · ipureintro; exact ⟨Hlsnn, Hlmnn⟩
+  isplitl [] <;> (iexists _; iassumption)
 
 end proof
 

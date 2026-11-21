@@ -3,6 +3,10 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.context
+public import Perennial.GeneratedProof.fmt
+public import GeneratedProof.k8s_io.apimachinery.pkg.util.sets
+public import GeneratedProof.k8s_io.apiserver.pkg.authentication.user
+public import GeneratedProof.k8s_io.apiserver.pkg.endpoints.request
 public import Perennial.Golang.Theory
 public import Code.k8s_io.apiserver.pkg.util.flowcontrol
 
@@ -45,12 +49,50 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
 
 noncomputable instance RequestDigest_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest where
+  typedPointstoDef l v dq := iprop(
+    "RequestInfo" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest go!"RequestInfo" l) v.RequestInfo' dq ∗
+    "User" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest go!"User" l) v.User' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance RequestDigest_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance RequestDigest_access_load_RequestInfo (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest go!"RequestInfo" l) v.RequestInfo' dq)
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest go!"RequestInfo" l) v.RequestInfo' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance RequestDigest_access_store_RequestInfo (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest) (RequestInfo' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest go!"RequestInfo" l) v.RequestInfo' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest go!"RequestInfo" l) RequestInfo' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RequestInfo' := RequestInfo' } : k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance RequestDigest_access_load_User (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest go!"User" l) v.User' dq)
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest go!"User" l) v.User' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance RequestDigest_access_store_User (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest) (User' : k8s_io.apiserver.pkg.authentication.user.Info) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest go!"User" l) v.User' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest go!"User" l) User' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with User' := User' } : k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end RequestDigest

@@ -1,8 +1,12 @@
 # Types and names only: function and method bodies are axiomatized; (prove-errinits, 2026-11-19) the
 # error variables (`errors.go`: `errors.New` calls) translated.
+# (prove-etcdserver, 2026-11-20) `NewMonitor` with its body (an allocation; the server's
+# `monitorDowngrade` calls it), and the imports its types name, so that `Server` (an interface) and
+# `Monitor` are translated (until then opaque: the etcdserver's `var _ Server = ...` did not step)
 translate = ["!*", "ErrInvalidDowngradeTargetVersion", "ErrDowngradeInProcess",
-  "ErrNoInflightDowngrade"]
-imports = ["!*", "errors"]
+  "ErrNoInflightDowngrade", "NewMonitor"]
+imports = ["!*", "errors", "context", "github.com/Masterminds/semver/v3", "go.uber.org/zap",
+  "go.etcd.io/etcd/api/v3/version"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

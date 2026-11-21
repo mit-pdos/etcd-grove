@@ -12,13 +12,8 @@ axiom Client.Endpoints.wp_proof
 axiom context.WithCancelValCtx.wp_proof
 axiom envVerifyOffTok
 axiom errors.IsStatusErr.wp_proof
-axiom fmt.Errorf.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof
-axiom grpc.GenericClientStream.CloseSend.wp_proof
-axiom grpc.GenericClientStream.Context.wp_proof
-axiom grpc.GenericClientStream.Recv.wp_proof
-axiom grpc.GenericClientStream.Send.wp_proof
 axiom grpcAddrIsRaw
 axiom grpcConn
 axiom grpcConn_persistent
@@ -44,7 +39,6 @@ axiom status.FromError.wp_proof
 axiom strconv.FormatInt.wp_proof
 axiom strconv.ParseInt.wp_proof
 axiom streamKeyFromCtx.wp_proof
-axiom time.Time.IsZero.wp_proof
 axiom v3rpc.pbWatchRequestT_reg
 axiom v3rpc.pbWatchResponseT_reg
 axiom zap.Logger.check.wp_proof

@@ -95,10 +95,10 @@ abbrev node.splitTwo.spec : Prop :=
   {{ (nx : Loc), RET (PairV #nl #nx);
       statsTok r m q ∗
       nv.bucket'.[Bucket, go!"FillPercent"] ↦{dqf} f ∗ nv.bucket'.[Bucket, go!"tx"] ↦{dqt} tx ∗
-      ((⌜nx = null ∧ pieceFits ps.toNat ins⌝ ∗ nl ↦ nv ∗ nv.inodes' ↦* ins ∗
+      ((⌜nx = null ∧ pieceFitFor nv.isLeaf' ps.toNat ins⌝ ∗ nl ↦ nv ∗ nv.inodes' ↦* ins ∗
           ownSliceCap Inode nv.inodes' (DFrac.own 1) ∗ parentOwn nv.parent' pv pcs) ∨
         (∃ (k : Nat) (pl : Loc) (pv' : node) (pcs' : List Loc),
-          ⌜2 ≤ k ∧ k + 3 ≤ ins.length ∧ pieceFits ps.toNat (ins.take k) ∧ nx ≠ null ∧ pl ≠ null ∧
+          ⌜pieceMin nv.isLeaf' ≤ k ∧ k + remainderMin nv.isLeaf' ≤ ins.length ∧ pieceFitFor nv.isLeaf' ps.toNat (ins.take k) ∧ nx ≠ null ∧ pl ≠ null ∧
             splitParent nl nx nv pv pcs pl pv' pcs'⌝ ∗
           nl ↦ splitLeft nv pl k ∗ inodesL nv k ↦* ins.take k ∗
           nx ↦ splitRight nv pl k ∗ inodesR nv k ↦* ins.drop k ∗

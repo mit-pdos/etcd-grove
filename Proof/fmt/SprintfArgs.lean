@@ -1,10 +1,12 @@
 /-
-The trust boundary: `fmt.Sprintf` for arguments that are not all of predeclared basic types
-(as `fmt.Printf`, `Proof/fmt/Printf.lean`; rafthttp stage 7e, the user's choice).
+`fmt.Sprintf` for arguments whose `Error()`/`String()` Go calls: from Perennial's `fmt.wp_Sprintf`
+(fmtmodel, 2026-11-20: Perennial's model formats and calls the arguments' methods as Go does; until
+then an axiom here).
 -/
 module
 
 public import Spec.fmt.SprintfArgs
+public import Perennial.Proof.fmt
 
 @[expose] public section
 
@@ -13,7 +15,7 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI
+open Iris Iris.BI Iris.ProofMode
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -22,10 +24,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.fmt.Assumptions]
 
-/-- **The trust boundary**: Go's `fmt.Sprintf` formats its arguments and returns the result.
-For the arguments `fmt.argsOk` allows it calls only their `Error()`/`String()` methods, which
-return a string without effects by that premise; it only reads the arguments' slice. -/
-axiom fmt.SprintfArgs.wp_proof : fmt.SprintfArgs.spec (GF := GF) (hG := hG)
+theorem fmt.SprintfArgs.wp_proof : fmt.SprintfArgs.spec (GF := GF) (hG := hG) := by
+  intro format args_sl xs dq
+  iintro %Φ ⟨#Hpkg, Hsl, Hok⟩ HΦ
+  wp_apply (_root_.Perennial.fmt.wp_Sprintf format args_sl xs dq) $$ [$Hpkg $Hsl $Hok]
+    as %s ⟨Hsl, -⟩
+  iapply HΦ
+  iframe
 
 end proof
 

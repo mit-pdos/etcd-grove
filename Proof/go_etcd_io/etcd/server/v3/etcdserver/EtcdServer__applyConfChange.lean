@@ -254,6 +254,8 @@ local macro "succ_tail" : tactic => `(tactic| (
   wp_apply (hUnmarshal csl m.context DFrac.discard _ _ m.nodeId false hctx) $$ [Hcv]
     as %err ⟨%Herr, -, %v', %pus, Hcv, Hpus, Hcus, %Hv'⟩
   · iframe #; iframe
+    -- a fresh `ConfigChangeContext`: its URL slices are `nil`
+    ipureintro; exact ⟨rfl, rfl⟩
   subst Herr
   obtain ⟨Hvid, Hvprom, Hpus, Hvlrn, Hvnm⟩ := Hv'
   ihave #Hcc := Hcc' $$ HC
@@ -564,6 +566,8 @@ theorem EtcdServer.applyConfChange.wp_proof
     wp_apply (hUnmarshal csl m.context DFrac.discard _ _ m.nodeId false hctx) $$ [Hcv]
       as %err ⟨%Herr, -, %v', %pus, Hcv, Hpus, Hcus, %Hv'⟩
     · iframe #; iframe
+      -- a fresh `ConfigChangeContext`: its URL slices are `nil`
+      ipureintro; exact ⟨rfl, rfl⟩
     subst Herr
     obtain ⟨Hvid, Hvprom, Hpus, Hvlrn, Hvnm⟩ := Hv'
     ihave #Hcc := Hcc' $$ HC

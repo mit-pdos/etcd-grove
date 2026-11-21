@@ -270,6 +270,7 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
   wp_apply (hVerify _ _ iprop(w_ptr ↦ w ∗ wr_ptr ↦ { wr with Events' := evs2 } ∗
       evs2 ↦*{dq2} es2)) $$ [w wr Hsl2] as ⟨w, wr, Hsl2⟩
   · iframe w wr Hsl2
+    ileft
     iintro ⟨w, wr, Hsl2⟩
     ihave %Hsl2l := ownSlice_len $$ Hsl2
     wp_auto

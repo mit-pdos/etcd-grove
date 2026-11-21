@@ -41,12 +41,11 @@ PrepareKey: HasSuffix strings_Contains fmt_Errorf
 NewKeyNotFoundError:
 NewKeyExistsError:
 NewInternalError:
-# (stage 7b) the preconditions: meta.Accessor (proved from its body), fmt.Sprintf with two
-# types.UIDs (the trust boundary, `Spec/fmt/SprintfNamed.lean`), NewInvalidObjError
+# (stage 7b) the preconditions: meta.Accessor (proved from its body), NewInvalidObjError (fmt.Sprintf
+# with two types.UIDs: Perennial's `fmt.wp_Sprintf`, a methodless named string type)
 meta_Accessor:
-fmt_SprintfNamed:
 NewInvalidObjError:
-Preconditions__Check: meta_Accessor NewInvalidObjError fmt_SprintfNamed
+Preconditions__Check: meta_Accessor NewInvalidObjError
 # (stage 7b) a minimum resource version above the read's: apimachinery's NewTimeoutError (its body)
 NewTimeoutError:
 NewTooLargeResourceVersionError: NewTimeoutError
@@ -155,8 +154,12 @@ reflect_Value__Cap:
 reflect_Value__IsNil:
 reflect_Type__Elem:
 json_Marshal:
-IsTimeout:
-HasStatusCause:
+# (prove-k8s2, 2026-11-20) the APIStatus checks over their bodies, over errors.As's trust boundary
+errors_AsNoMatch:
+reasonAndCodeForError: errors_AsNoMatch
+StatusCause: errors_AsNoMatch
+IsTimeout: reasonAndCodeForError
+HasStatusCause: StatusCause
 RecordStorageListMetrics:
 RecordListLatency:
 # restated in 7e-2's first third, linked as axioms already elsewhere (k8setcd3, txn, client)
@@ -205,7 +208,7 @@ RecordEtcdEvent:
 RecordEtcdBookmark:
 Event_EventType__StringPtr:
 Status__Code:
-errors_AsLeafTy:
+errors_AsLeafTy: errors_AsNoMatch
 rpctypes_EtcdError__Code:
 Event__GetType:
 Event__GetKv:

@@ -41,7 +41,8 @@ tracker_ProgressTracker__TallyVotes: quorum_JointConfig__VoteResult
 tracker_ProgressTracker__TallyVotesWithDifference: quorum_JointConfig__VoteResultWithDifference
 tracker_Epoch__HasWitness:
 tracker_ReplicationSet__GetNonWitnessVoterSlice:
-# (2026-10-20) the leader's witness log lines; strconv.FormatUint is a trust-boundary axiom
+# (2026-10-20) the leader's witness log lines; strconv.FormatUint is a trust-boundary axiom (since
+# 2026-11-20 the main tree's spec and axiom, `Spec/strconv/FormatUint.lean`, no longer a copy)
 strconv_FormatUint:
 tracker_ReplicationSet__String: slices_Sort strconv_FormatUint strings_Join fmt_Sprintf
 tracker_scopedAckIndexer__AckedIndex:

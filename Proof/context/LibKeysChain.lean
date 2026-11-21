@@ -10,8 +10,8 @@ deadline constructors carry (`ctxValueFrom`). Client-side contexts pass through 
 before grpc reads them (`NewSession`, `Election.Observe`, the lessor, the watcher, the leasing
 `KV`), so the facts the client's contracts carry are in that form:
 
-* `metadata.outgoingCtxOkC ctx` (persistent): `ctx`'s outgoing metadata is one value `v` that
-  `FromOutgoingContext` accepts (`outgoingRes`), as Perennial's chain says.
+* `metadata.outMD ctx md` (persistent; errdesc stage 1, 2026-11-20): `ctx`'s outgoing metadata is `md`,
+  as Perennial's chain says; `metadata.outgoingCtxOkC ctx`: some `md`.
 * `context.libCtxOkC ctx`, `trace.spanCtxOkC ctx` (persistent; k8s 7f-4, T-a): the chain form of
   `context.libCtxOk`'s facts at grpc's keys and of `trace.spanCtxOk`, which grpc's model gives of a
   stream's run context (`srvRawStreamIs`), so that a `WithCancel` child of it has them.
@@ -44,13 +44,29 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.context.Assumptions]
 
-/-- **`ctx`'s outgoing metadata is grpc's, as Perennial's chain says** (persistent): one value `v`,
-which `FromOutgoingContext` accepts, is what both `ctx.Value(mdOutgoingKey{})` and
-`context.value(ctx, mdOutgoingKey{})` return. Carried by `WithCancel` and the deadline constructors
-(`ctxValueFrom`) and by a `valueCtx` at another key. -/
+/-- **`ctx`'s outgoing metadata is `md`** (persistent, per heap; errdesc stage 1, 2026-11-20: until then
+the pure `metadata.outgoingOf ctx`): as Perennial's chain says (`context.ctxValue`),
+`ctx.Value(mdOutgoingKey{})` and `context.value(ctx, mdOutgoingKey{})` return one value `v`, which
+holds `md` (`outgoingHeld`: not a `rawMD` and `none`, or a `rawMD` grpc made with view `f` and
+`some f`). SpecPlan's `outMD` (with `none` for no metadata). No law concludes a pure fact from it (no
+agreement of two `md`s for one context); a spec that relates a context's metadata to something takes
+the `md` as a parameter, with `outMD ctx md` in its precondition (`notes/errdesc-ghost-plan.md`). -/
+def metadata.outMD (ctx : GoInterfaceOk) (md : Option (GoString → Option (List GoString))) :
+    IProp GF :=
+  iprop(∃ v : GoInterface,
+    _root_.Perennial.context.ctxValue ctx metadata.mdOutgoingKeyAny (· = v) ∗
+    metadata.outgoingHeld v md)
+
+instance metadata.outMD_persistent (ctx : GoInterfaceOk)
+    (md : Option (GoString → Option (List GoString))) :
+    Persistent (metadata.outMD (GF := GF) ctx md) := by
+  unfold metadata.outMD; infer_instance
+
+/-- **`ctx`'s outgoing metadata is grpc's, as Perennial's chain says** (persistent): some `md`
+(`outMD`). Carried by `WithCancel` and the deadline constructors (`ctxValueFrom`) and by a `valueCtx`
+at another key. -/
 def metadata.outgoingCtxOkC (ctx : GoInterfaceOk) : IProp GF :=
-  iprop(∃ v : GoInterface, ⌜metadata.outgoingRes v⌝ ∗
-    _root_.Perennial.context.ctxValue ctx metadata.mdOutgoingKeyAny (· = v))
+  iprop(∃ md : Option (GoString → Option (List GoString)), metadata.outMD ctx md)
 
 instance metadata.outgoingCtxOkC_persistent (ctx : GoInterfaceOk) :
     Persistent (metadata.outgoingCtxOkC (GF := GF) ctx) := by
@@ -95,28 +111,63 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.context.Assumptions]
 
-theorem metadata.outgoingRes_nil : metadata.outgoingRes GoInterface.nil := by
-  left; intro vi h; cases h
-
 theorem metadata.mdOutgoingKey_notIntPtr :
     _root_.Perennial.context.notIntPtrKey metadata.mdOutgoingKeyAny :=
   context.libKeys_notIntPtr _ (by simp)
 
+/-- A context's outgoing metadata makes it grpc's. -/
+theorem metadata.outgoingCtxOkC_of_outMD (ctx : GoInterfaceOk)
+    (md : Option (GoString → Option (List GoString))) :
+    metadata.outMD (GF := GF) ctx md ⊢ metadata.outgoingCtxOkC ctx := by
+  iintro #H
+  unfold metadata.outgoingCtxOkC
+  iexists md
+  iexact H
+
+/-- `Background()` has no outgoing metadata. -/
+theorem metadata.outMD_background :
+    ⊢ metadata.outMD (GF := GF) _root_.Perennial.context.backgroundCtxVal none := by
+  unfold metadata.outMD
+  iexists GoInterface.nil
+  isplitl []
+  · iapply _root_.Perennial.context.ctxValue_background
+  iapply metadata.outgoingHeld_nil
+
+/-- `TODO()` has no outgoing metadata. -/
+theorem metadata.outMD_todo :
+    ⊢ metadata.outMD (GF := GF) _root_.Perennial.context.todoCtxVal none := by
+  unfold metadata.outMD
+  iexists GoInterface.nil
+  isplitl []
+  · iapply _root_.Perennial.context.ctxValue_todo
+  iapply metadata.outgoingHeld_nil
+
 theorem metadata.outgoingCtxOkC_background :
     ⊢ metadata.outgoingCtxOkC (GF := GF) _root_.Perennial.context.backgroundCtxVal := by
   unfold metadata.outgoingCtxOkC
-  iexists GoInterface.nil
-  isplitl []
-  · ipureintro; exact metadata.outgoingRes_nil
-  iapply _root_.Perennial.context.ctxValue_background
+  iexists none
+  iapply metadata.outMD_background
 
 theorem metadata.outgoingCtxOkC_todo :
     ⊢ metadata.outgoingCtxOkC (GF := GF) _root_.Perennial.context.todoCtxVal := by
   unfold metadata.outgoingCtxOkC
-  iexists GoInterface.nil
-  isplitl []
-  · ipureintro; exact metadata.outgoingRes_nil
-  iapply _root_.Perennial.context.ctxValue_todo
+  iexists none
+  iapply metadata.outMD_todo
+
+/-- **A child by `WithCancel` or a deadline constructor** has its parent's outgoing metadata. -/
+theorem metadata.outMD_from (parent child : GoInterfaceOk)
+    (md : Option (GoString → Option (List GoString))) :
+    _root_.Perennial.context.ctxValueFrom (GF := GF) parent child ∗
+      metadata.outMD parent md ⊢ metadata.outMD child md := by
+  iintro ⟨#Hf, #Hp⟩
+  unfold metadata.outMD
+  icases Hp with ⟨%v, #Hv, #Hh⟩
+  iexists v
+  iframe Hh
+  unfold _root_.Perennial.context.ctxValueFrom
+  iapply Hf
+  · ipureintro; exact metadata.mdOutgoingKey_notIntPtr
+  iexact Hv
 
 /-- **A child by `WithCancel` or a deadline constructor** answers grpc's key as its parent. -/
 theorem metadata.outgoingCtxOkC_from (parent child : GoInterfaceOk) :
@@ -124,13 +175,10 @@ theorem metadata.outgoingCtxOkC_from (parent child : GoInterfaceOk) :
       metadata.outgoingCtxOkC parent ⊢ metadata.outgoingCtxOkC child := by
   iintro ⟨#Hf, #Hp⟩
   unfold metadata.outgoingCtxOkC
-  icases Hp with ⟨%v, %hv, #Hv⟩
-  iexists v
-  iframe %hv
-  unfold _root_.Perennial.context.ctxValueFrom
-  iapply Hf
-  · ipureintro; exact metadata.mdOutgoingKey_notIntPtr
-  iexact Hv
+  icases Hp with ⟨%md, #Hp⟩
+  iexists md
+  iapply metadata.outMD_from
+  iframe #
 
 /-- Comparing a key with one of another dynamic type (or with `nil`) does not compare values. -/
 theorem context.keyEqOk_of_ty_ne (k key : GoInterface)
@@ -254,24 +302,25 @@ theorem metadata.ctxInMD_valueAt (ctx : GoInterfaceOk) md :
   iframe #
   iapply context.valueAt_of_ctxValue; iframe #
 
-/-- **A `valueCtx` at a key of another type than grpc's** answers grpc's key as its parent. -/
-theorem metadata.outgoingCtxOkC_valueCtx (q : Loc) (p : GoInterfaceOk) (key val : GoInterface)
+/-- **A `valueCtx` at a key of another type than grpc's** has its parent's outgoing metadata. -/
+theorem metadata.outMD_valueCtx (q : Loc) (p : GoInterfaceOk) (key val : GoInterface)
+    (md : Option (GoString → Option (List GoString)))
     (hkey : ∀ kk : GoInterfaceOk, key = GoInterface.ok kk →
       kk.ty ≠ google_golang_org.grpc.metadata.mdOutgoingKey.ty) :
     _root_.Perennial.context.vctxField q ↦□ (interface.ok p : GoInterface) ∗
       structFieldRef _root_.Perennial.context.valueCtx go!"key" q ↦□ key ∗
       structFieldRef _root_.Perennial.context.valueCtx go!"val" q ↦□ val ∗
-      metadata.outgoingCtxOkC (GF := GF) p ⊢
-      metadata.outgoingCtxOkC
-        (interface.mk (go.GoType.PointerType _root_.Perennial.context.valueCtx.ty) #q) := by
+      metadata.outMD (GF := GF) p md ⊢
+      metadata.outMD
+        (interface.mk (go.GoType.PointerType _root_.Perennial.context.valueCtx.ty) #q) md := by
   iintro ⟨#Hf, #Hk, #Hv, #Hp⟩
   have hne : metadata.mdOutgoingKeyAny ≠ key := by
     intro h
     exact hkey _ h.symm rfl
-  unfold metadata.outgoingCtxOkC
-  icases Hp with ⟨%v, %hv, #Hpv⟩
+  unfold metadata.outMD
+  icases Hp with ⟨%v, #Hpv, #Hh⟩
   iexists v
-  iframe %hv
+  iframe Hh
   iapply _root_.Perennial.context.ctxValue_valueCtx q p key val
   iframe #
   isplitl []
@@ -283,56 +332,101 @@ theorem metadata.outgoingCtxOkC_valueCtx (q : Loc) (p : GoInterfaceOk) (key val 
   · simp only [hne, ↓reduceIte]
     iexact Hpv
 
+/-- **A `valueCtx` at a key of another type than grpc's** answers grpc's key as its parent. -/
+theorem metadata.outgoingCtxOkC_valueCtx (q : Loc) (p : GoInterfaceOk) (key val : GoInterface)
+    (hkey : ∀ kk : GoInterfaceOk, key = GoInterface.ok kk →
+      kk.ty ≠ google_golang_org.grpc.metadata.mdOutgoingKey.ty) :
+    _root_.Perennial.context.vctxField q ↦□ (interface.ok p : GoInterface) ∗
+      structFieldRef _root_.Perennial.context.valueCtx go!"key" q ↦□ key ∗
+      structFieldRef _root_.Perennial.context.valueCtx go!"val" q ↦□ val ∗
+      metadata.outgoingCtxOkC (GF := GF) p ⊢
+      metadata.outgoingCtxOkC
+        (interface.mk (go.GoType.PointerType _root_.Perennial.context.valueCtx.ty) #q) := by
+  iintro ⟨#Hf, #Hk, #Hv, #Hp⟩
+  unfold metadata.outgoingCtxOkC
+  icases Hp with ⟨%md, #Hp⟩
+  iexists md
+  iapply metadata.outMD_valueCtx q p key val md hkey
+  iframe #
+
 /-- **A `valueCtx` at grpc's own key** (`metadata.NewOutgoingContext`, `AppendToOutgoingContext`)
-holding a `rawMD` grpc made answers it, whatever its parent. -/
-theorem metadata.outgoingCtxOkC_ownKey [md_sem : google_golang_org.grpc.metadata.Assumptions]
-    (q : Loc) (p : GoInterfaceOk) (val : GoInterface) (hval : metadata.builtRawMD val) :
+holding a `rawMD` grpc made with the view `f` has the outgoing metadata `f`, whatever its parent. -/
+theorem metadata.outMD_ownKey [md_sem : google_golang_org.grpc.metadata.Assumptions]
+    (q : Loc) (p : GoInterfaceOk) (val : GoInterface) (f : GoString → Option (List GoString)) :
     _root_.Perennial.context.vctxField q ↦□ (interface.ok p : GoInterface) ∗
       structFieldRef _root_.Perennial.context.valueCtx go!"key" q ↦□ metadata.mdOutgoingKeyAny ∗
-      structFieldRef _root_.Perennial.context.valueCtx go!"val" q ↦□ val ⊢
-      metadata.outgoingCtxOkC (GF := GF)
-        (interface.mk (go.GoType.PointerType _root_.Perennial.context.valueCtx.ty) #q) := by
-  iintro ⟨#Hf, #Hk, #Hv⟩
-  unfold metadata.outgoingCtxOkC
+      structFieldRef _root_.Perennial.context.valueCtx go!"val" q ↦□ val ∗
+      □ metadata.builtRawMDRaw (GF := GF) val f ⊢
+      metadata.outMD (GF := GF)
+        (interface.mk (go.GoType.PointerType _root_.Perennial.context.valueCtx.ty) #q) (some f) := by
+  iintro ⟨#Hf, #Hk, #Hv, #Hb⟩
+  unfold metadata.outMD
   iexists val
   isplitl []
-  · ipureintro; right; exact hval
-  iapply _root_.Perennial.context.ctxValue_valueCtx q p metadata.mdOutgoingKeyAny val
-  iframe #
-  isplitl []
-  · unfold _root_.Perennial.context.keyEqOk
-    iintro !> %ki %kk %Φ %h HΦ
-    obtain ⟨h1 | h1, -⟩ := h <;> obtain ⟨h1, h2⟩ := h1 <;>
-      simp only [GoInterface.ok.injEq] at h1 h2 <;> subst h1 <;> subst h2 <;>
-      simp only [decide_true] <;> wp_auto <;> iexact HΦ
-  · simp only [↓reduceIte]
-    ipureintro; trivial
+  · iapply _root_.Perennial.context.ctxValue_valueCtx q p metadata.mdOutgoingKeyAny val
+    iframe #
+    isplitl []
+    · unfold _root_.Perennial.context.keyEqOk
+      iintro !> %ki %kk %Φ %h HΦ
+      obtain ⟨h1 | h1, -⟩ := h <;> obtain ⟨h1, h2⟩ := h1 <;>
+        simp only [GoInterface.ok.injEq] at h1 h2 <;> subst h1 <;> subst h2 <;>
+        simp only [decide_true] <;> wp_auto <;> iexact HΦ
+    · simp only [↓reduceIte]
+      ipureintro; trivial
+  · unfold metadata.outgoingHeld
+    iright
+    iexists f
+    iframe Hb
+    ipureintro; rfl
 
 /-- **A context of a type `value()` does not special-case** (k8s's `channelContext`, etcd's
 `valCtx`): its own `Value` is what the chain calls, so the WP form gives the chain form. -/
+theorem metadata.outMD_raw (ctx : GoInterfaceOk) (v : GoInterface)
+    (md : Option (GoString → Option (List GoString)))
+    (hty : ctx.ty ∉ _root_.Perennial.context.valueSpecialTypes) :
+    context.valueAt (GF := GF) ctx metadata.mdOutgoingKeyAny (· = v) ∗ metadata.outgoingHeld v md ⊢
+      metadata.outMD ctx md := by
+  iintro ⟨#Hv, #Hh⟩
+  unfold metadata.outMD
+  iexists v
+  iframe Hh
+  iapply _root_.Perennial.context.ctxValue_other ctx _ _ hty
+  unfold context.valueAt
+  iexact Hv
+
+/-- **A context of a type `value()` does not special-case**: the WP form gives the chain form. -/
 theorem metadata.outgoingCtxOkC_raw (ctx : GoInterfaceOk)
     (hty : ctx.ty ∉ _root_.Perennial.context.valueSpecialTypes) :
     metadata.outgoingCtxOk (GF := GF) ctx ⊢ metadata.outgoingCtxOkC ctx := by
   iintro #H
   unfold metadata.outgoingCtxOk metadata.outgoingCtxOkC
-  icases H with ⟨%v, %hv, #Hv⟩
-  iexists v
-  iframe %hv
-  iapply _root_.Perennial.context.ctxValue_other ctx _ _ hty
-  unfold context.valueAt
-  iexact Hv
+  icases H with ⟨%v, %md, #Hv, #Hh⟩
+  iexists md
+  iapply metadata.outMD_raw ctx v md hty
+  iframe #
 
 /-- **Back to the WP form**, what the readers take (`FromOutgoingContext`, `kaCtxOk`,
 `AppendToOutgoingContext`'s premise; D3). -/
+theorem metadata.outgoingCtxOk_of_outMD (ctx : GoInterfaceOk)
+    (md : Option (GoString → Option (List GoString))) :
+    isPkgInit (PROP := IProp GF) pkg_id.context ∗ metadata.outMD ctx md ⊢
+      metadata.outgoingCtxOk ctx := by
+  iintro ⟨#Hpkg, #H⟩
+  unfold metadata.outMD metadata.outgoingCtxOk
+  icases H with ⟨%v, #Hv, #Hh⟩
+  iexists v, md
+  iframe Hh
+  iapply context.valueAt_of_ctxValue
+  iframe #
+
+/-- **Back to the WP form** from `outgoingCtxOkC`. -/
 theorem metadata.outgoingCtxOk_of_C (ctx : GoInterfaceOk) :
     isPkgInit (PROP := IProp GF) pkg_id.context ∗ metadata.outgoingCtxOkC ctx ⊢
       metadata.outgoingCtxOk ctx := by
   iintro ⟨#Hpkg, #H⟩
-  unfold metadata.outgoingCtxOkC metadata.outgoingCtxOk
-  icases H with ⟨%v, %hv, #Hv⟩
-  iexists v
-  iframe %hv
-  iapply context.valueAt_of_ctxValue
+  unfold metadata.outgoingCtxOkC
+  icases H with ⟨%md, #H⟩
+  iapply metadata.outgoingCtxOk_of_outMD ctx md
   iframe #
 
 /-- A child of `TODO()` (`WithCancel`, the deadline constructors) has grpc's outgoing metadata (none),
@@ -354,6 +448,24 @@ theorem metadata.outgoingCtxOkC_bgFrom (ctx : GoInterfaceOk) :
   iframe #
   iapply metadata.outgoingCtxOkC_background
 
+/-- A child of `Background()` has no outgoing metadata. -/
+theorem metadata.outMD_bgFrom (ctx : GoInterfaceOk) :
+    _root_.Perennial.context.ctxValueFrom (GF := GF) _root_.Perennial.context.backgroundCtxVal ctx ⊢
+      metadata.outMD ctx none := by
+  iintro #Hf
+  iapply metadata.outMD_from
+  iframe #
+  iapply metadata.outMD_background
+
+/-- A child of `TODO()` has no outgoing metadata. -/
+theorem metadata.outMD_todoFrom (ctx : GoInterfaceOk) :
+    _root_.Perennial.context.ctxValueFrom (GF := GF) _root_.Perennial.context.todoCtxVal ctx ⊢
+      metadata.outMD ctx none := by
+  iintro #Hf
+  iapply metadata.outMD_from
+  iframe #
+  iapply metadata.outMD_todo
+
 /-- **`WithValue` at a key of another type than grpc's keeps the WP form** (premise fixes 8:
 `lessor.KeepAlive`'s `WithValue(ctx, keepAliveCtxKey{}, &ctx)`, `kaCtxOk`). -/
 theorem metadata.outgoingCtxOk_of_valueWand (parent c' key : GoInterfaceOk) (v : GoInterface)
@@ -369,8 +481,8 @@ theorem metadata.outgoingCtxOk_of_valueWand (parent c' key : GoInterfaceOk) (v :
       metadata.outgoingCtxOk (GF := GF) parent -∗ metadata.outgoingCtxOk c' := by
   iintro #Hw #Hp
   unfold metadata.outgoingCtxOk
-  icases Hp with ⟨%vo, %hvo, #Ho⟩
-  iexists vo; iframe %hvo
+  icases Hp with ⟨%vo, %omd, #Ho, #Hho⟩
+  iexists vo, omd; iframe Hho
   iapply context.valueAt_of_valueWand parent c' key v _ _
     (by intro k' h; simp only [metadata.mdOutgoingKeyAny, interface.mkOk,
       GoInterface.ok.injEq] at h; subst h; exact hk) $$ Hw Ho
@@ -382,14 +494,13 @@ theorem context.libCtxOk_of_libCtxOkC (ctx : GoInterfaceOk) :
     isPkgInit (PROP := IProp GF) pkg_id.context ∗ context.libCtxOkC ctx ⊢ context.libCtxOk ctx := by
   iintro ⟨#Hpkg, #H⟩
   unfold context.libCtxOkC metadata.outgoingCtxOkC
-  icases H with ⟨#Hi, ⟨%vo, %hvo, #Ho⟩, #Hp, #Hs⟩
-  unfold context.libCtxOk metadata.outgoingCtxOk peer.peerCtxOk
+  icases H with ⟨#Hi, ⟨%omd, #Ho⟩, #Hp, #Hs⟩
+  unfold context.libCtxOk peer.peerCtxOk
     trace.spanValOk
   isplitl []
   · iexact Hi
   isplitl []
-  · iexists vo; iframe %hvo
-    iapply context.valueAt_of_ctxValue; iframe #
+  · iapply metadata.outgoingCtxOk_of_outMD ctx omd; iframe #
   isplitl []
   · iapply context.valueAt_of_ctxValue; iframe #
   · iapply context.valueAt_of_ctxValue; iframe #

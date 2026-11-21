@@ -129,38 +129,71 @@ class ModelTest(unittest.TestCase):
         self.assertTrue(M.close_write_outcome(st0, M.NetDir(b"", CUT), None, M.NetDir(b"", CUT)))
         self.assertTrue(M.close_write_outcome(st0, o, M.SYS, o))
 
-    def test_listen_at(self):
-        plan = {b"127.0.0.1:7101": b"s", b"127.0.0.1:7102": b"t"}
-        self.assertEqual(M.listen_resolve(plan, b"s", b"127.0.0.1:7101"), b"127.0.0.1:7101")
-        self.assertIsNone(M.listen_resolve(plan, b"t", b"127.0.0.1:7101"))
-        for w in (b":7101", b"0.0.0.0:7101", b"[::]:7101"):
-            self.assertEqual(M.listen_resolve(plan, b"s", w), b"127.0.0.1:7101")
-        self.assertIsNone(M.listen_resolve(plan, b"s", b":7102"))   # 7102's host is t
-        plan2 = {b"127.0.0.1:7101": b"s", b"127.0.0.2:7101": b"s"}
-        self.assertIsNone(M.listen_resolve(plan2, b"s", b":7101"))  # the port is not unique
-
-    def test_plan_well_formed(self):
-        # Deploy.lean's examples
-        self.assertTrue(M.plan_well_formed([(b"127.0.0.1:7101", b"h")]))
+    def test_addr_ok(self):
+        # Impl.lean's / Tests.lean's examples (D20)
+        self.assertTrue(M.addr_ok(b"127.0.0.1:7101"))
+        self.assertTrue(M.addr_ok(b"10.0.0.2:65535"))
         for a in (b":7101", b"localhost:7101", b"127.0.0.01:7101", b"127.0.0.1:40000", b"127.0.0.1:0",
-                  b"0.1.2.3:7101", b"224.0.0.1:7101"):
-            self.assertFalse(M.plan_well_formed([(a, b"h")]), a)
-        self.assertFalse(M.plan_well_formed([(b"127.0.0.1:7101", b"h"), (b"127.0.0.1:7101", b"g")]))
+                  b"0.1.2.3:7101", b"224.0.0.1:7101", b"127.0.0.1:65536", b"127.0.0.1:07101",
+                  b"127.0.0.1", b"1.2.3:7101", b"[::1]:7101", b"0.0.0.0:7101"):
+            self.assertFalse(M.addr_ok(a), a)
+
+    def test_listen_ok(self):
+        # D6, D21: a valid address, or a wildcard with a canonical valid port
+        for a in (b"127.0.0.1:7101", b"192.0.2.1:7101", b":7101", b"0.0.0.0:7101", b"[::]:7101"):
+            self.assertTrue(M.listen_ok(a), a)
+        for a in (b":0", b":40000", b":07101", b"0.0.0.0:40000", b"[::]:", b"localhost:7101",
+                  b"[::1]:7101", b"127.0.0.1:0"):
+            self.assertFalse(M.listen_ok(a), a)
+        self.assertTrue(M.wild_ok(b":7101"))
+        self.assertFalse(M.wild_ok(b"127.0.0.1:7101"))
+
+    def test_lis_accepts(self):
+        # D7, D21: a listener takes its own address; a wildcard any address with its port
+        a1, a2 = b"127.0.0.1:7101", b"127.0.0.2:7101"
+        self.assertTrue(M.lis_accepts(a1, a1))
+        self.assertFalse(M.lis_accepts(a1, a2))
+        for w in (b":7101", b"0.0.0.0:7101", b"[::]:7101"):
+            self.assertTrue(M.lis_accepts(w, a1))
+            self.assertTrue(M.lis_accepts(w, a2))
+            self.assertFalse(M.lis_accepts(w, b"127.0.0.1:7102"))
+        self.assertEqual(M.addr_port(a1), b"7101")
+        self.assertEqual(M.addr_port(b"[::]:7101"), b"7101")
+
+    def test_listen_step(self):
+        # v3.4: any node may listen at any valid address; only sys with one open at it already
+        a = b"192.0.2.1:7101"
+        L = M.NetLocal({})
+        L1 = M.NetLocal({1: (a, True)})
+        self.assertTrue(M.local_init(L))
+        self.assertTrue(M.net_step("Listen", a, L, M.NetGlobal({}), (1, 0), L1, M.NetGlobal({})))
+        self.assertTrue(M.net_step("Listen", a, L, M.NetGlobal({}), M.fail_v(M.SYS), L, M.NetGlobal({})))
+        self.assertFalse(M.net_step("Listen", a, L1, M.NetGlobal({}), (2, 0),
+                                    M.NetLocal({1: (a, True), 2: (a, True)}), M.NetGlobal({})))
+        self.assertTrue(M.net_step("Listen", b":7101", L1, M.NetGlobal({}), (2, 0),
+                                   M.NetLocal({1: (a, True), 2: (b":7101", True)}), M.NetGlobal({})))
+        self.assertFalse(M.net_step("Listen", b"127.0.0.1:40000", L, M.NetGlobal({}), M.fail_v(M.SYS), L,
+                                    M.NetGlobal({})))  # not listenOk: a panic, no outcome
+        self.assertTrue(M.crash(L1, L))
 
     def test_dial_accept_steps(self):
         a = b"127.0.0.1:7101"
-        g = M.NetGlobal({a: b"s"}, {})
+        g = M.NetGlobal({})
         g1 = g.set_conn(1, M.conn_fresh(a))
         self.assertTrue(M.dial_step(a, g, (M.end_id(1, False), 0), g1))
         self.assertTrue(M.dial_step(a, g, M.fail_v(M.SYS), g))
         self.assertTrue(M.dial_step(a, g, M.fail_v(M.SYS), g.set_conn(1, M.conn_abandoned(a))))  # D16
         self.assertFalse(M.dial_step(a, g, M.fail_v(M.TIMEOUT), g))
-        self.assertFalse(M.dial_step(b"127.0.0.1:9", g, M.fail_v(M.SYS), g))  # not in the plan
+        self.assertFalse(M.dial_step(b"127.0.0.1:40000", g, M.fail_v(M.SYS), g))  # not addrOk
+        self.assertFalse(M.dial_step(b":7101", g, M.fail_v(M.SYS), g))  # a wildcard: not addrOk
         g2 = g1.set_conn(1, M.conn_fresh(a)._replace(accepted=True))
         self.assertTrue(M.accept_step(a, True, g1, (M.end_id(1, True), 0), g2))
         self.assertFalse(M.accept_step(a, False, g1, (M.end_id(1, True), 0), g2))
         self.assertFalse(M.accept_step(a, True, g2, (M.end_id(1, True), 0), g2))  # accepted already
         self.assertTrue(M.accept_step(a, False, g1, M.fail_v(M.CLOSED), g1))
+        self.assertTrue(M.accept_step(b":7101", True, g1, (M.end_id(1, True), 0), g2))  # D21
+        self.assertFalse(M.accept_step(b"127.0.0.2:7101", True, g1, (M.end_id(1, True), 0), g2))
+        self.assertFalse(M.accept_step(b":7102", True, g1, (M.end_id(1, True), 0), g2))
 
 
 # ---------------------------------------------------------------------------------------------
@@ -503,17 +536,17 @@ class Base(unittest.TestCase):
     def setUp(self):
         self.tr = Trace()
 
-    def check(self, plan=None):
-        return checker.check_run(self.tr.run(), plan=plan)
+    def check(self):
+        return checker.check_run(self.tr.run())
 
-    def admitted(self, plan=None):
-        r = self.check(plan)
+    def admitted(self):
+        r = self.check()
         self.assertEqual(r["verdict"], "ADMITTED", checker.report(r, verbose=True))
         self.assertIsNotNone(r["witness"])
         return r
 
-    def rejected(self, proc, seq, plan=None):
-        r = self.check(plan)
+    def rejected(self, proc, seq):
+        r = self.check()
         hard = sorted([f for f in r["findings"] if f.kind in checker.HARD], key=lambda f: f.t)
         self.assertEqual(r["verdict"], "NOT ADMITTED", checker.report(r, verbose=True))
         wheres = [f.where for f in hard]
@@ -537,8 +570,10 @@ class Positive(Base):
         r = self.admitted()
         w = r["witness"]
         self.assertEqual([s["op"] for s in w["steps"]][:3], ["Listen", "Dial", "Accept"])
-        self.assertEqual(w["plan"], [["127.0.0.1:7101", "server"]])
-        self.assertTrue(w["plan_well_formed"])
+        self.assertEqual(w["version"], 2)
+        self.assertNotIn("plan", w)
+        self.assertEqual(w["steps"][0]["addr"], "127.0.0.1:7101")
+        self.assertNotIn("a0", w["steps"][0])
 
     def test_concurrent_writes_reordered(self):
         d, a = setup_conn(self.tr)
@@ -677,7 +712,46 @@ class Positive(Base):
         s.addrq(8, 9, "ListenerAddr", "l1", {"type": "*net.TCPAddr", "net": "tcp", "s": "[::]:7101"})
         r = self.admitted()
         st = r["witness"]["steps"][0]
-        self.assertEqual((st["addr"], st["a0"]), (":7101", A1))
+        self.assertEqual(st["addr"], ":7101")  # v3.4: the listener is at the wildcard itself
+
+    def test_wildcard_two_addresses(self):
+        # v3.4, D21: a wildcard listener takes connections dialed to any address with its port
+        c, s = self.tr.proc("client"), self.tr.proc("server")
+        s.listen(1, 2, ":7101")
+        c.dial(3, 6, A1, "c1", port=40001)
+        c.dial(7, 8, "127.0.0.2:7101", "c2", port=40002)
+        s.accept(4, 7, "l1", "c1", A1, "127.0.0.1:40001")
+        s.accept(8, 9, "l1", "c2", "127.0.0.2:7101", "127.0.0.1:40002")
+        self.admitted()
+
+    def test_wildcard_and_address_listeners(self):
+        # v3.4: a node may listen at a wildcard and at an address with its port (Linux refuses the
+        # second, EADDRINUSE: the model allows both outcomes); a connection no Dial returned, of
+        # 127.0.0.2:7101, is accepted by the wildcard
+        c, s = self.tr.proc("client"), self.tr.proc("server")
+        s.listen(1, 2, A1, "l1")
+        s.listen(3, 4, ":7101", "l2")
+        c.dial(5, 8, "127.0.0.2:7101", op="DialTimeout", err=err_errtimeout())
+        s.accept(6, 9, "l2", "c1", "127.0.0.2:7101", "127.0.0.1:40001")
+        r = self.admitted()
+        dials = [x for x in r["witness"]["steps"] if x["op"] == "Dial"]
+        self.assertTrue(all("abandoned" in x["res"] for x in dials), dials)
+
+    def test_two_nodes_one_address(self):
+        # v3.4: no plan: any node may listen at any valid address, two nodes at one address
+        c, s, t = self.tr.proc("client"), self.tr.proc("server"), self.tr.proc("other")
+        s.listen(1, 2, A1)
+        t.listen(1, 2, A1)
+        c.dial(3, 6, A1, "c1", port=40001)
+        t.accept(4, 7, "l1", "c1", A1, "127.0.0.1:40001")
+        self.admitted()
+
+    def test_listen_not_local(self):
+        # v3.4, D6: a Listen at an address that is not the machine's fails (EADDRNOTAVAIL): sys
+        s = self.tr.proc("server")
+        s.listen(1, 2, "192.0.2.1:7101", err=err_sys("Listen", 99, "bind"))
+        r = self.admitted()
+        self.assertEqual(r["witness"]["steps"][0]["res"], {"code": 3})
 
     def test_closewrite_halfclose(self):
         d, a = setup_conn(self.tr)
@@ -948,6 +1022,29 @@ class Negative(Base):
         x = s.accept(5, 6, "l1", None, None, None, err=err_sys("Accept", 103, "accept4"))
         self.rejected(s, x)
 
+    def test_accept_other_address(self):
+        # D7: a listener at 127.0.0.1:7101 does not take a connection dialed to 127.0.0.2:7101
+        c, s = self.tr.proc("client"), self.tr.proc("server")
+        s.listen(1, 2, A1)
+        c.dial(3, 6, "127.0.0.2:7101", "c1", port=40001)
+        x = s.accept(4, 7, "l1", "c1", "127.0.0.2:7101", "127.0.0.1:40001")
+        self.rejected(s, x)
+
+    def test_accept_token_other_address(self):
+        # the connection no Dial returned is of 127.0.0.2:7101: the listener at A1 cannot take it
+        c, s = self.tr.proc("client"), self.tr.proc("server")
+        s.listen(1, 2, A1)
+        c.dial(3, 6, "127.0.0.2:7101", op="DialTimeout", err=err_errtimeout())
+        x = s.accept(4, 7, "l1", "c1", "127.0.0.2:7101", "127.0.0.1:40001")
+        self.rejected(s, x)
+
+    def test_wildcard_other_port(self):
+        c, s = self.tr.proc("client"), self.tr.proc("server")
+        s.listen(1, 2, ":7102")
+        c.dial(3, 6, A1, "c1", port=40001)
+        x = s.accept(4, 7, "l1", "c1", A1, "127.0.0.1:40001")
+        self.rejected(s, x)
+
     def test_accept_no_dial(self):
         c, s = self.tr.proc("client"), self.tr.proc("server")
         s.listen(1, 2, A1)
@@ -1049,8 +1146,8 @@ class Negative(Base):
 
 
 class Scope(Base):
-    def out(self, plan=None):
-        r = self.check(plan)
+    def out(self):
+        r = self.check()
         self.assertEqual(r["verdict"], "OUT OF SCOPE", checker.report(r, verbose=True))
         return r
 
@@ -1061,19 +1158,35 @@ class Scope(Base):
         a.read(12, 13, "c1", 10, b"x")
         self.out()
 
-    def test_not_in_plan(self):
-        d, a = setup_conn(self.tr)
-        self.out(plan=[("127.0.0.1:7999", "server")])
+    def test_listen_invalid(self):
+        # an ephemeral port: not listenOk, the model's Listen panics
+        c, s = self.tr.proc("client"), self.tr.proc("server")
+        s.listen(1, 2, "127.0.0.1:40000")
+        c.dial(3, 6, "127.0.0.1:40000", "c1", port=40001, remote="127.0.0.1:40000")
+        s.accept(4, 7, "l1", "c1", "127.0.0.1:40000", "127.0.0.1:40001")
+        r = self.out()
+        self.assertTrue(any("listenOk" in f.what for f in r["findings"]))
+        self.assertTrue(any("addrOk" in f.what for f in r["findings"]))
 
-    def test_port0(self):
+    def port0(self, port):
         c, s = self.tr.proc("client"), self.tr.proc("server")
         s.op("Listen", 1, 2, b={"net": "tcp", "addr": "127.0.0.1:0"},
              e={"new": {"id": "l1", "net": "tcp", "local": {"type": "*net.TCPAddr", "net": "tcp",
-                                                              "s": "127.0.0.1:45000"}, "remote": None}, "err": None})
-        c.dial(3, 6, "127.0.0.1:45000", "c1", port=40001)
-        s.accept(4, 7, "l1", "c1", "127.0.0.1:45000", "127.0.0.1:40001")
-        r = self.out()
-        self.assertIsNotNone(r["witness"])  # every component admitted, under the extended plan
+                                                              "s": f"127.0.0.1:{port}"}, "remote": None}, "err": None})
+        c.dial(3, 6, f"127.0.0.1:{port}", "c1", port=40001)
+        s.accept(4, 7, "l1", "c1", f"127.0.0.1:{port}", "127.0.0.1:40001")
+        return self.out()
+
+    def test_port0(self):
+        # the kernel's port is valid: checked as a Listen of it
+        r = self.port0(7200)
+        self.assertIsNotNone(r["witness"])  # every component admitted, the Listen at the kernel's port
+        self.assertEqual(r["witness"]["steps"][0]["addr"], "127.0.0.1:7200")
+
+    def test_port0_ephemeral(self):
+        # the kernel's port is ephemeral (as it is by default): not listenOk, nor its Dial addrOk
+        r = self.port0(45000)
+        self.assertTrue(any("listenOk" in f.what for f in r["findings"]))
 
     def test_hostname(self):
         c, s = self.tr.proc("client"), self.tr.proc("server")

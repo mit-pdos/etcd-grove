@@ -233,6 +233,7 @@ theorem splitRel_pieces {ps : Nat} {pl : Loc} {xs : List (Loc × node × List In
     have e := cutWs_get _ _ hfl i x.2.2 w (hx22 i x hx) hw
     refine ⟨e, fun _ => ?_⟩
     have := (hsh.1 x (List.mem_of_getElem? hx)).2
+    have hp : 0 < pieceMin x.2.1.isLeaf' := by cases x.2.1.isLeaf' <;> decide
     omega
   · intro i x w hx hw
     have h1 : decide (xs.length = 1) = false := by simp; omega

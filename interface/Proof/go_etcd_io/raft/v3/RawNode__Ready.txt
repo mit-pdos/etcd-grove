@@ -33,35 +33,36 @@ theorem RawNode.Ready.wp_proof [package_sem : Assumptions] (wp_RawNode_readyWith
                                           slotFree γ id g ∗ durFrags γ id W ∗ [∗list] q ∈ ms, isRaftMsg γ id q.st) ∗
                               "#Hlead" ∷ (⌜roleAfter rs.role ss = StateLeader⌝ -∗ [∗list] q ∈ ms, isRaftMsg γ id q.st) ∗
                                 ("#Hsnapto" ∷ [∗list] q ∈ ms, snapToOk γ id q.st) ∗
-                                  "#Hss" ∷ softStateIs rd.SoftState' ss ∗
-                                    "#Hce" ∷ entsRO rd.CommittedEntries' ce ∗
-                                      "#Hcommitted" ∷ isCommitted γ (rs.delivered ++ ce) ∗
-                                        "#Hents" ∷ entsROz γ.maxData.isSome rd.Entries' es ∗
-                                          "Hmsgs" ∷ ownSlice rd.Messages' (List.map QMsg.loc ms) (DFrac.own 1) ∗
-                                            "Hmsgs_cap" ∷ ownSliceCap Loc rd.Messages' (DFrac.own 1) ∗
-                                              ("Hmsgs_own" ∷
-                                                  [∗list] q ∈ ms, msgOwnZ γ.maxData.isSome q.loc (readyDq q.st) q.st) ∗
-                                                ("Hmsgs_cred" ∷
-                                                    [∗list] q ∈ ms,
-                                                      rdCred γ (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) ∗
-                                                  "%Hmsgs_term" ∷
-                                                      ⌜∀ (q : QMsg), q ∈ ms → uint.Z q.st.msg.Term' ≤ uint.Z rs.tc⌝ ∗
-                                                    "Hsnapz" ∷ rdSnapOut γ rs rd ce es L ∗
-                                                      "%Hpsn" ∷ ⌜rs.psnap = false → L = none⌝ ∗
-                                                        "#Hrs" ∷ readStatesPts rd.ReadStates' sts ∗
-                                                          ("#Hrs_ok" ∷ [∗list] st ∈ sts, readStateRaw γ st) ∗
-                                                            "#Hhard" ∷ hsOptC rd.HardState' h ∗
-                                                              "#Hhsw" ∷
-                                                                  hsWit γ (phsNext rs.phs h)
-                                                                    (dlvAfter rs.delivered ce L).length ∗
-                                                                "Happ" ∷ readyOut rs.storage rs.sn es L ∗
-                                                                  "#Hfrz" ∷
-                                                                      (⌜L ≠ none⌝ ∨
-                                                                        ceFrozen rs.storage rs.delivered.length ce es) ∗
-                                                                    "#Hdk" ∷
-                                                                      dlvKeysAt rs.sn rs.delivered.length
-                                                                        (List.drop rs.delivered.length
-                                                                          (dlvAfter rs.delivered ce L)) -∗
+                                  "#Hsrcs" ∷ readyMsgOrigins γ id rs.sn ms ∗
+                                    "#Hss" ∷ softStateIs rd.SoftState' ss ∗
+                                      "#Hce" ∷ entsRO rd.CommittedEntries' ce ∗
+                                        "#Hcommitted" ∷ isCommitted γ (rs.delivered ++ ce) ∗
+                                          "#Hents" ∷ entsROz γ.maxData.isSome rd.Entries' es ∗
+                                            "Hmsgs" ∷ ownSlice rd.Messages' (List.map QMsg.loc ms) (DFrac.own 1) ∗
+                                              "Hmsgs_cap" ∷ ownSliceCap Loc rd.Messages' (DFrac.own 1) ∗
+                                                ("Hmsgs_own" ∷
+                                                    [∗list] q ∈ ms, msgOwnZ γ.maxData.isSome q.loc (readyDq q.st) q.st) ∗
+                                                  ("Hmsgs_cred" ∷
+                                                      [∗list] q ∈ ms,
+                                                        rdCred γ (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) ∗
+                                                    "%Hmsgs_term" ∷
+                                                        ⌜∀ (q : QMsg), q ∈ ms → uint.Z q.st.msg.Term' ≤ uint.Z rs.tc⌝ ∗
+                                                      "Hsnapz" ∷ rdSnapOut γ rs rd ce es L ∗
+                                                        "%Hpsn" ∷ ⌜rs.psnap = false → L = none⌝ ∗
+                                                          "#Hrs" ∷ readStatesPts rd.ReadStates' sts ∗
+                                                            ("#Hrs_ok" ∷ [∗list] st ∈ sts, readStateRaw γ st) ∗
+                                                              "#Hhard" ∷ hsOptC rd.HardState' h ∗
+                                                                "#Hhsw" ∷
+                                                                    hsWit γ (phsNext rs.phs h)
+                                                                      (dlvAfter rs.delivered ce L).length ∗
+                                                                  "Happ" ∷ readyOut rs.storage rs.sn es L ∗
+                                                                    "#Hfrz" ∷
+                                                                        (⌜L ≠ none⌝ ∨
+                                                                          ceFrozen rs.storage rs.delivered.length ce es) ∗
+                                                                      "#Hdk" ∷
+                                                                        dlvKeysAt rs.sn rs.delivered.length
+                                                                          (List.drop rs.delivered.length
+                                                                            (dlvAfter rs.delivered ce L)) -∗
                         Φ (intoVal rd)) -∗
                   WP
                     ((intoVal (methods RawNode.ty.PointerType go!"Ready" (intoVal rn)))

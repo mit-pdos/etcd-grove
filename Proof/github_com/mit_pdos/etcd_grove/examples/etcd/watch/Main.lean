@@ -331,6 +331,7 @@ theorem Main.wp_proof
   wp_apply context.wp_WithCancel_Background iprop(True) $$ [$Pctx $Hcci]
     as %wctx %γctx %cancel ⟨#Hcancel, #Hwctx, -, #wctxFrom⟩
   ihave #wctxO := metadata.outgoingCtxOkC_bgFrom wctx $$ wctxFrom
+  ihave #wctxM := metadata.outMD_bgFrom wctx $$ wctxFrom
   (try wp_auto)
   -- the watch's options (the cache's `watchEvents`')
   wp_apply wp_WithPrefix as %f1 #Hf1
@@ -375,7 +376,7 @@ theorem Main.wp_proof
   -- (G2) the watcher's environment explicit, no auth bound (`n = 0`)
   wp_apply (wp_Watch w _ ρ.rd.kv wctx
       ({ Values := ∅, Deadline := none, Done_gn := γctx, PDone := iprop(True) } :
-        context.ContextDesc (IProp GF))
+        context.ContextDesc (IProp GF)) none
       wkPfx optsSl
       ([withPrefixM, withRevM (W64 1), withProgressNotifyM, withCreatedNotifyM] :
         List (OpFull → OpFull))

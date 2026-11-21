@@ -288,7 +288,7 @@ theorem watchRespOk_closeErr (pfx : GoString) (k k' : w64)
 /-- `context.errStringOk` (`Spec/context/Err.lean`) is the cache's `errStrOk`. -/
 theorem errStrOk_of_ctx (err : GoInterface) :
     EtcdGrove.context.errStringOk (GF := GF) err ⊢ errStrOk err := by
-  unfold EtcdGrove.context.errStringOk errStrOk EtcdGrove.fmt.stringMethodSpec errorStringSpec
+  unfold EtcdGrove.context.errStringOk errStrOk _root_.Perennial.fmt.stringMethodSpec errorStringSpec
   iintro #H
   iexact H
 

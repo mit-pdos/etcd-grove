@@ -56,8 +56,7 @@ theorem raft.tickHeartbeat.wp_proof
   wp_join iprop(∃ (s1 s2 : NState), "Hphys" ∷ ownRaftPhysCV c c.voters r id s2 ∗
       "Hghost" ∷ ownStepGhost γ md c id s2 ∗
       "%Hs1" ∷ ⌜(NStateWf s2 ∧
-        (uint.Z s.logst.committed ≤ uint.Z s2.logst.committed ∧
-          PVoteLe (toPState s) (toPState s2)) ∧
+        (TickProgress s s2) ∧
         (∀ s', TickStep s2 s' → TickStep s s')) ∧
         -- (Q8 stage 1 slice 12) the trace mode kept, and the abort
         s2.gh = s.gh ∧ (s2 = s1 ∨ s2 = { s1 with lt := W64 0 })⌝ ∗
@@ -85,7 +84,7 @@ theorem raft.tickHeartbeat.wp_proof
           iframe Hphys Hghost r
           isplitr
           · ipureintro
-            exact ⟨⟨Hwf, ⟨Int.le_refl _, PVoteLe.refl _⟩, fun _ h => h⟩, rfl, .inl rfl⟩
+            exact ⟨⟨Hwf, TickProgress.refl _, fun _ h => h⟩, rfl, .inl rfl⟩
           ileft; iframe HG; ipureintro; rfl
         · rw [decide_eq_false Hlt]
           try wp_auto
@@ -97,7 +96,7 @@ theorem raft.tickHeartbeat.wp_proof
           iframe Hphys Hghost r
           isplitr
           · ipureintro
-            exact ⟨⟨Hwf, ⟨Int.le_refl _, PVoteLe.refl _⟩, fun _ h => h⟩, rfl, .inr rfl⟩
+            exact ⟨⟨Hwf, ⟨Int.le_refl _, PVoteLe.refl _, fun _ h _ => .inl h⟩, fun _ h => h⟩, rfl, .inr rfl⟩
           ileft; iframe HG; ipureintro; rfl
       all_goals
         wp_join_done
@@ -105,7 +104,7 @@ theorem raft.tickHeartbeat.wp_proof
         iframe Hphys Hghost r
         isplitr
         · ipureintro
-          exact ⟨⟨Hwf, ⟨Int.le_refl _, PVoteLe.refl _⟩, fun _ h => h⟩, rfl, .inl rfl⟩
+          exact ⟨⟨Hwf, TickProgress.refl _, fun _ h => h⟩, rfl, .inl rfl⟩
         ileft; iframe HG; ipureintro; rfl
     · -- (2026-10-17) `checkQuorum` on: `r.Step(&pb.Message{From: new(r.id), Type:
       -- pb.MsgCheckQuorum.Enum()})`, built as the `MsgBeat` below; the leader may step down
@@ -175,7 +174,7 @@ theorem raft.tickHeartbeat.wp_proof
         simp [MsgSnap, MsgCheckQuorum] at Hc
       simp only [hP]
       iintro %err %s0 %c' %md' ⟨Hphys, Hghost, %Hwf0, %Href, %Hcc, -, %Hfr, -, %Htm, -, -, -, Herr, HG⟩
-      have Hcm0 := And.intro Href.commit_mono Href.voteLe
+      have Hcm0 := TickProgress.mk Href.commit_mono Href.voteLe Href.snapQueue
       have e1 := Href.keep (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)); subst e1
       have e2 := Hcc (by msg_ne); subst c'
       -- the step keeps the term and the log's frame: a tick from `s0` is one from `s`
@@ -232,7 +231,7 @@ theorem raft.tickHeartbeat.wp_proof
           iframe Hphys Hghost r
           isplitr
           · ipureintro
-            exact ⟨⟨Hwf0, Hcm0, Htr0⟩,
+            exact ⟨⟨Hwf0, ⟨Hcm0.commit, Hcm0.vote, Hcm0.queue⟩, Htr0⟩,
               NetFrame.ns (Hfr (by msg_ne) (by msg_ne) (by msg_ne) (fun _ => trivial)), .inr rfl⟩
           iright; iexact HG
       all_goals
@@ -249,7 +248,7 @@ theorem raft.tickHeartbeat.wp_proof
     iframe Hphys Hghost r
     isplitr
     · ipureintro
-      exact ⟨⟨Hwf, ⟨Int.le_refl _, PVoteLe.refl _⟩, fun _ h => h⟩, rfl, .inl rfl⟩
+      exact ⟨⟨Hwf, TickProgress.refl _, fun _ h => h⟩, rfl, .inl rfl⟩
     ileft; iframe HG; ipureintro; rfl
   obtain ⟨⟨Hwf1, Hcm1, Htr⟩, Hgh2, Hs12⟩ := Hs1
   -- no quorum check: the caller's `Gm s` (`"Hskip"`)
@@ -360,7 +359,7 @@ theorem raft.tickHeartbeat.wp_proof
       simp [MsgSnap, MsgBeat] at Hc
     simp only [hP]
     iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, -, %Htm, -, -, -, Herr, HG⟩
-    have Hcm := And.intro Href.commit_mono Href.voteLe
+    have Hcm := TickProgress.mk Href.commit_mono Href.voteLe Href.snapQueue
     have e1 := Href.keep (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)); subst e1
     have e2 := Hcc (by msg_ne); subst c'
     icases Herr with (%Herr | ⟨%Hc', -⟩)
@@ -369,7 +368,7 @@ theorem raft.tickHeartbeat.wp_proof
       iapply HΦ $$ %s'
       iframe Hphys Hghost
       isplitr; · ipureintro; exact Hwf'
-      isplitr; · ipureintro; exact ⟨Int.le_trans Hcm1.1 Hcm.1, Hcm1.2.trans Hcm.2⟩
+      isplitr; · ipureintro; exact Hcm1.trans Hcm
       isplitr
       rotate_left
       · iright; iexact HG

@@ -138,7 +138,7 @@ theorem srv_snap_make (γr : ReadNames) (A : List EntryModel) (ai at' : w64) (c 
 /-- **The merged snapshot's message, sent** (2026-10-31, S1: `applyAll`'s `msgSnapC` branch): a
 `MsgSnap` the node `sid` sent, of term `st.msg.Term'` committed through `ct`, with raft's
 snapshot `sv` replaced by the server's at the applied index `ai` (`srv_snap_cert`), at least `sv`'s
-index (the branch's guard) and at most `ct` (`sentMsg_replaceSnapshot`). -/
+index (from the snapshot's origin and the applying Ready) and at most `ct` (`sentMsg_replaceSnapshot`). -/
 theorem srv_merged_sent (γr : ReadNames) (A : List EntryModel) (ai at' : w64) (c : ConfStateM)
     (sid ct : w64) (st : MsgSt) (sv : SnapshotM)
     (hpos : 0 < uint.Z ai) (h61 : uint.Z ai < 2 ^ 61) (hsz : GMap.size γr.raft.raft.cfg < 2 ^ 61)
@@ -183,7 +183,7 @@ theorem wp_srv_createSnapshot
          ⌜snap = null ∧ err = eood⌝) }} := by
   iintro %Φ ⟨#Hpkg, Hstor, #Hecs, #Hft, #Hlb0, #Heood⟩ HΦ
   iunfold srvSnapStor at Hstor
-  icases Hstor with ⟨#Hmsi, Hdl, #Hrli, ⟨%A, #HA, %HAp⟩⟩
+  icases Hstor with ⟨#Hmsi, #HappliedAt, Hdl, #Hrli, ⟨%A, #HA, %HAp⟩⟩
   iunfold epCsCfg at Hecs
   iunfold epCsVoters at Hecs
   icases Hecs with ⟨%c, #Hc, %Hcs⟩
@@ -202,14 +202,19 @@ theorem wp_srv_createSnapshot
   ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
   · iapply ownSlice_nil
   -- (2026-11-02, the lean merge) `CreateSnapshot` attached (mode `none`, durability stage I-5)
-  wp_apply hCS ms γs (memStorJ γr.raft.raft.cl nk) none ai e cs DFrac.discard c slice.nil [] eood
+  iunfold srvCreateMem at Hmsi
+  icases Hmsi with ⟨%pin, %boot, #Hminv⟩
+  iunfold memStorInvT at Hminv
+  ihave #Horigin : srvStoredOrigin γr.raft.raft.cl γr.cursor pin boot (memSnapMade ai e.Term' c []) $$ []
+  · iunfold srvStoredOrigin
+    iright; ileft
+    iExactEq HappliedAt; rfl
+  wp_apply hCS ms γs (memStorJT γr.raft.raft.cl nk (srvStoredOrigin γr.raft.raft.cl γr.cursor pin boot)) none ai e cs DFrac.discard c slice.nil [] eood
     $$ [Hnil Hdl] as %snap %err ⟨-, #Hlb, Hres⟩
   · rw [memStorAt_none]
-    simp only [memStorJ]
+    simp only [memStorJT, memStorJ]
     iframe Hnil Hdl
     iframe #
-    iExactEq Hmsi
-    rfl
   iapply HΦ
   iframe Hlb
   icases Hres with (⟨%Herr, Hsn, -⟩ | ⟨%Herr, -⟩)

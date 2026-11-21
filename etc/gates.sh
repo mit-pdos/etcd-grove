@@ -2,7 +2,7 @@
 # The checks a branch passes before it lands on `lean`, in one run (the ones CI runs, plus the
 # trust base's and every generator's): the full build, every generated Link.lean, the trust base
 # and every collection, the axiom-tok gate, the translations (and the examples' go.mod pins), the generated
-# initializers, the issues' front matter, the bounds and auth-mode checks, the packages' imports, the import tiers and the interfaces. Prints one line per check and exits 1 if any fails.
+# initializers, the issues' front matter, the bounds, auth-mode and client-port mediation checks, the packages' imports, the import tiers and the interfaces. Prints one line per check and exits 1 if any fails.
 #
 #   etc/gates.sh                     in a checkout whose .lake/packages holds the pinned Perennial
 #   LAKE_PACKAGES=.lake/manifest-stdinit.json PERENNIAL_CHECKOUT=/shared/perennial-std-init \
@@ -207,6 +207,14 @@ fi
 # every axiom returning holding an RWMutex reader slot charges a token (begin-tok; reads the sources,
 # and the Go sources in .lake/goose that goose.py above clones: so after it, in this section)
 python3 etc/reader-slot-check.py || fail=1
+# every registration on etcd's client port has a row in etc/auth-table.txt with the specs that carry
+# its access check, none weaker than etc/auth-mediation-baseline.txt (notes/auth-mediation-scope.md,
+# M0; reads the Go sources in .lake/goose that goose.py above clones, and the specs: so after it)
+if python3 etc/auth-mediation-check.py --check > "$tmp/authmed.log" 2>&1; then
+  echo "$(tail -1 "$tmp/authmed.log")"
+else
+  echo "auth-mediation: FAILED"; grep -v "^auth-mediation: ok" "$tmp/authmed.log" | head -20; fail=1
+fi
 return $fail
 }
 

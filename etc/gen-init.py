@@ -133,6 +133,10 @@ ROOTS.append('github_com.mit_pdos.etcd_grove.examples.mvccrand')
 # `True` (`Base.lean`), so no `SPECIAL`; its `PkgTable.lean` (`PROGRAMS`) is Prove's, for the closed
 # theorem
 ROOTS.append('github_com.mit_pdos.etcd_grove.examples.mvccfull')
+# (2026-11-19) Kubernetes' conditional authorization's driver (examples/k8s/authz), for its closed
+# theorem: it brings in `authorization/{authorizer,union}` (`SPECIAL` below), `authentication/user`
+# and `util/validation` (names only, facts `True`, `authorizer/Base.lean`)
+ROOTS.append('github_com.mit_pdos.etcd_grove.examples.k8s.authz')
 # (WAL W4c, 2026-11-12, until 2026-11-15) the WAL robustness tester was a root here; it is the part
 # `WalTester/`'s now (`wt_inits`), and the WAL reaches the closure through the server
 # Packages of the closure still without a `wp_initialize'` (their facts are assumed: notes/STATUS.md,
@@ -152,10 +156,9 @@ ASSUMED = {}
 # generated `regNames`; any number of them may be in a closure (`ownInitResL`'s list). The value:
 # the registrations in `init()`'s order, `(x, collector, collectorName fact, (ns, sub, name))`
 # (`reg_scalar`/`reg_vec` below build them from the metric's variable; filled in with the packages'
-# configurations). Until then one package, read, its resource `EtcdGrove.read.readRegPerm`. Not here
-# (mustreg): auth, lease, backend and mvcc, whose registrations would put the premise
-# `namesUnclaimed` on the closed theorems of mvccrand and mvccfull, which have none (their
-# `initFuncsOk` stay).
+# configurations). Until then one package, read, its resource `EtcdGrove.read.readRegPerm`.
+# (etcdstorage, 2026-11-20, the user's decision) auth, lease, backend and mvcc too: the closed
+# theorems of mvccrand and mvccfull now take the premise `namesUnclaimed` (mustreg had left them out).
 PRE_RES = {}
 
 def reg_scalar(x, ns, sub, name, c=None, n=None):
@@ -254,8 +257,8 @@ SPECIAL = {}
 # (prove-errinits, 2026-11-19) translated `errors.New` / verb-less `fmt.Errorf` package variables:
 # the steps of the initializer of `x`, Perennial's `errors.wp_New_errorString` (`%x<x> #M<x>`) or, with
 # the message cell, `EtcdGrove.wp_New_errorString_cell` (`%x<x> ⟨#M<x>, #C<x>⟩`); a `fmt.Errorf`
-# unfolds its trusted model, `errors.New(format)` (Go's `Errorf` without verbs or `%w` returns
-# `errors.New(format)` too).
+# without `%` goes through `EtcdGrove.fmt.wp_Errorf_noPct` (Perennial's `fmt.wp_Errorf`: Go's `Errorf`
+# without verbs returns `errors.New(format)`; fmtmodel, 2026-11-20: until then it unfolded the model).
 NEWVAR_IMPORTS = ['Perennial.Proof.errors.NewVar']
 NEWVAR_CELL_IMPORTS = ['Proof.errors.NewVarCell']
 
@@ -265,8 +268,14 @@ def newvar_steps(x, cell=False, errorf=None):
     # `errors.New(format)`, as the model does; `etc/errorf-wrap-check.py`)
     if errorf is not None:
         assert '%' not in errorf, (x, errorf)
-    pre = ['try wp_auto'] + ([f'-- `fmt.Errorf({json.dumps(errorf)})`: no verb, Go returns `errors.New` of the format, as Perennial\'s model',
-                              'wp_func_call', 'wp_call', 'try wp_auto'] if errorf is not None else [])
+    if errorf is not None:
+        # (fmtmodel, 2026-11-20) through Perennial's `fmt.wp_Errorf` (`EtcdGrove.fmt.wp_Errorf_noPct`)
+        pat = f'⟨#M{x}, #C{x}⟩' if cell else f'⟨#M{x}, -⟩'
+        return ['try wp_auto',
+                f'-- `fmt.Errorf({json.dumps(errorf)})`: no verb, Go returns `errors.New` of the format',
+                f'wp_apply (EtcdGrove.fmt.wp_Errorf_noPct _ _ (by decide)) $$ [] as %x{x} {pat}',
+                '· iframe #; iapply ownSlice_nil']
+    pre = ['try wp_auto']
     if cell:
         return pre + [f'wp_apply EtcdGrove.wp_New_errorString_cell as %x{x} ⟨#M{x}, #C{x}⟩']
     return pre + [f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{x} #M{x}']
@@ -278,7 +287,8 @@ def newvars_cfg(cfg, names, cell=False, errorf={}):
     cfg.setdefault('before', {}).update(
         {x: newvar_steps(x, cell, errorf.get(x)) for x in names})
     imps = cfg.setdefault('imports', [])
-    imps += [m for m in NEWVAR_IMPORTS + (NEWVAR_CELL_IMPORTS if cell else []) if m not in imps]
+    imps += [m for m in NEWVAR_IMPORTS + (NEWVAR_CELL_IMPORTS if cell else []) +
+             (['Proof.fmt.OutLemmas'] if errorf else []) if m not in imps]
     return cfg
 
 _ETCD_ERRMSGS = dict(ErrUnknownMethod="etcdserver: unknown method",
@@ -333,7 +343,9 @@ error, `linkHeartbeatMessage` a heartbeat message without unknown fields, read-o
 initializer runs its variables' initializers: (prove-errinits, 2026-11-19) its errors' are translated,
 `errors.New` calls and verb-less `fmt.Errorf` calls (`msg_codec.go`, `http.go`, `peer.go`,
 `stream.go`; `fmt.Errorf`'s trusted model is `errors.New(format)`), until then the trust-boundary axiom
-`errorsNewVarsInit`; `linkHeartbeatSize_init` states `linkHeartbeatSize`'s (`stream.go`).
+`errorsNewVarsInit`; (prove-misc, 2026-11-20) `linkHeartbeatSize = proto.Size(&linkHeartbeatMessage)`
+(`stream.go`) is translated, over `proto.SizePb`'s spec at the registered `raftpb.Message` (until then
+the trust-boundary axiom `linkHeartbeatSize_init`).
 (const-inits, 2026-11-19) The timeouts and intervals (`snapResponseReadTimeout`, `ConnWriteTimeout`,
 `proberInterval`, `statusMonitoringInterval`, `statusErrorInterval`), `errMemberNotFound`
 (`fmt.Errorf`, its proof) and `supportedStream` (a map literal of slice literals) are translated
@@ -346,20 +358,13 @@ literal frozen by `hbMsg_init`) are translated and set. (metric-vecs, 2026-11-19
 vectors (`metrics.go`: `sentBytes`, `activePeers`, `rttSec`, the snapshot metrics, ...), over
 prometheus's `New<Kind>Vec` specs, each with its label names (`vecLabels`; until then the
 trust-boundary axioms `<X>_init`).''',
-    custom={
-        # (2026-10-23, rafthttp stage 5b) the stream writer counts a heartbeat's size
-        'linkHeartbeatSize': dict(
-        doc='/-- `linkHeartbeatSize = proto.Size(&linkHeartbeatMessage)` (`stream.go`): the heartbeat\'s encoding\'s size (two bytes), an `int` from `0` to below `2^50`; nothing writes it (the stream writer adds it to its metrics). -/',
-        post='∃ n : w64, globalAddr linkHeartbeatSize ↦ n ∗ ⌜0 ≤ sint.Z n ∧ sint.Z n < 2 ^ 50⌝',
-        pat='⟨%n@, H@, %B@⟩')},
-
     alloc_types={'RaftPrefix': 'GoString', 'ConnReadTimeout': 'w64', 'readBytesLimit': 'w64',
                  'ProbingPrefix': 'GoString', 'RaftStreamPrefix': 'GoString',
                  'RaftSnapshotPrefix': 'GoString',
                  'linkHeartbeatMessage': '_root_.Perennial.go_etcd_io.raft.v3.raftpb.Message',
                  'snapResponseReadTimeout': 'w64', 'errMemberNotFound': 'GoInterface',
                  'ConnWriteTimeout': 'w64', 'proberInterval': 'w64', 'statusMonitoringInterval': 'w64',
-                 'statusErrorInterval': 'w64', 'supportedStream': 'Loc'},
+                 'statusErrorInterval': 'w64', 'supportedStream': 'Loc', 'linkHeartbeatSize': 'w64'},
     # `ConnReadTimeout = DefaultConnReadTimeout`: the constant's value, for the store to step;
     # (2026-10-24, rafthttp stage 6d) the three subpaths of `RaftPrefix`: `path.Join` (proved)
     before={'ConnReadTimeout': ['simp only [DefaultConnReadTimeout]', 'try wp_auto'],
@@ -376,7 +381,7 @@ trust-boundary axioms `<X>_init`).''',
                 'try wp_auto',
                 'wp_apply (wp_mapInsert (K := GoString) (V := GoSlice) go.string) $$ Hss as Hss', 'try wp_auto']],
             # (const-inits, 2026-11-19) `errMemberNotFound = fmt.Errorf("member not found")`, translated
-            'errMemberNotFound': ['wp_apply (_root_.Perennial.fmt.wp_Errorf go!"member not found" slice.nil [] _root_.Perennial.fmt.ArgsWf.nil) $$ [] as %emnf -',
+            'errMemberNotFound': ['wp_apply (_root_.Perennial.fmt.wp_Errorf_argsWf go!"member not found" slice.nil [] _root_.Perennial.fmt.ArgsWf.nil) $$ [] as %emnf -',
                                   '· iframe #; iapply ownSlice_nil', 'try wp_auto'],
             # (raft-entsize, route H1, 2026-11-10) `Message{Type: MsgHeartbeat.Enum()}`, translated:
             # `Enum`'s proof, the literal stored, frozen at its content `hbC` (`hbMsg_init`)
@@ -386,7 +391,20 @@ trust-boundary axioms `<X>_init`).''',
                 'intro x; wp_start; wp_auto; iapply HΦ; iframe) (W32 8) as %phb Hphb',
                 'try wp_auto',
                 'imod (EtcdGrove.hbMsg_init _ _ ⊤) $$ [HlinkHeartbeatMessage Hphb] with #HlinkHeartbeatMessage',
-                '· iframe HlinkHeartbeatMessage Hphb']},
+                '· iframe HlinkHeartbeatMessage Hphb'],
+            # (prove-misc, 2026-11-20) `proto.Size(&linkHeartbeatMessage)`: `SizePb` at the registered
+            # `raftpb.Message`, the heartbeat read-only at a content of bounded size (`hbMsg_msgRoC`)
+            'linkHeartbeatSize': ['try wp_auto',
+                'icases (EtcdGrove.hbMsg_msgRoC _) $$ [HlinkHeartbeatMessage] with ⟨%chb, #Hchb, %Hchb⟩',
+                '· iexact HlinkHeartbeatMessage',
+                'have wpShb := EtcdGrove.proto.SizePb.wp_proof (GF := GF) (hG := hG) EtcdGrove.pbMessageC EtcdGrove.pbMessageC_reg (globalAddr linkHeartbeatMessage) chb',
+                'simp only [EtcdGrove.pbMessageC_ty, EtcdGrove.pbMessageC_roC, EtcdGrove.pbMessageC_size] at wpShb',
+                'wp_apply wpShb $$ [$Hchb] as %nlinkHeartbeatSize %HnlinkHeartbeatSize',
+                'have BlinkHeartbeatSize : 0 ≤ sint.Z nlinkHeartbeatSize ∧ sint.Z nlinkHeartbeatSize < 2 ^ 50 := by',
+                '  have hlt := EtcdGrove.msgSize_lt_of_ok chb Hchb.2.2.2',
+                '  have he := HnlinkHeartbeatSize (by omega)',
+                '  omega',
+                'try wp_auto']},
     # (const-inits, 2026-11-19) a lookup in a map literal finds one of its values
     pre=['/-- A lookup in `<[k := v]> m` finds `v` or one of `m`\'s values. -/',
          'theorem EtcdGrove.lookup_insert_some {K V : Type} [DecidableEq K] (m : GMap K V) (k k\' : K) (v w : V)',
@@ -396,11 +414,14 @@ trust-boundary axioms `<X>_init`).''',
     imports=['Proof.path.Join', 'Proof.path.Clean', 'Proof.path.lazybuf__index',
              'Proof.path.lazybuf__append', 'Proof.path.lazybuf__string',
              'Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum',
-             'Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.MsgAppV2'],
+             'Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.MsgAppV2',
+             'Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.PerTypeMessage',
+             'Proof.google_golang_org.protobuf.proto.SizePb'],
     finish=['ipersist HErrExceedSizeLimit', 'ipersist HerrIncompatibleVersion',
             'ipersist HErrClusterIDMismatch', 'ipersist HerrStopped', 'ipersist HerrMemberRemoved',
             'ipersist HRaftPrefix', 'ipersist HProbingPrefix', 'ipersist HRaftStreamPrefix',
-            'ipersist HRaftSnapshotPrefix', 'ipersist HConnReadTimeout', 'ipersist HlinkHeartbeatSize',
+            'ipersist HRaftSnapshotPrefix', 'ipersist HConnReadTimeout', 'ipersist HConnWriteTimeout',
+            'ipersist HlinkHeartbeatSize',
             'ipersist HreadBytesLimit', 'ipersist HerrUnsupportedStreamType',
             'ipersist HsupportedStream', 'ipersist HsnapResponseReadTimeout', 'ipersist HerrMemberNotFound',
             'ipersist Hss'] + [f'ipersist Sss{i}' for i in range(13)] + [
@@ -424,6 +445,41 @@ trust-boundary axioms `<X>_init`).''',
 
 FIN_PRE = ['iframe Hown', 'imodintro', 'isplitr', '· ipureintro', '  exact isPanic_intoVal _',
            'is_pkg_init_finish', 'try (isplitl []; · (imodintro; itrivial))', 'imodintro']
+
+# (2026-11-19) Kubernetes' conditional authorization (KEP-5681, project k8s-authz)
+SPECIAL['k8s_io.apiserver.pkg.authorization.authorizer'] = dict(
+    doc='''Its fact (`authorizerInit`, `authorizer/Base.lean`): `ErrorConditionEvaluationNotSupported`
+holds some error, read-only for good. Its initializer allocates it, initializes its imports and runs
+its translated initializers: the interface assertions `var _ Condition = GenericCondition{}` and
+`var _ Authorizer = AuthorizerFunc(nil)` (conversions to interfaces) and `errors.New(...)`
+(Perennial's `errors.wp_New`, `interfaces.go`).''',
+    imports=['Perennial.Proof.errors.Link'],
+    alloc_types={'ErrorConditionEvaluationNotSupported': 'GoInterface'},
+    before={'$end': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New as %xE -',
+                     'try wp_auto']},
+    finish=['ipersist HErrorConditionEvaluationNotSupported'] + FIN_PRE[:6] +
+           ['imodintro', 'unfold authorizerInit',
+            'iexists _; iexact HErrorConditionEvaluationNotSupported'],
+)
+# (2026-11-19) apimachinery's `util/validation/field` (names only but `NewPath`,
+# `ErrorList.ToAggregate` and `(*Error).Error`'s code, translated with bodies)
+SPECIAL['k8s_io.apimachinery.pkg.util.validation.field'] = dict(
+    doc='''Its fact (`fieldInit`, `storage/etcd3/Base.lean`): `omitValue`'s address is not `nil`
+(`(*Error).ErrorBody` loads it). Its initializer allocates it (the allocation gives its points-to,
+hence the address), initializes its imports, and runs its translated initializers: `omitValue`'s
+(`OmitValueType{}`, `errors.go`) and `var _ error = &Error{}` (an allocation; prove-smallinits,
+2026-11-20: until then `opaqueInitsOk`).''',
+    alloc_types={'omitValue': 'k8s_io.apimachinery.pkg.util.validation.field.OmitValueType'},
+    before={'$end': ['try wp_auto', 'repeat (wp_alloc_anon; try wp_auto)']},
+    finish=['ihave %Hnn := typedPointsto_not_null _ _ _ $$ HomitValue'] + FIN_PRE[:6] +
+           ['try (imodintro; ipureintro; exact Hnn)'],
+)
+SPECIAL['k8s_io.apiserver.pkg.authorization.union'] = dict(
+    doc='''Its fact is `True`. Its initializer initializes its imports and runs its translated
+initializer, the interface assertion `var _ = authorizer.Authorizer(unionAuthzHandler{})` (a
+conversion to an interface, `union.go`).''',
+    before={'$end': ['try wp_auto']},
+)
 
 # bbolt (project bbolt, translated with bodies, 2026-11-03; facts in
 # `Proof/go_etcd_io/bbolt/PkgInit.lean`)
@@ -830,7 +886,7 @@ def metric_steps(x, kind):
 def gaugefunc_steps(x):
     """`x = prometheus.NewGaugeFunc(opts, func() float64 {...})`, over `NewGaugeFunc`'s spec."""
     return ['try wp_auto',
-            f'wp_apply EtcdGrove.prometheus.NewGaugeFunc.wp_proof _ _ _ _ _ _ rfl as %c{x} -',
+            f'wp_apply EtcdGrove.prometheus.NewGaugeFunc.wp_proof _ _ _ _ _ _ rfl as %c{x} %N{x}',
             'try wp_auto']
 
 _MV = 'go_etcd_io.etcd.server.v3.storage.mvcc'
@@ -1041,22 +1097,32 @@ generated protobuf descriptors), which the trust-boundary axiom `opaqueInitsOk` 
         'iexists _, _', 'iframe #', 'ipureintro', 'simp (config := {decide := true})'],
 )
 
+_VERS = ['V3_0', 'V3_1', 'V3_2', 'V3_3', 'V3_4', 'V3_5', 'V3_6', 'V3_7', 'V3_8', 'V3_9', 'V4_0']
+_SEMVER_NEW = 'EtcdGrove.semver.New.wp_proof EtcdGrove.semver.Version.String.wp_proof'
+def semver_new_steps(x):
+    """`x = *semver.New(...)`: `semver.New`'s spec (a read-only version), then the load."""
+    return ['try wp_auto',
+            f'wp_apply ({_SEMVER_NEW}) as %p{x} ⟨%N{x}, %o{x}, #P{x}⟩',
+            'try wp_auto']
 SPECIAL['go_etcd_io.etcd.api.v3.version'] = dict(
-    doc='''Its fact (`server/v3/lease/Base.lean`): `Version` holds `"3.8.0-alpha.0"`, `V3_6` a fixed value and
-`MinClusterVersion` `"3.0.0"`. Its initializer allocates and sets its translated string variables
-(`version.go`: `MinClusterVersion`, `Version`, `APIVersion`, `GitSHA`; translated since 2026-11-19,
-until then the trust-boundary axioms `Version_init` and `MinClusterVersion_init`) and runs its other
-variables' untranslated initializers: `semver` versions (`*semver.New(3, 6, 0, "", "")`, which
-formats with `fmt`) and `AllVersions`; the trust-boundary axiom `V3_6_init` states the one the fact
-reads, `opaqueInitsOk` the others.''',
-    alloc_types={x: 'GoString' for x in ['MinClusterVersion', 'Version', 'APIVersion', 'GitSHA']},
-    custom={
-        'V3_6': dict(doc='/-- `V3_6 = *semver.New(3, 6, 0, "", "")` (`version.go`): a `semver.Version`. -/',
-                     post='∃ v : github_com.Masterminds.semver.v3.Version, globalAddr V3_6 ↦ v',
-                     pat='⟨%v@, H@⟩'),
-    },
-    before={'V3_0': ['try wp_auto']},
-    finish=['ipersist HVersion', 'ipersist HV3_6', 'ipersist HMinClusterVersion'] + FIN_PRE[:6],
+    doc='''Its fact (`api/v3/version/PkgInit.lean`): `Version` holds `"3.8.0-alpha.0"`, `V3_6`, `V3_7` and `V3_8`
+fixed values and `MinClusterVersion` `"3.0.0"`. Its initializer allocates and sets its translated string
+variables (`version.go`: `MinClusterVersion`, `Version`, `APIVersion`, `GitSHA`; translated since
+2026-11-19, until then the trust-boundary axioms `Version_init` and `MinClusterVersion_init`), its `semver`
+versions (`V3_0 = *semver.New(3, 0, 0, "", "")`, ...: `semver.New`'s spec, proved over the real code) and
+`AllVersions` (a slice literal of them; prove-initleft, 2026-11-21: until then the trust-boundary axioms
+`V3_6_init` and `opaqueInitsOk`), and runs its untranslated `init` function, which the trust-boundary
+axiom `initFuncsOk` says returns.''',
+    alloc_types=dict({x: 'GoString' for x in ['MinClusterVersion', 'Version', 'APIVersion', 'GitSHA']},
+                     **{x: 'github_com.Masterminds.semver.v3.Version' for x in _VERS}, AllVersions='GoSlice'),
+    before=dict({x: semver_new_steps(x) for x in _VERS},
+                AllVersions=['try wp_auto',
+                             'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sav ⟨Sav, -⟩',
+                             'try wp_auto']),
+    imports=['Proof.github_com.Masterminds.semver.v3.New',
+             'Proof.github_com.Masterminds.semver.v3.Version__String'],
+    finish=['ipersist HVersion', 'ipersist HV3_6', 'ipersist HMinClusterVersion',
+            'ipersist HV3_7', 'ipersist HV3_8'] + FIN_PRE[:6],
 )
 
 # (the lease-renew plan, 2026-11-01) names only: `LeaseRenew` reads `LeasePrefix`
@@ -1217,27 +1283,49 @@ polling the endpoint's `Status`, and returns), `opaqueInitsOk` the others.''',
     finish=FIN_PRE[:6],
 )
 
+# (prove-b64clock, 2026-11-20) clockwork's `keyClock = contextKey("clock")`, translated (a string
+# conversion, which `wp_auto` runs); `ErrFakeClockDeadlineExceeded`'s `fmt.Errorf("...: %w", ...)` stays
+# untranslated (`opaqueInitsOk`): Perennial's `Errorf` model is faithful only for formats without verbs.
+SPECIAL['github_com.jonboulle.clockwork'] = dict(alloc_types={'keyClock': 'GoString'})
+
 SPECIAL['encoding.base64'] = dict(
     doc='''Its fact (`base64Init`, `encoding/base64/Base.lean`; the auth plan's E2x, 2026-10-26;
 k8s 7e-2, 2026-11-09): `StdEncoding` and `RawURLEncoding` hold fixed `*Encoding`s whose
 `EncodeToString` returns the standard encoding (`stdEnc`), resp. the URL encoding without padding
-(`rawUrlEnc`), of its argument's bytes, stated as the method call's own WP (the type is axiomatized).
-Its initializer runs its variables' untranslated initializers (`base64.go`); the trust-boundary
-axioms `StdEncoding_init` and `RawURLEncoding_init` state the ones the fact reads
-(`NewEncoding(encodeStd)`, `URLEncoding.WithPadding(NoPadding)`: fixed `*Encoding`s whose
-`EncodeToString` allocates its output buffer, `Encode`s into it and returns it as a string: no
-panic, no write to its argument), `opaqueInitsOk` the others.''',
-    custom={'StdEncoding': dict(
-        doc='/-- `StdEncoding = NewEncoding(encodeStd)` (`base64.go`): a fixed `*Encoding` (Go never writes the variable after) whose `EncodeToString` returns the standard base64 encoding `stdEnc` of its argument\'s bytes, reading and keeping the slice. -/',
-        post='_root_.Perennial.encoding.base64.stdEncInit (GF := GF)',
-        pat='#H@'),
-            'RawURLEncoding': dict(
-        doc='/-- `RawURLEncoding = URLEncoding.WithPadding(NoPadding)` (`base64.go`): a fixed `*Encoding` (Go never writes the variable after) whose `EncodeToString` returns the URL base64 encoding without padding `rawUrlEnc` of its argument\'s bytes, reading and keeping the slice (stage 7e-2, `notes/k8s-7e-2-draft.md` §5.4, attacked T15). -/',
-        post='_root_.Perennial.encoding.base64.rawUrlEncInit (GF := GF)',
-        pat='#H@')},
-    finish=FIN_PRE[:6] + ['isplitl []', '· imodintro; itrivial', 'imodintro',
-            'unfold _root_.Perennial.encoding.base64.base64Init', 'isplitl', '· iexact HStdEncoding',
-            'iexact HRawURLEncoding'],
+(`rawUrlEnc`), of its argument's bytes, stated as the method call's own WP.
+Its initializer allocates its four variables and runs their translated initializers (`base64.go`,
+translated with their bodies since 2026-11-20, prove-b64clock; until then the trust-boundary axioms
+`StdEncoding_init`, `RawURLEncoding_init` and `opaqueInitsOk`): `NewEncoding` of the two alphabets
+(`NewEncoding.wp_proof`; valid alphabets, `stdAlphabet_ok`, `urlAlphabet_ok`), and `WithPadding(NoPadding)`
+of each (`Encoding.WithPadding.wp_proof`); the fact's parts from `EncodeToString`'s spec
+(`stdEncInit_intro`, `rawUrlEncInit_intro`).''',
+    imports=['Proof.encoding.base64.NewEncoding', 'Proof.encoding.base64.Encoding__WithPadding',
+             'Proof.encoding.base64.Encoding__EncodeToString', 'Proof.encoding.base64.Encoding__EncodedLen',
+             'Proof.encoding.base64.Encoding__Encode', 'Proof.encoding.base64.InitFacts'],
+    alloc_types={'StdEncoding': 'Loc', 'URLEncoding': 'Loc', 'RawStdEncoding': 'Loc', 'RawURLEncoding': 'Loc'},
+    before={'$end': [
+        'try wp_auto',
+        'wp_apply (EtcdGrove.base64.NewEncoding.wp_proof _ (by exact EtcdGrove.base64.stdAlphabet_ok.1)',
+        '    (by exact EtcdGrove.base64.stdAlphabet_ok.2.1) (by exact EtcdGrove.base64.stdAlphabet_ok.2.2.1)',
+        '    (by exact EtcdGrove.base64.stdAlphabet_ok.2.2.2)) as %eS ⟨%encS, HeS, %hS⟩',
+        'try wp_auto',
+        'wp_apply (EtcdGrove.base64.NewEncoding.wp_proof _ (by exact EtcdGrove.base64.urlAlphabet_ok.1)',
+        '    (by exact EtcdGrove.base64.urlAlphabet_ok.2.1) (by exact EtcdGrove.base64.urlAlphabet_ok.2.2.1)',
+        '    (by exact EtcdGrove.base64.urlAlphabet_ok.2.2.2)) as %eU ⟨%encU, HeU, %hU⟩',
+        'try wp_auto',
+        'wp_apply (EtcdGrove.base64.Encoding.WithPadding.wp_proof eS encS _) $$ HeS as %eRS ⟨HeS, HeRS⟩',
+        'try wp_auto',
+        'wp_apply (EtcdGrove.base64.Encoding.WithPadding.wp_proof eU encU _) $$ HeU as %eRU ⟨HeU, HeRU⟩',
+        'try wp_auto']},
+    finish=['ipersist HStdEncoding', 'ipersist HRawURLEncoding', 'ipersist HeS', 'ipersist HeRU'] +
+           FIN_PRE[:6] + ['isplitl []', '· imodintro; itrivial', 'imodintro',
+            'unfold _root_.Perennial.encoding.base64.base64Init', 'isplitl',
+            '· iapply (EtcdGrove.base64.stdEncInit_intro (EtcdGrove.base64.Encoding.EncodeToString.wp_proof',
+            '      EtcdGrove.base64.Encoding.EncodedLen.wp_proof EtcdGrove.base64.Encoding.Encode.wp_proof)',
+            '    eS encS hS.1 hS.2) $$ HStdEncoding HeS',
+            'iapply (EtcdGrove.base64.rawUrlEncInit_intro (EtcdGrove.base64.Encoding.EncodeToString.wp_proof',
+            '    EtcdGrove.base64.Encoding.EncodedLen.wp_proof EtcdGrove.base64.Encoding.Encode.wp_proof)',
+            '  eRU { encU with padChar\' := W32 (-1) } hU.1 rfl) $$ HRawURLEncoding HeRU'],
 )
 
 SPECIAL['k8s_io.apiserver.pkg.storage'] = dict(
@@ -1359,8 +1447,8 @@ the translated initializers (`errTooMany`, an `errors.New` error; `typeToMessage
 `endpointsMap` (then the registry's mutex is made, with the map empty), `logger.go`'s sets grpc's logger (`grpclog.SetLoggerV2`, names-only: the
 trust-boundary axiom `grpclog.SetLoggerV2.wp_proof`), `watcher.go`'s stores in
 `fatalOnDecodeError` whether `KUBE_PANIC_WATCH_DECODE_ERROR` parses as true (`os.Getenv` and
-`strconv.ParseBool`, names-only in Perennial: the trust-boundary axioms `os.Getenv.wp_proof` and
-`strconv.ParseBool.wp_proof`).''',
+`strconv.ParseBool`: the trust-boundary axiom `os.Getenv.wp_proof`, and `strconv.ParseBool.wp_proof`, proved
+over Perennial's translation since 2026-11-20).''',
     pre=['section toLoggerV2',
          'variable [GooseExts] [GooseSemantics] [GooseInterp]',
          'variable [go_gctx : GoGlobalContext]',
@@ -1621,9 +1709,12 @@ SPECIAL['go_etcd_io.etcd.server.v3.storage.schema'] = dict(
 the auth bucket's two key names and the auth backend's `authEnabled`/`authDisabled` values
 (`auth.go`; the auth plan's S1, 2026-10-23), and the lessor's `Lease` bucket (leases T3,
 2026-10-25). Its initializer allocates and sets those translated variables (with the buckets'
-names), initializes its imports and runs its other variables' untranslated initializers, which
-the trust-boundary axiom `opaqueInitsOk` says run.''',
-    alloc_types={'MetaTermKeyName': 'GoSlice', 'MetaConsistentIndexKeyName': 'GoSlice',
+names), initializes its imports and runs its other variables' initializers, all translated
+(prove-initleft, 2026-11-21: `schemaChanges`, a map literal keyed by `version`'s versions, and the
+interface assertions; until then the trust-boundary axiom `opaqueInitsOk`), and its untranslated
+`init` function (`bucket.go`), which the trust-boundary axiom `initFuncsOk` says returns.''',
+    imports=['Proof.github_com.Masterminds.semver.v3.MapKey'],
+    alloc_types={'schemaChanges': 'Loc', 'MetaTermKeyName': 'GoSlice', 'MetaConsistentIndexKeyName': 'GoSlice',
                  'Meta': 'GoInterface', 'Key': 'GoInterface', 'metaBucketName': 'GoSlice',
                  'keyBucketName': 'GoSlice', 'authEnabled': 'GoSlice', 'authDisabled': 'GoSlice',
                  'authBucketName': 'GoSlice', 'authUsersBucketName': 'GoSlice',
@@ -1639,7 +1730,9 @@ the trust-boundary axiom `opaqueInitsOk` says run.''',
                                            'emptyStorageVersion']},
                  **{x: 'GoInterface' for x in ['Alarm', 'Cluster', 'Members', 'MembersRemoved', 'Test']}},
     before={
-        '«_»': ['wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sen ⟨Hsen, -⟩',
+        # `authEnabled`/`authDisabled` (slice literals), then the interface assertions `var _ ... = (*T)(nil)`
+        # (prove-initleft, 2026-11-21: until then in `opaqueInitsOk`), stepped by `wp_auto`
+        'keyBucketName': ['wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sen ⟨Hsen, -⟩',
                 'simp only [go.arrayLiteralSize, List.foldl]', 'try wp_auto',
                 'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sdis ⟨Hsdis, -⟩',
                 'simp only [go.arrayLiteralSize, List.foldl]', 'try wp_auto'],
@@ -1667,6 +1760,28 @@ the trust-boundary axiom `opaqueInitsOk` says run.''',
                               'wp_apply wp_string_to_bytes go!"term" as %sterm ⟨Hsterm, -⟩', 'try wp_auto']
                              + [l for n in ['confState', 'clusterVersion', 'downgrade', 'storageVersion', '']
                                 for l in (f'wp_apply wp_string_to_bytes go!"{n}" as %_ ⟨-, -⟩', 'try wp_auto')],
+        # (prove-initleft, 2026-11-21) `schemaChanges`, a map literal keyed by `version.V3_6`, `V3_7`,
+        # `V3_8` (read-only by `version`'s fact; `semver.Version` a safe map key, `MapKey.lean`), whose
+        # first value is a slice of one `addNewField(...)` (translated, its body stepped); until then
+        # `opaqueInitsOk`
+        'schemaChanges': [
+            'try wp_auto',
+            'ihave #Hvv : iprop(globalAddr go_etcd_io.etcd.api.v3.version.Version ↦□ go!"3.8.0-alpha.0" ∗',
+            '    (∃ v : github_com.Masterminds.semver.v3.Version, globalAddr go_etcd_io.etcd.api.v3.version.V3_6 ↦□ v) ∗',
+            '    globalAddr go_etcd_io.etcd.api.v3.version.MinClusterVersion ↦□ go!"3.0.0" ∗',
+            '    (∃ v7 v8 : github_com.Masterminds.semver.v3.Version,',
+            '      globalAddr go_etcd_io.etcd.api.v3.version.V3_7 ↦□ v7 ∗ globalAddr go_etcd_io.etcd.api.v3.version.V3_8 ↦□ v8)) $$ []',
+            '· iapply isPkgInit_access $$ {Hd:go_etcd_io.etcd.api.v3.version}',
+            'icases Hvv with ⟨-, ⟨%v36, #Hv36⟩, -, ⟨%v37, %v38, #Hv37, #Hv38⟩⟩',
+            'try wp_auto',
+            'wp_func_call', 'wp_call', 'try wp_auto',
+            'wp_apply (wp_map_make1 (K := github_com.Masterminds.semver.v3.Version) (V := GoSlice) '
+            'github_com.Masterminds.semver.v3.Version.ty (go.GoType.SliceType schemaChange.ty)) as %msc Hmsc'] +
+            ['try wp_auto',
+             'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %_ ⟨-, -⟩',
+             'try wp_auto',
+             'wp_apply (wp_mapInsert (K := github_com.Masterminds.semver.v3.Version) (V := GoSlice) '
+             'github_com.Masterminds.semver.v3.Version.ty) $$ Hmsc as Hmsc'] * 3 + ['try wp_auto'],
     },
     finish=['ipersist Hskey', 'ipersist Hsmeta', 'ipersist Hsci', 'ipersist Hsterm',
             'ipersist Hsen', 'ipersist Hsdis', 'ipersist Hsauth', 'ipersist Hsausers', 'ipersist Hsaroles',
@@ -1844,7 +1959,8 @@ SPECIAL['go_etcd_io.etcd.client.v3'] = dict(
     doc='''Its fact (`clientv3Init`, `cache/v3/Base.lean`): `noPrefixEnd` (`op.go`, translated:
 `[]byte{0}`) and `defaultOptions` (`retry_interceptor.go`, untranslated: `&options{...}` whose
 backoff function returns; the trust-boundary axiom `defaultOptions_init`), and its translated
-`valCtxCh`, `zeroTime` (`time.Unix(0, 0)`, the trust-boundary axiom `time.Unix.wp_proof`) and
+`valCtxCh`, `zeroTime` (`time.Unix(0, 0)`, `time.Unix.wp_proof`: proved over Perennial's translation since
+2026-11-20, until then a trust-boundary axiom) and
 `maxBackoff`, and `LeaseResponseChSize` (`lease.go`, translated: `16`; until 2026-11-19 the
 trust-boundary axiom `LeaseResponseChSize_init`), and the translated constants
 `defaultUnaryMaxRetries`, `defaultStreamMaxRetries` and `defaultBackoffWaitBetween`
@@ -2031,6 +2147,18 @@ _B['finish'] = (['ipersist HcommitSec', 'ipersist HrebalanceSec', 'ipersist Hspi
                  'rw [show (W64 100000000 : w64) = W64 100 * W64 1000000 from by decide]',
                  'iexact HdefaultBatchInterval'])
 
+# (prove-protootel, 2026-11-20) otel `trace`'s `noopSpanInstance` translated (until then in its
+# `opaqueInitsOk`), what `SpanFromContext` returns
+SPECIAL['go_opentelemetry_io.otel.trace'] = dict(
+    doc="""Its fact (`traceInit`, `storage/mvcc/Base.lean`): `noopSpanInstance` holds a `noopSpan` as a
+`Span`, read-only for good. Its initializer allocates it, initializes its imports and runs its
+translated initializer (`noopSpan{}` converted to `Span`, `noop.go`; prove-protootel, 2026-11-20:
+until then in `opaqueInitsOk`) and the untranslated initializers of its other variables, which the
+trust-boundary axiom `opaqueInitsOk` says run without panicking.""",
+    alloc_types={'noopSpanInstance': 'GoInterface'},
+    finish=['ipersist HnoopSpanInstance'] + FIN_PRE[:6] +
+           ['imodintro', 'unfold traceInit', 'iexists _; iexact HnoopSpanInstance'],
+)
 SPECIAL['go_etcd_io.etcd.pkg.v3.traceutil'] = dict(
     doc="""Its fact (`traceutilInit`, `storage/mvcc/Base.lean`): `Tracer` holds a fixed tracer. Its
 variables' initializers are untranslated: the trust-boundary axiom `Tracer_init` states the one
@@ -2122,6 +2250,172 @@ _R.setdefault('before', {})['ErrGRPCNotSupportedForLearner'] = status_steps('Err
 _R['alloc_types']['ErrGRPCNotSupportedForLearner'] = 'GoInterface'
 _R['imports'].append('Proof.google_golang_org.grpc.status.Error')
 
+# (prove-rpcmap, 2026-11-20) the whole package is translated: its other `ErrGRPC* = status.Error(...)`
+# errors (`status_steps`), the map literal `errStringToError` and the client-side errors
+# `Err* = Error(ErrGRPC*)`; until then the trust-boundary axioms `opaqueInitsOk`, `errStringToError_init`
+# and the seven `Err*_init`. The map's keys are `ErrorDesc(ErrGRPC*)` (`ErrorDesc.wp_init`: over grpc's
+# `status`, the package's own `isPkgInit` not holding yet), each substituted by its description
+# (`errDesc`), and its values the `ErrGRPC*` errors: built under `rpctypesErrMapInv` (each value one
+# grpc's `status` accepts, under its description), it gives the fact's map. `Error(ErrGRPC*)` is then
+# `Error.wp_initErr` (an `EtcdError` with `ErrGRPC*`'s description: its key is in the map, found along
+# the literal's insertions) or, for `ErrGRPCTimeoutWaitAppliedIndex` (no key of the map),
+# `Error.wp_initAny`.
+def _rpc_code():
+    return open('Code/go_etcd_io/etcd/api/v3/v3rpc/rpctypes.lean').read()
+_RPC_CODE = _rpc_code()
+# the variables' stores, in execution order (the translation nests them in reverse)
+_RPC_STORES = list(reversed(re.findall(r'\(GoStore go\.error\)\)\) \(Pair \(App \(Val \(GoInstruction \(GlobalVarAddr (\w+)\)',
+                                       _RPC_CODE)))
+# the aliases (`ErrGRPCClusterIdMismatch = ErrGRPCClusterIDMismatch`, deprecated names): a load
+_RPC_ALIASES = ['ErrGRPCClusterIdMismatch', 'ErrClusterIdMismatch']
+# the `status.Error(...)` errors
+_RPC_STATUS = [x for x in _RPC_STORES if x.startswith('ErrGRPC') and x not in _RPC_ALIASES]
+assert len(_RPC_STATUS) == _RPC_CODE.count('FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []'), _RPC_STATUS
+# the map literal's keys `ErrorDesc(X)`, in the literal's order (its values are the same `X`)
+_RPC_KEYS = re.findall(r'\(Let "\$k\d+" \(Let "\$a0" \(App \(Val \(GoInstruction \(GoLoad go\.error\)\)\) '
+                       r'\(App \(Val \(GoInstruction \(GlobalVarAddr (\w+)\)', _RPC_CODE)
+_RPC_VALS = re.findall(r'\(Let "\$v\d+" \(App \(Val \(GoInstruction \(GoLoad go\.error\)\)\) '
+                       r'\(App \(Val \(GoInstruction \(GlobalVarAddr (\w+)\)', _RPC_CODE)
+# `Error(X)`'s arguments in execution order, and the variables they initialize (in the same order)
+_RPC_ERRARGS = re.findall(r'\(Let "\$r0" \(Let "\$a0" \(App \(Val \(GoInstruction \(GoLoad go\.error\)\)\) '
+                          r'\(App \(Val \(GoInstruction \(GlobalVarAddr (\w+)\)\)\) \(Val #\(\)\)\)\)\n\s*'
+                          r'\(App \(App \(Val \(GoInstruction \(FuncResolve Error \[\]\)\)\)', _RPC_CODE)
+
+# the client-side errors `Err* = Error(ErrGRPC*)`, with their arguments
+_RPC_ERRS = [x for x in _RPC_STORES if not x.startswith('ErrGRPC') and x not in _RPC_ALIASES]
+assert len(_RPC_ERRS) == len(_RPC_ERRARGS) and _RPC_KEYS == _RPC_VALS, (_RPC_ERRS, _RPC_ERRARGS)
+_RPC_ERRS = dict(zip(_RPC_ERRS, _RPC_ERRARGS))
+_RPCST = '{Hd:google_golang_org.grpc.status}'
+for x in _RPC_STATUS:
+    if x not in _R['before']:
+        _R['before'][x] = status_steps(x)
+    _R['alloc_types'][x] = 'GoInterface'
+for x in _RPC_ALIASES + list(_RPC_ERRS):
+    _R['alloc_types'][x] = 'GoInterface'
+_R['alloc_types']['errStringToError'] = 'Loc'
+for x in ['ErrFutureRev', 'ErrCompacted', 'errStringToError', 'ErrUserEmpty', 'ErrInvalidAuthToken',
+          'ErrAuthOldRevision', 'ErrNoLeader', 'ErrAuthNotEnabled']:
+    del _R['custom'][x]
+_RPC_ARGS = ('EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc MD')
+_RPC_ED = '(EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof)'
+# the map literal: its keys (`ErrorDesc(X)`, each its description), then the map made and its entries inserted
+_R['before']['errStringToError'] = (
+    ['have HtyRpc : go_etcd_io.etcd.cache.v3.rpctypesEtcdErrorTy (GF := GF) (hG := hG) :=',
+     '  ⟨EtcdGrove.RpctypesEtcdErrorMethods.leaf, EtcdGrove.RpctypesEtcdErrorMethods.noGRPCStatus,',
+     '   EtcdGrove.RpctypesEtcdErrorMethods.noIs, EtcdGrove.RpctypesEtcdErrorMethods.noFormat,',
+     '   EtcdGrove.RpctypesEtcdErrorMethods.errorSig⟩'] +
+    sum([['try wp_auto',
+          f'ihave ⟨%mq{x}, #MQ{x}⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ O{x}',
+          f'wp_apply ({_RPC_ED} (GoInterface.ok e{x}) mq{x}) $$ [${_RPCST} $O{x} $MQ{x}]',
+          f'  as %q{x} ⟨%Q{x}, -⟩',
+          f'subst Q{x}'] for x in _RPC_KEYS], []) +
+    ['try wp_auto',
+     'wp_apply (wp_map_make1 (K := GoString) (V := GoInterface) go.string go.error) as %mesm Hesm0',
+     'ihave Hesm := EtcdGrove.rpctypes_errMapInv_empty mesm $$ Hesm0',
+     'try wp_auto'] +
+    sum([[f'wp_apply (EtcdGrove.rpctypes_wp_errMapInsert mesm _ e{x}) $$ [$Hesm $O{x}] as Hesm',
+          'try wp_auto'] for x in _RPC_KEYS], []))
+# `Err* = Error(ErrGRPC*)`: the map's facts first (before the first one), then each call
+_RPC_FIRST = next(iter(_RPC_ERRS))
+for x, g in _RPC_ERRS.items():
+    st = []
+    if x == _RPC_FIRST:
+        st += ['try wp_auto', 'ihave ⟨Hesm, #MS, %MD⟩ := EtcdGrove.rpctypes_errMapInv_elim _ _ $$ Hesm', 'ipersist Hesm', 'ipersist HerrStringToError']
+    st += ['try wp_auto']
+    if g in _RPC_KEYS:
+        st += [f'wp_apply (EtcdGrove.rpctypes.Error.wp_initErr {_RPC_ED} {_RPC_ARGS} e{g})',
+               f'    $$ [${_RPCST} $HerrStringToError $Hesm $MS $O{g}] as %x{x} ⟨%X{x}, #S{x}⟩',
+               '· ipureintro',
+               '  repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))',
+               f'rw [D{g}] at X{x}']
+        if x in ('ErrFutureRev', 'ErrCompacted'):
+            st += [f'have D{x} : go_etcd_io.etcd.cache.v3.errDesc (interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x{x}) =',
+                   f'    go_etcd_io.etcd.cache.v3.{_RSTATUS[g]} := by rw [EtcdGrove.rpctypes.errDesc_etcdError]; exact X{x}',
+                   f'have F{x} : methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"Format" = none := HtyRpc.2.2.2.1',
+                   f'have T{x} : ∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError, interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x{x} =',
+                   f'    interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x := ⟨_, rfl⟩']
+    else:
+        st += [f'wp_apply (EtcdGrove.rpctypes.Error.wp_initAny {_RPC_ED} {_RPC_ARGS} e{g})',
+               f'    $$ [${_RPCST} $HerrStringToError $Hesm $MS $O{g}] as %r{x} -']
+    st += ['try wp_auto']
+    _R['before'][x] = st
+_R['finish'].remove('ipersist HerrStringToError')
+_R['rec_depth'] = 200000
+_R['imports'] += ['Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Error',
+                  'Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrorDesc',
+                  'Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError__Error',
+                  'Proof.google_golang_org.grpc.status.FromError']
+_R['pre'] += [
+    'section rpcmap',
+    'variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]',
+    'variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [sem : go.Semantics]',
+    '',
+    '/-- (prove-rpcmap) A lookup in `<[k := v]> m` finds `v` at `k`, or one of `m`\'s entries. -/',
+    'theorem EtcdGrove.rpctypes_lookup_insert_some {K V : Type} [DecidableEq K] {m : GMap K V} {k k\' : K}',
+    '    {v w : V} (h : (<[k := v]> m) !! k\' = some w) : (k = k\' ∧ v = w) ∨ m !! k\' = some w :=',
+    '  ((GMap.lookup_insert_Some m k k\' v w).1 h).imp id And.right',
+    '',
+    '/-- (prove-rpcmap) A key of `<[k := v]> m`: `k`, or one of `m`\'s. -/',
+    'theorem EtcdGrove.rpctypes_lookup_insert_isSome {K V : Type} [DecidableEq K] (m : GMap K V) (k k\' : K)',
+    '    (v : V) (h : k = k\' ∨ (m !! k\').isSome) : ((<[k := v]> m) !! k\').isSome :=',
+    '  (GMap.lookup_insert_is_Some m k k\' v).2 (by by_cases hk : k = k\' <;> simp_all)',
+    '',
+    '/-- (prove-rpcmap) The map literal `errStringToError` while `rpctypes`\' initializer builds it: its',
+    'values are errors grpc\'s `status` accepts, each under its description (`rpctypesInit`\'s map). -/',
+    'abbrev EtcdGrove.rpctypesErrMapInv (mref : Loc) (M : GMap GoString GoInterface) : IProp GF :=',
+    '  iprop(mref ↦$ M ∗',
+    '    (□ ∀ (k : GoString) (v : GoInterface), ⌜M !! k = some v⌝ → go_etcd_io.etcd.cache.v3.statusErrOk v) ∗',
+    '    ⌜∀ (k : GoString) (v : GoInterface), M !! k = some v → go_etcd_io.etcd.cache.v3.errDesc v = k⌝)',
+    '',
+    'theorem EtcdGrove.rpctypes_errMapInv_elim (mref : Loc) (M : GMap GoString GoInterface) :',
+    '    (EtcdGrove.rpctypesErrMapInv mref M : IProp GF) ⊢ mref ↦$ M ∗',
+    '      (□ ∀ (k : GoString) (v : GoInterface), ⌜M !! k = some v⌝ → go_etcd_io.etcd.cache.v3.statusErrOk v) ∗',
+    '      ⌜∀ (k : GoString) (v : GoInterface), M !! k = some v → go_etcd_io.etcd.cache.v3.errDesc v = k⌝ := by',
+    '  iintro H; iexact H',
+    '',
+    'theorem EtcdGrove.rpctypes_errMapInv_empty (mref : Loc) :',
+    '    (mref ↦$ (∅ : GMap GoString GoInterface) : IProp GF) ⊢ EtcdGrove.rpctypesErrMapInv mref ∅ := by',
+    '  iintro Hm',
+    '  unfold EtcdGrove.rpctypesErrMapInv',
+    '  iframe Hm',
+    '  isplitr',
+    '  · iintro !> %k %v %h; simp at h',
+    '  · ipureintro; intro k v h; simp at h',
+    '',
+    '/-- (prove-rpcmap) Inserting an error grpc\'s `status` accepts under its description. -/',
+    'theorem EtcdGrove.rpctypes_wp_errMapInsert (mref : Loc) (M : GMap GoString GoInterface) (e : GoInterfaceOk) :',
+    '    {{ (EtcdGrove.rpctypesErrMapInv mref M : IProp GF) ∗ go_etcd_io.etcd.cache.v3.statusErrOk (GoInterface.ok e) }}',
+    '      (App (App (App (Val (map.insert go.string)) (Val #mref))',
+    '        (Val #(go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e)))) (Val #(GoInterface.ok e)))',
+    '    {{ RET #(); EtcdGrove.rpctypesErrMapInv mref',
+    '        (<[go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e) := GoInterface.ok e]> M) }} := by',
+    '  wp_start_folded as ⟨Hinv, #Hok⟩',
+    '  ihave ⟨Hm, #HS, %HD⟩ := EtcdGrove.rpctypes_errMapInv_elim _ _ $$ Hinv',
+    '  wp_apply (wp_mapInsert (K := GoString) (V := GoInterface) go.string) $$ Hm as Hm',
+    '  iapply HΦ',
+    '  unfold EtcdGrove.rpctypesErrMapInv',
+    '  iframe Hm',
+    '  isplitr',
+    '  · iintro !> %k %v %h',
+    '    rcases EtcdGrove.rpctypes_lookup_insert_some h with ⟨-, rfl⟩ | h',
+    '    · iexact Hok',
+    '    · iapply HS; ipureintro; exact h',
+    '  · ipureintro; intro k v h',
+    '    rcases EtcdGrove.rpctypes_lookup_insert_some h with ⟨rfl, rfl⟩ | h',
+    '    · rfl',
+    '    · exact HD k v h',
+    '',
+    'end rpcmap',
+    '']
+_R['doc'] = _R['doc'].replace("""Its variables'
+initializers (`error.go`, `metadatafields.go`) are untranslated: the trust-boundary axioms
+`<X>_init` state the ones the fact reads, `opaqueInitsOk` the others.""",
+"""(prove-rpcmap, 2026-11-20) Its
+variables' initializers (`error.go`, `md.go`, `metadatafields.go`) are all translated: the
+`status.Error` errors, the map literal `errStringToError` (keys `ErrorDesc(ErrGRPC*)`) and the
+client-side `Err* = Error(ErrGRPC*)` (`Error.wp_initErr`); until then the trust-boundary axioms
+`opaqueInitsOk`, `errStringToError_init` and `<X>_init` for the errors the fact reads.""")
+
 _P = SPECIAL['go_etcd_io.etcd.api.v3.etcdserverpb']
 _P['doc'] = """Its fact (`etcdserverpbInit`, `cache/v3/Base.lean`): the sort enumerations' name maps. Its
 initializer allocates and sets the translated gRPC service descriptors (`KV_ServiceDesc`, ...:
@@ -2161,7 +2455,7 @@ _P['finish'] = ([f'ipersist S{t}' for t in _PB_SL] +
                 [f'iStructNamedSuffix H{d}_ServiceDesc "{d}"' for d in _PB_DESCS] +
                 ['ipersist HRangeRequest_SortOrder_name', 'ipersist HRangeRequest_SortTarget_name',
                  'ipersist Hso', 'ipersist Hst'] +
-                FIN_PRE[:6] + ['imodintro', 'unfold go_etcd_io.etcd.cache.v3.etcdserverpbInit go_etcd_io.etcd.cache.v3.etcdserverpbDescs go_etcd_io.etcd.cache.v3.pbDescOk go_etcd_io.etcd.cache.v3.pbDescIs',
+                FIN_PRE[:6] + ['imodintro', 'unfold go_etcd_io.etcd.cache.v3.etcdserverpbInit go_etcd_io.etcd.cache.v3.etcdserverpbDescs go_etcd_io.etcd.cache.v3.pbDescIs',
                  'isplitl []', '· iexists _, _; iframe HRangeRequest_SortOrder_name Hso; ' + _PB_DOM(2),
                  'isplitl []', '· iexists _, _; iframe HRangeRequest_SortTarget_name Hst; ' + _PB_DOM(4),
                  'iframe #',
@@ -2317,11 +2611,11 @@ initializers run.""",
     before={'slowApplies': metric_steps_to('slowApplies', 'counter', 'go_etcd_io.etcd.server.v3.lease.counterSpec')},
     finish=['ipersist HslowApplies',
             'ihave Hli : (go_etcd_io.etcd.server.v3.lease.leaseInit : IProp GF) $$ []',
-            '· iapply isPkgInit_access $$ Hd11',
+            '· iapply isPkgInit_access $$ {Hd:go_etcd_io.etcd.server.v3.lease}',
             'icases Hli with ⟨#HLNF0, -⟩',
             'iunfold go_etcd_io.etcd.server.v3.lease.leaseErrVar at HLNF0',
             'icases HLNF0 with ⟨%eLNF, #HLNF, -⟩'] +
-           errVarFrom('go_etcd_io.etcd.server.v3.etcdserver.errors', 'ErrKeyNotFound', 'etcdserver: key not found', 'Hd10', 'KNF') +
+           errVarFrom('go_etcd_io.etcd.server.v3.etcdserver.errors', 'ErrKeyNotFound', 'etcdserver: key not found', '{Hd:go_etcd_io.etcd.server.v3.etcdserver.errors}', 'KNF') +
            ['iunfold EtcdGrove.errorsNewVar at NKNF', 'icases NKNF with ⟨%xKNF, #HKNF, -⟩'] +
            FIN_PRE[:6] + ['imodintro', 'unfold txnInit', 'iframe #'],
 )
@@ -2450,7 +2744,8 @@ guarding `raftStatus` (`rnRaftStatusOk`; the names-only `init()` registers an `e
 reads `raftStatus` under the mutex). (revoke-open, 2026-11-06) And the counter `leaseExpired`
 (`metrics.go`, translated: `prometheus.NewCounter` of a `CounterOpts` literal, the trust-boundary
 axiom `NewCounter.wp_proof`), which
-`revokeExpiredLeases` increments.""",
+`revokeExpiredLeases` increments. (auth-mediation M2, 2026-11-20) And `PromoteMember`'s metrics,
+the counter `learnerPromoteSucceed` and the counter vector `learnerPromoteFailed`.""",
     imports=PROM_CTORS,
     alloc_types={'raftStatusMu': '_root_.Perennial.sync.Mutex', 'raftStatus': 'GoFunc',
                  'leaseExpired': 'GoInterface', **{x: 'GoInterface' for x, _ in _SRV_METRICS}},
@@ -2459,7 +2754,7 @@ axiom `NewCounter.wp_proof`), which
         'wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %cLE ⟨#CLE, -⟩',
         'try wp_auto'], **_srv_steps},
     finish=([f'ipersist H{x}' for x, _, _ in _SRV_VECS] + [f'ipersist H{x}' for x, _ in _SRV_METRICS] +
-            ['ipersist HleaseExpired'] +
+            ['ipersist HleaseExpired', 'ipersist HlearnerPromoteSucceed', 'ipersist HlearnerPromoteFailed'] +
             ['imod sync.init_Mutex (iprop(∃ f : GoFunc, globalAddr raftStatus ↦ f)) ⊤ (globalAddr raftStatusMu) $$ HraftStatusMu [HraftStatus] with #HRSM',
              '· inext', '  iexists _', '  iframe HraftStatus'] +
             sum([errLeafFrom('go_etcd_io.etcd.server.v3.etcdserver.errors', x, m,
@@ -2508,11 +2803,21 @@ _SV['before'].update({'learnerPromoteSucceed': metric_steps('learnerPromoteSucce
                           'wp_apply EtcdGrove.go_humanize.Bytes.wp_proof $$ {Hd:github_com.dustin.go_humanize} as %sRMR -',
                           'try wp_auto']})
 _SV['imports'] = _SV['imports'] + ['Proof.github_com.dustin.go_humanize.Bytes']
+# (prove-etcdserver, 2026-11-20) `monitorVersionInterval = rafthttp.ConnWriteTimeout - time.Second`,
+# translated: `ConnWriteTimeout` from rafthttp's fact (its last part); and `_`, the adapter's
+# interface conversion (`serverversion.Server` translated): `opaqueInitsOk` is empty
+_SV['alloc_types']['monitorVersionInterval'] = 'w64'
+_SV['before']['monitorVersionInterval'] = [
+    'ihave Hrhi : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []',
+    '· iapply isPkgInit_access $$ {Hd:go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp}',
+    'icases Hrhi with ⟨' + '-, ' * 34 + '#HCWT⟩',
+    'try wp_auto']
 _SV['doc'] += """ (prove-errinits, 2026-11-19) Its other metrics (`learnerPromoteFailed`,
 `learnerPromoteSucceed`, `currentVersion`, `currentGoVersion`, `fdUsed`, `fdLimit`),
 and `recommendedMaxRequestBytesString` (`humanize.Bytes`, over its spec) are translated too;
-`opaqueInitsOk` keeps `monitorVersionInterval` (`rafthttp.ConnWriteTimeout - time.Second`, which
-reads a variable rafthttp's fact does not hold) and `_` (`var _ serverversion.Server = ...`)."""
+(prove-etcdserver, 2026-11-20) and `monitorVersionInterval` (`rafthttp.ConnWriteTimeout - time.Second`,
+from rafthttp's fact) and `_` (`var _ serverversion.Server = ...`, a conversion): no untranslated
+initializer is left."""
 
 _V_ERRS = ['ErrGRPCEmptyKey', 'ErrGRPCInvalidSortOption', 'ErrGRPCValueProvided', 'ErrGRPCLeaseProvided',
            'ErrGRPCTooManyOps', 'ErrGRPCDuplicateKey', 'ErrGRPCKeyNotFound', 'ErrGRPCNoSpace',
@@ -2574,11 +2879,9 @@ specs; until 2026-11-19 the trust-boundary axioms `<X>_init`),
              'icases HDescs with ⟨#HK, ⟨%wm, %ws, #HW, %HWp⟩, #HL, #HC, #HA, #HM, -⟩',
              'obtain ⟨rfl, HWp, HWc⟩ := HWp',
              'ihave #HSD : (EtcdGrove.v3rpc.svcDescsOk : IProp GF) $$ []',
-             '· unfold EtcdGrove.v3rpc.svcDescsOk EtcdGrove.v3rpc.descOk EtcdGrove.descNames EtcdGrove.v3rpc.handlerTy EtcdGrove.v3rpc.kvDescMethods EtcdGrove.v3rpc.authDescMethods EtcdGrove.v3rpc.leaseDescMethods',
+             '· unfold EtcdGrove.v3rpc.svcDescsOk EtcdGrove.v3rpc.handlerTy EtcdGrove.v3rpc.kvDescMethods EtcdGrove.v3rpc.authDescMethods EtcdGrove.v3rpc.leaseDescMethods EtcdGrove.v3rpc.clusterDescMethods EtcdGrove.v3rpc.maintDescMethods',
             
             
-             '  iunfold go_etcd_io.etcd.cache.v3.pbDescOk at HC',
-             '  iunfold go_etcd_io.etcd.cache.v3.pbDescOk at HM',
              '  iframe HK HL HC HA HM',
              '  iexists ws',
              '  iframe HW',
@@ -2610,7 +2913,7 @@ specs; until 2026-11-19 the trust-boundary axioms `<X>_init`),
              for i, x in enumerate(_V_HIST)] +
             ['-- `traceutil.Tracer`',
              'ihave Hti : (go_etcd_io.etcd.pkg.v3.traceutil.traceutilInit : IProp GF) $$ []',
-             '· iapply isPkgInit_access $$ Hd44',
+             '· iapply isPkgInit_access $$ {Hd:go_etcd_io.etcd.pkg.v3.traceutil}',
              'icases Hti with #HTR',
              '-- the progress interval\'s lock and what it guards (`progressReportInterval`, `10 * time.Minute`)',
              'imod (sync.init_RWMutex EtcdGrove.v3rpc.intervalP EtcdGrove.v3rpc.intervalMu (E := ⊤)) $$ [HprogressReportInterval] HprogressReportIntervalMu with HIS',
@@ -2822,6 +3125,9 @@ _T['doc'] = _T['doc'].replace("`opaqueInitsOk` states its other untranslated\nin
     "Its histogram vectors `applySec` and\n`rangeSec` are translated too (`NewHistogramVec`'s spec; prove-smallinits, 2026-11-20, until then\n`opaqueInitsOk`).")
 promvec(_T, 'applySec', 'Histogram', ['version', 'op', 'success'])
 promvec(_T, 'rangeSec', 'Histogram', ['success'])
+# (prove-etcdserver, 2026-11-20) the two vectors are in the fact (`txnInit`), for the observers
+_T['finish'][0:0] = ['ipersist HapplySec', 'ipersist HrangeSec']
+_T['doc'] = _T['doc'].replace("`opaqueInitsOk`).", "`opaqueInitsOk`), and in its fact with their label\nnames (prove-etcdserver, 2026-11-20: `metrics.go`'s observers, translated, read them).")
 
 def map_lit_steps(h, K, V, kt, vt, n):
     """A map literal of `n` entries (`map[kt]vt{...}`, Lean types `K`, `V`): made (`%m<h> <h>`), then its
@@ -2848,6 +3154,222 @@ which the trust-boundary axiom `initFuncsOk` says returns.''',
     alloc_types={'strToCode': 'Loc'},
     before={'strToCode': map_lit_steps('Hsc', 'GoString', 'w32', 'go.string', f'{_GC}.Code.ty', 17)},
 )
+_GM = 'google_golang_org.grpc.metadata'
+SPECIAL[_GM] = dict(
+    doc='''Its fact is `True`. Its initializer allocates `loggableMetadataKeys`, initializes its imports, runs
+its variable's translated initializer, a map literal of the keys `MD.String` prints (prove-grpcext,
+2026-11-20; until then the trust-boundary axiom `opaqueInitsOk`), and its untranslated `init` function
+(it sets `internal.FromOutgoingContextRaw`, another package's variable), which the trust-boundary
+axiom `initFuncsOk` says returns.''',
+    alloc_types={'loggableMetadataKeys': 'Loc'},
+    before={'loggableMetadataKeys': map_lit_steps('Hlk', 'GoString', 'Bool', 'go.string', 'go.bool', 10)},
+)
+_GL = 'google_golang_org.grpc.grpclog'
+SPECIAL[_GL] = dict(
+    doc='''Its fact is `True`. Its initializer initializes its imports, allocates `cache` and runs its
+translated initializer, an empty map literal (prove-grpcext, 2026-11-20; until then the trust-boundary
+axiom `opaqueInitsOk`), and its untranslated `init` function (`SetLoggerV2(newLoggerV2())`), which the
+trust-boundary axiom `initFuncsOk` says returns.''',
+    alloc_types={'cache': 'Loc'},
+    before={'cache': map_lit_steps('Hc', 'GoString', 'Loc', 'go.string',
+        f'(go.GoType.PointerType {_GL}.componentData.ty)', 0)},
+)
+_OP = 'go_opentelemetry_io.otel.propagation'
+SPECIAL[_OP] = dict(
+    doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+their translated initializers (prove-misc, 2026-11-20): the interface assertions (`var _
+TextMapCarrier = MapCarrier{}`, ...) and `versionPart = fmt.Sprintf("%.2X", supportedVersion)`
+(Perennial's `fmt.wp_Sprintf`: some string, no panic).''',
+    alloc_types={'versionPart': 'GoString', 'handleExtractErrOnce': '_root_.Perennial.sync.Once'},
+    before={'versionPart': [
+        'try wp_auto',
+        'wp_apply (wp_map_make1 (K := GoString) (V := GoString) go.string go.string) as %mmc -',
+        'try wp_auto',
+        'wp_apply (wp_map_make1 (K := GoString) (V := GoSlice) go.string (go.GoType.SliceType go.string)) as %mhc1 -',
+        'try wp_auto',
+        'wp_apply (wp_map_make1 (K := GoString) (V := GoSlice) go.string (go.GoType.SliceType go.string)) as %mhc2 -',
+        'try wp_auto',
+        'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %svp ⟨Svp, -⟩',
+        'try wp_auto',
+        'wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ '
+        '(_root_.Perennial.fmt.IntArgValue.int _) _root_.Perennial.fmt.ArgsWf.nil) $$ [$Svp] as %rvp -',
+        'try wp_auto']},
+)
+_ZC = 'go_uber_org.zap.zapcore'
+_ZCL = f'{_ZC}.Level.ty'
+_ZCC = '_root_.Perennial.go_uber_org.zap.internal.color.Color.ty'
+def _zc_pool(h):
+    return ['try wp_auto', 'rw [recv_eq_func_mk BAnon BAnon]',
+            f'wp_apply (EtcdGrove.zap.internal.pool.New.wp_proof (GF := GF) (hG := hG) (V := Loc)) as %{h} -',
+            'try wp_auto']
+SPECIAL[_ZC] = newvars_cfg(dict(
+    doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+their translated initializers and its translated `init` (prove-misc, 2026-11-20; until then the
+trust-boundary axioms `opaqueInitsOk` and `initFuncsOk`): the pools (`pool.New`, proved), the interface
+assertions, `nullLiteralBytes`, `errUnmarshalNilLevel` (`errors.New`), the level colors (a map literal)
+and their two string maps, which `init` (`level_strings.go`) fills: each level's color formatted
+around its name (`color.Add`, `fmt.Sprintf`; `Level.String`/`CapitalString` of the map's levels).''',
+    alloc_types={'DefaultClock': f'{_ZC}.systemClock', '_sliceEncoderPool': 'Loc', '_cePool': 'Loc',
+                 '_errArrayElemPool': 'Loc', '_jsonPool': 'Loc', 'nullLiteralBytes': 'GoSlice',
+                 '_levelToColor': 'Loc', '_unknownLevelColor': 'w8',
+                 '_levelToLowercaseColorString': 'Loc', '_levelToCapitalColorString': 'Loc'},
+    before={'_sliceEncoderPool': _zc_pool('psl'), '_cePool': _zc_pool('pce'),
+            '_errArrayElemPool': _zc_pool('pea'), '_jsonPool': _zc_pool('pjs'),
+            'nullLiteralBytes': ['try wp_auto', 'wp_apply wp_string_to_bytes _ as %snull ⟨Hsnull, -⟩', 'try wp_auto'],
+            '_levelToColor': map_lit_steps('Hlc', 'w8', 'w8', _ZCL, _ZCC, 7),
+            '_levelToLowercaseColorString': ['try wp_auto',
+                f'wp_apply (wp_map_len (t := go.GoType.MapType {_ZCL} {_ZCC}) mHlc _ _) $$ [$Hlc] as Hlc',
+                'try wp_auto',
+                f'wp_apply (wp_map_make2 (K := w8) (V := GoString) _ {_ZCL} go.string) as %mlow Hlow',
+                'try wp_auto'],
+            '_levelToCapitalColorString': ['try wp_auto',
+                f'wp_apply (wp_map_len (t := go.GoType.MapType {_ZCL} {_ZCC}) mHlc _ _) $$ [$Hlc] as Hlc',
+                'try wp_auto',
+                f'wp_apply (wp_map_make2 (K := w8) (V := GoString) _ {_ZCL} go.string) as %mcap Hcap',
+                'try wp_auto']},
+    after={'init.«0»': [
+        'wp_func_lits',
+        'wp_bind (App (App (Val (map.forRange _ _)) _) _)',
+        'iapply (wp_map_for_range (K := w8) (V := w8) (fun _ _ => iprop(∃ (lv cv : w8) (L U : GMap w8 GoString), '
+        'color_ptr ↦ cv ∗ level_ptr ↦ lv ∗ mlow ↦$ L ∗ mcap ↦$ U ∗ '
+        'globalAddr _levelToLowercaseColorString ↦ mlow ∗ globalAddr _levelToCapitalColorString ↦ mcap))) $$ Hlc',
+        'iintro %keys -',
+        'isplitl [color level Hlow Hcap H_levelToLowercaseColorString H_levelToCapitalColorString]',
+        '· iexists _, _, _, _; iframe',
+        'isplitr',
+        '· imodintro',
+        '  iintro %i %key %vv ⟨-, %Hvv⟩ ⟨%lv, %cv, %L, %U, Hc, Hl, HL, HU, HgL, HgU⟩',
+        '  wp_auto',
+        '  have hk : ' + ' ∨ '.join(f'key = W8 {x}' for x in ['5', '4', '3', '2', '1', '0', '(-1)']) + ' := by',
+        '    simp only [GMap.lookup_insert_eq_iff, GMap.lookup_empty] at Hvv',
+        '    by_cases h0 : W8 5 = key; · exact Or.inl h0.symm',
+        '    simp only [h0, ↓reduceIte] at Hvv',
+        '    by_cases h1 : W8 4 = key; · exact Or.inr (Or.inl h1.symm)',
+        '    simp only [h1, ↓reduceIte] at Hvv',
+        '    by_cases h2 : W8 3 = key; · exact Or.inr (Or.inr (Or.inl h2.symm))',
+        '    simp only [h2, ↓reduceIte] at Hvv',
+        '    by_cases h3 : W8 2 = key; · exact Or.inr (Or.inr (Or.inr (Or.inl h3.symm)))',
+        '    simp only [h3, ↓reduceIte] at Hvv',
+        '    by_cases h4 : W8 1 = key; · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inl h4.symm))))',
+        '    simp only [h4, ↓reduceIte] at Hvv',
+        '    by_cases h5 : W8 0 = key; · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl h5.symm)))))',
+        '    simp only [h5, ↓reduceIte] at Hvv',
+        '    by_cases h6 : W8 (-1) = key; · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (h6.symm))))))',
+        '    simp only [h6, ↓reduceIte] at Hvv',
+        '    simp at Hvv',
+        '  iclear MerrUnmarshalNilLevel',
+        '  haveI : go.NotInterface go.int8 := ⟨by unfold go.int8; trivial⟩',
+        '  haveI : go.NotInterface go.uint8 := ⟨by unfold go.uint8; trivial⟩',
+        '  rcases hk with rfl | rfl | rfl | rfl | rfl | rfl | rfl',
+        '  all_goals (repeat (first',
+        '    | wp_apply (wp_mapInsert (K := w8) (V := GoString) _) $$ HL as HL',
+        '    | wp_apply (wp_mapInsert (K := w8) (V := GoString) _) $$ HU as HU',
+        '    | (wp_apply (wp_slice_literal (l := [_, _])); isplitr; (· ipureintro; rfl); iintro %sl ⟨Ssl, -⟩; '
+        'try wp_auto; wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ '
+        '(_root_.Perennial.fmt.IntArgValue.uint8 _) (_root_.Perennial.fmt.ArgsWf.cons_string _ _ '
+        '_root_.Perennial.fmt.ArgsWf.nil)) $$ [$Ssl] as %r -)',
+        '    | wp_method_call',
+        '    | wp_auto',
+        '    | wp_call))',
+        '  all_goals (unfold forMapPostcondition; iright; ileft; isplitr; (· ipureintro; rfl); iexists _, _, _, _; iframe)',
+        'iintro - -',
+        'wp_auto',
+        ]},
+    imports=['Proof.go_uber_org.zap.internal.pool.New'],
+    heavy=True,
+), ['errUnmarshalNilLevel'])
+# (prove-initleft, 2026-11-21) zapcore's fact: `DefaultClock` holds a fixed `systemClock` (zap's `NewNop` loads it)
+SPECIAL[_ZC]['doc'] = SPECIAL[_ZC]['doc'].replace("Its fact is `True`.", "Its fact: `DefaultClock` holds a fixed `systemClock` (zap's `NewNop`, which zap's\ninitializer runs, loads it; prove-initleft, 2026-11-21: until then `True`).")
+SPECIAL[_ZC]['finish'] = ['ipersist HDefaultClock'] + FIN_PRE[:6] + [
+    'imodintro', f'iexists (zero_val {_ZC}.systemClock)', 'itrivial']
+# (prove-initleft, 2026-11-21) zap's package variables, translated but `_minTimeInt64`/`_maxTimeInt64`
+# (Perennial's `time.Unix` is names only) and `_sinkRegistry`
+_Z = 'go_uber_org.zap'
+_ZENC = (f'(go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.{_ZC}.EncoderConfig.ty] false '
+         f'[_root_.Perennial.{_ZC}.Encoder.ty, go.error]))')
+SPECIAL[_Z] = newvars_cfg(dict(
+    doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+their translated initializers (prove-initleft, 2026-11-21; until then the trust-boundary axiom
+`opaqueInitsOk` covered them all): `errNoEncoderNameSpecified` (`errors.New`), the encoder constructors (a
+map literal of two func literals), `_errArrayElemPool` (`pool.New`, proved), `_globalL = NewNop()`
+(`zapcore.NewNopCore()`, `zapcore.AddSync(io.Discard)` over any writer, `zapcore.DefaultClock` from
+zapcore's fact), `_globalS = _globalL.Sugar()` (a copy of the logger) and the interface assertion
+`var _ internal.LeveledEnabler = AtomicLevel{}`; `_minTimeInt64`/`_maxTimeInt64` (`time.Unix`, names only
+in Perennial) and `_sinkRegistry` (`newSinkRegistry`) stay untranslated, `opaqueInitsOk`.''',
+    alloc_types={'_encoderNameToConstructor': 'Loc', '_errArrayElemPool': 'Loc', '_globalL': 'Loc',
+                 '_globalS': 'Loc'},
+    before={
+        '_encoderNameToConstructor': map_lit_steps('Henc', 'GoString', 'GoFunc', 'go.string', _ZENC, 2),
+        '_errArrayElemPool': _zc_pool('pea'),
+        '_globalL': ['try wp_auto',
+                     'ihave #HNN : (iprop(isPkgInit (PROP := IProp GF) pkg_id.io ∗ isPkgInit (PROP := IProp GF) '
+                     'pkg_id.go_uber_org.zap.zapcore) : IProp GF) $$ []',
+                     '· isplitl []', '  · iexact {Hd:io}', '  · iexact {Hd:go_uber_org.zap.zapcore}',
+                     'wp_apply EtcdGrove.zap_wp_NewNop_init $$ HNN as %lgl ⟨%vgl, Hgl⟩', 'try wp_auto'],
+        '_globalS': ['try wp_auto', 'wp_apply (EtcdGrove.zap_wp_Sugar_init lgl vgl) $$ Hgl as %sgl Hgl', 'try wp_auto'],
+    },
+    pre=[
+        'section zapinit',
+        'variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]',
+        'variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [sem : go.Semantics]',
+        'variable [package_sem : _root_.Perennial.go_uber_org.zap.Assumptions]',
+        '',
+        '/-- (prove-initleft) `zapcore.AddSync(w)` returns, whatever the writer (a type switch: `w` itself if',
+        'it is a `WriteSyncer`, else `writerWrapper{w}`). -/',
+        'theorem EtcdGrove.zap_wp_AddSync_init (w : GoInterface) :',
+        '    {{ (True : IProp GF) }} (App (Val (@! _root_.Perennial.go_uber_org.zap.zapcore.AddSync)) (Val #w))',
+        '    {{ (r : GoInterface), RET #r; True }} := by',
+        '  wp_start',
+        '  wp_auto',
+        '  rcases w with wo | _',
+        '  · wp_auto',
+        '    cases hws : go.typeSetContains wo.ty _root_.Perennial.go_uber_org.zap.zapcore.WriteSyncer.ty',
+        '    all_goals (wp_auto; iapply HΦ; itrivial)',
+        '  · wp_auto',
+        '    iapply HΦ',
+        '    itrivial',
+        '',
+        '/-- (prove-initleft) `zap.NewNop()` before zap\'s `isPkgInit`: a new `Logger` (its body: `NewNopCore()`,',
+        '`AddSync(io.Discard)`, `zapcore.DefaultClock`, from io\'s and zapcore\'s facts). -/',
+        'theorem EtcdGrove.zap_wp_NewNop_init :',
+        '    {{ isPkgInit (PROP := IProp GF) pkg_id.io ∗ isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap.zapcore }}',
+        '      (App (Val (@! _root_.Perennial.go_uber_org.zap.NewNop)) (Val #()))',
+        '    {{ (l : Loc), RET #l; ∃ v : _root_.Perennial.go_uber_org.zap.Logger, l ↦ v }} := by',
+        '  wp_start',
+        '  ihave #IO : (_root_.Perennial.io.isInit : IProp GF) $$ []',
+        '  · iapply isPkgInit_access $$ Hpkg',
+        '  iNamed IO',
+        '  icases HDiscard with ⟨%wd, #HDiscard⟩',
+        '  ihave #ZC : (iprop(∃ c : _root_.Perennial.go_uber_org.zap.zapcore.systemClock, typedPointsto (globalAddr',
+        '      _root_.Perennial.go_uber_org.zap.zapcore.DefaultClock) c DFrac.discard) : IProp GF) $$ []',
+        '  · iapply isPkgInit_access $$ Hpkg2',
+        '  icases ZC with ⟨%dc, #HDC⟩',
+        '  wp_auto',
+        '  wp_func_call',
+        '  wp_call',
+        '  wp_auto',
+        '  wp_apply EtcdGrove.zap_wp_AddSync_init as %ws -',
+        '  try wp_auto',
+        '  iapply HΦ',
+        '  iexists _',
+        '  iframe',
+        '',
+        '/-- (prove-initleft) `l.Sugar()` on a `Logger`: a copy of it (`clone`), its caller skip plus 2. -/',
+        'theorem EtcdGrove.zap_wp_Sugar_init (l : Loc) (v : _root_.Perennial.go_uber_org.zap.Logger) :',
+        '    {{ (l ↦ v : IProp GF) }}',
+        '      (App (Val (l @!! go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty @!! go!"Sugar")) (Val #()))',
+        '    {{ (s : Loc), RET #s; l ↦ v }} := by',
+        '  wp_start as Hl',
+        '  wp_auto',
+        '  wp_method_call',
+        '  wp_call',
+        '  wp_auto',
+        '  iapply HΦ',
+        '  iframe',
+        '',
+        'end zapinit'],
+    imports=['Proof.go_uber_org.zap.internal.pool.New'],
+), ['errNoEncoderNameSpecified'])
 _FG = 'go_etcd_io.etcd.pkg.v3.featuregate'
 SPECIAL['go_etcd_io.etcd.server.v3.features'] = dict(
     doc='''Its fact is `True`. Its initializer initializes its imports, allocates
@@ -2882,14 +3404,129 @@ trust-boundary axioms `opaqueInitsOk` and `initFuncsOk`).''',
 _K8S_ALLOCS = {'k8s_io.utils.clock', 'k8s_io.apimachinery.pkg.util.validation.field'}
 for _p, _what in [('k8s_io.apimachinery.pkg.conversion', '`DefaultNameFunc`, a func literal'),
                   ('k8s_io.apimachinery.pkg.runtime.schema', '`EmptyObjectKind`, an empty struct literal'),
-                  ('k8s_io.utils.clock', 'its `var _` conversions'),
-                  ('k8s_io.apimachinery.pkg.util.validation.field', '`var _ error = &Error{}` and `omitValue`, an empty struct literal')]:
+                  ('k8s_io.utils.clock', 'its `var _` conversions')]:
+    # (merge, 2026-11-20) `util/validation/field` is k8s-authz's SPECIAL entry above (its fact
+    # `fieldInit`), which allocates the `var _ error = &Error{}` check as these do
     assert _p not in SPECIAL, _p
     SPECIAL[_p] = dict(doc=f'''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
 their translated initializers: {_what} (prove-smallinits, 2026-11-20; until then the trust-boundary
 axiom `opaqueInitsOk`).''', alloc_types=_ALLOC_ANY,
         # the `&T{}` allocations
         before={'$end': ['try wp_auto', 'repeat (wp_alloc_anon; try wp_auto)']} if _p in _K8S_ALLOCS else {})
+# (prove-k8s, 2026-11-20) more k8s lists translated (until then each package's `opaqueInitsOk`); their
+# facts are `True`.
+SPECIAL['k8s_io.utils.trace'] = dict(doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+their translated initializers: `klogV`, a func literal over `klog.V(lvl).Enabled()` (prove-k8s,
+2026-11-20; until then the trust-boundary axiom `opaqueInitsOk`).''', alloc_types=_ALLOC_ANY)
+SPECIAL['k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured'] = dict(doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+their translated initializers: `UnstructuredJSONScheme`, an empty struct literal, and the `var _ I =
+&T{}` checks (prove-k8s, 2026-11-20; until then the trust-boundary axiom `opaqueInitsOk`).''',
+    alloc_types=_ALLOC_ANY,
+    # `runtime.Codec` is a named `Serializer`: `≤u` has no transitive instance (notes/perennial-changes.md)
+    before={'UnstructuredJSONScheme': ['haveI : k8s_io.apimachinery.pkg.runtime.Codec.ty ≤u '
+                'k8s_io.apimachinery.pkg.runtime.Serializer.underlying := '
+                '⟨(go.underlying_unfold (t := k8s_io.apimachinery.pkg.runtime.Codec.ty)).trans '
+                '(go.underlying_unfold (t := k8s_io.apimachinery.pkg.runtime.Serializer.ty))⟩'],
+            '$end': ['try wp_auto', 'repeat (wp_alloc_anon; try wp_auto)']})
+SPECIAL['k8s_io.apimachinery.pkg.util.wait'] = dict(doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+their translated initializers (prove-k8s, 2026-11-20; until then the trust-boundary axiom
+`opaqueInitsOk`): `ErrWaitTimeout` (`ErrorInterrupted` of an `errors.New` error, translated),
+`errWaitTimeout` and `internalClock` (empty struct literals), `RealTimer` (a method value),
+`ForeverTestTimeout` (a constant product), `NeverStop` (a fresh channel), `jitterRand` (a function
+value) and `var _ context.Context = channelContext{}`.''',
+    alloc_types=_ALLOC_ANY,
+    before={'ErrWaitTimeout': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %xW #MW',
+                               'try wp_auto', 'wp_func_call', 'wp_call', 'try wp_auto'],
+            'NeverStop': ['try wp_auto', 'wp_apply chan.wp_make1 (V := Unit) as %ch %γ ⟨#His_ch, %Hcap, Hch⟩', 'try wp_auto']})
+_LB = 'k8s_io.apimachinery.pkg.labels'
+SPECIAL[_LB] = dict(doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+their translated initializers (prove-k8s, 2026-11-20; until then the trust-boundary axiom
+`opaqueInitsOk`): the operator slices `unaryOperators`, `binaryOperators` (literals) and
+`validRequirementOperators` (their `append`), the shared selectors `sharedEverythingSelector` (an
+empty `internalSelector` literal) and `sharedNothingSelector` (an empty struct literal), the map
+literal `string2token` and `var _ Selector = ValidatedSetSelector{}` (an empty map literal).''',
+    alloc_types=_ALLOC_ANY,
+    before={'unaryOperators': ['try wp_auto',
+                'wp_apply (wp_slice_literal (l := [go!"exists", go!"!"])); isplitr; (· ipureintro; rfl); iintro %su ⟨Su, -⟩',
+                'try wp_auto'],
+            'binaryOperators': ['try wp_auto',
+                'wp_apply (wp_slice_literal (l := [go!"in", go!"notin", go!"=", go!"==", go!"!=", go!"gt", go!"lt"])); '
+                'isplitr; (· ipureintro; rfl); iintro %sb ⟨Sb, Cb⟩',
+                'try wp_auto'],
+            'validRequirementOperators': ['try wp_auto',
+                'wp_apply (wp_slice_append (V := GoString) _ _ _ _ _) $$ [Sb Cb Su] as %sv -',
+                '· iframe Sb Cb Su',
+                'try wp_auto'],
+            'sharedEverythingSelector': ['try wp_auto',
+                f'wp_apply (wp_slice_literal (V := {_LB}.Requirement) (l := [])); isplitr; (· ipureintro; rfl); iintro %se -',
+                'try wp_auto'],
+            'string2token': map_lit_steps('Hst', 'GoString', 'w64', 'go.string', f'{_LB}.Token.ty', 11),
+            '$end': ['try wp_auto', f'wp_apply (wp_map_make1 (K := GoString) (V := GoString) go.string go.string) as %mvs Hvs',
+                     'try wp_auto']})
+SPECIAL['k8s_io.apimachinery.pkg.util.runtime'] = dict(doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+their translated initializers (prove-k8s, 2026-11-20; until then the trust-boundary axiom
+`opaqueInitsOk`): `ReallyCrash` (`true`), `PanicHandlers` and `ErrorHandlers` (slice literals of
+function values, one the closure `backoffError` returns, translated: it allocates a
+`rudimentaryErrorBackoff` stamped with `time.Now()`).''',
+    alloc_types=_ALLOC_ANY,
+    before={'PanicHandlers': ['try wp_auto',
+                'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sp -', 'try wp_auto'],
+            'ErrorHandlers': ['try wp_auto', 'wp_func_call', 'wp_call', 'try wp_auto',
+                'wp_apply _root_.Perennial.time.wp_Now as %t0 -', 'try wp_auto',
+                'repeat (wp_alloc_anon; try wp_auto)',
+                'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %se -', 'try wp_auto']})
+_SETS_NEW = 'wp_apply (EtcdGrove.sets.New.wp_proof EtcdGrove.sets.Set.Insert.wp_proof)'
+def _newstring_steps(tag, lst):
+    """`sets.NewString(lst...)` (its slice literal, then `New[string]`'s spec): `H<tag>`, the set."""
+    return ['try wp_auto',
+            f'wp_apply (wp_slice_literal (l := {lst})); isplitr; (· ipureintro; rfl); iintro %sl{tag} ⟨S{tag}, -⟩',
+            'try wp_auto', 'wp_func_call', 'wp_call', 'try wp_auto',
+            f'{_SETS_NEW} $$ [S{tag}] as %r{tag} ⟨H{tag}, -⟩', '· iframe', 'try wp_auto']
+SPECIAL['k8s_io.apiserver.pkg.endpoints.request'] = dict(doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+their translated initializers (prove-k8s, 2026-11-20; until then the trust-boundary axiom
+`opaqueInitsOk`): `sets.NewString` calls (`sets` with bodies: `New`'s spec), the last of
+`namespaceSubresources.List()` (`List`'s).''',
+    alloc_types=_ALLOC_ANY,
+    imports=['Proof.k8s_io.apimachinery.pkg.util.sets.New', 'Proof.k8s_io.apimachinery.pkg.util.sets.Set__Insert',
+             'Proof.k8s_io.apimachinery.pkg.util.sets.List', 'Proof.k8s_io.apimachinery.pkg.util.sets.Set__UnsortedList',
+             'Perennial.Proof.slices.Link', 'Perennial.Proof.cmp.Link'],
+    before={'specialVerbs': _newstring_steps('1', '[go!"proxy", go!"watch"]'),
+            'specialVerbsNoSubresources': _newstring_steps('2', '[go!"proxy"]'),
+            'namespaceSubresources': _newstring_steps('3', '[go!"status", go!"finalize"]'),
+            'verbsWithSelectors': _newstring_steps('4', '[go!"list", go!"watch", go!"deletecollection"]'),
+            'NamespaceSubResourcesForTest': ['try wp_auto', 'wp_method_call', 'wp_call', 'try wp_auto',
+                'wp_method_call', 'wp_call', 'try wp_auto',
+                'wp_func_call', 'wp_call', 'try wp_auto',
+                'have hsz : GMap.size (EtcdGrove.sets.insertAll (∅ : GMap GoString EtcdGrove.sets.Elem) '
+                '[go!"status", go!"finalize"]) ≤ 2 ^ 62 := '
+                'Nat.le_trans (EtcdGrove.sets.size_insertAll_le _ _) (by simp [GMap.map_size_empty])',
+                "wp_apply (EtcdGrove.sets.List'.wp_proof EtcdGrove.sets.Set.UnsortedList.wp_proof "
+                '_root_.Perennial.slices.wp_Sort _root_.Perennial.cmp.wp_Less _ _ _ hsz) $$ [H3] '
+                'as %sl5 %ks5 ⟨H3, S5, -⟩', '· iframe',
+                'try wp_auto', 'wp_func_call', 'wp_call', 'try wp_auto',
+                f'{_SETS_NEW} $$ [S5] as %r5 ⟨H5, -⟩', '· iframe', 'try wp_auto']})
+SPECIAL['k8s_io.apiserver.pkg.util.flowcontrol'] = dict(doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+their translated initializers (prove-k8s2, 2026-11-20; until then the trust-boundary axiom
+`opaqueInitsOk`): `readOnlyVerbs = sets.NewString(...)` (`sets` with bodies: `New`'s spec) and the
+two interface assertions `var _ fmt.GoStringer = RequestDigest{}` and
+`var _ fmt.GoStringer = (*priorityLevelState)(nil)` (conversions to an interface).''',
+    alloc_types=_ALLOC_ANY,
+    imports=['Proof.k8s_io.apimachinery.pkg.util.sets.New', 'Proof.k8s_io.apimachinery.pkg.util.sets.Set__Insert'],
+    before={'readOnlyVerbs': _newstring_steps('1', '[go!"get", go!"list", go!"watch", go!"proxy"]')})
+_AE = 'k8s_io.apimachinery.pkg.api.errors'
+SPECIAL[_AE] = dict(doc='''Its fact (`apierrorsInit`, `storage/etcd3/Base.lean`; prove-k8s2, 2026-11-20, `True` until then):
+`knownReasons` holds, read-only for good, the map of the 19 known reasons (`knownReasonsMap`), which
+`IsTimeout` looks reasons up in. Its initializer initializes its imports, allocates its variables and
+runs their translated initializers: `var _ error = &StatusError{}` and `knownReasons`, a map literal
+of the 19 known reasons (prove-k8s, 2026-11-20; until then the trust-boundary axiom `opaqueInitsOk`).''',
+    alloc_types={'knownReasons': 'Loc'},
+    before={'knownReasons': ['try wp_auto', 'wp_alloc_anon'] + map_lit_steps('Hkr', 'GoString', 'Unit',
+        'k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty', '(go.GoType.StructType [])', 19)},
+    finish=['ipersist HknownReasons', 'ipersist Hkr'] + FIN_PRE[:6] + [
+        'imodintro', 'unfold k8s_io.apiserver.pkg.storage.etcd3.apierrorsInit', 'iexists _',
+        'iframe HknownReasons',
+        'unfold EtcdGrove.apierrors.knownReasonsMap EtcdGrove.apierrors.knownReasons',
+        'simp only [List.foldl]', 'iexact Hkr'])
 SPECIAL['k8s_io.apimachinery.pkg.util.errors'] = newvars_cfg(dict(
     doc='''Its fact is `True`. Its initializer initializes its imports, allocates `ErrPreconditionViolated` and
 runs its translated initializer, an `errors.New` call (prove-smallinits, 2026-11-20; until then the
@@ -2964,6 +3601,52 @@ register(SPECIAL['go_etcd_io.etcd.server.v3.storage.wal'], 'go_etcd_io.etcd.serv
     reg_scalar('walFsyncSec', _E, 'disk', 'wal_fsync_duration_seconds'),
     reg_scalar('walWriteSec', _E, 'disk', 'wal_write_duration_seconds'),
     reg_scalar('walWriteBytes', _E, 'disk', 'wal_write_bytes_total')])
+# (etcdstorage, 2026-11-20, the user's decision: mvccrand's and mvccfull's closed theorems take
+# `namesUnclaimed`) auth, lease, backend and mvcc. A `NewGaugeFunc` gauge's `collectorName` fact is
+# conditional on its name's validity (`N<x> : nameOk ... → collectorName ...`), `decide`d here.
+def reg_gfunc(x, ns, sub, name):
+    return reg_scalar(x, ns, sub, name, n=f'(N{x} (by decide))')
+register(SPECIAL['go_etcd_io.etcd.server.v3.auth'], 'go_etcd_io.etcd.server.v3.auth', [
+    reg_gfunc('currentAuthRevision', _D, 'auth', 'revision')])
+register(SPECIAL['go_etcd_io.etcd.server.v3.lease'], 'go_etcd_io.etcd.server.v3.lease', [
+    reg_scalar('leaseGranted', _D, 'lease', 'granted_total'),
+    reg_scalar('leaseRevoked', _D, 'lease', 'revoked_total'),
+    reg_scalar('leaseRenewed', _D, 'lease', 'renewed_total'),
+    reg_scalar('leaseTotalTTLs', _D, 'lease', 'ttl_total')])
+register(SPECIAL['go_etcd_io.etcd.server.v3.storage.backend'], 'go_etcd_io.etcd.server.v3.storage.backend', [
+    reg_scalar('commitSec', _E, 'disk', 'backend_commit_duration_seconds'),
+    reg_scalar('rebalanceSec', _D, 'disk', 'backend_commit_rebalance_duration_seconds'),
+    reg_scalar('spillSec', _D, 'disk', 'backend_commit_spill_duration_seconds'),
+    reg_scalar('writeSec', _D, 'disk', 'backend_commit_write_duration_seconds'),
+    reg_scalar('defragSec', _E, 'disk', 'backend_defrag_duration_seconds'),
+    reg_scalar('defragBlockingSec', _E, 'disk', 'backend_defrag_blocking_duration_seconds'),
+    reg_scalar('snapshotTransferSec', _E, 'disk', 'backend_snapshot_duration_seconds'),
+    reg_scalar('isDefragActive', _E, 'disk', 'defrag_inflight')])
+_MVR = 'mvcc'
+register(SPECIAL[_MV], _MV, [
+    reg_scalar('rangeCounter', _E, _MVR, 'range_total'),
+    reg_scalar('putCounter', _E, _MVR, 'put_total'),
+    reg_scalar('deleteCounter', _E, _MVR, 'delete_total'),
+    reg_scalar('txnCounter', _E, _MVR, 'txn_total'),
+    reg_scalar('keysGauge', _D, _MVR, 'keys_total'),
+    reg_scalar('watchStreamGauge', _D, _MVR, 'watch_stream_total'),
+    reg_scalar('watcherGauge', _D, _MVR, 'watcher_total'),
+    reg_scalar('slowWatcherGauge', _D, _MVR, 'slow_watcher_total'),
+    reg_scalar('totalEventsCounter', _D, _MVR, 'events_total'),
+    reg_scalar('pendingEventsGauge', _D, _MVR, 'pending_events_total'),
+    reg_scalar('indexCompactionPauseMs', _D, _MVR, 'index_compaction_pause_duration_milliseconds'),
+    reg_scalar('dbCompactionPauseMs', _D, _MVR, 'db_compaction_pause_duration_milliseconds'),
+    reg_scalar('dbCompactionTotalMs', _D, _MVR, 'db_compaction_total_duration_milliseconds'),
+    reg_scalar('dbCompactionLast', _D, _MVR, 'db_compaction_last'),
+    reg_scalar('dbCompactionKeysCounter', _D, _MVR, 'db_compaction_keys_total'),
+    reg_gfunc('dbTotalSize', _E, _MVR, 'db_total_size_in_bytes'),
+    reg_gfunc('dbTotalSizeInUse', _E, _MVR, 'db_total_size_in_use_in_bytes'),
+    reg_gfunc('dbOpenReadTxN', _E, _MVR, 'db_open_read_transactions'),
+    reg_scalar('hashSec', _E, _MVR, 'hash_duration_seconds'),
+    reg_scalar('hashRevSec', _E, _MVR, 'hash_rev_duration_seconds'),
+    reg_gfunc('currentRev', _D, _MVR, 'current_revision'),
+    reg_gfunc('compactRev', _D, _MVR, 'compact_revision'),
+    reg_scalar('totalPutSizeGauge', _D, _MVR, 'total_put_size_in_bytes')])
 
 
 def closure(p):
@@ -3353,6 +4036,9 @@ def gen(p, cfg=None):
     A('')
     if len(items) > 50 or cfg.get('heavy'):
         A('set_option maxHeartbeats 8000000 in')
+    if cfg.get('rec_depth'):
+        # (prove-rpcmap, 2026-11-20) an initializer too deep for the default (`rpctypes`' 180 variables)
+        A(f"set_option maxRecDepth {cfg['rec_depth']} in")
     assert not hyps(p), p
     form = 'self' if p in PRE_RES else ('res' if rl else 'lb')
     # the resource list the body sees (`self`: without `p`'s own entry) and its literal
@@ -3676,6 +4362,9 @@ PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccrand'] = \
 # (F1 Prove, 2026-11-10) mvcc's full tester, for its closed theorem (`mvccfull_adequate`)
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccfull'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/PkgTable.lean'
+# (2026-11-19) Kubernetes' conditional authorization's driver, for its closed theorem
+PROGRAMS['github_com.mit_pdos.etcd_grove.examples.k8s.authz'] = \
+    'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/authz/PkgTable.lean'
 
 TABLE_DOC = """/-
 The package table of the program of `{p}`

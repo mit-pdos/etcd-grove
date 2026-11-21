@@ -332,11 +332,11 @@ fresh `MemoryStorage` (an empty conf state, allocated by raft's `EnsureSnapshot`
 `run` uses only the pointers. (2026-10-31, #11) With the storage's invariant at the node `nid` of the
 cluster `cl` (`memStorInv`, at the registry `rg`; persistent), which `NewServer` allocated: what
 `CreateSnapshot` and `Compact` take (`srvSnapStor`). -/
-def rnSnapOnce (rg : GName) (cl : Cluster) (nk : GName) (ms : Loc) (γs : MemStorNames) (ai₀ at₀ : w64) :
+def rnSnapOnce (rg : GName) (cl : Cluster) (nk : GName) (ms : Loc) (γs : MemStorNames) (ai₀ at₀ : w64) (applied : GName) (n : Loc) (boot : Nat) :
     IProp GF :=
   iprop(∀ Φ : val → IProp GF,
     ▷ (∀ (sn pm cs : Loc) (sv : SnapshotM),
-      ⌜sv.Metadata'.Index' = ai₀ ∧ sv.Metadata'.Term' = at₀ ∧ pm ≠ null ∧ cs ≠ null⌝ -∗
+      ⌜sv.Metadata'.Index' = ai₀ ∧ sv.Metadata'.Term' = at₀ ∧ pm ≠ null ∧ cs ≠ null ∧ boot ≤ uint.nat ai₀⌝ -∗
       ownSnapM sn DFrac.discard sv -∗
       sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦□ pm -∗
       pm.[go_etcd_io.raft.v3.raftpb.SnapshotMetadata, go!"ConfState"] ↦□ cs -∗
@@ -345,7 +345,8 @@ def rnSnapOnce (rg : GName) (cl : Cluster) (nk : GName) (ms : Loc) (γs : MemSto
       -- "no snapshot taken yet" token back (`memSnapNone`, under which `Snapshot()` answers the
       -- empty snapshot; until then the application's snapshot token `memSnapTok`)
       epCsOk cs -∗ memSnapNone γs memSnapEmpty -∗
-      (letI : MemStorReg GF := ⟨rg⟩; memStorInv ms γs cl nk) -∗
+      (letI : MemStorReg GF := ⟨rg⟩; srvAttachedMem ms γs cl nk applied n boot) -∗
+      monoNatAuthOwn applied 1 0 -∗
       Φ (PairV #sn #(GoInterface.nil))) -∗
     WP (App (Val (ms @!! go.GoType.PointerType go_etcd_io.raft.v3.MemoryStorage.ty @!! go!"Snapshot"))
       (Val #())) {{ Φ }})

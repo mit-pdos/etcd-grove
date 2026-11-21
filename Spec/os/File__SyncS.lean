@@ -3,13 +3,15 @@
 (`GooseLang/Ext/Fs/TreeShared.lean`; `notes/wal-fsext-i2-design.md`): the model asks the fd's kind
 (`FdKind`: a directory's), then `fsync(2)` (the extension's `DirSync`), retried on `EINTR`. The
 directory fd holds nothing (`osDirFdS`: blind); a success commits every entry the log had when the
-caller knew its length (`osLogLb n`), I1's `osCommitLb n`. It changes no claim, so it is a plain
+caller knew its length (`osLogLb n`), I1's `osCommitLb n`; an error only when the file system can fail
+on an inode (`¬ FsNoErrIno`, wal-fsfix2: `NoIoErr` covers `DirSync`). It changes no claim, so it is a plain
 triple. Proved in `Proof/os/File__SyncS.lean`. Lean-first (no Rocq counterpart).
 -/
 module
 
 public import Proof.os.SharedAu
 public import Spec.fmt.ErrorOk
+public import GooseLang.Ext.Fs.FsNoErr
 
 @[expose] public section
 
@@ -36,7 +38,7 @@ abbrev os.File.Sync.specDirS : Prop :=
       osLogLb n }}
     (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Sync")) (Val #()))
   {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ osDirFdS fd j ph ∗
-      ((⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err) ∨ ⌜err = interface.nil⌝ ∗ osCommitLb n) }}
+      ((⌜err ≠ interface.nil ∧ ¬ FsNoErrIno⌝ ∗ fmtErrorOk err) ∨ ⌜err = interface.nil⌝ ∗ osCommitLb n) }}
 
 end spec
 

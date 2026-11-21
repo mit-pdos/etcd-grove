@@ -2,10 +2,22 @@
 # The log-level constant `DebugLevel` (zap's `DebugLevel` is it; the auth plan's S5, 2026-10-24).
 # (2026-11-20, prove-zap) the levels zap's leveled methods use and the `FieldType`s its field
 # constructors set.
+# (prove-misc, 2026-11-20) the package's initializer translated whole (until then the
+# trust-boundary axioms `opaqueInitsOk` and `initFuncsOk`): its variables (the pools, `pool.New` of
+# zap's internal `pool`; the interface assertions; the level colors and their strings) and its
+# `init` (`level_strings.go`: each level's color formatted, `Level.String`/`CapitalString`).
 translate = ["!*", "DebugLevel", "InfoLevel", "WarnLevel", "ErrorLevel",
+  "DPanicLevel", "PanicLevel", "FatalLevel",
   "ArrayMarshalerType", "BoolType", "ByteStringType", "DurationType", "Int64Type", "Int32Type",
-  "StringType", "StringerType", "Uint64Type", "Uint32Type", "ErrorType", "SkipType"]
-imports = ["!*", "time", "io"]
+  "StringType", "StringerType", "Uint64Type", "Uint32Type", "ErrorType", "SkipType",
+  "DefaultClock", "_sliceEncoderPool", "_", "_cePool", "_errArrayElemPool", "_jsonPool",
+  "nullLiteralBytes", "errUnmarshalNilLevel", "_levelToColor", "_unknownLevelColor",
+  "_levelToLowercaseColorString", "_levelToCapitalColorString", "init.0",
+  "Level.String", "Level.CapitalString",
+  # (prove-initleft, 2026-11-21) what `zap.NewNop` calls (zap's `_globalL = NewNop()`)
+  "NewNopCore", "AddSync"]
+imports = ["!*", "time", "io", "errors", "fmt", "sync", "go.uber.org/zap/internal/pool",
+  "go.uber.org/zap/internal/color"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

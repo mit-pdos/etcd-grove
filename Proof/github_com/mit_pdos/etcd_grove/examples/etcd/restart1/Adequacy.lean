@@ -91,12 +91,12 @@ theorem etcd_restart1_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
-    (Hsteps : RealNsteps n ([restart1Program], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 2 ≤ 2 ^ 28) :
+    (Hsteps : RealNstepsBelow (2 ^ 28) n ([restart1Program], ((σ, g) : CfgState)) κs (t2, σ2))
+    (Hn : n + 12 ≤ 2 ^ 40) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine etcd_adequate_members (GF := restart1GF) (hbody := rfl) (HWal := HWal) (hn := by omega) (hAsLit := by decide) (HEnv := HEnv)
+  refine etcd_adequate_members_below (GF := restart1GF) (hbody := rfl) (HWal := HWal) (hn := by omega) (hAsLit := by decide) (HEnv := HEnv)
     github_com.mit_pdos.etcd_grove.examples.etcd.restart1.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.restart1.Main) #())
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [] (by decide)
@@ -104,7 +104,7 @@ theorem etcd_restart1_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     -- the one member's start bundle: no address, its data directory
     [(go!"restart1", {})] [] (List.Perm.refl _) (List.Perm.refl _) σ g ⟨trivial, trivial, trivial⟩
     ⟨trivial, Hfs, trivial⟩ Hlctx Hinit Hthreads HNs (fun _ h => absurd h List.not_mem_nil) HDs
-    n κs t2 σ2 Hsteps fun hG HN HT => ?_
+    (2 ^ 28) n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC restart1GF := heapAtR1 hG lctx
   haveI := Hctx hG
   unfold progOk

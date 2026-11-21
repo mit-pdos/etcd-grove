@@ -124,6 +124,7 @@ abbrev RawNode.Ready.spec : Prop :=
       -- the node, and in the dynamic mode to an id of a committed configuration; they read only the
       -- committed log and the sender's configuration)
       "#Hsnapto" ∷ ([∗list] q ∈ ms, snapToOk γ id q.st) ∗
+      "#Hsrcs" ∷ readyMsgOrigins γ id rs.sn ms ∗
       -- (2026-11-01, durability stage I fix G2) the soft state the node records
       "#Hss" ∷ softStateIs rd.SoftState' ss ∗
       "#Hce" ∷ entsRO rd.CommittedEntries' ce ∗

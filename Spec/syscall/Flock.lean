@@ -41,7 +41,7 @@ abbrev syscall.Flock.spec : Prop :=
   {{ osInv (GF := GF) ∗ osFd (GF := GF) fd (DFrac.own 1) d ∗ lockTok (GF := GF) .flock fd d }}
     (App (App (Val (@! syscall.Flock)) (Val #fd)) (Val #how))
   {{ (e : w64), RET #(errnoErr e);
-      ⌜(req = none ∨ nb = true) → e = 0 ∨ (req ≠ none ∧ e = EAGAIN) ∨ ¬ FsNoErr⌝ ∗
+      ⌜e = 0 ∨ (req ≠ none ∧ nb = true ∧ e = EAGAIN) ∨ ¬ FsNoErrIno⌝ ∗
       lockOut (GF := GF) .flock fd d req e }}
 
 end spec

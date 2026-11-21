@@ -47,6 +47,7 @@ public import Proof.go_etcd_io.etcd.client.v3.PerTypeAuth
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.PerTypeWatch
 public import Proof.context.ReqKeys
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Link
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ClientPortTable
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.CheckPure
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.CheckNodup
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerKVOn
@@ -2272,6 +2273,131 @@ theorem raftLeaseRenew_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
 
 end leaseKeepAlive
 
+section clientPort
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+variable [apply_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
+variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+
+/-- **Every row's specs hold** (the table's proved rows, each by its linked results). -/
+theorem clientPortTable_ok :
+    ∀ r ∈ v3rpc.clientPortTable (GF := GF) (hG := hG), r.status.proved = true → r.specs :=
+  List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.EtcdServer.wp_doSerialize, _root_.Perennial.EtcdGrove.EtcdServer.wp_Range, _root_.Perennial.EtcdGrove.v3rpc.kvServer.wp_Range⟩,
+    List.forall_mem_cons.2 ⟨fun h => absurd h (by decide),
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.apply.wp_checkPutAuth, _root_.Perennial.EtcdGrove.apply.authApplierV3.wp_Put, _root_.Perennial.EtcdGrove.EtcdServer.wp_Put⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.apply.authApplierV3.wp_DeleteRange, _root_.Perennial.EtcdGrove.EtcdServer.wp_DeleteRange⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.apply.wp_CheckTxnAuth, _root_.Perennial.EtcdGrove.apply.authApplierV3.wp_Txn, _root_.Perennial.EtcdGrove.EtcdServer.wp_Txn⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.v3rpc.AuthAdmin.wp_isPermitted, _root_.Perennial.EtcdGrove.v3rpc.kvServer.wp_Compact, _root_.Perennial.EtcdGrove.EtcdServer.wp_Compact⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.v3rpc.serverWatchStream.wp_isWatchPermitted, _root_.Perennial.EtcdGrove.v3rpc.watchServer.wp_Watch⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.EtcdServer.wp_requireAuthInfo, _root_.Perennial.EtcdGrove.EtcdServer.wp_LeaseGrant, _root_.Perennial.EtcdGrove.v3rpc.LeaseServer.wp_LeaseGrant⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.EtcdServer.wp_requireAuthInfo, _root_.Perennial.EtcdGrove.apply.authApplierV3.wp_LeaseRevoke, _root_.Perennial.EtcdGrove.EtcdServer.wp_LeaseRevoke, _root_.Perennial.EtcdGrove.v3rpc.LeaseServer.wp_LeaseRevoke⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.EtcdServer.wp_checkLeaseTimeToLive, _root_.Perennial.EtcdGrove.EtcdServer.wp_LeaseTimeToLive, _root_.Perennial.EtcdGrove.v3rpc.LeaseServer.wp_LeaseTimeToLive⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.EtcdServer.wp_checkLeaseLeases, _root_.Perennial.EtcdGrove.EtcdServer.wp_LeaseLeases, _root_.Perennial.EtcdGrove.v3rpc.LeaseServer.wp_LeaseLeases⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.EtcdServer.wp_checkLeaseRenew, _root_.Perennial.EtcdGrove.EtcdServer.wp_LeaseRenew, _root_.Perennial.EtcdGrove.v3rpc.LeaseServer.wp_leaseKeepAlive, _root_.Perennial.EtcdGrove.v3rpc.LeaseServer.wp_LeaseKeepAlive⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.EtcdServer.wp_checkMembershipOperationPermission, _root_.Perennial.EtcdGrove.EtcdServer.wp_AddMember, _root_.Perennial.EtcdGrove.v3rpc.ClusterServer.wp_MemberAdd⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.EtcdServer.wp_checkMembershipOperationPermission, _root_.Perennial.EtcdGrove.EtcdServer.wp_RemoveMember, _root_.Perennial.EtcdGrove.v3rpc.ClusterServer.wp_MemberRemove⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.EtcdServer.wp_checkMembershipOperationPermission, _root_.Perennial.EtcdGrove.EtcdServer.wp_UpdateMember, _root_.Perennial.EtcdGrove.v3rpc.ClusterServer.wp_MemberUpdate⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.EtcdServer.wp_requireAuthInfo, _root_.Perennial.EtcdGrove.EtcdServer.wp_MemberList, _root_.Perennial.EtcdGrove.v3rpc.ClusterServer.wp_MemberList⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.EtcdServer.wp_checkMembershipOperationPermission, _root_.Perennial.EtcdGrove.EtcdServer.wp_promoteMember, _root_.Perennial.EtcdGrove.EtcdServer.wp_PromoteMember, _root_.Perennial.EtcdGrove.v3rpc.ClusterServer.wp_MemberPromote⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.v3rpc.authMaintenanceServer.wp_isPermitted, _root_.Perennial.EtcdGrove.v3rpc.authMaintenanceServer.wp_Defragment⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.v3rpc.authMaintenanceServer.wp_isPermitted, _root_.Perennial.EtcdGrove.v3rpc.authMaintenanceServer.wp_Snapshot⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.v3rpc.authMaintenanceServer.wp_isPermitted, _root_.Perennial.EtcdGrove.v3rpc.authMaintenanceServer.wp_Hash⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.v3rpc.authMaintenanceServer.wp_isPermitted, _root_.Perennial.EtcdGrove.v3rpc.authMaintenanceServer.wp_HashKV⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.v3rpc.authMaintenanceServer.wp_isPermitted, _root_.Perennial.EtcdGrove.v3rpc.authMaintenanceServer.wp_MoveLeader⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.v3rpc.authMaintenanceServer.wp_isPermitted, _root_.Perennial.EtcdGrove.v3rpc.authMaintenanceServer.wp_Downgrade⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.v3rpc.authMaintenanceServer.wp_isPermitted, _root_.Perennial.EtcdGrove.v3rpc.authMaintenanceServer.wp_requireAuthInfo, _root_.Perennial.EtcdGrove.v3rpc.authMaintenanceServer.wp_Alarm⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.v3rpc.authMaintenanceServer.wp_requireAuthInfo, _root_.Perennial.EtcdGrove.v3rpc.authMaintenanceServer.wp_Status⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.server_authenticate_on, _root_.Perennial.EtcdGrove.v3rpc.AuthServer.wp_Authenticate⟩,
+    List.forall_mem_cons.2 ⟨fun _ => _root_.Perennial.EtcdGrove.v3rpc.AuthServer.wp_AuthStatus,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.apply.authApplierV3.wp_Apply, _root_.Perennial.EtcdGrove.v3rpc.AuthServer.wp_AuthEnable, _root_.Perennial.EtcdGrove.EtcdServer.wp_AuthEnable⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.apply.authApplierV3.wp_Apply, _root_.Perennial.EtcdGrove.v3rpc.AuthServer.wp_AuthDisable, _root_.Perennial.EtcdGrove.EtcdServer.wp_AuthDisable⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.apply.authApplierV3.wp_Apply, _root_.Perennial.EtcdGrove.v3rpc.AuthServer.wp_UserAdd, _root_.Perennial.EtcdGrove.EtcdServer.wp_UserAdd⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.apply.authApplierV3.wp_Apply, _root_.Perennial.EtcdGrove.v3rpc.AuthServer.wp_UserDelete, _root_.Perennial.EtcdGrove.EtcdServer.wp_UserDelete⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.apply.authApplierV3.wp_Apply, _root_.Perennial.EtcdGrove.v3rpc.AuthServer.wp_UserChangePassword⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.apply.authApplierV3.wp_Apply, _root_.Perennial.EtcdGrove.v3rpc.AuthServer.wp_UserGrantRole, _root_.Perennial.EtcdGrove.EtcdServer.wp_UserGrantRole⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.apply.authApplierV3.wp_Apply, _root_.Perennial.EtcdGrove.v3rpc.AuthServer.wp_UserRevokeRole, _root_.Perennial.EtcdGrove.EtcdServer.wp_UserRevokeRole⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.apply.authApplierV3.wp_Apply, _root_.Perennial.EtcdGrove.v3rpc.AuthServer.wp_UserList, _root_.Perennial.EtcdGrove.EtcdServer.wp_UserList⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.apply.authApplierV3.wp_Apply, _root_.Perennial.EtcdGrove.v3rpc.AuthServer.wp_RoleAdd, _root_.Perennial.EtcdGrove.EtcdServer.wp_RoleAdd⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.apply.authApplierV3.wp_Apply, _root_.Perennial.EtcdGrove.v3rpc.AuthServer.wp_RoleDelete, _root_.Perennial.EtcdGrove.EtcdServer.wp_RoleDelete⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.apply.authApplierV3.wp_Apply, _root_.Perennial.EtcdGrove.v3rpc.AuthServer.wp_RoleGrantPermission, _root_.Perennial.EtcdGrove.EtcdServer.wp_RoleGrantPermission⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.apply.authApplierV3.wp_Apply, _root_.Perennial.EtcdGrove.v3rpc.AuthServer.wp_RoleRevokePermission, _root_.Perennial.EtcdGrove.EtcdServer.wp_RoleRevokePermission⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.apply.authApplierV3.wp_Apply, _root_.Perennial.EtcdGrove.v3rpc.AuthServer.wp_RoleList, _root_.Perennial.EtcdGrove.EtcdServer.wp_RoleList⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.apply.authApplierV3.wp_UserGet, _root_.Perennial.EtcdGrove.v3rpc.AuthServer.wp_UserGet, _root_.Perennial.EtcdGrove.EtcdServer.wp_UserGet⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.apply.authApplierV3.wp_RoleGet, _root_.Perennial.EtcdGrove.v3rpc.AuthServer.wp_RoleGet, _root_.Perennial.EtcdGrove.EtcdServer.wp_RoleGet⟩,
+    List.forall_mem_cons.2 ⟨fun _ => trivial,
+    List.forall_mem_cons.2 ⟨fun h => absurd h (by decide),
+    List.forall_mem_cons.2 ⟨fun h => absurd h (by decide),
+    List.forall_mem_cons.2 ⟨fun h => absurd h (by decide),
+    List.forall_mem_cons.2 ⟨fun h => absurd h (by decide),
+    List.forall_mem_cons.2 ⟨fun h => absurd h (by decide),
+    List.forall_mem_cons.2 ⟨fun h => absurd h (by decide),
+    List.forall_mem_cons.2 ⟨fun h => absurd h (by decide),
+    List.forall_mem_nil _⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩
+
+/-- **Every registration of `v3rpc.Server` has a row** of the client port's table: the six
+services' methods and streams by name, grpc's health service's by its prefix. -/
+theorem clientPort_covered (q pw ql pc pa pm : Loc) (regs sregs : List (GoString × GoFunc × GoInterface))
+    (h : v3rpc.serverRegsOk q pw ql pc pa pm regs sregs) :
+    ∀ x ∈ regs ++ sregs, ∃ r ∈ v3rpc.clientPortTable (GF := GF) (hG := hG), r.covers x.1 := by
+  obtain ⟨hrs, hsrs, rfl, rfl, hH, -⟩ := h
+  have cov : ∀ (i : Nat) {n : GoString} (hi : i < (v3rpc.clientPortTable (GF := GF) (hG := hG)).length),
+      ((v3rpc.clientPortTable (GF := GF) (hG := hG))[i]).isPrefix = false →
+      ((v3rpc.clientPortTable (GF := GF) (hG := hG))[i]).key = n →
+      ∃ r ∈ v3rpc.clientPortTable (GF := GF) (hG := hG), r.covers n := by
+    intro i n hi hp hk
+    refine ⟨_, List.getElem_mem hi, ?_⟩
+    simp only [v3rpc.PortRow.covers, hp, Bool.false_eq_true, if_false, hk]
+  have hlen : (v3rpc.clientPortTable (GF := GF) (hG := hG)).length = 50 := rfl
+  have hE : ∀ x ∈ v3rpc.kvMethodRegs q ++ v3rpc.leaseRegs ql ++ v3rpc.clusterRegs pc ++
+      v3rpc.authAllRegs pa ++ v3rpc.maintRegs pm ++
+      [v3rpc.kvSReg q, v3rpc.watchSReg pw, v3rpc.leaseSReg ql, v3rpc.maintSReg pm],
+      ∃ r ∈ v3rpc.clientPortTable (GF := GF) (hG := hG), r.covers x.1 := by
+    simp only [v3rpc.kvMethodRegs, v3rpc.leaseRegs, v3rpc.clusterRegs, v3rpc.authAllRegs,
+      v3rpc.maintRegs, v3rpc.kvSReg, v3rpc.watchSReg, v3rpc.leaseSReg, v3rpc.maintSReg,
+      List.cons_append, List.nil_append, List.forall_mem_cons, List.forall_mem_nil, and_true]
+    exact ⟨cov 0 (by rw [hlen]; decide) rfl rfl, cov 2 (by rw [hlen]; decide) rfl rfl, cov 3 (by rw [hlen]; decide) rfl rfl, cov 4 (by rw [hlen]; decide) rfl rfl, cov 5 (by rw [hlen]; decide) rfl rfl, cov 7 (by rw [hlen]; decide) rfl rfl, cov 8 (by rw [hlen]; decide) rfl rfl, cov 9 (by rw [hlen]; decide) rfl rfl, cov 10 (by rw [hlen]; decide) rfl rfl, cov 12 (by rw [hlen]; decide) rfl rfl, cov 13 (by rw [hlen]; decide) rfl rfl, cov 14 (by rw [hlen]; decide) rfl rfl, cov 15 (by rw [hlen]; decide) rfl rfl, cov 16 (by rw [hlen]; decide) rfl rfl, cov 27 (by rw [hlen]; decide) rfl rfl, cov 28 (by rw [hlen]; decide) rfl rfl, cov 26 (by rw [hlen]; decide) rfl rfl, cov 25 (by rw [hlen]; decide) rfl rfl, cov 29 (by rw [hlen]; decide) rfl rfl, cov 40 (by rw [hlen]; decide) rfl rfl, cov 34 (by rw [hlen]; decide) rfl rfl, cov 30 (by rw [hlen]; decide) rfl rfl, cov 31 (by rw [hlen]; decide) rfl rfl, cov 32 (by rw [hlen]; decide) rfl rfl, cov 33 (by rw [hlen]; decide) rfl rfl, cov 35 (by rw [hlen]; decide) rfl rfl, cov 41 (by rw [hlen]; decide) rfl rfl, cov 39 (by rw [hlen]; decide) rfl rfl, cov 36 (by rw [hlen]; decide) rfl rfl, cov 37 (by rw [hlen]; decide) rfl rfl, cov 38 (by rw [hlen]; decide) rfl rfl, cov 23 (by rw [hlen]; decide) rfl rfl, cov 24 (by rw [hlen]; decide) rfl rfl, cov 17 (by rw [hlen]; decide) rfl rfl, cov 19 (by rw [hlen]; decide) rfl rfl, cov 20 (by rw [hlen]; decide) rfl rfl, cov 21 (by rw [hlen]; decide) rfl rfl, cov 22 (by rw [hlen]; decide) rfl rfl, cov 1 (by rw [hlen]; decide) rfl rfl, cov 6 (by rw [hlen]; decide) rfl rfl, cov 11 (by rw [hlen]; decide) rfl rfl, cov 18 (by rw [hlen]; decide) rfl rfl, fun _ h => nomatch h⟩
+  intro x hx
+  have hx' : x ∈ v3rpc.kvMethodRegs q ++ v3rpc.leaseRegs ql ++ v3rpc.clusterRegs pc ++
+      v3rpc.authAllRegs pa ++ v3rpc.maintRegs pm ++
+      [v3rpc.kvSReg q, v3rpc.watchSReg pw, v3rpc.leaseSReg ql, v3rpc.maintSReg pm] ∨
+      x ∈ hrs ++ hsrs := by
+    rw [← List.mem_append]
+    refine List.Perm.subset ?_ hx
+    rw [List.perm_iff_count]
+    intro a
+    simp only [List.count_append, List.cons_append, List.nil_append, List.count_cons]
+    omega
+  rcases hx' with hx' | hx'
+  · exact hE x hx'
+  · refine ⟨_, List.getElem_mem (n := 42) (by rw [hlen]; decide), ?_⟩
+    simp only [v3rpc.PortRow.covers]
+    exact hH x hx'
+
+/-- **Complete mediation on etcd's client port** (auth-mediation M1, `notes/auth-mediation-scope.md`
+§2.2): `v3rpc.Server` registers exactly the six services' methods and streams and grpc's health
+service's (`v3rpc.Server.spec`'s `serverRegsOk`); every one of them has a row of the client port's
+table (`clientPortTable`: its access class and status, the Lock and Election services `embed`
+registers excluded by name, with why); and the specs every row of a proved status names hold, each
+the handler's or the guard's own spec as its `Link` proves it. What each row's specs mean (that the
+handler acts only after the row's check, for the request's principal) is in the specs themselves,
+reviewed per row; that a client reaches only these handlers on the client port (its HTTP side is
+untranslated), and anything of the peer port, are outside the statement (§2.2, "What it does not
+prove"). -/
+theorem client_port_mediated :
+    v3rpc.Server.spec (GF := GF) (hG := hG) ∧
+    (∀ (q pw ql pc pa pm : Loc) (regs sregs : List (GoString × GoFunc × GoInterface)),
+      v3rpc.serverRegsOk q pw ql pc pa pm regs sregs →
+      ∀ x ∈ regs ++ sregs, ∃ r ∈ v3rpc.clientPortTable (GF := GF) (hG := hG), r.covers x.1) ∧
+    (∀ r ∈ v3rpc.clientPortTable (GF := GF) (hG := hG), r.status.proved = true → r.specs) :=
+  ⟨wp_Server, clientPort_covered, clientPortTable_ok⟩
+
+end clientPort
+
 end v3rpc
 
 #print axioms Perennial.EtcdGrove.v3rpc.checkIntervals_nodup
@@ -2330,6 +2456,7 @@ end v3rpc
 #print axioms Perennial.EtcdGrove.v3rpc.srvHeaderFacts_server
 #print axioms Perennial.EtcdGrove.v3rpc.leaseKeepAlive_handler
 #print axioms Perennial.EtcdGrove.v3rpc.raftLeaseRenew_server
+#print axioms Perennial.EtcdGrove.v3rpc.client_port_mediated
 
 end EtcdGrove
 end Perennial

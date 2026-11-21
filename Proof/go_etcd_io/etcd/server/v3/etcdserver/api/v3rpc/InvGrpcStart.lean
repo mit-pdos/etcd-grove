@@ -207,11 +207,17 @@ theorem v3rpc.kvRegs_sub [go.CoreSemantics] (q : Loc) (mds : List google_golang_
 theorem v3rpc.kvDesc_nodup (mds : List google_golang_org.grpc.MethodDesc)
     (sds : List google_golang_org.grpc.StreamDesc)
     (h : mds.map (fun md => (md.MethodName', (#md.Handler' : val))) = v3rpc.kvDescMethods ∧
-      sds.map (·.StreamName') = [go!"RangeStream"]) :
+      sds.map (fun sd => (sd.StreamName', (#sd.Handler' : val))) =
+        [(go!"RangeStream", @! etcdserverpb._KV_RangeStream_Handler)]) :
     (descNames mds sds).Nodup := by
   have h1 : mds.map (·.MethodName') = v3rpc.kvDescMethods.map Prod.fst := by
     rw [← h.1, List.map_map]; rfl
-  simp only [descNames, h1, h.2, v3rpc.kvDescMethods, List.map_cons, List.map_nil]
+  have h2 : sds.map (·.StreamName') = [go!"RangeStream"] := by
+    rw [show (sds.map (·.StreamName')) =
+      (sds.map fun sd => (sd.StreamName', (#sd.Handler' : val))).map Prod.fst by
+        rw [List.map_map]; rfl, h.2]
+    rfl
+  simp only [descNames, h1, h2, v3rpc.kvDescMethods, List.map_cons, List.map_nil]
   decide
 
 /-- The Auth service's methods `v3rpc.Server` registers that `examples/etcd/auth`'s `SetUp` calls, with
@@ -355,6 +361,214 @@ theorem v3rpc.watchDesc_nodup (sds : List google_golang_org.grpc.StreamDesc)
     rfl
   simp only [descNames, List.map_nil, List.nil_append, h1]
   exact List.Pairwise.cons (fun _ h => by cases h) List.Pairwise.nil
+
+/-! ### The client port's registrations, exactly (auth-mediation M1, 2026-11-20)
+
+`v3rpc.Server` registers six services' generated descriptors and grpc's health service, in this
+order: KV, Watch, Lease, Cluster, Auth, health, Maintenance (`grpc.go`). The lists below are each
+descriptor's registrations in its own order (`rpc_grpc.pb.go`), with the service value the server
+registers it for; `serverRegsOk` says the server's registrations are exactly these, and the health
+service's (whose names only are known: `RegisterHealthServer`'s spec). -/
+
+/-- `clusterDescMethods`' handlers, as `GoFunc`s. -/
+def v3rpc.clusterDescFuncs : List (GoString × GoFunc) :=
+  [(go!"MemberAdd", functions etcdserverpb._Cluster_MemberAdd_Handler []),
+   (go!"MemberRemove", functions etcdserverpb._Cluster_MemberRemove_Handler []),
+   (go!"MemberUpdate", functions etcdserverpb._Cluster_MemberUpdate_Handler []),
+   (go!"MemberList", functions etcdserverpb._Cluster_MemberList_Handler []),
+   (go!"MemberPromote", functions etcdserverpb._Cluster_MemberPromote_Handler [])]
+
+theorem v3rpc.clusterDescMethods_eq :
+    v3rpc.clusterDescMethods = v3rpc.clusterDescFuncs.map (fun x => (x.1, (#x.2 : val))) := rfl
+
+/-- `maintDescMethods`' handlers, as `GoFunc`s. -/
+def v3rpc.maintDescFuncs : List (GoString × GoFunc) :=
+  [(go!"Alarm", functions etcdserverpb._Maintenance_Alarm_Handler []),
+   (go!"Status", functions etcdserverpb._Maintenance_Status_Handler []),
+   (go!"Defragment", functions etcdserverpb._Maintenance_Defragment_Handler []),
+   (go!"Hash", functions etcdserverpb._Maintenance_Hash_Handler []),
+   (go!"HashKV", functions etcdserverpb._Maintenance_HashKV_Handler []),
+   (go!"MoveLeader", functions etcdserverpb._Maintenance_MoveLeader_Handler []),
+   (go!"Downgrade", functions etcdserverpb._Maintenance_Downgrade_Handler [])]
+
+theorem v3rpc.maintDescMethods_eq :
+    v3rpc.maintDescMethods = v3rpc.maintDescFuncs.map (fun x => (x.1, (#x.2 : val))) := rfl
+
+/-- The KV service's methods, in its descriptor's order, with the `*quotaKVServer` `q`. -/
+def v3rpc.kvMethodRegs (q : Loc) : List (GoString × GoFunc × GoInterface) :=
+  [(go!"/etcdserverpb.KV/Range", (functions etcdserverpb._KV_Range_Handler []),
+     interface.mkOk (go.GoType.PointerType v3rpc.quotaKVServer.ty) #q),
+   (go!"/etcdserverpb.KV/Put", (functions etcdserverpb._KV_Put_Handler []),
+     interface.mkOk (go.GoType.PointerType v3rpc.quotaKVServer.ty) #q),
+   (go!"/etcdserverpb.KV/DeleteRange", (functions etcdserverpb._KV_DeleteRange_Handler []),
+     interface.mkOk (go.GoType.PointerType v3rpc.quotaKVServer.ty) #q),
+   (go!"/etcdserverpb.KV/Txn", (functions etcdserverpb._KV_Txn_Handler []),
+     interface.mkOk (go.GoType.PointerType v3rpc.quotaKVServer.ty) #q),
+   (go!"/etcdserverpb.KV/Compact", (functions etcdserverpb._KV_Compact_Handler []),
+     interface.mkOk (go.GoType.PointerType v3rpc.quotaKVServer.ty) #q)]
+
+/-- The KV service's stream `RangeStream`, with the `*quotaKVServer` `q`. -/
+def v3rpc.kvSReg (q : Loc) : GoString × GoFunc × GoInterface :=
+  (go!"/etcdserverpb.KV/RangeStream", (functions etcdserverpb._KV_RangeStream_Handler []),
+    interface.mkOk (go.GoType.PointerType v3rpc.quotaKVServer.ty) #q)
+
+/-- The Cluster service's methods, with the `*ClusterServer` `p`. -/
+def v3rpc.clusterRegs (p : Loc) : List (GoString × GoFunc × GoInterface) :=
+  [(go!"/etcdserverpb.Cluster/MemberAdd", (functions etcdserverpb._Cluster_MemberAdd_Handler []),
+     interface.mkOk (go.GoType.PointerType v3rpc.ClusterServer.ty) #p),
+   (go!"/etcdserverpb.Cluster/MemberRemove", (functions etcdserverpb._Cluster_MemberRemove_Handler []),
+     interface.mkOk (go.GoType.PointerType v3rpc.ClusterServer.ty) #p),
+   (go!"/etcdserverpb.Cluster/MemberUpdate", (functions etcdserverpb._Cluster_MemberUpdate_Handler []),
+     interface.mkOk (go.GoType.PointerType v3rpc.ClusterServer.ty) #p),
+   (go!"/etcdserverpb.Cluster/MemberList", (functions etcdserverpb._Cluster_MemberList_Handler []),
+     interface.mkOk (go.GoType.PointerType v3rpc.ClusterServer.ty) #p),
+   (go!"/etcdserverpb.Cluster/MemberPromote", (functions etcdserverpb._Cluster_MemberPromote_Handler []),
+     interface.mkOk (go.GoType.PointerType v3rpc.ClusterServer.ty) #p)]
+
+/-- The Auth service's seventeen methods, with the `*AuthServer` `p`. -/
+def v3rpc.authAllRegs (p : Loc) : List (GoString × GoFunc × GoInterface) :=
+  [(go!"/etcdserverpb.Auth/AuthEnable", (functions etcdserverpb._Auth_AuthEnable_Handler []),
+     interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p),
+   (go!"/etcdserverpb.Auth/AuthDisable", (functions etcdserverpb._Auth_AuthDisable_Handler []),
+     interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p),
+   (go!"/etcdserverpb.Auth/AuthStatus", (functions etcdserverpb._Auth_AuthStatus_Handler []),
+     interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p),
+   (go!"/etcdserverpb.Auth/Authenticate", (functions etcdserverpb._Auth_Authenticate_Handler []),
+     interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p),
+   (go!"/etcdserverpb.Auth/UserAdd", (functions etcdserverpb._Auth_UserAdd_Handler []),
+     interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p),
+   (go!"/etcdserverpb.Auth/UserGet", (functions etcdserverpb._Auth_UserGet_Handler []),
+     interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p),
+   (go!"/etcdserverpb.Auth/UserList", (functions etcdserverpb._Auth_UserList_Handler []),
+     interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p),
+   (go!"/etcdserverpb.Auth/UserDelete", (functions etcdserverpb._Auth_UserDelete_Handler []),
+     interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p),
+   (go!"/etcdserverpb.Auth/UserChangePassword", (functions etcdserverpb._Auth_UserChangePassword_Handler []),
+     interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p),
+   (go!"/etcdserverpb.Auth/UserGrantRole", (functions etcdserverpb._Auth_UserGrantRole_Handler []),
+     interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p),
+   (go!"/etcdserverpb.Auth/UserRevokeRole", (functions etcdserverpb._Auth_UserRevokeRole_Handler []),
+     interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p),
+   (go!"/etcdserverpb.Auth/RoleAdd", (functions etcdserverpb._Auth_RoleAdd_Handler []),
+     interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p),
+   (go!"/etcdserverpb.Auth/RoleGet", (functions etcdserverpb._Auth_RoleGet_Handler []),
+     interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p),
+   (go!"/etcdserverpb.Auth/RoleList", (functions etcdserverpb._Auth_RoleList_Handler []),
+     interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p),
+   (go!"/etcdserverpb.Auth/RoleDelete", (functions etcdserverpb._Auth_RoleDelete_Handler []),
+     interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p),
+   (go!"/etcdserverpb.Auth/RoleGrantPermission", (functions etcdserverpb._Auth_RoleGrantPermission_Handler []),
+     interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p),
+   (go!"/etcdserverpb.Auth/RoleRevokePermission", (functions etcdserverpb._Auth_RoleRevokePermission_Handler []),
+     interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p)]
+
+/-- The Maintenance service's methods, with the `*authMaintenanceServer` `p` (`NewMaintenanceServer`
+returns the authorizing wrapper: the inner `maintenanceServer` is registered nowhere). -/
+def v3rpc.maintRegs (p : Loc) : List (GoString × GoFunc × GoInterface) :=
+  [(go!"/etcdserverpb.Maintenance/Alarm", (functions etcdserverpb._Maintenance_Alarm_Handler []),
+     interface.mkOk (go.GoType.PointerType v3rpc.authMaintenanceServer.ty) #p),
+   (go!"/etcdserverpb.Maintenance/Status", (functions etcdserverpb._Maintenance_Status_Handler []),
+     interface.mkOk (go.GoType.PointerType v3rpc.authMaintenanceServer.ty) #p),
+   (go!"/etcdserverpb.Maintenance/Defragment", (functions etcdserverpb._Maintenance_Defragment_Handler []),
+     interface.mkOk (go.GoType.PointerType v3rpc.authMaintenanceServer.ty) #p),
+   (go!"/etcdserverpb.Maintenance/Hash", (functions etcdserverpb._Maintenance_Hash_Handler []),
+     interface.mkOk (go.GoType.PointerType v3rpc.authMaintenanceServer.ty) #p),
+   (go!"/etcdserverpb.Maintenance/HashKV", (functions etcdserverpb._Maintenance_HashKV_Handler []),
+     interface.mkOk (go.GoType.PointerType v3rpc.authMaintenanceServer.ty) #p),
+   (go!"/etcdserverpb.Maintenance/MoveLeader", (functions etcdserverpb._Maintenance_MoveLeader_Handler []),
+     interface.mkOk (go.GoType.PointerType v3rpc.authMaintenanceServer.ty) #p),
+   (go!"/etcdserverpb.Maintenance/Downgrade", (functions etcdserverpb._Maintenance_Downgrade_Handler []),
+     interface.mkOk (go.GoType.PointerType v3rpc.authMaintenanceServer.ty) #p)]
+
+/-- The Maintenance service's stream `Snapshot`, with the `*authMaintenanceServer` `p`. -/
+def v3rpc.maintSReg (p : Loc) : GoString × GoFunc × GoInterface :=
+  (go!"/etcdserverpb.Maintenance/Snapshot", (functions etcdserverpb._Maintenance_Snapshot_Handler []),
+    interface.mkOk (go.GoType.PointerType v3rpc.authMaintenanceServer.ty) #p)
+
+/-- A full name of grpc's health service (`grpc.health.v1.Health`). -/
+def v3rpc.healthName (n : GoString) : Prop := go!"/grpc.health.v1.Health/" <+: n
+
+/-- **`v3rpc.Server`'s registrations, exactly**: its unary registrations `regs` are the KV, Lease,
+Cluster and Auth services' methods, the health service's `hrs`, then the Maintenance service's,
+and its stream registrations `sregs` the KV, Watch and Lease services' streams, the health
+service's `hsrs`, then the Maintenance service's; every health registration has the health
+service's prefix; all full names are distinct. -/
+def v3rpc.serverRegsOk (q pw ql pc pa pm : Loc) (regs sregs : List (GoString × GoFunc × GoInterface)) :
+    Prop :=
+  ∃ hrs hsrs : List (GoString × GoFunc × GoInterface),
+    regs = v3rpc.kvMethodRegs q ++ v3rpc.leaseRegs ql ++ v3rpc.clusterRegs pc ++ v3rpc.authAllRegs pa ++
+      hrs ++ v3rpc.maintRegs pm ∧
+    sregs = [v3rpc.kvSReg q, v3rpc.watchSReg pw, v3rpc.leaseSReg ql] ++ hsrs ++ [v3rpc.maintSReg pm] ∧
+    (∀ x ∈ hrs ++ hsrs, v3rpc.healthName x.1) ∧
+    ((regs ++ sregs).map Prod.fst).Nodup
+
+/-- The registrations' old form (until auth-mediation M1): `kvRegs`, `watchSReg`, `authRegs`,
+`leaseRegs` and `leaseSReg` are among them, with distinct full names. -/
+theorem v3rpc.serverRegsOk_sub {q pw ql pc pa pm : Loc} {regs sregs : List (GoString × GoFunc × GoInterface)}
+    (h : v3rpc.serverRegsOk q pw ql pc pa pm regs sregs) :
+    (∀ x ∈ v3rpc.kvRegs q, x ∈ regs) ∧ v3rpc.watchSReg pw ∈ sregs ∧
+      (∀ x ∈ v3rpc.authRegs pa, x ∈ regs) ∧
+      (∀ x ∈ v3rpc.leaseRegs ql, x ∈ regs) ∧ v3rpc.leaseSReg ql ∈ sregs ∧
+      ((regs ++ sregs).map Prod.fst).Nodup := by
+  obtain ⟨hrs, hsrs, rfl, rfl, -, hnd⟩ := h
+  refine ⟨?_, ?_, ?_, ?_, ?_, hnd⟩
+  · intro x hx
+    simp only [v3rpc.kvRegs, List.mem_cons, List.not_mem_nil, or_false] at hx
+    simp only [List.mem_append, v3rpc.kvMethodRegs, List.mem_cons, List.not_mem_nil, or_false]
+    rcases hx with rfl | rfl | rfl | rfl | rfl <;> simp
+  · simp
+  · intro x hx
+    simp only [v3rpc.authRegs, List.mem_cons, List.not_mem_nil, or_false] at hx
+    simp only [List.mem_append, v3rpc.authAllRegs, List.mem_cons, List.not_mem_nil, or_false]
+    rcases hx with rfl | rfl | rfl | rfl | rfl | rfl <;> simp
+  · intro x hx
+    simp only [List.mem_append]
+    exact Or.inl (Or.inl (Or.inl (Or.inl (Or.inr hx))))
+  · exact List.mem_append_left _ (List.mem_append_left _ (List.mem_cons_of_mem _
+      (List.mem_cons_of_mem _ (List.mem_cons_self ..))))
+
+/-- **A descriptor's registrations from its handlers' values** (the generated facts state the
+values). -/
+theorem v3rpc.descRegs_funcs [go.CoreSemantics] (sn : GoString)
+    (mds : List google_golang_org.grpc.MethodDesc) (F : List (GoString × GoFunc)) (ss : GoInterface)
+    (h : mds.map (fun md => (md.MethodName', (#md.Handler' : val))) = F.map (fun x => (x.1, (#x.2 : val)))) :
+    descRegs sn mds ss = F.map (fun x => (grpcFullName sn x.1, x.2, ss)) := by
+  rw [v3rpc.descRegs_eq, v3rpc.handlers_eq (·.MethodName') (·.Handler') mds F h]
+
+/-- **A descriptor's stream registrations from its handlers' values**. -/
+theorem v3rpc.descSRegs_funcs [go.CoreSemantics] (sn : GoString)
+    (sds : List google_golang_org.grpc.StreamDesc) (F : List (GoString × GoFunc)) (ss : GoInterface)
+    (h : sds.map (fun sd => (sd.StreamName', (#sd.Handler' : val))) = F.map (fun x => (x.1, (#x.2 : val)))) :
+    descSRegs sn sds ss = F.map (fun x => (grpcFullName sn x.1, x.2, ss)) := by
+  rw [v3rpc.descSRegs_eq, v3rpc.handlers_eq (·.StreamName') (·.Handler') sds F h]
+
+/-- The Cluster descriptor's names are distinct. -/
+theorem v3rpc.clusterDesc_nodup (mds : List google_golang_org.grpc.MethodDesc)
+    (sds : List google_golang_org.grpc.StreamDesc)
+    (h : mds.map (fun md => (md.MethodName', (#md.Handler' : val))) = v3rpc.clusterDescMethods ∧
+      sds = []) :
+    (descNames mds sds).Nodup := by
+  have h1 : mds.map (·.MethodName') = v3rpc.clusterDescMethods.map Prod.fst := by
+    rw [← h.1, List.map_map]; rfl
+  simp only [descNames, h1, h.2, v3rpc.clusterDescMethods, List.map_cons, List.map_nil]
+  decide
+
+/-- The Maintenance descriptor's names are distinct. -/
+theorem v3rpc.maintDesc_nodup (mds : List google_golang_org.grpc.MethodDesc)
+    (sds : List google_golang_org.grpc.StreamDesc)
+    (h : mds.map (fun md => (md.MethodName', (#md.Handler' : val))) = v3rpc.maintDescMethods ∧
+      sds.map (fun sd => (sd.StreamName', (#sd.Handler' : val))) =
+        [(go!"Snapshot", @! etcdserverpb._Maintenance_Snapshot_Handler)]) :
+    (descNames mds sds).Nodup := by
+  have h1 : mds.map (·.MethodName') = v3rpc.maintDescMethods.map Prod.fst := by
+    rw [← h.1, List.map_map]; rfl
+  have h2 : sds.map (·.StreamName') = [go!"Snapshot"] := by
+    rw [show (sds.map (·.StreamName')) =
+      (sds.map fun sd => (sd.StreamName', (#sd.Handler' : val))).map Prod.fst by
+        rw [List.map_map]; rfl, h.2]
+    rfl
+  simp only [descNames, h1, h2, v3rpc.maintDescMethods, List.map_cons, List.map_nil]
+  decide
 
 theorem v3rpc.health_prefix : (go!"/grpc.health.v1.Health/" : GoString) =
     go!"/" ++ go!"grpc.health.v1.Health" ++ go!"/" := rfl

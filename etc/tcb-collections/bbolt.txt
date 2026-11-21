@@ -7,7 +7,7 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/go_etcd_io/bbolt/(Link|Results)\.lean$
 axiom bbolt.Options.String.wp_proof
-axiom fmt.Errorf.wp_proof
+axiom envVerifyOffTok
 axiom io.CopyN.wp_proof
 axiom io.NewSectionReader.wp_proof
 axiom os.Getenv.wp_proof

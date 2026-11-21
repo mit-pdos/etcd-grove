@@ -20,7 +20,7 @@ Lean-first (no Rocq counterpart).
 module
 
 public import Spec.os.OpenFileS
-public import GooseLang.Ext.Fs.TreeSharedTrunc
+public import GooseLang.Ext.Fs.NoErrSpecsTrunc
 
 @[expose] public section
 
@@ -73,7 +73,8 @@ abbrev os.OpenFile.specCreateTruncS : Prop :=
         ((∃ (fd : w64) (i : Ino), ⌜err = interface.nil ∧ 0 ≤ fd.toInt ∧ crIno b h o i⌝ ∗
             os.ownFile f fd (child d b) (DFrac.own 1) ∗ os.ownOff f (W64 0) ∗
             osFd fd (DFrac.own 1) (openFd i (flag ||| W64 0x80000))) ∨
-         ⌜err ≠ interface.nil ∧ f = null⌝ ∗ fmtErrorOkOrNil err) }}
+         ⌜err ≠ interface.nil ∧ f = null⌝ ∗ fmtErrorOkOrNil err ∗
+           ⌜¬ (FsNoErrOn (· = child d b) ∧ PathFits (child d b))⌝) }}
 
 /-- `specCreateTruncS` with `osAUnc` (`Proof/os/SharedAu.lean`): its opening gets the generation's
 `notCrashed`, so a client can open an invariant with a crash branch (the WAL's `walInv`) at it; it
@@ -93,7 +94,8 @@ abbrev os.OpenFile.specCreateTruncSnc : Prop :=
         ((∃ (fd : w64) (i : Ino), ⌜err = interface.nil ∧ 0 ≤ fd.toInt ∧ crIno b h o i⌝ ∗
             os.ownFile f fd (child d b) (DFrac.own 1) ∗ os.ownOff f (W64 0) ∗
             osFd fd (DFrac.own 1) (openFd i (flag ||| W64 0x80000))) ∨
-         ⌜err ≠ interface.nil ∧ f = null⌝ ∗ fmtErrorOkOrNil err) }}
+         ⌜err ≠ interface.nil ∧ f = null⌝ ∗ fmtErrorOkOrNil err ∗
+           ⌜¬ (FsNoErrOn (· = child d b) ∧ PathFits (child d b))⌝) }}
 
 end spec
 

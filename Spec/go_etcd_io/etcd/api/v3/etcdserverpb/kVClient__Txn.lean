@@ -32,12 +32,12 @@ request has no unknown fields (a struct literal) and its encoding is below `grpc
 grpc marshals before it checks a size, `grpcInvokerOk`). -/
 abbrev kVClient.Txn.spec : Prop :=
   ∀ (kc conn : Loc) (addr : List GoString) (Spec : GrpcSpecMd (GF := GF) pbTxnRequest pbTxnResponse)
-    (Φ : TxnRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (Φ : TxnRespM → IProp GF) (ctx : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
     (inp : Loc) (req : etcdserverpb.TxnRequest) (t : TxnModel) (opts : GoSlice)
     (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ kvStubAt kc conn ∗
       isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.KV/Txn" Spec ∗
-      reqPre conn go!"/etcdserverpb.KV/Txn" addr vs (attemptPre conn (GoInterface.ok ctx) Spec t Φ) ∗ ctxOk ctx cd ∗ inp ↦ req ∗ txnReqAt req t ∗
+      metadata.outMD ctx om ∗ reqPre conn go!"/etcdserverpb.KV/Txn" addr vs (attemptPre conn om Spec t Φ) ∗ ctxOk ctx cd ∗ inp ↦ req ∗ txnReqAt req t ∗
       opts ↦*□ vs ∗ callOptsOk vs ∗
       ⌜req.unknownFields' = slice.nil ∧ (pbTxnRequest (GF := GF)).wireLen (t) < grpcMsgMax⌝ }}
     (App (App (App (Val (kc @!! go.GoType.PointerType etcdserverpb.kVClient.ty @!! go!"Txn"))

@@ -34,6 +34,10 @@ its `Unwrap` returns nil or a leaf; a typed-nil wrapper panics in `Unwrap`, excl
 `(2, true)`; `NewServerTimeout`, `NewTooManyRequests` with and without retry; nil details; the
 answer equals `delayV` on every `*StatusError`; a typed nil `*StatusError` panics),
 `TestStorageErrorNotAPIStatus`, `TestPlainWrapperTypedNil`. Lean-first.
+
+**Proved** over its body since prove-k8s2 (2026-11-20; `Proof/k8s_io/apimachinery/pkg/api/errors/SuggestsClientDelay.lean`,
+over `errors.AsNoMatch`, `Spec/errors/AsNoMatch.lean`); until then a trust-boundary axiom, as the
+text above says.
 -/
 module
 

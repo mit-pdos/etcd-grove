@@ -109,6 +109,10 @@ def ownStorage (sn : StorNames) (st : Storage) (σ : StorState) : IProp GF :=
 theorem storCaught_unrec [package_sem : Assumptions] (sn : StorNames) (q : Qp) (n : Nat) : ⊢
     monoNatAuthOwn sn.ga q n -∗ storCaught sn.unrec
 
+theorem isStorageP_mono_SV [package_sem : Assumptions] (sz : Bool) (SV SV' : SnapshotM → IProp GF)
+    (Bnd DL : Nat → IProp GF) (st : Storage) (h : ∀ (sv : SnapshotM), SV sv ⊢ SV' sv) : isStorageP
+    sz SV Bnd DL st ⊢ isStorageP sz SV' Bnd DL st
+
 theorem storPast_pers (st : Storage) (m : Int) : Persistent (storPast st m)
 
 theorem storPast_of_cut (st : Storage) (n : Int) : storCut st n ⊢ storPast st n
@@ -146,6 +150,9 @@ def isStorageV (sn : StorNames) (st : Storage) : IProp GF :=
 
 def storAbsorb (σ : StorState) : StorState :=
   { prev := σ.prev, ents := storApp σ σ.pend, pend := [], fl := σ.fl, fr := σ.fr, sg := σ.sg, dt := σ.dt }
+
+theorem instPersistentIPropLogRestoreCerts (sn : StorNames) (K : List SnapTrip) (base : w64) :
+    Persistent (logRestoreCerts sn K base)
 
 theorem storLog_discard_pers.{u_1} (st : Storage) (k : Nat) (es : List EntryM) : Persistent (storLog
     st k DFrac.discard es)
@@ -292,6 +299,10 @@ theorem storPast_one (st : Storage) (x : w64) : storPast st (uint.Z x + 1) ⊢ s
 def PendFrom (σ : StorState) (n : Int) : Prop :=
   ∀ (e0 : EntryM), σ.pend.head? = some e0 → n ≤ uint.Z e0.Index'
 
+theorem logRestoreCerts_snoc (sn : StorNames) (K : List SnapTrip) (base : w64) (k : SnapTrip) (hle :
+    uint.Z base ≤ uint.Z k.sid.index') : ⊢ logRestoreCerts sn K base -∗ ksnCert sn k -∗
+    logRestoreCerts sn (K ++ [k]) k.sid.index'
+
 theorem storCaught_pers (sn : StorNames) : Persistent (storCaught sn)
 
 def LogAgree (k1 : Nat) (es1 : List EntryM) (k2 : Nat) (es2 : List EntryM) : Prop :=
@@ -418,6 +429,9 @@ def ksnCert (sn : StorNames) (k : SnapTrip) : IProp GF :=
 theorem ksnCerts_mem (sn : StorNames) (K : List SnapTrip) (k : SnapTrip) (h : k ∈ K) : ⊢ ksnCerts sn
     K -∗ ksnCert sn k
 
+def logRestoreCerts (sn : StorNames) (K : List SnapTrip) (base : w64) : IProp GF :=
+  iprop(ksnCerts sn K ∗ ⌜∀ (k : SnapTrip), k ∈ K → uint.Z k.sid.index' ≤ uint.Z base⌝)
+
 theorem storPast_mono (st : Storage) (m m' : Int) (h : m' ≤ m) : storPast st m ⊢ storPast st m'
 
 theorem isStorageV_pers (sn : StorNames) (st : Storage) : Persistent (isStorageV sn st)
@@ -426,6 +440,8 @@ theorem raftDL_pers (sn : StorNames) (i : Nat) (t : w64) : Persistent (raftDL sn
 
 def storPast (st : Storage) (m : Int) : IProp GF :=
   iprop(∃ n, ⌜m ≤ n⌝ ∗ storCut st n)
+
+theorem logRestoreCerts_nil (sn : StorNames) (base : w64) : ⊢ logRestoreCerts sn [] base
 
 theorem isStorageP_pers (sz : Bool) (SV : SnapshotM → IProp GF) (Bnd DL : Nat → IProp GF) (st :
     Storage) : Persistent (isStorageP sz SV Bnd DL st)

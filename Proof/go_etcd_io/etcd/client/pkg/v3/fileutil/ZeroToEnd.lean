@@ -135,7 +135,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.wp_proof
     · ipureintro; rfl
     iframe Ho
     iexists m'
-    have hw' : w = m.size := by have := hw.2.2 rfl; omega
+    have hw' : w = m.size := by have := hw.2.2.1 rfl; omega
     subst hw'
     iframe
     have hcz1 := hm1.2.2

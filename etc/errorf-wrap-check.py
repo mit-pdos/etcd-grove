@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Check that no proof learns of Go's `fmt.Errorf` a fact true only of Perennial's model.
 
-Perennial's model of `fmt.Errorf` is `errors.New(format)`: it does not model `%w` (Go returns a
-`*fmt.wrapError`) nor call the arguments' formatting methods (`Error`, `String`, `Format`,
-`GoString`), which Go calls (notes/decisions.md, "`fmt.Errorf` with `%w`: no fact from the model",
-and its H0 supersession). A proof that steps into the model proves a statement true of Go only when
+Until fmtmodel (2026-11-20, Perennial `79517dbdf`) Perennial's model of `fmt.Errorf` was
+`errors.New(format)`: it did not model `%w` (Go returns a `*fmt.wrapError`) nor call the arguments'
+formatting methods (`Error`, `String`, `Format`, `GoString`), which Go calls (notes/decisions.md,
+"`fmt.Errorf` with `%w`: no fact from the model", and its H0 supersession). The model now does both
+and is stuck where it cannot follow Go, so the proofs use its spec, `fmt.wp_Errorf`; this check keeps
+any new step into the model's unfolding under review. A proof that steps into the model proves a statement true of Go only when
 the statement says nothing the model and Go disagree on (a post of `True`, or one true of both) and
 its premise excludes what the model leaves out. The declarations below are the proofs that step
 into it, each reviewed; a new one fails this check until it is reviewed and added.
@@ -55,39 +57,13 @@ ROOT_P = pathlib.Path(ROOT)
 # constants count as their declaration's): why its model step is true of Go. Keyed by constant, so
 # a new step elsewhere in the same module is not covered (2026-11-18).
 REVIEWED = {
-    'Perennial.EtcdGrove.appslisters.wp_Errorf_labelArgs': 'post True',
-    'Perennial.EtcdGrove.cache.wp_Errorf_setArgs': 'post True',
-    'Perennial.EtcdGrove.mvcc.wp_Errorf_errorfIs': 'premise (W8 37) not in format: no verb, '
-        'no argument formatted',
-    # premise-fixes-4: post: some `Error()` string, no `Format` method
-    'Perennial.go_etcd_io.etcd.cache.v3.wp_Errorf_errStrOk': 'premise ArgsWf: no argument is an '
-        'error or has methods, so Go wraps nothing, calls no method, and returns errors.New(s)',
-    # H0 (2026-11-18): the post's left disjunct is the model's error, the right Go's *wrapError;
-    # the description conjunct is conditional on Go's `Unwrap` (vacuous of the model's error); the
-    # premise fmtErrorOk inner (no Format, Error() string) makes Go call only inner's Error()
-    'Perennial.EtcdGrove.fmt.ErrorfWrap.wp_proof': 'post: the model\'s error or Go\'s '
-        '*fmt.wrapError; prefix of errDesc only given an Unwrap method; inner fmtErrorOk',
-    # fmt soundness (2026-11-18): nil, basic, FileMode (String() writes only its own buffer) and
-    # []string (read under the fraction given back) arguments: Go calls no method with an effect
-    'Perennial.EtcdGrove.fmt.ErrorfStrs.wp_proof': 'post errOk only; arguments basic, []string '
-        'or FileMode (String() local), no error arguments',
-    # fmt soundness item 3 (2026-11-18): the premise fmt.errArgsWf admits, besides nil and basic or
-    # method-less named values, only the error arguments errs, each errOk (= fmtErrorOk: Error() string,
-    # no Format, Error()'s WP), and only under %v/%s/%w without # (no GoString, no reflection into an
-    # error's fields): Go calls only those Error() methods. Post errOk: Go's *wrapError/*wrapErrors/
-    # *errorString and the model's *errorString all are. (ErrorfAny, refuted, was deleted: its one site,
-    # Create's cleanup, uses ErrorfErrs.)
-    'Perennial.EtcdGrove.fmt.ErrorfErrs.wp_proof': 'premise errArgsWf + errOk errs (no Format, '
-        'Error() string, only %v/%s/%w without #); post errOk',
-    # (merge-origin9, 2026-11-20) the generated init proofs of origin's prove-errinits (REVIEWED_INIT
-    # below, by file), found here by the term check: each `fmt.Errorf` call of the initializer has a
-    # literal format without `%` and no argument (`#slice.nil`), so Go returns `errors.New(format)`,
-    # an `*errors.errorString` as the model's (rafthttp: 3 calls, ioutil: 2)
-    # (mustreg, 2026-11-20: rafthttp's initializer is in the `_res` form, its `init()` registering)
-    "Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.wp_initialize'_res": 'formats '
-        'without %, no arguments: Go returns errors.New(format), the model',
-    "Perennial.go_etcd_io.etcd.pkg.v3.ioutil.wp_initialize'_lb": 'formats without %, no '
-        'arguments: Go returns errors.New(format), the model',
+    # (fmtmodel, 2026-11-20) Perennial's model of `fmt.Errorf` formats, calls the arguments' methods
+    # as Go does and returns Go's error (`errors.New(s)`, `*wrapError`, `*wrapErrors`), stuck where it
+    # cannot follow Go; the proofs that stepped into the previous model (`errors.New(format)`) now go
+    # through `fmt.wp_Errorf` (ErrorfWrap, ErrorfErrs, ErrorfLeaf, `wp_Errorf_errStrOk`,
+    # `wp_Errorf_errorfIs`, the generated initializers) or are axioms (ErrorfStrs, ErrorfSlice,
+    # `wp_Errorf_setArgs`, `wp_Errorf_labelArgs`), so none is listed. A new step into the model's
+    # unfolding is still refused until reviewed here.
 }
 
 # generated init proof (file): why its steps into its package initializer's `fmt.Errorf` calls are
@@ -96,11 +72,12 @@ REVIEWED_INIT = {
     # (prove-errinits, 2026-11-19) generated initializers of `var X = fmt.Errorf("...")` (`etc/gen-init.py`,
     # `newvar_steps`, which asserts the format has no `%`); the call is in the translation,
     # listed for the review (and `init_errors` checks their formats in the translation)
-    'Proof/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/InitLinked.lean': 'formats without %: Go returns errors.New(format), the model',
-    'Proof/go_etcd_io/etcd/pkg/v3/ioutil/Init.lean': 'formats without %: Go returns errors.New(format), the model',
+    # (fmtmodel, 2026-11-20) through `EtcdGrove.fmt.wp_Errorf_noPct` (Perennial's `fmt.wp_Errorf`)
+    'Proof/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/InitLinked.lean': 'formats without %: Go returns errors.New(format); fmt.wp_Errorf',
+    'Proof/go_etcd_io/etcd/pkg/v3/ioutil/Init.lean': 'formats without %: Go returns errors.New(format); fmt.wp_Errorf',
     # (prove-rpctypes, 2026-11-20) found by `init_errors`: `ErrNotReady = fmt.Errorf("cache: store not
-    # ready")` goes through `EtcdGrove.fmt.wp_Errorf` (an axiom true of Go), its steps are other functions'
-    'Proof/go_etcd_io/etcd/cache/v3/InitLinked.lean': 'format without %; its Errorf step is the axiom EtcdGrove.fmt.wp_Errorf',
+    # ready")` goes through `EtcdGrove.fmt.wp_Errorf` (since fmtmodel a theorem over Perennial's), its steps are other functions'
+    'Proof/go_etcd_io/etcd/cache/v3/InitLinked.lean': 'format without %; its Errorf step is EtcdGrove.fmt.wp_Errorf',
 }
 
 

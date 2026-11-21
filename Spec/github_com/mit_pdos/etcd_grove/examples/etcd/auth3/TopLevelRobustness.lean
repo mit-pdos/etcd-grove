@@ -3,9 +3,10 @@
 # `etcd/auth3`: the top-level robustness result, stated
 
 `etcd_auth3_robust`: the example's closed theorem as an instance of the generic robustness statement
-(`Robustness/Statement.lean`, `Robust crashing stable g bound`: in every execution of the
+(`Robustness/Statement.lean`, `Robust crashing stable g threads bound`: in every execution of the
 machines that may crash and restart and of those that never crash, each a fresh Go process, of
-fewer than `bound` steps, no thread is stuck and none has an unrecovered panic). This file only
+fewer than `bound` steps along which every machine keeps fewer than `threads` threads,
+no thread is stuck and none has an unrecovered panic). This file only
 states it (to audit); the proof is in
 `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/TopLevelRobustness.lean`.
 -/
@@ -46,7 +47,8 @@ variable [go_gctx : GoGlobalContext]
 /-- **`etcd_auth3_safe` as a robustness statement** (`Robustness.Robust`,
 `Robustness/Statement.lean`): the program alone on one machine that never crashes,
 a fresh Go process (`Robust`'s premise), under `etcd_auth3_safe`'s other hypotheses: in every
-execution of fewer than `2 ^ 28 - 1` steps no thread is stuck and none has an unrecovered panic. -/
+execution of fewer than `2 ^ 40 - 11` steps along which fewer than `2 ^ 28` threads are
+live, no thread is stuck and none has an unrecovered panic. -/
 def etcd_auth3_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth3.Assumptions]
@@ -62,12 +64,13 @@ def etcd_auth3_robust.spec : Prop :=
     (HAs : addrsUnclaimed auth3Program auth3Addrs)
     (HDs : dataDirsAbsent auth3Program [(memberDataDir etcd_auth3.name₁), (memberDataDir etcd_auth3.name₂), (memberDataDir etcd_auth3.name₃)])
     (HEnv : verifyEnvOff auth3Program)
-    (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC putgetGF,
+    (Hprem : ∀ n : Nat, ∀ hG : HeapGS .hasLC putgetGF,
       ⊢ etcd_auth3.premises (GF := putgetGF) (hG := heapAt hG lctx) n id₁ id₂ id₃ ps ctxs boot)
     (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
     (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [(memberDataDir etcd_auth3.name₁), (memberDataDir etcd_auth3.name₂), (memberDataDir etcd_auth3.name₃)]),
-    Robustness.Robust [] [(auth3Program, σ)] g (2 ^ 28 - 1)
+    Robustness.Robust [] [(auth3Program, σ)] g (threads := 2 ^ 28)
+      (bound := 2 ^ 40 - 11)
 
 end adequacy
 end EtcdGrove

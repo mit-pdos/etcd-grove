@@ -106,6 +106,11 @@ def logStableTo (ls : LogState) (id : entryID) : LogState :=
               inprogress := w64Max ls.inprogress (id.index' + W64 1) }
   else ls
 
+theorem logStableTo_ksn (ls : LogState) (id : entryID) :
+    (logStableTo ls id).ksn = ls.ksn := by
+  unfold logStableTo
+  split <;> rfl
+
 /-- (2026-10-25, T-M M2b) `stableTo` moves entries from the unstable part to the stable one: their
 concatenation, the log, is unchanged. -/
 theorem logStableTo_concat (ls : LogState) (id : entryID) :
@@ -499,7 +504,9 @@ theorem ownRaftLog_handout (l : Loc) (ls : LogState) (Hunp0 : ls.unpersisted = [
   imodintro
   iframe HR
   isplitr [Happ]
-  · iapply ownRaftLog_intro (K := ls.ksn) (sn := ls.sn) l lv lv.storage'
+  · ihave #HkcN : logRestoreCerts ls.sn ls.ksn (logHanded ls).prev.index' $$ []
+    · rw [show (logHanded ls).prev.index' = ls.prev.index' from rfl]; iexact Hkcert
+    iapply ownRaftLog_intro (K := ls.ksn) (sn := ls.sn) l lv lv.storage'
       { σ with fr := max σ.fr (frozenEnd ls), pend := nextUnstable ls } ls.snap ls.uents
       (logHanded ls) rfl Hcm Hap Hidx Hnowrap Hstore' Hoffset Happlied Hpapplied
       Hcommitted Hapg Hip Hipb HpersistN Happlying Hpaused Hasz Hamx Hstor HpendN HflN Hsip Hsipn
@@ -507,7 +514,7 @@ theorem ownRaftLog_handout (l : Loc) (ls : LogState) (Hunp0 : ls.unpersisted = [
         have := Hsipn Hs0; simp only [logHanded] at h; rw [this] at h; cases h),
         (fun h => absurd Hs0 h)⟩
       (fun h => absurd (Hsat h).1 (by rw [Hs0]; simp)) HfrN rfl rfl rfl rfl rfl
-      $$ Hl HisStorage [HStorage] Husnap Hpksn Hkcert Huents Huents_cap Hl_logger Hu_logger
+      $$ Hl HisStorage [HStorage] Husnap Hpksn HkcN Huents Huents_cap Hl_logger Hu_logger
     iapply lentStor_close (b := (logHanded ls).lent) Hlnt; iexact HStorage
   rw [← Hstor]; iexact Happ
 
@@ -726,13 +733,15 @@ theorem ownRaftLog_lend (l : Loc) (ls : LogState) (Hunp0 : ls.unpersisted = [])
     (Hpend.1.trans Hunp0) Hsgle $$ HStorage with ⟨Hau, HO, Hend, #Hgiv⟩
   imodintro
   isplitl [Hl Hau Huents Huents_cap]
-  · iapply ownRaftLog_intro (K := ls.ksn) (sn := ls.sn) l lv lv.storage'
+  · ihave #HkcN : logRestoreCerts ls.sn ls.ksn (logHanded (lendLog ls)).prev.index' $$ []
+    · rw [show (logHanded (lendLog ls)).prev.index' = ls.prev.index' from rfl]; iexact Hkcert
+    iapply ownRaftLog_intro (K := ls.ksn) (sn := ls.sn) l lv lv.storage'
       (lendView σ ls)
       ls.snap ls.uents (logHanded (lendLog ls)) rfl Hcm Hap Hidx Hnowrap Hstore'
       Hoffset Happlied Hpapplied Hcommitted Hapg Hip Hipb Hpersist' Happlying Hpaused Hasz
       Hamx Hstor Hpend' Hfl' Hsip Hsipn (fun _ => Hs0) Hq Hprel' (fun h => by cases h)
       Hfr' rfl rfl rfl rfl rfl
-      $$ Hl HisStorage [Hau] Husnap Hpksn Hkcert Huents Huents_cap Hl_logger Hu_logger
+      $$ Hl HisStorage [Hau] Husnap Hpksn HkcN Huents Huents_cap Hl_logger Hu_logger
     iapply (lentStor_lent (b := (logHanded (lendLog ls)).lent) rfl _ _ _).2
     iapply (storAuths_eq ls.sn { σ with sg := uint.nat ls.prev.index' } (lendView σ ls) rfl rfl)
     iexact Hau
@@ -861,12 +870,14 @@ theorem ownRaftLog_absorb_snap (l : Loc) (ls : LogState) (sid : entryID) (e : En
     refine ⟨by omega, by omega, fun s Hs Hsp => ?_⟩
     have Hpv : ls.prev = s := (Hs ▸ Hstore : LogStoreOk (some s) σ ls.prev ls.sents ls.uents).1
     rw [← Hpv]; exact Hsid.2 Hsp
+  ihave #HkcN : logRestoreCerts ls.sn ls.ksn (logAbsorbSnap ls sid).prev.index' $$ []
+  · rw [show (logAbsorbSnap ls sid).prev.index' = ls.prev.index' from rfl]; iexact Hkcert
   iapply ownRaftLog_intro (K := ls.ksn) (sn := ls.sn) l lv lv.storage' (snapView σ sid ls.stored) ls.snap ls.uents
     (logAbsorbSnap ls sid) rfl Hcm Hap Hidx Hnowrap Hstore' Hoffset Happlied
     Hpapplied Hcommitted Hapg Hip Hipb
     (fun h => absurd h Hsn) Happlying Hpaused Hasz Hamx Hstor Hpend' Hfl' Hsip Hsipn
     (fun h => absurd h (by simp [logAbsorbSnap])) Hq Hprel Hsat' Hfr' rfl rfl rfl rfl rfl
-    $$ Hl HisStorage [HSt] Husnap Hpksn Hkcert Huents Huents_cap Hl_logger Hu_logger
+    $$ Hl HisStorage [HSt] Husnap Hpksn HkcN Huents Huents_cap Hl_logger Hu_logger
   iapply lentStor_close (b := (logAbsorbSnap ls sid).lent) rfl; iexact HSt
 
 end snapstor

@@ -5,6 +5,7 @@ public import Perennial.Proof.ProofPrelude
 public import GeneratedProof.crypto.tls
 public import Perennial.GeneratedProof.errors
 public import GeneratedProof.go_uber_org.zap
+public import Perennial.GeneratedProof.strings
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.client.pkg.v3.transport
 

@@ -223,9 +223,12 @@ isErrCode:
 IsNotFound: isErrCode
 StorageError__Unwrap:
 HasInitialEventsEndBookmarkAnnotation: meta_Accessor
-SuggestsClientDelay:
+# (prove-k8s2, 2026-11-20) the APIStatus checks over their bodies, over errors.As's trust boundary
+errors_AsNoMatch:
+errors_reasonAndCodeForError: errors_AsNoMatch
+SuggestsClientDelay: errors_AsNoMatch
 meta_ListAccessor:
-errors_IsTooManyRequests:
+errors_IsTooManyRequests: errors_reasonAndCodeForError
 CheckOperationsVerbose: @
 LinearizationInfo__PartialLinearizations: @
 correctness_checkKey: PrepareKey

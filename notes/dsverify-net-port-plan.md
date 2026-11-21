@@ -6,6 +6,8 @@ etcd-grove's network semantics (the net extension, v3.2; today `GooseLang/Ext/Tc
 into etcd-grove, so that there is **one general-purpose model of `net/http` and gRPC** (and
 `net/rpc`, the codecs) used both by etcd and by the dsverify examples.
 
+**Handoff (2026-11-21): `notes/dsverify-net-handoff.md`** is the current snapshot (done, open, traps).
+
 Sources read (2026-11-17): dsverify-lab at GitHub `master` `348a866` (the local clone's `master`,
 `c9a88f9`, is older and has none of the network work: `git fetch` first); here, `lean` at
 `3e38269e20`; `notes/net-tcp.md`, `notes/net-tcp-dsverify-{survey,final}.md` (the two semantics

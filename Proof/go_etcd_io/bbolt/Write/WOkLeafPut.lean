@@ -413,7 +413,7 @@ theorem putPost (T : TxView) (X X3 : WX) (n : GoString) (b l : Loc) (B3 : BRec) 
     (hok : wOK X) (hcur : T.cur = wtxData X) (hgens : gensOK T X) (hwr : wrFacts X)
     (hbl : bktLoc X n = some b) (hmg : matGrow X X3 b) (hok3 : wOK X3) (hd3 : objsDisj X3.t)
     (hB3 : X3.t.bs !! b = some B3) (hrl : B3.ns !! l = some rl) (hlf : leafFor X3 b kb l)
-    (hk : 0 < kb.length) (hbnd : kb.length + vb.length ≤ bboltEntryMax)
+    (hk : 0 < kb.length) (hbnd : entryBytesFit kb.length vb.length)
     (hins : ins.length = (wsPutAt rl.ws kb (putEnt kb vb)).length) :
     wOK (X3.setNode b l (rl.withEnts s ins (wsPutAt rl.ws kb (putEnt kb vb)))) ∧
       wtxData (X3.setNode b l (rl.withEnts s ins (wsPutAt rl.ws kb (putEnt kb vb)))) =

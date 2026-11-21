@@ -235,17 +235,6 @@ instance pbDescIs_persistent (sd : Loc) (sn : GoString) (ht : GoInterface)
     Persistent (pbDescIs (GF := GF) sd sn ht mds sds) := by
   unfold pbDescIs; infer_instance
 
-/-- A generated `ServiceDesc` of service `sn` for the interface `T`, with distinct method and
-stream names. -/
-def pbDescOk (sd : Loc) (sn : GoString) (T : go.GoType) : IProp GF :=
-  iprop(∃ (mds : List google_golang_org.grpc.MethodDesc) (sds : List google_golang_org.grpc.StreamDesc),
-    pbDescIs sd sn (interface.mkOk (go.GoType.PointerType T) #(null : Loc)) mds sds ∗
-    ⌜(mds.map (·.MethodName') ++ sds.map (·.StreamName')).Nodup ∧ ∀ sd ∈ sds, sd.ClientStreams' = true ∨ sd.ServerStreams' = true⌝)
-
-instance pbDescOk_persistent (sd : Loc) (sn : GoString) (T : go.GoType) :
-    Persistent (pbDescOk (GF := GF) sd sn T) := by
-  unfold pbDescOk; infer_instance
-
 /-- **`etcdserverpb`'s six `ServiceDesc`s** (`rpc_grpc.pb.go`: generated literals, never written;
 item 8, 2026-10-17: until then an assumption of `v3rpc.Server`, `svcDescsOk`): their service names,
 handler types and distinct method and stream names; the KV service's methods and the Watch
@@ -253,7 +242,9 @@ service's stream exactly ((the auth plan's E3zb) the Auth service's methods too;
 service's methods and stream; 2026-10-18: the Watch stream a client stream, `ClientStreams`, which
 `grpc.ClientConn.NewStream`'s spec asks of its descriptor; and the Lease service's stream, the client
 lease's keep-alive; per-type stage B, B1b: every stream descriptor of KV, Lease, Cluster and
-Maintenance sets `ClientStreams` or `ServerStreams`, what `RegisterService` asks). -/
+Maintenance sets `ClientStreams` or `ServerStreams`, what `RegisterService` asks; (auth-mediation M1,
+2026-11-20) every service's methods and streams exactly, with their generated handlers, so that
+`v3rpc.Server.spec` states its registrations exactly). -/
 abbrev etcdserverpbDescs : IProp GF :=
   iprop((∃ (mds : List google_golang_org.grpc.MethodDesc) (sds : List google_golang_org.grpc.StreamDesc),
       pbDescIs (globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.KV_ServiceDesc) go!"etcdserverpb.KV"
@@ -262,7 +253,9 @@ abbrev etcdserverpbDescs : IProp GF :=
           [(go!"Range", @! go_etcd_io.etcd.api.v3.etcdserverpb._KV_Range_Handler), (go!"Put", @! go_etcd_io.etcd.api.v3.etcdserverpb._KV_Put_Handler),
            (go!"DeleteRange", @! go_etcd_io.etcd.api.v3.etcdserverpb._KV_DeleteRange_Handler),
            (go!"Txn", @! go_etcd_io.etcd.api.v3.etcdserverpb._KV_Txn_Handler), (go!"Compact", @! go_etcd_io.etcd.api.v3.etcdserverpb._KV_Compact_Handler)] ∧
-        sds.map (·.StreamName') = [go!"RangeStream"] ∧ ∀ sd ∈ sds, sd.ClientStreams' = true ∨ sd.ServerStreams' = true⌝) ∗
+        sds.map (fun sd => (sd.StreamName', (#sd.Handler' : val))) =
+          [(go!"RangeStream", @! go_etcd_io.etcd.api.v3.etcdserverpb._KV_RangeStream_Handler)] ∧
+        ∀ sd ∈ sds, sd.ClientStreams' = true ∨ sd.ServerStreams' = true⌝) ∗
     (∃ (mds : List google_golang_org.grpc.MethodDesc) (sds : List google_golang_org.grpc.StreamDesc),
       pbDescIs (globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.Watch_ServiceDesc) go!"etcdserverpb.Watch"
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.WatchServer.ty) #(null : Loc)) mds sds ∗
@@ -282,7 +275,18 @@ abbrev etcdserverpbDescs : IProp GF :=
         sds.map (fun sd => (sd.StreamName', (#sd.Handler' : val))) =
           [(go!"LeaseKeepAlive", @! go_etcd_io.etcd.api.v3.etcdserverpb._Lease_LeaseKeepAlive_Handler)] ∧
         ∀ sd ∈ sds, sd.ClientStreams' = true ∨ sd.ServerStreams' = true⌝) ∗
-    pbDescOk (globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.Cluster_ServiceDesc) go!"etcdserverpb.Cluster" go_etcd_io.etcd.api.v3.etcdserverpb.ClusterServer.ty ∗
+    -- (auth-mediation M1, 2026-11-20) the Cluster service's methods exactly, with their generated
+    -- handlers, and no stream
+    (∃ (mds : List google_golang_org.grpc.MethodDesc) (sds : List google_golang_org.grpc.StreamDesc),
+      pbDescIs (globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.Cluster_ServiceDesc) go!"etcdserverpb.Cluster"
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.ClusterServer.ty) #(null : Loc)) mds sds ∗
+      ⌜mds.map (fun md => (md.MethodName', (#md.Handler' : val))) =
+          [(go!"MemberAdd", @! go_etcd_io.etcd.api.v3.etcdserverpb._Cluster_MemberAdd_Handler),
+           (go!"MemberRemove", @! go_etcd_io.etcd.api.v3.etcdserverpb._Cluster_MemberRemove_Handler),
+           (go!"MemberUpdate", @! go_etcd_io.etcd.api.v3.etcdserverpb._Cluster_MemberUpdate_Handler),
+           (go!"MemberList", @! go_etcd_io.etcd.api.v3.etcdserverpb._Cluster_MemberList_Handler),
+           (go!"MemberPromote", @! go_etcd_io.etcd.api.v3.etcdserverpb._Cluster_MemberPromote_Handler)] ∧
+        sds = []⌝) ∗
     -- (the auth plan's E3zb) the Auth service's methods exactly, with their generated handlers
     (∃ (mds : List google_golang_org.grpc.MethodDesc) (sds : List google_golang_org.grpc.StreamDesc),
       pbDescIs (globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.Auth_ServiceDesc) go!"etcdserverpb.Auth"
@@ -306,8 +310,22 @@ abbrev etcdserverpbDescs : IProp GF :=
            (go!"RoleGrantPermission", @! go_etcd_io.etcd.api.v3.etcdserverpb._Auth_RoleGrantPermission_Handler),
            (go!"RoleRevokePermission", @! go_etcd_io.etcd.api.v3.etcdserverpb._Auth_RoleRevokePermission_Handler)] ∧
         sds.map (·.StreamName') = []⌝) ∗
-    pbDescOk (globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.Maintenance_ServiceDesc) go!"etcdserverpb.Maintenance"
-      go_etcd_io.etcd.api.v3.etcdserverpb.MaintenanceServer.ty ∗
+    -- (auth-mediation M1, 2026-11-20) the Maintenance service's methods and stream exactly, with
+    -- their generated handlers
+    (∃ (mds : List google_golang_org.grpc.MethodDesc) (sds : List google_golang_org.grpc.StreamDesc),
+      pbDescIs (globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.Maintenance_ServiceDesc) go!"etcdserverpb.Maintenance"
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.MaintenanceServer.ty) #(null : Loc)) mds sds ∗
+      ⌜mds.map (fun md => (md.MethodName', (#md.Handler' : val))) =
+          [(go!"Alarm", @! go_etcd_io.etcd.api.v3.etcdserverpb._Maintenance_Alarm_Handler),
+           (go!"Status", @! go_etcd_io.etcd.api.v3.etcdserverpb._Maintenance_Status_Handler),
+           (go!"Defragment", @! go_etcd_io.etcd.api.v3.etcdserverpb._Maintenance_Defragment_Handler),
+           (go!"Hash", @! go_etcd_io.etcd.api.v3.etcdserverpb._Maintenance_Hash_Handler),
+           (go!"HashKV", @! go_etcd_io.etcd.api.v3.etcdserverpb._Maintenance_HashKV_Handler),
+           (go!"MoveLeader", @! go_etcd_io.etcd.api.v3.etcdserverpb._Maintenance_MoveLeader_Handler),
+           (go!"Downgrade", @! go_etcd_io.etcd.api.v3.etcdserverpb._Maintenance_Downgrade_Handler)] ∧
+        sds.map (fun sd => (sd.StreamName', (#sd.Handler' : val))) =
+          [(go!"Snapshot", @! go_etcd_io.etcd.api.v3.etcdserverpb._Maintenance_Snapshot_Handler)] ∧
+        ∀ sd ∈ sds, sd.ClientStreams' = true ∨ sd.ServerStreams' = true⌝) ∗
     -- (item 1, the client lease, 2026-10-18) the Lease service's one stream, `LeaseKeepAlive`, a
     -- client stream (what `grpc.ClientConn.NewStream`'s spec asks of its descriptor)
     (∃ (ssl : GoSlice) (sds : List google_golang_org.grpc.StreamDesc),
@@ -386,19 +404,20 @@ instance ctxErrIs_persistent (err : GoInterface) : Persistent (ctxErrIs (GF := G
 status `s`, so the code and message `status.FromError` reads are the error's (`statusCode`,
 `errDesc`); and `Is` returns `true` only for a target with the same description
 (`errors.IsStatusErr`'s post: an `Is` that answered `true` regardless would refute it).
-(k8s 7f-5a-P step 5, E1, approved by etcd-grove-81 2026-11-15) The status `s` is read-only with the
-error's code (`grpcStatusRO s (statusCode e)`): grpc's `*Status` is not immutable in Go (a
-whole-struct assignment `*s = *t` from any package copies its unexported fields); the fact is a
-guarantee of the producer that built `s` (with `status.New`/`Error`) and never writes it after, as
-grpc and etcd do (`examples/premisefix/grpcstatusro`; `notes/k8s-7f5a-draft.md` §11.2); a status
-may be shared (package-level `status.Error` values). -/
+(k8s 7f-5a-P step 5, E1, approved by etcd-grove-81 2026-11-15) The status `s` is read-only: grpc's
+`*Status` is not immutable in Go (a whole-struct assignment `*s = *t` from any package copies its
+unexported fields); the fact is a guarantee of the producer that built `s` (with `status.New`/`Error`)
+and never writes it after, as grpc and etcd do (`examples/premisefix/grpcstatusro`;
+`notes/k8s-7f5a-draft.md` §11.2); a status may be shared (package-level `status.Error` values).
+(errdesc stage 2a, 2026-11-20) Read-only with some code `c` and message `m`, the per-run relation
+`status.statusAt s c m` (until then `grpcStatusRO s (statusCode e)`, the pure `statusCode`). -/
 def grpcErrMethodsOk (e : GoInterfaceOk) : IProp GF :=
   iprop((⌜methodSet e.ty !! go!"GRPCStatus" =
       some (go.Signature [] false
         [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty])⌝ →
-    ∃ s : Loc, (□ ∀ Φ : val → IProp GF, ▷ Φ #s -∗
+    ∃ (s : Loc) (c : w32) (m : GoString), (□ ∀ Φ : val → IProp GF, ▷ Φ #s -∗
       WP (App (Val #(methods e.ty go!"GRPCStatus" e.v)) (Val #())) {{ Φ }}) ∗
-      EtcdGrove.grpcStatusRO s (EtcdGrove.statusCode (GoInterface.ok e))) ∗
+      EtcdGrove.status.statusAt s c m) ∗
     (⌜methodSet e.ty !! go!"Is" = some (go.Signature [go.error] false [go.bool])⌝ →
     □ ∀ (target : GoInterface) (Φ : val → IProp GF),
       ▷ (∀ b : Bool, ⌜b = true → errDesc (GoInterface.ok e) = errDesc target⌝ -∗ Φ #b) -∗
@@ -424,6 +443,26 @@ def statusErrOk (err : GoInterface) : IProp GF :=
 
 instance statusErrOk_persistent (err : GoInterface) : Persistent (statusErrOk (GF := GF) err) := by
   unfold statusErrOk; infer_instance
+
+/-- **The gRPC status code of `err` is `c`** (persistent; errdesc stage 2a, 2026-11-20: until then the
+pure `statusCode err`): what `status.FromError(err).Code()` and `status.Code(err)` return. `nil`:
+`OK`; an error without grpc's `GRPCStatus() *Status`: `Unknown` (grpc v1.84.0 `status.go:96-127`);
+one with it: the code of the read-only status it stably returns (`grpcErrMethodsOk`). -/
+def statusCodeIs (err : GoInterface) (c : w32) : IProp GF :=
+  iprop(⌜err = GoInterface.nil ∧ c = W32 0⌝ ∨
+    (∃ e : GoInterfaceOk, ⌜err = GoInterface.ok e ∧ methodSet e.ty !! go!"GRPCStatus" ≠
+      some (go.Signature [] false
+        [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty]) ∧ c = W32 2⌝) ∨
+    ∃ (e : GoInterfaceOk) (s : Loc) (m : GoString), ⌜err = GoInterface.ok e ∧
+      methodSet e.ty !! go!"GRPCStatus" = some (go.Signature [] false
+        [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty])⌝ ∗
+      (□ ∀ Φ : val → IProp GF, ▷ Φ #s -∗
+        WP (App (Val #(methods e.ty go!"GRPCStatus" e.v)) (Val #())) {{ Φ }}) ∗
+      EtcdGrove.status.statusAt s c m)
+
+instance statusCodeIs_persistent (err : GoInterface) (c : w32) :
+    Persistent (statusCodeIs (GF := GF) err c) := by
+  unfold statusCodeIs; infer_instance
 
 -- The names-only target of the alias `grpc/status.Status` (imported by `grpc/status` since
 -- `client/v3/leasing` names it).
@@ -840,18 +879,29 @@ theorem wp_New_errStrOk [_root_.Perennial.errors.Assumptions] (msg : GoString) :
   iapply HΦ
 
 /-- **`fmt.Errorf(format, args...)`'s error is an `errStrOk`**, for arguments of predeclared basic
-types (premise-fixes-4): Perennial's model returns `errors.New(format)` (`wp_New_errStrOk`), and so
-does Go for arguments none of which is an error (no `%w` wrapping): an `*errors.errorString`. -/
+types (premise-fixes-4): from Perennial's `fmt.wp_Errorf` (fmtmodel, 2026-11-20; until then over its
+previous model, `errors.New(format)`), whose error has `Error() string`, no `Format`, and an `Error()`
+returning the message. -/
 theorem wp_Errorf_errStrOk [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     (format : GoString) (args_sl : GoSlice) (args : List GoAny)
-    (_hwf : _root_.Perennial.fmt.ArgsWf args) :
+    (hwf : _root_.Perennial.fmt.ArgsWf args) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ args_sl ↦* args }}
       (App (App (Val (@! _root_.Perennial.fmt.Errorf)) (Val #format)) (Val #args_sl))
     {{ (err : GoInterfaceOk), RET #(interface.ok err); errStrOk (GoInterface.ok err) }} := by
-  wp_start as _
-  wp_apply wp_New_errStrOk as %err ⟨-, #Herr⟩
+  iintro %Φ ⟨#Hpkg, Hsl⟩ HΦ
+  ihave Hok := _root_.Perennial.fmt.argsOk_of_argsWf (GF := GF)
+    (mv := _root_.Perennial.fmt.errorfVerbs) (format := format) hwf
+  wp_apply (_root_.Perennial.fmt.wp_Errorf format args_sl args (DFrac.own 1)) $$ [$Hpkg $Hsl $Hok]
+    as %err ⟨-, %s, -, Herr⟩
+  iunfold _root_.Perennial.fmt.errorfErr at Herr
+  icases Herr with ⟨%hp, #HE, -⟩
   iapply HΦ
-  iexact Herr
+  iapply errStrOk_ok _ ⟨hp.2.1, hp.2.2.1⟩
+  unfold errorStringSpec
+  iintro !> %Ψ HΨ
+  iapply HE
+  inext
+  iapply HΨ
 
 theorem statusErrOk_nil : ⊢ statusErrOk (GF := GF) GoInterface.nil := by
   unfold statusErrOk
@@ -882,6 +932,36 @@ theorem statusErrOk_msg (err : GoInterface) :
     iintro %e %h
     cases h
     iexact Hm
+
+
+/-- An error grpc's `status` accepts has some code (errdesc stage 2a). -/
+theorem statusErrOk_code (err : GoInterface) :
+    statusErrOk (GF := GF) err ⊢ ∃ c : w32, statusCodeIs err c := by
+  iintro #H
+  cases err with
+  | nil =>
+    iexists W32 0
+    unfold statusCodeIs
+    ileft; ipureintro; exact ⟨rfl, rfl⟩
+  | ok e0 =>
+    unfold statusErrOk
+    icases H $$ %e0 %rfl with ⟨-, -, #Hm, -⟩
+    unfold grpcErrMethodsOk
+    icases Hm with ⟨Hg, -⟩
+    by_cases hg : methodSet e0.ty !! go!"GRPCStatus" = some (go.Signature [] false
+        [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty])
+    · ihave ⟨%s, %c, %m, #Hs, #Hst⟩ := Hg $$ %hg
+      iexists c
+      unfold statusCodeIs
+      iright; iright
+      iexists e0, s, m
+      iframe Hs Hst
+      ipureintro; exact ⟨rfl, hg⟩
+    · iexists W32 2
+      unfold statusCodeIs
+      iright; ileft
+      iexists e0
+      ipureintro; exact ⟨rfl, hg, rfl⟩
 
 /-- **A context error wrapped by `%w`** (one or more levels; errorf-wrap, 2026-11-06; persistent):
 `rangeKeys`' `fmt.Errorf("rangeKeys: context cancelled: %w", ctx.Err())` (`kvstore_txn.go:121`) and
@@ -959,7 +1039,7 @@ theorem ctxWrapErr_wrap2 (ii : GoInterfaceOk) (e : GoInterface) (pre : GoString)
 
 /-- **A `ctxWrapErr`'s `Error()` returns**, as `fmt` needs of a `%w` argument. -/
 theorem ctxWrapErr_stringMethodSpec [_root_.Perennial.fmt.Assumptions] (ii : GoInterfaceOk) :
-    ctxWrapErr (GF := GF) (GoInterface.ok ii) ⊢ EtcdGrove.fmt.stringMethodSpec ii go!"Error" := by
+    ctxWrapErr (GF := GF) (GoInterface.ok ii) ⊢ _root_.Perennial.fmt.stringMethodSpec ii go!"Error" := by
   iintro #He
   unfold ctxWrapErr
   icases He with ⟨%pres, %c, %Hp, #Hch, -⟩
@@ -972,14 +1052,14 @@ theorem ctxWrapErr_stringMethodSpec [_root_.Perennial.fmt.Assumptions] (ii : GoI
     icases Hch with (#Hm | ⟨%mid, #Hw, -⟩)
     · iunfold EtcdGrove.fmt.modelErrIs at Hm
       icases Hm with ⟨%x, -, %s, -, #Hs⟩
-      unfold EtcdGrove.fmt.stringMethodSpec
+      unfold _root_.Perennial.fmt.stringMethodSpec
       iintro !> %Φ HΦ
       iapply Hs
       inext
       iapply HΦ
     · iunfold EtcdGrove.fmt.wrapErrIs at Hw
       icases Hw with ⟨-, ⟨%s, #Hs⟩, -⟩
-      unfold EtcdGrove.fmt.stringMethodSpec
+      unfold _root_.Perennial.fmt.stringMethodSpec
       iintro !> %Φ HΦ
       iapply Hs
       inext
@@ -1153,9 +1233,9 @@ variable [sem : go.Semantics]
 `%w` argument. -/
 theorem isCtxErr_stringMethodSpec [context.Assumptions] [_root_.Perennial.fmt.Assumptions]
     (ii : GoInterfaceOk) :
-    context.isCtxErr (GF := GF) (GoInterface.ok ii) ⊢ EtcdGrove.fmt.stringMethodSpec ii go!"Error" := by
+    context.isCtxErr (GF := GF) (GoInterface.ok ii) ⊢ _root_.Perennial.fmt.stringMethodSpec ii go!"Error" := by
   iintro #He
-  unfold EtcdGrove.fmt.stringMethodSpec
+  unfold _root_.Perennial.fmt.stringMethodSpec
   iintro !> %Φ HΦ
   wp_apply (context.wp_isCtxErr_Error (GoInterface.ok ii) ii rfl) $$ He as %s -
   iapply HΦ

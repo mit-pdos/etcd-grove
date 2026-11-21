@@ -4,9 +4,8 @@
 
 `raft_tracecheck_robust`, stated in
 `RaftTla/Spec/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/TopLevelRobustness.lean`,
-from the example's closed theorem (`Results.lean`): an execution of fewer than `2^31 - 1` steps from
-one thread has fewer than `2^31` threads live throughout (`RealNstepsBelow.of_one`). `Robust` has no
-thread bound of its own, so the step bound stays the thread bound's.
+from the example's closed theorem (`Results.lean`), whose premises are `Robust`'s: an execution of
+`n + 4 ≤ 2^61` steps along which fewer than `2^31` threads are live (`RealNstepsBelow`).
 -/
 module
 
@@ -38,10 +37,9 @@ variable [go_gctx : GoGlobalContext]
 theorem raft_tracecheck_robust : raft_tracecheck_robust.spec := by
   intro lctx sem package_sem hLog boot Hbf Hprem σ g
   exact
-    Robustness.Robust.of_single fun hf n κs t2 σ2 hn Hsteps =>
+    Robustness.Robust.of_single_below fun hf n κs t2 σ2 hn Hsteps =>
       (raft_tracecheck_safe
-        boot Hbf Hprem σ g hf.1 hf.2.1 hf.2.2 n (by omega) κs t2 σ2
-        ((RealNstepsBelow.of_one Hsteps hf.2.2).mono (by omega))).2
+        boot Hbf Hprem σ g hf.1 hf.2.1 hf.2.2 n (by omega) κs t2 σ2 Hsteps).2
 
 end closed
 end EtcdGrove

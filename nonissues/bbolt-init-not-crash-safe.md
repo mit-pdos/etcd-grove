@@ -29,8 +29,9 @@ initializes differently on purpose (`examples/osfs/bboltfs/README.md`, "One deli
 bbolt: init"), as a bbolt proof would need. The goose target fork carries that fix (2026-11-02,
 `upamanyus/bbolt` branch `goose-lean`, 3207bac): `init` writes the four pages with zero meta
 pages and syncs, then the metas and syncs, and `Open` runs `init` again when every byte the file
-holds of its meta pages is zero (an interrupted `init`; a database never otherwise has zero meta
-pages), with a test (`TestOpen_InterruptedInit`).
+holds of its meta pages is zero (tested by `TestOpen_InterruptedInit`). This also matched damaged databases. The fork now
+checks the size and contents of the whole first write before reinitializing.
+[Regression and fix](../issues/bbolt-open-zero-meta-reinitializes-data.md)
 
 ## Notes
 

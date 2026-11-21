@@ -295,6 +295,7 @@ theorem srvMemberBootOn_alloc (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id :
   iintro #Hkv Hp Hwt
   imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Unit) with ⟨%γsl, Hsl⟩
   imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Unit) with ⟨%γpd, Hpend⟩
+  imod mono_nat_own_alloc (GF := GF) 0 with ⟨%cursor, Hcursor, -⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γa, Ha, -⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γc, Hc, -⟩
   imod ghostVar_alloc (GF := GF) ((null, ⟨γa, γa⟩) : Loc × NeedNames) with ⟨%γn, Hn⟩
@@ -302,7 +303,7 @@ theorem srvMemberBootOn_alloc (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id :
   imod ghostVar_alloc (GF := GF) false with ⟨%γp, Hpd⟩
   imod ghostVar_alloc (GF := GF) γk.log0.length with ⟨%γhi, Hhi⟩
   imodintro
-  iexists ⟨0, ⟨γa, γc, γn, γl, γp, ⟨γ, [], W64 0⟩,
+  iexists ⟨0, ⟨cursor, γa, γc, γn, γl, γp, ⟨γ, [], W64 0⟩,
     ⟨γk.st, γk.c0, γk.ch0, γk.log0, cok, γhi,
       ⟨γk.ids.issued, cnt, γsl, idPfxOf (W16 (uint.Z id)), γk.ids.wn, 0, γk.ids.fs, γpd⟩, γk.hist, γk.cmp, γk.rlog, γk.cret, γk.lm, γk.gps⟩⟩⟩
   isplitr
@@ -320,7 +321,7 @@ theorem srvMemberBootOn_alloc (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id :
     iframe Hp Hsl Hpend
   isplitr [Hwt]
   · iunfold srvReadNamesFreshNK
-    iframe Ha Hc Hl Hpd Hhi
+    iframe Hcursor Ha Hc Hl Hpd Hhi
     iexists _
     iexact Hn
   iexact Hwt

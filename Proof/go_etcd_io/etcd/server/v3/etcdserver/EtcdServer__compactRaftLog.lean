@@ -102,7 +102,11 @@ theorem EtcdServer.compactRaftLog.wp_proof
       split at h
       · rw [if_pos (by assumption)]; constructor <;> word
       · rw [if_neg (by assumption)]; constructor <;> word
-    iunfold memStorInv at Hmsi
+    iunfold srvCompactMem at Hmsi
+    icases Hmsi with ⟨%applied, #Hmsi⟩
+    iunfold srvCreateMem at Hmsi
+    icases Hmsi with ⟨%pin, %boot, #Hmsi⟩
+    iunfold memStorInvT at Hmsi
     wp_if_destruct
     all_goals (
       (try wp_auto)
@@ -111,10 +115,10 @@ theorem EtcdServer.compactRaftLog.wp_proof
            ihave #Hfr' : iprop((∃ e, memLog γs (uint.nat (snapi - scu)) DFrac.discard [e]) ∨
                memCompacted γs (uint.nat (snapi - scu))) $$ []
            · rw [H.1]; iexact Hfr
-           wp_apply hCompact ms γs (memStorJ γr.cl K) none (snapi - scu) _ $$ [] as %err ⟨%Hor, -⟩
+           wp_apply hCompact ms γs (memStorJT γr.cl K (srvStoredOrigin γr.cl applied pin boot)) none (snapi - scu) _ $$ [] as %err ⟨%Hor, -⟩
            · rw [memStorAt_none]
              iframe #
-             simp only [memStorJ]
+             simp only [memStorJT, memStorJ]
              isplitr
              · isplitr
                · iapply nodeAppliedLb_mono _ _ _ _ H.2 $$ Hapl
@@ -125,10 +129,10 @@ theorem EtcdServer.compactRaftLog.wp_proof
            ihave #Hfr' : iprop((∃ e, memLog γs (uint.nat (W64 1)) DFrac.discard [e]) ∨
                memCompacted γs (uint.nat (W64 1))) $$ []
            · rw [H.1]; iexact Hfr
-           wp_apply hCompact ms γs (memStorJ γr.cl K) none (W64 1) _ $$ [] as %err ⟨%Hor, -⟩
+           wp_apply hCompact ms γs (memStorJT γr.cl K (srvStoredOrigin γr.cl applied pin boot)) none (W64 1) _ $$ [] as %err ⟨%Hor, -⟩
            · rw [memStorAt_none]
              iframe #
-             simp only [memStorJ]
+             simp only [memStorJT, memStorJ]
              isplitr
              · isplitr
                · iapply nodeAppliedLb_mono _ _ _ _ H.2 $$ Hapl

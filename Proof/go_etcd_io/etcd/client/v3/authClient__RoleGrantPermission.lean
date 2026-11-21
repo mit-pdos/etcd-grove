@@ -28,8 +28,8 @@ theorem authClient.RoleGrantPermission.wp_proof
     (wp_retry : retryAuthClient.RoleGrantPermission.spec (GF := GF) (hG := hG))
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     authClient.RoleGrantPermission.spec (GF := GF) (hG := hG) := by
-  intro api conn addr ci cd name key rangeEnd permType Spec Q
-  wp_start as ⟨#Hapi, #Hctx, #Hce, %Hkl, #Hrpc, #Hpre, %Hsz⟩
+  intro api conn addr ci om cd name key rangeEnd permType Spec Q
+  wp_start as ⟨#Hapi, #Hctx, #Hce, %Hkl, #Hrpc, #Hom, #Hpre, %Hsz⟩
   iunfold authObjAtC at Hapi
   icases Hapi with ⟨%rac, %sl, #Hremote, #Hrac, #Hconn, #Hcopts, #Hsl⟩
   wp_auto
@@ -56,7 +56,7 @@ theorem authClient.RoleGrantPermission.wp_proof
     iexact Hpw
   iunfold callOptsAt at Hsl
   icases Hsl with ⟨%vs, #Hvs, -, #Hvok, -⟩
-  wp_apply wp_retry rac conn addr Spec Q ci cd «$a1_ptr» (name, ⟨permType, key, rangeEnd⟩) sl vs
+  wp_apply wp_retry rac conn addr Spec Q ci om cd «$a1_ptr» (name, ⟨permType, key, rangeEnd⟩) sl vs
     $$ [Hsend] as %resp %err ⟨-, Hres⟩
   · iframe #
     iframe
