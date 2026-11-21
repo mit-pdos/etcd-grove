@@ -1,5 +1,5 @@
 /-
-`v2stats.NewServerStats(name, id)` (`server.go`): names-only. Lean-first (no Rocq counterpart); the server-construction unit, stage N0 (2026-10-16, D13:
+`v2stats.NewServerStats(name, id)` (`server.go`): with its body since prove-ps2-v2stats (2026-11-21; names-only until then). Lean-first (no Rocq counterpart); the server-construction unit, stage N0 (2026-10-16, D13:
 `notes/decisions.md`), for `NewServer`.
 -/
 module

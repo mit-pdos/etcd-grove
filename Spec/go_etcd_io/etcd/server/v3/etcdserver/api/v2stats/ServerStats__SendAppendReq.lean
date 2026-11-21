@@ -1,5 +1,6 @@
 /-
-`(*v2stats.ServerStats).SendAppendReq(reqSize)`: the trust boundary (v2stats is names-only;
+`(*v2stats.ServerStats).SendAppendReq(reqSize)` (with its body since prove-ps2-v2stats, 2026-11-21;
+until then the trust boundary;
 `Transport.Send` calls it for each `MsgApp` it hands to a peer; rafthttp stage 6c, as
 `RecvAppendReq`'s). Lean-first.
 -/
