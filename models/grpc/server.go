@@ -157,8 +157,8 @@ type serverOptions struct {
 	streamInt             StreamServerInterceptor
 	chainUnaryInts        []UnaryServerInterceptor
 	chainStreamInts       []StreamServerInterceptor
-	binaryLogger          binarylog.Logger
-	inTapHandle           tap.ServerInHandle
+	// MODEL: no binaryLogger and inTapHandle fields (binary logging and tap handles are not
+	// modelled: their options panic when NewServer applies them, below).
 	statsHandlers         []stats.Handler
 	maxConcurrentStreams  uint32
 	maxReceiveMessageSize int
@@ -526,11 +526,10 @@ func ChainStreamInterceptor(interceptors ...StreamServerInterceptor) ServerOptio
 // Notice: This API is EXPERIMENTAL and may be changed or removed in a
 // later release.
 func InTapHandle(h tap.ServerInHandle) ServerOption {
+	// MODEL: tap handles are not modelled: the option panics when NewServer applies it (where the
+	// model's NewServer panicked on a set inTapHandle before), and the field is gone.
 	return newFuncServerOption(func(o *serverOptions) {
-		if o.inTapHandle != nil {
-			panic("The tap handle was already set and may not be reset.")
-		}
-		o.inTapHandle = h
+		panic(notModelled("grpc: InTapHandle"))
 	})
 }
 
@@ -550,8 +549,10 @@ func StatsHandler(h stats.Handler) ServerOption {
 // binaryLogger returns a ServerOption that can set the binary logger for the
 // server.
 func binaryLogger(bl binarylog.Logger) ServerOption {
+	// MODEL: binary logging is not modelled: the option panics when NewServer applies it (where
+	// the model's NewServer panicked on a set binaryLogger before), and the field is gone.
 	return newFuncServerOption(func(o *serverOptions) {
-		o.binaryLogger = bl
+		panic(notModelled("grpc: binary logging"))
 	})
 }
 
@@ -696,12 +697,6 @@ func NewServer(opt ...ServerOption) *Server {
 	}
 	if len(opts.statsHandlers) != 0 {
 		panic(notModelled("grpc: stats handlers"))
-	}
-	if opts.binaryLogger != nil {
-		panic(notModelled("grpc: binary logging"))
-	}
-	if opts.inTapHandle != nil {
-		panic(notModelled("grpc: InTapHandle"))
 	}
 	if opts.cp != nil || opts.dc != nil {
 		panic(notModelled("grpc: compression"))
