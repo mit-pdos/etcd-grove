@@ -908,7 +908,7 @@ private theorem wp_RestartNode_impl
     · show (a : Int) ≤ uint.Z s.logst.committed
       rw [Hcm, Hca]; unfold StorContents.commit at Ha2; have := uint_nat_eq σ.hs.Commit'; omega
     · change s.logst.snap = some p at hp; rw [Hsn0] at hp; cases hp
-  ihave Hrn : ownRawNode γ.raft rn cv.ID' rs0 $$ [Hrn Hphys Hghost Hsteps Hsteps_cap]
+  ihave Hrn : ownRawNode γ.raft rn cv.ID' rs0 $$ [Hrn Hphys Hghost Hsteps Hsteps_cap Hhistory]
   · iapply ownRawNode_intro γ.raft rn cv.ID' rs0 s1 (stOf m).cfg fp (ds := MA) rnv sv hprev []
       (Hglq := by show s.gh.lq = []; rw [Hgh])
       Hrel.2 (fun h => by simp only [rs0] at h; rw [Hmd] at h; cases h) Hasync
@@ -931,13 +931,14 @@ private theorem wp_RestartNode_impl
           exact ⟨hi2, t, ht⟩⟩
       Hsvr.1.symm HphsR
       (show s.gh.tr = γ.raft.reTrace by rw [Hgh, HtrG])
-      $$ Hrn Hphys Hghost [] Hsoft Hph Hsteps Hsteps_cap [] HcD [] [] [] [] Hdurt
+      $$ Hrn Hphys Hghost [] Hsoft Hph Hsteps Hsteps_cap [] HcD [] [] [] [] [Hhistory] Hdurt
     · iunfold sdrOk; iexists _; iexact Hsd0
     · iapply pendList_nil
     · iapply ackInv_none; intro _ _ _ _ h; cases h
     · iapply loanCom_none γ.raft rfl
     · rw [show s1.logst.snap = none from Hsn0]; iapply snapLocOk_none
     · rw [show s1.logst.ksn = [] from Hksn]; iapply restoredSnapHistory_nil
+    · iapply restoreLedger_fresh γ.raft cv.ID' sn s1 (show s1.logst.ksn = [] from Hksn) $$ Hhistory
   -- the driver's view of the configuration is the node's: at the configuration point `a`
   have Hhp : hprev = σ.hs := by rw [Hhz, Hca]
   -- raft's certified terms of the committed log handed out (the attach record's)

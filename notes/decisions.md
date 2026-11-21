@@ -39942,6 +39942,16 @@ locating the actual record, checking its term, and protecting its segment
 through the next purge. The Go regression and fork fix are recorded in
 `issues/etcd-wal-upgrade-legacy-segment-name.md`.
 
+### Which physical WAL file a CRC seed describes
+
+The CRC seeds in the decoder's accepted records enumerate the segment files in
+order. The lock's path names the corresponding segment. When decoding reaches
+bytes beyond the canonical history, a rejected CRC can arrive after the last
+lock. The counter at that point already covers every lock. A probe of a closed
+prefix file temporarily reserves that inode, obtains its original bytes by
+agreement with the layout, and returns it to the same outstanding inode set.
+These facts support the legacy scan in the fork's `ReadAll` repair.
+
 ## WAL W4b: the history and read lemmas, the crash views, and the purged read (2026-11-12 · plan approved by etcd-grove-81, `/shared/tmp/wal-spec/w4b/plan.md`; C2's premises chosen by the proof, as the plan allows; CP3 approved by etcd-grove-81 under the user's delegation, 2026-11-12: `walCommitLe` as C2's premise, the guard dropped, C4 without `walNoDormant` · branch `wal-w4b`)
 
 Proved only: two unlinked modules over the W4a/W4a.1/W4a.2 axioms, no axiom, `sorry`, opaque or
@@ -41305,6 +41315,12 @@ available to one of four branch entries. Every key accepted by `Put` fits
 this bound. `entryBytesFit_legacy` also covers every key and value admitted
 by the previous file model. The fork's regression and the upstream split
 problem are in `issues/bbolt-put-refuses-readable-entry.md`.
+
+
+
+### The RawNode owns the restore history (2026-11-20)
+
+Startup allocates each incarnation’s history. A successful snapshot restore records the incoming sender, term and index in that history. A stale snapshot leaves the history intact. The evidence follows the node through Ready and Advance, including a snapshot outstanding when another restore arrives. The server still needs the observation at handout and the link to the original outgoing message.
 
 ## The listening token and the net+fs bundle (2026-11-21 · the user's request · branch `net-noplan`, stages B and C)
 

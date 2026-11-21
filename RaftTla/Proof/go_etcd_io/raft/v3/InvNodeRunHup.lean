@@ -113,8 +113,11 @@ theorem wp_rn_raft_Step_hup (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
     ⟨by rw [Hsg]; exact Hstor.1, by rw [Hsn1.2, Hgh, ← Hsn0.2]; exact Hstor.2⟩
   ihave #Hstr' := ackInv_keep (rs' := rs) γ rfl Hstok Ht1 Hpv Hsn (logStoreRec_stored Hsd) (Hip4 (by msg_ne)) $$ Hstrecs
   iapply HΦ $$ %err %s'.term
-  isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap Hpend]
+  isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap Hpend Hledger]
   ihave #Hhist' := restoredSnapHistory_keep γ id Hsd $$ Hhist
+  ihave Hledger' := restoreLedger_keep γ id rs.sn (s := s) (s' := s')
+    (by first | exact Href.voteLe.1 | exact Hcv.1.voteLe.1 | exact Hvr.1 | omega)
+    (logStoreRec_ksn Hsd) $$ Hledger
   ihave #Hsloc' := snapLocOk_keep γ id (.inl Hsn) $$ Hsloc
   · iapply ownRawNode_intro γ rn id { rs with term := s'.term } s' cf fp rnv sv hprev steps Hwf' Hin
       Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
@@ -123,7 +126,7 @@ theorem wp_rn_raft_Step_hup (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
       (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
       (RNFl.keep Hrnfl Hfl' Hap' Ha) (Hloan.keep Hgh Hsn Hfl' (logStoreRec_stored Hsd) Hu Ha Hc)
       (Hsdt.ofRec Hsn Hsd) Hrole
-      (Hphs.keep rfl rfl rfl (HsLe.of_step Href.voteLe Hc) Hsn (.inl (Hip4 (by msg_ne)))) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' Hhist' [Hdur]
+      (Hphs.keep rfl rfl rfl (HsLe.of_step Href.voteLe Hc) Hsn (.inl (Hip4 (by msg_ne)))) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' Hhist' Hledger' [Hdur]
     · -- (durability stage II (i)) the step keeps `durTie`'s fields
       iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) Hsn Hpv (logStoreRec_stored Hsd) $$ Hdur
   ipureintro

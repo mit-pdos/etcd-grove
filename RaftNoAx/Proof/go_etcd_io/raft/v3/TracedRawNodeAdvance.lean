@@ -2090,6 +2090,10 @@ theorem RawNode.Advance.tracedSpec_proof
       subst md1
       ihave #Hhist' : restoredSnapHistory γ id s1.logst.ksn $$ []
       · rw [logStoreRec_ksn Hs1.2.2.1, Hs0ksn]; iexact Hhist
+      ihave Hledger' := restoreLedger_keep γ id rs.sn (s := s)
+        (s' := { s1 with logst := s1.logst, gh := { s1.gh with slent := false, snp := none } })
+        (by change uint.Z s.term ≤ uint.Z s1.term; rw [← Hs0f.2.2.2.2.2.2.2.2.2.2.1]; exact Hti1.1)
+        ((logStoreRec_ksn Hs1.2.2.1).trans Hs0ksn) $$ Hledger
       ihave #Hsloc' := snapLocOk_keep γ id (Hsk1.imp And.left And.left) $$ Hsloc
       -- the snapshot handed out, acknowledged: the mirror's record of it dropped
       icases ownRaftPhysC_log_at_snp cf1 rnv.raft' id s1 $$ Hphys with ⟨Hlog1, %Hgh1, Hback1⟩
@@ -2205,7 +2209,7 @@ theorem RawNode.Advance.tracedSpec_proof
                 subst heq
                 simp [snapHit, snapId] at hh
               · rw [h] at hs; cases hs)
-          $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsl0 Hcap0 [] Hdl Hstr1 [] Hsloc' Hhist' [Hdur]
+          $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsl0 Hcap0 [] Hdl Hstr1 [] Hsloc' Hhist' Hledger' [Hdur]
         · iapply lentPend_none rfl; iapply pendList_nil
         · iapply loanCom_none γ rfl
         · -- (durability stage II (i)) the acknowledgement of the lent snapshot keeps `durTie`
@@ -2566,6 +2570,8 @@ theorem RawNode.Advance.tracedSpec_proof
       ⟨by rw [Hsg1.2.2]; exact Hloan.1, fun h => ⟨by rw [Hsg1.2.2]; exact (Hloan.2.1 h).1,
         fun _ _ _ _ h => (by cases h)⟩, fun l h => (by simp only at h; rw [hsl] at h; cases h), HcapA⟩
     ihave #Hhist' := restoredSnapHistory_keep γ id Hs1.2.2.2.2 $$ Hhist
+    ihave Hledger' := restoreLedger_keep γ id rs.sn (s := s) (s' := s1) Hti1.1
+      (logStoreRec_ksn Hs1.2.2.2.2) $$ Hledger
     ihave #Hsloc' := snapLocOk_keep γ id (.inl Hs1.2.2.1) $$ Hsloc
     icases ownRaftPhysC_sn cf rnv.raft' id s1 $$ Hphys with ⟨%Hsn1, Hphys⟩
     -- (trace-check revision 3's N2, Probe B item 5) dynamically the configuration index is at least
@@ -2603,7 +2609,7 @@ theorem RawNode.Advance.tracedSpec_proof
         (Hsdt.ofRec Hs1.2.2.1 Hs1.2.2.2.2)
         Hrole (Hphs.keep rfl rfl rfl Hph1.1 Hs1.2.2.1 (.inl Hph1.2))
         (by rw [Hsg1.2.2]; exact Hgtr) (by rw [Hsg1.2.2]; exact Hglq)
-        $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsl0 Hcap0 [] Hdeliv Hstr1 Hloanc Hsloc' Hhist' [Hdur] Hrntr
+        $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsl0 Hcap0 [] Hdeliv Hstr1 Hloanc Hsloc' Hhist' Hledger' [Hdur] Hrntr
       · iapply lentPend_none hsl; iapply pendList_nil
       · -- (durability stage II (i)) the queue's steps keep `durTie`'s fields
         iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) Hs1.2.2.1 Hs1.2.2.2.1 (logStoreRec_stored Hs1.2.2.2.2) $$ Hdur

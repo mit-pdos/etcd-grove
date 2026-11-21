@@ -149,14 +149,19 @@ theorem setupNode.wp_proof [package_sem : Assumptions] (wp_NewRawNode : NewRawNo
                                                                                                         isCommitted γ
                                                                                                             bootLog ∗
                                                                                                           certLink γ sn ∗
-                                                                                                            trCapStart
-                                                                                                              γ.reTrace γ
-                                                                                                              cv.ID'
-                                                                                                              cv.TraceLogger'
-                                                                                                              (bootCfg ps)
-                                                                                                              (bootPhase
-                                                                                                                ps cv.ID')
-                                                                                                              bootNone -∗
+                                                                                                            snapHistoryOwn
+                                                                                                                sn.history
+                                                                                                                0 0 ∗
+                                                                                                              trCapStart
+                                                                                                                γ.reTrace
+                                                                                                                γ cv.ID'
+                                                                                                                cv.TraceLogger'
+                                                                                                                (bootCfg
+                                                                                                                  ps)
+                                                                                                                (bootPhase
+                                                                                                                  ps
+                                                                                                                  cv.ID')
+                                                                                                                bootNone -∗
                                                                                   (▷
                                                                                       ∀ n,
                                                                                         (R' ∗
