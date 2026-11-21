@@ -11,8 +11,6 @@
 roots \b(cache_end_to_end_(client|new)|etcd_cache_served)$
 axiom NewLoggableTxnRequest.wp_proof
 axiom RangeRequest.String.wp_proof
-axiom backend.ValidateCalledInsideApply.wp_proof
-axiom backend.ValidateCalledOutSideApply.wp_proof
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithValue.wp_proof
 axiom envVerifyOffTok
@@ -88,7 +86,6 @@ axiom txn.RangeSecObserve.wp_proof
 axiom v3rpc.isClientCtxErr.wp_proof
 axiom v3rpc.pbWatchRequestT_reg
 axiom v3rpc.pbWatchResponseT_reg
-axiom verify.Verify.wp_proof
 axiom zap.Logger.Fatal.wp_proof
 axiom zap.Logger.Panic.wp_proof
 axiom zap.Logger.check.wp_proof

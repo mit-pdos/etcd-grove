@@ -51,17 +51,13 @@ axiom Perennial.go_etcd_io.etcd.client.v3.defaultOptions_init
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.pkg.v3.featuregate.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Tracer_init
-axiom Perennial.go_etcd_io.etcd.server.v3.auth.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.linkHeartbeatSize_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.toGRPCErrorMap_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.opaqueInitsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.lease.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.backend.boltOpenOptions_init
-axiom Perennial.go_etcd_io.etcd.server.v3.storage.backend.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.schema.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.schema.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.initFuncsOk
@@ -158,10 +154,6 @@ axiom auth.authStore.selectPassword.wp_proof
 axiom auth.newTokenProviderJWT.wp_proof
 axiom auth.redactToken.wp_proof
 axiom auth.tokenSimple.genTokenPrefix.wp_proof
-axiom backend.ValidateCalledInsideApply.wp_proof
-axiom backend.ValidateCalledInsideUnittest.wp_proof
-axiom backend.ValidateCalledOutSideApply.wp_proof
-axiom backend.VerifyBackendConsistency.wp_proof
 axiom backend.backend.Snapshot.wp_proof
 axiom backend.newBoltLoggerZap.wp_proof
 axiom backend.wp_mutexLit
@@ -544,7 +536,6 @@ axiom status.Error.wp_proof
 axiom status.Errorf.wp_proof
 axiom status.FromError.wp_proof
 axiom status.Status.Code.wp_proof
-axiom storage.BackendQuota.Cost.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
 axiom strconv.FormatBool.wp_proof
@@ -602,7 +593,6 @@ axiom v3rpc.logUnaryRequestStats.wp_proof
 axiom v3rpc.pbWatchRequestT_reg
 axiom v3rpc.pbWatchResponseT_reg
 axiom v3rpc.wp_WithTimeout_weak
-axiom verify.Verify.wp_proof
 axiom verifyEnvOff
 axiom version.Cluster.wp_proof
 axiom wait.Jitter.wp_proof

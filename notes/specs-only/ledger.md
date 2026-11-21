@@ -3273,3 +3273,17 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** `isPkgInit raftpb` in the precondition (the one caller, `sendMergedSnap`, gets it by `iPkgInit`);
   `msgRO` keeps the raft message's read-only content (`∃ st, msgOwn ml □ st`), which `NewMessage`'s precondition gives.
 - **Decision.** Applied (prove-grpcsmall, 2026-11-20).
+
+## 2026-11-20: `verify.Verify`'s callback and details are untyped `val`s (prove-etcdstorage)
+
+- **Spec.** `verify.Verify.spec` (`Spec/go_etcd_io/etcd/client/pkg/v3/verify/Verify.lean`, an axiom until this change;
+  `SpecPlan/Spec/go_etcd_io/etcd/client/pkg/v3/verify/Verify.lean`).
+- **Defect.** Unprovable as stated: `f : val` may be a panic value (the call `Verify(msg, f)` then panics binding its
+  argument), and the details `d : val` that `f` returns may be one (`Verify` stores them into its `map[string]any`
+  variable, which only a typed map value can be). The Go `f` is a func value and its details a map, so no caller is
+  affected.
+- **Evidence.** The proof (`Proof/go_etcd_io/etcd/client/pkg/v3/verify/Verify.lean`): `wp_auto` cannot step either.
+- **Proposed change.** `f : GoFunc` (`#f`) and `∃ d : Loc, r = PairV #true #d`; with it, the premise `envVerifyOff` as an
+  alternative to `f`'s triple (SpecPlan already had it, as `verifyOff`), which `VerifyBackendConsistency` needs.
+- **Decision.** Applied in both (prove-etcdstorage, 2026-11-20); the five callers' proofs unchanged but `ileft` and
+  `iexists mref` (a `Loc`, was `#mref`).
