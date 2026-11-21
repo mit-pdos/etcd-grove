@@ -479,6 +479,10 @@ PROJECTS = [
             "google.golang.org/protobuf/reflect/protoreflect",
             "go.uber.org/zap",
             "go.uber.org/zap/zapcore",
+            # (prove-misc, 2026-11-20) what zapcore's package variables call: its generic `sync.Pool`
+            # wrapper (`pool.New`) and its terminal colors (`color.Add`, `fmt.Sprintf`)
+            "go.uber.org/zap/internal/pool",
+            "go.uber.org/zap/internal/color",
             # names only: the auto-compactor's clock (the spec-first pilot)
             "github.com/jonboulle/clockwork",
             "github.com/dustin/go-humanize",

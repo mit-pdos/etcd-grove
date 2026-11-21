@@ -25,7 +25,7 @@ public import Proof.go_etcd_io.etcd.client.v3.credentials.Init
 public import Proof.go_etcd_io.etcd.client.v3.internal.endpoint.Init
 public import Proof.go_etcd_io.etcd.client.v3.internal.resolver.Init
 public import Proof.go_etcd_io.raft.v3.Init
-public import Proof.go_uber_org.zap.Init
+public import Proof.go_uber_org.zap.InitLinked
 public import Proof.google_golang_org.grpc.Init
 public import Proof.google_golang_org.grpc.codes.Init
 public import Proof.google_golang_org.grpc.credentials.Init
