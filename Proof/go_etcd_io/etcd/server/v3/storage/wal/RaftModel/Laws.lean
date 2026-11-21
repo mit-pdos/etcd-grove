@@ -9,8 +9,9 @@ trust-boundary specs (copies of the main tree's axioms, `proto.MarshalPb.wp_proo
 - `walRaftHsO_own`: `WalHsOwn` from its two fields that need `raftpb.HardState`'s trusted model
   (`unmarshal`, `reset`).
 
-`WalPbIn.MarshalHsLaw`, `WalPbIn.CloneHsLaw`, `WalHsOwn.unmarshal` and `WalHsOwn.reset` stay hypotheses
-of the closed result (`notes/wal-fsext-plan.md`, §10, "The raftpb instance's laws pending the user").
+`WalPbIn.CloneHsLaw`, `WalHsOwn.unmarshal` and `WalHsOwn.reset` stay hypotheses
+of the closed result (`WalPbIn.MarshalHsLaw` is proved since wal-item3, 2026-11-21, `LawsHsMarshal.lean`, over the
+registered `raftpb.HardState`, `PbHardState.lean`) (`notes/wal-fsext-plan.md`, §10, "The raftpb instance's laws pending the user").
 Lean-first.
 -/
 module

@@ -2,6 +2,51 @@
 
 ## START HERE
 
+- **M4 at its land stop** (approved by the user 2026-11-21): lean `a5dbbadebd` merged, full timed build
+  `20261121-043014-3987002` green, tcb `--check` matches (606, 2), 71 collections match, gen-link modes, interfaces
+  `--check --layout`, tier, gen-init, goose, mode 456, bounds 399, axiom-tok, auth-mediation and the other gate scripts
+  pass. Waits for etcd-grove-03 to land; do not commit to the branch until then. **M3 waits on Q4** (questions.md: the keys-only race; fork fix vs margin).
+- M0-M2 are on lean (`3c8804f01f`). M3/M4: worktree `/shared/etcd-grove-authm3`, branch `auth-mediation-m3`
+  (off lean `3c8804f01f`), agent of etcd-grove-03. Pin c44b74871: `--packages=/shared/tmp/manifest-c44.json`,
+  `PERENNIAL_DIR=/shared/perennial-c44b74871`. Decisions: `questions.md` (untracked, worktree root).
+- M4 as done: `adminTieAr` (`KVAuthModel.lean`) rejected case `¬ auth.adminOk st (principal)`; `ReqOn.lean`:
+  `resultIsM`, `appliedErrM` (mode-uniform; + `appliedErr_of_M`, `appliedErrM_intro`); `raftRequest.spec`'s and
+  `adminOutOn`'s error branches `appliedErrM E.authOn` (not `true`: the mode ratchet's lit-mode count); consumers
+  (Put, DeleteRange, Txn, ModeSpecs) forget with `appliedErr_of_M`. Ledger entry 2026-11-21 (M4). Table: the five
+  admin kinds the mode-on proposer admits (`adminPropOk`) state the reason; the seven other Auth rows say why not.
+- M3 state (unchanged by M4): `rangeStream`/`adjustChunkLimit` names only; vocabulary `RangeStreamDefs.lean`; the
+  axiom `EtcdServer.rangeStream.wp_proof` NOT linked (not in any Link, so in no trust base); review
+  `notes/axiom-review/rangestream.md`; Go tests `examples/authmedrangestream/`;
+  `nonissues/etcd-rangestream-keysonly-index-key-race.md` (Q4); `doSerialize.spec` strengthened (Q2); the draft
+  `Spec/.../EtcdServer__RangeStream.lean`. Row 2 stays `none`.
+- M3 next (once Q4 is answered): prove `EtcdServer.RangeStream` (model: `Range`'s on-branch), the `RangeRequest`
+  getters at `↦{dq}`; `kvServer.RangeStream`; Links (`--server`, `--v3rpc`); row 2 -> `e2e`; the axiom in
+  `etc/tcb-baseline.txt` and the server/v3rpc collections; `notes/audit.md`'s row.
+
+## M4 proposal (approved 2026-11-21; implemented in `a351492b8d`)
+
+The refusal reason for the admin rows (28-42) reaches the proposer in two definitions; no spec text changes,
+the specs that mention them get stronger posts.
+
+1. `adminTieAr` (`KVAuthModel.lean:1927`). Old: `⌜needAdminPermission rq = false ∨ ∀ o b, out ≠ .dispatched o b⌝
+   ∨ ∃ v, ar ↦□ v ∗ ⌜v.Err' = nil → adminStepOk rq st st'⌝` (a rejected outcome: nothing). New:
+   `⌜needAdminPermission rq = false ∨ out = .skipped⌝ ∨
+    ⌜out = .rejected ∧ ¬ auth.adminOk st (some (auth.authInfoM (apply.principalOf rq)))⌝ ∨
+    (⌜∃ o b, out = .dispatched o b⌝ ∗ ∃ v, ar ↦□ v ∗ ⌜v.Err' = nil → adminStepOk rq st st'⌝)`.
+   Source: `adminOut_model` (`ApplyTieOn.lean:253`) already has `adminRejL (.on γa) hs rq` at `hs.getLast? = some st`
+   (`hrej`), i.e. `¬ adminOk st ..`; its rejected case changes from `ileft` to the new middle disjunct.
+2. `adminOutOn`'s error branch (`AdminOn.lean:185-188`). Old: `appliedErr E rq' F err` (the result's `Err` is `err`,
+   no reason). New: `appliedErr E rq' F err ∗ ∃ L, srvRLogLb ρ.raft L ∗ adminTieM true ρ.kv rq' L ar out` for the
+   result `ar` and outcome `out` the waiter delivered (exact form fixed at the Freeze: the waiter's `resultIsWOn`
+   carries `adminTieAr` at the committed prefix's state; `processInternalRaftRequestOnce`'s error branch passes
+   `resultIs` today and would pass the `On` form).
+   Specs whose posts change (stronger): the thirteen admin entry points' `*OutOn` definitions in
+   `Spec/.../etcdserver/EtcdServer__<M>.lean` (`userAddOutOn`, ...), `processInternalRaftRequestOnce.spec`'s
+   mode-`on` result, and through them the admin rows of `client_port_mediated`; `apply.admin_rejected_why` unchanged.
+
+## M2 record (done, on lean)
+
+
 - Worktree `/shared/etcd-grove-authmed2`, branch `auth-mediation` (off lean `d45f8b140e`), agent of
   etcd-grove-03. Perennial pin c44b74871: `--packages=/shared/tmp/manifest-c44.json`,
   `PERENNIAL_DIR=/shared/perennial-c44b74871`. Decisions: `questions.md` (untracked, worktree root).

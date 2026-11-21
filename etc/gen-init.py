@@ -1452,21 +1452,6 @@ over Perennial's translation since 2026-11-20).''',
     pre=['section toLoggerV2',
          'variable [GooseExts] [GooseSemantics] [GooseInterp]',
          'variable [go_gctx : GoGlobalContext]',
-         'variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]',
-         'variable [sem : go.Semantics]',
-         '',
-         '/-- **The trust boundary: `logger.go`\'s conversion of a `klogWrapper` to `grpclog.LoggerV2`** (an',
-         'interface: a struct converted to it is the interface holding it). `type LoggerV2',
-         'internal.LoggerV2` names a package this translation does not import, so the type is',
-         'axiomatized (Goose\'s gap G3, `notes/k8s-etcd3-goose.md`) and the conversion does not step; the',
-         'axiom says it returns the interface holding the `klogWrapper` (what Perennial\'s',
-         '`convert_to_interface` gives a non-interface type; since 2026-11-20, prove-grpcsmall, so that',
-         '`SetLoggerV2`\'s premise, not a `*componentData`, is discharged: it returned some interface). -/',
-         'axiom k8s_io.apiserver.pkg.storage.etcd3.klogWrapper_toLoggerV2 (v : val) :',
-         '    {{ (True : IProp GF) }}',
-         '      (App (Val (GoInstruction (Convert k8s_io.apiserver.pkg.storage.etcd3.klogWrapper.ty',
-         '        google_golang_org.grpc.grpclog.LoggerV2.ty))) (Val v))',
-         '    {{ RET #(interface.mkOk k8s_io.apiserver.pkg.storage.etcd3.klogWrapper.ty v); True }}',
          '',
          '/-- A `klogWrapper` is not grpc\'s `*componentData` (`SetLoggerV2`\'s premise). -/',
          'theorem k8s_io.apiserver.pkg.storage.etcd3.klogWrapper_ne_componentData (v w : val) :',
@@ -1511,7 +1496,15 @@ over Perennial's translation since 2026-11-20).''',
                      '  iframe HendpointsMap Hem',
                      '  iapply BigSepM.bigSepM_empty.2',
                      '  itrivial'],
-        'init.«1»': ['wp_apply klogWrapper_toLoggerV2', 'try wp_auto',
+        # (prove-k8s3, 2026-11-21) the conversion of the `klogWrapper` to grpclog's `LoggerV2` steps
+        # (grpclog imports `grpclog/internal`, so `LoggerV2` is an interface); until then the
+        # trust-boundary axiom `klogWrapper_toLoggerV2`
+        # (`grpclog.LoggerV2` is a named `internal.LoggerV2`: `≤u` has no transitive instance)
+        'init.«1»': ['haveI : google_golang_org.grpc.grpclog.LoggerV2.ty ≤u '
+                     'google_golang_org.grpc.grpclog.internal.LoggerV2.underlying := '
+                     '⟨(go.underlying_unfold (t := google_golang_org.grpc.grpclog.LoggerV2.ty)).trans '
+                     '(go.underlying_unfold (t := google_golang_org.grpc.grpclog.internal.LoggerV2.ty))⟩',
+                     'try wp_auto',
                      'wp_apply (EtcdGrove.grpclog.SetLoggerV2.wp_proof _',
                      '    (k8s_io.apiserver.pkg.storage.etcd3.klogWrapper_ne_componentData _))',
                      'try wp_auto'],
@@ -3527,6 +3520,16 @@ their translated initializers: `UnstructuredJSONScheme`, an empty struct literal
                 '⟨(go.underlying_unfold (t := k8s_io.apimachinery.pkg.runtime.Codec.ty)).trans '
                 '(go.underlying_unfold (t := k8s_io.apimachinery.pkg.runtime.Serializer.ty))⟩'],
             '$end': ['try wp_auto', 'repeat (wp_alloc_anon; try wp_auto)']})
+# (prove-k8s3, 2026-11-21) grpclog's `internal`, imported (types only) so that grpclog's `LoggerV2`
+# is its interface: its variables' initializers, translated.
+SPECIAL['google_golang_org.grpc.grpclog.internal'] = dict(doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+their translated initializers (prove-k8s3, 2026-11-21): `severityName`, a slice literal, and the
+function values `sprintf`, `sprint`, `sprintln` (`fmt`'s) and `exit` (`os.Exit`).''',
+    alloc_types=_ALLOC_ANY,
+    before={'severityName': ['try wp_auto',
+                'wp_apply (wp_slice_literal (l := [go!"INFO", go!"WARNING", go!"ERROR", go!"FATAL"])); '
+                'isplitr; (· ipureintro; rfl); iintro %sn -',
+                'try wp_auto']})
 SPECIAL['k8s_io.apimachinery.pkg.util.wait'] = dict(doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
 their translated initializers (prove-k8s, 2026-11-20; until then the trust-boundary axiom
 `opaqueInitsOk`): `ErrWaitTimeout` (`ErrorInterrupted` of an `errors.New` error, translated),

@@ -53,12 +53,19 @@ was passed: on an error, with auth on, the request side's reasons (`AuthInfoFrom
 `chk`'s refusal of the auth info the request side gave (`infoWhy`: the anonymous one, or one bound to
 the request), or the revision re-check's (`oldRevWhy`: a state no older than `n` whose revision is
 not the info's); `serialWhy`. `R := fun _ _ => True` and `n = 0` give back the reason-free triple, with the premises `srvAuthLb s E`
-and `□ auth.authPubLbM E.authMode 0` added (`specOff` discharges both with auth off). -/
+and `□ auth.authPubLbM E.authMode 0` added (`specOff` discharges both with auth off).
+
+(auth-mediation M3, 2026-11-21; decided by etcd-grove-03: a stronger proved spec) **`get` runs after
+the check passed**: `get` is given what the passed `chk` established, `C info` of the auth info it saw
+with `infoBoundM` (`C` persistent, a Lean premise: every caller's is), so that a `get` that sends
+(`RangeStream`'s pages) can show each send passed the check; and `chk` may read the caller's frame `G`
+(given back), so that it can read a request `get` later rewrites. -/
 abbrev EtcdServer.doSerialize.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF))
     (tok : Option GoString) (chk get : GoFunc) (G Q : IProp GF)
     (C : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF)
+    [∀ info, Persistent (C info)]
     (R : go_etcd_io.etcd.server.v3.auth.AuthInfo → GoInterface → IProp GF) (t : Loc) (e : Bool) (n : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvAuthLb s E ∗
@@ -66,10 +73,11 @@ abbrev EtcdServer.doSerialize.spec : Prop :=
       □ (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ctx) tok) ∗
       traceutil.ctxTraceIs ctx (some t) ∗
       (∀ (a : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac),
-        {{ a ↦{dq} info ∗ E.RD }} (App (Val #chk) (Val #a))
-        {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ E.RD ∗ authApplyErrIs err ∗
+        {{ a ↦{dq} info ∗ E.RD ∗ G }} (App (Val #chk) (Val #a))
+        {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ E.RD ∗ G ∗ authApplyErrIs err ∗
             (∀ _ : err = GoInterface.nil, C info) ∗ (∀ _ : err ≠ GoInterface.nil, R info err) }}) ∗
-      {{ G ∗ traceutil.ownTrace t e }} (App (Val #get) (Val #())) {{ RET #(); Q }} ∗ G ∗
+      {{ G ∗ traceutil.ownTrace t e ∗ (∃ info, C info ∗ infoBoundM E.authOn s E tok info) }}
+        (App (Val #get) (Val #())) {{ RET #(); Q }} ∗ G ∗
       traceutil.ownTrace t e ∗ E.RD }}
     (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"doSerialize"))
       (Val #(GoInterface.ok ctx))) (Val #chk)) (Val #get))

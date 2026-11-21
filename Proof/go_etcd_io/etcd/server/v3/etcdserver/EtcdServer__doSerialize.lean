@@ -108,7 +108,7 @@ theorem EtcdServer.doSerialize.wp_proof
     (hAI : EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
     (hStep : traceutil.Trace.Step.spec (GF := GF) (hG := hG)) :
     EtcdServer.doSerialize.spec (GF := GF) (hG := hG) := by
-  intro s E ρ γr ctx cd tok chk get G Q C R t e n
+  intro s E ρ γr ctx cd tok chk get G Q C hC R t e n
   wp_start as ⟨#Hsrv, #Hrd, #HaLb, #Hpub, #Hctx, #Hlib, #HtokC, #Hct, #Hchk, #Hget, HG, Htrc, Hard⟩
   ihave ⟨⟨%v, #Hv⟩, #HsrvB⟩ := (isServerReqM_split _ _ _ _).1 $$ Hsrv
   iunfold srvReqFieldsAtM at Hv
@@ -181,10 +181,10 @@ theorem EtcdServer.doSerialize.wp_proof
           iframe Hai0; iapply Hab $$ %hon
         · iapply Hnn $$ %hon %Hif
     wp_bind (App (Val #chk) (Val #a'))
-    iapply Hchk $$ [Hai Hard]
+    iapply Hchk $$ [Hai Hard HG]
     · iframe
     inext
-    iintro %err' ⟨Hai, Hard, #HcE, HC, HR⟩
+    iintro %err' ⟨Hai, Hard, HG, #HcE, HC, HR⟩
     wp_auto
     cases err' with
     | ok ei =>
@@ -204,12 +204,13 @@ theorem EtcdServer.doSerialize.wp_proof
       wp_auto
       wp_apply hStep t e _ slice.nil $$ [$Htrc] as Htrc
       · iapply traceutil.ownFields_nil
+      ihave #HCi := HC $$ %rfl
       wp_bind (App (Val #get) (Val #()))
       iapply Hget $$ [HG Htrc]
       · iframe HG Htrc
+        iexists info; iframe HCi Hib
       inext
       iintro HQ
-      ihave HCi := HC $$ %rfl
       wp_auto
       iStructNamed Hai
       icombine Has Has2 gives %Heq
