@@ -26,9 +26,10 @@ call options, `callOptsAt`) and the retry defaults `defaultUnaryMaxRetries`,
 `defaultBackoffWaitBetween`, `defaultBackoffJitterFraction`, never written: a premise until
 package initialization (item 8) proves them part of `clientv3`'s fact.
 
-**The resolver** (`etcdResolverOwn r eps`, exclusive, axiomatized): the client's
-`*EtcdManualResolver` `r` (`internal/resolver`, names only), not yet dialed, with the endpoints
-`eps`; `resolver.New` makes it, `SetEndpoints` sets them (axioms), and dialed with plain
+**The resolver** (`etcdResolverOwn r eps`, exclusive; prove-grpc3, 2026-11-21: until then
+axiomatized): the client's `*EtcdManualResolver` `r` (`internal/resolver`, `New` and `SetEndpoints`
+translated with grpc's `resolver/manual`), not yet dialed, with the endpoints `eps`; `resolver.New`
+makes it (and `etcdResolverCloser r`, what `Close` needs), `SetEndpoints` sets them (proved), and dialed with plain
 endpoints it is grpc's resolver of the scheme `etcd-endpoints` to those addresses
 (`etcdResolver_grpc`, an axiom: `Build`'s initial state is `state()`'s, one `resolver.Endpoint` per
 endpoint at `endpoint.Interpret(ep)`, which is `ep` for a plain endpoint).
@@ -86,10 +87,50 @@ def etcdScheme : GoString := go!"etcd-endpoints"
 
 end pure
 
-/-- **etcd's resolver `r`, not yet dialed, with the endpoints `eps`** (exclusive; an axiomatized
-predicate; see the file header). -/
-axiom etcdResolverOwn {GF : BundledGFunctors} [GooseExts] (r : Loc) (eps : List GoString) :
-  IProp GF
+section resolverOwn
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+open go_etcd_io.etcd.client.v3.internal.resolver (EtcdManualResolver)
+open google_golang_org.grpc.resolver.manual (Resolver)
+
+/-- **The lock invariant of the manual resolver `mr`'s mutex** (prove-grpc3, 2026-11-21): half of its
+`cc` field (the other half is `etcdResolverOwn`'s while the resolver is not dialed) and its
+`lastSeenState`, the fields grpc's `manual.Resolver` reads and writes under `mu` (`Build`,
+`UpdateState`, `CC`; grpc v1.84.0 `resolver/manual/manual.go:60-66`). -/
+def manualResolverLockInv (mr : Loc) : IProp GF :=
+  iprop(∃ (cc : GoInterface) (ls : Loc),
+    mr.[Resolver, go!"cc"] ↦{DFrac.own (Qp.half 1)} cc ∗ mr.[Resolver, go!"lastSeenState"] ↦ ls)
+
+/-- **etcd's resolver `r`, not yet dialed, with the endpoints `eps`** (exclusive; prove-grpc3,
+2026-11-21: until then an axiomatized predicate): the `*EtcdManualResolver` `New` builds (grpc's
+`manual.Resolver` `mr` embedded, `client/v3/internal/resolver/resolver.go:31-41`): half of its
+`Resolver` field (the other half is `etcdResolverCloser`'s), its `endpoints` (a slice of `eps`,
+read-only) and its `serviceConfig` (`nil` until `Build`), the mutex of `mr` with its lock invariant,
+and half of `mr.cc`, `nil`: not yet built by grpc (`CC()` panics, which `getCC` recovers, so
+`SetEndpoints` sends grpc no state). -/
+def etcdResolverOwn (r : Loc) (eps : List GoString) : IProp GF :=
+  iprop(∃ (mr : Loc) (sl : GoSlice), ⌜r ≠ null⌝ ∗
+    r.[EtcdManualResolver, go!"Resolver"] ↦{DFrac.own (Qp.half 1)} mr ∗
+    r.[EtcdManualResolver, go!"endpoints"] ↦ sl ∗ sl ↦*□ eps ∗
+    r.[EtcdManualResolver, go!"serviceConfig"] ↦ (null : Loc) ∗
+    sync.isMutex mr.[Resolver, go!"mu"] (manualResolverLockInv mr) ∗
+    mr.[Resolver, go!"cc"] ↦{DFrac.own (Qp.half 1)} GoInterface.nil)
+
+/-- **The right to close etcd's resolver `r`** (exclusive; prove-grpc3, 2026-11-21): the other half
+of its `Resolver` field and that manual resolver's `CloseCallback`, never written after
+`NewBuilderWithScheme` (grpc v1.84.0 `manual.go:53-55`: "Must not be changed after the resolver may
+be built"), a function that returns (`func() {}`, `manual.go:37`). What `r.Close()` (promoted from
+`*manual.Resolver`, `manual.go:103-105`) needs; `New` gives it. -/
+def etcdResolverCloser (r : Loc) : IProp GF :=
+  iprop(∃ (mr : Loc) (f : GoFunc),
+    r.[EtcdManualResolver, go!"Resolver"] ↦{DFrac.own (Qp.half 1)} mr ∗
+    mr.[Resolver, go!"CloseCallback"] ↦ f ∗
+    □ (∀ Φ : val → IProp GF, ▷ Φ #() -∗ WP (App (Val #f) (Val #())) {{ Φ }}))
+
+end resolverOwn
 
 section addrs
 variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
@@ -111,7 +152,8 @@ endpoint per endpoint at `endpoint.Interpret(ep)` (`translateEndpoint`'s address
 a plain one), with the round-robin service config (each attempt to one of them; no retry policy,
 which `grpcResolverAt` claims since k8s 7e-1); its scheme is
 `Schema`. One plain endpoint until 2026-10-21 (`notes/decisions.md` D27). -/
-axiom etcdResolver_grpc {GF : BundledGFunctors} [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+axiom etcdResolver_grpc [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
+    {GF : BundledGFunctors} [HeapGS HasLC.hasLC GF] [go.Semantics]
     (r : Loc) (eps : List GoString) :
   plainEndpoints eps →
     (etcdResolverOwn (GF := GF) r eps ⊢ grpcResolverAt (resolverIface r) etcdScheme eps)

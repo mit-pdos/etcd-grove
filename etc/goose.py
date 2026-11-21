@@ -573,6 +573,11 @@ PROJECTS = [
             "google.golang.org/grpc/keepalive",
             "google.golang.org/grpc/credentials/insecure",
             "google.golang.org/grpc/resolver",
+            # (prove-grpc3, 2026-11-21) with bodies: the manual resolver etcd's resolver embeds;
+            # types only: the types of its and grpc's resolver state's fields
+            "google.golang.org/grpc/resolver/manual",
+            "google.golang.org/grpc/serviceconfig",
+            "google.golang.org/grpc/attributes",
             "crypto/tls",
             # types only (the interfaces `Hash`, `Hash32`, ...): the type of mvcc's
             # `kvHasher.hash` field, so that Goose translates `kvHasher`

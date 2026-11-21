@@ -1,0 +1,7 @@
+# Types only (prove-grpc3, 2026-11-21): `Attributes`, the type of fields of grpc's
+# `resolver.State`, `Address` and `Endpoint`.
+translate = ["!*"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true
