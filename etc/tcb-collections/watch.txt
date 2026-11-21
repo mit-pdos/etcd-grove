@@ -54,8 +54,6 @@ axiom proto.Marshal.wp_proof
 axiom proto.Unmarshal.wp_proof
 axiom rand.Int63n.wp_proof
 axiom reflect.DeepEqual.wp_proof_pgidSet
-axiom rpctypes.errDesc_etcdError
-axiom rpctypes.errDesc_wrapError
 axiom sort.SliceIsSorted.wp_proof
 axiom sort.Sort.wp_anyLess
 axiom sort.Stable.wp_proof

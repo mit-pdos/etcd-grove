@@ -23,7 +23,6 @@ axiom proto.Marshal.wp_proof
 axiom proto.Size.wp_proof
 axiom proto.Unmarshal.wp_proof
 axiom reflect.DeepEqual.wp_proof_pgidSet
-axiom rpctypes.errDesc_wrapError
 axiom semver.MustParse.wp_proof
 axiom semver.Version.LessThan.wp_proof
 axiom semver.Version.String.wp_proof

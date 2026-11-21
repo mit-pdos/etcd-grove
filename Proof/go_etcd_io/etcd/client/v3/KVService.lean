@@ -1023,7 +1023,7 @@ context's error, which `ContextError` returns as it is (of a context error's sha
 def rangeErrOut (ms : List (SrvAt GF)) (c : w64) (F : mvcc.Log) (o : OpFull)
     (Q : KVState → IProp GF) (err : GoInterface) : IProp GF :=
   iprop(⌜err ≠ GoInterface.nil ∧ ∀ x ∈ ms, noRefusalAt x.addr⌝ →
-    (rangeErrΨ ms c F o Q (go_etcd_io.etcd.cache.v3.errDesc err) ∨
+    ((∃ d : GoString, go_etcd_io.etcd.cache.v3.descIs err d ∗ rangeErrΨ ms c F o Q d) ∨
       ⌜∃ e : GoInterfaceOk, err = GoInterface.ok e ∧ go_etcd_io.etcd.cache.v3.ctxErrShape e⌝))
 
 instance rangeErrOut_persistent (ms : List (SrvAt GF)) (c : w64) (F : mvcc.Log) (o : OpFull)
@@ -1035,10 +1035,12 @@ description (a description that is no handler's is neither of `rangeErrΨ`'s). -
 theorem rangeErrΨ_of_ifc (ms : List (SrvAt GF)) (c : w64) (F : mvcc.Log) (o : OpFull)
     (Q : KVState → IProp GF) (err : GoInterface) (h : ∀ x ∈ ms, noRefusalAt x.addr) :
     ifcErrOut go!"/etcdserverpb.KV/Range" (ms.map SrvAt.addr) (rangeErrΨ ms c F o Q) err ⊢
-      rangeErrΨ ms c F o Q (go_etcd_io.etcd.cache.v3.errDesc err) := by
+      ∃ d : GoString, go_etcd_io.etcd.cache.v3.descIs err d ∗ rangeErrΨ ms c F o Q d := by
   unfold ifcErrOut
-  iintro H
-  by_cases hm : go_etcd_io.etcd.cache.v3.errDesc err ∈ handlerDescs
+  iintro ⟨%d, #Hd, H⟩
+  iexists d
+  iframe Hd
+  by_cases hm : d ∈ handlerDescs
   · iapply H
     · ipureintro
       refine ⟨⟨go!"Range", rfl⟩, ?_⟩
