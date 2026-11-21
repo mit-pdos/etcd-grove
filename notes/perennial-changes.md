@@ -17,6 +17,23 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Goose keeps a struct axiomatized when a field's type is another package's alias (2026-11-21, prove-k8s4)
+
+- **Limitation.** `translate_types` fails a type whose definition mentions an alias of another package
+  (`goose/util/autotypes.go`: "alias from another package"), whatever that package's translation does with
+  the alias. So `watch.FakeWatcher`/`RaceFreeFakeWatcher` (field `logger klog.Logger`, klog translating
+  `Logger = logr.Logger`) stay opaque, and the `var _ Interface = &FakeWatcher{}` checks of `watch`'s
+  initializer cannot be stepped: `watch.opaqueInitsOk` stays.
+- **Workaround.** None: the axiom stays.
+- **Proposed change.** Goose decides such an alias with the imported package's own translation decision
+  (its configuration in the same configuration directory, extended by `ExtendFilter`); prototype on Perennial
+  branch `goose-xpkg-alias` (`/shared/tmp/k8s4/perennial-xa`, not pushed), plan
+  `/shared/tmp/k8s4/goose-xpkg-alias-plan.md`, with the goose example `xpkgalias`. A goose change: it waits
+  for the user's sign-off (Perennial's `fix-semantics` skill). Then `watch.toml` imports `sync` and klog and
+  translates `DefaultChanSize` and `_` (`/shared/tmp/k8s4/watch-toml.patch`), and gen-init proves `watch`'s
+  initializer.
+- **Status.** Open (plan written, not signed off).
+
 ### Float facts: `FloatOps` has no laws, so no float-dependent panic can be excluded (2026-11-20, prove-promdeep)
 
 - **Limitation.** `FloatOps` (`Perennial/Golang/Defn/PostLang.lean`) is a field of the semantics class with no laws:
@@ -1767,6 +1784,17 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Status.** Recorded only.
 
 ## Landed
+
+### `strings.NewReplacer` and `Replacer` not translated (2026-11-21, prove-k8s4; landed 2026-11-21, Perennial `60800ea5e`; pinned as `b3f7173f8`)
+
+- **Missing.** Perennial's `strings` translated neither `NewReplacer` nor `Replacer`'s definition (its `once
+  sync.Once` and `r replacer` fields: `strings.toml` imported neither `sync` nor `io`).
+- **Needed by.** k8s `fields`' `valueEscaper = strings.NewReplacer(...)` (`fields.opaqueInitsOk`).
+- **Change.** `strings.toml` translates `NewReplacer` and imports `sync` and `io` (as Go's `strings` does);
+  `strings.NewReplacer.spec` (an even number of strings: a new `Replacer` holding a copy, `strings.ownReplacer`)
+  proved; `strings.initialize'.wp_proof` takes io's and sync's init specs. On Perennial `lean` as `60800ea5e`;
+  the pin is `b3f7173f8` (branch `etcd-grove-pin-k8s4`: `c8e356cb1` with it cherry-picked, since lean's
+  commits in between need etcd-grove changes of their own).
 
 ### Goose: a struct field (or type argument) of type `rune` fails to translate (2026-11-20, prove-b64clock; landed 2026-11-21, Perennial `1a1bb0633`, `ef31258ab`, `c8e356cb1`; pin bumped 2026-11-21)
 
