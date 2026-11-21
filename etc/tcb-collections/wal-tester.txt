@@ -25,8 +25,5 @@ axiom proto.SizePb.wp_proof
 axiom proto.UnmarshalPb.wp_proof
 axiom recEncC_ok
 axiom snapEncC_ok
-axiom time.Duration.Seconds.wp_proof
-axiom time.Duration.Seconds_ptr.wp_proof
 axiom zap.Logger.check.wp_proof
-axiom zap.NewNop.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof

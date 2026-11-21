@@ -10,7 +10,7 @@ putgetN's generic start (`putgetN/Defs.lean`).
 `127.0.0.1:(28000+i)` (`bridgeAt`, `bridges k`).
 
 **The pure facts** (`BootFacts`, putgetN's): the member ids `ids` in the members' order (etcd's,
-from each peer URL and the cluster token `txnlinfaultsN-6255`; `TestMemberIDs` checks their 16 low
+from each peer URL and the cluster token `txnlinfaultsN-12748`; `TestMemberIDs` checks their 16 low
 bits distinct and not `0` for every `k ≤ 1000`), the peers `ps` in `bootstrap`'s order, a
 permutation of the ids, and the bootstrap log.
 
@@ -50,7 +50,7 @@ variable [GooseExts]
 abbrev members (k : Nat) : List GMember := membersOf go!"txnlinfaultsN" k (W64 26000) (W64 27000)
 
 /-- The cluster's token (`Token`). -/
-abbrev token : GoString := go!"txnlinfaultsN-6255"
+abbrev token : GoString := go!"txnlinfaultsN-12748"
 
 /-- **Member `i`'s bridge address** (`bridgeAddr(i)`): `127.0.0.1:(28000+i)`. -/
 def bridgeAt (i : w64) : GoString := go!"127.0.0.1:" ++ decStr (W64 28000 + i)

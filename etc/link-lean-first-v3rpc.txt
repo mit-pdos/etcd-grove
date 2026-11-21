@@ -53,9 +53,10 @@ headerFillingRangeStream__Send: header__fillWithoutRevision
 # `applyErrIs`'s tree (`applyErrIs_walk`): Go tests `errors.Is(err, ErrLeaseNotFound)` twice.
 LeaseServer__LeaseTimeToLive: =_root_.Perennial.errors.wp_Is togRPCError header__fill
 LeaseServer__LeaseLeases: =_root_.Perennial.errors.wp_Is togRPCError header__fill
-# Not verified: `kvServer.RangeStream` (the server's `RangeStream`, the streaming read, is out of
-# the request path's model: no contract for it) and `kvServer.Compact` (`AuthAdmin.isPermitted`
-# and the server's `Compact`: compaction is out of the model, as in the apply package).
+# auth-mediation M3 (2026-11-21): `kvServer.RangeStream`, over the server's `RangeStream` (linked
+# in the server's Link: `@`) with the stream wrapped (`headerFillingRangeStream.Send`).
+EtcdServer__RangeStream: @
+kvServer__RangeStream: checkRangeStreamRequest togRPCError headerFillingRangeStream__Send EtcdServer__RangeStream
 #
 # Unit P3b: the server end of the gRPC boundary (notes/decisions.md, "The server end of the gRPC
 # boundary"). The generated server-side handlers of the KV service (api/etcdserverpb/

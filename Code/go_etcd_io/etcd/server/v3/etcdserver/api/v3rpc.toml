@@ -18,6 +18,9 @@ translate = ["!*",
   "kvServer", "NewKVServer", "kvServer.Range", "kvServer.RangeStream", "kvServer.Put",
   "kvServer.DeleteRange", "kvServer.Txn", "kvServer.Compact",
   "headerFillingRangeStream", "headerFillingRangeStream.Send",
+  # (auth-mediation M3, 2026-11-21) the wrapper's promoted `Context` (the embedded stream's), which
+  # `EtcdServer.RangeStream` calls on it
+  "headerFillingRangeStream.Context",
   "checkRangeRequest", "checkRangeStreamRequest", "checkPutRequest", "checkDeleteRequest",
   "checkTxnRequest", "checkIntervals", "checkRequestOp",
   # header.go

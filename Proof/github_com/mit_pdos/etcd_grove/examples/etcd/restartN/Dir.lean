@@ -1,7 +1,7 @@
 /-
 **restartN's members, addresses and directory: the pure facts** (`notes/restartN-plan.md`). Lean-first
 (no Rocq counterpart). putgetN's (`putgetN/Dir.lean`) at restartN's members (`Members("restartN", k,
-29000, 30000)`), for `k ≤ 1000`: the names distinct and valid UTF-8, the peer addresses distinct plain
+14000, 15000)`), for `k ≤ 1000`: the names distinct and valid UTF-8, the peer addresses distinct plain
 peer URLs and loopback literals (the program's addresses: no client address is served); the directory
 facts are putgetN's `dirN_*`, which hold for any members.
 -/
@@ -26,7 +26,7 @@ section pure
 variable [GooseExts]
 
 theorem members_mem (k : Nat) (m : GMember) (h : m ∈ members k) :
-    ∃ i, i < k ∧ m = memberAt go!"restartN" (W64 29000) (W64 30000) (W64 (i : Int)) := by
+    ∃ i, i < k ∧ m = memberAt go!"restartN" (W64 14000) (W64 15000) (W64 (i : Int)) := by
   unfold members membersOf at h
   obtain ⟨i, hi, rfl⟩ := List.mem_map.1 h
   exact ⟨i, List.mem_range.1 hi, rfl⟩
@@ -55,7 +55,7 @@ theorem members_peers_nodup (k : Nat) (hk : k ≤ 1000) : ((members k).map (·.P
   simp only [Function.comp, memberAt] at h
   have h' := decStr_inj (List.append_cancel_left h)
   have := congrArg BitVec.toNat h'
-  rw [show (W64 29000 : w64) = W64 ((29000 : Nat) : Int) from rfl,
+  rw [show (W64 14000 : w64) = W64 ((14000 : Nat) : Int) from rfl,
     etcd_putgetN.port_toNat _ _ (by omega) (by omega),
     etcd_putgetN.port_toNat _ _ (by omega) (by omega)] at this
   exact hne (by omega)
@@ -66,8 +66,8 @@ theorem members_peer_plain (k : Nat) : ∀ m ∈ members k, types.plainPeerURL (
   exact etcd_putgetN.loopback_plain _
 
 theorem member_port (k : Nat) (m : GMember) (hm : m ∈ members k) :
-    ∃ i, i < k ∧ m.Peer' = go!"127.0.0.1:" ++ decStr (W64 ((29000 + i : Nat) : Int)) ∧
-      m.Client' = go!"127.0.0.1:" ++ decStr (W64 ((30000 + i : Nat) : Int)) := by
+    ∃ i, i < k ∧ m.Peer' = go!"127.0.0.1:" ++ decStr (W64 ((14000 + i : Nat) : Int)) ∧
+      m.Client' = go!"127.0.0.1:" ++ decStr (W64 ((15000 + i : Nat) : Int)) := by
   obtain ⟨i, hi, rfl⟩ := members_mem k m hm
   refine ⟨i, hi, ?_, ?_⟩ <;> simp only [memberAt] <;> congr 2 <;> apply BitVec.eq_of_toNat_eq <;>
     simp [W64] <;> omega

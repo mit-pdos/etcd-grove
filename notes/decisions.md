@@ -41545,3 +41545,28 @@ bare invoker's errors are built by grpc (`status.FromProto(...).Err()`, `status.
 variable. Not a new axiom; a fact added to an existing axiom's post.
 
 **Top-level statements**: none names `errDesc`; their texts are unchanged (only the definitions above moved).
+
+## zap's `loggerRaw` split: `NewNop`'s loggers defined, the others opaque (2026-11-21 · group `zap3` · branch `prove-zap3/2026-11-21`)
+
+**The change.** `zap.loggerRaw l` (`Spec/go_uber_org/zap/Defs.lean`), until then opaque, is now
+`zap.nopLogger l ∨ zap.loggerOther l`: `nopLogger` is defined (a persistent points-to of a `Logger`
+whose core is zapcore's `nopCore`, not in development mode, adding no caller, default terminal hooks:
+`zap.nopLoggerVal`), `loggerOther` opaque, with the old docstring's meaning minus `NewNop`. So the set
+of loggers `zapLoggerOk` covers is unchanged (no caller-visible spec moves), and `zap.NewNop`'s spec is
+proved over zap's code (`Proof/go_uber_org/zap/NewNop.lean`, over `zap_wp_NewNop_init`, whose post now
+gives `nopLoggerVal`).
+
+**Why not define `loggerRaw` as `NewNop`'s loggers only.** Every verified program's logger is
+`NewNop()`'s, and with that definition `Logger.check`, `Panic`, `CheckedEntry.Write` (its `zapEntry`
+then never produced below `DPanicLevel`) could be proved too; but every spec taking `zapLoggerOk`
+(`NewServer`, the WAL, mvcc, the client) would then cover nop loggers only: a weaker spec, which the
+proving briefs exclude without the user's decision. With the split, `check`/`Panic`/`Fatal`/`Write`
+keep their axioms over all of `zapLoggerOk`; proving their nop case alone would narrow, not retire, them.
+(`Fatal` also needs `os.Exit`, names-only in Perennial; `Panic`'s nop case needs zapcore's `_cePool`
+as an `isPool` in zapcore's fact and `pool.New`/`Get`/`Put` specs over `sync.Pool`'s.)
+
+**The docstring's meaning sharpened.** The old `loggerRaw` admitted `ioCore` over any non-nil write
+syncer and encoder; one that panics (a user `WriteSyncer`) makes `check`'s and `Write`'s axioms false
+of Go. `loggerOther` requires zap's own encoders, write syncers and level enablers, or ones whose
+methods return without panicking. No proof depended on the looser reading (only `NewNop` produces
+`zapLoggerOk`).

@@ -99,7 +99,6 @@ axiom status.Status.Code.wp_proof
 axiom streamKeyFromCtx.wp_proof
 axiom strings.Contains.wp_proof
 axiom strings.SplitN.wp_proof
-axiom time.Duration.Seconds.wp_proof
 axiom tracing.Span.AddEvent.wp_proof
 axiom tracing.Span.End.wp_proof
 axiom tracing.Start.wp_proof

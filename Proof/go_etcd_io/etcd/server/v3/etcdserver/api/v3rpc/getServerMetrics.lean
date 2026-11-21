@@ -64,8 +64,8 @@ theorem v3rpc.getServerMetrics.wp_proof
   wp_if_destruct
   · (try wp_auto)
     wp_join iprop(∃ (msl : GoSlice) (os : List GoFunc), mopts_ptr ↦ msl ∗ msl ↦*□ os ∗
-        ⌜∀ o ∈ os, promSrvMetricsOpt o⌝) with [mopts] as ⟨%msl, %os, mopts, #Hos, %Hos⟩
-    · wp_apply hHist as %o %Ho
+        □ ([∗list] o ∈ os, promSrvMetricsOpt o)) with [mopts] as ⟨%msl, %os, mopts, #Hos, #Hos'⟩
+    · wp_apply hHist as %o #Ho
       (try wp_auto)
       wp_apply wp_slice_literal (V := GoFunc) (l := [o])
       isplitr
@@ -82,21 +82,18 @@ theorem v3rpc.getServerMetrics.wp_proof
       · ipureintro; rfl
       iexists s', [o]
       iframe
-      ipureintro
-      intro o' ho'
-      simp only [List.nil_append, List.mem_singleton] at ho'
-      subst ho'; exact Ho
+      imodintro
+      iapply BigSepL.bigSepL_singleton.2; iexact Ho
     · (try wp_auto)
       iexists slice.nil, []
       iframe
       isplitl []
       · iapply (ownSlice_nil (V := GoFunc) (GF := GF) DFrac.discard)
-      ipureintro
-      intro o' ho'
-      simp at ho'
+      imodintro
+      iapply BigSepL.bigSepL_nil.2; itrivial
     (try wp_auto)
     wp_apply (hNew msl os) as %m' ⟨%Hm', #Hmet⟩
-    · iframe #; ipureintro; exact Hos
+    · iframe #
     (try wp_auto)
     wp_apply (hReg m') as %err -
     · iframe #

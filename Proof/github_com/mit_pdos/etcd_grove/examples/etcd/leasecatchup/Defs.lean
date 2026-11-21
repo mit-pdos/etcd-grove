@@ -43,8 +43,9 @@ abbrev clusterCfg : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config 
 theorem clusterCfg_ok : cluster3.cfgOk clusterCfg := by
   constructor <;> dsimp only [clusterCfg] <;> (try unfold plainEndpoint) <;> decide
 
-/-- The TTL every lease is granted with (`grantTTL`, seconds). -/
-abbrev grantTTL : w64 := W64 3600
+/-- The TTL every lease is granted with (`grantTTL`, seconds: etcd's `MaxLeaseTTL`, so that no lease of
+the run expires however long the process runs, `lease.leasesNoExpiry`). -/
+abbrev grantTTL : w64 := W64 9000000000
 
 end pure
 

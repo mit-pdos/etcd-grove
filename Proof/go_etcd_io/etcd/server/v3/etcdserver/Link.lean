@@ -62,6 +62,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__PromoteMemb
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Put
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RaftHandler
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Range
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RangeStream
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RemoveMember
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ReportSnapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ReportUnreachable
@@ -121,6 +122,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__publishV3
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__purgeFile
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__raftRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__raftStatus
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__rangeStream
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__requireAuthInfo
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__restoreAlarms
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__revokeExpiredLeases
@@ -241,6 +243,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedStorage__Cl
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL__MemoryStorage
 public import Proof.internal.bytealg.LastIndexByteString
 public import Proof.github_com.jonboulle.clockwork.NewRealClock
+public import Proof.github_com.jonboulle.clockwork.realClock__After
+public import Proof.github_com.jonboulle.clockwork.realClock__Now
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__BackendPath
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__PeerDialTimeout
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__ReqTimeout
@@ -1204,7 +1208,7 @@ theorem lease.LeaseExpiredNotifier.wp_RegisterOrUpdate :
 
 theorem lease.lessor.wp_scheduleCheckpointIfNeeded :
     lease.lessor.scheduleCheckpointIfNeeded.spec (GF := GF) (hG := hG) :=
-  lease.lessor.scheduleCheckpointIfNeeded.wp_proof
+  lease.lessor.scheduleCheckpointIfNeeded.wp_proof lease.Lease.wp_getRemainingTTL time.Duration.wp_Seconds lease.LeaseQueue.wp_Len lease.LeaseQueue.wp_Less lease.LeaseQueue.wp_Swap lease.LeaseQueue.wp_Push heap.wp_Push zap.Logger.wp_Debug zap.wp_Int64 zap.wp_Duration _root_.Perennial.time.wp_Now _root_.Perennial.time.Time.wp_Add
 
 theorem version.wp_LessThan :
     version.LessThan.spec (GF := GF) (hG := hG) :=
@@ -2265,6 +2269,14 @@ theorem EtcdServer.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.Range.spec (GF := GF) (hG := hG) :=
   EtcdServer.Range.wp_proof traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_String «attribute».wp_Int64 «attribute».wp_Bool RangeRequest.wp_GetKey RangeRequest.wp_GetRangeEnd RangeRequest.wp_GetRevision RangeRequest.wp_GetLimit RangeRequest.wp_GetCountOnly RangeRequest.wp_GetKeysOnly EtcdServer.wp_Logger traceutil.wp_EnsureTrace txn.wp_WarnOfExpensiveReadOnlyRangeRequest traceutil.Trace.wp_AddField traceutil.Trace.wp_LogIfLong strconv.wp_FormatBool time.Duration.wp_Seconds prometheus.HistogramVec.wp_WithLabelValues traceutil.Trace.wp_Step EtcdServer.wp_KV txn.wp_Range mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds EtcdServer.wp_doSerialize RangeRequest.wp_String proto.wp_Size
 
+theorem EtcdServer.wp_rangeStream :
+    EtcdServer.rangeStream.spec (GF := GF) (hG := hG) :=
+  EtcdServer.rangeStream.wp_proof
+
+theorem EtcdServer.wp_RangeStream :
+    EtcdServer.RangeStream.spec (GF := GF) (hG := hG) :=
+  EtcdServer.RangeStream.wp_proof traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_String «attribute».wp_Int64 «attribute».wp_Bool RangeRequest.wp_GetKey RangeRequest.wp_GetRangeEnd RangeRequest.wp_GetRevision RangeRequest.wp_GetLimit RangeRequest.wp_GetCountOnly EtcdServer.wp_Logger traceutil.wp_EnsureTrace traceutil.Trace.wp_Step EtcdServer.wp_doSerialize EtcdServer.wp_rangeStream
+
 theorem EtcdServer.wp_RemoveMember :
     EtcdServer.RemoveMember.spec (GF := GF) (hG := hG) :=
   EtcdServer.RemoveMember.wp_proof EtcdServer.wp_checkMembershipOperationPermission raftpb.ConfChangeType.wp_Enum
@@ -2949,9 +2961,17 @@ theorem bootstrappedWAL.wp_MemoryStorage :
     bootstrappedWAL.MemoryStorage.spec (GF := GF) (hG := hG) :=
   bootstrappedWAL.MemoryStorage.wp_proof srvApi_wp_NewMemoryStorage MemoryStorage.wp_ApplySnapshot srvApi_wp_MemSetHardState srvApi_wp_MemAppend
 
+theorem clockwork.realClock.wp_Now :
+    clockwork.realClock.Now.spec (GF := GF) (hG := hG) :=
+  clockwork.realClock.Now.wp_proof _root_.Perennial.time.wp_Now
+
+theorem clockwork.realClock.wp_After :
+    clockwork.realClock.After.spec (GF := GF) (hG := hG) :=
+  clockwork.realClock.After.wp_proof _root_.Perennial.time.wp_After
+
 theorem clockwork.wp_NewRealClock :
     clockwork.NewRealClock.spec (GF := GF) (hG := hG) :=
-  clockwork.NewRealClock.wp_proof
+  clockwork.NewRealClock.wp_proof clockwork.realClock.wp_Now clockwork.realClock.wp_After
 
 theorem membership.RaftCluster.wp_String :
     membership.RaftCluster.String.spec (GF := GF) (hG := hG) :=
@@ -3043,7 +3063,7 @@ theorem probing.wp_NewProber :
 
 theorem rate.wp_Every :
     rate.Every.spec (GF := GF) (hG := hG) :=
-  rate.Every.wp_proof
+  rate.Every.wp_proof time.Duration.wp_Seconds_ptr
 
 theorem rafthttp.streamWriter.wp_writec :
     rafthttp.streamWriter.writec.spec (GF := GF) (hG := hG) :=

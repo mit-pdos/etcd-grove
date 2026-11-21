@@ -3615,6 +3615,23 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Decision.** Decided by etcd-grove-03 (2026-11-21: a stronger proved spec); the `G` frame on `chk`, the obvious
   filling (a weaker requirement on the caller's `chk`), decided by the M3 agent.
 
+## 2026-11-21: the request's readers take it read-only; the streamed request is owned (auth-mediation M3)
+
+- **Spec.** `RangeRequest.GetKey.spec`, `GetLimit.spec`, `GetRevision.spec` (`Spec/go_etcd_io/etcd/api/v3/etcdserverpb/`),
+  `txn.HasRevisionFilters.spec`, `v3rpc.checkRangeRequest.spec`, `v3rpc.checkRangeStreamRequest.spec`.
+- **Defect.** Too strong a precondition: each takes the request's `Key`/`Limit`/`Revision` fields read-only (`↦□`,
+  `txn.rangeRequestIs`), though it only reads them; `EtcdServer.RangeStream` and `kvServer.RangeStream` own those three
+  fields (`rangeRequestOwn`: `rangeStream` rewrites them between pages) and cannot call them.
+- **Evidence.** The M3 proofs of `EtcdServer.RangeStream` and `kvServer.RangeStream` (worktree
+  `/shared/etcd-grove-authm3fix`).
+- **Proposed change.** The getters at any fraction `dq` of their field, given back; the three readers over
+  `txn.rangeRequestAt r dq o` (`txn/RequestAt.lean`: `rangeRequestIs` with the three fields at `dq`;
+  `rangeRequestIs_at`, `rangeRequestOwn_at` give the two ends by `rfl`), given back. Stronger specs; the callers at
+  `DFrac.discard` (`Range`, `firstOpKey`, `kvServer.Range`, `checkRequestOp_of`, `rangeLimit`) convert.
+  `SpecPlan`'s getters already take `↦{dq}` (`rangeReqOwn p dq r`).
+- **Decision.** Decided by the M3 agent (a stronger internal proved spec, its callers in the branch; reported to
+  etcd-grove-03 under "Forms decided").
+
 ## 2026-11-21: an admin request refused at apply names no reason at the proposer (auth-mediation M4)
 
 - **Spec.** `adminTieAr` (`Proof/.../etcdserver/KVAuthModel.lean`), through `resultIsWOn`/`resPostM` (the waiter's and
@@ -3799,3 +3816,49 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   and gives back `hp ↦ h ∗ kvHasherOk h` (the value unchanged, where it was some `h'`); `Hash` gives `kvHasherOk h`
   back. The one caller (`store.scheduleCompaction`) threads them.
 - **Decision.** Applied (prove-etcdint3, 2026-11-21).
+
+## 2026-11-21: k8s utils `trace.New` needs its package's initialization; `trace.fromNew` defined (prove-otel4)
+
+- **Spec.** `trace.New.spec` (`Spec/k8s_io/utils/trace/New.lean`, a trust-boundary axiom until this change) and the
+  predicate `trace.fromNew` (`Proof/k8s_io/utils/trace/Defs.lean`, opaque until now), which `Trace.Step`'s and
+  `Trace.LogIfLong`'s specs take.
+- **Defect.** Not provable as stated: `New` is `&Trace{name: name, startTime: time.Now(), fields: fields}`
+  (`k8s.io/utils` `be93311217bd` `trace/trace.go:154-156`), and `time.Now`'s spec takes `isPkgInit time`, which the
+  premise `True` does not give; and its post was the opaque `trace.fromNew t`, which no proof can establish.
+- **Evidence.** The translation (`Code/k8s_io/utils/trace.lean`, `New.impl`, with `time` and `sync` imported so that
+  `Trace` translates as a struct).
+- **Proposed change.** The premise `isPkgInit pkg_id.k8s_io.utils.trace` (which gives `time`'s: `iPkgInit`);
+  `trace.fromNew t := t ≠ null` (what `Step` and `LogIfLong` need: they lock `t.lock` first, a nil receiver panics;
+  any non-nil `*Trace` of a Go program is a `Trace`, and both accept its zero value). The three callers
+  (`RealFIFO.Pop`, `processorListener.run`, `Reflector.list`) have `isPkgInit` of client-go's `cache`, which imports
+  the package: discharged there with no change to their statements.
+- **Decision.** Applied (prove-otel4, 2026-11-21); `trace.New.wp_proof` is a theorem.
+
+## 2026-11-21: the lessor's `scheduleCheckpointIfNeeded` reads the lease's `ID` (prove-pgaps)
+
+- **Spec.** `lease.lessor.scheduleCheckpointIfNeeded.spec` (`Spec/go_etcd_io/etcd/server/v3/lease/`; a trust-boundary
+  axiom until this change, when the method was names only for its float-to-integer conversion).
+- **Defect.** Not provable over the real code: the push's item `&LeaseWithTime{id: lease.ID, ...}` and the debug line's
+  `zap.Int64("leaseID", int64(lease.ID))` load `lease.ID` (`lessor.go:759-766`), and the premise gave no points-to for it.
+- **Evidence.** The translation (`Code/go_etcd_io/etcd/server/v3/lease.lean`, `lessor.scheduleCheckpointIfNeeded.impl`).
+- **Proposed change.** The premise takes `lsF "ID" l ↦□ id` (read-only once granted: `leaseMeta`'s and the lessor
+  invariant's `ID`); its two callers (`Grant`, `Checkpoint`) hold it persistently and pass it. `SpecPlan`'s statement
+  (`lessorFields` and a lease of the lessor's state) already covers it.
+- **Decision.** Applied (prove-pgaps, 2026-11-21): the method is translated and proved, the axiom retired.
+
+## 2026-11-21: the lessor's `Promote` lacks the resources its sort's `Remaining()` takes (prove-pgaps, triage)
+
+- **Spec.** `lease.lessor.Promote.spec` (`Spec/go_etcd_io/etcd/server/v3/lease/lessor__Promote.lean`, a trust-boundary
+  axiom).
+- **Defect.** Not provable as stated over the real code (found triaging it for a proof; the float arithmetic and the
+  float-to-integer conversion step since Perennial `08d191151`): with
+  `leaseRevokeRate` or more leases it runs `sort.Sort(leasesByExpiry(leases))`, whose `Less` calls each lease's
+  `Remaining()`, which read-locks the lease's `expiryMu` (`lease.go`), a reader slot of a bounded pool: `Leases`,
+  which sorts the same way, takes `levelTok leaseLvl`'s pool access, `threadBound GF ≤ 2^30 - 1` and
+  `receiptBound GF ≤ 2^62` (the sort's length bound) for it. `Promote.spec` takes only `lessorInv` and `lessorCfg`.
+- **Evidence.** `lessor.go` (`Promote`: `sort.Sort(leasesByExpiry(leases))`, then `l.Remaining()` in the loop);
+  `lessor__Leases.lean`'s `sorter_byExpiry`.
+- **Proposed change.** `Promote.spec` takes the level-0 token (`levelTok lessorLvl`, given back) and the two bounds,
+  as `Leases.spec` does; the server's callers (`LessorOk.lean`'s contract, `NewServer`'s promotion on becoming
+  leader) supply them. Not applied: it changes the server's lessor contract.
+- **Decision.** Open (the axiom stays).

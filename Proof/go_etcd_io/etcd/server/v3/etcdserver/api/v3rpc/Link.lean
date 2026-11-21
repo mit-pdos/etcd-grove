@@ -132,6 +132,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__Com
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__DeleteRange
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__Put
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__Range
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__RangeStream
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__Txn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.logUnaryRequestStats
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.membersToProtoMembers
@@ -891,6 +892,10 @@ theorem wp_filterNoPut :
 theorem kvServer.wp_Compact :
     EtcdGrove.v3rpc.kvServer.Compact.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.kvServer.Compact.wp_proof AuthAdmin.wp_isPermitted wp_togRPCError header.wp_fill
+
+theorem kvServer.wp_RangeStream :
+    EtcdGrove.v3rpc.kvServer.RangeStream.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.kvServer.RangeStream.wp_proof wp_checkRangeStreamRequest wp_togRPCError headerFillingRangeStream.wp_Send EtcdServer.wp_RangeStream
 
 theorem storage.wp_NewBackendQuota :
     EtcdGrove.storage.NewBackendQuota.spec (GF := GF) (hG := hG) :=

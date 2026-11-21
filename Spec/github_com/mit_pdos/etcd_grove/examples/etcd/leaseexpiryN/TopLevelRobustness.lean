@@ -14,7 +14,6 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.Dir
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.TopLevelDefs
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.TopLevelDefs
 public import Proof.go_etcd_io.etcd.client.v3.DialWithBalancerBody
 public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WalAreasInit

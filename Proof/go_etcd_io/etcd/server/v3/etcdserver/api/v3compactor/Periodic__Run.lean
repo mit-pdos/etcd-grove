@@ -136,7 +136,7 @@ theorem v3compactor.Periodic.Run.wp_proof
     wp_auto
     wp_apply +noauto HNow as %t0 -
     (try wp_auto)
-    icases clockwork.clockLb_init (GF := GF) clockwork.realClock with ⟨%n0, #Hn0⟩
+    icases clockwork.clockLb_init _ _ $$ Hclk with ⟨%n0, #Hn0⟩
     ihave Hinv : iprop(∃ (xs : List w64) (sl : GoSlice) (lr : w64) (ls : time.Time) (bi : time.Duration)
         (n m : Int),
       "Hrevs" ∷ structFieldRef v3compactor.Periodic go!"revs" pc ↦ sl ∗ "Hs" ∷ sl ↦* xs ∗
