@@ -1474,7 +1474,11 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   `Reflector.expectedType` field was elaborated against them: the two instances are incoherent
   (a proof that mixes a struct's `Type'` field with a `Type'` cell would not connect them). Not
   unsound, but only a fix at the source (above) gives one instance.
-- **Status.** Not started.
+- **Status.** Done (2026-11-20, group `reflecttype`, Perennial `090fdac23`): `Perennial/Code/reflect.toml`
+  translates `Type` (`translate = ["!*", "Type"]`), so `reflect.Type'` is `GoInterface` with the
+  interface's method list as its underlying type, and Perennial's interface instances apply; the
+  generated `sorry`s are gone, and with them this repository's `type_intoVal_inj`,
+  `type_typed_pointsto` and `type_into_val_typed` (`Proof/reflect/Values.lean`): one instance.
 
 ### Goose: a names-only package's constants are values of unknown shape
 

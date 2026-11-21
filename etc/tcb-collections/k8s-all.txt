@@ -444,8 +444,6 @@ axiom reflect.Value.Type.wp_proof
 axiom reflect.ValueOf.wp_proof
 axiom reflect.Zero.wp_proof
 axiom reflectM.reflNew_pointsto
-axiom reflectM.type_intoVal_inj
-axiom reflectM.type_into_val_typed
 axiom reflectM.value_intoVal_inj
 axiom reflectM.value_into_val_typed
 axiom resolver.EtcdManualResolver.Close.wp_proof
