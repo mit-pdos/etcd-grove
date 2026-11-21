@@ -158,6 +158,286 @@ theorem kwi_fieldSet (S : Schema) (t : TypeRef) (x : UVal) (hwf : S.WF) (hc : co
     keysWithItems S t (fieldSet S t x) := by
   sorry
 
+/-! ## The trie nodes of a field set (at most the value's nodes) -/
+
+mutual
+/-- The paths of `x`'s nodes (at `p`, of type `t`) that a field set can reach: `p` and its
+children's, along `fieldsAt`'s descent. -/
+def nodesAt (S : Schema) (t : TypeRef) (p : Path) : UVal → PathSet
+  | .list vs => PathSet.union (PathSet.single p) (match S.find t.name with
+    | some (.list e _ ks) => nodesL S e ks p vs
+    | _ => PathSet.empty)
+  | .map kvs => PathSet.union (PathSet.single p) (match S.find t.name with
+    | some (.map fs e _) => nodesM S fs e p kvs
+    | _ => PathSet.empty)
+  | .null => PathSet.single p
+  | .bool _ => PathSet.single p
+  | .int _ => PathSet.single p
+  | .str _ => PathSet.single p
+def nodesL (S : Schema) (e : TypeRef) (ks : List GoString) (p : Path) : List UVal → PathSet
+  | [] => PathSet.empty
+  | v :: vs => match keyOf ks v with
+    | some pe => PathSet.union (nodesAt S e (p ++ [pe]) v) (nodesL S e ks p vs)
+    | none => nodesL S e ks p vs
+def nodesM (S : Schema) (fs : List (GoString × TypeRef)) (e : Option TypeRef) (p : Path) :
+    List (GoString × UVal) → PathSet
+  | [] => PathSet.empty
+  | (k, v) :: kvs => PathSet.union (match fieldType fs e k with
+      | some t => nodesAt S t (p ++ [.field k]) v
+      | none => PathSet.empty) (nodesM S fs e p kvs)
+end
+
+theorem card_single (p : Path) : (PathSet.single p).card ≤ 1 := LawA.card_ins p
+theorem card_pempty : (PathSet.empty).card = 0 := rfl
+theorem card_punion (a b : PathSet) : (PathSet.union a b).card ≤ a.card + b.card :=
+  FSet_card_union_law_holds a b
+
+mutual
+theorem nodesAt_card (S : Schema) (t : TypeRef) (p : Path) :
+    ∀ x : UVal, (nodesAt S t p x).card ≤ x.size
+  | .list vs => by
+    rw [nodesAt, UVal.size]
+    have h1 := card_single p
+    split
+    · next e _ ks _ =>
+      have := nodesL_card S p vs e ks
+      have := card_punion (PathSet.single p) (nodesL S e ks p vs); omega
+    · have := card_punion (PathSet.single p) PathSet.empty; rw [card_pempty] at this; omega
+  | .map kvs => by
+    rw [nodesAt, UVal.size]
+    have h1 := card_single p
+    split
+    · next fs e _ _ =>
+      have := nodesM_card S p kvs fs e
+      have := card_punion (PathSet.single p) (nodesM S fs e p kvs); omega
+    · have := card_punion (PathSet.single p) PathSet.empty; rw [card_pempty] at this; omega
+  | .null => card_single p
+  | .bool _ => card_single p
+  | .int _ => card_single p
+  | .str _ => card_single p
+theorem nodesL_card (S : Schema) (p : Path) :
+    ∀ vs : List UVal, ∀ (e : TypeRef) (ks : List GoString),
+      (nodesL S e ks p vs).card ≤ UVal.sizeL vs
+  | [] => fun e ks => by rw [nodesL, card_pempty]; omega
+  | v :: vs => fun e ks => by
+    have ih := nodesL_card S p vs e ks
+    rw [nodesL, UVal.sizeL]
+    split
+    · next pe _ =>
+      have h1 := nodesAt_card S e (p ++ [pe]) v
+      have h2 := card_punion (nodesAt S e (p ++ [pe]) v) (nodesL S e ks p vs)
+      omega
+    · omega
+theorem nodesM_card (S : Schema) (p : Path) :
+    ∀ kvs : List (GoString × UVal), ∀ (fs : List (GoString × TypeRef)) (e : Option TypeRef),
+      (nodesM S fs e p kvs).card ≤ UVal.sizeM kvs
+  | [] => fun fs e => by rw [nodesM, card_pempty]; omega
+  | (k, v) :: kvs => fun fs e => by
+    have ih := nodesM_card S p kvs fs e
+    rw [nodesM, UVal.sizeM]
+    split
+    · next t _ =>
+      have h1 := nodesAt_card S t (p ++ [.field k]) v
+      have h2 := card_punion (nodesAt S t (p ++ [.field k]) v) (nodesM S fs e p kvs); omega
+    · have h2 := card_punion PathSet.empty (nodesM S fs e p kvs); rw [card_pempty] at h2; omega
+end
+
+theorem mem_single {p q : Path} : q ∈ PathSet.single p ↔ q = p ∧ q ≠ [] := by
+  unfold PathSet.single
+  rw [PathSet_mem_ofList_law_holds]; simp
+
+theorem mem_punion {a b : PathSet} {q : Path} : q ∈ PathSet.union a b ↔ q ∈ a ∨ q ∈ b := by
+  unfold PathSet.union; exact FSet_mem_union_law_holds a b q
+
+theorem not_mem_pempty {q : Path} : q ∉ PathSet.empty := FSet.mem_empty q
+
+theorem self_mem_nodesAt (S : Schema) (t : TypeRef) (p : Path) (hp : p ≠ []) (x : UVal) :
+    p ∈ nodesAt S t p x := by
+  cases x <;> simp only [nodesAt, mem_punion, mem_single] <;> simp [hp]
+
+/-- Between `p` and `r`, below `p`'s child `p ++ [pe]` on the way to `r`: `p`, or below the child. -/
+theorem prefix_step {p q r : Path} {pe : PE} (hpe : p ++ [pe] <+: r) (h1 : p <+: q)
+    (h2 : q <+: r) : q = p ∨ p ++ [pe] <+: q := by
+  by_cases hl : q.length ≤ p.length
+  · exact Or.inl (h1.eq_of_length_le hl).symm
+  · exact Or.inr (List.prefix_of_prefix_length_le hpe h2 (by simp; omega))
+
+mutual
+theorem nodesAt_sub (S : Schema) (t : TypeRef) (p : Path) :
+    ∀ (x : UVal) (r : Path), r ∈ fieldsAt S t p x →
+      p <+: r ∧ ∀ q, p <+: q → q <+: r → q ≠ [] → q ∈ nodesAt S t p x
+  | .list vs, r, hr => by
+    rw [fieldsAt] at hr
+    split at hr
+    · obtain ⟨rfl, -⟩ := mem_single.1 hr
+      refine ⟨List.prefix_refl _, fun q h1 h2 hq => ?_⟩
+      have := h2.eq_of_length_le h1.length_le; subst this
+      exact self_mem_nodesAt S t _ hq _
+    · next _ e rel ks _ hf =>
+      obtain ⟨pe, hpe, hall⟩ := nodesL_sub S p vs e ks r hr
+      refine ⟨(List.prefix_append p [pe]).trans hpe, fun q h1 h2 hq => ?_⟩
+      rcases prefix_step hpe h1 h2 with rfl | hq'
+      · exact self_mem_nodesAt S t _ hq _
+      · simp only [nodesAt, hf]; exact mem_punion.2 (Or.inr (hall q hq' h2))
+    · exact absurd hr not_mem_pempty
+  | .map kvs, r, hr => by
+    rw [fieldsAt] at hr
+    split at hr
+    · obtain ⟨rfl, -⟩ := mem_single.1 hr
+      refine ⟨List.prefix_refl _, fun q h1 h2 hq => ?_⟩
+      have := h2.eq_of_length_le h1.length_le; subst this
+      exact self_mem_nodesAt S t _ hq _
+    · next _ fs e rel _ hf =>
+      obtain ⟨pe, hpe, hall⟩ := nodesM_sub S p kvs fs e r hr
+      refine ⟨(List.prefix_append p [pe]).trans hpe, fun q h1 h2 hq => ?_⟩
+      rcases prefix_step hpe h1 h2 with rfl | hq'
+      · exact self_mem_nodesAt S t _ hq _
+      · simp only [nodesAt, hf]; exact mem_punion.2 (Or.inr (hall q hq' h2))
+    · exact absurd hr not_mem_pempty
+  | .null, r, hr => by
+    unfold fieldsAt at hr
+    split at hr <;> first
+      | exact absurd hr not_mem_pempty
+      | (obtain ⟨rfl, -⟩ := mem_single.1 hr
+         refine ⟨List.prefix_refl _, fun q h1 h2 hq => ?_⟩
+         have := h2.eq_of_length_le h1.length_le; subst this
+         exact self_mem_nodesAt S t _ hq _)
+  | .bool _, r, hr => by
+    unfold fieldsAt at hr
+    split at hr <;> first
+      | exact absurd hr not_mem_pempty
+      | (obtain ⟨rfl, -⟩ := mem_single.1 hr
+         refine ⟨List.prefix_refl _, fun q h1 h2 hq => ?_⟩
+         have := h2.eq_of_length_le h1.length_le; subst this
+         exact self_mem_nodesAt S t _ hq _)
+  | .int _, r, hr => by
+    unfold fieldsAt at hr
+    split at hr <;> first
+      | exact absurd hr not_mem_pempty
+      | (obtain ⟨rfl, -⟩ := mem_single.1 hr
+         refine ⟨List.prefix_refl _, fun q h1 h2 hq => ?_⟩
+         have := h2.eq_of_length_le h1.length_le; subst this
+         exact self_mem_nodesAt S t _ hq _)
+  | .str _, r, hr => by
+    unfold fieldsAt at hr
+    split at hr <;> first
+      | exact absurd hr not_mem_pempty
+      | (obtain ⟨rfl, -⟩ := mem_single.1 hr
+         refine ⟨List.prefix_refl _, fun q h1 h2 hq => ?_⟩
+         have := h2.eq_of_length_le h1.length_le; subst this
+         exact self_mem_nodesAt S t _ hq _)
+theorem nodesL_sub (S : Schema) (p : Path) :
+    ∀ (vs : List UVal) (e : TypeRef) (ks : List GoString) (r : Path), r ∈ fieldsL S e ks p vs →
+      ∃ pe, p ++ [pe] <+: r ∧ ∀ q, p ++ [pe] <+: q → q <+: r → q ∈ nodesL S e ks p vs
+  | [], e, ks, r, hr => by rw [fieldsL] at hr; exact absurd hr not_mem_pempty
+  | v :: vs, e, ks, r, hr => by
+    rw [fieldsL] at hr
+    split at hr
+    · next pe hk =>
+      rcases mem_punion.1 hr with hr | hr
+      · rcases mem_punion.1 hr with hr | hr
+        · obtain ⟨hp, hall⟩ := nodesAt_sub S e (p ++ [pe]) v r hr
+          refine ⟨pe, hp, fun q h1 h2 => ?_⟩
+          simp only [nodesL, hk]
+          exact mem_punion.2 (Or.inl (hall q h1 h2 (by rintro rfl; simp at h1)))
+        · obtain ⟨rfl, hne⟩ := mem_single.1 hr
+          refine ⟨pe, List.prefix_refl _, fun q h1 h2 => ?_⟩
+          have := h2.eq_of_length_le h1.length_le; subst this
+          simp only [nodesL, hk]; exact mem_punion.2 (Or.inl (self_mem_nodesAt S e _ hne v))
+      · obtain ⟨pe', hp, hall⟩ := nodesL_sub S p vs e ks r hr
+        refine ⟨pe', hp, fun q h1 h2 => ?_⟩
+        simp only [nodesL, hk]; exact mem_punion.2 (Or.inr (hall q h1 h2))
+    · next hk =>
+      obtain ⟨pe', hp, hall⟩ := nodesL_sub S p vs e ks r hr
+      exact ⟨pe', hp, fun q h1 h2 => by simp only [nodesL, hk]; exact hall q h1 h2⟩
+theorem nodesM_sub (S : Schema) (p : Path) :
+    ∀ (kvs : List (GoString × UVal)) (fs : List (GoString × TypeRef)) (e : Option TypeRef)
+      (r : Path), r ∈ fieldsM S fs e p kvs →
+      ∃ pe, p ++ [pe] <+: r ∧ ∀ q, p ++ [pe] <+: q → q <+: r → q ∈ nodesM S fs e p kvs
+  | [], fs, e, r, hr => by rw [fieldsM] at hr; exact absurd hr not_mem_pempty
+  | (k, v) :: kvs, fs, e, r, hr => by
+    rw [fieldsM] at hr
+    rcases mem_punion.1 hr with hr | hr
+    · split at hr
+      · next t ht =>
+        rcases mem_punion.1 hr with hr | hr
+        · obtain ⟨hp, hall⟩ := nodesAt_sub S t (p ++ [.field k]) v r hr
+          refine ⟨.field k, hp, fun q h1 h2 => ?_⟩
+          simp only [nodesM, ht]
+          exact mem_punion.2 (Or.inl (hall q h1 h2 (by rintro rfl; simp at h1)))
+        · split at hr
+          · obtain ⟨rfl, hne⟩ := mem_single.1 hr
+            refine ⟨.field k, List.prefix_refl _, fun q h1 h2 => ?_⟩
+            have := h2.eq_of_length_le h1.length_le; subst this
+            simp only [nodesM, ht]; exact mem_punion.2 (Or.inl (self_mem_nodesAt S t _ hne v))
+          · exact absurd hr not_mem_pempty
+      · exact absurd hr not_mem_pempty
+    · obtain ⟨pe', hp, hall⟩ := nodesM_sub S p kvs fs e r hr
+      exact ⟨pe', hp, fun q h1 h2 => by simp only [nodesM]; exact mem_punion.2 (Or.inr (hall q h1 h2))⟩
+end
+
+
+/-- **A field set's trie nodes are at most the value's nodes** (`fieldSet_nodes`). -/
+theorem fieldSet_nodes_le (S : Schema) (t : TypeRef) (x : UVal) :
+    (fieldSet S t x).nodes.card ≤ x.size := by
+  refine Nat.le_trans (FSet.card_le_of_subset _ (nodesAt S t [] x) ?_) (nodesAt_card S t [] x)
+  intro q hq
+  unfold PathSet.nodes at hq
+  rw [FSet_mem_bind_law_holds] at hq
+  obtain ⟨r, hr, hqr⟩ := hq
+  unfold Path.nePrefixes at hqr
+  obtain ⟨k, hk, rfl⟩ := List.mem_map.1 hqr
+  rw [List.mem_range] at hk
+  refine (nodesAt_sub S t [] x r hr).2 _ (List.nil_prefix) (List.take_prefix _ _) ?_
+  intro h
+  have := congrArg List.length h
+  rw [List.length_take, List.length_nil] at this; omega
+
+theorem mem_mfUnion (mf : MF) (q : Path) : q ∈ mfUnion mf ↔ ∃ me ∈ mf, q ∈ me.2.set := by
+  induction mf with
+  | nil =>
+    simp only [mfUnion, List.foldr_nil, List.not_mem_nil, false_and, exists_false, iff_false]
+    exact not_mem_pempty
+  | cons me rest ih =>
+    have : mfUnion (me :: rest) = PathSet.union me.2.set (mfUnion rest) := rfl
+    rw [this, mem_punion, ih]
+    simp
+
+theorem mem_nodes {s : PathSet} {q : Path} : q ∈ s.nodes ↔ ∃ r ∈ s, q ∈ Path.nePrefixes r := by
+  unfold PathSet.nodes; exact FSet_mem_bind_law_holds _ _ _
+
+/-- **`Apply`'s new managers' union** (the reconciled old entries, the applier's new one): its
+trie nodes are at most the old union's and the new entry's. -/
+theorem apply_union_nodes (S : Schema) (t : TypeRef) (mf : MF) (mgr : GoString) (e : VSet) :
+    (mfUnion ((reconcileMF S t mf).set mgr e)).nodes.card ≤
+      (mfUnion mf).nodes.card + e.set.nodes.card := by
+  refine Nat.le_trans (FSet.card_le_of_subset _ (PathSet.union (mfUnion mf).nodes e.set.nodes) ?_)
+    (card_punion _ _)
+  intro q hq
+  rw [mem_punion]
+  obtain ⟨r, hr, hqr⟩ := mem_nodes.1 hq
+  obtain ⟨me, hme, hrme⟩ := (mem_mfUnion _ r).1 hr
+  rcases LawProofs.mem_insertKV hme with rfl | hme
+  · exact Or.inr (mem_nodes.2 ⟨r, hrme, hqr⟩)
+  · left
+    unfold reconcileMF at hme
+    obtain ⟨me0, hme0, rfl⟩ := List.mem_map.1 hme
+    have hq0 := reconcile_nodes_sub S t me0.2.set q (mem_nodes.2 ⟨r, hrme, hqr⟩)
+    obtain ⟨r', hr', hqr'⟩ := mem_nodes.1 hq0
+    exact mem_nodes.2 ⟨r', (mem_mfUnion mf r').2 ⟨me0, hme0, hr'⟩, hqr'⟩
+
+/-- **`prune`'s union bound from `inputsSmall`**: the applier's new managers' union (its new
+entry the configuration's field set) stays below `smdSizeMax`. -/
+theorem apply_union_small (S : Schema) (t : TypeRef) (live config : UVal) (mf : MF)
+    (mgr : GoString) (ver : GoString) (h : inputsSmall [live, config] mf) :
+    (mfUnion ((reconcileMF S t mf).set mgr ⟨fieldSet S t config, ver, true⟩)).nodes.card <
+      smdSizeMax := by
+  have h1 := apply_union_nodes S t mf mgr ⟨fieldSet S t config, ver, true⟩
+  have h2 := fieldSet_nodes_le S t config
+  simp only [inputsSmall, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil] at h
+  simp only at h1
+  omega
+
 /-! ## Sizes -/
 
 /-- Merging two conforming values adds no node beyond the two sides' (`merge_size`, with the

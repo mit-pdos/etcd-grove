@@ -4,9 +4,9 @@
 (`isVSetOpt`), `ToFieldSet`, its new entry written (`mf1`, over `ownMF_access`), `prune`, `update`
 (the conflicts, with a fresh empty map, or the new managers), then the no-op check
 (`EqualsUsing`). The pure premises of `prune` come from `merge/LawProofsGlue.lean`.
-One `sorry` remains: `prune`'s frozen premise `(mfUnion mf1).nodes.card < smdSizeMax` does not
-follow from `inputsSmall [live, config] mf` (only `< 2 * smdSizeMax`, as `inputsSmall_prune`
-states): a frozen-spec mismatch, reported.
+`prune`'s union bound `(mfUnion mf1).nodes.card < smdSizeMax` from `inputsSmall`'s combined bound
+(`Glue.apply_union_small`: the old union's nodes and the configuration's field set's, at most its
+size).
 Lean-first (2026-11-19); proved in the Prove phase (2026-11-21).
 -/
 module
@@ -59,17 +59,18 @@ theorem merge.Updater.Apply.wp_proof
     merge.Updater.Apply.spec (GF := GF) :=
     fun u cv rion sc S t lp cp live config ver mfm mf mgr force => by
   wp_start as ⟨#Hu, #Hcv, #Hl, #Hc, #Hmf, %hpre, %hsmall⟩
-  have hsz : live.size + config.size < smdSizeMax := by
-    obtain ⟨h1, -⟩ := hsmall
-    simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil] at h1
+  have hsz : live.size + config.size < smdSizeMax ∧ (mfUnion mf).nodes.card < smdSizeMax := by
+    have h1 := hsmall
+    simp only [inputsSmall, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil] at h1
     omega
+  have hunion := Glue.apply_union_small S t live config mf mgr ver hsmall
   ihave ⟨#Hsc, %hwf⟩ := isTV_schema_law_holds _ _ _ _ _ $$ Hl
   ihave %hcl := isTV_conforms_law_holds _ _ _ _ _ $$ Hl
   ihave %hcc := isTV_conforms_law_holds _ _ _ _ _ $$ Hc
   wp_auto
   wp_apply (h_Updater_reconcileManagedFieldsWithSchemaChanges u cv _ _ rion sc S t lp live mfm mf)
     as %r0 %err0 ⟨%herr0, Hr0⟩
-  · iframe Hu Hcv Hl Hmf; ipureintro; exact hsmall.2
+  · iframe Hu Hcv Hl Hmf; ipureintro; exact hsz.2
   subst herr0
   wp_auto
   wp_apply (h_TypedValue_Merge_ptr lp cp sc S t live config) as %mp %errm ⟨%herrm, #Hm⟩
@@ -136,7 +137,7 @@ theorem merge.Updater.Apply.wp_proof
     omega
   have hents := Glue.apply_mf1_entries S t config ver mf mgr hwf hcc hpre
   rw [← hmf0, ← hmf1] at hents
-  have hlast := Glue.apply_last S t ver mf mgr hwf hpre hsmall.2
+  have hlast := Glue.apply_last S t ver mf mgr hwf hpre hsz.2
   rw [← hmf0] at hlast
   wp_apply (h_Updater_prune u cv map.nil map.nil rion sc S t mp (merge S t live config)
       r0 mf1 mgr ((M !! mgr).getD (zero_val GoInterface)) (mf0.get mgr) ver) $$ [Hr1 Hls]
@@ -150,10 +151,7 @@ theorem merge.Updater.Apply.wp_proof
         fun L h => (hlast L h).1⟩
     · ipureintro
       refine ⟨fun m e h => (hents m e h).2, fun L h => (hlast L h).2, hmsz, ?_⟩
-      -- `prune`'s frozen premise bounds the managers' union (the applier's new field set
-      -- included) by `smdSizeMax`, which `inputsSmall` does not give (only `2 * smdSizeMax`,
-      -- `inputsSmall_prune`): a frozen-spec mismatch, reported (M2).
-      sorry
+      rw [hmf1, hmf0]; exact hunion
   subst herrp
   try wp_auto
   obtain ⟨new, hnew⟩ : ∃ new, new = prune S t (merge S t live config) mf1 (mf0.get mgr) := ⟨_, rfl⟩

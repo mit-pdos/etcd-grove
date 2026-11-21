@@ -53,19 +53,20 @@ theorem merge.Updater.Update.wp_proof
     merge.Updater.Update.spec (GF := GF) :=
     fun u cv rion sc S t lp np live new ver mfm mf mgr => by
   wp_start as ⟨#Hu, #Hcv, #Hl, #Hn, #Hmf, %hsmall⟩
-  have hsz : live.size < smdSizeMax ∧ new.size < smdSizeMax := by
-    obtain ⟨h1, -⟩ := hsmall
-    simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil] at h1
+  have hsz : live.size < smdSizeMax ∧ new.size < smdSizeMax ∧
+      (mfUnion mf).nodes.card < smdSizeMax := by
+    have h1 := hsmall
+    simp only [inputsSmall, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil] at h1
     omega
   wp_auto
   wp_apply (h_Updater_reconcileManagedFieldsWithSchemaChanges u cv _ _ rion sc S t lp live mfm mf)
     as %r0 %err0 ⟨%herr0, Hr0⟩
-  · iframe Hu Hcv Hl Hmf; ipureintro; exact hsmall.2
+  · iframe Hu Hcv Hl Hmf; ipureintro; exact hsz.2.2
   subst herr0
   wp_auto
   wp_apply (h_Updater_update u cv rion sc S t lp live np new ver r0 (reconcileMF S t mf) mgr true) $$ [Hr0]
     as %r1 %cp %err1 Hpost
-  · iframe Hu Hcv Hl Hn Hr0; ipureintro; exact hsz
+  · iframe Hu Hcv Hl Hn Hr0; ipureintro; exact ⟨hsz.1, hsz.2.1⟩
   icases Hpost with ⟨%h1, Hr0, #Hcmp⟩
   obtain ⟨rfl, rfl⟩ := h1
   wp_auto

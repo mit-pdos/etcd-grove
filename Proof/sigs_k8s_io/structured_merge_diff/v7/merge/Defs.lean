@@ -232,15 +232,16 @@ def kwiAt (S : Schema) (t : TypeRef) (s : PathSet) : Path → Path → Bool
 def keysWithItemsB (S : Schema) (t : TypeRef) (s : PathSet) : Bool := s.all (kwiAt S t s [])
 
 /-- **D9's workload premise** of `Updater.Apply` and `Updater.Update` (`notes/smd-plan.md`, D9),
-stated once: the objects' sizes together, and the trie nodes of the managers' sets together, below
-`smdSizeMax` (`value/Defs.lean`). Every internal count (`Set.Insert`'s and `slices.Insert`'s
+stated once: the objects' sizes and the trie nodes of the managers' sets, all together, below
+`smdSizeMax` (`value/Defs.lean`; one combined bound, 2026-11-21: `Apply`'s new managers' union, the
+old union and the configuration's field set, stays below it). Every internal count (`Set.Insert`'s and `slices.Insert`'s
 lengths, `make`'s capacities, the typed API's size premises) follows from it by laws
 (`merge/Laws.lean`, `inputsSmall_*`). Decided (`decide` on the driver's literals). -/
 def inputsSmall (xs : List UVal) (mf : MF) : Prop :=
-  (xs.map UVal.size).sum < smdSizeMax ∧ (mfUnion mf).nodes.card < smdSizeMax
+  (xs.map UVal.size).sum + (mfUnion mf).nodes.card < smdSizeMax
 
 instance (xs : List UVal) (mf : MF) : Decidable (inputsSmall xs mf) :=
-  inferInstanceAs (Decidable (_ ∧ _))
+  inferInstanceAs (Decidable (_ < _))
 
 /-! ## Representation predicates -/
 
