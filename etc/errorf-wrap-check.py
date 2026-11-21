@@ -118,17 +118,6 @@ INIT_FMT = re.compile(r'\(Let "\$a0" \(Val #\(go!"((?:[^"\\]|\\.)*)"\)\)\s*\(Let
                       r'\(App \(App \(App \(Val \(GoInstruction \(FuncResolve _root_\.Perennial\.fmt\.Errorf\b')
 INIT_STEP = re.compile(r'\bwp_func_call\b|Perennial\.fmt\.wp_')
 
-# generated init proof (file) of a package whose initializer calls `fmt.Errorf` with a verb: why it is
-# true of Go. Each such call must go through a reviewed spec (the term check covers the spec's model
-# steps), never wp_auto stepping into the model itself; each entry says which.
-REVIEWED_INIT_VERBS = {
-    # (prove-b64clock, 2026-11-20) `ErrFakeClockDeadlineExceeded = fmt.Errorf("clockwork.FakeClock: %w",
-    # context.DeadlineExceeded)`: the proof applies `EtcdGrove.fmt.ErrorfErrs.wp_proof` (post `errOk`, true
-    # of Go's `*fmt.wrapError`; in REVIEWED), with `DeadlineExceeded`'s `errOk`
-    # (`clockwork.errOk_deadlineExceeded`); its only other `fmt` name is `fmt.wp_initialize'`
-    'Proof/github_com/jonboulle/clockwork/InitLinked.lean': 'the %w call by fmt.ErrorfErrs.wp_proof',
-}
-
 
 def init_errors():
     """The init proofs that step into the model of a package whose `initialize'` calls `fmt.Errorf`
@@ -154,10 +143,10 @@ def init_errors():
             if not pf.exists() or not INIT_STEP.search(pf.read_text()):
                 continue
             prel = str(pf.relative_to(ROOT_P))
-            if unsafe and prel not in REVIEWED_INIT_VERBS:
+            if unsafe:
                 bad.append(f'{prel} steps into functions while {rel}\'s initializer calls `fmt.Errorf` '
                            f'with a format that is not a literal without `%`')
-            elif prel not in REVIEWED_INIT and prel not in REVIEWED_INIT_VERBS:
+            elif prel not in REVIEWED_INIT:
                 bad.append(f'{prel} steps into {rel}\'s initializer\'s `fmt.Errorf` calls; review it '
                            f'and add it to REVIEWED_INIT')
     return bad

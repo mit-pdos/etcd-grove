@@ -3281,8 +3281,8 @@ parameter.
      (the clock name unused: `realClock` any name; etcd has no fake clock), their laws theorems; translate
      `realClock`'s `Now`/`After` and `NewRealClock` (`Code/github_com/jonboulle/clockwork.toml`) and prove
      `NewRealClock.wp_proof`: the 9 axioms go, `clockOk` and every compactor statement unchanged. (The
-     package's initializer is already translated and proved, branch `prove-b64clock-init/2026-11-20`:
-     its `opaqueInitsOk` is gone.)
+     package's initializer: `keyClock` is translated since 2026-11-20; `ErrFakeClockDeadlineExceeded`'s
+     `fmt.Errorf("...: %w", ...)` stays in `opaqueInitsOk` until Perennial's `Errorf` models `%w`.)
 - **Remark (soundness, re-read 2026-11-20).** The axioms are true of clockwork v0.5.0's real clock but for
   one corner: Go's `when(d)` saturates at `maxWhen = 2^63 - 1` (`time/sleep.go`), so for `T + d ≥ 2^63`
   the timer fires at `2^63 - 1` ns while `clockOk` promises `clockLb (T + d)`; reachable only after 292

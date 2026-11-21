@@ -1266,40 +1266,10 @@ polling the endpoint's `Status`, and returns), `opaqueInitsOk` the others.''',
     finish=FIN_PRE[:6],
 )
 
-# (prove-b64clock, 2026-11-20) clockwork's two package variables, translated (`Code/github_com/jonboulle/
-# clockwork.toml`): its fact stays `True` (`Base.lean`).
-SPECIAL['github_com.jonboulle.clockwork'] = dict(
-    doc='''Its fact is `True` (`Base.lean`). Its initializer allocates its two variables, initializes its
-imports and runs their translated initializers (`context.go`; until 2026-11-20 untranslated, the
-trust-boundary axiom `opaqueInitsOk`): `keyClock = contextKey("clock")`, and
-`ErrFakeClockDeadlineExceeded = fmt.Errorf("clockwork.FakeClock: %w", context.DeadlineExceeded)`
-(`fmt.ErrorfErrs.wp_proof`: `DeadlineExceeded`'s value `deadlineExceededError{}` is an error `fmt` formats
-by its `Error()`, `clockwork.errOk_deadlineExceeded`).''',
-    imports=['Proof.fmt.ErrorfErrs', 'Proof.github_com.jonboulle.clockwork.InitFacts'],
-    alloc_types={'keyClock': 'GoString', 'ErrFakeClockDeadlineExceeded': 'GoInterface'},
-    before={'$end': [
-        'ihave #HctxI := _root_.Perennial.context.isInit_access $$ {Hd:context}',
-        'icases HctxI with ⟨-, -, -, -, -, -, #HDE, -⟩',
-        'try wp_auto',
-        'wp_apply wp_slice_literal (V := GoInterface)',
-        '  [interface.mkOk _root_.Perennial.context.deadlineExceededError.ty',
-        '    #(zero_val _root_.Perennial.context.deadlineExceededError)]',
-        'isplitr',
-        '· ipureintro; rfl',
-        'iintro %slE ⟨HslE, -⟩',
-        'try wp_auto',
-        'obtain ⟨iiE, hiiE⟩ : ∃ ii : GoInterfaceOk, GoInterface.ok ii = interface.mkOk',
-        '    _root_.Perennial.context.deadlineExceededError.ty',
-        '    #(zero_val _root_.Perennial.context.deadlineExceededError) := ⟨_, rfl⟩',
-        'rw [← hiiE]',
-        'wp_apply (EtcdGrove.fmt.ErrorfErrs.wp_proof _ _ _ _ (EtcdGrove.clockwork.errArgsWf_fakeClock iiE))',
-        '  $$ [HslE] as %errE #HerrE',
-        '· iframe',
-        '  iapply Iris.BI.BigSepL.bigSepL_singleton.2',
-        '  iapply EtcdGrove.clockwork.errOk_deadlineExceeded iiE hiiE',
-        'try wp_auto']},
-    finish=['iframe Hown', 'is_pkg_init_finish'],
-)
+# (prove-b64clock, 2026-11-20) clockwork's `keyClock = contextKey("clock")`, translated (a string
+# conversion, which `wp_auto` runs); `ErrFakeClockDeadlineExceeded`'s `fmt.Errorf("...: %w", ...)` stays
+# untranslated (`opaqueInitsOk`): Perennial's `Errorf` model is faithful only for formats without verbs.
+SPECIAL['github_com.jonboulle.clockwork'] = dict(alloc_types={'keyClock': 'GoString'})
 
 SPECIAL['encoding.base64'] = dict(
     doc='''Its fact (`base64Init`, `encoding/base64/Base.lean`; the auth plan's E2x, 2026-10-26;
