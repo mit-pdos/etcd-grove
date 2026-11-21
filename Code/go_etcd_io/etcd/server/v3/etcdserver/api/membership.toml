@@ -6,7 +6,9 @@ translate = ["!*",
   # (metric-vecs, 2026-11-19) metrics.go: the cluster version's gauge vector, over prometheus's `NewGaugeVec` spec
   "ClusterVersionMetrics",
   "ShouldApplyV3", "ApplyBoth", "ApplyV2storeOnly", "RaftCluster.ID",
-  "RaftCluster.Members", "Member.Clone", "MembersByID.Len", "MembersByID.Less", "MembersByID.Swap",
+  "RaftCluster.Members", "Member.Clone",
+  # (prove-srvloops, 2026-11-21) the leader lookup of the server's `waitLeader`
+  "RaftCluster.Member", "MembersByID.Len", "MembersByID.Less", "MembersByID.Swap",
   # the mutex's methods, promoted through the embedded `sync.Mutex` (`MethodUnfold` wrappers)
   "RaftCluster.Lock", "RaftCluster.Unlock",
   # (D21 M2) `Process`'s check of the sender
