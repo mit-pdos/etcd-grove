@@ -41512,7 +41512,7 @@ message with the Ready actually delivered to that job.
 
 ## Sending a merged snapshot while replay catches up
 
-**2026-11-21 · fork repair, server proof in progress**
+**2026-11-21 · fork repair and linked server proof**
 
 The replay cursor can be at 3 while a reopened backend contains index 7.
 Reporting failure on that path leaves a follower waiting for data the
@@ -41521,12 +41521,15 @@ metadata in the same bbolt read transaction. For older databases it uses
 the immutable log for the Ready being applied to recover the entry term,
 and the membership in that database to recover the configuration.
 
-A quorum that committed the backend prefix before the crash remains
-evidence for that prefix in the elected leader's log. The recovered WAL
-commit can be lower. The proof must retain that earlier quorum evidence
-across restart and show that the configuration and term used by the
-sender match this prefix. The Go regression covers both backend formats
-with a recovered commit below the database index.
+The startup worker reads the retained log from the same MemoryStorage that
+RestartNode takes. Each Ready carries its own immutable view of the term runs.
+Replacing entries after the committed backend index preserves the term even
+when the replacement splits a run. Advancing the apply cursor retains that
+term until the cursor reaches the backend index. These facts supply the
+historical entry term to the snapshot sender under the graceful restart
+contract. After a power loss the recovered HardState commit can be lower.
+The Go regression reopens that state and checks delivery. A top-level proof
+of that recovery case would also need the previous quorum's commit evidence.
 [Reproduction and fork revision](../issues/etcd-merged-snapshot-replay-failure.md).
 
 ## A status's code as a per-run relation (2026-11-20 · the user's soundness fix · branch `prove-errdesc2/2026-11-20`, stage 2a)

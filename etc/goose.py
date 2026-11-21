@@ -333,7 +333,9 @@ PROJECTS = [
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        # Includes legacy WAL recovery and the same-term snapshot send without an index guard.
+        # goose-lean-replay-storage-history keeps the legacy WAL recovery and RangeStream fixes.
+        # Same-term snapshots stream the backend during restart replay. The label comes from the
+        # frozen image and its Ready's retained entry terms (issues/etcd-merged-snapshot-replay-failure.md).
         rev="995dedf00f366702d1090a9a0702c2bbc57eaa5d",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.

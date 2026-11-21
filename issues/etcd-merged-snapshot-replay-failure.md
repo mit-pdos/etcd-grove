@@ -2,7 +2,7 @@
 upstream: none
 checked: 2026-11-20
 links: []
-blocks-proof: yes
+blocks-proof: no
 ---
 
 # The etcd fork reports a current-term snapshot as failed during restart replay
@@ -27,7 +27,16 @@ The replay branch reads the index, term and ConfState from the bbolt read transa
 
 ## Proof
 
-The fork introduced the deferral in `6e8f0c004`. The sender proof uses that branch to exclude the case where the committed database is ahead of the replay cursor. After a machine crash the durable database can also be ahead of the recovered HardState commit. The regression test sets up the sender's replay window directly and does not simulate such a crash. [Crash and replay analysis](../nonissues/etcd-backward-snapshot-install-panics-watcher.md)
+The fork introduced the deferral in `6e8f0c004`. Reporting failure delays
+replication. The top-level adequacy results establish safety and permit this
+stall. The safety obligation when the sender does make progress is that the
+label and configuration describe the exact database image being streamed.
+
+The linked server proof follows the retained entry terms from the actual
+MemoryStorage at restart, through suffix replacement and apply-cursor
+advancement, to the send. Its restart contract covers graceful recovery. The
+Go test additionally exercises a reopened backend ahead of the recovered WAL
+commit. It constructs that state directly. [Crash and replay analysis](../nonissues/etcd-backward-snapshot-install-panics-watcher.md)
 
 The current fork also exercises bootstrap's recovered configuration. The
 four cases cross the two disk formats with the presence or absence of

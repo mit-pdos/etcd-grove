@@ -25,9 +25,12 @@ proof now reads the index and term from the very transaction that the
 reader streams. The apply thread can now open the snapshot with its actual backend
 index even while the cursor is behind. Lean also follows the schema reader
 to its nil return on a pre-3.5 image missing the ConfState key, preserving
-the same snapshot for streaming. The remaining proof must connect the
-configuration and the legacy term to the committed prefix, including
-after a power loss.
+the same snapshot for streaming. The linked server proof connects the configuration and entry term to the
+committed prefix under the existing restart contract. That contract assumes
+the initial backend prefix ends at or below the recovered commit. Recovery
+after a power loss that leaves the commit below the backend index is covered
+by the Go regression. A separate end-to-end crash theorem would have to
+recover the prior quorum certificate and connect it to the reopened storage.
 [Replay issue and regression](../issues/etcd-merged-snapshot-replay-failure.md).
 
 ### Replay proof handoff, November 21
@@ -40,26 +43,18 @@ Lean checked the complete translated storage read and both node constructors.
 The storage owner obtains the exact immutable runs and hands the same storage
 to RestartNode. The durable Raft invariant supplies term ordering and identifies
 the terms of the committed backend prefix under the existing restart contract.
-The Ready loop still has to preserve the receipt that it sends to the apply worker.
+Every ordinary Ready preserves the term of the pending backend index as
+entries are appended or overwritten. An installed snapshot advances the apply
+cursor past the initial image. The linked worker supplies the resulting term
+history to each apply job, and the apply worker sends the labelled image.
+The VM built the linked server successfully. The repository-wide checks
+for the replay pin are in progress.
 
-At fork revision `1e59f9f173ea` the VM checked the sender with cached and
-uncached configuration, the range check on the immutable log, and the
-clearing of the cache on snapshot install. The Go regression covers both
-paths for each disk format. The ordinary apply job still needs a proof
-that the Ready log covers the durable index and supplies its entry term.
-The ordinary apply proof now constructs the merged message, bundles the frozen
-database with the Raft evidence, and sends it when its Ready supplies that term
-history. The checked run loop transports the evidence from the apply channel.
-The VM then checked the complete translated `replayTerms.appendEntries` on
-arbitrary prior runs and ordered entry batches. It proves suffix replacement,
-partial-run clipping, mixed-term scans and coalescing, and leaves every older
-Ready readable. The remaining producer is the Raft worker, including its
-initial WAL state and the relation between each Ready and those physical runs.
-The earlier checkpoints below record which parts were checked independently.
+The public Grove pin removes the index comparison at `7bc6d14671`. The
+original replay report and failing test are on `lean` at `044d40223c`.
 
-The public Grove pin removes the index comparison at `7bc6d14671`; the
-replay report and its failing test are on `lean` at `044d40223c`.
-The replay fork still needs its own successful server build and gates.
+### Earlier proof checkpoints
+
 The VM checked `ApplyAllSnap` in both auth modes after pulling public
 `lean` at `2ca9ce4d1d`. Installing an incoming snapshot puts the backend
 at the apply cursor, so a same-term request can use the caught-up sender
@@ -330,7 +325,7 @@ attach really uses. `StorNames`/`MemStorNames` are stored as tuples in ghost map
 registry is the hard part (time ordering; see "Refined design"). All Lean runs on the VM
 (`/shared/tmp/vm-build.sh`, `VM_CMD=...`); land with `ETCD_GROVE_GATES=/shared/tmp/vm-gates.sh etc/land.sh`.
 
-**Open question (replay-window fix, after the guard removal).** Labelling the in-window merged snapshot with
+**Historical question from the index-guard stage.** The replay fix and the scope of its crash evidence are recorded at the top of this note. Labelling the in-window merged snapshot with
 the backend's own `(ci, term at ci, conf state at ci)` is right when `ci ≤` the sender's committed index
 (graceful restarts). After a power loss `ci` can exceed the WAL's (hence raft's) commit index
 (`nonissues/etcd-backward-snapshot-install-panics-watcher.md`, crash path): what should the merge send
