@@ -41411,3 +41411,22 @@ image, the WAL base is the lower bound with which application starts.
 These facts are carried by the same storage invariant used for reads and
 compaction. The job reads its own node’s outgoing channel and compares the
 message with the Ready actually delivered to that job.
+
+## Sending a merged snapshot while replay catches up
+
+**2026-11-21 · fork repair, server proof in progress**
+
+The replay cursor can be at 3 while a reopened backend contains index 7.
+Reporting failure on that path leaves a follower waiting for data the
+sender already has. The replay fork streams the backend and reads its
+metadata in the same bbolt read transaction. For older databases it uses
+the immutable log for the Ready being applied to recover the entry term,
+and the membership in that database to recover the configuration.
+
+A quorum that committed the backend prefix before the crash remains
+evidence for that prefix in the elected leader's log. The recovered WAL
+commit can be lower. The proof must retain that earlier quorum evidence
+across restart and show that the configuration and term used by the
+sender match this prefix. The Go regression covers both backend formats
+with a recovered commit below the database index.
+[Reproduction and fork revision](../issues/etcd-merged-snapshot-replay-failure.md).

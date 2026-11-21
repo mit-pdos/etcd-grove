@@ -1,19 +1,19 @@
 # Removing the merged snapshot's index guard (plan, 2026-11-20)
 
-## Index check removed from the verified Go source
+## Replay metadata and the recovered commit
 
-The etcd pin is `34f5142d062b`. In `applyAll`, the successful term
-comparison identifies the queued message's leader term. The source tag
-distinguishes a snapshot present at bootstrap, one created by the apply
-thread, and one installed by Raft. The apply job uses the proof for its
-actual node and Ready to bound the original snapshot index. Both apply
-paths pass this bound to Raft when they replace the message's snapshot.
+This branch pins etcd `03c73a97acff`. When the backend is ahead of the
+apply cursor, the sender labels its snapshot with the index, entry term
+and configuration of the frozen database. A pre-3.5 backend can lack the
+term and configuration. The sender reads that term from the Ready batch's
+immutable log and rebuilds the configuration from the frozen membership.
 
-The replay deferral remains a separate change. Its fork regression tests
-exercise a frozen backend at index 7 and a recovered HardState commit of 3
-with both current and legacy metadata. The replay proof still has to
-establish the term and membership for the image actually sent.
-[Replay issue](../nonissues/etcd-backward-snapshot-install-panics-watcher.md).
+The Go regression reopens a database at index 7 with a recovered HardState
+commit of 3 and verifies the sent snapshot for both formats. The Lean
+proof now reads the index and term from the very transaction that the
+reader streams. The remaining proof must connect the configuration and
+the legacy term to the committed prefix, including after a power loss.
+[Replay issue and regression](../issues/etcd-merged-snapshot-replay-failure.md).
 
 ## The two MemoryStorage writers and the apply job
 

@@ -5,6 +5,7 @@ Lean-first (no Rocq counterpart); D22 S-h, 2026-10-20.
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__createMergedSnapshotMessage
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapshotCindex
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__KV
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.newSnapshotReaderCloser
@@ -54,15 +55,20 @@ theorem wp_clone_csOpt (hClone : proto.CloneConfState.spec (GF := GF) (hG := hG)
     iunfold csOpt
     iright; iexact Hp'
 
-theorem EtcdServer.createMergedSnapshotMessage.wp_proof
+theorem EtcdServer.createMergedSnapshotMessage.wp_caughtUp
     (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
     (hKV : EtcdServer.KV.spec (GF := GF) (hG := hG))
     (hNSR : newSnapshotReaderCloser.spec (GF := GF) (hG := hG))
     (hClone : proto.CloneConfState.spec (GF := GF) (hG := hG))
     (hSize : backend.snapshot.Size.spec (GF := GF) (hG := hG))
-    (hNM : snap.NewMessage.spec (GF := GF) (hG := hG)) :
-    EtcdServer.createMergedSnapshotMessage.spec (GF := GF) (hG := hG) := by
-  intro s ml st snapt snapi cs lg kv be dq RC RC' RS RS' Qd γs Hsz20 Hsh
+    (hNM : snap.NewMessage.spec (GF := GF) (hG := hG))
+    (hRead : schema.UnsafeReadConsistentIndex.spec (GF := GF) (hG := hG))
+    (hUR : backend.snapshot.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG)) :
+    EtcdServer.createMergedSnapshotMessage.specCaughtUp (GF := GF) (hG := hG) := by
+  intro s ml st snapt snapi terms cs lg kv be dq RC RC' RS RS' Qd γs Hsz20 Hsh
   wp_start as ⟨#Hlgf, #Hlgnn, Hlr, #Hkvf, Hkc, HRC, Hbef, Hbs, HRS, Hm, #Huf, #Hcs, Htok⟩
   (try wp_auto)
   wp_apply hLg s lg $$ [Hlr] as ⟨-, Hlr⟩
@@ -95,6 +101,14 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_proof
   iunfold backend.snapOpen at Hsn
   icases Hsn with ⟨%γd, Hsn⟩
   (try wp_auto)
+  icases HQ with ⟨HQ, %mCI, %hmCI⟩
+  wp_apply snapshot_read_cindex_open hRead hUR hID hName hSafe sp γd D 1 mCI hmCI.1 $$ [Hsn] as Hsn
+  · iexact Hsn
+  (try wp_auto)
+  wp_if_destruct
+  · exfalso
+    have := hmCI.2
+    omega
   -- `newSnapshotReaderCloser(lg, dbsnap)`, with half of the snapshot (its `Size` read after)
   icases (backend.snapOpenQ_half sp D γd 1).1 $$ Hsn with ⟨Hsn1, Hsn2⟩
   wp_apply hNSR lg sp D γd $$ [Hsn1] as %rc ⟨Htok, Hrc⟩

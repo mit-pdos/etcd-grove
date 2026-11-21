@@ -7,6 +7,7 @@ S-h carried out"); the vocabulary is `InvSnapSend.lean`. (A `True`-postcondition
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvSnapSend
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.CindexBackend
 
 @[expose] public section
 
@@ -55,6 +56,29 @@ abbrev EtcdServer.createMergedSnapshotMessage.spec : Prop :=
       epCsVoters γs cs ∗ threadTok }}
     (App (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!!
       go!"createMergedSnapshotMessage")) (Val #ml)) (Val #snapt)) (Val #snapi)) (Val #cs))
+  {{ (mg : Loc), RET #mg; srvLgReader s ∗ RS' ∗ srvBeAddr s ↦{dq} be ∗ threadTok ∗
+      ∃ (rc : GoInterface) (D : backend.Data) (c : ConfStateM),
+        mergedMsg mg ml rc ∗ msgOwn ml DFrac.discard (mergedSt st c snapi snapt) ∗
+        msgSzC False ml (mergedSt st c snapi snapt) ∗
+        csOpt cs DFrac.discard c ∗
+        ⌜(c.Voters' ++ c.Learners' ++ c.VotersOutgoing' ++ c.LearnersNext').length ≤ 2 ^ 20⌝ ∗
+        backend.readerStreams rc (fun bs => backend.boltImage bs D) ∗ Qd D }}
+
+/-- The frozen backend has reached at most the apply cursor. Its bytes can be sent with the
+current apply metadata, independently of the retained replay terms. -/
+abbrev EtcdServer.createMergedSnapshotMessage.specCaughtUp : Prop :=
+  ∀ (s ml : Loc) (st : MsgSt) (snapt snapi : w64) (terms : GoSlice) (cs lg : Loc) (kv be : GoInterface) (dq : DFrac)
+    (RC RC' RS RS' : IProp GF) (Qd : backend.Data → IProp GF) (γs : ServerRaftNames),
+  GMap.size γs.raft.cfg ≤ 2 ^ 20 → st.ents = [] ∧ st.ctx = [] ∧ st.resps = [] →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      srvLgAddr s ↦□ lg ∗ zapLoggerOk lg ∗ srvLgReader s ∗
+      srvKVAddr s ↦□ kv ∗ srvKVCommitOk kv RC RC' ∗ RC ∗
+      srvBeAddr s ↦{dq} be ∗ srvBeSnapOk be RS RS' (fun D =>
+        iprop(Qd D ∗ ∃ m : MetaCI, ⌜metaIs D m ∧ uint.Z m.1 ≤ uint.Z snapi⌝)) ∗ (RC' -∗ RS) ∗
+      msgOwn ml (DFrac.own 1) st ∗ pbMsg go_etcd_io.raft.v3.raftpb.Message ml [] ∗
+      epCsVoters γs cs ∗ threadTok }}
+    (App (App (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!!
+      go!"createMergedSnapshotMessage")) (Val #ml)) (Val #snapt)) (Val #snapi)) (Val #cs)) (Val #terms))
   {{ (mg : Loc), RET #mg; srvLgReader s ∗ RS' ∗ srvBeAddr s ↦{dq} be ∗ threadTok ∗
       ∃ (rc : GoInterface) (D : backend.Data) (c : ConfStateM),
         mergedMsg mg ml rc ∗ msgOwn ml DFrac.discard (mergedSt st c snapi snapt) ∗
