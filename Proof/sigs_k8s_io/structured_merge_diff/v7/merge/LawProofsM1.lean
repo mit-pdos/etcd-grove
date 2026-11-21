@@ -9,6 +9,7 @@ module
 
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.LawProofsStage
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.LawProofsMF
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.LawProofsIter
 import all Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Defs
 
 @[expose] public section
@@ -91,6 +92,62 @@ theorem take_dom_step {K V : Type} [DecidableEq K] (R : GMap K V) (keys : List K
   · subst hk; simp
   · rw [GMap.lookup_insert_ne _ _ hk, HR k]
     simp [List.mem_append, Ne.symm hk]
+
+/-- The paths of the managers among `ks`. -/
+def mfVis (mf : MF) (ks : List GoString) (q : Path) : Prop :=
+  ∃ k ∈ ks, ∃ e, mf.get k = some e ∧ q ∈ e.set
+
+theorem mfVis_nil (mf : MF) (q : Path) : ¬ mfVis mf [] q := by
+  rintro ⟨k, hk, -⟩; simp at hk
+
+/-- One more manager's set in a union. -/
+theorem mfVis_step (mf : MF) (keys : List GoString) (j : Int) (key : GoString) (e : VSet)
+    (U : PathSet) (hj : 0 ≤ j) (Hkey : keys[j.toNat]? = some key) (he : mf.get key = some e)
+    (hU : ∀ q, q ∈ U ↔ mfVis mf (keys.take j.toNat) q) :
+    ∀ q, q ∈ PathSet.union U e.set ↔ mfVis mf (keys.take (j + 1).toNat) q := by
+  intro q
+  have Htake : keys.take (j + 1).toNat = keys.take j.toNat ++ [key] := by
+    rw [show (j + 1).toNat = j.toNat + 1 by omega, List.take_add_one, Hkey]; rfl
+  unfold PathSet.union
+  rw [FSet_mem_union_law_holds, hU, Htake]
+  unfold mfVis
+  constructor
+  · rintro (⟨k, hk, e', he', hq⟩ | hq)
+    · exact ⟨k, List.mem_append_left _ hk, e', he', hq⟩
+    · exact ⟨key, by simp, e, he, hq⟩
+  · rintro ⟨k, hk, e', he', hq⟩
+    rcases List.mem_append.1 hk with hk | hk
+    · exact Or.inl ⟨k, hk, e', he', hq⟩
+    · simp at hk; subst hk; rw [he] at he'; cases he'; exact Or.inr hq
+
+theorem mfUnion_mem_iff (mf : MF) (q : Path) : q ∈ mfUnion mf ↔ ∃ me ∈ mf, q ∈ me.2.set := by
+  induction mf with
+  | nil =>
+    unfold mfUnion
+    simp only [List.foldr_nil, List.not_mem_nil, false_and, exists_false, iff_false]
+    intro h
+    have := (FSet_isEmpty_iff_law_holds (PathSet.empty)).1 (by rfl) q
+    exact this h
+  | cons me rest ih =>
+    unfold mfUnion at ih ⊢
+    simp only [List.foldr_cons]
+    unfold PathSet.union at ih ⊢
+    rw [FSet_mem_union_law_holds, ih]
+    simp
+
+/-- Every manager visited: the union. -/
+theorem mfVis_all (mf : MF) (keys : List GoString) (hs : keysSorted mf = true)
+    (hk : ∀ k, k ∈ keys ↔ (mf.get k).isSome = true) :
+    ∀ q, mfVis mf keys q ↔ q ∈ mfUnion mf := by
+  intro q
+  rw [mfUnion_mem_iff]
+  constructor
+  · rintro ⟨k, -, e, he, hq⟩
+    exact ⟨(k, e), fpD.lookupKV_some_mem mf k e he, hq⟩
+  · rintro ⟨⟨k, e⟩, hme, hq⟩
+    have hget : mf.get k = some e :=
+      fpD.mem_lookupKV mf k e (fpD.keysSorted_pairwise mf hs) hme
+    exact ⟨k, (hk k).2 (by rw [hget]; rfl), e, hget, hq⟩
 
 /-! ## Reading an `isMF` map -/
 
