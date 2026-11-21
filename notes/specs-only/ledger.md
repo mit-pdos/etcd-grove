@@ -4038,5 +4038,6 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   file is deleted, and `renameWALPost`'s arm 2 (the reopened handle) can go, with its handling in `Create`.
   Clients: the WAL tester (premise from its semantics, `NoIoErr allIo`, and its area's path fitting); no
   etcdserver proof calls `wal.Create` (C6 unwritten).
-- **Decision.** The fix was approved by the coordinator (2026-11-21, issue #15). The form (b), a new premise on
-  `wal.Create.spec`, an exported result of the WAL's Link, is **pending the coordinator**.
+- **Decision.** (a) and (b) decided by the coordinator (etcd-grove-03, 2026-11-21, issue #15): (b) as an internal
+  spec premise. The user signs off at the closed statement, whose world premises will list "the area's `wal` and
+  `wal.tmp` paths fit (`PathFits`)" explicitly.
