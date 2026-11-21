@@ -52,7 +52,7 @@ set_option hygiene false in
 caller's chunks carry (`rangeStreamPassed`, persistent). -/
 local macro "rs_get" : tactic => `(tactic| (
   wp_auto
-  wp_apply (hRS s E ρ γr ctx2 _ trc false r o _ Ψ Ξ) $$ [Hmr Hlr Hown0 HK Hlim Hrev]
+  wp_apply (hRS ctx2 _ trc false r o _ Ψ Ξ) $$ [Hmr Hlr Hown0 HK Hlim Hrev]
     as %errv ⟨Hmr, Hlr, -, Hback, Hres⟩
   · iframe # Hmr Hlr Hown0
     isplitl [HK Hlim Hrev]
@@ -67,7 +67,7 @@ local macro "rs_get" : tactic => `(tactic| (
     · ipureintro; exact Hvst
     iintro !> %resp Hch
     iapply HΨ $$ Hch HC
-  wp_auto
+  (try wp_auto)
   iapply HΦ'
   iexists errv
   iframe err Hmr Hlr Hback
@@ -169,6 +169,7 @@ theorem EtcdServer.RangeStream.wp_proof
   iunfold srvReadFieldsAtM at Hw
   icases Hw with ⟨#Hread, #HisRead, #Hkvf, #HisKV, %Hkveq0, #Hlef, #Hle, #Hauf, #Hau, #Hlgf,
     #Hlgn, #Hwad, #Hterm, -, #Hainv, #Hkvi, -⟩
+  ihave #HlgnO := zapLoggerOk_orNil _ $$ Hlgn
   iunfold srvRdCall at Hcall
   icases Hcall with ⟨Hmr, Hlr, #Hcal, Hrr, Hard⟩
   ihave Hinit : (srvInit : IProp GF) $$ []
@@ -299,6 +300,7 @@ theorem EtcdServer.RangeStream.wp_proof
       wp_apply HisRead' $$ %ctx2 %_ %c %g %(fun _ : List EntryModel => iprop(True : IProp GF)) [Hrr]
         as %rerr ⟨Hrr, #HrE, #HrdE, -⟩
       · iframe #; iframe Hrr
+        iunfold kvDep; iright; ipureintro; rfl
       ihave Hrr : srvReadReader s γr $$ [Hrr]
       · iunfold srvReadReader; iexists _; iframe Hread Hrr
       (try wp_auto)
@@ -356,9 +358,11 @@ theorem EtcdServer.RangeStream.wp_proof
     iunfold apply.isAuthStore at Hau'
     icases Hau' with ⟨%aui, %Haui, -, #HIRP, -⟩
     iunfold apply.permCheck3 at HIRP
-    have hDS := hDS s E ρ γr ctx2 _ tok
+    have hDS := hDS s E ρ γr
     rw [hon] at hDS
-    wp_apply (hDS _ _
+    have hRS := hRS s E ρ γr
+    rw [hon] at hRS
+    wp_apply (hDS ctx2 _ tok _ _
       iprop(err_ptr ↦ GoInterface.nil ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvLgReader s ∗
         structFieldRef etcdserverpb.RangeRequest go!"Key" r ↦ ksl ∗
         structFieldRef etcdserverpb.RangeRequest go!"Limit" r ↦ limit ∗
@@ -370,8 +374,6 @@ theorem EtcdServer.RangeStream.wp_proof
       (fun info => apply.rangeClass E.authMode info o) (fun _ _ => iprop(True)) trc false n)
         $$ [err Hmr Hlr HK Hlim Hrev Hown0 Hard] as %serr Hds
     · iframe #
-      isplitr
-      · iintro !>; iexact Hpub
       isplitr
       · iintro %a %info %dq !> %Φ' ⟨Ha, Hard, ⟨err, Hmr, Hlr, HK, Hlim, Hrev⟩⟩ HΦ'
         wp_auto
@@ -401,6 +403,7 @@ theorem EtcdServer.RangeStream.wp_proof
       · iintro !> %Φ' ⟨⟨err, Hmr, Hlr, HK, Hlim, Hrev⟩, Hown0, %infoc, #Hcls, #Hib⟩ HΦ'
         ihave #HC : rangeStreamPassed s E n tok o $$ []
         · iunfold rangeStreamPassed
+          rw [hon]
           iexists infoc, n
           rw [hMoff]
           isplitr
@@ -435,9 +438,11 @@ theorem EtcdServer.RangeStream.wp_proof
     iunfold apply.isAuthStoreRangeLbR at Hau'
     icases Hau' with ⟨%aui, %Haui, #HIRP⟩
     iunfold apply.permCheck3LbR at HIRP
-    have hDS := hDS s E ρ γr ctx2 _ tok
+    have hDS := hDS s E ρ γr
     rw [hon] at hDS
-    wp_apply (hDS _ _
+    have hRS := hRS s E ρ γr
+    rw [hon] at hRS
+    wp_apply (hDS ctx2 _ tok _ _
       iprop(err_ptr ↦ GoInterface.nil ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvLgReader s ∗
         structFieldRef etcdserverpb.RangeRequest go!"Key" r ↦ ksl ∗
         structFieldRef etcdserverpb.RangeRequest go!"Limit" r ↦ limit ∗
@@ -450,8 +455,6 @@ theorem EtcdServer.RangeStream.wp_proof
       (fun info err => auth.permRefusalM E.authMode n info o.key e .read err) trc false n)
         $$ [err Hmr Hlr HK Hlim Hrev Hown0 Hard] as %serr Hds
     · iframe #
-      isplitr
-      · iintro !>; iexact Hpub
       isplitr
       · iintro %a %info %dq !> %Φ' ⟨Ha, Hard, ⟨err, Hmr, Hlr, HK, Hlim, Hrev⟩⟩ HΦ'
         wp_auto
@@ -483,6 +486,7 @@ theorem EtcdServer.RangeStream.wp_proof
       · iintro !> %Φ' ⟨⟨err, Hmr, Hlr, HK, Hlim, Hrev⟩, Hown0, %infoc, #Hcls, #Hib⟩ HΦ'
         ihave #HC : rangeStreamPassed s E n tok o $$ []
         · iunfold rangeStreamPassed
+          rw [hon]
           iexists infoc, n
           isplitr
           · ipureintro; exact Nat.le_refl _

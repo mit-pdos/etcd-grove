@@ -62,17 +62,18 @@ theorem v3rpc.kvServer.RangeStream.wp_proof
     simp only
     icases Herr with %Herr
     have Hvst : txn.validSortTarget o := v3rpc.validSortTarget_of_rangeCheck o hc
-    wp_auto
-    wp_if_destruct
+    rcases err with ⟨ei⟩ | _
     · -- `checkRangeStreamRequest`'s `Unimplemented`
+      wp_auto
       iapply HΦ
       iframe Hcall
       isplitl [Hr]
       · iapply rangeRequestBack_of_own $$ Hr
       ileft
       ipureintro
-      exact ⟨fun h => Hif (Herr.2 h), Hif⟩
+      exact ⟨fun h => absurd (Herr.2 h) (by intro h; cases h), by intro h; cases h⟩
     have Hok : v3rpc.streamOk o := Herr.1 rfl
+    wp_auto
     -- the wrapped stream
     iunfold v3rpc.streamSendOk at Hsend
     icases Hsend with ⟨%si, %Hsi, #HSend⟩
@@ -101,6 +102,9 @@ theorem v3rpc.kvServer.RangeStream.wp_proof
         isplitr
         · ipureintro; rfl
         iintro %Φ' !> - HΦ'
+        dsimp only
+        rw [MethodUnfold.method_unfold (t := go.GoType.PointerType v3rpc.headerFillingRangeStream.ty)
+          (m := go!"Context")]
         wp_auto
         rw [Hsi]
         wp_auto
@@ -108,7 +112,7 @@ theorem v3rpc.kvServer.RangeStream.wp_proof
         iapply HCtx
         · itrivial
         iintro !> -
-        iexact HΦ'
+        iapply HΦ'; itrivial
       isplitr
       · ipureintro; exact Hvst
       isplitr
@@ -173,7 +177,6 @@ theorem v3rpc.kvServer.RangeStream.wp_proof
         isplitl [Hf]
         · iright; iexists h; iframe Hhf Hf
         ipureintro; exact Hin
-    wp_auto
     icases Hres with (%He | ⟨%He, #HeE, #HeW⟩ | ⟨%resp, HΞr⟩)
     · subst He
       wp_auto
