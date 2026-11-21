@@ -1,5 +1,20 @@
 # Removing the merged snapshot's index guard (plan, 2026-11-20)
 
+## Index check removed from the verified Go source
+
+The etcd pin is `34f5142d062b`. In `applyAll`, the successful term
+comparison identifies the queued message's leader term. The source tag
+distinguishes a snapshot present at bootstrap, one created by the apply
+thread, and one installed by Raft. The apply job uses the proof for its
+actual node and Ready to bound the original snapshot index. Both apply
+paths pass this bound to Raft when they replace the message's snapshot.
+
+The replay deferral remains a separate change. Its fork regression tests
+exercise a frozen backend at index 7 and a recovered HardState commit of 3
+with both current and legacy metadata. The replay proof still has to
+establish the term and membership for the image actually sent.
+[Replay issue](../issues/etcd-merged-snapshot-replay-failure.md).
+
 ## The two MemoryStorage writers and the apply job
 
 Bootstrap now allocates the saved node location before starting Raft and

@@ -65,9 +65,6 @@ theorem EtcdServer.applyAll.wp_proofBatch
     -- (2026-10-31, S1) the merge branch: the message's getters, the merge, the send, and what
     -- the snapshot window takes (`mergedCreate_window`)
     (hGT : raftpb.Message.GetTerm.spec (GF := GF) (hG := hG))
-    (hGS : raftpb.Message.GetSnapshot.spec (GF := GF) (hG := hG))
-    (hGM : raftpb.Snapshot.GetMetadata.spec (GF := GF) (hG := hG))
-    (hGI : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))
     (hCM : EtcdServer.createMergedSnapshotMessage.spec (GF := GF) (hG := hG))
     (hSMS : EtcdServer.sendMergedSnap.spec (GF := GF) (hG := hG))
     -- (restart3 A1, 2026-11-15) the fork's window guard and the report of a deferred or dropped
@@ -443,177 +440,153 @@ theorem EtcdServer.applyAll.wp_proofBatch
         · iframe #; iframe Hm
         (try wp_auto)
         wp_if_destruct
-        · -- the batch's term: the snapshot's index
-          try have HifT := Hif
-          wp_apply (hGS.1 m (DFrac.own 1) DFrac.discard false sm) $$ [Hm] as %ps ⟨Hsn, Hmb⟩
-          · iframe #; iframe Hm
-          rw [hsn]
-          iunfold snapOpt at Hsn
-          wp_apply (hGM.1 ps (DFrac.own 1) sn) $$ [Hsn] as %pm ⟨Hmd, Hsnb⟩
-          · iframe #; iframe Hsn
-          wp_apply (hGI pm (DFrac.own 1) sn.Metadata') $$ [Hmd] as Hmd
-          · iframe #; iframe Hmd
-          ihave Hsn := Hsnb $$ Hmd
-          ihave Hm := Hmb $$ [Hsn]
-          · iunfold snapOpt; iexact Hsn
+        · -- The message belongs to the term of this apply batch.
+          -- (restart3 A1, 2026-11-15) the fork's window guard, `ep.appliedi <
+          -- s.consistIndex.ConsistentIndex()` (`wp_ci_get`: the effective consistent index)
+          ihave #Hcipkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex $$ []
+          · iPkgInit
+          ihave #Hsci2 := Hsci
+          iunfold isServerCI at Hsci2
+          icases Hsci2 with ⟨#Hcif, #Hci, #Hinv⟩
+          (try wp_auto)
+          wp_apply_core (wp_ci_get hCI γ ci b st'' Hst''.1.1) $$ [Hst Hbe] [-]
+          · iframe Hcipkg Hci Hinv Hst Hbe
+          iintro ⟨Hst, Hbe⟩
+          have hLd := stLoaded_ciEff γ st''
+          have hLp := stLoaded_pending γ st''
+          have Hst4 : loopOk γ (stLoaded γ st'') ai' ∧ ciEff γ (stLoaded γ st'').k = ciEff γ st'.k :=
+            ⟨⟨by rw [hLp]; exact Hst''.1.1, by rw [stLoaded_p, hLd]; exact Hst''.1.2⟩, by rw [hLd]; exact Hst''.2⟩
+          generalize stLoaded γ st'' = st4 at Hst4 hLd ⊢
           (try wp_auto)
           wp_if_destruct
-          · -- the guards hold: the snapshot at most the applied index
-            have HifI := Hif
-            -- (restart3 A1, 2026-11-15) the fork's window guard, `ep.appliedi <
-            -- s.consistIndex.ConsistentIndex()` (`wp_ci_get`: the effective consistent index)
-            ihave #Hcipkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex $$ []
-            · iPkgInit
-            ihave #Hsci2 := Hsci
-            iunfold isServerCI at Hsci2
-            icases Hsci2 with ⟨#Hcif, #Hci, #Hinv⟩
-            (try wp_auto)
-            wp_apply_core (wp_ci_get hCI γ ci b st'' Hst''.1.1) $$ [Hst Hbe] [-]
-            · iframe Hcipkg Hci Hinv Hst Hbe
-            iintro ⟨Hst, Hbe⟩
-            have hLd := stLoaded_ciEff γ st''
-            have hLp := stLoaded_pending γ st''
-            have Hst4 : loopOk γ (stLoaded γ st'') ai' ∧ ciEff γ (stLoaded γ st'').k = ciEff γ st'.k :=
-              ⟨⟨by rw [hLp]; exact Hst''.1.1, by rw [stLoaded_p, hLd]; exact Hst''.1.2⟩, by rw [hLd]; exact Hst''.2⟩
-            generalize stLoaded γ st'' = st4 at Hst4 hLd ⊢
-            (try wp_auto)
-            wp_if_destruct
-            · -- inside the window: deferred, reported failed (raft probes again)
-              wp_apply (hGTo.1 m (DFrac.own 1) DFrac.discard false sm) $$ [Hm] as Hm
-              · iframe #; iframe Hm
-              (try wp_auto)
-              wp_apply (hRSn γb s sm.msg.To' (W64 2)) $$ []
-              · iframe #
-              (try wp_auto)
-              iapply Hfin $$ %st4 %Hst4 Hai Hat Hcs Hst Hbe Happ Hlr Hgr Hmr HKV Hka HRS Hao
-            -- past the window: the consistent index at most the applied index, so the backend's
-            -- log `A₀` is within Go's (`kvBatchR`'s `ai₀ + |A₀| ≤ ciEff`)
-            have hW : rp.A₀.length ≤ (A ++ unapplied ai ms).length := by
-              have hge : uint.Z (ciEff γ st.k) ≤ uint.Z (ciEff γ st''.k) := by
-                rw [Hst''.2]
-                rcases hci' with ⟨-, hc⟩ | hc
-                · rw [hc]; exact Int.le_refl _
-                · rw [hc]; omega
-              have hnl : ¬ uint.Z ai' < uint.Z (ciEff γ st''.k) := by
-                intro h; apply Hif; first | exact h | word
-              have h0 : (0 : Int) ≤ uint.Z γr.raft.ai0 := by word
-              have := uint_nat_eq ai'
-              omega
-            have hgai : g' = ai' := by
-              rw [ghostOf_past rp _ hW] at hg'
-              simp only [List.length_append] at hg'; push_cast at hg'
-              word
-            ihave #Hlog'' : appliedLogAt γr ai' x'.log $$ []
-            · rw [← hgai]; iexact Hlog'
-            rw [ghostOf_past rp _ hW, srvRestRM_past C.isOn E γr rp _ hW]
-            have hciE : ciEff γ st4.k = ai' := by
-              rw [Hst4.2]
-              have h2 : uint.Z (ciEff γ st'.k) ≤ uint.Z ai' := by
-                rcases hci' with ⟨hun, hc⟩ | hc
-                · rw [hun, List.length_nil] at hlen'; rw [hc]
-                  have : (rp.A₀.length : Int) ≤ A.length := by
-                    have := hW; rw [hun] at this; simp at this; exact_mod_cast this
-                  omega
-                · rw [hc]; omega
-              word
-            have hlenZ : uint.Z ai' = ((A ++ unapplied ai ms).length : Int) := by
-              have := uint_nat_eq ai'; omega
-            have hpos : 0 < uint.Z ai' := by word
-            (try wp_auto)
-            -- (with auth on) the apply thread's compaction revision `-1`, for the image's certificate
-            imod srvApplyKVC_crev C s γ ci TM E ρ γr ρ.wait x' sa' $$ Hsrv HKV with ⟨HKV, %Hcr⟩
-            -- (S2's `mergedCreate_window`) the commit's and the snapshot's contracts
-            icases srvApplyKVC_coreA C s E ρ.wait x' sa' $$ HKV with ⟨%ua, HKVc, HAr, HKVk⟩
-            -- the component lends its buckets to the window (none off)
-            icases kvAppliedM_rev C.isOn γr (A ++ unapplied ai ms) x' sa' $$ Hka with ⟨Hka, %hrevC⟩
-            ihave HL := acRes_lend C s E ua sa' hM hrevC $$ HAr
-            icases Hkv with ⟨%kv, #Hkvf, #Hkvi, -⟩
-            -- the apply goroutine's tokens (`apply.applyTok`), lent to the commit
-            ihave HthT : apply.applyTok (GF := GF) E $$ [Hmr]
-            · iunfold apply.applyTok; iexact Hmr
-            -- (auth-lease S3a §5) the window at the mode's table
-            ihave HRS : srvRestM E.authOn E γr (A ++ unapplied ai ms) $$ [HRS]
-            · rw [hon]; iexact HRS
-            imod mergedCreate_window hsh hPers hReach hImg hSnap hOn hSave hPut hUR hID hName hSafe C.isOn
-                s γ ci TM E ρ γr b st4 ai' a' t' (A ++ unapplied ai ms) x' ρ.wait γp ua kv Hst4.1 hciE
-                (acBkts C) (acImg C sa') (acRes C s E ua sa') (acBkts_rest C)
-              $$ [Hst Hbe Happ HKVc HRS Hr1 Hl1 HthT HL]
-              with ⟨%be, %dq, %RC, %RC', %RS, %RS', %Qd, Hkc, HRC, Hbeo, Hbs, HRCS, Hback⟩
-            · iframe Hpkg Hsrv Hkvf Hkvi HW Hr1 Hl1 HthT Hst Hbe Happ HKVc HRS HL
-            -- (2026-11-06, `notes/begin-tok-plan.md`) the apply thread's token (`srvGoRes`'s) pays for
-            -- the snapshot's reader slot; the reader goroutine's fork token comes back
-            iunfold srvGoRes at Hgr
-            icases Hgr with ⟨HgrW, HgT⟩
-            -- (raft-entsize [r3c]) the voters' conf state (the applied log is not empty)
-            ihave #Hcv0 : epCsCfg γr cs' $$ []
-            · icases Hecs with (%H0 | #H)
-              · exfalso; omega
-              · iexact H
-            iunfold epCsCfg at Hcv0
-            wp_apply (hCM s m sm at' ai' cs' sv.lg kv be dq RC RC' RS RS' Qd γr.raft hsz20
-              (by have h := Hsh.1.2.2.2.2.2.2.1 (Or.inr (Or.inr Hty)); exact ⟨h.1, h.2, Hsh.1.2.2.2.2.2.2.2⟩))
-              $$ [Hlr Hkc HRC Hbeo Hbs HRCS Hm HgT]
-              as %mg ⟨Hlr, HRS', Hbeo, HgT, %rc, %D, %c, #Hmg, #Hml, #HszC, #Hcso, %Hcml, Hrs, HQd⟩
-            · iframe #; iframe Hlr Hkc HRC Hbeo Hbs HRCS Hm HgT
-            ihave Hgr : srvGoRes s $$ [HgrW HgT]
-            · iunfold srvGoRes; iframe HgrW HgT
-            imod Hback $$ %D HRS' HQd Hbeo with ⟨%st3, HthT, Hst, Hbe, Happ, HKVc, HRS, #Hmimg, HAr, %Hst3⟩
-            ihave HRS : srvRestM C.isOn E γr (A ++ unapplied ai ms) $$ [HRS]
-            · rw [← hon]; iexact HRS
-            ihave HKV := HKVk $$ HKVc HAr
-            iunfold apply.applyTok at HthT
-            irename HthT => Hmr
-            -- the merged message sent: of a term committed through the applied index (the batch's
-            -- term, `rnRtOk`; not `0`, a `MsgSnap`'s term), certified at the voters' conf state
-            iunfold rnRtOk at Hrt
-            rw [hγn]
-            icases Hrt with (%Hrt0 | ⟨%ct, #Hct, %Hnct, #Hbatch⟩)
-            · exfalso
-              exact (Hsh.1.2.2.2.1 (by rw [Hty]; simp [MsgSnap, MsgProp, MsgReadIndex,
-                MsgTransferLeader])) Hrt0
-            ihave #Hecs' : epCsCfg γr cs' $$ []
-            · icases Hecs with (%H0 | #H)
-              · exfalso; omega
-              · iexact H
-            iunfold epCsCfg at Hecs'
-            iunfold epCsVoters at Hecs'
-            icases Hecs' with ⟨%c0, #Hc0, %Hcs0⟩
-            ihave %Hcc := csOpt_agree cs' c c0 $$ [Hcso Hc0]
-            · iframe Hcso Hc0
-            subst Hcc
-            ihave %h61 := srvFrozenTerm_bound γs ai' at' $$ Hft
-            ihave ⟨Hao, %hidxRaft⟩ := Hidx $$ %(by first | trivial | rfl | assumption | symm; assumption) Hao
-            imod srv_merged_sent γr (A ++ unapplied ai ms) ai' at' c γn.id ct sm sn hpos h61 hsz hlenZ
-                hltA Hcs0 Hty hsn (by have := uint_nat_eq sn.Metadata'.Index'; have := uint_nat_eq g'; word) (by have := hnA; have := uint_nat_eq ai'; omega)
-              $$ [Hrli' HlbB Hsm Hct] with #Hsm'
-            · iframe Hrli' HlbB Hsm Hct
-            -- (`merged_imageC`) the image's certificate: the component's buckets the lent part's
-            ihave Hmi : |={⊤}=> kvAppliedM C.isOn γr.raft γr.kv srvAuthSt0 (A ++ unapplied ai ms) x' sa' ∗
-                □ (srvNet (GF := GF) γr.raft.raft).img ai' D $$ [Hka]
-            · iapply (merged_imageC C s γ ci TM E ρ γr ai' (A ++ unapplied ai ms) x' sa' D hM hlenZ
-                Hkv0 Hcr)
-              iframe Hsrv Hka Hmimg
-              ipureintro; exact Hst3.1
-            imod Hmi with ⟨Hka, #Himg⟩
-            imod srvMerged_bundle γr.raft.raft m rc sm γn.id c ai' at' D Hty
-              $$ [Hml HszC Hsm' Hrs Himg] with Hbun
-            · iframe Hml HszC Hsm' Hrs Himg
-            (try wp_auto)
-            wp_apply (hSMS s mg m rc sv.lg sv.memberID stg tr γN SN TSN lid) $$ [Hgr Hlr Hbun]
-              as ⟨Hgr, Hlr⟩
-            · iframe #; iframe Hgr Hlr; rw [HγN]; iframe Hbun
-            (try wp_auto)
-            have hF3 : loopOk γ st3 ai' ∧ ciEff γ st3.k = ciEff γ st'.k :=
-              ⟨Hst3.2.1, by rw [Hst3.2.2]; exact Hst4.2⟩
-            iapply Hfin $$ %st3 %hF3 Hai Hat Hcs Hst Hbe Happ Hlr Hgr Hmr HKV Hka HRS Hao
-          · (try wp_auto)
+          · -- inside the window: deferred, reported failed (raft probes again)
             wp_apply (hGTo.1 m (DFrac.own 1) DFrac.discard false sm) $$ [Hm] as Hm
             · iframe #; iframe Hm
             (try wp_auto)
             wp_apply (hRSn γb s sm.msg.To' (W64 2)) $$ []
             · iframe #
             (try wp_auto)
-            iapply Hfin $$ %st'' %Hst'' Hai Hat Hcs Hst Hbe Happ Hlr Hgr Hmr HKV Hka HRS Hao
+            iapply Hfin $$ %st4 %Hst4 Hai Hat Hcs Hst Hbe Happ Hlr Hgr Hmr HKV Hka HRS Hao
+          -- past the window: the consistent index at most the applied index, so the backend's
+          -- log `A₀` is within Go's (`kvBatchR`'s `ai₀ + |A₀| ≤ ciEff`)
+          have hW : rp.A₀.length ≤ (A ++ unapplied ai ms).length := by
+            have hge : uint.Z (ciEff γ st.k) ≤ uint.Z (ciEff γ st''.k) := by
+              rw [Hst''.2]
+              rcases hci' with ⟨-, hc⟩ | hc
+              · rw [hc]; exact Int.le_refl _
+              · rw [hc]; omega
+            have hnl : ¬ uint.Z ai' < uint.Z (ciEff γ st''.k) := by
+              intro h; apply Hif; first | exact h | word
+            have h0 : (0 : Int) ≤ uint.Z γr.raft.ai0 := by word
+            have := uint_nat_eq ai'
+            omega
+          have hgai : g' = ai' := by
+            rw [ghostOf_past rp _ hW] at hg'
+            simp only [List.length_append] at hg'; push_cast at hg'
+            word
+          ihave #Hlog'' : appliedLogAt γr ai' x'.log $$ []
+          · rw [← hgai]; iexact Hlog'
+          rw [ghostOf_past rp _ hW, srvRestRM_past C.isOn E γr rp _ hW]
+          have hciE : ciEff γ st4.k = ai' := by
+            rw [Hst4.2]
+            have h2 : uint.Z (ciEff γ st'.k) ≤ uint.Z ai' := by
+              rcases hci' with ⟨hun, hc⟩ | hc
+              · rw [hun, List.length_nil] at hlen'; rw [hc]
+                have : (rp.A₀.length : Int) ≤ A.length := by
+                  have := hW; rw [hun] at this; simp at this; exact_mod_cast this
+                omega
+              · rw [hc]; omega
+            word
+          have hlenZ : uint.Z ai' = ((A ++ unapplied ai ms).length : Int) := by
+            have := uint_nat_eq ai'; omega
+          have hpos : 0 < uint.Z ai' := by word
+          (try wp_auto)
+          -- (with auth on) the apply thread's compaction revision `-1`, for the image's certificate
+          imod srvApplyKVC_crev C s γ ci TM E ρ γr ρ.wait x' sa' $$ Hsrv HKV with ⟨HKV, %Hcr⟩
+          -- (S2's `mergedCreate_window`) the commit's and the snapshot's contracts
+          icases srvApplyKVC_coreA C s E ρ.wait x' sa' $$ HKV with ⟨%ua, HKVc, HAr, HKVk⟩
+          -- the component lends its buckets to the window (none off)
+          icases kvAppliedM_rev C.isOn γr (A ++ unapplied ai ms) x' sa' $$ Hka with ⟨Hka, %hrevC⟩
+          ihave HL := acRes_lend C s E ua sa' hM hrevC $$ HAr
+          icases Hkv with ⟨%kv, #Hkvf, #Hkvi, -⟩
+          -- the apply goroutine's tokens (`apply.applyTok`), lent to the commit
+          ihave HthT : apply.applyTok (GF := GF) E $$ [Hmr]
+          · iunfold apply.applyTok; iexact Hmr
+          -- (auth-lease S3a §5) the window at the mode's table
+          ihave HRS : srvRestM E.authOn E γr (A ++ unapplied ai ms) $$ [HRS]
+          · rw [hon]; iexact HRS
+          imod mergedCreate_window hsh hPers hReach hImg hSnap hOn hSave hPut hUR hID hName hSafe C.isOn
+              s γ ci TM E ρ γr b st4 ai' a' t' (A ++ unapplied ai ms) x' ρ.wait γp ua kv Hst4.1 hciE
+              (acBkts C) (acImg C sa') (acRes C s E ua sa') (acBkts_rest C)
+            $$ [Hst Hbe Happ HKVc HRS Hr1 Hl1 HthT HL]
+            with ⟨%be, %dq, %RC, %RC', %RS, %RS', %Qd, Hkc, HRC, Hbeo, Hbs, HRCS, Hback⟩
+          · iframe Hpkg Hsrv Hkvf Hkvi HW Hr1 Hl1 HthT Hst Hbe Happ HKVc HRS HL
+          -- (2026-11-06, `notes/begin-tok-plan.md`) the apply thread's token (`srvGoRes`'s) pays for
+          -- the snapshot's reader slot; the reader goroutine's fork token comes back
+          iunfold srvGoRes at Hgr
+          icases Hgr with ⟨HgrW, HgT⟩
+          -- (raft-entsize [r3c]) the voters' conf state (the applied log is not empty)
+          ihave #Hcv0 : epCsCfg γr cs' $$ []
+          · icases Hecs with (%H0 | #H)
+            · exfalso; omega
+            · iexact H
+          iunfold epCsCfg at Hcv0
+          wp_apply (hCM s m sm at' ai' cs' sv.lg kv be dq RC RC' RS RS' Qd γr.raft hsz20
+            (by have h := Hsh.1.2.2.2.2.2.2.1 (Or.inr (Or.inr Hty)); exact ⟨h.1, h.2, Hsh.1.2.2.2.2.2.2.2⟩))
+            $$ [Hlr Hkc HRC Hbeo Hbs HRCS Hm HgT]
+            as %mg ⟨Hlr, HRS', Hbeo, HgT, %rc, %D, %c, #Hmg, #Hml, #HszC, #Hcso, %Hcml, Hrs, HQd⟩
+          · iframe #; iframe Hlr Hkc HRC Hbeo Hbs HRCS Hm HgT
+          ihave Hgr : srvGoRes s $$ [HgrW HgT]
+          · iunfold srvGoRes; iframe HgrW HgT
+          imod Hback $$ %D HRS' HQd Hbeo with ⟨%st3, HthT, Hst, Hbe, Happ, HKVc, HRS, #Hmimg, HAr, %Hst3⟩
+          ihave HRS : srvRestM C.isOn E γr (A ++ unapplied ai ms) $$ [HRS]
+          · rw [← hon]; iexact HRS
+          ihave HKV := HKVk $$ HKVc HAr
+          iunfold apply.applyTok at HthT
+          irename HthT => Hmr
+          -- the merged message sent: of a term committed through the applied index (the batch's
+          -- term, `rnRtOk`; not `0`, a `MsgSnap`'s term), certified at the voters' conf state
+          iunfold rnRtOk at Hrt
+          rw [hγn]
+          icases Hrt with (%Hrt0 | ⟨%ct, #Hct, %Hnct, #Hbatch⟩)
+          · exfalso
+            exact (Hsh.1.2.2.2.1 (by rw [Hty]; simp [MsgSnap, MsgProp, MsgReadIndex,
+              MsgTransferLeader])) Hrt0
+          ihave #Hecs' : epCsCfg γr cs' $$ []
+          · icases Hecs with (%H0 | #H)
+            · exfalso; omega
+            · iexact H
+          iunfold epCsCfg at Hecs'
+          iunfold epCsVoters at Hecs'
+          icases Hecs' with ⟨%c0, #Hc0, %Hcs0⟩
+          ihave %Hcc := csOpt_agree cs' c c0 $$ [Hcso Hc0]
+          · iframe Hcso Hc0
+          subst Hcc
+          ihave %h61 := srvFrozenTerm_bound γs ai' at' $$ Hft
+          ihave ⟨Hao, %hidxRaft⟩ := Hidx $$ %(by first | trivial | rfl | assumption | symm; assumption) Hao
+          imod srv_merged_sent γr (A ++ unapplied ai ms) ai' at' c γn.id ct sm sn hpos h61 hsz hlenZ
+              hltA Hcs0 Hty hsn (by have := uint_nat_eq sn.Metadata'.Index'; have := uint_nat_eq g'; word) (by have := hnA; have := uint_nat_eq ai'; omega)
+            $$ [Hrli' HlbB Hsm Hct] with #Hsm'
+          · iframe Hrli' HlbB Hsm Hct
+          -- (`merged_imageC`) the image's certificate: the component's buckets the lent part's
+          ihave Hmi : |={⊤}=> kvAppliedM C.isOn γr.raft γr.kv srvAuthSt0 (A ++ unapplied ai ms) x' sa' ∗
+              □ (srvNet (GF := GF) γr.raft.raft).img ai' D $$ [Hka]
+          · iapply (merged_imageC C s γ ci TM E ρ γr ai' (A ++ unapplied ai ms) x' sa' D hM hlenZ
+              Hkv0 Hcr)
+            iframe Hsrv Hka Hmimg
+            ipureintro; exact Hst3.1
+          imod Hmi with ⟨Hka, #Himg⟩
+          imod srvMerged_bundle γr.raft.raft m rc sm γn.id c ai' at' D Hty
+            $$ [Hml HszC Hsm' Hrs Himg] with Hbun
+          · iframe Hml HszC Hsm' Hrs Himg
+          (try wp_auto)
+          wp_apply (hSMS s mg m rc sv.lg sv.memberID stg tr γN SN TSN lid) $$ [Hgr Hlr Hbun]
+            as ⟨Hgr, Hlr⟩
+          · iframe #; iframe Hgr Hlr; rw [HγN]; iframe Hbun
+          (try wp_auto)
+          have hF3 : loopOk γ st3 ai' ∧ ciEff γ st3.k = ciEff γ st'.k :=
+            ⟨Hst3.2.1, by rw [Hst3.2.2]; exact Hst4.2⟩
+          iapply Hfin $$ %st3 %hF3 Hai Hat Hcs Hst Hbe Happ Hlr Hgr Hmr HKV Hka HRS Hao
         · (try wp_auto)
           wp_apply (hGTo.1 m (DFrac.own 1) DFrac.discard false sm) $$ [Hm] as Hm
           · iframe #; iframe Hm
@@ -641,9 +614,6 @@ theorem EtcdServer.applyAll.wp_proof
     (hV : backend.VerifyBackendConsistency.spec (GF := GF) (hG := hG))
     (hSINC : EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG))
     (hGT : raftpb.Message.GetTerm.spec (GF := GF) (hG := hG))
-    (hGS : raftpb.Message.GetSnapshot.spec (GF := GF) (hG := hG))
-    (hGM : raftpb.Snapshot.GetMetadata.spec (GF := GF) (hG := hG))
-    (hGI : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))
     (hCM : EtcdServer.createMergedSnapshotMessage.spec (GF := GF) (hG := hG))
     (hSMS : EtcdServer.sendMergedSnap.spec (GF := GF) (hG := hG))
     -- (restart3 A1, 2026-11-15) the fork's window guard and the report of a deferred or dropped
@@ -665,9 +635,9 @@ theorem EtcdServer.applyAll.wp_proof
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.spec (GF := GF) (hG := hG) :=
-  ⟨EtcdServer.applyAll.wp_proofBatch hASnap hAE hBk hLg hV hSINC hGT hGS hGM hGI hCM hSMS hCI hGTo hRSn hsh hPers hReach hImg hSnap hOn hSave
+  ⟨EtcdServer.applyAll.wp_proofBatch hASnap hAE hBk hLg hV hSINC hGT hCM hSMS hCI hGTo hRSn hsh hPers hReach hImg hSnap hOn hSave
       hPut hUR hID hName hSafe,
-    EtcdServer.applyAll.wp_proofSnapM hASnap.2 hAE.2 hBk hLg hV hSINC.2 hGT hGS hGM hGI hCM hSMS hCI hGTo hRSn hsh hPers hReach hImg hSnap hOn hSave hPut hUR hID hName
+    EtcdServer.applyAll.wp_proofSnapM hASnap.2 hAE.2 hBk hLg hV hSINC.2 hGT hCM hSMS hCI hGTo hRSn hsh hPers hReach hImg hSnap hOn hSave hPut hUR hID hName
       hSafe⟩
 
 end proof

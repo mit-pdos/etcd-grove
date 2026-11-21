@@ -1,11 +1,10 @@
 # Status (Lean port)
 
-The WAL upgrade and both bbolt guard fixes are on `lean`. The two snapshot
-checks in `applyAll` are still in the Go pin. The server proof now carries
-both Ready observations through its channels. Bootstrap and both
-writers now supply the source tag on the snapshot proof branch. See
-[the snapshot handoff](snapguard-removal-plan.md).
-
+The Go pin at `34f5142d062b` removes the snapshot-index comparison in
+`applyAll`. The merge proof obtains its bound from the two Ready batches,
+the snapshot's origin and the applied-index authority. The pin retains the
+message-term check and the post-restart replay deferral. The WAL upgrade
+and both bbolt fixes are also in the pins. [Snapshot proof and replay work](snapguard-removal-plan.md).
 
 **Last updated:** 2026-11-21 (**kvnet's top-level robustness theorem: goal, Go programs, proof plan** (branch `worktree-kvnet-toplevel-statement`; `notes/kvnet-robust-goal.md`, `notes/kvnet-proof-plan.md`): the statement agreed with the user (replicas on crashing machines, the checking client `kvcheck` on a stable one, fixed net+fs extensions, validity premises in Lean, no plan); Go: `kvnet.RunNode` takes scalars and one address string, validates (`AddrOk` = the net extension's `addrOk`), retries `Listen`; new `kvcheck` (kvdurable's `Run` over the network, porcupine without timeout, panic unless `Ok`); the harness runs both as processes (all 9 replicas at once) and keeps only fault injection; kvnet a Go module of its own on the axiom-free raft (`RAFT_NOAX_REV`), no clock (timers close connections); harness fixes (final-crash check waits for the agreement to reach the applied index; disks removed after every replica is killed; unique disk names). Tests: TestKill, 9 netns rounds with kills/power losses/partitions pass; a no-read-index mutant caught 3/3. Perennial: `goose_dist_mixed_crash_adequacy` landed (`19fd486f6`), trusted extension init predicates `ExtSemantics.initLocal`/`initGlobal` and the `_init` adequacy wrappers landed (`c0ec40070`); the pin is not bumped yet. Proof plan: the proved specs are not yet sufficient (raft has no real-crash law, its cluster invariant is tied to one heap, the parts must be combined); no Lean changed); 2026-11-21 (**net v3.4 stages B and C: the listening token, and the net+fs bundle** (branch `net-noplan`): `netLisTok a` (exclusive, one per valid address, from the start resources) is what `Listen` takes, by an atomic update at its step, so it can live in an invariant that survives crashes (`wire.listen_au`, `Proto.listen_au`; the examples keep it in their address invariant); `GooseLang/Ext/NetFs/Adequacy.lean`: `kvnetExts := [netExt, fsExt]`, its instances, `kvnetGF` and `kvnet_dist_crash_adequacy`; no Fs change; `notes/decisions.md`, "The listening token and the net+fs bundle"); 2026-11-21 (**net v3.4: the network without a plan or hosts** (the user's request for kvnet's top-level theorem; branch `net-noplan`, stage A): `NetGlobal` is the connections, `NetLocal` the listeners; valid addresses are `addrOk` (moved into `Impl.lean`), `Listen` takes `listenOk` (a valid address or a wildcard with a canonical valid port), any node may listen at any valid address, `Accept` takes what `lisAccepts` (a wildcard: any address with its port); `NetLocal.init`/`NetGlobal.init` and `crash_init` standalone until Perennial's `ExtSemantics` gets `init`. Only adds behaviours (soundness argument: `notes/net-tcp.md`, v3.4; fresh review `notes/axiom-review/tcp-semantics.md`, v3.4: the closed world restated in terms of nodes, F1). Ghost: every valid address's pending set from the start (`addrSpace`, finitely many: `addrOk_length`), `netPlan` gone, `Dial`/`DialTimeout`/`Listen` specs take `addrOk`, `netLisAt` carries it; `KitDeploy` is the kit's addresses; the seven examples, echo's kit instance and kvnet's draft `Robust.lean` lose their plan/host premises; Lean replay reads witness version 2 and the Python checker transcribes v3.4 (15/15 certified, 21 negative tests rejected); `TestListenNotLocal`. Full build green; tcb unchanged but the semantics' definitions); 2026-11-20 (**Raft snapshot installation receipts**): a Ready snapshot carries its installed index, and the read-back lemma bounds a queued snapshot from storage in the original send term.; 2026-11-20 (**WAL segment identity during replay**). Each accepted CRC seed advances the reader to a specific lock and segment filename. A filename produced by the current writer bounds earlier snapshot indices. A read-only probe can borrow and return the exact bytes of an earlier closed segment.; 2026-11-20 (**Nil map builtins in Perennial**). Pinned the reviewed definitions for delete and clear on Grove’s previous Perennial revision. Existing non-nil ownership proofs and nil-map observations are checked in Perennial. [PR #645](https://github.com/mit-pdos/perennial/pull/645).; 2026-11-20 (**WAL snapshot lookup on upgrade**: reproduced a restart failure with old segment names and proved that a complete read of the current writer’s selected files finds the newest valid start snapshot); 2026-11-20 (**Raft snapshot send term**): Ready preserves the original term of queued snapshots across elections and proves the restored-index bound in that term, including when a later batch drains the message.; 2026-11-20 (**Bound restored snapshots at Ready handout**). The Ready channel carries the hard-state term and a bound from the delivered log. Election safety now bounds the restore case for two batches in the same leader term. A send queued across terms still needs its original certificate; 2026-11-20 (**Raft records successful snapshot restores**). Each RawNode owns its restore history from startup. A successful MsgSnap step records the foreign leader and term, and Ready and Advance preserve the record
 This file is where the port is now: a summary checked against the repository, then the
@@ -19,13 +18,11 @@ record is `notes/decisions.md`; the Rocq development's notes are on branch `main
 
 ## Snapshot guard removal (2026-11-20)
 
-Raft's public `sentMsg_localSnapshotLeader` law identifies a snapshot's sender
-as the local elected leader in its message term. Ready also exposes the
-snapshot's source. A snapshot installed locally carries its incoming message’s
-matching index and log term and evidence for its foreign elected sender.
-Proving the index bound in the etcd server still requires
-the ordering between a local restore, a Ready handout and its application.
-See `notes/snapguard-removal-plan.md`.
+The server follows the elected sender and snapshot source through Raft's
+outgoing channel. Bootstrap, `CreateSnapshot` and `ApplySnapshot` each give
+the proof the evidence it needs when the next apply job merges a snapshot.
+The replay deferral is reachable and has a separate regression test.
+[Replay issue](../issues/etcd-merged-snapshot-replay-failure.md).
 
 ## Raft's two builds: the main tree without `with_tla`, `RaftTla/` with it (2026-11-16, branch `trace-check-merge-lean2`)
 

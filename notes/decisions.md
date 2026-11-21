@@ -28063,6 +28063,12 @@ restarts.
 
 ## The merged snapshot's index guard (2026-10-31, S1 · the user's decision (B))
 
+**2026-11-21.** Remove the index comparison in the etcd pin. Both
+`applyAll` proof paths use the bound derived from the outgoing snapshot
+and the current Ready in the matching term. The separate replay-window
+failure remains in this revision and is tracked in
+[the replay issue](../issues/etcd-merged-snapshot-replay-failure.md).
+
 **2026-11-20, R2.** Raft already records the snapshots it has restored in
 `LogState.ksn`. The unstable snapshot path returns membership in that list.
 Carry membership through the outbox and the Ready handout so a later proof
