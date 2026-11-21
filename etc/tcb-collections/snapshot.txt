@@ -37,7 +37,6 @@ axiom http.Flush_ok
 axiom http.HeaderGetOwnPtr_ok
 axiom http.HeaderGetPtr_ok
 axiom http.HeaderSetPtr_ok
-axiom http.NewBuffer_ok
 axiom http.NewRequest_ok
 axiom http.ReadAll_resp_ok
 axiom http.ReadFull_resp_ok
@@ -46,7 +45,6 @@ axiom http.RespClose_ok
 axiom http.URLStringAny_ok
 axiom http.URLString_ok
 axiom http.WithContext_ok
-axiom http.readerHas_nil
 axiom http.reqURL_ok
 axiom http.respReadAny_of_ok
 axiom http.respWrite_ok
@@ -103,8 +101,6 @@ axiom sort.Sort.wp_anyLess
 axiom sort.Stable.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
-axiom strconv.FormatUint.wp_proof
-axiom strconv.Itoa.wp_proof
 axiom strings.Contains.wp_proof
 axiom strings.ToLower.wp_proof
 axiom time.Duration.Seconds.wp_proof

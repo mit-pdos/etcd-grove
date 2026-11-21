@@ -122,7 +122,6 @@ axiom http.HeaderGetOwnPtr_ok
 axiom http.HeaderGetPtr_ok
 axiom http.HeaderSetPtr_ok
 axiom http.HeaderSet_ok
-axiom http.NewBuffer_ok
 axiom http.NewRequest_ok
 axiom http.NewServeMux_ok
 axiom http.ReadAll_any_ok
@@ -140,7 +139,6 @@ axiom http.WithContext_ok
 axiom http.bodyRead_ok
 axiom http.bodyStreamRead_ok
 axiom http.mux_handlerOk_ok
-axiom http.readerHas_nil
 axiom http.register
 axiom http.reqURL_ok
 axiom http.reserve
@@ -246,8 +244,6 @@ axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
-axiom strconv.FormatUint.wp_proof
-axiom strconv.Itoa.wp_proof
 axiom strings.Contains.wp_proof
 axiom strings.ToLower.wp_proof
 axiom time.Duration.Seconds.wp_proof
