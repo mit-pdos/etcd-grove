@@ -44,8 +44,6 @@ attribute [irreducible] rawMD.ty
 noncomputable def loggableMetadataKeys [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/metadata.loggableMetadataKeys"
 
-opaque loggableMetadataKeys.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/metadata.init.0"
 
@@ -121,12 +119,36 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$k0" (Val #(go!"content-type"))
+  (Let "$v1" (Val #true)
+  (Let "$k2" (Val #(go!"te"))
+  (Let "$v3" (Val #true)
+  (Let "$k4" (Val #(go!"user-agent"))
+  (Let "$v5" (Val #true)
+  (Let "$k6" (Val #(go!"grpc-encoding"))
+  (Let "$v7" (Val #true)
+  (Let "$k8" (Val #(go!"grpc-accept-encoding"))
+  (Let "$v9" (Val #true)
+  (Let "$k10" (Val #(go!"grpc-timeout"))
+  (Let "$v11" (Val #true)
+  (Let "$k12" (Val #(go!"grpc-status"))
+  (Let "$v13" (Val #true)
+  (Let "$k14" (Val #(go!"grpc-message-type"))
+  (Let "$v15" (Val #true)
+  (Let "$k16" (Val #(go!"grpc-previous-rpc-attempts"))
+  (Let "$v17" (Val #true)
+  (Let "$k18" (Val #(go!"grpc-retry-pushback-ms"))
+  (Let "$v19" (Val #true)
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.string go.bool)))) (LiteralValue [(KeyedElement (some (KeyExpression go.string (Var "$k0"))) (ElementExpression go.bool (Var "$v1"))), (KeyedElement (some (KeyExpression go.string (Var "$k2"))) (ElementExpression go.bool (Var "$v3"))), (KeyedElement (some (KeyExpression go.string (Var "$k4"))) (ElementExpression go.bool (Var "$v5"))), (KeyedElement (some (KeyExpression go.string (Var "$k6"))) (ElementExpression go.bool (Var "$v7"))), (KeyedElement (some (KeyExpression go.string (Var "$k8"))) (ElementExpression go.bool (Var "$v9"))), (KeyedElement (some (KeyExpression go.string (Var "$k10"))) (ElementExpression go.bool (Var "$v11"))), (KeyedElement (some (KeyExpression go.string (Var "$k12"))) (ElementExpression go.bool (Var "$v13"))), (KeyedElement (some (KeyExpression go.string (Var "$k14"))) (ElementExpression go.bool (Var "$v15"))), (KeyedElement (some (KeyExpression go.string (Var "$k16"))) (ElementExpression go.bool (Var "$v17"))), (KeyedElement (some (KeyExpression go.string (Var "$k18"))) (ElementExpression go.bool (Var "$v19")))]))))))))))))))))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
   (App (Val doExecute)
-  (App (Val loggableMetadataKeys.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.bool)))) (Pair (App (Val (GoInstruction (GlobalVarAddr loggableMetadataKeys))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.strings.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.strings.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc loggableMetadataKeys (go.GoType.MapType go.string go.bool))) (Val #()))))))))
 
 abbrev MD [GooseExts] : Type := GoMap
 

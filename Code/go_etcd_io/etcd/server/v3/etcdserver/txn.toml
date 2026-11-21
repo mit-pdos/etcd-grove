@@ -11,6 +11,9 @@ translate = ["!*",
   # (prove-smallinits, 2026-11-20) the two histogram vectors, over `NewHistogramVec`'s spec (until
   # then `opaqueInitsOk`)
   "applySec", "rangeSec",
+  # (mustreg, 2026-11-20) metrics.go's `init.0` (`prometheus.MustRegister` of the metrics), translated:
+  # proved by `etc/gen-init.py` over `MustRegister`'s spec with the names' registration rights
+  "init.0",
   # txn.go
   "Txn", "txn", "newTxnResp", "executeTxn", "checkTxn", "compareInt64", "compareToPath",
   "applyCompares", "applyCompare", "compareKV", "IsTxnSerializable", "IsTxnReadonly",

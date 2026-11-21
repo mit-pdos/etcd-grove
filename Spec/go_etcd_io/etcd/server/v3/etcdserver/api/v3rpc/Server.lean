@@ -41,7 +41,10 @@ the `*quotaKVServer` `q` over the `*kvServer` `p` (`kvRegs`) and the `Watch` str
 `pa` over the server (`authRegs`, `authServerIs`), and (the lease-src plan, 2026-11-02) the Lease
 service's four methods and its `LeaseKeepAlive` stream on the `*quotaLeaseServer` `ql` over the
 `*LeaseServer` `pl` (`leaseRegs`, `leaseSReg`; `NewQuotaLeaseServer`'s objects), all registrations with distinct full names (stage B: what
-`grpc.start` takes), given the service values' method sets (`ServerMethodSets`, Go's
+`grpc.start` takes); (auth-mediation M1, 2026-11-20) these registrations **exactly**
+(`serverRegsOk`): every method and stream of the six services' generated descriptors, on the
+service values above and the `*ClusterServer` `pc` and the `*authMaintenanceServer` `pm`, and grpc's
+health service's, nothing else; given the service values' method sets (`ServerMethodSets`, Go's
 type checker's facts). The server's resources come back (J8a-3: the progress interval read-only,
 `NewWatchServer` no longer writes it). -/
 abbrev v3rpc.Server.spec : Prop :=
@@ -56,13 +59,10 @@ abbrev v3rpc.Server.spec : Prop :=
       gsl ↦*□ gvs ∗ ⌜∀ v ∈ gvs, grpcSrvOpt v .neutral⌝ }}
     (App (App (App (App (Val (@! v3rpc.Server)) (Val #s)) (Val #(null : Loc)))
       (Val #(func.nil : GoFunc))) (Val #gsl))
-  {{ (gs : Loc), RET #gs; ∃ (q p pw pa ql pl : Loc) (il im iu ims is : GoFunc) (svcs : List GoString)
+  {{ (gs : Loc), RET #gs; ∃ (q p pw pa ql pl pc pm : Loc) (il im iu ims is : GoFunc) (svcs : List GoString)
       (regs sregs : List (GoString × GoFunc × GoInterface)) (cid mid lcid lmid : w64) (R : v3rpc.WSrv GF),
       grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗
-      ⌜(∀ x ∈ v3rpc.kvRegs q, x ∈ regs) ∧ v3rpc.watchSReg pw ∈ sregs ∧
-        (∀ x ∈ v3rpc.authRegs pa, x ∈ regs) ∧
-        (∀ x ∈ v3rpc.leaseRegs ql, x ∈ regs) ∧ v3rpc.leaseSReg ql ∈ sregs ∧
-        ((regs ++ sregs).map Prod.fst).Nodup⌝ ∗
+      ⌜v3rpc.serverRegsOk q pw ql pc pa pm regs sregs⌝ ∗
       v3rpc.authServerIs pa s ∗
       v3rpc.quotaLeaseServerAt ql ⟨go.GoType.PointerType v3rpc.LeaseServer.ty, #pl⟩ s ∗
       v3rpc.leaseServerAt pl s C.A lcid lmid ∗

@@ -943,6 +943,9 @@ theorem virt_snoc (W : DurMaps) (π : List Prom) (p : Prom) : virt W (π ++ [p])
 def raftOutN (γ : RaftNames) : Namespace :=
   raftN γ.@"out"
 
+theorem isMessage_snapshotLeader [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (m : Msg) (ht : m.ty =
+    MsgType.snap) : isMessage γ m ⊢ isLeader γ m.src m.term
+
 theorem isMessage_reject [ReceiptGS GF] (γ : RaftNames) (src dst term : w64) : ⊢ isMessage γ
     (Msg.plain MsgType.voteResp src dst term true)
 

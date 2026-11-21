@@ -3007,6 +3007,16 @@ noncomputable def applierV3Corrupt.LeaseRevoke.impl [GooseExts] [GoGlobalContext
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
+/-- go: metrics.go:29:6 -/
+noncomputable def init.«0».impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Seq (App (Val exceptionDo)
+  (App (Val doExecute)
+  (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeVec.ty) _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeVec.ty)))) (App (Val (GoInstruction (GlobalVarAddr alarms))) (Val #()))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty (Var "$sl0")))])))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.MustRegister []))) (Val #())) (Var "$a0")))))
+  (Val #())))
+
 /-- go: quota.go:32:6 -/
 noncomputable def newQuotaApplierV3.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
@@ -5627,6 +5637,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   newApplierV3Backend_unfold : FuncUnfold newApplierV3Backend [] newApplierV3Backend.impl
   newApplierV3Capped_unfold : FuncUnfold newApplierV3Capped [] newApplierV3Capped.impl
   newApplierV3Corrupt_unfold : FuncUnfold newApplierV3Corrupt [] newApplierV3Corrupt.impl
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   newQuotaApplierV3_unfold : FuncUnfold newQuotaApplierV3 [] newQuotaApplierV3.impl
   NewUberApplier_unfold : FuncUnfold NewUberApplier [] NewUberApplier.impl
   newApplierV3_unfold : FuncUnfold newApplierV3 [] newApplierV3.impl
@@ -5685,6 +5696,7 @@ attribute [instance] Assumptions.authApplierV3_instance
   Assumptions.newApplierV3Backend_unfold
   Assumptions.newApplierV3Capped_unfold
   Assumptions.newApplierV3Corrupt_unfold
+  Assumptions.«init.0_unfold»
   Assumptions.newQuotaApplierV3_unfold
   Assumptions.NewUberApplier_unfold
   Assumptions.newApplierV3_unfold

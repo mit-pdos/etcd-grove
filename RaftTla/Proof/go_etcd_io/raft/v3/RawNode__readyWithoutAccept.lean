@@ -157,7 +157,9 @@ theorem RawNode.readyWithoutAccept.wp_proof
   icases ownRaftPhysC_view cf rnv.raft' id s $$ Hphys with ⟨%rss, %sl1, %sl2, %ms1, %ms2, Hv⟩
   iNamed Hv
   -- (D22 S-b′3) the queued messages' certificates, through the storage's link
-  imod qCerts_of_srcs γ _ (ms1 ++ ms2) ⊤ CoPset.subseteq_top $$ Hlink Hscert with #Hqc
+  ihave #HscertAll := qSrcs_mono _ (ms1 ++ ms2) (· ∈ s.logst.ksn) (fun _ => True)
+    (fun _ _ => trivial) $$ Hscert
+  imod qCerts_of_srcs γ _ (ms1 ++ ms2) ⊤ CoPset.subseteq_top $$ Hlink HscertAll with #Hqc
   icases outboxRel_split _ _ _ $$ Houtbox with ⟨%Houtbox, Hown1, Hown2⟩
   icases ownRaftLog_ready_wf _ _ $$ Hlog with ⟨%Hwf1, Hlog⟩
   icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hwf2, Hlog⟩
@@ -620,6 +622,9 @@ theorem RawNode.readyWithoutAccept.wp_proof
       $$ Ho Hqc Hxw
   -- (restart S7.3, 2026-11-14) and have their `MsgSnap` facts once the outbox's snapshots have
   -- their destination facts
+  ihave #Hsrcs : qSrcs rs.sn (ms1 ++ nonself id ms2) $$ []
+  · rw [Hstor.2, Hgh_unst.1.2.2]
+    iapply qSrcs_sub _ _ _ Hsub $$ HscertAll
   ihave #Hmsnap : iprop(□ (([∗list] x ∈ s.outbox, ⌜x.ty = .snap⌝ -∗ snapDstOk γ x.dst) -∗
       [∗list] q ∈ ms1 ++ nonself id ms2, snapToOk γ id q.st)) $$ []
   · iintro !> #Ho
@@ -755,7 +760,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
     simp only [named, Bool.false_eq_true, ↓reduceIte]
     rw [show s.outbox = (toPState s).outbox from rfl]
     iframe Hrn Hphys Hsdrf Hout Hsoft Hhard Hsteps Hsteps_cap Hdeliv' Hstrecs Hrdsoft Hrdrs' Hce
-      Hce_cap Hents Hrdhard Hrdz Hsloc Hdur Hmsgl Hmsnap Hrdlead Hrntr
+      Hce_cap Hents Hrdhard Hrdz Hsloc Hdur Hmsgl Hsrcs Hmsnap Hrdlead Hrntr
     isplitl [Hghost Hrest]
     · iunfold ownStepGhost; iframe Hghost Hrest
     ipureintro

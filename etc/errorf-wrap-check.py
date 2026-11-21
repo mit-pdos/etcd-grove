@@ -79,11 +79,20 @@ REVIEWED = {
     # Create's cleanup, uses ErrorfErrs.)
     'Perennial.EtcdGrove.fmt.ErrorfErrs.wp_proof': 'premise errArgsWf + errOk errs (no Format, '
         'Error() string, only %v/%s/%w without #); post errOk',
+    # k8s-authz (2026-11-20, the user's choice: a proof over the model, no axiom): the premise is
+    # fmt.Errorf.spec's own (fmt.argsOk: nil, basic values, named integers under non-method verbs,
+    # values whose Error()/String() returns some string needing nothing, read-only slices of such
+    # under %v/%s, fmt.sliceArgOk), so Go calls only effect-free methods; post errOk and no Errors
+    # method: Go's *wrapError/*wrapErrors/*errorString and the model's *errorString all are
+    # (Error() string, no Format, no Errors). Spec/fmt/ErrorfLeaf.lean's header.
+    'Perennial.EtcdGrove.fmt.ErrorfLeaf.wp_proof': 'premise fmt.argsOk (fmt.Errorf.spec\'s); post '
+        'errOk + no Errors method, true of Go\'s three result types and of the model',
     # (merge-origin9, 2026-11-20) the generated init proofs of origin's prove-errinits (REVIEWED_INIT
     # below, by file), found here by the term check: each `fmt.Errorf` call of the initializer has a
     # literal format without `%` and no argument (`#slice.nil`), so Go returns `errors.New(format)`,
     # an `*errors.errorString` as the model's (rafthttp: 3 calls, ioutil: 2)
-    "Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.wp_initialize'_lb": 'formats '
+    # (mustreg, 2026-11-20: rafthttp's initializer is in the `_res` form, its `init()` registering)
+    "Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.wp_initialize'_res": 'formats '
         'without %, no arguments: Go returns errors.New(format), the model',
     "Perennial.go_etcd_io.etcd.pkg.v3.ioutil.wp_initialize'_lb": 'formats without %, no '
         'arguments: Go returns errors.New(format), the model',

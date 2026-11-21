@@ -28063,6 +28063,14 @@ restarts.
 
 ## The merged snapshot's index guard (2026-10-31, S1 · the user's decision (B))
 
+**2026-11-20, R2.** Raft already records the snapshots it has restored in
+`LogState.ksn`. The unstable snapshot path returns membership in that list.
+Carry membership through the outbox and the Ready handout so a later proof
+can recover the incoming message that installed the snapshot.
+
+
+*Superseded on 2026-11-20 by the decision to carry the snapshot source through raft's API below.*
+
 **2026-10-31 · accepted**
 
 `applyAll`'s `msgSnapC` branch merges the queued `MsgSnap` only if
@@ -28090,6 +28098,11 @@ comes from (changes raft's exported API); (C) a third hole in `SnapSendBranch.le
 from today's definitions); (D) term-tagged ghost state across the raft loop, the storage and the
 apply thread (a project of its own). Dropping the premise from `sentMsg_replaceSnapshot` was
 declined (the user, 2026-10-31).
+
+The public Ready contract carries the incoming protocol message for each
+successfully restored snapshot. `nodeRestoreSource_leader` identifies a
+foreign elected sender from that evidence. The server still needs to relate
+the restore to the applied Ready batches to discharge the index guard.
 
 ## `applyAll`'s merge branch (S1) (2026-10-31)
 
@@ -41165,3 +41178,92 @@ argument fewer). The 34 proof->proof
 edges the widening revealed that apply another variant's proof (`MkdirAllDir` -> `MkdirAll`,
 bbolt's `Open` family, wal `SaveSnapshotPre` -> `cutPre`, ...) join the baseline: each is a variant
 derived from another variant's proof, which only a hypothesis (or a Link-level composition) removes.
+
+## Registering packages' `init()` translated: a list of registration rights (2026-11-20 · the coordinator's batch E · branch `prove-mustreg/2026-11-20`)
+
+D16/D19e gave one package (read) the rights to its metric names as its initializer's precondition, in
+the `_res` form `ownInitRes g q R` (one `(q, R)`): `etc/gen-init.py`'s `pre_res` asserted at most one
+such package per closure. Eight more packages' `init()` only register their metrics
+(`prometheus.MustRegister`: membership, rafthttp, snap, v3rpc, apply, txn, storage, the WAL); their
+`initFuncsOk` axioms go once `init.0` is translated and stepped over `MustRegister`'s spec.
+
+**Decision:** the `_res` form takes a list (`ownInitResL g L`, `Proof/runtime/PkgInitRes.lean`): for
+each `(q, R)` of `L`, `R` unless `q` is initialized. A registering package (`PRE_RES`, filled by
+`register(...)` in `gen-init.py`) has `R = namesFree regNames` (its generated list of fully-qualified
+names, in `init()`'s order); a package's list is its closure's registering packages, sorted
+(`regQs`). Its own entry is spent by `wp_package_init_resL_self`; an import whose closure has some of
+the list's packages takes a sublist (`initResL_sub`: the others stay held, Perennial's monotone
+package map `ownGoStateLb`); an import with none is carried by its `_lb` form. The standard form's
+precondition is `namesFree initNames` (`initNames = regQs.flatMap (·.2)`), and each etcd program's
+name list (`<prog>Names`, the closed theorems' `namesUnclaimed` premise) is its root's `initNames`:
+the same premise, over 41 names instead of 2. `etcd_adequate*` take the names `Ns` (implicit) with
+`Ns.Nodup` (a trailing argument, `decide +kernel` by default).
+
+The vector constructors' specs (`New{Counter,Gauge,Histogram}Vec`) now also post `collectorName` of
+the vector as a collector (`*<Kind>Vec`): a strengthening of trust-boundary axioms, true of
+client_golang v1.24.1 (`MetricVec.Describe` sends its one descriptor; variable labels enter its
+`dimHash`, not its ID), and `collectorName`'s and `MustRegister`'s docstrings now cover vectors.
+
+**Not done:** auth, lease, backend and mvcc register only too, but their closures are reached by
+`mvccrand` and `mvccfull`, whose closed theorems have no `namesUnclaimed` premise: making them
+`PRE_RES` would add that premise, so their `initFuncsOk` stay. `ownInitRes` (the one-package form)
+stays in `PkgInit.lean`, unused: deleting it rebuilds every module.
+
+## The net extension without a plan (v3.4) (2026-11-20 · the user's decision · branch `net-noplan`)
+
+**Context.** kvnet's top-level theorem (`notes/kvnet-robust-goal.md`, branch
+`worktree-kvnet-toplevel-statement`) is `Robust` over the fixed extensions `[Net.netExt, Fs.fsExt]`
+and mentions no plan, no hosts and no network premises but that the replicas' addresses are valid
+(`Net.addrOk`) and distinct. v3.3's network carried the deployment's plan (address -> host) and
+each node its host; `Listen` panicked unless the address was the plan's at this node's host,
+`Dial` unless it was in the plan.
+
+**Decision (the user's).** The plan and the hosts go (`notes/net-tcp.md`, v3.4, with the soundness
+argument): an address is valid if `addrOk` (moved into `Impl.lean`), `Listen` takes a valid address
+or a wildcard with a valid canonical port (`listenOk`), any machine may listen at any valid address,
+`Accept` takes any connection pending at an address its listener takes (`lisAccepts`; a wildcard
+takes any address with its port, the user's preferred D21), and everything else is unchanged. It
+only adds behaviours (every new one starts from a step that was a panic), so robustness under v3.3
+carries over. Initial states: `NetLocal.init` (no listener), `NetGlobal.init` (no connection),
+standalone in `Impl.lean` until Perennial's `ExtSemantics` gets `init`/`globalInit`; the
+interpretation's `initgP` is `NetGlobal.init`, its `initP` stays `True` (the examples' and kits'
+statements do not yet say their machines start with no listener; `KitDeploy` does).
+
+**Ghost state.** Without a plan the start resources cannot be "the plan's addresses": they are every
+valid address's pending set (`netStart`, `pendInit := addrSpace ∅`). The valid addresses are
+finitely many (`Deploy.lean`'s `addrOk_length`: at most 21 bytes), so their map is a finite `GMap`;
+it is built from a list chosen by `Classical.choose` (`addrList`), never computed (a computed list of
+every byte string up to 21 bytes made the elaborator hang on the first lemma that mentioned it).
+`netPlan` is gone; the specs of `Dial`, `DialTimeout` and `Listen` take `⌜addrOk a⌝`, and
+`netLisAt l a` carries `addrOk a` (so `Accept`'s spec, at a valid listener, takes exactly the
+connections dialed to `a`); the wildcards the semantics allows are not covered by the specs (no
+verified program uses one). The kits' `KitDeploy` is now the kit's addresses (distinct, valid), no
+connection, no listener; the examples' statements lose their plan and host premises.
+
+**Rejected.** An infinite ghost resource for "every address" (a new camera code in Perennial, a
+shared dependency); claiming addresses at run time (the pending sets' authority is in the state
+interpretation, which only a step can change, so a claim outside a step cannot add an address);
+keeping wildcards in the specs (a wildcard's `Accept` must open every matching address's
+protocol).
+## Recognizing bbolt's interrupted first write (2026-11-20)
+
+The first write initializes two zero meta pages, a freelist and an empty root. Zero meta pages
+alone were an ambiguous signature. A writable Open at the fork pin 3f8520bd replaced even files
+with unrelated payload or a fifth page. Recovery now checks the first write's size and every
+byte present. A byte may be zero or its intended value, allowing partial persistence. The
+shared data-page initializer supplies the expected bytes at the configured page size.
+The public Open triple still covers empty and well-formed files. Tests cover the interrupted
+and damaged images. [Regression test and fork pins](../issues/bbolt-open-zero-meta-reinitializes-data.md)
+
+
+## Carry the stored snapshot's source through raft (2026-11-20)
+
+The caller may associate a persistent predicate with each nonempty snapshot returned by
+storage. The storage already supplies a validity certificate, pinned by raft at attach.
+A tagged memory storage can put validity and the caller's predicate in that certificate.
+The allocation proof uses the general memory-storage invariant allocation, including at
+a nonempty starting snapshot. The existing contract still works for clients that only
+need validity. The next step is to preserve the pin at node startup and the source in Ready.
+
+This supersedes the October 31 decision to retain the server's snapshot-index guard.
+The invariant argument and remaining obligations are in [the removal plan](snapguard-removal-plan.md).

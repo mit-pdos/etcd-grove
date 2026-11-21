@@ -403,6 +403,44 @@ theorem sentMsg_snapTo (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) :
   iintro ⟨-, #H, -⟩
   iapply isRaftMsg_snapTo $$ H
 
+/-- A leader certificate retained with the snapshot's send or receipt. -/
+@[no_expose] def snapshotLeader (γ : Cluster) (id t : w64) : IProp GF :=
+  isLeader γ.raft id t
+
+instance snapshotLeader_persistent (γ : Cluster) (id t : w64) :
+    Persistent (snapshotLeader (GF := GF) γ id t) := by
+  unfold snapshotLeader; infer_instance
+
+theorem sentMsg_snapshotLeader (γ : Cluster) (N : Namespace) (id : w64) (st : MsgSt)
+    (ht : st.msg.Type' = MsgSnap) :
+    sentMsg (GF := GF) γ N id st ⊢ snapshotLeader γ st.msg.From' st.msg.Term' := by
+  unfold sentMsg ApiImpl.sentMsg snapshotLeader
+  iintro ⟨-, #H, -⟩
+  iapply isRaftMsg_snapshotLeader γ.raft id st ht $$ H
+
+/-- A snapshot in this node's outbox establishes its own leadership. -/
+theorem sentMsg_localSnapshotLeader (γ : Cluster) (N : Namespace) (id : w64) (st : MsgSt)
+    (ht : st.msg.Type' = MsgSnap) :
+    sentMsg (GF := GF) γ N id st ⊢ snapshotLeader γ id st.msg.Term' := by
+  iintro #H
+  ihave #Hl := sentMsg_snapshotLeader γ N id st ht $$ H
+  unfold sentMsg ApiImpl.sentMsg isRaftMsg
+  icases H with ⟨-, ⟨-, -, -, %Hfr, -⟩, -⟩
+  rw [← Hfr (Or.inr ht)]
+  iexact Hl
+
+/-- Election safety excludes a node restoring a snapshot from another leader
+and sending as leader in the same term. -/
+theorem snapshotLeader_terms_ne (γ : Cluster) (id sender t tr : w64) (hd : id ≠ sender) :
+    ⊢ snapshotLeader (GF := GF) γ id t -∗ snapshotLeader γ sender tr -∗ ⌜t ≠ tr⌝ := by
+  unfold snapshotLeader
+  iintro #Hs #Hr
+  by_cases he : t = tr
+  · subst tr
+    ihave %hid := isLeader_unique γ.raft id sender t $$ Hs Hr
+    exact False.elim (hd hid)
+  · ipureintro; exact he
+
 /-- (raft-entsize [r3c], 2026-11-09) **A sent `MsgSnap` has no entries and no context**
 (`SentMsgShape`'s: raft builds it as `pb.Message{To, Type: MsgSnap, Snapshot}`,
 `maybeSendSnapshot`): what bounds the size of etcd's merged snapshot message, which keeps the rest
@@ -425,6 +463,23 @@ theorem sentMsg_snap_empty (γ : Cluster) (N : Namespace) (src : w64) (st : MsgS
 /-- **The snapshot directory the client chose for the node `id`** (2026-11-01, J8a; `cluster_alloc`'s
 `sl`): `some γd`, a ghost map `γd` of the indices of the snapshots saved there, or none. -/
 @[no_expose] def Cluster.snapLoc (γ : Cluster) : w64 → Option GName := γ.raft.reSnapLoc
+
+/-- An installed snapshot's original Raft message, retained through Ready. -/
+@[no_expose] def nodeRestoreSource (γ : Cluster) (id : w64) (p : entryID) : IProp GF :=
+  restoredSnapSource γ.raft id p
+
+instance (γ : Cluster) (id : w64) (p : entryID) : Persistent (nodeRestoreSource (GF := GF) γ id p) := by
+  unfold nodeRestoreSource; infer_instance
+
+/-- The source was elected in the term in which it sent the snapshot. -/
+theorem nodeRestoreSource_leader (γ : Cluster) (id : w64) (p : entryID) :
+    nodeRestoreSource (GF := GF) γ id p ⊢ ∃ (sender term : w64), ⌜sender ≠ id⌝ ∗ snapshotLeader γ sender term := by
+  unfold nodeRestoreSource restoredSnapSource snapshotLeader
+  iintro ⟨%m, %hm, #Hm⟩
+  iexists m.src, m.term
+  isplitr
+  · ipureintro; exact hm.2.1
+  iapply isMessage_snapshotLeader γ.raft m hm.1 $$ Hm
 
 /-- (open) **A snapshot of index `i` local to the node `id`** (2026-11-01, J8a; raft's `snapLocal`):
 with a directory (`Cluster.snapLoc γ id = some γd`) the index saved there (`nodeSnapLocal_of_elem`,
@@ -696,7 +751,7 @@ def readySnap (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeD
       nodeAppliedLb γ st.key (uint.nat l.snap.Metadata'.Index') ∗
       nodeCommitLb γ st.key (uint.nat l.snap.Metadata'.Index') ∗
       -- (2026-11-01, J8a) the snapshot local to the node: one it was stepped (`snapLocalMsg`)
-      nodeSnapLocal γ id l.snap.Metadata'.Index' ∗
+      (nodeSnapLocal γ id l.snap.Metadata'.Index' ∗ nodeRestoreSource γ id (snapId l.snap)) ∗
       -- (2026-11-01, J8b) past the bootstrap log (`Cluster.bootLen`): `restore` takes only an index
       -- above the commit index, which starts at the bootstrap log's length
       ⌜(γ.bootLen : Int) < uint.Z l.snap.Metadata'.Index'⌝ ∗
@@ -1377,6 +1432,14 @@ theorem readStateOk_after (γ : Cluster) (N : Namespace) (c : List w8) (idx : w6
   simp only [Prod.mk.injEq] at Hag
   rw [← Hag.2]; exact Hl1
 
+/-- The sending node's evidence about the source of the snapshots in this Ready. -/
+@[no_expose] def readySnapSources (γ : Cluster) (n : Loc) (ms : List QMsg) : IProp GF :=
+  ApiImpl.snapSources γ n ms
+
+instance readySnapSources_persistent (γ : Cluster) (n : Loc) (ms : List QMsg) :
+    Persistent (readySnapSources (GF := GF) γ n ms) := by
+  unfold readySnapSources; exact ApiImpl.snapSources_persistent γ n ms
+
 /-- (2026-11-01, durability stage I-3; candidate 12 §3) **What receiving a `Ready` gives** (the
 receive's postcondition; until then spelled out in it, with the loop's token in place of *enter*):
 its committed entries `ce`, the committed log's next entries after those delivered so far, which
@@ -1389,6 +1452,7 @@ def readyGot (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDrive
     (rd : Ready) : IProp GF :=
   iprop(∃ (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan)
       (ms : List QMsg) (ss : Option (w64 × StateType)),
+    readySnapSources γ n ms ∗
     committedEntriesAt rd.CommittedEntries' st.delivered.length ce ∗
     isCommittedLogLb γ (st.delivered ++ ce) ∗
     (∃ rs, readStatesPts rd.ReadStates' rs ∗
@@ -1432,6 +1496,7 @@ def readyGotT (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriv
     (rd : Ready) : IProp GF :=
   iprop(∃ (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan)
       (ms : List QMsg) (ss : Option (w64 × StateType)),
+    readySnapSources γ n ms ∗
     committedEntriesAt rd.CommittedEntries' st.delivered.length ce ∗
     isCommittedLogLb γ (st.delivered ++ ce) ∗
     (∃ rs, readStatesPts rd.ReadStates' rs ∗

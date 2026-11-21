@@ -993,8 +993,8 @@ theorem node.run.gated_of
       with ⟨#Hss, Hrn⟩
     -- (2026-10-26, D22 J2, R-loc) a snapshot handed out is local to the node
     ihave #Hlloc : iprop(□ ∀ l : SnapLoan, ⌜L = some l⌝ -∗
-        snapLocal γ.raft id l.snap.Metadata'.Index' ∗
-        ⌜(γ.raft.reBoot.length : Int) < uint.Z l.snap.Metadata'.Index'⌝) $$ [Hrn]
+        (snapLocal γ.raft id l.snap.Metadata'.Index' ∗
+        ⌜(γ.raft.reBoot.length : Int) < uint.Z l.snap.Metadata'.Index'⌝) ∗ restoredSnapSource γ.raft id (snapId l.snap)) $$ [Hrn]
     · cases L with
       | none => imodintro; iintro %l %h; cases h
       | some l0 =>
@@ -1016,7 +1016,7 @@ theorem node.run.gated_of
     ihave #HhhO := hsOptC_hsOpt _ _ $$ Hhh
     imod ownRawNodeReady_handout ⊤ γ.raft nv.rn' id rs rdv' ce es ms L (1 : Qp).half γ.gen h
       CoPset.subseteq_top $$ HhhO Hsl Hfree Hrn
-      with ⟨%W, %ss, Hrn, Happ, #Hcef, #Hdk, Hcr, Htk, #Hri, Hsl, Hpb, #Hss1, %Hssn1, Hmw, #Hlead, #Hmss, %Hrf⟩
+      with ⟨%W, %ss, Hrn, Happ, #Hcef, #Hdk, Hcr, Htk, #Hri, Hsl, Hpb, #Hss1, %Hssn1, Hmw, #Hlead, #Hmss, #Hsrcs, %Hrf⟩
     -- (step 4) the escrow's key for the handed-out messages (the driver's claim), at the commit
     imod rtk_keyG γ.raft γ.esc ms ⊤ (by solve_ndisj) $$ Hrtki Hrtk with ⟨Hrtk, Hel⟩
     iapply handshake_send_au_upd (t := Ready.ty) γ.readyc nv.readyc' rdv' (readyP γ) iprop(True) _
@@ -1072,14 +1072,14 @@ theorem node.run.gated_of
         | some l =>
           simp only [readyDataL, readySnapData, rdSnapOut]
           icases Hsnz with ⟨Hhalf, #Hdc, %Hrns, %Hlo⟩
-          ihave ⟨#Hll, %Hbl⟩ : iprop(snapLocal γ.raft γ.id l.snap.Metadata'.Index' ∗
-              ⌜(γ.raft.reBoot.length : Int) < uint.Z l.snap.Metadata'.Index'⌝) $$ []
+          ihave ⟨⟨#Hll, %Hbl⟩, #Hrestored⟩ : iprop((snapLocal γ.raft γ.id l.snap.Metadata'.Index' ∗
+              ⌜(γ.raft.reBoot.length : Int) < uint.Z l.snap.Metadata'.Index'⌝) ∗ restoredSnapSource γ.raft γ.id (snapId l.snap)) $$ []
           · rw [Hgid]; iapply Hlloc $$ %l %rfl
           ihave #Hcl : raftSnapCertD γ.raft (snapTrip l.snap l.snap.Metadata'.ConfState'.lists) $$ []
           · iapply Hcert $$ %l %rfl
           ihave #Hhw' : hsWit γ.raft (phsNext rs.phs h) l.dlv.length $$ []
           · iExactEq Hhw; rfl
-          iframe Hce Hcommitted Hents Hmsgs Hmt Hcr Htk Hrsts Hhw' Hss Hri Hhalf Hdc Hll Hcl
+          iframe Hce Hcommitted Hents Hmsgs Hmt Hcr Htk Hrsts Hhw' Hss Hri Hhalf Hdc Hll Hrestored Hcl
           isplitr
           · iexists h; iframe Hhh; ipureintro; rfl
           isplitr
@@ -1100,7 +1100,9 @@ theorem node.run.gated_of
       unfold readyCut
       iexists (rs.dur, rs.role), readyDurable rs.dur (phsNext rs.phs h) L es, W, ss
       rw [Hgid]
-      iframe Hdur Hbw1 Hpb Hmw Hss1 Hlead Hmss
+      ihave #HsrcsN : qSrcs γ.sn ms $$ []
+      · rw [← Hsnγ]; iexact Hsrcs
+      iframe Hdur Hbw1 Hpb Hmw Hss1 Hlead Hmss HsrcsN
       isplitr
       · ipureintro; rfl
       -- (2026-11-02, durability stage II (q)) the hand-out's `ReadyFacts`

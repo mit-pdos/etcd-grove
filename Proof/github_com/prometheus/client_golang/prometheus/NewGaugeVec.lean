@@ -30,7 +30,11 @@ exclude) and returns `&GaugeVec{MetricVec: NewMetricVec(desc, newMetric)}` (a fr
 nothing panics). Its `WithLabelValues` panics only on an error of `validateLabelValues`, its `With`
 only on one of `validateValuesInLabels`/`hashLabels` (the map's keys not the label names, a value
 not valid UTF-8), the closure only on a wrong count: what `GaugeVec.WithLabelValues.spec` and
-`GaugeVec.With.spec` take from `vecLabels`. -/
+`GaugeVec.With.spec` take from `vecLabels`. (mustreg, 2026-11-20) Its post's `collectorName`: the
+result, as a `Collector` (`*GaugeVec`), describes one descriptor, `desc` (`MetricVec.Describe`,
+`vec.go:124`, is `metricMap.Describe`, which sends `m.desc` alone), named `BuildFQName(ns, sub,
+name)` (`fqName`), valid (as above), without const labels (`counterOpts`/`histOpts`: `ConstLabels`
+nil); its variable labels enter `desc.dimHash`, not `desc.id` (`NewDesc`, `desc.go`). -/
 axiom prometheus.NewGaugeVec.wp_proof : prometheus.NewGaugeVec.spec (GF := GF) (hG := hG)
 
 end proof

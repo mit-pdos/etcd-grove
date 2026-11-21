@@ -17,6 +17,57 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `fmt`'s models that call the arguments' formatting methods, `%p`, and `Errorf`'s `%w`: what retires this repository's `fmt` axioms (2026-11-20, prove-reflectfmt)
+
+- **Limitation.** Perennial's models of `Sprintf`, `Printf` and `Errorf` (`Perennial/TrustedCode/fmt.lean`) never
+  call an argument's method, so their specs admit only `fmt.ArgsWf` arguments (predeclared basic types, methodless
+  named integers and strings); `Errorf` is `errors.New(format)` (no formatting, no `%w`); `%p` and `%0Nx` give
+  arbitrary output; `Sscanf` has no model. Go's `fmt` itself cannot be translated (reflection on every argument,
+  `sync.Pool`, float formatting).
+- **Needed by.** The eight `fmt` axioms left here after prove-reflectfmt (2026-11-20): `fmt.Errorf`, `fmt.ErrorfPlain`,
+  `fmt.Printf`, `fmt.SprintfArgs` (arguments whose `Error()`/`String()` `fmt` calls: `fmt.argsOk`),
+  `fmt.SprintfClientPtr` (`%p` of a pointer), `fmt.SprintfWalName` (`%016x`), `fmt.Sscanf` (`%d`),
+  `fmt.SscanfWalName` (`%016x-%016x.wal`). Also the proofs over the model outside its faithful domain
+  (`fmt.ErrorfErrs`, `fmt.ErrorfStrs`, `fmt.ErrorfWrap`, client-go's `wp_Errorf_setArgs`), whose faithfulness is
+  argued in their headers, not checked.
+- **Proposed (general, not shaped by one caller; one Perennial branch, three steps).**
+  1. *Formatting methods.* The models' per-argument step (`formatArg`) does what `printArg`/`handleMethods` do on a
+     non-`%T`/`%p` verb, for the cases a spec admits: for a method verb (`v s x X q`, not `#v`) an argument whose
+     dynamic type has `Error() string` (and no `Format`) gets its `Error()` called, else one with `String() string`
+     (and no `Format`, no `Error`) its `String()`, the result formatted as a string (exactly for `%s`/`%v`,
+     arbitrary otherwise); any other non-basic argument stays outside the spec. The specs' premise becomes this
+     repository's directive-aware `fmt.argsOk mv format xs` (`Spec/fmt/Errorf.lean`: `fmt.fmtDirectives`,
+     `fmt.argOkAt`, `fmt.stringMethodSpec`), moved to Perennial with its tests (`examples/premisefix/fmtarg`, the
+     three fmt-soundness attacks), and the posts keep `SprintfOut` with the method results as `StrArgValue`s.
+     Retires `fmt.SprintfArgs`, `fmt.Printf` and, with step 3, `fmt.Errorf`.
+  2. *`%p`.* `formatArg` at `p` of a pointer, func, map, chan or unsafe pointer returns an arbitrary string without
+     reading memory (Go's `printArg` does `%p` first, `fmt/print.go:686-693`); the premise admits such an argument
+     under `p` only (`fmt.SprintfClientArgOkAt`'s rule, for any pointer type). Retires `fmt.SprintfClientPtr`, and
+     bbolt's `(*Options).String` (the 2026-11-17 entry below).
+  3. *`Errorf`.* The model formats as `Sprintf` does, then returns `errors.New(s)` when no directive's verb is `w`
+     (Go's `case 0`, `fmt/errors.go`), else a fresh `*fmt.wrapError`/`*fmt.wrapErrors` holding the `%w` arguments
+     (translated: both are plain structs with `Error`/`Unwrap`); the spec says which. Retires `fmt.ErrorfPlain` (its
+     post is the no-`w` case) and lets `fmt.ErrorfWrap`/`fmt.ErrorfErrs` rest on a faithful model.
+  Together with the `%0Nx` and `Sscanf` proposals (the 2026-11-13 entry "`Sprintf`'s `%0Nx`, `Sscanf`'s `%0Nx`"),
+  every `fmt` axiom here goes.
+- **Workaround here.** The axioms, each narrowed to the calls etcd makes; prove-reflectfmt (2026-11-20) retired
+  `fmt.SprintfNamed` and `fmt.SprintfID` (their calls are within Perennial's `fmt.wp_Sprintf` since `ArgWf` admits
+  methodless named integers and strings, or within `fmt.SprintfArgs`) and fixed `fmt.SprintfClientPtr`'s premise
+  (`notes/axiom-review/sprintfclientptr.md`).
+- **Status.** Proposed only (the Perennial branch is the `stdlib` agent's at the time).
+
+### `wp_apply` with a `have`-local spec can close the goal with `sorry` (2026-11-20, k8s-authz)
+
+- **Limitation.** In `Proof/k8s_io/apimachinery/pkg/util/errors/aggregate__visit.lean`, `have hrec :=
+  IHn m Hm sl' ys' f I; wp_apply hrec $$ [$HI] as HI` reported no error, skipped the tactics after it
+  ("never executed") and left the theorem using `sorry`; without `$$ [$HI]` it failed with `unknown free
+  variable`. The term check of `ProofMode.lean` ("the proof would contain `sorry`") did not catch it.
+- **Needed by.** Any proof that applies a local (induction-hypothesis) spec.
+- **Workaround.** `wp_bind` the call and `iapply hrec` (aggregate__visit, aggregate__Error).
+- **Proposed change.** Find why `wp_apply` loses the local hypothesis (its context reversion) and make
+  the elaboration failure an error.
+- **Status.** Not started.
+
 ### `unsafe` and `reflect` beyond plain bytes: what all of etcd needs (2026-11-20, survey)
 
 - **Limitation.** Perennial models byte views of pointer-free types only (R1-R5 of its
@@ -492,6 +543,16 @@ condition in `lean_types.go`; regenerated translations gain one `ptr_M_unfold` f
 classes of names-only and types-only packages: `mvccpb.Event_EventType`'s `String`, `Descriptor`,
 `Enum`, ...); no proof changes, since a new instance only unsticks calls. Not yet proposed upstream
 (through etcd-grove-81; no Perennial edit here).
+
+Also met (2026-11-19, k8s-authz, branch `k8s-authz-b2`): `authorizer.validateConditions` returns
+`errs.ToAggregate()` on its local `errs` (a `field.ErrorList`, addressable, so Go calls it through
+`*ErrorList`); `field` is names-only, so `ptr_ToAggregate_unfold` is missing and the call is stuck.
+Workaround here, this time a local trust-boundary axiom (the call is on the closed theorem's path):
+`field.ErrorList.ToAggregate_ptr.wp_proof` (`Proof/k8s_io/apimachinery/pkg/util/validation/field/
+ErrorList__ToAggregate_ptr.lean`, spec beside it under `Spec/`), stated over the value method's spec
+as a hypothesis: "load `*l` (any fraction, kept), then `ErrorList.ToAggregate.spec`", which is exactly
+the omitted `ptr_M_unfold`. It becomes a lemma (like `sets.Set.wp_ptr_Has_of`) when goose takes the
+change above; then delete the axiom.
 
 ### `sort.Sort`'s spec as a function of its input (2026-11-09, specs-only batch 3b)
 
@@ -1228,7 +1289,9 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Proposed.** `ArgWf` admits a named type with `fmt.NoFmtMethods` whatever its basic underlying
   type (the output of a non-integer one arbitrary from its directive on, as `SprintfOut.other`); with
   `NoFmtMethods` from goose's method sets, the list and the axiom go.
-- **Status.** Not started.
+- **Status.** Done in Perennial (`ArgWf`'s `IsStrArgType`: a named string type without formatting methods, holding a
+  string; `ArgsWf.cons_named_string`); `fmt.SprintfNamed` and `fmt.methodlessNamedTypes` retired (prove-reflectfmt,
+  2026-11-20): `Preconditions.Check`, `Mutex.tryAcquire` and `Election.Campaign` call Perennial's `fmt.wp_Sprintf`.
 
 ### Specs: `fmt`'s `ArgWf` for a method-less map argument (2026-10-27, client-go informers)
 
@@ -1340,6 +1403,11 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   (`time` is translated without `Duration.String`, so its pointer wrapper is missing too).
 - **Needed by.** The k8s etcd3 store and `k8s.io/apiserver/pkg/storage`: continue tokens (JSON in
   base64), `prepareKey` (`path`), resource versions (`strconv`), `GetList`'s iterators (`iter`).
+  (2026-11-20, auth-mediation M2) etcd's membership operations: `json.Marshal` of a
+  `membership.Member` and of a `ConfigChangeContext` (`EtcdServer.AddMember`, `UpdateMember`,
+  `promoteMember`), local trust-boundary specs in the smallest form (no error, some fresh bytes:
+  `Spec/encoding/json/MarshalMember.lean`, `MarshalConfigChangeContext.lean`); the general fix is a
+  model of `encoding/json`'s encoder for structs of basic fields and string slices.
 - **Workaround here.** The three packages names-only in this repository's configuration (survey
   branch: `Code/encoding/{json,base64}.toml`, `Code/path.toml`); specs as
   needed, local until proposed.
@@ -1649,6 +1717,12 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Workaround here.** Persistent structs are stated field by field (the model's `cfgAt`); a
   fractional one is split by `iStructNamed` and recombined with `typedPointsto_combine` around the
   loads (`Server.remove`'s preconditions, the `ObjectMeta` accessors).
+- **Also met (2026-11-19, k8s-authz batches 1 and 3).** `wp_load`/`wp_auto` load a field through
+  `p ↦ u` but not through `p ↦{dq} u` with a variable `dq` (the methods of
+  `ConditionsAwareDecision`/`ConditionsAwareDecisionUnion`, whose receivers are read at any
+  fraction). Workaround: apply the generated access instance by hand,
+  `icases (T.T_access_load_<field> p u dq).access_strict ...` (e.g.
+  `ConditionsAwareDecisionUnion__hasConditionalAuthorizerName.lean`).
 - **Proposed change.** The field-access instance (`solve_pointsto_access_struct`) at any fraction.
 
 ### `strconv.Itoa` has no spec (2026-11-11, trace-check S7 part 2)
@@ -2259,6 +2333,11 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
   2026-11-09: `Role.String()` on the constant `Leader`).
 - **Proposed change.** Instances for the basic types (`uint64`, `int64`, `string`, `bool`, ...) in
   `PostLifting.lean`, beside the composite ones.
+- **Also met (2026-11-19, k8s-authz batch 1): `go.NotInterface go.int`.** A method call on a named
+  type over `int` (`authorizer.Decision`, `type Decision int`: `d.String()`) is stuck without it.
+  Workaround: the local instance `b1_notInterface_int` (`⟨trivial⟩`,
+  `Proof/k8s_io/apiserver/pkg/authorization/authorizer/PtrMethodsB1.lean`). The proposed change
+  covers it (`int` among the basic types).
 
 ### `wp_apply` of a hypothesis triple with no binders in its post drops the continuation
 
@@ -3099,3 +3178,24 @@ parameter.
   (`(st.items.map (storeKeyL ∘ key)).Nodup`), so the order does not matter there.
 - **Proposed (general).** Fix the two docstrings ("the first binding of a key wins"); documentation only.
   **Status.** Recorded only.
+
+## 2026-11-20: `time.After` and the timers have no clock content (clockwork's real clock)
+
+- **The gap.** Perennial's `time.After(d)` spec gives a bag of times with no logical content
+  (`isChanBag γ ch (fun _ => True)`), and `time.Now` arbitrary readings; there is no ghost clock that
+  a receive on `After`'s channel bounds from below. clockwork's `NewRealClock` (`After` is
+  `time.After`) therefore cannot be proved to give `clockwork.clockOk` (`After`'s values come only
+  once `clockLb γc (T + d)`), and its ghost predicates (`clockLb`, `stampAt`, `realClock` and their
+  laws, 9 axioms with `NewRealClock.wp_proof`) stay axioms.
+- **Worked around locally.** The clockwork axioms (`Proof/github_com/jonboulle/clockwork/Defs.lean`).
+- **Proposed (general).** A monotonic ghost clock in Perennial's `time` model (`runtimeNano`'s readings
+  bounded below by a persistent `clockLb`, `After`/`NewTimer`/`Sleep` firing only past `now + d`),
+  from which clockwork's predicates would be definitions. **Status.** Recorded only (prove-smalllibs).
+
+## 2026-11-20: `time.Duration.Seconds` is names-only (x/time/rate's `Every`)
+
+- **The gap.** `Duration.Seconds` (`float64(sec) + float64(nsec)/1e9`) is not translated in Perennial's
+  `time`, and a float constant (`rate.Inf = Limit(math.MaxFloat64)`) translates opaque, so
+  `rate.Every` (`1 / Limit(interval.Seconds())`) cannot be stepped; its axiom stays.
+- **Proposed (general).** Translate `Duration.Seconds` (and `Minutes`, `Hours`) over the uninterpreted
+  `FloatOps`; float constants as their bits. **Status.** Recorded only (prove-smalllibs).

@@ -85,6 +85,12 @@ address, no client address. -/
 def startAddrs (k : Nat) : List (GoString × MemberAddrs) :=
   (members k).map (fun m => (m.Name', ⟨some m.Peer', none⟩))
 
+/-- (wal-fsfix2) The start bundles' names are at most 200 bytes (`etcd_adequate_members`' `hmsL`). -/
+theorem startAddrs_names_len (k : Nat) : ∀ m ∈ startAddrs k, m.1.length ≤ 200 := by
+  intro m hm
+  obtain ⟨x, hx, rfl⟩ := List.mem_map.1 hm
+  exact members_names_len k x hx
+
 theorem restartNAddrs_perm (k : Nat) :
     ((startAddrs k).flatMap (fun (m : GoString × MemberAddrs) => m.2.addrs) ++ []).Perm
       (restartNAddrs k) := by

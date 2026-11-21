@@ -40,8 +40,7 @@ theorem wp_main
     (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
     (γm : GName) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.net.duplex.cmd.server ∗
-        dupInvs γm ∗ ⌜(extGlobalGS netExt (G := hG.goose_globalGS)).plan !! srvAddr =
-          some (extLocalGS netExt (L := hG.goose_localGS)).host⌝ }}
+        dupInvs γm ∗ ⌜addrOk srvAddr = true⌝ }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
   wp_start as ⟨#Hinvs, %Hplan⟩

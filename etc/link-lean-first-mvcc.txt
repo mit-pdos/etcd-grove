@@ -73,7 +73,10 @@ storeTxnCommon__Range: storeTxnCommon__Rev storeTxnCommon__rangeKeys
 newMetricsTxnWrite:
 proto_Marshal:
 zap_Error:
-zap_Logger__Error:
+# (2026-11-20) zap's leveled methods are proved over the unexported `Logger.check` (the trust boundary)
+zap_Logger__check:
+zapcore_CheckedEntry__Write:
+zap_Logger__Error: zap_Logger__check zapcore_CheckedEntry__Write
 store__Write: newMetricsTxnWrite
 storeTxnWrite__put: treeIndex__Get traceutil_Trace__Step NewRevBytes RevToBytes proto_Marshal treeIndex__Put zap_Error zap_Logger__Error
 storeTxnWrite__Put: storeTxnWrite__put
@@ -226,8 +229,8 @@ BTree__Clone: @
 BTree__Ascend: @
 BTree__Delete: @
 context_Err: @
-zap_Logger__Info:
-zap_Logger__Warn:
+zap_Logger__Info: zap_Logger__check zapcore_CheckedEntry__Write
+zap_Logger__Warn: zap_Logger__check zapcore_CheckedEntry__Write
 zap_Duration:
 zap_Int:
 zap_Uint32:

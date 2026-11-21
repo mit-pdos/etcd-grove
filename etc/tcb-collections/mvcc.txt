@@ -18,14 +18,7 @@ axiom proto.Unmarshal.wp_proof
 axiom time.Time.Unix.wp_proof
 axiom trace.SpanFromContext.wp_proof
 axiom verify.Verify.wp_proof
-axiom zap.Duration.wp_proof
-axiom zap.Error.wp_proof
-axiom zap.Int'.wp_proof
-axiom zap.Int64.wp_proof
-axiom zap.Logger.Error.wp_proof
-axiom zap.Logger.Info.wp_proof
 axiom zap.Logger.Panic.wp_proof
-axiom zap.Logger.Warn.wp_proof
+axiom zap.Logger.check.wp_proof
 axiom zap.NewNop.wp_proof
-axiom zap.String.wp_proof
-axiom zap.Uint32.wp_proof
+axiom zapcore.CheckedEntry.Write.wp_proof

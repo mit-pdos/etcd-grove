@@ -14,7 +14,9 @@ fraction keeps it so) and fails: the error is non-nil, the outcome the logged on
   one root's tree (`SameRootR`: the extension's `Rename` is stuck across roots). Outcome
   `some (x, s)`: the entry `x`, by a call begun at `s` after both claims' last change.
 * `os.Rename.specFileSnc`: `specFileS` with `osAUnc` (`Proof/os/SharedAu.lean`), whose opening gets
-  the generation's `notCrashed`; it gives `specFileS`.
+  the generation's `notCrashed`; it gives `specFileS`. Their error only when the file system can fail
+  on the target's path or a path does not fit (`¬ (FsNoErrOn (· = child d' bt) ∧ PathFits … ∧
+  PathFits …)`, wal-fsfix2: `NoIoErr` covers a `rename` of a covered path that fits).
 * `os.Rename.specDirS`: the directory `d/bs` (inode `J`) to the free name `d/bt`, both in one
   claim, with the whole call permission (no other call in flight; the WAL's `Create` and
   `cleanupWAL`); the call begins after any log lower bound `lb` the caller holds (`Create`'s commit
@@ -26,6 +28,8 @@ Lean-first (no Rocq counterpart).
 module
 
 public import Proof.os.SharedAu
+public import GooseLang.Ext.Fs.FsNoErr
+public import GooseLang.Ext.Fs.Premises
 
 @[expose] public section
 
@@ -73,7 +77,9 @@ abbrev os.Rename.specFileS : Prop :=
         (renFileOut j j' i N N' bs bt h h' (DFrac.own r1) (DFrac.own r2)) Q }}
     (App (App (Val (@! os.Rename)) (Val #(child d bs))) (Val #(child d' bt)))
   {{ (err : GoInterface), RET #err; osPathS R d dq j ∗ osPathS R d' dq' j' ∗ osCallPerm (callKey R d) qc ∗
-      ∃ o, ⌜err = interface.nil → o.isSome⌝ ∗ Q o ∗
+      ∃ o, ⌜(err = interface.nil → o.isSome) ∧
+          (err ≠ interface.nil → ¬ (FsNoErrOn (· = child d' bt) ∧ PathFits (child d bs) ∧
+            PathFits (child d' bt)))⌝ ∗ Q o ∗
         renFileOut j j' i N N' bs bt h h' (DFrac.own q1) (DFrac.own q2) o }}
 
 /-- `os.Rename.specFileS` with an `osAUnc` (its opening gets the generation's `notCrashed`, so a
@@ -91,7 +97,9 @@ abbrev os.Rename.specFileSnc : Prop :=
         (renFileOut j j' i N N' bs bt h h' (DFrac.own r1) (DFrac.own r2)) Q }}
     (App (App (Val (@! os.Rename)) (Val #(child d bs))) (Val #(child d' bt)))
   {{ (err : GoInterface), RET #err; osPathS R d dq j ∗ osPathS R d' dq' j' ∗ osCallPerm (callKey R d) qc ∗
-      ∃ o, ⌜err = interface.nil → o.isSome⌝ ∗ Q o ∗
+      ∃ o, ⌜(err = interface.nil → o.isSome) ∧
+          (err ≠ interface.nil → ¬ (FsNoErrOn (· = child d' bt) ∧ PathFits (child d bs) ∧
+            PathFits (child d' bt)))⌝ ∗ Q o ∗
         renFileOut j j' i N N' bs bt h h' (DFrac.own q1) (DFrac.own q2) o }}
 
 /-- The claim of a directory rename after an outcome, with fraction `dq`; the call began at least at

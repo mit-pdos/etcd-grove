@@ -5,6 +5,7 @@ vocabulary is `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/InvGrpcStart
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvGrpcStart
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvCluster
 
 @[expose] public section
 
@@ -27,12 +28,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- **`NewClusterServer(s)`** returns a new `*ClusterServer` (over the server's cluster). -/
+/-- **`NewClusterServer(s)`** returns a new `*ClusterServer` over the server's cluster `cl` and the
+server (`clusterServerIs`, what the Cluster service's handlers read; auth-mediation M2, 2026-11-20:
+`True` until then). -/
 abbrev v3rpc.NewClusterServer.spec : Prop :=
   ∀ (s cl : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ srvClusterAddr s ↦□ cl }}
     (App (Val (@! v3rpc.NewClusterServer)) (Val #s))
-  {{ (p : Loc), RET #p; True }}
+  {{ (p : Loc), RET #p; v3rpc.clusterServerIs p s cl }}
 
 end spec
 

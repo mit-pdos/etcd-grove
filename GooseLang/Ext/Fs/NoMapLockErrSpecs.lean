@@ -81,20 +81,34 @@ theorem flock_noErr {Sio : IoSet} [FsStepSat (NoMapLockErr Sio)] (hS : ∀ st i,
       · rcases hk with hk | hk
         · cases hk
         subst hk
-        refine ⟨Val (#EAGAIN), st, ?_, Or.inr ⟨fd, how, ex, rfl, ?_, rfl⟩⟩
+        refine ⟨Val (#EAGAIN), st, ?_, Or.inr (Or.inl ⟨fd, how, ex, rfl, ?_, rfl⟩)⟩
         · simp only [IsFsStep]
           exact ⟨fd, how, d, some ex, true, rfl, hfd, hhow, hfree,
-            .inr ⟨EAGAIN, by decide, rfl, rfl⟩⟩
+            .inr (.inl ⟨EAGAIN, by decide, rfl, rfl⟩)⟩
         · exact hhow
       · refine ⟨Val (#(0 : w64)), st.setFd fd (d.setLk .flock (some ex)), ?_, Or.inl rfl⟩
         simp only [IsFsStep]
         exact ⟨fd, how, d, some ex, nb, rfl, hfd, hhow, hfree, .inl ⟨hc, rfl, rfl⟩⟩
   have hz := noMapLockErr_step (Sio := Sio) hs
     (by simp only [MapLockCovers]; exact ⟨fd, how, d, rfl, hfd, hS _ _⟩) hex
-  rcases (hz : e' = Val (#(0 : w64)) ∨ ∃ (fd1 how1 : w64) (ex : Bool),
+  rcases (hz : e' = Val (#(0 : w64)) ∨ (∃ (fd1 how1 : w64) (ex : Bool),
       PairV (#fd) (#how) = PairV (#fd1) (#how1) ∧ flockReq how1.toNat = some (some ex, true) ∧
-      e' = Val (#EAGAIN)) with hz | ⟨fd1, how1, ex, hv1, hreq, hz⟩
+      e' = Val (#EAGAIN)) ∨ e' = ExternalOp fsExt.name "Flock" (Val (PairV (#fd) (#how))))
+      with hz | ⟨fd1, how1, ex, hv1, hreq, hz⟩ | hz
   · exact ⟨_, hz, Or.inl rfl⟩
+  rotate_left
+  · -- the wait: only a blocking lock request's, excluded by `hk`
+    exfalso
+    subst hz
+    unfold LockStep at hl
+    rcases req with _ | ex
+    · rcases hl with ⟨-, h⟩ | ⟨e, -, h, -⟩ <;> cases h
+    · rcases hl with ⟨-, ⟨-, -, h⟩ | ⟨e, -, -, h⟩ | ⟨hnb, -⟩⟩
+      · cases h
+      · cases h
+      · rcases hk with hk | hk
+        · cases hk
+        · rw [hk] at hnb; cases hnb
   · refine ⟨_, hz, Or.inr ⟨?_, rfl⟩⟩
     injection hv1 with h1 h2
     cases go.intoVal_inj h2
@@ -159,6 +173,81 @@ theorem close_noErr {Sio : IoSet} [FsStepSat (NoIoErr Sio)] (hS : ∀ st i, Sio.
       by simp only [IsFsStep]; exact ⟨fd', 0, d, hv, hfd, rfl, rfl⟩,
       (rfl : Val (#(0 : w64)) = Val (#(0 : w64)))⟩
   exact ⟨_, (hz : e' = Val (#(0 : w64))), rfl⟩
+
+/-- **Every step of a blocking OFD lock call returns 0 or waits** (`F_OFD_SETLKW`; `NoIoErr`, every
+inode covered): its success when there is no conflict, its wait when there is one (`LockStep`), so
+`NoIoErr` keeps only those. -/
+theorem ofdLockW_noErr {Sio : IoSet} [FsStepSat (NoIoErr Sio)] (hS : ∀ st i, Sio.ino st i)
+    (fd typ : w64) :
+    ∀ h st e' h' st', S.step "OfdLock" (PairV (#fd) (PairV (#(W64 38)) (#typ))) h st () e' h' st' () →
+      e' = Val (#(0 : w64)) ∨ ∃ w : val, e' = ExternalOp fsExt.name "OfdLock" (Val w) := by
+  intro h st e' h' st' hs
+  have hf := fsStepV_of_ne (by decide) (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ hs)
+  obtain ⟨hst, -, -⟩ := hf
+  simp only [IsFsStep] at hst
+  obtain ⟨fd', cmd', typ', d, req, hv, hfd, hcmd, hreq, hw, hr, hl⟩ := hst
+  have hv' := hv
+  injection hv' with h1 h2; injection h2 with h3 h4
+  cases go.intoVal_inj h1; cases go.intoVal_inj h3; cases go.intoVal_inj h4
+  have hnb : decide ((W64 38).toNat = F_OFD_SETLK) = false := by decide
+  have hex : ∃ e'' st'', IsFsStep "OfdLock" (PairV (#fd) (PairV (#(W64 38)) (#typ))) st e'' st'' ∧
+      ErrnoZero "OfdLock" e'' := by
+    rcases req with _ | ex
+    · refine ⟨Val (#(0 : w64)), st.setFd fd (d.setLk .ofd none), ?_, Or.inl rfl⟩
+      simp only [IsFsStep]
+      exact ⟨fd, W64 38, typ, d, none, rfl, hfd, hcmd, hreq, hw, hr, .inl ⟨rfl, rfl⟩⟩
+    · have hfree := hl.1
+      by_cases hc : LockConflict st .ofd fd d.ino ex
+      · refine ⟨ExternalOp fsExt.name "OfdLock" (Val (PairV (#fd) (PairV (#(W64 38)) (#typ)))), st, ?_,
+          Or.inr ⟨_, rfl⟩⟩
+        simp only [IsFsStep]
+        refine ⟨fd, W64 38, typ, d, some ex, rfl, hfd, hcmd, hreq, hw, hr, ?_⟩
+        rw [hnb]
+        exact ⟨hfree, .inr (.inr ⟨rfl, hc, rfl, rfl⟩)⟩
+      · refine ⟨Val (#(0 : w64)), st.setFd fd (d.setLk .ofd (some ex)), ?_, Or.inl rfl⟩
+        simp only [IsFsStep]
+        exact ⟨fd, W64 38, typ, d, some ex, rfl, hfd, hcmd, hreq, hw, hr, ⟨hfree, .inl ⟨hc, rfl, rfl⟩⟩⟩
+  exact (noIoErr_step (Sio := Sio) hs
+    (by simp only [IoCovers]; exact ⟨fd, W64 38, typ, d, rfl, hfd, hS _ _, by decide⟩) hex :
+    e' = Val (#(0 : w64)) ∨ ∃ w : val, e' = ExternalOp fsExt.name "OfdLock" (Val w))
+
+/-- **Every step of a blocking `flock` lock request returns 0 or waits** (`NoMapLockErr`, every inode
+covered), as `ofdLockW_noErr`. -/
+theorem flockW_noErr {Sio : IoSet} [FsStepSat (NoMapLockErr Sio)] (hS : ∀ st i, Sio.ino st i)
+    (fd how : w64) (ex : Bool) (hhow : flockReq how.toNat = some (some ex, false)) :
+    ∀ h st e' h' st', S.step "Flock" (PairV (#fd) (#how)) h st () e' h' st' () →
+      e' = Val (#(0 : w64)) ∨ e' = ExternalOp fsExt.name "Flock" (Val (PairV (#fd) (#how))) := by
+  intro h st e' h' st' hs
+  have hf := fsStepV_of_ne (by decide) (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ hs)
+  obtain ⟨hst, -, -⟩ := hf
+  simp only [IsFsStep] at hst
+  obtain ⟨fd', how', d, req', nb', hv, hfd, hhow', hl⟩ := hst
+  have hv' := hv
+  injection hv' with h1 h2
+  cases go.intoVal_inj h1; cases go.intoVal_inj h2
+  rw [hhow, Option.some.injEq, Prod.mk.injEq] at hhow'; obtain ⟨rfl, rfl⟩ := hhow'
+  have hfree := hl.1
+  have hex : ∃ e'' st'', IsFsStep "Flock" (PairV (#fd) (#how)) st e'' st'' ∧
+      MapLockOk "Flock" (PairV (#fd) (#how)) e'' := by
+    by_cases hc : LockConflict st .flock fd d.ino ex
+    · refine ⟨ExternalOp fsExt.name "Flock" (Val (PairV (#fd) (#how))), st, ?_, Or.inr (Or.inr rfl)⟩
+      simp only [IsFsStep]
+      exact ⟨fd, how, d, some ex, false, rfl, hfd, hhow, hfree, .inr (.inr ⟨rfl, hc, rfl, rfl⟩)⟩
+    · refine ⟨Val (#(0 : w64)), st.setFd fd (d.setLk .flock (some ex)), ?_, Or.inl rfl⟩
+      simp only [IsFsStep]
+      exact ⟨fd, how, d, some ex, false, rfl, hfd, hhow, hfree, .inl ⟨hc, rfl, rfl⟩⟩
+  have hz := noMapLockErr_step (Sio := Sio) hs
+    (by simp only [MapLockCovers]; exact ⟨fd, how, d, rfl, hfd, hS _ _⟩) hex
+  rcases (hz : e' = Val (#(0 : w64)) ∨ (∃ (fd1 how1 : w64) (ex : Bool),
+      PairV (#fd) (#how) = PairV (#fd1) (#how1) ∧ flockReq how1.toNat = some (some ex, true) ∧
+      e' = Val (#EAGAIN)) ∨ e' = ExternalOp fsExt.name "Flock" (Val (PairV (#fd) (#how))))
+      with hz | ⟨fd1, how1, ex1, hv1, hreq, -⟩ | hz
+  · exact .inl hz
+  · injection hv1 with h1 h2
+    cases go.intoVal_inj h2
+    rw [hhow] at hreq
+    simp at hreq
+  · exact .inr hz
 
 end step
 
@@ -267,6 +356,62 @@ theorem wp_osMmapNE {Sio : IoSet} [FsStepSat (NoMapLockErr Sio)] (hS : ∀ st i,
       iapply HΦ $$ %base [] Hm Hc Hfd
       ipureintro; exact ⟨hpos, hmax⟩
     · exact he.2.2.elim
+
+/-- **A blocking OFD lock call, its error witnessed** (`wp_osOfdLock`, wal-fsfix2): with
+`F_OFD_SETLKW`, an errno only when the file system can fail on every file (`¬ FsNoErrIno`: under
+`NoIoErr` a covered blocking request ends with errno 0 or waits, `ofdLockW_noErr`). -/
+theorem wp_osOfdLockW (fd cmd typ : w64) (d : OsFd) (req : Option Bool) (hE : ↑osN ⊆ E)
+    (hcmd : cmd.toNat = F_OFD_SETLK ∨ cmd.toNat = F_OFD_SETLKW) (hreq : ofdReq typ.toNat = some req)
+    (hw : req = some true → d.writable = true) (hr : req = some false → d.readable = true)
+    (hfree : req ≠ none → d.ofd = none) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osFd (L := L) fd (DFrac.own 1) d -∗ lockTok (L := L) .ofd fd d -∗
+      (∀ e : w64, ⌜cmd = W64 38 → e ≠ 0 → ¬ FsNoErrIno⌝ -∗ lockOut (L := L) .ofd fd d req e -∗ Φ (#e)) -∗
+      WP (ExternalOp fsExt.name "OfdLock" (Val (PairV (#fd) (PairV (#cmd) (#typ))))) @ s; E {{ Φ }} := by
+  iintro #Hinv Hfd Ht HΦ
+  by_cases hW : FsNoErrIno ∧ cmd = W64 38
+  · obtain ⟨⟨Sio, hi, h1, -, -⟩, rfl⟩ := hW
+    haveI := h1
+    iapply wp_osOfdLockP fd (W64 38) typ d req hE hcmd hreq hw hr hfree _ (ofdLockW_noErr hi fd typ) Φ
+      $$ Hinv Hfd Ht
+    iintro %e %he Ho
+    iapply HΦ $$ [] Ho
+    ipureintro
+    intro _ hne
+    rcases he with he | ⟨w, he⟩
+    · injection he with he; exact absurd (go.intoVal_inj he) hne
+    · cases he
+  · iapply wp_osOfdLock fd cmd typ d req hE hcmd hreq hw hr hfree Φ $$ Hinv Hfd Ht
+    iintro %e Ho
+    iapply HΦ $$ [] Ho
+    ipureintro
+    intro hc _ hn
+    exact hW ⟨hn, hc⟩
+
+/-- **A blocking `flock` lock request, its error witnessed** (`wp_osFlock`, wal-fsfix2): an errno
+only when the file system can fail on every file (`flockW_noErr`). -/
+theorem wp_osFlockW (fd how : w64) (d : OsFd) (ex : Bool) (hE : ↑osN ⊆ E)
+    (hhow : flockReq how.toNat = some (some ex, false)) (hfree : d.flk = none) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osFd (L := L) fd (DFrac.own 1) d -∗ lockTok (L := L) .flock fd d -∗
+      (∀ e : w64, ⌜e ≠ 0 → ¬ FsNoErrIno⌝ -∗ lockOut (L := L) .flock fd d (some ex) e -∗ Φ (#e)) -∗
+      WP (ExternalOp fsExt.name "Flock" (Val (PairV (#fd) (#how)))) @ s; E {{ Φ }} := by
+  iintro #Hinv Hfd Ht HΦ
+  by_cases hW : FsNoErrIno
+  · obtain ⟨Sio, hi, -, h2, -⟩ := hW
+    haveI := h2
+    iapply wp_osFlockP fd how d (some ex) false hE hhow (fun _ => hfree) _ (flockW_noErr hi fd how ex hhow) Φ
+      $$ Hinv Hfd Ht
+    iintro %e %he Ho
+    iapply HΦ $$ [] Ho
+    ipureintro
+    intro hne
+    rcases he with he | he
+    · injection he with he; exact absurd (go.intoVal_inj he) hne
+    · cases he
+  · iapply wp_osFlock fd how d (some ex) false hE hhow (fun _ => hfree) Φ $$ Hinv Hfd Ht
+    iintro %e Ho
+    iapply HΦ $$ [] Ho
+    ipureintro
+    exact fun _ => hW
 
 end specs
 

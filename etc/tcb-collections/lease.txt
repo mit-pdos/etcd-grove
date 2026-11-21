@@ -17,15 +17,9 @@ axiom envVerifyOffTok
 axiom errors.IsStatusErr.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof
-axiom grpc.GenericClientStream.CloseSend.wp_proof
-axiom grpc.GenericClientStream.Context.wp_proof
-axiom grpc.GenericClientStream.Recv.wp_proof
-axiom grpc.GenericClientStream.Send.wp_proof
-axiom grpc.StaticMethod.wp_proof
 axiom grpcAddrIsRaw
 axiom grpcConn
 axiom grpcConn_persistent
-axiom grpcPeerOpt
 axiom grpcSrvCfgRaw
 axiom grpcWrotePeer
 axiom metadata.FromOutgoingContext.wp_proof
@@ -37,6 +31,5 @@ axiom pbLeaseRevokeRequestT_reg
 axiom pbLeaseRevokeResponseT_reg
 axiom rpctypes.errDesc_etcdError
 axiom status.FromError.wp_proof
-axiom zap.Error.wp_proof
-axiom zap.Int'.wp_proof
-axiom zap.Logger.Warn.wp_proof
+axiom zap.Logger.check.wp_proof
+axiom zapcore.CheckedEntry.Write.wp_proof

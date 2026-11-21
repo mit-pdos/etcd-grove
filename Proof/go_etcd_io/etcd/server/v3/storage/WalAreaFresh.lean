@@ -10,7 +10,10 @@ spine, the program's part of it (`walAreaRes`), the whole call permission of its
 free lock token, and no WAL in `dir` (`walAbsent`, from which `Create`'s update from the view `none`);
 and the facts on the paths `Create` takes (`InArea`, `cleanAbsPath`; not `Create`'s bound on the
 directory's length, `dir.length < 2 ^ 59`, which holds of every path Linux accepts and which a faithful
-`bootstrap` checks, or fails, itself). So a faithful `bootstrap`, given it, can call `Create` and build
+`bootstrap` checks, or fails, itself). (wal-fsfix2, 2026-11-20) The area `a` also carries the no-lock-error
+instance (`a.satL`, `NoMapLockErr a.Sio`) and `Fs.DirFits dir` (`a.fits`; from the member's name of at most 200
+bytes at the allocation, `dirFits_srvWalDirOf_memberDataDir`), and every path below its directory in `a.Sio` by path
+(`a.covP`; the closed theorems' `allIo` covers every path). So a faithful `bootstrap`, given it, can call `Create` and build
 the open WAL `wal.bootOk` gives. The closed
 theorems allocate it once per member, at adequacy (`lib/etcdstart/WalAreas.lean`), from the per-member
 `fsExt` root (`walAreaOf`) their premise `etcdWalAreasInit` says is present and holds no WAL name.

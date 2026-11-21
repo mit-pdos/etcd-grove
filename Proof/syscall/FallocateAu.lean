@@ -61,7 +61,7 @@ theorem syscall.Fallocate.wp_growAu (fd off len : w64) (dq : DFrac) (d : OsFd) (
   unfold fallocAu
   wp_apply wp_osFallocStart_au fd off len dq d m hwr hoff hlen hmaps _ $$ Hinv Hfd Hm Hau
     as %t %n Hfd Hau
-  wp_apply wp_osFallocFinish_au t d.ino _ m n (Nat.le_max_left _ _) _ $$ Hinv Hau as %e HQ
+  wp_apply wp_osFallocFinish_au t d.ino _ m n (Nat.le_max_left _ _) _ $$ Hinv Hau as %e HQ %-
   iapply wp_errno
   iapply HΦ
   iframe Hfd
@@ -139,7 +139,7 @@ theorem syscall.Fallocate.wp_growAuW (fd off len : w64) (dq : DFrac) (d : OsFd) 
   unfold fallocAuW
   wp_apply wp_osFallocStart_auW fd off len dq d m hwr hoff hlen hmaps _ $$ Hinv Hfd Hau
     as %t %n Hfd Hau
-  wp_apply wp_osFallocFinish_au t d.ino _ m n (Nat.le_max_left _ _) _ $$ Hinv Hau as %e HQ
+  wp_apply wp_osFallocFinish_au t d.ino _ m n (Nat.le_max_left _ _) _ $$ Hinv Hau as %e HQ %-
   iapply wp_errno
   iapply HΦ
   iframe Hfd

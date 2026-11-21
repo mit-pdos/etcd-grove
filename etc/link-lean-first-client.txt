@@ -115,8 +115,11 @@ status_Code:
 zap_Uint:
 zap_String:
 zap_Error:
-zap_Logger__Debug:
-zap_Logger__Warn:
+# (2026-11-20) zap's leveled methods are proved over the unexported `Logger.check` (the trust boundary)
+zap_Logger__check:
+zapcore_CheckedEntry__Write:
+zap_Logger__Debug: zap_Logger__check zapcore_CheckedEntry__Write
+zap_Logger__Warn: zap_Logger__check zapcore_CheckedEntry__Write
 errors_IsStatusErr:
 waitRetryBackoff:
 withVersion:
@@ -177,7 +180,7 @@ watchGRPCStream__recordBufWait: time_Time__IsZero blockLogger__recordWait watche
 zap_Int64:
 zap_Int:
 zap_Duration:
-zap_Logger__Info:
+zap_Logger__Info: zap_Logger__check zapcore_CheckedEntry__Write
 watchGRPCStream__newWatcherStreamBufLogger: newBlockLogger zap_String zap_Int64 zap_Int zap_Duration zap_Logger__Info
 watchGRPCStream__openWatchClient: watchClient__Watch isHaltErr rpctypes_Error watchGRPCStream__backoffIfUnavailable
 watchGRPCStream__serveWatchClient:

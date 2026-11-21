@@ -1,5 +1,5 @@
 /-
-`zap.Stringer`: the trust boundary (`go.uber.org/zap` is names-only). Lean-first (no Rocq counterpart).
+`zap.Stringer`: proved over zap's code since 2026-11-20 (until then the trust boundary). Lean-first (no Rocq counterpart).
 -/
 module
 

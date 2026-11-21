@@ -4,10 +4,8 @@ resources are the extension's state, piece by piece, and nothing else (no histor
 
 **The network's resources** (global, all in the one `AllG GF` of the ghost state, `NetGS`):
 
-* `netPlan a h` (persistent): the plan has the address `a`, at the host `h`. The plan itself is a
-  field of the ghost state (`NetGS.plan`, the network's, which no step changes; the start resources
-  say which), for `Listen`'s resolution of a wildcard, which needs the whole plan (`ListenAt`).
-* `netPend a S` (exclusive, one per plan address, from the start resources): `S` is the set of the
+* `netPend a S` (exclusive, one per valid address, `addrOk`, from the start resources: the valid
+  addresses are finitely many, `Deploy.lean`'s `addrSpace`): `S` is the set of the
   connections dialed to `a` and not yet accepted. `Dial` adds to it and `Accept` takes from it, as
   logically atomic steps, so a program keeps it in an invariant with what it promises about the
   connections of `S` (the per-address protocol).
@@ -25,8 +23,7 @@ resources are the extension's state, piece by piece, and nothing else (no histor
 **The node's resources** (local): `netLis l a o`, the listener `l` at `a`, open if `o`
 (exclusive); `netLisAt l a` (persistent), the listener `l` exists, at `a`, which is what an `Accept`
 or a `Close` needs to step while `netLis` is elsewhere (in an invariant: a listener shared between
-threads); and the node's host (`NetLocalGS.host`), fixed, which the local interpretation says is the
-node's.
+threads).
 
 **Crashes**: the network's resources are global and survive a crash, as the network does. The
 listeners' ghost maps are the node's, made anew at a crash (no listener survives).
@@ -37,7 +34,7 @@ public import Perennial.GooseLang.Lifting
 public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.GhostVar
 public import Perennial.Ghost.Token
-public import GooseLang.Ext.Net.Impl
+public import GooseLang.Ext.Net.Deploy
 
 @[expose] public section
 
@@ -115,20 +112,16 @@ instance NetEnd.countable : Pos.Countable NetEnd :=
       cases a; cases b; simp only [Prod.mk.injEq] at h'
       obtain ⟨rfl, rfl, rfl⟩ := h'; rfl)
 
-/-- The global ghost state: the universal camera, the ghost maps of the connections' names, of
-the pending sets and of the plan, and the plan itself (`plan`: the network's, which no step
-changes; what `Listen`'s resolution of a wildcard needs, `ListenAt`). -/
+/-- The global ghost state: the universal camera, the ghost maps of the connections' names and of
+the pending sets. -/
 structure NetGS (GF : BundledGFunctors) where
   allG : AllG GF
   γnames : GName
   γpend : GName
-  γplan : GName
-  plan : GMap GoString GoString
 
-/-- The local ghost state: the universal camera, the node's host, and its listeners' ghost map. -/
+/-- The local ghost state: the universal camera and its listeners' ghost map. -/
 structure NetLocalGS (GF : BundledGFunctors) where
   allG : AllG GF
-  host : GoString
   γlis : GName
   /-- The listeners' addresses (persistent entries: a listener's address never changes). -/
   γat : GName
@@ -156,32 +149,32 @@ def connCtx [AllG GF] (γ : ConnNames) (cn : NetConn) : IProp GF :=
     ghostVar (γ.q true) (1 : Qp).half (cn.out true) ∗
     lockCtx (γ.wl false) (cn.lock false) ∗ lockCtx (γ.wl true) (cn.lock true))
 
-/-- The pending sets agree with the network: `pm` has the plan's addresses, each with the
-connections dialed to it and not yet accepted; and every connection was dialed to a plan address. -/
+/-- The pending sets agree with the network: `pm` has the valid addresses, each with the
+connections dialed to it and not yet accepted; and every connection was dialed to a valid address. -/
 def PendOk (g : NetGlobal) (pm : GMap GoString (GSet Nat)) : Prop :=
-  (∀ a, (pm !! a).isSome = (g.plan !! a).isSome) ∧
+  (∀ a, (pm !! a).isSome = addrOk a) ∧
   (∀ a S c, pm !! a = some S →
     (c ∈ S ↔ ∃ cn, g.conns !! c = some cn ∧ cn.addr = a ∧ cn.accepted = false)) ∧
   (∀ c cn, g.conns !! c = some cn →
-    (g.plan !! cn.addr).isSome = true ∧ c ≠ 0 ∧ 2 * c + 1 < 2 ^ 64)
+    addrOk cn.addr = true ∧ c ≠ 0 ∧ 2 * c + 1 < 2 ^ 64)
 
 /-- The interpretation of the network. -/
 def netCtx (hG : NetGS GF) (g : NetGlobal) : IProp GF :=
   letI := hG.allG
   iprop(∃ (nm : GMap Nat ConnNames) (pm : GMap GoString (GSet Nat)),
-    ghostMapAuth hG.γnames 1 nm ∗ ghostMapAuth hG.γpend 1 pm ∗ ghostMapAuth hG.γplan 1 g.plan ∗
-    ⌜(∀ c, (nm !! c).isSome = (g.conns !! c).isSome) ∧ PendOk g pm ∧ g.plan = hG.plan⌝ ∗
+    ghostMapAuth hG.γnames 1 nm ∗ ghostMapAuth hG.γpend 1 pm ∗
+    ⌜(∀ c, (nm !! c).isSome = (g.conns !! c).isSome) ∧ PendOk g pm⌝ ∗
     [∗map] c ↦ cn ∈ g.conns, ∃ γ, ⌜nm !! c = some γ⌝ ∗ ghostMapElem hG.γnames c .discard γ ∗
       connCtx γ cn)
 
 /-- The listeners' addresses. -/
 def lisAddrs (m : GMap w64 (GoString × Bool)) : GMap w64 GoString := GMap.fmap Prod.fst m
 
-/-- The interpretation of a node: its host is the ghost state's, and its listeners are those of
-the ghost map (`γlis`), their addresses those of the other (`γat`). -/
+/-- The interpretation of a node: its listeners are those of the ghost map (`γlis`), their
+addresses those of the other (`γat`). -/
 def netLocalCtx (hL : NetLocalGS GF) (L : NetLocal) : IProp GF :=
   letI := hL.allG
-  iprop(⌜L.host = hL.host⌝ ∗ ghostMapAuth hL.γlis 1 L.lis ∗ ghostMapAuth hL.γat 1 (lisAddrs L.lis))
+  iprop(ghostMapAuth hL.γlis 1 L.lis ∗ ghostMapAuth hL.γat 1 (lisAddrs L.lis))
 
 /-! ## The resources -/
 
@@ -214,25 +207,21 @@ def netConnAt (hG : NetGS GF) (c : Nat) (a : GoString) : IProp GF :=
 def netPend (hG : NetGS GF) (a : GoString) (S : GSet Nat) : IProp GF :=
   letI := hG.allG; ghostMapElem hG.γpend a (.own 1) S
 
-/-- The plan has `a`, at the host `h`. -/
-def netPlan (hG : NetGS GF) (a h : GoString) : IProp GF :=
-  letI := hG.allG; ghostMapElem hG.γplan a .discard h
-
 /-- The listener `l` of this node, at `a`, open if `o`. -/
 def netLis (hL : NetLocalGS GF) (l : w64) (a : GoString) (o : Bool) : IProp GF :=
   letI := hL.allG; ghostMapElem hL.γlis l (.own 1) (a, o)
 
-/-- The listener `l` of this node exists, at `a` (persistent: what an `Accept` or `Close` of `l`
-needs to take a step, whoever holds `netLis`). -/
+/-- The listener `l` of this node exists, at the valid address `a` (persistent: what an `Accept`
+or `Close` of `l` needs to take a step, whoever holds `netLis`; `Listen` gives it for a valid
+address, `addrOk`, not for a wildcard, whose `Accept` takes connections dialed to other
+addresses). -/
 def netLisAt (hL : NetLocalGS GF) (l : w64) (a : GoString) : IProp GF :=
-  letI := hL.allG; ghostMapElem hL.γat l .discard a
+  letI := hL.allG; iprop(ghostMapElem hL.γat l .discard a ∗ ⌜addrOk a = true⌝)
 
 instance netNames_persistent (hG : NetGS GF) c γ : Persistent (netNames hG c γ) := by
   unfold netNames; letI := hG.allG; infer_instance
 instance netConnAt_persistent (hG : NetGS GF) c a : Persistent (netConnAt hG c a) := by
   unfold netConnAt; letI := hG.allG; infer_instance
-instance netPlan_persistent (hG : NetGS GF) a h : Persistent (netPlan hG a h) := by
-  unfold netPlan; letI := hG.allG; infer_instance
 
 instance netEnd_timeless (hG : NetGS GF) c s st : Timeless (netEnd hG c s st) := by
   unfold netEnd netNames; letI := hG.allG; infer_instance
@@ -244,8 +233,6 @@ instance netConnAt_timeless (hG : NetGS GF) c a : Timeless (netConnAt hG c a) :=
   unfold netConnAt netNames; letI := hG.allG; infer_instance
 instance netPend_timeless (hG : NetGS GF) a S : Timeless (netPend hG a S) := by
   unfold netPend; letI := hG.allG; infer_instance
-instance netPlan_timeless (hG : NetGS GF) a h : Timeless (netPlan hG a h) := by
-  unfold netPlan; letI := hG.allG; infer_instance
 instance netLis_timeless (hL : NetLocalGS GF) l a o : Timeless (netLis hL l a o) := by
   unfold netLis; letI := hL.allG; infer_instance
 instance netLisAt_timeless (hL : NetLocalGS GF) l a : Timeless (netLisAt hL l a) := by
@@ -260,53 +247,44 @@ end defs
 section init
 variable {GF : BundledGFunctors}
 
-/-- The pending sets of a network with no connections: the plan's addresses, each with no
+/-- The pending sets of a network with no connections: every valid address, with no
 connection. -/
-def pendInit (g : NetGlobal) : GMap GoString (GSet Nat) := GMap.fmap (fun _ => (∅ : GSet Nat)) g.plan
+def pendInit : GMap GoString (GSet Nat) := addrSpace (∅ : GSet Nat)
 
-/-- The start resources of the network: its plan, and every plan address's (empty) pending set. -/
-def netStart (hG : NetGS GF) (g : NetGlobal) : IProp GF :=
-  iprop(([∗map] a ↦ h ∈ g.plan, netPlan hG a h) ∗ ([∗map] a ↦ S ∈ pendInit g, netPend hG a S) ∗
-    ⌜hG.plan = g.plan⌝)
+/-- The start resources of the network: every valid address's (empty) pending set. -/
+def netStart (hG : NetGS GF) (_g : NetGlobal) : IProp GF :=
+  iprop([∗map] a ↦ S ∈ pendInit, netPend hG a S)
 
-theorem pendOk_init (g : NetGlobal) (h : g.conns = ∅) : PendOk g (pendInit g) := by
+theorem pendOk_init (g : NetGlobal) (h : g.conns = ∅) : PendOk g pendInit := by
   refine ⟨fun a => ?_, fun a S c hS => ?_, fun c cn hc => ?_⟩
-  · simp [pendInit]
-  · simp only [pendInit, GMap.lookup_fmap] at hS
-    cases hp : g.plan.lookup a <;> simp [hp] at hS
-    subst hS; rw [h]; simp [GMap.not_elem_of_empty]
+  · exact addrSpace_lookup_isSome _ a
+  · obtain rfl := addrSpace_lookup_some hS
+    rw [h]; simp [GMap.not_elem_of_empty]
   · rw [h] at hc; simp at hc
 
 theorem net_global_init (hPre : NetGpreS GF) (g : NetGlobal) (hg : g.conns = ∅) :
     ⊢@{IProp GF} |==> ∃ hG : NetGS GF, netCtx hG g ∗ netStart hG g := by
   letI := hPre.allG
   imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := ConnNames) with ⟨%γn, Hn⟩
-  imod ghost_map_alloc (GF := GF) (pendInit g) with ⟨%γp, Hp, Hps⟩
-  imod ghost_map_alloc_empty (GF := GF) (K := GoString) (V := GoString) with ⟨%γl, Hl⟩
-  imod ghost_map_insert_persist_big (γ := γl) g.plan (fun _ _ h => by simp at h)
-    $$ Hl with ⟨Hl, Hls⟩
+  imod ghost_map_alloc (GF := GF) pendInit with ⟨%γp, Hp, Hps⟩
   imodintro
-  iexists (⟨hPre.allG, γn, γp, γl, g.plan⟩ : NetGS GF)
-  isplitl [Hn Hp Hl]
+  iexists (⟨hPre.allG, γn, γp⟩ : NetGS GF)
+  isplitl [Hn Hp]
   · unfold netCtx
-    iexists ∅, pendInit g
+    iexists ∅, pendInit
     iframe Hn Hp
-    have hu : g.plan ∪ (∅ : GMap GoString GoString) = g.plan := by
-      apply GMap.ext; intro k; rw [gmap_lookup_union]; cases g.plan.lookup k <;> rfl
-    rw [hu]
-    iframe Hl
     isplitr
     · ipureintro
-      exact ⟨fun c => by simp [hg, gmap_get?_eq], pendOk_init g hg, rfl⟩
+      exact ⟨fun c => by simp [hg, gmap_get?_eq], pendOk_init g hg⟩
     · rw [hg]; iapply BigSepM.bigSepM_empty.2; iempintro
-  · unfold netStart netPlan netPend
-    iframe Hls Hps
-    ipureintro; rfl
+  · unfold netStart netPend
+    iexact Hps
 
-/-- The start resources of a node: its host, and its listeners. -/
+/-- The start resources of a node: its listeners. -/
 def lisStart (hL : NetLocalGS GF) (L : NetLocal) : IProp GF :=
-  iprop(⌜hL.host = L.host⌝ ∗ ([∗map] l ↦ x ∈ L.lis, netLis hL l x.1 x.2) ∗
-    [∗map] l ↦ a ∈ lisAddrs L.lis, netLisAt hL l a)
+  letI := hL.allG
+  iprop(([∗map] l ↦ x ∈ L.lis, netLis hL l x.1 x.2) ∗
+    [∗map] l ↦ a ∈ lisAddrs L.lis, ghostMapElem hL.γat l .discard a)
 
 theorem net_local_init (hPre : NetGpreS GF) (L : NetLocal) :
     ⊢@{IProp GF} |==> ∃ hL : NetLocalGS GF, netLocalCtx hL L ∗ lisStart hL L := by
@@ -316,25 +294,26 @@ theorem net_local_init (hPre : NetGpreS GF) (L : NetLocal) :
   imod ghost_map_insert_persist_big (γ := γa) (lisAddrs L.lis) (fun _ _ h => by simp at h)
     $$ Ha with ⟨Ha, Has⟩
   imodintro
-  iexists (⟨hPre.allG, L.host, γ, γa⟩ : NetLocalGS GF)
-  unfold netLocalCtx lisStart netLis netLisAt
+  iexists (⟨hPre.allG, γ, γa⟩ : NetLocalGS GF)
+  unfold netLocalCtx lisStart netLis
   have hu : lisAddrs L.lis ∪ (∅ : GMap w64 GoString) = lisAddrs L.lis := by
     apply GMap.ext; intro k; rw [gmap_lookup_union]; cases (lisAddrs L.lis).lookup k <;> rfl
   rw [hu]
   iframe H Hs Ha Has
-  isplit <;> ipureintro <;> rfl
 
 end init
 
-/-- The ghost state of the net extension. The program gets the network's plan and pending sets,
-and each node its listeners (none, in an initial state that satisfies `initP`) and its host. -/
+/-- The ghost state of the net extension. The program gets the network's pending sets (every
+valid address's), and each node its listeners. The network starts with no connection
+(`NetGlobal.init`); a node's listeners are not constrained (`initP`: `True`, until the extension's
+semantics carries `NetLocal.init`, `Impl.lean`). -/
 instance net_interp : ExtInterp netExt where
   LocalGS := NetLocalGS
   GlobalGS := NetGS
   localCtx := netLocalCtx
   globalCtx := netCtx
   PreG := NetGpreS
-  initgP g := g.conns = ∅
+  initgP g := g.init
   initP _ _ := True
   globalStart := netStart
   localStart := lisStart

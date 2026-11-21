@@ -213,8 +213,11 @@ RaftCluster__Members: Member__Clone sort_Sort MembersByID__Len MembersByID__Less
 errors_Is:
 errors_IsStatusErr:
 go_humanize_Bytes:
-zap_Logger__Debug:
-zap_Logger__Warn:
+# (2026-11-20) zap's leveled methods are proved over the unexported `Logger.check` (the trust boundary)
+zap_Logger__check:
+zapcore_CheckedEntry__Write:
+zap_Logger__Debug: zap_Logger__check zapcore_CheckedEntry__Write
+zap_Logger__Warn: zap_Logger__check zapcore_CheckedEntry__Write
 zap_Uint64:
 zap_Int:
 zap_Int64:
@@ -351,6 +354,13 @@ EtcdServer__requireAuthInfo: EtcdServer__AuthInfoFromCtx
 EtcdServer__checkMembershipOperationPermission: EtcdServer__AuthInfoFromCtx EtcdServer__AuthStore
 EtcdServer__requireAuthInfo+C: EtcdServer__AuthInfoFromCtx
 EtcdServer__RemoveMember: EtcdServer__checkMembershipOperationPermission raftpb_ConfChangeType__Enum
+# auth-mediation M2 (2026-11-20): the other member operations, over the names-only callees taken as
+# contracts (`MemberContracts.lean`), and `json.Marshal`'s trust-boundary specs
+json_MarshalMember:
+json_MarshalConfigChangeContext:
+EtcdServer__AddMember: EtcdServer__checkMembershipOperationPermission raftpb_ConfChangeType__Enum json_MarshalMember
+EtcdServer__UpdateMember: EtcdServer__checkMembershipOperationPermission raftpb_ConfChangeType__Enum json_MarshalMember
+EtcdServer__promoteMember: EtcdServer__checkMembershipOperationPermission raftpb_ConfChangeType__Enum json_MarshalConfigChangeContext
 # the lease-keys plan's Part B (2026-10-31): the lease API's key checks (v3_server.go), a reader
 # of the auth store and of the lessor at lower bounds (`LeaseCheck.lean`); the entry points that
 # call them stay names-only
@@ -369,6 +379,9 @@ EtcdServer__waitAppliedIndex:
 EtcdServer__waitLeader:
 leasehttp_RenewHTTP:
 EtcdServer__LeaseRenew: EtcdServer__ensureLeadership EtcdServer__waitAppliedIndex EtcdServer__waitLeader EtcdServer__checkLeaseRenew lease_lessor__Renew lease_lessor__Lookup leasehttp_RenewHTTP EtcdServer__isLeader EtcdServer__FeatureEnabled config_ServerConfig__ReqTimeout traceutil_Tracer__Start trace_WithAttributes attribute_Int64 errors_Is errors_IsCtxErr errors_IsStatusErr EtcdServer__Logger zap_Error zap_Logger__Warn
+# auth-mediation M2 (2026-11-20): the promotion's entry point (local, or forwarded to the leader as
+# `LeaseRenew` forwards; `promoteMemberHTTP`, names only, is the spec's contract `promoteHTTPOk`)
+EtcdServer__PromoteMember: EtcdServer__promoteMember EtcdServer__waitLeader config_ServerConfig__ReqTimeout prometheus_CounterVec__WithLabelValues errors_Is errors_IsCtxErr errors_IsStatusErr
 EtcdServer__LeaseLeases: lease_lessor__Leases EtcdServer__checkLeaseLeases EtcdServer__newHeader
 EtcdServer__checkLeaseLeases: EtcdServer__AuthInfoFromCtx EtcdServer__AuthStore lease_Lease__Keys
 EtcdServer__MemberList: EtcdServer__requireAuthInfo+C RaftCluster__Members
@@ -519,7 +532,7 @@ EtcdServer__run: schedule_Scheduler__Stop raftNode__stop EtcdServer__Cleanup sto
 # `GaugeVec.With`; `ClusterVersion()` is a contract of the construction premise
 # (`clusterVersionOk`; since D17 `NewServer` builds it from `EtcdServer.ClusterVersion`, translated
 # and proved). The read package's `NewRead` and `LinearizableReadLoop` are its Link's.
-zap_Logger__Info:
+zap_Logger__Info: zap_Logger__check zapcore_CheckedEntry__Write
 strconv_FormatUint:
 types_ID__String: strconv_FormatUint
 types_ID__String_ptr: types_ID__String
@@ -561,7 +574,7 @@ traceutil_Trace__LogWithStepThreshold:
 # boundary: metadata.FromIncomingContext, AuthInfoFromTLS, redactToken, zap.ByteString (hasRootRole
 # proved since S4b, 2026-10-24, over Perennial's sort.SearchStrings).
 zap_ByteString:
-zap_Logger__Error:
+zap_Logger__Error: zap_Logger__check zapcore_CheckedEntry__Write
 metadata_FromIncomingContext:
 auth_hasRootRole:
 auth_redactToken:
@@ -630,9 +643,8 @@ auth_authStore__AuthInfoFromCtx: metadata_FromIncomingContext auth_authStore__au
 # The token binding (the auth plan's S5, 2026-10-24): `Authenticate`, over the token provider's
 # contract (`InvAuth.lean`, `tokenProviderOk`: an issued token's binding, `Tokens.lean`) and the
 # write side's `GetUser`. The trust boundary: zap's `Logger.Check` and zapcore's
-# `CheckedEntry.Write` (logging).
-zap_Logger__Check:
-zapcore_CheckedEntry__Write:
+# `CheckedEntry.Write` (logging; since 2026-11-20 `Check` is proved over the unexported `check`).
+zap_Logger__Check: zap_Logger__check
 auth_authStore__Authenticate: auth_authStore__IsAuthEnabled auth_authStore__Revision auth_redactToken zap_String zap_Logger__Check zapcore_CheckedEntry__Write
 # The token prefix (C1's A4, 2026-10-29): the store's, over the provider's contract
 # (`tokenProviderOk`'s `genTokenPrefix` clause); the trust boundary: the simple provider's
@@ -822,7 +834,7 @@ io_Pipe:
 io_PipeWriter__CloseWithError:
 snap_NewMessage:
 snap_Message__CloseNotify:
-snap_Message__GetTo:
+snap_Message__GetTo: raftpb_Message__GetTo
 # (2026-10-24, rafthttp stage 7d) the snapshot sender's: the merged message's fields and close (D22's
 # interface, pending the D22 owner), `io.MultiReader` (names-only in Perennial)
 snap_Message__fields:
@@ -892,7 +904,7 @@ rafthttp_newStreamHandler:
 rafthttp_newStreamRoundTripper:
 rafthttp_newURLPicker:
 rafthttp_peerStatus__activate: zap_Logger__Info zap_String types_ID__String_ptr prometheus_GaugeVec__WithLabelValues =_root_.Perennial.time.wp_Now
-rafthttp_peerStatus__deactivate: zap_Logger__Warn zap_Logger__Debug zap_String zap_Error types_ID__String_ptr prometheus_GaugeVec__WithLabelValues prometheus_CounterVec__WithLabelValues fmt_SprintfID
+rafthttp_peerStatus__deactivate: zap_Logger__Warn zap_Logger__Debug zap_String zap_Error types_ID__String_ptr prometheus_GaugeVec__WithLabelValues prometheus_CounterVec__WithLabelValues fmt_SprintfArgs types_ID__String
 rafthttp_peerStatus__isActive:
 rafthttp_peer__Pause: rafthttp_streamReader__pause
 rafthttp_peer__Resume: rafthttp_streamReader__resume
@@ -953,7 +965,8 @@ rate_Every:
 types_IDFromString:
 strings_TrimSuffix:
 fmt_ErrorfPlain:
-semver_v3_New:
+# (prove-smalllibs, 2026-11-20) semver's `New`, `Major`, `Minor` proved over the real code
+semver_v3_New: Version__String
 v3_Version__Major:
 v3_Version__Minor:
 v3_MustParse:
@@ -976,7 +989,6 @@ binary_WriteUint8:
 v2stats_FollowerStats__Succ:
 prometheus_GaugeVec__WithLabelValues:
 prometheus_CounterVec__WithLabelValues:
-fmt_SprintfID:
 fmt_SprintfArgs:
 zap_Bool:
 ioutil_NewLimitedBufferReader:
@@ -1002,4 +1014,4 @@ path_lazybuf__string:
 # (revoke-open pass 2, 2026-11-06) the revocation of expired leases (`run`'s expiry arm), and the
 # auth store's `WithRoot` its inner goroutines call
 auth_authStore__WithRoot:
-EtcdServer__revokeExpiredLeases: EtcdServer__GoAttach EtcdServer__Logger EtcdServer__ensureLeadership EtcdServer__MemberID EtcdServer__LeaseRevoke auth_authStore__WithRoot zap_Uint64 zap_String zap_Error zap_Logger__Warn fmt_SprintfID
+EtcdServer__revokeExpiredLeases: EtcdServer__GoAttach EtcdServer__Logger EtcdServer__ensureLeadership EtcdServer__MemberID EtcdServer__LeaseRevoke auth_authStore__WithRoot zap_Uint64 zap_String zap_Error zap_Logger__Warn

@@ -24,7 +24,7 @@ public import Spec.go_uber_org.zap.Uint64
 public import Spec.go_uber_org.zap.String
 public import Spec.go_uber_org.zap.Error
 public import Spec.go_uber_org.zap.Logger__Warn
-public import Spec.fmt.SprintfID
+public import Perennial.Proof.fmt
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopChan
@@ -58,8 +58,7 @@ theorem EtcdServer.revokeExpiredLeases.wp_proof
     (hU64 : zap.Uint64.spec (GF := GF) (hG := hG))
     (hStr : zap.String.spec (GF := GF) (hG := hG))
     (hErr : zap.Error.spec (GF := GF) (hG := hG))
-    (hW : zap.Logger.Warn.spec (GF := GF) (hG := hG))
-    (hSpf : fmt.SprintfID.spec (GF := GF) (hG := hG)) :
+    (hW : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     EtcdServer.revokeExpiredLeases.spec (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ v γr γg γcx rv SP ls
   wp_start as ⟨#Hf, #Hrf, #Hexp, #Hrvk, %Hpre, Htok⟩
@@ -89,7 +88,7 @@ theorem EtcdServer.revokeExpiredLeases.wp_proof
   · iPkgInit
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hinit with ⟨-, -, ⟨-, -, -, ⟨%cnt, #Hcnt, #Hcnts⟩⟩⟩
+  icases Hinit with ⟨-, -, ⟨-, -, -, ⟨%cnt, #Hcnt, #Hcnts⟩, -⟩⟩
   -- the caller's levels: 0, 1 (lent to `GoAttach`), 2 (`B`), the rest
   icases (threadTok_level0 (GF := GF)).1 $$ Htok with ⟨H0, Ht1⟩
   icases (threadTokFrom_succ (GF := GF) 1 (by word)).1 $$ Ht1 with ⟨H1, Ht2⟩
@@ -275,16 +274,12 @@ theorem EtcdServer.revokeExpiredLeases.wp_proof
             · ipureintro; rfl
             iintro %al ⟨Hal, -⟩
             (try wp_auto)
-            wp_apply hSpf _ _ _ (DFrac.own 1) $$ [$Hal] as %msg ⟨-, -⟩
-            · iframe #
-              ipureintro
-              intro x hx
-              simp only [List.mem_cons, List.mem_nil_iff, _root_.or_false] at hx
-              subst hx
-              left
+            -- `fmt.Sprintf("%016x", lid)` of an `int64`: Perennial's `fmt.wp_Sprintf`
+            wp_apply _root_.Perennial.fmt.wp_Sprintf _ _ _ (DFrac.own 1) ?wf $$ [$Hal]
+              as %msg ⟨-, -⟩
+            case wf =>
               exact _root_.Perennial.fmt.ArgsWf.cons_int _ _ []
-                (_root_.Perennial.fmt.IntArgValue.int64 id) _root_.Perennial.fmt.ArgsWf.nil _
-                (List.mem_singleton_self _)
+                (_root_.Perennial.fmt.IntArgValue.int64 id) _root_.Perennial.fmt.ArgsWf.nil
             wp_apply hStr $$ [] as %f1 -
             wp_apply hErr $$ [] as %f2 -
             wp_apply wp_slice_literal (V := zap.zapcore.Field) [f1, f2]

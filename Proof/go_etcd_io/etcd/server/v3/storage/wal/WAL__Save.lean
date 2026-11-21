@@ -21,6 +21,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__Save
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CalleeCov
+public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__cut
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__cutPre
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__tail
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleAppend
@@ -92,7 +93,7 @@ theorem save_post (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) 
 
 /-- See the file header. -/
 theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAssumptions]
-    [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
+    [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions] [FsStepSat (NoMapLockErr Sio)]
     (P : WalPbIn GF) (Mr : WalMarshal)
     (wp_sync : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.spec (W := W) P Mr)
     (wp_syncNE : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specNoErr (Sio := Sio) (W := W) P Mr)
@@ -100,15 +101,14 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
     (wp_saveEntryNE : go_etcd_io.etcd.server.v3.storage.wal.WAL.saveEntry.specNoErr (Sio := Sio) (W := W) P Mr)
     (wp_saveState : go_etcd_io.etcd.server.v3.storage.wal.WAL.saveState.spec (W := W) P Mr)
     (wp_saveStateNE : go_etcd_io.etcd.server.v3.storage.wal.WAL.saveState.specNoErr (Sio := Sio) (W := W) P Mr)
-    (wp_cut : go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.spec (W := W) P Mr)
-    (wp_cutNE : go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.specNoErr (Sio := Sio) (W := W) P Mr)
+    (wp_cut : go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.spec (Sio := Sio) (W := W) P Mr)
     (wp_tail : go_etcd_io.etcd.server.v3.storage.wal.WAL.tail.spec (GF := GF) (hG := hG))
     (wp_empty : WalPbIn.IsEmptyLaw (GF := GF) (hG := hG) P)
     (wp_mustSync : WalPbIn.MustSyncLaw (GF := GF) (hG := hG) P)
     (hzero : WalPbIn.ZeroLaw (GF := GF) (hG := hG) P)
     (wp_size : WalPbIn.SizeLaw (GF := GF) (hG := hG) P Mr) :
     go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.spec (Sio := Sio) (W := W) P Mr := by
-  intro R jr r w dir γ q hp hs sl esL es sized Q
+  intro R jr r w dir γ q hp hs sl esL es sized Q hcov
   wp_start as ⟨#Harea, Hw, %hq, #Hhs, #Hsl, Hes, %hidx, %hsz, Hau⟩
   icases walOpenWS_pers Sio P Mr w dir γ q $$ Hw with ⟨Hw, #Hpers⟩
   icases walShPers_facts Sio P Mr w dir γ $$ Hpers with ⟨#Hmu, #Hsync, #Hseg⟩
@@ -610,8 +610,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
       rw [hf.H]; exact walCutPos_save h.H hs es hne
     have hsz2 : hc2.md.length + (Mr.encState hc2.st).length < 2 ^ 42 := by
       have := hS hc2.st; rw [hf.md]; omega
-    wp_apply (walCov_cut P Mr wp_cut wp_cutNE R jr r w dir hc2 hf.rest hf.st hpc hcuts hpw hcpos
-      (by rw [hf.H]; simp) hsz2 hroom2) $$ [Hh] as %err Hres
+    wp_apply (wp_cut R jr r w dir hc2 hf.rest hf.st hpc hcuts hpw hcpos
+      (by rw [hf.H]; simp) hsz2 hcov hroom2) $$ [Hh] as %err Hres
     · iframe Harea Hh
     icases Hres with (⟨%herr, %h', Hh, %hh', #Hsyn⟩ | %herr)
     · obtain ⟨hH', hmd', hcuts', hrest', hst', -, -, hpc', hroom'⟩ := hh'

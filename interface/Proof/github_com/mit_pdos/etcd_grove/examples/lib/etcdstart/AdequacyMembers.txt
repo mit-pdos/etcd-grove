@@ -9,17 +9,18 @@ theorem etcd_adequate_alloc_members [GoGlobalContext] [hPre : GooseGpreS GF] [lc
     etcdstart.MemberAddrs)) (Bs : List GoString) (hA : (List.flatMap (fun m => m.snd.addrs) ms ++
     Bs).Perm As) (hD : (List.map (fun m => memberDataDir m.fst) ms).Perm Ds) (σ : state) (g :
     GlobalState) (Hinitg : extsInitgP g.globalWorld) (Hinitw : extsInitP σ.world g.globalWorld)
-    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1) (HNs :
-    prometheus.namesUnclaimed (init (intoVal ()) ;; body) [read.slowReadIndexName,
-    read.readIndexFailedName]) (HAs : addrsUnclaimed (init (intoVal ()) ;; body) As) (HDs :
-    dataDirsAbsent (init (intoVal ()) ;; body) Ds) (HEnv : verifyEnvOff (init (intoVal ()) ;; body))
-    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) Ds) (n : Nat) (hn : n + 1 ≤ 2 ^ 62) (κs :
-    List Observation) (t2 : List Expr) (σ2 : CfgState) (Hsteps : RealNsteps n ([init (intoVal ()) ;;
-    body], σ, g) κs (t2, σ2)) (Hprog : ∀ (hG : HeapGS HasLC.hasLC GF), receiptBound GF = n + 1 →
-    threadBound GF = max (n + 2) srvLevelK → ∃ X T, (⊢ |==> ∃ x, T x) ∧ ∀ (x : X), progOk
-    read.readRegPerm iprop((([∗list] m ∈ ms, etcdstart.memberStartRes m.fst m.snd) ∗ [∗list] b ∈ Bs,
-    netAddrFree b) ∗ T x) init body φ) : (∀ (v : val) (t2' : List Expr), t2 = v :: t2' → φ v) ∧ (∀
-    (e2 : Expr), e2 ∈ t2 → RealNotStuck e2 σ2) ∧ ∀ (e2 : Expr), e2 ∈ t2 → ¬UnrecoveredPanic e2
+    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1) {Ns : List
+    GoString} (HNs : prometheus.namesUnclaimed (init (intoVal ()) ;; body) Ns) (HAs : addrsUnclaimed
+    (init (intoVal ()) ;; body) As) (HDs : dataDirsAbsent (init (intoVal ()) ;; body) Ds) (HEnv :
+    verifyEnvOff (init (intoVal ()) ;; body)) (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world)
+    Ds) (n : Nat) (hn : n + 1 ≤ 2 ^ 62) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNsteps n ([init (intoVal ()) ;; body], σ, g) κs (t2, σ2)) (Hprog : ∀ (hG : HeapGS
+    HasLC.hasLC GF), receiptBound GF = n + 1 → threadBound GF = max (n + 2) srvLevelK → ∃ X T, (⊢
+    |==> ∃ x, T x) ∧ ∀ (x : X), progOk (prometheus.namesFree Ns) iprop((([∗list] m ∈ ms,
+    etcdstart.memberStartRes m.fst m.snd) ∗ [∗list] b ∈ Bs, netAddrFree b) ∗ T x) init body φ) (hNs
+    : Ns.Nodup := by decide +kernel) (hmsL : ∀ (m : GoString × etcdstart.MemberAddrs), m ∈ ms →
+    List.length m.fst ≤ 200 := by decide) : (∀ (v : val) (t2' : List Expr), t2 = v :: t2' → φ v) ∧
+    (∀ (e2 : Expr), e2 ∈ t2 → RealNotStuck e2 σ2) ∧ ∀ (e2 : Expr), e2 ∈ t2 → ¬UnrecoveredPanic e2
 
 theorem sep_reassoc5.{u_1} [GoGlobalContext] (P1 P2 P3 P4 P5 : IProp GF) : P1 ∗ P2 ∗ P3 ∗ P4 ∗ P5 ⊢
     (P1 ∗ P2 ∗ P3 ∗ P4) ∗ P5
@@ -31,26 +32,32 @@ theorem etcd_adequate_members [GoGlobalContext] [hPre : GooseGpreS GF] [lctx : G
     etcdstart.MemberAddrs)) (Bs : List GoString) (hA : (List.flatMap (fun m => m.snd.addrs) ms ++
     Bs).Perm As) (hD : (List.map (fun m => memberDataDir m.fst) ms).Perm Ds) (σ : state) (g :
     GlobalState) (Hinitg : extsInitgP g.globalWorld) (Hinitw : extsInitP σ.world g.globalWorld)
-    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1) (HNs :
-    prometheus.namesUnclaimed (init (intoVal ()) ;; body) [read.slowReadIndexName,
-    read.readIndexFailedName]) (HAs : addrsUnclaimed (init (intoVal ()) ;; body) As) (HDs :
-    dataDirsAbsent (init (intoVal ()) ;; body) Ds) (HEnv : verifyEnvOff (init (intoVal ()) ;; body))
-    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) Ds) (n : Nat) (hn : n + 1 ≤ 2 ^ 62) (κs :
-    List Observation) (t2 : List Expr) (σ2 : CfgState) (Hsteps : RealNsteps n ([init (intoVal ()) ;;
-    body], σ, g) κs (t2, σ2)) (Hprog : ∀ (hG : HeapGS HasLC.hasLC GF), receiptBound GF = n + 1 →
-    threadBound GF = max (n + 2) srvLevelK → progOk read.readRegPerm iprop(([∗list] m ∈ ms,
-    etcdstart.memberStartRes m.fst m.snd) ∗ [∗list] b ∈ Bs, netAddrFree b) init body φ) : (∀ (v :
-    val) (t2' : List Expr), t2 = v :: t2' → φ v) ∧ (∀ (e2 : Expr), e2 ∈ t2 → RealNotStuck e2 σ2) ∧ ∀
-    (e2 : Expr), e2 ∈ t2 → ¬UnrecoveredPanic e2
+    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1) {Ns : List
+    GoString} (HNs : prometheus.namesUnclaimed (init (intoVal ()) ;; body) Ns) (HAs : addrsUnclaimed
+    (init (intoVal ()) ;; body) As) (HDs : dataDirsAbsent (init (intoVal ()) ;; body) Ds) (HEnv :
+    verifyEnvOff (init (intoVal ()) ;; body)) (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world)
+    Ds) (n : Nat) (hn : n + 1 ≤ 2 ^ 62) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNsteps n ([init (intoVal ()) ;; body], σ, g) κs (t2, σ2)) (Hprog : ∀ (hG : HeapGS
+    HasLC.hasLC GF), receiptBound GF = n + 1 → threadBound GF = max (n + 2) srvLevelK → progOk
+    (prometheus.namesFree Ns) iprop(([∗list] m ∈ ms, etcdstart.memberStartRes m.fst m.snd) ∗ [∗list]
+    b ∈ Bs, netAddrFree b) init body φ) (hNs : Ns.Nodup := by decide +kernel) (hmsL : ∀ (m :
+    GoString × etcdstart.MemberAddrs), m ∈ ms → List.length m.fst ≤ 200 := by decide) : (∀ (v : val)
+    (t2' : List Expr), t2 = v :: t2' → φ v) ∧ (∀ (e2 : Expr), e2 ∈ t2 → RealNotStuck e2 σ2) ∧ ∀ (e2
+    : Expr), e2 ∈ t2 → ¬UnrecoveredPanic e2
 
 theorem sep_swap_right3.{u_1} [GoGlobalContext] (P Q W : IProp GF) : (P ∗ Q) ∗ W ⊢ (P ∗ W) ∗ Q
+
+theorem walDirsFit_of_names [GoGlobalContext] (ms : List (GoString × etcdstart.MemberAddrs)) (Ds :
+    List GoString) (hD : (List.map (fun m => memberDataDir m.fst) ms).Perm Ds) (hmsL : ∀ (m :
+    GoString × etcdstart.MemberAddrs), m ∈ ms → List.length m.fst ≤ 200) (d : GoString) : d ∈ Ds →
+    Fs.DirFits (srvWalDirOf d)
 
 theorem progOk_walAreas [GoGlobalContext] [go.BasicIntoValInj] (hPre : AbsDiskGpreS GF) (R B : IProp
     GF) (init : val) (body : Expr) (φ : val → Prop) (hbody : toVal body = none) (σ : state) (hfs :
     Fs.FsInit (extLocal Fs.fsExt σ.world)) (Ds : List GoString) (hDs : Ds.Nodup) (hW :
-    etcdWalAreasInit (extLocal Fs.fsExt σ.world) Ds) (hrb : receiptBound GF ≤ 2 ^ 62) (h : progOk R
-    iprop(B ∗ [∗list] d ∈ Ds, memberAreasFresh d) init body φ) : progOk R iprop(B ∗ extsLocalStart
-    σ.world) init body φ
+    etcdWalAreasInit (extLocal Fs.fsExt σ.world) Ds) (hrb : receiptBound GF ≤ 2 ^ 62) (hF : ∀ (d :
+    GoString), d ∈ Ds → Fs.DirFits (srvWalDirOf d)) (h : progOk R iprop(B ∗ [∗list] d ∈ Ds,
+    memberAreasFresh d) init body φ) : progOk R iprop(B ∗ extsLocalStart σ.world) init body φ
 
 theorem progOk_pre [GoGlobalContext] (R B B' : IProp GF) (init : val) (body : Expr) (φ : val → Prop)
     (hB : B ⊢ B') (h : progOk R B' init body φ) : progOk R B init body φ

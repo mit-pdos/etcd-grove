@@ -2,19 +2,23 @@
 # transport, peers, stream writers and readers, the pipeline, remotes, the pipeline and stream
 # handlers, the two codecs, the URL picker, the peer status and the request helpers; (2026-10-24,
 # stage 7c) the snapshot stream (the sender, its handler, `SendSnapshot`, `peer.sendSnap`). Names
-# only: the probes, the package variables' initializers and `init`, and the round
+# only: the probes, the package variables' initializers, and the round
 # trippers' and listener's constructors (the HTTP boundary's). (const-inits, 2026-11-19) The
 # initializers of constants, `fmt.Errorf` errors and literals translated: the timeouts and
 # intervals (`snapResponseReadTimeout`, `ConnWriteTimeout`, `proberInterval`, ...),
 # `errMemberNotFound` and `supportedStream`. (metric-vecs, 2026-11-19) The metric vectors'
 # initializers translated (metrics.go), over prometheus's `New<Kind>Vec` specs.
-translate = ["*", "!init.*",
+translate = ["*",
+  # (mustreg, 2026-11-20) metrics.go's `init.0` (`prometheus.MustRegister` of the metrics), translated (no longer
+  # `!init.*`):
+  # proved by `etc/gen-init.py` over `MustRegister`'s spec with the names' registration rights
   "!addPeerToProber", "!monitorProbingStatus",
   "!NewListener", "!NewRoundTripper", "!newStreamRoundTripper",
-  # `linkHeartbeatSize`'s initializer (`proto.Size`) untranslated, the axiom `linkHeartbeatSize_init`;
   # (prove-errinits, 2026-11-19) the `errors.New`/`fmt.Errorf` errors translated (until then
-  # untranslated, the axiom `errorsNewVarsInit`)
-  "!linkHeartbeatSize"]
+  # untranslated, the axiom `errorsNewVarsInit`); (prove-misc, 2026-11-20) `linkHeartbeatSize`'s
+  # initializer (`proto.Size`) translated, over `proto.SizePb`'s spec (until then the axiom
+  # `linkHeartbeatSize_init`)
+  ]
 # (2026-10-24, rafthttp stage 6d) `ProbingPrefix`, `RaftStreamPrefix` and `RaftSnapshotPrefix`
 # translated: `path.Join(RaftPrefix, ...)`, their values facts of `rafthttpInit`
 imports = ["!*", "bytes", "context", "encoding/binary", "errors", "fmt", "io", "net", "net/http",

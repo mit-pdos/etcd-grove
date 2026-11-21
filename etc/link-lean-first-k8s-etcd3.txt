@@ -41,12 +41,11 @@ PrepareKey: HasSuffix strings_Contains fmt_Errorf
 NewKeyNotFoundError:
 NewKeyExistsError:
 NewInternalError:
-# (stage 7b) the preconditions: meta.Accessor (proved from its body), fmt.Sprintf with two
-# types.UIDs (the trust boundary, `Spec/fmt/SprintfNamed.lean`), NewInvalidObjError
+# (stage 7b) the preconditions: meta.Accessor (proved from its body), NewInvalidObjError (fmt.Sprintf
+# with two types.UIDs: Perennial's `fmt.wp_Sprintf`, a methodless named string type)
 meta_Accessor:
-fmt_SprintfNamed:
 NewInvalidObjError:
-Preconditions__Check: meta_Accessor NewInvalidObjError fmt_SprintfNamed
+Preconditions__Check: meta_Accessor NewInvalidObjError
 # (stage 7b) a minimum resource version above the read's: apimachinery's NewTimeoutError (its body)
 NewTimeoutError:
 NewTooLargeResourceVersionError: NewTimeoutError
