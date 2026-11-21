@@ -79,7 +79,7 @@ theorem end_els (hpre : spillPre X0 w0.fl) (hreach : liveReach X0) (hfv : flView
     obtain ⟨we, hwe, rfl⟩ := List.mem_map.1 hm
     exact ⟨we, by unfold WX.allEnts; exact List.mem_flatten.2 ⟨ws, hws, hwe⟩, rfl⟩
   -- an entry within `bboltEntryMax`: a node's (`rootLoc`), a page's (`shape0`)
-  have hbnd : ∀ we ∈ X.allEnts X0.rl, we.key.length + we.value.length ≤ bboltEntryMax := by
+  have hbnd : ∀ we ∈ X.allEnts X0.rl, entryBytesFit we.key.length we.value.length := by
     intro we hwe
     have hwe' := hwe
     unfold WX.allEnts WX.leaves at hwe'
@@ -90,7 +90,7 @@ theorem end_els (hpre : spillPre X0 w0.fl) (hreach : liveReach X0) (hfv : flView
       ⟨l, r, hr, -, hw'⟩ | ⟨c, p, pg, i, hc, hown, hpg, hlf, hi, rfl⟩
     · obtain ⟨B1, hB1, hn⟩ := hI.rootOK.2.2
       rw [hB] at hB1; cases hB1
-      exact ((hn l r hr).2 we hw').2
+      exact entryBytesFit_leaf ((hn l r hr).2 we hw').2
     · obtain ⟨c0, hc0, hto⟩ := hI.rootPos B hB c hc
       obtain ⟨pgc, hpgc⟩ : ∃ pgc, X.v.pages !! c = some pgc := by
         cases hown with
@@ -104,9 +104,9 @@ theorem end_els (hpre : spillPre X0 w0.fl) (hreach : liveReach X0) (hfv : flView
       have := Write.bytesAt_length_le pg (elemOff i + leafPos pg i) (leafKsize pg i)
       have := Write.bytesAt_length_le pg (elemOff i + leafPos pg i + leafKsize pg i)
         (leafVsize pg i)
-      omega
+      exact entryBytesFit_mono hs.2.1 (by omega) (by omega)
   have hel : ∀ e ∈ E, e.1 % 2 = bucketLeafFlag ∧ (0 < e.2.1.length ∧ e.2.1.length ≤ maxKeySize) ∧
-      e.2.1.length + e.2.2.length ≤ bboltEntryMax := by
+      entryBytesFit e.2.1.length e.2.2.length := by
     intro e he
     obtain ⟨we, hwe, rfl⟩ := hmemE e he
     refine ⟨?_, hI.entKeys we hwe, hbnd we hwe⟩

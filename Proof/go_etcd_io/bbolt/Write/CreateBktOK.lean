@@ -98,7 +98,8 @@ theorem wOK_createPut (X : WX) (l : Loc) (B : BRec) (r : NRec) (e : WEntry) (ib 
     rcases hmem w hw with h | rfl
     · exact (hok.2.2.2.1 X.rl B0 hB l r0 hr w h)
     · refine ⟨hk, ?_, fun _ => hkm⟩
-      rw [hlen]; unfold bboltEntryMax maxKeySize at *; omega
+      apply entryBytesFit_legacy
+      rw [hlen]; unfold maxKeySize at hkm; omega
   · intro w hw
     rcases hmem w hw with h | rfl
     · exact hok.1.2.1.2.2.1 X.rl B0 hB l r0 hr hlf0 w h

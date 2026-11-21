@@ -43,7 +43,7 @@ theorem plainE_node {X : WX} (hok : wOKR X) {c : Loc} {C : BRec} (hC : X.t.bs !!
   intro l r hr hl w hw
   have hsh := hok.1.2.1.2.2.1 c C hC l r hr hl w hw
   have hb := hok.2.2.2.1 c C hC l r hr w hw
-  exact ⟨(notBkt_iff _).1 (fun h => hne (hsh.1 h)), hb.1, hb.2.1⟩
+  exact ⟨(notBkt_iff _).1 (fun h => hne (hsh.1 h)), hb.1, entryBytesFit_leaf hb.2.1⟩
 
 /-- **A nested bucket's tree at the start of the spill** (see the module doc). -/
 theorem bk_init {X : WX} {fl : FLPg} (hpre : spillPre X fl) (hreach : liveReach X)
@@ -53,7 +53,7 @@ theorem bk_init {X : WX} {fl : FLPg} (hpre : spillPre X fl) (hreach : liveReach 
     (hrn : C.bv.rootNode' ≠ null)
     (hpage : ∀ c0 p pg, posRoot C c0 → ownHas X.v.pages c0 p → X.v.pages !! p = some pg →
       pageFlags pg = leafPageFlag → ∀ i < pageCount pg,
-        leafFlags pg i % 2 = 0 ∧ 0 < leafKsize pg i ∧ leafKsize pg i + leafVsize pg i ≤ bboltEntryMax) :
+        leafFlags pg i % 2 = 0 ∧ 0 < leafKsize pg i ∧ entryBytesFit (leafKsize pg i) (leafVsize pg i)) :
     ∃ rn h F D N E, X.node c C.bv.rootNode' = some rn ∧ rn.nv.parent' = null ∧
       uTree X c (spP X) X.t.mv.pgid'.toNat C.bv.rootNode' none none h F D N E ∧
       E.map (fun e => (e.2.1, e.2.2)) = lbktEnts X c ∧ plainEls E := by

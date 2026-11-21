@@ -178,33 +178,142 @@ theorem pieceFits_split (t ps : Nat) (ins : List Inode) (h5 : 5 ≤ ins.length) 
   · left; simp; omega
   · right; have := hs hk; omega
 
-/-- **What `node.write` needs of a piece**: with the page size below `2 ^ 20` and every inode's
-key and value within `bboltEntryMax`, a fitting piece has fewer than `0xFFFF` inodes and a
-page below `2 ^ 31 - 1` (`MaxAllocSize`). -/
-theorem pieceFits_bounds (ps : Nat) (P : List Inode) (hps : ps < 2 ^ 20)
-    (hE : ∀ it ∈ P, it.key'.len.toNat + it.value'.len.toNat ≤ bboltEntryMax)
-    (h : pieceFits ps P) :
-    P.length < 0xFFFF ∧ insSize P < 2 ^ 31 - 1 := by
-  have hl := insSize_ge_len P
+/-- Bytes addressable from a leaf element on the verified 64-bit architecture. -/
+def leafWindow : Nat := 2 ^ 31 - 1
+
+/-- Number of additional inodes accepted by the loop in `readableLeafPrefix`.
+The first inode is always accepted so splitting a nonempty node makes progress. -/
+def leafPrefixLen (i used : Nat) : List Inode → Nat
+  | [] => 0
+  | it :: rest =>
+    if 0 < i ∧ leafWindow < used + inSz it then 0
+    else 1 + leafPrefixLen (i + 1) (used + inSz it) rest
+
+theorem leafPrefixLen_spec (l : List Inode) (i used : Nat) (hi : i ≤ 1 ∨ used ≤ leafWindow) :
+    let k := leafPrefixLen i used l
+    k ≤ l.length ∧ (i + k ≤ 1 ∨ used + ((l.take k).map inSz).sum ≤ leafWindow) ∧
+      (i = 0 → l ≠ [] → 0 < k) := by
+  induction l generalizing i used with
+  | nil => simp [leafPrefixLen, hi]
+  | cons it rest ih =>
+    simp only [leafPrefixLen]
+    split
+    · rename_i h
+      simp [hi, Nat.ne_of_gt h.1]
+    · rename_i h
+      have hnext : i + 1 ≤ 1 ∨ used + inSz it ≤ leafWindow := by omega
+      obtain ⟨hlen, hfit, -⟩ := ih (i + 1) (used + inSz it) hnext
+      simp only [Nat.one_add, List.take_succ_cons, List.map_cons, List.sum_cons,
+        List.length_cons]
+      omega
+
+/-- The size limit in the Go loop starts at the first element, after the
+16-byte page header. A single oversized inode can occur in the loop model;
+the public Put bound handles that case. -/
+def leafReadable (P : List Inode) : Prop := P.length ≤ 1 ∨ insSize P ≤ 16 + leafWindow
+
+theorem leafPrefix_fit (P : List Inode) :
+    let k := leafPrefixLen 0 0 P
+    k ≤ P.length ∧ leafReadable (P.take k) ∧ (P ≠ [] → 0 < k) := by
+  obtain ⟨hk, hfit, hpos⟩ := leafPrefixLen_spec P 0 0 (Or.inl (by omega))
+  refine ⟨hk, ?_, hpos rfl⟩
+  simp only [leafReadable, List.length_take, Nat.min_eq_left hk, insSize_eq]
+  omega
+
+theorem pieceFits_take {ps : Nat} {P : List Inode} (h : pieceFits ps P) (k : Nat) :
+    pieceFits ps (P.take k) := by
   rcases h with h | h
-  · have hsum : ∀ (Q : List Inode), (∀ it ∈ Q, it.key'.len.toNat + it.value'.len.toNat ≤ bboltEntryMax) →
-        (Q.map inSz).sum ≤ Q.length * (16 + bboltEntryMax) := by
-      intro Q hQ
+  · left; simp; omega
+  · right; exact Nat.le_trans (insSize_take_le P k) h
+
+/-- A normal fill-factor cut, prior to enforcing the leaf element address limit. -/
+def splitCandidate (ps : Nat) (P : List Inode) (k : Nat) : Prop :=
+  k ≤ P.length ∧ (k = P.length ∨ 2 ≤ k ∧ k + 3 ≤ P.length) ∧ pieceFits ps (P.take k)
+
+def pieceFitFor (leaf : Bool) (ps : Nat) (P : List Inode) : Prop :=
+  pieceFits ps P ∧ (leaf = true → leafReadable P)
+
+def pieceMin (leaf : Bool) : Nat := if leaf then 1 else 2
+
+def remainderMin (leaf : Bool) : Nat := if leaf then 1 else 3
+
+/-- The final split index. The branch case preserves the usual minimum child
+count. A leaf can split down to a singleton when its values require it. -/
+theorem splitCandidate_final (leaf : Bool) (ps : Nat) (P : List Inode) (k : Nat)
+    (hk : splitCandidate ps P k) :
+    let j := if leaf then leafPrefixLen 0 0 (P.take k) else k
+    j ≤ P.length ∧ pieceFitFor leaf ps (P.take j) ∧
+      (j ≠ P.length → pieceMin leaf ≤ j ∧ j + remainderMin leaf ≤ P.length) := by
+  obtain ⟨hle, hcount, hpiece⟩ := hk
+  cases leaf with
+  | false =>
+    simp only [Bool.false_eq_true, ↓reduceIte, pieceFitFor, false_implies, and_true,
+      pieceMin, remainderMin]
+    exact ⟨hle, hpiece, fun h => hcount.resolve_left h⟩
+  | true =>
+    simp only [↓reduceIte, pieceFitFor, true_implies, pieceMin, remainderMin]
+    let j := leafPrefixLen 0 0 (P.take k)
+    obtain ⟨hj, hr, hp⟩ := leafPrefix_fit (P.take k)
+    change j ≤ _ at hj
+    have hjk : j ≤ k := by simpa [Nat.min_eq_left hle] using hj
+    have htake : (P.take k).take j = P.take j := by rw [List.take_take, Nat.min_eq_left hjk]
+    change leafReadable ((P.take k).take j) at hr
+    rw [htake] at hr
+    have hf := pieceFits_take hpiece j
+    rw [htake] at hf
+    refine ⟨by omega, ⟨hf, hr⟩, fun hne => ⟨?_, by omega⟩⟩
+    apply hp
+    intro he
+    have hzero := congrArg List.length he
+    simp [Nat.min_eq_left hle] at hzero
+    omega
+
+/-- At most four branch separators are kept on an unsplit page. Each child
+entry fits its share of the address window. -/
+theorem branchPiece_readable (P : List Inode) (h : pieceFits 4096 P)
+    (hb : ∀ it ∈ P, it.key'.len.toNat + it.value'.len.toNat ≤ branchKeyMax) :
+    leafReadable P := by
+  right
+  rcases h with h | h
+  · have sumBound (Q : List Inode)
+          (hq : ∀ it ∈ Q, it.key'.len.toNat + it.value'.len.toNat ≤ branchKeyMax) :
+          (Q.map inSz).sum ≤ Q.length * (16 + branchKeyMax) := by
       induction Q with
       | nil => simp
       | cons it Q ih =>
-        have h1 := hQ it (by simp)
-        have h2 := ih (fun x hx => hQ x (by simp [hx]))
-        have h3 : inSz it ≤ 16 + bboltEntryMax := by unfold inSz; omega
-        simp only [List.map_cons, List.sum_cons, List.length_cons, Nat.succ_mul]
+        have hi := hq it (by simp)
+        have ht := ih (fun q h => hq q (by simp [h]))
+        simp only [List.map_cons, List.sum_cons, List.length_cons, Nat.succ_mul, inSz]
         omega
-    have h1 := hsum P hE
+    have hsum := sumBound P hb
+    have hfour := Nat.mul_le_mul_right (16 + branchKeyMax) h
     rw [insSize_eq]
-    have : P.length * (16 + bboltEntryMax) ≤ 4 * (16 + bboltEntryMax) :=
-      Nat.mul_le_mul_right _ h
-    unfold bboltEntryMax at this h1
+    unfold branchKeyMax at hsum hfour
+    unfold leafWindow
     omega
-  · omega
+  · unfold leafWindow; omega
+
+/-- The element count fits its 16-bit field. The complete page's byte count
+includes the header that precedes the first element's address window. -/
+theorem pieceFits_bounds (ps : Nat) (P : List Inode) (hps : ps < 2 ^ 20)
+    (hE : ∀ it ∈ P, it.key'.len.toNat + it.value'.len.toNat ≤ bboltEntryMax)
+    (h : pieceFits ps P) (hr : leafReadable P) :
+    P.length < 0xFFFF ∧ insSize P ≤ 16 + leafWindow := by
+  have hl := insSize_ge_len P
+  constructor
+  · rcases h with h | h <;> omega
+  rcases hr with h1 | h1
+  · cases P with
+    | nil => simp [insSize_nil, leafWindow]
+    | cons it rest =>
+      have hlen : rest.length + 1 ≤ 1 := h1
+      have hrest : rest = [] := List.length_eq_zero_iff.mp (by omega)
+      subst rest
+      have he := hE it (by simp)
+      simp only [insSize_cons, insSize_nil, inSz, leafWindow]
+      unfold bboltEntryMax at he
+      omega
+  · exact h1
 
 end model
 

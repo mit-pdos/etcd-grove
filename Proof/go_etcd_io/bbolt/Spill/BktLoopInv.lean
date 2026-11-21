@@ -60,7 +60,7 @@ inductive KSt where
 /-- A leaf page's elements are plain (`plainTree`'s clause, for one page). -/
 def plainPg (pg : List w8) : Prop :=
   ∀ j < pageCount pg,
-    leafFlags pg j % 2 = 0 ∧ 0 < leafKsize pg j ∧ leafKsize pg j + leafVsize pg j ≤ bboltEntryMax
+    leafFlags pg j % 2 = 0 ∧ 0 < leafKsize pg j ∧ entryBytesFit (leafKsize pg j) (leafVsize pg j)
 
 /-- **A nested bucket's new value holds the entries `E`, plain**: inline, its page's; else its
 tree's (over `P`). -/
@@ -74,7 +74,7 @@ its entries within `bboltEntryMax`, its logical tree finite. -/
 def rootLoc (X : WX) (bl : Loc) : Prop :=
   bktLocalOK X bl ∧ rtOK X bl ∧ ∃ B, X.t.bs !! bl = some B ∧ ∀ l r, B.ns !! l = some r →
     ((r.nv.parent' ≠ null → 0 < r.ws.length) ∧ (r.nv.isLeaf' = false → 2 ≤ r.ws.length)) ∧
-    ∀ w ∈ r.ws, 0 < w.key.length ∧ w.key.length + w.value.length ≤ bboltEntryMax
+    ∀ w ∈ r.ws, 0 < w.key.length ∧ entryBytesFit w.key.length w.value.length w.pgid
 
 /-- **A child not yet visited** (see the module doc). -/
 def childTodo (X0 X : WX) (w : WDb) (txid : w64) (c : Loc) (D : List Nat) : Prop :=
@@ -139,7 +139,7 @@ structure RInv (X0 : WX) (w0 : WDb) (B0 : BRec) (keys : List GoString) (Lroot : 
   `posShape`). -/
   shape0 : ∀ c p pg, posRoot B0 c → ownHas X0.v.pages c p → X0.v.pages !! p = some pg →
     pageFlags pg = leafPageFlag → ∀ i < pageCount pg, 0 < leafKsize pg i ∧
-      leafKsize pg i + leafVsize pg i ≤ bboltEntryMax ∧ leafKsize pg i ≤ maxKeySize
+      entryBytesFit (leafKsize pg i) (leafVsize pg i) ∧ leafKsize pg i ≤ maxKeySize
   /-- (U9x3) The committed mark at most the start's (`StartFacts.hwm`): the committed tree's
   slots below the mark (`treeSlots_lt`, `spPre`'s clause). -/
   hwm0 : w0.C.hwm ≤ X0.t.mv.pgid'.toNat
