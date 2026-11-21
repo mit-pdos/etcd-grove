@@ -264,7 +264,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   icases Hpipe with ⟨%γp, %Rp, %dqp, %szp, %np, #Hisfp, Hmain, Hpc, %hnp, %hfpn, %hRpW⟩
   ihave #Hisfp' := Hisfp
   iunfold isFilePipe at Hisfp'
-  icases Hisfp' with ⟨%plg, -, -, -, -, -, -, -, -, -, -, #Hos, -, #Hpkg, %hszp⟩
+  icases Hisfp' with ⟨%plg, -, -, -, -, -, -, -, -, -, -, #Hos, -, -, #Hpkg, %hszp⟩
   ihave %hclean := osPathS_cleanAbs Rd dir (DFrac.own qd) j $$ Hpd
   wp_auto
   wp_join iprop(∃ nx : w64, next_ptr ↦ nx ∗ w_ptr ↦ w ∗
@@ -646,7 +646,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     rw [hnm0]; exact walFileName_lt sq ix (sq + 1) _ (by omega) hsq
   have hbtw := walNameP_walFileName (sq + 1) (max (uint.nat h.enti) (uint.nat h.snapi) + 1)
   have hcurbt := cutName_free hlargest hlt hbtw
-  -- the update's resources (`walCutP`): quarters of the WAL claim, halves of the tmp claim
+  -- the update's resources (`walCutP`): quarters of the WAL claim, the tmp claim's program
+  -- half to the call, its last quarter to the update (the invariant has the other)
   have hq3 : qQuarter + ((1 : Qp).half + qQuarter) = 1 := by
     apply Subtype.ext
     show (1 : Rat) / 2 / 2 + ((1 : Rat) / 2 + (1 : Rat) / 2 / 2) = 1
@@ -654,8 +655,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   ihave Hcl' : osNames j (.except X) (DFrac.own (qQuarter + qQuarter)) hj $$ [Hcl]
   · rw [show qQuarter + qQuarter = (1 : Qp).half from Qp.half_add_half _]; iexact Hcl
   icases (osNames_frac j (.except X) qQuarter qQuarter hj).1 $$ Hcl' with ⟨Hcl1, Hcl2⟩
-  icases (osNames_join j (.only [pipeTmp np]) (1 : Qp).half (1 : Qp).half ht (Qp.half_add_half 1)).2
-    $$ Hn2 with ⟨Hn2a, Hn2b⟩
+  icases (osNames_frac j (.only [pipeTmp np]) (1 : Qp).half qTmpI ht).1
+    $$ Hn2 with ⟨Hn2b, Hn2a⟩
   icases (walOpenW_cut w dir).1 $$ Hopen with ⟨Hopen, Hpk, Hcf⟩
   ihave #Hinv : walInv (W := W) walCodec Mr R jr r $$ [Harea]
   · iunfold WalFs.walAreaOk at Harea; icases Harea with ⟨#H, -, -⟩; iexact H
@@ -665,7 +666,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length (sq + 1)
     (max (uint.nat h.enti) (uint.nat h.snapi) + 1) (by simp)
     (htmps _ (pipeTmp_mem np)) hcuts ⟨hcpos, hpos⟩ ⟨hnm0w, hnm0c⟩ ⟨rfl, by omega, hlt, hmx⟩ ⟨sq, ix, hnm0, rfl⟩ hbtw hcurbt hbs0 hm0x hm0z
-    rfl hgbs hgmeta hfitH hgz (by rw [← hg]) hgne $$ Hinv [Hdk Htk Hv Hcl1 Hn2a Hpk Hcf Hout Hm Hbs HmS HbS]
+    rfl hgbs hgmeta hfitH hgz (by rw [← hg]) hgne (pipeTmp_mem np) $$ Hinv [Hdk Htk Hv Hcl1 Hn2a Hpk Hcf Hout Hm Hbs HmS HbS]
   · iunfold walCutP
     iframe Hdk Htk Hcl1 Hn2a Hpk Hcf Hout Hm Hbs Hsyn Hnamed
     isplitl [Hv]
@@ -938,7 +939,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     iapply tmpClaim_absent j (pipeTmp np)
       (ht.log x (renFileEnt j (pipeTmp np) j bt g.ino hj s0) (GMap.delete (pipeTmp np) ht.cur))
       (GMap.lookup_delete _ _)
-    iapply (osNames_join _ _ _ _ _ (Qp.half_add_half 1)).1
+    iapply (osNames_frac j (.only [pipeTmp np]) (1 : Qp).half qTmpI _).2
     iframe
   isplitl [Hopen Hpk Hcf]
   · iapply (walOpenW_cut w dir).2

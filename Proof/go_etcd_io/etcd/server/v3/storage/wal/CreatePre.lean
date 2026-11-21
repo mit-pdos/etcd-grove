@@ -55,14 +55,15 @@ theorem createJ_claims {E : CoPset} (R : Roots) (J : Ino) (w0 : GoString) (hJ : 
     (hw0 : walNameP w0 = true) (hE : ↑osShN ⊆ E) :
     osSharedInv (GF := GF) R -∗
       osNames J ((NameSet.except []).diff [w0]) (DFrac.own 1) (hJ.restrict J ((NameSet.except []).diff [w0])) -∗
-      crOut J w0 (hJ.restrict J ((NameSet.except []).inter [w0])) (DFrac.own 1) (some (x, s, i)) ={E}=∗
+      crOut J w0 (hJ.restrict J ((NameSet.except []).inter [w0])) (DFrac.own 1) (some (x, s, i)) -∗
+      osCommitLb (max (hJ.restrict J ((NameSet.except []).diff [w0])).next (x + 1)) ={E}=∗
       ∃ hJ' : NamesH,
         osNames J ((NameSet.except []).diff walTmps) (DFrac.own 1)
-          (hJ'.restrict J ((NameSet.except []).diff walTmps)) ∗ walTmpsRes J ∗
+          (hJ'.restrict J ((NameSet.except []).diff walTmps)) ∗ walTmpsRes J ∗ walTmpsHalf J ∗
         ⌜(∀ xe ∈ (hJ'.restrict J ((NameSet.except []).diff walTmps)).ents,
             xe.1 < max (hJ.restrict J ((NameSet.except []).diff [w0])).next (x + 1)) ∧
           (∀ b, hJ'.cur !! b = if b = w0 then some (.file i) else none)⌝ := by
-  iintro #Hsi HD Ho
+  iintro #Hsi HD Ho #Hcm
   have hN : ∀ c, (NameSet.except []).Mem c ↔
       ((NameSet.except []).diff [w0]).Mem c ∨ (NameSet.only [w0]).Mem c := by
     intro c
@@ -73,6 +74,15 @@ theorem createJ_claims {E : CoPset} (R : Roots) (J : Ino) (w0 : GoString) (hJ : 
   icases Ho with ⟨-, -, Hn1⟩
   imod osNames_merge R J _ _ (.except []) _ _ hN hE $$ Hsi HD Hn1 with ⟨%h'', Hn, %hr⟩
   imod osNames_coh R J _ _ _ hE $$ Hsi Hn with ⟨Hn, %hcoh⟩
+  have hall : ∀ xe ∈ h''.ents,
+      xe.1 < max (hJ.restrict J ((NameSet.except []).diff [w0])).next (x + 1) := by
+    intro xe hxe
+    have e : ((hJ.restrict J ((NameSet.except []).inter [w0])).log x (crEnt J w0 i s)
+        (<[w0 := .file i]> (hJ.restrict J ((NameSet.except []).inter [w0])).cur)).next = x + 1 := by
+      simp [NamesH.next, NamesH.log]
+    have h1 := hcoh.1 xe hxe
+    rw [hr.2.2, e] at h1
+    exact h1
   have hlt : ∀ xe ∈ (h''.restrict J ((NameSet.except []).diff walTmps)).ents,
       xe.1 < max (hJ.restrict J ((NameSet.except []).diff [w0])).next (x + 1) := by
     refine restrict_ents_lt (fun xe hxe => ?_)
@@ -123,16 +133,34 @@ theorem createJ_claims {E : CoPset} (R : Roots) (J : Ino) (w0 : GoString) (hJ : 
     ((NameSet.mem_inter _ _ _).2 ⟨h0m, by simp⟩)
   have hc1 := hc go!"1.tmp" _ (((NameSet.except []).inter walTmps).diff [go!"0.tmp"]) (by simp [walTmps]) h1m
     ((NameSet.mem_diff _ _ _).2 ⟨h1m, by decide⟩)
+  -- each pipeline name's claim: the program's three quarters, the invariant's quarter (with its
+  -- `HistFoP` at the commit bound past every entry, `syncDir(nm.tmp)`'s)
+  imod osNames_coh R J _ _ _ hE $$ Hsi H0 with ⟨H0, %hcoh0⟩
+  imod osNames_coh R J _ _ _ hE $$ Hsi H1 with ⟨H1, %hcoh1⟩
+  have hf : ∀ (t : GoString) (M1 M2 : NameSet), M2.Same (.only [t]) →
+      ((h''.restrict J M1).restrict J M2).cur !! t = none →
+      ClaimCoh ((h''.restrict J M1).restrict J M2) J (.only [t]) →
+      HistFoP (fun _ => True) (max (hJ.restrict J ((NameSet.except []).diff [w0])).next (x + 1)) J
+        (.only [t]) ((h''.restrict J M1).restrict J M2) := by
+    intro t M1 M2 _ hct hco
+    refine HistFoP.of_coh hco (restrict_ents_lt (restrict_ents_lt hall)) (fun b hb _ J' => ?_)
+    have e : b = t := List.mem_singleton.1 hb
+    subst e
+    rw [hct]; nofun
+  ihave ⟨Ht0, Hh0⟩ := tmpWhole_split (hG := hG) J go!"0.tmp" _ _ (hf _ _ _ hS0 hc0 hcoh0) $$ [H0]
+  · iframe H0 Hcm; rw [hc0]; simp only [tmpEnt]; iempintro
+  ihave ⟨Ht1, Hh1⟩ := tmpWhole_split (hG := hG) J go!"1.tmp" _ _ (hf _ _ _ hS1 hc1 hcoh1) $$ [H1]
+  · iframe H1 Hcm; rw [hc1]; simp only [tmpEnt]; iempintro
   imodintro
   iexists h''
   iframe HD
-  ihave Ht0 : tmpClaim J go!"0.tmp" $$ [H0]
-  · unfold tmpClaim; iexists _; iframe H0; rw [hc0]; simp only [tmpEnt]; iempintro
-  ihave Ht1 : tmpClaim J go!"1.tmp" $$ [H1]
-  · unfold tmpClaim; iexists _; iframe H1; rw [hc1]; simp only [tmpEnt]; iempintro
   isplitl [Ht0 Ht1]
   · unfold walTmpsRes walTmps
     iframe Ht0 Ht1
+    iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro
+  isplitl [Hh0 Hh1]
+  · unfold walTmpsHalf walTmps
+    iframe Hh0 Hh1
     iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro
   ipureintro
   exact ⟨hlt, hcur⟩

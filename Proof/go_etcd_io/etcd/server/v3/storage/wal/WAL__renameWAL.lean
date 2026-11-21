@@ -123,7 +123,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.wp_proof (P : WalPbI
   iapply wp_notCrashed_acc _ _ rfl
   iintro Hnc
   ihave Hlaw := hSp
-  imod Hlaw $$ %x HSp Hnc HU Hout with ⟨Hnc, HU, Hs1, Hs2, HSpR⟩
+  imod Hlaw $$ %x HSp Hnc HU Hout with ⟨Hnc, HU, Hs1, Hs2, HSpR, #Hwk⟩
   iframe Hnc
   imodintro
   ihave #Hwi : (wal.walInit : IProp GF) $$ []

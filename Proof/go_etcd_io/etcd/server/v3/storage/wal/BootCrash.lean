@@ -427,11 +427,11 @@ theorem walBootCrash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     (fun p => osNames (L := L) p.2 (.except []) (DFrac.own 1) (namesOf V p.2 (.except [])))
     (fun p => iprop([∗list] i ∈ dirBootFiles V.now p.1 p.2, trFile (hG := ⟨G, L⟩) i False))
     (fun p => iprop(osNames (L := L) p.2 (.except walTmps) (DFrac.own 1) (namesOf V p.2 (.except walTmps)) ∗
-      walTmpsRes (hG := ⟨G, L⟩) p.2 ∗
+      (walTmpsRes (hG := ⟨G, L⟩) p.2 ∗ walTmpsHalf (hG := ⟨G, L⟩) p.2) ∗
       walOthers (L := L) [] p.2 (restrictN (.except walTmps) (entsOf V.now p.2))))
     E (bootWals V.now jr) (fun p hp => by
       obtain ⟨hnm, he⟩ := mem_bootWals.1 hp
-      exact walDir_boot L R V p.2 p.1 hnm (hfo.1 _ _ hnm (.inl he)) E hE) $$ Hsh Hw Hwf with Hw
+      exact walDir_boot L R V hV p.2 p.1 hnm (hfo.1 _ _ hnm (.inl he)) E hE) $$ Hsh Hw Hwf with Hw
   icases BigSepL.bigSepL_sep_eqv.1 $$ Hw with ⟨Hwc, Hw⟩
   icases BigSepL.bigSepL_sep_eqv.1 $$ Hw with ⟨Hwt, Hwo⟩
   -- each temporary directory's probe

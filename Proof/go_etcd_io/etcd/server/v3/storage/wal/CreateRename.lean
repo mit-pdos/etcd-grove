@@ -163,8 +163,18 @@ theorem create_spine (Mr : WalMarshal) (R : Roots) (jr J : Ino) (r nm : GoString
       createU (W := W) Mr R jr r nm hC md Q Pv Wn J hJ g (some x) ∗
       osPathS R (child r nm) (DFrac.own d) J ∗
       osPathS R (child r nm) (DFrac.own d) J ∗
-      createSpR (hG := hG) jr J nm c x := by
+      createSpR (hG := hG) jr J nm c x ∗
+      (∃ (C : WalCodec) (Mr' : WalMarshal) (jr' : Ino) (r' : GoString) (X : List GoString),
+        walInv (W := W) C Mr' R jr' r' ∗ walDirKey (W := W) (child r nm) J X) := by
   iintro %x Hsp Hnc HU Hout
+  ihave #Hwk : (∃ (C : WalCodec) (Mr' : WalMarshal) (jr' : Ino) (r' : GoString) (X : List GoString),
+      walInv (W := W) C Mr' R jr' r' ∗ walDirKey (W := W) (child r nm) J X) $$ [HU]
+  · unfold createU
+    icases HU with ⟨#Hinv, -, HQ⟩
+    simp only [walCreateQ]
+    icases HQ with ⟨-, -, -, -, -, -, -, -, #Hkey, -⟩
+    iexists walCodec, Mr, jr, r, walTmps
+    iframe Hinv Hkey
   unfold createSp
   icases Hsp with ⟨#Hinv, #Hsi, Hp1, Hp2⟩
   obtain ⟨x, s⟩ := x
@@ -201,7 +211,7 @@ theorem create_spine (Mr : WalMarshal) (R : Roots) (jr J : Ino) (r nm : GoString
   ihave Hs1 := osPathS_child R r nm (DFrac.own d) jr J _ hnmO hn1 $$ Hp1 Hn1
   ihave Hs2 := osPathS_child R r nm (DFrac.own d) jr J _ hnmO hn1 $$ Hp2 Hn2
   imodintro
-  iframe Hnc HU Hs1 Hs2
+  iframe Hnc HU Hs1 Hs2 Hwk
   unfold createSpR
   iexists _, _
   iframe Hnm Htmp Hlg

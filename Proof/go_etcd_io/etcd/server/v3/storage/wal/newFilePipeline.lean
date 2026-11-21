@@ -24,7 +24,7 @@ open Fs WalFs
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
 variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions]
@@ -42,7 +42,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.newFilePipeline.wp_proof
     (wp_run : go_etcd_io.etcd.server.v3.storage.wal.filePipeline.run.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.newFilePipeline.spec (GF := GF) (hG := hG) := by
   intro lg dir sz R dq j hsz0 hsz1 hdir hsz8
-  wp_start as ⟨#Hlg, #Hos, #Hsi, #Hpkg, Hres, Hc⟩
+  wp_start as ⟨#Hlg, #Hos, #Hsi, #Hpkg, #Hwi, Hres, Hc⟩
   ihave %hlg := zapLoggerOk_ne_null lg $$ Hlg
   (try wp_auto)
   rw [decide_eq_false hlg]

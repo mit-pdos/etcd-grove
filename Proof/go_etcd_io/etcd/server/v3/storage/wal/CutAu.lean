@@ -62,8 +62,8 @@ abbrev qQuarter : Qp := (1 : Qp).half.half
 
 /-- **What `cut` holds for the rename's update**: the directory's key, the tail's key and the
 program's half of the tail record (history `H`, metadata `md`, cuts, write position `wr0`, old tail
-`i0`), a quarter of the WAL claim (the call has another), half of the pipeline file's claim (the call
-has the other), the parking flag (`false`) and the pending-cut flag (`none`), the handle's record of
+`i0`), a quarter of the WAL claim (the call has another), a quarter of the pipeline file's claim (the
+call has the program's other half; the invariant the last quarter, `tmpHalf`), the parking flag (`false`) and the pending-cut flag (`none`), the handle's record of
 what is out (`o`: the directory's claim among it, `walCut_osAUnc`'s `hoD`), the program's halves of
 the old tail, the new segment `g` whole, and the facts that the history is synced and the WAL named. -/
 def walCutP (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (tmp : GoString)
@@ -71,15 +71,15 @@ def walCutP (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (tmp : 
     (wr0 : Nat) (i0 : Ino) (m0 : OsMeta) (bs0 : List ByteG) (g : SegG) (o : WalOut) : IProp GF :=
   iprop(walDirKey (W := W) dir j X ∗ walTailKey (W := W) dir γ ∗
     tailVar (W := W) γ ((H, md, cuts, wr0, i0, none) : TailG) ∗
-    osNames j (.except X) (DFrac.own qQuarter) hj ∗ osNames j (.only [tmp]) (DFrac.own (1 : Qp).half) ht ∗
+    osNames j (.except X) (DFrac.own qQuarter) hj ∗ osNames j (.only [tmp]) (DFrac.own qTmpI) ht ∗
     walParkFrag (W := W) false ∗ walOutFrag (W := W) o ∗ walCutFrag (W := W) none ∗
     osMeta i0 (DFrac.own (1 : Qp).half) m0 ∗ osBytes i0 0 (DFrac.own (1 : Qp).half) bs0 ∗
     osMeta g.ino (DFrac.own 1) g.om ∗ osBytes g.ino 0 (DFrac.own 1) g.bs ∗
     walSyncedLb (W := W) dir H.length ∗ walNamed (W := W) dir)
 
 /-- **What `cut` gets from the rename's update**: with no effect, what it held; after the commit
-(logged at `x` by a call begun at `s0`), the claims' new histories (half of the pipeline's, a
-quarter of the WAL's), the keys, the tail record at the new segment (the cut at `|H|`, written up to
+(logged at `x` by a call begun at `s0`), the claims' new histories (a quarter of the pipeline's,
+a quarter of the WAL's), the keys, the tail record at the new segment (the cut at `|H|`, written up to
 `wr`), the flags (a cut pending in `dir`), the record of what is out (the old tail put back, the
 new segment out), the new segment's other halves. -/
 def walCutQ (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (tmp : GoString)
@@ -88,7 +88,7 @@ def walCutQ (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (tmp : 
     (wr : Nat) : Option (Nat × Nat) → IProp GF
   | none => walCutP (W := W) dir j X hj tmp ht γ H md cuts wr0 i0 m0 bs0 g o
   | some (x, s0) => iprop(
-      osNames j (.only [tmp]) (DFrac.own (1 : Qp).half)
+      osNames j (.only [tmp]) (DFrac.own qTmpI)
         (ht.log x (renFileEnt j tmp j bt g.ino hj s0) (GMap.delete tmp ht.cur)) ∗
       osNames j (.except X) (DFrac.own qQuarter) (cutClaim j X hj tmp bt g.ino x s0).2.2 ∗
       walDirKey (W := W) dir j X ∗ walTailKey (W := W) dir γ ∗
@@ -138,7 +138,8 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       g.om.hi = g.bs.length)
     (hfitH : RecsFit walCodec (chainRecs walCodec (tailCrc Mr H md cuts)
       (cutHdrDs Mr md (walLastHS (H.map WalOpG.toM)))))
-    (hz : g.bs.length - wr = 0 ∨ 8 ≤ g.bs.length - wr) (hgname : g.name = bt) (hgbs : g.bs ≠ []) :
+    (hz : g.bs.length - wr = 0 ∨ 8 ≤ g.bs.length - wr) (hgname : g.name = bt) (hgbs : g.bs ≠ [])
+    (htw : tmp ∈ walTmps) :
     ⊢ walInv (W := W) walCodec Mr R jr r -∗
       walCutP (W := W) dir j X hj tmp ht γ H md cuts wr0 i0 m0 bs0 g o -∗
       osAUnc iprop(osNames j (.only [tmp]) (DFrac.own (1 : Qp).half) ht ∗
@@ -163,6 +164,14 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
   obtain ⟨lay1, hj1, hl1, hj1j, hjjr, hXw, honce, hcoh, hexcl⟩ := Hdko.1 dir j X HK
   obtain ⟨l1, l2, hcl, hn1, hn2⟩ := honce
   subst hcl
+  -- the pipeline file's claim: the invariant's quarter (`tmpHalf`) with the program's
+  ihave ⟨Hth, Hpkc⟩ := walParked_tmpAcc (L := hG.goose_localGS) Ls _ F dir lay1 hl1 j hj1j tmp htw $$ Hpk
+  iunfold tmpHalf at Hth
+  icases Hth with ⟨%ht1, %n0, Hti, #Hn0, %hft⟩
+  icases osNames_agree j (.only [tmp]) _ _ ht1 ht $$ Hti Ht with %Hht
+  subst ht1
+  ihave Ht := (osNames_halfQ (L := hG.goose_localGS) j (.only [tmp]) ht).2 $$ [Hti Ht]
+  · iframe Hti Ht
   icases (osClaims_split _ _ _ _).1 $$ Hcl0 with ⟨Hl1, Hα, Hl2⟩
   icases osNames_agree j (.except X) _ _ hj1 hj $$ Hα Hq with %Hhj
   subst Hhj
@@ -177,6 +186,9 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
   isplit
   · -- abort
     iintro ⟨Ht, Hw⟩
+    icases (osNames_halfQ (L := hG.goose_localGS) j (.only [tmp]) ht).1 $$ Ht with ⟨Hti, Ht⟩
+    ihave Hpk := Hpkc $$ [Hti]
+    · iunfold tmpHalf; iexists ht, n0; iframe Hti Hn0; ipureintro; exact hft
     icases (osNames_frac j (.except X) (1 : Qp).half qQuarter hj1).1 $$ Hw with ⟨Hα, Hq⟩
     imod Hcl'
     imod Hcl $$ [Hg Hl1 Hα Hl2 Hlays Hcra Htl Hpk Hdk Hcp Hnms]
@@ -214,6 +226,9 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       unfold renFileOut
       simp only [logOut, claimOut]
       icases Hβ with ⟨-, Ht, Hw⟩
+      icases (osNames_halfQ (L := hG.goose_localGS) j (.only [tmp]) ht).1 $$ Ht with ⟨Hti, Ht⟩
+      ihave Hpk := Hpkc $$ [Hti]
+      · iunfold tmpHalf; iexists ht, n0; iframe Hti Hn0; ipureintro; exact hft
       icases (osNames_frac j (.except X) (1 : Qp).half qQuarter hj1).1 $$ Hw with ⟨Hα, Hq⟩
       imod Hcl'
       imod Hcl $$ [Hg Hl1 Hα Hl2 Hlays Hcra Htl Hpk Hdk Hcp Hnms]
@@ -253,6 +268,15 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       icases Hlog with ⟨%hsx, -, -⟩
       simp only [renFileEnt] at hsx
       icases (osNames_frac j (.except X) (1 : Qp).half qQuarter _).1 $$ Hwn with ⟨Hαn, Hqn⟩
+      -- the pipeline file's claim: its invariant quarter back at the new history (the name absent)
+      icases (osNames_halfQ (L := hG.goose_localGS) j (.only [tmp]) _).1 $$ Htn with ⟨Htni, Htn⟩
+      ihave Hpk := Hpkc $$ [Htni]
+      · iunfold tmpHalf; iexists _, n0; iframe Htni Hn0; ipureintro
+        refine HistFoP.log hft x _ _ (fun b hb _ _ J => ?_)
+        have e : b = tmp := List.mem_singleton.1 hb
+        subst e
+        rw [GMap.lookup_delete]
+        nofun
       -- no cut pending; the flag to `dir`
       icases walCut_agree cp none $$ Hcp Hcf with %Hcpn
       subst Hcpn

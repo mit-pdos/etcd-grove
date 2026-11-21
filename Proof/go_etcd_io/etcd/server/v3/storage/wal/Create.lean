@@ -1058,7 +1058,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     try wp_auto
     -- `J`'s claims: merged after the segment's create, split off the pipeline's names
     imod createJ_claims R J (walFileName 0 0) hJ x0 s0 i hJs.2 (walNameP_walFileName 0 0)
-      CoPset.subseteq_top $$ Hsi HJr Ho with ⟨%hJ', HJx, HTmps, %hJf⟩
+      CoPset.subseteq_top $$ Hsi HJr Ho Hcm1 with ⟨%hJ', HJx, HTmps, HThv, %hJf⟩
     obtain ⟨hJlt, hJcur⟩ := hJf
     imod osNames_coh R J _ _ _ CoPset.subseteq_top $$ Hsi HJx with ⟨HJx, %hJcoh⟩
     imod osNames_next R J _ _ _ CoPset.subseteq_top $$ Hsi HJx with ⟨HJx, #HlbJ⟩
@@ -1121,7 +1121,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     · rw [Qp.half_add_half]; iexact HJx
     -- the update (`createFresh_osAUnc`), its result with the invariant (`createU`)
     ihave HP : walCreateP (child r nm) (.only [nm, tmpName nm]) hC md Q Pv Wn J walTmps
-        (hJ'.restrict J ((NameSet.except []).diff walTmps)) (createSeg i mS ysS) $$ [Hcr Hau Hsf HJh HmS HbS]
+        (hJ'.restrict J ((NameSet.except []).diff walTmps)) (createSeg i mS ysS) $$ [Hcr Hau Hsf HJh HmS HbS HThv]
     · unfold walCreateP createSeg
       rw [show i = (⟨i, false, true, lo, lk⟩ : OsFd).ino from rfl]
       iframe
@@ -1276,7 +1276,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
       icases HU with ⟨-, -, HP⟩
       simp only [walCreateQ]
       unfold walCreateP
-      icases HP with ⟨Hcr, Hau, Hsf, HJh, -, -⟩
+      icases HP with ⟨Hcr, Hau, Hsf, HJh, -, -, HThv⟩
       have hfoJ : FilesOnly (hJ'.restrict J ((NameSet.except []).diff walTmps)).cur :=
         filesOnly_restrictN _ _ (fun c n hc => by
           rw [hJcur] at hc
@@ -1292,7 +1292,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
           by_cases hm : ((NameSet.except []).diff walTmps).Mem go!".touch"
           · rw [restrictN_lookup _ _ _ hm, hJcur, if_neg touch_ne_walFileName]
           · exact restrictN_lookup_not _ _ _ hm)
-        $$ Hinv Hsi Hnc Hcr HNr HC HJh HJx HTmps with ⟨Hnc, Hu, %hN, %hT', %hNcur, HN, Ht⟩
+        $$ Hinv Hsi Hnc Hcr HNr HC HJh HJx HTmps HThv with ⟨Hnc, Hu, %hN, %hT', %hNcur, HN, Ht⟩
       iframe Hnc
       imodintro
       try wp_auto

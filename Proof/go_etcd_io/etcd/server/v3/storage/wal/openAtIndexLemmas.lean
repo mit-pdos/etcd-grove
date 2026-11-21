@@ -210,7 +210,7 @@ theorem walTmpsRes_mem_except (R : Roots) (j : Ino) (X : List GoString) (dq : DF
     · imodintro; iframe Hj Hb; ipureintro; exact hb
     · unfold tmpClaim
       icases Hb with ⟨%h, Hn, -⟩
-      imod osNames_disj R j (.except X) (.only [b]) dq (DFrac.own 1) hj h b (by simp)
+      imod osNames_disj R j (.except X) (.only [b]) dq (DFrac.own qTmp) hj h b (by simp)
         (fun h' => hb h') (by simp [NameSet.Mem]) (fun _ _ => CoPset.mem_full) $$ Hsi Hj Hn with %hF
       exact hF.elim
   imod key (pipeTmp 0) $$ Hsi Hj Ht0 with ⟨%h0, Hj, Ht0⟩
@@ -220,7 +220,7 @@ theorem walTmpsRes_mem_except (R : Roots) (j : Ino) (X : List GoString) (dq : DF
   isplitr
   · ipureintro
     intro t ht
-    simp only [walTmps, List.mem_cons, List.not_mem_nil, or_false] at ht
+    simp only [walTmps, List.mem_cons, List.not_mem_nil, _root_.or_false] at ht
     rcases ht with rfl | rfl
     · exact h0
     · exact h1

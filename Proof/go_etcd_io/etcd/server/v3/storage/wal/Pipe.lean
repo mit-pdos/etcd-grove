@@ -32,6 +32,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandshakeN
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CutHdr
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Cut
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.TmpClaim
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.TmpAu
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.LockLemmas
 public import Proof.os.Off
 public import Proof.os.SharedAu
@@ -118,7 +119,7 @@ def pipeFile (j : Ino) (dir : GoString) (n : Nat) (lf : Loc) : IProp GF :=
     os.ownOff f (W64 0) ∗ osFd fd (DFrac.own 1) ⟨i, false, true, lo, lk⟩ ∗
     fdLocks fd ⟨i, false, true, lo, lk⟩ ∗
     osMeta i (DFrac.own 1) m ∗ osZerosA i 0 m.size (DFrac.own 1) ∗
-    osNames j (.only [pipeTmp n]) (DFrac.own 1) h ∗
+    osNames j (.only [pipeTmp n]) (DFrac.own qTmp) h ∗
     ⌜0 ≤ fd.toInt ∧ m.maps = ∅ ∧ h.cur !! pipeTmp n = some (.file i) ∧
       m.cut = none ∧ m.lo ≤ m.size ∧ m.size % 8 = 0 ∧ m.size ≤ 0xffffffff000 ∧ ZeroPg m⌝)
 
@@ -173,29 +174,6 @@ def pipeErrR (γ : PipeNames) (R : Roots) (dir : GoString) (dq : DFrac) (j : Ino
     (sent : List GoInterface) : IProp GF :=
   iprop(⌜sent ≠ []⌝ ∨ pipeLeft R dir dq j ∗ pipeClosedW γ)
 
-/-- **The pipeline `fp` of the directory `dir` (inode `j`, path fraction `dq` under the roots
-`R`)** (persistent): its read-only fields, the three channels' protocols, and the environment
-`run` needs, and a bound on the directory's length (`filepath.Join`'s premise). -/
-def isFilePipe (fp : Loc) (γ : PipeNames) (R : Roots) (dir : GoString) (dq : DFrac) (j : Ino)
-    (sz : w64) : IProp GF :=
-  iprop(∃ lg : Loc,
-    structFieldRef go_etcd_io.etcd.server.v3.storage.wal.filePipeline go!"lg" fp ↦□ lg ∗
-    structFieldRef go_etcd_io.etcd.server.v3.storage.wal.filePipeline go!"dir" fp ↦□ dir ∗
-    structFieldRef go_etcd_io.etcd.server.v3.storage.wal.filePipeline go!"size" fp ↦□ sz ∗
-    structFieldRef go_etcd_io.etcd.server.v3.storage.wal.filePipeline go!"filec" fp ↦□ γ.fc ∗
-    structFieldRef go_etcd_io.etcd.server.v3.storage.wal.filePipeline go!"errc" fp ↦□ γ.ec ∗
-    structFieldRef go_etcd_io.etcd.server.v3.storage.wal.filePipeline go!"donec" fp ↦□ γ.dc ∗
-    isHsn (V := Loc) γ.f γ.fc (fun n lf => pipeFile j dir n lf) (pipeQ j) ∗
-    isSpsc (V := GoInterface) γ.e γ.ec (pipeErrP R dir dq j) (pipeErrR γ R dir dq j) ∗
-    ownBroadcastChan γ.dc γ.d (pipeClosedW γ) .Unknown ∗
-    zapLoggerOk lg ∗ osInv (GF := GF) ∗ osSharedInv R ∗
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
-    ⌜0 ≤ sz.toInt ∧ sz.toInt ≤ 0xffffffff000 ∧ dir.length < 2 ^ 61 ∧ sz.toInt % 8 = 0⌝)
-
-instance isFilePipe_persistent (fp : Loc) (γ : PipeNames) (R : Roots) (dir : GoString) (dq : DFrac)
-    (j : Ino) (sz : w64) : Persistent (isFilePipe (GF := GF) fp γ R dir dq j sz) := by
-  unfold isFilePipe; infer_instance
-
 /-- **The caller's token, `n` files received** (the file header). -/
 def pipeMain (γ : PipeNames) (n : Nat) : IProp GF :=
   iprop(hsnRcv γ.f n ∗ spscConsumer γ.e ([] : List GoInterface) ∗
@@ -214,6 +192,42 @@ def pipeRun (fp : Loc) (γ : PipeNames) (R : Roots) (dir : GoString) (dq : DFrac
     tmpClaim j (pipeTmp n) ∗ pipeRes R dir dq j ∗ ⌜n < 2 ^ 63⌝)
 
 end defs
+
+section pipeInv
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
+variable [os_sem : os.Assumptions]
+
+/-- **The pipeline `fp` of the directory `dir` (inode `j`, path fraction `dq` under the roots
+`R`)** (persistent): its read-only fields, the three channels' protocols, and the environment
+`run` needs (with the WAL invariant and the directory's key: a step on a pipeline name
+opens the invariant for its half of the name's claim, `walTmp_osAUnc`), and a bound on the directory's length (`filepath.Join`'s premise). -/
+def isFilePipe (fp : Loc) (γ : PipeNames) (R : Roots) (dir : GoString) (dq : DFrac) (j : Ino)
+    (sz : w64) : IProp GF :=
+  iprop(∃ lg : Loc,
+    structFieldRef go_etcd_io.etcd.server.v3.storage.wal.filePipeline go!"lg" fp ↦□ lg ∗
+    structFieldRef go_etcd_io.etcd.server.v3.storage.wal.filePipeline go!"dir" fp ↦□ dir ∗
+    structFieldRef go_etcd_io.etcd.server.v3.storage.wal.filePipeline go!"size" fp ↦□ sz ∗
+    structFieldRef go_etcd_io.etcd.server.v3.storage.wal.filePipeline go!"filec" fp ↦□ γ.fc ∗
+    structFieldRef go_etcd_io.etcd.server.v3.storage.wal.filePipeline go!"errc" fp ↦□ γ.ec ∗
+    structFieldRef go_etcd_io.etcd.server.v3.storage.wal.filePipeline go!"donec" fp ↦□ γ.dc ∗
+    isHsn (V := Loc) γ.f γ.fc (fun n lf => pipeFile j dir n lf) (pipeQ j) ∗
+    isSpsc (V := GoInterface) γ.e γ.ec (pipeErrP R dir dq j) (pipeErrR γ R dir dq j) ∗
+    ownBroadcastChan γ.dc γ.d (pipeClosedW γ) .Unknown ∗
+    zapLoggerOk lg ∗ osInv (GF := GF) ∗ osSharedInv R ∗
+    (∃ (C : WalEnc.WalCodec) (Mr : WalEnc.WalMarshal) (jr : Ino) (r : GoString) (X : List GoString),
+      walInv (W := W) C Mr R jr r ∗ walDirKey (W := W) dir j X) ∗
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
+    ⌜0 ≤ sz.toInt ∧ sz.toInt ≤ 0xffffffff000 ∧ dir.length < 2 ^ 61 ∧ sz.toInt % 8 = 0⌝)
+
+instance isFilePipe_persistent (fp : Loc) (γ : PipeNames) (R : Roots) (dir : GoString) (dq : DFrac)
+    (j : Ino) (sz : w64) : Persistent (isFilePipe (GF := GF) (W := W) fp γ R dir dq j sz) := by
+  unfold isFilePipe; infer_instance
+
+end pipeInv
 
 end WalFs
 end EtcdGrove

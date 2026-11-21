@@ -520,14 +520,15 @@ theorem walParked_create (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMap
     (hX : ∀ b ∈ X, walNameP b = false) (hsegs : lay.segs = [g]) (hpg : lay.pg = [])
     (hino : ∀ g' ∈ segsAll Ls, g'.ino ≠ g.ino)
     (hJo : ∀ b, walNameP b = false → hJ.cur !! b = none) :
-    ⊢ walParked (L := L) (W := W) Ls cl F -∗ walOutFrag (W := W) o ==∗
+    ⊢ walParked (L := L) (W := W) Ls cl F -∗ walOutFrag (W := W) o -∗
+      walTmpsHalf (hG := ⟨G, L⟩) J ==∗
       walParked (L := L) (W := W) (<[dir := lay]> Ls)
         (replClaim (jr, N, h) (jr, N, h') cl ++ [(J, NameSet.except X, hJ)]) (GMap.delete g.ino F) ∗
       walOutFrag (W := W) (o.create g.ino J X dir) := by
   classical
   have ⟨_, _, _, b0, hb0, hNb0⟩ := hnew
   unfold walParked
-  iintro ⟨%b, %o', Ha, Hoa, %hp, Hs, Hc, Ht, Hw⟩ Ho
+  iintro ⟨%b, %o', Ha, Hoa, %hp, Hs, Hc, Ht, Hw⟩ Ho Hth
   icases walOut_agree (W := W) o' o $$ Hoa Ho with %ho
   subst ho
   imod walOut_set (W := W) o' o' (o'.create g.ino J X dir) $$ Hoa Ho with ⟨Hoa, Ho⟩
@@ -589,8 +590,9 @@ theorem walParked_create (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMap
           osNames (L := L) c.1 c.2.1 (DFrac.own (1 : Qp).half) c.2.2 else emp))).2
       rw [if_neg (fun hp => hp.2 (List.mem_cons_self ..))]
       iempintro
-  isplitl [Ht]
-  · iapply walTmpParked_create Ls o'.T dir lay $$ Ht
+  isplitl [Ht Hth]
+  · iapply walTmpParked_create Ls o'.T dir lay $$ [$Ht Hth]
+    rw [hlj]; iexact Hth
   · iapply walOthersL_create (L := L) Ls cl o'.D CR jr dir N h h' J X hJ lay hnew hlj hJo $$ Hw
 
 end iris

@@ -29,10 +29,10 @@ tree's). Inside:
    `walStart`/`walPast`.
 4. `crashRest_treeS`: the new generation's tree, whole.
 
-**`BootFo` of the crashed tree is in part a premise** (`hfo : BootFoRest`), carried into `TCrashed`
-(with `walInv_crash`'s `NoDirX` of every WAL directory, `bootFo_of`) for `walBootCrash`: the pipeline
-names and the `nm.tmp` directories are not covered until the rest of the WAL's `walFoRes` lands
-(`notes/wal-units/tester.md`, last handoff); then the premise goes. Also premises: W1 of the crash premise `Q` (`walInv_crash`'s `hQ`),
+**`BootFo` of the crashed tree is in part a premise** (`hfo : BootFoNmTmp`, `BootFoRest` but its first
+part), carried into `TCrashed` (with `walInv_crash`'s `NoDirX` of every WAL directory and its pipeline
+names' no-directory fact, `bootFo_of`) for `walBootCrash`: the `nm.tmp` directories are not covered
+until step 2 (D) (`notes/wal-units/tester.md`, last handoff); then the premise goes. Also premises: W1 of the crash premise `Q` (`walInv_crash`'s `hQ`),
 the oracle directory a root (a world premise, U7), the WAL's ghost state's `AbsDiskGpreS`.
 -/
 module
@@ -146,11 +146,17 @@ theorem tRel_crash [W : WalGS GF] (area : GoString) (o o'' : TOracle) (oa : Opti
   · iexact HR
   · unfold tRelA; iexact HA
 
+/-- **`BootFoRest` but its first part** (the pipeline names, which `walInv_crash` gives): the
+`nm.tmp` directories hold only files and no `nm.tmp` is a file. -/
+def BootFoNmTmp (m : Tree) (jr : Ino) : Prop :=
+  (∀ nm J, walNameOk nm → m.entry jr (tmpName nm) = some (.dir J) → FilesOnly (entsOf m J)) ∧
+  (∀ nm i, walNameOk nm → m.entry jr (tmpName nm) ≠ some (.file i))
+
 /-- **The tester's crash** (see the file header). -/
 theorem tester_crash (hPre : AbsDiskGpreS GF) (Q : OsState → OsState → Prop)
     (hQ : ∀ st st', Q st st' → W1 walCodec st st') (L L' : GooseLocalGS GF) (W : WalGS GF)
     (e : TEnv) (γ : TGS) (V' : Hist) (ho : (e.orDir, e.jo) ∈ e.R)
-    (hfo : BootFoRest V'.now e.jr) :
+    (hfo : BootFoNmTmp V'.now e.jr) :
     ⊢ TInv (L := L) (W := W) e γ -∗
       WalFs.walAreaOk (L := L) (W := W) walCodec walRaftMr e.R e.jr (e.area) -∗
       WalFs.dirDurable (W := W) (e.area) -∗ DurFs.durInv (L := L) γ.γd e.orFile -∗
@@ -171,7 +177,7 @@ theorem tester_crash (hPre : AbsDiskGpreS GF) (Q : OsState → OsState → Prop)
   imod walInv_crash walCodec walCodec_ok walRaftMr Q hQ hPre L L' W e.R e.jr (e.area) V' []
     (fun i hi => by cases hi) ((⊤ : CoPset) \ ↑tN) walN_sub_tN osShN_sub_tN $$ Hwi Hcrd Hwt Hsh Hcr
     with ⟨%W', %s', %D', Hcv, %hp, Hst, -, Hu', Hct', Hbf, Hcr⟩
-  obtain ⟨hWR', -, -, hbd, hdr, hwf, hfoX, hD'⟩ := hp
+  obtain ⟨hWR', -, -, hbd, hdr, hwf, hfoX, hfoT, hD'⟩ := hp
   -- durable's crash, with the WAL's files (none at the oracle file's names)
   have hD : ∀ i ∈ D' ++ [], ∀ J b, V'.now.entry J b = some (.file i) → J ≠ e.orFile.J :=
     fun i hi => inAreaDir_not_orDir hwf ho (hD' i (by simpa using hi))
@@ -197,7 +203,7 @@ theorem tester_crash (hPre : AbsDiskGpreS GF) (Q : OsState → OsState → Prop)
   unfold TCrashed
   iexists W', s', o'', od', v
   iframe Hst Hbf Hu' Hct' Hw' HR' Hdd' Hdf Hdtmp
-  ipureintro; exact ⟨hWR', hV, hbd, hdr, hwf, bootFo_of hfoX hfo, hof''⟩
+  ipureintro; exact ⟨hWR', hV, hbd, hdr, hwf, bootFo_of hfoX ⟨hfoT, hfo.1, hfo.2⟩, hof''⟩
 
 end crash
 
