@@ -143,7 +143,7 @@ def msSorted (ms : List InodeM) : Prop :=
 /-- **A written leaf page is well-formed** (its own length, keys increasing, body within
 `MaxAllocSize`). -/
 theorem wPage_leafWF {id : w64} {ms : List InodeM} {ovf : w32} {tail : List w8}
-    (hn : ms.length < 2 ^ 16) (hb : 16 + (pageBody true ms).length ≤ maxAllocSize)
+    (hn : ms.length < 2 ^ 16) (hb : 16 + (pageBody true ms).length ≤ 16 + maxAllocSize)
     (hs : msSorted ms) :
     leafWF (wPage id true ms ovf tail) (wPage id true ms ovf tail).length := by
   have hb32 : 16 + (pageBody true ms).length < 2 ^ 32 := by unfold maxAllocSize at hb; omega
@@ -171,7 +171,7 @@ theorem wPage_leafWF {id : w64} {ms : List InodeM} {ovf : w32} {tail : List w8}
 children below `hwm`, body within `MaxAllocSize`). -/
 theorem wPage_branchWF {id : w64} {ms : List InodeM} {ovf : w32} {tail : List w8} {hwm : Nat}
     (h0 : 0 < ms.length) (hn : ms.length < 2 ^ 16)
-    (hb : 16 + (pageBody true ms).length ≤ maxAllocSize) (hs : msSorted ms)
+    (hb : 16 + (pageBody true ms).length ≤ 16 + maxAllocSize) (hs : msSorted ms)
     (hc : ∀ m ∈ ms, m.pgid.toNat < hwm) :
     branchWF (wPage id false ms ovf tail) (wPage id false ms ovf tail).length hwm := by
   have hb32 : 16 + (pageBody true ms).length < 2 ^ 32 := by unfold maxAllocSize at hb; omega

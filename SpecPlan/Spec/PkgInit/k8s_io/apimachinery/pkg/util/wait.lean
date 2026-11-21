@@ -7,6 +7,8 @@ public import Perennial.Proof.context.Base
 public import Perennial.Proof.sync.Base
 public import Perennial.Proof.time.Base
 public import SpecPlan.Spec.PkgInit.k8s_io.utils.clock
+public import Perennial.Proof.errors.Base
+public import SpecPlan.Spec.PkgInit.math.rand
 
 @[expose] public section
 noncomputable section

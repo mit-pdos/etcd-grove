@@ -3,7 +3,9 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.context
+public import Perennial.GeneratedProof.errors
 public import GeneratedProof.k8s_io.utils.clock
+public import Perennial.GeneratedProof.math.rand
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory

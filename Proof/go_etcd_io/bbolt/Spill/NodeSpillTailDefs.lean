@@ -51,7 +51,7 @@ def pcPre (X : WX) (w : WDb) (bl l : Loc) (rl : NRec) : Prop :=
     id.toNat < X2.t.mv.pgid'.toNat ∧ (rl.nv.isLeaf' = false → ∀ e ∈ rl.ws, e.pgid ≠ id)) ∧
   (rl.nv.parent' ≠ null → ∃ rp, X.node bl rl.nv.parent' = some rp ∧
     rl.nv.parent' ∈ X.live ∧ rl.nv.parent' ≠ l ∧ rp.capOwn = true ∧ wsSorted rp.ws) ∧
-  insSize rl.ins < 2 ^ 31 - 1
+  insSize rl.ins ≤ 16 + maxAllocSize
 
 end defs
 

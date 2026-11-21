@@ -181,7 +181,7 @@ theorem rinv_start' {X : WX} {w : WDb} {B0 : BRec} (hpre : spillPre X w.fl)
       have hpage : ∀ c0 p pg, posRoot C c0 → ownHas X.v.pages c0 p → X.v.pages !! p = some pg →
           pageFlags pg = leafPageFlag → ∀ i < pageCount pg,
             leafFlags pg i % 2 = 0 ∧ 0 < leafKsize pg i ∧
-              leafKsize pg i + leafVsize pg i ≤ bboltEntryMax := by
+              entryBytesFit (leafKsize pg i) (leafVsize pg i) := by
         intro c0 p pg hpr hown hpg hfl i hi
         have hs := htc.2.1.2.2.2.1 c C hC c0 p pg hpr hown hpg hfl i hi
         have h1 : leafFlags pg i % 2 ≠ bucketLeafFlag := fun e => hne (hs.1.1 e)

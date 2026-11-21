@@ -76,7 +76,7 @@ def rawNodeFresh (rn r : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64) (sd
     "%Hlog" ∷ ⌜s.logst.prev = entryID.mk (W64 0) (W64 0) ∧ s.logst.sents = [] ∧
       s.logst.uents = [] ∧ s.logst.stored = [] ∧ s.logst.committed = W64 0 ∧
       s.logst.applied = W64 0 ∧ s.logst.applying = W64 0 ∧ s.logst.unpersisted = [] ∧
-      s.logst.snap = none ∧ s.logst.storage = interface.ok si ∧ s.logst.dtk = 0⌝ ∗
+      s.logst.snap = none ∧ s.logst.storage = interface.ok si ∧ s.logst.dtk = 0 ∧ s.logst.ksn = []⌝ ∗
     -- (2026-11-12, trace-check step 5) the trace mode free (until then `{ sn := s.gh.sn }`)
     "%Hgh" ∷ ⌜s.gh = { sn := s.gh.sn, tr := s.gh.tr }⌝ ∗
     "%Hpvoff" ∷ ⌜s.prevote = pre⌝ ∗
@@ -123,7 +123,7 @@ def rawNodeAt (rn r : Loc) (id : w64) (si : GoInterfaceOk) (cs : CCState) (sdr :
       s.logst.applied = s.logst.applying ∧
       s.logst.applying = w64Max σ.prev.index' (if A = W64 0 then σ.prev.index' else A) ∧
       s.logst.unpersisted = [] ∧ s.logst.snap = none ∧ s.logst.storage = interface.ok si ∧
-      s.logst.dtk = uint.nat (committedAfter σ.prev hs)⌝ ∗
+      s.logst.dtk = uint.nat (committedAfter σ.prev hs) ∧ s.logst.ksn = []⌝ ∗
     -- (2026-11-12, trace-check step 5) the trace mode free (until then `{ sn := s.gh.sn }`)
     "%Hgh" ∷ ⌜s.gh = { sn := s.gh.sn, tr := s.gh.tr }⌝ ∗
     "%Hpvoff" ∷ ⌜s.prevote = pre⌝ ∗
@@ -156,7 +156,7 @@ theorem rawNodeAt_fresh (rn r : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w
   iframe Hrn Hphys Hsoft Hhard Hsteps Hcap
   ipureintro
   obtain ⟨Ht, Hv, Hr, Ho, Hst, Hpd⟩ := Hterm
-  obtain ⟨Hlp, Hse, Hue, Hsd, Hcm, Hap, Hapg, Hun, Hsn, Hsg, Hdtk⟩ := Hlog
+  obtain ⟨Hlp, Hse, Hue, Hsd, Hcm, Hap, Hapg, Hun, Hsn, Hsg, Hdtk, Hksn⟩ := Hlog
   rw [Hca] at Hcm Hdtk
   rw [Hp, HA] at Hapg
   have Hapg0 : s.logst.applying = W64 0 := by rw [Hapg]; rfl
@@ -165,7 +165,7 @@ theorem rawNodeAt_fresh (rn r : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w
   rw [Hrs] at Hrel
   refine ⟨Hrr, Hasync, Hrel, ⟨by rw [Ht, HT], by rw [Hv, HV], Hr, Ho, Hst, Hpd⟩,
     ⟨by rw [Hlp, Hp], by rw [Hse, He], Hue, by rw [Hsd, He], Hcm, by rw [Hap, Hapg0], Hapg0, Hun,
-      Hsn, Hsg, by rw [Hdtk]; rfl⟩, Hgh, Hpvoff, Hsdr, ?_, ?_, ?_⟩
+      Hsn, Hsg, (by rw [Hdtk]; rfl), Hksn⟩, Hgh, Hpvoff, Hsdr, ?_, ?_, ?_⟩
   · rw [Hdom]
     apply GMap.set_eq; intro k
     rw [GMap.elem_of_dom']
@@ -192,7 +192,7 @@ theorem rawNodeFresh_intro (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet 
     (Hlog : s.logst.prev = entryID.mk (W64 0) (W64 0) ∧ s.logst.sents = [] ∧
       s.logst.uents = [] ∧ s.logst.stored = [] ∧ s.logst.committed = W64 0 ∧
       s.logst.applied = W64 0 ∧ s.logst.applying = W64 0 ∧ s.logst.unpersisted = [] ∧
-      s.logst.snap = none ∧ s.logst.storage = interface.ok si ∧ s.logst.dtk = 0)
+      s.logst.snap = none ∧ s.logst.storage = interface.ok si ∧ s.logst.dtk = 0 ∧ s.logst.ksn = [])
     (Hgh : s.gh = {}) (Hpvoff : s.prevote = pre) (Hsdr : s.sdr = sdr)
     (Hdom : domSet s.progress = V) (Hhz : hprev = hsZero)
     (Hsvr : sv.RaftState' = W64 0 ∧ s.logst.inprogress = W64 1) :
@@ -219,7 +219,7 @@ theorem rawNodeFresh_intro_sn (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GS
     (Hlog : s.logst.prev = entryID.mk (W64 0) (W64 0) ∧ s.logst.sents = [] ∧
       s.logst.uents = [] ∧ s.logst.stored = [] ∧ s.logst.committed = W64 0 ∧
       s.logst.applied = W64 0 ∧ s.logst.applying = W64 0 ∧ s.logst.unpersisted = [] ∧
-      s.logst.snap = none ∧ s.logst.storage = interface.ok si ∧ s.logst.dtk = 0)
+      s.logst.snap = none ∧ s.logst.storage = interface.ok si ∧ s.logst.dtk = 0 ∧ s.logst.ksn = [])
     (Hgh : s.gh = { sn := s.gh.sn }) (Hpvoff : s.prevote = pre) (Hsdr : s.sdr = sdr)
     (Hdom : domSet s.progress = V) (Hhz : hprev = hsZero)
     (Hsvr : sv.RaftState' = W64 0 ∧ s.logst.inprogress = W64 1) :

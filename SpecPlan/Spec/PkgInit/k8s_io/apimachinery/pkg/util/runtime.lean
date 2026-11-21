@@ -3,6 +3,9 @@ module
 
 public import GeneratedProof.k8s_io.apimachinery.pkg.util.runtime
 public import SpecPlan.Spec.PkgInit.Base
+public import Perennial.Proof.context.Base
+public import Perennial.Proof.sync.Base
+public import Perennial.Proof.time.Base
 
 @[expose] public section
 noncomputable section

@@ -3148,6 +3148,105 @@ their translated initializers: {_what} (prove-smallinits, 2026-11-20; until then
 axiom `opaqueInitsOk`).''', alloc_types=_ALLOC_ANY,
         # the `&T{}` allocations
         before={'$end': ['try wp_auto', 'repeat (wp_alloc_anon; try wp_auto)']} if _p in _K8S_ALLOCS else {})
+# (prove-k8s, 2026-11-20) more k8s lists translated (until then each package's `opaqueInitsOk`); their
+# facts are `True`.
+SPECIAL['k8s_io.utils.trace'] = dict(doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+their translated initializers: `klogV`, a func literal over `klog.V(lvl).Enabled()` (prove-k8s,
+2026-11-20; until then the trust-boundary axiom `opaqueInitsOk`).''', alloc_types=_ALLOC_ANY)
+SPECIAL['k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured'] = dict(doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+their translated initializers: `UnstructuredJSONScheme`, an empty struct literal, and the `var _ I =
+&T{}` checks (prove-k8s, 2026-11-20; until then the trust-boundary axiom `opaqueInitsOk`).''',
+    alloc_types=_ALLOC_ANY,
+    # `runtime.Codec` is a named `Serializer`: `≤u` has no transitive instance (notes/perennial-changes.md)
+    before={'UnstructuredJSONScheme': ['haveI : k8s_io.apimachinery.pkg.runtime.Codec.ty ≤u '
+                'k8s_io.apimachinery.pkg.runtime.Serializer.underlying := '
+                '⟨(go.underlying_unfold (t := k8s_io.apimachinery.pkg.runtime.Codec.ty)).trans '
+                '(go.underlying_unfold (t := k8s_io.apimachinery.pkg.runtime.Serializer.ty))⟩'],
+            '$end': ['try wp_auto', 'repeat (wp_alloc_anon; try wp_auto)']})
+SPECIAL['k8s_io.apimachinery.pkg.util.wait'] = dict(doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+their translated initializers (prove-k8s, 2026-11-20; until then the trust-boundary axiom
+`opaqueInitsOk`): `ErrWaitTimeout` (`ErrorInterrupted` of an `errors.New` error, translated),
+`errWaitTimeout` and `internalClock` (empty struct literals), `RealTimer` (a method value),
+`ForeverTestTimeout` (a constant product), `NeverStop` (a fresh channel), `jitterRand` (a function
+value) and `var _ context.Context = channelContext{}`.''',
+    alloc_types=_ALLOC_ANY,
+    before={'ErrWaitTimeout': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %xW #MW',
+                               'try wp_auto', 'wp_func_call', 'wp_call', 'try wp_auto'],
+            'NeverStop': ['try wp_auto', 'wp_apply chan.wp_make1 (V := Unit) as %ch %γ ⟨#His_ch, %Hcap, Hch⟩', 'try wp_auto']})
+_LB = 'k8s_io.apimachinery.pkg.labels'
+SPECIAL[_LB] = dict(doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+their translated initializers (prove-k8s, 2026-11-20; until then the trust-boundary axiom
+`opaqueInitsOk`): the operator slices `unaryOperators`, `binaryOperators` (literals) and
+`validRequirementOperators` (their `append`), the shared selectors `sharedEverythingSelector` (an
+empty `internalSelector` literal) and `sharedNothingSelector` (an empty struct literal), the map
+literal `string2token` and `var _ Selector = ValidatedSetSelector{}` (an empty map literal).''',
+    alloc_types=_ALLOC_ANY,
+    before={'unaryOperators': ['try wp_auto',
+                'wp_apply (wp_slice_literal (l := [go!"exists", go!"!"])); isplitr; (· ipureintro; rfl); iintro %su ⟨Su, -⟩',
+                'try wp_auto'],
+            'binaryOperators': ['try wp_auto',
+                'wp_apply (wp_slice_literal (l := [go!"in", go!"notin", go!"=", go!"==", go!"!=", go!"gt", go!"lt"])); '
+                'isplitr; (· ipureintro; rfl); iintro %sb ⟨Sb, Cb⟩',
+                'try wp_auto'],
+            'validRequirementOperators': ['try wp_auto',
+                'wp_apply (wp_slice_append (V := GoString) _ _ _ _ _) $$ [Sb Cb Su] as %sv -',
+                '· iframe Sb Cb Su',
+                'try wp_auto'],
+            'sharedEverythingSelector': ['try wp_auto',
+                f'wp_apply (wp_slice_literal (V := {_LB}.Requirement) (l := [])); isplitr; (· ipureintro; rfl); iintro %se -',
+                'try wp_auto'],
+            'string2token': map_lit_steps('Hst', 'GoString', 'w64', 'go.string', f'{_LB}.Token.ty', 11),
+            '$end': ['try wp_auto', f'wp_apply (wp_map_make1 (K := GoString) (V := GoString) go.string go.string) as %mvs Hvs',
+                     'try wp_auto']})
+SPECIAL['k8s_io.apimachinery.pkg.util.runtime'] = dict(doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+their translated initializers (prove-k8s, 2026-11-20; until then the trust-boundary axiom
+`opaqueInitsOk`): `ReallyCrash` (`true`), `PanicHandlers` and `ErrorHandlers` (slice literals of
+function values, one the closure `backoffError` returns, translated: it allocates a
+`rudimentaryErrorBackoff` stamped with `time.Now()`).''',
+    alloc_types=_ALLOC_ANY,
+    before={'PanicHandlers': ['try wp_auto',
+                'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sp -', 'try wp_auto'],
+            'ErrorHandlers': ['try wp_auto', 'wp_func_call', 'wp_call', 'try wp_auto',
+                'wp_apply _root_.Perennial.time.wp_Now as %t0 -', 'try wp_auto',
+                'repeat (wp_alloc_anon; try wp_auto)',
+                'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %se -', 'try wp_auto']})
+_SETS_NEW = 'wp_apply (EtcdGrove.sets.New.wp_proof EtcdGrove.sets.Set.Insert.wp_proof)'
+def _newstring_steps(tag, lst):
+    """`sets.NewString(lst...)` (its slice literal, then `New[string]`'s spec): `H<tag>`, the set."""
+    return ['try wp_auto',
+            f'wp_apply (wp_slice_literal (l := {lst})); isplitr; (· ipureintro; rfl); iintro %sl{tag} ⟨S{tag}, -⟩',
+            'try wp_auto', 'wp_func_call', 'wp_call', 'try wp_auto',
+            f'{_SETS_NEW} $$ [S{tag}] as %r{tag} ⟨H{tag}, -⟩', '· iframe', 'try wp_auto']
+SPECIAL['k8s_io.apiserver.pkg.endpoints.request'] = dict(doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+their translated initializers (prove-k8s, 2026-11-20; until then the trust-boundary axiom
+`opaqueInitsOk`): `sets.NewString` calls (`sets` with bodies: `New`'s spec), the last of
+`namespaceSubresources.List()` (`List`'s).''',
+    alloc_types=_ALLOC_ANY,
+    imports=['Proof.k8s_io.apimachinery.pkg.util.sets.New', 'Proof.k8s_io.apimachinery.pkg.util.sets.Set__Insert',
+             'Proof.k8s_io.apimachinery.pkg.util.sets.List', 'Proof.k8s_io.apimachinery.pkg.util.sets.Set__UnsortedList',
+             'Perennial.Proof.slices.Link', 'Perennial.Proof.cmp.Link'],
+    before={'specialVerbs': _newstring_steps('1', '[go!"proxy", go!"watch"]'),
+            'specialVerbsNoSubresources': _newstring_steps('2', '[go!"proxy"]'),
+            'namespaceSubresources': _newstring_steps('3', '[go!"status", go!"finalize"]'),
+            'verbsWithSelectors': _newstring_steps('4', '[go!"list", go!"watch", go!"deletecollection"]'),
+            'NamespaceSubResourcesForTest': ['try wp_auto', 'wp_method_call', 'wp_call', 'try wp_auto',
+                'wp_method_call', 'wp_call', 'try wp_auto',
+                'wp_func_call', 'wp_call', 'try wp_auto',
+                'have hsz : GMap.size (EtcdGrove.sets.insertAll (∅ : GMap GoString EtcdGrove.sets.Elem) '
+                '[go!"status", go!"finalize"]) ≤ 2 ^ 62 := '
+                'Nat.le_trans (EtcdGrove.sets.size_insertAll_le _ _) (by simp [GMap.map_size_empty])',
+                "wp_apply (EtcdGrove.sets.List'.wp_proof EtcdGrove.sets.Set.UnsortedList.wp_proof "
+                '_root_.Perennial.slices.wp_Sort _root_.Perennial.cmp.wp_Less _ _ _ hsz) $$ [H3] '
+                'as %sl5 %ks5 ⟨H3, S5, -⟩', '· iframe',
+                'try wp_auto', 'wp_func_call', 'wp_call', 'try wp_auto',
+                f'{_SETS_NEW} $$ [S5] as %r5 ⟨H5, -⟩', '· iframe', 'try wp_auto']})
+_AE = 'k8s_io.apimachinery.pkg.api.errors'
+SPECIAL[_AE] = dict(doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+their translated initializers: `var _ error = &StatusError{}` and `knownReasons`, a map literal of the
+19 known reasons (prove-k8s, 2026-11-20; until then the trust-boundary axiom `opaqueInitsOk`).''',
+    alloc_types={'knownReasons': 'Loc'},
+    before={'knownReasons': ['try wp_auto', 'wp_alloc_anon'] + map_lit_steps('Hkr', 'GoString', 'Unit',
+        'k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty', '(go.GoType.StructType [])', 19)})
 SPECIAL['k8s_io.apimachinery.pkg.util.errors'] = newvars_cfg(dict(
     doc='''Its fact is `True`. Its initializer initializes its imports, allocates `ErrPreconditionViolated` and
 runs its translated initializer, an `errors.New` call (prove-smallinits, 2026-11-20; until then the
