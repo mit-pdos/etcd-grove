@@ -23,5 +23,4 @@ axiom strings.ToLower.wp_proof
 axiom time.Duration.Seconds.wp_proof
 axiom zap.Logger.Fatal.wp_proof
 axiom zap.Logger.Panic.wp_proof
-axiom zap.NewNop.wp_proof
 axiom zap.Stack.wp_proof
