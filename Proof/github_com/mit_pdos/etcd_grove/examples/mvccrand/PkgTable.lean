@@ -81,6 +81,7 @@ def pkgInitTable : List (GoString × IProp GF) :=
    (pkg_id.golang_org.x.crypto.bcrypt, isPkgInit (PROP := IProp GF) pkg_id.golang_org.x.crypto.bcrypt),
    (pkg_id.golang_org.x.sys.unix, isPkgInit (PROP := IProp GF) pkg_id.golang_org.x.sys.unix),
    (pkg_id.google_golang_org.grpc, isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc),
+   (pkg_id.google_golang_org.grpc.attributes, isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.attributes),
    (pkg_id.google_golang_org.grpc.codes, isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.codes),
    (pkg_id.google_golang_org.grpc.credentials, isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.credentials),
    (pkg_id.google_golang_org.grpc.credentials.insecure, isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.credentials.insecure),
@@ -88,6 +89,9 @@ def pkgInitTable : List (GoString × IProp GF) :=
    (pkg_id.google_golang_org.grpc.keepalive, isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.keepalive),
    (pkg_id.google_golang_org.grpc.metadata, isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.metadata),
    (pkg_id.google_golang_org.grpc.peer, isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.peer),
+   (pkg_id.google_golang_org.grpc.resolver, isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.resolver),
+   (pkg_id.google_golang_org.grpc.resolver.manual, isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.resolver.manual),
+   (pkg_id.google_golang_org.grpc.serviceconfig, isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.serviceconfig),
    (pkg_id.google_golang_org.grpc.status, isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status),
    (pkg_id.google_golang_org.protobuf.internal.impl, isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.internal.impl),
    (pkg_id.google_golang_org.protobuf.internal.pragma, isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.internal.pragma),
@@ -466,43 +470,59 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h84 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.client.v3.internal.resolver (getIsPkgInit (GF := GF)) := by
+  have h84 : GetIsPkgInitProp pkg_id.google_golang_org.grpc.attributes (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h85 : GetIsPkgInitProp pkg_id.crypto.tls (getIsPkgInit (GF := GF)) := by
+  have h85 : GetIsPkgInitProp pkg_id.google_golang_org.grpc.serviceconfig (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h86 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.client.v3 (getIsPkgInit (GF := GF)) := by
+  have h86 : GetIsPkgInitProp pkg_id.google_golang_org.grpc.resolver (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h6, h14, h42, h61, h56, h62, h4, h5, h0, h1, h19, h68, h59, h79, h80, h70, h71, h81, h82, h83, h84, h54, h85, h57, h13, h60, h23, True.intro⟩
-  have h87 : GetIsPkgInitProp pkg_id.go_opentelemetry_io.otel.«attribute» (getIsPkgInit (GF := GF)) := by
+    exact ⟨h84, h85, True.intro⟩
+  have h87 : GetIsPkgInitProp pkg_id.google_golang_org.grpc.resolver.manual (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h4, h86, True.intro⟩
+  have h88 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.client.v3.internal.resolver (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h86, h87, h85, True.intro⟩
+  have h89 : GetIsPkgInitProp pkg_id.crypto.tls (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h88 : GetIsPkgInitProp pkg_id.go_opentelemetry_io.otel.codes (getIsPkgInit (GF := GF)) := by
+  have h90 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.client.v3 (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h6, h14, h42, h61, h56, h62, h4, h5, h0, h1, h19, h68, h59, h79, h80, h70, h71, h81, h82, h83, h88, h54, h89, h57, h13, h60, h23, True.intro⟩
+  have h91 : GetIsPkgInitProp pkg_id.go_opentelemetry_io.otel.«attribute» (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h89 : GetIsPkgInitProp pkg_id.go_opentelemetry_io.otel.trace.embedded (getIsPkgInit (GF := GF)) := by
+  have h92 : GetIsPkgInitProp pkg_id.go_opentelemetry_io.otel.codes (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h90 : GetIsPkgInitProp pkg_id.go_opentelemetry_io.otel.trace (getIsPkgInit (GF := GF)) := by
+  have h93 : GetIsPkgInitProp pkg_id.go_opentelemetry_io.otel.trace.embedded (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h6, h87, h88, h89, True.intro⟩
-  have h91 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc (getIsPkgInit (GF := GF)) := by
+    exact True.intro
+  have h94 : GetIsPkgInitProp pkg_id.go_opentelemetry_io.otel.trace (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h31, h4, h19, h52, h74, h77, h26, h0, h14, h6, h23, h24, h76, h45, h5, h54, h50, h78, h63, h27, h51, h86, h90, h64, True.intro⟩
-  have h92 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccrand (getIsPkgInit (GF := GF)) := by
+    exact ⟨h6, h91, h92, h93, True.intro⟩
+  have h95 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h6, h11, h4, h1, h5, h12, h19, h23, h24, h76, h52, h91, True.intro⟩
-  exact h92
+    exact ⟨h31, h4, h19, h52, h74, h77, h26, h0, h14, h6, h23, h24, h76, h45, h5, h54, h50, h78, h63, h27, h51, h90, h94, h64, True.intro⟩
+  have h96 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccrand (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h6, h11, h4, h1, h5, h12, h19, h23, h24, h76, h52, h95, True.intro⟩
+  exact h96
 
 end table
 

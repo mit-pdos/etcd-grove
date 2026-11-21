@@ -28,7 +28,6 @@ axiom endpoint.RequiresCredentials.wp_proof
 axiom envVerifyOffTok
 axiom errors.AsNoMatch.wp_proof
 axiom errors.IsStatusErr.wp_proof
-axiom etcdResolverOwn
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
 axiom grpc.ClientConn.Invoke.wp_proof
@@ -92,9 +91,6 @@ axiom reflect.Value.Type.wp_proof
 axiom reflect.ValueOf.wp_proof
 axiom reflectM.value_intoVal_inj
 axiom reflectM.value_into_val_typed
-axiom resolver.EtcdManualResolver.Close.wp_proof
-axiom resolver.EtcdManualResolver.SetEndpoints.wp_proof
-axiom resolver.New.wp_proof
 axiom status.Code.wp_proof
 axiom status.Error.wp_proof
 axiom status.FromError.wp_proof

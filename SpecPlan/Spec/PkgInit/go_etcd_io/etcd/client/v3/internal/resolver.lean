@@ -3,6 +3,9 @@ module
 
 public import GeneratedProof.go_etcd_io.etcd.client.v3.internal.resolver
 public import SpecPlan.Spec.PkgInit.Base
+public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.resolver
+public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.resolver.manual
+public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.serviceconfig
 
 @[expose] public section
 noncomputable section
