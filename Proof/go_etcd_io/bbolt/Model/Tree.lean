@@ -30,22 +30,22 @@ variable [GooseExts]
 
 /-! ## Well-formed pages -/
 
-/-- A leaf page's elements, keys and values lie inside its `len` bytes, below `MaxAllocSize`
-from its start, and its keys increase strictly. -/
+/-- A leaf page's elements, keys and values lie inside its `len` bytes, within `MaxAllocSize`
+from the first element, and its keys increase strictly. -/
 def leafWF (pg : List w8) (len : Nat) : Prop :=
   len ≤ pg.length ∧ elemOff (pageCount pg) ≤ len ∧
   (∀ i < pageCount pg,
     elemOff i + leafPos pg i + leafKsize pg i + leafVsize pg i ≤ len ∧
-    elemOff i + leafPos pg i + leafKsize pg i + leafVsize pg i ≤ maxAllocSize) ∧
+    elemOff i + leafPos pg i + leafKsize pg i + leafVsize pg i ≤ 16 + maxAllocSize) ∧
   ∀ i j, i < j → j < pageCount pg → go.GoStringLt (leafKey pg i) (leafKey pg j)
 
-/-- A branch page has an element, its elements and keys lie inside its `len` bytes, below
-`MaxAllocSize`, its children below the high-water mark `hwm`, and its keys increase strictly. -/
+/-- A branch page has an element, its elements and keys lie inside its `len` bytes, within
+`MaxAllocSize` of the first element, its children below the high-water mark `hwm`, and its keys increase strictly. -/
 def branchWF (pg : List w8) (len hwm : Nat) : Prop :=
   0 < pageCount pg ∧ len ≤ pg.length ∧ elemOff (pageCount pg) ≤ len ∧
   (∀ i < pageCount pg,
     elemOff i + branchPos pg i + branchKsize pg i ≤ len ∧
-    elemOff i + branchPos pg i + branchKsize pg i ≤ maxAllocSize ∧ branchPgid pg i < hwm) ∧
+    elemOff i + branchPos pg i + branchKsize pg i ≤ 16 + maxAllocSize ∧ branchPgid pg i < hwm) ∧
   ∀ i j, i < j → j < pageCount pg → go.GoStringLt (branchKey pg i) (branchKey pg j)
 
 /- Well-formed bucket trees in `pages` (high-water mark `hwm`): `treeWF` from a page id,
@@ -240,10 +240,10 @@ def rootShape (pages : Pages) (root : Nat) : Prop :=
   ∀ id pg, ownHas pages root id → pages !! id = some pg → pageFlags pg = leafPageFlag →
     ∀ i < pageCount pg, leafFlags pg i % 2 = bucketLeafFlag ∧
       (0 < leafKsize pg i ∧ leafKsize pg i ≤ maxKeySize) ∧
-      leafKsize pg i + leafVsize pg i ≤ bboltEntryMax ∧
+      entryBytesFit (leafKsize pg i) (leafVsize pg i) ∧
       ∀ bpg, bktLeafPg pages (leafValue pg i) bpg → ∀ j < pageCount bpg,
         leafFlags bpg j % 2 = 0 ∧ 0 < leafKsize bpg j ∧
-        leafKsize bpg j + leafVsize bpg j ≤ bboltEntryMax
+        entryBytesFit (leafKsize bpg j) (leafVsize bpg j)
 
 /-- **`fileHolds`' tree clauses** (design §3.2, D16) over the committed state:
 - the tree is strict (`treeStrict`: well-formed, page ids are their headers', good inline pages,

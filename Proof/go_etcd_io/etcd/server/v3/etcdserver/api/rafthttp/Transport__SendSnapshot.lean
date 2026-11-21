@@ -80,7 +80,7 @@ theorem rafthttp.Transport.SendSnapshot.wp_proof
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hri with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
-    -, -, -, -, -, -, ⟨%enf, #Henf⟩⟩
+    -, -, -, -, -, -, ⟨%enf, #Henf⟩, -⟩
   iunfold netSnapBundle at Hb
   icases Hb with ⟨%st, %sn, %D, #Hml, #Hsw, #HP, HO, %Hst', Hrs, #Himg⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []

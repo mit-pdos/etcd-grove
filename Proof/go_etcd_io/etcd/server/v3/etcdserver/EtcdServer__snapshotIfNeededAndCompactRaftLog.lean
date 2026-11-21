@@ -48,7 +48,9 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofBatch
     ⟨%lg, #Hlgf, #Hlgn⟩, -, -⟩
   ihave #Hss' := Hss
   iunfold srvSnapStor at Hss'
-  icases Hss' with ⟨#Hmsi, -⟩
+  icases Hss' with ⟨#Hcreate, -⟩
+  ihave #Hmsi : (letI : MemStorReg GF := ⟨γr.raft.raft.reg⟩; srvCompactMem ms γs γr.raft.raft.cl nk) $$ []
+  · iunfold srvCompactMem; iexists γr.cursor; iexact Hcreate
   iunfold srvSnapState at HSS
   icases HSS with ⟨%d, %m, %f, Hd, Hm, Hf, %Hdm, #Hms, #Hslb⟩
   ihave #Hfz' := Hfz

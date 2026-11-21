@@ -164,7 +164,10 @@ logr_Logger__Info: ?
 logr_Logger__Info_ptr: ?
 errors_IsResourceExpired: ?
 errors_IsGone: ?
-errors_IsTooManyRequests:
+# (prove-k8s2, 2026-11-20) over its body
+errors_AsNoMatch:
+errors_reasonAndCodeForError: errors_AsNoMatch
+errors_IsTooManyRequests: errors_reasonAndCodeForError
 errors_IsInternalError: ?
 net_IsConnectionRefused: ?
 rand_Float64: ?

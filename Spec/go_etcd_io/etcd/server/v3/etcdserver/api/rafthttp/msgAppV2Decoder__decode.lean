@@ -27,7 +27,8 @@ reader at the bytes `rs`, any bytes `ys` it may read next being compatible with 
 at some state `cs'`, and, if the error is nil, `rs'` is `rs` followed by a frame from `cs` to `cs'`
 of some content `w`, what is known of `rs'`, and the decoded message, of content `w`, owned, without
 responses (2026-10-23, stage 5c: what `netRecv` asks of a received copy); (raft-entsize §4,
-2026-11-10) at its content `c` (`msgPtsCC`), of bounded size when `Sz` but for a link heartbeat (an
+2026-11-10) at its content `c` (`msgPtsCC`), of bounded size when `Sz` (a link heartbeat's, a clone of
+`linkHeartbeatMessage`, always: rafthttpfix, 2026-11-20; until then not claimed; an
 App frame's is the sender's content, `MsgEncSz`, by D2; an AppEntries frame's has a fresh header and
 the sender's entries' contents, `EntsSz`, by D2 on each). -/
 abbrev rafthttp.msgAppV2Decoder.decode.spec : Prop :=
@@ -42,7 +43,7 @@ abbrev rafthttp.msgAppV2Decoder.decode.spec : Prop :=
       ∃ (rs' : List w8) (cs' : V2St), Rd rs' ∗ v2DecOwn dec r frm to cs' ∗
         (⌜err = GoInterface.nil⌝ -∗ ∃ (w : MsgWire) (bs : List w8) (c : MsgC),
           ⌜V2Frame Sz frm to cs w bs cs' ∧ rs' = rs ++ bs ∧ wireOf c.model = w ∧ c.resps = [] ∧
-            c.csUfNil ∧ (Sz → ¬ isHB c.model.msg → msgSizeOk c)⌝ ∗ □ B rs' ∗
+            c.csUfNil ∧ (Sz → msgSizeOk c)⌝ ∗ □ B rs' ∗
           msgPtsCC ml (DFrac.own 1) (DFrac.own 1) true c) }}
 
 end spec

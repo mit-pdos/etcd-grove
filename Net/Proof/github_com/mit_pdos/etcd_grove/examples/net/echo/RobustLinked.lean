@@ -56,8 +56,8 @@ theorem echo_kit_robust [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Sema
   unfold echoAddrs
   icases BigSepL.bigSepL_cons.1 $$ Hs with ⟨Hu, -⟩
   unfold addrUnset addrTok
-  icases Hu with ⟨Hpend, %Hok⟩
-  imod echoInvs_alloc (Gg := G) $$ Hpend with ⟨%γm, #Hinvs⟩
+  icases Hu with ⟨Hpend, %Hok, Htk⟩
+  imod echoInvs_alloc (Gg := G) $$ Hpend Htk with ⟨%γm, #Hinvs⟩
   imodintro
   iexists fun _ => iprop(echoInvs (Gg := G) γm ∗ ⌜addrOk srvAddr = true⌝)
   isplitr

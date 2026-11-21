@@ -1,5 +1,6 @@
 /-
-`trace.SpanFromContext`: the trust boundary (`go.opentelemetry.io/otel/trace` is names-only).
+`trace.SpanFromContext` (a trust-boundary axiom until 2026-11-20, while `go.opentelemetry.io/otel/trace`
+was names-only; now proved over its body, `Proof/go_opentelemetry_io/otel/trace/SpanFromContext.lean`).
 Lean-first (no Rocq counterpart). mvcc's `watchStream.Watch` takes the span of its context and
 ends it when the watcher is cancelled (`defer span.End()` in the cancel closure it stores).
 -/

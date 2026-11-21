@@ -5,7 +5,7 @@ module
 
 public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.ReplicationSet__String
 public import RaftWitness.Spec.slices.Sort
-public import RaftWitness.Spec.strconv.FormatUint
+public import Spec.strconv.FormatUint
 public import RaftWitness.Spec.fmt.Sprintf
 public import RaftWitness.Spec.strings.Join
 

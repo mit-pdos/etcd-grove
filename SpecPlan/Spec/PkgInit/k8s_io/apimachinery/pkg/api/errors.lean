@@ -3,6 +3,7 @@ module
 
 public import GeneratedProof.k8s_io.apimachinery.pkg.api.errors
 public import SpecPlan.Spec.PkgInit.Base
+public import Perennial.Proof.errors.Base
 public import Perennial.Proof.fmt.Base
 public import SpecPlan.Spec.PkgInit.net.http
 public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.apis.«meta».v1

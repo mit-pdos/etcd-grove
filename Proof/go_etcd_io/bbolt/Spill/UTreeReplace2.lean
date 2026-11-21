@@ -86,7 +86,7 @@ theorem uBr_replace {X X' : WX} {bl n : Loc} {P P' : Pages} {hwm hwm' : Nat} {T 
     (hhd : ps.head?.map Piece.l = some c)
     (hr' : X'.node bl n = some r') (hpar : parentSpilled r r' j ps) (hlive : n ∈ X'.live)
     (hfresh : ∀ x ∈ ps.drop 1, x.l ∉ r.cs)
-    (hkl : ∀ x ∈ ps, 0 < x.k.length ∧ x.k.length ≤ bboltEntryMax) :
+    (hkl : ∀ x ∈ ps, 0 < x.k.length ∧ x.k.length ≤ branchKeyMax) :
     uBr X' bl P' hwm' n r' lo hi h (es.take j ++ ps.map (pcUE P') ++ es.drop (j + 1)) := by
   obtain ⟨hd, hcs', hnv, -, -, hcap, hins⟩ := hpar
   have hjes : j < es.length := (List.getElem?_eq_some_iff.1 hj).1
@@ -123,7 +123,7 @@ theorem uBr_replace {X X' : WX} {bl n : Loc} {P P' : Pages} {hwm hwm' : Nat} {T 
   -- the keys
   have hun := hb.un
   have hent0 : ∀ w ∈ r.ws, keyIn lo hi w.key ∧ 0 < w.key.length ∧
-      w.key.length + w.value.length ≤ bboltEntryMax := hun.2.2.2.2.2.2.1
+      entryBytesFit w.key.length w.value.length w.pgid := hun.2.2.2.2.2.2.1
   have hKin : ∀ k, k < r.ws.length → keyIn lo hi (wKey r.ws k) := by
     intro k hk
     obtain ⟨w, hw⟩ := hwsget k hk
@@ -162,7 +162,7 @@ theorem uBr_replace {X X' : WX} {bl n : Loc} {P P' : Pages} {hwm hwm' : Nat} {T 
     refine ⟨hlive, by rw [hnv]; exact hun.2.1, by rw [hnv]; exact hun.2.2.1,
       by rw [hcap]; exact hun.2.2.2.1, hins, hsorted, fun w' hw' => ?_, ?_⟩
     · rcases splice_get hd hjl hm hw' with ⟨w, hw, he⟩ | ⟨x, hx, he⟩
-      · rw [wDat_key he, wDat_value he]; exact hent0 w hw
+      · rw [wDat_key he, wDat_value he, wDat_pgid he]; exact hent0 w hw
       · have hk : w'.key = x.k := congrArg (fun d => d.2.2.1) he
         have hv : w'.value = [] := congrArg (fun d => d.2.2.2) he
         obtain ⟨i, hi⟩ := List.mem_iff_getElem?.1 hx
@@ -170,7 +170,7 @@ theorem uBr_replace {X X' : WX} {bl n : Loc} {P P' : Pages} {hwm hwm' : Nat} {T 
         have hki := hpk i hil
         rw [pcKey_of_get hi] at hki
         rw [hk, hv]
-        exact ⟨keyIn_bndIn hbnd _ hki, (hkl x hx).1, by simp; exact (hkl x hx).2⟩
+        exact ⟨keyIn_bndIn hbnd _ hki, (hkl x hx).1, entryBytesFit_branch (hkl x hx).2 _⟩
     · unfold ownPg; rw [hpg, hfr.2.2.2.2.1]; exact hun.2.2.2.2.2.2.2
   refine ⟨hr', hun', by rw [hnv]; exact hb.leaf, by have := hb.two; omega,
     by rw [esp_length hjes, hLlen, hb.len, hlen'], ?_, ?_, ?_, ?_, ?_, ?_⟩

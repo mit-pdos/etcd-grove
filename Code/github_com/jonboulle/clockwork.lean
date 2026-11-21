@@ -93,8 +93,6 @@ opaque fakeClockContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 noncomputable def keyClock [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/jonboulle/clockwork.keyClock"
 
-opaque keyClock.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrFakeClockDeadlineExceeded [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/jonboulle/clockwork.ErrFakeClockDeadlineExceeded"
 
@@ -141,12 +139,16 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(go!"clock"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (Val ErrFakeClockDeadlineExceeded.init) (Val #())))))
   (App (Val doExecute)
-  (App (Val keyClock.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore contextKey.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr keyClock))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.time.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.time.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc keyClock contextKey.ty)) (Val #()))))))))
 
 abbrev Clock [GooseExts] : Type := GoInterface
 

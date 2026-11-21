@@ -16,8 +16,6 @@ axiom Client.streamClientInterceptor.wp_proof
 axiom NewCluster.wp_proof
 axiom NewMaintenance.wp_proof
 axiom WithRequireLeader.wp_proof
-axiom apierrors.HasStatusCause.wp_proof
-axiom apierrors.IsTimeout.wp_proof
 axiom apierrors.NewInternalError.wp_proof
 axiom audit.GetAuditIDTruncated.wp_proof
 axiom context.WithCancelTodo.wp_proof
@@ -28,14 +26,11 @@ axiom credentials.perRPCCredential.UpdateAuthToken.wp_proof
 axiom encoding.json.Marshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom envVerifyOffTok
-axiom errors.AsLeafTy.wp_proof
+axiom errors.AsNoMatch.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom etcdResolverOwn
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
-axiom fmt.Errorf.wp_proof
-axiom fmt.ErrorfPlain.wp_proof
-axiom fmt.SprintfClientPtr.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof
 axiom grpc.ClientConn.Target.wp_proof
@@ -95,8 +90,6 @@ axiom reflect.Value.Len.wp_proof
 axiom reflect.Value.Set.wp_proof
 axiom reflect.Value.Type.wp_proof
 axiom reflect.ValueOf.wp_proof
-axiom reflectM.type_intoVal_inj
-axiom reflectM.type_into_val_typed
 axiom reflectM.value_intoVal_inj
 axiom reflectM.value_into_val_typed
 axiom resolver.EtcdManualResolver.Close.wp_proof
@@ -111,11 +104,8 @@ axiom strconv.FormatInt.wp_proof
 axiom strconv.ParseInt.wp_proof
 axiom streamKeyFromCtx.wp_proof
 axiom strings.Contains.wp_proof
-axiom strings.HasSuffix.wp_proof
 axiom strings.SplitN.wp_proof
-axiom strings.TrimSuffix.wp_proof
 axiom time.Duration.Seconds.wp_proof
-axiom time.Time.IsZero.wp_proof
 axiom tracing.Span.AddEvent.wp_proof
 axiom tracing.Span.End.wp_proof
 axiom tracing.Start.wp_proof

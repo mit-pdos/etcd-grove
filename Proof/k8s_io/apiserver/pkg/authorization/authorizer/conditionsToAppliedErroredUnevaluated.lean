@@ -5,6 +5,7 @@ Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.fmt.OutLemmas
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.conditionsToAppliedErroredUnevaluated
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult__IsTrue
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult__IsFalse
@@ -119,7 +120,7 @@ theorem conditionsToAppliedErroredUnevaluated.wp_proof
       try (isplitr; (ipureintro; rfl))
       iintro %sla ⟨Hargs, -⟩
       (try wp_auto)
-      wp_apply wp_Sprintf _ _ _ _ ?wf $$ [$Hargs] as %rs -
+      wp_apply EtcdGrove.fmt.Sprintf.argsWf wp_Sprintf _ _ _ _ ?wf $$ [$Hargs] as %rs -
       case wf => exact .cons_string _ _ (.cons_string _ _ .nil)
       wp_apply HgetDesc' as %dv -
       wp_apply _root_.Perennial.github_com.mit_pdos.perennial.goose.model.strings.wp_string_len dv
@@ -155,7 +156,7 @@ theorem conditionsToAppliedErroredUnevaluated.wp_proof
         try (isplitr; (ipureintro; rfl))
         iintro %sla2 ⟨Hargs2, -⟩
         (try wp_auto)
-        wp_apply wp_Sprintf _ _ _ _ ?wf2 $$ [$Hargs2] as %rs2 -
+        wp_apply EtcdGrove.fmt.Sprintf.argsWf wp_Sprintf _ _ _ _ ?wf2 $$ [$Hargs2] as %rs2 -
         case wf2 => exact .cons_string _ _ .nil
         unfold iterBodyPost_b2
         iright

@@ -2,8 +2,8 @@
 # transport, peers, stream writers and readers, the pipeline, remotes, the pipeline and stream
 # handlers, the two codecs, the URL picker, the peer status and the request helpers; (2026-10-24,
 # stage 7c) the snapshot stream (the sender, its handler, `SendSnapshot`, `peer.sendSnap`). Names
-# only: the probes, the package variables' initializers, and the round
-# trippers' and listener's constructors (the HTTP boundary's). (const-inits, 2026-11-19) The
+# only: the probes, the package variables' initializers, and the
+# listener's constructor (the HTTP boundary's). (const-inits, 2026-11-19) The
 # initializers of constants, `fmt.Errorf` errors and literals translated: the timeouts and
 # intervals (`snapResponseReadTimeout`, `ConnWriteTimeout`, `proberInterval`, ...),
 # `errMemberNotFound` and `supportedStream`. (metric-vecs, 2026-11-19) The metric vectors'
@@ -13,7 +13,9 @@ translate = ["*",
   # `!init.*`):
   # proved by `etc/gen-init.py` over `MustRegister`'s spec with the names' registration rights
   "!addPeerToProber", "!monitorProbingStatus",
-  "!NewListener", "!NewRoundTripper", "!newStreamRoundTripper",
+  "!NewListener",
+  # (rafthttpfix, 2026-11-20) `NewRoundTripper` and `newStreamRoundTripper` translated, over
+  # `transport.NewTimeoutTransport`'s spec (until then each an axiom)
   # (prove-errinits, 2026-11-19) the `errors.New`/`fmt.Errorf` errors translated (until then
   # untranslated, the axiom `errorsNewVarsInit`); (prove-misc, 2026-11-20) `linkHeartbeatSize`'s
   # initializer (`proto.Size`) translated, over `proto.SizePb`'s spec (until then the axiom

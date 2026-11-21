@@ -105,6 +105,14 @@ theorem watchCtx_outgoingC (c : GoInterfaceOk) (s : ContextDesc (IProp GF)) :
   iNamed H
   iexact HOut
 
+/-- `watchCtx`'s outgoing metadata, some `om` (errdesc stage 1, 2026-11-20). -/
+theorem watchCtx_outMD (c : GoInterfaceOk) (s : ContextDesc (IProp GF)) :
+    watchCtx (GF := GF) c s ⊢ ∃ om, metadata.outMD c om := by
+  iintro #H
+  ihave #Ho := watchCtx_outgoingC c s $$ H
+  iunfold metadata.outgoingCtxOkC at Ho
+  iexact Ho
+
 /-- `watchCtx`'s `Value(&cancelCtxKey)` clause (`isContext`'s `"#HValue"`). -/
 theorem watchCtx_cancelCtxKey (c : GoInterfaceOk) (s : ContextDesc (IProp GF)) :
     watchCtx (GF := GF) c s ⊢

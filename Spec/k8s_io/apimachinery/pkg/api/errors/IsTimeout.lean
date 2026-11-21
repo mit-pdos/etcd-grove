@@ -1,5 +1,5 @@
 /-
-`apierrors.IsTimeout(err)` (`k8s.io/apimachinery/pkg/api/errors/errors.go:689-698`, names-only): of
+`apierrors.IsTimeout(err)` (`k8s.io/apimachinery/pkg/api/errors/errors.go:689-698`): of
 a `*StatusError` its status's timeout test (`timeoutV`: `reasonAndCodeForError`, `:817-822`, the
 `APIStatus` assertion, then `Status()`, the struct's `ErrStatus`); of an error that is no `APIStatus`
 and wraps none (`.plain`), `false` (reason `Unknown`, code 0). Stated as a post every view of the
@@ -15,6 +15,10 @@ does not implement `APIStatus` and has no `Unwrap`/`As`, `errors.As` is false (`
 `TestPlainView`, `TestLeafMustExcludeAsAndUnwrapSlice`). The trust boundary (stage 7e-2,
 `notes/k8s-7e-2-draft.md` §5.1, attacked T1): an axiom,
 `Proof/k8s_io/apimachinery/pkg/api/errors/IsTimeout.lean`. Lean-first (no Rocq counterpart).
+
+**Proved** over its body since prove-k8s2 (2026-11-20; `Proof/k8s_io/apimachinery/pkg/api/errors/IsTimeout.lean`,
+over `errors.AsNoMatch`, `Spec/errors/AsNoMatch.lean`); until then a trust-boundary axiom, as the
+text above says.
 -/
 module
 

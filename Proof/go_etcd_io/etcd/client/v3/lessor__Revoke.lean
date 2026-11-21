@@ -33,14 +33,14 @@ theorem lessor.Revoke.wp_proof
     (wp_retry : retryLeaseClient.LeaseRevoke.spec (GF := GF) (hG := hG))
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     lessor.Revoke.spec (GF := GF) (hG := hG) := by
-  intro l conn addr Spec Q ctx cd id
-  wp_start as ⟨#Hrem, #Hrpc, #Hpre, #Hctx, #Hce⟩
+  intro l conn addr Spec Q ctx om cd id
+  wp_start as ⟨#Hrem, #Hrpc, #Hom, #Hpre, #Hctx, #Hce⟩
   iunfold lessorRemoteAtC at Hrem
   icases Hrem with ⟨%rlc, %sl, #Hremote, #Hrlc, #Hconn, #Hcopts, #Hco⟩
   iunfold callOptsAt at Hco
   icases Hco with ⟨%vs, #Hsl, %Hcap, #Hok, -⟩
   wp_auto
-  wp_apply wp_retry rlc conn addr Spec Q ctx cd _ _ sl vs $$ [«$r0»] as %resp %err ⟨-, Hres⟩
+  wp_apply wp_retry rlc conn addr Spec Q ctx om cd _ _ sl vs $$ [«$r0»] as %resp %err ⟨-, Hres⟩
   · iframe #
     iframe
     simp only

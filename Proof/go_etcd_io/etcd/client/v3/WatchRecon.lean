@@ -329,8 +329,8 @@ but its id field and `donec`). -/
 def wsElemC (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNames) (S : RunSt) (ws : Loc)
     (a : WsPrm GF × WPh × LifePrm) : IProp GF :=
   iprop(⌜a.1.ws = ws ∧ phOk S ws a.2.1 ∧
-      streamKeyOf (metadata.outgoingOf (GoInterface.ok a.1.ctx)) =
-      streamKeyOf (metadata.outgoingOf (GoInterface.ok G.ctx))⌝ ∗ wsIs V a.1 ∗ wsRest V γs S.Dm a.1 a.2.1 ∗
+      streamKeyOf a.1.omd =
+      streamKeyOf G.omd⌝ ∗ wsIs V a.1 ∗ wsRest V γs S.Dm a.1 a.2.1 ∗
     noCancelOk S a.1 a.2.1 ∗ lifeInvIs V G a.1 a.2.2 ∗ lifeTk V a.1 a.2.2 ∗
     (⌜a.2.1.isOrphan = true⌝ ∨ genOk a.1 a.2.2 n))
 
@@ -338,8 +338,8 @@ def wsElemC (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNames) (S : Run
 def wsElemT (V : WEnv GF) (G : WgsPrm GF) (γs : StreamNames) (S : RunSt) (ws : Loc)
     (a : WsPrm GF × WPh × LifePrm) : IProp GF :=
   iprop(⌜a.1.ws = ws ∧ phOk S ws a.2.1 ∧
-      streamKeyOf (metadata.outgoingOf (GoInterface.ok a.1.ctx)) =
-      streamKeyOf (metadata.outgoingOf (GoInterface.ok G.ctx))⌝ ∗ wsIs V a.1 ∗ wsRest V γs S.Dm a.1 a.2.1 ∗
+      streamKeyOf a.1.omd =
+      streamKeyOf G.omd⌝ ∗ wsIs V a.1 ∗ wsRest V γs S.Dm a.1 a.2.1 ∗
     lifeInvIs V G a.1 a.2.2 ∗ (resumeBody V G a.1 ∨ wsStopped a.1 ∗ stopBody V a.1))
 
 theorem wsElem_choose (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNames) (S : RunSt)

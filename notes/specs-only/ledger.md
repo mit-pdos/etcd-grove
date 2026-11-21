@@ -25,6 +25,51 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-20: `cache.wp_Errorf_setArgs` -- reads the maps it formats without owning them
+
+- **Spec.** `Proof/k8s_io/client_go/tools/cache/ErrorfSet.lean`, `wp_Errorf_setArgs` (a lemma over Perennial's
+  previous model of `Errorf`; no `SpecPlan` counterpart).
+- **Defect.** False of Go: no ownership of the `sets.Set[string]` maps, which `fmt` reads; a concurrent write
+  is the runtime's fatal `concurrent map read and map write`.
+- **Evidence.** go1.27.3 `fmt/print.go:793-815`, `internal/runtime/maps/map.go:432`;
+  `notes/axiom-review/errorf-setargs.md`.
+- **Proposed change.** Premise: a fraction of each map's points-to, given back in the post. The one caller
+  (`storeIndex.addIndexers`) passes the intersection's.
+- **Decision.** Applied (fmtmodel, 2026-11-20; a strengthening of the premise, the caller's obligation discharged).
+
+## 2026-11-20: `fmt.argsOk` (Errorf, Sprintf, Printf) -- `reflect.Value` admitted; slices; a methodless integer under a non-method verb
+
+- **Spec.** `Spec/fmt/Errorf.lean`'s `fmt.argsOk`/`fmt.argOkAt`/`fmt.argOk`, now Perennial's
+  (`Perennial/Proof/fmt/Args.lean`, `79517dbdf`), under `fmt.Errorf`, `fmt.ErrorfLeaf`, `fmt.SprintfArgs`,
+  `fmt.Printf`; `SpecPlan`'s `fmt` specs use the same vocabulary.
+- **Defect.** (1) The `String()` case admitted a `reflect.Value`, which Go unwraps (false: the held value's methods
+  run unconstrained). (2) Read-only slices under `%v`/`%s` were admitted, which Perennial's model does not cover.
+  (3) The non-method-verb integer case admitted any integer-kind type without `Format`; Perennial's requires an
+  `Error() string` or `String() string` (the other such types are `ArgWf` already, or have methods the model
+  does not follow).
+- **Evidence.** go1.27.3 `fmt/print.go:734` (`case reflect.Value`); `notes/axiom-review/errorf-setargs.md`.
+- **Proposed change.** (1) No method `CanInterface` in the `String()` case. (2) The slice calls move to
+  `fmt.ErrorfSlice`/`fmt.SprintfSlice` (premise `fmt.argsOkSl`, the old one with slices), axioms. (3) As Perennial's.
+  No caller passed a `reflect.Value` or used (3)'s extra types.
+- **Decision.** Applied (fmtmodel, 2026-11-20).
+
+## 2026-11-20: `metadata.AppendToOutgoingContext.spec`, `withVersion.spec`, `streamKeyFromCtx.spec`, `context.WithCancelValCtx.spec`, `context.WithTimeoutBackgroundMd.spec`, `grpc.ClientConn.NewStream.spec` -- posts fix a pure function of an allocated context
+
+- **Spec.** The real specs above (`Spec/google_golang_org/grpc/metadata/AppendToOutgoingContext.lean`, ...), and
+  the definitions in trusted contracts that use `metadata.outgoingOf` (`grpcAttemptMd`, `grpcInvokerOk`); the
+  plan's `outMD` (`SpecPlan/Spec/google_golang_org/grpc/Api.lean:283`).
+- **Defect.** Unprovable by any implementation: each post equates `metadata.outgoingOf` (a fixed Lean
+  function) of a context the call allocates with caller-chosen metadata; a fresh allocation may be any
+  location (etcd-refimpl `README.md`, "Findings").
+- **Evidence.** The refimpl finding; `notes/errdesc-ghost-plan.md` §0.
+- **Proposed change.** `metadata.outMD ctx md` (the plan's `outMD`, with `Option` metadata: the 2026-11-18
+  entry below) in place of `outgoingOf`: each spec takes `∀ md`, `outMD ctx md` in its precondition, and
+  states the result's `outMD` at `md` (`mdAdd md k v`, `mdSet md …`, `md`, `none`); `streamKeyFromCtx`
+  returns `streamKeyOf md`; `grpcAttemptMd conn om md` over the metadata `om` the attempt contract's
+  precondition relates to the context.
+- **Decision.** Accepted (the user's soundness fix, task of 2026-11-20); applied on branch
+  `prove-errdesc/2026-11-20` (stage 1).
+
 ## 2026-11-18: `leaseStep`'s grant -- a server-chosen id is fresh in the history, the plan says only "not live"
 
 - **Spec.** `SpecPlan/Spec/go_etcd_io/etcd/api/v3/Model.lean`, `leaseStep` (`.leaseGrant`: `σ.leases id' = none`);
@@ -3435,6 +3480,35 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   (`WAL__cut.lean`: every callee's error witnessed, `Fs.fsNoErrOn_of` refutes it under `walCov`), `cut.specNoErr`,
   `walCov_cut` and `WAL__cutNoErr.lean` deleted; the WAL Link's hypothesis `h_wal_WAL_cutNoErr` gone.
 
+## 2026-11-20: `verify.Verify`'s callback and details are untyped `val`s (prove-etcdstorage)
+
+- **Spec.** `verify.Verify.spec` (`Spec/go_etcd_io/etcd/client/pkg/v3/verify/Verify.lean`, an axiom until this change;
+  `SpecPlan/Spec/go_etcd_io/etcd/client/pkg/v3/verify/Verify.lean`).
+- **Defect.** Unprovable as stated: `f : val` may be a panic value (the call `Verify(msg, f)` then panics binding its
+  argument), and the details `d : val` that `f` returns may be one (`Verify` stores them into its `map[string]any`
+  variable, which only a typed map value can be). The Go `f` is a func value and its details a map, so no caller is
+  affected.
+- **Evidence.** The proof (`Proof/go_etcd_io/etcd/client/pkg/v3/verify/Verify.lean`): `wp_auto` cannot step either.
+- **Proposed change.** `f : GoFunc` (`#f`) and `∃ d : Loc, r = PairV #true #d`; with it, the premise `envVerifyOff` as an
+  alternative to `f`'s triple (SpecPlan already had it, as `verifyOff`), which `VerifyBackendConsistency` needs.
+- **Decision.** Applied in both (prove-etcdstorage, 2026-11-20); the five callers' proofs unchanged but `ileft` and
+  `iexists mref` (a `Loc`, was `#mref`).
+
+## 2026-11-20: `verify.Verify` takes its function as any `val` (prove-etcdapi)
+
+- **Spec.** `verify.Verify.spec` (`Spec/go_etcd_io/etcd/client/pkg/v3/verify/Verify.lean`), a trust-boundary axiom.
+- **Defect.** Not false of Go, but unprovable over the real code: `f` ranges over every `val`, where Go's `f` is a
+  `VerifyFunc` value. `Verify`'s body first stores `f` into a `VerifyFunc`-typed local (`GoAlloc VerifyFunc.ty f`), whose
+  semantics Perennial gives only for a value of the type (`IntoValTyped`), not for an arbitrary `val`. (A panic outcome
+  `f = PanicV p` alone is provable: `f()` and `Verify(msg, f)` both unwind to it, which `f`'s WP excludes; the attempt has
+  the lemma, `wp_absurd_of_pure`, in `/tmp` only, not landed.)
+- **Evidence.** The proof attempt (prove-etcdapi): `wp_auto` stops at the `GoAlloc` of `f`.
+- **Proposed change.** `∀ (f : GoFunc)`, the call `(Val #f)` and `f`'s WP over `#f` (as bbolt's `common.Verify.spec`).
+  The five callers (mvcc `restoreIntoIndex`, `watcher.send`; backend `txWriteBuffer.putSeq`; schema
+  `unsafeUpdateConsistentIndex`; etcdserver `verifyConsistentIndexIsLatest`) pass function literals, so the change is
+  only the quantifier's type at their `wp_apply`s. Formally a weakening of the axiom's statement (fewer `f`), so not
+  applied without the user; with it, `verify.Verify` is provable as bbolt's (over `os.Getenv`, `strings.ToLower`).
+- **Decision.** Open: recorded only.
 ## 2026-11-20: `http.ReadAll_spec` admits a reader's negative count (prove-http)
 
 - **Spec.** `http.ReadAll_spec` (`Proof/net/http/Boundary.lean`, the axiom `http.ReadAll_ok`) over `http.prefixReaderOk`.
@@ -3502,3 +3576,88 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** Premise: both URL slices of `v` are `nil`. Both callers decode into `new(ConfigChangeContext)`
   and discharge it by `rfl`.
 - **Decision.** Applied (prove-reflectfmt, 2026-11-20; a strengthening of the premise, the callers' obligation discharged).
+
+## 2026-11-20: `proto.Size` and `proto.SizeMessage` claim `0 ≤ n` of messages with shared sub-messages (prove-protootel)
+
+- **Spec.** `proto.Size.spec` (conjuncts 2 and 3: a range response, a read-only transaction's response) and
+  `proto.SizeMessage.spec` (`Spec/google_golang_org/protobuf/proto/`), trust-boundary axioms.
+- **Defect.** False as stated: protobuf-go sums sizes with wrapping `int` additions, and the premises hold their
+  repeated sub-messages read-only (shared pointers allowed; `msgPtsC` says nothing of a message's responses), so a
+  pointer repeated many times gives a true size above `2^63` in little memory and a negative result.
+- **Evidence.** protobuf-go v1.36.12 `internal/impl/encode.go:63-117`, `codec_field.go`; `examples/axiomcx/protosizewrap`
+  (three tests, negative results); `notes/axiom-review/proto-size-wrap.md`.
+- **Proposed change.** `proto.Size`: drop `0 ≤ sint.Z n` from conjuncts 2 and 3 (no caller uses it). `proto.SizeMessage`:
+  `proto.SizePb`'s statement at the content (`msgPtsCC`, no responses, `msgSize c < 2^63 → sint.Z n = msgSize c`) and a
+  no-claim case over `msgPtsC`; `decodeLoop` needs the stream decoders' size facts without `N.Sz` first.
+- **Decision.** `proto.Size`: applied (prove-protootel, 2026-11-20; a weaker post, unused by every caller).
+  `proto.SizeMessage`: open (needs the rafthttp receiver's size facts unconditional; the note says why).
+
+## 2026-11-20: `goose_adequacy_start` hands out the rights of names whose descriptor IDs collide (prove-promdeep)
+
+- **Spec.** `EtcdGrove.goose_adequacy_start` (`Proof/runtime/Start.lean`, a trust-boundary axiom), with the meaning
+  of `prometheus.nameFree` (`Proof/github_com/prometheus/client_golang/prometheus/Registry.lean`) that
+  `prometheus.MustRegister.wp_proof` relies on.
+- **Defect.** False. The axiom gave `nameFree n` for every name of any duplicate-free `Ns`; `nameFree n` promises that
+  no one but its holder registers `n`'s label-free descriptor ID (`xxhash64(n ++ "\xff")`). Two distinct names can
+  share that ID, and registering the first then registers the second's ID: a program registering counters of both
+  was proved not to panic, and panics on the second `MustRegister` (`Registry.Register`: the collector ID is taken,
+  `AlreadyRegisteredError`).
+- **Evidence.** `m_b699caa269ad35ee` and `m_641c7bdac316dcb7` (both `nameOk`) have ID `0xfea999cc795d2229`:
+  `examples/axiomcx/promidcollide` (Go, client_golang v1.24.1), `prometheus.descId_collision` (Lean, over the xxhash
+  model `Proof/github_com/cespare/xxhash/v2/Model.lean`); `notes/axiom-review/prometheus-id-collision.md`.
+- **Proposed change.** A premise `hNsIds : prometheus.descIdsDistinct Ns` (the names' `descId`s pairwise distinct),
+  decidable, an auto-parameter (`decide +kernel`) of the axiom and of `etcd_adequate`, `etcd_adequate_alloc` and
+  their `_members` forms, so that every program's names are checked by the kernel where its closed theorem is
+  proved; the closed theorems' statements do not change.
+- **Decision.** Applied (prove-promdeep, 2026-11-20; a strengthening of an axiom's premise, discharged at every use).
+
+## 2026-11-20: `txn.ApplySecObserve` panics on a non-UTF-8 label (prove-etcdserver)
+
+- **Spec.** `txn.ApplySecObserve.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/txn/ApplySecObserve.lean`), an axiom
+  until this change.
+- **Defect.** Held for any `version`, `op`; the body is `applySec.WithLabelValues(version, op, FormatBool(success))
+  .Observe(...)` (`metrics.go:59-61`), and prometheus' `WithLabelValues` panics on a label value that is not valid UTF-8
+  (client_golang v1.24.1 `histogram.go:1263`, `validateLabelValues`, `labels.go:166`).
+- **Evidence.** Code reading; `notes/axiom-review/etcdserver-observers-v2stats.md`.
+- **Proposed change.** Premise `⌜utf8Valid version ∧ utf8Valid op⌝`; the three `dispatch` proofs pass `"v3"` and a literal
+  operation name (`by decide`).
+- **Decision.** Applied (prove-etcdserver, 2026-11-20), and the function proved (its body translated).
+
+## 2026-11-20: `v2stats.ServerStats.RecvAppendReq`/`SendAppendReq` panic on a zero `ServerStats` (prove-etcdserver)
+
+- **Spec.** `v2stats.ServerStats.RecvAppendReq.spec`, `v2stats.ServerStats.SendAppendReq.spec` (axioms).
+- **Defect.** Premise only `st ≠ null`; a zero `&v2stats.ServerStats{}` (exported type) has nil rate queues, and
+  `statsQueue.Insert` (`queue.go:62-63`, `q.rwl.Lock()`) dereferences nil: Go panics, the axiom proves the call returns.
+  Only `NewServerStats` allocates the queues.
+- **Evidence.** Code reading (`v2stats/server.go:91-128`, `queue.go`); `notes/axiom-review/etcdserver-observers-v2stats.md`.
+- **Proposed change.** A persistent `v2stats.isServerStats st` (the queues allocated, the stats' lock), given by
+  `NewServerStats`' post and required by both methods (and `BecomeLeader`, for the lock); threaded through the server's
+  and the transport's invariants to `EtcdServer.Process` and `Transport.Send`.
+- **Decision.** Open: recorded only (the callers' invariants are rafthttp's, another group's files on 2026-11-20).
+
+## 2026-11-20: `v2stats.ServerStats.RecvAppendReq`/`SendAppendReq` need `NewServerStats`' queues (prove-rafthttpfix)
+
+- **Spec.** `v2stats.ServerStats.RecvAppendReq.spec`, `v2stats.ServerStats.SendAppendReq.spec`, `v2stats.NewServerStats.spec`
+  (axioms), `rafthttp.Transport.Start.spec`, `srvProcOk`, `trFixed`.
+- **Defect.** As recorded by prove-etcdserver the same day: the methods' premise was `st ≠ null` only, and a zero
+  `&v2stats.ServerStats{}` has nil rate queues, which `statsQueue.Insert` dereferences (`server.go:91-128`, `queue.go:62-63`).
+- **Evidence.** Code reading; `notes/axiom-review/v2stats-serverstats-queues.md`.
+- **Proposed change.** A persistent `v2stats.isServerStats st` (opaque: `ServerStats`' anonymous struct field keeps its
+  fields untranslated), in `NewServerStats`' post and the two methods' premises, threaded through `srvProcOk` (to
+  `EtcdServer.Process`) and `Transport.Start`'s premise and `trFixed` (to `Transport.Send`). Converges to the spec plan's
+  `v2stats.isServerStats`.
+- **Decision.** Applied (prove-rafthttpfix, 2026-11-20).
+
+## 2026-11-20: `proto.SizeMessage` claims `0 ≤ n` of a message with shared sub-messages (prove-rafthttpfix)
+
+- **Spec.** `proto.SizeMessage.spec` (`Spec/google_golang_org/protobuf/proto/SizeMessage.lean`, a trust-boundary axiom);
+  `rafthttp.msgAppV2Decoder.decode.spec`; the stream path's codec parameter.
+- **Defect.** As recorded by prove-protootel the same day (`notes/axiom-review/proto-size-wrap.md`):
+  protobuf-go's size sum wraps, and `msgPtsC` admits a repeated entry pointer and unowned responses, so `0 ≤ n` is false.
+- **Evidence.** `examples/axiomcx/protosizewrap`; `notes/axiom-review/proto-sizemessage-fix.md`.
+- **Proposed change.** Two forms: over `msgPtsC`, no claim on the result; over `msgPtsCC l … c` with `c.resps = []`,
+  `msgSize c < 2^63 → sint.Z n = msgSize c` (as `proto.SizePb`). The two counting callers discharge the bound:
+  `snapshotHandler.ServeHTTP` from `decodeLimit`'s 64 MiB and `MsgDecC`; `streamReader.decodeLoop` from `msgSizeOk`, now
+  unconditional (the stream codec's `Sz` is `True`, every sender's bundle being bounded; the msgappv2 decoder's post
+  `Sz → msgSizeOk c`, heartbeats included).
+- **Decision.** Applied (prove-rafthttpfix, 2026-11-20).

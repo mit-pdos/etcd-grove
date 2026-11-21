@@ -13,14 +13,14 @@ roots ^Proof/github_com/mit_pdos/etcd_grove/examples/k8s/authz/(Results|TopLevel
 axiom Perennial.encoding.json.initFuncsOk
 axiom Perennial.encoding.json.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.fields.opaqueInitsOk
-axiom Perennial.k8s_io.apimachinery.pkg.labels.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.runtime.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.util.validation.opaqueInitsOk
 axiom Perennial.math.rand.opaqueInitsOk
 axiom Perennial.net.http.initFuncsOk
 axiom Perennial.net.http.opaqueInitsOk
 axiom Perennial.reflect.opaqueInitsOk
-axiom fmt.SprintfArgs.wp_proof
+axiom fmt.ErrorfSlice.wp_proof
+axiom fmt.SprintfSlice.wp_proof
 axiom rand.Int63n.wp_proof
 axiom slices.Clone.wp_proof
 axiom slices.Concat.wp_proof

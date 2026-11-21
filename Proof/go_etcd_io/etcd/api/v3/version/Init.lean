@@ -1,20 +1,22 @@
 /-
 Package initialization of `go_etcd_io.etcd.api.v3.version`
-(item 8, 2026-10-17): its `wp_initialize'`.
+(item 8, 2026-10-17): its facts and trust-boundary axioms; its `wp_initialize'` is in
+`InitLinked.lean` (2026-11-19: the proof applies other packages' `wp_initialize'` and
+functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
 
-Its fact (`server/v3/lease/Base.lean`): `Version` holds `"3.8.0-alpha.0"`, `V3_6` a fixed value and
-`MinClusterVersion` `"3.0.0"`. Its initializer allocates and sets its translated string variables
-(`version.go`: `MinClusterVersion`, `Version`, `APIVersion`, `GitSHA`; translated since 2026-11-19,
-until then the trust-boundary axioms `Version_init` and `MinClusterVersion_init`) and runs its other
-variables' untranslated initializers: `semver` versions (`*semver.New(3, 6, 0, "", "")`, which
-formats with `fmt`) and `AllVersions`; the trust-boundary axiom `V3_6_init` states the one the fact
-reads, `opaqueInitsOk` the others.
+Its fact (`api/v3/version/PkgInit.lean`): `Version` holds `"3.8.0-alpha.0"`, `V3_6`, `V3_7` and `V3_8`
+fixed values and `MinClusterVersion` `"3.0.0"`. Its initializer allocates and sets its translated string
+variables (`version.go`: `MinClusterVersion`, `Version`, `APIVersion`, `GitSHA`; translated since
+2026-11-19, until then the trust-boundary axioms `Version_init` and `MinClusterVersion_init`), its `semver`
+versions (`V3_0 = *semver.New(3, 0, 0, "", "")`, ...: `semver.New`'s spec, proved over the real code) and
+`AllVersions` (a slice literal of them; prove-initleft, 2026-11-21: until then the trust-boundary axioms
+`V3_6_init` and `opaqueInitsOk`), and runs its untranslated `init` function, which the trust-boundary
+axiom `initFuncsOk` says returns.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.lease.Base
+public import Proof.go_etcd_io.etcd.api.v3.version.PkgInit
 public import Proof.github_com.Masterminds.semver.v3.Init
-public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 
@@ -39,24 +41,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- **The trust boundary: `go_etcd_io.etcd.api.v3.version`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([V3_0.init,
-        V3_1.init,
-        V3_2.init,
-        V3_3.init,
-        V3_4.init,
-        V3_5.init,
-        V3_7.init,
-        V3_8.init,
-        V3_9.init,
-        V4_0.init,
-        AllVersions.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
 /-- **The trust boundary: `go_etcd_io.etcd.api.v3.version`'s untranslated `init` functions return.** Goose
 names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
 here, so the model does not unfold them (`@! init.<k>`: the semantics' `functions`, which
@@ -67,80 +51,7 @@ axiom initFuncsOk :
     ∀ f ∈ ([init.«0»] : List GoString),
     {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
 
-/-- `V3_6 = *semver.New(3, 6, 0, "", "")` (`version.go`): a `semver.Version`. -/
-axiom V3_6_init :
-    {{ (True : IProp GF) }} (App (Val V3_6.init) (Val #()))
-    {{ RET #(); ∃ v : github_com.Masterminds.semver.v3.Version, globalAddr V3_6 ↦ v }}
-
 end go_etcd_io.etcd.api.v3.version
 end opaqueInits
-
-section init
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : _root_.Perennial.go_etcd_io.etcd.api.v3.version.Assumptions]
-
-namespace go_etcd_io.etcd.api.v3.version
-
-theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
-    (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.api.v3.version get_is_pkg_init) (σ0 : GMap GoString Bool) :
-    {{ EtcdGrove.ownInitLb get_is_pkg_init σ0 }}
-      (App (Val initialize') (Val #()))
-    {{ RET #(); EtcdGrove.ownInitLb get_is_pkg_init σ0 ∗
-        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.version }} := by
-  wp_start as Hown
-  iapply EtcdGrove.wp_package_init_lb (heq := Hinit.1) $$ [Hown] HΦ
-  iframe Hown
-  iintro Hown
-  wp_auto
-  iapply wp_fupd
-  wp_apply wp_GlobalAlloc (V := GoString) GitSHA _ as HGitSHA
-  wp_apply wp_GlobalAlloc (V := GoString) APIVersion _ as HAPIVersion
-  wp_apply wp_GlobalAlloc (V := GoString) Version _ as HVersion
-  wp_apply wp_GlobalAlloc (V := GoString) MinClusterVersion _ as HMinClusterVersion
-  wp_apply (_root_.Perennial.github_com.Masterminds.semver.v3.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  -- translated initializer of MinClusterVersion))
-  -- translated initializer of Version))
-  -- translated initializer of APIVersion))
-  -- translated initializer of GitSHA))
-  try wp_auto
-  wp_apply (opaqueInitsOk V3_0.init (by mem_tac))
-  wp_apply (opaqueInitsOk V3_1.init (by mem_tac))
-  wp_apply (opaqueInitsOk V3_2.init (by mem_tac))
-  wp_apply (opaqueInitsOk V3_3.init (by mem_tac))
-  wp_apply (opaqueInitsOk V3_4.init (by mem_tac))
-  wp_apply (opaqueInitsOk V3_5.init (by mem_tac))
-  wp_apply V3_6_init as ⟨%vV3_6, HV3_6⟩
-  wp_apply (opaqueInitsOk V3_7.init (by mem_tac))
-  wp_apply (opaqueInitsOk V3_8.init (by mem_tac))
-  wp_apply (opaqueInitsOk V3_9.init (by mem_tac))
-  wp_apply (opaqueInitsOk V4_0.init (by mem_tac))
-  wp_apply (opaqueInitsOk AllVersions.init (by mem_tac))
-  wp_apply (initFuncsOk init.«0» (by mem_tac))
-  ipersist HVersion
-  ipersist HV3_6
-  ipersist HMinClusterVersion
-  iframe Hown
-  imodintro
-  isplitr
-  · ipureintro
-    exact isPanic_intoVal _
-  is_pkg_init_finish
-
-/-- Perennial's form, from `wp_initialize'_lb`. -/
-theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
-    (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.api.v3.version get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init }}
-      (App (Val initialize') (Val #()))
-    {{ RET #(); ownInitializing get_is_pkg_init ∗
-        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.version }} :=
-  EtcdGrove.wp_init_of_lb _ _ _ (wp_initialize'_lb get_is_pkg_init Hinit)
-
-
-end go_etcd_io.etcd.api.v3.version
-
-end init
 
 end Perennial

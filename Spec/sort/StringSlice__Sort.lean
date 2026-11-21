@@ -1,7 +1,7 @@
 /-
-`sort.StringSlice.Sort`: the trust boundary (Perennial translates `sort.StringSlice`'s type but
-none of its methods; `notes/perennial-changes.md`). Lean-first (no Rocq counterpart); the lessor's
-`Revoke` sorts a lease's keys with it (`notes/leases-plan.md`, L2d).
+`sort.StringSlice.Sort`: proved (`Proof/sort/StringSlice__Sort.lean`) over Perennial's translation
+of Go's (2026-11-20; until then a trust-boundary axiom). Lean-first (no Rocq counterpart); the
+lessor's `Revoke` sorts a lease's keys with it (`notes/leases-plan.md`, L2d).
 -/
 module
 

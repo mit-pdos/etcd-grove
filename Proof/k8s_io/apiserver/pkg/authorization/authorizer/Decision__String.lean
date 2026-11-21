@@ -5,6 +5,7 @@ counterpart).
 -/
 module
 
+public import Proof.fmt.OutLemmas
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.Decision__String
 public import Perennial.Spec.fmt.Sprintf
 
@@ -57,7 +58,7 @@ theorem Decision.String.wp_proof
   · ipureintro; rfl
   iintro %asl ⟨Hasl, -⟩
   try wp_auto
-  wp_apply (wp_Sprintf _ _ [interface.mkOk go.int #k] (DFrac.own 1)
+  wp_apply (EtcdGrove.fmt.Sprintf.argsWf wp_Sprintf _ _ [interface.mkOk go.int #k] (DFrac.own 1)
     (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (_root_.Perennial.fmt.IntArgValue.int k)
       _root_.Perennial.fmt.ArgsWf.nil)) $$ [Hasl] as %str -
   · iexact Hasl

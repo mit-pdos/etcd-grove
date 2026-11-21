@@ -19,8 +19,9 @@ theorem etcd_adequate_alloc_members [GoGlobalContext] [hPre : GooseGpreS GF] [lc
     |==> ∃ x, T x) ∧ ∀ (x : X), progOk (prometheus.namesFree Ns) iprop((([∗list] m ∈ ms,
     etcdstart.memberStartRes m.fst m.snd) ∗ [∗list] b ∈ Bs, netAddrFree b) ∗ T x) init body φ) (hNs
     : Ns.Nodup := by decide +kernel) (hmsL : ∀ (m : GoString × etcdstart.MemberAddrs), m ∈ ms →
-    List.length m.fst ≤ 200 := by decide) : (∀ (v : val) (t2' : List Expr), t2 = v :: t2' → φ v) ∧
-    (∀ (e2 : Expr), e2 ∈ t2 → RealNotStuck e2 σ2) ∧ ∀ (e2 : Expr), e2 ∈ t2 → ¬UnrecoveredPanic e2
+    List.length m.fst ≤ 200 := by decide) (hNsIds : prometheus.descIdsDistinct Ns := by decide
+    +kernel) : (∀ (v : val) (t2' : List Expr), t2 = v :: t2' → φ v) ∧ (∀ (e2 : Expr), e2 ∈ t2 →
+    RealNotStuck e2 σ2) ∧ ∀ (e2 : Expr), e2 ∈ t2 → ¬UnrecoveredPanic e2
 
 theorem sep_reassoc5.{u_1} [GoGlobalContext] (P1 P2 P3 P4 P5 : IProp GF) : P1 ∗ P2 ∗ P3 ∗ P4 ∗ P5 ⊢
     (P1 ∗ P2 ∗ P3 ∗ P4) ∗ P5
@@ -41,9 +42,10 @@ theorem etcd_adequate_members [GoGlobalContext] [hPre : GooseGpreS GF] [lctx : G
     HasLC.hasLC GF), receiptBound GF = n + 1 → threadBound GF = max (n + 2) srvLevelK → progOk
     (prometheus.namesFree Ns) iprop(([∗list] m ∈ ms, etcdstart.memberStartRes m.fst m.snd) ∗ [∗list]
     b ∈ Bs, netAddrFree b) init body φ) (hNs : Ns.Nodup := by decide +kernel) (hmsL : ∀ (m :
-    GoString × etcdstart.MemberAddrs), m ∈ ms → List.length m.fst ≤ 200 := by decide) : (∀ (v : val)
-    (t2' : List Expr), t2 = v :: t2' → φ v) ∧ (∀ (e2 : Expr), e2 ∈ t2 → RealNotStuck e2 σ2) ∧ ∀ (e2
-    : Expr), e2 ∈ t2 → ¬UnrecoveredPanic e2
+    GoString × etcdstart.MemberAddrs), m ∈ ms → List.length m.fst ≤ 200 := by decide) (hNsIds :
+    prometheus.descIdsDistinct Ns := by decide +kernel) : (∀ (v : val) (t2' : List Expr), t2 = v ::
+    t2' → φ v) ∧ (∀ (e2 : Expr), e2 ∈ t2 → RealNotStuck e2 σ2) ∧ ∀ (e2 : Expr), e2 ∈ t2 →
+    ¬UnrecoveredPanic e2
 
 theorem sep_swap_right3.{u_1} [GoGlobalContext] (P Q W : IProp GF) : (P ∗ Q) ∗ W ⊢ (P ∗ W) ∗ Q
 

@@ -19,7 +19,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-instance : IsPkgInit (IProp GF) pkg_id.github_com.mit_pdos.perennial.goose.model.pool :=
+instance pkgInit_github_com_mit_pdos_perennial_goose_model_pool : IsPkgInit (IProp GF) pkg_id.github_com.mit_pdos.perennial.goose.model.pool :=
   define_is_pkg_init (pkgInitDef (GF := GF) pkg_id.github_com.mit_pdos.perennial.goose.model.pool)
 end
 

@@ -4,6 +4,10 @@ module
 public import GeneratedProof.k8s_io.apiserver.pkg.util.flowcontrol
 public import SpecPlan.Spec.PkgInit.Base
 public import Perennial.Proof.context.Base
+public import Perennial.Proof.fmt.Base
+public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.util.sets
+public import SpecPlan.Spec.PkgInit.k8s_io.apiserver.pkg.authentication.user
+public import SpecPlan.Spec.PkgInit.k8s_io.apiserver.pkg.endpoints.request
 
 @[expose] public section
 noncomputable section

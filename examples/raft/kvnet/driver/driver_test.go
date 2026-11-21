@@ -8,42 +8,37 @@ import (
 	"testing"
 
 	"github.com/anishathalye/porcupine"
-	"github.com/mit-pdos/etcd-grove/examples/lib/lintest"
 	"github.com/mit-pdos/etcd-grove/examples/lib/robust"
-	"github.com/mit-pdos/etcd-grove/examples/raft/kvnet"
 )
 
-// TestMain runs a replica instead of the tests when the driver started this binary as one
-// (KVNET_NODE set: the replicas are processes of the test binary itself).
+// TestMain runs a replica or the checking client instead of the tests when the harness started
+// this binary as one (KVNET_PROC set: the processes are of the test binary itself, their role
+// and flags the arguments, RunProcess).
 func TestMain(m *testing.M) {
-	if os.Getenv("KVNET_NODE") != "" {
-		cfg, err := kvnet.ParseNodeArgs(os.Args[1:])
-		if err != nil {
+	if os.Getenv("KVNET_PROC") != "" {
+		if err := RunProcess(os.Args[1:]); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(2)
 		}
-		kvnet.RunNode(cfg)
+		os.Exit(0)
 	}
 	os.Exit(m.Run())
 }
 
-// self starts replicas as processes of this test binary.
+// self starts the harness's processes as processes of this test binary.
 func self(t *testing.T) Command {
 	exe, err := os.Executable()
 	if err != nil {
 		t.Fatal(err)
 	}
-	return Command{Path: exe, Env: []string{"KVNET_NODE=1"}}
+	return Command{Path: exe, Env: []string{"KVNET_PROC=1"}}
 }
 
 // round runs one round of crash mode crash (with the network's faults if netns) and fails t
 // unless porcupine answers Ok and nothing else failed.
 func round(t *testing.T, crash string, netns bool) {
 	cfg := RandomConfig(crash, netns)
-	if testing.Short() {
-		cfg.Clients, cfg.Ops = 3, 30
-	}
-	res, c := Run(cfg, self(t), t.TempDir(), lintest.CounterClock())
+	res, c := Run(cfg, self(t), t.TempDir())
 	if c == nil {
 		t.Fatal(res.Err)
 	}
@@ -52,8 +47,7 @@ func round(t *testing.T, crash string, netns bool) {
 		dump = c.Dump()
 	}
 	c.Stop()
-	t.Logf("%+v, %d proposers, %d x %d operations: %v\n  %v\n  network: %s", cfg.Options, cfg.Proposers,
-		cfg.Clients, cfg.Ops, res.Check, &c.Stats, c.NetStats())
+	t.Logf("%+v: %v\n  %v\n  network: %s", cfg.Options, res.Check, &c.Stats, c.NetStats())
 	if res.Err != nil {
 		t.Fatalf("%v\n%s", res.Err, dump)
 	}

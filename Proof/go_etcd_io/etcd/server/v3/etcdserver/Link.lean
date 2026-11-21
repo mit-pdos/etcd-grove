@@ -255,6 +255,7 @@ public import Proof.context.WithCancelBackground
 public import Proof.context.WithValue
 public import Proof.errors.AsLeaf
 public import Proof.errors.AsLeafTy
+public import Proof.errors.AsNoMatch
 public import Proof.errors.Is
 public import Proof.errors.IsCtxErr
 public import Proof.errors.IsStatusErr
@@ -546,6 +547,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.OpenBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.OpenSnapshotBackend
 public import Proof.strconv.FormatBool
 public import Proof.strconv.FormatUint
+public import Proof.strings.Contains
 public import Proof.strings.TrimSuffix
 public import Proof.time.Duration__Seconds
 public import Proof.time.Duration__Seconds_ptr
@@ -566,6 +568,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__updateFieldIfExist
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Tracer__Start
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.newTrace
 public import Proof.go_etcd_io.etcd.client.pkg.v3.transport.IsClosedConnError
+public import Proof.go_etcd_io.etcd.client.pkg.v3.transport.NewTimeoutTransport
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.IDFromString
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.ID__String
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.ID__String_ptr
@@ -1280,7 +1283,7 @@ theorem storage.BackendHooks.wp_SetConfState :
 
 theorem backend.wp_VerifyBackendConsistency :
     backend.VerifyBackendConsistency.spec (GF := GF) (hG := hG) :=
-  backend.VerifyBackendConsistency.wp_proof
+  backend.VerifyBackendConsistency.wp_proof verify.wp_Verify
 
 theorem io.wp_Pipe :
     io.Pipe.spec (GF := GF) (hG := hG) :=
@@ -1911,7 +1914,7 @@ theorem EtcdServer.wp_ensureLeadership :
 
 theorem EtcdServer.wp_waitAppliedIndex :
     EtcdServer.waitAppliedIndex.spec (GF := GF) (hG := hG) :=
-  EtcdServer.waitAppliedIndex.wp_proof
+  EtcdServer.waitAppliedIndex.wp_proof EtcdServer.wp_getCommittedIndex
 
 theorem EtcdServer.wp_waitLeader :
     EtcdServer.waitLeader.spec (GF := GF) (hG := hG) :=
@@ -2057,9 +2060,13 @@ theorem ioutil.wp_NewLimitedBufferReader :
     ioutil.NewLimitedBufferReader.spec (GF := GF) (hG := hG) :=
   ioutil.NewLimitedBufferReader.wp_proof
 
+theorem errors.wp_AsNoMatch :
+    errors.AsNoMatch.spec (GF := GF) (hG := hG) :=
+  errors.AsNoMatch.wp_proof
+
 theorem errors.wp_AsLeafTy :
     errors.AsLeafTy.spec (GF := GF) (hG := hG) :=
-  errors.AsLeafTy.wp_proof
+  errors.AsLeafTy.wp_proof errors.wp_AsNoMatch
 
 theorem errors.wp_AsLeaf :
     errors.AsLeaf.spec (GF := GF) (hG := hG) :=
@@ -2473,9 +2480,13 @@ theorem rafthttp.streamReader.wp_decodeLoop :
     rafthttp.streamReader.decodeLoop.spec (GF := GF) (hG := hG) :=
   rafthttp.streamReader.decodeLoop.wp_proof rafthttp.streamReader.wp_close rafthttp.wp_newMsgAppV2Decoder rafthttp.messageDecoder.wp_decode rafthttp.msgAppV2Decoder.wp_decode http.ReadFull_resp_ok http.RespCloseAny_ok rafthttp.peerStatus.wp_isActive rafthttp.wp_isLinkHeartbeatMessage raftpb.MessageType.wp_String proto.wp_SizeMessage raftpb.Message.wp_GetFrom raftpb.Message.wp_GetTo raftpb.Message.wp_GetType types.ID.wp_String types.ID.wp_String_ptr prometheus.CounterVec.wp_WithLabelValues zap.Logger.wp_Warn zap.wp_String zap.wp_Bool
 
+theorem strings.wp_Contains :
+    strings.Contains.spec (GF := GF) (hG := hG) :=
+  strings.Contains.wp_proof
+
 theorem transport.wp_IsClosedConnError :
     transport.IsClosedConnError.spec (GF := GF) (hG := hG) :=
-  transport.IsClosedConnError.wp_proof
+  transport.IsClosedConnError.wp_proof strings.wp_Contains
 
 theorem rate.Limiter.wp_Wait :
     rate.Limiter.Wait.spec (GF := GF) (hG := hG) :=
@@ -2623,7 +2634,7 @@ theorem EtcdServer.wp_sendMergedSnap :
 
 theorem EtcdServer.wp_applyAll [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.applyAll.spec (GF := GF) (hG := hG) :=
-  EtcdServer.applyAll.wp_proof EtcdServer.wp_applySnapshot EtcdServer.wp_applyEntries EtcdServer.wp_Backend EtcdServer.wp_Logger backend.wp_VerifyBackendConsistency EtcdServer.wp_snapshotIfNeededAndCompactRaftLog raftpb.Message.wp_GetTerm raftpb.Message.wp_GetSnapshot raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex EtcdServer.wp_createMergedSnapshotMessage EtcdServer.wp_sendMergedSnap consistentIndex.wp_ConsistentIndex raftpb.Message.wp_GetTo EtcdServer.wp_ReportSnapshot mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds mvcc.api.mvccApi_mvccImage_snapshot_law_holds backend.backend.wp_Snapshot storage.BackendHooks.wp_OnPreCommitUnsafe consistentIndex.wp_UnsafeSave backend.batchTxBuffered.wp_UnsafePut backend.batchTxBuffered.wp_UnsafeRange schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket
+  EtcdServer.applyAll.wp_proof EtcdServer.wp_applySnapshot EtcdServer.wp_applyEntries EtcdServer.wp_Backend EtcdServer.wp_Logger backend.wp_VerifyBackendConsistency EtcdServer.wp_snapshotIfNeededAndCompactRaftLog raftpb.Message.wp_GetTerm EtcdServer.wp_createMergedSnapshotMessage EtcdServer.wp_sendMergedSnap consistentIndex.wp_ConsistentIndex raftpb.Message.wp_GetTo EtcdServer.wp_ReportSnapshot mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds mvcc.api.mvccApi_mvccImage_snapshot_law_holds backend.backend.wp_Snapshot storage.BackendHooks.wp_OnPreCommitUnsafe consistentIndex.wp_UnsafeSave backend.batchTxBuffered.wp_UnsafePut backend.batchTxBuffered.wp_UnsafeRange schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket
 
 theorem EtcdServer.wp_setLead :
     EtcdServer.setLead.spec (GF := GF) (hG := hG) :=
@@ -2993,13 +3004,17 @@ theorem v3compactor.wp_New :
     v3compactor.New.spec (GF := GF) (hG := hG) :=
   v3compactor.New.wp_proof zap.wp_NewNop clockwork.wp_NewRealClock v3compactor.wp_newPeriodic v3compactor.wp_newRevision fmt.wp_Errorf v3compactor.Periodic.wp_Run v3compactor.Periodic.wp_Stop v3compactor.Periodic.wp_Pause v3compactor.Periodic.wp_Resume v3compactor.Revision.wp_Run v3compactor.Revision.wp_Stop v3compactor.Revision.wp_Pause v3compactor.Revision.wp_Resume
 
+theorem transport.wp_NewTimeoutTransport :
+    transport.NewTimeoutTransport.spec (GF := GF) (hG := hG) :=
+  transport.NewTimeoutTransport.wp_proof
+
 theorem rafthttp.wp_newStreamRoundTripper :
     rafthttp.newStreamRoundTripper.spec (GF := GF) (hG := hG) :=
-  rafthttp.newStreamRoundTripper.wp_proof
+  rafthttp.newStreamRoundTripper.wp_proof transport.wp_NewTimeoutTransport
 
 theorem rafthttp.wp_NewRoundTripper :
     rafthttp.NewRoundTripper.spec (GF := GF) (hG := hG) :=
-  rafthttp.NewRoundTripper.wp_proof
+  rafthttp.NewRoundTripper.wp_proof transport.wp_NewTimeoutTransport
 
 theorem probing.wp_NewProber :
     probing.NewProber.spec (GF := GF) (hG := hG) :=

@@ -18,6 +18,10 @@ Faithful: `StatusCause` reads the error only through `err.(APIStatus)` / `errors
 7e-2 (`notes/k8s-7e-2-draft.md` §5.1, attacked T2; Q7e-2-3: an axiom, where it was a named
 hypothesis of the DaemonSet track, `?` in `etc/link-lean-first-k8sdaemon.txt`),
 `Proof/k8s_io/apimachinery/pkg/api/errors/HasStatusCause.lean`. Lean-first (no Rocq counterpart).
+
+**Proved** over its body since prove-k8s2 (2026-11-20; `Proof/k8s_io/apimachinery/pkg/api/errors/HasStatusCause.lean`,
+over `errors.AsNoMatch`, `Spec/errors/AsNoMatch.lean`); until then a trust-boundary axiom, as the
+text above says.
 -/
 module
 

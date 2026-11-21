@@ -26,12 +26,12 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 theorem retryAuthClient.RoleGrantPermission.wp_proof
     (wp_authClient_RoleGrantPermission : etcdserverpb.authClient.RoleGrantPermission.spec (GF := GF) (hG := hG)) :
     retryAuthClient.RoleGrantPermission.spec (GF := GF) (hG := hG) := by
-  intro rac conn addr Spec Q ctx cd inp m opts vs
-  wp_start as ⟨#Hrac, #Hconn, #Hrpc, #Hpre, #Hctx, Hin, #Hopts, #Hok, %Hsz⟩
+  intro rac conn addr Spec Q ctx om cd inp m opts vs
+  wp_start as ⟨#Hrac, #Hconn, #Hrpc, #Hom, #Hpre, #Hctx, Hin, #Hopts, #Hok, %Hsz⟩
   iunfold retryAuthAt at Hrac
   icases Hrac with ⟨%ac, #Hac, #Hstub⟩
   wp_auto
-  wp_apply wp_authClient_RoleGrantPermission ac conn addr Spec Q ctx cd inp m opts vs $$ [Hin] as %resp %err Hres
+  wp_apply wp_authClient_RoleGrantPermission ac conn addr Spec Q ctx om cd inp m opts vs $$ [Hin] as %resp %err Hres
   · iframe #
     iframe
     try (ipureintro; exact Hsz)

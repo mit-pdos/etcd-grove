@@ -50,7 +50,7 @@ theorem newUniqueKV.wp_proof (hPNK : putNewKV.spec (GF := GF) (hG := hG)) :
   try (isplitr; (ipureintro; rfl))
   iintro %sla ⟨Hargs, -⟩
   (try wp_auto)
-  wp_apply _root_.Perennial.fmt.wp_Sprintf _ _ _ _ ?wf $$ [$Hfmt $Hargs] as %key ⟨-, %Hkey⟩
+  wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ _ ?wf $$ [$Hfmt $Hargs] as %key ⟨-, %Hkey⟩
   case wf =>
     exact .cons_string _ _ (.cons_int _ _ _ (.int64 x) .nil)
   rw [show sint.nat (W64 (0 + 1)) = 1 by rfl] at Hkey

@@ -5,6 +5,7 @@ The proof of `collectReasonsAndErrors.spec`
 -/
 module
 
+public import Proof.fmt.OutLemmas
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.collectReasonsAndErrors
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__IsAllow
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__IsNoOpinion
@@ -220,7 +221,7 @@ theorem collectReasonsAndErrors.wp_proof
           isplitr
           · ipureintro; rfl
           iintro %asl ⟨Hasl, -⟩
-          wp_apply (wp_Sprintf _ _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_string _ _
+          wp_apply (EtcdGrove.fmt.Sprintf.argsWf wp_Sprintf _ _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_string _ _
             (_root_.Perennial.fmt.ArgsWf.cons_string _ _ _root_.Perennial.fmt.ArgsWf.nil)))
             $$ [$Hasl] as %str ⟨-, -⟩
           wp_apply wp_slice_literal

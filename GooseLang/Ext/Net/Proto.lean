@@ -325,13 +325,17 @@ def addrTok (a : GoString) : IProp GF := iprop(⌜addrOk a = true⌝)
 instance addrTok_persistent a : Persistent (addrTok (GF := GF) a) := by
   unfold addrTok; infer_instance
 
-/-- `a`'s protocols are not set: its pending set, empty (exclusive). -/
-def addrUnset (a : GoString) : IProp GF := iprop(netPend NG a ∅ ∗ addrTok a)
+/-- `a`'s protocols are not set: its pending set, empty (exclusive), and its listening token. -/
+def addrUnset (a : GoString) : IProp GF := iprop(netPend NG a ∅ ∗ addrTok a ∗ netLisTok NG a)
 
-/-- `a`'s protocols: `P` for what its dialers write, `Q` for what its acceptors write
-(persistent). -/
+/-- The namespace of the invariant of `a`'s listening token. -/
+def lisTokN (a : GoString) : Namespace := (nroot.@"netproto_listok").@a
+
+/-- `a`'s protocols: `P` for what its dialers write, `Q` for what its acceptors write, and its
+listening token in an invariant (persistent: whoever has it may listen at `a`, `listen_au`). -/
 def addrProto (a : GoString) (P Q : Proto GF) : IProp GF :=
-  iprop(∃ γa, inv (addrN a) (addrInvP a γa P Q) ∗ addrTok a ∗ regCtx)
+  iprop(∃ γa, inv (addrN a) (addrInvP a γa P Q) ∗ inv (lisTokN a) (netLisTok NG a) ∗ addrTok a ∗
+    regCtx)
 
 instance addrProto_persistent a P Q : Persistent (addrProto (Gg := Gg) a P Q) := by
   unfold addrProto; infer_instance
@@ -503,15 +507,32 @@ theorem netProto_alloc (E : CoPset) : ⊢ |={E}=> ∃ π : NetProtoGS, regCtx (G
   iexact Hinv
 
 theorem addrUnset_tok (a : GoString) : addrUnset (Gg := Gg) a ⊢ addrTok a := by
-  unfold addrUnset; iintro ⟨-, $⟩
+  unfold addrUnset; iintro ⟨-, $, -⟩
 
 theorem addrProto_tok (a : GoString) (P Q : Proto GF) [NetProtoGS] :
     addrProto (Gg := Gg) a P Q ⊢ addrTok a := by
-  unfold addrProto; iintro ⟨%γa, -, $, -⟩
+  unfold addrProto; iintro ⟨%γa, -, -, $, -⟩
 
 theorem addrProto_regCtx (a : GoString) (P Q : Proto GF) [NetProtoGS] :
     addrProto (Gg := Gg) a P Q ⊢ regCtx := by
-  unfold addrProto; iintro ⟨%γa, -, -, $⟩
+  unfold addrProto; iintro ⟨%γa, -, -, -, $⟩
+
+/-- `Listen` of `a` (`net.Listen.spec`'s update): its listening token, given at the step and put
+back. -/
+theorem listen_au (a : GoString) (P Q : Proto GF) [NetProtoGS] :
+    addrProto (Gg := Gg) a P Q ⊢ |={⊤,∅}=> netLisTok NG a ∗ (netLisTok NG a ={∅,⊤}=∗ True) := by
+  unfold addrProto
+  iintro ⟨%γa, -, #Htok, -, -⟩
+  iinv Htok with >Ht Hclose
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  iframe Ht
+  iintro Ht
+  imod Hmask
+  imod Hclose $$ [Ht] with -
+  · inext; iexact Ht
+  imodintro
+  itrivial
 
 /-- `a` is valid: what `net.Listen.spec`, `net.Dial.spec` and `Listener.Accept.spec` need. -/
 theorem addrTok_ok (a : GoString) : addrTok (GF := GF) a ⊢ ⌜addrOk a = true⌝ := by
@@ -522,7 +543,9 @@ acceptors write. -/
 theorem addr_set_proto [NetProtoGS] (E : CoPset) (a : GoString) (P Q : Proto GF) :
     ⊢ regCtx (Gg := Gg) -∗ addrUnset a ={E}=∗ addrProto a P Q := by
   unfold addrUnset
-  iintro #Hreg ⟨Hp, #Ht⟩
+  iintro #Hreg ⟨Hp, #Ht, Htk⟩
+  imod inv_alloc (lisTokN a) E (netLisTok (NG (Gg := Gg)) a) $$ [Htk] with #Htok
+  · inext; iexact Htk
   imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := ConnPNames) with ⟨%γa, Ha⟩
   imod inv_alloc (addrN a) E (addrInvP (Gg := Gg) a γa P Q) $$ [Hp Ha] with #Hinv
   · inext
@@ -537,7 +560,7 @@ theorem addr_set_proto [NetProtoGS] (E : CoPset) (a : GoString) (P Q : Proto GF)
   imodintro
   unfold addrProto
   iexists γa
-  iframe Hinv Ht Hreg
+  iframe Hinv Htok Ht Hreg
 
 /-- Set the protocols of every address of a list, `P a` and `Q a` for the address `a`. -/
 theorem addrs_set_proto [NetProtoGS] (E : CoPset) (P Q : GoString → Proto GF) :
@@ -1009,7 +1032,7 @@ theorem dial_au (a : GoString) (P Q : Proto GF) :
            (netEnd NG cn false { NetEnd.fresh with closed := true } -∗
             netDir NG cn false ⟨[], .fin⟩ ={∅,⊤}=∗ True)) := by
   unfold addrProto
-  iintro ⟨%γa, #Hai, #Ht, #Hreg⟩
+  iintro ⟨%γa, #Hai, -, #Ht, #Hreg⟩
   iinv Hai with Hj Hclose
   iunfold addrInvP at Hj
   icases Hj with ⟨%S, %cmA, >Hp, >HaA, >Hdeps, >Hes, Hps⟩
@@ -1114,7 +1137,7 @@ theorem accept_au (a : GoString) (P Q : Proto GF) (hL : NetLocalGS GF) (l : w64)
             netConnAt NG cn a ={∅,⊤}=∗
               netLis hL l a o ∗ connEnd cn true Q P [] [] ∗ connFresh cn true)) := by
   unfold addrProto
-  iintro ⟨%γa, #Hai, #Ht, #Hreg⟩ Hl
+  iintro ⟨%γa, #Hai, -, #Ht, #Hreg⟩ Hl
   iinv Hai with Hj Hclose
   iunfold addrInvP at Hj
   icases Hj with ⟨%S, %cmA, >Hp, >HaA, >Hdeps, >Hes, Hps⟩
@@ -1175,7 +1198,7 @@ theorem accept_shared_au (a : GoString) (P Q : Proto GF) (hL : NetLocalGS GF) (l
           (⌜o = true⌝ -∗ ∀ cn, ⌜cn ∈ S⌝ -∗ netLis hL l a o -∗ netPend NG a (S \ {[cn]}) -∗
             netConnAt NG cn a ={∅,⊤}=∗ connEnd cn true Q P [] [] ∗ connFresh cn true)) := by
   unfold addrProto
-  iintro ⟨%γa, #Hai, #Ht, #Hreg⟩ #Hli
+  iintro ⟨%γa, #Hai, -, #Ht, #Hreg⟩ #Hli
   iinv Hai with Hj Hclose
   iunfold addrInvP at Hj
   icases Hj with ⟨%S, %cmA, >Hp, >HaA, >Hdeps, >Hes, Hps⟩
@@ -1369,14 +1392,21 @@ theorem addrs_start (g : NetGlobal) (addrs : List GoString) (hnd : addrs.Nodup)
     (hok : ∀ a ∈ addrs, addrOk a = true) :
     netStart (NG (Gg := Gg)) g ⊢ [∗list] a ∈ addrs, addrUnset (Gg := Gg) a := by
   unfold netStart
-  iintro Hpends
+  iintro ⟨Hpends, Htoks⟩
   ihave Hpends := bigSepM_take_list (fun a S => netPend (NG (Gg := Gg)) a S) (fun _ => ∅)
     pendInit addrs hnd (fun a ha => addrSpace_lookup_ok _ (hok a ha)) $$ Hpends
-  iapply BigSepL.bigSepL_mono (Φ := fun _ a => netPend (NG (Gg := Gg)) a ∅) ?_ $$ Hpends
+  ihave Htoks := bigSepM_take_list (fun a _ => netLisTok (NG (Gg := Gg)) a) (fun _ => ())
+    (addrSpace ()) addrs hnd (fun a ha => addrSpace_lookup_ok _ (hok a ha)) $$ Htoks
+  ihave Hb : ([∗list] a ∈ addrs, iprop(netPend (NG (Gg := Gg)) a ∅ ∗
+      netLisTok (NG (Gg := Gg)) a)) $$ [Hpends Htoks]
+  · iapply BigSepL.bigSepL_sep_eqv.2
+    iframe Hpends Htoks
+  iapply BigSepL.bigSepL_mono (Φ := fun _ a => iprop(netPend (NG (Gg := Gg)) a ∅ ∗
+    netLisTok (NG (Gg := Gg)) a)) ?_ $$ Hb
   intro k a hk
   unfold addrUnset addrTok
-  iintro Hp
-  iframe Hp
+  iintro ⟨Hp, Ht⟩
+  iframe Hp Ht
   ipureintro
   exact hok a (List.mem_of_getElem? hk)
 
