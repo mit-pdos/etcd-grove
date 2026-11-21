@@ -708,6 +708,15 @@ PROJECTS = [
                         "github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=RaftNoAx", "google.golang.org=",
                         "github.com/anishathalye/porcupine=", "github.com/mit-pdos/gokv="],
             packages=["."],
+            owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "raft", "kvreconf")]),
+            # and into the part KvNet (notes/kvnet-part.md), for the same reason: kvnet's store proofs
+            # reuse kvdurablenoax's, which stand on kvreconf's shared proofs
+            Part(
+            root="KvNet",
+            lean_roots=["github.com/mit-pdos/etcd-grove/examples/raft/kvreconf=KvNet",
+                        "github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=KvNet", "google.golang.org=",
+                        "github.com/anishathalye/porcupine=", "github.com/mit-pdos/gokv="],
+            packages=["."],
             owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "raft", "kvreconf")])],
     ),
     Project(

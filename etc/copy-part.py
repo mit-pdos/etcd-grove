@@ -258,7 +258,14 @@ def raftnoax_roots(part):
 KVNET_PKG = "github_com.mit_pdos.etcd_grove.examples.raft.kvnet"
 KVNET_REUSED = [f"Proof.{KVNET_PKG}.{f}" for f in
                 ["putUint64", "getUint64", "putBytes", "getBytes", "putIDs", "getIDs", "putEntry",
-                 "getEntry", "putSnapshot", "getSnapshot", "withTimeout", "encode", "decode"]]
+                 "getEntry", "putSnapshot", "getSnapshot", "withTimeout", "encode", "decode",
+                 # storage.go and the codecs, the same Go text (notes/kvnet-part.md, the replica layer)
+                 "newStorage", "image__applySnapshot", "image__append", "image__createSnapshot",
+                 "image__compact", "Storage__ApplySnapshot", "Storage__SetHardState", "Storage__Append",
+                 "Storage__CreateSnapshot", "Storage__Compact", "Storage__snapIndex",
+                 "Storage__InitialState", "Storage__Snapshot", "Storage__encode", "openStorage",
+                 "encodeState", "decodeState", "putMap", "getMap", "less", "sortStrings", "readCtx",
+                 "decodeReadCtx", "validConf", "fits", "oneIn", "below"]]
 
 
 def own_roots(part):

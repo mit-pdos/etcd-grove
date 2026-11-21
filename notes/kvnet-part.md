@@ -231,3 +231,43 @@ and raft's `isCluster` passed as persistent premises (their allocation, at `Goos
 proofs of the same text; (2) the store-level `Defs` split in the main tree (rkvInv & co. into a module
 both stores import); (3) kvnet `Defs` and the small-edit proofs; (4) `persist` and `run` (decision C);
 (5) `read(seq)`, `StartNode`.
+
+### Step 1 done without a build (2026-11-21); kvnet's `Defs` skeleton
+
+kvreconf is translated into KvNet (a third `Part` of project kvreconf; identical to RaftNoAx's up to the
+prefix), and `KVNET_REUSED` lists storage.go's and the codecs' functions (`newStorage`, `image.*`,
+`Storage.*`, `openStorage`, `encodeState`/`decodeState`, `putMap`/`getMap`, `less`/`sortStrings`,
+`readCtx`/`decodeReadCtx`, `validConf`, `fits`, `oneIn`, `below`): copy-part now writes 333 copies (319
+from RaftNoAx: kvreconf's shared modules, kvdurablenoax's `KdStorage`/`Image`/`SnapLemmas`/`Codec` and
+the specs and proofs of those functions, renamed). Not built yet (the machine is decision B's).
+`Replica.{request,applyOp,answer,propose}` wait for kvnet's `Defs`, which waits for B's shared store
+module.
+
+The skeleton (`KvNet/Proof/.../kvnet/Defs.lean`, to be written when B's module lands; the store-level
+names are what B is expected to export, at `GooseGlobalGS`: `rkvInv`, `opSlot`, `readSlot`, `waitP`,
+`kvLb`, `kvCore`, and the node handle `nh` of B's NodeH API):
+
+```lean
+structure KnNames where
+  r     : StoreNames      -- B's shared store names (kvreconf's `KvrNames`): cluster, ops, mint, rmint, rds, val, opn
+  wr    : w64 → GName     -- per id: the file writer's ghost (decision C: crosses a crash)
+  files : DurGS           -- fsExt's durable files (bodied `durable`'s `DurGS`)
+
+-- the replica's fields (replica.go's `Replica`: no stop channels, no `seqs`)
+def replicaFields (r : Loc) (id : w64) (file : GoString) (nh : NodeH) (st sts : Loc) (snapc : chan.t) ... :=
+  r.[Replica, "id"] ↦□ id ∗ r.[Replica, "file"] ↦□ file ∗ r.[Replica, "node"] ↦□ nodeIface nh ∗
+  r.[Replica, "storage"] ↦□ st ∗ r.[Replica, "stats"] ↦□ sts ∗ isStats sts ∗ r.[Replica, "tick"] ↦□ _ ∗
+  r.[Replica, "snapc"] ↦□ snapc ∗ isChan… snapc (snapReq protocol) ∗
+  isMutex r.[Replica, "dmu"] (dmuInv …) ∗ isMutex r.[Replica, "mu"] (muInv …)
+
+-- `dmu`'s invariant: kvdurable's (`KdDmuNames`, the pending batch's phase) with the file's half over
+-- fsExt (`dfile`/`durSt` of `files`), and the crash invariant's view (decision C)
+-- `mu`'s invariant: kvdurable's `repOwn` (kv, applied, cs, index, waiters) with `reads : seq ↦ ch`
+--   keyed by the client's `seq` (no `seqs`): each waiting read's handoff answers `F.ansRead id seq key`
+
+def isReplica (γ : KnNames) (F : KvFacts GF) (id : w64) (r : Loc) (nh : NodeH) : IProp GF := ...  -- persistent
+def rep (γ) (F) : Loc → w64 → IProp GF := fun r id => ∃ nh, isReplica γ F id r nh   -- the server side's `rep`
+
+-- the facts' instance (notes/kvnet-protocol.md's table), over B's shared names
+def kvFacts (γ : KnNames) : KvFacts GF := { msgOk := fun src st => sentMsg γ.r.cluster N src st ∗ □ msgCredits … ∗ ⌜..⌝, ... }
+```
