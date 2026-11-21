@@ -395,6 +395,40 @@ noncomputable def NewAlreadyExists.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType StatusError.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType StatusError.ty)))) (Var "$res0"))))))
 
+/-- NewConflict returns an error indicating the item can't be updated as provided.
+
+    go: errors.go:232:6 -/
+noncomputable def NewConflict.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "qualifiedResource"
+  (Lam "name"
+  (Lam "err"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType StatusError.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType StatusError.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (Var "err"))
+  (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
+  (Let "qualifiedResource" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty))) (Var "qualifiedResource"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc StatusError.ty))) (Let "$v0" (Let "$v0" (Val #(go!"Failure"))
+  (Let "$v1" (Val #(W32 409))
+  (Let "$v2" (Val #(go!"Conflict"))
+  (Let "$v3" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusDetails.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty go!"Group"))) (Var "qualifiedResource")))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty go!"Resource"))) (Var "qualifiedResource")))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusDetails.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Group")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Kind")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2")))]))))))
+  (Let "$v4" (Let "$a0" (Val #(go!"Operation cannot be fulfilled on %s %q: %v"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty) go!"String"))) (Var "qualifiedResource")) (Val #())))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "name")))
+  (Let "$sl2" (App (Val (GoInstruction (Convert go.error go.any))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1"))), (KeyedElement none (ElementExpression go.any (Var "$sl2")))])))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Status")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Code")) (ElementExpression go.int32 (Var "$v1"))), (KeyedElement (some (KeyField go!"Reason")) (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"Details")) (ElementExpression (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusDetails.ty) (Var "$v3"))), (KeyedElement (some (KeyField go!"Message")) (ElementExpression go.string (Var "$v4")))])))))))
+  (App (Val (GoInstruction (CompositeLiteral StatusError.ty))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty (Var "$v0")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType StatusError.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType StatusError.ty)))) (Var "$res0")))))))
+
 /-- NewResourceExpired creates an error that indicates that the requested resource content has expired from
     the server (usually due to a resourceVersion that is too old).
 
@@ -430,6 +464,33 @@ noncomputable def NewBadRequest.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$v2" (Val #(go!"BadRequest"))
   (Let "$v3" (App (Val (GoInstruction (GoLoad go.string))) (Var "reason"))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Status")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Code")) (ElementExpression go.int32 (Var "$v1"))), (KeyedElement (some (KeyField go!"Reason")) (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"Message")) (ElementExpression go.string (Var "$v3")))]))))))
+  (App (Val (GoInstruction (CompositeLiteral StatusError.ty))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty (Var "$v0")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType StatusError.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType StatusError.ty)))) (Var "$res0")))))
+
+/-- NewInternalError returns an error indicating the item is invalid and cannot be processed.
+
+    go: errors.go:387:6 -/
+noncomputable def NewInternalError.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "err"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType StatusError.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType StatusError.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (Var "err"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc StatusError.ty))) (Let "$v0" (Let "$v0" (Val #(go!"Failure"))
+  (Let "$v1" (Val #(W32 500))
+  (Let "$v2" (Val #(go!"InternalError"))
+  (Let "$v3" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusDetails.ty))) (Let "$v0" (Let "$v0" (App (App (Val (GoInstruction (MethodResolve go.error go!"Error"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause.ty)))) (LiteralValue [(KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"Message")) (ElementExpression go.string (Var "$v0")))]))])))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusDetails.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Causes")) (ElementExpression (go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause.ty) (Var "$v0")))]))))
+  (Let "$v4" (Let "$a0" (Val #(go!"Internal error occurred: %v"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.error go.any))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Status")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Code")) (ElementExpression go.int32 (Var "$v1"))), (KeyedElement (some (KeyField go!"Reason")) (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"Details")) (ElementExpression (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusDetails.ty) (Var "$v3"))), (KeyedElement (some (KeyField go!"Message")) (ElementExpression go.string (Var "$v4")))])))))))
   (App (Val (GoInstruction (CompositeLiteral StatusError.ty))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty (Var "$v0")))]))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -880,8 +941,10 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   StatusCause_unfold : FuncUnfold StatusCause [] StatusCause.impl
   NewNotFound_unfold : FuncUnfold NewNotFound [] NewNotFound.impl
   NewAlreadyExists_unfold : FuncUnfold NewAlreadyExists [] NewAlreadyExists.impl
+  NewConflict_unfold : FuncUnfold NewConflict [] NewConflict.impl
   NewResourceExpired_unfold : FuncUnfold NewResourceExpired [] NewResourceExpired.impl
   NewBadRequest_unfold : FuncUnfold NewBadRequest [] NewBadRequest.impl
+  NewInternalError_unfold : FuncUnfold NewInternalError [] NewInternalError.impl
   NewTimeoutError_unfold : FuncUnfold NewTimeoutError [] NewTimeoutError.impl
   IsTimeout_unfold : FuncUnfold IsTimeout [] IsTimeout.impl
   IsTooManyRequests_unfold : FuncUnfold IsTooManyRequests [] IsTooManyRequests.impl
@@ -901,8 +964,10 @@ attribute [instance] Assumptions.StatusError_instance
   Assumptions.StatusCause_unfold
   Assumptions.NewNotFound_unfold
   Assumptions.NewAlreadyExists_unfold
+  Assumptions.NewConflict_unfold
   Assumptions.NewResourceExpired_unfold
   Assumptions.NewBadRequest_unfold
+  Assumptions.NewInternalError_unfold
   Assumptions.NewTimeoutError_unfold
   Assumptions.IsTimeout_unfold
   Assumptions.IsTooManyRequests_unfold

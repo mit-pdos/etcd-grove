@@ -10,7 +10,8 @@ levels (`PbModelC.levels`) are stated at.
 its Go descriptor): an over-declared schema makes D1 false (a decoded message's unknown fields are
 claimed `ufWire` at it), an under-declared one D2 (`Unmarshal (Marshal c) ≠ c`). A type not listed
 here gets `[]`, the weakest schema (`ufWire s uf → ufWire [] uf`: every number is routed to the
-unknown fields): that is what `pbMsg` claims of `HardState`. (out_size B2, 2026-11-12, approved by
+unknown fields). (Until 2026-11-21 that was what `pbMsg` claimed of `HardState`: wal-item3 registers it,
+`hsSchema`, `pbHsC_reg`.) (out_size B2, 2026-11-12, approved by
 etcd-grove-81: `notes/confchange-schema-empty.md`) `ConfChange`, `ConfChangeSingle` and
 `ConfChangeV2` have their real schemas, though no registration models them: `pbMsg` of them records
 the decoder-routed form, which `proto.MarshalConfChange[V2]`'s round trip needs, and the decoders'
@@ -31,6 +32,9 @@ below 16, so every tag is one byte):
 - `ConfState` (`raft.proto:127-142`): `voters` 1, `learners` 2, `voters_outgoing` 3,
   `learners_next` 4 (repeated `uint64`, proto2 so unpacked; the decoder takes both the unpacked
   varint and the packed `LEN`), `auto_leave` 5 (varint).
+- `HardState` (`raft.proto:101-105`): `term` 1, `vote` 2, `commit` 3 (`optional uint64` varints;
+  registered 2026-11-21, wal-item3, approved by the user 2026-11-20 as option (a): `pbHsC_reg`,
+  `wal/RaftModel/PbHardState.lean`).
 - `ConfChange` (`raft.proto:151-160`): `id` 1, `type` 2, `node_id` 3 (varints), `context` 4
   (length-delimited).
 - `ConfChangeSingle` (`raft.proto:164-167`): `type` 1, `node_id` 2 (varints).
@@ -78,6 +82,9 @@ def metaSchema : FieldSchema := [(1, [2]), (2, [0]), (3, [0])]
 /-- `raft.proto:127-142`: the repeated `uint64`s unpacked (`0`) or packed (`2`). -/
 def csSchema : FieldSchema := [(1, [0, 2]), (2, [0, 2]), (3, [0, 2]), (4, [0, 2]), (5, [0])]
 
+/-- `raft.proto:101-105`: `term` 1, `vote` 2, `commit` 3 (varints). -/
+def hsSchema : FieldSchema := [(1, [0]), (2, [0]), (3, [0])]
+
 /-- `raft.proto:151-160`: `id` 1, `type` 2, `node_id` 3 (varints), `context` 4 (length-delimited). -/
 def ccSchema : FieldSchema := [(1, [0]), (2, [0]), (3, [0]), (4, [2])]
 
@@ -98,8 +105,8 @@ def WalEnc.walSnapSchema : FieldSchema := [(1, [0]), (2, [0]), (3, [2])]
 section schemas
 variable [GooseExts] [GoGlobalContext]
 
-/-- **The schema of a message type** (see the file header): the registered raftpb types', the
-three conf-change types' and the WAL's two registered `walpb` types', `[]` for every other type. -/
+/-- **The schema of a message type** (see the file header): the registered raftpb types' (with
+`HardState` since 2026-11-21), the three conf-change types' and the WAL's two registered `walpb` types', `[]` for every other type. -/
 def pbSchemaOf (ty : go.GoType) : FieldSchema :=
   open Classical in
   if ty = raftpb.Entry.ty then entrySchema
@@ -107,6 +114,7 @@ def pbSchemaOf (ty : go.GoType) : FieldSchema :=
   else if ty = raftpb.Snapshot.ty then snapSchema
   else if ty = raftpb.SnapshotMetadata.ty then metaSchema
   else if ty = raftpb.ConfState.ty then csSchema
+  else if ty = raftpb.HardState.ty then hsSchema
   else if ty = raftpb.ConfChange.ty then ccSchema
   else if ty = raftpb.ConfChangeSingle.ty then ccsSchema
   else if ty = raftpb.ConfChangeV2.ty then cc2Schema
@@ -130,6 +138,11 @@ theorem pbSchemaOf_snapshotMetadata : pbSchemaOf raftpb.SnapshotMetadata.ty = me
 theorem pbSchemaOf_confState : pbSchemaOf raftpb.ConfState.ty = csSchema := by
   unfold pbSchemaOf raftpb.Entry.ty raftpb.Message.ty raftpb.Snapshot.ty raftpb.SnapshotMetadata.ty
     raftpb.ConfState.ty
+  simp
+
+theorem pbSchemaOf_hardState : pbSchemaOf raftpb.HardState.ty = hsSchema := by
+  unfold pbSchemaOf raftpb.Entry.ty raftpb.Message.ty raftpb.Snapshot.ty raftpb.SnapshotMetadata.ty
+    raftpb.ConfState.ty raftpb.HardState.ty
   simp
 
 end schemas
