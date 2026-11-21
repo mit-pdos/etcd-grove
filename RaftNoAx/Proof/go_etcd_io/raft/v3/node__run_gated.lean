@@ -1101,7 +1101,7 @@ theorem node.run.gated_of
       unfold readyCut
       iexists (rs.dur, rs.role), readyDurable rs.dur (phsNext rs.phs h) L es, W, ss
       rw [Hgid]
-      ihave #HsrcsN : qSrcs γ.sn ms $$ []
+      ihave #HsrcsN : readyMsgOrigins γ.raft id γ.sn ms $$ []
       · rw [← Hsnγ]; iexact Hsrcs
       iframe Hdur Hbw1 Hpb Hmw Hss1 Hlead Hmss HsrcsN
       isplitr

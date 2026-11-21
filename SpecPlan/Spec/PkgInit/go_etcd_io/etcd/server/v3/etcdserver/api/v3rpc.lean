@@ -40,6 +40,7 @@ public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.version
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.storage
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.storage.backend
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.storage.mvcc
+public import Perennial.Proof.strings.Base
 public import SpecPlan.Spec.PkgInit.math.rand
 public import SpecPlan.Spec.PkgInit.go_opentelemetry_io.otel.«attribute»
 public import SpecPlan.Spec.PkgInit.go_opentelemetry_io.otel.trace
