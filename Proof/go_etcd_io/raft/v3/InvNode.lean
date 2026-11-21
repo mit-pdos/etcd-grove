@@ -403,6 +403,33 @@ theorem sentMsg_snapTo (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) :
   iintro ⟨-, #H, -⟩
   iapply isRaftMsg_snapTo $$ H
 
+/-- A leader certificate retained with the snapshot's send or receipt. -/
+@[no_expose] def snapshotLeader (γ : Cluster) (id t : w64) : IProp GF :=
+  isLeader γ.raft id t
+
+instance snapshotLeader_persistent (γ : Cluster) (id t : w64) :
+    Persistent (snapshotLeader (GF := GF) γ id t) := by
+  unfold snapshotLeader; infer_instance
+
+theorem sentMsg_snapshotLeader (γ : Cluster) (N : Namespace) (id : w64) (st : MsgSt)
+    (ht : st.msg.Type' = MsgSnap) :
+    sentMsg (GF := GF) γ N id st ⊢ snapshotLeader γ st.msg.From' st.msg.Term' := by
+  unfold sentMsg ApiImpl.sentMsg snapshotLeader
+  iintro ⟨-, #H, -⟩
+  iapply isRaftMsg_snapshotLeader γ.raft id st ht $$ H
+
+/-- Election safety excludes a node restoring a snapshot from another leader
+and sending as leader in the same term. -/
+theorem snapshotLeader_terms_ne (γ : Cluster) (id sender t tr : w64) (hd : id ≠ sender) :
+    ⊢ snapshotLeader (GF := GF) γ id t -∗ snapshotLeader γ sender tr -∗ ⌜t ≠ tr⌝ := by
+  unfold snapshotLeader
+  iintro #Hs #Hr
+  by_cases he : t = tr
+  · subst tr
+    ihave %hid := isLeader_unique γ.raft id sender t $$ Hs Hr
+    exact False.elim (hd hid)
+  · ipureintro; exact he
+
 /-- (raft-entsize [r3c], 2026-11-09) **A sent `MsgSnap` has no entries and no context**
 (`SentMsgShape`'s: raft builds it as `pb.Message{To, Type: MsgSnap, Snapshot}`,
 `maybeSendSnapshot`): what bounds the size of etcd's merged snapshot message, which keeps the rest

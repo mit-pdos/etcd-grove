@@ -483,6 +483,21 @@ theorem isRaftMsg_snapTo (γ : RaftNames) (id : w64) (st : MsgSt) :
     ihave #Hd := isMessage_snapDst γ (absSnap st.msg sv sv.Metadata'.ConfState'.lists) rfl $$ Hm'
     iExactEq Hd; rfl
 
+/-- A MsgSnap carries the election certificate for its sender and term. -/
+theorem isRaftMsg_snapshotLeader (γ : RaftNames) (id : w64) (st : MsgSt)
+    (ht : st.msg.Type' = MsgSnap) :
+    isRaftMsg (GF := GF) γ id st ⊢ isLeader γ st.msg.From' st.msg.Term' := by
+  unfold isRaftMsg
+  iintro ⟨-, ⟨%a, %Ha, #Hx⟩, -⟩
+  rcases Ha with ⟨Hn, -⟩ | ⟨ty, Hty, Hne, -⟩ | ⟨sv, -, -, rfl⟩
+  · rw [ht, mtypeOf_MsgSnap] at Hn; cases Hn
+  · rw [ht, mtypeOf_MsgSnap] at Hty; cases Hty; exact absurd rfl Hne
+  · simp only [Option.toList_some]
+    ihave #Hm := (BigSepL.bigSepL_singleton (Φ := fun _ x => isMessageC (GF := GF) γ x)).1 $$ Hx
+    ihave #Hp := isMessageC_isMessage γ _ $$ Hm
+    ihave #Hleader := isMessage_snapshotLeader γ (absSnap st.msg sv sv.Metadata'.ConfState'.lists) rfl $$ Hp
+    iExactEq Hleader; rfl
+
 end
 
 -- from Proof/go_etcd_io/raft/v3/InvRawnodeReady.lean
