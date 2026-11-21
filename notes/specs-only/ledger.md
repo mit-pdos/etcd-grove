@@ -3799,3 +3799,15 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   and gives back `hp ↦ h ∗ kvHasherOk h` (the value unchanged, where it was some `h'`); `Hash` gives `kvHasherOk h`
   back. The one caller (`store.scheduleCompaction`) threads them.
 - **Decision.** Applied (prove-etcdint3, 2026-11-21).
+
+## 2026-11-21: the lessor's `scheduleCheckpointIfNeeded` reads the lease's `ID` (prove-pgaps)
+
+- **Spec.** `lease.lessor.scheduleCheckpointIfNeeded.spec` (`Spec/go_etcd_io/etcd/server/v3/lease/`; a trust-boundary
+  axiom until this change, when the method was names only for its float-to-integer conversion).
+- **Defect.** Not provable over the real code: the push's item `&LeaseWithTime{id: lease.ID, ...}` and the debug line's
+  `zap.Int64("leaseID", int64(lease.ID))` load `lease.ID` (`lessor.go:759-766`), and the premise gave no points-to for it.
+- **Evidence.** The translation (`Code/go_etcd_io/etcd/server/v3/lease.lean`, `lessor.scheduleCheckpointIfNeeded.impl`).
+- **Proposed change.** The premise takes `lsF "ID" l ↦□ id` (read-only once granted: `leaseMeta`'s and the lessor
+  invariant's `ID`); its two callers (`Grant`, `Checkpoint`) hold it persistently and pass it. `SpecPlan`'s statement
+  (`lessorFields` and a lease of the lessor's state) already covers it.
+- **Decision.** Applied (prove-pgaps, 2026-11-21): the method is translated and proved, the axiom retired.

@@ -230,8 +230,8 @@ theorem lease.lessor.Grant.wp_proof
       wp_apply (hReg np «$r0_ptr» id (W64 0)) $$ [$Hpkg $Hnot id time index] as Hnot
       · iunfold lwtAt; iframe; iframe #
       (try wp_auto)
-      wp_apply (hSched lp l func.nil h hx (W64 0) (grantTTL mt ttl) (DFrac.own 1) (DFrac.own 1) DFrac.discard)
-        $$ [$Hpkg $Hcfg $Hcp $Hh $Hhq $Hrem $Httl] as ⟨Hcp, ⟨%h', %hx', Hh, Hhq⟩, Hrem, -⟩
+      wp_apply (hSched lp l func.nil h hx id (W64 0) (grantTTL mt ttl) (DFrac.own 1) (DFrac.own 1) DFrac.discard)
+        $$ [$Hpkg $Hcfg $Hcp $Hh $Hhq $HID $Hrem $Httl] as ⟨Hcp, ⟨%h', %hx', Hh, Hhq⟩, Hrem, -⟩
       wp_join_done
     (try wp_auto)
     ihave Hml : leaseMeta id l 1 $$ [Hrem Hexp]
