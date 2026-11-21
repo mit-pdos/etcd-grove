@@ -371,7 +371,10 @@ def driver(mode, po, pa, pb, path):
 
 
 REPLAY_BRANCHES = ["lean", "merge-origin7", "k8s-7g", "auth-lease-s4"]
-REPLAY_SINCE, REPLAY_UNTIL = "2026-11-18", "2026-11-21"
+# (2026-11-21) explicit times: git reads a bare date as that day at the current time of day, so the
+# window grew past midnight and took in that night's merges (ea5de40e16, resolved by hand at the time;
+# its two entries are in the history since), failing every landing from 00:15 on
+REPLAY_SINCE, REPLAY_UNTIL = "2026-11-18 00:00:00 -0500", "2026-11-21 00:00:00 -0500"
 # merges replayed by name, where git has them: 780c2c5a43 (2026-11-21, origin/lean 4be441d3af into
 # lean) is the first where a side (theirs) added a paragraph above the "Last updated" line; its
 # committed STATUS had a corrupted header, repaired by hand in c9fd9b60b1
