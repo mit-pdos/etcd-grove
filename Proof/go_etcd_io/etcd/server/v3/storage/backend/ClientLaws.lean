@@ -240,7 +240,7 @@ theorem newPost_named (γ : BNames) (P : BParams) (W Pk : BNames → IProp GF) (
         "HnOpen" ∷ bOpen γ 1 ∗ "HnV" ∷ bViewC γ 1 (vData P (D, ⟨∅, W64 0⟩)) true ∗
         "HnH" ∷ plHook γ func.nil ∗ "HnWb" ∷ ownToks γ.wb wbInit ∗
         "HnRB" ∷ rbOwn γ (rbData P D) ∗
-        "HnRT" ∷ ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+        "HnRT" ∷ ([∗list] _x ∈ List.replicate rdSlotsN (),
           rdTok γ P b) ∗
         "HnDl" ∷ dlInit γ ∗ "HnFk" ∷ fkCl γ P D ∗ "HnSr" ∷ srSlot b) := by
   unfold newPost; exact .rfl
@@ -253,7 +253,7 @@ theorem newPostK_named (γ : BNames) (P : BParams) (W Pk K : BNames → IProp GF
       iprop("#HnB" ∷ isBackend γ P (W γ) (Pk γ) b ∗ "#HnSC" ∷ isStopChans γ P (W γ) (Pk γ) b ∗ "HnK" ∷ K γ ∗
         "HnV" ∷ bViewC γ 1 (vData P (D, ⟨∅, W64 0⟩)) true ∗ "HnH" ∷ plHook γ func.nil ∗
         "HnRB" ∷ rbOwn γ (rbData P D) ∗
-        "HnRT" ∷ ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+        "HnRT" ∷ ([∗list] _x ∈ List.replicate rdSlotsN (),
           rdTok γ P b) ∗
         "HnDl" ∷ dlInit γ ∗ "HnFk" ∷ fkCl γ P D ∗ ("HnSr" ∷ srSlot b) ∗
         "HnTok" ∷ rbClaimToks γ P (fun _ => True)) := by

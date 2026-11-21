@@ -85,7 +85,7 @@ instance histSpec_persistent (h : GoInterfaceOk) : Persistent (histSpec (GF := G
 (item 8, 2026-10-17: until then a premise of `New`) `boltOpenOptions` (`boltOpenOptionsOk`); and
 (2026-11-07, for `DefaultBackendConfig`'s loads) the defaults of `backend.go`, which nothing writes
 after the initializer: `defaultBatchInterval = 100 * time.Millisecond`, `defaultBatchLimit = 10000`,
-`InitialMmapSize = 10 * 1024 * 1024 * 1024`. -/
+`InitialMmapSize = 10 * 1024 * 1024 * 1024`; (2026-11-21) the histogram `snapshotTransferSec`. -/
 abbrev backendInit : IProp GF :=
   iprop((∃ h : GoInterfaceOk, globalAddr rebalanceSec ↦□ GoInterface.ok h ∗ histSpec h) ∗
     (∃ h : GoInterfaceOk, globalAddr spillSec ↦□ GoInterface.ok h ∗ histSpec h) ∗
@@ -94,7 +94,9 @@ abbrev backendInit : IProp GF :=
     EtcdGrove.backend.boltOpenOptionsOk ∗
     globalAddr defaultBatchInterval ↦□ (W64 100000000) ∗
     globalAddr defaultBatchLimit ↦□ (W64 10000) ∗
-    globalAddr InitialMmapSize ↦□ (W64 10737418240))
+    globalAddr InitialMmapSize ↦□ (W64 10737418240) ∗
+    -- (backend-snapshot B4, 2026-11-21) `snapshotTransferSec`, which `Snapshot`'s goroutine observes
+    (∃ h : GoInterfaceOk, globalAddr snapshotTransferSec ↦□ GoInterface.ok h ∗ histSpec h))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend :=
   define_is_pkg_init backendInit

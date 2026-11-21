@@ -60,29 +60,29 @@ consumer two packages up, the server.) -/
 /-- The reader slots the constructor's post leaves counted, past the pool's `rdPoolN` and the auth
 share's `authRdN`. (Irreducible, 2026-11-02: a unifier unfolding it would evaluate `Nat.sub` by
 `2 ^ 28` steps; its value is `rdStockN_val`.) -/
-@[irreducible] def rdStockN : Nat := Int.toNat sync.rwmutex.actualMaxReaders - rdPoolN - authRdN
+@[irreducible] def rdStockN : Nat := rdSlotsN - rdPoolN - authRdN
 
 /-- The pool, the auth share and the stock are the constructor's `actualMaxReaders` slots
 (2026-11-02, the backend-auth-split stage; the auth share 2026-11-03): every `rdTok`, so every
 `readTx.mu` reader that holds one; not `monitorStorageVersion`'s, which holds none (the file
 header). -/
 theorem rdPoolN_add_rdStockN :
-    rdPoolN + authRdN + rdStockN = Int.toNat sync.rwmutex.actualMaxReaders := by
-  unfold rdStockN rdPoolN authRdN
+    rdPoolN + authRdN + rdStockN = rdSlotsN := by
+  unfold rdStockN rdPoolN authRdN rdSlotsN
   rw [sync.rwmutex.actualMaxReaders_unseal]
   decide
 
 /-- The stock's size (2026-11-02, the backend-auth-split stage; less the auth share 2026-11-03):
-`2 ^ 30 - 1 - 2 ^ 28 - (2 ^ 28 + 2 ^ 7)` (revoke-open, 2026-11-06; until then `805306239`), for the
+`2 ^ 30 - 2 - 2 ^ 28 - (2 ^ 28 + 2 ^ 7)` (backend-snapshot B3: one less; revoke-open, 2026-11-06; until then `805306239`), for the
 consumers' arithmetic. -/
-theorem rdStockN_val : rdStockN = 536870783 := by
-  unfold rdStockN rdPoolN authRdN
+theorem rdStockN_val : rdStockN = 536870782 := by
+  unfold rdStockN rdPoolN authRdN rdSlotsN
   rw [sync.rwmutex.actualMaxReaders_unseal]
   decide
 
 /-- The stock is at most the constructor's slots. -/
 theorem rdStockN_le : rdStockN ≤ Int.toNat sync.rwmutex.actualMaxReaders := by
-  have := rdPoolN_add_rdStockN; omega
+  have := rdPoolN_add_rdStockN; have := rdSlotsN_add_one; omega
 
 /-- The namespace of a backend's pool of reader slots. -/
 def rdPoolNs : Namespace := nroot .@ "backend_readers"
@@ -280,7 +280,7 @@ theorem bkRPool_intro (γ : BNames) (P : BParams) (b : Loc) :
 /-- The constructor's slots into the pool, the auth share and the stock. -/
 theorem rdToks_pool (hT : threadBound GF ≤ rdPoolN) (E : CoPset) (γ : BNames) (P : BParams)
     (b : Loc) :
-    ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), rdTok (GF := GF) γ P b)
+    ([∗list] _x ∈ List.replicate rdSlotsN (), rdTok (GF := GF) γ P b)
       ⊢ |={E}=> rdPool γ P b ∗ rdAuth γ P b ∗ rdStock γ P b := by
   rewrite [← rdPoolN_add_rdStockN]
   iintro Hs

@@ -48,7 +48,7 @@ theorem srvWTPool_congr (E E' : apply.AEnv GF) (γp : WTNames) (h : E.γbe = E'.
 one spare, the auth share and the counted stock. -/
 theorem bootRdToks_split (hT : threadBound GF ≤ backend.rdPoolN) (E : CoPset)
     (γ : backend.BNames) (P : backend.BParams) (b : Loc) :
-    ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+    ([∗list] _x ∈ List.replicate backend.rdSlotsN (),
       backend.rdTok (GF := GF) γ P b) ⊢
       |={E}=> backend.rdPool γ P b ∗ backend.rdTok γ P b ∗ backend.rdAuth γ P b ∗
         backend.rdStock γ P b := by

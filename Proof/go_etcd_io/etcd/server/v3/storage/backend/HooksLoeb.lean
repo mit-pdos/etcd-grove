@@ -49,7 +49,9 @@ def isBackendNH (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (h : GoI
     sync.isRWMutexGuard (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗
     isDB db γ.db ∗ ⌜P.Wf⌝ ∗ (∃ path : GoString, bDBAt γ db path ∗ dbFile db γ.db path) ∗
     -- (sweep repairs 1, B4) `ETCD_VERIFY` off
-    envVerifyOff)
+    envVerifyOff ∗
+    -- (backend-snapshot B1) the commit invariant
+    cmtInv γ P W Pk)
 
 instance isBackendNH_persistent (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc)
     (h : GoInterface) : Persistent (isBackendNH γ P W Pk b h) := by
@@ -66,7 +68,7 @@ theorem isBackend_of_hooks (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Lo
   iloeb as IH
   iunfold isBackendNH at Hnh
   icases Hnh with ⟨%t, %rt, %tm, %db, %lg, #Ht, #Hrt, #Hl, #Hlg, #Hlgn, #Hh, #Hbe, #Htm, #Hm,
-    #Hrm, #Htmg, #Hcm, #Hci, #Hmi, #Hmu, #Hdb, %HP, #Hdbf, #Hv⟩
+    #Hrm, #Htmg, #Hcm, #Hci, #Hmi, #Hmu, #Hdb, %HP, #Hdbf, #Hv, #Hcmt⟩
   ihave #Hs := Hhs $$ IH %t Ht
   iunfold isBackend
   iintro !>

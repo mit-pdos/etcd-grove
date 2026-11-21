@@ -62,8 +62,13 @@ theorem rafthttp.pipeline.handle.wp_proof
   wp_start as ⟨#Hh, Hdone⟩
   ihave #Hh' := Hh
   iunfold pipeHandleOk at Hh'
-  icases Hh' with ⟨#Hs, %ps, %fs, %r, %id, %γd, %mc, %γm, #Hps, #Hpsok, #Hfs, #Hr, #Hraft,
+  icases Hh' with ⟨#Hs, %ps, %fs, %r, %id, %γd, %mc, %γm, #Hps, #Hpsok, #Hfs, #Hfso, #Hr, #Hraft,
     #Hmc, #Hbag⟩
+  ihave #HfsI : ⌜fs ≠ null⌝ -∗ v2stats.isFollowerStats fs $$ []
+  · iintro %Hne
+    icases Hfso with (%Hn | #Hf)
+    · exact absurd Hn Hne
+    · iexact Hf
   ihave #Hs' := Hs
   iunfold pipeSenderOk at Hs'
   icases Hs' with ⟨%tr, %pk, %sc, %ec, %γs, %lg, %urls, %uvs, %lid, %cid, %rt, -, -, #Hsc, -,
@@ -129,7 +134,7 @@ theorem rafthttp.pipeline.handle.wp_proof
       wp_apply hIsApp ml st $$ [$Hm]
       wp_if_destruct
       all_goals (try wp_if_destruct)
-      all_goals (try (wp_apply hFail fs $$ []; ipureintro; assumption))
+      all_goals (try (wp_apply hFail fs $$ []; iapply HfsI; ipureintro; assumption))
       all_goals
         (try wp_auto)
         wp_apply hGetTo.1 ml DFrac.discard DFrac.discard false st $$ [$Hm] as -
