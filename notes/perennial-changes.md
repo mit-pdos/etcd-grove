@@ -3221,3 +3221,5 @@ a read at the nil address. Commit `15145e014` models nil delete and clear for
 named and unnamed maps and keeps the dynamic key check before the nil test.
 The Go regressions and all 1,704 Perennial modules passed on the VM.
 [Perennial PR #645](https://github.com/mit-pdos/perennial/pull/645)
+
+The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's previous Perennial revision `c44b74871`. The intervening upstream translation of `reflect.Type` changed instance selection in 32 trust collections. The backport keeps those collections comparable.
