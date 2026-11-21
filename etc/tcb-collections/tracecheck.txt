@@ -25,7 +25,6 @@ roots ^Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/etcdraft/Li
 axiom DescribeConfChange.wp_proof
 axiom ccDecodeV2_nil
 axiom entryEncC_ok
-axiom fmt.Errorf.wp_proof
 axiom msgEncC_ok
 axiom pbEntryC_reg
 axiom pbMessageC_reg

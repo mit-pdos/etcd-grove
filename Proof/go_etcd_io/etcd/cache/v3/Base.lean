@@ -1075,18 +1075,29 @@ theorem wp_New_errStrOk [_root_.Perennial.errors.Assumptions] (msg : GoString) :
   iapply HΦ
 
 /-- **`fmt.Errorf(format, args...)`'s error is an `errStrOk`**, for arguments of predeclared basic
-types (premise-fixes-4): Perennial's model returns `errors.New(format)` (`wp_New_errStrOk`), and so
-does Go for arguments none of which is an error (no `%w` wrapping): an `*errors.errorString`. -/
+types (premise-fixes-4): from Perennial's `fmt.wp_Errorf` (fmtmodel, 2026-11-20; until then over its
+previous model, `errors.New(format)`), whose error has `Error() string`, no `Format`, and an `Error()`
+returning the message. -/
 theorem wp_Errorf_errStrOk [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     (format : GoString) (args_sl : GoSlice) (args : List GoAny)
-    (_hwf : _root_.Perennial.fmt.ArgsWf args) :
+    (hwf : _root_.Perennial.fmt.ArgsWf args) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ args_sl ↦* args }}
       (App (App (Val (@! _root_.Perennial.fmt.Errorf)) (Val #format)) (Val #args_sl))
     {{ (err : GoInterfaceOk), RET #(interface.ok err); errStrOk (GoInterface.ok err) }} := by
-  wp_start as _
-  wp_apply wp_New_errStrOk as %err ⟨-, #Herr⟩
+  iintro %Φ ⟨#Hpkg, Hsl⟩ HΦ
+  ihave Hok := _root_.Perennial.fmt.argsOk_of_argsWf (GF := GF)
+    (mv := _root_.Perennial.fmt.errorfVerbs) (format := format) hwf
+  wp_apply (_root_.Perennial.fmt.wp_Errorf format args_sl args (DFrac.own 1)) $$ [$Hpkg $Hsl $Hok]
+    as %err ⟨-, %s, -, Herr⟩
+  iunfold _root_.Perennial.fmt.errorfErr at Herr
+  icases Herr with ⟨%hp, #HE, -⟩
   iapply HΦ
-  iexact Herr
+  iapply errStrOk_ok _ ⟨hp.2.1, hp.2.2.1⟩
+  unfold errorStringSpec
+  iintro !> %Ψ HΨ
+  iapply HE
+  inext
+  iapply HΨ
 
 theorem statusErrOk_nil : ⊢ statusErrOk (GF := GF) GoInterface.nil := by
   unfold statusErrOk
@@ -1298,7 +1309,7 @@ theorem ctxWrapErr_wrap2 (ii : GoInterfaceOk) (e : GoInterface) (pre : GoString)
 
 /-- **A `ctxWrapErr`'s `Error()` returns**, as `fmt` needs of a `%w` argument. -/
 theorem ctxWrapErr_stringMethodSpec [_root_.Perennial.fmt.Assumptions] (ii : GoInterfaceOk) :
-    ctxWrapErr (GF := GF) (GoInterface.ok ii) ⊢ EtcdGrove.fmt.stringMethodSpec ii go!"Error" := by
+    ctxWrapErr (GF := GF) (GoInterface.ok ii) ⊢ _root_.Perennial.fmt.stringMethodSpec ii go!"Error" := by
   iintro #He
   unfold ctxWrapErr
   icases He with ⟨%pres, %c, %Hp, #Hch, -⟩
@@ -1311,14 +1322,14 @@ theorem ctxWrapErr_stringMethodSpec [_root_.Perennial.fmt.Assumptions] (ii : GoI
     icases Hch with (#Hm | ⟨%mid, #Hw, -⟩)
     · iunfold EtcdGrove.fmt.modelErrIs at Hm
       icases Hm with ⟨%x, -, %s, -, #Hs⟩
-      unfold EtcdGrove.fmt.stringMethodSpec
+      unfold _root_.Perennial.fmt.stringMethodSpec
       iintro !> %Φ HΦ
       iapply Hs
       inext
       iapply HΦ
     · iunfold EtcdGrove.fmt.wrapErrIs at Hw
       icases Hw with ⟨-, ⟨%s, #Hs⟩, -⟩
-      unfold EtcdGrove.fmt.stringMethodSpec
+      unfold _root_.Perennial.fmt.stringMethodSpec
       iintro !> %Φ HΦ
       iapply Hs
       inext
@@ -1492,9 +1503,9 @@ variable [sem : go.Semantics]
 `%w` argument. -/
 theorem isCtxErr_stringMethodSpec [context.Assumptions] [_root_.Perennial.fmt.Assumptions]
     (ii : GoInterfaceOk) :
-    context.isCtxErr (GF := GF) (GoInterface.ok ii) ⊢ EtcdGrove.fmt.stringMethodSpec ii go!"Error" := by
+    context.isCtxErr (GF := GF) (GoInterface.ok ii) ⊢ _root_.Perennial.fmt.stringMethodSpec ii go!"Error" := by
   iintro #He
-  unfold EtcdGrove.fmt.stringMethodSpec
+  unfold _root_.Perennial.fmt.stringMethodSpec
   iintro !> %Φ HΦ
   wp_apply (context.wp_isCtxErr_Error (GoInterface.ok ii) ii rfl) $$ He as %s -
   iapply HΦ

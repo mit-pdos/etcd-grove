@@ -5,6 +5,7 @@ Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.fmt.OutLemmas
 public import Spec.k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler__EvaluateConditions
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__IsUnion
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__FailureDecision
@@ -20,7 +21,7 @@ public import Spec.k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler__e
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__PossibleDecisions
 public import Spec.k8s_io.apimachinery.pkg.util.sets.Set__Has
 public import Spec.k8s_io.apimachinery.pkg.util.sets.ListW
-public import Spec.fmt.ErrorfLeaf
+public import Spec.fmt.ErrorfSlice
 public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.FmtArgs
 public import Perennial.Spec.fmt.Sprintf
 public import Perennial.Spec.strings.Join
@@ -65,7 +66,7 @@ theorem unionAuthzHandler.EvaluateConditions.wp_proof
     (wp_ConditionsAwareDecision_PossibleDecisions : EtcdGrove.authorizer.ConditionsAwareDecision.PossibleDecisions.spec (GF := GF) (hG := hG))
     (wp_Set__Has : EtcdGrove.sets.Set.Has.spec (GF := GF) (hG := hG))
     (wp_List : EtcdGrove.sets.List'.specW (GF := GF) (hG := hG))
-    (wp_ErrorfLeaf : EtcdGrove.fmt.ErrorfLeaf.spec (GF := GF) (hG := hG))
+    (wp_ErrorfSlice : EtcdGrove.fmt.ErrorfSlice.spec (GF := GF) (hG := hG))
     (wp_Sprintf : _root_.Perennial.fmt.Sprintf.spec (GF := GF) (hG := hG))
     (wp_Join : _root_.Perennial.strings.Join.spec (GF := GF) (hG := hG))
     (wp_NewAggregate : EtcdGrove.utilerrors.NewAggregate.spec (GF := GF) (hG := hG))
@@ -260,10 +261,10 @@ theorem unionAuthzHandler.EvaluateConditions.wp_proof
             · ipureintro; rfl
             iintro %sp ⟨Hs, -⟩
             (try wp_auto)
-            wp_apply wp_ErrorfLeaf $$ [$Hs] as %ferr ⟨Hs, -⟩
-            · fmt_args_intro
+            wp_apply wp_ErrorfSlice $$ [$Hs] as %ferr ⟨Hs, -⟩
+            · fmt_args_intro_sl
               isplitl
-              · iapply fmt.argOkAt_of_base
+              · iapply fmt.argOkAtSl_of_base
                 iapply (authorizer.Decision.argOkAtBase wp_Decision_String dw ⟨by decide, rfl, by decide⟩)
                 iPkgInit
               isplitl
@@ -351,7 +352,7 @@ theorem unionAuthzHandler.EvaluateConditions.wp_proof
             · ipureintro; rfl
             iintro %sp ⟨Hs, -⟩
             (try wp_auto)
-            wp_apply (wp_Sprintf _ _ [interface.mkOk go.string #k, interface.mkOk go.string #r0] (DFrac.own 1)
+            wp_apply (EtcdGrove.fmt.Sprintf.argsWf wp_Sprintf _ _ [interface.mkOk go.string #k, interface.mkOk go.string #r0] (DFrac.own 1)
               (_root_.Perennial.fmt.ArgsWf.cons_string _ _ (_root_.Perennial.fmt.ArgsWf.cons_string _ _
                 _root_.Perennial.fmt.ArgsWf.nil))) $$ [$Hs] as %str ⟨Hs, -⟩
             (try wp_auto)

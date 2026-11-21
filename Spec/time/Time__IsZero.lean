@@ -1,5 +1,6 @@
 /-
-`time.Time.IsZero`: the trust boundary (Perennial translates `time` without `Time.IsZero`). Lean-first (no Rocq counterpart); the request path
+`(*time.Time).IsZero`: proved (`Proof/time/Time__IsZero.lean`) over Perennial's translation of
+Go's `Time.IsZero`. Lean-first (no Rocq counterpart); the request path
 (`notes/decisions.md`, "The request path").
 -/
 module

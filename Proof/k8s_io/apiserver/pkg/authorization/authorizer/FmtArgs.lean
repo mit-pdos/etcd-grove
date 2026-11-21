@@ -61,12 +61,12 @@ theorem Decision.argOkAtBase (wp_String : Decision.String.spec (GF := GF) (hG :=
   · iapply Decision.argOk wp_String k
     iexact Hpkg
 
-/-- A read-only `[]Decision` is `fmt.argOkAt` a `%v`/`%s` directive (`fmt.sliceArgOk`). -/
+/-- A read-only `[]Decision` is `fmt.argOkAtSl` a `%v`/`%s` directive (`fmt.sliceArgOk`). -/
 theorem Decision.sliceArgOkAt (wp_String : Decision.String.spec (GF := GF) (hG := hG))
     (sl : GoSlice) (ks : List w64) {mv : List w8} {d : fmt.Directive}
     (hd : d.verb ∈ mv ∧ (d.verb = W8 118 ∨ d.verb = W8 115) ∧ d.sharpV = false) :
     isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.authorization.authorizer ∗ sl ↦*□ ks ⊢
-      fmt.argOkAt mv d (interface.mkOk (go.GoType.SliceType Decision.ty) #sl) := by
+      fmt.argOkAtSl mv d (interface.mkOk (go.GoType.SliceType Decision.ty) #sl) := by
   iintro ⟨#Hpkg, #Hsl⟩
   iapply (fmt.argOkAt_slice (T := Decision.ty) (V := w64) sl ks hd (by
     rw [go.is_underlying]; rfl))

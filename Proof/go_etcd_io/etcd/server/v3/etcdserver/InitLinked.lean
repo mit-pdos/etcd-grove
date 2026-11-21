@@ -17,7 +17,7 @@ public import Perennial.Proof.strconv.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
-public import Proof.encoding.base64.Init
+public import Proof.encoding.base64.InitLinked
 public import Proof.encoding.json.Init
 public import Proof.github_com.Masterminds.semver.v3.Init
 public import Proof.github_com.dustin.go_humanize.Init
