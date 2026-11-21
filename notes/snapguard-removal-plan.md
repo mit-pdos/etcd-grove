@@ -34,12 +34,17 @@ The replay fork still needs its own successful server build and gates.
 The VM checked `ApplyAllSnap` in both auth modes after pulling public
 `lean` at `2ca9ce4d1d`. Installing an incoming snapshot puts the backend
 at the apply cursor, so a same-term request can use the caught-up sender
-proof with the job's replay field. The ordinary entries branch still
+proof with the job's replay field. The ordinary entries branch
 now reaches the sender with a backend ahead of that cursor. The physical
 snapshot borrows the buckets of the durable log while keeping the replayed
 in-memory membership. The VM checked this window and both merged server
 constructors at public `lean` revision `a9b495f0e9`. The ahead branch still
-has to choose and certify the outgoing metadata.
+has to certify the outgoing metadata. The VM checked the full five-argument
+sender through message construction for both formats. Its caller must identify
+what the real configuration decoder reads from this image and supply the
+durable term or the legacy Ready lookup. The present-key schema proof opens
+the frozen row, calls the decoder on its bytes, and returns the snapshot
+share. These checks do not yet establish the value-specific codec facts.
 The VM checked the constructor that carries the initial replay-term slice
 into `raftNodeConfig`. It also checked that cutting an overwritten term
 range or joining adjacent equal-term ranges preserves earlier lookups.

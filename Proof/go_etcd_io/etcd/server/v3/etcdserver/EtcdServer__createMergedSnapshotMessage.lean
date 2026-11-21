@@ -6,6 +6,8 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__createMergedSnapshotMessage
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapshotCindex
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.confStateFromMembers
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.replayTerms__termAt
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__KV
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.newSnapshotReaderCloser
@@ -55,7 +57,7 @@ theorem wp_clone_csOpt (hClone : proto.CloneConfState.spec (GF := GF) (hG := hG)
     iunfold csOpt
     iright; iexact Hp'
 
-theorem EtcdServer.createMergedSnapshotMessage.wp_caughtUp
+theorem EtcdServer.createMergedSnapshotMessage.wp_proof
     (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
     (hKV : EtcdServer.KV.spec (GF := GF) (hG := hG))
     (hNSR : newSnapshotReaderCloser.spec (GF := GF) (hG := hG))
@@ -67,8 +69,8 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_caughtUp
     (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG)) :
-    EtcdServer.createMergedSnapshotMessage.specCaughtUp (GF := GF) (hG := hG) := by
-  intro s ml st snapt snapi ci terms cs lg kv be dq RC RC' RS RS' Qd γs hci Hsz20 Hsh
+    EtcdServer.createMergedSnapshotMessage.spec (GF := GF) (hG := hG) := by
+  intro s ml st snapt snapi ci backendTerm terms cs lg kv be dq RC RC' RS RS' Qd γs Hsz20 Hsh
   wp_start as ⟨#Hlgf, #Hlgnn, Hlr, #Hkvf, Hkc, HRC, Hbef, Hbs, HRS, Hm, #Huf, #Hcs, Htok⟩
   (try wp_auto)
   wp_apply hLg s lg $$ [Hlr] as ⟨-, Hlr⟩
@@ -101,14 +103,94 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_caughtUp
   iunfold backend.snapOpen at Hsn
   icases Hsn with ⟨%γd, Hsn⟩
   (try wp_auto)
-  icases HQ with ⟨HQ, %hmeta⟩
-  obtain ⟨storedTerm, hmeta⟩ := hmeta
+  icases HQ with ⟨HQ, %storedTerm, %hmeta, Hreplay⟩
   wp_apply snapshot_read_cindex_open hRead hUR hID hName hSafe sp γd D 1 (ci, storedTerm) hmeta $$ [Hsn] as Hsn
   · iexact Hsn
   (try wp_auto)
-  wp_if_destruct
-  · exfalso
-    exact (by omega)
+  ipersist lg; ipersist dbsnap; ipersist ci; ipersist term; ipersist terms
+  ihave #Pbe : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend $$ []
+  · iPkgInit
+  ihave #Psch : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema $$ []
+  · iPkgInit
+  wp_bind (If _ _ _)
+  iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ backend.snapOpenQ sp D γd 1 ∗
+    snapi_ptr ↦ (if uint.Z snapi < uint.Z ci then ci else snapi) ∗
+    snapt_ptr ↦ (if uint.Z snapi < uint.Z ci then backendTerm else snapt) ∗
+    ∃ chosen : Loc, confState_ptr ↦ chosen ∗ epCsVoters γs chosen ∗
+      ⌜¬uint.Z snapi < uint.Z ci → chosen = cs⌝)))
+    $$ [Hsn Hreplay snapi snapt confState]
+  · wp_if_destruct
+    · have ahead : uint.Z snapi < uint.Z ci := by first | exact Hif | word
+      ihave ⟨Ht, %hreadCfg⟩ := Hreplay $$ %ahead
+      have hnz : ci ≠ W64 0 := by word
+      simp only [hnz, ahead, ↓reduceIte]
+      (try wp_auto)
+      wp_bind (If _ _ _)
+      iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ snapt_ptr ↦ backendTerm))) $$ [Ht snapt]
+      · wp_if_destruct
+        · iunfold replaySnapshotTerm at Ht
+          simp only [↓reduceIte]
+          icases Ht with ⟨%runs, %run, #Hruns, %hfound⟩
+          (try wp_auto)
+          rw [replayTerms.TypeAssumptions.ptr_termAt_unfold.method_unfold]
+          (try wp_auto)
+          wp_apply replayTerms.termAt.wp_proof terms runs ci run hfound.1 $$ [$Hpkg $Hruns]
+          (try wp_auto)
+          rw [← hfound.2]
+          iframe snapt
+          (try (ipureintro; rfl))
+        · have hz : storedTerm ≠ W64 0 := by first | exact Hif | word
+          iunfold replaySnapshotTerm at Ht
+          simp only [hz, ↓reduceIte]
+          icases Ht with %heq
+          (try wp_auto)
+          rw [← heq]
+          iframe snapt
+          (try (ipureintro; rfl))
+      iintro %v ⟨%hv, snapt⟩
+      subst v
+      (try wp_auto)
+      wp_apply hreadCfg lg sp γd $$ [$Psch $Pbe $Hsn] as %cp ⟨Hsn, Hcfg⟩
+      (try wp_auto)
+      wp_if_destruct
+      · (try simp only [↓reduceIte])
+        icases Hcfg with %hread
+        unfold replayMemberRead at hread
+        (try wp_auto)
+        wp_apply hread $$ [$Psch $Pbe $Hsn] as %mp ⟨Hsn, Hmap⟩
+        iunfold replaySnapshotMembers at Hmap
+        icases Hmap with ⟨%ptrs, %memberID, %learner, Hptrs, #Hmembers, %hmembers⟩
+        (try wp_auto)
+        iapply wp_fupd
+        wp_apply wp_confStateFromMembers mp ptrs (DFrac.own 1) memberID learner
+          $$ [$Hpkg $Hptrs $Hmembers] as %value ⟨-, %keys, %hk, Hv, Hl⟩
+        obtain ⟨hkeys, hnodup, hshape⟩ := hk
+        (try wp_auto)
+        have hcfg := hmembers keys hkeys hnodup
+        imod confStateFromMembers_freeze γs cs_ptr value.Voters' value.Learners' _ _ hcfg $$ [cs Hv Hl] with #Hnew
+        · rw [← hshape]
+          iframe cs Hv Hl
+        imodintro
+        iframe Hsn snapi snapt
+        isplitr; · ipureintro; rfl
+        iexists cs_ptr
+        iframe confState Hnew
+        ipureintro; intro hf; exact (hf True.intro).elim
+      · have hn : cp ≠ null := by first | exact Hif | assumption
+        simp only [hn, ↓reduceIte]
+        (try wp_auto)
+        iframe Hsn snapi snapt
+        iexists cp
+        iframe confState Hcfg
+        ipureintro; intro hf; exact (hf True.intro).elim
+    · have caught : ¬uint.Z snapi < uint.Z ci := by first | exact Hif | word
+      simp only [caught, ↓reduceIte]
+      (try wp_auto)
+      iframe Hsn snapi snapt
+      iexists cs; iframe confState Hcs; ipureintro; intro _; rfl
+  iintro %v ⟨%hv, Hsn, snapi, snapt, %chosen, confState, #Hchosen, %hchosen⟩
+  subst v
+  (try wp_auto)
   -- `newSnapshotReaderCloser(lg, dbsnap)`, with half of the snapshot (its `Size` read after)
   icases (backend.snapOpenQ_half sp D γd 1).1 $$ Hsn with ⟨Hsn1, Hsn2⟩
   wp_apply hNSR lg sp D γd $$ [Hsn1] as %rc ⟨Htok, Hrc⟩
@@ -118,26 +200,26 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_caughtUp
   · iPkgInit
   -- `proto.Clone(confState)`: the clone holds `c`, owned (nil for nil)
   -- (raft-entsize [r3c]) the voters' conf state, of at most `2 ^ 20` ids
-  iunfold epCsVoters at Hcs
-  icases Hcs with ⟨%c, #Hc0, %Hci⟩
-  ihave #Hc : csOpt cs DFrac.discard c $$ []
+  iunfold epCsVoters at Hchosen
+  icases Hchosen with ⟨%c, #Hc0, %Hci⟩
+  ihave #Hc : csOpt chosen DFrac.discard c $$ []
   · iunfold csOpt; iright; iexact Hc0
   have Hclen : (c.Voters' ++ c.Learners' ++ c.VotersOutgoing' ++ c.LearnersNext').length ≤ 2 ^ 20 := by
     obtain ⟨hv, hvo, hl, hln, -⟩ := Hci
     simp only [List.length_append, hv.length_eq, hvo.length_eq, hl.length_eq, hln.length_eq,
       GMap.length_elements, Membership.simple, GMap.size_empty]
     omega
-  wp_apply wp_clone_csOpt hClone cs c $$ [] as %p' Hp'
+  wp_apply wp_clone_csOpt hClone chosen c $$ [] as %p' Hp'
   · iframe #
   (try wp_auto)
   -- the merged metadata and snapshot (`&snapi`, `&snapt` frozen: nothing writes them after)
-  imod cellRO_alloc snapi_ptr snapi $$ snapi with #cI
-  imod cellRO_alloc snapt_ptr snapt $$ snapt with #cT
+  imod cellRO_alloc snapi_ptr (if uint.Z snapi < uint.Z ci then ci else snapi) $$ snapi with #cI
+  imod cellRO_alloc snapt_ptr (if uint.Z snapi < uint.Z ci then backendTerm else snapt) $$ snapt with #cT
   -- (raft-entsize [r3c]) at their contents: fresh literals, without unknown fields
   imod smPtsCC_of_struct «$v0_ptr»
     ({ state' := zeroValDef, ConfState' := p', Index' := snapi_ptr, Term' := snapt_ptr,
        unknownFields' := slice.nil, sizeCache' := 0 } : go_etcd_io.raft.v3.raftpb.SnapshotMetadata)
-    (SnapshotMetadataM.mk c snapi snapt) ⊤ rfl
+    (SnapshotMetadataM.mk c (if uint.Z snapi < uint.Z ci then ci else snapi) (if uint.Z snapi < uint.Z ci then backendTerm else snapt)) ⊤ rfl
     $$ [«$v0» Hp'] with ⟨%md, Hmd, %Hmd⟩
   · iframe «$v0» Hp' cI cT
   imod ownSnapCC_of_struct «$r0_ptr»
@@ -176,7 +258,7 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_caughtUp
     simp only [SnapMetaC.model, hcs, Option.map_some, Option.getD_some] at h1
     rw [← h1] at Hclen; simpa [CSC.model] using Hclen
   have hmodel : (MsgC.mk { c0.f with snapshot := some ⟨none, some md, []⟩ } c0.resps).model =
-      mergedSt st c snapi snapt := by
+      mergedSt st c (if uint.Z snapi < uint.Z ci then ci else snapi) (if uint.Z snapi < uint.Z ci then backendTerm else snapt) := by
     rw [← Hmod0]
     simp only [MsgC.model, MsgC.f, MsgC.resps, mergedSt, SnapC.model, Option.map_some,
       Option.getD_some, Option.getD_none, Hmd.1, MsgFC.msgM]
@@ -189,13 +271,13 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_caughtUp
     exact Hmd.2.2 cs hcs
   have hok : msgSizeOk (MsgC.mk { c0.f with snapshot := some ⟨none, some md, []⟩ } c0.resps) := by
     rw [hr]; exact merged_sizeOk c0.f md he hctx Hu0 Hmd.2.1 hcsb
-  ihave #HszC : msgSzC False ml (mergedSt st c snapi snapt) $$ []
+  ihave #HszC : msgSzC False ml (mergedSt st c (if uint.Z snapi < uint.Z ci then ci else snapi) (if uint.Z snapi < uint.Z ci then backendTerm else snapt)) $$ []
   · iunfold msgSzC
     iexists _
     ihave #Hro := msgPtsCC_msgRoC ml _ (by simp only [MsgC.resps]; exact hr) $$ HmC
     iframe Hro
     ipureintro; exact ⟨hmodel, hcsu, msgSize_lt_of_ok _ hok, False.elim⟩
-  ihave #Hm : msgOwn ml DFrac.discard (mergedSt st c snapi snapt) $$ []
+  ihave #Hm : msgOwn ml DFrac.discard (mergedSt st c (if uint.Z snapi < uint.Z ci then ci else snapi) (if uint.Z snapi < uint.Z ci then backendTerm else snapt)) $$ []
   · rw [← hmodel]
     iapply msgPtsCC_msgPtsC ml DFrac.discard DFrac.discard false _ hcsu $$ HmC
   -- `dbsnap.Size()`, with the sender's half, which then goes to the reader (the pipe's hand-over)
@@ -205,20 +287,22 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_caughtUp
   · iframe #; iframe Hsn2
   ihave ⟨Hrs, #Hrcc⟩ := Hrc $$ Hsn2
   -- `snap.NewMessage(m, rc, size)`, with the reader's close contract (sweep repairs 1, S1)
-  wp_apply hNM ml (mergedSt st c snapi snapt) rc n $$ [] as %mg ⟨#Hmi, %tsz, %cc, %γc, #Htsz, #Hcc, #Hccb⟩
+  wp_apply hNM ml (mergedSt st c (if uint.Z snapi < uint.Z ci then ci else snapi) (if uint.Z snapi < uint.Z ci then backendTerm else snapt)) rc n $$ [] as %mg ⟨#Hmi, %tsz, %cc, %γc, #Htsz, #Hcc, #Hccb⟩
   · simp only [mergedSt]; iframe Hm Hrcc; ipureintro; exact Hsz
   (try wp_auto)
   iapply HΦ
   simp only [mergedSt]
   iframe Hlr HRS' Hbef Htok
   iexists rc, D, c
-  iframe Hm HszC Hc Hrs HQ
+  iframe Hm HszC Hrs HQ
   isplitl
   · iunfold mergedMsg
     iframe Hmi
     iexists tsz, cc, γc
     iframe Htsz Hcc Hccb
-  ipureintro; exact Hclen
+  isplitr
+  · iintro %hno; rw [← hchosen hno]; iexact Hc
+  ipureintro; exact ⟨Hci, Hclen⟩
 
 end proof
 

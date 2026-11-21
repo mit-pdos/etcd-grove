@@ -5,7 +5,7 @@ with a database at index 7 and a recovered HardState commit of 3, for
 current and legacy snapshot metadata. Lean proves the consistent index and term
 read from the streaming snapshot. In the replay window the frozen buckets
 match the durable log even while the in-memory member attributes are replayed.
-The configuration decoder and Raft term certificate remain open. Both server constructors give the
+Lean checks the sender through message construction for either metadata format. The caller still needs to identify the decoded configuration and certify the term at the durable index. Both server constructors give the
 replay field to the Raft worker. The VM checked that Raft's entry records
 give nondecreasing terms and justify treating a batch with equal endpoint
 terms as a single run. [Snapshot proof and regression](snapguard-removal-plan.md).

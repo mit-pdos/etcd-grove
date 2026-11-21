@@ -1,5 +1,6 @@
 /- Reconstruction of a pre-3.5 backend's ConfState from its saved members. -/
 module
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Defs
 
@@ -86,6 +87,32 @@ theorem wp_confStateFromMembers (mp : Loc) (ptrs : GMap w64 Loc) (dq : DFrac)
   iexists keys
   iframe Hv Hl
   ipureintro; exact ⟨hkeys, hnodup, rfl⟩
+
+/-- Once the sender stores the reconstructed value in its local `cs`, both its
+slices can be frozen for the asynchronous snapshot clone. -/
+theorem confStateFromMembers_freeze (γ : ServerRaftNames) (p : Loc) (v l : GoSlice)
+    (voters learners : List w64)
+    (hcfg : confStateIs (.mk voters learners [] [] false) (Membership.simple γ.raft.cfg)) :
+    (p ↦ ({ (zero_val raftpb.ConfState) with Voters' := v, Learners' := l } : raftpb.ConfState) ∗
+      v ↦* voters ∗ l ↦* learners : IProp GF) ⊢ |={⊤}=> epCsVoters γ p := by
+  iintro ⟨Hp, Hv, Hl⟩
+  imod ownSlice_persist $$ Hv with #Hv
+  imod ownSlice_persist $$ Hl with #Hl
+  ihave #Hnil : (slice.nil ↦*□ ([] : List w64) : IProp GF) $$ []
+  · iapply ownSlice_nil
+  ihave #Hz : (cellRO null false : IProp GF) $$ []
+  · iapply cellRO_null
+  imod csPts_of_struct_ro p { (zero_val raftpb.ConfState) with Voters' := v, Learners' := l }
+      (ConfStateM.mk voters learners [] [] false) ⊤ rfl $$ [Hp] with #Hcs
+  · dsimp only; iframe Hp Hv Hl Hnil Hz
+  imodintro
+  iunfold epCsVoters
+  iexists ConfStateM.mk voters learners [] [] false
+  isplitl
+  · iExactEq Hcs
+    change _ = csPts p DFrac.discard (ConfStateM.mk voters learners [] [] false) (decide (null ≠ null))
+    simp [show (zero_val raftpb.ConfState).AutoLeave' = null by rfl]
+  ipureintro; exact hcfg
 
 end EtcdGrove
 end Perennial

@@ -839,6 +839,43 @@ theorem mergedCreate_window
     mergedCreate_window_replay hsh hPers hReach hImg hSnap hOn hSave hPut hUR hID hName hSafe
       on s γ ci TM E ρ γr b st ai a t A x γw γp ua kv _ rfl hok SA QA RA hSA
 
+/-- When the backend is at or below the apply cursor, the sender retains the
+caller's configuration, index and term. -/
+theorem EtcdServer.createMergedSnapshotMessage.caughtUp_of_spec
+    (h : EtcdServer.createMergedSnapshotMessage.spec (GF := GF) (hG := hG)) :
+    EtcdServer.createMergedSnapshotMessage.specCaughtUp (GF := GF) (hG := hG) := by
+  intro s ml st snapt snapi ci terms cs lg kv be dq RC RC' RS RS' Qd γs hci hsz hsh
+  iintro %Φ ⟨#Hpkg, #Hlgf, #Hlgn, Hlr, #Hkvf, Hkv, HRC, Hbe, Hsnap, HR, Hm, #Hpb, #Hcs, Htok⟩ HΦ
+  have hn : ¬uint.Z snapi < uint.Z ci := by omega
+  have hc := h s ml st snapt snapi ci snapt terms cs lg kv be dq RC RC' RS RS' Qd γs hsz hsh
+  simp only [hn, ↓reduceIte] at hc
+  iapply hc $$ %Φ [Hlr Hkv HRC Hbe Hsnap HR Hm Htok]
+  · iframe Hpkg Hlgf Hlgn Hlr Hkvf Hkv HRC Hbe HR Hm Hpb Hcs Htok
+    iunfold srvBeSnapOk at Hsnap
+    iunfold srvBeSnapOk
+    icases Hsnap with ⟨%bi, %hb, #Hsnap⟩
+    iexists bi
+    isplitr; · ipureintro; exact hb
+    iintro !> %Ψ Hpre HΨ
+    wp_apply Hsnap $$ [Hpre] as %sp %D ⟨Hopen, Hrs, HQ, %hm⟩
+    · iexact Hpre
+    iapply HΨ $$ %sp %D
+    dsimp only
+    iframe Hopen Hrs HQ
+    obtain ⟨t, ht⟩ := hm
+    iexists t
+    isplitr; · ipureintro; exact ht
+    iintro %hf
+    exact hf.elim
+  inext
+  iintro %mg ⟨Hlr, Hrs, Hbe, Htok, %rc, %D, %c, Hmg, Hm, Hsz, Hcs0, -, %hb, Hr, HQ⟩
+  ihave Hopt := Hcs0 $$ %(by trivial)
+  iapply HΦ
+  iframe Hlr Hrs Hbe Htok
+  iexists rc, D, c
+  iframe Hmg Hm Hsz Hopt Hr HQ
+  ipureintro; exact hb
+
 /-- **The leased rest image of an observed snapshot, auth off** (`merged_image`'s rest part): the
 mode-off rest buckets `bkRestAtM .off` of the applied log, at its leases where the cluster grants
 them, are its leased image `bkRestAtL` (`imageRestAt`'s), given that a cluster granting none has a
