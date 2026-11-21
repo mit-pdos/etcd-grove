@@ -304,7 +304,6 @@ public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseQueue__Swap
 public import Proof.go_etcd_io.etcd.server.v3.lease.Lease__Keys
 public import Proof.go_etcd_io.etcd.server.v3.lease.Lease__Remaining
 public import Proof.go_etcd_io.etcd.server.v3.lease.Lease__TTL
-public import Proof.go_etcd_io.etcd.server.v3.lease.Lease__expired
 public import Proof.go_etcd_io.etcd.server.v3.lease.Lease__forever
 public import Proof.go_etcd_io.etcd.server.v3.lease.Lease__getRemainingTTL
 public import Proof.go_etcd_io.etcd.server.v3.lease.Lease__persistTo
@@ -896,10 +895,6 @@ theorem lease.lessor.wp_Lookup :
 theorem lease.lessor.wp_isPrimary :
     lease.lessor.isPrimary.spec (GF := GF) (hG := hG) :=
   lease.lessor.isPrimary.wp_proof
-
-theorem lease.Lease.wp_expired :
-    lease.Lease.expired.spec (GF := GF) (hG := hG) :=
-  lease.Lease.expired.wp_proof lease.Lease.wp_Remaining
 
 theorem lease.Lease.wp_getRemainingTTL :
     lease.Lease.getRemainingTTL.spec (GF := GF) (hG := hG) :=
@@ -1950,7 +1945,7 @@ theorem EtcdServer.wp_checkLeaseRenew :
 
 theorem lease.lessor.wp_Renew :
     lease.lessor.Renew.spec (GF := GF) (hG := hG) :=
-  lease.lessor.Renew.wp_proof lease.lessor.wp_isPrimary lease.Lease.wp_expired lease.Lease.wp_refresh lease.LeaseExpiredNotifier.wp_RegisterOrUpdate
+  lease.lessor.Renew.wp_proof lease.lessor.wp_isPrimary lease.Lease.wp_Remaining lease.Lease.wp_refresh lease.LeaseExpiredNotifier.wp_RegisterOrUpdate
 
 theorem leasehttp.wp_RenewHTTP :
     leasehttp.RenewHTTP.spec (GF := GF) (hG := hG) :=
