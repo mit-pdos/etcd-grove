@@ -172,7 +172,6 @@ theorem lease.lessor.Renew.wp_proof
     · ipureintro; exact Hb
     (try wp_auto)
     wp_if_destruct
-    rotate_left
     · -- expired: wait for the revocation, the demotion or the stop
       iunfold lessorStopRecv at Hstr
       icases Hstr with ⟨%sc, %γts, #Hsc, #Hsr⟩
