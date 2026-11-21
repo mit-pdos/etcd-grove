@@ -239,6 +239,24 @@ theorem mem_conflictsOfMgr (mf : MF) (mgr : GoString) (c : Cmp) (hs : keysSorted
     refine ⟨(k, p), (mem_conflictsOf _ _ _ _).2 ⟨(k, e), fpD.lookupKV_some_mem mf k e he, hk, rfl, hp⟩,
       by simp⟩
 
+theorem mem_take_succ {α : Type} (keys : List α) (j : Int) (key : α) (hj : 0 ≤ j)
+    (Hkey : keys[j.toNat]? = some key) (k : α) :
+    k ∈ keys.take (j + 1).toNat ↔ k ∈ keys.take j.toNat ∨ k = key := by
+  rw [show (j + 1).toNat = j.toNat + 1 by omega, List.take_add_one, Hkey]
+  simp
+
+theorem key_notin_take {α : Type} (keys : List α) (j : Int) (key : α) (hnd : keys.Nodup)
+    (Hkey : keys[j.toNat]? = some key) : key ∉ keys.take j.toNat := by
+  intro hm
+  have hk := List.getElem?_eq_some_iff.1 Hkey
+  obtain ⟨i, hi, hik⟩ := List.mem_iff_getElem.1 hm
+  rw [List.getElem_take] at hik
+  have hilt : i < j.toNat := by simp [List.length_take] at hi; omega
+  have hi' : keys[i]? = some key := by
+    rw [List.getElem?_eq_some_iff]; exact ⟨by have := hk.1; omega, hik⟩
+  have := list_nodup_getElem?_inj keys hnd i j.toNat key hi' Hkey
+  omega
+
 end MUpd
 
 section iprop
