@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-The replay worktree pins etcd `03c73a97acff`. Its Go regression passes
+The replay worktree pins etcd `2d47031f65be`. Its Go regression passes
 with a database at index 7 and a recovered HardState commit of 3, for
 current and legacy snapshot metadata. Lean proves the consistent index and term
 read from the streaming snapshot. In the replay window the frozen buckets

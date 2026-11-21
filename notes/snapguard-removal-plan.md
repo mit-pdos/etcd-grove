@@ -2,7 +2,8 @@
 
 ## Replay metadata and the recovered commit
 
-This branch pins etcd `03c73a97acff`. When the backend is ahead of the
+This branch pins etcd `2d47031f65be`, which includes the RangeStream fix
+at `4416a5786` and the replay repair at `03c73a97acff`. When the backend is ahead of the
 apply cursor, the sender labels its snapshot with the index, entry term
 and configuration of the frozen database. A pre-3.5 backend can lack the
 term and configuration. The sender reads that term from the Ready batch's
