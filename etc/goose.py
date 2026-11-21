@@ -130,6 +130,13 @@ class Project:
     # farm; goose's go/packages reads files from disk, so a `go build -overlay` file in GOFLAGS
     # would not reach it). None: the toolchain's own source, as every other project.
     std_models: list = None
+    # Modules the translation takes from their models in models/ (module path -> the model's
+    # directory, relative to the repository: {"google.golang.org/grpc": "models/grpc"}; a model of a
+    # module keeps its module path and API, models/README.md): goose runs with the project's
+    # workspace (its go.work, or its go.mod) plus `replace <path> => <model>`, written to a
+    # temporary file (GOWORK, or -modfile in GOFLAGS), as models/grpc/gomodel.py does for go
+    # builds. None: every module from the module cache.
+    module_models: dict = None
 
     @property
     def env(self):
@@ -349,6 +356,10 @@ PROJECTS = [
         # Same-term snapshots stream the backend during restart replay. The label comes from the
         # frozen image and its Ready's retained entry terms (issues/etcd-merged-snapshot-replay-failure.md).
         rev="d7c7f6434abce9ad25ac5152b4e74a322fbec8c5",
+        # grpc-go v1.84.0 (etcd's go.mod) from its model, models/grpc (the same API; its transport
+        # and connection management replaced: models/README.md, "The grpc model"), so that grpc's
+        # specs can be proved over the model's bodies (notes/phase7-plan.md, S0)
+        module_models={"google.golang.org/grpc": "models/grpc"},
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
@@ -2152,6 +2163,55 @@ def std_models_env(proj):
                 PATH=os.path.join(farm, "bin") + os.pathsep + os.environ.get("PATH", ""))
 
 
+def module_models_env(proj, src, env, tmp):
+    """`env` with the project's module models put in place (Project.module_models): a copy of
+    `src`'s go.work (its paths made absolute) or go.mod, in `tmp`, with a `replace` of each modelled
+    module by its model, named by GOWORK or GOFLAGS' -modfile. `env` itself if there are none."""
+    if not proj.module_models:
+        return env
+    env = dict(os.environ if env is None else env)
+    reps = {m: os.path.join(ROOT, d) for m, d in sorted(proj.module_models.items())}
+    if os.path.exists(os.path.join(src, "go.work")):
+        j = json.loads(subprocess.run(["go", "work", "edit", "-json", "go.work"], cwd=src,
+                                      check=True, capture_output=True, text=True).stdout)
+        lines = ["go " + j["Go"]] + (["toolchain " + j["Toolchain"]] if j.get("Toolchain") else [])
+        lines += ["use ("] + ["\t" + os.path.normpath(os.path.join(src, u["DiskPath"]))
+                              for u in j["Use"]] + [")"]
+        for r in j.get("Replace") or []:
+            if r["Old"]["Path"] in reps:
+                continue
+            new = r["New"]["Path"]
+            if not r["New"].get("Version") and new.startswith("."):
+                new = os.path.normpath(os.path.join(src, new))
+            old = r["Old"]["Path"] + (" " + r["Old"]["Version"] if r["Old"].get("Version") else "")
+            lines.append(f"replace {old} => {new}" +
+                         (" " + r["New"]["Version"] if r["New"].get("Version") else ""))
+        lines += [f"replace {m} => {d}" for m, d in reps.items()]
+        work = os.path.join(tmp, "go.work")
+        with open(work, "w") as f:
+            f.write("\n".join(lines) + "\n")
+        if os.path.exists(os.path.join(src, "go.work.sum")):
+            shutil.copyfile(os.path.join(src, "go.work.sum"), work + ".sum")
+        env["GOWORK"] = work
+        return env
+    modfile = os.path.join(tmp, "go.mod")
+    shutil.copyfile(os.path.join(src, "go.mod"), modfile)
+    if os.path.exists(os.path.join(src, "go.sum")):
+        shutil.copyfile(os.path.join(src, "go.sum"), os.path.join(tmp, "go.sum"))
+    j = json.loads(subprocess.run(["go", "mod", "edit", "-json", modfile], check=True,
+                                  capture_output=True, text=True).stdout)
+    edits = []
+    for r in j.get("Replace") or []:
+        new = r["New"]["Path"]
+        if not r["New"].get("Version") and new.startswith(".") and r["Old"]["Path"] not in reps:
+            old = r["Old"]["Path"] + ("@" + r["Old"]["Version"] if r["Old"].get("Version") else "")
+            edits.append(f"-replace={old}={os.path.normpath(os.path.join(src, new))}")
+    edits += [f"-replace={m}={d}" for m, d in reps.items()]
+    subprocess.run(["go", "mod", "edit"] + edits + [modfile], check=True)
+    env["GOFLAGS"] = (env.get("GOFLAGS", "") + " -modfile=" + modfile).strip()
+    return env
+
+
 def pieces(proj):
     """The translations of `proj`: (module root, -lean-root arguments, packages, owned)."""
     return [(proj.root, proj.lean_roots, proj.packages, proj.owned)] + [
@@ -2197,7 +2257,7 @@ def translate(proj, src, bindir, perennial_rev, desc, check):
     try:
         # path relative to ROOT -> (new content or None, old content or None)
         new, old = {}, {}
-        env = std_models_env(proj)
+        env = module_models_env(proj, src, std_models_env(proj), out)
         for i, (root, lean_roots, packages, owned) in enumerate(pieces(proj)):
             lib_dir = os.path.join(ROOT, root)
             piece_out = os.path.join(out, str(i))
