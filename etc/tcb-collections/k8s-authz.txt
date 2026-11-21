@@ -18,7 +18,6 @@ axiom Perennial.k8s_io.apimachinery.pkg.util.validation.opaqueInitsOk
 axiom Perennial.math.rand.opaqueInitsOk
 axiom Perennial.net.http.initFuncsOk
 axiom Perennial.net.http.opaqueInitsOk
-axiom Perennial.reflect.opaqueInitsOk
 axiom fmt.ErrorfSlice.wp_proof
 axiom fmt.SprintfSlice.wp_proof
 axiom rand.Int63n.wp_proof
