@@ -18,6 +18,12 @@
 // server stream's clean end (io.EOF, a closed watch channel) is never taken as complete (grpc-go's
 // spurious EOF after a transparent retry, nonissues/grpc-transparent-retry-spurious-eof.md); and
 // keepalive is never relied on for safety (the model accepts its options and does nothing).
+//
+// Keys (review F1): each workload writes only under its own prefix (its Kind's name and "/"),
+// and kv's List ranges stay inside its prefix, so no two workloads write one key; a workload whose
+// check reads the store's revisions as its own (kv, watch, cache, auth, authLease) runs beside
+// none that writes keys (Lean: Compatible). Main clears the proxy variables first, as the server
+// does (review F8).
 package client
 
 // Kind is a workload's kind (Lean: Workload's constructors, in this order).
@@ -48,6 +54,7 @@ type Workload struct {
 // that pick a member, authN's principals, leaseN's per-member reads, use eps[i mod len(eps)]).
 // Results are dropped: a failed check is a panic inside the workload.
 func Main(w Workload, eps []string) {
+	clearProxyEnv() // PROPOSED: the server's, shared
 	switch w.Kind {
 	case KV:
 		txnlinfaultsN.Run(eps, w.Clients, w.Ops) // PROPOSED: NewClients(eps) x clients; partition.Check; panic on Illegal
@@ -70,7 +77,9 @@ func Main(w Workload, eps []string) {
 	case LeaseExpiry:
 		leaseexpiryN.Run(eps) // PROPOSED
 	case Durable:
-		restartN.RunDurable(eps, w.Clients) // PROPOSED: Puts of the client's keys, then a linearizable
-		// Range checked exactly but for the response's revision (other clients write too)
+		restartN.RunDurable(eps, w.Clients) // PROPOSED: at most 256 Puts of distinct keys, then a
+		// linearizable Range: every acknowledged Put's key present with its value at version 1, every
+		// other key in the range one whose Put was attempted (an unknown outcome may have applied); no
+		// revision check (other clients write)
 	}
 }

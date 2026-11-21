@@ -22,6 +22,7 @@ public import Robustness.Statement
 public import GooseLang.Ext.Net.Impl
 public import GooseLang.Ext.Fs.Impl
 public import GooseLang.Ext.IdIssue.Impl
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SrvRaftLog
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WalAreasInit
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvBoot
@@ -52,6 +53,11 @@ inductive Compactor where
   | periodic (period : Nat)
   deriving DecidableEq
 
+/-- The periodic compactor. -/
+def Compactor.isPeriodic : Compactor → Bool
+  | .periodic _ => true
+  | _ => false
+
 /-- **The server configuration** (one per cluster, the same at every member): what
 `examples/etcd/dist/server`'s `Config` takes beyond the member's own name and addresses. The other
 `ServerConfig` fields are the examples' fixed values (`TickMs` 100, `ElectionTicks` 10, `MaxTxnOps`
@@ -76,7 +82,7 @@ def ServerCfg.Supported (c : ServerCfg) : Prop :=
   1 ≤ c.snapCount ∧ c.snapCount < 2 ^ 64 ∧ 1 ≤ c.catchUp ∧ c.catchUp < 2 ^ 64
 
 instance (c : ServerCfg) : Decidable c.Supported := by
-  unfold ServerCfg.Supported; cases c.compactor <;> infer_instance
+  unfold ServerCfg.Supported; split <;> infer_instance
 
 /-! ## Workloads -/
 
@@ -103,7 +109,8 @@ inductive Workload where
   | leaseCatchup
   /-- leaseexpiryN's expiring leases -/
   | leaseExpiry
-  /-- restartN's durability check over `puts` Puts (no revision check) -/
+  /-- restartN's durability check over `puts ≤ 256` Puts: acknowledged keys present at version
+  1, other keys only from attempted Puts (no revision check) -/
   | durable (puts : Nat)
   deriving DecidableEq
 
@@ -112,11 +119,23 @@ def Workload.kind : Workload → Nat
   | .kv .. => 0 | .watch .. => 1 | .cache .. => 2 | .compact => 3 | .putget => 4 | .auth => 5
   | .authLease => 6 | .leaseRead => 7 | .leaseCatchup => 8 | .leaseExpiry => 9 | .durable _ => 10
 
-/-- **A workload whose check needs the cluster to itself**: the watch checks (gap-free revisions
-from the first), and the auth workloads (each sets up and enables auth, which every other client
-then sees). -/
-def Workload.exclusive : Workload → Bool
-  | .watch .. | .cache .. | .auth | .authLease => true
+/-- **A workload that writes keys** (each under its own prefix, `client.go`: no two workloads
+write one key). The lease workloads only grant and revoke leases with no keys attached, which
+leaves the store's revision unchanged. -/
+def Workload.writesKeys : Workload → Bool
+  | .leaseRead | .leaseCatchup | .leaseExpiry => false
+  | _ => true
+
+/-- **A workload whose check reads the store's revisions as its own** (review F1): txnlin's model
+starts at revision 1 and checks every reply's revision; the watch checks need gap-free revisions;
+the auth workloads' set-ups and checks likewise. It needs to be the only workload writing keys. -/
+def Workload.needsSoleWriter : Workload → Bool
+  | .kv .. | .watch .. | .cache .. | .auth | .authLease => true
+  | _ => false
+
+/-- **A workload that changes what every other client may do** (it enables auth): alone. -/
+def Workload.alone : Workload → Bool
+  | .auth | .authLease => true
   | _ => false
 
 /-- A workload that needs the simple token provider. -/
@@ -139,17 +158,20 @@ def Workload.BoundsOk : Workload → Prop
   | .kv c o => c < 2 ^ 31 ∧ c * o < 2 ^ 60
   | .watch w o => w < 2 ^ 31 ∧ w * o < 2 ^ 62
   | .cache w o => w < 2 ^ 31 ∧ w * o < 2 ^ 62
-  | .durable n => n < 2 ^ 31
+  | .durable n => n ≤ 256
   | _ => True
 
 instance (w : Workload) : Decidable w.BoundsOk := by
   cases w <;> unfold Workload.BoundsOk <;> infer_instance
 
-/-- **The workloads can run at once on one cluster**: at most one of each kind; an exclusive
-workload only alone; never an expiring lease beside a workload that needs none to expire. -/
+/-- **The workloads can run at once on one cluster** (review F1): at most one of each kind; a
+workload that enables auth alone; a workload that reads revisions as its own beside no other
+workload that writes keys; never an expiring lease beside a workload that needs none to expire. -/
 def Compatible (ws : List Workload) : Prop :=
   (ws.map Workload.kind).Nodup ∧
-  (ws.length ≤ 1 ∨ ∀ w ∈ ws, w.exclusive = false) ∧
+  ((∃ w ∈ ws, w.alone = true) → ws.length = 1) ∧
+  (∀ w ∈ ws, w.needsSoleWriter = true →
+    ∀ w' ∈ ws, w' ≠ w → w'.writesKeys = false) ∧
   ¬ (Workload.leaseExpiry ∈ ws ∧ ∃ w ∈ ws, w.needsNoExpiry = true)
 
 instance (ws : List Workload) : Decidable (Compatible ws) := by
@@ -203,16 +225,21 @@ def nameOk (n : GoString) : Bool :=
    `lowNodup`/`lowNz`), and, when a workload grants leases, distinct 15 low bits
    (`leaseIdsApart`, `issues/etcd-lease-id-mask-member-prefix.md`);
 4. the token is nonempty, and the server configuration is in the supported set;
-5. there is a client machine, the workloads are compatible (`Compatible`) and within their bounds,
-   and a workload that needs the token provider has it. -/
+5. the workloads are compatible (`Compatible`) and within their bounds, and a workload that
+   needs the token provider has it; `compact` not under the periodic compactor (review F5); no token
+   provider beside expiring leases (review F10). -/
 def Deployment.WellFormed (d : Deployment) : Prop :=
   d.members ≠ [] ∧ (d.members.map Member.name).Nodup ∧ (∀ m ∈ d.members, nameOk m.name = true) ∧
   (∀ a ∈ d.addrs, Net.addrOk a = true) ∧ d.addrs.Nodup ∧
   (d.ids.map (fun id => uint.Z id % 2 ^ 16)).Nodup ∧ (∀ id ∈ d.ids, uint.Z id % 2 ^ 16 ≠ 0) ∧
   ((∃ w ∈ d.workloads, w.grantsLeases = true) → leaseIdsApart d.ids) ∧
-  d.token ≠ "" ∧ d.cfg.Supported ∧
-  d.workloads ≠ [] ∧ Compatible d.workloads ∧ (∀ w ∈ d.workloads, w.BoundsOk) ∧
-  (∀ w ∈ d.workloads, w.needsAuth = true → d.cfg.auth = true)
+  d.token ≠ [] ∧ d.cfg.Supported ∧
+  Compatible d.workloads ∧ (∀ w ∈ d.workloads, w.BoundsOk) ∧
+  (∀ w ∈ d.workloads, w.needsAuth = true → d.cfg.auth = true) ∧
+  -- review F5: compactwatch's checks hold under the revision compactor (or none), not the periodic
+  (Workload.compact ∈ d.workloads → d.cfg.compactor.isPeriodic = false) ∧
+  -- review F10: the revocable lease mode with the token provider needs `leasesNoExpiry`
+  ¬ (d.cfg.auth = true ∧ Workload.leaseExpiry ∈ d.workloads)
 
 instance (d : Deployment) : Decidable d.WellFormed := by
   unfold Deployment.WellFormed leaseIdsApart; infer_instance
@@ -271,7 +298,7 @@ end programs
 /-! ## The machines' start states -/
 
 section start
-variable [GooseExts] [HasExt Net.netExt] [HasExt Fs.fsExt]
+variable [GooseExts] [ElemExt Net.netExt] [ElemExt Fs.fsExt]
 
 /-- The network at the start: no connection (`KitDeploy`'s, `kvnetRobust`'s `FreshNet`). -/
 def NetStart (g : GlobalState) : Prop := (extGlobal Net.netExt g.globalWorld).init
@@ -284,8 +311,10 @@ def ServerStart (m : Member) (σ : state) : Prop :=
   Fs.FsInit (extLocal Fs.fsExt σ.world) ∧
   etcdWalAreasInit (extLocal Fs.fsExt σ.world) [memberDataDir m.name]
 
-/-- A client's machine at the start: no listener. -/
-def ClientStart (σ : state) : Prop := (extLocal Net.netExt σ.world).init
+/-- A client's machine at the start: no listener; its files as on disk (review F11: the workloads'
+packages reach `fileutil`, whose initializer probes the file system). -/
+def ClientStart (σ : state) : Prop :=
+  (extLocal Net.netExt σ.world).init ∧ Fs.FsInit (extLocal Fs.fsExt σ.world)
 
 end start
 
@@ -310,6 +339,11 @@ structure EtcdEnv (d : Deployment) : Prop where
   disk : storage.diskOk
   leasePeers : leasePeersOk
   noExpiry : (∃ w ∈ d.workloads, w.needsNoExpiry = true) → lease.leasesNoExpiry
+  /-- PLACEHOLDER (review F8): `addrsUnclaimed`'s part (b) without its world assumption: etcd's
+  names-only peer requests (the prober, the version monitor, bootstrap's `GET /members`,
+  leasehttp's forwards) reach only the raft handler's mux, until those clients are translated over
+  the net extension (phase 7 S5). -/
+  peerRequests : True
 
 end env
 

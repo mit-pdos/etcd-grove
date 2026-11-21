@@ -54,27 +54,39 @@ proxy variables and `ETCD_VERIFY` (`clearProxyEnv`: §4 and Q10). The binary (`c
 `Config` as JSON; the Lean boot program is `Main` applied to the `Config`'s Go value (the parsing is
 not translated).
 
+**The models' limits** (upamanyus, etcd-grove#24, at `715d5e6753`; a program outside them panics with
+`NotModelled`): grpc with insecure credentials only, no TLS, no compression, `grpc.Server.Serve` on the
+program's own listener (no `ServeHTTP`; a cmux split works), service config round robin or none,
+resolvers passthrough/dns with IP literals/`resolver/manual`, no binary logging or channelz, keepalive
+accepted and inert; **no stats handler** until S1 (but `v3rpc.Server` installs `otelgrpc`'s: U2);
+net/http's server is Go's real one, served with `http.Server.Serve`; its client (`RoundTrip`, chunked
+bodies) only at S5, so the member-to-member path lands last; addresses `addrOk`, one listener each.
+The sketches follow these (`etcdstart.NewClients` sets keepalive, which is harmless and relied on
+for nothing).
+
 **The clients** (`examples/etcd/dist/client`): `Main(w Workload, eps []string)`, one workload per
 machine, each today's driver without its start (no `StartMembers`, bridges, partitioner, `CutPeer`,
 `HardStop`): each driver is split into its start and a `Run(eps, …)` (stage D1). Workloads that pick
 a member use `eps[i mod k]`. Every checker follows the model's rules (etcd-grove#24): any non-OK
 gRPC error is an unknown outcome, never "not applied"; a server stream's clean end is never taken as
 complete (`etcdstart.Collect` already reads until a revision, not until the channel ends); nothing
-relies on keepalive.
+relies on keepalive. Each workload writes only under its own key prefix (kv's List ranges inside
+it), and clears the proxy variables as the server does. The server serves clients only after
+`<-s.ReadyNotify()` (review F4: after a power loss the backend may lag the WAL until the replay).
 
-| Workload | From | Check (panics if it fails) | Exclusive? |
+| Workload | From | Check (panics if it fails) | Writes keys / needs sole writer / alone |
 |---|---|---|---|
-| `kv clients ops` | txnlinfaultsN / partition `Check` | porcupine, txnlin's model | no |
-| `watch writers ops` | partition `MainWatch` | `etcdstart.Check`: exactly the writes, gap-free revisions | **yes** (gap-free) |
-| `cache writers ops` | cache | the same, through the watch cache, plus progress and Get | **yes** |
-| `compact` | compactwatch | latest reads never compacted, old reads exact or `ErrCompacted` | no |
-| `putget` | compacted | Get after Put returns it | no |
-| `auth` | authN | principals' rights at every member | **yes** (enables auth) |
-| `authLease` | authlease | lease rows of auth | **yes** |
-| `leaseRead` | leaseN | listings without duplicates, TimeToLive about the lease asked | no |
-| `leaseCatchup` | leasecatchup | the member that granted lists the lease once caught up | no |
-| `leaseExpiry` | leaseexpiryN | a lease gone from a listing is never listed again | no |
-| `durable puts` | restartN / restart1 | every acknowledged Put present at version 1 (no revision check) | no |
+| `kv clients ops` | txnlinfaultsN / partition `Check` | porcupine, txnlin's model | yes / **yes** / no |
+| `watch writers ops` | partition `MainWatch` | `etcdstart.Check`: exactly the writes, gap-free revisions | yes / **yes** / no |
+| `cache writers ops` | cache | the same, through the watch cache, plus progress and Get | yes / **yes** / no |
+| `compact` | compactwatch | latest reads never compacted, old reads exact or `ErrCompacted` | yes / no / no (not under the periodic compactor) |
+| `putget` | compacted | Get after Put returns it | yes / no / no |
+| `auth` | authN | principals' rights at every member | yes / yes / **yes** (enables auth) |
+| `authLease` | authlease | lease rows of auth | yes / yes / **yes** |
+| `leaseRead` | leaseN | listings without duplicates, TimeToLive about the lease asked | no / no / no |
+| `leaseCatchup` | leasecatchup | the member that granted lists the lease once caught up | no / no / no |
+| `leaseExpiry` | leaseexpiryN | a lease gone from a listing is never listed again | no / no / no |
+| `durable puts` | restartN / restart1 | acknowledged Puts present at version 1, other keys only attempted ones; ≤ 256 Puts | yes / no / no |
 
 ## 3. The configuration set
 
@@ -94,9 +106,11 @@ not the server's. The other `ServerConfig` fields stay the examples' fixed value
    them, and a member applies other members' entries), and their 15 low bits distinct when a workload
    grants leases (`leaseIdsApart`);
 4. a nonempty token; `cfg.Supported`;
-5. a client; the workloads `Compatible` (at most one of each kind; an exclusive one alone; never
-   `leaseExpiry` beside a workload that needs no lease to expire) and within their bounds; `cfg.auth`
-   if a workload needs the token provider.
+5. the workloads `Compatible` (at most one of each kind; `auth`/`authLease` alone; a workload that
+   reads revisions as its own beside none that writes keys; never `leaseExpiry` beside a workload
+   that needs no lease to expire) and within their bounds; `cfg.auth` if a workload needs the token
+   provider; `compact` not under the periodic compactor; no token provider beside `leaseExpiry`
+   (the revocable lease mode with auth needs `leasesNoExpiry`).
 
 **Decidability.** Every conjunct is decidable (`instance : Decidable d.WellFormed`). Evaluating it
 by `decide` needs `memberId` (etcd's SHA-1 of the peer URL and token) to be a Lean definition: a
@@ -118,6 +132,9 @@ reads them (`clearProxyEnv`), which puts the fact in the program, where it is ve
 | `EtcdEnv.leasePeers` (`leasePeersOk`) | opaque | **true by construction** here (every peer address is a member's raft handler): proved once rafthttp's server side is over the net/http model (phase 7 S5) |
 | `EtcdEnv.noExpiry` | `needsNoExpiry → leasesNoExpiry` | as today (MaxLeaseTTL), or proved without it (research) |
 | `HNs` (prometheus names) | per program, axiomatized Prop | D19d's registry extension |
+| `HEnv` (`verifyEnvOff`, and no proxy variables) | per program | the programs clear them (`clearProxyEnv`) with specs of the environment (Q10) |
+| `EtcdEnv.peerRequests` | PLACEHOLDER (`addrsUnclaimed`'s part (b): etcd's names-only peer requests reach only the raft mux) | those clients translated over the net extension (phase 7 S5) |
+| the semantics' assumptions (not premises) | `etcdFsSem`: no I/O, `flock` or `mmap` error, per machine; the issue record across crashes | — (disclosed in the statement's header) |
 | `TrustBoundary` (today's `Hprem`, `Hctx`, `Hcec`) | PLACEHOLDER | Iris premises at the proof's ghost state have no place here: each becomes a reviewed axiom or a theorem (bootstrap over the real code; context's facts in Perennial, item 8) |
 
 ## 6. Where today's results go
@@ -153,9 +170,12 @@ reads them (`clearProxyEnv`), which puts the fact in the program, where it is ve
    after a crash (`walFoRes`, blocker (2)); the server's restart from its files (C6: `NewServer` and
    `NewServerR` as one spec chosen by `haveWAL`, over `ReadAll`, `walCrashKeeps`); the backend after a
    power loss (bbolt over the file extension: `osfs/bboltfs` is the start; the server's backend is a
-   trust boundary today). The issue record after a crash: its docstring says crashes keep it and that a
-   generator allocated after one may get a stopped one's address (sound, but `Next`'s proof would need
-   the record keyed otherwise); the idutil model's clock assumption now spans machine restarts.
+   trust boundary today). **The issue record after a crash is wrong as it stands** (review F3): it keeps
+   generators by heap address and survives the crash, and a crash makes the heap arbitrary, so a
+   restarted member's generator at the old one's address may reissue the old incarnation's ids and
+   the model would admit what `nonissues/etcd-request-id-restart-reuse.md` describes. To be keyed by
+   incarnation (an epoch the crash relation increments), a trusted-semantics change with its example
+   and an axiom review (D4). The idutil model's clock assumption now spans machine restarts.
 3. **clientv3 over real gRPC**: clientv3's specs today are over the axiomatized `Invoke`/`NewStream`;
    they are re-proved over the models with the same statements where possible (phase 7's protocol
    facts list), with the extra errors the model gives (REFUSED_STREAM, any code on a cut, idleness).
@@ -173,9 +193,10 @@ reads them (`clearProxyEnv`), which puts the fact in the program, where it is ve
 
 For the user:
 
-- **Q1 Composition of workloads.** Recommended: at most one of each kind, exclusive kinds alone
-  (`Compatible`). Alternatives: a key prefix per workload and checks relative to it (Go changes to the
-  watch checks' gap-freedom and auth's ranges), or one workload per deployment.
+- **Q1 Composition of workloads.** Recommended (after review F1): a key prefix per workload; at most
+  one of each kind; the auth workloads alone; a check that reads revisions as its own (kv, watch,
+  cache) beside the lease workloads only. Alternatives: checks relative to their prefix (porcupine
+  over revisions does not allow it simply), or one workload per deployment.
 - **Q2 leaseexpiryN.** Recommended: fold in, `noExpiry` conditional on the workloads and `Compatible`
   excluding the mix. Alternative: keep `etcd_leaseexpiryN_safe` as its own row.
 - **Q3 restartN/restart1.** Recommended: the `durable` workload (cheap) under real crashes; the
@@ -215,7 +236,7 @@ For upamanyus:
 | D1 Go | split each driver into start + `Run(eps, …)`; the two mains; a harness test with `examples/lib/robust` (namespaces, kills, power losses, partitions) over random deployments; audit every check against #24's error rules | 1-2 sessions | — |
 | D2 translation | goose projects for `server` and `client`; `Init`/`PkgTable`; the main tree's `net` becomes the part's | days | phase 7 S0, S4 |
 | D3 mixed adequacy | Perennial: crashing + stable machines; a bridge as `KitBridge` | ~1k lines | — |
-| D4 bundle | `[net, fs, idIssue]` adequacy and crash interpretation; shared-mode generations | ~1k lines | wal-safe (b) |
+| D4 bundle | `[net, fs at etcdFsSem, idIssue]` adequacy and crash interpretation; the issue record keyed by incarnation; shared-mode generations | ~1k lines | wal-safe (b) |
 | D5 transport | phase 7 S1-S5 | 60-110k lines (option B's estimate) | upamanyus |
 | D6 server | one `NewServer` spec for both starts; `walFoRes`; C6; the backend after a crash; `TrustBoundary` discharged | weeks | D4 |
 | D7 cluster | global/local ghost split, the restart invariant | weeks | D6 |
@@ -227,4 +248,28 @@ the same deployment with no member crashing. Then D3, D4, D6 add the crashes.
 
 ## 10. Spec review
 
-(Below: the `spec-reviewer` agent's findings on the draft and the dispositions.)
+An independent `spec-reviewer` agent reviewed the first draft (`de96cea820`) with the Go and the
+model limits of #24. Its verdict: the shape is right; three findings made the statement false in
+the model. Dispositions (fixed = in this commit):
+
+| # | Severity | Finding | Disposition |
+|---|---|---|---|
+| F1 | blocker | `Compatible` let `kv` run beside `putget`/`compact`/`durable`: their writes move the revision txnlin's model checks and land in kv's ranges (`linkvtxn.go:428,708-713`), so porcupine says Illegal in a fault-free run; `compact` and `durable` keys collide (`compactkv.go:66`, `restartN.go:87-97`) | **fixed**: per-workload key prefixes (client sketch); `writesKeys`/`needsSoleWriter`/`alone` replace `exclusive`; watch and cache may now run beside the lease workloads |
+| F2 | blocker | `[HasExt Fs.fsExt]` picks the file extension's own semantics, with I/O errors; every etcd proof is over `etcdFsSem` | **fixed**: the binder is at `etcdFsSem`; the header discloses its assumptions per machine |
+| F3 | blocker | the issue record keyed by `Loc` across real crashes admits id reuse | **accepted, D4**: key it by incarnation (trusted change, its example, axiom review); disclosed in the header |
+| F4 | high | the server serves clients before replaying its WAL; after a power loss auth/lease checks can fail legitimately | **fixed** in the sketch (`<-s.ReadyNotify()`); whether the proofs can give it that meaning: D6 |
+| F5 | high | `compact`'s `latest ≥ crev + 1` fails under the periodic compactor | **fixed**: `WellFormed` excludes it |
+| F6 | high | Lean errors: `HasExt` needs `GooseInterp`; `LogEntry` not opened; the `Supported` instance; `token ≠ ""` | **fixed** (unbuilt: may still not elaborate; start predicates over `ElemExt`) |
+| F7 | medium | `rpctypes`/`cache` `Assumptions`, `DialWithBalancerBody`, `log.NewModel` dropped silently | **fixed**: carried as binders |
+| F8 | medium | `addrsUnclaimed` (b) and `verifyEnvOff` dropped before their replacements; clients read the proxy too | **fixed**: `EtcdEnv.peerRequests` placeholder, `HEnv` premise kept, clients clear the proxy |
+| F9 | medium | `BootFacts` over an opaque `memberId`: `WellFormed` not `decide`-able | **open**: Q5 (target: `bootOf d`, `BootFacts` proved from `WellFormed`) |
+| F10 | medium | auth's token provider with expiring leases needs `leasesNoExpiry` (`LeaseApi.lean:69-70`) | **fixed**: excluded in `WellFormed` (to recheck what "auth on" means in `lease.bootCfg`) |
+| F11 | medium | client machines' packages reach `fileutil`'s initializer, which probes the file system | **fixed**: `ClientStart` adds `FsInit` (or split the packages, D1) |
+| F12 | low-medium | the durable check "exact" contradicts unknown outcomes; `n < 2^31` vs restartN's 256 keys; version 1 relies on at-most-once delivery | **fixed** (check and bound); at-most-once: D8 |
+| F13 | low | `workloads ≠ []` unneeded; "one of each kind" stricter than needed | **fixed** (dropped `≠ []`); one of each kind kept for now (Q1) |
+| F14 | low | cache, compact, putget proved only on one member without faults; the cache's resumption at another member unchecked | **open**: D8 risk |
+| F15 | low | name: `_robust` is the convention for `TopLevelRobustness`; `cmd/` JSON parsing is a trusted gap | gap **disclosed**; name kept as the coordinator asked (`etcd_dist_safe`), the user's call |
+
+The review also notes that F3 and F4 make two recorded nonissues reachable under real crashes
+(`nonissues/etcd-request-id-restart-reuse.md`, `nonissues/etcd-watch-lagging-member-auth-off.md`):
+their "Proof" sections are to be updated when the statement lands. No new Go bug was found.

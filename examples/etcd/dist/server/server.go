@@ -127,6 +127,12 @@ func Main(c Config) {
 	// (leasePeersOk holds by construction of the deployment). Open question Q8.
 	go (&http.Server{Handler: s.RaftHandler()}).Serve(pl)
 	s.Start()
+	// Serve clients only once the member is ready (review F4): after a crash the backend may lag the
+	// WAL until the replay re-applies what the power loss took from bbolt; ReadyNotify closes once the
+	// member's own publish entry is applied, after every entry committed before the crash (etcd's
+	// embed waits the same way). TODO(proof): whether the server's specs can give ReadyNotify this
+	// meaning.
+	<-s.ReadyNotify()
 	// TODO(model): v3rpc.Server installs otelgrpc.NewServerHandler (phase 7 S1).
 	gs := v3rpc.Server(s, nil, nil, grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
 		MinTime: 5 * time.Second,

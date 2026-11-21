@@ -33,12 +33,33 @@ addresses or data directories claimed in one process (`addrsUnclaimed`, `dataDir
 machine's files are its own, the network is closed), no schedules (the network's faults), no
 in-process stop and restart (real crashes), no one-process resource caveat (per machine: one member's
 WAL and backend). The extensions are any list holding the net extension, the Linux file extension
-and the request ids' issue record, each with its own semantics (`HasExt`).
+and the request ids' issue record (`HasExt`).
+
+**What the semantics assumes** (not premises: part of the semantics it is stated over; review F2,
+F3):
+- the file extension at `etcdFsSem` (`examples/lib/etcdstart/FsExts.lean`), not its own semantics:
+  no file operation fails with an I/O error and no `flock`/`mmap` error, on every member's machine
+  (one member's 64 MB WAL segment and its backend each; the descriptor limit above one member's
+  files and sockets); a crash is a power loss, or a kill followed by a sync, unrestricted;
+- the request ids' issue record survives a machine's crash and must tell a restarted member's
+  generator from the one before the crash (today it keys generators by heap address, which a crash
+  makes reusable: the extension is to be keyed by incarnation, stage D4, with its semantics example
+  and an axiom review); the idutil model's clock assumption (the wall clock does not step back
+  across a restart, `nonissues/etcd-request-id-restart-reuse.md`) now spans machine restarts.
+
+**Trusted gap** (review F15): the binaries (`cmd/{server,client}`) parse a JSON file the harness
+writes from the deployment; the parsing is not translated, so the boot programs are `Main` applied
+to the configuration's Go value.
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.TopLevelDefs
 public import Proof.runtime.Start
+public import Proof.go_etcd_io.etcd.client.v3.DialWithBalancerBody
+public import Proof.log.NewModel
+public import GooseLang.Ext.Net.Ghost
+public import GooseLang.Ext.Fs.Ghost
+public import GooseLang.Ext.IdIssue.Specs
 public import Robustness.Statement
 
 @[expose] public section
@@ -49,7 +70,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace etcd_dist
 
-open Robustness
+open Robustness go_etcd_io.raft.v3
 
 /-- **`etcd_dist_safe`** (see the file header): every well-formed deployment of an etcd cluster on
 machines that may crash and restart, and of its checking clients on machines that never crash, is
@@ -59,9 +80,13 @@ PLACEHOLDER binders: the programs' package `Assumptions` (of `examples/etcd/dist
 closures, stage D2) join the instance binders; `threads` and `bound` are `etcd_safe`'s, to be fixed
 by the proofs (the bound counts the steps of all machines together). -/
 def etcd_dist_safe.spec : Prop :=
-  ∀ [GooseExts] [GooseSemantics] [HasExt Net.netExt] [HasExt Fs.fsExt] [HasExt idIssueExt]
+  ∀ [GooseExts] [GooseSemantics] [GooseInterp]
+    [HasExt Net.netExt] [@HasExt _ _ _ Fs.fsExt etcdFsSem _] [HasExt idIssueExt]
     [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
+    -- carried over from `etcd_robust` (review F7); each to go when its model is proved
+    [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
     -- the deployment, and its one decidable premise
     (d : Deployment) (Hd : d.WellFormed)
     -- bootstrap's results; the premises not yet discharged
@@ -70,6 +95,10 @@ def etcd_dist_safe.spec : Prop :=
     (HNs : (∀ m ∈ d.members, prometheus.namesUnclaimed (serverProg d m) serverNames) ∧
       ∀ w ∈ d.workloads,
         prometheus.namesUnclaimed (clientProg w (d.members.map Member.client)) clientNames)
+    -- `ETCD_VERIFY` off and (non-loopback addresses) no proxy variables, on every machine, until the
+    -- programs clear them themselves with a spec (`clearProxyEnv`, review F8, Q10)
+    (HEnv : (∀ m ∈ d.members, verifyEnvOff (serverProg d m)) ∧
+      ∀ w ∈ d.workloads, verifyEnvOff (clientProg w (d.members.map Member.client)))
     -- the machines' start states
     (σs σc : List state) (g : GlobalState)
     (Hσs : σs.length = d.members.length ∧ ∀ p ∈ d.members.zip σs, ServerStart p.1 p.2)
