@@ -32,6 +32,13 @@ theorem raftpb.marshalConfChangeSingle.wp_proof
   wp_start as Hc
   iunfold ccsRoC at Hc
   icases Hc with ⟨%pt, %pn, %Hnn, #HT, #cT, #HN, #cN, #Hpb⟩
+  iunfold pbMsg at Hpb
+  icases Hpb with ⟨⟨%st, %sc, %us, -, -, #Hus, #Huf⟩, %Hwire⟩
+  have Hschema : ufWire ccsSchema uf := by
+    change ufWire (pbSchemaOf raftpb.ConfChangeSingle.ty) uf at Hwire
+    simpa [pbSchemaOf, raftpb.Entry.ty, raftpb.Message.ty, raftpb.Snapshot.ty,
+      raftpb.SnapshotMetadata.ty, raftpb.ConfState.ty, raftpb.HardState.ty,
+      raftpb.ConfChange.ty, raftpb.ConfChangeSingle.ty] using Hwire
   wp_auto
   wp_apply wp_slice_literal (V := w8) []
   isplitr
@@ -62,8 +69,8 @@ theorem raftpb.marshalConfChangeSingle.wp_proof
     iframe
     ipureintro; rfl
   wp_join iprop(∃ (cur2 : GoSlice) (o2 : Option w64), "b" ∷ b_ptr ↦ cur2 ∗
-      "Hb" ∷ cur2 ↦* (ccEncOpt (W8 8) ccEnumEnc o1 ++ ccEncOpt (W8 16) ccVarint o2) ∗
-      "%Ho2" ∷ ⌜o2.getD (W64 0) = c.NodeId'⌝) with [s b Hb Hcap] as ⟨%cur2, %o2, b, Hb, %Ho2⟩
+      "s" ∷ s_ptr ↦ p ∗ "Hcap" ∷ ownSliceCap w8 cur2 (DFrac.own 1) ∗ "Hb" ∷ cur2 ↦* (ccEncOpt (W8 8) ccEnumEnc o1 ++ ccEncOpt (W8 16) ccVarint o2) ∗
+      "%Ho2" ∷ ⌜o2.getD (W64 0) = c.NodeId'⌝) with [s b Hb Hcap] as ⟨%cur2, %o2, b, s, Hcap, Hb, %Ho2⟩
   · icases cellRO_cases null c.NodeId' $$ cN with (%Hz | ⟨-, %Hn⟩)
     · iexists _, none
       simp only [ccEncOpt, List.append_nil]
@@ -83,10 +90,11 @@ theorem raftpb.marshalConfChangeSingle.wp_proof
     simp only [ccEncOpt, List.append_assoc, List.singleton_append]
     iframe
     ipureintro; rfl
+  wp_apply wp_slice_append $$ [$Hb $Hcap $Huf] as %out ⟨Hout, -, -⟩
   iapply HΦ
   iframe
   ipureintro
-  exact ⟨o1, o2, rfl, Ho1, Ho2⟩
+  exact ⟨_, ⟨o1, o2, rfl, Ho1, Ho2⟩, rfl, Hschema⟩
 
 end proof
 

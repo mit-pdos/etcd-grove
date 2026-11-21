@@ -71,10 +71,10 @@ GO_TOOLCHAIN = "go1.27.3"
 RAFT_REV = "d2c16c558247d0a07b96986fc348a003dad80f6e"
 
 # The part RaftNoAx (raft without hand-written axioms, notes/raft-noax-part.md): project raft-noax's
-# pin (the fork's branch raft37-goose-lean-noax, notes/raft-noax.md), and project kvdurable-noax's
+# pin (the fork's branch raft37-goose-lean-noax-wire-core, notes/raft-noax.md), and project kvdurable-noax's
 # source directory and Go package, examples/raft/kvdurablenoax (`etc/copy-part.py`, which reads these,
 # renames the copied kvdurable proofs' package accordingly).
-RAFT_NOAX_REV = "91e2ea70f48377487eccbf01bf80dd9787fac450"
+RAFT_NOAX_REV = "e98d795867e6d626df1cc4e71faa00c1c1f42764"
 KVDURABLE_NOAX_DIR = os.path.join("examples", "raft", "kvdurablenoax")
 KVDURABLE_NOAX_PKG = "github.com/mit-pdos/etcd-grove/examples/raft/kvdurablenoax"
 

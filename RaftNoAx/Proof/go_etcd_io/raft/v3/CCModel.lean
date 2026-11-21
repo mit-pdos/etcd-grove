@@ -41,28 +41,51 @@ structure ConfChangeV2M [GooseExts] where
   changes : List ConfChangeSingleM
   context : List w8
 
-/-- (raft-noax) What `UnmarshalConfChangeV1` (`raftpb/noax.go`, the noax fork) makes of `bs`: the
-decoded content (the getters' values: an unset field reads as zero, an unset `Context` as empty), or
-`none` where it returns an error. Statement by statement the Go decoder: the four fields, each at
-most once, in field-number order (`ccOptField`), then the end of the input. (In the main tree an
-`opaque` standing for `proto.Unmarshal`.) -/
-def ccDecodeV1 [GooseExts] (bs : List w8) : Option ConfChangeM :=
-  (ccOptField bs 0 (W8 8) ccVarintL).bind fun p1 =>
-  (ccOptField bs p1.2 (W8 16) ccEnumL).bind fun p2 =>
-  (ccOptField bs p2.2 (W8 24) ccVarintL).bind fun p3 =>
-  (ccOptField bs p3.2 (W8 34) ccFieldL).bind fun p4 =>
-  if p4.2 = bs.length then
-    some ⟨p2.1.getD (W32 0), p3.1.getD (W64 0), p4.1.getD [], p1.1.getD (W64 0)⟩
-  else none
+/-- Apply one protobuf field to the getters of a legacy configuration change. -/
+def ccV1Field [GooseExts] (b : List w8) (tag i : Nat) (m : ConfChangeM) :
+    Option (ConfChangeM × Nat) := do
+  match tag with
+  | 8 =>
+    let (v, j) ← ccVarintL b i
+    return ({ m with id := v }, j)
+  | 16 =>
+    let (v, j) ← ccEnumL b i
+    return ({ m with type := v }, j)
+  | 24 =>
+    let (v, j) ← ccVarintL b i
+    return ({ m with nodeId := v }, j)
+  | 34 =>
+    let (v, j) ← ccFieldL b i
+    return ({ m with context := v }, j)
+  | _ => return (m, ← ccSkipField b i tag)
 
-/-- (raft-noax) What `UnmarshalConfChangeV2` (`raftpb/noax.go`) makes of `bs`; `none` where it
-returns an error: the transition at most once, the changes (`ccChangesLoop`, with fuel enough for
-every iteration), the context at most once, then the end of the input. -/
-def ccDecodeV2 [GooseExts] (bs : List w8) : Option ConfChangeV2M :=
-  (ccOptField bs 0 (W8 8) ccEnumL).bind fun p1 =>
-  (ccChangesLoop bs (bs.length + 1) p1.2 []).bind fun p2 =>
-  (ccOptField bs p2.2 (W8 26) ccFieldL).bind fun p3 =>
-  if p3.2 = bs.length then some ⟨p1.1.getD (W32 0), p2.1, p3.1.getD []⟩ else none
+/-- A V2 change appends each occurrence of its repeated nested message. -/
+def ccV2Field [GooseExts] (b : List w8) (tag i : Nat) (m : ConfChangeV2M) :
+    Option (ConfChangeV2M × Nat) := do
+  match tag with
+  | 8 =>
+    let (v, j) ← ccEnumL b i
+    return ({ m with transition := v }, j)
+  | 18 =>
+    let (v, j) ← ccFieldL b i
+    let single ← ccWireSingle v
+    return ({ m with changes := m.changes ++ [single] }, j)
+  | 26 =>
+    let (v, j) ← ccFieldL b i
+    return ({ m with context := v }, j)
+  | _ => return (m, ← ccSkipField b i tag)
+
+def ccWireV1 [GooseExts] (bs : List w8) : Option ConfChangeM :=
+  ccWireAt bs (ccV1Field bs) 0 ⟨W32 0, W64 0, [], W64 0⟩
+
+def ccWireV2 [GooseExts] (bs : List w8) : Option ConfChangeV2M :=
+  ccWireAt bs (ccV2Field bs) 0 ⟨W32 0, [], []⟩
+
+/-- The getters obtained by decoding a V1 configuration change in protobuf wire order. -/
+abbrev ccDecodeV1 [GooseExts] := @ccWireV1 _
+
+/-- The getters obtained by decoding a V2 configuration change in protobuf wire order. -/
+abbrev ccDecodeV2 [GooseExts] := @ccWireV2 _
 
 /-- A conf change as `MarshalConfChange` sees it: a legacy `ConfChange` or a `ConfChangeV2`. -/
 inductive ConfChangeIM [GooseExts] where
