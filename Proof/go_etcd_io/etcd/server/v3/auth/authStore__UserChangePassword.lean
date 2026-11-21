@@ -148,7 +148,9 @@ theorem auth.authStore.UserChangePassword.wp_tie
     (try wp_auto)
     ihave #Hbc := auth.authInv_bcryptCost _ _ _ $$ Hinv
     wp_apply (h_selectPassword st pw hpw) as %pwsl %e ⟨%pwb, #Hpwsl, -⟩
-    · iframe; ipureintro; exact Hst
+    · isplitr
+      · ipureintro; exact Hst
+      iexact Hbc
     (try wp_auto)
     cases e with
     | ok ei =>
@@ -208,7 +210,7 @@ theorem auth.authStore.UserChangePassword.wp_tie
       have hput : putUser st0 urN.name urN.roles = st0 := by
         simp only [urN, putUser, Hur.2.1]
         cases st0
-        simp only [AuthState.mk.injEq, and_true, true_and]
+        simp only [AuthState.mk.injEq, _root_.and_true, _root_.true_and]
         exact GMap.insert_id _ _ _ Hur.1
       rw [hput]
       (try wp_auto)
@@ -328,7 +330,7 @@ theorem auth.authStore.UserChangePassword.wp_tie
     have hput : putUser st0 urN.name urN.roles = st0 := by
       simp only [urN, putUser, Hur.2.1]
       cases st0
-      simp only [AuthState.mk.injEq, and_true, true_and]
+      simp only [AuthState.mk.injEq, _root_.and_true, _root_.true_and]
       exact GMap.insert_id _ _ _ Hur.1
     rw [hput]
     (try wp_auto)

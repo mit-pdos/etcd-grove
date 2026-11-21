@@ -229,6 +229,14 @@ theorem b64Ok_drop4 (α : List w8) (h61 : (61 : w8) ∉ α) (l : List w8) (h : b
   obtain ⟨a, b, c, d, rest, rfl, -, -, -, -, -, -, hr⟩ := b64Ok_group α h61 l h hne
   simpa using hr
 
+/-- Padded base64 text from `i`, then from the next quantum. -/
+theorem b64Ok_dropAt (α : List w8) (h61 : (61 : w8) ∉ α) (s : List w8) (i : Nat)
+    (h : b64Ok α (s.drop i)) (hi : i < s.length) : b64Ok α (s.drop (i + 4)) := by
+  have h' := b64Ok_drop4 α h61 _ h (by intro h'; rw [List.drop_eq_nil_iff] at h'; omega)
+  have e : (s.drop i).drop 4 = s.drop (i + 4) := by
+    rw [List.drop_drop]; first | rfl | (congr 1; omega)
+  rwa [e] at h'
+
 /-- The OR of decode-map entries below 64 is not `0xff`: `assemble32`/`assemble64` accept. -/
 theorem or_lt64 (a b : w8) (ha : a.toNat < 64) (hb : b.toNat < 64) : (a ||| b).toNat < 64 := by
   rw [BitVec.toNat_or]

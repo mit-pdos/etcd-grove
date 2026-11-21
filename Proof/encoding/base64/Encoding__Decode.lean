@@ -33,6 +33,7 @@ variable [package_sem : _root_.Perennial.encoding.base64.Assumptions]
 theorem base64.ite_tt {A : Type _} (x y : A) :
     (if decide ((#true : val) = #true) = true then x else y) = x := by simp
 
+include sem in
 theorem base64.ite_ft {A : Type _} (x y : A) :
     (if decide ((#false : val) = #true) = true then x else y) = y := by
   rw [if_neg]; intro h; exact absurd (go.intoVal_inj (of_decide_eq_true h)) (by decide)

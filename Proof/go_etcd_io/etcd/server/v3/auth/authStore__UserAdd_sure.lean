@@ -207,7 +207,9 @@ theorem auth.authStore.UserAdd.wp_sure
     (try wp_auto)
     ihave #Hbc := auth.authInv_bcryptCost _ _ _ $$ Hinv
     wp_apply (h_selectPassword st pw hpw) as %pwsl %e ⟨%pwb, #Hpwsl, %Hsel⟩
-    · iframe; ipureintro; exact Hst
+    · isplitr
+      · ipureintro; exact Hst
+      iexact Hbc
     (try wp_auto)
     cases e with
     | ok ei =>
