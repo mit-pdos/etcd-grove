@@ -573,8 +573,9 @@ theorem walCrash_pure (C : WalCodec) (_hC : C.Ok) (Mr : WalMarshal) (R : Roots) 
         (∀ s ∈ g.om.rz, s ∈ f.rzs) ∧ ∀ b c, g.om.size ≤ b → g.om.pc b = some c → f.cand b = c) :
     ∃ (s' : AbsDiskState) (Ls' : GMap GoString WalLay), walStCrash s s' ∧ s'.area = s.area ∧
       walKeysInArea s' ∧ WalsStart C Mr R jr s' Ls' m' ∧ ((segsAll Ls').map (·.ino)).Nodup ∧
-      ∀ dir lay, Ls' !! dir = some lay → ∀ g ∈ lay.segs, g.ino ∈ (segsAll Ls).map (·.ino) ∧
-        ∃ f, st'.fs.files !! g.ino = some f ∧ g.om = initMeta f ∧ g.bs = f.contents.map durB := by
+      (∀ dir lay, Ls' !! dir = some lay → ∀ g ∈ lay.segs, g.ino ∈ (segsAll Ls).map (·.ino) ∧
+        ∃ f, st'.fs.files !! g.ino = some f ∧ g.om = initMeta f ∧ g.bs = f.contents.map durB) ∧
+      ∀ dir lay', Ls' !! dir = some lay' → ∃ lay, Ls !! dir = some lay ∧ lay'.j = lay.j := by
   classical
   let G := CrashGood C Mr jr s Ls m' st'
   let F : GoString → WalDur → Option (WalDur × WalLay) := fun dir d =>
@@ -622,7 +623,14 @@ theorem walCrash_pure (C : WalCodec) (_hC : C.Ok) (Mr : WalMarshal) (R : Roots) 
         rw [hFd] at h
         simp only [Option.map_some, Option.some.injEq] at h
         exact ⟨d, p.1, rfl, by rw [hFd, ← h]⟩
-  refine ⟨s', Ls', ⟨rfl, rfl, fun dir d hd => ?_, fun dir hd => ?_⟩, rfl, ?_, ⟨?_, ?_, ?_, ?_, ?_, ?_⟩, ?_, ?_⟩
+  refine ⟨s', Ls', ⟨rfl, rfl, fun dir d hd => ?_, fun dir hd => ?_⟩, rfl, ?_, ⟨?_, ?_, ?_, ?_, ?_, ?_⟩, ?_, ?_,
+    fun dir lay' h => ?_⟩
+  rotate_right
+  · -- each new layout's directory is an old layout's
+    obtain ⟨d, d', hd, hFd⟩ := hsomeL dir lay' h
+    obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, hn⟩ := (hF dir d hd).2.2 d' lay' hFd
+    obtain ⟨lay, -, -, hLs, -⟩ := hok.1 dir d hd
+    exact ⟨lay, hLs, (hn lay hLs).1⟩
   · rw [hs', hd]; exact (hF dir d hd).1
   · rw [hs', hd]; rfl
   · intro k d' h

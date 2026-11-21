@@ -170,7 +170,7 @@ theorem tester_crash (hPre : AbsDiskGpreS GF) (Q : OsState → OsState → Prop)
   imod walInv_crash walCodec walCodec_ok walRaftMr Q hQ hPre L L' W e.R e.jr (e.area) V' []
     (fun i hi => by cases hi) ((⊤ : CoPset) \ ↑tN) walN_sub_tN osShN_sub_tN $$ Hwi Hcrd Hwt Hsh Hcr
     with ⟨%W', %s', %D', Hcv, %hp, Hst, -, Hu', Hct', Hbf, Hcr⟩
-  obtain ⟨hWR', -, -, hbd, hdr, hwf, hD'⟩ := hp
+  obtain ⟨hWR', -, -, hbd, hdr, hwf, -, hD'⟩ := hp
   -- durable's crash, with the WAL's files (none at the oracle file's names)
   have hD : ∀ i ∈ D' ++ [], ∀ J b, V'.now.entry J b = some (.file i) → J ≠ e.orFile.J :=
     fun i hi => inAreaDir_not_orDir hwf ho (hD' i (by simpa using hi))

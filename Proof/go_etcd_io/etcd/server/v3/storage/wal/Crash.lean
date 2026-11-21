@@ -115,6 +115,35 @@ directory): the files the crash lemma takes are such. -/
 def InAreaDir (m : Tree) (jr i : Ino) : Prop :=
   ∃ J b a, m.entry J b = some (.file i) ∧ m.entry jr a = some (.dir J)
 
+/-- **After a crash, every WAL directory at a WAL name of the area holds no directory but at the
+pipeline's names** (pure; the crash boot's `BootFo`, its WAL-directory part off the pipeline names): the
+directory at the name is a new layout's (`WalsStart`), an old layout's directory (`walCrash_pure`), whose
+claim on every name but the pipeline's (`DirKeysOk`'s `DirClaimExcl`: `.except walTmps`) leaves no
+directory a crash may keep (`WalsNamed`'s `HistFoN`). -/
+theorem crash_noDirX {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s s' : AbsDiskState}
+    {Ls Ls' : GMap GoString WalLay} {cl : List Claim} {n : Nat} {K : GMap GoString (Ino × List GoString)}
+    {cp : Option GoString} {m' : Tree} (hnm : WalsNamed Ls cl n) (hDK : DirKeysOk C Mr jr s Ls cl n K cp)
+    (hreg : RegionCrashed cl n m') (hst : WalsStart C Mr R jr s' Ls' m')
+    (hLL : ∀ dir lay', Ls' !! dir = some lay' → ∃ lay, Ls !! dir = some lay ∧ lay'.j = lay.j) :
+    ∀ nm J, walNameOk nm → m'.entry jr nm = some (.dir J) → NoDirX (entsOf m' J) := by
+  intro nm J hw he b J' hb hd
+  have hin : InArea s'.area (s'.area ++ go!"/" ++ nm) nm := ⟨hw, rfl⟩
+  cases hs : s'.wal !! (s'.area ++ go!"/" ++ nm) with
+  | none => rw [hst.2.2.1 _ nm hin hs] at he; cases he
+  | some d =>
+    obtain ⟨lay', nm', hl', hin', -, -, he', -⟩ := hst.1 _ d hs
+    rw [← inArea_name hin hin', he] at he'
+    cases he'
+    obtain ⟨lay, hl, hj⟩ := hLL _ lay' hl'
+    obtain ⟨X2, hj2, hD2, hx2⟩ := hDK.2.2 _ lay hl
+    have hX2 : X2 = walTmps := hx2.1
+    subst hX2
+    have hmem : (lay.j, NameSet.except walTmps, hj2) ∈ cl := by
+      obtain ⟨l1, l2, hcl, -, -⟩ := hD2.2.2.1; rw [hcl]; simp
+    have hf := (hnm _ lay hl).2.2 _ _ hmem
+    rw [entsOf_lookup, hj] at hd
+    exact HistFoP.crash hreg hmem hf hb hb J' hd
+
 /-- **The WAL's crash** (plan §2.2): from the old generation's invariant, its `crashed` (from the
 crash adequacy theorem) and the WAL's crash token, the shared mode's invariant, the generation's
 `crashRest` (with the files `D` another client's crash lemma took already, none named in a directory
@@ -138,6 +167,7 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
       ∃ (W' : WalGS GF) (s' : AbsDiskState) (D' : List Ino),
         walCrashWal W W' ∗
         ⌜W'.roots = R ∧ s'.area = r ∧ DirsAvoid R jr s' ∧ WalsBounded s' ∧ DirsRoots R s' ∧ TreeWf R V'.now ∧
+          (∀ nm J, walNameOk nm → V'.now.entry jr nm = some (.dir J) → NoDirX (entsOf V'.now J)) ∧
           ∀ i ∈ D', InAreaDir V'.now jr i⌝ ∗
         walStart L' W' C Mr R jr r s' V'.now ∗
         walPast (W := W') s' ∗ walUnlockedTok (W := W') ∗ walCrashTok (W := W') ∗
@@ -159,7 +189,8 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
   · inext; iright; iframe Hcrd Htok
   icases Hb with ⟨%s, >Hb⟩
   iunfold walInvBody at Hb
-  icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, #Hcm, Hlays, %Hok, -, -, -, %Han, %Hnm, -, -, %HAt, -, %Hbd⟩
+  icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, #Hcm, Hlays, %Hok, -, -, -, %Han, %Hnm, -,
+    ⟨%K, %cp, -, -, %HDK⟩, %HAt, -, %Hbd⟩
   icases walGhost_keys_keep (W := W) s $$ Hg with ⟨Hg, %hk⟩
   icases walGhost_steps (W := W) s $$ Hg with ⟨Hg, #Hst⟩
   -- the tree: what the claims allow
@@ -178,7 +209,7 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
     (fun g _ ht hgD => hD g.ino hgD (of_decide_eq_true ht)) (walsOk_nodup Hok)
     (walsOk_cut Hok) $$ Hcr Hlays with ⟨%st, %st', %Hfs, Hstarts, Hcr, -⟩
   obtain ⟨hQs, htree, hfiles⟩ := Hfs
-  obtain ⟨s', Ls', hcrash, harea', hk', hstart, hnd', hsegs⟩ :=
+  obtain ⟨s', Ls', hcrash, harea', hk', hstart, hnd', hsegs, hLL⟩ :=
     walCrash_pure C hC Mr R jr s Ls cl n V'.now st st' Hok Han.1 Hnm hk (fun _ _ hl => HAt.ne hl) Hreg htree (hQ _ _ hQs) hfiles
   -- the taken segments' starts
   have hT : ([∗list] g ∈ segsAll Ls, if tk g then
@@ -291,7 +322,7 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
   isplitr
   · ipureintro
     refine ⟨hWR', by rw [harea', Har], fun dd hdd => Han.2 dd ?_, walsBounded_crash hcrash Hbd.1,
-      dirsRoots_crash hcrash Hbd.2, hwf, fun i hi => ?_⟩
+      dirsRoots_crash hcrash Hbd.2, hwf, crash_noDirX Hnm HDK Hreg hstart hLL, fun i hi => ?_⟩
     · rw [← hcrash.2.1]; exact hdd
     · rcases List.mem_append.1 hi with h | h
       · exact hareaB i (List.mem_filter.1 h).1
