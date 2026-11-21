@@ -129,7 +129,8 @@ theorem ContextError.wp_proof
       ihave #Hst : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status $$ []
       · iPkgInit
       ihave ⟨%m1, #Hm1⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse1
-      wp_apply wp_FromError (GoInterface.ok e1) m1 $$ [$Hst $Hse1 $Hm1] as %sv %okv ⟨-, #HCode, -⟩
+      ihave ⟨%cFE, #HcFE⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_code _ $$ Hse1
+      wp_apply wp_FromError (GoInterface.ok e1) m1 cFE $$ [$Hst $Hse1 $Hm1 $HcFE] as %sv %okv ⟨-, #HCode, -⟩
       cases okv
       · wp_auto
         iapply HΦ; iexact Hret
