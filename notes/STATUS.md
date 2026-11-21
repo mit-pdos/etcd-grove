@@ -10,6 +10,14 @@ that moved, so a reference `notes/STATUS.md, "..."` to one of them resolves ther
 record is `notes/decisions.md`; the Rocq development's notes are on branch `main`
 (`git show main:notes/STATUS.md`).
 
+## Snapshot guard removal (2026-11-20)
+
+Raft's public `sentMsg_localSnapshotLeader` law identifies a snapshot's sender
+as the local elected leader in its message term. Ready also exposes the
+snapshot's source. Proving the index bound in the etcd server still requires
+the ordering between a local restore, a Ready handout and its application.
+See `notes/snapguard-removal-plan.md`.
+
 ## Raft's two builds: the main tree without `with_tla`, `RaftTla/` with it (2026-11-16, branch `trace-check-merge-lean2`)
 
 `notes/decisions.md`, "One raft proof for both builds". The main tree translates and verifies raft
