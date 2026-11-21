@@ -30,3 +30,9 @@
   is checked only to 300 now (docstrings say so). They retire in E4.
 - Run Go as: `GOWORK=off PATH=/usr/local/go/bin:$HOME/go/bin:$PATH systemd-run --scope -q -p MemoryMax=32G
   go test -count=1 -run TestMainRun -v ./etcd/all` from `examples/`; never beside the drivers' own tests.
+
+## After E4 (the user, 2026-11-21): update the paper
+When the plan is done (E3 proved, E4 retired, landed), update the paper's Fig. 2 (grove-paper osdi27/theorem.tex,
+`fig:theorems`): the etcd section's rows become `etcd_safe` (and `etcd_leaseexpiryN_safe` as its own row), with
+counts from the paper's pipeline (Model/Driver/Verified/Axioms/Untr.), the caption's resource assumption (F4),
+and the theorem.tex comment list of wanted theorems updated. Coordinator etcd-grove-03 does or delegates it.
