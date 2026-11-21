@@ -169,3 +169,25 @@ Proved, no axiom or `sorry` (`lake build KvNet`: 2765 jobs), over an abstract `F
 Waiting for B: `F`'s instance (the table above), the minting laws' proofs, `addrs_set_proto` in
 `Hstart`; then the server side (`serveClient`, `servePeer`, `Transport`) over `server_request`,
 `server_reply`, `server_peer`, `peer_send`, and kvdurable's `Cluster.do`/`Read`-style collection.
+
+## The server side (2026-11-21)
+
+Proved over the protocol layer, no axiom or `sorry` (`lake build KvNet`: 2793 jobs), the raft and store
+calls as callee hypotheses (as a `Link.lean` passes them): `Stats.add` (a mutex over the counters),
+`Transport.dropped`, `Transport.servePeer` (frames → `server_peer` → `getMsg` → the `To` check → the
+step law → raft's `node.Step`), `Transport.dial` (`dial_au`, the hello byte through `write_acc`),
+`listen` (`Listen` retried), `Node.serveClient` (`server_request`, `handle`, the reply through
+`server_reply`/`server_noans`), `Node.serve` (hello dispatch), `Node.handle` (every kind), `Run` (the
+accept loop forking `Node.serve`; partial correctness).
+
+**Seams** (discharged after B and the crash law, at `F`'s instance): `stepLaw F γ N id` (raft's
+`stepIn_intro`: `F.msgOk src st` and a fresh copy addressed to `id` give `stepIn`), the field
+`KvFacts.msgOk_wf` (a peer frame's message is `MsgWf`), the replica predicate `rep`, `confLaw` (the
+store's conf policy: `node.ProposeConfChange`'s precondition from the requested change), and the
+stated, not yet proved, specs `Replica.propose`/`read` (`F.ansOp`/`F.ansRead`), `GetConfChange`,
+`decode` (a weak form until kvdurable's spec imports kvreconf's `Pure`), `PutStatus`, `Node.status`,
+`StartNode`. `reqOk` of `ReqDisrupt` now fixes the payload's shape (`EncodeDisrupt`'s).
+
+**Left**: `Transport.enqueue`/`Send`/`runPeer` (a per-peer channel protocol carrying the message and
+`F.msgOk`; `select` with `default`, `for range` over the channel), the stated specs' proofs, `RunNode`,
+kvnet's `Link.lean`.
