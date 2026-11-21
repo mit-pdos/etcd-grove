@@ -40,8 +40,7 @@ Goose translates them names-only, so each `X.init` is an axiom of the translatio
 runs them at program start, and etcd starts, so each returns without panicking.
 Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
 axiom opaqueInitsOk :
-    ∀ v ∈ ([keyClock.init,
-        ErrFakeClockDeadlineExceeded.init] : List val),
+    ∀ v ∈ ([ErrFakeClockDeadlineExceeded.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
 end github_com.jonboulle.clockwork
@@ -67,9 +66,10 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  wp_apply wp_GlobalAlloc (V := GoString) keyClock _ as HkeyClock
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
       EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (opaqueInitsOk keyClock.init (by mem_tac))
+  -- translated initializer of keyClock))
   wp_apply (opaqueInitsOk ErrFakeClockDeadlineExceeded.init (by mem_tac))
   iframe Hown
   is_pkg_init_finish

@@ -1266,6 +1266,11 @@ polling the endpoint's `Status`, and returns), `opaqueInitsOk` the others.''',
     finish=FIN_PRE[:6],
 )
 
+# (prove-b64clock, 2026-11-20) clockwork's `keyClock = contextKey("clock")`, translated (a string
+# conversion, which `wp_auto` runs); `ErrFakeClockDeadlineExceeded`'s `fmt.Errorf("...: %w", ...)` stays
+# untranslated (`opaqueInitsOk`): Perennial's `Errorf` model is faithful only for formats without verbs.
+SPECIAL['github_com.jonboulle.clockwork'] = dict(alloc_types={'keyClock': 'GoString'})
+
 SPECIAL['encoding.base64'] = dict(
     doc='''Its fact (`base64Init`, `encoding/base64/Base.lean`; the auth plan's E2x, 2026-10-26;
 k8s 7e-2, 2026-11-09): `StdEncoding` and `RawURLEncoding` hold fixed `*Encoding`s whose

@@ -1,6 +1,10 @@
 # Types and names only: the auto-compactor's clock (`Clock`, `NewRealClock`; the spec-first pilot,
 # notes/compactor-pilot-plan.md). Its methods are a trust boundary.
-translate = ["!*"]
+# (2026-11-20, prove-b64clock) but `keyClock = contextKey("clock")`, translated (`etc/gen-init.py`).
+# `ErrFakeClockDeadlineExceeded = fmt.Errorf("clockwork.FakeClock: %w", context.DeadlineExceeded)`
+# stays untranslated (`opaqueInitsOk`): Perennial's `Errorf` model is `errors.New(format)`, faithful
+# only for formats without verbs, so no init proof may step through a `%w` call.
+translate = ["!*", "keyClock"]
 # `time`: the interfaces' methods name `time.Time` and `time.Duration` (without it, Goose axiomatizes
 # `Clock` as an opaque type, whose values are no interface values).
 imports = ["!*", "time"]
