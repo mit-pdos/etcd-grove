@@ -105,8 +105,6 @@ axiom status.Code.wp_proof
 axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
 axiom status.Status.Code.wp_proof
-axiom strconv.FormatInt.wp_proof
-axiom strconv.ParseInt.wp_proof
 axiom streamKeyFromCtx.wp_proof
 axiom strings.Contains.wp_proof
 axiom strings.SplitN.wp_proof
