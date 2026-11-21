@@ -12,7 +12,9 @@ of the package's kind `k` (`fileutil.lkFd k i flag`, `fileutil.lockKind k`) with
 (`osLock k i fd`: no other open file description holds one; 2026-11-15, the lock semantics,
 `notes/wal-units/locks.md`); on an error a nil `*LockedFile` and the open's resources of either
 outcome (a lock error closes the file it opened, unlocked: the file stays created). A blocking lock
-takes no successful step while another description holds the lock (it waits, or fails). `flag`'s
+takes no successful step while another description holds the lock (it waits, or fails); a lock error
+after a successful open is witnessed: the file system can fail on every file (`¬ FsNoErrIno`: under
+the premises a covered blocking request ends with errno 0 or waits, 2026-11-20, wal-fsfix2). `flag`'s
 access mode writes (`F_WRLCK` needs a writable fd; the model is stuck otherwise). The package
 initialized (`isPkgInit fileutil`: the lock function, `wrlck`; its dependencies `fmt`, `os`,
 `syscall`). Proved in `Proof/go_etcd_io/etcd/client/pkg/v3/fileutil/LockFile.lean`.
@@ -21,6 +23,7 @@ Lean-first.
 module
 
 public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.LockDefs
+public import GooseLang.Ext.Fs.FsNoErr
 
 @[expose] public section
 
@@ -49,7 +52,8 @@ abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.LockFile.spec : Prop :=
       P }}
     (App (App (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.LockFile)) (Val #path))
       (Val #flag)) (Val #perm))
-  {{ (lf : Loc) (err : GoInterface), RET (PairV #lf #err); fileutil.lockPost A C path flag lf err }}
+  {{ (lf : Loc) (err : GoInterface), RET (PairV #lf #err);
+      fileutil.lockPostW (¬ FsNoErrIno) A C path flag lf err }}
 
 end spec
 

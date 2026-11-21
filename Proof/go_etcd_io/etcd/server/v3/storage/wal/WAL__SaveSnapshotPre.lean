@@ -41,7 +41,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 /-- `sync` before a rename, any locks (`walPreInL`, `WAL__cutPre.lean`). -/
 theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofPreL
     (wp_tail : go_etcd_io.etcd.server.v3.storage.wal.WAL.tail.spec (GF := GF) (hG := hG))
-    (wp_flush : go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.spec (GF := GF) (hG := hG))
+    (wp_flush : go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.specPNE (GF := GF) (hG := hG))
     (wp_Now : time.Now.spec (GF := GF) (hG := hG))
     (wp_Since : time.Since.spec (GF := GF) (hG := hG))
     (wp_Seconds_ptr : time.Duration.Seconds_ptr.spec (GF := GF) (hG := hG))
@@ -57,7 +57,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofPreL
   wp_auto
   simp only [decide_eq_false Hen]
   wp_auto
-  wp_apply (wp_flush e (wal.fileWi f) W B lim out pend c hlim) $$ [Hw] [He Hout]
+  wp_apply (wp_flush e (wal.fileWi f) W B (fun ys => ys.length ≤ lim) out pend c
+      (fun _ _ hp hy => Nat.le_trans hp.length_le hy) (by simpa using hlim)) $$ [Hw] [He Hout]
     as %err ⟨He, Hres⟩
   · iexact Hw
   · iframe; iframe #
@@ -90,7 +91,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofPreL
   have hs : {{ W (out ++ pend) }}
       (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync)) (Val #f))
     {{ (en : w64), RET #(errnoErr en); (⌜en = 0⌝ ∗ S (out ++ pend)) ∨
-        (⌜en ≠ 0⌝ ∗ W (out ++ pend)) }} := hsync (out ++ pend)
+        (⌜en ≠ 0 ∧ ¬ Fs.FsNoErrIno⌝ ∗ W (out ++ pend)) }} := hsync (out ++ pend)
   ihave Hfd := hs $$ [Hout]
   · iexact Hout
   wp_apply Hfd as %en Hsy
@@ -125,7 +126,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofPreL
       iframe; iframe #; ipureintro; exact Hen
     icases Hsy with (⟨%H0, HS⟩ | ⟨%H0, HW⟩)
     · ileft; iframe HS; ipureintro; subst H0; rfl
-    · iright; iframe HW; ipureintro; unfold errnoErr; simp; exact H0
+    · iright
+      isplitr
+      · ipureintro; unfold errnoErr; simp; exact H0.1
+      iright; iframe HW; ipureintro; exact H0.2
   · try wp_auto
     wp_apply (wp_Seconds_ptr _ dur) $$ [took] as %fl took
     · iframe
@@ -140,12 +144,15 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofPreL
       iframe; iframe #; ipureintro; exact Hen
     icases Hsy with (⟨%H0, HS⟩ | ⟨%H0, HW⟩)
     · ileft; iframe HS; ipureintro; subst H0; rfl
-    · iright; iframe HW; ipureintro; unfold errnoErr; simp; exact H0
+    · iright
+      isplitr
+      · ipureintro; unfold errnoErr; simp; exact H0.1
+      iright; iframe HW; ipureintro; exact H0.2
 
 /-- W4's `sync` before the rename, one lock: the corollary of `wp_proofPreL`. -/
 theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofPre
     (wp_tail : go_etcd_io.etcd.server.v3.storage.wal.WAL.tail.spec (GF := GF) (hG := hG))
-    (wp_flush : go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.spec (GF := GF) (hG := hG))
+    (wp_flush : go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.specPNE (GF := GF) (hG := hG))
     (wp_Now : time.Now.spec (GF := GF) (hG := hG))
     (wp_Since : time.Since.spec (GF := GF) (hG := hG))
     (wp_Seconds_ptr : time.Duration.Seconds_ptr.spec (GF := GF) (hG := hG))

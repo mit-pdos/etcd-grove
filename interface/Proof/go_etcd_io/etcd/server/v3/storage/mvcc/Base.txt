@@ -52,7 +52,7 @@ def Perennial.go_opentelemetry_io.otel.trace.isPkgInit_inst : IsPkgInit (IProp G
           isPkgInit pkg_id.go_opentelemetry_io.otel.attribute ∗
             isPkgInit pkg_id.go_opentelemetry_io.otel.codes ∗
               isPkgInit pkg_id.go_opentelemetry_io.otel.trace.embedded ∗ True),
-    isPkgInitDef := iprop(True) }
+    isPkgInitDef := go_opentelemetry_io.otel.trace.traceInit }
 
 def Perennial.go_opentelemetry_io.otel.trace.embedded.isPkgInit_inst : IsPkgInit (IProp GF)
     pkg_id.go_opentelemetry_io.otel.trace.embedded :=
@@ -103,6 +103,11 @@ def Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.isPkgInit_inst : IsPkgInit 
                                                     isPkgInit pkg_id.go_opentelemetry_io.otel.trace ∗
                                                       isPkgInit pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗ True),
     isPkgInitDef := go_etcd_io.etcd.server.v3.storage.mvcc.mvccInit }
+
+def Perennial.go_opentelemetry_io.otel.trace.traceInit : IProp GF :=
+  iprop(∃ x,
+      typedPointsto (globalAddr go_opentelemetry_io.otel.trace.noopSpanInstance)
+        (interface.mkOk go_opentelemetry_io.otel.trace.noopSpan.ty (intoVal x)) DFrac.discard)
 
 def Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.mvccInit : IProp GF :=
   iprop((∃ e,
@@ -308,6 +313,9 @@ def Perennial.go_opentelemetry_io.otel.trace.get_isPkgInit_wf_inst : GetIsPkgIni
 def Perennial.go_opentelemetry_io.otel.attribute.isPkgInit_inst : IsPkgInit (IProp GF)
     pkg_id.go_opentelemetry_io.otel.attribute :=
   { isPkgInitDeps := iprop(True), isPkgInitDef := iprop(True) }
+
+theorem Perennial.go_opentelemetry_io.otel.trace.traceInit_persistent : Persistent
+    go_opentelemetry_io.otel.trace.traceInit
 
 def Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.reportVar (mu g : GoString) : IProp GF :=
   sync.isRWMutexGuard (globalAddr mu) (go_etcd_io.etcd.server.v3.storage.mvcc.reportP g)

@@ -98,7 +98,8 @@ other operation is: not the first steps of a change (which make no system call a
 outside the roots' trees. The OFD lock requests (`OfdLock`) and the directory reads (`DirReadNext`)
 are covered on an fd of a covered inode (since 2026-11-19), a lock call only when it is blocking
 (`fcntl(F_OFD_SETLKW)`): a non-blocking one may fail with `EAGAIN` whatever the model's locks
-(`LockStep`, `locks_spurious_eagain.go`). `flock` is not covered here: `NoMapLockErr` covers it (in the
+(`LockStep`, `locks_spurious_eagain.go`); a covered blocking one ends with errno 0 or waits (its wait, a
+step since 2026-11-20, counts as `ErrnoZero`: the user's approval of option (A)). `flock` is not covered here: `NoMapLockErr` covers it (in the
 same form, its non-blocking `EAGAIN` allowed; the user's decision of 2026-11-20: one premise per call, but for an `open` with no free fd, which both may name, `noIoErr_noMapLockErr_keeps`). A path call is covered only on
 paths that fit (`PathFits`, each of `rename`'s two). -/
 def IoCovers (S : IoSet) (o : String) (v : val) (st : OsState) : Prop :=
@@ -124,10 +125,14 @@ def IoCovers (S : IoSet) (o : String) (v : val) (st : OsState) : Prop :=
 
 /-- The outcome `e'` of the operation `o` has errno 0: a success. For a directory read
 (`DirReadNext`), also `ENOENT`, which Linux answers for a removed directory, and only then
-(`meta_enoent.go`): a read of a removed directory is not an I/O error. -/
+(`meta_enoent.go`): a read of a removed directory is not an I/O error. For a blocking OFD lock request
+(`OfdLock`, covered only blocking), also the wait, the call stepping to itself (`LockStep`, 2026-11-20,
+the user's approval of option (A)): so a covered blocking request ends with errno 0 or waits, never
+fails (the semantics' only step to a call is the same call's wait). -/
 def ErrnoZero (o : String) (e' : Expr) : Prop :=
   match o with
   | "PWriteFinish" | "Fstat" | "PRead" | "Open" => ∃ r : val, e' = osRes r 0
+  | "OfdLock" => e' = Val (#(0 : w64)) ∨ ∃ w : val, e' = ExternalOp fsExt.name "OfdLock" (Val w)
   | "DirReadNext" => ∃ (b : GoString) (dn e : w64), e' = Val (PairV (#b) (PairV (#dn) (#e))) ∧
       (e = 0 ∨ e = ENOENT)
   | _ => e' = Val (#(0 : w64))
@@ -171,15 +176,15 @@ needs; the model always has a free fd for `open`, so `EMFILE`/`ENFILE` are exclu
 environment's fd limits make true: `Impl.lean`'s "Environment", `env_config.go`). Since 2026-11-19 also: a failing blocking OFD lock request (`fcntl` with
 `F_OFD_SETLKW`) on a covered file that no other description conflicts with (`LockConflict`: another
 fd's, or one a live mapping holds after its fd's close, `MapDesc`; `ENOLCK`, `EINTR`, ...), and a
-failing blocking OFD unlock (`F_OFD_SETLKW` with `F_UNLCK`) (`flock`: `NoMapLockErr`); a directory
+failing blocking OFD unlock (`F_OFD_SETLKW` with `F_UNLCK`) (`flock`: `NoMapLockErr`); since 2026-11-20
+(the user's approval of option (A)), a failing blocking OFD lock request in conflict too: it waits
+(its step to itself, `LockStep`, counts as `ErrnoZero`); a directory
 read (`getdents64`, a step of `Readdirnames`) of a covered directory ending with an errno other than
 `ENOENT` (`EIO`, `EINTR`, ...) while the directory has a name to return or is at its end.
 
 What it does **not** exclude, because the semantics then has no success: `EFBIG` at `maxBytes`
 (ext4's `s_maxbytes`), the failures of a path call that cannot succeed
-in that state (`ENOENT`, `EEXIST`, `ENOTEMPTY`, `EISDIR`, ...), and the failure of a lock request
-that conflicts with a lock another description holds (another fd's, or one a live mapping keeps
-after its fd's close: `EAGAIN`, ...); `ENOENT` from a read of
+in that state (`ENOENT`, `EEXIST`, `ENOTEMPTY`, `EISDIR`, ...); `ENOENT` from a read of
 a directory (the semantics gives it only for a removed one); and nothing about a call `IoCovers`
 does not name (`mmap`, `flock`, `lstat`, ...), a non-blocking OFD lock request (which may fail with `EAGAIN` while
 another process holds a reference to a description the program closed, a `/proc/<pid>/fdinfo` read:
@@ -249,7 +254,9 @@ def MapLockCovers (S : IoSet) (o : String) (v : val) (st : OsState) : Prop :=
 /-- The outcome `e'` of the operation `o` on `v` is no error of the environment: errno 0; for a
 non-blocking `flock` lock request (`LOCK_SH` or `LOCK_EX` with `LOCK_NB`), also `EAGAIN`, the
 conflict with another description's lock (no error: the caller's to handle, bbolt's `flock` retries
-on it); for `mmap`, also the step to itself with no room in the address space (`MmapStall`: the
+on it); for a blocking `flock` lock request, also its wait, the call stepping to itself (`LockStep`,
+2026-11-20, the user's approval of option (A): a covered blocking request ends with errno 0 or waits);
+for `mmap`, also the step to itself with no room in the address space (`MmapStall`: the
 call does not return, Go's out of memory; see `NoMapLockErr`); for `open` with no free fd,
 `EINTR` with the fd `-1`, which every model of `open` in `TrustedCode/os.lean` retries, so the Go
 call does not return (out of descriptors, as out of memory; see `NoMapLockErr`), or errno 0 (a
@@ -258,8 +265,9 @@ def MapLockOk (o : String) (v : val) (e' : Expr) : Prop :=
   match o with
   | "Open" => (∃ r : val, e' = osRes r 0) ∨ e' = osRes (#(-1 : w64)) EINTR
   | "Flock" => e' = Val (#(0 : w64)) ∨
-      ∃ (fd how : w64) (ex : Bool), v = PairV (#fd) (#how) ∧ flockReq how.toNat = some (some ex, true) ∧
-        e' = Val (#EAGAIN)
+      (∃ (fd how : w64) (ex : Bool), v = PairV (#fd) (#how) ∧ flockReq how.toNat = some (some ex, true) ∧
+        e' = Val (#EAGAIN)) ∨
+      e' = ExternalOp fsExt.name "Flock" (Val v)
   | "Mmap" => (∃ r : val, e' = osRes r 0) ∨ e' = ExternalOp fsExt.name "Mmap" (Val v)
   | _ => e' = Val (#(0 : w64))
 
@@ -291,8 +299,9 @@ already excludes `EMFILE` on a covered path wherever the model has a free fd; th
 none takes `2 ^ 63` opens, more than a run's steps (`receiptBound`). With a free fd this clause says
 nothing (the two premises name disjoint steps, `noIoErr_noMapLockErr_keeps`).
 
-What it does **not** exclude: a blocking `flock` request on a conflict (the semantics has no success
-there, `LockStep`); `mmap`'s step to itself when the address space has no room (the process's
+What it does **not** exclude: a blocking `flock` request's wait on a conflict (the semantics has no
+success there, `LockStep`; since 2026-11-20, the user's approval of option (A), the wait is a step and
+the failures there are excluded: such a request waits, as on Linux, `locks_blocking.go`); `mmap`'s step to itself when the address space has no room (the process's
 address space is shared by the mappings and the Go heap, both in `(0, maxAddr]`, and a premise on
 steps does not see the heap: the stall, a step of the semantics that sees it, is what is left from a
 state whose heap leaves no room, so the premise keeps a step there, `StepKeeps`; the model treats
@@ -300,7 +309,9 @@ running out of address space as the Go runtime's out of memory, outside the mode
 `AllocOOMS`). Nor anything about the OFD lock (`fcntl`): `NoIoErr` covers its blocking requests.
 
 An environment assumption, not a property of Linux (evidence: assumed): the kernel's lock and
-mapping calls do not fail on these files for want of kernel memory or descriptors, the process is
+mapping calls do not fail on these files for want of kernel memory or descriptors, no signal interrupts
+their blocking `flock` requests (the Go runtime installs every handler with `SA_RESTART`, measured:
+`locks_blocking.go`), no other process locks them (as `NoIoErr`'s assumption), the process is
 below its map count (`vm.max_map_count`) and its `RLIMIT_AS`, and no seal, `noexec` mount or
 file-system type refuses a shared read-only mapping
 (`examples/osfs/semantics/premise_no_map_lock_err.go`). It is the condition (with `NoIoErr`) under

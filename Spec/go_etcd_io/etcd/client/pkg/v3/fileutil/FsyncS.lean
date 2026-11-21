@@ -34,7 +34,7 @@ abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.Fsync.specDirS : Prop :=
       osLogLb n }}
     (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.Fsync)) (Val #f))
   {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ osDirFdS fd j ph ∗
-      ((⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err) ∨ ⌜err = interface.nil⌝ ∗ osCommitLb n) }}
+      ((⌜err ≠ interface.nil ∧ ¬ FsNoErrIno⌝ ∗ fmtErrorOk err) ∨ ⌜err = interface.nil⌝ ∗ osCommitLb n) }}
 
 /-- `Fsync(f)` of an fd of a directory outside the roots' trees (`osOutFd`, `OpenDir` of a strict
 ancestor of a root): any error, nothing claimed (2026-11-13). -/

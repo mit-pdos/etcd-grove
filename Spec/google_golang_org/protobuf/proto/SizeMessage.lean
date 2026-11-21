@@ -30,7 +30,11 @@ capacity) returns some `int` at least `0`, the message back.
 Against protobuf-go v1.36.12 (`proto/size.go`, `internal/impl/encode.go:118-129`): `Size` is the
 length of the wire encoding, a non-negative `int`; it reads the message (its entries, snapshot,
 context and responses) and stores the size cache atomically: a write to the hidden fields only,
-which the hidden-field invariant (`pbMsg`, inside `msgPtsC`) owns. -/
+which the hidden-field invariant (`pbMsg`, inside `msgPtsC`) owns.
+**Known false (2026-11-20, open)**: the sum wraps (`proto.SizePb`), and `msgPtsC` admits shared entries
+and says nothing of the responses, so `0 ≤ n` fails for a message repeating one large sub-message
+(`notes/axiom-review/proto-size-wrap.md`, `examples/axiomcx/protosizewrap`); the fix waits on the
+rafthttp receiver's size facts. -/
 abbrev proto.SizeMessage.spec : Prop :=
   ∀ (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ msgPtsC l dq dqe cap ms }}

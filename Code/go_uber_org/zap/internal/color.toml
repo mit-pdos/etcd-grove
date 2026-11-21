@@ -1,0 +1,7 @@
+# zap's terminal colors (prove-misc, 2026-11-20), with their bodies: zapcore's `init` formats each
+# level's color with `Color.Add` (`fmt.Sprintf`).
+translate = ["*"]
+imports = ["!*", "fmt"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

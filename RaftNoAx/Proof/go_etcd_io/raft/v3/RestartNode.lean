@@ -2,6 +2,7 @@
 /- Lean-first (no Rocq counterpart). -/
 module
 
+public import RaftNoAx.Proof.go_etcd_io.raft.v3.SnapshotHistory
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.RestartNode
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.newNode
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.node__run
@@ -548,8 +549,12 @@ private theorem wp_RestartNode_impl
   imod saved_pred_alloc Cert DFrac.discard trivial
     with ⟨%gsv, #Hsv⟩
   imod saved_pred_alloc (raftSnapCertD (GF := GF) γ.raft) DFrac.discard trivial with ⟨%gk, #Hgk⟩
+  imod snapHistory_alloc (GF := GF) with ⟨%history, Hclock⟩
+  imod installHistory_alloc (GF := GF) with ⟨%installs, Hinst⟩
+  ihave Hhistory : iprop(snapHistoryOwn history 0 0 ∗ installHistoryOwn installs 0 []) $$ [Hclock Hinst]
+  · iframe Hclock Hinst
   let sn : StorNames :=
-    { ga := ga, gg := gg, gsv := gsv, gd := gdd, gk := gk, a0 := max σ.b (uint.nat cv.Applied'),
+    { ga := ga, gg := gg, gsv := gsv, gd := gdd, gk := gk, history := history, installs := installs, a0 := max σ.b (uint.nat cv.Applied'),
       c0 := σ.commit, ct := restartCt (fp ++ σ.ents) σ.commit, sz := γ.raft.maxData.isSome }
   let σv : StorState :=
     { prev := σ.base, ents := σ.ents, pend := [], fl := σ.base.index', fr := f,
@@ -659,8 +664,8 @@ private theorem wp_RestartNode_impl
     rw [HtrG]; iframe Hnc
     -- the attach: a fresh key recording raft's storage names
     imod dghostVar_alloc (GF := GF)
-      ((sn.ga, sn.gg, sn.gsv, sn.gd, sn.gk, sn.a0, sn.c0, sn.ct, sn.sz) :
-        Nat × Nat × Nat × Nat × Nat × Nat × Nat × List (Nat × w64) × Bool) with ⟨%K, HK⟩
+      ((sn.ga, sn.gg, sn.gsv, sn.gd, sn.gk, sn.a0, sn.c0, sn.ct, sn.sz, sn.history, sn.installs) :
+        Nat × Nat × Nat × Nat × Nat × Nat × Nat × List (Nat × w64) × Bool × Nat × Nat) with ⟨%K, HK⟩
     imod dghostVar_persist K 1 _ $$ HK with #HK
     ihave #HKn : storKeyNames (GF := GF) K sn $$ []
     · unfold storKeyNames; iexact HK
@@ -906,7 +911,7 @@ private theorem wp_RestartNode_impl
     · show (a : Int) ≤ uint.Z s.logst.committed
       rw [Hcm, Hca]; unfold StorContents.commit at Ha2; have := uint_nat_eq σ.hs.Commit'; omega
     · change s.logst.snap = some p at hp; rw [Hsn0] at hp; cases hp
-  ihave Hrn : ownRawNode γ.raft rn cv.ID' rs0 $$ [Hrn Hphys Hghost Hsteps Hsteps_cap]
+  ihave Hrn : ownRawNode γ.raft rn cv.ID' rs0 $$ [Hrn Hphys Hghost Hsteps Hsteps_cap Hhistory]
   · iapply ownRawNode_intro γ.raft rn cv.ID' rs0 s1 (stOf m).cfg fp (ds := MA) rnv sv hprev []
       (Hglq := by show s.gh.lq = []; rw [Hgh])
       Hrel.2 (fun h => by simp only [rs0] at h; rw [Hmd] at h; cases h) Hasync
@@ -929,13 +934,14 @@ private theorem wp_RestartNode_impl
           exact ⟨hi2, t, ht⟩⟩
       Hsvr.1.symm HphsR
       (show s.gh.tr = γ.raft.reTrace by rw [Hgh, HtrG])
-      $$ Hrn Hphys Hghost [] Hsoft Hph Hsteps Hsteps_cap [] HcD [] [] [] [] Hdurt
+      $$ Hrn Hphys Hghost [] Hsoft Hph Hsteps Hsteps_cap [] HcD [] [] [] [] [Hhistory] Hdurt
     · iunfold sdrOk; iexists _; iexact Hsd0
     · iapply pendList_nil
     · iapply ackInv_none; intro _ _ _ _ h; cases h
     · iapply loanCom_none γ.raft rfl
     · rw [show s1.logst.snap = none from Hsn0]; iapply snapLocOk_none
     · rw [show s1.logst.ksn = [] from Hksn]; iapply restoredSnapHistory_nil
+    · iapply restoreLedger_fresh γ.raft cv.ID' sn s1 (show s1.logst.ksn = [] from Hksn) Ho $$ Hhistory
   -- the driver's view of the configuration is the node's: at the configuration point `a`
   have Hhp : hprev = σ.hs := by rw [Hhz, Hca]
   -- raft's certified terms of the committed log handed out (the attach record's)

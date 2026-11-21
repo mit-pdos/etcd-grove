@@ -27,7 +27,9 @@ txn_WarnOfFailedRequest:
 prometheus_GaugeVec__WithLabelValues:
 context_WithValue:
 storage_NewBackendQuota:
-storage_BackendQuota__Cost:
+etcdserverpb_RequestOp__GetRequestPut:
+etcdserverpb_RequestOp__GetRequestTxn:
+storage_BackendQuota__Cost: etcdserverpb_RequestOp__GetRequestPut etcdserverpb_RequestOp__GetRequestTxn
 context_TODO:
 # `errors.Is` (`dispatch`'s deferred metrics, on any error): the server's axiom, stated under the
 # errors package's assumptions since unit 2 (Spec/errors/Is.lean).

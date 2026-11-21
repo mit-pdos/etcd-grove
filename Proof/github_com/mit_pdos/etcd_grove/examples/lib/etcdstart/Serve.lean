@@ -78,7 +78,7 @@ theorem Serve.wp_proof
   (try wp_auto)
   imod ownSlice_persist _ _ _ $$ Hgsl with #Hgsl
   wp_apply (wp_Server Hms s C _ _ [kv] Hbuq (by omega)) $$ [Hlg3 Hbemu Hgo]
-    as %gs ⟨%q, %p, %pw, %pa, %ql, %pl, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %cid, %mid,
+    as %gs ⟨%q, %p, %pw, %pa, %ql, %pl, %pc, %pm, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %cid, %mid,
       %lcid, %lmid, %R,
       Hgsn, %Hregs, #Has, #Hql, #Hlat, #Hq, #Hkvs, #Hws, %HR, #Hil, #Him, #Hiu, #Hims, #His, Hlg4,
       Hbemu2, Hgo2⟩
@@ -88,6 +88,8 @@ theorem Serve.wp_proof
     ipureintro; intro v hv
     simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hv
     subst hv; exact Hkv
+  -- the registrations' old form (`serverRegsOk`, exact since auth-mediation M1)
+  replace Hregs := v3rpc.serverRegsOk_sub Hregs
   -- `net.Listen("tcp", addr)`
   wp_apply (wp_Listen go!"tcp" addr) $$ [Haddr] as %lis %lerr Hlis
   · iframe; ipureintro; rfl

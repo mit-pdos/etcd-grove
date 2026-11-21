@@ -96,7 +96,7 @@ abbrev setupNode.spec : Prop :=
               ((⌜γ.reNoSnap = false⌝ ∨ storCapF (interface.ok si) 1) ∗ R') }}) ∗
       peers ↦*{dq} pv ∗ peersCtx pv ctxs ∗ bootMarshal ps ctxs bootLog ∗
       bootInit γ md cv.ID' (GMap.listToSet ps) bootLog ∗ isCommitted γ bootLog ∗
-      certLink γ sn ∗
+      certLink γ sn ∗ (snapHistoryOwn sn.history 0 0 ∗ installHistoryOwn sn.installs 0 []) ∗
       -- (step 5) the capability's start (untraced: the nil logger)
       trCapStart γ.reTrace γ cv.ID' cv.TraceLogger' (bootCfg ps) (bootPhase ps cv.ID') bootNone }}
     (App (App (Val #(functions setupNode [])) (Val #c)) (Val #peers))

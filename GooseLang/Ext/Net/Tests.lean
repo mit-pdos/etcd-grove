@@ -8,7 +8,9 @@ And D22 (v3.2): every operation may stutter in every state, every state has an o
 stutter (`isNetStep_total`, `isNetStep_result`; v3.3: but a `Write`'s first step while another
 `Write` of the end holds its write lock, D25), invalid uses panic, and the waits v3.1's relations
 had (a blocked `Read`, `Accept`, a `Write` step counting nothing) are stutters. v3.3: socket options
-(D24), the write lock (D25).
+(D24), the write lock (D25). v3.4: no plan and no hosts: any machine may listen at a valid address
+or wildcard (D6, D21), a wildcard listener takes any address with its port, an invalid address
+panics (D20, D22), and a crash leaves a machine in its initial state.
 -/
 module
 
@@ -274,26 +276,53 @@ example : timeIsZero 0 0 = true ∧ timeIsZero 1 0 = false := by decide
 
 /-! ## Listeners, Dial (D6-D9, D16, D21) -/
 
-private def planA : GMap GoString GoString := GMap.ofList [(go!"127.0.0.1:7101", go!"h")]
-
-private theorem planA_lookup : planA !! go!"127.0.0.1:7101" = some go!"h" := by
-  unfold planA GMap.ofList; exact GMap.lookup_insert _ _ _
-
-/-- `TestAddressAliases` (D21): `":7101"` listens at the plan's only address with port 7101, at
-this node's host. -/
-example : ListenAt planA go!"h" go!":7101" go!"127.0.0.1:7101" := by
-  refine ⟨planA_lookup, .inr ⟨?_, go!"7101", by decide, by decide, fun x hx hp => ?_⟩⟩
-  · unfold planA GMap.ofList; exact GMap.lookup_insert_ne _ _ (by decide)
-  simp only [planA, GMap.ofList] at hx
-  by_cases h : go!"127.0.0.1:7101" = x
-  · exact h.symm
-  · rw [GMap.lookup_insert_ne _ _ h] at hx; cases hx
+/-- `TestAddressAliases`, `TestWildcardListen` (D21): `":7101"`, `"0.0.0.0:7101"` and
+`"[::]:7101"` are valid `Listen` addresses, and take a connection dialed to any address with the
+port 7101; a listener at a valid address takes only its own. -/
+example : listenOk go!":7101" = true ∧ listenOk go!"0.0.0.0:7101" = true ∧
+    listenOk go!"[::]:7101" = true ∧ listenOk go!"127.0.0.1:7101" = true := by decide
+example : lisAccepts go!":7101" go!"127.0.0.1:7101" ∧ lisAccepts go!"[::]:7101" go!"10.0.0.2:7101" :=
+  ⟨.inr ⟨go!"7101", by decide, by decide⟩, .inr ⟨go!"7101", by decide, by decide⟩⟩
+example : ¬ lisAccepts go!"127.0.0.1:7101" go!"127.0.0.2:7101" := by
+  rw [lisAccepts_addrOk (by decide)]; decide
+example : ¬ lisAccepts go!":7101" go!"127.0.0.1:7102" := by
+  rintro (h | ⟨p, hw, hp⟩)
+  · cases h
+  · have : wildPort go!":7101" = some go!"7101" := by decide
+    rw [this] at hw; cases hw; revert hp; decide
 example : wildPort go!"0.0.0.0:7101" = some go!"7101" ∧ wildPort go!"[::]:7101" = some go!"7101" ∧
     wildPort go!"127.0.0.1:7101" = none := by decide
 
-/-- (excluded) a listen at another host's address. -/
-example : ¬ ListenAt planA go!"g" go!"127.0.0.1:7101" go!"127.0.0.1:7101" := by
-  intro h; have := h.1; rw [planA_lookup] at this; simp at this
+/-- (excluded, D20) a `Listen` of a hostname, a non-canonical spelling, an ephemeral or zero port, a
+wildcard whose port is not canonical: not valid. -/
+example : listenOk go!"localhost:7101" = false ∧ listenOk go!"127.0.0.01:7101" = false ∧
+    listenOk go!"127.0.0.1:40000" = false ∧ listenOk go!":0" = false ∧
+    listenOk go!":07101" = false := by decide
+
+section
+variable [GooseExts] [GoGlobalContext]
+
+/-- (v3.4) `TestListenNotLocal`: a `Listen` at an address that is not this machine's fails
+(`EADDRNOTAVAIL`), which the model allows of every `Listen`; and any machine may listen at a valid
+address (the model does not know the owner). -/
+example (L : NetLocal) : ListenStep go!"10.0.0.2:7101" L (Val (failV .sys)) L := .inl ⟨rfl, rfl⟩
+example : ListenStep go!"10.0.0.2:7101" ⟨∅⟩ (Val (PairV (#(W64 1)) (#(W64 0))))
+    ⟨(∅ : GMap w64 (GoString × Bool)).insert (W64 1) (go!"10.0.0.2:7101", true)⟩ :=
+  .inr ⟨fun l h => by simp at h, W64 1, by decide, rfl, rfl, rfl⟩
+/-- (excluded) `TestListenTwice`: a second `Listen` at an address this machine listens at only
+fails (`EADDRINUSE`). -/
+example (e' : Expr) (L' : NetLocal)
+    (h : ListenStep go!"127.0.0.1:7101"
+      ⟨(∅ : GMap w64 (GoString × Bool)).insert (W64 1) (go!"127.0.0.1:7101", true)⟩ e' L') :
+    e' = Val (failV .sys) := by
+  rcases h with ⟨rfl, -⟩ | ⟨hno, -⟩
+  · rfl
+  · exact absurd (GMap.lookup_insert _ _ _) (hno (W64 1))
+
+/-- D10 (v3.4): a crash leaves a machine in its initial state. -/
+example (L L' : NetLocal) (h : net_semantics.crash L L') : L'.init := crash_init L L' h
+
+end
 
 /-- `TestAcceptAfterListenerClose` (D9, D17): `LisClose` of an open listener succeeds, of a closed
 one is `closed`. -/
@@ -373,8 +402,8 @@ theorem isNetStep_total (op : String) (v : val) (L : NetLocal) (g : NetGlobal)
   unfold IsNetStep
   split
   · apply orInvalid_total
-    rintro ⟨a, a0, rfl, hla⟩
-    exact ⟨_, _, _, a, rfl, ⟨a0, hla, .inl ⟨rfl, rfl⟩⟩, rfl⟩
+    rintro ⟨a, rfl, hla⟩
+    exact ⟨_, _, _, a, rfl, hla, .inl ⟨rfl, rfl⟩, rfl⟩
   · apply orInvalid_total
     rintro ⟨l, ⟨a, o⟩, rfl, hl⟩
     cases o
@@ -464,7 +493,7 @@ theorem isNetStep_result {op : String} {v : val} {L L' : NetLocal} {g g' : NetGl
   unfold IsNetStep at h
   split at h
   · refine orInvalid_result ?_ h
-    rintro ⟨a, -, ⟨a0, -, ⟨rfl, -⟩ | ⟨-, l, -, -, rfl, -⟩⟩, -⟩ <;> exact ⟨_, rfl⟩
+    rintro ⟨a, -, -, ⟨rfl, -⟩ | ⟨-, l, -, -, rfl, -⟩, -⟩ <;> exact ⟨_, rfl⟩
   · refine orInvalid_result ?_ h
     rintro ⟨l, a, o, -, -, ⟨-, rfl, -⟩ | ⟨-, rfl, -⟩ | ⟨-, c, cn, -, -, -, -, rfl, -⟩, -⟩ <;>
       exact ⟨_, rfl⟩
@@ -494,26 +523,26 @@ theorem isNetStep_result {op : String} {v : val} {L L' : NetLocal} {g g' : NetGl
 example (op : String) (v : val) (h : GMap Loc (NonAtomic val)) (L : NetLocal) (g : NetGlobal) :
     NetStep op v h L g (ExternalOp netExt.name op (Val v)) h L g := ⟨rfl, .inl ⟨rfl, rfl, rfl⟩⟩
 
-private def gA : NetGlobal := ⟨planA, ∅⟩
-private def LA : NetLocal := ⟨go!"h", ∅⟩
+private def gA : NetGlobal := ⟨∅⟩
+private def LA : NetLocal := ⟨∅⟩
 
-/-- D22, D13: `Listen` of an address that is not the plan's at this host panics, and only panics
-(besides the stutter): another host's address, an address not in the plan. -/
+/-- D22, D20: `Listen` or `Dial` of an invalid address panics, and only panics (besides the
+stutter): a hostname, a wildcard `Dial`. -/
 example (e' : Expr) (L' : NetLocal) (g' : NetGlobal)
-    (h : IsNetStep "Listen" (#go!"127.0.0.1:7101") ⟨go!"g", ∅⟩ gA e' L' g') : e' = panicE := by
-  rcases h with ⟨a, ha, ⟨a0, hla, -⟩, -⟩ | ⟨-, h, -⟩
+    (h : IsNetStep "Listen" (#go!"localhost:7101") LA gA e' L' g') : e' = panicE := by
+  rcases h with ⟨a, ha, hok, -⟩ | ⟨-, h, -⟩
   · obtain rfl := go.intoVal_inj (V := GoString) ha
-    obtain ⟨hp, rfl | ⟨hn, -⟩⟩ := hla
-    · simp [gA, planA_lookup] at hp
-    · simp [gA, planA_lookup] at hn
+    exact absurd hok (by decide)
   · exact h
 example (e' : Expr) (L' : NetLocal) (g' : NetGlobal)
-    (h : IsNetStep "Dial" (#go!"127.0.0.2:7101") LA gA e' L' g') : e' = panicE := by
+    (h : IsNetStep "Dial" (#go!":7101") LA gA e' L' g') : e' = panicE := by
   rcases h with ⟨a, ha, ⟨hp, -⟩, -⟩ | ⟨-, h, -⟩
   · obtain rfl := go.intoVal_inj (V := GoString) ha
-    simp only [gA, planA, GMap.ofList] at hp
-    rw [GMap.lookup_insert_ne _ _ (by decide)] at hp; cases hp
+    exact absurd hp (by decide)
   · exact h
+/-- (v3.4) a valid address at any machine does not panic. -/
+example : IsNetStep "Listen" (#go!"10.0.0.2:7101") LA gA (Val (failV .sys)) LA gA :=
+  .inl ⟨go!"10.0.0.2:7101", rfl, by decide, .inl ⟨rfl, rfl⟩, rfl⟩
 
 /-- D22: an operation on an id that names nothing (here `0`, the zero value's, which the models
 never pass: they return `syscall.EINVAL` first, `Net/TrustedCode/net.lean`'s `model.einval`)
@@ -536,14 +565,14 @@ example (v : val) (e' : Expr) (L' : NetLocal) (g' : NetGlobal)
 behavior of v3.1's wait clause). -/
 example (cn : NetConn) (hca : cn.addr = go!"127.0.0.1:7101") (hacc : cn.accepted = false)
     (h0 : GMap Loc (NonAtomic val)) :
-    let L : NetLocal := ⟨go!"h", (∅ : GMap w64 (GoString × Bool)).insert (W64 5)
+    let L : NetLocal := ⟨(∅ : GMap w64 (GoString × Bool)).insert (W64 5)
       (go!"127.0.0.1:7101", true)⟩
-    let g : NetGlobal := ⟨planA, (∅ : GMap Nat NetConn).insert 1 cn⟩
+    let g : NetGlobal := ⟨(∅ : GMap Nat NetConn).insert 1 cn⟩
     NetStep "Accept" (#(W64 5)) h0 L g (ExternalOp netExt.name "Accept" (Val (#(W64 5)))) h0 L g ∧
     NetStep "Accept" (#(W64 5)) h0 L g (Val (PairV (#(endId 1 true)) (#(W64 0)))) h0 L
       (g.setConn 1 { cn with accepted := true }) := by
   refine ⟨⟨rfl, .inl ⟨rfl, rfl, rfl⟩⟩, rfl, .inr (.inl ⟨W64 5, go!"127.0.0.1:7101", true, rfl,
-    GMap.lookup_insert _ _ _, .inr (.inr ⟨rfl, 1, cn, GMap.lookup_insert _ _ _, hca, hacc,
+    GMap.lookup_insert _ _ _, .inr (.inr ⟨rfl, 1, cn, GMap.lookup_insert _ _ _, .inl hca.symm, hacc,
       by decide, rfl, rfl⟩), rfl⟩)⟩
 
 /-- D22: a blocked `Read` (D1, nothing unread, the writer open) stutters, then returns the bytes
@@ -571,7 +600,7 @@ example (r : ReadRes) (d' : NetDir) (h : ReadOutcome st0 ⟨[], .open⟩ 3 r d')
 outcome; an empty one finishes with `0`. -/
 example (h0 : GMap Loc (NonAtomic val)) (cn : NetConn) (hd : cn.up = ⟨[], .open⟩)
     (he : cn.dEnd = st0) :
-    let g : NetGlobal := ⟨planA, (∅ : GMap Nat NetConn).insert 1 cn⟩
+    let g : NetGlobal := ⟨(∅ : GMap Nat NetConn).insert 1 cn⟩
     NetStep "Write" (PairV (#(endId 1 false)) (PairV (#b3) (#true))) h0 LA g
         (ExternalOp netExt.name "Write" (Val (PairV (#(endId 1 false)) (PairV (#b3) (#true))))) h0
         LA g ∧
@@ -585,14 +614,14 @@ the end's write lock; while it is held, another `Write`'s first step has no outc
 the bytes of two `Write`s of one end never interleave. -/
 example (cn : NetConn) (hl : cn.lock false = false) (hd : cn.up = ⟨[], .open⟩)
     (he : cn.dEnd = st0) :
-    let g : NetGlobal := ⟨planA, (∅ : GMap Nat NetConn).insert 1 cn⟩
+    let g : NetGlobal := ⟨(∅ : GMap Nat NetConn).insert 1 cn⟩
     WriteStep 1 false b3 true g (Val (PairV (#(BitVec.ofNat 64 1)) (#(errCode none))))
       (g.setConn 1 ((cn.setOut false ⟨[97], .open⟩).setLock false true)) := by
   refine ⟨cn, 1, none, ⟨[97], .open⟩, GMap.lookup_insert _ _ _, by simp [hl], ?_, rfl, ?_⟩
   · simp only [NetConn.endSt, NetConn.out, hd, he]; unfold WriteOutcome; decide
   · simp [writeLast, b3]
 example (cn : NetConn) (hl : cn.lock false = true) (bs : List w8) (e' : Expr) (g' : NetGlobal) :
-    ¬ WriteStep 1 false bs true ⟨planA, (∅ : GMap Nat NetConn).insert 1 cn⟩ e' g' := by
+    ¬ WriteStep 1 false bs true ⟨(∅ : GMap Nat NetConn).insert 1 cn⟩ e' g' := by
   rintro ⟨cn', k, res, d', hcn, hl', -⟩
   simp only [GMap.lookup_insert, Option.some.injEq] at hcn
   subst hcn
@@ -602,7 +631,7 @@ its last step (every byte written, or a failure) frees it. -/
 example : writeLast b3 1 none = false ∧ writeLast [98, 99] 2 none = true ∧
     writeLast [98, 99] 0 (some .closed) = true ∧ writeLast [] 0 none = true := by decide
 example (cn : NetConn) (hl : cn.lock false = false) (bs : List w8) (e' : Expr) (g' : NetGlobal) :
-    ¬ WriteStep 1 false bs false ⟨planA, (∅ : GMap Nat NetConn).insert 1 cn⟩ e' g' := by
+    ¬ WriteStep 1 false bs false ⟨(∅ : GMap Nat NetConn).insert 1 cn⟩ e' g' := by
   rintro ⟨cn', k, res, d', hcn, hl', -⟩
   simp only [GMap.lookup_insert, Option.some.injEq] at hcn
   subst hcn

@@ -1,0 +1,41 @@
+/-
+`etcdserverpb.RequestOp.GetRequestTxn()` (`api/etcdserverpb/rpc.pb.go`, translated for the
+quota's `storage.BackendQuota.Cost`; etcdstorage, 2026-11-20). Lean-first (no Rocq counterpart); see the txn
+package's `Requests.lean`.
+-/
+module
+
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Requests
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI go_etcd_io.etcd.api.v3
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
+
+/-- `op.GetRequestTxn()` of a `*pb.RequestOp` denoting `op` (`txn.requestOpIs`): its transaction
+request (not `nil`, with its fields: `txn.txnFieldsIs`) if it is a nested transaction, else `nil`. -/
+abbrev RequestOp.GetRequestTxn.spec : Prop :=
+  ∀ (p : Loc) (op : TxnOp),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ txn.requestOpIs p op }}
+    (App (Val (p @!! go.GoType.PointerType etcdserverpb.RequestOp.ty @!! go!"GetRequestTxn"))
+      (Val #()))
+  {{ (r : Loc), RET #r;
+      match op with
+      | .txn cs ts es => ⌜r ≠ null⌝ ∗ txn.txnFieldsIs r cs ts es
+      | _ => ⌜r = null⌝ }}
+
+end spec
+
+end EtcdGrove
+end Perennial

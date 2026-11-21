@@ -299,6 +299,10 @@ structure StorNames where
   at contents of bounded size, cut at `maxSize` (`entsPtsC`, `entsCut`). The node pins it to
   `γ.maxData.isSome` (the node API's `isStorage`); `false` for a storage of no such contract. -/
   sz : Bool := false
+  /-- The ordered history of this attachment’s snapshot restores and Ready handouts. -/
+  history : Nat := 0
+  /-- The committed bounds and successful snapshot installations of this attachment. -/
+  installs : Nat := 0
 
 /-- (durability stage I-6) The same names with no attach record: raft's view of its storage before
 it has caught up with the record (`newRaft`'s window between `InitialState` and `appliedTo`: the

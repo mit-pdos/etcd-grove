@@ -220,7 +220,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
     exact isPanic_intoVal _
   is_pkg_init_finish
   imodintro
-  unfold go_etcd_io.etcd.cache.v3.etcdserverpbInit go_etcd_io.etcd.cache.v3.etcdserverpbDescs go_etcd_io.etcd.cache.v3.pbDescOk go_etcd_io.etcd.cache.v3.pbDescIs
+  unfold go_etcd_io.etcd.cache.v3.etcdserverpbInit go_etcd_io.etcd.cache.v3.etcdserverpbDescs go_etcd_io.etcd.cache.v3.pbDescIs
   isplitl []
   · iexists _, _; iframe HRangeRequest_SortOrder_name Hso; ipureintro; intro k; simp only [GMap.lookup_insert_eq_iff, GMap.lookup_empty]; by_cases hk : k = W32 0 ∨ k = W32 1 ∨ k = W32 2; (· rcases hk with rfl | rfl | rfl <;> simp (config := {decide := true})); (· have hr : ¬ (0 ≤ sint.Z k ∧ sint.Z k ≤ 2) := fun hr => hk (by word); simp only [hr, iff_false, Bool.not_eq_true, Option.isSome_eq_false_iff, Option.isNone_iff_eq_none]; rw [if_neg (show ¬(W32 2 = k) from fun h => hk (by subst h; simp)), if_neg (show ¬(W32 1 = k) from fun h => hk (by subst h; simp)), if_neg (show ¬(W32 0 = k) from fun h => hk (by subst h; simp))])
   isplitl []
