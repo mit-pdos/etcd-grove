@@ -235,7 +235,7 @@ theorem raftNode.start.wp_proof
         obtain ⟨HbA, HbPre, HbD, HbPos, Hb61, Hbwa⟩ := Hbs
         icases rnReadySnap_bootLen E γ _ _ _ _ _ _ _ $$ Henv Hdata with ⟨Hdata, %Hbb⟩
         iunfold rnReadySnap at Hdata
-        icases Hdata with ⟨%ceL, %esL, %msL, %hs, ⟨%S1, %r1, HrSn⟩, %HwSteps, #Hce, #Hcea, %HA', #HC, #HsvV, #Hes, #Hesa, #Hesz,
+        icases Hdata with ⟨%ceL, %esL, %msL, %hs, ⟨%S1, %r1, HrSn⟩, %HwSteps, #Hce, #Hcea, %HA', #HC, #HsvV, #Hinstalled, #Hes, #Hesa, #Hesz,
           #Hmsl, %HmsL, Hraw, ⟨%ss, #Hss, %Hr'⟩, #Hhs, #HhsC, %Hp', ⟨%rsL, #Hrs, #Hrsok⟩⟩
         subst HmsL
         obtain ⟨-, HLA, Hfit, Hlast⟩ := HA'

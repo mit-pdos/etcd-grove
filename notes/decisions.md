@@ -41383,3 +41383,14 @@ own. It also has: both `HasExt` instances, `kvnetGF`/`kvnetGpreS`, the projectio
 crash resources onto each extension's, and `kvnet_dist_crash_adequacy`
 (`goose_dist_crash_adequacy` at `kvnetGF`, with the initial-state conditions discharged from
 `NetGlobal.init` and `FsInit`). There is no change to the file extension.
+
+### Match a queued snapshot to the server’s apply job (2026-11-20)
+
+A message in `msgSnapC` keeps its own Ready observation. The apply job
+keeps the observation from the batch it is applying. These can be different
+batches. At equal sender and apply terms, the two observations bound a
+restored snapshot directly. For an image obtained from memory storage, use
+its origin at bootstrap, its creator’s applied-index lower bound, or its
+local installation receipt. The saved node location identifies the
+incarnation that installed the snapshot. The server rule leaves the apply
+thread’s index authority available for the remainder of the job.
