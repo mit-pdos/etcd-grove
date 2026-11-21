@@ -102,6 +102,12 @@ the backend's database by `bDB`), and `Snapshot` borrows the caller's `rdTok`. `
   pending. Positional uses fixed (`BatchLemmas`, `WritebackLemmas`, `CommitLemmas`, `Unlock`,
   `st0_freeOk`).
 
+- 2026-11-21, **B2 done** (`5b38d08e58`, step (c) without a restructure); **B3 done**: `rdTok` carries `bmSlot`
+  (`BmStock.lean`, `rdSlotsN`, both irreducible: a reducible count let `newBackend`'s framing unfold a
+  `2 ^ 30`-element `List.replicate`, 61 GB); the spec chain lends the caller's `rdTok`. Merged with `lean`
+  (Perennial pin `c8e356cb1`, built against a private copy, `.lake/perennial-pin`, since the shared checkout
+  was at another pin). B4's registry lemmas (`RegSnap.lean`: `reg_register`, `reg_take`) checked.
+
 ## Open: arming at an `Unlock` window's commit (B2)
 
 A registration must be armed for the image `S` *before* the commit point (a snapshotter's `Begin` may
@@ -191,7 +197,9 @@ is `Hpre`, `dlsOk P st' L'` is `Hdlc.2`); (3) `rtRes_cm_close`'s window branch t
 with `cacheValid (C, R) idx L`: at `L'` these need `thinV (vData (C, R)) L'` (to check) and `cacheValid`
 (vacuous under `poisonAt`, as the close's own argument).
 
-**Found for B4 (2026-11-20):** `Snapshot`'s goroutine calls `snapshotTransferSec.Observe` (`metrics.go`),
+**Superseded (2026-11-21):** `lean` had already translated and proved `snapshotTransferSec`'s initializer (2026-11-19); B4 only adds its histogram fact to `backendInit` (`etc/gen-init.py`), no axiom.
+
+**Found for B4 (2026-11-20, superseded above):** `Snapshot`'s goroutine calls `snapshotTransferSec.Observe` (`metrics.go`),
 a package variable today under `opaqueInitsOk` only: proving `Snapshot` would need a new
 `snapshotTransferSec_init` axiom, a net zero. Instead translate the backend's `metrics.go` histograms
 over a constructor spec (`prometheus.NewHistogram`, the options literal, `ExponentialBuckets`): the four
