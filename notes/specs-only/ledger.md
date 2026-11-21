@@ -3845,3 +3845,18 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   as `Leases.spec` does; the server's callers (`LessorOk.lean`'s contract, `NewServer`'s promotion on becoming
   leader) supply them. Not applied: it changes the server's lessor contract.
 - **Decision.** Open (the axiom stays).
+
+## 2026-11-21: `FollowerStats.Fail` takes the stats' mutex (prove-ps2)
+
+- **Spec.** `v2stats.FollowerStats.Fail.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v2stats/`; a
+  trust-boundary axiom until this change, `leader.go` names-only).
+- **Defect.** Not provable over the real code: `Fail` locks the stats' embedded `sync.Mutex` and increments
+  `Counts.Fail` (`leader.go:131-135`), and the premise (`fs ≠ null`) gave no mutex and no points-to. True of Go by its
+  type safety (every non-nil `*FollowerStats` points to a valid one), not provable in the logic.
+- **Evidence.** The translation (`Code/go_etcd_io/etcd/server/v3/etcdserver/api/v2stats.lean`, `FollowerStats.Fail.impl`).
+- **Proposed change.** A persistent `v2stats.isFollowerStats fs` (the mutex, guarding `Counts.Fail`), allocated by
+  `LeaderStats.Follower` with the stats (`&FollowerStats{}`) and kept for the map's values by `lsFollowers`;
+  `Follower`'s post gives it (a strengthening), `startPeer` takes it (its one caller, `Transport.AddPeer`, gets it
+  from `Follower`), the pipeline keeps it (`pipeHandleOk`: `nil` or the mutex) and passes it to `Fail`. The user's
+  decision (2026-11-21): an ownership premise every caller discharges may be added.
+- **Decision.** Applied (prove-ps2, 2026-11-21): `Fail` translated and proved, the axiom retired.
