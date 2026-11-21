@@ -3392,3 +3392,16 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
   stepped: they stay in zap's `opaqueInitsOk` (prove-initleft, which translated zap's other variables).
 - **Proposed (general).** Translate `Unix` and `unixTime` (as `Now`, which reads `Local` too) and prove
   `time.Unix.spec` (some `Time`, no panic: the divisions are by the constant `1e9`). **Status.** Recorded only.
+  (srvloops2, 2026-11-21) **Done**: Perennial's pin `c8e356cb1` has `Unix` and `time.Unix.spec`; zap's two
+  variables are translated and in zap's fact (`Proof/go_uber_org/zap/PkgInit.lean`, `etc/gen-init.py`).
+
+## 2026-11-21: `Time.Location` is names-only (`zap.Time`, `ensureLeadership`'s debug log)
+
+- **The gap.** `zap.Time(key, val)` builds its field from `val.UnixNano()` and `val.Location()`; Perennial's
+  `time` did not translate `Time.Location` (`l := t.loc; if l == nil { l = UTC }`), so `zap.Time` had no
+  provable spec, and `EtcdServer.ensureLeadership` (which logs `zap.Time` twice) stayed an axiom.
+- **Change (general).** `Time.Location` translated, `time.Time.Location.spec` (some `*Location`, `t.loc` when not
+  nil) proved over `UTC`'s global, held by time's `isInit`. **Status.** Landed on Perennial `lean` as
+  `7103946b3` (2026-11-21, srvloops2); the pin bump is pending (the coordinator's queue). With it,
+  `zap.Time.wp_proof` and `EtcdServer.ensureLeadership.wp_proof` (written and checked against it but the
+  `Location` call, branch `prove-srvloops2`'s follow-up) retire `EtcdServer.ensureLeadership.wp_proof`.
