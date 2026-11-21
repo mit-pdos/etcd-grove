@@ -13,10 +13,14 @@ translate = ["!*", "NewTimeoutError", "NewBadRequest", "NewResourceExpired", "Ne
   "NewAlreadyExists", "StatusError.Status", "StatusError.Error",
   # (prove-k8s, 2026-11-20) `var _ error = &StatusError{}` and `knownReasons`, a map literal (until then
   # `opaqueInitsOk`)
-  "_", "knownReasons"]
+  "_", "knownReasons",
+  # (prove-k8s2, 2026-11-20) the `APIStatus` checks, until then trust-boundary axioms: their
+  # `errors.As` calls are specified by `Spec/errors/AsNoMatch.lean`
+  "IsTimeout", "IsTooManyRequests", "HasStatusCause", "StatusCause", "SuggestsClientDelay",
+  "reasonAndCodeForError"]
 # what `NewTimeoutError`'s body names: `fmt.Sprintf`, `http.StatusGatewayTimeout`, metav1's
 # `Status` constants
-imports = ["!*", "fmt", "net/http", "k8s.io/apimachinery/pkg/apis/meta/v1",
+imports = ["!*", "errors", "fmt", "net/http", "k8s.io/apimachinery/pkg/apis/meta/v1",
   "k8s.io/apimachinery/pkg/runtime/schema"]
 
 # translate the definitions of all type declarations goose supports

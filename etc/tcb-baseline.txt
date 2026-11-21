@@ -95,7 +95,6 @@ axiom Perennial.k8s_io.apiserver.pkg.storage.value.initFuncsOk
 axiom Perennial.k8s_io.apiserver.pkg.storage.value.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.util.feature.DefaultFeatureGate_init
 axiom Perennial.k8s_io.apiserver.pkg.util.feature.DefaultMutableFeatureGate_init
-axiom Perennial.k8s_io.apiserver.pkg.util.flowcontrol.opaqueInitsOk
 axiom Perennial.k8s_io.component_base.featuregate.opaqueInitsOk
 axiom Perennial.k8s_io.component_base.metrics.initFuncsOk
 axiom Perennial.k8s_io.component_base.metrics.opaqueInitsOk
@@ -117,12 +116,8 @@ axiom WithRequireLeader.wp_proof
 axiom addFeatureGateMetrics.wp_proof
 axiom addrUnclaimed
 axiom api.IsCapabilityEnabled.wp_proof
-axiom apierrors.HasStatusCause.wp_proof
-axiom apierrors.IsTimeout.wp_proof
-axiom apierrors.IsTooManyRequests.wp_proof
 axiom apierrors.NewConflict.wp_proof
 axiom apierrors.NewInternalError.wp_proof
-axiom apierrors.SuggestsClientDelay.wp_proof
 axiom apimeta.GetItemsPtr.wp_proof
 axiom apply.irrDecode_utf8
 axiom apply.memberEnc_id_learner
@@ -187,7 +182,7 @@ axiom encoding.json.Unmarshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom entryEncC_ok
 axiom envVerifyOffTok
-axiom errors.AsLeafTy.wp_proof
+axiom errors.AsNoMatch.wp_proof
 axiom errors.IsCtxErr.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof
 axiom errors.IsStatusErr.wp_proof
