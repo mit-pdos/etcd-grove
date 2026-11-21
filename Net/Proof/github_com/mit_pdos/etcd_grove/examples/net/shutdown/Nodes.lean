@@ -243,7 +243,8 @@ theorem wp_Run
   (try wp_auto)
   wp_apply wp_Listen go!"tcp" net.tcpNet_tcp addr $$ []
     as %li %err (⟨%Herr, %l, #Hli, Hlis, #Hla⟩ | ⟨%x, -, #Herr⟩)
-  · ipureintro; exact Hpl
+  · iframe %Hpl
+    iapply wire.listen_au addrN addr _ $$ Ha
   · -- listening
     subst Herr
     imod lisInv_alloc' l $$ Hlis with ⟨%γo, #Hl, Ho⟩

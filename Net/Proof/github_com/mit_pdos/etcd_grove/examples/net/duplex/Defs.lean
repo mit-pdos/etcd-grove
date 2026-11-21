@@ -678,8 +678,9 @@ theorem client_check (γm : GName) (cn : Nat) (γ : DupNames) (γw : GName) (res
 
 /-- The protocol's invariants on a fresh network, from `srvAddr`'s pending set (empty). -/
 theorem dupInvs_alloc :
-    netPend (G (Gg := Gg)) srvAddr ∅ ={⊤}=∗ ∃ γm, dupInvs (Gg := Gg) γm := by
-  iintro Hpend
+    netPend (G (Gg := Gg)) srvAddr ∅ -∗ netLisTok (G (Gg := Gg)) srvAddr ={⊤}=∗
+      ∃ γm, dupInvs (Gg := Gg) γm := by
+  iintro Hpend Htk
   letI := (G (Gg := Gg)).allG
   imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := DupNames) with ⟨%γm, Hm⟩
   imod inv_alloc srvN ⊤ (srvState (Gg := Gg) γm) $$ [Hm] with #HsrvInv
@@ -689,7 +690,7 @@ theorem dupInvs_alloc :
     iframe Hm
     iapply BigSepM.bigSepM_empty.2
     iempintro
-  imod wire.addrInv_alloc addrN srvAddr (connProto (Gg := Gg) γm) $$ Hpend with #HaddrInv
+  imod wire.addrInv_alloc addrN srvAddr (connProto (Gg := Gg) γm) $$ Hpend Htk with #HaddrInv
   imodintro
   iexists γm
   unfold dupInvs

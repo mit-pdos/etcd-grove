@@ -1,7 +1,10 @@
 /-
 `net.Listen("tcp", a)` for a valid address `a` (`addrOk`, `GooseLang/Ext/Net/Impl.lean`, D6, D20:
 any machine may listen at any valid address; the wildcards of D21, which the semantics allows, are
-not covered), through `Listen.impl`
+not covered), by the holder of `a`'s listening token (`netLisTok`, exclusive, one per valid address
+from the extension's start resources: an atomic update gives it at the step and takes it back, so a
+node that re-listens after every restart may keep it in an invariant; a proof that only one node's
+invariant holds it shows that no other node ever listens at `a`), through `Listen.impl`
 (`Net/TrustedCode/net.lean`): the extension's `Listen`. A new open listener `l` at `a`, as a
 `Listener` (`isListener`, the node's `netLis l a true`, and `netLisAt l a`, persistent, which
 `Accept` and `Close` need), or the
@@ -34,7 +37,9 @@ variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 /-- See the file header. -/
 abbrev Listen.spec : Prop :=
   ∀ (nw : GoString), tcpNet nw → ∀ (a : GoString),
-  {{ ⌜addrOk a = true⌝ }}
+  {{ ⌜addrOk a = true⌝ ∗
+      (|={⊤,∅}=> netLisTok (extGlobalGS netExt (G := hG.goose_globalGS)) a ∗
+        (netLisTok (extGlobalGS netExt (G := hG.goose_globalGS)) a ={∅,⊤}=∗ True)) }}
     (App (App (Val (@! net.Listen)) (Val #nw)) (Val #a))
   {{ (li : GoInterface) (err : GoInterface), RET (PairV #li #err);
       (⌜err = interface.nil⌝ ∗ ∃ l, isListener li l ∗ netLis (extLocalGS netExt (L := hG.goose_localGS)) l a true ∗
