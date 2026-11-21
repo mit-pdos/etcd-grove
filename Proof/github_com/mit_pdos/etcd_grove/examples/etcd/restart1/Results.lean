@@ -89,7 +89,7 @@ and nothing else is in the range.
   - `bootstrapContract` for the first start (names-only `bootstrap`, D13b; its inherited `#Hmembers`
     flaw, G6/S11, as in every closed theorem);
   - `bootMarshal` (`proto.Marshal` of the bootstrap log), and the raft wrapper's names-only
-    contracts (`rnLoggerZapOk`, `rnTimeoutDetectorOk`, `rnNewStorageOk`), as in putget;
+    contracts (`rnLoggerZapOk`, `rnTimeoutDetectorOk`; `rnNewStorageOk` until wal-item3), as in putget;
   - **N1: `bootstrapRestartContract`** (`etcdstart.bootPremiseR`): Go's `bootstrap` on the stopped
     data directory (`wal.Open`, `ReadAll`, the snapshot load, the backend open, `cl.Recover`) yields
     `bootOkR`: the WAL handle with exactly the stopped records, the purge right, the image's backend

@@ -3502,3 +3502,20 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** Premise: both URL slices of `v` are `nil`. Both callers decode into `new(ConfigChangeContext)`
   and discharge it by `rfl`.
 - **Decision.** Applied (prove-reflectfmt, 2026-11-20; a strengthening of the premise, the callers' obligation discharged).
+
+## 2026-11-21: `rnNewStorageOk` proved: `raftpb.HardState` registered, the premise out of every closed statement (wal-item3)
+
+- **Spec.** `bootstrappedRaft.newRaftNode.spec` (premise `#Hns : rnNewStorageOk`), `NodeStart`'s two boot statements,
+  `NewServer.spec`, `NewServerR`'s spec, etcdstart's `commonPremises`, `OneMember.premises`, the auth, leaseexpiry
+  and putget3 `Defs` (`rnNewStorageOk` a conjunct of each), hence every closed theorem over them.
+- **Defect.** `rnNewStorageOk` (`NewStorage`'s contract) was a premise although wal-link L3 proved it from the storage
+  specs (`rnNewStorageOk_holds`), whose WAL `Save`/`SaveSnapshot` took the unproved `WalPbIn.MarshalHsLaw`
+  (`pbutil.MustMarshalMessage` of a `*raftpb.HardState`): `raftpb.HardState` was not a registered protobuf type, so
+  no `proto` spec covered its encoding (ledger 2026-11-20, wal-fsfix2 item 3's stop).
+- **Evidence.** wal-fsfix2 a8's survey; `etc/gen-link.py --walfs`'s Link (`h_WalPbIn_MarshalHsLaw`, 8 results).
+- **Proposed change.** Option (a): register `raftpb.HardState` like `walpb.Snapshot` (trusted: `hsSchema` in
+  `pbSchemaOf`, `hsEncC_ok`, `pbHsC_reg`; Go: `examples/stdlib/walpb/hardstate_test.go`, `etc/pbschema-check.py` with
+  two negative tests on HardState), prove `MarshalHsLaw` over `proto.MarshalPb.spec` (`walSrvP_marshalHs`), link the
+  storage proofs at every `WalH` (`RnNewStorageLinked.lean`: `walStorSpecs_holds`, `rnNewStorageOk_law_holds`), and
+  take `rnNewStorageOk.law` in `newRaftNode`'s proof (an `=` callee) instead of the premise.
+- **Decision.** Approved by the user, 2026-11-20, via etcd-grove-03 (option (a); the predecessor's form accepted).
