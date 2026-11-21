@@ -230,7 +230,6 @@ axiom http.ReadAll_any_ok
 axiom http.ReadAll_ok
 axiom http.ReadAll_resp_ok
 axiom http.ReadFull_resp_ok
-axiom http.ReadFull_stream_ok
 axiom http.RespCloseAny_ok
 axiom http.RespClose_ok
 axiom http.RespHeader_ok

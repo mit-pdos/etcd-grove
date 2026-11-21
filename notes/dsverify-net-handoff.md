@@ -49,7 +49,11 @@ consumes an export, phase 3).
 
 ## Open work, in order
 
-**Update (2026-11-21, second session).** Items 1-3's Go halves are ready to land as one stack:
+**Landed (2026-11-21): `lean` `ed897615f5`** (the land queue, claim #24): items 1-3's work below, the
+branches and their worktrees deleted. Items 1-3's remaining Lean work and phase 7 now follow
+`notes/phase7-plan.md`; coordination is on GitHub issues (#8), this work's claim is #24.
+
+**Update (2026-11-21, second session; superseded by the line above).** Items 1-3's Go halves are ready to land as one stack:
 `models-rpc-http-lean` (`50e9626bd2`: merged with `origin/lean`; item 1's `ErrShutdown` checked: the
 model produces it too, about one run in 20 in both builds, a race in Go's `Client` code, which the
 model keeps, so the test now allows it) ← `models-grpc-land` (`models-grpc` merged, `models/diff.py`
