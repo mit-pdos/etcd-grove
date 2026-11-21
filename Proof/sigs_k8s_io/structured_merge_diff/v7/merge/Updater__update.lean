@@ -418,6 +418,91 @@ theorem merge.Updater.update.wp_proof
     isplitr
     · iexact HRE'
     iexact HVE'
+  iintro HP HM
+  iNamed HP
+  rw [Int.toNat_natCast, ← Hklen, List.take_length] at HCM HRM
+  have hkmf : ∀ k, k ∈ keys ↔ (mf.get k).isSome = true := fun k => by rw [Hkset k, hMk k]
+  have HCM2 : ∀ k, (CM !! k).isSome = ((conflictsMF mf wf (compare S t old new)).get k).isSome := by
+    intro k
+    have h := HCM k
+    rw [MUpd.conflictsMF_get mf wf _ hMs k] at h ⊢
+    rw [hkmf k] at h
+    cases hg : mf.get k <;> cases hc : (CM !! k).isSome <;> simp_all
+  have HRM2 : ∀ k, (RM !! k).isSome = true ↔
+      ((mf.get k).isSome = true ∧ k ≠ wf ∧ ¬ (compare S t old new).removed.IsEmpty) := by
+    intro k; rw [HRM k, hkmf k]
+  have hCsorted := MUpd.conflictsMF_sorted_law_holds mf wf (compare S t old new) hMs
+  have hCnil := MUpd.conflictsMF_nil_iff_law_holds mf wf (compare S t old new)
+  have hsz0 : GMap.size CM = 0 ↔ conflictsMF mf wf (compare S t old new) = [] := by
+    rw [GMap.map_size_empty_iff]
+    constructor
+    · intro h
+      cases hc : conflictsMF mf wf (compare S t old new) with
+      | nil => rfl
+      | cons me rest =>
+        exfalso
+        have h1 := HCM2 me.1
+        rw [h, hc] at h1
+        simp [MF.get, lookupKV] at h1
+    · intro h
+      apply (GMap.lookup_empty_iff CM).1
+      intro k
+      have h1 := HCM2 k
+      rw [h] at h1
+      simpa [MF.get, lookupKV] using h1
+  wp_auto
+  wp_join (v := #(decide (force = false ∧ conflictsMF mf wf (compare S t old new) ≠ [])))
+      iprop("Hcm" ∷ cm ↦$ CM ∗ "conflicts" ∷ conflicts_ptr ↦ cm)
+      at (if: #!force then _ else #false) with [Hcm conflicts] as ⟨Hcm, conflicts⟩
+  · cases force
+    · simp only [Bool.not_false]
+      wp_auto
+      wp_apply (wp_map_len_lt (t := fieldpath.ManagedFields.ty) cm CM) $$ Hcm as ⟨Hcm, %hlt⟩
+      try wp_auto
+      iframe
+      ipureintro
+      have : (W64 (GMap.size CM) = W64 0) ↔ conflictsMF mf wf (compare S t old new) = [] := by
+        rw [← hsz0]
+        constructor
+        · intro h; have := congrArg (fun w : w64 => w.toNat) h; simp at this; omega
+        · intro h; rw [h]; rfl
+      by_cases hc : conflictsMF mf wf (compare S t old new) = []
+      · simp [hc, this.2 hc]
+      · have : ¬ W64 (GMap.size CM) = W64 0 := fun h => hc (this.1 h)
+        rw [decide_eq_false this]; simp [hc]
+    · simp only [Bool.not_true]
+      try wp_auto
+      iframe
+      ipureintro
+      simp
+  by_cases hcf : force = false ∧ conflictsMF mf wf (compare S t old new) ≠ []
+  · rw [decide_eq_true hcf]
+    wp_auto
+    imod (ownMap_persist _ _ _) $$ Hcm with #Hcm
+    ihave #HCmf := isMF_of_map cm CM _ hCsorted HCM2 $$ [Hcm HCE]
+    · iframe Hcm; iexact HCE
+    wp_apply (h_ConflictsFromManagers cm _) as %sl ⟨%l, ⟨%hlnd, %hlset⟩, #Hl⟩
+    · iexact HCmf
+    try wp_auto
+    iapply HΦ
+    have hcond : (!force && !(conflictsOf mf wf (compare S t old new)).isEmpty) = true := by
+      obtain ⟨h1, h2⟩ := hcf
+      subst h1
+      simp only [Bool.not_false, Bool.true_and, Bool.not_eq_true']
+      cases h : (conflictsOf mf wf (compare S t old new)).isEmpty
+      · rfl
+      · exact absurd (hCnil.2 h) h2
+    rw [if_pos hcond]
+    ihave HMF := Hclose $$ %M %mf HM %(⟨hMs, hMk⟩) HE
+    iframe HMF
+    isplitr
+    · ipureintro; exact ⟨rfl, rfl⟩
+    iexists sl, l
+    iframe Hl
+    ipureintro
+    exact ⟨rfl, hlnd, by rw [hlset, MUpd.mfPairs_conflictsMF_law_holds]⟩
+  rw [decide_eq_false hcf]
+  wp_auto
   sorry
 
 end proof
