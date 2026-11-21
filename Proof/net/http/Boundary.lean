@@ -850,7 +850,9 @@ def Serve_spec (H : HttpNet GF) : Prop :=
       {{ (err : GoInterface), RET #err; True }}
 
 /-- A request body's `Read(p)`: some `n` bytes `ys` (into `p`'s first `n`), still a prefix of the
-body; `EOF` only at the end. -/
+body; `EOF` only at the end. (prove-http, 2026-11-20: `n` is `ys`'s length as an integer, not
+negative, as `prefixReaderOk` now asks; Go's body reader returns `0 ≤ n ≤ len(p)`, `io.Reader`'s
+contract.) -/
 def bodyRead_spec : Prop :=
   ∀ (rd : GoInterface) (ri : GoInterfaceOk) (R : HReq) (r : List w8) (p : GoSlice)
     (xs : List w8) (e : GoInterface),
@@ -858,7 +860,7 @@ def bodyRead_spec : Prop :=
     ⊢ {{ bodyReader (GF := GF) rd R r ∗ p ↦* xs ∗ ioEOF e }}
         (App (Val #(methods ri.ty go!"Read" ri.v)) (Val #p))
       {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
-          ∃ ys : List w8, ⌜ys.length = sint.nat n ∧ r ++ ys <+: R.body ∧
+          ∃ ys : List w8, ⌜sint.Z n = ys.length ∧ r ++ ys <+: R.body ∧
             (err = e → r ++ ys = R.body)⌝ ∗
           p ↦* (ys ++ xs.drop ys.length) ∗ bodyReader rd R (r ++ ys) }}
 
@@ -993,7 +995,12 @@ def RespHeader_spec : Prop :=
 
 /-- **A reader of the bytes `B`** (persistent, D38b): its `Read` from a state `Src r` (`r` read so
 far; `io.EOF`'s value `e`) reads `ys`, still a prefix of `B`, and returns `EOF` (`e`) only once `r ++ ys = B` -- the
-`io.Reader` contract of a request body (`bodyRead_spec`) and of any reader wrapping one. -/
+`io.Reader` contract of a request body (`bodyRead_spec`) and of any reader wrapping one.
+(prove-http, 2026-11-20) The count `n` is the length of `ys`, so not negative: until then
+`ys.length = sint.nat n`, which a `Read` returning `-1, nil` met (`sint.nat` of a negative is `0`),
+and `io.ReadAll` of such a reader panics (`b[:len(b)+n]`, slice bounds out of range [:-1]):
+`ReadAll_spec` was false (`notes/axiom-review/http-readall-negread.md`,
+`examples/premisefix/negread`). -/
 def prefixReaderOk (rd : GoInterface) (Src : List w8 → IProp GF) (B : List w8) (e : GoInterface) :
     IProp GF :=
   iprop(∃ ri : GoInterfaceOk, ⌜rd = GoInterface.ok ri⌝ ∗
@@ -1001,7 +1008,7 @@ def prefixReaderOk (rd : GoInterface) (Src : List w8 → IProp GF) (B : List w8)
       {{ Src r ∗ p ↦* xs ∗ ioEOF e }}
         (App (Val #(methods ri.ty go!"Read" ri.v)) (Val #p))
       {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
-          ∃ ys : List w8, ⌜ys.length = sint.nat n ∧ r ++ ys <+: B ∧ (err = e → r ++ ys = B)⌝ ∗
+          ∃ ys : List w8, ⌜sint.Z n = ys.length ∧ r ++ ys <+: B ∧ (err = e → r ++ ys = B)⌝ ∗
           p ↦* (ys ++ xs.drop ys.length) ∗ Src (r ++ ys) }}))
 
 instance prefixReaderOk_persistent (rd : GoInterface) (Src : List w8 → IProp GF) (B : List w8)

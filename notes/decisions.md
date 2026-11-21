@@ -28063,6 +28063,8 @@ restarts.
 
 ## The merged snapshot's index guard (2026-10-31, S1 · the user's decision (B))
 
+*Superseded on 2026-11-20 by the decision to carry the snapshot source through raft's API below.*
+
 **2026-10-31 · accepted**
 
 `applyAll`'s `msgSnapC` branch merges the queued `MsgSnap` only if
@@ -41206,6 +41208,19 @@ byte present. A byte may be zero or its intended value, allowing partial persist
 shared data-page initializer supplies the expected bytes at the configured page size.
 The public Open triple still covers empty and well-formed files. Tests cover the interrupted
 and damaged images. [Regression test and fork pins](../issues/bbolt-open-zero-meta-reinitializes-data.md)
+
+
+## Carry the stored snapshot's source through raft (2026-11-20)
+
+The caller may associate a persistent predicate with each nonempty snapshot returned by
+storage. The storage already supplies a validity certificate, pinned by raft at attach.
+A tagged memory storage can put validity and the caller's predicate in that certificate.
+The allocation proof uses the general memory-storage invariant allocation, including at
+a nonempty starting snapshot. The existing contract still works for clients that only
+need validity. The next step is to preserve the pin at node startup and the source in Ready.
+
+This supersedes the October 31 decision to retain the server's snapshot-index guard.
+The invariant argument and remaining obligations are in [the removal plan](snapguard-removal-plan.md).
 
 ## bbolt admits readable values on a split leaf (2026-11-20)
 

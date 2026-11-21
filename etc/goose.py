@@ -11,7 +11,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                projects' pins (GO_MOD_PINS; without --check, only a warning).
   --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putgetc, putget3, putgetN, leaseN, leaseexpiryN, txnlinfaultsN, restartN, authN, authlease, auth3, etcd-wal,
                linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, raft-noax, kvdurable-noax, raft-tla, tracecheck, k8s-apiserver,
-               k8s-daemonset, k8s-compactor, k8s-all, bbolt-bank or bbolttest; repeatable; default: all).
+               k8s-daemonset, k8s-compactor, k8s-all, k8s-authz, k8s-authz-driver, bbolt-bank or bbolttest; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
                $ETCD_RAFT_SRC).  For a pinned revision not yet pushed, or for trying
@@ -1593,7 +1593,11 @@ PROJECTS = [
             "k8s.io/apimachinery/pkg/util/diff",
             "k8s.io/apimachinery/pkg/util/cache",
         ],
-        owned=[os.path.join("k8s_io", "apiserver"), os.path.join("k8s_io", "apimachinery"),
+        # (of k8s.io/apiserver, the packages it translates: pkg/authorization and
+        # pkg/authentication are project k8s-authz's, from the fork with conditional authorization)
+        owned=[os.path.join("k8s_io", "apiserver", "pkg", d)
+               for d in ("audit", "endpoints", "features", "storage", "util")] +
+              [os.path.join("k8s_io", "apimachinery"),
                os.path.join("k8s_io", "api"),
                os.path.join("k8s_io", "client_go"),
                os.path.join("k8s_io", "klog"), os.path.join("k8s_io", "component_base"),
@@ -1671,6 +1675,47 @@ PROJECTS = [
                     "go.uber.org=", "google.golang.org=", "net=", "os=", "io/fs="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8s", "compactor")],
+    ),
+    Project(
+        name="k8s-authz",
+        # Kubernetes' conditional authorization (KEP-5681): k8s.io/apiserver's authorizer package
+        # (conditions, conditions maps, the union decision builder, partial evaluation) and union
+        # authorizer, with bodies, from the fork github.com/luxas/kubernetes, branch
+        # impl-conditional-authz-review (not merged upstream), resolved in the repository's go.work
+        # (its staging modules: apimachinery at the fork's commit too, ~2026-11-03, while project
+        # k8s-apiserver's apimachinery names are of examples/k8s/etcd3's pin, 2026-10-21). Names only:
+        # k8s.io/apiserver/pkg/authentication/user (Code/k8s_io/apiserver/pkg/authentication/user.toml).
+        # The rest it names (apimachinery's sets, errors, validation, field, fields, labels, runtime,
+        # schema; net/http) is project k8s-apiserver's translation (the empty root). Its driver is
+        # project k8s-authz-driver.
+        repo="https://github.com/luxas/kubernetes",
+        rev="c67a81026c8b193849a47fdc05398baeafdf55e4",
+        lean_roots=["k8s.io=", "net="],
+        packages=[
+            # with bodies
+            "k8s.io/apiserver/pkg/authorization/authorizer",
+            "k8s.io/apiserver/pkg/authorization/union",
+            # types and names only
+            "k8s.io/apiserver/pkg/authentication/user",
+        ],
+        owned=[os.path.join("k8s_io", "apiserver", "pkg", "authorization"),
+               os.path.join("k8s_io", "apiserver", "pkg", "authentication")],
+        counted_modules=["k8s.io/apiserver"],
+    ),
+    Project(
+        name="k8s-authz-driver",
+        # The driver of project k8s-authz's conditional authorization: package `.` of
+        # examples/k8s/authz, a Go module of its own whose go.mod replaces k8s.io/apiserver and the
+        # other staging modules by the fork's subdirectory modules at project k8s-authz's pin
+        # (GO_MOD_PINS checks the two agree), with bodies: kube-apiserver's two-phase protocol over a
+        # union of leaf authorizers that behave arbitrarily (math/rand, Perennial's). Everything it
+        # names outside the package is project k8s-authz's and k8s-apiserver's (the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "k8s", "authz"),
+        lean_roots=["k8s.io=", "net=", "github.com/mit-pdos/etcd-grove="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8s", "authz")],
     ),
     Project(
         name="k8s-all",
@@ -1862,6 +1907,8 @@ GO_MOD_PINS = {
     os.path.join("examples", "k8s", "etcd3", "go.mod"): {"go.etcd.io/etcd/": "etcd", "go.etcd.io/raft/v3": "raft"},
     # Kubernetes' compactor's example, a module of its own (it requires k8s.io/apiserver)
     os.path.join("examples", "k8s", "compactor", "go.mod"): {"go.etcd.io/etcd/": "etcd", "go.etcd.io/raft/v3": "raft"},
+    # conditional authorization's driver: the Kubernetes staging modules, from the fork
+    os.path.join("examples", "k8s", "authz", "go.mod"): {"k8s.io/": "k8s-authz"},
     # the one closed Kubernetes theorem's program, a module of its own (it requires both drivers')
     os.path.join("examples", "k8s", "all", "go.mod"): {"go.etcd.io/etcd/": "etcd", "go.etcd.io/raft/v3": "raft"},
 }
