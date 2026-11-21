@@ -227,7 +227,7 @@ abbrev raft.send.untracedTriple : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hm" ∷ msgOwnZ s.gh.sn.sz ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ ∗
-      "#Hsrc" ∷ tsSrc s.gh.sn m.Type' sn }}
+      "#Hsrc" ∷ tsSrc s.gh.sn m.Type' sn (· ∈ s.logst.ksn) }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"send")) (Val #ml))
   {{ RET #(); ownRaftPhysCV c c.voters r id (sendMsgs s out) }}
 

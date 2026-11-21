@@ -410,7 +410,8 @@ theorem RawNode.Bootstrap.wp_proof
     %(⟨⟨(by intro h; rw [Hs1gh, Hgh] at h; cases h),
         (by have h := Hgh0.1.2.1; rw [Hs1ls] at h; exact h.of_fields rfl rfl rfl rfl rfl (Int.le_refl _)),
         (by have h := Hgh0.1.2.2; rw [Hs1ls] at h; exact h)⟩,
-      (by intro h; rw [Hs1gh, Hgh] at h; cases h), (by rw [Hs1ls]; rfl)⟩)
+      (by intro h; rw [Hs1gh, Hgh] at h; cases h), (by rw [Hs1ls]; rfl),
+      (by rw [Hs1ls]; exact List.Subset.refl _)⟩)
     %(by intro h; rw [Hs1r] at h; cases h)
   generalize Hs2 : ({ s1 with logst := logAppend s.logst bootLog } : NState) = s2
   have Hs2ls : s2.logst = logAppend s.logst bootLog := by rw [← Hs2]

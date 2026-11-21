@@ -993,8 +993,8 @@ theorem node.run.gated_of
       with ⟨#Hss, Hrn⟩
     -- (2026-10-26, D22 J2, R-loc) a snapshot handed out is local to the node
     ihave #Hlloc : iprop(□ ∀ l : SnapLoan, ⌜L = some l⌝ -∗
-        snapLocal γ.raft id l.snap.Metadata'.Index' ∗
-        ⌜(γ.raft.reBoot.length : Int) < uint.Z l.snap.Metadata'.Index'⌝) $$ [Hrn]
+        (snapLocal γ.raft id l.snap.Metadata'.Index' ∗
+        ⌜(γ.raft.reBoot.length : Int) < uint.Z l.snap.Metadata'.Index'⌝) ∗ restoredSnapSource γ.raft id (snapId l.snap)) $$ [Hrn]
     · cases L with
       | none => imodintro; iintro %l %h; cases h
       | some l0 =>
@@ -1072,14 +1072,14 @@ theorem node.run.gated_of
         | some l =>
           simp only [readyDataL, readySnapData, rdSnapOut]
           icases Hsnz with ⟨Hhalf, #Hdc, %Hrns, %Hlo⟩
-          ihave ⟨#Hll, %Hbl⟩ : iprop(snapLocal γ.raft γ.id l.snap.Metadata'.Index' ∗
-              ⌜(γ.raft.reBoot.length : Int) < uint.Z l.snap.Metadata'.Index'⌝) $$ []
+          ihave ⟨⟨#Hll, %Hbl⟩, #Hrestored⟩ : iprop((snapLocal γ.raft γ.id l.snap.Metadata'.Index' ∗
+              ⌜(γ.raft.reBoot.length : Int) < uint.Z l.snap.Metadata'.Index'⌝) ∗ restoredSnapSource γ.raft γ.id (snapId l.snap)) $$ []
           · rw [Hgid]; iapply Hlloc $$ %l %rfl
           ihave #Hcl : raftSnapCertD γ.raft (snapTrip l.snap l.snap.Metadata'.ConfState'.lists) $$ []
           · iapply Hcert $$ %l %rfl
           ihave #Hhw' : hsWit γ.raft (phsNext rs.phs h) l.dlv.length $$ []
           · iExactEq Hhw; rfl
-          iframe Hce Hcommitted Hents Hmsgs Hmt Hcr Htk Hrsts Hhw' Hss Hri Hhalf Hdc Hll Hcl
+          iframe Hce Hcommitted Hents Hmsgs Hmt Hcr Htk Hrsts Hhw' Hss Hri Hhalf Hdc Hll Hrestored Hcl
           isplitr
           · iexists h; iframe Hhh; ipureintro; rfl
           isplitr
