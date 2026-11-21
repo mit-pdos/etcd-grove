@@ -1005,3 +1005,9 @@ the Prove phase's. To do before the walkers' proofs.
   ~2·smdSizeMax, beyond `prune`'s premise).
 - (round 3, coordinator) `merge_size.law` takes the inputs' conformance (without it, lists repeating
   a key may break it).
+- (round 3, coordinator) `prune_conforms.law` was false (M4: a last set below an atomic list item
+  nulls the item in pass 1; duplicate manager names make the premise read one entry and the union
+  another): restated with `keysSorted mf` and `schemaConsistent S t L.set`; `prune`'s spec takes
+  `schemaConsistent` of the applier's previous set, which `Apply` gives from `reconcileMF`. In Go,
+  `prune` on a last set reaching below an atomic item may fail (`ToFieldSet` on a null item):
+  outside the scope, since SMD only prunes with reconciled sets.
