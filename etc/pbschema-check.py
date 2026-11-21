@@ -16,8 +16,9 @@ trip (D2). This check:
    and no reachable type has a proto2 unpacked repeated int32 or enum field, nor another unpacked
    repeated scalar numbered 16 or more (D1's 2x size bound);
 4. negative tests: the Go test must fail on the dump with a field added to a schema
-   (over-declared: `(5,[0])` in `raftpb.Entry`'s, and in the unreached `raftpb.ConfChange`'s), and
-   with a wire type removed (under-declared: `ConfState`'s packed `2`);
+   (over-declared: `(5,[0])` in `raftpb.Entry`'s, and in the unreached `raftpb.ConfChange`'s; and
+   (wal-item3, 2026-11-21) `(4,[0])` in the root `raftpb.HardState`'s), and with a wire type removed
+   (under-declared: `ConfState`'s packed `2`, and `HardState`'s `commit` 3 dropped);
 5. runs the tests of `examples/pbschema` that need no dump: `TestD1PostMessage`/`TestD1PostEntry`
    (the decoder's post D1 of `UnmarshalPb.lean` at raftpb.Message/Entry, with the instances'
    size, levels and decOk of `PerTypeMessage.lean`/raft's `PbEntryType.lean`),
@@ -30,7 +31,12 @@ trip (D2). This check:
    `recSize`/`walSnapSize` against `proto.Size`), `TestRecordSchema`/`TestSnapshotSchema` (the
    descriptors against `recSchema`/`walSnapSchema`/`csSchema`), `TestMarshalAppendOwnership`/
    `TestMarshalAppendStaleCache` (`proto.MarshalAppendCachedRecord`'s trust boundary). The roots
-   `walpb.Record`/`walpb.Snapshot` (`pbRecordC_reg`, `pbSnapC_reg`) are read by step 3 like raftpb's.
+   `walpb.Record`/`walpb.Snapshot` (`pbRecordC_reg`, `pbSnapC_reg`) are read by step 3 like raftpb's;
+   (wal-item3, 2026-11-21) `TestHardStateEncoder`/`TestHardStateSchema` (the encoder axiom
+   `hsEncC_ok`, `hsSize` against `proto.Size`, the descriptor against `hsSchema`),
+   `TestHardStateD1`/`TestHardStateEncoderAllUf` (the decoder's post D1 at HardState on adversarial inputs,
+   `hsEncC_ok` at any `ufWire`-valid unknown fields), whose root
+   `raftpb.HardState` (`pbHsC_reg`) step 3 reads too.
 
     etc/pbschema-check.py        prints one line, exits 1 on a failure
 
@@ -66,7 +72,8 @@ def lake(*args):
 
 # the tests of examples/pbschema that need no dump (d1post_test.go, descriptor_test.go)
 WAL_TESTS = ("^(TestRecordEncoder|TestSnapshotEncoder|TestRecordSchema|TestSnapshotSchema|"
-             "TestMarshalAppendOwnership|TestMarshalAppendStaleCache)$")
+             "TestMarshalAppendOwnership|TestMarshalAppendStaleCache|TestHardStateEncoder|"
+             "TestHardStateSchema|TestHardStateD1|TestHardStateEncoderAllUf)$")
 POST_TESTS = "^(TestD1PostMessage|TestD1PostEntry|TestD2P2EntryEncoder|TestD2P2MessageEncoder|TestSizeBoundCondition|TestB2CCDecoderUf|TestB2MustUnmarshalCC|TestA3CCLen|TestA3CC2Len|TestC3DecodedFresh)$"
 
 
@@ -134,8 +141,12 @@ def main():
         under = re.sub(r"^(schema raftpb\.ConfState \S+ 1:)0,2", r"\g<1>0", dump, flags=re.M)
         # (out_size B2 review m2) a schema no root reaches, checked against its own descriptor
         unreached = re.sub(r"^(schema raftpb\.ConfChange \S+) ", r"\1 5:0 ", dump, flags=re.M)
+        # (wal-item3) the registered raftpb.HardState: a field added, a field dropped
+        hs_over = re.sub(r"^(schema raftpb\.HardState \S+ .*)$", r"\1 4:0", dump, flags=re.M)
+        hs_under = re.sub(r"^(schema raftpb\.HardState \S+ .*) 3:0$", r"\1", dump, flags=re.M)
         for name, d in (("over-declared", over), ("under-declared", under),
-                        ("over-declared-unreached", unreached)):
+                        ("over-declared-unreached", unreached), ("over-declared-hardstate", hs_over),
+                        ("under-declared-hardstate", hs_under)):
             if d == dump:
                 fail.append(f"negative test {name}: the mutation did not apply")
                 continue
@@ -158,15 +169,15 @@ def main():
             fail.append("the WAL's walpb tests failed:\n" + "\n".join(
                 l for l in out.splitlines() if ("_test.go" in l and ("FAIL" in l or "Error" in l))
                 or l.startswith("--- FAIL") or l.startswith("FAIL")))
-        elif out.count("--- PASS") != 6:
-            fail.append(f"the WAL's walpb tests: {out.count('--- PASS')} passed, want 6 ({WAL_TESTS})")
+        elif out.count("--- PASS") != 10:
+            fail.append(f"the WAL's walpb tests: {out.count('--- PASS')} passed, want 10 ({WAL_TESTS})")
     if fail:
         print("pbschema: FAILED")
         for f in fail:
             print("  " + f)
         sys.exit(1)
     print(f"pbschema: ok ({len(table)} schemas, roots {', '.join(sorted(roots))}; "
-          f"3 negative tests refused; Go tests D1 post (Message, Entry), D2/P2 encoders (Entry, "
+          f"5 negative tests refused; Go tests D1 post (Message, Entry), D2/P2 encoders (Entry, "
           f"Message), the size bound condition, the ConfChange decoders and length bound, and the WAL's "
           f"walpb encoders and schemas passed)")
 

@@ -80,7 +80,6 @@ axiom Perennial.k8s_io.apiserver.pkg.audit.initFuncsOk
 axiom Perennial.k8s_io.apiserver.pkg.audit.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.features.init_0_ok
 axiom Perennial.k8s_io.apiserver.pkg.features.opaqueInitsOk
-axiom Perennial.k8s_io.apiserver.pkg.storage.etcd3.klogWrapper_toLoggerV2
 axiom Perennial.k8s_io.apiserver.pkg.storage.etcd3.metrics.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.storage.feature.DefaultFeatureSupportChecker_init
 axiom Perennial.k8s_io.apiserver.pkg.storage.feature.opaqueInitsOk
@@ -243,6 +242,7 @@ axiom grpc_prometheus.WithServerHandlingTimeHistogram.wp_proof
 axiom grpclog.SetLoggerV2.wp_proof
 axiom health.NewServer.wp_proof
 axiom health.Server.SetServingStatus.wp_proof
+axiom hsEncC_ok
 axiom http.CloseIdleConnections_ok
 axiom http.Error_ok
 axiom http.Flush_ok
@@ -355,6 +355,7 @@ axiom pbCompactionResponseT_reg
 axiom pbDeleteRangeRequestT_reg
 axiom pbDeleteRangeResponseT_reg
 axiom pbEntryC_reg
+axiom pbHsC_reg
 axiom pbLeaseGrantRequestT_reg
 axiom pbLeaseGrantResponseT_reg
 axiom pbLeaseKeepAliveRequestT_reg
@@ -471,6 +472,7 @@ axiom slices.Concat.wp_proof
 axiom slices.ContainsFunc.wp_proof
 axiom snap.NewMessage.wp_proof
 axiom snap.Snapshotter.DBFilePath.wp_proof
+axiom snap.Snapshotter.ReleaseSnapDBs.wp_proof
 axiom snap.Snapshotter.SaveDBFrom.wp_proof
 axiom snapEncC_ok
 axiom sort.SliceIsSorted.wp_proof

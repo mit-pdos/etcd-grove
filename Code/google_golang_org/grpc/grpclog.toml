@@ -2,7 +2,8 @@
 # server's etcd3 store names grpc's logger; project k8s-apiserver.) (prove-grpcext, 2026-11-20) `cache`, an
 # empty map literal: its initializer translated (`etc/gen-init.py` proves it).
 translate = ["!*", "cache"]
-imports = ["!*"]
+# (prove-k8s3, 2026-11-21) `grpclog/internal` (types only): the target of `LoggerV2`
+imports = ["!*", "google.golang.org/grpc/grpclog/internal"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
