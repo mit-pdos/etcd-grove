@@ -53,7 +53,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.all.Assumpti
 variable [NaInvG GF]
 
 /-- **`Main` does not panic** (`MainLinked.lean`'s `k8s_all.wp_Main`). -/
-theorem k8s_all_Main [go_etcd_io.etcd.cache.v3.Assumptions]
+theorem k8s_all_Main
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [ContextReadErrs (GF := GF) (hG := hG)]
     (h_After : EtcdGrove.clock.RealClock.After.spec (GF := GF) (hG := hG)) :
     k8s_all.Main.spec (GF := GF) (hG := hG) :=

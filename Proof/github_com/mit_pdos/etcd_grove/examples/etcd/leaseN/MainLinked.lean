@@ -51,7 +51,8 @@ theorem etcd_leaseN.wp_run [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
 
 /-- **leaseN's `Main(k)` does not panic** (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/leaseN/Main.lean`),
 under the semantic premises of its callees' linked results (putgetN's). -/
-theorem etcd_leaseN.wp_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem etcd_leaseN.wp_Main
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_leaseN.Main.spec (GF := GF) (hG := hG) :=
   etcd_leaseN.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_Members etcdstart.wp_StartMembers
     etcd_leaseN.wp_run mvcc.api.mvccApi_names_nonempty_law_holds

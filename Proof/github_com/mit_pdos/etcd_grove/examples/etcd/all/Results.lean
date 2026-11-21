@@ -47,7 +47,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.all.Assumpt
 variable [NaInvG GF]
 
 /-- **`Main` does not panic** (`MainLinked.lean`'s `etcd_all.wp_Main`). -/
-theorem etcd_all_Main [go_etcd_io.etcd.cache.v3.Assumptions]
+theorem etcd_all_Main
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_all.Main.spec (GF := GF) (hG := hG) :=
   etcd_all.wp_Main

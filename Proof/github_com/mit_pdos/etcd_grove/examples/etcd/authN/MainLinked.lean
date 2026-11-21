@@ -49,13 +49,13 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.authN.Assum
 /-- **A member started with auth on, at any token and snapshot settings** (`StartMemberAuth.lean`):
 `NewServer.specM true` (`server_new_auth_on`), the raft handler served,
 `Start.spec`. -/
-theorem etcd_authN.wp_StartMemberAuth :
+theorem etcd_authN.wp_StartMemberAuth [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] :
     etcdstart.StartMemberAuth.spec (GF := GF) (hG := hG) :=
   etcdstart.StartMemberAuth.wp_proof etcdstart.features.wp_NewDefaultServerFeatureGate
     server_new_auth_on etcdstart.net.wp_Listen EtcdServer.wp_RaftHandler server_Start
 
 /-- **The `k` members started with auth on** (`StartMembersAuth.lean`). -/
-theorem etcd_authN.wp_StartMembersAuth :
+theorem etcd_authN.wp_StartMembersAuth [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] :
     etcdstart.StartMembersAuth.spec (GF := GF) (hG := hG) :=
   etcdstart.StartMembersAuth.wp_proof etcd_authN.wp_StartMemberAuth
 
@@ -86,7 +86,8 @@ theorem etcd_authN.wp_run [go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- **authN's `Main(k)` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/authN/Main.lean`). -/
-theorem etcd_authN.wp_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem etcd_authN.wp_Main
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_authN.Main.spec (GF := GF) (hG := hG) :=
   etcd_authN.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_Members
     etcd_authN.wp_StartMembersAuth etcd_authN.wp_run

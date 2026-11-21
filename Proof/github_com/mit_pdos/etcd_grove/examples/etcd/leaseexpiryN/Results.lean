@@ -46,7 +46,8 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.Assumptions]
 
 /-- **`Main(k)` does not panic** (`MainLinked.lean`'s `etcd_leaseexpiryN.wp_Main`). -/
-theorem leaseexpiryN_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem leaseexpiryN_Main
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_leaseexpiryN.Main.spec (GF := GF) (hG := hG) :=
   etcd_leaseexpiryN.wp_Main
 
