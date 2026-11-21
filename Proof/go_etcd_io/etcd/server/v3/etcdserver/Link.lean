@@ -106,6 +106,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__getCommitte
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__getLead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__getTerm
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__getTxPostLockInsideApplyHook
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__isActive
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__isLeader
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__leaseTimeToLive
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__monitorClusterVersions
@@ -120,6 +121,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__promoteMemb
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__publishV3
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__purgeFile
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__raftRequest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__raftStatus
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__rangeStream
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__requireAuthInfo
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__restoreAlarms
@@ -241,6 +243,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedStorage__Cl
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL__MemoryStorage
 public import Proof.internal.bytealg.LastIndexByteString
 public import Proof.github_com.jonboulle.clockwork.NewRealClock
+public import Proof.github_com.jonboulle.clockwork.realClock__After
+public import Proof.github_com.jonboulle.clockwork.realClock__Now
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__BackendPath
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__PeerDialTimeout
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__ReqTimeout
@@ -2706,7 +2710,7 @@ theorem raftNode.wp_ReadIndex :
 
 theorem EtcdServer.wp_start [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.start.spec (GF := GF) (hG := hG) :=
-  EtcdServer.start.wp_proof EtcdServer.wp_Logger zap.Logger.wp_Info zap.wp_String zap.wp_Uint64 wait.wp_New wait.wp_NewTimeList wait.timeList.wp_Wait wait.timeList.wp_Trigger read.wp_NewRead notify.wp_NewNotifier EtcdServer.wp_MemberID EtcdServer.wp_Cluster membership.RaftCluster.wp_ID types.ID.wp_String semver.Version.wp_String version.wp_Cluster prometheus.GaugeVec.wp_With EtcdServer.wp_run EtcdServer.wp_ApplyWait EtcdServer.wp_Done EtcdServer.wp_Stopping EtcdServer.wp_LeaderChanged EtcdServer.wp_FirstCommitInTermNotify EtcdServer.wp_NextRequestID EtcdServer.wp_RequestTimeout EtcdServer.wp_AppliedIndex raftNode.wp_ReadState raftNode.wp_ReadIndex
+  EtcdServer.start.wp_proof EtcdServer.wp_Logger zap.Logger.wp_Info zap.wp_String zap.wp_Uint64 wait.wp_New wait.wp_NewTimeList wait.timeList.wp_Wait wait.timeList.wp_Trigger read.wp_NewRead notify.wp_NewNotifier EtcdServer.wp_MemberID EtcdServer.wp_Cluster membership.RaftCluster.wp_ID types.ID.wp_String semver.Version.wp_String version.wp_Cluster prometheus.GaugeVec.wp_With EtcdServer.wp_run EtcdServer.wp_ApplyWait EtcdServer.wp_Done EtcdServer.wp_Stopping EtcdServer.wp_LeaderChanged EtcdServer.wp_FirstCommitInTermNotify EtcdServer.wp_NextRequestID EtcdServer.wp_RequestTimeout EtcdServer.wp_AppliedIndex raftNode.wp_ReadState raftNode.wp_ReadIndex srvApi_wp_Status
 
 theorem EtcdServer.wp_adjustTicks :
     EtcdServer.adjustTicks.spec (GF := GF) (hG := hG) :=
@@ -2803,6 +2807,18 @@ theorem EtcdServer.wp_UserRevokeRole :
 theorem EtcdServer.wp_Watchable :
     EtcdServer.Watchable.spec (GF := GF) (hG := hG) :=
   EtcdServer.Watchable.wp_proof EtcdServer.wp_KV
+
+theorem raftNode.wp_getLatestTickTs :
+    raftNode.getLatestTickTs.spec (GF := GF) (hG := hG) :=
+  raftNode.getLatestTickTs.wp_proof
+
+theorem EtcdServer.wp_isActive :
+    EtcdServer.isActive.spec (GF := GF) (hG := hG) :=
+  EtcdServer.isActive.wp_proof raftNode.wp_getLatestTickTs
+
+theorem EtcdServer.wp_raftStatus :
+    EtcdServer.raftStatus.spec (GF := GF) (hG := hG) :=
+  EtcdServer.raftStatus.wp_proof
 
 theorem EtcdServer.wp_requireAuthInfo :
     EtcdServer.requireAuthInfo.spec (GF := GF) (hG := hG) :=
@@ -2944,9 +2960,17 @@ theorem bootstrappedWAL.wp_MemoryStorage :
     bootstrappedWAL.MemoryStorage.spec (GF := GF) (hG := hG) :=
   bootstrappedWAL.MemoryStorage.wp_proof srvApi_wp_NewMemoryStorage MemoryStorage.wp_ApplySnapshot srvApi_wp_MemSetHardState srvApi_wp_MemAppend
 
+theorem clockwork.realClock.wp_Now :
+    clockwork.realClock.Now.spec (GF := GF) (hG := hG) :=
+  clockwork.realClock.Now.wp_proof _root_.Perennial.time.wp_Now
+
+theorem clockwork.realClock.wp_After :
+    clockwork.realClock.After.spec (GF := GF) (hG := hG) :=
+  clockwork.realClock.After.wp_proof _root_.Perennial.time.wp_After
+
 theorem clockwork.wp_NewRealClock :
     clockwork.NewRealClock.spec (GF := GF) (hG := hG) :=
-  clockwork.NewRealClock.wp_proof
+  clockwork.NewRealClock.wp_proof clockwork.realClock.wp_Now clockwork.realClock.wp_After
 
 theorem membership.RaftCluster.wp_String :
     membership.RaftCluster.String.spec (GF := GF) (hG := hG) :=
@@ -3038,7 +3062,7 @@ theorem probing.wp_NewProber :
 
 theorem rate.wp_Every :
     rate.Every.spec (GF := GF) (hG := hG) :=
-  rate.Every.wp_proof
+  rate.Every.wp_proof time.Duration.wp_Seconds_ptr
 
 theorem rafthttp.streamWriter.wp_writec :
     rafthttp.streamWriter.writec.spec (GF := GF) (hG := hG) :=
@@ -3131,10 +3155,6 @@ theorem mvcc.store.wp_HashStorage :
 theorem raftNode.wp_advanceTicks :
     raftNode.advanceTicks.spec (GF := GF) (hG := hG) :=
   raftNode.advanceTicks.wp_proof raftNode.wp_tick
-
-theorem raftNode.wp_getLatestTickTs :
-    raftNode.getLatestTickTs.spec (GF := GF) (hG := hG) :=
-  raftNode.getLatestTickTs.wp_proof
 
 theorem rafthttp.wp_reportCriticalError :
     rafthttp.reportCriticalError.spec (GF := GF) (hG := hG) :=
