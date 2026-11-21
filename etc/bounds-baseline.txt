@@ -25,7 +25,7 @@ spec-thread github_com/mit_pdos/etcd_grove/examples/k8s/etcd3 2
 spec-thread github_com/mit_pdos/etcd_grove/examples/lib/cluster3 3
 spec-thread github_com/mit_pdos/etcd_grove/examples/lib/etcdstart 12
 spec-thread github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvrw 3
-spec-thread go_etcd_io/etcd/server/v3/etcdserver 10
+spec-thread go_etcd_io/etcd/server/v3/etcdserver 9
 spec-thread go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc 1
 spec-thread go_etcd_io/etcd/server/v3/lease 4
 spec-receipt RaftWitness/github_com/mit_pdos/etcd_grove/examples/raft/kvwitness 4

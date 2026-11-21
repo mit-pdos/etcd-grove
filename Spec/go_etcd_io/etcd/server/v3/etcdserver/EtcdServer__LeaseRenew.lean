@@ -34,8 +34,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **`s.LeaseRenew(ctx, id)`**, any goroutine, at a context, with the server's facts and the key
 check's resources (`LeaseTimeToLive.spec`'s), reader slots of the logger's lock and of the read
 loop's (`srvLgReader`, `srvReadReader`: `ensureLeadership`'s, and an unexpected error of the
-forwarding's context is logged; `ensureLeadership` is called at level 0, its token returned before
-the check and `Renew` borrow from the level-0 pools), and the server's peer round tripper (`peerRt`, a
+forwarding's context is logged; `ensureLeadership` is called with the level-4 token,
+`v3rpc.ctxErrLvl`'s, for `tickMu`'s pool at that level, `rnTickPool`: srvloops2, 2026-11-21, until then with the level-0
+one, its token returned before the check and `Renew` borrow from the level-0 pools), and the server's peer round tripper (`peerRt`, a
 `*http.Transport`: `NewServer` stores the bootstrap's `rafthttp.NewRoundTripper` one; a premise,
 as no construction spec states the field yet): on `nil`, a TTL and the renewal's key check passed
 (the last `checkLeaseRenew`'s: auth disabled at a state no older than `n`, or the principal an

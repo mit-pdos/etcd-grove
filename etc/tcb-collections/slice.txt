@@ -28,9 +28,6 @@ axiom grpcConn_persistent
 axiom grpcSrvCfgRaw
 axiom grpcWrotePeer
 axiom mvcc.hashStorage.Store.wp_proof
-axiom mvcc.kvHasher.Hash.wp_proof
-axiom mvcc.kvHasher.WriteKeyValue.wp_proof
-axiom mvcc.newKVHasher.wp_proof
 axiom os.Getenv.wp_proof
 axiom pbCompactionRequestT_reg
 axiom pbCompactionResponseT_reg
