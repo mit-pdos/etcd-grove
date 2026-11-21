@@ -1,5 +1,7 @@
 /-
 The trust boundary: `(*rate.Limiter).Wait` (`golang.org/x/time/rate` is names-only).
+(prove-metrics3, 2026-11-21) Not provable over the real code yet: the token bucket (`reserveN`) negates a
+`float64` (`-tokens`), which Perennial's semantics does not step (`notes/perennial-changes.md`).
 -/
 module
 

@@ -3769,6 +3769,37 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** Add the entry to the precondition's pure conjunct. Callers: `transformErrorToEvent` (from
   `kErrOk`, which already has it) and the model API server's handlers (from `apimodelInit`, whose error clauses gain
   it: its errors are `errors.New`'s `*errorString`, which has it; the fact is not proved yet, no `Init.lean`).
+- **Decision.** Applied (prove-k8s3, 2026-11-21); `apierrors.NewInternalError.wp_proof` is a theorem. Approved by the user (2026-11-21): the premise makes sense (`.claude/skills/spec/examples/newinternalerror-type-fact.md`).
+
+## 2026-11-21: the HTTP header specs need net/http's package initialization (prove-http3)
+
+- **Spec.** `http.HeaderSet_spec`, `HeaderSetPtr_spec`, `HeaderGet_spec`, `HeaderGetPtr_spec`, `HeaderGetOwnPtr_spec`
+  (`Proof/net/http/Boundary.lean`; four of them trust-boundary axioms until now); the predicates `hdrOwn`, `hdrAtRaw`
+  (opaque until now).
+- **Defect.** Not provable as stated: `Header.Set`/`Get` call `textproto.CanonicalMIMEHeaderKey`, which (for a key it
+  changes) runs `commonHeaderOnce.Do(initCommonHeader)` and reads the package map `commonHeader` (go1.27.3
+  `net/textproto/reader.go:796`); without the package's initialization the specs know nothing of that `Once`.
+- **Evidence.** The translation (`Code/net/textproto.lean`, `CanonicalMIMEHeaderKey.impl`, `canonicalMIMEHeaderKey.impl`).
+- **Proposed change.** Each spec takes `isPkgInit pkg_id.net.http` (net/textproto's fact: `commonHeaderOnce` is the
+  `Once` of `initCommonHeader`, `Proof/net/textproto/Base.lean`); `hdrOwn`/`hdrAtRaw` defined (`hdrMap`: a
+  `map[string][]string` whose value at each key is a read-only slice of that key's values in order). Every caller has
+  `isPkgInit` of rafthttp, which imports net/http: discharged there with no change to the callers' statements.
+- **Decision.** Applied (prove-http3, 2026-11-21): the four axioms are theorems over net/http's and net/textproto's code.
+## 2026-11-21: mvcc's hasher, `kvHasherOk` a resource (prove-etcdint3)
+
+- **Spec.** `mvcc.newKVHasher.spec`, `mvcc.kvHasher.WriteKeyValue.spec`, `mvcc.kvHasher.Hash.spec` (axioms until
+  this change), over `mvcc.kvHasherOk` (`HashDefs.lean`).
+- **Defect.** `kvHasherOk` was an opaque `Prop`, so nothing owned the `crc32` digest that `Write` updates through
+  `h.hash` (the axioms were not provable over the real code); and `WriteKeyValue`'s map `keep` (whose ownership it
+  took) was any map, where Go reads `h.keep`.
+- **Evidence.** `hash.go:49-94` (the digest a `*crc32.digest`, written through the interface), translated with
+  `hash/crc32`'s `New`/`Write`/`Sum32` (`crc32.go:146-230`).
+- **Proposed change.** `kvHasherOk h : IProp`: the digest's points-to and its Castagnoli table; `newKVHasher` returns
+  it with the fields (`compactRevision`, `revision`, `keep` its arguments); `WriteKeyValue` takes `h.keep' = keep`
+  and gives back `hp ↦ h ∗ kvHasherOk h` (the value unchanged, where it was some `h'`); `Hash` gives `kvHasherOk h`
+  back. The one caller (`store.scheduleCompaction`) threads them.
+- **Decision.** Applied (prove-etcdint3, 2026-11-21).
+
 - **Decision.** Applied (prove-k8s3, 2026-11-21); `apierrors.NewInternalError.wp_proof` is a theorem.
 
 ## 2026-11-20: `backend.Snapshot` proved; its pre lends a reader's token (backend-snapshot B3/B4)

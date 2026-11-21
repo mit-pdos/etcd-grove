@@ -130,3 +130,7 @@ spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/(lib/etcdstart/Serve|e
 # their open shares (`AuthRealPool`: the generic pool; `AuthRealLife`: its release; `AuthRealSrv`: the
 # tickets handed to the pools at the server's start).
 stock ^Proof/go_etcd_io/etcd/server/v3/etcdserver/AuthReal(Pool|Life|Srv)\.lean$
+
+# `tickMu`'s pools of reader slots (srvloops2, 2026-11-21, bounds B2 for `tickMu`), made by the lock's
+# owner, the raft wrapper's install (`isRaftNode_of_rnParts`), from the fresh lock's slots, half per level.
+stock ^Proof/go_etcd_io/etcd/server/v3/etcdserver/NodeStart\.lean$

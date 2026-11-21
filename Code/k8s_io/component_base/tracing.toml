@@ -1,7 +1,9 @@
 # Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
 # notes/k8s-etcd3-goose.md). The imports name `Span`'s field types, so that `Span` translates
 # (an implementation can allocate one: etcd-refimpl's reference implementation).
-translate = ["!*"]
+# (prove-metrics3, 2026-11-21) `SpanFromContext` (a `*Span` of otel's and utiltrace's
+# `FromContext`s), proved over the real code.
+translate = ["!*", "SpanFromContext"]
 imports = ["!*", "go.opentelemetry.io/otel/trace", "k8s.io/utils/trace"]
 
 # translate the definitions of all type declarations goose supports

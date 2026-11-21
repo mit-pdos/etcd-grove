@@ -16,6 +16,13 @@ def backend.optsVal (v : go_etcd_io.bbolt.Options) (o : backend.OptsM) : Prop :=
       bbolt.optsVal v (o.toBolt false f) ∧
         v.Timeout' = o.timeout ∧ v.NoFreelistSync' = o.noFreelistSync ∧ v.InitialMmapSize' = o.initialMmapSize
 
+theorem backend.boltOpenOptionsOk_intro (p : Loc) (v : go_etcd_io.bbolt.Options) : ⊢ typedPointsto
+    (globalAddr go_etcd_io.etcd.server.v3.storage.backend.boltOpenOptions) p DFrac.discard -∗
+    typedPointsto p v DFrac.discard -∗ ⌜v.ReadOnly' = false ∧ v.PageSize' = W64 0 ∧ v.OpenFile' =
+    func.nil ∧ v.Logger' = GoInterface.nil ∧ v.Mlock' = false ∧ v.MmapFlags' = W64 32768 ∧
+    v.Timeout' = W64 0 ∧ v.NoFreelistSync' = true ∧ v.InitialMmapSize' = W64 0⌝ -∗
+    backend.boltOpenOptionsOk
+
 def backend.optsZero : backend.OptsM :=
   { readOnly := false, pageSize := W64 0, openFile := func.nil, logger := GoInterface.nil, timeout := W64 0,
     noFreelistSync := false, initialMmapSize := W64 0 }

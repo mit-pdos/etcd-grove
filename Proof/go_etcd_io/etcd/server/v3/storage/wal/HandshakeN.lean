@@ -108,6 +108,7 @@ theorem hsn_receive_au (γ : HsnNames) (ch : Loc) (P : Nat → V → IProp GF) (
       ▷ (∀ v, hsnRcv γ (n + 1) -∗ P n v -∗ Φ v true) -∗ recvAu γ.ch V Φ := by
   unfold isHsn recvAu hsnRcv
   iintro ⟨Hlc1, Hlc2⟩ ⟨#Hchan, #Hinv⟩ Hrcv HQ Hau
+  iapply ncfupd_of_fupd
   iinv Hinv with Hi Hclose
   imod lc_fupd_elim_later (E := ⊤ \ ↑nroot) $$ Hlc1 Hi with Hi
   unfold hsnInv
@@ -135,6 +136,7 @@ theorem hsn_receive_au (γ : HsnNames) (ch : Loc) (P : Nat → V → IProp GF) (
       ipureintro; omega
     imodintro
     unfold recvNestedAu
+    iapply ncfupd_of_fupd
     iinv Hinv with Hi Hclose
     imod lc_fupd_elim_later (E := ⊤ \ ↑nroot) $$ Hlc2 Hi with Hi
     icases Hi with ⟨%s, %ns, %nr, Hch, Hs, Hr, Hi⟩
@@ -199,6 +201,7 @@ theorem hsn_send_au (γ : HsnNames) (ch : Loc) (v : V) (P : Nat → V → IProp 
       ▷ (hsnSnd γ (n + 1) -∗ Q n -∗ Φ) -∗ sendAu γ.ch v Φ := by
   unfold isHsn sendAu hsnSnd
   iintro ⟨Hlc1, Hlc2, Hlc3⟩ ⟨#Hchan, #Hinv⟩ Hsnd HP Hau
+  iapply ncfupd_of_fupd
   iinv Hinv with Hi Hclose
   imod lc_fupd_elim_later (E := ⊤ \ ↑nroot) $$ Hlc1 Hi with Hi
   unfold hsnInv
@@ -226,6 +229,7 @@ theorem hsn_send_au (γ : HsnNames) (ch : Loc) (v : V) (P : Nat → V → IProp 
       ipureintro; rfl
     imodintro
     unfold sendNestedAu
+    iapply ncfupd_of_fupd
     iinv Hinv with Hi Hclose
     imod lc_fupd_elim_later (E := ⊤ \ ↑nroot) $$ Hlc2 Hi with Hi
     icases Hi with ⟨%s, %ns, %nr, Hch, Hs, Hr, Hi⟩

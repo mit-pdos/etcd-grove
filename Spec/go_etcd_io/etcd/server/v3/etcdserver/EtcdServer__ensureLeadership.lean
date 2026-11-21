@@ -1,6 +1,7 @@
 /-
-`s.ensureLeadership()` (`server.go`), names only: a trust-boundary contract. Lean-first (no Rocq counterpart); the
-lease-renew plan (`notes/lease-renew-plan.md`, 2026-11-01), vocabulary `LeaseRead.lean`.
+`s.ensureLeadership()` (`server.go`), translated with its body (srvloops2, 2026-11-21; until then names
+only, a trust-boundary contract). Lean-first (no Rocq counterpart); the lease-renew plan
+(`notes/lease-renew-plan.md`, 2026-11-01), vocabulary `LeaseRead.lean`.
 -/
 module
 
@@ -26,29 +27,25 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`s.ensureLeadership()`** (names-only, a contract; the lease-renew plan's C2), any goroutine,
-with the request side's and the read side's server facts (as `leaseTimeToLive.spec`), a reader slot
-of the logger's lock (`srvLgReader`: `Logger()`), one of the read loop's (`srvReadReader`:
-`LinearizableReadNotify`'s) and one level of a thread token (`levelTok l`, any level: revoke-open
-Q5 (a), 2026-11-06, until then a whole `threadTok`; the revocation's outer goroutine calls it with
-its level 3, `LeaseRenew` with its token's level 0), which it returns: a boolean.
+/-- **`s.ensureLeadership()`**, any goroutine, with the request side's and the read side's server
+facts (as `leaseTimeToLive.spec`), a reader slot of the logger's lock (`srvLgReader`: `Logger()`),
+one of the read loop's (`srvReadReader`: `LinearizableReadNotify`'s) and one level `l` of a thread
+token, 3 or 4 (`levelTok l`, `rnTickLvlOk l`: the revocation's outer goroutine calls it with its level
+3, `LeaseRenew` with its spare level 4), which it returns: a boolean.
 
-**Why it is faithful.** It logs (`s.Logger()`, under `s.lgMu`'s read lock), reads `s.r`'s latest
-tick time twice (`isActive` → `getLatestTickTs`, under `r.tickMu`'s read lock), takes
-`context.WithTimeout(s.ctx, s.Cfg.ReqTimeout())`, waits for a linearizable read
-(`s.read.LinearizableReadNotify`, proved: `ReadOn.lean`, with the read loop's slot) and compares
-`raftStatus().Lead` with the member's id; every branch returns a boolean. It writes nothing the
-model sees. **Its assumption**: `tickMu`'s read locks need no slot of the caller's. The model drops
-`tickMu`'s reader slots when the node starts (`NodeStart.lean`), so no request goroutine has one;
-a goroutine holds that read lock only inside `getLatestTickTs`, so its readers are at most the
-goroutines, fewer than the lock's reader limit by the thread bound (a level token, `levelTok l`, of
-any level: the caller is a live goroutine; `threadBound GF ≤ 2 ^ 30 - 1`), which is what a slot
-would rule out. -/
+It logs (`s.Logger()`), reads `s.r`'s latest tick time (`isActive` → `getLatestTickTs`, under
+`r.tickMu`'s read lock, with a reader slot borrowed from the lock's pool at level `l`, `rnTickPool`,
+by the level token: `srvLeadCheckOk`, the reader's view's), and returns `true` if a tick happened within three tick
+intervals; else waits for a linearizable read (`s.read.LinearizableReadNotify` on
+`context.WithTimeout(s.ctx, s.Cfg.ReqTimeout())`) and compares raft's `Status().Lead` with the member's
+id. It writes nothing the model sees. (srvloops2, 2026-11-21: proved over its body; until then a
+names-only contract, which took a level token of any level and assumed `tickMu`'s read lock needed no
+reader slot, with the premise `threadBound GF ≤ 2 ^ 30 - 1` for that assumption.) -/
 abbrev EtcdServer.ensureLeadership.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (l : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvLgReader s ∗
-      srvReadReader s γr ∗ levelTok l ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ }}
+      srvReadReader s γr ∗ levelTok l ∗ ⌜rnTickLvlOk l⌝ }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"ensureLeadership")) (Val #()))
   {{ (b : Bool), RET #b; srvLgReader s ∗ srvReadReader s γr ∗ levelTok l }}
 

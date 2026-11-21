@@ -239,7 +239,8 @@ theorem raftNode.processMessages.wp_proof
             · iexact Hbagch
             unfold nonblockingSendAu nonblockingSendAuInner
             isplit
-            · iinv Hinv with Hi Hclose
+            · iapply ncfupd_of_fupd
+              iinv Hinv with Hi Hclose
               iapply fupd_mask_intro Std.LawfulSet.empty_subset
               iintro Hmask
               inext

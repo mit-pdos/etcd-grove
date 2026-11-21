@@ -44,7 +44,6 @@ axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.toGRPCErrorMap_in
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.opaqueInitsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.storage.backend.boltOpenOptions_init
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.schema.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.opaqueInitsOk
@@ -62,7 +61,6 @@ axiom Perennial.google_golang_org.grpc.health.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.initFuncsOk
 axiom Perennial.google_golang_org.grpc.metadata.initFuncsOk
 axiom Perennial.google_golang_org.grpc.opaqueInitsOk
-axiom Perennial.hash.crc32.opaqueInitsOk
 axiom Perennial.internal.bytealg.initFuncsOk
 axiom Perennial.internal.runtime.sys.opaqueInitsOk
 axiom Perennial.math.rand.opaqueInitsOk
@@ -114,9 +112,6 @@ axiom go_humanize.Bytes.wp_proof
 axiom goose_adequacy_start
 axiom http.CloseIdleConnections_ok
 axiom http.Flush_ok
-axiom http.HeaderGetOwnPtr_ok
-axiom http.HeaderGetPtr_ok
-axiom http.HeaderSetPtr_ok
 axiom http.NewRequest_ok
 axiom http.ReadAll_any_ok
 axiom http.ReadAll_resp_ok
@@ -154,9 +149,6 @@ axiom membership.setIsLearnerMetric.wp_proof
 axiom monitorFileDescriptor.wp_proof
 axiom msgEncC_ok
 axiom mvcc.hashStorage.Store.wp_proof
-axiom mvcc.kvHasher.Hash.wp_proof
-axiom mvcc.kvHasher.WriteKeyValue.wp_proof
-axiom mvcc.newKVHasher.wp_proof
 axiom netAddrFree
 axiom os.Getenv.wp_proof
 axiom os.Getpagesize.wp_proof
@@ -200,7 +192,6 @@ axiom proto.UnmarshalPb.wp_proof
 axiom rafthttp.Transport.ActiveSince.wp_proof
 axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.netErrNotRemoved_ok
-axiom rate.Every.wp_proof
 axiom rate.Limiter.Wait.wp_proof
 axiom recEncC_ok
 axiom reflect.DeepEqual.wp_proof_pgidSet

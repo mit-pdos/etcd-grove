@@ -44,14 +44,17 @@ checks it into the pool's checked-out case with the part of `E.γbe` when it tak
 out, and takes it back when it checks the token in, before `RUnlock`. So when the monitor returns,
 it has its receipt back and no session of it is open: the post gives the receipt (`GoAttach`'s
 `Done` takes it), and the shutdown, once `Wait` returned, finds the read token in the pool
-(`stop_monitorRT`). Until H2 the post was `True`, which allowed a monitor that returns mid-session. -/
+(`stop_monitorRT`). Until H2 the post was `True`, which allowed a monitor that returns mid-session. (srvloops2, 2026-11-21, bounds B2 for `lgMu`) With
+`GoAttach`'s pool of `s.lgMu` reader slots (`raftPool (srvLgReader s)`, `srvGoAttachOk`'s, persistent) and a
+level-1 token (`levelTok 1`, given back), with which `Logger()` borrows a slot for its read lock (until then
+`Logger()` read-locked without one: what the spec now rules out). -/
 abbrev EtcdServer.monitorStorageVersion.spec : Prop :=
   ∀ (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γp : WTNames) (r : GName),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM on s E ρ ∗ srvLoggerOk s ∗ srvSVRes s E ∗ srvWTPool E γp ∗
-      dghostVar γp.reg DFrac.discard (some r) ∗ ownToks r 1 }}
+      dghostVar γp.reg DFrac.discard (some r) ∗ ownToks r 1 ∗ raftPool (srvLgReader s) ∗ levelTok 1 }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"monitorStorageVersion")) (Val #()))
-  {{ RET #(); ownToks r 1 }}
+  {{ RET #(); ownToks r 1 ∗ levelTok 1 }}
 
 end spec
 

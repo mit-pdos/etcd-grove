@@ -54,9 +54,6 @@ axiom grpcSrvNew
 axiom grpcWrotePeer
 axiom metadata.FromOutgoingContext.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof
-axiom mvcc.kvHasher.Hash.wp_proof
-axiom mvcc.kvHasher.WriteKeyValue.wp_proof
-axiom mvcc.newKVHasher.wp_proof
 axiom netListenerAt
 axiom os.Getenv.wp_proof
 axiom pbAuthEnableRequestT_reg
