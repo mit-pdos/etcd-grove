@@ -21,9 +21,6 @@ axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom EtcdServer.publishV3.wp_proof
 axiom Perennial.bufio.opaqueInitsOk
 axiom Perennial.crypto.tls.opaqueInitsOk
-axiom Perennial.encoding.base64.RawURLEncoding_init
-axiom Perennial.encoding.base64.StdEncoding_init
-axiom Perennial.encoding.base64.opaqueInitsOk
 axiom Perennial.encoding.json.initFuncsOk
 axiom Perennial.encoding.json.opaqueInitsOk
 axiom Perennial.github_com.Masterminds.semver.v3.initFuncsOk

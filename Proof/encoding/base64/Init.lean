@@ -1,21 +1,24 @@
 /-
 Package initialization of `encoding.base64`
-(item 8, 2026-10-17): its `wp_initialize'`.
+(item 8, 2026-10-17): its facts and trust-boundary axioms; its `wp_initialize'` is in
+`InitLinked.lean` (2026-11-19: the proof applies other packages' `wp_initialize'` and
+functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
 
 Its fact (`base64Init`, `encoding/base64/Base.lean`; the auth plan's E2x, 2026-10-26;
 k8s 7e-2, 2026-11-09): `StdEncoding` and `RawURLEncoding` hold fixed `*Encoding`s whose
 `EncodeToString` returns the standard encoding (`stdEnc`), resp. the URL encoding without padding
-(`rawUrlEnc`), of its argument's bytes, stated as the method call's own WP (the type is axiomatized).
-Its initializer runs its variables' untranslated initializers (`base64.go`); the trust-boundary
-axioms `StdEncoding_init` and `RawURLEncoding_init` state the ones the fact reads
-(`NewEncoding(encodeStd)`, `URLEncoding.WithPadding(NoPadding)`: fixed `*Encoding`s whose
-`EncodeToString` allocates its output buffer, `Encode`s into it and returns it as a string: no
-panic, no write to its argument), `opaqueInitsOk` the others.
+(`rawUrlEnc`), of its argument's bytes, stated as the method call's own WP.
+Its initializer allocates its four variables and runs their translated initializers (`base64.go`,
+translated with their bodies since 2026-11-20, prove-b64clock; until then the trust-boundary axioms
+`StdEncoding_init`, `RawURLEncoding_init` and `opaqueInitsOk`): `NewEncoding` of the two alphabets
+(`NewEncoding.wp_proof`; valid alphabets, `stdAlphabet_ok`, `urlAlphabet_ok`), and `WithPadding(NoPadding)`
+of each (`Encoding.WithPadding.wp_proof`); the fact's parts from `EncodeToString`'s spec
+(`stdEncInit_intro`, `rawUrlEncInit_intro`).
 -/
 module
 
 public import Proof.encoding.base64.Base
-public import Proof.runtime.PkgInitExt
+public import Proof.encoding.base64.InitFacts
 
 @[expose] public section
 
@@ -32,87 +35,5 @@ local macro "mem_tac" : tactic =>
   `(tactic| repeat (first | exact List.Mem.head _ | apply List.Mem.tail))
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-
-section opaqueInits
-namespace encoding.base64
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- **The trust boundary: `encoding.base64`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([URLEncoding.init,
-        RawStdEncoding.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
-/-- `StdEncoding = NewEncoding(encodeStd)` (`base64.go`): a fixed `*Encoding` (Go never writes the variable after) whose `EncodeToString` returns the standard base64 encoding `stdEnc` of its argument's bytes, reading and keeping the slice. -/
-axiom StdEncoding_init :
-    {{ (True : IProp GF) }} (App (Val StdEncoding.init) (Val #()))
-    {{ RET #(); _root_.Perennial.encoding.base64.stdEncInit (GF := GF) }}
-
-/-- `RawURLEncoding = URLEncoding.WithPadding(NoPadding)` (`base64.go`): a fixed `*Encoding` (Go never writes the variable after) whose `EncodeToString` returns the URL base64 encoding without padding `rawUrlEnc` of its argument's bytes, reading and keeping the slice (stage 7e-2, `notes/k8s-7e-2-draft.md` §5.4, attacked T15). -/
-axiom RawURLEncoding_init :
-    {{ (True : IProp GF) }} (App (Val RawURLEncoding.init) (Val #()))
-    {{ RET #(); _root_.Perennial.encoding.base64.rawUrlEncInit (GF := GF) }}
-
-end encoding.base64
-end opaqueInits
-
-section init
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : _root_.Perennial.encoding.base64.Assumptions]
-
-namespace encoding.base64
-
-theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
-    (Hinit : GetIsPkgInitProp pkg_id.encoding.base64 get_is_pkg_init) (σ0 : GMap GoString Bool) :
-    {{ EtcdGrove.ownInitLb get_is_pkg_init σ0 }}
-      (App (Val initialize') (Val #()))
-    {{ RET #(); EtcdGrove.ownInitLb get_is_pkg_init σ0 ∗
-        isPkgInit (PROP := IProp GF) pkg_id.encoding.base64 }} := by
-  wp_start as Hown
-  iapply EtcdGrove.wp_package_init_lb (heq := Hinit.1) $$ [Hown] HΦ
-  iframe Hown
-  iintro Hown
-  wp_auto
-  iapply wp_fupd
-  wp_apply StdEncoding_init as #HStdEncoding
-  wp_apply (opaqueInitsOk URLEncoding.init (by mem_tac))
-  wp_apply (opaqueInitsOk RawStdEncoding.init (by mem_tac))
-  wp_apply RawURLEncoding_init as #HRawURLEncoding
-  iframe Hown
-  imodintro
-  isplitr
-  · ipureintro
-    exact isPanic_intoVal _
-  is_pkg_init_finish
-  isplitl []
-  · imodintro; itrivial
-  imodintro
-  unfold _root_.Perennial.encoding.base64.base64Init
-  isplitl
-  · iexact HStdEncoding
-  iexact HRawURLEncoding
-
-/-- Perennial's form, from `wp_initialize'_lb`. -/
-theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
-    (Hinit : GetIsPkgInitProp pkg_id.encoding.base64 get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init }}
-      (App (Val initialize') (Val #()))
-    {{ RET #(); ownInitializing get_is_pkg_init ∗
-        isPkgInit (PROP := IProp GF) pkg_id.encoding.base64 }} :=
-  EtcdGrove.wp_init_of_lb _ _ _ (wp_initialize'_lb get_is_pkg_init Hinit)
-
-
-end encoding.base64
-
-end init
 
 end Perennial
