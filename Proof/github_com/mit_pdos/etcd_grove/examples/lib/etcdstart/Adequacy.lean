@@ -186,14 +186,15 @@ theorem etcd_adequate_alloc [hPre : GooseGpreS GF] [lctx : GoLocalContext]
           iprop((([∗list] a ∈ As, netAddrFree a) ∗ ([∗list] a ∈ As, httpProtoFree a) ∗
             ([∗list] d ∈ Ds, dataDirFresh d) ∗ envVerifyOff) ∗ T x ∗
             extsLocalStart (L := (heapWith hG lctx).goose_localGS) σ.world) init body φ)
-    (hNs : Ns.Nodup := by decide +kernel) :
+    (hNs : Ns.Nodup := by decide +kernel)
+    (hNsIds : prometheus.descIdsDistinct Ns := by decide +kernel) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   refine goose_adequacy_start (GF := GF) (n + 1) (max (n + 2) srvLevelK) _ σ g φ hφ Hinitg
     Hinitw
     Ns As Ds hNs hAs hDs hAsLit HNs HAs HDs HEnv ?_
     n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads
-    (realThreadsBelow_mono (Nat.le_max_left _ _) (realThreadsBelow_of_one Hthreads))
+    (realThreadsBelow_mono (Nat.le_max_left _ _) (realThreadsBelow_of_one Hthreads)) (hNsIds := hNsIds)
   intro hG HN HT HL
   obtain ⟨X, T, Halloc, Hp⟩ := Hprog hG HN HT
   obtain ⟨G, ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
@@ -240,14 +241,15 @@ theorem etcd_adequate [hPre : GooseGpreS GF] [lctx : GoLocalContext]
         iprop(([∗list] a ∈ As, netAddrFree a) ∗ ([∗list] a ∈ As, httpProtoFree a) ∗
           ([∗list] d ∈ Ds, dataDirFresh d) ∗ envVerifyOff ∗
           extsLocalStart (L := (heapWith hG lctx).goose_localGS) σ.world) init body φ)
-    (hNs : Ns.Nodup := by decide +kernel) :
+    (hNs : Ns.Nodup := by decide +kernel)
+    (hNsIds : prometheus.descIdsDistinct Ns := by decide +kernel) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   refine goose_adequacy_start (GF := GF) (n + 1) (max (n + 2) srvLevelK) _ σ g φ hφ Hinitg
     Hinitw
     Ns As Ds hNs hAs hDs hAsLit HNs HAs HDs HEnv ?_
     n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads
-    (realThreadsBelow_mono (Nat.le_max_left _ _) (realThreadsBelow_of_one Hthreads))
+    (realThreadsBelow_mono (Nat.le_max_left _ _) (realThreadsBelow_of_one Hthreads)) (hNsIds := hNsIds)
   intro hG HN HT HL
   have Hp := Hprog hG HN HT
   obtain ⟨G, ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG

@@ -112,7 +112,7 @@ theorem ownRawNode_trNoLoan (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState
   · ipureintro; exact ⟨Hsl, Hboot⟩
   iapply ownRawNode_intro_tr γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp Hsnap
     Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
-    Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hdur Hrntr
+    Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hhist Hdur Hrntr
 
 /-- **G3 (a) over a committed log** (`isCommitted_trNoConf`, route (A) of the design's step-4 section):
 at a traced cluster a committed log's conf entries lie within the bootstrap log: the committed log is
@@ -399,6 +399,7 @@ theorem wp_rn_raft_Step_net_tr (wp_raft_Step : raft.Step.spec (GF := GF) (hG := 
       iapply ackInv_app γ rfl Hstok Ht1 Hpv Hsn (logStoreRec_stored Hsd) (Htrc Happ) Hrel Hpr.1
         $$ Hstrecs Hents
     · iapply ackInv_keep γ rfl Hstok Ht1 Hpv Hsn (logStoreRec_stored Hsd) (Hip4 Happ) $$ Hstrecs
+  ihave #Hhist' := restoredSnapHistory_keep γ id Hsd $$ Hhist
   ihave #Hsloc' : snapLocOk γ id s'.logst.snap $$ []
   · rw [Hsn]; iexact Hsloc
   -- (slice 25n) the capability back, idle at the end state
@@ -445,7 +446,7 @@ theorem wp_rn_raft_Step_net_tr (wp_raft_Step : raft.Step.spec (GF := GF) (hG := 
         HlO
         (Hsdt.ofRec Hsn Hsd) Hrole
         (Hphs.keep rfl rfl rfl (HsLe.of_step Href.voteLe Hc) Hsn (ip_of_step Hip4 Htrc))
-        (by rw [Hgx]; exact Hgtr) (by rw [Hgx]; exact Hglq) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' [Hdur] Hrntr
+        (by rw [Hgx]; exact Hgtr) (by rw [Hgx]; exact Hglq) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' Hhist' [Hdur] Hrntr
     · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) Hsn Hpv (logStoreRec_stored Hsd) $$ Hdur
   ipureintro
   rw [Htrm]
@@ -597,6 +598,7 @@ theorem wp_rn_raft_Step_hup_tr (wp_raft_Step : raft.Step.spec (GF := GF) (hG := 
     rw [show s'.gh.tr = s.gh.tr by rw [Htr', Htr]]
     iapply trCapB_monoΛ _ γ rnv.raft' id cf bt' _ _ _ (fun _ _ => trivial) $$ HG
   iapply HΦ $$ %err %s'.term
+  ihave #Hhist' := restoredSnapHistory_keep γ id Hsd $$ Hhist
   ihave #Hsloc' := snapLocOk_keep γ id (.inl Hsn) $$ Hsloc
   isplitl
   · iapply ownRawNode_intro_tr γ rn id { rs with term := s'.term } s' cf fp rnv sv hprev steps Hwf' Hin
@@ -608,7 +610,7 @@ theorem wp_rn_raft_Step_hup_tr (wp_raft_Step : raft.Step.spec (GF := GF) (hG := 
       (Hsdt.ofRec Hsn Hsd) Hrole
       (Hphs.keep rfl rfl rfl (HsLe.of_step Href.voteLe Hc) Hsn (.inl (Hip4 (by hup_ne))))
       (by rw [Hgh]; exact Hgtr) (by rw [Hgh]; exact Hglq)
-      $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' [Hdur] Hrntr
+      $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' Hhist' [Hdur] Hrntr
     · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) Hsn Hpv (logStoreRec_stored Hsd) $$ Hdur
   ipureintro
   rw [Htrm]
@@ -766,7 +768,7 @@ theorem wp_applyConf_dyn_g
         ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) ∗
         lentPend rs.slent (pendList γ id rs.bw steps rs.steps) ∗
         isCommitted γ rs.delivered ∗ ackInv γ rs s ∗
-        loanCom γ rs.slent ∗ snapLocOk γ id s.logst.snap ∗ ownConfChangeV2 cc dq ccm ∗ £ 1 ∗
+        loanCom γ rs.slent ∗ snapLocOk γ id s.logst.snap ∗ restoredSnapHistory γ id s.logst.ksn ∗ ownConfChangeV2 cc dq ccm ∗ £ 1 ∗
         isCommitted γ D ∗ durTie γ rs s ∗ rnTrace γ rnv.raft' id cf rs.delivered s }}
       (App (Val (rnv.raft' @!! go.GoType.PointerType raft.ty @!! go!"applyConfChange")) (Val #cc))
     {{ (cs : Loc) (xs os ls lns : List w64), RET #cs;
@@ -777,7 +779,7 @@ theorem wp_applyConf_dyn_g
           ls ≡ₚ elements cs'.cfg.learners ∧ lns ≡ₚ elements cs'.cfg.learnersNext⌝ }} := by
   obtain ⟨Hk1, Hk2, Hke, Hconf, Hnoc, ⟨op', Hdec, Hstep'⟩, Hstep⟩ := Hpre
   iintro %Φ ⟨#Hpkg, Hrn, Hphys, Hghost, #Hsdrf, #Hsoft, #Hhard, Hsteps, Hcap0, Hpend, #Hdeliv,
-    #Hstrecs, #Hloanc, #Hsloc, Hch, Hlc, #HDd, #Hdur, Hrntr⟩ HΦ
+    #Hstrecs, #Hloanc, #Hsloc, #Hhist, Hch, Hlc, #HDd, #Hdur, Hrntr⟩ HΦ
   -- (step 4) the traced facts, while the ghost state is whole
   icases ownStepGhost_bootCommit γ _ cf id s $$ Hghost with ⟨%Hbc0, Hghost⟩
   icases ownStepGhost_applied_capplied γ rs.mode rs.capplied rs.cfg fp ds cf id s $$ Hghost with ⟨%Hapc, Hghost⟩
@@ -948,6 +950,8 @@ theorem wp_applyConf_dyn_g
     (by rw [Hls']) Hc'
   ihave #Hstr' := ackInv_keep (rs' := rs) γ rfl Hstok (by rw [Ht']; exact Int.le_refl _)
     (by rw [Hls']) (by rw [Hls']) (by rw [Hls']) (by rw [Hls']; exact Int.le_refl _) $$ Hstrecs
+  ihave #Hhist' : restoredSnapHistory γ id s'.logst.ksn $$ []
+  · rw [Hls']; iexact Hhist
   ihave #Hsloc' := snapLocOk_keep γ id (o := s.logst.snap) (o' := s'.logst.snap) (.inl (by rw [Hls']))
     $$ Hsloc
   -- (step 4) the capability back, at the configuration after (the same at a traced node)
@@ -973,7 +977,7 @@ theorem wp_applyConf_dyn_g
       ⟨HL.1, HL.2.1, HL.2.2.1, Hcap'⟩
       (by unfold SdtTie; rw [Hls']; exact Hsdt) Hrole
       (Hphs.keep rfl rfl rfl (HsLe.of_step (applyCCOkC_voteLe Hok) Hc') (by rw [Hls'])
-        (.inl (by rw [Hls']; exact Int.le_refl _))) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap0 Hpend Hdeliv Hstr' Hloanc Hsloc' [Hdur] Hrntr
+        (.inl (by rw [Hls']; exact Int.le_refl _))) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap0 Hpend Hdeliv Hstr' Hloanc Hsloc' Hhist' [Hdur] Hrntr
     · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) (by rw [Hls']) (by rw [Hls'])
         (by rw [Hls']) $$ Hdur
   ipureintro; exact Hcs0
@@ -1037,7 +1041,7 @@ theorem wp_rn_raft_applyConfChange_dyn_g
       (fun l hl => by simp [rsDlv, hl])
       (fun hl => by simp [rsDlv, hl]) Hgtr Hkeep Htr
     $$ [$Hpkg $Hrn $Hphys $Hghost $Hsdrf $Hsoft $Hhard $Hsteps $Hsteps_cap $Hpend $Hdeliv
-      $Hstrecs $Hloanc $Hsloc $Hccs $Hlc $HDd $Hdur $Hrntr]
+      $Hstrecs $Hloanc $Hsloc $Hhist $Hccs $Hlc $HDd $Hdur $Hrntr]
   inext
   iintro %cs %xs %os %ls %lns ⟨Hrn, Hccs, Hcs, %Hcs⟩
   iapply HΦ $$ %cs %xs %os %ls %lns

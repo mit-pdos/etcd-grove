@@ -63,7 +63,7 @@ abbrev RawNode.Ready.tracedTriple : Prop :=
       "#Hlead" ∷ (⌜roleAfter rs.role ss = StateLeader⌝ -∗ [∗list] q ∈ ms, isRaftMsg γ id q.st) ∗
       -- (restart S7.3, `RawNode.Ready.spec`'s) each message's `MsgSnap` facts, outright
       "#Hsnapto" ∷ ([∗list] q ∈ ms, snapToOk γ id q.st) ∗
-      "#Hsrcs" ∷ qSrcs rs.sn ms ∗
+      "#Hsrcs" ∷ readyMsgOrigins γ id rs.sn ms ∗
       "#Hss" ∷ softStateIs rd.SoftState' ss ∗
       "#Hce" ∷ entsRO rd.CommittedEntries' ce ∗
       "#Hcommitted" ∷ isCommitted γ (rs.delivered ++ ce) ∗

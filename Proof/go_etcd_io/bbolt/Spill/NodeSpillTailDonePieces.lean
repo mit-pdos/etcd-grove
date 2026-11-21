@@ -105,7 +105,7 @@ theorem pcLoop_piecesOK {X' : WX} {r' : NRec} {X2 : WX} {w2 : WDb} {bl : Loc} {O
     (hL : pcLoop X' r' X2 w2 bl O lo hi h xs wss pl rp0 bs j Es Ds xs.length ps Xf wf stl)
     (hlen : wss.length = xs.length) (hxs : xs ≠ []) (hnd : (xs.map (·.1)).Nodup)
     (hent : ∀ ws ∈ wss, ∀ e ∈ ws, keyIn lo hi e.key ∧ 0 < e.key.length ∧
-      e.key.length + e.value.length ≤ bboltEntryMax)
+      entryBytesFit e.key.length e.value.length e.pgid)
     (hne : ∀ ws ∈ wss, 0 < ws.length) (hpl : pl ≠ null) :
     piecesOK Xf bl pl (spP Xf) Xf.t.mv.pgid'.toNat lo hi h ps := by
   refine ⟨?_, by rw [pcLoop_ls hL]; exact hnd, ?_⟩
@@ -131,7 +131,7 @@ theorem pcLoop_piecesOK {X' : WX} {r' : NRec} {X2 : WX} {w2 : WDb} {bl : Loc} {O
   · rw [length_of_dat hdat]; exact h0
   · rw [hk0]; exact hkin
   · rw [hk0]; exact hkl
-  · rw [hk0]; omega
+  · rw [hk0]; exact hkb.1
   · have hb : childHi hi (pcKey ps) ps.length k = childHi hi (wssKey wss) xs.length k := by
       rw [hL.len]; exact childHi_congr (fun hm => hpk _ (by rw [hL.len]; exact hm))
     rw [hb]
