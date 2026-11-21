@@ -102,6 +102,8 @@ theorem processorListener.run.wp_proof
       iintro %fl ⟨Hfl, Hflc⟩
       simp only [go.arrayLiteralSize, List.foldl]
       (try wp_auto)
+      ihave #Hutrace : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.utils.trace $$ []
+      · iPkgInit
       wp_apply wp_tnew as %tr %Htr
       (try wp_auto)
       iframe

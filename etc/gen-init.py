@@ -2173,9 +2173,13 @@ SPECIAL['go_opentelemetry_io.otel.trace'] = dict(
     doc="""Its fact (`traceInit`, `storage/mvcc/Base.lean`): `noopSpanInstance` holds a `noopSpan` as a
 `Span`, read-only for good. Its initializer allocates it, initializes its imports and runs its
 translated initializer (`noopSpan{}` converted to `Span`, `noop.go`; prove-protootel, 2026-11-20:
-until then in `opaqueInitsOk`) and the untranslated initializers of its other variables, which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking.""",
-    alloc_types={'noopSpanInstance': 'GoInterface'},
+until then in `opaqueInitsOk`), those of `tracerProviderInstance` and
+`autoInstEnabled` (`new`) and of the `start`/`ended` func literals (prove-otel4, 2026-11-21), and the
+untranslated initializers of its other variables (`maxSpan`, which goose's guard refuses, and the
+`var _ I = T{}` assertions: `trace.toml`), which the trust-boundary axiom `opaqueInitsOk` says run
+without panicking.""",
+    alloc_types={'noopSpanInstance': 'GoInterface', 'tracerProviderInstance': 'Loc', 'start': 'GoFunc',
+                 'ended': 'GoFunc', 'autoInstEnabled': 'Loc'},
     finish=['ipersist HnoopSpanInstance'] + FIN_PRE[:6] +
            ['imodintro', 'unfold traceInit', 'iexists _; iexact HnoopSpanInstance'],
 )

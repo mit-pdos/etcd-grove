@@ -314,7 +314,7 @@ theorem schema.GroupVersionResource.wp_Empty_ptr :
 
 theorem trace.wp_New :
     EtcdGrove.trace.New.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.trace.New.wp_proof
+  EtcdGrove.trace.New.wp_proof _root_.Perennial.time.wp_Now
 
 theorem trace.Trace.wp_LogIfLong :
     EtcdGrove.trace.Trace.LogIfLong.spec (GF := GF) (hG := hG) :=

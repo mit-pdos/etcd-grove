@@ -1013,7 +1013,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h190 : GetIsPkgInitProp pkg_id.k8s_io.utils.trace (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h6, h152, True.intro⟩
+    exact ⟨h6, h3, h5, h152, True.intro⟩
   have h191 : GetIsPkgInitProp pkg_id.k8s_io.component_base.tracing (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl

@@ -281,6 +281,8 @@ theorem RealFIFO.Pop.wp_proof
       subst hv2
       icases Hfields with ⟨%fs, %fv, Hfp, Hfs, Hfc⟩
       (try wp_auto)
+      ihave #Hutrace : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.utils.trace $$ []
+      · iPkgInit
       wp_apply wp_tnew as %tr %Htr
       (try wp_auto)
       iunfold popAU at HAU1
