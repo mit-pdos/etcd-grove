@@ -11,7 +11,8 @@ public import Spec.go_uber_org.zap.Error
 public import Spec.go_etcd_io.etcd.client.pkg.v3.types.ID__String_ptr
 public import Spec.github_com.prometheus.client_golang.prometheus.GaugeVec__WithLabelValues
 public import Spec.github_com.prometheus.client_golang.prometheus.CounterVec__WithLabelValues
-public import Spec.fmt.SprintfID
+public import Spec.fmt.SprintfArgs
+public import Spec.go_etcd_io.etcd.client.pkg.v3.types.ID__String
 public import Perennial.Proof.errors.Link
 
 @[expose] public section
@@ -40,7 +41,8 @@ theorem rafthttp.peerStatus.deactivate.wp_proof
     (hIDStringPtr : types.ID.String_ptr.spec (GF := GF) (hG := hG))
     (hGWLV : prometheus.GaugeVec.WithLabelValues.spec (GF := GF) (hG := hG))
     (hCWLV : prometheus.CounterVec.WithLabelValues.spec (GF := GF) (hG := hG))
-    (hSprintf : fmt.SprintfID.spec (GF := GF) (hG := hG)) :
+    (hSprintf : fmt.SprintfArgs.spec (GF := GF) (hG := hG))
+    (hIDString : types.ID.String.spec (GF := GF) (hG := hG)) :
     rafthttp.peerStatus.deactivate.spec (GF := GF) (hG := hG) := by
   intro s failure reason
   wp_start as #Hs
@@ -66,21 +68,22 @@ theorem rafthttp.peerStatus.deactivate.wp_proof
   · ipureintro; rfl
   iintro %al ⟨Hal, -⟩
   (try wp_auto)
-  wp_apply hSprintf _ _ _ (DFrac.own 1) $$ [$Hal] as %msg ⟨-, -⟩
-  · ipureintro
-    intro x hx
-    simp only [List.mem_cons, List.mem_nil_iff, _root_.or_false] at hx
-    rcases hx with rfl | rfl | rfl | rfl
-    · left
-      exact _root_.Perennial.fmt.ArgsWf.cons_string _ []
-        _root_.Perennial.fmt.ArgsWf.nil _ (List.mem_singleton_self _)
-    · right; rfl
-    · left
-      exact _root_.Perennial.fmt.ArgsWf.cons_string _ []
-        _root_.Perennial.fmt.ArgsWf.nil _ (List.mem_singleton_self _)
-    · left
-      exact _root_.Perennial.fmt.ArgsWf.cons_string _ []
-        _root_.Perennial.fmt.ArgsWf.nil _ (List.mem_singleton_self _)
+  -- `Sprintf("failed to %s %s on %s (%s)", ...)`: three strings and the member id, whose
+  -- `String()` `fmt` calls (`fmt.SprintfArgs`, the id's `String` by its spec)
+  ihave #Htypes : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.types $$ []
+  · iPkgInit
+  ihave #HidS : fmt.stringMethodSpec (GF := GF)
+      ⟨go_etcd_io.etcd.client.pkg.v3.types.ID.ty, #id⟩ go!"String" $$ []
+  · rw [fmt.stringMethodSpec_unfold]
+    iintro !> %Φ HΦ
+    iapply hIDString id $$ []
+    · iexact Htypes
+    inext
+    iintro %s -
+    iapply HΦ
+  wp_apply hSprintf _ _ _ (DFrac.own 1) $$ [$Hal] as %msg -
+  · iframe #
+    fmt_args_ok
   (try wp_auto)
   cases a
   · -- inactive already: log at debug level

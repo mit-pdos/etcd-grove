@@ -128,6 +128,8 @@ theorem membership.RaftCluster.ValidateConfigurationChange.wp_proof
     irename «$r0» => Hcv
     wp_apply wp_Unmarshal cs m.context DFrac.discard _ _ i false Hci $$ [$Hjson $Hcs $Hcv]
       as %err ⟨%Herr, -, %v', %pus, Hcv, Hpus, -, %Hv'⟩
+    · -- a fresh `ConfigChangeContext`: its URL slices are `nil`
+      ipureintro; exact ⟨rfl, rfl⟩
     subst Herr
     obtain ⟨Hvid, Hvprom, Hpus, Hvlrn, -⟩ := Hv'
     ihave Hcc := Hcc $$ HC

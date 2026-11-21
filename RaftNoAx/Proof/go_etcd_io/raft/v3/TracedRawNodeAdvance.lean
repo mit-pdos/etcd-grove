@@ -1580,7 +1580,7 @@ theorem RawNode.Advance.tracedSpec_proof
       refine ⟨⟨fun _ => .inr Hsnn, ⟨rfl,
           fun k hk => ?_, fun _ => by show s.gh.snp ≠ none; rw [Hsnp]; simp, fun h => ?_,
           fun k hk _ => ⟨fun _ => ?_, fun h => absurd h Hsnn⟩, fun h _ _ => absurd h (by simp [logAbsorbSnap])⟩, Hgh0.1.2.2⟩,
-        fun _ => ⟨rfl, rfl, rfl, Int.le_refl _⟩, rfl⟩
+        fun _ => ⟨rfl, rfl, rfl, Int.le_refl _⟩, rfl, List.Subset.refl _⟩
       rotate_right
       · -- (D22 S-d4 item 3) the storage at the snapshot handed out (`sxt`)
         have hk' : s.gh.snp = some k := hk
@@ -2094,7 +2094,7 @@ theorem RawNode.Advance.tracedSpec_proof
         %(⟨⟨fun h => (by
               rw [Hsg1.2.2, Hs0f.2.2.2.2.2.2.2.2.2.2.2.2.2.1] at h; rw [Hunst] at h; cases h),
             SnpOk.of_none (g := { s1.gh with slent := false, snp := none }) Hlt1 rfl Hsip1 Hsat1, Hgh1.1.2.2⟩,
-          fun _ => ⟨rfl, rfl, rfl, Int.le_refl _⟩, rfl⟩ :
+          fun _ => ⟨rfl, rfl, rfl, Int.le_refl _⟩, rfl, List.Subset.refl _⟩ :
           LogGhOk { s1 with gh := { s1.gh with slent := false, snp := none } } s1.logst)
         %(fun _ => Int.le_refl _)
       ihave Hghost := ownStepGhost_congr γ _ cf1 id (s := s1)

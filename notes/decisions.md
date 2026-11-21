@@ -28063,6 +28063,12 @@ restarts.
 
 ## The merged snapshot's index guard (2026-10-31, S1 · the user's decision (B))
 
+**2026-11-20, R2.** Raft already records the snapshots it has restored in
+`LogState.ksn`. The unstable snapshot path returns membership in that list.
+Carry membership through the outbox and the Ready handout so a later proof
+can recover the incoming message that installed the snapshot.
+
+
 *Superseded on 2026-11-20 by the decision to carry the snapshot source through raft's API below.*
 
 **2026-10-31 · accepted**
@@ -28092,6 +28098,11 @@ comes from (changes raft's exported API); (C) a third hole in `SnapSendBranch.le
 from today's definitions); (D) term-tagged ghost state across the raft loop, the storage and the
 apply thread (a project of its own). Dropping the premise from `sentMsg_replaceSnapshot` was
 declined (the user, 2026-10-31).
+
+The public Ready contract carries the incoming protocol message for each
+successfully restored snapshot. `nodeRestoreSource_leader` identifies a
+foreign elected sender from that evidence. The server still needs to relate
+the restore to the applied Ready batches to discharge the index guard.
 
 ## `applyAll`'s merge branch (S1) (2026-10-31)
 
