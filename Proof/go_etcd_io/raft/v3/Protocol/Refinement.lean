@@ -94,7 +94,7 @@ local macro "rd_mono" : tactic => `(tactic| (
 
 section ghost
 variable [GooseExts]
-variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [CrashGS GF]
 variable {md : Bool}
 
 theorem rdCount_replOk (id : w64) (s : PState) (ms : List Msg) (h : ∀ m ∈ ms, ReplOk id s m) :
@@ -617,14 +617,14 @@ private theorem ownRaftGhost_step_stale (γ : RaftNames) (id : w64) (s : PState)
     m.src ≠ id →
     m.term = s.term →
     s.role ≠ .leader →
-    ⊢ isMessage (GF := GF) γ m -∗
+   ⊢ notCrashed -∗ isMessage (GF := GF) γ m -∗
       ownRaftGhost γ id s md ={⊤ \ ↑(raftRegN γ)}=∗
-      ownRaftGhost γ id
+      notCrashed ∗ ownRaftGhost γ id
         (psendMsgs (padoptLeader s m.src)
            [Msg.mk .appResp id m.src s.term false s.commit
               (W64 0) (W64 0) (W64 0) []]) md := by
   intro Hty Hfid Hterm Hrole
-  iintro #Hm Hown
+  iintro Hnc #Hm Hown
   iunfold ownRaftGhost at Hown
   icases Hown with ⟨%γs, %V, %πc, %kl, H⟩
   iNamed H
@@ -649,8 +649,8 @@ private theorem ownRaftGhost_step_stale (γ : RaftNames) (id : w64) (s : PState)
     iframe
   iunfold isLeader at Hl
   icases Hl with ⟨%q, #Hwin⟩
-  imod vote_excl _ γ id s γs V πc m.src q Hsname slotN_sub_reg Hhist $$ Hslot Hvirt Hwin
-    with ⟨Hvirt, %Hex⟩
+  imod vote_excl _ γ id s γs V πc m.src q Hsname slotN_sub_reg crashNs_sub_reg Hhist $$ Hnc Hslot Hvirt Hwin
+    with ⟨Hnc, Hvirt, %Hex⟩
   ihave Hlg := ownLogGhost_learn γ id s kl (virt V πc) m.src q Hrole $$ Hwin %Hex Hlg
   ihave ⟨%Hok, #Hrecs⟩ := ownLogGhost_recs $$ Hlg
   ihave Hlg := ownLogGhost_mono γ id s (padoptLeader s m.src) (some m.src) (virt V πc) rfl rfl rfl
@@ -671,6 +671,7 @@ private theorem ownRaftGhost_step_stale (γ : RaftNames) (id : w64) (s : PState)
   have Hfresh' : PromsFresh V (πc ++ [.ack s.term s.commit]) :=
     PromsFresh_snoc V πc _ Hfresh trivial
   imodintro
+  iframe Hnc
   iapply ownRaftGhost_intro γ id _ γs V (πc ++ [.ack s.term s.commit])
     (some m.src) Hsname Hidnz Hmode Hfresh' $$ Hslot Hvirt [] [] [] [] [] [Hlg] [] [] []
     [Hlcm] [Hrd]
@@ -880,7 +881,7 @@ def winPend (γ : RaftNames) (c : CfgM) (id : w64) (s : PState) (md : Bool) : IP
       (∀ m ∈ ms, m.ty = .snap → ∀ T, γ.reTracked = some T → id ∈ T ∧ m.dst ∈ T) ∧
       (∀ m ∈ ms, m.ty = .snap → m.dst ∈ c.voters ∪ c.learners) ∧
       plogLastIndexZ s.base s.log + 1 ≤ (n : Int) + γ.reBoot.length⌝ -∗
-    ⧖ n ==∗
+    notCrashed -∗ ⧖ n ={⊤ \ ↑(raftRegN γ)}=∗ notCrashed ∗
       ownRaftGhost γ id (psendMsgs (pwinState id s mt) ([pselfAck id (pwinState id s mt)] ++ ms)) md)
 
 /-- (2026-11-11, trace-check Q8 stage 1 slice 25b) **`Step.win` in three phases, the first**: the
@@ -895,15 +896,17 @@ with the receipt `appendEntry` raised (`notes/decisions.md`, "Q8 stage 1 (slice 
 theorem ownRaftGhost_step_win_reg (γ : RaftNames) (c : CfgM) (id : w64) (s : PState) :
     s.role = .candidate →
     JQuorum c (granted s.votes) →
-    ⊢ dynEnv γ id c s -∗ ownRaftGhost (GF := GF) γ id s md ={⊤ \ ↑(raftRegN γ)}=∗
-      isLeader γ id s.term ∗
+    ⊢ notCrashed -∗ dynEnv γ id c s -∗ ownRaftGhost (GF := GF) γ id s md ={⊤ \ ↑(raftRegN γ)}=∗
+      notCrashed ∗ isLeader γ id s.term ∗
       ∃ fp : List EntryM, ⌜FullOk s.base fp⌝ ∗ isCamp γ id s.term (fp ++ s.log) ∗
         logRecs γ base0 (fp ++ s.log) ∗
         ∃ (γm : GName) (terms : GMap w64 TermRec),
-          ⌜γ.reTerms !! id = some γm ∧ terms !! s.term = none⌝ ∗ ghostMapAuth γm 1 terms ∗
-          (ghostMapAuth γm 1 terms ==∗ leadFull γ s.term (fp ++ s.log) ∗ winPend γ c id s md) := by
+          ⌜γ.reTerms !! id = some γm ∧ terms !! s.term = none⌝ ∗
+          cview γ id CrashNames.t (1 : Qp).half terms ∗
+          (notCrashed -∗ cview γ id CrashNames.t (1 : Qp).half terms ={⊤ \ ↑(raftRegN γ)}=∗
+            notCrashed ∗ leadFull γ s.term (fp ++ s.log) ∗ winPend γ c id s md) := by
   intro Hrole Hq
-  iintro #Henv Hown
+  iintro Hnc #Henv Hown
   iunfold ownRaftGhost at Hown
   icases Hown with ⟨%γs, %V, %πc, %kl, H⟩
   iNamed H
@@ -920,7 +923,6 @@ theorem ownRaftGhost_step_win_reg (γ : RaftNames) (c : CfgM) (id : w64) (s : PS
       rcases Hwins_ok s.term (by rw [Ht]; rfl) with Hlt | ⟨-, Hr⟩
       · omega
       · exact absurd Hrole Hr
-  imod ghost_map_insert_persist s.term (granted s.votes) Hwfree $$ Hwins with ⟨Hwins, #Hwf⟩
   rw [campOwn_cand γ id _ s _ Hrole]
   icases Hcown with %Hcownp
   -- the winner's record: its quorum, a joint quorum of its configuration, which is its
@@ -957,8 +959,8 @@ theorem ownRaftGhost_step_win_reg (γ : RaftNames) (c : CfgM) (id : w64) (s : PS
   icases Hvj with ⟨%kv, %dv, %Fv, %Fc, -, #Hcamp0, -⟩
   iunfold isCamp at Hcamp0
   icases Hcamp0 with ⟨%kc, #Hk⟩
-  imod slot_campK _ γ id γs V πc s.term Fc kc Hsname slotN_sub_reg Hfresh $$ Hslot Hvirt Hk
-    with ⟨Hvirt, %Hcin⟩
+  imod slot_campK _ γ id γs V πc s.term Fc kc Hsname slotN_sub_reg crashNs_sub_reg Hfresh
+    $$ Hnc Hslot Hvirt Hk with ⟨Hnc, Hvirt, %Hcin⟩
   obtain ⟨Hcv, Hnopend⟩ := Hcin
   have Hpair : ((fp ++ s.log, s.commit) : List EntryM × w64) = (Fc, kc) :=
     Option.some.inj (Hcownp.symm.trans Hcv)
@@ -966,6 +968,12 @@ theorem ownRaftGhost_step_win_reg (γ : RaftNames) (c : CfgM) (id : w64) (s : PS
   obtain ⟨rfl, rfl⟩ := Hpair
   ihave #Hcown : isCamp γ id s.term (fp ++ s.log) $$ []
   · unfold isCamp; iexists s.commit; iexact Hk
+  -- the winning quorum, frozen (2026-11-21: the authority in the crash invariant, the key's
+  -- campaign with it)
+  ihave #Hck0 : campKey γ id s.term $$ []
+  · unfold campKey; iexists _, _; iexact Hk
+  imod cview_insert (⊤ \ ↑(raftRegN γ)) γ id CrashNames.w γ.reWins (crashLens_w γ id) wins γw s.term
+      (granted s.votes) crashNs_sub_reg Hwname Hwfree $$ Hnc Hwins Hck0 with ⟨Hnc, Hwins, #Hwf⟩
   have HnoPend : ¬ OutPend id s πc := fun h => by
     obtain ⟨F', k', hin⟩ := h.2 Hrole
     exact Hnopend F' k' hin
@@ -990,6 +998,7 @@ theorem ownRaftGhost_step_win_reg (γ : RaftNames) (c : CfgM) (id : w64) (s : PS
       · omega
       · exact absurd Hrole Hr
   imodintro
+  iframe Hnc
   isplitr
   · iexact Hnewlead
   iexists fp
@@ -1005,7 +1014,7 @@ theorem ownRaftGhost_step_win_reg (γ : RaftNames) (c : CfgM) (id : w64) (s : PS
   isplitl [Hterms]
   · iexact Hterms
   -- the second phase: the term log, holding the leader's entry
-  iintro Hterms
+  iintro Hnc Hterms
   obtain ⟨e, He⟩ : ∃ e, pleaderEntry s = e := ⟨_, rfl⟩
   obtain ⟨pt0, Hpt⟩ : ∃ pt0, (plogLast s.base s.log).term' = pt0 := ⟨_, rfl⟩
   imod ghost_map_alloc (GF := GF) ({[e.Index' := (e, pt0)]} : GMap w64 (EntryM × w64)) with
@@ -1013,7 +1022,8 @@ theorem ownRaftGhost_step_win_reg (γ : RaftNames) (c : CfgM) (id : w64) (s : PS
   ihave Htel := BigSepM.bigSepM_lookup (Φ := fun i (x : EntryM × w64) => iprop(i ↪[γt] x))
     (GMap.lookup_singleton_eq e.Index' (e, pt0)) $$ Htel
   imod ghostMapElem_persist $$ Htel with #Htel
-  imod ghost_map_insert_persist s.term ((γt, s.base), s.log) Hfree $$ Hterms with ⟨Hterms, #Htnew⟩
+  imod cview_insert (⊤ \ ↑(raftRegN γ)) γ id CrashNames.t γ.reTerms (crashLens_t γ id) terms γm s.term
+      ((γt, s.base), s.log) crashNs_sub_reg Htname Hfree $$ Hnc Hterms Hck0 with ⟨Hnc, Hterms, #Htnew⟩
   ihave #Htl : isTermLog γ id s.term γt s.base s.log $$ []
   · unfold isTermLog; iexists γm; isplitr
     · ipureintro; exact Htname
@@ -1042,11 +1052,12 @@ theorem ownRaftGhost_step_win_reg (γ : RaftNames) (c : CfgM) (id : w64) (s : PS
     exact ⟨Hfp, List.prefix_refl _, Hwl, fun j x Hx => (Htle j x Hx).1⟩
   ihave #Hfull1 := leadFull_intro $$ Hp1 Hpf1
   imodintro
+  iframe Hnc
   isplitr
   · iexact Hfull1
   -- the last phase: the entry's record, with the receipt
   iunfold winPend
-  iintro %mt %ms %n %Hpre #Hrcpt
+  iintro %mt %ms %n %Hpre Hnc #Hrcpt
   obtain ⟨Hnw, Hmt, Hms, Hce, Htr, Hdc, Hrb⟩ := Hpre
   obtain ⟨Hmid, Hmoth⟩ := Hmt
   have Hs2log : (pwinState id s mt).log = s.log ++ [pleaderEntry s] := rfl
@@ -1404,10 +1415,11 @@ theorem ownRaftGhost_step_win_reg (γ : RaftNames) (c : CfgM) (id : w64) (s : PS
     iapply Hhnew; ipureintro; omega
   have Hwl2' : PlogWfR s2.base s2.log := by rw [Hs2base]; exact PlogWf_wfR _ _ Hwl2
   -- the commit lower bound of the new term (2026-10-12)
-  imod lcmOwn_win γ id s s2 Hrole Hs2role Hs2term
-    (by rw [Hs2commit]; exact Int.le_refl _) $$ [$Hck $Hlcm] with Hlcm
+  imod lcmOwn_win (⊤ \ ↑(raftRegN γ)) γ id s s2 crashNs_sub_reg Hrole Hs2role Hs2term
+    (by rw [Hs2commit]; exact Int.le_refl _) $$ Hnc [$Hck $Hlcm] with ⟨Hnc, Hlcm⟩
   -- the read registry of the new term (2026-10-13)
-  imod rdOwn_win γ id s (psendMsgs s2 ([pselfAck id s2] ++ ms)) Hrole Hs2role
+  imod rdOwn_win (⊤ \ ↑(raftRegN γ)) γ id s (psendMsgs s2 ([pselfAck id s2] ++ ms)) crashNs_sub_reg
+    Hrole Hs2role
     Hs2term Hs2rd
     (by
       show rdCount (s2.outbox ++ ([pselfAck id s2] ++ ms)) ≤ rdCount s.outbox
@@ -1416,11 +1428,12 @@ theorem ownRaftGhost_step_win_reg (γ : RaftNames) (c : CfgM) (id : w64) (s : PS
     (by
       show (propsOf (s2.outbox ++ ([pselfAck id s2] ++ ms))).Subperm (propsOf s.outbox)
       rw [propsOf_append, propsOf_append, Hs2out, Hpo]
-      simp [propsOf_cons, pselfAck, list_subperm_self]) $$ [$Hck $Hrd] with Hrd
+      simp [propsOf_cons, pselfAck, list_subperm_self]) $$ Hnc [$Hck $Hrd] with ⟨Hnc, Hrd⟩
   have Hsnoc := virt_snoc V πc (.ack s.term (plastIndex s2))
   have Hfresh' : PromsFresh V (πc ++ [.ack s.term (plastIndex s2)]) :=
     PromsFresh_snoc V πc _ Hfresh trivial
   imodintro
+  iframe Hnc
   iapply ownRaftGhost_intro γ id _ γs V (πc ++ [.ack s.term (plastIndex s2)]) (some id) Hsname Hidnz
     Hmode Hfresh' $$ Hslot Hvirt [] [] [] [] [] [Hlg] [] [] [] [Hlcm] [Hrd]
   · iapply promsJust_snoc $$ Hpend Hj
@@ -1494,14 +1507,14 @@ theorem ownRaftGhost_step_win_entry (γ : RaftNames) (c : CfgM) (id : w64) (s : 
     -- (restart S7.3, 2026-11-14) a snapshot to a voter or learner of the configuration
     (∀ m ∈ ms, m.ty = .snap → m.dst ∈ c.voters ∪ c.learners) →
     plogLastIndexZ s.base s.log + 1 ≤ (n : Int) + γ.reBoot.length →
-    ⊢ ⧖ n -∗ winPend (GF := GF) γ c id s md ==∗
+    ⊢ notCrashed -∗ ⧖ n -∗ winPend (GF := GF) γ c id s md ={⊤ \ ↑(raftRegN γ)}=∗ notCrashed ∗
       ownRaftGhost γ id (psendMsgs (pwinState id s mt) ([pselfAck id (pwinState id s mt)] ++ ms)) md := by
   intro Hnw Hmt Hms Hce Htr Hdc Hrb
   have Hpre := And.intro Hnw (And.intro Hmt (And.intro Hms (And.intro Hce (And.intro Htr
     (And.intro Hdc Hrb)))))
-  iintro #Hrcpt Hp
+  iintro Hnc #Hrcpt Hp
   iunfold winPend at Hp
-  iapply Hp $$ %mt %ms %n %Hpre Hrcpt
+  iapply Hp $$ %mt %ms %n %Hpre Hnc Hrcpt
 
 /-- `Step.win`: allocate the term log -- recording the candidate's base and log, and
 holding the leader's entry -- and acknowledge the old and the new last index. (2026-11-11, trace-check
@@ -1523,17 +1536,15 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (id : w64)
     (∀ m ∈ ms, m.ty = .snap → m.dst ∈ c.voters ∪ c.learners) →
     -- (2026-10-18, D19b stage 5) the new entry's index is covered by the receipt `⧖ n`
     plogLastIndexZ s.base s.log + 1 ≤ (n : Int) + γ.reBoot.length →
-    ⊢ ⧖ n -∗ dynEnv γ id c s -∗ ownRaftGhost (GF := GF) γ id s md ={⊤ \ ↑(raftRegN γ)}=∗
-      ownRaftGhost γ id (psendMsgs (pwinState id s mt)
+    ⊢ notCrashed -∗ ⧖ n -∗ dynEnv γ id c s -∗ ownRaftGhost (GF := GF) γ id s md ={⊤ \ ↑(raftRegN γ)}=∗
+      notCrashed ∗ ownRaftGhost γ id (psendMsgs (pwinState id s mt)
                            ([pselfAck id (pwinState id s mt)] ++ ms)) md := by
   intro Hrole Hq Hnw Hmt Hms Hce Htr Hdc Hrb
-  iintro #Hrcpt #Henv Hown
-  imod ownRaftGhost_step_win_reg γ c id s Hrole Hq $$ Henv Hown with
-    ⟨-, %fp, -, -, -, %γm, %terms, -, Ha, Hw⟩
-  imod Hw $$ Ha with ⟨-, Hp⟩
-  imod ownRaftGhost_step_win_entry γ c id s mt ms n Hnw Hmt Hms Hce Htr Hdc Hrb $$ Hrcpt Hp with Hg
-  imodintro
-  iexact Hg
+  iintro Hnc #Hrcpt #Henv Hown
+  imod ownRaftGhost_step_win_reg γ c id s Hrole Hq $$ Hnc Henv Hown with
+    ⟨Hnc, -, %fp, -, -, -, %γm, %terms, -, Ha, Hw⟩
+  imod Hw $$ Hnc Ha with ⟨Hnc, -, Hp⟩
+  iapply ownRaftGhost_step_win_entry γ c id s mt ms n Hnw Hmt Hms Hce Htr Hdc Hrb $$ Hnc Hrcpt Hp
 
 /-- `Step.beat`: a heartbeat carries the leadership, a commit index the leader has, and
 the `Match` it is bounded by. -/
@@ -1972,9 +1983,9 @@ theorem ownRaftGhost_step_app_stale (γ : RaftNames) (id : w64) (s : PState) (m 
     m.src ≠ id →
     m.term = s.term →
     s.role ≠ .leader →
-    ⊢ isMessage (GF := GF) γ m -∗
+    ⊢ notCrashed -∗ isMessage (GF := GF) γ m -∗
       ownRaftGhost γ id s md ={⊤ \ ↑(raftRegN γ)}=∗
-      ownRaftGhost γ id
+      notCrashed ∗ ownRaftGhost γ id
         (psendMsgs (padoptLeader s m.src)
            [Msg.mk .appResp id m.src s.term false s.commit
               (W64 0) (W64 0) (W64 0) []]) md := by
@@ -2275,22 +2286,22 @@ theorem ownLogGhost_evs (γ : RaftNames) (id : w64) (s : PState) (kl : Option w6
 
 theorem ownLogGhost_ack_le (E : CoPset) (γ : RaftNames) (v : w64) (s : PState) (kl : Option w64)
     (γs : SlotNames) (V : DurMaps) (πc : List Prom) (t i : w64) :
-    γ.reSlot !! v = some γs → ↑(slotN γ v) ⊆ E →
-    ⊢ slotInv (GF := GF) γ v -∗ ghostVar γs.1 (1 : Qp).half V -∗
+    γ.reSlot !! v = some γs → ↑(slotN γ v) ⊆ E → ↑(crashNs γ v) ⊆ E →
+    ⊢ notCrashed -∗ slotInv (GF := GF) γ v -∗ cview γ v CrashNames.v (1 : Qp).half V -∗
       ownLogGhost γ v s kl (virt V πc) -∗ ackEv γ v t i ={E}=∗
-      ghostVar γs.1 (1 : Qp).half V ∗ ownLogGhost γ v s kl (virt V πc) ∗
+      notCrashed ∗ cview γ v CrashNames.v (1 : Qp).half V ∗ ownLogGhost γ v s kl (virt V πc) ∗
       ⌜uint.Z t ≤ uint.Z s.term⌝ := by
-  intro Hs HE
+  intro Hs HE HC
   unfold ackEv
-  iintro #Hslot Hv Hlg ⟨%γe', %L, %HL, #Hlb⟩
+  iintro Hnc #Hslot Hv Hlg ⟨%γe', %L, %HL, #Hlb⟩
   obtain ⟨Hγe', Hin, -⟩ := HL
-  imod slot_open E γ v γs V Hs HE $$ Hslot Hv with ⟨%E0, %HEV, Hsh, Hv, Hcl⟩
+  imod slot_openV E γ v γs V Hs HE HC $$ Hnc Hslot Hv with ⟨Hnc, Hv, %E0, %HEV, Hsh, Hcl⟩
   icases durShares_evs γ v _ E0 γe' L Hγe' $$ Hsh Hlb with ⟨%Hp, Hsh⟩
   imod Hcl $$ Hsh with -
   icases persistent_entails_right (wand_entails (ownLogGhost_evs (GF := GF) γ v s kl (virt V πc))) $$ Hlg
     with ⟨%Hevs, Hlg⟩
   imodintro
-  iframe Hv Hlg
+  iframe Hnc Hv Hlg
   ipureintro
   have Hp' : L <+: (virt V πc).evs := Hp.trans (HEV.2.2.2.2.trans (virt_evs_prefix V πc))
   have := Hevs.2.1 _ (Hp'.subset Hin)
@@ -2298,15 +2309,15 @@ theorem ownLogGhost_ack_le (E : CoPset) (γ : RaftNames) (v : w64) (s : PState) 
 
 theorem ownLogGhost_not_doomed (E : CoPset) (γ : RaftNames) (v : w64) (s : PState) (kl : Option w64)
     (γs : SlotNames) (V : DurMaps) (πc : List Prom) (r : RqRec) :
-    γ.reSlot !! v = some γs → ↑(slotN γ v) ⊆ E →
-    ⊢ slotInv (GF := GF) γ v -∗ ghostVar γs.1 (1 : Qp).half V -∗
+    γ.reSlot !! v = some γs → ↑(slotN γ v) ⊆ E → ↑(crashNs γ v) ⊆ E →
+    ⊢ notCrashed -∗ slotInv (GF := GF) γ v -∗ cview γ v CrashNames.v (1 : Qp).half V -∗
       ownLogGhost γ v s kl (virt V πc) -∗ rqRecOk γ s.term r ={E}=∗
-      ghostVar γs.1 (1 : Qp).half V ∗ ownLogGhost γ v s kl (virt V πc) ∗
+      notCrashed ∗ cview γ v CrashNames.v (1 : Qp).half V ∗ ownLogGhost γ v s kl (virt V πc) ∗
       ⌜∀ t' q, r.2 = some (t', q) → v ∉ q⌝ := by
-  intro Hs HE
-  iintro #Hslot Hv Hown #Hr
+  intro Hs HE HC
+  iintro Hnc #Hslot Hv Hown #Hr
   rcases h : r.2 with _ | ⟨t', q⟩ <;> simp only [rqRecOk, h]
-  · imodintro; iframe Hv Hown; ipureintro; intro t' q h'; cases h'
+  · imodintro; iframe Hnc Hv Hown; ipureintro; intro t' q h'; cases h'
   · unfold doomed
     icases Hr with ⟨%n, %G, %a, %c, %q', %Hpq, -, #HU, -⟩
     by_cases hv : v ∈ q
@@ -2314,10 +2325,10 @@ theorem ownLogGhost_not_doomed (E : CoPset) (γ : RaftNames) (v : w64) (s : PSta
       unfold isAcked
       icases Ha with (%H0 | ⟨-, #Hev⟩)
       · exfalso; have := Hti.2; omega
-      · imod ownLogGhost_ack_le E γ v s kl γs V πc t'' i'' Hs HE $$ Hslot Hv Hown Hev
-          with ⟨Hv, Hown, %Hle⟩
+      · imod ownLogGhost_ack_le E γ v s kl γs V πc t'' i'' Hs HE HC $$ Hnc Hslot Hv Hown Hev
+          with ⟨Hnc, Hv, Hown, %Hle⟩
         exfalso; have := Hti.1; omega
-    · imodintro; iframe Hv Hown
+    · imodintro; iframe Hnc Hv Hown
       ipureintro
       intro t'' q' hh
       cases hh
@@ -2325,20 +2336,20 @@ theorem ownLogGhost_not_doomed (E : CoPset) (γ : RaftNames) (v : w64) (s : PSta
 
 theorem ownLogGhost_not_doomed_list (E : CoPset) (γ : RaftNames) (v : w64) (s : PState)
     (kl : Option w64) (γs : SlotNames) (V : DurMaps) (πc : List Prom) (recs : List RqRec) :
-    γ.reSlot !! v = some γs → ↑(slotN γ v) ⊆ E →
-    ⊢ slotInv (GF := GF) γ v -∗ ghostVar γs.1 (1 : Qp).half V -∗
+    γ.reSlot !! v = some γs → ↑(slotN γ v) ⊆ E → ↑(crashNs γ v) ⊆ E →
+    ⊢ notCrashed -∗ slotInv (GF := GF) γ v -∗ cview γ v CrashNames.v (1 : Qp).half V -∗
       ownLogGhost γ v s kl (virt V πc) -∗ ([∗list] r ∈ recs, rqRecOk γ s.term r) ={E}=∗
-      ghostVar γs.1 (1 : Qp).half V ∗ ownLogGhost γ v s kl (virt V πc) ∗
+      notCrashed ∗ cview γ v CrashNames.v (1 : Qp).half V ∗ ownLogGhost γ v s kl (virt V πc) ∗
       ⌜∀ r ∈ recs, ∀ t' q, r.2 = some (t', q) → v ∉ q⌝ := by
-  intro Hs HE
+  intro Hs HE HC
   induction recs with
-  | nil => iintro _ Hv Hown _; imodintro; iframe Hv Hown; ipureintro; intro r hr; cases hr
+  | nil => iintro Hnc _ Hv Hown _; imodintro; iframe Hnc Hv Hown; ipureintro; intro r hr; cases hr
   | cons r rs ih =>
-    iintro #Hslot Hv Hown Hl
+    iintro Hnc #Hslot Hv Hown Hl
     icases (BigSepL.bigSepL_cons).1 $$ Hl with ⟨#Hr, #Hrs⟩
-    imod ownLogGhost_not_doomed E γ v s kl γs V πc r Hs HE $$ Hslot Hv Hown Hr with ⟨Hv, Hown, %H1⟩
-    imod ih $$ Hslot Hv Hown Hrs with ⟨Hv, Hown, %H2⟩
-    imodintro; iframe Hv Hown
+    imod ownLogGhost_not_doomed E γ v s kl γs V πc r Hs HE HC $$ Hnc Hslot Hv Hown Hr with ⟨Hnc, Hv, Hown, %H1⟩
+    imod ih $$ Hnc Hslot Hv Hown Hrs with ⟨Hnc, Hv, Hown, %H2⟩
+    imodintro; iframe Hnc Hv Hown
     ipureintro
     intro r' hr'
     rcases List.mem_cons.mp hr' with rfl | h
@@ -2349,16 +2360,16 @@ theorem ownLogGhost_not_doomed_list (E : CoPset) (γ : RaftNames) (v : w64) (s :
 theorem ownLogGhost_hbAck (E : CoPset) (γ : RaftNames) (v : w64) (s : PState) (kl : Option w64)
     (γs : SlotNames) (V : DurMaps) (πc : List Prom)
     (q : Nat) (recs : List RqRec) (hq : q ≤ recs.length) :
-    γ.reSlot !! v = some γs → ↑(slotN γ v) ⊆ E →
-    ⊢ slotInv (GF := GF) γ v -∗ ghostVar γs.1 (1 : Qp).half V -∗
+    γ.reSlot !! v = some γs → ↑(slotN γ v) ⊆ E → ↑(crashNs γ v) ⊆ E →
+    ⊢ notCrashed -∗ slotInv (GF := GF) γ v -∗ cview γ v CrashNames.v (1 : Qp).half V -∗
       ownLogGhost γ v s kl (virt V πc) -∗ ([∗list] r ∈ recs, rqRecOk γ s.term r) ={E}=∗
-      ghostVar γs.1 (1 : Qp).half V ∗ ownLogGhost γ v s kl (virt V πc) ∗
+      notCrashed ∗ cview γ v CrashNames.v (1 : Qp).half V ∗ ownLogGhost γ v s kl (virt V πc) ∗
       ⌜HbAckOk v q recs⌝ := by
-  intro Hs HE
-  iintro #Hslot Hv Hown Hl
-  imod ownLogGhost_not_doomed_list E γ v s kl γs V πc recs Hs HE $$ Hslot Hv Hown Hl
-    with ⟨Hv, Hown, %H⟩
-  imodintro; iframe Hv Hown
+  intro Hs HE HC
+  iintro Hnc #Hslot Hv Hown Hl
+  imod ownLogGhost_not_doomed_list E γ v s kl γs V πc recs Hs HE HC $$ Hnc Hslot Hv Hown Hl
+    with ⟨Hnc, Hv, Hown, %H⟩
+  imodintro; iframe Hnc Hv Hown
   ipureintro
   exact ⟨hq, fun r hr => H r (List.mem_of_mem_take hr)⟩
 
@@ -2366,21 +2377,21 @@ theorem ownLogGhost_hbAck (E : CoPset) (γ : RaftNames) (v : w64) (s : PState) (
 theorem ownLogGhost_hbResp (E : CoPset) (γ : RaftNames) (v : w64) (s : PState) (kl : Option w64)
     (γs : SlotNames) (V : DurMaps) (πc : List Prom)
     (L : w64) (ctx : List w8) :
-    γ.reSlot !! v = some γs → ↑(slotN γ v) ⊆ E →
-    ⊢ slotInv (GF := GF) γ v -∗ ghostVar γs.1 (1 : Qp).half V -∗
+    γ.reSlot !! v = some γs → ↑(slotN γ v) ⊆ E → ↑(crashNs γ v) ⊆ E →
+    ⊢ notCrashed -∗ slotInv (GF := GF) γ v -∗ cview γ v CrashNames.v (1 : Qp).half V -∗
       ownLogGhost γ v s kl (virt V πc) -∗
       (⌜ctx = []⌝ ∨ ∃ (q : w64) (recs : List RqRec),
          ⌜ctx = u64Le q ∧ uint.nat q ≤ recs.length⌝ ∗ rqLb γ L s.term recs ∗
          [∗list] r ∈ recs, rqRecOk γ s.term r) ={E}=∗
-      ghostVar γs.1 (1 : Qp).half V ∗ ownLogGhost γ v s kl (virt V πc) ∗
+      notCrashed ∗ cview γ v CrashNames.v (1 : Qp).half V ∗ ownLogGhost γ v s kl (virt V πc) ∗
       (⌜ctx = []⌝ ∨ ∃ (q : w64) (recs : List RqRec),
          ⌜ctx = u64Le q ∧ HbAckOk v (uint.nat q) recs⌝ ∗ rqLb γ L s.term recs) := by
-  intro Hs HE
-  iintro #Hslot Hv Hown (%H0 | ⟨%q, %recs, %Hq, #Hlb, #Hrs⟩)
-  · imodintro; iframe Hv Hown; ileft; ipureintro; exact H0
-  · imod ownLogGhost_hbAck E γ v s kl γs V πc (uint.nat q) recs Hq.2 Hs HE $$ Hslot Hv Hown Hrs
-      with ⟨Hv, Hown, %Hack⟩
-    imodintro; iframe Hv Hown
+  intro Hs HE HC
+  iintro Hnc #Hslot Hv Hown (%H0 | ⟨%q, %recs, %Hq, #Hlb, #Hrs⟩)
+  · imodintro; iframe Hnc Hv Hown; ileft; ipureintro; exact H0
+  · imod ownLogGhost_hbAck E γ v s kl γs V πc (uint.nat q) recs Hq.2 Hs HE HC $$ Hnc Hslot Hv Hown Hrs
+      with ⟨Hnc, Hv, Hown, %Hack⟩
+    imodintro; iframe Hnc Hv Hown
     iright
     iexists q, recs
     iframe Hlb
@@ -2396,26 +2407,27 @@ theorem ownRaftGhost_step_heartbeat (γ : RaftNames) (id : w64) (s : PState) (m 
     m.src ≠ id →
     s.role ≠ .leader →
     uint.Z m.commit ≤ plogLastIndexZ s.base s.log →
-    ⊢ isMessage (GF := GF) γ m -∗
+    ⊢ notCrashed -∗ isMessage (GF := GF) γ m -∗
       ownRaftGhost γ id s md ={⊤ \ ↑(raftRegN γ)}=∗
-      ownRaftGhost γ id
+      notCrashed ∗ ownRaftGhost γ id
         (psendMsgs
            { padoptLeader s m.src with commit := plogCommitTo s.commit m.commit }
            [{ Msg.plain .heartbeatResp id m.src s.term false with ctx := m.ctx }]) md := by
   intro Hty Hto Hterm Hfid Hrole Hcm
-  iintro #Hm Hown
+  iintro Hnc #Hm Hown
   iunfold ownRaftGhost at Hown
   icases Hown with ⟨%γs, %V, %πc, %kl, H⟩
   iNamed H
   icases isMessage_heartbeat_inv γ m Hty $$ Hm with
     ⟨-, ⟨%Fl, #Hfl, #Hmc, #Hmcm⟩, ⟨%i, %Hi, #Hack⟩, %Hfnz, #Hctx⟩
   rw [Hto, Hterm] at *
-  imod ownLogGhost_ack_agree _ γ id s kl γs V πc i Hsname slotN_sub_reg $$ Hslot Hvirt Hlg Hack
-    with ⟨Hvirt, Hlg, #Hagree⟩
+  imod ownLogGhost_ack_agree _ γ id s kl γs V πc i Hsname slotN_sub_reg crashNs_sub_reg $$ Hnc Hslot Hvirt Hlg Hack
+    with ⟨Hnc, Hvirt, Hlg, #Hagree⟩
   ihave ⟨%Hok, #Hrecs⟩ := ownLogGhost_recs $$ Hlg
-  imod ownLogGhost_hbResp _ γ id s kl γs V πc m.src m.ctx Hsname slotN_sub_reg $$ Hslot Hvirt Hlg Hctx
-    with ⟨Hvirt, Hlg, #Hctx'⟩
+  imod ownLogGhost_hbResp _ γ id s kl γs V πc m.src m.ctx Hsname slotN_sub_reg crashNs_sub_reg $$ Hnc Hslot Hvirt Hlg Hctx
+    with ⟨Hnc, Hvirt, Hlg, #Hctx'⟩
   imodintro
+  iframe Hnc
   iapply ownRaftGhost_intro γ id _ γs V πc kl Hsname Hidnz Hmode Hfresh $$ Hslot Hvirt Hpend [] [] [] [] [Hlg] [] [] [] [Hlcm] [Hrd]
   · ipureintro; exact Hhist
   · rw [psendMsgs_outbox]; simp only [padoptLeader]
@@ -2552,9 +2564,9 @@ theorem ownRaftGhost_step_app_accept (γ : RaftNames) (id : w64) (s : PState) (m
     plogMaybeAppend s.base s.log
       (entryID.mk m.logterm m.index) m.entries
       = some (lastnewi, es') →
-    ⊢ isMessage (GF := GF) γ m -∗
+    ⊢ notCrashed -∗ isMessage (GF := GF) γ m -∗
       ownRaftGhost γ id s md ={⊤ \ ↑(raftRegN γ)}=∗
-      ownRaftGhost γ id
+      notCrashed ∗ ownRaftGhost γ id
         (psendMsgs
            { padoptLeader s m.src with
                log := es',
@@ -2564,7 +2576,7 @@ theorem ownRaftGhost_step_app_accept (γ : RaftNames) (id : w64) (s : PState) (m
            [Msg.mk .appResp id m.src s.term false lastnewi
               (W64 0) (W64 0) (W64 0) []]) md := by
   intro Hty Hfid Hterm Hrole Hcidx Happ
-  iintro #Hm Hown
+  iintro Hnc #Hm Hown
   iunfold ownRaftGhost at Hown
   icases Hown with ⟨%γs, %V, %πc, %kl, H⟩
   iNamed H
@@ -2734,8 +2746,8 @@ theorem ownRaftGhost_step_app_accept (γ : RaftNames) (id : w64) (s : PState) (m
   -- learn the leader
   iunfold isLeader at Hl
   icases Hl with ⟨%qw, #Hwin⟩
-  imod vote_excl _ γ id s γs V πc m.src qw Hsname slotN_sub_reg Hhist $$ Hslot Hvirt Hwin
-    with ⟨Hvirt, %Hex⟩
+  imod vote_excl _ γ id s γs V πc m.src qw Hsname slotN_sub_reg crashNs_sub_reg Hhist $$ Hnc Hslot Hvirt Hwin
+    with ⟨Hnc, Hvirt, %Hex⟩
   ihave Hlg := ownLogGhost_learn γ id s kl (virt V πc) m.src qw Hrole $$ Hwin %Hex Hlg
   have HlastZ : uint.Z lastnewi < 2 ^ 64 := uint_Z_lt lastnewi
   ihave Hlg := ownLogGhost_upd γ id s
@@ -2891,6 +2903,7 @@ theorem ownRaftGhost_step_app_accept (γ : RaftNames) (id : w64) (s : PState) (m
   have Hfresh' : PromsFresh V (πc ++ [.ack s.term lastnewi]) :=
     PromsFresh_snoc V πc _ Hfresh trivial
   imodintro
+  iframe Hnc
   iapply ownRaftGhost_intro γ id _ γs V (πc ++ [.ack s.term lastnewi]) (some m.src) Hsname Hidnz
     Hmode Hfresh' $$ Hslot Hvirt [] [] [] [] [] [Hlg] [] [] [] [Hlcm] [Hrd]
   · iapply promsJust_snoc $$ Hpend Hj
@@ -3463,9 +3476,9 @@ theorem ownRaftGhost_step_snap_stale (γ : RaftNames) (id : w64) (s : PState) (m
     m.src ≠ id →
     m.term = s.term →
     s.role ≠ .leader →
-    ⊢ isMessage (GF := GF) γ m -∗
+    ⊢ notCrashed -∗ isMessage (GF := GF) γ m -∗
       ownRaftGhost γ id s md ={⊤ \ ↑(raftRegN γ)}=∗
-      ownRaftGhost γ id
+      notCrashed ∗ ownRaftGhost γ id
         (psendMsgs (padoptLeader s m.src)
            [Msg.mk .appResp id m.src s.term false s.commit
               (W64 0) (W64 0) (W64 0) []]) md := by
@@ -3483,15 +3496,15 @@ theorem ownRaftGhost_step_snap_fastfwd (γ : RaftNames) (id : w64) (s : PState) 
     uint.Z s.commit < uint.Z m.index →
     PlogMatches s.base s.log
       (entryID.mk m.logterm m.index) →
-    ⊢ isMessage (GF := GF) γ m -∗
+    ⊢ notCrashed -∗ isMessage (GF := GF) γ m -∗
       ownRaftGhost γ id s md ={⊤ \ ↑(raftRegN γ)}=∗
-      ownRaftGhost γ id
+      notCrashed ∗ ownRaftGhost γ id
         (psendMsgs
            { padoptLeader s m.src with commit := m.index }
            [Msg.mk .appResp id m.src s.term false m.index
               (W64 0) (W64 0) (W64 0) []]) md := by
   intro Hty Hfid Hterm Hrole Hlt Hmt
-  iintro #Hm Hown
+  iintro Hnc #Hm Hown
   iunfold ownRaftGhost at Hown
   icases Hown with ⟨%γs, %V, %πc, %kl, H⟩
   iNamed H
@@ -3500,8 +3513,8 @@ theorem ownRaftGhost_step_snap_fastfwd (γ : RaftNames) (id : w64) (s : PState) 
   rw [Hterm]
   iunfold isLeader at Hl
   icases Hl with ⟨%q, #Hwin⟩
-  imod vote_excl _ γ id s γs V πc m.src q Hsname slotN_sub_reg Hhist $$ Hslot Hvirt Hwin
-    with ⟨Hvirt, %Hex⟩
+  imod vote_excl _ γ id s γs V πc m.src q Hsname slotN_sub_reg crashNs_sub_reg Hhist $$ Hnc Hslot Hvirt Hwin
+    with ⟨Hnc, Hvirt, %Hex⟩
   ihave Hlg := ownLogGhost_learn γ id s kl (virt V πc) m.src q Hrole $$ Hwin %Hex Hlg
   ihave #HLf := leadFull_intro $$ Hp' Hpf'
   icases leadFull_wf γ s.term (fpL ++ l') $$ HLf with ⟨%HwLf, #HrLf⟩
@@ -3554,6 +3567,7 @@ theorem ownRaftGhost_step_snap_fastfwd (γ : RaftNames) (id : w64) (s : PState) 
   have Hfresh' : PromsFresh V (πc ++ [.ack s.term m.index]) :=
     PromsFresh_snoc V πc _ Hfresh trivial
   imodintro
+  iframe Hnc
   iapply ownRaftGhost_intro γ id _ γs V (πc ++ [.ack s.term m.index]) (some m.src) Hsname Hidnz
     Hmode Hfresh' $$ Hslot Hvirt [] [] [] [] [] [Hlg] [] [] [] [Hlcm] [Hrd]
   · iapply promsJust_snoc $$ Hpend Hj
@@ -3624,9 +3638,9 @@ theorem ownRaftGhost_step_snap_restore (γ : RaftNames) (id : w64) (s : PState) 
     uint.Z s.commit < uint.Z m.index →
     ¬ PlogMatches s.base s.log
         (entryID.mk m.logterm m.index) →
-    ⊢ isMessage (GF := GF) γ m -∗
+    ⊢ notCrashed -∗ isMessage (GF := GF) γ m -∗
       ownRaftGhost γ id s md ={⊤ \ ↑(raftRegN γ)}=∗
-      ownRaftGhost γ id
+      notCrashed ∗ ownRaftGhost γ id
         (psendMsgs
            { padoptLeader s m.src with
                base := entryID.mk m.logterm m.index,
@@ -3635,7 +3649,7 @@ theorem ownRaftGhost_step_snap_restore (γ : RaftNames) (id : w64) (s : PState) 
            [Msg.mk .appResp id m.src s.term false m.index
               (W64 0) (W64 0) (W64 0) []]) md := by
   intro Hty Hfid Hterm Hrole Hlt Hnm
-  iintro #Hm Hown
+  iintro Hnc #Hm Hown
   iunfold ownRaftGhost at Hown
   icases Hown with ⟨%γs, %V, %πc, %kl, H⟩
   iNamed H
@@ -3664,8 +3678,8 @@ theorem ownRaftGhost_step_snap_restore (γ : RaftNames) (id : w64) (s : PState) 
   -- learn the leader
   iunfold isLeader at Hl
   icases Hl with ⟨%q, #Hwin⟩
-  imod vote_excl _ γ id s γs V πc m.src q Hsname slotN_sub_reg Hhist $$ Hslot Hvirt Hwin
-    with ⟨Hvirt, %Hex⟩
+  imod vote_excl _ γ id s γs V πc m.src q Hsname slotN_sub_reg crashNs_sub_reg Hhist $$ Hnc Hslot Hvirt Hwin
+    with ⟨Hnc, Hvirt, %Hex⟩
   ihave Hlg := ownLogGhost_learn γ id s kl (virt V πc) m.src q Hrole $$ Hwin %Hex Hlg
   have Hbase_le : uint.Z s.base.index' ≤ uint.Z m.index := by omega
   ihave Hlg := ownLogGhost_upd γ id s
@@ -3750,6 +3764,7 @@ theorem ownRaftGhost_step_snap_restore (γ : RaftNames) (id : w64) (s : PState) 
   have Hfresh' : PromsFresh V (πc ++ [.ack s.term m.index]) :=
     PromsFresh_snoc V πc _ Hfresh trivial
   imodintro
+  iframe Hnc
   iapply ownRaftGhost_intro γ id _ γs V (πc ++ [.ack s.term m.index]) (some m.src) Hsname Hidnz
     Hmode Hfresh' $$ Hslot Hvirt [] [] [] [] [] [Hlg] [] [] [] [Hlcm] [Hrd]
   · iapply promsJust_snoc $$ Hpend Hj
@@ -3829,9 +3844,9 @@ theorem ownRaftGhost_rd (γ : RaftNames) (id : w64) (s s' : PState) (ms : List M
     (Hs' : s' = { s with outbox := s.outbox ++ ms, rd := s'.rd }) :
     ⊢ ([∗list] m ∈ ms, isMessage (GF := GF) γ m) -∗ ownRaftGhost γ id s md -∗
       (∀ kl (γs : SlotNames) (V : DurMaps) (πc : List Prom), ⌜γ.reSlot !! id = some γs⌝ -∗
-        slotInv γ id -∗ ghostVar γs.1 (1 : Qp).half V -∗
+        slotInv γ id -∗ cview γ id CrashNames.v (1 : Qp).half V -∗
         ownLogGhost γ id s kl (virt V πc) -∗ rdOwn γ id s ={⊤ \ ↑(raftRegN γ)}=∗
-        ghostVar γs.1 (1 : Qp).half V ∗ ownLogGhost γ id s kl (virt V πc) ∗ rdOwn γ id s') ={⊤ \ ↑(raftRegN γ)}=∗
+        cview γ id CrashNames.v (1 : Qp).half V ∗ ownLogGhost γ id s kl (virt V πc) ∗ rdOwn γ id s') ={⊤ \ ↑(raftRegN γ)}=∗
       ownRaftGhost γ id s' md := by
   generalize Hr : s'.rd = rd' at Hs'
   subst Hs'
@@ -3841,6 +3856,43 @@ theorem ownRaftGhost_rd (γ : RaftNames) (id : w64) (s s' : PState) (ms : List M
   iNamed H
   imod Hupd $$ %kl %γs %V %πc %Hsname Hslot Hvirt Hlg Hrd with ⟨Hvirt, Hlg, Hrd⟩
   imodintro
+  iapply ownRaftGhost_intro γ id _ γs V πc kl Hsname Hidnz Hmode Hfresh $$ Hslot Hvirt Hpend [] [] [] [] [Hlg] [] [] [] [Hlcm] [Hrd]
+  · ipureintro; exact Hhist
+  · rw [show ({ s with outbox := s.outbox ++ ms, rd := rd' } : PState).outbox = s.outbox ++ ms
+      from rfl]
+    iapply outbox_app $$ [] [Hms]
+    · iapply outbox_re γ id s _ πc _ _ (by role_tac) (by role_tac) $$ Hout
+    iapply outbox_intro $$ Hms
+  · iapply tally_eq γ id s { s with outbox := s.outbox ++ ms, rd := rd' } rfl rfl $$ Htally
+  · iapply leaderWit_eq γ id s { s with outbox := s.outbox ++ ms, rd := rd' } rfl rfl $$ Hlead
+  · iapply ownLogGhost_mono γ id s { s with outbox := s.outbox ++ ms, rd := rd' } kl _ rfl rfl rfl
+      (fun h => ⟨h, rfl, rfl⟩) (fun h => ⟨h, rfl⟩) (fun h => h) rfl (fun h => h) $$ Hlg
+  · ipureintro; exact Hlead_ok
+  · ipureintro; exact Hfollower_votes
+  · ipureintro; exact Hrole_ok
+  · lcm_mono
+  · iexact Hrd
+
+/-- (2026-11-21) With the generation running (`notCrashed`, for an update that reads
+the slot against the view of the virtual maps).  A step that changes only the outbox (growing by `ms`) and the read state: the read
+ghost state is updated by `Hupd`, which may consult the log ghost state. -/
+theorem ownRaftGhost_rdN (γ : RaftNames) (id : w64) (s s' : PState) (ms : List Msg)
+    (Hs' : s' = { s with outbox := s.outbox ++ ms, rd := s'.rd }) :
+    ⊢ notCrashed -∗ ([∗list] m ∈ ms, isMessage (GF := GF) γ m) -∗ ownRaftGhost γ id s md -∗
+      (∀ kl (γs : SlotNames) (V : DurMaps) (πc : List Prom), ⌜γ.reSlot !! id = some γs⌝ -∗
+        notCrashed -∗ slotInv γ id -∗ cview γ id CrashNames.v (1 : Qp).half V -∗
+        ownLogGhost γ id s kl (virt V πc) -∗ rdOwn γ id s ={⊤ \ ↑(raftRegN γ)}=∗
+        notCrashed ∗ cview γ id CrashNames.v (1 : Qp).half V ∗ ownLogGhost γ id s kl (virt V πc) ∗ rdOwn γ id s') ={⊤ \ ↑(raftRegN γ)}=∗
+      notCrashed ∗ ownRaftGhost γ id s' md := by
+  generalize Hr : s'.rd = rd' at Hs'
+  subst Hs'
+  iintro Hnc #Hms Hown Hupd
+  iunfold ownRaftGhost at Hown
+  icases Hown with ⟨%γs, %V, %πc, %kl, H⟩
+  iNamed H
+  imod Hupd $$ %kl %γs %V %πc %Hsname Hnc Hslot Hvirt Hlg Hrd with ⟨Hnc, Hvirt, Hlg, Hrd⟩
+  imodintro
+  iframe Hnc
   iapply ownRaftGhost_intro γ id _ γs V πc kl Hsname Hidnz Hmode Hfresh $$ Hslot Hvirt Hpend [] [] [] [] [Hlg] [] [] [] [Hlcm] [Hrd]
   · ipureintro; exact Hhist
   · rw [show ({ s with outbox := s.outbox ++ ms, rd := rd' } : PState).outbox = s.outbox ++ ms
@@ -3923,13 +3975,13 @@ theorem rdOwn_arrive (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64)
     (e : EntryM) (c : List w8) (d : Option (w64 × GSet w64)) :
     γ.reSlot !! id = some γs →
     s.role = .leader → q.index = s.commit → q.ents = [e] →
-    ⊢ slotInv (GF := GF) γ id -∗ ghostVar γs.1 (1 : Qp).half V -∗
+    ⊢ notCrashed -∗ slotInv (GF := GF) γ id -∗ cview γ id CrashNames.v (1 : Qp).half V -∗
       ownLogGhost γ id s kl (virt V πc) -∗ rdOwn γ id s -∗ ⌜e.Data' = c⌝ -∗
       rqRecOk γ s.term ((c, s.commit), d) -∗ rdCred γ 1 ={⊤ \ ↑(raftRegN γ)}=∗
-      ghostVar γs.1 (1 : Qp).half V ∗ ownLogGhost γ id s kl (virt V πc) ∗
+      notCrashed ∗ cview γ id CrashNames.v (1 : Qp).half V ∗ ownLogGhost γ id s kl (virt V πc) ∗
       rdOwn γ id { s with rd := { s.rd with ro := readonlyArrive s.rd.ro id q } } := by
   intro Hsn Hr Hqi Hqe
-  iintro #Hslot Hvirt Hlg Hrd #Hpd #Hrec Hc1
+  iintro Hnc #Hslot Hvirt Hlg Hrd #Hpd #Hrec Hc1
   unfold rdOwn
   icases Hrd with ⟨%γl, %rqm, %Hγl, Ha, #Hf, %Hok, Hl, #Hst0, #Hpd0, Hcr, #Hinv, Htk⟩
   unfold rdLead
@@ -3944,11 +3996,11 @@ theorem rdOwn_arrive (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64)
     iframe Hrs
     iapply (BigSepL.bigSepL_singleton (Φ := fun _ r => rqRecOk (GF := GF) γ s.term r)).2
     iexact Hrec
-  imod ownLogGhost_not_doomed_list _ γ id s kl γs V πc (recs ++ [((c, s.commit), d)]) Hsn slotN_sub_reg $$ Hslot Hvirt Hlg Hrs'
-      with ⟨Hvirt, Hlg, %Hnd⟩
+  imod ownLogGhost_not_doomed_list _ γ id s kl γs V πc (recs ++ [((c, s.commit), d)]) Hsn slotN_sub_reg crashNs_sub_reg $$ Hnc Hslot Hvirt Hlg Hrs'
+      with ⟨Hnc, Hvirt, Hlg, %Hnd⟩
   imod monoListAuthOwn_update_app [((c, s.commit), d)] $$ Hauth with ⟨Hauth, -⟩
   imodintro
-  iframe Hvirt Hlg
+  iframe Hnc Hvirt Hlg
   iexists γl, rqm
   isplitr; · ipureintro; exact Hγl
   isplitl [Ha]; · iexact Ha
@@ -4040,9 +4092,9 @@ theorem ownRaftGhost_rdR (γ : RaftNames) (id : w64) (s s' : PState) (ms : List 
     (R : IProp GF) (Hs' : s' = { s with outbox := s.outbox ++ ms, rd := s'.rd }) :
     ⊢ ([∗list] m ∈ ms, isMessage (GF := GF) γ m) -∗ ownRaftGhost γ id s md -∗
       (∀ kl (γs : SlotNames) (V : DurMaps) (πc : List Prom), ⌜γ.reSlot !! id = some γs⌝ -∗
-        slotInv γ id -∗ ghostVar γs.1 (1 : Qp).half V -∗
+        slotInv γ id -∗ cview γ id CrashNames.v (1 : Qp).half V -∗
         ownLogGhost γ id s kl (virt V πc) -∗ rdOwn γ id s ={⊤ \ ↑(raftRegN γ)}=∗
-        ghostVar γs.1 (1 : Qp).half V ∗ ownLogGhost γ id s kl (virt V πc) ∗ rdOwn γ id s' ∗ R) ={⊤ \ ↑(raftRegN γ)}=∗
+        cview γ id CrashNames.v (1 : Qp).half V ∗ ownLogGhost γ id s kl (virt V πc) ∗ rdOwn γ id s' ∗ R) ={⊤ \ ↑(raftRegN γ)}=∗
       ownRaftGhost γ id s' md ∗ R := by
   generalize Hr : s'.rd = rd' at Hs'
   subst Hs'
@@ -4070,44 +4122,81 @@ theorem ownRaftGhost_rdR (γ : RaftNames) (id : w64) (s s' : PState) (ms : List 
   · lcm_mono
   · iexact Hrd
 
+/-- (2026-11-21) With the generation running (`notCrashed`, for an update that reads
+the slot against the view of the virtual maps).  `ownRaftGhost_rd`, with a resource `R` taken out of the update. -/
+theorem ownRaftGhost_rdRN (γ : RaftNames) (id : w64) (s s' : PState) (ms : List Msg)
+    (R : IProp GF) (Hs' : s' = { s with outbox := s.outbox ++ ms, rd := s'.rd }) :
+    ⊢ notCrashed -∗ ([∗list] m ∈ ms, isMessage (GF := GF) γ m) -∗ ownRaftGhost γ id s md -∗
+      (∀ kl (γs : SlotNames) (V : DurMaps) (πc : List Prom), ⌜γ.reSlot !! id = some γs⌝ -∗
+        notCrashed -∗ slotInv γ id -∗ cview γ id CrashNames.v (1 : Qp).half V -∗
+        ownLogGhost γ id s kl (virt V πc) -∗ rdOwn γ id s ={⊤ \ ↑(raftRegN γ)}=∗
+        notCrashed ∗ cview γ id CrashNames.v (1 : Qp).half V ∗ ownLogGhost γ id s kl (virt V πc) ∗ rdOwn γ id s' ∗ R) ={⊤ \ ↑(raftRegN γ)}=∗
+      notCrashed ∗ ownRaftGhost γ id s' md ∗ R := by
+  generalize Hr : s'.rd = rd' at Hs'
+  subst Hs'
+  iintro Hnc #Hms Hown Hupd
+  iunfold ownRaftGhost at Hown
+  icases Hown with ⟨%γs, %V, %πc, %kl, H⟩
+  iNamed H
+  imod Hupd $$ %kl %γs %V %πc %Hsname Hnc Hslot Hvirt Hlg Hrd with ⟨Hnc, Hvirt, Hlg, Hrd, HR⟩
+  imodintro
+  iframe Hnc
+  iframe HR
+  iapply ownRaftGhost_intro γ id _ γs V πc kl Hsname Hidnz Hmode Hfresh $$ Hslot Hvirt Hpend [] [] [] [] [Hlg] [] [] [] [Hlcm] [Hrd]
+  · ipureintro; exact Hhist
+  · rw [show ({ s with outbox := s.outbox ++ ms, rd := rd' } : PState).outbox = s.outbox ++ ms
+      from rfl]
+    iapply outbox_app $$ [] [Hms]
+    · iapply outbox_re γ id s _ πc _ _ (by role_tac) (by role_tac) $$ Hout
+    iapply outbox_intro $$ Hms
+  · iapply tally_eq γ id s { s with outbox := s.outbox ++ ms, rd := rd' } rfl rfl $$ Htally
+  · iapply leaderWit_eq γ id s { s with outbox := s.outbox ++ ms, rd := rd' } rfl rfl $$ Hlead
+  · iapply ownLogGhost_mono γ id s { s with outbox := s.outbox ++ ms, rd := rd' } kl _ rfl rfl rfl
+      (fun h => ⟨h, rfl, rfl⟩) (fun h => ⟨h, rfl⟩) (fun h => h) rfl (fun h => h) $$ Hlg
+  · ipureintro; exact Hlead_ok
+  · ipureintro; exact Hfollower_votes
+  · ipureintro; exact Hrole_ok
+  · lcm_mono
+  · iexact Hrd
+
 /-- A request with its facts and credit arriving at the leader whose commit index is at an
 entry of its term. -/
 theorem ownRaftGhost_arrive (γ : RaftNames) (id : w64) (t : PState) (src : w64)
     (ents : List EntryM) (t' : PState) :
     t.role = .leader → plogTermAt t.base t.log t.commit = some t.term →
     t' = { t with rd := { t.rd with ro := readonlyArrive t.rd.ro id ⟨t.commit, src, ents⟩ } } →
-    ⊢ ownRaftGhost (GF := GF) γ id t md -∗
+    ⊢ notCrashed -∗ ownRaftGhost (GF := GF) γ id t md -∗
       (∃ e c Lc, ⌜ents = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗ readReq γ c Lc) -∗ rdCred γ 1 ={⊤ \ ↑(raftRegN γ)}=∗
-      ownRaftGhost γ id t' md := by
+      notCrashed ∗ ownRaftGhost γ id t' md := by
   intro Hr Hct Ht'
   subst Ht'
-  iintro Hown ⟨%e, %c, %Lc, %He, #Hpd, #Hrq⟩ Hc1
+  iintro Hnc Hown ⟨%e, %c, %Lc, %He, #Hpd, #Hrq⟩ Hc1
   imod ownRaftGhost_read_arrive γ id t c Lc Hr Hct $$ Hown Hrq with ⟨Hown, %d, #Hrec⟩
-  iapply ownRaftGhost_rd γ id t _ [] (by cases t; simp) $$ [] Hown
+  iapply ownRaftGhost_rdN γ id t _ [] (by cases t; simp) $$ Hnc [] Hown
   · iapply (BigSepL.bigSepL_nil).2; iempintro
-  iintro %kl %γs %V %πc %Hsn #Hslot Hvirt Hlg Hrd
-  iapply rdOwn_arrive γ id t kl γs V πc ⟨t.commit, src, ents⟩ e c d Hsn Hr rfl He $$ Hslot Hvirt Hlg Hrd Hpd Hrec Hc1
+  iintro %kl %γs %V %πc %Hsn Hnc #Hslot Hvirt Hlg Hrd
+  iapply rdOwn_arrive γ id t kl γs V πc ⟨t.commit, src, ents⟩ e c d Hsn Hr rfl He $$ Hnc Hslot Hvirt Hlg Hrd Hpd Hrec Hc1
 
 theorem ownRaftGhost_step_read_arrive (γ : RaftNames) (id : w64) (s : PState) (m : Msg) :
     m.ty = .readIndex → s.role = .leader →
     plogTermAt s.base s.log s.commit = some s.term →
-    ⊢ isMessage (GF := GF) γ m -∗ rdCred γ 1 -∗ ownRaftGhost γ id s md ={⊤ \ ↑(raftRegN γ)}=∗
-      ownRaftGhost γ id ({ s with rd := { s.rd with
+    ⊢ notCrashed -∗ isMessage (GF := GF) γ m -∗ rdCred γ 1 -∗ ownRaftGhost γ id s md ={⊤ \ ↑(raftRegN γ)}=∗
+      notCrashed ∗ ownRaftGhost γ id ({ s with rd := { s.rd with
         ro := readonlyArrive s.rd.ro id ⟨s.commit, m.src, m.entries⟩ } }) md := by
   intro Hty Hrole Hct
-  iintro #Hm Hcr Hown
+  iintro Hnc #Hm Hcr Hown
   iunfold isMessage at Hm
   rw [Hty]
-  iapply ownRaftGhost_arrive γ id s m.src m.entries _ Hrole Hct (by rfl) $$ Hown Hm Hcr
+  iapply ownRaftGhost_arrive γ id s m.src m.entries _ Hrole Hct (by rfl) $$ Hnc Hown Hm Hcr
 
 theorem ownRaftGhost_step_read_release (γ : RaftNames) (id : w64) (s : PState) :
     s.role = .leader → plogTermAt s.base s.log s.commit = some s.term →
-    ⊢ ownRaftGhost (GF := GF) γ id s md ={⊤ \ ↑(raftRegN γ)}=∗
-      ownRaftGhost γ id ({ s with rd := { s.rd with
+    ⊢ notCrashed -∗ ownRaftGhost (GF := GF) γ id s md ={⊤ \ ↑(raftRegN γ)}=∗
+      notCrashed ∗ ownRaftGhost γ id ({ s with rd := { s.rd with
         pend := []
         ro := readonlyRelease s.rd.ro id s.commit s.rd.pend } }) md := by
   intro Hrole Hct
-  iintro Hown
+  iintro Hnc Hown
   imod ownRaftGhost_rdR γ id s ({ s with rd := { s.rd with pend := [] } }) []
     (iprop(([∗list] p ∈ s.rd.pend, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗
       readReq γ c Lc) ∗ rdCred γ s.rd.pend.length)) (by cases s; simp) $$ [] Hown [] with
@@ -4119,22 +4208,22 @@ theorem ownRaftGhost_step_read_release (γ : RaftNames) (id : w64) (s : PState) 
     iapply rdOwn_takePend $$ Hrd
   -- the pending requests arrive one by one
   have key : ∀ (l : List (MessageM × List EntryM)) (r : ReadOnly),
-      ⊢ ownRaftGhost (GF := GF) γ id ({ s with rd := { s.rd with pend := [], ro := r } }) md -∗
+      ⊢ notCrashed -∗ ownRaftGhost (GF := GF) γ id ({ s with rd := { s.rd with pend := [], ro := r } }) md -∗
         ([∗list] p ∈ l, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗ readReq γ c Lc) -∗
         rdCred γ l.length ={⊤ \ ↑(raftRegN γ)}=∗
-        ownRaftGhost γ id ({ s with rd := { s.rd with
+        notCrashed ∗ ownRaftGhost γ id ({ s with rd := { s.rd with
           pend := []
           ro := l.foldl (fun r p => readonlyArrive r id ⟨s.commit, p.1.From', p.2⟩) r } }) md := by
     intro l
     induction l with
     | nil =>
       intro r
-      iintro Hown - -
+      iintro Hnc Hown - -
       rw [List.foldl_nil]
-      imodintro; iexact Hown
+      imodintro; iframe Hnc; iexact Hown
     | cons p l ih =>
       intro r
-      iintro Hown Hps Hcr
+      iintro Hnc Hown Hps Hcr
       icases (BigSepL.bigSepL_cons).1 $$ Hps with ⟨Hp, Hps⟩
       rw [List.length_cons]
       icases (rdCred_split γ l.length 1).1 $$ Hcr with ⟨Hcr, Hc1⟩
@@ -4142,11 +4231,11 @@ theorem ownRaftGhost_step_read_release (γ : RaftNames) (id : w64) (s : PState) 
         p.1.From' p.2 ({ s with rd := { s.rd with
           pend := []
           ro := readonlyArrive r id ⟨s.commit, p.1.From', p.2⟩ } })
-        Hrole Hct (by rfl) $$ Hown Hp Hc1 with Hown
+        Hrole Hct (by rfl) $$ Hnc Hown Hp Hc1 with ⟨Hnc, Hown⟩
       rw [List.foldl_cons]
-      iapply ih $$ Hown Hps Hcr
+      iapply ih $$ Hnc Hown Hps Hcr
   unfold readonlyRelease
-  iapply key s.rd.pend s.rd.ro $$ [Hown] Hps Hcr
+  iapply key s.rd.pend s.rd.ro $$ Hnc [Hown] Hps Hcr
   iexact Hown
 
 theorem HbAckOk_prefix (v : w64) (k : Nat) (recs0 recs : List RqRec) :
@@ -4209,11 +4298,9 @@ theorem rdOwn_ack (γ : RaftNames) (id : w64) (s : PState) (src q N : w64)
   icases Hlb with ⟨%γl', %γq', %Hγl', #Hel, #Hlb⟩
   rw [Hγl] at Hγl'
   cases Hγl'
-  icases ghost_map_lookup $$ Ha Hel with %Hq'
-  have Hqq : γq = γq' := by
-    have h1 : rqm !! s.term = some γq' := Hq'
-    rw [Hq] at h1
-    exact Option.some.inj h1
+  -- the term's fragment, the node's own (2026-11-21: the authority is in the crash invariant)
+  ihave ⟨#Hown, -⟩ := BigSepM.bigSepM_lookup (Φ := fun t γq => iprop(t ↪[γl]□ γq ∗ campKey γ id t)) Hq $$ Hf
+  icases ghostMapElem_agree _ _ _ _ _ _ $$ Hown Hel with %Hqq
   subst Hqq
   icases mono_list_auth_lb_valid $$ Hauth Hlb with %Hpre
   -- the acknowledgements after `src`'s
@@ -4527,19 +4614,19 @@ doom quorum of its own term (`ownLogGhost_not_doomed`) -- in either mode (`rqRec
 theorem ownRaftGhost_single_confirm (γ : RaftNames) (c : CfgM) (id : w64) (s : PState)
     (cx : List w8) (Lc : List EntryM) :
     s.role = .leader → plogTermAt s.base s.log s.commit = some s.term → CfgSingle c id →
-    ⊢ dynEnv γ id c s -∗ ownRaftGhost (GF := GF) γ id s md -∗ readReq γ cx Lc ={⊤ \ ↑(raftRegN γ)}=∗
-      ownRaftGhost γ id s md ∗ readOk γ cx s.commit := by
+    ⊢ notCrashed -∗ dynEnv γ id c s -∗ ownRaftGhost (GF := GF) γ id s md -∗ readReq γ cx Lc ={⊤ \ ↑(raftRegN γ)}=∗
+      notCrashed ∗ ownRaftGhost γ id s md ∗ readOk γ cx s.commit := by
   intro Hrole Hct Hsg
-  iintro #Henv Hown #Hrq
+  iintro Hnc #Henv Hown #Hrq
   ihave #Hnl := node_leader γ id s Hrole $$ Hown
   icases Hnl with ⟨%fpL, %F0L, %HnL, #HfrL, #HrL, #Hl, #Hc0, #HflL⟩
   imod ownRaftGhost_read_arrive γ id s cx Lc Hrole Hct $$ Hown Hrq with ⟨Hown, %d, #Hrec⟩
   have HQ := JQuorum_single Hsg
-  iapply ownRaftGhost_rdR γ id s s [] (readOk γ cx s.commit) (by cases s; simp) $$ [] Hown
+  iapply ownRaftGhost_rdRN γ id s s [] (readOk γ cx s.commit) (by cases s; simp) $$ Hnc [] Hown
   · iapply (BigSepL.bigSepL_nil).2; iempintro
-  iintro %kl %γs %V %πc %Hsn #Hslot Hvirt Hlg Hrd
-  imod ownLogGhost_not_doomed _ γ id s kl γs V πc ((cx, s.commit), d) Hsn slotN_sub_reg $$ Hslot Hvirt Hlg Hrec
-      with ⟨Hvirt, Hlg, %Hnd⟩
+  iintro %kl %γs %V %πc %Hsn Hnc #Hslot Hvirt Hlg Hrd
+  imod ownLogGhost_not_doomed _ γ id s kl γs V πc ((cx, s.commit), d) Hsn slotN_sub_reg crashNs_sub_reg
+      $$ Hnc Hslot Hvirt Hlg Hrec with ⟨Hnc, Hvirt, Hlg, %Hnd⟩
   have Hc : ∀ v ∈ ({[id]} : GSet w64), ∀ t' qq, ((cx, s.commit), d).2 = some (t', qq) →
       v ∉ qq := by
     intro v hv
@@ -4549,7 +4636,7 @@ theorem ownRaftGhost_single_confirm (γ : RaftNames) (c : CfgM) (id : w64) (s : 
   iunfold dynEnv at Henv
   icases Henv with (%HC | ⟨%Hdyn, %fpR, %aR, %MR, %HR, #HrR, #HMR⟩)
   · -- static: the reader's configuration is the ghost state's
-    iframe Hvirt Hlg Hrd
+    iframe Hnc Hvirt Hlg Hrd
     imodintro
     iapply rqRecOk_confirm γ s.term ((cx, s.commit), d) [] c {[id]} HC.2.2 ∅
       (CfgAt.of_static _ _ HC) HQ Hc $$ Hrec
@@ -4602,7 +4689,7 @@ theorem ownRaftGhost_single_confirm (γ : RaftNames) (c : CfgM) (id : w64) (s : 
       iexists P
       iframe
     imodintro
-    iframe Hvirt Hlg Hrd Hok
+    iframe Hnc Hvirt Hlg Hrd Hok
 
 /-- `StepC.readSingle`: the request confirmed at once (`ownRaftGhost_single_confirm`) and
 answered; its read credit is dropped. -/
@@ -4610,15 +4697,16 @@ theorem ownRaftGhost_step_read_single (γ : RaftNames) (c : CfgM) (id : w64) (s 
     (m : Msg) :
     m.ty = .readIndex → s.role = .leader → plogTermAt s.base s.log s.commit = some s.term →
     CfgSingle c id →
-    ⊢ dynEnv γ id c s -∗ isMessage (GF := GF) γ m -∗ rdCred γ 1 -∗ ownRaftGhost γ id s md ={⊤ \ ↑(raftRegN γ)}=∗
-      ownRaftGhost γ id (preadRespondAll id s [⟨s.commit, m.src, m.entries⟩]) md := by
+    ⊢ notCrashed -∗ dynEnv γ id c s -∗ isMessage (GF := GF) γ m -∗ rdCred γ 1 -∗ ownRaftGhost γ id s md ={⊤ \ ↑(raftRegN γ)}=∗
+      notCrashed ∗ ownRaftGhost γ id (preadRespondAll id s [⟨s.commit, m.src, m.entries⟩]) md := by
   intro Hty Hrole Hct Hsg
-  iintro #Henv #Hm - Hown
+  iintro Hnc #Henv #Hm - Hown
   iunfold isMessage at Hm
   rw [Hty]
   icases Hm with ⟨%e, %cx, %Lc, %He, #Hpd, #Hrq⟩
-  imod ownRaftGhost_single_confirm γ c id s cx Lc Hrole Hct Hsg $$ Henv Hown Hrq with ⟨Hown, #Hok⟩
+  imod ownRaftGhost_single_confirm γ c id s cx Lc Hrole Hct Hsg $$ Hnc Henv Hown Hrq with ⟨Hnc, Hown, #Hok⟩
   rw [preadRespondAll_cons, preadRespondAll_nil]
+  iframe Hnc
   iapply ownRaftGhost_respond γ id s _ $$ Hown []
   unfold respFacts
   iexists e, cx
@@ -4630,11 +4718,11 @@ at once (`ownRaftGhost_single_confirm`), then all answered; their credits are dr
 theorem ownRaftGhost_step_read_release_single (γ : RaftNames) (c : CfgM) (id : w64)
     (s : PState) :
     s.role = .leader → plogTermAt s.base s.log s.commit = some s.term → CfgSingle c id →
-    ⊢ dynEnv γ id c s -∗ ownRaftGhost (GF := GF) γ id s md ={⊤ \ ↑(raftRegN γ)}=∗
-      ownRaftGhost γ id (preadRespondAll id { s with rd := { s.rd with pend := [] } }
+    ⊢ notCrashed -∗ dynEnv γ id c s -∗ ownRaftGhost (GF := GF) γ id s md ={⊤ \ ↑(raftRegN γ)}=∗
+      notCrashed ∗ ownRaftGhost γ id (preadRespondAll id { s with rd := { s.rd with pend := [] } }
         (s.rd.pend.map (fun p => ⟨s.commit, p.1.From', p.2⟩))) md := by
   intro Hrole Hct Hsg
-  iintro #Henv Hown
+  iintro Hnc #Henv Hown
   imod ownRaftGhost_rdR γ id s ({ s with rd := { s.rd with pend := [] } }) []
     (iprop(([∗list] p ∈ s.rd.pend, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗
       readReq γ c Lc) ∗ rdCred γ s.rd.pend.length)) (by cases s; simp) $$ [] Hown [] with
@@ -4646,30 +4734,30 @@ theorem ownRaftGhost_step_read_release_single (γ : RaftNames) (c : CfgM) (id : 
     iapply rdOwn_takePend $$ Hrd
   -- every pending request confirmed, at the state without them
   have key : ∀ (l : List (MessageM × List EntryM)),
-      ⊢ dynEnv γ id c s -∗ ownRaftGhost (GF := GF) γ id ({ s with rd := { s.rd with pend := [] } }) md -∗
+      ⊢ notCrashed -∗ dynEnv γ id c s -∗ ownRaftGhost (GF := GF) γ id ({ s with rd := { s.rd with pend := [] } }) md -∗
         ([∗list] p ∈ l, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗ readReq γ c Lc) ={⊤ \ ↑(raftRegN γ)}=∗
-        ownRaftGhost γ id ({ s with rd := { s.rd with pend := [] } }) md ∗
+        notCrashed ∗ ownRaftGhost γ id ({ s with rd := { s.rd with pend := [] } }) md ∗
         [∗list] q ∈ l.map (fun p => (⟨s.commit, p.1.From', p.2⟩ : ReadReq)), respFacts γ q := by
     intro l
     induction l with
     | nil =>
-      iintro _ Hown -
+      iintro Hnc _ Hown -
       imodintro
-      iframe Hown
+      iframe Hnc Hown
       rw [List.map_nil]
       iapply (BigSepL.bigSepL_nil).2; iempintro
     | cons p l ih =>
-      iintro #Henv Hown Hps
+      iintro Hnc #Henv Hown Hps
       icases (BigSepL.bigSepL_cons).1 $$ Hps with ⟨⟨%e, %cx, %Lc, %He, #Hpd, #Hrq⟩, Hps⟩
       have Henv_eq : dynEnv (GF := GF) γ id c ({ s with rd := { s.rd with pend := [] } }) =
           dynEnv γ id c s := rfl
       ihave #Henv1 : dynEnv (GF := GF) γ id c ({ s with rd := { s.rd with pend := [] } }) $$ []
       · rw [Henv_eq]; iexact Henv
       imod ownRaftGhost_single_confirm γ c id ({ s with rd := { s.rd with pend := [] } }) cx Lc
-        Hrole Hct Hsg $$ Henv1 Hown Hrq with ⟨Hown, #Hok⟩
-      imod ih $$ Henv Hown Hps with ⟨Hown, Hrs⟩
+        Hrole Hct Hsg $$ Hnc Henv1 Hown Hrq with ⟨Hnc, Hown, #Hok⟩
+      imod ih $$ Hnc Henv Hown Hps with ⟨Hnc, Hown, Hrs⟩
       imodintro
-      iframe Hown
+      iframe Hnc Hown
       rw [List.map_cons]
       iapply (BigSepL.bigSepL_cons).2
       iframe Hrs
@@ -4677,7 +4765,8 @@ theorem ownRaftGhost_step_read_release_single (γ : RaftNames) (c : CfgM) (id : 
       iexists e, cx
       iframe Hpd Hok
       ipureintro; exact He
-  imod key s.rd.pend $$ Henv Hown Hps with ⟨Hown, Hrs⟩
+  imod key s.rd.pend $$ Hnc Henv Hown Hps with ⟨Hnc, Hown, Hrs⟩
+  iframe Hnc
   iapply ownRaftGhost_respondAll γ id _ _ $$ Hown Hrs
 
 theorem ownRaftGhost_step_read_state (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
@@ -5388,6 +5477,15 @@ theorem tks_drop {k : Nat} {R A B T C D : IProp GF} {E : CoPset}
   iintro Hk Hr Ha Hb - Hc
   iapply h $$ Hk Hr Ha Hb Hc
 
+/-- A step that needs no crash token keeps it. -/
+theorem nc_frame {k : Nat} {R A B T C D : IProp GF} {E : CoPset}
+    (h : ⊢ ⧖ k -∗ R -∗ A -∗ B -∗ T -∗ C ={E}=∗ D) :
+    ⊢ notCrashed -∗ ⧖ k -∗ R -∗ A -∗ B -∗ T -∗ C ={E}=∗ notCrashed ∗ D := by
+  iintro Hnc Hk Hr Ha Hb Ht Hc
+  imod h $$ Hk Hr Ha Hb Ht Hc with Hd
+  imodintro
+  iframe
+
 /-- The refinement (2026-10-14, reconfiguration stage B2: at a configuration `c`, the
 relation `StepC`), with the commit invariant's registry half open (2026-10-14, stage R): a
 protocol step updates the node's ghost state, given the messages it consumed and their read
@@ -5398,98 +5496,99 @@ theorem ownRaftGhost_stepC_in (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) 
     (HT : TrackedOk γ c id)
     (B : Int) (HB : B < 2 ^ 64) (s : PState) (recv : List Msg) (s' : PState) :
     StepC c id B s recv s' →
-    ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ regsOwn γ -∗ ([∗list] m ∈ recv, isMessage (GF := GF) γ m) -∗
+    ⊢ notCrashed -∗ ⧖ (B.toNat - γ.reBoot.length) -∗ regsOwn γ -∗ ([∗list] m ∈ recv, isMessage (GF := GF) γ m) -∗
       rdCred γ (rdCount recv) -∗ msgsTks γ recv -∗
       ownRaftGhost γ id s md ={⊤ \ ↑(raftRegN γ)}=∗
-      regsOwn γ ∗ ownRaftGhost γ id s' md := by
+      notCrashed ∗ regsOwn γ ∗ ownRaftGhost γ id s' md := by
   intro Hstep
   induction Hstep with
   | refl s =>
-    iintro #Hrc Hregs _ - - Hown
-    imodintro; iframe Hregs Hown
+    iintro Hnc #Hrc Hregs _ - - Hown
+    imodintro; iframe Hnc Hregs Hown
   | trans s0 r1 s1 r2 s2 _ _ IH1 IH2 =>
-    iintro #Hrc Hregs Hrecv Hcr Htk Hown
+    iintro Hnc #Hrc Hregs Hrecv Hcr Htk Hown
     icases (BigSepL.bigSepL_append (Φ := fun _ m => isMessage (GF := GF) γ m)).1 $$ Hrecv with
       ⟨Hr1, Hr2⟩
     rw [rdCount_append]
     icases (rdCred_split γ (rdCount r1) (rdCount r2)).1 $$ Hcr with ⟨Hc1, Hc2⟩
     icases (msgsTks_app γ r1 r2).1 $$ Htk with ⟨Ht1, Ht2⟩
-    imod IH1 $$ Hrc Hregs Hr1 Hc1 Ht1 Hown with ⟨Hregs, Hown⟩
-    iapply IH2 $$ Hrc Hregs Hr2 Hc2 Ht2 Hown
+    imod IH1 $$ Hnc Hrc Hregs Hr1 Hc1 Ht1 Hown with ⟨Hnc, Hregs, Hown⟩
+    iapply IH2 $$ Hnc Hrc Hregs Hr2 Hc2 Ht2 Hown
   | higherTerm m s Hlt Hto Hfl =>
-    exact tks_drop (rcpt_frame (regs_frame γ (ownRaftGhost_step_higherTerm γ id m s Hlt Hto Hfl)))
+    exact nc_frame (tks_drop (rcpt_frame (regs_frame γ (ownRaftGhost_step_higherTerm γ id m s Hlt Hto Hfl))))
   | campaign s peers cl Hrole Hin Hnw Hperm =>
-    iintro #Hrc Hregs Hr Hc - Hown
+    iintro Hnc #Hrc Hregs Hr Hc - Hown
     imod ownRaftGhost_step_campaign γ c id s peers cl Hrole Hin Hnw Hperm $$ [] Hr Hc Hown
       with Hown
     · iapply dynEnv_static γ id c s HC
-    imodintro; iframe Hregs Hown
+    imodintro; iframe Hnc Hregs Hown
   | grantVote m s Hty Hto Hfrom Hterm Hcan Hutd =>
-    exact tks_drop (rcpt_frame (regs_frame γ (ownRaftGhost_step_grantVote γ id m s Hty Hto Hfrom Hterm Hcan Hutd)))
+    exact nc_frame (tks_drop (rcpt_frame (regs_frame γ (ownRaftGhost_step_grantVote γ id m s Hty Hto Hfrom Hterm Hcan Hutd))))
   | rejectVote m s Hty Hto =>
-    exact tks_drop (rcpt_frame (regs_frame γ (ownRaftGhost_step_rejectVote γ id m s Hty Hto)))
+    exact nc_frame (tks_drop (rcpt_frame (regs_frame γ (ownRaftGhost_step_rejectVote γ id m s Hty Hto))))
   | recordVote m s Hty Hto Hterm Hrole =>
-    exact tks_drop (rcpt_frame (regs_frame γ (ownRaftGhost_step_recordVote γ id m s Hty Hto Hterm Hrole)))
+    exact nc_frame (tks_drop (rcpt_frame (regs_frame γ (ownRaftGhost_step_recordVote γ id m s Hty Hto Hterm Hrole))))
   | win s mt ms Hrole Hq Hnw Hmt Hms Hsn =>
-    iintro #Hrc Hregs _ - - Hown
+    iintro Hnc #Hrc Hregs _ - - Hown
     imod ownRaftGhost_step_win γ c id s mt ms (B.toNat - γ.reBoot.length) Hrole Hq (by omega)
       Hmt Hms (fun h => absurd HC.2.2 h)
       (fun m hm hs T hT => ⟨(HT T hT).2,
-        (GMap.elem_of_subseteq _ _).1 (HT T hT).1 _ (Hsn m hm hs)⟩) Hsn (by omega) $$ Hrc [] Hown
-      with Hown
+        (GMap.elem_of_subseteq _ _).1 (HT T hT).1 _ (Hsn m hm hs)⟩) Hsn (by omega) $$ Hnc Hrc [] Hown
+      with ⟨Hnc, Hown⟩
     · iapply dynEnv_static γ id c s HC
-    imodintro; iframe Hregs Hown
+    imodintro; iframe Hnc Hregs Hown
   | lose s Hrole Hnq =>
-    exact tks_drop (rcpt_frame (regs_frame γ (ownRaftGhost_step_lose γ c id s Hrole Hnq)))
+    exact nc_frame (tks_drop (rcpt_frame (regs_frame γ (ownRaftGhost_step_lose γ c id s Hrole Hnq))))
   | drain s o' Hsub =>
-    exact tks_drop (rcpt_frame (regs_frame γ (ownRaftGhost_step_drain γ id s o' Hsub)))
+    exact nc_frame (tks_drop (rcpt_frame (regs_frame γ (ownRaftGhost_step_drain γ id s o' Hsub))))
   | appAccept m s lastnewi es' Hty _ Hfid Hterm Hrole Hcm Happ _ =>
-    iintro #Hrc Hregs Hrecv - - Hown
+    iintro Hnc #Hrc Hregs Hrecv - - Hown
     ihave #Hm := recv_one $$ Hrecv
-    imod ownRaftGhost_step_app_accept γ id s m lastnewi es' Hty Hfid Hterm Hrole Hcm Happ $$ Hm Hown with Hown
-    imodintro; iframe Hregs Hown
+    imod ownRaftGhost_step_app_accept γ id s m lastnewi es' Hty Hfid Hterm Hrole Hcm Happ $$ Hnc Hm Hown with ⟨Hnc, Hown⟩
+    imodintro; iframe Hnc Hregs Hown
   | appStale m s Hty _ Hfid Hterm Hrole _ =>
-    iintro #Hrc Hregs Hrecv - - Hown
+    iintro Hnc #Hrc Hregs Hrecv - - Hown
     ihave #Hm := recv_one $$ Hrecv
-    imod ownRaftGhost_step_app_stale γ id s m Hty Hfid Hterm Hrole $$ Hm Hown with Hown
-    imodintro; iframe Hregs Hown
+    imod ownRaftGhost_step_app_stale γ id s m Hty Hfid Hterm Hrole $$ Hnc Hm Hown with ⟨Hnc, Hown⟩
+    imodintro; iframe Hnc Hregs Hown
   | appReject m s hint hintterm Hty _ Hfid _ Hrole Hle Hnm Hh =>
-    iintro #Hrc Hregs Hrecv - - Hown
+    iintro Hnc #Hrc Hregs Hrecv - - Hown
     ihave #Hm := recv_one $$ Hrecv
     imod ownRaftGhost_step_app_reject γ id s m hint hintterm Hty Hfid Hrole Hle Hnm Hh $$ Hm Hown with Hown
-    imodintro; iframe Hregs Hown
+    imodintro; iframe Hnc Hregs Hown
   | heartbeat m s Hty Hto Hfid Hterm Hrole Hcm =>
-    iintro #Hrc Hregs Hrecv - - Hown
+    iintro Hnc #Hrc Hregs Hrecv - - Hown
     ihave #Hm := recv_one $$ Hrecv
-    imod ownRaftGhost_step_heartbeat γ id s m Hty Hto Hterm Hfid Hrole Hcm $$ Hm Hown with Hown
-    imodintro; iframe Hregs Hown
+    imod ownRaftGhost_step_heartbeat γ id s m Hty Hto Hterm Hfid Hrole Hcm $$ Hnc Hm Hown with ⟨Hnc, Hown⟩
+    imodintro; iframe Hnc Hregs Hown
   | beat s ms Hrole Hms Hctx =>
-    iintro #Hrc Hregs _ - - Hown
+    iintro Hnc #Hrc Hregs _ - - Hown
     imod ownRaftGhost_step_beat γ id s ms Hrole Hms Hctx $$ Hown with Hown
-    imodintro; iframe Hregs Hown
+    imodintro; iframe Hnc Hregs Hown
   | appResp m s x Hty _ Hterm Hrole Hrej Hx =>
-    iintro #Hrc Hregs Hrecv - - Hown
+    iintro Hnc #Hrc Hregs Hrecv - - Hown
     ihave #Hm := recv_one $$ Hrecv
     imod ownRaftGhost_step_app_resp γ id s m x Hty Hterm Hrole Hrej Hx $$ Hm Hown with Hown
-    imodintro; iframe Hregs Hown
+    imodintro; iframe Hnc Hregs Hown
   | reMatch s mt Hrole Hmt =>
-    iintro #Hrc Hregs _ - - Hown
+    iintro Hnc #Hrc Hregs _ - - Hown
     imod ownRaftGhost_step_rematch γ id s mt Hrole Hmt $$ Hown with Hown
-    imodintro; iframe Hregs Hown
+    imodintro; iframe Hnc Hregs Hown
   | commit s n Hrole Hlt Hle Htm Hq =>
-    iintro #Hrc Hregs _ - - Hown
-    iapply ownRaftGhost_step_commit γ c id s n Hrole Hlt Hle Htm Hq $$ [] Hregs Hown
-    iapply dynEnv_static γ id c s HC
+    iintro Hnc #Hrc Hregs _ - - Hown
+    imod ownRaftGhost_step_commit γ c id s n Hrole Hlt Hle Htm Hq $$ [] Hregs Hown with ⟨Hregs, Hown⟩
+    · iapply dynEnv_static γ id c s HC
+    imodintro; iframe Hnc Hregs Hown
   | sendApps s ms Hrole Hms Hsn =>
-    iintro #Hrc Hregs _ - - Hown
+    iintro Hnc #Hrc Hregs _ - - Hown
     imod ownRaftGhost_step_send_apps γ c id s ms Hrole Hms (fun h => absurd HC.2.2 h)
       (fun m hm hs T hT => ⟨(HT T hT).2,
         (GMap.elem_of_subseteq _ _).1 (HT T hT).1 _ (Hsn m hm hs)⟩) Hsn $$ [] Hown
       with Hown
     · iapply dynEnv_static γ id c s HC
-    imodintro; iframe Hregs Hown
+    imodintro; iframe Hnc Hregs Hown
   | propose m s ents Hty Hents Hrole Hnw =>
-    iintro #Hrc Hregs Hrecv - Htk Hown
+    iintro Hnc #Hrc Hregs Hrecv - Htk Hown
     ihave #Hm := recv_one $$ Hrecv
     iunfold isMessage at Hm
     rw [Hty]
@@ -5506,83 +5605,83 @@ theorem ownRaftGhost_stepC_in (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) 
       imodintro
       iintro %fp' %k %x %Hc
       exact absurd HC.2.2 Hc.2.2.1
-    imodintro; iframe Hregs Hown
+    imodintro; iframe Hnc Hregs Hown
   | propForward m s Hty _ _ =>
-    iintro #Hrc Hregs Hrecv - Htk Hown
+    iintro Hnc #Hrc Hregs Hrecv - Htk Hown
     ihave #Hm := recv_one $$ Hrecv
     ihave Htk := (msgsTks_singleton γ m).1 $$ Htk
     imod ownRaftGhost_step_prop_forward γ id s m Hty $$ Hm Htk Hown with Hown
-    imodintro; iframe Hregs Hown
+    imodintro; iframe Hnc Hregs Hown
   | snapRestore m s Hty _ Hfid Hterm Hrole Hlt Hnm =>
-    iintro #Hrc Hregs Hrecv - - Hown
+    iintro Hnc #Hrc Hregs Hrecv - - Hown
     ihave #Hm := recv_one $$ Hrecv
-    imod ownRaftGhost_step_snap_restore γ id s m Hty Hfid Hterm Hrole Hlt Hnm $$ Hm Hown with Hown
-    imodintro; iframe Hregs Hown
+    imod ownRaftGhost_step_snap_restore γ id s m Hty Hfid Hterm Hrole Hlt Hnm $$ Hnc Hm Hown with ⟨Hnc, Hown⟩
+    imodintro; iframe Hnc Hregs Hown
   | snapFastfwd m s Hty _ Hfid Hterm Hrole Hlt Hmt =>
-    iintro #Hrc Hregs Hrecv - - Hown
+    iintro Hnc #Hrc Hregs Hrecv - - Hown
     ihave #Hm := recv_one $$ Hrecv
-    imod ownRaftGhost_step_snap_fastfwd γ id s m Hty Hfid Hterm Hrole Hlt Hmt $$ Hm Hown with Hown
-    imodintro; iframe Hregs Hown
+    imod ownRaftGhost_step_snap_fastfwd γ id s m Hty Hfid Hterm Hrole Hlt Hmt $$ Hnc Hm Hown with ⟨Hnc, Hown⟩
+    imodintro; iframe Hnc Hregs Hown
   | snapStale m s Hty _ Hfid Hterm Hrole =>
-    iintro #Hrc Hregs Hrecv - - Hown
+    iintro Hnc #Hrc Hregs Hrecv - - Hown
     ihave #Hm := recv_one $$ Hrecv
-    imod ownRaftGhost_step_snap_stale γ id s m Hty Hfid Hterm Hrole $$ Hm Hown with Hown
-    imodintro; iframe Hregs Hown
+    imod ownRaftGhost_step_snap_stale γ id s m Hty Hfid Hterm Hrole $$ Hnc Hm Hown with ⟨Hnc, Hown⟩
+    imodintro; iframe Hnc Hregs Hown
   | takeReads s =>
-    exact tks_drop (rcpt_frame (regs_frame γ (ownRaftGhost_step_takeReads γ id s)))
+    exact nc_frame (tks_drop (rcpt_frame (regs_frame γ (ownRaftGhost_step_takeReads γ id s))))
   | sendFree s m Hfree Hfrom =>
-    exact tks_drop (rcpt_frame (regs_frame γ (ownRaftGhost_step_sendFree γ id s m Hfree Hfrom)))
+    exact nc_frame (tks_drop (rcpt_frame (regs_frame γ (ownRaftGhost_step_sendFree γ id s m Hfree Hfrom))))
   | abandon s Hrole =>
-    exact tks_drop (rcpt_frame (regs_frame γ (ownRaftGhost_step_abandon γ id s Hrole)))
+    exact nc_frame (tks_drop (rcpt_frame (regs_frame γ (ownRaftGhost_step_abandon γ id s Hrole))))
   | zeroAck s dst =>
-    exact tks_drop (rcpt_frame (regs_frame γ (ownRaftGhost_step_zeroAck γ id s dst)))
+    exact nc_frame (tks_drop (rcpt_frame (regs_frame γ (ownRaftGhost_step_zeroAck γ id s dst))))
   | stepDown s Hrole =>
-    exact tks_drop (rcpt_frame (regs_frame γ (ownRaftGhost_step_stepDown γ id s Hrole)))
+    exact nc_frame (tks_drop (rcpt_frame (regs_frame γ (ownRaftGhost_step_stepDown γ id s Hrole))))
   | readFwd m s Hty Hrole Hlead =>
-    iintro #Hrc Hregs Hrecv Hcr - Hown
+    iintro Hnc #Hrc Hregs Hrecv Hcr - Hown
     ihave #Hm := recv_one $$ Hrecv
     rw [show rdCount [m] = 1 by simp [rdCount_singleton, Hty]]
     imod ownRaftGhost_step_read_fwd γ id s m Hty Hrole Hlead $$ Hm Hcr Hown with Hown
-    imodintro; iframe Hregs Hown
+    imodintro; iframe Hnc Hregs Hown
   | readPend m s pm Hty Hrole Hsrc =>
-    iintro #Hrc Hregs Hrecv Hcr - Hown
+    iintro Hnc #Hrc Hregs Hrecv Hcr - Hown
     ihave #Hm := recv_one $$ Hrecv
     rw [show rdCount [m] = 1 by simp [rdCount_singleton, Hty]]
     imod ownRaftGhost_step_read_pend γ id s m pm Hty Hrole $$ Hm Hcr Hown with Hown
-    imodintro; iframe Hregs Hown
+    imodintro; iframe Hnc Hregs Hown
   | readArrive m s Hty Hrole Hct =>
-    iintro #Hrc Hregs Hrecv Hcr - Hown
+    iintro Hnc #Hrc Hregs Hrecv Hcr - Hown
     ihave #Hm := recv_one $$ Hrecv
     rw [show rdCount [m] = 1 by simp [rdCount_singleton, Hty]]
-    imod ownRaftGhost_step_read_arrive γ id s m Hty Hrole Hct $$ Hm Hcr Hown with Hown
-    imodintro; iframe Hregs Hown
+    imod ownRaftGhost_step_read_arrive γ id s m Hty Hrole Hct $$ Hnc Hm Hcr Hown with ⟨Hnc, Hown⟩
+    imodintro; iframe Hnc Hregs Hown
   | readRelease s Hrole Hct =>
-    iintro #Hrc Hregs _ - - Hown
-    imod ownRaftGhost_step_read_release γ id s Hrole Hct $$ Hown with Hown
-    imodintro; iframe Hregs Hown
+    iintro Hnc #Hrc Hregs _ - - Hown
+    imod ownRaftGhost_step_read_release γ id s Hrole Hct $$ Hnc Hown with ⟨Hnc, Hown⟩
+    imodintro; iframe Hnc Hregs Hown
   | readAck m s N Hty Hto Hterm Hrole Hctx HN =>
-    iintro #Hrc Hregs Hrecv - - Hown
+    iintro Hnc #Hrc Hregs Hrecv - - Hown
     ihave #Hm := recv_one $$ Hrecv
     imod ownRaftGhost_step_read_ack γ c id s m N Hty Hto Hterm Hrole Hctx HN $$ [] Hm Hown with Hown
     · iapply dynEnv_static γ id c s HC
-    imodintro; iframe Hregs Hown
+    imodintro; iframe Hnc Hregs Hown
   | readState m s e Hty He =>
-    iintro #Hrc Hregs Hrecv - - Hown
+    iintro Hnc #Hrc Hregs Hrecv - - Hown
     ihave #Hm := recv_one $$ Hrecv
     imod ownRaftGhost_step_read_state γ id s m e Hty He $$ Hm Hown with Hown
-    imodintro; iframe Hregs Hown
+    imodintro; iframe Hnc Hregs Hown
   | readSingle m s Hty Hrole Hct Hsg =>
-    iintro #Hrc Hregs Hrecv Hcr - Hown
+    iintro Hnc #Hrc Hregs Hrecv Hcr - Hown
     ihave #Hm := recv_one $$ Hrecv
     rw [show rdCount [m] = 1 by simp [rdCount_singleton, Hty]]
-    imod ownRaftGhost_step_read_single γ c id s m Hty Hrole Hct Hsg $$ [] Hm Hcr Hown with Hown
+    imod ownRaftGhost_step_read_single γ c id s m Hty Hrole Hct Hsg $$ Hnc [] Hm Hcr Hown with ⟨Hnc, Hown⟩
     · iapply dynEnv_static γ id c s HC
-    imodintro; iframe Hregs Hown
+    imodintro; iframe Hnc Hregs Hown
   | readReleaseSingle s Hrole Hct Hsg =>
-    iintro #Hrc Hregs _ - - Hown
-    imod ownRaftGhost_step_read_release_single γ c id s Hrole Hct Hsg $$ [] Hown with Hown
+    iintro Hnc #Hrc Hregs _ - - Hown
+    imod ownRaftGhost_step_read_release_single γ c id s Hrole Hct Hsg $$ Hnc [] Hown with ⟨Hnc, Hown⟩
     · iapply dynEnv_static γ id c s HC
-    imodintro; iframe Hregs Hown
+    imodintro; iframe Hnc Hregs Hown
 
 /-- The refinement (see `ownRaftGhost_stepC_in`), at `⊤`, given one later credit (2026-10-14,
 stage R): the commit invariant's registry half opened around the step (`regs_open`). -/
@@ -5590,19 +5689,22 @@ theorem ownRaftGhost_stepC (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (id
     (HT : TrackedOk γ c id)
     (B : Int) (HB : B < 2 ^ 64) (s : PState) (recv : List Msg) (s' : PState) :
     StepC c id B s recv s' →
-    ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ ([∗list] m ∈ recv, isMessage (GF := GF) γ m) -∗
+    ⊢ notCrashed -∗ ⧖ (B.toNat - γ.reBoot.length) -∗ ([∗list] m ∈ recv, isMessage (GF := GF) γ m) -∗
       rdCred γ (rdCount recv) -∗ msgsTks γ recv -∗ £ 1 -∗
       ownRaftGhost γ id s md ={⊤}=∗
-      ownRaftGhost γ id s' md := by
+      notCrashed ∗ ownRaftGhost γ id s' md := by
   intro Hstep
-  iintro #Hrc Hrecv Hcr Htk Hlc Hown
+  iintro Hnc #Hrc Hrecv Hcr Htk Hlc Hown
   ihave #Hinv := ownRaftGhost_inv_md γ id s $$ Hown
-  iapply regs_open γ iprop(([∗list] m ∈ recv, isMessage (GF := GF) γ m) ∗
-      rdCred γ (rdCount recv) ∗ msgsTks γ recv ∗ ownRaftGhost γ id s md) (ownRaftGhost γ id s' md)
-    $$ Hinv Hlc [] [Hrecv Hcr Htk Hown]
-  · iintro Hregs ⟨Hrecv, Hcr, Htk, Hown⟩
-    iapply ownRaftGhost_stepC_in γ c HC id HT B HB s recv s' Hstep $$ Hrc Hregs Hrecv Hcr Htk Hown
-  · iframe Hrecv Hcr Htk Hown
+  iapply regs_open γ iprop(notCrashed ∗ ([∗list] m ∈ recv, isMessage (GF := GF) γ m) ∗
+      rdCred γ (rdCount recv) ∗ msgsTks γ recv ∗ ownRaftGhost γ id s md)
+      iprop(notCrashed ∗ ownRaftGhost γ id s' md)
+    $$ Hinv Hlc [] [Hnc Hrecv Hcr Htk Hown]
+  · iintro Hregs ⟨Hnc, Hrecv, Hcr, Htk, Hown⟩
+    imod ownRaftGhost_stepC_in γ c HC id HT B HB s recv s' Hstep $$ Hnc Hrc Hregs Hrecv Hcr Htk Hown
+      with ⟨Hnc, Hregs, Hown⟩
+    imodintro; iframe
+  · iframe Hnc Hrecv Hcr Htk Hown
 
 end ghost
 

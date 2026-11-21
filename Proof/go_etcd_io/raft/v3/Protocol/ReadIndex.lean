@@ -47,7 +47,7 @@ theorem readReq_agree (γ : RaftNames) (c : List w8) (L1 L2 : List EntryM) :
   exact congrArg Prod.snd H
 
 section inv
-variable [InvGS GF]
+variable [InvGS GF] [CrashGS GF]
 
 /-- Firing a read's update with both halves of the commit invariant open. -/
 theorem readAu_fire_open (γ : RaftNames) (Qr : List EntryM → IProp GF)
@@ -377,7 +377,7 @@ theorem doomed_intro (γ : RaftNames) (T t n : w64) (G : List EntryM) (a : w64) 
       exact ⟨Hwo.1, fun hT x hx => GMap.elem_of_union_l _ (Hwo.2 hT x hx)⟩
 
 section inv
-variable [InvGS GF]
+variable [InvGS GF] [CrashGS GF]
 
 /-- An index of a log past the leader's campaign log `l0` is in the leader's term-log authority
 `M`, hence at most `L` (2026-10-16, stage R8a): the index `z` (in range of `w64`) names an entry of
@@ -422,7 +422,7 @@ theorem ownLogGhost_prefix_within (γ : RaftNames) (id : w64) (s : PState) (kl :
   icases H with ⟨%γm, %terms, %fp, %γw, %wins, H⟩
   iNamed H
   ihave Hres : iprop(⌜min (plogLastIndexZ bL l) (2 ^ 64 - 1) ≤ plogLastIndexZ s.base s.log⌝ ∗
-      leadLogOwn γ s terms ∗ ghostMapAuth γm 1 terms) $$ [Hterms Htlog]
+      leadLogOwn γ s terms) $$ [Htlog]
   · unfold leadPrefix isTermLog
     unfold leadLogOwn
     rw [Hr]
@@ -432,8 +432,10 @@ theorem ownLogGhost_prefix_within (γ : RaftNames) (id : w64) (s : PState) (kl :
     subst Hid
     rw [Htname] at Hγm'
     cases Hγm'
-    ihave %Hlook := ghost_map_lookup $$ Hterms Htf
-    rw [Hγt] at Hlook
+    -- the term's fragment, the node's own (2026-11-21: the authority is in the crash invariant)
+    ihave ⟨#Hown, -⟩ := BigSepM.bigSepM_lookup
+      (Φ := fun t γt => iprop(t ↪[γm]□ γt ∗ campKey (GF := GF) γ id t)) Hγt $$ Htfrags
+    icases ghostMapElem_agree _ _ _ _ _ _ $$ Hown Htf with %Hlook
     obtain ⟨⟨rfl, rfl⟩, rfl⟩ : (γt = γt' ∧ s.base = bL) ∧ l0 = l0' := by simpa using Hlook
     obtain ⟨HwR, -⟩ := Hwr'
     have Hl0 := Hpre.length_le
@@ -450,11 +452,10 @@ theorem ownLogGhost_prefix_within (γ : RaftNames) (id : w64) (s : PState) (kl :
           (by unfold plogLastIndexZ at *; omega) $$ Ha Hlf'
     isplitr
     · ipureintro; exact Hle
-    iframe Hterms
     iexists γt, M, l0
     iframe Ha Hfr Hlf
     ipureintro; exact ⟨Hγt, Hdom, Hpre⟩
-  icases Hres with ⟨%Hle, Htlog, Hterms⟩
+  icases Hres with ⟨%Hle, Htlog⟩
   isplitr
   · ipureintro; exact Hle
   iexists γm, terms, fp, γw, wins

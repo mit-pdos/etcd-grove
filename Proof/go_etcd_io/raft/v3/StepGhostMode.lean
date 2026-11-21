@@ -357,7 +357,7 @@ U8 v2) from the pins. Until U8 v2 the storage kept a registry of certified snaps
 tied to raft's both ways (D22 S-b′2/S-r). -/
 
 section certLink
-variable [GooseExts] {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [StorageModel GF]
+variable [GooseExts] {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [CrashGS GF] [StorageModel GF]
 
 /-- The namespace of the certificates' invariant (2026-10-27: the cluster's, `RaftNames.reCertNs`). -/
 def raftCertN (γ : RaftNames) : Namespace := γ.reCertNs
@@ -392,7 +392,7 @@ end certLink
 
 section ghost
 variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
-variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [StorageModel GF]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [CrashGS GF] [StorageModel GF]
 
 /-- What the mode keeps beyond `ownRaftGhost`: statically, the configuration's voters are the
 ghost state's, and (D19p, 2026-10-18) its voters and learners -- the ids the tracker holds -- and

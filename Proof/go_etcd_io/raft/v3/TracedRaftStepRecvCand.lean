@@ -166,7 +166,7 @@ end pure
 
 section ghost
 variable [GooseExts]
-variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [CrashGS GF]
 
 /-- A non-leader's facts read its server's log, commit index and term only. -/
 theorem srvFacts_congr_nl (γ : RaftNames) (C : List w64) (j : w64) (v w : Etcdraft.Server)

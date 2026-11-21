@@ -178,7 +178,7 @@ end dyn
 
 section ghost
 variable [GooseExts]
-variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [CrashGS GF]
 
 /-- A node's ghost state in the dynamic mode, with its reconfiguration state (see the file
 header). -/

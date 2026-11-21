@@ -27,7 +27,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 TraceSim
 
 section ghost
 variable [GooseExts]
-variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [CrashGS GF]
 
 /-- An empty full prefix at the zero base. -/
 theorem fullOk_base0_nil : FullOk base0 ([] : List EntryM) :=

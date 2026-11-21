@@ -37,7 +37,7 @@ open Iris Iris.BI GMap go_etcd_io.raft.v3
 
 section enter
 variable [GooseExts]
-variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [CrashGS GF]
 
 /-- (stage II helper) -/
 instance durFrags_timeless (γ : RaftNames) (id : w64) (W : DurMaps) :
