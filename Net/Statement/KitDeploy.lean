@@ -6,7 +6,7 @@ A kit's theorem is the repository's robustness statement (`Robustness.Robust`,
 `Robustness/Statement.lean`) of its machines, none of which crashes (the plan's Q4: no restart, a
 process's death is a cut for its peers, D10, D11), under this premise:
 
-    KitDeploy plan hosts nodes g → Robust [] nodes g bound
+    KitDeploy plan hosts nodes g → Robust [] nodes g threads bound
 
 `KitDeploy plan hosts nodes g` is data about the network's start `g` and the machines' initial
 local states (`nodes`, each a program and its local state): the plan `plan` (address, host)

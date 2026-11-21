@@ -45,6 +45,45 @@ theorem etcd_adequate_members [GoGlobalContext] [hPre : GooseGpreS GF] [lctx : G
 
 theorem sep_swap_right3.{u_1} [GoGlobalContext] (P Q W : IProp GF) : (P ∗ Q) ∗ W ⊢ (P ∗ W) ∗ Q
 
+theorem etcd_adequate_alloc_members_below [GoGlobalContext] [hPre : GooseGpreS GF] [lctx :
+    GoLocalContext] [go.BasicIntoValInj] (init : val) (body : Expr) (φ : val → Prop) (hφ : ∀ (p :
+    val), ¬φ p.PanicV) (hbody : toVal body = none) (As : List GoString) (hAs : As.Nodup) (hAsLit : ∀
+    (a : GoString), a ∈ As → netAddrLit a = true) (Ds : List GoString) (hDs : Ds.Nodup) (ms : List
+    (GoString × etcdstart.MemberAddrs)) (Bs : List GoString) (hA : (List.flatMap (fun m =>
+    m.snd.addrs) ms ++ Bs).Perm As) (hD : (List.map (fun m => memberDataDir m.fst) ms).Perm Ds) (σ :
+    state) (g : GlobalState) (Hinitg : extsInitgP g.globalWorld) (Hinitw : extsInitP σ.world
+    g.globalWorld) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
+    {Ns : List GoString} (HNs : prometheus.namesUnclaimed (init (intoVal ()) ;; body) Ns) (HAs :
+    addrsUnclaimed (init (intoVal ()) ;; body) As) (HDs : dataDirsAbsent (init (intoVal ()) ;; body)
+    Ds) (HEnv : verifyEnvOff (init (intoVal ()) ;; body)) (HWal : etcdWalAreasInit (extLocal
+    Fs.fsExt σ.world) Ds) (TB n : Nat) (hn : n + 1 ≤ 2 ^ 62) (κs : List Observation) (t2 : List
+    Expr) (σ2 : CfgState) (Hsteps : RealNstepsBelow TB n ([init (intoVal ()) ;; body], σ, g) κs (t2,
+    σ2)) (Hprog : ∀ (hG : HeapGS HasLC.hasLC GF), receiptBound GF = n + 1 → threadBound GF = max TB
+    srvLevelK → ∃ X T, (⊢ |==> ∃ x, T x) ∧ ∀ (x : X), progOk (prometheus.namesFree Ns)
+    iprop((([∗list] m ∈ ms, etcdstart.memberStartRes m.fst m.snd) ∗ [∗list] b ∈ Bs, netAddrFree b) ∗
+    T x) init body φ) (hNs : Ns.Nodup := by decide +kernel) : (∀ (v : val) (t2' : List Expr), t2 = v
+    :: t2' → φ v) ∧ (∀ (e2 : Expr), e2 ∈ t2 → RealNotStuck e2 σ2) ∧ ∀ (e2 : Expr), e2 ∈ t2 →
+    ¬UnrecoveredPanic e2
+
+theorem etcd_adequate_members_below [GoGlobalContext] [hPre : GooseGpreS GF] [lctx : GoLocalContext]
+    [go.BasicIntoValInj] (init : val) (body : Expr) (φ : val → Prop) (hφ : ∀ (p : val), ¬φ p.PanicV)
+    (hbody : toVal body = none) (As : List GoString) (hAs : As.Nodup) (hAsLit : ∀ (a : GoString), a
+    ∈ As → netAddrLit a = true) (Ds : List GoString) (hDs : Ds.Nodup) (ms : List (GoString ×
+    etcdstart.MemberAddrs)) (Bs : List GoString) (hA : (List.flatMap (fun m => m.snd.addrs) ms ++
+    Bs).Perm As) (hD : (List.map (fun m => memberDataDir m.fst) ms).Perm Ds) (σ : state) (g :
+    GlobalState) (Hinitg : extsInitgP g.globalWorld) (Hinitw : extsInitP σ.world g.globalWorld)
+    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1) {Ns : List
+    GoString} (HNs : prometheus.namesUnclaimed (init (intoVal ()) ;; body) Ns) (HAs : addrsUnclaimed
+    (init (intoVal ()) ;; body) As) (HDs : dataDirsAbsent (init (intoVal ()) ;; body) Ds) (HEnv :
+    verifyEnvOff (init (intoVal ()) ;; body)) (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world)
+    Ds) (TB n : Nat) (hn : n + 1 ≤ 2 ^ 62) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNstepsBelow TB n ([init (intoVal ()) ;; body], σ, g) κs (t2, σ2)) (Hprog : ∀ (hG :
+    HeapGS HasLC.hasLC GF), receiptBound GF = n + 1 → threadBound GF = max TB srvLevelK → progOk
+    (prometheus.namesFree Ns) iprop(([∗list] m ∈ ms, etcdstart.memberStartRes m.fst m.snd) ∗ [∗list]
+    b ∈ Bs, netAddrFree b) init body φ) (hNs : Ns.Nodup := by decide +kernel) : (∀ (v : val) (t2' :
+    List Expr), t2 = v :: t2' → φ v) ∧ (∀ (e2 : Expr), e2 ∈ t2 → RealNotStuck e2 σ2) ∧ ∀ (e2 :
+    Expr), e2 ∈ t2 → ¬UnrecoveredPanic e2
+
 theorem progOk_walAreas [GoGlobalContext] [go.BasicIntoValInj] (hPre : AbsDiskGpreS GF) (R B : IProp
     GF) (init : val) (body : Expr) (φ : val → Prop) (hbody : toVal body = none) (σ : state) (hfs :
     Fs.FsInit (extLocal Fs.fsExt σ.world)) (Ds : List GoString) (hDs : Ds.Nodup) (hW :
