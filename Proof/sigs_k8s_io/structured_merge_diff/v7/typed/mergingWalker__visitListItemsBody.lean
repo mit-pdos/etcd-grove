@@ -1,6 +1,17 @@
 /-
 `typed.mergingWalker.visitListItems`: a member of the recursion cluster `typed.mergingWalkerRec` (`mergingWalkerRec.lean`); its proof is the
 projection of the cluster's (its body is `mergingWalker__visitListItemsBody.lean`).
+
+Status (2026-11-21): proved but for the merge loop's body (one `sorry`): the set-up (both sides'
+`Length`, `out`'s capacity, the two `indexListPathElements`, the shared order built by the range
+loop, its first pop), the loop invariant `HI2` (the merged order `LawBL2.MInv`, the shared order
+`LawBL2.shRep`, `mergedRHS` holding the merged keys, `out` holding the done keys' merges
+`LawBL2.mItem`), its condition, and the exit (`MInv_done`: the merged list is `mergeListOut`).
+Left: one iteration, by `wp_join` on the three statements (both sides: equal heads merged
+(`MInv_eq`) or an out-of-order shared key skipped (`MInv_skip`); a left-only key merged
+(`MInv_left`) or a merged one passed; a right key merged (`MInv_right`, `MInv_rdone`), popping
+the shared order as at the start); the inner `errs = append(errs, errs...)` on one empty slice
+goes through `wp_slice_append_dfrac` at the discarded fraction.
 -/
 module
 
@@ -436,6 +447,7 @@ theorem typed.mergingWalker.visitListItems.wp_proofBody
   rw [hv]
   by_cases hcond : sint.nat lI < L.length ∨ sint.nat rI < R.length
   · simp only [hcond, decide_true, ↓reduceIte]
+    -- one iteration: not proved yet (see the file header)
     sorry
   · simp only [hcond, decide_false]
     rw [if_neg (by simp [false_neq_true])]
