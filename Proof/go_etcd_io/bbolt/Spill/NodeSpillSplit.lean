@@ -59,7 +59,7 @@ theorem splitStep_wp (hSplit : node.split.spec (GF := GF) (hG := hG))
       (∀ (s : GoSlice) (xs : List (Loc × node × List Inode)) (wss : List (List WEntry))
           (pl : Loc) (rp' : NRec) (X2 : WX),
         ⌜splitRel X1 X2 bl n rN xs wss pl rp' ∧
-          ∀ x ∈ xs, pieceFits 4096 x.2.2 ∧ (2 ≤ xs.length → 2 ≤ x.2.2.length)⌝ -∗
+          ∀ x ∈ xs, pieceFitFor x.2.1.isLeaf' 4096 x.2.2 ∧ (2 ≤ xs.length → pieceMin x.2.1.isLeaf' ≤ x.2.2.length)⌝ -∗
         wtxW K tx r m X2 -∗ s ↦* xs.map (·.1) -∗ np ↦ n -∗ txp ↦ tx -∗ Φ #s) ⊢
     WP (splitCall np txp) {{ Φ }} := by
   iintro ⟨Hw, Hnp, Htxp, HΦ⟩

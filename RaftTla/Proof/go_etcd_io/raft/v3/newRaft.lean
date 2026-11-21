@@ -1139,7 +1139,7 @@ theorem newRaft.wp_proof
     -- vote: the state is the persisted `HardState`'s
     ipureintro
     refine ⟨⟨rfl, rfl⟩, rfl, ?_, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, ?_, rfl, rfl,
-      rfl, rfl, rfl, rfl, rfl, rfl, HpSDR, ?_, rfl⟩
+      rfl, rfl, rfl, rfl, rfl, rfl, HpSDR, ?_, rfl, rfl⟩
     · show (if s2.term = s2.term then s2.vote else W64 0) = hs.Vote'
       simp only [↓reduceIte]
       rfl
@@ -1639,7 +1639,7 @@ theorem newRaft.wp_proof
     -- vote: the state is the persisted `HardState`'s
     ipureintro
     refine ⟨⟨rfl, rfl⟩, rfl, ?_, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, ?_, rfl, rfl,
-      rfl, rfl, rfl, rfl, rfl, rfl, HpSDR, ?_, rfl⟩
+      rfl, rfl, rfl, rfl, rfl, rfl, HpSDR, ?_, rfl, rfl⟩
     · show (if s2.term = s2.term then s2.vote else W64 0) = hs.Vote'
       simp only [↓reduceIte]
       rfl

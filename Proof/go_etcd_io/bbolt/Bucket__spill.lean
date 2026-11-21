@@ -182,7 +182,7 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
         (C.bv.rootNode' = null → ins0 = []) ∧
         (C.bv.rootNode' ≠ null → ∃ rn, C.ns !! C.bv.rootNode' = some rn ∧ rn.nv = nv0 ∧
           rn.ins = ins0 ∧ C.bv.rootNode' ∈ X1.live ∧ wsLive rn.ws ∧
-          ∀ w ∈ rn.ws, w.key.length + w.value.length ≤ bboltEntryMax) := by
+          ∀ w ∈ rn.ws, entryBytesFit w.key.length w.value.length w.pgid) := by
       by_cases hn : C.bv.rootNode' = null
       · exact ⟨zero_val node, [], fun _ => rfl, fun h => absurd hn h⟩
       · obtain ⟨rn, -, hns, hl, hlv, hbd⟩ := rinv_inlPre HI Htodo Hc HC hn

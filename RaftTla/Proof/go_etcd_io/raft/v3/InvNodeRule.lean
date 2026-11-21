@@ -801,13 +801,15 @@ instance nodeRestoreCert_persistent (γ : Cluster) (n : Loc) (sv : SnapshotM) :
 /-- For an outgoing MsgSnap, the storage supplied its pinned certificate or raft
 carried the certificate for a received snapshot. The later comes from saved
 predicate agreement and applies only to the client-selected certificate. -/
-theorem readySnapSources_msgSnap (γ : Cluster) (n : Loc) (ms : List QMsg)
+theorem readySnapSources_msgSnap (γ : Cluster) (n : Loc) (id : w64) (ms : List QMsg)
     (q : QMsg) (SV : SnapshotM → IProp GF) (hq : q ∈ ms) (ht : q.st.msg.Type' = MsgSnap) :
-    ⊢ readySnapSources (GF := GF) γ n ms -∗ nodeTagPin γ n SV -∗
-      ∃ sv : SnapshotM, ⌜q.st.snap = some sv⌝ ∗ (▷ SV sv ∨ nodeRestoreCert γ n sv) := by
+    ⊢ readySnapSources (GF := GF) γ n id ms -∗ nodeTagPin γ n SV -∗
+      ∃ sv : SnapshotM, ⌜q.st.snap = some sv⌝ ∗ (▷ SV sv ∨ nodeRestoreCert γ n sv ∗ nodeRestoreSource γ id (snapId sv)) := by
   haveI (γn : NodeNames) := ApiImpl.nodeTabOk_persistent (GF := GF) γ n γn
   unfold readySnapSources ApiImpl.snapSources nodeTagPin
   iintro ⟨%γn, #Htab, #Hs⟩ ⟨%γp, #Htabp, #Hpin⟩
+  iunfold readyMsgOrigins at Hs
+  icases Hs with ⟨%ks, #Hhist, #Hs⟩
   iunfold qSrcs at Hs
   ihave ⟨#Hq, -⟩ := BigSepL.bigSepL_mem_acc hq $$ Hs
   iunfold qSrc at Hq
@@ -817,7 +819,7 @@ theorem readySnapSources_msgSnap (γ : Cluster) (n : Loc) (ms : List QMsg)
   iexists sv
   isplitr
   · ipureintro; exact Hsv
-  icases Hc with (Hc | ⟨Hc, -⟩)
+  icases Hc with (Hc | ⟨Hc, %Hmem⟩)
   · ileft
     ihave %He := ApiImpl.nodeTabOk_agree γ n γn γp $$ Htab Htabp
     have Hkey : γn.sn.gsv = γp.sn.gsv := congrArg (fun k : ApiImpl.CfgNames => k.2.2.2.2.2.2.2.1) He
@@ -830,6 +832,13 @@ theorem readySnapSources_msgSnap (γ : Cluster) (n : Loc) (ms : List QMsg)
     ihave ⟨Hiff, -⟩ := internalEq_iff _ _ $$ Heq
     iapply Hiff $$ HP
   · iright
+    isplitr
+    rotate_left
+    · unfold nodeRestoreSource
+      iunfold restoredSnapHistory at Hhist
+      ihave #Horigin := Hhist $$ %_ %Hmem
+      rw [show snapId sv = (snapTrip sv sv.Metadata'.ConfState'.lists).sid from rfl]
+      iexact Horigin
     unfold nodeRestoreCert
     iexists γn
     iframe Htab Hc

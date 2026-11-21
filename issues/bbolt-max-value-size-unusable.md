@@ -90,3 +90,5 @@ single oversized entry is still accepted.
 ## Notes
 
 The fork `upamanyus/bbolt` now exists (it holds #1312's branch); push the branch before filing.
+
+The verification fork now tests the exact single-entry boundary. The first readable value rejected by its earlier conservative cap has a separate regression. [Readable-entry regression](bbolt-put-refuses-readable-entry.md)
