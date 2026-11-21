@@ -297,6 +297,10 @@ have `Link.lean`, not `MainLinked`).
 
 ## 4. Retirements (D2, D4) and what stays
 
+**Done 2026-11-21 (E4, 84aa52cdae):** all of the list below, the eleven drivers' own theorems and
+partition's `etcd_partition_watch_safe` too; leaseexpiryN kept (N1); the drivers `etcd/all` does not run keep
+their Go code, translation and triples too (the k8s precedent). `notes/etcd-all-handoff.md` has the list.
+
 - **Retire** (closed theorems: `Adequacy*.lean`, `TopLevelRobustness.lean` pairs, the `_safe` parts of
   `Results.lean`, `PkgTable.lean`, the `PROGRAMS` entries, their tcb collections): the twelve of §1.3
   (putget, putget3, putgetN, txnlin, partition `Main`'s, compacted, watch, auth, auth3, lease, leasegrant,
