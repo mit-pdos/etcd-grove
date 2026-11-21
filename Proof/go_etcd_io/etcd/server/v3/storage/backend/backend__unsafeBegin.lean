@@ -51,8 +51,8 @@ private theorem bbolt.kvGlue_DB__Begin_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.F
       backend.txDB, onFs_some hfs]
     cases w <;> simp only [Bool.false_eq_true, ↓reduceIte] <;>
       iintro %Φ ⟨-, ⟨#Hdb, Hs, Hrest⟩, Htok⟩ HΦ
-    · ihave Hau := bbolt.boltState_read_au γ D $$ Hs
-      have h' := h db γ false (fun D' => iprop(bbolt.boltState γ 1 D ∗ ⌜D' = D⌝))
+    · ihave Hau := backend.boltState_read_au_q γ (1 : Qp).half D $$ Hs
+      have h' := h db γ false (fun D' => iprop(bbolt.boltState γ (1 : Qp).half D ∗ ⌜D' = D⌝))
       simp only [Bool.false_eq_true, ↓reduceIte] at h'
       iapply wp_fupd
       wp_apply h' $$ [$Hdb $Htok $Hau] as %tx %err Hr
@@ -62,7 +62,7 @@ private theorem bbolt.kvGlue_DB__Begin_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.F
         iapply HΦ; iframe Hs Hdb Hrest
         iright; isplitr; · ipureintro; exact He
         iframe Htd Htx
-      · imod (backend.boltState_au_back γ D) $$ Hau with Hs
+      · imod (backend.boltState_au_back_q γ (1 : Qp).half D) $$ Hau with Hs
         imodintro
         iapply HΦ; iframe Hs Hdb Hrest
         ileft; iframe Htok; ipureintro; exact He.1
@@ -70,7 +70,7 @@ private theorem bbolt.kvGlue_DB__Begin_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.F
       simp only [↓reduceIte] at h'
       wp_apply h' $$ [$Hdb] as %tx %err Hr
       icases Hr with (⟨%He, #Htd, %D', Htx⟩ | ⟨%He, -, -⟩)
-      · icases persistent_entails_right (bbolt.boltTx_base tx γ 1 1 (TxView.wr D') D) $$ [Htx Hs]
+      · icases persistent_entails_right (bbolt.boltTx_base tx γ 1 (1 : Qp).half (TxView.wr D') D) $$ [Htx Hs]
           with ⟨%Hb, Htx, Hs⟩
         · iframe Htx Hs
         have HD : D' = D := Hb rfl
