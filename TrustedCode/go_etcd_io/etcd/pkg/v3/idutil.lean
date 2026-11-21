@@ -23,7 +23,8 @@ the model excludes the executions in which two generators issue one id, and is G
 generators of distinct members of the process differ in the prefix (the 16 low bits of the ids of the
 process's every member distinct, a premise of the examples, `TestMemberIDs`: of the one cluster an
 example starts, and, for `examples/k8s/all`, which starts two, of both clusters' members, `k8s_safe`'s
-`Hlow`); a member's generators -- one per start of the member -- issue
+`Hlow`, and for `examples/etcd/all`, which starts eleven, of all their members, `etcd_safe`'s `Hlow`);
+a member's generators -- one per start of the member -- issue
 distinct ids if the wall clock does not step back across a restart and the earlier generator, started
 at millisecond t0, issues in all (handlers of the stopped incarnation may still call it) at most
 256·(t1 − t0) ids, t1 the later one's start: the later one's first id is the earlier one's

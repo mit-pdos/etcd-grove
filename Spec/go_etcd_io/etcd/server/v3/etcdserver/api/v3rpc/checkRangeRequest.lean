@@ -5,6 +5,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvKV
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.RequestAt
 
 @[expose] public section
 
@@ -29,12 +30,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 
 /-- **`checkRangeRequest(r)`**: `nil` iff the range `o` passes (`rangeCheck`: a non-empty key, a
 sort order and a sort target the enumerations' name maps have), else the `rpctypes` error
-`rangeCheck` names. -/
+`rangeCheck` names. The request at any fraction of its rewritable fields, given back
+(`txn.rangeRequestAt`; auth-mediation M3, 2026-11-21, for the streamed request; was
+`rangeRequestIs`). -/
 abbrev v3rpc.checkRangeRequest.spec : Prop :=
-  ∀ (r : Loc) (o : OpFull),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ txn.rangeRequestIs r o }}
+  ∀ (r : Loc) (dq : DFrac) (o : OpFull),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ txn.rangeRequestAt r dq o }}
     (App (Val (@! v3rpc.checkRangeRequest)) (Val #r))
-  {{ (err : GoInterface), RET #err; v3rpc.checkRes (v3rpc.rangeCheck o) err }}
+  {{ (err : GoInterface), RET #err; v3rpc.checkRes (v3rpc.rangeCheck o) err ∗ txn.rangeRequestAt r dq o }}
 
 end spec
 

@@ -4,7 +4,6 @@ Proof of `Spec/internal/filepathlite/FromSlash.lean`. Lean-first.
 module
 
 public import Spec.internal.filepathlite.FromSlash
-public import Proof.internal.filepathlite.UntypedRune
 
 @[expose] public section
 
@@ -24,7 +23,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.internal.filepathlite.Assumptions]
 
-theorem filepathlite.FromSlash.wp_proof [UntypedRuneSemantics] :
+theorem filepathlite.FromSlash.wp_proof :
     filepathlite.FromSlash.spec (GF := GF) (hG := hG) := by
   intro x
   wp_start

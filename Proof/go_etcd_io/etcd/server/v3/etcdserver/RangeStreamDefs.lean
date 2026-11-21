@@ -12,16 +12,19 @@ in.
 - `rangeSendOk`: the stream's `Send`, a contract (`Ψ` of the chunk before, `Ξ` after), as the gRPC
   layer's `v3rpc.streamSendOk`;
 - `rangeReadErr`: an error of the store's reads (`txn.Range`'s, `txn.Count`'s);
-- `rangeStreamCtx`: the stream's `Context()`, which returns the request's context.
+- `rangeStreamCtx`: the stream's `Context()`, which returns the request's context;
+- `rangeRequestOwn_at`: `rangeRequestOwn` is `txn.rangeRequestAt` (`txn/RequestAt.lean`) at
+  `DFrac.own 1`, the form the gRPC layer's checks take.
 
 Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Requests
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.RequestAt
 public import Proof.go_etcd_io.etcd.server.v3.auth.Model
 public import Proof.context.LibKeys
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadWhy
 
 @[expose] public section
 
@@ -64,10 +67,11 @@ def rangeRequestOwn (r : Loc) (o : OpFull) : IProp GF :=
     ⌜sint.Z ksl.len < 2 ^ 63 - 1⌝)
 
 /-- **The request `r` as `rangeStream` gives it back**: its three rewritten fields owned, at some
-values; not the new key's contents, whose array may be shared (with keys-only, the next page's key
-is appended into the capacity of an mvcc index key, which a concurrent keys-only stream writes too:
-`nonissues/etcd-rangestream-keysonly-index-key-race.md`). The other fields stay as the caller gave
-them (read-only in `rangeRequestOwn`). -/
+values; not the new key's contents (the fork's `4416a5786` makes the next page's key a fresh copy,
+`append(bytes.Clone(lastKey), 0)`; before it, the key was appended into the capacity of an mvcc
+index key, which a concurrent keys-only stream wrote too:
+`nonissues/etcd-rangestream-keysonly-index-key-race.md`; no caller reads it after the stream). The
+other fields stay as the caller gave them (read-only in `rangeRequestOwn`). -/
 def rangeRequestBack (r : Loc) : IProp GF :=
   iprop(∃ (ksl : GoSlice) (rev limit : w64),
     structFieldRef etcdserverpb.RangeRequest go!"Key" r ↦ ksl ∗
@@ -126,7 +130,42 @@ instance rangeStreamCtx_persistent (rs : GoInterface) (ctx : GoInterfaceOk) :
     Persistent (rangeStreamCtx (GF := GF) rs ctx) := by
   unfold rangeStreamCtx; infer_instance
 
+/-- `rangeRequestOwn` is `txn.rangeRequestAt` at `DFrac.own 1`. -/
+theorem rangeRequestOwn_at (r : Loc) (o : OpFull) :
+    rangeRequestOwn (GF := GF) r o ⊣⊢ txn.rangeRequestAt r (DFrac.own 1) o := .rfl
+
+open Iris.ProofMode in
+/-- The request owned gives it back (`rangeRequestBack`: its three fields). -/
+theorem rangeRequestBack_of_own (r : Loc) (o : OpFull) :
+    rangeRequestOwn (GF := GF) r o ⊢ rangeRequestBack r := by
+  iunfold rangeRequestOwn
+  iintro ⟨-, %ksl, %esl, %k, %e, %rev, %limit, %order, %target, %ser, %ko, %co, %minM, %maxM, %minC,
+    %maxC, HK, -, -, -, Hlim, Hrev, -⟩
+  iunfold rangeRequestBack
+  iexists ksl, rev, limit
+  iframe HK Hlim Hrev
+
 end defs
+
+section why
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+open Iris.ProofMode in
+/-- **A store read's error is one `rangeWhyOut` allows** (its last three cases). -/
+theorem rangeWhyOut_of_rangeReadErr (s : Loc) (M : auth.AuthMode) (n : Nat) (tok : Option GoString)
+    (o : OpFull) (err : GoInterface) :
+    rangeReadErr (GF := GF) err ⊢ rangeWhyOut s M n tok o err := by
+  iunfold rangeReadErr
+  iintro (⟨%ef, #Hef, %He⟩ | ⟨%ec, #Hec, %He⟩ | #Hk)
+  · unfold rangeWhyOut; iright; iright; ileft; iexists ef; iframe Hef; ipureintro; exact He
+  · unfold rangeWhyOut; iright; iright; iright; ileft; iexists ec; iframe Hec; ipureintro; exact He
+  · unfold rangeWhyOut; iright; iright; iright; iright; iexact Hk
+
+end why
 
 end EtcdGrove
 end Perennial

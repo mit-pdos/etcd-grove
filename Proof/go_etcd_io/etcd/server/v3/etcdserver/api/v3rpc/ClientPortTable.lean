@@ -22,6 +22,8 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LeaseTimeToL
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MemberList
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Put
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Range
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RangeStream
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__RangeStream
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RemoveMember
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AddMember
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__UpdateMember
@@ -170,10 +172,12 @@ def v3rpc.clientPortTable : List v3rpc.PortRow :=
           EtcdServer.Range.spec (GF := GF) (hG := hG) ∧
           v3rpc.kvServer.Range.spec (GF := GF) (hG := hG),
       why := "checked by doSerialize's chk after the read index (linearizable or not)" },
-    { key := go!"/etcdserverpb.KV/RangeStream", isPrefix := false, cls := .rbac, status := .none,
+    { key := go!"/etcdserverpb.KV/RangeStream", isPrefix := false, cls := .rbac, status := .e2e,
       specs :=
-          True,
-      why := "stage M3: kvServer.RangeStream is translated, not proved; EtcdServer.RangeStream is names-only (notes/auth-mediation-scope.md §3.2); margin issues/etcd-rangestream-auth-revoked-midstream.md" },
+          EtcdServer.doSerialize.spec (GF := GF) (hG := hG) ∧
+          EtcdServer.RangeStream.spec (GF := GF) (hG := hG) ∧
+          v3rpc.kvServer.RangeStream.spec (GF := GF) (hG := hG),
+      why := "checked once by doSerialize's chk before the first page, over the trust boundary rangeStream (notes/axiom-review/rangestream.md); margin issues/etcd-rangestream-auth-revoked-midstream.md" },
     { key := go!"/etcdserverpb.KV/Put", isPrefix := false, cls := .rbac, status := .e2eApply,
       specs :=
           apply.checkPutAuth.spec (GF := GF) (hG := hG) ∧

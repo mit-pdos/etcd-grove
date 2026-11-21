@@ -34,7 +34,7 @@ namespace github_com.mit_pdos.etcd_grove.examples.etcd.authN
   #(W64 30000)
 
 @[reducible] noncomputable def Token [GooseExts] [GoGlobalContext] : val :=
-  #(go!"authN-1286")
+  #(go!"authN-133")
 
 @[reducible] noncomputable def rootPw [GooseExts] [GoGlobalContext] : val :=
   #(go!"root-pw")
@@ -61,7 +61,7 @@ noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
     (auth3's: clientv3.New calls Authenticate when it dials, and the token is sent with every
     request).
 
-    go: authN.go:49:6 -/
+    go: authN.go:51:6 -/
 noncomputable def newUserClient.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Lam "name"
@@ -102,7 +102,7 @@ noncomputable def newUserClient.impl [GooseExts] [GoGlobalContext] : val :=
     read index is at least the set-up's AuthEnable, so the member has applied it when the read
     returns), and reports whether it succeeded (auth3's).
 
-    go: authN.go:64:6 -/
+    go: authN.go:66:6 -/
 noncomputable def barrier.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Lam "lg"
@@ -183,7 +183,7 @@ noncomputable def barrier.impl [GooseExts] [GoGlobalContext] : val :=
     member 1 mod k, v through member 2 mod k; root's history check through member 0 and u's watch
     check through u's member.
 
-    go: authN.go:87:6 -/
+    go: authN.go:89:6 -/
 noncomputable def run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "srvs"
   (Lam "ms"
@@ -643,7 +643,7 @@ noncomputable def run.impl [GooseExts] [GoGlobalContext] : val :=
     (auth.Ok, auth.Failed, auth.WatchEnded); k = 0, or a member that fails to start, ends Main with
     auth.Failed.
 
-    go: authN.go:180:6 -/
+    go: authN.go:182:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "k"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))

@@ -31,7 +31,7 @@
 
 # KV
 /etcdserverpb.KV/Range rbac e2e S/EtcdServer__doSerialize,S/EtcdServer__Range,R/kvServer__Range serialWhy,rangeWhyOut,rangeReadOkM checked by doSerialize's chk after the read index (linearizable or not)
-/etcdserverpb.KV/RangeStream rbac none - - stage M3: kvServer.RangeStream is translated, not proved; EtcdServer.RangeStream is names-only (notes/auth-mediation-scope.md §3.2); margin issues/etcd-rangestream-auth-revoked-midstream.md
+/etcdserverpb.KV/RangeStream rbac e2e S/EtcdServer__doSerialize,S/EtcdServer__RangeStream,R/kvServer__RangeStream rangeStreamPassed,rangeWhyOut,rangeChunkOut checked once by doSerialize's chk before the first page, over the trust boundary rangeStream (notes/axiom-review/rangestream.md); margin issues/etcd-rangestream-auth-revoked-midstream.md
 /etcdserverpb.KV/Put rbac e2e-apply A/checkPutAuth,A/authApplierV3__Put,S/EtcdServer__Put putClass,leaseKeysClass,putPermitM checked at apply (checkPutAuth)
 /etcdserverpb.KV/DeleteRange rbac e2e-apply A/authApplierV3__DeleteRange,S/EtcdServer__DeleteRange authIs,deletePermitM checked at apply
 /etcdserverpb.KV/Txn rbac e2e A/CheckTxnAuth,A/authApplierV3__Txn,S/EtcdServer__Txn txnClass,txnPermitM,txnWhyOut read-only: chk at the server; writes: at apply

@@ -811,7 +811,7 @@ theorem EtcdServer.Range.wp_proof
   icases Hr' with ⟨%Hrn, %ksl, %esl, %k, %e, %rev0, %limit, %order, %target, %ser, %ko, %co, %minM,
     %maxM, %minC, %maxC, #HK, #Hks, #HE, #Hes, #Hlim, #Hrev, -, -, #Hser, #Hko, #Hco, -, -, -, -, %Ho, %Hkb⟩
   (try wp_auto)
-  wp_apply hGK r ksl $$ []
+  wp_apply hGK r ksl DFrac.discard $$ [] as -
   · iframe #; ipureintro; exact Hrn
   (try wp_auto)
   wp_apply wp_bytes_to_string $$ [Hks] as -
@@ -827,12 +827,12 @@ theorem EtcdServer.Range.wp_proof
   (try wp_auto)
   wp_apply hAS as %a2 -
   (try wp_auto)
-  wp_apply hGR r rev0 $$ []
+  wp_apply hGR r rev0 DFrac.discard $$ [] as -
   · iframe #; ipureintro; exact Hrn
   (try wp_auto)
   wp_apply hAI64 as %a3 -
   (try wp_auto)
-  wp_apply hGL r limit $$ []
+  wp_apply hGL r limit DFrac.discard $$ [] as -
   · iframe #; ipureintro; exact Hrn
   (try wp_auto)
   wp_apply hAI64 as %a4 -

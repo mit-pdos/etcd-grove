@@ -423,10 +423,11 @@ theorem v3rpc.checkRequestOp_of
     icases Hp with ⟨%Hpn, %w, %r, #HR, #Hw, #Hr⟩
     wp_auto
     wp_bind (App (Val (@! v3rpc.checkRangeRequest)) (Val #r))
-    iapply (hRange r o) $$ [$Hpkg $Hr]
+    iapply (hRange r DFrac.discard o) $$ [Hr]
+    · iframe #; iapply (txn.rangeRequestIs_at r o).mp $$ Hr
     iintro %err
     inext
-    iintro Herr
+    iintro ⟨Herr, -⟩
     wp_auto
     iapply HΦ
     rw [show v3rpc.opCheck (sint.Z n) (.range o) = v3rpc.rangeCheck o by simp [v3rpc.opCheck]]
