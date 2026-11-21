@@ -1103,7 +1103,7 @@ theorem node.run.gated_of
       rw [Hgid]
       ihave #HsrcsN : readyMsgOrigins γ.raft id γ.sn ms $$ []
       · rw [← Hsnγ]; iexact Hsrcs
-      ihave #HobsN : handoutOrigins γ.raft id γ.sn (phsNext rs.phs h).Term' ms (dlvAfter rs.delivered ce L).length $$ []
+      ihave #HobsN : handoutOrigins γ.raft id γ.sn (phsNext rs.phs h).Term' ms (dlvAfter rs.delivered ce L).length (L.map (fun l => l.snap.Metadata'.Index')) $$ []
       · rw [← Hsnγ]; iexact Hobs
       iframe Hdur Hbw1 Hpb Hmw Hss1 Hlead Hmss HsrcsN HobsN
       isplitr

@@ -41349,6 +41349,14 @@ bound and the strict commit check at each successful incoming restore to
 preserve that attribution until Ready drains the outbox. The receiver may
 compare a batch in the message's term even if the draining batch is later.
 
+### Recording which committed indices were installed snapshots (2026-11-20)
+
+A successful restore records its index. Ready records the node's current
+commit, through which a later restore cannot change the set of installed
+indices. A snapshot loan returns a receipt for its own index. The server
+can retain the receipt when the Raft driver puts the snapshot in memory
+storage and use it when the same index is sent back out.
+
 ## The listening token and the net+fs bundle (2026-11-21 · the user's request · branch `net-noplan`, stages B and C)
 
 **Token.** `netLisTok a` (`Ghost.lean`): exclusive, one per valid address, in the network's start
