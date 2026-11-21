@@ -203,6 +203,13 @@ if python3 etc/gen-k8s-deep.py --check > "$tmp/k8sdeep.log" 2>&1; then
 else
   echo "gen-k8s-deep: FAILED"; tail -5 "$tmp/k8sdeep.log"; fail=1
 fi
+# the trusted protobuf schemas (PbSchema.lean's generated region) are the registered descriptors'
+# (models/pbdesc, run in examples/; etc/gen-pbschema.py, protobuf stage 0')
+if python3 etc/gen-pbschema.py --check > "$tmp/pbschemagen.log" 2>&1; then
+  echo "$(tail -1 "$tmp/pbschemagen.log")"
+else
+  echo "gen-pbschema: FAILED"; tail -10 "$tmp/pbschemagen.log"; fail=1
+fi
 # every axiom returning holding an RWMutex reader slot charges a token (begin-tok; reads the sources,
 # and the Go sources in .lake/goose that goose.py above clones: so after it, in this section)
 python3 etc/reader-slot-check.py || fail=1
@@ -242,7 +249,8 @@ fi
 nm=0
 : > "$tmp/nm.log"
 pbinputs="models/internal/pbdifftest/protobuf.toml:models/internal/pbdifftest/codec:codec
-examples/models/pbetcd/protobuf.toml:examples/models/pbetcd:pbetcd"
+examples/models/pbetcd/protobuf.toml:examples/models/pbetcd:pbetcd
+examples/pbwire/protobuf.toml:examples/pbwire:pbwire"
 for x in $pbinputs; do
   IFS=: read -r t o p <<< "$x"
   python3 models/protobuf/pbgen.py "$t" "$o" --pkg "$p" --check >> "$tmp/nm.log" 2>&1 || nm=1
@@ -270,6 +278,10 @@ done
 # and against the models (an overlay of the toolchain's source, models/goroot.py)
 GOTOOLCHAIN=go1.27.3 models/internal/rpcdifftest/run.sh >> "$tmp/nm.log" 2>&1 || nm=1
 (cd examples && GOWORK=off gotest ./models/...) >> "$tmp/nm.log" 2>&1 || nm=1
+# the candidate Lean wire semantics' vectors (protobuf stage 0'; nothing trusts it yet): the vectors
+# module PbWireVectors.lean is what examples/pbwire writes from protobuf-go and pbgen (its #guards,
+# checked by the build, compare the Lean semantics with them)
+(cd examples && GOWORK=off gotest ./pbwire/) >> "$tmp/nm.log" 2>&1 || nm=1
 # the grpc model (models/grpc; phase 5.4): its differential test against grpc-go v1.84.0 and the
 # model, the model's invariants with its choices random, and examples/ built against the model
 models/internal/grpcdifftest/run.sh >> "$tmp/nm.log" 2>&1 || nm=1

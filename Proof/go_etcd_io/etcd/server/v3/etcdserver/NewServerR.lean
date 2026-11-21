@@ -654,7 +654,7 @@ theorem NewServer.wp_proofRG
       hperm.symm)
     $$ [Hopen Hwl Hrbo]
     as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlmode, #Hlcfg, -, #Hlexp, #Hlgd, Hlrd, Hlown, HlWt, HlEv,
-      Hlrvk, Hro, HleOn, #Hlbe, Hlstop, #HlReq, ⟨%ls, %Hls, HlAt0⟩, #Hllk'⟩
+      Hlrvk, Hro, HleOn, #Hlbe, Hlstop, #HlReq, ⟨%ls, %Hls, HlAt0⟩⟩
   · iframe HB Hclok
     iunfold backend.rbOwn at Hrbo
     iframe Hopen Hwl Hrbo
@@ -680,7 +680,6 @@ theorem NewServer.wp_proofRG
   -- (restart) the lessor's history starts at the recovered snapshot (`HlAt0`, `NewLessor`'s), not
   -- `lessorAt_empty`'s
   ihave ⟨Hlt1, HltS⟩ := (ghostVar_split_half (GF := GF) γlt 1 (appliedTable ρ.rd A).ids).1 $$ Hlt
-  ihave #Hllk := lookupOk_of_guard lp (srvGrantGuard ρ.rd.kv.lg false) $$ Hllk'
   (try wp_auto)
   -- `auth.NewTokenProvider`
   ihave #Hapkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []
@@ -1632,12 +1631,10 @@ theorem NewServer.wp_proofRG
   -- hook (`snap_isApplyLessor`, `snap_isAuthStore`, as the snapshot walk's)
   ihave #HlinvM : lease.lessorInv lp (mvcc.api.mvccLeases γm) $$ []
   · rw [Hγl]; iexact Hlinv
-  ihave #HllkO : lessorLookupOk lp $$ []
-  · iunfold lessorLookupOk; iexact Hllk
   ihave #Hapl := snap_isApplyLessor h49 h50 h51 h52 h53 h54 h55 h56 h95 M alst astl lp bc.cl'
       ({ d with cm := true } : mvcc.KBReal) γm (mvcc.api.mvccW d.gx)
       (batchLockInv γA (metaTM d.γB d.P)) hook Hhknn HlP
-    $$ [$Hpkg $Hlbe $Hlcfg $HllkO $HlinvM $HBs $Hhooks]
+    $$ [$Hpkg $Hlbe $Hlcfg $HlinvM $HBs $Hhooks]
   ihave #Hast0 := snap_isAuthStore M alst astl lp bc.cl' RD ({ d with cm := true } : mvcc.KBReal)
       (mvcc.api.mvccW d.gx) (batchLockInv γA (metaTM d.γB d.P)) hook Hhknn $$ [$HisAuth $HBs $Hhooks]
   ihave #Hast : apply.isAuthStore ast (fun _ => batchLockInv γA (metaTM d.γB d.P)) hook
@@ -1778,8 +1775,6 @@ theorem NewServer.wp_proofRG
       isplitr
       · iExactEq Hsdir
         rw [Hγn.1, HρRaft]; rfl
-      isplitr
-      · iunfold lessorLookupOk; iexact Hllk
       isplitr
       · iexists _; iexact Hvcn
       isplitr
