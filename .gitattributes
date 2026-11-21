@@ -2,3 +2,9 @@
 # without them configured (etc/setup-merge-drivers.sh) merges these files as git always does.
 notes/STATUS.md merge=etcd-status
 notes/status-history.md merge=etcd-history
+# Append-only logs that concurrent branches each add an entry to: git's built-in union driver keeps
+# both sides' lines (no configuration needed, so every clone and GitHub get it). An entry both sides
+# edited in place comes out with both versions of the edited lines: read the merged entry. Added
+# 2026-11-21, after five landings that day conflicted only on notes/specs-only/ledger.md.
+notes/specs-only/ledger.md merge=union
+notes/perennial-changes.md merge=union
