@@ -169,7 +169,7 @@ theorem spillTail_gen
       (r'.nilCh.nv.parent' ≠ null → ∃ rp, (X'.nilCh bl n r').node bl r'.nilCh.nv.parent' = some rp ∧
         r'.nilCh.nv.parent' ∈ (X'.nilCh bl n r').live))
     (H1 : insLens r'.ins r'.ws → objsDisj X'.t → ∀ X2 xs wss pl rp', splitRel (X'.nilCh bl n r') X2 bl n r'.nilCh xs wss pl rp' →
-      (∀ x ∈ xs, pieceFits 4096 x.2.2 ∧ (2 ≤ xs.length → 2 ≤ x.2.2.length)) →
+      (∀ x ∈ xs, pieceFitFor x.2.1.isLeaf' 4096 x.2.2 ∧ (2 ≤ xs.length → pieceMin x.2.1.isLeaf' ≤ x.2.2.length)) →
       I xs pl 0 X2 w' st0)
     (H2 : ∀ xs pl i Xi wi sti x, I xs pl i Xi wi sti → xs[i]? = some x →
       ∃ rl, Xi.node bl x.1 = some rl ∧ x.1 ∈ Xi.live ∧ wsLive rl.ws ∧

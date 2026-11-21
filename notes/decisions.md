@@ -30867,6 +30867,7 @@ separate backend-switch stage (the `_kv` statements become corollaries, three ar
   slot); `Open` takes `ThreadBoundLe GF (2^29)` (a spare slot for a failed commit's `freepages`)
   and `ReceiptBoundLe GF (2^62)` (txids do not wrap). *D2*: `DB.Stats` pays `statlock`'s slot
   (`statSlot`).
+- The 2026-11-20 decision below supersedes the D4 entry-size bound.
 - *D4, D5 (the user)*: `Put` takes the entry bound `bboltEntryMax = 2^28` (bbolt accepts values it
   cannot store); `FillPercent` is written back only non-NaN.
 - *D13 (the user)*: `OptsM.ok` excludes `Mlock` and `MmapFlags` other than `0`/`MAP_POPULATE`
@@ -41288,3 +41289,19 @@ need validity. The next step is to preserve the pin at node startup and the sour
 
 This supersedes the October 31 decision to retain the server's snapshot-index guard.
 The invariant argument and remaining obligations are in [the removal plan](snapguard-removal-plan.md).
+
+## bbolt admits readable values on a split leaf (2026-11-20)
+
+A valid key and value fit a single amd64 leaf when their lengths sum to at
+most `2^31 - 17`. The element header occupies the other 16 bytes of the
+`MaxAllocSize` window. The old 256 MiB limit came from assuming that four
+elements would share the leaf. The fork now measures the proposed prefix
+during spill and can put a single entry on a leaf.
+
+The verified page bound starts at the first element, 16 bytes after the page
+header. Branches still keep at least two children. A leaf key can be promoted
+to a separator, so the file model bounds a key by `branchKeyMax`, the share
+available to one of four branch entries. Every key accepted by `Put` fits
+this bound. `entryBytesFit_legacy` also covers every key and value admitted
+by the previous file model. The fork's regression and the upstream split
+problem are in `issues/bbolt-put-refuses-readable-entry.md`.
