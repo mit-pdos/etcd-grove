@@ -45,41 +45,37 @@ noncomputable def newlineFilteringReader.ty [GooseExts] [GoGlobalContext] : go.G
 
 attribute [irreducible] newlineFilteringReader.ty
 
-opaque Encoding.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
 opaque encoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque decoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque newlineFilteringReader.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque StdPadding [GooseExts] [GoGlobalContext] : val
+/-- Standard padding character -/
+@[reducible] noncomputable def StdPadding [GooseExts] [GoGlobalContext] : val :=
+  #(W32 61)
 
-opaque NoPadding [GooseExts] [GoGlobalContext] : val
+/-- No padding -/
+@[reducible] noncomputable def NoPadding [GooseExts] [GoGlobalContext] : val :=
+  #(W32 (-1))
 
-opaque decodeMapInitialize [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def decodeMapInitialize [GooseExts] [GoGlobalContext] : val :=
+  #([W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255, W8 255] : GoString)
 
-opaque invalidIndex [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def invalidIndex [GooseExts] [GoGlobalContext] : val :=
+  #(255 : Int)
 
 noncomputable def StdEncoding [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/base64.StdEncoding"
 
-opaque StdEncoding.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def URLEncoding [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/base64.URLEncoding"
-
-opaque URLEncoding.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def RawStdEncoding [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/base64.RawStdEncoding"
 
-opaque RawStdEncoding.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def RawURLEncoding [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/base64.RawURLEncoding"
-
-opaque RawURLEncoding.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def NewEncoding [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/base64.NewEncoding"
@@ -99,6 +95,307 @@ noncomputable def NewDecoder [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def decodedLen [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/base64.decodedLen"
 
+/-- NewEncoding returns a new padded Encoding defined by the given alphabet,
+    which must be a 64-byte string that contains unique byte values and
+    does not contain the padding character or CR / LF ('\r', '\n').
+    The alphabet is treated as a sequence of byte values
+    without any special treatment for multi-byte UTF-8.
+    The resulting Encoding uses the default padding character ('='),
+    which may be changed or disabled via [Encoding.WithPadding].
+
+    go: base64.go:64:6 -/
+noncomputable def NewEncoding.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "encoder"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Encoding.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Encoding.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "encoder" (App (Val (GoInstruction (GoAlloc go.string))) (Var "encoder"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc Encoding.ty))) (App (Val (GoInstruction (GoZeroVal Encoding.ty))) (Val #())))
+  (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Encoding.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Encoding.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val StdPadding)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Encoding.ty)))) (Var "e"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Encoding.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "encoder"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))))))) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.int go.uint8))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint8))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 256 go.uint8)))) (Pair (App (Val (GoInstruction (StructFieldRef Encoding.ty go!"decodeMap"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Encoding.ty)))) (Var "e"))) (App (Val (GoInstruction (Convert go.byte go.int))) (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "encoder")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))))) (Var "$r0")))))))
+  (Let "$sw" (Val #true)
+  (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (If (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "encoder")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Val #(W8 10)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "encoder")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Val #(W8 13)))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"encoding alphabet contains newline character")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint8))) (Pair (App (Val (GoInstruction (GoLoad go.uint8))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 256 go.uint8)))) (Pair (App (Val (GoInstruction (StructFieldRef Encoding.ty go!"decodeMap"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Encoding.ty)))) (Var "e"))) (App (Val (GoInstruction (Convert go.byte go.int))) (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "encoder")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))))) (App (Val (GoInstruction (Convert go.untypedRune go.uint8))) (Val invalidIndex)))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"encoding alphabet includes duplicate symbols")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Let "$s" (App (Val (GoInstruction (StructFieldRef Encoding.ty go!"decodeMap"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Encoding.ty)))) (Var "e")))
+  (App (Val (GoInstruction (Slice (go.GoType.ArrayType 256 go.uint8)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (Val #(W64 256)))))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString (go.GoType.SliceType go.uint8)))) (Val decodeMapInitialize))
+  (App (App (App (Val (GoInstruction (FuncResolve go.copy [(go.GoType.SliceType go.uint8)]))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Let "$s" (App (Val (GoInstruction (StructFieldRef Encoding.ty go!"encode"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Encoding.ty)))) (Var "e")))
+  (App (Val (GoInstruction (Slice (go.GoType.ArrayType 64 go.byte)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (Val #(W64 64)))))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoLoad go.string))) (Var "encoder")))
+  (App (App (App (Val (GoInstruction (FuncResolve go.copy [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.rune))) (Pair (App (Val (GoInstruction (StructFieldRef Encoding.ty go!"padChar"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Encoding.ty)))) (Var "e"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Encoding.ty)))) (Pair (Var "e") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "encoder"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 64))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"encoding alphabet is not 64-bytes long")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Encoding.ty)))) (Var "$res0")))))
+
+/-- WithPadding creates a new encoding identical to enc except
+    with a specified padding character, or [NoPadding] to disable padding.
+    The padding character must not be '\r' or '\n',
+    must not be contained in the encoding's alphabet,
+    must not be negative, and must be a rune equal or below '\xff'.
+    Padding characters above '\x7f' are encoded as their exact byte value
+    rather than using the UTF-8 representation of the codepoint.
+
+    go: base64.go:96:21 -/
+noncomputable def Encoding.WithPadding.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "enc"
+  (Lam "padding"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Encoding.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Encoding.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "enc" (App (Val (GoInstruction (GoAlloc Encoding.ty))) (Var "enc"))
+  (Let "padding" (App (Val (GoInstruction (GoAlloc go.rune))) (Var "padding"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.rune))) (Var "padding"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Var "enc")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Encoding.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.rune))) (Pair (App (Val (GoInstruction (StructFieldRef Encoding.ty go!"padChar"))) (Var "enc")) (Var "$r0"))))))))
+  (Let "$sw" (Val #true)
+  (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (If (If (If (App (Val (GoInstruction (GoOp GoLt go.rune))) (Pair (App (Val (GoInstruction (GoLoad go.rune))) (Var "padding")) (Val NoPadding))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.rune))) (Pair (App (Val (GoInstruction (GoLoad go.rune))) (Var "padding")) (Val #(W32 13))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.rune))) (Pair (App (Val (GoInstruction (GoLoad go.rune))) (Var "padding")) (Val #(W32 10))))) (Val #true) (App (Val (GoInstruction (GoOp GoGt go.rune))) (Pair (App (Val (GoInstruction (GoLoad go.rune))) (Var "padding")) (Val #(W32 255)))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"invalid padding")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.rune))) (Pair (App (Val (GoInstruction (GoLoad go.rune))) (Var "padding")) (Val NoPadding)))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint8))) (Pair (App (Val (GoInstruction (GoLoad go.uint8))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 256 go.uint8)))) (Pair (App (Val (GoInstruction (StructFieldRef Encoding.ty go!"decodeMap"))) (Var "enc")) (App (Val (GoInstruction (Convert go.byte go.int))) (App (Val (GoInstruction (Convert go.rune go.byte))) (App (Val (GoInstruction (GoLoad go.rune))) (Var "padding"))))))) (App (Val (GoInstruction (Convert go.untypedRune go.uint8))) (Val invalidIndex))))) (Val #false))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"padding contained in alphabet")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #())))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Encoding.ty)))) (Var "$res0"))))))
+
+/-- Encode encodes src using the encoding enc,
+    writing [Encoding.EncodedLen](len(src)) bytes to dst.
+
+    The encoding pads the output to a multiple of 4 bytes,
+    so Encode is not appropriate for use on individual blocks
+    of a large data stream. Use [NewEncoder] instead.
+
+    go: base64.go:145:22 -/
+noncomputable def Encoding.Encode.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "enc"
+  (Lam "dst"
+  (Lam "src"
+  (Seq (App (Val exceptionDo)
+  (Let "enc" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Encoding.ty)))) (Var "enc"))
+  (Let "src" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "src"))
+  (Let "dst" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "dst"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.ArrayType 64 go.byte)))) (App (Val (GoInstruction (StructFieldRef Encoding.ty go!"encode"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Encoding.ty)))) (Var "enc"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$sw" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "src"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")))
+  (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Var "$sw") (Val #(W64 0))))
+  (App (Val doReturn)
+  (Val #()))
+  (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Var "$sw") (Val #(W64 1))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoShiftl go.uint))) (Pair (App (Val (GoInstruction (Convert go.byte go.uint))) (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "src")) (Val #(W64 0)))))) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(16 : Int)))))
+  (Let "val" (App (Val (GoInstruction (GoAlloc go.uint))) (App (Val (GoInstruction (GoZeroVal go.uint))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 64 go.byte)))) (Pair (App (Val (GoInstruction (StructFieldRef Encoding.ty go!"encode"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Encoding.ty)))) (Var "enc"))) (App (Val (GoInstruction (Convert go.uint go.int))) (App (Val (GoInstruction (GoOp GoAnd go.uint))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint))) (Pair (App (Val (GoInstruction (GoLoad go.uint))) (Var "val")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(18 : Int))))) (Val #(W64 63))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 64 go.byte)))) (Pair (App (Val (GoInstruction (StructFieldRef Encoding.ty go!"encode"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Encoding.ty)))) (Var "enc"))) (App (Val (GoInstruction (Convert go.uint go.int))) (App (Val (GoInstruction (GoOp GoAnd go.uint))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint))) (Pair (App (Val (GoInstruction (GoLoad go.uint))) (Var "val")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(12 : Int))))) (Val #(W64 63))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.rune))) (Pair (App (Val (GoInstruction (GoLoad go.rune))) (App (Val (GoInstruction (StructFieldRef Encoding.ty go!"padChar"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Encoding.ty)))) (Var "enc")))) (Val NoPadding)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.rune go.byte))) (App (Val (GoInstruction (GoLoad go.rune))) (App (Val (GoInstruction (StructFieldRef Encoding.ty go!"padChar"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Encoding.ty)))) (Var "enc")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.rune go.byte))) (App (Val (GoInstruction (GoLoad go.rune))) (App (Val (GoInstruction (StructFieldRef Encoding.ty go!"padChar"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Encoding.ty)))) (Var "enc")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.byte))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "dst")) (Val #(W64 3)))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.byte))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "dst")) (Val #(W64 2)))) (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.byte))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "dst")) (Val #(W64 1)))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.byte))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "dst")) (Val #(W64 0)))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint))) (Pair (Var "val") (Var "$r0")))))))
+  (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Var "$sw") (Val #(W64 2))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoOr go.uint))) (Pair (App (Val (GoInstruction (GoOp GoShiftl go.uint))) (Pair (App (Val (GoInstruction (Convert go.byte go.uint))) (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "src")) (Val #(W64 0)))))) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(16 : Int))))) (App (Val (GoInstruction (GoOp GoShiftl go.uint))) (Pair (App (Val (GoInstruction (Convert go.byte go.uint))) (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "src")) (Val #(W64 1)))))) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(8 : Int)))))))
+  (Let "val" (App (Val (GoInstruction (GoAlloc go.uint))) (App (Val (GoInstruction (GoZeroVal go.uint))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 64 go.byte)))) (Pair (App (Val (GoInstruction (StructFieldRef Encoding.ty go!"encode"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Encoding.ty)))) (Var "enc"))) (App (Val (GoInstruction (Convert go.uint go.int))) (App (Val (GoInstruction (GoOp GoAnd go.uint))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint))) (Pair (App (Val (GoInstruction (GoLoad go.uint))) (Var "val")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(18 : Int))))) (Val #(W64 63))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 64 go.byte)))) (Pair (App (Val (GoInstruction (StructFieldRef Encoding.ty go!"encode"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Encoding.ty)))) (Var "enc"))) (App (Val (GoInstruction (Convert go.uint go.int))) (App (Val (GoInstruction (GoOp GoAnd go.uint))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint))) (Pair (App (Val (GoInstruction (GoLoad go.uint))) (Var "val")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(12 : Int))))) (Val #(W64 63))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 64 go.byte)))) (Pair (App (Val (GoInstruction (StructFieldRef Encoding.ty go!"encode"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Encoding.ty)))) (Var "enc"))) (App (Val (GoInstruction (Convert go.uint go.int))) (App (Val (GoInstruction (GoOp GoAnd go.uint))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint))) (Pair (App (Val (GoInstruction (GoLoad go.uint))) (Var "val")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(6 : Int))))) (Val #(W64 63))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.rune))) (Pair (App (Val (GoInstruction (GoLoad go.rune))) (App (Val (GoInstruction (StructFieldRef Encoding.ty go!"padChar"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Encoding.ty)))) (Var "enc")))) (Val NoPadding)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.rune go.byte))) (App (Val (GoInstruction (GoLoad go.rune))) (App (Val (GoInstruction (StructFieldRef Encoding.ty go!"padChar"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Encoding.ty)))) (Var "enc")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.byte))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "dst")) (Val #(W64 3)))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.byte))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "dst")) (Val #(W64 2)))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.byte))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "dst")) (Val #(W64 1)))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.byte))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "dst")) (Val #(W64 0)))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint))) (Pair (Var "val") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))))
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "src"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))) (Val #(W64 3)))))) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoOr go.uint))) (Pair (App (Val (GoInstruction (GoOp GoOr go.uint))) (Pair (App (Val (GoInstruction (GoOp GoShiftl go.uint))) (Pair (App (Val (GoInstruction (Convert go.byte go.uint))) (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "src")) (Val #(W64 0)))))) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(16 : Int))))) (App (Val (GoInstruction (GoOp GoShiftl go.uint))) (Pair (App (Val (GoInstruction (Convert go.byte go.uint))) (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "src")) (Val #(W64 1)))))) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(8 : Int))))))) (App (Val (GoInstruction (Convert go.byte go.uint))) (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "src")) (Val #(W64 2))))))))
+  (Let "val" (App (Val (GoInstruction (GoAlloc go.uint))) (App (Val (GoInstruction (GoZeroVal go.uint))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "dst")) (Val #(W64 3)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 64 go.byte)))) (Pair (App (Val (GoInstruction (StructFieldRef Encoding.ty go!"encode"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Encoding.ty)))) (Var "enc"))) (App (Val (GoInstruction (Convert go.uint go.int))) (App (Val (GoInstruction (GoOp GoAnd go.uint))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint))) (Pair (App (Val (GoInstruction (GoLoad go.uint))) (Var "val")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(18 : Int))))) (Val #(W64 63))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 64 go.byte)))) (Pair (App (Val (GoInstruction (StructFieldRef Encoding.ty go!"encode"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Encoding.ty)))) (Var "enc"))) (App (Val (GoInstruction (Convert go.uint go.int))) (App (Val (GoInstruction (GoOp GoAnd go.uint))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint))) (Pair (App (Val (GoInstruction (GoLoad go.uint))) (Var "val")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(12 : Int))))) (Val #(W64 63))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 64 go.byte)))) (Pair (App (Val (GoInstruction (StructFieldRef Encoding.ty go!"encode"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Encoding.ty)))) (Var "enc"))) (App (Val (GoInstruction (Convert go.uint go.int))) (App (Val (GoInstruction (GoOp GoAnd go.uint))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint))) (Pair (App (Val (GoInstruction (GoLoad go.uint))) (Var "val")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(6 : Int))))) (Val #(W64 63))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 64 go.byte)))) (Pair (App (Val (GoInstruction (StructFieldRef Encoding.ty go!"encode"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Encoding.ty)))) (Var "enc"))) (App (Val (GoInstruction (Convert go.uint go.int))) (App (Val (GoInstruction (GoOp GoAnd go.uint))) (Pair (App (Val (GoInstruction (GoLoad go.uint))) (Var "val")) (Val #(W64 63))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "src"))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.byte)))) (Pair (Pair (Var "$s") (Val #(W64 3))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$s")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "dst"))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.byte)))) (Pair (Pair (Var "$s") (Val #(W64 4))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$s")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "dst") (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "src") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.byte))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "dst")) (Val #(W64 3)))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.byte))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "dst")) (Val #(W64 2)))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.byte))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "dst")) (Val #(W64 1)))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.byte))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "dst")) (Val #(W64 0)))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Var "$r0"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint))) (Pair (Var "val") (Var "$r0")))))))))
+  (Lam BAnon
+  (Val #()))))))
+  (App (Val doExecute)
+  (Var "$r0"))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "src"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))))
+  (Val #())))))
+
+/-- EncodeToString returns the base64 encoding of src.
+
+    go: base64.go:201:22 -/
+noncomputable def Encoding.EncodeToString.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "enc"
+  (Lam "src"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "enc" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Encoding.ty)))) (Var "enc"))
+  (Let "src" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "src"))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType go.byte)]))) (Val #())) (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "src"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Encoding.ty) go!"EncodedLen"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Encoding.ty)))) (Var "enc"))) (Var "$a0"))))
+  (Let "buf" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "buf")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "buf"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "src"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Encoding.ty) go!"Encode"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Encoding.ty)))) (Var "enc"))) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "buf") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
+/-- EncodedLen returns the length in bytes of the base64 encoding
+    of an input buffer of length n.
+
+    go: base64.go:285:22 -/
+noncomputable def Encoding.EncodedLen.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "enc"
+  (Lam "n"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "enc" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Encoding.ty)))) (Var "enc"))
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (Var "n"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (App (Val (GoInstruction (GoOp GoDiv go.int))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (Val #(W64 2)))) (Val #(W64 3)))) (Val #(W64 4))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.rune))) (Pair (App (Val (GoInstruction (GoLoad go.rune))) (App (Val (GoInstruction (StructFieldRef Encoding.ty go!"padChar"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Encoding.ty)))) (Var "enc")))) (Val NoPadding))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (App (Val (GoInstruction (GoOp GoDiv go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (Val #(W64 3)))) (Val #(W64 4)))) (App (Val (GoInstruction (GoOp GoDiv go.int))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (App (Val (GoInstruction (GoOp GoRemainder go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (Val #(W64 3)))) (Val #(W64 8)))) (Val #(W64 5)))) (Val #(W64 6))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
+
 noncomputable instance info' : PkgInfo pkg_id.encoding.base64 where
   pkgImportedPkgs := []
 
@@ -111,33 +408,98 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(go!"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"))
+  (App (App (Val (GoInstruction (FuncResolve NewEncoding []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(go!"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"))
+  (App (App (Val (GoInstruction (FuncResolve NewEncoding []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val NoPadding)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Encoding.ty) go!"WithPadding"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Encoding.ty)))) (App (Val (GoInstruction (GlobalVarAddr StdEncoding))) (Val #())))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val NoPadding)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Encoding.ty) go!"WithPadding"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Encoding.ty)))) (App (Val (GoInstruction (GlobalVarAddr URLEncoding))) (Val #())))) (Var "$a0")))
   (App (Val doExecute)
-  (App (Val RawURLEncoding.init) (Val #())))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Encoding.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr RawURLEncoding))) (Val #())) (Var "$r0")))))))
   (App (Val doExecute)
-  (App (Val RawStdEncoding.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Encoding.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr RawStdEncoding))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val URLEncoding.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Encoding.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr URLEncoding))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val StdEncoding.init) (Val #()))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Encoding.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr StdEncoding))) (Val #())) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc StdEncoding (go.GoType.PointerType Encoding.ty))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc URLEncoding (go.GoType.PointerType Encoding.ty))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc RawStdEncoding (go.GoType.PointerType Encoding.ty))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc RawURLEncoding (go.GoType.PointerType Encoding.ty))) (Val #()))))))))
 
-opaque Encoding.nonempty_type : NonemptyType.{0}
-def Encoding : Type := Encoding.nonempty_type.type
-instance Encoding.nonempty : Nonempty Encoding := Encoding.nonempty_type.property
-opaque Encoding.zero_val : ZeroVal Encoding := ⟨Classical.ofNonempty⟩
-attribute [instance] Encoding.zero_val
+structure Encoding [GooseExts] where
+  mk ::
+  encode' : (GoArray w8 64)
+  decodeMap' : (GoArray w8 256)
+  padChar' : w32
+  strict' : Bool
+
+noncomputable instance Encoding.zero_val [GooseExts] : ZeroVal Encoding :=
+  ⟨Encoding.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def Encoding.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"encode" (go.GoType.ArrayType 64 go.byte)),
+(go.field_decl.FieldDecl go!"decodeMap" (go.GoType.ArrayType 256 go.uint8)),
+(go.field_decl.FieldDecl go!"padChar" go.rune),
+(go.field_decl.FieldDecl go!"strict" go.bool)]
+
+@[irreducible] noncomputable def Encoding.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  Encoding.fieldsUnsealed
+
+noncomputable instance equals_unfold_Encoding [GooseExts] [GoGlobalContext] :
+    EqualsUnfold Encoding.fields Encoding.fieldsUnsealed :=
+  ⟨by unfold Encoding.fields; rfl⟩
+
+@[reducible] noncomputable def Encoding.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType Encoding.fields)
 
 class Encoding.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Encoding.underlying Encoding
   underlying : go.UnderlyingDirectedEq Encoding.ty Encoding.underlying
-  isUnderlying : go.IsUnderlying Encoding.underlying Encoding.underlying
+  get_encode : ∀ (x : Encoding), go.IsGoStepPureDetTagged under (StructFieldGet Encoding.underlying go!"encode") #x (Val #(x.encode'))
+  set_encode : ∀ (x : Encoding) (y : (GoArray w8 64)), go.IsGoStepPureDetTagged under (StructFieldSet Encoding.underlying go!"encode") (PairV #x #y) (Val #(({ x with encode' := y } : Encoding)))
+  get_decodeMap : ∀ (x : Encoding), go.IsGoStepPureDetTagged under (StructFieldGet Encoding.underlying go!"decodeMap") #x (Val #(x.decodeMap'))
+  set_decodeMap : ∀ (x : Encoding) (y : (GoArray w8 256)), go.IsGoStepPureDetTagged under (StructFieldSet Encoding.underlying go!"decodeMap") (PairV #x #y) (Val #(({ x with decodeMap' := y } : Encoding)))
+  get_padChar : ∀ (x : Encoding), go.IsGoStepPureDetTagged under (StructFieldGet Encoding.underlying go!"padChar") #x (Val #(x.padChar'))
+  set_padChar : ∀ (x : Encoding) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Encoding.underlying go!"padChar") (PairV #x #y) (Val #(({ x with padChar' := y } : Encoding)))
+  get_strict : ∀ (x : Encoding), go.IsGoStepPureDetTagged under (StructFieldGet Encoding.underlying go!"strict") #x (Val #(x.strict'))
+  set_strict : ∀ (x : Encoding) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Encoding.underlying go!"strict") (PairV #x #y) (Val #(({ x with strict' := y } : Encoding)))
   method_set : go.MethodSetIs Encoding.ty [(go!"Strict", (some (go.signature.Signature [] false [(go.GoType.PointerType Encoding.ty)]))), (go!"WithPadding", (some (go.signature.Signature [go.rune] false [(go.GoType.PointerType Encoding.ty)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Encoding.ty) [(go!"AppendDecode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"AppendEncode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))), (go!"Decode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"DecodeString", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.byte), go.error]))), (go!"DecodedLen", (some (go.signature.Signature [go.int] false [go.int]))), (go!"Encode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false []))), (go!"EncodeToString", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.string]))), (go!"EncodedLen", (some (go.signature.Signature [go.int] false [go.int]))), (go!"Strict", (some (go.signature.Signature [] false [(go.GoType.PointerType Encoding.ty)]))), (go!"WithPadding", (some (go.signature.Signature [go.rune] false [(go.GoType.PointerType Encoding.ty)]))), (go!"encoding/base64.decodeQuantum", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.int] false [go.int, go.int, go.error])))]
+  WithPadding_unfold : MethodUnfold Encoding.ty go!"WithPadding" Encoding.WithPadding.impl
+  ptr_Encode_unfold : MethodUnfold (go.GoType.PointerType Encoding.ty) go!"Encode" Encoding.Encode.impl
+  ptr_EncodeToString_unfold : MethodUnfold (go.GoType.PointerType Encoding.ty) go!"EncodeToString" Encoding.EncodeToString.impl
+  ptr_EncodedLen_unfold : MethodUnfold (go.GoType.PointerType Encoding.ty) go!"EncodedLen" Encoding.EncodedLen.impl
+  ptr_WithPadding_unfold : MethodUnfold (go.GoType.PointerType Encoding.ty) go!"WithPadding" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Encoding.ty go!"WithPadding"))) (App (Val (GoInstruction (GoLoad Encoding.ty))) (Var "$r"))))
 
 attribute [instance] Encoding.TypeAssumptions.type_repr
   Encoding.TypeAssumptions.underlying
-  Encoding.TypeAssumptions.isUnderlying
+  Encoding.TypeAssumptions.get_encode
+  Encoding.TypeAssumptions.set_encode
+  Encoding.TypeAssumptions.get_decodeMap
+  Encoding.TypeAssumptions.set_decodeMap
+  Encoding.TypeAssumptions.get_padChar
+  Encoding.TypeAssumptions.set_padChar
+  Encoding.TypeAssumptions.get_strict
+  Encoding.TypeAssumptions.set_strict
   Encoding.TypeAssumptions.method_set
   Encoding.TypeAssumptions.ptr_method_set
+  Encoding.TypeAssumptions.WithPadding_unfold
+  Encoding.TypeAssumptions.ptr_Encode_unfold
+  Encoding.TypeAssumptions.ptr_EncodeToString_unfold
+  Encoding.TypeAssumptions.ptr_EncodedLen_unfold
+  Encoding.TypeAssumptions.ptr_WithPadding_unfold
 
 opaque encoder.nonempty_type : NonemptyType.{0}
 def encoder : Type := encoder.nonempty_type.type
@@ -216,12 +578,14 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   CorruptInputError_instance : CorruptInputError.TypeAssumptions
   decoder_instance : decoder.TypeAssumptions
   newlineFilteringReader_instance : newlineFilteringReader.TypeAssumptions
+  NewEncoding_unfold : FuncUnfold NewEncoding [] NewEncoding.impl
 
 attribute [instance] Assumptions.Encoding_instance
   Assumptions.encoder_instance
   Assumptions.CorruptInputError_instance
   Assumptions.decoder_instance
   Assumptions.newlineFilteringReader_instance
+  Assumptions.NewEncoding_unfold
 
 end encoding.base64
 
