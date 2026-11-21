@@ -937,7 +937,7 @@ private theorem wp_RestartNode_impl
     · iapply loanCom_none γ.raft rfl
     · rw [show s1.logst.snap = none from Hsn0]; iapply snapLocOk_none
     · rw [show s1.logst.ksn = [] from Hksn]; iapply restoredSnapHistory_nil
-    · iapply restoreLedger_fresh γ.raft cv.ID' sn s1 (show s1.logst.ksn = [] from Hksn) $$ Hhistory
+    · iapply restoreLedger_fresh γ.raft cv.ID' sn s1 (show s1.logst.ksn = [] from Hksn) Ho $$ Hhistory
   -- the driver's view of the configuration is the node's: at the configuration point `a`
   have Hhp : hprev = σ.hs := by rw [Hhz, Hca]
   -- raft's certified terms of the committed log handed out (the attach record's)

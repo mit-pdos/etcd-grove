@@ -828,7 +828,7 @@ theorem RawNode.Bootstrap.wp_proof
       · first | (rw [HNls]; simp only [logAppend, Hsn]) | (simp only; rw [HNls]; simp only [logAppend, Hsn])
         iapply snapLocOk_none
       · rw [HNls]; simp only [logAppend, Hksn]; iapply restoredSnapHistory_nil
-      · iapply restoreLedger_fresh γ id _ _ (by change sk.logst.ksn = []; rw [HNls]; simp [logAppend, Hksn]) $$ Hhistory
+      · iapply restoreLedger_fresh γ id _ ({ sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap } } : NState) (by change sk.logst.ksn = []; rw [HNls]; simp [logAppend, Hksn]) HNo $$ Hhistory
       · -- (durability stage II, G2) a fresh node's durable state's tie (`durTie_fresh`)
         iapply durTie_fresh γ _ _ rfl
         · show sk.logst.prev = _; rw [HNls]; exact Hp
@@ -903,7 +903,7 @@ theorem RawNode.Bootstrap.wp_proof
       · first | (rw [HNls]; simp only [logAppend, Hsn]) | (simp only; rw [HNls]; simp only [logAppend, Hsn])
         iapply snapLocOk_none
       · rw [HNls]; simp only [logAppend, Hksn]; iapply restoredSnapHistory_nil
-      · iapply restoreLedger_fresh γ id _ _ (by change sk.logst.ksn = []; rw [HNls]; simp [logAppend, Hksn]) $$ Hhistory
+      · iapply restoreLedger_fresh γ id _ ({ sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap } } : NState) (by change sk.logst.ksn = []; rw [HNls]; simp [logAppend, Hksn]) HNo $$ Hhistory
       · -- (durability stage II, G2) a fresh node's durable state's tie (`durTie_fresh`)
         iapply durTie_fresh γ _ _ rfl
         · show sk.logst.prev = _; rw [HNls]; exact Hp

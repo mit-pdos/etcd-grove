@@ -41300,6 +41300,22 @@ need validity. The next step is to preserve the pin at node startup and the sour
 This supersedes the October 31 decision to retain the server's snapshot-index guard.
 The invariant argument and remaining obligations are in [the removal plan](snapguard-removal-plan.md).
 
+## Recover the snapshot record across legacy WAL filenames (2026-11-20)
+
+The last filename at or below the requested snapshot index can start too late
+on WALs written before the cut rule accounted for snapshots. When the normal
+scan cannot find the record, recovery now examines earlier segments, starting
+with the nearest. A match extends the locked range and restarts decoding. The
+extended scan validates the CRC and snapshot term and returns the committed
+hard state and subsequent entries. The locks also retain earlier segments
+whose snapshot would otherwise disappear during purge.
+
+The verifier’s disk invariant covers the current writer. For that layout the
+public ReadAll proof follows the actual CRC seeds, lock filenames, and snapshot
+records to establish that earlier files cannot supply a missing match. The Go
+upgrade regression covers the older layout in read-only and writable modes,
+then purges and reopens the WAL. [Finding and regression](../issues/etcd-wal-upgrade-legacy-segment-name.md)
+
 ## bbolt admits readable values on a split leaf (2026-11-20)
 
 A valid key and value fit a single amd64 leaf when their lengths sum to at
@@ -41316,9 +41332,22 @@ this bound. `entryBytesFit_legacy` also covers every key and value admitted
 by the previous file model. The fork's regression and the upstream split
 problem are in `issues/bbolt-put-refuses-readable-entry.md`.
 
+
+
 ### The RawNode owns the restore history (2026-11-20)
 
 Startup allocates each incarnation’s history. A successful snapshot restore records the incoming sender, term and index in that history. A stale snapshot leaves the history intact. The evidence follows the node through Ready and Advance, including a snapshot outstanding when another restore arrives. The server still needs the observation at handout and the link to the original outgoing message.
+
+### Bounding restored snapshots at Ready handout (2026-11-20)
+
+Keep the restore-index bound in Raft's log invariant. The bound starts at the initial log boundary and follows each accepted restore. At Ready handout, the committed prefix delivered by the batch covers that boundary. Record the hard-state term and this bound together, so the server can compare an observed batch against a snapshot from the same leader term. A message drained in a later term still needs the certificate from its original send.
+
+### Snapshots queued across a term change (2026-11-20)
+
+Record the term on the outgoing message. The proof uses the sender's commit
+bound and the strict commit check at each successful incoming restore to
+preserve that attribution until Ready drains the outbox. The receiver may
+compare a batch in the message's term even if the draining batch is later.
 
 ## The listening token and the net+fs bundle (2026-11-21 · the user's request · branch `net-noplan`, stages B and C)
 

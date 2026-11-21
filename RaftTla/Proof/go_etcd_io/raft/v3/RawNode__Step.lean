@@ -221,7 +221,7 @@ theorem RawNode.Step.wp_proof
           (Hok.2.2.2.2.1 (Or.inr (Or.inr (Or.inr (Or.inr Hs))))) $$ Hm0
         ihave #Hhist' := restoredSnapHistory_step γ id Hsl0 $$ Hhist Hincoming
         imod restoreLedger_step γ id rs.sn scfg0
-          (Hok.2.2.2.2.1 (Or.inr (Or.inr (Or.inr (Or.inr Hs))))) Href.voteLe.1 Hsl0 $$ Hledger Hm0 with Hledger'
+          (Hok.2.2.2.2.1 (Or.inr (Or.inr (Or.inr (Or.inr Hs))))) Href.voteLe.1 Hsl0 Href.commit_mono Href.snapQueue $$ Hledger Hm0 with Hledger'
         ihave #Hsloc' : snapLocOk γ id s'.logst.snap $$ []
         · rcases Hsl0 with ⟨-, h2, -, -⟩ | ⟨-, -, h2, -, hcm, -⟩
           · rw [h2]; iexact Hsloc
@@ -336,7 +336,7 @@ theorem RawNode.Step.wp_proof
       ihave #Hhist' := restoredSnapHistory_keep γ id Hsd $$ Hhist
       ihave Hledger' := restoreLedger_keep γ id rs.sn (s := s) (s' := s')
         (by first | exact Href.voteLe.1 | exact Hcv.1.voteLe.1 | exact Hvr.1 | omega)
-        (logStoreRec_ksn Hsd) $$ Hledger
+        (logStoreRec_ksn Hsd) (by first | exact Href.commit_mono | exact Hcv.commit | exact Hc) (by first | exact Href.snapQueue | exact Hcv.queue | exact Hcv.1.snapQueue) $$ Hledger
       ihave #Hsloc' : snapLocOk γ id s'.logst.snap $$ []
       · rw [Hsn]; iexact Hsloc
       wp_auto

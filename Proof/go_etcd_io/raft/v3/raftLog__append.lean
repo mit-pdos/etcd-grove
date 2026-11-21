@@ -314,13 +314,15 @@ theorem raftLog.append.wp_proof
       rcases Hti with h | h
       · omega
       · rw [h]; omega
+    ihave #HkcN : logRestoreCerts ls.sn ls.ksn (logTruncateAppend ls (e0 :: ents')).prev.index' $$ []
+    · rw [show (logTruncateAppend ls (e0 :: ents')).prev.index' = ls.prev.index' from rfl]; iexact Hkcert
     ihave Hlog : ownRaftLog l (logTruncateAppend ls (e0 :: ents'))
         $$ [Hl HStorage Hents Hents_cap]
     · iapply ownRaftLog_intro (sn := ls.sn) l { lv with unstable' := uv' } lv.storage' σ _ _
           (logTruncateAppend ls (e0 :: ents')) rfl Hcm Hap Hidx' Hnw2 Hst2 Hoff2
           Happlied Hpapplied Hcm2 Hapg Hip2 Hipb2 Hpers2 Happlying Hpaused Hasz Hamx
           Hstor Hpend2 Hfl2 Hsipm Hsipn Hlent Hq Hprel2 Hsat Hfr2 ?_ ?_ ?_ ?_ ?_
-        $$ Hl HisStorage HStorage Husnap Hpksn Hkcert Hents Hents_cap Hl_logger Hu_logger
+        $$ Hl HisStorage HStorage Husnap Hpksn HkcN Hents Hents_cap Hl_logger Hu_logger
       all_goals rfl
     wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
     iapply HΦ $$ %li

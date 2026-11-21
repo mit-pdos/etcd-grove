@@ -521,7 +521,7 @@ theorem ownRawNodeReady_abandon_keep (γ : RaftNames) (rn : Loc) (id : w64) (rs 
       clb := s.logst.committed, hlb := hsOf s }
   let s' : NState := { s with outbox := s.outbox, logst := s.logst, gh := g }
   ihave Hghost := ownStepGhost_congr γ _ cf id (s := s) (s' := s') rfl rfl rfl rfl $$ Hghost
-  ihave Hledger' := restoreLedger_keep γ id rs.sn (s := s) (s' := s') (Int.le_refl _) rfl $$ Hledger
+  ihave Hledger' := restoreLedger_keep γ id rs.sn (s := s) (s' := s') (Int.le_refl _) rfl (Int.le_refl _) (fun _ h _ => .inl h) $$ Hledger
   iapply ownRawNode_intro_tr γ rn id rs' s' cf fp rnv sv hprev [] Hwf Hin Hasync Hdlen
     (Hunp0.trans Hunp.symm) Hsnap (by show StepsOk _ rs.steps; rw [Hsteps0]; trivial) Htrm
     Hstor Hpvoff rfl rfl
@@ -775,7 +775,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
       (Hok.2.2.2.2.1 (Or.inr (Or.inr (Or.inr (Or.inr Hs))))) $$ Hm0
     ihave #Hhist' := restoredSnapHistory_step γ id Hsl0 $$ Hhist Hincoming
     imod restoreLedger_step γ id rs.sn scfg0
-      (Hok.2.2.2.2.1 (Or.inr (Or.inr (Or.inr (Or.inr Hs))))) Href.voteLe.1 Hsl0 $$ Hledger Hm0 with Hledger'
+      (Hok.2.2.2.2.1 (Or.inr (Or.inr (Or.inr (Or.inr Hs))))) Href.voteLe.1 Hsl0 Href.commit_mono Href.snapQueue $$ Hledger Hm0 with Hledger'
     ihave #Hsloc' : snapLocOk γ id s'.logst.snap $$ []
     · rcases Hsl0 with ⟨-, h2, -, -⟩ | ⟨-, -, h2, -, hcm, -⟩
       · rw [h2]; iexact Hsloc
@@ -881,7 +881,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
   ihave #Hhist' := restoredSnapHistory_keep γ id Hsd $$ Hhist
   ihave Hledger' := restoreLedger_keep γ id rs.sn (s := s) (s' := s')
     (by first | exact Href.voteLe.1 | exact Hcv.1.voteLe.1 | exact Hvr.1 | omega)
-    (logStoreRec_ksn Hsd) $$ Hledger
+    (logStoreRec_ksn Hsd) (by first | exact Href.commit_mono | exact Hcv.commit | exact Hc) (by first | exact Href.snapQueue | exact Hcv.queue | exact Hcv.1.snapQueue) $$ Hledger
   ihave #Hsloc' := snapLocOk_keep γ id (.inl Hsn) $$ Hsloc
   imodintro
   iapply HΦ $$ %err %s'.term
@@ -1138,7 +1138,7 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
   ihave #Hhist' := restoredSnapHistory_keep γ id Hfr'.2.2.2.2.2.1 $$ Hhist
   ihave Hledger' := restoreLedger_keep γ id rs.sn (s := s) (s' := s')
     (by first | exact Href.voteLe.1 | exact Hcv.1.voteLe.1 | exact Hvr.1 | omega)
-    (logStoreRec_ksn Hfr'.2.2.2.2.2.1) $$ Hledger
+    (logStoreRec_ksn Hfr'.2.2.2.2.2.1) (by first | exact Href.commit_mono | exact Hcv.commit | exact Hc) (by first | exact Href.snapQueue | exact Hcv.queue | exact Hcv.1.snapQueue) $$ Hledger
   ihave #Hsloc' := snapLocOk_keep γ id (.inl Hfr'.2.2.2.1) $$ Hsloc
   iapply HΦ
   isplitl
@@ -1578,7 +1578,7 @@ theorem wp_applyConf_dyn
   ihave #Hhist' : restoredSnapHistory γ id s'.logst.ksn $$ []
   · rw [Hls']; iexact Hhist
   ihave Hledger' := restoreLedger_keep γ id rs.sn (s := s) (s' := s')
-    (by rw [Ht']; exact Int.le_refl _) (by rw [Hls']) $$ Hledger
+    (by rw [Ht']; exact Int.le_refl _) (by rw [Hls']) Hc' HR2.snapQueue $$ Hledger
   ihave #Hsloc' := snapLocOk_keep γ id (o := s.logst.snap) (o' := s'.logst.snap) (.inl (by rw [Hls']))
     $$ Hsloc
   imodintro
@@ -1676,7 +1676,7 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
   ihave #Hhist' : restoredSnapHistory γ id s'.logst.ksn $$ []
   · rw [Hls]; iexact Hhist
   ihave Hledger' := restoreLedger_keep γ id rs.sn (s := s) (s' := s')
-    (by rw [Htm]; exact Int.le_refl _) (by rw [Hls]) $$ Hledger
+    (by rw [Htm]; exact Int.le_refl _) (by rw [Hls]) Hc Hst.snapQueue $$ Hledger
   ihave #Hsloc' := snapLocOk_keep γ id (.inl Hsnap') $$ Hsloc
   -- (raft-final phase 2) the witnesses across the change (`leadW_applyCC`; `xw` kept)
   ihave #Hlw' := leadW_applyCC γ Hok $$ Hlw

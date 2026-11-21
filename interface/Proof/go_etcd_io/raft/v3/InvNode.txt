@@ -123,7 +123,7 @@ theorem readyRest_snapTo [package_sem : Assumptions] (γ : Cluster) (N : Namespa
 def readyGotT (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState) (rd : Ready)
     : IProp GF :=
   iprop(∃ ce es h L ms ss,
-      readySnapSources γ n id ms ∗
+      readySnapSources γ n id (phsNext st.hardState h).Term' ms (st.afterReady ce es h L ss).delivered.length ∗
         committedEntriesAt rd.CommittedEntries' st.delivered.length ce ∗
           isCommittedLogLb γ (st.delivered ++ ce) ∗
             (∃ rs, readStatesPts rd.ReadStates' rs ∗ [∗list] s ∈ rs, readStateOk γ N s.RequestCtx' s.Index') ∗
@@ -141,7 +141,8 @@ theorem isReadyChan_recvAuT [package_sem : Assumptions] (n ch : Loc) (γ : Clust
     isReadyChan n γ N ch -∗ isNode n γ N id -∗ nodeDriver n γ N st -∗ ∃ γc, isChan ch γc Ready ∗ (£
     1 ∗ £ 1 -∗ (▷ ∀ rd, readyGotT n γ N id st rd -∗ Φ rd true) -∗ recvAu γc Ready Φ)
 
-def (sealed) readySnapSources (γ : Cluster) (n : Loc) (id : w64) (ms : List QMsg) : IProp GF
+def (sealed) readySnapSources (γ : Cluster) (n : Loc) (id term : w64) (ms : List QMsg) (bound : Nat)
+    : IProp GF
 
 def (sealed) ownCommittedOps (γ : Cluster) (ops : List LogEntry) : IProp GF
 
@@ -300,7 +301,7 @@ def readyRest (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeD
 def readyGot (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState) (rd : Ready)
     : IProp GF :=
   iprop(∃ ce es h L ms ss,
-      readySnapSources γ n id ms ∗
+      readySnapSources γ n id (phsNext st.hardState h).Term' ms (st.afterReady ce es h L ss).delivered.length ∗
         committedEntriesAt rd.CommittedEntries' st.delivered.length ce ∗
           isCommittedLogLb γ (st.delivered ++ ce) ∗
             (∃ rs, readStatesPts rd.ReadStates' rs ∗ [∗list] s ∈ rs, readStateOk γ N s.RequestCtx' s.Index') ∗
@@ -351,8 +352,8 @@ theorem msgOut_snap [package_sem : Assumptions] (γ : Cluster) (l : Loc) (dq : D
 
 def (sealed) snapshotCert (γ : Cluster) (N : Namespace) (k : SnapTrip) : IProp GF
 
-theorem readySnapSources_persistent (γ : Cluster) (n : Loc) (id : w64) (ms : List QMsg) : Persistent
-    (readySnapSources γ n id ms)
+theorem readySnapSources_persistent (γ : Cluster) (n : Loc) (id term : w64) (ms : List QMsg) (bound
+    : Nat) : Persistent (readySnapSources γ n id term ms bound)
 
 theorem readyMsgs_sent [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (id : w64) (ms :
     List QMsg) : ([∗list] q ∈ ms, iprop(msgOut γ q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st)) ∗
