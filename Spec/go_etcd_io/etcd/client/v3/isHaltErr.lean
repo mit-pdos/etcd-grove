@@ -35,7 +35,8 @@ abbrev isHaltErr.spec : Prop :=
       statusErrOk err }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.isHaltErr)) (Val #(GoInterface.ok ci))) (Val #err))
   {{ (b : Bool), RET #b;
-      ⌜b = false → (err = GoInterface.nil ∨ statusCode err = W32 14 ∨ statusCode err = W32 13)⌝ }}
+      ∃ c : w32, go_etcd_io.etcd.cache.v3.statusCodeIs err c ∗
+        ⌜b = false → (err = GoInterface.nil ∨ c = W32 14 ∨ c = W32 13)⌝ }}
 
 end spec
 

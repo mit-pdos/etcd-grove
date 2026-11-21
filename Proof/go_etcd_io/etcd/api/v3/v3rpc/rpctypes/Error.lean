@@ -145,7 +145,8 @@ theorem rpctypes.Error.wp_gen (P : IProp GF) [Persistent P]
     wp_auto
     ihave #Hv := Hmv $$ %d %v %hk
     ihave ⟨%mF, #HmF⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hv
-    wp_apply wp_FromError v mF $$ [$Hst $Hv $HmF] as %ev %ok ⟨%Hnil, #HCode, #HMsg, #HErr, -⟩
+    ihave ⟨%cFE, #HcFE⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_code _ $$ Hv
+    wp_apply wp_FromError v mF cFE $$ [$Hst $Hv $HmF $HcFE] as %ev %ok ⟨%Hnil, #HCode, #HMsg, #HErr, -⟩
     cases ok
     · obtain ⟨ve, rfl⟩ : ∃ ve, v = GoInterface.ok ve := by
         cases v with

@@ -1,5 +1,5 @@
 /-
-`apierrors.IsTooManyRequests(err)` (`k8s.io/apimachinery/pkg/api/errors`, names-only): whether the
+`apierrors.IsTooManyRequests(err)` (`k8s.io/apimachinery/pkg/api/errors`): whether the
 error is a 429. **A trust-boundary axiom** (`Proof/k8s_io/apimachinery/pkg/api/errors/IsTooManyRequests.lean`;
 k8s 7g, decided by etcd-grove-03 2026-11-19, option A; before, a named hypothesis: one of the
 `apierrors` predicates the reflector's `watch` calls, phase 4 of `notes/k8s-daemonset-plan.md`).
@@ -11,6 +11,10 @@ wrapped, Go panics in `Status()` (`examples/axiomcx/apierrorstypednil` `TestType
 the pager's error, `nil` on success; Go answers `false`, `errors.go:817-822`), and an answer every view of the error
 agrees with: on `.status st _` whether the error's status has reason `TooManyRequests` or code 429 (`errors.go:725-739`: unlike the other checks, the code counts whatever the reason); on `.plain`, `false` (`reasonAndCodeForError` gives
 `""`, `0`, `errors.go:817-822`).
+
+**Proved** over its body since prove-k8s2 (2026-11-20; `Proof/k8s_io/apimachinery/pkg/api/errors/IsTooManyRequests.lean`,
+over `errors.AsNoMatch`, `Spec/errors/AsNoMatch.lean`); until then a trust-boundary axiom, as the
+text above says.
 -/
 module
 

@@ -36,7 +36,8 @@ theorem isSafeRetryMutableRPC.wp_proof
   · iPkgInit
   wp_auto
   ihave ⟨%mF, #HmF⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
-  wp_apply wp_FromError err mF $$ [$Hst $Hse $HmF] as %ev %ok ⟨-, #HCode, -⟩
+  ihave ⟨%cFE, #HcFE⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_code _ $$ Hse
+  wp_apply wp_FromError err mF cFE $$ [$Hst $Hse $HmF $HcFE] as %ev %ok ⟨-, #HCode, -⟩
   cases ok
   · wp_auto
     ihave ⟨%mF, #HmF⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse

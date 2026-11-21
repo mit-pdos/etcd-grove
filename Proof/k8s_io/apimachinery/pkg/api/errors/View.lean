@@ -65,14 +65,6 @@ inductive ApiErrView where
       (cs : List k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause)
   | plain
 
-/-- `errors.go:49-67`'s `knownReasons` (`StatusReasonUnknown`, `""`, is commented out there). -/
-def knownReasons : List GoString :=
-  [go!"Unauthorized", go!"Forbidden", go!"NotFound", go!"AlreadyExists", go!"Conflict",
-   go!"Gone", go!"Invalid", go!"ServerTimeout", go!"StorageReadError", go!"Timeout",
-   go!"TooManyRequests", go!"BadRequest", go!"MethodNotAllowed", go!"NotAcceptable",
-   go!"RequestEntityTooLarge", go!"UnsupportedMediaType", go!"InternalError", go!"Expired",
-   go!"ServiceUnavailable"]
-
 /-- `IsTimeout`'s test of a status (`errors.go:689-698`). -/
 def timeoutV (st : k8s_io.apimachinery.pkg.apis.«meta».v1.Status) : Bool :=
   decide (st.Reason' = go!"Timeout") ||

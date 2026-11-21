@@ -45,7 +45,7 @@ public import Proof.k8s_io.apiserver.pkg.storage.etcd3.metrics.Init
 public import Proof.k8s_io.apiserver.pkg.storage.feature.InitLinked
 public import Proof.k8s_io.apiserver.pkg.storage.value.Init
 public import Proof.k8s_io.apiserver.pkg.util.feature.Init
-public import Proof.k8s_io.apiserver.pkg.util.flowcontrol.Init
+public import Proof.k8s_io.apiserver.pkg.util.flowcontrol.InitLinked
 public import Proof.k8s_io.component_base.tracing.Init
 public import Proof.k8s_io.klog.v2.Init
 public import Proof.k8s_io.utils.clock.Init

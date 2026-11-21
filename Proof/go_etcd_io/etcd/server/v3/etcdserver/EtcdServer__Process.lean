@@ -53,7 +53,7 @@ theorem EtcdServer.Process.wp_proof
   intro γn γd s id ctx cd ml
   wp_start as ⟨#Hok, #Hctx, Hlr, Hrecv⟩
   iunfold srvProcOk at Hok
-  icases Hok with ⟨%l, %c, %st, %γ, #Hlg, #Hlgnn, #Hid, %Hγid, #Hcl, #Hrc, #Hstat, %Hstnn, #Hn,
+  icases Hok with ⟨%l, %c, %st, %γ, #Hlg, #Hlgnn, #Hid, %Hγid, #Hcl, #Hrc, #Hstat, %Hstnn, #HstI, #Hn,
     #Hsi, #Hcok, %HN, %Hd⟩
   ihave #Hmpkg : isPkgInit (PROP := IProp GF)
       pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []
@@ -103,7 +103,7 @@ theorem EtcdServer.Process.wp_proof
     (try wp_auto)
     wp_apply wp_String sm'.msg.From' as %fs -
     (try wp_auto)
-    wp_apply wp_SizeMessage ml _ _ _ sm' $$ [Hm] as %sz ⟨Hm, -⟩
+    wp_apply wp_SizeMessage.1 ml _ _ _ sm' $$ [Hm] as %sz Hm
     · iframe #; iframe Hm
     (try wp_auto)
     wp_apply wp_RecvAppendReq st fs sz

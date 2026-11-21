@@ -7,7 +7,8 @@ runtime), an `rpctypes.EtcdError` (from `rpctypes.Error(..)`, or `ErrCompacted`/
 `errors.AsLeaf.spec` (an `*errors.errorString`) to any dynamic type.
 
 Trusted text (approved by etcd-grove-81, 2026-11-15, after an independent axiom review: no
-counterexample). Go (`errors/wrap.go`, `As`): for a non-nil `err`, `As` panics unless the target is a
+counterexample) until prove-k8s2 (2026-11-20), since then a theorem: the leaf case of
+`errors.AsNoMatch` (`Spec/errors/AsNoMatch.lean`). Go (`errors/wrap.go`, `As`): for a non-nil `err`, `As` panics unless the target is a
 non-nil pointer to an interface or to a type implementing `error` (`AsTarget`); then it walks `err`'s
 tree: `err` is set into the target and `true` returned only if `reflectlite.TypeOf(err)` is assignable
 to the target's element type `T` (for an interface `T`: `err`'s type implements it, the type set; for

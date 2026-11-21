@@ -40,7 +40,8 @@ theorem rpctypes.ErrorDesc.wp_init
   ihave #Hst : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status $$ []
   · iPkgInit
   wp_auto
-  wp_apply wp_FromError err m $$ [$Hst $Hok $Hm] as %s %ok ⟨%Hnil, #HCode, #HMsg, #HErr, %Hdm, %Hng⟩
+  ihave ⟨%cFE, #HcFE⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_code _ $$ Hok
+  wp_apply wp_FromError err m cFE $$ [$Hst $Hok $Hm $HcFE] as %s %ok ⟨%Hnil, #HCode, #HMsg, #HErr, %Hdm, %Hng⟩
   cases ok
   · wp_auto
     cases err with
