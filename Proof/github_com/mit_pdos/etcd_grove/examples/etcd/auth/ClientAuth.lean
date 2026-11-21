@@ -18,7 +18,8 @@ metadata.
 as statements over a request context's incoming metadata (`metadata.ctxInMD`, what the
 server's `AuthInfoFromCtx` reads, its token `auth.mdTokenOf`; perheap 1b, 2026-11-18: until then the
 pure `metadata.incomingOf` and `auth.ctxTokenOf`) and a call's outgoing metadata
-(`metadata.outgoingOf`, a pure function of the context until Part II of the per-heap redesign):
+(`metadata.outMD`, a per-run relation since errdesc stage 1, 2026-11-20; until then the pure
+`metadata.outgoingOf`):
 - C1 (`userAttemptOk`): the token `tok` of an attempt of a client built with the user name `u` is
   none or one issued to `u` (`auth.tokIssued`);
 - C2 and C4 (`deliversOutgoing`): the handler context `h` of an attempt of a client with no user
@@ -96,12 +97,12 @@ def userAttemptOk (γa : auth.AuthNames) (u : GoString) (tok : Option GoString) 
 
 /-- **C2 and C4**: the handler context `h` of an attempt of a client with no user name, called
 with the context `c`, carries `c`'s outgoing metadata `md` as its incoming metadata
-(`metadata.ctxInMD`). -/
+(`metadata.ctxInMD`; `c`'s is `metadata.outMD`, errdesc stage 1). -/
 def deliversOutgoing (c h : GoInterface) (md : Option (GoString → Option (List GoString))) :
     IProp GF :=
   iprop(⌜∃ hc : GoInterfaceOk, h = GoInterface.ok hc⌝ ∗
     (∃ hc : GoInterfaceOk, ⌜h = GoInterface.ok hc⌝ ∗ metadata.ctxInMD hc md) ∗
-    ⌜metadata.outgoingOf c = md⌝)
+    ∃ ci : GoInterfaceOk, ⌜c = GoInterface.ok ci⌝ ∗ metadata.outMD ci md)
 
 end contract
 

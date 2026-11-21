@@ -130,13 +130,13 @@ theorem SetUp.wp_proof
       wp_apply context.wp_Background
       (try wp_auto)
       wp_apply (client.wp_WithTimeout_bgMd hWT wp_ErrAny hAs _) $$ []
-        as %cctx %cd %cancel ⟨#Hcancel, #Hctx, #Hce, -, -⟩
+        as %cctx %cd %cancel ⟨#Hcancel, #Hctx, #Hce, -, #Hout, -⟩
       (try wp_auto)
       wp_apply wp_keyOf x w go!"d"
       (try wp_auto)
       have hk : keyOfK x w go!"d" ∈ setupKeys := by
         unfold setupKeys; exact List.mem_flatMap.2 ⟨w, hwm, List.mem_map.2 ⟨x, hxm, rfl⟩⟩
-      wp_apply (h_client_Put_on cl api conn ep s E ρ cid mid cctx cd (keyOfK x w go!"d")
+      wp_apply (h_client_Put_on cl api conn ep s E ρ cid mid cctx none cd (keyOfK x w go!"d")
           go!"setup" slice.nil (fun _ => iprop(True)) []
           (opSizeOk_opPutModel (K := 2 ^ 28) (E := 0) (V := 2 ^ 28) (optsKeep_nil _ _ _)
             ((show ∀ k ∈ setupKeys, k.length ≤ 2 ^ 28 by decide) _ hk) (by decide) (by decide)))
@@ -177,11 +177,11 @@ theorem SetUp.wp_proof
     wp_apply context.wp_Background
     (try wp_auto)
     wp_apply (client.wp_WithTimeout_bgMd hWT wp_ErrAny hAs _) $$ []
-      as %cctx %cd %cancel ⟨#Hcancel, #Hctx, #Hce, -, %Hout, -⟩
+      as %cctx %cd %cancel ⟨#Hcancel, #Hctx, #Hce, -, #Hout, -⟩
     ihave #Hx : setupCtx s conn (GoInterface.ok cctx) $$ []
-    · iunfold setupCtx; iframe Hctok Htls; ipureintro; exact Hout
+    · iunfold setupCtx; iframe Hctok Htls
     (try wp_auto)
-    wp_apply (wp_UserAdd ap conn [ep] cctx cd go!"root" go!"root-pw" (v3rpc.etcdUserAddSpec s E ρ)
+    wp_apply (wp_UserAdd ap conn [ep] cctx none cd go!"root" go!"root-pw" (v3rpc.etcdUserAddSpec s E ρ)
         (setupReplied s E ρ conn (GoInterface.ok cctx) (fun tok => v3rpc.userAddReplied s E ρ tok go!"root" (fun _ => effLb ρ.kv 0)))) $$ [] as %resp0 %err0 Hout0
     · iframe #
       isplitl
@@ -205,7 +205,7 @@ theorem SetUp.wp_proof
     subst Herr0
     imod (setup_post_userAdd s E ρ conn _ γz 0 go!"root" (fun um h1 h2 => ⟨um, rfl, h2, h1⟩) ⊤ (fun _ _ => CoPset.mem_full) (fun _ _ => CoPset.mem_full)) $$ Hc Hn Hx Hq0 with #F0
     (try wp_auto)
-    wp_apply (wp_UserGrantRole ap conn [ep] cctx cd go!"root" go!"root" (v3rpc.etcdUserGrantRoleSpec s E ρ)
+    wp_apply (wp_UserGrantRole ap conn [ep] cctx none cd go!"root" go!"root" (v3rpc.etcdUserGrantRoleSpec s E ρ)
         (setupReplied s E ρ conn (GoInterface.ok cctx) (fun tok => v3rpc.adminReplied s E ρ tok (irrUserGrantRole go!"root" go!"root") (fun _ => effLb ρ.kv 1)))) $$ [] as %resp1 %err1 Hout1
     · iframe #
       isplitl
@@ -229,7 +229,7 @@ theorem SetUp.wp_proof
     subst Herr1
     imod (setup_post s E ρ conn _ γz 1 _ rfl ⊤ (fun _ _ => CoPset.mem_full) (fun _ _ => CoPset.mem_full)) $$ Hc Hn Hx Hq1 with #F1
     (try wp_auto)
-    wp_apply (wp_RoleAdd ap conn [ep] cctx cd go!"r" (v3rpc.etcdRoleAddSpec s E ρ)
+    wp_apply (wp_RoleAdd ap conn [ep] cctx none cd go!"r" (v3rpc.etcdRoleAddSpec s E ρ)
         (setupReplied s E ρ conn (GoInterface.ok cctx) (fun tok => v3rpc.adminReplied s E ρ tok (irrRoleAdd go!"r") (fun _ => effLb ρ.kv 2)))) $$ [] as %resp2 %err2 Hout2
     · iframe #
       isplitl
@@ -253,7 +253,7 @@ theorem SetUp.wp_proof
     subst Herr2
     imod (setup_post s E ρ conn _ γz 2 _ rfl ⊤ (fun _ _ => CoPset.mem_full) (fun _ _ => CoPset.mem_full)) $$ Hc Hn Hx Hq2 with #F2
     (try wp_auto)
-    wp_apply (wp_RoleGrantPermission ap conn [ep] cctx cd go!"r" go!"a" go!"b" (W32 2) (v3rpc.etcdRoleGrantPermissionSpec s E ρ)
+    wp_apply (wp_RoleGrantPermission ap conn [ep] cctx none cd go!"r" go!"a" go!"b" (W32 2) (v3rpc.etcdRoleGrantPermissionSpec s E ρ)
         (setupReplied s E ρ conn (GoInterface.ok cctx) (fun tok => v3rpc.adminReplied s E ρ tok (irrRoleGrantPermission go!"r" (some (⟨W32 2, go!"a", go!"b"⟩ : auth.PermW))) (fun _ => effLb ρ.kv 3)))) $$ [] as %resp3 %err3 Hout3
     · iframe #
       isplitr
@@ -279,7 +279,7 @@ theorem SetUp.wp_proof
     subst Herr3
     imod (setup_post s E ρ conn _ γz 3 (irrRoleGrantPermission go!"r" (some (⟨W32 2, go!"a", go!"b"⟩ : auth.PermW))) rfl ⊤ (fun _ _ => CoPset.mem_full) (fun _ _ => CoPset.mem_full)) $$ Hc Hn Hx Hq3 with #F3
     (try wp_auto)
-    wp_apply (wp_UserAdd ap conn [ep] cctx cd go!"u" go!"u-pw" (v3rpc.etcdUserAddSpec s E ρ)
+    wp_apply (wp_UserAdd ap conn [ep] cctx none cd go!"u" go!"u-pw" (v3rpc.etcdUserAddSpec s E ρ)
         (setupReplied s E ρ conn (GoInterface.ok cctx) (fun tok => v3rpc.userAddReplied s E ρ tok go!"u" (fun _ => effLb ρ.kv 4)))) $$ [] as %resp4 %err4 Hout4
     · iframe #
       isplitl
@@ -303,7 +303,7 @@ theorem SetUp.wp_proof
     subst Herr4
     imod (setup_post_userAdd s E ρ conn _ γz 4 go!"u" (fun um h1 h2 => ⟨um, rfl, h2, h1⟩) ⊤ (fun _ _ => CoPset.mem_full) (fun _ _ => CoPset.mem_full)) $$ Hc Hn Hx Hq4 with #F4
     (try wp_auto)
-    wp_apply (wp_UserGrantRole ap conn [ep] cctx cd go!"u" go!"r" (v3rpc.etcdUserGrantRoleSpec s E ρ)
+    wp_apply (wp_UserGrantRole ap conn [ep] cctx none cd go!"u" go!"r" (v3rpc.etcdUserGrantRoleSpec s E ρ)
         (setupReplied s E ρ conn (GoInterface.ok cctx) (fun tok => v3rpc.adminReplied s E ρ tok (irrUserGrantRole go!"u" go!"r") (fun _ => effLb ρ.kv 5)))) $$ [] as %resp5 %err5 Hout5
     · iframe #
       isplitl
@@ -327,7 +327,7 @@ theorem SetUp.wp_proof
     subst Herr5
     imod (setup_post s E ρ conn _ γz 5 _ rfl ⊤ (fun _ _ => CoPset.mem_full) (fun _ _ => CoPset.mem_full)) $$ Hc Hn Hx Hq5 with #F5
     (try wp_auto)
-    wp_apply (wp_UserAdd ap conn [ep] cctx cd go!"v" go!"v-pw" (v3rpc.etcdUserAddSpec s E ρ)
+    wp_apply (wp_UserAdd ap conn [ep] cctx none cd go!"v" go!"v-pw" (v3rpc.etcdUserAddSpec s E ρ)
         (setupReplied s E ρ conn (GoInterface.ok cctx) (fun tok => v3rpc.userAddReplied s E ρ tok go!"v" (fun _ => effLb ρ.kv 6)))) $$ [] as %resp6 %err6 Hout6
     · iframe #
       isplitl
@@ -363,7 +363,7 @@ theorem SetUp.wp_proof
       · iexact F4
       · iexact F5
       · iexact F6
-    wp_apply (wp_AuthEnable ap conn [ep] cctx cd (v3rpc.etcdAuthEnableSpec s E ρ)
+    wp_apply (wp_AuthEnable ap conn [ep] cctx none cd (v3rpc.etcdAuthEnableSpec s E ρ)
         (setupReplied s E ρ conn (GoInterface.ok cctx) (fun tok => v3rpc.adminReplied s E ρ tok irrAuthEnable (setupDone ρ.raft ρ.kv γz)))) $$ [] as %resp7 %err7 Hout7
     · iframe #
       iintro !>

@@ -5,7 +5,7 @@
 # the backend's vocabulary (InvBbolt.lean, at `theFs`) by private lemmas in each proof file; the `_kv`
 # specs are gone. `Open` and `DB.Close` are S3f's (interim axioms until it lands). The
 # trust boundary: those two; `sort.Stable` (Perennial translates it, proves only
-# `sort.Sort`); `verify.Assert` (proved), `Verify` (proved over `os.Getenv`, `strings.ToLower`) and verify.go's lock checks `ValidateCalled*` (names-only:
+# `sort.Sort`); `verify.Assert`; `os.Getenv` and `strings.ToLower`, over which `verify.Verify`, `verify.IsVerificationEnabled` and verify.go's lock checks `ValidateCalled*` are proved (etcdstorage, 2026-11-20; until then axioms,
 # they read ETCD_VERIFY and the call stack; stated as returning: the lock checks off); zap's field
 # constructors and `Logger.Fatal`; `time.Duration.Seconds`. `sort.Sort` is Perennial's.
 # The constructor (2026-10-17, branch `construct`): `New`, `newBackend`, `newBatchTxBuffered`,
@@ -14,9 +14,10 @@
 # `BboltOptions.lean`'s axioms, `sync.Mutex{}` through `MutexLit.lean`'s: lemmas, not linked).
 # `NewDefaultBackend` and `DefaultBackendConfig` are not proved (the server builds its
 # configuration itself).
-ValidateCalledInsideApply:
-ValidateCalledInsideUnittest:
-ValidateCalledOutSideApply:
+verify_IsVerificationEnabled: os_Getenv strings_ToLower
+ValidateCalledInsideApply: verify_IsVerificationEnabled
+ValidateCalledInsideUnittest: verify_IsVerificationEnabled
+ValidateCalledOutSideApply: verify_IsVerificationEnabled
 bbolt_Bucket__Cursor: @
 bbolt_Bucket__ForEach: @
 bbolt_DB__Close: @
@@ -42,7 +43,7 @@ time_Duration__Seconds:
 verify_Assert:
 os_Getenv:
 strings_ToLower:
-verify_Verify: os_Getenv strings_ToLower
+verify_Verify: verify_IsVerificationEnabled
 zap_Error:
 zap_Logger__Fatal:
 zap_Logger__Panic:

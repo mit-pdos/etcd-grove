@@ -10,11 +10,11 @@ public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.I
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
 public import Perennial.Proof.strings.Link
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.lib.durable.Init
-public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.Init
+public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.walpb.Init
 public import Proof.go_etcd_io.raft.v3.Init
-public import Proof.go_uber_org.zap.Init
+public import Proof.go_uber_org.zap.InitLinked
 public import Proof.os.Init
 public import Proof.runtime.PkgInitExt
 

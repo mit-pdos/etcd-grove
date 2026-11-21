@@ -30,8 +30,8 @@ theorem kVClient.Put.wp_proof
     (wp_StaticMethod : grpc.StaticMethod.spec (GF := GF) (hG := hG))
     (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG)) :
     kVClient.Put.spec (GF := GF) (hG := hG) := by
-  intro kc conn addr Spec Q ctx cd inp req k v opts vs
-  wp_start as ⟨#Hstub, #Hconn, #Hrpc, Hpre, #Hctx, Hin, #Hk, #Hv, #Hopts, #Hok, %Hsz⟩
+  intro kc conn addr Spec Q ctx om cd inp req k v opts vs
+  wp_start as ⟨#Hstub, #Hconn, #Hrpc, #Hom, Hpre, #Hctx, Hin, #Hk, #Hv, #Hopts, #Hok, %Hsz⟩
   wp_auto
   wp_apply wp_StaticMethod as %sm ⟨#Hsm, %Hsms⟩
   wp_apply wp_slice_literal (V := GoInterface) [sm]
@@ -55,7 +55,7 @@ theorem kVClient.Put.wp_proof
   ihave Hblank : pbPutResponse (GF := GF) |>.blank «$r0_ptr» $$ [«$r0»]
   · simp only [pbPutResponse]
     iexact «$r0»
-  have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.KV/Put" pbPutRequestT pbPutResponseT pbPutRequestT_reg pbPutResponseT_reg Spec (putReqOp req k v) Q ctx cd inp «$r0_ptr» copts
+  have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.KV/Put" pbPutRequestT pbPutResponseT pbPutRequestT_reg pbPutResponseT_reg Spec (putReqOp req k v) Q ctx om cd inp «$r0_ptr» copts
     ([sm] ++ vs)
   simp only [pbPutRequestT, pbPutResponseT] at hI
   rw [show (pbPutRequest (GF := GF)).ty = etcdserverpb.PutRequest.ty from rfl,

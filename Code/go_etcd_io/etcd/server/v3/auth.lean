@@ -300,6 +300,16 @@ noncomputable def NewTokenProvider [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def redactToken [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.redactToken"
 
+/-- go: metrics.go:42:6 -/
+noncomputable def init.«0».impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Seq (App (Val exceptionDo)
+  (App (Val doExecute)
+  (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeFunc.ty _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeFunc.ty))) (App (Val (GoInstruction (GlobalVarAddr currentAuthRevision))) (Val #()))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty (Var "$sl0")))])))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.MustRegister []))) (Val #())) (Var "$a0")))))
+  (Val #())))
+
 /-- go: nop.go:23:20 -/
 noncomputable def tokenNop.enable.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
@@ -5839,6 +5849,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   UnsafeAuthWriter_instance : UnsafeAuthWriter.TypeAssumptions
   authStore_instance : authStore.TypeAssumptions
   permSlice_instance : permSlice.TypeAssumptions
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   newTokenProviderNop_unfold : FuncUnfold newTokenProviderNop [] newTokenProviderNop.impl
   getMergedPerms_unfold : FuncUnfold getMergedPerms [] getMergedPerms.impl
   checkKeyInterval_unfold : FuncUnfold checkKeyInterval [] checkKeyInterval.impl
@@ -5888,6 +5899,7 @@ attribute [instance] Assumptions.tokenJWT_instance
   Assumptions.UnsafeAuthWriter_instance
   Assumptions.authStore_instance
   Assumptions.permSlice_instance
+  Assumptions.«init.0_unfold»
   Assumptions.newTokenProviderNop_unfold
   Assumptions.getMergedPerms_unfold
   Assumptions.checkKeyInterval_unfold

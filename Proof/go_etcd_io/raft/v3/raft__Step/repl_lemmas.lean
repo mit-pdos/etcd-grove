@@ -561,7 +561,7 @@ theorem SnapLogStep.of_handle {id : w64} {m : MessageM} {s t s' : NState} {sv : 
   · refine .inr ?_
     simp only [sendMsgs, logRestore, snapTrip]
     rw [Hl] at Hgt Hnm
-    refine ⟨Ht, ?_, ?_, ?_, Hgt, Hnm, ?_, ?_, ?_, ⟨cl, ?_, ?_⟩⟩ <;> try first | rfl | trivial | solve | rw [Hl]
+    refine ⟨Ht, ?_, ?_, ?_, Hgt, Hnm, ?_, ?_, ?_, ⟨cl, ?_, ?_, rfl⟩⟩ <;> try first | rfl | trivial | solve | rw [Hl]
     intro q h ht
     rcases List.mem_append.1 h with h | h
     · exact Ho ▸ h

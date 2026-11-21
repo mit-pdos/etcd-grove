@@ -27,12 +27,12 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 error outcome (`ifcErrOut`; k8s 7e-1). -/
 abbrev retryKVClient.Range.spec : Prop :=
   ∀ (rkv conn : Loc) (addr : List GoString) (Spec : GrpcSpecMd (GF := GF) pbRangeRequest pbRangeResponse)
-    (Q : RangeRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (Q : RangeRespM → IProp GF) (ctx : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
     (inp : Loc) (req : etcdserverpb.RangeRequest) (k e : GoString) (opts : GoSlice)
     (vs : List GoInterface) (Ψe : GoString → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryKVAt rkv conn ∗
       isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.KV/Range" Spec ∗
-      □ ▷ attemptPre conn (GoInterface.ok ctx) Spec (rangeReqOp req k e) Q Ψe ∗ ctxOk ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗
+      metadata.outMD ctx om ∗ □ ▷ attemptPre conn om Spec (rangeReqOp req k e) Q Ψe ∗ ctxOk ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗
       opts ↦*□ vs ∗ ⌜opts.len = opts.cap⌝ ∗ callOptsOk vs ∗
       ⌜req.unknownFields' = slice.nil ∧ (pbRangeRequest (GF := GF)).wireLen (rangeReqOp req k e) < grpcMsgMax⌝ }}
     (App (App (App (Val (rkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryKVClient.ty @!!

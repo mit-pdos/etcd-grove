@@ -55,7 +55,7 @@ pattern, for a parent the client's watch takes (`watchCtx ctx s`) or `Background
   `Background()`, `WithCancel(c)` is a cancellable context done only when cancelled
   (`propagateCancel` returns at once: `c.Done()` is `nil`), as `context.WithCancelTodo` says of
   `TODO()`, with well-formed library values (`context.libCtxOk ctx'`: grpc's outgoing key answered
-  with the `rawMD` `NewOutgoingContext` stored, `builtRawMD`, the other library keys with
+  with the `rawMD` `NewOutgoingContext` stored (`builtRawMDRaw`), the other library keys with
   `Background()`'s `nil`) and the same in Perennial's chain (`metadata.outgoingCtxOkC ctx'`: the walk
   goes from the `*cancelCtx` to the `*valueCtx`, never written, whose key is `mdOutgoingKey{}` and
   value that `rawMD`).

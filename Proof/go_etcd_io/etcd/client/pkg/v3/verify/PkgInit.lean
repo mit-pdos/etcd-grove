@@ -1,13 +1,14 @@
 /-
-The package fact of `client/pkg/v3/verify`: `True` (WAL W6, 2026-11-13). Its imports' instances
-(2026-11-20: `os` and `strings` too, which `Verify`'s translated body calls).
+The package fact of `client/pkg/v3/verify`: `True` (WAL W6, 2026-11-13, for the part `LinuxFs/`, since
+merged into the main tree). (etcdstorage, 2026-11-20) Its imports' instances too: `Verify` and
+`IsVerificationEnabled` are translated with their bodies, which import `os` and `strings`.
 -/
 module
 
 public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.verify
 public import Perennial.Proof.ProofPrelude
 public import Perennial.Proof.fmt
-public import Perennial.Proof.strings
+public import Perennial.Proof.strings.Base
 public import Proof.os.PkgInit
 
 @[expose] public section

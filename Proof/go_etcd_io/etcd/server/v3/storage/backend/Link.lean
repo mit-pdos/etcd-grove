@@ -108,6 +108,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer__wri
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.unsafeForEach
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.unsafeRange
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Assert
+public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.IsVerificationEnabled
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Verify
 public import Proof.go_uber_org.zap.Error
 public import Proof.go_uber_org.zap.Logger__Fatal
@@ -147,17 +148,29 @@ theorem wp_NewHooks :
     EtcdGrove.backend.NewHooks.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.NewHooks.wp_proof hooks.wp_OnPreCommitUnsafe
 
+theorem os.wp_Getenv :
+    EtcdGrove.os.Getenv.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.os.Getenv.wp_proof
+
+theorem strings.wp_ToLower :
+    EtcdGrove.strings.ToLower.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.strings.ToLower.wp_proof
+
+theorem verify.wp_IsVerificationEnabled :
+    EtcdGrove.verify.IsVerificationEnabled.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.verify.IsVerificationEnabled.wp_proof os.wp_Getenv strings.wp_ToLower
+
 theorem wp_ValidateCalledInsideApply :
     EtcdGrove.backend.ValidateCalledInsideApply.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.backend.ValidateCalledInsideApply.wp_proof
+  EtcdGrove.backend.ValidateCalledInsideApply.wp_proof verify.wp_IsVerificationEnabled
 
 theorem wp_ValidateCalledInsideUnittest :
     EtcdGrove.backend.ValidateCalledInsideUnittest.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.backend.ValidateCalledInsideUnittest.wp_proof
+  EtcdGrove.backend.ValidateCalledInsideUnittest.wp_proof verify.wp_IsVerificationEnabled
 
 theorem wp_ValidateCalledOutSideApply :
     EtcdGrove.backend.ValidateCalledOutSideApply.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.backend.ValidateCalledOutSideApply.wp_proof
+  EtcdGrove.backend.ValidateCalledOutSideApply.wp_proof verify.wp_IsVerificationEnabled
 
 theorem wp_newBoltLoggerZap :
     EtcdGrove.backend.newBoltLoggerZap.spec (GF := GF) (hG := hG) :=
@@ -479,17 +492,9 @@ theorem batchTx.wp_UnsafeSeqPut :
     EtcdGrove.backend.batchTx.UnsafeSeqPut.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.batchTx.UnsafeSeqPut.wp_proof batchTx.wp_unsafePut
 
-theorem os.wp_Getenv :
-    EtcdGrove.os.Getenv.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.os.Getenv.wp_proof
-
-theorem strings.wp_ToLower :
-    EtcdGrove.strings.ToLower.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.strings.ToLower.wp_proof
-
 theorem verify.wp_Verify :
     EtcdGrove.verify.Verify.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.verify.Verify.wp_proof os.wp_Getenv strings.wp_ToLower
+  EtcdGrove.verify.Verify.wp_proof verify.wp_IsVerificationEnabled
 
 theorem txWriteBuffer.wp_putSeq :
     EtcdGrove.backend.txWriteBuffer.putSeq.spec (GF := GF) (hG := hG) :=

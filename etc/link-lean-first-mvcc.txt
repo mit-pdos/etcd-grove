@@ -182,10 +182,11 @@ txnReadWrite__DeleteRange:
 # The watchable store (watchable_store.go, watchable_store_txn.go), unit 3a: the write path
 # (the wrapper's End seals the revision, notifies under the store's lock, then commits), the
 # registration and cancellation, the progress calls, see InvWatchStore.lean, InvWatchFrac.lean,
-# WatchClose.lean; `verify.Verify` is proved over `os.Getenv` and `strings.ToLower` (axioms).
+# WatchClose.lean; `verify.Verify` is proved over `os.Getenv`'s and `strings.ToLower`'s trust-boundary specs.
 os_Getenv:
 strings_ToLower:
-verify_Verify: os_Getenv strings_ToLower
+verify_IsVerificationEnabled: os_Getenv strings_ToLower
+verify_Verify: verify_IsVerificationEnabled
 watchableStore__Write: store__Write
 watchableStoreTxnWrite__End: metricsTxnWrite__Changes metricsTxnWrite__End storeTxnWrite__Rev watchableStore__notify
 watchableStore__notify: newWatcherBatch watcher__send watcherGroup__delete watchableStore__addVictim

@@ -56,6 +56,7 @@ theorem schema.unsafeUpdateConsistentIndex.wp_proof
       [index tx HTM] as ⟨index, tx, HTM⟩
     · isplitl [index tx HTM]
       · iframe
+      ileft
       iintro ⟨index, tx, HTM⟩
       wp_auto
       wp_apply_core (hR tx ⊤ TM TM) $$ [] [HTM index tx «$res0» «$res1»]

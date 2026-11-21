@@ -38,7 +38,7 @@ noncomputable def mdSortedKeys (m : GoString → Option (List GoString)) : Optio
   else none
 
 /-- **The key `streamKeyFromCtx` computes from the outgoing metadata `m`**
-(`metadata.outgoingOf`'s view: what `FromOutgoingContext` returns): Go's
+(the `md` of `metadata.outMD ctx md`: what `FromOutgoingContext` returns): Go's
 `fmt.Sprintf("%+v", map[string][]string(md))` (`map[k1:[v1 v2] k2:[...]]`, keys sorted, entries
 and each value list joined by spaces) when there is metadata, `""` when there is none
 (`client/v3/watch.go:1102-1107`). (2026-11-20: defined; until then opaque, with the two laws below
