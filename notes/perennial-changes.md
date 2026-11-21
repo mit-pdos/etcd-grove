@@ -17,6 +17,19 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `strconv.Atoi` had no body: landed in Perennial `78ac98e99`, not yet in the pin (2026-11-21, prove-metrics3)
+
+- **Limitation.** Perennial translated `strconv` without `Atoi`, so otel trace's `firstEnv` (`maxSpan =
+  newSpanLimits()`, `trace/auto.go:622-690`, v1.47.0) could not be stepped and stays in
+  `go_opentelemetry_io.otel.trace.opaqueInitsOk`.
+- **Landed.** Perennial `78ac98e99` (on `lean`): `strconv.Atoi` and `internal/strconv.Atoi` translated, with
+  specs (a nil error, `ErrSyntax` or `ErrRange`, wrapped by `toError` in `strconv`; the number unspecified) and
+  proofs.
+- **Status.** Waiting for a pin bump past Perennial `7ad4f91b1` (its crash-token channel updates need
+  `ncfupd_of_fupd` in this repository's channel proofs: the coordinator's). Then: translate otel trace's
+  `maxSpan`, `newSpanLimits`, `firstEnv` (over `os.Getenv`'s spec and `strconv.wp_Atoi`) and its other
+  initializers (`/shared/tmp/extlib-metrics3-triage.md`).
+
 ### `-x` of a `float64` does not step: `Float64Semantics` has no `GoNeg` (2026-11-21, prove-metrics3)
 
 - **Limitation.** `FloatOps` has `float64Neg`/`float32Neg`, but `Float64Semantics`/`Float32Semantics`
