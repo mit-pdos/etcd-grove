@@ -2,6 +2,8 @@
 
 ## START HERE
 
+- **M3 waits on Q4** (questions.md: the keys-only race; fork fix vs margin, for the user via etcd-grove-03).
+  **Do M4 next** (the "M4 proposal" below, approved by the user 2026-11-21).
 - M0-M2 are on lean (`3c8804f01f`). M3/M4: worktree `/shared/etcd-grove-authm3`, branch `auth-mediation-m3`
   (off lean `3c8804f01f`), agent of etcd-grove-03. Pin c44b74871: `--packages=/shared/tmp/manifest-c44.json`,
   `PERENNIAL_DIR=/shared/perennial-c44b74871`. Decisions: `questions.md` (untracked, worktree root).
@@ -19,7 +21,7 @@
   the fork's pin, fixed upstream `9acc0ebe37`: REPORTED to etcd-grove-03, awaiting its call);
   `doSerialize.spec` strengthened (and `specOff`), Range/Txn/ModeSpecs adapted; the draft
   `Spec/.../EtcdServer__RangeStream.lean` (post: each `Send`'s `Ψ` from `rangeChunkIs o` and `rangeStreamPassed`).
-- Next (once 03 answers): prove `EtcdServer.RangeStream` (model: `Range`'s on-branch, `range_tailOn`; the three
+- M3 next (once Q4 is answered): prove `EtcdServer.RangeStream` (model: `Range`'s on-branch, `range_tailOn`; the three
   `RangeRequest` getters it calls on owned fields, `GetKey`/`GetRevision`/`GetLimit`, need their specs generalized to
   `↦{dq}` with the points-to given back); then `kvServer.RangeStream` (its spec over a stream contract whose `Send`
   errors are `srvErrIs`, for `togRPCError`), Links (`--server`, `--v3rpc`), table row 2 -> `e2e` with the baseline,
