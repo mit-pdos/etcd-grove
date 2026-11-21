@@ -3,7 +3,7 @@ Proof of `Spec/go_etcd_io/etcd/server/v3/lease/lessor__Renew.lean` (prove-ps2-re
 names-only trust-boundary contract since the lease-renew plan's C1, 2026-11-01). Under the read lock
 (a slot of the lessor's reader pool): `isPrimary`, `demotec` (a close-once channel, `demote_recv`,
 through the lock's share of its ghost variable), the lease's lookup and its `revokec` (`leaseMeta`),
-`le.cp` (`nil`: `clearRemainingTTL` is `false`); after it, `l.expired()` (`Remaining`, with the token
+`le.cp` (`nil`: `clearRemainingTTL` is `false`); after it, `l.expired()` (stepped into: `Remaining`, with the token
 back), and, if expired, the `select` on `revokec`, `demotec` and `stopC` (`lessorStopRecv`), each a
 close-once channel whose receive completes only once it is closed (`once_recvAu`); under the write
 lock (the guard), the lookup again, `refresh(0)` and `RegisterOrUpdate` of a fresh item; then
@@ -13,7 +13,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__Renew
 public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__isPrimary
-public import Spec.go_etcd_io.etcd.server.v3.lease.Lease__expired
+public import Spec.go_etcd_io.etcd.server.v3.lease.Lease__Remaining
 public import Spec.go_etcd_io.etcd.server.v3.lease.Lease__refresh
 public import Spec.go_etcd_io.etcd.server.v3.lease.LeaseExpiredNotifier__RegisterOrUpdate
 public import Proof.go_etcd_io.etcd.server.v3.lease.LessorLemmas
@@ -38,7 +38,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 
 theorem lease.lessor.Renew.wp_proof
     (hPrim : lease.lessor.isPrimary.spec (GF := GF) (hG := hG))
-    (hExp : lease.Lease.expired.spec (GF := GF) (hG := hG))
+    (hRem : lease.Lease.Remaining.spec (GF := GF) (hG := hG))
     (hRefresh : lease.Lease.refresh.spec (GF := GF) (hG := hG))
     (hReg : lease.LeaseExpiredNotifier.RegisterOrUpdate.spec (GF := GF) (hG := hG)) :
     lease.lessor.Renew.spec (GF := GF) (hG := hG) := by
@@ -164,8 +164,13 @@ theorem lease.lessor.Renew.wp_proof
     · iunfold lessorRdOf; iexists lp; iframe Hpin; iunfold lessorRd; iexact Hrd
     imodintro
     (try wp_auto)
-    wp_apply (hExp γl l) $$ [$Hpkg $Hlo $Htt] as %b Htt
+    -- `l.expired()`: `l.Remaining() <= 0`, stepped into (its `Remaining` with the token back)
+    wp_method_call
+    wp_call
+    (try wp_auto)
+    wp_apply (hRem γl l) $$ [$Hpkg $Hlo $Htt] as %d Htt
     · ipureintro; exact Hb
+    (try wp_auto)
     wp_if_destruct
     rotate_left
     · -- expired: wait for the revocation, the demotion or the stop

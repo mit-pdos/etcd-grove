@@ -381,8 +381,7 @@ EtcdServer__LeaseTimeToLive: EtcdServer__requireAuthInfo+C EtcdServer__checkLeas
 # `waitLeader` (names-only; `waitAppliedIndex` proved by prove-etcdserver, `waitLeader` by prove-srvloops)
 # and the forwarding, `leasehttp.RenewHTTP`. (prove-ps2-renew, 2026-11-21) `Renew` proved over the
 # real code: its `select`'s receives on close-once channels, the refresh under the write lock.
-lease_Lease__expired: lease_Lease__Remaining
-lease_lessor__Renew: lease_lessor__isPrimary lease_Lease__expired lease_Lease__refresh lease_LeaseExpiredNotifier__RegisterOrUpdate
+lease_lessor__Renew: lease_lessor__isPrimary lease_Lease__Remaining lease_Lease__refresh lease_LeaseExpiredNotifier__RegisterOrUpdate
 EtcdServer__raftStatus:
 EtcdServer__isActive: raftNode__getLatestTickTs
 EtcdServer__ensureLeadership:

@@ -25,8 +25,8 @@ translate = ["!*",
   "lessor.shouldPersistCheckpoints", "greaterOrEqual", "lessor.Demote", "lessor.ExpiredLeasesC",
   # (prove-ps2-lease, 2026-11-21) `Stop`, with its body: proved over broadcast channels (`lessorStopTok`)
   "lessor.Stop",
-  # (prove-ps2-renew, 2026-11-21) `Renew`, with its body, and its `Lease.expired`: proved (its
-  # select's three receives through close-once channel invariants, `onceRecv`)
+  # (prove-ps2-renew, 2026-11-21) `Renew`, with its body, and its `Lease.expired` (stepped into by
+  # `Renew`'s proof): proved (its select's three receives through close-once channel invariants, `onceRecv`)
   "lessor.Renew", "Lease.expired",
   "lessor.clearScheduledLeasesCheckpoints", "lessor.clearLeaseExpiredNotifier",
   "NewLease", "Lease.persistTo", "Lease.TTL", "Lease.getRemainingTTL", "Lease.refresh",
