@@ -1090,22 +1090,32 @@ generated protobuf descriptors), which the trust-boundary axiom `opaqueInitsOk` 
         'iexists _, _', 'iframe #', 'ipureintro', 'simp (config := {decide := true})'],
 )
 
+_VERS = ['V3_0', 'V3_1', 'V3_2', 'V3_3', 'V3_4', 'V3_5', 'V3_6', 'V3_7', 'V3_8', 'V3_9', 'V4_0']
+_SEMVER_NEW = 'EtcdGrove.semver.New.wp_proof EtcdGrove.semver.Version.String.wp_proof'
+def semver_new_steps(x):
+    """`x = *semver.New(...)`: `semver.New`'s spec (a read-only version), then the load."""
+    return ['try wp_auto',
+            f'wp_apply ({_SEMVER_NEW}) as %p{x} ⟨%N{x}, %o{x}, #P{x}⟩',
+            'try wp_auto']
 SPECIAL['go_etcd_io.etcd.api.v3.version'] = dict(
-    doc='''Its fact (`server/v3/lease/Base.lean`): `Version` holds `"3.8.0-alpha.0"`, `V3_6` a fixed value and
-`MinClusterVersion` `"3.0.0"`. Its initializer allocates and sets its translated string variables
-(`version.go`: `MinClusterVersion`, `Version`, `APIVersion`, `GitSHA`; translated since 2026-11-19,
-until then the trust-boundary axioms `Version_init` and `MinClusterVersion_init`) and runs its other
-variables' untranslated initializers: `semver` versions (`*semver.New(3, 6, 0, "", "")`, which
-formats with `fmt`) and `AllVersions`; the trust-boundary axiom `V3_6_init` states the one the fact
-reads, `opaqueInitsOk` the others.''',
-    alloc_types={x: 'GoString' for x in ['MinClusterVersion', 'Version', 'APIVersion', 'GitSHA']},
-    custom={
-        'V3_6': dict(doc='/-- `V3_6 = *semver.New(3, 6, 0, "", "")` (`version.go`): a `semver.Version`. -/',
-                     post='∃ v : github_com.Masterminds.semver.v3.Version, globalAddr V3_6 ↦ v',
-                     pat='⟨%v@, H@⟩'),
-    },
-    before={'V3_0': ['try wp_auto']},
-    finish=['ipersist HVersion', 'ipersist HV3_6', 'ipersist HMinClusterVersion'] + FIN_PRE[:6],
+    doc='''Its fact (`api/v3/version/PkgInit.lean`): `Version` holds `"3.8.0-alpha.0"`, `V3_6`, `V3_7` and `V3_8`
+fixed values and `MinClusterVersion` `"3.0.0"`. Its initializer allocates and sets its translated string
+variables (`version.go`: `MinClusterVersion`, `Version`, `APIVersion`, `GitSHA`; translated since
+2026-11-19, until then the trust-boundary axioms `Version_init` and `MinClusterVersion_init`), its `semver`
+versions (`V3_0 = *semver.New(3, 0, 0, "", "")`, ...: `semver.New`'s spec, proved over the real code) and
+`AllVersions` (a slice literal of them; prove-initleft, 2026-11-21: until then the trust-boundary axioms
+`V3_6_init` and `opaqueInitsOk`), and runs its untranslated `init` function, which the trust-boundary
+axiom `initFuncsOk` says returns.''',
+    alloc_types=dict({x: 'GoString' for x in ['MinClusterVersion', 'Version', 'APIVersion', 'GitSHA']},
+                     **{x: 'github_com.Masterminds.semver.v3.Version' for x in _VERS}, AllVersions='GoSlice'),
+    before=dict({x: semver_new_steps(x) for x in _VERS},
+                AllVersions=['try wp_auto',
+                             'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sav ⟨Sav, -⟩',
+                             'try wp_auto']),
+    imports=['Proof.github_com.Masterminds.semver.v3.New',
+             'Proof.github_com.Masterminds.semver.v3.Version__String'],
+    finish=['ipersist HVersion', 'ipersist HV3_6', 'ipersist HMinClusterVersion',
+            'ipersist HV3_7', 'ipersist HV3_8'] + FIN_PRE[:6],
 )
 
 # (the lease-renew plan, 2026-11-01) names only: `LeaseRenew` reads `LeasePrefix`
@@ -1670,9 +1680,12 @@ SPECIAL['go_etcd_io.etcd.server.v3.storage.schema'] = dict(
 the auth bucket's two key names and the auth backend's `authEnabled`/`authDisabled` values
 (`auth.go`; the auth plan's S1, 2026-10-23), and the lessor's `Lease` bucket (leases T3,
 2026-10-25). Its initializer allocates and sets those translated variables (with the buckets'
-names), initializes its imports and runs its other variables' untranslated initializers, which
-the trust-boundary axiom `opaqueInitsOk` says run.''',
-    alloc_types={'MetaTermKeyName': 'GoSlice', 'MetaConsistentIndexKeyName': 'GoSlice',
+names), initializes its imports and runs its other variables' initializers, all translated
+(prove-initleft, 2026-11-21: `schemaChanges`, a map literal keyed by `version`'s versions, and the
+interface assertions; until then the trust-boundary axiom `opaqueInitsOk`), and its untranslated
+`init` function (`bucket.go`), which the trust-boundary axiom `initFuncsOk` says returns.''',
+    imports=['Proof.github_com.Masterminds.semver.v3.MapKey'],
+    alloc_types={'schemaChanges': 'Loc', 'MetaTermKeyName': 'GoSlice', 'MetaConsistentIndexKeyName': 'GoSlice',
                  'Meta': 'GoInterface', 'Key': 'GoInterface', 'metaBucketName': 'GoSlice',
                  'keyBucketName': 'GoSlice', 'authEnabled': 'GoSlice', 'authDisabled': 'GoSlice',
                  'authBucketName': 'GoSlice', 'authUsersBucketName': 'GoSlice',
@@ -1688,7 +1701,9 @@ the trust-boundary axiom `opaqueInitsOk` says run.''',
                                            'emptyStorageVersion']},
                  **{x: 'GoInterface' for x in ['Alarm', 'Cluster', 'Members', 'MembersRemoved', 'Test']}},
     before={
-        '«_»': ['wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sen ⟨Hsen, -⟩',
+        # `authEnabled`/`authDisabled` (slice literals), then the interface assertions `var _ ... = (*T)(nil)`
+        # (prove-initleft, 2026-11-21: until then in `opaqueInitsOk`), stepped by `wp_auto`
+        'keyBucketName': ['wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sen ⟨Hsen, -⟩',
                 'simp only [go.arrayLiteralSize, List.foldl]', 'try wp_auto',
                 'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sdis ⟨Hsdis, -⟩',
                 'simp only [go.arrayLiteralSize, List.foldl]', 'try wp_auto'],
@@ -1716,6 +1731,28 @@ the trust-boundary axiom `opaqueInitsOk` says run.''',
                               'wp_apply wp_string_to_bytes go!"term" as %sterm ⟨Hsterm, -⟩', 'try wp_auto']
                              + [l for n in ['confState', 'clusterVersion', 'downgrade', 'storageVersion', '']
                                 for l in (f'wp_apply wp_string_to_bytes go!"{n}" as %_ ⟨-, -⟩', 'try wp_auto')],
+        # (prove-initleft, 2026-11-21) `schemaChanges`, a map literal keyed by `version.V3_6`, `V3_7`,
+        # `V3_8` (read-only by `version`'s fact; `semver.Version` a safe map key, `MapKey.lean`), whose
+        # first value is a slice of one `addNewField(...)` (translated, its body stepped); until then
+        # `opaqueInitsOk`
+        'schemaChanges': [
+            'try wp_auto',
+            'ihave #Hvv : iprop(globalAddr go_etcd_io.etcd.api.v3.version.Version ↦□ go!"3.8.0-alpha.0" ∗',
+            '    (∃ v : github_com.Masterminds.semver.v3.Version, globalAddr go_etcd_io.etcd.api.v3.version.V3_6 ↦□ v) ∗',
+            '    globalAddr go_etcd_io.etcd.api.v3.version.MinClusterVersion ↦□ go!"3.0.0" ∗',
+            '    (∃ v7 v8 : github_com.Masterminds.semver.v3.Version,',
+            '      globalAddr go_etcd_io.etcd.api.v3.version.V3_7 ↦□ v7 ∗ globalAddr go_etcd_io.etcd.api.v3.version.V3_8 ↦□ v8)) $$ []',
+            '· iapply isPkgInit_access $$ {Hd:go_etcd_io.etcd.api.v3.version}',
+            'icases Hvv with ⟨-, ⟨%v36, #Hv36⟩, -, ⟨%v37, %v38, #Hv37, #Hv38⟩⟩',
+            'try wp_auto',
+            'wp_func_call', 'wp_call', 'try wp_auto',
+            'wp_apply (wp_map_make1 (K := github_com.Masterminds.semver.v3.Version) (V := GoSlice) '
+            'github_com.Masterminds.semver.v3.Version.ty (go.GoType.SliceType schemaChange.ty)) as %msc Hmsc'] +
+            ['try wp_auto',
+             'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %_ ⟨-, -⟩',
+             'try wp_auto',
+             'wp_apply (wp_mapInsert (K := github_com.Masterminds.semver.v3.Version) (V := GoSlice) '
+             'github_com.Masterminds.semver.v3.Version.ty) $$ Hmsc as Hmsc'] * 3 + ['try wp_auto'],
     },
     finish=['ipersist Hskey', 'ipersist Hsmeta', 'ipersist Hsci', 'ipersist Hsterm',
             'ipersist Hsen', 'ipersist Hsdis', 'ipersist Hsauth', 'ipersist Hsausers', 'ipersist Hsaroles',
