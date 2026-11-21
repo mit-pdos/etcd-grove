@@ -257,7 +257,9 @@ func ReadAll(r io.Reader, pool BufferPool) (BufferSlice, error) {
 		_, err := wt.WriteTo(w)
 		return result, err
 	}
-nextBuffer:
+	// MODEL: the outer loop's label and the inner `continue nextBuffer` (goose takes no labeled
+	// statement) replaced by a `break` of the inner loop, the outer body's last statement: the same
+	// control flow.
 	for {
 		buf := pool.Get(readAllBufSize)
 		// We asked for 32KiB but may have been given a bigger buffer.
@@ -282,7 +284,7 @@ nextBuffer:
 			}
 			if len(*buf) == usedCap {
 				result = append(result, NewBuffer(buf, pool))
-				continue nextBuffer
+				break
 			}
 		}
 	}

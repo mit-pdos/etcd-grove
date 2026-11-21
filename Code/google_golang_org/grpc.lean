@@ -34,36 +34,6 @@ noncomputable def ConnectParams.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] ConnectParams.ty
 
-noncomputable def ccBalancerWrapper.ty [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.Named go!"google.golang.org/grpc.ccBalancerWrapper" [])
-
-attribute [irreducible] ccBalancerWrapper.ty
-
-noncomputable def acBalancerWrapper.ty [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.Named go!"google.golang.org/grpc.acBalancerWrapper" [])
-
-attribute [irreducible] acBalancerWrapper.ty
-
-noncomputable def healthData.ty [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.Named go!"google.golang.org/grpc.healthData" [])
-
-attribute [irreducible] healthData.ty
-
-noncomputable def refCountedProducer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.Named go!"google.golang.org/grpc.refCountedProducer" [])
-
-attribute [irreducible] refCountedProducer.ty
-
-noncomputable def defaultConfigSelector.ty [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.Named go!"google.golang.org/grpc.defaultConfigSelector" [])
-
-attribute [irreducible] defaultConfigSelector.ty
-
-noncomputable def idler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.Named go!"google.golang.org/grpc.idler" [])
-
-attribute [irreducible] idler.ty
-
 noncomputable def connectivityStateManager.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.connectivityStateManager" [])
 
@@ -78,21 +48,6 @@ noncomputable def ClientConn.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.ClientConn" [])
 
 attribute [irreducible] ClientConn.ty
-
-noncomputable def addrConn.ty [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.Named go!"google.golang.org/grpc.addrConn" [])
-
-attribute [irreducible] addrConn.ty
-
-noncomputable def securityLevelKey.ty [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.Named go!"google.golang.org/grpc.securityLevelKey" [])
-
-attribute [irreducible] securityLevelKey.ty
-
-noncomputable def retryThrottler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.Named go!"google.golang.org/grpc.retryThrottler" [])
-
-attribute [irreducible] retryThrottler.ty
 
 noncomputable def baseCodec.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.baseCodec" [])
@@ -199,35 +154,100 @@ noncomputable def StreamServerInterceptor.ty [GooseExts] [GoGlobalContext] : go.
 
 attribute [irreducible] StreamServerInterceptor.ty
 
-noncomputable def pickerGeneration.ty [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.Named go!"google.golang.org/grpc.pickerGeneration" [])
+noncomputable def notModelled.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/grpc.notModelled" [])
 
-attribute [irreducible] pickerGeneration.ty
+attribute [irreducible] notModelled.ty
 
-noncomputable def pickerWrapper.ty [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.Named go!"google.golang.org/grpc.pickerWrapper" [])
+noncomputable def modelPicks.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/grpc.modelPicks" [])
 
-attribute [irreducible] pickerWrapper.ty
+attribute [irreducible] modelPicks.ty
 
-noncomputable def pick.ty [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.Named go!"google.golang.org/grpc.pick" [])
+noncomputable def addrHealth.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/grpc.addrHealth" [])
 
-attribute [irreducible] pick.ty
-
-noncomputable def dropError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.Named go!"google.golang.org/grpc.dropError" [])
-
-attribute [irreducible] dropError.ty
-
-noncomputable def PreparedMsg.ty [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.Named go!"google.golang.org/grpc.PreparedMsg" [])
-
-attribute [irreducible] PreparedMsg.ty
+attribute [irreducible] addrHealth.ty
 
 noncomputable def ccResolverWrapper.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.ccResolverWrapper" [])
 
 attribute [irreducible] ccResolverWrapper.ty
+
+noncomputable def dialResult.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/grpc.dialResult" [])
+
+attribute [irreducible] dialResult.ty
+
+noncomputable def timeoutUnit.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/grpc.timeoutUnit" [])
+
+attribute [irreducible] timeoutUnit.ty
+
+noncomputable def streamState.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/grpc.streamState" [])
+
+attribute [irreducible] streamState.ty
+
+noncomputable def writeOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/grpc.writeOptions" [])
+
+attribute [irreducible] writeOptions.ty
+
+noncomputable def connectOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/grpc.connectOptions" [])
+
+attribute [irreducible] connectOptions.ty
+
+noncomputable def callHdr.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/grpc.callHdr" [])
+
+attribute [irreducible] callHdr.ty
+
+noncomputable def connectionError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/grpc.connectionError" [])
+
+attribute [irreducible] connectionError.ty
+
+noncomputable def newStreamError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/grpc.newStreamError" [])
+
+attribute [irreducible] newStreamError.ty
+
+noncomputable def recvQueue.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/grpc.recvQueue" [])
+
+attribute [irreducible] recvQueue.ty
+
+noncomputable def clientTransportStream.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/grpc.clientTransportStream" [])
+
+attribute [irreducible] clientTransportStream.ty
+
+noncomputable def serverTransport.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/grpc.serverTransport" [])
+
+attribute [irreducible] serverTransport.ty
+
+noncomputable def serverTransportStream.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/grpc.serverTransportStream" [])
+
+attribute [irreducible] serverTransportStream.ty
+
+noncomputable def headerField.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/grpc.headerField" [])
+
+attribute [irreducible] headerField.ty
+
+noncomputable def recvMsg.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/grpc.recvMsg" [])
+
+attribute [irreducible] recvMsg.ty
+
+noncomputable def PreparedMsg.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/grpc.PreparedMsg" [])
+
+attribute [irreducible] PreparedMsg.ty
 
 noncomputable def Compressor.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.Compressor" [])
@@ -464,11 +484,6 @@ noncomputable def ServiceInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] ServiceInfo.ty
 
-noncomputable def listenSocket.ty [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.Named go!"google.golang.org/grpc.listenSocket" [])
-
-attribute [irreducible] listenSocket.ty
-
 noncomputable def streamKey.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.streamKey" [])
 
@@ -484,11 +499,6 @@ noncomputable def serverKey.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] serverKey.ty
 
-noncomputable def atomicSemaphore.ty [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.Named go!"google.golang.org/grpc.atomicSemaphore" [])
-
-attribute [irreducible] atomicSemaphore.ty
-
 noncomputable def ServiceConfig.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.ServiceConfig" [])
 
@@ -499,30 +509,10 @@ noncomputable def healthCheckConfig.ty [GooseExts] [GoGlobalContext] : go.GoType
 
 attribute [irreducible] healthCheckConfig.ty
 
-noncomputable def jsonRetryPolicy.ty [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.Named go!"google.golang.org/grpc.jsonRetryPolicy" [])
-
-attribute [irreducible] jsonRetryPolicy.ty
-
 noncomputable def retryThrottlingPolicy.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.retryThrottlingPolicy" [])
 
 attribute [irreducible] retryThrottlingPolicy.ty
-
-noncomputable def jsonName.ty [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.Named go!"google.golang.org/grpc.jsonName" [])
-
-attribute [irreducible] jsonName.ty
-
-noncomputable def jsonMC.ty [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.Named go!"google.golang.org/grpc.jsonMC" [])
-
-attribute [irreducible] jsonMC.ty
-
-noncomputable def jsonSC.ty [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.Named go!"google.golang.org/grpc.jsonSC" [])
-
-attribute [irreducible] jsonSC.ty
 
 noncomputable def StreamHandler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.StreamHandler" [])
@@ -549,11 +539,6 @@ noncomputable def clientStreamWrapper.ty [GooseExts] [GoGlobalContext] : go.GoTy
 
 attribute [irreducible] clientStreamWrapper.ty
 
-noncomputable def clientInterceptor.ty [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.Named go!"google.golang.org/grpc.clientInterceptor" [])
-
-attribute [irreducible] clientInterceptor.ty
-
 noncomputable def clientStream.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.clientStream" [])
 
@@ -568,11 +553,6 @@ noncomputable def csAttempt.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.csAttempt" [])
 
 attribute [irreducible] csAttempt.ty
-
-noncomputable def addrConnStream.ty [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.Named go!"google.golang.org/grpc.addrConnStream" [])
-
-attribute [irreducible] addrConnStream.ty
 
 noncomputable def ServerStream.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.ServerStream" [])
@@ -663,23 +643,9 @@ opaque BackoffConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque ConnectParams.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque ccBalancerWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque acBalancerWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque healthData.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque refCountedProducer.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque healthProducerRegisterFn [GooseExts] [GoGlobalContext] : go.GoType
-
 opaque connectivityStateManager.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque ClientConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque addrConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque retryThrottler.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque baseCodec.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
@@ -687,15 +653,27 @@ opaque dialOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque perTargetDialOption.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque pickerGeneration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque modelPicks.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque pickerWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque pick.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque PreparedMsg.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque addrHealth.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque ccResolverWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
+
+opaque dialResult.underlying [GooseExts] [GoGlobalContext] : go.GoType
+
+opaque connectOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
+
+opaque callHdr.underlying [GooseExts] [GoGlobalContext] : go.GoType
+
+opaque recvQueue.underlying [GooseExts] [GoGlobalContext] : go.GoType
+
+opaque clientTransportStream.underlying [GooseExts] [GoGlobalContext] : go.GoType
+
+opaque serverTransport.underlying [GooseExts] [GoGlobalContext] : go.GoType
+
+opaque serverTransportStream.underlying [GooseExts] [GoGlobalContext] : go.GoType
+
+opaque PreparedMsg.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque Compressor.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
@@ -725,29 +703,15 @@ opaque Server.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque serverOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque listenSocket.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque atomicSemaphore.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
 opaque MethodConfig [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque ServiceConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque jsonRetryPolicy.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque jsonMC.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque jsonSC.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
 opaque clientStreamWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque clientInterceptor.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque clientStream.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque csAttempt.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque addrConnStream.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque serverStream.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
@@ -766,6 +730,64 @@ opaque defaultWriteBufSize [GooseExts] [GoGlobalContext] : val
 opaque defaultReadBufSize [GooseExts] [GoGlobalContext] : val
 
 opaque defaultMaxCallAttempts [GooseExts] [GoGlobalContext] : val
+
+opaque binHdrSuffix [GooseExts] [GoGlobalContext] : val
+
+opaque hour [GooseExts] [GoGlobalContext] : val
+
+opaque minute [GooseExts] [GoGlobalContext] : val
+
+opaque second [GooseExts] [GoGlobalContext] : val
+
+opaque millisecond [GooseExts] [GoGlobalContext] : val
+
+opaque microsecond [GooseExts] [GoGlobalContext] : val
+
+opaque nanosecond [GooseExts] [GoGlobalContext] : val
+
+opaque spaceByte [GooseExts] [GoGlobalContext] : val
+
+opaque tildeByte [GooseExts] [GoGlobalContext] : val
+
+opaque percentByte [GooseExts] [GoGlobalContext] : val
+
+opaque streamActive [GooseExts] [GoGlobalContext] : val
+
+opaque streamWriteDone [GooseExts] [GoGlobalContext] : val
+
+opaque streamReadDone [GooseExts] [GoGlobalContext] : val
+
+opaque streamDone [GooseExts] [GoGlobalContext] : val
+
+opaque frameHead [GooseExts] [GoGlobalContext] : val
+
+opaque frameData [GooseExts] [GoGlobalContext] : val
+
+opaque frameClose [GooseExts] [GoGlobalContext] : val
+
+opaque frameCancel [GooseExts] [GoGlobalContext] : val
+
+opaque frameHeader [GooseExts] [GoGlobalContext] : val
+
+opaque frameTrailer [GooseExts] [GoGlobalContext] : val
+
+opaque frameReset [GooseExts] [GoGlobalContext] : val
+
+opaque frameSettings [GooseExts] [GoGlobalContext] : val
+
+opaque maxHeaderBlock [GooseExts] [GoGlobalContext] : val
+
+opaque errCodeNo [GooseExts] [GoGlobalContext] : val
+
+opaque errCodeProtocol [GooseExts] [GoGlobalContext] : val
+
+opaque errCodeStreamClosed [GooseExts] [GoGlobalContext] : val
+
+opaque errCodeRefusedStream [GooseExts] [GoGlobalContext] : val
+
+opaque errCodeCancel [GooseExts] [GoGlobalContext] : val
+
+opaque clientPreface [GooseExts] [GoGlobalContext] : val
 
 opaque compressionNone [GooseExts] [GoGlobalContext] : val
 
@@ -799,8 +821,6 @@ opaque defaultServerMaxSendMessageSize [GooseExts] [GoGlobalContext] : val
 
 opaque listenerAddressForServeHTTP [GooseExts] [GoGlobalContext] : val
 
-opaque serverWorkerResetThreshold [GooseExts] [GoGlobalContext] : val
-
 opaque maxInt [GooseExts] [GoGlobalContext] : val
 
 opaque truncateSize [GooseExts] [GoGlobalContext] : val
@@ -811,11 +831,6 @@ noncomputable def DefaultBackoffConfig [GooseExts] [GoGlobalContext] : GoString 
   go!"google.golang.org/grpc.DefaultBackoffConfig"
 
 opaque DefaultBackoffConfig.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def noOpRegisterHealthListenerFn [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.noOpRegisterHealthListenerFn"
-
-opaque noOpRegisterHealthListenerFn.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def unaryStreamDesc [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.unaryStreamDesc"
@@ -872,29 +887,6 @@ noncomputable def errTransportCredentialsMissing [GooseExts] [GoGlobalContext] :
 
 opaque errTransportCredentialsMissing.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def disconnectionsMetric [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.disconnectionsMetric"
-
-opaque disconnectionsMetric.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def connectionAttemptsSucceededMetric [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.connectionAttemptsSucceededMetric"
-
-opaque connectionAttemptsSucceededMetric.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def connectionAttemptsFailedMetric [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.connectionAttemptsFailedMetric"
-
-opaque connectionAttemptsFailedMetric.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def openConnectionsMetric [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.openConnectionsMetric"
-
-opaque openConnectionsMetric.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def emptyServiceConfig [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.emptyServiceConfig"
-
 noncomputable def ErrClientConnTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.ErrClientConnTimeout"
 
@@ -905,6 +897,51 @@ noncomputable def globalDialOptions [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def globalPerTargetDialOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.globalPerTargetDialOptions"
+
+noncomputable def modelChooseRandom [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.modelChooseRandom"
+
+opaque modelChooseRandom.init [GooseExts] [GoGlobalContext] : val
+
+noncomputable def grpcStatusDetailsBinHeader [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.grpcStatusDetailsBinHeader"
+
+opaque grpcStatusDetailsBinHeader.init [GooseExts] [GoGlobalContext] : val
+
+noncomputable def errStreamDone [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.errStreamDone"
+
+opaque errStreamDone.init [GooseExts] [GoGlobalContext] : val
+
+noncomputable def errIllegalHeaderWrite [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.errIllegalHeaderWrite"
+
+opaque errIllegalHeaderWrite.init [GooseExts] [GoGlobalContext] : val
+
+noncomputable def errTransportClosing [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.errTransportClosing"
+
+opaque errTransportClosing.init [GooseExts] [GoGlobalContext] : val
+
+noncomputable def transportFailureCodes [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.transportFailureCodes"
+
+opaque transportFailureCodes.init [GooseExts] [GoGlobalContext] : val
+
+noncomputable def errMalformedFrame [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.errMalformedFrame"
+
+opaque errMalformedFrame.init [GooseExts] [GoGlobalContext] : val
+
+noncomputable def http2ErrCodeNames [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.http2ErrCodeNames"
+
+opaque http2ErrCodeNames.init [GooseExts] [GoGlobalContext] : val
+
+noncomputable def http2ErrConvTab [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.http2ErrConvTab"
+
+opaque http2ErrConvTab.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errContextCanceled [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.errContextCanceled"
@@ -939,16 +976,6 @@ noncomputable def ErrServerStopped [GooseExts] [GoGlobalContext] : GoString :=
 
 opaque ErrServerStopped.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def errDuplicatedName [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.errDuplicatedName"
-
-opaque errDuplicatedName.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errEmptyServiceNonEmptyMethod [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.errEmptyServiceNonEmptyMethod"
-
-opaque errEmptyServiceNonEmptyMethod.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def metadataFromOutgoingContextRaw [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.metadataFromOutgoingContextRaw"
 
@@ -961,12 +988,6 @@ opaque emptyMethodConfig.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def EnableTracing [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.EnableTracing"
-
-noncomputable def newCCBalancerWrapper [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.newCCBalancerWrapper"
-
-noncomputable def newHealthData [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.newHealthData"
 
 noncomputable def combine [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.combine"
@@ -1001,32 +1022,14 @@ noncomputable def getChainStreamer [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def newConnectivityStateManager [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newConnectivityStateManager"
 
-noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.init.0"
-
-noncomputable def copyAddresses [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.copyAddresses"
-
-noncomputable def equalAddressIgnoringBalAttributes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.equalAddressIgnoringBalAttributes"
-
-noncomputable def equalAddressesIgnoringBalAttributes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.equalAddressesIgnoringBalAttributes"
-
 noncomputable def getMethodConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.getMethodConfig"
-
-noncomputable def disconnectErrorString [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.disconnectErrorString"
 
 noncomputable def parseTarget [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.parseTarget"
 
 noncomputable def encodeAuthority [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.encodeAuthority"
-
-noncomputable def disconnectErrorLabel [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.disconnectErrorLabel"
 
 noncomputable def getCodec [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.getCodec"
@@ -1037,8 +1040,8 @@ noncomputable def newCodecV0Bridge [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def newCodecV1Bridge [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newCodecV1Bridge"
 
-noncomputable def init.«1» [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.init.1"
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.init.0"
 
 noncomputable def newDisableGlobalDialOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newDisableGlobalDialOptions"
@@ -1199,20 +1202,113 @@ noncomputable def WithMaxCallAttempts [GooseExts] [GoGlobalContext] : GoString :
 noncomputable def withBufferPool [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.withBufferPool"
 
-noncomputable def newPickerWrapper [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.newPickerWrapper"
+noncomputable def modelChoose [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.modelChoose"
 
-noncomputable def doneChannelzWrapper [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.doneChannelzWrapper"
+noncomputable def modelChooseN [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.modelChooseN"
+
+noncomputable def modelChooseAddr [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.modelChooseAddr"
+
+noncomputable def modelNoteDial [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.modelNoteDial"
 
 noncomputable def newCCResolverWrapper [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newCCResolverWrapper"
 
-noncomputable def addressesToEndpoints [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.addressesToEndpoints"
+noncomputable def abandonDial [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.abandonDial"
 
-noncomputable def init.«2» [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.init.2"
+noncomputable def isReservedHeader [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.isReservedHeader"
+
+noncomputable def isWhitelistedHeader [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.isWhitelistedHeader"
+
+noncomputable def encodeBinHeader [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.encodeBinHeader"
+
+noncomputable def decodeBinHeader [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.decodeBinHeader"
+
+noncomputable def encodeMetadataHeader [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.encodeMetadataHeader"
+
+noncomputable def decodeMetadataHeader [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.decodeMetadataHeader"
+
+noncomputable def timeoutUnitToDuration [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.timeoutUnitToDuration"
+
+noncomputable def decodeTimeout [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.decodeTimeout"
+
+noncomputable def encodeGrpcMessage [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.encodeGrpcMessage"
+
+noncomputable def encodeGrpcMessageUnchecked [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.encodeGrpcMessageUnchecked"
+
+noncomputable def decodeGrpcMessage [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.decodeGrpcMessage"
+
+noncomputable def decodeGrpcMessageUnchecked [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.decodeGrpcMessageUnchecked"
+
+noncomputable def appendHeaderFieldsFromMD [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.appendHeaderFieldsFromMD"
+
+noncomputable def contextErr [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.contextErr"
+
+noncomputable def transportFailure [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.transportFailure"
+
+noncomputable def newRecvQueue [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.newRecvQueue"
+
+noncomputable def newClientTransportStream [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.newClientTransportStream"
+
+noncomputable def createHeaderFields [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.createHeaderFields"
+
+noncomputable def newServerTransport [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.newServerTransport"
+
+noncomputable def readFull [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.readFull"
+
+noncomputable def readFrameKind [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.readFrameKind"
+
+noncomputable def appendHeaderBlock [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.appendHeaderBlock"
+
+noncomputable def readHeaderBlock [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.readHeaderBlock"
+
+noncomputable def cutString [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.cutString"
+
+noncomputable def appendData [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.appendData"
+
+noncomputable def readData [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.readData"
+
+noncomputable def errCodeString [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.errCodeString"
+
+noncomputable def appendReset [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.appendReset"
+
+noncomputable def readPreface [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.readPreface"
+
+noncomputable def init.«1» [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.init.1"
 
 noncomputable def NewGZIPCompressor [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.NewGZIPCompressor"
@@ -1331,8 +1427,8 @@ noncomputable def toRPCErr [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def setCallInfoCodec [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.setCallInfoCodec"
 
-noncomputable def init.«3» [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.init.3"
+noncomputable def init.«2» [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.init.2"
 
 noncomputable def newFuncServerOption [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newFuncServerOption"
@@ -1496,21 +1592,6 @@ noncomputable def Method [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def validateSendCompressor [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.validateSendCompressor"
 
-noncomputable def newHandlerQuota [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.newHandlerQuota"
-
-noncomputable def init.«4» [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.init.4"
-
-noncomputable def parseServiceConfig [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.parseServiceConfig"
-
-noncomputable def isValidRetryPolicy [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.isValidRetryPolicy"
-
-noncomputable def convertRetryPolicy [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.convertRetryPolicy"
-
 noncomputable def minPointers [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.minPointers"
 
@@ -1520,11 +1601,8 @@ noncomputable def getMaxSize [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def newInt [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newInt"
 
-noncomputable def init.«5» [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.init.5"
-
-noncomputable def equalServiceConfig [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.equalServiceConfig"
+noncomputable def parseServiceConfig [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.parseServiceConfig"
 
 noncomputable def defaultStreamInterceptor [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.defaultStreamInterceptor"
@@ -1540,9 +1618,6 @@ noncomputable def newClientStream [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def newClientStreamWithParams [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newClientStreamWithParams"
-
-noncomputable def newNonRetryClientStream [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.newNonRetryClientStream"
 
 noncomputable def MethodFromServerStream [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.MethodFromServerStream"
@@ -1570,7 +1645,7 @@ noncomputable def newTraceEventLog [GooseExts] [GoGlobalContext] : GoString :=
     and doesn't change at runtime. This can be used as a signal to stats plugins
     that this method is safe to include as a key to a measurement.
 
-    go: rpc_util.go:256:6 -/
+    go: rpc_util.go:255:6 -/
 noncomputable def StaticMethod.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc CallOption.ty))) (App (Val (GoInstruction (GoZeroVal CallOption.ty))) (Val #())))
@@ -1586,7 +1661,7 @@ noncomputable def StaticMethod.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Peer returns a CallOption that retrieves peer information for a unary RPC.
     The peer field will be populated *after* the RPC completes.
 
-    go: rpc_util.go:312:6 -/
+    go: rpc_util.go:311:6 -/
 noncomputable def Peer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc CallOption.ty))) (App (Val (GoInstruction (GoZeroVal CallOption.ty))) (Val #())))
@@ -1609,7 +1684,7 @@ noncomputable def Peer.impl [GooseExts] [GoGlobalContext] : val :=
 
     By default, RPCs do not "wait for ready".
 
-    go: rpc_util.go:341:6 -/
+    go: rpc_util.go:340:6 -/
 noncomputable def WaitForReady.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "waitForReady"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc CallOption.ty))) (App (Val (GoInstruction (GoZeroVal CallOption.ty))) (Val #())))
@@ -1628,7 +1703,7 @@ noncomputable def WaitForReady.impl [GooseExts] [GoGlobalContext] : val :=
     in bytes the client can receive. If this is not set, gRPC uses the default
     4MB.
 
-    go: rpc_util.go:407:6 -/
+    go: rpc_util.go:406:6 -/
 noncomputable def MaxCallRecvMsgSize.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "bytes"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc CallOption.ty))) (App (Val (GoInstruction (GoZeroVal CallOption.ty))) (Val #())))
@@ -1647,7 +1722,7 @@ noncomputable def MaxCallRecvMsgSize.impl [GooseExts] [GoGlobalContext] : val :=
     in bytes the client can send. If this is not set, gRPC uses the default
     `math.MaxInt32`.
 
-    go: rpc_util.go:461:6 -/
+    go: rpc_util.go:460:6 -/
 noncomputable def MaxCallSendMsgSize.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "bytes"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc CallOption.ty))) (App (Val (GoInstruction (GoZeroVal CallOption.ty))) (Val #())))
@@ -1857,15 +1932,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve init.«5» []))) (Val #())) (Val #())))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve init.«4» []))) (Val #())) (Val #()))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve init.«3» []))) (Val #())) (Val #()))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve init.«2» []))) (Val #())) (Val #()))))))
+  (App (App (Val (GoInstruction (FuncResolve init.«2» []))) (Val #())) (Val #())))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«1» []))) (Val #())) (Val #()))))))
   (App (Val doExecute)
@@ -1887,10 +1955,6 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val metadataFromOutgoingContextRaw.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val errEmptyServiceNonEmptyMethod.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errDuplicatedName.init) (Val #()))))))
-  (App (Val doExecute)
   (App (Val «_».init) (Val #()))))))
   (App (Val doExecute)
   (App (Val ErrServerStopped.init) (Val #()))))))
@@ -1905,6 +1969,24 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val errContextCanceled.init) (Val #()))))))
   (App (Val doExecute)
+  (App (Val http2ErrConvTab.init) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val http2ErrCodeNames.init) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val errMalformedFrame.init) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val transportFailureCodes.init) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val errTransportClosing.init) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val errIllegalHeaderWrite.init) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val errStreamDone.init) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val grpcStatusDetailsBinHeader.init) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val modelChooseRandom.init) (Val #()))))))
+  (App (Val doExecute)
   (App (Val «_».init) (Val #()))))))
   (App (Val doExecute)
   (App (Val «_».init) (Val #()))))))
@@ -1912,14 +1994,6 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val ErrClientConnTimeout.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val openConnectionsMetric.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val connectionAttemptsFailedMetric.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val connectionAttemptsSucceededMetric.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val disconnectionsMetric.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val errTransportCredentialsMissing.init) (Val #()))))))
   (App (Val doExecute)
@@ -1942,8 +2016,6 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val ErrClientConnClosing.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val unaryStreamDesc.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val noOpRegisterHealthListenerFn.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val DefaultBackoffConfig.init) (Val #()))))))
   (App (Val doExecute)
@@ -1993,150 +2065,6 @@ attribute [instance] ConnectParams.TypeAssumptions.type_repr
   ConnectParams.TypeAssumptions.method_set
   ConnectParams.TypeAssumptions.ptr_method_set
 
-opaque ccBalancerWrapper.nonempty_type : NonemptyType.{0}
-def ccBalancerWrapper : Type := ccBalancerWrapper.nonempty_type.type
-instance ccBalancerWrapper.nonempty : Nonempty ccBalancerWrapper := ccBalancerWrapper.nonempty_type.property
-opaque ccBalancerWrapper.zero_val : ZeroVal ccBalancerWrapper := ⟨Classical.ofNonempty⟩
-attribute [instance] ccBalancerWrapper.zero_val
-
-class ccBalancerWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying ccBalancerWrapper.underlying ccBalancerWrapper
-  underlying : go.UnderlyingDirectedEq ccBalancerWrapper.ty ccBalancerWrapper.underlying
-  isUnderlying : go.IsUnderlying ccBalancerWrapper.underlying ccBalancerWrapper.underlying
-  method_set : go.MethodSetIs ccBalancerWrapper.ty [(go!"google.golang.org/grpc/internal.enforceClientConnEmbedding", (some (go.signature.Signature [] false [])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ccBalancerWrapper.ty) [(go!"MetricsRecorder", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/grpc/experimental/stats.MetricsRecorder" [])]))), (go!"NewSubConn", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc/resolver.Address" [])), (go.GoType.Named go!"google.golang.org/grpc/balancer.NewSubConnOptions" [])] false [(go.GoType.Named go!"google.golang.org/grpc/balancer.SubConn" []), go.error]))), (go!"RemoveSubConn", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/balancer.SubConn" [])] false []))), (go!"ResolveNow", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/resolver.ResolveNowOptions" [])] false []))), (go!"Target", (some (go.signature.Signature [] false [go.string]))), (go!"UpdateAddresses", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/balancer.SubConn" []), (go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc/resolver.Address" []))] false []))), (go!"UpdateState", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/balancer.State" [])] false []))), (go!"google.golang.org/grpc.close", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.exitIdle", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.resolverError", (some (go.signature.Signature [go.error] false []))), (go!"google.golang.org/grpc.updateClientConnState", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/balancer.ClientConnState" []))] false [go.error]))), (go!"google.golang.org/grpc/internal.enforceClientConnEmbedding", (some (go.signature.Signature [] false [])))]
-
-attribute [instance] ccBalancerWrapper.TypeAssumptions.type_repr
-  ccBalancerWrapper.TypeAssumptions.underlying
-  ccBalancerWrapper.TypeAssumptions.isUnderlying
-  ccBalancerWrapper.TypeAssumptions.method_set
-  ccBalancerWrapper.TypeAssumptions.ptr_method_set
-
-opaque acBalancerWrapper.nonempty_type : NonemptyType.{0}
-def acBalancerWrapper : Type := acBalancerWrapper.nonempty_type.type
-instance acBalancerWrapper.nonempty : Nonempty acBalancerWrapper := acBalancerWrapper.nonempty_type.property
-opaque acBalancerWrapper.zero_val : ZeroVal acBalancerWrapper := ⟨Classical.ofNonempty⟩
-attribute [instance] acBalancerWrapper.zero_val
-
-class acBalancerWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying acBalancerWrapper.underlying acBalancerWrapper
-  underlying : go.UnderlyingDirectedEq acBalancerWrapper.ty acBalancerWrapper.underlying
-  isUnderlying : go.IsUnderlying acBalancerWrapper.underlying acBalancerWrapper.underlying
-  method_set : go.MethodSetIs acBalancerWrapper.ty [(go!"google.golang.org/grpc/internal.enforceSubConnEmbedding", (some (go.signature.Signature [] false [])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType acBalancerWrapper.ty) [(go!"Connect", (some (go.signature.Signature [] false []))), (go!"GetOrBuildProducer", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/balancer.ProducerBuilder" [])] false [(go.GoType.Named go!"google.golang.org/grpc/balancer.Producer" []), (go.GoType.FunctionType (go.signature.Signature [] false []))]))), (go!"Invoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.any, go.any, (go.GoType.SliceType CallOption.ty)] true [go.error]))), (go!"NewStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType StreamDesc.ty), go.string, (go.GoType.SliceType CallOption.ty)] true [ClientStream.ty, go.error]))), (go!"RegisterHealthListener", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/balancer.SubConnState" [])] false []))] false []))), (go!"Shutdown", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"UpdateAddresses", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc/resolver.Address" []))] false []))), (go!"google.golang.org/grpc.closeProducers", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.healthListenerRegFn", (some (go.signature.Signature [] false [(go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/balancer.SubConnState" [])] false []))] false [(go.GoType.FunctionType (go.signature.Signature [] false []))]))]))), (go!"google.golang.org/grpc.updateState", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/connectivity.State" []), go.error] false []))), (go!"google.golang.org/grpc/internal.enforceSubConnEmbedding", (some (go.signature.Signature [] false [])))]
-
-attribute [instance] acBalancerWrapper.TypeAssumptions.type_repr
-  acBalancerWrapper.TypeAssumptions.underlying
-  acBalancerWrapper.TypeAssumptions.isUnderlying
-  acBalancerWrapper.TypeAssumptions.method_set
-  acBalancerWrapper.TypeAssumptions.ptr_method_set
-
-opaque healthData.nonempty_type : NonemptyType.{0}
-def healthData : Type := healthData.nonempty_type.type
-instance healthData.nonempty : Nonempty healthData := healthData.nonempty_type.property
-opaque healthData.zero_val : ZeroVal healthData := ⟨Classical.ofNonempty⟩
-attribute [instance] healthData.zero_val
-
-class healthData.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying healthData.underlying healthData
-  underlying : go.UnderlyingDirectedEq healthData.ty healthData.underlying
-  isUnderlying : go.IsUnderlying healthData.underlying healthData.underlying
-  method_set : go.MethodSetIs healthData.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType healthData.ty) []
-
-attribute [instance] healthData.TypeAssumptions.type_repr
-  healthData.TypeAssumptions.underlying
-  healthData.TypeAssumptions.isUnderlying
-  healthData.TypeAssumptions.method_set
-  healthData.TypeAssumptions.ptr_method_set
-
-opaque refCountedProducer.nonempty_type : NonemptyType.{0}
-def refCountedProducer : Type := refCountedProducer.nonempty_type.type
-instance refCountedProducer.nonempty : Nonempty refCountedProducer := refCountedProducer.nonempty_type.property
-opaque refCountedProducer.zero_val : ZeroVal refCountedProducer := ⟨Classical.ofNonempty⟩
-attribute [instance] refCountedProducer.zero_val
-
-class refCountedProducer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying refCountedProducer.underlying refCountedProducer
-  underlying : go.UnderlyingDirectedEq refCountedProducer.ty refCountedProducer.underlying
-  isUnderlying : go.IsUnderlying refCountedProducer.underlying refCountedProducer.underlying
-  method_set : go.MethodSetIs refCountedProducer.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType refCountedProducer.ty) []
-
-attribute [instance] refCountedProducer.TypeAssumptions.type_repr
-  refCountedProducer.TypeAssumptions.underlying
-  refCountedProducer.TypeAssumptions.isUnderlying
-  refCountedProducer.TypeAssumptions.method_set
-  refCountedProducer.TypeAssumptions.ptr_method_set
-
-structure defaultConfigSelector [GooseExts] where
-  mk ::
-  sc' : Loc
-
-noncomputable instance defaultConfigSelector.zero_val [GooseExts] : ZeroVal defaultConfigSelector :=
-  ⟨defaultConfigSelector.mk zeroValDef⟩
-
-@[reducible] noncomputable def defaultConfigSelector.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
-  [(go.field_decl.FieldDecl go!"sc" (go.GoType.PointerType ServiceConfig.ty))]
-
-@[irreducible] noncomputable def defaultConfigSelector.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
-  defaultConfigSelector.fieldsUnsealed
-
-noncomputable instance equals_unfold_defaultConfigSelector [GooseExts] [GoGlobalContext] :
-    EqualsUnfold defaultConfigSelector.fields defaultConfigSelector.fieldsUnsealed :=
-  ⟨by unfold defaultConfigSelector.fields; rfl⟩
-
-@[reducible] noncomputable def defaultConfigSelector.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.StructType defaultConfigSelector.fields)
-
-class defaultConfigSelector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying defaultConfigSelector.underlying defaultConfigSelector
-  underlying : go.UnderlyingDirectedEq defaultConfigSelector.ty defaultConfigSelector.underlying
-  get_sc : ∀ (x : defaultConfigSelector), go.IsGoStepPureDetTagged under (StructFieldGet defaultConfigSelector.underlying go!"sc") #x (Val #(x.sc'))
-  set_sc : ∀ (x : defaultConfigSelector) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet defaultConfigSelector.underlying go!"sc") (PairV #x #y) (Val #(({ x with sc' := y } : defaultConfigSelector)))
-  method_set : go.MethodSetIs defaultConfigSelector.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType defaultConfigSelector.ty) [(go!"SelectConfig", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/internal/resolver.RPCInfo" [])] false [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/resolver.RPCConfig" [])), go.error])))]
-
-attribute [instance] defaultConfigSelector.TypeAssumptions.type_repr
-  defaultConfigSelector.TypeAssumptions.underlying
-  defaultConfigSelector.TypeAssumptions.get_sc
-  defaultConfigSelector.TypeAssumptions.set_sc
-  defaultConfigSelector.TypeAssumptions.method_set
-  defaultConfigSelector.TypeAssumptions.ptr_method_set
-
-opaque ClientConn.nonempty_type : NonemptyType.{0}
-def ClientConn : Type := ClientConn.nonempty_type.type
-instance ClientConn.nonempty : Nonempty ClientConn := ClientConn.nonempty_type.property
-opaque ClientConn.zero_val : ZeroVal ClientConn := ⟨Classical.ofNonempty⟩
-attribute [instance] ClientConn.zero_val
-
-class ClientConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying ClientConn.underlying ClientConn
-  underlying : go.UnderlyingDirectedEq ClientConn.ty ClientConn.underlying
-  isUnderlying : go.IsUnderlying ClientConn.underlying ClientConn.underlying
-  method_set : go.MethodSetIs ClientConn.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClientConn.ty) [(go!"CanonicalTarget", (some (go.signature.Signature [] false [go.string]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Connect", (some (go.signature.Signature [] false []))), (go!"GetMethodConfig", (some (go.signature.Signature [go.string] false [(go.GoType.Named go!"google.golang.org/grpc/internal/serviceconfig.MethodConfig" [])]))), (go!"GetState", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/grpc/connectivity.State" [])]))), (go!"Invoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.any, go.any, (go.GoType.SliceType CallOption.ty)] true [go.error]))), (go!"NewStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType StreamDesc.ty), go.string, (go.GoType.SliceType CallOption.ty)] true [ClientStream.ty, go.error]))), (go!"ResetConnectBackoff", (some (go.signature.Signature [] false []))), (go!"Target", (some (go.signature.Signature [] false [go.string]))), (go!"WaitForStateChange", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.Named go!"google.golang.org/grpc/connectivity.State" [])] false [go.bool]))), (go!"google.golang.org/grpc.addTraceEvent", (some (go.signature.Signature [go.string] false []))), (go!"google.golang.org/grpc.applyFailingLBLocked", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/serviceconfig.ParseResult" []))] false []))), (go!"google.golang.org/grpc.applyServiceConfigAndBalancer", (some (go.signature.Signature [(go.GoType.PointerType ServiceConfig.ty), (go.GoType.Named go!"google.golang.org/grpc/internal/resolver.ConfigSelector" [])] false []))), (go!"google.golang.org/grpc.channelzRegistration", (some (go.signature.Signature [go.string] false []))), (go!"google.golang.org/grpc.connectionError", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.enterIdleMode", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.exitIdleMode", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.getResolver", (some (go.signature.Signature [go.string] false [(go.GoType.Named go!"google.golang.org/grpc/resolver.Builder" [])]))), (go!"google.golang.org/grpc.getServerName", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/resolver.Address" [])] false [go.string]))), (go!"google.golang.org/grpc.healthCheckConfig", (some (go.signature.Signature [] false [(go.GoType.PointerType healthCheckConfig.ty)]))), (go!"google.golang.org/grpc.incrCallsFailed", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.incrCallsStarted", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.incrCallsSucceeded", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.initAuthority", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.initIdleStateLocked", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.initParsedTargetAndResolverBuilder", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.maybeApplyDefaultServiceConfig", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.newAddrConnLocked", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc/resolver.Address" [])), (go.GoType.Named go!"google.golang.org/grpc/balancer.NewSubConnOptions" [])] false [(go.GoType.PointerType addrConn.ty), go.error]))), (go!"google.golang.org/grpc.removeAddrConn", (some (go.signature.Signature [(go.GoType.PointerType addrConn.ty), go.error] false []))), (go!"google.golang.org/grpc.resolveNow", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/resolver.ResolveNowOptions" [])] false []))), (go!"google.golang.org/grpc.resolveNowLocked", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/resolver.ResolveNowOptions" [])] false []))), (go!"google.golang.org/grpc.updateConnectionError", (some (go.signature.Signature [go.error] false []))), (go!"google.golang.org/grpc.updateResolverStateAndUnlock", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/resolver.State" []), go.error] false [go.error]))), (go!"google.golang.org/grpc.validateTransportCredentials", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.waitForResolvedAddrs", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.bool, go.error])))]
-
-attribute [instance] ClientConn.TypeAssumptions.type_repr
-  ClientConn.TypeAssumptions.underlying
-  ClientConn.TypeAssumptions.isUnderlying
-  ClientConn.TypeAssumptions.method_set
-  ClientConn.TypeAssumptions.ptr_method_set
-
-abbrev idler [GooseExts] : Type := ClientConn
-
-@[reducible] noncomputable def idler.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  ClientConn.ty
-
-class idler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq idler.ty idler.underlying
-  method_set : go.MethodSetIs idler.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType idler.ty) [(go!"EnterIdleMode", (some (go.signature.Signature [] false []))), (go!"ExitIdleMode", (some (go.signature.Signature [] false [])))]
-
-attribute [instance] idler.TypeAssumptions.underlying
-  idler.TypeAssumptions.method_set
-  idler.TypeAssumptions.ptr_method_set
-
 opaque connectivityStateManager.nonempty_type : NonemptyType.{0}
 def connectivityStateManager : Type := connectivityStateManager.nonempty_type.type
 instance connectivityStateManager.nonempty : Nonempty connectivityStateManager := connectivityStateManager.nonempty_type.property
@@ -2170,73 +2098,24 @@ attribute [instance] ClientConnInterface.TypeAssumptions.underlying
   ClientConnInterface.TypeAssumptions.method_set
   ClientConnInterface.TypeAssumptions.ptr_method_set
 
-opaque addrConn.nonempty_type : NonemptyType.{0}
-def addrConn : Type := addrConn.nonempty_type.type
-instance addrConn.nonempty : Nonempty addrConn := addrConn.nonempty_type.property
-opaque addrConn.zero_val : ZeroVal addrConn := ⟨Classical.ofNonempty⟩
-attribute [instance] addrConn.zero_val
+opaque ClientConn.nonempty_type : NonemptyType.{0}
+def ClientConn : Type := ClientConn.nonempty_type.type
+instance ClientConn.nonempty : Nonempty ClientConn := ClientConn.nonempty_type.property
+opaque ClientConn.zero_val : ZeroVal ClientConn := ⟨Classical.ofNonempty⟩
+attribute [instance] ClientConn.zero_val
 
-class addrConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying addrConn.underlying addrConn
-  underlying : go.UnderlyingDirectedEq addrConn.ty addrConn.underlying
-  isUnderlying : go.IsUnderlying addrConn.underlying addrConn.underlying
-  method_set : go.MethodSetIs addrConn.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType addrConn.ty) [(go!"google.golang.org/grpc.adjustParams", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/internal/transport.GoAwayReason" [])] false []))), (go!"google.golang.org/grpc.connect", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.createTransport", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.Named go!"google.golang.org/grpc/resolver.Address" []), (go.GoType.Named go!"google.golang.org/grpc/internal/transport.ConnectOptions" []), (go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"google.golang.org/grpc.getReadyTransport", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/grpc/internal/transport.ClientTransport" [])]))), (go!"google.golang.org/grpc.incrCallsFailed", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.incrCallsStarted", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.incrCallsSucceeded", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.resetConnectBackoff", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.resetTransportAndUnlock", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.securityLevelLocked", (some (go.signature.Signature [] false [go.string]))), (go!"google.golang.org/grpc.startHealthCheck", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false []))), (go!"google.golang.org/grpc.tearDown", (some (go.signature.Signature [go.error] false []))), (go!"google.golang.org/grpc.tryAllAddrs", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc/resolver.Address" [])), (go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"google.golang.org/grpc.updateAddrs", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc/resolver.Address" []))] false []))), (go!"google.golang.org/grpc.updateConnectivityState", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/connectivity.State" []), go.error] false []))), (go!"google.golang.org/grpc.updateTelemetryLabelsLocked", (some (go.signature.Signature [] false [])))]
+class ClientConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying ClientConn.underlying ClientConn
+  underlying : go.UnderlyingDirectedEq ClientConn.ty ClientConn.underlying
+  isUnderlying : go.IsUnderlying ClientConn.underlying ClientConn.underlying
+  method_set : go.MethodSetIs ClientConn.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClientConn.ty) [(go!"CanonicalTarget", (some (go.signature.Signature [] false [go.string]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Connect", (some (go.signature.Signature [] false []))), (go!"GetMethodConfig", (some (go.signature.Signature [go.string] false [(go.GoType.Named go!"google.golang.org/grpc/internal/serviceconfig.MethodConfig" [])]))), (go!"GetState", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/grpc/connectivity.State" [])]))), (go!"Invoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.any, go.any, (go.GoType.SliceType CallOption.ty)] true [go.error]))), (go!"NewStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType StreamDesc.ty), go.string, (go.GoType.SliceType CallOption.ty)] true [ClientStream.ty, go.error]))), (go!"ResetConnectBackoff", (some (go.signature.Signature [] false []))), (go!"Target", (some (go.signature.Signature [] false [go.string]))), (go!"WaitForStateChange", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.Named go!"google.golang.org/grpc/connectivity.State" [])] false [go.bool]))), (go!"google.golang.org/grpc.addStream", (some (go.signature.Signature [(go.GoType.PointerType clientTransportStream.ty)] false [go.bool]))), (go!"google.golang.org/grpc.connectionError", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.dialAddr", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/resolver.Address" [])] false [(go.GoType.Named go!"net.Conn" []), (go.GoType.Named go!"google.golang.org/grpc/credentials.AuthInfo" []), go.error]))), (go!"google.golang.org/grpc.enterIdleMode", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.exitIdleMode", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.getResolver", (some (go.signature.Signature [go.string] false [(go.GoType.Named go!"google.golang.org/grpc/resolver.Builder" [])]))), (go!"google.golang.org/grpc.getServerName", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/resolver.Address" [])] false [go.string]))), (go!"google.golang.org/grpc.getTransportConn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.bool] false [(go.GoType.Named go!"net.Conn" []), (go.GoType.Named go!"google.golang.org/grpc/credentials.AuthInfo" []), go.error]))), (go!"google.golang.org/grpc.initAuthority", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.initParsedTargetAndResolverBuilder", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.onCallBegin", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.onCallEnd", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.removeStream", (some (go.signature.Signature [(go.GoType.PointerType clientTransportStream.ty)] false []))), (go!"google.golang.org/grpc.updateConnectionError", (some (go.signature.Signature [go.error] false []))), (go!"google.golang.org/grpc.validateTransportCredentials", (some (go.signature.Signature [] false [go.error])))]
 
-attribute [instance] addrConn.TypeAssumptions.type_repr
-  addrConn.TypeAssumptions.underlying
-  addrConn.TypeAssumptions.isUnderlying
-  addrConn.TypeAssumptions.method_set
-  addrConn.TypeAssumptions.ptr_method_set
-
-structure securityLevelKey [GooseExts] where
-  mk ::
-
-noncomputable instance securityLevelKey.zero_val [GooseExts] : ZeroVal securityLevelKey :=
-  ⟨securityLevelKey.mk⟩
-
-@[reducible] noncomputable def securityLevelKey.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
-  []
-
-@[irreducible] noncomputable def securityLevelKey.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
-  securityLevelKey.fieldsUnsealed
-
-noncomputable instance equals_unfold_securityLevelKey [GooseExts] [GoGlobalContext] :
-    EqualsUnfold securityLevelKey.fields securityLevelKey.fieldsUnsealed :=
-  ⟨by unfold securityLevelKey.fields; rfl⟩
-
-@[reducible] noncomputable def securityLevelKey.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.StructType securityLevelKey.fields)
-
-class securityLevelKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying securityLevelKey.underlying securityLevelKey
-  underlying : go.UnderlyingDirectedEq securityLevelKey.ty securityLevelKey.underlying
-  method_set : go.MethodSetIs securityLevelKey.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType securityLevelKey.ty) []
-
-attribute [instance] securityLevelKey.TypeAssumptions.type_repr
-  securityLevelKey.TypeAssumptions.underlying
-  securityLevelKey.TypeAssumptions.method_set
-  securityLevelKey.TypeAssumptions.ptr_method_set
-
-opaque retryThrottler.nonempty_type : NonemptyType.{0}
-def retryThrottler : Type := retryThrottler.nonempty_type.type
-instance retryThrottler.nonempty : Nonempty retryThrottler := retryThrottler.nonempty_type.property
-opaque retryThrottler.zero_val : ZeroVal retryThrottler := ⟨Classical.ofNonempty⟩
-attribute [instance] retryThrottler.zero_val
-
-class retryThrottler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying retryThrottler.underlying retryThrottler
-  underlying : go.UnderlyingDirectedEq retryThrottler.ty retryThrottler.underlying
-  isUnderlying : go.IsUnderlying retryThrottler.underlying retryThrottler.underlying
-  method_set : go.MethodSetIs retryThrottler.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType retryThrottler.ty) [(go!"google.golang.org/grpc.successfulRPC", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.throttle", (some (go.signature.Signature [] false [go.bool])))]
-
-attribute [instance] retryThrottler.TypeAssumptions.type_repr
-  retryThrottler.TypeAssumptions.underlying
-  retryThrottler.TypeAssumptions.isUnderlying
-  retryThrottler.TypeAssumptions.method_set
-  retryThrottler.TypeAssumptions.ptr_method_set
+attribute [instance] ClientConn.TypeAssumptions.type_repr
+  ClientConn.TypeAssumptions.underlying
+  ClientConn.TypeAssumptions.isUnderlying
+  ClientConn.TypeAssumptions.method_set
+  ClientConn.TypeAssumptions.ptr_method_set
 
 opaque baseCodec.nonempty_type : NonemptyType.{0}
 def baseCodec : Type := baseCodec.nonempty_type.type
@@ -2750,97 +2629,436 @@ attribute [instance] StreamServerInterceptor.TypeAssumptions.underlying
   StreamServerInterceptor.TypeAssumptions.method_set
   StreamServerInterceptor.TypeAssumptions.ptr_method_set
 
-opaque pickerGeneration.nonempty_type : NonemptyType.{0}
-def pickerGeneration : Type := pickerGeneration.nonempty_type.type
-instance pickerGeneration.nonempty : Nonempty pickerGeneration := pickerGeneration.nonempty_type.property
-opaque pickerGeneration.zero_val : ZeroVal pickerGeneration := ⟨Classical.ofNonempty⟩
-attribute [instance] pickerGeneration.zero_val
+abbrev notModelled [GooseExts] : Type := GoString
 
-class pickerGeneration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying pickerGeneration.underlying pickerGeneration
-  underlying : go.UnderlyingDirectedEq pickerGeneration.ty pickerGeneration.underlying
-  isUnderlying : go.IsUnderlying pickerGeneration.underlying pickerGeneration.underlying
-  method_set : go.MethodSetIs pickerGeneration.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType pickerGeneration.ty) []
+@[reducible] noncomputable def notModelled.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  go.string
 
-attribute [instance] pickerGeneration.TypeAssumptions.type_repr
-  pickerGeneration.TypeAssumptions.underlying
-  pickerGeneration.TypeAssumptions.isUnderlying
-  pickerGeneration.TypeAssumptions.method_set
-  pickerGeneration.TypeAssumptions.ptr_method_set
+class notModelled.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq notModelled.ty notModelled.underlying
+  method_set : go.MethodSetIs notModelled.ty [(go!"NotModelled", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType notModelled.ty) [(go!"NotModelled", (some (go.signature.Signature [] false [])))]
 
-opaque pickerWrapper.nonempty_type : NonemptyType.{0}
-def pickerWrapper : Type := pickerWrapper.nonempty_type.type
-instance pickerWrapper.nonempty : Nonempty pickerWrapper := pickerWrapper.nonempty_type.property
-opaque pickerWrapper.zero_val : ZeroVal pickerWrapper := ⟨Classical.ofNonempty⟩
-attribute [instance] pickerWrapper.zero_val
+attribute [instance] notModelled.TypeAssumptions.underlying
+  notModelled.TypeAssumptions.method_set
+  notModelled.TypeAssumptions.ptr_method_set
 
-class pickerWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying pickerWrapper.underlying pickerWrapper
-  underlying : go.UnderlyingDirectedEq pickerWrapper.ty pickerWrapper.underlying
-  isUnderlying : go.IsUnderlying pickerWrapper.underlying pickerWrapper.underlying
-  method_set : go.MethodSetIs pickerWrapper.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType pickerWrapper.ty) [(go!"google.golang.org/grpc.close", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.pick", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.bool, (go.GoType.Named go!"google.golang.org/grpc/balancer.PickInfo" [])] false [pick.ty, go.error]))), (go!"google.golang.org/grpc.reset", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.updatePicker", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/balancer.Picker" [])] false [])))]
+opaque modelPicks.nonempty_type : NonemptyType.{0}
+def modelPicks : Type := modelPicks.nonempty_type.type
+instance modelPicks.nonempty : Nonempty modelPicks := modelPicks.nonempty_type.property
+opaque modelPicks.zero_val : ZeroVal modelPicks := ⟨Classical.ofNonempty⟩
+attribute [instance] modelPicks.zero_val
 
-attribute [instance] pickerWrapper.TypeAssumptions.type_repr
-  pickerWrapper.TypeAssumptions.underlying
-  pickerWrapper.TypeAssumptions.isUnderlying
-  pickerWrapper.TypeAssumptions.method_set
-  pickerWrapper.TypeAssumptions.ptr_method_set
+class modelPicks.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying modelPicks.underlying modelPicks
+  underlying : go.UnderlyingDirectedEq modelPicks.ty modelPicks.underlying
+  isUnderlying : go.IsUnderlying modelPicks.underlying modelPicks.underlying
+  method_set : go.MethodSetIs modelPicks.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType modelPicks.ty) []
 
-opaque pick.nonempty_type : NonemptyType.{0}
-def pick : Type := pick.nonempty_type.type
-instance pick.nonempty : Nonempty pick := pick.nonempty_type.property
-opaque pick.zero_val : ZeroVal pick := ⟨Classical.ofNonempty⟩
-attribute [instance] pick.zero_val
+attribute [instance] modelPicks.TypeAssumptions.type_repr
+  modelPicks.TypeAssumptions.underlying
+  modelPicks.TypeAssumptions.isUnderlying
+  modelPicks.TypeAssumptions.method_set
+  modelPicks.TypeAssumptions.ptr_method_set
 
-class pick.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying pick.underlying pick
-  underlying : go.UnderlyingDirectedEq pick.ty pick.underlying
-  isUnderlying : go.IsUnderlying pick.underlying pick.underlying
-  method_set : go.MethodSetIs pick.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType pick.ty) []
+opaque addrHealth.nonempty_type : NonemptyType.{0}
+def addrHealth : Type := addrHealth.nonempty_type.type
+instance addrHealth.nonempty : Nonempty addrHealth := addrHealth.nonempty_type.property
+opaque addrHealth.zero_val : ZeroVal addrHealth := ⟨Classical.ofNonempty⟩
+attribute [instance] addrHealth.zero_val
 
-attribute [instance] pick.TypeAssumptions.type_repr
-  pick.TypeAssumptions.underlying
-  pick.TypeAssumptions.isUnderlying
-  pick.TypeAssumptions.method_set
-  pick.TypeAssumptions.ptr_method_set
+class addrHealth.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying addrHealth.underlying addrHealth
+  underlying : go.UnderlyingDirectedEq addrHealth.ty addrHealth.underlying
+  isUnderlying : go.IsUnderlying addrHealth.underlying addrHealth.underlying
+  method_set : go.MethodSetIs addrHealth.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType addrHealth.ty) []
 
-structure dropError [GooseExts] where
+attribute [instance] addrHealth.TypeAssumptions.type_repr
+  addrHealth.TypeAssumptions.underlying
+  addrHealth.TypeAssumptions.isUnderlying
+  addrHealth.TypeAssumptions.method_set
+  addrHealth.TypeAssumptions.ptr_method_set
+
+opaque ccResolverWrapper.nonempty_type : NonemptyType.{0}
+def ccResolverWrapper : Type := ccResolverWrapper.nonempty_type.type
+instance ccResolverWrapper.nonempty : Nonempty ccResolverWrapper := ccResolverWrapper.nonempty_type.property
+opaque ccResolverWrapper.zero_val : ZeroVal ccResolverWrapper := ⟨Classical.ofNonempty⟩
+attribute [instance] ccResolverWrapper.zero_val
+
+class ccResolverWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying ccResolverWrapper.underlying ccResolverWrapper
+  underlying : go.UnderlyingDirectedEq ccResolverWrapper.ty ccResolverWrapper.underlying
+  isUnderlying : go.IsUnderlying ccResolverWrapper.underlying ccResolverWrapper.underlying
+  method_set : go.MethodSetIs ccResolverWrapper.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ccResolverWrapper.ty) [(go!"NewAddress", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc/resolver.Address" []))] false []))), (go!"ParseServiceConfig", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/serviceconfig.ParseResult" []))]))), (go!"ReportError", (some (go.signature.Signature [go.error] false []))), (go!"UpdateState", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/resolver.State" [])] false [go.error]))), (go!"google.golang.org/grpc.close", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.resolveNow", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.update", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc/resolver.Address" [])), go.error] false [])))]
+
+attribute [instance] ccResolverWrapper.TypeAssumptions.type_repr
+  ccResolverWrapper.TypeAssumptions.underlying
+  ccResolverWrapper.TypeAssumptions.isUnderlying
+  ccResolverWrapper.TypeAssumptions.method_set
+  ccResolverWrapper.TypeAssumptions.ptr_method_set
+
+opaque dialResult.nonempty_type : NonemptyType.{0}
+def dialResult : Type := dialResult.nonempty_type.type
+instance dialResult.nonempty : Nonempty dialResult := dialResult.nonempty_type.property
+opaque dialResult.zero_val : ZeroVal dialResult := ⟨Classical.ofNonempty⟩
+attribute [instance] dialResult.zero_val
+
+class dialResult.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying dialResult.underlying dialResult
+  underlying : go.UnderlyingDirectedEq dialResult.ty dialResult.underlying
+  isUnderlying : go.IsUnderlying dialResult.underlying dialResult.underlying
+  method_set : go.MethodSetIs dialResult.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType dialResult.ty) []
+
+attribute [instance] dialResult.TypeAssumptions.type_repr
+  dialResult.TypeAssumptions.underlying
+  dialResult.TypeAssumptions.isUnderlying
+  dialResult.TypeAssumptions.method_set
+  dialResult.TypeAssumptions.ptr_method_set
+
+abbrev timeoutUnit [GooseExts] : Type := w8
+
+@[reducible] noncomputable def timeoutUnit.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  go.uint8
+
+class timeoutUnit.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq timeoutUnit.ty timeoutUnit.underlying
+  method_set : go.MethodSetIs timeoutUnit.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType timeoutUnit.ty) []
+
+attribute [instance] timeoutUnit.TypeAssumptions.underlying
+  timeoutUnit.TypeAssumptions.method_set
+  timeoutUnit.TypeAssumptions.ptr_method_set
+
+abbrev streamState [GooseExts] : Type := w32
+
+@[reducible] noncomputable def streamState.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  go.uint32
+
+class streamState.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq streamState.ty streamState.underlying
+  method_set : go.MethodSetIs streamState.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType streamState.ty) []
+
+attribute [instance] streamState.TypeAssumptions.underlying
+  streamState.TypeAssumptions.method_set
+  streamState.TypeAssumptions.ptr_method_set
+
+structure writeOptions [GooseExts] where
   mk ::
-  error' : GoError
+  Last' : Bool
 
-noncomputable instance dropError.zero_val [GooseExts] : ZeroVal dropError :=
-  ⟨dropError.mk zeroValDef⟩
+noncomputable instance writeOptions.zero_val [GooseExts] : ZeroVal writeOptions :=
+  ⟨writeOptions.mk zeroValDef⟩
 
-@[reducible] noncomputable def dropError.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
-  [(go.field_decl.EmbeddedField go!"error" go.error)]
+@[reducible] noncomputable def writeOptions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"Last" go.bool)]
 
-@[irreducible] noncomputable def dropError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
-  dropError.fieldsUnsealed
+@[irreducible] noncomputable def writeOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  writeOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_dropError [GooseExts] [GoGlobalContext] :
-    EqualsUnfold dropError.fields dropError.fieldsUnsealed :=
-  ⟨by unfold dropError.fields; rfl⟩
+noncomputable instance equals_unfold_writeOptions [GooseExts] [GoGlobalContext] :
+    EqualsUnfold writeOptions.fields writeOptions.fieldsUnsealed :=
+  ⟨by unfold writeOptions.fields; rfl⟩
 
-@[reducible] noncomputable def dropError.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.StructType dropError.fields)
+@[reducible] noncomputable def writeOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType writeOptions.fields)
 
-class dropError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying dropError.underlying dropError
-  underlying : go.UnderlyingDirectedEq dropError.ty dropError.underlying
-  get_error : ∀ (x : dropError), go.IsGoStepPureDetTagged under (StructFieldGet dropError.underlying go!"error") #x (Val #(x.error'))
-  set_error : ∀ (x : dropError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet dropError.underlying go!"error") (PairV #x #y) (Val #(({ x with error' := y } : dropError)))
-  method_set : go.MethodSetIs dropError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType dropError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
+class writeOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying writeOptions.underlying writeOptions
+  underlying : go.UnderlyingDirectedEq writeOptions.ty writeOptions.underlying
+  get_Last : ∀ (x : writeOptions), go.IsGoStepPureDetTagged under (StructFieldGet writeOptions.underlying go!"Last") #x (Val #(x.Last'))
+  set_Last : ∀ (x : writeOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet writeOptions.underlying go!"Last") (PairV #x #y) (Val #(({ x with Last' := y } : writeOptions)))
+  method_set : go.MethodSetIs writeOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType writeOptions.ty) []
 
-attribute [instance] dropError.TypeAssumptions.type_repr
-  dropError.TypeAssumptions.underlying
-  dropError.TypeAssumptions.get_error
-  dropError.TypeAssumptions.set_error
-  dropError.TypeAssumptions.method_set
-  dropError.TypeAssumptions.ptr_method_set
+attribute [instance] writeOptions.TypeAssumptions.type_repr
+  writeOptions.TypeAssumptions.underlying
+  writeOptions.TypeAssumptions.get_Last
+  writeOptions.TypeAssumptions.set_Last
+  writeOptions.TypeAssumptions.method_set
+  writeOptions.TypeAssumptions.ptr_method_set
+
+opaque connectOptions.nonempty_type : NonemptyType.{0}
+def connectOptions : Type := connectOptions.nonempty_type.type
+instance connectOptions.nonempty : Nonempty connectOptions := connectOptions.nonempty_type.property
+opaque connectOptions.zero_val : ZeroVal connectOptions := ⟨Classical.ofNonempty⟩
+attribute [instance] connectOptions.zero_val
+
+class connectOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying connectOptions.underlying connectOptions
+  underlying : go.UnderlyingDirectedEq connectOptions.ty connectOptions.underlying
+  isUnderlying : go.IsUnderlying connectOptions.underlying connectOptions.underlying
+  method_set : go.MethodSetIs connectOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType connectOptions.ty) []
+
+attribute [instance] connectOptions.TypeAssumptions.type_repr
+  connectOptions.TypeAssumptions.underlying
+  connectOptions.TypeAssumptions.isUnderlying
+  connectOptions.TypeAssumptions.method_set
+  connectOptions.TypeAssumptions.ptr_method_set
+
+opaque callHdr.nonempty_type : NonemptyType.{0}
+def callHdr : Type := callHdr.nonempty_type.type
+instance callHdr.nonempty : Nonempty callHdr := callHdr.nonempty_type.property
+opaque callHdr.zero_val : ZeroVal callHdr := ⟨Classical.ofNonempty⟩
+attribute [instance] callHdr.zero_val
+
+class callHdr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying callHdr.underlying callHdr
+  underlying : go.UnderlyingDirectedEq callHdr.ty callHdr.underlying
+  isUnderlying : go.IsUnderlying callHdr.underlying callHdr.underlying
+  method_set : go.MethodSetIs callHdr.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType callHdr.ty) []
+
+attribute [instance] callHdr.TypeAssumptions.type_repr
+  callHdr.TypeAssumptions.underlying
+  callHdr.TypeAssumptions.isUnderlying
+  callHdr.TypeAssumptions.method_set
+  callHdr.TypeAssumptions.ptr_method_set
+
+structure connectionError [GooseExts] where
+  mk ::
+  Desc' : GoString
+
+noncomputable instance connectionError.zero_val [GooseExts] : ZeroVal connectionError :=
+  ⟨connectionError.mk zeroValDef⟩
+
+@[reducible] noncomputable def connectionError.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"Desc" go.string)]
+
+@[irreducible] noncomputable def connectionError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  connectionError.fieldsUnsealed
+
+noncomputable instance equals_unfold_connectionError [GooseExts] [GoGlobalContext] :
+    EqualsUnfold connectionError.fields connectionError.fieldsUnsealed :=
+  ⟨by unfold connectionError.fields; rfl⟩
+
+@[reducible] noncomputable def connectionError.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType connectionError.fields)
+
+class connectionError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying connectionError.underlying connectionError
+  underlying : go.UnderlyingDirectedEq connectionError.ty connectionError.underlying
+  get_Desc : ∀ (x : connectionError), go.IsGoStepPureDetTagged under (StructFieldGet connectionError.underlying go!"Desc") #x (Val #(x.Desc'))
+  set_Desc : ∀ (x : connectionError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet connectionError.underlying go!"Desc") (PairV #x #y) (Val #(({ x with Desc' := y } : connectionError)))
+  method_set : go.MethodSetIs connectionError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType connectionError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
+
+attribute [instance] connectionError.TypeAssumptions.type_repr
+  connectionError.TypeAssumptions.underlying
+  connectionError.TypeAssumptions.get_Desc
+  connectionError.TypeAssumptions.set_Desc
+  connectionError.TypeAssumptions.method_set
+  connectionError.TypeAssumptions.ptr_method_set
+
+structure newStreamError [GooseExts] where
+  mk ::
+  Err' : GoError
+  AllowTransparentRetry' : Bool
+
+noncomputable instance newStreamError.zero_val [GooseExts] : ZeroVal newStreamError :=
+  ⟨newStreamError.mk zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def newStreamError.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"Err" go.error),
+(go.field_decl.FieldDecl go!"AllowTransparentRetry" go.bool)]
+
+@[irreducible] noncomputable def newStreamError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  newStreamError.fieldsUnsealed
+
+noncomputable instance equals_unfold_newStreamError [GooseExts] [GoGlobalContext] :
+    EqualsUnfold newStreamError.fields newStreamError.fieldsUnsealed :=
+  ⟨by unfold newStreamError.fields; rfl⟩
+
+@[reducible] noncomputable def newStreamError.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType newStreamError.fields)
+
+class newStreamError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying newStreamError.underlying newStreamError
+  underlying : go.UnderlyingDirectedEq newStreamError.ty newStreamError.underlying
+  get_Err : ∀ (x : newStreamError), go.IsGoStepPureDetTagged under (StructFieldGet newStreamError.underlying go!"Err") #x (Val #(x.Err'))
+  set_Err : ∀ (x : newStreamError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet newStreamError.underlying go!"Err") (PairV #x #y) (Val #(({ x with Err' := y } : newStreamError)))
+  get_AllowTransparentRetry : ∀ (x : newStreamError), go.IsGoStepPureDetTagged under (StructFieldGet newStreamError.underlying go!"AllowTransparentRetry") #x (Val #(x.AllowTransparentRetry'))
+  set_AllowTransparentRetry : ∀ (x : newStreamError) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet newStreamError.underlying go!"AllowTransparentRetry") (PairV #x #y) (Val #(({ x with AllowTransparentRetry' := y } : newStreamError)))
+  method_set : go.MethodSetIs newStreamError.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType newStreamError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
+
+attribute [instance] newStreamError.TypeAssumptions.type_repr
+  newStreamError.TypeAssumptions.underlying
+  newStreamError.TypeAssumptions.get_Err
+  newStreamError.TypeAssumptions.set_Err
+  newStreamError.TypeAssumptions.get_AllowTransparentRetry
+  newStreamError.TypeAssumptions.set_AllowTransparentRetry
+  newStreamError.TypeAssumptions.method_set
+  newStreamError.TypeAssumptions.ptr_method_set
+
+opaque recvQueue.nonempty_type : NonemptyType.{0}
+def recvQueue : Type := recvQueue.nonempty_type.type
+instance recvQueue.nonempty : Nonempty recvQueue := recvQueue.nonempty_type.property
+opaque recvQueue.zero_val : ZeroVal recvQueue := ⟨Classical.ofNonempty⟩
+attribute [instance] recvQueue.zero_val
+
+class recvQueue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying recvQueue.underlying recvQueue
+  underlying : go.UnderlyingDirectedEq recvQueue.ty recvQueue.underlying
+  isUnderlying : go.IsUnderlying recvQueue.underlying recvQueue.underlying
+  method_set : go.MethodSetIs recvQueue.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType recvQueue.ty) [(go!"google.golang.org/grpc.put", (some (go.signature.Signature [recvMsg.ty] false []))), (go!"google.golang.org/grpc.take", (some (go.signature.Signature [] false [recvMsg.ty, go.bool, (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))])))]
+
+attribute [instance] recvQueue.TypeAssumptions.type_repr
+  recvQueue.TypeAssumptions.underlying
+  recvQueue.TypeAssumptions.isUnderlying
+  recvQueue.TypeAssumptions.method_set
+  recvQueue.TypeAssumptions.ptr_method_set
+
+opaque clientTransportStream.nonempty_type : NonemptyType.{0}
+def clientTransportStream : Type := clientTransportStream.nonempty_type.type
+instance clientTransportStream.nonempty : Nonempty clientTransportStream := clientTransportStream.nonempty_type.property
+opaque clientTransportStream.zero_val : ZeroVal clientTransportStream := ⟨Classical.ofNonempty⟩
+attribute [instance] clientTransportStream.zero_val
+
+class clientTransportStream.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying clientTransportStream.underlying clientTransportStream
+  underlying : go.UnderlyingDirectedEq clientTransportStream.ty clientTransportStream.underlying
+  isUnderlying : go.IsUnderlying clientTransportStream.underlying clientTransportStream.underlying
+  method_set : go.MethodSetIs clientTransportStream.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType clientTransportStream.ty) [(go!"BytesReceived", (some (go.signature.Signature [] false [go.bool]))), (go!"Close", (some (go.signature.Signature [go.error] false []))), (go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Header", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error]))), (go!"Read", (some (go.signature.Signature [go.int] false [(go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), go.error]))), (go!"ReadMessageHeader", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"RecvCompress", (some (go.signature.Signature [] false [go.string]))), (go!"Status", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/status.Status" []))]))), (go!"Trailer", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty]))), (go!"TrailersOnly", (some (go.signature.Signature [] false [go.bool]))), (go!"Unprocessed", (some (go.signature.Signature [] false [go.bool]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), (go.GoType.PointerType writeOptions.ty)] false [go.error]))), (go!"google.golang.org/grpc.closeStream", (some (go.signature.Signature [go.error, go.bool, (go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/status.Status" [])), (go.GoType.MapType go.string (go.GoType.SliceType go.string))] false []))), (go!"google.golang.org/grpc.gotMessage", (some (go.signature.Signature [recvMsg.ty, (go.GoType.SliceType go.byte)] false [go.error]))), (go!"google.golang.org/grpc.handleRSTStream", (some (go.signature.Signature [go.uint32] false []))), (go!"google.golang.org/grpc.operateHeaders", (some (go.signature.Signature [(go.GoType.SliceType headerField.ty), go.bool] false [go.bool]))), (go!"google.golang.org/grpc.readFailed", (some (go.signature.Signature [go.error] false []))), (go!"google.golang.org/grpc.reader", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.waitOnHeader", (some (go.signature.Signature [] false [])))]
+
+attribute [instance] clientTransportStream.TypeAssumptions.type_repr
+  clientTransportStream.TypeAssumptions.underlying
+  clientTransportStream.TypeAssumptions.isUnderlying
+  clientTransportStream.TypeAssumptions.method_set
+  clientTransportStream.TypeAssumptions.ptr_method_set
+
+opaque serverTransport.nonempty_type : NonemptyType.{0}
+def serverTransport : Type := serverTransport.nonempty_type.type
+instance serverTransport.nonempty : Nonempty serverTransport := serverTransport.nonempty_type.property
+opaque serverTransport.zero_val : ZeroVal serverTransport := ⟨Classical.ofNonempty⟩
+attribute [instance] serverTransport.zero_val
+
+class serverTransport.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying serverTransport.underlying serverTransport
+  underlying : go.UnderlyingDirectedEq serverTransport.ty serverTransport.underlying
+  isUnderlying : go.IsUnderlying serverTransport.underlying serverTransport.underlying
+  method_set : go.MethodSetIs serverTransport.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverTransport.ty) [(go!"Close", (some (go.signature.Signature [go.error] false []))), (go!"Drain", (some (go.signature.Signature [go.string] false []))), (go!"HandleStreams", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType serverTransportStream.ty)] false []))] false []))), (go!"Peer", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.peer.Peer.ty)]))), (go!"google.golang.org/grpc.drainReads", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.operateHeaders", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType headerField.ty)] false [(go.GoType.PointerType serverTransportStream.ty), go.bool]))), (go!"google.golang.org/grpc.write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"google.golang.org/grpc.writeEarlyAbort", (some (go.signature.Signature [go.string, (go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/status.Status" [])), go.uint32] false [])))]
+
+attribute [instance] serverTransport.TypeAssumptions.type_repr
+  serverTransport.TypeAssumptions.underlying
+  serverTransport.TypeAssumptions.isUnderlying
+  serverTransport.TypeAssumptions.method_set
+  serverTransport.TypeAssumptions.ptr_method_set
+
+opaque serverTransportStream.nonempty_type : NonemptyType.{0}
+def serverTransportStream : Type := serverTransportStream.nonempty_type.type
+instance serverTransportStream.nonempty : Nonempty serverTransportStream := serverTransportStream.nonempty_type.property
+opaque serverTransportStream.zero_val : ZeroVal serverTransportStream := ⟨Classical.ofNonempty⟩
+attribute [instance] serverTransportStream.zero_val
+
+class serverTransportStream.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying serverTransportStream.underlying serverTransportStream
+  underlying : go.UnderlyingDirectedEq serverTransportStream.ty serverTransportStream.underlying
+  isUnderlying : go.IsUnderlying serverTransportStream.underlying serverTransportStream.underlying
+  method_set : go.MethodSetIs serverTransportStream.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverTransportStream.ty) [(go!"ClientAdvertisedCompressors", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"ContentSubtype", (some (go.signature.Signature [] false [go.string]))), (go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Header", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error]))), (go!"Method", (some (go.signature.Signature [] false [go.string]))), (go!"Read", (some (go.signature.Signature [go.int] false [(go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), go.error]))), (go!"ReadMessageHeader", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"RecvCompress", (some (go.signature.Signature [] false [go.string]))), (go!"SendCompress", (some (go.signature.Signature [] false [go.string]))), (go!"SendHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SetContext", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false []))), (go!"SetHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SetSendCompress", (some (go.signature.Signature [go.string] false [go.error]))), (go!"SetTrailer", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), (go.GoType.PointerType writeOptions.ty)] false [go.error]))), (go!"WriteStatus", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/status.Status" []))] false [go.error]))), (go!"google.golang.org/grpc.closeStream", (some (go.signature.Signature [go.error] false []))), (go!"google.golang.org/grpc.getState", (some (go.signature.Signature [] false [streamState.ty]))), (go!"google.golang.org/grpc.streamContextErr", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.writeHeaderLocked", (some (go.signature.Signature [] false [go.error])))]
+
+attribute [instance] serverTransportStream.TypeAssumptions.type_repr
+  serverTransportStream.TypeAssumptions.underlying
+  serverTransportStream.TypeAssumptions.isUnderlying
+  serverTransportStream.TypeAssumptions.method_set
+  serverTransportStream.TypeAssumptions.ptr_method_set
+
+structure headerField [GooseExts] where
+  mk ::
+  Name' : GoString
+  Value' : GoString
+
+noncomputable instance headerField.zero_val [GooseExts] : ZeroVal headerField :=
+  ⟨headerField.mk zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def headerField.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"Name" go.string),
+(go.field_decl.FieldDecl go!"Value" go.string)]
+
+@[irreducible] noncomputable def headerField.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  headerField.fieldsUnsealed
+
+noncomputable instance equals_unfold_headerField [GooseExts] [GoGlobalContext] :
+    EqualsUnfold headerField.fields headerField.fieldsUnsealed :=
+  ⟨by unfold headerField.fields; rfl⟩
+
+@[reducible] noncomputable def headerField.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType headerField.fields)
+
+class headerField.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying headerField.underlying headerField
+  underlying : go.UnderlyingDirectedEq headerField.ty headerField.underlying
+  get_Name : ∀ (x : headerField), go.IsGoStepPureDetTagged under (StructFieldGet headerField.underlying go!"Name") #x (Val #(x.Name'))
+  set_Name : ∀ (x : headerField) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet headerField.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : headerField)))
+  get_Value : ∀ (x : headerField), go.IsGoStepPureDetTagged under (StructFieldGet headerField.underlying go!"Value") #x (Val #(x.Value'))
+  set_Value : ∀ (x : headerField) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet headerField.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : headerField)))
+  method_set : go.MethodSetIs headerField.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType headerField.ty) []
+
+attribute [instance] headerField.TypeAssumptions.type_repr
+  headerField.TypeAssumptions.underlying
+  headerField.TypeAssumptions.get_Name
+  headerField.TypeAssumptions.set_Name
+  headerField.TypeAssumptions.get_Value
+  headerField.TypeAssumptions.set_Value
+  headerField.TypeAssumptions.method_set
+  headerField.TypeAssumptions.ptr_method_set
+
+structure recvMsg [GooseExts] where
+  mk ::
+  hdr' : (GoArray w8 5)
+  data' : GoSlice
+  err' : GoError
+
+noncomputable instance recvMsg.zero_val [GooseExts] : ZeroVal recvMsg :=
+  ⟨recvMsg.mk zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def recvMsg.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"hdr" (go.GoType.ArrayType 5 go.byte)),
+(go.field_decl.FieldDecl go!"data" (go.GoType.SliceType go.byte)),
+(go.field_decl.FieldDecl go!"err" go.error)]
+
+@[irreducible] noncomputable def recvMsg.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  recvMsg.fieldsUnsealed
+
+noncomputable instance equals_unfold_recvMsg [GooseExts] [GoGlobalContext] :
+    EqualsUnfold recvMsg.fields recvMsg.fieldsUnsealed :=
+  ⟨by unfold recvMsg.fields; rfl⟩
+
+@[reducible] noncomputable def recvMsg.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType recvMsg.fields)
+
+class recvMsg.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying recvMsg.underlying recvMsg
+  underlying : go.UnderlyingDirectedEq recvMsg.ty recvMsg.underlying
+  get_hdr : ∀ (x : recvMsg), go.IsGoStepPureDetTagged under (StructFieldGet recvMsg.underlying go!"hdr") #x (Val #(x.hdr'))
+  set_hdr : ∀ (x : recvMsg) (y : (GoArray w8 5)), go.IsGoStepPureDetTagged under (StructFieldSet recvMsg.underlying go!"hdr") (PairV #x #y) (Val #(({ x with hdr' := y } : recvMsg)))
+  get_data : ∀ (x : recvMsg), go.IsGoStepPureDetTagged under (StructFieldGet recvMsg.underlying go!"data") #x (Val #(x.data'))
+  set_data : ∀ (x : recvMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet recvMsg.underlying go!"data") (PairV #x #y) (Val #(({ x with data' := y } : recvMsg)))
+  get_err : ∀ (x : recvMsg), go.IsGoStepPureDetTagged under (StructFieldGet recvMsg.underlying go!"err") #x (Val #(x.err'))
+  set_err : ∀ (x : recvMsg) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet recvMsg.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : recvMsg)))
+  method_set : go.MethodSetIs recvMsg.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType recvMsg.ty) []
+
+attribute [instance] recvMsg.TypeAssumptions.type_repr
+  recvMsg.TypeAssumptions.underlying
+  recvMsg.TypeAssumptions.get_hdr
+  recvMsg.TypeAssumptions.set_hdr
+  recvMsg.TypeAssumptions.get_data
+  recvMsg.TypeAssumptions.set_data
+  recvMsg.TypeAssumptions.get_err
+  recvMsg.TypeAssumptions.set_err
+  recvMsg.TypeAssumptions.method_set
+  recvMsg.TypeAssumptions.ptr_method_set
 
 opaque PreparedMsg.nonempty_type : NonemptyType.{0}
 def PreparedMsg : Type := PreparedMsg.nonempty_type.type
@@ -2860,25 +3078,6 @@ attribute [instance] PreparedMsg.TypeAssumptions.type_repr
   PreparedMsg.TypeAssumptions.isUnderlying
   PreparedMsg.TypeAssumptions.method_set
   PreparedMsg.TypeAssumptions.ptr_method_set
-
-opaque ccResolverWrapper.nonempty_type : NonemptyType.{0}
-def ccResolverWrapper : Type := ccResolverWrapper.nonempty_type.type
-instance ccResolverWrapper.nonempty : Nonempty ccResolverWrapper := ccResolverWrapper.nonempty_type.property
-opaque ccResolverWrapper.zero_val : ZeroVal ccResolverWrapper := ⟨Classical.ofNonempty⟩
-attribute [instance] ccResolverWrapper.zero_val
-
-class ccResolverWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying ccResolverWrapper.underlying ccResolverWrapper
-  underlying : go.UnderlyingDirectedEq ccResolverWrapper.ty ccResolverWrapper.underlying
-  isUnderlying : go.IsUnderlying ccResolverWrapper.underlying ccResolverWrapper.underlying
-  method_set : go.MethodSetIs ccResolverWrapper.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ccResolverWrapper.ty) [(go!"NewAddress", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc/resolver.Address" []))] false []))), (go!"ParseServiceConfig", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/serviceconfig.ParseResult" []))]))), (go!"ReportError", (some (go.signature.Signature [go.error] false []))), (go!"UpdateState", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/resolver.State" [])] false [go.error]))), (go!"google.golang.org/grpc.addChannelzTraceEvent", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/resolver.State" [])] false []))), (go!"google.golang.org/grpc.close", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.resolveNow", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/resolver.ResolveNowOptions" [])] false []))), (go!"google.golang.org/grpc.start", (some (go.signature.Signature [] false [go.error])))]
-
-attribute [instance] ccResolverWrapper.TypeAssumptions.type_repr
-  ccResolverWrapper.TypeAssumptions.underlying
-  ccResolverWrapper.TypeAssumptions.isUnderlying
-  ccResolverWrapper.TypeAssumptions.method_set
-  ccResolverWrapper.TypeAssumptions.ptr_method_set
 
 opaque Compressor.nonempty_type : NonemptyType.{0}
 def Compressor : Type := Compressor.nonempty_type.type
@@ -3943,7 +4142,7 @@ class Server.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   underlying : go.UnderlyingDirectedEq Server.ty Server.underlying
   isUnderlying : go.IsUnderlying Server.underlying Server.underlying
   method_set : go.MethodSetIs Server.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Server.ty) [(go!"GetServiceInfo", (some (go.signature.Signature [] false [(go.GoType.MapType go.string ServiceInfo.ty)]))), (go!"GracefulStop", (some (go.signature.Signature [] false []))), (go!"RegisterService", (some (go.signature.Signature [(go.GoType.PointerType ServiceDesc.ty), go.any] false []))), (go!"Serve", (some (go.signature.Signature [(go.GoType.Named go!"net.Listener" [])] false [go.error]))), (go!"ServeHTTP", (some (go.signature.Signature [(go.GoType.Named go!"net/http.ResponseWriter" []), (go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false []))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.addConn", (some (go.signature.Signature [go.string, (go.GoType.Named go!"google.golang.org/grpc/internal/transport.ServerTransport" [])] false [go.bool]))), (go!"google.golang.org/grpc.closeListenersLocked", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.closeServerTransportsLocked", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.drainAllServerTransportsLocked", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.errorf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"google.golang.org/grpc.getCodec", (some (go.signature.Signature [go.string] false [baseCodec.ty]))), (go!"google.golang.org/grpc.handleMalformedMethodName", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/transport.ServerStream" [])), (go.GoType.PointerType traceInfo.ty)] false []))), (go!"google.golang.org/grpc.handleRawConn", (some (go.signature.Signature [go.string, (go.GoType.Named go!"net.Conn" [])] false []))), (go!"google.golang.org/grpc.handleStream", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/internal/transport.ServerTransport" []), (go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/transport.ServerStream" []))] false []))), (go!"google.golang.org/grpc.incrCallsFailed", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.incrCallsStarted", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.incrCallsSucceeded", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.initServerWorkers", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.isRegisteredMethod", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"google.golang.org/grpc.newHTTP2Transport", (some (go.signature.Signature [(go.GoType.Named go!"net.Conn" [])] false [(go.GoType.Named go!"google.golang.org/grpc/internal/transport.ServerTransport" [])]))), (go!"google.golang.org/grpc.printf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"google.golang.org/grpc.processRPC", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/transport.ServerStream" [])), (go.GoType.PointerType serviceInfo.ty), (go.GoType.PointerType StreamDesc.ty), (go.GoType.PointerType traceInfo.ty)] false [go.error]))), (go!"google.golang.org/grpc.register", (some (go.signature.Signature [(go.GoType.PointerType ServiceDesc.ty), go.any] false []))), (go!"google.golang.org/grpc.removeConn", (some (go.signature.Signature [go.string, (go.GoType.Named go!"google.golang.org/grpc/internal/transport.ServerTransport" [])] false []))), (go!"google.golang.org/grpc.serveStreams", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.Named go!"google.golang.org/grpc/internal/transport.ServerTransport" []), (go.GoType.Named go!"net.Conn" [])] false []))), (go!"google.golang.org/grpc.serverWorker", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.stop", (some (go.signature.Signature [go.bool] false []))), (go!"google.golang.org/grpc.wrapUnaryHandler", (some (go.signature.Signature [(go.GoType.PointerType MethodDesc.ty)] false [StreamHandler.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Server.ty) [(go!"GetServiceInfo", (some (go.signature.Signature [] false [(go.GoType.MapType go.string ServiceInfo.ty)]))), (go!"GracefulStop", (some (go.signature.Signature [] false []))), (go!"RegisterService", (some (go.signature.Signature [(go.GoType.PointerType ServiceDesc.ty), go.any] false []))), (go!"Serve", (some (go.signature.Signature [(go.GoType.Named go!"net.Listener" [])] false [go.error]))), (go!"ServeHTTP", (some (go.signature.Signature [(go.GoType.Named go!"net/http.ResponseWriter" []), (go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false []))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.addConn", (some (go.signature.Signature [go.string, (go.GoType.PointerType serverTransport.ty)] false [go.bool]))), (go!"google.golang.org/grpc.closeListenersLocked", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.closeServerTransportsLocked", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.drainAllServerTransportsLocked", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.errorf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"google.golang.org/grpc.getCodec", (some (go.signature.Signature [go.string] false [baseCodec.ty]))), (go!"google.golang.org/grpc.handleMalformedMethodName", (some (go.signature.Signature [(go.GoType.PointerType serverTransportStream.ty)] false []))), (go!"google.golang.org/grpc.handleRawConn", (some (go.signature.Signature [go.string, (go.GoType.Named go!"net.Conn" [])] false []))), (go!"google.golang.org/grpc.handleStream", (some (go.signature.Signature [(go.GoType.PointerType serverTransport.ty), (go.GoType.PointerType serverTransportStream.ty)] false []))), (go!"google.golang.org/grpc.isRegisteredMethod", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"google.golang.org/grpc.printf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"google.golang.org/grpc.processRPC", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType serverTransportStream.ty), (go.GoType.PointerType serviceInfo.ty), (go.GoType.PointerType StreamDesc.ty)] false [go.error]))), (go!"google.golang.org/grpc.register", (some (go.signature.Signature [(go.GoType.PointerType ServiceDesc.ty), go.any] false []))), (go!"google.golang.org/grpc.removeConn", (some (go.signature.Signature [go.string, (go.GoType.PointerType serverTransport.ty)] false []))), (go!"google.golang.org/grpc.serveStreams", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType serverTransport.ty), (go.GoType.Named go!"net.Conn" [])] false []))), (go!"google.golang.org/grpc.stop", (some (go.signature.Signature [go.bool] false []))), (go!"google.golang.org/grpc.wrapUnaryHandler", (some (go.signature.Signature [(go.GoType.PointerType MethodDesc.ty)] false [StreamHandler.ty])))]
   ptr_Serve_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"Serve" Server.Serve.impl
 
 attribute [instance] Server.TypeAssumptions.type_repr
@@ -4223,25 +4422,6 @@ attribute [instance] ServiceInfo.TypeAssumptions.type_repr
   ServiceInfo.TypeAssumptions.method_set
   ServiceInfo.TypeAssumptions.ptr_method_set
 
-opaque listenSocket.nonempty_type : NonemptyType.{0}
-def listenSocket : Type := listenSocket.nonempty_type.type
-instance listenSocket.nonempty : Nonempty listenSocket := listenSocket.nonempty_type.property
-opaque listenSocket.zero_val : ZeroVal listenSocket := ⟨Classical.ofNonempty⟩
-attribute [instance] listenSocket.zero_val
-
-class listenSocket.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying listenSocket.underlying listenSocket
-  underlying : go.UnderlyingDirectedEq listenSocket.ty listenSocket.underlying
-  isUnderlying : go.IsUnderlying listenSocket.underlying listenSocket.underlying
-  method_set : go.MethodSetIs listenSocket.ty [(go!"Accept", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Conn" []), go.error]))), (go!"Addr", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Addr" [])])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType listenSocket.ty) [(go!"Accept", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Conn" []), go.error]))), (go!"Addr", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Addr" [])]))), (go!"Close", (some (go.signature.Signature [] false [go.error])))]
-
-attribute [instance] listenSocket.TypeAssumptions.type_repr
-  listenSocket.TypeAssumptions.underlying
-  listenSocket.TypeAssumptions.isUnderlying
-  listenSocket.TypeAssumptions.method_set
-  listenSocket.TypeAssumptions.ptr_method_set
-
 structure streamKey [GooseExts] where
   mk ::
 
@@ -4316,25 +4496,6 @@ attribute [instance] serverKey.TypeAssumptions.type_repr
   serverKey.TypeAssumptions.method_set
   serverKey.TypeAssumptions.ptr_method_set
 
-opaque atomicSemaphore.nonempty_type : NonemptyType.{0}
-def atomicSemaphore : Type := atomicSemaphore.nonempty_type.type
-instance atomicSemaphore.nonempty : Nonempty atomicSemaphore := atomicSemaphore.nonempty_type.property
-opaque atomicSemaphore.zero_val : ZeroVal atomicSemaphore := ⟨Classical.ofNonempty⟩
-attribute [instance] atomicSemaphore.zero_val
-
-class atomicSemaphore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying atomicSemaphore.underlying atomicSemaphore
-  underlying : go.UnderlyingDirectedEq atomicSemaphore.ty atomicSemaphore.underlying
-  isUnderlying : go.IsUnderlying atomicSemaphore.underlying atomicSemaphore.underlying
-  method_set : go.MethodSetIs atomicSemaphore.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType atomicSemaphore.ty) [(go!"google.golang.org/grpc.acquire", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.release", (some (go.signature.Signature [] false [])))]
-
-attribute [instance] atomicSemaphore.TypeAssumptions.type_repr
-  atomicSemaphore.TypeAssumptions.underlying
-  atomicSemaphore.TypeAssumptions.isUnderlying
-  atomicSemaphore.TypeAssumptions.method_set
-  atomicSemaphore.TypeAssumptions.ptr_method_set
-
 opaque ServiceConfig.nonempty_type : NonemptyType.{0}
 def ServiceConfig : Type := ServiceConfig.nonempty_type.type
 instance ServiceConfig.nonempty : Nonempty ServiceConfig := ServiceConfig.nonempty_type.property
@@ -4389,25 +4550,6 @@ attribute [instance] healthCheckConfig.TypeAssumptions.type_repr
   healthCheckConfig.TypeAssumptions.method_set
   healthCheckConfig.TypeAssumptions.ptr_method_set
 
-opaque jsonRetryPolicy.nonempty_type : NonemptyType.{0}
-def jsonRetryPolicy : Type := jsonRetryPolicy.nonempty_type.type
-instance jsonRetryPolicy.nonempty : Nonempty jsonRetryPolicy := jsonRetryPolicy.nonempty_type.property
-opaque jsonRetryPolicy.zero_val : ZeroVal jsonRetryPolicy := ⟨Classical.ofNonempty⟩
-attribute [instance] jsonRetryPolicy.zero_val
-
-class jsonRetryPolicy.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying jsonRetryPolicy.underlying jsonRetryPolicy
-  underlying : go.UnderlyingDirectedEq jsonRetryPolicy.ty jsonRetryPolicy.underlying
-  isUnderlying : go.IsUnderlying jsonRetryPolicy.underlying jsonRetryPolicy.underlying
-  method_set : go.MethodSetIs jsonRetryPolicy.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType jsonRetryPolicy.ty) []
-
-attribute [instance] jsonRetryPolicy.TypeAssumptions.type_repr
-  jsonRetryPolicy.TypeAssumptions.underlying
-  jsonRetryPolicy.TypeAssumptions.isUnderlying
-  jsonRetryPolicy.TypeAssumptions.method_set
-  jsonRetryPolicy.TypeAssumptions.ptr_method_set
-
 structure retryThrottlingPolicy [GooseExts] where
   mk ::
   MaxTokens' : w64
@@ -4448,85 +4590,6 @@ attribute [instance] retryThrottlingPolicy.TypeAssumptions.type_repr
   retryThrottlingPolicy.TypeAssumptions.set_TokenRatio
   retryThrottlingPolicy.TypeAssumptions.method_set
   retryThrottlingPolicy.TypeAssumptions.ptr_method_set
-
-structure jsonName [GooseExts] where
-  mk ::
-  Service' : GoString
-  Method' : GoString
-
-noncomputable instance jsonName.zero_val [GooseExts] : ZeroVal jsonName :=
-  ⟨jsonName.mk zeroValDef zeroValDef⟩
-
-@[reducible] noncomputable def jsonName.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
-  [(go.field_decl.FieldDecl go!"Service" go.string),
-(go.field_decl.FieldDecl go!"Method" go.string)]
-
-@[irreducible] noncomputable def jsonName.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
-  jsonName.fieldsUnsealed
-
-noncomputable instance equals_unfold_jsonName [GooseExts] [GoGlobalContext] :
-    EqualsUnfold jsonName.fields jsonName.fieldsUnsealed :=
-  ⟨by unfold jsonName.fields; rfl⟩
-
-@[reducible] noncomputable def jsonName.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.StructType jsonName.fields)
-
-class jsonName.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying jsonName.underlying jsonName
-  underlying : go.UnderlyingDirectedEq jsonName.ty jsonName.underlying
-  get_Service : ∀ (x : jsonName), go.IsGoStepPureDetTagged under (StructFieldGet jsonName.underlying go!"Service") #x (Val #(x.Service'))
-  set_Service : ∀ (x : jsonName) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet jsonName.underlying go!"Service") (PairV #x #y) (Val #(({ x with Service' := y } : jsonName)))
-  get_Method : ∀ (x : jsonName), go.IsGoStepPureDetTagged under (StructFieldGet jsonName.underlying go!"Method") #x (Val #(x.Method'))
-  set_Method : ∀ (x : jsonName) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet jsonName.underlying go!"Method") (PairV #x #y) (Val #(({ x with Method' := y } : jsonName)))
-  method_set : go.MethodSetIs jsonName.ty [(go!"google.golang.org/grpc.generatePath", (some (go.signature.Signature [] false [go.string, go.error])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType jsonName.ty) [(go!"google.golang.org/grpc.generatePath", (some (go.signature.Signature [] false [go.string, go.error])))]
-
-attribute [instance] jsonName.TypeAssumptions.type_repr
-  jsonName.TypeAssumptions.underlying
-  jsonName.TypeAssumptions.get_Service
-  jsonName.TypeAssumptions.set_Service
-  jsonName.TypeAssumptions.get_Method
-  jsonName.TypeAssumptions.set_Method
-  jsonName.TypeAssumptions.method_set
-  jsonName.TypeAssumptions.ptr_method_set
-
-opaque jsonMC.nonempty_type : NonemptyType.{0}
-def jsonMC : Type := jsonMC.nonempty_type.type
-instance jsonMC.nonempty : Nonempty jsonMC := jsonMC.nonempty_type.property
-opaque jsonMC.zero_val : ZeroVal jsonMC := ⟨Classical.ofNonempty⟩
-attribute [instance] jsonMC.zero_val
-
-class jsonMC.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying jsonMC.underlying jsonMC
-  underlying : go.UnderlyingDirectedEq jsonMC.ty jsonMC.underlying
-  isUnderlying : go.IsUnderlying jsonMC.underlying jsonMC.underlying
-  method_set : go.MethodSetIs jsonMC.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType jsonMC.ty) []
-
-attribute [instance] jsonMC.TypeAssumptions.type_repr
-  jsonMC.TypeAssumptions.underlying
-  jsonMC.TypeAssumptions.isUnderlying
-  jsonMC.TypeAssumptions.method_set
-  jsonMC.TypeAssumptions.ptr_method_set
-
-opaque jsonSC.nonempty_type : NonemptyType.{0}
-def jsonSC : Type := jsonSC.nonempty_type.type
-instance jsonSC.nonempty : Nonempty jsonSC := jsonSC.nonempty_type.property
-opaque jsonSC.zero_val : ZeroVal jsonSC := ⟨Classical.ofNonempty⟩
-attribute [instance] jsonSC.zero_val
-
-class jsonSC.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying jsonSC.underlying jsonSC
-  underlying : go.UnderlyingDirectedEq jsonSC.ty jsonSC.underlying
-  isUnderlying : go.IsUnderlying jsonSC.underlying jsonSC.underlying
-  method_set : go.MethodSetIs jsonSC.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType jsonSC.ty) []
-
-attribute [instance] jsonSC.TypeAssumptions.type_repr
-  jsonSC.TypeAssumptions.underlying
-  jsonSC.TypeAssumptions.isUnderlying
-  jsonSC.TypeAssumptions.method_set
-  jsonSC.TypeAssumptions.ptr_method_set
 
 abbrev StreamHandler [GooseExts] : Type := GoFunc
 
@@ -4642,25 +4705,6 @@ attribute [instance] clientStreamWrapper.TypeAssumptions.type_repr
   clientStreamWrapper.TypeAssumptions.method_set
   clientStreamWrapper.TypeAssumptions.ptr_method_set
 
-opaque clientInterceptor.nonempty_type : NonemptyType.{0}
-def clientInterceptor : Type := clientInterceptor.nonempty_type.type
-instance clientInterceptor.nonempty : Nonempty clientInterceptor := clientInterceptor.nonempty_type.property
-opaque clientInterceptor.zero_val : ZeroVal clientInterceptor := ⟨Classical.ofNonempty⟩
-attribute [instance] clientInterceptor.zero_val
-
-class clientInterceptor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying clientInterceptor.underlying clientInterceptor
-  underlying : go.UnderlyingDirectedEq clientInterceptor.ty clientInterceptor.underlying
-  isUnderlying : go.IsUnderlying clientInterceptor.underlying clientInterceptor.underlying
-  method_set : go.MethodSetIs clientInterceptor.ty [(go!"Close", (some (go.signature.Signature [] false []))), (go!"NewStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.Named go!"google.golang.org/grpc/internal/resolver.RPCInfo" []), (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType CallOption.ty)] true [ClientStream.ty, go.error])), (go.GoType.SliceType CallOption.ty)] true [ClientStream.ty, go.error])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType clientInterceptor.ty) []
-
-attribute [instance] clientInterceptor.TypeAssumptions.type_repr
-  clientInterceptor.TypeAssumptions.underlying
-  clientInterceptor.TypeAssumptions.isUnderlying
-  clientInterceptor.TypeAssumptions.method_set
-  clientInterceptor.TypeAssumptions.ptr_method_set
-
 opaque clientStream.nonempty_type : NonemptyType.{0}
 def clientStream : Type := clientStream.nonempty_type.type
 instance clientStream.nonempty : Nonempty clientStream := clientStream.nonempty_type.property
@@ -4739,25 +4783,6 @@ attribute [instance] csAttempt.TypeAssumptions.type_repr
   csAttempt.TypeAssumptions.isUnderlying
   csAttempt.TypeAssumptions.method_set
   csAttempt.TypeAssumptions.ptr_method_set
-
-opaque addrConnStream.nonempty_type : NonemptyType.{0}
-def addrConnStream : Type := addrConnStream.nonempty_type.type
-instance addrConnStream.nonempty : Nonempty addrConnStream := addrConnStream.nonempty_type.property
-opaque addrConnStream.zero_val : ZeroVal addrConnStream := ⟨Classical.ofNonempty⟩
-attribute [instance] addrConnStream.zero_val
-
-class addrConnStream.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying addrConnStream.underlying addrConnStream
-  underlying : go.UnderlyingDirectedEq addrConnStream.ty addrConnStream.underlying
-  isUnderlying : go.IsUnderlying addrConnStream.underlying addrConnStream.underlying
-  method_set : go.MethodSetIs addrConnStream.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType addrConnStream.ty) [(go!"CloseSend", (some (go.signature.Signature [] false [go.error]))), (go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Header", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Trailer", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty]))), (go!"google.golang.org/grpc.finish", (some (go.signature.Signature [go.error] false [])))]
-
-attribute [instance] addrConnStream.TypeAssumptions.type_repr
-  addrConnStream.TypeAssumptions.underlying
-  addrConnStream.TypeAssumptions.isUnderlying
-  addrConnStream.TypeAssumptions.method_set
-  addrConnStream.TypeAssumptions.ptr_method_set
 
 abbrev ServerStream [GooseExts] : Type := GoInterface
 
@@ -5164,18 +5189,9 @@ attribute [instance] stringer.TypeAssumptions.underlying
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   BackoffConfig_instance : BackoffConfig.TypeAssumptions
   ConnectParams_instance : ConnectParams.TypeAssumptions
-  ccBalancerWrapper_instance : ccBalancerWrapper.TypeAssumptions
-  acBalancerWrapper_instance : acBalancerWrapper.TypeAssumptions
-  healthData_instance : healthData.TypeAssumptions
-  refCountedProducer_instance : refCountedProducer.TypeAssumptions
-  defaultConfigSelector_instance : defaultConfigSelector.TypeAssumptions
-  idler_instance : idler.TypeAssumptions
   connectivityStateManager_instance : connectivityStateManager.TypeAssumptions
   ClientConnInterface_instance : ClientConnInterface.TypeAssumptions
   ClientConn_instance : ClientConn.TypeAssumptions
-  addrConn_instance : addrConn.TypeAssumptions
-  securityLevelKey_instance : securityLevelKey.TypeAssumptions
-  retryThrottler_instance : retryThrottler.TypeAssumptions
   baseCodec_instance : baseCodec.TypeAssumptions
   codecV0Bridge_instance : codecV0Bridge.TypeAssumptions
   codecV1Bridge_instance : codecV1Bridge.TypeAssumptions
@@ -5197,12 +5213,25 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   UnaryServerInterceptor_instance : UnaryServerInterceptor.TypeAssumptions
   StreamServerInfo_instance : StreamServerInfo.TypeAssumptions
   StreamServerInterceptor_instance : StreamServerInterceptor.TypeAssumptions
-  pickerGeneration_instance : pickerGeneration.TypeAssumptions
-  pickerWrapper_instance : pickerWrapper.TypeAssumptions
-  pick_instance : pick.TypeAssumptions
-  dropError_instance : dropError.TypeAssumptions
-  PreparedMsg_instance : PreparedMsg.TypeAssumptions
+  notModelled_instance : notModelled.TypeAssumptions
+  modelPicks_instance : modelPicks.TypeAssumptions
+  addrHealth_instance : addrHealth.TypeAssumptions
   ccResolverWrapper_instance : ccResolverWrapper.TypeAssumptions
+  dialResult_instance : dialResult.TypeAssumptions
+  timeoutUnit_instance : timeoutUnit.TypeAssumptions
+  streamState_instance : streamState.TypeAssumptions
+  writeOptions_instance : writeOptions.TypeAssumptions
+  connectOptions_instance : connectOptions.TypeAssumptions
+  callHdr_instance : callHdr.TypeAssumptions
+  connectionError_instance : connectionError.TypeAssumptions
+  newStreamError_instance : newStreamError.TypeAssumptions
+  recvQueue_instance : recvQueue.TypeAssumptions
+  clientTransportStream_instance : clientTransportStream.TypeAssumptions
+  serverTransport_instance : serverTransport.TypeAssumptions
+  serverTransportStream_instance : serverTransportStream.TypeAssumptions
+  headerField_instance : headerField.TypeAssumptions
+  recvMsg_instance : recvMsg.TypeAssumptions
+  PreparedMsg_instance : PreparedMsg.TypeAssumptions
   Compressor_instance : Compressor.TypeAssumptions
   gzipCompressor_instance : gzipCompressor.TypeAssumptions
   Decompressor_instance : Decompressor.TypeAssumptions
@@ -5250,28 +5279,20 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   ServiceRegistrar_instance : ServiceRegistrar.TypeAssumptions
   MethodInfo_instance : MethodInfo.TypeAssumptions
   ServiceInfo_instance : ServiceInfo.TypeAssumptions
-  listenSocket_instance : listenSocket.TypeAssumptions
   streamKey_instance : streamKey.TypeAssumptions
   ServerTransportStream_instance : ServerTransportStream.TypeAssumptions
   serverKey_instance : serverKey.TypeAssumptions
-  atomicSemaphore_instance : atomicSemaphore.TypeAssumptions
   ServiceConfig_instance : ServiceConfig.TypeAssumptions
   healthCheckConfig_instance : healthCheckConfig.TypeAssumptions
-  jsonRetryPolicy_instance : jsonRetryPolicy.TypeAssumptions
   retryThrottlingPolicy_instance : retryThrottlingPolicy.TypeAssumptions
-  jsonName_instance : jsonName.TypeAssumptions
-  jsonMC_instance : jsonMC.TypeAssumptions
-  jsonSC_instance : jsonSC.TypeAssumptions
   StreamHandler_instance : StreamHandler.TypeAssumptions
   StreamDesc_instance : StreamDesc.TypeAssumptions
   Stream_instance : Stream.TypeAssumptions
   ClientStream_instance : ClientStream.TypeAssumptions
   clientStreamWrapper_instance : clientStreamWrapper.TypeAssumptions
-  clientInterceptor_instance : clientInterceptor.TypeAssumptions
   clientStream_instance : clientStream.TypeAssumptions
   replayOp_instance : replayOp.TypeAssumptions
   csAttempt_instance : csAttempt.TypeAssumptions
-  addrConnStream_instance : addrConnStream.TypeAssumptions
   ServerStream_instance : ServerStream.TypeAssumptions
   serverStream_instance : serverStream.TypeAssumptions
   ServerStreamingClient_instance : ServerStreamingClient.TypeAssumptions
@@ -5300,18 +5321,9 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
 
 attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.ConnectParams_instance
-  Assumptions.ccBalancerWrapper_instance
-  Assumptions.acBalancerWrapper_instance
-  Assumptions.healthData_instance
-  Assumptions.refCountedProducer_instance
-  Assumptions.defaultConfigSelector_instance
-  Assumptions.idler_instance
   Assumptions.connectivityStateManager_instance
   Assumptions.ClientConnInterface_instance
   Assumptions.ClientConn_instance
-  Assumptions.addrConn_instance
-  Assumptions.securityLevelKey_instance
-  Assumptions.retryThrottler_instance
   Assumptions.baseCodec_instance
   Assumptions.codecV0Bridge_instance
   Assumptions.codecV1Bridge_instance
@@ -5333,12 +5345,25 @@ attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.UnaryServerInterceptor_instance
   Assumptions.StreamServerInfo_instance
   Assumptions.StreamServerInterceptor_instance
-  Assumptions.pickerGeneration_instance
-  Assumptions.pickerWrapper_instance
-  Assumptions.pick_instance
-  Assumptions.dropError_instance
-  Assumptions.PreparedMsg_instance
+  Assumptions.notModelled_instance
+  Assumptions.modelPicks_instance
+  Assumptions.addrHealth_instance
   Assumptions.ccResolverWrapper_instance
+  Assumptions.dialResult_instance
+  Assumptions.timeoutUnit_instance
+  Assumptions.streamState_instance
+  Assumptions.writeOptions_instance
+  Assumptions.connectOptions_instance
+  Assumptions.callHdr_instance
+  Assumptions.connectionError_instance
+  Assumptions.newStreamError_instance
+  Assumptions.recvQueue_instance
+  Assumptions.clientTransportStream_instance
+  Assumptions.serverTransport_instance
+  Assumptions.serverTransportStream_instance
+  Assumptions.headerField_instance
+  Assumptions.recvMsg_instance
+  Assumptions.PreparedMsg_instance
   Assumptions.Compressor_instance
   Assumptions.gzipCompressor_instance
   Assumptions.Decompressor_instance
@@ -5386,28 +5411,20 @@ attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.ServiceRegistrar_instance
   Assumptions.MethodInfo_instance
   Assumptions.ServiceInfo_instance
-  Assumptions.listenSocket_instance
   Assumptions.streamKey_instance
   Assumptions.ServerTransportStream_instance
   Assumptions.serverKey_instance
-  Assumptions.atomicSemaphore_instance
   Assumptions.ServiceConfig_instance
   Assumptions.healthCheckConfig_instance
-  Assumptions.jsonRetryPolicy_instance
   Assumptions.retryThrottlingPolicy_instance
-  Assumptions.jsonName_instance
-  Assumptions.jsonMC_instance
-  Assumptions.jsonSC_instance
   Assumptions.StreamHandler_instance
   Assumptions.StreamDesc_instance
   Assumptions.Stream_instance
   Assumptions.ClientStream_instance
   Assumptions.clientStreamWrapper_instance
-  Assumptions.clientInterceptor_instance
   Assumptions.clientStream_instance
   Assumptions.replayOp_instance
   Assumptions.csAttempt_instance
-  Assumptions.addrConnStream_instance
   Assumptions.ServerStream_instance
   Assumptions.serverStream_instance
   Assumptions.ServerStreamingClient_instance
