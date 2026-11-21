@@ -56,6 +56,13 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   - `examples/lib/durable`'s `Write.spec`: the update may use `notCrashed` when it opens (handed back
     at once; `wp_atomic_nc` at the extension's step). Strictly more permissive for a client. kvdurable's
     *enter* runs in the write's update, so it needs the token there.
+  - The server's `raftNode.stop` post (`Spec/go_etcd_io/etcd/server/v3/etcdserver/raftNode__stop.lean`)
+    gives `∃ x, nodeVacantA …` in place of `nodeVacant`.
+  - The traced `StartNode.tracedSpec` (`TracedNodeApi.lean`) and the Draft's `StartNode.gatedSpec`
+    (`TracedApiDraft.lean`) changed as `StartNode.spec` did.
+  - In raft's `with_tla` build (`RaftTla/`, per (f)), the trace logger's contract (`isTraceLogger`) and
+    the trace check's `SyncRecorder.TraceEvent.spec` take the update in its crash-token form: the
+    token is lent at the commit and handed back.
 
 ## 2026-11-18: `leaseStep`'s grant -- a server-chosen id is fresh in the history, the plan says only "not live"
 

@@ -443,3 +443,20 @@ the clients (stage 3) and what of stage 4 does not need `node.run`'s proof. `nod
 `nodeArm_agree`) is new. `StartNode` and `RestartNode` give it with the node: a client holding the
 arm's crash token gets the vacancy back at the same arm (the ledger's "same `x`"), and a client
 without one ignores it.
+
+**Where it stands, with the cut still open** (2026-11-21, the implementing session):
+- **Done, and it builds** (`lake build` of everything but `node.run`'s proof and its importers):
+  - raft: the ghost level, `raft.Step`, `RawNode`, the traced gates, the node API (`nodeVacantA`,
+    `nodeCrashTok`, `nodeArm`, `nodeVacant_arm`/`_armD`, `nodeCrash`), and `StartNode`,
+    `RestartNode`, `node.Stop`;
+  - the clients: kv, kvreconf, kvdurable, the etcd server, and the trace check
+    (`RaftTla/.../tracecheck`: the logger's contract and the recorder commit with the token);
+  - the generated copies (`RaftTla`, `RaftNoAx`), the Links (unchanged), raft's interfaces.
+- **Not built:** `node__run_gated.lean` (the cut, `:1017`, and the `genView` at `:975`, in all three
+  trees) and the 193 linking modules that import it. A local check with `node.run.wp_proof` as
+  `sorry` (never committed) built all 193. With that stub, `etc/tcb-report.py --check` reported
+  only that `sorry` as new: no axiom was added.
+- **When the pin moves to `nc-chan`:** put the hand-out and the cut inside the NC-carrying send update
+  in `node__run_gated.lean`. The local `GooseLang/NotCrashed.lean` goes, and `ncfupd`, `wp_ncfupd`,
+  `wp_ncfupd_post`, `wp_ncfupd_app` and `notCrashedG` move to Perennial's names. Then run
+  `etc/gen-raft-tla.py`, `etc/copy-part.py`, a full build and `etc/tcb-report.py --check`.
