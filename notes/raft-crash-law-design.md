@@ -373,3 +373,57 @@ The token reaches the steps as follows:
   after the physical lemma's `wp_apply`.
 
 Proposed for Perennial in `notes/perennial-changes.md` ("notCrashed before a step").
+
+## (j) Fourth gap: the cut runs inside a channel send's atomic update (2026-11-21)
+
+Found while implementing (i) at stage 2 (the node API). The ghost level, `raft.Step`, the RawNode
+path, the traced gates and the node API's predicates are done (commits up to "WIP raft crash law:
+node API", branch `worktree-agent-aa878c2e224f33d0c`). `node.run` is not.
+
+**Where.** `node.run` hands a `Ready` to the client in one clause of its `select`. The clause's
+`readyc` send is `handshake_send_au_upd` (`InvNodeChan.lean:1574`) under `sendAu_fupd`
+(`InvNodeRun.lean:414`): see `node__run_gated.lean:979-1022`. The hand-out
+(`ownRawNodeReady_handout`) and, inside it, the cut (`ownRaftGhost_cut`) run in the `⊤` update in
+front of Perennial's `sendAu` (`Golang/Theory/Chan/AuSpec/ChanAuBase.lean:231`). They have to be
+there: the cut may happen only if this clause of the `select` fires.
+
+**Why it is a gap.** The cut needs `notCrashed` under any placement of the six pieces, not only
+under (b1)'s. It writes `slotInv`: the durable shares of the virtual maps (`crash_virt_set` inside
+`iinv slotInv`). `slotInv` is the id's invariant, shared with the next generation after a crash. A
+cut by a thread of a crashed generation would change the restarted node's durable maps. So the cut
+must refute "already crashed", which takes `notCrashed`. (i) gets the token at the client's own
+steps (`wp_ncfupd`, `wp_ncfupd_post`, `wp_atomic_nc`). The fupd in front of a `sendAu` is not one of
+them: Perennial's channel proofs open it at their own linearization step. They hold the state
+interpretation there but do not pass `notCrashed` to the update. Given only the channel spec, the
+client cannot get it.
+
+The other places are fine. `node.run`'s receives (`propc`, `recvc`, `confc`, `status`, `stop`) run
+their ghost steps after the receive, in the WP. `node.Stop`'s `raft_stop` also runs after its send,
+in the WP (`wp_ncfupd` there). The clients' *enter* runs in kvdurable's durable write (the
+`durableExt` spec, this repository's own, which can take `wp_atomic_nc`) or at the clients' own steps.
+
+**Options.**
+1. **Channel atomic updates that carry `notCrashed`** (Perennial). In `sendAu`/`sendNestedAu`/
+   `rcvAu` and the `select` clause pre-conditions, `|={⊤,∅}=>` becomes
+   `notCrashed -∗ |={⊤,∅}=> … ∗ notCrashed`. Each opening is at an atomic physical step of the
+   channel code, where `wp_atomic_nc` supplies the token. This is the same change (f) made for the
+   trace logger's atomic update, applied to a general library, so it needs Perennial's own review.
+   Until it lands, nothing in this repository can stand in for it without a trust-boundary axiom
+   (the channel proofs are Perennial's).
+2. **Cut before the `select`, undo it if another clause fires.** The cut would move to `run`'s own
+   step (with `wp_ncfupd`), and the other clauses would undo it at their continuations. This needs
+   an inverse of the cut. The cut moves the durable maps forward (`virtQ`, `DurLe`) and replaces
+   `slotFree g` by `pendBatch g`, so the inverse is a new protocol step: an abandoned batch would
+   have to give back the generation's free queue without being entered.
+3. **Cut after the send** (in `run`'s continuation, with `wp_ncfupd`). The client would receive a
+   `Ready` whose `pendBatch` is filled later, by an escrow that the client's *enter* opens. This
+   changes the hand-out protocol (`readyP`, the escrow and `readyEnter`'s pre).
+
+Recommendation: option 1. It is the general fix: any client's ghost step that must be linearized
+with a channel operation hits the same wall. Options 2 and 3 are protocol redesigns of the node's
+hand-out, larger than the rest of (i) together.
+
+Status at the stop. Stage 1 (ghost level, `raft_arm`/`raft_crash`/`raft_stop`) is done. Stage 2 is
+done except `node.run` (the cut above), `RestartNode`, `StartNode` and `node.Stop`, whose
+re-proofs are mechanical once the cut is settled. Stages 3 and 4 have not started. No axiom or
+`sorry` added.

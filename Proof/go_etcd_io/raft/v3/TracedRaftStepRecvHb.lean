@@ -57,15 +57,15 @@ commit certificate at the node's term and the committed prefix; the ghost state 
 theorem ownRaftGhost_hbFacts (γ : RaftNames) (id : w64) (s : PState) (m : Msg) {md : Bool} :
     m.ty = .heartbeat → m.dst = id → m.term = s.term → s.role ≠ .leader → s.base = base0 →
     PlogWf base0 s.log →
-    ⊢ isMessage (GF := GF) γ m -∗ ownRaftGhost γ id s md ={⊤}=∗
-      ownRaftGhost γ id s md ∗ ⌜(γ.reBoot.length : Int) ≤ uint.Z s.commit⌝ ∗ logRecs γ base0 s.log ∗
+    ⊢ notCrashed -∗ isMessage (GF := GF) γ m -∗ ownRaftGhost γ id s md ={⊤}=∗
+      notCrashed ∗ ownRaftGhost γ id s md ∗ ⌜(γ.reBoot.length : Int) ≤ uint.Z s.commit⌝ ∗ logRecs γ base0 s.log ∗
       (⌜¬ uint.Z s.commit < uint.Z m.commit⌝ ∨
         (⌜uint.Z s.commit < uint.Z m.commit ∧ uint.Z m.commit ≤ s.log.length⌝ ∗ commitIn γ s.log m.commit s.term ∗
           isCommitted γ (s.log.take (uint.Z m.commit).toNat))) := by
   intro Hty Hto Hterm Hrole Hbase Hw
-  iintro #Hm Hown
-  imod heartbeat_commit_le_last ⊤ γ id s m CoPset.subseteq_top Hty Hto (by rw [Hterm]; exact Int.le_refl _)
-    (fun _ => Hrole) $$ Hown Hm with ⟨Hown, %Hcm⟩
+  iintro Hnc #Hm Hown
+  imod heartbeat_commit_le_last ⊤ γ id s m CoPset.subseteq_top CoPset.subseteq_top Hty Hto
+    (by rw [Hterm]; exact Int.le_refl _) (fun _ => Hrole) $$ Hnc Hown Hm with ⟨Hnc, Hown, %Hcm⟩
   have Hlen : plogLastIndexZ s.base s.log = s.log.length := by
     unfold plogLastIndexZ; rw [Hbase, base0_index]; simp
   rw [Hlen] at Hcm
@@ -78,8 +78,8 @@ theorem ownRaftGhost_hbFacts (γ : RaftNames) (id : w64) (s : PState) (m : Msg) 
   rw [Hbase]
   icases isMessage_hb_inv γ m Hty $$ Hm with ⟨-, ⟨%Fl, #Hfl, #Hmc, #Hmcm⟩, ⟨%i, %Hi, #Hack⟩, -, -⟩
   rw [Hto, Hterm]
-  imod ownLogGhost_ack_agree ⊤ γ id s kl γs V πc i Hsname CoPset.subseteq_top $$ Hslot Hvirt Hlg Hack
-    with ⟨Hvirt, Hlg, #Hagree⟩
+  imod ownLogGhost_ack_agree ⊤ γ id s kl γs V πc i Hsname CoPset.subseteq_top CoPset.subseteq_top
+    $$ Hnc Hslot Hvirt Hlg Hack with ⟨Hnc, Hvirt, Hlg, #Hagree⟩
   by_cases Hlt : uint.Z s.commit < uint.Z m.commit
   · have Hci : uint.Z s.commit < uint.Z i := by omega
     ihave #Ha := Hagree $$ %(⟨Hrole, Hci⟩)
@@ -114,6 +114,7 @@ theorem ownRaftGhost_hbFacts (γ : RaftNames) (id : w64) (s : PState) (m : Msg) 
       have Hta : plogTermAt base0 s.log m.commit = plogTermAt base0 Fl m.commit := by
         rw [← Ha1 m.commit Hcb (by omega), ← Ha2 m.commit Hcb (by omega)]
       imodintro
+      iframe Hnc
       isplitl [Hvirt Hlg Hlcm Hrd]
       · iunfold ownRaftGhost
         iexists γs, V, πc, kl
@@ -132,6 +133,7 @@ theorem ownRaftGhost_hbFacts (γ : RaftNames) (id : w64) (s : PState) (m : Msg) 
       ihave %HXl := leadFull_agree γ s.term X Fl m.commit HsXc (by rw [← HG]; exact HsG) $$ HX Hfl
       ihave %Htk := full_take_eq γ s.log Fl m.commit Hw HwFl.1 HsF (HmX.symm.trans HXl) $$ Hrecs HrFl
       imodintro
+      iframe Hnc
       isplitl [Hvirt Hlg Hlcm Hrd]
       · iunfold ownRaftGhost
         iexists γs, V, πc, kl
@@ -146,6 +148,7 @@ theorem ownRaftGhost_hbFacts (γ : RaftNames) (id : w64) (s : PState) (m : Msg) 
           (by rw [← HG]; exact HsG) ((HmX).symm.trans HXl) $$ HrFl Hrecs Hmc
       · rw [Htk]; iexact Hmcm
   · imodintro
+    iframe Hnc
     isplitl [Hvirt Hlg Hlcm Hrd]
     · iunfold ownRaftGhost
       iexists γs, V, πc, kl
@@ -643,15 +646,17 @@ theorem stepBundle_traced_folHb : stepBundle_traced.on (GF := GF) (hG := hG) Fol
     isplitr
     · -- the receive line
       iintro ⟨Hgh, Hc, Htok⟩
-      iapply hookGateOpt_fupd_recv
+      iapply hookGateOpt_nc_recv
+      iintro Hnc
       icases ownStepGhost_nsLink γ md c id s $$ Hgh with ⟨%Hnl, Hgh⟩
       imod ownStepGhost_traceOk γ md c id s hfit $$ Hgh with ⟨%Hb, Hgh⟩
       iunfold ownStepGhost at Hgh
       icases Hgh with ⟨Hg, Hr⟩
       imod ownRaftGhost_hbFacts γ id (toPState s) (absMsg .heartbeat m ents ctx) rfl hto'
         (by show m.Term' = s.term; exact hterm) (by show proleRole s.role ≠ .leader; rw [hrole]; nofun)
-        hs0.1 hwB $$ Hm Hg with ⟨Hg, %Hbc, #HL, #Hcert⟩
+        hs0.1 hwB $$ Hnc Hm Hg with ⟨Hnc, Hg, %Hbc, #HL, #Hcert⟩
       imodintro
+      iframe Hnc
       have hreT : γ.reTrace.isSome := by rw [← Hnl.2.1, htr]; rfl
       have hnb : (absMsg .heartbeat m ents).NumsBelow traceNumBound := (hok .heartbeat hmty hreT htrd).1
       have hc1 : 1 ≤ uint.Z (toPState s).commit := by

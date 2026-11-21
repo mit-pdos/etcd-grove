@@ -724,6 +724,17 @@ theorem hookGate_fupd (tr : Option GName) (r : Loc) (E : TraceEv → Prop) (Q : 
   imod H with H
   iapply H $$ Hnc
 
+/-- (2026-11-21, the crash invariant) The gate after an update at `⊤` that needs the token (a ghost
+step over raft's ghost state): the gate's own `notCrashed`, lent and given back. -/
+theorem hookGate_nc (tr : Option GName) (r : Loc) (E : TraceEv → Prop) (Q : IProp GF) :
+    iprop(notCrashed -∗ |={⊤}=> notCrashed ∗ HookGate tr r E Q) ⊢ HookGate tr r E Q := by
+  iintro H
+  iunfold HookGate
+  iintro Hnc
+  imod H $$ Hnc with ⟨Hnc, H⟩
+  iunfold HookGate at H
+  iapply H $$ Hnc
+
 /-- An untraced caller's gate: the struct's nil logger and `Q`. -/
 theorem hookGate_none (r : Loc) (E : TraceEv → Prop) (tl : GoInterface) (Q : IProp GF)
     (hok : TraceLoggerOk tl) :

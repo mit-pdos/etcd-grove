@@ -665,6 +665,17 @@ gives back, so that at most one node of an id runs at a time. Allocation gives i
 @[no_expose] def nodeVacant (γ : Cluster) (id : w64) : IProp GF :=
   ApiImpl.nodeVacantU γ id
 
+/-- (2026-11-21, the crash invariant: `notes/raft-crash-law-design.md` (i)) **No node of `id` runs,
+armed for a crash at arm `x`** (exclusive): what `RestartNode`/`StartNode` take and `node.Stop`
+gives back. `nodeVacant_arm` makes it, with the arm's crash token (`nodeCrashTok`). -/
+@[no_expose] def nodeVacantA (γ : Cluster) (id : w64) (x : CrashNames) : IProp GF :=
+  ApiImpl.nodeVacantAU γ id x
+
+/-- (2026-11-21) **The crash token of arm `x` of `id`** (exclusive): after a crash, it gives the
+id's vacancy back (`nodeCrash`), whatever node of `id` ran from arm `x`. -/
+@[no_expose] def nodeCrashTok (γ : Cluster) (id : w64) (x : CrashNames) : IProp GF :=
+  ApiImpl.nodeCrashTokU γ id x
+
 /-! ## The storage contract at the node API (U8 v2, 2026-10-29; candidate 17 rev 3 §2;
 2026-11-01, durability stage I-4: keyed by the storage key `K`) -/
 
@@ -948,9 +959,9 @@ commit-only batch leaves the durable state but its commit index, so even a durab
 applies it at once. -/
 def readyEnter (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st st' : NodeDriverState)
     (ms : List QMsg) : IProp GF :=
-  iprop(∀ (E : CoPset) (q : Qp), ⌜↑N ⊆ E⌝ -∗
+  iprop(∀ (E : CoPset) (q : Qp), ⌜↑N ⊆ E⌝ -∗ notCrashed -∗
     raftState γ id st.durable ∗ nodeRunning n γ N q ={E}=∗
-      raftState γ id st'.durable ∗ nodeRunning n γ N q ∗ nodeDriver n γ N st' ∗
+      notCrashed ∗ raftState γ id st'.durable ∗ nodeRunning n γ N q ∗ nodeDriver n γ N st' ∗
       readyMsgs γ N id ms)
 
 /-- (2026-11-01, durability stage I-3; candidate 12's deletion of *check*) **At role leader a
