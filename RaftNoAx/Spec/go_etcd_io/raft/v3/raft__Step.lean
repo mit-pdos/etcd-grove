@@ -455,7 +455,8 @@ def SnapLogStep [GooseExts] (sv : SnapshotM) (m : MessageM) (s s' : NState) : Pr
    ¬ PlogMatches s.logst.prev (s.logst.sents ++ s.logst.uents) (snapId sv) ∧
    -- (2026-10-28, stage U4a) the record of the storage's terms the restore made (`restoreSdt`)
    s'.logst.stb = (restoreSdt s.logst).1 ∧ s'.logst.sdt = (restoreSdt s.logst).2 ∧
-   s'.logst.dtk = s.logst.dtk ∧ ∃ cl, s'.logst.ksn = s.logst.ksn ++ [snapTrip sv cl])
+   s'.logst.dtk = s.logst.dtk ∧ ∃ cl, s'.logst.ksn = s.logst.ksn ++ [snapTrip sv cl] ∧
+   (∀ q ∈ s'.outbox, q.ty = .snap → q ∈ s.outbox) ∧ s'.logst.committed = sv.Metadata'.Index')
 
 theorem SnapLogStep.refl [GooseExts] (sv : SnapshotM) (m : MessageM) (s : NState) :
     SnapLogStep sv m s s :=

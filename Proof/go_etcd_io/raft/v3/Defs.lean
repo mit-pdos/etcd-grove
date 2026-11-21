@@ -301,6 +301,8 @@ structure StorNames where
   sz : Bool := false
   /-- The ordered history of this attachment’s snapshot restores and Ready handouts. -/
   history : Nat := 0
+  /-- The committed bounds and successful snapshot installations of this attachment. -/
+  installs : Nat := 0
 
 /-- (durability stage I-6) The same names with no attach record: raft's view of its storage before
 it has caught up with the record (`newRaft`'s window between `InitialState` and `appliedTo`: the

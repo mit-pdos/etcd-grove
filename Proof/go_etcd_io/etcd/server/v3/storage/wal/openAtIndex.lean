@@ -310,6 +310,32 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       rw [hg]; rfl
     have hdropn : ∃ kk, (walNames hj.cur).drop kk = gs.map (·.name) :=
       ⟨sint.nat kk, by rw [walNames_segs hsn habs.names.1 hnd habs.names.2, ← hgs, List.map_drop]⟩
+    try wp_auto
+    wp_join iprop(walReadFallback wl dir (walNames hj.cur) (gs.map (·.name)) ∗ w_ptr ↦ wl)
+      at (If _ _ _) with [w names nameIndex fallback Hws] as ⟨Hfall, w⟩
+    · wp_if_destruct
+      · try wp_auto
+        isplitr
+        · itrivial
+        iframe w
+        unfold walReadFallback
+        iexists _
+        iframe fallback
+        iright
+        iexists _, lay.segs.map (·.name)
+        iframe
+        dsimp only
+        ipureintro
+        refine ⟨by word, hKl, by omega, (walNames_segs hsn habs.names.1 hnd habs.names.2).symm, ?_⟩
+        rw [← hgs, List.map_drop]
+      · try wp_auto
+        isplitr
+        · itrivial
+        iframe w
+        unfold walReadFallback
+        iexists null
+        iframe fallback
+        ileft; ipureintro; rfl
     cases write
     · -- read mode
       try wp_auto
@@ -340,7 +366,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       isplitr
       · ipureintro; exact hIoN
       isplitl [Ho Hlk]
-      · iexists gs, fls
+      · iexists fls
         iframe Ho
         isplitr
         · ipureintro; exact ⟨hgne, hndg, hS, hselg, by first | exact fun h => h.elim | exact fun _ => ⟨hlastw rfl, hXt⟩ | exact fun _ => hlastw rfl | exact hlastw rfl | exact hlastw, hdropn⟩
@@ -432,7 +458,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       isplitr
       · ipureintro; exact hIoN
       isplitl [Ho Hlk]
-      · iexists gs, fls
+      · iexists fls
         iframe Ho
         isplitr
         · ipureintro; exact ⟨hgne, hndg, hS, hselg, by first | exact fun h => h.elim | exact fun _ => ⟨hlastw rfl, hXt⟩ | exact fun _ => hlastw rfl | exact hlastw rfl | exact hlastw, hdropn⟩
