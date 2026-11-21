@@ -200,6 +200,7 @@ theorem create_handleIn (P : WalPbIn GF) (Mr : WalMarshal) (hMr : WalMarshalCrea
     (hj0 : hj.cur !! walFileName 0 0 = some (.file g.ino))
     (hj1 : ∀ b n, hj.cur !! b = some n → b = walFileName 0 0) (hfp : fp ≠ null) (hfd0 : 0 ≤ fd.toInt)
     (hRp : Rp = R) (hdqp : dqp = DFrac.own q) (hWR : W.roots = R) :
+    structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"snapBefore" w ↦□ (null : Loc) ∗
     walPreIn w lg (child r nm) mds md e lt f (W64 0) (W64 0) ∗
       ownEncoder e (wal.fileWi f) (hash.crc32.crc32c (hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md)
         (Mr.encSnap snapC0.model true)) [] ∗
@@ -225,7 +226,7 @@ theorem create_handleIn (P : WalPbIn GF) (Mr : WalMarshal) (hMr : WalMarshalCrea
       (createHS md g.ino (createStream Mr md).length γ g.om.size) TailMetaW
       (fun f' R' q' => iprop(⌜f' = f ∧ R' = R ∧ q' = q⌝)) (some (child r nm))
       (fun R' dq' => R' = R ∧ dq' = DFrac.own q) := by
-  iintro ⟨Hpre, Henc, Hf, Hfd, Hlks, Hoff, Htr, Hm, Hb, #Hk, Hn, Hp, #Hsi, Hperm, Hdfd, Ho, Hnf, Hdff, Hdf,
+  iintro ⟨#Hbefore, Hpre, Henc, Hf, Hfd, Hlks, Hoff, Htr, Hm, Hb, #Hk, Hn, Hp, #Hsi, Hperm, Hdfd, Ho, Hnf, Hdff, Hdf,
     Hst, #Hsp, Hdec, Hrc, Hfpf, #Hpipe, Hmain, Htc, #Henv, #Hcrc, #Hpkg, Hopen⟩
   iunfold walPreIn at Hpre
   icases Hpre with ⟨%locks, Hlg, #Hzap, Hdir, Hmd, #Hmds, Hns, #Hmu, Henti, Hsnapi, He, %hen, Hlocks, Hls,
@@ -238,7 +239,7 @@ theorem create_handleIn (P : WalPbIn GF) (Mr : WalMarshal) (hMr : WalMarshalCrea
   iexists lg, df, sp, e, fp, lt, f, mds, locks, [lt], fd, dfd, fname, dnm, J, rc
   rw [createHS_crc Mr md hMr g.ino (createStream Mr md).length γ g.om.size]
   dsimp only [createHS]
-  iframe Hlg Hzap Hdir Hdff Hdf Hmd Hst Hsp Hdec Hrc Hns Hmu Henti Hsnapi He Henc Hlocks Hls Hcap Hlt Hfpf
+  iframe Hbefore Hlg Hzap Hdir Hdff Hdf Hmd Hst Hsp Hdec Hrc Hns Hmu Henti Hsnapi He Henc Hlocks Hls Hcap Hlt Hfpf
     Henv Hcrc Hpkg Hopen
   isplitr
   · simp only [recBytes]; iframe Hmds; ipureintro; exact hmds

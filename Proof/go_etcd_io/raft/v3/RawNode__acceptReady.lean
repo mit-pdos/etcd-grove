@@ -1147,7 +1147,7 @@ theorem RawNode.acceptReady.wp_proof
   · rw [Hlogst, Haf6, Hf_ksn]; iexact Hhist
   ihave Hledger' := restoreLedger_keep γ id rs.sn (s := s)
     (s' := readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length))
-    (Int.le_refl _) (by rw [Hlogst, Haf6, Hf_ksn]) $$ Hledger
+    (Int.le_refl _) (by rw [Hlogst, Haf6, Hf_ksn]) (by rw [HcmN]; exact Int.le_refl _) (fun _ h _ => False.elim (List.not_mem_nil h)) $$ Hledger
   ihave #Hsloc' := snapLocOk_keep γ id (o' := (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst.snap)
     (.inl (by rw [Hlogst, Haf2, Hf_snap])) $$ Hsloc
   -- (U8 v2) the certified height after the `Ready`: the committed log handed out

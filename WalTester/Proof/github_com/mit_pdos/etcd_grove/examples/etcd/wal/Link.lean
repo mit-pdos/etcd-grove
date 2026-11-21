@@ -180,6 +180,7 @@ variable [_root_.Perennial.fmt.Assumptions]
 variable [_root_.Perennial.errors.Assumptions]
 variable [go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 variable [_root_.Perennial.bufio.Assumptions]
+variable [go_uber_org.zap.Assumptions]
 variable [go_etcd_io.etcd.pkg.v3.crc.Assumptions]
 variable [hash.crc32.Assumptions]
 variable [go_etcd_io.etcd.pkg.v3.pbutil.Assumptions]
@@ -660,6 +661,7 @@ variable [_root_.Perennial.fmt.Assumptions]
 variable [_root_.Perennial.errors.Assumptions]
 variable [go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 variable [_root_.Perennial.bufio.Assumptions]
+variable [go_uber_org.zap.Assumptions]
 variable [go_etcd_io.etcd.pkg.v3.crc.Assumptions]
 variable [hash.crc32.Assumptions]
 variable [go_etcd_io.etcd.pkg.v3.pbutil.Assumptions]
@@ -720,9 +722,10 @@ theorem etcd_wal.wp_restartRead
     h_WalDecEnvSupply h_errors_IsErrno h_errors_IsPathErrnoEof h_errors_IsPathErrnoTerm
     h_fmt_ErrorfErrsTerm)) (fun W : WalGS GF =>
     (_root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_ReadAll
-    (walRaftP (GF := GF)) walRaftMr U HsO h_U_Ok h_U_SnapCoh h_WalHsOwn_2 h_WalPbIn_CloneHsLaw
-    h_WalPbIn_GetIndexLaw h_WalPbIn_GetTermLaw h_WalPbIn_UnmarshalEntLaw h_fmt_ErrorfErrsNot
-    h_proto_UnmarshalWalRecordE)) (fun W : WalGS GF =>
+    (walRaftP (GF := GF)) walRaftMr U HsO h_U_Ok h_U_SnapCoh h_WalDecEnvSupply h_WalHsOwn_2
+    h_WalPbIn_CloneHsLaw h_WalPbIn_GetIndexLaw h_WalPbIn_GetTermLaw h_WalPbIn_UnmarshalEntLaw
+    h_errors_IsErrno h_errors_IsPathErrnoEof h_errors_IsPathErrnoTerm h_fmt_ErrorfErrsNot
+    h_fmt_ErrorfErrsTerm h_proto_UnmarshalWalRecordE)) (fun W : WalGS GF =>
     (_root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_Close (walRaftP
     (GF := GF)) walRaftMr)) (fun W : WalGS GF => (_root_.Perennial.EtcdGrove.walfs.wal.wp_Repair
     walRaftMr h_WalDecEnvSupply h_errors_IsPathErrnoEof h_errors_IsPathErrnoTerm

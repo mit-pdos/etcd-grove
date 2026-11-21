@@ -75,7 +75,7 @@ theorem RawNode.Tick.wp_proof
       ihave #Hhist' := restoredSnapHistory_keep γ id Hsd $$ Hhist
       ihave Hledger' := restoreLedger_keep γ id rs.sn (s := s) (s' := s')
         (by first | exact Href.voteLe.1 | exact Hcv.1.voteLe.1 | exact Hvr.1 | omega)
-        (logStoreRec_ksn Hsd) $$ Hledger
+        (logStoreRec_ksn Hsd) Hcv.commit Hcv.queue $$ Hledger
       ihave #Hsloc' := snapLocOk_keep γ id (.inl Hsn) $$ Hsloc
       · iapply ownRawNode_intro γ rn id { rs with term := s'.term } s' cf fp rnv sv hprev steps
           Hwf' Hin
@@ -148,7 +148,7 @@ theorem RawNode.Tick.wp_proof
       ihave #Hhist' := restoredSnapHistory_keep γ id Hsd $$ Hhist
       ihave Hledger' := restoreLedger_keep γ id rs.sn (s := s) (s' := s')
         (by first | exact Href.voteLe.1 | exact Hcv.1.voteLe.1 | exact Hvr.1 | omega)
-        (logStoreRec_ksn Hsd) $$ Hledger
+        (logStoreRec_ksn Hsd) Hcv.commit Hcv.queue $$ Hledger
       ihave #Hsloc' := snapLocOk_keep γ id (.inl Hsn) $$ Hsloc
       · iapply ownRawNode_intro_tr γ rn id { rs with term := s'.term } s' cf fp rnv sv hprev steps
           Hwf' Hin

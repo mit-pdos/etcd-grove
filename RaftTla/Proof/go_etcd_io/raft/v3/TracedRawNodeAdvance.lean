@@ -1626,6 +1626,7 @@ theorem RawNode.Advance.tracedSpec_proof
     have Hs0sn : s0.gh.sn = s.gh.sn := by rw [← Hs0]
     have Hs0tr : s0.gh.tr = none := by rw [← Hs0]; exact HtrS
     have Hs0lq : s0.gh.lq = [] := by rw [← Hs0]; exact Hglq
+    have Hs0out : s.outbox = s0.outbox := by rw [← Hs0]
     have Hs0ksn : s0.logst.ksn = s.logst.ksn := by rw [← Hs0]; rfl
     have Hs0dtk : s0.logst.dtk = s.logst.dtk := by rw [← Hs0]; rfl
     have Hs0v : HsLe (hsOf s) (hsOf s0) ∧ uint.Z s.logst.inprogress ≤ uint.Z s0.logst.inprogress := by
@@ -1672,6 +1673,7 @@ theorem RawNode.Advance.tracedSpec_proof
                     s1.role = .follower)⌝ ∗
         "%Hsg1" ∷ ⌜s1.logst.storage = s0.logst.storage ∧ s1.prevote = s0.prevote ∧ s1.gh = s0.gh⌝ ∗
         "%Hc1" ∷ ⌜uint.Z s0.logst.committed ≤ uint.Z s1.logst.committed⌝ ∗
+        "%Hq1" ∷ ⌜SnapQueueStep (toPState s0) (toPState s1)⌝ ∗
         -- (2026-11-01, durability stage II (m)) the hard state and `offsetInProgress` not back
         "%Hph1" ∷ ⌜HsLe (hsOf s0) (hsOf s1) ∧ uint.Z s0.logst.inprogress ≤ uint.Z s1.logst.inprogress⌝ ∗
         "%Hok1" ∷ ⌜StepsOk s1 (rs.steps.drop (sint.nat n))⌝ ∗
@@ -1694,7 +1696,7 @@ theorem RawNode.Advance.tracedSpec_proof
       refine ⟨⟨fun _ => by first | rfl | trivial, fun h => absurd h (by omega)⟩, by word,
         ⟨trivial, trivial⟩, Hwf0,
         ⟨Hs0f.2.1, by simp, by simp, by simp,
-          fun h => absurd h (by omega)⟩, by simp, Int.le_refl _, ⟨HsLe.refl _, Int.le_refl _⟩, Hstok0,
+          fun h => absurd h (by omega)⟩, by simp, Int.le_refl _, (fun _ h _ => .inl h), ⟨HsLe.refl _, Int.le_refl _⟩, Hstok0,
         stepsOk_selfBound s0 rs.steps Hstok0, ⟨Int.le_refl _, by omega, fun _ _ => rfl, ?_, ?_⟩,
         ⟨by simp, Int.le_refl _⟩, fun _ => by first | rfl | trivial,
         fun h => by
@@ -1780,7 +1782,7 @@ theorem RawNode.Advance.tracedSpec_proof
             fun _ => ⟨Ha2.trans (Hs1.2.2.2.1 (by omega)).1, Hsn2.trans (Hs1.2.2.2.1 (by omega)).2⟩,
             fun h => absurd h (by omega)⟩,
           ⟨Hsg2.trans Hsg1.1, Hsg2'.trans Hsg1.2.1, Hsg2''.trans Hsg1.2.2⟩,
-          Int.le_trans Hc1 Hc12,
+          Int.le_trans Hc1 Hc12, Hq1.trans Hout2.snapQueue Hti1.1 Hc12,
       ⟨Hph1.1.trans (HsLe.of_step Hout2.voteLe Hc12), Int.le_trans Hph1.2 Hip2⟩,
           stepsOk_mono_le s1 s2 _ Ht2 ⟨Hpv2, logStoreRec_stored Hsd2⟩ Hc12 Ha2 (tc_le_of_gh Hsg2'') Hrest,
           fun pv t h => Hsb1 pv t (List.mem_cons_of_mem _ h),
@@ -1891,7 +1893,7 @@ theorem RawNode.Advance.tracedSpec_proof
                 .inr ⟨b1, Hu⟩,
                 Hr2.trans (Hsf1 (by rw [Hsn1']; simp))⟩⟩,
             ⟨b9.trans Hsg1.1, Hpv2.trans Hsg1.2.1, Hg2.trans Hsg1.2.2⟩,
-            by rw [b11]; exact Hc1,
+            by rw [b11]; exact Hc1, Hq1.congr rfl rfl (by rw [Hs2]; rfl) b11,
             ⟨Hph1.1.trans (HsLe.of_eq Ht2 (by rw [Hs2]) b11),
               Int.le_trans Hph1.2 (by rw [Hl2]; exact ackSnapLog_inprogress _ _ _ _)⟩,
             by rw [Hdr]; trivial,
@@ -2043,7 +2045,7 @@ theorem RawNode.Advance.tracedSpec_proof
                 .inl ⟨b1.trans Hsn1s, by rw [← Hsn1s]; exact Hhit1⟩,
                 Hr2.trans (Hsf1 (by rw [Hsn1']; simp))⟩⟩,
             ⟨b9.trans Hsg1.1, Hpv2.trans Hsg1.2.1, Hg2.trans Hsg1.2.2⟩,
-            by rw [b11]; exact Hc1,
+            by rw [b11]; exact Hc1, Hq1.congr rfl rfl (by rw [Hs2']; rfl) b11,
             ⟨Hph1.1.trans (HsLe.of_eq Ht2 (by rw [Hs2']) b11),
               Int.le_trans Hph1.2 (by rw [Hl2']; exact ackSnapLog_inprogress _ _ _ _)⟩,
             by rw [Hdr]; trivial,
@@ -2093,7 +2095,10 @@ theorem RawNode.Advance.tracedSpec_proof
       ihave Hledger' := restoreLedger_keep γ id rs.sn (s := s)
         (s' := { s1 with logst := s1.logst, gh := { s1.gh with slent := false, snp := none } })
         (by change uint.Z s.term ≤ uint.Z s1.term; rw [← Hs0f.2.2.2.2.2.2.2.2.2.2.1]; exact Hti1.1)
-        ((logStoreRec_ksn Hs1.2.2.1).trans Hs0ksn) $$ Hledger
+        ((logStoreRec_ksn Hs1.2.2.1).trans Hs0ksn)
+        (by change uint.Z s.logst.committed ≤ uint.Z s1.logst.committed
+            rw [← Hs0f.2.2.2.2.2.2.2.1]; exact Hc1)
+        (Hq1.congr Hs0out Hs0f.2.2.2.2.2.2.2.2.2.2.1.symm rfl rfl) $$ Hledger
       ihave #Hsloc' := snapLocOk_keep γ id (Hsk1.imp And.left And.left) $$ Hsloc
       -- the snapshot handed out, acknowledged: the mirror's record of it dropped
       icases ownRaftPhysC_log_at_snp cf1 rnv.raft' id s1 $$ Hphys with ⟨Hlog1, %Hgh1, Hback1⟩
@@ -2284,6 +2289,7 @@ theorem RawNode.Advance.tracedSpec_proof
                 s1.logst.prev = s.logst.prev ∧ logStoreRec s1.logst = logStoreRec s.logst⌝ ∗
       "%Hsg1" ∷ ⌜s1.logst.storage = s.logst.storage ∧ s1.prevote = s.prevote ∧ s1.gh = s.gh⌝ ∗
       "%Hc1" ∷ ⌜uint.Z s.logst.committed ≤ uint.Z s1.logst.committed⌝ ∗
+        "%Hq1" ∷ ⌜SnapQueueStep (toPState s) (toPState s1)⌝ ∗
       -- (2026-11-01, durability stage II (m)) the hard state and `offsetInProgress` not back
       "%Hph1" ∷ ⌜HsLe (hsOf s) (hsOf s1) ∧ uint.Z s.logst.inprogress ≤ uint.Z s1.logst.inprogress⌝ ∗
       "%Hca" ∷ ⌜rs.capplied ≤ ca ∧ ca ≤ max rs.capplied rs.delivered.length ∧
@@ -2311,7 +2317,7 @@ theorem RawNode.Advance.tracedSpec_proof
     simp only [named]
     iframe
     ipureintro
-    refine ⟨by word, ⟨trivial, trivial⟩, Hwf, by simp, ⟨trivial, trivial, trivial⟩, Int.le_refl _,
+    refine ⟨by word, ⟨trivial, trivial⟩, Hwf, by simp, ⟨trivial, trivial, trivial⟩, Int.le_refl _, (fun _ h _ => .inl h),
       ⟨HsLe.refl _, Int.le_refl _⟩,
       (by simp [Nat.le_max_left]),
       Hstok,
@@ -2488,7 +2494,7 @@ theorem RawNode.Advance.tracedSpec_proof
       ⟨Ha2.trans Hs1.1, Hu2.trans Hs1.2.1, Hsn2.trans Hs1.2.2.1, Hpv2.trans Hs1.2.2.2.1,
         Hsd2.trans Hs1.2.2.2.2⟩,
       ⟨Hsg2.1.trans Hsg1.1, Hsg2.2.1.trans Hsg1.2.1, Hsg2.2.2.trans Hsg1.2.2⟩,
-      Int.le_trans Hc1 Hc12,
+      Int.le_trans Hc1 Hc12, Hq1.trans Hout2.snapQueue Hti1.1 Hc12,
       ⟨Hph1.1.trans (HsLe.of_step Hout2.voteLe Hc12), Int.le_trans Hph1.2 Hip2⟩,
       ⟨Nat.le_trans Hca.1 Hca1, ?_, fun h => (Hca3 h).trans (Hca.2.2 h)⟩,
       stepsOk_mono_le s1 s2 _ Ht2 ⟨Hpv2, logStoreRec_stored Hsd2⟩ Hc12 Ha2 (tc_le_of_gh Hsg2.2.2) Hrest,
@@ -2571,7 +2577,7 @@ theorem RawNode.Advance.tracedSpec_proof
         fun _ _ _ _ h => (by cases h)⟩, fun l h => (by simp only at h; rw [hsl] at h; cases h), HcapA⟩
     ihave #Hhist' := restoredSnapHistory_keep γ id Hs1.2.2.2.2 $$ Hhist
     ihave Hledger' := restoreLedger_keep γ id rs.sn (s := s) (s' := s1) Hti1.1
-      (logStoreRec_ksn Hs1.2.2.2.2) $$ Hledger
+      (logStoreRec_ksn Hs1.2.2.2.2) Hc1 Hq1 $$ Hledger
     ihave #Hsloc' := snapLocOk_keep γ id (.inl Hs1.2.2.1) $$ Hsloc
     icases ownRaftPhysC_sn cf rnv.raft' id s1 $$ Hphys with ⟨%Hsn1, Hphys⟩
     -- (trace-check revision 3's N2, Probe B item 5) dynamically the configuration index is at least

@@ -104,5 +104,86 @@ theorem snapHistory_index_le (sn : StorNames) (tr ir t i : Nat) (ht : tr < t) :
   · exact (snapHistory_prefix h hb).2
   · have := (snapHistory_prefix h ha).1; omega
 
+/-- The node records (index, 1) when it restores a snapshot and (commit, 0)
+when it hands out a Ready. A subsequent restore has to be past every earlier
+commit. The Ready's history therefore accounts for every local restore at a
+snapshot index already committed in that Ready. -/
+noncomputable def installHistoryOwn (γ : GName) (commit : Nat) (indices : List Nat) : IProp GF :=
+  iprop(∃ es : List (Nat × Nat), monoListAuthOwn γ 1 es ∗
+    ⌜(∀ e ∈ es, e.1 ≤ commit) ∧ (∀ i, (i, 1) ∈ es → i ∈ indices)⌝)
+
+noncomputable def installSeen (γ : GName) (index : Nat) : IProp GF :=
+  iprop(∃ es : List (Nat × Nat), monoListLbOwn γ (es ++ [(index, 1)]) ∗
+    ⌜∀ e ∈ es, e.1 < index⌝)
+
+noncomputable def installView (γ : GName) (commit : Nat) (indices : List Nat) : IProp GF :=
+  iprop(∃ es : List (Nat × Nat), monoListLbOwn γ (es ++ [(commit, 0)]) ∗
+    ⌜∀ i, (i, 1) ∈ es → i ∈ indices⌝)
+
+instance (γ : GName) (i : Nat) : Persistent (installSeen (GF := GF) γ i) := by
+  unfold installSeen; infer_instance
+
+instance (γ : GName) (c : Nat) (ks : List Nat) : Persistent (installView (GF := GF) γ c ks) := by
+  unfold installView; infer_instance
+
+theorem installHistory_alloc : ⊢ |==> ∃ γ, installHistoryOwn (GF := GF) γ 0 [] := by
+  imod mono_list_own_alloc ([] : List (Nat × Nat)) with ⟨%γ, Ha, -⟩
+  imodintro; iexists γ; unfold installHistoryOwn
+  iexists []; iframe Ha; ipureintro; simp
+
+theorem installHistory_raise (γ : GName) {c c' : Nat} (ks : List Nat) (hc : c ≤ c') :
+    installHistoryOwn (GF := GF) γ c ks ⊢ installHistoryOwn γ c' ks := by
+  unfold installHistoryOwn
+  iintro ⟨%es, Ha, %h⟩; iexists es; iframe Ha
+  ipureintro; exact ⟨fun e he => Nat.le_trans (h.1 e he) hc, h.2⟩
+
+theorem installHistory_restore (γ : GName) {c c' i : Nat} (ks : List Nat) (hgt : c < i) (hi : i ≤ c') :
+    ⊢ installHistoryOwn (GF := GF) γ c ks ==∗ installHistoryOwn γ c' (ks ++ [i]) ∗ installSeen γ i := by
+  unfold installHistoryOwn installSeen
+  iintro ⟨%es, Ha, %h⟩
+  imod monoListAuthOwn_update (es ++ [(i, 1)]) ⟨_, rfl⟩ $$ Ha with ⟨Ha, #Hlb⟩
+  imodintro; isplitl [Ha]
+  · iexists (es ++ [(i, 1)]); iframe Ha; ipureintro
+    constructor
+    · intro e he
+      rcases List.mem_append.1 he with he | he
+      · exact Nat.le_trans (h.1 e he) (Nat.le_trans (Nat.le_of_lt hgt) hi)
+      · cases List.mem_singleton.1 he; exact hi
+    · intro j hj
+      rcases List.mem_append.1 hj with hj | hj
+      · exact List.mem_append_left _ (h.2 j hj)
+      · cases List.mem_singleton.1 hj; simp
+  · iexists es; iframe Hlb; ipureintro
+    exact fun e he => Nat.lt_of_le_of_lt (h.1 e he) hgt
+
+theorem installHistory_ready (γ : GName) (c : Nat) (ks : List Nat) :
+    ⊢ installHistoryOwn (GF := GF) γ c ks ==∗ installHistoryOwn γ c ks ∗ installView γ c ks := by
+  unfold installHistoryOwn installView
+  iintro ⟨%es, Ha, %h⟩
+  imod monoListAuthOwn_update (es ++ [(c, 0)]) ⟨_, rfl⟩ $$ Ha with ⟨Ha, #Hlb⟩
+  imodintro; isplitl [Ha]
+  · iexists (es ++ [(c, 0)]); iframe Ha; ipureintro
+    constructor
+    · intro e he
+      rcases List.mem_append.1 he with he | he
+      · exact h.1 e he
+      · cases List.mem_singleton.1 he; exact Nat.le_refl _
+    · intro i hi
+      exact h.2 i ((List.mem_append.1 hi).resolve_right (by simp))
+  · iexists es; iframe Hlb; ipureintro; exact h.2
+
+theorem installSeen_mem (γ : GName) {c i : Nat} (ks : List Nat) (hi : i ≤ c) :
+    ⊢ installView (GF := GF) γ c ks -∗ installSeen γ i -∗ ⌜i ∈ ks⌝ := by
+  unfold installView installSeen
+  iintro ⟨%a, #Ha, %ha⟩ ⟨%b, #Hb, %hb⟩
+  ihave %hp := mono_list_lb_valid γ _ _ $$ Ha Hb
+  ipureintro
+  rcases hp with h | h
+  · have hm : (c, 0) ∈ b ++ [(i, 1)] := h.sublist.subset (by simp)
+    have ht := hb (c, 0) ((List.mem_append.1 hm).resolve_right (by simp))
+    exact False.elim (Nat.not_lt_of_ge hi ht)
+  · have hm : (i, 1) ∈ a ++ [(c, 0)] := h.sublist.subset (by simp)
+    exact ha i ((List.mem_append.1 hm).resolve_right (by simp))
+
 end
 end Perennial.EtcdGrove

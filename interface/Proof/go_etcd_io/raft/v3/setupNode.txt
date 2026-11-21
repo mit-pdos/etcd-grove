@@ -149,9 +149,12 @@ theorem setupNode.wp_proof [package_sem : Assumptions] (wp_NewRawNode : NewRawNo
                                                                                                         isCommitted γ
                                                                                                             bootLog ∗
                                                                                                           certLink γ sn ∗
-                                                                                                            snapHistoryOwn
-                                                                                                                sn.history
-                                                                                                                0 0 ∗
+                                                                                                            (snapHistoryOwn
+                                                                                                                  sn.history
+                                                                                                                  0 0 ∗
+                                                                                                                installHistoryOwn
+                                                                                                                  sn.installs
+                                                                                                                  0 []) ∗
                                                                                                               trCapStart
                                                                                                                 γ.reTrace
                                                                                                                 γ cv.ID'

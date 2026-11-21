@@ -70,7 +70,7 @@ abbrev RawNode.Bootstrap.spec : Prop :=
       -- (D22 S-b′3, 2026-10-20) the storage's certificate link (`certLink`; raft-final phase 1, over
       -- the node's storage names, U8 v2; until then also, D21 M3, the no-snapshot mode's storage cap
       -- `NsCap`)
-      certLink γ s.gh.sn ∗ snapHistoryOwn s.gh.sn.history 0 0 ∗
+      certLink γ s.gh.sn ∗ (snapHistoryOwn s.gh.sn.history 0 0 ∗ installHistoryOwn s.gh.sn.installs 0 []) ∗
       -- (step 5) the capability after positions 0-2, and the storage's no-compaction
       trCapB γ.reTrace γ r id (bootCfg ps) false (bootPhase ps id) (bootAt ps id 2) ∗
       trNoCut γ.reTrace (interface.ok si) ∗

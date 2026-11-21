@@ -179,7 +179,7 @@ theorem RawNode.ReadIndex.wp_proof
   ihave #Hhist' := restoredSnapHistory_keep γ id Hsd $$ Hhist
   ihave Hledger' := restoreLedger_keep γ id rs.sn (s := s) (s' := s')
     (by first | exact Href.voteLe.1 | exact Hcv.1.voteLe.1 | exact Hvr.1 | omega)
-    (logStoreRec_ksn Hsd) $$ Hledger
+    (logStoreRec_ksn Hsd) (by first | exact Href.commit_mono | exact Hcv.commit | exact Hc) (by first | exact Href.snapQueue | exact Hcv.queue | exact Hcv.1.snapQueue) $$ Hledger
   ihave #Hsloc' := snapLocOk_keep γ id (.inl Hsn) $$ Hsloc
   iapply ownRawNode_intro γ rn id rs s' cf fp rnv sv hprev steps Hwf' Hin
     Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
