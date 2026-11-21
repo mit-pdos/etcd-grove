@@ -1162,7 +1162,7 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
   letI := srvStor (GF := GF) γ.node
   iintro #Henv #Hbr #Hrok Hcfg HrS Hgot
   iunfold readyGot at Hgot
-  icases Hgot with ⟨%ce, %es, %h, %Lo, %ms, %ss, #Hce, #Hcom, ⟨%sts, #Hrs, #Hrsok⟩, Hrest, Hlead,
+  icases Hgot with ⟨%ce, %es, %h, %Lo, %ms, %ss, -, #Hce, #Hcom, ⟨%sts, #Hrs, #Hrsok⟩, Hrest, Hlead,
     Henter, #Hdlb0, #Hhsc⟩
   -- (R2d'a task 4) a snapshot's index above the restart point (A8; S1: derived, from the loop's fact)
   ihave ⟨Hrest, %Hwa2⟩ := rnRestartOk_winAbove γ L p S r rd ce es h Lo ms ss Hc0 $$ Hrok Hrest

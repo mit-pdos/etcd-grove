@@ -1,9 +1,16 @@
 # Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
 # notes/k8s-etcd3-goose.md).
+# (2026-11-19) with their bodies, proved instead of axiomatized (Proof/.../validation/field/): `NewPath`,
+# `ErrorList.ToAggregate`, and what `fmt.Sprintf("%v", err)` of its `*Error`s runs (`Error.Error`,
+# `Error.ErrorBody`, `ErrorType.String`), with the error-type constants they compare with
 # (prove-smallinits, 2026-11-20) `var _ error = &Error{}` and `omitValue` (an empty struct literal; until
 # then `opaqueInitsOk`).
-translate = ["!*", "_", "omitValue"]
-imports = ["!*"]
+translate = ["!*", "_", "omitValue", "NewPath", "ErrorList.ToAggregate", "Error.Error", "Error.ErrorBody",
+  "ErrorType.String", "ErrorTypeNotFound", "ErrorTypeRequired", "ErrorTypeDuplicate",
+  "ErrorTypeInvalid", "ErrorTypeNotSupported", "ErrorTypeForbidden", "ErrorTypeTooLong",
+  "ErrorTypeTooMany", "ErrorTypeTooFew", "ErrorTypeInternal", "ErrorTypeTypeInvalid",
+  "ErrorTypeTooShort"]
+imports = ["!*", "fmt", "encoding/json", "k8s.io/apimachinery/pkg/util/errors", "k8s.io/apimachinery/pkg/util/sets"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

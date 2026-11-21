@@ -10,6 +10,7 @@ module
 
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Base
 public import Perennial.Proof.errors.Link
+public import Proof.k8s_io.apimachinery.pkg.util.sets.Init
 public import Perennial.Proof.errors.NewVar
 public import Proof.runtime.PkgInitExt
 
@@ -50,6 +51,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrPreconditionViolated _ as HErrPreconditionViolated
+  wp_apply (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.errors _root_.Perennial.errors.initialize'
       EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of ErrPreconditionViolated))
