@@ -3816,3 +3816,32 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   (`RealFIFO.Pop`, `processorListener.run`, `Reflector.list`) have `isPkgInit` of client-go's `cache`, which imports
   the package: discharged there with no change to their statements.
 - **Decision.** Applied (prove-otel4, 2026-11-21); `trace.New.wp_proof` is a theorem.
+
+## 2026-11-21: the lessor's `scheduleCheckpointIfNeeded` reads the lease's `ID` (prove-pgaps)
+
+- **Spec.** `lease.lessor.scheduleCheckpointIfNeeded.spec` (`Spec/go_etcd_io/etcd/server/v3/lease/`; a trust-boundary
+  axiom until this change, when the method was names only for its float-to-integer conversion).
+- **Defect.** Not provable over the real code: the push's item `&LeaseWithTime{id: lease.ID, ...}` and the debug line's
+  `zap.Int64("leaseID", int64(lease.ID))` load `lease.ID` (`lessor.go:759-766`), and the premise gave no points-to for it.
+- **Evidence.** The translation (`Code/go_etcd_io/etcd/server/v3/lease.lean`, `lessor.scheduleCheckpointIfNeeded.impl`).
+- **Proposed change.** The premise takes `lsF "ID" l ↦□ id` (read-only once granted: `leaseMeta`'s and the lessor
+  invariant's `ID`); its two callers (`Grant`, `Checkpoint`) hold it persistently and pass it. `SpecPlan`'s statement
+  (`lessorFields` and a lease of the lessor's state) already covers it.
+- **Decision.** Applied (prove-pgaps, 2026-11-21): the method is translated and proved, the axiom retired.
+
+## 2026-11-21: the lessor's `Promote` lacks the resources its sort's `Remaining()` takes (prove-pgaps, triage)
+
+- **Spec.** `lease.lessor.Promote.spec` (`Spec/go_etcd_io/etcd/server/v3/lease/lessor__Promote.lean`, a trust-boundary
+  axiom).
+- **Defect.** Not provable as stated over the real code (found triaging it for a proof; the float arithmetic and the
+  float-to-integer conversion step since Perennial `08d191151`): with
+  `leaseRevokeRate` or more leases it runs `sort.Sort(leasesByExpiry(leases))`, whose `Less` calls each lease's
+  `Remaining()`, which read-locks the lease's `expiryMu` (`lease.go`), a reader slot of a bounded pool: `Leases`,
+  which sorts the same way, takes `levelTok leaseLvl`'s pool access, `threadBound GF ≤ 2^30 - 1` and
+  `receiptBound GF ≤ 2^62` (the sort's length bound) for it. `Promote.spec` takes only `lessorInv` and `lessorCfg`.
+- **Evidence.** `lessor.go` (`Promote`: `sort.Sort(leasesByExpiry(leases))`, then `l.Remaining()` in the loop);
+  `lessor__Leases.lean`'s `sorter_byExpiry`.
+- **Proposed change.** `Promote.spec` takes the level-0 token (`levelTok lessorLvl`, given back) and the two bounds,
+  as `Leases.spec` does; the server's callers (`LessorOk.lean`'s contract, `NewServer`'s promotion on becoming
+  leader) supply them. Not applied: it changes the server's lessor contract.
+- **Decision.** Open (the axiom stays).

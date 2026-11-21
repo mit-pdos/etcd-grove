@@ -1498,6 +1498,45 @@ noncomputable def lessor.clearLeaseExpiredNotifier.impl [GooseExts] [GoGlobalCon
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType LeaseExpiredNotifier.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef lessor.ty go!"leaseExpiredNotifier"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le"))) (Var "$r0")))))))
   (Val #()))))
 
+/-- go: lessor.go:753:19 -/
+noncomputable def lessor.scheduleCheckpointIfNeeded.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "le"
+  (Lam "lease"
+  (Seq (App (Val exceptionDo)
+  (Let "le" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType lessor.ty)))) (Var "le"))
+  (Let "lease" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Lease.ty)))) (Var "lease"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Lease.ty) go!"getRemainingTTL"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "lease"))) (Val #())) (App (Val (GoInstruction (Convert go.float64 go.int64))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Duration.ty) go!"Seconds"))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"checkpointInterval"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le")))) (Val #()))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType LeaseQueue.ty) _root_.Perennial.container.heap.Interface.ty))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"leaseCheckpointHeap"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le"))))
+  (Let "$a1" (App (Val (GoInstruction (Convert (go.GoType.PointerType LeaseWithTime.ty) go.any))) (App (Val (GoInstruction (GoAlloc LeaseWithTime.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad LeaseID.ty))) (App (Val (GoInstruction (StructFieldRef Lease.ty go!"ID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "lease"))))
+  (Let "$v1" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"checkpointInterval"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le"))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.time.Time.ty go!"Add"))) (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Now []))) (Val #())) (Val #()))) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral LeaseWithTime.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"id")) (ElementExpression LeaseID.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"time")) (ElementExpression _root_.Perennial.time.Time.ty (Var "$v1")))]))))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.container.heap.Push []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"Scheduling lease checkpoint"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"leaseID"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad LeaseID.ty))) (App (Val (GoInstruction (StructFieldRef Lease.ty go!"ID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "lease"))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Int64 []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl1" (Let "$a0" (Val #(go!"intervalSeconds"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"checkpointInterval"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le"))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Duration []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Debug"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le"))))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #()))))
+  (App (Val doExecute)
+  (Val #())))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals Checkpointer.ty))) (Pair (App (Val (GoInstruction (GoLoad Checkpointer.ty))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"cp"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le")))) (App (Val (GoInstruction (Convert go.untypedNil Checkpointer.ty))) (Val UntypedNil)))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #())))))))
+  (Val #()))))
+
 /-- go: lessor.go:808:19 -/
 noncomputable def lessor.initAndRecover.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "le"
@@ -2253,6 +2292,7 @@ class lessor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   ptr_clearScheduledLeasesCheckpoints_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"clearScheduledLeasesCheckpoints" lessor.clearScheduledLeasesCheckpoints.impl
   ptr_initAndRecover_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"initAndRecover" lessor.initAndRecover.impl
   ptr_isPrimary_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"isPrimary" lessor.isPrimary.impl
+  ptr_scheduleCheckpointIfNeeded_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"scheduleCheckpointIfNeeded" lessor.scheduleCheckpointIfNeeded.impl
   ptr_shouldPersistCheckpoints_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"shouldPersistCheckpoints" lessor.shouldPersistCheckpoints.impl
   ptr_unsafeLeases_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"unsafeLeases" lessor.unsafeLeases.impl
 
@@ -2314,6 +2354,7 @@ attribute [instance] lessor.TypeAssumptions.type_repr
   lessor.TypeAssumptions.ptr_clearScheduledLeasesCheckpoints_unfold
   lessor.TypeAssumptions.ptr_initAndRecover_unfold
   lessor.TypeAssumptions.ptr_isPrimary_unfold
+  lessor.TypeAssumptions.ptr_scheduleCheckpointIfNeeded_unfold
   lessor.TypeAssumptions.ptr_shouldPersistCheckpoints_unfold
   lessor.TypeAssumptions.ptr_unsafeLeases_unfold
 

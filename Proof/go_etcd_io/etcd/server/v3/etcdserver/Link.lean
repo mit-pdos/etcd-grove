@@ -1208,7 +1208,7 @@ theorem lease.LeaseExpiredNotifier.wp_RegisterOrUpdate :
 
 theorem lease.lessor.wp_scheduleCheckpointIfNeeded :
     lease.lessor.scheduleCheckpointIfNeeded.spec (GF := GF) (hG := hG) :=
-  lease.lessor.scheduleCheckpointIfNeeded.wp_proof
+  lease.lessor.scheduleCheckpointIfNeeded.wp_proof lease.Lease.wp_getRemainingTTL time.Duration.wp_Seconds lease.LeaseQueue.wp_Len lease.LeaseQueue.wp_Less lease.LeaseQueue.wp_Swap lease.LeaseQueue.wp_Push heap.wp_Push zap.Logger.wp_Debug zap.wp_Int64 zap.wp_Duration _root_.Perennial.time.wp_Now _root_.Perennial.time.Time.wp_Add
 
 theorem version.wp_LessThan :
     version.LessThan.spec (GF := GF) (hG := hG) :=
