@@ -37,8 +37,28 @@ theorem auth.authStore.selectPassword.wp_proof
   · iPkgInit
   ihave ⟨%e, #He, #Hdec⟩ := encoding.base64.stdDecInit_access $$ Hb64
   try wp_auto
-  trace_state
-  sorry
+  wp_if_destruct
+  · -- `password != ""`
+    wp_if_destruct
+    · -- `hashedPassword == ""`: hashed with bcrypt
+      trace_state
+      sorry
+    · -- decoded
+      try wp_auto
+      wp_apply Hdec as %b %err %bs Hb %Herr
+      try wp_auto
+      imod ownSlice_persist b _ _ $$ Hb with #Hb
+      iapply HΦ
+      iexists bs; iframe Hb; ipureintro
+      intro hp; exact absurd hp (by assumption)
+  · -- `password == ""`: decoded
+    try wp_auto
+    wp_apply Hdec as %b %err %bs Hb %Herr
+    try wp_auto
+    imod ownSlice_persist b _ _ $$ Hb with #Hb
+    iapply HΦ
+    iexists bs; iframe Hb; ipureintro
+    intro _ hx; exact Herr hx
 
 end proof
 
