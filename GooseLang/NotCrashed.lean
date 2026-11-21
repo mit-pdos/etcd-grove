@@ -25,6 +25,12 @@ namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
 
+/-- **The generation's `notCrashed`, at the program's own ghost state** (`gooseAllG`, the state
+interpretation's): what `wp_ncfupd` hands out. A client that also assumes its own `[AllG GF]`
+(kvdurable) names the token by this, so that its `notCrashed` is the one raft's specs mention
+(a notation, so that the proof mode sees the same term). -/
+scoped notation "notCrashedG" => @notCrashed _ GooseGlobalGS.gooseAllG GooseLocalGS.goose_crashGS
+
 section nc
 variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]

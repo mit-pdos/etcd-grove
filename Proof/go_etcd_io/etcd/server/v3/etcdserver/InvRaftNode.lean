@@ -606,22 +606,22 @@ def rnBusyP (γ : RNNames GF) (d ce es : List EntryModel) (p p' : HardStateM) (S
 state (`rnBusyN`), with the messages' sends. -/
 theorem rn_enter (γ : RNNames GF) (d ce es : List EntryModel) (p p' : HardStateM) (S S' : RaftState)
     (r r' : StateType) (ms : List QMsg) :
-    ⊢ rnPendEnter (GF := GF) γ d p S r (rnBusyStN γ d ce es p' S' r') ms -∗
+    ⊢ notCrashed -∗ rnPendEnter (GF := GF) γ d p S r (rnBusyStN γ d ce es p' S' r') ms -∗
       (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half) ={⊤}=∗
-      rnBusyN γ d ce es p' S' r' ∗
+      notCrashed ∗ rnBusyN γ d ce es p' S' r' ∗
       (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half) ∗
       readyMsgs γ.node.cl srvClusterN γ.id ms := by
   letI := srvStor (GF := GF) γ.node
-  iintro Hb Hrun
+  iintro Hnc Hb Hrun
   iunfold rnPendEnter at Hb
   icases Hb with ⟨HrS, Hent⟩
   iunfold readyEnter at Hent
-  imod Hent $$ %⊤ %((1 : Qp).half) %(by simp) [HrS Hrun] with ⟨HrS, Hrun, Hdrv, #Hsent⟩
+  imod Hent $$ %⊤ %((1 : Qp).half) %(by simp) Hnc [HrS Hrun] with ⟨Hnc, HrS, Hrun, Hdrv, #Hsent⟩
   · isplitl [HrS]
     · iexact HrS
     · iexact Hrun
   imodintro
-  iframe Hrun Hsent
+  iframe Hnc Hrun Hsent
   iunfold rnBusyN
   iframe Hdrv HrS
 
@@ -857,24 +857,24 @@ def rnBusySP (γ : RNNames GF) (d A' es : List EntryModel) (p p' : HardStateM) (
 driver and the entered durable state (`rnBusyS`'s first part). -/
 theorem rn_enterS (γ : RNNames GF) (d A' es : List EntryModel) (p p' : HardStateM) (l : SnapLoan)
     (S S' : RaftState) (r r' : StateType) (ms : List QMsg) :
-    ⊢ rnPendEnter (GF := GF) γ d p S r (rnBusyStS γ A' es p' l S' r') ms -∗
+    ⊢ notCrashed -∗ rnPendEnter (GF := GF) γ d p S r (rnBusyStS γ A' es p' l S' r') ms -∗
       (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half) ={⊤}=∗
-      (letI := srvStor (GF := GF) γ.node; iprop(nodeDriver γ.nl γ.node.cl srvClusterN
+      notCrashed ∗ (letI := srvStor (GF := GF) γ.node; iprop(nodeDriver γ.nl γ.node.cl srvClusterN
         ⟨memStorIface γ.ms, srvLE γ.srv A', p', some (es.map EntryModel.toM, some l), γ.key, S', r'⟩ ∗
         raftState γ.node.cl γ.id S')) ∗
       (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half) ∗
       readyMsgs γ.node.cl srvClusterN γ.id ms := by
   letI := srvStor (GF := GF) γ.node
-  iintro Hb Hrun
+  iintro Hnc Hb Hrun
   iunfold rnPendEnter at Hb
   icases Hb with ⟨HrS, Hent⟩
   iunfold readyEnter at Hent
-  imod Hent $$ %⊤ %((1 : Qp).half) %(by simp) [HrS Hrun] with ⟨HrS, Hrun, Hdrv, #Hsent⟩
+  imod Hent $$ %⊤ %((1 : Qp).half) %(by simp) Hnc [HrS Hrun] with ⟨Hnc, HrS, Hrun, Hdrv, #Hsent⟩
   · isplitl [HrS]
     · iexact HrS
     · iexact Hrun
   imodintro
-  iframe Hrun Hsent HrS
+  iframe Hnc Hrun Hsent HrS
   iexact Hdrv
 
 /-- **The `raft.Node` `n`** (see the file header; 2026-10-30, the repair: raft's unified node API):
@@ -918,7 +918,7 @@ def isRaftNodeIfc (E : RNEnv GF) (γ : RNNames GF) (n : GoInterface) : IProp GF 
     □ ({{ nodeRunning γ.nl γ.node.cl srvClusterN 1 }}
         (App (Val #(methods ni.ty go!"Stop" ni.v)) (Val #()))
       -- (2026-11-03, R2b-3b) and the id vacant (raft's `node.Stop`)
-      {{ RET #(); nodeStopped γ.nl γ.node.cl srvClusterN ∗ nodeVacant γ.node.cl γ.id }}) ∗
+      {{ RET #(); nodeStopped γ.nl γ.node.cl srvClusterN ∗ (∃ x, nodeVacantA γ.node.cl γ.id x) }}) ∗
     □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (sl : GoSlice)
         (id n : w64) (Qr : List EntryModel → IProp GF),
       {{ context.isContext ctx cd ∗ sl ↦*□ beBytes id ∗ committedAtLeast E.γr n ∗
@@ -2096,7 +2096,7 @@ log `L` handed to the apply thread ends; `applyc`'s producer token at the count 
 `cum` at it `L` (the stop's caller, the apply side, with its consumer token, learns that it
 received every payload, `sspsc_sync`, so that its log is `L`: review M2). -/
 def rnStopImage (γ : RNNames GF) : IProp GF :=
-  iprop(nodeVacant γ.node.cl γ.id ∗
+  iprop((∃ x, nodeVacantA γ.node.cl γ.id x) ∗
     ∃ (S : RaftState) (σ : StorContents) (sent : List toApply) (L : List EntryModel),
       raftState γ.node.cl γ.id S ∗ rnWalClosedW γ σ ∗
       sspscProducer γ.ap sent ∗ monoListIdxOwn γ.cum sent.length L ∗
@@ -2184,7 +2184,7 @@ handed log `A` (the producer's and the consumer's tokens agree, `applyc` being s
 `sspsc_sync`: every payload sent was received). -/
 theorem rn_esc_take (E : RNEnv GF) (γ : RNNames GF) (c : Loc) (A : List EntryModel) :
     ⊢ isRNApplyc E γ c -∗ rnDoneEsc γ -∗ rnStopClaim γ -∗ rnApplyTok γ A -∗ £ 1 -∗ £ 1 ={⊤}=∗
-      nodeVacant γ.node.cl γ.id ∗ ∃ (S : RaftState) (σ : StorContents),
+      (∃ x, nodeVacantA γ.node.cl γ.id x) ∗ ∃ (S : RaftState) (σ : StorContents),
         raftState γ.node.cl γ.id S ∗ rnWalClosedW γ σ ∗
         ⌜StorageHolds S σ ∧ σ.b ≤ (γ.pre ++ A).length ∧ (γ.pre ++ A).length ≤ σ.commit ∧
           γ.a0.length ≤ σ.commit⌝ ∗

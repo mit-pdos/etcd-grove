@@ -147,9 +147,9 @@ theorem ghost_stepAppCommit (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) 
     (hrej : m.Reject' = false) (hx : ∃ x, prvalsMatch s.prvals !! m.From' = some x)
     (hpvs : prvalsMatch pvs = appRespMatch s m.From' m.Index')
     (hout : maybeCommitOut c { s with prvals := pvs } b N) :
-    ⊢ £ 1 -∗ isMessage (GF := GF) γ (absMsg .appResp m ents) -∗ ownStepGhost γ md c id s ={⊤}=∗
-      ownStepGhost γ md c id (commitAt { s with prvals := pvs } b N) := by
-  iintro Hlc #Hm Hgs
+    ⊢ notCrashed -∗ £ 1 -∗ isMessage (GF := GF) γ (absMsg .appResp m ents) -∗ ownStepGhost γ md c id s ={⊤}=∗
+      notCrashed ∗ ownStepGhost γ md c id (commitAt { s with prvals := pvs } b N) := by
+  iintro Hnc Hlc #Hm Hgs
   iunfold ownStepGhost at Hgs
   icases Hgs with ⟨Hg, Hrest⟩
   ihave ⟨#Hlr, %HB⟩ := ownRaftGhost_lastRec γ id (toPState s) $$ Hg
@@ -164,7 +164,7 @@ theorem ghost_stepAppCommit (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) 
         (fun h => absurd (hty.symm.trans h) (by w32_ne)) hmd HI)
       ⟨StepProof.commitAt_gh' s pvs b N, StepProof.commitAt_storage s pvs b N⟩
       (fun _ x hx => .inl (by rw [StepProof.commitAt_outbox] at hx; exact hx))
-    $$ Hrc [] [Hcr] [] Hlc Hg Hrest with ⟨%md', %Hout, Hg, Hrest⟩
+    $$ Hnc Hrc [] [Hcr] [] Hlc Hg Hrest with ⟨Hnc, %md', %Hout, Hg, Hrest⟩
   · iapply (BigSepL.bigSepL_singleton (Φ := fun _ x => isMessage (GF := GF) γ x)).2
     iexact Hm
   · rw [show rdCount [absMsg MsgType.appResp m ents] = 0 by rfl]; iexact Hcr
@@ -174,6 +174,7 @@ theorem ghost_stepAppCommit (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) 
     iempintro
   obtain rfl := StepProof.stepOut_appResp_md hty Hout
   imodintro
+  iframe Hnc
   iunfold ownStepGhost
   iframe Hg Hrest
 

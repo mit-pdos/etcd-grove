@@ -631,10 +631,12 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames GF) (s : Loc) (issu
   isplitr
   · -- `Stop`
     iintro !> %Φ !> Hrun HΦ
-    wp_apply wp_Stop γ.nl γ.node.cl srvClusterN γ.id $$ [Hrun] as ⟨#Hst, Hvac⟩
+    wp_apply wp_Stop γ.nl γ.node.cl srvClusterN γ.id $$ [Hrun] as ⟨#Hst, %x, Hvac, -⟩
     · iframe #; iframe Hrun
     iapply HΦ
-    iframe Hst Hvac
+    iframe Hst
+    iexists x
+    iexact Hvac
   isplitr
   rotate_left
   · iexact Hnode0

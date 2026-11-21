@@ -70,6 +70,9 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
     | fresh =>
       iunfold rnBootPre at Hboot
       icases Hboot with ⟨%Hcfg, Hbs, Hboot, Hvac, Hrst⟩
+      -- (2026-11-21, the crash invariant) the vacancy armed (the server keeps no crash token: its
+      -- restart follows `node.Stop`)
+      imod nodeVacant_armD γr.cl cv.ID' ⊤ $$ Hvac with ⟨%x, Hvac⟩
       have Hpvne : pv ≠ [] := by
         intro h; have := Hcfg.peers; subst h; simp at this; exact Hcfg.peersNe this
       have Hlen0 : decide (bv.peers'.len = W64 0) = false := by
@@ -109,8 +112,8 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
           memSnapEmpty.Metadata'.ConfState' (raftState γr.cl cv.ID' RaftState.init) Q
           bv.peers' dq pv (snapshotValid γr.cl) (fun _ => by iintro H; iexact H) Hcfg.valid Hcfg.logger Hcfg.storage Hcfg.inflight Hcfg.noForwarding
           Hcfg.readOnly Hcfg.ccValidation Hcfg.sizes Hcfg.noAsync (fun _ => Hcfg.maxMsg) Hcfg.applied
-          rfl rfl rfl rfl rfl Hcfg.peers Hcfg.traceLogger HtrC) $$ [Hc Hbs Hboot Hvac Hau Hpeers]
-        as %nd ⟨%n', %K, %Hnd, #Hfresh, #Hnode, Hdrv, Hncfg, Hrun, -, Hrst, HQ, Hpeers⟩
+          rfl rfl rfl rfl rfl Hcfg.peers Hcfg.traceLogger HtrC x) $$ [Hc Hbs Hboot Hvac Hau Hpeers]
+        as %nd ⟨%n', %K, %Hnd, #Hfresh, #Hnode, Hdrv, Hncfg, Hrun, -, -, Hrst, HQ, Hpeers⟩
       · iframe #; iframe Hc Hpeers Hboot Hvac Hau
         iExactEq Hbs; rfl
       subst Hnd
@@ -124,7 +127,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
       iExactEq Hdrv; rfl
     | restart σ cs S a m A₀ =>
       iunfold rnBootPre at Hboot
-      icases Hboot with ⟨%Hpure, Hbs, #Hclu, #Hfits, Hvac, Hrst, #Hconf⟩
+      icases Hboot with ⟨%Hpure, Hbs, #Hclu, #Hfits, ⟨%x, Hvac⟩, Hrst, #Hconf⟩
       obtain ⟨Hcfg, Hba, Hac, Hboot, Hcs, Hhold, Hnsm⟩ := Hpure
       have Hlen0 : decide (bv.peers'.len = W64 0) = true := by
         apply decide_eq_true
@@ -169,9 +172,9 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
           (snapshotValid γr.cl) (fun _ => by iintro H; iexact H) Hcfg.valid Hcfg.logger Hcfg.storage Hcfg.inflight Hcfg.noForwarding
           Hcfg.readOnly Hcfg.ccValidation Hcfg.sizes Hcfg.noAsync (fun _ => Hcfg.maxMsg)
           (Or.inl (by rw [Hcfg.applied]; rfl)) (by rw [Hcfg.applied]; simpa using Hba) Hac Hboot Hcs Hnsm
-          Hcfg.traceLogger HtrC)
+          Hcfg.traceLogger HtrC x)
         $$ [Hc Hbs Hvac Hau]
-        as %nd ⟨%n', %S', %l, %K, %Hnd, #Hnode, #Hl, %Hll, %-, Hdrv, Hncfg, Hrun, -, Hrst, HQ⟩
+        as %nd ⟨%n', %S', %l, %K, %Hnd, #Hnode, #Hl, %Hll, %-, Hdrv, Hncfg, Hrun, -, -, Hrst, HQ⟩
       · iframe #; iframe Hc Hvac Hau
         rw [Hcfg.applied]
         iExactEq Hbs; rfl

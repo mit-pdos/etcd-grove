@@ -1817,6 +1817,25 @@ gives the slot back after a crash (`raftCrashTok`, `raft_crash`). -/
 def nodeCrashTokU (γ : Cluster) (id : w64) (x : CrashNames) : IProp GF :=
   raftCrashTok γ.raft id x
 
+/-- (2026-11-21) **The node at `n` was started from arm `x`** (the API's `nodeArm`, persistent): its
+node table's entry records the arm's names (`cfgNamesOf`). -/
+def nodeArmU (n : Loc) (γ : Cluster) (x : CrashNames) : IProp GF :=
+  iprop(∃ γn, nodeTabOk γ n γn ∗ ⌜γn.cx = x⌝)
+
+instance nodeArmU_persistent (n : Loc) (γ : Cluster) (x : CrashNames) :
+    Persistent (nodeArmU (GF := GF) n γ x) := by
+  unfold nodeArmU; infer_instance
+
+theorem nodeArmU_agree (n : Loc) (γ : Cluster) (x x' : CrashNames) :
+    ⊢ nodeArmU (GF := GF) n γ x -∗ nodeArmU n γ x' -∗ ⌜x = x'⌝ := by
+  unfold nodeArmU
+  iintro ⟨%γ1, #T1, %H1⟩ ⟨%γ2, #T2, %H2⟩
+  ihave %Hcn := nodeTabOk_agree γ n γ1 γ2 $$ T1 T2
+  ipureintro
+  simp only [cfgNamesOf, Prod.mk.injEq] at Hcn
+  rw [← H1, ← H2]
+  exact CrashNames.toList_inj Hcn.2.2.2.2.2.2.2.2.2.2.2.2.2
+
 theorem nodeVacant_arm_impl (γ : Cluster) (id : w64) (E : CoPset) :
     ⊢ nodeVacantU (GF := GF) γ id ={E}=∗ ∃ x, nodeVacantAU γ id x ∗ nodeCrashTokU γ id x := by
   unfold nodeVacantU nodeVacantAU nodeCrashTokU

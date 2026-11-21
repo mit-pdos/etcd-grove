@@ -561,6 +561,17 @@ theorem nodeVacant_arm (γ : Cluster) (id : w64) (E : CoPset) :
   unfold nodeVacant nodeVacantA nodeCrashTok
   exact ApiImpl.nodeVacant_arm_impl γ id E
 
+/-- (2026-11-21) **Arming a vacancy, the crash token dropped**: for a client whose crash is
+`node.Stop`'s (kvdurable, kvreconf, the server), which never needs the vacancy back after a real
+crash. -/
+theorem nodeVacant_armD (γ : Cluster) (id : w64) (E : CoPset) :
+    ⊢ nodeVacant (GF := GF) γ id ={E}=∗ ∃ x, nodeVacantA γ id x := by
+  iintro Hv
+  imod nodeVacant_arm γ id E $$ Hv with ⟨%x, Hv, -⟩
+  imodintro
+  iexists x
+  iexact Hv
+
 /-- (2026-11-21) **A crash gives the vacancy back**: whether a node of `id` ran from the arm or
 not (and whatever it held), the arm's crash token and the crash's `crashed` give `nodeVacant`. -/
 theorem nodeCrash (γ : Cluster) (N : Namespace) (id : w64) (x : CrashNames) (E : CoPset)

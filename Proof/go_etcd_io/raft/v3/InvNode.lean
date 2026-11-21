@@ -43,6 +43,7 @@ predicates are raft's storage API, carried over unchanged (not redesigned here).
 module
 
 public import Proof.go_etcd_io.raft.v3.InvNodeCtx
+public import GooseLang.NotCrashed
 public import Perennial.Proof.context
 public import Proof.go_etcd_io.raft.v3.InvMemstorage
 public import Proof.go_etcd_io.raft.v3.NodeApiVocab
@@ -675,6 +676,20 @@ gives back. `nodeVacant_arm` makes it, with the arm's crash token (`nodeCrashTok
 id's vacancy back (`nodeCrash`), whatever node of `id` ran from arm `x`. -/
 @[no_expose] def nodeCrashTok (γ : Cluster) (id : w64) (x : CrashNames) : IProp GF :=
   ApiImpl.nodeCrashTokU γ id x
+
+/-- (2026-11-21) **The node at `n` was started from arm `x`** (persistent): `StartNode`/`RestartNode`
+give it with the node, and `node.Stop` gives the vacancy back at the arm the node was started from
+(`nodeArm_agree`), so a client keeping the arm's crash token keeps it across a stop and restart. -/
+@[no_expose] def nodeArm (n : Loc) (γ : Cluster) (x : CrashNames) : IProp GF :=
+  ApiImpl.nodeArmU n γ x
+
+instance nodeArm_persistent (n : Loc) (γ : Cluster) (x : CrashNames) :
+    Persistent (nodeArm (GF := GF) n γ x) := by
+  unfold nodeArm; exact ApiImpl.nodeArmU_persistent n γ x
+
+theorem nodeArm_agree (n : Loc) (γ : Cluster) (x x' : CrashNames) :
+    ⊢ nodeArm (GF := GF) n γ x -∗ nodeArm n γ x' -∗ ⌜x = x'⌝ := by
+  unfold nodeArm; exact ApiImpl.nodeArmU_agree n γ x x'
 
 /-! ## The storage contract at the node API (U8 v2, 2026-10-29; candidate 17 rev 3 §2;
 2026-11-01, durability stage I-4: keyed by the storage key `K`) -/

@@ -427,3 +427,19 @@ Status at the stop. Stage 1 (ghost level, `raft_arm`/`raft_crash`/`raft_stop`) i
 done except `node.run` (the cut above), `RestartNode`, `StartNode` and `node.Stop`, whose
 re-proofs are mechanical once the cut is settled. Stages 3 and 4 have not started. No axiom or
 `sorry` added.
+
+**Decision** (the coordinating session, 2026-11-21): option 1. A separate Perennial change (branch
+`nc-chan` of Perennial) upstreams the crash-token library (this repository's
+`GooseLang/NotCrashed.lean`, generalized) into Perennial's GooseLang, and gives the channel specs
+atomic updates and `select` clause preconditions that may use `notCrashed` (more permissive where
+possible, `_nc` variants otherwise). Once the pin moves to it, `node.run`'s cut goes inside the
+NC-carrying send update, and the local `GooseLang/NotCrashed` is replaced by Perennial's.
+
+Meanwhile everything not blocked by the cut goes ahead: `RestartNode`, `StartNode`, `node.Stop`,
+the clients (stage 3) and what of stage 4 does not need `node.run`'s proof. `node.run`'s proof
+(`node__run_gated.lean`) stays as it is on the branch, unbuilt: no axiom, no `sorry`.
+
+`node.Stop`'s post is `∃ x, nodeVacantA γ id x ∗ nodeArm n γ x`. `nodeArm n γ x` (persistent, sealed,
+`nodeArm_agree`) is new. `StartNode` and `RestartNode` give it with the node: a client holding the
+arm's crash token gets the vacancy back at the same arm (the ledger's "same `x`"), and a client
+without one ignores it.

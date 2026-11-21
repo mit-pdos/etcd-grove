@@ -325,7 +325,7 @@ def rnBootPre (γr : SrvRaft) (bv : bootstrappedRaft) (cv : Config) (lok : GoInt
         -- (auth-lease S4, 2026-11-16) outside the cluster's no-snapshot mode (`RestartNode`'s)
         ¬ clusterNoSnap γr.cl⌝ ∗
       restartStorage γr.cl (memStorIface bv.storage') σ cs 0 Q ∗
-      isCluster γr.cl srvClusterN ∗ readyFits γr.cl srvClusterN ∗ nodeVacant γr.cl cv.ID' ∗
+      isCluster γr.cl srvClusterN ∗ readyFits γr.cl srvClusterN ∗ (∃ x, nodeVacantA γr.cl cv.ID' x) ∗
       raftState γr.cl cv.ID' S ∗ confAt γr.cl a m)
 
 /-- (restart S3 item 5, Q35 (a), r2db §4.3, 2026-11-11) **What the node's start gives of the boot

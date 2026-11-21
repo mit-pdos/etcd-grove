@@ -350,7 +350,7 @@ private theorem wp_StartNode_impl
     EtcdGrove.StartNode.gatedSpec (GF := GF) (hG := hG) := by
   unfold EtcdGrove.StartNode.gatedSpec
   intro γ N vs ctxs c cv lok si csm Q F peers dq pv Cert hpCert hCert H1 H2 H3 H4 H5 H6 H7 H8 H9 Hmx Happ Hv Hvo Hl Hln
-    Hal Hvs
+    Hal Hvs x
   wp_start as ⟨Hc, #Hlg, #Hboot, Hvac, HAU, Hrs, Hpeers, #Hctx, Hstt⟩
   ihave #Hboot0 := Hboot
   -- (step 5) the capability's start, the traced scope and `run`'s fit (`startTrace_trCapStart`)
@@ -386,10 +386,14 @@ private theorem wp_StartNode_impl
     have := slotN_raftN γ.raft cv.ID' p hp
     unfold raftN at this; rw [HNs] at this
     exact nclose_subseteq N "raft" p this
-  iunfold EtcdGrove.nodeVacant at Hvac
-  iunfold nodeVacantU at Hvac
-  imod raft_start_boot ⊤ γ.raft cv.ID' (md := true) Q CoPset.subseteq_top Hmdb $$ Hvac [HAU]
-    with ⟨HQ, Hg, %gen, Hgen, Hfree⟩
+  iunfold EtcdGrove.nodeVacantA at Hvac
+  iunfold nodeVacantAU at Hvac
+  -- (2026-11-21, the crash invariant) the start is a ghost step: at a step, with the token
+  iapply (wp_ncfupd _ _ (by rfl))
+  unfold ncfupd
+  iintro Hnc
+  imod raft_start_boot ⊤ γ.raft cv.ID' (md := true) x Q CoPset.subseteq_top Hmdb $$ Hnc Hvac [HAU]
+    with ⟨Hnc, HQ, Hg, %gen, Hgen, Hfree⟩
   · have HEo : (⊤ \ ↑N : CoPset) ⊆ ⊤ \ ↑(slotN γ.raft cv.ID') := by
       intro p hp
       rw [Iris.Std.LawfulSet.mem_diff] at hp ⊢
@@ -416,6 +420,8 @@ private theorem wp_StartNode_impl
     iunfold EtcdGrove.raftState
     unfold raftStateU
     iframe Hdur Htlb0 Hbi0
+  imodintro
+  iframe Hnc
   -- the storage's frame and reads (`restartStorage` of the empty contents, freeze point `0`)
   iunfold restartStorage at Hrs
   icases Hrs with ⟨%i, %Rb, %f, %Hi, %Hf, HRb, #HFI, #HLI, #HIS⟩
@@ -590,9 +596,9 @@ private theorem wp_StartNode_impl
   imod dghostVar_alloc (GF := GF) true
     with ⟨%gstart, Hstart⟩
   imod dghostVar_persist gstart 1 _ $$ Hstart with #Hstart
-  ihave Hgen : slotLive (GF := GF) γ.raft cv.ID' ((1 : Qp).half + (1 : Qp).half) gen $$ [Hgen]
+  ihave Hgen : genView (GF := GF) γ.raft cv.ID' x ((1 : Qp).half + (1 : Qp).half) gen $$ [Hgen]
   · rw [Qp.half_add_half]; iexact Hgen
-  icases ((slotLive_fractional (GF := GF) γ.raft cv.ID' gen).fractional (1 : Qp).half
+  icases ((genView_fractional (GF := GF) γ.raft cv.ID' x gen).fractional (1 : Qp).half
     (1 : Qp).half).1 $$ Hgen with ⟨Hgen1, Hgen2⟩
   unfold newNodeChans
   icases Hchans with ⟨%γp, %γr, %γc, %γcs, %γrd, %γa, %γt, %γd, %γs, %γst, #Hcp, Hop, #Hcr, Hor,
@@ -625,6 +631,7 @@ private theorem wp_StartNode_impl
                           sn := sn
                           live := glive
                           gen := gen
+                          cx := x
                           dur := gdur
                           bw := gbw
                           start := gstart
@@ -641,6 +648,13 @@ private theorem wp_StartNode_impl
     iexists γn
     iframe Htb
     iExactEq Hsv; rfl
+  ihave #Harm : EtcdGrove.nodeArm (GF := GF) np γ x $$ []
+  · iunfold EtcdGrove.nodeArm
+    unfold nodeArmU
+    iexists γn
+    isplit
+    · iexact Htb
+    · ipureintro; rfl
   ihave Hlive1 : nodeLiveRaw (GF := GF) γn 1 $$ [Hlive1 Hgen1]
   · unfold nodeLiveRaw; iframe Hlive1 Hgen1
   ihave Hlive2 : nodeLiveRaw (GF := GF) γn 1 $$ [Hlive2 Hgen2]
@@ -711,7 +725,7 @@ private theorem wp_StartNode_impl
   -- (step 5, A8.3) the completion witness, `setupNode`'s
   ihave HsD : startDoneB (GF := GF) γ cv.ID' $$ []
   · unfold startDoneB Cluster.trace; iExactEq HbD; rfl
-  iframe HQ HF Hpeers HsD Htag
+  iframe HQ HF Hpeers HsD Htag Harm
   ihave #HisN : EtcdGrove.isNode (GF := GF) np γ N cv.ID' $$ []
   · iunfold EtcdGrove.isNode
     unfold isNode
@@ -806,18 +820,18 @@ witness `True`). -/
 theorem StartNode.spec_of_gatedSpec (h : StartNode.gatedSpec (GF := GF) (hG := hG)) :
     StartNode.spec (GF := GF) (hG := hG) := by
   intro γ N vs ctxs c cv lok si csm Q F peers dq pv Cert hpCert hCert H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14
-    H15 H16 H17 Htlk HtrC
+    H15 H16 H17 Htlk HtrC x
   iintro %Φ ⟨#Hpkg, Hc, #Hlg, #Hb, Hvac, HAU, Hrs, Hpeers, #Hctx⟩ HΦ
   iapply h γ N vs ctxs c cv lok si csm Q F peers dq pv Cert hCert H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14
-    H15 H16 H17 $$ [Hc Hvac HAU Hrs Hpeers]
+    H15 H16 H17 x $$ [Hc Hvac HAU Hrs Hpeers]
   · iframe Hpkg Hc Hlg Hb Hvac HAU Hrs Hpeers Hctx
     iapply (startTrace_untraced γ N vs cv HtrC).2
     ipureintro; exact Htlk
   inext
-  iintro %nd ⟨%n, %K, %Hnd, H1, H2, H3, H4, H5, Htag, HQ, HF, Hp, -⟩
+  iintro %nd ⟨%n, %K, %Hnd, H1, H2, H3, H4, H5, Htag, Harm, HQ, HF, Hp, -⟩
   iapply HΦ
   iexists n, K
-  iframe H1 H2 H3 H4 H5 Htag HQ HF Hp
+  iframe H1 H2 H3 H4 H5 Htag Harm HQ HF Hp
   ipureintro; exact Hnd
 
 end proof
