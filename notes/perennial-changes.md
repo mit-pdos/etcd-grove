@@ -3409,3 +3409,12 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
   `types.Package.Path()` of the resolved package, as it already does for the names). Small, general
   (any translation of a standard-library package that imports a vendored one: net/http, crypto/tls, ...).
   **Status.** Recorded only.
+
+## 2026-11-20: goose refuses a named type declared over `rune` (the encoding/json model, `Delim`)
+
+- **The gap.** `type Delim rune` (Go's encoding/json) fails: "[unsupported]: Unknown basic type rune"
+  (`goose/types.go`, `basicLeanType`), though `rune` is an alias of `int32`, which goose takes.
+- **Worked around locally.** The model (`models/encoding/json/v2_stream.go`, marked MODEL) spells it
+  `type Delim int32`: the same type in Go (an alias), so no program observes a difference.
+- **Proposed (general).** Map the predeclared alias `rune` to `int32` (and `byte` to `uint8`, if not already)
+  in `basicLeanType`. **Status.** Recorded only.

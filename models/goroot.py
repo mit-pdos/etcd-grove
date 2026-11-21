@@ -22,8 +22,9 @@ model build substitutes the files in the toolchain's source tree, in one of two 
 
 Both are the same substitution (`mapping`). The toolchain is `go env GOROOT`'s: it must be
 go1.27.3 (etc/goose.py's GO_TOOLCHAIN), the version the models are of (the command refuses
-another). The models' own module is `models/net/go.mod` (a module nothing builds: it keeps the
-files out of `models.lab`'s `./...`, since they compile only as standard-library packages).
+another). The models' own modules are `models/net/go.mod` and `models/encoding/go.mod` (modules
+nothing builds: they keep the files out of `models.lab`'s `./...`, since they compile only as
+standard-library packages).
 """
 
 import argparse
@@ -40,6 +41,7 @@ GO_VERSION = "go1.27.3"
 STD_MODELS = {
     "net/rpc": "net/rpc",
     "net/http": "net/http",
+    "encoding/json": "encoding/json",
 }
 
 

@@ -478,21 +478,102 @@ tests kept as differential tests against the real library, a "not modelled" pani
      the bad one), the partial bytes protobuf-go's Marshal returns with its error (the codec: nil),
      slice capacities and aliasing (protobuf-go pre-sizes). Suspected and closed: a dump against
      other `.pb.go` files than the program links (pbgen runs it in the codec's own module).
-   - *jsongen* (`models/json/jsongen.py`, not reworked here). What carries over: (1) inputs from the
-     real types: its `[json]` table lists Go field names, JSON names, kinds and `omitempty` by hand;
-     they can be derived by reflection on the real Go types (a `pbdesc`-like dump of `reflect`'s
-     struct fields and `json` tags; encoding/json's own rules for tag parsing, embedding and
-     exported fields must then be reproduced or refused), about a day; (2) hard refusals (embedded
-     structs, `string` tag option, maps with non-string keys, interfaces other than `any`, custom
-     `MarshalJSON`/`UnmarshalJSON`/`TextMarshaler` methods, floats): some exist, they need a list
-     naming type and field, half a day; (3) a trusted core split from its test generation (963 lines
-     today, mixed) with each emitted case cited to encoding/json's source (no wire spec to cite;
-     RFC 8259 for the syntax, `encode.go`/`decode.go` for Go's choices: HTML escaping, invalid UTF-8
-     replaced, field matching case-insensitively, duplicate keys last-wins), a day; (4) a random-type
-     differential test (random Go struct types written as source, compiled, round-tripped and
-     compared with encoding/json, including mutations of real encodings), about two days, simpler
-     than pbgen's since no plugin is needed; (5) the gate and (6) a review as here. In all about a
-     week; the scanner `jsoncodec.Scan` is already proved in part and tested against encoding/json.
+   - *jsongen*: reworked to the same standard (2026-11-20, branch `models-json`; below).
+
+   **jsongen as trusted code, and the encoding/json model's Go half (2026-11-20, branch
+   `models-json`; not landed: the Lean half comes later).**
+   - *The real library.* Go 1.27.3's encoding/json as built by default: GOEXPERIMENT jsonv2 is on, so
+     the package is the `v2_*.go` files, the v1 API over encoding/json/v2 with `DefaultOptionsV1()`
+     (found here: dsverify's notes and tests assumed the v1 implementation, `decode.go`/`encode.go`,
+     which only GOEXPERIMENT=nojsonv2 builds). Where they differ for the subset: v2 limits an
+     encoding's nesting to 10000 (v1 does not), and its Decoder is jsontext's (buffer, read sizes).
+     `notes/decisions.md`, "The encoding/json model is of Go 1.27.3's default build".
+   - *Input.* `[json] imports = {...}`, `roots = ["alias.T", ..., 'struct { ... }']`: the root types
+     only (what the program passes to Marshal/Unmarshal/Encode/Decode or holds in an `any`; T covers
+     *T). jsongen writes a throwaway main in the codec's module that calls `models.lab/jsondesc`
+     (Go, 181 lines: reflection's facts, kind, fields with `Tag.Lookup("json")`, the JSON hook methods
+     by name on T and *T, RawMessage/Number identity; decides nothing) and reads its JSON. The
+     hand-written `[json.types]` table is gone (`--dump`/`--print-dump` as pbgen).
+   - *The subset* (`models/json/jsongen_core.py`, 787 lines: 143 the doc, ~290 the schema check and
+     refusals, ~350 the emitter): bool, string, every int and uint size (64-bit int/uint), named or
+     not; slices (not of a uint8 kind: base64); named structs (an unnamed struct only as a root, its
+     code outside Goose, as before); `any` fields and elements (encoded by dynamic type; decoding into
+     one panics); json.RawMessage; tags `-`, a name of ASCII letters, digits and `!#$%()*+-./:;=?@[]^_{|}~`
+     and space (or empty: the Go name), options `omitempty` and `string` (on integers). New against
+     the old jsongen: signed integers, uint16/uint, omitempty, ignored and unexported fields,
+     recursive slices, the encoder's nesting limit (an error past 10000, RawMessages counted by
+     `jsoncodec.Nesting`), empty arrays into non-nil slices (a new empty slice), top-level basic
+     roots. Dropped: user MarshalJSON/UnmarshalJSON (refused now; the vsr kit fork has none).
+   - *The refusals* (exit 2, every reason, naming type and field; `TestRefusals`, 43 cases): floats,
+     complex, chan, func, uintptr, arrays, maps (any key), pointers but at the root, interfaces with
+     methods, `any` as a root, slices of a uint8 kind, embedded fields (also pointers), unexported
+     fields with a json tag, names with `<>&`, quotes or non-ASCII, non-ASCII Go names used as names,
+     tag options other than omitempty/string (omitzero, inline, `-,`'s empty one, repeated), `string`
+     on non-integers, duplicate or case-fold-equal JSON names, json.Number, any of MarshalJSON,
+     UnmarshalJSON, MarshalText, UnmarshalText, AppendText, MarshalJSONTo, UnmarshalJSONFrom on T or
+     *T, unexported/generic/main types, packages without an alias.
+   - *Found by the new tests, fixed* (all in trusted code that had passed the old per-type tests): (1)
+     `jsoncodec.QuotedUint` returned a type error for a `,string` field whose string has an escape
+     (`"7"`), which the real Unmarshal decodes (7): a real behavior the model did not have (now a
+     NotModelled panic, as for any escape; `QuotedInt` the same); (2) the v2 encoder's nesting limit
+     (above); (3) the real Decoder reads twice at the end of a stream when a number inside an
+     unfinished array or object is completed by io.EOF (`endsInNumber`); (4) `fmt` prints a real
+     RawMessage through jsontext.Value's `String` (the model's RawMessage has it now).
+   - *Evidence about the generator* (`models/internal/jsongenrand`): random Go packages (structs of
+     every accepted field kind and tag form, named basic, slice and recursive slice types, `any`,
+     RawMessage, names with punctuation and names the generated code uses, an unnamed root), jsongen
+     on each (its dump included), the generated test against the real encoding/json: Marshal of
+     random values (T, *T, nil *T; strings sometimes outside the plain subset: a NotModelled panic is
+     accepted only where the real output has an escape or a non-ASCII byte), the model's Unmarshal
+     (Valid, then the codec) of real encodings and 13 kinds of mutation (case, delimiters in keys,
+     escapes, signs, numbers at every limit, unknown and repeated members, cuts, nesting) into every
+     type, fresh and pre-filled (error-or-not and the value, also after an error; a syntax error
+     leaves the real target unchanged). Gates: 6 packages (~20-45 s). By hand, seed 100: 80
+     packages, 2202 types, 1,888,674 encodings equal, 56,450 errors agreed, 36,756 NotModelled;
+     93,085 decodings equal, 73,719 errors agreed, 58,938 syntax errors agreed, 14,258 NotModelled;
+     all passing (200 s). Regression codecs: `models/internal/jsondifftest` (the old types plus a
+     struct of every field form), `models/internal/jsonvsr` (go-vsr's messages, below).
+   - *The model* (`models/encoding/json/`, module `models/encoding/go.mod` never built;
+     `goroot.py`'s STD_MODELS; `goroot.py` and `diff.py` copied unchanged from `models-rpc-http`
+     in a commit of their own): the default build's `v2_*.go` with every exported name (Marshal,
+     Unmarshal, Valid, the error types, Number, HTMLEscape as Go's code; Encoder, Decoder,
+     RawMessage, Token, Delim, Options and its 14 functions), reflection and v2 replaced by the
+     program's Codec (`model.go`: Marshal, Unmarshal, Scan; `SetCodec` once; the generated
+     `RegisterJSON` under tag netmodel/goose), the Decoder over jsontext's buffer exactly (64 bytes,
+     its growth and compaction, so every Read asks for the real length at the real moment; framing
+     by `jsoncodec.Scan`; jsontext's read-ahead before a top-level `,`/`:` error, and the second
+     io.EOF read above), the Encoder as Go's (one Write per value, sticky write errors). Not
+     modelled (a NotModelled panic): MarshalIndent, Indent, Compact, SetIndent with an indent,
+     Token, More, DisallowUnknownFields, v2's options, RawMessage's IsValid/Format/Compact/Indent/
+     Canonicalize; not part of it: RawMessage.Kind, Number's MarshalJSONTo/UnmarshalJSONFrom.
+     `diff.py encoding/json --stat`: against the default build's files (v2_*.go, 1780 lines) +493
+     -621 (`model.go` 124 added, `v2_stream.go` +292 -151, `v2_inject.go` removed); the v1
+     implementation's 9 files (4278 lines) count as removed (`+493 -4900` in all). Goose takes the
+     whole package (checked by hand on a GOROOT of links, `goroot.py farm`: 3587 Lean lines) once
+     `type Delim rune` is spelled `int32` (`notes/perennial-changes.md`); not committed (the Lean half).
+   - *Evidence about the model* (`models/internal/jsonstreamtest`, `run.sh`, in the gates): the same
+     tests in the real build and the model build (overlay; it needs a go1.27.3 outside the module
+     cache: `~/sdk/go1.27.3` or a copy in `.lake/`), both reproducing the real build's golden
+     transcripts (every Read's length and result, every Decode's value, error class, InputOffset and
+     Buffered length, every Write's bytes): go-vsr's `wire.Encode`/`wire.Decode` (an Encoder and a
+     Decoder per message: the first decoder's read-ahead is lost, as in vsr) and one Decoder per
+     stream, over net.Pipe and over scripted readers with chunk sizes 1..100000, the 12 vsr messages
+     (one of 300 log entries, past the 4 KiB buffer), the stream cut at every byte with io.EOF or a
+     read error, 35 malformed streams (stray delimiters, bad literals and numbers, nesting at 10000),
+     the Encoder over a failing writer, and 3000 random streams (by hand: 40,000, identical).
+   - *vsr.* `models/internal/jsonvsr`: go-vsr's `events`, `log` and `wire` (the dsverify fork at
+     `215992d`, Apache-2.0) and their codec: everything vsr-net sends and receives is in the subset
+     (the frame's unnamed struct as a root, outside Goose; the kit fork's Goose-translated code must
+     name it); `Logs`' MarshalJSON/UnmarshalJSON (upstream go-vsr, not the fork) would be refused.
+   - *For the Lean half*: specs of `Marshal`, `Unmarshal`, `Valid`, `NewEncoder`/`Encode`,
+     `NewDecoder`/`Decode` over the registered codec (dsverify's `Proof/encoding/json/{Codec,Valid,
+     Raw,Stream}.lean`, `json.lean` and `JsonKit` are the start; its Stream spec was over the old
+     buffer policy and needs the jsontext one, or a spec abstract in the read lengths); a goose
+     project with `std_models` (from `models-rpc-http`) and names-only `reflect`, `strconv`,
+     `strings`, `bytes`, `sync` where Perennial lacks them (the error types hold `reflect.Type`);
+     `jsoncodec`'s new helpers (`AppendInt`, `Int`, `QuotedInt`, `Nesting`, `noEscape`; translated,
+     `Net/Code/models_lab/jsoncodec.lean` regenerated, not built here) and per-kit proofs of the
+     generated codec against `JsonCodec`.
 2. **net/rpc** (kits only): Go's `net/rpc` as a model, dsverify's codec and dispatch in place of
    gob and reflection, its proofs (5.3k lines) ported over phase 4's specs; `rpcgen.py` with it.
 

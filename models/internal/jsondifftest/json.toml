@@ -1,14 +1,10 @@
-# The differential test of the encoding/json codec generator (models/json/jsongen.py's format) over the
-# types of types.go. Generate from the repository root:
+# A regression test of the encoding/json codec generator (models/json/jsongen.py) over the types of
+# types.go: only the roots are listed, their structure is derived by reflection. Generate from the
+# repository root:
 #     models/json/jsongen.py models/internal/jsondifftest/json.toml models/internal/jsondifftest/codec --pkg codec
-# codec/json_gen_test.go checks the codec against the types (reflection) and real encoding/json.
+# codec/json_gen_test.go checks the codec against the real encoding/json.
 [json]
 imports = { jsondifftest = "models.lab/internal/jsondifftest" }
-[json.types]
-"jsondifftest.Msg" = { struct = [["Type", "uint8", "@type"], ["Data", "json.RawMessage", "data"]] }
-"jsondifftest.Body" = { struct = [["N", "uint64", "n,string"], ["S", "string", "s"], ["Ok", "bool", "ok"],
-                        ["K", "uint32", "k"], ["L", "[]jsondifftest.Item", "l"]] }
-"jsondifftest.Item" = { struct = [["D", "string", "d"]] }
-"[]jsondifftest.Item" = { slice = "jsondifftest.Item" }
-"jsondifftest.Kind" = { basic = "uint8" }
-"jsondifftest.Event" = { struct = [["Kind", "jsondifftest.Kind", "@kind"], ["Seq", "uint64", "seq,string"], ["Data", "any", "data"]], decode = false }
+roots = ["jsondifftest.Msg", "jsondifftest.Body", "[]jsondifftest.Item", "jsondifftest.Event",
+         "jsondifftest.All", "uint64", "string",
+         'struct { Seq uint64 "json:\"seq,string\""; Data json.RawMessage "json:\"data\"" }']

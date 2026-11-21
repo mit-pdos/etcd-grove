@@ -41550,3 +41550,30 @@ status's code) with `statusErrOk_code`. `status.FromError` takes `∀ c`, pre `s
 `Code()` returns `c`; `status.Status.Code` takes `statusAt s c m`; `isHaltErr`'s post gives the code
 through `statusCodeIs`. Axioms restated: `status.FromError`, `status.Status.Code` (and `status.Code`'s,
 `status.Error`'s meaning through `statusErrOk`); none added. The message (`errDesc`) is stage 2b.
+
+## The encoding/json model is of Go 1.27.3's default build; jsongen as a trusted generator (2026-11-20 · branch `models-json`; the agent's choices under the user's decisions "Trusted generated code" and "Models are first-class Go packages")
+
+- **Which encoding/json.** Go 1.27.3 builds encoding/json with GOEXPERIMENT jsonv2 on by default:
+  the package a program gets is the `v2_*.go` files, the v1 API over encoding/json/v2 with
+  `DefaultOptionsV1()`, not the v1 implementation (`decode.go`, `encode.go`, `stream.go`, ...; only
+  GOEXPERIMENT=nojsonv2 builds those). The model and the generator's claim are of the default build:
+  the model's files are the `v2_*.go` (every exported name kept), the v1 implementation's files are
+  removed in it (they would never build), and the differential tests run against the default build.
+  They differ where it matters: v2's encoder errors past 10000 levels of nesting (a RawMessage's
+  nesting counted), v1's does not; the Decoder is jsontext's (its buffer starts at 64 bytes, grows
+  by throughput up to 4 KiB and doubles when a value fills three quarters of it) where v1's had
+  its own scanner and buffer. dsverify's model and notes described the v1 Decoder, and its model
+  over-approximated the read lengths; this one mirrors jsontext's buffer exactly, so the model's
+  Read calls are the real ones (same lengths, same moments), checked by golden transcripts.
+- **What the generator reproduces exactly, or refuses.** The subset is what the core reproduces
+  byte for byte (encoding) and value for value (decoding), cited to Go's source; everything else
+  is refused by name (`jsongen_core.py`'s doc), including user-defined MarshalJSON/UnmarshalJSON
+  (the old jsongen called them; refusing keeps the core free of their compaction and error rules,
+  and vsr's kit fork has none) and pointers but at the root. Strings stay in jsoncodec's plain
+  subset with a NotModelled panic outside it (escapes, HTML characters, non-ASCII), as before.
+- **One codec per program, registered once** (`SetCodec` panics on a second registration, as the
+  net/rpc model's); unnamed root struct types (vsr's decoding frame) keep their code outside Goose.
+- **Soundness bug found and fixed in the trusted helpers**: `jsoncodec.QuotedUint` (a `,string`
+  field) returned a type error for a string with an escape sequence, which the real Unmarshal
+  unescapes and decodes; it now panics (NotModelled) on any escape there, as `Str` does elsewhere.
+  Found by the mutation tests of the reworked generator; the old per-type tests had no escapes.
