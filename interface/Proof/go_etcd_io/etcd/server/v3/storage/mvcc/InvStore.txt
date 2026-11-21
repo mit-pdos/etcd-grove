@@ -2423,10 +2423,7 @@ def mvcc.rangeKeysErr (err : GoInterface) : IProp GF :=
       (∃ ii inner,
           ⌜err = GoInterface.ok ii⌝ ∗
             fmt.errorfWrapIs ii inner
-                go!"rangeKeys: context cancelled: " ∗
-              ⌜methodSet ii.ty !! go!"Unwrap" = some (go.Signature [] false [go.error]) →
-                  go!"rangeKeys: context cancelled: " <+:
-                    go_etcd_io.etcd.cache.v3.errDesc err⌝) ∗
+              go!"rangeKeys: context cancelled: ") ∗
         ∃ ii s,
           ⌜err = GoInterface.ok ii⌝ ∗
             □

@@ -8,7 +8,6 @@ module
 public import Spec.fmt.ErrorfWrap
 public import Perennial.Proof.fmt
 public import Proof.fmt.OutLemmas
-public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrDescWrap
 
 @[expose] public section
 
@@ -32,8 +31,9 @@ wrapped: the left disjunct). The format's one directive is `%w`, of `inner`, an 
 `Error()` returns needing nothing (`fmtErrorOk`, so `argOkAt`): Perennial's model returns Go's
 `&wrapError{msg: s, err: inner}`, `s` the formatted string, which begins with `pre`
 (`fmt.SprintfOut_litPrefix`, `pre` having no `%`): the right disjunct (`fmt.wrapErrIs`; its method
-set is goose's, `Error` and `Unwrap`). The description conjunct is the trust-boundary fact
-`rpctypes.errDesc_wrapError` (the description of a `*fmt.wrapError` is its message). -/
+set is goose's, `Error` and `Unwrap`). (errdesc stage 2b, 2026-11-21: the description conjunct, and the
+trust-boundary fact `rpctypes.errDesc_wrapError` it rested on, are gone with the pure `errDesc`;
+`errorfWrap_descIs` proves the description's prefix.) -/
 theorem fmt.ErrorfWrap.wp_proof : fmt.ErrorfWrap.spec (GF := GF) (hG := hG) := by
   intro pre args_sl inner dq hpre
   iintro %Φ ⟨#Hpkg, Hsl, #Hin⟩ HΦ
@@ -68,37 +68,32 @@ theorem fmt.ErrorfWrap.wp_proof : fmt.ErrorfWrap.spec (GF := GF) (hG := hG) := b
     have := fmt.SprintfOut_litPrefix Hs
     rwa [show go!"%w" = W8 37 :: go!"w" from rfl, fmt.litPrefix_append_pct _ _ hpre] at this
   obtain ⟨s', rfl⟩ := hpre'
-  ihave %hdesc := rpctypes.errDesc_wrapError (GF := GF) l (pre ++ s') $$ Hmsg
   have ms := fun m => go.MethodSetIs.method_set_is
     (t := go.GoType.PointerType _root_.Perennial.fmt.wrapError.ty) m
   iapply HΦ
   iframe Hsl
-  isplitl
-  · iunfold fmt.errorfWrapIs
-    iright
-    iunfold fmt.wrapErrIs
-    isplitr
-    · ipureintro
-      refine ⟨⟨_, l, rfl, rfl⟩, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
-        first
-        | (have h := ms go!"Unwrap"; simpa [go.methodSetLookup] using h)
-        | (have h := ms go!"As"; simp [go.methodSetLookup] at h; rw [h]; simp)
-        | (have h := ms go!"Is"; simp [go.methodSetLookup] at h; rw [h]; simp)
-        | (have h := ms go!"GRPCStatus"; simpa [go.methodSetLookup] using h)
-        | exact _root_.Perennial.fmt.wrapError_facts.1
-        | exact _root_.Perennial.fmt.wrapError_facts.2
-    isplitr
-    · iexists s'
-      iexact HEr
-    · imodintro
-      iintro %Ψ HΨ
-      iclear HEr HE Hat Hmsg
-      rw [method_unfold]
-      wp_auto
-      iexact HΨ
+  iunfold fmt.errorfWrapIs
+  iright
+  iunfold fmt.wrapErrIs
+  isplitr
   · ipureintro
-    intro _
-    rw [hdesc]; exact List.prefix_append _ _
+    refine ⟨⟨_, l, rfl, rfl⟩, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
+      first
+      | (have h := ms go!"Unwrap"; simpa [go.methodSetLookup] using h)
+      | (have h := ms go!"As"; simp [go.methodSetLookup] at h; rw [h]; simp)
+      | (have h := ms go!"Is"; simp [go.methodSetLookup] at h; rw [h]; simp)
+      | (have h := ms go!"GRPCStatus"; simpa [go.methodSetLookup] using h)
+      | exact _root_.Perennial.fmt.wrapError_facts.1
+      | exact _root_.Perennial.fmt.wrapError_facts.2
+  isplitr
+  · iexists s'
+    iexact HEr
+  · imodintro
+    iintro %Ψ HΨ
+    iclear HEr HE Hat Hmsg
+    rw [method_unfold]
+    wp_auto
+    iexact HΨ
 
 end proof
 

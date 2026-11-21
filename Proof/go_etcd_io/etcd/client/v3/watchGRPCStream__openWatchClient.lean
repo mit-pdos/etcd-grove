@@ -167,7 +167,7 @@ theorem watchGRPCStream.openWatchClient.wp_proof
         iframe #
         ipureintro; exact Hok.1
       · wp_auto
-        ihave ⟨%mR, #HmR⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hst
+        ihave ⟨%mR, #HmR⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_descIs _ $$ Hst
         wp_apply wp_rpctypes_Error err' mR $$ [] as %err2 ⟨%Hne2, #Hse20, %Hc2, -, -, %Hq2, -⟩
         · iframe #
           ipureintro; exact Hok.1

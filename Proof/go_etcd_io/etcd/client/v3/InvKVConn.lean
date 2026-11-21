@@ -1370,50 +1370,50 @@ error is then the last attempt's (a wait's error is a context error's, never a h
 description: `waitRetryBackoff.spec`), with the invoker's outcome (`grpcInvokerOk`). -/
 def ifcErrOut (method : GoString) (addr : List GoString) (Ψe : GoString → IProp GF)
     (err : GoInterface) : IProp GF :=
-  iprop(⌜kvMethod method ∧ ∀ a ∈ addr, noRefusalAt a⌝ -∗
-    ⌜go_etcd_io.etcd.cache.v3.errDesc err ∈ handlerDescs⌝ -∗
-    Ψe (go_etcd_io.etcd.cache.v3.errDesc err))
+  iprop(∃ d : GoString, go_etcd_io.etcd.cache.v3.descIs err d ∗
+    (⌜kvMethod method ∧ ∀ a ∈ addr, noRefusalAt a⌝ -∗ ⌜d ∈ handlerDescs⌝ -∗ Ψe d))
+
+theorem ifcErrOut_intro (method : GoString) (addr : List GoString) (Ψe : GoString → IProp GF)
+    (err : GoInterface) (d : GoString) :
+    go_etcd_io.etcd.cache.v3.descIs (GF := GF) err d ⊢
+      (⌜kvMethod method ∧ ∀ a ∈ addr, noRefusalAt a⌝ -∗ ⌜d ∈ handlerDescs⌝ -∗ Ψe d) -∗
+      ifcErrOut method addr Ψe err := by
+  iintro #Hd H
+  unfold ifcErrOut
+  iexists d
+  iframe Hd H
 
 theorem ifcErrOut_notin (method : GoString) (addr : List GoString) (Ψe : GoString → IProp GF)
-    (err : GoInterface) (h : err = GoInterface.nil ∨ go_etcd_io.etcd.cache.v3.errDesc err ∉ handlerDescs)
-    (hne : err ≠ GoInterface.nil) : ⊢ ifcErrOut (GF := GF) method addr Ψe err := by
-  unfold ifcErrOut
+    (err : GoInterface) : notHandlerErr (GF := GF) err ⊢ ifcErrOut method addr Ψe err := by
+  unfold notHandlerErr go_etcd_io.etcd.cache.v3.notDescIn ifcErrOut
+  iintro ⟨-, %d, #Hd, %hd⟩
+  iexists d
+  iframe Hd
   iintro - %hm
-  rcases h with h | h
-  · exact absurd h hne
-  · exact absurd hm h
+  exact absurd hm hd
 
 theorem ifcErrOut_of_attempt (method : GoString) (addr : List GoString) (Ψe : GoString → IProp GF)
-    (err : GoInterface) :
-    (⌜go_etcd_io.etcd.cache.v3.errDesc err ∈ handlerDescs⌝ -∗
-      Ψe (go_etcd_io.etcd.cache.v3.errDesc err)) ⊢ ifcErrOut (GF := GF) method addr Ψe err := by
+    (err : GoInterface) (d : GoString) :
+    go_etcd_io.etcd.cache.v3.descIs (GF := GF) err d ⊢
+      (⌜d ∈ handlerDescs⌝ -∗ Ψe d) -∗ ifcErrOut method addr Ψe err := by
+  iintro #Hd H
   unfold ifcErrOut
-  iintro H - %hm
+  iexists d
+  iframe Hd
+  iintro - %hm
   iapply H
   ipureintro; exact hm
 
 theorem ifcErrOut_absurd (method : GoString) (addr : List GoString) (Ψe : GoString → IProp GF)
     (err : GoInterface) (h : (kvMethod method ∧ ∀ a ∈ addr, noRefusalAt a) → False) :
-    ⊢ ifcErrOut (GF := GF) method addr Ψe err := by
+    go_etcd_io.etcd.cache.v3.statusErrOk (GF := GF) err ⊢ ifcErrOut method addr Ψe err := by
+  iintro #Hs
+  ihave ⟨%d, #Hd⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_descIs _ $$ Hs
   unfold ifcErrOut
+  iexists d
+  iframe Hd
   iintro %hk
   exact absurd hk h
-
-/-- The outcome carries over to an error `err'` of the same description, or of none of the handlers'
-(`ContextError`'s result). -/
-theorem ifcErrOut_desc (method : GoString) (addr : List GoString) (Ψe : GoString → IProp GF)
-    (err err' : GoInterface)
-    (h : go_etcd_io.etcd.cache.v3.errDesc err' = go_etcd_io.etcd.cache.v3.errDesc err ∨
-      go_etcd_io.etcd.cache.v3.errDesc err' ∉ handlerDescs) :
-    ifcErrOut (GF := GF) method addr Ψe err ⊢ ifcErrOut method addr Ψe err' := by
-  unfold ifcErrOut
-  iintro H %hk %hm
-  rcases h with h | h
-  · rw [h] at hm ⊢
-    iapply H
-    · ipureintro; exact hk
-    · ipureintro; exact hm
-  · exact absurd hm h
 
 /-- **The client's retry interceptor's contract** (persistent; unit P3a: what
 `Client.unaryClientInterceptor` returns, `Client__unaryClientInterceptor.lean`): called on a
@@ -1639,6 +1639,15 @@ theorem ctxShape_noGRPCStatus (e : GoInterfaceOk) (hc : clientErr (GoInterface.o
     have := go.method_set_is (t := _root_.Perennial.context.deadlineExceededError.ty) go!"GRPCStatus"
     simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at this
     simp [this]
+
+/-- **A client context error's description is its message** (errdesc stage 2b): of a context error's
+shape (no `EtcdError`, no `GRPCStatus` for a client error), its stable `Error()`. -/
+theorem ctxErr_descIs (e : GoInterfaceOk) (m : GoString) (hc : clientErr (GoInterface.ok e))
+    (hs : go_etcd_io.etcd.cache.v3.ctxErrShape e) :
+    go_etcd_io.etcd.cache.v3.errorMsgIs (GF := GF) e m ⊢
+      go_etcd_io.etcd.cache.v3.descIs (GoInterface.ok e) m := by
+  iintro #H
+  iapply (go_etcd_io.etcd.cache.v3.descIs_of_msg e m hs.1 (ctxShape_noGRPCStatus e hc hs)) $$ H
 
 namespace client
 

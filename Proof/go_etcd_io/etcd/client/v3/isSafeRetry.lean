@@ -42,8 +42,8 @@ theorem isSafeRetry.wp_proof
     (wp_zapString : zap.String.spec (GF := GF) (hG := hG))
     (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     isSafeRetry.spec (GF := GF) (hG := hG) := by
-  intro c err o pol
-  wp_start as ⟨#Hc, #Ho, %Herr, #Hse, #Hpol⟩
+  intro c err o pol m
+  wp_start as ⟨#Hc, #Ho, %Herr, #Hse, #Hpol, #Hm, #Hnl⟩
   ihave #Herrs : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
   · iPkgInit
   ihave #Hrpc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []
@@ -52,7 +52,11 @@ theorem isSafeRetry.wp_proof
   · iPkgInit
   ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hrpc
-  icases Hri with ⟨-, -, -, -, -, -, -, -, ⟨%eL, #HeL, %HeLp, %HdL, -⟩, -⟩
+  icases Hri with ⟨-, -, -, -, -, -, -, -, ⟨%eL, #HeL, %HeLp, #HdL, -⟩, -⟩
+  -- (errdesc stage 2b) `err` is not the learner refusal's own value (`notLearnerErr`)
+  ihave %HnL : ⌜err ≠ GoInterface.ok eL⌝ $$ []
+  · iunfold notLearnerErr at Hnl
+    iapply Hnl $$ HeL
   iunfold retryOptsAt at Ho
   icases Ho with ⟨%ov, #Hov, #Hovk⟩
   iunfold retryOptsPol at Hpol
@@ -71,21 +75,24 @@ theorem isSafeRetry.wp_proof
   · wp_auto
     iapply HΦ; ipureintro; intro h; cases h
   wp_auto
-  wp_apply (wp_Is err (GoInterface.ok eL) (Or.inr (Or.inl ⟨eL, rfl, HeLp⟩))) $$ [$Herrs $Hse] as %b2 %Hb2
+  wp_apply (wp_Is err (GoInterface.ok eL) (some (m, _)) (Or.inr (Or.inl ⟨eL, rfl, HeLp⟩))) $$ [$Herrs $Hse] as %b2 %Hb2
+  · iapply go_etcd_io.etcd.cache.v3.isDescs_some $$ Hm HdL
   cases b2
   rotate_left
   · wp_auto
     wp_apply wp_Endpoints c $$ [$Hc] as %sl -
     wp_if_destruct
     · iapply HΦ; ipureintro; intro _; left
-      rw [(Hb2 rfl).1, HdL]; simp [go_etcd_io.etcd.cache.v3.refusalDescs]
+      rcases (Hb2 rfl).1 _ _ rfl with h | h
+      · exact absurd h HnL
+      · rw [h]; simp [go_etcd_io.etcd.cache.v3.refusalDescs]
     (try wp_auto)
     wp_if_destruct
     · wp_apply wp_Imm err $$ [] as %b -
       · iframe #; ipureintro; exact Herr
       iapply HΦ; ipureintro; intro _; right; rw [← Hpol]; simpa using Hif
     wp_if_destruct
-    · wp_apply wp_Mut err $$ [$Hse] as %b %Hb
+    · wp_apply wp_Mut err m $$ [$Hse $Hm] as %b %Hb
       iapply HΦ; ipureintro; intro h; left; exact Hb h
     wp_method_call
     wp_auto
@@ -106,7 +113,7 @@ theorem isSafeRetry.wp_proof
       · iframe #; ipureintro; exact Herr
       iapply HΦ; ipureintro; intro _; right; rw [← Hpol]; simpa using Hif
     wp_if_destruct
-    · wp_apply wp_Mut err $$ [$Hse] as %b %Hb
+    · wp_apply wp_Mut err m $$ [$Hse $Hm] as %b %Hb
       iapply HΦ; ipureintro; intro h; left; exact Hb h
     wp_method_call
     wp_auto

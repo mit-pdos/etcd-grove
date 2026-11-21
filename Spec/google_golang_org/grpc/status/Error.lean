@@ -27,8 +27,10 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 /-- `status.Error(c, msg)` (`New(c, msg).Err()`) for a code other than `codes.OK` returns a
 non-nil error (a `*status.Error`), one grpc's `status` accepts (`statusErrOk`, unit P3a; it was
 `errStrOk`): a leaf error whose `Error()` (it formats the code and the message) and `GRPCStatus()`
-return; its description (`errDesc`, what `status.FromError(err).Message()` and
-`rpctypes.ErrorDesc` return) is `msg` (k8s etcd3 7c-2: `togRPCError`'s fallback
+return; its description (`descIs`, what `status.FromError(err).Message()` and
+`rpctypes.ErrorDesc` return) is `msg` (errdesc stage 2b, 2026-11-21: the per-run relation `descIs err msg`
+of the status the error holds, until then `errDesc err = msg` of the pure `errDesc`, which no
+implementation can meet for the error it allocates) (k8s etcd3 7c-2: `togRPCError`'s fallback
 `status.Error(codes.Unknown, err.Error())` carries the message as its description); its dynamic
 type is `*status.Error` of grpc's `internal/status` (k8s 7e-1, 2026-11-10, approved by
 etcd-grove-81: `status.New(c, msg).Err()` returns `&Error{s: s}` for `c ≠ OK`, the first of
@@ -43,7 +45,7 @@ abbrev status.Error.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status ∗
       ⌜(#c : val) ≠ google_golang_org.grpc.codes.OK⌝ }}
     (App (App (Val (@! google_golang_org.grpc.status.Error)) (Val #c)) (Val #msg))
-  {{ (err : GoError), RET #err; ⌜err ≠ interface.nil⌝ ∗ statusErrOk err ∗ ⌜errDesc err = msg⌝ ∗
+  {{ (err : GoError), RET #err; ⌜err ≠ interface.nil⌝ ∗ statusErrOk err ∗ descIs err msg ∗
       ⌜∀ ii, err = GoInterface.ok ii →
         ii.ty = go.GoType.PointerType google_golang_org.grpc.internal.status.Error.ty⌝ ∗
       ⌜∀ ii, err = GoInterface.ok ii → ∃ l : Loc, ii.v = #l⌝ }}

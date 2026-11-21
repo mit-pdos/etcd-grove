@@ -163,7 +163,7 @@ theorem etcd_authenticateHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqName
   inext
   iintro %resp %err Hout
   ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_srvErrOk _ resp err $$ Hout
-  ihave Hed := handlerErr_all (GF := GF) Ψe err $$ HΨe
+  ihave Hed := handlerErrOut_allSrv (GF := GF) Ψe err $$ HΨe HSe
   iapply HΨ
   iframe Hed HSe
   iunfold v3rpc.authWrapOut at Hout

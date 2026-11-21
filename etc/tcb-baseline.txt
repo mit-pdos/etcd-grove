@@ -157,7 +157,6 @@ axiom cmp.Diff.wp_proof_eventRefs
 axiom config.ServerConfig.BackendPath.wp_proof
 axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof
-axiom context.WithTimeoutBackgroundMd.wp_proof
 axiom context.WithValue.wp_proof
 axiom context.madeCancelCtx_of_isCancelCtx
 axiom conversion.EnforcePtr.wp_proof
@@ -463,8 +462,6 @@ axiom resolver.EtcdManualResolver.Close.wp_proof
 axiom resolver.EtcdManualResolver.SetEndpoints.wp_proof
 axiom resolver.New.wp_proof
 axiom resourceversion.isWellFormed.wp_proof
-axiom rpctypes.errDesc_etcdError
-axiom rpctypes.errDesc_wrapError
 axiom schema.MustUnsafeGetAllLeases.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
 axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof

@@ -1899,21 +1899,21 @@ initializers (`error.go`, `metadatafields.go`) are untranslated: the trust-bound
     imports=['Perennial.Golang.Theory.TypeSet'],
     custom={
         'ErrFutureRev': dict(doc='/-- `ErrFutureRev = Error(ErrGRPCFutureRev)` (`error.go`): an `EtcdError`, whose `Error()` returns its description, `ErrGRPCFutureRev`\'s (k8s etcd3 7c), with no `Format` method (an `EtcdError`\'s method set is `{Code, Error}`: `fmt` prints it through `Error()`; premise-fixes-4), an `EtcdError` value (k8s etcd3 7e-2, D1: stated, checked by `examples/k8s7e2attack`\'s `TestRpctypesErrTypes` at the etcd pin). -/',
-                             post=f'∃ e : GoInterfaceOk, globalAddr ErrFutureRev ↦ GoInterface.ok e ∗ {CV3}.errorStringSpec e ∗ ⌜{CV3}.errDesc (GoInterface.ok e) = {CV3}.futureRevDesc⌝ ∗ ⌜methodSet e.ty !! go!"Format" = none⌝ ∗ ⌜∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError, GoInterface.ok e = interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x⌝',
-                             pat='⟨%e@, H@, #S@, %D@, %F@, %T@⟩'),
+                             post=f'∃ e : GoInterfaceOk, globalAddr ErrFutureRev ↦ GoInterface.ok e ∗ {CV3}.errorStringSpec e ∗ {CV3}.descIs (GoInterface.ok e) {CV3}.futureRevDesc ∗ ⌜methodSet e.ty !! go!"Format" = none⌝ ∗ ⌜∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError, GoInterface.ok e = interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x⌝',
+                             pat='⟨%e@, H@, #S@, #D@, %F@, %T@⟩'),
         'ErrCompacted': dict(doc='/-- `ErrCompacted = Error(ErrGRPCCompacted)` (`error.go`): an `EtcdError`, whose `Error()` returns its description, `ErrGRPCCompacted`\'s (k8s etcd3 7c), with no `Format` method (an `EtcdError`\'s method set is `{Code, Error}`: `fmt` prints it through `Error()`; premise-fixes-4), an `EtcdError` value (k8s etcd3 7e-2, D1: stated, checked by `examples/k8s7e2attack`\'s `TestRpctypesErrTypes` at the etcd pin). -/',
-                             post=f'∃ e : GoInterfaceOk, globalAddr ErrCompacted ↦ GoInterface.ok e ∗ {CV3}.errorStringSpec e ∗ ⌜{CV3}.errDesc (GoInterface.ok e) = {CV3}.compactedDesc⌝ ∗ ⌜methodSet e.ty !! go!"Format" = none⌝ ∗ ⌜∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError, GoInterface.ok e = interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x⌝',
-                             pat='⟨%e@, H@, #S@, %D@, %F@, %T@⟩'),
+                             post=f'∃ e : GoInterfaceOk, globalAddr ErrCompacted ↦ GoInterface.ok e ∗ {CV3}.errorStringSpec e ∗ {CV3}.descIs (GoInterface.ok e) {CV3}.compactedDesc ∗ ⌜methodSet e.ty !! go!"Format" = none⌝ ∗ ⌜∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError, GoInterface.ok e = interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x⌝',
+                             pat='⟨%e@, H@, #S@, #D@, %F@, %T@⟩'),
         # (k8s etcd3 7c) the server-side read errors `togRPCError` maps mvcc's to
         'ErrGRPCFutureRev': dict(doc='/-- `ErrGRPCFutureRev = status.Error(codes.OutOfRange, "etcdserver: mvcc: required revision is a future revision")` (`error.go`): with that description (k8s etcd3 7c). -/',
-                             post=f'∃ e : GoInterfaceOk, globalAddr ErrGRPCFutureRev ↦ GoInterface.ok e ∗ ⌜{CV3}.errDesc (GoInterface.ok e) = {CV3}.futureRevDesc⌝',
-                             pat='⟨%e@, H@, %D@⟩'),
+                             post=f'∃ e : GoInterfaceOk, globalAddr ErrGRPCFutureRev ↦ GoInterface.ok e ∗ {CV3}.descIs (GoInterface.ok e) {CV3}.futureRevDesc',
+                             pat='⟨%e@, H@, #D@⟩'),
         'ErrGRPCCompacted': dict(doc='/-- `ErrGRPCCompacted = status.Error(codes.OutOfRange, "etcdserver: mvcc: required revision has been compacted")` (`error.go`): with that description (k8s etcd3 7c). -/',
-                             post=f'∃ e : GoInterfaceOk, globalAddr ErrGRPCCompacted ↦ GoInterface.ok e ∗ ⌜{CV3}.errDesc (GoInterface.ok e) = {CV3}.compactedDesc⌝',
+                             post=f'∃ e : GoInterfaceOk, globalAddr ErrGRPCCompacted ↦ GoInterface.ok e ∗ {CV3}.descIs (GoInterface.ok e) {CV3}.compactedDesc',
                              pat='⟨%e@, H@, %D@⟩'),
         'errStringToError': dict(doc='/-- `errStringToError = map[string]error{...}` (`error.go`): a map whose values are `ErrGRPC*` errors, `status.Error(...)`s: `*status.Error`s, leaf errors whose `Error()`, `GRPCStatus()` and `Is` return. -/',
-                                 post=f'∃ (mref : Loc) (m : GMap GoString GoInterface), globalAddr errStringToError ↦ mref ∗ mref ↦$□ m ∗ □ (∀ (k : GoString) (v : GoInterface), ⌜m !! k = some v⌝ → {CV3}.statusErrOk v) ∗ ⌜∀ (k : GoString) (v : GoInterface), m !! k = some v → {CV3}.errDesc v = k⌝',
-                                 pat='⟨%mref@, %m@, H@, #M@, #S@, %D@⟩'),
+                                 post=f'∃ (mref : Loc) (m : GMap GoString GoInterface), globalAddr errStringToError ↦ mref ∗ mref ↦$□ m ∗ □ (∀ (k : GoString) (v : GoInterface), ⌜m !! k = some v⌝ → {CV3}.statusErrOk v) ∗ □ (∀ (k : GoString) (v : GoInterface), ⌜m !! k = some v⌝ → {CV3}.descIs v k)',
+                                 pat='⟨%mref@, %m@, H@, #M@, #S@, #D@⟩'),
         'ErrUserEmpty': dict(doc='/-- `ErrUserEmpty = Error(ErrGRPCUserEmpty)` (`error.go`): an `EtcdError`, with `ErrGRPCUserEmpty`\'s description (D29). -/',
                              post='∃ x : EtcdError, globalAddr ErrUserEmpty ↦ interface.mkOk EtcdError.ty #x ∗ ⌜x.desc\' = go!"etcdserver: user name is empty"⌝',
                              pat='⟨%x@, H@, %D@⟩'),
@@ -1924,8 +1924,8 @@ initializers (`error.go`, `metadatafields.go`) are untranslated: the trust-bound
                              post='∃ x : EtcdError, globalAddr ErrAuthOldRevision ↦ interface.mkOk EtcdError.ty #x ∗ ⌜x.desc\' = go!"etcdserver: revision of auth store is old"⌝',
                              pat='⟨%x@, H@, %D@⟩'),
         'ErrGRPCNotSupportedForLearner': dict(doc='/-- `ErrGRPCNotSupportedForLearner = status.Error(codes.FailedPrecondition, "etcdserver: rpc not supported for learner")` (`error.go`): a `*status.Error`, a pointer error, with that description (D29), which grpc\'s `status.FromError` accepts (`statusErrOk`; k8s etcd3 7c, HS-6). -/',
-                             post=f'∃ e : GoInterfaceOk, globalAddr ErrGRPCNotSupportedForLearner ↦ GoInterface.ok e ∗ ⌜errors.IsPointerError e⌝ ∗ ⌜{CV3}.errDesc (GoInterface.ok e) = go!"etcdserver: rpc not supported for learner"⌝ ∗ {CV3}.statusErrOk (GoInterface.ok e)',
-                             pat='⟨%e@, H@, %P@, %D@, #S@⟩'),
+                             post=f'∃ e : GoInterfaceOk, globalAddr ErrGRPCNotSupportedForLearner ↦ GoInterface.ok e ∗ ⌜errors.IsPointerError e⌝ ∗ {CV3}.descIs (GoInterface.ok e) go!"etcdserver: rpc not supported for learner" ∗ {CV3}.statusErrOk (GoInterface.ok e)',
+                             pat='⟨%e@, H@, %P@, #D@, #S@⟩'),
         # (item 1, the client lease, 2026-10-18: the lessor's keep-alive loop compares a stream's
         # error with it, `errors.Is`)
         'ErrNoLeader': dict(doc='/-- `ErrNoLeader = Error(ErrGRPCNoLeader)` (`error.go`): an `EtcdError`. -/',
@@ -2191,8 +2191,8 @@ _RERRDESCS = {
 for x in _RERRS:
     c, m = _RERRDESCS[x]
     _R['custom'][x] = dict(doc=f'/-- `{x} = status.Error(codes.{c}, "{m}")` (`error.go`): a `*status.Error`, which grpc\'s `status.FromError` accepts (`statusErrOk`; k8s etcd3 7c, HS-6), with that description (k8s etcd3 7c). -/',
-                           post=f'∃ e : GoInterfaceOk, globalAddr {x} ↦ GoInterface.ok e ∗ {CV3}.statusErrOk (GoInterface.ok e) ∗ ⌜{CV3}.errDesc (GoInterface.ok e) = go!"{m}"⌝',
-                           pat='⟨%e@, H@, #S@, %D@⟩')
+                           post=f'∃ e : GoInterfaceOk, globalAddr {x} ↦ GoInterface.ok e ∗ {CV3}.statusErrOk (GoInterface.ok e) ∗ {CV3}.descIs (GoInterface.ok e) go!"{m}"',
+                           pat='⟨%e@, H@, #S@, #D@⟩')
 # (D19j, 2026-10-18) the `ErrGRPC*` errors `v3rpc`'s watch server returns or reports: `status.Error`
 # values whose `Error()` returns
 _RWERRS = {'ErrGRPCInvalidAuthToken': ('Unauthenticated', 'etcdserver: invalid auth token'),
@@ -2225,8 +2225,7 @@ _R['doc'] = _R['doc'].replace("the pointer error `ErrGRPCNotSupportedForLearner`
 # `ErrGRPCNotSupportedForLearner`, whose fact says its value is a pointer (`errors.IsPointerError`,
 # `ptr`: from the spec's dynamic type and pointer value).
 def status_steps(x, desc=None, ptr=False):
-    D = f'{CV3}.errDesc (GoInterface.ok e{x})'
-    pat = f'⟨%N{x}, #O{x}, %D{x}, %T{x}, %L{x}⟩' if ptr else f'⟨%N{x}, #O{x}, %D{x}, -⟩'
+    pat = f'⟨%N{x}, #O{x}, #DR{x}, %T{x}, %L{x}⟩' if ptr else f'⟨%N{x}, #O{x}, #DR{x}, -⟩'
     return (['try wp_auto',
              f'wp_apply _root_.Perennial.EtcdGrove.status.Error.wp_proof as %r{x} {pat}',
              '· ipureintro; simp only [google_golang_org.grpc.codes.OK]; exact fun h => absurd (go.intoVal_inj h) (by decide)',
@@ -2234,7 +2233,8 @@ def status_steps(x, desc=None, ptr=False):
              f'ihave #E{x} : ({CV3}.errorStringSpec e{x} : IProp GF) $$ []',
              f'· ihave ⟨%m{x}, #M{x}⟩ := {CV3}.statusErrOk_msg _ $$ O{x}',
              f'  iapply {CV3}.errorMsgIs_errorStringSpec; iapply M{x}; ipureintro; rfl'] +
-            ([f'replace D{x} : {D} = {CV3}.{desc} := D{x}'] if desc else []) +
+            ([f'ihave #D{x} : ({CV3}.descIs (GoInterface.ok e{x}) {CV3}.{desc} : IProp GF) $$ []',
+              f'· unfold {CV3}.{desc}; iexact DR{x}'] if desc else []) +
             ([f'have P{x} : errors.IsPointerError e{x} := let ⟨l, hl⟩ := L{x} _ rfl; ⟨_, l, T{x} _ rfl, hl⟩']
              if ptr else []) +
             ['try wp_auto'])
@@ -2254,8 +2254,8 @@ _R['imports'].append('Proof.google_golang_org.grpc.status.Error')
 # errors (`status_steps`), the map literal `errStringToError` and the client-side errors
 # `Err* = Error(ErrGRPC*)`; until then the trust-boundary axioms `opaqueInitsOk`, `errStringToError_init`
 # and the seven `Err*_init`. The map's keys are `ErrorDesc(ErrGRPC*)` (`ErrorDesc.wp_init`: over grpc's
-# `status`, the package's own `isPkgInit` not holding yet), each substituted by its description
-# (`errDesc`), and its values the `ErrGRPC*` errors: built under `rpctypesErrMapInv` (each value one
+# `status`, the package's own `isPkgInit` not holding yet), each its description
+# (`descIs`, errdesc stage 2b; `errDesc` until then), and its values the `ErrGRPC*` errors: built under `rpctypesErrMapInv` (each value one
 # grpc's `status` accepts, under its description), it gives the fact's map. `Error(ErrGRPC*)` is then
 # `Error.wp_initErr` (an `EtcdError` with `ErrGRPC*`'s description: its key is in the map, found along
 # the literal's insertions) or, for `ErrGRPCTimeoutWaitAppliedIndex` (no key of the map),
@@ -2296,7 +2296,7 @@ _R['alloc_types']['errStringToError'] = 'Loc'
 for x in ['ErrFutureRev', 'ErrCompacted', 'errStringToError', 'ErrUserEmpty', 'ErrInvalidAuthToken',
           'ErrAuthOldRevision', 'ErrNoLeader', 'ErrAuthNotEnabled']:
     del _R['custom'][x]
-_RPC_ARGS = ('EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc MD')
+_RPC_ARGS = ('EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc')
 _RPC_ED = '(EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof)'
 # the map literal: its keys (`ErrorDesc(X)`, each its description), then the map made and its entries inserted
 _R['before']['errStringToError'] = (
@@ -2305,38 +2305,35 @@ _R['before']['errStringToError'] = (
      '   EtcdGrove.RpctypesEtcdErrorMethods.noIs, EtcdGrove.RpctypesEtcdErrorMethods.noFormat,',
      '   EtcdGrove.RpctypesEtcdErrorMethods.errorSig⟩'] +
     sum([['try wp_auto',
-          f'ihave ⟨%mq{x}, #MQ{x}⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ O{x}',
-          f'wp_apply ({_RPC_ED} (GoInterface.ok e{x}) mq{x}) $$ [${_RPCST} $O{x} $MQ{x}]',
-          f'  as %q{x} ⟨%Q{x}, -⟩',
-          f'subst Q{x}'] for x in _RPC_KEYS], []) +
+          f'wp_apply ({_RPC_ED} (GoInterface.ok e{x}) _) $$ [${_RPCST} $O{x} $DR{x}]'] for x in _RPC_KEYS], []) +
     ['try wp_auto',
      'wp_apply (wp_map_make1 (K := GoString) (V := GoInterface) go.string go.error) as %mesm Hesm0',
      'ihave Hesm := EtcdGrove.rpctypes_errMapInv_empty mesm $$ Hesm0',
      'try wp_auto'] +
-    sum([[f'wp_apply (EtcdGrove.rpctypes_wp_errMapInsert mesm _ e{x}) $$ [$Hesm $O{x}] as Hesm',
+    sum([[f'wp_apply (EtcdGrove.rpctypes_wp_errMapInsert mesm _ e{x} _) $$ [$Hesm $O{x} $DR{x}] as Hesm',
           'try wp_auto'] for x in _RPC_KEYS], []))
 # `Err* = Error(ErrGRPC*)`: the map's facts first (before the first one), then each call
 _RPC_FIRST = next(iter(_RPC_ERRS))
 for x, g in _RPC_ERRS.items():
     st = []
     if x == _RPC_FIRST:
-        st += ['try wp_auto', 'ihave ⟨Hesm, #MS, %MD⟩ := EtcdGrove.rpctypes_errMapInv_elim _ _ $$ Hesm', 'ipersist Hesm', 'ipersist HerrStringToError']
+        st += ['try wp_auto', 'ihave ⟨Hesm, #MS, #MD⟩ := EtcdGrove.rpctypes_errMapInv_elim _ _ $$ Hesm', 'ipersist Hesm', 'ipersist HerrStringToError']
     st += ['try wp_auto']
     if g in _RPC_KEYS:
-        st += [f'wp_apply (EtcdGrove.rpctypes.Error.wp_initErr {_RPC_ED} {_RPC_ARGS} e{g})',
-               f'    $$ [${_RPCST} $HerrStringToError $Hesm $MS $O{g}] as %x{x} ⟨%X{x}, #S{x}⟩',
+        st += [f'wp_apply (EtcdGrove.rpctypes.Error.wp_initErr {_RPC_ED} {_RPC_ARGS} e{g} _)',
+               f'    $$ [${_RPCST} $HerrStringToError $Hesm $MS $MD $O{g} $DR{g}] as %x{x} ⟨%X{x}, #S{x}⟩',
                '· ipureintro',
-               '  repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))',
-               f'rw [D{g}] at X{x}']
+               '  repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))']
         if x in ('ErrFutureRev', 'ErrCompacted'):
-            st += [f'have D{x} : go_etcd_io.etcd.cache.v3.errDesc (interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x{x}) =',
-                   f'    go_etcd_io.etcd.cache.v3.{_RSTATUS[g]} := by rw [EtcdGrove.rpctypes.errDesc_etcdError]; exact X{x}',
+            st += [f'ihave #D{x} : (go_etcd_io.etcd.cache.v3.descIs (interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x{x})',
+                   f'    go_etcd_io.etcd.cache.v3.{_RSTATUS[g]} : IProp GF) $$ []',
+                   f'· iapply (go_etcd_io.etcd.cache.v3.descIs_etcdError_of _ _ (by unfold go_etcd_io.etcd.cache.v3.{_RSTATUS[g]}; exact X{x}))',
                    f'have F{x} : methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"Format" = none := HtyRpc.2.2.2.1',
                    f'have T{x} : ∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError, interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x{x} =',
                    f'    interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x := ⟨_, rfl⟩']
     else:
         st += [f'wp_apply (EtcdGrove.rpctypes.Error.wp_initAny {_RPC_ED} {_RPC_ARGS} e{g})',
-               f'    $$ [${_RPCST} $HerrStringToError $Hesm $MS $O{g}] as %r{x} -']
+               f'    $$ [${_RPCST} $HerrStringToError $Hesm $MS $MD $O{g}] as %r{x} -']
     st += ['try wp_auto']
     _R['before'][x] = st
 _R['finish'].remove('ipersist HerrStringToError')
@@ -2365,12 +2362,12 @@ _R['pre'] += [
     'abbrev EtcdGrove.rpctypesErrMapInv (mref : Loc) (M : GMap GoString GoInterface) : IProp GF :=',
     '  iprop(mref ↦$ M ∗',
     '    (□ ∀ (k : GoString) (v : GoInterface), ⌜M !! k = some v⌝ → go_etcd_io.etcd.cache.v3.statusErrOk v) ∗',
-    '    ⌜∀ (k : GoString) (v : GoInterface), M !! k = some v → go_etcd_io.etcd.cache.v3.errDesc v = k⌝)',
+    '    (□ ∀ (k : GoString) (v : GoInterface), ⌜M !! k = some v⌝ → go_etcd_io.etcd.cache.v3.descIs v k))',
     '',
     'theorem EtcdGrove.rpctypes_errMapInv_elim (mref : Loc) (M : GMap GoString GoInterface) :',
     '    (EtcdGrove.rpctypesErrMapInv mref M : IProp GF) ⊢ mref ↦$ M ∗',
     '      (□ ∀ (k : GoString) (v : GoInterface), ⌜M !! k = some v⌝ → go_etcd_io.etcd.cache.v3.statusErrOk v) ∗',
-    '      ⌜∀ (k : GoString) (v : GoInterface), M !! k = some v → go_etcd_io.etcd.cache.v3.errDesc v = k⌝ := by',
+    '      (□ ∀ (k : GoString) (v : GoInterface), ⌜M !! k = some v⌝ → go_etcd_io.etcd.cache.v3.descIs v k) := by',
     '  iintro H; iexact H',
     '',
     'theorem EtcdGrove.rpctypes_errMapInv_empty (mref : Loc) :',
@@ -2380,17 +2377,18 @@ _R['pre'] += [
     '  iframe Hm',
     '  isplitr',
     '  · iintro !> %k %v %h; simp at h',
-    '  · ipureintro; intro k v h; simp at h',
+    '  · iintro !> %k %v %h; simp at h',
     '',
     '/-- (prove-rpcmap) Inserting an error grpc\'s `status` accepts under its description. -/',
-    'theorem EtcdGrove.rpctypes_wp_errMapInsert (mref : Loc) (M : GMap GoString GoInterface) (e : GoInterfaceOk) :',
-    '    {{ (EtcdGrove.rpctypesErrMapInv mref M : IProp GF) ∗ go_etcd_io.etcd.cache.v3.statusErrOk (GoInterface.ok e) }}',
+    'theorem EtcdGrove.rpctypes_wp_errMapInsert (mref : Loc) (M : GMap GoString GoInterface) (e : GoInterfaceOk)',
+    '    (d : GoString) :',
+    '    {{ (EtcdGrove.rpctypesErrMapInv mref M : IProp GF) ∗ go_etcd_io.etcd.cache.v3.statusErrOk (GoInterface.ok e) ∗',
+    '        go_etcd_io.etcd.cache.v3.descIs (GoInterface.ok e) d }}',
     '      (App (App (App (Val (map.insert go.string)) (Val #mref))',
-    '        (Val #(go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e)))) (Val #(GoInterface.ok e)))',
-    '    {{ RET #(); EtcdGrove.rpctypesErrMapInv mref',
-    '        (<[go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e) := GoInterface.ok e]> M) }} := by',
-    '  wp_start_folded as ⟨Hinv, #Hok⟩',
-    '  ihave ⟨Hm, #HS, %HD⟩ := EtcdGrove.rpctypes_errMapInv_elim _ _ $$ Hinv',
+    '        (Val #d)) (Val #(GoInterface.ok e)))',
+    '    {{ RET #(); EtcdGrove.rpctypesErrMapInv mref (<[d := GoInterface.ok e]> M) }} := by',
+    '  wp_start_folded as ⟨Hinv, #Hok, #Hd⟩',
+    '  ihave ⟨Hm, #HS, #HD⟩ := EtcdGrove.rpctypes_errMapInv_elim _ _ $$ Hinv',
     '  wp_apply (wp_mapInsert (K := GoString) (V := GoInterface) go.string) $$ Hm as Hm',
     '  iapply HΦ',
     '  unfold EtcdGrove.rpctypesErrMapInv',
@@ -2400,10 +2398,10 @@ _R['pre'] += [
     '    rcases EtcdGrove.rpctypes_lookup_insert_some h with ⟨-, rfl⟩ | h',
     '    · iexact Hok',
     '    · iapply HS; ipureintro; exact h',
-    '  · ipureintro; intro k v h',
+    '  · iintro !> %k %v %h',
     '    rcases EtcdGrove.rpctypes_lookup_insert_some h with ⟨rfl, rfl⟩ | h',
-    '    · rfl',
-    '    · exact HD k v h',
+    '    · iexact Hd',
+    '    · iapply HD; ipureintro; exact h',
     '',
     'end rpcmap',
     '']
@@ -2854,8 +2852,8 @@ specs; until 2026-11-19 the trust-boundary axioms `<X>_init`),
     custom={
         'toGRPCErrorMap': dict(
             doc='/-- `toGRPCErrorMap = map[error]error{...}` (`util.go`): a map whose values are `rpctypes.ErrGRPC*` errors (and `ErrTooManyRequests`, `ErrMemberNotEnoughStarted`), non-nil; mvcc\'s `ErrFutureRev` and `ErrCompacted` (the values of their cells) map to `ErrGRPCFutureRev` and `ErrGRPCCompacted`, and no other key maps to an error with one of those two descriptions, nor has one itself (k8s etcd3 7c: `grpcErrMapOk`), and the two have their `errors.New` descriptions (`kvstore.go:38-39`; k8s etcd3 7c-2 part 2, G2-a); every value is one grpc\'s `status.FromError` accepts (`statusErrOk`; k8s etcd3 7c, HS-6: the `status.Error`s and the two `EtcdError`s, leaves with only `Code` and `Error`); the value of each variable of `grpcErrKeyGlobals` (the literal\'s 53 keys) is a key (k8s etcd3 7c-2 part 2, S2: stated as a persistent wand on the variable\'s persisted cell, asserting no cell of another package). -/',
-            post='∃ (mp : Loc) (M : GMap GoInterface GoInterface) (kf kc : GoInterface), globalAddr toGRPCErrorMap ↦ mp ∗ mp ↦$□ M ∗ globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev ↦□ kf ∗ globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted ↦□ kc ∗ □ (∀ (k v : GoInterface), ⌜M !! k = some v⌝ → go_etcd_io.etcd.cache.v3.statusErrOk v) ∗ □ (∀ (g : GoString) (k : GoInterface), ⌜g ∈ grpcErrKeyGlobals⌝ → globalAddr g ↦□ k -∗ ⌜(M !! k).isSome⌝) ∗ ⌜grpcErrMapOk M kf kc⌝',
-            pat='⟨%mp@, %M@, %kf@, %kc@, H@, #S@, #F@, #C@, #V@, #K@, %P@⟩'),
+            post='∃ (mp : Loc) (M : GMap GoInterface GoInterface) (kf kc : GoInterface), globalAddr toGRPCErrorMap ↦ mp ∗ mp ↦$□ M ∗ globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev ↦□ kf ∗ globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted ↦□ kc ∗ □ (∀ (k v : GoInterface), ⌜M !! k = some v⌝ → go_etcd_io.etcd.cache.v3.statusErrOk v) ∗ □ (∀ (g : GoString) (k : GoInterface), ⌜g ∈ grpcErrKeyGlobals⌝ → globalAddr g ↦□ k -∗ ⌜(M !! k).isSome⌝) ∗ grpcErrMapOk M kf kc',
+            pat='⟨%mp@, %M@, %kf@, %kc@, H@, #S@, #F@, #C@, #V@, #K@, #P@⟩'),
     },
     finish=(['ipersist HtoGRPCErrorMap', 'ipersist HclientRequests',
              'ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []',
@@ -2866,7 +2864,7 @@ specs; until 2026-11-19 the trust-boundary axioms `<X>_init`),
              'ihave Hpi : (go_etcd_io.etcd.cache.v3.etcdserverpbInit : IProp GF) $$ []',
              '· iapply isPkgInit_access $$ Hd2',
              'icases Hpi with ⟨#HSO, #HST, #HDescs⟩',
-             'ihave ⟨#HCL, -⟩ := EtcdGrove.ContextReadErrs.errs_strong $$ Hd1', "-- (incomingof Part B) the context errors are keys of the map, so neither read error's description", 'ihave #HCD : (ctxErrDescs : IProp GF) $$ []', '· ihave #Hci : (_root_.Perennial.context.isInit : IProp GF) $$ []', '  · iapply _root_.Perennial.context.isInit_access $$ Hd1', '  iNamed Hci', '  icases HCanceledCell with ⟨%xc, #Hxc, -⟩', '  unfold ctxErrDescs', '  isplitl []', '  · iexists _; iframe Hxc', '    ihave %hs := KtoGRPCErrorMap $$ %_root_.Perennial.context.Canceled %_ %(by mem_tac) Hxc', '    obtain ⟨v, hv⟩ := Option.isSome_iff_exists.1 hs', '    obtain ⟨-, -, -, h1, h2⟩ := PtoGRPCErrorMap.1 _ _ hv', '    ipureintro; exact ⟨h1, h2⟩', '  · iexists _; iframe HDeadlineExceededTy', '    ihave %hs := KtoGRPCErrorMap $$ %_root_.Perennial.context.DeadlineExceeded %_ %(by mem_tac)', '      HDeadlineExceededTy', '    obtain ⟨v, hv⟩ := Option.isSome_iff_exists.1 hs', '    obtain ⟨-, -, -, h1, h2⟩ := PtoGRPCErrorMap.1 _ _ hv', '    ipureintro; exact ⟨h1, h2⟩',
+             'ihave ⟨#HCL, -⟩ := EtcdGrove.ContextReadErrs.errs_strong $$ Hd1', "-- (incomingof Part B) the context errors are keys of the map, so neither read error's description", 'ihave #HCD : (ctxErrDescs : IProp GF) $$ []', '· ihave #Hci : (_root_.Perennial.context.isInit : IProp GF) $$ []', '  · iapply _root_.Perennial.context.isInit_access $$ Hd1', '  iNamed Hci', '  icases HCanceledCell with ⟨%xc, #Hxc, -⟩', '  unfold ctxErrDescs', '  isplitl []', '  · iexists _; iframe Hxc', '    ihave %hs := KtoGRPCErrorMap $$ %_root_.Perennial.context.Canceled %_ %(by mem_tac) Hxc', '    obtain ⟨v, hv⟩ := Option.isSome_iff_exists.1 hs', '    ihave ⟨%m1, #D1, %h1⟩ := grpcErrMapOk_key $$ PtoGRPCErrorMap %hv', '    iexists m1; iframe D1; ipureintro; exact h1', '  · iexists _; iframe HDeadlineExceededTy', '    ihave %hs := KtoGRPCErrorMap $$ %_root_.Perennial.context.DeadlineExceeded %_ %(by mem_tac)', '      HDeadlineExceededTy', '    obtain ⟨v, hv⟩ := Option.isSome_iff_exists.1 hs', '    ihave ⟨%m1, #D1, %h1⟩ := grpcErrMapOk_key $$ PtoGRPCErrorMap %hv', '    iexists m1; iframe D1; ipureintro; exact h1',
              'ihave #HCP : (∃ e : GoInterfaceOk, globalAddr _root_.Perennial.context.Canceled ↦□ GoInterface.ok e ∗',
              '    ⌜_root_.Perennial.errors.IsPointerError e⌝ : IProp GF) $$ []',
              '· iunfold EtcdGrove.errVarLeaf at HCL', '  icases HCL with ⟨%e, #He, %Hl, -⟩',
@@ -2929,7 +2927,7 @@ specs; until 2026-11-19 the trust-boundary axioms `<X>_init`),
              '· iframe HIG; iexact HIS'] +
             FIN_PRE[:6] +
             ['imodintro', 'unfold v3rpcInit EtcdGrove.v3rpc.watchPkgVars grpcErrMap checkErrVars sortNameMaps ctxCanceledPtr ctxErrDescs interceptorVars errVarSet EtcdGrove.v3rpc.metricsVars',
-             'iframe #', 'ipureintro', 'exact PtoGRPCErrorMap']),
+             'iframe #']),
 )
 promvec(SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc'], 'clientRequests', 'Counter',
         ['type', 'client_api_version'])

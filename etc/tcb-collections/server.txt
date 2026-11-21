@@ -172,7 +172,6 @@ axiom rate.Every.wp_proof
 axiom rate.Limiter.Wait.wp_proof
 axiom reflect.DeepEqual.wp_proof_pgidSet
 axiom reflect.ValueOf.wp_proof
-axiom rpctypes.errDesc_wrapError
 axiom schema.MustUnsafeGetAllLeases.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
 axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
