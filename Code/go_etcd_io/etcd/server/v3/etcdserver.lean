@@ -2922,6 +2922,152 @@ noncomputable def EtcdServer.revokeExpiredLeases.impl [GooseExts] [GoGlobalConte
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"GoAttach"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Var "$a0")))))))
   (Val #()))))
 
+/-- isActive checks if the etcd instance is still actively processing the
+    heartbeat message (ticks). It returns false if no heartbeat has been
+    received within 3 * tickMs.
+
+    go: server.go:905:22 -/
+noncomputable def EtcdServer.isActive.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftNode.ty) go!"getLatestTickTs"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"r"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Val #()))
+  (Let "latestTickTs" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Time.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 3)) (App (Val (GoInstruction (Convert go.uint _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoLoad go.uint))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty go!"TickMs"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"Cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))))))) (Val #(W64 1000000))))
+  (Let "threshold" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Now []))) (Val #())) (Val #()))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.time.Time.ty go!"After"))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "threshold"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"Add"))) (Var "latestTickTs")) (Var "$a0")))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "threshold") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "latestTickTs") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
+/-- ensureLeadership checks whether current member is still the leader.
+
+    go: server.go:912:22 -/
+noncomputable def EtcdServer.ensureLeadership.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"Logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #()))
+  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"ctx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty) go!"ReqTimeout"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"Cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Val #()))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.WithTimeout []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "cancel" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.CancelFunc.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.CancelFunc.ty))) (Val #())))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.Context.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (StructFieldGet _root_.Perennial.go_etcd_io.raft.v3.SoftState.ty go!"Lead"))) (App (Val (GoInstruction (StructFieldGet _root_.Perennial.go_etcd_io.raft.v3.BasicStatus.ty go!"SoftState"))) (App (Val (GoInstruction (StructFieldGet _root_.Perennial.go_etcd_io.raft.v3.Status.ty go!"BasicStatus"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"raftStatus"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #())))))
+  (Let "newLeaderID" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "newLeaderID")) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"MemberID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #()))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"Current member isn't a leader"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"local-member-id"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"MemberID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #()))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Uint64 []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl1" (Let "$a0" (Val #(go!"new-lead"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "newLeaderID"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Uint64 []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Warn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "newLeaderID") (Var "$r0")))))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.read.Read.ty) go!"LinearizableReadNotify"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.read.Read.ty)))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"read"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))) (Var "$a0")))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"Failed to check current member's leadership"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Error []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Warn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "cancel"))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "cancel") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))))
+  (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"isActive"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"The member is active, skip checking leadership"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"latestTickTs"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftNode.ty) go!"getLatestTickTs"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"r"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Val #()))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Time []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl1" (Let "$a0" (Val #(go!"now"))
+  (Let "$a1" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Now []))) (Val #())) (Val #()))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Time []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Debug"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
 /-- Cleanup removes allocated objects by EtcdServer.NewServer in
     situation that EtcdServer::Start was not called (that takes care of cleanup).
 
@@ -6132,6 +6278,23 @@ noncomputable def EtcdServer.IsMemberExist.impl [GooseExts] [GoGlobalContext] : 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
+/-- raftStatus returns the raft status of this etcd node.
+
+    go: server.go:2475:22 -/
+noncomputable def EtcdServer.raftStatus.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.Status.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.Status.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"Status"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef raftNodeConfig.ty go!"Node"))) (App (Val (GoInstruction (StructFieldRef raftNode.ty go!"raftNodeConfig"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"r"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.Status.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Status.ty))) (Var "$res0"))))))
 
 /-- go: server.go:2483:22 -/
 noncomputable def EtcdServer.getTxPostLockInsideApplyHook.impl [GooseExts] [GoGlobalContext] : val :=
@@ -12792,11 +12955,13 @@ class EtcdServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   ptr_compactRaftLog_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"compactRaftLog" EtcdServer.compactRaftLog.impl
   ptr_createMergedSnapshotMessage_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"createMergedSnapshotMessage" EtcdServer.createMergedSnapshotMessage.impl
   ptr_doSerialize_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"doSerialize" EtcdServer.doSerialize.impl
+  ptr_ensureLeadership_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"ensureLeadership" EtcdServer.ensureLeadership.impl
   ptr_getAppliedIndex_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"getAppliedIndex" EtcdServer.getAppliedIndex.impl
   ptr_getCommittedIndex_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"getCommittedIndex" EtcdServer.getCommittedIndex.impl
   ptr_getLead_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"getLead" EtcdServer.getLead.impl
   ptr_getTerm_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"getTerm" EtcdServer.getTerm.impl
   ptr_getTxPostLockInsideApplyHook_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"getTxPostLockInsideApplyHook" EtcdServer.getTxPostLockInsideApplyHook.impl
+  ptr_isActive_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"isActive" EtcdServer.isActive.impl
   ptr_isLeader_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"isLeader" EtcdServer.isLeader.impl
   ptr_monitorCompactHash_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"monitorCompactHash" EtcdServer.monitorCompactHash.impl
   ptr_monitorDowngrade_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"monitorDowngrade" EtcdServer.monitorDowngrade.impl
@@ -12807,6 +12972,7 @@ class EtcdServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   ptr_promoteMember_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"promoteMember" EtcdServer.promoteMember.impl
   ptr_purgeFile_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"purgeFile" EtcdServer.purgeFile.impl
   ptr_raftRequest_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"raftRequest" EtcdServer.raftRequest.impl
+  ptr_raftStatus_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"raftStatus" EtcdServer.raftStatus.impl
   ptr_requireAuthInfo_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"requireAuthInfo" EtcdServer.requireAuthInfo.impl
   ptr_restoreAlarms_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"restoreAlarms" EtcdServer.restoreAlarms.impl
   ptr_revokeExpiredLeases_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"revokeExpiredLeases" EtcdServer.revokeExpiredLeases.impl
@@ -13007,11 +13173,13 @@ attribute [instance] EtcdServer.TypeAssumptions.type_repr
   EtcdServer.TypeAssumptions.ptr_compactRaftLog_unfold
   EtcdServer.TypeAssumptions.ptr_createMergedSnapshotMessage_unfold
   EtcdServer.TypeAssumptions.ptr_doSerialize_unfold
+  EtcdServer.TypeAssumptions.ptr_ensureLeadership_unfold
   EtcdServer.TypeAssumptions.ptr_getAppliedIndex_unfold
   EtcdServer.TypeAssumptions.ptr_getCommittedIndex_unfold
   EtcdServer.TypeAssumptions.ptr_getLead_unfold
   EtcdServer.TypeAssumptions.ptr_getTerm_unfold
   EtcdServer.TypeAssumptions.ptr_getTxPostLockInsideApplyHook_unfold
+  EtcdServer.TypeAssumptions.ptr_isActive_unfold
   EtcdServer.TypeAssumptions.ptr_isLeader_unfold
   EtcdServer.TypeAssumptions.ptr_monitorCompactHash_unfold
   EtcdServer.TypeAssumptions.ptr_monitorDowngrade_unfold
@@ -13022,6 +13190,7 @@ attribute [instance] EtcdServer.TypeAssumptions.type_repr
   EtcdServer.TypeAssumptions.ptr_promoteMember_unfold
   EtcdServer.TypeAssumptions.ptr_purgeFile_unfold
   EtcdServer.TypeAssumptions.ptr_raftRequest_unfold
+  EtcdServer.TypeAssumptions.ptr_raftStatus_unfold
   EtcdServer.TypeAssumptions.ptr_requireAuthInfo_unfold
   EtcdServer.TypeAssumptions.ptr_restoreAlarms_unfold
   EtcdServer.TypeAssumptions.ptr_revokeExpiredLeases_unfold
