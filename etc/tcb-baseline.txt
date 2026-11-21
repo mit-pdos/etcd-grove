@@ -290,7 +290,6 @@ axiom lease.lessor.Demote.wp_proof
 axiom lease.lessor.Promote.wp_proof
 axiom lease.lessor.Renew.wp_proof
 axiom lease.lessor.Stop.wp_proof
-axiom lease.lessor.scheduleCheckpointIfNeeded.wp_proof
 axiom lease.lessorStopTok
 axiom leasehttp.RenewHTTP.wp_proof
 axiom maps.Clone.wp_proof_strBool

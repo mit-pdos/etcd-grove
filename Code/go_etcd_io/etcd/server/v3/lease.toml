@@ -3,9 +3,9 @@
 # thread calls (`Grant`, `Revoke`, `Checkpoint`, `Demote`, `ExpiredLeasesC`, with their callees in
 # lessor.go, lease.go and lease_queue.go; unit 9), with bodies; (the lease-read plan, 2026-10-31)
 # `Leases` (the server's `LeaseLeases`), with its sort's `leasesByExpiry` and `Remaining`.
-# Names only: `Promote` (float arithmetic, a float-to-integer conversion, `sort.Sort` of the
-# leases), `scheduleCheckpointIfNeeded` (`int64(d.Seconds())`, a float-to-integer conversion,
-# which Perennial's semantics does not step) and the rest (renewal, recovery, the expiry loop).
+# (pgaps, 2026-11-21) `scheduleCheckpointIfNeeded`, with its body (`int64(d.Seconds())`: Perennial
+# steps a float-to-integer conversion to an arbitrary integer). Names only: `Promote` (float
+# arithmetic, `sort.Sort` of the leases) and the rest (renewal, recovery, the expiry loop).
 # Lessor is an interface (the apply thread calls its Promote), so the packages its methods'
 # signatures name are imported (Checkpointer's context and request type, Recover's backend).
 # `sync` for the struct `Lease` (its locks), whose `ID` the server's apply package reads;

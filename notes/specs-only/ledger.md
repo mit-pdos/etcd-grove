@@ -3811,3 +3811,20 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   invariant's `ID`); its two callers (`Grant`, `Checkpoint`) hold it persistently and pass it. `SpecPlan`'s statement
   (`lessorFields` and a lease of the lessor's state) already covers it.
 - **Decision.** Applied (prove-pgaps, 2026-11-21): the method is translated and proved, the axiom retired.
+
+## 2026-11-21: the lessor's `Promote` lacks the resources its sort's `Remaining()` takes (prove-pgaps, triage)
+
+- **Spec.** `lease.lessor.Promote.spec` (`Spec/go_etcd_io/etcd/server/v3/lease/lessor__Promote.lean`, a trust-boundary
+  axiom).
+- **Defect.** Not provable as stated over the real code (found triaging it for a proof; the float arithmetic and the
+  float-to-integer conversion step since Perennial `08d191151`): with
+  `leaseRevokeRate` or more leases it runs `sort.Sort(leasesByExpiry(leases))`, whose `Less` calls each lease's
+  `Remaining()`, which read-locks the lease's `expiryMu` (`lease.go`), a reader slot of a bounded pool: `Leases`,
+  which sorts the same way, takes `levelTok leaseLvl`'s pool access, `threadBound GF ≤ 2^30 - 1` and
+  `receiptBound GF ≤ 2^62` (the sort's length bound) for it. `Promote.spec` takes only `lessorInv` and `lessorCfg`.
+- **Evidence.** `lessor.go` (`Promote`: `sort.Sort(leasesByExpiry(leases))`, then `l.Remaining()` in the loop);
+  `lessor__Leases.lean`'s `sorter_byExpiry`.
+- **Proposed change.** `Promote.spec` takes the level-0 token (`levelTok lessorLvl`, given back) and the two bounds,
+  as `Leases.spec` does; the server's callers (`LessorOk.lean`'s contract, `NewServer`'s promotion on becoming
+  leader) supply them. Not applied: it changes the server's lessor contract.
+- **Decision.** Open (the axiom stays).

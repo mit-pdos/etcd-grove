@@ -229,7 +229,6 @@ axiom lease.NewLessor.wp_proof
 axiom lease.lessor.Demote.wp_proof
 axiom lease.lessor.Promote.wp_proof
 axiom lease.lessor.Stop.wp_proof
-axiom lease.lessor.scheduleCheckpointIfNeeded.wp_proof
 axiom lease.lessorStopTok
 axiom math.Ceil.wp_proof
 axiom membership.RaftCluster.Recover.wp_proof
