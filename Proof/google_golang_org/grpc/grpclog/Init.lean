@@ -2,10 +2,10 @@
 Package initialization of `google_golang_org.grpc.grpclog`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports, runs the untranslated
-initializers of its variables (`X.init`, axioms of the translation), which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untranslated
-`init` functions, which the trust-boundary axiom `initFuncsOk` says return.
+Its fact is `True`. Its initializer initializes its imports, allocates `cache` and runs its
+translated initializer, an empty map literal (prove-grpcext, 2026-11-20; until then the trust-boundary
+axiom `opaqueInitsOk`), and its untranslated `init` function (`SetLoggerV2(newLoggerV2())`), which the
+trust-boundary axiom `initFuncsOk` says returns.
 -/
 module
 
@@ -34,14 +34,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-
-/-- **The trust boundary: `google_golang_org.grpc.grpclog`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([cache.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
 /-- **The trust boundary: `google_golang_org.grpc.grpclog`'s untranslated `init` functions return.** Goose
 names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
@@ -76,7 +68,11 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
-  wp_apply (opaqueInitsOk cache.init (by mem_tac))
+  wp_apply wp_GlobalAlloc (V := Loc) cache _ as Hcache
+  -- translated initializer of cache))
+  try wp_auto
+  wp_apply (wp_map_make1 (K := GoString) (V := Loc) go.string (go.GoType.PointerType google_golang_org.grpc.grpclog.componentData.ty)) as %mHc Hc
+  try wp_auto
   wp_apply (initFuncsOk init.«0» (by mem_tac))
   iframe Hown
   is_pkg_init_finish

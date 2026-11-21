@@ -215,6 +215,82 @@ noncomputable def validateMetadata [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def validateVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.validateVersion"
 
+/-- New creates a new instance of Version with each of the parts passed in as
+    arguments instead of parsing a version string.
+    Note, New does not validate prerelease or metadata. Incorrect information can
+    be passed in.
+
+    go: version.go:310:6 -/
+noncomputable def New.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "major"
+  (Lam "minor"
+  (Lam "patch"
+  (Lam "pre"
+  (Lam "metadata"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Version.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Version.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "metadata" (App (Val (GoInstruction (GoAlloc go.string))) (Var "metadata"))
+  (Let "pre" (App (Val (GoInstruction (GoAlloc go.string))) (Var "pre"))
+  (Let "patch" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "patch"))
+  (Let "minor" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "minor"))
+  (Let "major" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "major"))
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "major"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "minor"))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "patch"))
+  (Let "$v3" (App (Val (GoInstruction (GoLoad go.string))) (Var "pre"))
+  (Let "$v4" (App (Val (GoInstruction (GoLoad go.string))) (Var "metadata"))
+  (Let "$v5" (Val #(go!""))
+  (App (Val (GoInstruction (CompositeLiteral Version.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"major")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"minor")) (ElementExpression go.uint64 (Var "$v1"))), (KeyedElement (some (KeyField go!"patch")) (ElementExpression go.uint64 (Var "$v2"))), (KeyedElement (some (KeyField go!"pre")) (ElementExpression go.string (Var "$v3"))), (KeyedElement (some (KeyField go!"metadata")) (ElementExpression go.string (Var "$v4"))), (KeyedElement (some (KeyField go!"original")) (ElementExpression go.string (Var "$v5")))]))))))))
+  (Let "v" (App (Val (GoInstruction (GoAlloc Version.ty))) (App (Val (GoInstruction (GoZeroVal Version.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Version.ty) go!"String"))) (Var "v")) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Var "v")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Version.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef Version.ty go!"original"))) (Var "v")) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Version.ty))) (Pair (Var "v") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Version.ty)))) (Var "$res0")))))))))
+
+/-- Major returns the major version.
+
+    go: version.go:360:18 -/
+noncomputable def Version.Major.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "v"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "v" (App (Val (GoInstruction (GoAlloc Version.ty))) (Var "v"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Version.ty go!"major"))) (Var "v")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))
+
+/-- Minor returns the minor version.
+
+    go: version.go:365:18 -/
+noncomputable def Version.Minor.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "v"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "v" (App (Val (GoInstruction (GoAlloc Version.ty))) (Var "v"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Version.ty go!"minor"))) (Var "v")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))
+
 noncomputable instance info' : PkgInfo pkg_id.github_com.Masterminds.semver.v3 where
   pkgImportedPkgs := []
 
@@ -450,6 +526,12 @@ class Version.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   set_original : ∀ (x : Version) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Version.underlying go!"original") (PairV #x #y) (Val #(({ x with original' := y } : Version)))
   method_set : go.MethodSetIs Version.ty [(go!"IncMajor", (some (go.signature.Signature [] false [Version.ty]))), (go!"IncMinor", (some (go.signature.Signature [] false [Version.ty]))), (go!"IncPatch", (some (go.signature.Signature [] false [Version.ty]))), (go!"Major", (some (go.signature.Signature [] false [go.uint64]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalText", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Metadata", (some (go.signature.Signature [] false [go.string]))), (go!"Minor", (some (go.signature.Signature [] false [go.uint64]))), (go!"Patch", (some (go.signature.Signature [] false [go.uint64]))), (go!"Prerelease", (some (go.signature.Signature [] false [go.string]))), (go!"SetMetadata", (some (go.signature.Signature [go.string] false [Version.ty, go.error]))), (go!"SetPrerelease", (some (go.signature.Signature [go.string] false [Version.ty, go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Value", (some (go.signature.Signature [] false [(go.GoType.Named go!"database/sql/driver.Value" []), go.error]))), (go!"github.com/Masterminds/semver/v3.originalVPrefix", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Version.ty) [(go!"Compare", (some (go.signature.Signature [(go.GoType.PointerType Version.ty)] false [go.int]))), (go!"Equal", (some (go.signature.Signature [(go.GoType.PointerType Version.ty)] false [go.bool]))), (go!"GreaterThan", (some (go.signature.Signature [(go.GoType.PointerType Version.ty)] false [go.bool]))), (go!"GreaterThanEqual", (some (go.signature.Signature [(go.GoType.PointerType Version.ty)] false [go.bool]))), (go!"IncMajor", (some (go.signature.Signature [] false [Version.ty]))), (go!"IncMinor", (some (go.signature.Signature [] false [Version.ty]))), (go!"IncPatch", (some (go.signature.Signature [] false [Version.ty]))), (go!"LessThan", (some (go.signature.Signature [(go.GoType.PointerType Version.ty)] false [go.bool]))), (go!"LessThanEqual", (some (go.signature.Signature [(go.GoType.PointerType Version.ty)] false [go.bool]))), (go!"Major", (some (go.signature.Signature [] false [go.uint64]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalText", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Metadata", (some (go.signature.Signature [] false [go.string]))), (go!"Minor", (some (go.signature.Signature [] false [go.uint64]))), (go!"Original", (some (go.signature.Signature [] false [go.string]))), (go!"Patch", (some (go.signature.Signature [] false [go.uint64]))), (go!"Prerelease", (some (go.signature.Signature [] false [go.string]))), (go!"Scan", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"SetMetadata", (some (go.signature.Signature [go.string] false [Version.ty, go.error]))), (go!"SetPrerelease", (some (go.signature.Signature [go.string] false [Version.ty, go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"UnmarshalJSON", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"UnmarshalText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"Value", (some (go.signature.Signature [] false [(go.GoType.Named go!"database/sql/driver.Value" []), go.error]))), (go!"github.com/Masterminds/semver/v3.originalVPrefix", (some (go.signature.Signature [] false [go.string])))]
+  Major_unfold : MethodUnfold Version.ty go!"Major" Version.Major.impl
+  Minor_unfold : MethodUnfold Version.ty go!"Minor" Version.Minor.impl
+  ptr_Major_unfold : MethodUnfold (go.GoType.PointerType Version.ty) go!"Major" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Version.ty go!"Major"))) (App (Val (GoInstruction (GoLoad Version.ty))) (Var "$r"))))
+  ptr_Minor_unfold : MethodUnfold (go.GoType.PointerType Version.ty) go!"Minor" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Version.ty go!"Minor"))) (App (Val (GoInstruction (GoLoad Version.ty))) (Var "$r"))))
 
 attribute [instance] Version.TypeAssumptions.type_repr
   Version.TypeAssumptions.underlying
@@ -467,6 +549,10 @@ attribute [instance] Version.TypeAssumptions.type_repr
   Version.TypeAssumptions.set_original
   Version.TypeAssumptions.method_set
   Version.TypeAssumptions.ptr_method_set
+  Version.TypeAssumptions.Major_unfold
+  Version.TypeAssumptions.Minor_unfold
+  Version.TypeAssumptions.ptr_Major_unfold
+  Version.TypeAssumptions.ptr_Minor_unfold
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Collection_instance : Collection.TypeAssumptions
@@ -474,12 +560,14 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   constraint_instance : constraint.TypeAssumptions
   cfunc_instance : cfunc.TypeAssumptions
   Version_instance : Version.TypeAssumptions
+  New_unfold : FuncUnfold New [] New.impl
 
 attribute [instance] Assumptions.Collection_instance
   Assumptions.Constraints_instance
   Assumptions.constraint_instance
   Assumptions.cfunc_instance
   Assumptions.Version_instance
+  Assumptions.New_unfold
 
 end github_com.Masterminds.semver.v3
 

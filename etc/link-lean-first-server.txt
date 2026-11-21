@@ -955,7 +955,8 @@ rate_Every:
 types_IDFromString:
 strings_TrimSuffix:
 fmt_ErrorfPlain:
-semver_v3_New:
+# (prove-smalllibs, 2026-11-20) semver's `New`, `Major`, `Minor` proved over the real code
+semver_v3_New: Version__String
 v3_Version__Major:
 v3_Version__Minor:
 v3_MustParse:

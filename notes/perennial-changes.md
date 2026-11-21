@@ -3145,3 +3145,24 @@ parameter.
   instance (`etc/gen-init.py`, `Proof/k8s_io/apimachinery/pkg/apis/meta/v1/unstructured/Init.lean`).
 - **Proposed (general).** A transitive instance `[t <u t'] [t' ≤u u] : t ≤u u` (as for `↓u`; `<u` is
   directed, so search terminates). **Status.** Recorded only.
+
+## 2026-11-20: `time.After` and the timers have no clock content (clockwork's real clock)
+
+- **The gap.** Perennial's `time.After(d)` spec gives a bag of times with no logical content
+  (`isChanBag γ ch (fun _ => True)`), and `time.Now` arbitrary readings; there is no ghost clock that
+  a receive on `After`'s channel bounds from below. clockwork's `NewRealClock` (`After` is
+  `time.After`) therefore cannot be proved to give `clockwork.clockOk` (`After`'s values come only
+  once `clockLb γc (T + d)`), and its ghost predicates (`clockLb`, `stampAt`, `realClock` and their
+  laws, 9 axioms with `NewRealClock.wp_proof`) stay axioms.
+- **Worked around locally.** The clockwork axioms (`Proof/github_com/jonboulle/clockwork/Defs.lean`).
+- **Proposed (general).** A monotonic ghost clock in Perennial's `time` model (`runtimeNano`'s readings
+  bounded below by a persistent `clockLb`, `After`/`NewTimer`/`Sleep` firing only past `now + d`),
+  from which clockwork's predicates would be definitions. **Status.** Recorded only (prove-smalllibs).
+
+## 2026-11-20: `time.Duration.Seconds` is names-only (x/time/rate's `Every`)
+
+- **The gap.** `Duration.Seconds` (`float64(sec) + float64(nsec)/1e9`) is not translated in Perennial's
+  `time`, and a float constant (`rate.Inf = Limit(math.MaxFloat64)`) translates opaque, so
+  `rate.Every` (`1 / Limit(interval.Seconds())`) cannot be stepped; its axiom stays.
+- **Proposed (general).** Translate `Duration.Seconds` (and `Minutes`, `Hours`) over the uninterpreted
+  `FloatOps`; float constants as their bits. **Status.** Recorded only (prove-smalllibs).

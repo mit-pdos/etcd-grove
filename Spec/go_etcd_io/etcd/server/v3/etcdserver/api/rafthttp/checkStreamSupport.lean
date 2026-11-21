@@ -21,12 +21,13 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
 
-/-- **`checkStreamSupport(v, t)`** of a version (not `nil`): some boolean. -/
+/-- **`checkStreamSupport(v, t)`** of a version (not `nil`; read-only, 2026-11-20, prove-smalllibs: `Major`/`Minor` read it): some boolean. -/
 abbrev rafthttp.checkStreamSupport.spec : Prop :=
-  ∀ (v : Loc) (t : GoString),
+  ∀ (v : Loc) (x : github_com.Masterminds.semver.v3.Version) (t : GoString),
   v ≠ null →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ v ↦□ x }}
     (App (App (Val (@! rafthttp.checkStreamSupport)) (Val #v)) (Val #t))
   {{ (b : Bool), RET #b; True }}
 
