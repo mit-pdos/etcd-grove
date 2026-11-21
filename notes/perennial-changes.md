@@ -1454,10 +1454,10 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   `false`.
 - **Proposed.** An empty composite literal of a type whose underlying type is not a struct (and
   has no literal rule) is its zero value; or `sync.Mutex`'s model as a struct.
-- **Status.** PR https://github.com/mit-pdos/perennial/pull/649 (pgaps, 2026-11-21; review by upamanyus): one
-  step rule, `composite_literal_bool_empty` (the empty literal at `go.bool` is `false`; Go has no boolean composite
-  literal, so it is reached only through the `Mutex` models). Once pinned, `backend.wp_mutexLit` and
-  `MutexLitSemantics` go.
+- **Status.** PR https://github.com/mit-pdos/perennial/pull/649 (pgaps, 2026-11-21: a step rule for the empty
+  literal at `go.bool`) closed after review: Upamanyu Sharma asked for `sync.Mutex` modeled as a struct with one
+  `bool` field instead (no new trusted rule); his session writes that change and retires `backend.wp_mutexLit`
+  (etcd-grove#16).
 
 ### Semantics: `float64(c)` of an untyped integer constant (2026-10-27, client-go workqueue)
 
