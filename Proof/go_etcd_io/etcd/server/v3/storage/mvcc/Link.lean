@@ -66,6 +66,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newTreeIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newWatchableStore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newWatcherBatch
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newWatcherGroup
+public import Proof.os.Getenv
 public import Proof.google_golang_org.protobuf.proto.Marshal
 public import Proof.google_golang_org.protobuf.proto.Unmarshal
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.rangeEvents
@@ -120,6 +121,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__restore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__scheduleCompaction
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__setupMetricsReporter
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__updateCompactRev
+public import Proof.strings.ToLower
 public import Proof.time.Time__Unix
 public import Proof.go_opentelemetry_io.otel.trace.SpanFromContext
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.TODO
@@ -343,9 +345,17 @@ theorem mvcc.treeIndex.wp_keyIndex [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.treeIndex.keyIndex.spec (GF := GF) (hG := hG) :=
   mvcc.treeIndex.keyIndex.wp_proof btree.BTree.wp_Get
 
+theorem os.wp_Getenv :
+    os.Getenv.spec (GF := GF) (hG := hG) :=
+  os.Getenv.wp_proof
+
+theorem strings.wp_ToLower :
+    strings.ToLower.spec (GF := GF) (hG := hG) :=
+  strings.ToLower.wp_proof
+
 theorem verify.wp_Verify :
     verify.Verify.spec (GF := GF) (hG := hG) :=
-  verify.Verify.wp_proof
+  verify.Verify.wp_proof os.wp_Getenv strings.wp_ToLower
 
 theorem zap.wp_Error :
     zap.Error.spec (GF := GF) (hG := hG) :=

@@ -1,7 +1,8 @@
-# Types and names only: function and method bodies are axiomatized, but (2026-10-26) `Assert`
-# (its panic formats with `fmt.Sprintf`).
-translate = ["!*", "Assert"]
-imports = ["!*", "fmt"]
+# Types and names only but (2026-10-26) `Assert` (its panic formats with `fmt.Sprintf`) and
+# (2026-11-20) `Verify` with what it calls (`getEnvVerify`, `IsVerificationEnabled`, `verifier`:
+# `os.Getenv`, `strings.ToLower`).
+translate = ["!*", "Assert", "Verify", "getEnvVerify", "IsVerificationEnabled", "verifier", "envVerify", "envVerifyValueAll", "envVerifyValueAssert"]
+imports = ["!*", "fmt", "os", "strings"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

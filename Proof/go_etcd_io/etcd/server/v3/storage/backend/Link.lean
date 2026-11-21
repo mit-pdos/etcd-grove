@@ -81,6 +81,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.hooks__OnPreCommit
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.newBatchTxBuffered
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.newBoltLoggerZap
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.newBucketBuffer
+public import Proof.os.Getenv
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__Lock
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__RLock
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__RUnlock
@@ -92,6 +93,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.snapshot__Close
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.snapshot__Size
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.snapshot__WriteTo
 public import Proof.sort.Stable
+public import Proof.strings.ToLower
 public import Proof.time.Duration__Seconds
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.txBuffer__reset
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.txReadBuffer__ForEach
@@ -477,9 +479,17 @@ theorem batchTx.wp_UnsafeSeqPut :
     EtcdGrove.backend.batchTx.UnsafeSeqPut.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.batchTx.UnsafeSeqPut.wp_proof batchTx.wp_unsafePut
 
+theorem os.wp_Getenv :
+    EtcdGrove.os.Getenv.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.os.Getenv.wp_proof
+
+theorem strings.wp_ToLower :
+    EtcdGrove.strings.ToLower.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.strings.ToLower.wp_proof
+
 theorem verify.wp_Verify :
     EtcdGrove.verify.Verify.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.verify.Verify.wp_proof
+  EtcdGrove.verify.Verify.wp_proof os.wp_Getenv strings.wp_ToLower
 
 theorem txWriteBuffer.wp_putSeq :
     EtcdGrove.backend.txWriteBuffer.putSeq.spec (GF := GF) (hG := hG) :=

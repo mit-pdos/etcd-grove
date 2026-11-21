@@ -3521,3 +3521,19 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   their `_members` forms, so that every program's names are checked by the kernel where its closed theorem is
   proved; the closed theorems' statements do not change.
 - **Decision.** Applied (prove-promdeep, 2026-11-20; a strengthening of an axiom's premise, discharged at every use).
+
+## 2026-11-20: `verify.Verify.spec` -- `f` and `details` any `val`, unprovable of the body (prove-memberv3rpc)
+
+- **Spec.** `Spec/go_etcd_io/etcd/client/pkg/v3/verify/Verify.lean`, `verify.Verify.spec` (no plan counterpart).
+- **Defect.** Unprovable as stated, once `Verify`'s body is translated: the function `f` was any `val`, which the
+  body's `GoAlloc VerifyFunc.ty f` gives no semantics for (only a function value is a `VerifyFunc`), and the
+  `details` `f()` returns any `val`, among them a panic outcome `PanicV p`, at which `let details := ...` unwinds
+  (the post `RET #()` then fails).
+- **Evidence.** prove-etcdapi's attempt (`/shared/tmp/etcdapi/Verify-attempt.lean`); here the step `let "$ret1" :=
+  d` that `wp_auto` cannot take for a `d : val`.
+- **Change (made).** `f : GoFunc` (the call `Verify(msg, #f)`, as bbolt's `common.Verify`) and the post of `f()`'s
+  WP `∃ d : Loc, r = (#true, #d)` (a map is a `Loc`). Every caller (`unsafeUpdateConsistentIndex`,
+  `verifyConsistentIndexIsLatest`, `txWriteBuffer.putSeq`, `watcher.send`, `restoreIntoIndex`) passes a function
+  literal returning a map: `iexists #mref` became `iexists mref`. A premise strengthening true of every Go caller.
+- **Decision.** Made (2026-11-20, prove-memberv3rpc), with the proof of `Verify` (`verify.Verify.wp_proof` over
+  `os.Getenv`'s and `strings.ToLower`'s specs; the trust-boundary axiom until then).

@@ -74,7 +74,7 @@ theorem schema.unsafeUpdateConsistentIndex.wp_proof
         (try wp_auto)
         wp_apply (wp_mapInsert (K := GoString) (V := GoInterface) go.string mref _ _ _) $$ [$Hm] as Hm
         (try wp_auto)
-        iexists #mref
+        iexists mref
         iframe
         ipureintro
         simp
@@ -95,7 +95,7 @@ theorem schema.unsafeUpdateConsistentIndex.wp_proof
         (try wp_auto)
         wp_apply (wp_mapInsert (K := GoString) (V := GoInterface) go.string mref _ _ _) $$ [$Hm] as Hm
         (try wp_auto)
-        iexists #mref
+        iexists mref
         iframe
         ipureintro
         have := Hmono rfl hidx

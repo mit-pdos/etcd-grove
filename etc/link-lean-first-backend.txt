@@ -5,7 +5,7 @@
 # the backend's vocabulary (InvBbolt.lean, at `theFs`) by private lemmas in each proof file; the `_kv`
 # specs are gone. `Open` and `DB.Close` are S3f's (interim axioms until it lands). The
 # trust boundary: those two; `sort.Stable` (Perennial translates it, proves only
-# `sort.Sort`); `verify.Assert`/`Verify` and verify.go's lock checks `ValidateCalled*` (names-only:
+# `sort.Sort`); `verify.Assert` (proved), `Verify` (proved over `os.Getenv`, `strings.ToLower`) and verify.go's lock checks `ValidateCalled*` (names-only:
 # they read ETCD_VERIFY and the call stack; stated as returning: the lock checks off); zap's field
 # constructors and `Logger.Fatal`; `time.Duration.Seconds`. `sort.Sort` is Perennial's.
 # The constructor (2026-10-17, branch `construct`): `New`, `newBackend`, `newBatchTxBuffered`,
@@ -40,7 +40,9 @@ bbolt_Tx__Stats: @
 sort_Stable:
 time_Duration__Seconds:
 verify_Assert:
-verify_Verify:
+os_Getenv:
+strings_ToLower:
+verify_Verify: os_Getenv strings_ToLower
 zap_Error:
 zap_Logger__Fatal:
 zap_Logger__Panic:

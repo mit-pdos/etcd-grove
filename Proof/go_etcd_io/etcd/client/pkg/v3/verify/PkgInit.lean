@@ -1,13 +1,14 @@
 /-
-The package fact of `client/pkg/v3/verify` for the part `LinuxFs/` (the main tree's translation, with
-`Assert`'s body): `True`, as the main tree's (whose instance is in the backend's `Base`, over the main
-`os`, which the part cannot import). WAL W6, 2026-11-13.
+The package fact of `client/pkg/v3/verify`: `True` (WAL W6, 2026-11-13). Its imports' instances
+(2026-11-20: `os` and `strings` too, which `Verify`'s translated body calls).
 -/
 module
 
 public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.verify
 public import Perennial.Proof.ProofPrelude
 public import Perennial.Proof.fmt
+public import Perennial.Proof.strings
+public import Proof.os.PkgInit
 
 @[expose] public section
 
