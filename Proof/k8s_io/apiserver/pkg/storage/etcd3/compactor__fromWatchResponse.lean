@@ -107,7 +107,9 @@ theorem compactor.fromWatchResponse.wp_proof
   wp_apply wp_bytes_to_string valSl kvv.value DFrac.discard $$ [HvalS] as -
   · iframe #
   (try wp_auto)
-  wp_apply wp_ParseInt as %n %perr %Hparse
+  ihave #Pstrconv : isPkgInit (PROP := IProp GF) pkg_id.strconv $$ []
+  · iPkgInit
+  wp_apply (wp_ParseInt _ (W64 10) (W64 64) (by word) (by word) (by word) (by word)) as %n %perr %Hparse
   iunfold keyValOk at Hval
   icases Hval with ⟨%cr, %Hcr, Hrec, #Hrev⟩
   obtain ⟨rfl, rfl⟩ := Hparse cr Hcr rfl rfl

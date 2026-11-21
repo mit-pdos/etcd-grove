@@ -1,0 +1,10 @@
+# Types and names only (prove-k8s3, 2026-11-21): the interface `LoggerV2`, which grpclog's
+# `type LoggerV2 internal.LoggerV2` names, so that a struct converted to grpclog's `LoggerV2` is the
+# interface holding it (the k8s etcd3 store's `klogWrapper`, until then the trust-boundary axiom
+# `klogWrapper_toLoggerV2`). And its package variables' initializers, which importing it runs:
+# `severityName` (a slice literal) and the function values `sprintf`, `sprint`, `sprintln`, `exit`.
+translate = ["!*", "severityName", "sprintf", "sprint", "sprintln", "exit"]
+imports = ["!*", "fmt", "os"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

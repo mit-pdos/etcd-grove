@@ -290,12 +290,14 @@ def rangeErrMsgOk (m : GoString) : Prop :=
 
 /-- **What a failed `Range`'s gRPC error says** (persistent; k8s etcd3 7c-2 part 2, S4/S5): with the
 future revision's gRPC description, `Range`'s error was mvcc's `ErrFutureRev`, with the read's facts
-at it (`rangeErrAt`); with the compacted one's, mvcc's `ErrCompacted`, likewise. -/
+at it (`rangeErrAt`); with the compacted one's, mvcc's `ErrCompacted`, likewise (errdesc stage 2b,
+2026-11-21: of a description `m`, `descIs err m`, until then the pure `errDesc err`). -/
 def rangeErrDesc (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log)
     (o : OpFull) (Q : List EntryModel → IProp GF) (err : GoInterface) : IProp GF :=
-  iprop((⌜go_etcd_io.etcd.cache.v3.errDesc err ≠ go_etcd_io.etcd.cache.v3.futureRevDesc⌝ ∨
+  iprop(∃ m : GoString, go_etcd_io.etcd.cache.v3.descIs err m ∗
+    (⌜m ≠ go_etcd_io.etcd.cache.v3.futureRevDesc⌝ ∨
       rangeErrAt on E γr c F o Q (rangeFutureAt o)) ∗
-    (⌜go_etcd_io.etcd.cache.v3.errDesc err ≠ go_etcd_io.etcd.cache.v3.compactedDesc⌝ ∨
+    (⌜m ≠ go_etcd_io.etcd.cache.v3.compactedDesc⌝ ∨
       rangeErrAt on E γr c F o Q (rangeCompactedAt o)))
 
 instance rangeErrDesc_persistent (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64)

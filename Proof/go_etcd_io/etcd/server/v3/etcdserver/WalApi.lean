@@ -490,6 +490,16 @@ def rnNewStorageOk : IProp GF :=
 instance rnNewStorageOk_persistent : Persistent (rnNewStorageOk (GF := GF)) := by
   unfold rnNewStorageOk; infer_instance
 
+/-- **`NewStorage`'s contract as a law** (wal-item3, 2026-11-21; the import tiers' "a proof takes a linked
+lemma as a law"): given the storage package's initialization, `rnNewStorageOk`. `rnNewStorageOk_law_holds`
+(`RnNewStorageLinked.lean`) proves it under the semantic hypothesis `[UntypedRuneSemantics]` (the WAL's
+`filepath` calls), so `bootstrappedRaft.newRaftNode`'s spec still takes `rnNewStorageOk` as a premise (and every
+closed theorem with it) until Perennial's semantics steps `string(rune)` and rune comparison of untyped constants
+(`notes/perennial-changes.md`, "Operations on untyped rune constants have no step"); then the proof takes this
+law instead (decided by etcd-grove-03, 2026-11-21, option (c)). -/
+abbrev rnNewStorageOk.law : Prop :=
+  isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ⊢ rnNewStorageOk (GF := GF)
+
 /-- **An opened WAL** (what `bootstrap`'s contract gives: a first start's `wal.Create(dir, metadata)` at
 `walFresh`, a restart's `wal.Open` + `ReadAll` of the files `walFiles` at `σ`): open (its whole share), its
 records `σ`, its metadata the member's, in the directory `dir`. (wal-link L3: over the open WAL `h`; until

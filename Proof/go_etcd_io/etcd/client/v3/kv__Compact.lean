@@ -104,7 +104,7 @@ theorem kv.Compact.wp_proof
     | nil => exact absurd rfl Hne
     | ok ei =>
       wp_auto
-      ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
+      ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_descIs _ $$ Hse
       wp_apply wp_ContextError ci cd (GoInterface.ok ei) mC $$ [$Hse $HmC] as %err' ⟨%Herr', #Hse', #Hclw, -⟩
       · iframe #; ipureintro; exact fun _ => Hce'
       ihave #Hcl' := Hclw $$ Hcl

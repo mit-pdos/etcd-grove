@@ -1,9 +1,11 @@
 /-
-The trust boundary: `strconv.FormatInt` (Perennial's `strconv` is names-only; `FormatInt` of a base in `2..36` returns its digits with a leading `-` when negative; K2 of `notes/k8s-compactor-plan.md`, U2).
+`strconv.FormatInt`, proved over Perennial's translation of Go's (stdlib2, 2026-11-21; until then a
+trust-boundary axiom).
 -/
 module
 
 public import Spec.strconv.FormatInt
+public import Perennial.Proof.strconv.Link
 
 @[expose] public section
 
@@ -14,15 +16,20 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI
+open Iris Iris.BI Iris.ProofMode
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [package_sem : _root_.Perennial.strconv.Assumptions]
 
-axiom strconv.FormatInt.wp_proof : strconv.FormatInt.spec (GF := GF) (hG := hG)
+theorem strconv.FormatInt.wp_proof : strconv.FormatInt.spec (GF := GF) (hG := hG) := by
+  intro i base
+  iintro %Φ ⟨#Hpkg, %Hb⟩ HΦ
+  wp_apply _root_.Perennial.strconv.wp_FormatInt i base Hb.1 Hb.2
+  iapply HΦ; ipureintro; rfl
 
 end proof
 

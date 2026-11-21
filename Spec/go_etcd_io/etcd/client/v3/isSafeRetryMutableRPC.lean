@@ -24,14 +24,16 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `isSafeRetryMutableRPC(err)` of an error grpc's `status` accepts returns some boolean
-(`true` only for "there is no address/connection available"). -/
+(`true` only for "there is no address/connection available": of its description `m`, `descIs err m`,
+errdesc stage 2b, 2026-11-21). -/
 abbrev isSafeRetryMutableRPC.spec : Prop :=
-  ∀ (err : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ statusErrOk err }}
+  ∀ (err : GoInterface) (m : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ statusErrOk err ∗
+      go_etcd_io.etcd.cache.v3.descIs err m }}
     (App (Val (@! go_etcd_io.etcd.client.v3.isSafeRetryMutableRPC)) (Val #err))
   {{ (b : Bool), RET #b;
       -- (2026-10-21, D29) `true` only for grpc's old balancer's "no address"/"no connection"
-      ⌜b = true → go_etcd_io.etcd.cache.v3.errDesc err ∈ go_etcd_io.etcd.cache.v3.refusalDescs⌝ }}
+      ⌜b = true → m ∈ go_etcd_io.etcd.cache.v3.refusalDescs⌝ }}
 
 end spec
 

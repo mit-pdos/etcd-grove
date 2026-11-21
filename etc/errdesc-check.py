@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Check that every trusted statement about an error's description is reviewed for stability.
 
-An error's description (`errDesc`) and code (`statusCode`) are Lean functions of the error value,
-true of Go only for an error whose `Error()` and `GRPCStatus()` return the same on every call
+An error's description (`descIs`) and code (`statusCodeIs`) are per-run relations (errdesc stages 2a/2b,
+2026-11-20/21; until then the pure `errDesc`/`statusCode`, Lean functions of the error value), true of
+Go only for an error whose `Error()` and `GRPCStatus()` return the same on every call
 (`notes/decisions.md`, "`status.FromError`: an error's description from a stable `Error()`";
 `examples/axiomcx/flipdesc` on branch `axiom/invoker-filled` refuted the version without it). A
 trusted statement (an axiom, or the spec of a function whose proof is an axiom) that mentions the
@@ -20,19 +21,18 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 NAMES = re.compile(r'\b(errDesc|statusCode|statusErrOk|errorMsgIs|grpcErrMethodsOk|errMsgOk|'
-                   r'modelErrIs|wrapErrIs)\b')
+                   r'modelErrIs|wrapErrIs|descIs|statusAt|statusCodeIs|handlerErrOut|notHandlerErr)\b')
 
 # file (and axiom name, for an axiom declared in a proof file): why it is true of Go
 REVIEWED = {
-    'Proof/go_etcd_io/etcd/api/v3/v3rpc/rpctypes/ErrDescWrap.lean:rpctypes.errDesc_wrapError':
-        '(fmtmodel) a *fmt.wrapError has no GRPCStatus and Error() returns its msg field, which the '
-        'premise holds read-only for good (stable): FromError\'s message is err.Error() on every path',
     'Spec/google_golang_org/grpc/status/FromError.lean':
         'the description and code from a stable Error()/GRPCStatus() (the premise statusErrOk)',
     'Spec/google_golang_org/grpc/status/Error.lean':
         '*status.Error: Error() formats its fixed status, GRPCStatus() returns it, Is is proto.Equal; '
         'no Format method (statusErrOk since premise-fixes-4; examples/premisefix/fmtarg)',
     'Spec/google_golang_org/grpc/status/Code.lean': 'statusErrOk a premise only',
+    'Spec/google_golang_org/grpc/status/Status__Code.lean':
+        'status.statusAt a premise only: the read-only status the producer built (its code returned)',
     'Spec/k8s_io/apiserver/pkg/storage/etcd3/metrics/RecordEtcdRequest.lean':
         'statusErrOk a premise only (no description or code in its post)',
     'Spec/errors/IsStatusErr.lean':
@@ -45,11 +45,10 @@ REVIEWED = {
     'Spec/google_golang_org/grpc/model/respond.lean':
         'srvErrOk err a premise of the pre (stable Error()/GRPCStatus(): status.FromError, server.go:1461): '
         'the carrier (Proof/google_golang_org/grpc/model/Serve.lean:71-72) gets it from the deposited run '
-        'contract grpcRunOkMd (InvGrpc.lean, its post; HS-6); errDesc err only gates Psi_e, the handler\'s own '
-        'description, which Invoke returns for a handlerDescs description only',
+        'contract grpcRunOkMd (InvGrpc.lean, its post; HS-6); the handler outcome handlerErrOut gives a description m with descIs err m '
+        '(errdesc stage 2b: what FromError reads of the stable error, the message grpc sends) and gates Psi_e m, '
+        'the handler\'s own description, which Invoke returns for a handlerDescs description only',
     'Spec/go_etcd_io/etcd/client/v3/withVersion.lean': 'statusErrOk opened, not used',
-    'Proof/go_etcd_io/etcd/api/v3/v3rpc/rpctypes/ErrDesc.lean:rpctypes.errDesc_etcdError':
-        'an EtcdError value: Error() returns its desc field',
     'Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Init.lean:toGRPCErrorMap_init':
         "its values are rpctypes' ErrGRPC* (status.Error) values, without a Format method "
         '(examples/premisefix/fmtarg)',

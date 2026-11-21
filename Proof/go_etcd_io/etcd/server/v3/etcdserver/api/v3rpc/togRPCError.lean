@@ -49,7 +49,7 @@ theorem v3rpc.togRPCError.wp_proof
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨#Hmap, -, -, #Hcanc, -⟩
   iunfold go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.grpcErrMap at Hmap
-  icases Hmap with ⟨%mp, %Mg, %kf, %kc, #Hmp, #HM, #HF, #HC, #HMS, #HMK, %HMv⟩
+  icases Hmap with ⟨%mp, %Mg, %kf, %kc, #Hmp, #HM, #HF, #HC, #HMS, #HMK, #HMv⟩
   ihave #Hctx : (_root_.Perennial.context.isInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Pctx
   icases Hctx with ⟨-, -, -, ⟨%de, #Hde, -⟩, -⟩
@@ -95,8 +95,6 @@ theorem v3rpc.togRPCError.wp_proof
     iunfold v3rpc.grpcErrOut
     iexists mp, Mg, kf, kc
     iframe #
-    isplitr
-    · ipureintro; exact HMv
     ileft
     isplitr
     · ipureintro; rfl
@@ -138,8 +136,6 @@ theorem v3rpc.togRPCError.wp_proof
     iunfold v3rpc.grpcErrOut
     iexists mp, Mg, kf, kc
     iframe #
-    isplitr
-    · ipureintro; exact HMv
     ileft
     isplitr
     · ipureintro; rfl
@@ -157,16 +153,15 @@ theorem v3rpc.togRPCError.wp_proof
     simp only [Option.getD_some, Option.isSome_some, decide_true]
     wp_auto
     iapply HΦ
+    ihave %HMne := go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.grpcErrMapOk_ne $$ HMv
     isplitr
-    · ipureintro; exact go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.grpcErrMapOk_ne HMv err v hk
+    · ipureintro; exact HMne err v hk
     isplitr
     · iapply go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk
       iapply HMS; ipureintro; exact hk
     iunfold v3rpc.grpcErrOut
     iexists mp, Mg, kf, kc
     iframe #
-    isplitr
-    · ipureintro; exact HMv
     iright; ileft
     ipureintro; exact hk
   | none =>
@@ -184,7 +179,7 @@ theorem v3rpc.togRPCError.wp_proof
       simp only [google_golang_org.grpc.codes.OK]
       exact fun h => absurd (go.intoVal_inj h) (by decide)
     inext
-    iintro %e ⟨%He, #Hse, %Hd, -⟩
+    iintro %e ⟨%He, #Hse, #Hd, -⟩
     wp_auto
     iapply HΦ
     isplitr
@@ -194,10 +189,12 @@ theorem v3rpc.togRPCError.wp_proof
     iunfold v3rpc.grpcErrOut
     iexists mp, Mg, kf, kc
     iframe #
-    isplitr
-    · ipureintro; exact HMv
     iright; iright
-    ipureintro; exact ⟨hk, by rw [Hd]; exact Hmsg⟩
+    isplitr
+    · ipureintro; exact hk
+    first
+      | (iexists msg; iframe Hd; ipureintro; exact Hmsg)
+      | (ipureintro; exact Hmsg)
 
 end proof
 

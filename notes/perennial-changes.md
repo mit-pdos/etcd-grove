@@ -431,6 +431,16 @@ local model go.
 - **Status.** (2026-11-14, `wal-leaf6`) The WAL's `Link.lean` (`LinuxFs/`) rests on both axioms
   through the part's generated copies of `Proof/io/ReadFull.lean` and `Proof/encoding/binary/
   ReadInt64LE.lean` (`etc/gen-part-copies.py`: the same statements, not new axioms).
+  (2026-11-21, group `stdlib2`, Perennial `d5bf68438`) (1) done in Perennial: `io.ReadAtLeast`,
+  `io.ReadFull` and `io.ReadAll` translated and proved over a reader contract `io.readerOk ri Pre S E`
+  (`Perennial/Proof/io/Reader.lean`: non-negative counts, a per-call condition `Pre`, and the
+  reader's errors well-typed, `io.ptrTyped`, which stepping `err == EOF` needs); `bytes.NewBuffer`
+  and `(*Buffer).Read` too (`bytes.ownBuffer`). This repository's `io.ReadFull.wp_proof` is not yet a
+  wrapper: `io.readerStream` does not promise `ptrTyped` of the reader's errors, and the WAL's
+  (`decRdE`'s `IoE`) come from the file-system layer without it; `http.ReadAll_ok` needs in addition a
+  bound on the body (`2^60`, ReadAll's `int` sizes in the model), `http.ReadFull_stream_ok` the
+  invariant `bodyStream rd Pre Φ r ⊢ ⌜Pre r⌝`. `http.NewBuffer_ok` and `http.readerHas_nil` are
+  theorems (`readerHas` defined over `bytes.ownBuffer`).
 
 ### Operations on untyped rune constants have no step (2026-11-13, WAL leaf specs, branch `wal-leaf-std2`)
 
@@ -448,6 +458,14 @@ local model go.
   expressions"), or Perennial's `UntypedIntSemantics` gains the two steps. Not yet proposed.
 - **Also hit** (2026-11-20, `prove-smallinits`): `bufio`'s `errorRune = []byte(string(utf8.RuneError))`
   (`Convert go.untypedRune go.string #65533`, a non-ASCII rune), so `bufio.opaqueInitsOk` stays.
+- **Also blocks** (2026-11-21, wal-item3): removing the premise `rnNewStorageOk` from every closed theorem over
+  the server. `rnNewStorageOk_law_holds` (`etcdserver/RnNewStorageLinked.lean`) proves it from the WAL's linked
+  results, which take `[UntypedRuneSemantics]` (storage `Save` → WAL `Save` → `cut` → `filepath.join`); passing
+  the law to `bootstrappedRaft.newRaftNode` would put the class in every closed statement. Decided by
+  etcd-grove-03 (option (c)): the premise stays until this general fix (the two steps in Perennial's
+  `UntypedIntSemantics`, `string(c)` of an untyped rune and `==` of untyped runes, or Goose folding constant
+  expressions) lands and the pin moves; then `newRaftNode`'s proof takes `rnNewStorageOk.law`
+  (`=rnNewStorageOk_law_holds`) and the class is discharged. No Perennial branch started yet.
 
 ### `Sprintf`'s `%0Nx`, `Sscanf`'s `%0Nx` of a `uint64`, `Time.Format` (2026-11-13, WAL leaf specs, branch `wal-leaf-std2`)
 

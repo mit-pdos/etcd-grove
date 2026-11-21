@@ -8,8 +8,9 @@ which `tools/cache` needs since phase 4), `discovery`, the apply configurations 
 `notes/k8s-apimodel-goose.md`). Their facts are `True`.
 
 The model's fact (`apimodelInit`): its error variables hold some error each (`errStorage`,
-`errRead`), non-nil, with no `Format` method and an `Error()` that returns (`fmt.stringMethodSpec`:
-what `apierrors.NewInternalError` needs of them; `errors.New` errors are such), and `errAmbiguous`
+`errRead`), non-nil, with no `Format` method and an `Error() string` that returns
+(`fmt.stringMethodSpec`, and the method-set entry `fmt.noArgStringSig`, prove-k8s3, 2026-11-21: what
+`apierrors.NewInternalError` needs of them; `errors.New` errors are such), and `errAmbiguous`
 some string; the specs do not depend on their values otherwise. (Its initialization, `errors.New`
 calls and a string, is not proved yet: no `Init.lean`; the fact is a precondition of every spec of
 the package, `isPkgInit`. The error clauses: the apierrors-fix stage, 2026-11-17.)
@@ -374,10 +375,12 @@ errors `fmt` and `apierrors.NewInternalError` print without panicking (see the f
 abbrev apimodelInit : IProp GF :=
   iprop((∃ e : GoInterface, globalAddr errStorage ↦□ e ∗
       ∃ ei : GoInterfaceOk, ⌜e = GoInterface.ok ei⌝ ∗ _root_.Perennial.fmt.stringMethodSpec ei go!"Error" ∗
-        ⌜methodSet ei.ty !! go!"Format" = none⌝) ∗
+        ⌜methodSet ei.ty !! go!"Format" = none ∧
+          methodSet ei.ty !! go!"Error" = some _root_.Perennial.fmt.noArgStringSig⌝) ∗
     (∃ e : GoInterface, globalAddr errRead ↦□ e ∗
       ∃ ei : GoInterfaceOk, ⌜e = GoInterface.ok ei⌝ ∗ _root_.Perennial.fmt.stringMethodSpec ei go!"Error" ∗
-        ⌜methodSet ei.ty !! go!"Format" = none⌝) ∗
+        ⌜methodSet ei.ty !! go!"Format" = none ∧
+          methodSet ei.ty !! go!"Error" = some _root_.Perennial.fmt.noArgStringSig⌝) ∗
     (∃ s : GoString, globalAddr errAmbiguous ↦□ s))
 
 instance isPkgInit_inst :

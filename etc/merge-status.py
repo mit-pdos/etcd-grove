@@ -15,7 +15,11 @@ without the configuration gets git's normal merge).
                                          side moved to status-history (in its history, or dropped
                                          by one side relative to the base), newest first (on a date,
                                          new entries, ours then theirs, ahead of the common ones),
-                                         the ten newest kept.
+                                         the ten newest kept. The line is found by its
+                                         "**Last updated:** " prefix anywhere in the file (a side may
+                                         add or remove text above it); if one version has no such
+                                         line, or more than one, the whole file is merged by git
+                                         merge-file and the driver reports a conflict (exit 1).
   merge-status.py history %O %A %B %P    status-history.md, append-only: the base, with the lines
                                          each side inserted (ours, then theirs' not inserted by ours
                                          too; a side that only moved lines or dropped duplicate
@@ -57,11 +61,15 @@ def warn(msg):
 # ---------------------------------------------------------------- entries
 
 
+def lu_lines(lines):
+    """The indices of the lines starting with the "Last updated" prefix."""
+    return [i for i, l in enumerate(lines) if l.startswith(PREFIX)]
+
+
 def find_lu(lines):
-    for i, l in enumerate(lines[:20]):
-        if l.startswith(PREFIX):
-            return i
-    return None
+    """The index of the "Last updated" line: None unless exactly one line has the prefix."""
+    ix = lu_lines(lines)
+    return ix[0] if len(ix) == 1 else None
 
 
 def entries_of(line):
@@ -238,7 +246,8 @@ def append_history(text, entries):
 
 
 def status_entries(o, a, b, history_text):
-    """merge_entries of three STATUS texts, or (None, []) if a version has no "Last updated" line."""
+    """merge_entries of three STATUS texts, or (None, []) unless every version has exactly one
+    "Last updated" line."""
     vs = [t.splitlines(True) for t in (o, a, b)]
     idx = [find_lu(v) for v in vs]
     if None in idx:
@@ -278,9 +287,17 @@ def plan(st, hi):
 
 def merge_status(o, a, b, entries, extra=()):
     """The merged STATUS text: (text, clean). entries: the merged "Last updated" entries (None:
-    merge the whole file with git merge-file); the first KEEP and extra are written."""
-    if entries is None:
-        return merge_file(o, a, b)
+    merge the whole file with git merge-file); the first KEEP and extra are written. A version
+    with no "Last updated" line or more than one (when not all three have none) is a conflict:
+    the whole file merged by git merge-file, reported unclean."""
+    if entries is None or any(find_lu(t.splitlines(True)) is None for t in (o, a, b)):
+        text, clean = merge_file(o, a, b)
+        counts = [len(lu_lines(t.splitlines(True))) for t in (o, a, b)]
+        if counts == [0, 0, 0]:
+            return text, clean
+        warn(f"\"Last updated\" lines in base/ours/theirs: {counts} (each needs exactly one): "
+             "merged by git merge-file, left as a conflict")
+        return text, False
     masked = []
     for t in (o, a, b):
         ls = t.splitlines(True)
@@ -344,7 +361,7 @@ def driver(mode, po, pa, pb, path):
             warn(f"{path}: {len(extra)} entries beyond {KEEP} kept on the \"Last updated\" line (the merged "
                  f"{HISTORY_PATH} would not have them): move them to {HISTORY_PATH} by hand")
     out, ok = merge_status(o, a, b, p["entries"], extra)
-    if not ok:
+    if not ok and p["entries"] is not None:
         warn(f"{path}: conflict outside the \"Last updated\" line")
     write(pa, out)
     return 0 if ok else 1
@@ -358,12 +375,10 @@ REPLAY_BRANCHES = ["lean", "merge-origin7", "k8s-7g", "auth-lease-s4"]
 # window grew past midnight and took in that night's merges (ea5de40e16, resolved by hand at the time;
 # its two entries are in the history since), failing every landing from 00:15 on
 REPLAY_SINCE, REPLAY_UNTIL = "2026-11-18 00:00:00 -0500", "2026-11-21 00:00:00 -0500"
-# Merges whose replay finds a problem the driver is right about (the merge's own inputs), with why:
-# (2026-11-21, backend-snapshot's landing) cf54600750 merged `lean` while it held the k8s-authz revert
-# (037b2e926d), which had taken the two KEP-5681 history entries out on purpose; the merge kept the
-# revert (so dropped them), and 1e08dd38e7 (the revert reverted) put them back on `lean`.
-REPLAY_KNOWN = {"cf54600750": ("history lost lines",
-                               "the k8s-authz revert 037b2e926d; restored by 1e08dd38e7")}
+# merges replayed by name, where git has them: 780c2c5a43 (2026-11-21, origin/lean 4be441d3af into
+# lean) is the first where a side (theirs) added a paragraph above the "Last updated" line; its
+# committed STATUS had a corrupted header, repaired by hand in c9fd9b60b1
+REPLAY_NAMED = ["780c2c5a4375cb0e9c4c0bada796128122c46c37"]
 
 
 def side_entries(t):
@@ -418,7 +433,28 @@ def replay(m):
     res["over"] = len(side_entries(s)) > KEEP
     res["committed"] = side_entries(show(m, STATUS_PATH))
     res["got"] = side_entries(s)
+    res["text"] = s
+    res["st"] = st
     return res
+
+
+def check_header(r):
+    """A replayed merge's header: one "Last updated" line, and every line a side added above it
+    kept (in the side's order) above the merged one: a list of problems."""
+    s = r["text"].splitlines()
+    pr = []
+    if len(lu_lines(s)) != 1:
+        return [f"{len(lu_lines(s))} \"Last updated\" lines"]
+    above = s[:find_lu(s)]
+    base = r["st"][0].splitlines()
+    bab = set(base[:find_lu(base)])
+    for t in r["st"][1:]:
+        ls = t.splitlines()
+        added = [l for l in ls[:find_lu(ls)] if l not in bab and l.strip()]
+        it = iter(above)
+        if not all(any(l == x for x in it) for l in added):
+            pr.append("a line a side added above the \"Last updated\" line is lost or moved")
+    return pr
 
 
 def synthetic():
@@ -473,6 +509,29 @@ def synthetic():
     p, s, c, h = run((st(base), st(base[:3] + [ed] + base[4:]), st(theirs)), (hist([]), hist([]), hist([E[0]])))
     if ed not in side_entries(s) or base[3] in side_entries(s):
         fails.append("an edited entry was not taken")
+    # the line not on line 3: theirs adds a paragraph above it (as origin/lean did in 4be441d3af),
+    # ours a new entry; and the line further down on every side
+    para = "Para one.\nPara two.\n\n"
+    p, s, c, h = run((st(base), st(ours), st(theirs).replace("\n\n" + PREFIX, "\n\n" + para + PREFIX, 1)), hi)
+    if not (c and side_entries(s) == want + [base[8]] and s.count(PREFIX) == 1
+            and s.startswith("# Status\n\n" + para + PREFIX) and s.endswith(body)):
+        fails.append(f"a paragraph above the line: {s[:120]!r}")
+    deep = lambda t: t.replace("# Status\n\n", "# Status\n\n" + "x\n" * 30, 1)
+    p, s, c, h = run((deep(st(base)), deep(st(ours)), deep(st(theirs, "a\nb\nc\nd\nE2\n"))), hi)
+    if not (c and side_entries(s) == want + [base[8]] and s.endswith("a\nb\nc\nd\nE2\n")):
+        fails.append(f"the line at line 33: {side_entries(s)[:2]}")
+    # a side with no such line, or two, is a clean conflict: no entry merging, never corrupted
+    two = st(theirs).replace("# Status\n\n", "# Status\n\n" + PREFIX + "stray\n", 1)
+    none = st(theirs).replace(PREFIX, "Last updated: ", 1)
+    for name, t in (("two lines", two), ("no line", none)):
+        sts = (st(base), st(ours), t)
+        p = plan(sts, hi)
+        s, c = merge_status(*sts, p["entries"])
+        if c or p["entries"] is not None or MASK in s:
+            fails.append(f"a side with {name} did not conflict")
+    s, c = merge_status("a\n", "a\nb\n", "c\na\n", None)
+    if not c or s != "c\na\nb\n":
+        fails.append("no line on any side: not a plain merge")
     # history: a deletion conflicts; insertions in the middle and at the end merge; a move appends
     if merge_history("a\nb\nc\n", "a\nc\n", "a\nb\nc\nd\n")[1]:
         fails.append("a history deletion did not conflict")
@@ -495,6 +554,16 @@ def selftest():
     refs = [b for b in REPLAY_BRANCHES if git("rev-parse", "--verify", "-q", b, check=False).returncode == 0]
     ms = git("log", "--merges", "--format=%H", f"--since={REPLAY_SINCE}", f"--until={REPLAY_UNTIL}",
              *(refs or ["HEAD"]), "--", STATUS_PATH).stdout.split()
+    named = [m for m in REPLAY_NAMED if git("cat-file", "-e", m + "^{commit}", check=False).returncode == 0]
+    for m in named:
+        r = replay(m)
+        pr = ["git would not run the driver"] if r is None else \
+            ["conflict"] if r["sconflict"] or r["hconflict"] else r["problems"] + check_header(r)
+        if pr:
+            fails.append(f"replay of {m[:10]}: " + "; ".join(pr))
+    print(f"merge-status selftest: named merges replayed: "
+          f"{' '.join(m[:10] for m in named) or 'none present'}: "
+          f"{'ok' if not any(f.startswith('replay of') for f in fails) else 'FAILED'}")
     seen, rs = set(), []
     for m in ms:
         if m not in seen:
@@ -502,9 +571,12 @@ def selftest():
             r = replay(m)
             if r is not None:
                 rs.append(r)
-    # merges whose replay problem is the merge's own input, not the driver's (`REPLAY_KNOWN`)
-    bad = [r for r in rs if r["problems"] and
-           not (r["m"] in REPLAY_KNOWN and set(r["problems"]) <= {REPLAY_KNOWN[r["m"]][0]})]
+    # Merges already on lean whose problems were repaired afterwards (a merge commit cannot be fixed in
+    # place): the replay still sees them, so they are listed here with the repair.
+    #   cf54600750 (robust-threads, 2026-11-20): its status-history.md dropped two lines of one parent;
+    #   both are back in lean's history (checked 2026-11-21 against lean 51e4debf62).
+    repaired = {"cf54600750"}
+    bad = [r for r in rs if r["problems"] and r["m"][:10] not in repaired]
     for r in bad:
         print(f"  {r['m']}: " + "; ".join(r["problems"]))
     hconf = [r["m"] for r in rs if r["hconflict"]]

@@ -45,17 +45,18 @@ theorem store.listReadError.wp_proof
   · iPkgInit
   ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Prt
-  icases Hri with ⟨⟨%eFR, #HeFR, %HdFR, %HtFR⟩, -⟩
+  icases Hri with ⟨⟨%eFR, #HeFR, #HdFR, %HtFR⟩, -⟩
   obtain ⟨-, x, hx⟩ := HtFR
   iunfold readErrIs at Herr
-  icases Herr with ⟨#Hke, #Hfut⟩
+  icases Herr with ⟨#Hke, %d, #Hd, #Hfut⟩
   ihave #Hke' := Hke
   iunfold kClientErr at Hke'
   icases Hke' with ⟨%hce, #Hse, -⟩
   ihave #Perr : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
   · iPkgInit
   wp_auto
-  wp_apply (wp_Is err (GoInterface.ok eFR) (Or.inl ⟨x, hx⟩)) $$ [$Hse] as %b %hb
+  wp_apply (wp_Is err (GoInterface.ok eFR) (some (d, _)) (Or.inl ⟨x, hx⟩)) $$ [$Hse] as %b %hb
+  · iapply go_etcd_io.etcd.cache.v3.isDescs_some $$ Hd HdFR
   cases b
   · -- not a future revision: `interpretListError`
     wp_auto
@@ -64,8 +65,12 @@ theorem store.listReadError.wp_proof
     iright
     iapply listErrF_listErr $$ He
   · -- a future revision: the state below `withRev`, and the too-large error
-    have hd : go_etcd_io.etcd.cache.v3.errDesc err = go_etcd_io.etcd.cache.v3.futureRevDesc :=
-      (hb rfl).1.trans HdFR
+    ihave %hF := go_etcd_io.etcd.cache.v3.descIs_is_etcdError _ x _ (Or.inl hx) $$ HdFR
+    ihave %hd : ⌜d = go_etcd_io.etcd.cache.v3.futureRevDesc⌝ $$ []
+    · rcases (hb rfl).1 _ _ rfl with h | h
+      · ihave %h2 := go_etcd_io.etcd.cache.v3.descIs_is_etcdError _ x _ (Or.inl (h.trans hx)) $$ Hd
+        ipureintro; rw [h2, hF]
+      · ipureintro; exact h
     ihave #HQ := Hfut $$ %hd %((hb rfl).2 ⟨x, hx⟩)
     wp_auto
     wp_apply (wp_GetCRV Obj sp c ci cd k (fun _ _ _ => iprop(True)) hk hkl) $$ [] as %n %e2 -

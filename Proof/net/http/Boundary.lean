@@ -70,6 +70,7 @@ public import GeneratedProof.net.http
 public import GeneratedProof.net.url
 public import Perennial.Code.io
 public import Perennial.Code.bytes
+public import Perennial.Proof.bytes.BufferBasics
 public import Perennial.Code.encoding.binary
 public import Perennial.Proof.ProofPrelude
 public import Perennial.Ghost.DGhostVar
@@ -600,9 +601,14 @@ theorem errStrOk_nil : ⊢ errStrOk (GF := GF) GoInterface.nil := by
   unfold errStrOk
   ileft; ipureintro; rfl
 
-/-- **A reader holding exactly `bs`** (exclusive; `bytes.NewBuffer(bs)` as an `io.Reader`, or `nil`
-for an empty body): what `NewRequest` takes as the body. -/
-opaque readerHas (rd : GoInterface) (bs : List w8) : IProp GF
+/-- **A reader holding exactly `bs`** (exclusive): what `NewRequest` takes as a fixed body, `nil`
+for an empty body or a `*bytes.Buffer` holding `bs` (Perennial's `bytes.ownBuffer`, what
+`bytes.NewBuffer(bs)` returns). (stdlib2, 2026-11-21: defined; until then opaque, with the axioms
+`NewBuffer_ok` and `readerHas_nil` producing it, now theorems.) -/
+def readerHas (rd : GoInterface) (bs : List w8) : IProp GF :=
+  iprop(⌜rd = GoInterface.nil ∧ bs = []⌝ ∨
+    ∃ l : Loc, ⌜rd = interface.mkOk (go.GoType.PointerType _root_.Perennial.bytes.Buffer.ty) #l⌝ ∗
+      _root_.Perennial.bytes.ownBuffer l bs)
 
 /-- **A stream's prefixes** (D42): `Pre` holds of `[]` and of every prefix of what it holds of. -/
 def prefixClosed (Pre : List w8 → Prop) : Prop := Pre [] ∧ ∀ a b, Pre (a ++ b) → Pre a

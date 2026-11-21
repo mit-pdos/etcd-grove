@@ -327,7 +327,8 @@ theorem EtcdServer.DeleteRange.wp_proof
         · ipureintro; exact ⟨rfl, Hne⟩
         iframe HaE
         icases Hfail with (⟨%hm, %rq', %Hwire, Herr, #Hhb⟩ | Hdep)
-        · ileft; iexists hm, rq'; iframe Herr
+        · ihave Herr := appliedErr_of_M _ _ _ _ _ _ $$ Herr
+          ileft; iexists hm, rq'; iframe Herr
           isplitr
           · ipureintro; exact Hwire
           iexact Hhb

@@ -24,7 +24,6 @@
 roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/(Link|Results)\.lean$
 axiom EtcdServer.ensureLeadership.wp_proof
 axiom EtcdServer.leaseTimeToLive.wp_proof
-axiom EtcdServer.waitLeader.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom RangeRequest.String.wp_proof
 axiom api.IsCapabilityEnabled.wp_proof
@@ -97,7 +96,6 @@ axiom proto.Unmarshal.wp_proof
 axiom rand.Int63n.wp_proof
 axiom reflect.DeepEqual.wp_proof_pgidSet
 axiom reflect.ValueOf.wp_proof
-axiom rpctypes.errDesc_wrapError
 axiom sort.SliceIsSorted.wp_proof
 axiom sort.Sort.wp_anyLess
 axiom sort.Stable.wp_proof

@@ -553,16 +553,14 @@ theorem etcdLeaseTTLHandlerOkMd (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64
           rw [Hid]
           iexact Hf
         · iexact Hchk
-    · iintro -
-      iapply HΨe
+    · iapply (handlerErrOut_allSrv _ err) $$ HΨe HSe
   · imodintro
     iapply HΨ
     iframe HS Hrev HSe
     isplitl
     · iintro %Hnil
       exact absurd Hnil Herr.2
-    · iintro -
-      iapply HΨe
+    · iapply (handlerErrOut_allSrv _ err) $$ HΨe HSe
 
 /-- **etcd's `LeaseLeases` handler meets `etcdLeaseLeasesSpecMd`** (`grpcHandlerOkMd`; auth-lease S4,
 Freeze §4.2, any auth mode; as `etcdLeaseTTLHandlerOkMd`): the listing is the lessor's ids at an index
@@ -631,16 +629,14 @@ theorem etcdLeaseLeasesHandlerOkMd (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : 
         isplitr
         · ipureintro; exact Hmi
         iexact Hchk
-    · iintro -
-      iapply HΨe
+    · iapply (handlerErrOut_allSrv _ err) $$ HΨe HSe
   · imodintro
     iapply HΨ
     iframe HS Hrev HSe
     isplitl
     · iintro %Hnil
       exact absurd Hnil Herr.2.1
-    · iintro -
-      iapply HΨe
+    · iapply (handlerErrOut_allSrv _ err) $$ HΨe HSe
 
 /-- **etcd's lease reads at the metadata-indexed specs** as registered (auth-lease S4, Freeze §4):
 `LeaseTimeToLive` and `LeaseLeases`, the generated handlers of `Lease_ServiceDesc` with the
