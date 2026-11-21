@@ -57,7 +57,7 @@ theorem RawNode.Ready.wp_proof
   ihave #HhardO := hsOptC_hsOpt _ _ $$ Hhard
   imod ownRawNodeReady_handout ⊤ γ rn id rs rd ce es ms L q g h CoPset.subseteq_top
     $$ HhardO Hlive Hfree Hrn
-    with ⟨%W, %ss0, Hrn, Happ, #Hfrz, #Hdk, Hcr, -, -, Hlive, Hpb, #Hss0, %Hssn0, #Hmw, #Hml, #Hmss, -⟩
+    with ⟨%W, %ss0, Hrn, Happ, #Hfrz, #Hdk, Hcr, -, -, Hlive, Hpb, #Hss0, %Hssn0, #Hmw, #Hml, #Hmss, #Hsrcs, -⟩
   wp_apply wp_RawNode_acceptReady γ rn id { rs with bw := W } rd ce es ms h L (fun h => absurd HtrG h) $$ [$Hrn $HhardO]
     as %steps %ss H
   iNamed H
@@ -83,6 +83,8 @@ theorem RawNode.Ready.wp_proof
   · iexact Hml
   isplitr
   · iexact Hmss
+  isplitr
+  · iexact Hsrcs
   ipureintro; exact ⟨Hmsgs_term, Hpsn⟩
 
 end proof
