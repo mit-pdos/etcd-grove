@@ -12,6 +12,12 @@ the specs of `Transport.*`, `Node.serve`/`serveClient`/`handle`.
   (with `msgCredits`, `snapLocalMsg`, the sent token) at `F`'s instance, after decision B.
 * `isTransportCore F t γ N id n` (persistent): the transport's id, its node (`isNode n γ N id`, the
   interface over `*node` at `n`), its stats, and the step law.
+* `qElem F pid m` (the peer queue's element, `Transport.enqueue`/`runPeer`): a message for the peer
+  `pid` (`msgPtsC`, at any fractions), with its fact `F.msgOk src st` and a length a frame can carry:
+  what `runPeer` needs for `putMsg`, `peer_send` and `writeFrame`, and `dropped` for the message.
+  The queue is a bag channel of them (`isChanBag`, Perennial's idiom: no order, never closed).
+* `isPeer F p pid a` (persistent): `isPeerAddr` and the queue's channel, a bag of `qElem F pid`.
+* `isPeers F t` (persistent): the transport's peers map, read-only, each value a peer (`isPeer`).
 -/
 module
 
@@ -19,6 +25,7 @@ public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Pro
 public import KvNet.Proof.go_etcd_io.raft.v3.InvNode
 public import KvNet.Proof.go_etcd_io.raft.v3.InvPb
 public import Perennial.Proof.sync
+public import Perennial.Golang.Theory.Chan.Idioms.Bag
 
 @[expose] public section
 
@@ -116,6 +123,70 @@ theorem rAcc_of_recvTokL (cn : Nat) (s : Bool) (P : Net.Proto GF) (R0 : List w8)
   imodintro
   rw [List.append_assoc]
   iexact H
+
+/-- A queued message for the peer `pid` (see the file header). -/
+def qElem (F : KvFacts GF) (pid : w64) (m : Loc) : IProp GF :=
+  iprop(∃ (dq dqe : DFrac) (cap : Bool) (st : MsgSt) (src : w64),
+    msgPtsC m dq dqe cap st ∗ F.msgOk src st ∗
+    ⌜st.msg.To' = pid ∧ ((encMsg st).length : Int) + 8 < 2 ^ 63⌝)
+
+/-- A peer's sender with its queue (see the file header). -/
+def isPeer (F : KvFacts GF) (p : Loc) (pid : w64) (a : GoString) : IProp GF :=
+  iprop(isPeerAddr F p pid a ∗ ∃ (ch : Loc) (γq : ChanNames),
+    p.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.peer, go!"queue"] ↦□ ch ∗
+    isChanBag (V := Loc) γq ch (qElem F pid))
+
+instance isPeer_persistent F p pid a : Persistent (isPeer (GF := GF) F p pid a) := by
+  unfold isPeer; infer_instance
+
+/-- The transport's peers (see the file header). -/
+def isPeers (F : KvFacts GF) (t : Loc) : IProp GF :=
+  iprop(∃ (pm : Loc) (M : GMap w64 Loc),
+    t.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Transport, go!"peers"] ↦□ pm ∗
+    pm ↦$□ M ∗ [∗map] pid ↦ p ∈ M, ∃ a, isPeer F p pid a)
+
+instance isPeers_persistent F t : Persistent (isPeers (GF := GF) F t) := by
+  unfold isPeers; infer_instance
+
+/-- A nonblocking send of `v` on a bag channel, with `P v` (the select's send case: it fires only
+when the value fits in the buffer or a receiver waits). -/
+theorem bag_nb_send_au {V : Type} [Pos.Countable V] [ZeroVal V] [TypedPointsto (GF := GF) V]
+    (γ : ChanNames) (ch : Loc) (P : V → IProp GF) (v : V) (Φ : IProp GF) :
+    ⊢ isChanBag γ ch P -∗ P v -∗ Φ -∗ nonblockingSendAuInner γ v Φ := by
+  rw [isChanBag_unseal]; unfold isChanBagDef nonblockingSendAuInner
+  iintro ⟨#Hch, #Hinv⟩ HP HΦ
+  iapply ncfupd_of_fupd
+  iinv Hinv with Hi Hclose
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  inext
+  unfold chanBagInv
+  icases Hi with ⟨%s, Hoc0, Hi⟩
+  iexists s
+  iframe Hoc0
+  rcases s with buff | _ | _ | _ | _ | _ | _
+  all_goals dsimp only
+  case Buffered =>
+    iintro Hoc
+    imod Hmask with -
+    imod Hclose $$ [Hoc Hi HP] with -
+    · inext; iexists .Buffered (buff ++ [v])
+      dsimp only
+      iframe Hoc
+      iapply BigSepL.bigSepL_append.2
+      iframe Hi
+      iapply BigSepL.bigSepL_singleton.2
+      iexact HP
+    imodintro
+    iexact HΦ
+  case RcvPending =>
+    iintro Hoc
+    imod Hmask with -
+    imod Hclose $$ [Hoc HP] with -
+    · inext; iexists .SndCommit v; iframe
+    imodintro
+    iexact HΦ
+  all_goals first | itrivial | (iexfalso; iexact Hi)
 
 end defs
 
