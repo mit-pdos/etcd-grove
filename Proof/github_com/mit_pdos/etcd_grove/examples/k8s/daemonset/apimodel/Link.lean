@@ -173,7 +173,7 @@ theorem apierrors.wp_NewBadRequest :
 
 theorem apierrors.wp_NewConflict :
     EtcdGrove.apierrors.NewConflict.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apierrors.NewConflict.wp_proof
+  EtcdGrove.apierrors.NewConflict.wp_proof schema.GroupResource.wp_String_ptr
 
 theorem apierrors.wp_NewNotFound :
     EtcdGrove.apierrors.NewNotFound.spec (GF := GF) (hG := hG) :=

@@ -401,7 +401,8 @@ of some auth info (the context's, or the empty one). -/
 abbrev EtcdServer.doSerialize.specOff : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (chk get : GoFunc) (G Q : IProp GF)
-    (C : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF) (t : Loc) (e : Bool),
+    (C : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF) [∀ info, Persistent (C info)]
+    (t : Loc) (e : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReq s E ρ ∗ isServerRead s E γr ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗
       traceutil.ctxTraceIs ctx (some t) ∗
@@ -517,6 +518,7 @@ theorem EtcdServer.raftRequest.spec_off
     · iframe HaE
       isplitr
       · ipureintro; exact Hr
+      ihave Ha := appliedErr_of_M _ E ρ rq' F _ $$ Ha
       ileft; iexists hm, rq'; iframe Ha; ipureintro; exact Hw
     · iframe HaE Hdep
       ipureintro; exact Hr
@@ -525,9 +527,9 @@ theorem EtcdServer.raftRequest.spec_off
 theorem EtcdServer.doSerialize.spec_off
     (h : EtcdServer.doSerialize.spec (GF := GF) (hG := hG)) :
     EtcdServer.doSerialize.specOff (GF := GF) (hG := hG) := by
-  intro s E ρ γr ctx cd chk get G Q C t e
+  intro s E ρ γr ctx cd chk get G Q C hC t e
   iintro %Φ Hpre HΦ
-  icases Hpre with ⟨Ha, #Hb, Hrd, Hctx, Hlib, Hct, #Hchk, Hget, HG, Htrc, Hard⟩
+  icases Hpre with ⟨Ha, #Hb, Hrd, Hctx, Hlib, Hct, #Hchk, #Hget, HG, Htrc, Hard⟩
   ihave %hon := isServerReq_authOn s E ρ $$ Hb
   ihave #HaLb := srvAuthLb_off s E ρ $$ Hb
   have hoff : E.authMode = .off := by
@@ -537,15 +539,21 @@ theorem EtcdServer.doSerialize.spec_off
   rw [hon] at hM
   ihave #Htok : □ (⌜false = true⌝ → auth.ctxToken (GoInterface.ok ctx) none) $$ []
   · iintro !> %h; cases h
-  iapply hM $$ %Φ [Ha Hrd Hctx Hlib Hct Hget HG Htrc Hard]
+  iapply hM $$ %Φ [Ha Hrd Hctx Hlib Hct HG Htrc Hard]
   · rw [isServerReqM_false, isServerReadM_false]
-    iframe Ha Hb Hrd Hctx Hlib Htok Hct Hget HG Htrc Hard HaLb
-    isplitr
+    iframe Ha Hb Hrd Hctx Hlib Htok Hct HG Htrc Hard HaLb
+    isplitl []
     · iintro !>; rw [hoff]; unfold auth.authPubLbM; itrivial
-    · iintro %a %info %dq !> %Φ' Hp HΦ'
-      iapply Hchk $$ Hp
+    isplitl []
+    · iintro %a %info %dq !> %Φ' ⟨Hp1, Hp2, HpG⟩ HΦ'
+      iapply Hchk $$ [Hp1 Hp2]
+      · iframe Hp1 Hp2
       iintro !> %err ⟨H1, H2, H3, H4⟩
-      iapply HΦ'; iframe H1 H2 H3 H4; iintro %_; itrivial
+      iapply HΦ'; iframe H1 H2 H3 H4 HpG; iintro %_; itrivial
+    · iintro !> %Φ' ⟨Hg1, Hg2, -⟩ HΦ'
+      iapply Hget $$ [Hg1 Hg2]
+      · iframe Hg1 Hg2
+      iexact HΦ'
   inext
   iintro %err ⟨Hrd, Hres⟩
   iapply HΦ
