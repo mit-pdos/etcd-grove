@@ -1,6 +1,8 @@
-# Types and names only: function and method bodies are axiomatized (the apply package's
-# ClusterVersionSet calls MustParse, Version.LessThan and Version.String).
-translate = ["!*"]
+# Types and names only, but for `New`, `Version.Major` and `Version.Minor` (prove-smalllibs,
+# 2026-11-20: proved over the real code). The parser (`NewVersion`, a regular expression), `String`
+# (`fmt.Fprintf`) and `LessThan` stay the trust boundary. (The apply package's ClusterVersionSet
+# calls MustParse, Version.LessThan and Version.String.)
+translate = ["!*", "New", "Version.Major", "Version.Minor"]
 imports = ["!*"]
 
 # translate the definitions of all type declarations goose supports

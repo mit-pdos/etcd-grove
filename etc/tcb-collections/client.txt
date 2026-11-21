@@ -37,10 +37,6 @@ axiom go_humanize.Bytes.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof
 axiom grpc.ClientConn.Target.wp_proof
-axiom grpc.GenericClientStream.CloseSend.wp_proof
-axiom grpc.GenericClientStream.Context.wp_proof
-axiom grpc.GenericClientStream.Recv.wp_proof
-axiom grpc.GenericClientStream.Send.wp_proof
 axiom grpc.NewClient.wp_proof
 axiom grpc.WithKeepaliveParams.wp_proof
 axiom grpc.WithPerRPCCredentials.wp_proof

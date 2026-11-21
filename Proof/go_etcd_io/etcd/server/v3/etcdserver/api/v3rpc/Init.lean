@@ -30,6 +30,7 @@ public import Perennial.Proof.context.Link
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.math.Link
+public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
 public import Proof.crypto.tls.Init

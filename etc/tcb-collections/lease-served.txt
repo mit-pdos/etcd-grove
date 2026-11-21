@@ -23,10 +23,6 @@ axiom fmt.Errorf.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof
-axiom grpc.GenericClientStream.CloseSend.wp_proof
-axiom grpc.GenericClientStream.Context.wp_proof
-axiom grpc.GenericClientStream.Recv.wp_proof
-axiom grpc.GenericClientStream.Send.wp_proof
 axiom grpcAddrIsRaw
 axiom grpcConn
 axiom grpcConn_persistent

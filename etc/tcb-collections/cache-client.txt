@@ -22,13 +22,6 @@ axiom fmt.Printf.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof
-axiom grpc.GenericClientStream.CloseSend.wp_proof
-axiom grpc.GenericClientStream.Context.wp_proof
-axiom grpc.GenericClientStream.Recv.wp_proof
-axiom grpc.GenericClientStream.Send.wp_proof
-axiom grpc.GenericServerStream.Context.wp_proof
-axiom grpc.GenericServerStream.Recv.wp_proof
-axiom grpc.GenericServerStream.Send.wp_proof
 axiom grpc.start
 axiom grpcAddrIsRaw
 axiom grpcConn
@@ -73,6 +66,7 @@ axiom status.FromError.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom strconv.FormatBool.wp_proof
 axiom streamKeyFromCtx.wp_proof
+axiom strings.HasSuffix.wp_proof
 axiom strings.ToLower.wp_proof
 axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.Seconds_ptr.wp_proof
@@ -83,7 +77,6 @@ axiom trace.SpanFromContext.wp_proof
 axiom traceutil.Trace.LogWithStepThreshold.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
 axiom txn.RangeSecObserve.wp_proof
-axiom v3rpc.isClientCtxErr.wp_proof
 axiom v3rpc.pbWatchRequestT_reg
 axiom v3rpc.pbWatchResponseT_reg
 axiom zap.Logger.Fatal.wp_proof
