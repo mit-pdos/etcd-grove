@@ -3,6 +3,7 @@ module
 
 public import GeneratedProof.net.http
 public import SpecPlan.Spec.PkgInit.Base
+public import SpecPlan.Spec.PkgInit.net.textproto
 
 @[expose] public section
 noncomputable section

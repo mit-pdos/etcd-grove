@@ -121,7 +121,6 @@ entry Perennial.EtcdGrove.v3rpc.wp_WithTimeout_weak 2:L:v3rpc.ctxErrLvl:handedto
 
 # --- the WAL's trusted specs, from wal-int (which ran none of these gates), in the main tree since wal-lean
 # (2026-11-15, unit lean-integration session 4; for the user's review) ---
-entry Perennial.EtcdGrove.io.ReadFull.wp_proof 3:E:produced1/consumed0  `E` is the caller's error-evidence predicate (`io.readerStream ri S E`), persistent (`□ E`): the post's `□ E (r0 ++ ys) e` (`io.readFullRes`) is the evidence the last `Read` returned for its error `e` (`io.readerStream`'s triple, in the consumed handle, posts `io.errAt E (r ++ ys) err` = `⌜err = nil⌝ ∨ □ E ...`, which the walk counts as consuming 0, the min over the disjunction's branches); `ReadAtLeast` (go1.27 io.go) returns that `Read`'s error unchanged unless it substitutes `ErrUnexpectedEOF` (then no `E` is claimed of the result, only of `e`): a copy of a persistent fact the caller's reader gave, nothing minted
 # The ratchet's exception (the section above says none may be added): `MarshalAppendCachedRecord` is `proto.MarshalAppendPb`'s spec (listed above) at one type, with the same post `b' ↦* (xs ++ pbEncC I c)` over the registered `I`, and its walk stops at the same place (`ownSlice` of a value the walk cannot open); it was written before the gate saw it
 trunc Perennial.EtcdGrove.proto.MarshalAppendCachedRecord.wp_proof
 # The ratchet's exception (bbolt S1, 2026-11-17; for the coordinator's review): the backend's bbolt

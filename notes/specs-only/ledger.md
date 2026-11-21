@@ -3769,4 +3769,19 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** Add the entry to the precondition's pure conjunct. Callers: `transformErrorToEvent` (from
   `kErrOk`, which already has it) and the model API server's handlers (from `apimodelInit`, whose error clauses gain
   it: its errors are `errors.New`'s `*errorString`, which has it; the fact is not proved yet, no `Init.lean`).
-- **Decision.** Applied (prove-k8s3, 2026-11-21); `apierrors.NewInternalError.wp_proof` is a theorem.
+- **Decision.** Applied (prove-k8s3, 2026-11-21); `apierrors.NewInternalError.wp_proof` is a theorem. Approved by the user (2026-11-21): the premise makes sense (`.claude/skills/spec/examples/newinternalerror-type-fact.md`).
+
+## 2026-11-21: the HTTP header specs need net/http's package initialization (prove-http3)
+
+- **Spec.** `http.HeaderSet_spec`, `HeaderSetPtr_spec`, `HeaderGet_spec`, `HeaderGetPtr_spec`, `HeaderGetOwnPtr_spec`
+  (`Proof/net/http/Boundary.lean`; four of them trust-boundary axioms until now); the predicates `hdrOwn`, `hdrAtRaw`
+  (opaque until now).
+- **Defect.** Not provable as stated: `Header.Set`/`Get` call `textproto.CanonicalMIMEHeaderKey`, which (for a key it
+  changes) runs `commonHeaderOnce.Do(initCommonHeader)` and reads the package map `commonHeader` (go1.27.3
+  `net/textproto/reader.go:796`); without the package's initialization the specs know nothing of that `Once`.
+- **Evidence.** The translation (`Code/net/textproto.lean`, `CanonicalMIMEHeaderKey.impl`, `canonicalMIMEHeaderKey.impl`).
+- **Proposed change.** Each spec takes `isPkgInit pkg_id.net.http` (net/textproto's fact: `commonHeaderOnce` is the
+  `Once` of `initCommonHeader`, `Proof/net/textproto/Base.lean`); `hdrOwn`/`hdrAtRaw` defined (`hdrMap`: a
+  `map[string][]string` whose value at each key is a read-only slice of that key's values in order). Every caller has
+  `isPkgInit` of rafthttp, which imports net/http: discharged there with no change to the callers' statements.
+- **Decision.** Applied (prove-http3, 2026-11-21): the four axioms are theorems over net/http's and net/textproto's code.
