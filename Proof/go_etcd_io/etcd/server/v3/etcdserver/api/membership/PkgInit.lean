@@ -5,7 +5,7 @@ module
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.membership
 public import Proof.go_etcd_io.raft.v3.Base
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Base
-public import Proof.github_com.Masterminds.semver.v3.PkgInit
+public import Proof.go_etcd_io.etcd.api.v3.version.PkgInit
 public import Proof.github_com.prometheus.client_golang.prometheus.Labels
 public import Proof.errors.NewVar
 

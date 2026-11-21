@@ -67,14 +67,14 @@ abbrev EtcdServer.createMergedSnapshotMessage.spec : Prop :=
 /-- The frozen backend has reached at most the apply cursor. Its bytes can be sent with the
 current apply metadata, independently of the retained replay terms. -/
 abbrev EtcdServer.createMergedSnapshotMessage.specCaughtUp : Prop :=
-  ∀ (s ml : Loc) (st : MsgSt) (snapt snapi : w64) (terms : GoSlice) (cs lg : Loc) (kv be : GoInterface) (dq : DFrac)
+  ∀ (s ml : Loc) (st : MsgSt) (snapt snapi ci : w64) (terms : GoSlice) (cs lg : Loc) (kv be : GoInterface) (dq : DFrac)
     (RC RC' RS RS' : IProp GF) (Qd : backend.Data → IProp GF) (γs : ServerRaftNames),
-  GMap.size γs.raft.cfg ≤ 2 ^ 20 → st.ents = [] ∧ st.ctx = [] ∧ st.resps = [] →
+  uint.Z ci ≤ uint.Z snapi → GMap.size γs.raft.cfg ≤ 2 ^ 20 → st.ents = [] ∧ st.ctx = [] ∧ st.resps = [] →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvLgAddr s ↦□ lg ∗ zapLoggerOk lg ∗ srvLgReader s ∗
       srvKVAddr s ↦□ kv ∗ srvKVCommitOk kv RC RC' ∗ RC ∗
       srvBeAddr s ↦{dq} be ∗ srvBeSnapOk be RS RS' (fun D =>
-        iprop(Qd D ∗ ∃ m : MetaCI, ⌜metaIs D m ∧ uint.Z m.1 ≤ uint.Z snapi⌝)) ∗ (RC' -∗ RS) ∗
+        iprop(Qd D ∗ ⌜∃ term : w64, metaIs D (ci, term)⌝)) ∗ (RC' -∗ RS) ∗
       msgOwn ml (DFrac.own 1) st ∗ pbMsg go_etcd_io.raft.v3.raftpb.Message ml [] ∗
       epCsVoters γs cs ∗ threadTok }}
     (App (App (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!!

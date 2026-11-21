@@ -1091,7 +1091,7 @@ generated protobuf descriptors), which the trust-boundary axiom `opaqueInitsOk` 
 )
 
 SPECIAL['go_etcd_io.etcd.api.v3.version'] = dict(
-    doc='''Its fact (`server/v3/lease/Base.lean`): `Version` holds `"3.8.0-alpha.0"`, `V3_6` a fixed value and
+    doc='''Its fact (`api/v3/version/PkgInit.lean`): `Version` holds `"3.8.0-alpha.0"`, `V3_6` a fixed value and
 `MinClusterVersion` `"3.0.0"`. Its initializer allocates and sets its translated string variables
 (`version.go`: `MinClusterVersion`, `Version`, `APIVersion`, `GitSHA`; translated since 2026-11-19,
 until then the trust-boundary axioms `Version_init` and `MinClusterVersion_init`) and runs its other
@@ -1713,15 +1713,16 @@ the trust-boundary axiom `opaqueInitsOk` says run.''',
                               'try wp_auto',
                               'wp_apply wp_string_to_bytes go!"authEnabled" as %sae ⟨Hsae, -⟩', 'try wp_auto',
                               'wp_apply wp_string_to_bytes go!"authRevision" as %sar ⟨Hsar, -⟩', 'try wp_auto',
-                              'wp_apply wp_string_to_bytes go!"term" as %sterm ⟨Hsterm, -⟩', 'try wp_auto']
-                             + [l for n in ['confState', 'clusterVersion', 'downgrade', 'storageVersion', '']
+                              'wp_apply wp_string_to_bytes go!"term" as %sterm ⟨Hsterm, -⟩', 'try wp_auto',
+                              'wp_apply wp_string_to_bytes go!"confState" as %sconf ⟨Hsconf, -⟩', 'try wp_auto']
+                             + [l for n in ['clusterVersion', 'downgrade', 'storageVersion', '']
                                 for l in (f'wp_apply wp_string_to_bytes go!"{n}" as %_ ⟨-, -⟩', 'try wp_auto')],
     },
     finish=['ipersist Hskey', 'ipersist Hsmeta', 'ipersist Hsci', 'ipersist Hsterm',
             'ipersist Hsen', 'ipersist Hsdis', 'ipersist Hsauth', 'ipersist Hsausers', 'ipersist Hsaroles',
             'ipersist Hsae', 'ipersist Hsar',
             'ipersist HKey', 'ipersist HMeta', 'ipersist HMetaConsistentIndexKeyName',
-            'ipersist HMetaTermKeyName', 'ipersist HAuth', 'ipersist HAuthUsers', 'ipersist HAuthRoles',
+            'ipersist HMetaTermKeyName', 'ipersist HMetaConfStateName', 'ipersist Hsconf', 'ipersist HAuth', 'ipersist HAuthUsers', 'ipersist HAuthRoles',
             'ipersist HAuthEnabledKeyName', 'ipersist HAuthRevisionKeyName', 'ipersist HauthEnabled',
             'ipersist HauthDisabled', 'ipersist Hslease', 'ipersist HLease'] + FIN_PRE[:6] + ['imodintro',
             'unfold schemaInit bucketIs metaName ciKeyBytes termKeyBytes keyName authName authUsersName authRolesName leaseName',

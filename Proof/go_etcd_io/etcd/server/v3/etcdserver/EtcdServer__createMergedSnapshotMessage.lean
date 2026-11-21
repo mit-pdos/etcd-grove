@@ -68,7 +68,7 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_caughtUp
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG)) :
     EtcdServer.createMergedSnapshotMessage.specCaughtUp (GF := GF) (hG := hG) := by
-  intro s ml st snapt snapi terms cs lg kv be dq RC RC' RS RS' Qd γs Hsz20 Hsh
+  intro s ml st snapt snapi ci terms cs lg kv be dq RC RC' RS RS' Qd γs hci Hsz20 Hsh
   wp_start as ⟨#Hlgf, #Hlgnn, Hlr, #Hkvf, Hkc, HRC, Hbef, Hbs, HRS, Hm, #Huf, #Hcs, Htok⟩
   (try wp_auto)
   wp_apply hLg s lg $$ [Hlr] as ⟨-, Hlr⟩
@@ -101,14 +101,14 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_caughtUp
   iunfold backend.snapOpen at Hsn
   icases Hsn with ⟨%γd, Hsn⟩
   (try wp_auto)
-  icases HQ with ⟨HQ, %mCI, %hmCI⟩
-  wp_apply snapshot_read_cindex_open hRead hUR hID hName hSafe sp γd D 1 mCI hmCI.1 $$ [Hsn] as Hsn
+  icases HQ with ⟨HQ, %hmeta⟩
+  obtain ⟨storedTerm, hmeta⟩ := hmeta
+  wp_apply snapshot_read_cindex_open hRead hUR hID hName hSafe sp γd D 1 (ci, storedTerm) hmeta $$ [Hsn] as Hsn
   · iexact Hsn
   (try wp_auto)
   wp_if_destruct
   · exfalso
-    have := hmCI.2
-    omega
+    exact (by omega)
   -- `newSnapshotReaderCloser(lg, dbsnap)`, with half of the snapshot (its `Size` read after)
   icases (backend.snapOpenQ_half sp D γd 1).1 $$ Hsn with ⟨Hsn1, Hsn2⟩
   wp_apply hNSR lg sp D γd $$ [Hsn1] as %rc ⟨Htok, Hrc⟩

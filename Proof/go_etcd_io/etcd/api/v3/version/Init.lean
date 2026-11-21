@@ -2,7 +2,7 @@
 Package initialization of `go_etcd_io.etcd.api.v3.version`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact (`server/v3/lease/Base.lean`): `Version` holds `"3.8.0-alpha.0"`, `V3_6` a fixed value and
+Its fact (`api/v3/version/PkgInit.lean`): `Version` holds `"3.8.0-alpha.0"`, `V3_6` a fixed value and
 `MinClusterVersion` `"3.0.0"`. Its initializer allocates and sets its translated string variables
 (`version.go`: `MinClusterVersion`, `Version`, `APIVersion`, `GitSHA`; translated since 2026-11-19,
 until then the trust-boundary axioms `Version_init` and `MinClusterVersion_init`) and runs its other
@@ -12,7 +12,7 @@ reads, `opaqueInitsOk` the others.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.lease.Base
+public import Proof.go_etcd_io.etcd.api.v3.version.PkgInit
 public import Proof.github_com.Masterminds.semver.v3.Init
 public import Proof.runtime.PkgInitExt
 

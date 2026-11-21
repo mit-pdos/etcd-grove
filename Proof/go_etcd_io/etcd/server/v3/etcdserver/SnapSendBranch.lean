@@ -528,7 +528,7 @@ theorem mergedCreate_window
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (b : GoInterface) (st : ApplyState)
     (ai a t : w64) (A : List EntryModel) (x : apply.ApplyKV) (γw : GName) (γp : WTNames)
     (ua kv : GoInterface)
-    (hok : loopOk γ st ai) (hci : ciEff γ st.k = ai)
+    (hok : loopOk γ st ai)
     -- (#7-on, `lean`'s) the buckets lent to the window (the auth buckets, with auth on)
     (SA : GoString → Prop) (QA : GMap GoString backend.BktData → Prop) (RA : IProp GF)
     (hSA : ∀ n, SA n → n ∈ restBuckets) :
@@ -540,11 +540,12 @@ theorem mergedCreate_window
     |={⊤}=> ∃ (be : GoInterface) (dq : DFrac) (RC RC' RS RS' : IProp GF)
         (Qd : backend.Data → IProp GF),
       srvKVCommitOk kv RC RC' ∗ RC ∗ srvBeAddr s ↦{dq} be ∗
-      srvBeSnapOk be RS RS' Qd ∗ (RC' -∗ RS) ∗
+      srvBeSnapOk be RS RS' (fun D => iprop(Qd D ∗
+        ⌜∃ term : w64, metaIs D (ciEff γ st.k, term)⌝)) ∗ (RC' -∗ RS) ∗
       (∀ D : backend.Data, RS' -∗ Qd D -∗ srvBeAddr s ↦{dq} be ={⊤}=∗ ∃ st' : ApplyState,
         apply.applyTok E ∗ applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗
         srvApplyKVCore s E γw x ua ∗ srvRestM E.authOn E γr A ∗
-        mergedImgM E.authMode E.lg γr ai A x.log x.crev D ∗
+        mergedImgM E.authMode E.lg γr (ciEff γ st.k) A x.log x.crev D ∗
         RA ∗ ⌜(∃ r, QA r ∧ ∀ n, SA n → D.lookup n = r.lookup n) ∧
           loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝) := by
   haveI := srvApi.kvStoreInvG_persistent hPers E.kv E.γ E.Nx E.Cp E.γs
@@ -665,7 +666,7 @@ theorem mergedCreate_window
       mvcc.api.mvccBackend E.γ 1 (mvcc.api.etcdStorage d) (E.Pk d)))
   iexists (fun D : backend.Data =>
     iprop(srvApi.wStQ (GF := GF) E.γs E.stq x.log x.crev ∗
-      mergedImgM E.authMode E.lg γr ai A x.log x.crev D ∗
+      mergedImgM E.authMode E.lg γr (ciEff γ st.k) A x.log x.crev D ∗
       ⌜∃ ra, QA ra ∧ ∀ n, SA n → D.lookup n = ra.lookup n⌝))
   isplitr
   · iapply srvKVCommitOk_of_kv hsh kv E.γ 1 (mvcc.api.etcdStorage d) (E.Pk d)
@@ -718,18 +719,20 @@ theorem mergedCreate_window
     rw [backend.hkData_lookup, ciKeys_hk hcK (Or.inl rfl)] at hci1
     rw [backend.hkData_lookup, ciKeys_hk hcK (Or.inr rfl)] at ht1
     isplitl
-    · iunfold mergedImgM
-      isplitr
-      · ipureintro
-        exact ⟨by rw [← hci]; simpa using hci1, ⟨t1, by simpa using ht1⟩,
-          bkRestAtM_of_obs E γr A d f D hRB hrbD Hfb, Hre⟩
-      iexists u; iexact Him
-    ipureintro
-    obtain ⟨ra, hQA, hraD⟩ := hraD
-    refine ⟨ra, hQA, fun n h => ?_⟩
-    have := hraD n h
-    simp only [backend.rbData_lookup, hRB n (hSA n h), ↓reduceIte] at this
-    exact this
+    · isplitl
+      · iunfold mergedImgM
+        isplitr
+        · ipureintro
+          exact ⟨by simpa using hci1, ⟨t1, by simpa using ht1⟩,
+            bkRestAtM_of_obs E γr A d f D hRB hrbD Hfb, Hre⟩
+        iexists u; iexact Him
+      ipureintro
+      obtain ⟨ra, hQA, hraD⟩ := hraD
+      refine ⟨ra, hQA, fun n h => ?_⟩
+      have := hraD n h
+      simp only [backend.rbData_lookup, hRB n (hSA n h), ↓reduceIte] at this
+      exact this
+    ipureintro; exact ⟨t1, by simpa using hci1, by simpa using ht1⟩
   isplitl [Hopn Ht1 Hrb Hws]
   · iintro ⟨Hmr, HmB, HY, -⟩
     iframe Hmr HmB Hopn Ht1 HY Hrb Hws

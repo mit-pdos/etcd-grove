@@ -18,8 +18,12 @@ the term matches, including in the replay window.
 The Go regression reopens a database at index 7 with a recovered HardState
 commit of 3 and verifies the sent snapshot for both formats. The Lean
 proof now reads the index and term from the very transaction that the
-reader streams. The remaining proof must connect the configuration and
-the legacy term to the committed prefix, including after a power loss.
+reader streams. The apply thread can now open the snapshot with its actual backend
+index even while the cursor is behind. Lean also follows the schema reader
+to its nil return on a pre-3.5 image missing the ConfState key, preserving
+the same snapshot for streaming. The remaining proof must connect the
+configuration and the legacy term to the committed prefix, including
+after a power loss.
 [Replay issue and regression](../issues/etcd-merged-snapshot-replay-failure.md).
 
 ## The two MemoryStorage writers and the apply job
