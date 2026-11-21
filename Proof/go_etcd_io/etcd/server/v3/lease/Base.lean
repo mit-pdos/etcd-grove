@@ -34,7 +34,7 @@ public import Perennial.Proof.context
 public import Perennial.Proof.errors
 public import Perennial.Proof.sort
 public import Code.go_etcd_io.etcd.api.v3.version
-public import GeneratedProof.go_etcd_io.etcd.api.v3.version
+public import Proof.go_etcd_io.etcd.api.v3.version.PkgInit
 public import Code.go_etcd_io.etcd.server.v3.lease.leasepb
 public import GeneratedProof.go_etcd_io.etcd.server.v3.lease.leasepb
 public import Code.container.heap

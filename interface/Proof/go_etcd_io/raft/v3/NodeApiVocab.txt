@@ -90,7 +90,8 @@ def ReadyRestFacts (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM
       uint.nat (phsNext st.hardState h).Commit' ≤ (readyDurable st.durable (phsNext st.hardState h) (some l) es).last ∧
         uint.nat st.hardState.Commit' < uint.nat l.snap.Metadata'.Index' ∧
           uint.nat l.snap.Metadata'.Index' ≤ uint.nat (phsNext st.hardState h).Commit' ∧
-            ∀ (e : EntryM), e ∈ es → uint.Z e.Type' ≤ 2
+            (∀ (e : EntryM), e ∈ es → uint.Z e.Type' ≤ 2) ∧
+              List.Pairwise (fun a b => uint.nat a.Term' ≤ uint.nat b.Term' ∧ uint.nat a.Index' < uint.nat b.Index') es
   | none =>
     uint.nat st.hardState.Commit' ≤ uint.nat (phsNext st.hardState h).Commit' ∧
       uint.nat (phsNext st.hardState h).Commit' ≤ (readyDurable st.durable (phsNext st.hardState h) none es).last ∧
@@ -105,7 +106,9 @@ def ReadyRestFacts (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM
                           uint.nat (readyDurable st.durable (phsNext st.hardState h) none es).base.index']? =
                       some (LogEntry.toEntryM (W64 (↑st.delivered.length + 1 + ↑j)) e)) ∧
               (∀ (e0 : EntryM), es.head? = some e0 → uint.nat st.hardState.Commit' < uint.nat e0.Index') ∧
-                ∀ (e : EntryM), e ∈ es → uint.Z e.Type' ≤ 2
+                (∀ (e : EntryM), e ∈ es → uint.Z e.Type' ≤ 2) ∧
+                  List.Pairwise (fun a b => uint.nat a.Term' ≤ uint.nat b.Term' ∧ uint.nat a.Index' < uint.nat b.Index')
+                    es
 
 def LogEntry.ofEntryM (e : EntryM) : LogEntry :=
   { term := e.Term', type := e.Type', data := e.Data' }

@@ -3863,6 +3863,35 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   leader) supply them. Not applied: it changes the server's lessor contract.
 - **Decision.** Open (the axiom stays).
 
+## 2026-11-21: `v3rpc.NewMaintenanceServer` lacks the watchable store's `isMvcc` (prove-ps2-nms)
+
+- **Spec.** `v3rpc.NewMaintenanceServer.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/`; a
+  trust-boundary axiom until this change).
+- **Defect.** Not provable over the real code: the body calls `s.KV().HashStorage()` (`maintenance.go:101`), and
+  mvcc's `KV.HashStorage.contract` takes the store's `isMvcc`; the premise gave only `srvKVAddr s ↦□ wsIface wsl`,
+  the field's value, which the type `*watchableStore` alone does not make a store.
+- **Evidence.** The translation (`Code/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc.lean`,
+  `NewMaintenanceServer.impl`); `Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.lean`, `KV.HashStorage.contract`.
+- **Proposed change.** The spec takes `∀ γ` and the persistent `□ mvcc.api.isMvcc (v3rpc.wsIface wsl) γ` (the
+  user's rule of 2026-11-21: a persistent ownership premise every caller discharges). Its one caller, `v3rpc.Server`,
+  gets it from `v3rpc.grpcCfgOk`, which gains `□ isMvcc (wsIface C.wsl) C.E.γ`; the two places building it
+  (`client.grpcCfgOk_of_started`, `_ofStartedM`) have it from `srvWatchBuilt` (`isMvcc E.kv E.γ`, `E.kv = wsIface wsl`).
+- **Decision.** Applied (prove-ps2-nms, 2026-11-21): the function is proved, the axiom retired.
+## 2026-11-21 · the backend image can be ahead of the merged snapshot's apply cursor
+
+- **Spec.** `EtcdServer.createMergedSnapshotMessage` and `MemoryStorage.Entries`.
+- **Defect.** The old sender postcondition fixed the label at the apply cursor.
+  A restarted leader may already have a later committed image. The storage
+  read postcondition allowed a strict prefix even for an unlimited read.
+- **Evidence.** The Go regression reopens an image at index 7 with entry
+  term 2 and recovered commit 3. The Raft storage implementation returns
+  the entire requested interval for an unlimited successful read.
+- **Decision.** The implementation proof uses the image's index, its entry
+  term, and its configuration. It reads the initial log from the actual
+  MemoryStorage before RestartNode and maintains an immutable history per
+  Ready. The public storage spec retains the bounded-read prefix guarantee
+  and identifies the complete interval for the unlimited case.
+  [Replay regression](../../issues/etcd-merged-snapshot-replay-failure.md).
 ## 2026-11-21: `FollowerStats.Fail` takes the stats' mutex (prove-ps2)
 
 - **Spec.** `v2stats.FollowerStats.Fail.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v2stats/`; a

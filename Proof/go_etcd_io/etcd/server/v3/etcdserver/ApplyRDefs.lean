@@ -118,6 +118,25 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
+/-- The replay changes only the members: its buckets are the backend log's model's. -/
+theorem restReplay_bk (γr : ReadNames) (rp : RestartPt) (G : List EntryModel) :
+    (restReplay γr rp G).bk = (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ rp.A₀)).bk := by
+  unfold restReplay
+  rw [fold_restEntryV2]
+
+/-- The leases' records written over two images with the same buckets have the same buckets. -/
+theorem restLeasesWith_bk_congr (f : w64 → w64) (ids : List w64) (r r' : apply.RestM)
+    (h : r.bk = r'.bk) : (apply.restLeasesWith f ids r).bk = (apply.restLeasesWith f ids r').bk := by
+  unfold apply.restLeasesWith
+  induction ids generalizing r r' with
+  | nil => exact h
+  | cons id ids ih =>
+    simp only [List.foldl_cons]
+    apply ih
+    unfold apply.restGrantT
+    rw [apply.RestM.putIn_bk, apply.RestM.putIn_bk, h]
+
+
 /-- **A first start's** rest buckets are lean's. -/
 theorem srvRestR_first (E : apply.AEnv GF) (γr : ReadNames) (G : List EntryModel) :
     srvRestR E γr RestartPt.first G = srvRest E γr G := by
