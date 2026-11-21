@@ -3,8 +3,11 @@
 # hypotheses>`. The watch cache's reads (KEP-6404, notes/kep-6404-plan.md); the results are in
 # the namespace `cacher`.
 #
+# k8s.io/utils/trace's `FromContext` and component-base's `tracing.SpanFromContext` (prove-metrics3,
+# 2026-11-21: proved over the real code)
+trace_FromContext:
+tracing_SpanFromContext: trace_FromContext
 # the trust boundary: names-only functions (axioms)
-tracing_SpanFromContext:
 Span__AddEvent:
 HistogramVec__WithContext:
 time_Duration__Seconds:

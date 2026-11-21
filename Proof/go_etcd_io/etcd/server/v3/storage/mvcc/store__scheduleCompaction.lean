@@ -287,7 +287,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   ihave #HcfgS := Hcfg
   iStructNamedSuffix HcfgS "C"
   (try wp_auto)
-  wp_apply h3 as %hv %Hhv
+  wp_apply h3 as %hv ⟨Hok, %Hhv⟩
   (try wp_auto)
   wp_apply wp_slice_make2 (V := w8) (W64 17) as %lastS ⟨HlastS, HlastC⟩
   · ipureintro; decide
@@ -308,7 +308,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   ihave HI : iprop(∃ (lst : GoSlice) (bs : List w8) (kc : w64) (hv' : kvHasher) (D : List GoString),
       "last" ∷ last_ptr ↦ lst ∗ "HlastS" ∷ lst ↦* bs ∗ "HlastC" ∷ ownSliceCap w8 lst (DFrac.own 1) ∗
       "%Hbs" ∷ ⌜bs.length = 17⌝ ∗ "keyCompactions" ∷ keyCompactions_ptr ↦ kc ∗
-      "h" ∷ (h_ptr ↦ hv' ∗ ⌜mvcc.kvHasherOk hv'⌝) ∗
+      "h" ∷ (h_ptr ↦ hv' ∗ mvcc.kvHasherOk hv' ∗ ⌜hv'.keep' = keep⌝) ∗
       "%HD" ∷ ⌜sint.Z kc = D.length ∧ D.Nodup ∧
         ∀ k ∈ D, mvcc.sc_space log (sint.Z rev) k ∧ go.GoStringLt k bs⌝ ∗
       -- (the snapshot image's tracking) the job's half of the cursor: the last job's before the
@@ -316,12 +316,12 @@ theorem mvcc.store.scheduleCompaction.wp_proof
       "Hjc" ∷ (∃ jcv : Int × mvcc.Rev, mvcc.jobCur γ jcv ∗
         ⌜jcv.1 ≤ sint.Z rev ∧ (bs = List.replicate 17 (W8 0) ∨
           (jcv.1 = sint.Z rev ∧ mvcc.snap.bsCur bs jcv.2))⌝))
-    $$ [last HlastS HlastC keyCompactions h Hjc0]
+    $$ [last HlastS HlastC keyCompactions h Hok Hjc0]
   · iexists lastS, _, W64 0, hv, []
     simp only [named]
     iframe
     ipureintro
-    refine ⟨by simp, Hhv, by simp, Hjc0, Or.inl rfl⟩
+    refine ⟨by simp, Hhv.2.2, by simp, Hjc0, Or.inl rfl⟩
   wp_for HI
   wp_apply +noauto time.wp_Now as %tst -
   -- (question 5's core stage) a receipt for the session's write-back token
@@ -446,7 +446,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   ihave %Hkl := ownSlice_len _ _ _ $$ Hks
   ihave IH : iprop(∃ (n k kc : w64) (hv : kvHasher) (rv : Revision) (D : List GoString),
       "i" ∷ i_ptr ↦ n ∗ "Higo" ∷ igo ↦ k ∗ "keyCompactions" ∷ keyCompactions_ptr ↦ kc ∗
-      "h" ∷ (h_ptr ↦ hv ∗ ⌜mvcc.kvHasherOk hv⌝) ∗ "rev" ∷ rev_ptr ↦ rv ∗
+      "h" ∷ (h_ptr ↦ hv ∗ mvcc.kvHasherOk hv ∗ ⌜hv.keep' = keep⌝) ∗ "rev" ∷ rev_ptr ↦ rv ∗
       "Hlocked" ∷ (∃ c : Nat, U c ∗ ⌜L.length + 1 ≤ c + sint.nat n⌝) ∗
       "HMW" ∷ (∃ (X : backend.VData) (pc' : mvcc.Rev),
         mvcc.kbMWv γ.kb γ.bucket (mvcc.recBytes fin, mvcc.recBytes sched) X ∗
@@ -620,17 +620,17 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     wp_apply wp_load_slice_index vs (sint.Z n) vss DFrac.discard vsl Hn.1 $$ [$Hvs] as -
     · ipureintro; exact Hkv.2
     (try wp_auto)
-    icases h with ⟨h, %Hhv⟩
+    icases h with ⟨h, Hok, %Hhv⟩
     -- (backend-cmp, 3.5; R2-3) the key and its value read together under the range's token
     icases Hlocked with ⟨%c', Hlocked, %Hc'⟩
     ihave #Hcap2' := Hcap2 $$ %c'
     iunfold mvcc.rdCap2 at Hcap2'
     icases Hcap2' $$ %ksl %vsl %e.1 %e.2 Hksl Hvsl Hlocked with ⟨%dqk, %dqv, Hkp, Hvp, Hkvback⟩
     wp_apply (h5 h_ptr hv keep (DFrac.own 1) A ksl vsl e.1 e.2 dqk dqv)
-      $$ [$h $Hkeep $Hkp $Hvp] as ⟨⟨%hv2, h⟩, Hkeep, Hkp, Hvp⟩
+      $$ [$h $Hok $Hkeep $Hkp $Hvp] as ⟨h, Hok, Hkeep, Hkp, Hvp⟩
     · iframe #
       ipureintro
-      exact ⟨Hhv, r, _, Hkb, by cases t <;> simp, Hr0, Hs0⟩
+      exact ⟨⟨r, _, Hkb, by cases t <;> simp, Hr0, Hs0⟩, Hhv⟩
     ihave Hlocked := Hkvback $$ Hkp Hvp
     (try wp_auto)
     wp_for_post
@@ -656,7 +656,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     iframe
     ihave Hlocked : iprop(∃ cc : Nat, U cc ∗ ⌜L.length + 1 ≤ cc + sint.nat (n + W64 1)⌝) $$ [Hlocked]
     · iexists c'; iframe Hlocked; ipureintro; rw [Hn1]; exact Hc'
-    iexists n + W64 1, n, kc', hv2, mvcc.revVal r, D'
+    iexists n + W64 1, n, kc', hv, mvcc.revVal r, D'
     simp only [named]
     iframe
     ipureintro
@@ -672,7 +672,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
       right
       simp only [mvcc.revOf, mvcc.revVal]
       refine ⟨?_, ?_⟩ <;> first | trivial | rfl | word
-    refine ⟨⟨by word, by word⟩, HD'.1, HD'.2.1, HD'.2.2.1, ?_, Or.inr ?_⟩
+    refine ⟨Hhv, ⟨by word, by word⟩, HD'.1, HD'.2.1, HD'.2.2.1, ?_, Or.inr ?_⟩
     · intro k hk j hj hnj
       rcases HD'.2.2.2 k hk with rfl | hk
       · exact Hnext j hj (by omega)
@@ -751,9 +751,8 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     (try wp_auto)
     wp_apply HPause
     (try wp_auto)
-    icases h with ⟨h, %Hhv⟩
-    wp_apply h7 h_ptr hv $$ [$h] as %hash h
-    · ipureintro; exact Hhv
+    icases h with ⟨h, Hok, %Hhv⟩
+    wp_apply h7 h_ptr hv $$ [$h $Hok] as %hash ⟨h, Hok⟩
     (try wp_auto)
     wp_apply HSize as %sz -
     wp_apply HSizeU as %szu -

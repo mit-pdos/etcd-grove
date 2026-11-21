@@ -52,15 +52,6 @@ axiom binary.WriteUint8.wp_proof
 axiom bufferM.ownBuffer_new
 axiom bytes.Buffer.Write.wp_proof
 axiom ccDecodeV2_nil
-axiom clockwork.NewRealClock.wp_proof
-axiom clockwork.clockLb
-axiom clockwork.clockLb_init
-axiom clockwork.clockLb_le
-axiom clockwork.clockLb_persistent
-axiom clockwork.realClock
-axiom clockwork.stampAt
-axiom clockwork.stampAt_elim
-axiom clockwork.stampAt_persistent
 axiom config.ServerConfig.BackendPath.wp_proof
 axiom context.WithValue.wp_proof
 axiom context.madeCancelCtx_of_isCancelCtx
@@ -103,9 +94,7 @@ axiom http.respReadAny_of_ok
 axiom http.respWriteHeader_ok
 axiom http.respWrite_ok
 axiom httputil.GracefulClose.wp_proof
-axiom io.CopyN.wp_proof
 axiom io.MultiReader.wp_proof
-axiom io.NewSectionReader.wp_proof
 axiom io.Pipe.wp_proof
 axiom io.PipeWriter.CloseWithError.wp_proof
 axiom lease.NewLessor.wp_proof
@@ -129,9 +118,6 @@ axiom metadata.FromIncomingContext.wp_proof
 axiom monitorFileDescriptor.wp_proof
 axiom msgEncC_ok
 axiom mvcc.hashStorage.Store.wp_proof
-axiom mvcc.kvHasher.Hash.wp_proof
-axiom mvcc.kvHasher.WriteKeyValue.wp_proof
-axiom mvcc.newKVHasher.wp_proof
 axiom os.Getenv.wp_proof
 axiom pbEntryC_reg
 axiom pbHsC_reg
@@ -169,7 +155,6 @@ axiom proto.UnmarshalUser.wp_proof
 axiom rafthttp.Transport.ActiveSince.wp_proof
 axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.netErrNotRemoved_ok
-axiom rate.Every.wp_proof
 axiom rate.Limiter.Wait.wp_proof
 axiom recEncC_ok
 axiom reflect.DeepEqual.wp_proof_pgidSet
@@ -191,14 +176,10 @@ axiom snap.Snapshotter.SaveDBFrom.wp_proof
 axiom snapEncC_ok
 axiom sort.SliceIsSorted.wp_proof
 axiom sort.Sort.wp_anyLess
-axiom sort.Stable.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
 axiom strings.Contains.wp_proof
 axiom strings.ToLower.wp_proof
-axiom time.Duration.Seconds.wp_proof
-axiom time.Duration.Seconds_ptr.wp_proof
-axiom time.Duration.String_ptr.wp_proof
 axiom traceutil.Trace.LogWithStepThreshold.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
 axiom transport.NewTimeoutTransport.wp_proof
@@ -220,6 +201,5 @@ axiom version.Cluster.wp_proof
 axiom zap.Logger.Fatal.wp_proof
 axiom zap.Logger.Panic.wp_proof
 axiom zap.Logger.check.wp_proof
-axiom zap.NewNop.wp_proof
 axiom zap.Stack.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof

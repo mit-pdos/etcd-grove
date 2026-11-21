@@ -61,7 +61,6 @@ axiom grpc_prometheus.NewServerMetrics.wp_proof
 axiom grpc_prometheus.ServerMetrics.InitializeMetrics.wp_proof
 axiom grpc_prometheus.ServerMetrics.StreamServerInterceptor.wp_proof
 axiom grpc_prometheus.ServerMetrics.UnaryServerInterceptor.wp_proof
-axiom grpc_prometheus.WithServerHandlingTimeHistogram.wp_proof
 axiom health.NewServer.wp_proof
 axiom health.Server.SetServingStatus.wp_proof
 axiom lease.lessor.Renew.wp_proof
@@ -69,9 +68,6 @@ axiom leasehttp.RenewHTTP.wp_proof
 axiom metadata.FromIncomingContext.wp_proof
 axiom mvcc.ReportEventReceived.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof
-axiom mvcc.kvHasher.Hash.wp_proof
-axiom mvcc.kvHasher.WriteKeyValue.wp_proof
-axiom mvcc.newKVHasher.wp_proof
 axiom os.Getenv.wp_proof
 axiom otelgrpc.NewServerHandler.wp_proof
 axiom pbAuthEnableRequestT_reg
@@ -85,7 +81,6 @@ axiom pbAuthUserAddResponseT_reg
 axiom pbAuthUserGrantRoleRequestT_reg
 axiom pbAuthUserGrantRoleResponseT_reg
 axiom promSrvMetrics
-axiom promSrvMetricsOpt
 axiom promSrvMetrics_persistent
 axiom prometheus.CounterVec.WithLabelValues.wp_proof
 axiom prometheus.HistogramVec.WithLabelValues.wp_proof
@@ -99,14 +94,11 @@ axiom reflect.DeepEqual.wp_proof_pgidSet
 axiom reflect.ValueOf.wp_proof
 axiom sort.SliceIsSorted.wp_proof
 axiom sort.Sort.wp_anyLess
-axiom sort.Stable.wp_proof
 axiom status.Error.wp_proof
 axiom status.Errorf.wp_proof
 axiom status.FromError.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom strings.ToLower.wp_proof
-axiom time.Duration.Seconds.wp_proof
-axiom time.Duration.Seconds_ptr.wp_proof
 axiom traceutil.Trace.LogWithStepThreshold.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
 axiom types.NewURLs.wp_proof
@@ -120,6 +112,5 @@ axiom v3rpc.wp_WithTimeout_weak
 axiom zap.Logger.Fatal.wp_proof
 axiom zap.Logger.Panic.wp_proof
 axiom zap.Logger.check.wp_proof
-axiom zap.NewNop.wp_proof
 axiom zap.Stack.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof

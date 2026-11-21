@@ -30,9 +30,6 @@ axiom grpcSrvNew
 axiom grpcWrotePeer
 axiom mvcc.ReportEventReceived.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof
-axiom mvcc.kvHasher.Hash.wp_proof
-axiom mvcc.kvHasher.WriteKeyValue.wp_proof
-axiom mvcc.newKVHasher.wp_proof
 axiom netListenerAt
 axiom os.Getenv.wp_proof
 axiom pbCompactionRequestT_reg
@@ -57,15 +54,11 @@ axiom reflect.DeepEqual.wp_proof_pgidSet
 axiom reflect.ValueOf.wp_proof
 axiom sort.SliceIsSorted.wp_proof
 axiom sort.Sort.wp_anyLess
-axiom sort.Stable.wp_proof
 axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom streamKeyFromCtx.wp_proof
 axiom strings.ToLower.wp_proof
-axiom time.Duration.Seconds.wp_proof
-axiom time.Duration.Seconds_ptr.wp_proof
-axiom time.Duration.String.wp_proof
 axiom traceutil.Trace.LogWithStepThreshold.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
 axiom v3rpc.pbWatchRequestT_reg

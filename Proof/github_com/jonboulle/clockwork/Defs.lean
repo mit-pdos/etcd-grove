@@ -1,42 +1,36 @@
 /-
-clockwork's `Clock` as the auto-compactor uses it (`github.com/jonboulle/clockwork`, names only): the
-trust boundary of the spec-first pilot (`notes/compactor-pilot-plan.md`, "Phase 1: the design of
-the skeleton"). Lean-first (no Rocq counterpart).
+clockwork's `Clock` as the auto-compactor uses it (`github.com/jonboulle/clockwork`): the spec-first
+pilot's clock (`notes/compactor-pilot-plan.md`, "Phase 1: the design of the skeleton"). Lean-first.
 
-**The clock** is a ghost quantity `γc`, the real clock's monotonic reading in nanoseconds, which
-only the environment advances. Its predicates are axioms, as bbolt's are (`InvBbolt.lean`): what
-they mean is the trust boundary, stated here.
-- `clockLb γc n` (persistent): the clock has reached `n`.
-- `stampAt γc P T` (persistent): the persistent fact `P` held when the clock read `T`. It is
-  produced only by `After`, which reads the clock when called (`stampAt_intro` is not a law: a
-  stamp cannot be made up afterwards, or `P` could be one learned later than `T`).
-- `realClock`: the name of the real clock, which every `NewRealClock()` reads.
-- `clockOk γc clk` (persistent): `clk` is a clock over `γc`: `Now()` returns (its value is not
-  used for safety), and `After(d)` returns, for any persistent `P` and clock bound `clockLb γc n`
-  the caller holds, a reading `T ≥ n` of the clock at the call, a stamp of `P` at `T`, and a channel
-  whose value comes only once the clock has reached `T + d` (`T ≥ n` is what lets waits chain:
-  after `k` waits of `d` from a bound `n`, the clock is past `n + k·d`).
+Until 2026-11-21 these predicates were axioms (the trust boundary); they are now defined over
+Perennial's model of the runtime's monotonic clock (`Perennial/TrustedCode/time.lean`, "The runtime's
+monotonic clock"; `time.clockLb`, `Perennial/Proof/time/Base.lean`), and `NewRealClock` with
+`realClock`'s `Now` and `After` are proved over clockwork v0.5.0's code.
+- `clockLb γc n` (persistent): the clock has reached `n` (for `n > 2^63 - 1`: it has reached
+  `2^63 - 1`, where Go's clock and timers saturate).
+- `stampAt γc P T` (persistent, sealed): the persistent fact `P` held when the clock read `T`. Its
+  only producer is `time.After` (`wp_After_stamp`), which stamps a fact the caller holds with the
+  reading at the call; no law makes one up.
+- `realClock`: the real clock, the only `ClockName`.
+- `clockOk γc clk` (persistent): `clk` is a clock over `γc`: `Now()` returns (its value is not used
+  for safety), `After(d)` returns, for any persistent `P` and bound `clockLb γc n` the caller holds,
+  a reading `T ≥ n`, a stamp of `P` at `T`, and a channel whose value comes only once the clock has
+  reached `T + d`; and the clock has some bound (`clockLb_init`).
 
-**How to read results over these axioms.** They are lower bounds and stamps only, so they have a
-trivial model (`clockLb := True`, `stampAt P T := P`): no Lean result can rule out that model. A
-result's time content (a revision "at least `period` old") holds under the intended reading, that
-`clockLb` and `stampAt` speak of the real clock; that reading is the trust boundary, as the meaning
-of any environment axiom is (2026-10-27, the pilot's first spec review). What survives the trivial model is
-what does not mention the clock: in the compactor's C1, that the store had reached the compacted
-revision. The intended reading is what phase 2 tests (`notes/spec-first-plan.md`): a run under an
-instrumented clock, checking each stamp against the clock's readings. `Now()` gives nothing usable
-(Perennial's `Time.Sub` has no meaningful spec), which is why the compactor's first sample, timed only
-by `Now()`, gets the weaker bound (`v3compactor.perPermit`).
-
-Why this is true of clockwork v0.5.0's real clock (`clockwork.NewRealClock()`, the compactor's):
-`realClock.Now` is `time.Now()` and `realClock.After` is `time.After`; Go's `time.After(d)` fires
-no earlier than `d` after the call by the monotonic clock, which never goes back.
+**How to read results over these predicates.** `clockLb` speaks of the model's clock, which a
+program observes only through the timers; the trusted claim (Perennial's model) is that the
+machine's monotonic clock is one of the model clock's evolutions (Go's timers fire only once
+`nanotime() >= when`, and `nanotime` never goes back). A stamp's "`P` held at `T`" is not
+expressible in Iris beyond `□ P ∗ clockLb T`; the sealing keeps it to `After`'s stamps.
+`Now()` gives nothing usable (Perennial's `runtimeNow` readings are arbitrary), which is why the
+compactor's first sample, timed only by `Now()`, gets the weaker bound (`v3compactor.perPermit`).
 -/
 module
 
 public import Proof.github_com.jonboulle.clockwork.Base
 public import Perennial.Golang.Theory.Chan.Idioms.Bag
 public import Perennial.Proof.time.Base
+public import Perennial.Spec.time.After
 
 @[expose] public section
 
@@ -56,42 +50,89 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- The ghost name of a clock. -/
-abbrev ClockName := GName
+/-- The name of a clock: the real clock (`realClock`), the only one the proofs know. -/
+inductive ClockName where
+  /-- The runtime's monotonic clock, which every `NewRealClock()` reads (Go's monotonic clock is
+  the process's). -/
+  | real
 
-/-- **The real clock**: the one ghost clock `NewRealClock`'s clocks read (Go's monotonic clock is
-the process's). -/
-axiom realClock : ClockName
+/-- **The real clock**: the one clock `NewRealClock`'s clocks read. -/
+abbrev realClock : ClockName := .real
 
-axiom clockLb (γc : ClockName) (n : Int) : IProp GF
-axiom stampAt (γc : ClockName) (P : IProp GF) (T : Int) : IProp GF
+/-- The clock `γc` has reached `n`: for the real clock, Perennial's `time.clockLb n` (its model of the
+runtime's monotonic clock, `Perennial/Proof/time/Base.lean`; values above `2^63 - 1`, where Go's
+clock and timers saturate, count as `2^63 - 1`). -/
+def clockLb : ClockName → Int → IProp GF
+  | .real, n => time.clockLb n
 
-@[instance] axiom clockLb_persistent (γc : ClockName) (n : Int) :
-  Persistent (clockLb (GF := GF) γc n)
-@[instance] axiom stampAt_persistent (γc : ClockName) (P : IProp GF) (T : Int) :
-  Persistent (stampAt (GF := GF) γc P T)
+/-- The persistent fact `P` held when the clock `γc` read `T`: `P`, and the clock has reached `T`.
+Sealed (`@[no_expose]`): no law makes one up, so a stamp comes only from `After`, which stamps a fact
+the caller holds at the call with the clock's reading at the call. -/
+@[no_expose] def stampAt (γc : ClockName) (P : IProp GF) (T : Int) : IProp GF :=
+  iprop(□ P ∗ clockLb γc T)
 
-/-- The clock has some reading (a first bound for the caller's chain). -/
-axiom clockLb_init (γc : ClockName) : ⊢ ∃ n : Int, clockLb (GF := GF) γc n
+instance clockLb_persistent (γc : ClockName) (n : Int) :
+    Persistent (clockLb (GF := GF) γc n) := by
+  cases γc; unfold clockLb; infer_instance
+
+instance stampAt_persistent (γc : ClockName) (P : IProp GF) (T : Int) :
+    Persistent (stampAt (GF := GF) γc P T) := by
+  unfold stampAt; infer_instance
 
 /-- A lower bound of the clock is one of every smaller value. -/
-axiom clockLb_le (γc : ClockName) (n m : Int) (h : m ≤ n) :
-  clockLb (GF := GF) γc n ⊢ clockLb γc m
+theorem clockLb_le (γc : ClockName) (n m : Int) (h : m ≤ n) :
+    clockLb (GF := GF) γc n ⊢ clockLb γc m := by
+  cases γc; unfold clockLb; exact time.clockLb_le h
 
 /-- A stamped fact held (and, persistent, still holds). -/
-axiom stampAt_elim (γc : ClockName) (P : IProp GF) [Persistent P] (T : Int) :
-  stampAt (GF := GF) γc P T ⊢ P
+theorem stampAt_elim (γc : ClockName) (P : IProp GF) [Persistent P] (T : Int) :
+    stampAt (GF := GF) γc P T ⊢ P := by
+  unfold stampAt
+  iintro ⟨#HP, -⟩
+  iexact HP
 
 /-- A stamp is at a time the clock has reached. -/
-axiom stampAt_clockLb (γc : ClockName) (P : IProp GF) (T : Int) :
-  stampAt (GF := GF) γc P T ⊢ clockLb γc T
+theorem stampAt_clockLb (γc : ClockName) (P : IProp GF) (T : Int) :
+    stampAt (GF := GF) γc P T ⊢ clockLb γc T := by
+  unfold stampAt
+  iintro ⟨-, #H⟩
+  iexact H
+
+/-- **Where stamps come from**: Go's `time.After(d)` (over Perennial's spec, `time.After.spec`),
+which `realClock.After` calls: for a persistent `P` and a bound `clockLb n` the caller holds, the
+clock's reading `T ≥ n` at the call, a stamp of `P` at `T`, and a channel whose values come only once
+the real clock has reached `T + d`. -/
+theorem wp_After_stamp [github_com.jonboulle.clockwork.Assumptions]
+    (wp_After : time.After.spec (GF := GF) (hG := hG)) (d : time.Duration)
+    (P : IProp GF) (n : Int) :
+    ⊢ □ P -∗ clockLb realClock n -∗
+      {{ True }} (App (Val (@! time.After)) (Val #d))
+      {{ (ch : Loc) (γ : ChanNames), RET #ch; ∃ T : Int, ⌜n ≤ T⌝ ∗ stampAt realClock iprop(□ P) T ∗
+          isChanBag γ ch (V := time.Time) (fun _ => clockLb realClock (T + sint.Z d)) }} := by
+  iintro #HP #Hn
+  unfold clockLb
+  imodintro
+  iintro %Φ _ HΦ
+  wp_apply_core wp_After d n (fun T => time.clockLb (T + sint.Z d)) $$ [Hn]
+  · iframe Hn
+    iintro %T _ #H
+    iexact H
+  iintro %ch %γ %T ⟨%HT, #HTlb, #Hch⟩
+  iapply HΦ
+  iexists T
+  isplitr
+  · ipureintro; exact HT
+  iframe Hch
+  unfold stampAt clockLb
+  iframe #
 
 /-- **A clock** (`clk`, a `clockwork.Clock` interface value) over `γc`: `Now()` returns some time;
 `After(d)` reads the clock at the call, `T`, at least any bound `n` the caller holds, stamps any
 persistent `P` the caller holds at `T`, and returns a channel whose values come only once the clock
-has reached `T + d` (for any `d`: a negative one fires at once, as Go's `time.After` does). -/
+has reached `T + d` (for any `d`: a negative one fires at once, as Go's `time.After` does); and
+the clock has some reading (`clockLb_init`). -/
 def clockOk (γc : ClockName) (clk : GoInterface) : IProp GF :=
-  iprop(∃ ci : GoInterfaceOk, ⌜clk = GoInterface.ok ci⌝ ∗
+  iprop(∃ ci : GoInterfaceOk, ⌜clk = GoInterface.ok ci⌝ ∗ (∃ n : Int, clockLb γc n) ∗
     □ ({{ True }} (App (Val #(methods ci.ty go!"Now" ci.v)) (Val #()))
         {{ (t : time.Time), RET #t; True }}) ∗
     □ (∀ (d : time.Duration) (P : IProp GF) (n : Int), □ P -∗ clockLb γc n -∗
@@ -112,13 +153,20 @@ theorem clockOk_ok (γc : ClockName) (clk : GoInterface) :
   iintro ⟨%ci, %h, -⟩
   ipureintro; exact ⟨ci, h⟩
 
+/-- The clock has some reading (a first bound for the caller's chain). -/
+theorem clockLb_init (γc : ClockName) (clk : GoInterface) :
+    clockOk (GF := GF) γc clk ⊢ ∃ n : Int, clockLb γc n := by
+  unfold clockOk
+  iintro ⟨%ci, %h, #Hn, -⟩
+  iexact Hn
+
 /-- `Now()` returns (some time: the model gives no relation to `clockLb`). -/
 theorem clockOk_Now (γc : ClockName) (ci : GoInterfaceOk) :
     clockOk (GF := GF) γc (GoInterface.ok ci) ⊢
       {{ True }} (App (Val #(methods ci.ty go!"Now" ci.v)) (Val #()))
       {{ (t : time.Time), RET #t; True }} := by
   unfold clockOk
-  iintro ⟨%ci', %h, #HNow, -⟩
+  iintro ⟨%ci', %h, -, #HNow, -⟩
   cases h
   iexact HNow
 
@@ -131,7 +179,7 @@ theorem clockOk_After (γc : ClockName) (ci : GoInterfaceOk) (d : time.Duration)
       {{ (ch : Loc) (γ : ChanNames), RET #ch; ∃ T : Int, ⌜n ≤ T⌝ ∗ stampAt γc iprop(□ P) T ∗
           isChanBag γ ch (V := time.Time) (fun _ => clockLb γc (T + sint.Z d)) }} := by
   unfold clockOk
-  iintro ⟨%ci', %h, -, #HAfter⟩ #HP #Hn
+  iintro ⟨%ci', %h, -, -, #HAfter⟩ #HP #Hn
   cases h
   iapply HAfter $$ HP Hn
 

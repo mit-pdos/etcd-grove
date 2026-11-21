@@ -44,9 +44,6 @@ axiom grpcSrvCfgRaw
 axiom metadata.FromIncomingContext.wp_proof
 axiom mvcc.ReportEventReceived.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof
-axiom mvcc.kvHasher.Hash.wp_proof
-axiom mvcc.kvHasher.WriteKeyValue.wp_proof
-axiom mvcc.newKVHasher.wp_proof
 axiom os.Getenv.wp_proof
 axiom promSrvMetrics
 axiom prometheus.CounterVec.WithLabelValues.wp_proof
@@ -56,13 +53,10 @@ axiom rand.Int63n.wp_proof
 axiom reflect.DeepEqual.wp_proof_pgidSet
 axiom sort.SliceIsSorted.wp_proof
 axiom sort.Sort.wp_anyLess
-axiom sort.Stable.wp_proof
 axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
 axiom streamKeyFromCtx.wp_proof
 axiom strings.ToLower.wp_proof
-axiom time.Duration.Seconds.wp_proof
-axiom time.Duration.Seconds_ptr.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
 axiom v3rpc.ctxCauseOk_cancellable
 axiom v3rpc.pbWatchRequestT_reg
@@ -70,6 +64,5 @@ axiom v3rpc.pbWatchResponseT_reg
 axiom zap.Logger.Fatal.wp_proof
 axiom zap.Logger.Panic.wp_proof
 axiom zap.Logger.check.wp_proof
-axiom zap.NewNop.wp_proof
 axiom zap.Stack.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof

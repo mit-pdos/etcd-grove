@@ -33,6 +33,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.adt.Base
 public import Proof.go_etcd_io.etcd.server.v3.lease.Base
 public import Perennial.Proof.time
 public import Perennial.Proof.bytes
+public import Proof.hash.crc32.PkgInit
 public import Perennial.Proof.math
 public import Perennial.Proof.strings
 public import Perennial.Proof.io
