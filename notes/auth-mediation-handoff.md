@@ -2,8 +2,10 @@
 
 ## START HERE
 
-- **M4 implemented** (`a351492b8d`, approved by the user 2026-11-21): full build + land gates in progress or done,
-  see the last "M4 land stop" below. **M3 waits on Q4** (questions.md: the keys-only race; fork fix vs margin).
+- **M4 at its land stop** (approved by the user 2026-11-21): lean `a5dbbadebd` merged, full timed build
+  `20261121-043014-3987002` green, tcb `--check` matches (606, 2), 71 collections match, gen-link modes, interfaces
+  `--check --layout`, tier, gen-init, goose, mode 456, bounds 399, axiom-tok, auth-mediation and the other gate scripts
+  pass. Waits for etcd-grove-03 to land; do not commit to the branch until then. **M3 waits on Q4** (questions.md: the keys-only race; fork fix vs margin).
 - M0-M2 are on lean (`3c8804f01f`). M3/M4: worktree `/shared/etcd-grove-authm3`, branch `auth-mediation-m3`
   (off lean `3c8804f01f`), agent of etcd-grove-03. Pin c44b74871: `--packages=/shared/tmp/manifest-c44.json`,
   `PERENNIAL_DIR=/shared/perennial-c44b74871`. Decisions: `questions.md` (untracked, worktree root).
