@@ -37,7 +37,10 @@ package table `PkgTable.lean`) and `mvccrand.wp_Run` (`Link.lean`).
 **Its hypotheses** (S3e: no longer `dbOpenOk` and `dbCloseOk`, bbolt's `Open` and `Close` not
 failing, the user's decision of 2026-11-08: the semantics' steps do not fail on files, `etcdSQ`, and
 the backend's `Open_kv`/`DB.Close_kv` are theorems with no error case; the two are `True` now):
-* pure facts of the program's environment: `verifyEnvOff` (`ETCD_VERIFY` unset), and the
+* pure facts of the program's environment: `verifyEnvOff` (`ETCD_VERIFY` unset),
+  (etcdstorage, 2026-11-20, the user's decision) `namesUnclaimed` of `mvccrandNames` (no other code
+  of the run registers the metric names mvcc's, the lessor's, the backend's and auth's `init()`
+  register: the etcd examples' premise, now that those `init()`s are translated), and the
   execution's length
   (`n + 2 ≤ 2 ^ 28`: the thread bound, and with `N = n + 1` the receipt bound `2 ^ 38`);
 * the semantics: `go.Semantics`, the package assumptions (`mvccrand`'s, mvcc's, the server's,
@@ -110,6 +113,7 @@ theorem mvccrand_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hsort : ∀ hG : HeapGS .hasLC mvccrandGF,
       sort.Slice.spec (GF := mvccrandGF) (hG := heapWith hG lctx))
     (r : GoString)
+    (HNs : prometheus.namesUnclaimed (mvccrandProgram r) mvccrandNames)
     (HEnv : verifyEnvOff (mvccrandProgram r))
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (j0 : Fs.Ino)
@@ -125,8 +129,9 @@ theorem mvccrand_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   refine goose_adequacy_start (GF := mvccrandGF) (n + 1) (n + 2) (mvccrandProgram r) σ g
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) ⟨trivial, trivial, trivial⟩
-    ⟨trivial, Hfs, trivial⟩ [] [] [] List.nodup_nil List.nodup_nil List.nodup_nil
-    (fun _ h => absurd h List.not_mem_nil) (fun _ h => absurd h List.not_mem_nil)
+    ⟨trivial, Hfs, trivial⟩ github_com.mit_pdos.etcd_grove.examples.mvccrand.initNames [] []
+    (by decide +kernel) List.nodup_nil List.nodup_nil
+    (fun _ h => absurd h List.not_mem_nil) HNs
     (fun _ h => absurd h List.not_mem_nil) ⟨fun _ h => absurd h List.not_mem_nil, List.Pairwise.nil⟩
     HEnv ?_ n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads (realThreadsBelow_of_one Hthreads)
   intro hG HN HT HL
@@ -142,7 +147,7 @@ theorem mvccrand_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   haveI : ReceiptBoundLe mvccrandGF (2 ^ 38) := ⟨by rw [HN]; omega⟩
   iintro - Hl Hgs Htok Hrights
   iunfold startRights at Hrights
-  icases Hrights with ⟨-, -, -, -, #Hvoff⟩
+  icases Hrights with ⟨Hns, -, -, -, #Hvoff⟩
   have Hst : extsLocalStart (GF := mvccrandGF) σ.world ⊢
       Fs.osStart (Fs.gooseOsGS (L := (inferInstance : HeapGS .hasLC mvccrandGF).goose_localGS))
         (extLocal Fs.fsExt σ.world) :=
@@ -159,7 +164,8 @@ theorem mvccrand_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   icases BigSepL.bigSepL_cons.1 $$ Hfiles with ⟨Hfile, -⟩
   unfold mvccrandProgram
   wp_apply (github_com.mit_pdos.etcd_grove.examples.mvccrand.wp_initialize' _
-    github_com.mit_pdos.etcd_grove.examples.mvccrand.getIsPkgInit_wf) $$ Hown as ⟨-, #Hpkg⟩
+    github_com.mit_pdos.etcd_grove.examples.mvccrand.getIsPkgInit_wf) $$ [Hown Hns] as ⟨-, #Hpkg⟩
+  · iframe Hown; iunfold prometheus.namesFree; iexact Hns
   wp_apply (mvccrand.wp_Run Hsort' (mvccrandCfg r) (by unfold mvccrandCfg; word) (by unfold mvccrandCfg; word) (by unfold mvccrandCfg; word) (by unfold mvccrandCfg; word)
     (by unfold mvccrandCfg; word) (by unfold mvccrandCfg; word) trivial trivial) $$ [Hfile Htok]
     as %rep -

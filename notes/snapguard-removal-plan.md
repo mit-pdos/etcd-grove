@@ -1,5 +1,22 @@
 # Removing the merged snapshot's index guard (plan, 2026-11-20)
 
+## Server proof at the two channels
+
+Raft’s outgoing Ready observation now travels with the specific message in
+`msgSnapC`. The apply job receives the observation from its own Ready in
+`rnRtOk`, and the driver gets the installation receipt for a snapshot Ready.
+`srv_snapshot_index_le` compares both observations at the original send term.
+It covers the restored-log case and all three ways the server can fill memory
+storage. The stored-source case uses the tag from that attachment, the
+apply thread’s applied-index authority and the receipt for the local node.
+
+The concrete boot and restart wrapper returns its Raft tag pin. Its callers
+still select the ordinary validity predicate. The remaining integration must
+select the server tag when attaching memory storage, furnish it in both
+writers, and tie the node and delivered prefix to the apply job. The Go
+index check and replay-window failure are both still in the pin.
+
+
 ## Snapshot installation receipts for memory storage
 
 A Ready carrying a snapshot yields `nodeInstalledIndex` for this node

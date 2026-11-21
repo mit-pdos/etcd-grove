@@ -2,7 +2,9 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-axiom backend.ValidateCalledInsideUnittest.wp_proof : backend.ValidateCalledInsideUnittest.spec
+theorem backend.ValidateCalledInsideUnittest.wp_proof [verify_sem :
+    go_etcd_io.etcd.client.pkg.v3.verify.Assumptions] (hEnabled : verify.IsVerificationEnabled.spec)
+    : backend.ValidateCalledInsideUnittest.spec
   -- `Perennial.EtcdGrove.backend.ValidateCalledInsideUnittest.spec`, unfolded:
   ∀ (lg : Loc),
     ⊢

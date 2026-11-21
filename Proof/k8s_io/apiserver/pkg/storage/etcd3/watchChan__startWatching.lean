@@ -676,12 +676,13 @@ theorem watchChan.startWatching.wp_proof
   icases Hcwo' with ⟨%w, %Vw, #Hwf, #Hcw, %Hkst⟩
   ihave #Hwctx := context.watchCtx_of_isContext ctx (kCdw γ cd) $$ [Hctx Hoc]
   · iframe #
+  ihave ⟨%wom, #Hwom⟩ := context.watchCtx_outMD _ _ $$ Hwctx
   ihave #Hra' := Hra
   iunfold readAus at Hra'
   icases Hra' with ⟨#Hkr, -⟩
   obtain ⟨hrw, hnp, hsz, hnorm, hkey, hre, hpk⟩ := startOp_facts kp recur (r1 + W64 1) hkp hkpl
   have hrev1 : 1 ≤ sint.Z (r1 + W64 1) := by have := Hr1.2; word
-  wp_apply (client_Watch_field wp_Watch c.cl w Vw γk ctx (kCdw γ cd) kp osl (startOps recur (r1 + W64 1)) (r1 + W64 1)
+  wp_apply (client_Watch_field wp_Watch c.cl w Vw γk ctx (kCdw γ cd) wom kp osl (startOps recur (r1 + W64 1)) (r1 + W64 1)
       (Q 0) 0) $$ [] as %wch %γw ⟨#Hwsp, Hcons, #Hcur0⟩
   · iunfold kvReadAu at Hkr
     iunfold kvAu at Hkr

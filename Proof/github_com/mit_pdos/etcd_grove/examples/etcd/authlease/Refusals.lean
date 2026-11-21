@@ -336,8 +336,8 @@ theorem refused_update (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames) (ρ 
     (hwho : who = go!"anon" ∨ who = go!"bad" ∨ who = go!"v" ∨ (who = go!"u" ∧ ¬ inRangeK k)) :
     cellInv ρ.kv γc ∗ monoListLbOwn γc.ids pre ∗ monoListLbOwn γc.ps ps0 ∗
       akAuthFixed (GF := GF) γa ρ Lset n ∗ □ (srvTLSId s -∗ False) ⊢
-      □ ∀ (conn : Loc) (ctx : GoInterface), attemptTokOk conn (akTokP γa who) -∗
-        ⌜metadata.outgoingOf ctx = akOut who⌝ -∗ clientOpAuOn s E ρ conn ctx op Q := by
+      □ ∀ (conn : Loc) (ctx : GrpcMd), attemptTokOk conn (akTokP γa who) -∗
+        ⌜ctx = akOut who⌝ -∗ clientOpAuOn s E ρ conn ctx op Q := by
   iintro ⟨#Hinv, #Hi0, #Hp0, #Hf, #Htls⟩ !> %conn %ctx #Htk %hout
   iunfold clientOpAuOn
   iexists Lset
@@ -372,8 +372,8 @@ theorem revokeLu_update (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames) (ρ
     (hwho : who = go!"anon" ∨ who = go!"bad" ∨ who = go!"v") :
     cellInv ρ.kv γc ∗ monoListLbOwn γc.ids [Lz, Lu] ∗ monoListLbOwn γc.ps ps0 ∗
       akAuthFixed (GF := GF) γa ρ Lset n ∗ □ (srvTLSId s -∗ False) ⊢
-      □ ∀ (conn : Loc) (ctx : GoInterface), attemptTokOk conn (akTokP γa who) -∗
-        ⌜metadata.outgoingOf ctx = akOut who⌝ -∗ clientOpAuOn s E ρ conn ctx (.leaseRevoke Lu) (revoked γc) := by
+      □ ∀ (conn : Loc) (ctx : GrpcMd), attemptTokOk conn (akTokP γa who) -∗
+        ⌜ctx = akOut who⌝ -∗ clientOpAuOn s E ρ conn ctx (.leaseRevoke Lu) (revoked γc) := by
   iintro ⟨#Hinv, #Hi0, #Hp0, #Hf, #Htls⟩ !> %conn %ctx #Htk %hout
   iunfold clientOpAuOn
   iexists Lset

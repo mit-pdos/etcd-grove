@@ -242,10 +242,12 @@ instance setupDone_persistent (γ : ServerRaftNames) (γk : KVNames) (γz : GNam
   unfold setupDone; infer_instance
 
 /-- **`SetUp`'s calls carry no user** (persistent): no attempt on `conn` carries a credential token,
-the context `ctx` has no outgoing metadata, and the server has no TLS identity. -/
+and the server has no TLS identity. Its calls' contexts have no outgoing metadata: the facts below
+are at the metadata `none` (errdesc stage 1, 2026-11-20: until then this predicate said
+`metadata.outgoingOf ctx = none`, of the pure function; `SetUp` gives its calls `metadata.outMD ctx
+none`). -/
 def setupCtx (s conn : Loc) (ctx : GoInterface) : IProp GF :=
-  iprop(attemptTokOk conn (fun _ => iprop(False)) ∗ □ (srvTLSId s -∗ False) ∗
-    ⌜metadata.outgoingOf ctx = none⌝)
+  iprop(attemptTokOk conn (fun _ => iprop(False)) ∗ □ (srvTLSId s -∗ False))
 
 instance setupCtx_persistent (s conn : Loc) (ctx : GoInterface) :
     Persistent (setupCtx (GF := GF) s conn ctx) := by
@@ -263,17 +265,17 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **A header bound to an attempt of `SetUp`'s calls has no user.** -/
 theorem setupHdr_anon (s conn : Loc) (ctx : GoInterface) (M : AuthMode) (hm : apply.HeaderModel)
-    (md : GrpcMd) (hmd : clientAttemptMd conn ctx md) :
+    (md : GrpcMd) (hmd : clientAttemptMd conn none md) :
     ⊢ setupCtx (GF := GF) s conn ctx -∗ v3rpc.hdrBoundT s M (auth.mdTokenOf md) hm -∗
       ⌜hm.username = (zeroValDef : GoString)⌝ := by
   iintro #Hc #Hb
   iunfold setupCtx at Hc
-  icases Hc with ⟨#Ht, #Htls, %Hout⟩
+  icases Hc with ⟨#Ht, #Htls⟩
   iunfold attemptTokOk at Ht
-  ihave Htk := Ht $$ %(metadata.outgoingOf ctx) %md %hmd
-  have hnone : auth.mdTokenOf md = auth.mdTokenOf (metadata.mdNorm (metadata.outgoingOf ctx)) →
+  ihave Htk := Ht $$ %none %md %hmd
+  have hnone : auth.mdTokenOf md = auth.mdTokenOf (metadata.mdNorm none) →
       auth.mdTokenOf md = none := by
-    intro h; rw [h, Hout]; rfl
+    intro h; rw [h]; rfl
   iunfold v3rpc.hdrBoundT at Hb
   icases Hb with (%Hu | (⟨%tok, %Htok, -⟩ | Htls'))
   · ipureintro; exact Hu
@@ -354,7 +356,7 @@ with its effect. -/
 theorem setup_histAu (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) (ctx : GoInterface)
     (γz : GName) (j : Nat) (rq₀ : apply.IRRModel) (hj : setupReqAt j rq₀) (hj7 : j < 7) :
     ⊢ authHistCell (GF := GF) ρ.kv γz -∗ setupInv γz -∗ setupCtx s conn ctx -∗
-      client.clientHistAu s E ρ conn ctx rq₀ (fun _ => effLb ρ.kv j) := by
+      client.clientHistAu s E ρ conn none rq₀ (fun _ => effLb ρ.kv j) := by
   iintro #Hc #Hn #Hx
   unfold client.clientHistAu histAu
   imodintro
@@ -426,7 +428,7 @@ theorem setup_histAu_enable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn 
     (ctx : GoInterface) (γz : GName) :
     ⊢ authHistCell (GF := GF) ρ.kv γz -∗ setupInv γz -∗ setupCtx s conn ctx -∗
       (□ ∀ i, ⌜i < 7⌝ -∗ effLb ρ.kv i) -∗
-      client.clientHistAu s E ρ conn ctx irrAuthEnable (setupDone ρ.raft ρ.kv γz) := by
+      client.clientHistAu s E ρ conn none irrAuthEnable (setupDone ρ.raft ρ.kv γz) := by
   iintro #Hc #Hn #Hx #Hall
   unfold client.clientHistAu histAu
   imodintro
@@ -546,7 +548,7 @@ theorem setup_reply_like (ρ : ReqNames) (γz : GName) (L : List EntryModel)
 or already there. -/
 theorem setup_reply (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) (ctx : GoInterface)
     (γz : GName) (j : Nat) (rq₀ : apply.IRRModel) (hj : setupReqAt j rq₀) (md : GrpcMd)
-    (hmd : clientAttemptMd conn ctx md) (Ek : CoPset) (h1 : (↑authHistN : CoPset) ⊆ Ek)
+    (hmd : clientAttemptMd conn none md) (Ek : CoPset) (h1 : (↑authHistN : CoPset) ⊆ Ek)
     (h2 : (↑setupN : CoPset) ⊆ Ek) :
     ⊢ authHistCell (GF := GF) ρ.kv γz -∗ setupInv γz -∗ setupCtx s conn ctx -∗
       v3rpc.adminReplied s E ρ (auth.mdTokenOf md) rq₀ (fun _ => effLb ρ.kv j) ={Ek}=∗
@@ -585,7 +587,7 @@ theorem setup_reply (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) (
 requested log, and `setupSt r` published. -/
 theorem setup_reply_enable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc)
     (ctx : GoInterface) (γz : GName) (γa : auth.AuthNames) (md : GrpcMd)
-    (hmd : clientAttemptMd conn ctx md) (hmode : E.authMode = .on γa)
+    (hmd : clientAttemptMd conn none md) (hmode : E.authMode = .on γa)
     (hc0 : uint.Z ρ.kv.c0 ≤ uint.Z ρ.raft.ai0) (Ek : CoPset) (h1 : (↑authHistN : CoPset) ⊆ Ek)
     (h2 : (↑setupN : CoPset) ⊆ Ek) :
     ⊢ authHistCell (GF := GF) ρ.kv γz -∗ setupInv γz -∗ setupCtx s conn ctx -∗
@@ -649,7 +651,7 @@ theorem setup_reply_enable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn :
 /-- **What a set-up call's success tells**: some attempt's metadata, and the server's reply. -/
 def setupReplied (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) (ctx : GoInterface)
     (R : Option GoString → IProp GF) : Unit → IProp GF :=
-  fun _ => iprop(∃ md, ⌜clientAttemptMd conn ctx md⌝ ∗ R (auth.mdTokenOf md))
+  fun _ => iprop(∃ md, ⌜clientAttemptMd conn none md⌝ ∗ R (auth.mdTokenOf md))
 
 /-- `UserAdd(name, pw)`, `SetUp`'s `j`-th request. -/
 theorem setup_pre_userAdd (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc)
@@ -657,7 +659,7 @@ theorem setup_pre_userAdd (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : 
     (hj : ∀ um : apply.UserAddModel, um.name = name → um.pwSure → setupReqAt j (irrUserAdd um))
     (hj7 : j < 7) (hlen : name.length ≤ backend.maxKeySize) :
     ⊢ authHistCell (GF := GF) ρ.kv γz -∗ setupInv γz -∗ setupCtx s conn ctx -∗
-      attemptPre conn ctx (v3rpc.etcdUserAddSpec s E ρ) (⟨name, pw⟩ : UserAddW)
+      attemptPre conn none (v3rpc.etcdUserAddSpec s E ρ) (⟨name, pw⟩ : UserAddW)
         (setupReplied s E ρ conn ctx
           (fun tok => v3rpc.userAddReplied s E ρ tok name (fun _ => effLb ρ.kv j))) := by
   iintro #Hc #Hn #Hx
@@ -672,7 +674,7 @@ theorem setup_pre_userAdd (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : 
   isplitr
   · imodintro
     iintro %um %hum
-    iapply client.clientHistAu_attempt s E ρ conn ctx md _ _ hmd
+    iapply client.clientHistAu_attempt s E ρ conn none md _ _ hmd
     iapply setup_histAu s E ρ conn ctx γz j _ (hj um hum.1 hum.2.2) hj7 $$ Hc Hn Hx
   · iintro #Hr
     iunfold setupReplied
@@ -686,7 +688,7 @@ theorem setup_pre_userGrantRole (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (c
     (hj : setupReqAt j (irrUserGrantRole user role)) (hj7 : j < 7)
     (hlen : user.length ≤ backend.maxKeySize) :
     ⊢ authHistCell (GF := GF) ρ.kv γz -∗ setupInv γz -∗ setupCtx s conn ctx -∗
-      attemptPre conn ctx (v3rpc.etcdUserGrantRoleSpec s E ρ) (user, role)
+      attemptPre conn none (v3rpc.etcdUserGrantRoleSpec s E ρ) (user, role)
         (setupReplied s E ρ conn ctx
           (fun tok => v3rpc.adminReplied s E ρ tok (irrUserGrantRole user role)
             (fun _ => effLb ρ.kv j))) := by
@@ -700,7 +702,7 @@ theorem setup_pre_userGrantRole (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (c
   isplitr
   · ipureintro; exact hlen
   isplitr
-  · iapply client.clientHistAu_attempt s E ρ conn ctx md _ _ hmd
+  · iapply client.clientHistAu_attempt s E ρ conn none md _ _ hmd
     iapply setup_histAu s E ρ conn ctx γz j _ hj hj7 $$ Hc Hn Hx
   · iintro #Hr
     iunfold setupReplied
@@ -714,7 +716,7 @@ theorem setup_pre_roleAdd (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : 
     (hj : setupReqAt j (irrRoleAdd name)) (hj7 : j < 7)
     (hlen : name.length ≤ backend.maxKeySize) :
     ⊢ authHistCell (GF := GF) ρ.kv γz -∗ setupInv γz -∗ setupCtx s conn ctx -∗
-      attemptPre conn ctx (v3rpc.etcdRoleAddSpec s E ρ) name
+      attemptPre conn none (v3rpc.etcdRoleAddSpec s E ρ) name
         (setupReplied s E ρ conn ctx
           (fun tok => v3rpc.adminReplied s E ρ tok (irrRoleAdd name) (fun _ => effLb ρ.kv j))) := by
   iintro #Hc #Hn #Hx
@@ -727,7 +729,7 @@ theorem setup_pre_roleAdd (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : 
   isplitr
   · ipureintro; exact hlen
   isplitr
-  · iapply client.clientHistAu_attempt s E ρ conn ctx md _ _ hmd
+  · iapply client.clientHistAu_attempt s E ρ conn none md _ _ hmd
     iapply setup_histAu s E ρ conn ctx γz j _ hj hj7 $$ Hc Hn Hx
   · iintro #Hr
     iunfold setupReplied
@@ -741,7 +743,7 @@ theorem setup_pre_roleGrantPermission (s : Loc) (E : apply.AEnv GF) (ρ : ReqNam
     (hj : setupReqAt j (irrRoleGrantPermission name (some w))) (hj7 : j < 7)
     (hlen : name.length ≤ backend.maxKeySize) :
     ⊢ authHistCell (GF := GF) ρ.kv γz -∗ setupInv γz -∗ setupCtx s conn ctx -∗
-      attemptPre conn ctx (v3rpc.etcdRoleGrantPermissionSpec s E ρ) (name, w)
+      attemptPre conn none (v3rpc.etcdRoleGrantPermissionSpec s E ρ) (name, w)
         (setupReplied s E ρ conn ctx
           (fun tok => v3rpc.adminReplied s E ρ tok (irrRoleGrantPermission name (some w))
             (fun _ => effLb ρ.kv j))) := by
@@ -755,7 +757,7 @@ theorem setup_pre_roleGrantPermission (s : Loc) (E : apply.AEnv GF) (ρ : ReqNam
   isplitr
   · ipureintro; exact hlen
   isplitr
-  · iapply client.clientHistAu_attempt s E ρ conn ctx md _ _ hmd
+  · iapply client.clientHistAu_attempt s E ρ conn none md _ _ hmd
     iapply setup_histAu s E ρ conn ctx γz j _ hj hj7 $$ Hc Hn Hx
   · iintro #Hr
     iunfold setupReplied
@@ -768,7 +770,7 @@ theorem setup_pre_authEnable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn
     (ctx : GoInterface) (γz : GName) :
     ⊢ authHistCell (GF := GF) ρ.kv γz -∗ setupInv γz -∗ setupCtx s conn ctx -∗
       (□ ∀ i, ⌜i < 7⌝ -∗ effLb ρ.kv i) -∗
-      attemptPre conn ctx (v3rpc.etcdAuthEnableSpec s E ρ) ()
+      attemptPre conn none (v3rpc.etcdAuthEnableSpec s E ρ) ()
         (setupReplied s E ρ conn ctx
           (fun tok => v3rpc.adminReplied s E ρ tok irrAuthEnable (setupDone ρ.raft ρ.kv γz))) := by
   iintro #Hc #Hn #Hx #Hall
@@ -779,7 +781,7 @@ theorem setup_pre_authEnable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn
   · imodintro; iintro %_; itrivial
   iexists setupDone ρ.raft ρ.kv γz
   isplitr
-  · iapply client.clientHistAu_attempt s E ρ conn ctx md _ _ hmd
+  · iapply client.clientHistAu_attempt s E ρ conn none md _ _ hmd
     iapply setup_histAu_enable s E ρ conn ctx γz $$ Hc Hn Hx Hall
   · iintro #Hr
     iunfold setupReplied

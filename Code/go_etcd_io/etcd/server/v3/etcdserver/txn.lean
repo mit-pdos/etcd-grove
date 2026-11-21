@@ -7,6 +7,7 @@ public import Code.go_etcd_io.etcd.api.v3.etcdserverpb
 public import Code.go_etcd_io.etcd.api.v3.mvccpb
 public import Code.go_etcd_io.etcd.pkg.v3.traceutil
 public import Code.go_etcd_io.etcd.server.v3.storage.mvcc
+public import Perennial.Code.strconv
 public import Perennial.Code.time
 public import Code.github_com.prometheus.client_golang.prometheus
 public import Code.google_golang_org.protobuf.proto
@@ -410,6 +411,42 @@ noncomputable def mkGteRange.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0")))))
+
+/-- go: metrics.go:59:6 -/
+noncomputable def ApplySecObserve.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "version"
+  (Lam "op"
+  (Lam "success"
+  (Lam "latency"
+  (Seq (App (Val exceptionDo)
+  (Let "latency" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "latency"))
+  (Let "success" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "success"))
+  (Let "op" (App (Val (GoInstruction (GoAlloc go.string))) (Var "op"))
+  (Let "version" (App (Val (GoInstruction (GoAlloc go.string))) (Var "version"))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoOp GoDiv go.float64))) (Pair (App (Val (GoInstruction (Convert go.int64 go.float64))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Duration.ty) go!"Microseconds"))) (Var "latency")) (Val #()))) (Val #(W64 4696837146684686336))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.Observer.ty go!"Observe"))) (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (GoLoad go.string))) (Var "version"))
+  (Let "$sl1" (App (Val (GoInstruction (GoLoad go.string))) (Var "op"))
+  (Let "$sl2" (Let "$a0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "success"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strconv.FormatBool []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$sl0"))), (KeyedElement none (ElementExpression go.string (Var "$sl1"))), (KeyedElement none (ElementExpression go.string (Var "$sl2")))])))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.HistogramVec.ty) go!"WithLabelValues"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.HistogramVec.ty)))) (App (Val (GoInstruction (GlobalVarAddr applySec))) (Val #())))) (Var "$a0")))) (Var "$a0")))))))))
+  (Val #()))))))
+
+/-- go: metrics.go:63:6 -/
+noncomputable def RangeSecObserve.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "success"
+  (Lam "latency"
+  (Seq (App (Val exceptionDo)
+  (Let "latency" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "latency"))
+  (Let "success" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "success"))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoOp GoDiv go.float64))) (Pair (App (Val (GoInstruction (Convert go.int64 go.float64))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Duration.ty) go!"Microseconds"))) (Var "latency")) (Val #()))) (Val #(W64 4696837146684686336))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.Observer.ty go!"Observe"))) (Let "$a0" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "success"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strconv.FormatBool []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$sl0")))])))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.HistogramVec.ty) go!"WithLabelValues"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.HistogramVec.ty)))) (App (Val (GoInstruction (GlobalVarAddr rangeSec))) (Val #())))) (Var "$a0")))) (Var "$a0")))))))
+  (Val #()))))
 
 /-- go: metrics.go:67:6 -/
 noncomputable def init.«0».impl [GooseExts] [GoGlobalContext] : val :=
@@ -3278,7 +3315,7 @@ noncomputable def isNil.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil, pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, pkg_id.time, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors, pkg_id.go_etcd_io.etcd.server.v3.lease, pkg_id.bytes, pkg_id.math, pkg_id.sort, pkg_id.fmt, pkg_id.reflect, pkg_id.strings]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil, pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, pkg_id.strconv, pkg_id.time, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors, pkg_id.go_etcd_io.etcd.server.v3.lease, pkg_id.bytes, pkg_id.math, pkg_id.sort, pkg_id.fmt, pkg_id.reflect, pkg_id.strings]
 
 opaque «_».init [GooseExts] [GoGlobalContext] : val
 
@@ -3286,6 +3323,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -3361,6 +3399,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.strconv.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.time.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -3684,6 +3724,8 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   DeleteRange_unfold : FuncUnfold DeleteRange [] DeleteRange.impl
   deleteRange_unfold : FuncUnfold deleteRange [] deleteRange.impl
   mkGteRange_unfold : FuncUnfold mkGteRange [] mkGteRange.impl
+  ApplySecObserve_unfold : FuncUnfold ApplySecObserve [] ApplySecObserve.impl
+  RangeSecObserve_unfold : FuncUnfold RangeSecObserve [] RangeSecObserve.impl
   «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   Put_unfold : FuncUnfold Put [] Put.impl
   put_unfold : FuncUnfold put [] put.impl
@@ -3724,6 +3766,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_mvccpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
   import_traceutil_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Assumptions
   import_mvcc_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions
+  import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
   import_prometheus_Assumption : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
   import_proto_Assumption : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
@@ -3745,6 +3788,8 @@ attribute [instance] Assumptions.kvSort_instance
   Assumptions.DeleteRange_unfold
   Assumptions.deleteRange_unfold
   Assumptions.mkGteRange_unfold
+  Assumptions.ApplySecObserve_unfold
+  Assumptions.RangeSecObserve_unfold
   Assumptions.«init.0_unfold»
   Assumptions.Put_unfold
   Assumptions.put_unfold
@@ -3785,6 +3830,7 @@ attribute [instance] Assumptions.kvSort_instance
   Assumptions.import_mvccpb_Assumption
   Assumptions.import_traceutil_Assumption
   Assumptions.import_mvcc_Assumption
+  Assumptions.import_strconv_Assumption
   Assumptions.import_time_Assumption
   Assumptions.import_prometheus_Assumption
   Assumptions.import_proto_Assumption

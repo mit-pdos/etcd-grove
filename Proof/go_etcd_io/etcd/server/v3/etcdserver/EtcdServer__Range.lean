@@ -107,7 +107,7 @@ theorem rangeResult_warn (hSize : proto.Size.spec (GF := GF) (hG := hG))
     iintro !> %Φ !> ⟨#Hp, HP⟩ HΦ
     iunfold txn.rangeHdr at HP
     ihave Hh := HP $$ %H.2.1
-    wp_apply (hSize.2.1 resp _ kvs more _) $$ [$Hp $Hr $Hh] as %n ⟨-, Hh⟩
+    wp_apply (hSize.2.1 resp _ kvs more _) $$ [$Hp $Hr $Hh] as %n Hh
     iapply HΦ
     iunfold txn.rangeHdr
     iintro -

@@ -25,6 +25,8 @@ public import Proof.go_etcd_io.etcd.server.v3.lease.leasepb.Init
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Init
 public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.go_uber_org.zap.Init
+public import Proof.github_com.prometheus.client_golang.prometheus.Registry
+public import Proof.runtime.PkgInitRes
 
 @[expose] public section
 
@@ -72,5 +74,19 @@ axiom initFuncsOk :
 
 end go_etcd_io.etcd.server.v3.storage.schema
 end opaqueInits
+
+namespace go_etcd_io.etcd.server.v3.storage.schema
+
+/-- The packages of this package's import closure (itself included) whose initializers
+register metrics, with their names: their registration rights are its initializer's
+resources (`ownInitResL`, `Proof/runtime/PkgInitRes.lean`). -/
+def regQs : List (GoString × List GoString) :=
+  [(pkg_id.go_etcd_io.etcd.server.v3.auth, _root_.Perennial.go_etcd_io.etcd.server.v3.auth.regNames), (pkg_id.go_etcd_io.etcd.server.v3.storage.backend, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.regNames)]
+
+/-- The metric names its initializer registers, with those of its import closure: its
+`wp_initialize'`'s precondition has the rights to register them (`namesFree`). -/
+def initNames : List GoString := regQs.flatMap (·.2)
+
+end go_etcd_io.etcd.server.v3.storage.schema
 
 end Perennial
