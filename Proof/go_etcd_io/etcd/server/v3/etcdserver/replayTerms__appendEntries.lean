@@ -15,11 +15,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-theorem replayJoin_snoc (pre : List replayTermRun) (a b : replayTermRun) :
-    replayJoin (pre ++ [a]) b =
-      if a.term' = b.term' then pre ++ [{ b with first' := a.first' }] else (pre ++ [a]) ++ [b] := by
-  simp [replayJoin, List.getLast?_append]
-
 theorem replayJoin_same (pre : List replayTermRun) (a b : replayTermRun) (h : a.term' = b.term') :
     replayJoin (replayJoin pre a) b = replayJoin pre { b with first' := a.first' } := by
   by_cases he : pre = []

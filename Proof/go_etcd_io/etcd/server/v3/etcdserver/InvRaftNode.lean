@@ -46,6 +46,7 @@ public import Proof.go_etcd_io.raft.v3.MemstorageInstance
 public import Perennial.Golang.Theory.Chan.Idioms.Idioms
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopChan
 public import Proof.go_etcd_io.etcd.server.v3.storage.InvOpen
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReplayModel
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.replayTerms__termAt
 public import Perennial.Ghost.MonoList
 public import Perennial.Proof.ThreadPool
@@ -469,6 +470,8 @@ def rnReadyData (E : RNEnv GF) (γ : RNNames GF) (rd : Ready) (d ce es : List En
     hsOptC rd.HardState' hs.toM ∗
     ⌜p' = phsNext p hs.toM⌝ ∗
     (∃ rsL : List ReadState, rd.ReadStates' ↦*□ rsL ∗ [∗list] rs ∈ rsL, srvReadStateOk E.γr.raft E.RQ rs) ∗
+    ⌜es.Pairwise (fun a b => uint.nat a.term ≤ uint.nat b.term ∧ uint.nat a.index < uint.nat b.index) ∧
+      (∀ e, es.head? = some e → uint.nat p.Commit' < uint.nat e.index)⌝ ∗
     ⌜rd.Snapshot' = null⌝ ∗
     -- (2026-10-30, the repair, stage P) the committed entries as the node API freezes them
     rnCeFrozen γ d ce es ∗
@@ -833,7 +836,8 @@ def rnReadySnap (E : RNEnv GF) (γ : RNNames GF) (rd : Ready) (d es A' : List En
     ⌜srvLE γ.srv A' = strip l.dlv ∧ d.length < A'.length ∧
       (∀ e0, (es.map EntryModel.toM).head? = some e0 →
         uint.Z e0.Index' + ((es.map EntryModel.toM).length : Int) ≤ 2 ^ 61) ∧
-      Option.map EntryModel.term A'.getLast? = some l.snap.Metadata'.Term'⌝ ∗ □ E.C A' ∗
+      Option.map EntryModel.term A'.getLast? = some l.snap.Metadata'.Term' ∧
+      es.Pairwise (fun a b => uint.nat a.term ≤ uint.nat b.term ∧ uint.nat a.index < uint.nat b.index)⌝ ∗ □ E.C A' ∗
     snapshotValid γ.node.cl l.snap ∗ nodeInstalledIndex γ.node.cl γ.nl l.snap.Metadata'.Index' ∗
     rd.Entries' ↦*□ esL ∗ entriesAt esL es ∗ rnEntsSized esL es ∗
     rd.Messages' ↦*□ msL ∗ ⌜msL = ms.map QMsg.loc⌝ ∗ rnRawMsgs γ ms r' ∗
@@ -1454,7 +1458,7 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
         rw [← h0]
         iapply entriesAt_of_entRO ceL _ $$ Hcero
       isplitr
-      · ipureintro; exact ⟨hA', hLA, Hfit61, hlastA⟩
+      · ipureintro; exact ⟨hA', hLA, Hfit61, hlastA, List.pairwise_map.mpr Hrrf.2.2.2.2.2⟩
       isplitr
       · iapply entriesAt_of_entRO esL es $$ Hesro
       isplitr
@@ -1623,6 +1627,17 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
       iexists vs
       iframe Hvs
       iapply rnReadStates_of_api E γ vs sts $$ Hbr Hrs2 Hrsok
+    isplitr
+    · ipureintro
+      refine ⟨List.pairwise_map.mpr Hrrf.2.2.2.2.2.2.2, ?_⟩
+      intro e he
+      rw [List.head?_map] at he
+      cases hx : es.head? with
+      | none => simp [hx] at he
+      | some x =>
+        simp [hx] at he
+        subst e
+        exact Hrrf.2.2.2.2.2.1 x hx
     isplitr
     · ipureintro; exact Hsnap
     iunfold rnCeFrozen
@@ -2110,6 +2125,13 @@ theorem rnView_first (γ : RNNames GF) (h : γ.a0 = []) :
 
 /-- An ordinary Ready that sends a same-term snapshot during recovery can
 read the durable image's last entry term from this particular immutable slice. -/
+def rnReplayState (γ : RNNames GF) (view : GoSlice) (n : Nat) : IProp GF :=
+  iprop(∃ runs : List replayTermRun, view ↦*□ runs ∗ ⌜replayPending runs γ.a0 n⌝)
+
+instance rnReplayState_persistent (γ : RNNames GF) (view : GoSlice) (n : Nat) :
+    Persistent (rnReplayState (GF := GF) γ view n) := by
+  unfold rnReplayState; infer_instance
+
 def rnReplayJob (γ : RNNames GF) (terms : GoSlice) (rt : w64) (n : Nat) : IProp GF :=
   letI := srvStor (GF := GF) γ.node
   iprop(□ ∀ (sm : MsgSt) (ci : w64),
@@ -2281,7 +2303,7 @@ def rnLoopTokP (γ : RNNames GF) (L : List EntryModel) (p : HardStateM) (b : Boo
 /-- The loop's ghost state at some `prevHardSt` (D22l: `rnLoopTokP`, the loop keeps it tied to
 the raft term it records). -/
 def rnLoopTok (γ : RNNames GF) (L : List EntryModel) : IProp GF :=
-  iprop(∃ p : HardStateM, rnLoopTokP γ L p false)
+  iprop(⌜γ.snap0 ≤ (rnLogOf γ L).length⌝ ∗ ∃ p : HardStateM, rnLoopTokP γ L p false)
 
 /-- The apply side's ghost state: `applyc`'s consumer half, and `cum` at the number of
 payloads received, the log `A` forwarded so far. -/
@@ -2416,7 +2438,7 @@ def rnDoneTok (γ : RNNames GF) (r : Loc) : IProp GF :=
 
 /-- The worker takes the bootstrapped replay terms out of the config before its first Ready. -/
 def rnWorkerStartTok (γ : RNNames GF) (r : Loc) : IProp GF :=
-  iprop(rnDoneTok γ r ∗ ∃ terms : GoSlice, rnReplayTermsAddr r ↦ terms)
+  iprop(rnDoneTok γ r ∗ ∃ terms : GoSlice, rnReplayTermsAddr r ↦ terms ∗ rnReplayState γ terms γ.snap0)
 
 
 /-- (2026-11-03, R2b-3b; review M2) **The stop's caller takes the image out of `done`'s escrow**: with

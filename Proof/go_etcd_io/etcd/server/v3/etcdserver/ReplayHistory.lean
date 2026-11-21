@@ -11,14 +11,6 @@ open go_etcd_io.etcd.server.v3.etcdserver
 
 variable [GooseExts]
 
-/-- Runs are nonempty, ordered ranges which do not overlap. -/
-def replayLayout (rs : List replayTermRun) : Prop :=
-  (∀ r ∈ rs, uint.nat r.first' ≤ uint.nat r.last') ∧
-    rs.Pairwise (fun a b => uint.nat a.last' < uint.nat b.first')
-
-def replayContains (r : replayTermRun) (ci term : w64) : Prop :=
-  uint.nat r.first' ≤ uint.nat ci ∧ uint.nat ci ≤ uint.nat r.last' ∧ r.term' = term
-
 theorem replayLayout_sublist {rs small : List replayTermRun} (h : replayLayout rs)
     (hs : small.Sublist rs) : replayLayout small :=
   ⟨fun r hr => h.1 r (hs.subset hr), h.2.sublist hs⟩

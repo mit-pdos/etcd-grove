@@ -141,13 +141,13 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames GF) (a : Loc) (rv : r
       rnParts E γ rv ∗
       rnFixed a rv ∗ rnTransportAddr a ↦□ rv.raftNodeConfig'.transport' ∗
       rnLatestTickTsAddr a ↦ rv.latestTickTs' ∗ rnReplayTermsAddr a ↦ rv.raftNodeConfig'.initialReplayTerms' ∗
-      rv.tickMu' ↦ (zero_val sync.RWMutex) ∗
+      rnReplayState γ rv.raftNodeConfig'.initialReplayTerms' γ.snap0 ∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ∗
       ownBroadcastChan rv.done' γ.done (rnDoneEsc γ) .Pending ⊢
       |={⊤}=> isRaftNode E γ a ∗ rnWorkerStartTok γ a ∗
         rnNodeAddr a ↦□ rv.raftNodeConfig'.Node' ∗
         rnTransportAddr a ↦□ rv.raftNodeConfig'.transport' := by
   iintro ⟨#Hpkg, #Henv, #Hfits, #Hrsb, #Hrok, #Hreg, #Hni, #Hidri, %Hmsγ, #Hmsi, #Hsti, #Hdur, #Htri, #Hparts,
-    #Hfix, #transportC, latestTickTsR, Hreplay, Hmu, Hdtok⟩
+    #Hfix, #transportC, latestTickTsR, Hreplay, #Hseed, Hmu, Hdtok⟩
   iunfold rnParts at Hparts
   iNamed Hparts
   iunfold rnFixed at Hfix
@@ -198,7 +198,7 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames GF) (a : Loc) (rv : r
       iframe doneR Hdtok
       iexact storageC
     iexists rv.raftNodeConfig'.initialReplayTerms'
-    iexact Hreplay
+    iframe Hreplay Hseed
 
 /-- **The loop's and the apply side's tokens at the start** (`rnLoopTok γ []`, `rnApplyTok γ
 []`): from the node API's driver at its start (`NodeDriverState.init`: nothing delivered, with
@@ -231,6 +231,8 @@ theorem rnToks_of_start (γ : RNNames GF) (hpre : γ.pre = []) (ha : γ.a0 = [])
     rw [h]; iapply deliveredLogLb_committed $$ Hdl
   isplitl [Hdrv HrS Hcfg Hrun Hprod Hcum Hwv Hwok]
   · iunfold rnLoopTok
+    isplitr
+    · ipureintro; rw [hs0]; exact Nat.zero_le _
     iexists hsZero
     iunfold rnLoopTokP
     iexists [], [[]], RaftState.init, W64 0
@@ -285,7 +287,7 @@ restored hard state `p`; the durable state `S`; a follower), its view `v` after 
 (`commit0 ≤ p.Commit'`). -/
 theorem rnToks_of_restart (γ : RNNames GF) (P : List EntryModel) (p : HardStateM) (S : RaftState)
     (v : ConfigView) (hpre : γ.pre = []) (hidx : srvIdxOkW (W64 0) P)
-    (hc0 : γ.commit0 ≤ uint.nat p.Commit')
+    (hc0 : γ.commit0 ≤ uint.nat p.Commit') (hs0 : γ.snap0 ≤ (rnLogOf γ P).length)
     (hcfg : srvCfgOk γ.node.cfg (rnGhost γ P) v) :
     (letI := srvStor (GF := GF) γ.node;
       iprop(nodeDriver γ.nl γ.node.cl srvClusterN
@@ -305,6 +307,8 @@ theorem rnToks_of_restart (γ : RNNames GF) (P : List EntryModel) (p : HardState
   · iapply deliveredLogLb_committed $$ Hdl
   isplitl [Hdrv HrS Hcfg Hrun Hprod Hcum Hwv Hwok]
   · iunfold rnLoopTok
+    isplitr
+    · ipureintro; exact hs0
     iexists p
     iunfold rnLoopTokP
     iexists [], [P], S, StateFollower

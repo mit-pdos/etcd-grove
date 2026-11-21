@@ -13,9 +13,7 @@ def replayRunsDescribe [GooseExts] (runs : List replayTermRun) (S : RaftState) (
   ∀ (ci term : w64), delivered < uint.nat ci → plogTermAt S.base S.ents ci = some term →
     replayRunCovers runs ci = true ∧ ∃ r, replayRunAt runs ci = some r ∧ r.term' = term
 
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+variable [GooseExts]
 
 /-- In the replay window the last entry in the durable backend prefix is at the
 consistent index. Agreement with the Raft state's log identifies the entry term. -/
@@ -33,6 +31,10 @@ theorem replayImage_plogTerm (A : List EntryModel) (S : RaftState) (ci : w64)
   rw [hw] at hterm
   rw [List.getLast?_eq_getElem?, he]
   exact hterm
+
+variable [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- The apply channel gets the concrete run for the backend index when the
 elected log agrees with the committed backend prefix. -/

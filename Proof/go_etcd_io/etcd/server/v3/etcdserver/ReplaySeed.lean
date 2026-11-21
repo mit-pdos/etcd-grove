@@ -1,7 +1,7 @@
 /- Relate the WAL suffix and the durable backend image to the same Raft log. -/
 module
 public import Proof.go_etcd_io.raft.v3.DurableLogView
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReplayJob
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReplayCoverage
 
 @[expose] public section
 noncomputable section
@@ -35,6 +35,34 @@ theorem replayDurAgrees (S : RaftState) (fp : List EntryM) (l : List LogEntry)
       rw [base0_index]; exact hidx
   · simp [hi] at hl
 
+/-- Every retained log index above the bootstrap base has a term in the initial slice. -/
+theorem replaySeed_pending (S : RaftState) (σ : StorContents) (A : List EntryModel)
+    (hold : StorageHolds S σ) (hw : PlogWf S.base S.ents)
+    (ordered : (σ.ents.map EntryModel.ofM).Pairwise (fun a b => uint.nat a.index < uint.nat b.index))
+    (agree : DurAgrees S (A.map EntryModel.toLE)) :
+    replayPending ((σ.ents.map EntryModel.ofM).foldl replayAddEntry []) A σ.b := by
+  obtain ⟨layout, _, listed⟩ := replayFold_coverage [] _ (by simp [replayLayout]) ordered (by simp)
+  refine ⟨layout, ?_⟩
+  intro ci hn hci
+  have hb := hold.1
+  change uint.nat σ.base.index' < A.length at hn
+  have hlt : uint.Z S.base.index' < uint.Z ci := by word
+  have ht := replayImage_plogTerm A S ci (by omega) hci (by word) agree
+  obtain ⟨e, he, hidx, hterm⟩ := plogTermAt_some_entry S.base S.ents ci _
+    (PlogWf_wfR _ _ hw) ht hlt
+  have hs : e ∈ σ.ents := by
+    rw [hold.2.2.1, RaftState.entsFrom]
+    let k := (uint.Z ci - uint.Z σ.base.index' - 1).toNat
+    apply List.mem_of_getElem? (i := k)
+    rw [List.getElem?_drop]
+    have hk : (uint.Z σ.base.index' - uint.Z S.base.index').toNat + k =
+        (uint.Z ci - uint.Z S.base.index' - 1).toNat := by
+      dsimp [k]; have := uint_nat_eq σ.base.index'; omega
+    rwa [hk]
+  have covered := listed (EntryModel.ofM e) (List.mem_map_of_mem hs)
+  change replayHasTerm _ e.Index' e.Term' at covered
+  rwa [hidx, hterm] at covered
+
 variable [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics] [package_sem : go_etcd_io.raft.v3.Assumptions]
@@ -46,7 +74,8 @@ theorem replaySeed_facts (cl : Cluster) (id : w64) (N : Namespace) (S : RaftStat
     (hc : l.length ≤ uint.nat S.commit) :
     isCluster (GF := GF) cl N ∗ raftState cl id S ∗ isCommittedLogLb cl l ⊢ |={⊤}=>
       raftState cl id S ∗ ⌜(σ.ents.map EntryModel.ofM).Pairwise
-        (fun a b => uint.nat a.term ≤ uint.nat b.term) ∧ DurAgrees S l⌝ := by
+        (fun a b => uint.nat a.term ≤ uint.nat b.term ∧ uint.nat a.index < uint.nat b.index) ∧
+        PlogWf S.base S.ents ∧ DurAgrees S l⌝ := by
   iintro ⟨#Hcl, Hstate, #Hl⟩
   imod raftState_logView cl id S N $$ [$Hcl $Hstate] with
     ⟨Hstate, %fp, %hf, %ordered, #Hcommit⟩
@@ -62,7 +91,7 @@ theorem replaySeed_facts (cl : Cluster) (id : w64) (N : Namespace) (S : RaftStat
   imodintro
   iframe Hstate
   ipureintro
-  refine ⟨?_, replayDurAgrees S fp l hf.1 hf.2.1 hd⟩
+  refine ⟨?_, hf.2.1, replayDurAgrees S fp l hf.1 hf.2.1 hd⟩
   have hs : σ.ents.Sublist (fp ++ S.ents) := by
     rw [holds.2.2.1, RaftState.entsFrom]
     exact (List.drop_sublist ..).trans (List.sublist_append_right ..)

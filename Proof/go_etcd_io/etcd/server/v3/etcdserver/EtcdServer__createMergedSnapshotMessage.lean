@@ -6,9 +6,9 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__createMergedSnapshotMessage
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapshotCindex
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.replayTerms__covers
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.replayTerms__covers
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.confStateFromMembers
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.replayTerms__termAt
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.replayTerms__termAt
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__KV
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.newSnapshotReaderCloser
@@ -69,7 +69,9 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_proof
     (hUR : backend.snapshot.UnsafeRange.spec (GF := GF) (hG := hG))
     (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
-    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG)) :
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    (hCovers : replayTerms.covers.spec (GF := GF) (hG := hG))
+    (hTermAt : replayTerms.termAt.spec (GF := GF) (hG := hG)) :
     EtcdServer.createMergedSnapshotMessage.spec (GF := GF) (hG := hG) := by
   intro s ml st snapt snapi ci backendTerm terms boot cs lg kv be dq RC RC' RS RS' Qd γs Hsz20 Hsh
   wp_start as ⟨#Hlgf, #Hlgnn, Hlr, #Hkvf, Hkc, HRC, Hbef, Hbs, HRS, Hm, #Huf, #Hcs, Htok⟩
@@ -144,7 +146,7 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_proof
           (try wp_auto)
           rw [replayTerms.TypeAssumptions.ptr_covers_unfold.method_unfold]
           (try wp_auto)
-          wp_apply replayTerms.covers.wp_proof terms runs ci $$ [$Hpkg $Hruns]
+          wp_apply hCovers terms runs ci $$ [$Hpkg $Hruns]
           (try wp_auto)
           ipureintro; rw [hbool]
       iintro %v %hv
@@ -159,7 +161,7 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_proof
         (try wp_auto)
         rw [replayTerms.TypeAssumptions.ptr_termAt_unfold.method_unfold]
         (try wp_auto)
-        wp_apply replayTerms.termAt.wp_proof terms runs ci run hfound.1 $$ [$Hpkg $Hruns]
+        wp_apply hTermAt terms runs ci run hfound.1 $$ [$Hpkg $Hruns]
         (try wp_auto)
         rw [← hfound.2]
         iframe Hsn snapi snapt
@@ -178,7 +180,7 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_proof
             (try wp_auto)
             rw [replayTerms.TypeAssumptions.ptr_termAt_unfold.method_unfold]
             (try wp_auto)
-            wp_apply replayTerms.termAt.wp_proof terms runs ci run hfound.1 $$ [$Hpkg $Hruns]
+            wp_apply hTermAt terms runs ci run hfound.1 $$ [$Hpkg $Hruns]
             (try wp_auto)
             rw [← hfound.2]
             iframe snapt

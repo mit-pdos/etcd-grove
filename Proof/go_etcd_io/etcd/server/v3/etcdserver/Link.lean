@@ -483,6 +483,7 @@ public import Proof.golang_org.x.time.rate.Every
 public import Proof.golang_org.x.time.rate.Limiter__Wait
 public import Proof.golang_org.x.time.rate.NewLimiter
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.replayTerms__after
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.replayTerms__covers
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.replayTerms__termAt
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MustUnsafeGetAllLeases
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MustUnsafePutLease
@@ -2632,9 +2633,17 @@ theorem snap.wp_NewMessage :
     snap.NewMessage.spec (GF := GF) (hG := hG) :=
   snap.NewMessage.wp_proof
 
+theorem replayTerms.wp_covers :
+    replayTerms.covers.spec (GF := GF) (hG := hG) :=
+  replayTerms.covers.wp_proof
+
+theorem replayTerms.wp_termAt :
+    replayTerms.termAt.spec (GF := GF) (hG := hG) :=
+  replayTerms.termAt.wp_proof
+
 theorem EtcdServer.wp_createMergedSnapshotMessage :
     EtcdServer.createMergedSnapshotMessage.spec (GF := GF) (hG := hG) :=
-  EtcdServer.createMergedSnapshotMessage.wp_proof EtcdServer.wp_Logger EtcdServer.wp_KV wp_newSnapshotReaderCloser proto.wp_CloneConfState backend.snapshot.wp_Size snap.wp_NewMessage schema.wp_UnsafeReadConsistentIndex backend.snapshot.wp_UnsafeRange schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket
+  EtcdServer.createMergedSnapshotMessage.wp_proof EtcdServer.wp_Logger EtcdServer.wp_KV wp_newSnapshotReaderCloser proto.wp_CloneConfState backend.snapshot.wp_Size snap.wp_NewMessage schema.wp_UnsafeReadConsistentIndex backend.snapshot.wp_UnsafeRange schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket replayTerms.wp_covers replayTerms.wp_termAt
 
 theorem snap.Message.wp_GetTo :
     snap.Message.GetTo.spec (GF := GF) (hG := hG) :=
@@ -2676,9 +2685,13 @@ theorem raftNode.wp_onStop :
     raftNode.onStop.spec (GF := GF) (hG := hG) :=
   raftNode.onStop.wp_proof
 
+theorem replayTerms.wp_after :
+    replayTerms.after.spec (GF := GF) (hG := hG) :=
+  replayTerms.after.wp_proof
+
 theorem raftNode.wp_start :
     raftNode.start.spec (GF := GF) (hG := hG) :=
-  raftNode.start.wp_proof raftNode.wp_tick raftNode.wp_processMessages wp_updateCommittedIndex raftNode.wp_onStop wp_IsEmptySnap wp_IsEmptyHardState raftpb.HardState.wp_GetCommit raftpb.HardState.wp_GetTerm raftpb.Entry.wp_GetType proto.wp_CloneSnapshot zap.wp_Error zap.Logger.wp_Fatal zap.wp_Duration zap.Logger.wp_Warn MemoryStorage.wp_ApplySnapshot srvApi_wp_MemAppend raftpb.SnapshotMetadata.wp_GetIndex zap.wp_Uint64 zap.Logger.wp_Info
+  raftNode.start.wp_proof raftNode.wp_tick raftNode.wp_processMessages wp_updateCommittedIndex raftNode.wp_onStop wp_IsEmptySnap wp_IsEmptyHardState raftpb.HardState.wp_GetCommit raftpb.HardState.wp_GetTerm raftpb.Entry.wp_GetType proto.wp_CloneSnapshot zap.wp_Error zap.Logger.wp_Fatal zap.wp_Duration zap.Logger.wp_Warn MemoryStorage.wp_ApplySnapshot srvApi_wp_MemAppend raftpb.SnapshotMetadata.wp_GetIndex zap.wp_Uint64 zap.Logger.wp_Info raftpb.Entry.wp_GetIndex raftpb.Entry.wp_GetTerm replayTerms.wp_after
 
 theorem raftNode.wp_apply :
     raftNode.apply.spec (GF := GF) (hG := hG) :=
@@ -3151,14 +3164,6 @@ theorem raftNode.wp_advanceTicks :
 theorem rafthttp.wp_reportCriticalError :
     rafthttp.reportCriticalError.spec (GF := GF) (hG := hG) :=
   rafthttp.reportCriticalError.wp_proof
-
-theorem replayTerms.wp_after :
-    replayTerms.after.spec (GF := GF) (hG := hG) :=
-  replayTerms.after.wp_proof
-
-theorem replayTerms.wp_termAt :
-    replayTerms.termAt.spec (GF := GF) (hG := hG) :=
-  replayTerms.termAt.wp_proof
 
 theorem wait.wp_NewWithResponse :
     wait.NewWithResponse.spec (GF := GF) (hG := hG) :=

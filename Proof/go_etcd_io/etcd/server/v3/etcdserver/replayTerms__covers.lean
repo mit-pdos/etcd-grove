@@ -1,6 +1,6 @@
 /- The two endpoint checks on the immutable runs of a Ready. -/
 module
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.replayTerms__termAt
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.replayTerms__covers
 
 @[expose] public section
 noncomputable section
