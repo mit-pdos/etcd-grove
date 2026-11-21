@@ -43,10 +43,7 @@ unrecovered panic. -/
 def duplex_crash_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics] [server_sem : cmd.server.Assumptions]
     [client_sem : cmd.client.Assumptions] [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
-    (σs σc : state) (g : GlobalState) (h : GoString) (Hhost : (extLocal netExt σs.world).host = h)
-    (Hplan : (extGlobal netExt g.globalWorld).plan.lookup srvAddr = some h)
-    (pl : List (GoString × GoString)) (Hwf : PlanWellFormed pl)
-    (Hpl : (extGlobal netExt g.globalWorld).plan = GMap.ofList pl)
+    (σs σc : state) (g : GlobalState)
     (Hconns : (extGlobal netExt g.globalWorld).conns = ∅) (bound : Nat),
     Robustness.Robust (system σs σc) [] g (threads := bound + 1) (bound := bound)
 

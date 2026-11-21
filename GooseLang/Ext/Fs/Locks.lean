@@ -368,27 +368,33 @@ theorem lockStep_world {st : OsState} {Γb Γm Γf Γt} {h h' : GMap Loc (NonAto
 
 /-- A failing lock step's witness: errno 1, no change. -/
 theorem lockStep_fail_ex {st : OsState} {k : LockKind} {fd : w64}
-    {d : OsFd} {req : Option Bool} {nb : Bool} (hfree : req ≠ none → d.lk k = none) :
-    LockStep st k fd d req nb (Val (#(1 : w64))) st := by
+    {d : OsFd} {req : Option Bool} {nb : Bool} {w : Expr} (hfree : req ≠ none → d.lk k = none) :
+    LockStep st k fd d req nb w (Val (#(1 : w64))) st := by
   unfold LockStep
   cases req with
-  | some ex => exact ⟨hfree (by simp), .inr ⟨1, by decide, rfl, rfl⟩⟩
+  | some ex => exact ⟨hfree (by simp), .inr (.inl ⟨1, by decide, rfl, rfl⟩)⟩
   | none => exact .inr ⟨1, by decide, rfl, .inl rfl⟩
 
 /-- **The lock rule's spec**: the step of an operation `o` whose steps from `st` are, for the open
-`fd` (description `d`), the lock rule's for kind `k` and request `req`. -/
-theorem wp_osLockStep (o : String) (v : val) (k : LockKind) (fd : w64) (d : OsFd)
+`fd` (description `d`), the lock rule's for kind `k` and request `req`, with a fact `Ψ` of every step of
+the semantics the program runs (a premise's, `FsStepSat`); a wait (the call steps to
+itself) leaves everything as it was, and the call is made again (Löb induction). -/
+theorem wp_osLockStepP (o : String) (v : val) (k : LockKind) (fd : w64) (d : OsFd)
     (req : Option Bool) (nb : Bool) (hv : v.isPanic = false) (ho : DataOp o) (hE : ↑osN ⊆ E)
     (hfree : req ≠ none → d.lk k = none)
-    (hex : ∀ st e' st', st.proc.fds !! fd = some d → LockStep st k fd d req nb e' st' →
-      IsFsStep o v st e' st')
+    (hex : ∀ st e' st', st.proc.fds !! fd = some d →
+      LockStep st k fd d req nb (ExternalOp fsExt.name o (Val v)) e' st' → IsFsStep o v st e' st')
     (hst : ∀ st e' st', st.proc.fds !! fd = some d → IsFsStep o v st e' st' →
-      LockStep st k fd d req nb e' st') (Φ : val → IProp GF) (hM : o ≠ "Mmap" := by decide) :
+      LockStep st k fd d req nb (ExternalOp fsExt.name o (Val v)) e' st')
+    (Ψ : Expr → Prop)
+    (hΨ : ∀ h st e' h' st', ExtSemantics.step (E := fsExt) o v h st () e' h' st' () → Ψ e')
+    (Φ : val → IProp GF) (hM : o ≠ "Mmap" := by decide) :
     ⊢ osInv (L := L) -∗ osFd (L := L) fd (DFrac.own 1) d -∗ lockTok (L := L) k fd d -∗
-      (∀ e : w64, lockOut (L := L) k fd d req e -∗ Φ (#e)) -∗
+      (∀ e : w64, ⌜Ψ (Val (#e))⌝ -∗ lockOut (L := L) k fd d req e -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name o (Val v)) @ s; E {{ Φ }} := by
   iintro #Hinv Hfd Ht HΦ
-  iapply wp_os_stepL o v Φ hv hE ho hM $$ Hinv
+  iloeb as IH generalizing Hfd Ht HΦ
+  iapply wp_os_stepLX o v Φ hv hE ho hM $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw Hlk
   unfold osWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
@@ -405,7 +411,8 @@ theorem wp_osLockStep (o : String) (v : val) (k : LockKind) (fd : w64) (d : OsFd
       heapRendered_same hwf rfl rfl Hag⟩
   inext
   iintro %e' %h' %st' %Hst
-  obtain ⟨Hst, Hfr, Hr⟩ := Hst
+  obtain ⟨⟨Hst, Hfr, Hr⟩, Hsem⟩ := Hst
+  have hψ := hΨ _ _ _ _ _ Hsem
   have hl := hst st e' st' hfd Hst
   have hdone : ∀ (x : Option Bool) (e : w64), st' = st.setFd fd (d.setLk k x) →
       e' = Val (#e) → (∀ ex, x = some ex → d.lk k = none ∧ ¬ LockConflict st k fd d.ino ex) →
@@ -417,12 +424,13 @@ theorem wp_osLockStep (o : String) (v : val) (k : LockKind) (fd : w64) (d : OsFd
         gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γt Γt -∗ tokRes (gooseOsGS (L := L)) Γt -∗
         cellsRes (cellView st) -∗ naHeapCtx tls h -∗ lockCtx (gooseOsGS (L := L)) st -∗
         osFd (L := L) fd (DFrac.own 1) d -∗ lockTok (L := L) k fd d -∗
-        (∀ e : w64, lockOut (L := L) k fd d req e -∗ Φ (#e)) ==∗
+        (∀ e : w64, ⌜Ψ (Val (#e))⌝ -∗ lockOut (L := L) k fd d req e -∗ Φ (#e)) ==∗
         ∃ Γb' Γm' Γf' Γt', osWorld st' Γb' Γm' Γf' Γt' h' ∗ lockCtx (gooseOsGS (L := L)) st' ∗
           WP e' @ s; E {{ Φ }} := by
     intro x e hst' he' hok hpost
     subst hst' he'
     iintro HAb HAm HAf HAt Htok Hcells Hσ Hlk Hfd Ht HΦ
+    ihave HΦ := HΦ $$ %e %hψ
     imod lockStep_world hwf hcoh hfd hok Hr Hfr $$ HAb HAm HAf HAt Htok Hcells Hσ Hlk Hfd Ht
       with ⟨%Γf', Hw, Hlk, Hfd, Ht⟩
     imodintro
@@ -441,12 +449,13 @@ theorem wp_osLockStep (o : String) (v : val) (k : LockKind) (fd : w64) (d : OsFd
         gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γt Γt -∗ tokRes (gooseOsGS (L := L)) Γt -∗
         cellsRes (cellView st) -∗ naHeapCtx tls h -∗ lockCtx (gooseOsGS (L := L)) st -∗
         osFd (L := L) fd (DFrac.own 1) d -∗ lockTok (L := L) k fd d -∗
-        (∀ e : w64, lockOut (L := L) k fd d req e -∗ Φ (#e)) ==∗
+        (∀ e : w64, ⌜Ψ (Val (#e))⌝ -∗ lockOut (L := L) k fd d req e -∗ Φ (#e)) ==∗
         ∃ Γb' Γm' Γf' Γt', osWorld st' Γb' Γm' Γf' Γt' h' ∗ lockCtx (gooseOsGS (L := L)) st' ∗
           WP e' @ s; E {{ Φ }} := by
     intro e hst' he' h0
     subst hst' he'
     iintro HAb HAm HAf HAt Htok Hcells Hσ Hlk Hfd Ht HΦ
+    ihave HΦ := HΦ $$ %e %hψ
     imod cells_same hwf hwf Hr Hfr rfl rfl $$ [Hσ Hcells] with ⟨Hσ, Hcells⟩
     · iframe
     imodintro
@@ -464,10 +473,20 @@ theorem wp_osLockStep (o : String) (v : val) (k : LockKind) (fd : w64) (d : OsFd
   unfold LockStep at hl
   split at hl
   · rename_i ex
-    obtain ⟨hnone, ⟨hnc, hst', he'⟩ | ⟨e, he, hst', he'⟩⟩ := hl
+    obtain ⟨hnone, ⟨hnc, hst', he'⟩ | ⟨e, he, hst', he'⟩ | ⟨-, -, hst', he'⟩⟩ := hl
     · iapply hdone (some ex) 0 hst' he' (fun ex' h => by cases h; exact ⟨hnone, hnc⟩)
         ⟨.inr rfl, fun _ => rfl, fun _ h => absurd rfl h⟩ $$ HAb HAm HAf HAt Htok Hcells Hσ Hlk Hfd Ht HΦ
     · iapply hsame e hst' he' (fun h => absurd h he) $$ HAb HAm HAf HAt Htok Hcells Hσ Hlk Hfd Ht HΦ
+    · -- the wait: nothing changes, the call again
+      subst hst' he'
+      imod cells_same hwf hwf Hr Hfr rfl rfl $$ [Hσ Hcells] with ⟨Hσ, Hcells⟩
+      · iframe
+      imodintro
+      iexists Γb, Γm, Γf, Γt
+      iframe Hlk
+      isplitl [HAb HAm HAf HAt Htok Hcells Hσ]
+      · iframe; ipureintro; exact ⟨hwf, hcoh⟩
+      iapply IH $$ Hfd Ht HΦ
   · obtain ⟨hst', he'⟩ | ⟨e, he, he', hst' | hst'⟩ := hl
     · iapply hdone none 0 hst' he' (fun ex h => by cases h)
         ⟨.inr rfl, fun _ => rfl, fun h => absurd rfl h⟩ $$ HAb HAm HAf HAt Htok Hcells Hσ Hlk Hfd Ht HΦ
@@ -475,20 +494,40 @@ theorem wp_osLockStep (o : String) (v : val) (k : LockKind) (fd : w64) (d : OsFd
     · iapply hdone none e hst' he' (fun ex h => by cases h)
         ⟨.inr rfl, fun _ => rfl, fun h => absurd rfl h⟩ $$ HAb HAm HAf HAt Htok Hcells Hσ Hlk Hfd Ht HΦ
 
+/-- **The lock rule's spec** (`wp_osLockStepP` with no fact of the steps). -/
+theorem wp_osLockStep (o : String) (v : val) (k : LockKind) (fd : w64) (d : OsFd)
+    (req : Option Bool) (nb : Bool) (hv : v.isPanic = false) (ho : DataOp o) (hE : ↑osN ⊆ E)
+    (hfree : req ≠ none → d.lk k = none)
+    (hex : ∀ st e' st', st.proc.fds !! fd = some d →
+      LockStep st k fd d req nb (ExternalOp fsExt.name o (Val v)) e' st' → IsFsStep o v st e' st')
+    (hst : ∀ st e' st', st.proc.fds !! fd = some d → IsFsStep o v st e' st' →
+      LockStep st k fd d req nb (ExternalOp fsExt.name o (Val v)) e' st') (Φ : val → IProp GF)
+    (hM : o ≠ "Mmap" := by decide) :
+    ⊢ osInv (L := L) -∗ osFd (L := L) fd (DFrac.own 1) d -∗ lockTok (L := L) k fd d -∗
+      (∀ e : w64, lockOut (L := L) k fd d req e -∗ Φ (#e)) -∗
+      WP (ExternalOp fsExt.name o (Val v)) @ s; E {{ Φ }} := by
+  iintro #Hinv Hfd Ht HΦ
+  iapply wp_osLockStepP o v k fd d req nb hv ho hE hfree hex hst (fun _ => True)
+    (fun _ _ _ _ _ _ => trivial) Φ hM $$ Hinv Hfd Ht
+  iintro %e - Ho
+  iapply HΦ $$ Ho
+
 /-- `fcntl(fd, cmd, {typ, whole file})`, `cmd` `F_OFD_SETLK` or `F_OFD_SETLKW`, `typ` `F_RDLCK`,
 `F_WRLCK` or `F_UNLCK` (`ofdReq`: the request `req`), with the whole fd and the token of its OFD lock
 (if exclusive): a lock only on a description with no OFD lock. On success the description holds the
 requested lock (an exclusive one with its token, `osLock .ofd d.ino fd`); a lock's failure changes
 nothing; an unlock's failure may have released it. -/
-theorem wp_osOfdLock (fd cmd typ : w64) (d : OsFd) (req : Option Bool) (hE : ↑osN ⊆ E)
+theorem wp_osOfdLockP (fd cmd typ : w64) (d : OsFd) (req : Option Bool) (hE : ↑osN ⊆ E)
     (hcmd : cmd.toNat = F_OFD_SETLK ∨ cmd.toNat = F_OFD_SETLKW) (hreq : ofdReq typ.toNat = some req)
     (hw : req = some true → d.writable = true) (hr : req = some false → d.readable = true)
-    (hfree : req ≠ none → d.ofd = none) (Φ : val → IProp GF) :
+    (hfree : req ≠ none → d.ofd = none) (Ψ : Expr → Prop)
+    (hΨ : ∀ h st e' h' st', ExtSemantics.step (E := fsExt) "OfdLock"
+      (PairV (#fd) (PairV (#cmd) (#typ))) h st () e' h' st' () → Ψ e') (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osFd (L := L) fd (DFrac.own 1) d -∗ lockTok (L := L) .ofd fd d -∗
-      (∀ e : w64, lockOut (L := L) .ofd fd d req e -∗ Φ (#e)) -∗
+      (∀ e : w64, ⌜Ψ (Val (#e))⌝ -∗ lockOut (L := L) .ofd fd d req e -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "OfdLock" (Val (PairV (#fd) (PairV (#cmd) (#typ))))) @ s; E {{ Φ }} := by
-  iapply wp_osLockStep "OfdLock" _ .ofd fd d req (decide (cmd.toNat = F_OFD_SETLK))
-    (by simp [val.isPanic]) (by simp [DataOp]) hE hfree
+  iapply wp_osLockStepP "OfdLock" _ .ofd fd d req (decide (cmd.toNat = F_OFD_SETLK))
+    (by simp [val.isPanic]) (by simp [DataOp]) hE hfree (Ψ := Ψ) (hΨ := hΨ)
   · intro st e' st' hfd hl
     exact ⟨fd, cmd, typ, d, req, rfl, hfd, hcmd, hreq, hw, hr, hl⟩
   · intro st e' st' hfd hs
@@ -500,17 +539,33 @@ theorem wp_osOfdLock (fd cmd typ : w64) (d : OsFd) (req : Option Bool) (hE : ↑
     rw [hreq, Option.some.injEq] at hreq'; subst hreq'
     exact hl
 
+/-- `wp_osOfdLockP` with no fact of the steps. -/
+theorem wp_osOfdLock (fd cmd typ : w64) (d : OsFd) (req : Option Bool) (hE : ↑osN ⊆ E)
+    (hcmd : cmd.toNat = F_OFD_SETLK ∨ cmd.toNat = F_OFD_SETLKW) (hreq : ofdReq typ.toNat = some req)
+    (hw : req = some true → d.writable = true) (hr : req = some false → d.readable = true)
+    (hfree : req ≠ none → d.ofd = none) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osFd (L := L) fd (DFrac.own 1) d -∗ lockTok (L := L) .ofd fd d -∗
+      (∀ e : w64, lockOut (L := L) .ofd fd d req e -∗ Φ (#e)) -∗
+      WP (ExternalOp fsExt.name "OfdLock" (Val (PairV (#fd) (PairV (#cmd) (#typ))))) @ s; E {{ Φ }} := by
+  iintro #Hinv Hfd Ht HΦ
+  iapply wp_osOfdLockP fd cmd typ d req hE hcmd hreq hw hr hfree (fun _ => True)
+    (fun _ _ _ _ _ _ => trivial) Φ $$ Hinv Hfd Ht
+  iintro %e - Ho
+  iapply HΦ $$ Ho
+
 /-- `flock(fd, how)`, `how` `LOCK_SH`, `LOCK_EX` or `LOCK_UN`, with or without `LOCK_NB` (`flockReq`:
 the request `req`), with the whole fd and the token of its `flock` lock (if exclusive): as
 `wp_osOfdLock`, for the description's `flock` lock (no access mode needed). -/
-theorem wp_osFlock (fd how : w64) (d : OsFd) (req : Option Bool) (nb : Bool) (hE : ↑osN ⊆ E)
+theorem wp_osFlockP (fd how : w64) (d : OsFd) (req : Option Bool) (nb : Bool) (hE : ↑osN ⊆ E)
     (hhow : flockReq how.toNat = some (req, nb)) (hfree : req ≠ none → d.flk = none)
-    (Φ : val → IProp GF) :
+    (Ψ : Expr → Prop)
+    (hΨ : ∀ h st e' h' st', ExtSemantics.step (E := fsExt) "Flock" (PairV (#fd) (#how)) h st () e' h'
+      st' () → Ψ e') (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osFd (L := L) fd (DFrac.own 1) d -∗ lockTok (L := L) .flock fd d -∗
-      (∀ e : w64, lockOut (L := L) .flock fd d req e -∗ Φ (#e)) -∗
+      (∀ e : w64, ⌜Ψ (Val (#e))⌝ -∗ lockOut (L := L) .flock fd d req e -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Flock" (Val (PairV (#fd) (#how)))) @ s; E {{ Φ }} := by
-  iapply wp_osLockStep "Flock" _ .flock fd d req nb (by simp [val.isPanic]) (by simp [DataOp]) hE
-    hfree
+  iapply wp_osLockStepP "Flock" _ .flock fd d req nb (by simp [val.isPanic]) (by simp [DataOp]) hE
+    hfree (Ψ := Ψ) (hΨ := hΨ)
   · intro st e' st' hfd hl
     exact ⟨fd, how, d, req, nb, rfl, hfd, hhow, hl⟩
   · intro st e' st' hfd hs
@@ -521,6 +576,19 @@ theorem wp_osFlock (fd how : w64) (d : OsFd) (req : Option Bool) (nb : Bool) (hE
     simp only [FdOpen, hfd, Option.some.injEq] at hfd'; subst hfd'
     rw [hhow, Option.some.injEq, Prod.mk.injEq] at hhow'; obtain ⟨rfl, rfl⟩ := hhow'
     exact hl
+
+/-- `wp_osFlockP` with no fact of the steps. -/
+theorem wp_osFlock (fd how : w64) (d : OsFd) (req : Option Bool) (nb : Bool) (hE : ↑osN ⊆ E)
+    (hhow : flockReq how.toNat = some (req, nb)) (hfree : req ≠ none → d.flk = none)
+    (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osFd (L := L) fd (DFrac.own 1) d -∗ lockTok (L := L) .flock fd d -∗
+      (∀ e : w64, lockOut (L := L) .flock fd d req e -∗ Φ (#e)) -∗
+      WP (ExternalOp fsExt.name "Flock" (Val (PairV (#fd) (#how)))) @ s; E {{ Φ }} := by
+  iintro #Hinv Hfd Ht HΦ
+  iapply wp_osFlockP fd how d req nb hE hhow hfree (fun _ => True) (fun _ _ _ _ _ _ => trivial) Φ
+    $$ Hinv Hfd Ht
+  iintro %e - Ho
+  iapply HΦ $$ Ho
 
 /-- `close(fd)`, with the whole fd and its locks' tokens: whatever the errno, the fd is gone and its
 locks' tokens are spent (the locks are released, or, with a live mapping made through `fd`, kept by

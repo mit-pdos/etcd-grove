@@ -156,10 +156,10 @@ theorem flock.wp_proof [syscall.Assumptions]
         · iapply fmtErrorOkOrNil_of $$ HeS
         iright; iframe; ipureintro
         refine ⟨(fun h => nomatch h), Or.inl ?_⟩
-        rcases hW (Or.inr rfl) with h | h | h
+        rcases hW with h | h | h
         · exact absurd h he
-        · exact absurd h.2 h11
-        · exact h
+        · exact absurd h.2.2 h11
+        · exact fun hf => h (FsNoErr.on hf)
       subst h11
       rw [decide_eq_true (rfl : W64 11 = W64 11)]
       simp only [Bool.not_true, Bool.false_eq_true, ↓reduceIte]

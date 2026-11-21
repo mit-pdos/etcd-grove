@@ -97,7 +97,7 @@ theorem etcd_restartN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   have _hk3 := hk3
-  refine etcd_adequate_members_below (GF := restartNGF) (hbody := rfl) (HWal := HWal) (hn := by omega) (hAsLit := etcd_restartN.restartNAddrs_lit k hk)
+  refine etcd_adequate_members_below (GF := restartNGF) (hmsL := etcd_restartN.startAddrs_names_len k) (hbody := rfl) (HWal := HWal) (hn := by omega) (hAsLit := etcd_restartN.restartNAddrs_lit k hk)
     (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.restartN.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.restartN.Main) #(W64 (k : Int)))
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) (etcd_restartN.restartNAddrs k)

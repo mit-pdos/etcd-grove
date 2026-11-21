@@ -99,7 +99,7 @@ theorem etcd_authN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine etcd_adequate_members_below (GF := putgetGF) (hbody := rfl) (HWal := HWal) (hn := by omega) (hAsLit := etcd_authN.authNAddrs_lit k hk)
+  refine etcd_adequate_members_below (GF := putgetGF) (hmsL := etcd_authN.startAddrs_names_len k) (hbody := rfl) (HWal := HWal) (hn := by omega) (hAsLit := etcd_authN.authNAddrs_lit k hk)
     (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.authN.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.authN.Main) #(W64 (k : Int)))
     (fun v => v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)

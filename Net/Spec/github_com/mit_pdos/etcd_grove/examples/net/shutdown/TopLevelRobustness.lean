@@ -45,10 +45,6 @@ unrecovered panic. -/
 def shutdown_crash_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : cmd.node.Assumptions]
     [field_sem : net.FieldAssumptions] [go.BasicIntoValInj] (σ0 : state) (g : GlobalState)
-    (h : GoString) (Hhost : (extLocal netExt σ0.world).host = h)
-    (Hplan : (extGlobal netExt g.globalWorld).plan.lookup addr = some h)
-    (pl : List (GoString × GoString)) (Hwf : PlanWellFormed pl)
-    (Hpl : (extGlobal netExt g.globalWorld).plan = GMap.ofList pl)
     (Hconns : (extGlobal netExt g.globalWorld).conns = ∅) (bound : Nat),
     Robustness.Robust (system σ0) [] g (threads := bound + 1) (bound := bound)
 

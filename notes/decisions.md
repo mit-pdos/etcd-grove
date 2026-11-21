@@ -28063,6 +28063,12 @@ restarts.
 
 ## The merged snapshot's index guard (2026-10-31, S1 · the user's decision (B))
 
+**2026-11-20, R2.** Raft already records the snapshots it has restored in
+`LogState.ksn`. The unstable snapshot path returns membership in that list.
+Carry membership through the outbox and the Ready handout so a later proof
+can recover the incoming message that installed the snapshot.
+
+
 *Superseded on 2026-11-20 by the decision to carry the snapshot source through raft's API below.*
 
 **2026-10-31 · accepted**
@@ -28092,6 +28098,11 @@ comes from (changes raft's exported API); (C) a third hole in `SnapSendBranch.le
 from today's definitions); (D) term-tagged ghost state across the raft loop, the storage and the
 apply thread (a project of its own). Dropping the premise from `sentMsg_replaceSnapshot` was
 declined (the user, 2026-10-31).
+
+The public Ready contract carries the incoming protocol message for each
+successfully restored snapshot. `nodeRestoreSource_leader` identifies a
+foreign elected sender from that evidence. The server still needs to relate
+the restore to the applied Ready batches to discharge the index guard.
 
 ## `applyAll`'s merge branch (S1) (2026-10-31)
 
@@ -41198,6 +41209,42 @@ client_golang v1.24.1 (`MetricVec.Describe` sends its one descriptor; variable l
 `PRE_RES` would add that premise, so their `initFuncsOk` stay. `ownInitRes` (the one-package form)
 stays in `PkgInit.lean`, unused: deleting it rebuilds every module.
 
+## The net extension without a plan (v3.4) (2026-11-20 · the user's decision · branch `net-noplan`)
+
+**Context.** kvnet's top-level theorem (`notes/kvnet-robust-goal.md`, branch
+`worktree-kvnet-toplevel-statement`) is `Robust` over the fixed extensions `[Net.netExt, Fs.fsExt]`
+and mentions no plan, no hosts and no network premises but that the replicas' addresses are valid
+(`Net.addrOk`) and distinct. v3.3's network carried the deployment's plan (address -> host) and
+each node its host; `Listen` panicked unless the address was the plan's at this node's host,
+`Dial` unless it was in the plan.
+
+**Decision (the user's).** The plan and the hosts go (`notes/net-tcp.md`, v3.4, with the soundness
+argument): an address is valid if `addrOk` (moved into `Impl.lean`), `Listen` takes a valid address
+or a wildcard with a valid canonical port (`listenOk`), any machine may listen at any valid address,
+`Accept` takes any connection pending at an address its listener takes (`lisAccepts`; a wildcard
+takes any address with its port, the user's preferred D21), and everything else is unchanged. It
+only adds behaviours (every new one starts from a step that was a panic), so robustness under v3.3
+carries over. Initial states: `NetLocal.init` (no listener), `NetGlobal.init` (no connection),
+standalone in `Impl.lean` until Perennial's `ExtSemantics` gets `init`/`globalInit`; the
+interpretation's `initgP` is `NetGlobal.init`, its `initP` stays `True` (the examples' and kits'
+statements do not yet say their machines start with no listener; `KitDeploy` does).
+
+**Ghost state.** Without a plan the start resources cannot be "the plan's addresses": they are every
+valid address's pending set (`netStart`, `pendInit := addrSpace ∅`). The valid addresses are
+finitely many (`Deploy.lean`'s `addrOk_length`: at most 21 bytes), so their map is a finite `GMap`;
+it is built from a list chosen by `Classical.choose` (`addrList`), never computed (a computed list of
+every byte string up to 21 bytes made the elaborator hang on the first lemma that mentioned it).
+`netPlan` is gone; the specs of `Dial`, `DialTimeout` and `Listen` take `⌜addrOk a⌝`, and
+`netLisAt l a` carries `addrOk a` (so `Accept`'s spec, at a valid listener, takes exactly the
+connections dialed to `a`); the wildcards the semantics allows are not covered by the specs (no
+verified program uses one). The kits' `KitDeploy` is now the kit's addresses (distinct, valid), no
+connection, no listener; the examples' statements lose their plan and host premises.
+
+**Rejected.** An infinite ghost resource for "every address" (a new camera code in Perennial, a
+shared dependency); claiming addresses at run time (the pending sets' authority is in the state
+interpretation, which only a step can change, so a claim outside a step cannot add an address);
+keeping wildcards in the specs (a wildcard's `Accept` must open every matching address's
+protocol).
 ## Recognizing bbolt's interrupted first write (2026-11-20)
 
 The first write initializes two zero meta pages, a freelist and an empty root. Zero meta pages

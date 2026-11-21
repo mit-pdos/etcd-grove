@@ -109,7 +109,6 @@ public import Proof.k8s_io.apiserver.pkg.storage.etcd3.New
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.watcher__Watch
 public import Proof.k8s_io.apimachinery.pkg.fields.Set__Get
 public import Proof.fmt.ErrorfPlain
-public import Proof.fmt.SprintfNamed
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.getNewItemFunc
 public import Proof.go_etcd_io.etcd.client.v3.getPrefix
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.getTypeName
@@ -317,10 +316,6 @@ theorem v3.wp_GetPrefixRangeEnd :
 theorem v3.wp_WithRev :
     EtcdGrove.WithRev.spec (GF := GF) (hG := hG) :=
   EtcdGrove.WithRev.wp_proof
-
-theorem fmt.wp_SprintfNamed :
-    EtcdGrove.fmt.SprintfNamed.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.fmt.SprintfNamed.wp_proof
 
 theorem ResponseHeader.wp_GetRevision :
     EtcdGrove.ResponseHeader.GetRevision.spec (GF := GF) (hG := hG) :=
@@ -597,7 +592,7 @@ theorem apimeta.wp_Accessor :
 
 theorem storage.Preconditions.wp_Check :
     EtcdGrove.storage.Preconditions.Check.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.storage.Preconditions.Check.wp_proof apimeta.wp_Accessor storage.wp_NewInvalidObjError fmt.wp_SprintfNamed
+  EtcdGrove.storage.Preconditions.Check.wp_proof apimeta.wp_Accessor storage.wp_NewInvalidObjError
 
 theorem storage.wp_PrepareContinueToken :
     EtcdGrove.storage.PrepareContinueToken.spec (GF := GF) (hG := hG) :=

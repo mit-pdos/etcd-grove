@@ -30,6 +30,7 @@ public import Perennial.Proof.context.Link
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.math.Link
+public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
 public import Proof.crypto.tls.Init
@@ -48,6 +49,7 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.Init
 public import Proof.go_etcd_io.etcd.server.v3.config.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.Init
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.version.Init

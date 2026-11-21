@@ -77,7 +77,7 @@ theorem os.File.WriteAt.wp_proof_long : os.File.WriteAt.specLong (GF := GF) (hG 
   intro f fd name dqf sl data dqs off dq d m xs hwr hoff hgap hbig hn hlo hxl
   by_cases hsmall : data.length ≤ 0x40000000
   · iintro %Φ Hpre HΦ
-    iapply (os.File.WriteAt.wp_proof (GF := GF) (hG := hG) f fd name dqf sl data dqs off dq d m xs
+    iapply (os.File.WriteAt.wp_ino (GF := GF) (hG := hG) f fd name dqf sl data dqs off dq d m xs
       hwr hoff hgap hbig hn hsmall hxl) $$ Hpre
     iintro !> %n %err ⟨Hf, Hsl, Hfd, %j, %ys, %Hr, Hm, Hbs, Hmc, Hok⟩
     obtain ⟨hj, hout, hcut, hres⟩ := Hr
@@ -88,7 +88,7 @@ theorem os.File.WriteAt.wp_proof_long : os.File.WriteAt.specLong (GF := GF) (hG 
     iframe Hm Hbs Hmc Hok
     ipureintro
     refine ⟨hj, Nat.le_refl _, fun _ => rfl, by split <;> omega, fun h => by rw [if_pos h],
-      os.PwOut.pwOutA hout, .inl hcut, hres.imp_right (fun h => ⟨h.1, h.2.1⟩)⟩
+      os.PwOut.pwOutA hout, .inl hcut, hres⟩
   · -- past `maxRW`: the chunked loop (see the file header)
     have hbig' : 0x40000000 < data.length := by omega
     have hmin0 : min off.toNat m.size = off.toNat := Nat.min_eq_left hgap
@@ -226,9 +226,9 @@ theorem os.File.WriteAt.wp_proof_long : os.File.WriteAt.specLong (GF := GF) (hG 
     · rw [hoffv]; iexact Hbs2
     · rw [hoffv, hdl, hmaps, hend]
       iexact Hc2
-    wp_apply wp_osPWriteFinish t d.ino (off + nnv).toNat ((data.drop nnv.toNat).take (A' - nnv.toNat))
+    wp_apply wp_osPWriteFinishW t d.ino (off + nnv).toNat ((data.drop nnv.toNat).take (A' - nnv.toNat))
       mj ((ys.drop nnv.toNat).take (A' - nnv.toNat)) nst CoPset.subseteq_top $$ Hinv Ht
-      as %k %e %zs %hke %hpc Hm Hbs2 Hc2
+      as %k %e %zs %hke %hpc Hm Hbs2 Hc2 %hneW
     obtain ⟨hk, hke, -, -⟩ := hke
     rw [hdl] at hk
     have hpc' : PwCut (off.toNat + nnv.toNat) (A' - nnv.toNat) k := by
@@ -323,7 +323,7 @@ theorem os.File.WriteAt.wp_proof_long : os.File.WriteAt.specLong (GF := GF) (hG 
           · isplitl [] <;> iassumption
           · ipureintro
             exact ⟨hj', hA'l, fun h => absurd h (by omega), hEj', hjA', hys', hcj',
-              .inr ⟨rfl, by intro h; cases h⟩⟩
+              .inr ⟨rfl, (by intro h; cases h), (hneW he0).imp_right (fun h => by rw [hoffv] at h; omega)⟩⟩
       · rw [decide_eq_false hfull]
         wp_auto
         by_cases he0 : e = W64 0
@@ -354,7 +354,7 @@ theorem os.File.WriteAt.wp_proof_long : os.File.WriteAt.specLong (GF := GF) (hG 
           · isplitl [] <;> iassumption
           · ipureintro
             exact ⟨hj', hA'l, fun h => absurd h (by omega), hEj', hjA', hys', hcj',
-              .inr ⟨rfl, by intro h; cases h⟩⟩
+              .inr ⟨rfl, (by intro h; cases h), (hneW he0).imp_right (fun h => by rw [hoffv] at h; omega)⟩⟩
 
 
 end proof

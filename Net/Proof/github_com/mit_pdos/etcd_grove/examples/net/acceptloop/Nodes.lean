@@ -155,15 +155,14 @@ theorem wp_Serve
     (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
     (γm : GName) (eof ed : GoInterface) :
     {{ isPkgInit (PROP := IProp GF) pkg ∗ echoInvs γm ∗
-        ⌜ListenAt (extGlobalGS netExt (G := hG.goose_globalGS)).plan
-          (extLocalGS netExt (L := hG.goose_localGS)).host srvAddr srvAddr⌝ ∗
+        ⌜addrOk srvAddr = true⌝ ∗
         globalAddr io.EOF ↦□ eof ∗ globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed }}
       (App (Val (@! Serve)) (Val #()))
     {{ RET #(); True }} := by
   wp_start as ⟨#Hinvs, %Hla0, #Heof, #Hed⟩
   icases echoInvs_elim γm $$ Hinvs with ⟨#HaddrInv, #HechoInv⟩
   (try wp_auto)
-  wp_apply wp_Listen go!"tcp" net.tcpNet_tcp srvAddr srvAddr as %li %err (⟨%Herr, %l, #Hli, Hlis, #Hla⟩ | ⟨%x, -, #HE⟩)
+  wp_apply wp_Listen go!"tcp" net.tcpNet_tcp srvAddr as %li %err (⟨%Herr, %l, #Hli, Hlis, #Hla⟩ | ⟨%x, -, #HE⟩)
   · ipureintro; exact Hla0
   · -- listening: the accept loop
     subst Herr
@@ -211,15 +210,15 @@ theorem wp_CallOne
     (wp_ReadFull : wire.ReadFull.spec (GF := GF) (hG := hG))
     (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
     (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
-    (γm : GName) (h : GoString) (eof ed : GoInterface) (id : w8) :
-    {{ isPkgInit (PROP := IProp GF) pkg ∗ echoInvs γm ∗ netPlan G srvAddr h ∗
+    (γm : GName) (eof ed : GoInterface) (id : w8) :
+    {{ isPkgInit (PROP := IProp GF) pkg ∗ echoInvs γm ∗ ⌜addrOk srvAddr = true⌝ ∗
         globalAddr io.EOF ↦□ eof ∗ globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed }}
       (App (Val (@! CallOne)) (Val #id))
     {{ RET #(); True }} := by
   wp_start as ⟨#Hinvs, #Hplan, #Heof, #Hed⟩
   icases echoInvs_elim γm $$ Hinvs with ⟨#HaddrInv, #HechoInv⟩
   (try wp_auto)
-  wp_apply wp_Dial go!"tcp" net.tcpNet_tcp srvAddr h iprop(True) (fun cn => dialerOwn γm cn) $$ []
+  wp_apply wp_Dial go!"tcp" net.tcpNet_tcp srvAddr iprop(True) (fun cn => dialerOwn γm cn) $$ []
     as %c %err (⟨%Herr, %cn, #Hc, Hown⟩ | ⟨-, %x, -, #HE⟩)
   · iframe Hplan
     isplit
@@ -356,8 +355,8 @@ theorem wp_Call
     (wp_Add : sync.WaitGroup.Add.spec (GF := GF) (hG := hG))
     (wp_Done : sync.WaitGroup.Done.spec (GF := GF) (hG := hG))
     (wp_Wait : sync.WaitGroup.Wait.spec (GF := GF) (hG := hG))
-    (γm : GName) (h : GoString) (eof ed : GoInterface) :
-    {{ isPkgInit (PROP := IProp GF) pkg ∗ echoInvs γm ∗ netPlan G srvAddr h ∗
+    (γm : GName) (eof ed : GoInterface) :
+    {{ isPkgInit (PROP := IProp GF) pkg ∗ echoInvs γm ∗ ⌜addrOk srvAddr = true⌝ ∗
         globalAddr io.EOF ↦□ eof ∗ globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed }}
       (App (Val (@! Call)) (Val #()))
     {{ RET #(); True }} := by
@@ -374,7 +373,7 @@ theorem wp_Call
   (try wp_auto)
   wp_apply wp_fork $$ [Hd1]
   · (try wp_auto)
-    wp_apply wp_CallOne wp_Dial wp_ReadFull wp_Write wp_Close γm h eof ed (W8 1) $$ []
+    wp_apply wp_CallOne wp_Dial wp_ReadFull wp_Write wp_Close γm eof ed (W8 1) $$ []
     · iframe Hinvs Hplan Heof Hed
     (try wp_auto)
     wp_apply (sync.join.WaitGroup.wp_Done_of wp_Done iprop(True) wg_ptr) $$ [Hd1]
@@ -383,7 +382,7 @@ theorem wp_Call
   (try wp_auto)
   wp_apply wp_fork $$ [Hd2]
   · (try wp_auto)
-    wp_apply wp_CallOne wp_Dial wp_ReadFull wp_Write wp_Close γm h eof ed (W8 2) $$ []
+    wp_apply wp_CallOne wp_Dial wp_ReadFull wp_Write wp_Close γm eof ed (W8 2) $$ []
     · iframe Hinvs Hplan Heof Hed
     (try wp_auto)
     wp_apply (sync.join.WaitGroup.wp_Done_of wp_Done iprop(True) wg_ptr) $$ [Hd2]

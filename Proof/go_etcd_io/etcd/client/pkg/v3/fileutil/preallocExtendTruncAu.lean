@@ -79,7 +79,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtendTrunc.wp_proofAu
     iapply ftDoneH_preGrownH _ _ _ _ _ (fun h => h.2) $$ Hd
   · iexists m.size
     isplitr
-    · ipureintro; exact ⟨Nat.le_refl _, hle, fun h => absurd h he⟩
+    · ipureintro; exact ⟨Nat.le_refl _, hle, fun h => absurd h he.1⟩
     unfold os.ftUndoneH preGrownH
     icases Hd with ⟨⟨%tc, %rz, %htc, Hm⟩, -⟩
     iexists _
@@ -91,7 +91,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtendTrunc.wp_proofAu
         Nat.le_of_eq (announce_cz' m (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat).symm,
         growMeta_announce m (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat,
         PcKeep.of_tc (tr := true) (announce_size' m (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat)
-          rfl htc.1, by simp only [OsMeta.withTc_lo, OsMeta.announce]; omega, fun h => absurd h.1 he⟩
+          rfl htc.1, by simp only [OsMeta.withTc_lo, OsMeta.announce]; omega, fun h => absurd h.1 he.1⟩
     rw [Nat.sub_self]
     iapply osZerosA_nil
 

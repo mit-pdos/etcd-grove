@@ -6,9 +6,9 @@
 usable (`notes/dsverify-net-port-plan.md`, phase 4).
 
 The three machines are the example's commands (`system`, `Results.lean`: `cmd/server`, `cmd/client`,
-`cmd/junk`, each its package's boot program), the plan `[(SrvAddr, "h")]` (well formed: `decide`,
-`echoPlan_wf`), every machine on the host `"h"` (the examples run on one machine). From the start
-resources the bridge gives (`SrvAddr` unset: its pending set and plan entry), the proof allocates
+`cmd/junk`, each its package's boot program), the addresses `[SrvAddr]` (`echoAddrs`; valid:
+`decide`). From the start resources the bridge gives (`SrvAddr` unset: its pending set), the proof
+allocates
 echo's own protocol (`echoInvs`, `Defs.lean`) rather than the kits' library (a program may keep the
 network's resources in its own protocol), and each machine's boot program is safe by the same
 `wp_main` lemmas as `echo_crash_safety` (`Results.lean`).
@@ -38,92 +38,71 @@ namespace github_com.mit_pdos.etcd_grove.examples.net.echo
 attribute [local instance] netExts netExtsSemantics netExtsInterp netExts_hasNet
   GooseGlobalGS.gooseInvGS
 
-section kit
-variable [GoGlobalContext]
-
-/-- The plan: the server's address, at the host `"h"`. -/
-def echoPlan : List (GoString × GoString) := [(srvAddr, go!"h")]
-
-/-- Every machine on the host `"h"`. -/
-def echoHosts : List GoString := [go!"h", go!"h", go!"h"]
-
-/-- The kit premise's plan part holds of echo's plan. -/
-theorem echoPlan_wf : PlanWellFormed echoPlan := by decide
-
-end kit
+/-- The kit's addresses: the server's. -/
+def echoAddrs : List GoString := [srvAddr]
 
 set_option linter.unusedVariables false in
-/-- **echo as a kit**: the three machines, none of which crashes, deployed with the plan
-`echoPlan` and every machine on `"h"` (`KitDeploy`), are robust: in every execution, of any
-length, no thread of any machine is stuck and none has an unrecovered panic. -/
+/-- **echo as a kit**: the three machines, none of which crashes, deployed with the address
+`echoAddrs` (`KitDeploy`), are robust: in every execution, of any length, no thread of any machine
+is stuck and none has an unrecovered panic. -/
 theorem echo_kit_robust [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [srv_sem : cmd.server.Assumptions] [cli_sem : cmd.client.Assumptions]
     [junk_sem : cmd.junk.Assumptions] [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
     (σs σc σj : state) (g : GlobalState) (threads bound : Nat) :
-    KitDeploy echoPlan echoHosts (system σs σc σj) g → Robust [] (system σs σc σj) g threads bound := by
-  refine robust_of_kitBoot _ _ _ g threads bound ?_
+    KitDeploy echoAddrs (system σs σc σj) g → Robust [] (system σs σc σj) g threads bound := by
+  refine robust_of_kitBoot _ _ g threads bound ?_
   intro G
-  iintro %hplan Hs
-  have HGp : (extGlobalGS netExt (G := G)).plan !! srvAddr = some go!"h" := by
-    rw [hplan]; rfl
-  unfold echoPlan
+  iintro Hs
+  unfold echoAddrs
   icases BigSepL.bigSepL_cons.1 $$ Hs with ⟨Hu, -⟩
   unfold addrUnset addrTok
-  icases Hu with ⟨Hpend, %h, #Hplan, %HGh⟩
-  dsimp only at HGh
-  have hh : h = go!"h" := by rw [HGp] at HGh; cases HGh; rfl
-  subst hh
+  icases Hu with ⟨Hpend, %Hok⟩
   imod echoInvs_alloc (Gg := G) $$ Hpend with ⟨%γm, #Hinvs⟩
   imodintro
-  iexists fun _ => iprop(echoInvs (Gg := G) γm ∗ netPlan (extGlobalGS netExt) srvAddr go!"h" ∗
-    ⌜(extGlobalGS netExt (G := G)).plan !! srvAddr = some go!"h"⌝)
+  iexists fun _ => iprop(echoInvs (Gg := G) γm ∗ ⌜addrOk srvAddr = true⌝)
   isplitr
   · ipureintro
-    intro i m hh hm hhost hG hGG hctx
+    intro i m hm hG hGG hctx
     obtain ⟨G', ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩ := hG
     dsimp only at hGG hctx
     subst hGG hctx
     letI hG : HeapGS .hasLC netGF := ⟨G', ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
-    match i, hm, hhost with
-    | 0, hm, hhost =>
-      cases hm; cases hhost
+    match i, hm with
+    | 0, hm =>
+      cases hm
       dsimp only
-      iintro ⟨#Hinvs, #Hplan, %HGp⟩ %Hh Hgs
+      iintro ⟨#Hinvs, #Hplan⟩ Hgs
       rw [show boot_server = boot cmd.server.initialize' cmd.server.main from rfl]
       iapply wp_boot cmd.server.initialize' cmd.server.main _ cmd.server.getIsPkgInit
           (cmd.server.wp_initialize' _ cmd.server.getIsPkgInit_wf) _
           (cmd.server.wp_main net.Listen.wp_proof net.Listener.Accept.wp_proof
             (wire.ReadFull.wp_proof net.Conn.Read.wp_proof) net.Conn.Write.wp_proof
             net.Conn.Close.wp_proof γm) $$ [] Hgs
-      iframe Hinvs
-      ipureintro
-      rw [Hh]
-      exact HGp
-    | 1, hm, hhost =>
-      cases hm; cases hhost
+      iframe Hinvs Hplan
+    | 1, hm =>
+      cases hm
       dsimp only
-      iintro ⟨#Hinvs, #Hplan, %HGp⟩ %Hh Hgs
+      iintro ⟨#Hinvs, #Hplan⟩ Hgs
       rw [show boot_client = boot cmd.client.initialize' cmd.client.main from rfl]
       iapply wp_boot cmd.client.initialize' cmd.client.main _ cmd.client.getIsPkgInit
           (cmd.client.wp_initialize' _ cmd.client.getIsPkgInit_wf) _
           (cmd.client.wp_main net.Dial.wp_proof (wire.ReadFull.wp_proof net.Conn.Read.wp_proof)
-            net.Conn.Write.wp_proof net.Conn.Close.wp_proof γm go!"h") $$ [] Hgs
+            net.Conn.Write.wp_proof net.Conn.Close.wp_proof γm) $$ [] Hgs
       iframe Hinvs Hplan
-    | 2, hm, hhost =>
-      cases hm; cases hhost
+    | 2, hm =>
+      cases hm
       dsimp only
-      iintro ⟨#Hinvs, #Hplan, %HGp⟩ %Hh Hgs
+      iintro ⟨#Hinvs, #Hplan⟩ Hgs
       rw [show boot_junk = boot cmd.junk.initialize' cmd.junk.main from rfl]
       iapply wp_boot cmd.junk.initialize' cmd.junk.main _ cmd.junk.getIsPkgInit
           (cmd.junk.wp_initialize' _ cmd.junk.getIsPkgInit_wf) _
           (cmd.junk.wp_main net.Dial.wp_proof (wire.ReadFull.wp_proof net.Conn.Read.wp_proof)
-            net.Conn.Write.wp_proof net.Conn.Close.wp_proof γm go!"h") $$ [] Hgs
+            net.Conn.Write.wp_proof net.Conn.Close.wp_proof γm) $$ [] Hgs
       iframe Hinvs Hplan
   · dsimp only
-    ihave #HP : iprop(echoInvs (Gg := G) γm ∗ netPlan (extGlobalGS netExt) srvAddr go!"h" ∗
-        ⌜(extGlobalGS netExt (G := G)).plan !! srvAddr = some go!"h"⌝) $$ []
-    · iframe Hinvs Hplan
-      ipureintro; exact HGp
+    ihave #HP : iprop(echoInvs (Gg := G) γm ∗ ⌜addrOk srvAddr = true⌝) $$ []
+    · iframe Hinvs
+      ipureintro; exact Hok
     simp only [system]
     iapply BigSepL.bigSepL_cons.2
     isplitr

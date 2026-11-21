@@ -102,7 +102,7 @@ theorem etcd_txnlinfaultsN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine etcd_adequate_members_below (GF := linkvGF) (hbody := rfl) (HWal := HWal) (hn := by omega)
+  refine etcd_adequate_members_below (GF := linkvGF) (hmsL := etcd_txnlinfaultsN.startAddrs_names_len k) (hbody := rfl) (HWal := HWal) (hn := by omega)
     (hAsLit := etcd_txnlinfaultsN.txnlinfaultsNAddrs_lit k hk) (HEnv := HEnv)
     github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN.initialize'
     (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN.Main))

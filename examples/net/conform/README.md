@@ -259,9 +259,10 @@ still running; a process can be ended by SIGKILL with no `kill` event (`proctest
   dial began, and that every operation on a socket begins after the `E` of the call that returned
   it (guaranteed within a process). Real-time order across processes: `a` precedes `b` iff
   `a`'s `E.t` < `b`'s `B.t`; within a goroutine (`pid`, `g`) the calls are sequential.
-- **The plan**: the addresses (`Listen`'s `addr`, and the examples' constants) and which node
-  listens at each; the examples use fixed ports 7101-7107 and the probe 7191-7198, outside the
-  ephemeral range; the semantics tests use port 0 (out of the model's scope, D13).
+- **The addresses** (v3.4: no plan): `Listen`'s and `Dial`'s `addr` must be valid (D20: a canonical
+  IPv4 `a.b.c.d:p`, the port outside the ephemeral range) or, for `Listen`, a valid wildcard (D21);
+  the examples use fixed ports 7101-7107 and the probe 7191-7198; the semantics tests use port 0
+  (out of the model's scope, D12, D13).
 - **Scope**: `Unmodeled` calls, ops on `u` and `nil` sockets, networks other than `"tcp"` have no
   step in the model.
 

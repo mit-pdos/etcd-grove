@@ -269,7 +269,9 @@ theorem RawNode.acceptReady.wp_proof
   icases ghostRest_certLink γ _ cf id _ $$ Hrest with ⟨#Hlink, Hrest⟩
   -- (raft-final) the transfer records' witnesses, for the self-addressed responses' `isRaftMsg`
   icases ghostRest_xfW γ _ cf id _ $$ Hrest with ⟨#Hxw, Hrest⟩
-  imod qCerts_of_srcs γ _ (ms1 ++ ms2) ⊤ CoPset.subseteq_top $$ Hlink Hscert with #Hqc
+  ihave #HscertAll := qSrcs_mono _ (ms1 ++ ms2) (· ∈ s.logst.ksn) (fun _ => True)
+    (fun _ _ => trivial) $$ Hscert
+  imod qCerts_of_srcs γ _ (ms1 ++ ms2) ⊤ CoPset.subseteq_top $$ Hlink HscertAll with #Hqc
   icases ownRaftGhost_storedRecs_keep _ _ _ $$ Hghost with ⟨Hghost, #Hlr⟩
   icases ownRaftGhost_terms_le _ _ _ $$ Hghost with ⟨%Htle, Hghost⟩
   -- (2026-11-11, slice 28n) at a traced cluster, the log's numbers within the trace's bound, for the

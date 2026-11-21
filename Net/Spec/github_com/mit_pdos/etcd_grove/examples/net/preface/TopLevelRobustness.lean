@@ -44,10 +44,6 @@ def preface_crash_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics] [package_s : cmd.server.Assumptions]
     [package_c : cmd.client.Assumptions] [package_j : cmd.junk.Assumptions]
     [field_sem : net.FieldAssumptions] [go.BasicIntoValInj] (σs σc σj : state) (g : GlobalState)
-    (h : GoString) (Hhost : (extLocal netExt σs.world).host = h)
-    (Hplan : (extGlobal netExt g.globalWorld).plan.lookup srvAddr = some h)
-    (pl : List (GoString × GoString)) (Hwf : PlanWellFormed pl)
-    (Hpl : (extGlobal netExt g.globalWorld).plan = GMap.ofList pl)
     (Hconns : (extGlobal netExt g.globalWorld).conns = ∅) (bound : Nat),
     Robustness.Robust (system σs σc σj) [] g (threads := bound + 1) (bound := bound)
 

@@ -20,7 +20,7 @@ Where a method's class depends on the request's fields, both are listed. "Keys" 
 
 | service / method | class and keys | where the check is |
 |---|---|---|
-| **KV** `Range` | RBAC read `[Key, RangeEnd)` (open-ended `"\x00"` is to the end of the key space) | serializable: `doSerialize`'s `chk` (`v3_server.go`); linearizable: apply, `authApplierV3.Range` |
+| **KV** `Range` | RBAC read `[Key, RangeEnd)` (open-ended `"\x00"` is to the end of the key space) | API, `doSerialize`'s `chk` after the read index, serializable or linearizable (`v3_server.go:138-153`); `authApplierV3.Range` is reached only by a raft `Range` entry, which no client path proposes (corrected 2026-11-20, `notes/auth-mediation-scope.md` §1) |
 | `RangeStream` | as `Range` | as `Range` (`v3_server.go`, the stream variant) |
 | `Put` | RBAC write `Key`; with `PrevKv`, also read `Key`; with a lease, also write every key the lease holds (`checkLeasePuts`) | apply, `authApplierV3.Put` → `checkPutAuth` |
 | `DeleteRange` | RBAC write `[Key, RangeEnd)`; with `PrevKv`, also read it | apply, `authApplierV3.DeleteRange` |
@@ -37,7 +37,7 @@ Where a method's class depends on the request's fields, both are listed. "Keys" 
 | **Maintenance** `Defragment`, `Snapshot`, `Hash`, `HashKV`, `MoveLeader`, `Downgrade` | admin | API, `authMaintenanceServer` → `AuthAdmin.isPermitted` |
 | `Alarm` | `GET`: authenticated; `ACTIVATE`/`DEACTIVATE`: admin | API, `authMaintenanceServer.Alarm` |
 | `Status` | authenticated | API, `authMaintenanceServer.Status` → `requireAuthInfo` |
-| **Auth** `Authenticate` | public | — |
+| **Auth** `Authenticate` | public | — (proved at the server: `EtcdServer.Authenticate.spec`, a token issued to the user, over `authnStoreOk`; 2026-11-20) |
 | `AuthStatus` | public (made so on purpose, etcd-io/etcd#20802) | — |
 | `AuthEnable`, `AuthDisable` | admin | apply, `authApplierV3.Apply` (`needAdminPermission`) |
 | `UserAdd`, `UserDelete`, `UserChangePassword`, `UserGrantRole`, `UserRevokeRole`, `UserList` | admin | apply, `needAdminPermission` |
@@ -152,7 +152,7 @@ resources, and the KV methods' posts state the row's class for it through the wh
 - `UserGet`: `authApplierV3.UserGet`'s `nil` error says the principal is an admin or the user
   itself (`userGetClass`; at the method level: the generic triple does not carry it).
 
-Not stated: `RoleGet`'s "or a role the user has" (`HasRole` has no model in `isAuthStore`),
+Not stated: (stated since: `authApplierV3.RoleGet.spec`, "unless admin or has the role, an error"; 2026-11-20) `RoleGet`'s "or a role the user has" (`HasRole` has no model in `isAuthStore`),
 `LeaseRevoke`'s keys (the spec of `checkLeasePuts` states them, but no chain result reaches a
 revocation: `rqOk` excludes it), the server-level statement over the decoded
 entry (`applyEntryNormal`: E).
@@ -186,7 +186,7 @@ path's model has no auth request), the response asserted to its type. Nothing of
 on this path: the rows' class (admin at apply, `UserGet`'s "or the user itself") is the apply
 layer's statement (`adminPass`, `userGetClass`, above). Fourteen entry points are proved;
 `Authenticate` is translated and not (`auth.ErrAuthNotEnabled` is not in the auth package's
-fact); `UserAdd`, `UserChangePassword` are names only (they hash with bcrypt and base64). The
+fact; proved since, in the mode `on`: `EtcdServer.Authenticate.spec`, linked as `server_authenticate_on`); `UserAdd`, `UserChangePassword` are names only (they hash with bcrypt and base64). The
 "`UserChangePassword` of oneself" exception is not in the pinned code: `needAdminPermission` names
 the request unconditionally (the row above is right).
 
@@ -312,3 +312,13 @@ meet the token contract with `info`'s context premise in the mode `on γa` with 
 generic contract the store's invariant holds keeps `ValidSpec` (deleted since, auth-schema-fix S1); nothing produces the provider in the
 store yet (`NewAuthStore`, an axiom) (`notes/decisions.md`, "S5e of the auth plan").
 
+
+## The client port's mediation (stage M0, 2026-11-20)
+
+`notes/auth-mediation-scope.md` re-derived this table at the pin and made four corrections above
+(`Range` is checked at the API layer, linearizable or not; `Authenticate` is proved at the server;
+`RoleGet`'s "a role the user has" is stated; `issues/etcd-v3lock-watch-shared-stream-principal.md` is
+a duplicate of etcd-io/etcd#17502, its front matter `upstream: known`). Every registration on the
+client port now has a row in `etc/auth-table.txt` (class, status, the specs that carry it), which
+`etc/auth-mediation-check.py` checks against the Go registration code at the pin (`etc/authmed`) and
+the specs, with the shrink-only baseline `etc/auth-mediation-baseline.txt` (in `etc/gates.sh`).

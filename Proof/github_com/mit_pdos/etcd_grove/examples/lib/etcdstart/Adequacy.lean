@@ -262,6 +262,7 @@ theorem etcd_adequate_alloc_below [hPre : GooseGpreS GF] [lctx : GoLocalContext]
 
 
 
+
 /-- **An etcd example's closed theorem over `goose_adequacy_start`** (see the file header): as
 `init_adequate`, for a program whose initializer takes the rights to register the metric names
 `Ns` (distinct, `decide`d by default; mustreg, 2026-11-20: until then the read package's two) and
@@ -360,6 +361,7 @@ theorem etcd_adequate_below [hPre : GooseGpreS GF] [lctx : GoLocalContext]
   · iunfold prometheus.namesFree
     iexact Hns
   · iframe; iexact Hvoff
+
 
 
 

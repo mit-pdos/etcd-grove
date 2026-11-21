@@ -108,7 +108,7 @@ theorem etcd_putgetN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine etcd_adequate_members_below (GF := putgetNGF) (hbody := rfl) (HWal := HWal) (hn := by omega) (hAsLit := etcd_putgetN.putgetNAddrs_lit k hk)
+  refine etcd_adequate_members_below (GF := putgetNGF) (hmsL := etcd_putgetN.startAddrs_names_len k) (hbody := rfl) (HWal := HWal) (hn := by omega) (hAsLit := etcd_putgetN.putgetNAddrs_lit k hk)
     (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.Main) #(W64 (k : Int)))
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) (etcd_putgetN.putgetNAddrs k)

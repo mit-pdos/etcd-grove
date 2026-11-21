@@ -256,7 +256,7 @@ abbrev raft.send.tracedSpec : Prop :=
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- (out_size C3, `raft.send.spec`'s) held at a content, at the node's flag
       "Hm" ∷ msgOwnZ s.gh.sn.sz ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ ∗
-      "#Hsrc" ∷ tsSrc s.gh.sn m.Type' sn ∗
+      "#Hsrc" ∷ tsSrc s.gh.sn m.Type' sn (· ∈ s.logst.ksn) ∗
       trCapB s.gh.tr γ r id c b Φ Λ ∗
       -- (review round 2's A4) the facts the send line keeps, the caller's
       (match (mtypeOf m.Type').bind sendEvt with

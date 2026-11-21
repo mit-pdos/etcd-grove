@@ -71,7 +71,10 @@ axiom clockwork.stampAt_elim
 axiom clockwork.stampAt_persistent
 axiom config.ServerConfig.BackendPath.wp_proof
 axiom context.WithValue.wp_proof
+axiom context.madeCancelCtx_of_isCancelCtx
 axiom dataDirFresh
+axiom encoding.json.MarshalConfigChangeContext.wp_proof
+axiom encoding.json.MarshalMember.wp_proof
 axiom encoding.json.Unmarshal.wp_proof
 axiom entryEncC_ok
 axiom envVerifyOffTok
@@ -82,7 +85,6 @@ axiom etcdserverpb.AlarmType.String.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom fmt.ErrorfPlain.wp_proof
 axiom fmt.SprintfArgs.wp_proof
-axiom fmt.SprintfID.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom http.CloseIdleConnections_ok
 axiom http.Error_ok
@@ -182,7 +184,6 @@ axiom rafthttp.netErrNotRemoved_ok
 axiom rafthttp.newStreamRoundTripper.wp_proof
 axiom rate.Every.wp_proof
 axiom rate.Limiter.Wait.wp_proof
-axiom rate.NewLimiter.wp_proof
 axiom reflect.DeepEqual.wp_proof_pgidSet
 axiom reflect.ValueOf.wp_proof
 axiom schema.MustUnsafeGetAllLeases.wp_proof
@@ -192,10 +193,7 @@ axiom schema.membershipBackend.MustDeleteMemberFromBackend.wp_proof
 axiom schema.membershipBackend.MustReadMembersFromBackend.wp_proof
 axiom schema.membershipBackend.MustSaveMemberToBackend.wp_proof
 axiom semver.MustParse.wp_proof
-axiom semver.New.wp_proof
 axiom semver.Version.LessThan.wp_proof
-axiom semver.Version.Major.wp_proof
-axiom semver.Version.Minor.wp_proof
 axiom semver.Version.String.wp_proof
 axiom semver.semverValid_simple
 axiom snap.NewMessage.wp_proof

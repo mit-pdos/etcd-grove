@@ -241,7 +241,7 @@ theorem raftNode.start.wp_proof
         obtain ⟨-, HLA, Hfit, Hlast⟩ := HA'
         iunfold readySnap at HrSn
         icases HrSn with ⟨%Hl, Hsn, #HcL, #Hcert, ⟨%k, %old, %Hk, Hlog, Hend⟩, #Hgiven, #HcLbS,
-          #HsnLoc, -, %Hrns⟩
+          ⟨#HsnLoc, #HrestoreSrc⟩, -, %Hrns⟩
         obtain ⟨-, Hptr, -, -, -, -, -, -, -, Hli⟩ := Hl
         -- the snapshot's log `A'`, `pre ++ A'` the snapshot's index long
         have hlenA : (γ.pre ++ A').length = uint.nat l.snap.Metadata'.Index' := by

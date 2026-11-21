@@ -1,11 +1,11 @@
 /-
-`net.DialTimeout("tcp", a, timeout)` for an address `a` of the plan (`netPlan`; `DialTimeout.impl`,
+`net.DialTimeout("tcp", a, timeout)` for a valid address `a` (`addrOk`, D20; `DialTimeout.impl`,
 `Net/TrustedCode/net.lean`, D19): as `net.Dial` (`Dial.spec`: the extension's `Dial`, D8, D16),
 but a failure's `Err` is an `*os.SyscallError` or a timeout, `net`'s `errTimeout` (`et`) or
 `poll.ErrDeadlineExceeded`'s value (`ed`): both occur (`TestDialTimeoutAccepted`). The timeout's
 value is not modeled. Proved in `Net/Proof/net/DialTimeout.lean`.
 
-The network `nw` is `"tcp"` or `"tcp4"` (`tcpNet`, D23): the same on the plan's IPv4
+The network `nw` is `"tcp"` or `"tcp4"` (`tcpNet`, D23): the same on the valid IPv4
 addresses, the network kept in the connection or listener and put in its errors.
 -/
 module
@@ -30,8 +30,8 @@ variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 
 /-- See the file header. -/
 abbrev DialTimeout.spec : Prop :=
-  ∀ (nw : GoString), tcpNet nw → ∀ (a h : GoString) (dur : w64) (et ed : GoInterface) (Qfail : IProp GF) (Qok : Nat → IProp GF),
-  {{ netPlan (extGlobalGS netExt (G := hG.goose_globalGS)) a h ∗ globalAddr errTimeout ↦□ et ∗
+  ∀ (nw : GoString), tcpNet nw → ∀ (a : GoString) (dur : w64) (et ed : GoInterface) (Qfail : IProp GF) (Qok : Nat → IProp GF),
+  {{ ⌜addrOk a = true⌝ ∗ globalAddr errTimeout ↦□ et ∗
       globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed ∗
       (Qfail ∧
         |={⊤,∅}=> ∃ S, netPend (extGlobalGS netExt (G := hG.goose_globalGS)) a S ∗

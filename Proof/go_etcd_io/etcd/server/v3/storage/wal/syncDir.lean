@@ -44,14 +44,14 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.syncDir.wp_proof
       isplitl [] <;> iassumption
     icases He with (⟨%he, -⟩ | ⟨%he, #Hc⟩)
     · cases e with
-      | nil => exact absurd rfl he
+      | nil => exact absurd rfl he.1
       | ok i =>
         wp_auto
         wp_apply os.File.Close.wp_dirS f fd p j .idle $$ [Hf Hfd] as %e' -
         · iframe; iassumption
         iapply HΦ
         iframe
-        ileft; ipureintro; exact he
+        ileft; ipureintro; exact he.1
     · subst he
       wp_auto
       wp_apply os.File.Close.wp_dirS f fd p j .idle $$ [Hf Hfd] as %e' -

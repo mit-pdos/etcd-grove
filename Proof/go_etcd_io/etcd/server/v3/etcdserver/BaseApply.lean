@@ -60,14 +60,8 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-namespace net.http
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.net.http :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.net.http :=
-  build_get_is_pkg_init_wf
-
-end net.http
+-- `net/http`: `Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Base.lean` (otel's `propagation`
+-- imports it; prove-misc, 2026-11-20).
 
 -- `go-humanize`: mvcc's `Base.lean` (2026-10-13: mvcc's compaction calls `humanize.Bytes`).
 
@@ -430,7 +424,9 @@ abbrev srvRaftInit : IProp GF :=
 (the buckets `VerifyBackendConsistency` checks; stated here rather than in `schema`'s facts, as
 `srvErrVars` states other packages' errors) some slice; (D22 receiver epochs, S8c, 2026-10-24)
 `applySnapshotInProgress` a fixed gauge (`applySnapshot`'s `Inc`/`Dec`); (revoke-open, 2026-11-06)
-`leaseExpired` a fixed counter (`revokeExpiredLeases`' `Inc`; its initializer translated). -/
+`leaseExpired` a fixed counter (`revokeExpiredLeases`' `Inc`; its initializer translated); (auth-mediation
+M2, 2026-11-20) `learnerPromoteSucceed` a fixed counter and `learnerPromoteFailed` a counter vector with
+its label name (`PromoteMember`'s). -/
 abbrev srvApplyLoopInit : IProp GF :=
   iprop((∃ g : GoInterfaceOk, globalAddr proposalsApplied ↦□ GoInterface.ok g ∗ gaugeSetSpec g) ∗
     (∃ sl : GoSlice, globalAddr go_etcd_io.etcd.server.v3.storage.schema.AllBuckets ↦□ sl) ∗
@@ -439,7 +435,13 @@ abbrev srvApplyLoopInit : IProp GF :=
       go_etcd_io.etcd.server.v3.storage.mvcc.gaugeSpec g) ∗
     -- (revoke-open, 2026-11-06) `revokeExpiredLeases`' counter (`Inc`)
     (∃ c : GoInterfaceOk, globalAddr leaseExpired ↦□ GoInterface.ok c ∗
-      go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec c))
+      go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec c) ∗
+    -- (auth-mediation M2, 2026-11-20) `PromoteMember`'s counter (`Inc`) and counter vector
+    -- (`WithLabelValues(reason).Inc()`)
+    (∃ c : GoInterfaceOk, globalAddr learnerPromoteSucceed ↦□ GoInterface.ok c ∗
+      go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec c) ∗
+    (∃ hv : Loc, globalAddr learnerPromoteFailed ↦□ hv ∗
+      ⌜EtcdGrove.prometheus.vecLabels hv [go!"Reason"]⌝))
 
 /-- **The server package's facts**: the raft wrapper's (`srvRaftInit`), the request path's
 (`srvReqInit`), merged 2026-10-12, and the apply loop's (`srvApplyLoopInit`, 2026-10-13). All are
