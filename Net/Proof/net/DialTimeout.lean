@@ -78,12 +78,12 @@ local macro "dt_fail" : tactic => `(tactic| (
       dt_tail))
 
 theorem DialTimeout.wp_proof : DialTimeout.spec (GF := GF) (hG := hG) := by
-  intro nw hnw a h dur et ed Qfail Qok
-  wp_start as ⟨#Hp, #Het, #Hed, HQ⟩
+  intro nw hnw a dur et ed Qfail Qok
+  wp_start as ⟨%Hp, #Het, #Hed, HQ⟩
   wp_apply wp_netOk nw hnw
   (try wp_auto)
   wp_bind (ExternalOp _ _ _)
-  iapply wp_net_Dial a h $$ Hp
+  iapply wp_net_Dial a $$ %Hp
   isplit
   · -- a failure
     icases HQ with ⟨HQ, -⟩
