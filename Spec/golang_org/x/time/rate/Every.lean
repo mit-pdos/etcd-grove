@@ -1,6 +1,7 @@
 /-
-`rate.Every(d)`: the trust boundary (`golang.org/x/time/rate` is names-only; rafthttp stage 6c,
-`Transport.Start`'s default dial-retry rate). Lean-first (no Rocq counterpart).
+`rate.Every(d)` (rafthttp stage 6c, `Transport.Start`'s default dial-retry rate; prove-metrics3,
+2026-11-21: proved over the real code, until then the trust boundary). Lean-first (no Rocq
+counterpart).
 -/
 module
 
@@ -21,6 +22,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : golang_org.x.time.rate.Assumptions]
 
 /-- **`rate.Every(d)`**: some limit (a `float64`'s bits). -/
 abbrev rate.Every.spec : Prop :=

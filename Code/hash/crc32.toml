@@ -1,10 +1,15 @@
-# (project etcd's part `LinuxFs/`; Perennial does not translate hash/crc32) types and names only:
-# what the WAL and `pkg/v3/crc` name (`Table`, `Castagnoli`, `MakeTable`, `Update`). `MakeTable` and
-# `Update` are trusted (TrustedCode/hash/crc32.lean: Go's portable table-driven code over the
-# Castagnoli table; the assembly is not translatable), pending the user's review (2026-11-13).
-translate = ["!*"]
-imports = ["!*"]
-trusted = ["MakeTable", "Update"]
+# (project etcd; Perennial does not translate hash/crc32) what the WAL and `pkg/v3/crc` name (`Table`,
+# `Castagnoli`, `MakeTable`, `Update`) and (prove-etcdint3, 2026-11-21) what mvcc's `kvHasher` calls
+# (`New`, the digest's `Write` and `Sum32`), with bodies, and the package's variable initializers
+# (`IEEETable`, `simpleMakeTable(IEEE)`, over `simplePopulateTable`; the two `sync.OnceFunc`s), so
+# that its initializer is translated. `MakeTable` and `update` are trusted
+# (TrustedCode/hash/crc32.lean: Go's portable table-driven code over the Castagnoli table; the
+# assembly is not translatable), pending the user's review (2026-11-13; `update` in place of
+# `Update`, which calls it, since 2026-11-21).
+translate = ["!*", "New", "digest.Write", "digest.Sum32", "Update", "IEEETable", "simpleMakeTable",
+  "simplePopulateTable", "castagnoliInitOnce", "ieeeInitOnce", "IEEE", "Castagnoli"]
+imports = ["!*", "sync", "sync/atomic", "hash"]
+trusted = ["MakeTable", "update"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

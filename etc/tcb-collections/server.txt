@@ -128,9 +128,6 @@ axiom metadata.FromIncomingContext.wp_proof
 axiom monitorFileDescriptor.wp_proof
 axiom msgEncC_ok
 axiom mvcc.hashStorage.Store.wp_proof
-axiom mvcc.kvHasher.Hash.wp_proof
-axiom mvcc.kvHasher.WriteKeyValue.wp_proof
-axiom mvcc.newKVHasher.wp_proof
 axiom os.Getenv.wp_proof
 axiom pbEntryC_reg
 axiom pbHsC_reg
@@ -168,7 +165,6 @@ axiom proto.UnmarshalUser.wp_proof
 axiom rafthttp.Transport.ActiveSince.wp_proof
 axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.netErrNotRemoved_ok
-axiom rate.Every.wp_proof
 axiom rate.Limiter.Wait.wp_proof
 axiom recEncC_ok
 axiom reflect.DeepEqual.wp_proof_pgidSet

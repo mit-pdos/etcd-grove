@@ -561,7 +561,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h77 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.storage.backend (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h57, h13, h12, h3, h0, h5, h58, h40, h74, h75, h4, h31, h60, h76, h73, h65, True.intro⟩
+    exact ⟨h57, h13, h12, h3, h0, h5, h58, h40, h74, h75, h4, h31, h60, h34, h76, h73, h65, True.intro⟩
   have h78 : GetIsPkgInitProp pkg_id.encoding.binary (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -737,7 +737,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h121 : GetIsPkgInitProp pkg_id.hash.crc32 (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact True.intro
+    exact ⟨h61, h3, h0, True.intro⟩
   have h122 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.pkg.v3.crc (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -793,7 +793,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h135 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h61, h3, h40, h77, h83, h126, h57, h4, h13, h6, h26, h127, h129, h31, h5, h51, h75, h130, h78, h58, h76, h53, h134, h79, True.intro⟩
+    exact ⟨h61, h121, h3, h40, h77, h83, h126, h57, h4, h13, h6, h26, h127, h129, h31, h5, h51, h75, h130, h78, h58, h76, h53, h134, h79, True.intro⟩
   have h136 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.pkg.v3.contention (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -1013,7 +1013,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h190 : GetIsPkgInitProp pkg_id.k8s_io.utils.trace (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h152, True.intro⟩
+    exact ⟨h6, h152, True.intro⟩
   have h191 : GetIsPkgInitProp pkg_id.k8s_io.component_base.tracing (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl

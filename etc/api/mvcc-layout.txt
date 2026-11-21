@@ -80,9 +80,9 @@ Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__restoreTombstone Perennia
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__tombstone Perennial.EtcdGrove.keyIndex.tombstone.wp_proof  # missing: a proof file proves its spec
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__tombstone Perennial.EtcdGrove.mvcc.keyIndex.tombstone.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher__Hash Perennial.EtcdGrove.kvHasher.Hash.wp_proof  # missing: a proof file proves its spec
-Proof.go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher__Hash Perennial.EtcdGrove.mvcc.kvHasher.Hash.wp_proof  # exposed by a proof file (axiom)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher__Hash Perennial.EtcdGrove.mvcc.kvHasher.Hash.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher__WriteKeyValue Perennial.EtcdGrove.kvHasher.WriteKeyValue.wp_proof  # missing: a proof file proves its spec
-Proof.go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher__WriteKeyValue Perennial.EtcdGrove.mvcc.kvHasher.WriteKeyValue.wp_proof  # exposed by a proof file (axiom)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher__WriteKeyValue Perennial.EtcdGrove.mvcc.kvHasher.WriteKeyValue.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.kvsToEvents Perennial.EtcdGrove.kvsToEvents.wp_proof  # missing: a proof file proves its spec
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.kvsToEvents Perennial.EtcdGrove.mvcc.kvsToEvents.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Changes Perennial.EtcdGrove.metricsTxnWrite.Changes.wp_proof  # missing: a proof file proves its spec
@@ -101,7 +101,7 @@ Proof.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Rev Perennial.Etcd
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Rev Perennial.EtcdGrove.mvcc.metricsTxnWrite.Rev.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newBucketKey Perennial.EtcdGrove.mvcc.newBucketKey.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newBucketKey Perennial.EtcdGrove.newBucketKey.wp_proof  # missing: a proof file proves its spec
-Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newKVHasher Perennial.EtcdGrove.mvcc.newKVHasher.wp_proof  # exposed by a proof file (axiom)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newKVHasher Perennial.EtcdGrove.mvcc.newKVHasher.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newKVHasher Perennial.EtcdGrove.newKVHasher.wp_proof  # missing: a proof file proves its spec
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newMetricsTxnRead Perennial.EtcdGrove.mvcc.newMetricsTxnRead.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newMetricsTxnRead Perennial.EtcdGrove.newMetricsTxnRead.wp_proof  # missing: a proof file proves its spec

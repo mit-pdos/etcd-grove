@@ -59,6 +59,12 @@ theorem srvApi_wp_Tick : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
     node.Tick.spec (GF := GF) (hG := hG) := fun γr => by
   letI := srvStor (GF := GF) γr; exact node.wp_Tick
 
+/-- (srvloops2, 2026-11-21) raft's `node.Status`, the leadership check's `raftStatus`
+(`srvLeadCheckOk`, made by `start`). -/
+theorem srvApi_wp_Status : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
+    node.Status.spec (GF := GF) (hG := hG) := fun γr => by
+  letI := srvStor (GF := GF) γr; exact node.wp_Status
+
 theorem srvApi_wp_ReadIndex : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
     node.ReadIndex.spec (GF := GF) (hG := hG) := fun γr => by
   letI := srvStor (GF := GF) γr; exact node.wp_ReadIndex

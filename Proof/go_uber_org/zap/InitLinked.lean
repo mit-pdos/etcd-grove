@@ -60,6 +60,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := Loc) _sinkRegistry _ as H_sinkRegistry
   wp_apply wp_GlobalAlloc (V := Loc) _globalS _ as H_globalS
   wp_apply wp_GlobalAlloc (V := Loc) _globalL _ as H_globalL
@@ -107,11 +108,11 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   -- translated initializer of _minTimeInt64))
   try wp_auto
-  wp_apply (_root_.Perennial.time.wp_Unix _ _) $$ Hd2 as %tmin -
+  wp_apply _root_.Perennial.time.wp_Unix as %tmin -
   try wp_auto
   -- translated initializer of _maxTimeInt64))
   try wp_auto
-  wp_apply (_root_.Perennial.time.wp_Unix _ _) $$ Hd2 as %tmax -
+  wp_apply _root_.Perennial.time.wp_Unix as %tmax -
   try wp_auto
   -- translated initializer of _globalL))
   try wp_auto
@@ -130,7 +131,13 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (EtcdGrove.zap_wp_newSinkRegistry_init EtcdGrove.strings.ToLower.wp_proof) $$ Hd5 as %srl -
   try wp_auto
   -- translated initializer of _globalL))
+  ipersist H_minTimeInt64
+  ipersist H_maxTimeInt64
   iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
   is_pkg_init_finish
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/

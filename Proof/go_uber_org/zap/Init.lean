@@ -4,16 +4,17 @@ Package initialization of `go_uber_org.zap`
 `InitLinked.lean` (2026-11-19: the proof applies other packages' `wp_initialize'` and
 functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
 
-Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+Its fact: `_minTimeInt64` and `_maxTimeInt64` hold fixed times (prove-srvloops2, 2026-11-21: `zap.Time`
+compares with them; until then `True`). Its initializer initializes its imports, allocates its variables and runs
 their translated initializers (prove-initleft, 2026-11-21; until then the trust-boundary axiom
 `opaqueInitsOk` covered them all): `errNoEncoderNameSpecified` (`errors.New`), the encoder constructors (a
 map literal of two func literals), `_errArrayElemPool` (`pool.New`, proved), `_globalL = NewNop()`
 (`zapcore.NewNopCore()`, `zapcore.AddSync(io.Discard)` over any writer, `zapcore.DefaultClock` from
 zapcore's fact), `_globalS = _globalL.Sugar()` (a copy of the logger) and the interface assertion
-`var _ internal.LeveledEnabler = AtomicLevel{}`, `_minTimeInt64`/`_maxTimeInt64` (`time.Unix`, Perennial's
-spec), and `_sinkRegistry = newSinkRegistry()` (prove-zap3, 2026-11-21: a registry whose fresh mutex is
-locked around the registration of the file sink, `normalizeScheme("file")` being `"file"` by
-`strings.ToLower`'s spec).
+`var _ internal.LeveledEnabler = AtomicLevel{}`, and (prove-srvloops2) `_minTimeInt64`/`_maxTimeInt64`
+(`time.Unix`); and (prove-zap3, 2026-11-21) `_sinkRegistry = newSinkRegistry()`: a registry whose fresh mutex is locked
+around the registration of the file sink, `normalizeScheme("file")` being `"file"` by `strings.ToLower`'s
+spec.
 -/
 module
 

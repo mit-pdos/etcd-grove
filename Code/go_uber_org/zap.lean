@@ -1044,6 +1044,44 @@ noncomputable def Stringer.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore Field.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad Field.ty))) (Var "$res0"))))))
 
+/-- Time constructs a Field with the given key and value. The encoder
+    controls how the time is serialized.
+
+    go: field.go:347:6 -/
+noncomputable def Time.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "key"
+  (Lam "val"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Field.ty))) (App (Val (GoInstruction (GoZeroVal Field.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "val" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (Var "val"))
+  (Let "key" (App (Val (GoInstruction (GoAlloc go.string))) (Var "key"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
+  (Let "$v1" (Val #(W8 16))
+  (Let "$v2" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"UnixNano"))) (Var "val")) (Val #()))
+  (Let "$v3" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"Location"))) (Var "val")) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral Field.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Key")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Type")) (ElementExpression _root_.Perennial.go_uber_org.zap.zapcore.FieldType.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"Integer")) (ElementExpression go.int64 (Var "$v2"))), (KeyedElement (some (KeyField go!"Interface")) (ElementExpression (go.GoType.PointerType _root_.Perennial.time.Location.ty) (Var "$v3")))]))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Field.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (If (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (GlobalVarAddr _minTimeInt64))) (Val #())))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"Before"))) (Var "val")) (Var "$a0"))) (Val #true) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (GlobalVarAddr _maxTimeInt64))) (Val #())))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"After"))) (Var "val")) (Var "$a0"))))
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
+  (Let "$v1" (Val #(W8 17))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "val"))
+  (App (Val (GoInstruction (CompositeLiteral Field.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Key")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Type")) (ElementExpression _root_.Perennial.go_uber_org.zap.zapcore.FieldType.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"Interface")) (ElementExpression _root_.Perennial.time.Time.ty (Var "$v2")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Field.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad Field.ty))) (Var "$res0"))))))
+
 /-- Duration constructs a field with the given key and value. The encoder
     controls how the duration is serialized.
 
@@ -2686,6 +2724,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Uint64_unfold : FuncUnfold Uint64 [] Uint64.impl
   Uint32_unfold : FuncUnfold Uint32 [] Uint32.impl
   Stringer_unfold : FuncUnfold Stringer [] Stringer.impl
+  Time_unfold : FuncUnfold Time [] Time.impl
   Duration_unfold : FuncUnfold Duration [] Duration.impl
   NewNop_unfold : FuncUnfold NewNop [] NewNop.impl
   newSinkRegistry_unfold : FuncUnfold newSinkRegistry [] newSinkRegistry.impl
@@ -2762,6 +2801,7 @@ attribute [instance] Assumptions.objects_instance
   Assumptions.Uint64_unfold
   Assumptions.Uint32_unfold
   Assumptions.Stringer_unfold
+  Assumptions.Time_unfold
   Assumptions.Duration_unfold
   Assumptions.NewNop_unfold
   Assumptions.newSinkRegistry_unfold

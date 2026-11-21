@@ -82,7 +82,9 @@ def srvReadFieldsAtM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
     srvApplyWaitAddr s ↦□ v.aw ∗ isWaitTime v.aw (appliedAtLeast γr) ∗
     srvLeaderChangedAddr s ↦□ v.lc ∗ srvFirstCommitAddr s ↦□ v.fc ∗
     srvStoppingAddr s ↦□ v.stopping ∗ stopChan v.stopping ∗
-    □ (⌜E.authMode.isOn = true⌝ → isReqAuthBound v.auth E.RD E.authMode))
+    □ (⌜E.authMode.isOn = true⌝ → isReqAuthBound v.auth E.RD E.authMode) ∗
+    -- (srvloops2, 2026-11-21) what the leadership check reads (`ensureLeadership`)
+    srvLeadCheckOk s)
 
 instance srvReadFieldsAtM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
     (v : ReadFields) : Persistent (srvReadFieldsAtM on s E γr v) := by
@@ -1104,7 +1106,7 @@ theorem srvAuthAt_of_viewsM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqN
   iunfold isServerReadM at Hr
   icases Hr with ⟨%vr, Hr⟩
   iunfold srvReadFieldsAtM at Hr
-  icases Hr with ⟨-, -, -, -, -, -, -, #Has2, #Hast, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hrb⟩
+  icases Hr with ⟨-, -, -, -, -, -, -, #Has2, #Hast, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hrb, -⟩
   icombine Has Has2 gives %Heq
   ihave #Hreq' : isReqAuth vr.auth E.RD $$ []
   · rw [← Heq]; iexact Hreq
