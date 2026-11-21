@@ -713,7 +713,10 @@ tests kept as differential tests against the real library, a "not modelled" pani
    generated service (`quepaxa/`, the kit quepaxa-net-2's use), 200 concurrent calls; and
    `TestAtMostOnce` (calls and streams through a proxy cutting every 15 ms: a handler runs at most
    once per call, a success ran it once and returns its reply, a stream's messages in order and
-   complete), also run with the model's choices random. `-race` clean in both modes. etcd's
+   complete), also run with the model's choices random (where, 2026-11-21, it found grpc-go's own
+   spurious clean end of a server stream after a transparent retry, one run in ~50: kept by the model
+   as grpc-go's behavior, allowed and counted by the test, `nonissues/grpc-transparent-retry-spurious-eof.md`,
+   upstream grpc/grpc-go#9443). `-race` clean in both modes. etcd's
    examples serve and call over the model (`run.sh --etcd`; `examples/` builds against it):
    putget, watch, lease, auth, putget3, leasegrant, compactwatch, cache, leaseexpiry pass, timings
    as over grpc-go. *Known gaps in Go runs* (not in the claim): a model connection has no keepalive,

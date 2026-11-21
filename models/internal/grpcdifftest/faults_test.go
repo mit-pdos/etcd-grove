@@ -7,6 +7,7 @@ import (
 	"net"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -78,8 +79,17 @@ func TestCutMidStream(t *testing.T) {
 // deadlines. What holds of every behavior of grpc-go, and of every behavior of the model (run.sh
 // also runs this test with the model's choices random): a handler runs at most once per call; a
 // call that succeeds ran its handler exactly once and returns its reply; a failed call's code is
-// not OK; a server stream's messages arrive in order and all of them before its successful end.
+// not OK; a server stream's messages arrive in order and all of them before its successful end,
+// but for one exception. grpc-go v1.84.0 can end a server stream cleanly (RecvMsg's io.EOF) with no
+// message and no handler run: after a transparent retry (the first attempt refused), when the
+// replayed SendMsg's write on the new attempt fails, csAttempt.sendMsg returns io.EOF and
+// clientStream.retryLocked returns it as it is (shouldRetry passes a non-retryable error through),
+// bypassing recvMsg's status check (nonissues/grpc-transparent-retry-spurious-eof.md). The model
+// keeps that code, and its random choices reach it (refusals); the test counts such an end apart
+// (`spurious`, logged) and requires it to come with no message and no handler run.
 func TestAtMostOnce(t *testing.T) {
+	var spurious atomic.Int64
+	defer func() { t.Logf("%d spurious clean ends of a server stream", spurious.Load()) }()
 	srv, addr := serve(t)
 	p := newProxy(t, addr)
 	_, c := dial(t, p.l.Addr().String())
@@ -123,6 +133,11 @@ func TestAtMostOnce(t *testing.T) {
 							m, rerr := st.Recv()
 							if rerr != nil {
 								if rerr != io.EOF {
+									err = rerr
+								} else if n == 0 && srv.Runs(id) == 0 {
+									// grpc-go's spurious end after a transparent retry (above):
+									// a behavior of grpc-go, kept by the model; not a success.
+									spurious.Add(1)
 									err = rerr
 								} else if n != 20 {
 									errs <- fmt.Errorf("%s: EOF after %d messages", id, n)
