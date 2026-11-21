@@ -11,7 +11,7 @@ module
 public import WalTester.Spec.github_com.mit_pdos.etcd_grove.examples.lib.durable.Write
 public import WalTester.Spec.github_com.mit_pdos.etcd_grove.examples.lib.durable.tryWrite
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.lib.durable.Inv
-public import GooseLang.Ext.Fs.NotCrashedAcc
+public import Perennial.GooseLang.NotCrashed
 
 @[expose] public section
 

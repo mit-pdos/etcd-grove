@@ -1840,7 +1840,7 @@ initializer allocates `closec`, initializes its imports and runs its translated 
     before={'$end': [
         'wp_apply chan.wp_make1 (V := Unit) as %ch %γ ⟨#His_ch, %Hcap, Hch⟩',
         'wp_apply_core chan.wp_close (V := Unit) ch γ $$ His_ch',
-        'iintro -', 'unfold closeAu', 'iapply fupd_mask_intro Std.LawfulSet.empty_subset',
+        'iintro -', 'unfold closeAu', 'iapply ncfupd_of_fupd', 'iapply fupd_mask_intro Std.LawfulSet.empty_subset',
         'iintro Hmask', 'inext', 'iexists .Idle', 'iframe Hch', 'dsimp only', 'iintro Hch',
         'imod Hmask with -', 'imodintro', 'wp_auto']},
     finish=['ipersist Hclosec',

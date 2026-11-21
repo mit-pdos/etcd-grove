@@ -74,7 +74,7 @@ theorem mvcc.watchableStore.syncVictimsLoop.wp_proof
       ∃ γt : ChanNames, isChanBag γt tc (V := time.Time) (fun _ => iprop(True)))) with [tickc]
     as ⟨%tc, tickc, Htc⟩
   · iexists _; iframe; ileft; ipureintro; rfl
-  · wp_apply time.wp_After as %ch %γt #Hbag
+  · wp_apply (time.After.spec_pkgInit time.wp_After _) as %ch %γt #Hbag
     wp_join_done
     iexists ch; iframe; iright; iexists γt; iexact Hbag
   ihave #Hstop := HstopW
