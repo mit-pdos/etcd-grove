@@ -259,7 +259,7 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   `close(le.doneC)` (`:621`) is the only close of it; the caller gets its receive side
   (`.Unknown`). So nothing of the Go code is assumed beyond what the original opaque right said.
 * (prove-ps2-lease, 2026-11-21) **`demotec`** (inside `lessorInv`: `lessorExtra`'s `demoteTie`, at the
-  readers' names' seventh, `γr.2.2.2.2.2.2`): `newLessor` leaves `demotec` nil (the struct literal
+  readers' names' seventh, `γr.2.2.2.2.2.2.1`): `newLessor` leaves `demotec` nil (the struct literal
   names no `demotec`, `lessor.go:225-242`), so a ghost variable allocated at `chan.nil`, half in the
   lock's guard, half in the invariant `demoteOuter` (allocated here, at `nil`: its left disjunct).
   Ghost state only; `Promote` (assumed) and `Demote` (proved) keep it. -/
