@@ -223,7 +223,7 @@ def srvEr (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.A
 `NewServer.spec` takes, the KV state's variable having gone into the KV invariant and the
 client's `etcdKV` at raft's allocation (`srvRaftBoot_alloc`, `NewServerAlloc.lean`). -/
 def srvReadNamesFreshNK (γr : ReadNames) : IProp GF :=
-  iprop(monoNatAuthOwn γr.applied 1 0 ∗ monoNatAuthOwn γr.committed 1 0 ∗
+  iprop(monoNatAuthOwn γr.cursor 1 0 ∗ monoNatAuthOwn γr.applied 1 0 ∗ monoNatAuthOwn γr.committed 1 0 ∗
     (∃ x : Loc × NeedNames, ghostVar γr.notifier 1 x) ∗
     ghostMapAuth γr.logs 1 (∅ : GMap w64 mvcc.Log) ∗ ghostVar γr.pend 1 false ∗
     ghostVar γr.kv.hi 1 γr.kv.log0.length)

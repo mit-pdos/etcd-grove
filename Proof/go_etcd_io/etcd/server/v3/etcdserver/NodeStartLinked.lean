@@ -70,8 +70,8 @@ theorem raftNode_of_StartNode
   obtain ⟨Hcfg, Hhb, Hnodup, H0, Hpslen, Hvs, Hwal, Hfit, HtrC⟩ := Hraft
   imod (dghostVar_alloc (GF := GF) (A := Loc) null) with ⟨%pin, HpinW⟩
   ihave Hbs := srvMem_bootStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
-      wp_Entries γr bv.storage' γs E.γr.applied pin
-      (fun K => iprop(memStorInvT bv.storage' γs γr.cl K (srvStoredOrigin γr.cl E.γr.applied pin 0) ∗
+      wp_Entries γr bv.storage' γs E.γr.cursor pin
+      (fun K => iprop(memStorInvT bv.storage' γs γr.cl K (srvStoredOrigin γr.cl E.γr.cursor pin 0) ∗
         memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)))) HtrC Hγsz
       $$ [Hfresh Hmeta Hend]
   · iframe Hreg Hlock Hfresh Hmeta Hlog0 Hend
@@ -80,8 +80,8 @@ theorem raftNode_of_StartNode
   icases Hboot with ⟨#Hnboot, HrS, Hvac⟩
   iapply wp_fupd
   wp_apply (wp_bnr E γr b ss wal cl sd dq bv cv lok γs [] ν pv ps ctxs
-    (fun K => iprop(memStorInvT bv.storage' γs γr.cl K (srvStoredOrigin γr.cl E.γr.applied pin 0) ∗
-      memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)))) .fresh (fun sv => iprop(snapshotValid γr.cl sv ∗ (srvStoredOrigin γr.cl E.γr.applied pin 0) sv)) (fun _ => by iintro ⟨H, -⟩; iexact H))
+    (fun K => iprop(memStorInvT bv.storage' γs γr.cl K (srvStoredOrigin γr.cl E.γr.cursor pin 0) ∗
+      memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)))) .fresh (fun sv => iprop(snapshotValid γr.cl sv ∗ (srvStoredOrigin γr.cl E.γr.cursor pin 0) sv)) (fun _ => by iintro ⟨H, -⟩; iexact H))
     $$ [Hb Hc Hbs Hpeers HrS Hvac]
     as %r Hpost
   · iframe #; iframe Hb Hc Hpeers
@@ -105,7 +105,7 @@ theorem raftNode_of_StartNode
   obtain ⟨Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs, Hwwal, Hwss, Hwa0, Hwt0, Hwc0, Hws0⟩ := Hnames
   imod dghostVar_update n pin null $$ HpinW with HpinW
   imod dghostVar_persist pin 1 n $$ HpinW with #Hloc
-  ihave #Hattach : srvAttachedMem bv.storage' γs γr.cl γw.key E.γr.applied γw.nl γw.snap0 $$ []
+  ihave #Hattach : srvAttachedMem bv.storage' γs γr.cl γw.key E.γr.cursor γw.nl γw.snap0 $$ []
   · rw [Hwnl, Hws0]
     iunfold srvAttachedMem
     iexists pin
@@ -284,8 +284,8 @@ theorem raftNode_of_RestartNode
     iframe Hcp He0
   imod (dghostVar_alloc (GF := GF) (A := Loc) null) with ⟨%pin, HpinW⟩
   ihave Hbs := srvMem_restartStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
-      wp_Entries γr bv.storage' γs E.γr.applied pin σ cs 0
-      (fun K => iprop(memStorInvT bv.storage' γs γr.cl K (srvStoredOrigin γr.cl E.γr.applied pin σ.b) ∗ memStorMeta bv.storage' γs σ.hs ∗
+      wp_Entries γr bv.storage' γs E.γr.cursor pin σ cs 0
+      (fun K => iprop(memStorInvT bv.storage' γs γr.cl K (srvStoredOrigin γr.cl E.γr.cursor pin σ.b) ∗ memStorMeta bv.storage' γs σ.hs ∗
         memSnapNone γs (walSnapCS σ cs))) Hbc HtrC Hγsz Hnsm
       $$ [Hfresh Hmeta Hents Hend Hval Hsn]
   · iframe Hreg Hlock Hval
@@ -296,9 +296,9 @@ theorem raftNode_of_RestartNode
     iframe Hi Hm Hn
   iapply wp_fupd
   wp_apply (wp_bnr E γr b ss wal cl sd dq bv cv lok γs [] ν pv [] ctxs
-    (fun K => iprop(memStorInvT bv.storage' γs γr.cl K (srvStoredOrigin γr.cl E.γr.applied pin σ.b) ∗ memStorMeta bv.storage' γs σ.hs ∗
+    (fun K => iprop(memStorInvT bv.storage' γs γr.cl K (srvStoredOrigin γr.cl E.γr.cursor pin σ.b) ∗ memStorMeta bv.storage' γs σ.hs ∗
       memSnapNone γs (walSnapCS σ cs)))
-    (.restart σ cs S A₀.length (Membership.simple γr.cfg) A₀) (fun sv => iprop(snapshotValid γr.cl sv ∗ (srvStoredOrigin γr.cl E.γr.applied pin σ.b) sv)) (fun _ => by iintro ⟨H, -⟩; iexact H))
+    (.restart σ cs S A₀.length (Membership.simple γr.cfg) A₀) (fun sv => iprop(snapshotValid γr.cl sv ∗ (srvStoredOrigin γr.cl E.γr.cursor pin σ.b) sv)) (fun _ => by iintro ⟨H, -⟩; iexact H))
     $$ [Hb Hc Hbs Hpeers HrS Hvac]
     as %r Hpost
   · iframe #; iframe Hb Hc Hpeers
@@ -326,7 +326,7 @@ theorem raftNode_of_RestartNode
   obtain ⟨Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs, Hwwal, Hwss, Hwa0, Hwt0, Hwc0, Hws0⟩ := Hnames
   imod dghostVar_update n pin null $$ HpinW with HpinW
   imod dghostVar_persist pin 1 n $$ HpinW with #Hloc
-  ihave #Hattach : srvAttachedMem bv.storage' γs γr.cl γw.key E.γr.applied γw.nl γw.snap0 $$ []
+  ihave #Hattach : srvAttachedMem bv.storage' γs γr.cl γw.key E.γr.cursor γw.nl γw.snap0 $$ []
   · rw [Hwnl, Hws0]
     iunfold srvAttachedMem
     iexists pin

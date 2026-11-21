@@ -596,10 +596,10 @@ reported): `Snapshot.spec` admits `ErrSnapshotTemporarilyUnavailable` for any st
 theorem rnSnapOnce_of_tok (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
     (E : RNEnv GF) (γ : RNNames GF) (r ms0 : Loc) (γs : MemStorNames) (Hms0 : γ.ms = ms0) (hboot : γ.snap0 = 0) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver -∗
-      isRaftNode E γ r -∗ srvAttachedMem ms0 γs γ.node.cl γ.key E.γr.applied γ.nl γ.snap0 -∗ memSnapNone γs memSnapEmpty -∗
-      ∃ ms : Loc, rnRaftStorageAddr r ↦□ ms ∗ rnSnapOnce (MemStorReg.memStorRegName (GF := GF)) γ.node.cl γ.key ms γs (W64 0) (W64 0) E.γr.applied γ.nl γ.snap0 := by
+      isRaftNode E γ r -∗ srvAttachedMem ms0 γs γ.node.cl γ.key E.γr.cursor γ.nl γ.snap0 -∗ memSnapNone γs memSnapEmpty -∗ monoNatAuthOwn E.γr.cursor 1 0 -∗
+      ∃ ms : Loc, rnRaftStorageAddr r ↦□ ms ∗ rnSnapOnce (MemStorReg.memStorRegName (GF := GF)) γ.node.cl γ.key ms γs (W64 0) (W64 0) E.γr.cursor γ.nl γ.snap0 := by
   subst Hms0
-  iintro #Hpkg #Hrn #Hinv Hnone
+  iintro #Hpkg #Hrn #Hinv Hnone Hcursor
   ihave #Hinv0 := Hinv
   iunfold srvAttachedMem at Hinv
   icases Hinv with ⟨%pin, -, -, #Hinv⟩
@@ -619,7 +619,7 @@ theorem rnSnapOnce_of_tok (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) 
   iNamed Hinit
   ihave #Hc0 := memCompacted_zero (GF := GF) γs
   iapply wp_fupd
-  wp_apply wp_Snapshot γ.ms γs (memStorJT γ.node.cl γ.key (srvStoredOrigin γ.node.cl E.γr.applied pin γ.snap0)) none 0 (some memSnapEmpty) _
+  wp_apply wp_Snapshot γ.ms γs (memStorJT γ.node.cl γ.key (srvStoredOrigin γ.node.cl E.γr.cursor pin γ.snap0)) none 0 (some memSnapEmpty) _
     $$ [$Hraft $Hc0 Hnone $ErrSnapUnavail] as %snap %err ⟨Hnone, %Herr, %sv, Hw, %Hsv, -⟩
   · isplitr [Hnone]
     · iapply memStorAt_none_intro $$ Hinv
@@ -630,7 +630,7 @@ theorem rnSnapOnce_of_tok (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) 
   have Hsv0 := Hsv.2 _ rfl
   subst Hsv0
   subst Herr
-  iapply HΦ $$ %snap %pm %pc %memSnapEmpty [] Hsn Hpm Hpc [] [Hnone] []
+  iapply HΦ $$ %snap %pm %pc %memSnapEmpty [] Hsn Hpm Hpc [] [Hnone] [] Hcursor
   · ipureintro
     exact ⟨rfl, rfl, Hnn.1, Hnn.2, by simp [hboot]⟩
   · iapply (epCsOk_of_csOptA _ memSnapEmpty.Metadata'.ConfState'
