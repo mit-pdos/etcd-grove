@@ -39909,6 +39909,17 @@ etcd-grove-81; a restricting change, no further round).**
   `Open`'s docstring) state the wrap-first branch; the masked nonissue's upstreaming option "keep the
   masked success for old-named WALs" brings F-W4a2-2 back.
 
+### WAL upgrade recovery (2026-11-20)
+
+The filename-selected suffix of a WAL written with the current segment naming
+rule contains the newest valid starting snapshot. `readAll_eof_matched` proves
+that folding every record in that suffix sets the reader's match flag, including
+when the starting snapshot is the zero record. An older writer could name a
+segment below a snapshot already in an earlier file. That disk layout requires
+locating the actual record, checking its term, and protecting its segment
+through the next purge. The Go regression and fork fix are recorded in
+`issues/etcd-wal-upgrade-legacy-segment-name.md`.
+
 ## WAL W4b: the history and read lemmas, the crash views, and the purged read (2026-11-12 · plan approved by etcd-grove-81, `/shared/tmp/wal-spec/w4b/plan.md`; C2's premises chosen by the proof, as the plan allows; CP3 approved by etcd-grove-81 under the user's delegation, 2026-11-12: `walCommitLe` as C2's premise, the guard dropped, C4 without `walNoDormant` · branch `wal-w4b`)
 
 Proved only: two unlinked modules over the W4a/W4a.1/W4a.2 axioms, no axiom, `sorry`, opaque or
