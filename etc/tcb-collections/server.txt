@@ -39,7 +39,6 @@ axiom apply.irrDecode_utf8
 axiom apply.memberEnc_id_learner
 axiom auth.NewAuthStore.wp_proof
 axiom auth.authStore.AuthInfoFromTLS.wp_proof
-axiom auth.authStore.selectPassword.wp_proof
 axiom auth.newTokenProviderJWT.wp_proof
 axiom auth.redactToken.wp_proof
 axiom backend.backend.Snapshot.wp_proof
