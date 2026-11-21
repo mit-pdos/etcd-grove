@@ -274,7 +274,6 @@ axiom labels.LabelSelectorAsSelector.wp_proof
 axiom labels.reqsValid
 axiom lease.NewLessor.wp_proof
 axiom lease.lessor.Promote.wp_proof
-axiom lease.lessor.Renew.wp_proof
 axiom leasehttp.RenewHTTP.wp_proof
 axiom maps.Clone.wp_proof_strBool
 axiom maps.Equal.wp_proof_strBool
