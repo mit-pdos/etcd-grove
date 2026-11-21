@@ -73,9 +73,6 @@ axiom errors.AsNoMatch.wp_proof
 axiom errors.IsCtxErr.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom etcdserverpb.AlarmType.String.wp_proof
-axiom fmt.Errorf.wp_proof
-axiom fmt.ErrorfPlain.wp_proof
-axiom fmt.SprintfArgs.wp_proof
 axiom fmt.SprintfWalName.wp_proof
 axiom fmt.SscanfWalName.wp_proof
 axiom go_humanize.Bytes.wp_proof
@@ -84,10 +81,6 @@ axiom http.CloseIdleConnections_ok
 axiom http.Error_ok
 axiom http.Flush_ok
 axiom http.Handle_ok
-axiom http.HeaderGetOwnPtr_ok
-axiom http.HeaderGetPtr_ok
-axiom http.HeaderSetPtr_ok
-axiom http.HeaderSet_ok
 axiom http.NewRequest_ok
 axiom http.NewServeMux_ok
 axiom http.ReadAll_any_ok
@@ -200,7 +193,6 @@ axiom sort.Stable.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
 axiom strings.Contains.wp_proof
-axiom strings.HasSuffix.wp_proof
 axiom strings.ToLower.wp_proof
 axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.Seconds_ptr.wp_proof
