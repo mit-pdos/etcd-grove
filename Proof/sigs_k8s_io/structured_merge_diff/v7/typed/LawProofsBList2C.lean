@@ -190,6 +190,33 @@ theorem slMapRep_insert (f f' : PE → Option UVal) (M : PEMap GoInterface) (k :
   · simp only [PEMap.insert, if_neg h, hne k' h]
     iapply H
 
+/-- **`slotRep sl o`**: a `[]value.Value` the walker took from its map for one key: empty when
+the side lacks the key (`o = none`), else one value of the item. -/
+def slotRep (sl : GoSlice) : Option UVal → IProp GF
+  | none => iprop(⌜sint.Z sl.len = 0⌝)
+  | some x => iprop(∃ v : value.Value, sl ↦*□ [v] ∗ isVal v x)
+
+instance slotRep_persistent (sl : GoSlice) (o : Option UVal) : Persistent (slotRep (GF := GF) sl o) := by
+  cases o <;> unfold slotRep <;> infer_instance
+
+theorem slotRep_len (sl : GoSlice) (o : Option UVal) :
+    slotRep (GF := GF) sl o ⊢ ⌜sint.Z sl.len ≤ 1 ∧ (sint.Z sl.len = 0 ↔ o = none)⌝ := by
+  cases o with
+  | none =>
+    unfold slotRep; iintro %h; ipureintro; simp [h]
+  | some x =>
+    unfold slotRep
+    iintro ⟨%v, #Hs, -⟩
+    ihave %hl := ownSlice_len _ _ _ $$ Hs
+    ipureintro
+    simp at hl
+    have h1 := hl.1; have h2 := hl.2
+    constructor
+    · word
+    · constructor
+      · intro h; word
+      · intro h; cases h
+
 /-- One more path element. -/
 theorem isPEs_snoc (es : List fieldpath.PathElement) (p : Path) (e : fieldpath.PathElement) (k : PE) :
     isPEs (GF := GF) es p ∗ isPE e k ⊢ isPEs (es ++ [e]) (p ++ [k]) := by
