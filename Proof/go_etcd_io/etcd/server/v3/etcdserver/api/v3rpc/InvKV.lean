@@ -50,6 +50,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRequest
 -- axiomatized field types (`InvRequest` imported it through `InvApplier` before unit 2).
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ErrMsg
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.RecvLimit
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.IrrDepth
 
@@ -250,18 +251,7 @@ def srvErrIs (err : GoInterface) : IProp GF :=
 instance srvErrIs_persistent (err : GoInterface) : Persistent (srvErrIs (GF := GF) err) := by
   unfold srvErrIs; infer_instance
 
-/-- **`err.Error()` returns a message with `P`** (persistent; k8s etcd3 7c-2): what a caller of
-`togRPCError` knows of the message its default case makes a description of
-(`status.Error(codes.Unknown, err.Error())`). `srvErrIs` gives it at `P := fun _ => True`
-(`errMsgP_of_srvErrIs`). -/
-def errMsgP (err : GoInterface) (P : GoString → Prop) : IProp GF :=
-  iprop(∃ ei : GoInterfaceOk, ⌜err = GoInterface.ok ei⌝ ∗
-    {{ True }} (App (Val #(methods ei.ty go!"Error" ei.v)) (Val #()))
-    {{ (msg : GoString), RET #msg; ⌜P msg⌝ }})
-
-instance errMsgP_persistent (err : GoInterface) (P : GoString → Prop) :
-    Persistent (errMsgP (GF := GF) err P) := by
-  unfold errMsgP; infer_instance
+-- `errMsgP` (moved to `etcdserver/ErrMsg.lean`, auth-mediation M2, 2026-11-20)
 
 open Iris.ProofMode in
 theorem errMsgP_of_srvErrIs (err : GoInterface) :

@@ -5,7 +5,6 @@ import (
 
 	"go.etcd.io/raft/v3"
 	pb "go.etcd.io/raft/v3/raftpb"
-	"google.golang.org/protobuf/proto"
 )
 
 // Storage is a replica's raft storage: a MemoryStorage, beside the image of the replica's durable
@@ -59,7 +58,7 @@ func (m *image) applySnapshot(snap *pb.Snapshot) error {
 	if index != 0 && index >= snap.GetMetadata().GetIndex() {
 		return raft.ErrSnapOutOfDate
 	}
-	m.snap = proto.Clone(snap).(*pb.Snapshot)
+	m.snap = pb.CloneSnapshot(snap)
 	m.prev = snap.GetMetadata().GetIndex()
 	m.prevTerm = snap.GetMetadata().GetTerm()
 	m.ents = nil
@@ -179,7 +178,7 @@ func (s *Storage) InitialState() (*pb.HardState, *pb.ConfState, error) {
 	if s.snapIndex() == 0 {
 		cs = s.boot
 	}
-	return hs, proto.Clone(cs).(*pb.ConfState), err
+	return hs, pb.CloneConfState(cs), err
 }
 
 // Snapshot is the MemoryStorage's, or, one time in four, ErrSnapshotTemporarilyUnavailable.

@@ -1,14 +1,13 @@
 /-
-Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/k8s/compactor/clusterConfig.lean`. Lean-first:
-the struct literal, stored and loaded.
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/k8s/compactor/holdToken.lean` (cluster3's
+`holdToken.wp_proof`). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.clusterConfig
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.holdToken
+public import Perennial.Proof.time
 
 @[expose] public section
-
-set_option linter.unusedSectionVars false
 
 noncomputable section
 
@@ -26,11 +25,14 @@ variable [sem : go.Semantics]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Assumptions]
 
-theorem clusterConfig.wp_proof : clusterConfig.spec (GF := GF) (hG := hG) := by
+theorem holdToken.wp_proof : holdToken.spec (GF := GF) (hG := hG) := by
   wp_start
-  wp_auto
-  iapply HΦ
-  itrivial
+  ihave IH : iprop(True) $$ []
+  · itrivial
+  wp_for IH
+  wp_apply time.wp_Sleep
+  wp_for_post
+  iframe
 
 end proof
 

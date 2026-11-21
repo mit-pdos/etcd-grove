@@ -144,12 +144,12 @@ theorem wp_logStepSQ (op : String) (v : val) (hv : v.isPanic = false) (R : Roots
 /-- **`rename(2)` of the file `d/bs` (inode `i`) onto `d'/bt` (a file or nothing) with no error**
 (shared mode, the two claims whole, of distinct keys, the paths of one root; `wp_osRenameFileS'`
 under `NoIoErr`, the paths covered): the rename logged, errno 0. -/
-theorem wp_osRenameFileSNE (Sio : IoSet) [FsStepSat (NoIoErr Sio)]
-    (hS : ∀ p, Sio.path p) (R : Roots) (d bs d' bt : GoString) (j j' i : Ino)
+theorem wp_osRenameFileSNE (Sio : IoSet) [FsStepSat (NoIoErr Sio)] (R : Roots) (d bs d' bt : GoString) (j j' i : Ino)
     (N N' : NameSet) (dq dq' : DFrac) (h h' : NamesH) (k s0 : Nat) (q : Qp) (hbs : NameOk bs)
     (hbt : NameOk bt) (hN : N.Mem bs) (hN' : N'.Mem bt) (hkey : (j, N) ≠ (j', N'))
     (hsrc : h.cur !! bs = some (.file i)) (htgt : ∀ J, h'.cur !! bt ≠ some (.dir J))
     (hs : h.next ≤ s0) (hs' : h'.next ≤ s0) (hsr : SameRootR R (child d bs) (child d' bt))
+    (hS : Sio.path (child d bs) ∨ Sio.path (child d' bt))
     (hfit : PathFits (child d bs) ∧ PathFits (child d' bt)) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osPathS (L := L) R d' dq' j' -∗
@@ -211,7 +211,7 @@ theorem wp_osRenameFileSNE (Sio : IoSet) [FsStepSat (NoIoErr Sio)]
       obtain ⟨st'', hst''⟩ := renameFile_succ hw hcall (sameRoot_of_R hR hsr) hp.1 hp.2 hbs hbt (hsrcE st hat)
         (hneq st hp hat) (fun J hJ => htgt J (by rw [← htgtE st hat]; exact hJ))
       have := noIoErr_step (Sio := Sio) Hsem
-        (by simp only [IoCovers]; exact ⟨k, child d bs, child d' bt, rfl, .inl (hS _), hfit.1, hfit.2⟩)
+        (by simp only [IoCovers]; exact ⟨k, child d bs, child d' bt, rfl, hS, hfit.1, hfit.2⟩)
         ⟨_, st'', hst'', rfl⟩
       exact this
     obtain ⟨e, rfl, hr⟩ := renameStep_cases hw hcall hp.1 hp.2 hbs hbt (hsrcE st hat)
@@ -349,6 +349,44 @@ theorem wp_osRenameFileSNE (Sio : IoSet) [FsStepSat (NoIoErr Sio)]
     isplitl [Hn]
     · iexact Hn
     · iexact Hn'
+
+/-- **`rename(2)` of the file `d/bs` onto `d'/bt`, its error witnessed** (`wp_osRenameFileS`, wal-fsfix2):
+an errno only when the file system can fail on the target's path, or a path does not fit (the
+witness `¬ (FsNoErrOn (· = child d' bt) ∧ PathFits … ∧ PathFits …)`). -/
+theorem wp_osRenameFileSW (R : Roots) (d bs d' bt : GoString) (j j' i : Ino) (N N' : NameSet)
+    (dq dq' : DFrac) (h h' : NamesH) (k s0 : Nat) (q : Qp) (hbs : NameOk bs) (hbt : NameOk bt)
+    (hN : N.Mem bs) (hN' : N'.Mem bt) (hkey : (j, N) ≠ (j', N'))
+    (hsrc : h.cur !! bs = some (.file i)) (htgt : ∀ J, h'.cur !! bt ≠ some (.dir J))
+    (hs : h.next ≤ s0) (hs' : h'.next ≤ s0) (hsr : SameRootR R (child d bs) (child d' bt))
+    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
+      osPathS (L := L) R d' dq' j' -∗
+      osNames (L := L) j N (DFrac.own 1) h -∗ osNames (L := L) j' N' (DFrac.own 1) h' -∗
+      osCallS (L := L) k s0 (child d bs) q -∗
+      (∀ e : w64, osCallPerm (L := L) (callKey R d) q -∗ osPathS (L := L) R d dq j -∗
+        osPathS (L := L) R d' dq' j' -∗
+                ((⌜e ≠ 0⌝ ∗ osNames (L := L) j N (DFrac.own 1) h ∗ osNames (L := L) j' N' (DFrac.own 1) h') ∨
+         ∃ x, osLogged (L := L) x (⟨.rename j bs j' bt (.file i) (h'.cur !! bt), s0⟩ : LogEntry) ∗
+           osNames (L := L) j N (DFrac.own 1) (h.log x (⟨.rename j bs j' bt (.file i) (h'.cur !! bt), s0⟩ : LogEntry) (GMap.delete bs h.cur)) ∗
+           osNames (L := L) j' N' (DFrac.own 1) (h'.log x (⟨.rename j bs j' bt (.file i) (h'.cur !! bt), s0⟩ : LogEntry) (<[bt := .file i]> h'.cur))) -∗
+        ⌜e ≠ 0 → ¬ (FsNoErrOn (· = child d' bt) ∧ PathFits (child d bs) ∧ PathFits (child d' bt))⌝ -∗
+        Φ (#e)) -∗
+      WP (ExternalOp fsExt.name "Rename" (Val (PairV (osTokV k)
+        (PairV (#(child d bs)) (#(child d' bt)))))) @ s; E {{ Φ }} := by
+  iintro #Hos #Hsi Hp Hp' Hn1 Hn2 Hk HΦ
+  by_cases hW : FsNoErrOn (· = child d' bt) ∧ PathFits (child d bs) ∧ PathFits (child d' bt)
+  · obtain ⟨⟨Sio, -, h1, -, hp⟩, hf1, hf2⟩ := hW
+    iapply wp_osRenameFileSNE Sio R d bs d' bt j j' i N N' dq dq' h h' k s0 q hbs
+      hbt hN hN' hkey hsrc htgt hs hs' hsr (.inr (hp _ rfl)) ⟨hf1, hf2⟩ hE hE' Φ $$ Hos Hsi Hp Hp' Hn1 Hn2 Hk
+    iintro Hperm Hp Hp' Hl
+    iapply HΦ $$ Hperm Hp Hp' [Hl]
+    · iright; iexact Hl
+    ipureintro; intro h0; exact absurd rfl h0
+  · iapply wp_osRenameFileS R d bs d' bt j j' i N N' dq dq' h h' k s0 q hbs hbt hN hN' hkey hsrc
+      htgt hs hs' hsr hE hE' Φ $$ Hos Hsi Hp Hp' Hn1 Hn2 Hk
+    iintro %e Hperm Hp Hp' Hres
+    iapply HΦ $$ Hperm Hp Hp' Hres
+    ipureintro; intro _; exact hW
 
 end specs
 

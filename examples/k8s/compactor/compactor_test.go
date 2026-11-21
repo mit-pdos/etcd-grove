@@ -297,27 +297,31 @@ func TestShared(t *testing.T) {
 	}
 }
 
-// TestMainPartition runs MainPartition once, in a fresh data directory, with a schedule that,
-// after a few rounds, isolates each member in turn while the API servers run (a peer cut both ways to the two others,
-// then mended), blackholes one member's bridge during the first isolation and drops another's
-// connections as it ends; then it asks the cluster MainPartition left running whether the
-// compactors ran: compact_rev_key holds a positive revision.
+// partitionK is the member count TestMainPartition runs MainPartition at (any 1 <= k <= 600; one
+// run per process, since MainPartition leaves its cluster running on the fixed ports).
+const partitionK = 5
+
+// TestMainPartition runs MainPartition once, at partitionK members, in a fresh data directory, with a
+// schedule that, after a few rounds, isolates each member in turn while the API servers run (a peer
+// cut both ways to the others, then mended), blackholes the last member's bridge during the first
+// isolation and drops another's connections as it ends; then it asks the cluster MainPartition left
+// running whether the compactors ran: compact_rev_key holds a positive revision.
 func TestMainPartition(t *testing.T) {
 	t.Chdir(t.TempDir())
-	walarea.ResetFamily(t, "k8scompactorp") // the members' WAL areas (wal-link P2)
-	cfg := clusterConfig()
+	walarea.ResetFamily(t, "k8scompactorN") // the members' WAL areas (wal-link P2)
+	k := partitionK
 	var sched []cluster3.Step
-	for m := 0; m < 3; m++ {
-		for o := 0; o < 3; o++ {
+	for m := 0; m < k; m++ {
+		for o := 0; o < k; o++ {
 			if o != m {
 				sched = append(sched, cluster3.Step{Delay: 0, Kind: cluster3.PeerCut, A: m, B: o})
 			}
 		}
 		if m == 0 {
-			sched = append(sched, cluster3.Step{Kind: cluster3.ClientBlackhole, A: 2})
+			sched = append(sched, cluster3.Step{Kind: cluster3.ClientBlackhole, A: k - 1})
 		}
 		first := true
-		for o := 0; o < 3; o++ {
+		for o := 0; o < k; o++ {
 			if o != m {
 				d := time.Duration(0)
 				if first {
@@ -328,18 +332,22 @@ func TestMainPartition(t *testing.T) {
 			}
 		}
 		if m == 0 {
-			sched = append(sched, cluster3.Step{Kind: cluster3.ClientUnblackhole, A: 2},
-				cluster3.Step{Kind: cluster3.ClientDrop, A: 1})
+			sched = append(sched, cluster3.Step{Kind: cluster3.ClientUnblackhole, A: k - 1},
+				cluster3.Step{Kind: cluster3.ClientDrop, A: 1 % k})
 		}
 		sched = append(sched, cluster3.Step{Delay: 20 * time.Millisecond})
 	}
 	// a few rounds before the first cut (a round records the revision the next one compacts at)
 	sched[0].Delay = 150 * time.Millisecond
 	start := time.Now()
-	MainPartition(sched)
+	MainPartition(uint64(k), sched)
 	t.Logf("MainPartition took %v", time.Since(start))
 
-	cli, err := cluster3.NewClient(cfg, zap.NewNop())
+	var eps []string
+	for i := 0; i < k; i++ {
+		eps = append(eps, bridgeAddr(uint64(i)))
+	}
+	cli, err := etcdstart.NewClients(eps, zap.NewNop())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -362,24 +370,26 @@ func TestMainPartition(t *testing.T) {
 }
 
 // TestMemberIDs checks the premise on the member ids etcd computes for MainPartition's cluster
-// (from the peer URLs and the cluster token; examples/etcd/partition's TestMemberIDs): their 16
-// low bits are distinct and not 0. It prints the ids in the order bootstrap sorts them (the proof's
-// BootFacts).
+// (from the peer URLs and the cluster token, as bootstrap does) at its largest member count, 600:
+// their 16 low bits are distinct and not 0 (a member's id depends only on its peer URL and the token,
+// so this covers every k <= 600; examples/k8s/all's TestMemberIDs checks them together with
+// examples/k8s/etcd3's).
 func TestMemberIDs(t *testing.T) {
-	cfg := clusterConfig()
-	urls, err := types.NewURLsMap(cfg.Name1 + "=http://" + cfg.Peer1 + "," + cfg.Name2 + "=http://" +
-		cfg.Peer2 + "," + cfg.Name3 + "=http://" + cfg.Peer3)
-	if err != nil {
-		t.Fatal(err)
+	urls := types.URLsMap{}
+	for _, m := range etcdstart.Members("k8scompactorN", 600, PeerBase, ClientBase) {
+		u, err := types.NewURLs([]string{"http://" + m.Peer})
+		if err != nil {
+			t.Fatal(err)
+		}
+		urls[m.Name] = u
 	}
-	cl, err := membership.NewClusterFromURLsMap(zap.NewNop(), cfg.Token, urls)
+	cl, err := membership.NewClusterFromURLsMap(zap.NewNop(), Token, urls)
 	if err != nil {
 		t.Fatal(err)
 	}
 	seen := map[uint64]bool{}
 	for _, id := range cl.MemberIDs() {
 		low := uint64(id) & 0xffff
-		t.Logf("member %x (%s): low 16 bits %#x", uint64(id), cl.Member(id).Name, low)
 		if low == 0 || seen[low] {
 			t.Fatalf("member %x: low 16 bits %#x zero or repeated", uint64(id), low)
 		}
