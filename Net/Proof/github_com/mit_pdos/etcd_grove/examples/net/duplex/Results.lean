@@ -146,11 +146,16 @@ theorem duplex_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     unfold netStart
     have Hpe : PartialMap.get? pendInit srvAddr = some ∅ := by
       rw [gmap_get?_eq]; exact addrSpace_lookup_ok _ (by decide)
+    icases Hnet with ⟨Hnet, Htoks⟩
     ihave Hpend := (BigSepM.bigSepM_lookup (Φ := fun a S => netPend (extGlobalGS netExt) a S) Hpe)
       $$ Hnet
+    have Hte : PartialMap.get? (addrSpace ()) srvAddr = some () := by
+      rw [gmap_get?_eq]; exact addrSpace_lookup_ok _ (by decide)
+    ihave Htk := (BigSepM.bigSepM_lookup (Φ := fun a (_ : Unit) => netLisTok (extGlobalGS netExt) a)
+      Hte) $$ Htoks
     have HGp : addrOk srvAddr = true := by decide
     -- the protocol: every connection's state (none yet), then the address's invariant
-    imod dupInvs_alloc (Gg := G) $$ Hpend with ⟨%γm, #Hinvs⟩
+    imod dupInvs_alloc (Gg := G) $$ Hpend Htk with ⟨%γm, #Hinvs⟩
     imodintro
     simp only [system]
     unfold nodeStart
