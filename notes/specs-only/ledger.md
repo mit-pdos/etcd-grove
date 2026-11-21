@@ -3549,6 +3549,21 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   and discharge it by `rfl`.
 - **Decision.** Applied (prove-reflectfmt, 2026-11-20; a strengthening of the premise, the callers' obligation discharged).
 
+## 2026-11-20: `proto.Size` and `proto.SizeMessage` claim `0 ≤ n` of messages with shared sub-messages (prove-protootel)
+
+- **Spec.** `proto.Size.spec` (conjuncts 2 and 3: a range response, a read-only transaction's response) and
+  `proto.SizeMessage.spec` (`Spec/google_golang_org/protobuf/proto/`), trust-boundary axioms.
+- **Defect.** False as stated: protobuf-go sums sizes with wrapping `int` additions, and the premises hold their
+  repeated sub-messages read-only (shared pointers allowed; `msgPtsC` says nothing of a message's responses), so a
+  pointer repeated many times gives a true size above `2^63` in little memory and a negative result.
+- **Evidence.** protobuf-go v1.36.12 `internal/impl/encode.go:63-117`, `codec_field.go`; `examples/axiomcx/protosizewrap`
+  (three tests, negative results); `notes/axiom-review/proto-size-wrap.md`.
+- **Proposed change.** `proto.Size`: drop `0 ≤ sint.Z n` from conjuncts 2 and 3 (no caller uses it). `proto.SizeMessage`:
+  `proto.SizePb`'s statement at the content (`msgPtsCC`, no responses, `msgSize c < 2^63 → sint.Z n = msgSize c`) and a
+  no-claim case over `msgPtsC`; `decodeLoop` needs the stream decoders' size facts without `N.Sz` first.
+- **Decision.** `proto.Size`: applied (prove-protootel, 2026-11-20; a weaker post, unused by every caller).
+  `proto.SizeMessage`: open (needs the rafthttp receiver's size facts unconditional; the note says why).
+
 ## 2026-11-20: `goose_adequacy_start` hands out the rights of names whose descriptor IDs collide (prove-promdeep)
 
 - **Spec.** `EtcdGrove.goose_adequacy_start` (`Proof/runtime/Start.lean`, a trust-boundary axiom), with the meaning

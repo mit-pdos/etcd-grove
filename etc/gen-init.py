@@ -2080,6 +2080,18 @@ _B['finish'] = (['ipersist HcommitSec', 'ipersist HrebalanceSec', 'ipersist Hspi
                  'rw [show (W64 100000000 : w64) = W64 100 * W64 1000000 from by decide]',
                  'iexact HdefaultBatchInterval'])
 
+# (prove-protootel, 2026-11-20) otel `trace`'s `noopSpanInstance` translated (until then in its
+# `opaqueInitsOk`), what `SpanFromContext` returns
+SPECIAL['go_opentelemetry_io.otel.trace'] = dict(
+    doc="""Its fact (`traceInit`, `storage/mvcc/Base.lean`): `noopSpanInstance` holds a `noopSpan` as a
+`Span`, read-only for good. Its initializer allocates it, initializes its imports and runs its
+translated initializer (`noopSpan{}` converted to `Span`, `noop.go`; prove-protootel, 2026-11-20:
+until then in `opaqueInitsOk`) and the untranslated initializers of its other variables, which the
+trust-boundary axiom `opaqueInitsOk` says run without panicking.""",
+    alloc_types={'noopSpanInstance': 'GoInterface'},
+    finish=['ipersist HnoopSpanInstance'] + FIN_PRE[:6] +
+           ['imodintro', 'unfold traceInit', 'iexists _; iexact HnoopSpanInstance'],
+)
 SPECIAL['go_etcd_io.etcd.pkg.v3.traceutil'] = dict(
     doc="""Its fact (`traceutilInit`, `storage/mvcc/Base.lean`): `Tracer` holds a fixed tracer. Its
 variables' initializers are untranslated: the trust-boundary axiom `Tracer_init` states the one
