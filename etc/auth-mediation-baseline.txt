@@ -25,7 +25,7 @@
 /etcdserverpb.KV/DeleteRange e2e-apply
 /etcdserverpb.KV/Put e2e-apply
 /etcdserverpb.KV/Range e2e
-/etcdserverpb.KV/RangeStream none
+/etcdserverpb.KV/RangeStream e2e
 /etcdserverpb.KV/Txn e2e
 /etcdserverpb.Lease/LeaseGrant e2e
 /etcdserverpb.Lease/LeaseKeepAlive e2e

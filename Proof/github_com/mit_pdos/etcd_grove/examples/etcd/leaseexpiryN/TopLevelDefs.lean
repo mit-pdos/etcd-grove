@@ -34,6 +34,25 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
   etcdFsExts_hasFs
 
+/-- The functors (putget3's `putget3GF`; putgetN's, moved here unchanged when putgetN's closed theorem
+retired, 2026-11-21). -/
+def putgetNGF : BundledGFunctors := fun i =>
+  match i with
+  | 0 => ⟨AllURF, inferInstance⟩
+  | 1 => ⟨InvMapF, inferInstance⟩
+  | 2 => ⟨constOF CoPsetDisjL, inferInstance⟩
+  | 3 => ⟨constOF (DisjointLeibnizSet PosSet), inferInstance⟩
+  | 4 => ⟨Auth.AuthURF (constOF Credit), inferInstance⟩
+  | 5 => ⟨constOF (NaHeapUR Loc val), inferInstance⟩
+  | 6 => ⟨constOF (HeapView proph_id (Agree (DiscreteO (List val))) (GMap proph_id)),
+          inferInstance⟩
+  | 7 => ⟨GhostVarF (GMap GoString Bool), inferInstance⟩
+  | _ => ⟨constOF Unit, inferInstance⟩
+
+/-- **A ghost-state instance at the local context `lctx`**. -/
+abbrev heapAtN (hG : HeapGS .hasLC putgetNGF) (lctx : GoLocalContext) : HeapGS .hasLC putgetNGF :=
+  ⟨hG.goose_globalGS, { hG.goose_localGS with goose_go_local_context := lctx }⟩
+
 section adequacy
 
 variable [go_gctx : GoGlobalContext]
