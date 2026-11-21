@@ -3083,6 +3083,7 @@ _more_metrics(SPECIAL['go_etcd_io.etcd.server.v3.storage.backend'],
               [('defragSec', 'hist'), ('defragBlockingSec', 'hist'), ('isDefragActive', 'gauge')])
 # (backend-snapshot B4, 2026-11-21) `snapshotTransferSec`'s histogram is a fact too: `Snapshot`'s
 # goroutine observes it.
+SPECIAL['go_etcd_io.etcd.server.v3.storage.backend']['alloc_types']['snapshotTransferSec'] = 'GoInterface'
 SPECIAL['go_etcd_io.etcd.server.v3.storage.backend']['before']['snapshotTransferSec'] = metric_steps_to(
     'snapshotTransferSec', 'hist', 'go_etcd_io.etcd.server.v3.storage.backend.histSpec')
 SPECIAL['go_etcd_io.etcd.server.v3.storage.backend']['doc'] = SPECIAL['go_etcd_io.etcd.server.v3.storage.backend']['doc'].replace(

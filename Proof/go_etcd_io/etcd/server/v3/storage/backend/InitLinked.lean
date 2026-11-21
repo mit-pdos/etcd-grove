@@ -76,7 +76,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_auto
   iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := GoInterface) isDefragActive _ as HisDefragActive
-  wp_apply wp_GlobalAlloc (V := TODO) snapshotTransferSec _ as HsnapshotTransferSec
+  wp_apply wp_GlobalAlloc (V := GoInterface) snapshotTransferSec _ as HsnapshotTransferSec
   wp_apply wp_GlobalAlloc (V := GoInterface) defragBlockingSec _ as HdefragBlockingSec
   wp_apply wp_GlobalAlloc (V := GoInterface) defragSec _ as HdefragSec
   wp_apply wp_GlobalAlloc (V := GoInterface) writeSec _ as HwriteSec
