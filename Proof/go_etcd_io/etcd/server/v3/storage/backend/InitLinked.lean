@@ -260,6 +260,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   ipersist HrebalanceSec
   ipersist HspillSec
   ipersist HwriteSec
+  ipersist HsnapshotTransferSec
   ipersist HboltOpenOptions
   ipersist HdefaultBatchInterval
   ipersist HdefaultBatchLimit

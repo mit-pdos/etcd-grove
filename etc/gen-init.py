@@ -1669,8 +1669,7 @@ trust-boundary axioms `<X>_init`), `opaqueInitsOk` states the others.''',
     alloc_types={**{x: 'GoInterface' for x in _BE_HIST},
                  'defaultBatchLimit': 'w64', 'defaultBatchInterval': 'w64', 'defragLimit': 'w64',
                  'InitialMmapSize': 'w64', 'minSnapshotWarningTimeout': 'w64'},
-    finish=['ipersist HcommitSec', 'ipersist HrebalanceSec', 'ipersist HspillSec', 'ipersist HwriteSec',
-            'ipersist HsnapshotTransferSec']
+    finish=['ipersist HcommitSec', 'ipersist HrebalanceSec', 'ipersist HspillSec', 'ipersist HwriteSec']
            + FIN_PRE[:6] + ['imodintro', 'unfold backendInit', 'iframe #'],
 )
 
@@ -2141,6 +2140,8 @@ _B['doc'] = _B['doc'].replace("hold `Histogram`s whose `Observe` returns.", "hol
 # (2026-11-07, R10) the defaults `DefaultBackendConfig` loads (translated stores of constants)
 _B['doc'] = _B['doc'].replace("and `boltOpenOptions` (`boltOpenOptionsOk`).", "and `boltOpenOptions` (`boltOpenOptionsOk`), and `defaultBatchInterval`,\n`defaultBatchLimit`, `InitialMmapSize` their translated initializers' constants.")
 _B['finish'] = (['ipersist HcommitSec', 'ipersist HrebalanceSec', 'ipersist HspillSec', 'ipersist HwriteSec',
+                 # (backend-snapshot B4, 2026-11-21) `Snapshot`'s goroutine observes it
+                 'ipersist HsnapshotTransferSec',
                  'ipersist HboltOpenOptions', 'ipersist HdefaultBatchInterval',
                  'ipersist HdefaultBatchLimit', 'ipersist HInitialMmapSize'] + FIN_PRE[:6] +
                 ['imodintro', 'unfold backendInit EtcdGrove.backend.boltOpenOptionsOk', 'iframe #',
