@@ -113,6 +113,9 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          # (2026-11-20, notes/k8s-unified-scope.md) the one closed Kubernetes theorem's program: the two
          # drivers at once; no package variable, its fact `True` (`Base.lean`), so no `SPECIAL`
          'github_com.mit_pdos.etcd_grove.examples.k8s.all',
+         # (2026-11-21, notes/etcd-unified-scope.md) the one closed etcd theorem's program: eleven
+         # drivers at once; no package variable, its fact `True` (`Base.lean`), so no `SPECIAL`
+         'github_com.mit_pdos.etcd_grove.examples.etcd.all',
          # KEP-6404 (2026-10-26): the watch cache and its store
          'k8s_io.apiserver.pkg.storage.cacher',
          # client-go's leaf libraries (2026-10-26, notes/k8s-clientgo-goose.md; `util/flowcontrol`
@@ -2194,9 +2197,13 @@ SPECIAL['go_opentelemetry_io.otel.trace'] = dict(
     doc="""Its fact (`traceInit`, `storage/mvcc/Base.lean`): `noopSpanInstance` holds a `noopSpan` as a
 `Span`, read-only for good. Its initializer allocates it, initializes its imports and runs its
 translated initializer (`noopSpan{}` converted to `Span`, `noop.go`; prove-protootel, 2026-11-20:
-until then in `opaqueInitsOk`) and the untranslated initializers of its other variables, which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking.""",
-    alloc_types={'noopSpanInstance': 'GoInterface'},
+until then in `opaqueInitsOk`), those of `tracerProviderInstance` and
+`autoInstEnabled` (`new`) and of the `start`/`ended` func literals (prove-otel4, 2026-11-21), and the
+untranslated initializers of its other variables (`maxSpan`, which goose's guard refuses, and the
+`var _ I = T{}` assertions: `trace.toml`), which the trust-boundary axiom `opaqueInitsOk` says run
+without panicking.""",
+    alloc_types={'noopSpanInstance': 'GoInterface', 'tracerProviderInstance': 'Loc', 'start': 'GoFunc',
+                 'ended': 'GoFunc', 'autoInstEnabled': 'Loc'},
     finish=['ipersist HnoopSpanInstance'] + FIN_PRE[:6] +
            ['imodintro', 'unfold traceInit', 'iexists _; iexact HnoopSpanInstance'],
 )
@@ -3381,7 +3388,7 @@ zapcore's fact), `_globalS = _globalL.Sugar()` (a copy of the logger) and the in
                      'ihave #HNN : (iprop(isPkgInit (PROP := IProp GF) pkg_id.io ∗ isPkgInit (PROP := IProp GF) '
                      'pkg_id.go_uber_org.zap.zapcore) : IProp GF) $$ []',
                      '· isplitl []', '  · iexact {Hd:io}', '  · iexact {Hd:go_uber_org.zap.zapcore}',
-                     'wp_apply EtcdGrove.zap_wp_NewNop_init $$ HNN as %lgl ⟨%vgl, Hgl⟩', 'try wp_auto'],
+                     'wp_apply EtcdGrove.zap_wp_NewNop_init $$ HNN as %lgl ⟨%vgl, Hgl, -⟩', 'try wp_auto'],
         '_globalS': ['try wp_auto', 'wp_apply (EtcdGrove.zap_wp_Sugar_init lgl vgl) $$ Hgl as %sgl Hgl', 'try wp_auto'],
     },
     pre=[
@@ -3406,11 +3413,13 @@ zapcore's fact), `_globalS = _globalL.Sugar()` (a copy of the logger) and the in
         '    itrivial',
         '',
         '/-- (prove-initleft) `zap.NewNop()` before zap\'s `isPkgInit`: a new `Logger` (its body: `NewNopCore()`,',
-        '`AddSync(io.Discard)`, `zapcore.DefaultClock`, from io\'s and zapcore\'s facts). -/',
+        '`AddSync(io.Discard)`, `zapcore.DefaultClock`, from io\'s and zapcore\'s facts), a `nopLoggerVal`',
+        '(prove-zap3: `zap.NewNop`\'s spec is proved from it). -/',
         'theorem EtcdGrove.zap_wp_NewNop_init :',
         '    {{ isPkgInit (PROP := IProp GF) pkg_id.io ∗ isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap.zapcore }}',
         '      (App (Val (@! _root_.Perennial.go_uber_org.zap.NewNop)) (Val #()))',
-        '    {{ (l : Loc), RET #l; ∃ v : _root_.Perennial.go_uber_org.zap.Logger, l ↦ v }} := by',
+        '    {{ (l : Loc), RET #l; ∃ v : _root_.Perennial.go_uber_org.zap.Logger, l ↦ v ∗',
+        '        ⌜EtcdGrove.zap.nopLoggerVal v⌝ }} := by',
         '  wp_start',
         '  ihave #IO : (_root_.Perennial.io.isInit : IProp GF) $$ []',
         '  · iapply isPkgInit_access $$ Hpkg',
@@ -3429,6 +3438,8 @@ zapcore's fact), `_globalS = _globalL.Sugar()` (a copy of the logger) and the in
         '  iapply HΦ',
         '  iexists _',
         '  iframe',
+        '  ipureintro',
+        '  exact ⟨⟨_, rfl⟩, rfl, rfl, rfl, rfl⟩',
         '',
         '/-- (prove-initleft) `l.Sugar()` on a `Logger`: a copy of it (`clone`), its caller skip plus 2. -/',
         'theorem EtcdGrove.zap_wp_Sugar_init (l : Loc) (v : _root_.Perennial.go_uber_org.zap.Logger) :',
@@ -3446,6 +3457,94 @@ zapcore's fact), `_globalS = _globalL.Sugar()` (a copy of the logger) and the in
         'end zapinit'],
     imports=['Proof.go_uber_org.zap.internal.pool.New'],
 ), ['errNoEncoderNameSpecified'])
+# (prove-zap3, 2026-11-21) zap's last package variable, `_sinkRegistry` (`newSinkRegistry`: the file sink registered,
+# `normalizeScheme("file")` over `strings.ToLower`'s spec); `opaqueInitsOk` is gone
+SPECIAL[_Z]['doc'] = SPECIAL[_Z]['doc'].replace('''`_sinkRegistry` (`newSinkRegistry`) stays untranslated, `opaqueInitsOk`.''',
+'''and (prove-zap3, 2026-11-21) `_sinkRegistry = newSinkRegistry()`: a registry whose fresh mutex is locked
+around the registration of the file sink, `normalizeScheme("file")` being `"file"` by `strings.ToLower`'s
+spec.''')
+SPECIAL[_Z]['alloc_types'].update({'_sinkRegistry': 'Loc'})
+SPECIAL[_Z]['before'].update({
+    '_sinkRegistry': ['try wp_auto',
+                      'wp_apply (EtcdGrove.zap_wp_newSinkRegistry_init EtcdGrove.strings.ToLower.wp_proof) $$ '
+                      '{Hd:sync} as %srl -',
+                      'try wp_auto'],
+})
+_i = SPECIAL[_Z]['pre'].index('end zapinit')
+SPECIAL[_Z]['pre'][_i:_i] = [
+    '/-- (prove-zap3) `normalizeScheme("file")` is `("file", nil)`: `strings.ToLower` of an ASCII word with',
+    'no upper-case letter is the word itself (its spec, `strings.lowersTo`), whose first byte is a letter and',
+    'whose other bytes are letters. -/',
+    'theorem EtcdGrove.zap_wp_normalizeScheme_file (hTL : EtcdGrove.strings.ToLower.spec (GF := GF) (hG := hG)) :',
+    '    {{ (True : IProp GF) }}',
+    '      (App (Val (@! _root_.Perennial.go_uber_org.zap.normalizeScheme)) (Val #(go!"file")))',
+    '    {{ RET (PairV #(go!"file") #interface.nil); True }} := by',
+    '  wp_start',
+    '  wp_auto',
+    '  wp_apply hTL as %r %Hr',
+    '  have hr : r = go!"file" := (Hr go!"file" (by decide)).mpr (by decide)',
+    '  subst hr',
+    '  wp_auto',
+    '  ihave HI : (∃ i : w64, "i" ∷ i_ptr ↦ i ∗ "%Hi" ∷ ⌜1 ≤ sint.Z i ∧ sint.Z i ≤ 4⌝ : IProp GF) $$ [i]',
+    '  · iexists W64 1; iframe; ipureintro; decide',
+    '  wp_for HI',
+    '  wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %-',
+    '  try wp_auto',
+    '  wp_if_destruct',
+    '  · have hi : i = W64 1 ∨ i = W64 2 ∨ i = W64 3 := by',
+    '      have : sint.Z i < 4 := by have h := go.intoVal_inj Hif; simp at h; word',
+    '      rcases (show sint.Z i = 1 ∨ sint.Z i = 2 ∨ sint.Z i = 3 by omega) with h | h | h',
+    '      · left; word',
+    '      · right; left; word',
+    '      · right; right; word',
+    '    rcases hi with rfl | rfl | rfl',
+    '    all_goals (wp_auto; wp_for_post; iframe; iexists _; iframe; ipureintro; word)',
+    '  · rw [ite_eq_right_of_eq_false _ _ (by',
+    '      cases h : decide (sint.Z i < sint.Z (W64 ↑[W8 102, W8 105, W8 108, W8 101].length)) <;> simp_all)]',
+    '    wp_auto',
+    '    iapply HΦ',
+    '    itrivial',
+    '',
+    '/-- (prove-zap3) `newSinkRegistry()` returns (a new registry: an empty factory map, `os.OpenFile`, and the',
+    'file sink registered by `RegisterSink`, under the registry\'s fresh mutex, `normalizeScheme("file")`',
+    'succeeding and the map holding no factory yet). -/',
+    'theorem EtcdGrove.zap_wp_newSinkRegistry_init (hTL : EtcdGrove.strings.ToLower.spec (GF := GF) (hG := hG)) :',
+    '    {{ isPkgInit (PROP := IProp GF) pkg_id.sync }}',
+    '      (App (Val (@! _root_.Perennial.go_uber_org.zap.newSinkRegistry)) (Val #()))',
+    '    {{ (sr : Loc), RET #sr; True }} := by',
+    '  wp_start as #Hsync',
+    '  wp_auto',
+    '  wp_apply wp_map_make1 (K := GoString) (V := GoFunc) as %m Hm',
+    '  try wp_auto',
+    '  iStructNamed «$r0»',
+    '  imod sync.init_Mutex iprop(True) ⊤ («$r0_ptr».[_root_.Perennial.go_uber_org.zap.sinkRegistry, go!"mu"])',
+    '    $$ mu [] with #Hmu',
+    '  · inext; itrivial',
+    '  try wp_auto',
+    '  wp_method_call',
+    '  wp_call',
+    '  rw [show _root_.Perennial.go_uber_org.zap.schemeFile = #(go!"file") from rfl]',
+    '  try wp_auto',
+    '  wp_apply wp_with_defer as %defer defer',
+    '  try wp_auto',
+    '  wp_apply sync.Mutex.wp_Lock _ _ $$ [$Hmu] as ⟨Hlocked, -⟩',
+    '  try wp_auto',
+    '  wp_apply (EtcdGrove.zap_wp_normalizeScheme_file hTL)',
+    '  try wp_auto',
+    '  wp_apply wp_map_lookup2 $$ [$Hm] as Hm',
+    '  try wp_auto',
+    '  wp_apply (wp_mapInsert (K := GoString) (V := GoFunc) _) $$ Hm as Hm',
+    '  try wp_auto',
+    '  wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked]',
+    '  · itrivial',
+    '  try wp_auto',
+    '  iapply HΦ',
+    '  itrivial',
+    '',
+]
+for _m in ['Spec.strings.ToLower', 'Proof.strings.ToLower', 'Spec.go_uber_org.zap.Defs']:
+    if _m not in SPECIAL[_Z]['imports']:
+        SPECIAL[_Z]['imports'].append(_m)
 _FG = 'go_etcd_io.etcd.pkg.v3.featuregate'
 SPECIAL['go_etcd_io.etcd.server.v3.features'] = dict(
     doc='''Its fact is `True`. Its initializer initializes its imports, allocates
@@ -4376,52 +4475,8 @@ def gen_ext():
 
 # The programs whose closed theorem needs the package table of their import closure (item 9,
 # D19r, 2026-10-18): the root package and the module of the generated table.
-PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.putget':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putget/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.restart1':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/restart1/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.restart':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/restart/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.restartN':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/restartN/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.compacted':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/compacted/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/compactwatch/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.lease':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/lease/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.leasegrant':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leasegrant/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiry':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiry/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leasecatchup/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.putget3':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putget3/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.putgetN':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putgetN/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.leaseN':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseN/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN':
+PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/txnlinfaultsN/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.partition':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/partition/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.txnlin':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/txnlin/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.watch':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/watch/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.cache':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/cache/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.auth':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.auth3':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.authN':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/authN/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.authlease':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/authlease/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter':
             'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/counter/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkv':
@@ -4441,7 +4496,9 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.putget':
             'github_com.mit_pdos.etcd_grove.examples.raft.kvdurable':
             'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.k8s.all':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/all/PkgTable.lean'}
+            'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/all/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.all':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/all/PkgTable.lean'}
 # (R10, 2026-11-07) mvcc's randomized tester
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccrand'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/PkgTable.lean'

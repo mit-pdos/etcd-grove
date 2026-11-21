@@ -681,7 +681,7 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                               # (`=raftNode_of_StartNode_law_holds`)
                               "Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeStartLinked",
                               # (wal-item3, 2026-11-21) `NewStorage`'s contract proved over the WAL
-                              # (`rnNewStorageOk_law_holds`, under `[UntypedRuneSemantics]`; not yet
+                              # (`rnNewStorageOk_law_holds`, under `os`'s field assumptions; not yet
                               # passed to `newRaftNode`: imported so the trust-base report sees it)
                               "Proof.go_etcd_io.etcd.server.v3.etcdserver.RnNewStorageLinked"]}
 # (R9, the `lean` merge, 2026-11-07) the examples' allocations take mvcc's `names_nonempty.law`
@@ -806,7 +806,7 @@ EXTRA_VARS = {"--kvdurable": "variable [HasExt durableExt] [go.IntoValInj GoStri
 # (`lessorApplyOk`, `etcdserver/SnapRO.lean`), a section variable (its `LEAN_FIRST` entry above)
 NAMESPACED["--mvccrand"] = "mvccrand"
 EXTRA_IMPORTS["--mvccrand"] = ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults",
-                               "Perennial.Proof.sort.Link"]
+                               "Perennial.Proof.sort.Link", "Perennial.Proof.time.Link"]
 EXTRA_VARS["--mvccrand"] = ("variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]\n"
                             "variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]\n")
 # mvcc's full tester (examples/mvccfull, F1 Draft, 2026-11-09): as mvccrand's, and the lessor's

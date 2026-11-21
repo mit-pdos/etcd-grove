@@ -6,7 +6,6 @@ module
 public import Spec.internal.filepathlite.Base
 public import Spec.internal.filepathlite.IsPathSeparator
 public import Spec.internal.filepathlite.VolumeName
-public import Proof.internal.filepathlite.UntypedRune
 
 @[expose] public section
 
@@ -35,7 +34,7 @@ local macro "base_fin" Q:term:max : tactic => `(tactic| (
     try simp only [_root_.Perennial.internal.filepathlite.Separator]
     try wp_auto
     iapply HΦ; ipureintro
-    rw [hM, if_pos hQ, untypedRuneToString_ascii 47 (by decide) (by decide)]; try decide
+    rw [hM, if_pos hQ, (by decide : go.runeString 47 = [W8 47])]; try decide
   · simp only [hQ, _root_.decide_false]
     try wp_auto
     iapply HΦ; ipureintro; rw [hM, if_neg hQ]))
@@ -138,7 +137,7 @@ local macro "base_after_strip" : tactic => `(tactic| (
       refine ⟨by omega, ?_⟩
       rw [← Hli, path.lastIdxFrom, if_neg (hgc ▸ hs)]))
 
-theorem filepathlite.Base.wp_proof [UntypedRuneSemantics]
+theorem filepathlite.Base.wp_proof
     (hSep : filepathlite.IsPathSeparator.spec (GF := GF) (hG := hG))
     (hVol : filepathlite.VolumeName.spec (GF := GF) (hG := hG)) :
     filepathlite.Base.spec (GF := GF) (hG := hG) := by

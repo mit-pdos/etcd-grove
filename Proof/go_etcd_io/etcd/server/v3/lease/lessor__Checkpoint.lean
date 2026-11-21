@@ -110,8 +110,8 @@ theorem lease.lessor.Checkpoint.wp_proof
           queueAt h' hx' 1)
       with [le l Hrem Hcp Hh Hhq] as ⟨le, l, Hrem, Hcp, %h', %hx', Hh, Hhq⟩
     · (try wp_auto)
-      wp_apply (hSched lp l func.nil h hx rem t (DFrac.own 1) (DFrac.own 1) DFrac.discard)
-        $$ [$Hpkg $Hcfg $Hcp $Hh $Hhq $Hrem $Httl] as ⟨Hcp, ⟨%h', %hx', Hh, Hhq⟩, Hrem, -⟩
+      wp_apply (hSched lp l func.nil h hx id rem t (DFrac.own 1) (DFrac.own 1) DFrac.discard)
+        $$ [$Hpkg $Hcfg $Hcp $Hh $Hhq $HID $Hrem $Httl] as ⟨Hcp, ⟨%h', %hx', Hh, Hhq⟩, Hrem, -⟩
       wp_join_done
     (try wp_auto)
     ihave Hmeta := Hmeta $$ [Hrem Hexp]

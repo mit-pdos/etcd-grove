@@ -66,7 +66,7 @@ theorem firstOpKey.wp_proof (hGR : RequestOp.GetRequest.spec (GF := GF) (hG := h
       iunfold txn.rangeRequestIs at Hr
       icases Hr with ⟨%Hnn, %ksl, %esl, %k, %e, %rev0, %limit, %order, %target, %ser, %ko, %co,
         %minM, %maxM, %minC, %maxC, #Hk, #Hks, -⟩
-      wp_apply hRK r ksl $$ []
+      wp_apply hRK r ksl DFrac.discard $$ [] as -
       · iframe #; ipureintro; exact Hnn
       wp_apply wp_bytes_to_string $$ [Hks] as -
       · iexact Hks

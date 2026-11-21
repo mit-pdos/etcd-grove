@@ -69,7 +69,10 @@ says no slice is ever sent on `expiredC`, in any of the theorem's executions.
 True of `examples/etcd/leasegrant`: its only lease is granted with TTL 600 s, and the read that must list
 it runs within two `RequestTimeout`s of the grant's apply (the expiry is set to at least the grant's
 apply plus the TTL, and `Promote`, `Demote`, `Renew`, checkpoints and `minLeaseTTL` only move it
-later, `lessor.go:301-303, 480-553`). What a theorem taking it says nothing of: runs longer than a granted lease's TTL, runs
+later, `lessor.go:301-303, 480-553`). True of every run of `examples/etcd/authlease` and
+`examples/etcd/leasecatchup` (alone, or in `examples/etcd/all`), however long: they grant every lease
+with etcd's `MaxLeaseTTL` (9000000000 s, about 285 years; `lessor.Grant` refuses only a longer TTL,
+`lessor.go:286`). What a theorem taking it says nothing of: runs longer than a granted lease's TTL, runs
 whose clock jumps, and a lessor promoted with leases whose expiry has already passed. The
 trust-boundary `NewLessor` states it in the payload of `expiredC` (`lessorExpiredC`): a slice sent
 refutes it. `NewServer` and `NewServerR` take it through their boot slot `lease.bootCfg`: in the

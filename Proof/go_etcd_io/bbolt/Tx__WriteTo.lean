@@ -363,7 +363,7 @@ theorem Tx.WriteTo.wp_proof (wp_Pgid : internal.common.Meta.Pgid.spec (GF := GF)
       CoPset.in_diff.2 ⟨CoPset.subseteq_top x hx, fun hp => Ht0.2.2 x ⟨nclose_subseteq K.N "pages" x hp, hx⟩⟩
     ihave #Hrd := os.File.readerAtOk (hRead) f fn.1 fn.2 (DFrac.own (QpMul q.half sync.rfrac).half)
       (DFrac.own (QpMul q.half sync.rfrac).half) (dbFd K.p.ino) (wtRs C.pages fx) _
-      (⊤ \ ↑(pagesN K.N)) _ rfl hosE $$ Hos Heof Hacc
+      (⊤ \ ↑(pagesN K.N)) _ rfl hosE (by intro ii T h _; cases h; exact ⟨eofl, rfl⟩) $$ Hos Heof Hacc
     icases HWr with ⟨%cw, HWr, %hcw⟩
     have hcw' : cw = true := hcw (by omega)
     subst hcw'

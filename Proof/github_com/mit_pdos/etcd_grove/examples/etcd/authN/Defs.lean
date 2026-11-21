@@ -8,13 +8,13 @@ named `authN-i`, peer address `127.0.0.1:(29000+i)`, client address `127.0.0.1:(
 member's client address is served (`startOf`).
 
 **The pure facts** (putgetN's `BootFacts`, reused): the member ids `ids` in the members' order (etcd's, from
-each peer URL and the cluster token `authN-1286`; `TestMemberIDs` checks their 16 low bits distinct
-and not `0` for every `k ≤ 1000`), the peers `ps` in `bootstrap`'s order, a permutation of the ids,
+each peer URL and the cluster token `authN-133`; `TestMemberIDs` checks their 16 low bits distinct
+and not `0` for every `k ≤ 300`, the bound of `examples/etcd/all`), the peers `ps` in `bootstrap`'s order, a permutation of the ids,
 and the bootstrap log.
 
 **The Iris premises** (`premises`, persistent): putgetN's at auth3's configuration: `bootstrap`'s
 contract for every member (`etcdstart.bootPremiseOn`: `bootPremise` with `AuthToken = "simple"`, auth3's
-`bootPremise` at the token `authN-1286`), `proto.Marshal`'s contract at the bootstrap log's conf
+`bootPremise` at the token `authN-133`), `proto.Marshal`'s contract at the bootstrap log's conf
 changes (`bootMarshal`), the raft wrapper's trust-boundary contracts (`etcdstart.commonPremises`).
 -/
 module
@@ -42,7 +42,7 @@ variable [GooseExts]
 abbrev members (k : Nat) : List GMember := membersOf go!"authN" k (W64 29000) (W64 30000)
 
 /-- The cluster's token (`Token`). -/
-abbrev token : GoString := go!"authN-1286"
+abbrev token : GoString := go!"authN-133"
 
 /-- **The program's start bundles** (name, peer address, client address): every member's. -/
 def startOf (ms : List GMember) : List (GoString × GoString × Option GoString) :=

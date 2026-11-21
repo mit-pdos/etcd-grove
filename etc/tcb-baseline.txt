@@ -10,6 +10,7 @@ axiom EtcdServer.leaseTimeToLive.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom EtcdServer.publishV3.wp_proof
+axiom EtcdServer.rangeStream.wp_proof
 axiom NewCluster.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom NewMaintenance.wp_proof
@@ -50,7 +51,6 @@ axiom Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.opaqueInitsOk
 axiom Perennial.go_opentelemetry_io.otel.attribute.opaqueInitsOk
 axiom Perennial.go_opentelemetry_io.otel.trace.opaqueInitsOk
-axiom Perennial.go_uber_org.zap.opaqueInitsOk
 axiom Perennial.golang_org.x.crypto.bcrypt.opaqueInitsOk
 axiom Perennial.golang_org.x.sys.unix.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.codes.initFuncsOk
@@ -138,15 +138,6 @@ axiom bytes.Buffer.Bytes.wp_proof
 axiom bytes.Buffer.Write.wp_proof
 axiom cache.wp_Errorf_setArgs
 axiom ccDecodeV2_nil
-axiom clockwork.NewRealClock.wp_proof
-axiom clockwork.clockLb
-axiom clockwork.clockLb_init
-axiom clockwork.clockLb_le
-axiom clockwork.clockLb_persistent
-axiom clockwork.realClock
-axiom clockwork.stampAt
-axiom clockwork.stampAt_elim
-axiom clockwork.stampAt_persistent
 axiom cmp.Diff.wp_proof_eventRefs
 axiom config.ServerConfig.BackendPath.wp_proof
 axiom context.WithCancelTodo.wp_proof
@@ -268,9 +259,7 @@ axiom http.respWriteHeader_ok
 axiom http.respWrite_ok
 axiom httpProtoFree
 axiom httputil.GracefulClose.wp_proof
-axiom io.CopyN.wp_proof
 axiom io.MultiReader.wp_proof
-axiom io.NewSectionReader.wp_proof
 axiom io.Pipe.wp_proof
 axiom io.PipeWriter.CloseWithError.wp_proof
 axiom klog.Background.wp_proof
@@ -288,7 +277,6 @@ axiom lease.lessor.Demote.wp_proof
 axiom lease.lessor.Promote.wp_proof
 axiom lease.lessor.Renew.wp_proof
 axiom lease.lessor.Stop.wp_proof
-axiom lease.lessor.scheduleCheckpointIfNeeded.wp_proof
 axiom lease.lessorStopTok
 axiom leasehttp.RenewHTTP.wp_proof
 axiom maps.Clone.wp_proof_strBool
@@ -463,7 +451,6 @@ axiom snap.Snapshotter.SaveDBFrom.wp_proof
 axiom snapEncC_ok
 axiom sort.SliceIsSorted.wp_proof
 axiom sort.Sort.wp_anyLess
-axiom sort.Stable.wp_proof
 axiom status.Code.wp_proof
 axiom status.Error.wp_proof
 axiom status.Errorf.wp_proof
@@ -475,11 +462,6 @@ axiom streamKeyFromCtx.wp_proof
 axiom strings.Contains.wp_proof
 axiom strings.SplitN.wp_proof
 axiom strings.ToLower.wp_proof
-axiom time.Duration.Seconds.wp_proof
-axiom time.Duration.Seconds_ptr.wp_proof
-axiom time.Duration.String.wp_proof
-axiom time.Duration.String_ptr.wp_proof
-axiom trace.New.wp_proof
 axiom trace.Trace.LogIfLong.wp_proof
 axiom traceutil.Trace.LogWithStepThreshold.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
@@ -518,6 +500,5 @@ axiom withVersion.wp_proof
 axiom zap.Logger.Fatal.wp_proof
 axiom zap.Logger.Panic.wp_proof
 axiom zap.Logger.check.wp_proof
-axiom zap.NewNop.wp_proof
 axiom zap.Stack.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof
