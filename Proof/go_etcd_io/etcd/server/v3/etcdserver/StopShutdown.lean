@@ -66,6 +66,7 @@ theorem wp_stop_chan_close_at {ty : go.GoType} {dir : go.ChanDir}
   iapply chan.wp_close (ct := ty) (V := Unit) ch γch $$ His_ch
   iintro _
   unfold closeAu
+  iapply ncfupd_of_fupd
   iinv Hinv with Hi Hclose
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask

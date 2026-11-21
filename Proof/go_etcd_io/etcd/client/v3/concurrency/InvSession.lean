@@ -147,6 +147,7 @@ theorem chanAny_recv_au (γ : ChanNames) (ch : Loc) (Φ : Loc → Bool → IProp
     ⊢ £ 1 ∗ £ 1 -∗ isChanAny γ ch -∗ (▷ ∀ v ok, Φ v ok) -∗ recvAu γ Loc Φ := by
   unfold isChanAny recvAu
   iintro ⟨Hlc1, Hlc2⟩ ⟨#Hch, %γc, #Hinv⟩ HΦ
+  iapply ncfupd_of_fupd
   iinv Hinv with Hi Hclose
   imod lc_fupd_elim_later (E := ⊤ \ ↑(nroot .@ "etcd_anychan")) $$ Hlc1 Hi with Hi
   unfold chanAnyInv
@@ -165,6 +166,7 @@ theorem chanAny_recv_au (γ : ChanNames) (ch : Loc) (Φ : Loc → Bool → IProp
     · inext; iexists .RcvPending; iframe Hoc
     imodintro
     unfold recvNestedAu
+    iapply ncfupd_of_fupd
     iinv Hinv with Hi Hclose
     imod lc_fupd_elim_later (E := ⊤ \ ↑(nroot .@ "etcd_anychan")) $$ Hlc2 Hi with Hi
     icases Hi with ⟨%s, Hoc1, Ht⟩

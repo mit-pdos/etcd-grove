@@ -397,7 +397,10 @@ log, third session; pending the user's review). General fix: `append` (and `make
   (`LinuxFs/Proof/os/SharedAu.lean`).
 - **Proposed.** Both lemmas in Perennial's `GooseLang/Lifting.lean`, beside `wp_ext_acc` (they use
   only `goose_bstateInterp_eq` and iris's `wp_unfold`); generic, nothing about `fsExt`.
-- **Status.** Recorded; the local copies go when the pin has them.
+- **Status.** Done: Perennial `7ad4f91b1` (`GooseLang/NotCrashed.lean`, Upamanyu Sharma) has both, with
+  `wp_atomic_nc`'s update written `|NC={E1,E2}=> ...` (`ncfupd`, a reducible abbreviation of the same
+  wand); the local copies were deleted at the pin bump of 2026-11-21 (branch
+  `pinbump/perennial-ncfupd-2026-11-21`).
 
 ### No translation of `hash/crc32`, `bufio`, `path/filepath`; no models of `io.ReadFull`/`io.Copy`, `fmt.Sscanf`, `strings.HasSuffix` (2026-11-13, branch `wal-fsext-translate`)
 

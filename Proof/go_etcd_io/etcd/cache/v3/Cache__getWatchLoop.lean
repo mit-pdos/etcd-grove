@@ -101,7 +101,7 @@ theorem Cache.getWatchLoop.wp_proof
   -- the backoff: `select` on `ctx.Done()` and `time.After(backoff)`
   wp_apply +noauto HDone as %ch1 %γ1 #Hdone
   wp_auto
-  wp_apply +noauto time.wp_After as %tch %γt #Htch
+  wp_apply +noauto (time.After.spec_pkgInit time.wp_After _) as %tch %γt #Htch
   wp_auto_lc 2
   wp_apply_core chan.wp_select_blocking
   iapply BigAndL.bigAndL_cons.2

@@ -97,6 +97,7 @@ theorem notify2_send1_au (γ : NotifyNames) (ch : Loc) (S1 S2 : IProp GF) (Φ : 
       sendAu γ.ch () Φ := by
   unfold isNotify2 sendAu notifySnd
   iintro Hlc ⟨#Hch, %Hcap, #Hinv⟩ Hs HS HΦ
+  iapply ncfupd_of_fupd
   iinv Hinv with Hi Hclose
   imod lc_fupd_elim_later (E := ⊤ \ ↑nroot) $$ Hlc Hi with Hi
   unfold notify2Inv
@@ -135,6 +136,7 @@ theorem notify2_send2_au (γ : NotifyNames) (ch : Loc) (S1 S2 : IProp GF) (Φ : 
       sendAu γ.ch () Φ := by
   unfold isNotify2 sendAu notifySnd
   iintro Hlc ⟨#Hch, %Hcap, #Hinv⟩ Hs HS HΦ
+  iapply ncfupd_of_fupd
   iinv Hinv with Hi Hclose
   imod lc_fupd_elim_later (E := ⊤ \ ↑nroot) $$ Hlc Hi with Hi
   unfold notify2Inv
@@ -185,6 +187,7 @@ theorem notify2_recv1_au (γ : NotifyNames) (ch : Loc) (S1 S2 : IProp GF)
       ▷ (notifyRcvN γ 1 -∗ S1 -∗ Φ () true) -∗ recvAu γ.ch Unit Φ := by
   unfold isNotify2 recvAu notifyRcvN
   iintro Hlc ⟨#Hch, %Hcap, #Hinv⟩ Hr HΦ
+  iapply ncfupd_of_fupd
   iinv Hinv with Hi Hclose
   imod lc_fupd_elim_later (E := ⊤ \ ↑nroot) $$ Hlc Hi with Hi
   unfold notify2Inv
@@ -228,6 +231,7 @@ theorem notify2_recv2_au (γ : NotifyNames) (ch : Loc) (S1 S2 : IProp GF)
       ▷ (notifyRcvN γ 2 -∗ S2 -∗ Φ () true) -∗ recvAu γ.ch Unit Φ := by
   unfold isNotify2 recvAu notifyRcvN
   iintro Hlc ⟨#Hch, %Hcap, #Hinv⟩ Hr HΦ
+  iapply ncfupd_of_fupd
   iinv Hinv with Hi Hclose
   imod lc_fupd_elim_later (E := ⊤ \ ↑nroot) $$ Hlc Hi with Hi
   unfold notify2Inv
