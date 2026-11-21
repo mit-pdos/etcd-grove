@@ -33,4 +33,5 @@ def backend.isBackendNH (γ : backend.BNames) (P : backend.BParams) (W Pk : IPro
                                         typedPointsto (backend.bF go!"db" b) db (DFrac.own q)) ∗
                                       backend.isDB db γ.db ∗
                                         ⌜P.Wf⌝ ∗
-                                          (∃ path, backend.bDBAt γ db path ∗ backend.dbFile db γ.db path) ∗ envVerifyOff)
+                                          (∃ path, backend.bDBAt γ db path ∗ backend.dbFile db γ.db path) ∗
+                                            envVerifyOff ∗ backend.cmtInv γ P W Pk)
