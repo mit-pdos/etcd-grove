@@ -41627,3 +41627,21 @@ successful skip to the protobuf grammar used when allocating a message, and
 shows any field admitted by that grammar can be skipped. The encoder proof uses
 both facts to account for extension bytes in nested changes and both top-level
 messages. [Noax codec proofs](raft-noax-codec.md).
+
+## An index supported by both halves for a shared Raft witness
+
+**2026-11-21 · accepted**
+
+The original fork fix for the joint-configuration election bug dropped the
+witness request when exactly one half selected it. The Go regression
+demonstrates that a live majority in each half can then stall indefinitely
+under the same availability pattern.
+
+The new tracker computes each half's index from the regular acknowledgers in
+its replication set. A half selecting the witness needs quorum minus one. A
+half excluding it needs a full regular majority. The shared witness receives
+the lower index. In the second case, the larger group of acknowledgers still
+intersects the regular votes of a candidate checked against the stored set.
+The protocol proof uses this intersection for leader completeness. The etcd
+server uses the separate ordinary Raft implementation, and the witness example
+uses a static cluster. [Regression and fix](../issues/raft-witness-joint-progress.md)

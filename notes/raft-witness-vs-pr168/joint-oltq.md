@@ -2,10 +2,16 @@
 
 *A defect of etcd-io/raft#168 as rebased on the fork `raft-witness-goose-lean`, not of raft's or etcd's main branches: recorded here, not in `issues/` (which is for the main branches). Summary row in `notes/raft-witness-vs-pr168.md`.*
 
-**Status**: a bug (Leader Completeness, so State Machine Safety): raft#168's witness, as rebased on
+**Original safety finding (2026-10-20)**: a bug (Leader Completeness, so State Machine Safety): raft#168's witness, as rebased on
 the fork's `raft-witness-goose-lean` (through commit `9ed005d46`). **Fixed in the fork**, commit
 `99cb9e2d9` (test `TestWitnessJointOutgoingOnlyReplication`); row 15 of
 `notes/raft-witness-vs-pr168.md`.
+
+**2026-11-21.** The first fork fix also suppressed safe writes. The current fork
+takes the lower index supported by both halves, using a full regular majority in
+a half that excluded the witness. The earlier trace below still exercises the
+election-safety regression. The progress regression covers both orientations.
+[Issue and tests](../../issues/raft-witness-joint-progress.md)
 
 **Where**: `tracker/tracker.go`, `ProgressTracker.OneLessThanQuorumInReplicationSet` (called by
 `raft.maybeCommit`, whose `sendAppendToWitness` sends the witness the entry and both halves'
