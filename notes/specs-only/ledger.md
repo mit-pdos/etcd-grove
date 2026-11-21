@@ -3577,6 +3577,84 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   and discharge it by `rfl`.
 - **Decision.** Applied (prove-reflectfmt, 2026-11-20; a strengthening of the premise, the callers' obligation discharged).
 
+## 2026-11-21: `txn.Range` takes its request read-only; `rangeStream` rewrites it (auth-mediation M3)
+
+- **Spec.** `txn.Range.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/txn/Range.lean`, frozen, Strict M1) and the
+  response it gives (`txn.rangeResult`, `txn.rangeResponseIs`, `txn.kvIs`).
+- **Defect.** Too weak for a caller that reuses its request: the request is `txn.rangeRequestIs r o`, persistent (every
+  field `↦□`), so once passed it can never be written again. `EtcdServer.rangeStream` (`v3_server.go:198-274`) calls
+  `txn.Range(ctx, lg, kv, r, false)` once per page on the same `r`, writing `r.Limit`, `r.Revision` and `r.Key` between
+  pages. Second, the response's keys are `keySl ↦*□ v.key` with no `ownSliceCap`, and `rangeStream` computes the next
+  page's key as `append(resp.Kvs[len(resp.Kvs)-1].Key, '\x00')`, which writes into that key's capacity when it has
+  room (Perennial's `wp_slice_append*`, persistent variant included, needs `ownSliceCap`). Neither is a Go bug: the
+  key's array is the unmarshalled copy mvcc made for this read, and the appended byte is past the key's length.
+- **Evidence.** The M3 proof attempt (worktree `/shared/etcd-grove-authm3`, branch `auth-mediation-m3`); Perennial
+  `Golang/Theory/Slice.lean:1146-1398`.
+- **Proposed change.** (a) `txn.Range.spec` takes the request at a fraction, the four rewritten fields owned or at
+  `dq`, and gives it back; (b) the response gives `ownSliceCap` of each key (down through mvcc's API spec, where the keys
+  are unmarshalled). Alternatives in `notes/auth-mediation-handoff.md` (M3).
+- **Decision.** (B), the user's choice (2026-11-21, via etcd-grove-03): `rangeStream` stays names only, with one
+  trust-boundary spec (`Spec/.../etcdserver/EtcdServer__rangeStream.lean`: it sends only through `rs`, each chunk of
+  the range under the check the caller gives it), independently attacked (`notes/axiom-review/rangestream.md`:
+  survives, with F1 applied, the request's new key given back without its contents); `EtcdServer.RangeStream` and
+  `kvServer.RangeStream` proved over it. (A), this entry's proposed change, is the later replacement; it needs the
+  fork to carry upstream's `bytes.Clone` of the last key (etcd-io/etcd@9acc0ebe37,
+  `nonissues/etcd-rangestream-keysonly-index-key-race.md`), without which the append races in Go and the body is
+  not provable.
+
+## 2026-11-21: `doSerialize`'s `get` is not told that `chk` passed (auth-mediation M3)
+
+- **Spec.** `EtcdServer.doSerialize.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__doSerialize.lean`).
+- **Defect.** Too weak for a `get` with effects that need the check: `get`'s precondition was `G` alone, so a `get`
+  that sends (`RangeStream`'s pages, inside `get`) cannot show each send came after a passed check; and `chk` could
+  read only its own arguments, not a request `get` later rewrites (owned in `G`).
+- **Evidence.** The M3 proof of `EtcdServer.RangeStream` (worktree `/shared/etcd-grove-authm3`).
+- **Proposed change.** `get`'s precondition adds `∃ info, C info ∗ infoBoundM E.authOn s E tok info` with `C`
+  persistent (a Lean instance premise; every caller's is); `chk`'s triple frames `G`. A stronger spec; Range, Txn and
+  `ModeSpecs.spec_off` adjust (`specOff` takes the same premise on `C`).
+- **Decision.** Decided by etcd-grove-03 (2026-11-21: a stronger proved spec); the `G` frame on `chk`, the obvious
+  filling (a weaker requirement on the caller's `chk`), decided by the M3 agent.
+
+## 2026-11-21: an admin request refused at apply names no reason at the proposer (auth-mediation M4)
+
+- **Spec.** `adminTieAr` (`Proof/.../etcdserver/KVAuthModel.lean`), through `resultIsWOn`/`resPostM` (the waiter's and
+  `processInternalRaftRequestOnce.spec`'s mode-`on` result) and `adminOutOn` (`AdminOn.lean`, the Auth entry points'
+  mode-`on` answer); `EtcdServer.raftRequest.spec`'s error branch.
+- **Defect.** A refused outcome (`.rejected`, `authApplierV3.Apply`'s `needAdminPermission` check) carried nothing, and
+  the error branch of `raftRequest`/`adminOutOn` only `appliedErr` (the result's `Err`, no outcome, no prefix): a client
+  could not tell why its admin request failed (refusal-completeness at the proposer, G4 left).
+- **Evidence.** `adminOut_model` (`ApplyTieOn.lean`) already has `adminRejL` at the latest state (`hrej`) and dropped it.
+- **Proposed change.** `adminTieAr`'s rejected case states `¬ auth.adminOk st (principal of rq)`; `raftRequest.spec`'s
+  error branch gives `appliedErrM E.authOn` (`appliedErr`'s, at the committed prefix `L` before the entry, with the
+  result, the step's outcome, `modelOutM` and `adminTieM` of that one outcome, `resultIsM`; one mode-uniform
+  definition, no `match` on the mode), and `adminOutOn`'s error branch the same. Stronger posts; `appliedErr_of_M`
+  forgets.
+- **Decision.** Approved by the user (2026-11-21, via etcd-grove-03), as proposed in `notes/auth-mediation-handoff.md`
+  ("M4 proposal"); the exact error-branch form (`appliedErrM`, the outcome bound in the same existential as the result,
+  so the tie is not vacuous) decided by the M4 agent. It reaches the five admin kinds the mode-`on` proposer admits
+  (`adminPropOk`: AuthEnable, UserAdd, RoleAdd, UserGrantRole, RoleGrantPermission), not the other seven Auth rows.
+
+## 2026-11-21: `rnNewStorageOk` proved: `raftpb.HardState` registered (wal-item3; the premise stays, option (c))
+
+- **Spec.** `bootstrappedRaft.newRaftNode.spec` (premise `#Hns : rnNewStorageOk`), `NodeStart`'s two boot statements,
+  `NewServer.spec`, `NewServerR`'s spec, etcdstart's `commonPremises`, `OneMember.premises`, the auth, leaseexpiry
+  and putget3 `Defs` (`rnNewStorageOk` a conjunct of each), hence every closed theorem over them.
+- **Defect.** `rnNewStorageOk` (`NewStorage`'s contract) was a premise although wal-link L3 proved it from the storage
+  specs (`rnNewStorageOk_holds`), whose WAL `Save`/`SaveSnapshot` took the unproved `WalPbIn.MarshalHsLaw`
+  (`pbutil.MustMarshalMessage` of a `*raftpb.HardState`): `raftpb.HardState` was not a registered protobuf type, so
+  no `proto` spec covered its encoding (ledger 2026-11-20, wal-fsfix2 item 3's stop).
+- **Evidence.** wal-fsfix2 a8's survey; `etc/gen-link.py --walfs`'s Link (`h_WalPbIn_MarshalHsLaw`, 8 results).
+- **Proposed change.** Option (a): register `raftpb.HardState` like `walpb.Snapshot` (trusted: `hsSchema` in
+  `pbSchemaOf`, `hsEncC_ok`, `pbHsC_reg`; Go: `examples/stdlib/walpb/hardstate_test.go`, `etc/pbschema-check.py` with
+  two negative tests on HardState), prove `MarshalHsLaw` over `proto.MarshalPb.spec` (`walSrvP_marshalHs`), link the
+  storage proofs at every `WalH` (`RnNewStorageLinked.lean`: `walStorSpecs_holds`, `rnNewStorageOk_law_holds`), and
+  take `rnNewStorageOk.law` in `newRaftNode`'s proof (an `=` callee) instead of the premise.
+- **Decision.** Approved by the user, 2026-11-20, via etcd-grove-03 (option (a); the predecessor's form accepted).
+  **Amended 2026-11-21 (etcd-grove-03, option (c)):** the WAL's linked results take the semantic hypothesis
+  `[UntypedRuneSemantics]` (`filepath`), so taking the law in `newRaftNode` would add it to every closed statement.
+  Landed: the registration, `walSrvP_marshalHs`, `walStorSpecs_holds`, `rnNewStorageOk_law_holds` (under the class);
+  `rnNewStorageOk` stays the premise of the specs and closed theorems above, unchanged, until Perennial steps those
+  operations (`notes/perennial-changes.md`, "Operations on untyped rune constants have no step").
 ## 2026-11-20: `proto.Size` and `proto.SizeMessage` claim `0 ≤ n` of messages with shared sub-messages (prove-protootel)
 
 - **Spec.** `proto.Size.spec` (conjuncts 2 and 3: a range response, a read-only transaction's response) and
@@ -3678,6 +3756,20 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Decision.** Applied (prove-errdesc2b, 2026-11-21; `notes/decisions.md`, "An error's description as a per-run
   relation").
 
+## 2026-11-21: `apierrors.NewInternalError` needs its error's `Error() string` in the method set (prove-k8s3)
+
+- **Spec.** `apierrors.NewInternalError.spec` (`Spec/k8s_io/apimachinery/pkg/api/errors/NewInternalError.lean`;
+  until this change a trust-boundary axiom).
+- **Defect.** Not provable over the body: `fmt.Sprintf("Internal error occurred: %v", err)` is specified by
+  Perennial's `fmt.argOk`, which asks the method-set entry `methodSet ei.ty !! "Error" = some fmt.noArgStringSig`
+  (`fmt`'s `handleMethods` switches `case error:` by signature); the precondition gave `Error()`'s WP and no
+  `Format`, not the entry. Go's type system gives the entry of every non-nil `error`; the model ties no interface
+  value's type to its static interface. Not a defect of Go's behavior.
+- **Evidence.** prove-k8s2's attempt (2026-11-21, `notes/STATUS.md`); the proof of this change.
+- **Proposed change.** Add the entry to the precondition's pure conjunct. Callers: `transformErrorToEvent` (from
+  `kErrOk`, which already has it) and the model API server's handlers (from `apimodelInit`, whose error clauses gain
+  it: its errors are `errors.New`'s `*errorString`, which has it; the fact is not proved yet, no `Init.lean`).
+- **Decision.** Applied (prove-k8s3, 2026-11-21); `apierrors.NewInternalError.wp_proof` is a theorem.
 ## 2026-11-21: `resolver.EtcdManualResolver.Close` had no premise (prove-grpc3)
 
 - **Spec.** `resolver.EtcdManualResolver.Close.spec` (an axiom until this change), `resolver.New.spec`.

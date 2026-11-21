@@ -34,13 +34,15 @@ local macro "clone_fin" : tactic => `(tactic| (
     · ipureintro; exact Hmnn
     iexists _, _
     iframe
-  · iunfold membership.memberIs
-    isplitr
-    · ipureintro; exact Hr0nn
-    icases Hpm with ⟨%npu, Hpm1, Hpm2⟩
-    icases Hcm with ⟨%ncu, Hcm1, Hcm2⟩
-    iexists npu, ncu, mm.isLearner, mm.name, mm.peerURLs, mm.clientURLs
-    iframe))
+  · isplitl
+    · iunfold membership.memberIs
+      isplitr
+      · ipureintro; exact Hr0nn
+      icases Hpm with ⟨%npu, Hpm1, Hpm2⟩
+      icases Hcm with ⟨%ncu, Hcm1, Hcm2⟩
+      iexists npu, ncu, mm.isLearner, mm.name, mm.peerURLs, mm.clientURLs
+      iframe
+    · ipureintro; exact ⟨HraNN, HatNN⟩))
 
 set_option hygiene false in
 /-- After the `PeerURLs` copy: the `ClientURLs` copy, then the return. -/
@@ -82,6 +84,8 @@ theorem membership.Member.Clone.wp_proof :
   wp_auto
   ihave %Hr0nn := typedPointsto_not_null _ _ _ $$ «$r0»
   iStructNamed «$r0»
+  ihave %HraNN := typedPointsto_not_null _ _ _ $$ RaftAttributes
+  ihave %HatNN := typedPointsto_not_null _ _ _ $$ Attributes
   iStructNamed RaftAttributes
   iStructNamed Attributes
   -- `PeerURLs`

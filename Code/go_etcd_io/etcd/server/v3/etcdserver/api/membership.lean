@@ -295,6 +295,33 @@ noncomputable def RaftCluster.Members.impl [GooseExts] [GoGlobalContext] : val :
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType RaftCluster.ty) go!"Lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))) (Val #())))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType Member.ty))))) (Var "$res0"))))))
 
+/-- go: cluster.go:134:23 -/
+noncomputable def RaftCluster.Member.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam "id"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Member.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Member.ty)))) (Val #())))
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))
+  (Let "id" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Var "id"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Member.ty) go!"Clone"))) (App (App (Val (map.lookup1 _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType Member.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType Member.ty))))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"members"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Var "id")))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Member.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType RaftCluster.ty) go!"Unlock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c")))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType RaftCluster.ty) go!"Lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))) (Val #()))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Member.ty)))) (Var "$res0"))))))
+
 /-- go: cluster.go:181:23 -/
 noncomputable def RaftCluster.IsIDRemoved.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
@@ -1294,6 +1321,7 @@ class RaftCluster.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   ptr_IsMemberExist_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"IsMemberExist" RaftCluster.IsMemberExist.impl
   ptr_Lock_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"Lock" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"Mutex"))) (Var "$r"))))
+  ptr_Member_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"Member" RaftCluster.Member.impl
   ptr_Members_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"Members" RaftCluster.Members.impl
   ptr_RemoveMember_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"RemoveMember" RaftCluster.RemoveMember.impl
   ptr_SetVersionChangedNotifier_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"SetVersionChangedNotifier" RaftCluster.SetVersionChangedNotifier.impl
@@ -1333,6 +1361,7 @@ attribute [instance] RaftCluster.TypeAssumptions.type_repr
   RaftCluster.TypeAssumptions.ptr_IsLocalMemberLearner_unfold
   RaftCluster.TypeAssumptions.ptr_IsMemberExist_unfold
   RaftCluster.TypeAssumptions.ptr_Lock_unfold
+  RaftCluster.TypeAssumptions.ptr_Member_unfold
   RaftCluster.TypeAssumptions.ptr_Members_unfold
   RaftCluster.TypeAssumptions.ptr_RemoveMember_unfold
   RaftCluster.TypeAssumptions.ptr_SetVersionChangedNotifier_unfold

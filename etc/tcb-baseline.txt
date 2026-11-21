@@ -10,7 +10,6 @@ axiom EtcdServer.leaseTimeToLive.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom EtcdServer.publishV3.wp_proof
-axiom EtcdServer.waitLeader.wp_proof
 axiom NewCluster.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom NewMaintenance.wp_proof
@@ -110,8 +109,6 @@ axiom WithRequireLeader.wp_proof
 axiom addFeatureGateMetrics.wp_proof
 axiom addrUnclaimed
 axiom api.IsCapabilityEnabled.wp_proof
-axiom apierrors.NewConflict.wp_proof
-axiom apierrors.NewInternalError.wp_proof
 axiom apimeta.GetItemsPtr.wp_proof
 axiom apply.irrDecode_utf8
 axiom apply.memberEnc_id_learner
@@ -245,6 +242,7 @@ axiom grpc_prometheus.WithServerHandlingTimeHistogram.wp_proof
 axiom grpclog.SetLoggerV2.wp_proof
 axiom health.NewServer.wp_proof
 axiom health.Server.SetServingStatus.wp_proof
+axiom hsEncC_ok
 axiom http.CloseIdleConnections_ok
 axiom http.Error_ok
 axiom http.Flush_ok
@@ -284,8 +282,6 @@ axiom io.NewSectionReader.wp_proof
 axiom io.Pipe.wp_proof
 axiom io.PipeWriter.CloseWithError.wp_proof
 axiom io.ReadFull.wp_proof
-axiom k8sfeature.featureOff_persistent
-axiom k8sfeature.featureOn_persistent
 axiom klog.Background.wp_proof
 axiom klog.Errorf.wp_proof
 axiom klog.V.wp_proof
@@ -359,6 +355,7 @@ axiom pbCompactionResponseT_reg
 axiom pbDeleteRangeRequestT_reg
 axiom pbDeleteRangeResponseT_reg
 axiom pbEntryC_reg
+axiom pbHsC_reg
 axiom pbLeaseGrantRequestT_reg
 axiom pbLeaseGrantResponseT_reg
 axiom pbLeaseKeepAliveRequestT_reg
@@ -472,6 +469,7 @@ axiom slices.Concat.wp_proof
 axiom slices.ContainsFunc.wp_proof
 axiom snap.NewMessage.wp_proof
 axiom snap.Snapshotter.DBFilePath.wp_proof
+axiom snap.Snapshotter.ReleaseSnapDBs.wp_proof
 axiom snap.Snapshotter.SaveDBFrom.wp_proof
 axiom snapEncC_ok
 axiom sort.SliceIsSorted.wp_proof
