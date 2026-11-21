@@ -53,6 +53,10 @@ from the snapshot readers. Revision `d7c7f6434abc` shares the readers in
 `storage/schema/snapshotmeta`, outside the workload's dependency table.
 The rerun uses the Perennial pin on public `lean` at `88c3789867`.
 
+Public `lean` includes the replay repair at `2c47b4340a9b`, with the production fork
+at `d7c7f6434abc`. All 51 trust collections and the global baseline
+matched under the landing gates. The power-loss scope is described above.
+
 The public Grove pin removes the index comparison at `7bc6d14671`. The
 original replay report and failing test are on `lean` at `044d40223c`.
 

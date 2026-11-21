@@ -35,3 +35,8 @@ processing. [Fork source](https://github.com/upamanyus/etcd/blob/91e2ea70f483774
 The noax kvdurable workload writes configuration entries using its own
 encoder. Those entries use the field ordering and set that its decoder accepts.
 The compatibility failure concerns other callers of Raft's public interface.
+
+The fork now accepts the optional field and preserves it when re-encoding.
+The formatter regression, Raft Go tests and differential tests against
+protobuf-go passed on the VM. The Lean decoder proof still describes the
+earlier field order. [Fork revision](https://github.com/upamanyus/etcd/commit/e98d795867e6d626df1cc4e71faa00c1c1f42764)
