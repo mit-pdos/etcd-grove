@@ -26,13 +26,11 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   initializer cannot be stepped: `watch.opaqueInitsOk` stays.
 - **Workaround.** None: the axiom stays.
 - **Proposed change.** Goose decides such an alias with the imported package's own translation decision
-  (its configuration in the same configuration directory, extended by `ExtendFilter`); prototype on Perennial
-  branch `goose-xpkg-alias` (`/shared/tmp/k8s4/perennial-xa`, not pushed), plan
-  `/shared/tmp/k8s4/goose-xpkg-alias-plan.md`, with the goose example `xpkgalias`. A goose change: it waits
-  for the user's sign-off (Perennial's `fix-semantics` skill). Then `watch.toml` imports `sync` and klog and
+  (its configuration in the same configuration directory, extended by `ExtendFilter`), with the goose example
+  `xpkgalias`: Perennial PR mit-pdos/perennial#646 (in review). Then `watch.toml` imports `sync` and klog and
   translates `DefaultChanSize` and `_` (`/shared/tmp/k8s4/watch-toml.patch`), and gen-init proves `watch`'s
   initializer.
-- **Status.** Open (plan written, not signed off).
+- **Status.** Open (PR #646 in review).
 
 ### Float facts: `FloatOps` has no laws, so no float-dependent panic can be excluded (2026-11-20, prove-promdeep)
 
@@ -387,7 +385,10 @@ log, third session; pending the user's review). General fix: `append` (and `make
   (`LinuxFs/Proof/os/SharedAu.lean`).
 - **Proposed.** Both lemmas in Perennial's `GooseLang/Lifting.lean`, beside `wp_ext_acc` (they use
   only `goose_bstateInterp_eq` and iris's `wp_unfold`); generic, nothing about `fsExt`.
-- **Status.** Recorded; the local copies go when the pin has them.
+- **Status.** Done: Perennial `7ad4f91b1` (`GooseLang/NotCrashed.lean`, Upamanyu Sharma) has both, with
+  `wp_atomic_nc`'s update written `|NC={E1,E2}=> ...` (`ncfupd`, a reducible abbreviation of the same
+  wand); the local copies were deleted at the pin bump of 2026-11-21 (branch
+  `pinbump/perennial-ncfupd-2026-11-21`).
 
 ### No translation of `hash/crc32`, `bufio`, `path/filepath`; no models of `io.ReadFull`/`io.Copy`, `fmt.Sscanf`, `strings.HasSuffix` (2026-11-13, branch `wal-fsext-translate`)
 
@@ -1785,7 +1786,7 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 
 ## Landed
 
-### `strings.NewReplacer` and `Replacer` not translated (2026-11-21, prove-k8s4; landed 2026-11-21, Perennial `60800ea5e`; pinned as `b3f7173f8`)
+### `strings.NewReplacer` and `Replacer` not translated (2026-11-21, prove-k8s4; landed 2026-11-21, Perennial `60800ea5e`, in the pin since the ncfupd bump)
 
 - **Missing.** Perennial's `strings` translated neither `NewReplacer` nor `Replacer`'s definition (its `once
   sync.Once` and `r replacer` fields: `strings.toml` imported neither `sync` nor `io`).
@@ -1793,7 +1794,7 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Change.** `strings.toml` translates `NewReplacer` and imports `sync` and `io` (as Go's `strings` does);
   `strings.NewReplacer.spec` (an even number of strings: a new `Replacer` holding a copy, `strings.ownReplacer`)
   proved; `strings.initialize'.wp_proof` takes io's and sync's init specs. On Perennial `lean` as `60800ea5e`;
-  the pin is `b3f7173f8` (branch `etcd-grove-pin-k8s4`: `c8e356cb1` with it cherry-picked, since lean's
+  pinned with the ncfupd bump (`2ca9ce4d1d`). (Briefly pinned as a cherry-pick, `b3f7173f8`, since lean's
   commits in between need etcd-grove changes of their own).
 
 ### Goose: a struct field (or type argument) of type `rune` fails to translate (2026-11-20, prove-b64clock; landed 2026-11-21, Perennial `1a1bb0633`, `ef31258ab`, `c8e356cb1`; pin bumped 2026-11-21)

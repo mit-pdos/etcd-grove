@@ -113,7 +113,7 @@ theorem watchGRPCStream.sendCloseSubstream.wp_proof :
   (try wp_auto)
   wp_apply +noauto HDone as %dch %dγ #Hdone
   (try wp_auto)
-  wp_apply +noauto time.wp_After as %tch %γt #Htch
+  wp_apply +noauto (time.After.spec_pkgInit time.wp_After _) as %tch %γt #Htch
   wp_auto_lc 3
   wp_apply_core chan.wp_select_blocking
   iapply BigAndL.bigAndL_cons.2

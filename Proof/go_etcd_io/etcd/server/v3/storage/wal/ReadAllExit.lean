@@ -19,7 +19,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadDefs
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.DecLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllFiles
 public import Perennial.Proof.io.Base
-public import GooseLang.Ext.Fs.NotCrashedAcc
+public import Perennial.GooseLang.NotCrashed
 import all Proof.go_etcd_io.etcd.server.v3.storage.wal.Ghost
 
 @[expose] public section
