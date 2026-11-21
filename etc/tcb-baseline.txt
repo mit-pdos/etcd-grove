@@ -109,7 +109,6 @@ axiom WithRequireLeader.wp_proof
 axiom addFeatureGateMetrics.wp_proof
 axiom addrUnclaimed
 axiom api.IsCapabilityEnabled.wp_proof
-axiom apierrors.NewConflict.wp_proof
 axiom apierrors.NewInternalError.wp_proof
 axiom apimeta.GetItemsPtr.wp_proof
 axiom apply.irrDecode_utf8

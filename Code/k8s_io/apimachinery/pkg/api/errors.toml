@@ -3,9 +3,10 @@
 # method bodies are axiomatized (project k8s-apiserver; notes/k8s-etcd3-goose.md).
 # With bodies too (the model API server's errors, examples/k8s/daemonset/apimodel;
 # notes/k8s-apimodel-goose.md): `NewBadRequest`, `NewResourceExpired`, `NewNotFound`,
-# `NewAlreadyExists` (their messages `Sprintf`s of strings); `NewConflict` and `NewInternalError`
-# format an error (`%v`), which Perennial's `Sprintf` model does not cover: names only, specified
-# at the trust boundary.
+# `NewAlreadyExists` (their messages `Sprintf`s of strings), and `NewConflict` (below, since
+# prove-k8s2). `NewInternalError` formats an error (`%v`) too, but its spec's precondition does not
+# say that the error's method set has `Error() string`, which Perennial's `fmt.argOk` asks: names
+# only, specified at the trust boundary.
 # k8s 7f-5a-P: `StatusError.Status` (`return e.ErrStatus`), which the etcd3 watcher's
 # `transformErrorToEvent` calls through `err.(APIStatus).Status()`; and `StatusError.Error`
 # (`return e.ErrStatus.Message`), which its error paths call (`kErrOk`).
@@ -17,7 +18,10 @@ translate = ["!*", "NewTimeoutError", "NewBadRequest", "NewResourceExpired", "Ne
   # (prove-k8s2, 2026-11-20) the `APIStatus` checks, until then trust-boundary axioms: their
   # `errors.As` calls are specified by `Spec/errors/AsNoMatch.lean`
   "IsTimeout", "IsTooManyRequests", "HasStatusCause", "StatusCause", "SuggestsClientDelay",
-  "reasonAndCodeForError"]
+  "reasonAndCodeForError",
+  # (prove-k8s2, 2026-11-21) `NewConflict`, whose `%v` of an error Perennial's `Sprintf` model now
+  # formats (`fmt.argsOk`)
+  "NewConflict"]
 # what `NewTimeoutError`'s body names: `fmt.Sprintf`, `http.StatusGatewayTimeout`, metav1's
 # `Status` constants
 imports = ["!*", "errors", "fmt", "net/http", "k8s.io/apimachinery/pkg/apis/meta/v1",
