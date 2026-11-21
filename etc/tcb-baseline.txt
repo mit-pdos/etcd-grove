@@ -121,7 +121,6 @@ axiom apierrors.NewInternalError.wp_proof
 axiom apimeta.GetItemsPtr.wp_proof
 axiom apply.irrDecode_utf8
 axiom apply.memberEnc_id_learner
-axiom apply.memberKey_inj
 axiom appsv1.DaemonSet.DeepCopyObject.wp_proof
 axiom appsv1.Resource.wp_proof
 axiom audit.GetAuditIDTruncated.wp_proof
@@ -512,8 +511,6 @@ axiom strconv.Itoa.wp_proof
 axiom strconv.ParseBool.wp_proof
 axiom strconv.ParseInt.wp_proof
 axiom streamKeyFromCtx.wp_proof
-axiom streamKeyOf_none
-axiom streamKeyOf_single
 axiom strings.Contains.wp_proof
 axiom strings.HasSuffix.wp_proof
 axiom strings.SplitN.wp_proof

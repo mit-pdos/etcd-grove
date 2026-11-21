@@ -89,7 +89,6 @@ axiom addrUnclaimed
 axiom api.IsCapabilityEnabled.wp_proof
 axiom apply.irrDecode_utf8
 axiom apply.memberEnc_id_learner
-axiom apply.memberKey_inj
 axiom auth.NewAuthStore.wp_proof
 axiom auth.newTokenProviderJWT.wp_proof
 axiom backend.backend.Snapshot.wp_proof

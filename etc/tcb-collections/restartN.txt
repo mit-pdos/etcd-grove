@@ -88,7 +88,6 @@ axiom addFeatureGateMetrics.wp_proof
 axiom addrUnclaimed
 axiom apply.irrDecode_utf8
 axiom apply.memberEnc_id_learner
-axiom apply.memberKey_inj
 axiom auth.NewAuthStore.wp_proof
 axiom auth.newTokenProviderJWT.wp_proof
 axiom backend.backend.Snapshot.wp_proof
