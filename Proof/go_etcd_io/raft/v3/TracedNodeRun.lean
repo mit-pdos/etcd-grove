@@ -773,7 +773,8 @@ theorem wp_applyConf_dyn_g
         ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) ∗
         lentPend rs.slent (pendList γ id rs.bw steps rs.steps) ∗
         isCommitted γ rs.delivered ∗ ackInv γ rs s ∗
-        loanCom γ rs.slent ∗ snapLocOk γ id s.logst.snap ∗ restoredSnapHistory γ id s.logst.ksn ∗ ownConfChangeV2 cc dq ccm ∗ £ 1 ∗
+        loanCom γ rs.slent ∗ snapLocOk γ id s.logst.snap ∗ restoredSnapHistory γ id s.logst.ksn ∗
+        restoreLedger γ id rs.sn s ∗ ownConfChangeV2 cc dq ccm ∗ £ 1 ∗
         isCommitted γ D ∗ durTie γ rs s ∗ rnTrace γ rnv.raft' id cf rs.delivered s }}
       (App (Val (rnv.raft' @!! go.GoType.PointerType raft.ty @!! go!"applyConfChange")) (Val #cc))
     {{ (cs : Loc) (xs os ls lns : List w64), RET #cs;
@@ -784,7 +785,7 @@ theorem wp_applyConf_dyn_g
           ls ≡ₚ elements cs'.cfg.learners ∧ lns ≡ₚ elements cs'.cfg.learnersNext⌝ }} := by
   obtain ⟨Hk1, Hk2, Hke, Hconf, Hnoc, ⟨op', Hdec, Hstep'⟩, Hstep⟩ := Hpre
   iintro %Φ ⟨#Hpkg, Hrn, Hphys, Hghost, #Hsdrf, #Hsoft, #Hhard, Hsteps, Hcap0, Hpend, #Hdeliv,
-    #Hstrecs, #Hloanc, #Hsloc, #Hhist, Hch, Hlc, #HDd, #Hdur, Hrntr⟩ HΦ
+    #Hstrecs, #Hloanc, #Hsloc, #Hhist, Hledger, Hch, Hlc, #HDd, #Hdur, Hrntr⟩ HΦ
   -- (step 4) the traced facts, while the ghost state is whole
   icases ownStepGhost_bootCommit γ _ cf id s $$ Hghost with ⟨%Hbc0, Hghost⟩
   icases ownStepGhost_applied_capplied γ rs.mode rs.capplied rs.cfg fp ds cf id s $$ Hghost with ⟨%Hapc, Hghost⟩
@@ -957,6 +958,8 @@ theorem wp_applyConf_dyn_g
     (by rw [Hls']) (by rw [Hls']) (by rw [Hls']) (by rw [Hls']; exact Int.le_refl _) $$ Hstrecs
   ihave #Hhist' : restoredSnapHistory γ id s'.logst.ksn $$ []
   · rw [Hls']; iexact Hhist
+  ihave Hledger' := restoreLedger_keep γ id rs.sn (s := s) (s' := s')
+    (by rw [Ht']; exact Int.le_refl _) (by rw [Hls']) $$ Hledger
   ihave #Hsloc' := snapLocOk_keep γ id (o := s.logst.snap) (o' := s'.logst.snap) (.inl (by rw [Hls']))
     $$ Hsloc
   -- (step 4) the capability back, at the configuration after (the same at a traced node)
@@ -1046,7 +1049,7 @@ theorem wp_rn_raft_applyConfChange_dyn_g
       (fun l hl => by simp [rsDlv, hl])
       (fun hl => by simp [rsDlv, hl]) Hgtr Hkeep Htr
     $$ [$Hpkg $Hrn $Hphys $Hghost $Hsdrf $Hsoft $Hhard $Hsteps $Hsteps_cap $Hpend $Hdeliv
-      $Hstrecs $Hloanc $Hsloc $Hhist $Hccs $Hlc $HDd $Hdur $Hrntr]
+      $Hstrecs $Hloanc $Hsloc $Hhist $Hledger $Hccs $Hlc $HDd $Hdur $Hrntr]
   inext
   iintro %cs %xs %os %ls %lns ⟨Hrn, Hccs, Hcs, %Hcs⟩
   iapply HΦ $$ %cs %xs %os %ls %lns

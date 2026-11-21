@@ -107,7 +107,7 @@ theorem RawNode.Campaign.wp_proof
   icases Herr with (%Herr | ⟨%Hc', -⟩)
   · iapply HΦ $$ %err %s'.term
     simp only [named]
-    isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap Hpend]
+    isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap Hpend Hledger]
     ihave #Hhist' := restoredSnapHistory_keep γ id Hsd $$ Hhist
     ihave Hledger' := restoreLedger_keep γ id rs.sn (s := s) (s' := s')
       (by first | exact Href.voteLe.1 | exact Hcv.1.voteLe.1 | exact Hvr.1 | omega)

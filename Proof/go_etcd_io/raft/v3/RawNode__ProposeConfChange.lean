@@ -149,7 +149,7 @@ theorem RawNode.ProposeConfChange.wp_proof
   iapply HΦ
   simp only [named]
   iframe Hc
-  isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap Hpend]
+  isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap Hpend Hledger]
   ihave #Hhist' := restoredSnapHistory_keep γ id Hfr.2.2.2.2.2.1 $$ Hhist
   ihave Hledger' := restoreLedger_keep γ id rs.sn (s := s) (s' := s')
     (by first | exact Href.voteLe.1 | exact Hcv.1.voteLe.1 | exact Hvr.1 | omega)

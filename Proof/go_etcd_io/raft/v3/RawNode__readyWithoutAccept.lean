@@ -756,7 +756,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
   iapply HΦ $$ %(readyVal sp HP RS sents SN sce msl MS) %ce %(nextUnstable s.logst)
     %(ms1 ++ nonself id ms2) %s.rd.states %hrd %L
   simp only [named]
-  isplitl [Hrn Hphys Hghost Hrest Hsteps Hsteps_cap Hce_cap Hrdz Hrntr]
+  isplitl [Hrn Hphys Hghost Hrest Hsteps Hsteps_cap Hce_cap Hrdz Hrntr Hledger]
   · unfold ownRawNodeReady
     iexists s, cf, fp, ds, rnv, sv, hprev
     simp only [named, Bool.false_eq_true, ↓reduceIte]

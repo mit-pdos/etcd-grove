@@ -53,7 +53,7 @@ local macro "early_return" e:term : tactic => `(tactic| (
       Hrs_out Hrs_unst Hrs_clb Hrnfl
       (Hloan.step rs.term rfl (fun _ => ⟨.inl rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩)
         ⟨.inl rfl, Int.le_refl _⟩)
-      Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hhist [Hdur]
+      Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hhist Hledger [Hdur]
     · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) $$ Hdur
   ipureintro
   refine ⟨Int.le_refl _, by rw [Htrm, Hpvoff.2.1]; exact Hpvoff.2.2.1, fun _ => ?_⟩
@@ -220,6 +220,8 @@ theorem RawNode.Step.wp_proof
         ihave #Hincoming := restoredSnapSource_of_message γ id m sv0 scfg0
           (Hok.2.2.2.2.1 (Or.inr (Or.inr (Or.inr (Or.inr Hs))))) $$ Hm0
         ihave #Hhist' := restoredSnapHistory_step γ id Hsl0 $$ Hhist Hincoming
+        imod restoreLedger_step γ id rs.sn scfg0
+          (Hok.2.2.2.2.1 (Or.inr (Or.inr (Or.inr (Or.inr Hs))))) Href.voteLe.1 Hsl0 $$ Hledger Hm0 with Hledger'
         ihave #Hsloc' : snapLocOk γ id s'.logst.snap $$ []
         · rcases Hsl0 with ⟨-, h2, -, -⟩ | ⟨-, -, h2, -, hcm, -⟩
           · rw [h2]; iexact Hsloc
@@ -271,7 +273,7 @@ theorem RawNode.Step.wp_proof
                       have := uint_Z_nonneg s.logst.applying; rw [Hdlen]; omega, Hc⟩)
               Hsdt' Hrole
               (Hphs.snapStep rfl rfl rfl (HsLe.of_step Href.voteLe Hc) Hsl0
-                (fun l hl => (Hloan.2.2.1 l hl).2.2.1)) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' Hhist' [Hdur]
+                (fun l hl => (Hloan.2.2.1 l hl).2.2.1)) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' Hhist' Hledger' [Hdur]
           · -- (durability stage II (i)) the step keeps `durTie`'s fields
             rcases Hsl0 with ⟨Hpv0, Hsn0', -, -⟩ | ⟨-, Hpv0, Hsn0', -, Hc0, -⟩
             · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) Hsn0' Hpv0 Hsd $$ Hdur
@@ -332,6 +334,9 @@ theorem RawNode.Step.wp_proof
             $$ Hstrecs Hents
         · iapply ackInv_keep γ rfl Hstok Ht1 Hpv Hsn (logStoreRec_stored Hsd) (Hip4 Happ) $$ Hstrecs
       ihave #Hhist' := restoredSnapHistory_keep γ id Hsd $$ Hhist
+      ihave Hledger' := restoreLedger_keep γ id rs.sn (s := s) (s' := s')
+        (by first | exact Href.voteLe.1 | exact Hcv.1.voteLe.1 | exact Hvr.1 | omega)
+        (logStoreRec_ksn Hsd) $$ Hledger
       ihave #Hsloc' : snapLocOk γ id s'.logst.snap $$ []
       · rw [Hsn]; iexact Hsloc
       wp_auto
@@ -349,7 +354,7 @@ theorem RawNode.Step.wp_proof
             (Hloan.step_gxw s'.term Hgx (fun _ => ⟨.inl Hsn, Hfl', logStoreRec_stored Hsd, Hu, Ha, Hc⟩) ⟨Hsn, Hc⟩)
             (Hsdt.ofRec Hsn Hsd) Hrole
             (Hphs.keep rfl rfl rfl (HsLe.of_step Href.voteLe Hc) Hsn (ip_of_step Hip4 Htrc))
-            (by rw [Hgx]; exact Hgtr) (by rw [Hgx]; exact Hglq) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' Hhist' [Hdur]
+            (by rw [Hgx]; exact Hgtr) (by rw [Hgx]; exact Hglq) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' Hhist' Hledger' [Hdur]
         · -- (durability stage II (i)) the step keeps `durTie`'s fields
           iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) Hsn Hpv (logStoreRec_stored Hsd) $$ Hdur
       ipureintro

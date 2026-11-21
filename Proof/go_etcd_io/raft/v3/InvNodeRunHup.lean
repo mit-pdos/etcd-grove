@@ -112,7 +112,7 @@ theorem wp_rn_raft_Step_hup (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
     ⟨by rw [Hsg]; exact Hstor.1, by rw [Hsn1.2, Hgh, ← Hsn0.2]; exact Hstor.2⟩
   ihave #Hstr' := ackInv_keep (rs' := rs) γ rfl Hstok Ht1 Hpv Hsn (logStoreRec_stored Hsd) (Hip4 (by msg_ne)) $$ Hstrecs
   iapply HΦ $$ %err %s'.term
-  isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap Hpend]
+  isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap Hpend Hledger]
   ihave #Hhist' := restoredSnapHistory_keep γ id Hsd $$ Hhist
   ihave Hledger' := restoreLedger_keep γ id rs.sn (s := s) (s' := s')
     (by first | exact Href.voteLe.1 | exact Hcv.1.voteLe.1 | exact Hvr.1 | omega)

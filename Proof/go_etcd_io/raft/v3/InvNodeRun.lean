@@ -521,11 +521,12 @@ theorem ownRawNodeReady_abandon_keep (γ : RaftNames) (rn : Loc) (id : w64) (rs 
       clb := s.logst.committed, hlb := hsOf s }
   let s' : NState := { s with outbox := s.outbox, logst := s.logst, gh := g }
   ihave Hghost := ownStepGhost_congr γ _ cf id (s := s) (s' := s') rfl rfl rfl rfl $$ Hghost
+  ihave Hledger' := restoreLedger_keep γ id rs.sn (s := s) (s' := s') (Int.le_refl _) rfl $$ Hledger
   iapply ownRawNode_intro_tr γ rn id rs' s' cf fp rnv sv hprev [] Hwf Hin Hasync Hdlen
     (Hunp0.trans Hunp.symm) Hsnap (by show StepsOk _ rs.steps; rw [Hsteps0]; trivial) Htrm
     Hstor Hpvoff rfl rfl
     (Int.le_refl _) ⟨Hrnfl.1, fun h => absurd Hrnfl.2 (Int.not_le.2 h)⟩ Hloan.1
-    Hsdt Hrole ⟨Hphs.1, HsLe.refl _, Hphs.2.2.1, Hphs.2.2.2⟩ $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hlc Hsloc Hhist Hledger [Hdur] [Hrntr]
+    Hsdt Hrole ⟨Hphs.1, HsLe.refl _, Hphs.2.2.1, Hphs.2.2.2⟩ $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hlc Hsloc Hhist Hledger' [Hdur] [Hrntr]
   · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) $$ Hdur
   · iapply rnTrace_congr γ _ id cf (s := s) (s' := s') rfl rfl rfl rfl rfl $$ Hrntr
 
@@ -722,6 +723,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
   iunfold certLink at Hlink
   icases Hlink with ⟨-, -, %Hszl, -⟩
   rw [← Hszl] at *
+  iapply wp_fupd
   wp_apply Hok.raftStep Hpvoff Htrm Hmtc Htn Hb1 (Hrnfl.1 Hflw) (wp_raft_Step cf _ γ _ id s ml m ents ctx sn rsp)
       Hwf
     (RNMode.pre_net Hpf (by not_net)) Hnsm
@@ -798,6 +800,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
     ihave #Hstr' : ackInv γ
         { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } s' $$ []
     · iapply ackInv_snap γ rfl Hstok Ht1 Hsd Hsl0 Hrel Hpr.1 $$ Hstrecs HG2
+    imodintro
     iapply HΦ $$ %err %s'.term
     isplitl
     · iapply ownRawNode_intro γ rn id
@@ -880,6 +883,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
     (by first | exact Href.voteLe.1 | exact Hcv.1.voteLe.1 | exact Hvr.1 | omega)
     (logStoreRec_ksn Hsd) $$ Hledger
   ihave #Hsloc' := snapLocOk_keep γ id (.inl Hsn) $$ Hsloc
+  imodintro
   iapply HΦ $$ %err %s'.term
   isplitl
   · iapply ownRawNode_intro γ rn id
@@ -1426,7 +1430,8 @@ theorem wp_applyConf_dyn
         ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) ∗
         lentPend rs.slent (pendList γ id rs.bw steps rs.steps) ∗
         isCommitted γ rs.delivered ∗ ackInv γ rs s ∗
-        loanCom γ rs.slent ∗ snapLocOk γ id s.logst.snap ∗ restoredSnapHistory γ id s.logst.ksn ∗ ownConfChangeV2 cc dq ccm ∗ £ 1 ∗
+        loanCom γ rs.slent ∗ snapLocOk γ id s.logst.snap ∗ restoredSnapHistory γ id s.logst.ksn ∗
+        restoreLedger γ id rs.sn s ∗ ownConfChangeV2 cc dq ccm ∗ £ 1 ∗
         isCommitted γ D ∗ durTie γ rs s }}
       (App (Val (rnv.raft' @!! go.GoType.PointerType raft.ty @!! go!"applyConfChange")) (Val #cc))
     {{ (cs : Loc) (xs os ls lns : List w64), RET #cs;
@@ -1437,7 +1442,7 @@ theorem wp_applyConf_dyn
           ls ≡ₚ elements cs'.cfg.learners ∧ lns ≡ₚ elements cs'.cfg.learnersNext⌝ }} := by
   obtain ⟨Hk1, Hk2, Hke, Hconf, Hnoc, ⟨op', Hdec, Hstep'⟩, Hstep⟩ := Hpre
   iintro %Φ ⟨#Hpkg, Hrn, Hphys, Hghost, #Hsdrf, #Hsoft, #Hhard, Hsteps, Hcap, Hpend, #Hdeliv,
-    #Hstrecs, #Hloanc, #Hsloc, #Hhist, Hch, Hlc, #HDd, #Hdur⟩ HΦ
+    #Hstrecs, #Hloanc, #Hsloc, #Hhist, Hledger, Hch, Hlc, #HDd, #Hdur⟩ HΦ
   let g : RGh := ⟨rs.capplied, rs.cfg, fp, ds⟩
   ihave Hghost : ownStepGhost γ (.dyn dec c0 h0 g) cf id s $$ [Hghost]
   · rw [show (GMode.dyn dec c0 h0 g) = rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩ by rw [hm]; rfl]
@@ -1572,6 +1577,8 @@ theorem wp_applyConf_dyn
     (by rw [Hls']) (by rw [Hls']) (by rw [Hls']) (by rw [Hls']; exact Int.le_refl _) $$ Hstrecs
   ihave #Hhist' : restoredSnapHistory γ id s'.logst.ksn $$ []
   · rw [Hls']; iexact Hhist
+  ihave Hledger' := restoreLedger_keep γ id rs.sn (s := s) (s' := s')
+    (by rw [Ht']; exact Int.le_refl _) (by rw [Hls']) $$ Hledger
   ihave #Hsloc' := snapLocOk_keep γ id (o := s.logst.snap) (o' := s'.logst.snap) (.inl (by rw [Hls']))
     $$ Hsloc
   imodintro
@@ -1668,6 +1675,8 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
   iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs #Hloanc #Hcl #Hsloc #Hhist Hledger #Hlw #Hxw #Hdur Hlc
   ihave #Hhist' : restoredSnapHistory γ id s'.logst.ksn $$ []
   · rw [Hls]; iexact Hhist
+  ihave Hledger' := restoreLedger_keep γ id rs.sn (s := s) (s' := s')
+    (by rw [Htm]; exact Int.le_refl _) (by rw [Hls]) $$ Hledger
   ihave #Hsloc' := snapLocOk_keep γ id (.inl Hsnap') $$ Hsloc
   -- (raft-final phase 2) the witnesses across the change (`leadW_applyCC`; `xw` kept)
   ihave #Hlw' := leadW_applyCC γ Hok $$ Hlw
@@ -1832,7 +1841,7 @@ theorem wp_rn_raft_applyConfChange_dyn
       (fun l hl => by simp [rsDlv, hl])
       (fun hl => by simp [rsDlv, hl]) Hgtr HtrG
     $$ [$Hpkg $Hrn $Hphys $Hghost $Hsdrf $Hsoft $Hhard $Hsteps $Hsteps_cap $Hpend $Hdeliv
-      $Hstrecs $Hloanc $Hsloc $Hhist $Hccs $Hlc $HDd $Hdur]
+      $Hstrecs $Hloanc $Hsloc $Hhist $Hledger $Hccs $Hlc $HDd $Hdur]
   inext
   iintro %cs %xs %os %ls %lns ⟨Hrn, Hccs, Hcs, %Hcs⟩
   iapply HΦ $$ %cs %xs %os %ls %lns

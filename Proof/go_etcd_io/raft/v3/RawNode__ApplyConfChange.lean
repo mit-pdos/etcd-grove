@@ -62,7 +62,7 @@ theorem RawNode.ApplyConfChange.wp_proof
           (fun l hl => (Hloan.2.2.1 l hl).2.2.2.2.2.2.1.length_le) (fun _ => Nat.le_refl _)
           Hgtr HtrG
         $$ [$Hrn $Hphys $Hghost $Hsdrf $Hsoft $Hhard $Hsteps $Hsteps_cap $Hpend $Hdeliv $Hstrecs
-          $Hloanc $Hsloc $Hhist $Hch $Hlc1 $Hdur] as %cs %xs %os %ls %lns ⟨Hrn, -, Hcs, %Hcs0⟩
+          $Hloanc $Hsloc $Hhist $Hledger $Hch $Hlc1 $Hdur] as %cs %xs %os %ls %lns ⟨Hrn, -, Hcs, %Hcs0⟩
       try wp_auto
       iapply HΦ $$ %cs %(ConfStateM.mk xs ls os lns cs0.cfg.autoLeave)
       simp only [named]
@@ -88,7 +88,7 @@ theorem RawNode.ApplyConfChange.wp_proof
           (fun l hl => (Hloan.2.2.1 l hl).2.2.2.2.2.2.1.length_le) (fun _ => Nat.le_refl _)
           Hgtr HtrG
         $$ [$Hrn $Hphys $Hghost $Hsdrf $Hsoft $Hhard $Hsteps $Hsteps_cap $Hpend $Hdeliv $Hstrecs
-          $Hloanc $Hsloc $Hhist $Hch $Hlc1 $Hdur] as %cs %xs %os %ls %lns ⟨Hrn, Hch, Hcs, %Hcs0⟩
+          $Hloanc $Hsloc $Hhist $Hledger $Hch $Hlc1 $Hdur] as %cs %xs %os %ls %lns ⟨Hrn, Hch, Hcs, %Hcs0⟩
       try wp_auto
       iapply HΦ $$ %cs %(ConfStateM.mk xs ls os lns cs0.cfg.autoLeave)
       simp only [named]
