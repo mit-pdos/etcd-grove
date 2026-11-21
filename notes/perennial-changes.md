@@ -17,27 +17,6 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
-### Goose: a struct field (or type argument) of type `rune` fails to translate (2026-11-20, prove-b64clock)
-
-- **Missing.** go/types names `int32`'s alias `rune` (`types.Typ[types.Rune]`: `Kind() == Int32`,
-  `Name() == "rune"`), and Goose's three tables keyed on `Basic.Name()` list only `"int32"`:
-  `goose/types.go` `basicLeanType` ("Unknown basic type rune"), `goose/proofgen/types.go` `toLeanType`
-  (`log.Fatalf("unknown basic type rune")`) and `goose/util/autotypes.go` `typeTranslatability.check`
-  (so `translate_types` axiomatizes every struct with a `rune` field). `byte` (`uint8`'s alias) is listed.
-- **Needed by.** `encoding/base64`'s `Encoding` (`padChar rune`): the package's initializer and
-  `EncodeToString`, proved on branch `prove-b64clock/2026-11-20` (retires `StdEncoding_init`,
-  `RawURLEncoding_init` and base64's `opaqueInitsOk`), need the struct translated. The fix also
-  translates k8s `fields.UnescapedRune` and an `encoding/json` type that are axiomatized today (their
-  regenerated files are on that branch; nothing proved reads them).
-- **Workaround here.** None: the branch's `Code/encoding/base64.lean` and `GeneratedProof/` were generated
-  with the patched translator (`etc/goose.py --project k8s-apiserver --perennial <clone>`); it builds
-  against the pinned Perennial (no Lean file changes), but `etc/goose.py --check` fails until the pin
-  has the fix, so the branch waits for it.
-- **Proposed.** Add `"rune"` to the `int32` case of the three tables (3 lines). A commit is ready, not
-  pushed: branch `goose-rune-fields` (`1a1bb0633`, on Perennial `c44b74871`) of the clone
-  `/shared/tmp/b64clock/perennial`. A goose test (a struct with a `rune` field in `testdata`) would
-  go with it. **Status.** Proposed; for the user to sequence.
-
 ### Float facts: `FloatOps` has no laws, so no float-dependent panic can be excluded (2026-11-20, prove-promdeep)
 
 - **Limitation.** `FloatOps` (`Perennial/Golang/Defn/PostLang.lean`) is a field of the semantics class with no laws:
@@ -1761,6 +1740,29 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Status.** Recorded only.
 
 ## Landed
+
+### Goose: a struct field (or type argument) of type `rune` fails to translate (2026-11-20, prove-b64clock; landed 2026-11-21, Perennial `1a1bb0633`, `ef31258ab`, `c8e356cb1`; pin bumped 2026-11-21)
+
+- **Missing.** go/types names `int32`'s alias `rune` (`types.Typ[types.Rune]`: `Kind() == Int32`,
+  `Name() == "rune"`), and Goose's three tables keyed on `Basic.Name()` list only `"int32"`:
+  `goose/types.go` `basicLeanType` ("Unknown basic type rune"), `goose/proofgen/types.go` `toLeanType`
+  (`log.Fatalf("unknown basic type rune")`) and `goose/util/autotypes.go` `typeTranslatability.check`
+  (so `translate_types` axiomatizes every struct with a `rune` field). `byte` (`uint8`'s alias) is listed.
+- **Needed by.** `encoding/base64`'s `Encoding` (`padChar rune`): the package's initializer and
+  `EncodeToString`, proved on branch `prove-b64clock/2026-11-20` (retires `StdEncoding_init`,
+  `RawURLEncoding_init` and base64's `opaqueInitsOk`), need the struct translated. The fix also
+  translates k8s `fields.UnescapedRune` and an `encoding/json` type that are axiomatized today (their
+  regenerated files are on that branch; nothing proved reads them).
+- **Workaround here.** None: the branch's `Code/encoding/base64.lean` and `GeneratedProof/` were generated
+  with the patched translator (`etc/goose.py --project k8s-apiserver --perennial <clone>`); it builds
+  against the pinned Perennial (no Lean file changes), but `etc/goose.py --check` fails until the pin
+  has the fix, so the branch waits for it.
+- **Proposed.** Add `"rune"` to the `int32` case of the three tables (3 lines). A commit is ready, not
+  pushed: branch `goose-rune-fields` (`1a1bb0633`, on Perennial `c44b74871`) of the clone
+  `/shared/tmp/b64clock/perennial`. A goose test (a struct with a `rune` field in `testdata`) would
+  go with it. **Status.** Landed on Perennial's `lean` as `c8e356cb1` (the fix `1a1bb0633`, `fmt.readRune`
+  regenerated, a goose unit test `runeStruct`/`useRuneStruct`); the pin moved to it on branch
+  `pin/perennial-int-2026-11-21`, with `prove-b64clock` merged.
 
 ### `fmt`'s models that call the arguments' formatting methods, `%p`, and `Errorf`'s `%w`: what retires this repository's `fmt` axioms (2026-11-20, prove-reflectfmt)
 

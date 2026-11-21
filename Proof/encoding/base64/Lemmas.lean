@@ -82,6 +82,94 @@ theorem sint_setWidth (x : w8) : sint.Z (BitVec.setWidth 64 x) = (x.toNat : Int)
   rw [this]
   word
 
+/-! The pieces' arithmetic, by their values (`toNat`), not `bv_decide`, whose proof rests on native
+evaluation (`Lean.ofReduceBool`): a disjoint `|||` is a sum (`or_add`), a mask `&&& (2^k - 1)` a
+remainder. -/
+
+private theorem or_add (a b k : Nat) (hb : b < 2 ^ k) : a * 2 ^ k ||| b = a * 2 ^ k + b := by
+  rw [Nat.mul_comm]; exact (Nat.two_pow_add_eq_or_of_lt hb a).symm
+
+private theorem w8_lt (b : w8) : b.toNat < 256 := b.isLt
+
+/-- The value of a byte's 64-bit widening shifted left by `k`. -/
+private theorem sw_shl (b : w8) (k : Nat) (hk : k ≤ 56) :
+    (BitVec.setWidth 64 b <<< (BitVec.ofNat 64 k)).toNat = b.toNat * 2 ^ k := by
+  have hb := w8_lt b
+  have hk' : (BitVec.ofNat 64 k).toNat = k := by
+    simp only [BitVec.toNat_ofNat]; exact Nat.mod_eq_of_lt (by
+      have : k < 2 ^ 64 := Nat.lt_of_le_of_lt hk (by decide)
+      exact this)
+  rw [BitVec.shiftLeft_eq', hk', BitVec.toNat_shiftLeft, BitVec.toNat_setWidth, Nat.shiftLeft_eq,
+    Nat.mod_eq_of_lt (by omega : b.toNat < 2 ^ 64)]
+  apply Nat.mod_eq_of_lt
+  have : 2 ^ k ≤ 2 ^ 56 := Nat.pow_le_pow_right (by decide) hk
+  have : b.toNat * 2 ^ k < 256 * 2 ^ 56 := Nat.lt_of_lt_of_le
+    (Nat.mul_lt_mul_of_pos_right hb (Nat.two_pow_pos k)) (Nat.mul_le_mul_left _ this)
+  exact Nat.lt_of_lt_of_le this (by decide)
+
+private theorem sw_val (b : w8) : (BitVec.setWidth 64 b).toNat = b.toNat := by
+  rw [BitVec.toNat_setWidth]; exact Nat.mod_eq_of_lt (Nat.lt_of_lt_of_le (w8_lt b) (by decide))
+
+/-- A 64-bit value's `v >>> s &&& 63`, by its value. -/
+private theorem piece64 (v : w64) (s : Nat) (hs : s < 64) :
+    (v >>> (BitVec.ofNat 64 s) &&& 63#64).toNat = v.toNat / 2 ^ s % 64 := by
+  have hs' : (BitVec.ofNat 64 s).toNat = s := by
+    simp only [BitVec.toNat_ofNat]; exact Nat.mod_eq_of_lt (Nat.lt_trans hs (by decide))
+  rw [BitVec.toNat_and, BitVec.ushiftRight_eq', hs', BitVec.toNat_ushiftRight, Nat.shiftRight_eq_div_pow]
+  have : (63#64).toNat = 2 ^ 6 - 1 := rfl
+  rw [this, Nat.and_two_pow_sub_one_eq_mod]
+
+private theorem mask64 (v : w64) : (v &&& 63#64).toNat = v.toNat % 64 := by
+  rw [BitVec.toNat_and]
+  have : (63#64).toNat = 2 ^ 6 - 1 := rfl
+  rw [this, Nat.and_two_pow_sub_one_eq_mod]
+
+/-- The byte pieces, by their values. -/
+private theorem shr8 (b : w8) (k : Nat) : (b >>> k).toNat = b.toNat / 2 ^ k := by
+  rw [BitVec.toNat_ushiftRight, Nat.shiftRight_eq_div_pow]
+
+private theorem and8 (b : w8) (k : Nat) (hk : k ≤ 8) :
+    (b &&& BitVec.ofNat 8 (2 ^ k - 1)).toNat = b.toNat % 2 ^ k := by
+  rw [BitVec.toNat_and, BitVec.toNat_ofNat, Nat.mod_eq_of_lt, Nat.and_two_pow_sub_one_eq_mod]
+  have : 2 ^ k ≤ 2 ^ 8 := Nat.pow_le_pow_right (by decide) hk
+  have := Nat.two_pow_pos k
+  omega
+
+private theorem shl8 (x : w8) (k : Nat) : (x <<< k).toNat = x.toNat * 2 ^ k % 256 := by
+  rw [BitVec.toNat_shiftLeft, Nat.shiftLeft_eq]
+
+private theorem hi8 (b0 : w8) : (b0 >>> 2).toNat = b0.toNat / 4 := shr8 b0 2
+
+private theorem mid8 (b0 b1 : w8) :
+    ((b0 &&& 3) <<< 4 ||| b1 >>> 4).toNat = b0.toNat % 4 * 16 + b1.toNat / 16 := by
+  have h0 := w8_lt b0; have h1 := w8_lt b1
+  rw [BitVec.toNat_or, shl8, shr8, show (3 : w8) = BitVec.ofNat 8 (2 ^ 2 - 1) from rfl, and8 _ 2 (by decide)]
+  have e : b0.toNat % 2 ^ 2 * 2 ^ 4 % 256 = b0.toNat % 4 * 2 ^ 4 := by
+    simp only [Nat.reducePow]; omega
+  rw [e, or_add _ _ 4 (by simp only [Nat.reducePow]; omega)]
+
+private theorem mid8' (b0 : w8) : ((b0 &&& 3) <<< 4).toNat = b0.toNat % 4 * 16 := by
+  have h0 := w8_lt b0
+  rw [shl8, show (3 : w8) = BitVec.ofNat 8 (2 ^ 2 - 1) from rfl, and8 _ 2 (by decide)]
+  simp only [Nat.reducePow]; omega
+
+private theorem low8 (b1 b2 : w8) :
+    ((b1 &&& 15) <<< 2 ||| b2 >>> 6).toNat = b1.toNat % 16 * 4 + b2.toNat / 64 := by
+  have h1 := w8_lt b1; have h2 := w8_lt b2
+  rw [BitVec.toNat_or, shl8, shr8, show (15 : w8) = BitVec.ofNat 8 (2 ^ 4 - 1) from rfl,
+    and8 _ 4 (by decide)]
+  have e : b1.toNat % 2 ^ 4 * 2 ^ 2 % 256 = b1.toNat % 16 * 2 ^ 2 := by
+    simp only [Nat.reducePow]; omega
+  rw [e, or_add _ _ 2 (by simp only [Nat.reducePow]; omega)]
+
+private theorem low8' (b1 : w8) : ((b1 &&& 15) <<< 2).toNat = b1.toNat % 16 * 4 := by
+  have h1 := w8_lt b1
+  rw [shl8, show (15 : w8) = BitVec.ofNat 8 (2 ^ 4 - 1) from rfl, and8 _ 4 (by decide)]
+  simp only [Nat.reducePow]; omega
+
+private theorem last8 (b2 : w8) : (b2 &&& 63).toNat = b2.toNat % 64 := by
+  rw [show (63 : w8) = BitVec.ofNat 8 (2 ^ 6 - 1) from rfl, and8 _ 6 (by decide)]
+
 /-- The four 6-bit pieces of a 3-byte group, as `Encode` computes them. -/
 theorem idx3 (b0 b1 b2 : w8) :
     let v := W64 (uint.Z b0) <<< W64 16 ||| W64 (uint.Z b1) <<< W64 8 ||| W64 (uint.Z b2)
@@ -90,10 +178,20 @@ theorem idx3 (b0 b1 b2 : w8) :
     v >>> W64 6 &&& W64 63 = BitVec.setWidth 64 (((b1 &&& 15) <<< 2) ||| (b2 >>> 6)) ∧
     v &&& W64 63 = BitVec.setWidth 64 (b2 &&& 63) := by
   intro v
-  simp only [v, w64_of_w8, show (W64 16 : w64) = 16#64 from rfl, show (W64 8 : w64) = 8#64 from rfl,
-    show (W64 18 : w64) = 18#64 from rfl, show (W64 12 : w64) = 12#64 from rfl,
-    show (W64 6 : w64) = 6#64 from rfl, show (W64 63 : w64) = 63#64 from rfl]
-  refine ⟨?_, ?_, ?_, ?_⟩ <;> bv_decide
+  have h0 := w8_lt b0; have h1 := w8_lt b1; have h2 := w8_lt b2
+  have hv : v.toNat = b0.toNat * 65536 + (b1.toNat * 256 + b2.toNat) := by
+    simp only [v, w64_of_w8, BitVec.or_assoc, BitVec.toNat_or]
+    rw [show (W64 16 : w64) = BitVec.ofNat 64 16 from rfl, show (W64 8 : w64) = BitVec.ofNat 64 8 from rfl,
+      sw_shl _ 16 (by decide), sw_shl _ 8 (by decide), sw_val, or_add _ _ 8 (by simp only [Nat.reducePow]; omega),
+      or_add _ _ 16 (by simp only [Nat.reducePow]; omega)]
+  refine ⟨?_, ?_, ?_, ?_⟩ <;> apply BitVec.eq_of_toNat_eq
+  · rw [show (W64 18 : w64) = BitVec.ofNat 64 18 from rfl, show (W64 63 : w64) = 63#64 from rfl,
+      piece64 _ 18 (by decide), hv, sw_val, hi8]; simp only [Nat.reducePow]; omega
+  · rw [show (W64 12 : w64) = BitVec.ofNat 64 12 from rfl, show (W64 63 : w64) = 63#64 from rfl,
+      piece64 _ 12 (by decide), hv, sw_val, mid8]; simp only [Nat.reducePow]; omega
+  · rw [show (W64 6 : w64) = BitVec.ofNat 64 6 from rfl, show (W64 63 : w64) = 63#64 from rfl,
+      piece64 _ 6 (by decide), hv, sw_val, low8]; simp only [Nat.reducePow]; omega
+  · rw [show (W64 63 : w64) = 63#64 from rfl, mask64, hv, sw_val, last8]; omega
 
 /-- The pieces of a final group of one byte. -/
 theorem idx1 (b0 : w8) :
@@ -101,10 +199,15 @@ theorem idx1 (b0 : w8) :
     v >>> W64 18 &&& W64 63 = BitVec.setWidth 64 (b0 >>> 2) ∧
     v >>> W64 12 &&& W64 63 = BitVec.setWidth 64 ((b0 &&& 3) <<< 4) := by
   intro v
-  simp only [v, w64_of_w8, show (W64 16 : w64) = 16#64 from rfl,
-    show (W64 18 : w64) = 18#64 from rfl, show (W64 12 : w64) = 12#64 from rfl,
-    show (W64 63 : w64) = 63#64 from rfl]
-  refine ⟨?_, ?_⟩ <;> bv_decide
+  have h0 := w8_lt b0
+  have hv : v.toNat = b0.toNat * 65536 := by
+    simp only [v, w64_of_w8]
+    rw [show (W64 16 : w64) = BitVec.ofNat 64 16 from rfl, sw_shl _ 16 (by decide)]
+  refine ⟨?_, ?_⟩ <;> apply BitVec.eq_of_toNat_eq
+  · rw [show (W64 18 : w64) = BitVec.ofNat 64 18 from rfl, show (W64 63 : w64) = 63#64 from rfl,
+      piece64 _ 18 (by decide), hv, sw_val, hi8]; simp only [Nat.reducePow]; omega
+  · rw [show (W64 12 : w64) = BitVec.ofNat 64 12 from rfl, show (W64 63 : w64) = 63#64 from rfl,
+      piece64 _ 12 (by decide), hv, sw_val, mid8']; simp only [Nat.reducePow]; omega
 
 /-- The pieces of a final group of two bytes. -/
 theorem idx2 (b0 b1 : w8) :
@@ -113,22 +216,35 @@ theorem idx2 (b0 b1 : w8) :
     v >>> W64 12 &&& W64 63 = BitVec.setWidth 64 (((b0 &&& 3) <<< 4) ||| (b1 >>> 4)) ∧
     v >>> W64 6 &&& W64 63 = BitVec.setWidth 64 ((b1 &&& 15) <<< 2) := by
   intro v
-  simp only [v, w64_of_w8, show (W64 16 : w64) = 16#64 from rfl, show (W64 8 : w64) = 8#64 from rfl,
-    show (W64 18 : w64) = 18#64 from rfl, show (W64 12 : w64) = 12#64 from rfl,
-    show (W64 6 : w64) = 6#64 from rfl, show (W64 63 : w64) = 63#64 from rfl]
-  refine ⟨?_, ?_, ?_⟩ <;> bv_decide
+  have h0 := w8_lt b0; have h1 := w8_lt b1
+  have hv : v.toNat = b0.toNat * 65536 + b1.toNat * 256 := by
+    simp only [v, w64_of_w8, BitVec.toNat_or]
+    rw [show (W64 16 : w64) = BitVec.ofNat 64 16 from rfl, show (W64 8 : w64) = BitVec.ofNat 64 8 from rfl,
+      sw_shl _ 16 (by decide), sw_shl _ 8 (by decide), or_add _ _ 16 (by simp only [Nat.reducePow]; omega)]
+  refine ⟨?_, ?_, ?_⟩ <;> apply BitVec.eq_of_toNat_eq
+  · rw [show (W64 18 : w64) = BitVec.ofNat 64 18 from rfl, show (W64 63 : w64) = 63#64 from rfl,
+      piece64 _ 18 (by decide), hv, sw_val, hi8]; simp only [Nat.reducePow]; omega
+  · rw [show (W64 12 : w64) = BitVec.ofNat 64 12 from rfl, show (W64 63 : w64) = 63#64 from rfl,
+      piece64 _ 12 (by decide), hv, sw_val, mid8]; simp only [Nat.reducePow]; omega
+  · rw [show (W64 6 : w64) = BitVec.ofNat 64 6 from rfl, show (W64 63 : w64) = 63#64 from rfl,
+      piece64 _ 6 (by decide), hv, sw_val, low8']; simp only [Nat.reducePow]; omega
 
 theorem lt64 (x : w8) (h : x < 64#8) : x.toNat < 64 := by
   rw [BitVec.lt_def] at h; simpa using h
 
-/-! The 6-bit pieces are below 64 (here, outside any proof whose context holds a `HasLC`: `bv_decide`
-there realizes `Iris.HasLC.enumToBitVec`, which then clashes with other modules' copies). -/
-theorem pc0 (b0 : w8) : b0 >>> 2 < 64#8 := by bv_decide
-theorem pc1 (b0 b1 : w8) : ((b0 &&& 3) <<< 4 ||| b1 >>> 4) < 64#8 := by bv_decide
-theorem pc1' (b0 : w8) : (b0 &&& 3) <<< 4 < 64#8 := by bv_decide
-theorem pc2 (b1 b2 : w8) : ((b1 &&& 15) <<< 2 ||| b2 >>> 6) < 64#8 := by bv_decide
-theorem pc2' (b1 : w8) : (b1 &&& 15) <<< 2 < 64#8 := by bv_decide
-theorem pc3 (b2 : w8) : b2 &&& 63 < 64#8 := by bv_decide
+/-! The 6-bit pieces are below 64. -/
+theorem pc0 (b0 : w8) : b0 >>> 2 < 64#8 := by
+  rw [BitVec.lt_def, hi8]; have := w8_lt b0; simp only [BitVec.toNat_ofNat, Nat.reducePow, Nat.reduceMod]; omega
+theorem pc1 (b0 b1 : w8) : ((b0 &&& 3) <<< 4 ||| b1 >>> 4) < 64#8 := by
+  rw [BitVec.lt_def, mid8]; have := w8_lt b1; simp only [BitVec.toNat_ofNat, Nat.reducePow, Nat.reduceMod]; omega
+theorem pc1' (b0 : w8) : (b0 &&& 3) <<< 4 < 64#8 := by
+  rw [BitVec.lt_def, mid8']; simp only [BitVec.toNat_ofNat, Nat.reducePow, Nat.reduceMod]; omega
+theorem pc2 (b1 b2 : w8) : ((b1 &&& 15) <<< 2 ||| b2 >>> 6) < 64#8 := by
+  rw [BitVec.lt_def, low8]; have := w8_lt b2; simp only [BitVec.toNat_ofNat, Nat.reducePow, Nat.reduceMod]; omega
+theorem pc2' (b1 : w8) : (b1 &&& 15) <<< 2 < 64#8 := by
+  rw [BitVec.lt_def, low8']; simp only [BitVec.toNat_ofNat, Nat.reducePow, Nat.reduceMod]; omega
+theorem pc3 (b2 : w8) : b2 &&& 63 < 64#8 := by
+  rw [BitVec.lt_def, last8]; simp only [BitVec.toNat_ofNat, Nat.reducePow, Nat.reduceMod]; omega
 
 /-- A 6-bit piece is a valid index of the alphabet. -/
 theorem idx_bound (x : w8) (h : x.toNat < 64) :
