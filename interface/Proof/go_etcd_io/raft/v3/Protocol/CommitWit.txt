@@ -34,8 +34,8 @@ theorem commitWit_timeless [ReceiptGS GF] (γ : RaftNames) (T c : w64) : Timeles
 
 theorem phsWit_persistent [ReceiptGS GF] (γ : RaftNames) (h : HardStateM) : Persistent (phsWit γ h)
 
-theorem commitWit_mono_term [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (old t c : w64) (ht : uint.Z
-    old ≤ uint.Z t) : commitWit γ old c ⊢ commitWit γ t c
+theorem commitWit_mono_term [ReceiptGS GF] [InvGS GF] [CrashGS GF] (γ : RaftNames) (old t c : w64)
+    (ht : uint.Z old ≤ uint.Z t) : commitWit γ old c ⊢ commitWit γ t c
 
 def commitWit [ReceiptGS GF] (γ : RaftNames) (T c : w64) : IProp GF :=
   iprop(∃ F, ⌜PlogWf base0 F⌝ ∗ logRecs γ base0 F ∗ commitIn γ F c T ∗ isCommitted γ (List.take (uint.Z c).toNat F))

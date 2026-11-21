@@ -460,3 +460,8 @@ without one ignores it.
   in `node__run_gated.lean`. The local `GooseLang/NotCrashed.lean` goes, and `ncfupd`, `wp_ncfupd`,
   `wp_ncfupd_post`, `wp_ncfupd_app` and `notCrashedG` move to Perennial's names. Then run
   `etc/gen-raft-tla.py`, `etc/copy-part.py`, a full build and `etc/tcb-report.py --check`.
+
+**Closed** (2026-11-21, after the merge of `lean`): Perennial's channel updates are crash-token
+updates (`7ad4f91b1`; `sendAu`'s `|NC={⊤,∅}=>`). `node.run`'s hand-out and cut run under
+`sendAu_ncfupd` (`InvNodeRun.lean`) with the token the channel lends. `node__run_gated.lean` builds
+in all three trees.
