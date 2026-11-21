@@ -1,17 +1,25 @@
 # etcd_safe (examples/etcd/all): handoff
 
-## START HERE (2026-11-21, stage E0 done, waiting for decisions)
+## START HERE (2026-11-21, E1 and E2 done, STOP: statement review)
 
-- Plan: `/shared/tmp/coord-03/etcd-unified-plan.md` (D1-D6 approved 2026-11-21). Scope: `notes/etcd-unified-scope.md`.
-- Branch `etcd-all`, worktree `/shared/etcd-grove-etcdall`. Not landed. No Lean touched, nothing built.
-- Committed: `examples/etcd/all/{all.go,all_test.go}` (package `etcdall`, examples' Go module): `Main` runs
-  the parts `KV`, `Auth`, `Lease`, `Restart` at once, each running its drivers at once (`spawn`).
-- At lean, `TestAddrs` FAILS (authN and restartN both on peers 29000+i) and `TestMemberIDs` checks only
-  k ≤ 70 (`uniformK`). In a scratch copy with restartN at 14000/15000 everything passes: `TestMainRun` k = 3 in
-  30 s, also under `-race` (38 s). Logs and scratch-only tests: `/shared/tmp/etcdall-e0/`.
-- Open decisions (scope §7): N1 `lease.leasesNoExpiry` is process-wide, false with leaseexpiryN beside
-  authlease/leasecatchup (rec.: leaseexpiryN out now, per-cluster premise later); N2 bounds under the
-  cross-cluster `Hlow` (rec.: new tokens, k1 ≤ 1000, others ≤ 300, measured); N3 restartN ports 14000/15000.
-- Next (after decisions): E1 Go changes to existing drivers (STOP), then E2 statements (STOP), E3a-e, E4.
+- Plan: `/shared/tmp/coord-03/etcd-unified-plan.md` (D1-D6). Scope: `notes/etcd-unified-scope.md` (§8: E1/E2,
+  the token table, the planned `etcd_safe`). Decisions N1-N7: `questions.md` (user, 2026-11-21).
+- Branch `etcd-all`, worktree `/shared/etcd-grove-etcdall`, lean merged at 3ac6cb4031. Not landed.
+- Environment: Perennial c8e356cb1, `--packages=/shared/tmp/manifest-c8e.json` (`.lake/package-overrides.json`
+  a copy), `PERENNIAL_DIR=/shared/perennial-c8e356cb1`; `.lake/build` seeded from authm3 at 3ac6cb4031.
+- E1 (committed): restartN at 14000/15000; new tokens txnlinfaultsN-12748, authN-133, authlease-1787,
+  leaseN-1302, restartN-11208 (leaseexpiryN unchanged: not in etcd_safe); drivers' `TestMemberIDs` at 300
+  (`idMembers`; txnlinfaultsN 1000); `examples/etcd/all`: leaseexpiryN out, compacted in KV, counts `k1..k5`;
+  goose project `etcd-all`, gen-init root (`all/Base.lean` by hand; Init/InitLinked/PkgTable generated).
+  Builds 20261121-143444-1332646 (the five drivers' Results/TopLevelRobustness, all.InitLinked) and
+  20261121-143848-1355091 (the new spec) OK. Go: TestAddrs, TestMemberIDs, TestMainRun k=3 (30 s) and -race
+  (38 s) pass; logs `/shared/tmp/etcdall-e1/`.
+- E2 (committed, lean-checked, built): `Proof/.../examples/etcd/all/TopLevelDefs.lean`,
+  `Spec/.../examples/etcd/all/TopLevelRobustness.lean` (`etcd_robust.spec`); `etcd_safe` planned in scope §8.2.
+- Waiting: the statement review (hard stop). Next after approval: E3a KV part (`spawn`, `holdToken`, `KV`
+  triple), E3b-d, E3e (`Main`, `Disjoint`, `Adequacy` via `etcd_adequate_members_below`, `Results`,
+  `TopLevelRobustness` proof, gen-link `--etcdall`), E4 retirements.
+- The drivers' closed theorems still say `k ≤ 1000`; for authN/authlease/leaseN/restartN their ids premise
+  is checked only to 300 now (docstrings say so). They retire in E4.
 - Run Go as: `GOWORK=off PATH=/usr/local/go/bin:$HOME/go/bin:$PATH systemd-run --scope -q -p MemoryMax=32G
   go test -count=1 -run TestMainRun -v ./etcd/all` from `examples/`; never beside the drivers' own tests.

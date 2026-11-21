@@ -361,3 +361,76 @@ eleven packages' `Assumptions` (`synthInstance.maxSize` already 4096). R3 the di
   list).
 - **N7** compacted's periodic-compactor Get (§1.3): **accept the gap** (D4 already retires it), or add a
   client Get to cache's driver later.
+
+---
+
+## 8. E1 and E2 (2026-11-21, after the decisions N1-N7)
+
+### 8.1 E1: the Go changes and the token/bound table
+
+- restartN at peers `14000+i`, clients `15000+i` (N3). leaseexpiryN out of the program (N1): `Lease(k4)` is
+  leaseN + leasecatchup; compacted (`putgetc`, client `23791`, peer `23801` not served) in the KV part (N7):
+  `KV` spawns four drivers and runs cache inline. Still eleven drivers; the member counts are renamed
+  `k1..k5` (restartN's is `k5`, was `k6`).
+- New tokens (N2), searched jointly (`/shared/tmp/etcdall-e1/search_test.go.scratch`: the fixed clusters'
+  ids first, compacted's included, then per k-member cluster in turn its current token if it works, else
+  the first `<pfx>-<i>` whose ids at its bound avoid every 16-bit low half taken so far and are distinct
+  among themselves, authlease's also in 15 bits):
+
+  | Driver | Old token | New token | `etcd_safe` bound | Driver's `TestMemberIDs` | Closed theorem's `k ≤` (unchanged) |
+  |---|---|---|---|---|---|
+  | txnlinfaultsN | `txnlinfaultsN-6255` | `txnlinfaultsN-12748` | k1 ≤ 1000 | 1000 | 1000 |
+  | authN | `authN-1286` | `authN-133` | k2 ≤ 300 | 300 (`idMembers`) | 1000 |
+  | authlease | `authlease-3354335` | `authlease-1787` | k3 ≤ 300 | 300 | 1000 |
+  | leaseN | `leaseN-2422` | `leaseN-1302` | k4 ≤ 300 | 300 | 1000 |
+  | restartN | `restartN-1440` (ports 29000/30000) | `restartN-11208` (14000/15000) | 3 ≤ k5 ≤ 300 | 300 | 1000 |
+  | leaseexpiryN | `leaseexpiryN-1973196` | unchanged (not in `etcd_safe`) | — | 1000 | 1000 |
+
+  The drivers' closed theorems keep `k ≤ 1000` (their proofs need only the ports' bound; `BootFacts` is a
+  premise, so no Lean bound is forced), but for authN, authlease, leaseN and restartN that premise is now
+  checked only up to 300: above it may be false of the real ids, and the theorem says nothing there. Their
+  docstrings (`Defs.lean`, `Results.lean`) and Go comments say so. They retire in E4.
+- Go: `TestAddrs`, `TestMemberIDs` (at the bounds above; 136 collisions at five clusters of 1000, for the
+  record), `TestMainRun` k = 3 (30 s) and with `-race` (38 s, no race) pass; the five drivers'
+  `TestMemberIDs`/`TestMembers`/`TestAddrs` pass. Logs `/shared/tmp/etcdall-e1/`.
+- Lean: the five drivers' `token`, restartN's `members` and `Dir`/`Run` ports; goose project `etcd-all`
+  (`etc/goose.py`); `examples.etcd.all` in `etc/gen-init.py`'s `ROOTS`/`PROGRAMS` (`Base.lean` by hand,
+  fact `True`; `Init`, `InitLinked`, `PkgTable` generated, 935 table lines).
+
+### 8.2 E2: the statements
+
+- `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/all/TopLevelDefs.lean`: `etcdGF` (`linkvGF`'s
+  slots), `etcdHeapAt`, `etcdProgram k₁ clients ops steps₁ nw nops steps₂ cnw cnops k₂ k₃ k₄ k₅`,
+  `etcdNames` (`etcdall.initNames`), `etcdAddrs k₁ k₂ k₃ k₄ k₅` and `etcdDirs …` (the eleven clusters'
+  lists concatenated in the parts' order).
+- `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/all/TopLevelRobustness.lean`: `etcd_robust.spec`,
+  `Robust [] [(etcdProgram …, σ)] g (threads := 2 ^ 28) (bound := 2 ^ 40 - 11)` (the etcd drivers' bound,
+  through `etcd_adequate_members_below`; k8s_safe's `2 ^ 28 - 1` came from its drivers'
+  `etcd_adequate_members` form; authlease, the one etcd driver in that form, fits the `_below` one: its
+  `receiptBound ≤ 2 ^ 48` holds at `n < 2 ^ 40`).
+- **The planned `etcd_safe`** (`Proof/.../examples/etcd/all/Results.lean`, E3e), as the drivers'
+  `_safe`: the premises of `etcd_robust.spec` up to `HEnv`, then
+  ```
+  (n : Nat)
+  (Hprem₁ : ∀ hG, ⊢ etcd_txnlinfaultsN.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) k₁ n ids₁ ps₁ ctxs₁ boot₁)
+  … (the eleven `Hprem…` of the spec, each at this `n` instead of `∀ n`) …
+  (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+  (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (etcdDirs k₁ k₂ k₃ k₄ k₅))
+  (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
+  (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+  (Hsteps' : RealNstepsBelow (2 ^ 28) n
+    ([etcdProgram k₁ clients ops steps₁ nw nops steps₂ cnw cnops k₂ k₃ k₄ k₅], ((σ, g) : CfgState)) κs (t2, σ2))
+  (Hn : n + 12 ≤ 2 ^ 40) :
+  (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
+  (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
+  (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2)
+  ```
+  (`Main` returns nothing; `Hlow` named `_Hlow` there, unused, as in `k8s_safe`.) `etcd_robust` follows
+  by `Robustness.Robust.of_single_below`, as authN's.
+- Forms decided: one `Hlow` over `ids₁ ++ [partition's three, compactwatch's, compacted's, cache's] ++
+  ids₂ ++ ids₃ ++ ids₄ ++ [leasecatchup's three] ++ ids₅ ++ [restart1's]` (N6); the shared premises once
+  (`Hctx`, `Hcec`, `Haf`, `Hbuq`, `Hrf`, `Hdbo`, `Hlp`, `Hlne`, `HEnv`, `Hfs`); the instance arguments the
+  union of the drivers' (`errors`, `fmt`, `rpctypes` `Assumptions` from partition's watch, cache, authN,
+  authlease); one `HWal` over `etcdDirs`; `Hprem…` per cluster at one `n`; the two schedules and the three
+  workloads independent; cluster variables named by part (`ids₁…ids₅` with `k₁…k₅`, `pid₁₋₃`, `lid₁₋₃`,
+  `cwId`, `cId`, `kvId`, `rId`).
