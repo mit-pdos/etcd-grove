@@ -299,7 +299,182 @@ theorem typed.compareWalker.visitListItems.wp_proofBody
     by_cases h : k' = k
     · simp [h]
     · simp [h, HMLs k']
-  · sorry
+  · have hjL : sint.nat j = ls.length := by
+      have : ¬ sint.Z j < sint.Z nl := Hif
+      have h2 : sint.Z nl = ls.length := Hnl
+      have := Hj.2; have := Hj.1; word
+    have hLL : L.take ls.length = L := by rw [← hkL.1]; exact List.take_length
+    rw [hjL, hLL] at HMLs
+    rw [hjL, List.take_length, hLL]
+    ihave HLo : ownPEMap lValues_ptr ML $$ [lValues Hlv]
+    · unfold ownPEMap; iexists _; iframe
+    wp_apply h_MakePathElementMap nr $$ [] as %rv0 Hrv0
+    · iframe #; ipureintro; show 0 ≤ BitVec.toInt nr; omega
+    try wp_auto
+    -- the second loop: the right side's items by key, its new keys
+    ihave HI2 : (∃ (j : w64) (rv : fieldpath.PathElementMap) (MR : PEMap GoInterface) (asl : GoSlice)
+        (es : List fieldpath.PathElement),
+        "i" ∷ i_ptr ↦ j ∗ "rValues" ∷ rValues_ptr ↦ rv ∗ "Hrv" ∷ ownPEMapV rv MR ∗
+        "#HMR" ∷ □ LawBL2C.slMapRep (itemOf ks (rs.take (sint.nat j))) MR ∗
+        "allPEs" ∷ allPEs_ptr ↦ asl ∗ "Hasl" ∷ asl ↦* es ∗
+        "Hacap" ∷ ownSliceCap fieldpath.PathElement asl (DFrac.own 1) ∗
+        "#Hes" ∷ □ isPEs es (L ++ (R.take (sint.nat j)).filter (fun x => decide (x ∉ L))) ∗
+        "%HMRs" ∷ ⌜∀ k, (MR k).isSome ↔ k ∈ R.take (sint.nat j)⌝ ∗
+        "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ rs.length⌝ : IProp GF)
+      $$ [i rValues Hrv0 allPEs Hasl Hacap]
+    · iexists _, _, _, _, es
+      iframe
+      have h0 : itemOf ks (rs.take (sint.nat (W64 0))) = fun _ => none := by
+        funext k; rw [show sint.nat (W64 0) = 0 from rfl, List.take_zero]; simp [itemOf]
+      rw [h0]
+      isplitr
+      · imodintro; iapply LawBL2C.slMapRep_empty
+      rw [show sint.nat (W64 0) = 0 from rfl, List.take_zero]
+      simp only [List.filter_nil, List.append_nil]
+      isplitr
+      · iexact Hes
+      ipureintro
+      exact ⟨fun k => by simp [PEMap.empty], by decide, by simp⟩
+    wp_for HI2
+    wp_if_destruct
+    · have hjl : sint.nat j < rs.length := by
+        have : sint.Z j < sint.Z nr := Hif
+        have h2 : sint.Z nr = rs.length := Hnr
+        have := Hj.1; word
+      have hj1 : sint.nat (j + W64 1) = sint.nat j + 1 := by word
+      obtain ⟨x, hx⟩ : ∃ x, rs[sint.nat j]? = some x := ⟨_, List.getElem?_eq_getElem hjl⟩
+      have hxin : x ∈ rs := List.mem_of_getElem? hx
+      have hcx : conforms S e x := (hallR x hxin).1
+      obtain ⟨k, hk⟩ := Option.isSome_iff_exists.1 (show (keyOf ks x).isSome from (hallR x hxin).2)
+      have hRk : R[sint.nat j]? = some k := by rw [hkR.2 _ _ hx, hk]
+      rcases hor : or_ with _ | vsr
+      · exfalso; rw [hor] at hrs; simp at hrs; subst hrs; simp at hjl
+      rw [hor] at hrs
+      simp only [Option.getD_some] at hrs
+      iunfold isListO at HrO
+      icases LawA3.isListV_dispatchL h_listUnstructured_Length h_listUnstructured_Length_ptr
+        h_listUnstructured_At h_listUnstructured_At_ptr rl vsr $$ [] with ⟨%ri, %Hri, -, #HAtR⟩
+      · iframe #; iPkgInit
+      subst Hri
+      wp_auto
+      wp_apply HAtR $$ %j %x as %child Hch
+      · ipureintro; exact ⟨Hj.1, by rw [hrs]; exact hx⟩
+      try wp_auto
+      wp_apply h_listItemToPathElement st.alloc sc S tp e ks fs em rel' child (DFrac.own 1) x st.t.name
+        $$ [Ha Hch] as %pe1 %err Hpost
+      · iframe; iframe #; ipureintro; exact ⟨Hwf, hkne, hfe, Hfind, hcx, by rw [hk]; rfl⟩
+      rw [hk]
+      icases Hpost with ⟨Ha, Hch, %herr, #Hpe1⟩
+      subst herr
+      try wp_auto
+      have hkfresh : k ∉ R.take (sint.nat j) := by
+        rw [← htkR]; exact LawA2.keyOf_fresh ks rs _ x k (by rw [hRdef]; exact hndR) hx hk
+      have hMRk : MR k = none := by
+        cases h : MR k with
+        | none => rfl
+        | some _ => exact absurd ((HMRs k).1 (by rw [h]; rfl)) hkfresh
+      ihave HMo : ownPEMap rValues_ptr MR $$ [rValues Hrv]
+      · unfold ownPEMap; iexists _; iframe
+      wp_apply h_PathElementMap_Get rValues_ptr MR pe1 k $$ [HMo] as %x1 %ok1 ⟨HMo, %Hok1⟩
+      · iframe; iframe #
+      rw [hMRk] at Hok1
+      obtain ⟨-, rfl⟩ := Hok1
+      wp_auto
+      imod isValF_persist_law_holds _ _ _ $$ Hch with #Hch
+      wp_apply (wp_slice_literal (V := value.Value) [child])
+      isplitr
+      · ipureintro; rfl
+      iintro %sl2 ⟨Hsl2, -⟩
+      imod ownSlice_persist _ _ _ $$ Hsl2 with #Hsl2
+      try wp_auto
+      wp_apply h_PathElementMap_Insert rValues_ptr MR pe1 k _ $$ [HMo] as HMo
+      · iframe; iframe #; ipureintro
+        refine LawBL2.peMap_cardLt MR (R.take (sint.nat j)) _ (fun k' hk' => (HMRs k').1 hk') ?_
+        have := List.length_take_le (sint.nat j) R
+        omega
+      try wp_auto
+      wp_apply h_PathElementMap_Get lValues_ptr ML pe1 k $$ [HLo] as %x3 %ok3 ⟨HLo, %Hok3⟩
+      · iframe; iframe #
+      have hok3 : ok3 = decide (k ∈ L) := by
+        cases h : ML k with
+        | none =>
+          rw [h] at Hok3; rw [Hok3.2]
+          have : k ∉ L := fun hh => by have := (HMLs k).2 hh; rw [h] at this; cases this
+          simp [this]
+        | some y =>
+          rw [h] at Hok3; rw [Hok3.2]
+          simp [(HMLs k).1 (by rw [h]; rfl)]
+      subst hok3
+      have htk : R.take (sint.nat j + 1) = R.take (sint.nat j) ++ [k] := by
+        rw [List.take_add_one, hRk]; rfl
+      by_cases hkin : k ∈ L
+      · rw [decide_eq_true hkin]
+        wp_auto
+        wp_for_post
+        iunfold ownPEMap at HMo
+        icases HMo with ⟨%rv', rValues, Hrv⟩
+        iframe
+        iexists (j + W64 1), _, _, asl, es
+        rw [hj1, htk]
+        iframe
+        isplitr
+        · imodintro
+          iapply LawBL2C.slMapRep_insert _ _ MR k x _ child
+            (LawBL2.itemOf_take_succ_eq ks rs _ x k hx hk (by rw [htkR]; exact hkfresh))
+            (fun k' h => LawBL2.itemOf_take_succ_ne ks rs _ x k k' hx hk h)
+          iframe #
+        isplitr
+        · imodintro
+          simp only [List.filter_append, List.filter_cons, List.filter_nil, hkin, not_true_eq_false,
+            decide_false, Bool.false_eq_true, ↓reduceIte, List.append_nil]
+          iexact Hes
+        ipureintro
+        refine ⟨?_, by word, by word⟩
+        intro k'
+        simp only [PEMap.insert, List.mem_append, List.mem_singleton]
+        by_cases h : k' = k
+        · simp [h]
+        · simp [h, HMRs k']
+      · rw [decide_eq_false hkin]
+        wp_auto
+        wp_apply (wp_slice_literal (V := fieldpath.PathElement) [pe1])
+        isplitr
+        · ipureintro; rfl
+        iintro %sl3 ⟨Hsl3, -⟩
+        try wp_auto
+        wp_apply (wp_slice_append (V := fieldpath.PathElement) asl _ _ [pe1] (DFrac.own 1))
+          $$ [Hasl Hacap Hsl3] as %asl' ⟨Hasl', Hacap', -⟩
+        · iframe
+        try wp_auto
+        wp_for_post
+        iunfold ownPEMap at HMo
+        icases HMo with ⟨%rv', rValues, Hrv⟩
+        iframe
+        iexists (j + W64 1), _, _, asl', es ++ [pe1]
+        rw [hj1, htk]
+        iframe
+        isplitr
+        · imodintro
+          iapply LawBL2C.slMapRep_insert _ _ MR k x _ child
+            (LawBL2.itemOf_take_succ_eq ks rs _ x k hx hk (by rw [htkR]; exact hkfresh))
+            (fun k' h => LawBL2.itemOf_take_succ_ne ks rs _ x k k' hx hk h)
+          iframe #
+        isplitr
+        · imodintro
+          have hf : (R.take (sint.nat j) ++ [k]).filter (fun x => decide (x ∉ L)) =
+              (R.take (sint.nat j)).filter (fun x => decide (x ∉ L)) ++ [k] := by
+            simp [List.filter_append, hkin]
+          rw [hf, ← List.append_assoc]
+          iapply LawBL2C.isPEs_snoc
+          iframe #
+        ipureintro
+        refine ⟨?_, by word, by word⟩
+        intro k'
+        simp only [PEMap.insert, List.mem_append, List.mem_singleton]
+        by_cases h : k' = k
+        · simp [h]
+        · simp [h, HMRs k']
+    · sorry
 
 end proof
 
