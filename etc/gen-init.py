@@ -461,6 +461,25 @@ its translated initializers: the interface assertions `var _ Condition = Generic
            ['imodintro', 'unfold authorizerInit',
             'iexists _; iexact HErrorConditionEvaluationNotSupported'],
 )
+# (prove-k8s4, 2026-11-21) apimachinery's `fields`: its two variables with their initializers
+SPECIAL['k8s_io.apimachinery.pkg.fields'] = dict(
+    doc='''Its fact is `True`. Its initializer allocates its variables, initializes its imports and runs their
+translated initializers (`selector.go`): `valueEscaper = strings.NewReplacer(...)` of three pairs
+(Perennial's `strings.wp_NewReplacer`, translated since Perennial 60800ea5e) and `termOperators`, a slice
+literal of the operator constants (prove-k8s4, 2026-11-21; until then the trust-boundary axiom
+`opaqueInitsOk`).''',
+    alloc_types={'valueEscaper': 'Loc', 'termOperators': 'GoSlice'},
+    before={'$end': ['try wp_auto',
+        'wp_apply (wp_slice_literal (l := [go!"\\\\", go!"\\\\\\\\", go!",", go!"\\\\,", go!"=", go!"\\\\="]));'
+        ' isplitr; (· ipureintro; rfl); iintro %pEsc ⟨SEsc, -⟩',
+        'try wp_auto',
+        'wp_apply (_root_.Perennial.strings.wp_NewReplacer _',
+        '    [go!"\\\\", go!"\\\\\\\\", go!",", go!"\\\\,", go!"=", go!"\\\\="] _ (by decide)) $$ [SEsc] as %r ⟨-, -⟩',
+        '· iframe SEsc',
+        'try wp_auto',
+        'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %pOps ⟨-, -⟩',
+        'try wp_auto']},
+)
 # (2026-11-19) apimachinery's `util/validation/field` (names only but `NewPath`,
 # `ErrorList.ToAggregate` and `(*Error).Error`'s code, translated with bodies)
 SPECIAL['k8s_io.apimachinery.pkg.util.validation.field'] = dict(
