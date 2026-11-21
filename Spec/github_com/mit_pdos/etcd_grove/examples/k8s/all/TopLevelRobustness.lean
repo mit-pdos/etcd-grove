@@ -4,7 +4,7 @@
 
 `k8s_robust`: the closed theorem of `examples/k8s/all` (`notes/k8s-unified-scope.md`, the user's
 decisions of 2026-11-20) as an instance of the generic robustness statement (`Robustness/Statement.lean`,
-`Robust crashing stable g bound`: in every execution of the machines that may crash and restart and of
+`Robust crashing stable g threads bound`: in every execution of the machines that may crash and restart and of
 those that never crash, each a fresh Go process, of fewer than `bound` steps, no thread is stuck and
 none has an unrecovered panic). The program runs, in one process and at once, the Kubernetes etcd3
 store's workload on `k₁` etcd members under the partition schedule `steps₁` (porcupine checks the
@@ -112,7 +112,8 @@ def k8s_robust.spec : Prop :=
     (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
     (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (k8sDirs k₁ k₂)),
-    Robustness.Robust [] [(k8sProgram k₁ clients ops watchers wops steps₁ k₂ steps₂, σ)] g (2 ^ 28 - 1)
+    Robustness.Robust [] [(k8sProgram k₁ clients ops watchers wops steps₁ k₂ steps₂, σ)] g
+      (threads := 2 ^ 28) (bound := 2 ^ 28 - 1)
 
 end adequacy
 end EtcdGrove

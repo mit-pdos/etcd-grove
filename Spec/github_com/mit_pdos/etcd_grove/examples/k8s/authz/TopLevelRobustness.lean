@@ -4,9 +4,9 @@
 
 `k8s_authz_robust`: the closed theorem of Kubernetes' conditional authorization (KEP-5681) driven by
 arbitrary leaf authorizers, as an instance of the generic robustness statement
-(`Robustness/Statement.lean`, `Robust crashing stable g bound`: in every execution of the machines
+(`Robustness/Statement.lean`, `Robust crashing stable g threads bound`: in every execution of the machines
 that may crash and restart and of those that never crash, each a fresh Go process, of fewer than
-`bound` steps, no thread is stuck and none has an unrecovered panic). The program, written out in
+`bound` steps along which every machine keeps fewer than `threads` threads, no thread is stuck and none has an unrecovered panic). The program, written out in
 the statement, is the driver's initialization then `Main()`, which panics
 unless (C1) the phase-2 decision is Allow, Deny or NoOpinion, (C2) it is one of phase 1's possible
 decisions, and (C3) a non-Allow phase-1 decision's failure decision is one of its possible
@@ -53,7 +53,8 @@ def k8s_authz_robust.spec : Prop :=
     (σ : state) (g : GlobalState) (bound : Nat),
     Robustness.Robust []
       [(github_com.mit_pdos.etcd_grove.examples.k8s.authz.initialize' #() ;;
-          (@! github_com.mit_pdos.etcd_grove.examples.k8s.authz.Main) #(), σ)] g bound
+          (@! github_com.mit_pdos.etcd_grove.examples.k8s.authz.Main) #(), σ)] g
+      (threads := bound + 1) (bound := bound)
 
 end program
 end k8s_authz

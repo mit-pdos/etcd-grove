@@ -3,9 +3,10 @@
 # `osfs/crashlog`: the top-level robustness result, stated
 
 `crash_robust`: the example's closed theorem as an instance of the generic robustness statement
-(`Robustness/Statement.lean`, `Robust crashing stable g bound`: in every execution of the
+(`Robustness/Statement.lean`, `Robust crashing stable g threads bound`: in every execution of the
 machines that may crash and restart and of those that never crash, each a fresh Go process, of
-fewer than `bound` steps, no thread is stuck and none has an unrecovered panic). This file only
+fewer than `bound` steps along which every machine keeps fewer than `threads` threads,
+no thread is stuck and none has an unrecovered panic). This file only
 states it (to audit); the proof is in
 `Proof/github_com/mit_pdos/etcd_grove/examples/osfs/crashlog/TopLevelRobustness.lean`.
 -/
@@ -52,7 +53,7 @@ def crash_robust.spec : Prop :=
     (Hlog : ∀ k, (extLocal fsExt σ.world).lookup (child dir logB) = some (.file k) →
       Good ((extLocal fsExt σ.world).fs.files !! k))
     (bound : Nat),
-    Robustness.Robust [(boot dir, σ)] [] g bound
+    Robustness.Robust [(boot dir, σ)] [] g (threads := bound + 1) (bound := bound)
 
 end adequacy
 end osfs_crashlog

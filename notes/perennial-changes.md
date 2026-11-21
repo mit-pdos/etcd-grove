@@ -80,7 +80,7 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   every snippet is provably panic-free from it.
 - **Status.** Requirements only.
 
-### Adequacy's thread bound is about every execution, so it caps the step count: landed, in the pin since `c44b74871` (2026-11-19, the closed theorems' step bounds)
+### Adequacy's thread bound is about every execution, so it caps the step count: landed, in the pin since `c44b74871` (2026-11-19, the closed theorems' step bounds; the distributed form since `1b144292b`, 2026-11-20)
 
 - **Limitation.** `goose_adequacy` (`Perennial/GooseLang/Adequacy.lean`) takes the thread bound as
   `RealThreadsBelow T n`: *every* execution of at most `n` steps keeps fewer than `T` threads. A
@@ -100,10 +100,19 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `goose_adequacy_of_below` derives the old theorem.
 - **Uses.** The trace check (branch `tracecheck-thread-bound`): `init_adequate_below`
   (`examples/lib/etcdstart/Adequacy.lean`), `raft_tracecheck_safe` at `n + 4 ≤ 2^61` and
-  `RealNstepsBelow (2 ^ 31) n`. To do: the etcd examples (needs `goose_adequacy_start_files`, an axiom
-  here, restated over `RealNstepsBelow`; their step count is then capped by `Main.spec`'s write-back
-  budget `n + 11 ≤ backend.wbInit = 2^40 - 1`), and the crash and distributed variants with a thread
-  parameter in `Robust`.
+  `RealNstepsBelow (2 ^ 31) n`. (2026-11-20, branch `robust-threads`) The etcd examples, through
+  `goose_adequacy_start` restated over `RealNstepsBelow` (this repository's axiom, `Proof/runtime/Start.lean`;
+  its old form the theorem `goose_adequacy_start_all`) and `etcdstart`'s `etcd_adequate*_below`: 22
+  closed theorems at `RealNstepsBelow (2 ^ 28) n` and `n + 12 ≤ 2^40` (the backend's write-back budget,
+  `backend.wbInit = 2^40 - 1`, a proof constant: next to raise, with mvcc's and the server's
+  `receiptBound ≤ 2^48`).
+- **The distributed form** (Perennial `910c71c0e`, docs `1b144292b`, on `lean` 2026-11-20; `review-trusted`:
+  OK): `DistCfgThreadsBelow` and `DistCrashNstepsBelow boots T n c κs c'` in `DistLang.lean` (a
+  distributed execution, crashes included, every configuration of which has fewer than `T` threads on
+  every node), with `nsteps`, `start`, `mono`, `of_threadsBelow`, `of_single`. `Robust` quantifies over it
+  (`Robust crashing stable g threads bound`). Open: crash and distributed adequacy theorems over it
+  (`goose_crash_adequacy`, `goose_dist_crash_adequacy` still take the all-executions premise), so the crash
+  and multi-machine examples state `threads := bound + 1` (their statement without a thread bound).
 
 ### `go.NotInterface` of the predeclared named types; the standard-library axioms that only bodies would discharge (2026-11-19, branch `prove-stdlib/2026-11-19`)
 
