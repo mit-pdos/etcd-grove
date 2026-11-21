@@ -516,7 +516,7 @@ U8 v2) from the pins. Until U8 v2 the storage kept a registry of certified snaps
 tied to raft's both ways (D22 S-b′2/S-r). -/
 
 section certLink
-variable [GooseExts] {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [StorageModel GF]
+variable [GooseExts] {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [CrashGS GF] [StorageModel GF]
 
 /-- The namespace of the certificates' invariant (2026-10-27: the cluster's, `RaftNames.reCertNs`). -/
 def raftCertN (γ : RaftNames) : Namespace := γ.reCertNs
@@ -551,7 +551,7 @@ end certLink
 
 section ghost
 variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
-variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [StorageModel GF]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [CrashGS GF] [StorageModel GF]
 
 /-- What the mode keeps beyond `ownRaftGhost`: statically, the configuration's voters are the
 ghost state's, and (D19p, 2026-10-18) its voters and learners -- the ids the tracker holds -- and
@@ -1120,18 +1120,19 @@ theorem ghost_stepCDM (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : M
     (s : NState) (recv : List Msg) (s' : NState) (Hstep : StepCD c id B m s recv s')
     (Hdh : ∀ (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (g : RGh), md = .dyn dec c0 h0 g →
       ∀ d' : CCDec, RInv d' c0 (rOf s g) → DynHyp (effDec dec g.decs) m s s' g) :
-    ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ ([∗list] x ∈ recv, isMessage (GF := GF) γ x) -∗ rdCred γ (rdCount recv) -∗ msgsTks γ recv -∗ £ 1 -∗
+    ⊢ notCrashed -∗ ⧖ (B.toNat - γ.reBoot.length) -∗ ([∗list] x ∈ recv, isMessage (GF := GF) γ x) -∗ rdCred γ (rdCount recv) -∗ msgsTks γ recv -∗ £ 1 -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRestM γ md c id s ={⊤}=∗
-      ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗
+      notCrashed ∗ ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗
         ownRaftGhost γ id (toPState s') md'.isDyn ∗ ghostRestM γ md' c id s' := by
   cases md with
   | static =>
     simp only [ghostRestM, GMode.isDyn]
-    iintro #Hrc Hrecv Hcr Htk Hlc Hg %HC
-    imod ownRaftGhost_stepC γ c HC.1 id HC.2 B HB (toPState s) recv (toPState s') Hstep.1 $$ Hrc
+    iintro Hnc #Hrc Hrecv Hcr Htk Hlc Hg %HC
+    imod ownRaftGhost_stepC γ c HC.1 id HC.2 B HB (toPState s) recv (toPState s') Hstep.1 $$ Hnc Hrc
       Hrecv Hcr Htk Hlc Hg
-      with Hg
+      with ⟨Hnc, Hg⟩
     imodintro
+    iframe Hnc
     iexists GMode.static
     iframe Hg
     isplitr
@@ -1139,7 +1140,7 @@ theorem ghost_stepCDM (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : M
     ipureintro; exact HC
   | dyn dec c0 h0 g =>
     simp only [ghostRestM, GMode.isDyn]
-    iintro #Hrc Hrecv Hcr Htk Hlc Hg ⟨%Hdc, #HM, #Hfr⟩
+    iintro Hnc #Hrc Hrecv Hcr Htk Hlc Hg ⟨%Hdc, #HM, #Hfr⟩
     obtain ⟨HD, hc, HI⟩ := Hdc
     obtain ⟨cidx', Hcm, HR⟩ := Hstep.2 (AdmS (effDec dec (g.decs)) c0 (fun _ => False)) (effDec dec (g.decs))
       g hc (Hdh dec c0 h0 g rfl _ HI)
@@ -1148,11 +1149,12 @@ theorem ghost_stepCDM (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : M
       iframe Hg Hfr
       ipureintro; exact HI
     imod ownRaftGhostR_stepR γ dec (g.decs) c0 h0 HD (fun _ => False) id B HB (rOf s g) recv _ HR
-      $$ Hrc HM [] Hrecv Hcr Htk Hlc Hown with Hown
+      $$ Hnc Hrc HM [] Hrecv Hcr Htk Hlc Hown with ⟨Hnc, Hown⟩
     · imodintro
       iintro %fp %h
       exact h.elim
     imodintro
+    iframe Hnc
     iexists GMode.dyn dec c0 h0 { g with cidx := cidx' }
     iunfold ownRaftGhostR at Hown
     icases Hown with ⟨Hg, %HI', #Hfr'⟩
@@ -1178,17 +1180,18 @@ theorem ghost_stepCD (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : Me
     -- (Q8 stage 1 slice 10) the new outbox's messages, traced (`NsLink`'s `OutTr`)
     (Hot : OutTrStep s s' := by outtr_tac) :
 
-    ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ ([∗list] x ∈ recv, isMessage (GF := GF) γ x) -∗ rdCred γ (rdCount recv) -∗ msgsTks γ recv -∗ £ 1 -∗
+    ⊢ notCrashed -∗ ⧖ (B.toNat - γ.reBoot.length) -∗ ([∗list] x ∈ recv, isMessage (GF := GF) γ x) -∗ rdCred γ (rdCount recv) -∗ msgsTks γ recv -∗ £ 1 -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗
-      ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗
+      notCrashed ∗ ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗
         ownRaftGhost γ id (toPState s') md'.isDyn ∗ ghostRest γ md' c id s' := by
-  iintro #Hrc #Hrecv Hcr Htk Hlc Hg Hrest
+  iintro Hnc #Hrc #Hrecv Hcr Htk Hlc Hg Hrest
   iunfold ghostRest at Hrest
   icases Hrest with ⟨%Hnl, Hrest, #Hcl, #Hw, #Hx⟩
   ihave #Hw' := leadW_stepC γ c id B (toPState s) recv (toPState s') Hstep.1 $$ Hrecv Hw
-  imod ghost_stepCDM γ md c id m B HB s recv s' Hstep Hdh $$ Hrc Hrecv Hcr Htk Hlc Hg Hrest
-    with ⟨%md', %Hout, Hg, Hrest⟩
+  imod ghost_stepCDM γ md c id m B HB s recv s' Hstep Hdh $$ Hnc Hrc Hrecv Hcr Htk Hlc Hg Hrest
+    with ⟨Hnc, %md', %Hout, Hg, Hrest⟩
   imodintro
+  iframe Hnc
   iexists md'
   iframe Hg
   isplitr
@@ -1390,18 +1393,19 @@ theorem ghost_stepCDSM (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m
     (B : Int) (HB : B < 2 ^ 64)
     (Hstep : StepCDS c c' (snapCfg sv scfg) (scfg.Has id) id B (snapId sv) s recv s')
     (Hc' : c' = c ∨ (c' = snapCfg sv scfg ∧ scfg.Has id)) :
-    ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage (GF := GF) γ a -∗ ([∗list] x ∈ recv, isMessage γ x) -∗ rdCred γ (rdCount recv) -∗ msgsTks γ recv -∗ £ 1 -∗
+    ⊢ notCrashed -∗ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage (GF := GF) γ a -∗ ([∗list] x ∈ recv, isMessage γ x) -∗ rdCred γ (rdCount recv) -∗ msgsTks γ recv -∗ £ 1 -∗
       md.SnapOkIf γ id sv scfg -∗ ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRestM γ md c id s ={⊤}=∗
-      ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗
+      notCrashed ∗ ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗
         ownRaftGhost γ id (toPState s') md'.isDyn ∗ ghostRestM γ md' c' id s' := by
   cases md with
   | static =>
     simp only [ghostRestM, GMode.isDyn, GMode.SnapOkIf]
-    iintro #Hrc - Hrecv Hcr Htk Hlc %Hso Hg %HC
-    imod ownRaftGhost_stepC γ c HC.1 id HC.2 B HB (toPState s) recv (toPState s') Hstep.1 $$ Hrc
+    iintro Hnc #Hrc - Hrecv Hcr Htk Hlc %Hso Hg %HC
+    imod ownRaftGhost_stepC γ c HC.1 id HC.2 B HB (toPState s) recv (toPState s') Hstep.1 $$ Hnc Hrc
       Hrecv Hcr Htk Hlc Hg
-      with Hg
+      with ⟨Hnc, Hg⟩
     imodintro
+    iframe Hnc
     iexists GMode.static
     iframe Hg
     isplitr
@@ -1415,7 +1419,7 @@ theorem ghost_stepCDSM (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m
       · simp only [snapCfg, csCfgM]; rw [Hso.2.1]; try rfl
   | dyn dec c0 h0 g =>
     simp only [ghostRestM, GMode.isDyn, GMode.SnapOkIf]
-    iintro #Hrc #Hm Hrecv Hcr Htk Hlc #Hso Hg ⟨%Hdc, #HM0, #Hfr⟩
+    iintro Hnc #Hrc #Hm Hrecv Hcr Htk Hlc #Hso Hg ⟨%Hdc, #HM0, #Hfr⟩
     obtain ⟨HD, hc, HI0⟩ := Hdc
     -- the snapshot's prefix, from the message, and A3 of it once the `ConfState` names the node
     -- (the certificate's dynamic clause); (2026-10-28, stage U3c) none needed otherwise
@@ -1465,12 +1469,13 @@ theorem ghost_stepCDSM (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m
       iframe Hg Hfr
       ipureintro; exact HI
     imod ownRaftGhostR_stepR γ dec ((g.decs) ∪ Ms) c0 h0 HD (fun fp => fp = fp0) id B HB (rOf s g)
-      recv _ HR $$ Hrc HM [] Hrecv Hcr Htk Hlc Hown with Hown
+      recv _ HR $$ Hnc Hrc HM [] Hrecv Hcr Htk Hlc Hown with ⟨Hnc, Hown⟩
     · imodintro
       iintro %fp %h
       subst h
       iexact Hr0
     imodintro
+    iframe Hnc
     iexists GMode.dyn dec c0 h0 { g' with decs := (g.decs) ∪ Ms }
     iunfold ownRaftGhostR at Hown
     icases Hown with ⟨Hg, %HI', #Hfr'⟩
@@ -1496,17 +1501,18 @@ theorem ghost_stepCDS (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m 
     (Hng : s'.gh = s.gh ∧ s'.logst.storage = s.logst.storage)
     -- (Q8 stage 1 slice 10) the new outbox's messages, traced (`NsLink`'s `OutTr`)
     (Hot : OutTrStep s s' := by outtr_tac) :
-    ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage (GF := GF) γ a -∗ ([∗list] x ∈ recv, isMessage γ x) -∗ rdCred γ (rdCount recv) -∗ msgsTks γ recv -∗ £ 1 -∗
+    ⊢ notCrashed -∗ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage (GF := GF) γ a -∗ ([∗list] x ∈ recv, isMessage γ x) -∗ rdCred γ (rdCount recv) -∗ msgsTks γ recv -∗ £ 1 -∗
       md.SnapOkIf γ id sv scfg -∗ ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗
-      ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗
+      notCrashed ∗ ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗
         ownRaftGhost γ id (toPState s') md'.isDyn ∗ ghostRest γ md' c' id s' := by
-  iintro #Hrc #Hm #Hrecv Hcr Htk Hlc #Hso Hg Hrest
+  iintro Hnc #Hrc #Hm #Hrecv Hcr Htk Hlc #Hso Hg Hrest
   iunfold ghostRest at Hrest
   icases Hrest with ⟨%Hnl, Hrest, #Hcl, #Hw, #Hx⟩
   ihave #Hw' := leadW_stepC γ c id B (toPState s) recv (toPState s') Hstep.1 $$ Hrecv Hw
-  imod ghost_stepCDSM γ md c c' id m Hms sv scfg s recv s' a Ha B HB Hstep Hc' $$ Hrc Hm Hrecv
-    Hcr Htk Hlc Hso Hg Hrest with ⟨%md', %Hout, Hg, Hrest⟩
+  imod ghost_stepCDSM γ md c c' id m Hms sv scfg s recv s' a Ha B HB Hstep Hc' $$ Hnc Hrc Hm Hrecv
+    Hcr Htk Hlc Hso Hg Hrest with ⟨Hnc, %md', %Hout, Hg, Hrest⟩
   imodintro
+  iframe Hnc
   iexists md'
   iframe Hg
   isplitr

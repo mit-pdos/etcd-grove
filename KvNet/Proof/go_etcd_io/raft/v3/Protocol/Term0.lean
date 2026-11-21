@@ -27,7 +27,7 @@ open Iris Iris.BI Iris.ProofMode GMap go_etcd_io.raft.v3
 
 section ghost
 variable [GooseExts]
-variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [CrashGS GF]
 
 /-- **A record's term is at least `1`**, in every cluster: a leader's term is its campaign's,
 nonzero; a boot entry's is `1`. -/

@@ -1661,7 +1661,7 @@ def NodeOk (γ : Cluster) (γn : NodeNames) : Prop :=
 /-- The configuration names of a node's `NodeNames` (`Cluster.nodeTab`); (2026-10-29, stage U9a) and its
 `live` name, by which `nodeLive` and `nodeStopped` agree. -/
 abbrev CfgNames := GName × GName × GName × GName × GName × Nat × Nat × Nat × Nat × Nat × Nat × GName ×
-  (GName × GName × GName × GName × GName) × GName × GName
+  (GName × GName × GName × GName × GName) × GName × GName × List GName
 
 /-- (U8 v2, 2026-10-29) with the node's storage names (`NodeNames.sn`), by which the API's
 `nodeAppliedLb`/`snapGiven` (of the node's id) are the floor's and the snapshot hand-out's lower
@@ -1676,7 +1676,10 @@ def cfgNamesOf (γn : NodeNames) : CfgNames :=
     γn.start,
     -- (2026-11-12, trace-check implementation step 1) the token escrow's names, so that a driver's
     -- claim (`readyToksClaim`) names the escrow of the node it advances
-    γn.esc.tup, γn.sn.history, γn.sn.installs)
+    γn.esc.tup, γn.sn.history, γn.sn.installs,
+    -- (2026-11-21, the crash invariant) the names of the arm the node was started from, so that
+    -- a `nodeRunning` share is a view of the driver's arm
+    γn.cx.toList)
 
 /-- **Node `n`'s configuration names are `γn`'s** (persistent): its entry of the cluster's table.
 (2026-11-01, durability stage I-2: keyed by the node object, not its id.) -/
@@ -1806,6 +1809,51 @@ its first start.) -/
 def nodeVacantU (γ : Cluster) (id : w64) : IProp GF :=
   raftIdSlot γ.raft id
 
+/-- (2026-11-21, the crash invariant: `notes/raft-crash-law-design.md` (i)) **No node of `id` runs,
+armed for a crash** (the API's `nodeVacantA`): the id's slot split by `raft_arm` into the node's
+views of arm `x` of its crash invariant (`raftArmed`). -/
+def nodeVacantAU (γ : Cluster) (id : w64) (x : CrashNames) : IProp GF :=
+  raftArmed γ.raft id x
+
+/-- (2026-11-21) **Arm `x` of `id`'s crash invariant** (the API's `nodeCrashTok`): the token that
+gives the slot back after a crash (`raftCrashTok`, `raft_crash`). -/
+def nodeCrashTokU (γ : Cluster) (id : w64) (x : CrashNames) : IProp GF :=
+  raftCrashTok γ.raft id x
+
+/-- (2026-11-21) **The node at `n` was started from arm `x`** (the API's `nodeArm`, persistent): its
+node table's entry records the arm's names (`cfgNamesOf`). -/
+def nodeArmU (n : Loc) (γ : Cluster) (x : CrashNames) : IProp GF :=
+  iprop(∃ γn, nodeTabOk γ n γn ∗ ⌜γn.cx = x⌝)
+
+instance nodeArmU_persistent (n : Loc) (γ : Cluster) (x : CrashNames) :
+    Persistent (nodeArmU (GF := GF) n γ x) := by
+  unfold nodeArmU; infer_instance
+
+theorem nodeArmU_agree (n : Loc) (γ : Cluster) (x x' : CrashNames) :
+    ⊢ nodeArmU (GF := GF) n γ x -∗ nodeArmU n γ x' -∗ ⌜x = x'⌝ := by
+  unfold nodeArmU
+  iintro ⟨%γ1, #T1, %H1⟩ ⟨%γ2, #T2, %H2⟩
+  ihave %Hcn := nodeTabOk_agree γ n γ1 γ2 $$ T1 T2
+  ipureintro
+  simp only [cfgNamesOf, Prod.mk.injEq] at Hcn
+  rw [← H1, ← H2]
+  exact CrashNames.toList_inj Hcn.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2
+
+theorem nodeVacant_arm_impl (γ : Cluster) (id : w64) (E : CoPset) :
+    ⊢ nodeVacantU (GF := GF) γ id ={E}=∗ ∃ x, nodeVacantAU γ id x ∗ nodeCrashTokU γ id x := by
+  unfold nodeVacantU nodeVacantAU nodeCrashTokU
+  exact raft_arm E γ.raft id
+
+theorem nodeCrash_impl (γ : Cluster) (N : Namespace) (id : w64) (x : CrashNames) (E : CoPset)
+    (HE : ↑N ⊆ E) (HNs : γ.raft.reNs = N .@ "raft") :
+    ⊢ crashed -∗ nodeCrashTokU (GF := GF) γ id x ={E}=∗ nodeVacantU γ id := by
+  unfold nodeCrashTokU nodeVacantU
+  have HrE : (↑(raftN γ.raft) : CoPset) ⊆ E := by
+    intro p hp
+    unfold raftN at hp; rw [HNs] at hp
+    exact HE p (nclose_subseteq N "raft" p hp)
+  exact raft_crash E γ.raft id x HrE
+
 /-- The driver's view of the configuration depends on the configuration names only. -/
 theorem nodeCfg_names (γ1 γ2 : NodeNames) (H : (cfgNamesOf γ1) = (cfgNamesOf γ2)) (ca : Nat)
     (cfg : CCState) : nodeCfg (GF := GF) γ1 ca cfg ⊢ nodeCfg γ2 ca cfg := by
@@ -1915,20 +1963,26 @@ theorem nodeRunning_split_impl (n : Loc) (γ : Cluster) (N : Namespace) (p q : Q
     iunfold EtcdGrove.nodeLiveRaw at Hl1 Hl2
     icases Hl1 with ⟨Hl1, Hs1⟩
     icases Hl2 with ⟨Hl2, Hs2⟩
-    iunfold slotLive at Hs1 Hs2
-    icases Hs1 with ⟨%γs, %Hγs, Hs1⟩
-    icases Hs2 with ⟨%γs', %Hγs', Hs2⟩
-    rw [Hr, Hi, Hγs] at Hγs'; cases Hγs'
+    -- (2026-11-21) the arms agree through the node table (`cfgNamesOf` records them)
+    ihave %Hcn := nodeTabOk_agree γ n γ1 γ2 $$ T1 T2
+    have Hcx : γ2.cx = γ1.cx := by
+      simp only [cfgNamesOf, Prod.mk.injEq] at Hcn
+      exact (CrashNames.toList_inj Hcn.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2).symm
+    ihave Hs2 : genView γ1.raft γ1.id γ1.cx q.half γ2.gen $$ [Hs2]
+    · rw [← Hr, ← Hi, ← Hcx]; iexact Hs2
+    iunfold genView at Hs1 Hs2
+    icases Hs1 with ⟨#Hi1, Hs1⟩
+    icases Hs2 with ⟨-, Hs2⟩
     ihave %Hgen := ghostVar_agree _ _ _ _ _ $$ Hs1 Hs2
     iapply ((EtcdGrove.nodeLiveRaw_fractional (GF := GF) γ1).fractional p q).2
-    unfold EtcdGrove.nodeLiveRaw slotLive
+    unfold EtcdGrove.nodeLiveRaw genView
     isplitl [Hl1 Hs1]
-    · iframe Hl1; iexists γs; iframe Hs1; ipureintro; exact Hγs
+    · iframe Hl1 Hi1 Hs1
     isplitl [Hl2]
     · rw [Hlv]; iexact Hl2
-    iexists γs
+    iframe Hi1
     rw [Hgen]
-    iframe Hs2; ipureintro; exact Hγs
+    iexact Hs2
 
 /-- The node's `Ready` channel `ch` (persistent): the node struct's `readyc`. -/
 def isReadyChan (n : Loc) (_γ : Cluster) (_N : Namespace) (ch : Loc) : IProp GF :=
@@ -2183,9 +2237,9 @@ def readyMsgs (γ : Cluster) (N : Namespace) (id : w64) (ms : List QMsg) : IProp
 /-- (2026-11-01, durability stage I-3) *Enter* (the draft's `readyEnter`). -/
 def readyEnter (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st st' : NodeDriverState)
     (ms : List QMsg) : IProp GF :=
-  iprop(∀ (E : CoPset) (q : Qp), ⌜↑N ⊆ E⌝ -∗
+  iprop(∀ (E : CoPset) (q : Qp), ⌜↑N ⊆ E⌝ -∗ notCrashed -∗
     raftStateU γ id st.durable ∗ nodeRunning n γ N q ={E}=∗
-      raftStateU γ id st'.durable ∗ nodeRunning n γ N q ∗ nodeDriver n γ N st' ∗
+      notCrashed ∗ raftStateU γ id st'.durable ∗ nodeRunning n γ N q ∗ nodeDriver n γ N st' ∗
       readyMsgs γ N id ms)
 
 -- (2026-11-03, R2b-1 stage 1: moved here from `InvApiView`, for `readyPost`)
@@ -2708,7 +2762,7 @@ theorem api_enter (n : Loc) (γ : Cluster) (N : Namespace) (γn : NodeNames)
       readyEnter n γ N γn.id st st' ms := by
   iintro #Hci #Hpool #Hlb #Hhc #Htab #Hkey #Hnode Hbusy Hgv Hd1 Hd2 Hbw Hpend #HtS'0 #Hmw #Htl
   unfold readyEnter
-  iintro %E %q %HE ⟨Hrs, Hrun⟩
+  iintro %E %q %HE Hnc ⟨Hrs, Hrun⟩
   iunfold raftStateU at Hrs
   icases Hrs with ⟨Hdg, #HtS, #Hbi⟩
   iunfold nodeRunning at Hrun
@@ -2724,7 +2778,7 @@ theorem api_enter (n : Loc) (γ : Cluster) (N : Namespace) (γn : NodeNames)
     exact Hcn.2.2.2.2.2.2.2.2.2.2.1
   iunfold EtcdGrove.nodeLiveRaw at Hl
   icases Hl with ⟨Hlv, Hsl⟩
-  ihave Hsl : slotLive γ.raft γn.id q.half γn.gen $$ [Hsl]
+  ihave Hsl : genView γ.raft γn.id γ1.cx q.half γn.gen $$ [Hsl]
   · rw [← Hr1, ← Hg1, ← Hgen]; iexact Hsl
   have HrE : (↑(raftN γ.raft) : CoPset) ⊆ E := by
     intro p hp
@@ -2732,8 +2786,8 @@ theorem api_enter (n : Loc) (γ : Cluster) (N : Namespace) (γn : NodeNames)
     exact HE p (nclose_subseteq N "raft" p hp)
   ihave Hpend : pendBatch γ.raft γn.id γn.gen S' W $$ [Hpend]
   · rw [← Hnok.1]; iexact Hpend
-  imod raft_enter E γ.raft γn.id st.durable q.half γn.gen S' W HrE HwS $$ Hdg Hsl Hpend
-    with ⟨Hdg, Hsl, Hfree, #Hfr⟩
+  imod raft_enter E γ.raft γn.id st.durable γ1.cx q.half γn.gen S' W HrE HwS $$ Hnc Hdg Hsl Hpend
+    with ⟨Hnc, Hdg, Hsl, Hfree, #Hfr⟩
   ihave #HtS' : termLB γ.bud S'.term $$ []
   · rw [← Hnok.2.1]; iexact HtS'0
   imod dghostVar_update_halves (st'.durable, st'.role) γn.dur _ _ $$ Hd1 Hd2 with ⟨Hd1, Hd2⟩
@@ -2748,6 +2802,7 @@ theorem api_enter (n : Loc) (γ : Cluster) (N : Namespace) (γn : NodeNames)
     rw [Hnok.1]; iexact Hfr
   imod api_sentMsgs γ N E HE γn Hnok.1 Hnok.2.1 HU ms $$ Hci Hpool Hrm Htl with #Hsm
   imodintro
+  iframe Hnc
   isplitl [Hdg]
   · unfold raftStateU
     rw [HS]

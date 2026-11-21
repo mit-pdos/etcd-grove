@@ -72,7 +72,7 @@ end lemmaI
 
 section g3
 variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
-variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [StorageModel GF]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [CrashGS GF] [StorageModel GF]
 
 open Iris.BI Iris.ProofMode
 
