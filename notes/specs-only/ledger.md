@@ -3892,6 +3892,19 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   Ready. The public storage spec retains the bounded-read prefix guarantee
   and identifies the complete interval for the unlimited case.
   [Replay regression](../../issues/etcd-merged-snapshot-replay-failure.md).
+## 2026-11-21: `types.URLs.StringSlice` owns nothing of the URLs it reads (prove-ps2-misc)
+
+- **Spec.** `types.URLs.StringSlice.spec` (`Spec/go_etcd_io/etcd/client/pkg/v3/types/URLs__StringSlice.lean`; a
+  trust-boundary axiom until this change, `client/pkg/v3/types` names-only but for `URLs.Len` and `ID.String`).
+- **Defect.** Not provable over the real code: the premise was `p ≠ null` alone (true of Go by type safety), but the
+  pointer wrapper loads `*p` and the body reads `us[i]` and calls `url.URL.String` on each element
+  (`client/pkg/types/urls.go:79-86`), which needs the slice and the elements (`http.URLStringAny_spec` takes
+  `p ↦{dq} u`). The post was `True`.
+- **Evidence.** The translation (`Code/go_etcd_io/etcd/client/pkg/v3/types.lean`, `URLs.StringSlice.impl`).
+- **Proposed change.** Under the approved ownership rule (2026-11-21): the premise takes `p ↦{dq} sl ∗ sl ↦*□ us`
+  (the post gives `p ↦{dq} sl` back, and the fresh output slice of as many strings). Its one caller, `NewServer`
+  (and `NewServerR`) on `cfg.ClientURLs`, holds the field and `cfg.ClientURLs' ↦*□ U.client` (`bootCfgRO`).
+- **Decision.** Applied (prove-ps2-misc, 2026-11-21): `URLs.StringSlice` translated and proved, the axiom retired.
 ## 2026-11-21: `FollowerStats.Fail` takes the stats' mutex (prove-ps2)
 
 - **Spec.** `v2stats.FollowerStats.Fail.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v2stats/`; a
