@@ -2262,7 +2262,7 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
       -- (restart S7.3, 2026-11-14) the messages' `MsgSnap` facts, at once (not behind `W`'s
       -- fragments: they read only the committed log and the sender's configuration at its step)
       ([∗list] q ∈ ms, snapToOk γ id q.st) ∗
-      readyMsgOrigins γ id rs.sn ms ∗
+      readyMsgOrigins γ id rs.sn ms ∗ handoutOrigins γ id rs.sn (phsNext rs.phs hrd).Term' ms ∗
       -- (2026-11-01, durability stage II (m)) what the `Ready` is past, and within (`ReadyFacts`)
       ⌜ReadyFacts rs.dur rs.phs (phsNext rs.phs hrd) rs.delivered ce es L⌝ := by
   iintro #Hh Hlive Hfree H
@@ -2281,6 +2281,20 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
   icases Hphys with ⟨%rsl, %sl1, %sl2, %ms1, %ms2, Hphys⟩
   iNamed Hphys
   simp only [Bool.false_eq_true, ↓reduceIte]
+  imod restoreLedger_ready γ id rs.sn s $$ Hledger with ⟨Hledger, #Hmark⟩
+  ihave ⟨Hledger, #Htimed⟩ : restoreLedger γ id rs.sn s ∗
+      (∀ k : SnapTrip, ⌜k ∈ s.logst.ksn⌝ -∗ timedRestore γ id rs.sn k) $$ [Hledger]
+  · unfold restoreLedger
+    icases Hledger with ⟨Ha, #Hks⟩
+    iframe Ha Hks
+  ihave #Hobs : handoutOrigins γ id rs.sn rs.term ms $$ []
+  · unfold handoutOrigins
+    iexists s.logst.ksn
+    rw [Htrm]
+    iframe Hmark Htimed
+    rw [Hstor.2, Hgh_unst.1.2.2]
+    iapply qSrcs_sub s.gh.sn (ms1 ++ ms2) ms
+      (fun q hq => Hmslen.subset (List.mem_append_left _ hq)) (· ∈ s.logst.ksn) $$ Hscert
   ihave Hlog : ownRaftLog s.log s.logst $$ [Hlog]
   · iExactEq Hlog; rfl
   -- (2026-10-18, D19b stage 5) the indices handed out, from the log and the ghost state
@@ -2681,7 +2695,9 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
     rw [Hpl] at HL ⊢
     rw [Hes]
     exact ⟨HL, Hri.1, Hri.2⟩
-  iframe Hlive Hpb Hss Hmw Hml Hmss Hsrcs
+  have HbatchTerm : (phsNext rs.phs hrd0).Term' = rs.term := (congrArg HardStateM.Term' Hhseq).trans Htrm.symm
+  rw [HbatchTerm]
+  iframe Hlive Hpb Hss Hmw Hml Hmss Hsrcs Hobs
   isplitr
   · ipureintro; exact Hssl.1
   ipureintro; exact Hfacts

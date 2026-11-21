@@ -2395,6 +2395,17 @@ def readyMsgOrigins (γ : RaftNames) (id : w64) (st : StorNames) (ms : List QMsg
 instance (γ : RaftNames) (id : w64) (st : StorNames) (ms : List QMsg) :
     Persistent (readyMsgOrigins (GF := GF) γ id st ms) := by unfold readyMsgOrigins; infer_instance
 
+/-- The exact restore history at a Ready handout, witnessed at the node's
+current term and shared by all messages in this batch. -/
+def handoutOrigins (γ : RaftNames) (id : w64) (sn : StorNames) (term : w64)
+    (ms : List QMsg) : IProp GF :=
+  iprop(∃ ks : List SnapTrip, snapHistoryMark sn (uint.nat term) (maxRestored ks) ∗
+    (∀ k : SnapTrip, ⌜k ∈ ks⌝ -∗ timedRestore γ id sn k) ∗ qSrcs sn ms (· ∈ ks))
+
+instance (γ : RaftNames) (id term : w64) (sn : StorNames) (ms : List QMsg) :
+    Persistent (handoutOrigins (GF := GF) γ id sn term ms) := by
+  unfold handoutOrigins; infer_instance
+
 theorem restoredSnapHistory_keep (γ : RaftNames) (id : w64) {ls ls' : LogState}
     (h : logStoreRec ls' = logStoreRec ls) :
     restoredSnapHistory (GF := GF) γ id ls.ksn ⊢ restoredSnapHistory γ id ls'.ksn := by
