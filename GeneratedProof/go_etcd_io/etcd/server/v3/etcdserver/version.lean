@@ -2,7 +2,11 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.context
 public import Perennial.GeneratedProof.errors
+public import GeneratedProof.github_com.Masterminds.semver.v3
+public import GeneratedProof.go_etcd_io.etcd.api.v3.version
+public import GeneratedProof.go_uber_org.zap
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.version
 
@@ -83,34 +87,53 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.version.Assumptions]
 
 noncomputable instance Monitor_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.version.Monitor :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.version.Monitor where
+  typedPointstoDef l v dq := iprop(
+    "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Monitor go!"lg" l) v.lg' dq ∗
+    "s" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Monitor go!"s" l) v.s' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance Monitor_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.version.Monitor go_etcd_io.etcd.server.v3.etcdserver.version.Monitor.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.version.Monitor go_etcd_io.etcd.server.v3.etcdserver.version.Monitor.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance Monitor_access_load_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.Monitor) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Monitor go!"lg" l) v.lg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Monitor go!"lg" l) v.lg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Monitor_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.Monitor) (lg' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Monitor go!"lg" l) v.lg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Monitor go!"lg" l) lg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := lg' } : go_etcd_io.etcd.server.v3.etcdserver.version.Monitor) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Monitor_access_load_s (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.Monitor) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Monitor go!"s" l) v.s' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Monitor go!"s" l) v.s' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Monitor_access_store_s (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.Monitor) (s' : go_etcd_io.etcd.server.v3.etcdserver.version.Server) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Monitor go!"s" l) v.s' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Monitor go!"s" l) s' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with s' := s' } : go_etcd_io.etcd.server.v3.etcdserver.version.Monitor) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end Monitor
-
-namespace Server
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.version.Assumptions]
-
-noncomputable instance Server_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.version.Server :=
-  sorry -- axiomatized type
-
-noncomputable instance Server_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.version.Server go_etcd_io.etcd.server.v3.etcdserver.version.Server.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Server
 
 namespace Manager
 section def_
@@ -121,12 +144,50 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.version.Assumptions]
 
 noncomputable instance Manager_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.version.Manager :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.version.Manager where
+  typedPointstoDef l v dq := iprop(
+    "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Manager go!"lg" l) v.lg' dq ∗
+    "s" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Manager go!"s" l) v.s' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance Manager_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.version.Manager go_etcd_io.etcd.server.v3.etcdserver.version.Manager.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.version.Manager go_etcd_io.etcd.server.v3.etcdserver.version.Manager.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance Manager_access_load_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.Manager) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Manager go!"lg" l) v.lg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Manager go!"lg" l) v.lg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Manager_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.Manager) (lg' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Manager go!"lg" l) v.lg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Manager go!"lg" l) lg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := lg' } : go_etcd_io.etcd.server.v3.etcdserver.version.Manager) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Manager_access_load_s (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.Manager) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Manager go!"s" l) v.s' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Manager go!"s" l) v.s' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Manager_access_store_s (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.Manager) (s' : go_etcd_io.etcd.server.v3.etcdserver.version.Server) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Manager go!"s" l) v.s' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Manager go!"s" l) s' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with s' := s' } : go_etcd_io.etcd.server.v3.etcdserver.version.Manager) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end Manager

@@ -1,6 +1,9 @@
 /-
 `strings.ToLower(s)` (names-only in Perennial: `notes/perennial-changes.md`, "strings.ToLower has no
-spec"): the spec says only that it returns, without panicking, some string. The trust boundary: an
+spec"): the spec says that it returns, without panicking, a string, and (etcdstorage, 2026-11-20)
+when that string is a given ASCII word with no upper-case letter: exactly when `s` lower-cases to it
+rune by rune (`strings.lowersTo`, `Proof/strings/Lower.lean`, whose header gives Go's rule and the
+measurement; `notes/axiom-review/getenv-etcd-verify.md`). The trust boundary: an
 axiom, `Proof/strings/ToLower.lean`. True of Go: `ToLower` is total on every string (an ASCII
 fast path, else `strings.Map(unicode.ToLower, s)`, which decodes the string rune by rune, an invalid
 UTF-8 byte as `utf8.RuneError`, and builds the result with a `strings.Builder`); it has no panic of
@@ -11,6 +14,7 @@ specs can call it. Lean-first (no Rocq counterpart).
 module
 
 public import Perennial.Proof.strings.Base
+public import Proof.strings.Lower
 
 @[expose] public section
 
@@ -32,7 +36,8 @@ abbrev strings.ToLower.spec : Prop :=
   ∀ (s : GoString),
   {{ (True : IProp GF) }}
     (App (Val (@! strings.ToLower)) (Val #s))
-  {{ (r : GoString), RET #r; True }}
+  {{ (r : GoString), RET #r;
+      ⌜∀ w : GoString, strings.lowerWord w → (r = w ↔ strings.lowersTo s w = true)⌝ }}
 
 end spec
 

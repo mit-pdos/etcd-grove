@@ -31,12 +31,12 @@ every metadata an attempt may deliver (`attemptPre`), as `kVClient.Put`: `Invoke
 abbrev kVClient.Compact.spec : Prop :=
   ∀ (kc conn : Loc) (addr : List GoString)
     (Spec : GrpcSpecMd (GF := GF) pbCompactionRequest pbCompactionResponse)
-    (Φ : CompactRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (Φ : CompactRespM → IProp GF) (ctx : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
     (inp : Loc) (req : etcdserverpb.CompactionRequest) (opts : GoSlice) (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ kvStubAt kc conn ∗
       isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.KV/Compact" Spec ∗
-      reqPre conn go!"/etcdserverpb.KV/Compact" addr vs
-        (attemptPre conn (GoInterface.ok ctx) Spec ⟨req.Revision', req.Physical'⟩ Φ) ∗
+      metadata.outMD ctx om ∗ reqPre conn go!"/etcdserverpb.KV/Compact" addr vs
+        (attemptPre conn om Spec ⟨req.Revision', req.Physical'⟩ Φ) ∗
       ctxOk ctx cd ∗ inp ↦ req ∗ opts ↦*□ vs ∗ callOptsOk vs ∗
       ⌜req.unknownFields' = slice.nil⌝ }}
     (App (App (App (Val (kc @!! go.GoType.PointerType etcdserverpb.kVClient.ty @!! go!"Compact"))

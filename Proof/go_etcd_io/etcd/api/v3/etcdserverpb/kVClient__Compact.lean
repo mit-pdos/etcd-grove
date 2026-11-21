@@ -30,8 +30,8 @@ theorem kVClient.Compact.wp_proof
     (wp_StaticMethod : grpc.StaticMethod.spec (GF := GF) (hG := hG))
     (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG)) :
     kVClient.Compact.spec (GF := GF) (hG := hG) := by
-  intro kc conn addr Spec Q ctx cd inp req opts vs
-  wp_start as ⟨#Hstub, #Hconn, #Hrpc, Hpre, #Hctx, Hin, #Hopts, #Hok, %Hsz⟩
+  intro kc conn addr Spec Q ctx om cd inp req opts vs
+  wp_start as ⟨#Hstub, #Hconn, #Hrpc, #Hom, Hpre, #Hctx, Hin, #Hopts, #Hok, %Hsz⟩
   wp_auto
   wp_apply wp_StaticMethod as %sm ⟨#Hsm, %Hsms⟩
   wp_apply wp_slice_literal (V := GoInterface) [sm]
@@ -54,7 +54,7 @@ theorem kVClient.Compact.wp_proof
   ihave Hblank : pbCompactionResponse (GF := GF) |>.blank «$r0_ptr» $$ [«$r0»]
   · simp only [pbCompactionResponse]
     iexact «$r0»
-  have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.KV/Compact" pbCompactionRequestT pbCompactionResponseT pbCompactionRequestT_reg pbCompactionResponseT_reg Spec ⟨req.Revision', req.Physical'⟩ Q ctx cd inp «$r0_ptr» copts
+  have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.KV/Compact" pbCompactionRequestT pbCompactionResponseT pbCompactionRequestT_reg pbCompactionResponseT_reg Spec ⟨req.Revision', req.Physical'⟩ Q ctx om cd inp «$r0_ptr» copts
     ([sm] ++ vs)
   simp only [pbCompactionRequestT, pbCompactionResponseT] at hI
   rw [show (pbCompactionRequest (GF := GF)).ty = etcdserverpb.CompactionRequest.ty from rfl,

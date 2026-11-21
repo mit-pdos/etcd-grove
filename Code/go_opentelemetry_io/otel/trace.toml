@@ -2,7 +2,10 @@
 # watchStream.Watch calls: trace.SpanFromContext, Span.End); `context` imported so that the
 # `Tracer` interface translates (2026-10-12, the request path's unit 2: the server's `Put` calls
 # `traceutil.Tracer.Start`). `WithAttributes` has its body (its `wp_proof` a theorem, 2026-11-18).
-translate = ["!*", "WithAttributes"]
+# `SpanFromContext` has its body, with the no-op span it returns (`noopSpanInstance`, the methods of
+# `noopSpan` that `trace.isSpan` names) and the key it reads (2026-11-20, prove-protootel).
+translate = ["!*", "WithAttributes", "SpanFromContext", "currentSpanKey", "noopSpanInstance",
+  "noopSpan.End", "noopSpan.AddEvent", "noopSpan.RecordError"]
 imports = ["!*", "go.opentelemetry.io/otel/trace/embedded", "go.opentelemetry.io/otel/codes", "go.opentelemetry.io/otel/attribute",
   "context"]
 

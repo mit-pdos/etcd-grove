@@ -60,6 +60,24 @@ def txnObjAt (tp : Loc) (addr : List GoString) (ci : GoInterfaceOk) (cd : contex
       ownSliceCap Loc fsl (DFrac.own 1) ∗ reqOpsAt fps (b.model.elseOps.map opWire) ∗
     structFieldRef go_etcd_io.etcd.client.v3.txn go!"callOpts" tp ↦□ cosl ∗ callOptsAt cosl)
 
+/-- (errdesc stage 1, 2026-11-20) A builder's context's outgoing metadata, some `om`. -/
+theorem txnObjAt_outMD (tp : Loc) (addr : List GoString) (ci : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (b : TxnBuild) :
+    txnObjAt (GF := GF) tp addr ci cd b ⊢ txnObjAt tp addr ci cd b ∗ ∃ om, metadata.outMD ci om := by
+  iintro H
+  unfold txnObjAt
+  icases H with ⟨%Hnn, %api, %cosl, %csl, %ssl, %fsl, %cps, %sps, %fps, %iw, #H1, #H2, #H3, #Hctx, H⟩
+  ihave #HctxO := ctxOk_outgoingC ci cd $$ Hctx
+  iunfold metadata.outgoingCtxOkC at HctxO
+  icases HctxO with ⟨%om, #Hom⟩
+  isplitl
+  · isplitl []
+    · ipureintro; exact Hnn
+    iexists api, cosl, csl, ssl, fsl, cps, sps, fps, iw
+    iframe H
+    iframe #
+  · iexists om; iexact Hom
+
 /-- **The `*txn` `tp` was made from the `*kv` `api`** (persistent; 2026-10-20, linkv-txn stage
 A): its `kv` field, which `kv.Txn` returns, so that a caller knows the builder's connection. -/
 def txnKvIs (tp api : Loc) : IProp GF :=

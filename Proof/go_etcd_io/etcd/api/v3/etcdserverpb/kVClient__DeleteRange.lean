@@ -30,8 +30,8 @@ theorem kVClient.DeleteRange.wp_proof
     (wp_StaticMethod : grpc.StaticMethod.spec (GF := GF) (hG := hG))
     (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG)) :
     kVClient.DeleteRange.spec (GF := GF) (hG := hG) := by
-  intro kc conn addr Spec Q ctx cd inp req k e opts vs
-  wp_start as ⟨#Hstub, #Hconn, #Hrpc, Hpre, #Hctx, Hin, #Hk, #He, #Hopts, #Hok, %Hsz⟩
+  intro kc conn addr Spec Q ctx om cd inp req k e opts vs
+  wp_start as ⟨#Hstub, #Hconn, #Hrpc, #Hom, Hpre, #Hctx, Hin, #Hk, #He, #Hopts, #Hok, %Hsz⟩
   wp_auto
   wp_apply wp_StaticMethod as %sm ⟨#Hsm, %Hsms⟩
   wp_apply wp_slice_literal (V := GoInterface) [sm]
@@ -55,7 +55,7 @@ theorem kVClient.DeleteRange.wp_proof
   ihave Hblank : pbDeleteRangeResponse (GF := GF) |>.blank «$r0_ptr» $$ [«$r0»]
   · simp only [pbDeleteRangeResponse]
     iexact «$r0»
-  have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.KV/DeleteRange" pbDeleteRangeRequestT pbDeleteRangeResponseT pbDeleteRangeRequestT_reg pbDeleteRangeResponseT_reg Spec (deleteReqOp req k e) Q ctx cd inp «$r0_ptr» copts
+  have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.KV/DeleteRange" pbDeleteRangeRequestT pbDeleteRangeResponseT pbDeleteRangeRequestT_reg pbDeleteRangeResponseT_reg Spec (deleteReqOp req k e) Q ctx om cd inp «$r0_ptr» copts
     ([sm] ++ vs)
   simp only [pbDeleteRangeRequestT, pbDeleteRangeResponseT] at hI
   rw [show (pbDeleteRangeRequest (GF := GF)).ty = etcdserverpb.DeleteRangeRequest.ty from rfl,

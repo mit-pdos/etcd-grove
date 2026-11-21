@@ -30,8 +30,8 @@ theorem kVClient.Txn.wp_proof
     (wp_StaticMethod : grpc.StaticMethod.spec (GF := GF) (hG := hG))
     (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG)) :
     kVClient.Txn.spec (GF := GF) (hG := hG) := by
-  intro kc conn addr Spec Q ctx cd inp req t opts vs
-  wp_start as ⟨#Hstub, #Hconn, #Hrpc, Hpre, #Hctx, Hin, #Ht, #Hopts, #Hok, %Hsz⟩
+  intro kc conn addr Spec Q ctx om cd inp req t opts vs
+  wp_start as ⟨#Hstub, #Hconn, #Hrpc, #Hom, Hpre, #Hctx, Hin, #Ht, #Hopts, #Hok, %Hsz⟩
   wp_auto
   wp_apply wp_StaticMethod as %sm ⟨#Hsm, %Hsms⟩
   wp_apply wp_slice_literal (V := GoInterface) [sm]
@@ -55,7 +55,7 @@ theorem kVClient.Txn.wp_proof
   ihave Hblank : pbTxnResponse (GF := GF) |>.blank «$r0_ptr» $$ [«$r0»]
   · simp only [pbTxnResponse]
     iexact «$r0»
-  have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.KV/Txn" pbTxnRequestT pbTxnResponseT pbTxnRequestT_reg pbTxnResponseT_reg Spec t Q ctx cd inp «$r0_ptr» copts
+  have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.KV/Txn" pbTxnRequestT pbTxnResponseT pbTxnRequestT_reg pbTxnResponseT_reg Spec t Q ctx om cd inp «$r0_ptr» copts
     ([sm] ++ vs)
   rw [show (pbTxnRequestT (GF := GF)).ty = etcdserverpb.TxnRequest.ty from rfl,
     show (pbTxnResponseT (GF := GF)).ty = etcdserverpb.TxnResponse.ty from rfl] at hI

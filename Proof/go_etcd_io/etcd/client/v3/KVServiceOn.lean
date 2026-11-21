@@ -636,30 +636,32 @@ theorem etcdCompactSpecM_false (E : apply.AEnv GF) (ρ : ReqNames)
   · iexact Hd
 
 /-- **A client write's grant** (persistent; the auth-mode merge's 5a, 2026-10-29): the write's grant
-(`v3rpc.opGrantT`) at the token of some attempt of the call `ctx` on `conn` (the caller does not
-know which attempt's metadata the server saw). -/
-def clientGrant (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) (ctx : GoInterface)
+(`v3rpc.opGrantT`) at the token of some attempt of the call on `conn` with a context of outgoing
+metadata `om` (the caller does not know which attempt's metadata the server saw). (errdesc stage 1,
+2026-11-20: indexed by the metadata `om`, until then by the context, through the pure
+`metadata.outgoingOf`.) -/
+def clientGrant (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) (om : GrpcMd)
     (op : KVOp) (L₀ : List EntryModel) (σ : KVState) : IProp GF :=
-  iprop(∃ md, ⌜clientAttemptMd conn ctx md⌝ ∗ v3rpc.opGrantT s E ρ (auth.mdTokenOf md) op L₀ σ)
+  iprop(∃ md, ⌜clientAttemptMd conn om md⌝ ∗ v3rpc.opGrantT s E ρ (auth.mdTokenOf md) op L₀ σ)
 
 /-- **A client write's update with auth on** (5a): `v3rpc.kvOpAuOn`'s, fired at most once, at a
 lower bound `L₀` of the requested log the caller holds, told the grant of some attempt
 (`clientGrant`) when it fires. -/
-def clientOpAuOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) (ctx : GoInterface)
+def clientOpAuOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) (om : GrpcMd)
     (op : KVOp) (Q : KVState → IProp GF) : IProp GF :=
   iprop(∃ L₀ : List EntryModel, srvReqLogLb ρ.raft L₀ ∗
-    kvAu1G ρ.kv (kvOpStep op) (clientGrant s E ρ conn ctx op L₀) Q)
+    kvAu1G ρ.kv (kvOpStep op) (clientGrant s E ρ conn om op L₀) Q)
 
 /-- A client's update is one at the token of each of its attempts. -/
 theorem clientOpAuOn_attempt (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc)
-    (ctx : GoInterface) (md : GrpcMd) (op : KVOp) (Q : KVState → IProp GF)
-    (hmd : clientAttemptMd conn ctx md) :
-    clientOpAuOn (GF := GF) s E ρ conn ctx op Q ⊢ v3rpc.kvOpAuOn s E ρ (auth.mdTokenOf md) op Q := by
+    (om : GrpcMd) (md : GrpcMd) (op : KVOp) (Q : KVState → IProp GF)
+    (hmd : clientAttemptMd conn om md) :
+    clientOpAuOn (GF := GF) s E ρ conn om op Q ⊢ v3rpc.kvOpAuOn s E ρ (auth.mdTokenOf md) op Q := by
   unfold clientOpAuOn v3rpc.kvOpAuOn
   iintro ⟨%L₀, #H0, Hau⟩
   iexists L₀
   iframe H0
-  iapply (kvAu1G_mono ρ.kv (kvOpStep op) (clientGrant s E ρ conn ctx op L₀)
+  iapply (kvAu1G_mono ρ.kv (kvOpStep op) (clientGrant s E ρ conn om op L₀)
     (v3rpc.opGrantT s E ρ (auth.mdTokenOf md) op L₀) Q ?_) $$ Hau
   intro σ
   unfold clientGrant
@@ -670,8 +672,8 @@ theorem clientOpAuOn_attempt (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn
 
 /-- An update not told the grant is one (at the empty lower bound). -/
 theorem clientOpAuOn_of_au1 (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc)
-    (ctx : GoInterface) (op : KVOp) (Q : KVState → IProp GF) :
-    kvOpAu1 (GF := GF) ρ.kv op Q ⊢ |==> clientOpAuOn s E ρ conn ctx op Q := by
+    (om : GrpcMd) (op : KVOp) (Q : KVState → IProp GF) :
+    kvOpAu1 (GF := GF) ρ.kv op Q ⊢ |==> clientOpAuOn s E ρ conn om op Q := by
   iintro H
   imod srvReqLogLb_nil (GF := GF) ρ.raft with #H0
   imodintro
@@ -683,20 +685,20 @@ theorem clientOpAuOn_of_au1 (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn 
 
 /-- **A transaction's update with auth on** (5a): `txnUpdAt`'s, a writing one's update told the
 grant of some attempt of the call (`clientOpAuOn`). -/
-def txnUpdAtOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) (ctx : GoInterface)
+def txnUpdAtOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) (om : GrpcMd)
     (γr : ReadNames) (t : TxnModel) (Q : KVState → IProp GF) : IProp GF :=
   iprop(⌜txn.txnReadonly t = true ∧ Q = fun _ => iprop(True)⌝ ∨
     (⌜txn.txnReadonly t = true ∧ txn.txnSerializable t = false⌝ ∗ kvReadAu γr.kv Q) ∨
     (⌜txn.txnReadonly t = false ∧ (txn.txnPlain t ∨ (ρ.kv.lm = .revocable ∧ txnPlainL t)) ∧
         txnNoZeroEnd t ∧ txnNestOk t⌝ ∗
-      clientOpAuOn s E ρ conn ctx (.txn t) Q))
+      clientOpAuOn s E ρ conn om (.txn t) Q))
 
 /-- A writing transaction's update, from its shape and its update (L13). -/
 theorem txnUpdAtOn_write (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc)
-    (ctx : GoInterface) (γr : ReadNames) (t : TxnModel) (Q : KVState → IProp GF)
+    (om : GrpcMd) (γr : ReadNames) (t : TxnModel) (Q : KVState → IProp GF)
     (h1 : txn.txnReadonly t = false) (h2 : txn.txnPlain t) (h3 : txnNoZeroEnd t)
     (h4 : txnNestOk t) :
-    clientOpAuOn (GF := GF) s E ρ conn ctx (.txn t) Q ⊢ txnUpdAtOn s E ρ conn ctx γr t Q := by
+    clientOpAuOn (GF := GF) s E ρ conn om (.txn t) Q ⊢ txnUpdAtOn s E ρ conn om γr t Q := by
   iintro H
   unfold txnUpdAtOn
   iright; iright

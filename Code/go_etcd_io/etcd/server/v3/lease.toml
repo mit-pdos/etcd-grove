@@ -13,6 +13,10 @@
 # (names only) for the expiry notifier's queue; `leasepb` and `schema` for `persistTo` and
 # `Revoke`'s writes; `version` for `shouldPersistCheckpoints`; prometheus for the metrics.
 translate = ["!*",
+  # (etcdstorage, 2026-11-20) metrics.go's `init.0` (`prometheus.MustRegister` of the metrics), translated:
+  # proved by `etc/gen-init.py` over `MustRegister`'s spec with the names' registration rights (the
+  # user's decision, 2026-11-20: mvccrand's and mvccfull's closed theorems take `namesUnclaimed`)
+  "init.0",
   # (metric-inits, 2026-11-19) metrics.go: metrics of an options literal, over prometheus's constructor specs
   "leaseGranted", "leaseRevoked", "leaseTotalTTLs", "Lessor", "NoLease", "MaxLeaseTTL", "forever", "ErrNotPrimary", "ErrLeaseNotFound",
   "ErrLeaseExists", "ErrLeaseTTLTooLarge",

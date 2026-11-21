@@ -38,12 +38,14 @@ public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.cindex
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.errors
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.read
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.txn
+public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.version
 public import GeneratedProof.go_etcd_io.etcd.server.v3.features
 public import GeneratedProof.go_etcd_io.etcd.server.v3.lease
 public import GeneratedProof.go_etcd_io.etcd.server.v3.lease.leasehttp
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.backend
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.mvcc
+public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.schema
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.wal
 public import GeneratedProof.go_etcd_io.raft.v3
 public import GeneratedProof.go_etcd_io.raft.v3.raftpb

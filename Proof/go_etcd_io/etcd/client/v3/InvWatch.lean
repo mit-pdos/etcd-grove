@@ -657,6 +657,10 @@ structure WsPrm (GF : BundledGFunctors) where
   /-- (G2) the bound its creates carry (`CreateReqM.bound`, `createOf`): `n` with one member,
   `0` otherwise (`wsBdOk`) -/
   bd : Nat
+  /-- (errdesc stage 1, 2026-11-20) the outgoing metadata of the watch's context, the caller's
+  (`metadata.outMD ctx omd` in `watcher.Watch`'s precondition): the watch's stream key is
+  `streamKeyOf omd` (until then of the pure `metadata.outgoingOf ctx`) -/
+  omd : GrpcMd
 
 /-- **The key `key` and range end `ed` register exactly their range** (pure; G2, 2026-10-30,
 until then a prefix watch): every watcher range the server may register for a create of a key
@@ -713,7 +717,7 @@ of the watch's request key and range end (`P.key`, `P.ed`) passed for `md`'s tok
 bound `n`. -/
 def wsRow (V : WEnv GF) (P : WsPrm GF) : IProp GF :=
   iprop(□ (⌜V.nm = 1⌝ → ∃ (m md : GrpcMd),
-    ⌜streamKeyOf m = streamKeyOf (metadata.outgoingOf (GoInterface.ok P.ctx)) ∧
+    ⌜streamKeyOf m = streamKeyOf P.omd ∧
       clientAttemptMdOf V.conn m md⌝ ∗
     v3rpc.watchAuthed (V.mem 0).2.tag (V.mem 0).2.s (auth.mdTokenOf md) P.n P.key P.ed))
 
@@ -813,11 +817,9 @@ theorem wsBdOk_cur (V : WEnv GF) (P : WsPrm GF) :
 /-- **A watch's row from its create's check** (G2): the check the current member made of the
 watch's create (`watchAuthed`, from its created response), at a token an attempt of a stream of
 the watch's context's stream key delivered. -/
-theorem wsRow_of_authed (V : WEnv GF) (P : WsPrm GF) (tok : Option GoString) (c : GoInterfaceOk)
-    (htok : ∃ md, tok = auth.mdTokenOf md ∧
-      clientAttemptMdOf V.conn (metadata.outgoingOf (GoInterface.ok c)) md)
-    (hkey : streamKeyOf (metadata.outgoingOf (GoInterface.ok P.ctx)) =
-      streamKeyOf (metadata.outgoingOf (GoInterface.ok c))) :
+theorem wsRow_of_authed (V : WEnv GF) (P : WsPrm GF) (tok : Option GoString) (om : GrpcMd)
+    (htok : ∃ md, tok = auth.mdTokenOf md ∧ clientAttemptMdOf V.conn om md)
+    (hkey : streamKeyOf P.omd = streamKeyOf om) :
     watchConnFacts V ∗ wsBdOk V P ∗
       v3rpc.watchAuthed V.R.tag V.R.s tok P.bd P.key P.ed ⊢ wsRow V P := by
   iintro ⟨#Hc, #Hb, #Ha⟩
@@ -827,7 +829,7 @@ theorem wsRow_of_authed (V : WEnv GF) (P : WsPrm GF) (tok : Option GoString) (c 
   obtain ⟨md, rfl, hmd⟩ := htok
   unfold wsRow
   iintro !> %hn
-  iexists (metadata.outgoingOf (GoInterface.ok c)), md
+  iexists om, md
   isplitr
   · ipureintro; exact ⟨hkey.symm, hmd⟩
   rw [H1 hn, ← Hbn hn]
@@ -1073,17 +1075,15 @@ theorem wsIs_wire (V : WEnv GF) (P : WsPrm GF) (rv : w64) (pn sr : Bool) (bd : N
 
 /-- **A watch's row from its create's check** (G2; `wsRow_of_authed`), at the watch's key and
 range end as its request has them. -/
-theorem wsIs_row (V : WEnv GF) (P : WsPrm GF) (tok : Option GoString) (c : GoInterfaceOk)
-    (htok : ∃ md, tok = auth.mdTokenOf md ∧
-      clientAttemptMdOf V.conn (metadata.outgoingOf (GoInterface.ok c)) md)
-    (hkey : streamKeyOf (metadata.outgoingOf (GoInterface.ok P.ctx)) =
-      streamKeyOf (metadata.outgoingOf (GoInterface.ok c))) :
+theorem wsIs_row (V : WEnv GF) (P : WsPrm GF) (tok : Option GoString) (om : GrpcMd)
+    (htok : ∃ md, tok = auth.mdTokenOf md ∧ clientAttemptMdOf V.conn om md)
+    (hkey : streamKeyOf P.omd = streamKeyOf om) :
     watchConnFacts V ∗ wsIs V P ∗ v3rpc.watchAuthed V.R.tag V.R.s tok P.bd P.key P.ed ⊢
       wsRow V P := by
   iintro ⟨#Hc, #H, #Ha⟩
   iunfold wsIs at H
   icases H with ⟨-, -, -, -, -, -, -, -, -, -, -, #Hb⟩
-  iapply wsRow_of_authed V P tok c htok hkey
+  iapply wsRow_of_authed V P tok om htok hkey
   iframe Hc Hb Ha
 
 /-! ## A goroutine's lifetime (D25) -/
@@ -1232,7 +1232,7 @@ def reqP (V : WEnv GF) (k : GoString) (v : GoInterface) : IProp GF :=
     -- (D47) the caller's read update, a first firing, the KV state the members', completeness
     wsAu P ∗ (∃ σ0 : KVState, □ P.Q σ0) ∗ ⌜P.kv.st = V.kst ∧ cplOf P = true⌝ ∗
     -- (G2) the stream's key, the creates' bound
-    ⌜streamKeyOf (metadata.outgoingOf (GoInterface.ok P.ctx)) = k⌝ ∗ wsBdOk V P) ∨
+    ⌜streamKeyOf P.omd = k⌝ ∗ wsBdOk V P) ∨
     ∃ pr : Loc,
       ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.progressRequest.ty) #pr⌝)
 
@@ -1289,6 +1289,9 @@ structure WgsPrm (GF : BundledGFunctors) where
   /-- (D25) the generations of `resumec`: a mono nat, `run`'s authority at the current one `n`
   (`resumec` closed publishes `n + 1`, `newWatchClient`) -/
   γend : GName
+  /-- (errdesc stage 1, 2026-11-20) the outgoing metadata of the stream's context (`metadata.outMD
+  ctx omd`, in `isWGS`), its creator's: the stream key `ckey` is `streamKeyOf omd` -/
+  omd : GrpcMd
 
 /-- **What `closingc` carries** (a bag): a substream of this stream that stopped, by its
 membership token (`G.γws`, one per substream `run` made: so `run` knows the message is about one of
@@ -1301,10 +1304,11 @@ def closingP (V : WEnv GF) (G : WgsPrm GF) (ws : Loc) : IProp GF :=
 server's facts (`watchSrvFacts`, as the watcher's), its read-only fields, its
 context and `cancel` (callable from anywhere), its channels (`reqc`, `errc`, `closingc` bags;
 `donec` publishing `closeErrPub`). Since premise fixes 8 also the context's outgoing metadata, in the
-chain form (`WithCancelValCtx`'s post; `openWatchClient`'s `ctxOk`), beside the call options. -/
+chain form (`WithCancelValCtx`'s post; `openWatchClient`'s `ctxOk`), beside the call options: since
+errdesc stage 1 (2026-11-20) the metadata `G.omd` (`metadata.outMD`). -/
 def isWGS (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) : IProp GF :=
   iprop(⌜G.wgs ≠ null⌝ ∗
-    ((∃ vs : List GoInterface, callSl ↦*□ vs ∗ callOptsOk vs) ∗ metadata.outgoingCtxOkC G.ctx) ∗
+    ((∃ vs : List GoInterface, callSl ↦*□ vs ∗ callOptsOk vs) ∗ metadata.outMD G.ctx G.omd) ∗
     watchSrvFacts V ∗ zapLoggerOk V.lg ∗
     wgsF G.wgs go!"owner" ↦□ G.w ∗ wgsF G.wgs go!"remote" ↦□ wcIface V.wc ∗
     wgsF G.wgs go!"callOpts" ↦□ callSl ∗
@@ -1314,7 +1318,7 @@ def isWGS (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) : IProp GF :=
     wgsF G.wgs go!"donec" ↦□ G.donec ∗ wgsF G.wgs go!"errc" ↦□ G.errc ∗
     wgsF G.wgs go!"closingc" ↦□ G.closingc ∗ wgsF G.wgs go!"lg" ↦□ V.lg ∗
     context.isContext G.ctx G.cd ∗ context.cancelSpec G.cancel G.γctx iprop(True) ∗
-    isChanBag G.γreq G.reqc (reqP V (streamKeyOf (metadata.outgoingOf (GoInterface.ok G.ctx)))) ∗ isChanBag G.γerr G.errc (errP G.γr G.γep) ∗
+    isChanBag G.γreq G.reqc (reqP V (streamKeyOf G.omd)) ∗ isChanBag G.γerr G.errc (errP G.γr G.γep) ∗
     isChanBag G.γclosing G.closingc (closingP V G) ∗
     ownBroadcastChan G.donec G.γdone (closeErrPub G.wgs) .Unknown ∗
     isSspsc G.γr G.respc (respcE V G.γep) (fun _ => iprop(False)))
@@ -1332,7 +1336,7 @@ def watcherMu (V : WEnv GF) (w : Loc) (callSl : GoSlice) : IProp GF :=
   iprop(∃ m : Loc, watcherF w go!"streams" ↦ m ∗
     (⌜m = null⌝ ∨ ∃ M : GMap GoString Loc, ownMap m (DFrac.own 1) M ∗
       [∗map] k ↦ wgs ∈ M, ∃ G : WgsPrm GF, ⌜G.wgs = wgs ∧ G.w = w ∧
-        streamKeyOf (metadata.outgoingOf (GoInterface.ok G.ctx)) = k⌝ ∗ isWGS V G callSl))
+        streamKeyOf G.omd = k⌝ ∗ isWGS V G callSl))
 
 /-- **The watcher `w`** (persistent; the file header): its read-only fields (the stub, the call
 options, the logger), its lock, the server's and the transport's facts. -/

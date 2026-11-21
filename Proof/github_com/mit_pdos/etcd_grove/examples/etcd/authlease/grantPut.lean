@@ -62,10 +62,10 @@ theorem grantPut.wp_proof
   wp_apply context.wp_Background
   (try wp_auto)
   wp_apply (client.wp_WithTimeout_bgMd wp_WithTimeout wp_ErrAny hAs _)
-    as %gctx %gcd %gcancel ⟨#Hgcancel, #Hgctx, #Hgce, -, -, -⟩
+    as %gctx %gcd %gcancel ⟨#Hgcancel, #Hgctx, #Hgce, -, #Hgout, -⟩
   (try wp_auto)
   -- `g, err := cli.Lease.Grant(ctx, grantTTL)`
-  wp_apply (client_lease_grant_on lp conn addr s E ρ (mvcc.api.mvccLeases E.γ) gctx gcd n grantTTLv Qg)
+  wp_apply (client_lease_grant_on lp conn addr s E ρ (mvcc.api.mvccLeases E.γ) gctx none gcd n grantTTLv Qg)
     as %gr %gerr Hg
   · iframe #
     iintro !> %id
@@ -92,7 +92,7 @@ theorem grantPut.wp_proof
   wp_apply context.wp_Background
   (try wp_auto)
   wp_apply (client.wp_WithTimeout_bgMd wp_WithTimeout wp_ErrAny hAs _)
-    as %pctx %pcd %pcancel ⟨#Hpcancel, #Hpctx, #Hpce, -, %Hpout, -⟩
+    as %pctx %pcd %pcancel ⟨#Hpcancel, #Hpctx, #Hpce, -, #Hpout, -⟩
   (try wp_auto)
   -- `clientv3.WithLease(g.ID)`, the options slice
   wp_apply wp_WithLease mg.id as %f #Hf
@@ -119,7 +119,7 @@ theorem grantPut.wp_proof
   wp_pures
   (try wp_auto)
   have hok := opPutModel_lease_ok k mg.id
-  wp_apply (client_put_on api conn addr s E ρ cid mid pctx pcd k go!"v" _ [withLeaseM mg.id] (Qp mg.id) F
+  wp_apply (client_put_on api conn addr s E ρ cid mid pctx none pcd k go!"v" _ [withLeaseM mg.id] (Qp mg.id) F
       (hsz mg.id) hok.1 hok.2 (Or.inr hrev)) as %presp %perr Hp
   · iframe #
     ileft
@@ -127,7 +127,7 @@ theorem grantPut.wp_proof
     rw [leasePut_wire]
     iapply Hpu
     · iexact Htok
-    · ipureintro; exact Hpout
+    · ipureintro; rfl
   (try wp_auto)
   wp_apply Hpcancel
   (try wp_auto)
