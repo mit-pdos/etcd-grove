@@ -3238,6 +3238,14 @@ their translated initializers (prove-k8s, 2026-11-20; until then the trust-bound
                 'as %sl5 %ks5 ⟨H3, S5, -⟩', '· iframe',
                 'try wp_auto', 'wp_func_call', 'wp_call', 'try wp_auto',
                 f'{_SETS_NEW} $$ [S5] as %r5 ⟨H5, -⟩', '· iframe', 'try wp_auto']})
+SPECIAL['k8s_io.apiserver.pkg.util.flowcontrol'] = dict(doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+their translated initializers (prove-k8s2, 2026-11-20; until then the trust-boundary axiom
+`opaqueInitsOk`): `readOnlyVerbs = sets.NewString(...)` (`sets` with bodies: `New`'s spec) and the
+two interface assertions `var _ fmt.GoStringer = RequestDigest{}` and
+`var _ fmt.GoStringer = (*priorityLevelState)(nil)` (conversions to an interface).''',
+    alloc_types=_ALLOC_ANY,
+    imports=['Proof.k8s_io.apimachinery.pkg.util.sets.New', 'Proof.k8s_io.apimachinery.pkg.util.sets.Set__Insert'],
+    before={'readOnlyVerbs': _newstring_steps('1', '[go!"get", go!"list", go!"watch", go!"proxy"]')})
 _AE = 'k8s_io.apimachinery.pkg.api.errors'
 SPECIAL[_AE] = dict(doc='''Its fact (`apierrorsInit`, `storage/etcd3/Base.lean`; prove-k8s2, 2026-11-20, `True` until then):
 `knownReasons` holds, read-only for good, the map of the 19 known reasons (`knownReasonsMap`), which
