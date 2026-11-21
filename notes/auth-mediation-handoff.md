@@ -2,6 +2,50 @@
 
 ## START HERE
 
+- M0-M2 are on lean (`3c8804f01f`). M3/M4: worktree `/shared/etcd-grove-authm3`, branch `auth-mediation-m3`
+  (off lean `3c8804f01f`), agent of etcd-grove-03. Pin c44b74871: `--packages=/shared/tmp/manifest-c44.json`,
+  `PERENNIAL_DIR=/shared/perennial-c44b74871`. Decisions: `questions.md` (untracked, worktree root).
+- M3 (2026-11-21): `EtcdServer.RangeStream`, `rangeStream`, `adjustChunkLimit` translated (`ebf0e6f70e`).
+  **Blocked (reported to etcd-grove-03):** the frozen `txn.Range.spec` takes the request read-only
+  (`txn.rangeRequestIs`, every field `↦□`) but `rangeStream` rewrites `r.Limit`/`r.Revision`/`r.Key` between pages,
+  and builds the next key by `append` into a response key whose capacity no spec owns. Ledger entry 2026-11-21
+  (`notes/specs-only/ledger.md`). Options:
+  - (A) restate `txn.Range.spec` (request at a fraction, given back) and the response (`ownSliceCap` of the keys,
+    from mvcc's API spec): frozen-spec changes, a stage of their own.
+  - (B) keep `rangeStream` names-only with an assumed spec (sends only through `rs`, each chunk under the check
+    it is given), and prove `EtcdServer.RangeStream`/`kvServer.RangeStream` over it: one trust-boundary axiom.
+  - (C) leave row 2 at `none` (the paper line excepts `RangeStream` with Lock/Election).
+  Recommendation: (B) now, (A) later.
+- Also needed for any option: `doSerialize.spec`'s `get` must be given that `chk` passed (today `get`'s
+  precondition is only `G`: a stream sending inside `get` cannot show its chunks were sent after the check).
+  Proposed: `get`'s triple takes `∃ info, C info ∗ infoBoundM ..`, with `C` persistent (a Lean premise; every
+  caller's `C` is). A stronger spec; callers Range, Txn, `ModeSpecs.spec_off` adjust their `get` proofs.
+- M4 not started: its STOP proposal (old -> new) is the section "M4 proposal" below.
+
+## M4 proposal (for the STOP; not implemented)
+
+The refusal reason for the admin rows (28-42) reaches the proposer in two definitions; no spec text changes,
+the specs that mention them get stronger posts.
+
+1. `adminTieAr` (`KVAuthModel.lean:1927`). Old: `⌜needAdminPermission rq = false ∨ ∀ o b, out ≠ .dispatched o b⌝
+   ∨ ∃ v, ar ↦□ v ∗ ⌜v.Err' = nil → adminStepOk rq st st'⌝` (a rejected outcome: nothing). New:
+   `⌜needAdminPermission rq = false ∨ out = .skipped⌝ ∨
+    ⌜out = .rejected ∧ ¬ auth.adminOk st (some (auth.authInfoM (apply.principalOf rq)))⌝ ∨
+    (⌜∃ o b, out = .dispatched o b⌝ ∗ ∃ v, ar ↦□ v ∗ ⌜v.Err' = nil → adminStepOk rq st st'⌝)`.
+   Source: `adminOut_model` (`ApplyTieOn.lean:253`) already has `adminRejL (.on γa) hs rq` at `hs.getLast? = some st`
+   (`hrej`), i.e. `¬ adminOk st ..`; its rejected case changes from `ileft` to the new middle disjunct.
+2. `adminOutOn`'s error branch (`AdminOn.lean:185-188`). Old: `appliedErr E rq' F err` (the result's `Err` is `err`,
+   no reason). New: `appliedErr E rq' F err ∗ ∃ L, srvRLogLb ρ.raft L ∗ adminTieM true ρ.kv rq' L ar out` for the
+   result `ar` and outcome `out` the waiter delivered (exact form fixed at the Freeze: the waiter's `resultIsWOn`
+   carries `adminTieAr` at the committed prefix's state; `processInternalRaftRequestOnce`'s error branch passes
+   `resultIs` today and would pass the `On` form).
+   Specs whose posts change (stronger): the thirteen admin entry points' `*OutOn` definitions in
+   `Spec/.../etcdserver/EtcdServer__<M>.lean` (`userAddOutOn`, ...), `processInternalRaftRequestOnce.spec`'s
+   mode-`on` result, and through them the admin rows of `client_port_mediated`; `apply.admin_rejected_why` unchanged.
+
+## M2 record (done, on lean)
+
+
 - Worktree `/shared/etcd-grove-authmed2`, branch `auth-mediation` (off lean `d45f8b140e`), agent of
   etcd-grove-03. Perennial pin c44b74871: `--packages=/shared/tmp/manifest-c44.json`,
   `PERENNIAL_DIR=/shared/perennial-c44b74871`. Decisions: `questions.md` (untracked, worktree root).

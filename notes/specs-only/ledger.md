@@ -3502,3 +3502,21 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** Premise: both URL slices of `v` are `nil`. Both callers decode into `new(ConfigChangeContext)`
   and discharge it by `rfl`.
 - **Decision.** Applied (prove-reflectfmt, 2026-11-20; a strengthening of the premise, the callers' obligation discharged).
+
+## 2026-11-21: `txn.Range` takes its request read-only; `rangeStream` rewrites it (auth-mediation M3)
+
+- **Spec.** `txn.Range.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/txn/Range.lean`, frozen, Strict M1) and the
+  response it gives (`txn.rangeResult`, `txn.rangeResponseIs`, `txn.kvIs`).
+- **Defect.** Too weak for a caller that reuses its request: the request is `txn.rangeRequestIs r o`, persistent (every
+  field `↦□`), so once passed it can never be written again. `EtcdServer.rangeStream` (`v3_server.go:198-274`) calls
+  `txn.Range(ctx, lg, kv, r, false)` once per page on the same `r`, writing `r.Limit`, `r.Revision` and `r.Key` between
+  pages. Second, the response's keys are `keySl ↦*□ v.key` with no `ownSliceCap`, and `rangeStream` computes the next
+  page's key as `append(resp.Kvs[len(resp.Kvs)-1].Key, '\x00')`, which writes into that key's capacity when it has
+  room (Perennial's `wp_slice_append*`, persistent variant included, needs `ownSliceCap`). Neither is a Go bug: the
+  key's array is the unmarshalled copy mvcc made for this read, and the appended byte is past the key's length.
+- **Evidence.** The M3 proof attempt (worktree `/shared/etcd-grove-authm3`, branch `auth-mediation-m3`); Perennial
+  `Golang/Theory/Slice.lean:1146-1398`.
+- **Proposed change.** (a) `txn.Range.spec` takes the request at a fraction, the four rewritten fields owned or at
+  `dq`, and gives it back; (b) the response gives `ownSliceCap` of each key (down through mvcc's API spec, where the keys
+  are unmarshalled). Alternatives in `notes/auth-mediation-handoff.md` (M3).
+- **Decision.** Pending (etcd-grove-03).
