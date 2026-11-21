@@ -3162,11 +3162,33 @@ parameter.
   the real code: k8s apimachinery's `apierrors.IsTimeout`/`HasStatusCause` (`errors.As(err, &status)`
   then a field of the status) stay axioms. (See also "`errors.Is`/`errors.As` at non-pointer targets
   and for leaves" above.)
-- **Workaround here.** Their specs stay trust-boundary axioms.
+- **Workaround here.** ~~Their specs stay trust-boundary axioms.~~ Since prove-k8s2 (2026-11-20) the four
+  checks (and `IsTooManyRequests`, `SuggestsClientDelay`) are proved over their bodies, over one narrow
+  local axiom, `errors.AsNoMatch` (`Spec/errors/AsNoMatch.lean`: `false` and the target unchanged for
+  `nil`, a non-matching leaf, or a one-level wrapper unwrapping to one), which also replaced
+  `errors.AsLeafTy` (`notes/axiom-review/asnomatch.md`).
 - **Proposed change.** An `errors.As` spec that, for a leaf error (no `Unwrap`, no `As`), returns `true`
   exactly when the error's dynamic type is the target's element type (or implements it, for an
-  interface target), and then stores the error's value into the target. Status: not proposed (found by
-  the refimpl session, 2026-11-18).
+  interface target), and then stores the error's value into the target; and the no-match walk of
+  `AsNoMatch` (any depth). Status: not proposed (found by the refimpl session, 2026-11-18).
+
+## 2026-11-20: Goose cannot name another package's type alias in a struct field (klog's `Logger`, k8s `watch`'s watchers)
+
+- **Missing.** `typeNameable` (`goose/lean_types.go`) rejects every alias declared in another package
+  ("an alias that is not translated is declared opaque without a descriptor"), even one that package
+  translates (klog's `Logger = logr.Logger`, translated as `Logger.ty := logr.Logger.ty`): a struct
+  with a field of such a type is declared opaque. Function bodies are not affected (client-go's
+  `features` allocates a `klog.Logger` local). `apimachinery/pkg/watch`'s `FakeWatcher` and
+  `RaceFreeFakeWatcher` (`logger klog.Logger`) therefore stay opaque even with klog, logr and `sync`
+  imported, and their `var _ Interface = &FakeWatcher{}` initializers cannot be stepped through.
+- **Needed by.** `Perennial.k8s_io.apimachinery.pkg.watch.opaqueInitsOk` (prove-k8s2's item 4; the
+  package's other initializers, `DefaultChanSize` and the `var _` of `Recorder`, `ProxyWatcher` and
+  `MockWatcher`, translate).
+- **Workaround here.** The axiom stays.
+- **Proposed change.** Goose: name a foreign alias by its target (`types.Unalias`) when the target is
+  nameable (its package imported), in both `typeNameable` and the Lean type of a field; or emit an
+  `abbrev` Lean type for each translated alias and accept foreign aliases whose package translates them.
+  Status: not proposed.
 
 ## 2026-11-19: `wp_slice_make3` does not say the slice is not `nil` (k8s 7g, `toEventReference`)
 

@@ -992,8 +992,9 @@ prometheus_CounterVec__WithLabelValues:
 fmt_SprintfArgs:
 zap_Bool:
 ioutil_NewLimitedBufferReader:
+errors_AsNoMatch:
+errors_AsLeafTy: errors_AsNoMatch
 errors_AsLeaf: errors_AsLeafTy
-errors_AsLeafTy:
 context_TODO:
 v2stats_FollowerStats__Fail:
 context_WithCancelBackground:

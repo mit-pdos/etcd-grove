@@ -255,6 +255,7 @@ public import Proof.context.WithCancelBackground
 public import Proof.context.WithValue
 public import Proof.errors.AsLeaf
 public import Proof.errors.AsLeafTy
+public import Proof.errors.AsNoMatch
 public import Proof.errors.Is
 public import Proof.errors.IsCtxErr
 public import Proof.errors.IsStatusErr
@@ -2057,9 +2058,13 @@ theorem ioutil.wp_NewLimitedBufferReader :
     ioutil.NewLimitedBufferReader.spec (GF := GF) (hG := hG) :=
   ioutil.NewLimitedBufferReader.wp_proof
 
+theorem errors.wp_AsNoMatch :
+    errors.AsNoMatch.spec (GF := GF) (hG := hG) :=
+  errors.AsNoMatch.wp_proof
+
 theorem errors.wp_AsLeafTy :
     errors.AsLeafTy.spec (GF := GF) (hG := hG) :=
-  errors.AsLeafTy.wp_proof
+  errors.AsLeafTy.wp_proof errors.wp_AsNoMatch
 
 theorem errors.wp_AsLeaf :
     errors.AsLeaf.spec (GF := GF) (hG := hG) :=
