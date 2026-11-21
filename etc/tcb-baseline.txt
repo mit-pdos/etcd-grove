@@ -443,11 +443,9 @@ axiom proto.UnmarshalConfChangeV2.wp_proof
 axiom proto.UnmarshalPb.wp_proof
 axiom proto.UnmarshalRole.wp_proof
 axiom proto.UnmarshalUser.wp_proof
-axiom rafthttp.NewRoundTripper.wp_proof
 axiom rafthttp.Transport.ActiveSince.wp_proof
 axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.netErrNotRemoved_ok
-axiom rafthttp.newStreamRoundTripper.wp_proof
 axiom rand.Int63n.wp_proof
 axiom rate.Every.wp_proof
 axiom rate.Limiter.Reserve.wp_proof
@@ -539,6 +537,7 @@ axiom tracing.Span.AddEvent.wp_proof
 axiom tracing.Span.End.wp_proof
 axiom tracing.SpanFromContext.wp_proof
 axiom tracing.Start.wp_proof
+axiom transport.NewTimeoutTransport.wp_proof
 axiom txn.WarnOfExpensiveRequest.wp_proof
 axiom txn.WarnOfFailedRequest.wp_proof
 axiom types.IDFromString.wp_proof
