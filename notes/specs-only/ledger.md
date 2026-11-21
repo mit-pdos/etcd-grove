@@ -3633,3 +3633,19 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   unconditional (the stream codec's `Sz` is `True`, every sender's bundle being bounded; the msgappv2 decoder's post
   `Sz → msgSizeOk c`, heartbeats included).
 - **Decision.** Applied (prove-rafthttpfix, 2026-11-20).
+
+## 2026-11-21: an error's description as the relation `descIs` (errdesc stage 2b)
+
+- **Spec.** `status.Error.spec`, `status.FromError.spec`, `errors.IsStatusErr.spec`, `grpc.model.respond.spec`,
+  `waitRetryBackoff.spec`, `toGRPCErrorMap_init` (axioms); `rpctypes.Error`/`ErrorDesc`, `ContextError`,
+  `Client.shouldRefreshToken`, `isSafeRetry`, `isSafeRetryMutableRPC`, the handler specs, `fmt.ErrorfWrap`
+  (proved); the contracts `grpcInvokerOk`, `grpcMethodOkMd`, `grpcDecOk`, `srvInterceptorOk`.
+- **Defect.** The description was the pure `errDesc : GoInterface → GoString`, fixed by `status.Error`'s post at a
+  pointer it allocates: unsatisfiable (`notes/errdesc-ghost-plan.md` §0).
+- **Evidence.** `notes/axiom-review/ctx-descs.md`, etcd-refimpl `README.md` "Findings".
+- **Proposed change.** `descIs err m` as in SpecPlan's direction (`errView`/`descIs`), the description a parameter
+  `m` fixed in the precondition; posts `∃ m, descIs err m ∗ …`. Convergence: this tree keeps `statusCodeIs` and
+  `descIs` separate where SpecPlan has one `errView err c m ok`; `IsStatusErr` takes the descriptions optionally
+  (`isDescs`, `dm : Option`), SpecPlan's takes them always.
+- **Decision.** Applied (prove-errdesc2b, 2026-11-21; `notes/decisions.md`, "An error's description as a per-run
+  relation").

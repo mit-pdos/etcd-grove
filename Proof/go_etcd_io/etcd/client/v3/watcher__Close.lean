@@ -58,8 +58,8 @@ theorem watcher.Close.wp_proof
     wp_call
     try simp only [show (null : Loc) = map.nil from rfl, _root_.decide_true]
     wp_auto
-    wp_apply wp_Is e (GoInterface.ok ce) (Or.inr (Or.inl ⟨ce, rfl, Hcep⟩)) $$ [] as %bIs -
-    · iframe #
+    wp_apply wp_Is e (GoInterface.ok ce) none (Or.inr (Or.inl ⟨ce, rfl, Hcep⟩)) $$ [] as %bIs -
+    · iframe #; try iapply go_etcd_io.etcd.cache.v3.isDescs_none
     cases bIs <;> (wp_auto; iapply HΦ; itrivial)
   · wp_func_lits
     wp_bind (App (App (Val (map.forRange _ _)) _) _)
@@ -96,8 +96,8 @@ theorem watcher.Close.wp_proof
         iframe; iframe #
     iintro ⟨%v, %e, Hws, err, #Hse⟩ HM
     wp_auto
-    wp_apply wp_Is e (GoInterface.ok ce) (Or.inr (Or.inl ⟨ce, rfl, Hcep⟩)) $$ [] as %bIs -
-    · iframe #
+    wp_apply wp_Is e (GoInterface.ok ce) none (Or.inr (Or.inl ⟨ce, rfl, Hcep⟩)) $$ [] as %bIs -
+    · iframe #; try iapply go_etcd_io.etcd.cache.v3.isDescs_none
     cases bIs <;> (wp_auto; iapply HΦ; itrivial)
 
 end proof

@@ -70,7 +70,7 @@ theorem kv.Do.wp_generic
       iunfold sortNamesOk at Hsn'
       icases Hsn' with ⟨⟨%e, #He, %Hev, #Hse, #Hcl⟩, -, -⟩
       wp_auto
-      ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
+      ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_descIs _ $$ Hse
       wp_apply wp_ContextError ci cd e mC $$ [$Hse $HmC] as %err' ⟨%Herr', #Hse', #Hclw, -⟩
       · iframe #; ipureintro; exact fun _ => Hev.2
       ihave #Hcl' := Hclw $$ Hcl
@@ -118,20 +118,20 @@ theorem kv.Do.wp_generic
       | nil => exact absurd rfl Hne
       | ok ei =>
         wp_auto
-        ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
-        wp_apply wp_ContextError ci cd (GoInterface.ok ei) mC $$ [$Hse $HmC] as %err' ⟨%Herr', #Hse', #Hclw, #Hd', -⟩
+        ihave Heo1 := Heo $$ %(by simp)
+        iunfold ifcErrOut at Heo1
+        icases Heo1 with ⟨%d, #Hd, Heo1⟩
+        wp_apply wp_ContextError ci cd (GoInterface.ok ei) d $$ [$Hse $Hd] as %err' ⟨%Herr', #Hse', #Hclw, #Hd', -⟩
         · iframe #; ipureintro; exact fun _ => Hce'
         ihave #Hcl' := Hclw $$ Hcl
         iapply HΦ
-        isplitl [Heo]
-        · icases Hd' with (%hd | #hctx)
-          · rcases hd with hd | hd
+        isplitl [Heo1]
+        · icases Hd' with (Hd' | #hctx)
+          · icases Hd' with (%hd | #Hd2)
             · exact absurd hd (by simp)
             iright
             iintro -
-            iapply (ifcErrOut_desc _ _ _ _ _ (Or.inl hd))
-            iapply Heo
-            ipureintro; simp
+            iapply (ifcErrOut_intro _ _ _ _ d) $$ Hd2 Heo1
           · ileft; iexact hctx
         unfold doOut
         simp only [Ht, ↓reduceIte]
@@ -184,7 +184,7 @@ theorem kv.Do.wp_generic
       | nil => exact absurd rfl Hne
       | ok ei =>
         wp_auto
-        ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
+        ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_descIs _ $$ Hse
         wp_apply wp_ContextError ci cd (GoInterface.ok ei) mC $$ [$Hse $HmC] as %err' ⟨%Herr', #Hse', #Hclw, -⟩
         · iframe #; ipureintro; exact fun _ => Hce'
         ihave #Hcl' := Hclw $$ Hcl
@@ -243,7 +243,7 @@ theorem kv.Do.wp_generic
       | nil => exact absurd rfl Hne
       | ok ei =>
         wp_auto
-        ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
+        ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_descIs _ $$ Hse
         wp_apply wp_ContextError ci cd (GoInterface.ok ei) mC $$ [$Hse $HmC] as %err' ⟨%Herr', #Hse', #Hclw, -⟩
         · iframe #; ipureintro; exact fun _ => Hce'
         ihave #Hcl' := Hclw $$ Hcl

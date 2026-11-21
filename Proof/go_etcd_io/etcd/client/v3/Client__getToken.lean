@@ -155,7 +155,8 @@ theorem Client.getToken.wp_proof
     | nil => exact absurd rfl Hne
     | ok ei =>
       wp_auto
-      wp_apply (wp_Is (GoInterface.ok ei) _ (Or.inl ⟨xan, rfl⟩)) $$ [$Hpe $Hse] as %bi %Hbi
+      wp_apply (wp_Is (GoInterface.ok ei) _ none (Or.inl ⟨xan, rfl⟩)) $$ [$Hpe $Hse] as %bi %Hbi
+      · iapply go_etcd_io.etcd.cache.v3.isDescs_none
       cases bi
       · -- another error: returned
         wp_auto

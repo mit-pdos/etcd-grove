@@ -257,9 +257,9 @@ theorem EtcdServer.PromoteMember.wp_proof
       rotate_left
       · ihave #Hso : go_etcd_io.etcd.cache.v3.statusErrOk (GF := GF) GoInterface.nil $$ []
         · iunfold go_etcd_io.etcd.cache.v3.statusErrOk; iintro !> %e %h; cases h
-        wp_apply (hIsS GoInterface.nil (GoInterface.ok eD) (Or.inr (Or.inr ⟨eD, rfl, HlD.2.2.2.1⟩)))
+        wp_apply (hIsS GoInterface.nil (GoInterface.ok eD) none (Or.inr (Or.inr ⟨eD, rfl, HlD.2.2.2.1⟩)))
           $$ [] as %b1 -
-        · iframe #
+        · iframe #; try iapply go_etcd_io.etcd.cache.v3.isDescs_none
         (try wp_auto)
         cases b1 with
         | true => promote_err HeToE

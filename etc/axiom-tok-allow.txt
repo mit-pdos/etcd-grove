@@ -86,7 +86,6 @@ trunc Perennial.EtcdGrove.EtcdServer.monitorStorageVersion.wp_proof
 trunc Perennial.EtcdGrove.EtcdServer.publishV3.wp_proof
 trunc Perennial.EtcdGrove.EtcdServer.waitLeader.wp_proof
 trunc Perennial.EtcdGrove.appsv1.DaemonSet.DeepCopyObject.wp_proof
-trunc Perennial.EtcdGrove.context.WithTimeoutBackgroundMd.wp_proof
 trunc Perennial.EtcdGrove.context.WithValue.wp_proof
 trunc Perennial.EtcdGrove.corev1.Node.DeepCopyObject.wp_proof
 trunc Perennial.EtcdGrove.corev1.Pod.DeepCopyObject.wp_proof

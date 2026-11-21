@@ -41498,3 +41498,32 @@ status's code) with `statusErrOk_code`. `status.FromError` takes `∀ c`, pre `s
 `Code()` returns `c`; `status.Status.Code` takes `statusAt s c m`; `isHaltErr`'s post gives the code
 through `statusCodeIs`. Axioms restated: `status.FromError`, `status.Status.Code` (and `status.Code`'s,
 `status.Error`'s meaning through `statusErrOk`); none added. The message (`errDesc`) is stage 2b.
+
+## An error's description as a per-run relation (2026-11-21 · the user's soundness fix · branch `prove-errdesc2b/2026-11-21`, stage 2b)
+
+**Supersedes:** D29's "the description is a function of the error" (`errDesc : GoInterface → GoString`),
+"`errDesc` in a module of its own", and the fromerror-wand entry's `⌜ok = false → errDesc err = m⌝`.
+
+**Why.** As for the outgoing metadata (stage 1) and the status code (stage 2a): `errDesc` was a fixed function
+of an error value, and `status.Error`'s post (`errDesc err = msg` of the pointer it allocates) and
+`status.FromError`'s (`Message()` returns `errDesc err`) could be met by no implementation.
+
+**Decision** (`notes/errdesc-ghost-plan.md` §8): `descIs err m` (nil: `""`; an `EtcdError` value: its `desc`,
+a fact of a pointer-free value; otherwise its stable `Error()` or its read-only status's message), with no
+agreement law. Axioms restated, none added: `status.Error` (post `descIs err msg`), `status.FromError` (pre
+`descIs err m`, `Message()` returns `m`), `errors.IsStatusErr` (pre `isDescs err target dm`; post
+`b → (∀ m m', dm = some (m, m') → err = target ∨ m = m') ∧ T3`), `grpc.model.respond` (pre
+`handlerErrOut Ψe err`), `waitRetryBackoff` (post `err = nil ∨ notHandlerErr err`),
+`v3rpc.toGRPCErrorMap_init` (`grpcErrMapOk` an `IProp`), and through their definitions `ClientConn.Invoke`
+(`grpcInvokerOk`), `status.Code`/`errors.Is` (`grpcErrMethodsOk`'s `Is` clause). `rpctypes.errDesc_etcdError`
+is gone (−1 axiom; `descIs_etcdError` is definitional).
+
+**One strengthening of a trusted post** (`grpcInvokerOk`, hence `ClientConn.Invoke`): the invoker's error
+satisfies `notLearnerErr err` (it is not `rpctypes.ErrGRPCNotSupportedForLearner`'s value). Needed because
+`isSafeRetry`'s `errors.Is(err, ErrGRPCNotSupportedForLearner)` is `true` of that value by `==`, and without
+agreement the invoker's description of `err` (no refusal) could not exclude it. True of grpc-go v1.84: the
+bare invoker's errors are built by grpc (`status.FromProto(...).Err()`, `status.FromContextError`, a fresh
+`*status.Error` each), or `io.EOF` or the context's error; grpc imports no etcd package, so never returns its
+variable. Not a new axiom; a fact added to an existing axiom's post.
+
+**Top-level statements**: none names `errDesc`; their texts are unchanged (only the definitions above moved).

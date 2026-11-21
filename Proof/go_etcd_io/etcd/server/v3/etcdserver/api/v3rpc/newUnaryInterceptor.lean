@@ -60,7 +60,7 @@ local macro "error_return" e:term : tactic => `(tactic| (
   icases Hk with ⟨-, Hk⟩;
   iapply Hk $$ [] %(GoInterface.ok $e);
   · itrivial
-  · ipureintro; exact ⟨fun h => (by cases h), (by simp only [handlerDescs, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false, not_or]; assumption)⟩
+  · unfold notHandlerErr handlerDescs; iassumption
   iassumption))
 
 theorem v3rpc.newUnaryInterceptor.wp_proof
@@ -96,7 +96,7 @@ theorem v3rpc.newUnaryInterceptor.wp_proof
   -- (k8s etcd3 7c-2 part 2, S7) none of them is a read error
   ihave #Prt : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []
   · iPkgInit
-  ihave ⟨⟨%aNC, #HaNC, %DNC⟩, ⟨%aNL, #HaNL, %DNL⟩, ⟨%aIV, #HaIV, %DIV⟩, ⟨%aNoL, #HaNoL, %DNoL⟩⟩ :=
+  ihave ⟨⟨%aNC, #HaNC, #DNC⟩, ⟨%aNL, #HaNL, #DNL⟩, ⟨%aIV, #HaIV, #DIV⟩, ⟨%aNoL, #HaNoL, #DNoL⟩⟩ :=
     go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.interceptorErrsNotRead $$ Prt
   icombine HeNC HaNC gives %QNC
   icombine HeNL HaNL gives %QNL
@@ -120,7 +120,7 @@ theorem v3rpc.newUnaryInterceptor.wp_proof
   · wp_auto
     icases Hk with ⟨-, Hk⟩
     iapply Hk $$ HR %(GoInterface.ok eNC) [] SeNC
-    ipureintro; exact ⟨fun h => (by cases h), (by simp only [handlerDescs, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false, not_or]; assumption)⟩
+    unfold notHandlerErr handlerDescs; iassumption
   wp_auto
   irename : (req_ptr ↦ req : IProp GF) => Hreqp
   ipersist Hreqp
@@ -130,7 +130,7 @@ theorem v3rpc.newUnaryInterceptor.wp_proof
           {{ v, ∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
             go_etcd_io.etcd.cache.v3.srvErrOk err ∗ True ∗ (True -∗ Ψ v) }}) ∧
         (True -∗ ∀ err : GoInterface,
-          ⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.errDesc err ∉ handlerDescs⌝ -∗
+          notHandlerErr err -∗
           go_etcd_io.etcd.cache.v3.srvErrOk err -∗ Ψ (PairV #GoInterface.nil #err)))) ∨
       ∃ e : GoInterface, ⌜v = returnVal #()⌝ ∗ «$res0_ptr» ↦ GoInterface.nil ∗
         «$res1_ptr» ↦ e ∗ Ψ (PairV #GoInterface.nil #e))) at next with [HR Hk «$res0» «$res1»]
@@ -159,7 +159,7 @@ theorem v3rpc.newUnaryInterceptor.wp_proof
       · ipureintro; rfl
       icases Hk with ⟨-, Hk⟩
       iapply Hk $$ HR %(GoInterface.ok eNL) [] SeNL
-      ipureintro; exact ⟨fun h => (by cases h), (by simp only [handlerDescs, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false, not_or]; assumption)⟩
+      unfold notHandlerErr handlerDescs; iassumption
     · wp_auto
       ileft; iframe; ipureintro; rfl
   rename_i v

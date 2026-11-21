@@ -177,8 +177,7 @@ theorem wp_unaryHandlerOwnMd (h : GoString) (srvTy reqTy repTy : go.GoType) (met
   {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗ ([∗list] R ∈ Rs, R) ∗
       (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
         ⌜resp = interface.mkOk (go.GoType.PointerType Rep.ty) #l⌝ ∗ Rep.send l m' ∗ Φ m') ∗
-      (⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.errDesc err ∈ handlerDescs⌝ -∗
-        Ψe (go_etcd_io.etcd.cache.v3.errDesc err)) ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }} := by
+      handlerErrOut Ψe err ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }} := by
   intro Req Rep Spec srv S ics Rs Q m Φ' Ψe ci cd dec ui hReq hRep hsrv
   wp_start as ⟨#Hblank, #Hh, #Hics, #HQ, HS, HRs, #Hctx, #Hrc, #Hdec, #Hchain, HSpec⟩
   wp_auto
@@ -189,7 +188,7 @@ theorem wp_unaryHandlerOwnMd (h : GoString) (srvTy reqTy repTy : go.GoType) (met
   iapply Hd2 $$ Hb
   inext
   iintro %err Herr
-  icases Herr with (⟨%Herr, #Hr, Ho⟩ | ⟨%Herr, #Hse0⟩)
+  icases Herr with (⟨%Herr, #Hr, Ho⟩ | ⟨#Hnh, #Hse0⟩)
   all_goals try ihave #Hse := go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk _ $$ Hse0
   · subst Herr
     wp_auto
@@ -261,18 +260,19 @@ theorem wp_unaryHandlerOwnMd (h : GoString) (srvTy reqTy repTy : go.GoType) (met
           iexists resp, m'
           iframe
           ipureintro; rw [hRep]
-        · iintro HRs %err' %Herr' #Hse
+        · iintro HRs %err' #Hnh' #Hse
+          ihave %Hne' := go_etcd_io.etcd.cache.v3.notDescIn_ne _ _ $$ Hnh'
           wp_auto
           iapply HΦ
           iframe
           iframe Hse
           isplitl
           · iintro %Hc
-            exact absurd Hc Herr'.1
-          · iintro %Hd
-            exact absurd Hd.2 Herr'.2
-  · cases err with
-    | nil => exact absurd rfl Herr.1
+            exact absurd Hc Hne'
+          · iapply handlerErrOut_not $$ Hnh'
+  · ihave %Hne := go_etcd_io.etcd.cache.v3.notDescIn_ne _ _ $$ Hnh
+    cases err with
+    | nil => exact absurd rfl Hne
     | ok ei =>
       wp_auto
       iapply HΦ
@@ -281,8 +281,7 @@ theorem wp_unaryHandlerOwnMd (h : GoString) (srvTy reqTy repTy : go.GoType) (met
       isplitl
       · iintro %Hc
         cases Hc
-      · iintro %Hd
-        exact absurd Hd.2 Herr.2
+      · iapply handlerErrOut_not $$ Hnh
 
 /-- **A generated unary handler `h` (body `unaryHandlerImpl srvTy reqTy repTy meth fullMethod`)
 meets the metadata-indexed handler spec** (from `wp_unaryHandlerOwnMd`) (the statement of `_KV_Put_Handler.spec`, at any method): for a service
@@ -311,8 +310,7 @@ theorem wp_unaryHandlerMd (h : GoString) (srvTy reqTy repTy : go.GoType) (meth f
   {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗ ([∗list] R ∈ Rs, R) ∗
       (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
         ⌜resp = interface.mkOk (go.GoType.PointerType Rep.ty) #l⌝ ∗ Rep.send l m' ∗ Φ m') ∗
-      (⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.errDesc err ∈ handlerDescs⌝ -∗
-        Ψe (go_etcd_io.etcd.cache.v3.errDesc err)) ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }} := by
+      handlerErrOut Ψe err ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }} := by
   intro Req Rep Spec srv S ics Rs Q m Φ' Ψe ci cd dec ui hReq hRep hsrv
   iintro %Φ ⟨#Pk, #Hb, #Hh, #Hics, #HQ, HS, HRs, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΦ
   ihave #Hh' := grpcHandlerOkMd_own _ iprop(S ∗ [∗list] R ∈ Rs, R) Spec $$ Hh

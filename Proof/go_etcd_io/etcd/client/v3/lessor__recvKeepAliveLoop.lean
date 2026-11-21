@@ -106,7 +106,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
         · iframe #
         cases b
         · (try wp_auto)
-          ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
+          ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_descIs _ $$ Hse
           wp_apply wp_ContextError sc scd (GoInterface.ok rei) mC $$ [] as %err' ⟨%Herr', #Hse', -, -⟩
           · iframe #; ipureintro; exact fun _ => Hce.2
           (try wp_auto)
@@ -114,8 +114,8 @@ theorem lessor.recvKeepAliveLoop.wp_proof
           · iPkgInit
           ihave ⟨%xnl, #Hnl⟩ := errNoLeader_of_init $$ Hrp
           (try wp_auto)
-          wp_apply (wp_Is err' _ (Or.inl ⟨xnl, rfl⟩)) $$ [] as %bnl -
-          · iframe #
+          wp_apply (wp_Is err' _ none (Or.inl ⟨xnl, rfl⟩)) $$ [] as %bnl -
+          · iframe #; try iapply go_etcd_io.etcd.cache.v3.isDescs_none
           cases bnl
           · (try wp_auto)
             wp_for_post
@@ -418,7 +418,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
         · iframe #
         cases b
         · (try wp_auto)
-          ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
+          ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_descIs _ $$ Hse
           wp_apply wp_ContextError sc scd (GoInterface.ok rei) mC $$ [] as %err' ⟨%Herr', #Hse', -, -⟩
           · iframe #; ipureintro; exact fun _ => Hce.2
           (try wp_auto)
@@ -426,8 +426,8 @@ theorem lessor.recvKeepAliveLoop.wp_proof
           · iPkgInit
           ihave ⟨%xnl, #Hnl⟩ := errNoLeader_of_init $$ Hrp
           (try wp_auto)
-          wp_apply (wp_Is err' _ (Or.inl ⟨xnl, rfl⟩)) $$ [] as %bnl -
-          · iframe #
+          wp_apply (wp_Is err' _ none (Or.inl ⟨xnl, rfl⟩)) $$ [] as %bnl -
+          · iframe #; try iapply go_etcd_io.etcd.cache.v3.isDescs_none
           cases bnl
           · (try wp_auto)
             wp_for_post

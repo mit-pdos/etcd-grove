@@ -293,7 +293,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BwatchSendLoopProgressDuration as %cwatchSendLoopProgressDuration ⟨#CwatchSendLoopProgressDuration, %NwatchSendLoopProgressDuration⟩
   try wp_auto
   iunfold EtcdGrove.prometheus.metric.histSpec at CwatchSendLoopProgressDuration
-  wp_apply toGRPCErrorMap_init as ⟨%mptoGRPCErrorMap, %MtoGRPCErrorMap, %kftoGRPCErrorMap, %kctoGRPCErrorMap, HtoGRPCErrorMap, #StoGRPCErrorMap, #FtoGRPCErrorMap, #CtoGRPCErrorMap, #VtoGRPCErrorMap, #KtoGRPCErrorMap, %PtoGRPCErrorMap⟩
+  wp_apply toGRPCErrorMap_init as ⟨%mptoGRPCErrorMap, %MtoGRPCErrorMap, %kftoGRPCErrorMap, %kctoGRPCErrorMap, HtoGRPCErrorMap, #StoGRPCErrorMap, #FtoGRPCErrorMap, #CtoGRPCErrorMap, #VtoGRPCErrorMap, #KtoGRPCErrorMap, #PtoGRPCErrorMap⟩
   -- translated initializer of progressReportInterval))
   -- the translated init.«0»
   wp_func_call
@@ -378,14 +378,14 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
     · iexists _; iframe Hxc
       ihave %hs := KtoGRPCErrorMap $$ %_root_.Perennial.context.Canceled %_ %(by mem_tac) Hxc
       obtain ⟨v, hv⟩ := Option.isSome_iff_exists.1 hs
-      obtain ⟨-, -, -, h1, h2⟩ := PtoGRPCErrorMap.1 _ _ hv
-      ipureintro; exact ⟨h1, h2⟩
+      ihave ⟨%m1, #D1, %h1⟩ := grpcErrMapOk_key $$ PtoGRPCErrorMap %hv
+      iexists m1; iframe D1; ipureintro; exact h1
     · iexists _; iframe HDeadlineExceededTy
       ihave %hs := KtoGRPCErrorMap $$ %_root_.Perennial.context.DeadlineExceeded %_ %(by mem_tac)
         HDeadlineExceededTy
       obtain ⟨v, hv⟩ := Option.isSome_iff_exists.1 hs
-      obtain ⟨-, -, -, h1, h2⟩ := PtoGRPCErrorMap.1 _ _ hv
-      ipureintro; exact ⟨h1, h2⟩
+      ihave ⟨%m1, #D1, %h1⟩ := grpcErrMapOk_key $$ PtoGRPCErrorMap %hv
+      iexists m1; iframe D1; ipureintro; exact h1
   ihave #HCP : (∃ e : GoInterfaceOk, globalAddr _root_.Perennial.context.Canceled ↦□ GoInterface.ok e ∗
       ⌜_root_.Perennial.errors.IsPointerError e⌝ : IProp GF) $$ []
   · iunfold EtcdGrove.errVarLeaf at HCL
@@ -473,8 +473,6 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   imodintro
   unfold v3rpcInit EtcdGrove.v3rpc.watchPkgVars grpcErrMap checkErrVars sortNameMaps ctxCanceledPtr ctxErrDescs interceptorVars errVarSet EtcdGrove.v3rpc.metricsVars
   iframe #
-  ipureintro
-  exact PtoGRPCErrorMap
 
 /-- Perennial's form with the rights to register the closure's metric names (decision D16),
 from `wp_initialize'_res`. -/

@@ -87,12 +87,12 @@ values are errors grpc's `status` accepts, each under its description (`rpctypes
 abbrev EtcdGrove.rpctypesErrMapInv (mref : Loc) (M : GMap GoString GoInterface) : IProp GF :=
   iprop(mref ↦$ M ∗
     (□ ∀ (k : GoString) (v : GoInterface), ⌜M !! k = some v⌝ → go_etcd_io.etcd.cache.v3.statusErrOk v) ∗
-    ⌜∀ (k : GoString) (v : GoInterface), M !! k = some v → go_etcd_io.etcd.cache.v3.errDesc v = k⌝)
+    (□ ∀ (k : GoString) (v : GoInterface), ⌜M !! k = some v⌝ → go_etcd_io.etcd.cache.v3.descIs v k))
 
 theorem EtcdGrove.rpctypes_errMapInv_elim (mref : Loc) (M : GMap GoString GoInterface) :
     (EtcdGrove.rpctypesErrMapInv mref M : IProp GF) ⊢ mref ↦$ M ∗
       (□ ∀ (k : GoString) (v : GoInterface), ⌜M !! k = some v⌝ → go_etcd_io.etcd.cache.v3.statusErrOk v) ∗
-      ⌜∀ (k : GoString) (v : GoInterface), M !! k = some v → go_etcd_io.etcd.cache.v3.errDesc v = k⌝ := by
+      (□ ∀ (k : GoString) (v : GoInterface), ⌜M !! k = some v⌝ → go_etcd_io.etcd.cache.v3.descIs v k) := by
   iintro H; iexact H
 
 theorem EtcdGrove.rpctypes_errMapInv_empty (mref : Loc) :
@@ -102,17 +102,18 @@ theorem EtcdGrove.rpctypes_errMapInv_empty (mref : Loc) :
   iframe Hm
   isplitr
   · iintro !> %k %v %h; simp at h
-  · ipureintro; intro k v h; simp at h
+  · iintro !> %k %v %h; simp at h
 
 /-- (prove-rpcmap) Inserting an error grpc's `status` accepts under its description. -/
-theorem EtcdGrove.rpctypes_wp_errMapInsert (mref : Loc) (M : GMap GoString GoInterface) (e : GoInterfaceOk) :
-    {{ (EtcdGrove.rpctypesErrMapInv mref M : IProp GF) ∗ go_etcd_io.etcd.cache.v3.statusErrOk (GoInterface.ok e) }}
+theorem EtcdGrove.rpctypes_wp_errMapInsert (mref : Loc) (M : GMap GoString GoInterface) (e : GoInterfaceOk)
+    (d : GoString) :
+    {{ (EtcdGrove.rpctypesErrMapInv mref M : IProp GF) ∗ go_etcd_io.etcd.cache.v3.statusErrOk (GoInterface.ok e) ∗
+        go_etcd_io.etcd.cache.v3.descIs (GoInterface.ok e) d }}
       (App (App (App (Val (map.insert go.string)) (Val #mref))
-        (Val #(go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e)))) (Val #(GoInterface.ok e)))
-    {{ RET #(); EtcdGrove.rpctypesErrMapInv mref
-        (<[go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e) := GoInterface.ok e]> M) }} := by
-  wp_start_folded as ⟨Hinv, #Hok⟩
-  ihave ⟨Hm, #HS, %HD⟩ := EtcdGrove.rpctypes_errMapInv_elim _ _ $$ Hinv
+        (Val #d)) (Val #(GoInterface.ok e)))
+    {{ RET #(); EtcdGrove.rpctypesErrMapInv mref (<[d := GoInterface.ok e]> M) }} := by
+  wp_start_folded as ⟨Hinv, #Hok, #Hd⟩
+  ihave ⟨Hm, #HS, #HD⟩ := EtcdGrove.rpctypes_errMapInv_elim _ _ $$ Hinv
   wp_apply (wp_mapInsert (K := GoString) (V := GoInterface) go.string) $$ Hm as Hm
   iapply HΦ
   unfold EtcdGrove.rpctypesErrMapInv
@@ -122,10 +123,10 @@ theorem EtcdGrove.rpctypes_wp_errMapInsert (mref : Loc) (M : GMap GoString GoInt
     rcases EtcdGrove.rpctypes_lookup_insert_some h with ⟨-, rfl⟩ | h
     · iexact Hok
     · iapply HS; ipureintro; exact h
-  · ipureintro; intro k v h
+  · iintro !> %k %v %h
     rcases EtcdGrove.rpctypes_lookup_insert_some h with ⟨rfl, rfl⟩ | h
-    · rfl
-    · exact HD k v h
+    · iexact Hd
+    · iapply HD; ipureintro; exact h
 
 end rpcmap
 
