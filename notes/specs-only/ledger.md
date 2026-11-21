@@ -3615,6 +3615,23 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Decision.** Decided by etcd-grove-03 (2026-11-21: a stronger proved spec); the `G` frame on `chk`, the obvious
   filling (a weaker requirement on the caller's `chk`), decided by the M3 agent.
 
+## 2026-11-21: the request's readers take it read-only; the streamed request is owned (auth-mediation M3)
+
+- **Spec.** `RangeRequest.GetKey.spec`, `GetLimit.spec`, `GetRevision.spec` (`Spec/go_etcd_io/etcd/api/v3/etcdserverpb/`),
+  `txn.HasRevisionFilters.spec`, `v3rpc.checkRangeRequest.spec`, `v3rpc.checkRangeStreamRequest.spec`.
+- **Defect.** Too strong a precondition: each takes the request's `Key`/`Limit`/`Revision` fields read-only (`↦□`,
+  `txn.rangeRequestIs`), though it only reads them; `EtcdServer.RangeStream` and `kvServer.RangeStream` own those three
+  fields (`rangeRequestOwn`: `rangeStream` rewrites them between pages) and cannot call them.
+- **Evidence.** The M3 proofs of `EtcdServer.RangeStream` and `kvServer.RangeStream` (worktree
+  `/shared/etcd-grove-authm3fix`).
+- **Proposed change.** The getters at any fraction `dq` of their field, given back; the three readers over
+  `txn.rangeRequestAt r dq o` (`txn/RequestAt.lean`: `rangeRequestIs` with the three fields at `dq`;
+  `rangeRequestIs_at`, `rangeRequestOwn_at` give the two ends by `rfl`), given back. Stronger specs; the callers at
+  `DFrac.discard` (`Range`, `firstOpKey`, `kvServer.Range`, `checkRequestOp_of`, `rangeLimit`) convert.
+  `SpecPlan`'s getters already take `↦{dq}` (`rangeReqOwn p dq r`).
+- **Decision.** Decided by the M3 agent (a stronger internal proved spec, its callers in the branch; reported to
+  etcd-grove-03 under "Forms decided").
+
 ## 2026-11-21: an admin request refused at apply names no reason at the proposer (auth-mediation M4)
 
 - **Spec.** `adminTieAr` (`Proof/.../etcdserver/KVAuthModel.lean`), through `resultIsWOn`/`resPostM` (the waiter's and

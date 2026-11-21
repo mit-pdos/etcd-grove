@@ -1,6 +1,8 @@
 /-
 `etcdserverpb.RangeRequest.GetLimit()` (`api/etcdserverpb/rpc.pb.go`, translated for the server's request
-path: the read side's trace attributes, unit 3b). Lean-first (no Rocq counterpart).
+path: the read side's trace attributes, unit 3b). Lean-first (no Rocq counterpart). At any fraction
+`dq` of the field, given back (auth-mediation M3, 2026-11-21: `EtcdServer.RangeStream` reads the field
+it owns; was `↦□`).
 -/
 module
 
@@ -23,11 +25,11 @@ variable [sem : go.Semantics]
 
 /-- `p.GetLimit()` on a non-nil `*RangeRequest` returns its `Limit` field. -/
 abbrev RangeRequest.GetLimit.spec : Prop :=
-  ∀ (p : Loc) (v : w64),
+  ∀ (p : Loc) (v : w64) (dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ ⌜p ≠ null⌝ ∗
-      structFieldRef etcdserverpb.RangeRequest go!"Limit" p ↦□ v }}
+      structFieldRef etcdserverpb.RangeRequest go!"Limit" p ↦{dq} v }}
     (App (Val (p @!! go.GoType.PointerType etcdserverpb.RangeRequest.ty @!! go!"GetLimit")) (Val #()))
-  {{ RET #v; True }}
+  {{ RET #v; structFieldRef etcdserverpb.RangeRequest go!"Limit" p ↦{dq} v }}
 
 end spec
 

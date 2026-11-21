@@ -60,7 +60,7 @@ namespace github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup
   #(W64 1)
 
 @[reducible] noncomputable def grantTTL [GooseExts] [GoGlobalContext] : val :=
-  #(3600 : Int)
+  #(9000000000 : Int)
 
 @[reducible] noncomputable def fillers [GooseExts] [GoGlobalContext] : val :=
   #(20 : Int)
@@ -101,7 +101,7 @@ noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
 /-- config is the cluster's (cluster3.Config): its token, member names and addresses, and snapshot
     settings.
 
-    go: leasecatchup.go:81:6 -/
+    go: leasecatchup.go:85:6 -/
 noncomputable def config.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config.ty))) (Val #())))
@@ -131,7 +131,7 @@ noncomputable def config.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- grant grants a lease of TTL grantTTL through cli, in a context with the request timeout.
 
-    go: leasecatchup.go:93:6 -/
+    go: leasecatchup.go:97:6 -/
 noncomputable def grant.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cli"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseGrantResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseGrantResponse.ty)))) (Val #())))
@@ -185,7 +185,7 @@ noncomputable def grant.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- leases lists the leases of cli's member, in a context with the request timeout.
 
-    go: leasecatchup.go:101:6 -/
+    go: leasecatchup.go:105:6 -/
 noncomputable def leases.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cli"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseLeasesResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseLeasesResponse.ty)))) (Val #())))
@@ -238,7 +238,7 @@ noncomputable def leases.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- listed says whether the listing ls has the lease id.
 
-    go: leasecatchup.go:109:6 -/
+    go: leasecatchup.go:113:6 -/
 noncomputable def listed.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ls"
   (Lam "id"
@@ -278,7 +278,7 @@ noncomputable def listed.impl [GooseExts] [GoGlobalContext] : val :=
     cuts member 3 off, grants the fillers through member 1, mends the links, waits for member 3 to
     list the last filler and checks that it lists the first lease too.
 
-    go: leasecatchup.go:122:6 -/
+    go: leasecatchup.go:126:6 -/
 noncomputable def run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
@@ -531,7 +531,7 @@ noncomputable def run.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Main runs the example (run) with no logging.
 
-    go: leasecatchup.go:180:6 -/
+    go: leasecatchup.go:184:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)

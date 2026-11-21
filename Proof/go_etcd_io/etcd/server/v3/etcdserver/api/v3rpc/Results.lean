@@ -2288,7 +2288,7 @@ variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 theorem clientPortTable_ok :
     ∀ r ∈ v3rpc.clientPortTable (GF := GF) (hG := hG), r.status.proved = true → r.specs :=
   List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.EtcdServer.wp_doSerialize, _root_.Perennial.EtcdGrove.EtcdServer.wp_Range, _root_.Perennial.EtcdGrove.v3rpc.kvServer.wp_Range⟩,
-    List.forall_mem_cons.2 ⟨fun h => absurd h (by decide),
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.EtcdServer.wp_doSerialize, _root_.Perennial.EtcdGrove.EtcdServer.wp_RangeStream, _root_.Perennial.EtcdGrove.v3rpc.kvServer.wp_RangeStream⟩,
     List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.apply.wp_checkPutAuth, _root_.Perennial.EtcdGrove.apply.authApplierV3.wp_Put, _root_.Perennial.EtcdGrove.EtcdServer.wp_Put⟩,
     List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.apply.authApplierV3.wp_DeleteRange, _root_.Perennial.EtcdGrove.EtcdServer.wp_DeleteRange⟩,
     List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.apply.wp_CheckTxnAuth, _root_.Perennial.EtcdGrove.apply.authApplierV3.wp_Txn, _root_.Perennial.EtcdGrove.EtcdServer.wp_Txn⟩,
@@ -2410,6 +2410,7 @@ end v3rpc
 #print axioms Perennial.EtcdGrove.v3rpc.kvServer.wp_Txn
 #print axioms Perennial.EtcdGrove.v3rpc.wp_NewKVServer
 #print axioms Perennial.EtcdGrove.v3rpc.headerFillingRangeStream.wp_Send
+#print axioms Perennial.EtcdGrove.v3rpc.kvServer.wp_RangeStream
 #print axioms Perennial.EtcdGrove.v3rpc.wp_checkRangeStreamRequest
 #print axioms Perennial.EtcdGrove.v3rpc.wp_togRPCError
 #print axioms Perennial.EtcdGrove.v3rpc.put_end_to_end

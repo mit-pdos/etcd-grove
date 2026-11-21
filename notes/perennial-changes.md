@@ -529,7 +529,19 @@ dispatching `update` (in place of `Update`, which calls it): mvcc's hasher is pr
   invariant `bodyStream rd Pre Φ r ⊢ ⌜Pre r⌝`. `http.NewBuffer_ok` and `http.readerHas_nil` are
   theorems (`readerHas` defined over `bytes.ownBuffer`).
 
-### Operations on untyped rune constants have no step (2026-11-13, WAL leaf specs, branch `wal-leaf-std2`)
+### Operations on untyped rune constants have no step (2026-11-13, WAL leaf specs, branch `wal-leaf-std2`) -- DONE (Perennial `04b42a139`, pin moved 2026-11-21, branch `pin-04b`)
+
+- **Done.** Perennial `04b42a139` (fix-semantics Cases 39/40): goose folds constant expressions of untyped
+  runes (`Separator == '/'` is now a constant), `UntypedIntSemantics.convert_untyped_int_to_string` steps
+  `string(c)` of an untyped integer to `go.runeString c` (its UTF-8 encoding, U+FFFD if not a code point),
+  and `string(b)` of a byte is `go.runeString b` too (no longer the one byte `b`). The local class
+  `UntypedRuneSemantics` (`Proof/internal/filepathlite/UntypedRune.lean`) is deleted; `filepathlite.Base`,
+  `FromSlash`, `filepath.join` and the WAL's, WalTester's and the server's `NewStorage` results no longer take
+  it (`go.runeString 47 = [W8 47]` by `decide`). `rnNewStorageOk` stays a premise of the closed theorems: what
+  is left for passing the law to `newRaftNode` is `os`'s `fileStat`/`file` field assumptions
+  (`notes/wal-item3-handoff.md`). `bufio.opaqueInitsOk` (`errorRune`) stays: its initializer is untranslated
+  (names-only), so the new step does not reach it; translating `bufio`'s initializers would.
+- The entry as it was:
 
 - **Missing.** Goose emits `Separator == '/'` (`GoOp GoEquals go.untypedRune`) and `string(Separator)`
   (`Convert go.untypedRune go.string`) of `internal/filepathlite`'s untyped constant as run-time
@@ -1454,10 +1466,10 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   `false`.
 - **Proposed.** An empty composite literal of a type whose underlying type is not a struct (and
   has no literal rule) is its zero value; or `sync.Mutex`'s model as a struct.
-- **Status.** PR https://github.com/mit-pdos/perennial/pull/649 (pgaps, 2026-11-21; review by upamanyus): one
-  step rule, `composite_literal_bool_empty` (the empty literal at `go.bool` is `false`; Go has no boolean composite
-  literal, so it is reached only through the `Mutex` models). Once pinned, `backend.wp_mutexLit` and
-  `MutexLitSemantics` go.
+- **Status.** PR https://github.com/mit-pdos/perennial/pull/649 (pgaps, 2026-11-21: a step rule for the empty
+  literal at `go.bool`) closed after review: Upamanyu Sharma asked for `sync.Mutex` modeled as a struct with one
+  `bool` field instead (no new trusted rule); his session writes that change and retires `backend.wp_mutexLit`
+  (etcd-grove#16).
 
 ### Semantics: `float64(c)` of an untyped integer constant (2026-10-27, client-go workqueue)
 

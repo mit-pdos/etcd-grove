@@ -10,20 +10,15 @@ the build log (`#print axioms`). Lean-first (no Rocq counterpart).
   lists the first lease too -- returns: it does not panic. From `isPkgInit leasecatchup`, the
   cluster's start bundle, the main thread's token and the cluster's named premises
   (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/leasecatchup/Main.lean`).
-* **`etcd_leasecatchup_safe`** (`Adequacy.lean`'s `etcd_leasecatchup_adequate`): the closed
-  theorem. Every real execution of `n` steps of `leasecatchup`'s initialization followed by
-  `Main()`, from a fresh state with one thread, has no stuck thread, no thread ended in a panic, and
-  the main thread's result, if any, is `#()`; under the hypotheses of the three-member partition
-  examples (the retired `k8s_compactor_partition_safe`'s, without its schedule and `clock.RealClock.After`) and
-  leasegrant's lease hypotheses (`leasePeersOk`, `lease.leasesNoExpiry`). It is the first closed
-  result over a configuration in which a member's lessor is rebuilt from a snapshot in Go (the
-  example's test counts a merged snapshot sent to member 3 and its lease store restored, every run;
-  `Adequacy.lean`'s header).
+
+**The closed theorem retired (2026-11-21, the user's decision D2 of `notes/etcd-unified-scope.md`).**
+Its closed theorem `etcd_leasecatchup_safe` (with its `_adequate` and `_robust` forms, `Adequacy.lean`, `PkgTable.lean`, `TopLevelDefs.lean` and the
+`TopLevelRobustness.lean` pair) is gone: the one closed etcd theorem `etcd_safe` (`examples/etcd/all`,
+`Proof/github_com/mit_pdos/etcd_grove/examples/etcd/all/Results.lean`) subsumes it (`notes/etcd-unified-scope.md` §1.3, §4); the function triples here stay.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.Adequacy
-public import Robustness.Statement
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.MainLinked
 
 @[expose] public section
 
@@ -54,53 +49,7 @@ theorem leasecatchup_Main [go_etcd_io.etcd.cache.v3.Assumptions]
 
 end results
 
-section adequacy
-attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
-variable [go_gctx : GoGlobalContext]
-
-/-- **The multi-member lease example is safe, in the operational semantics**
-(`etcd_leasecatchup_adequate`, see the file header and `Adequacy.lean`). -/
-theorem etcd_leasecatchup_safe [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
-    (Hctx : ∀ hG : HeapGS .hasLC leasecatchupGF,
-      ContextReadErrs (GF := leasecatchupGF) (hG := heapAtLcu hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC leasecatchupGF,
-      ContextErrsClient (GF := leasecatchupGF) (hG := heapAtLcu hG lctx))
-    (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (Hbf : cluster3.BootFacts id₁ id₂ id₃ ps ctxs boot)
-    (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota)
-    (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
-    (Hlp : leasePeersOk) (Hlne : lease.leasesNoExpiry)
-    (HNs : prometheus.namesUnclaimed leasecatchupProgram leasecatchupNames)
-    (HAs : addrsUnclaimed leasecatchupProgram leasecatchupAddrs)   -- 3 peer, 3 client, 3 bridge
-    (HDs : dataDirsAbsent leasecatchupProgram leasecatchupDataDirs)
-    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
-    (HEnv : verifyEnvOff leasecatchupProgram)
-    (n : Nat)
-    (Hprem : ∀ hG : HeapGS .hasLC leasecatchupGF,
-      ⊢ cluster3.premises (GF := leasecatchupGF) (hG := heapAtLcu hG lctx)
-          etcd_leasecatchup.clusterCfg n id₁ id₂ id₃ ps ctxs boot)
-    (σ : state) (g : GlobalState)
-    (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
-    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
-    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) leasecatchupDataDirs)
-    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
-    (Hthreads : σ.threads = 1) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
-    (Hsteps : RealNstepsBelow (2 ^ 28) n ([leasecatchupProgram], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 12 ≤ 2 ^ 40) :
-    (∀ v t2', t2 = Val v :: t2' → v = #()) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  etcd_leasecatchup_adequate Hctx Hcec id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hrf Hdbo Hlp Hlne
-    HNs HAs HDs HEnv n Hprem σ g Hfs HWal Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
-
-end adequacy
-
 #print axioms leasecatchup_Main
-#print axioms etcd_leasecatchup_adequate
-#print axioms etcd_leasecatchup_safe
 
 end EtcdGrove
 end Perennial
