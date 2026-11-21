@@ -3,6 +3,8 @@ module
 
 public import GeneratedProof.k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured
 public import SpecPlan.Spec.PkgInit.Base
+public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.apis.«meta».v1
+public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.runtime
 
 @[expose] public section
 noncomputable section

@@ -18,8 +18,13 @@ Why it is true of Go: in a run of `e`, every registration of a name of `Ns` and 
 an address of `As` is made by code whose spec consumes the right (`namesUnclaimed`,
 `addrsUnclaimed`: nothing else registers or binds them), each right exists once in the proof (the
 premise receives one of each), and each consumption is one registration (one listen); so no name
-of `Ns` is registered twice and no address of `As` bound twice, which is what `MustRegister`'s and
-`Listen`'s specs need. The rest is `goose_adequacy`.
+of `Ns` is registered twice and no address of `As` bound twice, and (prometheus-id-collision,
+2026-11-20) since the label-free descriptor IDs of the names of `Ns` are pairwise distinct
+(`hNsIds`: `prometheus.descIdsDistinct Ns`, decided by the kernel for each program's names),
+registering one name of `Ns` registers no other's ID, which is what `MustRegister`'s and
+`Listen`'s specs need. The rest is `goose_adequacy`. (Until then the axiom took any distinct names,
+and was false: two names can share an ID, and the registry refuses the second,
+`notes/axiom-review/prometheus-id-collision.md`.)
 
 (D39a, 2026-10-23) It also receives `httpProtoFree a` for each address of `As`: a purely ghost
 right, the only source of an address's HTTP protocol (`http.reserve`), so each address's protocol
@@ -212,7 +217,8 @@ axiom goose_adequacy_start [hPre : GooseGpreS GF] (N T : Nat)
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([e], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hbound : n < N) (Hthreads : σ.threads = 1)
-    (Hlive : RealThreadsBelow T n ([e], ((σ, g) : CfgState))) :
+    (Hlive : RealThreadsBelow T n ([e], ((σ, g) : CfgState)))
+    (hNsIds : prometheus.descIdsDistinct Ns := by decide +kernel) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2)
 

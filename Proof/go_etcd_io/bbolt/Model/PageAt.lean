@@ -56,14 +56,14 @@ def elemEnd (pg : List w8) (i : Nat) : Nat :=
   else elemOff i + branchPos pg i + branchKsize pg i
 
 /-- **`ReadInodeFromPage` can read the page `pg`** (it panics otherwise): its elements lie in
-`pg`, and every element's key is non-empty and ends, with its value, below `MaxAllocSize` from the
-page's start (the slices it makes; their bytes need not be in `pg`). `leafWF`/`branchWF` imply
+`pg`, and every element's key is non-empty and ends, with its value, within `MaxAllocSize` of the
+first element (the slices it makes; their bytes need not be in `pg`). `leafWF`/`branchWF` imply
 it for a page with non-empty keys. -/
 def pageReadable (pg : List w8) : Prop :=
   elemOff (pageCount pg) ≤ pg.length ∧
   ∀ i < pageCount pg,
     0 < (if pageFlags pg = leafPageFlag then leafKsize pg i else branchKsize pg i) ∧
-    elemEnd pg i ≤ maxAllocSize
+    elemEnd pg i ≤ 16 + maxAllocSize
 
 /-- **Every element of `pg` lies inside its bytes** (U7 fix: `node.read`'s inodes are then the
 page's entries; `pageReadable` bounds them by `MaxAllocSize` only). `leafWF`/`branchWF` give it

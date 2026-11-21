@@ -44,23 +44,22 @@ theorem rafthttp.serverVersion.wp_proof
     rw [he]
     simp only [↓reduceIte]
     (try wp_auto)
-    wp_apply (semver.MustParse.pure hMP _) as %rv %Hrv
-    obtain ⟨nv, rfl, Hnv⟩ : ∃ v : Loc, rv = #v ∧ v ≠ null := by
-      rcases Hrv with ⟨-, h⟩ | ⟨Hn, -⟩
-      · exact h
-      · exact absurd (semver.semverValid_simple _ (by decide)) Hn
-    wp_auto
-    iapply HΦ; ipureintro; exact Or.inl ⟨nv, rfl, Hnv⟩
+    wp_apply (semver.MustParse.valid hMP _ (semver.semverValid_simple _ (by decide)))
+      as %nv %xnv ⟨%Hnv, #Hx⟩
+    (try wp_auto)
+    iapply HΦ; ileft; iexists nv, xnv; iframe #; ipureintro; exact ⟨rfl, Hnv⟩
   · (try simp only [_root_.decide_eq_false he])
     (try wp_auto)
-    wp_apply (semver.MustParse.pure hMP _) as %rv %Hrv
-    rcases Hrv with ⟨Hval, nv, rfl, Hnv⟩ | ⟨Hn, p, rfl⟩
-    · wp_auto
-      iapply HΦ; ipureintro; exact Or.inl ⟨nv, rfl, Hnv⟩
+    wp_apply (semver.MustParse.ver hMP _) as %rv Hrv
+    icases Hrv with (⟨%nv, %xnv, %Hc, #Hx⟩ | %Hc)
+    · obtain ⟨-, rfl, Hnv⟩ := Hc
+      (try wp_auto)
+      iapply HΦ; ileft; iexists nv, xnv; iframe #; ipureintro; exact ⟨rfl, Hnv⟩
     · -- the header does not parse: `MustParse` panics
+      obtain ⟨Hn, p, rfl⟩ := Hc
       wp_auto
-      iapply HΦ; ipureintro
-      refine Or.inr ⟨fun Hv => ?_, p, rfl⟩
+      iapply HΦ; iright; ipureintro
+      refine ⟨fun Hv => ?_, p, rfl⟩
       rcases Hv with h | h
       · exact he (h.trans goString_empty)
       · exact Hn h

@@ -177,7 +177,7 @@ attribute [irreducible] hexKvStringer.ty
   #(2147483646 : Int)
 
 @[reducible] noncomputable def maxEntrySize [GooseExts] [GoGlobalContext] : val :=
-  #(268435456 : Int)
+  #(W64 2147483631)
 
 @[reducible] noncomputable def minFillPercent [GooseExts] [GoGlobalContext] : val :=
   #(W64 4591870180066957722)
@@ -579,7 +579,7 @@ noncomputable def munmap.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- newBucket returns a new bucket associated with a transaction.
 
-    go: bucket.go:54:6 -/
+    go: bucket.go:51:6 -/
 noncomputable def newBucket.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tx"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Bucket.ty))) (App (Val (GoInstruction (GoZeroVal Bucket.ty))) (Val #())))
@@ -613,7 +613,7 @@ noncomputable def newBucket.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Tx returns the tx of the bucket.
 
-    go: bucket.go:64:18 -/
+    go: bucket.go:61:18 -/
 noncomputable def Bucket.Tx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -630,7 +630,7 @@ noncomputable def Bucket.Tx.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Root returns the root of the bucket.
 
-    go: bucket.go:69:18 -/
+    go: bucket.go:66:18 -/
 noncomputable def Bucket.Root.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -647,7 +647,7 @@ noncomputable def Bucket.Root.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Writable returns whether the bucket is writable.
 
-    go: bucket.go:74:18 -/
+    go: bucket.go:71:18 -/
 noncomputable def Bucket.Writable.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -666,7 +666,7 @@ noncomputable def Bucket.Writable.impl [GooseExts] [GoGlobalContext] : val :=
     The cursor is only valid as long as the transaction is open.
     Do not use a cursor after the transaction is closed.
 
-    go: bucket.go:81:18 -/
+    go: bucket.go:78:18 -/
 noncomputable def Bucket.Cursor.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -691,7 +691,7 @@ noncomputable def Bucket.Cursor.impl [GooseExts] [GoGlobalContext] : val :=
     Returns nil if the bucket does not exist.
     The bucket instance is only valid for the lifetime of the transaction.
 
-    go: bucket.go:95:18 -/
+    go: bucket.go:92:18 -/
 noncomputable def Bucket.Bucket.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "name"
@@ -778,7 +778,7 @@ noncomputable def Bucket.Bucket.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Helper method that re-interprets a sub-bucket value
     from a parent into a Bucket
 
-    go: bucket.go:122:18 -/
+    go: bucket.go:119:18 -/
 noncomputable def Bucket.openBucket.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "value"
@@ -842,7 +842,7 @@ noncomputable def Bucket.openBucket.impl [GooseExts] [GoGlobalContext] : val :=
     Returns an error if the key already exists, if the bucket name is blank, or if the bucket name is too long.
     The bucket instance is only valid for the lifetime of the transaction.
 
-    go: bucket.go:156:18 -/
+    go: bucket.go:153:18 -/
 noncomputable def Bucket.CreateBucket.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "key"
@@ -1029,7 +1029,7 @@ noncomputable def Bucket.CreateBucket.impl [GooseExts] [GoGlobalContext] : val :
     Returns an error if the bucket name is blank, or if the bucket name is too long.
     The bucket instance is only valid for the lifetime of the transaction.
 
-    go: bucket.go:213:18 -/
+    go: bucket.go:210:18 -/
 noncomputable def Bucket.CreateBucketIfNotExists.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "key"
@@ -1251,7 +1251,7 @@ noncomputable def Bucket.CreateBucketIfNotExists.impl [GooseExts] [GoGlobalConte
 /-- DeleteBucket deletes a bucket at the given key.
     Returns an error if the bucket does not exist, or if the key represents a non-bucket value.
 
-    go: bucket.go:281:18 -/
+    go: bucket.go:278:18 -/
 noncomputable def Bucket.DeleteBucket.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "key"
@@ -1447,7 +1447,7 @@ noncomputable def Bucket.DeleteBucket.impl [GooseExts] [GoGlobalContext] : val :
      3. or the key represents a non-bucket value;
      4. the source and destination buckets are the same.
 
-    go: bucket.go:344:18 -/
+    go: bucket.go:341:18 -/
 noncomputable def Bucket.MoveBucket.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "key"
@@ -1684,7 +1684,7 @@ noncomputable def Bucket.MoveBucket.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Inspect returns the structure of the bucket.
 
-    go: bucket.go:414:18 -/
+    go: bucket.go:411:18 -/
 noncomputable def Bucket.Inspect.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -1700,7 +1700,7 @@ noncomputable def Bucket.Inspect.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore BucketStructure.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad BucketStructure.ty))) (Var "$res0"))))))
 
-/-- go: bucket.go:418:18 -/
+/-- go: bucket.go:415:18 -/
 noncomputable def Bucket.recursivelyInspect.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "name"
@@ -1799,7 +1799,7 @@ noncomputable def Bucket.recursivelyInspect.impl [GooseExts] [GoGlobalContext] :
     The returned value is only valid for the life of the transaction.
     The returned memory is owned by bbolt and must never be modified; writing to this memory might corrupt the database.
 
-    go: bucket.go:441:18 -/
+    go: bucket.go:438:18 -/
 noncomputable def Bucket.Get.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "key"
@@ -1862,7 +1862,7 @@ noncomputable def Bucket.Get.impl [GooseExts] [GoGlobalContext] : val :=
     Supplied value must remain valid for the life of the transaction.
     Returns an error if the bucket was created from a read-only transaction, if the key is blank, if the key is too large, or if the value is too large.
 
-    go: bucket.go:460:18 -/
+    go: bucket.go:457:18 -/
 noncomputable def Bucket.Put.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "key"
@@ -1971,7 +1971,7 @@ noncomputable def Bucket.Put.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int64))) (Pair (App (Val (GoInstruction (Convert go.int go.int64))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "value"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")))) (App (Val (GoInstruction (GoOp GoSub go.int64))) (Pair (App (Val (GoInstruction (Convert go.untypedInt go.int64))) (Val maxEntrySize)) (App (Val (GoInstruction (Convert go.int go.int64))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "key"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")))) (App (Val (GoInstruction (GoOp GoSub go.int64))) (Pair (Val maxEntrySize) (App (Val (GoInstruction (Convert go.int go.int64))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "key"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")))))))))
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.bbolt.errors.ErrValueTooLarge))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2021,7 +2021,7 @@ noncomputable def Bucket.Put.impl [GooseExts] [GoGlobalContext] : val :=
     If the key does not exist then nothing is done and a nil error is returned.
     Returns an error if the bucket was created from a read-only transaction.
 
-    go: bucket.go:509:18 -/
+    go: bucket.go:506:18 -/
 noncomputable def Bucket.Delete.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "key"
@@ -2143,7 +2143,7 @@ noncomputable def Bucket.Delete.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Sequence returns the current integer for the bucket without incrementing it.
 
-    go: bucket.go:548:18 -/
+    go: bucket.go:545:18 -/
 noncomputable def Bucket.Sequence.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -2160,7 +2160,7 @@ noncomputable def Bucket.Sequence.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- SetSequence updates the sequence number for the bucket.
 
-    go: bucket.go:553:18 -/
+    go: bucket.go:550:18 -/
 noncomputable def Bucket.SetSequence.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "v"
@@ -2208,7 +2208,7 @@ noncomputable def Bucket.SetSequence.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- NextSequence returns an autoincrementing integer for the bucket.
 
-    go: bucket.go:572:18 -/
+    go: bucket.go:569:18 -/
 noncomputable def Bucket.NextSequence.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -2271,7 +2271,7 @@ noncomputable def Bucket.NextSequence.impl [GooseExts] [GoGlobalContext] : val :
     the error is returned to the caller. The provided function must not modify
     the bucket; this will result in undefined behavior.
 
-    go: bucket.go:595:18 -/
+    go: bucket.go:592:18 -/
 noncomputable def Bucket.ForEach.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "fn"
@@ -2345,7 +2345,7 @@ noncomputable def Bucket.ForEach.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: bucket.go:608:18 -/
+/-- go: bucket.go:605:18 -/
 noncomputable def Bucket.ForEachBucket.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "fn"
@@ -2433,7 +2433,7 @@ noncomputable def Bucket.ForEachBucket.impl [GooseExts] [GoGlobalContext] : val 
 
 /-- Stats returns stats on a bucket.
 
-    go: bucket.go:624:18 -/
+    go: bucket.go:621:18 -/
 noncomputable def Bucket.Stats.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -2589,7 +2589,7 @@ noncomputable def Bucket.Stats.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- forEachPage iterates over every page in a bucket, including inline pages.
 
-    go: bucket.go:710:18 -/
+    go: bucket.go:707:18 -/
 noncomputable def Bucket.forEachPage.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "fn"
@@ -2618,7 +2618,7 @@ noncomputable def Bucket.forEachPage.impl [GooseExts] [GoGlobalContext] : val :=
 /-- forEachPageNode iterates over every page (or node) in a bucket.
     This also includes inline pages.
 
-    go: bucket.go:723:18 -/
+    go: bucket.go:720:18 -/
 noncomputable def Bucket.forEachPageNode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "fn"
@@ -2644,7 +2644,7 @@ noncomputable def Bucket.forEachPageNode.impl [GooseExts] [GoGlobalContext] : va
   (Val #())))))))
   (Val #()))))
 
-/-- go: bucket.go:732:18 -/
+/-- go: bucket.go:729:18 -/
 noncomputable def Bucket._forEachPageNode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "pgId"
@@ -2720,7 +2720,7 @@ noncomputable def Bucket._forEachPageNode.impl [GooseExts] [GoGlobalContext] : v
 
 /-- spill writes all the nodes for this bucket to dirty pages.
 
-    go: bucket.go:756:18 -/
+    go: bucket.go:753:18 -/
 noncomputable def Bucket.spill.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -2895,7 +2895,7 @@ noncomputable def Bucket.spill.impl [GooseExts] [GoGlobalContext] : val :=
 /-- inlineable returns true if a bucket is small enough to be written inline
     and if it contains no subbuckets. Otherwise, returns false.
 
-    go: bucket.go:817:18 -/
+    go: bucket.go:814:18 -/
 noncomputable def Bucket.inlineable.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -2962,7 +2962,7 @@ noncomputable def Bucket.inlineable.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Returns the maximum total size of a bucket to make it a candidate for inlining.
 
-    go: bucket.go:842:18 -/
+    go: bucket.go:839:18 -/
 noncomputable def Bucket.maxInlineBucketSize.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -2979,7 +2979,7 @@ noncomputable def Bucket.maxInlineBucketSize.impl [GooseExts] [GoGlobalContext] 
 
 /-- write allocates and writes a bucket to a byte slice.
 
-    go: bucket.go:847:18 -/
+    go: bucket.go:844:18 -/
 noncomputable def Bucket.write.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -3029,7 +3029,7 @@ noncomputable def Bucket.write.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- rebalance attempts to balance all nodes.
 
-    go: bucket.go:865:18 -/
+    go: bucket.go:862:18 -/
 noncomputable def Bucket.rebalance.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -3066,7 +3066,7 @@ noncomputable def Bucket.rebalance.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- node creates a node from a page and associates it with a given parent.
 
-    go: bucket.go:875:18 -/
+    go: bucket.go:872:18 -/
 noncomputable def Bucket.node.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "pgId"
@@ -3162,7 +3162,7 @@ noncomputable def Bucket.node.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- free recursively frees all pages in the bucket.
 
-    go: bucket.go:916:18 -/
+    go: bucket.go:913:18 -/
 noncomputable def Bucket.free.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -3203,7 +3203,7 @@ noncomputable def Bucket.free.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- dereference removes all references to the old mmap.
 
-    go: bucket.go:933:18 -/
+    go: bucket.go:930:18 -/
 noncomputable def Bucket.dereference.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -3233,7 +3233,7 @@ noncomputable def Bucket.dereference.impl [GooseExts] [GoGlobalContext] : val :=
 /-- pageNode returns the in-memory node, if it exists.
     Otherwise, returns the underlying page.
 
-    go: bucket.go:945:18 -/
+    go: bucket.go:942:18 -/
 noncomputable def Bucket.pageNode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "id"
@@ -3315,7 +3315,7 @@ noncomputable def Bucket.pageNode.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "$res1"))))))))
 
-/-- go: bucket.go:993:23 -/
+/-- go: bucket.go:990:23 -/
 noncomputable def BucketStats.Add.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "other"
@@ -3368,7 +3368,7 @@ noncomputable def BucketStats.Add.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- cloneBytes returns a copy of a given slice.
 
-    go: bucket.go:1013:6 -/
+    go: bucket.go:1010:6 -/
 noncomputable def cloneBytes.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "v"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
@@ -10690,19 +10690,11 @@ noncomputable def node.splitTwo.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Val exceptionDo)
   (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType node.ty)))) (Var "n"))
   (Let "pageSize" (App (Val (GoInstruction (GoAlloc go.uintptr))) (Var "pageSize"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uintptr))) (Var "pageSize"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.float64))) (App (Val (GoInstruction (StructFieldRef Bucket.ty go!"FillPercent"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Bucket.ty)))) (App (Val (GoInstruction (StructFieldRef node.ty go!"bucket"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))))))
-  (App (App (App (Val (GoInstruction (FuncResolve splitThreshold []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (Let "threshold" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "threshold"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType node.ty) go!"splitIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))) (Var "$a0")))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
+  (Let "$r0" (App (Val (GoInstruction (Convert go.int go.uintptr))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Inodes.ty))) (App (Val (GoInstruction (StructFieldRef node.ty go!"inodes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [_root_.Perennial.go_etcd_io.bbolt.internal.common.Inodes.ty]))) (Val #())) (Var "$a0"))))
   (Let "splitIndex" (App (Val (GoInstruction (GoAlloc go.uintptr))) (App (Val (GoInstruction (GoZeroVal go.uintptr))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -10754,15 +10746,8 @@ noncomputable def node.splitTwo.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType node.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef node.ty go!"parent"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))) (Var "$r0")))))
   (App (Val doExecute)
   (Val #()))))))
-  (App (Val doExecute)
-  (Var "$r1")))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uintptr))) (Pair (Var "splitIndex") (Var "$r0")))))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "threshold") (Var "$r0")))))))))
-  (If (If (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Inodes.ty))) (App (Val (GoInstruction (StructFieldRef node.ty go!"inodes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))))
-  (App (App (Val (GoInstruction (FuncResolve go.len [_root_.Perennial.go_etcd_io.bbolt.internal.common.Inodes.ty]))) (Val #())) (Var "$a0"))) (Val #(W64 4)))) (Val #true) (Let "$a0" (App (Val (GoInstruction (GoLoad go.uintptr))) (Var "pageSize"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType node.ty) go!"sizeLessThan"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))) (Var "$a0"))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uintptr))) (Pair (App (Val (GoInstruction (GoLoad go.uintptr))) (Var "splitIndex")) (App (Val (GoInstruction (Convert go.int go.uintptr))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Inodes.ty))) (App (Val (GoInstruction (StructFieldRef node.ty go!"inodes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [_root_.Perennial.go_etcd_io.bbolt.internal.common.Inodes.ty]))) (Val #())) (Var "$a0")))))))
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))
   (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType node.ty)))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -10774,14 +10759,97 @@ noncomputable def node.splitTwo.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType node.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
-  (Val #())))))))
+  (Val #()))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef node.ty go!"isLeaf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uintptr))) (Var "splitIndex"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType node.ty) go!"readableLeafPrefix"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))) (Var "$a0")))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uintptr))) (Pair (Var "splitIndex") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Inodes.ty))) (App (Val (GoInstruction (StructFieldRef node.ty go!"inodes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [_root_.Perennial.go_etcd_io.bbolt.internal.common.Inodes.ty]))) (Val #())) (Var "$a0"))) (Val #(W64 4)))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.uintptr))) (Var "pageSize"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType node.ty) go!"sizeLessThan"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))) (Var "$a0")))) (Val #false))
+  (Let "__p" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uintptr))) (Var "pageSize"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.float64))) (App (Val (GoInstruction (StructFieldRef Bucket.ty go!"FillPercent"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Bucket.ty)))) (App (Val (GoInstruction (StructFieldRef node.ty go!"bucket"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))))))
+  (App (App (App (Val (GoInstruction (FuncResolve splitThreshold []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType node.ty) go!"splitIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Var "$r1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uintptr))) (Pair (Var "splitIndex") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uintptr))) (Pair (Var "splitIndex") (Var "$r0"))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "$res1"))))))))
+
+/-- readableLeafPrefix limits the proposed piece to one address window, counted
+    from the first leaf element. Put bounds each individual element, so a single
+    entry always fits. Relative offsets in subsequent elements start later.
+
+    go: node.go:267:16 -/
+noncomputable def node.readableLeafPrefix.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "n"
+  (Lam "end"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uintptr))) (App (Val (GoInstruction (GoZeroVal go.uintptr))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType node.ty)))) (Var "n"))
+  (Let "end" (App (Val (GoInstruction (GoAlloc go.uintptr))) (Var "end"))
+  (Let "used" (App (Val (GoInstruction (GoAlloc go.uintptr))) (App (Val (GoInstruction (GoZeroVal go.uintptr))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uintptr))) (Var "end"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uintptr))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (App (Val (GoInstruction (Convert go.uintptr go.int))) (App (Val (GoInstruction (GoLoad go.uintptr))) (Var "end"))))))) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (IndexRef _root_.Perennial.go_etcd_io.bbolt.internal.common.Inodes.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Inodes.ty))) (App (Val (GoInstruction (StructFieldRef node.ty go!"inodes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))
+  (Let "inode" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Inode.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Inode.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.uintptr))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.uintptr))) (Pair (Val #(W64 16)) (App (Val (GoInstruction (Convert go.int go.uintptr))) (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Inode.ty) go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Inode.ty)))) (Var "inode"))) (Val #()))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")))))) (App (Val (GoInstruction (Convert go.int go.uintptr))) (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Inode.ty) go!"Value"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Inode.ty)))) (Var "inode"))) (Val #()))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))))))
+  (Let "size" (App (Val (GoInstruction (GoAlloc go.uintptr))) (App (Val (GoInstruction (GoZeroVal go.uintptr))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uintptr))) (Pair (Var "used") (App (Val (GoInstruction (GoOp GoPlus go.uintptr))) (Pair (App (Val (GoInstruction (GoLoad go.uintptr))) (Var "used")) (App (Val (GoInstruction (GoLoad go.uintptr))) (Var "size")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 0)))) (App (Val (GoInstruction (GoOp GoGt go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (Convert go.uintptr go.uint64))) (App (Val (GoInstruction (GoLoad go.uintptr))) (Var "used"))) (App (Val (GoInstruction (Convert go.uintptr go.uint64))) (App (Val (GoInstruction (GoLoad go.uintptr))) (Var "size"))))) (Val #(W64 2147483647)))) (Val #false)))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.int go.uintptr))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uintptr))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uintptr))) (Pair (Var "size") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Inode.ty)))) (Pair (Var "inode") (Var "$r0")))))))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoLoad go.uintptr))) (Var "$res0"))))))
 
 /-- splitIndex finds the position where a page will fill a given threshold.
     It returns the index as well as the size of the first page.
     This is only be called from split().
 
-    go: node.go:277:16 -/
+    go: node.go:295:16 -/
 noncomputable def node.splitIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "threshold"
@@ -10838,7 +10906,7 @@ noncomputable def node.splitIndex.impl [GooseExts] [GoGlobalContext] : val :=
 /-- spill writes the nodes to dirty pages and splits nodes as it goes.
     Returns an error if dirty pages cannot be allocated.
 
-    go: node.go:301:16 -/
+    go: node.go:319:16 -/
 noncomputable def node.spill.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam BAnon
@@ -11034,7 +11102,7 @@ noncomputable def node.spill.impl [GooseExts] [GoGlobalContext] : val :=
 /-- rebalance attempts to combine the node with sibling nodes if the node fill
     size is below a threshold or if there are not enough keys.
 
-    go: node.go:371:16 -/
+    go: node.go:389:16 -/
 noncomputable def node.rebalance.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam BAnon
@@ -11259,7 +11327,7 @@ noncomputable def node.rebalance.impl [GooseExts] [GoGlobalContext] : val :=
 /-- removes a node from the list of in-memory children.
     This does not affect the inodes.
 
-    go: node.go:458:16 -/
+    go: node.go:476:16 -/
 noncomputable def node.removeChild.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "target"
@@ -11296,7 +11364,7 @@ noncomputable def node.removeChild.impl [GooseExts] [GoGlobalContext] : val :=
 /-- dereference causes the node to copy all its inode key/value references to heap memory.
     This is required when the mmap is reallocated so inodes are not pointing to stale data.
 
-    go: node.go:469:16 -/
+    go: node.go:487:16 -/
 noncomputable def node.dereference.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam BAnon
@@ -11398,7 +11466,7 @@ noncomputable def node.dereference.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- free adds the node's underlying page to the freelist.
 
-    go: node.go:500:16 -/
+    go: node.go:518:16 -/
 noncomputable def node.free.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam BAnon
@@ -11418,7 +11486,7 @@ noncomputable def node.free.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))
   (Val #()))))
 
-/-- go: node.go:534:6 -/
+/-- go: node.go:552:6 -/
 noncomputable def compareKeys.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "left"
   (Lam "right"
@@ -11436,7 +11504,7 @@ noncomputable def compareKeys.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
-/-- go: node.go:540:16 -/
+/-- go: node.go:558:16 -/
 noncomputable def nodes.Len.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -11452,7 +11520,7 @@ noncomputable def nodes.Len.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
-/-- go: node.go:541:16 -/
+/-- go: node.go:559:16 -/
 noncomputable def nodes.Swap.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "i"
@@ -11472,7 +11540,7 @@ noncomputable def nodes.Swap.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType node.ty)))) (Pair (Var "$l0") (Var "$r0")))))))))))))
   (Val #())))))
 
-/-- go: node.go:542:16 -/
+/-- go: node.go:560:16 -/
 noncomputable def nodes.Less.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "i"
@@ -17010,7 +17078,7 @@ class node.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   get_inodes : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"inodes") #x (Val #(x.inodes'))
   set_inodes : ∀ (x : node) (y : _root_.Perennial.go_etcd_io.bbolt.internal.common.Inodes), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"inodes") (PairV #x #y) (Val #(({ x with inodes' := y } : node)))
   method_set : go.MethodSetIs node.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType node.ty) [(go!"go.etcd.io/bbolt.childAt", (some (go.signature.Signature [go.int] false [(go.GoType.PointerType node.ty)]))), (go!"go.etcd.io/bbolt.childIndex", (some (go.signature.Signature [(go.GoType.PointerType node.ty)] false [go.int]))), (go!"go.etcd.io/bbolt.del", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"go.etcd.io/bbolt.dereference", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.free", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.minKeys", (some (go.signature.Signature [] false [go.int]))), (go!"go.etcd.io/bbolt.nextSibling", (some (go.signature.Signature [] false [(go.GoType.PointerType node.ty)]))), (go!"go.etcd.io/bbolt.numChildren", (some (go.signature.Signature [] false [go.int]))), (go!"go.etcd.io/bbolt.pageElementSize", (some (go.signature.Signature [] false [go.uintptr]))), (go!"go.etcd.io/bbolt.prevSibling", (some (go.signature.Signature [] false [(go.GoType.PointerType node.ty)]))), (go!"go.etcd.io/bbolt.put", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty, go.uint32] false []))), (go!"go.etcd.io/bbolt.read", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"go.etcd.io/bbolt.rebalance", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.removeChild", (some (go.signature.Signature [(go.GoType.PointerType node.ty)] false []))), (go!"go.etcd.io/bbolt.root", (some (go.signature.Signature [] false [(go.GoType.PointerType node.ty)]))), (go!"go.etcd.io/bbolt.size", (some (go.signature.Signature [] false [go.int]))), (go!"go.etcd.io/bbolt.sizeLessThan", (some (go.signature.Signature [go.uintptr] false [go.bool]))), (go!"go.etcd.io/bbolt.spill", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/bbolt.split", (some (go.signature.Signature [go.uintptr] false [(go.GoType.SliceType (go.GoType.PointerType node.ty))]))), (go!"go.etcd.io/bbolt.splitIndex", (some (go.signature.Signature [go.int] false [go.uintptr, go.uintptr]))), (go!"go.etcd.io/bbolt.splitTwo", (some (go.signature.Signature [go.uintptr] false [(go.GoType.PointerType node.ty), (go.GoType.PointerType node.ty)]))), (go!"go.etcd.io/bbolt.write", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType node.ty) [(go!"go.etcd.io/bbolt.childAt", (some (go.signature.Signature [go.int] false [(go.GoType.PointerType node.ty)]))), (go!"go.etcd.io/bbolt.childIndex", (some (go.signature.Signature [(go.GoType.PointerType node.ty)] false [go.int]))), (go!"go.etcd.io/bbolt.del", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"go.etcd.io/bbolt.dereference", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.free", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.minKeys", (some (go.signature.Signature [] false [go.int]))), (go!"go.etcd.io/bbolt.nextSibling", (some (go.signature.Signature [] false [(go.GoType.PointerType node.ty)]))), (go!"go.etcd.io/bbolt.numChildren", (some (go.signature.Signature [] false [go.int]))), (go!"go.etcd.io/bbolt.pageElementSize", (some (go.signature.Signature [] false [go.uintptr]))), (go!"go.etcd.io/bbolt.prevSibling", (some (go.signature.Signature [] false [(go.GoType.PointerType node.ty)]))), (go!"go.etcd.io/bbolt.put", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty, go.uint32] false []))), (go!"go.etcd.io/bbolt.read", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"go.etcd.io/bbolt.readableLeafPrefix", (some (go.signature.Signature [go.uintptr] false [go.uintptr]))), (go!"go.etcd.io/bbolt.rebalance", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.removeChild", (some (go.signature.Signature [(go.GoType.PointerType node.ty)] false []))), (go!"go.etcd.io/bbolt.root", (some (go.signature.Signature [] false [(go.GoType.PointerType node.ty)]))), (go!"go.etcd.io/bbolt.size", (some (go.signature.Signature [] false [go.int]))), (go!"go.etcd.io/bbolt.sizeLessThan", (some (go.signature.Signature [go.uintptr] false [go.bool]))), (go!"go.etcd.io/bbolt.spill", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/bbolt.split", (some (go.signature.Signature [go.uintptr] false [(go.GoType.SliceType (go.GoType.PointerType node.ty))]))), (go!"go.etcd.io/bbolt.splitIndex", (some (go.signature.Signature [go.int] false [go.uintptr, go.uintptr]))), (go!"go.etcd.io/bbolt.splitTwo", (some (go.signature.Signature [go.uintptr] false [(go.GoType.PointerType node.ty), (go.GoType.PointerType node.ty)]))), (go!"go.etcd.io/bbolt.write", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false [])))]
   ptr_childAt_unfold : MethodUnfold (go.GoType.PointerType node.ty) go!"childAt" node.childAt.impl
   ptr_childIndex_unfold : MethodUnfold (go.GoType.PointerType node.ty) go!"childIndex" node.childIndex.impl
   ptr_del_unfold : MethodUnfold (go.GoType.PointerType node.ty) go!"del" node.del.impl
@@ -17023,6 +17091,7 @@ class node.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   ptr_prevSibling_unfold : MethodUnfold (go.GoType.PointerType node.ty) go!"prevSibling" node.prevSibling.impl
   ptr_put_unfold : MethodUnfold (go.GoType.PointerType node.ty) go!"put" node.put.impl
   ptr_read_unfold : MethodUnfold (go.GoType.PointerType node.ty) go!"read" node.read.impl
+  ptr_readableLeafPrefix_unfold : MethodUnfold (go.GoType.PointerType node.ty) go!"readableLeafPrefix" node.readableLeafPrefix.impl
   ptr_rebalance_unfold : MethodUnfold (go.GoType.PointerType node.ty) go!"rebalance" node.rebalance.impl
   ptr_removeChild_unfold : MethodUnfold (go.GoType.PointerType node.ty) go!"removeChild" node.removeChild.impl
   ptr_root_unfold : MethodUnfold (go.GoType.PointerType node.ty) go!"root" node.root.impl
@@ -17068,6 +17137,7 @@ attribute [instance] node.TypeAssumptions.type_repr
   node.TypeAssumptions.ptr_prevSibling_unfold
   node.TypeAssumptions.ptr_put_unfold
   node.TypeAssumptions.ptr_read_unfold
+  node.TypeAssumptions.ptr_readableLeafPrefix_unfold
   node.TypeAssumptions.ptr_rebalance_unfold
   node.TypeAssumptions.ptr_removeChild_unfold
   node.TypeAssumptions.ptr_root_unfold

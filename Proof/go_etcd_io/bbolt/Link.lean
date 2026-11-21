@@ -1615,6 +1615,10 @@ theorem node.wp_pageElementSize :
     _root_.Perennial.EtcdGrove.bbolt.node.pageElementSize.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.node.pageElementSize.wp_proof
 
+theorem node.wp_readableLeafPrefix :
+    _root_.Perennial.EtcdGrove.bbolt.node.readableLeafPrefix.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.bbolt.node.readableLeafPrefix.wp_proof _root_.Perennial.EtcdGrove.bbolt.internal.common.Inode.wp_Key _root_.Perennial.EtcdGrove.bbolt.internal.common.Inode.wp_Value
+
 theorem node.wp_sizeLessThan :
     _root_.Perennial.EtcdGrove.bbolt.node.sizeLessThan.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.node.sizeLessThan.wp_proof _root_.Perennial.EtcdGrove.bbolt.internal.common.Inode.wp_Key _root_.Perennial.EtcdGrove.bbolt.internal.common.Inode.wp_Value

@@ -4,7 +4,7 @@ returns `errors.New(s)` of the formatted string when the format wraps no error
 (`fmt/errors.go`: `p.wrappedErrs` empty, which holds when no directive has verb `w`: `doPrintf`
 records a wrap at every `w` verb, flagged or not, `fmt/print.go:1051-1052,1146-1147`), an `*errors.errorString`, a leaf of an error tree; the
 stream reader's `dial` returns such errors to `run`, which asks `errors.Is` of them. A spec of its
-own (as `fmt.SprintfID`), so that `Errorf`'s other callers do not rest on it. Lean-first.
+own, so that `Errorf`'s other callers do not rest on it. Lean-first.
 -/
 module
 
