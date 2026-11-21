@@ -1,6 +1,6 @@
 # Plan: errors' descriptions, status codes and outgoing metadata as per-run relations (errdesc)
 
-**Status: PLAN, 2026-11-20.** Branch `prove-errdesc/2026-11-20` (worktree `/shared/etcd-grove-wt/prove-errdesc`),
+**Status: stages 1, 2a, 2b landed (2026-11-20/21; §6, §8). Originally PLAN, 2026-11-20.** Branch `prove-errdesc/2026-11-20` (worktree `/shared/etcd-grove-wt/prove-errdesc`),
 group `errdesc`. Part II of the per-heap redesign (`notes/perheap-scope.md`): Part I (incoming metadata,
 `metadata.ctxInMD`) has landed; this plan takes the outline Part II left (revision 2 of the Scope, commit
 `3b10ff2b93`: its §1.2-§1.3 inventory, §2.1-§2.2 vocabulary, §3.2-§3.3 old→new tables, and review 2's
@@ -215,3 +215,68 @@ with a relation in the precondition; posts of producers give `∃ m, descIs err 
    (`errorfWrap_descIs` replaces `ErrorfWrap`'s conditional `pre <+: errDesc` conjunct, which goes).
 7. **Order**: 1-2 (vocabulary; everything rebuilds), 3 (axioms), 4 (handler outcome, mostly textual), then the
    chains 5-6 file by file from the build's errors, as stage 1 went. Estimate 4-6 days.
+
+## 8. Stage 2b as implemented (2026-11-21, branch `prove-errdesc2b/2026-11-21`)
+
+`go_etcd_io.etcd.cache.v3.errDesc` and its two modules (`Proof/google_golang_org/grpc/status/ErrDesc.lean`,
+`Proof/go_etcd_io/etcd/api/v3/v3rpc/rpctypes/ErrDesc.lean`) are gone; the axioms `rpctypes.errDesc_etcdError` and
+`rpctypes.errDesc_wrapError` (fmtmodel's, 2026-11-20, `ErrDescWrap.lean`) with them, and
+`context.WithTimeoutBackgroundMd` is proved (from Perennial's `wp_WithTimeout_Background` and stage 1's
+`outMD_bgFrom`): −3 axioms, none or `sorry` added. Departures from §7, each simpler or forced:
+
+- **`descIs err m`** (`cache/v3/Base.lean`, next to `errorMsgIs`): nil and `""`; an `EtcdError` value
+  `mkOk EtcdError.ty #x` and `m = x.desc'` (the value pin is a disjunct, not a side condition: the producer
+  law `descIs_etcdError` is definitional, the pin `descIs_etcdError_eq` needs only that the value determines
+  its `desc`, from `EtcdError.TypeAssumptions.get_desc`'s determinism); otherwise (not an `EtcdError` value)
+  no grpc `GRPCStatus` and `errorMsgIs e m`, or `GRPCStatus` stably returning `s` with `statusAt s c m`.
+  No `errView` and no `statusErrIs`: `status.FromError` takes `descIs err m` and stage 2a's
+  `statusCodeIs err c` side by side; `status.Error`'s post gives `descIs err msg`. `statusErrOk` is unchanged
+  but for its `Is` clause (below); `statusErrOk_descIs`, `srvErrOk_descIs` (through `ctxWrapErr_descIs`) give
+  some description to a caller indifferent to it.
+- **`errors.IsStatusErr`**: `∀ err target (dm : Option (GoString × GoString))`, pre `isDescs err target dm`
+  (`none`: nothing, for the ten callers indifferent to descriptions; `some (m, m')`: `descIs err m ∗
+  descIs target m'`), post `b → (∀ m m', dm = some (m, m') → err = target ∨ m = m') ∧ T3`. The identity
+  disjunct is B1 (Go's `==` reads no description). `grpcErrMethodsOk`'s `Is` clause: `□ ∀ target m m',
+  descIs (ok e) m -∗ descIs target m' -∗ WP e.Is(target) {b. b → m = m'}`.
+- **The learner's identity branch** (not in §7, which assumed it closed by the initializer's `descIs`): with
+  no agreement law, `err = ErrGRPCNotSupportedForLearner`'s value and `descIs err d` (the invoker's, `d` no
+  refusal) say nothing of each other, so `isSafeRetry`'s `b → d ∈ refusalDescs ∨ p = 0` failed in the branch
+  where `errors.Is` answers `true` by `==`. `grpcInvokerOk`'s error post gains `notLearnerErr err` (the
+  invoker's error is never that package variable's value: grpc builds its status errors from the wire,
+  `status.FromProto(...).Err()`, a fresh `*status.Error`, or returns `io.EOF`/the context's error; it imports no
+  etcd package), `isSafeRetry`'s pre takes it, and the branch is absurd. A strengthening of the
+  `ClientConn.Invoke` axiom's post (through `grpcInvokerOk`), true of grpc-go; recorded in `notes/decisions.md`.
+- **The handler outcome** `handlerErrOut Ψe err := ∃ m, descIs err m ∗ (⌜err ≠ nil ∧ m ∈ handlerDescs⌝ -∗ Ψe m)`
+  and `notHandlerErr err := notDescIn handlerDescs err` (`InvGrpc.lean`); laws `handlerErrOut_nil`, `_not`, `_all`,
+  `_allS` (from `statusErrOk`), `_allSrv` (from `srvErrOk`; takes `ErrorStringLeaf`), `_mono`. `grpcDecOk`,
+  `srvInterceptorOk`, `waitRetryBackoff` (`⌜err = nil⌝ ∨ notHandlerErr err`) use `notHandlerErr`.
+- **The invoker's error** (`grpcInvokerOk`): `notLearnerErr err ∗ ∃ d, descIs err d ∗ ⌜kvMethod ∧ noRefusalAt →
+  d ∉ refusalDescs⌝ ∗ (⌜d ∈ handlerDescs⌝ -∗ Ψe d)` (`noRefusal`, a pure fact of `errDesc`, is gone).
+- **Server chains**: `grpcErrMapOk M kf kc` is an `IProp` (`⌜grpcErrMapKeys M kf kc⌝`: non-nil values, `kf`,
+  `kc` keys; and `□` per entry: the value's description `mv` with `mv = F → k = kf`, `mv = C → k = kc`, the
+  key's `mk ∉ {F, C}`); laws `grpcErrMapOk_ne`, `_key`, `_val`. The keys' own `mvcc: …` descriptions are no
+  longer needed: `kf ≠ kc` from their message cells, a `rangeKeys` `*fmt.wrapError` apart from mvcc's
+  `*errorString`s by its `Unwrap` method. `grpcErrOut`'s fallback, `ctxErrDescs`, `notReadDesc` (now
+  `notDescIn [F, C]`), `rangeErrDesc`, `mvcc.rangeKeysErr` (its description conjunct dropped: the prefix comes
+  from `errorfWrap_descIs`, proved in `Base.lean`) carry `descIs`. `fmt.ErrorfWrap`'s post lost its conditional
+  `errDesc` conjunct.
+- **Client chains**: `rpctypes.ErrorDesc` (pre `descIs err m`, `RET #m`), `rpctypes.Error` (pre `descIs err m`;
+  post `descIs err' m` and `err' = err ∨ an EtcdError of desc m`, for every error), `ContextError` (pre
+  `descIs err m`, post with `descIs err' m`), `shouldRefreshToken`/`isSafeRetry`/`isSafeRetryMutableRPC`
+  (`descIs err m` in, `b → m ∈ refusalDescs` out), `ifcErrOut` (`∃ d, descIs err d ∗ …`; laws `_intro`,
+  `_notin`, `_of_attempt`, `_absurd`), `KVService.rangeErrOut`, `kubernetes.rangeErrSound`, k8s `readErrIs`
+  (`∃ d, descIs err d ∗ □ (⌜d = futureRevDesc⌝ -∗ …)`), `store.listReadError` (the identity branch through the
+  pin). `kv.Get` fixes the description `ContextError` keeps before its call by a case on `sortValid`.
+- **rpctypes' initializer** (`etc/gen-init.py`): the `ErrGRPC*` descriptions from `status.Error`'s post (`DR<x>`,
+  restated for the named `futureRevDesc`/`compactedDesc`), the map literal built under
+  `□ ∀ k v, M !! k = some v → descIs v k` (`ErrorDesc(e)` returns the literal), `Err* = Error(ErrGRPC*)` an
+  `EtcdError` of the literal `desc`.
+
+Not done: `context.WithCancelValCtx` remains an axiom: its parent is a `*valCtx` outside Perennial's
+context model, whose `WithCancel` takes an `isContext` parent (the `Value` contract of
+`notes/perennial-changes.md`).
+
+**Landing state (2026-11-21, 03:30).** The branch builds green with lean `51e4debf62` merged, the trust base
+check passes (546 axioms: only the three removals) and every gate passes but `merge-status --selftest`,
+which fails on lean itself: lean's merge `cf54600750` (robust-threads) lost `notes/status-history.md` lines
+(`etc/merge-status.py`'s replay of this week's merges). Re-enqueue once lean's history check is repaired.

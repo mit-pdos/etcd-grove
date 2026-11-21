@@ -243,6 +243,8 @@ theorem NewServer.wp_proofRG
     Hdwd Hbwb
   have Hslg : ∃ m' : lease.Mode, lease.runCfg (GF := GF) ρ.rd.kv.lm m' := ⟨m, lease.bootCfg_run Hlbc⟩
   replace Hbnd : threadBound GF ≤ 2 ^ 28 := Hbnd
+  -- (srvloops2, 2026-11-21) `tickMu`'s pool of reader slots (the installer's)
+  have HtickB : threadBound GF ≤ 2 ^ 29 := by omega
   -- the stopped names' raft names the restarted ones (`restartNames`)
   have Hρo : ρo.rd.raft = ⟨γ, [], W64 0⟩ := by rw [← HrN.1]; exact HρRaft
   letI : MemStorReg GF := ⟨γ.reg⟩
@@ -446,9 +448,13 @@ theorem NewServer.wp_proofRG
   (try wp_auto)
   -- the configuration, field by field from here on
   iStructNamed cfg
-  ihave %HcuNN := typedPointsto_not_null _ _ _ $$ ClientURLs
-  wp_apply h13 as %cus -
-  · ipureintro; exact HcuNN
+  -- (prove-ps2-misc, 2026-11-21) the field and the URLs, read-only (`bootCfgRO`)
+  ihave #HcU : cfg.ClientURLs' ↦*□ U.client $$ []
+  · iunfold bootCfgRO at Hcfgro
+    icases Hcfgro with ⟨-, #H, -⟩
+    iexact H
+  wp_apply h13 $$ [ClientURLs] as %cus ⟨ClientURLs, -⟩
+  · iframe ClientURLs; iframe #
   (try wp_auto)
   -- the request ids' generator, the notifiers
   ihave #Hipkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.idutil $$ []
@@ -768,7 +774,7 @@ theorem NewServer.wp_proofRG
   · iPkgInit
   ihave #Hisl := lease.isLessor_of_lessorInv h49 h50 h51 h52 lp γl $$ [$Hlspkg $Hlinv]
   -- the lessor's reader slots: one for the store, one for the apply thread's lease owner (D14i)
-  icases replicate_take1 _ _ hM1 $$ Hlrd with ⟨Hlrd, Hlrds⟩
+  icases replicate_take1 _ _ (by omega) $$ Hlrd with ⟨Hlrd, Hlrds⟩
   icases replicate_take1 _ _ (by omega) $$ Hlrds with ⟨Hlrd2, Hlrds⟩
   -- (the lease-src plan) the rest in the lessor's reader pool, which the lease service's calls
   -- borrow from with their thread tokens (`threadBound GF ≤ 2 ^ 28`)
@@ -1105,7 +1111,7 @@ theorem NewServer.wp_proofRG
     iexact Hcl0
   -- (D21 M2) what the transport's calls into the server read (`srvProcOk`): the wrapper's
   -- fixed fields split off its struct (the node's among them), the member id, the stats
-  imod rnFixed_split (srvRAddr s) rvr $$ r with ⟨#Hfix, Htrf, HlatestTs⟩
+  imod rnFixed_split (srvRAddr s) rvr $$ r with ⟨#Hfix, Htrf, HlatestTs, Hreplay⟩
   ihave #HNodeC : rnNodeAddr (srvRAddr s) ↦□ rnNodeIface γrn $$ []
   · rw [← Hrn14]
     iunfold rnFixed at Hfix
@@ -1564,13 +1570,14 @@ theorem NewServer.wp_proofRG
   -- `Stop` names it (`srvTrStop`)
   ipersist Htrf
   imod Hinst $$ %(srvRAddr s) %s %(interface.mkOk (go.GoType.PointerType api.rafthttp.Transport.ty) #t)
-    [Henv] [Hcmi] [] [] [] [HlatestTs] [] [Hrtm] with ⟨#Hrn, Hrdone, #Hnodef, #Hprop, -⟩
+    [Henv] [Hcmi] [] [] [] [HlatestTs] [Hreplay] [] [Hrtm] %HtickB with ⟨#Hrn, Hrdone, #Hnodef, #Hprop, -⟩
   · iexact Henv
   · iexact Hcmi
   · simp only [srvErM]; iexact Hrdctx
   · iexact Hfix
   · iexact Htrf
   · iexact HlatestTs
+  · iexact Hreplay
   · -- (D21 M2) the raft wrapper's messages carry their bundle into the network
     ihave #Htrall' : netTransport γn id (transportIface t)
         (srvErM false ρ E₀ (W64 0) (W64 0) (restartKV ρ.rd.kv A) id (srvTrKey γn γk) (srvTrStopK γk)).S
@@ -1605,10 +1612,13 @@ theorem NewServer.wp_proofRG
   iNamedPrefix Hrn' "N"
   -- the lessor
   -- (the lease-expiry plan's X4) at the environment's grant flag and auth mode (`M.isOn = on`)
+  -- (prove-ps2-promote) the bounds `Promote`'s sort needs, from the construction's
+  have Hb30 : threadBound GF ≤ 2 ^ 30 - 1 := by omega
+  have Hr62 : receiptBound GF ≤ 2 ^ 62 := Nat.le_trans Hrb (Nat.pow_le_pow_right (by decide) (by decide))
   ihave #Hlok : lessorOk ρ.rd.kv.lg M.isOn (lease.lessorIface lp) $$ []
   · icases HM with %HM'
     rw [HM'.1]
-    iapply lessorOk_of_lessorInv h57 h58 h59 lp γl ρ.rd.kv.lg false
+    iapply lessorOk_of_lessorInv h57 h58 h59 Hb30 Hr62 lp γl ρ.rd.kv.lg false
     iframe Hlexp Hlcfg Hlinv Hlspkg
   -- (R8) the lessor's and the auth store's apply contracts at the store's backend and the frozen
   -- hook (`snap_isApplyLessor`, `snap_isAuthStore`, as the snapshot walk's)

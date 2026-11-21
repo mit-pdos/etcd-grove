@@ -16,7 +16,6 @@ axiom Client.streamClientInterceptor.wp_proof
 axiom NewCluster.wp_proof
 axiom NewMaintenance.wp_proof
 axiom WithRequireLeader.wp_proof
-axiom apierrors.NewInternalError.wp_proof
 axiom audit.GetAuditIDTruncated.wp_proof
 axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof
@@ -48,8 +47,6 @@ axiom grpcDialOptIs
 axiom grpcResolverAt
 axiom grpcSrvCfgRaw
 axiom grpcWrotePeer
-axiom k8sfeature.featureOff_persistent
-axiom k8sfeature.featureOn_persistent
 axiom klog.Errorf.wp_proof
 axiom klog.V.wp_proof
 axiom klog.Verbose.InfoS.wp_proof
@@ -95,17 +92,13 @@ axiom reflectM.value_into_val_typed
 axiom resolver.EtcdManualResolver.Close.wp_proof
 axiom resolver.EtcdManualResolver.SetEndpoints.wp_proof
 axiom resolver.New.wp_proof
-axiom rpctypes.errDesc_etcdError
 axiom status.Code.wp_proof
 axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
 axiom status.Status.Code.wp_proof
-axiom strconv.FormatInt.wp_proof
-axiom strconv.ParseInt.wp_proof
 axiom streamKeyFromCtx.wp_proof
 axiom strings.Contains.wp_proof
 axiom strings.SplitN.wp_proof
-axiom time.Duration.Seconds.wp_proof
 axiom tracing.Span.AddEvent.wp_proof
 axiom tracing.Span.End.wp_proof
 axiom tracing.Start.wp_proof

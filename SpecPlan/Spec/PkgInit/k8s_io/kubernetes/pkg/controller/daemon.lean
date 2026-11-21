@@ -6,7 +6,7 @@ public import SpecPlan.Spec.PkgInit.Base
 public import Perennial.Proof.context.Base
 public import Perennial.Proof.errors.Base
 public import Perennial.Proof.fmt.Base
-public import SpecPlan.Spec.PkgInit.reflect
+public import Perennial.Proof.reflect.Base
 public import Perennial.Proof.sort.Base
 public import Perennial.Proof.sync.Base
 public import Perennial.Proof.time.Base

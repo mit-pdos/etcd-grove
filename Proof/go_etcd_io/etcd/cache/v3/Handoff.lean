@@ -128,6 +128,7 @@ theorem handoff_rcv_au (γ : HandoffNames) (ch : Loc) (P : V → IProp GF) (Ws W
       recvAu γ.chanName V Φ := by
   unfold isHandoff recvAu
   iintro ⟨#Hchan, #Hinv⟩ Hlc1 Hcons Hcont
+  iapply ncfupd_of_fupd
   iinv Hinv with Hi Hclose
   imod lc_fupd_elim_later (E := ⊤ \ ↑nroot) $$ Hlc1 Hi with Hi
   unfold handoffInv
@@ -248,6 +249,7 @@ theorem handoff_send_au (γ : HandoffNames) (ch : Loc) (P : V → IProp GF) (Ws 
       ▷ (handoffProducer γ true -∗ Φ) -∗ sendAu γ.chanName v Φ := by
   unfold isHandoff sendAu
   iintro ⟨#Hchan, #Hinv⟩ Hlc1 ⟨Hprod, HP, HWs⟩ Hcont
+  iapply ncfupd_of_fupd
   iinv Hinv with Hi Hclose
   imod lc_fupd_elim_later (E := ⊤ \ ↑nroot) $$ Hlc1 Hi with Hi
   unfold handoffInv
@@ -325,6 +327,7 @@ theorem handoff_close_au (γ : HandoffNames) (ch : Loc) (P : V → IProp GF) (Ws
       ▷ Φ -∗ closeAu γ.chanName V Φ := by
   unfold isHandoff closeAu
   iintro ⟨#Hchan, #Hinv⟩ Hlc1 ⟨Hprod, HWc⟩ Hcont
+  iapply ncfupd_of_fupd
   iinv Hinv with Hi Hclose
   imod lc_fupd_elim_later (E := ⊤ \ ↑nroot) $$ Hlc1 Hi with Hi
   unfold handoffInv

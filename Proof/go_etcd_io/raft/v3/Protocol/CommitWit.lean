@@ -36,6 +36,18 @@ instance commitWit_timeless (γ : RaftNames) (T c : w64) :
     Timeless (commitWit (GF := GF) γ T c) := by
   unfold commitWit; infer_instance
 
+/-- A quorum certificate at or before `old` is also a certificate at or before
+`t`. The recovered WAL's local commit index is irrelevant to this implication. -/
+theorem commitWit_mono_term (γ : RaftNames) (old t c : w64) (ht : uint.Z old ≤ uint.Z t) :
+    commitWit (GF := GF) γ old c ⊢ commitWit γ t c := by
+  unfold commitWit
+  iintro ⟨%F, %Hwf, #Hr, #Hc, #Hknown⟩
+  iexists F
+  iframe Hr Hknown
+  isplitr
+  · ipureintro; exact Hwf
+  iapply commitIn_agree γ F F c old t ht rfl rfl $$ Hc
+
 /-- (D22 S-b, item 2) What a `Ready`'s hard state `h` says, the committed log handed out with it
 of length `n`: nothing for the zero record (a `nil` `HardState` reads as it), else raft's state at
 the `Ready`: the witness of its term and commit index, which bounds what was handed out. (A

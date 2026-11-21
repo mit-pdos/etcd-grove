@@ -172,7 +172,7 @@ theorem EtcdServer.sendMergedSnap.wp_proof
         · (try wp_auto)
           ipureintro; rfl
         · wp_auto_lc 2
-          wp_apply time.wp_After as %tch %γa #Htch
+          wp_apply (time.After.spec_pkgInit time.wp_After _) as %tch %γa #Htch
           (try wp_auto)
           wp_apply_core chan.wp_select_blocking
           iapply BigAndL.bigAndL_cons.2

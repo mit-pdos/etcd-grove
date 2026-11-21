@@ -1,6 +1,6 @@
 /-
-`strconv.FormatInt`: the trust boundary (Perennial translates `strconv` names-only; the axiom is
-`Proof/strconv/FormatInt.lean`). Lean-first (no Rocq counterpart); K2 of
+`strconv.FormatInt`: proved (`Proof/strconv/FormatInt.lean`) over Perennial's translation of Go's
+(stdlib2, 2026-11-21; until then a trust-boundary axiom). Lean-first (no Rocq counterpart); K2 of
 `notes/k8s-compactor-plan.md`, U2 (the user's approval, 2026-11-04): the Kubernetes compactor writes
 `FormatInt(rev, 10)` to `compact_rev_key`.
 -/

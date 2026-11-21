@@ -625,3 +625,12 @@ components) gave no `ENAMETOOLONG` for `MkdirAll(SnapDir)`, the backend file and
 Text fixes: the snappaths test's stale `snapDBPathOf`; `CleanFits.lean`'s header ("`Join` of elements that fit
 gives a path that fits": only the window property is kept, the length is `snapDirOf_fits`'s); `PathFits.lean`'s
 "`Clean` lengthens nothing" (not of `""`). `SpecPlan`'s `Config.snapDirOf` stays opaque (its own namespace).
+
+## Session 12 (2026-11-21, branch `wal-item3`): the configuration-C run of `TestLocksBlocking`
+
+The user ran `examples/osfs/semantics/run-models-on-c.sh -run 'TestLocksBlocking'` on C (2026-11-20; the test of
+option (A), b744596bd8: a blocking lock request in conflict waits, `locks_blocking.go`). **Run 3**
+(`notes/axiom-review/noioerr-c-runs/run3-locks-blocking-b744596bd8.out`, the terminal's colour escapes stripped):
+`check.sh` confirms C (kernel 7.0.0-1014-aws, ext4, block size 4096, the default options); `TestLocksBlocking`
+passes (0.41 s): the waiting `F_OFD_SETLKW` and `flock(LOCK_EX)` return nil once the holder's fd is closed, and
+the signals meanwhile never made them return. `locks_blocking.go`'s "measured on configuration C" now has its run.

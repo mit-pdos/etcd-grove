@@ -4,7 +4,7 @@ their trust-boundary specs (`Spec/io/NewSectionReader.lean`, `Spec/io/CopyN.lean
 `Tx.WriteTo` uses of them (tx.go: `io.CopyN(w, io.NewSectionReader(f, dataOffset, dataSize),
 dataSize)`, `f` the database's `*os.File`). Lean-first (no Rocq counterpart).
 
-* `io.secReader sr r off n` (opaque, exclusive): `sr` is a `*SectionReader` made by
+* `io.secReader sr r off n` (exclusive): `sr` is a `*SectionReader` made by
   `NewSectionReader(r, off, n)` and not read yet: it reads `r`'s `ReadAt` from `off` up to
   `off + n` (Go's `SectionReader{r, off, off, off + n, n}`; the spec asks `off + n < 2^63`, so
   Go's overflow case, a limit of `MaxInt64`, does not arise). Only `CopyN`'s spec takes it, whole.
@@ -12,8 +12,9 @@ dataSize)`, `f` the database's `*os.File`). Lean-first (no Rocq counterpart).
   `P` and a relation `Hd i x` (the byte at offset `i` may be `x`): `r.ReadAt(b, o)`, with `P`, at
   `0 ≤ o`, `len(b) ≤ 32 KiB` (`io.Copy`'s buffer) and `o + len(b) < 2^63`, returns `n` with
   `0 ≤ n ≤ len(b)` (as an unsigned `w64`, so `n` is not negative as an `int`) and the first `n`
-  bytes of `b` related by `Hd` to the offsets `o, o + 1, ...`, keeping `P`; any error, which the copy
-  does not inspect beyond `nil` and `io.EOF`. An `*os.File` has it from its racing read
+  bytes of `b` related by `Hd` to the offsets `o, o + 1, ...`, keeping `P`; any well-typed error
+  (`io.ptrTyped`: the copy compares it with `io.EOF`), which the copy does not inspect beyond `nil`
+  and `io.EOF`. An `*os.File` has it from its racing read
   (`os.File.readerAtOk`, `Proof/os/ReaderAt.lean`).
 * `io.writerPlain w` (pure; the spec plan's `writerPlain`, `SpecPlan/Spec/go_etcd_io/bbolt/Api.lean`):
   `w`'s dynamic type has no `ReadFrom` method. `io.Copy` calls `dst.ReadFrom(src)` when `dst`
@@ -57,9 +58,13 @@ theorem io.writerPlain_pipeWriter [_root_.Perennial.io.PipeWriter.TypeAssumption
   simp only [go.methodSetLookup] at h
   exact h
 
-/-- **The `*SectionReader` `sr` of `r` from `off`, `n` bytes long** (opaque, exclusive; see the
-file header). -/
-opaque io.secReader (sr : Loc) (r : GoInterfaceOk) (off n : w64) : IProp GF
+/-- **The `*SectionReader` `sr` of `r` from `off`, `n` bytes long** (exclusive; see the file
+header): Go's `SectionReader{r, off, off, off + n, n}`, owned, at `0 ≤ off`, `0 ≤ n` and
+`off + n < 2^63` (`NewSectionReader`'s premises). -/
+def io.secReader (sr : Loc) (r : GoInterfaceOk) (off n : w64) : IProp GF :=
+  iprop(⌜0 ≤ sint.Z off ∧ 0 ≤ sint.Z n ∧ off.toNat + n.toNat < 2 ^ 63⌝ ∗
+    sr ↦ ({ r' := GoInterface.ok r, base' := off, off' := off, limit' := off + n, n' := n } :
+      _root_.Perennial.io.SectionReader))
 
 /-- **The `io.ReaderAt` `r`'s contract, by `P` and the byte relation `Hd`** (persistent; see the
 file header). -/
@@ -70,7 +75,8 @@ def io.readerAtOk (r : GoInterfaceOk) (P : IProp GF) (Hd : Nat → w8 → Prop) 
     {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
         P ∗ ∃ vs' : List w8, b ↦* vs' ∗
           ⌜vs'.length = vs.length ∧ n.toNat ≤ vs.length ∧
-            ∀ i x, vs'[i]? = some x → i < n.toNat → Hd (o.toNat + i) x⌝ }})
+            (∀ i x, vs'[i]? = some x → i < n.toNat → Hd (o.toNat + i) x) ∧
+            _root_.Perennial.io.ptrTyped err⌝ }})
 
 instance io.readerAtOk_persistent (r : GoInterfaceOk) (P : IProp GF) (Hd : Nat → w8 → Prop) :
     Persistent (io.readerAtOk r P Hd) := by

@@ -118,18 +118,8 @@ theorem EtcdServer.raftRequest.wp_proof
         iframe Hhb
         isplitr
         · ipureintro; exact Hwire
-        iunfold appliedErr
-        iexists res, v
-        iframe Hv
-        isplitr
-        · ipureintro; exact hve
-        iunfold resultIs
-        isplitr
-        · ipureintro; exact Hnn
-        iexists y, y', .rejected
-        iframe Hcert HMint
-        isplitr
-        · ipureintro; exact ⟨Hstep.1, Hstep.2.1⟩
+        iapply (appliedErrM_intro E.authOn E ρ rq' F _ res v L y y' .rejected hve Hnn Hstep) $$
+          HL Hv [] Hcert HMint HtM
         simp only [apply.applyResultIs]
         iexact Hrej
       · rw [hve] at HvE; exact absurd rfl HvE
@@ -152,18 +142,8 @@ theorem EtcdServer.raftRequest.wp_proof
         iframe Hhb
         isplitr
         · ipureintro; exact Hwire
-        iunfold appliedErr
-        iexists res, v
-        iframe Hv
-        isplitr
-        · ipureintro; exact hve
-        iunfold resultIs
-        isplitr
-        · ipureintro; exact Hnn
-        iexists y, y', .dispatched o skip
-        iframe Hcert HMint
-        isplitr
-        · ipureintro; exact ⟨Hstep.1, Hstep.2.1⟩
+        iapply (appliedErrM_intro E.authOn E ρ rq' F _ res v L y y' (.dispatched o skip) hve Hnn
+          Hstep) $$ HL Hv [Hans] Hcert HMint HtM
         simp only [apply.applyResultIs, apply.dispatchResult, or_true, ↓reduceIte]
         isplitr
         · ipureintro; exact Hnn

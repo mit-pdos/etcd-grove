@@ -7,7 +7,6 @@ module
 
 public import Spec.path.filepath.join
 public import Spec.path.filepath.Clean
-public import Proof.internal.filepathlite.UntypedRune
 
 @[expose] public section
 
@@ -94,7 +93,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.path.filepath.Assumptions]
 
-theorem filepath.join.wp_proof [UntypedRuneSemantics] (hClean : filepath.Clean.spec (GF := GF) (hG := hG)) :
+theorem filepath.join.wp_proof (hClean : filepath.Clean.spec (GF := GF) (hG := hG)) :
     filepath.join.spec (GF := GF) (hG := hG) := by
   intro sl es dq
   wp_start as Hsl
@@ -143,7 +142,7 @@ theorem filepath.join.wp_proof [UntypedRuneSemantics] (hClean : filepath.Clean.s
       icases (ownSlice_slice (V := GoString) (W64 (n : Int)) sl.len sl dq es
         ⟨by word, by word, Int.le_refl _⟩).1 $$ Hsl with ⟨H1, H2, H3⟩
       try wp_auto
-      rw [untypedRuneToString_ascii 47 (by decide) (by decide)]
+      rw [(by decide : go.runeString 47 = [W8 47])]
       wp_apply _root_.Perennial.strings.wp_Join _ _ dq _ $$ [H2] as H2
       · iframe
       try wp_auto

@@ -67,13 +67,11 @@ unlink_perennial() {
   if [ "$linked" = 1 ]; then rm -f .lake/packages/perennial; rmdir .lake/packages 2>/dev/null; linked=0; fi
 }
 
-# 1. the full build
-bstart=$(date +%s)
-if lake "${pk[@]}" build > "$tmp/build.log" 2>&1; then
-  echo "build: ok ($(grep -o 'Build completed successfully ([0-9]* jobs)' "$tmp/build.log"), $(( $(date +%s) - bstart ))s)"
-else
-  echo "build: FAILED"; grep -E "error:|error: build failed" "$tmp/build.log" | head -20; fail=1
-fi
+# 1. the full build, with the sections that read only the sources (`early`, below) running beside it:
+# their failures show within a minute or two instead of after the build, and stop it
+# (GATES_FAILFAST=0: let the build finish anyway). Measured 2026-11-21: the build is 9-26 min of a
+# gate, the checks after it 1-4 min, and most failed landings that day failed a source-only check
+# (links, reader-slot, axiom-tok's stale entries are in tcb, gen-init) after the whole build.
 
 # 2-9 read the build (or only the sources) and nothing writes what another reads: they run in
 # parallel, each into its own log, printed in this order once all are done (sections that run one
@@ -497,22 +495,62 @@ fi
 return $fail
 }
 
-link_perennial
 secs=(links tcb goose models issues bounds mode api iface premisefix k8s7e)
-start=$(date +%s)
-for s in "${secs[@]}"; do
-  mkdir -p "$tmp/sec.$s"
-  ( tmp="$tmp/sec.$s"; t0=$(date +%s); "sec_$s"; st=$?; echo $(( $(date +%s) - t0 )) > "$tmp/time"; exit $st ) > "$tmp/out.$s" 2>&1 &
-  pids+=("$!")
+# sections that read the build: tcb (Lean runs, tcb.json), models (model-param's and pbschema's Lean
+# runs), iface (gen-interface reads the .oleans); the others read only the sources and the Go code.
+# With PERENNIAL_CHECKOUT, the translations need .lake/packages/perennial linked, which the build
+# must not see: then every section waits for the build, as before.
+early=(links goose issues bounds mode api premisefix k8s7e)
+[ -n "${PERENNIAL_CHECKOUT:-}" ] && early=()
+declare -A spid
+run_sec() {
+  local s=$1; mkdir -p "$tmp/sec.$s"
+  ( tmp="$tmp/sec.$s"; t0=$(date +%s); "sec_$s"; st=$?; echo $(( $(date +%s) - t0 )) > "$tmp/time"; echo $st > "$tmp/status"; exit $st ) > "$tmp/out.$s" 2>&1 &
+  spid[$s]=$!
+}
+for s in "${early[@]}"; do run_sec "$s"; done
+bstart=$(date +%s)
+setsid lake "${pk[@]}" build > "$tmp/build.log" 2>&1 &
+bpid=$!
+stopped=
+while kill -0 "$bpid" 2>/dev/null; do
+  if [ "${GATES_FAILFAST:-1}" = 1 ]; then
+    for s in "${early[@]}"; do
+      st=$(cat "$tmp/sec.$s/status" 2>/dev/null)
+      if [ -n "$st" ] && [ "$st" != 0 ]; then stopped=$s; break; fi
+    done
+    if [ -n "$stopped" ]; then
+      kill -TERM -- "-$bpid" 2>/dev/null; wait "$bpid" 2>/dev/null
+      # a killed write may leave an empty artifact in the shared cache (as a VM preemption did,
+      # 2026-11-21): remove the empty files the last minutes wrote, before anyone restores them
+      [ -n "${LAKE_CACHE_DIR:-}" ] && find "$LAKE_CACHE_DIR" -xdev -type f -size 0 ! -name '*.tmp*' -mmin -30 -delete 2>/dev/null
+      break
+    fi
+  fi
+  sleep 5
 done
+wait "$bpid"; bst=$?
+if [ -n "$stopped" ]; then
+  echo "build: STOPPED after $(( $(date +%s) - bstart ))s (section $stopped failed; GATES_FAILFAST=0 to build anyway)"; fail=1
+elif [ $bst = 0 ]; then
+  echo "build: ok ($(grep -o 'Build completed successfully ([0-9]* jobs)' "$tmp/build.log"), $(( $(date +%s) - bstart ))s)"
+else
+  echo "build: FAILED"; grep -E "error:|error: build failed" "$tmp/build.log" | head -20; fail=1
+fi
+start=$(date +%s)
+link_perennial
+if [ -z "$stopped" ]; then
+  for s in "${secs[@]}"; do [ -n "${spid[$s]:-}" ] || run_sec "$s"; done
+fi
 times=
-for i in "${!secs[@]}"; do
-  wait "${pids[$i]}" || fail=1
-  cat "$tmp/out.${secs[$i]}"
-  times="$times ${secs[$i]} $(cat "$tmp/sec.${secs[$i]}/time" 2>/dev/null)s"
+for s in "${secs[@]}"; do
+  [ -n "${spid[$s]:-}" ] || continue
+  wait "${spid[$s]}" || fail=1
+  cat "$tmp/out.$s"
+  times="$times $s $(cat "$tmp/sec.$s/time" 2>/dev/null)s"
 done
 unlink_perennial
-echo "checks after the build: $(( $(date +%s) - start ))s (in parallel; per section:$times)"
+echo "checks after the build: $(( $(date +%s) - start ))s (in parallel; the source-only ones started with the build; per section:$times)"
 
 [ "$fail" = 0 ] && echo "gates: all passed" || echo "gates: FAILED"
 exit $fail

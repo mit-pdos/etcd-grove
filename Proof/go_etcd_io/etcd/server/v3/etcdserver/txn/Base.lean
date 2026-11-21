@@ -22,7 +22,7 @@ mvcc's `ErrFutureRev`/`ErrCompacted` (`checkRange`) are mvcc's facts (`mvccInit`
 module
 
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.txn
-public import Proof.reflect.PkgInit
+public import Perennial.Proof.reflect.Base
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.txn
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.errors.Base

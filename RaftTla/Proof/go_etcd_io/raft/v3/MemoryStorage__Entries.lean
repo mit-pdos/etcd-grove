@@ -299,11 +299,13 @@ theorem MemoryStorage.Entries.wp_proof
   · iexists (cs0.take nlim)
     isplitl
     · iunfold entsPtsC; iexists ls1; iframe Hs2 Hb1; ipureintro; exact Hz1
-    · ipureintro; exact ⟨HE0eq.symm, Hn.2.2⟩
+    · ipureintro; exact ⟨HE0eq.symm, Hn.2.2.1⟩
   ipureintro
   rw [← HE]
-  refine ⟨Hnetake, ?_, List.take_prefix _ _⟩
-  simp only [slice.fullSlice]
+  refine ⟨Hnetake, ?_, List.take_prefix _ _, ?_⟩
+  · simp only [slice.fullSlice]
+  · intro hm
+    rw [Hn.2.2.2 hm, ← Hcs0, ← List.map_take, List.take_length]
 
 end proof
 

@@ -82,7 +82,9 @@ def srvReadFieldsAtM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
     srvApplyWaitAddr s ↦□ v.aw ∗ isWaitTime v.aw (appliedAtLeast γr) ∗
     srvLeaderChangedAddr s ↦□ v.lc ∗ srvFirstCommitAddr s ↦□ v.fc ∗
     srvStoppingAddr s ↦□ v.stopping ∗ stopChan v.stopping ∗
-    □ (⌜E.authMode.isOn = true⌝ → isReqAuthBound v.auth E.RD E.authMode))
+    □ (⌜E.authMode.isOn = true⌝ → isReqAuthBound v.auth E.RD E.authMode) ∗
+    -- (srvloops2, 2026-11-21) what the leadership check reads (`ensureLeadership`)
+    srvLeadCheckOk s)
 
 instance srvReadFieldsAtM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
     (v : ReadFields) : Persistent (srvReadFieldsAtM on s E γr v) := by
@@ -290,12 +292,14 @@ def rangeErrMsgOk (m : GoString) : Prop :=
 
 /-- **What a failed `Range`'s gRPC error says** (persistent; k8s etcd3 7c-2 part 2, S4/S5): with the
 future revision's gRPC description, `Range`'s error was mvcc's `ErrFutureRev`, with the read's facts
-at it (`rangeErrAt`); with the compacted one's, mvcc's `ErrCompacted`, likewise. -/
+at it (`rangeErrAt`); with the compacted one's, mvcc's `ErrCompacted`, likewise (errdesc stage 2b,
+2026-11-21: of a description `m`, `descIs err m`, until then the pure `errDesc err`). -/
 def rangeErrDesc (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log)
     (o : OpFull) (Q : List EntryModel → IProp GF) (err : GoInterface) : IProp GF :=
-  iprop((⌜go_etcd_io.etcd.cache.v3.errDesc err ≠ go_etcd_io.etcd.cache.v3.futureRevDesc⌝ ∨
+  iprop(∃ m : GoString, go_etcd_io.etcd.cache.v3.descIs err m ∗
+    (⌜m ≠ go_etcd_io.etcd.cache.v3.futureRevDesc⌝ ∨
       rangeErrAt on E γr c F o Q (rangeFutureAt o)) ∗
-    (⌜go_etcd_io.etcd.cache.v3.errDesc err ≠ go_etcd_io.etcd.cache.v3.compactedDesc⌝ ∨
+    (⌜m ≠ go_etcd_io.etcd.cache.v3.compactedDesc⌝ ∨
       rangeErrAt on E γr c F o Q (rangeCompactedAt o)))
 
 instance rangeErrDesc_persistent (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64)
@@ -1102,7 +1106,7 @@ theorem srvAuthAt_of_viewsM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqN
   iunfold isServerReadM at Hr
   icases Hr with ⟨%vr, Hr⟩
   iunfold srvReadFieldsAtM at Hr
-  icases Hr with ⟨-, -, -, -, -, -, -, #Has2, #Hast, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hrb⟩
+  icases Hr with ⟨-, -, -, -, -, -, -, #Has2, #Hast, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hrb, -⟩
   icombine Has Has2 gives %Heq
   ihave #Hreq' : isReqAuth vr.auth E.RD $$ []
   · rw [← Heq]; iexact Hreq

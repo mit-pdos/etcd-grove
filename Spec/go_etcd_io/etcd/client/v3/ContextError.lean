@@ -32,12 +32,14 @@ result; and (D37) the result is no caller's `errors.New` value (`errCellOk`) if 
 `examples/axiomcx/incomingof-real` `TestContextErrorRaw`); and (incomingof Part B (3), 2026-11-18) a
 context error (whose `Error()` stably returns `m` at the call, a parameter as `status.FromError.spec`'s)
 comes back as a context error, or with a context message as its description (`rpctypes.Error` maps a
-message that is a key of `errStringToError`; none is, `TestContextErrorTwice`). -/
+message that is a key of `errStringToError`; none is, `TestContextErrorTwice`). (errdesc stage 2b,
+2026-11-21) `m` is `err`'s description (`descIs err m`, until then `errorMsgIs` with the pure `errDesc`),
+and the result's, when kept. -/
 abbrev ContextError.spec : Prop :=
   ∀ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (err : GoInterface) (m : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ ctxErrClient ci cd ∗
       ⌜err ≠ GoInterface.nil → clientErr err⌝ ∗ statusErrOk err ∗
-      (∀ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ → go_etcd_io.etcd.cache.v3.errorMsgIs e m) }}
+      go_etcd_io.etcd.cache.v3.descIs err m }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.ContextError)) (Val #(GoInterface.ok ci)))
       (Val #err))
   {{ (err' : GoInterface), RET #err';
@@ -47,14 +49,13 @@ abbrev ContextError.spec : Prop :=
       □ (errCellOk err -∗ errCellOk err') ∗
       -- (k8s 7e-1, 2026-11-10; incomingof Part B, 2026-11-17/18) the description kept, or the context's
       -- error, returned as it is (`ctxErrClient`'s: Go's context message and a context error's shape)
-      (⌜err = GoInterface.nil ∨
-          go_etcd_io.etcd.cache.v3.errDesc err' = go_etcd_io.etcd.cache.v3.errDesc err⌝ ∨
+      ((⌜err = GoInterface.nil⌝ ∨ go_etcd_io.etcd.cache.v3.descIs err' m) ∨
         go_etcd_io.etcd.cache.v3.ctxErrIs err') ∗
       -- (incomingof Part B, (3), 2026-11-18) a context error (message `m` at the call) comes back as a
       -- context error, or with a context message as its description
       (⌜¬ ∃ e : GoInterfaceOk, err = GoInterface.ok e ∧ go_etcd_io.etcd.cache.v3.ctxErrMsg m ∧
           go_etcd_io.etcd.cache.v3.ctxErrShape e⌝ ∨
-        go_etcd_io.etcd.cache.v3.ctxErrIs err' ∨ ⌜go_etcd_io.etcd.cache.v3.ctxErrMsg (go_etcd_io.etcd.cache.v3.errDesc err')⌝) }}
+        go_etcd_io.etcd.cache.v3.ctxErrIs err' ∨ go_etcd_io.etcd.cache.v3.descIs err' m) }}
 
 end spec
 

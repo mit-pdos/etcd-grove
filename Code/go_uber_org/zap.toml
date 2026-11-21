@@ -13,7 +13,14 @@ translate = ["!*", "DebugLevel", "InfoLevel", "WarnLevel", "ErrorLevel",
   # `time.Unix` is names only) and `_sinkRegistry`, so that their initializers are translated
   # (`etc/gen-init.py`; until then `opaqueInitsOk`), with what they call: `NewNop`, `Sugar`/`clone`
   "errNoEncoderNameSpecified", "_encoderNameToConstructor", "_errArrayElemPool", "_globalL", "_globalS",
-  "_", "NewNop", "Logger.Sugar", "Logger.clone"]
+  "_", "NewNop", "Logger.Sugar", "Logger.clone",
+  # (prove-zap3, 2026-11-21) the last package variable, `_sinkRegistry` (`newSinkRegistry`, which registers
+  # the file sink: `RegisterSink`, `normalizeScheme` over `strings.ToLower`)
+  "_sinkRegistry", "schemeFile", "newSinkRegistry", "sinkRegistry",
+  "sinkRegistry.RegisterSink", "normalizeScheme",
+  # (prove-srvloops2, 2026-11-21) `Time` (`ensureLeadership`'s debug log) and the bounds it compares
+  # with, `_minTimeInt64`/`_maxTimeInt64` (`time.Unix`, translated in Perennial since then)
+  "Time", "_minTimeInt64", "_maxTimeInt64"]
 # zapcore so that the generic `anyFieldC[T]` (a function type returning `zapcore.Field`) is
 # translated: Goose emits an axiomatized generic type as `∀ (T : go.type), go.type`, which
 # does not elaborate (the Lean name is go.GoType).
@@ -24,7 +31,9 @@ imports = ["!*", "go.uber.org/zap/zapcore",
   "errors", "io", "go.uber.org/zap/internal/pool",
   "go.uber.org/zap/internal",
   # (prove-initleft) `AtomicLevel`'s field, an `*atomic.Int32` (the `var _` assertion builds one)
-  "sync/atomic"]
+  "sync/atomic",
+  # (prove-zap3) the last variables' initializers
+  "time", "math", "strings", "sync", "os", "net/url"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

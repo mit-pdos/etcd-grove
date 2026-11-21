@@ -3,8 +3,12 @@
 # (stage 7e-2, Q7e-2-4: a map index and a comma-ok lookup, proved rather than trusted).
 # (2026-11-19) with bodies: `Everything` (`andTerm{}`) and `andTerm.Empty`, which the storage
 # package's initializer calls (`Proof/k8s_io/apimachinery/pkg/fields/Everything.lean`).
-translate = ["!*", "Set.Get", "Everything", "andTerm.Empty"]
-imports = ["!*"]
+# (prove-k8s4, 2026-11-21) with their initializers: `valueEscaper` (`strings.NewReplacer`, which Perennial
+# translates since 60800ea5e) and `termOperators` (a slice literal of the operator constants); until
+# then `opaqueInitsOk`. It imports `strings` for `NewReplacer`.
+translate = ["!*", "Set.Get", "Everything", "andTerm.Empty", "valueEscaper", "termOperators",
+  "notEqualOperator", "doubleEqualOperator", "equalOperator"]
+imports = ["!*", "strings"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

@@ -2,9 +2,6 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-def backend.viewAt (γ : backend.BNames) (vd : backend.VData) : IProp GF :=
-  iprop(∃ L, backend.viewQ γ (Qp.half 1).half vd L)
-
 theorem backend.txLive_split_half (tx : Loc) (γd : backend.DBNames) (q : Qp) (T : bbolt.TxView) :
     backend.txLive tx γd q T ⊣⊢ backend.txLive tx γd q.half T ∗ backend.txLive tx γd q.half T
 
@@ -21,9 +18,6 @@ def backend.snapAt (sp : Loc) (γ : GName) (tx : Loc) (γd : backend.DBNames) : 
             ownBroadcastChan sc γsc iprop(True) Broadcast.Unknown ∗
               ownBroadcastChan dc γdc iprop(True) Broadcast.Unknown ∗
                 inv backend.snapN iprop(ownBroadcastChan sc γsc iprop(True) Broadcast.Pending ∨ ghostVar γ 1 (tx, γd)))
-
-def backend.viewAtD (γ : backend.BNames) (P : backend.BParams) (vd X : backend.VData) : IProp GF :=
-  iprop(∃ L, backend.viewQ γ (Qp.half 1).half vd L ∗ ⌜backend.dlVd P vd L X⌝)
 
 theorem backend.viewAt_bView (γ : backend.BNames) (vd vd' : backend.VData) (q : Qp) : backend.viewAt
     γ vd ∗ backend.bView γ q vd' ⊢ backend.viewAt γ vd ∗ backend.bView γ q vd' ∗ backend.thinV γ vd

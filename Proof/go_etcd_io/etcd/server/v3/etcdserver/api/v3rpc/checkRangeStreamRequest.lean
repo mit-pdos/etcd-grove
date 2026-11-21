@@ -50,18 +50,27 @@ theorem v3rpc.checkRangeStreamRequest.wp_proof
     (hRev : txn.HasRevisionFilters.spec (GF := GF) (hG := hG))
     (hErrf : status.Errorf.spec (GF := GF) (hG := hG)) :
     v3rpc.checkRangeStreamRequest.spec (GF := GF) (hG := hG) := by
-  intro r o
-  wp_start as #Hr
+  intro r dq o
+  wp_start as Hr
   ihave #Ptxn : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn $$ []
   · iPkgInit
   ihave #Pst : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status $$ []
   · iPkgInit
   wp_auto
-  wp_apply (hRange r o) $$ [$Hr] as %err Herr
-  ihave #Hr' := Hr
-  iunfold txn.rangeRequestIs at Hr'
-  icases Hr' with ⟨%Hrn, %ksl, %esl, %k, %e, %rev, %limit, %order, %target, %ser, %ko, %co,
-    %minM, %maxM, %minC, %maxC, -, -, -, -, -, -, #Ho, #Ht, -, -, -, -, -, -, -, %Hop, -⟩
+  wp_apply (hRange r dq o) $$ [$Hr] as %err ⟨Herr, Hr⟩
+  -- (auth-mediation M3) the sort fields, read-only in the request at `dq`
+  iunfold txn.rangeRequestAt at Hr
+  icases Hr with ⟨%Hrn, %ksl, %esl, %k, %e, %rev, %limit, %order, %target, %ser, %ko, %co,
+    %minM, %maxM, %minC, %maxC, Hk, #Hks, #He, #Hes, Hlim, Hrev, #Ho, #Ht, #Hser, #Hko, #Hco, #HminM,
+    #HmaxM, #HminC, #HmaxC, %Hop, %Hkb⟩
+  ihave Hr : txn.rangeRequestAt r dq o $$ [Hk Hlim Hrev]
+  · iunfold txn.rangeRequestAt
+    isplitr
+    · ipureintro; exact Hrn
+    iexists ksl, esl, k, e, rev, limit, order, target, ser, ko, co, minM, maxM, minC, maxC
+    iframe Hk Hlim Hrev
+    iframe #
+    ipureintro; exact ⟨Hop, Hkb⟩
   cases hc : v3rpc.rangeCheck o with
   | some ce =>
     simp only [v3rpc.checkRes]
@@ -72,6 +81,7 @@ theorem v3rpc.checkRangeStreamRequest.wp_proof
     subst Hee
     wp_auto
     iapply HΦ
+    iframe Hr
     iexact Herr
   | none =>
     simp only [v3rpc.checkRes]
@@ -92,12 +102,13 @@ theorem v3rpc.checkRangeStreamRequest.wp_proof
         simp only [google_golang_org.grpc.codes.OK]
         exact fun h => absurd (go.intoVal_inj h) (by decide)
       iapply HΦ
+      iframe Hr
       ipureintro
       constructor
       · intro h; exact absurd h He2
       · intro h; exact absurd (hord.1 h.1) (by simpa using Hif)
     have hdef : order = W32 0 ∨ (target = W32 0 ∧ order = W32 1) := by simpa using Hif
-    wp_apply (hRev r o) $$ [$Hr]
+    wp_apply (hRev r dq o) $$ [$Hr] as Hr
     cases hrf : txn.hasRevFilters o
     rotate_left
     · wp_auto
@@ -106,12 +117,14 @@ theorem v3rpc.checkRangeStreamRequest.wp_proof
         simp only [google_golang_org.grpc.codes.OK]
         exact fun h => absurd (go.intoVal_inj h) (by decide)
       iapply HΦ
+      iframe Hr
       ipureintro
       constructor
       · intro h; exact absurd h He2
       · intro h; rw [h.2] at hrf; exact absurd hrf (by decide)
     · wp_auto
       iapply HΦ
+      iframe Hr
       ipureintro
       constructor
       · intro _; exact ⟨hord.2 hdef, hrf⟩

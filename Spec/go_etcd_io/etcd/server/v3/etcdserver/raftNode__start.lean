@@ -35,7 +35,7 @@ abbrev raftNode.start.spec : Prop :=
   -- (wal-link L3, 2026-11-19: until then the premises `storage.walSaveOk` and `storage.walCloseOk`, the WAL's
   -- writes and `onStop`'s `Close` not failing, which the run's no-I/O-error semantics now gives: the WAL
   -- contract's laws; a refused oversized `Save` batch, fork fix 0009, ends in `lg.Fatal` as a failed `Sync`)
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r ∗ isReadyHandler rh R E.γr ∗ R ∗ rnLoopTok γ L ∗ rnDoneTok γ r ∗ E.S ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r ∗ isReadyHandler rh R E.γr ∗ R ∗ rnLoopTok γ L ∗ rnWorkerStartTok γ r ∗ E.S ∗
       -- (2026-10-31) the loop's half of the WAL's open token (its `Save`s, `onStop`'s `Close`);
       -- (2026-11-03, R2b-1 stage 6) with the stop's claim, the metadata and the purge's right
       rnWalTokL γ r ∗

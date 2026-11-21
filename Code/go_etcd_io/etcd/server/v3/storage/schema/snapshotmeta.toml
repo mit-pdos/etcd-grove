@@ -1,0 +1,3 @@
+# Readers shared by bootstrap and the merged snapshot sender. The package has no globals.
+translate = ["*"]
+imports = ["*"]

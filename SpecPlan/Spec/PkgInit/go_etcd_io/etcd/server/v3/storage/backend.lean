@@ -16,6 +16,7 @@ public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.client.pkg.v3.verify
 public import Perennial.Proof.errors.Base
 public import Perennial.Proof.math.Base
 public import SpecPlan.Spec.PkgInit.go_etcd_io.bbolt.errors
+public import SpecPlan.Spec.PkgInit.syscall
 public import SpecPlan.Spec.PkgInit.github_com.prometheus.client_golang.prometheus
 public import SpecPlan.Spec.PkgInit.encoding.hex
 public import Perennial.Proof.sort.Base

@@ -15,7 +15,7 @@ files (`strings`, `math`, `bytes`, `log`, `io`, `errors`).
 module
 
 public import Perennial.Proof.strconv.Base
-public import Proof.reflect.PkgInit
+public import Perennial.Proof.reflect.Base
 public import Code.go_etcd_io.raft.v3
 public import GeneratedProof.go_etcd_io.raft.v3
 public import GeneratedProof.go_etcd_io.raft.v3.raftpb

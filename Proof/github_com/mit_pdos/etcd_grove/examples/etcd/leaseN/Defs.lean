@@ -7,7 +7,8 @@ Rocq counterpart). putgetN's (`putgetN/Defs.lean`) for the `k` members of `examp
 address is served (`startOf`).
 
 **The pure facts** (putgetN's `BootFacts`, reused): the member ids `ids` in the members' order (etcd's, from
-each peer URL and the cluster token `leaseN-2422`; `TestMemberIDs` checks them for every `k ≤ 1000`), the peers
+each peer URL and the cluster token `leaseN-1302`; `TestMemberIDs` checks them for every `k ≤ 300`, the bound of
+`examples/etcd/all`), the peers
 `ps` in `bootstrap`'s order, a permutation of the ids, and the bootstrap log.
 
 **The Iris premises** (`premises`, persistent): putgetN's at this program's token: `bootstrap`'s contract
@@ -39,7 +40,7 @@ variable [GooseExts]
 abbrev members (k : Nat) : List GMember := membersOf go!"leaseN" k (W64 10000) (W64 11000)
 
 /-- The cluster's token (`Token`). -/
-abbrev token : GoString := go!"leaseN-2422"
+abbrev token : GoString := go!"leaseN-1302"
 
 /-- **The program's start bundles** (name, peer address, client address): every member's. -/
 def startOf (ms : List GMember) : List (GoString × GoString × Option GoString) :=

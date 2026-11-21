@@ -28,32 +28,29 @@ theorem isSafeRetryMutableRPC.wp_proof
     (wp_FromError : EtcdGrove.status.FromError.spec (GF := GF) (hG := hG))
     (wp_ErrorDesc : rpctypes.ErrorDesc.spec (GF := GF) (hG := hG)) :
     isSafeRetryMutableRPC.spec (GF := GF) (hG := hG) := by
-  intro err
-  wp_start as #Hse
+  intro err m
+  wp_start as ⟨#Hse, #Hm⟩
   ihave #Hst : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status $$ []
   · iPkgInit
   ihave #Hrpc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []
   · iPkgInit
   wp_auto
-  ihave ⟨%mF, #HmF⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
   ihave ⟨%cFE, #HcFE⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_code _ $$ Hse
-  wp_apply wp_FromError err mF cFE $$ [$Hst $Hse $HmF $HcFE] as %ev %ok ⟨-, #HCode, -⟩
+  wp_apply wp_FromError err m cFE $$ [$Hst $Hse $Hm $HcFE] as %ev %ok ⟨-, #HCode, -⟩
   cases ok
   · wp_auto
-    ihave ⟨%mF, #HmF⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
-    wp_apply wp_ErrorDesc err mF $$ [$Hse $HmF] as %d ⟨%Hd, -⟩
+    wp_apply wp_ErrorDesc err m $$ [$Hse $Hm]
     wp_if_destruct
-    · iapply HΦ; ipureintro; intro h; first | (rw [← Hd]; apply go_etcd_io.etcd.cache.v3.mem_refusalDescs_balancer; simp_all; done) | simp_all
-    · iapply HΦ; ipureintro; intro h; first | (rw [← Hd]; apply go_etcd_io.etcd.cache.v3.mem_refusalDescs_balancer; simp_all; done) | simp_all
+    · iapply HΦ; ipureintro; intro h; first | (apply go_etcd_io.etcd.cache.v3.mem_refusalDescs_balancer; simp_all; done) | simp_all
+    · iapply HΦ; ipureintro; intro h; first | (apply go_etcd_io.etcd.cache.v3.mem_refusalDescs_balancer; simp_all; done) | simp_all
   · wp_auto
     wp_apply HCode
     wp_if_destruct
-    · ihave ⟨%mF, #HmF⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
-      wp_apply wp_ErrorDesc err mF $$ [$Hse $HmF] as %d ⟨%Hd, -⟩
+    · wp_apply wp_ErrorDesc err m $$ [$Hse $Hm]
       wp_if_destruct
-      · iapply HΦ; ipureintro; intro h; first | (rw [← Hd]; apply go_etcd_io.etcd.cache.v3.mem_refusalDescs_balancer; simp_all; done) | simp_all
-      · iapply HΦ; ipureintro; intro h; first | (rw [← Hd]; apply go_etcd_io.etcd.cache.v3.mem_refusalDescs_balancer; simp_all; done) | simp_all
-    · iapply HΦ; ipureintro; intro h; first | (rw [← Hd]; apply go_etcd_io.etcd.cache.v3.mem_refusalDescs_balancer; simp_all; done) | simp_all
+      · iapply HΦ; ipureintro; intro h; first | (apply go_etcd_io.etcd.cache.v3.mem_refusalDescs_balancer; simp_all; done) | simp_all
+      · iapply HΦ; ipureintro; intro h; first | (apply go_etcd_io.etcd.cache.v3.mem_refusalDescs_balancer; simp_all; done) | simp_all
+    · iapply HΦ; ipureintro; intro h; first | (apply go_etcd_io.etcd.cache.v3.mem_refusalDescs_balancer; simp_all; done) | simp_all
 
 end proof
 

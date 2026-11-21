@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.net.textproto
 public import Perennial.Golang.Theory
 public import Code.net.http
 

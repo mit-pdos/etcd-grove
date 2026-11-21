@@ -40,7 +40,7 @@ namespace github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN
   #(W64 28000)
 
 @[reducible] noncomputable def Token [GooseExts] [GoGlobalContext] : val :=
-  #(go!"txnlinfaultsN-6255")
+  #(go!"txnlinfaultsN-12748")
 
 @[reducible] noncomputable def SnapCount [GooseExts] [GoGlobalContext] : val :=
   #(W64 1)
@@ -63,7 +63,7 @@ noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
 /-- bridgeAddr is member i's bridge address, 127.0.0.1:(BridgeBase+i), the number in decimal (as
     etcdstart.Members writes the members' addresses).
 
-    go: txnlinfaultsN.go:67:6 -/
+    go: txnlinfaultsN.go:68:6 -/
 noncomputable def bridgeAddr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "i"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -83,7 +83,7 @@ noncomputable def bridgeAddr.impl [GooseExts] [GoGlobalContext] : val :=
     member's gRPC server, which touches no lock; the proof hands that goroutine's thread token to
     the member's serving (etcdstart.Serve's GoAttach resources), as cluster3.StartMember does.
 
-    go: txnlinfaultsN.go:74:6 -/
+    go: txnlinfaultsN.go:75:6 -/
 noncomputable def holdToken.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -102,7 +102,7 @@ noncomputable def holdToken.impl [GooseExts] [GoGlobalContext] : val :=
     clients, each of every bridge (etcdstart.NewClients: failover). It returns the members, the
     bridges and the clients, and false if a step failed (the specs allow every step to fail).
 
-    go: txnlinfaultsN.go:85:6 -/
+    go: txnlinfaultsN.go:86:6 -/
 noncomputable def startCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "k"
   (Lam "lg"
@@ -347,7 +347,7 @@ noncomputable def startCluster.impl [GooseExts] [GoGlobalContext] : val :=
     partition's Check of clients concurrent clients of ops operations each; it panics if porcupine
     finds the history illegal. A failed start, or k = 0, ends Main without a check.
 
-    go: txnlinfaultsN.go:121:6 -/
+    go: txnlinfaultsN.go:122:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "k"
   (Lam "clients"

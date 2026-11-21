@@ -250,7 +250,9 @@ theorem check.wp_proof
       have hval : kv0.value = fmtInt c (W64 10) := Option.some.inj Hc
       rw [hval]
       (try wp_auto)
-      wp_apply (wp_ParseInt (fmtInt c (W64 10)) (W64 10) (W64 64)) as %v %err2 %Hp
+      ihave #Pstrconv : isPkgInit (PROP := IProp GF) pkg_id.strconv $$ []
+      · iPkgInit
+      wp_apply (wp_ParseInt (fmtInt c (W64 10)) (W64 10) (W64 64) (by word) (by word) (by word) (by word)) as %v %err2 %Hp
       obtain ⟨rfl, rfl⟩ := Hp c rfl rfl rfl
       (try wp_auto)
       -- the second `Get`: `c`'s reached bound, a lower bound of the counter, before it

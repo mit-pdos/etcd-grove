@@ -81,6 +81,8 @@ theorem grpcCfgOk_of_started (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
   icases Hf with ⟨-, #Hcf⟩
   iunfold srvWatchBuilt at Hwb
   icases Hwb with ⟨%wsl, #Hkvf, %Hkvw, #Hmv⟩
+  ihave #Hmvw : □ mvcc.api.isMvcc (v3rpc.wsIface wsl) E.γ $$ [Hmv]
+  · rw [show v3rpc.wsIface wsl = E.kv from Hkvw.symm]; iexact Hmv
   iunfold srvServeCfg at Hcf
   icases Hcf with ⟨#Hlg0, #Hqb, #Hn, %Hmto, #Hwd, #Hmt, #Htr, #Htsl, #Hmcs, -⟩
   iunfold isServerReq at Hsrv
@@ -92,7 +94,7 @@ theorem grpcCfgOk_of_started (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
   icases Hsrd with ⟨%w, #Hw⟩
   iunfold srvReadFieldsAt at Hw
   icases Hw with ⟨-, -, -, -, -, -, -, #Hauth', #HisAuth, #Hlgf, #Hlgn, -, -, -, -, -, -, -,
-    -, -, -, #Hstp, #Hstc, #Hrb⟩
+    -, -, -, #Hstp, #Hstc, #Hrb, -⟩
   icombine Hauth Hauth' gives %Hae
   iunfold srvPeersOk at Hpeers
   icases Hpeers with ⟨-, #Hrc, -⟩
@@ -148,6 +150,8 @@ theorem grpcCfgOk_of_startedM (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
   icases Hf with ⟨-, #Hcf⟩
   iunfold srvWatchBuilt at Hwb
   icases Hwb with ⟨%wsl, #Hkvf, %Hkvw, #Hmv⟩
+  ihave #Hmvw : □ mvcc.api.isMvcc (v3rpc.wsIface wsl) E.γ $$ [Hmv]
+  · rw [show v3rpc.wsIface wsl = E.kv from Hkvw.symm]; iexact Hmv
   iunfold srvServeCfg at Hcf
   icases Hcf with ⟨#Hlg0, #Hqb, #Hn, %Hmto, #Hwd, #Hmt, #Htr, #Htsl, #Hmcs, -⟩
   ihave #Hsp := (isServerReqM_split on s E ρ).1 $$ Hsrv
@@ -159,7 +163,7 @@ theorem grpcCfgOk_of_startedM (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
   icases Hsrd with ⟨%w, #Hw⟩
   iunfold srvReadFieldsAtM at Hw
   icases Hw with ⟨-, -, -, -, -, -, -, #Hauth', #HisAuth, #Hlgf, #Hlgn, -, -, -, -, -, -, -,
-    -, -, -, #Hstp, #Hstc, #Hrb⟩
+    -, -, -, #Hstp, #Hstc, #Hrb, -⟩
   icombine Hauth Hauth' gives %Hae
   iunfold srvPeersOk at Hpeers
   icases Hpeers with ⟨-, #Hrc, -⟩

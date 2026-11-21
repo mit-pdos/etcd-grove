@@ -22,6 +22,11 @@ import (
 // maxMembers is the bound of the theorem's member count.
 const maxMembers = 1000
 
+// idMembers is the member count up to which TestMemberIDs checks the ids (at Token): etcd_safe's
+// bound on this cluster (examples/etcd/all, whose TestMemberIDs checks them also against its other
+// clusters' ids). Above it the theorem's premises on the ids are not checked, and may be false.
+const idMembers = 300
+
 // idsOf returns the member ids etcd computes for Main(k)'s cluster at the token token (from the peer
 // URLs and the token, as bootstrap does), without starting it.
 func idsOf(t *testing.T, token string, k uint64) []types.ID {
@@ -55,12 +60,12 @@ func idsOk(ids []types.ID) bool {
 }
 
 // TestMemberIDs checks the theorem's premise on the member ids (BootCore: their 16 low bits distinct
-// and not 0, D21e (A)) for every member count 1 <= k <= maxMembers, from the ids etcd computes for
+// and not 0, D21e (A)) for every member count 1 <= k <= idMembers, from the ids etcd computes for
 // Main(k)'s cluster at Token. It starts no cluster. (The ids of a cluster of k members are those of
-// the first k members of a larger one, so the check at maxMembers implies the others; every k is
+// the first k members of a larger one, so the check at idMembers implies the others; every k is
 // checked anyway.)
 func TestMemberIDs(t *testing.T) {
-	for k := uint64(1); k <= maxMembers; k++ {
+	for k := uint64(1); k <= idMembers; k++ {
 		ids := idsOf(t, Token, k)
 		if uint64(len(ids)) != k {
 			t.Fatalf("k=%d: %d ids", k, len(ids))
@@ -72,14 +77,14 @@ func TestMemberIDs(t *testing.T) {
 }
 
 // TestFindToken (run with RESTARTN_FIND_TOKEN=1) prints the first "restartN-<i>" at which the ids
-// of the maxMembers-member cluster pass TestMemberIDs' check.
+// of the idMembers-member cluster pass TestMemberIDs' check.
 func TestFindToken(t *testing.T) {
 	if os.Getenv("RESTARTN_FIND_TOKEN") == "" {
 		t.Skip("set RESTARTN_FIND_TOKEN=1")
 	}
 	for i := 0; ; i++ {
 		tok := "restartN-" + strconv.Itoa(i)
-		if idsOk(idsOf(t, tok, maxMembers)) {
+		if idsOk(idsOf(t, tok, idMembers)) {
 			t.Logf("token %s", tok)
 			return
 		}

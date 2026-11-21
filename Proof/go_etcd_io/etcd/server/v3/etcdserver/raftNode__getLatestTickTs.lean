@@ -25,12 +25,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem raftNode.getLatestTickTs.wp_proof :
     raftNode.getLatestTickTs.spec (GF := GF) (hG := hG) := by
-  intro E γ r mu
-  wp_start as ⟨#Hr, #Hmu', Hown⟩
-  iunfold isRaftNode at Hr
-  iNamed Hr
-  icombine Hmu Hmu' gives %Heq
-  subst Heq
+  intro r mu
+  wp_start as ⟨#Hmu, Hown⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_auto

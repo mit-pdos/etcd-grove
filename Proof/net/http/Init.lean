@@ -9,7 +9,8 @@ trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untrans
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
+public import Proof.net.http.Base
+public import Proof.net.textproto.Init
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -192,6 +193,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  wp_apply (_root_.Perennial.net.textproto.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   wp_apply (opaqueInitsOk DefaultClient.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrSchemeMismatch.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrUseLastResponse.init (by mem_tac))

@@ -165,8 +165,9 @@ theorem runChecks.wp_proof
   (try wp_auto)
   subst Hl
   -- two of the lessor's reader slots: the store's, the writer's
-  obtain ⟨nl, hnl⟩ : ∃ nl, Int.toNat sync.rwmutex.actualMaxReaders = 2 + nl :=
-    ⟨Int.toNat sync.rwmutex.actualMaxReaders - 2, by have := sync.actualMaxReaders_ge_2; omega⟩
+  -- (prove-ps2-newlessor, 2026-11-21) all but `runLoop`'s
+  obtain ⟨nl, hnl⟩ : ∃ nl, Int.toNat sync.rwmutex.actualMaxReaders - 1 = 2 + nl :=
+    ⟨Int.toNat sync.rwmutex.actualMaxReaders - 3, by rw [sync.rwmutex.actualMaxReaders_unseal]; decide⟩
   rw [hnl]
   icases (backend.bigSepL_replicate_add _ 2 nl).1 $$ Hlrds with ⟨Hlrd2, -⟩
   rw [List.replicate_succ, List.replicate_one]

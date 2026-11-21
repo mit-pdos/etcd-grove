@@ -1,7 +1,9 @@
 /-
 `crc32.Update(crc, tab, p)` with `tab` a Castagnoli table (`hash/crc32`, the part's trusted model,
 `TrustedCode/hash/crc32.lean`): `crc32c crc p`; `p` is only read, at any fraction, and the
-table is read-only for good. Proved in `Proof/hash/crc32/Update.lean`. Lean-first.
+table is read-only for good. Proved in `Proof/hash/crc32/Update.lean`, over `update`'s
+(`Update` translated since 2026-11-21, `update(crc, tab, p, true)`; until then it was
+the trusted function). Lean-first.
 -/
 module
 

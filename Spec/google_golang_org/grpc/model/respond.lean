@@ -30,15 +30,17 @@ codec's encode, the size check against the send limit, the transport's `write`,
 `ss.writeStatus(statusOK)` (:1513); `http2Server.writeStatus`, `http2_server.go:1089`). Under `grpcRepliesFit` the
 marshalled reply does not exceed `grpcReplyMax`, so the codec's `make` does not panic
 (`notes/reply-size.md`). The reply (or the handler's error) is the one the client's `Invoke` returns
-(`InvGrpcRun.lean`, "The pair"). -/
+(`InvGrpcRun.lean`, "The pair"). (errdesc stage 2b, 2026-11-21) The handler's error outcome is
+`handlerErrOut Ψe err`: a description `m` of the error (`descIs err m`, what `status.FromError` at :1461
+reads of it, the message the status written carries) with `Ψe m` for a handler's description; until then
+`⌜err ≠ nil ∧ errDesc err ∈ handlerDescs⌝ -∗ Ψe (errDesc err)` of the pure `errDesc`. -/
 abbrev grpc.model.respond.spec : Prop :=
   ∀ (gs : Loc) (r : val) (resp err : GoInterface) (Rep : ProtoMsgT GF) (Φ : Rep.M → IProp GF)
     (Ψe : GoString → IProp GF),
   {{ grpcReplyTo r Rep Φ Ψe ∗ ⌜grpcRepliesFit⌝ ∗ go_etcd_io.etcd.cache.v3.srvErrOk err ∗
       (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
         ⌜resp = interface.mkOk (go.GoType.PointerType Rep.ty) #l⌝ ∗ Rep.send l m' ∗ Φ m') ∗
-      (⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.errDesc err ∈ handlerDescs⌝ -∗
-        Ψe (go_etcd_io.etcd.cache.v3.errDesc err)) }}
+      handlerErrOut Ψe err }}
     (App (App (App (App (Val (@! google_golang_org.grpc.model.respondName)) (Val #gs)) (Val r))
       (Val #resp)) (Val #err))
   {{ RET #(); True }}

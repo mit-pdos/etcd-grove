@@ -1,16 +1,23 @@
 /-
-Trusted model of `hash/crc32` (namespace of the generated package; project etcd's part `LinuxFs/`,
-`Code/hash/crc32.toml`): `MakeTable` and `Update`, what `pkg/v3/crc` and the WAL call
-(`crcTable = crc32.MakeTable(crc32.Castagnoli)`, `crc32.Update(d.crc, d.tab, p)`). **Pending the
-user's review** (a trusted model, 2026-11-13; `notes/perennial-changes.md`, "hash/crc32").
+Trusted model of `hash/crc32` (namespace of the generated package; project etcd, `Code/hash/crc32.toml`):
+`MakeTable` and `update`, what `pkg/v3/crc` and the WAL reach (`crcTable = crc32.MakeTable(crc32.Castagnoli)`,
+`crc32.Update(d.crc, d.tab, p)`, which is `update(crc, tab, p, true)`) and what mvcc's `kvHasher` reaches
+(`crc32.New(crc32.MakeTable(crc32.Castagnoli))`, whose digest's `Write` is `update(d.crc, d.tab, p,
+false)`). **Pending the user's review** (a trusted model, 2026-11-13; `notes/perennial-changes.md`,
+"hash/crc32"; 2026-11-21, prove-etcdint3: `update` in place of `Update`, which is now translated with
+its body, so that the digest's `Write` reaches the same model).
 
 Go computes the Castagnoli CRC with SSE4.2 assembly (`crc32_amd64.go`, `castagnoliSSE42`), which
 goose cannot translate. The model is Go's portable code (`crc32_generic.go`): the table of
-`simplePopulateTable(Castagnoli)` (each byte's 8 reflected shift-xor steps), and `Update` as
-`simpleUpdate` reading the table it is given. Go's arch path and its slicing-by-8 path compute the
-same function of a Castagnoli table as `simpleUpdate` does (they are its optimizations; `go test
-hash/crc32` checks them against `simpleUpdate`). Checked against Go on test vectors and on the
-whole table by `examples/stdlib/crc32/crc32_test.go` (go1.27.3, linux/amd64).
+`simplePopulateTable(Castagnoli)` (each byte's 8 reflected shift-xor steps), and `update` as
+`simpleUpdate` reading the table it is given. Go's `update` (`crc32.go:202-214`) takes the arch path
+for the package's `castagnoliTable` once `haveCastagnoli` is set (`updateCastagnoli`), the IEEE path for
+`IEEETable` (`updateIEEE`, after `ieeeInitOnce` when `checkInitIEEE`), and `simpleUpdate` otherwise; the
+arch and slicing-by-8 paths compute the same function of their table as `simpleUpdate` does (they are
+its optimizations; `go test hash/crc32` checks them against `simpleUpdate`), so `update` is
+`simpleUpdate` of its table whatever the path, and its last argument changes no result. Checked
+against Go on test vectors and on the whole table by `examples/stdlib/crc32/crc32_test.go`
+(go1.27.3, linux/amd64).
 
 Deviations from Go, outside what any proof here may use:
 - `MakeTable(poly)` of a polynomial other than `Castagnoli` panics (Go builds that polynomial's
@@ -18,8 +25,12 @@ Deviations from Go, outside what any proof here may use:
 - `MakeTable(Castagnoli)` allocates a fresh table holding the Castagnoli table; Go returns the
   package's one `castagnoliTable` (the same pointer at every call). A program comparing the
   pointers of two calls' results is outside the model's faithful range (the WAL calls it once, in
-  its package initializer). Go never writes the table after it is built; the model's is read-only
-  for good in the specs (`tab ↦□ castagnoliTableArr`).
+  its package initializer; mvcc once per `newKVHasher`, and compares nothing). Go never writes the
+  table after it is built; the model's is read-only for good in the specs
+  (`tab ↦□ castagnoliTableArr`). Go's `New` compares the table with `IEEETable` (to initialize the
+  IEEE path), which the model's fresh Castagnoli table is not, as Go's `castagnoliTable` is not.
+- `update` skips `ieeeInitOnce` (Go runs it for `IEEETable` when `checkInitIEEE`): it initializes
+  only the IEEE path's tables, which no result reads (the path computes `simpleUpdate`'s function).
 -/
 module
 
@@ -68,8 +79,9 @@ noncomputable def MakeTable.impl : val :=
       GoAlloc (go.ArrayType 256 go.uint32) #castagnoliTableArr
     else Panic "crc32 model: MakeTable of a polynomial other than Castagnoli"
 
-/-- `Update(crc uint32, tab *Table, p []byte) uint32` (`crc32.go`), as `simpleUpdate`
-(`crc32_generic.go`):
+/-- `update(crc uint32, tab *Table, p []byte, checkInitIEEE bool) uint32` (`crc32.go:202-214`), as
+`simpleUpdate` (`crc32_generic.go`; the file header: every path computes it, and `checkInitIEEE`
+changes no result):
 
 ```go
 	crc = ^crc
@@ -80,8 +92,8 @@ noncomputable def MakeTable.impl : val :=
 ```
 
 the loop as a recursion on `p[1:]`. -/
-noncomputable def Update.impl : val :=
-  λ: "crc" "tab" "p",
+noncomputable def update.impl : val :=
+  λ: "crc" "tab" "p" <>,
     (rec: "loop" "c" "p" :=
       let: "n" := (FuncResolve go.len [go.GoType.SliceType go.byte]) #() "p" in
       if: "n" =⟨go.int⟩ #(W64 0) then ⟨go.uint32⟩^ "c"

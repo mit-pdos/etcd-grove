@@ -3,21 +3,11 @@ The part's own (raft without hand-written axioms, `notes/raft-noax-codec.md`).
 
 # The conf change codecs of `raftpb/noax.go`, pure
 
-Pure functions over byte lists that mirror, statement by statement, the hand-written encoders and
-decoders of the noax fork's `raftpb/noax.go` (`raft37-goose-lean-noax`, `91e2ea7`), so that the
-proofs of the Go functions relate each loop or `if` to one equation:
-
-* `ccVarint v` (`appendVarint`): the minimal varint (`varintEnc`, `UfWire.lean`);
-  `ccEnumEnc t` (`appendEnum`): the varint of the sign extension; `ccBytesEnc v` (`appendBytes`):
-  the length's varint, then the bytes; `ccEncOpt tag enc o` (one `if c.F != nil` block of an
-  encoder): the tag and the value if the field is set.
-* `ccVarintLoop`/`ccVarintL` (`consumeVarint`, the loop's state `n`, `i`, `v`, `shift` with the
-  fuel `10 - n`), `ccEnumL` (`consumeEnum`), `ccFieldL` (`consumeField`, also `consumeBytes`,
-  whose copy has the same contents), each from an index into the input, `none` where Go returns
-  `false`.
-* `ccOptField b i tag f` (one `if i < len(data) && data[i] == tag { ... }` block of a decoder).
-* `ccDecodeSingle` (`unmarshalConfChangeSingle`), `ccChangesLoop` (`UnmarshalConfChangeV2`'s loop
-  over the changes, with fuel). `ccDecodeV1`/`ccDecodeV2` (`CCModel.lean`) are the two decoders.
+The noax fork reads fields in wire order. `ccTagL` reads the tag, the three
+field handlers update message values, and `ccSkipField` consumes an unknown
+scalar or an entire balanced group. `ccWireLoop` stops at the end of the
+input or at the first malformed field. `ccEncOpt` models presence when
+encoding known fields. Unknown fields follow the known fields on the wire.
 -/
 module
 
@@ -87,20 +77,19 @@ def ccVarintLoop (b : List w8) : Nat → Nat → Nat → w64 → w64 → Option 
       if n = 9 ∧ 1 < uint.Z c then none
       else
         if uint.Z c < 128 then
-          if 0 < n ∧ c = W8 0 then none
-          else some (v ||| (W64 (uint.Z (c &&& W8 127)) <<< shift), i + 1)
+          some (v ||| (W64 (uint.Z (c &&& W8 127)) <<< shift), i + 1)
         else ccVarintLoop b fuel (n + 1) (i + 1) (v ||| (W64 (uint.Z (c &&& W8 127)) <<< shift))
           (shift + W64 7)
 
 /-- `consumeVarint(b, i)`. -/
 def ccVarintL (b : List w8) (i : Nat) : Option (w64 × Nat) := ccVarintLoop b 10 0 i (W64 0) (W64 0)
 
-/-- `consumeEnum(b, i)`: a varint that is the encoding of an `int32`. -/
+/-- `consumeEnum(b, i)`: the low 32 bits of a varint. -/
 def ccEnumL (b : List w8) (i : Nat) : Option (w32 × Nat) :=
   match ccVarintL b i with
   | none => none
   | some (v, j) =>
-    if 2 ^ 31 ≤ uint.Z v ∧ uint.Z v < 0xffffffff80000000 then none else some (W32 (uint.Z v), j)
+    some (W32 (uint.Z v), j)
 
 /-- `consumeField(b, i)` (and `consumeBytes`, whose fresh copy holds the same bytes): the
 length-delimited value and the index after it. -/
@@ -110,33 +99,73 @@ def ccFieldL (b : List w8) (i : Nat) : Option (List w8 × Nat) :=
   | some (l, j) =>
     if (b.length : Int) - j < uint.Z l then none else some ((b.drop j).take (uint.nat l), j + uint.nat l)
 
-/-- One `if i < len(data) && data[i] == tag { v, j, ok := f(data, i+1); if !ok { fail }; ...;
-i = j }` block: the field's value if its tag is next, and the index after the block. -/
-def ccOptField {α : Type} (b : List w8) (i : Nat) (tag : w8) (f : List w8 → Nat → Option (α × Nat)) :
-    Option (Option α × Nat) :=
-  if b[i]? = some tag then (f b (i + 1)).map fun p => (some p.1, p.2) else some (none, i)
+/-- Read a wire tag. Message fields and fields inside unknown groups have
+different upper bounds in protobuf-go. -/
+def ccTagL (b : List w8) (i maxField : Nat) : Option (Nat × Nat) := do
+  let (v, j) ← ccVarintL b i
+  let tag := uint.nat v
+  if 1 ≤ tag / 8 ∧ tag / 8 ≤ maxField then some (tag, j) else none
 
-/-- `unmarshalConfChangeSingle(data)`: the change's model (an unset field reads as zero, as its
-getter), or `none`. -/
-def ccDecodeSingle [GooseExts] (b : List w8) : Option ConfChangeSingleM :=
-  (ccOptField b 0 (W8 8) ccEnumL).bind fun p1 =>
-  (ccOptField b p1.2 (W8 16) ccVarintL).bind fun p2 =>
-  if p2.2 = b.length then some ⟨p1.1.getD (W32 0), p2.1.getD (W64 0)⟩ else none
+/-- The end of a scalar wire value of the given type. -/
+def ccSkipScalar (b : List w8) (i : Nat) : Nat → Option Nat
+  | 0 => (ccVarintL b i).map Prod.snd
+  | 1 => if i + 8 ≤ b.length then some (i + 8) else none
+  | 2 => (ccFieldL b i).map Prod.snd
+  | 5 => if i + 4 ≤ b.length then some (i + 4) else none
+  | _ => none
 
-/-- `UnmarshalConfChangeV2`'s loop over the changes, from the index `i` with the changes `acc`
-decoded so far; `fuel` bounds the iterations (each consumes at least two bytes). -/
-def ccChangesLoop [GooseExts] (b : List w8) :
-    Nat → Nat → List ConfChangeSingleM → Option (List ConfChangeSingleM × Nat)
-  | 0, i, acc => some (acc, i)
-  | fuel + 1, i, acc =>
-    if b[i]? = some (W8 18) then
-      match ccFieldL b (i + 1) with
-      | none => none
-      | some (v, j) =>
-        match ccDecodeSingle v with
-        | none => none
-        | some s => ccChangesLoop b fuel j (acc ++ [s])
-    else some (acc, i)
+/-- Match closing tags against the stack of open field numbers. Each
+iteration reads at least one tag byte. The outer group occupies one slot. -/
+def ccGroupLoop (b : List w8) : Nat → Nat → List Nat → Option Nat
+  | _, i, [] => some i
+  | 0, _, _ :: _ => none
+  | fuel + 1, i, num :: outer => do
+    let (tag, start) ← ccTagL b i (2 ^ 31 - 1)
+    match tag % 8 with
+    | 3 => if outer.length + 1 ≤ 10000 then
+             ccGroupLoop b fuel start (tag / 8 :: num :: outer)
+           else none
+    | 4 => if tag / 8 = num then ccGroupLoop b fuel start outer else none
+    | wt => ccGroupLoop b fuel (← ccSkipScalar b start wt) (num :: outer)
+
+/-- Continue decoding an unknown group at a wire boundary. -/
+def ccGroupAt (b : List w8) (i : Nat) (opened : List Nat) : Option Nat :=
+  ccGroupLoop b (b.length - i) i opened
+
+/-- End of the field value whose tag has already been consumed. -/
+def ccSkipField (b : List w8) (i tag : Nat) : Option Nat :=
+  if tag % 8 = 3 then ccGroupAt b i [tag / 8]
+  else ccSkipScalar b i (tag % 8)
+
+/-- Decode fields in wire order, carrying the getters' values. A successful
+iteration consumes the tag and value. The input length bounds their number. -/
+def ccWireLoop {α : Type} (b : List w8)
+    (field : Nat → Nat → α → Option (α × Nat)) : Nat → Nat → α → Option α
+  | 0, i, state => if i = b.length then some state else none
+  | fuel + 1, i, state => do
+    if i = b.length then return state
+    let (tag, start) ← ccTagL b i (2 ^ 29 - 1)
+    let (next, j) ← field tag start state
+    ccWireLoop b field fuel j next
+
+/-- Decode the remaining fields starting at an input boundary. -/
+def ccWireAt {α : Type} (b : List w8) (field : Nat → Nat → α → Option (α × Nat))
+    (i : Nat) (state : α) : Option α := ccWireLoop b field (b.length - i) i state
+
+/-- The nested change's scalar fields have wire tags 8 and 16. -/
+def ccSingleField [GooseExts] (b : List w8) (tag i : Nat)
+    (state : ConfChangeSingleM) : Option (ConfChangeSingleM × Nat) := do
+  match tag with
+  | 8 =>
+    let (val, j) ← ccEnumL b i
+    return (⟨val, state.NodeId'⟩, j)
+  | 16 =>
+    let (val, j) ← ccVarintL b i
+    return (⟨state.Type', val⟩, j)
+  | _ => return (state, ← ccSkipField b i tag)
+
+def ccWireSingle [GooseExts] (b : List w8) : Option ConfChangeSingleM :=
+  ccWireAt b (ccSingleField b) 0 ⟨W32 0, W64 0⟩
 
 end EtcdGrove
 end Perennial

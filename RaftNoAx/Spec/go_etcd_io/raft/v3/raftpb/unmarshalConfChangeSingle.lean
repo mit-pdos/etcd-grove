@@ -24,13 +24,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `unmarshalConfChangeSingle(data)` (`raftpb/noax.go`): `ccDecodeSingle`'s answer, a fresh frozen change holding it (`ccsRO`) and `true`, or `false`. -/
+/-- `unmarshalConfChangeSingle(data)` (`raftpb/noax.go`): `ccWireSingle`'s answer, a fresh frozen change holding it (`ccsRO`) and `true`, or `false`. -/
 abbrev raftpb.unmarshalConfChangeSingle.spec : Prop :=
   ∀ (d : GoSlice) (dq : DFrac) (bs : List w8),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ d ↦*{dq} bs }}
     (App (Val #(functions raftpb.unmarshalConfChangeSingle [])) (Val #d))
   {{ (s : Loc) (ok : Bool), RET (PairV #s #ok); d ↦*{dq} bs ∗
-      match ccDecodeSingle bs with
+      match ccWireSingle bs with
       | some c => ⌜ok = true⌝ ∗ ccsRO s c
       | none => ⌜ok = false⌝ }}
 

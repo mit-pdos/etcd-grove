@@ -9,11 +9,12 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof [go_etcd_io.bbolt.Assumpti
     (hBegin : backend.backend.begin.spec) : backend.batchTxBuffered.unsafeCommit.spec
   -- `Perennial.EtcdGrove.backend.batchTxBuffered.unsafeCommit.spec`, unfolded:
   ∀ (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) (b t rt : Loc) (st : backend.BSess) (win stop : Bool)
-    (m u : Nat) (X Y : IProp GF) (L' : backend.VData) (c : Bool) (Sc : List GoString) (Rr : IProp GF) (E : CoPset),
+    (m u : Nat) (X Y : IProp GF) (L' : backend.VData) (c : Bool) (Sc : List GoString) (Rr : IProp GF) (E : CoPset)
+    (n : Nat) (Qw : IProp GF),
     ↑backend.rbClaimN ⊆ E →
       ⊢
         ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+          (isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
               backend.isBackend γ P W Pk b ∗
                 typedPointsto (backend.bF go!"batchTx" b) t DFrac.discard ∗
                   typedPointsto (backend.bF go!"readTx" b) rt DFrac.discard ∗
@@ -34,26 +35,32 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof [go_etcd_io.bbolt.Assumpti
                                     X ∗
                                       backend.commitReq γ P Pk b X Y ∗
                                         ⌜Sc.Nodup ∧ (c = false ∨ ∀ (n : GoString), st.cw n = true → n ∈ Sc)⌝ ∗
-                                          Rr ∗ backend.rbAcc γ Sc (fun n x v => v = backend.bktOf st.S n) Rr E -∗
+                                          Rr ∗
+                                            backend.rbAcc γ Sc (fun n x v => v = backend.bktOf st.S n) Rr E ∗
+                                              backend.cntLb γ n ∗
+                                                if stop = true then emp
+                                                else if win = true then backend.bView γ 1 L' -∗ W ∗ Qw else W) -∗
             ▷
                 ((Y ∗
                     Rr ∗
                       backend.rtRes γ P rt 1 ∗
                         Pk ∗
                           backend.payOut γ stop m ∗
-                            if stop = true then
-                              sync.ownMutex (backend.muOf t) ∗
-                                typedPointsto (backend.pendOf t) (W64 0) (DFrac.own 1) ∗
-                                  backend.bStopped γ ∗ backend.bDBOutG γ P ∗ threadTok
-                            else
-                              ∃ st' db,
+                            (if stop = true then
                                 sync.ownMutex (backend.muOf t) ∗
-                                  backend.batchPhys γ b t db st' ∗
-                                    backend.batchGhostAt γ P st' true ∗
-                                      ⌜backend.freeOk P st' ∧
-                                            backend.vData P (st'.C, st'.R) = backend.sData P st.S ∧
-                                              st'.pend = W64 0 ∧ backend.rbData P st'.S = backend.rbData P st.S⌝ ∗
-                                        if win = true then backend.bView γ 1 L' else True) -∗
+                                  typedPointsto (backend.pendOf t) (W64 0) (DFrac.own 1) ∗
+                                    backend.bStopped γ ∗ backend.bDBOutG γ P ∗ threadTok
+                              else
+                                ∃ st' db,
+                                  sync.ownMutex (backend.muOf t) ∗
+                                    backend.batchPhys γ b t db st' ∗
+                                      backend.batchGhostAt γ P st' true ∗
+                                        ⌜backend.freeOk P st' ∧
+                                              backend.vData P (st'.C, st'.R) = backend.sData P st.S ∧
+                                                st'.pend = W64 0 ∧ backend.rbData P st'.S = backend.rbData P st.S⌝ ∗
+                                          if win = true then backend.bView γ 1 L' else True) ∗
+                              if stop = true then emp
+                              else backend.cntLb γ (n + 1) ∗ if win = true then backend.bView γ 1 L' -∗ W ∗ Qw else W) -∗
                   Φ (intoVal ())) -∗
               WP
                 ((intoVal

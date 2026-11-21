@@ -169,7 +169,7 @@ theorem rafthttp.Transport.removePeer_core
     · iexact Hpm
     (try wp_auto)
     iunfold v2stats.lsFollowers at Hlsf
-    icases Hlsf with ⟨%fm, %FM, #Hfm, Hfmm, %Hfnn⟩
+    icases Hlsf with ⟨%fm, %FM, #Hfm, Hfmm, %Hfnn, #Hfss⟩
     (try wp_auto)
     wp_apply hIDStringPtr _ _ _ $$ [id] as %ids ⟨id, -⟩
     · iexact id
@@ -191,10 +191,14 @@ theorem rafthttp.Transport.removePeer_core
     iapply HΦ
     iframe Hp Hpm Hg
     iunfold trStats; iexists ls; iframe #
-    iunfold v2stats.lsFollowers; iexists fm, _; iframe #; iframe
-    ipureintro
-    intro k v hk
-    exact Hfnn k v ((GMap.lookup_delete_Some FM ids k v).1 hk).2
+    iunfold v2stats.lsFollowers; iexists fm, _; iframe Hfmm; iframe #
+    isplitr
+    · ipureintro
+      intro k v hk
+      exact Hfnn k v ((GMap.lookup_delete_Some FM ids k v).1 hk).2
+    imodintro
+    iintro %k %v %hk
+    iapply Hfss; ipureintro; exact ((GMap.lookup_delete_Some FM ids k v).1 hk).2
 
 set_option maxRecDepth 8000 in
 set_option maxHeartbeats 8000000 in

@@ -33,11 +33,8 @@ axiom pbRangeResponseT_reg
 axiom pbTxnRequestT_reg
 axiom pbTxnResponseT_reg
 axiom proto.Clone.wp_proof
-axiom rpctypes.errDesc_etcdError
 axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
-axiom strconv.FormatInt.wp_proof
-axiom strconv.ParseInt.wp_proof
 axiom streamKeyFromCtx.wp_proof
 axiom v3rpc.pbWatchRequestT_reg
 axiom v3rpc.pbWatchResponseT_reg

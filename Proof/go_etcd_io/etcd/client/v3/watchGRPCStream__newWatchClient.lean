@@ -627,7 +627,7 @@ theorem watchGRPCStream.newWatchClient.wp_proof
       (try wp_auto)
       ihave #Hse0 := closeErrOk_status _ $$ Hse
       ihave %Hp0 := closeErrOk_pure _ $$ Hse
-      ihave ⟨%mR, #HmR⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse0
+      ihave ⟨%mR, #HmR⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_descIs _ $$ Hse0
       wp_apply wp_Error (GoInterface.ok e) mR $$ [$Hse0 $HmR] as %err' ⟨%Hne', #Hse1, %Hc', -, -, %Hq', -⟩
       · ipureintro; simp
       ihave #Hse' := closeErrOk_intro _ ⟨fun _ => Hc' (Hp0.1 (by simp)), Hq' Hp0.2⟩ $$ Hse1
