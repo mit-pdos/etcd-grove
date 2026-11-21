@@ -251,7 +251,7 @@ def srvBuiltRC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
     -- at `ai₀`), `Hloop`/`Happly` at `[]` and `Happ` (`applyBuiltC`), a first start's)
     "HBr" ∷ srvBuiltRestartR C s γ ci b E γr γn ai₀ at₀ c₀ x₀ ∗
     "Hsend" ∷ Er.S ∗
-    "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
+    "Hrdone" ∷ rnWorkerStartTok γn (srvRAddr s) ∗
     "#HNR" ∷ □ (|==> idCred ρ.ids 1) ∗
     "#Hcv" ∷ clusterVersionOk s ∗
     "#Hcci" ∷ context.isClosedchanInit ∗
@@ -404,7 +404,7 @@ def isServerRunC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
     -- (revoke-open, 2026-11-06) the revocation's bundle (`run`'s expiry arm, revocable mode)
     "#Hrvk" ∷ srvRevokeCtx s E ρ γr γg ∗
     -- (restart S4, 2026-11-12: the loop's and the apply side's tokens moved into `HRr`, at `P`)
-    "Hsend" ∷ Er.S ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
+    "Hsend" ∷ Er.S ∗ "Hrdone" ∷ rnWorkerStartTok γn (srvRAddr s) ∗
     "Hcomm" ∷ (∃ c : w64, srvCommittedOwn γr c) ∗
     "Hdc" ∷ ownBroadcastChan v.done γd DQ .Pending ∗
     "Hclose" ∷ token γg.close ∗

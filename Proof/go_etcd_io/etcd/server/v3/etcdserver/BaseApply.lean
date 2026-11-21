@@ -25,6 +25,7 @@ for `OpenSnapshotBackend`).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.snapshotmeta.PkgInit
 public import Code.go_etcd_io.etcd.server.v3.etcdserver
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Base

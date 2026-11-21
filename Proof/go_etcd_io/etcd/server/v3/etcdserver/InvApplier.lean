@@ -85,6 +85,7 @@ abbrev cfgElectionTicksAddr (c : Loc) : Loc :=
 abbrev cfgTickMsAddr (c : Loc) : Loc :=
   structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"TickMs" c
 
+abbrev epReplayConfAddr (ep : Loc) : Loc := structFieldRef etcdProgress go!"replayConf" ep
 abbrev epConfStateAddr (ep : Loc) : Loc := structFieldRef etcdProgress go!"confState" ep
 abbrev epAppliedTAddr (ep : Loc) : Loc := structFieldRef etcdProgress go!"appliedt" ep
 abbrev epAppliedIAddr (ep : Loc) : Loc := structFieldRef etcdProgress go!"appliedi" ep
@@ -408,6 +409,18 @@ def entriesAt (ents : List Loc) (ms : List EntryModel) : IProp GF :=
     □ (∀ (n : Nat) (e : Loc) (m : EntryModel), ⌜ents[n]? = some e⌝ -∗ ⌜ms[n]? = some m⌝ -∗
       entryAt e m))
 
+/-- A suffix of entries is modelled by the suffix of the models. -/
+theorem entriesAt_drop (ents : List Loc) (ms : List EntryModel) (k : Nat) :
+    entriesAt (GF := GF) ents ms ⊢ entriesAt (ents.drop k) (ms.drop k) := by
+  iunfold entriesAt
+  iintro ⟨%Hl, #H⟩
+  isplitr
+  · ipureintro; simp [Hl]
+  imodintro
+  iintro %n %e %m %He %Hm
+  rw [List.getElem?_drop] at He Hm
+  iapply H $$ %(k + n) %e %m %He %Hm
+
 instance entriesAt_persistent (ents : List Loc) (ms : List EntryModel) :
     Persistent (entriesAt (GF := GF) ents ms) := by
   unfold entriesAt; infer_instance
@@ -497,6 +510,11 @@ def epCsVoters (γs : ServerRaftNames) (cs : Loc) : IProp GF :=
 instance epCsVoters_persistent (γs : ServerRaftNames) (cs : Loc) :
     Persistent (epCsVoters (GF := GF) γs cs) := by
   unfold epCsVoters; infer_instance
+
+/-- The initial backend's configuration is available until the cursor reaches
+its log length. Installing a later snapshot clears the pointer. -/
+def epReplayCfg (ep : Loc) (γs : ServerRaftNames) (base cursor : Nat) : IProp GF :=
+  iprop(∃ p : Loc, epReplayConfAddr ep ↦ p ∗ (⌜base ≤ cursor⌝ ∨ epCsVoters γs p))
 
 /-- (2026-10-31, S5) **`ep.confState` after the applied log `L`** (persistent; the apply loop's):
 nothing applied yet, or it reports the voters (the log's first entry is a conf entry,

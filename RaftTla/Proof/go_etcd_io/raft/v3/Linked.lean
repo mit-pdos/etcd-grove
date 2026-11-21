@@ -12,6 +12,8 @@ module
 
 public import RaftTla.Spec.go_etcd_io.raft.v3.IsEmptyHardState
 public import RaftTla.Spec.go_etcd_io.raft.v3.IsEmptySnap
+public import RaftTla.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
+public import RaftTla.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetTerm
 public import RaftTla.Spec.go_etcd_io.raft.v3.MemoryStorage__Append
 public import RaftTla.Spec.go_etcd_io.raft.v3.MemoryStorage__CreateSnapshot
 public import RaftTla.Spec.go_etcd_io.raft.v3.MemoryStorage__Entries
@@ -61,6 +63,12 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+theorem entryGetIndex : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.raftpb.Entry.wp_GetIndex
+
+theorem entryGetTerm : raftpb.Entry.GetTerm.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.raftpb.Entry.wp_GetTerm
 
 theorem wp_RestartNode [StorageModel GF] :
     RestartNode.spec (GF := GF) (hG := hG) :=

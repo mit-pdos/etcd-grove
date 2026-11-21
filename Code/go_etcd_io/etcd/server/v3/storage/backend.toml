@@ -56,7 +56,7 @@ translate = ["!*",
   "batchTxBuffered.UnsafeRange", "batchTxBuffered.UnsafeForEach",
   "batchTxBuffered.safePending", "batchTxBuffered.TryLock",
   # snapshot's *bolt.Tx
-  "snapshot.WriteTo", "snapshot.Size",
+  "snapshot.UnsafeRange", "snapshot.UnsafeForEach", "snapshot.WriteTo", "snapshot.Size",
   # (etcdstorage, 2026-11-20) verify.go's lock checks, over `verify.IsVerificationEnabled` (proved over
   # `os.Getenv`'s spec: `ETCD_VERIFY` off); `insideApply`/`insideUnittest` (the goroutine's stack,
   # `runtime/debug`) stay names only, not reached with the checks off

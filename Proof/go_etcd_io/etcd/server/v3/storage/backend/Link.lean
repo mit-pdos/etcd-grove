@@ -91,6 +91,8 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__UnsafeRang
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__reset
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.snapshot__Close
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.snapshot__Size
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.snapshot__UnsafeForEach
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.snapshot__UnsafeRange
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.snapshot__WriteTo
 public import Proof.sort.Stable
 public import Proof.sort.insertionSort
@@ -603,6 +605,14 @@ theorem snapshot.wp_Close :
 theorem snapshot.wp_Size :
     EtcdGrove.backend.snapshot.Size.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.snapshot.Size.wp_proof bbolt.Tx.wp_Size
+
+theorem snapshot.wp_UnsafeForEach :
+    EtcdGrove.backend.snapshot.UnsafeForEach.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.snapshot.UnsafeForEach.wp_proof wp_unsafeForEach
+
+theorem snapshot.wp_UnsafeRange :
+    EtcdGrove.backend.snapshot.UnsafeRange.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.snapshot.UnsafeRange.wp_proof bbolt.Tx.wp_Bucket bbolt.Bucket.wp_Cursor wp_unsafeRange
 
 theorem snapshot.wp_WriteTo :
     EtcdGrove.backend.snapshot.WriteTo.spec (GF := GF) (hG := hG) :=

@@ -1107,7 +1107,7 @@ theorem NewServer.wp_proofRG
     iexact Hcl0
   -- (D21 M2) what the transport's calls into the server read (`srvProcOk`): the wrapper's
   -- fixed fields split off its struct (the node's among them), the member id, the stats
-  imod rnFixed_split (srvRAddr s) rvr $$ r with ⟨#Hfix, Htrf, HlatestTs⟩
+  imod rnFixed_split (srvRAddr s) rvr $$ r with ⟨#Hfix, Htrf, HlatestTs, Hreplay⟩
   ihave #HNodeC : rnNodeAddr (srvRAddr s) ↦□ rnNodeIface γrn $$ []
   · rw [← Hrn14]
     iunfold rnFixed at Hfix
@@ -1566,13 +1566,14 @@ theorem NewServer.wp_proofRG
   -- `Stop` names it (`srvTrStop`)
   ipersist Htrf
   imod Hinst $$ %(srvRAddr s) %s %(interface.mkOk (go.GoType.PointerType api.rafthttp.Transport.ty) #t)
-    [Henv] [Hcmi] [] [] [] [HlatestTs] [] [Hrtm] %HtickB with ⟨#Hrn, Hrdone, #Hnodef, #Hprop, -⟩
+    [Henv] [Hcmi] [] [] [] [HlatestTs] [Hreplay] [] [Hrtm] %HtickB with ⟨#Hrn, Hrdone, #Hnodef, #Hprop, -⟩
   · iexact Henv
   · iexact Hcmi
   · simp only [srvErM]; iexact Hrdctx
   · iexact Hfix
   · iexact Htrf
   · iexact HlatestTs
+  · iexact Hreplay
   · -- (D21 M2) the raft wrapper's messages carry their bundle into the network
     ihave #Htrall' : netTransport γn id (transportIface t)
         (srvErM false ρ E₀ (W64 0) (W64 0) (restartKV ρ.rd.kv A) id (srvTrKey γn γk) (srvTrStopK γk)).S

@@ -58,6 +58,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.InitLinked
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.snapshotmeta.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.InitLinked
 public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.go_opentelemetry_io.otel.attribute.Init
@@ -143,15 +144,20 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) regQs)
       (EtcdGrove.regResL (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.regQs)
       (List.Sublist.map _ (List.Sublist.cons₂ _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons _ (List.Sublist.slnil))))))))))))))
-      _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+      _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd61⟩
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.golang_org.x.crypto.bcrypt.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd60⟩
-  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.golang_org.x.crypto.bcrypt.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_opentelemetry_io.otel.trace.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd59⟩
-  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_opentelemetry_io.otel.trace.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_opentelemetry_io.otel.«attribute».wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd58⟩
-  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_opentelemetry_io.otel.«attribute».wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.encoding.base64.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd57⟩
-  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.encoding.base64.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) regQs)
+      (EtcdGrove.regResL (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.snapshotmeta.regQs)
+      (List.Sublist.map _ (List.Sublist.cons _ (List.Sublist.cons₂ _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons₂ _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.slnil))))))))))))))
+      _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.snapshotmeta.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd56⟩
   wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.lease.leasehttp.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd55⟩
