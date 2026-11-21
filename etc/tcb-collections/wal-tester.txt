@@ -14,6 +14,7 @@
 roots ^WalTester/Proof/github_com/mit_pdos/etcd_grove/examples/etcd/wal/
 axiom binary.ReadInt64LE.wp_proof
 axiom entryEncC_ok
+axiom fmt.ErrorfStrs.wp_proof
 axiom fmt.SprintfWalName.wp_proof
 axiom fmt.SscanfWalName.wp_proof
 axiom io.ReadFull.wp_proof

@@ -127,6 +127,7 @@ axiom apimeta.GetItemsPtr.wp_proof
 axiom apply.irrDecode_utf8
 axiom apply.memberEnc_id_learner
 axiom apply.memberKey_inj
+axiom appslisters.wp_Errorf_labelArgs
 axiom appsv1.DaemonSet.DeepCopyObject.wp_proof
 axiom appsv1.Resource.wp_proof
 axiom audit.GetAuditIDTruncated.wp_proof
@@ -154,6 +155,7 @@ axiom bridge.bridgeAt
 axiom bufferM.ownBuffer_new
 axiom bytes.Buffer.Bytes.wp_proof
 axiom bytes.Buffer.Write.wp_proof
+axiom cache.wp_Errorf_setArgs
 axiom ccDecodeV2_nil
 axiom clockwork.NewRealClock.wp_proof
 axiom clockwork.clockLb
@@ -197,11 +199,9 @@ axiom etcdStreamInterceptor
 axiom etcd_noRefusal
 axiom etcdserverpb.AlarmType.String.wp_proof
 axiom features.NewDefaultServerFeatureGate.wp_proof
-axiom fmt.Errorf.wp_proof
-axiom fmt.ErrorfPlain.wp_proof
-axiom fmt.Printf.wp_proof
-axiom fmt.SprintfArgs.wp_proof
-axiom fmt.SprintfClientPtr.wp_proof
+axiom fmt.ErrorfSlice.wp_proof
+axiom fmt.ErrorfStrs.wp_proof
+axiom fmt.SprintfSlice.wp_proof
 axiom fmt.SprintfWalName.wp_proof
 axiom fmt.Sscanf.wp_proof
 axiom fmt.SscanfWalName.wp_proof
@@ -479,6 +479,7 @@ axiom resolver.EtcdManualResolver.SetEndpoints.wp_proof
 axiom resolver.New.wp_proof
 axiom resourceversion.isWellFormed.wp_proof
 axiom rpctypes.errDesc_etcdError
+axiom rpctypes.errDesc_wrapError
 axiom schema.MustUnsafeGetAllLeases.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
 axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof

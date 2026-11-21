@@ -301,11 +301,17 @@ theorem daemonSetLister.GetPodDaemonSets.wp_proof
         · left; exact ⟨_, rfl⟩
         · right; exact ⟨_, rfl⟩
       wp_apply (wp_Errorf_labelArgs _ _ _ hargs) $$ [$Hfmt $Hasl] as %err -
-      · simp only [BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
-        isplitr; · ileft; ipureintro; exact ⟨_, rfl⟩
-        isplitr; · ileft; ipureintro; exact ⟨_, rfl⟩
-        isplitl; · iright; iexists lm, DFrac.discard, L; iframe HL; ipureintro; rfl
-        itrivial
+      · iapply BigSepL.bigSepL_cons.2
+        isplitr
+        · ileft; ipureintro; exact ⟨_, rfl⟩
+        iapply BigSepL.bigSepL_cons.2
+        isplitr
+        · ileft; ipureintro; exact ⟨_, rfl⟩
+        iapply BigSepL.bigSepL_singleton.2
+        iright; iexists lm, DFrac.discard, L
+        isplitr
+        · ipureintro; rfl
+        · iexact HL
       iapply HK
       iframe
       iunfold podDSPost

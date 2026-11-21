@@ -8,7 +8,7 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/k8s_io/client_go/tools/cache/Link\.lean$
 axiom apierrors.IsTooManyRequests.wp_proof
-axiom fmt.Errorf.wp_proof
+axiom cache.wp_Errorf_setArgs
 axiom strconv.ParseInt.wp_proof
 axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.Seconds_ptr.wp_proof
