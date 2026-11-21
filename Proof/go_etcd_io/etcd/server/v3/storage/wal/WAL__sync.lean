@@ -17,6 +17,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__sync
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__syncC
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__cutTail
+public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__syncNoErr
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleLaws
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.OpenWLocked
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.encoder__encodeG
@@ -453,13 +454,28 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofC [os.file.FieldA
 
 /-- **`WAL.sync.specCut`**: `sync.spec` at a handle whose size is its write position
 (`h.sz = o0 + |out|`, `cut`'s truncate), so the size after the flush is the stream's end
-(`cutSynced`), the window closed: `walHandleIn`'s `TailMeta` weakened to `TailMetaW`. -/
+(`cutSynced`), the window closed: `walHandleIn`'s `TailMeta` weakened to `TailMetaW`; `sync.specNoErr`
+when `Sio` covers every inode. -/
 theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofCut [os.file.FieldAssumptions]
-    (P : WalPbIn GF) (Mr : WalMarshal)
-    (wp_sync : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.spec (W := W) P Mr) :
-    go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specCut (W := W) P Mr := by
-  intro R jr r w dir h hrest hsz
+    {Sio : IoSet} [FsStepSat (NoIoErr Sio)] (P : WalPbIn GF) (Mr : WalMarshal)
+    (wp_sync : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.spec (W := W) P Mr)
+    (wp_syncNE : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specNoErr (Sio := Sio) (W := W) P Mr) :
+    go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specCut (Sio := Sio) (W := W) P Mr := by
+  intro R jr r w dir h hrest hsz hroom
+  have hc : cutSynced h =
+      { h with out := h.out ++ h.pend, pend := [], sz := max h.sz (h.o0 + h.out.length + h.pend.length) } := by
+    unfold cutSynced; rw [hsz, Nat.max_eq_right (by omega)]
   wp_start_folded as ⟨#Harea, Hh⟩
+  by_cases hcov : walCov Sio
+  · wp_apply (wp_syncNE hcov R jr r w dir h hrest (hroom hcov)) $$ [Hh] as %err ⟨%H0, Hh, #HS⟩
+    · iframe; iexact Harea
+    iapply HΦ
+    ileft
+    iframe HS
+    isplitr
+    · ipureintro; exact H0
+    rw [hc]
+    iexact Hh
   wp_apply (wp_sync R jr r w dir h hrest) $$ [Hh] as %err Hr
   · iframe; iexact Harea
   iapply HΦ
@@ -468,12 +484,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofCut [os.file.Fiel
     iframe HS
     isplitr
     · ipureintro; exact H0
-    have hc : cutSynced h =
-        { h with out := h.out ++ h.pend, pend := [], sz := max h.sz (h.o0 + h.out.length + h.pend.length) } := by
-      unfold cutSynced; rw [hsz, Nat.max_eq_right (by omega)]
     rw [hc]
     iexact Hh
-  · iright; ipureintro; exact H0
+  · iright; ipureintro; exact ⟨H0, hcov⟩
 
 end proof
 

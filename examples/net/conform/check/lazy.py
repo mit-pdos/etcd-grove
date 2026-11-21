@@ -412,45 +412,67 @@ def deadline_pending(c, s, kind, set_):
 
 
 # ---------------------------------------------------------------------------------------------
-# An address a0: (open, pending, tokens). `open`: the open listeners at a0, as (node, listener)
-# pairs (Impl: each node's NetLocal.lis restricted to a0; ListenStep allows one open per node);
-# `pending`: the connections dialed to a0 that a Dial in the trace returned, not yet accepted
-# (Impl: NetConn.accepted = false); `tokens`: how many connections to a0 are pending that no Dial
-# returned (D16's abandoned ones, and those of Dials cut short by their process's end). Those are
-# interchangeable here: each is accepted by at most one Accept, and the connection component of
-# an Accept that took one sees only its acceptor's operations, whose outcomes are the same from
-# NetConn.abandoned and from NetConn.fresh (README.md, "Accepts no Dial returned").
+# A port p (v3.4: no plan; a component per port, since a listener at `la` takes only connections
+# dialed to an address with la's port, `lisAccepts`, and a Dial of `a` makes one with a's port):
+# (open, pending, tokens). `open`: the open listeners whose address has the port p, as (node,
+# listener, address) triples (Impl: each node's NetLocal.lis restricted to them; ListenStep allows
+# one open per node and address); `pending`: the connections dialed to an address with port p that
+# a Dial in the trace returned, not yet accepted, as (connection, address) pairs (Impl:
+# NetConn.accepted = false); `tokens`: how many connections to each address are pending that no
+# Dial returned (D16's abandoned ones, and those of Dials cut short by their process's end), a
+# sorted tuple of (address, count > 0). Those of one address are interchangeable here: each is
+# accepted by at most one Accept, and the connection component of an Accept that took one sees only
+# its acceptor's operations, whose outcomes are the same from NetConn.abandoned and from
+# NetConn.fresh (README.md, "Accepts no Dial returned"); those of different addresses differ only
+# in which listeners take them, so an Accept of one tries each address its listener takes.
 
-ADDR0 = (frozenset(), frozenset(), 0)
+ADDR0 = (frozenset(), frozenset(), ())
 
 
-def listen(st, node, lid, ok):
-    """Impl: ListenStep, at a0 (ListenAt holds: the checker resolved a0 by it)."""
+def _tok_add(tok, a, k):
+    d = dict(tok)
+    d[a] = d.get(a, 0) + k
+    return tuple(sorted((x, n) for x, n in d.items() if n > 0))
+
+
+def listen(st, node, lid, la, ok):
+    """Impl: ListenStep at `la` (listenOk holds: the checker takes only valid Listens)."""
     open_, pend, tok = st
     if not ok:
         return [(st, None)], None
-    if any(n == node for n, _ in open_):
-        return _none("this node has an open listener at the address already (ListenStep: none)")
-    return [((open_ | {(node, lid)}, pend, tok), None)], None
+    if any(n == node and x == la for n, _, x in open_):
+        return _none("this node has an open listener at the address already (ListenStep: only sys)")
+    return [((open_ | {(node, lid, la)}, pend, tok), None)], None
 
 
-def accept(st, node, lid, res, conn):
-    """Impl: AcceptStep. res: None with conn (a connection key, or None for one no Dial
-    returned), or a kind."""
+def _is_open(open_, node, lid):
+    return any(n == node and l == lid for n, l, _ in open_)
+
+
+def accept(st, node, lid, la, res, conn):
+    """Impl: AcceptStep, of the listener `lid` at `la`. res: None with conn (a connection key, or
+    None for one no Dial returned), or a kind. The choice of a connection no Dial returned is
+    {"token": its address}: one successor per address with a token that the listener takes."""
     open_, pend, tok = st
-    is_open = (node, lid) in open_
+    is_open = _is_open(open_, node, lid)
     if res is None:
         if not is_open:
             return _none("the listener is closed (AcceptStep: only `closed`)")
         if conn is None:
-            if tok == 0:
+            outs = [((open_, pend, _tok_add(tok, a, -1)), {"token": a})
+                    for a, _ in tok if M.lis_accepts(la, a)]
+            if not outs:
                 return _none("no Dial returned this connection, and no failed (or unfinished) Dial "
-                             "of the address is linearized before it and not yet accepted")
-            return [((open_, pend, tok - 1), None)], None
-        if conn not in pend:
-            return _none("its connection is not pending at the address (not dialed yet, or "
-                         "accepted already)")
-        return [((open_, pend - {conn}, tok), None)], None
+                             "of an address the listener takes is linearized before it and not yet "
+                             "accepted")
+            return outs, None
+        pa = [x for x in pend if x[0] == conn]
+        if not pa:
+            return _none("its connection is not pending (not dialed yet, or accepted already)")
+        if not M.lis_accepts(la, pa[0][1]):
+            return _none(f"its connection was dialed to {pa[0][1].decode()}, which the listener at "
+                         f"{la.decode()} does not take (lisAccepts)")
+        return [((open_, pend - {pa[0]}, tok), None)], None
     if res == SYS:
         if not is_open:
             return _none("a sys failure of a closed listener (AcceptStep: only `closed`)")
@@ -465,36 +487,37 @@ def accept(st, node, lid, res, conn):
 def lis_close(st, node, lid, res):
     """Impl: LisCloseOutcome."""
     open_, pend, tok = st
-    if (node, lid) in open_:
+    mine = [x for x in open_ if x[0] == node and x[1] == lid]
+    if mine:
         if res is None:
-            return [((open_ - {(node, lid)}, pend, tok), None)], None
+            return [((open_ - {mine[0]}, pend, tok), None)], None
         return _none(f"Close of an open listener returned {res} (LisCloseOutcome, D17: it succeeds)")
     if res == CLOSED:
         return [(st, None)], None
     return _none("a second Close of a listener returns `closed` (LisCloseOutcome)")
 
 
-def dial_ok(st, conn):
-    """Impl: DialStep's second disjunct: a new connection, pending."""
+def dial_ok(st, conn, a):
+    """Impl: DialStep's second disjunct: a new connection to `a`, pending."""
     open_, pend, tok = st
-    return [((open_, pend | {conn}, tok), None)], None
+    return [((open_, pend | {(conn, a)}, tok), None)], None
 
 
-def dial_fail(st, res):
+def dial_fail(st, a, res):
     """Impl: DialStep's failures: failV .sys, with no connection or (D16) an abandoned one. The
     second dominates (a pending connection constrains nothing: an Accept may take it or not), so
     it is the only successor; the witness turns one no Accept took into the first."""
     open_, pend, tok = st
     if res != SYS:
         return _none(f"a Dial failure of kind {res} (DialStep: only sys)")
-    return [((open_, pend, tok + 1), {"abandoned": True})], None
+    return [((open_, pend, _tok_add(tok, a, 1)), {"abandoned": True})], None
 
 
-def dial_pending(st):
+def dial_pending(st, a):
     """A Dial that never returned: it may have succeeded (DialStep has no other precondition than
-    the plan), leaving a connection pending that no Dial returned; that dominates leaving it out."""
+    addrOk), leaving a connection pending that no Dial returned; that dominates leaving it out."""
     open_, pend, tok = st
-    return [((open_, pend, tok + 1), {"pending": True})], None
+    return [((open_, pend, _tok_add(tok, a, 1)), {"pending": True})], None
 
 
 def crash(st, node):

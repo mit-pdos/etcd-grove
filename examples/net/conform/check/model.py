@@ -1,5 +1,6 @@
 """A literal transcription of the net extension's semantics, `GooseLang/Ext/Net/Impl.lean` (v3,
-D1-D25, v3.3), and of `Deploy.lean`'s `PlanWellFormed` (D20). NOT PROVED to agree with the Lean: each
+D1-D25, v3.4: no plan and no hosts, valid addresses `addrOk`, D20, and wildcards `wildOk`, D21).
+NOT PROVED to agree with the Lean: each
 definition names the Lean definition it transcribes (`[Lean: Name]`), keeps its case order and its
 conjuncts, and says where it departs from a word-for-word reading. Read it side by side with
 Impl.lean; the README's table maps every Lean name to its function here.
@@ -103,21 +104,30 @@ def set_lock(c, s, b):
 
 
 class NetGlobal(NamedTuple):
-    """[Lean: NetGlobal] plan (address -> host), conns (number -> NetConn)."""
-    plan: dict
+    """[Lean: NetGlobal] conns (number -> NetConn). (v3.4: no plan.)"""
     conns: dict
 
     def set_conn(self, c, cn):
         """[Lean: NetGlobal.setConn]"""
         conns = dict(self.conns)
         conns[c] = cn
-        return NetGlobal(self.plan, conns)
+        return NetGlobal(conns)
 
 
 class NetLocal(NamedTuple):
-    """[Lean: NetLocal] host; lis (listener id -> (address, open))."""
-    host: bytes
+    """[Lean: NetLocal] lis (listener id -> (address as given to Listen, open)). (v3.4: no
+    host.)"""
     lis: dict
+
+
+def global_init(g):
+    """[Lean: NetGlobal.init] no connection."""
+    return g.conns == {}
+
+
+def local_init(L):
+    """[Lean: NetLocal.init] no listener."""
+    return L.lis == {}
 
 
 def end_id(c, s):
@@ -307,7 +317,7 @@ def time_is_zero(wall, ext):
 
 
 # ---------------------------------------------------------------------------------------------
-# Addresses (D6, D21)
+# Addresses (D6, D7, D8, D20, D21; v3.4: no plan, an address is valid or not by its spelling)
 
 def strip_prefix(p, a):
     """[Lean: stripPrefix p a]"""
@@ -330,27 +340,92 @@ def port_of(a):
     return None if i < 0 else a[i + 1:]
 
 
-def listen_at(plan, host, a, a0):
-    """[Lean: ListenAt plan host a a0] D6, D21. The `∀ x, (plan !! x).isSome → ...` ranges over
-    the plan's keys (`plan !! x` is `none` elsewhere)."""
-    if plan.get(a0) != host:
+def is_digit(c):
+    """[Lean: isDigit]"""
+    return 48 <= c <= 57
+
+
+def digits_val(s, acc):
+    """[Lean: digitsVal]"""
+    for c in s:
+        if not is_digit(c):
+            return None
+        acc = acc * 10 + (c - 48)
+    return acc
+
+
+def dec_nat(s):
+    """[Lean: decNat] digits, at least one, no leading zero."""
+    if len(s) == 0:
+        return None
+    if len(s) == 1:
+        return digits_val(s, 0)
+    return None if s[0] == 48 else digits_val(s, 0)
+
+
+def split_by(sep, s):
+    """[Lean: splitBy sep s []]"""
+    return s.split(bytes([sep]))
+
+
+def parse_addr(a):
+    """[Lean: parseAddr]"""
+    parts = split_by(58, a)
+    if len(parts) != 2:
+        return None
+    ip, p = parts
+    octs = split_by(46, ip)
+    if len(octs) != 4:
+        return None
+    vals = [dec_nat(x) for x in octs] + [dec_nat(p)]
+    if any(v is None for v in vals):
+        return None
+    return tuple(vals)
+
+
+def port_ok(p):
+    """[Lean: portOk] D20: not 0, at most 65535, outside 32768-60999."""
+    return 1 <= p and p <= 65535 and (p < 32768 or 60999 < p)
+
+
+def addr_ok(a):
+    """[Lean: addrOk] D20."""
+    r = parse_addr(a)
+    if r is None:
         return False
-    if a0 == a:
-        return True
-    if plan.get(a) is not None:
-        return False
+    n1, n2, n3, n4, p = r
+    return 1 <= n1 and n1 < 224 and n2 <= 255 and n3 <= 255 and n4 <= 255 and port_ok(p)
+
+
+def wild_ok(a):
+    """[Lean: wildOk] D21: a wildcard spelling whose port is canonical and valid."""
     p = wild_port(a)
-    return (p is not None and port_of(a0) == p and
-            all(x == a0 for x in plan if port_of(x) == p))
+    if p is None:
+        return False
+    n = dec_nat(p)
+    return n is not None and port_ok(n)
 
 
-def listen_resolve(plan, host, a):
-    """The a0 with `ListenAt plan host a a0`, if any (it is unique: Impl.lean's `listenAt_unique`;
-    the candidates are a itself and the plan's keys)."""
-    for a0 in [a] + list(plan):
-        if listen_at(plan, host, a, a0):
-            return a0
-    return None
+def listen_ok(a):
+    """[Lean: listenOk] D6, D21: `addrOk a || wildOk a`."""
+    return addr_ok(a) or wild_ok(a)
+
+
+def lis_accepts(la, a):
+    """[Lean: lisAccepts la a] D7, D21: `la = a ∨ ∃ p, wildPort la = some p ∧ portOf a = some p`
+    (the `∃ p` at its only candidate, wildPort la)."""
+    if la == a:
+        return True
+    p = wild_port(la)
+    return p is not None and port_of(a) == p
+
+
+def addr_port(a):
+    """Not in Impl.lean: the port string of a valid address or wildcard (`portOf`, or `wildPort`
+    for a wildcard), the checker's component key. Every valid Dial address `x` a listener at `la`
+    takes (`lis_accepts`) has `addr_port(x) == addr_port(la)`."""
+    p = wild_port(a)
+    return p if p is not None else port_of(a)
 
 
 # ---------------------------------------------------------------------------------------------
@@ -441,7 +516,7 @@ def new_conn(g, c):
 def dial_step(a, g, e2, g2):
     """[Lean: DialStep a g e' g'] D8, D16. The `∃ c` of the second and third disjuncts: the only
     candidate is the connection g2 has and g has not."""
-    if g.plan.get(a) is None:
+    if not addr_ok(a):
         return False
     if e2 == fail_v(SYS) and g2 == g:
         return True
@@ -457,34 +532,31 @@ def dial_step(a, g, e2, g2):
 
 
 def accept_step(a, is_open, g, e2, g2):
-    """[Lean: AcceptStep a isOpen g e' g'] D7. The `∃ c cn`: the
-    only candidate is the connection that g2 has accepted and g has not."""
+    """[Lean: AcceptStep a isOpen g e' g'] D7, D21 (`a` the listener's address). The `∃ c cn`:
+    the only candidate is the connection that g2 has accepted and g has not."""
     if not is_open and e2 == fail_v(CLOSED) and g2 == g:
         return True
     if is_open and e2 == fail_v(SYS) and g2 == g:
         return True
     if is_open:
         for c, cn in g.conns.items():
-            if (cn.addr == a and cn.accepted is False and 2 * c + 1 < W64 and
+            if (lis_accepts(a, cn.addr) and cn.accepted is False and 2 * c + 1 < W64 and
                     e2 == (end_id(c, True), 0) and
                     g2 == g.set_conn(c, cn._replace(accepted=True))):
                 return True
     return False
 
 
-def listen_step(a, g, L, e2, L2):
-    """[Lean: ListenStep a g L e' L'] D6, D21. The `∃ a0` is decided at listen_resolve's (unique)
-    a0, the `∃ l` at the listener L2 has and L has not."""
-    a0 = listen_resolve(g.plan, L.host, a)
-    if a0 is None:
-        return False
+def listen_step(a, L, e2, L2):
+    """[Lean: ListenStep a L e' L'] D6, D21 (v3.4: no plan, no host; the listener is at `a`
+    itself). The `∃ l` at the listener L2 has and L has not."""
     if e2 == fail_v(SYS) and L2 == L:
         return True
-    if not all(v != (a0, True) for v in L.lis.values()):
+    if not all(v != (a, True) for v in L.lis.values()):
         return False
     for l in L2.lis:
         if (l != 0 and l not in L.lis and e2 == (l, 0) and
-                L2 == NetLocal(L.host, {**L.lis, l: (a0, True)})):
+                L2 == NetLocal({**L.lis, l: (a, True)})):
             return True
     return False
 
@@ -504,7 +576,7 @@ def net_step(op, v, L, g, e2, L2, g2, keep=None):
     "AnyString", "AnyW64", "AnyErrno" are not steps of a trace (they are the trusted models'
     choices of the parts of a Go value the model does not explain) and are not transcribed."""
     if op == "Listen":
-        return listen_step(v, g, L, e2, L2) and g2 == g
+        return listen_ok(v) and listen_step(v, L, e2, L2) and g2 == g
     if op == "Accept":
         l = v
         if l not in L.lis:
@@ -519,7 +591,7 @@ def net_step(op, v, L, g, e2, L2, g2, keep=None):
         o2 = L2.lis[l][1]
         res = None if e2 == 0 else CODE_ERR.get(e2)
         return (g2 == g and lis_close_outcome(o, res, o2) and e2 == err_code(res) and
-                L2 == NetLocal(L.host, {**L.lis, l: (a, o2)}))
+                L2 == NetLocal({**L.lis, l: (a, o2)}))
     if op == "Dial":
         return dial_step(v, g, e2, g2) and L2 == L
     if op == "Read":
@@ -554,72 +626,5 @@ def net_step(op, v, L, g, e2, L2, g2, keep=None):
 
 
 def crash(L, L2):
-    """[Lean: net_semantics.crash] D10: the host kept, the listeners dropped."""
-    return L2 == NetLocal(L.host, {})
-
-
-# ---------------------------------------------------------------------------------------------
-# Deploy.lean (D20)
-
-def is_digit(c):
-    """[Lean: isDigit]"""
-    return 48 <= c <= 57
-
-
-def digits_val(s, acc):
-    """[Lean: digitsVal]"""
-    for c in s:
-        if not is_digit(c):
-            return None
-        acc = acc * 10 + (c - 48)
-    return acc
-
-
-def dec_nat(s):
-    """[Lean: decNat] digits, at least one, no leading zero."""
-    if len(s) == 0:
-        return None
-    if len(s) == 1:
-        return digits_val(s, 0)
-    return None if s[0] == 48 else digits_val(s, 0)
-
-
-def split_by(sep, s):
-    """[Lean: splitBy sep s []]"""
-    return s.split(bytes([sep]))
-
-
-def parse_addr(a):
-    """[Lean: parseAddr]"""
-    parts = split_by(58, a)
-    if len(parts) != 2:
-        return None
-    ip, p = parts
-    octs = split_by(46, ip)
-    if len(octs) != 4:
-        return None
-    vals = [dec_nat(x) for x in octs] + [dec_nat(p)]
-    if any(v is None for v in vals):
-        return None
-    return tuple(vals)
-
-
-def addr_ok(a):
-    """[Lean: addrOk]"""
-    r = parse_addr(a)
-    if r is None:
-        return False
-    n1, n2, n3, n4, p = r
-    return (1 <= n1 and n1 < 224 and n2 <= 255 and n3 <= 255 and n4 <= 255 and
-            1 <= p and p <= 65535 and (p < 32768 or 60999 < p))
-
-
-def keys_distinct(l):
-    """[Lean: keysDistinct]"""
-    keys = [a for a, _ in l]
-    return len(keys) == len(set(keys))
-
-
-def plan_well_formed(l):
-    """[Lean: PlanWellFormed l] for the plan as a list of (address, host) pairs."""
-    return keys_distinct(l) and all(addr_ok(a) for a, _ in l)
+    """[Lean: net_semantics.crash] D10: the listeners dropped (`L' = { L with lis := ∅ }`)."""
+    return L2 == NetLocal({})

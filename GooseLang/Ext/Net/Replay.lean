@@ -4,14 +4,14 @@ The Lean certification of the TCP conformance checker's verdicts
 E10). The checker (Python) decides whether some execution of the net extension's semantics
 (`Impl.lean`) produces a recorded run, and for an ADMITTED run writes a **witness**: that execution,
 as a list of steps (the extension's operation, its arguments, its result, and its hidden choices:
-the connection a `Dial` makes, a listener's id, a `Read`'s cut, the plan address a `Listen` listens
-at), each linked to the traced call it is a step of. `net-replay WITNESS CALLS` (this file's
+the connection a `Dial` makes, a listener's id, a `Read`'s cut), each linked to the traced call it is a step of. `net-replay WITNESS CALLS` (this file's
 `main`, `lake exe net-replay`) checks the witness against `Impl.lean`'s definitions themselves,
 not against the checker's transcription of them (`model.py`), and against the run's calls (the
 tracer's records, as `conform_check.py check --calls-out` writes them, unmapped):
 
-* (a) the plan is `PlanWellFormed` (`Deploy.lean`), decided;
-* (b) from the initial state (the plan, no connection, each node with its host and no listener),
+* (a) (until v3.4, 2026-11-20: the plan is well formed; the network has no plan now, and each
+  `Listen` and `Dial` checks its address's validity, `listenOk`, `addrOk`, in (b));
+* (b) from the initial state (no connection, each node with no listener),
   each step is a step of the model, decided by `Decide.lean`'s deciders on the state the replay
   threads (connections, pending ones and D16's abandoned ones included; listeners per node, which a
   `Crash` step clears): `step`, `replay`, `checkSteps`;
@@ -27,10 +27,10 @@ tracer's records, as `conform_check.py check --calls-out` writes them, unmapped)
   `Dial`s, `Accept`s and `Listen`s made (each later operation on a socket is a step on the end, or
   listener, the step that made it returned); every call is in the model's scope.
 
-It prints CERTIFIED, or NOT CERTIFIED with the first failing step (or the plan, or a call) and why.
+It prints CERTIFIED, or NOT CERTIFIED with the first failing step (or a call) and why.
 
-**What is proved.** `checkSteps_sound`: if `checkSteps` (parts (a) and (b), what `main` runs)
-accepts, the plan is `PlanWellFormed` and the steps are an execution (`Exec`) of the extension's
+**What is proved.** `checkSteps_sound`: if `checkSteps` (part (b), what `main` runs) accepts, the
+steps are an execution (`Exec`) of the extension's
 step relation (`net_semantics.step`, that is `NetStep`, at each node's local state; or
 `net_semantics.crash`) from the initial state, each step's event the operation, argument and result
 it gives (`WOp.toEv`; each an outcome rule, `IsNetStep`, never a stutter: a call that waits leaves
@@ -108,21 +108,18 @@ the replay keeps association lists and stands for the state they map to (`World.
 
 /-- A node's local state, its listeners as an association list. -/
 structure CLocal where
-  host : GoString
   lis : List (w64 × (GoString × Bool))
 
 /-- The node's `NetLocal`. -/
-def CLocal.abs (L : CLocal) : NetLocal := ⟨L.host, GMap.ofList L.lis⟩
+def CLocal.abs (L : CLocal) : NetLocal := ⟨GMap.ofList L.lis⟩
 
-/-- The replay's state: the plan, the connections and the nodes' local states, as association
-lists. -/
+/-- The replay's state: the connections and the nodes' local states, as association lists. -/
 structure World where
-  plan : List (GoString × GoString)
   conns : List (Nat × NetConn)
   locs : List (String × CLocal)
 
 /-- The network it stands for. -/
-def World.global (w : World) : NetGlobal := ⟨GMap.ofList w.plan, GMap.ofList w.conns⟩
+def World.global (w : World) : NetGlobal := ⟨GMap.ofList w.conns⟩
 
 /-- The local state of the node named `n`, if there is one. -/
 def World.loc (w : World) (n : String) : Option NetLocal := (alGet w.locs n).map CLocal.abs
@@ -142,10 +139,9 @@ theorem World.loc_setLoc (w : World) (n m : String) (L : CLocal) :
   simp only [World.loc, World.setLoc, alGet_alSet]
   split <;> simp
 
-/-- The initial state of a run: the plan, no connection, each node with its host and no
-listener. -/
-def World.init (plan : List (GoString × GoString)) (nodes : List (String × GoString)) : World :=
-  ⟨plan, [], nodes.map (fun x => (x.1, ⟨x.2, []⟩))⟩
+/-- The initial state of a run: no connection, each node with no listener. -/
+def World.init (nodes : List String) : World :=
+  ⟨[], nodes.map (fun n => (n, ⟨[]⟩))⟩
 
 /-! ## Executions of the model -/
 
@@ -228,7 +224,7 @@ def readResOf (code : Nat) (bs : List w8) : ReadRes :=
 /-- The operation of a witness step, with its arguments and result (README, "The witness"):
 numbers as the witness gives them, `side` `true` for the acceptor's end, hex strings for bytes. -/
 inductive WOp where
-  | listen (a a0 : GoString) (code lis : Nat)
+  | listen (a : GoString) (code lis : Nat)
   | accept (lis code conn endv : Nat)
   | lisClose (lis code : Nat)
   /-- `conn`: the connection made (on success), or left (D16, on failure). -/
@@ -251,7 +247,7 @@ def idRes (code id : Nat) : val :=
 /-- The event a witness step of the node `node` stands for: the extension's operation, the
 argument the trusted model passes it, and the expression it steps to (its result). -/
 def WOp.toEv (node : String) : WOp → Ev
-  | .listen a _ code lis => .step node "Listen" (#a) (Val (idRes code lis))
+  | .listen a code lis => .step node "Listen" (#a) (Val (idRes code lis))
   | .accept lis code _ endv => .step node "Accept" (#(bv lis)) (Val (idRes code endv))
   | .lisClose lis code => .step node "LisClose" (#(bv lis)) (Val (#(errCode (errOf code))))
   | .dial a code _ endv => .step node "Dial" (#a) (Val (idRes code endv))
@@ -326,24 +322,24 @@ def withConn (w : World) (node : String) (conn : Nat) (side : Bool) (endv : Nat)
 /-- One witness step of the node `node` from the state `w`: the state after, checked by the
 deciders (`Decide.lean`), or why it is not a step of the model. The step's hidden choices are the
 witness's (the connection a `Dial` makes, the listener id a `Listen` makes, the cut a `Read`
-makes, the plan address a `Listen` listens at), and the state after is computed from them; the
+makes), and the state after is computed from them; the
 relation is then decided on that state. -/
 def step (w : World) (node : String) : WOp → Except String World
   | .crash =>
     match alGet w.locs node with
     | none => .error s!"no node {node}"
     | some L => .ok (w.setLoc node { L with lis := [] })
-  | .listen a a0 code lis =>
+  | .listen a code lis =>
     match alGet w.locs node with
     | none => .error s!"no node {node}"
     | some L =>
-      if listenAtB w.plan L.host a a0 then
+      if listenOk a then
         if code = 3 then .ok w
         else if code = 0 ∧ bv lis ≠ 0 ∧ alGet L.lis (bv lis) = none ∧
-            L.lis.all (fun x => decide (x.2 ≠ (a0, true))) then
-          .ok (w.setLoc node { L with lis := alSet L.lis (bv lis) (a0, true) })
+            L.lis.all (fun x => decide (x.2 ≠ (a, true))) then
+          .ok (w.setLoc node { L with lis := alSet L.lis (bv lis) (a, true) })
         else .error s!"Listen: code {code} (ListenStep: a new listener id, no open listener at the address; or sys)"
-      else .error "Listen: not ListenAt the plan address the witness gives"
+      else .error "Listen: not a valid address or wildcard (listenOk, D6, D20, D21)"
   | .accept lis code conn endv =>
     match alGet w.locs node with
     | none => .error s!"no node {node}"
@@ -355,7 +351,7 @@ def step (w : World) (node : String) : WOp → Except String World
           match alGet w.conns conn with
           | none => .error s!"Accept: no connection {conn}"
           | some cn =>
-            if o = true ∧ cn.addr = a ∧ cn.accepted = false ∧ 2 * conn + 1 < 2 ^ 64 ∧
+            if o = true ∧ lisAcceptsB a cn.addr ∧ cn.accepted = false ∧ 2 * conn + 1 < 2 ^ 64 ∧
                 bv endv = endId conn true then
               .ok (w.setConn conn { cn with accepted := true })
             else .error s!"Accept of connection {conn}: not open, not at the address, accepted already, or not its end"
@@ -375,7 +371,7 @@ def step (w : World) (node : String) : WOp → Except String World
     match alGet w.locs node with
     | none => .error s!"no node {node}"
     | some _ =>
-      if (alGet w.plan a).isSome then
+      if addrOk a then
         match conn with
         | none => if code = 3 then .ok w else .error s!"Dial: code {code} with no connection"
         | some c =>
@@ -384,7 +380,7 @@ def step (w : World) (node : String) : WOp → Except String World
             else if code = 3 then .ok (w.setConn c (NetConn.abandoned a))
             else .error s!"Dial: code {code}, or not the end of connection {c}"
           else .error s!"Dial: connection {c} is not new (NewConn)"
-      else .error "Dial: not a plan address"
+      else .error "Dial: not a valid address (addrOk, D20)"
   | .read conn side endv n code data keep =>
     withConn w node conn side endv fun cn =>
       match hexDecode data with
@@ -518,7 +514,7 @@ theorem step_sound {w w' : World} {node : String} {op : WOp} (h : step w node op
       cases h
       exact MStep.crash (loc_of hL) rfl (by rw [World.loc_setLoc]; simp; rfl)
         (fun m hm => by rw [World.loc_setLoc]; simp [Ne.symm hm])
-  | listen a a0 code lis =>
+  | listen a code lis =>
     simp only [step] at h
     split at h
     · cases h
@@ -530,15 +526,14 @@ theorem step_sound {w w' : World} {node : String} {op : WOp} (h : step w node op
     · cases h
       rename_i hc
       subst hc
-      exact mstep_same hL (Or.inl ⟨a, rfl, ⟨a0, listenAtB_iff.mp hla, Or.inl ⟨rfl, rfl⟩⟩,
-        rfl⟩)
+      exact mstep_same hL (Or.inl ⟨a, rfl, hla, Or.inl ⟨rfl, rfl⟩, rfl⟩)
     split at h
     case isFalse => cases h
     rename_i hc3 hc
     obtain ⟨rfl, hne, hnone, hall⟩ := hc
     cases h
-    refine mstep_set hL (Or.inl ⟨a, rfl, ⟨a0, listenAtB_iff.mp hla, Or.inr ⟨?_, bv lis, hne,
-      ?_, rfl, ?_⟩⟩, rfl⟩)
+    refine mstep_set hL (Or.inl ⟨a, rfl, hla, Or.inr ⟨?_, bv lis, hne,
+      ?_, rfl, ?_⟩, rfl⟩)
     · intro l hl
       simp only [CLocal.abs] at hl
       rw [ofList_lookup] at hl
@@ -569,7 +564,8 @@ theorem step_sound {w w' : World} {node : String} {op : WOp} (h : step w node op
       obtain ⟨ho, ha, hacc, hlt, he⟩ := hok
       cases h
       refine mstep_same hL (Or.inl ⟨bv lis, a, o, rfl, hlis', ?_, rfl⟩)
-      refine Or.inr (Or.inr ⟨ho, conn, cn, lookup_conns hcn, ha, hacc, hlt, ?_, ?_⟩)
+      refine Or.inr (Or.inr ⟨ho, conn, cn, lookup_conns hcn, lisAcceptsB_iff.mp ha, hacc, hlt, ?_,
+        ?_⟩)
       · simp [idRes, he]
       · exact World.global_setConn _ _ _
     · split at h
@@ -603,9 +599,7 @@ theorem step_sound {w w' : World} {node : String} {op : WOp} (h : step w node op
     rename_i L hL
     split at h
     case isFalse => cases h
-    rename_i hplan
-    have hplan' : (w.global.plan !! a).isSome := by
-      simp only [World.global]; rw [ofList_lookup]; exact hplan
+    rename_i hplan'
     split at h
     · split at h
       case isFalse => cases h
@@ -720,48 +714,48 @@ theorem alGet_map_snd {K V W : Type} [DecidableEq K] (l : List (K × V)) (f : V 
     simp only [List.map_cons, alGet_cons, ih]
     split <;> simp
 
-/-- The initial state's network: the plan, no connection. -/
-theorem World.init_global (plan : List (GoString × GoString)) (nodes : List (String × GoString)) :
-    (World.init plan nodes).global = ⟨GMap.ofList plan, ∅⟩ := rfl
+/-- The initial state's network: no connection. -/
+theorem World.init_global (nodes : List String) : (World.init nodes).global = ⟨∅⟩ := rfl
 
-/-- The initial state's nodes: each with its host and no listener. -/
-theorem World.init_loc (plan : List (GoString × GoString)) (nodes : List (String × GoString)) :
-    (World.init plan nodes).loc = fun n => (alGet nodes n).map (fun host => ⟨host, ∅⟩) := by
+theorem alGet_map_const {V : Type} (nodes : List String) (v : V) (n : String) :
+    alGet (nodes.map (fun m => (m, v))) n = if n ∈ nodes then some v else none := by
+  induction nodes with
+  | nil => rfl
+  | cons m l ih =>
+    simp only [List.map_cons, alGet_cons, ih, List.mem_cons]
+    by_cases h : m = n
+    · subst h; simp
+    · have : ¬ n = m := fun e => h e.symm
+      simp [h, this]
+
+/-- The initial state's nodes: each with no listener. -/
+theorem World.init_loc (nodes : List String) :
+    (World.init nodes).loc = fun n => if n ∈ nodes then some ⟨∅⟩ else none := by
   funext n
   simp only [World.loc, World.init]
-  rw [alGet_map_snd nodes (fun host => (⟨host, []⟩ : CLocal))]
-  cases alGet nodes n <;> rfl
+  rw [alGet_map_const nodes (⟨[]⟩ : CLocal)]
+  split <;> rfl
 
 end sound
 
-/-- Parts (a) and (b) of the certification: the plan is well formed (decided), and the steps
-replay from the initial state (the plan, no connection, each node with its host and no listener).
-`main` runs exactly this. -/
-def checkSteps (plan : List (GoString × GoString)) (nodes : List (String × GoString))
-    (ss : List WStep) : Except (Option Nat × String) World :=
-  if planWellFormedB plan then replay (World.init plan nodes) ss
-  else .error (none, "the plan is not PlanWellFormed (Deploy.lean, D20)")
+/-- Part (b) of the certification: the steps replay from the initial state (no connection, each
+node with no listener). `main` runs exactly this. -/
+def checkSteps (nodes : List String) (ss : List WStep) : Except (Option Nat × String) World :=
+  replay (World.init nodes) ss
 
-/-- **What CERTIFIED rests on, for the steps.** If `checkSteps` accepts, the plan is
-`PlanWellFormed` (the premise of every theorem over the semantics) and the witness's steps, in
+/-- **What CERTIFIED rests on, for the steps.** If `checkSteps` accepts, the witness's steps, in
 order, are an execution of the net extension's semantics (`net_semantics.step`, `NetStep`, and
 `net_semantics.crash`, with the network and the nodes' local states threaded through) from the
-initial state: the network of the plan `GMap.ofList plan` with no connection, and each node of
-the witness with its host and no listener; each step's event is the operation, argument and
-result the witness step gives (`WOp.toEv`). -/
-theorem checkSteps_sound [GooseExts] [GoGlobalContext] {plan : List (GoString × GoString)}
-    {nodes : List (String × GoString)} {ss : List WStep} {w' : World}
-    (h : checkSteps plan nodes ss = .ok w') :
-    PlanWellFormed plan ∧
-    Exec ⟨GMap.ofList plan, ∅⟩ (fun n => (alGet nodes n).map (fun host => ⟨host, ∅⟩))
+initial state: the network with no connection (`NetGlobal.init`), and each node of the witness
+with no listener (`NetLocal.init`); each step's event is the operation, argument and result the
+witness step gives (`WOp.toEv`). -/
+theorem checkSteps_sound [GooseExts] [GoGlobalContext] {nodes : List String} {ss : List WStep}
+    {w' : World} (h : checkSteps nodes ss = .ok w') :
+    Exec ⟨∅⟩ (fun n => if n ∈ nodes then some ⟨∅⟩ else none)
       (ss.map (fun s => s.op.toEv s.node)) w'.global w'.loc := by
   unfold checkSteps at h
-  split at h
-  · rename_i hwf
-    refine ⟨planWellFormedB_iff.mp hwf, ?_⟩
-    have := replay_sound h
-    rwa [World.init_global, World.init_loc] at this
-  · cases h
+  have := replay_sound h
+  rwa [World.init_global, World.init_loc] at this
 
 /-! ## Reading the witness and the calls (`Lean.Json`) -/
 
@@ -828,8 +822,7 @@ def parseStep (j : Json) : Except String WStep := do
     let code ← jNat res "code"
     let lis ← if code = 0 then jNat res "lis" else pure 0
     let a ← jStr j "addr"
-    let a0 ← jStr j "a0"
-    pure { base with op := .listen (stringToGoString a) (stringToGoString a0) code lis }
+    pure { base with op := .listen (stringToGoString a) code lis }
   | "Accept" =>
     let code ← jNat res "code"
     let conn ← if code = 0 then jNat res "conn" else pure 0
@@ -874,25 +867,20 @@ structure WNode where
   host : String
   procs : List Nat
 
-/-- A witness (README, "The witness", version 1). -/
+/-- A witness (README, "The witness", version 2: v3.4, no plan, and a `Listen` listens at its own
+address). -/
 structure Witness where
-  plan : List (String × String)
-  planWF : Bool
   nodes : List WNode
   steps : Array WStep
 
 def parseWitness (j : Json) : Except String Witness := do
   unless jStrD j "format" == "net-witness" do throw "not a net-witness"
-  unless jNatD j "version" 0 == 1 do throw s!"witness version {jNatD j "version" 0}, this replay reads 1"
-  let plan ← (← jArr j "plan").toList.mapM fun p => do
-    match (← p.getArr?).toList with
-    | [a, h] => pure (← a.getStr?, ← h.getStr?)
-    | _ => throw "a plan entry is not [address, host]"
+  unless jNatD j "version" 0 == 2 do throw s!"witness version {jNatD j "version" 0}, this replay reads 2"
   let nodes ← (← jArr j "nodes").toList.mapM fun n => do
     pure { name := ← jStr n "node", host := ← jStr n "host",
            procs := ← (← jArr n "procs").toList.mapM Json.getNat? : WNode }
   let steps ← (← jArr j "steps").mapM parseStep
-  pure { plan, planWF := jBool j "plan_well_formed", nodes, steps }
+  pure { nodes, steps }
 
 /-- A traced process (the calls file). -/
 structure Proc where
@@ -1155,7 +1143,7 @@ def checkStep (x : Ctx) (cs : CState) (s : WStep) : Except String CState := do
     | none => pure ()
   let one (cs : CState) : CState := { cs with prog := cs.prog.insert (pid, sq) { steps := 1, ended := true } }
   match s.op with
-  | .listen a _ code lis =>
+  | .listen a code lis =>
     chk (a == stringToGoString (jStrD c.b "addr")) s!"{c.where_}: Listen of another address"
     codeOk code
     let cs := one cs
@@ -1321,16 +1309,15 @@ def main (args : List String) : IO UInt32 := do
       | .ok c => pure c
       | .error m => IO.println s!"NOT CERTIFIED: calls: {m}"; return 1
     let t1 ← IO.monoMsNow
-    let plan := w.plan.map (fun x => (stringToGoString x.1, stringToGoString x.2))
-    let nodes := w.nodes.map (fun n => (n.name, stringToGoString n.host))
-    let r1 ← strictly (fun _ => checkSteps plan nodes w.steps.toList)
+    let nodes := w.nodes.map (·.name)
+    let r1 ← strictly (fun _ => checkSteps nodes w.steps.toList)
     let t2 ← IO.monoMsNow
     let r2 ← strictly (fun _ => checkCalls w cl)
     let t3 ← IO.monoMsNow
     match firstFailure r1 r2 with
     | none =>
       IO.println (s!"CERTIFIED: {w.steps.size} steps, {cl.calls.size} calls, {w.nodes.length} " ++
-        s!"nodes, a plan of {w.plan.length} (read {t1 - t0} ms, steps {t2 - t1} ms, calls {t3 - t2} ms)")
+        s!"nodes (read {t1 - t0} ms, steps {t2 - t1} ms, calls {t3 - t2} ms)")
       return 0
     | some (i, m) =>
       let at_ := match i with | some i => s!"step {i}: " | none => ""

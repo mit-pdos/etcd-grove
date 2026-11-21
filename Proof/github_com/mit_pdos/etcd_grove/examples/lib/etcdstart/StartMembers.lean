@@ -38,7 +38,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.As
 theorem StartMembers.wp_proof (wp_NewMember : NewMember.spec (GF := GF) (hG := hG))
     (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
     StartMembers.spec (GF := GF) (hG := hG) := by
-  intro CS N token snapCount catchUp msl lg xs ps bootLog ctxs dir Φs γn lm Htb Hrb48 HrbN HwbN Hbl Hγnd Hdok Hbc
+  intro CS N token snapCount catchUp msl lg xs ps bootLog ctxs dir Φs γn lm cmp Htb Hrb48 HrbN HwbN Hbl Hγnd Hdok Hbc
     Hnd Hutf HnL Hx Haf Hbuq Hdbo
   wp_start as ⟨#Hlg, Htok, #Hms, #Hcom, #Hcc, Hpre⟩
   ihave %Hmsl := ownSlice_len $$ Hms
@@ -134,7 +134,7 @@ theorem StartMembers.wp_proof (wp_NewMember : NewMember.spec (GF := GF) (hG := h
         "Hups" ∷ ([∗list] s; x ∈ ss; xs.take (sint.nat j),
           (threadTok -∗ memberUp s x.2.ρ x.2.E lg γn x.2.id lm)) ∗
         "Hpre" ∷ ([∗list] x ∈ xs.drop (sint.nat j),
-          memberPre N token (xs.map (·.1)) ps bootLog ctxs dir Φs γn lm x) ∗
+          memberPre N token (xs.map (·.1)) ps bootLog ctxs dir Φs γn lm x cmp) ∗
         "Htok" ∷ threadTok ∗
         "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z msl.len ∧ ss.length = sint.nat j⌝ : IProp GF)
         $$ [i m j Hssl Hpre Htok]
@@ -177,7 +177,7 @@ theorem StartMembers.wp_proof (wp_NewMember : NewMember.spec (GF := GF) (hG := h
       -- lg)`
       wp_apply (wp_NewMember N xj.1.Name' xj.1.Peer' xj.1.Client' token snapCount catchUp sl pm lg M
           (iuOf (xs.map (·.1))) (urlsN (xs.map (·.1)) xj.1) ps bootLog ctxs dir xj.2.id xj.2.γ
-          xj.2.ρ xj.2.E Φs γn false lm Htb Hrb48 HrbN HwbN h1 h2 h3 Hbl h4 Hγnd Hdok h5 Hbc
+          xj.2.ρ xj.2.E Φs γn cmp lm Htb Hrb48 HrbN HwbN h1 h2 h3 Hbl h4 Hγnd Hdok h5 Hbc
           ⟨rfl, rfl, Hdom, rfl⟩ hutf (HnL xj hxj) Haf Hbuq Hdbo) $$ [Htok Hmb Hfr] as %s %err Hr
       · iframe; iframe #
       icases Hr with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb⟩)

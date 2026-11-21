@@ -35,15 +35,14 @@ variable [GoGlobalContext] {GF : BundledGFunctors}
 /-- `framed_crash_robust.spec`
 (`Net/Spec/github_com/mit_pdos/etcd_grove/examples/net/framed/TopLevelRobustness.lean`). -/
 theorem framed_crash_robust : framed_crash_robust.spec := by
-  intro lctx sem server_sem client_sem junk_sem field_sem _ σs σc σj g h Hhost Hplan pl Hwf Hpl
-    Hconns bound
+  intro lctx sem server_sem client_sem junk_sem field_sem _ σs σc σj g Hconns bound
   refine Robustness.Robust.of_all fun hf n κs c Hsteps _ i tp σ hi => ?_
   have hfresh : ∀ σ', (∃ e, (e, σ') ∈ system σs σc σj) → NodeStart lctx σ' := fun σ' ⟨e, he⟩ =>
     ⟨(hf (e, σ') he).1, (hf (e, σ') he).2.1, (hf (e, σ') he).2.2⟩
   exact (framed_crash_safety
-      σs σc σj g h (hfresh σs ⟨boot_server, by simp [system]⟩)
-      (hfresh σc ⟨boot_client, by simp [system]⟩) (hfresh σj ⟨boot_junk, by simp [system]⟩) Hhost
-      Hplan pl Hwf Hpl Hconns n κs c Hsteps i tp σ hi).2
+      σs σc σj g (hfresh σs ⟨boot_server, by simp [system]⟩)
+      (hfresh σc ⟨boot_client, by simp [system]⟩) (hfresh σj ⟨boot_junk, by simp [system]⟩)
+      Hconns n κs c Hsteps i tp σ hi).2
 
 end adequacy
 end github_com.mit_pdos.etcd_grove.examples.net.framed

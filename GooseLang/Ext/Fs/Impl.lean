@@ -141,7 +141,7 @@ mapping made through that fd keeps the description open: then the description, w
 holds at the `close`, lives until the last such mapping is unmapped (`MapDesc`; 2026-11-19, the
 user's approval via etcd-grove-03, after the attack F1 on `NoIoErr`). A request succeeds only with no
 conflicting lock on another description, an fd's or one a mapping keeps (a blocking one waits for
-that), and may fail with any errno and no change (`LockStep`), `EAGAIN` from a non-blocking one
+that: it steps to itself, 2026-11-20, the user's approval of option (A)), and may fail with any errno and no change (`LockStep`), `EAGAIN` from a non-blocking one
 included **even with no conflict in the model**: another process may hold a reference to a
 description the program has closed (briefly, a read of `/proc/<pid>/fd/N` or `/proc/<pid>/fdinfo/N`,
 `get_file` … `fput`; for as long as it keeps it, a copy made by `pidfd_getfd(2)` or through ptrace),
@@ -824,9 +824,8 @@ def LockConflict (st : OsState) (k : LockKind) (fd : w64) (i : Ino) (ex : Bool) 
     ∃ x, d'.lk k = some x ∧ (ex = true ∨ x = true))
 
 /-- **The lock rule**, of a request of kind `k` through the fd `fd` (description `d`): `req` is
-`some ex` for a lock, exclusive iff `ex`, `none` for an unlock; `nb`: non-blocking (the rule's outcomes
-are the same for both: a blocking request only waits where a non-blocking one fails; kept as an argument
-so that the calls name the request whole).
+`some ex` for a lock, exclusive iff `ex`, `none` for an unlock; `nb`: non-blocking (the outcomes differ
+only by the wait: a blocking request in conflict may also step to itself, `self`, the call again).
 * A lock, only on a description with no lock of the kind (re-locking, a conversion included, is
   stuck: Linux accepts it; etcd never does it): success (errno 0) only when there is no conflict
   (`LockConflict`), and the description holds the lock; or any nonzero errno and **no change**,
@@ -837,7 +836,12 @@ so that the calls name the request whole).
   measured on C: `examples/osfs/semantics/locks_spurious_eagain.go`, `locks_test.go`'s
   `TestLocksProcReaderEagain`; 2026-11-19, the user's decision, option (b)). A blocking request so
   takes no successful step while another description holds a conflicting lock: it waits, or fails (any
-  errno, at any time: `ENOLCK`/`ENOMEM` from an allocation at its entry are not excluded).
+  errno, at any time: `ENOLCK`/`ENOMEM` from an allocation at its entry are not excluded). **Waiting is a
+  step** (2026-11-20, the user's approval of option (A), via etcd-grove-03, `notes/specs-only/ledger.md`
+  "a blocking lock request in conflict may fail"): a blocking request (`nb = false`) on a conflict
+  (`LockConflict` at the step) may step to itself (`e' = self`, the call again; the state unchanged),
+  as `mmap` without room does (`MmapStall`), so that a premise on steps can exclude the failures there
+  and still leave a step (`NoIoErr`'s `OfdLock`, `NoMapLockErr`'s `Flock`). The failures stay.
 * An unlock: success, the description's lock of the kind gone (none before: no change); or any
   nonzero errno, the lock gone or kept.
 One step, which needs the fd open (`FdOpen`, in `IsFsStep`): on Linux the call holds its own
@@ -849,12 +853,13 @@ Measured on C (`examples/osfs/semantics/locks_ofd.go`, `locks_flock.go`, `locks_
 with a lock some description holds, when the request may not sleep, the lock inserted only on success;
 `locks_remove_file` releases a description's locks only at its last reference's `__fput`). -/
 def LockStep (st : OsState) (k : LockKind) (fd : w64) (d : OsFd) (req : Option Bool) (nb : Bool)
-    (e' : Expr) (st' : OsState) : Prop :=
+    (self : Expr) (e' : Expr) (st' : OsState) : Prop :=
   match req with
   | some ex => d.lk k = none ∧
       ((¬ LockConflict st k fd d.ino ex ∧ st' = st.setFd fd (d.setLk k (some ex)) ∧
           e' = Val (#(0 : w64))) ∨
-       (∃ e : w64, e ≠ 0 ∧ st' = st ∧ e' = Val (#e)))
+       (∃ e : w64, e ≠ 0 ∧ st' = st ∧ e' = Val (#e)) ∨
+       (nb = false ∧ LockConflict st k fd d.ino ex ∧ st' = st ∧ e' = self))
   | none => (st' = st.setFd fd (d.setLk k none) ∧ e' = Val (#(0 : w64))) ∨
       (∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ (st' = st ∨ st' = st.setFd fd (d.setLk k none)))
 
@@ -991,7 +996,7 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   `examples/osfs/semantics/locks_flock.go` (pending the user's review). -/
   | "Flock" => ∃ (fd how : w64) (d : OsFd) (req : Option Bool) (nb : Bool),
       v = PairV (#fd) (#how) ∧ FdOpen st fd d ∧ flockReq how.toNat = some (req, nb) ∧
-      LockStep st .flock fd d req nb e' st'
+      LockStep st .flock fd d req nb (ExternalOp fsExt.name "Flock" (Val v)) e' st'
   /- `close(fd)` of a file: `#fd ↦ #errno`. The fd is freed whatever the errno; never stuck. A live
   mapping made through `fd` keeps its description, as it is now, locks included (`MapDesc.close`;
   `locks_mmap_close.go`); otherwise the description and its locks go from the model (on Linux another
@@ -1207,7 +1212,8 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
       v = PairV (#fd) (PairV (#cmd) (#typ)) ∧ FdOpen st fd d ∧
       (cmd.toNat = F_OFD_SETLK ∨ cmd.toNat = F_OFD_SETLKW) ∧ ofdReq typ.toNat = some req ∧
       (req = some true → d.writable) ∧ (req = some false → d.readable) ∧
-      LockStep st .ofd fd d req (decide (cmd.toNat = F_OFD_SETLK)) e' st'
+      LockStep st .ofd fd d req (decide (cmd.toNat = F_OFD_SETLK)) (ExternalOp fsExt.name "OfdLock" (Val v))
+        e' st'
   /- `madvise(addr, len, advice)` with a paging hint, `advice` `MADV_NORMAL` (0), `MADV_RANDOM` (1),
   `MADV_SEQUENTIAL` (2) or `MADV_WILLNEED` (3): `(#addr, (#len, #advice)) ↦ #errno`, as Go's
   `unix.Madvise(b, advice)` takes it (`&b[0]`, `len(b)`). No visible change: a hint changes no byte a

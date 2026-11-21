@@ -14,7 +14,8 @@ Usage: etc/gen-specs-pkginit.py [--check]   (--check: exit 1 if a module differs
 import os, re, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PER = os.path.join(ROOT, ".lake", "packages", "perennial")
+# Perennial's checkout: the shared package's, or `$PERENNIAL_DIR` (a checkout at the manifest's pin), as etc/gen-init.py
+PER = os.environ.get("PERENNIAL_DIR") or os.path.join(ROOT, ".lake", "packages", "perennial")
 
 def scan_pkginfo(base, code_dir):
     """pkg -> list of imported pkgs, from `instance info' : PkgInfo pkg_id.X where pkgImportedPkgs := [...]`."""

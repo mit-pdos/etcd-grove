@@ -89,6 +89,13 @@ def leaseexpiryNDirs (k : Nat) : List GoString := (members k).map (fun m => memb
 def startAddrs (k : Nat) : List (GoString × MemberAddrs) :=
   (startOf (members k)).map (fun m => (m.1, ⟨some m.2.1, m.2.2⟩))
 
+/-- (wal-fsfix2) The start bundles' names are at most 200 bytes (`etcd_adequate_members`' `hmsL`). -/
+theorem startAddrs_names_len (k : Nat) : ∀ m ∈ startAddrs k, m.1.length ≤ 200 := by
+  intro m hm
+  obtain ⟨x, hx, rfl⟩ := List.mem_map.1 hm
+  obtain ⟨y, hy, rfl⟩ := List.mem_map.1 hx
+  exact members_names_len k y hy
+
 theorem leaseexpiryNAddrs_perm (k : Nat) :
     ((startAddrs k).flatMap (fun (m : GoString × MemberAddrs) => m.2.addrs) ++ []).Perm
       (leaseexpiryNAddrs k) := by
