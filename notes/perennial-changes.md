@@ -3383,4 +3383,5 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
   so zap's package variables `_minTimeInt64 = time.Unix(0, math.MinInt64)` and `_maxTimeInt64` cannot be
   stepped: they stay in zap's `opaqueInitsOk` (prove-initleft, which translated zap's other variables).
 - **Proposed (general).** Translate `Unix` and `unixTime` (as `Now`, which reads `Local` too) and prove
-  `time.Unix.spec` (some `Time`, no panic: the divisions are by the constant `1e9`). **Status.** Recorded only.
+  `time.Unix.spec` (some `Time`, no panic: the divisions are by the constant `1e9`). **Status.** Landed in
+  Perennial (in lean's pin `c8e356cb1`: `time.wp_Unix`); used by zap's initializer since prove-zap3 (2026-11-21).

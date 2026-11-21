@@ -33,6 +33,7 @@ public import Proof.net.url.Init
 public import Proof.os.Init
 public import Perennial.Proof.errors.NewVar
 public import Spec.strings.ToLower
+public import Spec.go_uber_org.zap.Defs
 
 @[expose] public section
 
@@ -71,11 +72,13 @@ theorem EtcdGrove.zap_wp_AddSync_init (w : GoInterface) :
     itrivial
 
 /-- (prove-initleft) `zap.NewNop()` before zap's `isPkgInit`: a new `Logger` (its body: `NewNopCore()`,
-`AddSync(io.Discard)`, `zapcore.DefaultClock`, from io's and zapcore's facts). -/
+`AddSync(io.Discard)`, `zapcore.DefaultClock`, from io's and zapcore's facts), a `nopLoggerVal`
+(prove-zap3: `zap.NewNop`'s spec is proved from it). -/
 theorem EtcdGrove.zap_wp_NewNop_init :
     {{ isPkgInit (PROP := IProp GF) pkg_id.io ∗ isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap.zapcore }}
       (App (Val (@! _root_.Perennial.go_uber_org.zap.NewNop)) (Val #()))
-    {{ (l : Loc), RET #l; ∃ v : _root_.Perennial.go_uber_org.zap.Logger, l ↦ v }} := by
+    {{ (l : Loc), RET #l; ∃ v : _root_.Perennial.go_uber_org.zap.Logger, l ↦ v ∗
+        ⌜EtcdGrove.zap.nopLoggerVal v⌝ }} := by
   wp_start
   ihave #IO : (_root_.Perennial.io.isInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -94,6 +97,8 @@ theorem EtcdGrove.zap_wp_NewNop_init :
   iapply HΦ
   iexists _
   iframe
+  ipureintro
+  exact ⟨⟨_, rfl⟩, rfl, rfl, rfl, rfl⟩
 
 /-- (prove-initleft) `l.Sugar()` on a `Logger`: a copy of it (`clone`), its caller skip plus 2. -/
 theorem EtcdGrove.zap_wp_Sugar_init (l : Loc) (v : _root_.Perennial.go_uber_org.zap.Logger) :

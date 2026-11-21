@@ -3303,7 +3303,7 @@ in Perennial) and `_sinkRegistry` (`newSinkRegistry`) stay untranslated, `opaque
                      'ihave #HNN : (iprop(isPkgInit (PROP := IProp GF) pkg_id.io ∗ isPkgInit (PROP := IProp GF) '
                      'pkg_id.go_uber_org.zap.zapcore) : IProp GF) $$ []',
                      '· isplitl []', '  · iexact {Hd:io}', '  · iexact {Hd:go_uber_org.zap.zapcore}',
-                     'wp_apply EtcdGrove.zap_wp_NewNop_init $$ HNN as %lgl ⟨%vgl, Hgl⟩', 'try wp_auto'],
+                     'wp_apply EtcdGrove.zap_wp_NewNop_init $$ HNN as %lgl ⟨%vgl, Hgl, -⟩', 'try wp_auto'],
         '_globalS': ['try wp_auto', 'wp_apply (EtcdGrove.zap_wp_Sugar_init lgl vgl) $$ Hgl as %sgl Hgl', 'try wp_auto'],
     },
     pre=[
@@ -3328,11 +3328,13 @@ in Perennial) and `_sinkRegistry` (`newSinkRegistry`) stay untranslated, `opaque
         '    itrivial',
         '',
         '/-- (prove-initleft) `zap.NewNop()` before zap\'s `isPkgInit`: a new `Logger` (its body: `NewNopCore()`,',
-        '`AddSync(io.Discard)`, `zapcore.DefaultClock`, from io\'s and zapcore\'s facts). -/',
+        '`AddSync(io.Discard)`, `zapcore.DefaultClock`, from io\'s and zapcore\'s facts), a `nopLoggerVal`',
+        '(prove-zap3: `zap.NewNop`\'s spec is proved from it). -/',
         'theorem EtcdGrove.zap_wp_NewNop_init :',
         '    {{ isPkgInit (PROP := IProp GF) pkg_id.io ∗ isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap.zapcore }}',
         '      (App (Val (@! _root_.Perennial.go_uber_org.zap.NewNop)) (Val #()))',
-        '    {{ (l : Loc), RET #l; ∃ v : _root_.Perennial.go_uber_org.zap.Logger, l ↦ v }} := by',
+        '    {{ (l : Loc), RET #l; ∃ v : _root_.Perennial.go_uber_org.zap.Logger, l ↦ v ∗',
+        '        ⌜EtcdGrove.zap.nopLoggerVal v⌝ }} := by',
         '  wp_start',
         '  ihave #IO : (_root_.Perennial.io.isInit : IProp GF) $$ []',
         '  · iapply isPkgInit_access $$ Hpkg',
@@ -3351,6 +3353,8 @@ in Perennial) and `_sinkRegistry` (`newSinkRegistry`) stay untranslated, `opaque
         '  iapply HΦ',
         '  iexists _',
         '  iframe',
+        '  ipureintro',
+        '  exact ⟨⟨_, rfl⟩, rfl, rfl, rfl, rfl⟩',
         '',
         '/-- (prove-initleft) `l.Sugar()` on a `Logger`: a copy of it (`clone`), its caller skip plus 2. -/',
         'theorem EtcdGrove.zap_wp_Sugar_init (l : Loc) (v : _root_.Perennial.go_uber_org.zap.Logger) :',
@@ -3462,7 +3466,7 @@ SPECIAL[_Z]['pre'][_i:_i] = [
     '  itrivial',
     '',
 ]
-for _m in ['Spec.strings.ToLower', 'Proof.strings.ToLower']:
+for _m in ['Spec.strings.ToLower', 'Proof.strings.ToLower', 'Spec.go_uber_org.zap.Defs']:
     if _m not in SPECIAL[_Z]['imports']:
         SPECIAL[_Z]['imports'].append(_m)
 _FG = 'go_etcd_io.etcd.pkg.v3.featuregate'

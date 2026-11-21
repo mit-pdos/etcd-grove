@@ -119,7 +119,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   · isplitl []
     · iexact Hd9
     · iexact Hd3
-  wp_apply EtcdGrove.zap_wp_NewNop_init $$ HNN as %lgl ⟨%vgl, Hgl⟩
+  wp_apply EtcdGrove.zap_wp_NewNop_init $$ HNN as %lgl ⟨%vgl, Hgl, -⟩
   try wp_auto
   -- translated initializer of _globalS))
   try wp_auto
