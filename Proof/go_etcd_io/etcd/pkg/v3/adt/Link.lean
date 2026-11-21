@@ -234,3 +234,22 @@ end links
 
 end EtcdGrove
 end Perennial
+p_proof
+    h_errors_IsPathErrnoNotExist _root_.Perennial.EtcdGrove.durable.os.File.wp_Stat
+    _root_.Perennial.EtcdGrove.durable.os.fileStat.wp_Size
+    _root_.Perennial.EtcdGrove.durable.os.File.wp_ReadAt
+    _root_.Perennial.EtcdGrove.durable.os.File.wp_Close
+
+theorem github_com.mit_pdos.etcd_grove.examples.lib.durable.wp_Read
+    (h_errors_IsPathErrnoNotExist : _root_.Perennial.EtcdGrove.errors.IsPathErrnoNotExist.spec
+    (GF := GF) (hG := hG)) :
+    _root_.Perennial.EtcdGrove.github_com.mit_pdos.etcd_grove.examples.lib.durable.Read.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.github_com.mit_pdos.etcd_grove.examples.lib.durable.Read.wp_proof
+    (_root_.Perennial.EtcdGrove.durable.github_com.mit_pdos.etcd_grove.examples.lib.durable.wp_tryRead
+    h_errors_IsPathErrnoNotExist)
+
+end links_pending
+
+end durable
+end EtcdGrove
+end Perennial
