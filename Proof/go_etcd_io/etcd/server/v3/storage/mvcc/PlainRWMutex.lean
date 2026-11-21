@@ -1,7 +1,7 @@
 /-
 **An `RWMutex` no one else can reach** (the restore plan, R3's design point): sequential specs of
 `sync.RWMutex`'s `RLock`, `RUnlock`, `Lock` and `Unlock` on memory the caller owns, proved over
-Perennial's translation of `sync` (its `Mutex` the trusted spin lock `lock.lock`/`lock.unlock`).
+Perennial's translation of `sync` (its `Mutex` over the trusted spin lock, `Proof/sync/MutexOwned`).
 With no other thread, each call takes the fast path and the memory goes through the values
 `rwZero` (unlocked, as allocated), `rwR1` (one reader) and `rwW` (write-locked), back to
 `rwZero` (so `init_RWMutex` can still turn it into a lock once the memory is shared).
@@ -14,6 +14,7 @@ module
 
 public import Perennial.Spec.sync.atomic.Int32__Add
 public import Perennial.Proof.sync.Base
+public import Proof.sync.MutexOwned
 
 @[expose] public section
 
@@ -34,12 +35,12 @@ abbrev rwZero : sync.RWMutex := zero_val sync.RWMutex
 
 /-- An `RWMutex` with one reader and no writer. -/
 def rwR1 : sync.RWMutex :=
-  sync.RWMutex.mk false (W32 0) (W32 0) { «_#0'» := zero_val _, v' := W32 1 }
+  sync.RWMutex.mk (zero_val _) (W32 0) (W32 0) { «_#0'» := zero_val _, v' := W32 1 }
     { «_#0'» := zero_val _, v' := W32 0 }
 
 /-- A write-locked `RWMutex` with no reader. -/
 def rwW : sync.RWMutex :=
-  sync.RWMutex.mk true (W32 0) (W32 0) { «_#0'» := zero_val _, v' := W32 (-(1073741824 : Int)) }
+  sync.RWMutex.mk mutexLocked (W32 0) (W32 0) { «_#0'» := zero_val _, v' := W32 (-(1073741824 : Int)) }
     { «_#0'» := zero_val _, v' := W32 0 }
 
 end defs
@@ -103,35 +104,19 @@ theorem plain.wp_RUnlock (hAdd : sync.atomic.Int32.Add.spec (GF := GF) (hG := hG
   simp only [TypedPointsto.typedPointstoDef, rwR1]
   iframe
 
-/-- `Mutex.Lock` (the trusted spin lock) on an unlocked mutex no one else can reach. -/
+/-- `Mutex.Lock` on an unlocked mutex no one else can reach. -/
 theorem plain.wp_Mutex_Lock (m : Loc) :
-    {{ (m ↦ false : IProp GF) }}
+    {{ (m ↦ (zero_val sync.Mutex) : IProp GF) }}
       (App (Val (m @!! go.GoType.PointerType sync.Mutex.ty @!! go!"Lock")) (Val #()))
-    {{ RET #(); (m ↦ true : IProp GF) }} := by
-  wp_start as Hm
-  unfold lock.lock
-  wp_call
-  wp_bind (CmpXchg _ _ _)
-  wp_apply_core wp_cmpxchg_suc m false false true _ _ rfl $$ Hm
-  iintro Hm
-  wp_pures
-  iapply HΦ
-  iexact Hm
+    {{ RET #(); (m ↦ mutexLocked : IProp GF) }} :=
+  wp_Mutex_Lock_owned m
 
-/-- `Mutex.Unlock` (the trusted spin lock) on a locked mutex no one else can reach. -/
+/-- `Mutex.Unlock` on a locked mutex no one else can reach. -/
 theorem plain.wp_Mutex_Unlock (m : Loc) :
-    {{ (m ↦ true : IProp GF) }}
+    {{ (m ↦ mutexLocked : IProp GF) }}
       (App (Val (m @!! go.GoType.PointerType sync.Mutex.ty @!! go!"Unlock")) (Val #()))
-    {{ RET #(); (m ↦ false : IProp GF) }} := by
-  wp_start as Hm
-  unfold lock.unlock
-  wp_call
-  wp_bind (CmpXchg _ _ _)
-  wp_apply_core wp_cmpxchg_suc m true true false _ _ rfl $$ Hm
-  iintro Hm
-  wp_auto
-  iapply HΦ
-  iexact Hm
+    {{ RET #(); (m ↦ (zero_val sync.Mutex) : IProp GF) }} :=
+  wp_Mutex_Unlock_owned m
 
 theorem plain.wp_Lock (hAdd : sync.atomic.Int32.Add.spec (GF := GF) (hG := hG)) (rw : Loc) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ rw ↦ rwZero }}
@@ -141,7 +126,7 @@ theorem plain.wp_Lock (hAdd : sync.atomic.Int32.Add.spec (GF := GF) (hG := hG)) 
   ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hrw
   iStructNamed Hrw
   wp_auto
-  rw [show rwZero.w' = false from rfl]
+  rw [show rwZero.w' = zero_val sync.Mutex from rfl]
   wp_apply plain.wp_Mutex_Lock $$ [$w] as w
   (try wp_auto)
   wp_apply_core hAdd $$ [] [-]
@@ -190,7 +175,7 @@ theorem plain.wp_Unlock (hAdd : sync.atomic.Int32.Add.spec (GF := GF) (hG := hG)
   iclear ∗
   iintro HΦ w writerSem readerSem readerWait readerCount r i rw
   wp_for
-  rw [show rwW.w' = true from rfl]
+  rw [show rwW.w' = mutexLocked from rfl]
   wp_apply plain.wp_Mutex_Unlock $$ [$w] as w
   (try wp_auto)
   iapply HΦ
