@@ -9,7 +9,9 @@ error, `linkHeartbeatMessage` a heartbeat message without unknown fields, read-o
 initializer runs its variables' initializers: (prove-errinits, 2026-11-19) its errors' are translated,
 `errors.New` calls and verb-less `fmt.Errorf` calls (`msg_codec.go`, `http.go`, `peer.go`,
 `stream.go`; `fmt.Errorf`'s trusted model is `errors.New(format)`), until then the trust-boundary axiom
-`errorsNewVarsInit`; `linkHeartbeatSize_init` states `linkHeartbeatSize`'s (`stream.go`).
+`errorsNewVarsInit`; (prove-misc, 2026-11-20) `linkHeartbeatSize = proto.Size(&linkHeartbeatMessage)`
+(`stream.go`) is translated, over `proto.SizePb`'s spec at the registered `raftpb.Message` (until then
+the trust-boundary axiom `linkHeartbeatSize_init`).
 (const-inits, 2026-11-19) The timeouts and intervals (`snapResponseReadTimeout`, `ConnWriteTimeout`,
 `proberInterval`, `statusMonitoringInterval`, `statusErrorInterval`), `errMemberNotFound`
 (`fmt.Errorf`, its proof) and `supportedStream` (a map literal of slice literals) are translated
@@ -57,6 +59,7 @@ public import Proof.path.Init
 public import Proof.runtime.Init
 public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.MsgAppV2
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.PerTypeMessage
 public import Perennial.Proof.errors.NewVar
 public import Proof.errors.NewVarCell
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry
@@ -77,21 +80,6 @@ local macro "mem_tac" : tactic =>
   `(tactic| repeat (first | exact List.Mem.head _ | apply List.Mem.tail))
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-
-section opaqueInits
-namespace go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- `linkHeartbeatSize = proto.Size(&linkHeartbeatMessage)` (`stream.go`): the heartbeat's encoding's size (two bytes), an `int` from `0` to below `2^50`; nothing writes it (the stream writer adds it to its metrics). -/
-axiom linkHeartbeatSize_init :
-    {{ (True : IProp GF) }} (App (Val linkHeartbeatSize.init) (Val #()))
-    {{ RET #(); ∃ n : w64, globalAddr linkHeartbeatSize ↦ n ∗ ⌜0 ≤ sint.Z n ∧ sint.Z n < 2 ^ 50⌝ }}
-
-end go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
-end opaqueInits
 
 /-- A lookup in `<[k := v]> m` finds `v` or one of `m`'s values. -/
 theorem EtcdGrove.lookup_insert_some {K V : Type} [DecidableEq K] (m : GMap K V) (k k' : K) (v w : V)
