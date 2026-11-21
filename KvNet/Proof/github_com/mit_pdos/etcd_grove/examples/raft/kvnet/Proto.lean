@@ -86,6 +86,9 @@ structure KvFacts (GF : BundledGFunctors) [GooseExts] where
   readOk_pers : ∀ id seq key, Persistent (readOk id seq key)
   ansOp_pers : ∀ d v, Persistent (ansOp d v)
   ansRead_pers : ∀ id seq key v, Persistent (ansRead id seq key v)
+  /-- A message a peer frame carries is one `getMsg` reads back (`MsgWf`: a type raft has,
+  well-formed entries and snapshot): raft's messages are (its instance's obligation, after B). -/
+  msgOk_wf : ∀ src st, msgOk src st ⊢ ⌜MsgWf st⌝
 
 section facts
 variable [GooseExts] {GF : BundledGFunctors} (F : KvFacts GF)
@@ -249,19 +252,44 @@ theorem client_reply_L (id : w64) (cn : Nat) (kind : w8) (tmo : w64) (pl v : Lis
   inext
   iapply client_reply F id cn kind tmo pl v hl hv $$ Hs Hr
 
+/-- A reader's token gives what was written of its direction, keeping the token. -/
+theorem recvTok_keep_sentLb (cn : Nat) (s s' : Bool) (hs : (!s) = s') (P : Net.Proto GF)
+    (R : List w8) : recvTok cn s P R ⊢ recvTok cn s P R ∗ sentLb cn s' R := by
+  subst hs
+  unfold recvTok recvCore sentLb connH
+  iintro ⟨⟨%γ, %Pd, %Pa, ⟨#He, #Hreg, #Hai, #Hm⟩, %hP, Hr, #Hlb⟩, #Hp⟩
+  isplitl [Hr]
+  · iframe Hp
+    iexists γ, Pd, Pa
+    iframe He Hreg Hai Hm Hr Hlb
+    ipureintro; exact hP
+  · iexists γ; iframe He Hlb
+
+/-- A reader's token (its fact a step later) shows the connection is the library's. -/
+theorem recvTokL_connIs (cn : Nat) (s : Bool) (P : Net.Proto GF) (R : List w8) :
+    recvTokL cn s P R ⊢ recvTokL cn s P R ∗ connIs cn := by
+  unfold recvTokL recvCore connIs connH
+  iintro ⟨⟨%γ, %Pd, %Pa, ⟨#He, #Hreg, #Hai, #Hm⟩, %hP, Hr, #Hlb⟩, Hp⟩
+  isplitl [Hr Hp]
+  · iframe Hp
+    iexists γ, Pd, Pa
+    iframe He Hreg Hai Hm Hr Hlb
+    ipureintro; exact hP
+  · iexists γ; iframe He Hreg
+
 /-! ## The server's laws -/
 
 /-- **A request read by the replica `id`** (`serveClient`): its frame is a request of the protocol,
 with its payload's fact and the `sentLb` its reply cites. -/
 theorem server_request (id : w64) (cn : Nat) (body : List w8) (hb : body.length < 2 ^ 64) :
     recvTok cn true (kvP F id) (helloClientB :: putB body) -∗
+      recvTok cn true (kvP F id) (helloClientB :: putB body) ∗
       ∃ kind tmo pl, ⌜body = reqBytes kind tmo pl ∧ (reqBytes kind tmo pl).length < 2 ^ 63⌝ ∗
         reqOk F id kind pl ∗ sentLb cn false (helloClientB :: putB body) := by
   iintro Hr
+  icases recvTok_keep_sentLb cn true false rfl _ _ $$ Hr with ⟨Hr, #Hlb⟩
   icases recvTok_proto _ _ _ _ $$ Hr with ⟨Hr, Hp⟩
-  ihave #Hlb : sentLb cn false (helloClientB :: putB body) $$ [Hr]
-  · iapply (show recvTok cn true (kvP F id) (helloClientB :: putB body) ⊢
-        sentLb cn false (helloClientB :: putB body) from recvTok_sentLb cn true (kvP F id) _) $$ Hr
+  iframe Hr
   unfold protoPrefix
   icases Hp with (%Hnil | ⟨%ext, %Hpre, #HP⟩)
   · exfalso; cases Hnil
@@ -277,8 +305,10 @@ theorem server_request (id : w64) (cn : Nat) (body : List w8) (hb : body.length 
   have := putB_prefix_inj' hb (by omega) Hb
   subst this
   iexists kind, tmo, pl
-  iframe Hok Hlb
-  ipureintro; exact ⟨rfl, hl⟩
+  iframe Hok
+  isplitr
+  · ipureintro; exact ⟨rfl, hl⟩
+  iexact Hlb
 
 /-- **The reply frame** the replica writes for a request it read (what `writeFrame`'s accessor
 needs, through `write_acc`): the answer's fact and the request's `sentLb`. -/
@@ -376,9 +406,11 @@ with its fact. -/
 theorem server_peer (id : w64) (cn : Nat) (bs : List (List w8)) (b : List w8)
     (hbs : ∀ x ∈ bs, x.length < 2 ^ 64) (hb : b.length < 2 ^ 64) :
     recvTok cn true (kvP F id) (helloPeerB :: rawFrames bs ++ putB b) -∗
+      recvTok cn true (kvP F id) (helloPeerB :: rawFrames bs ++ putB b) ∗
       ∃ src st, ⌜b = encMsg st⌝ ∗ F.msgOk src st := by
   iintro Hr
-  icases recvTok_proto _ _ _ _ $$ Hr with ⟨-, Hp⟩
+  icases recvTok_proto _ _ _ _ $$ Hr with ⟨Hr, Hp⟩
+  iframe Hr
   unfold protoPrefix
   icases Hp with (%Hnil | ⟨%ext, %Hpre, #HP⟩)
   · exfalso; cases Hnil
