@@ -8,12 +8,12 @@ theorem plain.wp_RUnlock (hAdd : sync.atomic.Int32.Add.spec) (rw : Loc) : ⊢ �
     (intoVal ())) {{ Φ }}
 
 def rwW : sync.RWMutex :=
-  { w' := true, writerSem' := W32 0, readerSem' := W32 0,
+  { w' := mutexLocked, writerSem' := W32 0, readerSem' := W32 0,
     readerCount' := { «_#0'» := zero_val sync.atomic.noCopy, v' := W32 (-1073741824) },
     readerWait' := { «_#0'» := zero_val sync.atomic.noCopy, v' := W32 0 } }
 
-theorem plain.wp_Mutex_Unlock (m : Loc) : ⊢ ∀ Φ, typedPointsto m true (DFrac.own 1) -∗ ▷
-    (typedPointsto m false (DFrac.own 1) -∗ Φ (intoVal ())) -∗ WP ((intoVal (methods
+theorem plain.wp_Mutex_Unlock (m : Loc) : ⊢ ∀ Φ, typedPointsto m mutexLocked (DFrac.own 1) -∗ ▷
+    (typedPointsto m (zero_val sync.Mutex) (DFrac.own 1) -∗ Φ (intoVal ())) -∗ WP ((intoVal (methods
     sync.Mutex.ty.PointerType go!"Unlock" (intoVal m))) (intoVal ())) {{ Φ }}
 
 theorem plain.wp_RLock (hAdd : sync.atomic.Int32.Add.spec) (rw : Loc) : ⊢ ∀ Φ, isPkgInit pkg_id.sync
@@ -35,10 +35,10 @@ theorem plain.wp_Lock (hAdd : sync.atomic.Int32.Add.spec) (rw : Loc) : ⊢ ∀ �
     {{ Φ }}
 
 def rwR1 : sync.RWMutex :=
-  { w' := false, writerSem' := W32 0, readerSem' := W32 0,
+  { w' := zero_val sync.Mutex, writerSem' := W32 0, readerSem' := W32 0,
     readerCount' := { «_#0'» := zero_val sync.atomic.noCopy, v' := W32 1 },
     readerWait' := { «_#0'» := zero_val sync.atomic.noCopy, v' := W32 0 } }
 
-theorem plain.wp_Mutex_Lock (m : Loc) : ⊢ ∀ Φ, typedPointsto m false (DFrac.own 1) -∗ ▷
-    (typedPointsto m true (DFrac.own 1) -∗ Φ (intoVal ())) -∗ WP ((intoVal (methods
+theorem plain.wp_Mutex_Lock (m : Loc) : ⊢ ∀ Φ, typedPointsto m (zero_val sync.Mutex) (DFrac.own 1)
+    -∗ ▷ (typedPointsto m mutexLocked (DFrac.own 1) -∗ Φ (intoVal ())) -∗ WP ((intoVal (methods
     sync.Mutex.ty.PointerType go!"Lock" (intoVal m))) (intoVal ())) {{ Φ }}

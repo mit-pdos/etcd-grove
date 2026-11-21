@@ -1,0 +1,261 @@
+/*
+ *
+ * Copyright 2014 gRPC authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
+package grpc
+
+// MODEL: the header-field helpers of grpc-go's HTTP/2 transport, copied verbatim from
+// internal/transport/http_util.go (lines 91-299 of v1.84.0) and
+// internal/transport/http2_server.go (appendHeaderFieldsFromMD, over the model's headerField in
+// place of hpack's): the model's transport (model_transport.go) sends the same header fields as
+// grpc-go's and reads them with grpc-go's own rules, so that metadata, timeouts and status
+// messages arrive as grpc-go delivers them.
+
+import (
+	"encoding/base64"
+	"fmt"
+	"math"
+	"strconv"
+	"strings"
+	"time"
+	"unicode/utf8"
+
+	"google.golang.org/grpc/metadata"
+)
+
+var grpcStatusDetailsBinHeader = "grpc-status-details-bin"
+
+// isReservedHeader checks whether hdr belongs to HTTP2 headers
+// reserved by gRPC protocol. Any other headers are classified as the
+// user-specified metadata.
+func isReservedHeader(hdr string) bool {
+	if hdr != "" && hdr[0] == ':' {
+		return true
+	}
+	switch hdr {
+	case "content-type",
+		"user-agent",
+		"grpc-message-type",
+		"grpc-encoding",
+		"grpc-message",
+		"grpc-status",
+		"grpc-timeout",
+		// Intentionally exclude grpc-previous-rpc-attempts and
+		// grpc-retry-pushback-ms, which are "reserved", but their API
+		// intentionally works via metadata.
+		"te":
+		return true
+	default:
+		return false
+	}
+}
+
+// isWhitelistedHeader checks whether hdr should be propagated into metadata
+// visible to users, even though it is classified as "reserved", above.
+func isWhitelistedHeader(hdr string) bool {
+	switch hdr {
+	case ":authority", "user-agent":
+		return true
+	default:
+		return false
+	}
+}
+
+const binHdrSuffix = "-bin"
+
+func encodeBinHeader(v []byte) string {
+	return base64.RawStdEncoding.EncodeToString(v)
+}
+
+func decodeBinHeader(v string) ([]byte, error) {
+	if len(v)%4 == 0 {
+		// Input was padded, or padding was not necessary.
+		return base64.StdEncoding.DecodeString(v)
+	}
+	return base64.RawStdEncoding.DecodeString(v)
+}
+
+func encodeMetadataHeader(k, v string) string {
+	if strings.HasSuffix(k, binHdrSuffix) {
+		return encodeBinHeader(([]byte)(v))
+	}
+	return v
+}
+
+func decodeMetadataHeader(k, v string) (string, error) {
+	if strings.HasSuffix(k, binHdrSuffix) {
+		b, err := decodeBinHeader(v)
+		return string(b), err
+	}
+	return v, nil
+}
+
+type timeoutUnit uint8
+
+const (
+	hour        timeoutUnit = 'H'
+	minute      timeoutUnit = 'M'
+	second      timeoutUnit = 'S'
+	millisecond timeoutUnit = 'm'
+	microsecond timeoutUnit = 'u'
+	nanosecond  timeoutUnit = 'n'
+)
+
+func timeoutUnitToDuration(u timeoutUnit) (d time.Duration, ok bool) {
+	switch u {
+	case hour:
+		return time.Hour, true
+	case minute:
+		return time.Minute, true
+	case second:
+		return time.Second, true
+	case millisecond:
+		return time.Millisecond, true
+	case microsecond:
+		return time.Microsecond, true
+	case nanosecond:
+		return time.Nanosecond, true
+	default:
+	}
+	return
+}
+
+func decodeTimeout(s string) (time.Duration, error) {
+	size := len(s)
+	if size < 2 {
+		return 0, fmt.Errorf("transport: timeout string is too short: %q", s)
+	}
+	if size > 9 {
+		// Spec allows for 8 digits plus the unit.
+		return 0, fmt.Errorf("transport: timeout string is too long: %q", s)
+	}
+	unit := timeoutUnit(s[size-1])
+	d, ok := timeoutUnitToDuration(unit)
+	if !ok {
+		return 0, fmt.Errorf("transport: timeout unit is not recognized: %q", s)
+	}
+	t, err := strconv.ParseUint(s[:size-1], 10, 64)
+	if err != nil {
+		return 0, err
+	}
+	const maxHours = math.MaxInt64 / uint64(time.Hour)
+	if d == time.Hour && t > maxHours {
+		// This timeout would overflow math.MaxInt64; clamp it.
+		return time.Duration(math.MaxInt64), nil
+	}
+	return d * time.Duration(t), nil
+}
+
+const (
+	spaceByte   = ' '
+	tildeByte   = '~'
+	percentByte = '%'
+)
+
+// encodeGrpcMessage is used to encode status code in header field
+// "grpc-message". It does percent encoding and also replaces invalid utf-8
+// characters with Unicode replacement character.
+//
+// It checks to see if each individual byte in msg is an allowable byte, and
+// then either percent encoding or passing it through. When percent encoding,
+// the byte is converted into hexadecimal notation with a '%' prepended.
+func encodeGrpcMessage(msg string) string {
+	if msg == "" {
+		return ""
+	}
+	lenMsg := len(msg)
+	for i := 0; i < lenMsg; i++ {
+		c := msg[i]
+		if !(c >= spaceByte && c <= tildeByte && c != percentByte) {
+			return encodeGrpcMessageUnchecked(msg)
+		}
+	}
+	return msg
+}
+
+func encodeGrpcMessageUnchecked(msg string) string {
+	var sb strings.Builder
+	for len(msg) > 0 {
+		r, size := utf8.DecodeRuneInString(msg)
+		for _, b := range []byte(string(r)) {
+			if size > 1 {
+				// If size > 1, r is not ascii. Always do percent encoding.
+				fmt.Fprintf(&sb, "%%%02X", b)
+				continue
+			}
+
+			// The for loop is necessary even if size == 1. r could be
+			// utf8.RuneError.
+			//
+			// fmt.Sprintf("%%%02X", utf8.RuneError) gives "%FFFD".
+			if b >= spaceByte && b <= tildeByte && b != percentByte {
+				sb.WriteByte(b)
+			} else {
+				fmt.Fprintf(&sb, "%%%02X", b)
+			}
+		}
+		msg = msg[size:]
+	}
+	return sb.String()
+}
+
+// decodeGrpcMessage decodes the msg encoded by encodeGrpcMessage.
+func decodeGrpcMessage(msg string) string {
+	if msg == "" {
+		return ""
+	}
+	lenMsg := len(msg)
+	for i := 0; i < lenMsg; i++ {
+		if msg[i] == percentByte && i+2 < lenMsg {
+			return decodeGrpcMessageUnchecked(msg)
+		}
+	}
+	return msg
+}
+
+func decodeGrpcMessageUnchecked(msg string) string {
+	var sb strings.Builder
+	lenMsg := len(msg)
+	for i := 0; i < lenMsg; i++ {
+		c := msg[i]
+		if c == percentByte && i+2 < lenMsg {
+			parsed, err := strconv.ParseUint(msg[i+1:i+3], 16, 8)
+			if err != nil {
+				sb.WriteByte(c)
+			} else {
+				sb.WriteByte(byte(parsed))
+				i += 2
+			}
+		} else {
+			sb.WriteByte(c)
+		}
+	}
+	return sb.String()
+}
+
+func appendHeaderFieldsFromMD(headerFields []headerField, md metadata.MD) []headerField {
+	for k, vv := range md {
+		if isReservedHeader(k) {
+			// Clients don't tolerate reading restricted headers after some non restricted ones were sent.
+			continue
+		}
+		for _, v := range vv {
+			headerFields = append(headerFields, headerField{Name: k, Value: encodeMetadataHeader(k, v)})
+		}
+	}
+	return headerFields
+}

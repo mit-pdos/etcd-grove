@@ -1,0 +1,6 @@
+# Project models-net (etc/goose.py): `net/textproto`, names and types only (the net/http model's
+# server and `ReadResponse` call `CanonicalMIMEHeaderKey` and name `MIMEHeader`, `ProtocolError`;
+# the model's head parser, `models/net/http/textproto_model.go`, replaces what they would read).
+translate = ["!*"]
+imports = ["!*"]
+translate_types = true
