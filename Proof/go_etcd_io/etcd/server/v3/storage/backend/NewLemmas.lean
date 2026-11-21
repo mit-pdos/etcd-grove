@@ -6,8 +6,8 @@ before their invariants exist. Lean-first (no Rocq counterpart); 2026-10-17, bra
 `newBatchTxBuffered`'s first `Commit` locks and unlocks the batch transaction's `Mutex` and
 `readTx.mu` before the backend's invariants exist (the batch lock's resource `batchFree` and
 `readTx.mu`'s `rtRes` are about the transactions that commit begins). So:
-- the `Mutex` (Perennial's spin lock on a boolean) is locked and unlocked while owned
-  (`wp_Mutex_Lock_own`, `wp_Mutex_Unlock_own`), and its invariant allocated afterwards
+- the `Mutex` is locked and unlocked while owned
+  (`wp_Mutex_Lock_own`, `wp_Mutex_Unlock_own`, from `Proof/sync/MutexOwned`), and its invariant allocated afterwards
   (`sync.init_Mutex`);
 - `readTx.mu` is initialized at the protocol level (`rwmutex.init_RWMutex`), locked and unlocked
   through the protocol's own specs, and its guard (`isRWMutexGuard`, with `rtRes`) built
@@ -21,6 +21,7 @@ public import Perennial.Golang.Theory.Map
 public import Perennial.Ghost.GhostVar
 public import Perennial.Ghost.GhostMap
 public import Perennial.IrisLib.BI
+public import Proof.sync.MutexOwned
 
 @[expose] public section
 
@@ -43,33 +44,17 @@ variable [sync_sem : sync.Assumptions]
 
 /-- `m.Lock()` on a `Mutex` owned whole and free (no invariant yet): it is locked. -/
 theorem wp_Mutex_Lock_own (m : Loc) :
-    {{ (m ↦ (false : Bool) : IProp GF) }}
+    {{ (m ↦ (zero_val sync.Mutex) : IProp GF) }}
       (App (Val (m @!! go.GoType.PointerType sync.Mutex.ty @!! go!"Lock")) (Val #()))
-    {{ RET #(); m ↦ (true : Bool) }} := by
-  wp_start as Hm
-  unfold lock.lock
-  wp_call
-  wp_bind (CmpXchg _ _ _)
-  wp_apply_core wp_cmpxchg_suc m false false true _ _ rfl $$ Hm
-  iintro Hm
-  wp_pures
-  iapply HΦ
-  iexact Hm
+    {{ RET #(); m ↦ mutexLocked }} :=
+  wp_Mutex_Lock_owned m
 
 /-- `m.Unlock()` on a `Mutex` owned whole and locked: it is free. -/
 theorem wp_Mutex_Unlock_own (m : Loc) :
-    {{ (m ↦ (true : Bool) : IProp GF) }}
+    {{ (m ↦ mutexLocked : IProp GF) }}
       (App (Val (m @!! go.GoType.PointerType sync.Mutex.ty @!! go!"Unlock")) (Val #()))
-    {{ RET #(); m ↦ (false : Bool) }} := by
-  wp_start as Hm
-  unfold lock.unlock
-  wp_call
-  wp_bind (CmpXchg _ _ _)
-  wp_apply_core wp_cmpxchg_suc m true true false _ _ rfl $$ Hm
-  iintro Hm
-  wp_auto
-  iapply HΦ
-  iexact Hm
+    {{ RET #(); m ↦ (zero_val sync.Mutex) }} :=
+  wp_Mutex_Unlock_owned m
 
 /-- A `RWMutex` initialized at the protocol level (`rwmutex.init_RWMutex`, its state back at
 unlocked) made a guard over `P` (fractional), its reader slots handed out: the second half of
