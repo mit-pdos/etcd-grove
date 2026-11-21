@@ -406,6 +406,13 @@ instance k8s_io_apiserver_pkg_storage_etcd3_metrics_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3.metrics :=
   build_get_is_pkg_init_wf
 
+instance google_golang_org_grpc_grpclog_internal_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.grpclog.internal :=
+  define_is_pkg_init iprop(True)
+instance google_golang_org_grpc_grpclog_internal_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.grpclog.internal :=
+  build_get_is_pkg_init_wf
+
 instance google_golang_org_grpc_grpclog_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.grpclog :=
   define_is_pkg_init iprop(True)
