@@ -147,7 +147,6 @@ axiom errors.AsNoMatch.wp_proof
 axiom errors.IsCtxErr.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof
 axiom errors.IsStatusErr.wp_proof
-axiom etcdResolverOwn
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
 axiom etcd_noRefusal
@@ -216,7 +215,6 @@ axiom http.ReadAll_any_ok
 axiom http.ReadAll_ok
 axiom http.ReadAll_resp_ok
 axiom http.ReadFull_resp_ok
-axiom http.ReadFull_stream_ok
 axiom http.RespCloseAny_ok
 axiom http.RespClose_ok
 axiom http.RespHeader_ok
@@ -359,9 +357,6 @@ axiom reflect.Zero.wp_proof
 axiom reflectM.reflNew_pointsto
 axiom reflectM.value_intoVal_inj
 axiom reflectM.value_into_val_typed
-axiom resolver.EtcdManualResolver.Close.wp_proof
-axiom resolver.EtcdManualResolver.SetEndpoints.wp_proof
-axiom resolver.New.wp_proof
 axiom schema.MustUnsafeGetAllLeases.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
 axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof

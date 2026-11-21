@@ -1,0 +1,4 @@
+# With bodies (prove-grpc3, 2026-11-21): grpc's manual resolver, which etcd's
+# `internal/resolver.EtcdManualResolver` embeds (`NewBuilderWithScheme`, `CC`, `Close`).
+translate = ["*"]
+imports = ["*"]

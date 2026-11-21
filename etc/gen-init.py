@@ -1144,6 +1144,21 @@ generated protobuf descriptors), which the trust-boundary axiom `opaqueInitsOk` 
         'iexists _, _', 'iframe #', 'ipureintro', 'simp (config := {decide := true})'],
 )
 
+# (prove-grpc3, 2026-11-21) grpc's `resolver`, in the closure since `internal/resolver`'s `New` is
+# translated (it imports `resolver/manual`): its two package variables, translated.
+SPECIAL['google_golang_org.grpc.resolver'] = dict(
+    doc='''Its fact is `True`. Its initializer allocates its two variables and runs their translated
+initializers (`m = make(map[string]Builder)`, `defaultScheme = "passthrough"`, `resolver.go:38-43`),
+after initializing its imports (`serviceconfig`, `attributes`: types only).''',
+    alloc_types={'m': 'Loc', 'defaultScheme': 'GoString'},
+    before={
+        'm': ['try wp_auto',
+              'wp_apply (wp_map_make1 (K := GoString) (V := GoInterface) go.string '
+              'google_golang_org.grpc.resolver.Builder.ty) as %mb Hmb',
+              'try wp_auto'],
+        'defaultScheme': ['try wp_auto']},
+)
+
 _VERS = ['V3_0', 'V3_1', 'V3_2', 'V3_3', 'V3_4', 'V3_5', 'V3_6', 'V3_7', 'V3_8', 'V3_9', 'V4_0']
 _SEMVER_NEW = 'EtcdGrove.semver.New.wp_proof EtcdGrove.semver.Version.String.wp_proof'
 def semver_new_steps(x):

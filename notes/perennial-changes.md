@@ -3592,3 +3592,12 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
   `type Delim int32`: the same type in Go (an alias), so no program observes a difference.
 - **Proposed (general).** Map the predeclared alias `rune` to `int32` (and `byte` to `uint8`, if not already)
   in `basicLeanType`. **Status.** Recorded only.
+
+## 2026-11-21: no `Timeless` instance of `ownSliceCap` (the lessor's expiry notifier cell)
+
+- **The gap.** `Perennial/Golang/Theory/Slice.lean` has `ownSlice_timeless` but no instance for
+  `ownSliceCap`, so a queue (`queueAt`: a slice, its capacity, its items) in an invariant cannot be
+  taken out from under `▷` by timelessness.
+- **Worked around locally.** `lease.ownSliceCap_timeless'` (`Proof/go_etcd_io/etcd/server/v3/lease/NotifCell.lean`),
+  by unsealing (`ownSliceCap_unseal`).
+- **Proposed (general).** `instance ownSliceCap_timeless` beside `ownSlice_timeless`. **Status.** Recorded only.
