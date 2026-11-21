@@ -137,16 +137,15 @@ theorem Client.dial.wp_proof
   (try wp_auto)
   wp_apply wp_Sprintf _ _ _ (DFrac.own 1) $$ [$Hal] as %tgt ⟨-, %Hout⟩
   · ipureintro
-    intro x hx
-    simp only [List.mem_cons, List.mem_nil_iff, _root_.or_false] at hx
-    rcases hx with rfl | rfl | rfl
-    · left
-      exact _root_.Perennial.fmt.ArgsWf.cons_string go!"etcd-endpoints" []
-        _root_.Perennial.fmt.ArgsWf.nil _ (List.mem_singleton_self _)
-    · right; rfl
-    · left
-      exact _root_.Perennial.fmt.ArgsWf.cons_string a [] _root_.Perennial.fmt.ArgsWf.nil _
-        (List.mem_singleton_self _)
+    -- the client is formatted by `%p` (its address), the strings by `%s`
+    refine ⟨[⟨W8 115, false⟩, ⟨W8 112, false⟩, ⟨W8 115, false⟩], by rfl, ?_⟩
+    simp only [fmt.SprintfClientArgsAt]
+    refine ⟨?_, ?_, ?_, trivial⟩
+    · exact Or.inl (_root_.Perennial.fmt.ArgsWf.cons_string go!"etcd-endpoints" []
+        _root_.Perennial.fmt.ArgsWf.nil _ (List.mem_singleton_self _))
+    · exact Or.inr (And.intro rfl rfl)
+    · exact Or.inl (_root_.Perennial.fmt.ArgsWf.cons_string a [] _root_.Perennial.fmt.ArgsWf.nil _
+        (List.mem_singleton_self _))
   have Hpre := sprintf_scheme_prefix go!"etcd-endpoints" _ tgt Hout
   have Hdok0 : dialOk ([GrpcDialOpt.resolvers [rb]] ++
       [.transportCreds, .streamInterceptor si, .unaryInterceptor ic]) rb := by

@@ -849,7 +849,7 @@ def readySnapData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
     ownSnapS l.ptr (DFrac.own (1 : Qp).half) l.snap ∗ isCommitted γ.raft l.dlv ∗
     -- (2026-10-26, D22 J2, R-loc) the snapshot local to the node (`snapLocal`: for a server, its
     -- index saved in the member's snapshot directory, which `snapDirInv` turns into its file)
-    snapLocal γ.raft γ.id l.snap.Metadata'.Index' ∗
+    (snapLocal γ.raft γ.id l.snap.Metadata'.Index' ∗ restoredSnapSource γ.raft γ.id (snapId l.snap)) ∗
     -- (2026-11-01, J8b) past the bootstrap log (`snapLocOk`: `restore` is above the commit index)
     ⌜(γ.raft.reBoot.length : Int) < uint.Z l.snap.Metadata'.Index'⌝ ∗
     -- (auth-lease S4, 2026-11-16; U9 had dropped the guard) outside the no-snapshot mode
