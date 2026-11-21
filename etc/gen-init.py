@@ -1365,7 +1365,7 @@ of each (`Encoding.WithPadding.wp_proof`); the fact's parts from `EncodeToString
         'wp_apply (EtcdGrove.base64.Encoding.WithPadding.wp_proof eU encU _) $$ HeU as %eRU ⟨HeU, HeRU⟩',
         'try wp_auto']},
     finish=['ipersist HStdEncoding', 'ipersist HRawURLEncoding', 'ipersist HeS', 'ipersist HeRU'] +
-           FIN_PRE[:6] + ['isplitl []', '· imodintro; itrivial', 'imodintro',
+           FIN_PRE[:6] + ['try (isplitl []; · (imodintro; itrivial))', 'imodintro',
             'unfold _root_.Perennial.encoding.base64.base64Init', 'isplitl',
             '· iapply (EtcdGrove.base64.stdEncInit_intro (EtcdGrove.base64.Encoding.EncodeToString.wp_proof',
             '      EtcdGrove.base64.Encoding.EncodedLen.wp_proof EtcdGrove.base64.Encoding.Encode.wp_proof)',
@@ -1374,6 +1374,28 @@ of each (`Encoding.WithPadding.wp_proof`); the fact's parts from `EncodeToString
             '    EtcdGrove.base64.Encoding.EncodedLen.wp_proof EtcdGrove.base64.Encoding.Encode.wp_proof)',
             '  eRU { encU with padChar\' := W32 (-1) } hU.1 rfl) $$ HRawURLEncoding HeRU'],
 )
+
+# (prove-authcrypto, 2026-11-21) bcrypt's variables translated (until then `opaqueInitsOk`):
+# `bcEncoding = base64.NewEncoding(alphabet)` over `NewEncoding`'s spec (the alphabet's validity by
+# `decide`), the three `errors.New` errors and the byte-slice literal `magicCipherData`
+SPECIAL['golang_org.x.crypto.bcrypt'] = newvars_cfg(dict(
+    doc='''Its fact is `True`. Its initializer allocates its variables, initializes its imports and runs
+their translated initializers (`bcrypt.go`, `base64.go`; prove-authcrypto, 2026-11-21: until then the
+trust-boundary axiom `opaqueInitsOk`): `bcEncoding = base64.NewEncoding(alphabet)`
+(`NewEncoding.wp_proof`: the alphabet is 64 distinct symbols, neither `\\n` nor `\\r`), three
+`errors.New` errors (Perennial's `errors.wp_New_errorString`) and the byte-slice literal
+`magicCipherData`.''',
+    imports=['Proof.encoding.base64.NewEncoding'],
+    alloc_types={'bcEncoding': 'Loc', 'magicCipherData': 'GoSlice'},
+    before={'bcEncoding': ['try wp_auto',
+                           'wp_apply (EtcdGrove.base64.NewEncoding.wp_proof _ (by decide) (by decide) (by decide)',
+                           '    (by decide)) as %eB -',
+                           'try wp_auto'],
+            'magicCipherData': ['try wp_auto',
+                'wp_apply (wp_slice_literal (V := w8) (l := _)); isplitr; (· ipureintro; rfl); iintro %sMC ⟨SMC, -⟩',
+                'try wp_auto'],
+            '$end': ['try wp_auto']},
+    finish=FIN_PRE[:6]), ['ErrMismatchedHashAndPassword', 'ErrHashTooShort', 'ErrPasswordTooLong'])
 
 SPECIAL['k8s_io.apiserver.pkg.storage'] = dict(
     doc='''Its fact (`storageInit`, `storage/etcd3/Base.lean`): `RequestWatchProgress` and

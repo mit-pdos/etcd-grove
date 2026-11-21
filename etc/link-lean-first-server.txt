@@ -663,9 +663,10 @@ auth_authStore__AuthInfoFromCtx: metadata_FromIncomingContext auth_authStore__au
 zap_Logger__Check: zap_Logger__check
 auth_authStore__Authenticate: auth_authStore__IsAuthEnabled auth_authStore__Revision auth_redactToken zap_String zap_Logger__Check zapcore_CheckedEntry__Write
 # The token prefix (C1's A4, 2026-10-29): the store's, over the provider's contract
-# (`tokenProviderOk`'s `genTokenPrefix` clause); the trust boundary: the simple provider's
-# (`crypto/rand`, `math/big`: names only).
-auth_tokenSimple__genTokenPrefix:
+# (`tokenProviderOk`'s `genTokenPrefix` clause); the simple provider's with its body since
+# prove-authcrypto (2026-11-21), over Perennial's `crypto/rand.Int` (its trusted model) and
+# `math/big` (`=` terms); until then the trust boundary (names only).
+auth_tokenSimple__genTokenPrefix: =_root_.Perennial.math.big.wp_NewInt =_root_.Perennial.crypto.rand.wp_Int =_root_.Perennial.math.big.Int.wp_Int64
 auth_authStore__GenTokenPrefix:
 # The raft wrapper's construction (raft.go, bootstrap.go; stage R8b-C of the raft v3.7 retarget,
 # 2026-10-16): `newRaftNode` (its callees are contracts in its spec, Perennial's `time.Now`, and since
