@@ -191,6 +191,15 @@ reads them (`clearProxyEnv`), which puts the fact in the program, where it is ve
 
 ## 8. Open questions
 
+**Decided (the user, 2026-11-21: "go with your recommendations"):** Q1 a key prefix per workload, at most one
+of each kind, the auth workloads alone, a revision-reading check only beside the lease workloads; Q2 fold
+leaseexpiryN in, `noExpiry` conditional; Q3 the `durable` workload under real crashes; Q4 the coverage given
+up accepted; Q5 a trusted Lean SHA-1 tested against Go first, Perennial's `crypto/sha1` proof later; Q6 the
+carried premises accepted for the first version; Q7 the interim theorem without crashes is the first
+milestone; Q8 etcd's full peer handler; Q9 no further `ServerConfig` fields in the first version; Q10 the
+server clears the proxy variables itself. Open: the name (`etcd_dist_safe` vs. the files' `_robust`
+convention) and U1-U5 (upamanyus, etcd-grove#24).
+
 For the user:
 
 - **Q1 Composition of workloads.** Recommended (after review F1): a key prefix per workload; at most
