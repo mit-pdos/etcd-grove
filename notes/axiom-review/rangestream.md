@@ -86,3 +86,7 @@ F1 applied as proposed: the post gives the request back as `rangeRequestBack r` 
 key contents); the race recorded in `nonissues/etcd-rangestream-keysonly-index-key-race.md` (fixed upstream by
 etcd-io/etcd@9acc0ebe37); the remaining concern (the triple is not provable of the fork's body for two concurrent
 keys-only calls) reported to etcd-grove-03 with the option of carrying upstream's fix on the fork.
+
+Then (the user's Q4 option (i), 2026-11-21, via etcd-grove-03): the fork carries upstream's fix (`4416a5786`, branch
+`goose-lean-rangestream-clone`, the cherry-pick of 9acc0ebe37 on `34f5142d0`), the etcd pin moved to it, and
+`TestConcurrentKeysOnly` passes with `-race`; the spec's docstring drops the race margin (its statement unchanged).

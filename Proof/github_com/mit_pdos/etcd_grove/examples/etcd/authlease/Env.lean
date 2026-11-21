@@ -25,8 +25,9 @@ namespace etcd_authlease
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver client etcd_auth
 
-/-- **`grantPut`'s and the checks' lease TTL** (`grantTTL`). -/
-abbrev grantTTLv : w64 := W64 600
+/-- **`grantPut`'s and the checks' lease TTL** (`grantTTL`: etcd's `MaxLeaseTTL`, so that no lease of
+the run expires however long the process runs, `lease.leasesNoExpiry`). -/
+abbrev grantTTLv : w64 := W64 9000000000
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]

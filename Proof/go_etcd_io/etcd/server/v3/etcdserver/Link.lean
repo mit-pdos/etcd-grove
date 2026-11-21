@@ -62,6 +62,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__PromoteMemb
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Put
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RaftHandler
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Range
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RangeStream
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RemoveMember
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ReportSnapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ReportUnreachable
@@ -121,6 +122,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__publishV3
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__purgeFile
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__raftRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__raftStatus
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__rangeStream
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__requireAuthInfo
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__restoreAlarms
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__revokeExpiredLeases
@@ -2267,6 +2269,14 @@ theorem EtcdServer.wp_doSerialize :
 theorem EtcdServer.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.Range.spec (GF := GF) (hG := hG) :=
   EtcdServer.Range.wp_proof traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_String «attribute».wp_Int64 «attribute».wp_Bool RangeRequest.wp_GetKey RangeRequest.wp_GetRangeEnd RangeRequest.wp_GetRevision RangeRequest.wp_GetLimit RangeRequest.wp_GetCountOnly RangeRequest.wp_GetKeysOnly EtcdServer.wp_Logger traceutil.wp_EnsureTrace txn.wp_WarnOfExpensiveReadOnlyRangeRequest traceutil.Trace.wp_AddField traceutil.Trace.wp_LogIfLong strconv.wp_FormatBool time.Duration.wp_Seconds prometheus.HistogramVec.wp_WithLabelValues traceutil.Trace.wp_Step EtcdServer.wp_KV txn.wp_Range mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds EtcdServer.wp_doSerialize RangeRequest.wp_String proto.wp_Size
+
+theorem EtcdServer.wp_rangeStream :
+    EtcdServer.rangeStream.spec (GF := GF) (hG := hG) :=
+  EtcdServer.rangeStream.wp_proof
+
+theorem EtcdServer.wp_RangeStream :
+    EtcdServer.RangeStream.spec (GF := GF) (hG := hG) :=
+  EtcdServer.RangeStream.wp_proof traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_String «attribute».wp_Int64 «attribute».wp_Bool RangeRequest.wp_GetKey RangeRequest.wp_GetRangeEnd RangeRequest.wp_GetRevision RangeRequest.wp_GetLimit RangeRequest.wp_GetCountOnly EtcdServer.wp_Logger traceutil.wp_EnsureTrace traceutil.Trace.wp_Step EtcdServer.wp_doSerialize EtcdServer.wp_rangeStream
 
 theorem EtcdServer.wp_RemoveMember :
     EtcdServer.RemoveMember.spec (GF := GF) (hG := hG) :=

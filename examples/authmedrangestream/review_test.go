@@ -105,9 +105,10 @@ func TestCancelMidStream(t *testing.T) {
 	}
 }
 
-// A3: keys-only (FastKeysOnly): the chunk's keys alias the index; the request's last Key aliases
-// the index key's array (append(lastKey, 0) into its capacity). Check nothing visible changes,
-// including after later puts and later streams.
+// A3: keys-only (FastKeysOnly): the chunk's keys alias the index; the request's last Key aliased
+// the index key's array (append(lastKey, 0) into its capacity) until the fork took upstream's
+// bytes.Clone (4416a5786), and is now a fresh slice. Check nothing visible changes, including after
+// later puts and later streams.
 func TestKeysOnlyAliasing(t *testing.T) {
 	srv := startServer(t, 128)
 	defer srv.Stop()
@@ -153,9 +154,10 @@ func TestKeysOnlyAliasing(t *testing.T) {
 
 // A4: concurrent keys-only streams over the same range (run with -race): both append into the
 // capacity of the same index key slices, and each reads its nextKey while the other writes.
-// TestConcurrentKeysOnly: four concurrent keys-only streams. It passes without -race; with -race it
-// reports the data race at v3_server.go:246 (the append into mvcc's index key), fixed upstream by
-// etcd-io/etcd@9acc0ebe37 (nonissues/etcd-rangestream-keysonly-index-key-race.md).
+// TestConcurrentKeysOnly: four concurrent keys-only streams. At the fork's 34f5142d0, with -race it
+// reported the data race at v3_server.go:246 (the append into mvcc's index key); the fork carries
+// upstream's fix etcd-io/etcd@9acc0ebe37 since 4416a5786, and it passes with -race
+// (nonissues/etcd-rangestream-keysonly-index-key-race.md).
 func TestConcurrentKeysOnly(t *testing.T) {
 	srv := startServer(t, 128)
 	defer srv.Stop()

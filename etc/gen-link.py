@@ -684,7 +684,7 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                               # (`=raftNode_of_StartNode_law_holds`)
                               "Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeStartLinked",
                               # (wal-item3, 2026-11-21) `NewStorage`'s contract proved over the WAL
-                              # (`rnNewStorageOk_law_holds`, under `[UntypedRuneSemantics]`; not yet
+                              # (`rnNewStorageOk_law_holds`, under `os`'s field assumptions; not yet
                               # passed to `newRaftNode`: imported so the trust-base report sees it)
                               "Proof.go_etcd_io.etcd.server.v3.etcdserver.RnNewStorageLinked"]}
 # (R9, the `lean` merge, 2026-11-07) the examples' allocations take mvcc's `names_nonempty.law`
