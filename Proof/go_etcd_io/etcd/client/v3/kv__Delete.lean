@@ -60,7 +60,7 @@ theorem kv.Delete.wp_generic
   icases Hout' with (⟨%Herr, Hm⟩ | ⟨%Herr, #Hse, #Hcl⟩)
   · subst Herr
     ihave #Hse0 := go_etcd_io.etcd.cache.v3.statusErrOk_nil (GF := GF)
-    ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse0
+    ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_descIs _ $$ Hse0
     wp_apply wp_ContextError ci cd GoInterface.nil mC $$ [$Hse0 $HmC] as %err' ⟨%Herr', -, -⟩
     · iframe #; ipureintro; exact fun h => (h rfl).elim
     obtain ⟨H1, -⟩ := Herr'
@@ -71,7 +71,7 @@ theorem kv.Delete.wp_generic
     iframe Hm
     ipureintro; rfl
   · obtain ⟨Hne, Hce', Hnull⟩ := Herr
-    ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
+    ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_descIs _ $$ Hse
     wp_apply wp_ContextError ci cd err mC $$ [$Hse $HmC] as %err' ⟨%Herr', #Hse', #Hclw, -⟩
     · iframe #; ipureintro; exact fun _ => Hce'
     ihave #Hcl' := Hclw $$ Hcl
@@ -146,7 +146,7 @@ theorem kv.Delete.wp_proof
   icases Hout' with (⟨%Herr, Hm⟩ | ⟨%Herr, #Hse, #Hcl⟩)
   · subst Herr
     ihave #Hse0 := go_etcd_io.etcd.cache.v3.statusErrOk_nil (GF := GF)
-    ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse0
+    ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_descIs _ $$ Hse0
     wp_apply wp_ContextError ci cd GoInterface.nil mC $$ [$Hse0 $HmC] as %err' ⟨%Herr', -, -⟩
     · iframe #; ipureintro; exact fun h => (h rfl).elim
     obtain ⟨H1, -⟩ := Herr'
@@ -158,7 +158,7 @@ theorem kv.Delete.wp_proof
     iframe Hm
     ipureintro; rfl
   · obtain ⟨Hne, Hce', Hnull⟩ := Herr
-    ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
+    ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_descIs _ $$ Hse
     wp_apply wp_ContextError ci cd err mC $$ [$Hse $HmC] as %err' ⟨%Herr', #Hse', #Hclw, -⟩
     · iframe #; ipureintro; exact fun _ => Hce'
     ihave #Hcl' := Hclw $$ Hcl

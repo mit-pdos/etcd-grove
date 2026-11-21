@@ -3,9 +3,10 @@
 # `etcd/putget`: the top-level robustness result, stated
 
 `etcd_putget_robust`: the example's closed theorem as an instance of the generic robustness statement
-(`Robustness/Statement.lean`, `Robust crashing stable g bound`: in every execution of the
+(`Robustness/Statement.lean`, `Robust crashing stable g threads bound`: in every execution of the
 machines that may crash and restart and of those that never crash, each a fresh Go process, of
-fewer than `bound` steps, no thread is stuck and none has an unrecovered panic). This file only
+fewer than `bound` steps along which every machine keeps fewer than `threads` threads,
+no thread is stuck and none has an unrecovered panic). This file only
 states it (to audit); the proof is in
 `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putget/TopLevelRobustness.lean`.
 -/
@@ -46,7 +47,8 @@ variable [go_gctx : GoGlobalContext]
 /-- **`etcd_putget_safe` as a robustness statement** (`Robustness.Robust`,
 `Robustness/Statement.lean`): the program alone on one machine that never crashes,
 a fresh Go process (`Robust`'s premise), under `etcd_putget_safe`'s other hypotheses: in every
-execution of fewer than `2 ^ 28 - 1` steps no thread is stuck and none has an unrecovered panic. -/
+execution of fewer than `2 ^ 40 - 11` steps along which fewer than `2 ^ 28` threads are
+live, no thread is stuck and none has an unrecovered panic. -/
 def etcd_putget_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.putget.Assumptions]
@@ -60,12 +62,13 @@ def etcd_putget_robust.spec : Prop :=
     (HNs : prometheus.namesUnclaimed putgetProgram putgetNames)
     (HAs : addrsUnclaimed putgetProgram [go!"127.0.0.1:23790"])
     (HDs : dataDirsAbsent putgetProgram [go!"/tmp/etcd-grove-data/putget.etcd"]) (HEnv : verifyEnvOff putgetProgram)
-    (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC putgetGF,
+    (Hprem : ∀ n : Nat, ∀ hG : HeapGS .hasLC putgetGF,
       ⊢ etcd_putget.premises (GF := putgetGF) (hG := heapAt hG lctx) n id ctxs boot)
     (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
     (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"/tmp/etcd-grove-data/putget.etcd"]),
-    Robustness.Robust [] [(putgetProgram, σ)] g (2 ^ 28 - 1)
+    Robustness.Robust [] [(putgetProgram, σ)] g (threads := 2 ^ 28)
+      (bound := 2 ^ 40 - 11)
 
 end adequacy
 end EtcdGrove

@@ -387,12 +387,12 @@ theorem listErrF_listErr (c : StoreCfg GF Obj) (err : GoInterface) :
     ipureintro; exact ⟨h.1, h.2.1⟩
 
 /-- **A failed read's error** (Draft §3.5): the client's error (`kClientErr`, so `unkErr`; D1), and,
-by its description (`errDesc`, D29), a future revision only if the state `Q` fired at (for some
+by its description (`descIs`, D29; the pure `errDesc` until errdesc stage 2b), a future revision only if the state `Q` fired at (for some
 revision argument `R`, R1) is below `rev` (`rangeErrSound`'s future half). -/
 def readErrIs (c : StoreCfg GF Obj) (rev : w64) (Q : w64 → KVState → IProp GF)
     (err : GoInterface) : IProp GF :=
-  iprop(kClientErr err ∗
-    □ (⌜go_etcd_io.etcd.cache.v3.errDesc err = go_etcd_io.etcd.cache.v3.futureRevDesc⌝ -∗
+  iprop(kClientErr err ∗ ∃ d : GoString, go_etcd_io.etcd.cache.v3.descIs err d ∗
+    □ (⌜d = go_etcd_io.etcd.cache.v3.futureRevDesc⌝ -∗
       ⌜∀ e : GoInterfaceOk, err = GoInterface.ok e →
         methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]) →
         e.ty = go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty⌝ -∗

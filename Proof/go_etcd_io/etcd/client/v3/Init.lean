@@ -7,7 +7,8 @@ functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
 Its fact (`clientv3Init`, `cache/v3/Base.lean`): `noPrefixEnd` (`op.go`, translated:
 `[]byte{0}`) and `defaultOptions` (`retry_interceptor.go`, untranslated: `&options{...}` whose
 backoff function returns; the trust-boundary axiom `defaultOptions_init`), and its translated
-`valCtxCh`, `zeroTime` (`time.Unix(0, 0)`, the trust-boundary axiom `time.Unix.wp_proof`) and
+`valCtxCh`, `zeroTime` (`time.Unix(0, 0)`, `time.Unix.wp_proof`: proved over Perennial's translation since
+2026-11-20, until then a trust-boundary axiom) and
 `maxBackoff`, and `LeaseResponseChSize` (`lease.go`, translated: `16`; until 2026-11-19 the
 trust-boundary axiom `LeaseResponseChSize_init`), and the translated constants
 `defaultUnaryMaxRetries`, `defaultStreamMaxRetries` and `defaultBackoffWaitBetween`

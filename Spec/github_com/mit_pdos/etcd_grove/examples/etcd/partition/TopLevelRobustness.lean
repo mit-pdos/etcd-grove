@@ -3,9 +3,10 @@
 # `etcd/partition`: the top-level robustness results, stated
 
 `etcd_partition_robust`, `etcd_partition_watch_robust`: the example's closed theorems as instances of the generic robustness statement
-(`Robustness/Statement.lean`, `Robust crashing stable g bound`: in every execution of the
+(`Robustness/Statement.lean`, `Robust crashing stable g threads bound`: in every execution of the
 machines that may crash and restart and of those that never crash, each a fresh Go process, of
-fewer than `bound` steps, no thread is stuck and none has an unrecovered panic). This file only
+fewer than `bound` steps along which every machine keeps fewer than `threads` threads,
+no thread is stuck and none has an unrecovered panic). This file only
 states them (to audit); the proofs are in
 `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/partition/TopLevelRobustness.lean`.
 -/
@@ -44,7 +45,8 @@ variable [go_gctx : GoGlobalContext]
 /-- **`etcd_partition_safe` as a robustness statement** (`Robustness.Robust`,
 `Robustness/Statement.lean`): the program alone on one machine that never crashes,
 a fresh Go process (`Robust`'s premise), under `etcd_partition_safe`'s other hypotheses: in every
-execution of fewer than `2 ^ 28 - 1` steps no thread is stuck and none has an unrecovered panic. -/
+execution of fewer than `2 ^ 40 - 11` steps along which fewer than `2 ^ 28` threads are
+live, no thread is stuck and none has an unrecovered panic. -/
 def etcd_partition_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.partition.Assumptions]
@@ -63,17 +65,19 @@ def etcd_partition_robust.spec : Prop :=
     (HAs : addrsUnclaimed (linkv3pProgram clients ops steps) linkv3pAddrs)
     (HDs : dataDirsAbsent (linkv3pProgram clients ops steps) [(memberDataDir etcd_partition.name₁), (memberDataDir etcd_partition.name₂), (memberDataDir etcd_partition.name₃)])
     (HEnv : verifyEnvOff (linkv3pProgram clients ops steps))
-    (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC linkvGF,
+    (Hprem : ∀ n : Nat, ∀ hG : HeapGS .hasLC linkvGF,
       ⊢ etcd_partition.premises (GF := linkvGF) (hG := linkvHeapAt hG lctx) n id₁ id₂ id₃ ps ctxs boot)
     (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
     (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [(memberDataDir etcd_partition.name₁), (memberDataDir etcd_partition.name₂), (memberDataDir etcd_partition.name₃)]),
-    Robustness.Robust [] [(linkv3pProgram clients ops steps, σ)] g (2 ^ 28 - 1)
+    Robustness.Robust [] [(linkv3pProgram clients ops steps, σ)] g (threads := 2 ^ 28)
+      (bound := 2 ^ 40 - 11)
 
 /-- **`etcd_partition_watch_safe` as a robustness statement** (`Robustness.Robust`,
 `Robustness/Statement.lean`): the program alone on one machine that never crashes,
 a fresh Go process (`Robust`'s premise), under `etcd_partition_watch_safe`'s other hypotheses: in every
-execution of fewer than `2 ^ 28 - 1` steps no thread is stuck and none has an unrecovered panic. -/
+execution of fewer than `2 ^ 40 - 11` steps along which fewer than `2 ^ 28` threads are
+live, no thread is stuck and none has an unrecovered panic. -/
 def etcd_partition_watch_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.partition.Assumptions]
@@ -94,12 +98,13 @@ def etcd_partition_watch_robust.spec : Prop :=
     (HAs : addrsUnclaimed (linkv3pWatchProgram nw nops steps) linkv3pAddrs)
     (HDs : dataDirsAbsent (linkv3pWatchProgram nw nops steps) [(memberDataDir etcd_partition.name₁), (memberDataDir etcd_partition.name₂), (memberDataDir etcd_partition.name₃)])
     (HEnv : verifyEnvOff (linkv3pWatchProgram nw nops steps))
-    (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC linkvGF,
+    (Hprem : ∀ n : Nat, ∀ hG : HeapGS .hasLC linkvGF,
       ⊢ etcd_partition.premises (GF := linkvGF) (hG := linkvHeapAt hG lctx) n id₁ id₂ id₃ ps ctxs boot)
     (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
     (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [(memberDataDir etcd_partition.name₁), (memberDataDir etcd_partition.name₂), (memberDataDir etcd_partition.name₃)]),
-    Robustness.Robust [] [(linkv3pWatchProgram nw nops steps, σ)] g (2 ^ 28 - 1)
+    Robustness.Robust [] [(linkv3pWatchProgram nw nops steps, σ)] g (threads := 2 ^ 28)
+      (bound := 2 ^ 40 - 11)
 
 end adequacy
 end EtcdGrove

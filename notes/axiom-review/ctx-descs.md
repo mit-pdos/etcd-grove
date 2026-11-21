@@ -190,4 +190,9 @@ makes these per-run relations instead of functions:
   precondition fixed (`notes/decisions.md`, "Outgoing metadata as a per-run relation").
 - **Stage 2a (status codes, branch `prove-errdesc2/2026-11-20`):** `statusCode` and `grpcStatusROP` are gone;
   `status.statusAt s c m` (over the opaque leaf `status.statusAtRaw`) and `statusCodeIs err c` replace them.
-- **Stage 2b (descriptions):** `errDesc` (pending at this writing; design `notes/errdesc-ghost-plan.md` §7).
+- **Stage 2b (descriptions, branch `prove-errdesc2b/2026-11-21`):** `errDesc` is gone, and with it the axiom
+  `rpctypes.errDesc_etcdError`; `descIs err m` (over `errorMsgIs` and `status.statusAt`, with an `EtcdError`
+  value's `desc` as a pure pin) replaces it, with no agreement law (`notes/errdesc-ghost-plan.md` §8,
+  `notes/decisions.md`, "An error's description as a per-run relation"). The per-execution reading of this
+  note is retired for errors, codes and outgoing metadata: no trusted text names a pure function of an error
+  or context value any more.

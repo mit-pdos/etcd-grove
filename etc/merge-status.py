@@ -571,7 +571,12 @@ def selftest():
             r = replay(m)
             if r is not None:
                 rs.append(r)
-    bad = [r for r in rs if r["problems"]]
+    # Merges already on lean whose problems were repaired afterwards (a merge commit cannot be fixed in
+    # place): the replay still sees them, so they are listed here with the repair.
+    #   cf54600750 (robust-threads, 2026-11-20): its status-history.md dropped two lines of one parent;
+    #   both are back in lean's history (checked 2026-11-21 against lean 51e4debf62).
+    repaired = {"cf54600750"}
+    bad = [r for r in rs if r["problems"] and r["m"][:10] not in repaired]
     for r in bad:
         print(f"  {r['m']}: " + "; ".join(r["problems"]))
     hconf = [r["m"] for r in rs if r["hconflict"]]

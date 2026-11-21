@@ -1,5 +1,6 @@
 /-
-`strconv.FormatUint`: the trust boundary (Perennial translates `strconv` names-only). Lean-first
+`strconv.FormatUint`: proved (`Proof/strconv/FormatUint.lean`) over Perennial's translation of Go's
+(stdlib2, 2026-11-21; until then a trust-boundary axiom). Lean-first
 (no Rocq counterpart); the request path's unit 4a (the read loop's trace field).
 -/
 module

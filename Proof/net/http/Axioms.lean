@@ -96,9 +96,6 @@ axiom Flush_ok (H : HttpNet GF) : Flush_spec H
 /-- `http.Error` (`Error_spec`): its headers, `WriteHeader(code)`, `fmt.Fprintln(w, msg)`. -/
 axiom Error_ok (H : HttpNet GF) : Error_spec H
 
-/-- `bytes.NewBuffer` (`NewBuffer_spec`). -/
-axiom NewBuffer_ok : NewBuffer_spec (GF := GF)
-
 /-- `Request.WithContext` (`WithContext_spec`): a shallow copy with the context. -/
 axiom WithContext_ok : WithContext_spec (GF := GF)
 
@@ -155,9 +152,6 @@ axiom Handle_ok : Handle_spec (GF := GF)
 /-- (stage 6c) a built mux's dispatch (`mux_handlerOk_spec`). -/
 axiom mux_handlerOk_ok (H : HttpNet GF) : mux_handlerOk_spec H
 
-/-- (stage 5e-3) `nil` is a reader of no bytes, an empty request body (`readerHas`'s docstring,
-`NewRequest`'s `nil` body). -/
-axiom readerHas_nil : ⊢ readerHas (GF := GF) GoInterface.nil []
 
 end axioms
 

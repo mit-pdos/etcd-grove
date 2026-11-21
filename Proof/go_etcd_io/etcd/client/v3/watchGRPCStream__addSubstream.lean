@@ -55,7 +55,7 @@ theorem watchGRPCStream.addSubstream.wp_proof
     (try wp_auto)
     ihave #Hrpc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []
     · iPkgInit
-    ihave ⟨%mR, #HmR⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hs1
+    ihave ⟨%mR, #HmR⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_descIs _ $$ Hs1
     wp_apply wp_rpctypes_Error e1 mR $$ [$Hrpc $Hs1 $HmR] as %e2 ⟨%He2, #Hs2, %Hc2, -, -, %Hq2, -⟩
     · ipureintro; exact He1.1
     (try wp_auto)
@@ -90,7 +90,7 @@ theorem watchGRPCStream.addSubstream.wp_proof
     (try wp_auto)
     ihave #Hrpc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []
     · iPkgInit
-    ihave ⟨%mR, #HmR⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hs1
+    ihave ⟨%mR, #HmR⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_descIs _ $$ Hs1
     wp_apply wp_rpctypes_Error e1 mR $$ [$Hrpc $Hs1 $HmR] as %e2 ⟨%He2, #Hs2, %Hc2, -, -, %Hq2, -⟩
     · ipureintro; exact He1.1
     (try wp_auto)

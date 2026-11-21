@@ -14,7 +14,7 @@ public import Perennial.Proof.strconv.Link
 public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
-public import Proof.encoding.base64.Init
+public import Proof.encoding.base64.InitLinked
 public import Proof.encoding.json.Init
 public import Proof.k8s_io.apimachinery.pkg.api.errors.Init
 public import Proof.k8s_io.apimachinery.pkg.api.meta.Init

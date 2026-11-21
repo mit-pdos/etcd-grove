@@ -8,6 +8,7 @@ module
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion__Add
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion__ContainsUnconditionalAllowOrDeny
 public import Spec.fmt.ErrorfLeaf
+public import Spec.fmt.ErrorfSlice
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion__hasConditionalAuthorizerName
 public import Spec.k8s_io.apimachinery.pkg.util.validation.IsDNS1123Subdomain
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__ContainsUnconditionalAllowOrDeny
@@ -49,7 +50,8 @@ theorem ConditionsAwareDecisionUnion.Add.wp_proof
     (wp_sets_New : EtcdGrove.sets.New.spec (GF := GF) (hG := hG))
     (wp_ConditionsAwareDecision_PossibleDecisions : EtcdGrove.authorizer.ConditionsAwareDecision.PossibleDecisions.spec (GF := GF) (hG := hG))
     (wp_Set__UnsortedList : EtcdGrove.sets.Set.UnsortedList.spec (GF := GF) (hG := hG))
-    (wp_Set__Insert : EtcdGrove.sets.Set.Insert.spec (GF := GF) (hG := hG)) :
+    (wp_Set__Insert : EtcdGrove.sets.Set.Insert.spec (GF := GF) (hG := hG))
+    (wp_ErrorfSlice : EtcdGrove.fmt.ErrorfSlice.spec (GF := GF) (hG := hG)) :
     ConditionsAwareDecisionUnion.Add.spec (GF := GF) (hG := hG) := by
   intro p ks name d m
   wp_start as ⟨Hb, #Hd, %Hwf⟩
@@ -149,8 +151,8 @@ theorem ConditionsAwareDecisionUnion.Add.wp_proof
         isplitr
         · ipureintro; rfl
         iintro %asl ⟨Hasl, -⟩
-        wp_apply (wp_ErrorfLeaf _ _ _ _) $$ [$Hasl] as %e1 ⟨-, #He1, %he1⟩
-        · fmt_args_intro
+        wp_apply (wp_ErrorfSlice _ _ _ _) $$ [$Hasl] as %e1 ⟨-, #He1, %he1⟩
+        · fmt_args_intro_sl
           isplitl
           · iapply (fmt.argOkAt_strSlice sl msgs ⟨by decide, Or.inl rfl, rfl⟩)
             iexact Hmsgs

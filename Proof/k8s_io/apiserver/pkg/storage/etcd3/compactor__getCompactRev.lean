@@ -164,8 +164,8 @@ theorem compactor.getCompactRev.wp_proof
     iunfold go_etcd_io.etcd.cache.v3.statusErrOk at Hse
     ihave ⟨⟨%em, #HeS0⟩, -, -, %HF⟩ := Hse $$ %ei %rfl
     ihave #HeS := go_etcd_io.etcd.cache.v3.errorMsgIs_errorStringSpec _ _ $$ HeS0
-    ihave #HeS' : EtcdGrove.fmt.stringMethodSpec ei go!"Error" $$ []
-    · rw [show EtcdGrove.fmt.stringMethodSpec ei go!"Error" =
+    ihave #HeS' : _root_.Perennial.fmt.stringMethodSpec ei go!"Error" $$ []
+    · rw [show _root_.Perennial.fmt.stringMethodSpec ei go!"Error" =
         go_etcd_io.etcd.cache.v3.errorStringSpec ei from rfl]
       iexact HeS
     ihave #Pf : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
@@ -247,7 +247,9 @@ theorem compactor.getCompactRev.wp_proof
     (try wp_auto)
     wp_apply wp_bytes_to_string valSl v0.value DFrac.discard $$ [Hvals] as -
     · iexact Hvals
-    wp_apply wp_ParseInt v0.value (W64 10) (W64 64) as %n %perr %Hp
+    ihave #Pstrconv : isPkgInit (PROP := IProp GF) pkg_id.strconv $$ []
+    · iPkgInit
+    wp_apply wp_ParseInt v0.value (W64 10) (W64 64) (by word) (by word) (by word) (by word) as %n %perr %Hp
     obtain ⟨rfl, rfl⟩ := Hp cv Hcv rfl rfl
     (try wp_auto)
     wp_if_destruct

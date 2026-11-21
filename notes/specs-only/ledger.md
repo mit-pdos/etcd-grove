@@ -25,6 +25,34 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-20: `cache.wp_Errorf_setArgs` -- reads the maps it formats without owning them
+
+- **Spec.** `Proof/k8s_io/client_go/tools/cache/ErrorfSet.lean`, `wp_Errorf_setArgs` (a lemma over Perennial's
+  previous model of `Errorf`; no `SpecPlan` counterpart).
+- **Defect.** False of Go: no ownership of the `sets.Set[string]` maps, which `fmt` reads; a concurrent write
+  is the runtime's fatal `concurrent map read and map write`.
+- **Evidence.** go1.27.3 `fmt/print.go:793-815`, `internal/runtime/maps/map.go:432`;
+  `notes/axiom-review/errorf-setargs.md`.
+- **Proposed change.** Premise: a fraction of each map's points-to, given back in the post. The one caller
+  (`storeIndex.addIndexers`) passes the intersection's.
+- **Decision.** Applied (fmtmodel, 2026-11-20; a strengthening of the premise, the caller's obligation discharged).
+
+## 2026-11-20: `fmt.argsOk` (Errorf, Sprintf, Printf) -- `reflect.Value` admitted; slices; a methodless integer under a non-method verb
+
+- **Spec.** `Spec/fmt/Errorf.lean`'s `fmt.argsOk`/`fmt.argOkAt`/`fmt.argOk`, now Perennial's
+  (`Perennial/Proof/fmt/Args.lean`, `79517dbdf`), under `fmt.Errorf`, `fmt.ErrorfLeaf`, `fmt.SprintfArgs`,
+  `fmt.Printf`; `SpecPlan`'s `fmt` specs use the same vocabulary.
+- **Defect.** (1) The `String()` case admitted a `reflect.Value`, which Go unwraps (false: the held value's methods
+  run unconstrained). (2) Read-only slices under `%v`/`%s` were admitted, which Perennial's model does not cover.
+  (3) The non-method-verb integer case admitted any integer-kind type without `Format`; Perennial's requires an
+  `Error() string` or `String() string` (the other such types are `ArgWf` already, or have methods the model
+  does not follow).
+- **Evidence.** go1.27.3 `fmt/print.go:734` (`case reflect.Value`); `notes/axiom-review/errorf-setargs.md`.
+- **Proposed change.** (1) No method `CanInterface` in the `String()` case. (2) The slice calls move to
+  `fmt.ErrorfSlice`/`fmt.SprintfSlice` (premise `fmt.argsOkSl`, the old one with slices), axioms. (3) As Perennial's.
+  No caller passed a `reflect.Value` or used (3)'s extra types.
+- **Decision.** Applied (fmtmodel, 2026-11-20).
+
 ## 2026-11-20: `metadata.AppendToOutgoingContext.spec`, `withVersion.spec`, `streamKeyFromCtx.spec`, `context.WithCancelValCtx.spec`, `context.WithTimeoutBackgroundMd.spec`, `grpc.ClientConn.NewStream.spec` -- posts fix a pure function of an allocated context
 
 - **Spec.** The real specs above (`Spec/google_golang_org/grpc/metadata/AppendToOutgoingContext.lean`, ...), and
@@ -3711,3 +3739,19 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   unconditional (the stream codec's `Sz` is `True`, every sender's bundle being bounded; the msgappv2 decoder's post
   `Sz → msgSizeOk c`, heartbeats included).
 - **Decision.** Applied (prove-rafthttpfix, 2026-11-20).
+
+## 2026-11-21: an error's description as the relation `descIs` (errdesc stage 2b)
+
+- **Spec.** `status.Error.spec`, `status.FromError.spec`, `errors.IsStatusErr.spec`, `grpc.model.respond.spec`,
+  `waitRetryBackoff.spec`, `toGRPCErrorMap_init` (axioms); `rpctypes.Error`/`ErrorDesc`, `ContextError`,
+  `Client.shouldRefreshToken`, `isSafeRetry`, `isSafeRetryMutableRPC`, the handler specs, `fmt.ErrorfWrap`
+  (proved); the contracts `grpcInvokerOk`, `grpcMethodOkMd`, `grpcDecOk`, `srvInterceptorOk`.
+- **Defect.** The description was the pure `errDesc : GoInterface → GoString`, fixed by `status.Error`'s post at a
+  pointer it allocates: unsatisfiable (`notes/errdesc-ghost-plan.md` §0).
+- **Evidence.** `notes/axiom-review/ctx-descs.md`, etcd-refimpl `README.md` "Findings".
+- **Proposed change.** `descIs err m` as in SpecPlan's direction (`errView`/`descIs`), the description a parameter
+  `m` fixed in the precondition; posts `∃ m, descIs err m ∗ …`. Convergence: this tree keeps `statusCodeIs` and
+  `descIs` separate where SpecPlan has one `errView err c m ok`; `IsStatusErr` takes the descriptions optionally
+  (`isDescs`, `dm : Option`), SpecPlan's takes them always.
+- **Decision.** Applied (prove-errdesc2b, 2026-11-21; `notes/decisions.md`, "An error's description as a per-run
+  relation").

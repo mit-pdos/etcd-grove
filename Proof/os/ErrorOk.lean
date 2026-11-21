@@ -41,7 +41,7 @@ theorem pathError_fmtErrorOk (pe : Loc) (op path : GoString) (err : GoInterface)
     iintro - - - %hf
     exact hf.elim
   | ok ii =>
-  simp only [EtcdGrove.fmtErrorOk, EtcdGrove.fmt.stringMethodSpec]
+  simp only [EtcdGrove.fmtErrorOk, _root_.Perennial.fmt.stringMethodSpec]
   iintro #Hop #Hpath #Herr ⟨%hms, #Hs⟩
   isplitr
   · ipureintro
@@ -112,7 +112,7 @@ theorem linkError_fmtErrorOk (le : Loc) (op old new : GoString) (err : GoInterfa
     iintro - - - - %hf
     exact hf.elim
   | ok ii =>
-  simp only [EtcdGrove.fmtErrorOk, EtcdGrove.fmt.stringMethodSpec]
+  simp only [EtcdGrove.fmtErrorOk, _root_.Perennial.fmt.stringMethodSpec]
   iintro #Hop #Hold #Hnew #Herr ⟨%hms, #Hs⟩
   isplitr
   · ipureintro

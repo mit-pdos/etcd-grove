@@ -17,27 +17,6 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
-### Goose: a struct field (or type argument) of type `rune` fails to translate (2026-11-20, prove-b64clock)
-
-- **Missing.** go/types names `int32`'s alias `rune` (`types.Typ[types.Rune]`: `Kind() == Int32`,
-  `Name() == "rune"`), and Goose's three tables keyed on `Basic.Name()` list only `"int32"`:
-  `goose/types.go` `basicLeanType` ("Unknown basic type rune"), `goose/proofgen/types.go` `toLeanType`
-  (`log.Fatalf("unknown basic type rune")`) and `goose/util/autotypes.go` `typeTranslatability.check`
-  (so `translate_types` axiomatizes every struct with a `rune` field). `byte` (`uint8`'s alias) is listed.
-- **Needed by.** `encoding/base64`'s `Encoding` (`padChar rune`): the package's initializer and
-  `EncodeToString`, proved on branch `prove-b64clock/2026-11-20` (retires `StdEncoding_init`,
-  `RawURLEncoding_init` and base64's `opaqueInitsOk`), need the struct translated. The fix also
-  translates k8s `fields.UnescapedRune` and an `encoding/json` type that are axiomatized today (their
-  regenerated files are on that branch; nothing proved reads them).
-- **Workaround here.** None: the branch's `Code/encoding/base64.lean` and `GeneratedProof/` were generated
-  with the patched translator (`etc/goose.py --project k8s-apiserver --perennial <clone>`); it builds
-  against the pinned Perennial (no Lean file changes), but `etc/goose.py --check` fails until the pin
-  has the fix, so the branch waits for it.
-- **Proposed.** Add `"rune"` to the `int32` case of the three tables (3 lines). A commit is ready, not
-  pushed: branch `goose-rune-fields` (`1a1bb0633`, on Perennial `c44b74871`) of the clone
-  `/shared/tmp/b64clock/perennial`. A goose test (a struct with a `rune` field in `testdata`) would
-  go with it. **Status.** Proposed; for the user to sequence.
-
 ### Float facts: `FloatOps` has no laws, so no float-dependent panic can be excluded (2026-11-20, prove-promdeep)
 
 - **Limitation.** `FloatOps` (`Perennial/Golang/Defn/PostLang.lean`) is a field of the semantics class with no laws:
@@ -56,45 +35,6 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   compares false, doubling a normal float whose result is normal adds `2^52` to its bits. Or a full model (Lean's
   `Float` is opaque to the kernel; a bit-level IEEE model would be checkable). Each law is true of Go's `float64`.
 - **Status.** Not started.
-
-### `fmt`'s models that call the arguments' formatting methods, `%p`, and `Errorf`'s `%w`: what retires this repository's `fmt` axioms (2026-11-20, prove-reflectfmt)
-
-- **Limitation.** Perennial's models of `Sprintf`, `Printf` and `Errorf` (`Perennial/TrustedCode/fmt.lean`) never
-  call an argument's method, so their specs admit only `fmt.ArgsWf` arguments (predeclared basic types, methodless
-  named integers and strings); `Errorf` is `errors.New(format)` (no formatting, no `%w`); `%p` and `%0Nx` give
-  arbitrary output; `Sscanf` has no model. Go's `fmt` itself cannot be translated (reflection on every argument,
-  `sync.Pool`, float formatting).
-- **Needed by.** The eight `fmt` axioms left here after prove-reflectfmt (2026-11-20): `fmt.Errorf`, `fmt.ErrorfPlain`,
-  `fmt.Printf`, `fmt.SprintfArgs` (arguments whose `Error()`/`String()` `fmt` calls: `fmt.argsOk`),
-  `fmt.SprintfClientPtr` (`%p` of a pointer), `fmt.SprintfWalName` (`%016x`), `fmt.Sscanf` (`%d`),
-  `fmt.SscanfWalName` (`%016x-%016x.wal`). Also the proofs over the model outside its faithful domain
-  (`fmt.ErrorfErrs`, `fmt.ErrorfStrs`, `fmt.ErrorfWrap`, client-go's `wp_Errorf_setArgs`), whose faithfulness is
-  argued in their headers, not checked.
-- **Proposed (general, not shaped by one caller; one Perennial branch, three steps).**
-  1. *Formatting methods.* The models' per-argument step (`formatArg`) does what `printArg`/`handleMethods` do on a
-     non-`%T`/`%p` verb, for the cases a spec admits: for a method verb (`v s x X q`, not `#v`) an argument whose
-     dynamic type has `Error() string` (and no `Format`) gets its `Error()` called, else one with `String() string`
-     (and no `Format`, no `Error`) its `String()`, the result formatted as a string (exactly for `%s`/`%v`,
-     arbitrary otherwise); any other non-basic argument stays outside the spec. The specs' premise becomes this
-     repository's directive-aware `fmt.argsOk mv format xs` (`Spec/fmt/Errorf.lean`: `fmt.fmtDirectives`,
-     `fmt.argOkAt`, `fmt.stringMethodSpec`), moved to Perennial with its tests (`examples/premisefix/fmtarg`, the
-     three fmt-soundness attacks), and the posts keep `SprintfOut` with the method results as `StrArgValue`s.
-     Retires `fmt.SprintfArgs`, `fmt.Printf` and, with step 3, `fmt.Errorf`.
-  2. *`%p`.* `formatArg` at `p` of a pointer, func, map, chan or unsafe pointer returns an arbitrary string without
-     reading memory (Go's `printArg` does `%p` first, `fmt/print.go:686-693`); the premise admits such an argument
-     under `p` only (`fmt.SprintfClientArgOkAt`'s rule, for any pointer type). Retires `fmt.SprintfClientPtr`, and
-     bbolt's `(*Options).String` (the 2026-11-17 entry below).
-  3. *`Errorf`.* The model formats as `Sprintf` does, then returns `errors.New(s)` when no directive's verb is `w`
-     (Go's `case 0`, `fmt/errors.go`), else a fresh `*fmt.wrapError`/`*fmt.wrapErrors` holding the `%w` arguments
-     (translated: both are plain structs with `Error`/`Unwrap`); the spec says which. Retires `fmt.ErrorfPlain` (its
-     post is the no-`w` case) and lets `fmt.ErrorfWrap`/`fmt.ErrorfErrs` rest on a faithful model.
-  Together with the `%0Nx` and `Sscanf` proposals (the 2026-11-13 entry "`Sprintf`'s `%0Nx`, `Sscanf`'s `%0Nx`"),
-  every `fmt` axiom here goes.
-- **Workaround here.** The axioms, each narrowed to the calls etcd makes; prove-reflectfmt (2026-11-20) retired
-  `fmt.SprintfNamed` and `fmt.SprintfID` (their calls are within Perennial's `fmt.wp_Sprintf` since `ArgWf` admits
-  methodless named integers and strings, or within `fmt.SprintfArgs`) and fixed `fmt.SprintfClientPtr`'s premise
-  (`notes/axiom-review/sprintfclientptr.md`).
-- **Status.** Proposed only (the Perennial branch is the `stdlib` agent's at the time).
 
 ### `wp_apply` with a `have`-local spec can close the goal with `sorry` (2026-11-20, k8s-authz)
 
@@ -140,7 +80,7 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   every snippet is provably panic-free from it.
 - **Status.** Requirements only.
 
-### Adequacy's thread bound is about every execution, so it caps the step count: landed, in the pin since `c44b74871` (2026-11-19, the closed theorems' step bounds)
+### Adequacy's thread bound is about every execution, so it caps the step count: landed, in the pin since `c44b74871` (2026-11-19, the closed theorems' step bounds; the distributed form since `1b144292b`, 2026-11-20)
 
 - **Limitation.** `goose_adequacy` (`Perennial/GooseLang/Adequacy.lean`) takes the thread bound as
   `RealThreadsBelow T n`: *every* execution of at most `n` steps keeps fewer than `T` threads. A
@@ -160,10 +100,19 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `goose_adequacy_of_below` derives the old theorem.
 - **Uses.** The trace check (branch `tracecheck-thread-bound`): `init_adequate_below`
   (`examples/lib/etcdstart/Adequacy.lean`), `raft_tracecheck_safe` at `n + 4 ≤ 2^61` and
-  `RealNstepsBelow (2 ^ 31) n`. To do: the etcd examples (needs `goose_adequacy_start_files`, an axiom
-  here, restated over `RealNstepsBelow`; their step count is then capped by `Main.spec`'s write-back
-  budget `n + 11 ≤ backend.wbInit = 2^40 - 1`), and the crash and distributed variants with a thread
-  parameter in `Robust`.
+  `RealNstepsBelow (2 ^ 31) n`. (2026-11-20, branch `robust-threads`) The etcd examples, through
+  `goose_adequacy_start` restated over `RealNstepsBelow` (this repository's axiom, `Proof/runtime/Start.lean`;
+  its old form the theorem `goose_adequacy_start_all`) and `etcdstart`'s `etcd_adequate*_below`: 22
+  closed theorems at `RealNstepsBelow (2 ^ 28) n` and `n + 12 ≤ 2^40` (the backend's write-back budget,
+  `backend.wbInit = 2^40 - 1`, a proof constant: next to raise, with mvcc's and the server's
+  `receiptBound ≤ 2^48`).
+- **The distributed form** (Perennial `910c71c0e`, docs `1b144292b`, on `lean` 2026-11-20; `review-trusted`:
+  OK): `DistCfgThreadsBelow` and `DistCrashNstepsBelow boots T n c κs c'` in `DistLang.lean` (a
+  distributed execution, crashes included, every configuration of which has fewer than `T` threads on
+  every node), with `nsteps`, `start`, `mono`, `of_threadsBelow`, `of_single`. `Robust` quantifies over it
+  (`Robust crashing stable g threads bound`). Open: crash and distributed adequacy theorems over it
+  (`goose_crash_adequacy`, `goose_dist_crash_adequacy` still take the all-executions premise), so the crash
+  and multi-machine examples state `threads := bound + 1` (their statement without a thread bound).
 
 ### `go.NotInterface` of the predeclared named types; the standard-library axioms that only bodies would discharge (2026-11-19, branch `prove-stdlib/2026-11-19`)
 
@@ -184,7 +133,10 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   each stays an axiom here until Perennial's `*.toml` translates it (`Seconds`: never, a float).
   The cheap ones to translate: `strings.HasSuffix`/`TrimSuffix`/`Contains` (over
   `internal/stringslite`), `strconv.FormatBool`/`ParseBool`, `io.ReadFull`/`ReadAtLeast`.
-- **Status.** Open.
+- **Status.** Partly done (2026-11-20, Perennial `e9988b5cd`, branch `prove-stdlib`): Perennial
+  translates and proves `strings.HasSuffix`/`TrimSuffix` (over `internal/stringslite`'s),
+  `strconv.FormatBool`/`ParseBool`, `errors.Join`, `time.Time.IsZero`/`Time.Unix`/`time.Unix` and
+  `sort.StringSlice`'s methods; the axioms here became theorems over them. The rest is open.
 
 ### `SprintfOut` of a literal prefix and of `pre%vmid%v` (2026-11-18, k8s 7g)
 
@@ -373,8 +325,10 @@ rebuilds everything; no bump of its own).
   part's `filepathlite.Dir` shows) and `strings.HasSuffix` (a call of `stringslite.HasSuffix`), with
   specs `RET #(decide (pre <+: s))` / `#(decide (suf <:+ s))` in `Perennial/Proof/{internal/
   stringslite,strings}/`. Then `filepathlite.IsAbs.spec` is proved in the part (`RET #(decide
-  (p.head? = some (W8 47)))` from `go!"/" <+: p`) and the HasSuffix axiom becomes a theorem. Not yet
-  proposed.
+  (p.head? = some (W8 47)))` from `go!"/" <+: p`) and the HasSuffix axiom becomes a theorem.
+- **Status.** `HasSuffix` done (2026-11-20, Perennial `e9988b5cd`): `stringslite.HasSuffix`/`TrimSuffix`
+  and `strings.HasSuffix`/`TrimSuffix` translated and proved, the axiom here a theorem.
+  `stringslite.HasPrefix` (and `IsAbs`) still open.
 
 ### `append` does not model `growslice`'s `maxAlloc` limit (2026-11-14, branch `wal-small14`)
 
@@ -477,6 +431,16 @@ local model go.
 - **Status.** (2026-11-14, `wal-leaf6`) The WAL's `Link.lean` (`LinuxFs/`) rests on both axioms
   through the part's generated copies of `Proof/io/ReadFull.lean` and `Proof/encoding/binary/
   ReadInt64LE.lean` (`etc/gen-part-copies.py`: the same statements, not new axioms).
+  (2026-11-21, group `stdlib2`, Perennial `d5bf68438`) (1) done in Perennial: `io.ReadAtLeast`,
+  `io.ReadFull` and `io.ReadAll` translated and proved over a reader contract `io.readerOk ri Pre S E`
+  (`Perennial/Proof/io/Reader.lean`: non-negative counts, a per-call condition `Pre`, and the
+  reader's errors well-typed, `io.ptrTyped`, which stepping `err == EOF` needs); `bytes.NewBuffer`
+  and `(*Buffer).Read` too (`bytes.ownBuffer`). This repository's `io.ReadFull.wp_proof` is not yet a
+  wrapper: `io.readerStream` does not promise `ptrTyped` of the reader's errors, and the WAL's
+  (`decRdE`'s `IoE`) come from the file-system layer without it; `http.ReadAll_ok` needs in addition a
+  bound on the body (`2^60`, ReadAll's `int` sizes in the model), `http.ReadFull_stream_ok` the
+  invariant `bodyStream rd Pre Φ r ⊢ ⌜Pre r⌝`. `http.NewBuffer_ok` and `http.readerHas_nil` are
+  theorems (`readerHas` defined over `bytes.ownBuffer`).
 
 ### Operations on untyped rune constants have no step (2026-11-13, WAL leaf specs, branch `wal-leaf-std2`)
 
@@ -1009,7 +973,8 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   of Perennial's `sort.Strings.spec`), an axiom.
 - **Proposed change.** Translate the methods in Perennial's `sort` and prove `Sort` as
   `sort.Strings` is proved; then the axiom here goes.
-- **Status.** Open.
+- **Status.** Done (2026-11-20, Perennial `e9988b5cd`): `Len`, `Less`, `Swap`, `Sort` translated and
+  proved; `sort.StringSlice.Sort.wp_proof` here is a theorem over `sort.StringSlice.wp_Sort`.
 
 ### Tooling: incremental proof checks, and long `·` blocks as auxiliary theorems
 
@@ -1521,7 +1486,11 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   `Reflector.expectedType` field was elaborated against them: the two instances are incoherent
   (a proof that mixes a struct's `Type'` field with a `Type'` cell would not connect them). Not
   unsound, but only a fix at the source (above) gives one instance.
-- **Status.** Not started.
+- **Status.** Done (2026-11-20, group `reflecttype`, Perennial `090fdac23`): `Perennial/Code/reflect.toml`
+  translates `Type` (`translate = ["!*", "Type"]`), so `reflect.Type'` is `GoInterface` with the
+  interface's method list as its underlying type, and Perennial's interface instances apply; the
+  generated `sorry`s are gone, and with them this repository's `type_intoVal_inj`,
+  `type_typed_pointsto` and `type_into_val_typed` (`Proof/reflect/Values.lean`): one instance.
 
 ### Goose: a names-only package's constants are values of unknown shape
 
@@ -1798,6 +1767,77 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Status.** Recorded only.
 
 ## Landed
+
+### Goose: a struct field (or type argument) of type `rune` fails to translate (2026-11-20, prove-b64clock; landed 2026-11-21, Perennial `1a1bb0633`, `ef31258ab`, `c8e356cb1`; pin bumped 2026-11-21)
+
+- **Missing.** go/types names `int32`'s alias `rune` (`types.Typ[types.Rune]`: `Kind() == Int32`,
+  `Name() == "rune"`), and Goose's three tables keyed on `Basic.Name()` list only `"int32"`:
+  `goose/types.go` `basicLeanType` ("Unknown basic type rune"), `goose/proofgen/types.go` `toLeanType`
+  (`log.Fatalf("unknown basic type rune")`) and `goose/util/autotypes.go` `typeTranslatability.check`
+  (so `translate_types` axiomatizes every struct with a `rune` field). `byte` (`uint8`'s alias) is listed.
+- **Needed by.** `encoding/base64`'s `Encoding` (`padChar rune`): the package's initializer and
+  `EncodeToString`, proved on branch `prove-b64clock/2026-11-20` (retires `StdEncoding_init`,
+  `RawURLEncoding_init` and base64's `opaqueInitsOk`), need the struct translated. The fix also
+  translates k8s `fields.UnescapedRune` and an `encoding/json` type that are axiomatized today (their
+  regenerated files are on that branch; nothing proved reads them).
+- **Workaround here.** None: the branch's `Code/encoding/base64.lean` and `GeneratedProof/` were generated
+  with the patched translator (`etc/goose.py --project k8s-apiserver --perennial <clone>`); it builds
+  against the pinned Perennial (no Lean file changes), but `etc/goose.py --check` fails until the pin
+  has the fix, so the branch waits for it.
+- **Proposed.** Add `"rune"` to the `int32` case of the three tables (3 lines). A commit is ready, not
+  pushed: branch `goose-rune-fields` (`1a1bb0633`, on Perennial `c44b74871`) of the clone
+  `/shared/tmp/b64clock/perennial`. A goose test (a struct with a `rune` field in `testdata`) would
+  go with it. **Status.** Landed on Perennial's `lean` as `c8e356cb1` (the fix `1a1bb0633`, `fmt.readRune`
+  regenerated, a goose unit test `runeStruct`/`useRuneStruct`); the pin moved to it on branch
+  `pin/perennial-int-2026-11-21`, with `prove-b64clock` merged.
+
+### `fmt`'s models that call the arguments' formatting methods, `%p`, and `Errorf`'s `%w`: what retires this repository's `fmt` axioms (2026-11-20, prove-reflectfmt)
+
+- **Limitation.** Perennial's models of `Sprintf`, `Printf` and `Errorf` (`Perennial/TrustedCode/fmt.lean`) never
+  call an argument's method, so their specs admit only `fmt.ArgsWf` arguments (predeclared basic types, methodless
+  named integers and strings); `Errorf` is `errors.New(format)` (no formatting, no `%w`); `%p` and `%0Nx` give
+  arbitrary output; `Sscanf` has no model. Go's `fmt` itself cannot be translated (reflection on every argument,
+  `sync.Pool`, float formatting).
+- **Needed by.** The eight `fmt` axioms left here after prove-reflectfmt (2026-11-20): `fmt.Errorf`, `fmt.ErrorfPlain`,
+  `fmt.Printf`, `fmt.SprintfArgs` (arguments whose `Error()`/`String()` `fmt` calls: `fmt.argsOk`),
+  `fmt.SprintfClientPtr` (`%p` of a pointer), `fmt.SprintfWalName` (`%016x`), `fmt.Sscanf` (`%d`),
+  `fmt.SscanfWalName` (`%016x-%016x.wal`). Also the proofs over the model outside its faithful domain
+  (`fmt.ErrorfErrs`, `fmt.ErrorfStrs`, `fmt.ErrorfWrap`, client-go's `wp_Errorf_setArgs`), whose faithfulness is
+  argued in their headers, not checked.
+- **Proposed (general, not shaped by one caller; one Perennial branch, three steps).**
+  1. *Formatting methods.* The models' per-argument step (`formatArg`) does what `printArg`/`handleMethods` do on a
+     non-`%T`/`%p` verb, for the cases a spec admits: for a method verb (`v s x X q`, not `#v`) an argument whose
+     dynamic type has `Error() string` (and no `Format`) gets its `Error()` called, else one with `String() string`
+     (and no `Format`, no `Error`) its `String()`, the result formatted as a string (exactly for `%s`/`%v`,
+     arbitrary otherwise); any other non-basic argument stays outside the spec. The specs' premise becomes this
+     repository's directive-aware `fmt.argsOk mv format xs` (`Spec/fmt/Errorf.lean`: `fmt.fmtDirectives`,
+     `fmt.argOkAt`, `fmt.stringMethodSpec`), moved to Perennial with its tests (`examples/premisefix/fmtarg`, the
+     three fmt-soundness attacks), and the posts keep `SprintfOut` with the method results as `StrArgValue`s.
+     Retires `fmt.SprintfArgs`, `fmt.Printf` and, with step 3, `fmt.Errorf`.
+  2. *`%p`.* `formatArg` at `p` of a pointer, func, map, chan or unsafe pointer returns an arbitrary string without
+     reading memory (Go's `printArg` does `%p` first, `fmt/print.go:686-693`); the premise admits such an argument
+     under `p` only (`fmt.SprintfClientArgOkAt`'s rule, for any pointer type). Retires `fmt.SprintfClientPtr`, and
+     bbolt's `(*Options).String` (the 2026-11-17 entry below).
+  3. *`Errorf`.* The model formats as `Sprintf` does, then returns `errors.New(s)` when no directive's verb is `w`
+     (Go's `case 0`, `fmt/errors.go`), else a fresh `*fmt.wrapError`/`*fmt.wrapErrors` holding the `%w` arguments
+     (translated: both are plain structs with `Error`/`Unwrap`); the spec says which. Retires `fmt.ErrorfPlain` (its
+     post is the no-`w` case) and lets `fmt.ErrorfWrap`/`fmt.ErrorfErrs` rest on a faithful model.
+  Together with the `%0Nx` and `Sscanf` proposals (the 2026-11-13 entry "`Sprintf`'s `%0Nx`, `Sscanf`'s `%0Nx`"),
+  every `fmt` axiom here goes.
+- **Workaround here.** The axioms, each narrowed to the calls etcd makes; prove-reflectfmt (2026-11-20) retired
+  `fmt.SprintfNamed` and `fmt.SprintfID` (their calls are within Perennial's `fmt.wp_Sprintf` since `ArgWf` admits
+  methodless named integers and strings, or within `fmt.SprintfArgs`) and fixed `fmt.SprintfClientPtr`'s premise
+  (`notes/axiom-review/sprintfclientptr.md`).
+- **Status.** Landed in Perennial `79517dbdf` (fmtmodel, 2026-11-20; the pin reaches it with this branch):
+  steps 1-3 as proposed, the premise `fmt.argsOk`/`fmt.argOkAt` moved to Perennial (`Perennial/Proof/fmt/Args.lean`),
+  `Errorf`'s post `fmt.errorfErr` (which error, by the `%w` directives), the model's Go and its differential tests
+  in `goose/model/fmt/`; reviewed adversarially (two findings fixed before landing:
+  `notes/axiom-review/errorf-setargs.md`). Here it retired `fmt.Errorf`, `fmt.ErrorfPlain`, `fmt.Printf`,
+  `fmt.SprintfArgs`, `fmt.SprintfClientPtr`, and re-proved `fmt.ErrorfErrs`, `fmt.ErrorfWrap`, `fmt.ErrorfLeaf` from it.
+  The model is stuck on reflection into slices and maps, so `fmt.ErrorfStrs`, `cache.wp_Errorf_setArgs` (proved
+  over the old model until now) and the slice calls (`fmt.ErrorfSlice`, `fmt.SprintfSlice`) are axioms; and
+  `fmt.ErrorfWrap`'s description conjunct rests on `rpctypes.errDesc_wrapError`. Left: `%0Nx` and `Sscanf`
+  (the 2026-11-13 entry): `fmt.SprintfWalName`, `fmt.Sscanf`, `fmt.SscanfWalName`.
 
 ### `WithCancel` over any `isContext` parent keeps the parent's Done proposition (landed 2026-11-15, Perennial `cbccb8321`, `2d8857406`, `e9e6351d9`; pin bumped 2026-11-15)
 
@@ -3343,3 +3383,12 @@ rules already handle the nil map at the builtin boundary. The WAL verification
 needs the valid-key case for a pointer key. The WAL release proof passed against the merged commit. [Perennial PR #645](https://github.com/mit-pdos/perennial/pull/645)
 
 The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's previous Perennial revision `c44b74871`. The intervening upstream translation of `reflect.Type` changed instance selection in 32 trust collections. The backport keeps those collections comparable.
+
+## 2026-11-21: `time.Unix` is names-only (zap's `_minTimeInt64`/`_maxTimeInt64`)
+
+- **The gap.** Perennial's `time` translates `Now` and the `Time` methods but not `Unix` nor `unixTime`
+  (`time.go`: the seconds/nanoseconds normalization, then `Time{uint64(nsec), sec + unixToInternal, Local}`),
+  so zap's package variables `_minTimeInt64 = time.Unix(0, math.MinInt64)` and `_maxTimeInt64` cannot be
+  stepped: they stay in zap's `opaqueInitsOk` (prove-initleft, which translated zap's other variables).
+- **Proposed (general).** Translate `Unix` and `unixTime` (as `Now`, which reads `Local` too) and prove
+  `time.Unix.spec` (some `Time`, no panic: the divisions are by the constant `1e9`). **Status.** Recorded only.

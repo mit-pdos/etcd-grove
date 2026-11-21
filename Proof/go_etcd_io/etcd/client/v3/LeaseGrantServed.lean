@@ -263,16 +263,14 @@ theorem etcdLeaseGrantHandlerOkMd (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
         · iexact Hgr
         · iexact Hres
         · iexact Hck
-    · iintro -
-      iapply HΨe
+    · iapply (handlerErrOut_allSrv _ err) $$ HΨe HSe
   · imodintro
     iapply HΨ
     iframe HS HSe
     isplitl
     · iintro %Hnil
       exact absurd Hnil Herr.2
-    · iintro -
-      iapply HΨe
+    · iapply (handlerErrOut_allSrv _ err) $$ HΨe HSe
 
 /-- **etcd's `LeaseRevoke` handler meets etcd's `LeaseRevoke` spec with auth on**
 (`grpcHandlerOkMd`; auth-lease S3c, Draft §7.5; as `etcdLeaseGrantHandlerOkMd`, over the revocation
@@ -328,16 +326,14 @@ theorem etcdLeaseRevokeHandlerOkMd (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : 
         · iexact Hre
         · iexact Hres
         · iexact Hck
-    · iintro -
-      iapply HΨe
+    · iapply (handlerErrOut_allSrv _ err) $$ HΨe HSe
   · imodintro
     iapply HΨ
     iframe HS HSe
     isplitl
     · iintro %Hnil
       exact absurd Hnil Herr.2
-    · iintro -
-      iapply HΨe
+    · iapply (handlerErrOut_allSrv _ err) $$ HΨe HSe
 
 /-- **etcd's `LeaseGrant` handler meets etcd's `LeaseGrant` spec at a success fact `G`**
 (`etcd_leaseGrantHandlerOkGR` at the filter that covers every request). -/
