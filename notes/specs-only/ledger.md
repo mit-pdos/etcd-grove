@@ -4013,7 +4013,38 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** The post gives `Int.toNat actualMaxReaders - 1` slots (the loop keeps one); the rest unchanged.
 - **Decision.** Approved by the user (2026-11-21), on the condition that every caller still proves: applied, the callers'
   slot arithmetic adjusted (`NewServer`, `NewServerR`, `mvccfull`'s `runner.open`, `mvccrand`'s `runChecks`).
+## 2026-11-21: `resolver.EtcdManualResolver.Close` had no premise (prove-grpc3)
 
+- **Spec.** `resolver.EtcdManualResolver.Close.spec` (an axiom until this change), `resolver.New.spec`.
+- **Defect.** Premise `isPkgInit` only, for any `r : Loc`: `Close` is promoted from the embedded `*manual.Resolver`
+  (grpc v1.84.0 `resolver/manual/manual.go:103-105`, `r.CloseCallback()`), so a nil `r` (or one whose `Resolver` is
+  nil) panics on the field's load, and the axiom proved the call returns. False as stated; the package is
+  `internal`, so only etcd's client calls it, always on `New`'s result.
+- **Evidence.** Code reading (`client/v3/internal/resolver/resolver.go:31-41`, `manual.go:32-41,103-105`); the proof
+  over the translated code needs the field and the callback; `notes/axiom-review/grpc3-resolver-close.md`.
+- **Proposed change.** `Close` takes `etcdResolverCloser r` (half of `r.Resolver`, the manual resolver's
+  `CloseCallback` and that it returns), which `New`'s post now also gives (a strengthening); `newClient` keeps it
+  for the failed dial's `Close`. Converges to the spec plan's resolver predicates when they have a closing right.
+- **Decision.** Applied (prove-grpc3, 2026-11-21), with `New`, `SetEndpoints` and `Close` proved over the translated
+  code and `etcdResolverOwn` defined (no longer an axiom).
+
+## 2026-11-21: `lease.NewLessor`'s write-back tokens and thread bound (prove-ps2-newlessor3)
+
+- **Spec.** `lease.NewLessor.spec` (`Spec/go_etcd_io/etcd/server/v3/lease/NewLessor.lean`; a trust-boundary axiom).
+- **Defect.** Not provable over the real code: its pre gave one write-back token (`backend.wbTok d.γB`), while the
+  proved `lessor.initAndRecover.spec` takes two (`tx.Unlock()` after `UnsafeCreateLeaseBucket`, `lessor.go:814`, and
+  `b.ForceCommit()`, `:834`, whose proved `backend.ForceCommit.spec` charges one); and the forked `runLoop`'s
+  `findExpiredLeases` calls `l.expired()` → `Remaining()`, which read-locks the lease's `expiryMu` with a slot of the
+  lease's pool, which exists only under `threadBound GF ≤ 2^30 - 1` (`isLeaseObj`), a bound the pre did not give.
+- **Evidence.** `lessor.go:208-249, 640-750, 808-835`; `Spec/.../lease/lessor__initAndRecover.lean`;
+  `isLeaseObj` (`InvLessor.lean`); `/shared/tmp/ps2/newlessor/plan.md` (items 2 and 4).
+- **Proposed change.** The pre takes `ownToks d.γB.wb 2` (as `lessor.Recover.spec`) and `⌜threadBound GF ≤ 2^30 - 1⌝`
+  (as `Renew`, `Promote`, `Leases`). Rejected alternative for the tokens: a `ForceCommit.spec` that charges none (#16's
+  commit path).
+- **Decision.** Approved by the user (2026-11-21), applied: `NewServer`/`NewServerR` mint the second token from the
+  write budget's supply (`wbSupply_of_stock`, a receipt at `ReqTimeout()`'s resolution: no change to the boot's
+  `bootLeft` or to any top-level premise) and discharge the bound from theirs (`2^28`); mvccrand's `runChecks` and
+  mvccfull's `inc_open_backend` give one more token from their fresh backend's (proof-internal).
 
 ## 2026-11-21: a streamed request body's `Read` count and errors; `ReadFull` of it with `io`'s initialization (prove-http3)
 

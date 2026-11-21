@@ -22,13 +22,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- `resolver.New(eps...)` of the endpoints `eps` (read-only): a non-nil resolver, not yet
-dialed, with them (`etcdResolverOwn`). -/
+dialed, with them (`etcdResolverOwn`), and the right to close it (`etcdResolverCloser`;
+prove-grpc3, 2026-11-21, a strengthening: what the proved `Close` needs). -/
 abbrev resolver.New.spec : Prop :=
   ∀ (sl : GoSlice) (eps : List GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.internal.resolver ∗
       sl ↦*□ eps }}
     (App (Val (@! go_etcd_io.etcd.client.v3.internal.resolver.New)) (Val #sl))
-  {{ (r : Loc), RET #r; ⌜r ≠ null⌝ ∗ etcdResolverOwn r eps }}
+  {{ (r : Loc), RET #r; ⌜r ≠ null⌝ ∗ etcdResolverOwn r eps ∗ etcdResolverCloser r }}
 
 end spec
 
