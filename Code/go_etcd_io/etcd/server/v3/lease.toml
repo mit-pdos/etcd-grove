@@ -4,8 +4,8 @@
 # lessor.go, lease.go and lease_queue.go; unit 9), with bodies; (the lease-read plan, 2026-10-31)
 # `Leases` (the server's `LeaseLeases`), with its sort's `leasesByExpiry` and `Remaining`.
 # (pgaps, 2026-11-21) `scheduleCheckpointIfNeeded`, with its body (`int64(d.Seconds())`: Perennial
-# steps a float-to-integer conversion to an arbitrary integer). Names only: `Promote` (float
-# arithmetic, `sort.Sort` of the leases) and the rest (the expiry loop, ...).
+# steps a float-to-integer conversion to an arbitrary integer). Names only: the rest (the
+# expiry loop, ...).
 # Lessor is an interface (the apply thread calls its Promote), so the packages its methods'
 # signatures name are imported (Checkpointer's context and request type, Recover's backend).
 # `sync` for the struct `Lease` (its locks), whose `ID` the server's apply package reads;
@@ -28,6 +28,9 @@ translate = ["!*",
   # (prove-ps2-renew, 2026-11-21) `Renew`, with its body, and its `Lease.expired` (stepped into by
   # `Renew`'s proof): proved (its select's three receives through close-once channel invariants, `onceRecv`)
   "lessor.Renew", "Lease.expired",
+  # (prove-ps2-promote, 2026-11-21) `Promote`, with its body: proved (a fresh close-once `demotec`
+  # swapped in through `demoteOuter`; the sort of `leasesByExpiry` with the level-0 token)
+  "lessor.Promote",
   "lessor.clearScheduledLeasesCheckpoints", "lessor.clearLeaseExpiredNotifier",
   "NewLease", "Lease.persistTo", "Lease.TTL", "Lease.getRemainingTTL", "Lease.refresh",
   "Lease.forever", "Lease.Keys",

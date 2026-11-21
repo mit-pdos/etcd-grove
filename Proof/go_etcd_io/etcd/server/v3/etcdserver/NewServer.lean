@@ -1626,7 +1626,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   ihave #Hlok : lessorOk ρ.rd.kv.lg M.isOn (lease.lessorIface lp) $$ []
   · icases HM with %HM'
     rw [HM'.1]
-    iapply lessorOk_of_lessorInv h57 h58 h59 lp γl ρ.rd.kv.lg on
+    iapply lessorOk_of_lessorInv h57 h58 h59 (by omega) (le_trans Hrb (by norm_num)) lp γl ρ.rd.kv.lg on
     iframe Hlexp Hlcfg Hlinv Hlspkg
   -- (R8) the lessor's and the auth store's apply contracts at the store's backend and the frozen
   -- hook (`snap_isApplyLessor`, `snap_isAuthStore`, as the snapshot walk's)

@@ -3861,7 +3861,12 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** `Promote.spec` takes the level-0 token (`levelTok lessorLvl`, given back) and the two bounds,
   as `Leases.spec` does; the server's callers (`LessorOk.lean`'s contract, `NewServer`'s promotion on becoming
   leader) supply them. Not applied: it changes the server's lessor contract.
-- **Decision.** Open (the axiom stays).
+- **Decision.** Applied (prove-ps2-promote, 2026-11-21; heads-up on #10, no objection): `Promote.spec` takes
+  `levelTok lessorLvl` (given back) and the two bounds, and is proved over the real code (the axiom retired). The
+  server's lessor contract (`lessorOk`, InvApplier.lean) has `Promote` take the caller's `threadTok` (given back; it
+  lends level 0, `threadTok_level0`), and `lessorOk_of_lessorInv` takes the two bounds, which `NewServer`/`NewServerR`
+  give from theirs (`threadBound GF ≤ 2^28`, `receiptBound GF ≤ 2^48`); the apply thread's `applyEntryNormal` pays
+  the token from its `srvGoRes`. No spec of the server changes.
 
 ## 2026-11-21: the lessor's `demotec` and stop channels get ghost state (prove-ps2-lease)
 
