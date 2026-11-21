@@ -237,6 +237,20 @@ For upamanyus:
   prefix of the nodes, as `DistCrashNsteps` already has).
 - **U5** `idIssueExt` in the bundle with the net and file extensions; its record across a crash.
 
+**upamanyus's answers (etcd-grove#24, 2026-11-21 22:19Z):**
+- **U1:** yes, S4's shape.
+  - Keep the exact address spellings: clients dial exactly the `a.b.c.d:p` their member listens on.
+  - Reuse `Net/Statement/KitDeploy.lean`'s `NetStart`/`ServerStart` definitions rather than restating them, so `KitBridge` applies.
+  - A restarted member's `Listen` on the same address is allowed: net v3.4's `crash_init` drops listeners and cuts connections.
+- **U2:** S1 makes the gRPC model call the stats handler, with differential tests. `grpcStatsHandlerOk` becomes proved of otelgrpc's handler.
+- **U3:** no cmux; keep plain `grpc.Server.Serve`.
+- **U4:** the mixed adequacy already exists in Perennial at `d648cfe22`: `goose_dist_mixed_crash_adequacy` (`GooseLang/DistAdequacy.lean:852`) and `_init` (`InitAdequacy.lean:196`).
+  - Missing: our bridge to `Robust crashing stable`. `robust_of_kitBoot` covers the all-stable case only.
+  - kvnet's claim #22 is building the crashing bridge for `[netExt, fsExt]` (`GooseLang/Ext/NetFs/Adequacy.lean`). **D3 extends that; coordinate on #22.**
+- **U5:** nothing from the transport side; the extensions need only commute with the net extension's per-machine crash semantics.
+- **Extra:** rafthttp's client uses `http.ProxyFromEnvironment`, and S5 treats a non-nil proxy as `NotModelled`, so Q10's `clearProxyEnv` is what it needs. The environment as machine-local state is an `os` model question: entry for `notes/perennial-changes.md`.
+- **Order:** `v3rpc.Server` with one keepalive option (S1), then `Serve` (S2); the raft handler's `http.Server.Serve` is S5's server side.
+
 ## 9. Staged path (rough sizes)
 
 | Stage | Work | Size | Depends on |
@@ -244,7 +258,7 @@ For upamanyus:
 | D0 | this draft; reviews; decisions Q1-Q10 | — | — |
 | D1 Go | split each driver into start + `Run(eps, …)`; the two mains; a harness test with `examples/lib/robust` (namespaces, kills, power losses, partitions) over random deployments; audit every check against #24's error rules | 1-2 sessions | — |
 | D2 translation | goose projects for `server` and `client`; `Init`/`PkgTable`; the main tree's `net` becomes the part's | days | phase 7 S0, S4 |
-| D3 mixed adequacy | Perennial: crashing + stable machines; a bridge as `KitBridge` | ~1k lines | — |
+| D3 mixed adequacy | the bridge from Perennial's `goose_dist_mixed_crash_adequacy` (exists) to `Robust crashing stable`, extending #22's `[netExt, fsExt]` bridge | smaller than ~1k lines | #22 |
 | D4 bundle | `[net, fs at etcdFsSem, idIssue]` adequacy and crash interpretation; the issue record keyed by incarnation; shared-mode generations | ~1k lines | wal-safe (b) |
 | D5 transport | phase 7 S1-S5 | 60-110k lines (option B's estimate) | upamanyus |
 | D6 server | one `NewServer` spec for both starts; `walFoRes`; C6; the backend after a crash; `TrustBoundary` discharged | weeks | D4 |
