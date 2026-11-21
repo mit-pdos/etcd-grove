@@ -3369,3 +3369,27 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   limiter does not keep, and no method writes `ok`/`timeToAct`, x/time/rate v0.16.0 `rate.go:162-230`);
   `Wait`'s takes the mutex (true: every method takes `lim.mu` before touching the fields).
 - **Decision.** Applied (prove-smalllibs, 2026-11-20).
+
+## 2026-11-20: `fmt.SprintfClientPtr` admits any directive for a `*clientv3.Client` (prove-reflectfmt)
+
+- **Spec.** `fmt.SprintfClientPtr.spec` (`Spec/fmt/SprintfClientPtr.lean`), a trust-boundary axiom.
+- **Defect.** False as stated: any format, the client unowned. Under `%v`/`%s` (or as an `EXTRA`) Go prints a pointer to a
+  struct by its fields (`fmt/print.go:902-911`), reading `*c` and calling the `String`/`Error` of its exported fields'
+  values (`print.go:756-763`); only `%p` (`print.go:686-693`) reads nothing.
+- **Evidence.** Code reading of go1.27.3; `examples/axiomcx/sprintfclientptr` (a real `Client` whose `KV` has a
+  `String()`); `notes/axiom-review/sprintfclientptr.md`.
+- **Proposed change.** A directive-aware premise, `fmt.SprintfClientArgsOk format xs`: the directives parse and a
+  `*Client` argument is consumed by a `%p` (none left over as an `EXTRA`). The one caller (`Client.dial`, `"%s://%p/%s"`)
+  discharges it.
+- **Decision.** Applied (prove-reflectfmt, 2026-11-20; a strengthening of the premise, the caller's obligation discharged).
+
+## 2026-11-20: `encoding.json.Unmarshal` gives back the caller's slices as fresh (prove-reflectfmt)
+
+- **Spec.** `encoding.json.Unmarshal.spec` (`Spec/encoding/json/Unmarshal.lean`), a trust-boundary axiom.
+- **Defect.** False as stated: for any `p ↦ v` the post owns the decoded `PeerURLs`/`ClientURLs` in full, but
+  `encoding/json` decodes into the field's existing slice, reusing its backing array (`decode.go:553-556`): a non-nil
+  `v.PeerURLs` the caller still owns comes back aliased, two full points-tos of one cell.
+- **Evidence.** Code reading of go1.27.3; `examples/axiomcx/jsonunmarshalalias`; `notes/axiom-review/json-unmarshal-alias.md`.
+- **Proposed change.** Premise: both URL slices of `v` are `nil`. Both callers decode into `new(ConfigChangeContext)`
+  and discharge it by `rfl`.
+- **Decision.** Applied (prove-reflectfmt, 2026-11-20; a strengthening of the premise, the callers' obligation discharged).

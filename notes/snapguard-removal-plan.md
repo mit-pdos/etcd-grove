@@ -22,6 +22,27 @@ outbox invariant and the election certificate from the protocol message.
 The remaining comparison needs the term of the *local restore* and the
 position of the Ready batch in the apply thread.
 
+## Incoming snapshot source at Ready (2026-11-20)
+
+Both Step paths retain the protocol message on a successful restore. Its
+snapshot index and log term match the pending snapshot, and its sender differs
+from the receiver. The Ready contract carries this evidence to the server via
+`nodeRestoreSource`. The next obligation is to order the restore relative to
+the Ready batches already applied when the server consumes the outgoing message.
+
+## Queued snapshot provenance (2026-11-20)
+
+The unstable branch of `raftLog.snapshot` returns a snapshot in the node's
+`LogState.ksn`. The outgoing message now carries that membership from
+`raft.maybeSendSnapshot` through both message queues to
+`RawNode.readyWithoutAccept`. The storage branch retains the storage
+certificate supplied at startup. A successful restore appends to `ksn`, so
+later log updates preserve the queued evidence.
+
+The remaining step is to associate each member of that list with its
+successful incoming Step and to compare its term and index to the Ready
+already processed by the server.
+
 ## HANDOFF (2026-11-20, first session paused by the coordinator)
 
 **Done** (branch `prove-nosnapguard/2026-11-20`, worktree `/shared/etcd-grove-wt/prove-nosnapguard`, off
@@ -149,7 +170,7 @@ raft client instantiates, `RaftTla`'s generated copies) and raft's send path pro
 `InvRaftNode`/`InvRaftLoop`/`InvApplyAll`, the raft goroutine's proof (`raftNode.start`) and
 `applyAll`. Estimated several sessions; it was option (D) of the 2026-10-31 decision ("term-tagged ghost
 state across the raft loop, the storage and the apply thread"), plus (A) (a raft API law on where a
-`MsgSnap`'s snapshot comes from). Not started: waiting for the user's go-ahead on the API change.
+`MsgSnap`'s snapshot comes from). The user approved the API change on 2026-11-20. See the completed stages above.
 
 Not an alternative: weakening `sentMsg_replaceSnapshot`'s premise to the leader log's base of `T`
 (`isMessage_snap_recontent` uses `m.index <= ai` only to put `ai` above that base): bounding that base
