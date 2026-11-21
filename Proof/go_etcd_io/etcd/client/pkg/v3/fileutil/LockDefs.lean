@@ -92,6 +92,28 @@ def fileutil.lockPost {X : Type} (A : X → Bool → IProp GF) (C : X → Ino �
         osFd fd (DFrac.own 1) (fileutil.lkFd k i flag) ∗ osLock k i fd ∗ fileutil.lockKind k) ∨
     (⌜err ≠ interface.nil ∧ lf = null⌝ ∗ ∃ b : Bool, A x b))
 
+/-- `lockPost`, a failed lock witnessed by `W` (wal-fsfix2): on an error after the open succeeded (`b`),
+`W` (`LockFile`'s blocking request: `¬ FsNoErrIno`, the file system can fail on every file). -/
+def fileutil.lockPostW {X : Type} (W : Prop) (A : X → Bool → IProp GF) (C : X → Ino → Prop)
+    (path : GoString) (flag : w64) (lf : Loc) (err : GoInterface) : IProp GF :=
+  iprop(∃ x : X,
+    (⌜err = interface.nil⌝ ∗ A x true ∗ ∃ (f : Loc) (fd : w64) (i : Ino) (k : LockKind),
+        ⌜0 ≤ fd.toInt ∧ C x i⌝ ∗
+        fileutil.lockedFile lf f ∗ os.ownFile f fd path (DFrac.own 1) ∗ os.ownOff f (W64 0) ∗
+        osFd fd (DFrac.own 1) (fileutil.lkFd k i flag) ∗ osLock k i fd ∗ fileutil.lockKind k) ∨
+    (⌜err ≠ interface.nil ∧ lf = null⌝ ∗ ∃ b : Bool, A x b ∗ ⌜b = true → W⌝))
+
+/-- `lockPostW` without its witness. -/
+theorem fileutil.lockPost_of_W {X : Type} (W : Prop) (A : X → Bool → IProp GF) (C : X → Ino → Prop)
+    (path : GoString) (flag : w64) (lf : Loc) (err : GoInterface) :
+    fileutil.lockPostW W A C path flag lf err ⊢ fileutil.lockPost A C path flag lf err := by
+  unfold fileutil.lockPostW fileutil.lockPost
+  iintro ⟨%x, (⟨%h, HA, Hr⟩ | ⟨%h, %b, HA, -⟩)⟩
+  · iexists x; ileft; iframe; ipureintro; exact h
+  · iexists x; iright; isplitr
+    · ipureintro; exact h
+    iexists b; iexact HA
+
 /-- What an exclusive lock of an fd just opened leaves: on success, the fd locked (`lkFd`) and the
 lock's token; on failure, the fd as opened, with no lock (its tokens `emp`, for its `Close`). -/
 theorem fileutil.lockOut_split (k : LockKind) (fd : w64) (i : Ino) (flag : w64) (e : w64) :

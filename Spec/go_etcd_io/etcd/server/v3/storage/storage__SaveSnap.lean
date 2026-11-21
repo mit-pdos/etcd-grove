@@ -28,7 +28,7 @@ variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.Assumptions]
-variable {Sio : IoSet} [FsStepSat (NoIoErr Sio)]
+variable {Sio : IoSet} [FsStepSat (NoIoErr Sio)] [FsStepSat (NoMapLockErr Sio)]
 
 /-- **`st.SaveSnap(snap)`** of the storage `p` over the WAL `w`, with a reader token (given back):
 `snap.Metadata` frozen at content `m` (raft's `metaRoC`), its `Index` and `Term` set; the record
@@ -44,6 +44,7 @@ abbrev storage.storage.SaveSnap.spec (P : WalPbIn GF) (Mr : WalMarshal) : Prop :
       sn.[raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ metaRoC mp m ∗
       ⌜m.index.isSome ∧ m.term.isSome⌝ ∗ ⌜snapEnc (metaWalC m) = Mr.encSnap m.model al⌝ ∗
       WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWS Sio P Mr w dir γ q ∗ ⌜walCov Sio ∨ q = 1⌝ ∗
+      ⌜walCov Sio → DirFits dir ∧ ∀ b, Sio.path (child dir b)⌝ ∗
       ⌜m.model.Index' = W64 0 ∨ m.confState.isSome = true⌝ ∗ ⌜uint.nat m.model.Index' < 2 ^ 64 - 1⌝ ∗
       ⌜(Mr.encSnap m.model al).length < 2 ^ 40⌝ ∗
       AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅

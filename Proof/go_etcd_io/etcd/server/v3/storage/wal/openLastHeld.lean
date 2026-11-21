@@ -105,6 +105,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openLast.wp_specHeld [os.file.Fiel
         hbok hbN hbi) (by decide)
     $$ [Hpd Hj Hperm] as %lf %err Hpost
   · iframe; iframe #
+  ihave Hpost := fileutil.lockPost_of_W _ _ _ _ _ _ _ $$ Hpost
   icases fileutil.lockPost_held (X := Unit)
       (fun _ _ => iprop(osPathS (GF := GF) R dir (DFrac.own qd) j ∗ osNames j (.except X) dqn hj ∗
         osCallPerm (callKey R dir) 1))

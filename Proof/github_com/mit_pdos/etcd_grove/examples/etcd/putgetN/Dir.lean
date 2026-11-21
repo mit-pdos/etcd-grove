@@ -230,6 +230,16 @@ theorem startOf_names (ms : List GMember) : (startOf ms).map (·.1) = ms.map (·
   | nil => rfl
   | cons m r => simp [startOf, Function.comp_def]
 
+/-- (wal-fsfix2) The start bundles' names are at most 200 bytes (`etcd_adequate_members`' `hmsL`). -/
+theorem startAddrs_names_len (k : Nat) : ∀ m ∈ startAddrs k, m.1.length ≤ 200 := by
+  intro m hm
+  obtain ⟨x, hx, rfl⟩ := List.mem_map.1 hm
+  have h1 : x.1 ∈ (startOf (members k)).map (·.1) := List.mem_map_of_mem hx
+  rw [startOf_names] at h1
+  obtain ⟨y, hy, hxy⟩ := List.mem_map.1 h1
+  show x.1.length ≤ 200
+  rw [← hxy]; exact members_names_len k y hy
+
 theorem flat_none (r : List GMember) :
     ((r.map (fun m => (m.Name', m.Peer', (none : Option GoString)))).map
       (fun m => (m.1, (⟨some m.2.1, m.2.2⟩ : MemberAddrs)))).flatMap (fun m => m.2.addrs) =
