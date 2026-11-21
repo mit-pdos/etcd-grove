@@ -17,7 +17,6 @@ axiom entryEncC_ok
 axiom fmt.ErrorfStrs.wp_proof
 axiom fmt.SprintfWalName.wp_proof
 axiom fmt.SscanfWalName.wp_proof
-axiom io.ReadFull.wp_proof
 axiom pbRecordC_reg
 axiom pbSnapC_reg
 axiom proto.ClonePb.wp_proof

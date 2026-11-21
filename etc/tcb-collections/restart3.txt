@@ -117,10 +117,6 @@ axiom http.CloseIdleConnections_ok
 axiom http.Error_ok
 axiom http.Flush_ok
 axiom http.Handle_ok
-axiom http.HeaderGetOwnPtr_ok
-axiom http.HeaderGetPtr_ok
-axiom http.HeaderSetPtr_ok
-axiom http.HeaderSet_ok
 axiom http.NewRequest_ok
 axiom http.NewServeMux_ok
 axiom http.ReadAll_any_ok
