@@ -7,6 +7,7 @@ module
 
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.LawProofsStage
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.LawProofsM1
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.LawProofsMergeSize
 
 @[expose] public section
 

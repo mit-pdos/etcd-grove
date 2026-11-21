@@ -93,9 +93,11 @@ def afterUpdate_sorted.law : Prop :=
 /-! ## The workload premise (D9) and `RemoveItems`' conformance (D10 (b)), the Draft's integration
 (2026-11-19): what the stages' premises follow from -/
 
-/-- Merging adds no node beyond the two sides'. -/
+/-- Merging adds no node beyond the two sides' (conforming sides of a schema in scope: without
+conformance an associative list repeating a key merges that key's item more than once; premises
+added in Prove, 2026-11-21, no user yet). -/
 def merge_size.law : Prop :=
-  ∀ S t l r, (merge S t l r).size ≤ l.size + r.size
+  ∀ S t l r, S.WF → conforms S t l → conforms S t r → (merge S t l r).size ≤ l.size + r.size
 /-- Removing paths adds no node. -/
 def removeItems_size.law : Prop :=
   ∀ S t x R, (removeItems S t x R).size ≤ x.size
