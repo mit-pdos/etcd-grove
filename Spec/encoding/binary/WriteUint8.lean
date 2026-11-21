@@ -1,6 +1,6 @@
 /-
 `binary.Write(w, binary.BigEndian, v)` of a value whose underlying type is `uint8`: the trust
-boundary (names-only in Perennial), stated over `w`'s `Write`. Lean-first.
+boundary (`Write`'s reflection path, untranslatable), stated over `w`'s `Write`. Lean-first.
 -/
 module
 
@@ -23,7 +23,11 @@ variable [sem : go.Semantics]
 
 /-- `binary.Write(w, binary.BigEndian, v)` of a value of a type `t` whose underlying type is `uint8`
 (the msgappv2 encoder's frame tag, a `msgAppV2Type`) makes one `w.Write` of a fresh slice of the byte
-and returns that call's error (Go 1.27 `binary.go`, `Write`'s fast path). -/
+and returns that call's error. For a named `t` (the frame tag) this is `Write`'s reflection path,
+not its fast path: `intDataSize`'s type switch matches `uint8` itself only, so `Write` computes
+`dataSize` (1) through `reflect`, encodes the byte with `encoder.value` (a `reflect.Uint8` kind) and
+makes the one `w.Write(buf)` (`binary.go`, `Write`). Hence still the trust boundary, where
+`binary.Write` of a `uint64` is proved (`Proof/encoding/binary/WriteUint64.lean`). -/
 abbrev binary.WriteUint8.spec : Prop :=
   ∀ (t : go.GoType) [t ↓u go.uint8] (wi : GoInterfaceOk) (v : w8) (P : IProp GF)
     (Q : w64 → GoInterface → IProp GF),

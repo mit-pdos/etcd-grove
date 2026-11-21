@@ -12,10 +12,10 @@ module
 public import Proof.go_etcd_io.bbolt.PkgInit
 public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.math.Link
+public import Perennial.Proof.reflect.Link
 public import Perennial.Proof.sort.Link
 public import Perennial.Proof.unsafe.Link
 public import Proof.go_etcd_io.bbolt.internal.common.Init
-public import Proof.reflect.Init
 
 @[expose] public section
 

@@ -88,7 +88,7 @@ theorem reg_register (γ : BNames) (P : BParams) (W Pk : IProp GF) (qo : Qp) (R 
   iunfold cmtInv at Hinv
   iinv Hinv with Hb Hclose
   iunfold cmtBody at Hb
-  icases Hb with (⟨%Dc, >Hh, Hregs⟩ | >#Hst)
+  icases Hb with (⟨%Dc, >Hh, #Hfk0, Hregs⟩ | >#Hst)
   rotate_left
   · iexfalso
     iapply bOpen_stopped γ qo $$ [$Hopen $Hst]
@@ -107,7 +107,7 @@ theorem reg_register (γ : BNames) (P : BParams) (W Pk : IProp GF) (qo : Qp) (R 
     iunfold cmtBody
     ileft
     iexists Dc
-    iframe Hh
+    iframe Hh Hfk0
     iunfold cmtRegs
     iexists gm, gc, c, M.insert i (γR, γΨ, c)
     iframe Hn Hc Hm

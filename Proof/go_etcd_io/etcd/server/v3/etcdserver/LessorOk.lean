@@ -7,8 +7,10 @@ lessor (2026-10-13, unit 9 of the backend). Lean-first (no Rocq counterpart); se
 `expiredC` at the server's grant guard, `lease.lessorExpiredC`, D19n, the lease-grant plan's D1)
 meets `lessorOk` at that guard,
 from the specs of `Promote` and
-`Demote` (trust-boundary axioms: float arithmetic, a float-to-integer conversion and `sort.Sort`;
-the close of `demotec`) and the proof of `ExpiredLeasesC`.
+`Demote` (both proved: `Demote` since prove-ps2-lease, `Promote` since prove-ps2-promote, 2026-11-21)
+and the proof of `ExpiredLeasesC`. (prove-ps2-promote) `Promote` takes the level-0 token, which
+the contract's caller pays from its thread token, and the bounds `threadBound GF ≤ 2^30 - 1`,
+`receiptBound GF ≤ 2^62`, which the server's construction gives (`2^28`, `2^48`).
 -/
 module
 
@@ -78,6 +80,7 @@ theorem lessorOk_of_lessorInv
     (hPromote : lease.lessor.Promote.spec (GF := GF) (hG := hG))
     (hDemote : lease.lessor.Demote.spec (GF := GF) (hG := hG))
     (hExp : lease.lessor.ExpiredLeasesC.spec (GF := GF) (hG := hG))
+    (hb : threadBound GF ≤ 2 ^ 30 - 1) (hr : receiptBound GF ≤ 2 ^ 62)
     (lp : Loc) (γl : GName) (lg on : Bool) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
       lease.lessorInv lp γl ∗ lease.lessorCfg lp ∗ lease.lessorExpiredC lp (srvGrantGuard lg on) ⊢
@@ -88,9 +91,15 @@ theorem lessorOk_of_lessorInv
   isplitr
   · ipureintro; rfl
   isplitr
-  · iintro !> %d %Φ !> - HΦ
-    iapply (hPromote lp γl d) $$ [] HΦ
-    iframe #
+  · iintro !> %d %Φ !> Htt HΦ
+    icases (threadTok_level0 (GF := GF)).1 $$ Htt with ⟨H0, Htt⟩
+    iapply (hPromote lp γl d) $$ [H0]
+    · iframe #; iframe H0; ipureintro; exact ⟨hb, hr⟩
+    inext
+    iintro H0
+    iapply HΦ
+    iapply (threadTok_level0 (GF := GF)).2
+    iframe
   isplitr
   · iintro !> %Φ !> - HΦ
     iapply (hDemote lp γl) $$ [] HΦ

@@ -496,9 +496,13 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   (try wp_auto)
   -- the configuration, field by field from here on
   iStructNamed cfg
-  ihave %HcuNN := typedPointsto_not_null _ _ _ $$ ClientURLs
-  wp_apply h13 as %cus -
-  · ipureintro; exact HcuNN
+  -- (prove-ps2-misc, 2026-11-21) the field and the URLs, read-only (`bootCfgRO`)
+  ihave #HcU : cfg.ClientURLs' ↦*□ U.client $$ []
+  · iunfold bootCfgRO at Hcfgro
+    icases Hcfgro with ⟨-, #H, -⟩
+    iexact H
+  wp_apply h13 $$ [ClientURLs] as %cus ⟨ClientURLs, -⟩
+  · iframe ClientURLs; iframe #
   (try wp_auto)
   -- the request ids' generator, the notifiers
   ihave #Hipkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.idutil $$ []
@@ -599,9 +603,11 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   icases Hfg' with ⟨%fgi, %Hfgi, #Hen⟩
   rw [Hfgi]
   (try wp_auto)
-  wp_apply Hen $$ [] as %ckpp -
+  wp_apply +noauto Hen $$ [] as %ckpp -
   · ipureintro; simp [serverFeatures]
-  (try wp_auto)
+  -- (prove-ps2-newlessor3) a time receipt, at the resolution of `srv.Cfg.ReqTimeout()`, for
+  -- `NewLessor`'s second write-back token, of the write budget's stock (`wbSupply_of_stock`)
+  wp_take_receipt as Hrk0
   wp_apply h20 $$ [] as %reqto -
   · iframe TickMsS ElectionTicksS
   (try wp_auto)
@@ -665,6 +671,15 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · iExactEq Hwb; rfl
   rw [show (5 : Nat) = 1 + 4 from rfl]
   icases (ownToks_add 4 1 d.γB.wb).1 $$ Hwb with ⟨Hwl, Hwb⟩
+  -- (prove-ps2-newlessor3) `NewLessor`'s second write-back token, from the write budget's stock
+  ihave #HpoolA := HWBp $$ %({ E₀ with γbe := γbe } : apply.AEnv GF) []
+  · ipureintro; rfl
+  ihave #Hsup := wbSupply_of_stock ({ E₀ with γbe := γbe } : apply.AEnv GF) γp
+    ({ d with cm := true } : mvcc.KBReal) $$ [$HpoolA $Hstock]
+  imod Hsup $$ Hrk0 with Hwk0
+  ihave Hwl : ownToks d.γB.wb 2 $$ [Hwl Hwk0]
+  · iunfold backend.wbTok at Hwk0
+    iapply (ownToks_add 1 1 d.γB.wb).2; iframe Hwl Hwk0
   -- `lease.NewLessor`
   rw [Hbe0]
   -- the grant guard `srvGrantGuard` at the cluster's lease mode and the auth mode (D19n; the
@@ -685,14 +700,15 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     $$ [Hopen Hwl Hrbo]
     as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlmode, #Hlcfg, -, #Hlexp, #Hlgd, Hlrd, Hlown, HlWt, HlEv, Hlrvk, Hro, HleOn, #Hlbe, Hlstop, -, -, #Hllk'⟩
   · iframe HB Hclok
-    unfold backend.wbTok
     -- (2026-11-02, the backend-auth-split stage) at every bucket: `rbOwn` is `rbPart ⊤`, and the
     -- lessor gives the boot its tracked buckets idle (`rbOwnIn ⊤`)
     iunfold backend.rbOwn at Hrbo
     iframe Hopen Hwl Hrbo
     isplitr; · iright; iexact Hzlg
     isplitr; · ipureintro; simp
-    imodintro; rw [List.map_nil]; iapply BigSepL.bigSepL_nil.2; itrivial
+    isplitr
+    · imodintro; rw [List.map_nil]; iapply BigSepL.bigSepL_nil.2; itrivial
+    ipureintro; exact Nat.le_trans Hbnd (by decide)
   rw [List.map_nil]
   ihave Hrbo : backend.rbOwnIn d.γB (fun _ => True) ((backend.rbData d.P D).insert go!"lease" ∅)
     $$ [Hrbo]
@@ -820,7 +836,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · iPkgInit
   ihave #Hisl := lease.isLessor_of_lessorInv h49 h50 h51 h52 lp γl $$ [$Hlspkg $Hlinv]
   -- the lessor's reader slots: one for the store, one for the apply thread's lease owner (D14i)
-  icases replicate_take1 _ _ hM1 $$ Hlrd with ⟨Hlrd, Hlrds⟩
+  icases replicate_take1 _ _ (by omega) $$ Hlrd with ⟨Hlrd, Hlrds⟩
   icases replicate_take1 _ _ (by omega) $$ Hlrds with ⟨Hlrd2, Hlrds⟩
   -- (the lease-src plan) the rest in the lessor's reader pool, which the lease service's calls
   -- borrow from with their thread tokens (`threadBound GF ≤ 2 ^ 28`)
@@ -901,10 +917,6 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   wp_take_receipt as Hrk1
   wp_apply +noauto h29 as %ab ⟨%abl, %Hab, #Hablg, #Habbe⟩
   wp_take_receipt as Hrk2
-  ihave #HpoolA := HWBp $$ %({ E₀ with γbe := γbe } : apply.AEnv GF) []
-  · ipureintro; rfl
-  ihave #Hsup := wbSupply_of_stock ({ E₀ with γbe := γbe } : apply.AEnv GF) γp
-    ({ d with cm := true } : mvcc.KBReal) $$ [$HpoolA $Hstock]
   imod Hsup $$ Hrk1 with Hwk1
   imod Hsup $$ Hrk2 with Hwk2
   ihave Hwk1 : backend.wbTok d.γB $$ [Hwk1]
@@ -1619,10 +1631,13 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   iNamedPrefix Hrn' "N"
   -- the lessor
   -- (the lease-expiry plan's X4) at the environment's grant flag and auth mode (`M.isOn = on`)
+  -- (prove-ps2-promote) the bounds `Promote`'s sort needs, from the construction's
+  have Hb30 : threadBound GF ≤ 2 ^ 30 - 1 := by omega
+  have Hr62 : receiptBound GF ≤ 2 ^ 62 := Nat.le_trans Hrb (Nat.pow_le_pow_right (by decide) (by decide))
   ihave #Hlok : lessorOk ρ.rd.kv.lg M.isOn (lease.lessorIface lp) $$ []
   · icases HM with %HM'
     rw [HM'.1]
-    iapply lessorOk_of_lessorInv h57 h58 h59 lp γl ρ.rd.kv.lg on
+    iapply lessorOk_of_lessorInv h57 h58 h59 Hb30 Hr62 lp γl ρ.rd.kv.lg on
     iframe Hlexp Hlcfg Hlinv Hlspkg
   -- (R8) the lessor's and the auth store's apply contracts at the store's backend and the frozen
   -- hook (`snap_isApplyLessor`, `snap_isAuthStore`, as the snapshot walk's)

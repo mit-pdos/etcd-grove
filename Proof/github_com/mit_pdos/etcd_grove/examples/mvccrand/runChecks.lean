@@ -114,19 +114,19 @@ theorem runChecks.wp_proof
   (try wp_auto)
   -- the store's part of the backend opened; the client's rest
   have hRB : receiptBound GF ≤ 2 ^ 38 := ReceiptBoundLe.le (2 ^ 38)
-  have hm : receiptBound GF + (sint.nat cfg.Ops' + 2) + 2 ≤ backend.wbInit := by
+  have hm : receiptBound GF + (sint.nat cfg.Ops' + 3) + 2 ≤ backend.wbInit := by
     unfold backend.wbInit
     have : sint.nat cfg.Ops' = (sint.Z cfg.Ops').toNat := rfl
     omega
-  imod rc_open hfresh hopen hrest hCR γB b gx bc.BatchLimit' (sint.nat cfg.Ops' + 2) hm
+  imod rc_open hfresh hopen hrest hCR γB b gx bc.BatchLimit' (sint.nat cfg.Ops' + 3) hm
     $$ [Hreg Hnew] with Hbk
   · iframe Hreg Hnew
   iunfold rcBk at Hbk
   icases Hbk with ⟨Hsf, #Hisb, Hhk, Hrbo, Hoh, Hor, Hrt, Hwm, #Hsc, Hcen⟩
-  icases ownToks_add_1 2 (sint.nat cfg.Ops') γB.wb $$ Hwm with ⟨Hwops, Hw2⟩
-  icases ownToks_add_1 1 1 γB.wb $$ Hw2 with ⟨Hw1, Hw1'⟩
-  ihave Hw1 : backend.wbTok (GF := GF) γB $$ [Hw1]
-  · unfold backend.wbTok; iexact Hw1
+  -- (prove-ps2-newlessor3) two for `NewLessor` (`initAndRecover`'s `Unlock` and `ForceCommit`), one
+  -- for the later hook call
+  icases ownToks_add_1 3 (sint.nat cfg.Ops') γB.wb $$ Hwm with ⟨Hwops, Hw2⟩
+  icases ownToks_add_1 1 2 γB.wb $$ Hw2 with ⟨Hw1, Hw1'⟩
   ihave Hw1' : backend.wbTok (GF := GF) γB $$ [Hw1']
   · unfold backend.wbTok; iexact Hw1'
   -- `lease.NewLessor(lg, be, noCluster{}, …)`
@@ -159,14 +159,17 @@ theorem runChecks.wp_proof
     · ipureintro; simp only; exact Int.le_refl _
     isplitl [Hrbo]
     · iunfold backend.rbOwn at Hrbo; iexact Hrbo
-    imodintro; rw [List.map_nil]; iapply BigSepL.bigSepL_nil.2; itrivial
+    isplitr
+    · imodintro; rw [List.map_nil]; iapply BigSepL.bigSepL_nil.2; itrivial
+    ipureintro; exact ThreadBoundLe.le_of (2 ^ 29) (by decide)
   try rw [hLe]
   rw [List.map_nil]
   (try wp_auto)
   subst Hl
   -- two of the lessor's reader slots: the store's, the writer's
-  obtain ⟨nl, hnl⟩ : ∃ nl, Int.toNat sync.rwmutex.actualMaxReaders = 2 + nl :=
-    ⟨Int.toNat sync.rwmutex.actualMaxReaders - 2, by have := sync.actualMaxReaders_ge_2; omega⟩
+  -- (prove-ps2-newlessor, 2026-11-21) all but `runLoop`'s
+  obtain ⟨nl, hnl⟩ : ∃ nl, Int.toNat sync.rwmutex.actualMaxReaders - 1 = 2 + nl :=
+    ⟨Int.toNat sync.rwmutex.actualMaxReaders - 3, by rw [sync.rwmutex.actualMaxReaders_unseal]; decide⟩
   rw [hnl]
   icases (backend.bigSepL_replicate_add _ 2 nl).1 $$ Hlrds with ⟨Hlrd2, -⟩
   rw [List.replicate_succ, List.replicate_one]

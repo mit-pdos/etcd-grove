@@ -10,6 +10,11 @@ slices, maps and pointers only (`Golang/Defn`), so the Go expression `sync.Mutex
 Perennial's model leaves unspecified. The general fix belongs in Perennial (an empty composite
 literal of a type whose underlying type is not a struct is its zero value), recorded in
 `notes/STATUS.md` (item 6).
+
+**Unused, and false, since Perennial d648cfe22** (2026-11-21): `sync.Mutex` is now a struct over a
+trusted `internal/sync.Mutex`, so `sync.Mutex{}` steps through the struct rules (`newBackend`'s
+proof no longer applies this axiom) and returns a struct value, not `#false`. Left for etcd-grove#16
+to delete.
 -/
 module
 

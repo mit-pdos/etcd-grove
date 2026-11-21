@@ -35,6 +35,10 @@ theorem backend.fkOk_create {P : backend.BParams} {st : backend.BSess} {bi : bac
 theorem backend.fkOk_wb {P : backend.BParams} {st : backend.BSess} (f : Nat) (w : Bool) (h :
     backend.fkOk P f w st) : backend.fkOk P f w (backend.wbSt P st)
 
+theorem backend.fkOkRvG_empty {P : backend.BParams} {f : Nat} {g : backend.FkG} {C : backend.Data}
+    {R : backend.RBuf} (v : w64) (h : backend.fkOkRvG P f g (C, R)) : backend.fkOkRvG P f g (C, {
+    bks := ∅, ver := v })
+
 theorem backend.fkAbsSt_setHw {P : backend.BParams} {st : backend.BSess} (x : Bool) (h :
     backend.fkAbsSt P st) : backend.fkAbsSt P (st.setHw x)
 

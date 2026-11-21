@@ -5,7 +5,7 @@ public import GeneratedProof.k8s_io.apimachinery.pkg.runtime
 public import SpecPlan.Spec.PkgInit.Base
 public import Perennial.Proof.bytes.Base
 public import Perennial.Proof.io.Base
-public import SpecPlan.Spec.PkgInit.reflect
+public import Perennial.Proof.reflect.Base
 public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.runtime.schema
 public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.conversion
 

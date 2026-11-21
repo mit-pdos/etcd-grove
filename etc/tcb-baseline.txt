@@ -5,7 +5,6 @@ axiom Client.roundRobinQuorumBackoff.wp_proof
 axiom Client.streamClientInterceptor.wp_proof
 axiom DescribeConfChange.wp_proof
 axiom EtcdServer.adjustTicks.wp_proof
-axiom EtcdServer.ensureLeadership.wp_proof
 axiom EtcdServer.leaseTimeToLive.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
@@ -51,7 +50,6 @@ axiom Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.opaqueInitsOk
 axiom Perennial.go_opentelemetry_io.otel.attribute.opaqueInitsOk
 axiom Perennial.go_opentelemetry_io.otel.trace.opaqueInitsOk
-axiom Perennial.golang_org.x.crypto.bcrypt.opaqueInitsOk
 axiom Perennial.golang_org.x.sys.unix.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.codes.initFuncsOk
 axiom Perennial.google_golang_org.grpc.credentials.opaqueInitsOk
@@ -95,7 +93,6 @@ axiom Perennial.net.http.opaqueInitsOk
 axiom Perennial.net.opaqueInitsOk
 axiom Perennial.net.url.opaqueInitsOk
 axiom Perennial.path.filepath.opaqueInitsOk
-axiom Perennial.reflect.opaqueInitsOk
 axiom Perennial.runtime.GOARCH_amd64
 axiom Perennial.runtime.GOOS_linux
 axiom Perennial.runtime.initFuncsOk
@@ -114,19 +111,12 @@ axiom appsv1.Resource.wp_proof
 axiom audit.GetAuditIDTruncated.wp_proof
 axiom auth.NewAuthStore.wp_proof
 axiom auth.authStore.AuthInfoFromTLS.wp_proof
-axiom auth.authStore.selectPassword.wp_proof
 axiom auth.newTokenProviderJWT.wp_proof
 axiom auth.redactToken.wp_proof
-axiom auth.tokenSimple.genTokenPrefix.wp_proof
-axiom backend.backend.Snapshot.wp_proof
 axiom backend.newBoltLoggerZap.wp_proof
-axiom backend.wp_mutexLit
 axiom bbolt.Options.String.wp_proof
 axiom bcrypt.CompareHashAndPassword.wp_proof
 axiom bcrypt.GenerateFromPassword.wp_proof
-axiom binary.ReadInt64LE.wp_proof
-axiom binary.ReadUint64.wp_proof
-axiom binary.WriteUint64.wp_proof
 axiom binary.WriteUint8.wp_proof
 axiom bridge.New.wp_proof
 axiom bridge.bridge.Blackhole.wp_proof
@@ -164,7 +154,6 @@ axiom errors.AsNoMatch.wp_proof
 axiom errors.IsCtxErr.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof
 axiom errors.IsStatusErr.wp_proof
-axiom etcdResolverOwn
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
 axiom etcd_noRefusal
@@ -240,7 +229,6 @@ axiom http.ReadAll_any_ok
 axiom http.ReadAll_ok
 axiom http.ReadAll_resp_ok
 axiom http.ReadFull_resp_ok
-axiom http.ReadFull_stream_ok
 axiom http.RespCloseAny_ok
 axiom http.RespClose_ok
 axiom http.RespHeader_ok
@@ -273,11 +261,6 @@ axiom labels.Everything.wp_proof
 axiom labels.LabelSelectorAsSelector.wp_proof
 axiom labels.reqsValid
 axiom lease.NewLessor.wp_proof
-axiom lease.lessor.Demote.wp_proof
-axiom lease.lessor.Promote.wp_proof
-axiom lease.lessor.Renew.wp_proof
-axiom lease.lessor.Stop.wp_proof
-axiom lease.lessorStopTok
 axiom leasehttp.RenewHTTP.wp_proof
 axiom maps.Clone.wp_proof_strBool
 axiom maps.Equal.wp_proof_strBool
@@ -427,9 +410,6 @@ axiom reflect.Zero.wp_proof
 axiom reflectM.reflNew_pointsto
 axiom reflectM.value_intoVal_inj
 axiom reflectM.value_into_val_typed
-axiom resolver.EtcdManualResolver.Close.wp_proof
-axiom resolver.EtcdManualResolver.SetEndpoints.wp_proof
-axiom resolver.New.wp_proof
 axiom resourceversion.isWellFormed.wp_proof
 axiom schema.MustUnsafeGetAllLeases.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
@@ -472,7 +452,6 @@ axiom txn.WarnOfExpensiveRequest.wp_proof
 axiom txn.WarnOfFailedRequest.wp_proof
 axiom types.IDFromString.wp_proof
 axiom types.NewURLs.wp_proof
-axiom types.URLs.StringSlice.wp_proof
 axiom utilruntime.HandleCrashWithLogger.wp_proof
 axiom v2stats.FollowerStats.Succ.wp_proof
 axiom v2stats.NewServerStats.wp_proof

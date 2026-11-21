@@ -63,15 +63,18 @@ The new clauses, and why each is true of the Go code (`newLessor` `lessor.go:212
 * **The records are read and decoded** (pre: the entries' equation, replacing `getD ∅ = ∅`):
   `initAndRecover` takes the batch lock (`:811`), creates the bucket (absent: none; present: a
   no-op, `UnsafeCreateLeaseBucket`), and `MustUnsafeGetAllLeases` (`:813`) decodes every record
-  (a panic on an undecodable one; each record here is an encoding, `leaseRecEnc`, so none). One
-  write-back (`wbTok`), with records as without: `UnsafeCreateBucket` always counts a pending
+  (a panic on an undecodable one; each record here is an encoding, `leaseRecEnc`, so none). Two
+  write-back tokens (`ownToks d.γB.wb 2`, as `lessor.Recover.spec`; prove-ps2-newlessor3,
+  2026-11-21, the user's approval: until then one, `wbTok`, which no proof over the real code can
+  meet, since the proved `lessor.initAndRecover.spec` takes two), with records as without: `UnsafeCreateBucket` always counts a pending
   operation (`pending++`, `batch_tx.go:144`), so the first `Unlock` (`:814`) writes back
   (`batch_tx.go:328-333`) and may commit (`pending >= batchLimit`, `:355`); `ForceCommit`
   (`backend.go:377`) is `lock`, `commit`, `Unlock` (`batch_tx.go:362-366`), and `commit` resets
   `pending = 0` (`:300`), so its `Unlock` writes nothing back (a hook the commit runs may write;
   `commit` still resets `pending`). The records change neither `pending` nor the commits (the loop
-  writes no bucket). One token is stronger than what the proved `lessor.initAndRecover.spec` gives
-  (`ownToks γB.wb 2`): the original's known margin, unchanged by records. So the part comes back idle with the bucket as it was
+  writes no bucket). The second token pays `ForceCommit`, whose proved `backend.ForceCommit.spec`
+  charges one although its `Unlock` writes nothing back (the backend's spec is coarser than the
+  code). So the part comes back idle with the bucket as it was
   (`rbOwnIn d.γB S (r.insert "lease" ((r.lookup "lease").getD ∅))`, `Recover`'s post; the
   original's `r.insert "lease" ∅` when it was empty or absent).
 * **One fresh lease per record** (`:815-830`): `ID` the record's, `ttl` the record's raised to
@@ -198,8 +201,19 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   E3zb, 2026-10-28) A lease it returns has the grant guard `GA` of its id: every lease of the map
   was granted (`lessorAuth`'s `leaseGranted`, kept by `Grant`, `Revoke` and `Recover`, which empties
   the map), and the lock's acquisition is the step that strips the guard's agreement's later.
+* **The thread bound** (`⌜threadBound GF ≤ 2 ^ 30 - 1⌝`; prove-ps2-newlessor3, 2026-11-21, the
+  user's approval): the `runLoop` goroutine's `findExpiredLeases` calls `l.expired()`, whose
+  `Remaining()` read-locks the lease's `expiryMu` (`lease.go`), borrowing a slot from the lease's
+  pool (`isLeaseObj`), which exists only under this bound (as `Renew`'s, `Promote`'s, `Leases`').
+  Every caller has it (the server's construction and the examples bound threads by `2 ^ 28` or
+  `2 ^ 29`).
 * The reader slots of `mu` (a `sync.RWMutex`, made by `newLessor`): one per reader (D14i,
-  2026-10-17: the store's and the apply thread's lease owner each hold one).
+  2026-10-17: the store's and the apply thread's lease owner each hold one). All of them but one
+  (prove-ps2-newlessor, 2026-11-21, the user's approval): the `runLoop` goroutine read-locks `mu`
+  in every iteration (`revokeExpiredLeases`, `lessor.go:640`) and keeps one slot for its lifetime.
+  Until then the post gave all `Int.toNat actualMaxReaders` slots to the caller, one more than
+  `init_RWMutex` makes once the loop has its own: false of the model
+  (`notes/axiom-review/newlessor-reader-slot.md`).
 * (lease-keys Part B, 2026-10-31) **The readers' model** (`lessorRdInv`, in `lessorInv`), ghost
   state only: allocated before `γl`'s element, which pins its names (`lessorPinR`), it is the
   lessor's history at the single snapshot `(∅, ∅)` (the fresh `leaseMap` and `itemMap`, empty as
@@ -226,14 +240,29 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   every TTL above them.
 * (Auth-lease S4 item 7b, decided by etcd-grove-03 2026-11-17, `questions.md` "Item 7b step 1") **The
   windows** (`lessorWinTie γl []`, `winsOk`, `itemsLive`), ghost state only: a mono-list allocated at `[]`
-  (`mono_list_own_alloc`) with the readers' names (their sixth, `γr.2.2.2.2.2`; the requests map is their fifth's
+  (`mono_list_own_alloc`) with the readers' names (their sixth, `γr.2.2.2.2.2.1`; the requests map is their fifth's
   first, `γr.2.2.2.2.1`), its authority split a half to the readers' invariant, a quarter to the owner (`leaseOwn`'s
   closers, whose open window `lastWin [] = none` is `leaseOwn`'s), a quarter to the caller (`lessorWinTie`). The
   invariant's `winsOk hs []` holds of any history (no window), and `itemsLive` of the single initial snapshot, whose
   item map is empty. No Go state is read or written for it; `Attach`, `Detach`, `Grant`, `Revoke` and `Recover`
   (proved) keep the facts at every push.
 * (2026-11-04, R2b-3c part 2, the user's approval) **The right to stop it** (`lessorStopTok lp`,
-  for `lessor.Stop`): `newLessor` makes `stopC`, which only `Stop` closes; one right, given here. -/
+  for `lessor.Stop`): `newLessor` makes `stopC`, which only `Stop` closes; one right, given here.
+  (prove-ps2-lease, 2026-11-21: until then an opaque axiom; now a definition, `LessorBackend.lean`.)
+  What it claims, and why it is true: `stopC` and `doneC` are fresh unbuffered channels
+  (`make(chan struct{})`, `lessor.go:238-239`), fields written only by the struct literal, so
+  read-only (`lF "stopC" lp ↦□ c`, `lF "doneC" lp ↦□ d`); each is made a broadcast channel
+  (Perennial's `alloc_broadcast_chan`, ghost state only, at `Q = True`), nothing is ever sent on
+  either. The caller gets `stopC`'s close right (`.Pending`); the lessor keeps its receive side
+  (`.Unknown`, persistent) for `runLoop`'s `select` and `revokeExpiredLeases`' (`lessor.go:632,654`)
+  and `Renew`'s (`:426`). `doneC`'s close right goes to the `runLoop` goroutine, whose deferred
+  `close(le.doneC)` (`:621`) is the only close of it; the caller gets its receive side
+  (`.Unknown`). So nothing of the Go code is assumed beyond what the original opaque right said.
+* (prove-ps2-lease, 2026-11-21) **`demotec`** (inside `lessorInv`: `lessorExtra`'s `demoteTie`, at the
+  readers' names' seventh, `γr.2.2.2.2.2.2.1`): `newLessor` leaves `demotec` nil (the struct literal
+  names no `demotec`, `lessor.go:225-242`), so a ghost variable allocated at `chan.nil`, half in the
+  lock's guard, half in the invariant `demoteOuter` (allocated here, at `nil`: its left disjunct).
+  Ghost state only; `Promote` (assumed) and `Demote` (proved) keep it. -/
 abbrev lease.NewLessor.spec : Prop :=
   ∀ (lg : Loc) (cl : GoInterface) (cfg : go_etcd_io.etcd.server.v3.lease.LessorConfig)
     (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp) (GA : w64 → IProp GF)
@@ -245,8 +274,9 @@ abbrev lease.NewLessor.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
       (⌜lg = null⌝ ∨ zapLoggerOk lg) ∗
       ⌜0 ≤ sint.Z cfg.leaseRevokeRate'⌝ ∗ lease.clusterOk cl ∗
-      backend.isBackend d.γB d.P W Pk d.be ∗ backend.bOpen d.γB qo ∗ backend.wbTok d.γB ∗
-      backend.rbPart d.γB S r ∗ □ ([∗list] id ∈ recs.map (·.1), GA id) }}
+      backend.isBackend d.γB d.P W Pk d.be ∗ backend.bOpen d.γB qo ∗ ownToks d.γB.wb 2 ∗
+      backend.rbPart d.γB S r ∗ □ ([∗list] id ∈ recs.map (·.1), GA id) ∗
+      ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.lease.NewLessor)) (Val #lg))
       (Val #(interface.mkOk
         (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be)))
@@ -257,7 +287,7 @@ abbrev lease.NewLessor.spec : Prop :=
       ⌜l = lease.lessorIface lp⌝ ∗ lease.lessorInv lp γl ∗ lease.lessorModeIs γl mono ∗
       lease.lessorCfg lp ∗ lease.lF go!"minLeaseTTL" lp ↦□ cfg.MinLeaseTTL' ∗
       lease.lessorExpiredC lp GA ∗ lease.lessorGuard γl GA ∗
-      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), lease.lessorRdOf γl) ∗
+      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 1) (), lease.lessorRdOf γl) ∗
       lease.leaseOwn γl Lr ∅ ∗ lease.lessorWinTie γl [] ∗ lease.leaseEver γl (recs.map (·.1)) ∗
       lease.leaseRevokers γl Lr ∗
       lease.rdOwn γl func.nil ∗

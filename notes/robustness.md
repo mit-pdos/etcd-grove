@@ -28,11 +28,18 @@ in the top-level theorem, no reading bytes off the network):
 
     Robust crashing stable g threads bound :=
       (∀ m ∈ crashing ++ stable, Fresh lctx m.2) →
+      extsInitGlobal g → (∀ m ∈ crashing ++ stable, extsInitLocal m.2 g) →
       ∀ n κs c, DistCrashNstepsBelow (crashing.map Prod.fst) threads n
                   (distInit (crashing ++ stable) g) κs c →
         n < bound → ∀ i tp σ, c.nodes[i]? = some (tp, σ) →
           ∀ e ∈ tp, RealNotStuck e (σ, c.global) ∧ ¬ UnrecoveredPanic e
 
+- **Every machine and the network start in their extensions' initial states** (2026-11-21, for
+  kvnet's statement): Perennial's trusted `ExtSemantics.initLocal`/`initGlobal` (Perennial
+  `c0ec40070`, `extsInitLocal`/`extsInitGlobal`), premises inside `Robust` as `Fresh` is, so that no
+  instance states an extension's start conditions itself. The bridges (`of_single`,
+  `of_single_crashing`, `of_all`, `of_all_crashing`, the kits') take the same hypotheses as before
+  and drop the new premises; no example's proof changed.
 - **The thread bound** (2026-11-20, the user's: "we need to have the thread bounds NOT be imposing
   the step bounds (2^28 is a joke)"; branch `robust-threads`): the executions are those along which
   every machine keeps fewer than `threads` live threads (Perennial's `DistCrashNstepsBelow`), a premise

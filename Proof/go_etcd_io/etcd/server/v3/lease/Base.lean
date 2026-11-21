@@ -103,17 +103,30 @@ def counterSpec (c : GoInterfaceOk) : IProp GF :=
 instance counterSpec_persistent (c : GoInterfaceOk) : Persistent (counterSpec (GF := GF) c) := by
   unfold counterSpec; infer_instance
 
+/-- (prove-ps2-newlessor3, 2026-11-21) **The rates and intervals of `lessor.go`** (`var`s, for etcd's
+tests; only the initializer writes them): `defaultLeaseRevokeRate`, `leaseCheckpointRate` and
+`maxLeaseCheckpointBatchSize` at `1000`, the default intervals at some value: what `newLessor` and the
+expiry loop read. In `leaseInit` with `forever` (so that the clients' positional patterns stay). -/
+abbrev leaseConsts : IProp GF :=
+  iprop(globalAddr defaultLeaseRevokeRate ↦□ (W64 1000) ∗ globalAddr leaseCheckpointRate ↦□ (W64 1000) ∗
+    globalAddr maxLeaseCheckpointBatchSize ↦□ (W64 1000) ∗
+    (∃ d : w64, globalAddr defaultLeaseCheckpointInterval ↦□ d) ∗
+    (∃ d : w64, globalAddr defaultExpiredleaseRetryInterval ↦□ d))
+
 /-- The lessor package's facts: the error variables `ErrLeaseNotFound`, `ErrLeaseExists`,
 `ErrLeaseTTLTooLarge` (`leaseErrVar`), `forever` (the zero `time.Time`), the counters
 `leaseGranted`, `leaseRevoked` and the histogram `leaseTotalTTLs`; `ErrLeaseNotFound`'s message
 cell (`errVarCell`, D19k: what tells it apart from the server's `ErrNoSpace`); `ErrNotPrimary`
-(`leaseErrVar`; the lease-renew plan, 2026-11-01: `LeaseRenew` returns it). -/
+(`leaseErrVar`; the lease-renew plan, 2026-11-01: `LeaseRenew` returns it); (prove-ps2-renew,
+2026-11-21) the counter `leaseRenewed` (`Renew`'s `Inc()`), beside `leaseRevoked` (grouped with it,
+so that the clients' patterns, which name the facts by position, stay as they were). -/
 abbrev leaseInit : IProp GF :=
   iprop(leaseErrVar ErrLeaseNotFound ∗ leaseErrVar ErrLeaseExists ∗
     leaseErrVar ErrLeaseTTLTooLarge ∗
-    globalAddr forever ↦□ (zero_val _root_.Perennial.time.Time) ∗
+    (globalAddr forever ↦□ (zero_val _root_.Perennial.time.Time) ∗ leaseConsts) ∗
     (∃ c : GoInterfaceOk, globalAddr leaseGranted ↦□ GoInterface.ok c ∗ counterSpec c) ∗
-    (∃ c : GoInterfaceOk, globalAddr leaseRevoked ↦□ GoInterface.ok c ∗ counterSpec c) ∗
+    ((∃ c : GoInterfaceOk, globalAddr leaseRevoked ↦□ GoInterface.ok c ∗ counterSpec c) ∗
+      (∃ c : GoInterfaceOk, globalAddr leaseRenewed ↦□ GoInterface.ok c ∗ counterSpec c)) ∗
     (∃ h : GoInterfaceOk, globalAddr leaseTotalTTLs ↦□ GoInterface.ok h ∗
       go_etcd_io.etcd.server.v3.storage.backend.histSpec h) ∗
     EtcdGrove.errVarCell ErrLeaseNotFound go!"lease not found" ∗

@@ -298,8 +298,13 @@ theorem raft.appendEntry.wp_proof
     -- (Q8 stage 1, slice 6) the `Replicate` lines, either mode: the caller's gate, raft's state
     -- under `trOwn`
     ihave Hg := Hgrep $$ Hrc HG
+    iapply (wp_ncfupd _ _ rfl)
     iunfold HookGateN at Hg
-    imod Hg with ⟨%tl, #Htl, Hfire⟩
+    unfold ncfupd
+    iintro Hnc
+    imod Hg $$ Hnc with ⟨Hnc, %tl, #Htl, Hfire⟩
+    imodintro
+    iframe Hnc
     icases trOwn_split s.gh.tr _ $$ Hphys with ⟨Hown, Hback⟩
     rw [← normalCount_stamp s.term li ents] at *
     -- (out_size C3) the stamped batch is held frozen and sized (`HclZ`); the hook reads it in

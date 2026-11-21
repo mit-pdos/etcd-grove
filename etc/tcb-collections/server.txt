@@ -26,7 +26,6 @@
 roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/(Link|Results)\.lean$
 axiom DescribeConfChange.wp_proof
 axiom EtcdServer.adjustTicks.wp_proof
-axiom EtcdServer.ensureLeadership.wp_proof
 axiom EtcdServer.leaseTimeToLive.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
@@ -39,15 +38,10 @@ axiom apply.irrDecode_utf8
 axiom apply.memberEnc_id_learner
 axiom auth.NewAuthStore.wp_proof
 axiom auth.authStore.AuthInfoFromTLS.wp_proof
-axiom auth.authStore.selectPassword.wp_proof
 axiom auth.newTokenProviderJWT.wp_proof
 axiom auth.redactToken.wp_proof
-axiom auth.tokenSimple.genTokenPrefix.wp_proof
-axiom backend.backend.Snapshot.wp_proof
 axiom bcrypt.CompareHashAndPassword.wp_proof
 axiom bcrypt.GenerateFromPassword.wp_proof
-axiom binary.ReadUint64.wp_proof
-axiom binary.WriteUint64.wp_proof
 axiom binary.WriteUint8.wp_proof
 axiom bufferM.ownBuffer_new
 axiom bytes.Buffer.Write.wp_proof
@@ -79,7 +73,6 @@ axiom http.ReadAll_any_ok
 axiom http.ReadAll_ok
 axiom http.ReadAll_resp_ok
 axiom http.ReadFull_resp_ok
-axiom http.ReadFull_stream_ok
 axiom http.RespCloseAny_ok
 axiom http.RespClose_ok
 axiom http.RespHeader_ok
@@ -98,11 +91,6 @@ axiom io.MultiReader.wp_proof
 axiom io.Pipe.wp_proof
 axiom io.PipeWriter.CloseWithError.wp_proof
 axiom lease.NewLessor.wp_proof
-axiom lease.lessor.Demote.wp_proof
-axiom lease.lessor.Promote.wp_proof
-axiom lease.lessor.Renew.wp_proof
-axiom lease.lessor.Stop.wp_proof
-axiom lease.lessorStopTok
 axiom leasehttp.RenewHTTP.wp_proof
 axiom math.Ceil.wp_proof
 axiom membership.RaftCluster.Recover.wp_proof
@@ -185,7 +173,6 @@ axiom txn.WarnOfExpensiveRequest.wp_proof
 axiom txn.WarnOfFailedRequest.wp_proof
 axiom types.IDFromString.wp_proof
 axiom types.NewURLs.wp_proof
-axiom types.URLs.StringSlice.wp_proof
 axiom v2stats.FollowerStats.Succ.wp_proof
 axiom v2stats.NewServerStats.wp_proof
 axiom v2stats.ServerStats.BecomeLeader.wp_proof

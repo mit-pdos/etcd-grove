@@ -3,7 +3,9 @@
 # (2026-11-19) `ID.String`, proved over `strconv.FormatUint`.
 # (prove-smallinits, 2026-11-20) the `var _ Set = (*unsafeSet)(nil)` checks (until then
 # `opaqueInitsOk`).
-translate = ["!*", "URLs.Len", "ID.String", "_"]
+# (prove-ps2-misc, 2026-11-21) `URLs.StringSlice`, proved over `url.URL.String`'s spec
+# (`http.URLStringAny_spec`).
+translate = ["!*", "URLs.Len", "URLs.StringSlice", "ID.String", "_"]
 # (unit N4, 2026-10-17: `net/url`, so that `URLs` is translated)
 imports = ["!*", "net/url", "strconv"]
 

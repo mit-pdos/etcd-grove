@@ -41099,6 +41099,8 @@ names root types only.*
   what is trusted and its evidence, and points to the trusted models kept where Perennial's layout
   puts them (`TrustedCode/`, `GooseLang/Ext/*/Impl.lean`). The patches of real packages (gRPC,
   net/http, net/rpc; Q1 of the plan) will live under `models/` too, not `etc/model-patches/`.
+  (*Superseded in part*, 2026-11-20: not patches, but first-class Go packages whose diff is computed;
+  "Models are first-class Go packages", below.)
 
 ## The kits' statement is `Robust` (2026-11-19 · the user's decision · branch `kit-robust`, on `net-kitlib`)
 
@@ -41140,6 +41142,40 @@ echo's `SafeDistLinked.lean` are deleted. A kit's theorem is
   `robust_of_kitBoot`, `#print axioms` Lean's three. It also follows from `echo_crash_robust` by
   `Robust.of_all_crashing` (a run with no crashing machine is a run in which every machine may
   crash, `distCrashNsteps_more_boots`); it goes through the bridge to show the bridge applies.
+
+## Models are first-class Go packages (2026-11-20 · the user's decision · branch `models-rpc-http`)
+
+*Supersedes* Q1 of `notes/dsverify-net-port-plan.md` ("models are patches of the real packages",
+`etc/model-patches/`) and the last sentence of "`models/`: the home of the trusted models" above.
+
+- **The user (2026-11-19/20):** "I'd prefer to have a version of the grpc and http libraries that
+  we've verified in our repo, and we can compute the diff by looking at the final artifacts. But I
+  want to think of 'our grpc model in Go' as the first-class thing."
+- **Decision.** A model of a library is a Go package (or tree of packages) in `models/`, which we
+  write, test and verify, starting from the real library's source and keeping its API (every
+  exported name a program can use), with the real code wherever goose takes it and it is not the
+  hard core. Its difference from the real library is a computed artifact, never stored:
+  `models/diff.py MODEL` prints it against the pinned upstream source (`--stat`, its size, for
+  review and CI). The places a model changes are marked `MODEL:` in its source.
+- **The trusted claim** (each model's doc): every behavior of the real library (Go 1.27.3 for the
+  standard library's), as the program observes it, is a behavior of the model; more behaviors are
+  fine, fewer are unsound. Wire compatibility is not claimed (both ends run the model). Where a
+  model does not model the library it panics with a value that has a `NotModelled` method (the
+  net/http model's server does not recover those as a handler's panic): a proof that the program
+  does not panic shows it never gets there.
+- **Generated parts** follow "Trusted generated code" above: the generator is the trusted artifact
+  (`models/net/rpc/rpcgen.py`, as `models/protobuf/pbgen.py`).
+- **How a standard-library model builds**: the standard library cannot be replaced by a module, so
+  `models/goroot.py` substitutes the model's files for the toolchain's: a `go build -overlay` file
+  for builds and tests, and, for goose, a GOROOT of links (goose loads packages with
+  golang.org/x/tools/go/packages, which reads the files `go list` names from disk, so an overlay in
+  GOFLAGS does not reach it: tried, it type-checks the real files and cannot open added ones). A
+  goose project takes `std_models` (etc/goose.py) to translate against the models. The models'
+  directory `models/net/` is its own (never built) Go module so that `models.lab`'s `./...` does not
+  try to compile standard-library packages.
+- **First instances** (phase 5.2): `models/net/rpc` (gob and reflection replaced by the program's
+  generated Codec) and `models/net/http` (the HTTP/1.x head parser replaced; chunked bodies, TLS,
+  HTTP/2 and the Transport not modelled), `models/README.md`.
 
 ## Import tiers: a proof takes a linked lemma as a law (2026-11-18 · the user's direction · branch `tiers3/2026-11-18`)
 
@@ -41627,3 +41663,99 @@ successful skip to the protobuf grammar used when allocating a message, and
 shows any field admitted by that grammar can be skipped. The encoder proof uses
 both facts to account for extension bytes in nested changes and both top-level
 messages. [Noax codec proofs](raft-noax-codec.md).
+
+## An index supported by both halves for a shared Raft witness
+
+**2026-11-21 · accepted**
+
+The original fork fix for the joint-configuration election bug dropped the
+witness request when exactly one half selected it. The Go regression
+demonstrates that a live majority in each half can then stall indefinitely
+under the same availability pattern.
+
+The new tracker computes each half's index from the regular acknowledgers in
+its replication set. A half selecting the witness needs quorum minus one. A
+half excluding it needs a full regular majority. The shared witness receives
+the lower index. In the second case, the larger group of acknowledgers still
+intersects the regular votes of a candidate checked against the stored set.
+The protocol proof uses this intersection for leader completeness. The etcd
+server uses the separate ordinary Raft implementation, and the witness example
+uses a static cluster. [Regression and fix](../issues/raft-witness-joint-progress.md)
+
+## The encoding/json model is of Go 1.27.3's default build; jsongen as a trusted generator (2026-11-20 · branch `models-json`; the agent's choices under the user's decisions "Trusted generated code" and "Models are first-class Go packages")
+
+- **Which encoding/json.** Go 1.27.3 builds encoding/json with GOEXPERIMENT jsonv2 on by default:
+  the package a program gets is the `v2_*.go` files, the v1 API over encoding/json/v2 with
+  `DefaultOptionsV1()`, not the v1 implementation (`decode.go`, `encode.go`, `stream.go`, ...; only
+  GOEXPERIMENT=nojsonv2 builds those). The model and the generator's claim are of the default build:
+  the model's files are the `v2_*.go` (every exported name kept), the v1 implementation's files are
+  removed in it (they would never build), and the differential tests run against the default build.
+  They differ where it matters: v2's encoder errors past 10000 levels of nesting (a RawMessage's
+  nesting counted), v1's does not; the Decoder is jsontext's (its buffer starts at 64 bytes, grows
+  by throughput up to 4 KiB and doubles when a value fills three quarters of it) where v1's had
+  its own scanner and buffer. dsverify's model and notes described the v1 Decoder, and its model
+  over-approximated the read lengths; this one mirrors jsontext's buffer exactly, so the model's
+  Read calls are the real ones (same lengths, same moments), checked by golden transcripts.
+- **What the generator reproduces exactly, or refuses.** The subset is what the core reproduces
+  byte for byte (encoding) and value for value (decoding), cited to Go's source; everything else
+  is refused by name (`jsongen_core.py`'s doc), including user-defined MarshalJSON/UnmarshalJSON
+  (the old jsongen called them; refusing keeps the core free of their compaction and error rules,
+  and vsr's kit fork has none) and pointers but at the root. Strings stay in jsoncodec's plain
+  subset with a NotModelled panic outside it (escapes, HTML characters, non-ASCII), as before.
+- **One codec per program, registered once** (`SetCodec` panics on a second registration, as the
+  net/rpc model's); unnamed root struct types (vsr's decoding frame) keep their code outside Goose.
+- **Soundness bug found and fixed in the trusted helpers**: `jsoncodec.QuotedUint` (a `,string`
+  field) returned a type error for a string with an escape sequence, which the real Unmarshal
+  unescapes and decodes; it now panics (NotModelled) on any escape there, as `Str` does elsewhere.
+  Found by the mutation tests of the reworked generator; the old per-type tests had no escapes.
+
+## Raft's crash law: the crash invariant, the token through every ghost step (2026-11-21 · the coordinating session · branch `worktree-agent-aa878c2e224f33d0c`)
+
+`notes/raft-crash-law-design.md`, sections (b1), (f), (g), (h), (i); `notes/kvnet-proof-plan.md`
+decision A. A replica killed at any instruction must leave its id restartable.
+
+**Ghost state.**
+- Per arm of an id, the crash invariant
+  `nodeCrashInv γ id x := inv (crashN γ id x) ((∃ X, views ½ X ∗ slotX X) ∨ crashed ∗ tok)` holds the
+  six timeless pieces of `raftIdSlot`: `V`'s half, `slotLive 1 g`, and the authorities of
+  terms, wins, lcm and rqm. `x : CrashNames` names the views and the token.
+- `ownRaftGhost`/`ownLogGhost`/`lcmOwn`/`rdOwn` and the client's and run's generation shares hold view
+  halves in their place.
+- The arm's names are carried in `NodeNames`. A stop agrees the run's names with the client's (two
+  armed invariants of one id would both hold the full `terms` authority; the namespace includes the
+  names).
+
+**API.**
+- `nodeVacant_arm`, `nodeCrash`.
+- `StartNode`/`RestartNode` take the armed vacancy `nodeVacantA`, and `node.Stop` gives it back.
+- `readyEnter` and `Ready`'s enter wand are crash-token updates (`ncfupd`).
+
+**Why the token everywhere** (the two gaps found in implementation):
+- The traced win lends the term map's authority across the trace line (f).
+- Ordinary steps (votes, heartbeats, appends, snapshots, read index) read the slot's half of `V`
+  against the entered maps (`slot_open`) (g).
+
+A thread needs `notCrashed` not only to update state a crash may change but also to read state a
+later generation changes (h). So every ghost step takes the token: `ncfupd`,
+`wp_ncfupd`/`wp_ncfupd_post` (`GooseLang/NotCrashed.lean`, proved).
+
+**Rejected.**
+- Fresh names per incarnation (b2): new cross-generation protocol reasoning.
+- A per-generation slot name for `V` (h): it does not remove the token.
+- (b3) deferred.
+
+**Applying it** (2026-11-21, the implementing session):
+- The cut runs inside the `readyc` send's atomic update, where no client step supplies the token
+  (design note (j)). Option 1 was chosen: channel updates that carry `notCrashed`, a Perennial
+  change (branch `nc-chan`). `node.run`'s proof waits for it.
+- "Same `x`" across a stop: `StartNode`/`RestartNode` give a persistent `nodeArm n γ x`, and
+  `node.Stop` gives `∃ x, nodeVacantA γ id x ∗ nodeArm n γ x`. `nodeArm_agree` ties the result to the
+  start, so `node.Stop`'s precondition did not change.
+- A client whose crash is `node.Stop`'s arms with `nodeVacant_armD`, which drops the crash token, and
+  keeps `∃ x, nodeVacantA …`. This covers kv, kvreconf, kvdurable and the server.
+- kvdurable enters inside the durable write's update. So the durable `Write.spec` lends the token when
+  the update opens (`wp_atomic_nc` at the extension's atomic step: a new `Language.Atomic` instance
+  for its `"Write"`).
+- A client with its own `[AllG GF]` (kvdurable) names the token by the notation `notCrashedG`,
+  which is the state interpretation's `gooseAllG` instance. A bare `notCrashed` would resolve to the
+  client's own instance and not match raft's.

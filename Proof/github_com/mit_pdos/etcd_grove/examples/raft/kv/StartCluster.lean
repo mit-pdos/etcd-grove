@@ -326,6 +326,7 @@ theorem StartCluster.wp_proof
     have Hid0m : id0 ∈ vs := List.mem_of_getElem? Hid0
     rw [drop_cons_of_getElem? _ _ _ Hid0]
     icases Htodo with ⟨⟨⟨HrS, Hvac⟩, Hseq⟩, Htodo⟩
+    imod nodeVacant_armD γr.cluster id0 ⊤ $$ Hvac with ⟨%x, Hvac⟩
     ihave #Hlogger := qLogger_isLogger wp_Debugf wp_Errorf wp_Infof wp_Warningf
     ihave Hboot := kvStorage_bootStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex
       wp_Term wp_Entries st ms γs vsl vs γr.cluster
@@ -351,9 +352,9 @@ theorem StartCluster.wp_proof
       (by right; show W64 1048576 ≠ W64 0; decide)
       rfl (fun h => absurd Hmd0 h) (Or.inl rfl) (by simp [StorContents.b]) (by simp [StorContents.commit])
       (by rw [Hbl0]; simp [StorContents.commit]) (by rw [← Hγv]; exact kvConfState_is γr)
-      (fun h => by have := clusterNoSnap_boot _ h; omega) rfl Htr0)
+      (fun h => by have := clusterNoSnap_boot _ h; omega) rfl Htr0 x)
       $$ [$Hraftinit $«$a0» $Hlogger Hboot Hvac Hau]
-      as %nd ⟨%n, %S, %l, %K, %Hnd, #HisNode, #Hl, %Hlen, %-, Hdrv, Hcfg, Hrun, -, ⟨HrS, %HS⟩, #HmsInv⟩
+      as %nd ⟨%n, %S, %l, %K, %Hnd, #HisNode, #Hl, %Hlen, %-, Hdrv, Hcfg, Hrun, -, -, ⟨HrS, %HS⟩, #HmsInv⟩
     · have hA : uint.nat (nodeConfig id0 st).Applied' = 0 := rfl
       have hI : (nodeConfig id0 st).ID' = id0 := rfl
       rw [← Hiface, hA, hI]

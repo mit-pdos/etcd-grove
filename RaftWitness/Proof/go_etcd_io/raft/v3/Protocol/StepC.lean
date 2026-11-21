@@ -60,6 +60,11 @@ structure CfgM where
 witness when `rsx = 0` (`PState.rsx`). -/
 def exclOf [GooseExts] (c : CfgM) (s : PState) : w64 := if s.rsx = W64 0 then c.wit else s.rsx
 
+/-- The incoming half needs a full regular majority when it excluded the witness.
+Its epoch records that choice as zero in the protocol's excluded-voter field. -/
+def witnessWriteCount (n : Nat) (x : w64) : Nat :=
+  if x = W64 0 then n / 2 + 1 else n / 2
+
 /-- The replication set's voters other than the witness: the incoming voters but the witness and
 the excluded one (`Epoch.ReplicationSet[0].NonWitnessVoters`, what the witness stores). -/
 def rsVoters [GooseExts] (c : CfgM) (s : PState) : GSet w64 :=
@@ -722,12 +727,12 @@ inductive StepC : PState → List Msg → PState → Prop where
   | sendWApp (s : PState) (i : w64) (e : EntryM) (vs : List w64) :
       s.role = .leader →
       c.wit ≠ W64 0 →
-      exclOf c s ≠ c.wit →
+      (exclOf c s ≠ c.wit ∨ (s.rsx = W64 0 ∧ s.sub ≠ W64 0)) →
       exclOf c s ∈ c.incoming →
       plogEntryAt s.base s.log i = some e →
       e.Term' = s.term →
       e.Subterm' = s.sub →
-      size c.incoming / 2 ≤ size (ackedBy s i ∩ rsVoters c s) →
+      witnessWriteCount (size c.incoming) s.rsx ≤ size (ackedBy s i ∩ rsVoters c s) →
       vs ≡ₚ elements (rsVoters c s) →
       StepC s []
         (psendMsgs s [Msg.mkV .wapp id c.wit s.term false i s.term s.sub (W64 0) [] vs []])

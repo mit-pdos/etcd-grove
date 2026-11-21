@@ -189,7 +189,7 @@ theorem dmu_close_enter (γ : KdNames) (dir : GoString) (id : w64) (r n st ms : 
     (His : uint.nat M.snap.Metadata'.Index' ≤ uint.nat M'.snap.Metadata'.Index')
     (Hfile : ∀ σ : StorContents, StorageHolds S σ → σ.commit ≤ uint.nat M'.hs.Commit' →
       StorageHolds stI'.durable σ) :
-    £ 1 ∗ kdFileInv γ dir id ∗ kdDmuRest γ id r ph crashed S M ∗ st.[KStorage, go!"img"] ↦□ ip ∗
+    £ 1 ∗ notCrashedG ∗ kdFileInv γ dir id ∗ kdDmuRest γ id r ph crashed S M ∗ st.[KStorage, go!"img"] ↦□ ip ∗
       ownImage ip M' ∗
       memStorMeta ms γs M'.hs ∗ monoNatAuthOwn ph.ic 1 fz ∗
       memLog γs (uint.nat M'.prev + 1) DFrac.discard (M'.ents.take (fz' - uint.nat M'.prev)) ∗
@@ -198,11 +198,11 @@ theorem dmu_close_enter (γ : KdNames) (dir : GoString) (id : w64) (r n st ms : 
       ghostVar ph.ph (1 : Qp).half ((none : Option GName), S) ∗ ghostVar ph.cm (1 : Qp).half M.hs ∗
       readyEnter n γ.r.cluster kdRaftN id stI stI' qs ∗ nodeRunning n γ.r.cluster kdRaftN (1 : Qp).half
       ={⊤}=∗
-    kdDmuInv γ id r n st ms γs ph ∗
+    notCrashedG ∗ kdDmuInv γ id r n st ms γs ph ∗
       ghostVar ph.ph (1 : Qp).half ((none : Option GName), stI'.durable) ∗
       kdBatchRes γ id n stI' qs ∗ nodeRunning n γ.r.cluster kdRaftN (1 : Qp).half ∗
       ghostVar ph.cm (1 : Qp).half M'.hs ∗ monoNatLbOwn ph.ic fz' := by
-  iintro ⟨Hlc, #HfInv, Hrest, #Himg, Himage, Hmeta, Hic, #Hfz', His', Hcm, #Hcert, Hph,
+  iintro ⟨Hlc, Hnc, #HfInv, Hrest, #Himg, Himage, Hmeta, Hic, #Hfz', His', Hcm, #Hcert, Hph,
     Hclaim, Hcmh, Henter, Hrun⟩
   iunfold kdDmuRest at Hrest
   icases Hrest with ⟨Hcr, %o, Hwr, %Hfb⟩
@@ -230,8 +230,8 @@ theorem dmu_close_enter (γ : KdNames) (dir : GoString) (id : w64) (r n st ms : 
   iunfold readyEnter at Henter
   ihave HrS : raftState γ.r.cluster id stI.durable $$ [HrS]
   · rw [HS]; iexact HrS
-  imod Henter $$ %(⊤ \ ↑(kdRepN .@ uint.nat id)) %((1 : Qp).half) %(kdRaftN_rep id) [$HrS $Hrun]
-    with ⟨HrS, Hrun, Hdrv, #Hmsgs⟩
+  imod Henter $$ %(⊤ \ ↑(kdRepN .@ uint.nat id)) %((1 : Qp).half) %(kdRaftN_rep id) Hnc [$HrS $Hrun]
+    with ⟨Hnc, HrS, Hrun, Hdrv, #Hmsgs⟩
   imod ghostVar_update_halves (stI'.durable, kdFileVal o) (γ.wr id) _ _ $$ Hwr Hwv with ⟨Hwr, Hwv⟩
   imod Hclose $$ [HrS Hdf Hwv HcF] with -
   · inext
@@ -250,7 +250,7 @@ theorem dmu_close_enter (γ : KdNames) (dir : GoString) (id : w64) (r n st ms : 
   imod mono_nat_own_update fz' Hfz $$ Hic with ⟨Hic, #Hlb⟩
   imod mono_nat_own_update (uint.nat M'.snap.Metadata'.Index') His $$ His' with ⟨His', -⟩
   imodintro
-  iframe Hclaim Hcmh Hlb Hrun
+  iframe Hnc Hclaim Hcmh Hlb Hrun
   isplitr [Hdrv]
   · iunfold kdDmuInv
     iexists crashed, ip, M', fz'

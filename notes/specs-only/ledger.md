@@ -42,6 +42,44 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `openStorage`, passes `dq := DFrac.discard` (its statement unchanged); kvnet's `getMsg` passes its own fraction
   and drops its premise.
 - **Decision.** Accepted (the coordinator, issue #22, 2026-11-21).
+## 2026-11-21: raft's node API -- no node of an id is restartable after a real crash (`nodeVacant` returns only from `node.Stop`)
+
+- **Spec.** `Spec/go_etcd_io/raft/v3/StartNode.lean`, `RestartNode.lean`, `node__Stop.lean`,
+  `RawNode__Ready.lean` (the enter wand); `InvNode.lean`'s `readyEnter` and the new laws
+  `nodeVacant_arm`, `nodeCrash`. SpecPlan's raft node specs, likewise.
+- **Defect.** Too weak for a crashing client: a process killed at any instruction loses its threads'
+  resources, so `nodeVacant` (needed by `RestartNode`) never comes back. kvnet's crash obligation
+  (`goose_dist_crash_adequacy`'s wand, given the dead generation's `crashed`) cannot be met.
+- **Evidence.** `notes/kvnet-proof-plan.md` gap 1; `notes/raft-crash-law-design.md` (a).
+- **Proposed change.**
+  - `nodeVacant_arm : nodeVacant ={E}=∗ ∃ x, nodeVacantA ∗ nodeCrashTok` and
+    `nodeCrash : crashed -∗ nodeCrashTok ={E}=∗ nodeVacant`.
+  - `StartNode`/`RestartNode` take `nodeVacantA γ id x`, and `node.Stop`'s post gives it back (same `x`).
+  - `readyEnter` and `Ready`'s enter wand become crash-token updates (`ncfupd E`: the client applies them
+    at a step, by `wp_ncfupd`).
+  - Clients: kvdurable keeps its `node.Stop` path and drops its `nodeCrashTok`; the etcd server likewise;
+    kvnet's boot obligation arms.
+- **Decision.** Accepted (the coordinating session, 2026-11-21, design route 1, sections (b1), (f),
+  (i)); applied on branch `worktree-agent-aa878c2e224f33d0c`.
+- **As applied** (2026-11-21, the implementing session):
+  - "Same `x`" needs the client to know the arm the node started from. `StartNode`/`RestartNode` give
+    a persistent `nodeArm n γ x` (sealed; `nodeArm_agree`). `node.Stop`'s post is
+    `∃ x, nodeVacantA γ id x ∗ nodeArm n γ x`, so its precondition is unchanged.
+  - `nodeCrash` also takes `isCluster γ N` and `↑N ⊆ E` (for `↑(raftN) ⊆ E`).
+  - `nodeVacant_armD : nodeVacant ={E}=∗ ∃ x, nodeVacantA γ id x` (the token dropped) is for clients
+    whose crash is `node.Stop`'s: kv, kvreconf, kvdurable and the server. They keep the vacancy as
+    `∃ x, nodeVacantA …` where they kept `nodeVacant` (kvdurable's `Cluster.start`, `Replica.stop`,
+    `Replica.crash`; the server's restart image, `rnStopImage`, `rnBootPre`'s restart).
+  - `examples/lib/durable`'s `Write.spec`: the update may use `notCrashed` when it opens (handed back
+    at once; `wp_atomic_nc` at the extension's step). Strictly more permissive for a client. kvdurable's
+    *enter* runs in the write's update, so it needs the token there.
+  - The server's `raftNode.stop` post (`Spec/go_etcd_io/etcd/server/v3/etcdserver/raftNode__stop.lean`)
+    gives `∃ x, nodeVacantA …` in place of `nodeVacant`.
+  - The traced `StartNode.tracedSpec` (`TracedNodeApi.lean`) and the Draft's `StartNode.gatedSpec`
+    (`TracedApiDraft.lean`) changed as `StartNode.spec` did.
+  - In raft's `with_tla` build (`RaftTla/`, per (f)), the trace logger's contract (`isTraceLogger`) and
+    the trace check's `SyncRecorder.TraceEvent.spec` take the update in its crash-token form: the
+    token is lent at the commit and handed back.
 
 ## 2026-11-20: `cache.wp_Errorf_setArgs` -- reads the maps it formats without owning them
 
@@ -3879,8 +3917,55 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** `Promote.spec` takes the level-0 token (`levelTok lessorLvl`, given back) and the two bounds,
   as `Leases.spec` does; the server's callers (`LessorOk.lean`'s contract, `NewServer`'s promotion on becoming
   leader) supply them. Not applied: it changes the server's lessor contract.
-- **Decision.** Open (the axiom stays).
+- **Decision.** Applied (prove-ps2-promote, 2026-11-21; heads-up on #10, no objection): `Promote.spec` takes
+  `levelTok lessorLvl` (given back) and the two bounds, and is proved over the real code (the axiom retired). The
+  server's lessor contract (`lessorOk`, InvApplier.lean) has `Promote` take the caller's `threadTok` (given back; it
+  lends level 0, `threadTok_level0`), and `lessorOk_of_lessorInv` takes the two bounds, which `NewServer`/`NewServerR`
+  give from theirs (`threadBound GF ≤ 2^28`, `receiptBound GF ≤ 2^48`); the apply thread's `applyEntryNormal` pays
+  the token from its `srvGoRes`. No spec of the server changes.
 
+## 2026-11-21: the auth store's `selectPassword` reads `as.bcryptCost` (prove-authcrypto)
+
+- **Spec.** `auth.authStore.selectPassword.spec` (`Spec/go_etcd_io/etcd/server/v3/auth/`; a trust-boundary axiom
+  until this change, the method names only).
+- **Defect.** Not provable over the real code: its bcrypt branch is `bcrypt.GenerateFromPassword([]byte(password),
+  as.bcryptCost)` (`store.go:420-426`), a load of the store's `bcryptCost` field, and the premise gave only
+  `st ≠ null`.
+- **Evidence.** The translation (`Code/go_etcd_io/etcd/server/v3/auth.lean`, `authStore.selectPassword.impl`).
+- **Proposed change.** The premise takes the field read-only (`∃ c, aF "bcryptCost" st ↦□ c`); `authInv` holds it
+  (its last conjunct; `NewAuthStore`'s composite literal sets it and nothing writes it: `NewAuthStoreOn`'s proof
+  already had it persistent), `authInv_bcryptCost` hands it out; the four callers (`UserAdd`, its two `sure`
+  variants, `UserChangePassword`) pass it. `NewAuthStore`'s axiom is unchanged (its contracts do not mention
+  `authInv`).
+- **Decision.** Applied (prove-authcrypto, 2026-11-21).
+
+## 2026-11-21: bcrypt's `GenerateFromPassword` returns `nil` with its error (prove-authcrypto)
+
+- **Spec.** `bcrypt.GenerateFromPassword.spec` (a trust-boundary axiom).
+- **Defect.** Too weak for `selectPassword`'s post (`∃ bs, b ↦*□ bs` on every path): the error disjunct said nothing
+  of the returned slice.
+- **Evidence.** `bcrypt.go:95-104` (x/crypto v0.57.0): both error returns are `return nil, err`.
+- **Proposed change.** The error disjunct also states `h = slice.nil` (a strengthening of the axiom, true of the
+  code; `EtcdServer.UserAdd`'s two uses drop it).
+- **Decision.** Applied (prove-authcrypto, 2026-11-21).
+## 2026-11-21: the lessor's `demotec` and stop channels get ghost state (prove-ps2-lease)
+
+- **Spec.** `lease.lessor.Demote.spec`, `lease.lessor.Stop.spec`, `lease.lessorStopTok`
+  (`Spec/go_etcd_io/etcd/server/v3/lease/`, `Proof/.../lease/LessorBackend.lean`; all three axioms), and what
+  `lessorInv` says of `demotec` (`InvLessor.lean`'s `lessorExtra`).
+- **Defect.** Not provable over the real code: `Demote`'s `close(le.demotec)` needs a close right the invariant did
+  not keep (`demotec` sits in `le.mu`'s fractional guard); `Stop`'s `close(le.stopC); <-le.doneC` needs the channels,
+  which the opaque `lessorStopTok` did not name.
+- **Evidence.** `lessor.go:534-550`, `:615-618`; the translations (`lessor.Demote.impl`, `lessor.Stop.impl`, the
+  latter translated by this change).
+- **Proposed change.** `lessorStopTok` defined (the two fields read-only, `stopC`'s broadcast close right, `doneC`'s
+  receive side); `demotec`'s state per channel in an invariant with a close token, the current token in a lessor
+  invariant tied by a ghost variable (`LessorRdNames`' seventh name) half in `lessorExtra` (which takes the lessor's
+  `γl`). `Demote.spec`'s statement is unchanged but stated at `HasLC.hasLC` (its only callers, the server's, are;
+  the channel close needs it). The assumed `NewLessor`, `Promote` and `Renew` keep their statements; their claims about
+  the ghost state are checked in `notes/axiom-review/lessor-demotec-stop.md`.
+- **Decision.** Applied (prove-ps2-lease, 2026-11-21): `Demote`, `Stop` proved, `lessorStopTok` and its `Timeless`
+  instance retired.
 ## 2026-11-21: `v3rpc.NewMaintenanceServer` lacks the watchable store's `isMvcc` (prove-ps2-nms)
 
 - **Spec.** `v3rpc.NewMaintenanceServer.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/`; a
@@ -3910,6 +3995,19 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   Ready. The public storage spec retains the bounded-read prefix guarantee
   and identifies the complete interval for the unlimited case.
   [Replay regression](../../issues/etcd-merged-snapshot-replay-failure.md).
+## 2026-11-21: `types.URLs.StringSlice` owns nothing of the URLs it reads (prove-ps2-misc)
+
+- **Spec.** `types.URLs.StringSlice.spec` (`Spec/go_etcd_io/etcd/client/pkg/v3/types/URLs__StringSlice.lean`; a
+  trust-boundary axiom until this change, `client/pkg/v3/types` names-only but for `URLs.Len` and `ID.String`).
+- **Defect.** Not provable over the real code: the premise was `p ≠ null` alone (true of Go by type safety), but the
+  pointer wrapper loads `*p` and the body reads `us[i]` and calls `url.URL.String` on each element
+  (`client/pkg/types/urls.go:79-86`), which needs the slice and the elements (`http.URLStringAny_spec` takes
+  `p ↦{dq} u`). The post was `True`.
+- **Evidence.** The translation (`Code/go_etcd_io/etcd/client/pkg/v3/types.lean`, `URLs.StringSlice.impl`).
+- **Proposed change.** Under the approved ownership rule (2026-11-21): the premise takes `p ↦{dq} sl ∗ sl ↦*□ us`
+  (the post gives `p ↦{dq} sl` back, and the fresh output slice of as many strings). Its one caller, `NewServer`
+  (and `NewServerR`) on `cfg.ClientURLs`, holds the field and `cfg.ClientURLs' ↦*□ U.client` (`bootCfgRO`).
+- **Decision.** Applied (prove-ps2-misc, 2026-11-21): `URLs.StringSlice` translated and proved, the axiom retired.
 ## 2026-11-21: `FollowerStats.Fail` takes the stats' mutex (prove-ps2)
 
 - **Spec.** `v2stats.FollowerStats.Fail.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v2stats/`; a
@@ -3942,3 +4040,79 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   thread lends the one it holds (`apply.bkRT`). The observation `Q` and the rest are unchanged.
 - **Decision.** Taken under the user's direction of 2026-11-20 ("make your own choice ... the top-level robustness theorems
   should have fewer axioms"): it retires the `backend.Snapshot` axiom from every collection that reaches it.
+
+## 2026-11-21: `lessor.Renew` proved; `stopC` and `revokec` close-once channels (prove-ps2-renew)
+
+- **Spec.** `lease.lessor.Renew.spec` (`Spec/go_etcd_io/etcd/server/v3/lease/lessor__Renew.lean`; a names-only
+  trust-boundary axiom until this change), unchanged. The definitions under it: `lease.lessorStopTok`
+  (`LessorBackend.lean`), `lessorExtra`, `leaseMeta`, `revokeCloser` (`InvLessor.lean`), `leaseInit` (`Base.lean`).
+- **Defect.** Not provable over the real code with the invariant as it was: `Renew`'s `select` receives on the lease's
+  `revokec` (whose whole channel state was the revoker's `revokeCloser`), on `stopC` (a broadcast channel whose receive
+  side nothing in `lessorInv` held, and `ownBroadcastChan` is stated at `HasLC.hasLC` only, the lessor's invariant at any
+  `hlc`), and `leaseRenewed.Inc()` calls a counter `leaseInit` did not describe.
+- **Evidence.** `lessor.go:396-456`; the translation (`lessor.Renew.impl`).
+- **Proposed change.** `revokec` and `stopC` close-once channels as `demotec` already was (`onceChanInv`, `onceRecv`,
+  renamed from `demoteChanInv`/`demoteRecv`): `revokeCloser c` the channel's `onceRecv` and close token, `leaseMeta`'s
+  `revokec` its `revokeRecv`; `lessorStopTok` `stopC`'s close token, `lessorExtra` its `lessorStopRecv`; `leaseInit` adds
+  `leaseRenewed`'s `counterSpec` (grouped with `leaseRevoked`'s). No spec a caller sees changes; `NewLessor`'s axiom
+  claims more of its result (checked: `notes/axiom-review/lessor-demotec-stop.md`, prove-ps2-renew section).
+- **Decision.** Applied (prove-ps2-renew, 2026-11-21): `Renew` and `Lease.expired` translated and proved, the axiom
+  retired; `NewLease`, `initAndRecover`, `Grant`, `Revoke`, `Stop` re-proved over the new definitions.
+
+## 2026-11-21: `lease.NewLessor`'s reader slots (prove-ps2-newlessor)
+
+- **Spec.** `lease.NewLessor.spec` (`Spec/go_etcd_io/etcd/server/v3/lease/NewLessor.lean`; a trust-boundary axiom).
+- **Defect.** False of the model: the post gave the caller all `Int.toNat actualMaxReaders` reader slots of `le.mu`,
+  while the `runLoop` goroutine `newLessor` forks read-locks `le.mu` in every iteration (`revokeExpiredLeases`,
+  `lessor.go:640`); `init_RWMutex` makes exactly that many slots, so none is left for the loop.
+- **Evidence.** `notes/axiom-review/newlessor-reader-slot.md`; `lessor.go:245,640`; Perennial's `RWMutexGuard.lean`.
+- **Proposed change.** The post gives `Int.toNat actualMaxReaders - 1` slots (the loop keeps one); the rest unchanged.
+- **Decision.** Approved by the user (2026-11-21), on the condition that every caller still proves: applied, the callers'
+  slot arithmetic adjusted (`NewServer`, `NewServerR`, `mvccfull`'s `runner.open`, `mvccrand`'s `runChecks`).
+## 2026-11-21: `resolver.EtcdManualResolver.Close` had no premise (prove-grpc3)
+
+- **Spec.** `resolver.EtcdManualResolver.Close.spec` (an axiom until this change), `resolver.New.spec`.
+- **Defect.** Premise `isPkgInit` only, for any `r : Loc`: `Close` is promoted from the embedded `*manual.Resolver`
+  (grpc v1.84.0 `resolver/manual/manual.go:103-105`, `r.CloseCallback()`), so a nil `r` (or one whose `Resolver` is
+  nil) panics on the field's load, and the axiom proved the call returns. False as stated; the package is
+  `internal`, so only etcd's client calls it, always on `New`'s result.
+- **Evidence.** Code reading (`client/v3/internal/resolver/resolver.go:31-41`, `manual.go:32-41,103-105`); the proof
+  over the translated code needs the field and the callback; `notes/axiom-review/grpc3-resolver-close.md`.
+- **Proposed change.** `Close` takes `etcdResolverCloser r` (half of `r.Resolver`, the manual resolver's
+  `CloseCallback` and that it returns), which `New`'s post now also gives (a strengthening); `newClient` keeps it
+  for the failed dial's `Close`. Converges to the spec plan's resolver predicates when they have a closing right.
+- **Decision.** Applied (prove-grpc3, 2026-11-21), with `New`, `SetEndpoints` and `Close` proved over the translated
+  code and `etcdResolverOwn` defined (no longer an axiom).
+
+## 2026-11-21: `lease.NewLessor`'s write-back tokens and thread bound (prove-ps2-newlessor3)
+
+- **Spec.** `lease.NewLessor.spec` (`Spec/go_etcd_io/etcd/server/v3/lease/NewLessor.lean`; a trust-boundary axiom).
+- **Defect.** Not provable over the real code: its pre gave one write-back token (`backend.wbTok d.γB`), while the
+  proved `lessor.initAndRecover.spec` takes two (`tx.Unlock()` after `UnsafeCreateLeaseBucket`, `lessor.go:814`, and
+  `b.ForceCommit()`, `:834`, whose proved `backend.ForceCommit.spec` charges one); and the forked `runLoop`'s
+  `findExpiredLeases` calls `l.expired()` → `Remaining()`, which read-locks the lease's `expiryMu` with a slot of the
+  lease's pool, which exists only under `threadBound GF ≤ 2^30 - 1` (`isLeaseObj`), a bound the pre did not give.
+- **Evidence.** `lessor.go:208-249, 640-750, 808-835`; `Spec/.../lease/lessor__initAndRecover.lean`;
+  `isLeaseObj` (`InvLessor.lean`); `/shared/tmp/ps2/newlessor/plan.md` (items 2 and 4).
+- **Proposed change.** The pre takes `ownToks d.γB.wb 2` (as `lessor.Recover.spec`) and `⌜threadBound GF ≤ 2^30 - 1⌝`
+  (as `Renew`, `Promote`, `Leases`). Rejected alternative for the tokens: a `ForceCommit.spec` that charges none (#16's
+  commit path).
+- **Decision.** Approved by the user (2026-11-21), applied: `NewServer`/`NewServerR` mint the second token from the
+  write budget's supply (`wbSupply_of_stock`, a receipt at `ReqTimeout()`'s resolution: no change to the boot's
+  `bootLeft` or to any top-level premise) and discharge the bound from theirs (`2^28`); mvccrand's `runChecks` and
+  mvccfull's `inc_open_backend` give one more token from their fresh backend's (proof-internal).
+
+## 2026-11-21: a streamed request body's `Read` count and errors; `ReadFull` of it with `io`'s initialization (prove-http3)
+
+- **Spec.** `http.bodyStreamRead_spec` (axiom `bodyStreamRead_ok`), `http.ReadFull_stream_spec` (axiom until now),
+  `http.bodyStream` (opaque until now); `rafthttp.bodyStream_readFullAt`.
+- **Defect.** `bodyStreamRead_spec` said `ys.length = sint.nat n`, which a `Read` returning `-1` met; `io.ReadFull`
+  (`ReadAtLeast`'s `buf[n:]`) of such a reader panics, so the axiom `ReadFull_stream_ok` implicitly assumed `0 ≤ n`
+  (the same flaw prove-http found in `prefixReaderOk`, `notes/axiom-review/http-readall-negread.md`). `ReadFull_stream_spec`
+  had no `isPkgInit pkg_id.io`, which `io.ReadFull` needs (`io.EOF`, `io.ErrUnexpectedEOF`).
+- **Evidence.** Perennial's `io.ReadFull.spec` (`Perennial/Spec/io/ReadFull.lean`), proved over the translated code.
+- **Proposed change.** `bodyStreamRead_spec`'s post: `sint.Z n = ys.length`, and the error `errStrOk` and
+  `io.ptrTyped` (what `ReadFull_stream_ok` claimed of the errors it passed on); `bodyStream` defined as its raw fact
+  with `⌜Pre r ∧ rd ≠ nil⌝` (Go's server request bodies are never nil); `ReadFull_stream_spec` takes `isPkgInit io`,
+  and `bodyStream_readFullAt` takes it (the snapshot handler has it).
+- **Decision.** Applied (prove-http3, 2026-11-21): `ReadFull_stream_ok` is a theorem over Perennial's `io.ReadFull`.

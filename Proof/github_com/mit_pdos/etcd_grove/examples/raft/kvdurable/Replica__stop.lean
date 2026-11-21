@@ -81,9 +81,10 @@ theorem Replica.stop.wp_proof (wp_Stop : node.Stop.spec (GF := GF) (hG := hG)) :
     iframe Hrun1 Hrun2
   rw [Qp.half_add_half]
   try wp_auto
-  wp_apply wp_Stop n γ.r.cluster kdRaftN id $$ [$Hraft $HisNode $Hrun] as ⟨-, Hvac⟩
+  wp_apply wp_Stop n γ.r.cluster kdRaftN id $$ [$Hraft $HisNode $Hrun] as ⟨-, %x, Hvac, -⟩
   iapply HΦ
-  iframe Hvac
+  isplitl [Hvac]
+  · iexists x; iexact Hvac
   iexists n, st, sts, sq, ρ
   iframe HR Hclaim
 

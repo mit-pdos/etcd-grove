@@ -1736,9 +1736,11 @@ def cmtRegs (γ : BNames) (P : BParams) (W Pk : IProp GF) (Dc : Data) : IProp GF
     monoNatAuthOwn gc 1 c ∗ ghostMapAuth gm 1 M ∗ [∗map] _i ↦ e ∈ M, regEntry γ P W Pk c Dc e)
 
 /-- **The commit invariant's content**: the committed data's other half (`dbHalf`) with the
-registrations at it, or the backend stopped (`Close` has taken the half). -/
+registrations at it, or the backend stopped (`Close` has taken the half). (B4, 2026-11-21) With a
+reader's lower bound of the compaction keys' flag at the committed data, with no read buffer (`fkRd`, what
+a snapshot's read transaction gets). -/
 def cmtBody (γ : BNames) (P : BParams) (W Pk : IProp GF) : IProp GF :=
-  iprop((∃ Dc : Data, dbHalf γ.db Dc ∗ cmtRegs γ P W Pk Dc) ∨ bStopped γ)
+  iprop((∃ Dc : Data, dbHalf γ.db Dc ∗ fkRd γ P (Dc, ⟨∅, W64 0⟩) ∗ cmtRegs γ P W Pk Dc) ∨ bStopped γ)
 
 /-- **A commit point came after the count `n`** (persistent): a lower bound of the commit counter. -/
 def cntLb (γ : BNames) (n : Nat) : IProp GF :=
