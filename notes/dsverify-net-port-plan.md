@@ -648,7 +648,7 @@ tests kept as differential tests against the real library, a "not modelled" pani
    server's connection loop to the point of a hijack (dsverify's `Proof/net/http`); the
    translation's missing imports (`go/token` for `token.IsExported`; `bufio` is the main tree's).
    **The Lean half, first part (2026-11-20, branch `models-rpc-http-lean`, on `models-rpc-http`
-   merged with `lean`; landed after the coordinator freed disk).**
+   merged with `lean`; not landed yet: *Landing*, below).**
    *Compiles* (`lake build Net`, 2295 jobs): `Net/Code/net/{rpc,http}.lean` and their
    `GeneratedProof`. `Net/Code/net/http.toml` widened to what net/rpc's HTTP path runs, with
    bodies: `ReadResponse`, `Handle`, `ServeMux.{Handle,register,registerErr,ServeHTTP,Handler,
@@ -726,7 +726,13 @@ tests kept as differential tests against the real library, a "not modelled" pani
    `etc/tcb-report.py --collection etc/tcb-collections/models-net.txt --check --update`: 10 roots,
    no axiom of this repository or Perennial, no `sorry` (the baseline is empty), then `etc/land.sh`
    (its gates). Also checked: `etc/goose.py --check --project models-net`, `go test` of
-   `TestIsExportedASCII`.
+   `TestIsExportedASCII`. That landing failed in the gates' `models` section: the fault test
+   (`rpcdifftest`, a stream cut at every byte) saw `ErrShutdown` from real net/rpc, outside its
+   expected set. Checked 2026-11-21 that the model produces it too (both builds, about one run in
+   20: when the cut precedes the call's registration, the client's reader shuts the client down
+   before `send` runs; the model's `Client` is Go's code), so not an under-approximation: the test
+   now allows it (not required). Merged with `origin/lean` again (`50e9626bd2`); landing waits for a
+   full build, stacked with the grpc and JSON Go halves (`models-grpc-land`, `models-json-land`).
 3. **net/http**: (the model's Go is item 2's: the server and `ReadResponse` are Go's code over the
    model's head parser) then option B
    §4.4 (client `Transport.RoundTrip` with the program's dialer, resends, `ServeMux`, `Flusher`,
