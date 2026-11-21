@@ -23,23 +23,27 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode
 
+section ite
+variable [GooseExts] [GoLocalContext] [GoGlobalContext] [GoSemanticsFunctions] [go.PreSemantics]
+
+theorem base64.ite_tt {A : Type _} (x y : A) :
+    (if decide ((#true : val) = #true) = true then x else y) = x := by simp
+
+theorem base64.ite_ft {A : Type _} (x y : A) :
+    (if decide ((#false : val) = #true) = true then x else y) = y := by
+  rw [if_neg]; intro h; exact false_neq_true (of_decide_eq_true h)
+
+theorem base64.ite_ff {A : Type _} (x y : A) :
+    (if decide ((#false : val) = #false) = true then x else y) = x := by simp
+
+end ite
+
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.encoding.base64.Assumptions]
-
-theorem base64.ite_tt {A : Type _} (x y : A) :
-    (if decide ((#true : val) = #true) = true then x else y) = x := by simp
-
-include sem in
-theorem base64.ite_ft {A : Type _} (x y : A) :
-    (if decide ((#false : val) = #true) = true then x else y) = y := by
-  rw [if_neg]; intro h; exact absurd (go.intoVal_inj (of_decide_eq_true h)) (by decide)
-
-theorem base64.ite_ff {A : Type _} (x y : A) :
-    (if decide ((#false : val) = #false) = true then x else y) = x := by simp
 
 theorem base64.dst_split (dst : GoSlice) (d' : List w8) (n : w64)
     (h : 0 ≤ sint.Z n ∧ sint.Z n ≤ sint.Z dst.len) :
@@ -597,7 +601,9 @@ theorem base64.Encoding.Decode.wp_proof
             · iexists _, _, _; iframe; ipureintro; exact Hinv'
             wp_for HI
             by_cases hc1 : sint.Z si < sint.Z src.len
-            · rw [decide_eq_true hc1, if_pos (decide_eq_true rfl)]
+            · rw [decide_eq_true hc1]
+              try wp_auto
+              first | rw [base64.ite_tt] | rw [if_pos rfl]
               have hqa : 0 ≤ sint.Z si := Hinv'.2.1
               have hqb : sint.Z si ≤ s.length := Hinv'.2.2.1
               have hsp : 0 ≤ sint.Z n ∧ sint.Z n ≤ sint.Z dst.len := by
@@ -679,7 +685,10 @@ theorem base64.Encoding.Decode.wp_proof
                   rw [show sint.nat si' = sint.nat si + 4 by word]
                   exact base64.b64Ok_dropAt _ hok.2.1 s _ hb' (by word)
             · -- the end: `return n, err`
-              rw [decide_eq_false hc1, base64.ite_ft, base64.ite_ff]
+              rw [decide_eq_false hc1]
+              try wp_auto
+              first | rw [base64.ite_ft, base64.ite_ff] | skip
+              repeat (first | rw [if_neg Bool.false_ne_true] | rw [if_pos rfl])
               try wp_auto
               iapply HΦ; iexists _
               isplitl [Henc Hdm Hpad Hstrict]

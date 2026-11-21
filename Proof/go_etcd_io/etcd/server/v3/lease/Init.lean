@@ -7,10 +7,10 @@ functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
 Its fact (`leaseInit`, `Base.lean`): the error variables `ErrNotPrimary`,
 `ErrLeaseNotFound`, `ErrLeaseExists`, `ErrLeaseTTLTooLarge` (translated `errors.New` calls: leaf pointer errors
 without `Is`, by `EtcdGrove.ErrorStringLeaf`, whose `Error()` returns), `forever` (the zero
-`time.Time`), the counters `leaseGranted`, `leaseRevoked` and the histogram `leaseTotalTTLs`
+`time.Time`), the counters `leaseGranted`, `leaseRevoked`, `leaseRenewed` and the histogram `leaseTotalTTLs`
 (`metrics.go`, translated: over prometheus's constructor specs; until 2026-11-19 the trust-boundary
 axioms `<X>_init`). Its other variables' initializers are translated too (2026-11-19, until then
-`opaqueInitsOk`): the rate and interval constants (`lessor.go`) and the counter `leaseRenewed`.
+`opaqueInitsOk`): the rate and interval constants (`lessor.go`).
 -/
 module
 

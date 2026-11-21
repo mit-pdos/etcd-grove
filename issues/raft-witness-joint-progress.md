@@ -36,3 +36,11 @@ The stall concerns progress. The fork also has a leader completeness regression
 test for a joint configuration where the larger half lacks a regular majority.
 The witness's acknowledgement counts in both halves, so its proposed index
 must account for the acknowledgements in each. [Original safety case](../notes/raft-witness-vs-pr168/joint-oltq.md)
+
+## Fix
+
+The tracker offers the shared witness the smaller of the two supported indices.
+A half selecting the witness needs quorum minus one regular acknowledgements.
+A half that excluded it needs a full regular majority. The Go regression passes
+in both orientations, and the existing regression for a candidate missing a
+committed entry also passes. [Fork fix](https://github.com/upamanyus/etcd/commit/13190826c05a3e8357e7a9041db70ab5a0644582)

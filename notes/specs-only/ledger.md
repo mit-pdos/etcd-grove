@@ -3887,6 +3887,24 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** The error disjunct also states `h = slice.nil` (a strengthening of the axiom, true of the
   code; `EtcdServer.UserAdd`'s two uses drop it).
 - **Decision.** Applied (prove-authcrypto, 2026-11-21).
+## 2026-11-21: the lessor's `demotec` and stop channels get ghost state (prove-ps2-lease)
+
+- **Spec.** `lease.lessor.Demote.spec`, `lease.lessor.Stop.spec`, `lease.lessorStopTok`
+  (`Spec/go_etcd_io/etcd/server/v3/lease/`, `Proof/.../lease/LessorBackend.lean`; all three axioms), and what
+  `lessorInv` says of `demotec` (`InvLessor.lean`'s `lessorExtra`).
+- **Defect.** Not provable over the real code: `Demote`'s `close(le.demotec)` needs a close right the invariant did
+  not keep (`demotec` sits in `le.mu`'s fractional guard); `Stop`'s `close(le.stopC); <-le.doneC` needs the channels,
+  which the opaque `lessorStopTok` did not name.
+- **Evidence.** `lessor.go:534-550`, `:615-618`; the translations (`lessor.Demote.impl`, `lessor.Stop.impl`, the
+  latter translated by this change).
+- **Proposed change.** `lessorStopTok` defined (the two fields read-only, `stopC`'s broadcast close right, `doneC`'s
+  receive side); `demotec`'s state per channel in an invariant with a close token, the current token in a lessor
+  invariant tied by a ghost variable (`LessorRdNames`' seventh name) half in `lessorExtra` (which takes the lessor's
+  `γl`). `Demote.spec`'s statement is unchanged but stated at `HasLC.hasLC` (its only callers, the server's, are;
+  the channel close needs it). The assumed `NewLessor`, `Promote` and `Renew` keep their statements; their claims about
+  the ghost state are checked in `notes/axiom-review/lessor-demotec-stop.md`.
+- **Decision.** Applied (prove-ps2-lease, 2026-11-21): `Demote`, `Stop` proved, `lessorStopTok` and its `Timeless`
+  instance retired.
 ## 2026-11-21: `v3rpc.NewMaintenanceServer` lacks the watchable store's `isMvcc` (prove-ps2-nms)
 
 - **Spec.** `v3rpc.NewMaintenanceServer.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/`; a
@@ -3961,3 +3979,21 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   thread lends the one it holds (`apply.bkRT`). The observation `Q` and the rest are unchanged.
 - **Decision.** Taken under the user's direction of 2026-11-20 ("make your own choice ... the top-level robustness theorems
   should have fewer axioms"): it retires the `backend.Snapshot` axiom from every collection that reaches it.
+
+## 2026-11-21: `lessor.Renew` proved; `stopC` and `revokec` close-once channels (prove-ps2-renew)
+
+- **Spec.** `lease.lessor.Renew.spec` (`Spec/go_etcd_io/etcd/server/v3/lease/lessor__Renew.lean`; a names-only
+  trust-boundary axiom until this change), unchanged. The definitions under it: `lease.lessorStopTok`
+  (`LessorBackend.lean`), `lessorExtra`, `leaseMeta`, `revokeCloser` (`InvLessor.lean`), `leaseInit` (`Base.lean`).
+- **Defect.** Not provable over the real code with the invariant as it was: `Renew`'s `select` receives on the lease's
+  `revokec` (whose whole channel state was the revoker's `revokeCloser`), on `stopC` (a broadcast channel whose receive
+  side nothing in `lessorInv` held, and `ownBroadcastChan` is stated at `HasLC.hasLC` only, the lessor's invariant at any
+  `hlc`), and `leaseRenewed.Inc()` calls a counter `leaseInit` did not describe.
+- **Evidence.** `lessor.go:396-456`; the translation (`lessor.Renew.impl`).
+- **Proposed change.** `revokec` and `stopC` close-once channels as `demotec` already was (`onceChanInv`, `onceRecv`,
+  renamed from `demoteChanInv`/`demoteRecv`): `revokeCloser c` the channel's `onceRecv` and close token, `leaseMeta`'s
+  `revokec` its `revokeRecv`; `lessorStopTok` `stopC`'s close token, `lessorExtra` its `lessorStopRecv`; `leaseInit` adds
+  `leaseRenewed`'s `counterSpec` (grouped with `leaseRevoked`'s). No spec a caller sees changes; `NewLessor`'s axiom
+  claims more of its result (checked: `notes/axiom-review/lessor-demotec-stop.md`, prove-ps2-renew section).
+- **Decision.** Applied (prove-ps2-renew, 2026-11-21): `Renew` and `Lease.expired` translated and proved, the axiom
+  retired; `NewLease`, `initAndRecover`, `Grant`, `Revoke`, `Stop` re-proved over the new definitions.

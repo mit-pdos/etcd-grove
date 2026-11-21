@@ -1211,8 +1211,8 @@ theorem lessor_txn_contract (lp : Loc) (γl : GName) :
 /-- **The server's lessor contract, of the real lessor** (unit 9, 2026-10-13): the lessor at `lp`
 (`lease.lessorInv`, its configuration, its `expiredC` at the server's grant guard, D19n, the
 lease-grant plan's D1) meets `lessorOk`: `ExpiredLeasesC` proved,
-`Promote` and `Demote` the trust boundary (`lease.lessor.Promote.wp_proof`,
-`lease.lessor.Demote.wp_proof`). -/
+`Demote` proved (prove-ps2-lease, 2026-11-21), `Promote` the trust boundary
+(`lease.lessor.Promote.wp_proof`). -/
 theorem lessor_server_contract (lp : Loc) (γl : GName) (lg on : Bool) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ lease.lessorInv lp γl ∗
       lease.lessorCfg lp ∗ lease.lessorExpiredC lp (srvGrantGuard lg on) ⊢

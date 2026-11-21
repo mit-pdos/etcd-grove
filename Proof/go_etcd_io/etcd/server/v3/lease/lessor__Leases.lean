@@ -158,7 +158,7 @@ theorem lease.lessor.Leases.wp_proof
   ihave %Hszlt := preceipt_lt _ $$ Hsz
   -- the leases' `ID` facts, from their `leaseMeta`s
   iunfold lessorExtra at Hx
-  icases Hx with ⟨%dc, %np, %h, %hx, %bl, Hdc, Hnp, Hnot, Hh, Hhq, Hcp, Hmeta, Hbl⟩
+  icases Hx with ⟨%dc, %np, %h, %hx, %bl, Hdc, Hnp, Hnot, Hh, Hhq, Hcp, Hmeta, Hbl, Hdt⟩
   icases lease.leaseMeta_ids M _ $$ Hmeta with ⟨Hmeta, #Hids⟩
   wp_apply (hUL lp lm M _) $$ [$Hlm $HM] as %sl %ls ⟨Hlm, HM, Hsl, %Hls0⟩
   obtain ⟨Hnd, Hpairs⟩ := Hls0
@@ -180,7 +180,7 @@ theorem lease.lessor.Leases.wp_proof
     iexact Hids
   (try wp_auto)
   wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hdc Hnp Hnot Hh Hhq Hcp Hmeta
-      Hbl Hhl] as Hrd
+      Hbl Hdt Hhl] as Hrd
   · inext
     iunfold lessorMu
     iexists lm, im, M, I', rd0, L'
@@ -188,7 +188,7 @@ theorem lease.lessor.Leases.wp_proof
     isplitr
     · ipureintro; exact HL
     iframe Hsz Hls
-    isplitl [Hdc Hnp Hnot Hh Hhq Hcp Hmeta Hbl]
+    isplitl [Hdc Hnp Hnot Hh Hhq Hcp Hmeta Hbl Hdt]
     · iunfold lessorExtra; iexists dc, np, h, hx, bl; iframe
     iexists γr, hs
     iframe Hpr Hhl

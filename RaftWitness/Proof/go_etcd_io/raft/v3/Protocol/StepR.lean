@@ -460,12 +460,12 @@ inductive StepR : RState → List Msg → RState → Prop where
       r.p.role = .leader →
       r.cfg.cfg.wit ≠ W64 0 →
       r.cfg.cfg.wit ∈ r.cfg.cfg.incoming →
-      exclOf r.cfg.cfg r.p ≠ r.cfg.cfg.wit →
+      (exclOf r.cfg.cfg r.p ≠ r.cfg.cfg.wit ∨ (r.p.rsx = W64 0 ∧ r.p.sub ≠ W64 0)) →
       exclOf r.cfg.cfg r.p ∈ r.cfg.cfg.incoming →
       plogEntryAt r.p.base r.p.log i = some e →
       e.Term' = r.p.term →
       e.Subterm' = r.p.sub →
-      size r.cfg.cfg.incoming / 2 ≤ size (ackedBy r.p i ∩ rsVoters r.cfg.cfg r.p) →
+      witnessWriteCount (size r.cfg.cfg.incoming) r.p.rsx ≤ size (ackedBy r.p i ∩ rsVoters r.cfg.cfg r.p) →
       vs ≡ₚ elements (rsVoters r.cfg.cfg r.p) →
       StepR r [] { r with p := (psendMsgs r.p
         [Msg.mkV .wapp id r.cfg.cfg.wit r.p.term false i r.p.term r.p.sub (W64 0) [] vs []]) }

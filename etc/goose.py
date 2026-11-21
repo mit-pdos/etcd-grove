@@ -1396,14 +1396,13 @@ PROJECTS = [
         # The witness experiment (notes/raft-witness.md; a candidate implementation of
         # etcd-io/raft#133, not merged upstream): branch raft-witness-goose-lean of the etcd
         # fork, etcd-io/raft#168 rebased onto raft37-goose-lean-a1 (project raft's pin) with
-        # the fixes of notes/raft-witness-vs-pr168.md, at 99cb9e2d9 (a witness shared by both
-        # halves of a joint configuration is sent an entry only if both replicate to it;
-        # notes/raft-witness-reconfig.md), then (2026-11-10, premise fixes 2) project raft's fourth fix, `ConfState.Equivalent`
-        # comparing configurations, at 3e3ed2d. Translated into the parallel tree RaftWitness
+        # the fixes of notes/raft-witness-vs-pr168.md and the ConfState.Equivalent fix
+        # at 3e3ed2d. Branch raft-witness-goose-lean-joint-progress computes the index
+        # supported by both halves when they share a witness. Translated into RaftWitness
         # (modules RaftWitness.Code.go_etcd_io.raft.v3*, ...), which nothing outside it imports;
         # the same packages as project raft, configured by RaftWitness/Code/**.toml.
         repo="https://github.com/upamanyus/etcd",
-        rev="3e3ed2d2974287a24803a1772d1a4216cc5aee05",
+        rev="13190826c05a3e8357e7a9041db70ab5a0644582",
         root="RaftWitness",
         # raft's `proto` import is the main tree's names-only `Code.google_golang_org.protobuf.proto`
         lean_roots=["go.etcd.io/raft/v3=RaftWitness", "google.golang.org=", "os=", "io/fs="],
