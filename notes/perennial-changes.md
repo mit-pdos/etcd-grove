@@ -3174,6 +3174,19 @@ parameter.
 - **Proposed (general).** Fix the two docstrings ("the first binding of a key wins"); documentation only.
   **Status.** Recorded only.
 
+## 2026-11-20: `≤u` has no transitive instance (a named type whose underlying is another named interface; branch `prove-k8s`)
+
+- **The gap.** `go.UnderlyingEq` (`≤u`, `Perennial/Golang/Theory/PostLifting.lean`) has only the
+  reflexive instance and one `<u` step (`unfold_to_underlying_eq`), unlike `↓u` (`is_underlying_unfold`
+  chains). So converting a value to an interface type declared as another named interface (apimachinery's
+  `type Codec Serializer`) does not step: `convert_to_interface` needs `Codec.ty ≤u go.InterfaceType _`,
+  two `<u` steps away.
+- **Worked around locally.** The one place it is needed (`unstructured`'s initializer,
+  `UnstructuredJSONScheme runtime.Codec = unstructuredJSONScheme{}`): a local `haveI` of the two-step
+  instance (`etc/gen-init.py`, `Proof/k8s_io/apimachinery/pkg/apis/meta/v1/unstructured/Init.lean`).
+- **Proposed (general).** A transitive instance `[t <u t'] [t' ≤u u] : t ≤u u` (as for `↓u`; `<u` is
+  directed, so search terminates). **Status.** Recorded only.
+
 ## 2026-11-20: `time.After` and the timers have no clock content (clockwork's real clock)
 
 - **The gap.** Perennial's `time.After(d)` spec gives a bag of times with no logical content

@@ -43,51 +43,113 @@ theorem node.splitTwo.wp_proof (hK : internal.common.Inode.Key.spec (GF := GF) (
   iStructNamed Hn
   try wp_auto
   have Hlen : ins.length < 2 ^ 63 := by rw [Hl.1]; word
-  by_cases h4 : sint.Z nv.inodes'.len ≤ sint.Z (W64 4)
-  · rw [decide_eq_true h4]
-    try wp_auto
-    ihave Hn : (nl ↦ nv : IProp GF) $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
-    · iapply typedPointsto_combine _ _ _ Hnn
-      simp only [TypedPointsto.typedPointstoDef]
+  ihave Hn : (nl ↦ nv : IProp GF) $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
+  · iapply typedPointsto_combine _ _ _ Hnn
+    simp only [TypedPointsto.typedPointstoDef]
+    iframe
+  wp_join iprop(n_ptr ↦ nl ∗ pageSize_ptr ↦ ps ∗ ∃ k : Nat, splitIndex_ptr ↦ W64 (k : Int) ∗ nl ↦ nv ∗
+      nv.inodes' ↦* ins ∗ nv.bucket'.[Bucket, go!"FillPercent"] ↦{dqf} f ∗
+      ⌜splitCandidate ps.toNat ins k⌝)
+    at next with [n pageSize splitIndex Hn Hins Hfp] as ⟨n, pageSize, %candidate, HI, Hn, Hins, Hfp, %hc⟩
+  · by_cases h4 : sint.Z (W64 4) < sint.Z nv.inodes'.len
+    · rw [decide_eq_true h4]
+      try wp_auto
+      wp_apply node.sizeLessThan.wp_proof hK hV nl nv ins (DFrac.own 1) (DFrac.own 1) ps Hbnd
+        (by omega) $$ [Hn Hins] as ⟨Hn, Hins⟩
+      · iframe
+      by_cases hs : ins = [] ∨ insSize ins < ps.toNat
+      · rw [decide_eq_true hs]
+        try wp_auto
+        isplitr
+        · itrivial
+        iframe n pageSize
+        iexists ins.length
+        have he : W64 (ins.length : Int) = nv.inodes'.len := by rw [Hl.1]; word
+        rw [he]
+        iframe
+        ipureintro
+        exact ⟨Nat.le_refl _, Or.inl rfl, by rw [List.take_length]; exact pieceFits_unsplit _ _ (Or.inr hs)⟩
+      · rw [decide_eq_false hs]
+        iStructNamed Hn
+        try wp_auto
+        ihave Hn : (nl ↦ nv : IProp GF) $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
+        · iapply typedPointsto_combine _ _ _ Hnn
+          simp only [TypedPointsto.typedPointstoDef]
+          iframe
+        wp_apply splitThreshold.wp_proof ps f Hnan Hps as %t %Ht
+        try wp_auto
+        wp_apply node.splitIndex.wp_proof hK hV nl nv ins (DFrac.own 1) (DFrac.own 1) t Hbnd Ht.1
+          (by omega) $$ [Hn Hins] as ⟨Hn, Hins⟩
+        · iframe
+        try wp_auto
+        have h5 : 5 ≤ ins.length := by rw [Hl.1]; word
+        obtain ⟨h2, h3, -⟩ := splitIdx_spec (sint.nat t) ins h5
+        isplitr
+        · itrivial
+        iframe n pageSize
+        iexists (splitIdx (sint.nat t) ins).1
+        iframe
+        ipureintro
+        exact ⟨by omega, Or.inr ⟨h2, h3⟩, pieceFits_split _ _ ins h5 (by have := Ht.2; unfold uint.Z at this; word)⟩
+    · rw [decide_eq_false h4]
+      try wp_auto
+      isplitr
+      · itrivial
+      iframe n pageSize
+      iexists ins.length
+      have he : W64 (ins.length : Int) = nv.inodes'.len := by rw [Hl.1]; word
+      rw [he]
       iframe
-    iapply HΦ
-    iframe
-    ileft
-    iframe
-    ipureintro
-    exact ⟨rfl, pieceFits_unsplit _ _ (Or.inl (by rw [Hl.1]; word))⟩
-  rw [decide_eq_false h4]
+      ipureintro
+      exact ⟨Nat.le_refl _, Or.inl rfl, by rw [List.take_length]; left; rw [Hl.1]; word⟩
+  let k := if nv.isLeaf' then leafPrefixLen 0 0 (ins.take candidate) else candidate
+  have ⟨hk, hfit, hne⟩ := splitCandidate_final nv.isLeaf' ps.toNat ins candidate hc
+  change k ≤ ins.length at hk
+  change pieceFitFor nv.isLeaf' ps.toNat (ins.take k) at hfit
+  change k ≠ ins.length → _ at hne
+  iStructNamed Hn
   try wp_auto
   ihave Hn : (nl ↦ nv : IProp GF) $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
   · iapply typedPointsto_combine _ _ _ Hnn
     simp only [TypedPointsto.typedPointstoDef]
     iframe
-  wp_apply node.sizeLessThan.wp_proof hK hV nl nv ins (DFrac.own 1) (DFrac.own 1) ps Hbnd
-    (by omega) $$ [Hn Hins]
-    as ⟨Hn, Hins⟩
-  · iframe
-  by_cases hs : decide (ins = [] ∨ insSize ins < ps.toNat) = true
-  · rw [hs]
+  wp_join iprop(n_ptr ↦ nl ∗ splitIndex_ptr ↦ W64 (k : Int) ∗ nl ↦ nv ∗ nv.inodes' ↦* ins)
+    at next with [n HI Hn Hins] as ⟨n, HI, Hn, Hins⟩
+  · cases hl : nv.isLeaf'
+    · try wp_auto
+      isplitr
+      · itrivial
+      simp only [k, hl, Bool.false_eq_true, ↓reduceIte]; iframe
+    · try wp_auto
+      have hw : (W64 (candidate : Int)).toNat = candidate := by have := hc.1; word
+      wp_apply node.readableLeafPrefix.wp_proof hK hV nl nv ins (DFrac.own 1) (DFrac.own 1)
+        (W64 (candidate : Int)) Hbnd (by rw [hw]; exact hc.1) $$ [Hn Hins] as ⟨Hn, Hins⟩
+      · iframe
+      try wp_auto
+      isplitr
+      · itrivial
+      simp only [k, hl, ↓reduceIte, hw]; iframe
+  iStructNamed Hn
+  try wp_auto
+  ihave Hn : (nl ↦ nv : IProp GF) $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
+  · iapply typedPointsto_combine _ _ _ Hnn
+    simp only [TypedPointsto.typedPointstoDef]
+    iframe
+  by_cases heq : k = ins.length
+  · have hw : W64 (k : Int) = nv.inodes'.len := by rw [heq, Hl.1]; word
+    rw [decide_eq_true hw]
     try wp_auto
     iapply HΦ
     iframe
     ileft
     iframe
     ipureintro
-    exact ⟨rfl, pieceFits_unsplit _ _ (Or.inr (by simpa using hs))⟩
-  rw [Bool.not_eq_true] at hs
-  rw [hs]
+    exact ⟨rfl, by simpa [heq] using hfit⟩
+  have hw : W64 (k : Int) ≠ nv.inodes'.len := by rw [← (show W64 (ins.length : Int) = nv.inodes'.len by rw [Hl.1]; word)]; word
+  rw [decide_eq_false hw]
   try wp_auto
-  wp_apply splitThreshold.wp_proof ps f Hnan Hps as %t %Ht
-  try wp_auto
-  wp_apply node.splitIndex.wp_proof hK hV nl nv ins (DFrac.own 1) (DFrac.own 1) t Hbnd Ht.1
-    (by omega) $$ [Hn Hins]
-    as ⟨Hn, Hins⟩
-  · iframe
-  have H5 : 5 ≤ ins.length := by rw [Hl.1]; word
-  obtain ⟨hk2, hk3, hk⟩ := splitIdx_spec (sint.nat t) ins H5
-  generalize Hk : (splitIdx (sint.nat t) ins).1 = k at hk2 hk3 hk
-  try wp_auto
+  obtain ⟨hk2, hk3⟩ := hne heq
+  have hlt : k < ins.length := by omega
   wp_join iprop(n_ptr ↦ nl ∗ ∃ (pl : Loc) (pv0 : node) (pcs0 : List Loc),
       nl ↦ ({ nv with parent' := pl } : node) ∗ pl ↦ pv0 ∗ pv0.children' ↦* pcs0 ∗
       ownSliceCap Loc pv0.children' (DFrac.own 1) ∗
@@ -148,8 +210,7 @@ theorem node.splitTwo.wp_proof (hK : internal.common.Inode.Key.spec (GF := GF) (
   iexists k, pl, ({ pv0 with children' := s' } : node), pcs0 ++ [«$r0_ptr»]
   isplitr
   · ipureintro
-    refine ⟨hk2, hk3, ?_, Hnn', Hpl0.1, ?_⟩
-    · rw [← Hk]; exact pieceFits_split _ _ ins H5 (by have := Ht.2; unfold uint.Z at this; word)
+    refine ⟨hk2, hk3, hfit, Hnn', Hpl0.1, ?_⟩
     rcases Hpl0.2 with ⟨hp, hpv, hpc⟩ | ⟨hp, hpl, hpv, hpc⟩
     · refine Or.inl ⟨hp, ?_, by rw [hpc]; rfl⟩
       rw [hpv]; rfl

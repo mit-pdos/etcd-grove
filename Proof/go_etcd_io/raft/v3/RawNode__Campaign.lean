@@ -108,6 +108,7 @@ theorem RawNode.Campaign.wp_proof
   · iapply HΦ $$ %err %s'.term
     simp only [named]
     isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap Hpend]
+    ihave #Hhist' := restoredSnapHistory_keep γ id Hsd $$ Hhist
     ihave #Hsloc' := snapLocOk_keep γ id (.inl Hsn) $$ Hsloc
     · iapply ownRawNode_intro γ rn id { rs with term := s'.term } s' cf fp rnv sv hprev steps Hwf' Hin
         Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
@@ -116,7 +117,7 @@ theorem RawNode.Campaign.wp_proof
         (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
         (RNFl.keep Hrnfl Hfl' Hap' Ha) (Hloan.keep Hgh Hsn Hfl' (logStoreRec_stored Hsd) Hu Ha Hc)
         (Hsdt.ofRec Hsn Hsd) Hrole
-        (Hphs.keep rfl rfl rfl (HsLe.of_step Href.voteLe Hc) Hsn (.inl (Hip4 (by msg_ne)))) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' [Hdur]
+        (Hphs.keep rfl rfl rfl (HsLe.of_step Href.voteLe Hc) Hsn (.inl (Hip4 (by msg_ne)))) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' Hhist' [Hdur]
       · -- (durability stage II (i)) the step keeps `durTie`'s fields
         iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) Hsn Hpv (logStoreRec_stored Hsd) $$ Hdur
     ipureintro

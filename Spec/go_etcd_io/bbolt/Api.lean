@@ -177,9 +177,10 @@ either
   probes past page 1 only after successful reads with a bad checksum, i.e. both metas invalid),
   nothing about user values is assumed. Its tree holding `D`:
   - the root holds top-level buckets only (no nested bucket, no plain value), their names of
-    `1..MaxKeySize` bytes (`CreateBucket` refuses others); every key non-empty; every entry within `bboltEntryMax` (key and value together: every write goes
-    through `Put`, whose spec takes it, and `WriteTo` copies such a database; a file with entries
-    near `MaxValueSize` is one bbolt cannot use anyway, `issues/bbolt-max-value-size-unusable.md`);
+    `1..MaxKeySize` bytes (`CreateBucket` refuses others); every key non-empty; leaf entries fit the single-element address window
+    (`bboltEntryMax` for key and value together), and a key fits the share available for a
+    branch separator (`branchKeyMax`). These bounds hold for a successful `Put` and cover
+    every file admitted by the former 256 MiB entry bound (`entryBytesFit_legacy`);
   - (round 4: over *extents*) every tree page's extent (`id` through `id + overflow`) and the
     synced freelist page's extent lie in `[2, hwm)` (so within the file, by the high-water-mark
     clause below: a mapped load past the end of the file is a hole in OsFs, stuck); the extents

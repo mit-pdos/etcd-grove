@@ -99,7 +99,7 @@ theorem val_end {P' Q : Pages} {hwm root hwmv h : Nat} {S Sv : List Nat} {e : El
     bktOfPage (treePages P' root) e.2.2 = GMap.ofList L ∧
     ∀ bpg, bktLeafPg (treePages P' root) e.2.2 bpg → ∀ j < pageCount bpg,
       leafFlags bpg j % 2 = 0 ∧ 0 < leafKsize bpg j ∧
-        leafKsize bpg j + leafVsize bpg j ≤ bboltEntryMax := by
+        entryBytesFit (leafKsize bpg j) (leafVsize bpg j) := by
   have hd' := bvalData_agree hv hag hd
   have htr := treeEls_bucketHas hs he hb
   rcases hv.2 with ⟨hr0, -, -⟩ | ⟨hr0, hv', hsv⟩
@@ -137,7 +137,7 @@ def elVal (X0 : WX) (Q : Pages) (D : List Nat) (e : El) : Prop :=
 /-- **`endEls` from facts per element** (see the module doc). -/
 theorem endEls_of {X0 : WX} {Q : Pages} {D : List Nat} {E : List El}
     (hel : ∀ e ∈ E, e.1 % 2 = bucketLeafFlag ∧ (0 < e.2.1.length ∧ e.2.1.length ≤ maxKeySize) ∧
-      e.2.1.length + e.2.2.length ≤ bboltEntryMax)
+      entryBytesFit e.2.1.length e.2.2.length)
     (hval : ∀ e ∈ E, elVal X0 Q D e)
     (hnames : E.map (fun e => e.2.1) = (rootEnts X0).map Prod.fst) :
     endEls X0 Q D E := by
@@ -149,7 +149,7 @@ theorem endEls_of {X0 : WX} {Q : Pages} {D : List Nat} {E : List El}
   have hv : ∀ e ∈ E, bktOfPage (treePages P' root) e.2.2 = (bktData X0 e.2.1).getD ∅ ∧
       ∀ bpg, bktLeafPg (treePages P' root) e.2.2 bpg → ∀ j < pageCount bpg,
         leafFlags bpg j % 2 = 0 ∧ 0 < leafKsize bpg j ∧
-          leafKsize bpg j + leafVsize bpg j ≤ bboltEntryMax := by
+          entryBytesFit (leafKsize bpg j) (leafVsize bpg j) := by
     intro e he
     obtain ⟨hwmv, Sv, L, hSv, hSD, hd, hbd⟩ := hval e he
     have := val_end hs (hE ▸ he) (hel e he).1 hSv (fun x hx => hag x (hSD x hx)) hd

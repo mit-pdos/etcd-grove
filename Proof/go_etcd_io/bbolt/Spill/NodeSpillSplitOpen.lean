@@ -36,7 +36,7 @@ variable [sem : go.Semantics]
 /-- **`n.split(4096)`'s postcondition** but the returned slice and the fields (its spec's). -/
 def splitPost (n : Loc) (rN : NRec) (pv : node) (pcs : List Loc)
     (xs : List (Loc × node × List Inode)) : IProp GF :=
-  iprop((⌜xs = [(n, rN.nv, rN.ins)] ∧ pieceFits (W64 4096).toNat rN.ins⌝ ∗ n ↦ rN.nv ∗
+  iprop((⌜xs = [(n, rN.nv, rN.ins)] ∧ pieceFitFor rN.nv.isLeaf' (W64 4096).toNat rN.ins⌝ ∗ n ↦ rN.nv ∗
       rN.nv.inodes' ↦* rN.ins ∗ ownSliceCap Inode rN.nv.inodes' (DFrac.own 1) ∗
       parentOwn rN.nv.parent' pv pcs) ∨
     (∃ (pl : Loc) (pv' : node) (pcs' : List Loc),
@@ -50,7 +50,7 @@ def splitBack (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X1 : WX) (bl n : Loc) 
     (xs : List (Loc × node × List Inode)) : IProp GF :=
   iprop(∃ (X2 : WX) (wss : List (List WEntry)) (pl : Loc) (rp' : NRec),
     wtxW K tx r m X2 ∗ ⌜splitRel X1 X2 bl n rN xs wss pl rp' ∧
-      ∀ x ∈ xs, pieceFits 4096 x.2.2 ∧ (2 ≤ xs.length → 2 ≤ x.2.2.length)⌝)
+      ∀ x ∈ xs, pieceFitFor x.2.1.isLeaf' 4096 x.2.2 ∧ (2 ≤ xs.length → pieceMin x.2.1.isLeaf' ≤ x.2.2.length)⌝)
 
 omit hos in
 theorem ite_true_acc {c : Bool} (P : IProp GF) (h : c = true) :
