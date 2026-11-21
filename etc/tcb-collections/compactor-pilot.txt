@@ -35,11 +35,8 @@ axiom reflect.DeepEqual.wp_proof_pgidSet
 axiom sort.SliceIsSorted.wp_proof
 axiom sort.Sort.wp_anyLess
 axiom sort.Stable.wp_proof
-axiom strconv.FormatBool.wp_proof
 axiom strings.ToLower.wp_proof
 axiom time.Duration.Seconds.wp_proof
-axiom time.Time.IsZero.wp_proof
-axiom time.Time.Unix.wp_proof
 axiom traceutil.Trace.LogWithStepThreshold.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
 axiom zap.Logger.Fatal.wp_proof
