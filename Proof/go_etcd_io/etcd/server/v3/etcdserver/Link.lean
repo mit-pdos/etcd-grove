@@ -1477,10 +1477,6 @@ theorem v2stats.wp_NewLeaderStats :
     v2stats.NewLeaderStats.spec (GF := GF) (hG := hG) :=
   v2stats.NewLeaderStats.wp_proof zap.wp_NewNop
 
-theorem types.URLs.wp_StringSlice :
-    types.URLs.StringSlice.spec (GF := GF) (hG := hG) :=
-  types.URLs.StringSlice.wp_proof
-
 theorem idutil.wp_NewGenerator :
     idutil.NewGenerator.spec (GF := GF) (hG := hG) :=
   idutil.NewGenerator.wp_proof idutil.wp_lowbit
@@ -2975,6 +2971,10 @@ theorem clockwork.wp_NewRealClock :
 theorem membership.RaftCluster.wp_String :
     membership.RaftCluster.String.spec (GF := GF) (hG := hG) :=
   membership.RaftCluster.String.wp_proof
+
+theorem types.URLs.wp_StringSlice :
+    types.URLs.StringSlice.spec (GF := GF) (hG := hG) :=
+  types.URLs.StringSlice.wp_proof http.URLStringAny_ok
 
 theorem membership.RaftCluster.wp_SetVersionChangedNotifier :
     membership.RaftCluster.SetVersionChangedNotifier.spec (GF := GF) (hG := hG) :=
