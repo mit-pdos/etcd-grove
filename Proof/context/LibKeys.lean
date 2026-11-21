@@ -12,10 +12,11 @@ and `TestContradictions`).
 * `context.valueAt ctx k R` (persistent): `ctx.Value(k)` returns, from any goroutine, a value
   satisfying the pure `R` (the pattern of `context.startTimeOk`; pure, so that Perennial's
   `ctxValue` laws and `WithValue`'s `Value` wand carry it).
-* The results the libraries accept (`metadata.outgoingRes`, `peer.peerRes`, `trace.spanRes`): a value
-  of another type than the library stores (nothing to misuse: the library's type assertion fails), or
-  one the library made (the opaque, trusted predicates `metadata.builtRawMD`, `peer.transportPeer`,
-  `trace.otelSpan`; D4: only the owning package can store a value under its unexported key).
+* The results the libraries accept (`peer.peerRes`, `trace.spanRes`; at grpc's outgoing key
+  `metadata.outgoingHeld`, an `IProp` since errdesc stage 1): a value of another type than the library
+  stores (nothing to misuse: the library's type assertion fails), or one the library made (the opaque,
+  trusted predicates `metadata.builtRawMDRaw`, `peer.transportPeer`, `trace.otelSpan`; D4: only the
+  owning package can store a value under its unexported key).
 * (perheap step 0, 2026-11-18; `notes/perheap-scope.md` §2) **The incoming metadata as a per-heap
   relation**: `metadata.ctxInMD ctx md` (persistent), "`ctx`'s incoming metadata is `md`", over
   Perennial's chain (`context.ctxValue`) at `mdIncomingKey{}`: the value there is not an `MD` and
@@ -50,14 +51,6 @@ namespace EtcdGrove
 open Iris Iris.BI
 
 /-! ### The opaque "made by the library" predicates (TRUSTED; D4) -/
-
-/-- (opaque; TRUSTED) **A `rawMD` grpc's `metadata` stored** under `mdOutgoingKey{}`:
-`metadata.NewOutgoingContext(ctx, md)` (`rawMD{md: md}`) or `AppendToOutgoingContext(ctx, kv...)`
-(`rawMD{md: md.md, added: added}`, the pairs appended, each key lower-cased) (grpc v1.84.0
-`metadata/metadata.go`), never written after, and with no two keys of `md` equal up to case (every
-`MD` this repository's code passes to `NewOutgoingContext` is built by `metadata.Pairs`/`New`, which
-lower-case). -/
-opaque metadata.builtRawMD [GooseExts] : GoInterface → Prop
 
 /-- (opaque; TRUSTED) **A `*Peer` grpc's server transport made**: the value `peer.NewContext` stores
 under `peerKey{}` for a server stream (grpc v1.84.0 `internal/transport/http2_server.go`,
@@ -97,6 +90,22 @@ sampler, ID generator or span processor of the program's own, which may read the
 its own (`TestOtelExcludedComponents`), makes no `otelSpan`. -/
 opaque trace.otelSpan [GooseExts] : GoInterface → Prop
 
+/-- (opaque; TRUSTED; no law; errdesc stage 1, 2026-11-20) **A `rawMD` grpc's `metadata` made, with
+the outgoing metadata `f`**: the value `metadata.NewOutgoingContext(ctx, md)` (`rawMD{md: md}`) or
+`AppendToOutgoingContext(ctx, kv...)` (`rawMD{md: md.md, added: added}`, the pairs appended, each key
+lower-cased) stores under `mdOutgoingKey{}` (grpc v1.84.0 `metadata/metadata.go`), never written after,
+whose `FromOutgoingContext` view (the map's pairs merged with the added ones, keys lower-cased) is `f`,
+and with no two keys of `md` equal up to case (every `MD` this repository's code passes to
+`NewOutgoingContext` is built by `metadata.Pairs`/`New`, which lower-case). An `IProp` of the heap whose
+names it takes (`hG`), given only by the posts of grpc's uninterpreted `metadata` functions (and etcd's
+names-only `withVersion`, `WithRequireLeader`); no law relates two of them (the per-heap rule,
+`notes/errdesc-ghost-plan.md`). Until 2026-11-20 the opaque pure `builtRawMD : GoInterface → Prop`, with
+the metadata the pure `metadata.outgoingOf`, a function of the context value, which no implementation
+can meet for the contexts it allocates. -/
+opaque metadata.builtRawMDRaw [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
+    {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [go.Semantics] (v : GoInterface)
+    (f : GoString → Option (List GoString)) : IProp GF
+
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -127,11 +136,21 @@ abbrev peer.peerKeyAny : GoInterface :=
   interface.mkOk google_golang_org.grpc.peer.peerKey.ty
     #(zero_val google_golang_org.grpc.peer.peerKey)
 
-/-- What `FromOutgoingContext` accepts at `mdOutgoingKey{}`: not a `rawMD`, or one grpc's
-`metadata` stored (`builtRawMD`). -/
-def metadata.outgoingRes (v : GoInterface) : Prop :=
-  (∀ vi : GoInterfaceOk, v = GoInterface.ok vi → vi.ty ≠ google_golang_org.grpc.metadata.rawMD.ty) ∨
-    metadata.builtRawMD v
+/-- **The value `v` at `mdOutgoingKey{}` holds the outgoing metadata `md`** (persistent; errdesc
+stage 1, 2026-11-20: until then the pure `outgoingRes v`, over the opaque `Prop` `builtRawMD v`, and the
+metadata the pure `outgoingOf ctx`): `v` is not a `rawMD` (`FromOutgoingContext`'s `, ok` assertion
+fails) and `md = none`; or `v` is a `rawMD` grpc's `metadata` made with the view `f`
+(`builtRawMDRaw`) and `md = some f`. What `FromOutgoingContext` accepts at the key. -/
+def metadata.outgoingHeld (v : GoInterface) (md : Option (GoString → Option (List GoString))) :
+    IProp GF :=
+  iprop((⌜md = none ∧ ∀ vi : GoInterfaceOk, v = GoInterface.ok vi →
+      vi.ty ≠ google_golang_org.grpc.metadata.rawMD.ty⌝) ∨
+    ∃ f, ⌜md = some f⌝ ∗ □ metadata.builtRawMDRaw v f)
+
+instance metadata.outgoingHeld_persistent (v : GoInterface)
+    (md : Option (GoString → Option (List GoString))) :
+    Persistent (metadata.outgoingHeld (GF := GF) v md) := by
+  unfold metadata.outgoingHeld; infer_instance
 
 /-- What `peer.FromContext`'s callers accept at `peerKey{}`: not a `*Peer`, or the transport's. -/
 def peer.peerRes (v : GoInterface) : Prop :=
@@ -144,10 +163,11 @@ def trace.spanRes (v : GoInterface) : Prop :=
   v = GoInterface.nil ∨ trace.otelSpan v
 
 /-- **`ctx`'s outgoing metadata is grpc's** (persistent): `Value(mdOutgoingKey{})` returns one
-value `v` on every call, which `FromOutgoingContext` accepts. -/
+value `v` on every call, which holds some outgoing metadata (`outgoingHeld`: what
+`FromOutgoingContext` accepts). -/
 def metadata.outgoingCtxOk (ctx : GoInterfaceOk) : IProp GF :=
-  iprop(∃ v : GoInterface, ⌜metadata.outgoingRes v⌝ ∗
-    context.valueAt ctx metadata.mdOutgoingKeyAny (· = v))
+  iprop(∃ (v : GoInterface) (md : Option (GoString → Option (List GoString))),
+    context.valueAt ctx metadata.mdOutgoingKeyAny (· = v) ∗ metadata.outgoingHeld v md)
 
 /-- **`ctx`'s peer is the transport's** (persistent). -/
 def peer.peerCtxOk (ctx : GoInterfaceOk) : IProp GF :=
@@ -302,6 +322,14 @@ theorem metadata.incomingHeld_nil :
   ipureintro
   exact ⟨rfl, fun vi h => by cases h⟩
 
+/-- `nil` at `mdOutgoingKey{}` holds no outgoing metadata. -/
+theorem metadata.outgoingHeld_nil :
+    ⊢ metadata.outgoingHeld (GF := GF) GoInterface.nil none := by
+  unfold metadata.outgoingHeld
+  ileft
+  ipureintro
+  exact ⟨rfl, fun vi h => by cases h⟩
+
 /-- **A context of a type `value()` does not special-case** (k8s's `channelContext`, etcd's
 `valCtx`): its own `Value` is what the chain calls, so the WP form gives `ctxInMD`. -/
 theorem metadata.ctxInMD_raw (ctx : GoInterfaceOk) (v : GoInterface)
@@ -333,10 +361,10 @@ theorem context.libCtxOk_of_nil (ctx : GoInterfaceOk)
     · iapply H; ipureintro; simp
     iapply metadata.incomingHeld_nil
   isplitl []
-  · iexists GoInterface.nil
+  · iexists GoInterface.nil, none
     isplitl []
-    · ipureintro; left; intro vi h; cases h
-    iapply H; ipureintro; simp
+    · iapply H; ipureintro; simp
+    iapply metadata.outgoingHeld_nil
   isplitl []
   · iapply context.valueAt_mono _ _ (· = GoInterface.nil)
     · intro v hv; subst hv; left; intro vi h; cases h
@@ -389,12 +417,12 @@ theorem context.libCtxOk_of_ctxValueNil (ctx : GoInterfaceOk) :
     · iapply H; ipureintro; exact context.libKeys_notIntPtr _ (by simp)
     iapply metadata.incomingHeld_nil
   isplitl []
-  · iexists GoInterface.nil
+  · iexists GoInterface.nil, none
     isplitl []
-    · ipureintro; left; intro vi h; cases h
-    iapply context.valueAt_of_ctxValue
-    iframe #
-    iapply H; ipureintro; exact context.libKeys_notIntPtr _ (by simp)
+    · iapply context.valueAt_of_ctxValue
+      iframe #
+      iapply H; ipureintro; exact context.libKeys_notIntPtr _ (by simp)
+    iapply metadata.outgoingHeld_nil
   isplitl []
   · iapply context.valueAt_mono _ _ (· = GoInterface.nil)
     · intro v hv; subst hv; left; intro vi h; cases h
@@ -506,12 +534,12 @@ theorem context.libCtxOk_of_valueWand (parent c' key : GoInterfaceOk) (v : GoInt
   iintro #Hw #Htr #Hp
   unfold context.libCtxOk metadata.incomingCtxOk metadata.outgoingCtxOk peer.peerCtxOk
     trace.spanValOk
-  icases Hp with ⟨⟨%md, #Hi⟩, ⟨%vo, %hvo, #Ho⟩, #Hpe, #Hsp⟩
+  icases Hp with ⟨⟨%md, #Hi⟩, ⟨%vo, %omd, #Ho, #Hho⟩, #Hpe, #Hsp⟩
   isplitl []
   · iexists md
     iapply Htr; iexact Hi
   isplitl []
-  · iexists vo; iframe %hvo
+  · iexists vo, omd; iframe Hho
     iapply context.valueAt_of_valueWand parent c' key v _ _ (hk _ (by simp)) $$ Hw Ho
   isplitl []
   · iapply context.valueAt_of_valueWand parent c' key v _ _ (hk _ (by simp)) $$ Hw Hpe

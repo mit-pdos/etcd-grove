@@ -112,8 +112,17 @@ end go_opentelemetry_io.otel.attribute
 
 namespace go_opentelemetry_io.otel.trace
 
+/-- otel `trace`'s fact (prove-protootel, 2026-11-20; `True` until then): `noopSpanInstance` holds a
+`noopSpan` as a `Span`, read-only for good (`noop.go`: `var noopSpanInstance Span = noopSpan{}`), what
+`SpanFromContext` returns when the context has no span. -/
+def traceInit : IProp GF :=
+  iprop(∃ x : noopSpan, globalAddr noopSpanInstance ↦□ (interface.mkOk noopSpan.ty #x : GoInterface))
+
+instance traceInit_persistent : Persistent (traceInit (GF := GF)) := by
+  unfold traceInit; infer_instance
+
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_opentelemetry_io.otel.trace :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init traceInit
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_opentelemetry_io.otel.trace :=
   build_get_is_pkg_init_wf
 

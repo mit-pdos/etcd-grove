@@ -32,10 +32,10 @@ spec at every metadata an attempt may deliver (`attemptPre`); the old form is th
 abbrev lessor.Leases.spec : Prop :=
   ∀ (l conn : Loc) (addr : List GoString)
     (Spec : GrpcSpecMd (GF := GF) pbLeaseLeasesRequest pbLeaseLeasesResponse)
-    (Q : LeaseLeasesRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+    (Q : LeaseLeasesRespM → IProp GF) (ctx : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorRemoteAtC l conn addr ∗
       isGrpcRpcsMd addr go!"/etcdserverpb.Lease/LeaseLeases" Spec ∗
-      □ ▷ attemptPre conn (GoInterface.ok ctx) Spec () Q ∗
+      metadata.outMD ctx om ∗ □ ▷ attemptPre conn om Spec () Q ∗
       ctxOk ctx cd ∗ ctxErrClient ctx cd }}
     (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"Leases"))
       (Val #(GoInterface.ok ctx)))

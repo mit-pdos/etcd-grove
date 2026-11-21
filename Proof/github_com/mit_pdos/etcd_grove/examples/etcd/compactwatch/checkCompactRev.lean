@@ -74,6 +74,7 @@ theorem checkCompactRev.wp_proof
   wp_apply context.wp_WithCancel_Background iprop(True) $$ [$Pctx $Hcci]
     as %cctx %γctx %ccancel ⟨#Hccancel, #Hcctx, -, #cctxFrom⟩
   ihave #cctxO := metadata.outgoingCtxOkC_bgFrom cctx $$ cctxFrom
+  ihave #cctxM := metadata.outMD_bgFrom cctx $$ cctxFrom
   (try wp_auto)
   -- the watch's option, `WithRev(2)`
   wp_apply wp_WithRev (W64 2) as %f2 #Hf2
@@ -102,7 +103,7 @@ theorem checkCompactRev.wp_proof
   -- `cch := cli.Watcher.Watch(cctx, key, clientv3.WithRev(2))`
   wp_apply (wp_Watch w _ γr.kv cctx
       ({ Values := ∅, Deadline := none, Done_gn := γctx, PDone := iprop(True) } :
-        context.ContextDesc (IProp GF))
+        context.ContextDesc (IProp GF)) none
       key optsSl ([withRevM (W64 2)] : List (OpFull → OpFull)) (W64 2)
       (fun σ => iprop(⌜oneValW val σ.changes⌝)) 0) $$ [] as %wch %γw ⟨#Hsp, Hcons, Hcur⟩
   · iframe #

@@ -123,11 +123,13 @@ theorem Work.wp_proof
   wp_apply wp_keyOf go!"c" who go!"0"
   (try wp_auto)
   -- the puts
-  wp_apply (wp_reqCtx who hAs) as %c %cancel ⟨#Hcancel, %ci, %cd, %c0, %Hc, #Hctx, #Hce, %Hout⟩
+  wp_apply (wp_reqCtx who hAs) as %c %cancel ⟨#Hcancel, %ci, %cd, %Hc, #Hctx, #Hce, #Hout0⟩
   subst Hc
+  ihave #Hout : metadata.outMD ci (akOut who) $$ []
+  · unfold akOut; iexact Hout0
   (try wp_auto)
   wp_apply (h_work_put cl api conn addr s E ρ cid mid γa Lset n who ci cd (keyOfK go!"a" who go!"0")
-      go!"v0" hγa (reqCtx_out who _ c0 Hout.1 Hout.2)
+      go!"v0" hγa
       (opHistOk_put_a who go!"0" go!"v0" (by decide))
       (akPut_sizeOk hwho (by decide) (by decide) (by decide))) $$ [] as %resp %err %Herr
   · iframe #
@@ -156,11 +158,13 @@ theorem Work.wp_proof
   subst hv
   (try wp_auto)
   -- the put outside `[a, b)`: refused
-  wp_apply (wp_reqCtx who hAs) as %c %cancel ⟨#Hcancel, %ci, %cd, %c0, %Hc, #Hctx, #Hce, %Hout⟩
+  wp_apply (wp_reqCtx who hAs) as %c %cancel ⟨#Hcancel, %ci, %cd, %Hc, #Hctx, #Hce, #Hout0⟩
   subst Hc
+  ihave #Hout : metadata.outMD ci (akOut who) $$ []
+  · unfold akOut; iexact Hout0
   (try wp_auto)
   wp_apply (h_work_put cl api conn addr s E ρ cid mid γa Lset n who ci cd (keyOfK go!"c" who go!"0")
-      go!"v0" hγa (reqCtx_out who _ c0 Hout.1 Hout.2)
+      go!"v0" hγa
       (fun h => absurd (akOpGranted_put who _ go!"v0" (keyOfK_ne_nil _ _ _ (by decide)) h)
         (not_permitted_c who _))
       (akPut_sizeOk hwho (by decide) (by decide) (by decide))) $$ [] as %resp %err %Herr
@@ -172,8 +176,10 @@ theorem Work.wp_proof
     (keyOfK_ne_nil _ _ _ (by decide)) (Herr h)) (not_permitted_c who _)))
   (try wp_auto)
   -- the range `[a, b)`: `u`'s
-  wp_apply (wp_reqCtx who hAs) as %c %cancel ⟨#Hcancel, %ci, %cd, %c0, %Hc, #Hctx, #Hce, %Hout⟩
+  wp_apply (wp_reqCtx who hAs) as %c %cancel ⟨#Hcancel, %ci, %cd, %Hc, #Hctx, #Hce, #Hout0⟩
   subst Hc
+  ihave #Hout : metadata.outMD ci (akOut who) $$ []
+  · unfold akOut; iexact Hout0
   (try wp_auto)
   wp_apply wp_WithRange hi as %f1 #Hf1
   wp_apply wp_slice_literal
@@ -184,8 +190,7 @@ theorem Work.wp_proof
   ihave #Hopts := optsAt_one (GF := GF) _ f1 (withRangeM hi) $$ [Hosl Hf1]
   · iframe #
   (try wp_auto)
-  wp_apply (h_work_get cl api conn addr s E ρ cid mid γa Lset n who ci cd lo _ [withRangeM hi] hγa
-      (reqCtx_out who _ c0 Hout.1 Hout.2) get_ab_ok.1 get_ab_ok.2.1
+  wp_apply (h_work_get cl api conn addr s E ρ cid mid γa Lset n who ci cd lo _ [withRangeM hi] hγa get_ab_ok.1 get_ab_ok.2.1
       (akRange_sizeOk (by decide) (by decide))) $$ []
     as %resp %err Hres
   · iframe #
@@ -219,8 +224,10 @@ theorem Work.wp_proof
   subst hv
   (try wp_auto)
   -- the prefix `c/`: refused
-  wp_apply (wp_reqCtx who hAs) as %c %cancel ⟨#Hcancel, %ci, %cd, %c0, %Hc, #Hctx, #Hce, %Hout⟩
+  wp_apply (wp_reqCtx who hAs) as %c %cancel ⟨#Hcancel, %ci, %cd, %Hc, #Hctx, #Hce, #Hout0⟩
   subst Hc
+  ihave #Hout : metadata.outMD ci (akOut who) $$ []
+  · unfold akOut; iexact Hout0
   (try wp_auto)
   wp_apply wp_WithPrefix as %f1 #Hf1
   wp_apply wp_slice_literal
@@ -231,8 +238,7 @@ theorem Work.wp_proof
   ihave #Hopts := optsAt_one (GF := GF) _ f1 (withPrefixM) $$ [Hosl Hf1]
   · iframe #
   (try wp_auto)
-  wp_apply (h_work_get cl api conn addr s E ρ cid mid γa Lset n who ci cd go!"c/" _ [withPrefixM] hγa
-      (reqCtx_out who _ c0 Hout.1 Hout.2) get_c_ok.1 get_c_ok.2.1
+  wp_apply (h_work_get cl api conn addr s E ρ cid mid γa Lset n who ci cd go!"c/" _ [withPrefixM] hγa get_c_ok.1 get_c_ok.2.1
       (akPrefix_sizeOk (by decide))) $$ []
     as %resp %err Hres
   · iframe #
@@ -246,8 +252,10 @@ theorem Work.wp_proof
   wp_apply (wp_refused who _ err Hne)
   (try wp_auto)
   -- the range `[a, d)`: refused
-  wp_apply (wp_reqCtx who hAs) as %c %cancel ⟨#Hcancel, %ci, %cd, %c0, %Hc, #Hctx, #Hce, %Hout⟩
+  wp_apply (wp_reqCtx who hAs) as %c %cancel ⟨#Hcancel, %ci, %cd, %Hc, #Hctx, #Hce, #Hout0⟩
   subst Hc
+  ihave #Hout : metadata.outMD ci (akOut who) $$ []
+  · unfold akOut; iexact Hout0
   (try wp_auto)
   wp_apply wp_WithRange go!"d" as %f1 #Hf1
   wp_apply wp_slice_literal
@@ -258,8 +266,7 @@ theorem Work.wp_proof
   ihave #Hopts := optsAt_one (GF := GF) _ f1 (withRangeM go!"d") $$ [Hosl Hf1]
   · iframe #
   (try wp_auto)
-  wp_apply (h_work_get cl api conn addr s E ρ cid mid γa Lset n who ci cd lo _ [withRangeM go!"d"] hγa
-      (reqCtx_out who _ c0 Hout.1 Hout.2) get_past_ok.1 get_past_ok.2.1
+  wp_apply (h_work_get cl api conn addr s E ρ cid mid γa Lset n who ci cd lo _ [withRangeM go!"d"] hγa get_past_ok.1 get_past_ok.2.1
       (akRange_sizeOk (by decide) (by decide))) $$ []
     as %resp %err Hres
   · iframe #
@@ -273,8 +280,10 @@ theorem Work.wp_proof
   wp_apply (wp_refused who _ err Hne)
   (try wp_auto)
   -- T1: a put in `[a, b)` and a get of `[a, b)`: `u`'s
-  wp_apply (wp_reqCtx who hAs) as %c %cancel ⟨#Hcancel, %ci, %cd, %c0, %Hc, #Hctx, #Hce, %Hout⟩
+  wp_apply (wp_reqCtx who hAs) as %c %cancel ⟨#Hcancel, %ci, %cd, %Hc, #Hctx, #Hce, #Hout0⟩
   subst Hc
+  ihave #Hout : metadata.outMD ci (akOut who) $$ []
+  · unfold akOut; iexact Hout0
   (try wp_auto)
   wp_apply wp_keyOf go!"a" who go!"t"
   (try wp_auto)
@@ -332,8 +341,7 @@ theorem Work.wp_proof
     exact opHistOk_txn_put_get _ _ _
       (by rw [show writerK (keyOfK go!"a" go!"u" go!"t") = go!"u" by decide]; exact ⟨rfl, hr⟩)
   wp_apply (h_work_commit cl api conn tp addr s E ρ cid mid γa Lset n who ci cd
-      ⟨t1M (keyOfK go!"a" who go!"t") go!"vt", false, true, false⟩ hγa
-      (reqCtx_out who _ c0 Hout.1 Hout.2) hp1 hin1
+      ⟨t1M (keyOfK go!"a" who go!"t") go!"vt", false, true, false⟩ hγa hp1 hin1
       (t1M_size _ _ (keyOfK_principal_le hwho (by decide) (by decide)) (by decide)) hsh1
       hro1 hpl1 hop1)
     $$ [Hobj] as %resp %err ⟨%Herr, Hres⟩
@@ -373,8 +381,10 @@ theorem Work.wp_proof
   subst hv
   (try wp_auto)
   -- T2: a put in `[a, b)` and one outside it: refused
-  wp_apply (wp_reqCtx who hAs) as %c %cancel ⟨#Hcancel, %ci, %cd, %c0, %Hc, #Hctx, #Hce, %Hout⟩
+  wp_apply (wp_reqCtx who hAs) as %c %cancel ⟨#Hcancel, %ci, %cd, %Hc, #Hctx, #Hce, #Hout0⟩
   subst Hc
+  ihave #Hout : metadata.outMD ci (akOut who) $$ []
+  · unfold akOut; iexact Hout0
   (try wp_auto)
   wp_apply wp_keyOf go!"a" who go!"t1"
   (try wp_auto)
@@ -427,7 +437,7 @@ theorem Work.wp_proof
       (by simp [t2M, txnWireOf, opWire]) h)
   wp_apply (h_work_commit cl api conn tp addr s E ρ cid mid γa Lset n who ci cd
       ⟨t2M (keyOfK go!"a" who go!"t1") (keyOfK go!"c" who go!"t1") go!"vt", false, true, false⟩
-      hγa (reqCtx_out who _ c0 Hout.1 Hout.2) hp2 hin2
+      hγa hp2 hin2
       (t2M_size _ _ _ (keyOfK_principal_le hwho (by decide) (by decide))
         (keyOfK_principal_le hwho (by decide) (by decide)) (by decide))
       hsh2 hro2 hpl2 (fun h => absurd h hng2))
@@ -441,8 +451,10 @@ theorem Work.wp_proof
   (try wp_auto)
   -- T3: `If(in0 = "none")`, a put in `[a, b)` in its then branch, one outside it in its else
   -- branch: refused
-  wp_apply (wp_reqCtx who hAs) as %c %cancel ⟨#Hcancel, %ci, %cd, %c0, %Hc, #Hctx, #Hce, %Hout⟩
+  wp_apply (wp_reqCtx who hAs) as %c %cancel ⟨#Hcancel, %ci, %cd, %Hc, #Hctx, #Hce, #Hout0⟩
   subst Hc
+  ihave #Hout : metadata.outMD ci (akOut who) $$ []
+  · unfold akOut; iexact Hout0
   (try wp_auto)
   wp_apply wp_keyOf go!"c" who go!"t2"
   (try wp_auto)
@@ -532,7 +544,7 @@ theorem Work.wp_proof
   wp_apply (h_work_commit cl api conn tp addr s E ρ cid mid γa Lset n who ci cd
       ⟨t3M (compareM (cmpKeyM .value (keyOfK go!"a" who go!"0")) .eq (.str go!"none"))
         (keyOfK go!"a" who go!"t2") (keyOfK go!"c" who go!"t2") go!"vt", true, true, true⟩
-      hγa (reqCtx_out who _ c0 Hout.1 Hout.2) hp3 hin3
+      hγa hp3 hin3
       (t3M_size _ _ _ _ ⟨by simpa [compareM, cmpKeyM] using
           keyOfK_principal_le (x := go!"a") (n := go!"0") hwho (by decide) (by decide),
           by simp [compareM, cmpKeyM], by simp [compareM, cmpKeyM]⟩
@@ -548,8 +560,10 @@ theorem Work.wp_proof
   wp_apply (wp_refused who _ err (fun h => hng3 (Herr h)))
   (try wp_auto)
   -- T4: a nested transaction putting outside `[a, b)`: refused
-  wp_apply (wp_reqCtx who hAs) as %c %cancel ⟨#Hcancel, %ci, %cd, %c0, %Hc, #Hctx, #Hce, %Hout⟩
+  wp_apply (wp_reqCtx who hAs) as %c %cancel ⟨#Hcancel, %ci, %cd, %Hc, #Hctx, #Hce, #Hout0⟩
   subst Hc
+  ihave #Hout : metadata.outMD ci (akOut who) $$ []
+  · unfold akOut; iexact Hout0
   (try wp_auto)
   wp_apply wp_keyOf go!"c" who go!"t3"
   (try wp_auto)
@@ -581,7 +595,7 @@ theorem Work.wp_proof
   subst Htv
   (try wp_auto)
   wp_apply (h_then_commit_nested_refused cl api conn tp addr s E ρ cid mid γa Lset n who ci cd _ _ top
-      hwho hγa (reqCtx_out who _ c0 Hout.1 Hout.2)) $$ [Hobj] as HC
+      hwho hγa) $$ [Hobj] as HC
   · iframe #
     iframe Hobj
     ipureintro; exact Htsl
@@ -593,14 +607,16 @@ theorem Work.wp_proof
   wp_apply (wp_refused who _ err Hne)
   (try wp_auto)
   -- the delete of `a/who/d`: `u`'s
-  wp_apply (wp_reqCtx who hAs) as %c %cancel ⟨#Hcancel, %ci, %cd, %c0, %Hc, #Hctx, #Hce, %Hout⟩
+  wp_apply (wp_reqCtx who hAs) as %c %cancel ⟨#Hcancel, %ci, %cd, %Hc, #Hctx, #Hce, #Hout0⟩
   subst Hc
+  ihave #Hout : metadata.outMD ci (akOut who) $$ []
+  · unfold akOut; iexact Hout0
   (try wp_auto)
   wp_apply wp_keyOf go!"a" who go!"d"
   (try wp_auto)
   have hkd : keyOfK go!"a" who go!"d" ≠ [] := keyOfK_ne_nil _ _ _ (by decide)
   wp_apply (h_work_delete cl api conn addr s E ρ cid mid γa Lset n who ci cd (keyOfK go!"a" who go!"d")
-      hkd hγa (reqCtx_out who _ c0 Hout.1 Hout.2) (fun h => by
+      hkd hγa (fun h => by
         obtain ⟨rfl, hr⟩ := akOpGranted_delete who _ hkd h
         exact opHistOk_delete_point _
           (by rw [show writerK (keyOfK go!"a" go!"u" go!"d") = go!"u" by decide]; exact ⟨rfl, hr⟩))
@@ -632,14 +648,16 @@ theorem Work.wp_proof
   subst hv
   (try wp_auto)
   -- the delete of `c/who/d`: refused
-  wp_apply (wp_reqCtx who hAs) as %c %cancel ⟨#Hcancel, %ci, %cd, %c0, %Hc, #Hctx, #Hce, %Hout⟩
+  wp_apply (wp_reqCtx who hAs) as %c %cancel ⟨#Hcancel, %ci, %cd, %Hc, #Hctx, #Hce, #Hout0⟩
   subst Hc
+  ihave #Hout : metadata.outMD ci (akOut who) $$ []
+  · unfold akOut; iexact Hout0
   (try wp_auto)
   wp_apply wp_keyOf go!"c" who go!"d"
   (try wp_auto)
   have hkc : keyOfK go!"c" who go!"d" ≠ [] := keyOfK_ne_nil _ _ _ (by decide)
   wp_apply (h_work_delete cl api conn addr s E ρ cid mid γa Lset n who ci cd (keyOfK go!"c" who go!"d")
-      hkc hγa (reqCtx_out who _ c0 Hout.1 Hout.2)
+      hkc hγa
       (fun h => absurd (akOpGranted_delete who _ hkc h) (not_permitted_c who _))
       (akDelete_sizeOk hwho (by decide) (by decide)))
     $$ [] as %resp %err %Herr
@@ -656,15 +674,14 @@ theorem Work.wp_proof
   wp_apply context.wp_Background
   (try wp_auto)
   wp_apply (client.wp_WithTimeout_bgMd hWT wp_ErrAny hAs _) $$ []
-    as %wc %wcd %wcancel ⟨#Hwcancel, #HwOk, -, #Hwctx, %Hwnone, #Hwlib⟩
+    as %wc %wcd %wcancel ⟨#Hwcancel, #HwOk, -, #Hwctx, #Hwnone, #Hwlib⟩
   ihave #HwC := ctxOk_outgoingC wc wcd $$ HwOk
   (try wp_auto)
   wp_bind (If _ _ _)
   iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗
       ∃ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
         wctx_ptr ↦ GoInterface.ok ci ∗ context.isContext ci cd ∗ metadata.outgoingCtxOk ci ∗
-        metadata.outgoingCtxOkC ci ∗
-        ⌜metadata.outgoingOf (GoInterface.ok ci) = akOut who⌝))) $$ [wctx]
+        metadata.outgoingCtxOkC ci ∗ metadata.outMD ci (akOut who)))) $$ [wctx]
   · wp_if_destruct
     · ihave #Pmd : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.metadata $$ []
       · iPkgInit
@@ -677,9 +694,9 @@ theorem Work.wp_proof
         show max (max (2 : Int) 0) 0 = 2 from rfl]
       (try wp_auto)
       ihave #Hwout0 := context.outgoingCtxOk_of_libCtxOk wc $$ Hwlib
-      wp_apply wp_Append wc wcd _ (DFrac.own 1) go!"token" badToken
+      wp_apply wp_Append wc wcd _ (DFrac.own 1) go!"token" badToken none
           (by unfold metadata.lowerKey; decide) $$ [Hksl]
-        as %c' ⟨%ci, %vs, %Hc', #Hctx', #Hout', #HoutC', %Hmd, -⟩
+        as %c' ⟨%ci, %vs, %Hc', #Hctx', #Hout', #HoutC', #Hmd, -⟩
       · iframe; iframe #
       subst Hc'
       (try wp_auto)
@@ -688,8 +705,9 @@ theorem Work.wp_proof
       · ipureintro; rfl
       iexists { wcd with Values := vs }
       iframe Hctx' Hout' HoutC'
-      ipureintro
-      exact reqCtx_out _ _ (GoInterface.ok wc) Hwnone (by rw [_root_.if_pos rfl]; exact Hmd)
+      unfold akOut
+      rw [_root_.if_pos rfl]
+      iexact Hmd
     · (try wp_auto)
       iframe
       iexists wcd
@@ -697,9 +715,10 @@ theorem Work.wp_proof
       isplitl []
       · ihave #Hwout1 := context.outgoingCtxOk_of_libCtxOk wc $$ Hwlib
         iexact Hwout1
-      ipureintro
-      exact reqCtx_out _ _ (GoInterface.ok wc) Hwnone (by simp only [Hif, ↓reduceIte])
-  iintro %v ⟨%hv, %wci, %wcd', wctx, #Hwctx', #Hwoutc, #HwoutC, %Hwout⟩
+      unfold akOut
+      simp only [Hif, ↓reduceIte]
+      iexact Hwnone
+  iintro %v ⟨%hv, %wci, %wcd', wctx, #Hwctx', #Hwoutc, #HwoutC, #Hwout⟩
   subst hv
   (try wp_auto)
   wp_apply wp_WithPrefix as %f1 #Hf1
@@ -725,7 +744,7 @@ theorem Work.wp_proof
   iunfold kvAu at Hau
   have hE' : (({ V with conn := wconn, ics := wics, wc := wwc, lg := wlg } : WEnv GF).mem 0).2.E.authMode
       = .on γa := by simp [hVm, hVE, hγa]
-  wp_apply (wp_Watch w { V with conn := wconn, ics := wics, wc := wwc, lg := wlg } ρ.kv wci wcd'
+  wp_apply (wp_Watch w { V with conn := wconn, ics := wics, wc := wwc, lg := wlg } ρ.kv wci wcd' (akOut who)
       go!"c/" _ [withPrefixM, withRevM (W64 1)] (W64 1) (fun σ => iprop(⌜stateHistOk σ⌝)) n) $$ []
     as %wch %γw ⟨#Hsp, Hcons, -⟩
   · iframe #
@@ -784,11 +803,11 @@ theorem Work.wp_proof
   · -- events: the watch was granted, which it was not (`akWatch_c_refused`)
     ihave #Hw := Hau' $$ %he
     ihave #Hw2 := Hw $$ %hVn
-    ihave #Hw3 : watchCheckOk V.R.tag s wconn (GoInterface.ok wci) n go!"c/" go!"c0" $$ [Hw2]
+    ihave #Hw3 : watchCheckOk V.R.tag s wconn (akOut who) n go!"c/" go!"c0" $$ [Hw2]
     · iExactEq Hw2
       simp [hVm, hVs]
       rfl
-    imod (akWatch_c_refused V.R.tag s wconn (GoInterface.ok wci) γa ρ Lset n who Hwout) $$
+    imod (akWatch_c_refused V.R.tag s wconn γa ρ Lset n who) $$
       [Hf Hwat Htag Htls] Hw3 with HF
     · iframe #
     iexfalso

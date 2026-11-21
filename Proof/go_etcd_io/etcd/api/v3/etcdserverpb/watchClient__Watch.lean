@@ -33,8 +33,8 @@ theorem watchClient.Watch.wp_proof
     (wp_CloseSend : grpc.GenericClientStream.CloseSend.spec (GF := GF) (hG := hG))
     (wp_Context : grpc.GenericClientStream.Context.spec (GF := GF) (hG := hG)) :
     watchClient.Watch.spec (GF := GF) (hG := hG) := by
-  intro wc conn addrs ics Up Spec ctx cd opts vs
-  wp_start as ⟨#Hstub, #Hconn, #Hstr, #Hdesc, #Hctx, #Hopts, #Hok⟩
+  intro wc conn addrs ics Up Spec ctx cd om opts vs
+  wp_start as ⟨#Hstub, #Hconn, #Hstr, #Hdesc, #Hctx, #Hom, #Hopts, #Hok⟩
   wp_auto
   wp_apply wp_StaticMethod as %sm ⟨#Hsm, %Hsms⟩
   wp_apply wp_slice_literal (V := GoInterface) [sm]
@@ -69,7 +69,7 @@ theorem watchClient.Watch.wp_proof
   wp_bind (App (App (App (App (Val _) _) _) _) _)
   ihave #Hok3 := streamCallOptsOk_of ([sm] ++ vs) $$ Hok2
   have hNS := wp_NewStream conn addrs ics go!"/etcdserverpb.Watch/Watch" v3rpc.pbWatchRequestT
-    v3rpc.pbWatchResponseT v3rpc.pbWatchRequestT_reg v3rpc.pbWatchResponseT_reg Up Spec ctx cd
+    v3rpc.pbWatchResponseT v3rpc.pbWatchRequestT_reg v3rpc.pbWatchResponseT_reg Up Spec ctx cd om
   simp only [v3rpc.pbWatchRequestT, v3rpc.pbWatchResponseT] at hNS
   iapply (hNS _ copts ([sm] ++ vs))
   · iframe #

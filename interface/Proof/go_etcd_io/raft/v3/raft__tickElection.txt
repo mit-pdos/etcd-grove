@@ -25,9 +25,7 @@ theorem raft.tickElection.wp_proof [package_sem : Assumptions] (wp_promotable :
                           "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
                               "Hghost" ∷ ownStepGhost γ md c id s' ∗
                                 "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-                                  "%Hcm" ∷
-                                      ⌜uint.Z s.logst.committed ≤ uint.Z s'.logst.committed ∧
-                                          PVoteLe (toPState s) (toPState s')⌝ ∗
+                                  "%Hcm" ∷ ⌜TickProgress s s'⌝ ∗
                                     "%Htick" ∷ ⌜TickStep s s'⌝ ∗ "HG" ∷ (⌜s' = s⌝ ∗ R.G ∨ Gout s') -∗
                             Φ (intoVal ())) -∗
                       WP

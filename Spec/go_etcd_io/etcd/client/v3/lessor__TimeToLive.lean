@@ -35,11 +35,11 @@ spec at every metadata an attempt may deliver (`attemptPre`); the old form is th
 abbrev lessor.TimeToLive.spec : Prop :=
   ∀ (l conn : Loc) (addr : List GoString)
     (Spec : GrpcSpecMd (GF := GF) pbLeaseTimeToLiveRequest pbLeaseTimeToLiveResponse)
-    (Q : LeaseTTLRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (Q : LeaseTTLRespM → IProp GF) (ctx : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
     (id : w64) (sl : GoSlice) (gs : List (Bool → Bool)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorRemoteAtC l conn addr ∗
       isGrpcRpcsMd addr go!"/etcdserverpb.Lease/LeaseTimeToLive" Spec ∗
-      □ ▷ attemptPre conn (GoInterface.ok ctx) Spec (id, leaseKeysFold gs false) Q ∗
+      metadata.outMD ctx om ∗ □ ▷ attemptPre conn om Spec (id, leaseKeysFold gs false) Q ∗
       leaseOptsAt sl gs ∗ ctxOk ctx cd ∗ ctxErrClient ctx cd }}
     (App (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!!
         go!"TimeToLive")) (Val #(GoInterface.ok ctx))) (Val #id)) (Val #sl))

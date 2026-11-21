@@ -333,7 +333,8 @@ PROJECTS = [
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="d3feef9bcdddb9ad15ee5fc8bf725050395debb4",
+        # Recover the start record from earlier segments of a WAL created by an older writer.
+        rev="f6ef28518829ab1589fd24e7ed6693b5d5f36216",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
@@ -479,6 +480,10 @@ PROJECTS = [
             "google.golang.org/protobuf/reflect/protoreflect",
             "go.uber.org/zap",
             "go.uber.org/zap/zapcore",
+            # (prove-misc, 2026-11-20) what zapcore's package variables call: its generic `sync.Pool`
+            # wrapper (`pool.New`) and its terminal colors (`color.Add`, `fmt.Sprintf`)
+            "go.uber.org/zap/internal/pool",
+            "go.uber.org/zap/internal/color",
             # names only: the auto-compactor's clock (the spec-first pilot)
             "github.com/jonboulle/clockwork",
             "github.com/dustin/go-humanize",
@@ -1904,6 +1909,7 @@ GO_MOD_PINS = {
                                          "go.etcd.io/bbolt": "bbolt"},
     os.path.join("examples", "raft", "kvwitness", "go.mod"): {"go.etcd.io/raft/v3": "raft-witness"},
     os.path.join("examples", "raft", "kvdurablenoax", "go.mod"): {"go.etcd.io/raft/v3": "raft-noax"},
+    os.path.join("examples", "raft", "kvnet", "go.mod"): {"go.etcd.io/raft/v3": "raft-noax"},
     os.path.join("examples", "raft", "tracecheck", "go.mod"): {"go.etcd.io/raft/v3": "raft"},
     os.path.join("examples", "bbolt", "bank", "go.mod"): {"go.etcd.io/bbolt": "bbolt-bank"},
     # the Kubernetes etcd3 store's driver, a module of its own (it requires k8s.io/apiserver)

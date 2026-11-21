@@ -11,7 +11,7 @@ public import Perennial.Proof.context.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.InitLinked
 public import Proof.go_etcd_io.etcd.client.v3.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InitLinked
-public import Proof.go_uber_org.zap.Init
+public import Proof.go_uber_org.zap.InitLinked
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -56,12 +56,12 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_auto
   wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) regQs)
       (EtcdGrove.regResL (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.regQs)
-      (List.Sublist.map _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.slnil)))))))))))
+      (List.Sublist.map _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.slnil)))))))))))))))
       _ _ (_root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.wp_initialize'_res _ Hinit.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd5⟩
   wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) regQs)
       (EtcdGrove.regResL (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.regQs)
-      (List.Sublist.map _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.slnil)))))))))))
+      (List.Sublist.map _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.slnil)))))))))))))))
       _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.wp_initialize'_res _ Hinit.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd4⟩
   wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.client.v3.wp_initialize'_lb _ Hinit.2.2.2.1))

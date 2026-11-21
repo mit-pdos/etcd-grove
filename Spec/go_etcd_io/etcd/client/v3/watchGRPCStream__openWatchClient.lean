@@ -34,10 +34,10 @@ stream was opened with metadata `md` an attempt on the connection delivered for 
 context (`clientAttemptMd`), and its specification is at `md`'s token (`auth.mdTokenOf`). -/
 abbrev watchGRPCStream.openWatchClient.spec : Prop :=
   ∀ (V : WEnv GF) (wgs : Loc) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
-    (callSl : GoSlice) (vs : List GoInterface),
+    (om : GrpcMd) (callSl : GoSlice) (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
-      wgsF wgs go!"ctx" ↦□ (GoInterface.ok ci) ∗ context.isContext ci cd ∗ metadata.outgoingCtxOkC ci ∗
+      wgsF wgs go!"ctx" ↦□ (GoInterface.ok ci) ∗ context.isContext ci cd ∗ metadata.outMD ci om ∗
       wgsF wgs go!"remote" ↦□ wcIface V.wc ∗ wgsF wgs go!"callOpts" ↦□ callSl ∗
       callSl ↦*□ vs ∗ callOptsOk vs ∗ watchSrvFacts V }}
     (App (Val (wgs @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"openWatchClient")) (Val #()))
@@ -46,7 +46,7 @@ abbrev watchGRPCStream.openWatchClient.spec : Prop :=
           (Dn : Nat → v3rpc.WatchRespM → IProp GF) (cd' : context.ContextDesc (IProp GF))
           (md : GrpcMd),
         -- (W3b) the stream at some member `i` of the connection's (D32)
-        ⌜i < V.nm ∧ clientAttemptMd V.conn (GoInterface.ok ci) md⌝ ∗
+        ⌜i < V.nm ∧ clientAttemptMd V.conn om md⌝ ∗
         v3rpc.cliWatchStreamIs ws γs (v3rpc.watchUp (V.mem i).2) Dn cd' ∗
         cliSendTok (Req := v3rpc.pbWatchRequest) γs [] ∗
         cliRecvTok (Rep := v3rpc.pbWatchResponse) γs [] ∗

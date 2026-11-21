@@ -59,13 +59,14 @@ func DialTCP(addr string, timeout time.Duration) (net.Conn, error) {
 
 // RequestVia is RequestWithin over connections dial makes.
 func RequestVia(dial Dialer, addr string, kind byte, timeout, total time.Duration, payload []byte) ([]byte, bool) {
-	deadline := time.Now().Add(total)
 	c, err := dial(addr, min(dialTimeout, total))
 	if err != nil {
 		return nil, false
 	}
 	defer c.Close()
-	c.SetDeadline(deadline)
+	// the whole exchange within total (the dial's time aside): a frame read in full before the
+	// timer closed c is the replica's answer
+	defer closeAfter(c, total)()
 	req := putUint64([]byte{kind}, uint64(timeout/time.Millisecond))
 	req = append(req, payload...)
 	if !writeAll(c, []byte{helloClient}) || !writeFrame(c, req) {

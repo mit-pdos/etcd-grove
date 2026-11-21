@@ -51,8 +51,7 @@ abbrev raft.tickElection.untracedTriple : Prop :=
       "Hghost" ∷ ownStepGhost γ md c id s' ∗
       "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
       -- (2026-11-01, durability stage II (m)) and the term and the vote as the model moves them
-      "%Hcm" ∷ ⌜uint.Z s.logst.committed ≤ uint.Z s'.logst.committed ∧
-        PVoteLe (toPState s) (toPState s')⌝ ∗
+      "%Hcm" ∷ ⌜TickProgress s s'⌝ ∗
       "%Htick" ∷ ⌜TickStep s s'⌝ }}
 
 /-- `raft.tickElection.spec`'s untraced instance: the campaign's `Step` at `untracedR`, its gates and
@@ -95,8 +94,7 @@ abbrev raft.tickHeartbeat.untracedTriple : Prop :=
       "Hghost" ∷ ownStepGhost γ md c id s' ∗
       "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
       -- (2026-11-01, durability stage II (m)) and the term and the vote as the model moves them
-      "%Hcm" ∷ ⌜uint.Z s.logst.committed ≤ uint.Z s'.logst.committed ∧
-        PVoteLe (toPState s) (toPState s')⌝ ∗
+      "%Hcm" ∷ ⌜TickProgress s s'⌝ ∗
       "%Htick" ∷ ⌜TickStep s s'⌝ }}
 
 /-- `raft.tickHeartbeat.spec`'s untraced instance: each `Step` at `untracedR` of its state (the

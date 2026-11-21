@@ -41238,8 +41238,48 @@ client_golang v1.24.1 (`MetricVec.Describe` sends its one descriptor; variable l
 
 **Not done:** auth, lease, backend and mvcc register only too, but their closures are reached by
 `mvccrand` and `mvccfull`, whose closed theorems have no `namesUnclaimed` premise: making them
-`PRE_RES` would add that premise, so their `initFuncsOk` stay. `ownInitRes` (the one-package form)
+`PRE_RES` would add that premise, so their `initFuncsOk` stay. (Superseded 2026-11-20 by the next
+entry: done, with that premise.) `ownInitRes` (the one-package form)
 stays in `PkgInit.lean`, unused: deleting it rebuilds every module.
+
+## auth, lease, backend and mvcc register too: mvccrand and mvccfull take `namesUnclaimed` (2026-11-20 · the user's decision · branch `prove-etcdstorage/2026-11-20`)
+
+The previous entry left the four packages' `init()` names-only (`initFuncsOk`), because registering
+their metrics through `PRE_RES` puts the premise `namesUnclaimed` on every closed theorem whose
+program reaches them, and mvccrand's and mvccfull's had none.
+
+**Decision (the user, 2026-11-20, via the coordinator):** extend `namesUnclaimed` to cover them.
+`init.0` of auth (1 metric), lease (4), backend (8) and mvcc (23) is translated and stepped by
+`etc/gen-init.py` (`register(...)`, as the mustreg packages); `mvccrand_adequate`/`mvccrand_robust`
+and `mvccfull_adequate`/`mvccfull_safe`/`mvccfull_robust` take `prometheus.namesUnclaimed` of the
+program's `initNames` (`mvccrandNames`, `mvccfullMetricNames`; until then `[]` was passed to
+`goose_adequacy_start`), and every etcd program's name list (its root's `initNames`) grows by the
+36 names. No other etcd code registers them (grep of the pinned source for the names and the
+`auth`/`lease`/`mvcc` subsystems outside the four `metrics.go`, as mustreg did).
+
+Six of the registered metrics are `NewGaugeFunc` gauges, whose spec posted nothing:
+`NewGaugeFunc.spec` now posts `nameOk (fqName ns sub name) → collectorName g (fqName ns sub name)`
+(a strengthening, true of client_golang v1.24.1: `gauge.go:306` builds one descriptor of that name
+with no labels, `collector.go:113`'s `selfCollector.Describe` sends it); the generator `decide`s the
+name's validity.
+
+
+## `ETCD_VERIFY` read through `os.Getenv`'s spec, not assumed per check (2026-11-20 · the coordinator's group `etcdstorage` · branch `prove-etcdstorage/2026-11-20`)
+
+Sweep repairs 1 (B4) gave each of etcd's `ETCD_VERIFY` checks (`backend.ValidateCalled{Inside,OutSide}Apply`,
+`ValidateCalledInsideUnittest`, `VerifyBackendConsistency`) an axiom taking the token `envVerifyOff`;
+`verify.Verify` was an axiom too.
+
+**Decision:** the one function that reads the environment says it: `os.Getenv`'s post gives
+`envVerifyOff -∗ ⌜key = "ETCD_VERIFY" → etcdVerifyOffValue v⌝`, and `strings.ToLower`'s post says
+exactly when its result is a given lower-case ASCII word (`strings.lowersTo`, `Proof/strings/Lower.lean`:
+the rune-by-rune rule with the two non-ASCII runes Go lower-cases to ASCII, U+0130 and U+212A,
+measured). Both are strengthenings of existing trust-boundary axioms (posts were `True`); the world
+assumption `verifyEnvOff` is unchanged. `verify.IsVerificationEnabled`, `Verify`, the three lock checks
+and `VerifyBackendConsistency` are translated and proved; `Verify`'s premise is weakened to
+"`f` returns true, or `envVerifyOff`" (its five callers take the first, `ileft`), so
+`VerifyBackendConsistency` need not prove the backend consistent. Review:
+`notes/axiom-review/getenv-etcd-verify.md`.
 
 ## The net extension without a plan (v3.4) (2026-11-20 · the user's decision · branch `net-noplan`)
 
@@ -41300,6 +41340,22 @@ need validity. The next step is to preserve the pin at node startup and the sour
 This supersedes the October 31 decision to retain the server's snapshot-index guard.
 The invariant argument and remaining obligations are in [the removal plan](snapguard-removal-plan.md).
 
+## Recover the snapshot record across legacy WAL filenames (2026-11-20)
+
+The last filename at or below the requested snapshot index can start too late
+on WALs written before the cut rule accounted for snapshots. When the normal
+scan cannot find the record, recovery now examines earlier segments, starting
+with the nearest. A match extends the locked range and restarts decoding. The
+extended scan validates the CRC and snapshot term and returns the committed
+hard state and subsequent entries. The locks also retain earlier segments
+whose snapshot would otherwise disappear during purge.
+
+The verifier’s disk invariant covers the current writer. For that layout the
+public ReadAll proof follows the actual CRC seeds, lock filenames, and snapshot
+records to establish that earlier files cannot supply a missing match. The Go
+upgrade regression covers the older layout in read-only and writable modes,
+then purges and reopens the WAL. [Finding and regression](../issues/etcd-wal-upgrade-legacy-segment-name.md)
+
 ## bbolt admits readable values on a split leaf (2026-11-20)
 
 A valid key and value fit a single amd64 leaf when their lengths sum to at
@@ -41315,6 +41371,31 @@ available to one of four branch entries. Every key accepted by `Put` fits
 this bound. `entryBytesFit_legacy` also covers every key and value admitted
 by the previous file model. The fork's regression and the upstream split
 problem are in `issues/bbolt-put-refuses-readable-entry.md`.
+
+
+
+### The RawNode owns the restore history (2026-11-20)
+
+Startup allocates each incarnation’s history. A successful snapshot restore records the incoming sender, term and index in that history. A stale snapshot leaves the history intact. The evidence follows the node through Ready and Advance, including a snapshot outstanding when another restore arrives. The server still needs the observation at handout and the link to the original outgoing message.
+
+### Bounding restored snapshots at Ready handout (2026-11-20)
+
+Keep the restore-index bound in Raft's log invariant. The bound starts at the initial log boundary and follows each accepted restore. At Ready handout, the committed prefix delivered by the batch covers that boundary. Record the hard-state term and this bound together, so the server can compare an observed batch against a snapshot from the same leader term. A message drained in a later term still needs the certificate from its original send.
+
+### Snapshots queued across a term change (2026-11-20)
+
+Record the term on the outgoing message. The proof uses the sender's commit
+bound and the strict commit check at each successful incoming restore to
+preserve that attribution until Ready drains the outbox. The receiver may
+compare a batch in the message's term even if the draining batch is later.
+
+### Recording which committed indices were installed snapshots (2026-11-20)
+
+A successful restore records its index. Ready records the node's current
+commit, through which a later restore cannot change the set of installed
+indices. A snapshot loan returns a receipt for its own index. The server
+can retain the receipt when the Raft driver puts the snapshot in memory
+storage and use it when the same index is sent back out.
 
 ## The listening token and the net+fs bundle (2026-11-21 · the user's request · branch `net-noplan`, stages B and C)
 
@@ -41342,3 +41423,43 @@ own. It also has: both `HasExt` instances, `kvnetGF`/`kvnetGpreS`, the projectio
 crash resources onto each extension's, and `kvnet_dist_crash_adequacy`
 (`goose_dist_crash_adequacy` at `kvnetGF`, with the initial-state conditions discharged from
 `NetGlobal.init` and `FsInit`). There is no change to the file extension.
+## Outgoing metadata as a per-run relation (2026-11-20 · the user's soundness fix · branch `prove-errdesc/2026-11-20`, stage 1)
+
+**Supersedes in part:** the auth plan's E2f (`metadata.outgoingOf`, "a function of the context value
+for the same reason: a context is immutable") and G2's use of it for the watch's stream key; and
+premise-fixes-7's opaque `Prop` `metadata.builtRawMD`.
+
+**Why.** `metadata.outgoingOf : GoInterface → GrpcMd` was a fixed Lean function of a context value,
+and the posts of `AppendToOutgoingContext`, `withVersion`, `WithCancelValCtx`,
+`WithTimeoutBackgroundMd` equated it with caller-chosen data for a context the call allocates. A fresh
+allocation may be any location, so no implementation can meet those posts (two runs of
+`AppendToOutgoingContext(ctx, "k", "a")` and `(…, "b")` from one heap may return the same `*valueCtx`;
+etcd-refimpl's `README.md` "Findings"; `notes/errdesc-ghost-plan.md` §0).
+
+**Decision** (`notes/errdesc-ghost-plan.md` §2.1, Part II of `notes/perheap-scope.md`):
+`metadata.outMD ctx md` (persistent; `Proof/context/LibKeysChain.lean`), Perennial's chain at grpc's
+outgoing key holding a value `v` that `metadata.outgoingHeld v md` (not a `rawMD` and `none`, or one
+grpc made with view `f`, the opaque leaf `□ metadata.builtRawMDRaw v f`, and `some f`).
+`outgoingCtxOkC ctx := ∃ md, outMD ctx md` (name kept); `outgoingCtxOk` (WP form) carries the same
+`outgoingHeld`. No agreement law. Every spec that relates a context's metadata to something takes the
+metadata as a parameter `om` with `metadata.outMD ctx om` in its precondition: the client's call
+contracts (`attemptPre conn om …`, `clientAttemptMd conn om md`, `clientOpAuOn`/`clientGrant`/
+`clientHistAu` and the retry interceptor's contract over `om`), grpc's attempt contract
+(`grpcAttemptMd conn om md`; `grpcInvokerOk` and `ClientConn.NewStream` take `outMD ctx om`), the watch
+(`watcher.Watch`'s `om`, kept in the watch's record `WsPrm.omd` and the stream's `WgsPrm.omd`;
+`watchCheckOk … om …`). A caller with no stake in the metadata takes one from `ctxOk`/`watchCtx`
+(`ctxOk_outgoingC`, `watchCtx_outMD`); the examples state theirs (`metadata.outMD ci (akOut who)`).
+Axioms restated (none added): `AppendToOutgoingContext`, `withVersion`, `streamKeyFromCtx`,
+`WithCancelValCtx`, `WithTimeoutBackgroundMd`, `ClientConn.NewStream` (and the meaning of
+`ClientConn.Invoke`'s and `WithRequireLeader`'s through `grpcInvokerOk`/`outgoingCtxOkC`).
+
+### Match a queued snapshot to the server’s apply job (2026-11-20)
+
+A message in `msgSnapC` keeps its own Ready observation. The apply job
+keeps the observation from the batch it is applying. These can be different
+batches. At equal sender and apply terms, the two observations bound a
+restored snapshot directly. For an image obtained from memory storage, use
+its origin at bootstrap, its creator’s applied-index lower bound, or its
+local installation receipt. The saved node location identifies the
+incarnation that installed the snapshot. The server rule leaves the apply
+thread’s index authority available for the remainder of the job.
