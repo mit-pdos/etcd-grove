@@ -183,9 +183,6 @@ axiom health.NewServer.wp_proof
 axiom health.Server.SetServingStatus.wp_proof
 axiom http.CloseIdleConnections_ok
 axiom http.Flush_ok
-axiom http.HeaderGetOwnPtr_ok
-axiom http.HeaderGetPtr_ok
-axiom http.HeaderSetPtr_ok
 axiom http.NewRequest_ok
 axiom http.ReadAll_any_ok
 axiom http.ReadAll_resp_ok
