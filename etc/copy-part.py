@@ -180,6 +180,7 @@ def compute():
         txt = txt[:s] + IMPORT_RE.sub(imp, head) + txt[s + len(head):]
         txt = rename(txt)
         files[os.path.join(PART, rename(src))] = f"-- {HEADER} `{src}` {NOTE}.\n" + txt
+    prune_unimported(why, files)
     # the Goose configuration of the translated packages
     for o in owned_pieces():
         src_o = unrename(o.replace(os.sep, ".")).replace(".", os.sep)
@@ -190,6 +191,48 @@ def compute():
             src = os.path.relpath(f, ROOT)
             files[os.path.join(PART, rename(src))] = f"# {HEADER} `{src}` {NOTE}.\n" + open(f).read()
     return why, files
+
+
+def prune_unimported(why, files):
+    """Drop the copies no module of the part imports (to a fixpoint), but the roots (`Results`,
+    `TopLevelRobustness`, `Link`): modules of the main tree's closure that only the main tree's
+    versions of the part's own files import (stage 2 replaced the `proto` axioms' callers, so the
+    copies of those axioms, `DescribeConfChange`'s, `fmt.Sprintf`'s and `strings.Join`'s were left
+    behind, built but unreached; prove-raftex, 2026-11-20). The part's other modules (its own,
+    the generated ones) are read from disk."""
+    def mod_of(path):
+        return path[:-len(".lean")].replace(os.sep, ".")
+    texts = {}
+    for dp, _, fs in os.walk(os.path.join(ROOT, PART)):
+        for x in fs:
+            if x.endswith(".lean"):
+                p = os.path.relpath(os.path.join(dp, x), ROOT)
+                t = open(os.path.join(ROOT, p)).read()
+                first = t.split("\n", 1)[0]
+                if not (HEADER in first and NOTE in first):  # a stale copy is not the part's
+                    texts[mod_of(p)] = t
+    copied = {}
+    for p, t in files.items():
+        if p.endswith(".lean"):
+            texts[mod_of(p)] = t
+            copied[mod_of(p)] = p
+    importers = {}
+    for m, t in texts.items():
+        for mm in IMPORT_RE.finditer(header_part(t)):
+            importers.setdefault(mm.group(2), set()).add(m)
+    alive = set(texts)
+    changed = True
+    while changed:
+        changed = False
+        for m in sorted(alive & set(copied)):
+            if m.endswith((".Results", ".TopLevelRobustness", ".Link")):
+                continue
+            if not any(i in alive for i in importers.get(m, ())):
+                alive.discard(m)
+                changed = True
+    for m in set(copied) - alive:
+        del files[copied[m]]
+        why.pop(unrename(m[len(PART) + 1:]), None)
 
 
 def existing_copies():
