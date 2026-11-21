@@ -91,12 +91,12 @@ theorem etcd_leaseN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
-    (Hsteps : RealNsteps n ([leaseNProgram k], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 2 ≤ 2 ^ 28) :
+    (Hsteps : RealNstepsBelow (2 ^ 28) n ([leaseNProgram k], ((σ, g) : CfgState)) κs (t2, σ2))
+    (Hn : n + 12 ≤ 2 ^ 40) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine etcd_adequate_members (GF := putgetNGF) (hmsL := etcd_leaseN.startAddrs_names_len k) (hbody := rfl) (HWal := HWal) (hn := by omega) (hAsLit := etcd_leaseN.leaseNAddrs_lit k hk)
+  refine etcd_adequate_members_below (GF := putgetNGF) (hmsL := etcd_leaseN.startAddrs_names_len k) (hbody := rfl) (HWal := HWal) (hn := by omega) (hAsLit := etcd_leaseN.leaseNAddrs_lit k hk)
     (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.Main) #(W64 (k : Int)))
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) (etcd_leaseN.leaseNAddrs k)
@@ -104,7 +104,7 @@ theorem etcd_leaseN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (etcd_leaseN.leaseNDirs_nodup k hk) (etcd_leaseN.startAddrs k) []
     (etcd_leaseN.leaseNAddrs_perm k) (etcd_leaseN.leaseNDirs_perm k)
     σ g ⟨trivial, trivial, trivial⟩ ⟨trivial, Hfs, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
-    n κs t2 σ2 Hsteps fun hG HN HT => ?_
+    (2 ^ 28) n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC putgetNGF := heapAtN hG lctx
   haveI := Hctx hG
   haveI := Hcec hG

@@ -133,8 +133,8 @@ set_option hygiene false in
 logging. -/
 local macro "renew_switch_weak" : tactic => `(tactic| (
   -- `case errorspkg.Is(err, context.DeadlineExceeded): return -1, errors.ErrTimeout`
-  wp_apply (hIsS cerr (GoInterface.ok eD) (Or.inr (Or.inr ⟨eD, rfl, HlD.2.2.2.1⟩))) $$ [] as %b1 -
-  · iframe #
+  wp_apply (hIsS cerr (GoInterface.ok eD) none (Or.inr (Or.inr ⟨eD, rfl, HlD.2.2.2.1⟩))) $$ [] as %b1 -
+  · iframe #; try iapply go_etcd_io.etcd.cache.v3.isDescs_none
   (try wp_auto)
   cases b1 with
   | true =>
@@ -143,8 +143,8 @@ local macro "renew_switch_weak" : tactic => `(tactic| (
   | false =>
     (try wp_auto)
     -- `case errorspkg.Is(err, context.Canceled): return -1, errors.ErrCanceled`
-    wp_apply (hIsS cerr (GoInterface.ok eC) (Or.inr (Or.inl ⟨eC, rfl, HlC.1⟩))) $$ [] as %b2 -
-    · iframe #
+    wp_apply (hIsS cerr (GoInterface.ok eC) none (Or.inr (Or.inl ⟨eC, rfl, HlC.1⟩))) $$ [] as %b2 -
+    · iframe #; try iapply go_etcd_io.etcd.cache.v3.isDescs_none
     (try wp_auto)
     cases b2 with
     | true =>

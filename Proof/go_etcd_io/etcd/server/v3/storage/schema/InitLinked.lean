@@ -12,8 +12,10 @@ public import Perennial.Proof.encoding.binary.Link
 public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.log.Link
 public import Proof.encoding.json.Init
+public import Proof.github_com.Masterminds.semver.v3.Init
 public import Proof.go_etcd_io.etcd.api.v3.authpb.Init
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Init
+public import Proof.go_etcd_io.etcd.api.v3.version.InitLinked
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.Init
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Init
 public import Proof.go_etcd_io.etcd.server.v3.auth.InitLinked
@@ -64,6 +66,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_auto
   iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := GoSlice) emptyStorageVersion _ as HemptyStorageVersion
+  wp_apply wp_GlobalAlloc (V := Loc) schemaChanges _ as HschemaChanges
   wp_apply wp_GlobalAlloc (V := GoSlice) MetaStorageVersionName _ as HMetaStorageVersionName
   wp_apply wp_GlobalAlloc (V := GoSlice) ClusterDowngradeKeyName _ as HClusterDowngradeKeyName
   wp_apply wp_GlobalAlloc (V := GoSlice) ClusterClusterVersionKeyName _ as HClusterClusterVersionKeyName
@@ -99,10 +102,14 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoSlice) keyBucketName _ as HkeyBucketName
   wp_apply wp_GlobalAlloc (V := GoSlice) authDisabled _ as HauthDisabled
   wp_apply wp_GlobalAlloc (V := GoSlice) authEnabled _ as HauthEnabled
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.api.v3.version.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd18⟩
   wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) regQs)
       (EtcdGrove.regResL (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.regQs)
       (List.Sublist.map _ (List.Sublist.cons _ (List.Sublist.cons₂ _ (List.Sublist.cons _ (List.Sublist.slnil)))))
-      _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+      _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd17⟩
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.github_com.Masterminds.semver.v3.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd16⟩
   wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd15⟩
@@ -148,16 +155,13 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
     $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of authEnabled))
   -- translated initializer of authDisabled))
+  -- translated initializer of keyBucketName))
   wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sen ⟨Hsen, -⟩
   simp only [go.arrayLiteralSize, List.foldl]
   try wp_auto
   wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sdis ⟨Hsdis, -⟩
   simp only [go.arrayLiteralSize, List.foldl]
   try wp_auto
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  -- translated initializer of keyBucketName))
   -- translated initializer of metaBucketName))
   -- translated initializer of leaseBucketName))
   wp_apply wp_string_to_bytes go!"key" as %skey ⟨Hskey, -⟩
@@ -239,8 +243,40 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of ClusterDowngradeKeyName))
   -- translated initializer of MetaStorageVersionName))
   -- translated initializer of emptyStorageVersion))
-  wp_apply (opaqueInitsOk schemaChanges.init (by mem_tac))
+  -- translated initializer of schemaChanges))
+  try wp_auto
+  ihave #Hvv : iprop(globalAddr go_etcd_io.etcd.api.v3.version.Version ↦□ go!"3.8.0-alpha.0" ∗
+      (∃ v : github_com.Masterminds.semver.v3.Version, globalAddr go_etcd_io.etcd.api.v3.version.V3_6 ↦□ v) ∗
+      globalAddr go_etcd_io.etcd.api.v3.version.MinClusterVersion ↦□ go!"3.0.0" ∗
+      (∃ v7 v8 : github_com.Masterminds.semver.v3.Version,
+        globalAddr go_etcd_io.etcd.api.v3.version.V3_7 ↦□ v7 ∗ globalAddr go_etcd_io.etcd.api.v3.version.V3_8 ↦□ v8)) $$ []
+  · iapply isPkgInit_access $$ Hd18
+  icases Hvv with ⟨-, ⟨%v36, #Hv36⟩, -, ⟨%v37, %v38, #Hv37, #Hv38⟩⟩
+  try wp_auto
+  wp_func_call
+  wp_call
+  try wp_auto
+  wp_apply (wp_map_make1 (K := github_com.Masterminds.semver.v3.Version) (V := GoSlice) github_com.Masterminds.semver.v3.Version.ty (go.GoType.SliceType schemaChange.ty)) as %msc Hmsc
+  try wp_auto
+  wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %_ ⟨-, -⟩
+  try wp_auto
+  wp_apply (wp_mapInsert (K := github_com.Masterminds.semver.v3.Version) (V := GoSlice) github_com.Masterminds.semver.v3.Version.ty) $$ Hmsc as Hmsc
+  try wp_auto
+  wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %_ ⟨-, -⟩
+  try wp_auto
+  wp_apply (wp_mapInsert (K := github_com.Masterminds.semver.v3.Version) (V := GoSlice) github_com.Masterminds.semver.v3.Version.ty) $$ Hmsc as Hmsc
+  try wp_auto
+  wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %_ ⟨-, -⟩
+  try wp_auto
+  wp_apply (wp_mapInsert (K := github_com.Masterminds.semver.v3.Version) (V := GoSlice) github_com.Masterminds.semver.v3.Version.ty) $$ Hmsc as Hmsc
+  try wp_auto
   wp_apply (initFuncsOk init.«0» (by mem_tac))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.version.V3_8))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.version.V3_7))
+  -- translated initializer of emptyStorageVersion))
+  -- translated initializer of MetaStorageVersionName))
+  -- translated initializer of Meta))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.version.V3_6))
   -- translated initializer of AuthRoles))
   -- translated initializer of AuthUsers))
   -- translated initializer of Auth))

@@ -62,6 +62,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.MsgAppV2
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.PerTypeMessage
 public import Perennial.Proof.errors.NewVar
 public import Proof.errors.NewVarCell
+public import Proof.fmt.OutLemmas
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry
 public import Proof.runtime.PkgInitRes
 

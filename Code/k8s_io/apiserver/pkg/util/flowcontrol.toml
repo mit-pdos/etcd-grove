@@ -1,7 +1,11 @@
 # Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
 # notes/k8s-etcd3-goose.md).
-translate = ["!*", "WatchInitialized", "initializationSignalFrom", "priorityAndFairnessInitializationSignalKey"]
-imports = ["!*", "context"]
+translate = ["!*", "WatchInitialized", "initializationSignalFrom", "priorityAndFairnessInitializationSignalKey",
+  # (prove-k8s2, 2026-11-20) the package variables' initializers (until then `opaqueInitsOk`):
+  # `readOnlyVerbs = sets.NewString(...)` and the two `var _ fmt.GoStringer = ...`
+  "readOnlyVerbs", "_"]
+imports = ["!*", "context", "fmt", "k8s.io/apimachinery/pkg/util/sets",
+  "k8s.io/apiserver/pkg/endpoints/request", "k8s.io/apiserver/pkg/authentication/user"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

@@ -25,33 +25,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `ContextError`'s (3) when it returns `rpctypes.Error`'s result `err1` (incomingof Part B): a context
-error with message `m` comes back unchanged (a context error) or with description `m`. -/
-private theorem ctxBack_of_rpc (ei : GoInterfaceOk) (err1 : GoInterface) (m : GoString)
-    (Hrm : ∀ e : GoInterfaceOk, GoInterface.ok ei = GoInterface.ok e →
-      go_etcd_io.etcd.cache.v3.noGRPCStatus e.ty →
-      err1 = GoInterface.ok ei ∨ go_etcd_io.etcd.cache.v3.errDesc err1 = m)
-    (hc : clientErr (GoInterface.ok ei)) :
-    go_etcd_io.etcd.cache.v3.errorMsgIs (GF := GF) ei m ⊢
-      (⌜¬ ∃ e : GoInterfaceOk, GoInterface.ok ei = GoInterface.ok e ∧
-          go_etcd_io.etcd.cache.v3.ctxErrMsg m ∧ go_etcd_io.etcd.cache.v3.ctxErrShape e⌝ ∨
-        go_etcd_io.etcd.cache.v3.ctxErrIs err1 ∨
-        ⌜go_etcd_io.etcd.cache.v3.ctxErrMsg (go_etcd_io.etcd.cache.v3.errDesc err1)⌝) := by
-  iintro #Hm
-  by_cases hx : ∃ e : GoInterfaceOk, GoInterface.ok ei = GoInterface.ok e ∧
-      go_etcd_io.etcd.cache.v3.ctxErrMsg m ∧ go_etcd_io.etcd.cache.v3.ctxErrShape e
-  · obtain ⟨e, he, hm, hs⟩ := hx
-    cases he
-    rcases Hrm ei rfl (ctxShape_noGRPCStatus ei hc hs) with h | h
-    · iright; ileft
-      unfold go_etcd_io.etcd.cache.v3.ctxErrIs
-      iexists ei, m
-      isplitl []
-      · ipureintro; exact ⟨h, hm, hs⟩
-      · iexact Hm
-    · iright; iright; ipureintro; rw [h]; exact hm
-  · ileft; ipureintro; exact hx
-
 theorem ContextError.wp_proof
     (wp_rpctypes_Error : rpctypes.Error.spec (GF := GF) (hG := hG))
     (wp_FromError : EtcdGrove.status.FromError.spec (GF := GF) (hG := hG)) :
@@ -71,13 +44,12 @@ theorem ContextError.wp_proof
     isplitl
     · iintro !> -; iapply go_etcd_io.etcd.cache.v3.errCellOk_nil
     isplitl
-    · ileft; ipureintro; exact Or.inl rfl
+    · ileft; ileft; ipureintro; rfl
     · ileft; ipureintro; rintro ⟨e, h, -⟩; cases h
   | ok ei =>
     wp_auto
-    ihave #Hmi := Hm $$ %ei %rfl
     wp_apply wp_rpctypes_Error (GoInterface.ok ei) m $$ [$Hse $Hm]
-      as %err1 ⟨%Hne1, #Hse1, %Hce1, %Hd1, #Hcl1, -, %Hrm⟩
+      as %err1 ⟨%Hne1, #Hse1, %Hce1, #Hd1, #Hcl1, -, %Hrm⟩
     · ipureintro; simp
     have Hci := Herr (by simp)
     have Hc1 := Hce1 Hci
@@ -85,7 +57,6 @@ theorem ContextError.wp_proof
       cases err1 with
       | nil => exact absurd rfl Hne1
       | ok e => exact ⟨e, rfl⟩
-    ihave #Hback := ctxBack_of_rpc ei (GoInterface.ok e1) m Hrm Hci $$ Hmi
     ihave #Herrs : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
     · iPkgInit
     obtain ⟨Htarget, Hce'⟩ := Hc1
@@ -107,14 +78,12 @@ theorem ContextError.wp_proof
           statusErrOk (GoInterface.ok e1) ∗
           □ (go_etcd_io.etcd.cache.v3.errCellOk (GoInterface.ok ei) -∗
             go_etcd_io.etcd.cache.v3.errCellOk (GoInterface.ok e1)) ∗
-          (⌜GoInterface.ok ei = GoInterface.nil ∨ go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e1) =
-              go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok ei)⌝ ∨
+          ((⌜GoInterface.ok ei = GoInterface.nil⌝ ∨ go_etcd_io.etcd.cache.v3.descIs (GoInterface.ok e1) m) ∨
             go_etcd_io.etcd.cache.v3.ctxErrIs (GoInterface.ok e1)) ∗
           (⌜¬ ∃ e : GoInterfaceOk, GoInterface.ok ei = GoInterface.ok e ∧
               go_etcd_io.etcd.cache.v3.ctxErrMsg m ∧ go_etcd_io.etcd.cache.v3.ctxErrShape e⌝ ∨
             go_etcd_io.etcd.cache.v3.ctxErrIs (GoInterface.ok e1) ∨
-            ⌜go_etcd_io.etcd.cache.v3.ctxErrMsg
-              (go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e1))⌝)) $$ []
+            go_etcd_io.etcd.cache.v3.descIs (GoInterface.ok e1) m)) $$ []
     · isplitr
       · ipureintro; exact Hfin _ Hne1 Hc1
       isplitr
@@ -122,14 +91,15 @@ theorem ContextError.wp_proof
       isplitr
       · iexact Hcl1
       isplitr
-      · ileft; ipureintro; exact Or.inr Hd1
-      · iexact Hback
+      · ileft; iright; iexact Hd1
+      · iright; iright; iexact Hd1
     cases b
     · wp_auto
       ihave #Hst : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status $$ []
       · iPkgInit
-      ihave ⟨%m1, #Hm1⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse1
-      wp_apply wp_FromError (GoInterface.ok e1) m1 $$ [$Hst $Hse1 $Hm1] as %sv %okv ⟨-, #HCode, -⟩
+      ihave ⟨%m1, #Hm1⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_descIs _ $$ Hse1
+      ihave ⟨%cFE, #HcFE⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_code _ $$ Hse1
+      wp_apply wp_FromError (GoInterface.ok e1) m1 cFE $$ [$Hst $Hse1 $Hm1 $HcFE] as %sv %okv ⟨-, #HCode, -⟩
       cases okv
       · wp_auto
         iapply HΦ; iexact Hret

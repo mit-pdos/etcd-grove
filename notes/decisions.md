@@ -41348,6 +41348,22 @@ need validity. The next step is to preserve the pin at node startup and the sour
 This supersedes the October 31 decision to retain the server's snapshot-index guard.
 The invariant argument and remaining obligations are in [the removal plan](snapguard-removal-plan.md).
 
+## fmtmodel: Perennial's `fmt` model calls what Go calls; the `fmt` specs rest on its spec
+
+**2026-11-20 · accepted (group `fmtmodel`, Perennial `79517dbdf`)** · supersedes in part "`fmt.Errorf`
+with `%w`: no fact from the model" (2026-11-06) and its 2026-11-18 supersession: there is no unfaithful
+model left to keep facts from. Perennial's models of `Sprintf`, `Printf` and `Errorf` now format up to
+the first directive they do not interpret, call the arguments' `Error()`/`String()` that Go calls (under a
+directive-aware premise, `fmt.argsOk`, moved to Perennial from `Spec/fmt/Errorf.lean`), print `%p`
+without reading memory, and `Errorf` returns Go's error by its `%w` directives (`fmt.errorfErr`). Where
+Go reflects into a struct, slice or map, or would call a `Format`/`GoString`, the model is stuck. So the
+proofs here use Perennial's `fmt.wp_Errorf`/`wp_Sprintf`/`wp_Printf` (`Proof/fmt/`), and the calls the
+model does not cover (slices, maps) are trust-boundary axioms (`fmt.ErrorfStrs`, `fmt.ErrorfSlice`,
+`fmt.SprintfSlice`, `cache.wp_Errorf_setArgs`, `appslisters.wp_Errorf_labelArgs`), no longer theorems
+over a model that ignored the arguments. `fmt.ErrorfWrap` keeps its disjunctive post (callers unchanged)
+but is proved through the right disjunct, Go's `*wrapError`. `etc/errorf-wrap-check.py` stays, empty, as
+the gate on any new step into the model's unfolding.
+
 ## Recover the snapshot record across legacy WAL filenames (2026-11-20)
 
 The last filename at or below the requested snapshot index can start too late
@@ -41501,3 +41517,51 @@ across restart and show that the configuration and term used by the
 sender match this prefix. The Go regression covers both backend formats
 with a recovered commit below the database index.
 [Reproduction and fork revision](../issues/etcd-merged-snapshot-replay-failure.md).
+
+## A status's code as a per-run relation (2026-11-20 · the user's soundness fix · branch `prove-errdesc2/2026-11-20`, stage 2a)
+
+**Supersedes in part:** the watch slice's W-C (`statusCode : GoInterface → w32`, "the status is embedded
+in the error value, so the code is a function of the error") and E1's `grpcStatusRO`/`grpcStatusROP`.
+
+**Why.** As for the outgoing metadata (stage 1, above): `statusCode` was a fixed function of an error
+value, and the producers of a status (`status.Error`, grpc's model) fix it at a value they allocate.
+
+**Decision** (`notes/errdesc-ghost-plan.md` §7): the opaque leaf `status.statusAtRaw s c m` (no law),
+`status.statusAt s c m := ⌜s ≠ null⌝ ∗ □ statusAtRaw s c m` (SpecPlan's `statusAt`) in place of
+`grpcStatusRO s c`; `grpcErrMethodsOk`'s `GRPCStatus` clause gives `∃ s c m, (□ returns s) ∗
+statusAt s c m`; `statusCodeIs err c` (nil: `OK`; no `GRPCStatus() *Status`: `Unknown`; else the
+status's code) with `statusErrOk_code`. `status.FromError` takes `∀ c`, pre `statusCodeIs err c`, and its
+`Code()` returns `c`; `status.Status.Code` takes `statusAt s c m`; `isHaltErr`'s post gives the code
+through `statusCodeIs`. Axioms restated: `status.FromError`, `status.Status.Code` (and `status.Code`'s,
+`status.Error`'s meaning through `statusErrOk`); none added. The message (`errDesc`) is stage 2b.
+
+## An error's description as a per-run relation (2026-11-21 · the user's soundness fix · branch `prove-errdesc2b/2026-11-21`, stage 2b)
+
+**Supersedes:** D29's "the description is a function of the error" (`errDesc : GoInterface → GoString`),
+"`errDesc` in a module of its own", and the fromerror-wand entry's `⌜ok = false → errDesc err = m⌝`.
+
+**Why.** As for the outgoing metadata (stage 1) and the status code (stage 2a): `errDesc` was a fixed function
+of an error value, and `status.Error`'s post (`errDesc err = msg` of the pointer it allocates) and
+`status.FromError`'s (`Message()` returns `errDesc err`) could be met by no implementation.
+
+**Decision** (`notes/errdesc-ghost-plan.md` §8): `descIs err m` (nil: `""`; an `EtcdError` value: its `desc`,
+a fact of a pointer-free value; otherwise its stable `Error()` or its read-only status's message), with no
+agreement law. Axioms restated, none added: `status.Error` (post `descIs err msg`), `status.FromError` (pre
+`descIs err m`, `Message()` returns `m`), `errors.IsStatusErr` (pre `isDescs err target dm`; post
+`b → (∀ m m', dm = some (m, m') → err = target ∨ m = m') ∧ T3`), `grpc.model.respond` (pre
+`handlerErrOut Ψe err`), `waitRetryBackoff` (post `err = nil ∨ notHandlerErr err`),
+`v3rpc.toGRPCErrorMap_init` (`grpcErrMapOk` an `IProp`), and through their definitions `ClientConn.Invoke`
+(`grpcInvokerOk`), `status.Code`/`errors.Is` (`grpcErrMethodsOk`'s `Is` clause). `rpctypes.errDesc_etcdError`
+is gone (`descIs_etcdError` is definitional), and so is fmtmodel's `rpctypes.errDesc_wrapError` (the
+description of a `*fmt.wrapError`, now `errorfWrap_descIs`, proved); `context.WithTimeoutBackgroundMd` is
+proved besides (−3 axioms).
+
+**One strengthening of a trusted post** (`grpcInvokerOk`, hence `ClientConn.Invoke`): the invoker's error
+satisfies `notLearnerErr err` (it is not `rpctypes.ErrGRPCNotSupportedForLearner`'s value). Needed because
+`isSafeRetry`'s `errors.Is(err, ErrGRPCNotSupportedForLearner)` is `true` of that value by `==`, and without
+agreement the invoker's description of `err` (no refusal) could not exclude it. True of grpc-go v1.84: the
+bare invoker's errors are built by grpc (`status.FromProto(...).Err()`, `status.FromContextError`, a fresh
+`*status.Error` each), or `io.EOF` or the context's error; grpc imports no etcd package, so never returns its
+variable. Not a new axiom; a fact added to an existing axiom's post.
+
+**Top-level statements**: none names `errDesc`; their texts are unchanged (only the definitions above moved).

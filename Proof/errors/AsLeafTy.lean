@@ -1,14 +1,12 @@
 /-
-The trust boundary: `errors.As` of a leaf error (no `As`, no `Unwrap` method) whose type is outside
-the target's type set and, for a non-interface target, of another underlying type (Perennial's
-`errors.As.spec` allows any result). Go's `As` (`errors/wrap.go`) walks `err`'s tree: `err` is not
-assignable to the target's element type, it has no `As` method, and no `Unwrap` method ends the walk
-with `false`, the target not written. Approved by etcd-grove-81 (2026-11-15) after an independent
-review; the reasoning and the Go evidence are in `Spec/errors/AsLeafTy.lean`'s header.
+`errors.AsLeafTy` (`Spec/errors/AsLeafTy.lean`): the leaf case of `errors.AsNoMatch`
+(`Spec/errors/AsNoMatch.lean`). An axiom from 2026-11-15 (approved by etcd-grove-81 after an
+independent review) to 2026-11-20 (prove-k8s2), when `AsNoMatch` generalized it to wrappers.
 -/
 module
 
 public import Spec.errors.AsLeafTy
+public import Spec.errors.AsNoMatch
 
 @[expose] public section
 
@@ -17,7 +15,7 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI
+open Iris Iris.BI Iris.ProofMode
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -26,7 +24,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.errors.Assumptions]
 
-axiom errors.AsLeafTy.wp_proof : errors.AsLeafTy.spec (GF := GF) (hG := hG)
+theorem errors.AsLeafTy.wp_proof (wp_AsNoMatch : errors.AsNoMatch.spec (GF := GF) (hG := hG)) :
+    errors.AsLeafTy.spec (GF := GF) (hG := hG) := by
+  intro ii l T' _ _ T _ v hT hleaf hts hu
+  iintro %Φ ⟨#Hpkg, Hl⟩ HΦ
+  iapply (wp_AsNoMatch (GoInterface.ok ii) l v hT) $$ [Hl] HΦ
+  iframe Hpkg Hl
+  ileft
+  ipureintro
+  exact Or.inr ⟨ii, rfl, hleaf, hts, hu⟩
 
 end proof
 

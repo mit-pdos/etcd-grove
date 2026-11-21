@@ -373,10 +373,10 @@ namespace github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel
 errors `fmt` and `apierrors.NewInternalError` print without panicking (see the file header). -/
 abbrev apimodelInit : IProp GF :=
   iprop((∃ e : GoInterface, globalAddr errStorage ↦□ e ∗
-      ∃ ei : GoInterfaceOk, ⌜e = GoInterface.ok ei⌝ ∗ EtcdGrove.fmt.stringMethodSpec ei go!"Error" ∗
+      ∃ ei : GoInterfaceOk, ⌜e = GoInterface.ok ei⌝ ∗ _root_.Perennial.fmt.stringMethodSpec ei go!"Error" ∗
         ⌜methodSet ei.ty !! go!"Format" = none⌝) ∗
     (∃ e : GoInterface, globalAddr errRead ↦□ e ∗
-      ∃ ei : GoInterfaceOk, ⌜e = GoInterface.ok ei⌝ ∗ EtcdGrove.fmt.stringMethodSpec ei go!"Error" ∗
+      ∃ ei : GoInterfaceOk, ⌜e = GoInterface.ok ei⌝ ∗ _root_.Perennial.fmt.stringMethodSpec ei go!"Error" ∗
         ⌜methodSet ei.ty !! go!"Format" = none⌝) ∗
     (∃ s : GoString, globalAddr errAmbiguous ↦□ s))
 

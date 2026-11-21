@@ -41,6 +41,7 @@ public import Code.container.heap
 public import GeneratedProof.container.heap
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Base
 public import Proof.github_com.Masterminds.semver.v3.PkgInit
+public import Proof.go_etcd_io.etcd.api.v3.version.PkgInit
 
 @[expose] public section
 
@@ -59,6 +60,9 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
+
+-- `api/v3/version`'s instances are in `api/v3/version/PkgInit.lean` (prove-initleft, 2026-11-21: `storage/schema`,
+-- below this module, imports it).
 
 -- `server/v3/lease/leasepb`'s instances are in the server's `Base.lean` (schema imports it, 2026-11-19).
 

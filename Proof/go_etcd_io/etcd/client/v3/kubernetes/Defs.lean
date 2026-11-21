@@ -304,7 +304,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **A range error's future-revision soundness** (B4, decided by etcd-grove-81: the future half
-only): an error whose description is `ErrFutureRev`'s (`errDesc`, D29) means the state the read's
+only): an error whose description is `ErrFutureRev`'s (`descIs`, D29; the pure `errDesc` until errdesc
+stage 2b, 2026-11-21) means the state the read's
 update fired at is below the revision `o` asked, whatever revision `R` the update was made for
 (7e-1's R1: the client makes its update for the prophesied response revision, never resolved on an
 error, so `R` is unrelated to `σ.rev`). What `Client.List`/`Client.Get` give. (incomingof Part B,
@@ -312,7 +313,8 @@ error, so `R` is unrelated to `σ.rev`). What `Client.List`/`Client.Get` give. (
 `ErrFutureRev` gives, `errors.IsStatusErr.spec`): not the context's error, which the client returns as
 it is (`client.rangeErrOut`). -/
 def rangeErrSound (o : w64) (Q : w64 → KVState → IProp GF) (err : GoInterface) : IProp GF :=
-  iprop(□ (⌜go_etcd_io.etcd.cache.v3.errDesc err = go_etcd_io.etcd.cache.v3.futureRevDesc⌝ -∗
+  iprop(∃ d : GoString, go_etcd_io.etcd.cache.v3.descIs err d ∗
+    □ (⌜d = go_etcd_io.etcd.cache.v3.futureRevDesc⌝ -∗
       ⌜∀ e : GoInterfaceOk, err = GoInterface.ok e →
         methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]) →
         e.ty = go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty⌝ -∗

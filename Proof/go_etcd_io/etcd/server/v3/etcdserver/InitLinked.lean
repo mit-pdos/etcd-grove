@@ -17,13 +17,13 @@ public import Perennial.Proof.strconv.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
-public import Proof.encoding.base64.Init
+public import Proof.encoding.base64.InitLinked
 public import Proof.encoding.json.Init
 public import Proof.github_com.Masterminds.semver.v3.Init
 public import Proof.github_com.dustin.go_humanize.Init
 public import Proof.github_com.prometheus.client_golang.prometheus.Init
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Init
-public import Proof.go_etcd_io.etcd.api.v3.version.Init
+public import Proof.go_etcd_io.etcd.api.v3.version.InitLinked
 public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.InitLinked
 public import Proof.go_etcd_io.etcd.client.pkg.v3.logutil.Init
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.Init

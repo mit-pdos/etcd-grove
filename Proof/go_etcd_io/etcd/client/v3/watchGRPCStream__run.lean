@@ -2566,7 +2566,7 @@ theorem watchGRPCStream.run.wp_proof
       icases Herr with ⟨%Hen, #Herrk, #Hsec, Hpback⟩
       ihave #Hse := closeErrOk_status _ $$ Hsec
       wp_auto
-      wp_apply +noauto wp_isHaltErr G.ctx G.cd err $$ [] as %bh %Hbh
+      wp_apply +noauto wp_isHaltErr G.ctx G.cd err $$ [] as %bh -
       · iframe Hse HGctx
       cases bh
       · -- (D25) not a halting error: no leader, or a reconnection
@@ -2582,7 +2582,7 @@ theorem watchGRPCStream.run.wp_proof
           · iunfold eofOk at Heof
             ihave ⟨%Hc, -⟩ := Heof $$ %err Heo
             ipureintro; exact fun _ => Hc.2
-        ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
+        ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_descIs _ $$ Hse
         wp_apply wp_ctxErr G.ctx G.cd err mC $$ [] as %err' ⟨%Herr', #Hse', -⟩
         · iframe Hcec Hse HmC; ipureintro; exact Hce
         (try wp_auto)
@@ -2592,8 +2592,8 @@ theorem watchGRPCStream.run.wp_proof
         ihave #Herrp : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
         · iPkgInit
         (try wp_auto)
-        wp_apply (wp_isStatus err' _ (Or.inl ⟨xnl, rfl⟩)) $$ [] as %bnl -
-        · iframe Hse'
+        wp_apply (wp_isStatus err' _ none (Or.inl ⟨xnl, rfl⟩)) $$ [] as %bnl -
+        · iframe Hse'; try iapply go_etcd_io.etcd.cache.v3.isDescs_none
         cases bnl
         rotate_left
         · -- no leader: `run` stops

@@ -142,6 +142,9 @@ theorem store.getList.wp_proof
           ihave #Hrs2 : rangeErrSound lo.Revision' Q gerr $$ []
           · iunfold rangeErrSound at Hrs1
             iunfold rangeErrSound
+            icases Hrs1 with ⟨%dd, #Hdd, #Hrs1⟩
+            iexists dd
+            iframe Hdd
             imodintro
             iintro %Hd %Hty
             ihave Hx := Hrs1 $$ %Hd %Hty
@@ -153,7 +156,9 @@ theorem store.getList.wp_proof
           iunfold readErrIs
           iunfold kClientErr
           iunfold rangeErrSound at Hrs2
+          icases Hrs2 with ⟨%d2, #Hd2, #Hrs2⟩
           iframe #
+          try (iexists d2; iframe #)
           ipureintro; exact ⟨Hge, Hce'⟩)
   · -- recursive: `List`
     (try wp_auto)
@@ -194,7 +199,9 @@ theorem store.getList.wp_proof
         iunfold readErrIs
         iunfold kClientErr
         iunfold rangeErrSound at Hrs2
+        icases Hrs2 with ⟨%d2, #Hd2, #Hrs2⟩
         iframe #
+        try (iexists d2; iframe #)
         ipureintro; exact ⟨Hle, Hce'⟩)
 
 end proof

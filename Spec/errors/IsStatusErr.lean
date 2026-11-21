@@ -18,6 +18,14 @@ of an error without an `Is(error) bool` method only if it is an `EtcdError`: Go'
 types first) or `err.Is(target)`; an error with an `Is` method may answer `true` at another type
 (`examples/axiomcx/incomingof` `TestIsEtcdTarget`, `incomingof-real` `TestRealTypes`). A fact of types,
 the same in every run. What rules a context error out (`ctxErrShape`).
+(errdesc stage 2b, 2026-11-21) The descriptions are the per-run relations `descIs err m` and
+`descIs target m'` of the precondition, when the caller fixes them (`dm = some (m, m')`, `isDescs`; until
+then the pure `errDesc`), and `true` means `err = target`
+(Go's `==` shortcut, go1.27.3 `src/errors/wrap.go:54-57`, which reads no description: with no agreement
+law, two `descIs` of one value say nothing of each other) or `m = m'` (`err.Is(target)`: grpc's
+`*status.Error.Is` compares the two statuses, messages included, `internal/status/status.go:222-228`;
+`grpcErrMethodsOk`'s `Is` clause). For an `EtcdError` target the value pin (`descIs_etcdError_eq`) turns
+the first into the second.
 -/
 module
 
@@ -47,14 +55,14 @@ error or (2026-10-18, item 1, the client lease: `canceledByCaller` compares with
 (`SafeMapKey`: Go's `Is` compares `err == target` first, which for a comparable target compares the
 dynamic types, then the values of an equal type, the target's), returns some boolean. -/
 abbrev errors.IsStatusErr.spec : Prop :=
-  ∀ (err target : GoInterface),
+  ∀ (err target : GoInterface) (dm : _root_.Option (GoString × GoString)),
   ((∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError,
       target = interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x) ∨
     (∃ tii, target = GoInterface.ok tii ∧ _root_.Perennial.errors.IsPointerError tii) ∨
     ∃ tii, target = GoInterface.ok tii ∧ SafeMapKey (GF := GF) go.error target) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.errors ∗ statusErrOk err }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.errors ∗ statusErrOk err ∗ isDescs err target dm }}
     (App (App (Val (@! _root_.Perennial.errors.Is)) (Val #err)) (Val #target))
-  {{ (b : Bool), RET #b; ⌜b = true → errDesc err = errDesc target ∧
+  {{ (b : Bool), RET #b; ⌜b = true → (∀ m m', dm = some (m, m') → err = target ∨ m = m') ∧
       ((∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError,
           target = interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x) →
         ∀ e : GoInterfaceOk, err = GoInterface.ok e →

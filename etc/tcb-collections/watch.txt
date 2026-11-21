@@ -35,7 +35,6 @@ axiom context.WithCancelValCtx.wp_proof
 axiom envVerifyOffTok
 axiom errors.IsCtxErr.wp_proof
 axiom errors.IsStatusErr.wp_proof
-axiom fmt.Errorf.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof
 axiom grpcAddrIsRaw
@@ -55,19 +54,15 @@ axiom proto.Marshal.wp_proof
 axiom proto.Unmarshal.wp_proof
 axiom rand.Int63n.wp_proof
 axiom reflect.DeepEqual.wp_proof_pgidSet
-axiom rpctypes.errDesc_etcdError
 axiom sort.SliceIsSorted.wp_proof
 axiom sort.Sort.wp_anyLess
 axiom sort.Stable.wp_proof
 axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
 axiom streamKeyFromCtx.wp_proof
-axiom strings.HasSuffix.wp_proof
 axiom strings.ToLower.wp_proof
 axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.Seconds_ptr.wp_proof
-axiom time.Time.IsZero.wp_proof
-axiom time.Time.Unix.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
 axiom v3rpc.ctxCauseOk_cancellable
 axiom v3rpc.pbWatchRequestT_reg

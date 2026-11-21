@@ -13,4 +13,3 @@ axiom appsv1.DaemonSet.DeepCopyObject.wp_proof
 axiom corev1.Node.DeepCopyObject.wp_proof
 axiom corev1.Pod.DeepCopyObject.wp_proof
 axiom rand.Int63n.wp_proof
-axiom strconv.FormatUint.wp_proof

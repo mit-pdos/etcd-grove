@@ -84,7 +84,7 @@ theorem storage.EncodeContinue.wp_proof
     (try wp_auto)
     ihave Hnil : (slice.nil ↦* ([] : List GoAny) : IProp GF) $$ []
     · iapply ownSlice_nil
-    wp_apply (_root_.Perennial.fmt.wp_Errorf _ _ _ _root_.Perennial.fmt.ArgsWf.nil) $$ [$Hnil] as %err -
+    wp_apply (_root_.Perennial.fmt.wp_Errorf_argsWf _ _ _ _root_.Perennial.fmt.ArgsWf.nil) $$ [$Hnil] as %err -
     (try wp_auto)
     iapply HΦ
     ipureintro

@@ -354,7 +354,10 @@ def driver(mode, po, pa, pb, path):
 
 
 REPLAY_BRANCHES = ["lean", "merge-origin7", "k8s-7g", "auth-lease-s4"]
-REPLAY_SINCE, REPLAY_UNTIL = "2026-11-18", "2026-11-21"
+# (2026-11-21) explicit times: git reads a bare date as that day at the current time of day, so the
+# window grew past midnight and took in that night's merges (ea5de40e16, resolved by hand at the time;
+# its two entries are in the history since), failing every landing from 00:15 on
+REPLAY_SINCE, REPLAY_UNTIL = "2026-11-18 00:00:00 -0500", "2026-11-21 00:00:00 -0500"
 
 
 def side_entries(t):
@@ -493,7 +496,12 @@ def selftest():
             r = replay(m)
             if r is not None:
                 rs.append(r)
-    bad = [r for r in rs if r["problems"]]
+    # Merges already on lean whose problems were repaired afterwards (a merge commit cannot be fixed in
+    # place): the replay still sees them, so they are listed here with the repair.
+    #   cf54600750 (robust-threads, 2026-11-20): its status-history.md dropped two lines of one parent;
+    #   both are back in lean's history (checked 2026-11-21 against lean 51e4debf62).
+    repaired = {"cf54600750"}
+    bad = [r for r in rs if r["problems"] and r["m"][:10] not in repaired]
     for r in bad:
         print(f"  {r['m']}: " + "; ".join(r["problems"]))
     hconf = [r["m"] for r in rs if r["hconflict"]]

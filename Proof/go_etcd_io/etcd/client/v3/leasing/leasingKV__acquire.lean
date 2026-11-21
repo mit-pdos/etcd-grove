@@ -272,8 +272,9 @@ theorem leasingKV.acquire.wp_proof
     · wp_auto
       ihave #Hst : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status $$ []
       · iPkgInit
-      ihave ⟨%mF, #HmF⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
-      wp_apply hFE (GoInterface.ok e) mF $$ [$Hst $Hse $HmF] as %sv %okv ⟨-, #HCode, -⟩
+      ihave ⟨%mF, #HmF⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_descIs _ $$ Hse
+      ihave ⟨%cFE, #HcFE⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_code _ $$ Hse
+      wp_apply hFE (GoInterface.ok e) mF cFE $$ [$Hst $Hse $HmF $HcFE] as %sv %okv ⟨-, #HCode, -⟩
       (try wp_auto)
       cases okv
       · wp_auto
@@ -282,7 +283,7 @@ theorem leasingKV.acquire.wp_proof
       · wp_auto
         wp_apply HCode
         (try wp_auto)
-        generalize statusCode (GoInterface.ok e) = c
+        generalize cFE = c
         by_cases hc : c = W32 14
         · subst hc
           simp only

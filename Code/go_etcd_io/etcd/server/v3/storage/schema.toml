@@ -31,8 +31,13 @@ translate = ["!*", "UnsafeReadConsistentIndex", "ReadConsistentIndex", "UnsafeUp
   "alarmBucketName", "clusterBucketName", "membersBucketName", "membersRemovedBucketName", "testBucketName",
   "Alarm", "Cluster", "Members", "MembersRemoved", "Test", "AllBuckets",
   "ScheduledCompactKeyName", "FinishedCompactKeyName", "MetaConfStateName", "ClusterClusterVersionKeyName",
-  "ClusterDowngradeKeyName", "MetaStorageVersionName", "emptyStorageVersion"]
-imports = ["!*", "encoding/json", "log", "fmt", "go.etcd.io/etcd/client/pkg/v3/types", "go.etcd.io/etcd/server/v3/etcdserver/api/membership", "go.etcd.io/raft/v3/raftpb", "bytes", "encoding/binary", "google.golang.org/protobuf/proto", "go.etcd.io/etcd/api/v3/authpb", "go.etcd.io/etcd/server/v3/storage/backend", "go.etcd.io/etcd/client/pkg/v3/verify",
+  "ClusterDowngradeKeyName", "MetaStorageVersionName", "emptyStorageVersion",
+  # (prove-initleft, 2026-11-21) the rest of the package variables, so that their initializers are
+  # translated (`etc/gen-init.py`; until then `opaqueInitsOk`): `schemaChanges` (a map literal keyed by
+  # `version`'s `semver` versions, schema.go) with `addNewField` (changes.go), and the interface
+  # assertions `var _ auth.AuthBackend = (*authBackend)(nil)`, ... (auth.go)
+  "schemaChanges", "addNewField", "_"]
+imports = ["!*", "encoding/json", "log", "fmt", "go.etcd.io/etcd/client/pkg/v3/types", "go.etcd.io/etcd/server/v3/etcdserver/api/membership", "go.etcd.io/raft/v3/raftpb", "github.com/Masterminds/semver/v3", "go.etcd.io/etcd/api/v3/version", "bytes", "encoding/binary", "google.golang.org/protobuf/proto", "go.etcd.io/etcd/api/v3/authpb", "go.etcd.io/etcd/server/v3/storage/backend", "go.etcd.io/etcd/client/pkg/v3/verify",
   "go.uber.org/zap", "go.etcd.io/etcd/server/v3/auth", "go.etcd.io/etcd/api/v3/etcdserverpb",
   "go.etcd.io/etcd/server/v3/lease/leasepb"]
 

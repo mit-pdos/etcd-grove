@@ -431,7 +431,7 @@ theorem tokenSimple_assign (p : Loc) (γt γf : GName) (γa : AuthNames) (hγt :
       (interface.mkOk go.uint64 #idx) = [interface.mkOk go.string #pre, interface.mkOk go.uint64 #idx] := by
     rfl
   rw [hl]
-  wp_apply (fmt.wp_Sprintf go!"%s.%d" _ _ _
+  wp_apply (_root_.Perennial.fmt.wp_Sprintf_argsWf go!"%s.%d" _ _ _
       (fmt.ArgsWf.cons_string _ _ (fmt.ArgsWf.cons_int (interface.mk go.uint64 #idx) _ _
         (fmt.IntArgValue.uint64 idx) fmt.ArgsWf.nil))) $$ [$Hasl] as %tok ⟨-, %Htok⟩
   have htok := sprintfOut_simpleTok pre idx tok Htok

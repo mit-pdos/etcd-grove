@@ -118,9 +118,9 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
       pbMessageC_C] at wpC
     wp_apply wpC $$ [] as %l' ⟨%c', Hl', %Heqv⟩
     · iexact Hchb
-    have hcs : c'.csUfNil := by
-      have h := Heqv.2.2 (by first | rfl | (simp only [pbMessageC_marshals, MsgMarshals, Hchbm.1]; rfl) | simp [pbMessageC_marshals, MsgMarshals, Hchbm.1])
-      rw [h]; exact Hchbm.2.1
+    have hc' : c' = chb :=
+      Heqv.2.2 (by first | rfl | (simp only [pbMessageC_marshals, MsgMarshals, Hchbm.1]; rfl) | simp [pbMessageC_marshals, MsgMarshals, Hchbm.1])
+    have hcs : c'.csUfNil := by rw [hc']; exact Hchbm.2.1
     rw [Hchbm.1] at Heqv
     (try wp_auto)
     iapply HΦ
@@ -137,7 +137,7 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
     iframe Hl' HB
     ipureintro
     exact ⟨hF0, rfl, Heqv.1.1.symm, MsgC.resps_nil_of_model (Heqv.1.2 rfl), hcs,
-      fun _ hn => absurd (isHB_of_wire Heqv.1.1.symm) hn⟩
+      fun _ => by rw [hc']; exact Hchbm.2.2.2⟩
   · -- AppEntries
     wp_auto
     try rw [show _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgApp =
@@ -445,7 +445,7 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
       iframe Hmsg HBc
       ipureintro
       refine ⟨Hfr, by simp [shortBytes, Hprel, List.append_assoc], by subst Hdesm; rfl, rfl,
-        by simp [MsgC.csUfNil, MsgC.f], fun hs _ => ?_⟩
+        by simp [MsgC.csUfNil, MsgC.f], fun hs => ?_⟩
       obtain ⟨ecs', h1, h2, h3⟩ := Hsz hs
       obtain rfl := ents_eq_of_uniq h1 Huniq
       exact msgSizeOk_of_ents _ rfl rfl rfl h2 h3
@@ -563,7 +563,7 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
       iframe Hm' HBb
       ipureintro
       refine ⟨Hfr, ?_, by rw [hc0m], MsgC.resps_nil_of_model (by rw [hc0m]; exact Hw0.1),
-        hc0cs, fun hs _ => hc0sz hs⟩
+        hc0cs, fun hs => hc0sz hs⟩
       · simp [msgFrame, hyl]
     · cases err with
       | nil => exact absurd rfl Herr

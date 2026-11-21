@@ -39,7 +39,7 @@ theorem isSafeRetryImmutableRPC.wp_proof
   ihave #Herrs : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
   · iPkgInit
   wp_auto
-  ihave ⟨%mR, #HmR⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
+  ihave ⟨%mR, #HmR⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_descIs _ $$ Hse
   wp_apply wp_rpctypes_Error err mR $$ [$Hse $HmR] as %e1' ⟨%Hne1, #Hse1, %Hce1, -⟩
   · ipureintro; exact Hne
   have Hc1 := Hce1 Hce
@@ -56,8 +56,9 @@ theorem isSafeRetryImmutableRPC.wp_proof
   · ipureintro; rfl
   cases b
   · wp_auto
-    ihave ⟨%mF, #HmF⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
-    wp_apply wp_FromError err mF $$ [$Hst $Hse $HmF] as %ev %ok ⟨-, #HCode, -⟩
+    ihave ⟨%mF, #HmF⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_descIs _ $$ Hse
+    ihave ⟨%cFE, #HcFE⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_code _ $$ Hse
+    wp_apply wp_FromError err mF cFE $$ [$Hst $Hse $HmF $HcFE] as %ev %ok ⟨-, #HCode, -⟩
     cases ok
     · wp_auto
       iapply HΦ; itrivial
@@ -69,8 +70,9 @@ theorem isSafeRetryImmutableRPC.wp_proof
     wp_auto
     wp_apply wp_ECode v'
     wp_if_destruct
-    · ihave ⟨%mF, #HmF⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
-      wp_apply wp_FromError err mF $$ [$Hst $Hse $HmF] as %ev %ok ⟨-, #HCode, -⟩
+    · ihave ⟨%mF, #HmF⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_descIs _ $$ Hse
+      ihave ⟨%cFE, #HcFE⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_code _ $$ Hse
+      wp_apply wp_FromError err mF cFE $$ [$Hst $Hse $HmF $HcFE] as %ev %ok ⟨-, #HCode, -⟩
       cases ok
       · wp_auto
         iapply HΦ; itrivial

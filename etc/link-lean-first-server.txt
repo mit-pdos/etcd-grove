@@ -858,7 +858,7 @@ EtcdServer__sendMergedSnap: EtcdServer__Logger EtcdServer__MemberID types_ID__St
 # (`TransportSpecs.lean`), rafthttp's functions with their bodies, and the callees they reach;
 # `=` callees are terms (the HTTP boundary's axioms, `Proof/net/http/Axioms.lean`, Perennial's
 # linked results of `time`, `sync`, `context`, `strings`, and `Lemmas.lean`'s facts)
-rafthttp_NewRoundTripper:
+rafthttp_NewRoundTripper: transport_NewTimeoutTransport
 rafthttp_Transport__ActiveSince:
 rafthttp_Transport__AddPeer: types_NewURLs v2stats_LeaderStats__Follower rafthttp_startPeer rafthttp_addPeerToProber types_ID__String types_ID__String_ptr zap_Logger__Info zap_String zap_Strings
 # (D22 receiver epochs, S8d, 2026-10-25) `applySnapshot`'s transport reset over `trLive`; proved in
@@ -907,7 +907,7 @@ rafthttp_newSnapshotHandler:
 rafthttp_snapshotHandler__ServeHTTP: =http.RespHeader_ok =http.HeaderSet_ok =http.Error_ok =http.respWriteHeader_ok =http.bodyStreamRead_ok =http.ReadFull_stream_ok rafthttp_checkClusterCompatibilityFromHeader rafthttp_messageDecoder__decodeLimit snap_Snapshotter__SaveDBFrom proto_SizeMessage fmt_SprintfArgs errors_AsLeaf context_TODO zap_Logger__Warn zap_Logger__Info zap_String zap_Error zap_Uint64 zap_Int zap_Int64 types_ID__String types_ID__String_ptr prometheus_CounterVec__WithLabelValues prometheus_GaugeVec__WithLabelValues prometheus_HistogramVec__WithLabelValues go_humanize_Bytes Message__GetFrom Message__GetType SnapshotMetadata__GetIndex =_root_.Perennial.time.wp_Now =_root_.Perennial.time.wp_Since time_Duration__String_ptr time_Duration__Seconds =rafthttp_writerToResponse_asTarget
 rafthttp_newSnapshotSender:
 rafthttp_newStreamHandler:
-rafthttp_newStreamRoundTripper:
+rafthttp_newStreamRoundTripper: transport_NewTimeoutTransport
 rafthttp_newURLPicker:
 rafthttp_peerStatus__activate: zap_Logger__Info zap_String types_ID__String_ptr prometheus_GaugeVec__WithLabelValues =_root_.Perennial.time.wp_Now
 rafthttp_peerStatus__deactivate: zap_Logger__Warn zap_Logger__Debug zap_String zap_Error types_ID__String_ptr prometheus_GaugeVec__WithLabelValues prometheus_CounterVec__WithLabelValues fmt_SprintfArgs types_ID__String
@@ -998,8 +998,9 @@ prometheus_CounterVec__WithLabelValues:
 fmt_SprintfArgs:
 zap_Bool:
 ioutil_NewLimitedBufferReader:
+errors_AsNoMatch:
+errors_AsLeafTy: errors_AsNoMatch
 errors_AsLeaf: errors_AsLeafTy
-errors_AsLeafTy:
 context_TODO:
 v2stats_FollowerStats__Fail:
 context_WithCancelBackground:
@@ -1010,6 +1011,7 @@ path_Join: path_Clean
 httputil_GracefulClose:
 transport_IsClosedConnError: strings_Contains
 strings_Contains:
+transport_NewTimeoutTransport:
 rate_Limiter__Wait:
 proto_MarshalPb:
 path_Split: bytealg_LastIndexByteString

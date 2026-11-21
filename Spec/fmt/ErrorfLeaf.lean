@@ -1,25 +1,15 @@
 /-
-`fmt.Errorf(format, args...)` of arguments `fmt.Errorf.spec` admits (`fmt.argsOk` under `Errorf`'s
-verbs), **proved** over Perennial's model of `Errorf` (`Proof/fmt/ErrorfLeaf.lean`, listed for review
-by the term gate `etc/errorf-wrap-check.py`), with one fact more in the post: the error's dynamic type
-has no `Errors` method, so it is no `utilerrors.Aggregate` (2026-11-20, conditional authorization:
-`aggregate.Error()`'s `visit` type-switches its elements on `Aggregate`, and the errors the
-authorizer package puts in its decisions are aggregated: `Proof/.../util/errors/Defs.lean`'s
-`errLeafOk`). `fmt.Errorf.spec` (the trust boundary, `Proof/fmt/Errorf.lean`) does not state it, and
-adding a conjunct to its post would change the shape of what its 89 users destructure.
-
-Why the model may be used for these arguments (as for `fmt.ErrorfErrs`, `fmt.ErrorfStrs`): the model
-(`errors.New(format)`) departs from Go only in not formatting the arguments, and `fmt.argsOk` admits
-only arguments whose formatting calls nothing with an effect or a panic: `nil` and basic values (no
-method), named integers under non-method verbs (printed by reflection), values whose `Error()` or
-`String()` (no `Format`; under `%w` only `Error() string`) returns some string needing nothing
-(`fmt.stringMethodSpec`, persistent), and read-only slices of such values under `%v`/`%s`
-(`fmt.sliceArgOk`, whose header traces Go's `printValue`). The post: Go returns a `*fmt.wrapError`
-(one `%w`), a `*fmt.wrapErrors` (several) or an `*errors.errorString` (none) (`fmt/errors.go`), whose
-method sets are `Error`, `Unwrap` (`errors.go`'s `wrapError`, `wrapErrors`) and `Error`
-(`errors/errors.go`): `Error() string`, no `Format`, no `Errors`; `Error()` returns the formatted
-message (`errOk`); the model's `*errorString` has the same facts. The arguments' slice is read, and
-given back. Lean-first.
+`fmt.Errorf(format, args...)` of arguments Perennial's `fmt.Errorf` spec admits (`fmt.argsOk` under
+`Errorf`'s verbs), with one fact more in the post: the error's dynamic type has no `Errors` method, so
+it is no `utilerrors.Aggregate` (2026-11-20, conditional authorization: `aggregate.Error()`'s `visit`
+type-switches its elements on `Aggregate`, and the errors the authorizer package puts in its decisions
+are aggregated: `Proof/.../util/errors/Defs.lean`'s `errLeafOk`). **Proved** from Perennial's
+`fmt.wp_Errorf` (`Proof/fmt/ErrorfLeaf.lean`; fmtmodel, 2026-11-20): Go returns a `*fmt.wrapError`
+(one `%w`), a `*fmt.wrapErrors` (several) or an `*errors.errorString` (none) (`fmt/errors.go`), with
+method sets `Error`, `Unwrap` and `Error`: `Error() string`, no `Format`, no `Errors`; `Error()`
+returns the formatted message (`errOk`). The arguments' slice is read, and given back. (Until fmtmodel,
+proved over Perennial's previous model, `errors.New(format)`, and `fmt.argsOk` admitted read-only
+slices under `%v`/`%s`; those calls now use `fmt.ErrorfSlice`.) Lean-first.
 -/
 module
 

@@ -87,7 +87,7 @@ theorem watchGRPCStream.close.wp_proof
             icases Heof $$ %e He with ⟨%Hc, -⟩
             ipureintro; exact Hc.2
         wp_auto
-        ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
+        ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_descIs _ $$ Hse
         wp_apply wp_ContextError G.ctx G.cd e mC $$ [] as %err' ⟨-, #Hse', -, -⟩
         · iframe #
           ipureintro; intro _; exact Hce
@@ -95,7 +95,7 @@ theorem watchGRPCStream.close.wp_proof
       · itrivial
     · iapply BigAndL.bigAndL_nil.2; itrivial
   · wp_auto
-    ihave #HmC := go_etcd_io.etcd.cache.v3.errMsgAt_nil (GF := GF) go!""
+    ihave #HmC := go_etcd_io.etcd.cache.v3.descIs_nil (GF := GF)
     wp_apply wp_ContextError G.ctx G.cd GoInterface.nil go!"" $$ [] as %err' ⟨-, #Hse', -, -⟩
     · iframe #
       isplitr

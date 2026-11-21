@@ -6,16 +6,18 @@ model `%w`, and a proof must not learn of Go's error a fact true only of the mod
 (`notes/decisions.md`, "`fmt.Errorf` with `%w`: no fact from the model", superseded in part by H0).
 The post is a disjunction, the model's error or Go's (etcd-grove-82's decision, 2026-11-06), so that
 the spec is true of both and contradicts neither; the model's disjunct carries the model's own facts
-(its `*errors.errorString`'s cell), Go's the facts of `*fmt.wrapError`. Since H0 (2026-11-18) a
-theorem, proved from the model (`Proof/fmt/ErrorfWrap.lean`): the post's left disjunct is what the
-model returns and the description conjunct is conditional on Go's `Unwrap` method. Attacked (as an
-axiom): `notes/axiom-review/errorf-wrap.md`. Lean-first.
+(its `*errors.errorString`'s cell), Go's the facts of `*fmt.wrapError`. From H0 (2026-11-18) a
+theorem proved from the previous model (the left disjunct, the description conjunct vacuous); since
+fmtmodel (2026-11-20) proved from Perennial's `fmt.wp_Errorf`, whose model returns Go's `*wrapError`:
+the right disjunct (the description conjunct from the trust-boundary fact `rpctypes.errDesc_wrapError`,
+until errdesc stage 2b, 2026-11-21, removed both: `errorfWrap_descIs`). The left disjunct is now never used by the
+proof; it stays so that the callers' statements do not change. Attacked (as an axiom):
+`notes/axiom-review/errorf-wrap.md`. Lean-first.
 -/
 module
 
 public import Spec.fmt.Errorf
 public import Spec.fmt.ErrorOk
-public import Proof.google_golang_org.grpc.status.ErrDesc
 public import Proof.errors.NewVarCell
 
 @[expose] public section
@@ -114,7 +116,10 @@ and no `Format` method, which Go would call in its place; fmt soundness, 2026-11
 `Error()`'s WP, which admitted a panicking or memory-writing `Format` and a non-`error` `inner`): the
 model's error or Go's `*fmt.wrapError` (`fmt.errorfWrapIs`); if the error has
 an `Unwrap() error` method (Go's `*fmt.wrapError` has, the model's `*errors.errorString` has not),
-its gRPC description (`errDesc`) begins with `pre` (N1b, 2026-11-06: in Go the error has no
+its gRPC description (`errDesc`) began with `pre` (errdesc stage 2b, 2026-11-21: that conjunct is gone with
+the pure `errDesc`; the description is now the relation `descIs`, and `errorfWrap_descIs`,
+`Proof/go_etcd_io/etcd/cache/v3/Base.lean`, proves of every `errorfWrapIs` error a description starting
+with `pre`) (N1b, 2026-11-06: in Go the error has no
 `GRPCStatus`, so `status.FromError` and the server's `FromContextError` take its `Error()`,
 `pre ++ inner.Error()`; stated of the returned error only: as a law of every `errorfWrapIs` error it
 would be inconsistent, an error whose `Error()` loops meeting it at every `pre`). The condition (H0,
@@ -130,9 +135,7 @@ abbrev fmt.ErrorfWrap.spec : Prop :=
       fmtErrorOk (GoInterface.ok inner) }}
     (App (App (Val (@! _root_.Perennial.fmt.Errorf)) (Val #(pre ++ go!"%w"))) (Val #args_sl))
   {{ (err : GoInterfaceOk), RET #(GoInterface.ok err);
-      args_sl ↦*{dq} [GoInterface.ok inner] ∗ fmt.errorfWrapIs err (GoInterface.ok inner) pre ∗
-      ⌜methodSet err.ty !! go!"Unwrap" = some (go.Signature [] false [go.error]) →
-        pre <+: go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok err)⌝ }}
+      args_sl ↦*{dq} [GoInterface.ok inner] ∗ fmt.errorfWrapIs err (GoInterface.ok inner) pre }}
 
 end spec
 

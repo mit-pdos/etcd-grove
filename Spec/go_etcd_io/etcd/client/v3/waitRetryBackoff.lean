@@ -29,7 +29,8 @@ returns: `retryOptsAt`) and returns `nil`, or, if the context is done first, a g
 (`contextErrToGRPCErr(ctx.Err())`: `status.Error` of the context's error's message,
 `clientErrOk`), whose description is the context error's message, never a handler's
 (`handlerDescs`: grpc never makes one of those, and `ctxOk` contexts' messages are Go's or
-`ctxErrs`' four `clientErrTys` errors'; k8s etcd3 7e-1, restated after an axiom-skill attack). -/
+`ctxErrs`' four `clientErrTys` errors'; k8s etcd3 7e-1, restated after an axiom-skill attack;
+errdesc stage 2b, 2026-11-21: a description `descIs`, until then the pure `errDesc`). -/
 abbrev waitRetryBackoff.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (attempt : w64) (o : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ ctxOk ctx cd ∗
@@ -37,7 +38,7 @@ abbrev waitRetryBackoff.spec : Prop :=
     (App (App (App (Val (@! go_etcd_io.etcd.client.v3.waitRetryBackoff))
       (Val #(GoInterface.ok ctx))) (Val #attempt)) (Val #o))
   {{ (err : GoInterface), RET #err; clientErrOk err ∗
-      ⌜err = GoInterface.nil ∨ go_etcd_io.etcd.cache.v3.errDesc err ∉ handlerDescs⌝ }}
+      (⌜err = GoInterface.nil⌝ ∨ notHandlerErr err) }}
 
 end spec
 

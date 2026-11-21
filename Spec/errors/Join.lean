@@ -1,8 +1,9 @@
 /-
-`errors.Join(errs...)` (names-only in Perennial): Go's documentation, "Join returns nil if every
-value in errs is nil"; the spec says only that (the batch informer's `processDeltasInBatch` returns
-`errors.Join(keyErrs...)` with no key error). The slice is only read. The trust boundary: an axiom,
-`Proof/errors/Join.lean`. Lean-first (no Rocq counterpart).
+`errors.Join(errs...)`: Go's documentation, "Join returns nil if every value in errs is nil"; the
+spec says only that (the batch informer's `processDeltasInBatch` returns `errors.Join(keyErrs...)`
+with no key error). The slice is only read. Proved (`Proof/errors/Join.lean`) over Perennial's
+translation of Go's (2026-11-20; until then a trust-boundary axiom). Lean-first (no Rocq
+counterpart).
 -/
 module
 
