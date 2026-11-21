@@ -58,7 +58,7 @@ theorem wp_New_errorString (msg : GoString) :
 /-- **`fmt.Errorf(format)`, without verbs or arguments**, returns an error `errorfIs` describes
 (`errors.New(format)`, in Go as in Perennial's model: the fast path; errorf-wrap, 2026-11-06). -/
 theorem wp_Errorf_errorfIs (format : GoString) (args_sl : GoSlice)
-    (hfmt : (W8 37 : w8) ∉ format) :
+    (_hfmt : (W8 37 : w8) ∉ format) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ args_sl ↦* ([] : List GoAny) }}
       (App (App (Val (@! _root_.Perennial.fmt.Errorf)) (Val #format)) (Val #args_sl))
     {{ (err : GoInterface), RET #err; errorfIs err }} := by
@@ -69,7 +69,7 @@ theorem wp_Errorf_errorfIs (format : GoString) (args_sl : GoSlice)
     as %err ⟨-, %s, -, Herr⟩
   iunfold _root_.Perennial.fmt.errorfErr at Herr
   icases Herr with ⟨%-, #HE, Hcase⟩
-  simp only [EtcdGrove.fmt.fmtDirectives_noPct format hfmt, _root_.Perennial.fmt.wrapArgs,
+  simp only [EtcdGrove.fmt.fmtDirectives_noPct format _hfmt, _root_.Perennial.fmt.wrapArgs,
     _root_.Perennial.fmt.wrapArgsFrom]
   icases Hcase with ⟨%x, %hx, -⟩
   subst hx
