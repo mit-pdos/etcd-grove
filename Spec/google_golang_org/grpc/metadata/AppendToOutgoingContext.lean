@@ -35,22 +35,27 @@ changed, as `withVersion`'s), and outgoing metadata `ctx`'s with `v` appended to
 merge `added` after `md`). Its panic on an odd number of arguments is unreachable (two).
 (premise-fixes-7) It reads `ctx.Value(mdOutgoingKey{})` (`metadata.go:254`), so it takes
 `metadata.outgoingCtxOk ctx`, and the context it returns has it too: its `Value` at that key is the
-new `rawMD` (`builtRawMD`). (premise-fixes-8, C1) So does Perennial's chain
+new `rawMD` (`builtRawMDRaw`). (premise-fixes-8, C1) So does Perennial's chain
 (`metadata.outgoingCtxOkC ci`): `ci` is the `*valueCtx` `WithValue` made (fields never written),
 whose key is grpc's `mdOutgoingKey{}` and whose value is that `rawMD`; the chain stops there, so
-it holds whatever `ctx` is. -/
+it holds whatever `ctx` is.
+(errdesc stage 1, 2026-11-20) The metadata is a per-run relation (`metadata.outMD`): of a context whose
+outgoing metadata is `md` (a parameter, `outMD ctx md` in the precondition), the result's is
+`mdAdd md k v`. Until then the post equated the pure `metadata.outgoingOf` of the fresh context with
+its parent's, which no implementation can meet (`notes/errdesc-ghost-plan.md`). -/
 abbrev metadata.AppendToOutgoingContext.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (sl : GoSlice) (dq : DFrac)
-    (k v : GoString),
+    (k v : GoString) (md : Option (GoString → Option (List GoString))),
   metadata.lowerKey k →
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.metadata ∗
-      context.isContext ctx cd ∗ metadata.outgoingCtxOk ctx ∗ sl ↦*{dq} [k, v] }}
+      context.isContext ctx cd ∗ metadata.outgoingCtxOk ctx ∗ metadata.outMD ctx md ∗
+      sl ↦*{dq} [k, v] }}
     (App (App (Val (@! google_golang_org.grpc.metadata.AppendToOutgoingContext))
       (Val #(GoInterface.ok ctx))) (Val #sl))
   {{ (c' : GoInterface), RET #c'; ∃ (ci : GoInterfaceOk) (vs : GMap GoInterface GoInterface),
       ⌜c' = GoInterface.ok ci⌝ ∗ context.isContext ci { cd with Values := vs } ∗
       metadata.outgoingCtxOk ci ∗ metadata.outgoingCtxOkC ci ∗
-      ⌜metadata.outgoingOf c' = metadata.mdAdd (metadata.outgoingOf (GoInterface.ok ctx)) k v⌝ ∗
+      metadata.outMD ci (metadata.mdAdd md k v) ∗
       sl ↦*{dq} [k, v] }}
 
 end spec

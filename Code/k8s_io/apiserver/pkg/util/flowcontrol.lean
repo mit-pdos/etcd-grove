@@ -2,6 +2,10 @@
 module
 
 public import Perennial.Code.context
+public import Perennial.Code.fmt
+public import Code.k8s_io.apimachinery.pkg.util.sets
+public import Code.k8s_io.apiserver.pkg.authentication.user
+public import Code.k8s_io.apiserver.pkg.endpoints.request
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -168,8 +172,6 @@ attribute [irreducible] indexValue.ty
 
 opaque initializationSignal.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque RequestDigest.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
 opaque configController.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque updateAttempt.underlying [GooseExts] [GoGlobalContext] : go.GoType
@@ -217,8 +219,6 @@ opaque unsetValue [GooseExts] [GoGlobalContext] : val
 
 noncomputable def readOnlyVerbs [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/util/flowcontrol.readOnlyVerbs"
-
-opaque readOnlyVerbs.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def WithInitializationSignal [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/util/flowcontrol.WithInitializationSignal"
@@ -425,9 +425,7 @@ noncomputable def WatchInitialized.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.util.flowcontrol where
-  pkgImportedPkgs := [pkg_id.context]
-
-opaque «_».init [GooseExts] [GoGlobalContext] : val
+  pkgImportedPkgs := [pkg_id.context, pkg_id.fmt, pkg_id.k8s_io.apimachinery.pkg.util.sets, pkg_id.k8s_io.apiserver.pkg.authentication.user, pkg_id.k8s_io.apiserver.pkg.endpoints.request]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -436,14 +434,31 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert RequestDigest.ty _root_.Perennial.fmt.GoStringer.ty))) (App (Val (GoInstruction (CompositeLiteral RequestDigest.ty))) (LiteralValue [])))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType priorityLevelState.ty) _root_.Perennial.fmt.GoStringer.ty))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType priorityLevelState.ty)))) (Val UntypedNil)))
+  (Let "$r0" (Let "$a0" (Let "$sl0" (Val #(go!"get"))
+  (Let "$sl1" (Val #(go!"list"))
+  (Let "$sl2" (Val #(go!"watch"))
+  (Let "$sl3" (Val #(go!"proxy"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$sl0"))), (KeyedElement none (ElementExpression go.string (Var "$sl1"))), (KeyedElement none (ElementExpression go.string (Var "$sl2"))), (KeyedElement none (ElementExpression go.string (Var "$sl3")))]))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.NewString []))) (Val #())) (Var "$a0")))
   (App (Val doExecute)
-  (App (Val readOnlyVerbs.init) (Val #())))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr readOnlyVerbs))) (Val #())) (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
+  (App (Val _root_.Perennial.context.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
+  (App (Val _root_.Perennial.fmt.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.context.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.k8s_io.apiserver.pkg.authentication.user.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.k8s_io.apiserver.pkg.endpoints.request.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc readOnlyVerbs _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty)) (Val #()))))))))
 
 abbrev priorityAndFairnessKeyType [GooseExts] : Type := w64
 
@@ -506,22 +521,44 @@ attribute [instance] StartFunction.TypeAssumptions.underlying
   StartFunction.TypeAssumptions.method_set
   StartFunction.TypeAssumptions.ptr_method_set
 
-opaque RequestDigest.nonempty_type : NonemptyType.{0}
-def RequestDigest : Type := RequestDigest.nonempty_type.type
-instance RequestDigest.nonempty : Nonempty RequestDigest := RequestDigest.nonempty_type.property
-opaque RequestDigest.zero_val : ZeroVal RequestDigest := ⟨Classical.ofNonempty⟩
-attribute [instance] RequestDigest.zero_val
+structure RequestDigest [GooseExts] where
+  mk ::
+  RequestInfo' : Loc
+  User' : _root_.Perennial.k8s_io.apiserver.pkg.authentication.user.Info
+
+noncomputable instance RequestDigest.zero_val [GooseExts] : ZeroVal RequestDigest :=
+  ⟨RequestDigest.mk zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def RequestDigest.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"RequestInfo" (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.endpoints.request.RequestInfo.ty)),
+(go.field_decl.FieldDecl go!"User" _root_.Perennial.k8s_io.apiserver.pkg.authentication.user.Info.ty)]
+
+@[irreducible] noncomputable def RequestDigest.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  RequestDigest.fieldsUnsealed
+
+noncomputable instance equals_unfold_RequestDigest [GooseExts] [GoGlobalContext] :
+    EqualsUnfold RequestDigest.fields RequestDigest.fieldsUnsealed :=
+  ⟨by unfold RequestDigest.fields; rfl⟩
+
+@[reducible] noncomputable def RequestDigest.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType RequestDigest.fields)
 
 class RequestDigest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RequestDigest.underlying RequestDigest
   underlying : go.UnderlyingDirectedEq RequestDigest.ty RequestDigest.underlying
-  isUnderlying : go.IsUnderlying RequestDigest.underlying RequestDigest.underlying
+  get_RequestInfo : ∀ (x : RequestDigest), go.IsGoStepPureDetTagged under (StructFieldGet RequestDigest.underlying go!"RequestInfo") #x (Val #(x.RequestInfo'))
+  set_RequestInfo : ∀ (x : RequestDigest) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RequestDigest.underlying go!"RequestInfo") (PairV #x #y) (Val #(({ x with RequestInfo' := y } : RequestDigest)))
+  get_User : ∀ (x : RequestDigest), go.IsGoStepPureDetTagged under (StructFieldGet RequestDigest.underlying go!"User") #x (Val #(x.User'))
+  set_User : ∀ (x : RequestDigest) (y : _root_.Perennial.k8s_io.apiserver.pkg.authentication.user.Info), go.IsGoStepPureDetTagged under (StructFieldSet RequestDigest.underlying go!"User") (PairV #x #y) (Val #(({ x with User' := y } : RequestDigest)))
   method_set : go.MethodSetIs RequestDigest.ty [(go!"GoString", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType RequestDigest.ty) [(go!"GoString", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] RequestDigest.TypeAssumptions.type_repr
   RequestDigest.TypeAssumptions.underlying
-  RequestDigest.TypeAssumptions.isUnderlying
+  RequestDigest.TypeAssumptions.get_RequestInfo
+  RequestDigest.TypeAssumptions.set_RequestInfo
+  RequestDigest.TypeAssumptions.get_User
+  RequestDigest.TypeAssumptions.set_User
   RequestDigest.TypeAssumptions.method_set
   RequestDigest.TypeAssumptions.ptr_method_set
 
@@ -535,8 +572,8 @@ class configController.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   type_repr : go.TypeReprUnderlying configController.underlying configController
   underlying : go.UnderlyingDirectedEq configController.ty configController.underlying
   isUnderlying : go.IsUnderlying configController.underlying configController.underlying
-  method_set : go.MethodSetIs configController.ty [(go!"ForgetPriorityLevel", (some (go.signature.Signature [go.string] false []))), (go!"GetInterestedWatchCount", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apiserver/pkg/endpoints/request.RequestInfo" []))] false [go.int]))), (go!"GetMaxSeats", (some (go.signature.Signature [go.string] false [go.uint64]))), (go!"RegisterWatch", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [ForgetWatchFunc.ty]))), (go!"SetMaxSeats", (some (go.signature.Signature [go.string, go.uint64] false [])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType configController.ty) [(go!"ForgetPriorityLevel", (some (go.signature.Signature [go.string] false []))), (go!"GetInterestedWatchCount", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apiserver/pkg/endpoints/request.RequestInfo" []))] false [go.int]))), (go!"GetMaxSeats", (some (go.signature.Signature [go.string] false [go.uint64]))), (go!"Handle", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, RequestDigest.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.FlowSchema" [])), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.PriorityLevelConfiguration" [])), go.string] false [])), (go.GoType.FunctionType (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apiserver/pkg/util/flowcontrol/request.WorkEstimate" [])])), (go.GoType.Named go!"k8s.io/apiserver/pkg/util/flowcontrol/fairqueuing.QueueNoteFn" []), (go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"Install", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apiserver/pkg/server/mux.PathRecorderMux" []))] false []))), (go!"RegisterWatch", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [ForgetWatchFunc.ty]))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [go.error]))), (go!"SetMaxSeats", (some (go.signature.Signature [go.string, go.uint64] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.addUpdateResult", (some (go.signature.Signature [updateAttempt.ty] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.digestConfigObjects", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.PriorityLevelConfiguration" []))), (go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.FlowSchema" [])))] false [(go.GoType.Named go!"time.Duration" []), go.error]))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.dumpPriorityLevels", (some (go.signature.Signature [(go.GoType.Named go!"net/http.ResponseWriter" []), (go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.dumpQueues", (some (go.signature.Signature [(go.GoType.Named go!"net/http.ResponseWriter" []), (go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.dumpRequests", (some (go.signature.Signature [(go.GoType.Named go!"net/http.ResponseWriter" []), (go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.lockAndDigestConfigObjects", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.PriorityLevelConfiguration" []))), (go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.FlowSchema" [])))] false [(go.GoType.SliceType fsStatusUpdate.ty)]))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.maybeReap", (some (go.signature.Signature [go.string] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.maybeReapReadLocked", (some (go.signature.Signature [go.string, (go.GoType.PointerType priorityLevelState.ty)] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.processNextWorkItem", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.runWorker", (some (go.signature.Signature [] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.shouldDelayUpdate", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.startRequest", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, RequestDigest.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.FlowSchema" [])), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.PriorityLevelConfiguration" [])), go.string] false [])), (go.GoType.FunctionType (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apiserver/pkg/util/flowcontrol/request.WorkEstimate" [])])), (go.GoType.Named go!"k8s.io/apiserver/pkg/util/flowcontrol/fairqueuing.QueueNoteFn" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.FlowSchema" [])), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.PriorityLevelConfiguration" [])), go.bool, (go.GoType.Named go!"k8s.io/apiserver/pkg/util/flowcontrol/fairqueuing.Request" []), (go.GoType.Named go!"time.Time" [])]))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.syncOne", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Duration" []), go.error]))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.updateBorrowing", (some (go.signature.Signature [] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.updateBorrowingLocked", (some (go.signature.Signature [go.bool, (go.GoType.MapType go.string (go.GoType.PointerType priorityLevelState.ty))] false [])))]
+  method_set : go.MethodSetIs configController.ty [(go!"ForgetPriorityLevel", (some (go.signature.Signature [go.string] false []))), (go!"GetInterestedWatchCount", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.endpoints.request.RequestInfo.ty)] false [go.int]))), (go!"GetMaxSeats", (some (go.signature.Signature [go.string] false [go.uint64]))), (go!"RegisterWatch", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [ForgetWatchFunc.ty]))), (go!"SetMaxSeats", (some (go.signature.Signature [go.string, go.uint64] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType configController.ty) [(go!"ForgetPriorityLevel", (some (go.signature.Signature [go.string] false []))), (go!"GetInterestedWatchCount", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.endpoints.request.RequestInfo.ty)] false [go.int]))), (go!"GetMaxSeats", (some (go.signature.Signature [go.string] false [go.uint64]))), (go!"Handle", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, RequestDigest.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.FlowSchema" [])), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.PriorityLevelConfiguration" [])), go.string] false [])), (go.GoType.FunctionType (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apiserver/pkg/util/flowcontrol/request.WorkEstimate" [])])), (go.GoType.Named go!"k8s.io/apiserver/pkg/util/flowcontrol/fairqueuing.QueueNoteFn" []), (go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"Install", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apiserver/pkg/server/mux.PathRecorderMux" []))] false []))), (go!"RegisterWatch", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [ForgetWatchFunc.ty]))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [go.error]))), (go!"SetMaxSeats", (some (go.signature.Signature [go.string, go.uint64] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.addUpdateResult", (some (go.signature.Signature [updateAttempt.ty] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.digestConfigObjects", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.PriorityLevelConfiguration" []))), (go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.FlowSchema" [])))] false [(go.GoType.Named go!"time.Duration" []), go.error]))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.dumpPriorityLevels", (some (go.signature.Signature [(go.GoType.Named go!"net/http.ResponseWriter" []), (go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.dumpQueues", (some (go.signature.Signature [(go.GoType.Named go!"net/http.ResponseWriter" []), (go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.dumpRequests", (some (go.signature.Signature [(go.GoType.Named go!"net/http.ResponseWriter" []), (go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.lockAndDigestConfigObjects", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.PriorityLevelConfiguration" []))), (go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.FlowSchema" [])))] false [(go.GoType.SliceType fsStatusUpdate.ty)]))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.maybeReap", (some (go.signature.Signature [go.string] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.maybeReapReadLocked", (some (go.signature.Signature [go.string, (go.GoType.PointerType priorityLevelState.ty)] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.processNextWorkItem", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.runWorker", (some (go.signature.Signature [] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.shouldDelayUpdate", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.startRequest", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, RequestDigest.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.FlowSchema" [])), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.PriorityLevelConfiguration" [])), go.string] false [])), (go.GoType.FunctionType (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apiserver/pkg/util/flowcontrol/request.WorkEstimate" [])])), (go.GoType.Named go!"k8s.io/apiserver/pkg/util/flowcontrol/fairqueuing.QueueNoteFn" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.FlowSchema" [])), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.PriorityLevelConfiguration" [])), go.bool, (go.GoType.Named go!"k8s.io/apiserver/pkg/util/flowcontrol/fairqueuing.Request" []), (go.GoType.Named go!"time.Time" [])]))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.syncOne", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Duration" []), go.error]))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.updateBorrowing", (some (go.signature.Signature [] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.updateBorrowingLocked", (some (go.signature.Signature [go.bool, (go.GoType.MapType go.string (go.GoType.PointerType priorityLevelState.ty))] false [])))]
 
 attribute [instance] configController.TypeAssumptions.type_repr
   configController.TypeAssumptions.underlying
@@ -741,7 +778,7 @@ class Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   type_repr : go.TypeReprUnderlying Interface.underlying Interface
   underlying : go.UnderlyingDirectedEq Interface.ty Interface.underlying
   isUnderlying : go.IsUnderlying Interface.underlying Interface.underlying
-  method_set : go.MethodSetIs Interface.ty [(go!"ForgetPriorityLevel", (some (go.signature.Signature [go.string] false []))), (go!"GetInterestedWatchCount", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apiserver/pkg/endpoints/request.RequestInfo" []))] false [go.int]))), (go!"GetMaxSeats", (some (go.signature.Signature [go.string] false [go.uint64]))), (go!"Handle", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, RequestDigest.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.FlowSchema" [])), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.PriorityLevelConfiguration" [])), go.string] false [])), (go.GoType.FunctionType (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apiserver/pkg/util/flowcontrol/request.WorkEstimate" [])])), (go.GoType.Named go!"k8s.io/apiserver/pkg/util/flowcontrol/fairqueuing.QueueNoteFn" []), (go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"Install", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apiserver/pkg/server/mux.PathRecorderMux" []))] false []))), (go!"RegisterWatch", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [ForgetWatchFunc.ty]))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [go.error]))), (go!"SetMaxSeats", (some (go.signature.Signature [go.string, go.uint64] false [])))]
+  method_set : go.MethodSetIs Interface.ty [(go!"ForgetPriorityLevel", (some (go.signature.Signature [go.string] false []))), (go!"GetInterestedWatchCount", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.endpoints.request.RequestInfo.ty)] false [go.int]))), (go!"GetMaxSeats", (some (go.signature.Signature [go.string] false [go.uint64]))), (go!"Handle", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, RequestDigest.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.FlowSchema" [])), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.PriorityLevelConfiguration" [])), go.string] false [])), (go.GoType.FunctionType (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apiserver/pkg/util/flowcontrol/request.WorkEstimate" [])])), (go.GoType.Named go!"k8s.io/apiserver/pkg/util/flowcontrol/fairqueuing.QueueNoteFn" []), (go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"Install", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apiserver/pkg/server/mux.PathRecorderMux" []))] false []))), (go!"RegisterWatch", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [ForgetWatchFunc.ty]))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [go.error]))), (go!"SetMaxSeats", (some (go.signature.Signature [go.string, go.uint64] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Interface.ty) []
 
 attribute [instance] Interface.TypeAssumptions.type_repr
@@ -1148,7 +1185,7 @@ class WatchTracker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying WatchTracker.underlying WatchTracker
   underlying : go.UnderlyingDirectedEq WatchTracker.ty WatchTracker.underlying
   isUnderlying : go.IsUnderlying WatchTracker.underlying WatchTracker.underlying
-  method_set : go.MethodSetIs WatchTracker.ty [(go!"GetInterestedWatchCount", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apiserver/pkg/endpoints/request.RequestInfo" []))] false [go.int]))), (go!"RegisterWatch", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [ForgetWatchFunc.ty])))]
+  method_set : go.MethodSetIs WatchTracker.ty [(go!"GetInterestedWatchCount", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.endpoints.request.RequestInfo.ty)] false [go.int]))), (go!"RegisterWatch", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [ForgetWatchFunc.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType WatchTracker.ty) []
 
 attribute [instance] WatchTracker.TypeAssumptions.type_repr
@@ -1182,7 +1219,7 @@ class watchTracker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   underlying : go.UnderlyingDirectedEq watchTracker.ty watchTracker.underlying
   isUnderlying : go.IsUnderlying watchTracker.underlying watchTracker.underlying
   method_set : go.MethodSetIs watchTracker.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType watchTracker.ty) [(go!"GetInterestedWatchCount", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apiserver/pkg/endpoints/request.RequestInfo" []))] false [go.int]))), (go!"RegisterWatch", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [ForgetWatchFunc.ty]))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.forgetWatch", (some (go.signature.Signature [(go.GoType.PointerType watchIdentifier.ty), (go.GoType.PointerType indexValue.ty)] false [ForgetWatchFunc.ty]))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.updateIndexLocked", (some (go.signature.Signature [(go.GoType.PointerType watchIdentifier.ty), (go.GoType.PointerType indexValue.ty), go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType watchTracker.ty) [(go!"GetInterestedWatchCount", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.endpoints.request.RequestInfo.ty)] false [go.int]))), (go!"RegisterWatch", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [ForgetWatchFunc.ty]))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.forgetWatch", (some (go.signature.Signature [(go.GoType.PointerType watchIdentifier.ty), (go.GoType.PointerType indexValue.ty)] false [ForgetWatchFunc.ty]))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.updateIndexLocked", (some (go.signature.Signature [(go.GoType.PointerType watchIdentifier.ty), (go.GoType.PointerType indexValue.ty), go.int] false [])))]
 
 attribute [instance] watchTracker.TypeAssumptions.type_repr
   watchTracker.TypeAssumptions.underlying
@@ -1264,6 +1301,10 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   initializationSignalFrom_unfold : FuncUnfold initializationSignalFrom [] initializationSignalFrom.impl
   WatchInitialized_unfold : FuncUnfold WatchInitialized [] WatchInitialized.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
+  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
+  import_sets_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Assumptions
+  import_user_Assumption : _root_.Perennial.k8s_io.apiserver.pkg.authentication.user.Assumptions
+  import_request_Assumption : _root_.Perennial.k8s_io.apiserver.pkg.endpoints.request.Assumptions
 
 attribute [instance] Assumptions.priorityAndFairnessKeyType_instance
   Assumptions.InitializationSignal_instance
@@ -1297,6 +1338,10 @@ attribute [instance] Assumptions.priorityAndFairnessKeyType_instance
   Assumptions.initializationSignalFrom_unfold
   Assumptions.WatchInitialized_unfold
   Assumptions.import_context_Assumption
+  Assumptions.import_fmt_Assumption
+  Assumptions.import_sets_Assumption
+  Assumptions.import_user_Assumption
+  Assumptions.import_request_Assumption
 
 end k8s_io.apiserver.pkg.util.flowcontrol
 

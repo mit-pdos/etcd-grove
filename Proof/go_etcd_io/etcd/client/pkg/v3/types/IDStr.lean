@@ -97,5 +97,41 @@ theorem types.idStr_ascii (id : w64) : asciiStr (types.idStr id) := by
   have := types.hexDigit_range d hd
   omega
 
+/-- A hexadecimal digit's value (the inverse of `hexDigit` on `d < 16`). -/
+def types.hexDigitVal (b : w8) : Nat := if b.toNat < 58 then b.toNat - 48 else b.toNat - 87
+
+/-- A list of hexadecimal digits' value, most significant first. -/
+def types.hexVal (l : List w8) : Nat := l.foldl (fun acc b => acc * 16 + types.hexDigitVal b) 0
+
+theorem types.hexDigitVal_hexDigit (d : Nat) (h : d < 16) : types.hexDigitVal (types.hexDigit d) = d := by
+  unfold types.hexDigitVal types.hexDigit
+  split <;> split <;> simp_all <;> omega
+
+theorem types.hexVal_append_one (l : List w8) (b : w8) :
+    types.hexVal (l ++ [b]) = types.hexVal l * 16 + types.hexDigitVal b := by
+  simp [types.hexVal, List.foldl_append]
+
+/-- `hexNatF` with enough fuel spells `n`. -/
+theorem types.hexVal_hexNatF (f n : Nat) (hf : n < f) : types.hexVal (types.hexNatF f n) = n := by
+  induction f generalizing n with
+  | zero => omega
+  | succ f ih =>
+    simp only [types.hexNatF]
+    split
+    · rename_i h
+      simp [types.hexVal, types.hexDigitVal_hexDigit n h]
+    · rename_i h
+      rw [types.hexVal_append_one, ih (n / 16) (by omega),
+        types.hexDigitVal_hexDigit _ (Nat.mod_lt _ (by decide))]
+      omega
+
+/-- **Distinct ids, distinct strings**: `ID.String` (`strconv.FormatUint(id, 16)`) is injective. -/
+theorem types.idStr_inj (a b : w64) (h : types.idStr a = types.idStr b) : a = b := by
+  have ha := types.hexVal_hexNatF (a.toNat + 1) a.toNat (by omega)
+  have hb := types.hexVal_hexNatF (b.toNat + 1) b.toNat (by omega)
+  unfold types.idStr at h
+  rw [h] at ha
+  exact BitVec.eq_of_toNat_eq (ha.symm.trans hb)
+
 end EtcdGrove
 end Perennial

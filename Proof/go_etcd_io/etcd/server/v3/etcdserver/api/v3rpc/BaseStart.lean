@@ -66,6 +66,26 @@ def v3rpc.leaseDescMethods : List (GoString × val) :=
    (go!"LeaseTimeToLive", @! etcdserverpb._Lease_LeaseTimeToLive_Handler),
    (go!"LeaseLeases", @! etcdserverpb._Lease_LeaseLeases_Handler)]
 
+/-- **The methods of the generated `Cluster_ServiceDesc`** (`rpc_grpc.pb.go`), with their generated
+handlers (auth-mediation M1, 2026-11-20). -/
+def v3rpc.clusterDescMethods : List (GoString × val) :=
+  [(go!"MemberAdd", @! etcdserverpb._Cluster_MemberAdd_Handler),
+   (go!"MemberRemove", @! etcdserverpb._Cluster_MemberRemove_Handler),
+   (go!"MemberUpdate", @! etcdserverpb._Cluster_MemberUpdate_Handler),
+   (go!"MemberList", @! etcdserverpb._Cluster_MemberList_Handler),
+   (go!"MemberPromote", @! etcdserverpb._Cluster_MemberPromote_Handler)]
+
+/-- **The methods of the generated `Maintenance_ServiceDesc`** (`rpc_grpc.pb.go`), with their
+generated handlers (auth-mediation M1, 2026-11-20). -/
+def v3rpc.maintDescMethods : List (GoString × val) :=
+  [(go!"Alarm", @! etcdserverpb._Maintenance_Alarm_Handler),
+   (go!"Status", @! etcdserverpb._Maintenance_Status_Handler),
+   (go!"Defragment", @! etcdserverpb._Maintenance_Defragment_Handler),
+   (go!"Hash", @! etcdserverpb._Maintenance_Hash_Handler),
+   (go!"HashKV", @! etcdserverpb._Maintenance_HashKV_Handler),
+   (go!"MoveLeader", @! etcdserverpb._Maintenance_MoveLeader_Handler),
+   (go!"Downgrade", @! etcdserverpb._Maintenance_Downgrade_Handler)]
+
 /-- `getServerMetrics`'s lock (the package variable `metricsServerLock`). -/
 abbrev v3rpc.metricsMu : Loc := globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.metricsServerLock
 
@@ -90,18 +110,6 @@ def v3rpc.metricsVars : IProp GF :=
 instance v3rpc.metricsVars_persistent : Persistent (v3rpc.metricsVars (GF := GF)) := by
   unfold v3rpc.metricsVars; infer_instance
 
-/-- **A generated `ServiceDesc`** at `d` (persistent): the service `sn`, the handler type
-`(*T)(nil)`, some methods and streams with distinct names, every stream setting a stream flag. -/
-def v3rpc.descOk (d : Loc) (sn : GoString) (T : go.GoType) : IProp GF :=
-  iprop(∃ (mds : List google_golang_org.grpc.MethodDesc)
-      (sds : List google_golang_org.grpc.StreamDesc),
-    go_etcd_io.etcd.cache.v3.pbDescIs d sn (v3rpc.handlerTy T) mds sds ∗
-    ⌜(descNames mds sds).Nodup ∧ ∀ sd ∈ sds, sd.ClientStreams' = true ∨ sd.ServerStreams' = true⌝)
-
-instance v3rpc.descOk_persistent (d : Loc) (sn : GoString) (T : go.GoType) :
-    Persistent (v3rpc.descOk (GF := GF) d sn T) := by
-  unfold v3rpc.descOk; infer_instance
-
 /-- **The six `ServiceDesc`s `v3rpc.Server` registers** (persistent; see the file header). -/
 def v3rpc.svcDescsOk : IProp GF :=
   iprop((∃ (mds : List google_golang_org.grpc.MethodDesc)
@@ -109,7 +117,9 @@ def v3rpc.svcDescsOk : IProp GF :=
       go_etcd_io.etcd.cache.v3.pbDescIs (globalAddr etcdserverpb.KV_ServiceDesc) go!"etcdserverpb.KV"
         (v3rpc.handlerTy etcdserverpb.KVServer.ty) mds sds ∗
       ⌜mds.map (fun md => (md.MethodName', (#md.Handler' : val))) = v3rpc.kvDescMethods ∧
-        sds.map (·.StreamName') = [go!"RangeStream"] ∧ ∀ sd ∈ sds, sd.ClientStreams' = true ∨ sd.ServerStreams' = true⌝) ∗
+        sds.map (fun sd => (sd.StreamName', (#sd.Handler' : val))) =
+          [(go!"RangeStream", @! etcdserverpb._KV_RangeStream_Handler)] ∧
+        ∀ sd ∈ sds, sd.ClientStreams' = true ∨ sd.ServerStreams' = true⌝) ∗
     (∃ (sds : List google_golang_org.grpc.StreamDesc),
       go_etcd_io.etcd.cache.v3.pbDescIs (globalAddr etcdserverpb.Watch_ServiceDesc) go!"etcdserverpb.Watch"
         (v3rpc.handlerTy etcdserverpb.WatchServer.ty) [] sds ∗
@@ -124,16 +134,28 @@ def v3rpc.svcDescsOk : IProp GF :=
         sds.map (fun sd => (sd.StreamName', (#sd.Handler' : val))) =
           [(go!"LeaseKeepAlive", @! etcdserverpb._Lease_LeaseKeepAlive_Handler)] ∧
         ∀ sd ∈ sds, sd.ClientStreams' = true ∨ sd.ServerStreams' = true⌝) ∗
-    v3rpc.descOk (globalAddr etcdserverpb.Cluster_ServiceDesc) go!"etcdserverpb.Cluster"
-      etcdserverpb.ClusterServer.ty ∗
+    -- (auth-mediation M1, 2026-11-20) the Cluster service's methods exactly, and no stream
+    (∃ (mds : List google_golang_org.grpc.MethodDesc)
+        (sds : List google_golang_org.grpc.StreamDesc),
+      go_etcd_io.etcd.cache.v3.pbDescIs (globalAddr etcdserverpb.Cluster_ServiceDesc) go!"etcdserverpb.Cluster"
+        (v3rpc.handlerTy etcdserverpb.ClusterServer.ty) mds sds ∗
+      ⌜mds.map (fun md => (md.MethodName', (#md.Handler' : val))) = v3rpc.clusterDescMethods ∧
+        sds = []⌝) ∗
     (∃ (mds : List google_golang_org.grpc.MethodDesc)
         (sds : List google_golang_org.grpc.StreamDesc),
       go_etcd_io.etcd.cache.v3.pbDescIs (globalAddr etcdserverpb.Auth_ServiceDesc) go!"etcdserverpb.Auth"
         (v3rpc.handlerTy etcdserverpb.AuthServer.ty) mds sds ∗
       ⌜mds.map (fun md => (md.MethodName', (#md.Handler' : val))) = v3rpc.authDescMethods ∧
         sds.map (·.StreamName') = []⌝) ∗
-    v3rpc.descOk (globalAddr etcdserverpb.Maintenance_ServiceDesc) go!"etcdserverpb.Maintenance"
-      etcdserverpb.MaintenanceServer.ty)
+    -- (auth-mediation M1, 2026-11-20) the Maintenance service's methods and stream exactly
+    (∃ (mds : List google_golang_org.grpc.MethodDesc)
+        (sds : List google_golang_org.grpc.StreamDesc),
+      go_etcd_io.etcd.cache.v3.pbDescIs (globalAddr etcdserverpb.Maintenance_ServiceDesc)
+        go!"etcdserverpb.Maintenance" (v3rpc.handlerTy etcdserverpb.MaintenanceServer.ty) mds sds ∗
+      ⌜mds.map (fun md => (md.MethodName', (#md.Handler' : val))) = v3rpc.maintDescMethods ∧
+        sds.map (fun sd => (sd.StreamName', (#sd.Handler' : val))) =
+          [(go!"Snapshot", @! etcdserverpb._Maintenance_Snapshot_Handler)] ∧
+        ∀ sd ∈ sds, sd.ClientStreams' = true ∨ sd.ServerStreams' = true⌝))
 
 instance v3rpc.svcDescsOk_persistent : Persistent (v3rpc.svcDescsOk (GF := GF)) := by
   unfold v3rpc.svcDescsOk; infer_instance

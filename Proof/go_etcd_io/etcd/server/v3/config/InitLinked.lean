@@ -9,12 +9,12 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.config.Init
 public import Perennial.Proof.time.Link
 public import Proof.go_etcd_io.bbolt.InitLinked
-public import Proof.go_etcd_io.etcd.client.pkg.v3.transport.Init
+public import Proof.go_etcd_io.etcd.client.pkg.v3.transport.InitLinked
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.featuregate.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.InitLinked
 public import Proof.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.Init
-public import Proof.go_uber_org.zap.Init
+public import Proof.go_uber_org.zap.InitLinked
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section

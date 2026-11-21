@@ -456,6 +456,8 @@ noncomputable instance WAL_typed_pointsto :
     "start" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"start" l) v.start' dq ∗
     "decoder" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"decoder" l) v.decoder' dq ∗
     "readClose" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"readClose" l) v.readClose' dq ∗
+    "fallback" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fallback" l) v.fallback' dq ∗
+    "snapBefore" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"snapBefore" l) v.snapBefore' dq ∗
     "unsafeNoSync" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"unsafeNoSync" l) v.unsafeNoSync' dq ∗
     "mu" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"mu" l) v.mu' dq ∗
     "enti" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"enti" l) v.enti' dq ∗
@@ -600,6 +602,38 @@ noncomputable instance WAL_access_store_readClose (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
+noncomputable instance WAL_access_load_fallback (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.WAL) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fallback" l) v.fallback' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fallback" l) v.fallback' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance WAL_access_store_fallback (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.WAL) (fallback' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fallback" l) v.fallback' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fallback" l) fallback' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fallback' := fallback' } : go_etcd_io.etcd.server.v3.storage.wal.WAL) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance WAL_access_load_snapBefore (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.WAL) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"snapBefore" l) v.snapBefore' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"snapBefore" l) v.snapBefore' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance WAL_access_store_snapBefore (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.WAL) (snapBefore' : GoMap) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"snapBefore" l) v.snapBefore' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"snapBefore" l) snapBefore' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with snapBefore' := snapBefore' } : go_etcd_io.etcd.server.v3.storage.wal.WAL) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
 noncomputable instance WAL_access_load_unsafeNoSync (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.WAL) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"unsafeNoSync" l) v.unsafeNoSync' dq)
@@ -714,6 +748,63 @@ noncomputable instance WAL_access_store_fp (l : Loc) (v : go_etcd_io.etcd.server
 
 end def_
 end WAL
+
+namespace walReadRange
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
+
+noncomputable instance walReadRange_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.wal.walReadRange where
+  typedPointstoDef l v dq := iprop(
+    "names" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walReadRange go!"names" l) v.names' dq ∗
+    "first" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walReadRange go!"first" l) v.first' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance walReadRange_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.wal.walReadRange go_etcd_io.etcd.server.v3.storage.wal.walReadRange.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance walReadRange_access_load_names (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walReadRange) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walReadRange go!"names" l) v.names' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walReadRange go!"names" l) v.names' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance walReadRange_access_store_names (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walReadRange) (names' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walReadRange go!"names" l) v.names' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walReadRange go!"names" l) names' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with names' := names' } : go_etcd_io.etcd.server.v3.storage.wal.walReadRange) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance walReadRange_access_load_first (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walReadRange) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walReadRange go!"first" l) v.first' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walReadRange go!"first" l) v.first' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance walReadRange_access_store_first (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walReadRange) (first' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walReadRange go!"first" l) v.first' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walReadRange go!"first" l) first' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with first' := first' } : go_etcd_io.etcd.server.v3.storage.wal.walReadRange) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end walReadRange
 
 end go_etcd_io.etcd.server.v3.storage.wal
 end

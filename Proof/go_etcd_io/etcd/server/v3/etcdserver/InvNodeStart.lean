@@ -308,14 +308,15 @@ configuration point `a` between the restored base and commit, the bootstrap log 
 at `σ`, `cs` and `Applied = 0`, with the frame `Q`; the cluster, its receipts' bound, the id vacant,
 the durable state `S`, the configuration `m` at `a`). -/
 def rnBootPre (γr : SrvRaft) (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk)
-    (pv : List Peer) (ps : List w64) (ctxs : List (List w8)) (Q : GName → IProp GF) :
+    (pv : List Peer) (ps : List w64) (ctxs : List (List w8)) (Q : GName → IProp GF)
+    (SV : SnapshotM → IProp GF) :
     RNBoot → IProp GF
   | .fresh =>
     letI := srvStor (GF := GF) γr
     iprop(⌜rnStartCfg bv cv lok pv ps⌝ ∗
       restartStorage γr.cl (memStorIface bv.storage')
         ⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩
-        memSnapEmpty.Metadata'.ConfState' 0 Q ∗
+        memSnapEmpty.Metadata'.ConfState' 0 Q SV ∗
       nodeBoot γr.cl srvClusterN ps ctxs cv.ID' ∗ nodeVacant γr.cl cv.ID' ∗
       raftState γr.cl cv.ID' RaftState.init)
   | .restart σ cs S a m _ =>
@@ -324,7 +325,7 @@ def rnBootPre (γr : SrvRaft) (bv : bootstrappedRaft) (cv : Config) (lok : GoInt
         confStateIs cs m ∧ StorageHolds S σ ∧
         -- (auth-lease S4, 2026-11-16) outside the cluster's no-snapshot mode (`RestartNode`'s)
         ¬ clusterNoSnap γr.cl⌝ ∗
-      restartStorage γr.cl (memStorIface bv.storage') σ cs 0 Q ∗
+      restartStorage γr.cl (memStorIface bv.storage') σ cs 0 Q SV ∗
       isCluster γr.cl srvClusterN ∗ readyFits γr.cl srvClusterN ∗ nodeVacant γr.cl cv.ID' ∗
       raftState γr.cl cv.ID' S ∗ confAt γr.cl a m)
 

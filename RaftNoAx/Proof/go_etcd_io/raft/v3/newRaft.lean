@@ -990,7 +990,7 @@ theorem newRaft.wp_proof
     ihave Hcap2 := ownSliceCap_nil (V := Loc) (GF := GF)
     ihave Hob := outboxRel_nil (GF := GF)
     ihave #Hns0 := NsCap.off (GF := GF) (interface.ok si)
-    ihave #Hsc0 : qSrcs (GF := GF) sn ([] ++ []) $$ []
+    ihave #Hsc0 : qSrcs (GF := GF) sn ([] ++ []) (· ∈ ([] : List SnapTrip)) $$ []
     · rw [List.append_nil]; iapply qSrcs_nil
     let rv2 : raft :=
       { id' := cv'.ID', Term' := hs.Term', Vote' := hs.Vote', readStates' := slice.nil, raftLog' := l,
@@ -1093,7 +1093,7 @@ theorem newRaft.wp_proof
     -- vote: the state is the persisted `HardState`'s
     ipureintro
     refine ⟨⟨rfl, rfl⟩, rfl, ?_, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, ?_, rfl, rfl,
-      rfl, rfl, rfl, rfl, rfl, rfl, HpSDR, ?_, rfl⟩
+      rfl, rfl, rfl, rfl, rfl, rfl, HpSDR, ?_, rfl, rfl⟩
     · show (if s2.term = s2.term then s2.vote else W64 0) = hs.Vote'
       simp only [↓reduceIte]
       rfl
@@ -1423,7 +1423,7 @@ theorem newRaft.wp_proof
     ihave Hcap2 := ownSliceCap_nil (V := Loc) (GF := GF)
     ihave Hob := outboxRel_nil (GF := GF)
     ihave #Hns0 := NsCap.off (GF := GF) (interface.ok si)
-    ihave #Hsc0 : qSrcs (GF := GF) sn ([] ++ []) $$ []
+    ihave #Hsc0 : qSrcs (GF := GF) sn ([] ++ []) (· ∈ ([] : List SnapTrip)) $$ []
     · rw [List.append_nil]; iapply qSrcs_nil
     let rv2 : raft :=
       { id' := cv'.ID', Term' := hs.Term', Vote' := hs.Vote', readStates' := slice.nil, raftLog' := l,
@@ -1552,7 +1552,7 @@ theorem newRaft.wp_proof
     -- vote: the state is the persisted `HardState`'s
     ipureintro
     refine ⟨⟨rfl, rfl⟩, rfl, ?_, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, ?_, rfl, rfl,
-      rfl, rfl, rfl, rfl, rfl, rfl, HpSDR, ?_, rfl⟩
+      rfl, rfl, rfl, rfl, rfl, rfl, HpSDR, ?_, rfl, rfl⟩
     · show (if s2.term = s2.term then s2.vote else W64 0) = hs.Vote'
       simp only [↓reduceIte]
       rfl

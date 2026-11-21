@@ -24,13 +24,14 @@ variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.Assumptions]
-variable {Sio : IoSet} [FsStepSat (NoIoErr Sio)]
+variable {Sio : IoSet} [FsStepSat (NoIoErr Sio)] [FsStepSat (NoMapLockErr Sio)]
 
 theorem storage.storage.Save.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
     (wp_Save : go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.spec (Sio := Sio) P Mr) :
     storage.storage.Save.spec (Sio := Sio) P Mr := by
   intro p ss R jr r w dir γ q hp hs sl esL es sized Q
   wp_start as ⟨#Hover, Hrd, Hw⟩
+  icases Hw with ⟨#Harea, Hws, %Hq, %Hcd, Hw⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   iunfold storageOver at Hover
@@ -41,7 +42,8 @@ theorem storage.storage.Save.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
   wp_apply sync.RWMutex.wp_RLock $$ [$Hrd] as ⟨Hrl, >HP⟩
   iunfold storagePw at HP
   wp_auto
-  wp_apply (wp_Save R jr r w dir γ q hp hs sl esL es sized Q) $$ [$Hw] as %err Hpost
+  wp_apply (wp_Save R jr r w dir γ q hp hs sl esL es sized Q Hcd) $$ [$Harea $Hws $Hw] as %err Hpost
+  · iframe; ipureintro; exact Hq
   wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HP]
   · inext; iunfold storagePw; iexact HP
   iintro Hrd

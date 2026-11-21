@@ -550,19 +550,23 @@ theorem SnapStep.of_handle {id : w64} {m : MessageM} {s t s' : NState} {sv : Sna
 `SnapLogStep`. -/
 theorem SnapLogStep.of_handle {id : w64} {m : MessageM} {s t s' : NState} {sv : SnapshotM}
     {cl : CSLists} (H : HandleSnapResult id t m sv cl s') (Hl : t.logst = s.logst)
-    (Ht : t.term = m.Term') : SnapLogStep sv m s s' := by
+    (Ht : t.term = m.Term') (Ho : t.outbox = s.outbox := by rfl) : SnapLogStep sv m s s' := by
   unfold HandleSnapResult at H
   rcases H with ⟨-, rfl⟩ | ⟨-, -, -, rfl⟩ | ⟨Hgt, -, Hnm, rfl⟩
   · refine .inl ?_
     simp only [sendMsgs]
-    rw [Hl]; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+    rw [Hl]; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
   · refine .inl ?_
     simp only [sendMsgs]
-    rw [Hl]; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+    rw [Hl]; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
   · refine .inr ?_
     simp only [sendMsgs, logRestore, snapTrip]
     rw [Hl] at Hgt Hnm
-    refine ⟨Ht, ?_, ?_, ?_, Hgt, Hnm, ?_, ?_, ?_⟩ <;> first | rfl | trivial | rw [Hl]
+    refine ⟨Ht, ?_, ?_, ?_, Hgt, Hnm, ?_, ?_, ?_, ⟨cl, ?_, ?_, rfl⟩⟩ <;> try first | rfl | trivial | solve | rw [Hl]
+    intro q h ht
+    rcases List.mem_append.1 h with h | h
+    · exact Ho ▸ h
+    · cases List.mem_singleton.1 h; contradiction
 
 theorem followerStepResult_snap (c : CfgM) {scfg : CSLists} {c' : CfgM} {cl : List w8} (id : w64) (s : NState) (m : MessageM)
     (ents : List EntryM) (sv : SnapshotM) (dropped : Bool) (s' : NState) :

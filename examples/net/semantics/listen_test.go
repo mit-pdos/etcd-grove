@@ -5,6 +5,8 @@ package semantics
 import (
 	"errors"
 	"net"
+	"os"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -53,7 +55,8 @@ func TestListenTwice(t *testing.T) {
 
 // TestListenTakenByOtherProcess (D6). A listener of another process at the
 // address also makes Listen fail with EADDRINUSE. In the model, another node
-// (on the same host) holding the address does not force the failure:
+// holding the address does not force the failure (v3.4: the model has no
+// hosts; a node's Listen sees only its own listeners):
 // failure is always allowed, success there is more than Linux (sound).
 // Supports D6 (as an over-approximation).
 func TestListenTakenByOtherProcess(t *testing.T) {
@@ -65,6 +68,36 @@ func TestListenTakenByOtherProcess(t *testing.T) {
 			l.Close()
 		}
 		t.Fatalf("Listen at the child's %s: %v; want EADDRINUSE", addr, err)
+	}
+}
+
+// TestListenNotLocal (D6, D13, v3.4: "a sys failure (EADDRINUSE;
+// EADDRNOTAVAIL, an address that is not this machine's)"). The model has no
+// plan: any machine may Listen at any valid address (addrOk). Listen at
+// 192.0.2.1:7101 (TEST-NET-1, RFC 5737: assigned to no interface here) fails
+// at bind with EADDRNOTAVAIL (inet_bind: the address is not local and
+// ip_nonlocal_bind is 0 by default): an *OpError "listen" around an
+// *os.SyscallError "bind" around syscall.EADDRNOTAVAIL, which the model
+// allows as its sys failure (ListenStep's first disjunct; listenOk holds, so
+// no panic). Supports D6.
+func TestListenNotLocal(t *testing.T) {
+	t.Parallel()
+	const a = "192.0.2.1:7101"
+	ln, err := net.Listen("tcp", a)
+	if err == nil {
+		ln.Close()
+		t.Fatalf("Listen(%s) succeeded: is 192.0.2.1 an address of this machine? want EADDRNOTAVAIL", a)
+	}
+	var oe *net.OpError
+	if !errors.As(err, &oe) || oe.Op != "listen" || oe.Net != "tcp" {
+		t.Fatalf("Listen(%s): %v (%T); want an *OpError listen tcp", a, err, err)
+	}
+	var se *os.SyscallError
+	if !errors.As(oe.Err, &se) || se.Syscall != "bind" {
+		t.Fatalf("Listen(%s): Err %v (%T); want an *os.SyscallError bind", a, oe.Err, oe.Err)
+	}
+	if !errors.Is(err, syscall.EADDRNOTAVAIL) {
+		t.Fatalf("Listen(%s): %v; want EADDRNOTAVAIL", a, err)
 	}
 }
 

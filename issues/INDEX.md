@@ -4,7 +4,7 @@
 
 The bugs with a valid failing Go test (format: [README.md](README.md)); the findings without one are in [../nonissues/](../nonissues/INDEX.md).
 
-## Not reported (74)
+## Not reported (76)
 
 | Issue | Blocks proof | Upstream links |
 |---|---|---|
@@ -15,6 +15,7 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [auth: adding a user or role with a name longer than 32768 bytes makes every member exit](etcd-auth-useradd-long-name-fatal.md) | yes | etcd-io/etcd#10907 pr merged |
 | [etcdserver: a restarted member panics on a leader transfer to it while it applies the entries replayed from its WAL](etcd-compact-past-raft-applied.md) | yes | etcd-io/etcd#9079 issue closed; etcd-io/etcd#12134 pr merged; etcd-io/etcd#7470 issue closed; etcd-io/etcd#18825 pr merged; etcd-io/etcd#17098 issue closed |
 | [etcdserver: two membership changes while the leader's apply loop lags can lose an acknowledged write](etcd-leader-advance-before-applyconfchange.md) | yes | etcd-io/raft#80 issue open; etcd-io/raft#354 issue open |
+| [The etcd fork reports a current-term snapshot as failed during restart replay](etcd-merged-snapshot-replay-failure.md) | yes |  |
 | [etcdserver: a leader that steps down while saving a Ready can send a follower a snapshot of a term above the follower's term](etcd-merged-snapshot-stale-term.md) | yes | etcd-io/etcd#7470 issue closed; etcd-io/etcd#7513 pr merged; etcd-io/raft#47 pr open; etcd-io/raft#108 issue open |
 | [etcdserver: a member that catches up by a snapshot rejects writes with "database space exceeded" while its db is under its quota](etcd-quota-stale-backend-after-snapshot.md) | yes | etcd-io/etcd#20553 pr merged |
 | [rafthttp: a raft message the member rejects makes the peer handler panic and answer 500 instead of 403](etcd-rafthttp-pipeline-process-error-panic.md) | yes | etcd-io/etcd#10569 issue closed; etcd-io/etcd#17078 pr merged; etcd-io/etcd#3579 pr merged |
@@ -49,6 +50,7 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [bbolt: `Cursor.Prev` returns nil in the middle of a bucket after deletes in the same transaction](bbolt-cursor-prev-empty-leaf.md) | no | etcd-io/bbolt#734 pr merged; boltdb/bolt#450 issue closed |
 | [bbolt: `Get` panics on values committed together whose sizes add up to more than 2 GiB](bbolt-large-values-leaf-unreadable.md) | no | etcd-io/bbolt#931 issue closed; etcd-io/bbolt#182 issue closed |
 | [bbolt fork reinitializes a nonempty database when both meta pages are zero](bbolt-open-zero-meta-reinitializes-data.md) | no |  |
+| [The bbolt fork rejects a readable 256 MiB value](bbolt-put-refuses-readable-entry.md) | no |  |
 | [bbolt: on 32-bit platforms every transaction panics with "unaligned 64-bit atomic operation"](bbolt-txstats-unaligned-32bit.md) | no | etcd-io/bbolt#1300 pr merged; etcd-io/bbolt#577 issue closed |
 | [bbolt: a database restored from `Tx.WriteTo` loses both meta pages after two failed commits](bbolt-writeto-meta-parity.md) | no | etcd-io/bbolt#1311 issue open |
 | [server: the alarms gauge counts an alarm activated twice twice, and stays at 1 after it is disarmed](etcd-apply-alarm-gauge-reactivate.md) | no |  |
@@ -66,8 +68,8 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [mvcc: a physical compaction request hangs if the member installs a snapshot while its compaction waits behind another](etcd-restore-pending-compaction-unclosed.md) | no | etcd-io/etcd#11817 pr merged; etcd-io/etcd#10079 pr closed |
 | [mvcc: a member that crashes during a compaction at revision 0 restarts with compact revision -1, and the corruption check then alarms](etcd-restore-scheduled-compact-zero.md) | no | etcd-io/etcd#17780 issue closed |
 | [server: a require-leader stream's context returns a non-nil Err while its Done channel is still open](etcd-stream-interceptor-err-before-done.md) | no | etcd-io/etcd#12196 pr merged; golang/go#75533 issue closed |
-| [v3lock/v3election: with auth enabled, a waiting `Lock` fails with permission denied while another user is waiting for a lock](etcd-v3lock-watch-shared-stream-principal.md) | no |  |
 | [etcdserver: a follower killed while persisting a received snapshot cannot restart](etcd-wal-received-snapshot-save-crash-no-restart.md) | no | etcd-io/etcd#19095 pr merged; etcd-io/etcd#19674 issue closed |
+| [The etcd fork cannot restart from a snapshot in a WAL written with older segment names](etcd-wal-upgrade-legacy-segment-name.md) | no |  |
 | [clientv3: Watcher.Close can hang forever after the member refuses a watch](etcd-watch-close-hang-refused-create.md) | no | etcd-io/etcd#10131 issue closed; etcd-io/etcd#14296 pr merged |
 | [clientv3: after a reconnect, a watch from the current revision delivers an event committed before the watch](etcd-watch-current-resume-past-event.md) | no | etcd-io/etcd#15248 pr merged |
 | [watch: a PrevKv watch's first events can arrive without PrevKv when the key is written while the watch is created](etcd-watch-prevkv-before-created.md) | no | kubernetes/kubernetes#121285 issue closed; kubernetes/kubernetes#100112 issue closed; etcd-io/etcd#6120 issue closed |
@@ -95,7 +97,7 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [cache: the cache never becomes ready again after a compaction cancels its upstream watch](cache-ready-after-retry.md) | no | etcd-io/etcd#22614 issue open; etcd-io/etcd#22618 pr open; etcd-io/etcd#22408 pr open; etcd-io/etcd#21536 issue closed; etcd-io/etcd#20691 pr merged |
 | [Go: `x.(T)` and `==` fail on an interface value read through a `*I1` to `*I2` conversion](go-itab-reinterpret-assert.md) | no | golang/go#82470 issue open; golang/go#18595 issue closed; golang/go#26094 issue closed |
 
-## Reported by others (28)
+## Reported by others (29)
 
 | Issue | Blocks proof | Upstream links |
 |---|---|---|
@@ -123,6 +125,7 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [etcdserver: a member removed from the cluster crashes on the serializable reads it is still serving](etcd-read-after-backend-close-panic.md) | no | etcd-io/etcd#22189 issue open; etcd-io/etcd#22190 pr open; etcd-io/etcd#7322 issue closed; etcd-io/etcd#17223 issue closed; etcd-io/etcd#14256 issue closed |
 | [client/pkg/transport: NewTimeoutTransport never applies its read/write timeouts](etcd-timeout-transport-rw-timeouts-unused.md) | no | etcd-io/etcd#22638 issue open; etcd-io/etcd#22639 pr open |
 | [v3election/v3lock: with auth on, a waiting Campaign or Lock is authorized as another user](etcd-v3election-shared-watch-wrong-user.md) | no | etcd-io/etcd#17502 issue closed; etcd-io/etcd#14850 issue closed; etcd-io/etcd#17623 issue closed; etcd-io/etcd#17532 pr merged |
+| [v3lock/v3election: with auth enabled, a waiting `Lock` fails with permission denied while another user is waiting for a lock](etcd-v3lock-watch-shared-stream-principal.md) | no | etcd-io/etcd#17502 issue closed |
 | [mvcc: with more than 512 unsynced watchers, a compacted watcher is sent the compaction response again at every sync](etcd-watch-compacted-resent.md) | no | etcd-io/etcd#22294 issue open; etcd-io/etcd#22295 pr open; etcd-io/etcd#21174 pr closed; etcd-io/etcd#21189 pr closed |
 | [watch: a watch created with the ID of a canceled watch receives the canceled watch's queued events](etcd-watch-id-reuse-stale-events.md) | no | etcd-io/etcd#22673 issue open; etcd-io/etcd#22674 pr open; etcd-io/etcd#21880 pr open; etcd-io/etcd#21065 pr open |
 | [apiserver etcd3: the compactor panics when `compact_rev_key` disappears from etcd](k8s-apiserver-compactor-missing-key-panic.md) | no | kubernetes/kubernetes#139252 issue open; kubernetes/kubernetes#139254 pr open; kubernetes/kubernetes#68172 issue closed |

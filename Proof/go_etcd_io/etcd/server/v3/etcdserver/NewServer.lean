@@ -433,7 +433,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · iexact Hzlg
   wp_apply h5 as %cls -
   · iexact Hrc
-  wp_apply h4 as %sstats %Hssnn
+  wp_apply h4 as %sstats ⟨%Hssnn, #HssI⟩
   (try wp_auto)
   wp_apply h7 $$ [$nodeID] as %ids ⟨nodeID, -⟩
   wp_apply h6 as %lstats ⟨%Hlsnn, #Hlsi, Hlsf⟩
@@ -1114,7 +1114,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   wp_apply h37 as -
   · iframe Hcid
   (try wp_auto)
-  obtain ⟨Hrn1, Hrn5, Hrn6, Hrn7, Hrn8, Hrnν, Hrnss, Hrna0, Hrn10, Hrn11, Hrn12, Hrn13, Hrn14⟩ := Hrnames
+  obtain ⟨Hrn1, Hrn5, Hrn6, Hrn7, Hrn8, Hrnν, Hrnss, Hrna0, HrnSnapZero, Hrn10, Hrn11, Hrn12, Hrn13, Hrn14⟩ := Hrnames
   -- (2026-10-27) the cluster's kind, at the wrapper's names
   ihave #Hkind : srvClusterOk γrn.srv $$ []
   · ihave #Hsrl' := Hsrl
@@ -1180,7 +1180,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · iunfold srvProcOk
     iexists cfg.Logger', bc.cl', sstats, γrn
     rw [← Hid]
-    iframe stats memberID HNodeC cluster lg HstepI Hrc Hkind Hzlg
+    iframe stats memberID HNodeC cluster lg HstepI Hrc Hkind Hzlg HssI
     ipureintro
     exact ⟨by rw [Hrn5, Hrid, Hid], Hssnn, by rw [Hγn.1, Hrn1],
       by rw [Hrn1]; (first | (rw [Hid]; exact Hsloc) | (rw [← Hid]; exact Hsloc) | exact Hsloc)⟩
@@ -1215,7 +1215,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · iframe «$r0»
     simp only
     rw [Hid]
-    iframe Hnro Hss Hsdir HpU Hnet Hlsi Hlsf HrPool Hzlg
+    iframe Hnro Hss Hsdir HpU Hnet Hlsi Hlsf HrPool Hzlg HssI
     ipureintro; refine ⟨Hssnn, Hlsnn, ?_, Hdid, HLnd, Hturls⟩ <;> first | rfl | trivial
   icases Htres with (%Hterr | ⟨%Hterr, %c, %Hc, Htlive, Htoks, #HtrNet, #Htrr, -⟩)
   · -- the transport could not start: the error returned, the store and `b` closed
@@ -1457,7 +1457,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iframe
   -- the read names
   iunfold srvReadNamesFreshNK at Hrd
-  icases Hrd with ⟨Hap, Hcm, Hnot, Hlogs, Hpend, Hkhi⟩
+  icases Hrd with ⟨Hcursor, Hap, Hcm, Hnot, Hlogs, Hpend, Hkhi⟩
   icases hHalves _ _ $$ Hkhi with ⟨Hkhi1, Hkhi2⟩
   ihave #Hrlb := Hrlb0
   -- (R8) the writer's facts at the boot (`srvApi.writer_facts`): a floor of the store's log
@@ -1604,11 +1604,13 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iexact HM
   · iexact Hrtm
   -- (D17d) `run`'s snapshot contract, from the storage's snapshot token
-  ihave Hgap : srvBuildGap s γrn (W64 0) (W64 0) $$ [Hsnone]
+  ihave Hgap : srvBuildGap s γrn ρ.rd.cursor (W64 0) (W64 0) $$ [Hsnone Hcursor]
   · iunfold srvBuildGap
     rw [Hrn8, show γrn.node.reg = MemStorReg.memStorRegName (GF := GF) by rw [Hrn1]; rfl]
-    iapply rnSnapOnce_of_tok h85 _ γrn (srvRAddr s) bv.storage' γs Hrn7 $$ Hpkg Hrn [] Hsnone
-    rw [Hrn1]; iexact Hminv
+    ihave Honce := rnSnapOnce_of_tok h85 _ γrn (srvRAddr s) bv.storage' γs Hrn7 HrnSnapZero $$ Hpkg Hrn [] Hsnone [Hcursor]
+    · rw [Hrn1]; iExactEq Hminv; rfl
+    · iExactEq Hcursor; rfl
+    iExactEq Honce; rfl
   ihave #Hrn' := Hrn
   iunfold isRaftNode at Hrn'
   iNamedPrefix Hrn' "N"

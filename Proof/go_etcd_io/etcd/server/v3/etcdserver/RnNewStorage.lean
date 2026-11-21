@@ -37,7 +37,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **The storage methods' specs at the open WAL `h`'s instances** (the server's message model): what
 `rnNewStorageOk_holds` takes of the storage package (each a linked `wp_proof` of `storage/`). -/
 def walStorSpecs (h : WalH GF) : Prop :=
-  letI := h.ext; letI := h.semOk; letI := h.has; letI := h.W; letI := h.inj; haveI := h.sat
+  letI := h.ext; letI := h.semOk; letI := h.has; letI := h.W; letI := h.inj; haveI := h.sat; haveI := h.satL
   storage.storage.Save.spec (GF := GF) (Sio := h.Sio) walSrvP walSrvMr ∧
     storage.storage.SaveSnap.spec (GF := GF) (Sio := h.Sio) walSrvP walSrvMr ∧
     storage.storage.Sync.spec (GF := GF) (Sio := h.Sio) walSrvP walSrvMr ∧
@@ -54,7 +54,7 @@ theorem walSync_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (q : Qp) :
           (Val #()))
       {{ (err : GoInterface), RET #err; storage.walOpen h q ∗
           walStorRd (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #p) h }} := by
-  letI := h.ext; letI := h.semOk; letI := h.has; letI := h.W; letI := h.inj; haveI := h.sat
+  letI := h.ext; letI := h.semOk; letI := h.has; letI := h.W; letI := h.inj; haveI := h.sat; haveI := h.satL
   obtain ⟨-, -, hSync, -, -⟩ := hS
   iintro ⟨#Hpkg, #Hover⟩
   iintro !> %Φ ⟨Ho, Hrd⟩ HΦ
@@ -130,7 +130,7 @@ theorem walSave_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (sized : Bo
             walStorRd (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #p) h ∗
             AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗ ⌜WalSaveOk σ (cs.map EntryC.model)⌝ }>
               @ WalFs.walAuMask, ∅ <{ walRecs h (walSave σ hs (cs.map EntryC.model)) sized, COMM Q }>) }} := by
-  letI := h.ext; letI := h.semOk; letI := h.has; letI := h.W; letI := h.inj; haveI := h.sat
+  letI := h.ext; letI := h.semOk; letI := h.has; letI := h.W; letI := h.inj; haveI := h.sat; haveI := h.satL
   obtain ⟨hSave, -, -, -, -⟩ := hS
   iintro ⟨#Hpkg, #Hover⟩
   iintro !> %Φ ⟨Ho, Hrd, #Hhs, #Hsl, #Hb, %hc, HAU⟩ HΦ
@@ -169,6 +169,8 @@ theorem walSave_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (sized : Bo
       isplitr
       · ipureintro; exact Or.inl h.cov
       isplitr
+      · ipureintro; exact fun _ => ⟨h.fits, h.covP⟩
+      isplitr
       · iexact Hhs'
       isplitr
       · iexact Hes
@@ -199,6 +201,8 @@ theorem walSave_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (sized : Bo
     · iframe Hover Hrd Harea Hws Hsl
       isplitr
       · ipureintro; exact Or.inl h.cov
+      isplitr
+      · ipureintro; exact fun _ => ⟨h.fits, h.covP⟩
       isplitr
       · iexact Hhs'
       isplitr
@@ -246,7 +250,7 @@ theorem walSaveSnap_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (sized 
           walStorRd (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #p) h ∗
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ Q ∗
           ∃ i : Nat, walSnapRec h i m.model }} := by
-  letI := h.ext; letI := h.semOk; letI := h.has; letI := h.W; letI := h.inj; haveI := h.sat
+  letI := h.ext; letI := h.semOk; letI := h.has; letI := h.W; letI := h.inj; haveI := h.sat; haveI := h.satL
   obtain ⟨-, hSnap, -, -, -⟩ := hS
   iintro ⟨#Hpkg, #Hover⟩
   iintro !> %Φ ⟨Ho, Hrd, Hsn, #Hm, %hm1, %hm2, %hm3, HAU⟩ HΦ
@@ -271,6 +275,8 @@ theorem walSaveSnap_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (sized 
       rw [hm1.2.2]
     isplitr
     · ipureintro; exact Or.inl h.cov
+    isplitr
+    · ipureintro; exact fun _ => ⟨h.fits, h.covP⟩
     isplitr
     · ipureintro; exact hm2
     isplitr
@@ -316,7 +322,7 @@ theorem walRelease_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (q : Qp)
           walStorRd (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #p) h ∗
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smOpt mp dq' md ∗ Q ∗
           ⌜err = GoInterface.nil ∨ ¬ snap.dirReadOk ss⌝ }} := by
-  letI := h.ext; letI := h.semOk; letI := h.has; letI := h.W; letI := h.inj; haveI := h.sat
+  letI := h.ext; letI := h.semOk; letI := h.has; letI := h.W; letI := h.inj; haveI := h.sat; haveI := h.satL
   obtain ⟨-, -, -, -, hRel⟩ := hS
   have hau := walRecs_releaseAU h i m Q
   rw [hm] at hau
@@ -357,7 +363,7 @@ theorem walClose_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (sized : B
         (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) go!"Close" #p))
           (Val #()))
       {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ walFiles h.toWalA id cid σ sized }} := by
-  letI := h.ext; letI := h.semOk; letI := h.has; letI := h.W; letI := h.inj; haveI := h.sat
+  letI := h.ext; letI := h.semOk; letI := h.has; letI := h.W; letI := h.inj; haveI := h.sat; haveI := h.satL
   obtain ⟨-, -, -, hClose, -⟩ := hS
   iintro ⟨#Hpkg, #Hover⟩
   iintro !> %Φ ⟨Ho, Hr, #Hmd, Hpr, %hb⟩ HΦ

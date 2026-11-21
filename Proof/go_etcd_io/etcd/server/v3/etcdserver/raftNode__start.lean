@@ -235,7 +235,7 @@ theorem raftNode.start.wp_proof
         obtain ⟨HbA, HbPre, HbD, HbPos, Hb61, Hbwa⟩ := Hbs
         icases rnReadySnap_bootLen E γ _ _ _ _ _ _ _ $$ Henv Hdata with ⟨Hdata, %Hbb⟩
         iunfold rnReadySnap at Hdata
-        icases Hdata with ⟨%ceL, %esL, %msL, %hs, ⟨%S1, %r1, HrSn⟩, %HwSteps, #Hce, #Hcea, %HA', #HC, #HsvV, #Hes, #Hesa, #Hesz,
+        icases Hdata with ⟨%ceL, %esL, %msL, %hs, ⟨%S1, %r1, HrSn⟩, %HwSteps, #Hce, #Hcea, %HA', #HC, #HsvV, #Hinstalled, #Hes, #Hesa, #Hesz,
           #Hmsl, %HmsL, Hraw, ⟨%ss, #Hss, %Hr'⟩, #Hhs, #HhsC, %Hp', ⟨%rsL, #Hrs, #Hrsok⟩⟩
         subst HmsL
         obtain ⟨-, HLA, Hfit, Hlast⟩ := HA'
@@ -730,8 +730,10 @@ theorem raftNode.start.wp_proof
           iunfold isInitialized at Hinit
           iNamed Hinit
           icases ErrSnapOOD with ⟨%eood, #Heood⟩
-          ihave #HmsP : memStorInvP ms γ.γs (memStorJ γ.node.cl γ.key) $$ []
-          · rw [Hmsγ]; iunfold memStorInv at Hmsinv; iexact Hmsinv
+          iunfold srvAttachedMem at Hmsinv
+          icases Hmsinv with ⟨%pin, #Hpinloc, -, #Hmsinv⟩
+          ihave #HmsP : memStorInvP ms γ.γs (memStorJT γ.node.cl γ.key (srvStoredOrigin γ.node.cl E.γr.cursor pin γ.snap0)) $$ []
+          · rw [Hmsγ]; iunfold memStorInvT at Hmsinv; iexact Hmsinv
           ihave #HmsP' := HmsP
           iunfold memStorInvP at HmsP'
           icases HmsP' with ⟨#Hlock, -, -⟩
@@ -741,15 +743,19 @@ theorem raftNode.start.wp_proof
           · iExactEq Hend; rfl
           ihave Hlog := memStorLog_to γ.ms γ.γs _ _ _ $$ Hreg Hlog
           ihave Hend := memStorEnd_to γ.ms γ.γs _ $$ Hreg Hend
-          ihave #HBJ : (memStorJ γ.node.cl γ.key).B (uint.nat l.snap.Metadata'.Index') $$ []
-          · iapply memStorJ_B_off γ.node.cl γ.key _ Hrns
+          ihave #HBJ : (memStorJT γ.node.cl γ.key (srvStoredOrigin γ.node.cl E.γr.cursor pin γ.snap0)).B (uint.nat l.snap.Metadata'.Index') $$ []
+          · simp only [memStorJT]
+            iapply memStorJ_B_off γ.node.cl γ.key _ Hrns
             iExactEq Hgiven; rfl
-          ihave #HsvJ : (memStorJ γ.node.cl γ.key).SV l.snap $$ []
-          · unfold memStorJ; iexact HsvV
-          ihave #HDLJ : (memStorJ γ.node.cl γ.key).DL (uint.nat l.snap.Metadata'.Index') $$ []
-          · unfold memStorJ; iExactEq HcLbS; rfl
+          ihave #HsvJ : (memStorJT γ.node.cl γ.key (srvStoredOrigin γ.node.cl E.γr.cursor pin γ.snap0)).SV l.snap $$ []
+          · simp only [memStorJT]
+            iframe HsvV
+            iunfold srvStoredOrigin
+            iright; iright; iexists γ.nl; iframe Hpinloc Hinstalled
+          ihave #HDLJ : (memStorJT γ.node.cl γ.key (srvStoredOrigin γ.node.cl E.γr.cursor pin γ.snap0)).DL (uint.nat l.snap.Metadata'.Index') $$ []
+          · unfold memStorJT memStorJ; iExactEq HcLbS; rfl
           -- (2026-11-02, the lean merge) attached (mode `none`, durability stage I-5)
-          wp_apply wp_ApplySnapshot.1 ms γ.γs (memStorJ γ.node.cl γ.key) none k old c1 DFrac.discard
+          wp_apply wp_ApplySnapshot.1 ms γ.γs (memStorJT γ.node.cl γ.key (srvStoredOrigin γ.node.cl E.γr.cursor pin γ.snap0)) none k old c1 DFrac.discard
               l.snap eood Hk (by word) $$ [$Hrpkg $Hlog $Hend $Hslb0 $Heood]
             as ⟨-, #HcpS, #Hdum, HendS, -⟩
           · rw [memStorAt_none]

@@ -17,6 +17,7 @@ public import GeneratedProof.google_golang_org.protobuf.proto
 public import Perennial.GeneratedProof.math
 public import Perennial.GeneratedProof.reflect
 public import Perennial.GeneratedProof.sort
+public import Perennial.GeneratedProof.strconv
 public import Perennial.GeneratedProof.strings
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory

@@ -3,13 +3,14 @@
 user's decisions of 2026-11-20), restated, with the trust base of each printed in the build log
 (`#print axioms`). Lean-first (no Rocq counterpart).
 
-* **`k8s_all_Main`** (`MainLinked.lean`'s `k8s_all.wp_Main`): `Main(k, clients, ops, watchers, wops,
-  sched1, sched2)` does not panic: the two drivers' `MainPartition` triples side by side
+* **`k8s_all_Main`** (`MainLinked.lean`'s `k8s_all.wp_Main`): `Main(k1, clients, ops, watchers, wops,
+  sched1, k2, sched2)` does not panic: the two drivers' `MainPartition` triples side by side
   (`Spec/github_com/mit_pdos/etcd_grove/examples/k8s/all/Main.lean`), under the named hypothesis of
   `clock.RealClock.After`.
 * **`k8s_safe`** (`Adequacy.lean`'s `k8s_adequate`): the closed theorem. Every real execution of `n`
   steps of the package's initialization followed by `Main` with the two schedules built as slice
-  literals, from a fresh state with one thread, for every `1 ≤ k ≤ 1000` and every two schedules: no
+  literals, from a fresh state with one thread, for every `1 ≤ k₁ ≤ 1000` store members, every
+  `1 ≤ k₂ ≤ 600` compactor members (`notes/k8s-compactor-n-plan.md`) and every two schedules: no
   thread is stuck, no thread has ended in a panic (the store driver's porcupine check of its history
   against its model, each API server's check of its compactor), and the main thread's result, if any,
   is `#()`. Its premises are the union of the two retired partition theorems'
@@ -66,9 +67,9 @@ attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdF
 variable [go_gctx : GoGlobalContext]
 
 /-- **The one closed Kubernetes theorem** (`k8s_adequate`, see the file header and `Adequacy.lean`):
-the Kubernetes etcd3 store's partitioned workload on `k` members and Kubernetes' compactor under
-partitions on three more members, at once in one process, for every `1 ≤ k ≤ 1000` and every two
-schedules: in every real execution of `n` steps from a fresh state with one thread, no thread is
+the Kubernetes etcd3 store's partitioned workload on `k₁` members and Kubernetes' compactor under
+partitions on `k₂` more members, at once in one process, for every `1 ≤ k₁ ≤ 1000`, `1 ≤ k₂ ≤ 600` and
+every two schedules: in every real execution of `n` steps from a fresh state with one thread, no thread is
 stuck, none has ended in a panic, and the main thread's result, if any, is `#()`. -/
 theorem k8s_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.all.Assumptions]
@@ -81,14 +82,16 @@ theorem k8s_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hcec : ∀ hG : HeapGS .hasLC k8sGF, ContextErrsClient (GF := k8sGF) (hG := k8sHeapAt hG lctx))
     (Hafter : ∀ hG : HeapGS .hasLC k8sGF,
       EtcdGrove.clock.RealClock.After.spec (GF := k8sGF) (hG := k8sHeapAt hG lctx))
-    -- the store's cluster: `k` members
-    (k : Nat) (hk1 : 1 ≤ k) (hk : k ≤ 1000) (ids : List w64) (ps : List w64) (ctxs : List (List w8))
-    (boot : List LogEntry) (Hlen : ids.length = k) (Hbf : k8s_etcd3N.BootFacts ids ps ctxs boot)
-    -- the compactor's cluster: three members
-    (id₁ id₂ id₃ : w64) (ps' : List w64) (ctxs' : List (List w8)) (boot' : List LogEntry)
-    (Hbf' : cluster3.BootFacts id₁ id₂ id₃ ps' ctxs' boot')
+    -- the store's cluster: `k₁` members
+    (k₁ : Nat) (hk₁1 : 1 ≤ k₁) (hk₁ : k₁ ≤ 1000) (ids : List w64) (ps : List w64)
+    (ctxs : List (List w8)) (boot : List LogEntry) (Hlen : ids.length = k₁)
+    (Hbf : k8s_etcd3N.BootFacts ids ps ctxs boot)
+    -- the compactor's cluster: `k₂` members
+    (k₂ : Nat) (hk₂1 : 1 ≤ k₂) (hk₂ : k₂ ≤ 600) (ids' : List w64) (ps' : List w64)
+    (ctxs' : List (List w8)) (boot' : List LogEntry) (Hlen' : ids'.length = k₂)
+    (Hbf' : k8s_compactorN.BootFacts ids' ps' ctxs' boot')
     -- the process's every member: their ids' 16 low bits distinct (idutil's trusted model)
-    (_Hlow : ((ids ++ [id₁, id₂, id₃]).map (fun id => uint.Z id % 2 ^ 16)).Nodup)
+    (_Hlow : ((ids ++ ids').map (fun id => uint.Z id % 2 ^ 16)).Nodup)
     (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit)
     (Hdbo : storage.diskOk)
     -- the store's workload
@@ -99,29 +102,28 @@ theorem k8s_safe [lctx : GoLocalContext] [sem : go.Semantics]
     -- the two partition schedules
     (steps₁ steps₂ : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step)
     (Hsteps₁ : steps₁.length < 2 ^ 63) (Hsteps₂ : steps₂.length < 2 ^ 63)
-    (HNs : prometheus.namesUnclaimed (k8sProgram k clients ops watchers wops steps₁ steps₂) k8sNames)
-    (HAs : addrsUnclaimed (k8sProgram k clients ops watchers wops steps₁ steps₂) (k8sAddrs k))
-    (HDs : dataDirsAbsent (k8sProgram k clients ops watchers wops steps₁ steps₂) (k8sDirs k))
-    (HEnv : verifyEnvOff (k8sProgram k clients ops watchers wops steps₁ steps₂))
+    (HNs : prometheus.namesUnclaimed (k8sProgram k₁ clients ops watchers wops steps₁ k₂ steps₂) k8sNames)
+    (HAs : addrsUnclaimed (k8sProgram k₁ clients ops watchers wops steps₁ k₂ steps₂) (k8sAddrs k₁ k₂))
+    (HDs : dataDirsAbsent (k8sProgram k₁ clients ops watchers wops steps₁ k₂ steps₂) (k8sDirs k₁ k₂))
+    (HEnv : verifyEnvOff (k8sProgram k₁ clients ops watchers wops steps₁ k₂ steps₂))
     (n : Nat)
     (Hprem₁ : ∀ hG : HeapGS .hasLC k8sGF,
-      ⊢ k8s_etcd3N.premises (GF := k8sGF) (hG := k8sHeapAt hG lctx) k n ids ps ctxs boot)
+      ⊢ k8s_etcd3N.premises (GF := k8sGF) (hG := k8sHeapAt hG lctx) k₁ n ids ps ctxs boot)
     (Hprem₂ : ∀ hG : HeapGS .hasLC k8sGF,
-      ⊢ cluster3.premises (GF := k8sGF) (hG := k8sHeapAt hG lctx) k8s_compactor.clusterCfg n
-        id₁ id₂ id₃ ps' ctxs' boot')
+      ⊢ k8s_compactorN.premises (GF := k8sGF) (hG := k8sHeapAt hG lctx) k₂ n ids' ps' ctxs' boot')
     (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
-    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (k8sDirs k))
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (k8sDirs k₁ k₂))
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
-    (Hsteps' : RealNsteps n ([k8sProgram k clients ops watchers wops steps₁ steps₂],
+    (Hsteps' : RealNsteps n ([k8sProgram k₁ clients ops watchers wops steps₁ k₂ steps₂],
       ((σ, g) : CfgState)) κs (t2, σ2))
     (Hn : n + 2 ≤ 2 ^ 28) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  k8s_adequate Hctx Hcec Hafter k hk1 hk ids ps ctxs boot Hlen Hbf id₁ id₂ id₃ ps' ctxs' boot' Hbf'
-    Haf Hbuq Hrf Hdbo clients ops watchers wops Hc0 Hw0 Hc31 Hops Hwops Hmul steps₁ steps₂ Hsteps₁
+  k8s_adequate Hctx Hcec Hafter k₁ hk₁1 hk₁ ids ps ctxs boot Hlen Hbf k₂ hk₂1 (by omega) ids' ps'
+    ctxs' boot' Hlen' Hbf' Haf Hbuq Hrf Hdbo clients ops watchers wops Hc0 Hw0 Hc31 Hops Hwops Hmul steps₁ steps₂ Hsteps₁
     Hsteps₂ HNs HAs HDs HEnv n Hprem₁ Hprem₂ σ g Hfs HWal Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
 
 end adequacy

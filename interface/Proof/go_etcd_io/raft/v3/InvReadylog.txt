@@ -434,6 +434,8 @@ theorem SnpOk.appliedTo {g : NGhost} {ls : LogState} (i sz : w64) (H : SnpOk g l
 
 theorem logAcceptUnstable.proj_applied (ls : LogState) : (logAcceptUnstable ls).applied = ls.applied
 
+theorem logStableTo_ksn (ls : LogState) (id : entryID) : (logStableTo ls id).ksn = ls.ksn
+
 theorem logHanded.proj_prev (ls : LogState) : (logHanded ls).prev = ls.prev
 
 theorem logAcceptUnstable.proj_unpersisted (ls : LogState) : (logAcceptUnstable ls).unpersisted =

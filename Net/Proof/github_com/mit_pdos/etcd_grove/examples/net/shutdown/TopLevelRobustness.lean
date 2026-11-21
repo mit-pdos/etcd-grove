@@ -37,12 +37,13 @@ variable [GoGlobalContext] {GF : BundledGFunctors}
 /-- `shutdown_crash_robust.spec`
 (`Net/Spec/github_com/mit_pdos/etcd_grove/examples/net/shutdown/TopLevelRobustness.lean`). -/
 theorem shutdown_crash_robust : shutdown_crash_robust.spec := by
-  intro lctx sem package_sem field_sem _ σ0 g h Hhost Hplan pl Hwf Hpl Hconns bound
+  intro lctx sem package_sem field_sem _ σ0 g Hconns bound
   refine Robustness.Robust.of_all fun hf n κs c Hsteps _ i tp σ hi => ?_
   have hfresh : ∀ σ', (∃ e, (e, σ') ∈ system σ0) → NodeStart lctx σ' := fun σ' ⟨e, he⟩ =>
     ⟨(hf (e, σ') he).1, (hf (e, σ') he).2.1, (hf (e, σ') he).2.2⟩
   exact (shutdown_crash_safety
-      σ0 g h (hfresh σ0 ⟨boot_node, by simp [system]⟩) Hhost Hplan pl Hwf Hpl Hconns n κs c Hsteps i tp σ hi).2
+      σ0 g (hfresh σ0 ⟨boot_node, by simp [system]⟩)
+      Hconns n κs c Hsteps i tp σ hi).2
 
 end adequacy
 end github_com.mit_pdos.etcd_grove.examples.net.shutdown

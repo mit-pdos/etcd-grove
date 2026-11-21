@@ -14,8 +14,6 @@
 roots \bclient\.(etcd_lease_served|etcd_kv_lease_served|client_lessor_isEtcdLease_served|client_new_isEtcdLeaseClient_served)$
 axiom NewLoggableTxnRequest.wp_proof
 axiom RangeRequest.String.wp_proof
-axiom backend.ValidateCalledInsideApply.wp_proof
-axiom backend.ValidateCalledOutSideApply.wp_proof
 axiom context.WithValue.wp_proof
 axiom envVerifyOffTok
 axiom errors.IsCtxErr.wp_proof
@@ -67,13 +65,13 @@ axiom sort.Stable.wp_proof
 axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
 axiom storage.NewBackendQuota.wp_proof
+axiom strconv.FormatBool.wp_proof
 axiom strings.ToLower.wp_proof
 axiom time.Duration.Seconds.wp_proof
-axiom trace.SpanFromContext.wp_proof
+axiom time.Time.IsZero.wp_proof
+axiom time.Time.Unix.wp_proof
 axiom traceutil.Trace.LogWithStepThreshold.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
-axiom txn.RangeSecObserve.wp_proof
-axiom verify.Verify.wp_proof
 axiom zap.Logger.Fatal.wp_proof
 axiom zap.Logger.Panic.wp_proof
 axiom zap.Logger.check.wp_proof

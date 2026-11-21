@@ -12,6 +12,7 @@ both modes since step 5), and `StartNode.spec_of_gatedSpec`, the untraced instan
 completion witness from `setupNode`. Raft-internal. -/
 module
 
+public import RaftTla.Proof.go_etcd_io.raft.v3.SnapshotHistory
 public import RaftTla.Spec.go_etcd_io.raft.v3.StartNode
 public import RaftTla.Proof.go_etcd_io.raft.v3.TracedApiDraft
 import all RaftTla.Proof.go_etcd_io.raft.v3.TracedApiDraft
@@ -433,8 +434,12 @@ private theorem wp_StartNode_impl
   imod saved_pred_alloc Cert DFrac.discard trivial
     with ⟨%gsv, #Hsv⟩
   imod saved_pred_alloc (raftSnapCertD (GF := GF) γ.raft) DFrac.discard trivial with ⟨%gk, #Hgk⟩
+  imod snapHistory_alloc (GF := GF) with ⟨%history, Hclock⟩
+  imod installHistory_alloc (GF := GF) with ⟨%installs, Hinst⟩
+  ihave Hhistory : iprop(snapHistoryOwn history 0 0 ∗ installHistoryOwn installs 0 []) $$ [Hclock Hinst]
+  · iframe Hclock Hinst
   let sn : StorNames :=
-    { ga := ga, gg := gg, gsv := gsv, gd := gdd, gk := gk, sz := γ.raft.maxData.isSome }
+    { ga := ga, gg := gg, gsv := gsv, gd := gdd, gk := gk, history := history, installs := installs, sz := γ.raft.maxData.isSome }
   let σv : StorState := { prev := entryID.mk (W64 0) (W64 0), ents := [], pend := [] }
   -- (2026-11-02, stage II (p)) no attach record: its terms are vacuously the committed log's
   icases (entails_wand (persistent_entails_left (ownRaftGhost_cmt γ.raft cv.ID' _))) $$ Hg
@@ -475,9 +480,9 @@ private theorem wp_StartNode_impl
     iprop(Rb ∗ storAuths sn σv) iprop(∃ K, storKeyNames K sn ∗ F K) peers dq pv vs ctxs
     γ.raft.reBoot H1 H2 H3 H4 H5 H6 H7 H8 H9 Hmx rfl Happ rfl rfl rfl rfl rfl rfl ⟨rfl, rfl, rfl⟩ Hv Hvo
     Hl Hln Hal rfl rfl Hvs Hne Hnd Hnz (by omega) Hid Hcfg rfl Hbl
-    (fun h => ⟨(Htrp h).1.1, (Htrp h).1.2, (Htrp h).2.1⟩) $$ [Hc HRb HA Hpeers Hg Hcs]
+    (fun h => ⟨(Htrp h).1.1, (Htrp h).1.2, (Htrp h).2.1⟩) $$ [Hc HRb HA Hpeers Hg Hcs Hhistory]
     as %np ⟨⟨%K, #HKn, HF⟩, %nv, %rn, Hnp, %Hnvrn, Hchans, Hrn, Hpeers, #HbD⟩
-  · iframe Hc Hlg Hpeers Hctx Hmarsh Hcb Hlink Hcs
+  · iframe Hc Hlg Hpeers Hctx Hmarsh Hcb Hlink Hcs Hhistory
     isplitl [HRb HA]
     · iframe HRb HA
     isplitr
@@ -503,8 +508,8 @@ private theorem wp_StartNode_impl
       iframe Hhs Hcs
       -- the attach: a fresh key recording raft's storage names
       imod dghostVar_alloc (GF := GF)
-        ((sn.ga, sn.gg, sn.gsv, sn.gd, sn.gk, sn.a0, sn.c0, sn.ct, sn.sz) :
-          Nat × Nat × Nat × Nat × Nat × Nat × Nat × List (Nat × w64) × Bool) with ⟨%K, HK⟩
+        ((sn.ga, sn.gg, sn.gsv, sn.gd, sn.gk, sn.a0, sn.c0, sn.ct, sn.sz, sn.history, sn.installs) :
+          Nat × Nat × Nat × Nat × Nat × Nat × Nat × List (Nat × w64) × Bool × Nat × Nat) with ⟨%K, HK⟩
       imod dghostVar_persist K 1 _ $$ HK with #HK
       ihave #HKn : storKeyNames (GF := GF) K sn $$ []
       · unfold storKeyNames; iexact HK

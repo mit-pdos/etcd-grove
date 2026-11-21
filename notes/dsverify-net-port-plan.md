@@ -130,8 +130,15 @@ a change to the trusted semantics adds its Go example in `examples/net/semantics
   are `runs/<run>/home/work/<proj>` at tag `final` on the experiment machines (paxos-net-3 `dbb8647`,
   craq-net-2 `ac82100`, epaxos-net-1 `0e71508`, epaxos-net-2 `eeb7fa7`, gryff-net-2 `c03461d`,
   quepaxa-net-2 `7a689be`, rabia-net-1 `4fc8d6b`, vsr-net-1 `fa054c9`), not reachable from this
-  machine (`fk-lean1`/`fk-lean2` do not resolve; no ssh configuration). Phase 6 needs them copied here
-  (the user's action).
+  machine (`fk-lean1`/`fk-lean2` do not resolve; no ssh configuration). **Resolved 2026-11-20:** the lab
+  now keeps one current proof per system in `examples/<system>/` (dsverify-lab `master`, `9cbb866`:
+  `goal/`, `proof/` at the run's tag `final`, `fork/`, `harness/`, `src/`, `SOURCE.md`; its
+  `examples/README.md` lists the runs and axioms): paxos (`paxos-net-3`), craq (`craq-net-2`), vr
+  (`vsr-net-1`), rabia (`rabia-net-2`), epaxos (`epaxos-net-2`), quepaxa (`quepaxa-net-2`), gryff
+  (`gryff-net-2`), swiftpaxos (`swift-net-1`), all on Perennial `4c8617a9e`, each with its own copy of
+  the harness it was seeded with (the lab's "merging the harness copies into one shared library comes
+  later": the port is that merge). They must never be visible to a lab run (its "Never in a run's
+  view"); etcd-grove is never mounted in a run, so copies here are fine.
 - *Spec facts:* the lab's exported specs do not expose "a `Dial` succeeds only with an open listener"
   or "a read error only after the bytes are drained" (`Specs.lean:1702-1706`, `:1829-1835`); the
   visible kit files use only `addrProto`, `addrTok`, `addrUnset` (and the `G` variants) of the net
@@ -503,10 +510,12 @@ Each model a patch (Q1), dsverify's tests kept as differential tests against the
   user's decision, 2026-11-19, in place of the lab's `SafeDist`), proved through `robust_of_kitBoot`
   or `robust_of_kitProto`; the lab's `driver_dist_safe`, goal template and checks follow (the lab's
   change).
-- The kits' Go (the forks at their pins) and proofs copied into a part `Dsverify/` (modules
-  `Dsverify.*`, nothing outside it imports it), ported by editing (Q5), in order of transport:
-  paxos-net-3 (raw TCP), vsr-net-1 (JSON), rabia-net-1, epaxos-net-1/2, gryff-net-2 (bufio, net/rpc
-  master), craq-net-2 (net/rpc over http), quepaxa-net-2 (gRPC); each `goal` restated as `KitDeploy … → Robust [] …`,
+- The kits' Go (the forks at their pins) and proofs, from the lab's `examples/<system>/` (above),
+  copied into a part `Dsverify/` (modules `Dsverify.*`, nothing outside it imports it), with the lab's
+  harness pieces they share (`clients`, `recorder`, `check`, `models`, `driver`, porcupine's axiom)
+  merged into one copy, ported by editing (Q5), in order of transport: paxos (raw TCP), vr (JSON),
+  rabia (bufio), epaxos and gryff (bufio, net/rpc master), craq (net/rpc over http), swiftpaxos
+  (net/rpc, gob, sha256), quepaxa (gRPC); each `goal` restated as `KitDeploy … → Robust [] …`,
   `#print axioms` checked, a TCB collection per kit.
 - The lab's rig traces of the kits checked with this repository's certified conformance checker
   (`examples/net/conform`).

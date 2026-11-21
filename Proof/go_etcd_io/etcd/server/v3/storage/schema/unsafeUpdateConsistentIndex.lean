@@ -56,6 +56,7 @@ theorem schema.unsafeUpdateConsistentIndex.wp_proof
       [index tx HTM] as ⟨index, tx, HTM⟩
     · isplitl [index tx HTM]
       · iframe
+      ileft
       iintro ⟨index, tx, HTM⟩
       wp_auto
       wp_apply_core (hR tx ⊤ TM TM) $$ [] [HTM index tx «$res0» «$res1»]
@@ -74,7 +75,7 @@ theorem schema.unsafeUpdateConsistentIndex.wp_proof
         (try wp_auto)
         wp_apply (wp_mapInsert (K := GoString) (V := GoInterface) go.string mref _ _ _) $$ [$Hm] as Hm
         (try wp_auto)
-        iexists #mref
+        iexists mref
         iframe
         ipureintro
         simp
@@ -95,7 +96,7 @@ theorem schema.unsafeUpdateConsistentIndex.wp_proof
         (try wp_auto)
         wp_apply (wp_mapInsert (K := GoString) (V := GoInterface) go.string mref _ _ _) $$ [$Hm] as Hm
         (try wp_auto)
-        iexists #mref
+        iexists mref
         iframe
         ipureintro
         have := Hmono rfl hidx

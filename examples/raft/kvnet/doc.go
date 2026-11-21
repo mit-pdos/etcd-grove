@@ -11,9 +11,11 @@
 //
 // What changes:
 //
-//   - A replica is a process (RunNode), started with its id, its directory, every replica's
-//     address and the cluster's options (NodeConfig, NodeArgs). An incarnation is a process: it
-//     never stops itself; it ends when the process is killed, or its machine loses power.
+//   - A replica is a process (RunNode), started with its id, every replica's address (one
+//     comma-separated string, replica i at the i-th), its directory and the cluster's options, all
+//     scalars and strings (the top-level theorem's programs: notes/kvnet-robust-goal.md). An
+//     incarnation is a process: it never stops itself; it ends when the process is killed, or its
+//     machine loses power. A failed Listen is retried, never a panic.
 //   - Messages go over TCP (Transport): one connection per peer, dialed when needed, one frame
 //     per message (a length, then the message encoded by hand, putMsg: no proto.Marshal); a
 //     message that cannot be written is dropped and reported to raft (ReportUnreachable,
@@ -23,7 +25,8 @@
 //     are the test environment's (examples/lib/robust).
 //   - Clients are other processes: a request is one frame on a connection of its own, answered by
 //     one frame (ReqPropose, ReqRead, ReqConf, ReqDisrupt, ReqStatus). The clients choose the
-//     operations' ids and the reads' sequence numbers, and never reuse one.
+//     operations' ids and the reads' sequence numbers, and never reuse one. The checking client,
+//     the test's driver and the theorem's, is package kvcheck.
 //
 // The faults the test makes (package driver, over the harness examples/lib/robust), all from
 // outside the program: every replica on a machine of its own (a network namespace), the network

@@ -96,7 +96,9 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.encodeV0
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.encodeWEvents
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.encodeWith
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errOut
+public import Proof.errors.AsNoMatch
 public import Proof.k8s_io.apimachinery.pkg.api.errors.IsTooManyRequests
+public import Proof.k8s_io.apimachinery.pkg.api.errors.reasonAndCodeForError
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Apply
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Gen
@@ -460,9 +462,13 @@ theorem storage.StorageError.wp_Unwrap :
     EtcdGrove.storage.StorageError.Unwrap.spec (GF := GF) (hG := hG) :=
   EtcdGrove.storage.StorageError.Unwrap.wp_proof
 
+theorem errors.wp_AsNoMatch :
+    EtcdGrove.errors.AsNoMatch.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.errors.AsNoMatch.wp_proof
+
 theorem apierrors.wp_SuggestsClientDelay :
     EtcdGrove.apierrors.SuggestsClientDelay.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apierrors.SuggestsClientDelay.wp_proof
+  EtcdGrove.apierrors.SuggestsClientDelay.wp_proof errors.wp_AsNoMatch
 
 theorem wp_storeEqual :
     EtcdGrove.k8s_etcd3.storeEqual.spec (GF := GF) (hG := hG) :=
@@ -732,9 +738,13 @@ theorem k8s_correctness.Model.wp_validateList :
     EtcdGrove.k8s_correctness.Model.validateList.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_correctness.Model.validateList.wp_proof reflect.DeepEqual.wp_proof_k8s k8s_correctness.wp_ListReadConsistency k8s_correctness.Model.wp_equalListResponse k8s_correctness.Model.wp_listResponseRV k8s.storage.wp_IsTooLargeResourceVersion apierrors.wp_SuggestsClientDelay storage.StorageError.wp_Unwrap
 
+theorem apierrors.wp_reasonAndCodeForError :
+    EtcdGrove.apierrors.reasonAndCodeForError.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apierrors.reasonAndCodeForError.wp_proof errors.wp_AsNoMatch
+
 theorem apierrors.wp_IsTooManyRequests :
     EtcdGrove.apierrors.IsTooManyRequests.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apierrors.IsTooManyRequests.wp_proof
+  EtcdGrove.apierrors.IsTooManyRequests.wp_proof apierrors.wp_reasonAndCodeForError
 
 theorem k8s_correctness.Model.wp_Step :
     EtcdGrove.k8s_correctness.Model.Step.spec (GF := GF) (hG := hG) :=

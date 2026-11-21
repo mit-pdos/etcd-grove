@@ -27,12 +27,12 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 abbrev retryKVClient.Compact.spec : Prop :=
   ∀ (rkv conn : Loc) (addr : List GoString)
     (Spec : GrpcSpecMd (GF := GF) pbCompactionRequest pbCompactionResponse)
-    (Q : CompactRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (Q : CompactRespM → IProp GF) (ctx : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
     (inp : Loc) (req : etcdserverpb.CompactionRequest) (opts : GoSlice) (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryKVAt rkv conn ∗
       isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.KV/Compact" Spec ∗
-      reqPre conn go!"/etcdserverpb.KV/Compact" addr vs
-        (attemptPre conn (GoInterface.ok ctx) Spec ⟨req.Revision', req.Physical'⟩ Q) ∗
+      metadata.outMD ctx om ∗ reqPre conn go!"/etcdserverpb.KV/Compact" addr vs
+        (attemptPre conn om Spec ⟨req.Revision', req.Physical'⟩ Q) ∗
       ctxOk ctx cd ∗ inp ↦ req ∗ opts ↦*□ vs ∗ callOptsOk vs ∗
       ⌜req.unknownFields' = slice.nil⌝ }}
     (App (App (App (Val (rkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryKVClient.ty @!!

@@ -55,7 +55,7 @@ theorem bvalData_of_plain {P : Pages} {hwm : Nat} {v : List w8} {S : List Nat}
     (hS : bvalS P hwm v S)
     (hpl : ∀ bpg, bktLeafPg P v bpg → ∀ j < pageCount bpg,
       leafFlags bpg j % 2 = 0 ∧ 0 < leafKsize bpg j ∧
-        leafKsize bpg j + leafVsize bpg j ≤ bboltEntryMax) :
+        entryBytesFit (leafKsize bpg j) (leafVsize bpg j)) :
     bvalData P v (bktEntries P v) := by
   refine ⟨fun h0 => ⟨?_, hpl _ (Or.inl ⟨h0, rfl⟩)⟩, fun h0 => ⟨?_, ?_⟩⟩
   · unfold bktEntries bktLeaves; rw [if_pos h0, List.flatMap_singleton]
@@ -233,7 +233,7 @@ theorem oldN {X : WX} {C : CommitSt} (hok : wOKR X) (hreach : liveReach X) (hcok
   -- the child's leaves are plain
   have hpl : ∀ bpg, bktLeafPg X.v.pages v0 bpg → ∀ j < pageCount bpg,
       leafFlags bpg j % 2 = 0 ∧ 0 < leafKsize bpg j ∧
-        leafKsize bpg j + leafVsize bpg j ≤ bboltEntryMax := by
+        entryBytesFit (leafKsize bpg j) (leafVsize bpg j) := by
     intro bpg hbpg j hj
     rcases hbpg with ⟨hz, rfl⟩ | ⟨hz, id, ho, hp, hfl⟩
     · have hC0 : Cc.ib.root' = W64 0 := by

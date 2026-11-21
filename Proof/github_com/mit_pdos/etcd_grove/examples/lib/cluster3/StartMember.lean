@@ -189,7 +189,7 @@ theorem StartMember.wp_proof
   imod ownSlice_persist _ _ _ $$ Hgsl with #Hgsl
   ihave #Hwpi := srvServeFacts_interval srv E cfg $$ Hsf
   wp_apply (wp_Server Hms srv C _ _ [kv] Hbuq (by omega)) $$ [Hlg3 Hbemu Hgo]
-    as %gs ⟨%q, %p, %pw, %pa, %ql, %pl, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %cid, %mid,
+    as %gs ⟨%q, %p, %pw, %pa, %ql, %pl, %pc, %pm, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %cid, %mid,
       %lcid, %lmid, %R,
       Hgsn, %Hregs, -, #Hql, #Hlat, #Hq, #Hkvs, #Hws, %HR, #Hil, #Him, #Hiu, #Hims, #His, Hlg4,
       Hbemu2, Hgo2⟩
@@ -199,6 +199,8 @@ theorem StartMember.wp_proof
     ipureintro; intro v hv
     simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hv
     subst hv; exact Hkv
+  -- the registrations' old form (`serverRegsOk`, exact since auth-mediation M1)
+  replace Hregs := v3rpc.serverRegsOk_sub Hregs
   haveI := Hms
   -- `go holdToken()`: the forked goroutine never returns (its token, which the gRPC runs needed
   -- until per-type stage B3, is unused: the runs borrow from the server's run pools)

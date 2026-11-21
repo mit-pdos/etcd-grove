@@ -16,8 +16,6 @@ axiom Client.streamClientInterceptor.wp_proof
 axiom NewCluster.wp_proof
 axiom NewMaintenance.wp_proof
 axiom WithRequireLeader.wp_proof
-axiom apierrors.HasStatusCause.wp_proof
-axiom apierrors.IsTimeout.wp_proof
 axiom apierrors.NewInternalError.wp_proof
 axiom audit.GetAuditIDTruncated.wp_proof
 axiom context.WithCancelTodo.wp_proof
@@ -28,7 +26,7 @@ axiom credentials.perRPCCredential.UpdateAuthToken.wp_proof
 axiom encoding.json.Marshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom envVerifyOffTok
-axiom errors.AsLeafTy.wp_proof
+axiom errors.AsNoMatch.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom etcdResolverOwn
 axiom etcdResolver_grpc

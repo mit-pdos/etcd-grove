@@ -33,13 +33,16 @@ panics on a nil context; until G2, 2026-10-30, the spec took any `ctx`, a latent
 base, `notes/audit.md`), returns the key of its outgoing metadata (`streamKeyOf`):
 `FromOutgoingContext(ctx)` then `fmt.Sprintf("%+v", ...)` of the map, `""` with none. Since premise
 fixes 8 (approved by etcd-grove-81) `watchCtx` carries `metadata.outgoingCtxOkC`: `Value(mdOutgoingKey{})`
-returns one value on every call, and a stored `rawMD` is `builtRawMD` (no two keys equal up to case),
-which were this spec's margins (`notes/axiom-review/g2-streamkey.md`). -/
+returns one value on every call, and a stored `rawMD` is one grpc made (no two keys equal up to case),
+which were this spec's margins (`notes/axiom-review/g2-streamkey.md`). (errdesc stage 1, 2026-11-20)
+The key is of the metadata `md` the precondition relates to the context (`metadata.outMD ctx md`); until
+then of the pure `metadata.outgoingOf ctx`. -/
 abbrev streamKeyFromCtx.spec : Prop :=
-  ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  {{ EtcdGrove.context.watchCtx ctx cd }}
+  ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (md : Option (GoString → Option (List GoString))),
+  {{ EtcdGrove.context.watchCtx ctx cd ∗ metadata.outMD ctx md }}
     (App (Val (@! go_etcd_io.etcd.client.v3.streamKeyFromCtx)) (Val #(GoInterface.ok ctx)))
-  {{ RET #(streamKeyOf (metadata.outgoingOf (GoInterface.ok ctx))); True }}
+  {{ RET #(streamKeyOf md); True }}
 
 end spec
 

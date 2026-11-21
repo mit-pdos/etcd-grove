@@ -44,7 +44,10 @@ from `n` on, auth enabled, a token in the context and every principal bound to i
 from `AuthInfoFromCtx`: the off store's request side (`isReqAuth`, of `NewAuthStore`'s axiom) does
 not say there is none (a follow-up of D22: discharging `NewAuthStore`'s axiom by proof would give "no
 error with auth off" without new trust; decided by etcd-grove-81, 2026-11-14). `IsAdminPermitted(nil)`'s clause (`srvAdminNilOk`) is not a premise:
-`srvAuthAt` gives it (`srvAdminNilOk_of_srvAuthAt`). -/
+`srvAuthAt` gives it (`srvAdminNilOk_of_srvAuthAt`). The error is `nil` or one of the auth package's
+error variables (`authErrVarIs`: `AuthInfoFromCtx`'s or `IsAdminPermitted`'s; with auth off
+`IsAdminPermitted`'s is `nil`), so its message is one of `auth.authErrMsgs` (auth-mediation M2,
+2026-11-20, decided by etcd-grove-03: `PromoteMember`'s metric label needs it valid UTF-8). -/
 abbrev EtcdServer.checkMembershipOperationPermission.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (tok : Option GoString)
@@ -55,7 +58,7 @@ abbrev EtcdServer.checkMembershipOperationPermission.spec : Prop :=
       E.RD }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!!
       go!"checkMembershipOperationPermission")) (Val #(GoInterface.ok ctx)))
-  {{ (err : GoInterface), RET #err; E.RD ∗ adminOutC s E.authMode n tok err }}
+  {{ (err : GoInterface), RET #err; E.RD ∗ adminOutC s E.authMode n tok err ∗ authErrVarIs err }}
 
 end spec
 

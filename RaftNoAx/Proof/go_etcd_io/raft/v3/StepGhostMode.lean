@@ -278,6 +278,164 @@ theorem GMode.StepOut.voteLe {md : GMode} {c : CfgM} {id : w64} {m : MessageM}
     obtain ⟨g', -, -, B, recv, H⟩ := H
     exact StepR.voteLe H
 
+/-- A queued snapshot either survived the step or was stamped after the initial
+term, at an index committed by the end of the step. -/
+def SnapQueueStep (s s' : PState) : Prop :=
+  ∀ m ∈ s'.outbox, m.ty = .snap → m ∈ s.outbox ∨
+    (uint.Z s.term ≤ uint.Z m.term ∧ uint.Z m.index ≤ uint.Z s'.commit)
+
+theorem SnapQueueStep.trans {a b c : PState} (hab : SnapQueueStep a b)
+    (hbc : SnapQueueStep b c) (ht : uint.Z a.term ≤ uint.Z b.term)
+    (hc : uint.Z b.commit ≤ uint.Z c.commit) : SnapQueueStep a c := by
+  intro m hm hs
+  rcases hbc m hm hs with hm | ⟨ht', hi⟩
+  · rcases hab m hm hs with hm | ⟨ht', hi⟩
+    · exact .inl hm
+    · exact .inr ⟨ht', Int.le_trans hi hc⟩
+  · exact .inr ⟨Int.le_trans ht ht', hi⟩
+
+theorem SnapQueueStep.congr {a b a' b' : PState} (h : SnapQueueStep a b)
+    (ha : a'.outbox = a.outbox) (ht : a'.term = a.term)
+    (hb : b'.outbox = b.outbox) (hc : b'.commit = b.commit) : SnapQueueStep a' b' := by
+  unfold SnapQueueStep at *
+  rw [ha, ht, hb, hc]; exact h
+
+private theorem preadRespondAll_snap_mem (id : w64) (s : PState) (qs : List ReadReq)
+    (m : Msg) (ht : m.ty = .snap) (hm : m ∈ (preadRespondAll id s qs).outbox) :
+    m ∈ s.outbox := by
+  induction qs generalizing s with
+  | nil => exact hm
+  | cons q qs ih =>
+    have h := ih (preadRespond id s q) hm
+    unfold preadRespond at h
+    split at h
+    · split at h <;> exact h
+    · simp only [psendMsgs_outbox, List.mem_append, List.mem_singleton] at h
+      rcases h with h | rfl
+      · exact h
+      · contradiction
+
+private theorem ReplOk.snap_bounds {id : w64} {s : PState} {m : Msg}
+    (hr : ReplOk id s m) (ht : m.ty = .snap) :
+    uint.Z s.term ≤ uint.Z m.term ∧ uint.Z m.index ≤ uint.Z s.commit := by
+  rcases hr with ha | hs
+  · have h := ha.1; rw [ht] at h; contradiction
+  · exact ⟨Int.le_of_eq (congrArg (fun t : w64 => uint.Z t) hs.2.2.1.symm), hs.2.2.2.2.2.1⟩
+
+theorem StepC.snapQueue {c : CfgM} {id : w64} {B : Int} {s s' : PState}
+    {recv : List Msg} (h : StepC c id B s recv s') : SnapQueueStep s s' := by
+  induction h with
+  | trans _ _ _ _ _ h₁ h₂ ih₁ ih₂ => exact ih₁.trans ih₂ h₁.voteLe.1 h₂.commit_mono
+  | drain _ _ h => exact fun _ hm _ => .inl (h.subset hm)
+  | win s mt ms _ _ _ _ hr =>
+    intro m hm ht
+    rcases List.mem_append.1 hm with h | h
+    · exact .inl h
+    rcases List.mem_append.1 h with h | h
+    · cases List.mem_singleton.1 h; contradiction
+    · exact .inr ((hr m h).snap_bounds ht)
+  | sendApps s ms _ hr =>
+    intro m hm ht
+    rcases List.mem_append.1 hm with h | h
+    · exact .inl h
+    · exact .inr ((hr m h).snap_bounds ht)
+  | beat s ms _ hh =>
+    intro m hm ht
+    rcases List.mem_append.1 hm with hm | hm
+    · exact .inl hm
+    · have he := (hh m hm).1; rw [ht] at he; contradiction
+  | readAck | readSingle | readReleaseSingle =>
+    intro m hm ht
+    have h := preadRespondAll_snap_mem id _ _ m ht hm
+    exact .inl h
+  | campaign =>
+    intro m hm ht
+    rcases List.mem_append.1 hm with h | h
+    · exact .inl h
+    rcases List.mem_cons.1 h with he | h
+    · have hy : m.ty = .voteResp := congrArg Msg.ty he
+      rw [ht] at hy; cases hy
+    · obtain ⟨v, _, he⟩ := List.mem_map.1 h
+      have hy : m.ty = .vote := congrArg Msg.ty he.symm
+      rw [ht] at hy; cases hy
+  | _ =>
+    intro m hm ht
+    apply Or.inl
+    first
+    | exact hm
+    | rcases List.mem_append.1 hm with h | h
+      · exact h
+      · cases List.mem_singleton.1 h
+        first | contradiction | simp_all [Msg.plain, Msg.mk, Msg.mkV, pselfAck]
+
+theorem StepR.snapQueue {Adm : List EntryM → CCState → Prop} {dec : CCDec} {id : w64}
+    {B : Int} {s s' : RState} {recv : List Msg} (h : StepR Adm dec id B s recv s') :
+    SnapQueueStep s.p s'.p := by
+  induction h with
+  | trans _ _ _ _ _ h₁ h₂ ih₁ ih₂ => exact ih₁.trans ih₂ h₁.voteLe.1 h₂.commit_mono
+  | drain _ _ h => exact fun _ hm _ => .inl (h.subset hm)
+  | win s mt ms _ _ _ _ hr =>
+    intro m hm ht
+    rcases List.mem_append.1 hm with h | h
+    · exact .inl h
+    rcases List.mem_append.1 h with h | h
+    · cases List.mem_singleton.1 h; contradiction
+    · exact .inr ((hr m h).snap_bounds ht)
+  | sendApps s ms _ hr =>
+    intro m hm ht
+    rcases List.mem_append.1 hm with h | h
+    · exact .inl h
+    · exact .inr ((hr m h).snap_bounds ht)
+  | beat s ms _ hh =>
+    intro m hm ht
+    rcases List.mem_append.1 hm with hm | hm
+    · exact .inl hm
+    · have he := (hh m hm).1; rw [ht] at he; contradiction
+  | readAck | readSingle | readReleaseSingle =>
+    intro m hm ht
+    have h := preadRespondAll_snap_mem id _ _ m ht hm
+    exact .inl h
+  | campaign =>
+    intro m hm ht
+    rcases List.mem_append.1 hm with h | h
+    · exact .inl h
+    rcases List.mem_cons.1 h with he | h
+    · have hy : m.ty = .voteResp := congrArg Msg.ty he
+      rw [ht] at hy; cases hy
+    · obtain ⟨v, _, he⟩ := List.mem_map.1 h
+      have hy : m.ty = .vote := congrArg Msg.ty he.symm
+      rw [ht] at hy; cases hy
+  | _ =>
+    intro m hm ht
+    apply Or.inl
+    first
+    | exact hm
+    | rcases List.mem_append.1 hm with h | h
+      · exact h
+      · cases List.mem_singleton.1 h
+        first | contradiction | simp_all [Msg.plain, Msg.mk, Msg.mkV, pselfAck]
+
+theorem GMode.StepOut.snapQueue {md : GMode} {c : CfgM} {id : w64} {m : MessageM}
+    {s s' : NState} {md' : GMode} (h : md.StepOut c id m s s' md') :
+    SnapQueueStep (toPState s) (toPState s') := by
+  cases md with
+  | static => obtain ⟨-, B, recv, h⟩ := h; exact h.snapQueue
+  | dyn dec c0 h0 g => obtain ⟨g', -, -, B, recv, h⟩ := h; exact h.snapQueue
+
+/-- The protocol facts a tick must carry across the two possible local steps. -/
+structure TickProgress (s s' : NState) : Prop where
+  commit : uint.Z s.logst.committed ≤ uint.Z s'.logst.committed
+  vote : PVoteLe (toPState s) (toPState s')
+  queue : SnapQueueStep (toPState s) (toPState s')
+
+theorem TickProgress.refl (s : NState) : TickProgress s s :=
+  ⟨Int.le_refl _, PVoteLe.refl _, fun _ h _ => .inl h⟩
+
+theorem TickProgress.trans {a b c : NState} (h : TickProgress a b) (h' : TickProgress b c) :
+    TickProgress a c :=
+  ⟨Int.le_trans h.commit h'.commit, h.vote.trans h'.vote,
+    h.queue.trans h'.queue h.vote.1 h'.commit⟩
+
 /-- A step of any message but a `MsgStorageApplyResp`, a `MsgSnap` and (2026-10-28, stage U3) a
 snapshot's acknowledgement (a `MsgStorageAppendResp` that moves `applied`) keeps the mode (the
 configuration index does not move, `CidxMove`). -/

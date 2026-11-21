@@ -1016,7 +1016,7 @@ theorem node.run.gated_of
     ihave #HhhO := hsOptC_hsOpt _ _ $$ Hhh
     imod ownRawNodeReady_handout ⊤ γ.raft nv.rn' id rs rdv' ce es ms L (1 : Qp).half γ.gen h
       CoPset.subseteq_top $$ HhhO Hsl Hfree Hrn
-      with ⟨%W, %ss, Hrn, Happ, #Hcef, #Hdk, Hcr, Htk, #Hri, Hsl, Hpb, #Hss1, %Hssn1, Hmw, #Hlead, #Hmss, #Hsrcs, %Hrf⟩
+      with ⟨%W, %ss, Hrn, Happ, #Hcef, #Hdk, Hcr, Htk, #Hri, Hsl, Hpb, #Hss1, %Hssn1, Hmw, #Hlead, #Hmss, #Hsrcs, #Hobs, %Hrf⟩
     -- (step 4) the escrow's key for the handed-out messages (the driver's claim), at the commit
     imod rtk_keyG γ.raft γ.esc ms ⊤ (by solve_ndisj) $$ Hrtki Hrtk with ⟨Hrtk, Hel⟩
     iapply handshake_send_au_upd (t := Ready.ty) γ.readyc nv.readyc' rdv' (readyP γ) iprop(True) _
@@ -1100,9 +1100,11 @@ theorem node.run.gated_of
       unfold readyCut
       iexists (rs.dur, rs.role), readyDurable rs.dur (phsNext rs.phs h) L es, W, ss
       rw [Hgid]
-      ihave #HsrcsN : qSrcs γ.sn ms $$ []
+      ihave #HsrcsN : readyMsgOrigins γ.raft id γ.sn ms $$ []
       · rw [← Hsnγ]; iexact Hsrcs
-      iframe Hdur Hbw1 Hpb Hmw Hss1 Hlead Hmss HsrcsN
+      ihave #HobsN : handoutOrigins γ.raft id γ.sn (phsNext rs.phs h).Term' ms (dlvAfter rs.delivered ce L).length (L.map (fun l => l.snap.Metadata'.Index')) $$ []
+      · rw [← Hsnγ]; iexact Hobs
+      iframe Hdur Hbw1 Hpb Hmw Hss1 Hlead Hmss HsrcsN HobsN
       isplitr
       · ipureintro; rfl
       -- (2026-11-02, durability stage II (q)) the hand-out's `ReadyFacts`

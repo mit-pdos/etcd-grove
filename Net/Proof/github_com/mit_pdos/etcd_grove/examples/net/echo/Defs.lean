@@ -381,8 +381,9 @@ theorem client_check (γm : GName) (cn : Nat) (γ : EchoNames) (W resp : List w8
 
 /-- The protocol's invariants on a fresh network, from `srvAddr`'s pending set (empty). -/
 theorem echoInvs_alloc :
-    netPend (G (Gg := Gg)) srvAddr ∅ ={⊤}=∗ ∃ γm, echoInvs (Gg := Gg) γm := by
-  iintro Hpend
+    netPend (G (Gg := Gg)) srvAddr ∅ -∗ netLisTok (G (Gg := Gg)) srvAddr ={⊤}=∗
+      ∃ γm, echoInvs (Gg := Gg) γm := by
+  iintro Hpend Htk
   letI := (G (Gg := Gg)).allG
   imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := EchoNames) with ⟨%γm, Hm⟩
   imod inv_alloc echoN ⊤ (echoState (Gg := Gg) γm) $$ [Hm] with #HechoInv
@@ -392,7 +393,7 @@ theorem echoInvs_alloc :
     iframe Hm
     iapply BigSepM.bigSepM_empty.2
     iempintro
-  imod wire.addrInv_alloc addrN srvAddr (connProto (Gg := Gg) γm) $$ Hpend with #HaddrInv
+  imod wire.addrInv_alloc addrN srvAddr (connProto (Gg := Gg) γm) $$ Hpend Htk with #HaddrInv
   imodintro
   iexists γm
   unfold echoInvs

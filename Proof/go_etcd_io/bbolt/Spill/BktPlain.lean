@@ -44,7 +44,7 @@ theorem notBkt_iff (f : w32) : ¬ isBktFlag f ↔ f.toNat % 2 = 0 := by
 
 /-- **A plain leaf entry** (by its element: `plainEls`'s clause). -/
 def plainE (w : WEntry) : Prop :=
-  w.flags.toNat % 2 = 0 ∧ 0 < w.key.length ∧ w.key.length + w.value.length ≤ bboltEntryMax
+  w.flags.toNat % 2 = 0 ∧ 0 < w.key.length ∧ entryBytesFit w.key.length w.value.length
 
 /-- The leaves `leavesF` reaches in a well-formed tree are well-formed leaf pages below it. -/
 theorem leavesF_wf (P : Pages) (hwm : Nat) :
@@ -101,7 +101,7 @@ theorem lleaves_plain {X : WX} {c : Loc} {C : BRec} (hC : X.t.bs !! c = some C)
     (hnode : ∀ l r, C.ns !! l = some r → r.nv.isLeaf' = true → ∀ w ∈ r.ws, plainE w)
     (hpage : ∀ c0 p pg, posRoot C c0 → ownHas X.v.pages c0 p → X.v.pages !! p = some pg →
       pageFlags pg = leafPageFlag → ∀ i < pageCount pg,
-        leafFlags pg i % 2 = 0 ∧ 0 < leafKsize pg i ∧ leafKsize pg i + leafVsize pg i ≤ bboltEntryMax) :
+        leafFlags pg i % 2 = 0 ∧ 0 < leafKsize pg i ∧ entryBytesFit (leafKsize pg i) (leafVsize pg i)) :
     ∀ n pid l r, resolve C pid = some l → C.ns !! l = some r →
       ∀ ws ∈ lleaves (ltree X) c n pid, ∀ w ∈ ws, plainE w
   | 0, _, _, _, _, _, ws, hws => by simp [lleaves] at hws
@@ -155,7 +155,7 @@ theorem bk_plain {X : WX} {c : Loc} {C : BRec} (hC : X.t.bs !! c = some C)
     (hnode : ∀ l r, C.ns !! l = some r → r.nv.isLeaf' = true → ∀ w ∈ r.ws, plainE w)
     (hpage : ∀ c0 p pg, posRoot C c0 → ownHas X.v.pages c0 p → X.v.pages !! p = some pg →
       pageFlags pg = leafPageFlag → ∀ i < pageCount pg,
-        leafFlags pg i % 2 = 0 ∧ 0 < leafKsize pg i ∧ leafKsize pg i + leafVsize pg i ≤ bboltEntryMax)
+        leafFlags pg i % 2 = 0 ∧ 0 < leafKsize pg i ∧ entryBytesFit (leafKsize pg i) (leafVsize pg i))
     {E : List El} (hE : (lleaves (ltree X) c X.fuel C.ib.root').flatMap (List.map wEl) = E) :
     plainEls E ∧ E.map (fun e => (e.2.1, e.2.2)) = lbktEnts X c := by
   obtain ⟨r0, hr0⟩ : ∃ r0, C.ns !! C.bv.rootNode' = some r0 := by

@@ -21,7 +21,7 @@ open Fs
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
-variable [go_gctx : GoGlobalContext]
+variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
@@ -37,9 +37,14 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtend.wp_proof
   have htg : max m.size ((W64 0).toNat + sz.toNat) = sz.toNat := by
     rw [show (W64 0).toNat = 0 from rfl]; omega
   wp_apply syscall.Fallocate.wp_grow fd (W64 0) sz dq d m hwr (by decide) hsz0
-    $$ [Hfd Hm] as %e ⟨Hfd, %n, Hr⟩
+    $$ [Hfd Hm] as %e ⟨Hfd, %n, Hr, %hwit⟩
   · iframe; iframe Hinv; rw [htg]; iapply mcellsAny_empty (GF := GF) _ hmaps
   have htg' : max m.size (0 + sz.toNat) = sz.toNat := by omega
+  have hwit' : e ≠ 0 → ¬ FsNoErrIno := fun he => by
+    rcases hwit he with h | h
+    · exact h
+    · exfalso; rw [htg] at h; unfold maxBytes at h
+      have := BitVec.toInt_eq_toNat_cond sz; split at this <;> omega
   by_cases he : e = 0
   · subst he
     icases Hr with (⟨-, Hd⟩ | ⟨%hne, -⟩)
@@ -51,7 +56,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtend.wp_proof
     iframe
     iexists sz.toNat
     isplitr
-    · ipureintro; exact ⟨hle, Nat.le_refl _, fun _ => rfl⟩
+    · ipureintro; exact ⟨hle, Nat.le_refl _, fun _ => rfl, fun h => absurd rfl h⟩
     have hp : rsDone (GF := GF) false d.ino (max m.size (0 + sz.toNat)) (max m.size (0 + sz.toNat)) m n ⊢
         preGrown (GF := GF) d.ino m sz.toNat (interface.nil = interface.nil ∧ m.ZeroPg) := by
       have := rsDone_preGrown (GF := GF) (tr := false) d.ino (max m.size (0 + sz.toNat))
@@ -62,6 +67,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtend.wp_proof
     iapply hp $$ Hd
   icases Hr with (⟨%h0, -⟩ | ⟨-, Hr⟩)
   · exact absurd h0 he
+  have hne := hwit' he
   ihave Hg : ∃ w0, ⌜m.size ≤ w0 ∧ w0 ≤ sz.toNat⌝ ∗ preGrown (GF := GF) d.ino m w0 False $$ [Hr]
   · icases Hr with (Hu | ⟨%w, %hw, Hd⟩)
     · iexists m.size
@@ -87,7 +93,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtend.wp_proof
     iframe Hf Ho Hfd
     iexists w0
     isplitr
-    · ipureintro; exact ⟨hw0.1, hw0.2, fun h => by cases h⟩
+    · ipureintro; exact ⟨hw0.1, hw0.2, fun h => (by cases h), fun _ => hne⟩
     iapply preGrown_mono _ _ _ (fun h => by cases h.1) $$ Hg
   · wp_auto
     by_cases h95 : v' = W64 95
@@ -102,7 +108,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtend.wp_proof
       iframe Hf Ho Hfd
       iexists w
       isplitr
-      · ipureintro; exact ⟨by omega, hw.2.1, hw.2.2⟩
+      · ipureintro; exact ⟨by omega, hw.2.1, hw.2.2, fun _ => hne⟩
       iapply preGrown_mono _ _ _ (Z := err = interface.nil ∧ m1.ZfGe) (fun h => ⟨h.1, hg1.1.2.2 h.2.zfGe⟩)
       iapply preGrown_trans d.ino m m1 w _ hw0.1 hw.1 hmm hcz1 hg1.1 $$ [Hz Hg']
       iframe
@@ -120,7 +126,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtend.wp_proof
         iframe Hf Ho Hfd
         iexists w
         isplitr
-        · ipureintro; exact ⟨by omega, hw.2.1, hw.2.2⟩
+        · ipureintro; exact ⟨by omega, hw.2.1, hw.2.2, fun _ => hne⟩
         iapply preGrown_mono _ _ _ (Z := err = interface.nil ∧ m1.ZfGe) (fun h => ⟨h.1, hg1.1.2.2 h.2.zfGe⟩)
         iapply preGrown_trans d.ino m m1 w _ hw0.1 hw.1 hmm hcz1 hg1.1 $$ [Hz Hg']
         iframe
@@ -130,7 +136,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtend.wp_proof
         iframe Hf Ho Hfd
         iexists w0
         isplitr
-        · ipureintro; exact ⟨hw0.1, hw0.2, fun h => by cases h⟩
+        · ipureintro; exact ⟨hw0.1, hw0.2, fun h => (by cases h), fun _ => hne⟩
         iapply preGrown_mono _ _ _ (fun h => by cases h.1) $$ Hg
 
 end proof

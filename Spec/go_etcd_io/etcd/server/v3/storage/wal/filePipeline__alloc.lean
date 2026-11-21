@@ -4,7 +4,8 @@
 (`createNewWALFile(fpath, true)`, locked), preallocated to `fp.size` zeros; `fp.count` incremented.
 From the whole claim on the name (`tmpClaim`) and the pipeline's resources (`pipeRes`): on success
 the file (`pipeFile`: the claim now holding it); on an error the claim back (the name absent or
-holding some file: a preallocation error closes the created file and leaves it). `n < 2^63`: the
+holding some file: a preallocation error closes the created file and leaves it) and the witness that
+the file system can fail in the directory (`pipeErrW`). `n < 2^63`: the
 signed `count % 2` is `n % 2`. Lean-first (plan W2).
 -/
 module
@@ -43,7 +44,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.filePipeline.alloc.spec : Prop :=
       ((⌜err = interface.nil⌝ ∗
           structFieldRef go_etcd_io.etcd.server.v3.storage.wal.filePipeline go!"count" fp ↦
             W64 (n + 1) ∗ pipeFile j dir n lf) ∨
-       (⌜err ≠ interface.nil⌝ ∗
+       (⌜err ≠ interface.nil ∧ pipeErrW dir⌝ ∗
           structFieldRef go_etcd_io.etcd.server.v3.storage.wal.filePipeline go!"count" fp ↦ W64 n ∗
           tmpClaim j (pipeTmp n))) }}
 

@@ -1,5 +1,125 @@
 # Removing the merged snapshot's index guard (plan, 2026-11-20)
 
+## Index check removed from the verified Go source
+
+The etcd pin is `34f5142d062b`. In `applyAll`, the successful term
+comparison identifies the queued message's leader term. The source tag
+distinguishes a snapshot present at bootstrap, one created by the apply
+thread, and one installed by Raft. The apply job uses the proof for its
+actual node and Ready to bound the original snapshot index. Both apply
+paths pass this bound to Raft when they replace the message's snapshot.
+
+The apply worker tracks its own cursor from the startup snapshot through
+each serialized job. This matters on restart, when the backend's applied
+index can already exceed the worker's position. Local snapshot creation
+attaches a lower bound for this incarnation's worker cursor. The server
+can therefore establish the physical index comparison immediately after
+the term matches, including in the replay window.
+
+The replay deferral remains a separate change. Its fork regression tests
+exercise a frozen backend at index 7 and a recovered HardState commit of 3
+with both current and legacy metadata. The replay proof still has to
+establish the term and membership for the image actually sent.
+[Replay issue](../nonissues/etcd-backward-snapshot-install-panics-watcher.md).
+
+## The two MemoryStorage writers and the apply job
+
+Bootstrap now allocates the saved node location before starting Raft and
+fills it with the actual node afterwards. A restart tags its initial image
+at the WAL base. The driver attaches the receipt for the installed index
+to `ApplySnapshot`. The apply thread attaches its applied-index lower
+bound to `CreateSnapshot`. Compaction preserves the same storage invariant.
+
+The apply job uses the outgoing channel from the node that produced its
+Ready. The run loop supplies the exact delivered length of that Ready
+and the boot snapshot bound. The successful merge can compare the index
+against its applied-index authority after the first Go step, including
+when the outbox and apply job refer to different Ready batches.
+
+
+## Server proof at the two channels
+
+Raft’s outgoing Ready observation now travels with the specific message in
+`msgSnapC`. The apply job receives the observation from its own Ready in
+`rnRtOk`, and the driver gets the installation receipt for a snapshot Ready.
+`srv_snapshot_index_le` compares both observations at the original send term.
+It covers the restored-log case and all three ways the server can fill memory
+storage. The stored-source case uses the tag from that attachment, the
+apply thread’s applied-index authority and the receipt for the local node.
+
+The concrete boot and restart wrapper returns its Raft tag pin. Its callers
+still select the ordinary validity predicate. The remaining integration must
+select the server tag when attaching memory storage, furnish it in both
+writers, and tie the node and delivered prefix to the apply job. The Go
+index check and replay-window failure are both still in the pin.
+
+
+## Snapshot installation receipts for memory storage
+
+A Ready carrying a snapshot yields `nodeInstalledIndex` for this node
+incarnation and the installed index. The driver can put that receipt in
+the snapshot's storage tag. `readySnapSources_installed_le` uses it after
+a snapshot is read back from storage. Each new restore exceeds the node's
+previous commit, so a receipt at an already queued index identifies a
+restore in the queueing node's history. This supplies the original sending
+term even when the queue waits across elections.
+
+On the server side the three tag sources are the boot index, the apply
+thread's applied-index lower bound at creation, and this installation
+receipt. The server's tag must refer to the same node attachment. The
+MemoryStorage tag and the queue and apply-batch resources still need to
+be retained in the server proof.
+
+## Original send term across Ready batches
+
+The raw node records each queued snapshot's committed index and the term at
+which it was stamped. A successful restore answers with an append response
+and requires an index above the old commit. It therefore cannot create a
+new restore at the index of an already queued snapshot. Elections, ticks,
+configuration changes and Advance preserve this fact. At handout the proof
+matches the concrete message to its member of the protocol outbox.
+
+`readySnapSources_le` compares the restored snapshot with the applying
+Ready in the message's own term, even if its sending Ready drained the
+message in a later term. The storage case still returns the caller's storage
+tag. For the server, creation and bootstrap can supply the applied-index
+lower bound. Installation from a snapshot Ready needs that Ready's restore
+evidence and its position in the driver's batch sequence.
+
+## 2026-11-20 · the Ready history and the remaining send-time obligation
+
+The main linked proof passes with a monotone restore history on each RawNode.
+Every log restore raises the boundary past the old committed index. A Ready
+with a snapshot hands out the committed log ending at that boundary. Without
+a snapshot the boundary is at or below the apply cursor. These two cases bound
+all restored indices by the length of the log handed out in this Ready.
+
+The Ready channel carries a persistent observation at the hard-state term that
+the receiver enters. `readySnapSources_sameTerm_le` compares two Ready batches
+from the same node incarnation and term. In the storage case it returns the
+application’s storage tag. In the restore case it uses the foreign leader’s
+message and election safety to bound the index by the observed batch.
+
+An outgoing message can stay queued across a term change. Its own stamped term
+can then precede its handout’s hard-state term. The server’s term check uses the
+message term, so the same-term result alone cannot discharge the server proof.
+The remaining Raft obligation is to retain the receive term through
+`raftLog.snapshot`, `maybeSendSnapshot` and `raft.send` for this case.
+
+
+## Term and index comparison (2026-11-20)
+
+The node now has a ghost name for a history of term and index observations.
+The send-time lemma bounds the restore term by the term in which the node
+stamps the outgoing message. Election safety excludes equality when the
+incoming snapshot came from another member. A Ready observation in the
+outgoing term therefore bounds the restored index (`restoredSend_index_le`).
+
+The comparison is checked under explicit hypotheses. The remaining work is to
+carry the history authority through each live RawNode, issue observations at
+the physical send and Ready, and relate the Ready index to the server’s apply
+cursor. The runtime guard is still in the etcd pin.
+
 ## Storage contract progress (2026-11-20)
 
 The main raft build checks `isStorageP_mono_SV`, the tagged storage contract
@@ -29,6 +149,29 @@ snapshot index and log term match the pending snapshot, and its sender differs
 from the receiver. The Ready contract carries this evidence to the server via
 `nodeRestoreSource`. The next obligation is to order the restore relative to
 the Ready batches already applied when the server consumes the outgoing message.
+
+## Queued snapshot provenance (2026-11-20)
+
+The unstable branch of `raftLog.snapshot` returns a snapshot in the node's
+`LogState.ksn`. The outgoing message now carries that membership from
+`raft.maybeSendSnapshot` through both message queues to
+`RawNode.readyWithoutAccept`. The storage branch retains the storage
+certificate supplied at startup. A successful restore appends to `ksn`, so
+later log updates preserve the queued evidence.
+
+The remaining step is to associate each member of that list with its
+successful incoming Step and to compare its term and index to the Ready
+already processed by the server.
+
+## Outgoing restore evidence at Ready (2026-11-20)
+
+`readySnapSources_msgSnap` now returns the sending node's local restore source
+alongside its restore certificate. `SnapLogStep` appends the actual incoming
+snapshot on both successful Step paths. The local history survives handling
+further messages, acknowledgments, and draining the pending snapshot. Restart
+and Bootstrap start a fresh history. The remaining temporal comparison must
+bind the incoming protocol message's term to the local restore and order it
+against the Ready processed by the apply thread.
 
 ## HANDOFF (2026-11-20, first session paused by the coordinator)
 

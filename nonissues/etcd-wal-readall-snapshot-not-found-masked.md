@@ -79,3 +79,5 @@ the sound one).
 Found by the W4a Freeze review's second round (2026-11-12, the fresh lens, m1). The wrong argument
 ("the premise excludes this case") was found by WAL W4a.2 (2026-11-12): Go tests
 `/shared/tmp/wal-spec/w4a2/tests/w4a2_wrap_test.go` (`TestW4a2UnmatchedRestartUnlocksGuardedRecord`).
+
+The upgrade failure now has a repository regression test. It covers two old-named segments, the verification API, read-only recovery, and which files the purger may remove after restart. [Upgrade finding](../issues/etcd-wal-upgrade-legacy-segment-name.md)

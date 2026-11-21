@@ -1,7 +1,6 @@
 package kvnet
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"time"
@@ -93,25 +92,43 @@ type Node struct {
 	stats *Stats
 }
 
-// listen listens on addr, retrying for up to 5s (the previous incarnation's socket may not be
-// gone yet); it panics if it cannot.
+// listen listens on addr, retrying until it can (the previous incarnation's socket may not be
+// gone yet): a failed Listen is never a panic (the net extension lets any Listen fail).
 func listen(addr string) net.Listener {
-	deadline := time.Now().Add(5 * time.Second)
 	for {
 		l, err := net.Listen("tcp", addr)
 		if err == nil {
 			return l
 		}
-		if time.Now().After(deadline) {
-			panic("kvnet: listen " + addr + ": " + err.Error())
-		}
 		time.Sleep(10 * time.Millisecond)
 	}
 }
 
-// RunNode runs the replica cfg.ID until its process ends: it starts it from its durable file
+// RunNode is a replica's process, as the top-level theorem runs it: replica id of the cluster
+// whose replicas' addresses are addrs (comma-separated, replica i at the i-th, ids from 1), its
+// durable file in the directory dir, the bootstrap configuration's voters 1..voters, and raft's
+// options. It panics if the cluster is not one the theorem's premises allow (ValidCluster) or id
+// is not one of its replicas; otherwise it never returns (Run).
+func RunNode(id uint64, addrs string, dir string, voters uint64, preVote, checkQuorum, stepDownOnRemoval bool,
+	maxSizePerMsg, maxCommittedSizePerReady, maxInflightMsgs uint64) {
+	as := SplitAddrs(addrs)
+	if !ValidCluster(as, voters, maxSizePerMsg, maxCommittedSizePerReady, maxInflightMsgs) ||
+		id < 1 || id > uint64(len(as)) {
+		panic("kvnet: not a valid cluster")
+	}
+	m := make(map[uint64]string)
+	for i, a := range as {
+		m[uint64(i)+1] = a
+	}
+	Run(NodeConfig{ID: id, Dir: dir, Addrs: m, Opts: Options{
+		Voters: voters, PreVote: preVote, CheckQuorum: checkQuorum, StepDownOnRemoval: stepDownOnRemoval,
+		MaxSizePerMsg: maxSizePerMsg, MaxCommittedSizePerReady: maxCommittedSizePerReady,
+		MaxInflightMsgs: int(maxInflightMsgs)}})
+}
+
+// Run runs the replica cfg.ID until its process ends: it starts it from its durable file
 // (StartNode), then serves its peers and clients on its address. It never returns.
-func RunNode(cfg NodeConfig) {
+func Run(cfg NodeConfig) {
 	l := listen(cfg.Addrs[cfg.ID])
 	n := StartNode(cfg)
 	for {
@@ -196,12 +213,12 @@ const helloTimeout = time.Second
 // (serveClient), by its first byte.
 func (n *Node) serve(c net.Conn) {
 	var hello [1]byte
-	c.SetReadDeadline(time.Now().Add(helloTimeout))
-	if !readFull(c, hello[:]) {
+	disarm := closeAfter(c, helloTimeout)
+	read := readFull(c, hello[:])
+	if !disarm() || !read {
 		c.Close()
 		return
 	}
-	c.SetReadDeadline(time.Time{})
 	switch hello[0] {
 	case helloPeer:
 		n.t.servePeer(c)
@@ -229,9 +246,9 @@ const maxReqTimeout = 10 * time.Second
 // (no answer: the client tries again, here or elsewhere).
 func (n *Node) serveClient(c net.Conn) {
 	defer c.Close()
-	c.SetReadDeadline(time.Now().Add(helloTimeout))
+	disarm := closeAfter(c, helloTimeout)
 	b, ok := readFrame(c)
-	if !ok || len(b) < 9 {
+	if !disarm() || !ok || len(b) < 9 {
 		return
 	}
 	ms, payload, _ := getUint64(b[1:])
@@ -244,8 +261,9 @@ func (n *Node) serveClient(c net.Conn) {
 	if good {
 		resp = append([]byte{1}, ans...)
 	}
-	c.SetWriteDeadline(time.Now().Add(writeTimeout))
+	disarmW := closeAfter(c, writeTimeout)
 	writeFrame(c, resp)
+	disarmW()
 }
 
 // handle runs one request; false if it has no answer.
@@ -271,7 +289,7 @@ func (n *Node) handle(kind byte, p []byte, timeout time.Duration) ([]byte, bool)
 			return nil, false
 		}
 		n.stats.add(StConfChangesProposed)
-		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		ctx, cancel := withTimeout(timeout)
 		err := n.r.node.ProposeConfChange(ctx, cc)
 		cancel()
 		return nil, err == nil
@@ -281,7 +299,7 @@ func (n *Node) handle(kind byte, p []byte, timeout time.Duration) ([]byte, bool)
 		if !ok1 || !ok2 {
 			return nil, false
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		ctx, cancel := withTimeout(timeout)
 		switch what {
 		case 0:
 			n.r.node.TransferLeadership(ctx, n.r.node.Status().Lead, to)

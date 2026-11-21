@@ -132,7 +132,7 @@ def pcInv (X : WX) (w : WDb) (bl n : Loc) (rn : NRec) (O : List Nat) (lo hi : Op
     (Ds : List (List Nat)) (ps : List Piece) (stl : List FLStep),
     spEnd X w bl n rn O lo hi h D N E X' w' r' st0 T ∧ insLens r'.ins r'.ws ∧ objsDisj X'.t ∧
     splitRel (X'.nilCh bl n r') X2 bl n r'.nilCh xs wss pl rp0 ∧
-    (∀ x ∈ xs, pieceFits 4096 x.2.2 ∧ (2 ≤ xs.length → 2 ≤ x.2.2.length)) ∧
+    (∀ x ∈ xs, pieceFitFor x.2.1.isLeaf' 4096 x.2.2 ∧ (2 ≤ xs.length → pieceMin x.2.1.isLeaf' ≤ x.2.2.length)) ∧
     st = st0 ++ stl ∧ Es.flatten = E ∧
     pcEnts (spP X') X'.t.mv.pgid'.toNat r'.nv.isLeaf' hi (h - 1) wss Es Ds ∧
     -- (U9z) the slots' bookkeeping, as `spLoop`'s: the tree's slots owned (`pcOwn`) or pending,
@@ -188,7 +188,7 @@ theorem tail_insBnd {X : WX} {bl n : Loc} {r : NRec} {lo hi : Option (List w8)}
     rw [← hun.2.2.2.2.1]; exact (List.getElem?_eq_some_iff.1 hk).1
   have hw : r.ws[k]? = some r.ws[k] := List.getElem?_eq_getElem hkl
   obtain ⟨h1, h2⟩ := hl k it _ hk hw
-  have hb := (hun.2.2.2.2.2.2.1 _ (List.getElem_mem hkl)).2.2
+  have hb := (hun.2.2.2.2.2.2.1 _ (List.getElem_mem hkl)).2.2.2.1
   unfold inSz; unfold bboltEntryMax at hb; omega
 
 theorem killL_node (X : WX) (L : List Loc) (bl l : Loc) : (X.killL L).node bl l = X.node bl l :=

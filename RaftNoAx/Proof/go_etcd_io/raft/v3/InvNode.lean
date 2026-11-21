@@ -1434,12 +1434,12 @@ theorem readStateOk_after (γ : Cluster) (N : Namespace) (c : List w8) (idx : w6
   rw [← Hag.2]; exact Hl1
 
 /-- The sending node's evidence about the source of the snapshots in this Ready. -/
-@[no_expose] def readySnapSources (γ : Cluster) (n : Loc) (ms : List QMsg) : IProp GF :=
-  ApiImpl.snapSources γ n ms
+@[no_expose] def readySnapSources (γ : Cluster) (n : Loc) (id term : w64) (ms : List QMsg) (bound : Nat) (installed : Option w64 := none) : IProp GF :=
+  ApiImpl.snapSources γ n id term ms bound installed
 
-instance readySnapSources_persistent (γ : Cluster) (n : Loc) (ms : List QMsg) :
-    Persistent (readySnapSources (GF := GF) γ n ms) := by
-  unfold readySnapSources; exact ApiImpl.snapSources_persistent γ n ms
+instance readySnapSources_persistent (γ : Cluster) (n : Loc) (id term : w64) (ms : List QMsg) (bound : Nat) (installed : Option w64) :
+    Persistent (readySnapSources (GF := GF) γ n id term ms bound installed) := by
+  unfold readySnapSources; exact ApiImpl.snapSources_persistent γ n id term ms bound installed
 
 /-- (2026-11-01, durability stage I-3; candidate 12 §3) **What receiving a `Ready` gives** (the
 receive's postcondition; until then spelled out in it, with the loop's token in place of *enter*):
@@ -1453,7 +1453,7 @@ def readyGot (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDrive
     (rd : Ready) : IProp GF :=
   iprop(∃ (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan)
       (ms : List QMsg) (ss : Option (w64 × StateType)),
-    readySnapSources γ n ms ∗
+    readySnapSources γ n id (phsNext st.hardState h).Term' ms (st.afterReady ce es h L ss).delivered.length (L.map (fun l => l.snap.Metadata'.Index')) ∗
     committedEntriesAt rd.CommittedEntries' st.delivered.length ce ∗
     isCommittedLogLb γ (st.delivered ++ ce) ∗
     (∃ rs, readStatesPts rd.ReadStates' rs ∗
@@ -1497,7 +1497,7 @@ def readyGotT (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriv
     (rd : Ready) : IProp GF :=
   iprop(∃ (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan)
       (ms : List QMsg) (ss : Option (w64 × StateType)),
-    readySnapSources γ n ms ∗
+    readySnapSources γ n id (phsNext st.hardState h).Term' ms (st.afterReady ce es h L ss).delivered.length (L.map (fun l => l.snap.Metadata'.Index')) ∗
     committedEntriesAt rd.CommittedEntries' st.delivered.length ce ∗
     isCommittedLogLb γ (st.delivered ++ ce) ∗
     (∃ rs, readStatesPts rd.ReadStates' rs ∗
