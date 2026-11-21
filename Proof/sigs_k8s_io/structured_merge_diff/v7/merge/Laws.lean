@@ -115,12 +115,15 @@ def mfUnion_nodes.law : Prop :=
   ∀ (mf : MF) m e, mf.get m = some e → e.set.nodes.card ≤ (mfUnion mf).nodes.card
 /-- `Apply`'s workload premise gives `prune`'s and `update`'s size premises (with
 `merge_size`, `prune_size`, `reconcileMF` and `MF.set` keeping the union's nodes below the bound
-together with the applier's new field set: `fieldSet_nodes`). -/
+together with the applier's new field set: `fieldSet_nodes`). Restated 2026-11-21 with
+`inputsSmall`'s combined bound (the union below `smdSizeMax`, as `prune` needs) and `merge_size`'s
+premises (no user). -/
 def inputsSmall_prune.law : Prop :=
-  ∀ S t (live config : UVal) (mf : MF) mgr (e : VSet), inputsSmall [live, config] mf →
+  ∀ S t (live config : UVal) (mf : MF) mgr (e : VSet), S.WF → conforms S t live →
+    conforms S t config → inputsSmall [live, config] mf →
     e.set = fieldSet S t config →
     (merge S t live config).size < smdSizeMax ∧
-    (mfUnion ((reconcileMF S t mf).set mgr e)).nodes.card < 2 * smdSizeMax
+    (mfUnion ((reconcileMF S t mf).set mgr e)).nodes.card < smdSizeMax
 
 /-- **`prune`'s passes keep the object conforming** (D10 (b): `RemoveItems`' premise), from
 `keysWithItems` of the managers' and the last sets (`Apply`'s premise; round 1's finding 1 is the

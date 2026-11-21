@@ -763,11 +763,11 @@ theorem kwi_fieldSet (S : Schema) (t : TypeRef) (x : UVal) (hwf : S.WF) (hc : co
 
 /-! ## Sizes -/
 
-/-- Merging two conforming values adds no node beyond the two sides' (`merge_size`, with the
-conformance premise `Apply` has). -/
+/-- Merging two conforming values adds no node beyond the two sides' (`merge_size`, M1's, with
+the conformance premise `Apply` has). -/
 theorem merge_size_conf (S : Schema) (t : TypeRef) (l r : UVal) (hwf : S.WF)
-    (hl : conforms S t l) (hr : conforms S t r) : (merge S t l r).size ≤ l.size + r.size := by
-  sorry
+    (hl : conforms S t l) (hr : conforms S t r) : (merge S t l r).size ≤ l.size + r.size :=
+  merge_size_law_holds S t l r hwf hl hr
 
 /-- Pruning adds no node (`prune_size`, from `removeItems_size`). -/
 theorem prune_size_le (S : Schema) (t : TypeRef) (merged : UVal) (mf : MF) (last : Option VSet) :
@@ -778,6 +778,21 @@ theorem prune_size_le (S : Schema) (t : TypeRef) (merged : UVal) (mf : MF) (last
   · split
     · exact Nat.le_refl _
     · exact removeItems_size_law_holds S t merged _
+
+end Glue
+
+theorem fieldSet_nodes_law_holds : fieldSet_nodes.law := Glue.fieldSet_nodes_le
+
+theorem inputsSmall_prune_law_holds : inputsSmall_prune.law := by
+  intro S t live config mf mgr e hS hl hc h he
+  have h1 := merge_size_law_holds S t live config hS hl hc
+  have h2 := Glue.apply_union_nodes S t mf mgr e
+  have h3 := Glue.fieldSet_nodes_le S t config
+  rw [← he] at h3
+  simp only [inputsSmall, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil] at h
+  omega
+
+namespace Glue
 
 /-! ## `Apply`'s premises of `prune` -/
 
