@@ -1512,7 +1512,8 @@ trust-boundary axioms `<X>_init`), `opaqueInitsOk` states the others.''',
     alloc_types={**{x: 'GoInterface' for x in _BE_HIST},
                  'defaultBatchLimit': 'w64', 'defaultBatchInterval': 'w64', 'defragLimit': 'w64',
                  'InitialMmapSize': 'w64', 'minSnapshotWarningTimeout': 'w64'},
-    finish=['ipersist HcommitSec', 'ipersist HrebalanceSec', 'ipersist HspillSec', 'ipersist HwriteSec']
+    finish=['ipersist HcommitSec', 'ipersist HrebalanceSec', 'ipersist HspillSec', 'ipersist HwriteSec',
+            'ipersist HsnapshotTransferSec']
            + FIN_PRE[:6] + ['imodintro', 'unfold backendInit', 'iframe #'],
 )
 
@@ -2715,12 +2716,16 @@ SPECIAL['go_etcd_io.etcd.server.v3.lease']['doc'] = SPECIAL['go_etcd_io.etcd.ser
 other untranslated initializers run.""", """axioms `<X>_init`). Its other variables' initializers are translated too (2026-11-19, until then
 `opaqueInitsOk`): the rate and interval constants (`lessor.go`) and the counter `leaseRenewed`.""")
 _more_metrics(SPECIAL['go_etcd_io.etcd.server.v3.storage.backend'],
-              [('defragSec', 'hist'), ('defragBlockingSec', 'hist'), ('snapshotTransferSec', 'hist'),
-               ('isDefragActive', 'gauge')])
+              [('defragSec', 'hist'), ('defragBlockingSec', 'hist'), ('isDefragActive', 'gauge')])
+# (backend-snapshot B4, 2026-11-21) `snapshotTransferSec`'s histogram is a fact too: `Snapshot`'s
+# goroutine observes it.
+SPECIAL['go_etcd_io.etcd.server.v3.storage.backend']['before']['snapshotTransferSec'] = metric_steps_to(
+    'snapshotTransferSec', 'hist', 'go_etcd_io.etcd.server.v3.storage.backend.histSpec')
 SPECIAL['go_etcd_io.etcd.server.v3.storage.backend']['doc'] = SPECIAL['go_etcd_io.etcd.server.v3.storage.backend']['doc'].replace(
     """trust-boundary axioms `<X>_init`), `opaqueInitsOk` states the others.""",
     """trust-boundary axioms `<X>_init`), and so are (2026-11-19, until then `opaqueInitsOk`) the others,
-`defragSec`, `defragBlockingSec`, `snapshotTransferSec` and the gauge `isDefragActive`.""")
+`defragSec`, `defragBlockingSec` and the gauge `isDefragActive`; (2026-11-21) `snapshotTransferSec`'s
+histogram, which `Snapshot`'s goroutine observes, is in the fact.""")
 _more_metrics(SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc'],
               [('sentBytes', 'counter'), ('receivedBytes', 'counter')])
 SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.snap'] = newvars_cfg(_more_metrics(dict(

@@ -71,7 +71,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_auto
   iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := GoInterface) isDefragActive _ as HisDefragActive
-  wp_apply wp_GlobalAlloc (V := GoInterface) snapshotTransferSec _ as HsnapshotTransferSec
+  wp_apply wp_GlobalAlloc (V := TODO) snapshotTransferSec _ as HsnapshotTransferSec
   wp_apply wp_GlobalAlloc (V := GoInterface) defragBlockingSec _ as HdefragBlockingSec
   wp_apply wp_GlobalAlloc (V := GoInterface) defragSec _ as HdefragSec
   wp_apply wp_GlobalAlloc (V := GoInterface) writeSec _ as HwriteSec
@@ -165,6 +165,10 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BsnapshotTransferSec as %csnapshotTransferSec ⟨#CsnapshotTransferSec, -⟩
   try wp_auto
+  ihave #EsnapshotTransferSec : (go_etcd_io.etcd.server.v3.storage.backend.histSpec csnapshotTransferSec : IProp GF) $$ []
+  · iunfold EtcdGrove.prometheus.metric.histSpec at CsnapshotTransferSec
+    unfold go_etcd_io.etcd.server.v3.storage.backend.histSpec
+    iexact CsnapshotTransferSec
   -- translated initializer of isDefragActive))
   wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cisDefragActive ⟨#CisDefragActive, #DisDefragActive, -⟩
   try wp_auto
