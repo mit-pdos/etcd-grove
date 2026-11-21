@@ -3321,3 +3321,37 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** `sint.Z n = ys.length` in `prefixReaderOk` and in `http.bodyRead_spec` (its producer's axiom, whose
   post gets stronger: Go's body reader returns `0 <= n`); `NewLimitedBufferReader`'s proof passes it through.
 - **Decision.** Applied (prove-http, 2026-11-20).
+
+## 2026-11-20: semver's `Version.Major`/`Minor` read `*v` without owning it (prove-smalllibs)
+
+- **Spec.** `semver.Version.Major.spec`, `semver.Version.Minor.spec` (`Spec/github_com/Masterminds/semver/v3/`),
+  axioms until this change; also `Version.LessThan.spec` and `Version.String.spec` (still axioms). The plan's
+  (`SpecPlan/Spec/github_com/Masterminds/semver/v3/`) take `verAt v a` (a read-only points-to).
+- **Defect.** Too weak a premise: only `v ≠ null`. The methods load `*v` (value receivers), so a program writing
+  `*v` concurrently races (Go: a data race, Perennial: stuck), and the axiom would still claim a return. Unprovable
+  over the real code for the same reason.
+- **Evidence.** The proofs (`Proof/github_com/Masterminds/semver/v3/Version__Major.lean`): the load needs `v ↦{dq} x`.
+- **Proposed change.** `Major`/`Minor`: premise `v ↦{dq} x`, kept, post the exact field (`x.major'`, `x.minor'`).
+  `MustParse` returns `v ↦□ x` (its version is `NewVersion`'s fresh allocation), `New` returns
+  `v ↦□ ⟨ma, mi, pa, pre, md, orig⟩` (proved); rafthttp's `serverVersion`/`minClusterVersion` return it, and
+  `compareMajorMinorVersion`, `checkStreamSupport`, `checkVersionCompatibility` take it (and the latter returns it).
+  `LessThan` and `String` keep `v ≠ null`: their callers include `ClusterVersionSet` on the cluster's
+  `Version()` result, which `apply.isCluster`'s contract (inside `bootstrapContract`, a top-level premise) gives with
+  no points-to; strengthening them needs that contract to say `Version()` returns `nil` or a read-only version
+  (true: `semver.MustParse(c.version.String())`, `cluster.go:580-587`), a premise change for the user.
+- **Decision.** `Major`/`Minor`/`New`/`MustParse`/rafthttp applied (prove-smalllibs, 2026-11-20); `LessThan`/`String`
+  open (the `isCluster` contract change needs the user).
+
+## 2026-11-20: x/time/rate's `limiterOk`/`reservationOk` opaque (prove-smalllibs)
+
+- **Spec.** `rate.limiterRaw`, `rate.reservationRaw` (`Spec/golang_org/x/time/rate/Limiter__{Wait,Reserve}.lean`),
+  opaque until this change; `NewLimiter.spec`, `Reservation.Delay.spec` (axioms until this change), `Limiter.Reserve.spec`,
+  `Limiter.Wait.spec` (axioms).
+- **Defect.** Not false, but unprovable: an opaque predicate no proof can produce (`NewLimiter`) or read (`Delay`).
+- **Evidence.** The proofs (`Proof/golang_org/x/time/rate/{NewLimiter,Reservation__Delay}.lean`).
+- **Proposed change.** `limiterRaw rl`: `rl`'s mutex guards its other fields (`limiterFields`); `reservationRaw r`:
+  read-only `ok` and `timeToAct`. Callers' statements unchanged (the predicates are only passed between the
+  four specs). `Reserve`'s axiom now claims the read-only fields (true: `ReserveN` returns a fresh `&r` the
+  limiter does not keep, and no method writes `ok`/`timeToAct`, x/time/rate v0.16.0 `rate.go:162-230`);
+  `Wait`'s takes the mutex (true: every method takes `lim.mu` before touching the fields).
+- **Decision.** Applied (prove-smalllibs, 2026-11-20).
