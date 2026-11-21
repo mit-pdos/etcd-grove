@@ -83,8 +83,8 @@ theorem Cache.getWatchLoop.wp_proof
   isplitr
   · ipureintro; rfl
   iintro %sl ⟨Hsl, -⟩
-  ihave #HeS' : EtcdGrove.fmt.stringMethodSpec e go!"Error" $$ []
-  · rw [show EtcdGrove.fmt.stringMethodSpec e go!"Error" = errorStringSpec e from rfl]
+  ihave #HeS' : _root_.Perennial.fmt.stringMethodSpec e go!"Error" $$ []
+  · rw [show _root_.Perennial.fmt.stringMethodSpec e go!"Error" = errorStringSpec e from rfl]
     iapply errStrOk_elim; iexact HeS
   wp_apply wp_Printf $$ [$Hfmt $Hsl] as %n %e2 -
   · try rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]
@@ -93,7 +93,7 @@ theorem Cache.getWatchLoop.wp_proof
     isplitr
     · fmt_arg_method; iapply EtcdGrove.time.Duration.String.argOk wp_DurStr
     isplitr
-    · fmt_arg_method; simp only [EtcdGrove.fmt.argOk]; iright; ileft
+    · fmt_arg_method; simp only [_root_.Perennial.fmt.argOk]; iright; ileft
       isplitr
       · iexact HeS'
       · iapply errStrOk_methods; iexact HeS

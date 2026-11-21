@@ -70,6 +70,8 @@ theorem daemonSetLister.GetHistoryDaemonSets.wp_proof
           ∃ m : Loc, a = interface.mkOk (go.GoType.MapType go.string go.string) #m := by
       intro a ha; rw [List.mem_singleton] at ha; subst ha; left; exact ⟨_, rfl⟩
     wp_apply (wp_Errorf_labelArgs _ _ _ hargs) $$ [$Hfmt $Hasl] as %err -
+    · iapply BigSepL.bigSepL_singleton.2
+      ileft; ipureintro; exact ⟨_, rfl⟩
     iapply HK
     iframe
     iunfold histDSPost
@@ -274,6 +276,11 @@ theorem daemonSetLister.GetHistoryDaemonSets.wp_proof
         · left; exact ⟨_, rfl⟩
         · right; exact ⟨_, rfl⟩
       wp_apply (wp_Errorf_labelArgs _ _ _ hargs) $$ [$Hfmt $Hasl] as %err -
+      · simp only [BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
+        isplitr; · ileft; ipureintro; exact ⟨_, rfl⟩
+        isplitr; · ileft; ipureintro; exact ⟨_, rfl⟩
+        isplitl; · iright; iexists lm, DFrac.discard, L; iframe HL; ipureintro; rfl
+        itrivial
       iapply HK
       iframe
       iunfold histDSPost

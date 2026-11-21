@@ -4,15 +4,15 @@
 path) and in Perennial's model alike. Perennial's `fmt.wp_Errorf` keeps only that `Error()` returns;
 the compaction's caller needs the type (a pointer leaf). Lean-first (no Rocq counterpart).
 
-This steps into Perennial's model of `Errorf` (`errors.New(format)`), which is faithful only on that
-path: since 2026-11-06 (errorf-wrap) its premises are that path's, no `%` in the format and no
-arguments. A `%w` error goes through `fmt.ErrorfWrap` (`Spec/fmt/ErrorfWrap.lean`;
-`notes/decisions.md`, "`fmt.Errorf` with `%w`: no fact from the model").
+Proved from Perennial's `fmt.wp_Errorf` (fmtmodel, 2026-11-20), whose post `fmt.errorfErr` says which
+error (an `*errors.errorString` when no `%w` directive has an argument); until then it stepped into
+Perennial's previous model of `Errorf` (`errors.New(format)`), faithful only on this path.
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
 public import Perennial.Proof.fmt
+public import Proof.fmt.OutLemmas
 
 @[expose] public section
 
@@ -58,22 +58,31 @@ theorem wp_New_errorString (msg : GoString) :
 /-- **`fmt.Errorf(format)`, without verbs or arguments**, returns an error `errorfIs` describes
 (`errors.New(format)`, in Go as in Perennial's model: the fast path; errorf-wrap, 2026-11-06). -/
 theorem wp_Errorf_errorfIs (format : GoString) (args_sl : GoSlice)
-    (_hfmt : (W8 37 : w8) ∉ format) :
+    (hfmt : (W8 37 : w8) ∉ format) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ args_sl ↦* ([] : List GoAny) }}
       (App (App (Val (@! _root_.Perennial.fmt.Errorf)) (Val #format)) (Val #args_sl))
     {{ (err : GoInterface), RET #err; errorfIs err }} := by
-  wp_start as _
-  wp_apply wp_New_errorString as %x #Herr
+  iintro %Φ ⟨#Hpkg, Hsl⟩ HΦ
+  ihave Hok := _root_.Perennial.fmt.argsOk_of_argsWf (GF := GF) (mv := fmt.errorfVerbs)
+    (format := format) (xs := []) (fun _ h => nomatch h)
+  wp_apply (_root_.Perennial.fmt.wp_Errorf format args_sl [] (DFrac.own 1)) $$ [$Hpkg $Hsl $Hok]
+    as %err ⟨-, %s, -, Herr⟩
+  iunfold _root_.Perennial.fmt.errorfErr at Herr
+  icases Herr with ⟨%-, #HE, Hcase⟩
+  simp only [EtcdGrove.fmt.fmtDirectives_noPct format hfmt, _root_.Perennial.fmt.wrapArgs,
+    _root_.Perennial.fmt.wrapArgsFrom]
+  icases Hcase with ⟨%x, %hx, -⟩
+  subst hx
   iapply HΦ
   iunfold errorfIs
   iexists x
   isplitr
   · ipureintro; rfl
   imodintro
-  iintro %Φ HΦ
-  iapply Herr
+  iintro %Ψ HΨ
+  iapply HE
   inext
-  iapply HΦ
+  iapply HΨ
 
 end wp
 

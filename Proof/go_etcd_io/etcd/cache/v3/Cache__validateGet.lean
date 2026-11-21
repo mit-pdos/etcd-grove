@@ -56,8 +56,8 @@ theorem Cache.validateGet.wp_proof
   · iapply isPkgInit_access $$ Hpkg
   icases Hci with ⟨-, ⟨%eUR, #HeURp⟩, ⟨%eKR, #HeKR⟩, -, -, #HUR⟩
   ihave ⟨#HeUR', %HfUR⟩ := HUR $$ HeURp
-  ihave #HeUR : EtcdGrove.fmt.stringMethodSpec eUR go!"Error" $$ []
-  · rw [show EtcdGrove.fmt.stringMethodSpec eUR go!"Error" = errorStringSpec eUR from rfl]
+  ihave #HeUR : _root_.Perennial.fmt.stringMethodSpec eUR go!"Error" $$ []
+  · rw [show _root_.Perennial.fmt.stringMethodSpec eUR go!"Error" = errorStringSpec eUR from rfl]
     iexact HeUR'
   ihave #Hcl : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
@@ -78,7 +78,7 @@ theorem Cache.validateGet.wp_proof
     iexists e
     isplitr
     · ipureintro; simp
-    rw [show errorStringSpec e = EtcdGrove.fmt.stringMethodSpec e go!"Error" from rfl]; iexact HeS
+    rw [show errorStringSpec e = _root_.Perennial.fmt.stringMethodSpec e go!"Error" from rfl]; iexact HeS
   have HcountOnly : o.countOnly = false := by simpa using Hif
   wp_apply wp_IsPrevKV $$ [$op $Ho] as op
   wp_if_destruct
@@ -96,7 +96,7 @@ theorem Cache.validateGet.wp_proof
     iexists e
     isplitr
     · ipureintro; simp
-    rw [show errorStringSpec e = EtcdGrove.fmt.stringMethodSpec e go!"Error" from rfl]; iexact HeS
+    rw [show errorStringSpec e = _root_.Perennial.fmt.stringMethodSpec e go!"Error" from rfl]; iexact HeS
   have HprevKV : o.prevKV = false := by simpa using Hif
   wp_apply wp_IsSortSet $$ [$op $Ho] as op
   wp_if_destruct
@@ -114,7 +114,7 @@ theorem Cache.validateGet.wp_proof
     iexists e
     isplitr
     · ipureintro; simp
-    rw [show errorStringSpec e = EtcdGrove.fmt.stringMethodSpec e go!"Error" from rfl]; iexact HeS
+    rw [show errorStringSpec e = _root_.Perennial.fmt.stringMethodSpec e go!"Error" from rfl]; iexact HeS
   have HsortSet : o.sortSet = false := by simpa using Hif
   wp_apply wp_Limit $$ [$op $Ho] as op
   wp_if_destruct
@@ -135,7 +135,7 @@ theorem Cache.validateGet.wp_proof
     iexists e
     isplitr
     · ipureintro; simp
-    rw [show errorStringSpec e = EtcdGrove.fmt.stringMethodSpec e go!"Error" from rfl]; iexact HeS
+    rw [show errorStringSpec e = _root_.Perennial.fmt.stringMethodSpec e go!"Error" from rfl]; iexact HeS
   have Hlimit : o.limit = W64 0 := Classical.byContradiction fun hne => Hif (by rw [decide_eq_false hne]; rfl)
   wp_apply wp_MinModRev $$ [$op $Ho] as op
   wp_if_destruct
@@ -156,7 +156,7 @@ theorem Cache.validateGet.wp_proof
     iexists e
     isplitr
     · ipureintro; simp
-    rw [show errorStringSpec e = EtcdGrove.fmt.stringMethodSpec e go!"Error" from rfl]; iexact HeS
+    rw [show errorStringSpec e = _root_.Perennial.fmt.stringMethodSpec e go!"Error" from rfl]; iexact HeS
   have HminModRev : o.minModRev = W64 0 := Classical.byContradiction fun hne => Hif (by rw [decide_eq_false hne]; rfl)
   wp_apply wp_MaxModRev $$ [$op $Ho] as op
   wp_if_destruct
@@ -177,7 +177,7 @@ theorem Cache.validateGet.wp_proof
     iexists e
     isplitr
     · ipureintro; simp
-    rw [show errorStringSpec e = EtcdGrove.fmt.stringMethodSpec e go!"Error" from rfl]; iexact HeS
+    rw [show errorStringSpec e = _root_.Perennial.fmt.stringMethodSpec e go!"Error" from rfl]; iexact HeS
   have HmaxModRev : o.maxModRev = W64 0 := Classical.byContradiction fun hne => Hif (by rw [decide_eq_false hne]; rfl)
   wp_apply wp_MinCreateRev $$ [$op $Ho] as op
   wp_if_destruct
@@ -198,7 +198,7 @@ theorem Cache.validateGet.wp_proof
     iexists e
     isplitr
     · ipureintro; simp
-    rw [show errorStringSpec e = EtcdGrove.fmt.stringMethodSpec e go!"Error" from rfl]; iexact HeS
+    rw [show errorStringSpec e = _root_.Perennial.fmt.stringMethodSpec e go!"Error" from rfl]; iexact HeS
   have HminCreateRev : o.minCreateRev = W64 0 := Classical.byContradiction fun hne => Hif (by rw [decide_eq_false hne]; rfl)
   wp_apply wp_MaxCreateRev $$ [$op $Ho] as op
   wp_if_destruct
@@ -219,7 +219,7 @@ theorem Cache.validateGet.wp_proof
     iexists e
     isplitr
     · ipureintro; simp
-    rw [show errorStringSpec e = EtcdGrove.fmt.stringMethodSpec e go!"Error" from rfl]; iexact HeS
+    rw [show errorStringSpec e = _root_.Perennial.fmt.stringMethodSpec e go!"Error" from rfl]; iexact HeS
   have HmaxCreateRev : o.maxCreateRev = W64 0 := Classical.byContradiction fun hne => Hif (by rw [decide_eq_false hne]; rfl)
   have hu : o.getUnsupported = false := by simp [OpModel.getUnsupported, HcountOnly, HprevKV, HsortSet, Hlimit, HminModRev, HmaxModRev, HminCreateRev, HmaxCreateRev]
   wp_apply wp_string_to_bytes key as %ssl ⟨Hssl, -⟩

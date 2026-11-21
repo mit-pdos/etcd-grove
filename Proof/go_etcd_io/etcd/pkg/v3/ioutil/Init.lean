@@ -14,6 +14,7 @@ public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.io.Link
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Init
 public import Perennial.Proof.errors.NewVar
+public import Proof.fmt.OutLemmas
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -64,18 +65,14 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of defaultBufferBytes))
   -- translated initializer of ErrShortRead))
   try wp_auto
-  -- `fmt.Errorf("ioutil: short read")`: no verb, Go returns `errors.New` of the format, as Perennial's model
-  wp_func_call
-  wp_call
-  try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrShortRead #MErrShortRead
+  -- `fmt.Errorf("ioutil: short read")`: no verb, Go returns `errors.New` of the format
+  wp_apply (EtcdGrove.fmt.wp_Errorf_noPct _ _ (by decide)) $$ [] as %xErrShortRead ⟨#MErrShortRead, -⟩
+  · iframe #; iapply ownSlice_nil
   -- translated initializer of ErrExpectEOF))
   try wp_auto
-  -- `fmt.Errorf("ioutil: expect EOF")`: no verb, Go returns `errors.New` of the format, as Perennial's model
-  wp_func_call
-  wp_call
-  try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrExpectEOF #MErrExpectEOF
+  -- `fmt.Errorf("ioutil: expect EOF")`: no verb, Go returns `errors.New` of the format
+  wp_apply (EtcdGrove.fmt.wp_Errorf_noPct _ _ (by decide)) $$ [] as %xErrExpectEOF ⟨#MErrExpectEOF, -⟩
+  · iframe #; iapply ownSlice_nil
   ipersist HdefaultBufferBytes
   iframe Hown
   imodintro

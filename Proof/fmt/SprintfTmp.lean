@@ -58,7 +58,7 @@ theorem fmt.wp_SprintfTmp (n : w64) (sl : GoSlice) (dq : DFrac) :
     {{ (r : GoString), RET #r; sl ↦*{dq} [interface.mkOk go.int #n] ∗
         ⌜r = _root_.Perennial.fmt.decimal (sint.Z n) ++ go!".tmp"⌝ }} := by
   iintro %Φ ⟨#Hpkg, Hsl⟩ HΦ
-  wp_apply _root_.Perennial.fmt.wp_Sprintf go!"%d.tmp" sl [interface.mkOk go.int #n] dq
+  wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf go!"%d.tmp" sl [interface.mkOk go.int #n] dq
     (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (_root_.Perennial.fmt.IntArgValue.int n)
       _root_.Perennial.fmt.ArgsWf.nil) $$ [$Hsl] as %r ⟨Hsl, %hr⟩
   iapply HΦ

@@ -313,7 +313,7 @@ theorem raftNode.processMessages.wp_proof
           isplitr
           · ipureintro; rfl
           iintro %asl ⟨Hasl, -⟩
-          wp_apply _root_.Perennial.fmt.wp_Sprintf _ _ _ (DFrac.own 1)
+          wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ (DFrac.own 1)
             (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (_root_.Perennial.fmt.IntArgValue.uint64 to)
               _root_.Perennial.fmt.ArgsWf.nil) $$ [$Hfmt $Hasl] as %str -
           wp_apply wp_String _ _ $$ [$Hzap] as %f0 -
