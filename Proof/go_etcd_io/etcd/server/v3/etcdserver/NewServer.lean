@@ -824,7 +824,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · iPkgInit
   ihave #Hisl := lease.isLessor_of_lessorInv h49 h50 h51 h52 lp γl $$ [$Hlspkg $Hlinv]
   -- the lessor's reader slots: one for the store, one for the apply thread's lease owner (D14i)
-  icases replicate_take1 _ _ hM1 $$ Hlrd with ⟨Hlrd, Hlrds⟩
+  icases replicate_take1 _ _ (by omega) $$ Hlrd with ⟨Hlrd, Hlrds⟩
   icases replicate_take1 _ _ (by omega) $$ Hlrds with ⟨Hlrd2, Hlrds⟩
   -- (the lease-src plan) the rest in the lessor's reader pool, which the lease service's calls
   -- borrow from with their thread tokens (`threadBound GF ≤ 2 ^ 28`)

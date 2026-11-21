@@ -2,7 +2,17 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-axiom backend.backend.Snapshot.wp_proof : backend.backend.Snapshot.spec
+theorem backend.backend.Snapshot.wp_proof [go_etcd_io.bbolt.Assumptions]
+    [go_uber_org.zap.Assumptions] [time.Assumptions] [github_com.dustin.go_humanize.Assumptions]
+    (hCommit : backend.batchTxBuffered.Commit.specCnt) (hBegin : ∀ [inst : ExtSemantics Fs.fsExt]
+    [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions],
+    bbolt.DB.Begin.spec) (hError : zap.Error.spec) (hFatal : zap.Logger.Fatal.spec) (hSize : ∀ [inst
+    : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
+    [os.fileStat.FieldAssumptions], bbolt.Tx.Size.spec) (hNow : time.Now.spec) (hNewTicker :
+    time.NewTicker.spec) (hStop : time.Ticker.Stop.spec) (hSince : time.Since.spec) (hDuration :
+    zap.Duration.spec) (hInt64 : zap.Int64.spec) (hBytes : go_humanize.Bytes.spec) (hString :
+    zap.String.spec) (hWarn : zap.Logger.Warn.spec) (hSeconds : time.Duration.Seconds.spec) :
+    backend.backend.Snapshot.spec
   -- `Perennial.EtcdGrove.backend.backend.Snapshot.spec`, unfolded:
   ∀ [ThreadBoundLe GF (2 ^ 29)] (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) (b : Loc) (qo : Qp)
     (R : IProp GF)

@@ -654,7 +654,8 @@ theorem backend.dl_not_of_above {P : backend.BParams} {st : backend.BSess} {vd :
     (n, k) = none
 
 def backend.cmtBody (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) : IProp GF :=
-  iprop((∃ Dc, backend.dbHalf γ.db Dc ∗ backend.cmtRegs γ P W Pk Dc) ∨ backend.bStopped γ)
+  iprop((∃ Dc, backend.dbHalf γ.db Dc ∗ backend.fkRd γ P (Dc, { bks := ∅, ver := W64 0 }) ∗ backend.cmtRegs γ P W Pk Dc) ∨
+      backend.bStopped γ)
 
 def backend.rtCore (γ : backend.BNames) (P : backend.BParams) (rt : Loc) (q : Qp) (rd :
     backend.RdSt) (rv : backend.RView) (cm : GoMap) (H : GMap (w64 × Nat) backend.RView) (p : Qp :=
