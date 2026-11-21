@@ -214,13 +214,13 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   (try wp_auto)
   -- `newRaftNode(cfg)`
   wp_apply (wp_newRaftNode E γr cv.ID' nn pre bv.storage' γs K ν ss
-    (raftNodeConfig.mk bv.lg' _ (interface.mkOk (go.GoType.PointerType node.ty) #nn) bv.storage' st
+    (raftNodeConfig.mk bv.replayTerms' bv.lg' _ (interface.mkOk (go.GoType.PointerType node.ty) #nn) bv.storage' st
       bv.heartbeat' GoInterface.nil) bt.a0 bt.t0 bt.P bt.commit0 bt.snap0) $$ []
     as %r ⟨%γw, %Hγw, Hbuilt⟩
   · iframe #
     ipureintro; exact ⟨Hhb, bt.P_prefix⟩
   (try wp_auto)
-  ihave Hb : b ↦{dq} bv $$ [lgB heartbeatB peersB configB storageB]
+  ihave Hb : b ↦{dq} bv $$ [replayTermsB lgB heartbeatB peersB configB storageB]
   · iapply typedPointsto_combine _ _ _ Hbnn
     simp only [TypedPointsto.typedPointstoDef, named]
     iframe

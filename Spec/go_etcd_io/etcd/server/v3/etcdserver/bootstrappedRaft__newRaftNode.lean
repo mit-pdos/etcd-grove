@@ -125,7 +125,7 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
         isRNIDRemoved f ∗ isWalStorage st γw.wal.h γw.ss ∗ walStorRd st γw.wal.h ∗ walStorRd st γw.wal.h ∗
         -- (restart S3 items 5-6) its `cum` at the boot's start log `bt.P` (`[]` fresh)
         rnBuilt E γw r
-          (raftNodeConfig.mk bv.lg' f (interface.mkOk (go.GoType.PointerType node.ty) #n)
+          (raftNodeConfig.mk bv.replayTerms' bv.lg' f (interface.mkOk (go.GoType.PointerType node.ty) #n)
             bv.storage' st bv.heartbeat' GoInterface.nil) bt.P ∗
         -- the receiver and (2026-11-05: until then kept, as the node API's `StartNode` did until
         -- it gave it back) the peers' slice
