@@ -64,7 +64,7 @@ theorem rwmutex_init_wlocked {E : CoPset} (N : Namespace) (rw : Loc) :
       ({ «_#0'» := zero_val _, v' := W32 (-(1073741824 : Int)) } : sync.atomic.Int32) from rfl,
     show rwW.readerWait' =
       ({ «_#0'» := zero_val _, v' := W32 0 } : sync.atomic.Int32) from rfl,
-    show rwW.w' = true from rfl]
+    show rwW.w' = ({ «_#0'» := zero_val _, mu' := true } : sync.Mutex) from rfl]
   imod ownTokAuth_alloc (GF := GF) with ⟨%γread_wait, Hread_wait⟩
   imod ownTokAuth_alloc (GF := GF) with ⟨%γrlock, Hrlock⟩
   imod ownTokAuth_add (Int.toNat rwmutex.actualMaxReaders) γrlock 0 $$ Hrlock with ⟨Hrlock, Htoks⟩
@@ -82,8 +82,9 @@ theorem rwmutex_init_wlocked {E : CoPset} (N : Namespace) (rw : Loc) :
   imod sync.init_sema (E := E) (N.@"sema") (rwmutex.RWWriterSem rw) (W32 0) $$ writerSem
     with ⟨%γws, #Hws, Hws_own⟩
   let γ : rwmutex.RWMutexNames := ⟨⟨γread_wait, γrlock, γwl, γwt, γst⟩, γrs, γws⟩
+  iStructNamedSuffix w "_w"
   imod init_lock_locked (ghostVar γwl (1 : Qp).half (WlockState.NotLocked (W32 0))) E
-    (rwmutex.RWW rw) $$ w with ⟨#Hmu, Hown⟩
+    (structFieldRef sync.Mutex go!"mu" (rwmutex.RWW rw)) $$ mu_w with ⟨#Hmu, Hown⟩
   imod ownToks_0 (GF := GF) γrlock with H0
   ihave Hprot : rwmutex.ownRWMutexInvariant (GF := GF) γ.protGn (W32 0) (W32 0)
       (W32 (-(1073741824 : Int))) (W32 0) rwmutex.Locked $$ [Hread_wait Hwl_inv Hrlock H0 Hwt]

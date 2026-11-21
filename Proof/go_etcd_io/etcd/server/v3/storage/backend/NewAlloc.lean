@@ -533,7 +533,7 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
     -- (backend-snapshot B3) `b.mu`'s other read slots, one for each reader's token
     bmStock b db ∗ isDB db γd ∗
     dbFile db γd path ∗
-    muOf t ↦ (false : Bool) ∗ txFOf t ↦ wtx ∗ pendOf t ↦ (W64 0) ∗ delOf t ↦ (W64 0) ∗
+    muOf t ↦ (zero_val sync.Mutex) ∗ txFOf t ↦ wtx ∗ pendOf t ↦ (W64 0) ∗ delOf t ↦ (W64 0) ∗
     ownWB (wbOf t) ⟨∅, ∅⟩ ∗ bF go!"txPostLockInsideApplyHook" b ↦ func.nil ∗
     ownDB db γd D ∗ dbHalf γd D ∗ ownWTx wtx γd D D ∗ txDB wtx γd db ∗
     sync.rwmutex.isRWMutex (rmuOf (baseOf rt)) γrw (nroot.@"rw") ∗
@@ -548,7 +548,7 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
     ownMap m (DFrac.own 1) (∅ : GMap w64 Loc) ∗
     rbktOf (baseOf rt) ↦ cm ∗ ownMap cm (DFrac.own 1) (∅ : GMap w64 Loc) ∗
     tm ↦ (zero_val sync.RWMutex) ∗
-    cmuOf b ↦ (false : Bool) ∗ cbufOf b ↦ Loc.null ∗ cverOf b ↦ (W64 0) ∗
+    cmuOf b ↦ (zero_val sync.Mutex) ∗ cbufOf b ↦ Loc.null ∗ cverOf b ↦ (W64 0) ∗
     isChan sc γsc Unit ∗ ownChan γsc Unit .Idle ∗ isChan dc γdc Unit ∗ ownChan γdc Unit .Idle ∗
     srSlot b ⊢
     |={⊤}=> ∃ γ : BNames, ⌜γ.db = γd⌝ ∗ bFile γ path ∗ newPostK γ P W Pk K b D ∗
