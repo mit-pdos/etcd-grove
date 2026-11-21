@@ -130,14 +130,14 @@ theorem lease.lessor.Grant.wp_proof
   ihave %Hag := leaseFrag_agree γl _ _ _ _ $$ [$Hown $Hg]
   subst Hag
   iunfold lessorExtra at Hx
-  icases Hx with ⟨%dc, %np, %h, %hx, %bl, Hdc, Hnp, Hnot, Hh, Hhq, Hcp, Hmeta, Hbl⟩
+  icases Hx with ⟨%dc, %np, %h, %hx, %bl, Hdc, Hnp, Hnot, Hh, Hhq, Hcp, Hmeta, Hbl, Hdt⟩
   (try wp_auto)
   wp_apply (wp_map_lookup2 LeaseID.ty (go.GoType.PointerType Lease.ty) lm M id) $$ HM as HM
   cases hM : M !! id with
   | some l0 =>
     simp only [Option.getD_some, Option.isSome_some, _root_.decide_true]
     (try wp_auto)
-    ihave Hx : lessorExtra lp M 1 $$ [Hdc Hnp Hnot Hh Hhq Hcp Hmeta Hbl]
+    ihave Hx : lessorExtra lp γl M 1 $$ [Hdc Hnp Hnot Hh Hhq Hcp Hmeta Hbl Hdt]
     · iunfold lessorExtra; iexists dc, np, h, hx, bl; iframe
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hx Hhist]
     · iframe #
@@ -248,7 +248,7 @@ theorem lease.lessor.Grant.wp_proof
       $$ [$Hml $Hmeta]
     ihave #Hls' := (BigSepM.bigSepM_insert (Φ := fun _ x => isLeaseObj (GF := GF) γl x) hM).2
       $$ [$Hlo $Hls]
-    ihave Hx : lessorExtra lp (<[id := l]> M) 1 $$ [Hdc Hnp Hnot Hh Hhq Hcp Hmeta Hbl]
+    ihave Hx : lessorExtra lp γl (<[id := l]> M) 1 $$ [Hdc Hnp Hnot Hh Hhq Hcp Hmeta Hbl Hdt]
     · iunfold lessorExtra; iexists dc, np, h', hx', b; iframe
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hx Hhist]
     · iframe #

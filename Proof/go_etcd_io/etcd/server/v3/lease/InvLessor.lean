@@ -25,6 +25,8 @@ public import Proof.go_etcd_io.etcd.server.v3.lease.Base
 public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.SavedProp
 public import Perennial.Ghost.MonoList
+public import Perennial.Ghost.GhostVar
+public import Perennial.Ghost.Token
 public import Perennial.Proof.ThreadPool
 public import Spec.go_uber_org.zap.Defs
 
@@ -133,9 +135,10 @@ to its item set); (the lease-grant plan's D2, 2026-11-02) and the lessor's **mod
 had (`γr.2.2.2.1`, a ghost variable `U` in halves: `lessorRdBody`'s and the owner's, `leaseEver`);
 (the lease-expiry plan's S2–S4, Q-S6, 2026-11-05) and the TTLs the leases were requested at
 (`γr.2.2.2.2.1`, a ghost map of discarded elements, id to requested TTL: `leaseReqIs`, `reqOk`);
-(auth-lease S4 item 7b, 2026-11-17) and the windows' mono-list (`γr.2.2.2.2.2`: `winsOk`, `lastWin`,
-`lessorWinTie`). The mode is `γr.2.2.1`. -/
-abbrev LessorRdNames := GName × GName × Bool × GName × GName × GName
+(auth-lease S4 item 7b, 2026-11-17) and the windows' mono-list (`γr.2.2.2.2.2.1`: `winsOk`, `lastWin`,
+`lessorWinTie`); (prove-ps2-lease, 2026-11-21) and the ghost variable of `demotec`'s value
+(`γr.2.2.2.2.2.2`: `demoteTie`, `demoteOuter`). The mode is `γr.2.2.1`. -/
+abbrev LessorRdNames := GName × GName × Bool × GName × GName × GName × GName
 
 /-- **A snapshot of the lessor**: its lease map (id to `*Lease`), its item map (item to id) and
 (the lease-expiry plan's R5, 2026-11-04) its TTLs (id to the lease's `ttl` field, which `Grant` and
@@ -537,7 +540,7 @@ instance ttlTies_timeless (hs : List LSnap) : Timeless ([∗list] σ ∈ hs, ttl
 /-- **The lessor's windows in its reader-side invariant** (auth-lease S4 item 7b, 2026-11-17): half of the windows'
 list's authority, the list agreeing with the history `hs` (`winsOk`), and every snapshot's items on live leases. -/
 def lessorWinBody (γr : LessorRdNames) (hs : List LSnap) : IProp GF :=
-  iprop(∃ ws : List LWinRec, monoListAuthOwn γr.2.2.2.2.2 (1 : Qp).half ws ∗
+  iprop(∃ ws : List LWinRec, monoListAuthOwn γr.2.2.2.2.2.1 (1 : Qp).half ws ∗
     ⌜winsOk hs ws ∧ ∀ σ ∈ hs, itemsLive σ⌝)
 
 instance lessorWinBody_timeless (γr : LessorRdNames) (hs : List LSnap) :
@@ -1068,18 +1071,66 @@ def leaseMeta (id : w64) (l : Loc) (q : Qp) : IProp GF :=
     (∃ e : _root_.Perennial.time.Time, lsF go!"expiry" l ↦{DFrac.own q.half} e) ∗
     sync.isRWMutexGuard (lsF go!"expiryMu" l) (leaseExpiry l))
 
+/-! ### `demotec`, the primary's channel (prove-ps2-lease, 2026-11-21)
+
+`Promote` makes `demotec` (`make(chan struct{})`, under the write lock), `Demote` closes it and sets
+it to `nil` (under the write lock), `Renew` receives on the value it read under the read lock
+(after releasing it). Nothing is ever sent on it. Each such channel is a broadcast channel of its
+own (`demoteChanInv`: its state in an invariant, so that any receiver can step it; closed at most
+once, by the holder of its token, `token γt`, which the invariant takes at the close). The token of
+the current channel is in an invariant of the lessor (`demoteOuter`), tied to the field's value by
+a ghost variable (`γr.2.2.2.2.2.2`) of which `le.mu` holds half (`demoteTie`): `Demote`, holding the
+whole of it under the write lock, takes the token out, closes, and sets the variable to `nil`
+before storing `nil`. (Not Perennial's `ownBroadcastChan`, which is stated at `HasLC.hasLC` only,
+where the lessor's invariant is at any `hlc`.) -/
+
+/-- **The state of a `demotec` channel** `γc` with close token `γt`: open (nothing is ever sent),
+or closed with the token inside, so a second close is refuted. -/
+def demoteChanInv (γc : ChanNames) (γt : GName) : IProp GF :=
+  iprop(∃ st : ChanState Unit, ownChan γc Unit st ∗
+    (match st with
+      | .Idle | .RcvPending => iprop(True)
+      | .Closed [] => token γt
+      | _ => iprop(False)))
+
+def demoteChanN : Namespace := nroot .@ "lessor_demotec"
+
+def demoteOuterN : Namespace := nroot .@ "lessor_demote"
+
+/-- **A `demotec` channel `c`** (persistent): a channel whose state is `demoteChanInv` at the close
+token `γt`; what a receiver (`Renew`) needs. -/
+def demoteRecv (c : GoChan) (γt : GName) : IProp GF :=
+  iprop(∃ γc : ChanNames, isChan c γc Unit ∗ inv demoteChanN (demoteChanInv γc γt))
+
+instance demoteRecv_persistent (c : GoChan) (γt : GName) :
+    Persistent (demoteRecv (GF := GF) c γt) := by
+  unfold demoteRecv; infer_instance
+
+/-- **The lessor's `demotec` invariant** (ghost variable `γd`): half of the variable at `dc`, and,
+unless `dc` is `nil`, `dc` is a `demotec` channel whose close token is here. -/
+def demoteOuter (γd : GName) : IProp GF :=
+  iprop(∃ dc : GoChan, ghostVar γd (1 : Qp).half dc ∗
+    (⌜dc = chan.nil⌝ ∨ ∃ γt : GName, demoteRecv dc γt ∗ token γt))
+
+/-- **`le.mu`'s share `q` of the `demotec` variable** of the lessor `γl`, at the field's value `dc`,
+and the invariant that holds its other half. -/
+def demoteTie (γl : GName) (q : Qp) (dc : GoChan) : IProp GF :=
+  iprop(∃ γr : LessorRdNames, lessorPinR γl γr ∗ ghostVar γr.2.2.2.2.2.2 q.half dc ∗
+    inv demoteOuterN (demoteOuter γr.2.2.2.2.2.2))
+
 /-- **The lessor's apply-side fields** under `le.mu` at `q`, for its lease map `M`: `demotec`,
 the expiry notifier, the checkpoint heap (a queue of fresh items, any ids), the checkpointer
 `cp`, `nil` (no checkpointer is installed: `NewLessor.spec`; stage B3, 2026-11-12), and every granted lease's `leaseMeta`; (D22 receiver epochs, S7c, 2026-10-23) half the
-fraction of the backend `b` (the other half its user's, `lessorBeOn`: `Recover` replaces it). -/
-def lessorExtra (lp : Loc) (M : GMap w64 Loc) (q : Qp) : IProp GF :=
+fraction of the backend `b` (the other half its user's, `lessorBeOn`: `Recover` replaces it);
+(prove-ps2-lease, 2026-11-21) and the share `q` of `demotec`'s ghost variable at its value (`demoteTie`). -/
+def lessorExtra (lp : Loc) (γl : GName) (M : GMap w64 Loc) (q : Qp) : IProp GF :=
   iprop(∃ (dc : GoChan) (np : Loc) (h : GoSlice) (hx : List (Loc × w64)) (b : GoInterface),
     lF go!"demotec" lp ↦{DFrac.own q} dc ∗
     lF go!"leaseExpiredNotifier" lp ↦{DFrac.own q} np ∗ notifierAt np q ∗
     lF go!"leaseCheckpointHeap" lp ↦{DFrac.own q} h ∗ queueAt h hx q ∗
     lF go!"cp" lp ↦{DFrac.own q} func.nil ∗
     ([∗map] id ↦ l ∈ M, leaseMeta id l q) ∗
-    lF go!"b" lp ↦{DFrac.own q.half} b)
+    lF go!"b" lp ↦{DFrac.own q.half} b ∗ demoteTie γl q dc)
 
 /-- **What `le.mu` guards** at fraction `q`: the lease map `M` (whose domain is the live set
 `L`; the lessor's share of it, `q/2`, and of the ghost map's authority), half of the item map
@@ -1101,7 +1152,7 @@ def lessorMu (lp : Loc) (γl : GName) (q : Qp) : IProp GF :=
     lF go!"rd" lp ↦{DFrac.own q.half} rd ∗
     lessorAuth γl q lp L M ∗ leaseFrag γl q.half L ∗
     ⌜∀ id : w64, id ∈ L ↔ (M.lookup id).isSome⌝ ∗ ⧖ (GMap.size M) ∗
-    ([∗map] _id ↦ l ∈ M, isLeaseObj γl l) ∗ lessorExtra lp M q ∗
+    ([∗map] _id ↦ l ∈ M, isLeaseObj γl l) ∗ lessorExtra lp γl M q ∗
     (∃ (γr : LessorRdNames) (hs : List LSnap), lessorPinR γl γr ∗
       monoListAuthOwn γr.1 q.half.half hs ∗ ⌜∃ T, hs.getLast? = some (M, I, T)⌝))
 
@@ -1177,13 +1228,13 @@ def closerAt (γl γcl : GName) (I : GMap LeaseItem w64) (id : w64) (l : Loc) : 
 
 /-- **The owner's quarter of the windows' list** (auth-lease S4 item 7b, 2026-11-17), whose open window is `w`. -/
 def winOwn (γr : LessorRdNames) (w : Option LWin) : IProp GF :=
-  iprop(∃ ws : List LWinRec, monoListAuthOwn γr.2.2.2.2.2 Qp.quarter ws ∗ ⌜lastWin ws = w⌝)
+  iprop(∃ ws : List LWinRec, monoListAuthOwn γr.2.2.2.2.2.1 Qp.quarter ws ∗ ⌜lastWin ws = w⌝)
 
 /-- **The tie's quarter of the windows' list** (auth-lease S4 item 7b, 2026-11-17; exclusive): `NewLessor` gives it at
 `[]`; the apply loop keeps it in its store invariant, so that the list grows (`win_open`, `win_free`) only with the
 tie's record. -/
 def lessorWinTie (γl : GName) (ws : List LWinRec) : IProp GF :=
-  iprop(∃ γr : LessorRdNames, lessorPinR γl γr ∗ monoListAuthOwn γr.2.2.2.2.2 Qp.quarter ws)
+  iprop(∃ γr : LessorRdNames, lessorPinR γl γr ∗ monoListAuthOwn γr.2.2.2.2.2.1 Qp.quarter ws)
 
 /-- **The lease owner's closers and items** (unit T3, 2026-10-24): for every lease of the live
 set `L`, the closers' map's element (its `*Lease`, which the lessor's map agrees with), the right
@@ -1722,7 +1773,7 @@ theorem leaseOwnW_tie (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (w :
     Ha, %Hlast, HSm, %ws0, Hw, %Hw⟩, %γr', #Hpr', Ht⟩
   ihave %Hr := lessorPinR_agree γl γr γr' $$ [$Hpr $Hpr']
   subst Hr
-  ihave %Hag := monoListAuthOwn_agree γr.2.2.2.2.2 _ _ ws0 ws $$ Hw Ht
+  ihave %Hag := monoListAuthOwn_agree γr.2.2.2.2.2.1 _ _ ws0 ws $$ Hw Ht
   obtain ⟨-, rfl⟩ := Hag
   isplitl [Hf Him HI Hcs Ha HSm Hw]
   · iframe Hf

@@ -60,8 +60,6 @@ axiom go_humanize.Bytes.wp_proof
 axiom goose_adequacy_start
 axiom httpProtoFree
 axiom lease.NewLessor.wp_proof
-axiom lease.lessor.Stop.wp_proof
-axiom lease.lessorStopTok
 axiom mvcc.hashStorage.Store.wp_proof
 axiom netAddrFree
 axiom os.Getenv.wp_proof

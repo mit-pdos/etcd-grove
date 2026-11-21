@@ -7,8 +7,8 @@ lessor (2026-10-13, unit 9 of the backend). Lean-first (no Rocq counterpart); se
 `expiredC` at the server's grant guard, `lease.lessorExpiredC`, D19n, the lease-grant plan's D1)
 meets `lessorOk` at that guard,
 from the specs of `Promote` and
-`Demote` (trust-boundary axioms: float arithmetic, a float-to-integer conversion and `sort.Sort`;
-the close of `demotec`) and the proof of `ExpiredLeasesC`.
+`Demote` (`Promote` a trust-boundary axiom: float arithmetic, a float-to-integer conversion and
+`sort.Sort`; `Demote` proved since prove-ps2-lease, 2026-11-21) and the proof of `ExpiredLeasesC`.
 -/
 module
 

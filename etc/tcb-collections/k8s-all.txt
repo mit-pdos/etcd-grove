@@ -247,10 +247,7 @@ axiom klog.Verbose.Infof.wp_proof
 axiom klog.Warningf.wp_proof
 axiom labels.Everything.wp_proof
 axiom lease.NewLessor.wp_proof
-axiom lease.lessor.Demote.wp_proof
 axiom lease.lessor.Promote.wp_proof
-axiom lease.lessor.Stop.wp_proof
-axiom lease.lessorStopTok
 axiom maps.Clone.wp_proof_strBool
 axiom maps.Equal.wp_proof_strBool
 axiom maps.Keys.wp_proof_objMap

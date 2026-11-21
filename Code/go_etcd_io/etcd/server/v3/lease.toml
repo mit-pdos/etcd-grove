@@ -23,6 +23,8 @@ translate = ["!*",
   "lessor.GetLease", "lessor.Attach", "lessor.Detach", "lessor.Lookup", "lessor.SetRangeDeleter",
   "lessor.isPrimary", "lessor.scheduleCheckpointIfNeeded", "lessor.Grant", "lessor.Revoke", "lessor.Checkpoint",
   "lessor.shouldPersistCheckpoints", "greaterOrEqual", "lessor.Demote", "lessor.ExpiredLeasesC",
+  # (prove-ps2-lease, 2026-11-21) `Stop`, with its body: proved over broadcast channels (`lessorStopTok`)
+  "lessor.Stop",
   "lessor.clearScheduledLeasesCheckpoints", "lessor.clearLeaseExpiredNotifier",
   "NewLease", "Lease.persistTo", "Lease.TTL", "Lease.getRemainingTTL", "Lease.refresh",
   "Lease.forever", "Lease.Keys",

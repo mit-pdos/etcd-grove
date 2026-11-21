@@ -38,7 +38,9 @@ model does not track.
 **Why it is faithful.** `Renew` touches only what `le.mu` guards (`lessorMu`): under `le.mu`'s read
 lock it reads the lease map, `remainingTTL` and `demotec`; outside it, `l.expired()` reads the
 expiry under `l.expiryMu`'s read lock (`Remaining`); it waits on the lease's `revokec`, `demotec`
-and `stopC` (receives only); under `le.mu`'s write lock, which it takes through the guard
+and `stopC` (receives only: `demotec`'s state is in its own invariant, `demoteChanInv`, which the
+lessor's `demoteOuter` gives a receiver of the value read under the lock, `demoteRecv`, and
+`stopC` is a broadcast channel, `lessorStopTok`; prove-ps2-lease, 2026-11-21); under `le.mu`'s write lock, which it takes through the guard
 (`lessorInv`), it reads the lease map again and updates the lease's `expiry` (`refresh`, holding
 `l.expiryMu` too, as `leaseMeta` and `leaseExpiry` split it), `remainingTTL`, and the expiry
 notifier's heap (`RegisterOrUpdate`, `notifierAt`'s shape kept); then `leaseRenewed.Inc()`, a
