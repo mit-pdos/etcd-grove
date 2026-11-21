@@ -134,5 +134,29 @@ theorem snapshot_read_cindex
       iintro Hl
       iapply HΦ $$ Hl
 
+/-- Reading the frozen image leaves the snapshot share available to the streaming reader. -/
+theorem snapshot_read_cindex_open
+    (hRead : schema.UnsafeReadConsistentIndex.spec (GF := GF) (hG := hG))
+    (hUR : backend.snapshot.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    (sp : Loc) (γ : GName) (D : Data) (q : Qp) (m : MetaCI) (hm : metaIs D m) :
+    ⊢ ∀ Φ : val → IProp GF,
+      (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+        isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ snapOpenQ sp D γ q) -∗
+      (snapOpenQ sp D γ q -∗ Φ (PairV #m.1 #(if m.1 = W64 0 then W64 0 else m.2))) -∗
+      WP (App (Val (@! schema.UnsafeReadConsistentIndex))
+        (Val #(interface.mkOk (go.GoType.PointerType snapshot.ty) #sp))) {{ Φ }} := by
+  iintro %Φ ⟨#Hbe, #Hschema, Hsnap⟩ HΦ
+  iunfold snapOpenQ at Hsnap
+  icases Hsnap with ⟨%tx, %γd, #Hfields, Hshare, Htx⟩
+  iapply snapshot_read_cindex hRead hUR hID hName hSafe sp tx γ γd D q m hm $$ %Φ [$Hbe $Hschema $Hfields $Htx]
+  iintro Htx
+  iapply HΦ
+  iunfold snapOpenQ
+  iexists tx, γd
+  iframe Hfields Hshare Htx
+
 end EtcdGrove
 end Perennial
