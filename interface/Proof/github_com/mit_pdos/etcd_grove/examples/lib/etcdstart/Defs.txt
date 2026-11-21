@@ -191,7 +191,7 @@ theorem etcdstart.memberBootOn_cmp [v3rpc_sem :
     cmp m ⊢ ⌜E₀.cmp = cmp⌝ ∗ etcdstart.memberBootOn γ ctxs ρ E₀ Φs id cmp m
 
 def etcdstart.commonPremises : IProp GF :=
-  iprop(rnLoggerZapOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk)
+  iprop(rnLoggerZapOk ∗ rnTimeoutDetectorOk)
 
 def etcdstart.bootPremise (N : Nat) (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8))
     (dir : w64 → List GoString) (token name : GoString) (Uok : BootURLs → Prop) (id : w64) : IProp

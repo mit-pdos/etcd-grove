@@ -1,6 +1,20 @@
 # wal-nostorageok handoff
 
-## START HERE (2026-11-21, after approval) — option (A) applied, unbuilt; next: seed, build, fix, gates
+## START HERE (2026-11-21, land stop) — built, gates; waiting for the coordinator's landing
+
+- Branch `wal-nostorageok` (lean `88c3789867` merged; do NOT merge newer lean: the coordinator lands it through
+  the land queue). Full build `20261121-184401-2304981` green; `etc/gates.sh` (see the report for the run).
+- Done: option (A) (approved, `questions.md` Q1). The law linked into `newRaftNode` (`=rnNewStorageOk_law_holds~
+  raftpb.SnapshotMetadata.wp_GetIndex`); `os.file`/`os.fileStat` `FieldAssumptions` in gen-link's `SEM_PREMISES`
+  (a proof's section variable, or an `=` callee's module's); hand-written linking theorems that reach
+  `newRaftNode` take them per theorem (drivers' `Main`/`MainLinked`/`Results`, etcd/all, k8s/all, k8s etcd3 and
+  compactor, `server_raft_node_start`, `server_new_auth_on`); closed statements changed: `etcd_robust.spec`/
+  `etcd_safe`, `etcd_leaseexpiryN_robust.spec`/`etcd_leaseexpiryN_safe`, `k8s_robust.spec`/`k8s_safe`.
+- Trust base: 503 axioms, 0 sorries, unchanged. Collections `etcd-all`, `k8s-all`, `leaseexpiryN` +9 axioms each
+  (the WAL proof's existing axioms, now reached instead of the opaque premise), updated with `--check --update`.
+- Interfaces: etcdstart's `Defs`/`OneMember` regenerated. STATUS entry written.
+
+## Earlier: START HERE (2026-11-21, after approval) — option (A) applied, unbuilt; next: seed, build, fix, gates
 
 - Approved by the user 2026-11-21 via etcd-grove-03 (option (A), `questions.md` Q1): the closed statements
   bind `[os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]` in place of `rnNewStorageOk`; continue through
