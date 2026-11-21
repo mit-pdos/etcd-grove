@@ -228,6 +228,7 @@ theorem chanBag_nbRecv (γ : ChanNames) (ch : Loc) (P : Loc → IProp GF)
     isChanBag γ ch P ⊢ (∀ v, P v -∗ Φ v true) -∗ nonblockingRecvAuInner γ Loc Φ := by
   rw [isChanBag_unseal]; unfold isChanBagDef nonblockingRecvAuInner
   iintro ⟨-, #Hinv⟩ HΦ
+  iapply ncfupd_of_fupd
   iinv Hinv with Hi Hclose
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask

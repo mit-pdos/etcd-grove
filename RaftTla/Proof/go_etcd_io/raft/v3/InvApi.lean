@@ -1607,9 +1607,10 @@ variable (γc : ChanNames) (V : Type) [Pos.Countable V] [ZeroVal V]
 theorem recvNestedAu_wand_fupd (Φ1 Φ2 : V → Bool → IProp GF) :
     ⊢ recvNestedAu γc V Φ1 -∗ (∀ v ok, Φ1 v ok ={⊤}=∗ Φ2 v ok) -∗ recvNestedAu γc V Φ2 := by
   unfold recvNestedAu
-  iintro Hau Hw
-  imod Hau with Hau
+  iintro Hau Hw Hnc
+  imod Hau $$ Hnc with ⟨Hnc, Hau⟩
   imodintro
+  iframe Hnc
   inext
   icases Hau with ⟨%s, Hoc, Hcont⟩
   iexists s
@@ -1623,9 +1624,10 @@ theorem recvNestedAu_wand_fupd (Φ1 Φ2 : V → Bool → IProp GF) :
 theorem recvAu_wand_fupd (Φ1 Φ2 : V → Bool → IProp GF) :
     ⊢ recvAu γc V Φ1 -∗ (∀ v ok, Φ1 v ok ={⊤}=∗ Φ2 v ok) -∗ recvAu γc V Φ2 := by
   unfold recvAu
-  iintro Hau Hw
-  imod Hau with Hau
+  iintro Hau Hw Hnc
+  imod Hau $$ Hnc with ⟨Hnc, Hau⟩
   imodintro
+  iframe Hnc
   inext
   icases Hau with ⟨%s, Hoc, Hcont⟩
   iexists s

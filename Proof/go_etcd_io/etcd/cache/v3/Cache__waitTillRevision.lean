@@ -77,7 +77,7 @@ theorem Cache.waitTillRevision.wp_proof
   wp_apply time.wp_Now as %t0 -
   ihave #Hcfg' := Hcfg
   iStructNamedPrefix Hcfg' "Cfg"
-  wp_apply time.wp_After as %tch %γt #Htch
+  wp_apply (time.After.spec_pkgInit time.wp_After _) as %tch %γt #Htch
   ipersist c
   ipersist ctx
   ipersist timeoutCh

@@ -153,7 +153,7 @@ theorem consume.wp_proof
     iexact HStopW
   wp_if_destruct
   · -- stalled: wait `hiccupDuration`, no events
-    wp_apply wp_After as %ach %γa #Ha
+    wp_apply (time.After.spec_pkgInit wp_After _) as %ach %γa #Ha
     wp_apply (wp_bag_receive γa ach (fun _ : time.Time => iprop(True))) $$ [$Ha] as %_ -
     (try wp_auto)
     wp_apply wp_Stop $$ [] as %_ -
@@ -236,7 +236,7 @@ theorem consume.wp_proof
       · wp_auto
         wp_if_destruct <;> ((try wp_auto); wp_join_done)
     wp_if_destruct
-    · wp_apply (lc := 2) wp_After as %ach %γa #Ha
+    · wp_apply (lc := 2) (time.After.spec_pkgInit wp_After _) as %ach %γa #Ha
       wp_apply_core (wp_select_bag_bag tch γt ach γa) $$ Htb Ha [$Hlc1 $Hlc2]
       isplit
       · iintro %_

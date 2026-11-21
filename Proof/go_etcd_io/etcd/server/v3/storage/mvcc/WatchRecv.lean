@@ -297,6 +297,7 @@ theorem watch_recv_au (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (received
       recvAu γc.ch WatchResponse Φ := by
   iintro #Hinv Hcons HΦ
   unfold recvAu
+  iapply ncfupd_of_fupd
   iinv Hinv with Hi Hclose
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
@@ -407,6 +408,7 @@ theorem watch_recv_au (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (received
       exact ⟨Hpre, by simpa [chanInflight] using Hinfl, Hnd⟩
     imodintro
     unfold recvNestedAu
+    iapply ncfupd_of_fupd
     iinv Hinv with Hi Hclose
     all_goals first | (solve_ndisj; done) | skip
     iapply fupd_mask_intro Std.LawfulSet.empty_subset
@@ -503,6 +505,7 @@ theorem watch_tryrecv_au_alt (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (r
       nonblockingRecvAuAlt γc.ch WatchResponse Φ Ψ := by
   iintro #Hinv Hcons #Hl0 #Hn0 HK
   unfold nonblockingRecvAuAlt
+  iapply ncfupd_of_fupd
   iinv Hinv with Hi Hclose
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
