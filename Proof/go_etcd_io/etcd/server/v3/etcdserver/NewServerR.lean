@@ -1596,9 +1596,9 @@ theorem NewServer.wp_proofRG
   ihave %HlastT := restart_lastTerm γ A σ (by omega) (walReadFacts_F3 σ Hwrf) $$ [HA0 Hcert]
   · iframe HA0 Hcert
   ihave ⟨%msR, #HmsR, HsnapR⟩ := restart_snapOnceR h85 _ γrn (srvRAddr s) bv.storage' γs σ cs
-      ρ.rd.raft A Hrn7 (by omega) (by rw [HρRaft]; exact Hcsv) (by rw [HρRaft]; exact Hcfg20)
+      ρ.rd.raft A Hrn7 Hrns0 (by omega) (by rw [HρRaft]; exact Hcsv) (by rw [HρRaft]; exact Hcfg20)
       $$ Hpkg Hrn [] Hmsnone
-  · rw [Hrn1]; iexact Hminv
+  · rw [Hrn1]; iExactEq Hminv; rfl
   ihave #Hrn' := Hrn
   iunfold isRaftNode at Hrn'
   iNamedPrefix Hrn' "N"

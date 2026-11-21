@@ -119,6 +119,18 @@ some current backend's ghost variable. -/
 def srvBemuReader (s : Loc) : IProp GF :=
   iprop(∃ γbe : GName, srvBemuReaderAt s γbe)
 
+/-- The outgoing snapshot channel and storage certificate of the node whose
+Ready batch the apply worker received. -/
+def srvMergeAttachment (s : Loc) (rd : ReadNames) (γ : RNNames GF) : IProp GF :=
+  letI := srvStor (GF := GF) γ.node
+  iprop(∃ chan pin, rnMsgSnapCAddr (srvRAddr s) ↦□ chan ∗ isRNMsgSnapC γ chan ∗
+    dghostVar pin DFrac.discard γ.nl ∗ nodeTagPin γ.node.cl γ.nl
+      (fun sv => iprop(snapshotValid γ.node.cl sv ∗ srvStoredOrigin γ.node.cl rd.applied pin γ.snap0 sv)))
+
+instance (s : Loc) (rd : ReadNames) (γ : RNNames GF) :
+    Persistent (srvMergeAttachment (GF := GF) s rd γ) := by
+  unfold srvMergeAttachment; infer_instance
+
 /-- **The server, as `applyAll` sees it** (persistent; see the file header). -/
 def isServerApplyAll (s : Loc) (γr : ReadNames) : IProp GF :=
   iprop(∃ (wt : GoInterface) (msc : Loc) (sc : w64),
@@ -171,7 +183,7 @@ server (its registry, `srvClusterOk`) and a committed log `A` of length `ai` who
 def srvSnapStor (ms : Loc) (γs : MemStorNames) (γr : ReadNames) (nk : GName) (ai at' : w64) :
     IProp GF :=
   letI : MemStorReg GF := ⟨γr.raft.raft.reg⟩
-  iprop(memStorInv ms γs γr.raft.raft.cl nk ∗ nodeCommitLb γr.raft.raft.cl nk (uint.nat ai) ∗
+  iprop(srvCreateMem ms γs γr.raft.raft.cl nk γr.applied ∗ appliedAtLeast γr ai ∗ nodeCommitLb γr.raft.raft.cl nk (uint.nat ai) ∗
     srvRaftLogInv γr.raft ∗
     ∃ A : List EntryModel, srvRLogLb γr.raft A ∗ ⌜uint.Z ai = A.length ∧ lastTermIs A at'⌝)
 
