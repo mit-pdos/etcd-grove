@@ -3327,22 +3327,28 @@ SPECIAL[_ZC]['doc'] = SPECIAL[_ZC]['doc'].replace("Its fact is `True`.", "Its fa
 SPECIAL[_ZC]['finish'] = ['ipersist HDefaultClock'] + FIN_PRE[:6] + [
     'imodintro', f'iexists (zero_val {_ZC}.systemClock)', 'itrivial']
 # (prove-initleft, 2026-11-21) zap's package variables, translated but `_minTimeInt64`/`_maxTimeInt64`
-# (Perennial's `time.Unix` is names only) and `_sinkRegistry`
+# (Perennial's `time.Unix` is names only) and `_sinkRegistry`; (prove-srvloops2, 2026-11-21)
+# `_minTimeInt64`/`_maxTimeInt64` translated (`time.Unix`), held by zap's fact (`zap.Time` reads them)
 _Z = 'go_uber_org.zap'
 _ZENC = (f'(go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.{_ZC}.EncoderConfig.ty] false '
          f'[_root_.Perennial.{_ZC}.Encoder.ty, go.error]))')
 SPECIAL[_Z] = newvars_cfg(dict(
-    doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+    doc='''Its fact: `_minTimeInt64` and `_maxTimeInt64` hold fixed times (prove-srvloops2, 2026-11-21: `zap.Time`
+compares with them; until then `True`). Its initializer initializes its imports, allocates its variables and runs
 their translated initializers (prove-initleft, 2026-11-21; until then the trust-boundary axiom
 `opaqueInitsOk` covered them all): `errNoEncoderNameSpecified` (`errors.New`), the encoder constructors (a
 map literal of two func literals), `_errArrayElemPool` (`pool.New`, proved), `_globalL = NewNop()`
 (`zapcore.NewNopCore()`, `zapcore.AddSync(io.Discard)` over any writer, `zapcore.DefaultClock` from
 zapcore's fact), `_globalS = _globalL.Sugar()` (a copy of the logger) and the interface assertion
-`var _ internal.LeveledEnabler = AtomicLevel{}`; `_minTimeInt64`/`_maxTimeInt64` (`time.Unix`, names only
-in Perennial) and `_sinkRegistry` (`newSinkRegistry`) stay untranslated, `opaqueInitsOk`.''',
+`var _ internal.LeveledEnabler = AtomicLevel{}`, and (prove-srvloops2) `_minTimeInt64`/`_maxTimeInt64`
+(`time.Unix`); `_sinkRegistry` (`newSinkRegistry`) stays untranslated, `opaqueInitsOk`.''',
     alloc_types={'_encoderNameToConstructor': 'Loc', '_errArrayElemPool': 'Loc', '_globalL': 'Loc',
-                 '_globalS': 'Loc'},
+                 '_globalS': 'Loc', '_minTimeInt64': '_root_.Perennial.time.Time',
+                 '_maxTimeInt64': '_root_.Perennial.time.Time'},
+    finish=['ipersist H_minTimeInt64', 'ipersist H_maxTimeInt64'] + FIN_PRE[:6],
     before={
+        '_minTimeInt64': ['try wp_auto', 'wp_apply _root_.Perennial.time.wp_Unix as %tmin -', 'try wp_auto'],
+        '_maxTimeInt64': ['try wp_auto', 'wp_apply _root_.Perennial.time.wp_Unix as %tmax -', 'try wp_auto'],
         '_encoderNameToConstructor': map_lit_steps('Henc', 'GoString', 'GoFunc', 'go.string', _ZENC, 2),
         '_errArrayElemPool': _zc_pool('pea'),
         '_globalL': ['try wp_auto',

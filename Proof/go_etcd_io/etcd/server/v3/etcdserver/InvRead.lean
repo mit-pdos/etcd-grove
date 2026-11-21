@@ -54,6 +54,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvTxn
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.TimeList
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopChan
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeadCheck
 
 @[expose] public section
 
@@ -116,7 +117,9 @@ def srvReadFieldsAt (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (v : ReadFie
     srvStoppingAddr s ↦□ v.stopping ∗ stopChan v.stopping ∗
     -- (the auth-mode merge, 2026-10-29) with auth on, the store's request side bound to the
     -- request's token (`AuthInfoFromCtx.spec`'s gated row)
-    □ (⌜E.authMode.isOn = true⌝ → isReqAuthBound v.auth E.RD E.authMode))
+    □ (⌜E.authMode.isOn = true⌝ → isReqAuthBound v.auth E.RD E.authMode) ∗
+    -- (srvloops2, 2026-11-21) what the leadership check reads (`ensureLeadership`)
+    srvLeadCheckOk s)
 
 instance srvReadFieldsAt_persistent (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
     (v : ReadFields) : Persistent (srvReadFieldsAt s E γr v) := by
