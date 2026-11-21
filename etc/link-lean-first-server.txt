@@ -904,7 +904,7 @@ rafthttp_newStreamHandler:
 rafthttp_newStreamRoundTripper:
 rafthttp_newURLPicker:
 rafthttp_peerStatus__activate: zap_Logger__Info zap_String types_ID__String_ptr prometheus_GaugeVec__WithLabelValues =_root_.Perennial.time.wp_Now
-rafthttp_peerStatus__deactivate: zap_Logger__Warn zap_Logger__Debug zap_String zap_Error types_ID__String_ptr prometheus_GaugeVec__WithLabelValues prometheus_CounterVec__WithLabelValues fmt_SprintfID
+rafthttp_peerStatus__deactivate: zap_Logger__Warn zap_Logger__Debug zap_String zap_Error types_ID__String_ptr prometheus_GaugeVec__WithLabelValues prometheus_CounterVec__WithLabelValues fmt_SprintfArgs types_ID__String
 rafthttp_peerStatus__isActive:
 rafthttp_peer__Pause: rafthttp_streamReader__pause
 rafthttp_peer__Resume: rafthttp_streamReader__resume
@@ -989,7 +989,6 @@ binary_WriteUint8:
 v2stats_FollowerStats__Succ:
 prometheus_GaugeVec__WithLabelValues:
 prometheus_CounterVec__WithLabelValues:
-fmt_SprintfID:
 fmt_SprintfArgs:
 zap_Bool:
 ioutil_NewLimitedBufferReader:
@@ -1015,4 +1014,4 @@ path_lazybuf__string:
 # (revoke-open pass 2, 2026-11-06) the revocation of expired leases (`run`'s expiry arm), and the
 # auth store's `WithRoot` its inner goroutines call
 auth_authStore__WithRoot:
-EtcdServer__revokeExpiredLeases: EtcdServer__GoAttach EtcdServer__Logger EtcdServer__ensureLeadership EtcdServer__MemberID EtcdServer__LeaseRevoke auth_authStore__WithRoot zap_Uint64 zap_String zap_Error zap_Logger__Warn fmt_SprintfID
+EtcdServer__revokeExpiredLeases: EtcdServer__GoAttach EtcdServer__Logger EtcdServer__ensureLeadership EtcdServer__MemberID EtcdServer__LeaseRevoke auth_authStore__WithRoot zap_Uint64 zap_String zap_Error zap_Logger__Warn

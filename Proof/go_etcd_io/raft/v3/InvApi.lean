@@ -2132,7 +2132,7 @@ def readySnap (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeD
       nodeAppliedLbU γ st.key (uint.nat l.snap.Metadata'.Index') ∗
       nodeCommitLbU γ st.key (uint.nat l.snap.Metadata'.Index') ∗
       -- (2026-11-01, J8a) the snapshot local to the node (raft's `snapLocal`, `snapLocalMsg`)
-      snapLocal γ.raft id l.snap.Metadata'.Index' ∗
+      (snapLocal γ.raft id l.snap.Metadata'.Index' ∗ restoredSnapSource γ.raft id (snapId l.snap)) ∗
       -- (2026-11-01, J8b) past the bootstrap log: `restore` takes only an index above the commit
       -- index, which starts at the bootstrap log's length
       ⌜(γ.raft.reBoot.length : Int) < uint.Z l.snap.Metadata'.Index'⌝ ∗
