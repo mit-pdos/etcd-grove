@@ -2,6 +2,7 @@
 /- Lean-first (no Rocq counterpart). -/
 module
 
+public import RaftNoAx.Proof.go_etcd_io.raft.v3.SnapshotHistory
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.RestartNode
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.newNode
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.node__run
@@ -548,8 +549,9 @@ private theorem wp_RestartNode_impl
   imod saved_pred_alloc Cert DFrac.discard trivial
     with ⟨%gsv, #Hsv⟩
   imod saved_pred_alloc (raftSnapCertD (GF := GF) γ.raft) DFrac.discard trivial with ⟨%gk, #Hgk⟩
+  imod snapHistory_alloc (GF := GF) with ⟨%history, Hhistory⟩
   let sn : StorNames :=
-    { ga := ga, gg := gg, gsv := gsv, gd := gdd, gk := gk, a0 := max σ.b (uint.nat cv.Applied'),
+    { ga := ga, gg := gg, gsv := gsv, gd := gdd, gk := gk, history := history, a0 := max σ.b (uint.nat cv.Applied'),
       c0 := σ.commit, ct := restartCt (fp ++ σ.ents) σ.commit, sz := γ.raft.maxData.isSome }
   let σv : StorState :=
     { prev := σ.base, ents := σ.ents, pend := [], fl := σ.base.index', fr := f,
@@ -659,8 +661,8 @@ private theorem wp_RestartNode_impl
     rw [HtrG]; iframe Hnc
     -- the attach: a fresh key recording raft's storage names
     imod dghostVar_alloc (GF := GF)
-      ((sn.ga, sn.gg, sn.gsv, sn.gd, sn.gk, sn.a0, sn.c0, sn.ct, sn.sz) :
-        Nat × Nat × Nat × Nat × Nat × Nat × Nat × List (Nat × w64) × Bool) with ⟨%K, HK⟩
+      ((sn.ga, sn.gg, sn.gsv, sn.gd, sn.gk, sn.a0, sn.c0, sn.ct, sn.sz, sn.history) :
+        Nat × Nat × Nat × Nat × Nat × Nat × Nat × List (Nat × w64) × Bool × Nat) with ⟨%K, HK⟩
     imod dghostVar_persist K 1 _ $$ HK with #HK
     ihave #HKn : storKeyNames (GF := GF) K sn $$ []
     · unfold storKeyNames; iexact HK
