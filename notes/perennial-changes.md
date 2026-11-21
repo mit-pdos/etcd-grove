@@ -3592,3 +3592,26 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
   `type Delim int32`: the same type in Go (an alias), so no program observes a difference.
 - **Proposed (general).** Map the predeclared alias `rune` to `int32` (and `byte` to `uint8`, if not already)
   in `basicLeanType`. **Status.** Recorded only.
+
+## 2026-11-21: extension state access at generation start (`goose_crash_adequacy`; the WAL tester, branch `wal-safe`)
+
+- **Missing.** `goose_crash_adequacy`'s `Hwp` (`Perennial/GooseLang/CrashAdequacy.lean`) makes each
+  generation's WP and crash frame from `P` and `threadTok` alone. It cannot touch the extensions' local
+  interpretation before the WP, though the adequacy proof holds the state interpretation there (after
+  `goose_init`, and after `goose_crash_step`). The Linux file extension's switch to its shared mode
+  (`wp_osShareE`) needs that interpretation, so a program switches at its first step. Its crash frame
+  is fixed before that, gets no later (crashes need not be separated by steps), and so can take nothing
+  the switch made: not the invariants a client allocates in the shared mode (the WAL tester's `TInv`,
+  `walInv`, `durInv`). A crash between generation start and the switch is unprovable for such a client.
+- **Worked around locally.** `GooseLang/Ext/Fs/CrashAdequacyAcc.lean`: a copy of `goose_crash_adequacy`
+  (with `_blang` and `goose_crash_preservation`, at Perennial `d648cfe22`) whose `Hwp` is given
+  `∀ w, extsLocalCtx w ={⊤}=∗ extsLocalCtx w ∗ (WP ∗ crash frame)`, one update of the extensions' local
+  interpretation (`bstate_extsLocal_acc`). Over it, `GooseLang/Ext/Fs/AdequacyShared.lean`'s
+  `fsSQ_crash_adequacyShared` switches every generation before its WP. Untrusted, and `#print axioms` is
+  standard. No statement of any closed theorem changes.
+- **Proposed (general).** The same change in Perennial's `goose_crash_adequacy`, and likewise
+  `goose_adequacy`: `Hwp` takes the extensions' local interpretation for one update. Existing callers
+  adapt by ignoring it (`Hwp … $$ HP Htok` under an `iintro %w Hext; iframe Hext`). The repository's copy
+  then goes.
+- **Status.** Worked around locally (2026-11-21); proposed only. The Perennial branch is for later (the
+  coordinator's (b3)).
