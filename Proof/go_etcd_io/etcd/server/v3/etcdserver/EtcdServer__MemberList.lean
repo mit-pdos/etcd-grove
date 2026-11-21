@@ -33,16 +33,14 @@ theorem EtcdServer.MemberList.wp_proof
   intro s E ρ γr ctx cd tok r lin dq c g Q n
   wp_start as ⟨#Hq, #Hr, #Hlb, #Hctx, #Hlib, #HtokC, HRD, Hlin, Hrr, #Hc, #HsQ, #HdQ⟩
   ihave #Hau : srvAuthAt s E $$ []
-  · iapply (srvAuthAt_of_views s E ρ γr); iframe #
+  · iapply (srvAuthAt_of_viewsM E.authOn s E ρ γr); iframe #
   ihave #Hr' := Hr
-  iunfold isServerRead at Hr'
+  iunfold isServerReadM at Hr'
   icases Hr' with ⟨%vr, Hr'⟩
-  iunfold srvReadFieldsAt at Hr'
+  iunfold srvReadFieldsAtM at Hr'
   icases Hr' with ⟨#Hrd, #HRN, -⟩
-  ihave #Hq' := Hq
-  iunfold isServerReq at Hq'
-  icases Hq' with ⟨⟨%vq, Hq'⟩, -⟩
-  iunfold srvReqFieldsAt at Hq'
+  ihave ⟨⟨%vq, #Hq'⟩, -⟩ := (isServerReqM_split _ _ _ _).1 $$ Hq
+  iunfold srvReqFieldsAtM at Hq'
   icases Hq' with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hcl, -, #Hpeers, -⟩
   iunfold srvPeersOk at Hpeers
   icases Hpeers with ⟨-, #Hrc, -⟩

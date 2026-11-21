@@ -35,6 +35,8 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.wal.TmpClaim
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.LockLemmas
 public import Proof.os.Off
 public import Proof.os.SharedAu
+public import GooseLang.Ext.Fs.PathFitsLemmas
+public import GooseLang.Ext.Fs.FsNoErr
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.createNewWALFile
 public import Spec.os.OpenFileTruncS
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.wal
@@ -65,6 +67,22 @@ theorem pipeTmp_add_two (n : Nat) : pipeTmp (n + 2) = pipeTmp n := by
 theorem pipeTmp_ne_succ (n : Nat) : pipeTmp (n + 1) ≠ pipeTmp n := by
   unfold pipeTmp
   split <;> split <;> first | decide | omega
+
+/-- **The pipeline's error witness** (wal-fsfix2): an error of the pipeline of the directory `dir` comes
+with the file system able to fail there: `dir` does not fit, or the premises do not cover every inode
+and the paths of `dir`'s children (`FsNoErrOn`). A client with the premises at an `IoSet` covering
+them refutes it (`Fs.fsNoErrOn_of`). -/
+def pipeErrW [ExtSemantics fsExt] (dir : GoString) : Prop :=
+  ¬ (DirFits dir ∧ FsNoErrOn (fun p => ∃ b, p = child dir b))
+
+/-- A call on an inode that can fail witnesses the pipeline's error. -/
+theorem pipeErrW_of_ino [ExtSemantics fsExt] {dir : GoString} (h : ¬ FsNoErrIno) : pipeErrW dir :=
+  fun ⟨_, hn⟩ => h (hn.mono fun _ h => h.elim)
+
+/-- A call on a child `b` of `dir` (at most 255 bytes) that can fail witnesses the pipeline's error. -/
+theorem pipeErrW_of_child [ExtSemantics fsExt] {dir b : GoString} (hb : b.length ≤ 255)
+    (h : ¬ (FsNoErrOn (· = child dir b) ∧ PathFits (child dir b))) : pipeErrW dir :=
+  fun ⟨hd, hn⟩ => h ⟨hn.mono fun p hp => ⟨b, hp⟩, pathFits_of_dirFits hd hb⟩
 
 /-- The ghost names and channels of a pipeline. -/
 structure PipeNames where
@@ -145,10 +163,10 @@ def pipeClosedW (γ : PipeNames) : IProp GF := dghostVar γ.a DFrac.discard true
 instance pipeClosedW_persistent (γ : PipeNames) : Persistent (pipeClosedW (GF := GF) γ) := by
   unfold pipeClosedW; infer_instance
 
-/-- `errc`'s value: an error, with the pipeline's resources. -/
+/-- `errc`'s value: an error, witnessed (`pipeErrW`), with the pipeline's resources. -/
 def pipeErrP (R : Roots) (dir : GoString) (dq : DFrac) (j : Ino) (_ : Int) (e : GoInterface) :
     IProp GF :=
-  iprop(⌜e ≠ interface.nil⌝ ∗ pipeLeft R dir dq j)
+  iprop(⌜e ≠ interface.nil ∧ pipeErrW dir⌝ ∗ pipeLeft R dir dq j)
 
 /-- `errc` closed: after a value, nothing; without one, after `Close`, the resources. -/
 def pipeErrR (γ : PipeNames) (R : Roots) (dir : GoString) (dq : DFrac) (j : Ino)

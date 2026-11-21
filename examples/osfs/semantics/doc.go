@@ -70,7 +70,8 @@
 //	locks_ofd.go                  OFD locks per description          OsFd.ofd, LockConflict, LockStep, OfdLock
 //	locks_flock.go                flock locks per description        OsFd.flk, LockStep, flockReq, Flock
 //	locks_flock_vs_ofd.go         the two kinds are independent      LockKind, OsFd.lk, LockConflict
-//	locks_blocking.go             blocking requests wait (or fail)   LockStep (nb)
+//	locks_blocking.go             blocking requests wait (a step     LockStep (nb, self), ErrnoZero "OfdLock",
+//	                              to itself, 2026-11-20) or fail     MapLockOk "Flock"
 //	locks_spurious_eagain.go      EAGAIN with no conflict in the     LockStep (failure arm), Close's comment;
 //	                              model, non-blocking (2026-11-19)   Premises.lean: IoCovers (blocking OFD only),
 //	                                                                 MapLockOk "Flock" (2026-11-20)

@@ -108,7 +108,7 @@ theorem fileutil.wp_ofdTryLockFile
     (by simp [OsFd.lk, openFd])
   wp_apply syscall.FcntlFlock.wp_lock fd (W64 37) flock_ptr w (openFd i (flag ||| W64 0x80000))
     (some true) (.inl rfl) hw.2.1 hw.2.2.1 hw.2.2.2.1 hw.2.2.2.2 (by rw [hw.1]; rfl)
-    (fun _ => hwr) (fun h => by cases h) (fun _ => rfl) $$ [Hinv flock Hfd Ht] as %e ⟨-, Hout⟩
+    (fun _ => hwr) (fun h => by cases h) (fun _ => rfl) $$ [Hinv flock Hfd Ht] as %e ⟨-, -, Hout⟩
   · iframe; isplitl []; iexact Hinv; iexact Ht
   icases fileutil.lockOut_split .ofd fd i flag e $$ Hout with (⟨%he, Hfd, Hk⟩ | ⟨%he, Hfd, Hlt⟩)
   · subst he

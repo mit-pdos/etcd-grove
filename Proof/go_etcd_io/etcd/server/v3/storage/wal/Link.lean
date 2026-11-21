@@ -15,7 +15,7 @@ with no proof and the premises on the model parameters (the client's protobuf la
 `h_errors_IsPathErrnoEof` (6), `h_errors_IsPathErrnoNotExist` (6), `h_errors_IsPathErrnoTerm` (21),
 `h_filepathlite_IsAbs` (10), `h_fmt_ErrorfErrsNot` (7), `h_fmt_ErrorfErrsTerm` (15),
 `h_fmt_SprintfBroken` (3), `h_io_CopyFiles` (1), `h_proto_UnmarshalWalRecordE` (6),
-`h_time_Time_FormatBroken` (3), `h_wal_WAL_cutNoErr` (2), `h_wal_WAL_renameWALUnlock` (3).
+`h_time_Time_FormatBroken` (3), `h_wal_WAL_renameWALUnlock` (3).
 
 `#print axioms` on a result is its trust base (`etc/tcb-report.py`).
 -/
@@ -239,7 +239,6 @@ public import Spec.fmt.ErrorfErrsNot
 public import Spec.fmt.ErrorfErrsTerm
 public import Spec.fmt.SprintfBroken
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.ExistCallees
-public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__cutNoErr
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__renameWALUnlock
 public import Spec.google_golang_org.protobuf.proto.UnmarshalWalRecordE
 public import Spec.internal.filepathlite.IsAbs
@@ -282,6 +281,7 @@ variable [hash.crc32.Assumptions]
 variable [go_etcd_io.etcd.pkg.v3.pbutil.Assumptions]
 variable [go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions]
 variable [FsStepSat (NoIoErr Sio)]
+variable [FsStepSat (NoMapLockErr Sio)]
 
 theorem binary.wp_ReadInt64LE :
     _root_.Perennial.EtcdGrove.binary.ReadInt64LE.spec (GF := GF) (hG := hG) :=
@@ -1111,13 +1111,14 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.wp_encodeTailNoErr
 
 theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_syncCut
     (P : WalPbIn GF) (Mr : WalMarshal) :
-    _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specCut (W := W) P Mr :=
+    _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specCut (W := W) (Sio := Sio) P Mr :=
   _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofCut P Mr
     (_root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_sync P Mr)
+    (_root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_syncNoErr P Mr)
 
-theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_saveCrc :
-    _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.WAL.saveCrc.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.WAL.saveCrc.wp_proof
+theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_saveCrcNE :
+    _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.WAL.saveCrc.specNE (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.WAL.saveCrc.wp_proofNE
     _root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.encoder.wp_encodeGNE
 
 theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.wp_Open :
@@ -1138,17 +1139,11 @@ theorem os.File.wp_WriteAtLong :
     _root_.Perennial.EtcdGrove.os.File.WriteAt.specLong (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.os.File.WriteAt.wp_proof_long
 
-theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.wp_flush :
-    _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.wp_proof
-    _root_.Perennial.sync.Mutex.wp_Lock _root_.Perennial.sync.Mutex.wp_Unlock
-    _root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.wp_FlushNE
-
 theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_syncPreL :
     _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specPreL (GF := GF) :=
   _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofPreL
     _root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_tail
-    _root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.encoder.wp_flush
+    _root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.encoder.wp_flushPNE
     _root_.Perennial.time.wp_Now _root_.Perennial.time.wp_Since
     _root_.Perennial.EtcdGrove.walfs.time.Duration.wp_Seconds_ptr
     _root_.Perennial.EtcdGrove.walfs.zap.wp_Duration
@@ -1158,7 +1153,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_syncPre :
     _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specPre (GF := GF) :=
   _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofPre
     _root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_tail
-    _root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.encoder.wp_flush
+    _root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.encoder.wp_flushPNE
     _root_.Perennial.time.wp_Now _root_.Perennial.time.wp_Since
     _root_.Perennial.EtcdGrove.walfs.time.Duration.wp_Seconds_ptr
     _root_.Perennial.EtcdGrove.walfs.zap.wp_Duration
@@ -1200,9 +1195,9 @@ theorem os.wp_RenameDirSnc :
     _root_.Perennial.EtcdGrove.os.Rename.specDirSnc (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.os.Rename.wp_proofDirSnc
 
-theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_saveCrcNE :
-    _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.WAL.saveCrc.specNE (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.WAL.saveCrc.wp_proofNE
+theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_saveCrc :
+    _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.WAL.saveCrc.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.WAL.saveCrc.wp_proof
     _root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.encoder.wp_encodeGNE
 
 theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_syncIn
@@ -1224,6 +1219,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.wp_createNewWALFile :
 theorem go_etcd_io.etcd.server.v3.storage.wal.wp_createNewWALFileFile :
     _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.createNewWALFile.specFile (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.createNewWALFile.wp_proofFile
+
+theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.wp_flush :
+    _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.wp_proof
+    _root_.Perennial.sync.Mutex.wp_Lock _root_.Perennial.sync.Mutex.wp_Unlock
+    _root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.wp_FlushNE
 
 theorem go_etcd_io.etcd.server.v3.storage.wal.wp_write :
     _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.write.spec (GF := GF) (hG := hG) :=
@@ -1297,6 +1298,7 @@ variable [hash.crc32.Assumptions]
 variable [go_etcd_io.etcd.pkg.v3.pbutil.Assumptions]
 variable [go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions]
 variable [FsStepSat (NoIoErr Sio)]
+variable [FsStepSat (NoMapLockErr Sio)]
 
 theorem filepath.wp_IsAbs
     (h_filepathlite_IsAbs : _root_.Perennial.EtcdGrove.filepathlite.IsAbs.spec (GF := GF) (hG :=
@@ -1659,21 +1661,18 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_saveStatePre
     _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.WAL.saveState.specPre (GF := GF) (hG := hG) P Mr :=
   _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.WAL.saveState.wp_proofPre P
     Mr h_WalPbIn_IsEmptyLaw h_WalPbIn_MarshalHsLaw
-    _root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.encoder.wp_encodeG
+    _root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.encoder.wp_encodeGNE
 
 theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_cut
     (P : WalPbIn GF) (Mr : WalMarshal) (h_WalPbIn_IsEmptyLaw : WalPbIn.IsEmptyLaw P)
     (h_WalPbIn_MarshalHsLaw : WalPbIn.MarshalHsLaw P Mr) :
-    _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.spec (W := W) P Mr :=
+    _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.spec (W := W) (Sio := Sio) P Mr :=
   _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof P Mr
     _root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_tail
     _root_.Perennial.EtcdGrove.walfs.os.File.wp_TruncateAu
     (_root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_syncCut P Mr)
-    (_root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_sync P Mr)
-    (_root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_saveState P Mr
-    h_WalPbIn_IsEmptyLaw h_WalPbIn_MarshalHsLaw)
-    _root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_saveCrc
-    _root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.encoder.wp_encodeG
+    _root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_saveCrcNE
+    _root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.encoder.wp_encodeGNE
     _root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.filePipeline.wp_Open
     _root_.Perennial.EtcdGrove.walfs.os.wp_RenameFileSnc
     _root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.client.pkg.v3.fileutil.wp_FsyncDirS
@@ -1701,9 +1700,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_Save
     (h_WalPbIn_IsEmptyLaw : WalPbIn.IsEmptyLaw P) (h_WalPbIn_MarshalEntLaw :
     WalPbIn.MarshalEntLaw P Mr) (h_WalPbIn_MarshalHsLaw : WalPbIn.MarshalHsLaw P Mr)
     (h_WalPbIn_MustSyncLaw : WalPbIn.MustSyncLaw P) (h_WalPbIn_SizeLaw : WalPbIn.SizeLaw P Mr)
-    (h_WalPbIn_ZeroLaw : WalPbIn.ZeroLaw P) (h_wal_WAL_cutNoErr :
-    _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.specNoErr (W := W)
-    (Sio := Sio) P Mr) :
+    (h_WalPbIn_ZeroLaw : WalPbIn.ZeroLaw P) :
     _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.spec (W := W) (Sio := Sio) P Mr :=
   _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof P Mr
     (_root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_sync P Mr)
@@ -1717,15 +1714,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_Save
     (_root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_saveStateNoErr
     P Mr h_WalPbIn_IsEmptyLaw h_WalPbIn_MarshalHsLaw)
     (_root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_cut P Mr
-    h_WalPbIn_IsEmptyLaw h_WalPbIn_MarshalHsLaw) h_wal_WAL_cutNoErr
+    h_WalPbIn_IsEmptyLaw h_WalPbIn_MarshalHsLaw)
     _root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_tail
     h_WalPbIn_IsEmptyLaw h_WalPbIn_MustSyncLaw h_WalPbIn_ZeroLaw h_WalPbIn_SizeLaw
 
 theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_SaveSnapshot
     (P : WalPbIn GF) (Mr : WalMarshal) (h_WalPbIn_IsEmptyLaw : WalPbIn.IsEmptyLaw P)
-    (h_WalPbIn_MarshalHsLaw : WalPbIn.MarshalHsLaw P Mr) (h_wal_WAL_cutNoErr :
-    _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.specNoErr (W := W)
-    (Sio := Sio) P Mr) :
+    (h_WalPbIn_MarshalHsLaw : WalPbIn.MarshalHsLaw P Mr) :
     _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.spec (W := W) (Sio := Sio) P Mr :=
   _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_proof P
     Mr (_root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_sync P Mr)
@@ -1740,7 +1735,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_SaveSnapshot
     (_root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.pkg.v3.pbutil.wp_MustMarshalMessageWalSnap
     Mr) _root_.Perennial.sync.Mutex.wp_Lock _root_.Perennial.sync.Mutex.wp_Unlock
     (_root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_cut P Mr
-    h_WalPbIn_IsEmptyLaw h_WalPbIn_MarshalHsLaw) h_wal_WAL_cutNoErr
+    h_WalPbIn_IsEmptyLaw h_WalPbIn_MarshalHsLaw)
     _root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_tail
 
 theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_cleanupWAL
@@ -1884,7 +1879,7 @@ theorem wal.wp_Create
     _root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_saveCrc
     _root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.encoder.wp_encodeG
     (_root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_SaveSnapshot P
-    Mr h_WalPbIn_IsEmptyLaw h_WalPbIn_MarshalHsLaw noErr_ioNone)
+    Mr h_WalPbIn_IsEmptyLaw h_WalPbIn_MarshalHsLaw)
     _root_.Perennial.EtcdGrove.walfs.os.File.wp_WriteAtLong
     _root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.client.pkg.v3.fileutil.wp_Fdatasync
     _root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.wp_syncDir
@@ -2030,6 +2025,7 @@ variable [hash.crc32.Assumptions]
 variable [go_etcd_io.etcd.pkg.v3.pbutil.Assumptions]
 variable [go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions]
 variable [FsStepSat (NoIoErr Sio)]
+variable [FsStepSat (NoMapLockErr Sio)]
 
 theorem law_lockKind_agree
     (k1 k2 : LockKind) :

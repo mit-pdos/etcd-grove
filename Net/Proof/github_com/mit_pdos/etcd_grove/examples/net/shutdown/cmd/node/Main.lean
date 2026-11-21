@@ -43,11 +43,10 @@ theorem wp_main
     (γm : GName) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.net.shutdown.cmd.node ∗
         shutInvs (GF := GF) γm ∗
-        netPlan G addr (extLocalGS netExt (L := hG.goose_localGS)).host ∗
-        ⌜(G (GF := GF)).plan !! addr = some (extLocalGS netExt (L := hG.goose_localGS)).host⌝ }}
+        ⌜addrOk addr = true⌝ }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hinvs, #Hplan, %Hpl⟩
+  wp_start as ⟨#Hinvs, %Hpl⟩
   ihave #Hp : (isPkgInit (PROP := IProp GF)
       pkg_id.github_com.mit_pdos.etcd_grove.examples.net.shutdown) $$ []
   · iPkgInit
@@ -59,7 +58,7 @@ theorem wp_main
   icases ed_of_poll $$ Hpoll with ⟨%ed, #Hed⟩
   (try wp_auto)
   wp_apply wp_Run wp_Listen wp_Accept wp_LClose wp_Dial wp_Read wp_Write wp_Close γm eof ed $$ []
-  · iframe Ha Hdown Hplan Heof Hed
+  · iframe Ha Hdown Heof Hed
     ipureintro; exact Hpl
   (try wp_auto)
   iapply HΦ
