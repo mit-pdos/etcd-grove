@@ -1,7 +1,6 @@
 package kvnet
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"time"
@@ -214,12 +213,12 @@ const helloTimeout = time.Second
 // (serveClient), by its first byte.
 func (n *Node) serve(c net.Conn) {
 	var hello [1]byte
-	c.SetReadDeadline(time.Now().Add(helloTimeout))
-	if !readFull(c, hello[:]) {
+	disarm := closeAfter(c, helloTimeout)
+	read := readFull(c, hello[:])
+	if !disarm() || !read {
 		c.Close()
 		return
 	}
-	c.SetReadDeadline(time.Time{})
 	switch hello[0] {
 	case helloPeer:
 		n.t.servePeer(c)
@@ -247,9 +246,9 @@ const maxReqTimeout = 10 * time.Second
 // (no answer: the client tries again, here or elsewhere).
 func (n *Node) serveClient(c net.Conn) {
 	defer c.Close()
-	c.SetReadDeadline(time.Now().Add(helloTimeout))
+	disarm := closeAfter(c, helloTimeout)
 	b, ok := readFrame(c)
-	if !ok || len(b) < 9 {
+	if !disarm() || !ok || len(b) < 9 {
 		return
 	}
 	ms, payload, _ := getUint64(b[1:])
@@ -262,8 +261,9 @@ func (n *Node) serveClient(c net.Conn) {
 	if good {
 		resp = append([]byte{1}, ans...)
 	}
-	c.SetWriteDeadline(time.Now().Add(writeTimeout))
+	disarmW := closeAfter(c, writeTimeout)
 	writeFrame(c, resp)
+	disarmW()
 }
 
 // handle runs one request; false if it has no answer.
@@ -289,7 +289,7 @@ func (n *Node) handle(kind byte, p []byte, timeout time.Duration) ([]byte, bool)
 			return nil, false
 		}
 		n.stats.add(StConfChangesProposed)
-		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		ctx, cancel := withTimeout(timeout)
 		err := n.r.node.ProposeConfChange(ctx, cc)
 		cancel()
 		return nil, err == nil
@@ -299,7 +299,7 @@ func (n *Node) handle(kind byte, p []byte, timeout time.Duration) ([]byte, bool)
 		if !ok1 || !ok2 {
 			return nil, false
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		ctx, cancel := withTimeout(timeout)
 		switch what {
 		case 0:
 			n.r.node.TransferLeadership(ctx, n.r.node.Status().Lead, to)

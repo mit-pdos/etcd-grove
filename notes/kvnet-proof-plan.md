@@ -62,7 +62,13 @@ What is missing, each a gap that would force re-proving if found late:
   "entered" must fire at `durWriteSync`, not at the rename (a crash between them may restore the old
   file). Freeze `persist`'s spec on these two updates so `Replica.run`'s proof sees only an abstract
   persist/`dmu` interface.
-- **D. Where the proof lives and which raft it uses.** To keep the trust base, build on the axiom-free
+- **D. Where the proof lives and which raft it uses.** **Decided (2026-11-21, under the user's
+  "you have a clear goal: prove the theorem"): the axiom-free raft.** Done on the Go side: kvnet is a Go
+  module of its own (`examples/raft/kvnet/go.mod`, raft replaced by `RAFT_NOAX_REV` as kvdurablenoax's,
+  `GO_MOD_PINS`), with kvdurablenoax's substitutions (`pb.CloneConfState`/`CloneSnapshot`,
+  `pb.UnmarshalConfChangeV1/V2`, the timer `withTimeout`), and no clock at all: connection deadlines
+  are timers that close the connection (`timeout.go`, `closeAfter`), so Perennial's `time.Now` axiom
+  is not reached. Was: To keep the trust base, build on the axiom-free
   raft (`RaftNoAx/`), kvnet its own Go module as `kvdurablenoax` is; a part importing RaftNoAx, Net
   and bodied `durable` (reconcile the two `os` inits), or first retire the main tree's names-only
   `net` and trusted `durable`. Copy kvdurable's files with `etc/copy-part.py`, never by hand.
