@@ -41,9 +41,6 @@ axiom go_humanize.Bytes.wp_proof
 axiom grpc.ChainStreamInterceptor.wp_proof
 axiom grpc.ChainUnaryInterceptor.wp_proof
 axiom grpc.CustomCodec.wp_proof
-axiom grpc.GenericServerStream.Context.wp_proof
-axiom grpc.GenericServerStream.Recv.wp_proof
-axiom grpc.GenericServerStream.Send.wp_proof
 axiom grpc.MaxConcurrentStreams.wp_proof
 axiom grpc.MaxRecvMsgSize.wp_proof
 axiom grpc.MaxSendMsgSize.wp_proof
@@ -105,8 +102,10 @@ axiom sort.Sort.wp_anyLess
 axiom sort.Stable.wp_proof
 axiom status.Error.wp_proof
 axiom status.Errorf.wp_proof
+axiom status.FromError.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom strconv.FormatBool.wp_proof
+axiom strings.HasSuffix.wp_proof
 axiom strings.ToLower.wp_proof
 axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.Seconds_ptr.wp_proof
@@ -118,7 +117,6 @@ axiom traceutil.Tracer.Start.wp_proof
 axiom v3rpc.NewMaintenanceServer.wp_proof
 axiom v3rpc.codec_proto
 axiom v3rpc.ctxCauseOk_cancellable
-axiom v3rpc.isClientCtxErr.wp_proof
 axiom v3rpc.logUnaryRequestStats.wp_proof
 axiom v3rpc.pbWatchRequestT_reg
 axiom v3rpc.pbWatchResponseT_reg
