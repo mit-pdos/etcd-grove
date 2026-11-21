@@ -36,6 +36,9 @@ variable [package_sem : typed.Assumptions]
 
 namespace LawBL2
 
+/-- The keys of the shared-order pointers (positions in the right side's keys). -/
+def shKeys (R : List PE) (idxs : List Nat) : List PE := idxs.filterMap (fun i => R[i]?)
+
 /-- A list view's `Length` and `AtUsing`, from the concrete specs of its two dynamic types. -/
 theorem isListV_dispatchU
     (hL : value.listUnstructured.Length.spec (GF := GF))
@@ -128,6 +131,23 @@ theorem itemMap_some (f : PE → Option UVal) (M : PEMap value.Value) (k : PE) (
   · iexfalso; iexact H
   · iexists _; iframe; ipureintro; rfl
 
+/-- A persistent slice of pointers without its first element (`s[1:]`). -/
+theorem ownSlice_tail_pers (so : GoSlice) (x : Loc) (xs : List Loc) :
+    (so ↦*□ (x :: xs) : IProp GF) ⊢ slice.slice so Loc (W64 1) so.len ↦*□ xs := by
+  iintro #H
+  ihave %Hl := ownSlice_len _ _ _ $$ H
+  have h1 : 0 ≤ sint.Z (W64 1) ∧ sint.Z (W64 1) ≤ sint.Z so.len ∧ sint.Z so.len ≤ sint.Z so.len := by
+    simp at Hl; refine ⟨by decide, ?_, Int.le_refl _⟩
+    have := Hl.1; have := Hl.2; word
+  icases (ownSlice_slice (W64 1) so.len so DFrac.discard (x :: xs) h1).1 $$ H with ⟨-, Hm, -⟩
+  have hs : subslice (sint.nat (W64 1)) (sint.nat so.len) (x :: xs) = xs := by
+    simp at Hl
+    have h2 : sint.nat so.len = xs.length + 1 := by have := Hl.1; have := Hl.2; word
+    rw [h2, show sint.nat (W64 1) = 1 from rfl]
+    simp [subslice]
+  rw [hs]
+  iexact Hm
+
 /-- A list side is persistent. -/
 theorem isListO_box (l : value.List') (o : Option (List UVal)) :
     isListO (GF := GF) l o ⊢ □ isListO l o := by
@@ -200,9 +220,6 @@ theorem itemOf_at (ks : List GoString) : ∀ (vs : List UVal), (∀ v ∈ vs, (k
       unfold itemOf at ih ⊢
       simp [List.find?_cons, hk0, hne, ih]
 
-/-- The keys of the shared-order pointers (positions in the right side's keys). -/
-def shKeys (R : List PE) (idxs : List Nat) : List PE := idxs.filterMap (fun i => R[i]?)
-
 theorem itemOf_mem {ks : List GoString} {vs : List UVal} {k : PE} {x : UVal}
     (h : itemOf ks vs k = some x) : x ∈ vs := List.mem_of_find?_eq_some h
 
@@ -223,7 +240,56 @@ theorem mergeF_item (S : Schema) (e : TypeRef) (ks : List GoString) (ls rs : Lis
 
 end LawBL2
 
+namespace LawBL2
+
+/-- An item's merge (`mergeListItem`'s result). -/
+def mItem (S : Schema) (e : TypeRef) (ks : List GoString) (ls rs : List UVal) (pe : PE) : Option UVal :=
+  mergeO S e (itemOf ks ls pe) (itemOf ks rs pe)
+
+/-- The merged list from the merged order. -/
+theorem mergeListOut_eq (S : Schema) (e : TypeRef) (ks : List GoString) (ls rs : List UVal) :
+    mergeListOut (fuelL ls rs) S e ks ls rs =
+      (let out := (mergeKeys (keysOf ks ls) (keysOf ks rs)).filterMap (mItem S e ks ls rs)
+       if out.isEmpty then none else some (.list out)) := by
+  unfold mergeListOut
+  simp only
+  rw [LawB.filterMap_congr_mem _ (fun pe _ => mergeF_item S e ks ls rs pe)]
+  rfl
+
+theorem drop_cons {α : Type} (l : List α) (i : Nat) (x : α) (h : l[i]? = some x) :
+    l.drop i = x :: l.drop (i + 1) := by
+  obtain ⟨hi, rfl⟩ := List.getElem?_eq_some_iff.1 h
+  exact List.drop_eq_getElem_cons hi
+
+theorem drop_nil {α : Type} (l : List α) (i : Nat) (h : l.length ≤ i) : l.drop i = [] :=
+  List.drop_eq_nil_of_le h
+
+/-- The done keys' merges, one more. -/
+theorem fm_snoc {α β : Type} (f : α → Option β) (d : List α) (a : α) :
+    (d ++ [a]).filterMap f = d.filterMap f ++ (f a).toList := by
+  cases h : f a <;> simp [List.filterMap_append, h]
+
+end LawBL2
+
 end proof
+
+section pure
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
+
+namespace LawBL2
+
+/-- The shared-order state: `nextShared` and the rest of `sharedOrder` point at the right side's
+path elements at the positions `idxs` (all in range), whose keys are `sh`. -/
+def shRep (R : List PE) (base : GoSlice) (nsp : Loc) (sps : List Loc) (sh : List PE) : Prop :=
+  ∃ idxs : List Nat, (∀ i ∈ idxs, i < R.length) ∧ shKeys R idxs = sh ∧
+    match idxs with
+    | [] => nsp = null ∧ sps = []
+    | i :: is => nsp = sliceIndexRef fieldpath.PathElement (i : Int) base ∧
+        sps = is.map (fun x : Nat => sliceIndexRef fieldpath.PathElement (x : Int) base)
+
+end LawBL2
+
+end pure
 
 end smd
 end EtcdGrove

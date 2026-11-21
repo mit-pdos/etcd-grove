@@ -314,8 +314,106 @@ theorem typed.mergingWalker.visitListItems.wp_proofBody
       refine ⟨by word, by word, Hj.2.2.1, ?_⟩
       rw [hjn, htk, List.filter_append, ← Hj.2.2.2]
       simp [hkL]
-  · rw [if_neg (by simp [Hif, false_neq_true])]
-    sorry
+  rw [if_neg (by simp [Hif, false_neq_true])]
+  simp only [decide_eq_false Hif, Bool.false_eq_true, ↓reduceIte]
+  have hjR : sint.nat j = R.length := by
+    have h1 := HesRl.1; have h2 := HesRl.2; rw [HpRl] at h1
+    have h3 := Hj.2.1; have : ¬ sint.Z j < sint.Z rpes.len := Hif; word
+  have hsh0 : LawBL2.shKeys R idxs = R.filter (fun k => decide (k ∈ L)) := by
+    rw [Hj.2.2.2, hjR, List.take_length]
+  wp_auto
+  imod ownSlice_persist _ _ _ $$ Hso with #Hso
+  ihave %Hsol := ownSlice_len _ _ _ $$ Hso
+  ihave %Hsowf := ownSlice_wf _ _ _ $$ Hso
+  wp_join (iprop(∃ (nsp : Loc) (sps : List Loc) (so' : GoSlice),
+      nextShared_ptr ↦ nsp ∗ sharedOrder_ptr ↦ so' ∗ so' ↦*{DFrac.discard} sps ∗
+      ⌜LawBL2.shRep (GF := GF) R rpes nsp sps (R.filter (fun k => decide (k ∈ L)))⌝) : IProp GF)
+    at (If _ _ _) with [nextShared sharedOrder] as ⟨%nsp0, %sps0, %so1, nextShared, sharedOrder, #Hso1, %Hsh0⟩
+  · by_cases hnil : idxs = []
+    · have Hsol' := Hsol; have hsh0' := hsh0
+      rw [hnil] at Hsol' hsh0'
+      rw [hnil]
+      have h0 : so.len = W64 0 := by simp at Hsol'; word
+      rw [h0]
+      wp_auto
+      wp_join_done
+      iexists _, [], _
+      iframe
+      simp only [List.map_nil]
+      isplitr
+      · iexact Hso
+      ipureintro
+      exact ⟨[], by simp, hsh0', rfl, rfl⟩
+    · obtain ⟨i0, is, hid⟩ := List.exists_cons_of_ne_nil hnil
+      have Hsol' := Hsol; have hsh0' := hsh0
+      rw [hid] at Hsol' hsh0'
+      rw [hid]
+      have hpos : decide (sint.Z (W64 0) < sint.Z so.len) = true := by
+        simp at Hsol'; simp only [decide_eq_true_eq]; have := Hsol'.1; have := Hsol'.2; word
+      rw [hpos]
+      wp_auto
+      have hb0 : (0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z so.len) := by
+        simp at Hsol'; refine ⟨by decide, ?_⟩; have := Hsol'.1; have := Hsol'.2; word
+      simp only [hb0, and_self, ↓reduceIte]
+      wp_apply (wp_load_slice_index (V := Loc) so (sint.Z (W64 0)) _ DFrac.discard
+        (sliceIndexRef fieldpath.PathElement (i0 : Int) rpes) (by decide)) $$ [Hso] as -
+      · iframe #; ipureintro; rfl
+      try wp_auto
+      have hb2 : (0 ≤ sint.Z (W64 1) ∧ sint.Z (W64 1) ≤ sint.Z so.len ∧ sint.Z so.len ≤ sint.Z so.cap) := by
+        simp at Hsol'; refine ⟨by decide, ?_, Hsowf.2⟩; have := Hsol'.1; have := Hsol'.2; word
+      simp only [hb2, and_self, ↓reduceIte]
+      wp_auto
+      simp only [List.map_cons]
+      ihave #Hso2 := LawBL2.ownSlice_tail_pers so _ _ $$ Hso
+      wp_join_done
+      iexists _, _, _
+      iframe
+      isplitr
+      · iexact Hso2
+      ipureintro
+      exact ⟨i0 :: is, by rw [← hid]; exact Hj.2.2.1, hsh0', rfl, rfl⟩
+  wp_apply h_MakePathElementMap _ $$ [] as %mv0 Hmv0
+  · iframe #; ipureintro; exact HesRl.2
+  try wp_auto
+  ihave HOR : ownPEVMap observedRHS_ptr MR $$ [observedRHS HMR]
+  · unfold ownPEVMap; iexists _; iframe
+  ihave Hown : mwOwn w sc S st sp $$ [Hw Ha Hp Hsp]
+  · unfold mwOwn mwCore
+    iexists ps
+    iframe
+    iframe #
+    ipureintro; exact Hwf
+  ihave HI2 : (∃ (lI rI : w64) (done sh mg : List PE) (MG : PEMap GoInterface) (mv : fieldpath.PathElementMap)
+      (nsp : Loc) (sps : List Loc) (so' osl : GoSlice) (xs : List GoInterface) (spj : Loc),
+      "lI" ∷ lI_ptr ↦ lI ∗ "rI" ∷ rI_ptr ↦ rI ∗
+      "nextShared" ∷ nextShared_ptr ↦ nsp ∗ "sharedOrder" ∷ sharedOrder_ptr ↦ so' ∗ "#Hso'" ∷ so' ↦*□ sps ∗
+      "mergedRHS" ∷ mergedRHS_ptr ↦ mv ∗ "Hmv" ∷ ownPEMapV mv MG ∗
+      "out" ∷ out_ptr ↦ osl ∗ "Hosl" ∷ osl ↦* xs ∗ "Hocap" ∷ ownSliceCap GoInterface osl (DFrac.own 1) ∗
+      "#Hxs" ∷ □ (∀ q : GoInterface × UVal,
+        ⌜q ∈ xs.zip (done.filterMap (LawBL2.mItem S e ks ls rs))⌝ -∗ isIface q.1 q.2) ∗
+      "Hown" ∷ mwOwn w sc S st spj ∗ "HOL" ∷ ownPEVMap observedLHS_ptr ML ∗
+      "HOR" ∷ ownPEVMap observedRHS_ptr MR ∗
+      "%HI" ∷ ⌜LawBL2.shRep (GF := GF) R rpes nsp sps sh ∧ (∀ k, (MG k).isSome ↔ k ∈ mg) ∧
+        (∀ k ∈ mg, k ∈ R.take (sint.nat rI)) ∧
+        xs.length = (done.filterMap (LawBL2.mItem S e ks ls rs)).length ∧ (sp ≠ null → spj = sp) ∧
+        0 ≤ sint.Z lI ∧ sint.nat lI ≤ L.length ∧ 0 ≤ sint.Z rI ∧ sint.nat rI ≤ R.length ∧
+        LawBL2.MInv (fun x => decide (x ∈ R)) (mergeKeys L R) done (L.drop (sint.nat lI))
+          (R.drop (sint.nat rI)) sh mg⌝ : IProp GF)
+    $$ [lI rI nextShared sharedOrder mergedRHS Hmv0 out Hosl0 Hocap0 Hown HOL HOR]
+  · iexists (W64 0), (W64 0), [], _, [], PEMap.empty, _, _, _, _, _, [], sp
+    iframe
+    iframe #
+    simp only [List.filterMap_nil, List.zip_nil_right]
+    isplitr
+    · imodintro; iintro %q %hq; simp at hq
+    ipureintro
+    have h0 : sint.nat (W64 0) = 0 := rfl
+    rw [h0, List.drop_zero, List.drop_zero]
+    refine ⟨Hsh0, by simp [PEMap.empty], by simp, by simp, fun _ => trivial, by decide, by simp, by decide,
+      by simp, ?_⟩
+    exact LawBL2.MInv_init L R
+  wp_for HI2
+  sorry
 
 end proof
 
