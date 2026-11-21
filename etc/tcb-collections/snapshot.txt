@@ -53,9 +53,6 @@ axiom membership.RaftCluster.Recover.wp_proof
 axiom membership.RaftCluster.SetBackend.wp_proof
 axiom msgEncC_ok
 axiom mvcc.hashStorage.Store.wp_proof
-axiom mvcc.kvHasher.Hash.wp_proof
-axiom mvcc.kvHasher.WriteKeyValue.wp_proof
-axiom mvcc.newKVHasher.wp_proof
 axiom os.Getenv.wp_proof
 axiom pbEntryC_reg
 axiom pbMessageC_reg

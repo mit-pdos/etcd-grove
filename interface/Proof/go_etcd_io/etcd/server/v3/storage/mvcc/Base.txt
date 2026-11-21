@@ -17,32 +17,34 @@ def Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.get_isPkgInit_wf_inst : Get
       get_is_pkg_init pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc =
           isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∧
         GetIsPkgInitProp pkg_id.hash get_is_pkg_init ∧
-          GetIsPkgInitProp pkg_id.sync get_is_pkg_init ∧
-            GetIsPkgInitProp pkg_id.go_uber_org.zap get_is_pkg_init ∧
-              GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.storage.backend get_is_pkg_init ∧
-                GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.storage.schema get_is_pkg_init ∧
-                  GetIsPkgInitProp pkg_id.k8s_io.utils.third_party.forked.golang.btree get_is_pkg_init ∧
-                    GetIsPkgInitProp pkg_id.bytes get_is_pkg_init ∧
-                      GetIsPkgInitProp pkg_id.errors get_is_pkg_init ∧
-                        GetIsPkgInitProp pkg_id.fmt get_is_pkg_init ∧
-                          GetIsPkgInitProp pkg_id.context get_is_pkg_init ∧
-                            GetIsPkgInitProp pkg_id.go_etcd_io.etcd.api.v3.mvccpb get_is_pkg_init ∧
-                              GetIsPkgInitProp pkg_id.go_etcd_io.etcd.pkg.v3.traceutil get_is_pkg_init ∧
-                                GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.lease get_is_pkg_init ∧
-                                  GetIsPkgInitProp pkg_id.math get_is_pkg_init ∧
-                                    GetIsPkgInitProp pkg_id.time get_is_pkg_init ∧
-                                      GetIsPkgInitProp pkg_id.google_golang_org.protobuf.proto get_is_pkg_init ∧
-                                        GetIsPkgInitProp pkg_id.go_etcd_io.etcd.client.pkg.v3.verify get_is_pkg_init ∧
-                                          GetIsPkgInitProp pkg_id.go_etcd_io.etcd.pkg.v3.schedule get_is_pkg_init ∧
-                                            GetIsPkgInitProp pkg_id.encoding.binary get_is_pkg_init ∧
-                                              GetIsPkgInitProp pkg_id.github_com.dustin.go_humanize get_is_pkg_init ∧
-                                                GetIsPkgInitProp pkg_id.github_com.prometheus.client_golang.prometheus
-                                                    get_is_pkg_init ∧
-                                                  GetIsPkgInitProp pkg_id.go_etcd_io.etcd.client.v3 get_is_pkg_init ∧
-                                                    GetIsPkgInitProp pkg_id.go_opentelemetry_io.otel.trace
-                                                        get_is_pkg_init ∧
-                                                      GetIsPkgInitProp pkg_id.go_etcd_io.etcd.pkg.v3.adt get_is_pkg_init ∧
-                                                        True }
+          GetIsPkgInitProp pkg_id.hash.crc32 get_is_pkg_init ∧
+            GetIsPkgInitProp pkg_id.sync get_is_pkg_init ∧
+              GetIsPkgInitProp pkg_id.go_uber_org.zap get_is_pkg_init ∧
+                GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.storage.backend get_is_pkg_init ∧
+                  GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.storage.schema get_is_pkg_init ∧
+                    GetIsPkgInitProp pkg_id.k8s_io.utils.third_party.forked.golang.btree get_is_pkg_init ∧
+                      GetIsPkgInitProp pkg_id.bytes get_is_pkg_init ∧
+                        GetIsPkgInitProp pkg_id.errors get_is_pkg_init ∧
+                          GetIsPkgInitProp pkg_id.fmt get_is_pkg_init ∧
+                            GetIsPkgInitProp pkg_id.context get_is_pkg_init ∧
+                              GetIsPkgInitProp pkg_id.go_etcd_io.etcd.api.v3.mvccpb get_is_pkg_init ∧
+                                GetIsPkgInitProp pkg_id.go_etcd_io.etcd.pkg.v3.traceutil get_is_pkg_init ∧
+                                  GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.lease get_is_pkg_init ∧
+                                    GetIsPkgInitProp pkg_id.math get_is_pkg_init ∧
+                                      GetIsPkgInitProp pkg_id.time get_is_pkg_init ∧
+                                        GetIsPkgInitProp pkg_id.google_golang_org.protobuf.proto get_is_pkg_init ∧
+                                          GetIsPkgInitProp pkg_id.go_etcd_io.etcd.client.pkg.v3.verify get_is_pkg_init ∧
+                                            GetIsPkgInitProp pkg_id.go_etcd_io.etcd.pkg.v3.schedule get_is_pkg_init ∧
+                                              GetIsPkgInitProp pkg_id.encoding.binary get_is_pkg_init ∧
+                                                GetIsPkgInitProp pkg_id.github_com.dustin.go_humanize get_is_pkg_init ∧
+                                                  GetIsPkgInitProp pkg_id.github_com.prometheus.client_golang.prometheus
+                                                      get_is_pkg_init ∧
+                                                    GetIsPkgInitProp pkg_id.go_etcd_io.etcd.client.v3 get_is_pkg_init ∧
+                                                      GetIsPkgInitProp pkg_id.go_opentelemetry_io.otel.trace
+                                                          get_is_pkg_init ∧
+                                                        GetIsPkgInitProp pkg_id.go_etcd_io.etcd.pkg.v3.adt
+                                                            get_is_pkg_init ∧
+                                                          True }
 
 def Perennial.go_opentelemetry_io.otel.trace.isPkgInit_inst : IsPkgInit (IProp GF)
     pkg_id.go_opentelemetry_io.otel.trace :=
@@ -79,29 +81,30 @@ def Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.isPkgInit_inst : IsPkgInit 
   {
     isPkgInitDeps :=
       iprop(isPkgInit pkg_id.hash ∗
-          isPkgInit pkg_id.sync ∗
-            isPkgInit pkg_id.go_uber_org.zap ∗
-              isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
-                isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-                  isPkgInit pkg_id.k8s_io.utils.third_party.forked.golang.btree ∗
-                    isPkgInit pkg_id.bytes ∗
-                      isPkgInit pkg_id.errors ∗
-                        isPkgInit pkg_id.fmt ∗
-                          isPkgInit pkg_id.context ∗
-                            isPkgInit pkg_id.go_etcd_io.etcd.api.v3.mvccpb ∗
-                              isPkgInit pkg_id.go_etcd_io.etcd.pkg.v3.traceutil ∗
-                                isPkgInit pkg_id.go_etcd_io.etcd.server.v3.lease ∗
-                                  isPkgInit pkg_id.math ∗
-                                    isPkgInit pkg_id.time ∗
-                                      isPkgInit pkg_id.google_golang_org.protobuf.proto ∗
-                                        isPkgInit pkg_id.go_etcd_io.etcd.client.pkg.v3.verify ∗
-                                          isPkgInit pkg_id.go_etcd_io.etcd.pkg.v3.schedule ∗
-                                            isPkgInit pkg_id.encoding.binary ∗
-                                              isPkgInit pkg_id.github_com.dustin.go_humanize ∗
-                                                isPkgInit pkg_id.github_com.prometheus.client_golang.prometheus ∗
-                                                  isPkgInit pkg_id.go_etcd_io.etcd.client.v3 ∗
-                                                    isPkgInit pkg_id.go_opentelemetry_io.otel.trace ∗
-                                                      isPkgInit pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗ True),
+          isPkgInit pkg_id.hash.crc32 ∗
+            isPkgInit pkg_id.sync ∗
+              isPkgInit pkg_id.go_uber_org.zap ∗
+                isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+                  isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+                    isPkgInit pkg_id.k8s_io.utils.third_party.forked.golang.btree ∗
+                      isPkgInit pkg_id.bytes ∗
+                        isPkgInit pkg_id.errors ∗
+                          isPkgInit pkg_id.fmt ∗
+                            isPkgInit pkg_id.context ∗
+                              isPkgInit pkg_id.go_etcd_io.etcd.api.v3.mvccpb ∗
+                                isPkgInit pkg_id.go_etcd_io.etcd.pkg.v3.traceutil ∗
+                                  isPkgInit pkg_id.go_etcd_io.etcd.server.v3.lease ∗
+                                    isPkgInit pkg_id.math ∗
+                                      isPkgInit pkg_id.time ∗
+                                        isPkgInit pkg_id.google_golang_org.protobuf.proto ∗
+                                          isPkgInit pkg_id.go_etcd_io.etcd.client.pkg.v3.verify ∗
+                                            isPkgInit pkg_id.go_etcd_io.etcd.pkg.v3.schedule ∗
+                                              isPkgInit pkg_id.encoding.binary ∗
+                                                isPkgInit pkg_id.github_com.dustin.go_humanize ∗
+                                                  isPkgInit pkg_id.github_com.prometheus.client_golang.prometheus ∗
+                                                    isPkgInit pkg_id.go_etcd_io.etcd.client.v3 ∗
+                                                      isPkgInit pkg_id.go_opentelemetry_io.otel.trace ∗
+                                                        isPkgInit pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗ True),
     isPkgInitDef := go_etcd_io.etcd.server.v3.storage.mvcc.mvccInit }
 
 def Perennial.go_opentelemetry_io.otel.trace.traceInit : IProp GF :=

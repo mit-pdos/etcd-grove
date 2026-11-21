@@ -113,8 +113,8 @@ instance optsAt_discard_persistent (l : Loc) (o : OptsM) :
 /-- The backend's package variable `boltOpenOptions` (`config_linux.go`:
 `&bolt.Options{MmapFlags: syscall.MAP_POPULATE, NoFreelistSync: true}`; nil on other systems, but
 the file model's configuration is Linux), never written: options `Open` accepts, with
-`NoFreelistSync` and no `Timeout` (S3e, 2026-11-18: until then possibly nil). A package-initialization fact (the variable's initializer is names-only:
-`syscall.MAP_POPULATE` is not translated); part of the backend's package facts (`backendInit`; item 8, 2026-10-17: until then a premise of
+`NoFreelistSync` and no `Timeout` (S3e, 2026-11-18: until then possibly nil). A package-initialization fact (the variable's initializer is translated, `boltOpenOptionsOk_intro`;
+until 2026-11-21 names-only, the trust-boundary axiom `boltOpenOptions_init`); part of the backend's package facts (`backendInit`; item 8, 2026-10-17: until then a premise of
 the constructor). -/
 def boltOpenOptionsOk : IProp GF :=
   iprop(∃ p : Loc,
@@ -124,6 +124,31 @@ def boltOpenOptionsOk : IProp GF :=
 
 instance boltOpenOptionsOk_persistent : Persistent (boltOpenOptionsOk (GF := GF)) := by
   unfold boltOpenOptionsOk; infer_instance
+
+/-- **`boltOpenOptions`' initializer gives `boltOpenOptionsOk`** (prove-etcdint3, 2026-11-21: the
+initializer translated, until then the trust-boundary axiom `boltOpenOptions_init`): the variable
+holds, read-only, a pointer to `bolt.Options{MmapFlags: syscall.MAP_POPULATE, NoFreelistSync: true}`
+(`config_linux.go`), whose other fields are zero. -/
+theorem boltOpenOptionsOk_intro (p : Loc) (v : go_etcd_io.bbolt.Options) :
+    ⊢ globalAddr go_etcd_io.etcd.server.v3.storage.backend.boltOpenOptions ↦□ p -∗ p ↦□ v -∗
+      ⌜v.ReadOnly' = false ∧ v.PageSize' = W64 0 ∧ v.OpenFile' = func.nil ∧
+      v.Logger' = GoInterface.nil ∧ v.Mlock' = false ∧ v.MmapFlags' = W64 32768 ∧
+      v.Timeout' = W64 0 ∧ v.NoFreelistSync' = true ∧ v.InitialMmapSize' = W64 0⌝ -∗
+      boltOpenOptionsOk (GF := GF) := by
+  iintro #Hg #Hp %hv
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ := hv
+  unfold boltOpenOptionsOk
+  iexists p
+  iframe Hg
+  iexists { optsZero with noFreelistSync := true }
+  unfold optsAt
+  isplitr
+  · iexists v
+    iframe Hp
+    ipureintro
+    refine ⟨v.MmapFlags', Or.inr (by rw [h6]; decide), ⟨h1, h2, h3, h4, h5, rfl⟩, h7, h8, h9⟩
+  ipureintro
+  exact ⟨⟨rfl, rfl, rfl, trivial⟩, rfl, rfl⟩
 
 end preds
 

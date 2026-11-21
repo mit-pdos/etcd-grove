@@ -3785,3 +3785,17 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `map[string][]string` whose value at each key is a read-only slice of that key's values in order). Every caller has
   `isPkgInit` of rafthttp, which imports net/http: discharged there with no change to the callers' statements.
 - **Decision.** Applied (prove-http3, 2026-11-21): the four axioms are theorems over net/http's and net/textproto's code.
+## 2026-11-21: mvcc's hasher, `kvHasherOk` a resource (prove-etcdint3)
+
+- **Spec.** `mvcc.newKVHasher.spec`, `mvcc.kvHasher.WriteKeyValue.spec`, `mvcc.kvHasher.Hash.spec` (axioms until
+  this change), over `mvcc.kvHasherOk` (`HashDefs.lean`).
+- **Defect.** `kvHasherOk` was an opaque `Prop`, so nothing owned the `crc32` digest that `Write` updates through
+  `h.hash` (the axioms were not provable over the real code); and `WriteKeyValue`'s map `keep` (whose ownership it
+  took) was any map, where Go reads `h.keep`.
+- **Evidence.** `hash.go:49-94` (the digest a `*crc32.digest`, written through the interface), translated with
+  `hash/crc32`'s `New`/`Write`/`Sum32` (`crc32.go:146-230`).
+- **Proposed change.** `kvHasherOk h : IProp`: the digest's points-to and its Castagnoli table; `newKVHasher` returns
+  it with the fields (`compactRevision`, `revision`, `keep` its arguments); `WriteKeyValue` takes `h.keep' = keep`
+  and gives back `hp ↦ h ∗ kvHasherOk h` (the value unchanged, where it was some `h'`); `Hash` gives `kvHasherOk h`
+  back. The one caller (`store.scheduleCompaction`) threads them.
+- **Decision.** Applied (prove-etcdint3, 2026-11-21).

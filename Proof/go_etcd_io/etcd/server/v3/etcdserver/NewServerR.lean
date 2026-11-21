@@ -243,6 +243,8 @@ theorem NewServer.wp_proofRG
     Hdwd Hbwb
   have Hslg : ∃ m' : lease.Mode, lease.runCfg (GF := GF) ρ.rd.kv.lm m' := ⟨m, lease.bootCfg_run Hlbc⟩
   replace Hbnd : threadBound GF ≤ 2 ^ 28 := Hbnd
+  -- (srvloops2, 2026-11-21) `tickMu`'s pool of reader slots (the installer's)
+  have HtickB : threadBound GF ≤ 2 ^ 29 := by omega
   -- the stopped names' raft names the restarted ones (`restartNames`)
   have Hρo : ρo.rd.raft = ⟨γ, [], W64 0⟩ := by rw [← HrN.1]; exact HρRaft
   letI : MemStorReg GF := ⟨γ.reg⟩
@@ -1564,7 +1566,7 @@ theorem NewServer.wp_proofRG
   -- `Stop` names it (`srvTrStop`)
   ipersist Htrf
   imod Hinst $$ %(srvRAddr s) %s %(interface.mkOk (go.GoType.PointerType api.rafthttp.Transport.ty) #t)
-    [Henv] [Hcmi] [] [] [] [HlatestTs] [] [Hrtm] with ⟨#Hrn, Hrdone, #Hnodef, #Hprop, -⟩
+    [Henv] [Hcmi] [] [] [] [HlatestTs] [] [Hrtm] %HtickB with ⟨#Hrn, Hrdone, #Hnodef, #Hprop, -⟩
   · iexact Henv
   · iexact Hcmi
   · simp only [srvErM]; iexact Hrdctx
