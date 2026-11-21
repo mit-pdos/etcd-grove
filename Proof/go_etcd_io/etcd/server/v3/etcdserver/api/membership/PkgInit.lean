@@ -1,6 +1,7 @@
 /- Package initialization of membership and the dependencies it shares with
 storage/schema when decoding the membership of a backend snapshot. -/
 module
+public import Proof.net.url.PkgInit
 
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.membership
 public import Proof.go_etcd_io.raft.v3.Base
@@ -29,15 +30,6 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 
 end go_etcd_io.etcd.server.v3.etcdserver.version
 
--- `net/url` (names only: the element type of `types.URLs`; unit N4, 2026-10-17)
-namespace net.url
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.net.url :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.net.url :=
-  build_get_is_pkg_init_wf
-
-end net.url
 
 -- `client/pkg/v3/types` (names only: `ID.String`)
 namespace go_etcd_io.etcd.client.pkg.v3.types

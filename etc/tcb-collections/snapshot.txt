@@ -46,8 +46,6 @@ axiom http.reqURL_ok
 axiom http.respReadAny_of_ok
 axiom http.respWrite_ok
 axiom httputil.GracefulClose.wp_proof
-axiom io.CopyN.wp_proof
-axiom io.NewSectionReader.wp_proof
 axiom io.Pipe.wp_proof
 axiom io.PipeWriter.CloseWithError.wp_proof
 axiom lease.lessor.scheduleCheckpointIfNeeded.wp_proof
@@ -92,7 +90,6 @@ axiom snap.NewMessage.wp_proof
 axiom snap.Snapshotter.DBFilePath.wp_proof
 axiom sort.SliceIsSorted.wp_proof
 axiom sort.Sort.wp_anyLess
-axiom sort.Stable.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
 axiom strings.Contains.wp_proof

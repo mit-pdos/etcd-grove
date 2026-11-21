@@ -295,6 +295,12 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   written` left", the type assertions `src.(WriterTo)` (a `*LimitedReader` has none) and
   `dst.(ReaderFrom)` (excluded by `writerPlain`) by the method sets goose emits. The axioms then
   become theorems with the same statements. Not yet proposed.
+- **Status.** DONE (stdlib3, 2026-11-21): Perennial `9097e1e6d` translates the seven (`io.toml`);
+  etcd-grove proves both specs over the translation (`Proof/io/NewSectionReader.lean`,
+  `Proof/io/CopyN.lean`). `io.secReader` is now defined (the struct's points-to, with
+  `NewSectionReader`'s premises), and `io.readerAtOk`'s post says the error is well-typed
+  (`io.ptrTyped`: comparing it with `io.EOF` must step; `os.File.readerAtOk` proves it). The proofs
+  stayed in etcd-grove (the contracts are etcd-grove's); moving them to Perennial is still open.
 
 ### `wp_auto`'s free-variable checks were exponential on struct values: landed, in the pin since `3afd77e35` (2026-11-18, perf2; pin bump 2026-11-19)
 
@@ -1116,6 +1122,12 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   sibling branch's `0 < prev`; and a `word` side goal later in the same proof failed with "unknown
   free variable" (a cached term over a hypothesis of another goal). Workaround there: `omega` on
   `BitVec.toNat` for the first, the `word` fact proved at the top of the proof for the second.
+- **Seen again** (2026-11-21, `sort.Stable`'s proofs, branch `prove-stdlib4-stable`): "unknown free
+  variable" from `word` in `rotate`'s, `symMerge`'s and `stable`'s proofs, each time with a hypothesis
+  holding an `if` (or a loop condition `#!decide (i = j) = #true`) in the context, and gone once that
+  hypothesis was cleared, kept in the Iris context (`symMerge`'s `Hsr0`), or introduced after the
+  `word`s; once it was a false goal (`stable`'s invariant `bs ≤ 2^62`), so the error can hide a
+  plain failure. Workaround there: those hypotheses kept out of `word`'s context.
 - **Status.** Not started (found 2026-10-21, `raft-retarget`, now on `lean`).
 
 ### Specs: a law for `Done()` of an `isContext` context (2026-10-27, the compactor pilot)

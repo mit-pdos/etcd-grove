@@ -4,8 +4,7 @@
 # take bbolt's canonical specs (`@` callees, linked in Proof/go_etcd_io/bbolt/Link.lean), converted to
 # the backend's vocabulary (InvBbolt.lean, at `theFs`) by private lemmas in each proof file; the `_kv`
 # specs are gone. `Open` and `DB.Close` are S3f's (interim axioms until it lands). The
-# trust boundary: those two; `sort.Stable` (Perennial translates it, proves only
-# `sort.Sort`); `verify.Assert`; `os.Getenv` and `strings.ToLower`, over which `verify.Verify`, `verify.IsVerificationEnabled` and verify.go's lock checks `ValidateCalled*` are proved (etcdstorage, 2026-11-20; until then axioms,
+# trust boundary: those two; `verify.Assert`; `os.Getenv` and `strings.ToLower`, over which `verify.Verify`, `verify.IsVerificationEnabled` and verify.go's lock checks `ValidateCalled*` are proved (etcdstorage, 2026-11-20; until then axioms,
 # they read ETCD_VERIFY and the call stack; stated as returning: the lock checks off); zap's field
 # constructors and `Logger.Fatal`; `time.Duration.Seconds`. `sort.Sort` is Perennial's.
 # The constructor (2026-10-17, branch `construct`): `New`, `newBackend`, `newBatchTxBuffered`,
@@ -38,7 +37,12 @@ bbolt_Tx__Rollback: @
 bbolt_Tx__Size: @
 bbolt_Tx__WriteTo: @
 bbolt_Tx__Stats: @
-sort_Stable:
+sort_swapRange:
+sort_rotate: sort_swapRange
+sort_insertionSort:
+sort_symMerge: sort_rotate
+sort_stable: sort_insertionSort sort_symMerge
+sort_Stable: sort_stable
 time_Duration__Seconds:
 verify_Assert:
 os_Getenv:
