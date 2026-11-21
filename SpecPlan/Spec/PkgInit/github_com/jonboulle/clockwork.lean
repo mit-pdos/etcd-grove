@@ -3,7 +3,9 @@ module
 
 public import GeneratedProof.github_com.jonboulle.clockwork
 public import SpecPlan.Spec.PkgInit.Base
+public import Perennial.Proof.context.Base
 public import Perennial.Proof.time.Base
+public import Perennial.Proof.fmt.Base
 
 @[expose] public section
 noncomputable section
