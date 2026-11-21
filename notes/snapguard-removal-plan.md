@@ -13,7 +13,7 @@ The replay deferral remains a separate change. Its fork regression tests
 exercise a frozen backend at index 7 and a recovered HardState commit of 3
 with both current and legacy metadata. The replay proof still has to
 establish the term and membership for the image actually sent.
-[Replay issue](../issues/etcd-merged-snapshot-replay-failure.md).
+[Replay issue](../nonissues/etcd-backward-snapshot-install-panics-watcher.md).
 
 ## The two MemoryStorage writers and the apply job
 

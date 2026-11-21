@@ -28067,7 +28067,7 @@ restarts.
 `applyAll` proof paths use the bound derived from the outgoing snapshot
 and the current Ready in the matching term. The separate replay-window
 failure remains in this revision and is tracked in
-[the replay issue](../issues/etcd-merged-snapshot-replay-failure.md).
+[the replay issue](../nonissues/etcd-backward-snapshot-install-panics-watcher.md).
 
 **2026-11-20, R2.** Raft already records the snapshots it has restored in
 `LogState.ksn`. The unstable snapshot path returns membership in that list.

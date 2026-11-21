@@ -499,7 +499,13 @@ theorem EtcdServer.applyAll.wp_proofBatch
             word
           have hlenZ : uint.Z ai' = ((A ++ unapplied ai ms).length : Int) := by
             have := uint_nat_eq ai'; omega
-          have hpos : 0 < uint.Z ai' := by word
+          ihave ⟨Hao, %hidxRaft⟩ := Hidx $$ %(by first | trivial | rfl | assumption | symm; assumption) Hao
+          have hsentLe : uint.Z sn.Metadata'.Index' ≤ uint.Z ai' := by
+            rw [hgai] at hidxRaft
+            have := uint_nat_eq sn.Metadata'.Index'
+            have := uint_nat_eq ai'
+            omega
+          have hpos : 0 < uint.Z ai' := Int.lt_of_lt_of_le Hsnp hsentLe
           (try wp_auto)
           -- (with auth on) the apply thread's compaction revision `-1`, for the image's certificate
           imod srvApplyKVC_crev C s γ ci TM E ρ γr ρ.wait x' sa' $$ Hsrv HKV with ⟨HKV, %Hcr⟩
@@ -563,9 +569,8 @@ theorem EtcdServer.applyAll.wp_proofBatch
           · iframe Hcso Hc0
           subst Hcc
           ihave %h61 := srvFrozenTerm_bound γs ai' at' $$ Hft
-          ihave ⟨Hao, %hidxRaft⟩ := Hidx $$ %(by first | trivial | rfl | assumption | symm; assumption) Hao
           imod srv_merged_sent γr (A ++ unapplied ai ms) ai' at' c γn.id ct sm sn hpos h61 hsz hlenZ
-              hltA Hcs0 Hty hsn (by have := uint_nat_eq sn.Metadata'.Index'; have := uint_nat_eq g'; word) (by have := hnA; have := uint_nat_eq ai'; omega)
+              hltA Hcs0 Hty hsn hsentLe (by have := hnA; have := uint_nat_eq ai'; omega)
             $$ [Hrli' HlbB Hsm Hct] with #Hsm'
           · iframe Hrli' HlbB Hsm Hct
           -- (`merged_imageC`) the image's certificate: the component's buckets the lent part's
