@@ -1531,6 +1531,7 @@ def ownRawNodeReady (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : 
     [∗list] q ∈ ms, isRaftMsg γ id q.st) ∗
   -- (restart S7.3, 2026-11-14) the messages handed out have their `MsgSnap` facts once the
   -- outbox's snapshots have their destination facts (`snapToOk`; outright, `ownRaftGhost_snap_keep`)
+  "#Hsrcs" ∷ qSrcs rs.sn ms ∗
   "#Hmsnap" ∷ □ (([∗list] x ∈ s.outbox, ⌜x.ty = .snap⌝ -∗ snapDstOk γ x.dst) -∗
     [∗list] q ∈ ms, snapToOk γ id q.st) ∗
   "#Hrdlead" ∷ (∃ ss : Option (w64 × StateType), softStateIs rd.SoftState' ss ∗
@@ -2252,6 +2253,7 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
       -- (restart S7.3, 2026-11-14) the messages' `MsgSnap` facts, at once (not behind `W`'s
       -- fragments: they read only the committed log and the sender's configuration at its step)
       ([∗list] q ∈ ms, snapToOk γ id q.st) ∗
+      qSrcs rs.sn ms ∗
       -- (2026-11-01, durability stage II (m)) what the `Ready` is past, and within (`ReadyFacts`)
       ⌜ReadyFacts rs.dur rs.phs (phsNext rs.phs hrd) rs.delivered ce es L⌝ := by
   iintro #Hh Hlive Hfree H
@@ -2638,7 +2640,7 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
     iexists s, c, fp, ds, rnv, sv, hprev
     simp only [named, ↓reduceIte]
     iframe Hrn Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hcommitted Hrdsoft
-      Hrdrs Hce Hce_cap Hents Hsloc Hmsgl Hmsnap Hout2 Hstrecs2 Hrdz2 Hdur2 Hrdhard2 Hrdlead2 Hrntr
+      Hrdrs Hce Hce_cap Hents Hsloc Hmsgl Hsrcs Hmsnap Hout2 Hstrecs2 Hrdz2 Hdur2 Hrdhard2 Hrdlead2 Hrntr
     isplitl
     · iunfold ownRaftPhysReady
       iexists rsl, sl1, sl2, ms1, ms2
@@ -2670,7 +2672,7 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
     rw [Hpl] at HL ⊢
     rw [Hes]
     exact ⟨HL, Hri.1, Hri.2⟩
-  iframe Hlive Hpb Hss Hmw Hml Hmss
+  iframe Hlive Hpb Hss Hmw Hml Hmss Hsrcs
   isplitr
   · ipureintro; exact Hssl.1
   ipureintro; exact Hfacts
@@ -2876,6 +2878,7 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   ihave #Hmsgl : iprop(□ (([∗list] x ∈ s.outbox, ⌜x.dst ≠ id⌝ -∗ isMessage γ x) -∗
       [∗list] q ∈ ([] : List QMsg), isRaftMsg γ id q.st)) $$ []
   · iintro !> -; iapply BigSepL.bigSepL_nil.2; iempintro
+  ihave #Hsrcs := qSrcs_nil (GF := GF) rs.sn
   ihave #Hmsnap : iprop(□ (([∗list] x ∈ s.outbox, ⌜x.ty = .snap⌝ -∗ snapDstOk γ x.dst) -∗
       [∗list] q ∈ ([] : List QMsg), snapToOk γ id q.st)) $$ []
   · iintro !> -; iapply BigSepL.bigSepL_nil.2; iempintro
@@ -2918,7 +2921,7 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   iexists s, cf, fp, ds, rnv, sv, hprev
   simp only [named, Bool.false_eq_true, ↓reduceIte]
   iframe Hrn Hghost Hsdrf Hout Hsoft Hhard Hsteps Hsteps_cap Hcommitted Hstrecs Hrdsoft Hrdrs
-    Hce Hce_cap Hents Hrdhard Hrdz Hsloc Hdur Hmsgl Hmsnap Hrdlead Hrntr
+    Hce Hce_cap Hents Hrdhard Hrdz Hsloc Hdur Hmsgl Hsrcs Hmsnap Hrdlead Hrntr
   isplitl
   · iunfold ownRaftPhysReady
     iexists rss, sl1, sl2, ms1, ms2

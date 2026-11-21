@@ -49,6 +49,8 @@ abbrev StartNode.spec : Prop :=
     (lok si : GoInterfaceOk) (csm : ConfStateM) (Q : IProp GF) (F : GName → IProp GF)
     (peers : GoSlice) (dq : DFrac) (pv : List Peer),
   -- `NewRawNode`'s premises
+  ∀ (SV : SnapshotM → IProp GF) [∀ sv, Persistent (SV sv)],
+  (∀ sv, SV sv ⊢ snapshotValid γ sv) →
   ConfigValid cv →
   cv.Logger' = interface.ok lok →
   cv.Storage' = interface.ok si →
@@ -78,7 +80,7 @@ abbrev StartNode.spec : Prop :=
       nodeBoot γ N vs ctxs cv.ID' ∗ nodeVacant γ cv.ID' ∗
       AU <{ ∃∃ (S : RaftState), raftState γ cv.ID' S ∗ ⌜S = RaftState.init⌝ }> @ ⊤ \ ↑N, ∅
          <{ raftState γ cv.ID' S, COMM Q }> ∗
-      restartStorage γ (interface.ok si) ⟨hsZero, none, entryID.mk (W64 0) (W64 0), []⟩ csm 0 F ∗
+      restartStorage γ (interface.ok si) ⟨hsZero, none, entryID.mk (W64 0) (W64 0), []⟩ csm 0 F SV ∗
       peers ↦*{dq} pv ∗ peersCtx pv ctxs }}
     (App (App (Val #(functions StartNode [])) (Val #c)) (Val #peers))
   {{ (nd : GoInterface), RET #nd;
@@ -87,7 +89,7 @@ abbrev StartNode.spec : Prop :=
         nodeStartedFresh n γ N vs ctxs cv.ID' ∗
         isNode n γ N cv.ID' ∗ nodeDriver n γ N (NodeDriverState.init (interface.ok si) K) ∗
         nodeConfig n γ N ⟨0, Membership.simple (GMap.listToSet vs)⟩ ∗
-        nodeRunning n γ N 1 ∗ Q ∗ F K ∗ peers ↦*{dq} pv }}
+        nodeRunning n γ N 1 ∗ nodeTagPin γ n SV ∗ Q ∗ F K ∗ peers ↦*{dq} pv }}
 
 end spec
 
