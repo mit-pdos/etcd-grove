@@ -72,7 +72,7 @@ theorem transformErrorToEvent.wp_proof
       isplitr
       · ipureintro; rfl
       iframe Hstr
-      ipureintro; exact Hfmt.1
+      ipureintro; exact Hfmt
     iclear Heq Hstr Hcode Hgrpc Has Hst
     (try wp_auto)
     simp only [hps, ↓reduceIte]

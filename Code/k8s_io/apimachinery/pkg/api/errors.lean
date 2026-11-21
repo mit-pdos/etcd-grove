@@ -472,6 +472,33 @@ noncomputable def NewBadRequest.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType StatusError.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType StatusError.ty)))) (Var "$res0")))))
 
+/-- NewInternalError returns an error indicating the item is invalid and cannot be processed.
+
+    go: errors.go:387:6 -/
+noncomputable def NewInternalError.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "err"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType StatusError.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType StatusError.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (Var "err"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc StatusError.ty))) (Let "$v0" (Let "$v0" (Val #(go!"Failure"))
+  (Let "$v1" (Val #(W32 500))
+  (Let "$v2" (Val #(go!"InternalError"))
+  (Let "$v3" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusDetails.ty))) (Let "$v0" (Let "$v0" (App (App (Val (GoInstruction (MethodResolve go.error go!"Error"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause.ty)))) (LiteralValue [(KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"Message")) (ElementExpression go.string (Var "$v0")))]))])))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusDetails.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Causes")) (ElementExpression (go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause.ty) (Var "$v0")))]))))
+  (Let "$v4" (Let "$a0" (Val #(go!"Internal error occurred: %v"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.error go.any))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Status")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Code")) (ElementExpression go.int32 (Var "$v1"))), (KeyedElement (some (KeyField go!"Reason")) (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"Details")) (ElementExpression (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusDetails.ty) (Var "$v3"))), (KeyedElement (some (KeyField go!"Message")) (ElementExpression go.string (Var "$v4")))])))))))
+  (App (Val (GoInstruction (CompositeLiteral StatusError.ty))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty (Var "$v0")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType StatusError.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType StatusError.ty)))) (Var "$res0")))))
+
 /-- NewTimeoutError returns an error indicating that a timeout occurred before the request
     could be completed.  Clients may retry, but the operation may still complete.
 
@@ -917,6 +944,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   NewConflict_unfold : FuncUnfold NewConflict [] NewConflict.impl
   NewResourceExpired_unfold : FuncUnfold NewResourceExpired [] NewResourceExpired.impl
   NewBadRequest_unfold : FuncUnfold NewBadRequest [] NewBadRequest.impl
+  NewInternalError_unfold : FuncUnfold NewInternalError [] NewInternalError.impl
   NewTimeoutError_unfold : FuncUnfold NewTimeoutError [] NewTimeoutError.impl
   IsTimeout_unfold : FuncUnfold IsTimeout [] IsTimeout.impl
   IsTooManyRequests_unfold : FuncUnfold IsTooManyRequests [] IsTooManyRequests.impl
@@ -939,6 +967,7 @@ attribute [instance] Assumptions.StatusError_instance
   Assumptions.NewConflict_unfold
   Assumptions.NewResourceExpired_unfold
   Assumptions.NewBadRequest_unfold
+  Assumptions.NewInternalError_unfold
   Assumptions.NewTimeoutError_unfold
   Assumptions.IsTimeout_unfold
   Assumptions.IsTooManyRequests_unfold
