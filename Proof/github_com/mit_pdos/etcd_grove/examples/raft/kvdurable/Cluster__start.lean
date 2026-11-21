@@ -449,6 +449,7 @@ theorem Cluster.start.wp_proof
       (kdContents (some F)) (kdInitCS (raft_kvreconf.bootCS vs) F) (uint.nat F.snap.Metadata'.Index') m
       (fun S' => iprop(kdWriter γ id S fo ∗ ⌜S' = S⌝))
       (fun K => iprop(memStorMeta ms γs F.hs ∗ memStorInvP ms γs (kdJ γ.r.cluster K)))
+      (snapshotValid γ.r.cluster) (fun _ => by iintro H; iexact H)
       HcV HcLg HcSt HcM HcDP HcRO HcDC HcSz HcAS (fun h => absurd Hmd h)
       (by rw [HA]; simp only [kdContents_some_b, kdContents_some_commit]
           rcases Hap0 with ⟨h1, -⟩ | ⟨h1, h2, -⟩
@@ -461,7 +462,7 @@ theorem Cluster.start.wp_proof
       (by simp only [kdContents_some_commit]; exact Hsc)
       (by rw [Hbl0]; omega) Hinit Hns HcTL Htr0)
     $$ [$Hraft $Hcv $Hlogger $HisC $Hfits Hvac Hau Hrs]
-    as %nd ⟨%n, %S', %l, %K, %Hnd, #HisNode, #Hl', %Hllen, %HS1b, Hdrv, Hncfg, Hrun, ⟨Hwr, %HS'⟩,
+    as %nd ⟨%n, %S', %l, %K, %Hnd, #HisNode, #Hl', %Hllen, %HS1b, Hdrv, Hncfg, Hrun, -, ⟨Hwr, %HS'⟩,
       ⟨Hmeta, #HmsInv⟩⟩
   · rw [HcID, ← Hiface, HA]
     iframe Hvac Hrs

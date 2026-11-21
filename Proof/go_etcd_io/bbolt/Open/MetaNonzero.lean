@@ -1,8 +1,6 @@
 /-
-A well-formed file's meta pages are not all zero (U11, `notes/bbolt-proof-plan.md`): `Open` takes
-the `init` branch on a file whose first `min(size, 8192)` bytes are zero (`metasZero`), which for
-a file `fileHolds` describes happens only when it is empty (`fileOK`'s first case): the current
-meta is valid, so its magic is not zero.
+A well-formed nonempty file has a valid current meta with nonzero magic. Thus the
+zero-meta test in interrupted-init recovery cannot accept a well-formed nonempty file.
 -/
 module
 
