@@ -8,6 +8,8 @@ tiers").
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeStart
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReplaySeed
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.replayTermsFromStorage
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeBridgeLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeStartLaws
 
@@ -97,8 +99,8 @@ theorem raftNode_of_StartNode
     isplitl [Hvac]
     · iExactEq Hvac; rfl
     iExactEq HrS; rfl
-  icases Hpost with ⟨%n, %γw, %f, %st, %Hnames, #Hnode, Hrun, #Hpin, Hbpost, #Hidri, #Hsti, Hrd1, Hrd2,
-    Hbuilt, Hb, Hpeers, ⟨#Hminv, Hmeta⟩⟩
+  icases Hpost with ⟨%n, %γw, %f, %st, %terms, %Hnames, #Hnode, Hrun, #Hpin, Hbpost, #Hidri, #Hsti, Hrd1, Hrd2,
+    #Hseed, Hbuilt, Hb, Hpeers, ⟨#Hminv, Hmeta⟩⟩
   simp only [rnBootPost, RNBoot.P]
   icases Hbpost with ⟨#Hsfresh, Hdrv, HrS, Hncfg⟩
   simp only [RNBoot.a0, RNBoot.t0, RNBoot.commit0, RNBoot.snap0] at Hnames
@@ -168,7 +170,7 @@ theorem raftNode_of_StartNode
   isplitl [Hrun2]
   · rw [Hwnode, Hwnl]; iexact Hrun2
   -- the installer
-  iintro %a %s %tr #Henv' #Hcommi #Hrdi #Hfix Htrf Hlts #Htri Hmu' %Hb30
+  iintro %a %s %tr #Henv' #Hcommi #Hrdi #Hfix Htrf Hlts Hreplay #Htri Hmu' %Hb30
   ihave #Hrsb : rnReadStateBridge E γw $$ []
   · iapply rnReadStateBridge_of_raft E γw $$ Henv'
   ihave #Hni : isRaftNodeIfc E γw (rnNodeIface γw) $$ []
@@ -191,10 +193,17 @@ theorem raftNode_of_StartNode
       raftNode).raftNodeConfig'.Node' =
       interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.node.ty) #γw.nl := by
     simp only [Hrvcfg, rnNodeIface, Hwnl]
+  ihave #Hstate : rnReplayState γw rv.raftNodeConfig'.initialReplayTerms' γw.snap0 $$ []
+  · rw [Hrvcfg]
+    iunfold rnReplayState
+    iexists ([] : List replayTermRun)
+    isplitr
+    · iExactEq Hseed; rfl
+    ipureintro; simp [Hwa0, replayPending, replayLayout]
   imod (isRaftNode_of_rnParts E γw a
     { rv with raftNodeConfig' := { rv.raftNodeConfig' with transport' := tr } } hn0 Hb30)
-    $$ [Htrf Hlts Hmu' Hdtok] with ⟨#Hrn, Hdone, #Hnodef, #Htrf⟩
-  · iframe Hpkg Henv' Hfits' Hrsb Hreg' Hfix' Htrf Hlts Hmu' Hdtok
+    $$ [Htrf Hlts Hreplay Hmu' Hdtok] with ⟨#Hrn, Hdone, #Hnodef, #Htrf⟩
+  · iframe Hpkg Henv' Hfits' Hrsb Hreg' Hfix' Htrf Hlts Hreplay Hmu' Hdtok Hstate
     isplitr
     · iunfold rnRestartOk; ileft; ipureintro; exact ⟨Hwa0, Hwt0, Hwc0, Hws0⟩
     simp only [Hrvcfg]
@@ -287,23 +296,23 @@ theorem raftNode_of_RestartNode
     rw [hlen]
     iframe Hcp He0
   imod (dghostVar_alloc (GF := GF) (A := Loc) null) with ⟨%pin, HpinW⟩
-  ihave Hbs := srvMem_restartStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
-      wp_Entries γr bv.storage' γs E.γr.cursor pin σ cs 0
-      (fun K => iprop(memStorInvT bv.storage' γs γr.cl K (srvStoredOrigin γr.cl E.γr.cursor pin σ.b) ∗ memStorMeta bv.storage' γs σ.hs ∗
-        memSnapNone γs (walSnapCS σ cs))) Hbc HtrC Hγsz Hnsm
-      $$ [Hfresh Hmeta Hents Hend Hval Hsn]
-  · iframe Hreg Hlock Hval
-    isplitl [Hfresh Hmeta Hents Hend Hsn]
-    · iunfold memStorRestarted
-      iframe Hfresh Hmeta Hcp He0 Hsn Hents Hend
-    iintro %K Hi Hm Hn
-    iframe Hi Hm Hn
+  ihave #Himage : isCommittedLogLb γr.cl (A₀.map EntryModel.toLE) $$ []
+  · iunfold srvRLogLb at HA0
+    icases HA0 with ⟨#Himage, -⟩
+    iExactEq Himage
+    simp [srvLE]
   iapply wp_fupd
+  imod replaySeed_facts γr.cl cv.ID' srvClusterN S σ (A₀.map EntryModel.toLE)
+      Hhold (by simp; exact Nat.le_trans Hac Hhold.2.2.2.2.2.2.2.1) $$ [$Hclu $HrS $Himage]
+    with ⟨HrS, %hseed⟩
+  ihave Hrest : memStorRestarted bv.storage' γs σ cs $$ [Hfresh Hmeta Hsn Hents Hend]
+  · iunfold memStorRestarted
+    iframe Hfresh Hmeta Hcp He0 Hsn Hents Hend
   wp_apply (wp_bnr E γr b ss wal cl sd dq bv cv lok γs [] ν pv [] ctxs
     (fun K => iprop(memStorInvT bv.storage' γs γr.cl K (srvStoredOrigin γr.cl E.γr.cursor pin σ.b) ∗ memStorMeta bv.storage' γs σ.hs ∗
       memSnapNone γs (walSnapCS σ cs)))
     (.restart σ cs S A₀.length (Membership.simple γr.cfg) A₀) (fun sv => iprop(snapshotValid γr.cl sv ∗ (srvStoredOrigin γr.cl E.γr.cursor pin σ.b) sv)) (fun _ => by iintro ⟨H, -⟩; iexact H))
-    $$ [Hb Hc Hbs Hpeers HrS Hvac]
+    $$ [Hb Hc Hrest Hval Hpeers HrS Hvac]
     as %r Hpost
   · iframe #; iframe Hb Hc Hpeers
     isplitr
@@ -311,8 +320,18 @@ theorem raftNode_of_RestartNode
     simp only [rnBootPre]
     isplitr
     · ipureintro; exact ⟨Hcfg, Hba, Hac, Hboot, Hcs, Hhold, Hnsm⟩
-    isplitl [Hbs]
-    · iExactEq Hbs; rfl
+    isplitl [Hrest Hval]
+    · iintro %Ψ HΨ
+      wp_apply replayTermsFromStorage.wp_proof wp_FirstIndex wp_LastIndex wp_Entries
+          RaftLink.entryGetIndex RaftLink.entryGetTerm bv.storage' γs σ cs (hseed.1.imp fun h => h.1)
+          $$ [$Hpkg $Hlock $Hrest] as %out ⟨Hrest, #Hterms⟩
+      iapply HΨ
+      iframe Hterms
+      iapply srvMem_restartStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
+        wp_Entries γr bv.storage' γs E.γr.cursor pin σ cs 0 _ Hbc HtrC Hγsz Hnsm
+      iframe Hreg Hlock Hrest Hval
+      iintro %K Hi Hm Hn
+      iframe Hi Hm Hn
     isplitr
     · iExactEq Hclu; rfl
     isplitr
@@ -322,8 +341,8 @@ theorem raftNode_of_RestartNode
     isplitl [HrS]
     · iExactEq HrS; rfl
     iExactEq Hconf; rfl
-  icases Hpost with ⟨%n, %γw, %f, %st, %Hnames, #Hnode, Hrun, #Hpin, Hbpost, #Hidri, #Hsti, Hrd1, Hrd2,
-    Hbuilt, Hb, Hpeers, ⟨#Hminv, Hmeta, Hsnone⟩⟩
+  icases Hpost with ⟨%n, %γw, %f, %st, %terms, %Hnames, #Hnode, Hrun, #Hpin, Hbpost, #Hidri, #Hsti, Hrd1, Hrd2,
+    #Hseed, Hbuilt, Hb, Hpeers, ⟨#Hminv, Hmeta, Hsnone⟩⟩
   simp only [rnBootPost, RNBoot.P]
   icases Hbpost with ⟨%l, #Hl, %Hll, Hdrv, HrS, Hncfg⟩
   simp only [RNBoot.a0, RNBoot.t0, RNBoot.commit0, RNBoot.snap0] at Hnames
@@ -388,7 +407,8 @@ theorem raftNode_of_RestartNode
     exact ⟨Nat.le_refl _, fun _ _ h1 h2 _ => absurd h2 (by simp; omega),
       ⟨γr.cfg, rfl, fun _ h => h, fun _ h1 h2 => absurd h1 h2, H0, Hsz⟩⟩
   ihave ⟨Hloop, Happly⟩ := rnToks_of_restart γw (A₀.take σ.b) σ.hs S
-      ⟨A₀.length, Membership.simple γr.cfg⟩ Hwpre hidx (by rw [Hwc0]; exact Nat.le_refl _) hcfgv
+      ⟨A₀.length, Membership.simple γr.cfg⟩ Hwpre hidx (by rw [Hwc0]; exact Nat.le_refl _)
+      (by simp [rnLogOf, Hwpre, Hws0, Nat.min_eq_left Hba]) hcfgv
     $$ [Hdrv HrS Hncfg Hrun1 Hprod Hcons Hcum Hcum0 Hwview Hwok]
   · rw [Hsrv, Hwnode, Hwnl, Hwms, Hwid, Hwwal, Hwγs]
     iframe Hdrv HrS Hncfg Hrun1 Hprod Hcons Hcum Hcum0 Hwview Hwok Hfz
@@ -414,7 +434,7 @@ theorem raftNode_of_RestartNode
   isplitl [Hrun2]
   · rw [Hwnode, Hwnl]; iexact Hrun2
   -- the installer
-  iintro %a %s %tr #Henv' #Hcommi #Hrdi #Hfix Htrf Hlts #Htri Hmu' %Hb30
+  iintro %a %s %tr #Henv' #Hcommi #Hrdi #Hfix Htrf Hlts Hreplay #Htri Hmu' %Hb30
   ihave #Hrsb : rnReadStateBridge E γw $$ []
   · iapply rnReadStateBridge_of_raft E γw $$ Henv'
   ihave #Hni : isRaftNodeIfc E γw (rnNodeIface γw) $$ []
@@ -437,10 +457,19 @@ theorem raftNode_of_RestartNode
       raftNode).raftNodeConfig'.Node' =
       interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.node.ty) #γw.nl := by
     simp only [Hrvcfg, rnNodeIface, Hwnl]
+  ihave #Hstate : rnReplayState γw rv.raftNodeConfig'.initialReplayTerms' γw.snap0 $$ []
+  · rw [Hrvcfg]
+    iunfold rnReplayState
+    iexists (σ.ents.map EntryModel.ofM).foldl replayAddEntry []
+    isplitr
+    · iExactEq Hseed; rfl
+    ipureintro
+    rw [Hwa0, Hws0]
+    exact replaySeed_pending S σ A₀ Hhold hseed.2.1 (hseed.1.imp fun h => h.2) hseed.2.2
   imod (isRaftNode_of_rnParts E γw a
     { rv with raftNodeConfig' := { rv.raftNodeConfig' with transport' := tr } } hn0 Hb30)
-    $$ [Htrf Hlts Hmu' Hdtok] with ⟨#Hrn, Hdone, #Hnodef, #Htrf⟩
-  · iframe Hpkg Henv' Hfits' Hrsb Hreg' Hfix' Htrf Hlts Hmu' Hdtok
+    $$ [Htrf Hlts Hreplay Hmu' Hdtok] with ⟨#Hrn, Hdone, #Hnodef, #Htrf⟩
+  · iframe Hpkg Henv' Hfits' Hrsb Hreg' Hfix' Htrf Hlts Hreplay Hmu' Hdtok Hstate
     isplitr
     · -- the restart data: the restart disjunct
       iunfold rnRestartOk; iright

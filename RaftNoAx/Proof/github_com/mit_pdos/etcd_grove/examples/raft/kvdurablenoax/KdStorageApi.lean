@@ -139,7 +139,7 @@ theorem Storage.wp_Entries (wp : MemoryStorage.Entries.spec (GF := GF) (hG := hG
   isplitr; · ipureintro; exact He
   isplitr
   · iapply entsPtsC_entsPts _ _ _ cs es Hcm.1 $$ Hcs
-  ipureintro; exact Hr
+  ipureintro; exact ⟨Hr.1, Hr.2.1, Hr.2.2.1⟩
 
 end promoted
 

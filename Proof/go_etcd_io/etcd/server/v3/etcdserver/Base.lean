@@ -20,6 +20,7 @@ public import Perennial.Proof.ProofPrelude
 public import Perennial.Proof.sync
 public import Perennial.Proof.sync.atomic
 public import Perennial.Proof.encoding.binary
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.PkgInit
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Base
 -- schema imports auth, etcdserverpb and zap since N4c (2026-10-17: `NewAuthBackend`, `alarmBackend`)
 public import Proof.go_etcd_io.etcd.server.v3.auth.Base
@@ -117,7 +118,9 @@ abbrev schemaInit : IProp GF :=
     (∃ s : GoSlice, globalAddr AuthRevisionKeyName ↦□ s ∗ s ↦*□ (go!"authRevision" : GoString)) ∗
     (∃ s : GoSlice, globalAddr authEnabled ↦□ s ∗ s ↦*□ [W8 1]) ∗
     (∃ s : GoSlice, globalAddr authDisabled ↦□ s ∗ s ↦*□ [W8 0]) ∗
-    (∃ b : GoInterface, globalAddr Lease ↦□ b ∗ bucketIs b (W64 3) leaseName false))
+    (∃ b : GoInterface, globalAddr Lease ↦□ b ∗ bucketIs b (W64 3) leaseName false) ∗
+    (∃ b : GoInterface, globalAddr Members ↦□ b) ∗
+    (∃ s : GoSlice, globalAddr MetaConfStateName ↦□ s ∗ s ↦*□ (go!"confState" : GoString)))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema :=
   define_is_pkg_init schemaInit
