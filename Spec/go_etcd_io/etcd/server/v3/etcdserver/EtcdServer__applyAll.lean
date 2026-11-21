@@ -110,7 +110,7 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
       rnWalTokA γn (srvRAddr s) q ∗
       -- (2026-10-31, S1) the batch's raft term `rt` (`apply.raftTerm`, the merge's guard), good for
       -- the log (`rnRtOk`: `0`, or a term committed through at least `n`)
-      taRaftTermAddr ap ↦□ rt ∗ rnRtOk γn rt n ∗ srvMergeAttachment s γr γn ∗ monoNatAuthOwn γr.cursor 1 n ∗
+      taRaftTermAddr ap ↦□ rt ∗ taReplayField ap ∗ rnRtOk γn rt n ∗ srvMergeAttachment s γr γn ∗ monoNatAuthOwn γr.cursor 1 n ∗
       -- (D22 J1b, 2026-10-31; the user's decision) what each snapshot install takes and gives back
       -- (`srvSnapOwn`), passed through the batch; (restart S6, CP2 route (C), 2026-11-13) at the
       -- ghost applied index `g` (until then Go's `ai`)
@@ -240,7 +240,7 @@ abbrev EtcdServer.applyAll.specSnapM : Prop :=
           srvFrozenAt γs (uint.nat sv.Metadata'.Index') ∗
           srvFrozenBelow γs (uint.nat sv.Metadata'.Index') ∗
           rnWalHanded γn (uint.nat sv.Metadata'.Index'))) ∗
-      taRaftTermAddr ap ↦□ rt ∗ rnRtOk γn rt n ∗ srvMergeAttachment s γr γn ∗ monoNatAuthOwn γr.cursor 1 n ∗
+      taRaftTermAddr ap ↦□ rt ∗ taReplayField ap ∗ rnRtOk γn rt n ∗ srvMergeAttachment s γr γn ∗ monoNatAuthOwn γr.cursor 1 n ∗
       -- the apply thread's resources, as `spec`'s
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗
       srvSnapState s ep mst γs ai (W64 0) ∗ applyThread γ st ∗ applyBackend γ ci b ∗

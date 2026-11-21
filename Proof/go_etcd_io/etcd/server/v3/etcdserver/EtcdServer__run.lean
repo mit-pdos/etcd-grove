@@ -210,7 +210,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
         applyResR K C rp A ∗ srvWTPool C.E C.wt ∗ srvRLogLb C.ρ.raft (A ++ ce) ∗
         srvSnapDisk C.s C.γr ∗
         (letI : MemStorReg GF := ⟨C.γr.raft.raft.reg⟩; srvAttachedMem C.ms C.γs C.γr.raft.raft.cl nk C.γr.cursor γn.nl γn.snap0) ∗
-        taRaftTermAddr apL ↦□ rt ∗ rnRtOk γn rt (rnLogOf γn (A ++ ce)).length ∗ srvMergeAttachment C.s C.γr γn }}
+        taRaftTermAddr apL ↦□ rt ∗ taReplayField apL ∗ rnRtOk γn rt (rnLogOf γn (A ++ ce)).length ∗ srvMergeAttachment C.s C.γr γn }}
       (App (App (Val (C.s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #C.ep))
         (Val #apL))
     {{ RET #(); schedule.schedRunning γs ∗ applyResR K C rp (A ++ ce) ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) C.ρ.raft.raft; nodeRunning n C.ρ.raft.raft.cl srvClusterN (1 : Qp).half)) }} := by
@@ -219,7 +219,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
   simp only [EtcdServer.applyAll.specBatch] at hAA
   rw [hR]
   iintro %Φ ⟨#Hpkg, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, Hdv, #Hdvr, Hrh, #Hesl,
-    #Hents, #Hbc, Hrun, HR, #HWc, #Hlbr, #Hsd, #Hmsinv, #Hrtf, #Hrtok, #Hmerge⟩ HΦ
+    #Hents, #Hbc, Hrun, HR, #HWc, #Hlbr, #Hsd, #Hmsinv, #Hrtf, #HreplayField, #Hrtok, #Hmerge⟩ HΦ
   iunfold applyResR at HR
   icases HR with ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %sa, %g, %HB, #Hsrv, Hai, Hat, Hcs, #Hcv, Hss, Hst, Hbe, Happ, Hlr, Hbr,
     Hwr, Hrdk, HKV, Hao, #Hlog, Hkr, HRS, HAR, #HlbA0, #HKVf, Hwal, ⟨%w, #HWA, %Hnsw⟩, HtokR, Hso, Hcursor, %Hpure⟩
@@ -327,7 +327,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
         by have := uint_nat_eq C.ai₀; omega, Hlt, hdisk, Hci, hcia, by rw [Hkc.2]; exact Hg0, hγn, hpre,
         by rw [hun]; simp [rnLogOf, hprefix], by simp [rnLogOf, hprefix]; omega, Hnsw⟩
     rw [hun]
-    iframe Hsd Hmsinv HKVf Hwal Hrtf Hrtok Hmerge
+    iframe Hsd Hmsinv HKVf Hwal Hrtf HreplayField Hrtok Hmerge
     iframe HWc' Hracc' Hcv Hkb Hbw' HWA Hlog Hsrv Hbc Hents Hesl Hncb Hnc Hsn Hrac Hes Hsa
     iframe
     iunfold srvGoRes
@@ -550,14 +550,14 @@ theorem run_job_snapC (hAA : EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG)
             nodeCommitLb γn.node.cl γn.key (γn.pre ++ A').length ∗
             srvFrozenAt γn.γs (γn.pre ++ A').length ∗ srvFrozenBelow γn.γs (γn.pre ++ A').length ∗
             rnWalHanded γn (γn.pre ++ A').length)) ∗
-        taRaftTermAddr apL ↦□ rt ∗ rnRtOk γn rt (rnLogOf γn A').length ∗ srvMergeAttachment C.s C.γr γn ∗
+        taRaftTermAddr apL ↦□ rt ∗ taReplayField apL ∗ rnRtOk γn rt (rnLogOf γn A').length ∗ srvMergeAttachment C.s C.γr γn ∗
         schedule.schedRunning γs ∗ applyResR K C rp A ∗ srvWTPool C.E C.wt ∗ srvRLogLb C.ρ.raft A' ∗
         srvRLogLb C.ρ.raft A }}
       (App (App (Val (C.s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #C.ep))
         (Val #apL))
     {{ RET #(); schedule.schedRunning γs ∗ applyResR K C rp A' }} := by
   iintro %Φ ⟨#Hpkg, #Hsa, #Hmid, #Hmeta, #Hes, #Hesl, #Hsnf, Hsnv, #Hcl, #Hncf, #Hnc2, Hnr0,
-    #Hracf, #Hracc, #Hrtf, #Hrtok, #Hmerge, Hrun, HR, #HWc, #Hlbr, #HlbA⟩ HΦ
+    #Hracf, #Hracc, #Hrtf, #HreplayField, #Hrtok, #Hmerge, Hrun, HR, #HWc, #Hlbr, #HlbA⟩ HΦ
   iunfold applyResR at HR
   icases HR with ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %sa, %g, %HB, #Hsrv, Hai, Hat, Hcs, #Hcv, Hss,
     Hst, Hbe, Happ, Hlr, Hbr, Hwr, Hrdk, HKV, Hao, #Hlog, Hkr, HRS, HAR, #HlbA0, #HKVf, Hwal, ⟨%w, #HWA, -⟩,
@@ -1323,6 +1323,8 @@ theorem EtcdServer.run.wp_proofG
       ipersist ap
       ihave #Hapf := ap
       iStructNamedSuffix Hapf "A"
+      ihave #HreplayField : taReplayField (GF := GF) ap_ptr $$ []
+      · iunfold taReplayField; iexists apv.replayTerms'; iexact replayTermsA
       ihave #HC'' := HC'
       iunfold srvCM at HC''
       icases HC'' with ⟨-, -, #Hlbr⟩
@@ -1413,6 +1415,8 @@ theorem EtcdServer.run.wp_proofG
     ipersist ap
     ihave #Hapf := ap
     iStructNamedSuffix Hapf "A"
+    ihave #HreplayField : taReplayField (GF := GF) ap_ptr $$ []
+    · iunfold taReplayField; iexists apv.replayTerms'; iexact replayTermsA
     ihave #HC'' := HC'
     iunfold srvCM at HC''
     icases HC'' with ⟨%Hcp, #Hbw, #Hlbr⟩

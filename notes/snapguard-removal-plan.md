@@ -54,6 +54,9 @@ Three obligations still need proofs.
    servers now give the worker exclusive ownership of the config field.
    The VM checked both constructors and their Raft installer. The worker
    proof reaches the new `appendEntries` call on both snapshot branches.
+   On the receiving side, both job constructors in `EtcdServer.run` now
+   pass the concrete `toApply.replayTerms` header to `applyAll` from the
+   heap-allocated job. The VM checked `EtcdServer__run` on this change.
    Giving the worker the field establishes ownership of the slice header.
    The historical runs in its backing array still need a log certificate.
 2. Read the configuration from the frozen image. The missing-key branch

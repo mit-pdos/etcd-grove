@@ -51,6 +51,7 @@ abbrev epMemSnapAddr (ep : Loc) : Loc := structFieldRef etcdProgress go!"memoryS
 abbrev taSnapshotAddr (ta : Loc) : Loc := structFieldRef toApply go!"snapshot" ta
 abbrev taNotifycAddr (ta : Loc) : Loc := structFieldRef toApply go!"notifyc" ta
 abbrev taRaftTermAddr (ta : Loc) : Loc := structFieldRef toApply go!"raftTerm" ta
+abbrev taReplayTermsAddr (ta : Loc) : Loc := structFieldRef toApply go!"replayTerms" ta
 abbrev srvInflightAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"inflightSnapshots" s
 
 end addrs
@@ -61,6 +62,13 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+/-- The replay view of the particular Ready copied into this apply job. -/
+def taReplayField (ta : Loc) : IProp GF :=
+  iprop(∃ terms : GoSlice, taReplayTermsAddr ta ↦□ terms)
+
+instance taReplayField_persistent (ta : Loc) : Persistent (taReplayField (GF := GF) ta) := by
+  unfold taReplayField; infer_instance
 
 /-- `s.bemu`'s lock invariant at fraction `q`: `s.be` at half the fraction, holding the real
 backend `d`, the current backend's ghost variable `γbe` at `d` at half the fraction, and
