@@ -1,7 +1,9 @@
 /-
 `merge.Updater.update`:
-not proved yet (`sorry`): Draft of the `merge` package's per-function specs (notes/smd-plan.md,
-"The call DAG"); proved in the stage's Prove step, after the freeze.
+proved (Prove, 2026-11-21): the loop over the managers builds the conflicts map (`conflictsMF`'s
+entries), the removed map and the versions map (every entry `compare old new`, converted objects
+being the objects themselves); `ConflictsFromManagers` on a conflict, not forced; else the two
+in-place loops and the delete loop give `afterUpdate` (`MUpd.finSet_eq`).
 Callees in other packages, whose Draft specs are written beside this one and become hypotheses here
 when they are linked: `typed.TypedValue.Compare`, `typed.Comparison.FilterFields`,
 `fieldpath.versionedSet.Set`, `fieldpath.versionedSet.APIVersion`, `fieldpath.versionedSet.Applied`,
@@ -865,7 +867,55 @@ theorem merge.Updater.update.wp_proof
           iapply HME' $$ %k %i %e'; ipureintro; exact ⟨hk, he'⟩
       ipureintro; intro k hk
       exact GMap.lookup_delete_ne _ (Ne.symm hk)
-  sorry
+  iintro %MF' HP Hmm
+  iNamed HP
+  rw [List.take_length] at HMM'
+  have hfin := fun k e he => MUpd.finSet_eq mf wf (compare S t old new) hMs _ _ hckF hrkF k e he
+  have hkeysF : ∀ k, (MF' !! k).isSome =
+      ((afterUpdate mf wf (conflictsOf mf wf (compare S t old new)) (compare S t old new).removed).get k).isSome := by
+    intro k
+    rw [MUpd.afterUpdate_get mf wf _ _ hMs k]
+    apply Bool.eq_iff_iff.2
+    rw [HMM' k]
+    cases hm : mf.get k with
+    | none => simp
+    | some e =>
+      have hkm : k ∈ mkeys := by rw [Hmkset k, HMM k, hm]; rfl
+      simp only [Option.bind_some, Option.some.injEq, exists_eq_left', true_and]
+      rw [hfin k e hm]
+      constructor
+      · intro h; have := h hkm; rw [if_neg this]; rfl
+      · intro h _ hem; rw [if_pos hem] at h; cases h
+  wp_auto
+  iapply HΦ
+  have hcond : (!force && !(conflictsOf mf wf (compare S t old new)).isEmpty) = false := by
+    cases force
+    · have hc : conflictsMF mf wf (compare S t old new) = [] :=
+        Classical.byContradiction fun h => hcf ⟨rfl, h⟩
+      rw [hCnil.1 hc]; rfl
+    · rfl
+  rw [hcond]
+  simp only [Bool.false_eq_true, ite_false]
+  isplitr
+  · ipureintro; exact ⟨trivial, trivial⟩
+  isplitl [Hmm Hclose]
+  · iapply Hclose $$ Hmm
+    · ipureintro
+      exact ⟨MUpd.afterUpdate_sorted_law_holds mf wf _ _ hMs, hkeysF⟩
+    imodintro
+    iintro %k %i %e' ⟨%hk, %he'⟩
+    rw [MUpd.afterUpdate_get mf wf _ _ hMs k] at he'
+    cases hm : mf.get k with
+    | none => rw [hm] at he'; cases he'
+    | some e =>
+      rw [hm] at he'
+      simp only [Option.bind_some] at he'
+      rw [← hfin k e hm] at he'
+      split at he'
+      · cases he'
+      · cases he'
+        iapply HME' $$ %k %i %e; ipureintro; exact ⟨hk, hm⟩
+  iexact Hc
 
 end proof
 
