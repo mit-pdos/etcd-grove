@@ -2093,8 +2093,8 @@ the read-side rows of the lessor/auth list. `LeaseTimeToLive`: `requireAuthInfo`
 TOCTOU is the spec's stated gap, `issues/etcd-lease-timetolive-keys-toctou.md`; its peers
 assumption, `issues/etcd-leasehttp-timetolive-nil-response-panic.md`, new), and the revision
 re-check (its verdict not stated). `LeaseLeases`: `lessor.Leases` (proved: read-locked
-`unsafeLeases`, sorted by `leasesByExpiry` over the axiom `sort.«Sort».wp_anyLess`, a `Less` that
-answers anything, `Proof/sort/SortAnyLess.lean`, until Perennial proves it,
+`unsafeLeases`, sorted by `leasesByExpiry` over `sort.«Sort».wp_anyLess`, a `Less` that
+answers anything (an axiom until 2026-11-21; now proved, `Proof/sort/SortAnyLessLinked.lean`),
 `notes/perennial-changes.md`), `checkLeaseLeases` at the listing's index, the `LeaseStatus` loop
 and `newHeader`. The lessor's model grew: `isLeaseObj` holds the lease's `expiryMu` guard and a pool
 of its reader slots (`Lease.Remaining`, proved), and `lessorMu` the persistent receipt `⧖ |M|`

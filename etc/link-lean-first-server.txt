@@ -163,9 +163,8 @@ mvcc_metricsTxnWrite__DeleteRange: @
 mvcc_watchableStoreTxnWrite__End: @
 lease_lessor__Revoke: lease_Lease__Keys sort_StringSlice__Sort schema_UnsafeDeleteLease backend__BatchTx =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_mvccBackend_isBackend_law_holds =mvcc.api.mvccApi_mvccTxn_leaseDelete_law_holds
 # The lessor's listing for the lease read entry points (the lease-read plan, 2026-10-31):
-# `Leases` (read-locked `unsafeLeases`, then sorted by `Remaining()`) and its sorter. The trust
-# boundary: `sort.Sort` for a `Less` that answers anything (`Proof/sort/SortAnyLess.lean`, until
-# Perennial proves it).
+# `Leases` (read-locked `unsafeLeases`, then sorted by `Remaining()`) and its sorter, with `sort.Sort`
+# for a `Less` that answers anything (`Proof/sort/SortAnyLessLinked.lean`; an axiom until 2026-11-21).
 lease_Lease__Remaining: time_Time__IsZero
 lease_lessor__unsafeLeases:
 lease_leasesByExpiry__Len:

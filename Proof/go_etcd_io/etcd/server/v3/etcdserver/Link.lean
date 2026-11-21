@@ -639,7 +639,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Lemmas
 public import Proof.bytes.Buffer__Write
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.NetErr
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeApiLink
-public import Proof.sort.SortAnyLess
+public import Proof.sort.SortAnyLessLinked
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeStartLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RnNewStorageLinked
