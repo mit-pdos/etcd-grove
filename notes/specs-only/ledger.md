@@ -3380,6 +3380,25 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   and discharge it by `rfl`.
 - **Decision.** Applied (prove-reflectfmt, 2026-11-20; a strengthening of the premise, the callers' obligation discharged).
 
+## 2026-11-20: `goose_adequacy_start` hands out the rights of names whose descriptor IDs collide (prove-promdeep)
+
+- **Spec.** `EtcdGrove.goose_adequacy_start` (`Proof/runtime/Start.lean`, a trust-boundary axiom), with the meaning
+  of `prometheus.nameFree` (`Proof/github_com/prometheus/client_golang/prometheus/Registry.lean`) that
+  `prometheus.MustRegister.wp_proof` relies on.
+- **Defect.** False. The axiom gave `nameFree n` for every name of any duplicate-free `Ns`; `nameFree n` promises that
+  no one but its holder registers `n`'s label-free descriptor ID (`xxhash64(n ++ "\xff")`). Two distinct names can
+  share that ID, and registering the first then registers the second's ID: a program registering counters of both
+  was proved not to panic, and panics on the second `MustRegister` (`Registry.Register`: the collector ID is taken,
+  `AlreadyRegisteredError`).
+- **Evidence.** `m_b699caa269ad35ee` and `m_641c7bdac316dcb7` (both `nameOk`) have ID `0xfea999cc795d2229`:
+  `examples/axiomcx/promidcollide` (Go, client_golang v1.24.1), `prometheus.descId_collision` (Lean, over the xxhash
+  model `Proof/github_com/cespare/xxhash/v2/Model.lean`); `notes/axiom-review/prometheus-id-collision.md`.
+- **Proposed change.** A premise `hNsIds : prometheus.descIdsDistinct Ns` (the names' `descId`s pairwise distinct),
+  decidable, an auto-parameter (`decide +kernel`) of the axiom and of `etcd_adequate`, `etcd_adequate_alloc` and
+  their `_members` forms, so that every program's names are checked by the kernel where its closed theorem is
+  proved; the closed theorems' statements do not change.
+- **Decision.** Applied (prove-promdeep, 2026-11-20; a strengthening of an axiom's premise, discharged at every use).
+
 ## 2026-11-20: `txn.ApplySecObserve` panics on a non-UTF-8 label (prove-etcdserver)
 
 - **Spec.** `txn.ApplySecObserve.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/txn/ApplySecObserve.lean`), an axiom
