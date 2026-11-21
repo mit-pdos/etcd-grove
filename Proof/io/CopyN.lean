@@ -281,15 +281,20 @@ theorem io.wp_copyBuffer (w : GoInterfaceOk) (Wr : Bool → List w8 → IProp GF
   -- `n < 1`: a buffer of 1 byte
   rw [show n - W64 0 = n by word, h1] at Hif
   rw [show W64 1 = io.copySize n by unfold io.copySize; simp only [hc1, Hif, ↓reduceIte]]
+  rename_i h0
+  clear Hif hc1 h0
   rotate_left
   -- `1 ≤ n < 32 KiB`: a buffer of `n` bytes
   rw [show n - W64 0 = n by word, h1] at Hif
   rw [show n - W64 0 = io.copySize n by
     unfold io.copySize; simp only [hc1, Hif, ↓reduceIte]; word]
+  rename_i h0
+  clear Hif hc1 h0
   rotate_left
   -- a buffer of 32 KiB
   rw [h32] at Hif
   rw [show W64 32768 = io.copySize n by unfold io.copySize; simp only [Hif, ↓reduceIte]]
+  clear Hif
   rotate_left
   all_goals (
     wp_apply (wp_slice_make2 (V := w8) (io.copySize n)) as %sl ⟨Hsl, -⟩
