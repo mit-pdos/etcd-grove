@@ -144,7 +144,10 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   each stays an axiom here until Perennial's `*.toml` translates it (`Seconds`: never, a float).
   The cheap ones to translate: `strings.HasSuffix`/`TrimSuffix`/`Contains` (over
   `internal/stringslite`), `strconv.FormatBool`/`ParseBool`, `io.ReadFull`/`ReadAtLeast`.
-- **Status.** Open.
+- **Status.** Partly done (2026-11-20, Perennial `e9988b5cd`, branch `prove-stdlib`): Perennial
+  translates and proves `strings.HasSuffix`/`TrimSuffix` (over `internal/stringslite`'s),
+  `strconv.FormatBool`/`ParseBool`, `errors.Join`, `time.Time.IsZero`/`Time.Unix`/`time.Unix` and
+  `sort.StringSlice`'s methods; the axioms here became theorems over them. The rest is open.
 
 ### `SprintfOut` of a literal prefix and of `pre%vmid%v` (2026-11-18, k8s 7g)
 
@@ -333,8 +336,10 @@ rebuilds everything; no bump of its own).
   part's `filepathlite.Dir` shows) and `strings.HasSuffix` (a call of `stringslite.HasSuffix`), with
   specs `RET #(decide (pre <+: s))` / `#(decide (suf <:+ s))` in `Perennial/Proof/{internal/
   stringslite,strings}/`. Then `filepathlite.IsAbs.spec` is proved in the part (`RET #(decide
-  (p.head? = some (W8 47)))` from `go!"/" <+: p`) and the HasSuffix axiom becomes a theorem. Not yet
-  proposed.
+  (p.head? = some (W8 47)))` from `go!"/" <+: p`) and the HasSuffix axiom becomes a theorem.
+- **Status.** `HasSuffix` done (2026-11-20, Perennial `e9988b5cd`): `stringslite.HasSuffix`/`TrimSuffix`
+  and `strings.HasSuffix`/`TrimSuffix` translated and proved, the axiom here a theorem.
+  `stringslite.HasPrefix` (and `IsAbs`) still open.
 
 ### `append` does not model `growslice`'s `maxAlloc` limit (2026-11-14, branch `wal-small14`)
 
@@ -961,7 +966,8 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   of Perennial's `sort.Strings.spec`), an axiom.
 - **Proposed change.** Translate the methods in Perennial's `sort` and prove `Sort` as
   `sort.Strings` is proved; then the axiom here goes.
-- **Status.** Open.
+- **Status.** Done (2026-11-20, Perennial `e9988b5cd`): `Len`, `Less`, `Swap`, `Sort` translated and
+  proved; `sort.StringSlice.Sort.wp_proof` here is a theorem over `sort.StringSlice.wp_Sort`.
 
 ### Tooling: incremental proof checks, and long `·` blocks as auxiliary theorems
 
@@ -1468,7 +1474,11 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   `Reflector.expectedType` field was elaborated against them: the two instances are incoherent
   (a proof that mixes a struct's `Type'` field with a `Type'` cell would not connect them). Not
   unsound, but only a fix at the source (above) gives one instance.
-- **Status.** Not started.
+- **Status.** Done (2026-11-20, group `reflecttype`, Perennial `090fdac23`): `Perennial/Code/reflect.toml`
+  translates `Type` (`translate = ["!*", "Type"]`), so `reflect.Type'` is `GoInterface` with the
+  interface's method list as its underlying type, and Perennial's interface instances apply; the
+  generated `sorry`s are gone, and with them this repository's `type_intoVal_inj`,
+  `type_typed_pointsto` and `type_into_val_typed` (`Proof/reflect/Values.lean`): one instance.
 
 ### Goose: a names-only package's constants are values of unknown shape
 

@@ -12,8 +12,8 @@ the translated initializers (`errTooMany`, an `errors.New` error; `typeToMessage
 `endpointsMap` (then the registry's mutex is made, with the map empty), `logger.go`'s sets grpc's logger (`grpclog.SetLoggerV2`, names-only: the
 trust-boundary axiom `grpclog.SetLoggerV2.wp_proof`), `watcher.go`'s stores in
 `fatalOnDecodeError` whether `KUBE_PANIC_WATCH_DECODE_ERROR` parses as true (`os.Getenv` and
-`strconv.ParseBool`, names-only in Perennial: the trust-boundary axioms `os.Getenv.wp_proof` and
-`strconv.ParseBool.wp_proof`).
+`strconv.ParseBool`: the trust-boundary axiom `os.Getenv.wp_proof`, and `strconv.ParseBool.wp_proof`, proved
+over Perennial's translation since 2026-11-20).
 -/
 module
 

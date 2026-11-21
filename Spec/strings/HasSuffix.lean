@@ -1,8 +1,8 @@
 /-
-`strings.HasSuffix(s, suffix)`: whether `suffix` is a suffix of `s`. Perennial translates
-`strings` without it (`notes/perennial-changes.md`); its Go body is
-`len(s) >= len(suffix) && s[len(s)-len(suffix):] == suffix`. The trust boundary: an axiom, `Proof/strings/HasSuffix.lean`. Lean-first (no Rocq
-counterpart).
+`strings.HasSuffix(s, suffix)`: whether `suffix` is a suffix of `s`. Proved
+(`Proof/strings/HasSuffix.lean`) over Perennial's translation of Go's body
+(`internal/stringslite`: `len(s) >= len(suffix) && s[len(s)-len(suffix):] == suffix`). Lean-first
+(no Rocq counterpart).
 -/
 module
 

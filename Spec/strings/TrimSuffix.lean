@@ -1,7 +1,7 @@
 /-
-`strings.TrimSuffix(s, suffix)` (Perennial's `strings`, without a body or spec): `s` without
-`suffix` if it ends with it, else `s` (`TrimSuffixM`). `notes/perennial-changes.md`. The trust boundary: an axiom, `Proof/strings/TrimSuffix.lean`. Lean-first (no Rocq
-counterpart).
+`strings.TrimSuffix(s, suffix)`: `s` without `suffix` if it ends with it, else `s`. Proved
+(`Proof/strings/TrimSuffix.lean`) over Perennial's translation of Go's body
+(`internal/stringslite`). Lean-first (no Rocq counterpart).
 -/
 module
 
