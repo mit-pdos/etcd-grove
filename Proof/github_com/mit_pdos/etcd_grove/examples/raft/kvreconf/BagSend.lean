@@ -37,6 +37,7 @@ theorem bag_nb_send_au (γ : ChanNames) (ch : Loc) (P : V → IProp GF) (v : V) 
     ⊢ £ 1 -∗ isChanBag γ ch P -∗ P v -∗ ▷ Φ -∗ nonblockingSendAuInner γ v Φ := by
   rw [isChanBag_unseal]; unfold isChanBagDef nonblockingSendAuInner
   iintro Hlc1 ⟨#Hch, #Hinv⟩ HP HΦ
+  iapply ncfupd_of_fupd
   iinv Hinv with Hi Hclose
   imod lc_fupd_elim_later (E := ⊤ \ ↑nroot) $$ Hlc1 Hi with Hi
   unfold chanBagInv

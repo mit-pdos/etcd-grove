@@ -359,6 +359,7 @@ theorem chanTok_close_au (γ : ChanNames) (γc : GName) (Φ : IProp GF) :
     ⊢ inv chanAnyN (chanAnyInv (GF := GF) γ γc) -∗ ghostVar γc 1 () -∗ ▷ Φ -∗ closeAu γ Loc Φ := by
   iintro #Hinv Htok HΦ
   unfold closeAu
+  iapply ncfupd_of_fupd
   iinv Hinv with Hi Hclose
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
@@ -414,6 +415,7 @@ theorem chanTok_nonblockingSend (γ : ChanNames) (γc : GName) (v : Loc) (Φ : I
       ▷ (ghostVar γc 1 () -∗ Φ) -∗ nonblockingSendAuInner γ v Φ := by
   iintro #Hinv Htok HΦ
   unfold nonblockingSendAuInner
+  iapply ncfupd_of_fupd
   iinv Hinv with Hi Hclose
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask

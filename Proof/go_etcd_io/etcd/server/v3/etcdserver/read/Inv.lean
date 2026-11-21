@@ -152,6 +152,7 @@ theorem bcastOrClosed_receive (ch : Loc) (Q : IProp GF) :
     iintro !> %Φ HΦ
     ihave HΦ' := HΦ $$ HQ
     unfold recvAu
+    iapply ncfupd_of_fupd
     iinv Hi with Hst Hclose
     iapply fupd_mask_intro Std.LawfulSet.empty_subset
     iintro Hmask

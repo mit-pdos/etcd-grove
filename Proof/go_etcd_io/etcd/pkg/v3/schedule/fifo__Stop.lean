@@ -87,6 +87,7 @@ theorem schedule.fifo.Stop.wp_proof : schedule.fifo.Stop.spec (GF := GF) (hG := 
   iintro -
   unfold recvAu
   clear Hjs
+  iapply ncfupd_of_fupd
   iinv Hdinv with Hi Hclose
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask

@@ -119,7 +119,8 @@ theorem schedule.fifo.Schedule.wp_proof : schedule.fifo.Schedule.spec (GF := GF)
           · iexact Hrch
           unfold nonblockingSendAu nonblockingSendAuInner
           isplit
-          · iinv Hrinv with Hi Hclose
+          · iapply ncfupd_of_fupd
+            iinv Hrinv with Hi Hclose
             iapply fupd_mask_intro Std.LawfulSet.empty_subset
             iintro Hmask
             inext
