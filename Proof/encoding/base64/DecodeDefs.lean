@@ -234,7 +234,7 @@ theorem b64Ok_dropAt (α : List w8) (h61 : (61 : w8) ∉ α) (s : List w8) (i : 
     (h : b64Ok α (s.drop i)) (hi : i < s.length) : b64Ok α (s.drop (i + 4)) := by
   have h' := b64Ok_drop4 α h61 _ h (by intro h'; rw [List.drop_eq_nil_iff] at h'; omega)
   have e : (s.drop i).drop 4 = s.drop (i + 4) := by
-    rw [List.drop_drop]; first | rfl | (congr 1; omega)
+    rw [List.drop_drop] <;> first | rfl | (congr 1; omega)
   rwa [e] at h'
 
 /-- The OR of decode-map entries below 64 is not `0xff`: `assemble32`/`assemble64` accept. -/
