@@ -22,7 +22,7 @@ The server follows the elected sender and snapshot source through Raft's
 outgoing channel. Bootstrap, `CreateSnapshot` and `ApplySnapshot` each give
 the proof the evidence it needs when the next apply job merges a snapshot.
 The replay deferral is reachable and has a separate regression test.
-[Replay issue](../issues/etcd-merged-snapshot-replay-failure.md).
+[Replay issue](../nonissues/etcd-backward-snapshot-install-panics-watcher.md).
 
 ## Raft's two builds: the main tree without `with_tla`, `RaftTla/` with it (2026-11-16, branch `trace-check-merge-lean2`)
 
