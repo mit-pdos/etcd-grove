@@ -13,6 +13,15 @@ startup pin gives either the client's storage certificate (under a later) or
 the restore-path certificate. R2 still has to establish the term and position
 of that restore in the node's history.
 
+## Snapshot sender evidence (2026-11-20)
+
+`sentMsg_localSnapshotLeader` identifies the node that sent a queued snapshot
+as an elected leader in the message term. Its proof gets the id from the
+outbox invariant and the election certificate from the protocol message.
+`snapshotLeader_terms_ne` rules out equal terms for two distinct leaders.
+The remaining comparison needs the term of the *local restore* and the
+position of the Ready batch in the apply thread.
+
 ## HANDOFF (2026-11-20, first session paused by the coordinator)
 
 **Done** (branch `prove-nosnapguard/2026-11-20`, worktree `/shared/etcd-grove-wt/prove-nosnapguard`, off
