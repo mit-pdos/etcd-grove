@@ -635,6 +635,7 @@ public import Proof.go_uber_org.zap.Logger__Debug
 public import Proof.go_uber_org.zap.Logger__Fatal
 public import Proof.go_uber_org.zap.Stringer
 public import Proof.go_uber_org.zap.Strings
+public import Proof.go_uber_org.zap.Time
 public import Proof.go_uber_org.zap.Uint64
 public import Proof.net.http.Axioms
 public import Perennial.Proof.time.Link
@@ -886,6 +887,18 @@ theorem membership.RaftCluster.wp_ID :
     membership.RaftCluster.ID.spec (GF := GF) (hG := hG) :=
   membership.RaftCluster.ID.wp_proof
 
+theorem zap.wp_Time :
+    zap.Time.spec (GF := GF) (hG := hG) :=
+  zap.Time.wp_proof
+
+theorem zap.Logger.wp_Debug :
+    zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
+  zap.Logger.Debug.wp_proof zap.Logger.wp_check zapcore.CheckedEntry.wp_Write
+
+theorem zap.wp_Uint64 :
+    zap.Uint64.spec (GF := GF) (hG := hG) :=
+  zap.Uint64.wp_proof
+
 theorem membership.RaftCluster.wp_Member :
     membership.RaftCluster.Member.spec (GF := GF) (hG := hG) :=
   membership.RaftCluster.Member.wp_proof membership.Member.wp_Clone
@@ -1006,10 +1019,6 @@ theorem context.wp_TODO :
     context.TODO.spec (GF := GF) (hG := hG) :=
   context.TODO.wp_proof
 
-theorem zap.Logger.wp_Debug :
-    zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
-  zap.Logger.Debug.wp_proof zap.Logger.wp_check zapcore.CheckedEntry.wp_Write
-
 theorem binary.wp_ReadUint64 :
     binary.ReadUint64.spec (GF := GF) (hG := hG) :=
   binary.ReadUint64.wp_proof _root_.Perennial.encoding.binary.bigEndian.wp_Uint64
@@ -1017,10 +1026,6 @@ theorem binary.wp_ReadUint64 :
 theorem fmt.wp_SprintfArgs :
     fmt.SprintfArgs.spec (GF := GF) (hG := hG) :=
   fmt.SprintfArgs.wp_proof
-
-theorem zap.wp_Uint64 :
-    zap.Uint64.spec (GF := GF) (hG := hG) :=
-  zap.Uint64.wp_proof
 
 theorem prometheus.GaugeVec.wp_WithLabelValues :
     prometheus.GaugeVec.WithLabelValues.spec (GF := GF) (hG := hG) :=
@@ -1925,9 +1930,21 @@ theorem EtcdServer.wp_LeaseLeases [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.LeaseLeases.spec (GF := GF) (hG := hG) :=
   EtcdServer.LeaseLeases.wp_proof lease.lessor.wp_Leases EtcdServer.wp_checkLeaseLeases EtcdServer.wp_newHeader
 
+theorem raftNode.wp_getLatestTickTs :
+    raftNode.getLatestTickTs.spec (GF := GF) (hG := hG) :=
+  raftNode.getLatestTickTs.wp_proof
+
+theorem EtcdServer.wp_isActive :
+    EtcdServer.isActive.spec (GF := GF) (hG := hG) :=
+  EtcdServer.isActive.wp_proof raftNode.wp_getLatestTickTs
+
+theorem EtcdServer.wp_raftStatus :
+    EtcdServer.raftStatus.spec (GF := GF) (hG := hG) :=
+  EtcdServer.raftStatus.wp_proof
+
 theorem EtcdServer.wp_ensureLeadership :
     EtcdServer.ensureLeadership.spec (GF := GF) (hG := hG) :=
-  EtcdServer.ensureLeadership.wp_proof
+  EtcdServer.ensureLeadership.wp_proof EtcdServer.wp_Logger EtcdServer.wp_isActive raftNode.wp_getLatestTickTs zap.wp_Time zap.Logger.wp_Debug config.ServerConfig.wp_ReqTimeout EtcdServer.wp_raftStatus EtcdServer.wp_MemberID zap.wp_Error zap.wp_Uint64 zap.Logger.wp_Warn
 
 theorem EtcdServer.wp_waitAppliedIndex :
     EtcdServer.waitAppliedIndex.spec (GF := GF) (hG := hG) :=
@@ -2828,18 +2845,6 @@ theorem EtcdServer.wp_UserRevokeRole :
 theorem EtcdServer.wp_Watchable :
     EtcdServer.Watchable.spec (GF := GF) (hG := hG) :=
   EtcdServer.Watchable.wp_proof EtcdServer.wp_KV
-
-theorem raftNode.wp_getLatestTickTs :
-    raftNode.getLatestTickTs.spec (GF := GF) (hG := hG) :=
-  raftNode.getLatestTickTs.wp_proof
-
-theorem EtcdServer.wp_isActive :
-    EtcdServer.isActive.spec (GF := GF) (hG := hG) :=
-  EtcdServer.isActive.wp_proof raftNode.wp_getLatestTickTs
-
-theorem EtcdServer.wp_raftStatus :
-    EtcdServer.raftStatus.spec (GF := GF) (hG := hG) :=
-  EtcdServer.raftStatus.wp_proof
 
 theorem EtcdServer.wp_requireAuthInfo :
     EtcdServer.requireAuthInfo.spec (GF := GF) (hG := hG) :=

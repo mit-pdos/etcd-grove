@@ -261,6 +261,7 @@ IsEmptySnap: @
 # (premise-fixes-4, 2026-11-10) raft's `SetLogger`, `newRaftNode`'s callee (until then a contract)
 SetLogger: @
 zap_Duration:
+zap_Time:
 zap_Logger__Fatal:
 # (2026-10-31, #3) the raft loop's snapshot `Ready`: `CloneSnapshot`, `ApplySnapshot` (raft's; `Append` through
 # NodeApiLink's `srvApi_wp_MemAppend`)
@@ -386,7 +387,7 @@ EtcdServer__LeaseTimeToLive: EtcdServer__requireAuthInfo+C EtcdServer__checkLeas
 lease_lessor__Renew: lease_lessor__isPrimary lease_Lease__Remaining lease_Lease__refresh lease_LeaseExpiredNotifier__RegisterOrUpdate
 EtcdServer__raftStatus:
 EtcdServer__isActive: raftNode__getLatestTickTs
-EtcdServer__ensureLeadership:
+EtcdServer__ensureLeadership: EtcdServer__Logger EtcdServer__isActive raftNode__getLatestTickTs zap_Time zap_Logger__Debug config_ServerConfig__ReqTimeout EtcdServer__raftStatus EtcdServer__MemberID zap_Error zap_Uint64 zap_Logger__Warn
 EtcdServer__waitAppliedIndex: EtcdServer__getCommittedIndex
 EtcdServer__waitLeader: EtcdServer__Leader membership_RaftCluster__Member
 leasehttp_RenewHTTP:
