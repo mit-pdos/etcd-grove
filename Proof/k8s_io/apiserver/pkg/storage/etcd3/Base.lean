@@ -437,6 +437,14 @@ instance k8s_io_component_base_tracing_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.component_base.tracing :=
   build_get_is_pkg_init_wf
 
+-- (prove-k8s2, 2026-11-20; moved here from `authorization/authorizer/Base.lean`) `flowcontrol` imports it
+instance k8s_io_apiserver_pkg_authentication_user_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.k8s_io.apiserver.pkg.authentication.user :=
+  define_is_pkg_init iprop(True)
+instance k8s_io_apiserver_pkg_authentication_user_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apiserver.pkg.authentication.user :=
+  build_get_is_pkg_init_wf
+
 instance k8s_io_apiserver_pkg_util_flowcontrol_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.apiserver.pkg.util.flowcontrol :=
   define_is_pkg_init iprop(True)

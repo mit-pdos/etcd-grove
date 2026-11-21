@@ -43,7 +43,7 @@ public import Proof.k8s_io.apiserver.pkg.storage.cacher.progress.InitLinked
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.store.InitLinked
 public import Proof.k8s_io.apiserver.pkg.storage.feature.InitLinked
 public import Proof.k8s_io.apiserver.pkg.util.feature.Init
-public import Proof.k8s_io.apiserver.pkg.util.flowcontrol.Init
+public import Proof.k8s_io.apiserver.pkg.util.flowcontrol.InitLinked
 public import Proof.k8s_io.client_go.tools.cache.Init
 public import Proof.k8s_io.client_go.util.consistencydetector.Init
 public import Proof.k8s_io.client_go.util.watchlist.Init
