@@ -2,7 +2,7 @@
 
 The Go pin at `34f5142d062b` removes the snapshot-index comparison in
 `applyAll`. The merge proof obtains its bound from the two Ready batches,
-the snapshot's origin and the applied-index authority. The pin retains the
+the snapshot's origin and the actual Go apply cursor, including during replay. The pin retains the
 message-term check and the post-restart replay deferral. The WAL upgrade
 and both bbolt fixes are also in the pins. [Snapshot proof and replay work](snapguard-removal-plan.md).
 

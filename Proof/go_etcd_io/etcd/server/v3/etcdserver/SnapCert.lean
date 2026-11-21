@@ -205,11 +205,11 @@ theorem wp_srv_createSnapshot
   iunfold srvCreateMem at Hmsi
   icases Hmsi with ⟨%pin, %boot, #Hminv⟩
   iunfold memStorInvT at Hminv
-  ihave #Horigin : srvStoredOrigin γr.raft.raft.cl γr.applied pin boot (memSnapMade ai e.Term' c []) $$ []
+  ihave #Horigin : srvStoredOrigin γr.raft.raft.cl γr.cursor pin boot (memSnapMade ai e.Term' c []) $$ []
   · iunfold srvStoredOrigin
     iright; ileft
     iExactEq HappliedAt; rfl
-  wp_apply hCS ms γs (memStorJT γr.raft.raft.cl nk (srvStoredOrigin γr.raft.raft.cl γr.applied pin boot)) none ai e cs DFrac.discard c slice.nil [] eood
+  wp_apply hCS ms γs (memStorJT γr.raft.raft.cl nk (srvStoredOrigin γr.raft.raft.cl γr.cursor pin boot)) none ai e cs DFrac.discard c slice.nil [] eood
     $$ [Hnil Hdl] as %snap %err ⟨-, #Hlb, Hres⟩
   · rw [memStorAt_none]
     simp only [memStorJT, memStorJ]

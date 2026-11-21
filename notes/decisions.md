@@ -28065,7 +28065,9 @@ restarts.
 
 **2026-11-21.** Remove the index comparison in the etcd pin. Both
 `applyAll` proof paths use the bound derived from the outgoing snapshot
-and the current Ready in the matching term. The separate replay-window
+and the current Ready in the matching term. Each worker carries its
+physical apply cursor across jobs so the bound holds during replay as well.
+The separate replay-window
 failure remains in this revision and is tracked in
 [the replay issue](../nonissues/etcd-backward-snapshot-install-panics-watcher.md).
 

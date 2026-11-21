@@ -9,6 +9,13 @@ thread, and one installed by Raft. The apply job uses the proof for its
 actual node and Ready to bound the original snapshot index. Both apply
 paths pass this bound to Raft when they replace the message's snapshot.
 
+The apply worker tracks its own cursor from the startup snapshot through
+each serialized job. This matters on restart, when the backend's applied
+index can already exceed the worker's position. Local snapshot creation
+attaches a lower bound for this incarnation's worker cursor. The server
+can therefore establish the physical index comparison immediately after
+the term matches, including in the replay window.
+
 The replay deferral remains a separate change. Its fork regression tests
 exercise a frozen backend at index 7 and a recovered HardState commit of 3
 with both current and legacy metadata. The replay proof still has to
