@@ -35,6 +35,88 @@ theorem replayTerms_prefix (r : GoSlice) (runs : List replayTermRun) (n : w64)
       · ipureintro; exact Int.le_refl _
   · iapply ownSliceCap_empty _ rfl (by dsimp [slice.fullSlice]; word)
 
+/-- The backwards scan at the start of `appendEntries`, after its three
+closures have captured the receiver, count, and incoming first index. -/
+def replayTrimLoop [GooseExts] [GoGlobalContext] (rp np fp : Loc) : Expr :=
+  let n := App (Val (GoInstruction (GoLoad go.int))) (Val #np)
+  let prev := App (Val (GoInstruction (GoOp GoSub go.int))) (Pair n (Val #(W64 1)))
+  let r := App (Val (GoInstruction (GoLoad replayTerms.ty))) (Val #rp)
+  let elem := App (Val (GoInstruction (IndexRef replayTerms.ty))) (Pair r prev)
+  let last := App (Val (GoInstruction (GoLoad go.uint64)))
+    (App (Val (GoInstruction (StructFieldRef replayTermRun.ty go!"last"))) elem)
+  let first := App (Val (GoInstruction (GoLoad go.uint64))) (Val #fp)
+  let test := If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair n (Val #(W64 0))))
+    (App (Val (GoInstruction (GoOp GoGe go.uint64))) (Pair last first)) (Val #false)
+  let body := App (Val doExecute) (App (Val (GoInstruction (GoStore go.int))) (Pair (Val #np) prev))
+  App (App (App (Val doFor) (Val (LamV BAnon test))) (Val (LamV BAnon body)))
+    (Val (LamV BAnon (Val #())))
+
+/-- Exactly the discarded suffix has been scanned. Its runs all end at or
+above the replacement index, and the last kept run ends strictly before it. -/
+theorem replayTrimLoop_wp (rp np fp : Loc) (r : GoSlice) (first : w64)
+    (runs : List replayTermRun) (Φ : val → IProp GF) :
+    rp ↦ r ∗ np ↦ r.len ∗ fp ↦ first ∗ r ↦*□ runs ∗
+      (∀ n : w64, rp ↦ r -∗ np ↦ n -∗ fp ↦ first -∗
+        ⌜0 ≤ sint.Z n ∧ sint.nat n ≤ runs.length ∧
+          (∀ (i : Nat) (x : replayTermRun), sint.nat n ≤ i → runs[i]? = some x →
+            uint.nat first ≤ uint.nat x.last') ∧
+          (sint.nat n = 0 ∨ ∃ x, runs[sint.nat n - 1]? = some x ∧ uint.nat x.last' < uint.nat first)⌝ -∗
+        Φ executeVal) ⊢ WP (replayTrimLoop rp np fp) {{ Φ }} := by
+  iintro ⟨Hr, Hn, Hf, #Hsl, HΦ⟩
+  ihave %hlen := ownSlice_len r _ runs $$ Hsl
+  unfold replayTrimLoop
+  ihave HI : (∃ n : w64, "Hn" ∷ np ↦ n ∗
+      "%hi" ∷ ⌜0 ≤ sint.Z n ∧ sint.nat n ≤ runs.length ∧
+        ∀ (i : Nat) (x : replayTermRun), sint.nat n ≤ i → runs[i]? = some x →
+          uint.nat first ≤ uint.nat x.last'⌝ : IProp GF) $$ [Hn]
+  · iexists r.len; iframe Hn
+    ipureintro
+    refine ⟨hlen.2, by omega, ?_⟩
+    intro i x hb hx
+    have := (List.getElem?_eq_some_iff.mp hx).1
+    omega
+  wp_for HI
+  obtain ⟨hn0, hn, hcut⟩ := hi
+  have cz : sint.Z (W64 0) = 0 := by decide
+  by_cases hnz : 0 < sint.Z n
+  · have hb : 0 ≤ sint.Z (n - W64 1) ∧ sint.Z (n - W64 1) < sint.Z r.len := by
+      constructor <;> word
+    have hprev : sint.nat (n - W64 1) = sint.nat n - 1 := by word
+    have hprevlt : sint.nat (n - W64 1) < runs.length := by word
+    let x := runs[sint.nat (n - W64 1)]
+    have hx : runs[sint.nat (n - W64 1)]? = some x := List.getElem?_eq_getElem hprevlt
+    icases ownSlice_elem_acc (sint.Z (n - W64 1)) x r DFrac.discard runs hb.1 hx $$ Hsl with ⟨#Hx, -⟩
+    iStructNamed Hx
+    (try wp_auto)
+    simp only [cz, hnz, _root_.decide_true, ↓reduceIte]
+    (try wp_auto)
+    (try simp only [hb, ↓reduceIte])
+    (try wp_auto)
+    by_cases h : uint.Z first ≤ uint.Z x.last'
+    · simp only [h, _root_.decide_true, ↓reduceIte]
+      (try wp_auto)
+      wp_for_post
+      iframe
+      iexists n - W64 1; iframe
+      ipureintro
+      refine ⟨hb.1, by omega, ?_⟩
+      intro i y hi hy
+      by_cases he : i = sint.nat (n - W64 1)
+      · rw [he, hx] at hy; cases hy; word
+      · exact hcut i y (by omega) hy
+    · simp only [h, decide_false, ↓reduceIte]
+      (try wp_auto)
+      simp only [intoVal_eq_iff, Bool.false_eq_true, decide_false, _root_.decide_true, ↓reduceIte]
+      iapply HΦ $$ %n Hr Hn Hf
+      ipureintro
+      exact ⟨hn0, hn, hcut, Or.inr ⟨x, by simpa only [hprev] using hx, by word⟩⟩
+  · (try wp_auto)
+    simp only [cz, hnz, decide_false, ↓reduceIte]
+    (try wp_auto)
+    simp only [intoVal_eq_iff, Bool.false_eq_true, decide_false, _root_.decide_true, ↓reduceIte]
+    iapply HΦ $$ %n Hr Hn Hf
+    ipureintro; exact ⟨hn0, hn, hcut, Or.inl (by word)⟩
+
 /-- A recorded Raft entry carries the bound on its predecessor term, including the first
 bootstrap entry whose predecessor has term zero. -/
 theorem replayRecord_prev_le (γ : RaftNames) (e : EntryM) (prev : w64) :
