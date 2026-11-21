@@ -78,6 +78,18 @@ instance v2stats.lsFollowers_fractional (ls : Loc) :
         iframe
       ipureintro; exact Hnn
 
+/-- The opaque content of `v2stats.isServerStats` (see the file header). -/
+opaque v2stats.serverStatsRaw (ss : Loc) : IProp GF
+
+/-- **The server's stats `ss`, as `NewServerStats` makes them** (persistent): see the file
+header. -/
+def v2stats.isServerStats (ss : Loc) : IProp GF :=
+  iprop(□ v2stats.serverStatsRaw (GF := GF) ss)
+
+instance v2stats.isServerStats_persistent (ss : Loc) :
+    Persistent (v2stats.isServerStats (GF := GF) ss) := by
+  unfold v2stats.isServerStats; infer_instance
+
 end defs
 
 end EtcdGrove

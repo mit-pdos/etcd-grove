@@ -27,6 +27,12 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__U
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__UserGrantRole
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__UserList
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__UserRevokeRole
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ClusterServer__MemberAdd
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ClusterServer__MemberList
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ClusterServer__MemberPromote
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ClusterServer__MemberRemove
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ClusterServer__MemberUpdate
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ClusterServer__header
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.FiltersFromRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.GetProgressReportInterval
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.IsCreateEvent
@@ -128,6 +134,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__Put
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__Range
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__Txn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.logUnaryRequestStats
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.membersToProtoMembers
 public import Proof.google_golang_org.grpc.metadata.FromIncomingContext
 public import Proof.google_golang_org.grpc.metadata.MD__Get
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.monitorLeader
@@ -158,7 +165,9 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverWatchSt
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverWatchStream__sendLoop
 public import Proof.google_golang_org.grpc.status.Error
 public import Proof.google_golang_org.grpc.status.Errorf
+public import Proof.google_golang_org.grpc.status.FromError
 public import Proof.go_etcd_io.etcd.server.v3.storage.NewBackendQuota
+public import Proof.strings.HasSuffix
 public import Proof.strings.ToLower
 public import Proof.time.Duration__Seconds
 public import Proof.time.Duration__Seconds_ptr
@@ -175,8 +184,10 @@ public import Proof.go_uber_org.zap.Logger__Debug
 public import Proof.go_uber_org.zap.Logger__Error
 public import Proof.go_uber_org.zap.Logger__Info
 public import Proof.go_uber_org.zap.Logger__Warn
+public import Proof.go_uber_org.zap.Logger__check
 public import Proof.go_uber_org.zap.NewNop
 public import Proof.go_uber_org.zap.String
+public import Proof.go_uber_org.zap.zapcore.CheckedEntry__Write
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base
 public import Perennial.Proof.errors.Link
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
@@ -230,13 +241,25 @@ theorem header.wp_fill :
     EtcdGrove.v3rpc.header.fill.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.header.fill.wp_proof header.wp_fillWithoutRevision
 
+theorem status.wp_FromError :
+    EtcdGrove.status.FromError.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.status.FromError.wp_proof
+
+theorem zap.Logger.wp_check :
+    EtcdGrove.zap.Logger.check.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Logger.check.wp_proof
+
+theorem zapcore.CheckedEntry.wp_Write :
+    EtcdGrove.zapcore.CheckedEntry.Write.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zapcore.CheckedEntry.Write.wp_proof
+
 theorem zap.Logger.wp_Debug :
     EtcdGrove.zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zap.Logger.Debug.wp_proof
+  EtcdGrove.zap.Logger.Debug.wp_proof zap.Logger.wp_check zapcore.CheckedEntry.wp_Write
 
 theorem zap.Logger.wp_Warn :
     EtcdGrove.zap.Logger.Warn.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zap.Logger.Warn.wp_proof
+  EtcdGrove.zap.Logger.Warn.wp_proof zap.Logger.wp_check zapcore.CheckedEntry.wp_Write
 
 theorem zap.wp_Error :
     EtcdGrove.zap.Error.spec (GF := GF) (hG := hG) :=
@@ -292,7 +315,7 @@ theorem zap.wp_String :
 
 theorem zap.Logger.wp_Info :
     EtcdGrove.zap.Logger.Info.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zap.Logger.Info.wp_proof
+  EtcdGrove.zap.Logger.Info.wp_proof zap.Logger.wp_check zapcore.CheckedEntry.wp_Write
 
 theorem «attribute».wp_Bool :
     EtcdGrove.«attribute».Bool.spec (GF := GF) (hG := hG) :=
@@ -368,7 +391,7 @@ theorem trace.wp_WithAttributes :
 
 theorem zap.Logger.wp_Error :
     EtcdGrove.zap.Logger.Error.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zap.Logger.Error.wp_proof
+  EtcdGrove.zap.Logger.Error.wp_proof zap.Logger.wp_check zapcore.CheckedEntry.wp_Write
 
 theorem verify.wp_Assert :
     EtcdGrove.verify.Assert.spec (GF := GF) (hG := hG) :=
@@ -469,6 +492,34 @@ theorem AuthServer.wp_UserRevokeRole :
     EtcdGrove.v3rpc.AuthServer.UserRevokeRole.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.AuthServer.UserRevokeRole.wp_proof wp_togRPCError
 
+theorem ClusterServer.wp_header :
+    EtcdGrove.v3rpc.ClusterServer.header.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.ClusterServer.header.wp_proof membership.RaftCluster.wp_ID EtcdServer.wp_MemberID EtcdServer.wp_Term EtcdServer.wp_Leader
+
+theorem wp_membersToProtoMembers :
+    EtcdGrove.v3rpc.membersToProtoMembers.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.membersToProtoMembers.wp_proof
+
+theorem ClusterServer.wp_MemberAdd :
+    EtcdGrove.v3rpc.ClusterServer.MemberAdd.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.ClusterServer.MemberAdd.wp_proof EtcdServer.wp_AddMember types.wp_NewURLs ClusterServer.wp_header wp_membersToProtoMembers wp_togRPCError
+
+theorem ClusterServer.wp_MemberList :
+    EtcdGrove.v3rpc.ClusterServer.MemberList.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.ClusterServer.MemberList.wp_proof EtcdServer.wp_MemberList ClusterServer.wp_header wp_membersToProtoMembers wp_togRPCError
+
+theorem ClusterServer.wp_MemberPromote :
+    EtcdGrove.v3rpc.ClusterServer.MemberPromote.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.ClusterServer.MemberPromote.wp_proof EtcdServer.wp_PromoteMember ClusterServer.wp_header wp_membersToProtoMembers wp_togRPCError
+
+theorem ClusterServer.wp_MemberRemove :
+    EtcdGrove.v3rpc.ClusterServer.MemberRemove.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.ClusterServer.MemberRemove.wp_proof EtcdServer.wp_RemoveMember ClusterServer.wp_header wp_membersToProtoMembers wp_togRPCError
+
+theorem ClusterServer.wp_MemberUpdate :
+    EtcdGrove.v3rpc.ClusterServer.MemberUpdate.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.ClusterServer.MemberUpdate.wp_proof EtcdServer.wp_UpdateMember ClusterServer.wp_header wp_membersToProtoMembers wp_togRPCError
+
 theorem wp_FiltersFromRequest :
     EtcdGrove.v3rpc.FiltersFromRequest.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.FiltersFromRequest.wp_proof
@@ -485,9 +536,13 @@ theorem LeaseServer.wp_LeaseGrant :
     EtcdGrove.v3rpc.LeaseServer.LeaseGrant.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.LeaseServer.LeaseGrant.wp_proof wp_togRPCError header.wp_fill
 
+theorem strings.wp_HasSuffix :
+    EtcdGrove.strings.HasSuffix.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.strings.HasSuffix.wp_proof
+
 theorem wp_isClientCtxErr :
     EtcdGrove.v3rpc.isClientCtxErr.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.isClientCtxErr.wp_proof
+  EtcdGrove.v3rpc.isClientCtxErr.wp_proof status.wp_FromError strings.wp_HasSuffix
 
 theorem LeaseServer.wp_leaseKeepAlive :
     EtcdGrove.v3rpc.LeaseServer.leaseKeepAlive.spec (GF := GF) (hG := hG) :=

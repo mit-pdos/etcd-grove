@@ -1,6 +1,7 @@
 /-
-`grpc.Peer(p)` (grpc's `rpc_util.go`, names only; unit P3a): the call option that writes the
-attempt's peer to `*p` after the call; the retry interceptor passes one.
+`grpc.Peer(p)` (grpc's `rpc_util.go`; unit P3a): the call option that writes the attempt's peer to
+`*p` after the call; the retry interceptor passes one. Proved over the real body since 2026-11-20
+(prove-grpcsmall), `Proof/google_golang_org/grpc/Peer.lean`.
 -/
 module
 

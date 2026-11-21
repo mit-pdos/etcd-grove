@@ -80,3 +80,5 @@ store's log as a monotone list with persistent floors (`KVStoreApi.lean:114-120`
 read law is false of Go under a backward install. Variant A-g (§3 there, a fork guard deferring a merged
 snapshot inside the sender's replay window) removes the first cause for graceful restarts; the crash cause
 remains for a crash-model restart theorem.
+
+The replay deferral on the Grove pin has a separate sender regression that checks the delivered database and its Raft metadata for both current and legacy backends, including a recovered HardState commit below the consistent index. [Sender replay issue](../issues/etcd-merged-snapshot-replay-failure.md).

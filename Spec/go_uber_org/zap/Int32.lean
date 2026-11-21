@@ -1,5 +1,5 @@
 /-
-`zap.Int32`: the trust boundary (`go.uber.org/zap` is names-only). Lean-first.
+`zap.Int32`: proved over zap's code since 2026-11-20 (until then the trust boundary). Lean-first.
 -/
 module
 

@@ -96,7 +96,7 @@ requires the snapshot catch-up.
   log, as Go computes them; at the token `restartN-1440` `TestMemberIDs` checks the ids for every
   `k ≤ 1000`.
 - `Haf`, `Hbuq`, `Hdbo`: sizes of the auth records, the backend's quota, the WAL's and the disk's saves.
-- `HNs` (`namesUnclaimed`): the read package's metric names are claimed by no one else at start.
+- `HNs` (`namesUnclaimed`): the program's metric names (`initNames`: its closure's registering packages', mustreg 2026-11-20) are claimed by no one else at start.
 - `HAs` (`addrsUnclaimed`): the `k` peer addresses are free at start; no client address is served.
 - `HDs` (`dataDirsAbsent`): the `k` data directories do not exist at start.
 - `HEnv` (`verifyEnvOff`): `ETCD_VERIFY` is unset (every incarnation).
@@ -133,8 +133,8 @@ theorem etcd_restartN_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
-    (Hsteps : RealNsteps n ([restartNProgram k], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 2 ≤ 2 ^ 28) :
+    (Hsteps : RealNstepsBelow (2 ^ 28) n ([restartNProgram k], ((σ, g) : CfgState)) κs (t2, σ2))
+    (Hn : n + 12 ≤ 2 ^ 40) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=

@@ -20,7 +20,9 @@ type is axiomatized: its methods name `storage.Feature`, an alias, Goose's gap G
 `notes/k8s-etcd3-goose.md`) and `storage`'s (`storageInit`: `RequestWatchProgress` and
 `tooLargeResourceVersionCauseMsg`, `NewTooLargeResourceVersionError`'s, hold strings, and `Everything`,
 which `createWatchChan` reads, a predicate with no shard selector and the selectors of
-`labels.Everything()` and `fields.Everything()`, whose `Empty()` is `true`: `everythingOk`). As in the cache's `Base.lean`, these
+`labels.Everything()` and `fields.Everything()`, whose `Empty()` is `true`: `everythingOk`) and
+apimachinery's `util/validation/field`'s (`fieldInit`, 2026-11-19: `omitValue`'s address is not
+`nil`, for `(*Error).ErrorBody`'s load of it). As in the cache's `Base.lean`, these
 are assumptions about package initialization only once an `Init.lean` proves a package's
 `wp_initialize'` from them (none does yet: the packages are not in `etc/gen-init.py`'s `ROOTS`).
 -/
@@ -35,6 +37,7 @@ public import Proof.encoding.base64.Base
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.RegistryDefs
 public import Proof.k8s_io.apiserver.pkg.util.feature.Gate
 public import Perennial.Proof.context.Base
+public import Proof.math.rand.Base
 
 @[expose] public section
 
@@ -44,6 +47,26 @@ set_option linter.unusedSectionVars false
 noncomputable section
 
 namespace Perennial
+
+namespace EtcdGrove.apierrors
+variable [GooseExts]
+
+/-- `errors.go:49-67`'s `knownReasons` (`StatusReasonUnknown`, `""`, is commented out there), in the
+map literal's order. -/
+def knownReasons : List GoString :=
+  [go!"Unauthorized", go!"Forbidden", go!"NotFound", go!"AlreadyExists", go!"Conflict",
+   go!"Gone", go!"Invalid", go!"ServerTimeout", go!"StorageReadError", go!"Timeout",
+   go!"TooManyRequests", go!"BadRequest", go!"MethodNotAllowed", go!"NotAcceptable",
+   go!"RequestEntityTooLarge", go!"UnsupportedMediaType", go!"InternalError", go!"Expired",
+   go!"ServiceUnavailable"]
+
+/-- The map `knownReasons` holds: its literal's entries inserted in order (prove-k8s2). Irreducible,
+so that the proof automation does not compute lookups in it; `knownReasonsMap_lookup` states them. -/
+@[irreducible] def knownReasonsMap : GMap GoString Unit :=
+  knownReasons.foldl (fun m r => <[r := ()]> m) ∅
+
+end EtcdGrove.apierrors
+
 namespace k8s_io.apiserver.pkg.storage.etcd3
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std
@@ -62,6 +85,13 @@ some error; `txnError`'s result must be one grpc's `status` accepts, `statusErrO
 abbrev metricsInit : IProp GF :=
   EtcdGrove.errorsNewVar k8s_io.apiserver.pkg.storage.etcd3.metrics.ErrTransactionConflict
     go!"transaction conflict"
+
+/-- `util/validation/field`'s fact (2026-11-19): the variable `omitValue` (of the field-less struct
+type `OmitValueType`, whose points-to is otherwise empty) has an address that is not `nil`, as
+every allocated variable's: what `(*Error).ErrorBody`'s load of it, in its comparison
+`e.BadValue == omitValue`, needs (`field/ErrorMethods.lean`). -/
+abbrev fieldInit : IProp GF :=
+  iprop(⌜globalAddr k8s_io.apimachinery.pkg.util.validation.field.omitValue ≠ null⌝)
 
 /-- `util/feature`'s fact: `DefaultMutableFeatureGate` and `DefaultFeatureGate` hold the same
 feature gate, for good (Go never writes the variables after). (Sweep repairs 1, B5: until then
@@ -167,6 +197,14 @@ instance k8s_io_apimachinery_pkg_util_wait_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.wait :=
   build_get_is_pkg_init_wf
 
+-- (selection: moved from kubernetes' Base, labels imports it since prove-k8s, 2026-11-20)
+instance k8s_io_apimachinery_pkg_selection_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.selection :=
+  define_is_pkg_init iprop(True)
+instance k8s_io_apimachinery_pkg_selection_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.selection :=
+  build_get_is_pkg_init_wf
+
 -- (version: moved from the cacher's Base, featuregate imports it)
 instance k8s_io_apimachinery_pkg_util_version_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.version :=
@@ -233,11 +271,27 @@ instance k8s_io_apimachinery_pkg_apis_meta_v1_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1 :=
   build_get_is_pkg_init_wf
 
+/-- `apimachinery/pkg/api/errors`' fact (prove-k8s2, 2026-11-20; `True` until then): `knownReasons`
+holds, read-only for good, the map of the 19 known reasons, which `IsTimeout` looks reasons up in. -/
+abbrev apierrorsInit : IProp GF :=
+  iprop(∃ mp : Loc, globalAddr _root_.Perennial.k8s_io.apimachinery.pkg.api.errors.knownReasons ↦□ mp ∗
+    mp ↦$□ EtcdGrove.apierrors.knownReasonsMap)
+
 instance k8s_io_apimachinery_pkg_api_errors_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.api.errors :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init apierrorsInit
 instance k8s_io_apimachinery_pkg_api_errors_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.api.errors :=
+  build_get_is_pkg_init_wf
+
+-- (2026-11-19, moved here from `storage/cacher/Base.lean`: `field` imports it since
+-- `ErrorList.ToAggregate` is translated with its body; before `errors`, which imports it since
+-- `aggregate.Error` is, 2026-11-20)
+instance k8s_io_apimachinery_pkg_util_sets_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.sets :=
+  define_is_pkg_init iprop(True)
+instance k8s_io_apimachinery_pkg_util_sets_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.sets :=
   build_get_is_pkg_init_wf
 
 instance k8s_io_apimachinery_pkg_util_errors_is_pkg_init_inst :
@@ -256,7 +310,7 @@ instance k8s_io_apimachinery_pkg_api_meta_get_is_pkg_init_wf_inst :
 
 instance k8s_io_apimachinery_pkg_util_validation_field_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.validation.field :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init fieldInit
 instance k8s_io_apimachinery_pkg_util_validation_field_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.validation.field :=
   build_get_is_pkg_init_wf
@@ -407,6 +461,14 @@ instance k8s_io_component_base_tracing_is_pkg_init_inst :
   define_is_pkg_init iprop(True)
 instance k8s_io_component_base_tracing_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.component_base.tracing :=
+  build_get_is_pkg_init_wf
+
+-- (prove-k8s2, 2026-11-20; moved here from `authorization/authorizer/Base.lean`) `flowcontrol` imports it
+instance k8s_io_apiserver_pkg_authentication_user_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.k8s_io.apiserver.pkg.authentication.user :=
+  define_is_pkg_init iprop(True)
+instance k8s_io_apiserver_pkg_authentication_user_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apiserver.pkg.authentication.user :=
   build_get_is_pkg_init_wf
 
 instance k8s_io_apiserver_pkg_util_flowcontrol_is_pkg_init_inst :

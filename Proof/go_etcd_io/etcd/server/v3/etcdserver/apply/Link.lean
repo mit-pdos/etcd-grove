@@ -72,6 +72,8 @@ public import Proof.context.TODO
 public import Proof.context.WithValue
 public import Proof.errors.Is
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType__String
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp__GetRequestPut
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp__GetRequestTxn
 public import Proof.go_etcd_io.etcd.server.v3.lease.Lease__Keys
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.needAdminPermission
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.newApplierV3
@@ -104,8 +106,10 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier__rest
 public import Proof.go_uber_org.zap.Logger__Debug
 public import Proof.go_uber_org.zap.Logger__Info
 public import Proof.go_uber_org.zap.Logger__Panic
+public import Proof.go_uber_org.zap.Logger__check
 public import Proof.go_uber_org.zap.String
 public import Proof.go_uber_org.zap.Stringer
+public import Proof.go_uber_org.zap.zapcore.CheckedEntry__Write
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Link
 
@@ -134,9 +138,17 @@ theorem zap.wp_Stringer :
     EtcdGrove.zap.Stringer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Stringer.wp_proof
 
+theorem zap.Logger.wp_check :
+    EtcdGrove.zap.Logger.check.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Logger.check.wp_proof
+
+theorem zapcore.CheckedEntry.wp_Write :
+    EtcdGrove.zapcore.CheckedEntry.Write.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zapcore.CheckedEntry.Write.wp_proof
+
 theorem zap.Logger.wp_Debug :
     EtcdGrove.zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zap.Logger.Debug.wp_proof
+  EtcdGrove.zap.Logger.Debug.wp_proof zap.Logger.wp_check zapcore.CheckedEntry.wp_Write
 
 theorem lease.Lease.wp_Keys :
     EtcdGrove.lease.Lease.Keys.spec (GF := GF) (hG := hG) :=
@@ -180,7 +192,7 @@ theorem zap.wp_String :
 
 theorem zap.Logger.wp_Info :
     EtcdGrove.zap.Logger.Info.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zap.Logger.Info.wp_proof
+  EtcdGrove.zap.Logger.Info.wp_proof zap.Logger.wp_check zapcore.CheckedEntry.wp_Write
 
 theorem traceutil.wp_TODO :
     EtcdGrove.traceutil.TODO.spec (GF := GF) (hG := hG) :=
@@ -198,9 +210,17 @@ theorem traceutil.wp_newTrace :
     EtcdGrove.traceutil.newTrace.spec (GF := GF) (hG := hG) :=
   EtcdGrove.traceutil.newTrace.wp_proof
 
+theorem RequestOp.wp_GetRequestPut :
+    EtcdGrove.RequestOp.GetRequestPut.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.RequestOp.GetRequestPut.wp_proof
+
+theorem RequestOp.wp_GetRequestTxn :
+    EtcdGrove.RequestOp.GetRequestTxn.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.RequestOp.GetRequestTxn.wp_proof
+
 theorem storage.BackendQuota.wp_Cost :
     EtcdGrove.storage.BackendQuota.Cost.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.storage.BackendQuota.Cost.wp_proof
+  EtcdGrove.storage.BackendQuota.Cost.wp_proof RequestOp.wp_GetRequestPut RequestOp.wp_GetRequestTxn
 
 theorem errors.wp_Is :
     EtcdGrove.errors.Is.spec (GF := GF) (hG := hG) :=

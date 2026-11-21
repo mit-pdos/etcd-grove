@@ -46,7 +46,7 @@ theorem ConsistencyError.Error.wp_proof
     wp_auto
     simp only [show sint.nat (W64 (0 + 1)) = 1 by rfl, show sint.nat (W64 (0 + 1 + 1)) = 2 by rfl,
       List.set_cons_succ, List.set_cons_zero]
-    wp_apply (fmt.wp_Sprintf _ _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_string _ _
+    wp_apply (_root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_string _ _
       (_root_.Perennial.fmt.ArgsWf.cons_string _ _ _root_.Perennial.fmt.ArgsWf.nil))) $$ [$Hl1]
       as %s -
     iapply HΦ
@@ -62,7 +62,7 @@ theorem ConsistencyError.Error.wp_proof
     wp_auto
     simp only [show sint.nat (W64 (0 + 1)) = 1 by rfl, show sint.nat (W64 (0 + 1 + 1)) = 2 by rfl,
       List.set_cons_succ, List.set_cons_zero]
-    wp_apply (fmt.wp_Sprintf _ _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_string _ _
+    wp_apply (_root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_string _ _
       (_root_.Perennial.fmt.ArgsWf.cons_string _ _ (_root_.Perennial.fmt.ArgsWf.cons_string _ _
         _root_.Perennial.fmt.ArgsWf.nil)))) $$ [$Hl1] as %s -
     iapply HΦ

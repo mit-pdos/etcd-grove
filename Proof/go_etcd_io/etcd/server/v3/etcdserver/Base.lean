@@ -23,6 +23,8 @@ public import Perennial.Proof.encoding.binary
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Base
 -- schema imports auth, etcdserverpb and zap since N4c (2026-10-17: `NewAuthBackend`, `alarmBackend`)
 public import Proof.go_etcd_io.etcd.server.v3.auth.Base
+-- (prove-initleft, 2026-11-21) schema imports semver and version (`schemaChanges`)
+public import Proof.go_etcd_io.etcd.api.v3.version.PkgInit
 public import Perennial.Proof.sync.RWMutexGuard
 -- schema imports leasepb since 2026-11-19 (`UnsafeDeleteLease`)
 public import Code.go_etcd_io.etcd.server.v3.lease.leasepb

@@ -3,7 +3,9 @@ module
 
 public import GeneratedProof.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc
 public import SpecPlan.Spec.PkgInit.Base
+public import SpecPlan.Spec.PkgInit.go_opentelemetry_io.otel.propagation
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.stats
+public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.metadata
 
 @[expose] public section
 noncomputable section

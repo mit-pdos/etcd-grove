@@ -77,26 +77,49 @@ theorem rpctypes_etcdError_clientErr (hty : rpctypesEtcdErrorTy (GF := GF) (hG :
   cases h
   exact ⟨hty.1 #x, rpctypes_etcdError_asTypeTyped x, by simp [clientErrTys]⟩
 
-theorem rpctypes.Error.wp_proof
-    (wp_ErrorDesc : rpctypes.ErrorDesc.spec (GF := GF) (hG := hG))
+/-- **`Error` over the map `errStringToError` itself** (prove-rpcmap, 2026-11-20): `Error.spec` with
+the map's facts (`rpctypesInit`'s) and `ErrorDesc`'s triple under a persistent `P` that gives grpc's
+`status` in place of `rpctypes`' `isPkgInit`, and one more conjunct: if `err`'s description is a key of
+the map, the result is an `EtcdError` value. For `rpctypes`' initializer, whose client-side errors
+`Err* = Error(ErrGRPC*)` call it before the package's `isPkgInit` holds (`InitLinked.lean`);
+`Error.wp_proof` is its instance at `rpctypes`' `isPkgInit`. -/
+theorem rpctypes.Error.wp_gen (P : IProp GF) [Persistent P]
+    (hP : P ⊢ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status)
+    (wp_ED : ∀ (err : GoError) (m : GoString),
+      {{ P ∗ statusErrOk err ∗ (∀ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ → errorMsgIs e m) }}
+        (App (Val (@! go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrorDesc)) (Val #err))
+      {{ (d : GoString), RET #d; ⌜d = errDesc err⌝ ∗
+          ⌜∀ e : GoInterfaceOk, err = GoInterface.ok e → noGRPCStatus e.ty → d = m⌝ }})
     (wp_FromError : EtcdGrove.status.FromError.spec (GF := GF) (hG := hG))
-    (wp_EErr : rpctypes.EtcdError.Error.spec (GF := GF) (hG := hG)) :
-    rpctypes.Error.spec (GF := GF) (hG := hG) := by
+    (wp_EErr : rpctypes.EtcdError.Error.spec (GF := GF) (hG := hG))
+    (mref : Loc) (M : GMap GoString GoInterface)
+    (Hty : rpctypesEtcdErrorTy (GF := GF) (hG := hG))
+    (Hmd : ∀ (k : GoString) (v : GoInterface), M !! k = some v → errDesc v = k) :
+    ∀ (err : GoError) (m : GoString),
+    {{ P ∗ globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.errStringToError ↦□ mref ∗
+        mref ↦$□ M ∗ (□ ∀ (k : GoString) (v : GoInterface), ⌜M !! k = some v⌝ → statusErrOk v) ∗
+        ⌜err ≠ interface.nil⌝ ∗ statusErrOk err ∗
+        (∀ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ → errorMsgIs e m) }}
+      (App (Val (@! go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Error)) (Val #err))
+    {{ (err' : GoError), RET #err'; ⌜err' ≠ interface.nil⌝ ∗ statusErrOk err' ∗
+        ⌜clientErr err → clientErr err'⌝ ∗
+        ⌜errDesc err' = errDesc err⌝ ∗
+        □ (errCellOk err -∗ errCellOk err') ∗
+        ⌜errPtrOk err → errPtrOk err'⌝ ∗
+        ⌜∀ e : GoInterfaceOk, err = GoInterface.ok e → noGRPCStatus e.ty →
+          err' = err ∨ errDesc err' = m⌝ ∗
+        ⌜(M !! errDesc err).isSome →
+          ∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError,
+            err' = interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x⌝ }} := by
   intro err m
-  wp_start as ⟨%Hne, #Hok, #Hm⟩
-  ihave #Hrpc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []
-  · iPkgInit
-  ihave #Hst : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status $$ []
-  · iPkgInit
-  ihave Hri : (rpctypesInit : IProp GF) $$ []
-  · iapply isPkgInit_access $$ Hrpc
-  icases Hri with ⟨-, -, -, ⟨%mref, %M, #Hmg, #HM, #Hmv, %Hmd⟩, %Hty, -⟩
+  wp_start as ⟨#HP, #Hmg, #HM, #Hmv, %Hne, #Hok, #Hm⟩
+  ihave #Hst := hP $$ HP
   obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
     cases err with
     | nil => exact absurd rfl Hne
     | ok e => exact ⟨e, rfl⟩
   wp_auto
-  wp_apply wp_ErrorDesc (GoInterface.ok e) m $$ [$Hok $Hm] as %d ⟨%Hd, %Hdm⟩
+  wp_apply wp_ED (GoInterface.ok e) m $$ [$HP $Hok $Hm] as %d ⟨%Hd, %Hdm⟩
   wp_apply wp_map_lookup2 $$ [$HM] as -
   cases hk : M !! d with
   | none =>
@@ -114,13 +137,16 @@ theorem rpctypes.Error.wp_proof
     · iintro !> #H; iexact H
     isplitl
     · ipureintro; exact id
+    isplitr
     · ipureintro; exact fun _ _ _ => Or.inl rfl
+    · ipureintro; intro h; rw [← Hd, hk] at h; simp at h
   | some v =>
     simp only [Option.getD_some, Option.isSome_some]
     wp_auto
     ihave #Hv := Hmv $$ %d %v %hk
     ihave ⟨%mF, #HmF⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hv
-    wp_apply wp_FromError v mF $$ [$Hst $Hv $HmF] as %ev %ok ⟨%Hnil, #HCode, #HMsg, #HErr, -⟩
+    ihave ⟨%cFE, #HcFE⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_code _ $$ Hv
+    wp_apply wp_FromError v mF cFE $$ [$Hst $Hv $HmF $HcFE] as %ev %ok ⟨%Hnil, #HCode, #HMsg, #HErr, -⟩
     cases ok
     · obtain ⟨ve, rfl⟩ : ∃ ve, v = GoInterface.ok ve := by
         cases v with
@@ -148,8 +174,10 @@ theorem rpctypes.Error.wp_proof
       isplitl
       · ipureintro; intro _
         exact errPtrOk_of_ty _ (by simp [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty])
+      isplitr
       · ipureintro; intro e' he' hng
         right; rw [rpctypes.errDesc_etcdError, Hmd d _ hk]; exact Hdm e' he' hng
+      · ipureintro; intro _; exact ⟨_, rfl⟩
     · wp_auto
       wp_apply HMsg
       wp_apply HCode
@@ -169,8 +197,109 @@ theorem rpctypes.Error.wp_proof
       isplitl
       · ipureintro; intro _
         exact errPtrOk_of_ty _ (by simp [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty])
+      isplitr
       · ipureintro; intro e' he' hng
         right; rw [rpctypes.errDesc_etcdError, Hmd d _ hk]; exact Hdm e' he' hng
+      · ipureintro; intro _; exact ⟨_, rfl⟩
+
+theorem rpctypes.Error.wp_proof
+    (wp_ErrorDesc : rpctypes.ErrorDesc.spec (GF := GF) (hG := hG))
+    (wp_FromError : EtcdGrove.status.FromError.spec (GF := GF) (hG := hG))
+    (wp_EErr : rpctypes.EtcdError.Error.spec (GF := GF) (hG := hG)) :
+    rpctypes.Error.spec (GF := GF) (hG := hG) := by
+  intro err m
+  wp_start_folded as ⟨%Hne, #Hok, #Hm⟩
+  ihave #Hrpc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []
+  · iPkgInit
+  ihave Hri : (rpctypesInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hrpc
+  icases Hri with ⟨-, -, -, ⟨%mref, %M, #Hmg, #HM, #Hmv, %Hmd⟩, %Hty, -⟩
+  have hP : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes ⊢
+      isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status := by
+    iintro #Hrpc
+    iPkgInit
+  wp_apply (rpctypes.Error.wp_gen _ hP wp_ErrorDesc wp_FromError wp_EErr mref M Hty Hmd err m)
+    $$ [$Hrpc $Hmg $HM $Hmv $Hok $Hm] as %err' ⟨%H1, #H2, %H3, %H4, #H5, %H6, %H7, -⟩
+  · ipureintro; exact Hne
+  iapply HΦ
+  iframe #
+  ipureintro
+  exact ⟨H1, H3, H4, H6, H7⟩
+
+/-- **`Err* = Error(ErrGRPC*)` in `rpctypes`' initializer** (prove-rpcmap, 2026-11-20): `Error` of an
+error grpc's `status` accepts whose description is a key of the map `errStringToError` (given by its
+facts, before the package's `isPkgInit` holds; `ErrorDesc`'s triple over grpc's `status`,
+`ErrorDesc.wp_init`) returns an `EtcdError` value with that description, whose `Error()` returns. -/
+theorem rpctypes.Error.wp_initErr
+    (wp_ED : ∀ (err : GoError) (m : GoString),
+      {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status ∗ statusErrOk err ∗
+          (∀ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ → errorMsgIs e m) }}
+        (App (Val (@! go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrorDesc)) (Val #err))
+      {{ (d : GoString), RET #d; ⌜d = errDesc err⌝ ∗
+          ⌜∀ e : GoInterfaceOk, err = GoInterface.ok e → noGRPCStatus e.ty → d = m⌝ }})
+    (wp_FromError : EtcdGrove.status.FromError.spec (GF := GF) (hG := hG))
+    (wp_EErr : rpctypes.EtcdError.Error.spec (GF := GF) (hG := hG))
+    (Hty : rpctypesEtcdErrorTy (GF := GF) (hG := hG))
+    {mref : Loc} {M : GMap GoString GoInterface}
+    (Hmd : ∀ (k : GoString) (v : GoInterface), M !! k = some v → errDesc v = k)
+    (e : GoInterfaceOk) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status ∗
+        globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.errStringToError ↦□ mref ∗
+        mref ↦$□ M ∗ (□ ∀ (k : GoString) (v : GoInterface), ⌜M !! k = some v⌝ → statusErrOk v) ∗
+        statusErrOk (GoInterface.ok e) ∗ ⌜(M !! errDesc (GoInterface.ok e)).isSome⌝ }}
+      (App (Val (@! go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Error)) (Val #(GoInterface.ok e)))
+    {{ (x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError),
+        RET #(interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x);
+        ⌜x.desc' = errDesc (GoInterface.ok e)⌝ ∗
+        errorStringSpec ⟨go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty, #x⟩ }} := by
+  wp_start_folded as ⟨#Hmg, #HM, #Hmv, #Hok, %hk⟩
+  ihave #Hst : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status $$ []
+  · iPkgInit
+  ihave ⟨%m, #Hm⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hok
+  wp_apply (rpctypes.Error.wp_gen _ (by iintro #H; iexact H) wp_ED wp_FromError wp_EErr mref M Hty Hmd
+      (GoInterface.ok e) m) $$ [$Hst $Hmg $HM $Hmv $Hok $Hm]
+    as %err' ⟨-, #Hs', -, %Hd', -, -, -, %Hx⟩
+  · ipureintro; simp
+  obtain ⟨x, rfl⟩ := Hx hk
+  iapply HΦ
+  isplitr
+  · ipureintro; rw [← rpctypes.errDesc_etcdError]; exact Hd'
+  · ihave ⟨%m', #Hm'⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hs'
+    iapply go_etcd_io.etcd.cache.v3.errorMsgIs_errorStringSpec
+    iapply Hm'
+    ipureintro; rfl
+
+/-- **`Err* = Error(ErrGRPC*)` in `rpctypes`' initializer, any key** (prove-rpcmap, 2026-11-20): as
+`wp_initErr`, for an error whose description need not be a key of the map
+(`ErrTimeoutWaitAppliedIndex`): it returns. -/
+theorem rpctypes.Error.wp_initAny
+    (wp_ED : ∀ (err : GoError) (m : GoString),
+      {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status ∗ statusErrOk err ∗
+          (∀ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ → errorMsgIs e m) }}
+        (App (Val (@! go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrorDesc)) (Val #err))
+      {{ (d : GoString), RET #d; ⌜d = errDesc err⌝ ∗
+          ⌜∀ e : GoInterfaceOk, err = GoInterface.ok e → noGRPCStatus e.ty → d = m⌝ }})
+    (wp_FromError : EtcdGrove.status.FromError.spec (GF := GF) (hG := hG))
+    (wp_EErr : rpctypes.EtcdError.Error.spec (GF := GF) (hG := hG))
+    (Hty : rpctypesEtcdErrorTy (GF := GF) (hG := hG))
+    {mref : Loc} {M : GMap GoString GoInterface}
+    (Hmd : ∀ (k : GoString) (v : GoInterface), M !! k = some v → errDesc v = k)
+    (e : GoInterfaceOk) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status ∗
+        globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.errStringToError ↦□ mref ∗
+        mref ↦$□ M ∗ (□ ∀ (k : GoString) (v : GoInterface), ⌜M !! k = some v⌝ → statusErrOk v) ∗
+        statusErrOk (GoInterface.ok e) }}
+      (App (Val (@! go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Error)) (Val #(GoInterface.ok e)))
+    {{ (err' : GoError), RET #err'; True }} := by
+  wp_start_folded as ⟨#Hmg, #HM, #Hmv, #Hok⟩
+  ihave #Hst : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status $$ []
+  · iPkgInit
+  ihave ⟨%m, #Hm⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hok
+  wp_apply (rpctypes.Error.wp_gen _ (by iintro #H; iexact H) wp_ED wp_FromError wp_EErr mref M Hty Hmd
+      (GoInterface.ok e) m) $$ [$Hst $Hmg $HM $Hmv $Hok $Hm] as %err' -
+  · ipureintro; simp
+  iapply HΦ
+  itrivial
 
 end proof
 

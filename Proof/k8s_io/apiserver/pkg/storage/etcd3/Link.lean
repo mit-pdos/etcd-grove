@@ -66,6 +66,7 @@ public import Proof.k8s_io.apiserver.pkg.storage.SelectionPredicate__labelFieldE
 public import Proof.k8s_io.component_base.tracing.Span__AddEvent
 public import Proof.k8s_io.component_base.tracing.Span__End
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.StartCompactorPerEndpoint
+public import Proof.k8s_io.apimachinery.pkg.api.errors.StatusCause
 public import Proof.google_golang_org.grpc.status.Status__Code
 public import Proof.strings.TrimSuffix
 public import Proof.reflect.TypeOf
@@ -103,13 +104,13 @@ public import Proof.k8s_io.apiserver.pkg.storage.etcd3.corruptObjErrAggregatorFa
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.decodeObj
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.defaultListErrorAggregatorFactory
 public import Proof.errors.AsLeafTy
+public import Proof.errors.AsNoMatch
 public import Proof.errors.IsStatusErr
 public import Proof.k8s_io.apimachinery.pkg.api.errors.NewInternalError
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.New
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.watcher__Watch
 public import Proof.k8s_io.apimachinery.pkg.fields.Set__Get
 public import Proof.fmt.ErrorfPlain
-public import Proof.fmt.SprintfNamed
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.getNewItemFunc
 public import Proof.go_etcd_io.etcd.client.v3.getPrefix
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.getTypeName
@@ -140,6 +141,7 @@ public import Proof.path.lazybuf__index
 public import Proof.path.lazybuf__string
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.progressNotifyEvent
 public import Proof.google_golang_org.protobuf.proto.Clone
+public import Proof.k8s_io.apimachinery.pkg.api.errors.reasonAndCodeForError
 public import Proof.reflect.KindCompare
 public import Proof.reflect.New
 public import Proof.reflect.Type__Elem
@@ -318,10 +320,6 @@ theorem v3.wp_WithRev :
     EtcdGrove.WithRev.spec (GF := GF) (hG := hG) :=
   EtcdGrove.WithRev.wp_proof
 
-theorem fmt.wp_SprintfNamed :
-    EtcdGrove.fmt.SprintfNamed.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.fmt.SprintfNamed.wp_proof
-
 theorem ResponseHeader.wp_GetRevision :
     EtcdGrove.ResponseHeader.GetRevision.spec (GF := GF) (hG := hG) :=
   EtcdGrove.ResponseHeader.GetRevision.wp_proof
@@ -495,17 +493,29 @@ theorem audit.wp_GetAuditIDTruncated :
     EtcdGrove.audit.GetAuditIDTruncated.spec (GF := GF) (hG := hG) :=
   EtcdGrove.audit.GetAuditIDTruncated.wp_proof
 
+theorem errors.wp_AsNoMatch :
+    EtcdGrove.errors.AsNoMatch.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.errors.AsNoMatch.wp_proof
+
+theorem apierrors.wp_StatusCause :
+    EtcdGrove.apierrors.StatusCause.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apierrors.StatusCause.wp_proof errors.wp_AsNoMatch
+
 theorem apierrors.wp_HasStatusCause :
     EtcdGrove.apierrors.HasStatusCause.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apierrors.HasStatusCause.wp_proof
+  EtcdGrove.apierrors.HasStatusCause.wp_proof apierrors.wp_StatusCause
 
 theorem strings.wp_HasSuffix :
     EtcdGrove.strings.HasSuffix.spec (GF := GF) (hG := hG) :=
   EtcdGrove.strings.HasSuffix.wp_proof
 
+theorem apierrors.wp_reasonAndCodeForError :
+    EtcdGrove.apierrors.reasonAndCodeForError.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apierrors.reasonAndCodeForError.wp_proof errors.wp_AsNoMatch
+
 theorem apierrors.wp_IsTimeout :
     EtcdGrove.apierrors.IsTimeout.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apierrors.IsTimeout.wp_proof
+  EtcdGrove.apierrors.IsTimeout.wp_proof apierrors.wp_reasonAndCodeForError
 
 theorem storage.wp_IsTooLargeResourceVersion :
     EtcdGrove.storage.IsTooLargeResourceVersion.spec (GF := GF) (hG := hG) :=
@@ -597,7 +607,7 @@ theorem apimeta.wp_Accessor :
 
 theorem storage.Preconditions.wp_Check :
     EtcdGrove.storage.Preconditions.Check.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.storage.Preconditions.Check.wp_proof apimeta.wp_Accessor storage.wp_NewInvalidObjError fmt.wp_SprintfNamed
+  EtcdGrove.storage.Preconditions.Check.wp_proof apimeta.wp_Accessor storage.wp_NewInvalidObjError
 
 theorem storage.wp_PrepareContinueToken :
     EtcdGrove.storage.PrepareContinueToken.spec (GF := GF) (hG := hG) :=
@@ -749,7 +759,7 @@ theorem wp_corruptObjErrAggregatorFactory :
 
 theorem errors.wp_AsLeafTy :
     EtcdGrove.errors.AsLeafTy.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.errors.AsLeafTy.wp_proof
+  EtcdGrove.errors.AsLeafTy.wp_proof errors.wp_AsNoMatch
 
 theorem errors.wp_IsStatusErr :
     EtcdGrove.errors.IsStatusErr.spec (GF := GF) (hG := hG) :=

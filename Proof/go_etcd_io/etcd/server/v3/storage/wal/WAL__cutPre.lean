@@ -40,9 +40,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specPre_of_L
     go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specPre (GF := GF) (hG := hG) := by
   intro w lg dir mds md e lt f snapi enti W B S lim out pend c hlim hS
   iintro #Hw
+  ihave #Hw1 := (io.writerStream_P _ _ _ _).1 $$ Hw
+  ihave #Hw' := io.writerStreamP_NE _ _ _ _ $$ Hw1
   imodintro
   iintro %Φ ⟨#Henv, #Hzap, Hp, He, Hout⟩ HΦ
-  iapply h w lg dir mds md e [] lt f snapi enti W B S lim out pend c hlim hS $$ Hw [Hp He Hout]
+  iapply h w lg dir mds md e [] lt f snapi enti W B S lim out pend c hlim hS $$ Hw' [Hp He Hout]
   · iframe Henv Hzap He Hout
     iapply (walPreIn_L w lg dir mds md e lt f snapi enti).1 $$ Hp
   · inext
@@ -56,7 +58,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.saveState.wp_proofPre (P : Wal
     (Mr : WalMarshal)
     (wp_empty : WalPbIn.IsEmptyLaw (GF := GF) (hG := hG) P)
     (wp_marshal : WalPbIn.MarshalHsLaw (GF := GF) (hG := hG) P Mr)
-    (wp_encode : go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.specG (GF := GF) (hG := hG)) :
+    (wp_encode : go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.specGNE (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.WAL.saveState.specPre (GF := GF) (hG := hG) P Mr := by
   intro w e sp0 hp hs wi W B ok out pend c hok hne
   iintro #Hw

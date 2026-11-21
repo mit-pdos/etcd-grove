@@ -32,13 +32,13 @@ theorem kv.Get.wp_generic
     (wp_Do : kv.Do.specG (GF := GF) (hG := hG))
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Get.specG (GF := GF) (hG := hG) := by
-  intro api conn addr ci cd key sl gs R Sr Qr Ψr
-  wp_start as ⟨#Hkv, #Hctx, #Hce, #Hopts, HR, #Hsn, %Hnp, #Hrpc, #Hrun, %Hsz⟩
+  intro api conn addr ci om cd key sl gs R Sr Qr Ψr
+  wp_start as ⟨#Hkv, #Hom, #Hctx, #Hce, #Hopts, HR, #Hsn, %Hnp, #Hrpc, #Hrun, %Hsz⟩
   obtain ⟨Hnp, Ht⟩ := Hnp
   wp_auto
   wp_apply (opGet_res wp_NewOp key sl gs R) $$ [$HR] as %opv ⟨#Hat, HR⟩
   · iframe #; ipureintro; exact Hnp
-  wp_apply wp_Do api conn addr ci cd opv (opGetModel key gs) (fun _ _ _ _ => iprop(False))
+  wp_apply wp_Do api conn addr ci om cd opv (opGetModel key gs) (fun _ _ _ _ => iprop(False))
       (fun _ => iprop(True)) Sr Qr (fun _ _ _ _ => iprop(False)) (fun _ => iprop(True)) Ψr $$ []
     as %r %err ⟨Heo, Hout⟩
   · iframe #
@@ -135,10 +135,13 @@ theorem kv.Get.wp_members
     kv.Get.specM (GF := GF) (hG := hG) := by
   intro api ms ci cd key sl gs R c F Q
   iintro %Φ ⟨#Pc, #Hkv, #Hctx, #Hce, #Hopts, HR, #Hsn, %Hnp, #Hk, #Hrun, %Hsz⟩ HΦ
+  ihave #HctxO := ctxOk_outgoingC ci cd $$ Hctx
+  iunfold metadata.outgoingCtxOkC at HctxO
+  icases HctxO with ⟨%om, #Hom⟩
   iunfold isKV at Hkv
   icases Hkv with ⟨#Hobj, #Hregs⟩
   icases (kvObjAt_conn api (ms.map SrvAt.addr)).1 $$ Hobj with ⟨%conn, #Hobj⟩
-  iapply (wp_Get api conn (ms.map SrvAt.addr) ci cd key sl gs R (kvRangeSpecE ms)
+  iapply (wp_Get api conn (ms.map SrvAt.addr) ci om cd key sl gs R (kvRangeSpecE ms)
     (rangeAns ms c F (rangeWireOf (opGetModel key gs)) Q)
     (rangeErrΨ ms c F (rangeWireOf (opGetModel key gs)) Q)) $$ [HR]
   · iframe #

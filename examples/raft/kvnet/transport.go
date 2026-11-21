@@ -1,7 +1,6 @@
 package kvnet
 
 import (
-	"context"
 	"net"
 	"time"
 
@@ -104,8 +103,9 @@ func (t *Transport) dial(p *peer) net.Conn {
 		t.stats.add(StConnErrors)
 		return nil
 	}
-	c.SetWriteDeadline(time.Now().Add(writeTimeout))
-	if !writeAll(c, []byte{helloPeer}) {
+	disarm := closeAfter(c, writeTimeout)
+	written := writeAll(c, []byte{helloPeer})
+	if !disarm() || !written {
 		t.stats.add(StConnErrors)
 		c.Close()
 		return nil
@@ -128,8 +128,9 @@ func (t *Transport) runPeer(p *peer) {
 			t.dropped(m)
 			continue
 		}
-		c.SetWriteDeadline(time.Now().Add(writeTimeout))
-		if !writeFrame(c, putMsg(nil, m)) {
+		disarm := closeAfter(c, writeTimeout)
+		written := writeFrame(c, putMsg(nil, m))
+		if !disarm() || !written {
 			t.stats.add(StConnErrors)
 			c.Close()
 			c = nil
@@ -160,7 +161,7 @@ func (t *Transport) servePeer(c net.Conn) {
 			return
 		}
 		t.stats.add(StMsgsReceived)
-		ctx, cancel := context.WithTimeout(context.Background(), stepTimeout)
+		ctx, cancel := withTimeout(stepTimeout)
 		t.node.Step(ctx, m)
 		cancel()
 	}

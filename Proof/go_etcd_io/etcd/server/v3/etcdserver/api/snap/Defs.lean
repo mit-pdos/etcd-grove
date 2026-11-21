@@ -39,6 +39,7 @@ public import Spec.go_uber_org.zap.Defs
 public import Proof.go_etcd_io.etcd.server.v3.config.Defs
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Hex16
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvSnapshot
+public import Proof.go_etcd_io.raft.v3.InvPb
 
 @[expose] public section
 
@@ -172,8 +173,10 @@ variable [sem : go.Semantics]
 
 /-- `m`'s fields, read-only (see the file header; opaque until 2026-11-19, when `CloseWithError` was
 translated and proved): the raft message `ml`; the total size, not negative; the reader, an
-exact-size wrapper whose complete streams are `rc`'s and whose `Close` returns; and `closeC`, a
-channel of booleans whose receives carry nothing (`isChanBag` at `True`). `NewMessage` makes it
+exact-size wrapper whose complete streams are `rc`'s and whose `Close` returns; `closeC`, a
+channel of booleans whose receives carry nothing (`isChanBag` at `True`); and (prove-grpcsmall,
+2026-11-20) the raft message `ml` itself, read-only at some content (`NewMessage`'s read-only
+argument, which the promoted getters read). `NewMessage` makes it
 (its trust-boundary axiom, `Proof/.../snap/NewMessage.lean`). -/
 def msgRO (m ml : Loc) (rc : GoInterface) : IProp GF :=
   iprop(structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"Message" m ↦□ ml ∗
@@ -188,7 +191,8 @@ def msgRO (m ml : Loc) (rc : GoInterface) : IProp GF :=
         {{ (err : GoInterface), RET #err; True }}) ∗
     (∃ (c : Loc) (γc : ChanNames),
       structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"closeC" m ↦□ c ∗
-      isChanBag γc c (V := Bool) (fun _ => iprop(True))))
+      isChanBag γc c (V := Bool) (fun _ => iprop(True))) ∗
+    (∃ st : MsgSt, msgOwn ml DFrac.discard st))
 
 /-- **`m` is a `*snap.Message` of the raft message `ml` and the reader `rc`** (persistent; see the
 file header). -/

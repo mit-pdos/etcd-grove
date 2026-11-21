@@ -37,10 +37,19 @@ theorem v3rpc.NewClusterServer.wp_proof
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
   wp_auto
-  wp_apply (hCl s cl)
+  wp_apply_core (hCl s cl)
   · iframe #
+  wp_pures
+  wp_load
+  wp_pures
+  wp_alloc p as Hp
+  iStructNamed Hp
+  ipersist cluster
+  ipersist server
+  wp_auto
   iapply HΦ
-  itrivial
+  iunfold v3rpc.clusterServerIs
+  iframe #
 
 end proof
 

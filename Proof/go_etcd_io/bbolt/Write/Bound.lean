@@ -30,17 +30,17 @@ variable [GooseExts]
 /-- A leaf page's plain entries are within `bboltEntryMax`. -/
 def leafBnd (pg : List w8) : Prop :=
   pageFlags pg = leafPageFlag → ∀ i < pageCount pg, leafFlags pg i % 2 = 0 →
-    leafKsize pg i + leafVsize pg i ≤ bboltEntryMax
+    entryBytesFit (leafKsize pg i) (leafVsize pg i)
 
 /-- A bucket value whose leaves hold plain entries within the bound. -/
 def bvBnd (P : Pages) (v : List w8) : Prop :=
   ∀ bpg, bktLeafPg P v bpg → ∀ j < pageCount bpg,
-    leafFlags bpg j % 2 = 0 ∧ leafKsize bpg j + leafVsize bpg j ≤ bboltEntryMax
+    leafFlags bpg j % 2 = 0 ∧ entryBytesFit (leafKsize bpg j) (leafVsize bpg j)
 
 /-- A nested bucket's tree: its leaves hold plain entries within the bound. -/
 def nestBnd (P : Pages) (r : Nat) : Prop :=
   ∀ id pg, ownHas P r id → P !! id = some pg → pageFlags pg = leafPageFlag →
-    ∀ j < pageCount pg, leafFlags pg j % 2 = 0 ∧ leafKsize pg j + leafVsize pg j ≤ bboltEntryMax
+    ∀ j < pageCount pg, leafFlags pg j % 2 = 0 ∧ entryBytesFit (leafKsize pg j) (leafVsize pg j)
 
 def topPg (P : Pages) (pg : List w8) : Prop :=
   (pageFlags pg = leafPageFlag → ∀ i < pageCount pg, leafFlags pg i % 2 = bucketLeafFlag ∧
@@ -49,7 +49,7 @@ def topPg (P : Pages) (pg : List w8) : Prop :=
 
 def nestPg (P : Pages) (pg : List w8) : Prop :=
   (pageFlags pg = leafPageFlag → ∀ j < pageCount pg,
-    leafFlags pg j % 2 = 0 ∧ leafKsize pg j + leafVsize pg j ≤ bboltEntryMax) ∧
+    leafFlags pg j % 2 = 0 ∧ entryBytesFit (leafKsize pg j) (leafVsize pg j)) ∧
   (pageFlags pg = branchPageFlag → ∀ i < pageCount pg, nestBnd P (branchPgid pg i))
 
 theorem topPg_of (P : Pages) (r : Nat) (pg : List w8) (hs : rootShape P r)

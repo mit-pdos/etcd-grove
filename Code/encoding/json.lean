@@ -109,8 +109,6 @@ opaque Encoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque RawMessage [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque Delim.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
 opaque indentGrowthFactor [GooseExts] [GoGlobalContext] : val
 
 noncomputable def numberType [GooseExts] [GoGlobalContext] : GoString :=
@@ -503,22 +501,17 @@ attribute [instance] Token.TypeAssumptions.underlying
   Token.TypeAssumptions.method_set
   Token.TypeAssumptions.ptr_method_set
 
-opaque Delim.nonempty_type : NonemptyType.{0}
-def Delim : Type := Delim.nonempty_type.type
-instance Delim.nonempty : Nonempty Delim := Delim.nonempty_type.property
-opaque Delim.zero_val : ZeroVal Delim := ⟨Classical.ofNonempty⟩
-attribute [instance] Delim.zero_val
+abbrev Delim [GooseExts] : Type := w32
+
+@[reducible] noncomputable def Delim.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  go.rune
 
 class Delim.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying Delim.underlying Delim
   underlying : go.UnderlyingDirectedEq Delim.ty Delim.underlying
-  isUnderlying : go.IsUnderlying Delim.underlying Delim.underlying
   method_set : go.MethodSetIs Delim.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Delim.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
-attribute [instance] Delim.TypeAssumptions.type_repr
-  Delim.TypeAssumptions.underlying
-  Delim.TypeAssumptions.isUnderlying
+attribute [instance] Delim.TypeAssumptions.underlying
   Delim.TypeAssumptions.method_set
   Delim.TypeAssumptions.ptr_method_set
 

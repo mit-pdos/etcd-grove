@@ -11,18 +11,19 @@ XOR) already a registered collector's. So whether it panics depends on what was 
 before, by any package of the program: a resource. `nameFree n` is the exclusive right to
 register `n`; the Hoare triple of `MustRegister` of a counter named `n` takes it. Program start
 (the adequacy theorem, item 9) owns the rights of the names no default collector has, and gives
-each to the one package that registers it (`readRegPerm`, the read package's); since every right
+each to the one package that registers it (`namesFree regNames`, a registering package's; `ownInitResL`, mustreg 2026-11-20); since every right
 exists once, two packages registering one name would show up there, as two packages needing
 one right.
 
 **What is axiomatized** (each true of prometheus's Go code, client_golang v1.24.1, the version
 etcd's `server/go.mod` pins):
 - `collectorName c n`: the collector `c` describes exactly one descriptor, valid, named `n`,
-  without labels (what `NewCounter` makes);
+  without const labels (what `NewCounter` makes; mustreg, 2026-11-20: also a vector
+  `New<Kind>Vec` makes, its variable labels outside the descriptor's ID);
 - `nameFree n` (abstract resource): the right to register a collector whose one descriptor is
-  `n`'s, without labels, in the default registry: no collector registered there (now, or
+  `n`'s, without const labels, in the default registry: no collector registered there (now, or
   later by anyone but the holder) has a descriptor named `n`, nor one whose ID is that
-  descriptor's ID (`xxhash(n + "\xff")`), nor a collector ID equal to it;
+  descriptor's ID (`descId n`, `xxhash(n + "\xff")`), nor a collector ID equal to it;
 
 `counterOpts o ns sub name help` (`o` is the `CounterOpts` literal with those four fields, the
 others zero) is a definition: `Opts` is translated (until 2026-11-18 it was an axiomatized type,
@@ -35,6 +36,13 @@ accepts) and `expBuckets`/`expBucketsArgsOk` (`ExponentialBuckets(start, 2, n)`'
 float64 bits; `expBuckets_ok` proves them accepted), so that the packages' metric variables have
 translated initializers rather than one trust-boundary axiom `<X>_init` each.
 
+(prometheus-id-collision, 2026-11-20) Distinct names can have one descriptor ID (`descId`, the
+xxhash of `n ++ [0xff]`; `descId_collision`), and the registry refuses the second: until then
+program start handed out the rights of any distinct names (`goose_adequacy_start`), so a program
+registering counters of two colliding names was proved not to panic, and panics
+(`notes/axiom-review/prometheus-id-collision.md`). Program start now hands out rights only for
+names whose IDs are pairwise distinct (`descIdsDistinct`, decided for each program's names).
+
 Each axiom is about uninterpreted constants (the names-only functions), so a model in which they
 diverge satisfies them: they cannot make the logic inconsistent. The specs of `NewCounter` and
 `MustRegister` are in `Spec/github_com/prometheus/client_golang/prometheus/`.
@@ -42,6 +50,7 @@ diverge satisfies them: they cannot make the logic inconsistent. The specs of `N
 module
 
 public import GeneratedProof.github_com.prometheus.client_golang.prometheus
+public import Proof.github_com.cespare.xxhash.v2.Model
 
 @[expose] public section
 
@@ -124,6 +133,34 @@ theorem expBuckets_ok {start : w64} {n : Nat}
     have : i * 2 ^ 52 < j * 2 ^ 52 := Nat.mul_lt_mul_of_pos_right hij (by decide)
     exact Nat.add_lt_add_left this _
 
+/-- **The ID of the descriptor named `n` without const labels** (`desc.go`, `V2.NewDesc`: the
+xxhash of the const label values in the order of their sorted names, the fully-qualified name
+first, each followed by the separator byte `0xff`, `separatorByteSlice`; with no const labels, of
+`n ++ [0xff]`). A vector's descriptor has the same ID: its variable labels enter only `dimHash`.
+`Registry.Register` refuses a collector whose descriptor ID, or whose collector ID (the XOR of its
+descriptor IDs: here that one ID), is already registered. -/
+def descId (n : GoString) : w64 := xxhash.sum64 (n ++ [255#8])
+
+/-- **The label-free descriptor IDs of the names `Ns` are pairwise distinct** (prometheus-id-
+collision, 2026-11-20): the decidable part of program start's claim on the names it hands out
+(`goose_adequacy_start`'s `hNsIds`, discharged by `decide +kernel` for each program's names). Two
+distinct names can have one ID (`descId_collision`), and then registering both panics although
+neither is registered twice (`examples/axiomcx/promidcollide`,
+`notes/axiom-review/prometheus-id-collision.md`). -/
+def descIdsDistinct (Ns : List GoString) : Prop := (Ns.map descId).Nodup
+
+instance (Ns : List GoString) : Decidable (descIdsDistinct Ns) := by
+  unfold descIdsDistinct; infer_instance
+
+/-- Two valid metric names whose label-free descriptors have the same ID (found by a
+distinguished-point collision search, 2026-11-20): registering counters of both with the default
+registry panics on the second (`examples/axiomcx/promidcollide`). -/
+theorem descId_collision :
+    go!"m_b699caa269ad35ee" ≠ go!"m_641c7bdac316dcb7" ∧
+    descId go!"m_b699caa269ad35ee" = descId go!"m_641c7bdac316dcb7" ∧
+    nameOk go!"m_b699caa269ad35ee" ∧ nameOk go!"m_641c7bdac316dcb7" := by
+  decide +kernel
+
 section preds
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -147,13 +184,17 @@ def histOpts (o : github_com.prometheus.client_golang.prometheus.HistogramOpts)
         Namespace' := ns, Subsystem' := sub, Name' := name, Help' := help, Buckets' := s }
 
 /-- The collector `c` describes exactly one descriptor: valid, of fully-qualified name `n`,
-without const or variable labels (a counter `NewCounter` made). -/
+without const labels (a counter `NewCounter` made; mustreg, 2026-11-20: or a metric vector
+`New<Kind>Vec` made, whose variable labels enter only the descriptor's `dimHash`, not its ID:
+`NewDesc` in client_golang v1.24.1's `desc.go` hashes the name and the const label values into
+`id`, the help and all label names into `dimHash`). -/
 axiom collectorName (c : GoInterfaceOk) (n : GoString) : Prop
 
 /-- **The right to register the name `n`** with prometheus's default registry (exclusive):
 no collector registered there, now or later by anyone but the holder, has a descriptor named
-`n`, or whose ID (or collector ID) is the ID of `n`'s label-free descriptor. Given at program
-start, once per name. -/
+`n`, or whose ID (or collector ID) is the ID of `n`'s label-free descriptor (`descId n`). Given at
+program start, once per name, for names whose IDs are pairwise distinct (`descIdsDistinct`: the
+holder of another name's right registers that name's ID). -/
 axiom nameFree {GF : BundledGFunctors} (n : GoString) : IProp GF
 
 end preds

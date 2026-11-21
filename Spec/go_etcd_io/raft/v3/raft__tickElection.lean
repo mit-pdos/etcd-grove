@@ -84,8 +84,7 @@ abbrev raft.tickElection.spec : Prop :=
       "Hghost" ∷ ownStepGhost γ md c id s' ∗
       "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
       -- (2026-11-01, durability stage II (m)) and the term and the vote as the model moves them
-      "%Hcm" ∷ ⌜uint.Z s.logst.committed ≤ uint.Z s'.logst.committed ∧
-        PVoteLe (toPState s) (toPState s')⌝ ∗
+      "%Hcm" ∷ ⌜TickProgress s s'⌝ ∗
       "%Htick" ∷ ⌜TickStep s s'⌝ ∗
       -- (slice 12) no campaign: the state kept and the caller's resource; else `Step`'s
       "HG" ∷ ((⌜s' = s⌝ ∗ R.G) ∨ Gout s') }}

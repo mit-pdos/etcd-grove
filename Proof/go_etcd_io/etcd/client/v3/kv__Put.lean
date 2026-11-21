@@ -32,13 +32,13 @@ theorem kv.Put.wp_generic
     (wp_Do : kv.Do.specG (GF := GF) (hG := hG))
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Put.specG (GF := GF) (hG := hG) := by
-  intro api conn addr ci cd key val sl gs Sp Qp
-  wp_start as ⟨#Hkv, #Hctx, #Hce, #Hopts, %Hnp, #Hrpc, Hrun, %Hsz⟩
+  intro api conn addr ci om cd key val sl gs Sp Qp
+  wp_start as ⟨#Hkv, #Hom, #Hctx, #Hce, #Hopts, %Hnp, #Hrpc, Hrun, %Hsz⟩
   obtain ⟨Hnp, Ht⟩ := Hnp
   wp_auto
   wp_apply wp_OpPut key val sl gs $$ [] as %opv #Hat
   · iframe #; ipureintro; exact Hnp
-  wp_apply wp_Do api conn addr ci cd opv (opPutModel key val gs) Sp Qp (fun _ _ _ _ => iprop(False))
+  wp_apply wp_Do api conn addr ci om cd opv (opPutModel key val gs) Sp Qp (fun _ _ _ _ => iprop(False))
       (fun _ => iprop(True)) (fun _ _ _ _ => iprop(False)) (fun _ => iprop(True)) (fun _ => iprop(True)) $$ [Hrun]
     as %r %err ⟨-, Hout⟩
   · iframe #
@@ -89,11 +89,14 @@ theorem kv.Put.wp_members
     kv.Put.specM (GF := GF) (hG := hG) := by
   intro api ms ci cd key val sl gs Q F
   iintro %Φ ⟨#Pc, #Hkv, #Hctx, #Hce, #Hopts, %Hnp, #HF, Hrun, %Hsz⟩ HΦ
+  ihave #HctxO := ctxOk_outgoingC ci cd $$ Hctx
+  iunfold metadata.outgoingCtxOkC at HctxO
+  icases HctxO with ⟨%om, #Hom⟩
   obtain ⟨Hnp, Ht, Hl⟩ := Hnp
   iunfold isKV at Hkv
   icases Hkv with ⟨#Hobj, #Hregs⟩
   icases (kvObjAt_conn api (ms.map SrvAt.addr)).1 $$ Hobj with ⟨%conn, #Hobj⟩
-  iapply (wp_Put api conn (ms.map SrvAt.addr) ci cd key val sl gs (GrpcSpec.md (kvPutSpec ms))
+  iapply (wp_Put api conn (ms.map SrvAt.addr) ci om cd key val sl gs (GrpcSpec.md (kvPutSpec ms))
     (putAns ms F (putWireOf (opPutModel key val gs)) Q)) $$ [Hrun] HΦ
   iframe #
   isplitl []
@@ -104,7 +107,7 @@ theorem kv.Put.wp_members
   · ipureintro; exact Hsz
   iapply (kvReqPre_wand api (ms.map SrvAt.addr) (floorsAt ms F) _ _
     ((putSpec_of ms F (putWireOf (opPutModel key val gs)) Q Hl).trans
-      (attemptPre_md conn (GoInterface.ok ci) (kvPutSpec ms) _ _)))
+      (attemptPre_md conn om (kvPutSpec ms) _ _)))
   iframe HF Hrun
 
 theorem kv.Put.wp_proof

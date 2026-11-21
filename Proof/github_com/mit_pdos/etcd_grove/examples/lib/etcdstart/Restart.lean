@@ -201,16 +201,16 @@ theorem idKeyFact_pfxOk {X : Type} [Pos.Countable X] (issued cnt wn fs : GName)
 incarnation's `ρ` with new read names' rows (`applied`, `committed`, `notifier`, `logs`, `pend`), a
 new certificate map `cok` and applied height `hi`, and the ids at a new incarnation number `inc`
 with new slot and pending maps (`slot`, `ipend`). -/
-def restartReqNames (ρ : ReqNames) (applied committed notifier logs pend cok hi slot ipend : GName)
+def restartReqNames (ρ : ReqNames) (cursor applied committed notifier logs pend cok hi slot ipend : GName)
     (inc : Nat) : ReqNames :=
   let ids : IdNames := ⟨ρ.ids.issued, ρ.ids.cnt, slot, ρ.ids.pfx, ρ.ids.wn, inc, ρ.ids.fs, ipend⟩
   let kv : KVNames := ⟨ρ.rd.kv.st, ρ.rd.kv.c0, ρ.rd.kv.ch0, ρ.rd.kv.log0, cok, hi, ids, ρ.rd.kv.hist,
     ρ.rd.kv.cmp, ρ.rd.kv.rlog, ρ.rd.kv.cret, ρ.rd.kv.lm, ρ.rd.kv.gps⟩
-  ⟨ρ.wait, ⟨applied, committed, notifier, logs, pend, ρ.rd.raft, kv⟩⟩
+  ⟨ρ.wait, ⟨cursor, applied, committed, notifier, logs, pend, ρ.rd.raft, kv⟩⟩
 
 theorem restartReqNames_restartNames (ρ : ReqNames)
-    (applied committed notifier logs pend cok hi slot ipend : GName) (inc : Nat) :
-    restartNames ρ (restartReqNames ρ applied committed notifier logs pend cok hi slot ipend inc) :=
+    (cursor applied committed notifier logs pend cok hi slot ipend : GName) (inc : Nat) :
+    restartNames ρ (restartReqNames ρ cursor applied committed notifier logs pend cok hi slot ipend inc) :=
   ⟨rfl, ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Iff.rfl⟩, rfl, rfl⟩
 
 open Iris.ProofMode in
@@ -238,22 +238,23 @@ theorem memberRestartFacts_alloc (hne : mvcc.api.names_nonempty.law) (γ : SrvRa
     $$ Hidc with ⟨%inc, Hk, Hwt, #Hkf'⟩
   imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Unit) with ⟨%γsl, Hsl⟩
   imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Unit) with ⟨%γpd, Hpend⟩
+  imod mono_nat_own_alloc (GF := GF) 0 with ⟨%cursor, Hcursor, -⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γa, Ha, -⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γc, Hc, -⟩
   imod ghostVar_alloc (GF := GF) ((null, ⟨γa, γa⟩) : Loc × NeedNames) with ⟨%γn, Hn⟩
   imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := mvcc.Log) with ⟨%γl, Hl⟩
   imod ghostVar_alloc (GF := GF) false with ⟨%γp, Hpd⟩
   imod ghostVar_alloc (GF := GF) ρ.rd.kv.log0.length with ⟨%γhi, Hhi⟩
-  have hR := restartReqNames_restartNames ρ γa γc γn γl γp cok γhi γsl γpd inc
+  have hR := restartReqNames_restartNames ρ cursor γa γc γn γl γp cok γhi γsl γpd inc
   imodintro
-  iexists restartReqNames ρ γa γc γn γl γp cok γhi γsl γpd inc,
-    env₀ γm γs rev (srvApi.kvNx (restartReqNames ρ γa γc γn γl γp cok γhi γsl γpd inc).rd false) false,
+  iexists restartReqNames ρ cursor γa γc γn γl γp cok γhi γsl γpd inc,
+    env₀ γm γs rev (srvApi.kvNx (restartReqNames ρ cursor γa γc γn γl γp cok γhi γsl γpd inc).rd false) false,
     (fun _ => srvFloorFacts γs.slog)
   isplitr
   · ipureintro; exact hR
   iunfold memberRestartBoot
   rw [kvInv_congr _ _ _ hR.2.1.symm, hR.1,
-    srvPropMint_congr _ (restartReqNames ρ γa γc γn γl γp cok γhi γsl γpd inc).ids ρ.ids rfl]
+    srvPropMint_congr _ (restartReqNames ρ cursor γa γc γn γl γp cok γhi γsl γpd inc).ids ρ.ids rfl]
   simp only [restartReqNames, env₀, ReqNames.ids, ReqNames.kv, IdNames.key]
   isplitr
   · ipureintro
@@ -269,7 +270,7 @@ theorem memberRestartFacts_alloc (hne : mvcc.api.names_nonempty.law) (γ : SrvRa
   isplitl [Hwt]
   · iexact Hwt
   iunfold srvReadNamesFreshNK
-  iframe Ha Hc Hl Hpd Hhi
+  iframe Hcursor Ha Hc Hl Hpd Hhi
   iexists _
   iexact Hn
 

@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.google_golang_org.grpc.credentials
 public import Perennial.Golang.Theory
 public import Code.google_golang_org.grpc.credentials.insecure
 
@@ -25,12 +26,16 @@ variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.credentials.insecure.Assumptions]
 
 noncomputable instance insecureTC_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.credentials.insecure.insecureTC :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) google_golang_org.grpc.credentials.insecure.insecureTC where
+  typedPointstoDef l v dq := iprop(
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance insecureTC_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.credentials.insecure.insecureTC google_golang_org.grpc.credentials.insecure.insecureTC.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.credentials.insecure.insecureTC google_golang_org.grpc.credentials.insecure.insecureTC.underlying := by
+  solve_into_val_typed_struct
 
 end def_
 end insecureTC
@@ -44,12 +49,33 @@ variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.credentials.insecure.Assumptions]
 
 noncomputable instance info_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.credentials.insecure.info :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) google_golang_org.grpc.credentials.insecure.info where
+  typedPointstoDef l v dq := iprop(
+    "CommonAuthInfo" ∷ typedPointsto (structFieldRef google_golang_org.grpc.credentials.insecure.info go!"CommonAuthInfo" l) v.CommonAuthInfo' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance info_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.credentials.insecure.info google_golang_org.grpc.credentials.insecure.info.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.credentials.insecure.info google_golang_org.grpc.credentials.insecure.info.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance info_access_load_CommonAuthInfo (l : Loc) (v : google_golang_org.grpc.credentials.insecure.info) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.grpc.credentials.insecure.info go!"CommonAuthInfo" l) v.CommonAuthInfo' dq)
+      (typedPointsto (structFieldRef google_golang_org.grpc.credentials.insecure.info go!"CommonAuthInfo" l) v.CommonAuthInfo' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance info_access_store_CommonAuthInfo (l : Loc) (v : google_golang_org.grpc.credentials.insecure.info) (CommonAuthInfo' : google_golang_org.grpc.credentials.CommonAuthInfo) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.grpc.credentials.insecure.info go!"CommonAuthInfo" l) v.CommonAuthInfo' (DFrac.own 1))
+      (typedPointsto (structFieldRef google_golang_org.grpc.credentials.insecure.info go!"CommonAuthInfo" l) CommonAuthInfo' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CommonAuthInfo' := CommonAuthInfo' } : google_golang_org.grpc.credentials.insecure.info) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end info
@@ -63,12 +89,16 @@ variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.credentials.insecure.Assumptions]
 
 noncomputable instance insecureBundle_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.credentials.insecure.insecureBundle :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) google_golang_org.grpc.credentials.insecure.insecureBundle where
+  typedPointstoDef l v dq := iprop(
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance insecureBundle_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.credentials.insecure.insecureBundle google_golang_org.grpc.credentials.insecure.insecureBundle.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.credentials.insecure.insecureBundle google_golang_org.grpc.credentials.insecure.insecureBundle.underlying := by
+  solve_into_val_typed_struct
 
 end def_
 end insecureBundle

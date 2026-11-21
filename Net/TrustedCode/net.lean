@@ -73,7 +73,7 @@ each `write(2)` with its wait one step of the extension (D2). Less defined than 
 stuck, which a proof must rule out): a network other than `"tcp"` and `"tcp4"` (D23); a nil receiver (stuck: a nil
 dereference; Go panics too for a nil `*TCPConn`, and returns `EINVAL` for a nil `*TCPListener`:
 v3.2 review, N1); a call of the extension with an argument it cannot use
-(`Impl.lean`, D22: a `Listen` or `Dial` of an address outside the plan, D13).
+(`Impl.lean`, D22: a `Listen` or `Dial` of an invalid address, D13, D20).
 -/
 module
 
@@ -330,15 +330,15 @@ noncomputable def model.newConn : val :=
       model.anyTCPAddr #() ;;
     Convert (go.PointerType model.TCPConn) model.Conn "t"
 
-/-- D23. The networks modeled: `"tcp"` and `"tcp4"` (the plan's addresses are IPv4: `"tcp4"`
+/-- D23. The networks modeled: `"tcp"` and `"tcp4"` (the valid addresses are IPv4: `"tcp4"`
 behaves as `"tcp"` on them, `TestTcp4`). -/
 noncomputable def model.netOk : val :=
   λ: "nw", if: "nw" =⟨go.string⟩ #(go!"tcp") then #true else "nw" =⟨go.string⟩ #(go!"tcp4")
 
 /-- `Listen(network, address string) (Listener, error)` (`dial.go`): `ListenConfig.Listen` with
 the zero `ListenConfig`, which for `"tcp"` resolves the address, then `socket(2)`, `setsockopt`
-(`SO_REUSEADDR`), `bind(2)` and `listen(2)`: the extension's `Listen` of the address (stuck unless it
-is one of the plan's at this node's host, or a wildcard of D21: the model's resolution). A
+(`SO_REUSEADDR`), `bind(2)` and `listen(2)`: the extension's `Listen` of the address (a panic unless
+it is valid, `addrOk`, or a wildcard of D21, `listenOk`). A
 `*TCPListener` with a new address and the network (`"tcp"` or `"tcp4"`, D23) as a `Listener`; an
 error is `&OpError{Op: "listen", Net: network, Addr: <the resolved address>, ...}` with a nil
 `Listener`. -/
@@ -359,7 +359,7 @@ noncomputable def Listen.impl : val :=
 
 /-- `Dial(network, address string) (Conn, error)` (`dial.go`): `Dialer.Dial` with the zero
 `Dialer`, which for `"tcp"` resolves the address, then `socket(2)` and `connect(2)` (waiting for
-the handshake): the extension's `Dial` (stuck unless the address is one of the plan's). A `*TCPConn`
+the handshake): the extension's `Dial` (a panic unless the address is valid, `addrOk`). A `*TCPConn`
 with new addresses and the network (`"tcp"` or `"tcp4"`, D23) as a `Conn`; an error is
 `&OpError{Op: "dial", Net: network, Addr: <the resolved address>, ...}` (`dialSingle`) with a nil
 `Conn`. -/

@@ -30,7 +30,7 @@ variable [GooseExts]
 def matNest (P : Pages) (pg : List w8) : Prop :=
   pageFlags pg = leafPageFlag → ∀ j < pageCount pg, leafFlags pg j % 2 = bucketLeafFlag →
     ∀ bpg, bktLeafPg P (leafValue pg j) bpg → ∀ k < pageCount bpg,
-      leafFlags bpg k % 2 = 0 ∧ 0 < leafKsize bpg k ∧ leafKsize bpg k + leafVsize bpg k ≤ bboltEntryMax
+      leafFlags bpg k % 2 = 0 ∧ 0 < leafKsize bpg k ∧ entryBytesFit (leafKsize bpg k) (leafVsize bpg k)
 
 /-- Every page a top-level or nested tree reaches has `matNest` (a root-shaped tree's leaves:
 `rootShape`'s nested clause; a nested tree has no bucket entry). -/

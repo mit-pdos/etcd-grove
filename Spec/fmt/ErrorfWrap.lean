@@ -6,10 +6,13 @@ model `%w`, and a proof must not learn of Go's error a fact true only of the mod
 (`notes/decisions.md`, "`fmt.Errorf` with `%w`: no fact from the model", superseded in part by H0).
 The post is a disjunction, the model's error or Go's (etcd-grove-82's decision, 2026-11-06), so that
 the spec is true of both and contradicts neither; the model's disjunct carries the model's own facts
-(its `*errors.errorString`'s cell), Go's the facts of `*fmt.wrapError`. Since H0 (2026-11-18) a
-theorem, proved from the model (`Proof/fmt/ErrorfWrap.lean`): the post's left disjunct is what the
-model returns and the description conjunct is conditional on Go's `Unwrap` method. Attacked (as an
-axiom): `notes/axiom-review/errorf-wrap.md`. Lean-first.
+(its `*errors.errorString`'s cell), Go's the facts of `*fmt.wrapError`. From H0 (2026-11-18) a
+theorem proved from the previous model (the left disjunct, the description conjunct vacuous); since
+fmtmodel (2026-11-20) proved from Perennial's `fmt.wp_Errorf`, whose model returns Go's `*wrapError`:
+the right disjunct, the description conjunct from the trust-boundary fact
+`rpctypes.errDesc_wrapError` (`Proof/fmt/ErrorfWrap.lean`). The left disjunct is now never used by the
+proof; it stays so that the callers' statements do not change. Attacked (as an axiom):
+`notes/axiom-review/errorf-wrap.md`. Lean-first.
 -/
 module
 

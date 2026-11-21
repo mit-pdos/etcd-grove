@@ -37,6 +37,7 @@ public import Spec.time.Duration__Seconds
 public import Perennial.Spec.time.Now
 public import Perennial.Spec.time.Since
 public import Proof.github_com.mit_pdos.etcd_grove.FirstCallee
+public import Proof.go_etcd_io.raft.v3.MsgRead
 
 @[expose] public section
 
@@ -358,11 +359,15 @@ theorem rafthttp.snapshotHandler.ServeHTTP.wp_proof
         | nil =>
           ihave ⟨%bs, %c, %Hb, #HB, Hm⟩ := Hok $$ %rfl
           ihave %HBp := HB
-          obtain ⟨Hrs', Hbl, Hwire, -, Hcs, -⟩ := Hb
-          -- a `MsgSnap`: its content is not needed (no size fact for it)
-          ihave Hm := msgPtsCC_msgPtsC _ _ _ _ _ Hcs $$ Hm
-          clear Hcs
-          generalize c.model = st at Hwire ⊢
+          obtain ⟨Hrs', Hbl, Hwire, -, Hcs, -, Hmsz0, -⟩ := Hb
+          -- (rafthttpfix) the content's size, for `proto.Size`: at most twice the 64 MiB read
+          have Hcr : c.resps = [] := MsgC.resps_nil_of_model Hwire.1
+          have Hcsz : msgSize c < 2 ^ 63 := by
+            have h : uint.Z (W64 67108864) = 67108864 := by rfl
+            omega
+          -- read through half of it until `proto.Size`, which takes the content
+          icases msgPtsCC_read ml true c Hcs $$ Hm with ⟨Hm, Hback⟩
+          generalize hst : c.model = st at Hwire ⊢
           simp only [List.nil_append] at Hrs'
           subst Hrs'
           have hbs : bs = bs0 := msgFrame_prefix_eq Hbl0 (by word) (HPre _ HBp)
@@ -373,7 +378,12 @@ theorem rafthttp.snapshotHandler.ServeHTTP.wp_proof
           wp_apply hIDString st.msg.From' as %fs %Hfs
           (try wp_auto)
           -- `receivedBytes.WithLabelValues(from).Add(float64(proto.Size(m)))`
-          wp_apply hSize ml _ _ _ st $$ [$Hm] as %msz ⟨Hm, %Hmsz⟩
+          ihave Hm := Hback $$ Hm
+          wp_apply hSize.2 ml _ _ _ c Hcr $$ [$Hm] as %msz ⟨Hm, %Hmsz0⟩
+          have Hmsz : 0 ≤ sint.Z msz := by rw [Hmsz0 Hcsz]; omega
+          -- a `MsgSnap`: its content is not needed further (no size fact for it)
+          ihave Hm := msgPtsCC_msgPtsC _ _ _ _ _ Hcs $$ Hm
+          rw [hst]
           with_from hCWLV vRB HRBl fs (Hfs ▸ types.idStr_ascii _)
           iunfold prometheus.counterSpec at Hmet
           icases Hmet with ⟨-, #HAdd⟩

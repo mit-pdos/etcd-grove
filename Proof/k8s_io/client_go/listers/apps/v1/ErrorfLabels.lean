@@ -1,19 +1,18 @@
 /-
 `fmt.Errorf` with string and `map[string]string` arguments (the DaemonSet lister's expansion's
 errors: `fmt.Errorf("... %s in namespace %s with labels: %v", pod.Name, pod.Namespace,
-pod.Labels)`). Lean-first.
+pod.Labels)`): a trust-boundary axiom since fmtmodel (2026-11-20). Lean-first.
 
-As `tools/cache`'s `ErrorfSet.lean`: Perennial's `fmt.wp_Errorf` admits only arguments of
-predeclared basic types (`fmt.ArgsWf`); its model of `Errorf` ignores the arguments, faithful when
-Go's formatting calls none of their methods. A `map[string]string` (an unnamed map type of strings)
-has no methods and neither do its keys and values, so `%v` prints it without calling one. The lemma
-is proved from the model (no axiom); the premise on the arguments records that faithfulness claim
-(`notes/perennial-changes.md`, `ArgWf` admitting maps whose types have no formatting methods).
+Until then a lemma proved over Perennial's previous model of `Errorf` (`errors.New(format)`, which ignored
+the arguments), its statement taking no ownership of the maps: false of Go, which reads a map it formats
+and dies with the runtime's fatal `concurrent map read and map write` on a concurrent write (as
+`tools/cache`'s `ErrorfSet.lean`, `notes/axiom-review/errorf-setargs.md`). Perennial's model of `fmt`
+now calls what Go calls and is stuck on reflection into a map, so the statement is an axiom, with a
+fraction of each map's points-to in its premise, given back.
 -/
 module
 
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.Base
-public import Perennial.Proof.errors.Link
 public import Perennial.Proof.fmt.Base
 
 @[expose] public section
@@ -36,17 +35,24 @@ variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.fmt.Assumptions]
 
 /-- **`fmt.Errorf(format, args...)` with string and `map[string]string` arguments**: a non-nil
+error (trust boundary; see the file header). Go (go1.27.3): a `string` is printed by its kind; a
+`map[string]string` has no methods, so `printArg` (`fmt/print.go:674`) finds none (`handleMethods`,
+line 614) and `printValue` prints the map (line 793: `fmtsort.Sort` reads its entries, strings printed
+by kind), reading the map, of which the caller lends a fraction; under another verb the same with
+`%!verb(...)` around it, and `%p` prints its address. `Errorf` (`fmt/errors.go:23-95`) returns a non-nil
 error. -/
-theorem wp_Errorf_labelArgs (format : GoString) (args_sl : GoSlice) (args : List GoInterface)
+axiom wp_Errorf_labelArgs (format : GoString) (args_sl : GoSlice) (args : List GoInterface)
     (_hargs : ∀ a ∈ args, (∃ x : GoString, a = interface.mkOk go.string #x) ∨
       ∃ m : Loc, a = interface.mkOk (go.GoType.MapType go.string go.string) #m) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ args_sl ↦* args }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ args_sl ↦* args ∗
+        [∗list] a ∈ args, ⌜∃ x : GoString, a = interface.mkOk go.string #x⌝ ∨
+          ∃ (m : Loc) (dq : DFrac) (st : GMap GoString GoString),
+            ⌜a = interface.mkOk (go.GoType.MapType go.string go.string) #m⌝ ∗ m ↦${dq} st }}
       (App (App (Val (@! _root_.Perennial.fmt.Errorf)) (Val #format)) (Val #args_sl))
-    {{ (err : GoInterfaceOk), RET #(interface.ok err); True }} := by
-  wp_start as _
-  wp_apply errors.wp_New as %err _
-  iapply HΦ
-  itrivial
+    {{ (err : GoInterfaceOk), RET #(interface.ok err);
+        [∗list] a ∈ args, ⌜∃ x : GoString, a = interface.mkOk go.string #x⌝ ∨
+          ∃ (m : Loc) (dq : DFrac) (st : GMap GoString GoString),
+            ⌜a = interface.mkOk (go.GoType.MapType go.string go.string) #m⌝ ∗ m ↦${dq} st }}
 
 end proof
 

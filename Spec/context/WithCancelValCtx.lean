@@ -51,21 +51,24 @@ a `Value` contract for Perennial's `WithCancel`, is in `notes/perennial-changes.
 fixes 8 (approved by etcd-grove-81) the post also gives the chain form `metadata.outgoingCtxOkC ctx'`:
 `ctx'` is a `*cancelCtx` whose parent `&valCtx{inctx}` is of a type outside `valueSpecialTypes` that
 promotes `inctx.Value`, so the chain is the `cancelCtx` link then the raw `valCtx` link, whose `Value`
-at grpc's key is `inctx`'s (`watchCtx`'s `"#HOut"`, in the WP form by `outgoingCtxOk_of_C`). -/
+at grpc's key is `inctx`'s (`watchCtx`'s `"#HOut"`, in the WP form by `outgoingCtxOk_of_C`).
+(errdesc stage 1, 2026-11-20) The metadata is a per-run relation (`metadata.outMD`): of an `inctx`
+whose outgoing metadata is `md`, `ctx'`'s is `md`; until then the pure `metadata.outgoingOf` of the two
+contexts were equated, of a context the call allocates (`notes/errdesc-ghost-plan.md`). -/
 abbrev context.WithCancelValCtx.spec : Prop :=
-  ∀ (p : Loc) (inctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)),
+  ∀ (p : Loc) (inctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF))
+    (md : Option (GoString → Option (List GoString))),
   {{ isPkgInit (PROP := IProp GF) pkg_id.context ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       p ↦□ (go_etcd_io.etcd.client.v3.valCtx.mk (interface.ok inctx)) ∗
-      EtcdGrove.context.watchCtx inctx cs }}
+      EtcdGrove.context.watchCtx inctx cs ∗ metadata.outMD inctx md }}
     (App (Val (@! _root_.Perennial.context.WithCancel))
       (Val #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.valCtx.ty) #p)))
   {{ (ctx' : GoInterfaceOk) (γ' : context.ContextNames) (cancel : GoFunc),
       RET (PairV #(interface.ok ctx') #cancel);
       context.cancelSpec cancel γ' iprop(True) ∗
       context.isContext ctx' { Values := ∅, Deadline := none, Done_gn := γ', PDone := iprop(True) } ∗
-      ⌜metadata.outgoingOf (GoInterface.ok ctx') = metadata.outgoingOf (GoInterface.ok inctx)⌝ ∗
-      metadata.outgoingCtxOkC ctx' }}
+      metadata.outMD ctx' md ∗ metadata.outgoingCtxOkC ctx' }}
 
 end spec
 

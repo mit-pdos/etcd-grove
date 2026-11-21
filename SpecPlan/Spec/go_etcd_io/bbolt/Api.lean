@@ -51,8 +51,8 @@ updates are `⊤ \ ↑γ.ns`).
   bytes: `init`'s first write of four pages over an empty file, `db.go:722-731`, before its
   sync) **holds zeros or that write's bytes** (true of ext4 `data=ordered` and xfs, which never
   expose unwritten blocks; false of ext4 `data=writeback`, which the environment hypothesis
-  excludes). So a crash before `init`'s first sync leaves zero metas, which the next `Open`'s
-  `metasZero` sends to `init` again (`Data.empty`). OsFs's crash relation knows neither half today
+  excludes). A crash before `init`'s first sync therefore leaves a prefix of the four pages in which
+  each byte is zero or its first-write value. The next `Open`'s `needsInit` recognizes that image (`Data.empty`). OsFs's crash relation knows neither half today
   (`CrashImage`: bytes past the durable image are arbitrary). The two options: **(a)** the rule
   goes into OsFs's crash relation, which then carries the ghost record of the writes since the
   last sync (so `crashRest`'s `CrashRel` states it), and `boltCrash.spec` is stated over

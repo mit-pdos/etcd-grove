@@ -1,7 +1,8 @@
 /-
-`grpc.StaticMethod()` (grpc, names only): the call option the generated stubs prepend
-(`rpc_grpc.pb.go`). The trust boundary (an axiom, `Proof/google_golang_org/grpc/
-StaticMethod.lean`), for unit C1 (the client's KV stub). Lean-first (no Rocq counterpart).
+`grpc.StaticMethod()` (grpc's `rpc_util.go`): the call option the generated stubs prepend
+(`rpc_grpc.pb.go`), for unit C1 (the client's KV stub). It was the trust boundary (an axiom) while
+grpc's function was names only; proved over the real body since 2026-11-20 (prove-grpcsmall),
+`Proof/google_golang_org/grpc/StaticMethod.lean`. Lean-first (no Rocq counterpart).
 -/
 module
 

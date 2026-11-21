@@ -13,6 +13,7 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/go_etcd_io/etcd/server/v3/storage/wal/Link\.lean
 axiom binary.ReadInt64LE.wp_proof
+axiom fmt.ErrorfStrs.wp_proof
 axiom fmt.SprintfWalName.wp_proof
 axiom fmt.SscanfWalName.wp_proof
 axiom io.ReadFull.wp_proof
@@ -25,14 +26,7 @@ axiom proto.SizePb.wp_proof
 axiom proto.UnmarshalPb.wp_proof
 axiom recEncC_ok
 axiom snapEncC_ok
-axiom strings.HasSuffix.wp_proof
 axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.Seconds_ptr.wp_proof
-axiom zap.Duration.wp_proof
-axiom zap.Error.wp_proof
-axiom zap.Int'.wp_proof
-axiom zap.Int64.wp_proof
-axiom zap.Logger.Error.wp_proof
-axiom zap.Logger.Info.wp_proof
-axiom zap.Logger.Warn.wp_proof
-axiom zap.String.wp_proof
+axiom zap.Logger.check.wp_proof
+axiom zapcore.CheckedEntry.Write.wp_proof

@@ -99,6 +99,68 @@ theorem os.File.writerStreamI (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) 
   iapply io.writerStream_frame (R := osInv (GF := GF))
   iframe Hinv Hw
 
+/-- **A failed non-empty write of the stream witnesses that the file system can fail** (wal-fsfix2):
+its range ends below `maxBytes`. -/
+theorem os.fileBI_witness (f : Loc) (fd : w64) (name : GoString) (dqf dq : DFrac) (d : OsFd)
+    (m0 : OsMeta) (xs0 : List ByteG) (out xs : List w8) (hxs : xs ≠ [])
+    (hlim : out.length + xs.length < maxBytes) :
+    os.fileBI (GF := GF) f fd name dqf dq d m0 xs0 out xs ⊢
+      ⌜¬ FsNoErrIno⌝ ∗ os.fileBI f fd name dqf dq d m0 xs0 out xs := by
+  iintro HB
+  iunfold os.fileBI at HB
+  icases HB with ⟨HB, #Hinv⟩
+  iunfold os.fileB at HB
+  icases HB with ⟨%o', %m, %ys, %hok, Hf, Hfd, Ho, (⟨%hx, Hm, Hb⟩ | ⟨%j, %A, %E, %zs, %hp, Hm, Hb1, Hb2, Hb3⟩)⟩
+  · exact absurd hx hxs
+  isplitr
+  · ipureintro
+    obtain ⟨-, -, -, -, hW⟩ := hp
+    exact hW.resolve_right (by omega)
+  iunfold os.fileBI
+  iframe Hinv
+  iunfold os.fileB
+  iexists o', m, ys
+  iframe Hf Hfd Ho
+  isplitr
+  · ipureintro; exact hok
+  iright
+  iexists j, A, E, zs
+  iframe Hm Hb1 Hb2 Hb3
+  ipureintro; exact hp
+
+/-- **The stream from offset 0, its non-empty writes failing only when the file system can**
+(`os.File.writerStreamI` as a writer called only with bytes, `io.writerStreamPNE`, wal-fsfix2): a
+failure leaves `os.fileBI` and the witness `¬ FsNoErrIno` (the stream ends below `maxBytes`). -/
+theorem os.File.writerStreamINE (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) (hG := hG))
+    (f : Loc) (fd : w64) (name : GoString) (dqf dq : DFrac) (d : OsFd) (m0 : OsMeta)
+    (xs0 : List ByteG) (lim : Nat) (hfd : 0 ≤ fd.toInt) (hwr : d.writable = true)
+    (hmaps : m0.maps = ∅) (hlim : lim < 2 ^ 62) (hlimM : lim < maxBytes) :
+    osInv (GF := GF) ⊢ io.writerStreamPNE (os.fileWi f) (fun ys => ys.length ≤ lim)
+      (os.fileWI f fd name dqf dq d m0 xs0)
+      (fun out xs => iprop(os.fileBI f fd name dqf dq d m0 xs0 out xs ∗ ⌜¬ FsNoErrIno⌝)) := by
+  iintro #Hinv
+  ihave #Hw := os.File.writerStreamI wp_WriteAt f fd name dqf dq d m0 xs0 lim hfd hwr hmaps hlim
+    $$ Hinv
+  unfold io.writerStream
+  unfold io.writerStreamPNE
+  iintro !> %out %p %xs %dqp %hok %hne
+  iintro !> %Φ ⟨HW, Hp⟩ HΦ
+  have hb : out.length + xs.length ≤ lim := by simpa [List.length_append] using hok
+  iapply Hw $$ %out %p %xs %dqp %hb [$HW $Hp]
+  iintro !> %n %err ⟨Hp, Hr⟩
+  iapply HΦ
+  simp only []
+  iframe Hp
+  icases Hr with (⟨%he, HW⟩ | ⟨%he, #Hek, HB⟩)
+  · ileft; isplitr
+    · ipureintro; exact he
+    iexact HW
+  · icases os.fileBI_witness f fd name dqf dq d m0 xs0 out xs hne (by omega) $$ HB with ⟨%hw, HB⟩
+    iright; isplitr
+    · ipureintro; exact he
+    iframe Hek HB
+    ipureintro; exact hw
+
 /-- **The fdatasync of the stream's file** (`walPreSyncOk`): from the state after `out`, success
 gives `os.fileS`, failure the state back. -/
 theorem os.fileWI_preSyncOk
@@ -127,7 +189,7 @@ theorem os.fileWI_preSyncOk
     ipureintro; exact Hok
   · iright
     isplitr
-    · ipureintro; exact he.1
+    · ipureintro; exact ⟨he.1, he.2.2⟩
     iunfold os.fileWI
     iframe Hinv
     iunfold os.fileW

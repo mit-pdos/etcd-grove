@@ -72,6 +72,10 @@ theorem RawNode.Tick.wp_proof
       ihave #Hstr' := ackInv_keep (rs' := rs) γ rfl Hstok Ht1 Hpv Hsn (logStoreRec_stored Hsd) Hip4 $$ Hstrecs
       iapply HΦ $$ %s'.term
       isplitl
+      ihave #Hhist' := restoredSnapHistory_keep γ id Hsd $$ Hhist
+      ihave Hledger' := restoreLedger_keep γ id rs.sn (s := s) (s' := s')
+        (by first | exact Href.voteLe.1 | exact Hcv.1.voteLe.1 | exact Hvr.1 | omega)
+        (logStoreRec_ksn Hsd) Hcv.commit Hcv.queue $$ Hledger
       ihave #Hsloc' := snapLocOk_keep γ id (.inl Hsn) $$ Hsloc
       · iapply ownRawNode_intro γ rn id { rs with term := s'.term } s' cf fp rnv sv hprev steps
           Hwf' Hin
@@ -81,7 +85,7 @@ theorem RawNode.Tick.wp_proof
           (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
           (RNFl.keep Hrnfl Hfl' Hap' Ha) (Hloan.keep Hgh Hsn Hfl' (logStoreRec_stored Hsd) Hu Ha Hc)
           (Hsdt.ofRec Hsn Hsd) Hrole
-          (Hphs.keep rfl rfl rfl (HsLe.of_step Hcv.2 Hc) Hsn (.inl Hip4)) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' [Hdur]
+          (Hphs.keep rfl rfl rfl (HsLe.of_step Hcv.2 Hc) Hsn (.inl Hip4)) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' Hhist' Hledger' [Hdur]
         · -- (durability stage II (i)) the step keeps `durTie`'s fields
           iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) Hsn Hpv (logStoreRec_stored Hsd) $$ Hdur
       ipureintro
@@ -141,6 +145,10 @@ theorem RawNode.Tick.wp_proof
         iapply trCapB_monoΛ _ γ rnv.raft' id cf bt' _ _ _ (fun _ _ => trivial) $$ Hcap
       iapply HΦ $$ %s'.term
       isplitl
+      ihave #Hhist' := restoredSnapHistory_keep γ id Hsd $$ Hhist
+      ihave Hledger' := restoreLedger_keep γ id rs.sn (s := s) (s' := s')
+        (by first | exact Href.voteLe.1 | exact Hcv.1.voteLe.1 | exact Hvr.1 | omega)
+        (logStoreRec_ksn Hsd) Hcv.commit Hcv.queue $$ Hledger
       ihave #Hsloc' := snapLocOk_keep γ id (.inl Hsn) $$ Hsloc
       · iapply ownRawNode_intro_tr γ rn id { rs with term := s'.term } s' cf fp rnv sv hprev steps
           Hwf' Hin
@@ -154,7 +162,7 @@ theorem RawNode.Tick.wp_proof
           (Hsdt.ofRec Hsn Hsd) Hrole
           (Hphs.keep rfl rfl rfl (HsLe.of_step Hcv.2 Hc) Hsn (.inl Hip4))
           (by rw [Hgh]; exact Hgtr) (by rw [Hgh]; exact Hglq)
-          $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' [Hdur] Hrntr
+          $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' Hhist' Hledger' [Hdur] Hrntr
         · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) Hsn Hpv (logStoreRec_stored Hsd) $$ Hdur
       ipureintro
       rw [Htrm]

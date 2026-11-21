@@ -117,7 +117,7 @@ theorem txn.WarnOfExpensiveReadOnlyTxnRequest.wp_proof
           isplitr
           · ipureintro; rfl
           iintro %asl ⟨Hasl, -⟩
-          wp_apply _root_.Perennial.fmt.wp_Sprintf _ _ _ _ ?wf $$ [$Hasl] as %s0 ⟨-, -⟩
+          wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ _ ?wf $$ [$Hasl] as %s0 ⟨-, -⟩
           case wf =>
             repeat' first
               | exact _root_.Perennial.fmt.ArgsWf.nil
@@ -162,7 +162,7 @@ theorem txn.WarnOfExpensiveReadOnlyTxnRequest.wp_proof
       isplitr
       · ipureintro; rfl
       iintro %asl ⟨Hasl, -⟩
-      wp_apply _root_.Perennial.fmt.wp_Sprintf _ _ _ _ ?wf $$ [$Hasl] as %s0 ⟨-, -⟩
+      wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ _ ?wf $$ [$Hasl] as %s0 ⟨-, -⟩
       case wf =>
         repeat' first
           | exact _root_.Perennial.fmt.ArgsWf.nil

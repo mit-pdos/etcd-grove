@@ -27,8 +27,8 @@ variable [syscall.Assumptions]
 theorem syscall.Flock.wp_proof : syscall.Flock.spec (GF := GF) (hG := hG) := by
   intro fd how d req nb hhow hfree
   wp_start as ⟨#Hinv, Hfd, Ht⟩
-  by_cases hk : req = none ∨ nb = true
-  · by_cases hne : FsNoErr
+  by_cases hne : FsNoErrIno
+  · by_cases hk : req = none ∨ nb = true
     · obtain ⟨Sio, hSio, hs1, hs2, hsp⟩ := hne
       haveI := hs2
       wp_apply wp_osFlockNE hSio fd how d req nb CoPset.subseteq_top hhow hfree hk $$ Hinv Hfd Ht
@@ -37,22 +37,34 @@ theorem syscall.Flock.wp_proof : syscall.Flock.spec (GF := GF) (hG := hG) := by
       iapply HΦ
       iframe
       ipureintro
-      intro _
-      rcases he with he | he
+      rcases he with he | ⟨hr, he⟩
       · exact Or.inl he
-      · exact Or.inr (Or.inl he)
-    · wp_apply wp_osFlock fd how d req nb CoPset.subseteq_top hhow hfree $$ Hinv Hfd Ht as %e Hfd
+      · refine Or.inr (Or.inl ⟨hr, ?_, he⟩)
+        rcases hk with hk | hk
+        · exact absurd hk hr
+        · exact hk
+    · -- a blocking lock request: errno 0 or a wait (`flockW_noErr`)
+      obtain ⟨ex, rfl⟩ : ∃ ex, req = some ex := by
+        cases req with
+        | none => exact absurd (Or.inl rfl) hk
+        | some ex => exact ⟨ex, rfl⟩
+      have hnb : nb = false := by cases nb <;> simp_all
+      subst hnb
+      wp_apply wp_osFlockW fd how d ex CoPset.subseteq_top hhow (hfree (by simp)) $$ Hinv Hfd Ht
+        as %e %he Hfd
       iapply wp_errno
       iapply HΦ
       iframe
       ipureintro
-      exact fun _ => Or.inr (Or.inr hne)
+      by_cases h0 : e = 0
+      · exact Or.inl h0
+      · exact absurd hne (he h0)
   · wp_apply wp_osFlock fd how d req nb CoPset.subseteq_top hhow hfree $$ Hinv Hfd Ht as %e Hfd
     iapply wp_errno
     iapply HΦ
     iframe
     ipureintro
-    exact fun h => absurd h hk
+    exact Or.inr (Or.inr hne)
 
 end proof
 

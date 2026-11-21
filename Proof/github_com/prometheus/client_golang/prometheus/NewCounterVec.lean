@@ -33,7 +33,11 @@ then returns `&CounterVec{MetricVec: NewMetricVec(desc, newMetric)}` (a fresh po
 panics). Its `WithLabelValues(lvs...)` (`GetMetricWithLabelValues`) panics only on an error of
 `validateLabelValues` (a wrong count, a value not valid UTF-8; uncurried, unconstrained), and the
 closure `newMetric` only on a wrong count: what `CounterVec.WithLabelValues.spec` takes from
-`vecLabels` and `labelValuesOk`. -/
+`vecLabels` and `labelValuesOk`. (mustreg, 2026-11-20) Its post's `collectorName`: the
+result, as a `Collector` (`*CounterVec`), describes one descriptor, `desc` (`MetricVec.Describe`,
+`vec.go:124`, is `metricMap.Describe`, which sends `m.desc` alone), named `BuildFQName(ns, sub,
+name)` (`fqName`), valid (as above), without const labels (`counterOpts`/`histOpts`: `ConstLabels`
+nil); its variable labels enter `desc.dimHash`, not `desc.id` (`NewDesc`, `desc.go`). -/
 axiom prometheus.NewCounterVec.wp_proof : prometheus.NewCounterVec.spec (GF := GF) (hG := hG)
 
 end proof

@@ -20,6 +20,7 @@ public import GeneratedProof.go_etcd_io.etcd.server.v3.auth
 public import GeneratedProof.go_etcd_io.etcd.server.v3.config
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api
+public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.membership
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.apply
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.txn
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.version
@@ -43,6 +44,7 @@ public import GeneratedProof.google_golang_org.protobuf.proto
 public import Perennial.GeneratedProof.io
 public import Perennial.GeneratedProof.math
 public import Perennial.GeneratedProof.math.rand
+public import Perennial.GeneratedProof.strings
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.time
 public import GeneratedProof.unicode.utf8

@@ -1,9 +1,9 @@
 /-
-`fmt.Errorf(format, args...)` with error arguments (`%w`, `%v`, `%s`): proved over Perennial's model in
-`Proof/fmt/ErrorfErrs.lean` (listed for review by the term gate, `etc/errorf-wrap-check.py`), and the base
-of the WAL's hypotheses `fmt.ErrorfErrsNot.spec`/`fmt.ErrorfErrsTerm.spec`. Perennial's `fmt.Errorf.spec`
-requires every argument to be of a basic type (`ArgsWf`): Go's `Errorf` calls the `Error()` method of an
-error argument, which the model (`errors.New(format)`, ignoring the arguments) does not. The decoder wraps
+`fmt.Errorf(format, args...)` with error arguments (`%w`, `%v`, `%s`): proved from Perennial's
+`fmt.wp_Errorf` in `Proof/fmt/ErrorfErrs.lean` (fmtmodel, 2026-11-20: Perennial's model calls the error
+arguments' `Error()` as Go does, and its premise `fmt.argsOk` admits them; until then proved over the
+previous model, `errors.New(format)`, which ignored the arguments), and the base of the WAL's hypotheses
+`fmt.ErrorfErrsNot.spec`/`fmt.ErrorfErrsTerm.spec`. The decoder wraps
 `io.ErrUnexpectedEOF` and `Record.Validate`'s error (decoder.go:112, :147-149), `Validate` wraps
 `walpb.ErrCRCMismatch` (record.go:26-30), `Create` wraps the cleanup's error and the parent directory's.
 
@@ -20,8 +20,8 @@ WP alone, with no type facts, and any verb was admitted: a `Format` method ran (
 was not `fmt`'s error (`noterr`). The post, `errOk err`, is true of Go (`*fmt.wrapError`,
 `*fmt.wrapErrors`, `*errors.errorString`: `Error() string`, no `Format`) and of the model.
 
-Note that the model does not wrap: `errors.Is(err, io.ErrUnexpectedEOF)` of the result is not what
-Go answers. The decoder's specs therefore say only that such an error is not `nil`.
+The post says nothing of what the error wraps (Perennial's `fmt.errorfErr` does): the decoder's specs say
+only that such an error is not `nil`.
 W3a of `notes/wal-fsext-plan.md`; Lean-first.
 -/
 module

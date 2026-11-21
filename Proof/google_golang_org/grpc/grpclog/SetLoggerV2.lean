@@ -20,7 +20,8 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- The trust boundary (see the spec's file header). -/
+/-- The trust boundary (see the spec's file header): `SetLoggerV2(l)` of a logger that is not a
+`*componentData` stores it in grpc's internal variables and returns. -/
 axiom grpclog.SetLoggerV2.wp_proof : grpclog.SetLoggerV2.spec (GF := GF) (hG := hG)
 
 end proof

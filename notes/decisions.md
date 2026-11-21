@@ -28063,6 +28063,22 @@ restarts.
 
 ## The merged snapshot's index guard (2026-10-31, S1 · the user's decision (B))
 
+**2026-11-21.** Remove the index comparison in the etcd pin. Both
+`applyAll` proof paths use the bound derived from the outgoing snapshot
+and the current Ready in the matching term. Each worker carries its
+physical apply cursor across jobs so the bound holds during replay as well.
+The separate replay-window
+failure remains in this revision and is tracked in
+[the replay issue](../nonissues/etcd-backward-snapshot-install-panics-watcher.md).
+
+**2026-11-20, R2.** Raft already records the snapshots it has restored in
+`LogState.ksn`. The unstable snapshot path returns membership in that list.
+Carry membership through the outbox and the Ready handout so a later proof
+can recover the incoming message that installed the snapshot.
+
+
+*Superseded on 2026-11-20 by the decision to carry the snapshot source through raft's API below.*
+
 **2026-10-31 · accepted**
 
 `applyAll`'s `msgSnapC` branch merges the queued `MsgSnap` only if
@@ -28090,6 +28106,11 @@ comes from (changes raft's exported API); (C) a third hole in `SnapSendBranch.le
 from today's definitions); (D) term-tagged ghost state across the raft loop, the storage and the
 apply thread (a project of its own). Dropping the premise from `sentMsg_replaceSnapshot` was
 declined (the user, 2026-10-31).
+
+The public Ready contract carries the incoming protocol message for each
+successfully restored snapshot. `nodeRestoreSource_leader` identifies a
+foreign elected sender from that evidence. The server still needs to relate
+the restore to the applied Ready batches to discharge the index guard.
 
 ## `applyAll`'s merge branch (S1) (2026-10-31)
 
@@ -30854,6 +30875,7 @@ separate backend-switch stage (the `_kv` statements become corollaries, three ar
   slot); `Open` takes `ThreadBoundLe GF (2^29)` (a spare slot for a failed commit's `freepages`)
   and `ReceiptBoundLe GF (2^62)` (txids do not wrap). *D2*: `DB.Stats` pays `statlock`'s slot
   (`statSlot`).
+- The 2026-11-20 decision below supersedes the D4 entry-size bound.
 - *D4, D5 (the user)*: `Put` takes the entry bound `bboltEntryMax = 2^28` (bbolt accepts values it
   cannot store); `FillPercent` is written back only non-NaN.
 - *D13 (the user)*: `OptsM.ok` excludes `Mlock` and `MmapFlags` other than `0`/`MAP_POPULATE`
@@ -39907,6 +39929,37 @@ etcd-grove-81; a restricting change, no further round).**
   `Open`'s docstring) state the wrap-first branch; the masked nonissue's upstreaming option "keep the
   masked success for old-named WALs" brings F-W4a2-2 back.
 
+### Preserve the incoming message through an outgoing Ready
+
+Raft's log records every successful restore in this node instance. A queued
+snapshot from the unstable log carries membership in that history. When
+`readyWithoutAccept` selects its outgoing messages, the Ready keeps the history
+and the selection's membership proof together. The public Ready carries the
+driver's node ID, so its restore evidence identifies a leader different from
+that very node. Restart and Bootstrap establish that the local history starts
+empty. The apply-order comparison is the next part of the index-guard proof.
+
+### WAL upgrade recovery (2026-11-20)
+
+The filename-selected suffix of a WAL written with the current segment naming
+rule contains the newest valid starting snapshot. `readAll_eof_matched` proves
+that folding every record in that suffix sets the reader's match flag, including
+when the starting snapshot is the zero record. An older writer could name a
+segment below a snapshot already in an earlier file. That disk layout requires
+locating the actual record, checking its term, and protecting its segment
+through the next purge. The Go regression and fork fix are recorded in
+`issues/etcd-wal-upgrade-legacy-segment-name.md`.
+
+### Which physical WAL file a CRC seed describes
+
+The CRC seeds in the decoder's accepted records enumerate the segment files in
+order. The lock's path names the corresponding segment. When decoding reaches
+bytes beyond the canonical history, a rejected CRC can arrive after the last
+lock. The counter at that point already covers every lock. A probe of a closed
+prefix file temporarily reserves that inode, obtains its original bytes by
+agreement with the layout, and returns it to the same outstanding inode set.
+These facts support the legacy scan in the fork's `ReadAll` repair.
+
 ## WAL W4b: the history and read lemmas, the crash views, and the purged read (2026-11-12 · plan approved by etcd-grove-81, `/shared/tmp/wal-spec/w4b/plan.md`; C2's premises chosen by the proof, as the plan allows; CP3 approved by etcd-grove-81 under the user's delegation, 2026-11-12: `walCommitLe` as C2's premise, the guard dropped, C4 without `walNoDormant` · branch `wal-w4b`)
 
 Proved only: two unlinked modules over the W4a/W4a.1/W4a.2 axioms, no axiom, `sorry`, opaque or
@@ -41165,3 +41218,299 @@ argument fewer). The 34 proof->proof
 edges the widening revealed that apply another variant's proof (`MkdirAllDir` -> `MkdirAll`,
 bbolt's `Open` family, wal `SaveSnapshotPre` -> `cutPre`, ...) join the baseline: each is a variant
 derived from another variant's proof, which only a hypothesis (or a Link-level composition) removes.
+
+## Registering packages' `init()` translated: a list of registration rights (2026-11-20 · the coordinator's batch E · branch `prove-mustreg/2026-11-20`)
+
+D16/D19e gave one package (read) the rights to its metric names as its initializer's precondition, in
+the `_res` form `ownInitRes g q R` (one `(q, R)`): `etc/gen-init.py`'s `pre_res` asserted at most one
+such package per closure. Eight more packages' `init()` only register their metrics
+(`prometheus.MustRegister`: membership, rafthttp, snap, v3rpc, apply, txn, storage, the WAL); their
+`initFuncsOk` axioms go once `init.0` is translated and stepped over `MustRegister`'s spec.
+
+**Decision:** the `_res` form takes a list (`ownInitResL g L`, `Proof/runtime/PkgInitRes.lean`): for
+each `(q, R)` of `L`, `R` unless `q` is initialized. A registering package (`PRE_RES`, filled by
+`register(...)` in `gen-init.py`) has `R = namesFree regNames` (its generated list of fully-qualified
+names, in `init()`'s order); a package's list is its closure's registering packages, sorted
+(`regQs`). Its own entry is spent by `wp_package_init_resL_self`; an import whose closure has some of
+the list's packages takes a sublist (`initResL_sub`: the others stay held, Perennial's monotone
+package map `ownGoStateLb`); an import with none is carried by its `_lb` form. The standard form's
+precondition is `namesFree initNames` (`initNames = regQs.flatMap (·.2)`), and each etcd program's
+name list (`<prog>Names`, the closed theorems' `namesUnclaimed` premise) is its root's `initNames`:
+the same premise, over 41 names instead of 2. `etcd_adequate*` take the names `Ns` (implicit) with
+`Ns.Nodup` (a trailing argument, `decide +kernel` by default).
+
+The vector constructors' specs (`New{Counter,Gauge,Histogram}Vec`) now also post `collectorName` of
+the vector as a collector (`*<Kind>Vec`): a strengthening of trust-boundary axioms, true of
+client_golang v1.24.1 (`MetricVec.Describe` sends its one descriptor; variable labels enter its
+`dimHash`, not its ID), and `collectorName`'s and `MustRegister`'s docstrings now cover vectors.
+
+**Not done:** auth, lease, backend and mvcc register only too, but their closures are reached by
+`mvccrand` and `mvccfull`, whose closed theorems have no `namesUnclaimed` premise: making them
+`PRE_RES` would add that premise, so their `initFuncsOk` stay. (Superseded 2026-11-20 by the next
+entry: done, with that premise.) `ownInitRes` (the one-package form)
+stays in `PkgInit.lean`, unused: deleting it rebuilds every module.
+
+## auth, lease, backend and mvcc register too: mvccrand and mvccfull take `namesUnclaimed` (2026-11-20 · the user's decision · branch `prove-etcdstorage/2026-11-20`)
+
+The previous entry left the four packages' `init()` names-only (`initFuncsOk`), because registering
+their metrics through `PRE_RES` puts the premise `namesUnclaimed` on every closed theorem whose
+program reaches them, and mvccrand's and mvccfull's had none.
+
+**Decision (the user, 2026-11-20, via the coordinator):** extend `namesUnclaimed` to cover them.
+`init.0` of auth (1 metric), lease (4), backend (8) and mvcc (23) is translated and stepped by
+`etc/gen-init.py` (`register(...)`, as the mustreg packages); `mvccrand_adequate`/`mvccrand_robust`
+and `mvccfull_adequate`/`mvccfull_safe`/`mvccfull_robust` take `prometheus.namesUnclaimed` of the
+program's `initNames` (`mvccrandNames`, `mvccfullMetricNames`; until then `[]` was passed to
+`goose_adequacy_start`), and every etcd program's name list (its root's `initNames`) grows by the
+36 names. No other etcd code registers them (grep of the pinned source for the names and the
+`auth`/`lease`/`mvcc` subsystems outside the four `metrics.go`, as mustreg did).
+
+Six of the registered metrics are `NewGaugeFunc` gauges, whose spec posted nothing:
+`NewGaugeFunc.spec` now posts `nameOk (fqName ns sub name) → collectorName g (fqName ns sub name)`
+(a strengthening, true of client_golang v1.24.1: `gauge.go:306` builds one descriptor of that name
+with no labels, `collector.go:113`'s `selfCollector.Describe` sends it); the generator `decide`s the
+name's validity.
+
+
+## `ETCD_VERIFY` read through `os.Getenv`'s spec, not assumed per check (2026-11-20 · the coordinator's group `etcdstorage` · branch `prove-etcdstorage/2026-11-20`)
+
+Sweep repairs 1 (B4) gave each of etcd's `ETCD_VERIFY` checks (`backend.ValidateCalled{Inside,OutSide}Apply`,
+`ValidateCalledInsideUnittest`, `VerifyBackendConsistency`) an axiom taking the token `envVerifyOff`;
+`verify.Verify` was an axiom too.
+
+**Decision:** the one function that reads the environment says it: `os.Getenv`'s post gives
+`envVerifyOff -∗ ⌜key = "ETCD_VERIFY" → etcdVerifyOffValue v⌝`, and `strings.ToLower`'s post says
+exactly when its result is a given lower-case ASCII word (`strings.lowersTo`, `Proof/strings/Lower.lean`:
+the rune-by-rune rule with the two non-ASCII runes Go lower-cases to ASCII, U+0130 and U+212A,
+measured). Both are strengthenings of existing trust-boundary axioms (posts were `True`); the world
+assumption `verifyEnvOff` is unchanged. `verify.IsVerificationEnabled`, `Verify`, the three lock checks
+and `VerifyBackendConsistency` are translated and proved; `Verify`'s premise is weakened to
+"`f` returns true, or `envVerifyOff`" (its five callers take the first, `ileft`), so
+`VerifyBackendConsistency` need not prove the backend consistent. Review:
+`notes/axiom-review/getenv-etcd-verify.md`.
+
+## The net extension without a plan (v3.4) (2026-11-20 · the user's decision · branch `net-noplan`)
+
+**Context.** kvnet's top-level theorem (`notes/kvnet-robust-goal.md`, branch
+`worktree-kvnet-toplevel-statement`) is `Robust` over the fixed extensions `[Net.netExt, Fs.fsExt]`
+and mentions no plan, no hosts and no network premises but that the replicas' addresses are valid
+(`Net.addrOk`) and distinct. v3.3's network carried the deployment's plan (address -> host) and
+each node its host; `Listen` panicked unless the address was the plan's at this node's host,
+`Dial` unless it was in the plan.
+
+**Decision (the user's).** The plan and the hosts go (`notes/net-tcp.md`, v3.4, with the soundness
+argument): an address is valid if `addrOk` (moved into `Impl.lean`), `Listen` takes a valid address
+or a wildcard with a valid canonical port (`listenOk`), any machine may listen at any valid address,
+`Accept` takes any connection pending at an address its listener takes (`lisAccepts`; a wildcard
+takes any address with its port, the user's preferred D21), and everything else is unchanged. It
+only adds behaviours (every new one starts from a step that was a panic), so robustness under v3.3
+carries over. Initial states: `NetLocal.init` (no listener), `NetGlobal.init` (no connection),
+standalone in `Impl.lean` until Perennial's `ExtSemantics` gets `init`/`globalInit`; the
+interpretation's `initgP` is `NetGlobal.init`, its `initP` stays `True` (the examples' and kits'
+statements do not yet say their machines start with no listener; `KitDeploy` does).
+
+**Ghost state.** Without a plan the start resources cannot be "the plan's addresses": they are every
+valid address's pending set (`netStart`, `pendInit := addrSpace ∅`). The valid addresses are
+finitely many (`Deploy.lean`'s `addrOk_length`: at most 21 bytes), so their map is a finite `GMap`;
+it is built from a list chosen by `Classical.choose` (`addrList`), never computed (a computed list of
+every byte string up to 21 bytes made the elaborator hang on the first lemma that mentioned it).
+`netPlan` is gone; the specs of `Dial`, `DialTimeout` and `Listen` take `⌜addrOk a⌝`, and
+`netLisAt l a` carries `addrOk a` (so `Accept`'s spec, at a valid listener, takes exactly the
+connections dialed to `a`); the wildcards the semantics allows are not covered by the specs (no
+verified program uses one). The kits' `KitDeploy` is now the kit's addresses (distinct, valid), no
+connection, no listener; the examples' statements lose their plan and host premises.
+
+**Rejected.** An infinite ghost resource for "every address" (a new camera code in Perennial, a
+shared dependency); claiming addresses at run time (the pending sets' authority is in the state
+interpretation, which only a step can change, so a claim outside a step cannot add an address);
+keeping wildcards in the specs (a wildcard's `Accept` must open every matching address's
+protocol).
+## Recognizing bbolt's interrupted first write (2026-11-20)
+
+The first write initializes two zero meta pages, a freelist and an empty root. Zero meta pages
+alone were an ambiguous signature. A writable Open at the fork pin 3f8520bd replaced even files
+with unrelated payload or a fifth page. Recovery now checks the first write's size and every
+byte present. A byte may be zero or its intended value, allowing partial persistence. The
+shared data-page initializer supplies the expected bytes at the configured page size.
+The public Open triple still covers empty and well-formed files. Tests cover the interrupted
+and damaged images. [Regression test and fork pins](../issues/bbolt-open-zero-meta-reinitializes-data.md)
+
+
+## Carry the stored snapshot's source through raft (2026-11-20)
+
+The caller may associate a persistent predicate with each nonempty snapshot returned by
+storage. The storage already supplies a validity certificate, pinned by raft at attach.
+A tagged memory storage can put validity and the caller's predicate in that certificate.
+The allocation proof uses the general memory-storage invariant allocation, including at
+a nonempty starting snapshot. The existing contract still works for clients that only
+need validity. The next step is to preserve the pin at node startup and the source in Ready.
+
+This supersedes the October 31 decision to retain the server's snapshot-index guard.
+The invariant argument and remaining obligations are in [the removal plan](snapguard-removal-plan.md).
+
+## fmtmodel: Perennial's `fmt` model calls what Go calls; the `fmt` specs rest on its spec
+
+**2026-11-20 · accepted (group `fmtmodel`, Perennial `79517dbdf`)** · supersedes in part "`fmt.Errorf`
+with `%w`: no fact from the model" (2026-11-06) and its 2026-11-18 supersession: there is no unfaithful
+model left to keep facts from. Perennial's models of `Sprintf`, `Printf` and `Errorf` now format up to
+the first directive they do not interpret, call the arguments' `Error()`/`String()` that Go calls (under a
+directive-aware premise, `fmt.argsOk`, moved to Perennial from `Spec/fmt/Errorf.lean`), print `%p`
+without reading memory, and `Errorf` returns Go's error by its `%w` directives (`fmt.errorfErr`). Where
+Go reflects into a struct, slice or map, or would call a `Format`/`GoString`, the model is stuck. So the
+proofs here use Perennial's `fmt.wp_Errorf`/`wp_Sprintf`/`wp_Printf` (`Proof/fmt/`), and the calls the
+model does not cover (slices, maps) are trust-boundary axioms (`fmt.ErrorfStrs`, `fmt.ErrorfSlice`,
+`fmt.SprintfSlice`, `cache.wp_Errorf_setArgs`, `appslisters.wp_Errorf_labelArgs`), no longer theorems
+over a model that ignored the arguments. `fmt.ErrorfWrap` keeps its disjunctive post (callers unchanged)
+but is proved through the right disjunct, Go's `*wrapError`. `etc/errorf-wrap-check.py` stays, empty, as
+the gate on any new step into the model's unfolding.
+
+## Recover the snapshot record across legacy WAL filenames (2026-11-20)
+
+The last filename at or below the requested snapshot index can start too late
+on WALs written before the cut rule accounted for snapshots. When the normal
+scan cannot find the record, recovery now examines earlier segments, starting
+with the nearest. A match extends the locked range and restarts decoding. The
+extended scan validates the CRC and snapshot term and returns the committed
+hard state and subsequent entries. The locks also retain earlier segments
+whose snapshot would otherwise disappear during purge.
+
+The verifier’s disk invariant covers the current writer. For that layout the
+public ReadAll proof follows the actual CRC seeds, lock filenames, and snapshot
+records to establish that earlier files cannot supply a missing match. The Go
+upgrade regression covers the older layout in read-only and writable modes,
+then purges and reopens the WAL. [Finding and regression](../issues/etcd-wal-upgrade-legacy-segment-name.md)
+
+## bbolt admits readable values on a split leaf (2026-11-20)
+
+A valid key and value fit a single amd64 leaf when their lengths sum to at
+most `2^31 - 17`. The element header occupies the other 16 bytes of the
+`MaxAllocSize` window. The old 256 MiB limit came from assuming that four
+elements would share the leaf. The fork now measures the proposed prefix
+during spill and can put a single entry on a leaf.
+
+The verified page bound starts at the first element, 16 bytes after the page
+header. Branches still keep at least two children. A leaf key can be promoted
+to a separator, so the file model bounds a key by `branchKeyMax`, the share
+available to one of four branch entries. Every key accepted by `Put` fits
+this bound. `entryBytesFit_legacy` also covers every key and value admitted
+by the previous file model. The fork's regression and the upstream split
+problem are in `issues/bbolt-put-refuses-readable-entry.md`.
+
+
+
+### The RawNode owns the restore history (2026-11-20)
+
+Startup allocates each incarnation’s history. A successful snapshot restore records the incoming sender, term and index in that history. A stale snapshot leaves the history intact. The evidence follows the node through Ready and Advance, including a snapshot outstanding when another restore arrives. The server still needs the observation at handout and the link to the original outgoing message.
+
+### Bounding restored snapshots at Ready handout (2026-11-20)
+
+Keep the restore-index bound in Raft's log invariant. The bound starts at the initial log boundary and follows each accepted restore. At Ready handout, the committed prefix delivered by the batch covers that boundary. Record the hard-state term and this bound together, so the server can compare an observed batch against a snapshot from the same leader term. A message drained in a later term still needs the certificate from its original send.
+
+### Snapshots queued across a term change (2026-11-20)
+
+Record the term on the outgoing message. The proof uses the sender's commit
+bound and the strict commit check at each successful incoming restore to
+preserve that attribution until Ready drains the outbox. The receiver may
+compare a batch in the message's term even if the draining batch is later.
+
+### Recording which committed indices were installed snapshots (2026-11-20)
+
+A successful restore records its index. Ready records the node's current
+commit, through which a later restore cannot change the set of installed
+indices. A snapshot loan returns a receipt for its own index. The server
+can retain the receipt when the Raft driver puts the snapshot in memory
+storage and use it when the same index is sent back out.
+
+## The listening token and the net+fs bundle (2026-11-21 · the user's request · branch `net-noplan`, stages B and C)
+
+**Token.** `netLisTok a` (`Ghost.lean`): exclusive, one per valid address, in the network's start
+resources beside the pending sets. `wp_net_Listen` and `net.Listen.spec` take it by an atomic update
+(`|={⊤,∅}=> netLisTok a ∗ (netLisTok a ={∅,⊤}=∗ True)`), given at the extension's `Listen` step and
+taken back. So the token may live in an invariant, and a proof shows that only the holders of that
+invariant ever listen at `a`. It survives crashes because no generation ever holds it across a step:
+a replica that re-listens after every restart opens the same invariant each time
+(`wire.listen_au`, from the address's invariant, which now carries the token; `Proto.listen_au`,
+from `addrProto`, whose `inv (lisTokN a) (netLisTok a)` `addr_set_proto` allocates from
+`addrUnset`).
+
+Rejected: moving the token into the node's local interpretation while a listener is open, and
+handing it back on a crash through `crashStart`. `ExtInterp.local_init` gets no global ghost state,
+so the local interpretation cannot name the global token map; it would need a Perennial change.
+Rejected too: a framed token in the node's recovery precondition. The running generation needs it
+for `Listen`, and the recovery wand made at boot needs it too; Perennial-Lean has no crash borrows.
+Pending connections are keyed by address, not by listener or incarnation (`wire.addrInv`,
+`Proto.addrInvP`), so a restarted node's `Accept` takes the deposits made for a crashed one (D7).
+
+**Bundle.** `GooseLang/Ext/NetFs/Adequacy.lean`: `kvnetExts := ⟨[Net.netExt, Fs.fsExt]⟩`, its
+semantics, interpretation and crash interpretation are Perennial's `ExtTuple` of each extension's
+own. It also has: both `HasExt` instances, `kvnetGF`/`kvnetGpreS`, the projections of the start and
+crash resources onto each extension's, and `kvnet_dist_crash_adequacy`
+(`goose_dist_crash_adequacy` at `kvnetGF`, with the initial-state conditions discharged from
+`NetGlobal.init` and `FsInit`). There is no change to the file extension.
+## Outgoing metadata as a per-run relation (2026-11-20 · the user's soundness fix · branch `prove-errdesc/2026-11-20`, stage 1)
+
+**Supersedes in part:** the auth plan's E2f (`metadata.outgoingOf`, "a function of the context value
+for the same reason: a context is immutable") and G2's use of it for the watch's stream key; and
+premise-fixes-7's opaque `Prop` `metadata.builtRawMD`.
+
+**Why.** `metadata.outgoingOf : GoInterface → GrpcMd` was a fixed Lean function of a context value,
+and the posts of `AppendToOutgoingContext`, `withVersion`, `WithCancelValCtx`,
+`WithTimeoutBackgroundMd` equated it with caller-chosen data for a context the call allocates. A fresh
+allocation may be any location, so no implementation can meet those posts (two runs of
+`AppendToOutgoingContext(ctx, "k", "a")` and `(…, "b")` from one heap may return the same `*valueCtx`;
+etcd-refimpl's `README.md` "Findings"; `notes/errdesc-ghost-plan.md` §0).
+
+**Decision** (`notes/errdesc-ghost-plan.md` §2.1, Part II of `notes/perheap-scope.md`):
+`metadata.outMD ctx md` (persistent; `Proof/context/LibKeysChain.lean`), Perennial's chain at grpc's
+outgoing key holding a value `v` that `metadata.outgoingHeld v md` (not a `rawMD` and `none`, or one
+grpc made with view `f`, the opaque leaf `□ metadata.builtRawMDRaw v f`, and `some f`).
+`outgoingCtxOkC ctx := ∃ md, outMD ctx md` (name kept); `outgoingCtxOk` (WP form) carries the same
+`outgoingHeld`. No agreement law. Every spec that relates a context's metadata to something takes the
+metadata as a parameter `om` with `metadata.outMD ctx om` in its precondition: the client's call
+contracts (`attemptPre conn om …`, `clientAttemptMd conn om md`, `clientOpAuOn`/`clientGrant`/
+`clientHistAu` and the retry interceptor's contract over `om`), grpc's attempt contract
+(`grpcAttemptMd conn om md`; `grpcInvokerOk` and `ClientConn.NewStream` take `outMD ctx om`), the watch
+(`watcher.Watch`'s `om`, kept in the watch's record `WsPrm.omd` and the stream's `WgsPrm.omd`;
+`watchCheckOk … om …`). A caller with no stake in the metadata takes one from `ctxOk`/`watchCtx`
+(`ctxOk_outgoingC`, `watchCtx_outMD`); the examples state theirs (`metadata.outMD ci (akOut who)`).
+Axioms restated (none added): `AppendToOutgoingContext`, `withVersion`, `streamKeyFromCtx`,
+`WithCancelValCtx`, `WithTimeoutBackgroundMd`, `ClientConn.NewStream` (and the meaning of
+`ClientConn.Invoke`'s and `WithRequireLeader`'s through `grpcInvokerOk`/`outgoingCtxOkC`).
+
+### Match a queued snapshot to the server’s apply job (2026-11-20)
+
+A message in `msgSnapC` keeps its own Ready observation. The apply job
+keeps the observation from the batch it is applying. These can be different
+batches. At equal sender and apply terms, the two observations bound a
+restored snapshot directly. For an image obtained from memory storage, use
+its origin at bootstrap, its creator’s applied-index lower bound, or its
+local installation receipt. The saved node location identifies the
+incarnation that installed the snapshot. The server rule leaves the apply
+thread’s index authority available for the remainder of the job.
+
+### Attach the etcd snapshot origin at the two writers (2026-11-21)
+
+The server allocates a location name before attaching MemoryStorage to Raft.
+After startup it records the node returned by StartNode or RestartNode.
+CreateSnapshot retains the apply thread’s index lower bound. ApplySnapshot
+retains the receipt for the index installed by that node. For the initial
+image, the WAL base is the lower bound with which application starts.
+These facts are carried by the same storage invariant used for reads and
+compaction. The job reads its own node’s outgoing channel and compares the
+message with the Ready actually delivered to that job.
+## A status's code as a per-run relation (2026-11-20 · the user's soundness fix · branch `prove-errdesc2/2026-11-20`, stage 2a)
+
+**Supersedes in part:** the watch slice's W-C (`statusCode : GoInterface → w32`, "the status is embedded
+in the error value, so the code is a function of the error") and E1's `grpcStatusRO`/`grpcStatusROP`.
+
+**Why.** As for the outgoing metadata (stage 1, above): `statusCode` was a fixed function of an error
+value, and the producers of a status (`status.Error`, grpc's model) fix it at a value they allocate.
+
+**Decision** (`notes/errdesc-ghost-plan.md` §7): the opaque leaf `status.statusAtRaw s c m` (no law),
+`status.statusAt s c m := ⌜s ≠ null⌝ ∗ □ statusAtRaw s c m` (SpecPlan's `statusAt`) in place of
+`grpcStatusRO s c`; `grpcErrMethodsOk`'s `GRPCStatus` clause gives `∃ s c m, (□ returns s) ∗
+statusAt s c m`; `statusCodeIs err c` (nil: `OK`; no `GRPCStatus() *Status`: `Unknown`; else the
+status's code) with `statusErrOk_code`. `status.FromError` takes `∀ c`, pre `statusCodeIs err c`, and its
+`Code()` returns `c`; `status.Status.Code` takes `statusAt s c m`; `isHaltErr`'s post gives the code
+through `statusCodeIs`. Axioms restated: `status.FromError`, `status.Status.Code` (and `status.Code`'s,
+`status.Error`'s meaning through `statusErrOk`); none added. The message (`errDesc`) is stage 2b.

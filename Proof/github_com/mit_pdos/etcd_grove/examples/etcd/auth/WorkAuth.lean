@@ -335,16 +335,16 @@ theorem akGranted_of_writeGrantG (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthN
 (`clientGrant` at the set-up's log `Lset`) of an attempt of a context with `who`'s outgoing
 metadata (`akTokSeen_attempt`, `akGranted_of_writeGrantG`). -/
 theorem akOpGranted_of_grant (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames) (ρ : ReqNames)
-    (Lset : List EntryModel) (n : Nat) (who : GoString) (conn : Loc) (ctx : GoInterface)
+    (Lset : List EntryModel) (n : Nat) (who : GoString) (conn : Loc)
     (op : KVOp) (σ : KVState) (Em : CoPset) (hγa : E.authMode = .on γa)
-    (hout : metadata.outgoingOf ctx = akOut who) (hE : ↑authHistN ⊆ Em) :
+    (hE : ↑authHistN ⊆ Em) :
     akAuthFixed (GF := GF) γa ρ Lset n ∗ attemptTokOk conn (akTokP γa who) ∗
       □ (srvTLSId s -∗ False) ⊢
-      client.clientGrant s E ρ conn ctx op Lset σ ={Em}=∗ ⌜akOpGranted who op⌝ := by
+      client.clientGrant s E ρ conn (akOut who) op Lset σ ={Em}=∗ ⌜akOpGranted who op⌝ := by
   iintro ⟨#Hf, #Hat, #Htls⟩ Hg
   unfold client.clientGrant
   icases Hg with ⟨%md, %Hmd, Hg⟩
-  have Hmd' : clientAttemptMdOf conn (akOut who) md := by rw [← hout]; exact Hmd
+  have Hmd' : clientAttemptMdOf conn (akOut who) md := Hmd
   ihave #Hseen := akTokSeen_attempt γa who conn md Hmd' $$ Hat
   cases op with
   | put o =>
@@ -406,19 +406,17 @@ events carries the server's check of the create (`watchCheckOk`), for the stream
 `who`'s context makes none or `bad`'s (`akOut_streamKey`), at states no older than the set-up's
 published index, so at `setupSt` (`akStateAt_setup`), where no principal of `who`'s reads `c/`
 (`not_granted_c`). -/
-theorem akWatch_c_refused (γ : GName) (s conn : Loc) (ctx : GoInterface)
-    (γa : auth.AuthNames) (ρ : ReqNames) (Lset : List EntryModel) (n : Nat) (who : GoString)
-    (hout : metadata.outgoingOf ctx = akOut who) :
+theorem akWatch_c_refused (γ : GName) (s conn : Loc)
+    (γa : auth.AuthNames) (ρ : ReqNames) (Lset : List EntryModel) (n : Nat) (who : GoString) :
     akAuthFixed (GF := GF) γa ρ Lset n ∗ attemptTokOk conn (akTokP γa who) ∗
       auth.modeTag γ (.on γa) ∗ □ (srvTLSId s -∗ False) ⊢
-      watchCheckOk γ s conn ctx n go!"c/" go!"c0" ={⊤}=∗ False := by
+      watchCheckOk γ s conn (akOut who) n go!"c/" go!"c0" ={⊤}=∗ False := by
   iintro ⟨#Hf, #Hat, #Htag, #Htls⟩ #Hw
   ihave ⟨%m, %tok, %M, %info, %Hk, #Ht, #HtagM, #Hcl, #Hb⟩ :=
-    watchCheckOk_tok γ s conn ctx n _ _ (akTokP γa who) $$ [Hw Hat]
+    watchCheckOk_tok γ s conn (akOut who) n _ _ (akTokP γa who) $$ [Hw Hat]
   · iframe Hw Hat
   ihave %HM := auth.modeTag_agree γ (.on γa) M $$ Htag HtagM
   subst HM
-  rw [hout] at Hk
   ihave #Hseen := akTokSeen_of γa who m tok (akOut_streamKey who m Hk) $$ Ht
   ihave #Hb' := Hb $$ %rfl
   ihave %Hu := akUser_info s γa who tok info $$ [Hb' Hseen Htls]

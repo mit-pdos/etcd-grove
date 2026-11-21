@@ -2005,7 +2005,7 @@ theorem token_simple_ok (p : Loc) (γa : auth.AuthNames) :
         auth.simpleWaitOk p γa.rdy ⊢
       auth.tokenProviderOkA (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.tokenSimple.ty) #p)
         (.on γa) (auth.simpleAdmin p) :=
-  auth.tokenSimple_okA_run zap.Logger.Debug.wp_proof zap.String.wp_proof
+  auth.tokenSimple_okA_run zap.Logger.wp_Debug zap.wp_String
     auth.tokenSimple.wp_genTokenPrefix p γa
 
 /-- **The auth store's constructor in the mode `on γa`** (`NewAuthStore`, the auth plan's E2a;
@@ -2306,7 +2306,7 @@ rows, the apply thread's KV ghost state over the mode-`on` model) with auth on. 
 theorem server_built_gap_on (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc)
     (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF)
     (γn : RNNames GF) (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
-    srvBuiltG on s γ ci TM E ρ γr Er γn b ai₀ c₀ x₀ N ∗ srvBuildGap s γn ai₀ at₀ ⊢
+    srvBuiltG on s γ ci TM E ρ γr Er γn b ai₀ c₀ x₀ N ∗ srvBuildGap s γn γr.cursor ai₀ at₀ ⊢
       isServerBuiltM on s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N :=
   isServerBuilt_of_gapM on s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N
 

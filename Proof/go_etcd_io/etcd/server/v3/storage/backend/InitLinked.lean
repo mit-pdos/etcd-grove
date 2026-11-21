@@ -22,7 +22,7 @@ public import Proof.github_com.prometheus.client_golang.prometheus.Init
 public import Proof.go_etcd_io.bbolt.InitLinked
 public import Proof.go_etcd_io.bbolt.errors.Init
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Init
-public import Proof.go_uber_org.zap.Init
+public import Proof.go_uber_org.zap.InitLinked
 public import Proof.github_com.prometheus.client_golang.prometheus.NewCounter
 public import Proof.github_com.prometheus.client_golang.prometheus.NewGauge
 public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogram
@@ -30,6 +30,7 @@ public import Proof.github_com.prometheus.client_golang.prometheus.ExponentialBu
 public import Proof.github_com.prometheus.client_golang.prometheus.NewCounterVec
 public import Proof.github_com.prometheus.client_golang.prometheus.NewGaugeVec
 public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogramVec
+public import Proof.github_com.prometheus.client_golang.prometheus.MustRegister
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -58,16 +59,20 @@ variable [_root_.Perennial.errors.Assumptions]
 
 namespace go_etcd_io.etcd.server.v3.storage.backend
 
-theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
-    (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.storage.backend get_is_pkg_init) (σ0 : GMap GoString Bool) :
-    {{ EtcdGrove.ownInitLb get_is_pkg_init σ0 }}
+theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
+    (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.storage.backend get_is_pkg_init) :
+    {{ EtcdGrove.ownInitResL get_is_pkg_init (EtcdGrove.regResL (GF := GF) regQs) }}
       (App (Val initialize') (Val #()))
-    {{ RET #(); EtcdGrove.ownInitLb get_is_pkg_init σ0 ∗
+    {{ RET #(); EtcdGrove.ownInitResL get_is_pkg_init (EtcdGrove.regResL (GF := GF) regQs) ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend }} := by
   wp_start as Hown
-  iapply EtcdGrove.wp_package_init_lb (heq := Hinit.1) $$ [Hown] HΦ
+  iapply EtcdGrove.wp_package_init_resL_self (heq := Hinit.1) (L := EtcdGrove.regResL (GF := GF) regQs)
+    (L1 := EtcdGrove.regResL (GF := GF) [])
+    (L2 := EtcdGrove.regResL (GF := GF) [])
+    (L' := EtcdGrove.regResL (GF := GF) []) (R := EtcdGrove.prometheus.namesFree (GF := GF) regNames)
+    (hL := rfl) (hL' := rfl) $$ [Hown] HΦ
   iframe Hown
-  iintro Hown
+  iintro ⟨Hown, HR⟩
   wp_auto
   iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := GoInterface) isDefragActive _ as HisDefragActive
@@ -83,31 +88,47 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := w64) defragLimit _ as HdefragLimit
   wp_apply wp_GlobalAlloc (V := w64) defaultBatchInterval _ as HdefaultBatchInterval
   wp_apply wp_GlobalAlloc (V := w64) defaultBatchLimit _ as HdefaultBatchLimit
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.sort _root_.Perennial.sort.initialize'
-      EtcdGrove.ExternalInit.sort _root_.Perennial.sort.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd16⟩
-  wp_apply (_root_.Perennial.encoding.hex.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd15⟩
-  wp_apply (_root_.Perennial.github_com.prometheus.client_golang.prometheus.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd14⟩
-  wp_apply (_root_.Perennial.go_etcd_io.bbolt.errors.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd13⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.math _root_.Perennial.math.initialize'
-      EtcdGrove.ExternalInit.math _root_.Perennial.math.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd12⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.errors _root_.Perennial.errors.initialize'
-      EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd11⟩
-  wp_apply (_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd10⟩
-  wp_apply (_root_.Perennial.go_etcd_io.bbolt.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd9⟩
-  wp_apply (_root_.Perennial.go_uber_org.zap.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd8⟩
-  wp_apply (_root_.Perennial.github_com.dustin.go_humanize.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd7⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
-      EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd6⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync.atomic _root_.Perennial.sync.atomic.initialize'
-      EtcdGrove.ExternalInit.sync_atomic _root_.Perennial.sync.atomic.wp_initialize' _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
-      EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
-      EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.fmt _root_.Perennial.fmt.initialize'
-      EtcdGrove.ExternalInit.fmt _root_.Perennial.fmt.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.bytes _root_.Perennial.bytes.initialize'
-      EtcdGrove.ExternalInit.bytes _root_.Perennial.bytes.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.sort _root_.Perennial.sort.initialize'
+      EtcdGrove.ExternalInit.sort _root_.Perennial.sort.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd16⟩
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.encoding.hex.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd15⟩
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.github_com.prometheus.client_golang.prometheus.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd14⟩
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.bbolt.errors.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd13⟩
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.math _root_.Perennial.math.initialize'
+      EtcdGrove.ExternalInit.math _root_.Perennial.math.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd12⟩
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.errors _root_.Perennial.errors.initialize'
+      EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd11⟩
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd10⟩
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.bbolt.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd9⟩
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_uber_org.zap.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd8⟩
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.github_com.dustin.go_humanize.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd7⟩
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
+      EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd6⟩
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.sync.atomic _root_.Perennial.sync.atomic.initialize'
+      EtcdGrove.ExternalInit.sync_atomic _root_.Perennial.sync.atomic.wp_initialize' _ Hinit.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd5⟩
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
+      EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd4⟩
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
+      EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd3⟩
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.fmt _root_.Perennial.fmt.initialize'
+      EtcdGrove.ExternalInit.fmt _root_.Perennial.fmt.wp_initialize' _ Hinit.2.2.1))
+    $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.bytes _root_.Perennial.bytes.initialize'
+      EtcdGrove.ExternalInit.bytes _root_.Perennial.bytes.wp_initialize' _ Hinit.2.1))
+    $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of defaultBatchLimit))
   -- translated initializer of defaultBatchInterval))
   -- translated initializer of defragLimit))
@@ -117,7 +138,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of commitSec))
   wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bcommitSec BcommitSec
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BcommitSec as %ccommitSec ⟨#CcommitSec, -⟩
+  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BcommitSec as %ccommitSec ⟨#CcommitSec, %NcommitSec⟩
   try wp_auto
   ihave #EcommitSec : (go_etcd_io.etcd.server.v3.storage.backend.histSpec ccommitSec : IProp GF) $$ []
   · iunfold EtcdGrove.prometheus.metric.histSpec at CcommitSec
@@ -126,7 +147,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of rebalanceSec))
   wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %brebalanceSec BrebalanceSec
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BrebalanceSec as %crebalanceSec ⟨#CrebalanceSec, -⟩
+  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BrebalanceSec as %crebalanceSec ⟨#CrebalanceSec, %NrebalanceSec⟩
   try wp_auto
   ihave #ErebalanceSec : (go_etcd_io.etcd.server.v3.storage.backend.histSpec crebalanceSec : IProp GF) $$ []
   · iunfold EtcdGrove.prometheus.metric.histSpec at CrebalanceSec
@@ -135,7 +156,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of spillSec))
   wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bspillSec BspillSec
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BspillSec as %cspillSec ⟨#CspillSec, -⟩
+  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BspillSec as %cspillSec ⟨#CspillSec, %NspillSec⟩
   try wp_auto
   ihave #EspillSec : (go_etcd_io.etcd.server.v3.storage.backend.histSpec cspillSec : IProp GF) $$ []
   · iunfold EtcdGrove.prometheus.metric.histSpec at CspillSec
@@ -144,7 +165,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of writeSec))
   wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bwriteSec BwriteSec
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BwriteSec as %cwriteSec ⟨#CwriteSec, -⟩
+  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BwriteSec as %cwriteSec ⟨#CwriteSec, %NwriteSec⟩
   try wp_auto
   ihave #EwriteSec : (go_etcd_io.etcd.server.v3.storage.backend.histSpec cwriteSec : IProp GF) $$ []
   · iunfold EtcdGrove.prometheus.metric.histSpec at CwriteSec
@@ -153,26 +174,88 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of defragSec))
   wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bdefragSec BdefragSec
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BdefragSec as %cdefragSec ⟨#CdefragSec, -⟩
+  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BdefragSec as %cdefragSec ⟨#CdefragSec, %NdefragSec⟩
   try wp_auto
   -- translated initializer of defragBlockingSec))
   wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bdefragBlockingSec BdefragBlockingSec
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BdefragBlockingSec as %cdefragBlockingSec ⟨#CdefragBlockingSec, -⟩
+  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BdefragBlockingSec as %cdefragBlockingSec ⟨#CdefragBlockingSec, %NdefragBlockingSec⟩
   try wp_auto
   -- translated initializer of snapshotTransferSec))
   wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bsnapshotTransferSec BsnapshotTransferSec
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BsnapshotTransferSec as %csnapshotTransferSec ⟨#CsnapshotTransferSec, -⟩
+  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BsnapshotTransferSec as %csnapshotTransferSec ⟨#CsnapshotTransferSec, %NsnapshotTransferSec⟩
   try wp_auto
   ihave #EsnapshotTransferSec : (go_etcd_io.etcd.server.v3.storage.backend.histSpec csnapshotTransferSec : IProp GF) $$ []
   · iunfold EtcdGrove.prometheus.metric.histSpec at CsnapshotTransferSec
     unfold go_etcd_io.etcd.server.v3.storage.backend.histSpec
     iexact CsnapshotTransferSec
   -- translated initializer of isDefragActive))
-  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cisDefragActive ⟨#CisDefragActive, #DisDefragActive, -⟩
+  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cisDefragActive ⟨#CisDefragActive, #DisDefragActive, %NisDefragActive⟩
   try wp_auto
-  wp_apply (initFuncsOk init.«0» (by mem_tac))
+  -- the translated init.«0»
+  wp_func_call
+  wp_call
+  try wp_auto
+  iunfold EtcdGrove.prometheus.namesFree at HR
+  iunfold _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.regNames at HR
+  icases HR with ⟨HR1, HR2, HR3, HR4, HR5, HR6, HR7, HR8, -⟩
+  wp_apply wp_slice_literal (l := [GoInterface.ok ccommitSec])
+  isplitr
+  · ipureintro; rfl
+  iintro %s1 ⟨S1, -⟩
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NcommitSec $$ [S1 HR1] as S1
+  · iframe S1 HR1
+  wp_apply wp_slice_literal (l := [GoInterface.ok crebalanceSec])
+  isplitr
+  · ipureintro; rfl
+  iintro %s2 ⟨S2, -⟩
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NrebalanceSec $$ [S2 HR2] as S2
+  · iframe S2 HR2
+  wp_apply wp_slice_literal (l := [GoInterface.ok cspillSec])
+  isplitr
+  · ipureintro; rfl
+  iintro %s3 ⟨S3, -⟩
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NspillSec $$ [S3 HR3] as S3
+  · iframe S3 HR3
+  wp_apply wp_slice_literal (l := [GoInterface.ok cwriteSec])
+  isplitr
+  · ipureintro; rfl
+  iintro %s4 ⟨S4, -⟩
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NwriteSec $$ [S4 HR4] as S4
+  · iframe S4 HR4
+  wp_apply wp_slice_literal (l := [GoInterface.ok cdefragSec])
+  isplitr
+  · ipureintro; rfl
+  iintro %s5 ⟨S5, -⟩
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NdefragSec $$ [S5 HR5] as S5
+  · iframe S5 HR5
+  wp_apply wp_slice_literal (l := [GoInterface.ok cdefragBlockingSec])
+  isplitr
+  · ipureintro; rfl
+  iintro %s6 ⟨S6, -⟩
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NdefragBlockingSec $$ [S6 HR6] as S6
+  · iframe S6 HR6
+  wp_apply wp_slice_literal (l := [GoInterface.ok csnapshotTransferSec])
+  isplitr
+  · ipureintro; rfl
+  iintro %s7 ⟨S7, -⟩
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NsnapshotTransferSec $$ [S7 HR7] as S7
+  · iframe S7 HR7
+  wp_apply wp_slice_literal (l := [GoInterface.ok cisDefragActive])
+  isplitr
+  · ipureintro; rfl
+  iintro %s8 ⟨S8, -⟩
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NisDefragActive $$ [S8 HR8] as S8
+  · iframe S8 HR8
   ipersist HcommitSec
   ipersist HrebalanceSec
   ipersist HspillSec
@@ -193,14 +276,15 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   rw [show (W64 100000000 : w64) = W64 100 * W64 1000000 from by decide]
   iexact HdefaultBatchInterval
 
-/-- Perennial's form, from `wp_initialize'_lb`. -/
+/-- Perennial's form with the rights to register the closure's metric names (decision D16),
+from `wp_initialize'_res`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.storage.backend get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init }}
+    {{ ownInitializing get_is_pkg_init ∗ EtcdGrove.prometheus.namesFree (GF := GF) initNames }}
       (App (Val initialize') (Val #()))
     {{ RET #(); ownInitializing get_is_pkg_init ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend }} :=
-  EtcdGrove.wp_init_of_lb _ _ _ (wp_initialize'_lb get_is_pkg_init Hinit)
+  EtcdGrove.wp_init_of_regResL _ _ _ _ (wp_initialize'_res get_is_pkg_init Hinit)
 
 
 end go_etcd_io.etcd.server.v3.storage.backend

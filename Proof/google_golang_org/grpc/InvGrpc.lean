@@ -1152,10 +1152,13 @@ axiom grpcConn_persistent {GF : BundledGFunctors} [GooseExts] (conn : Loc) (addr
 
 attribute [instance] grpcConn_persistent
 
-/-- **`v` is grpc's call option `grpc.Peer(p)`** (an axiomatized property, introduced only by
-`grpc.Peer`'s spec, `Spec/google_golang_org/grpc/Peer.lean`): after the call, the attempt's peer
-is written to `*p`. -/
-axiom grpcPeerOpt [GooseExts] (v : GoInterface) (p : Loc) : Prop
+/-- **`v` is grpc's call option `grpc.Peer(p)`**: `PeerCallOption{PeerAddr: p}` as a `CallOption`
+(grpc's `rpc_util.go`; `grpc.Peer`'s spec, `Spec/google_golang_org/grpc/Peer.lean`): after the call,
+the attempt's peer is written to `*p`. (prove-grpcsmall, 2026-11-20) A definition since `grpc.Peer`
+is translated and proved; it was an axiomatized property, introduced only by that spec. -/
+def grpcPeerOpt [GooseExts] [GoGlobalContext] (v : GoInterface) (p : Loc) : Prop :=
+  v = interface.mkOk google_golang_org.grpc.PeerCallOption.ty
+    #(google_golang_org.grpc.PeerCallOption.mk p)
 
 /-- **`pv` is a peer grpc's transport writes** for a call (an axiomatized property: its addresses
 are `net`'s, its auth info grpc's credentials', so its `String()` returns). -/
@@ -1662,18 +1665,19 @@ def grpcReservedKey (k : GoString) : Prop :=
 known of `cm` is the credentials' contract at the dial (`grpc.NewClient`'s `connCredsOk`). -/
 opaque credsYield (conn : Loc) (cm : GrpcMd) : Prop
 
-/-- **The handler of an attempt on the connection `conn` with the caller's context `ctx` sees the
-metadata `md`** (the auth plan's E3zb; a definition since C1, 2026-10-28, until then opaque): on
-every key grpc does not set itself, the values of the connection's per-RPC credentials' metadata
-`cm` for the attempt (`credsYield`), then the context's outgoing metadata (`metadata.outgoingOf`);
-and no key with no values (grpc writes one header field per value, so a key the context carries
-with none is not sent; C1's review, F2). True of grpc-go v1.84 (`http2Client.createHeaderFields`,
-to check in C1's phase 2); the attempt contract (`grpcInvokerOk`) gives the method's spec at such
-an `md`. -/
-def grpcAttemptMd [GooseExts] (conn : Loc) (ctx : GoInterface) (md : GrpcMd) : Prop :=
+/-- **The handler of an attempt on the connection `conn` with a caller's context whose outgoing
+metadata is `om` sees the metadata `md`** (the auth plan's E3zb; a definition since C1, 2026-10-28, until
+then opaque): on every key grpc does not set itself, the values of the connection's per-RPC credentials'
+metadata `cm` for the attempt (`credsYield`), then the context's outgoing metadata `om`; and no key with
+no values (grpc writes one header field per value, so a key the context carries with none is not sent;
+C1's review, F2). True of grpc-go v1.84 (`http2Client.createHeaderFields`, to check in C1's phase 2); the
+attempt contract (`grpcInvokerOk`) gives the method's spec at such an `md`. (errdesc stage 1,
+2026-11-20) Over the context's metadata value `om`, which the attempt contract's precondition relates to
+the context (`metadata.outMD ctx om`); until then over the pure `metadata.outgoingOf ctx`. -/
+def grpcAttemptMd [GooseExts] (conn : Loc) (om : GrpcMd) (md : GrpcMd) : Prop :=
   ∃ cm, credsYield conn cm ∧
     (∀ k, ¬ grpcReservedKey k →
-      metadata.mdVals md k = metadata.mdVals cm k ++ metadata.mdVals (metadata.outgoingOf ctx) k) ∧
+      metadata.mdVals md k = metadata.mdVals cm k ++ metadata.mdVals om k) ∧
     ∀ k, mdGet md k ≠ some []
 
 /-- **One attempt** (persistent; the contract of grpc's `invoke`, the final invoker of a
@@ -1682,7 +1686,8 @@ of the connection with `Spec` (`isGrpcRpcs`; D27, 2026-10-21: the attempt goes t
 for the request `inp` (`Req.send`, given back), into the reply `out` (owned, at any content:
 `Rep.own`), with call options grpc can apply (`grpcOptOk ps`: scalar, or peer options writing the
 buffers `ps`, owned and given back) and the caller's `▷ Spec md m Φ` for every metadata `md` the
-attempt's handler may see (`grpcAttemptMd`; since 2026-10-28, the auth plan's E3zb, the spec is
+attempt's handler may see (`grpcAttemptMd`, at the context's outgoing metadata `om`, `metadata.outMD ctx
+om`: errdesc stage 1, 2026-11-20; since 2026-10-28, the auth plan's E3zb, the spec is
 metadata-indexed, `GrpcSpecMd`: a plain spec is `GrpcSpec.md`), returns
 * `nil`: a run of the handler served for the method at one of `addrs` on a copy of the request
   answered, and `out` holds the reply's copy of its response (`Rep.recv out m'`) with the run's `Φ m'`;
@@ -1758,10 +1763,10 @@ def grpcInvokerOk (conn : Loc) (addrs : List GoString) (inv : GoFunc) : IProp GF
       (_ : grpcReqModelOf GF Req.ty = some Req) (_ : grpcRepModelOf GF Rep.ty = some Rep)
       (Spec : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg) (m : Req.M)
       (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) (ctx : GoInterfaceOk)
-      (cd : context.ContextDesc (IProp GF))
+      (cd : context.ContextDesc (IProp GF)) (om : GrpcMd)
       (inp out : Loc) (opts : GoSlice) (vs : List GoInterface) (ps : List Loc),
-    {{ isGrpcRpcsMd addrs method Spec ∗
-        ▷ (∀ md, ⌜grpcAttemptMd conn (GoInterface.ok ctx) md⌝ -∗ Spec md m Φ Ψe) ∗
+    {{ isGrpcRpcsMd addrs method Spec ∗ metadata.outMD ctx om ∗
+        ▷ (∀ md, ⌜grpcAttemptMd conn om md⌝ -∗ Spec md m Φ Ψe) ∗
         ctxOk ctx cd ∗ Req.send inp m ∗ ⌜Req.wireLen m < grpcMsgMax⌝ ∗
         Rep.own out ∗ opts ↦*□ vs ∗ ⌜∀ v ∈ vs, grpcOptOk ps v⌝ ∗ ([∗list] p ∈ ps, grpcPeerBuf p) }}
       (invokerCall inv #(GoInterface.ok ctx) #method
@@ -1855,10 +1860,10 @@ theorem grpcInvokerOk_of_wp (conn : Loc) (addr : List GoString) (inv inv' : GoFu
     grpcInvokerOk conn addr inv' := by
   iintro ⟨#Hinv, #Hw⟩
   unfold grpcInvokerOk
-  iintro !> %method %Req %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd %inp %out %opts %vs %ps
+  iintro !> %method %Req %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd %om %inp %out %opts %vs %ps
   iintro %Ψ !> Hpre HΨ
   iapply Hw
-  iapply Hinv $$ %method %Req %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd %inp %out %opts %vs %ps %Ψ
+  iapply Hinv $$ %method %Req %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd %om %inp %out %opts %vs %ps %Ψ
     Hpre HΨ
 
 end client

@@ -4,6 +4,10 @@
 #
 #   etc/land.sh            from the branch's worktree; LAKE_PACKAGES / PERENNIAL_CHECKOUT as for
 #                          etc/gates.sh
+#   ETCD_GROVE_LAND_AUTOMERGE=1 etc/land.sh   if lean moved, merge it under the lock when the merge is
+#                          clean (instead of stopping), so a waiting landing does not lose its turn
+#   ETCD_GROVE_GATES=CMD etc/land.sh   runs CMD instead of etc/gates.sh (e.g. a wrapper that runs
+#                          etc/gates.sh on a remote build machine); everything else is unchanged
 #
 # Under `flock $ETCD_GROVE_LAND_LOCK` (default /shared/tmp/etcd-grove-land.lock), held from the check
 # through the fast-forward:
@@ -30,7 +34,18 @@ main=$(git worktree list --porcelain | awk '/^worktree /{w=$2} /^branch refs\/he
 exec 9>>"$land_lock"
 if ! flock -n 9; then echo "land: another landing holds $land_lock; waiting"; flock 9; fi
 if ! git merge-base --is-ancestor lean HEAD; then
-  echo "land: lean ($(git rev-parse --short lean)) is not in $branch: merge lean, then rerun"; exit 1
+  if [ -n "${ETCD_GROVE_LAND_AUTOMERGE:-}" ]; then
+    # Under the landing lock, so lean cannot move again before the gates: merge it here if the merge
+    # is clean (the gates then check the merged tree, generated files included), else stop as below.
+    if git merge --no-edit -q lean; then
+      echo "land: merged lean ($(git rev-parse --short lean)) into $branch under the lock"
+    else
+      git merge --abort 2>/dev/null
+      echo "land: lean ($(git rev-parse --short lean)) does not merge cleanly into $branch: merge lean, then rerun"; exit 1
+    fi
+  else
+    echo "land: lean ($(git rev-parse --short lean)) is not in $branch: merge lean, then rerun"; exit 1
+  fi
 fi
 # Append-only files (CLAUDE.md): a landing never shortens them (a6ace74079 cut status-history.md
 # from 19021 lines to 2 by rewriting it, 2026-11-06).
@@ -45,7 +60,7 @@ if [ -z "$(git diff --name-only lean HEAD -- . ':!notes' ':(exclude,top,glob)*.m
 else
   exec 8>>"$build_lock"
   if ! flock -n 8; then echo "land: a full build holds $build_lock; waiting"; flock 8; fi
-  etc/gates.sh || { echo "land: gates failed; lean unchanged"; exit 1; }
+  ${ETCD_GROVE_GATES:-etc/gates.sh} || { echo "land: gates failed; lean unchanged"; exit 1; }
   flock -u 8
 fi
 git -C "$main" merge --ff-only -q "$branch" || { echo "land: fast-forward failed"; exit 1; }

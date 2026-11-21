@@ -9,7 +9,9 @@ error, `linkHeartbeatMessage` a heartbeat message without unknown fields, read-o
 initializer runs its variables' initializers: (prove-errinits, 2026-11-19) its errors' are translated,
 `errors.New` calls and verb-less `fmt.Errorf` calls (`msg_codec.go`, `http.go`, `peer.go`,
 `stream.go`; `fmt.Errorf`'s trusted model is `errors.New(format)`), until then the trust-boundary axiom
-`errorsNewVarsInit`; `linkHeartbeatSize_init` states `linkHeartbeatSize`'s (`stream.go`).
+`errorsNewVarsInit`; (prove-misc, 2026-11-20) `linkHeartbeatSize = proto.Size(&linkHeartbeatMessage)`
+(`stream.go`) is translated, over `proto.SizePb`'s spec at the registered `raftpb.Message` (until then
+the trust-boundary axiom `linkHeartbeatSize_init`).
 (const-inits, 2026-11-19) The timeouts and intervals (`snapResponseReadTimeout`, `ConnWriteTimeout`,
 `proberInterval`, `statusMonitoringInterval`, `statusErrorInterval`), `errMemberNotFound`
 (`fmt.Errorf`, its proof) and `supportedStream` (a map literal of slice literals) are translated
@@ -57,8 +59,12 @@ public import Proof.path.Init
 public import Proof.runtime.Init
 public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.MsgAppV2
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.PerTypeMessage
 public import Perennial.Proof.errors.NewVar
 public import Proof.errors.NewVarCell
+public import Proof.fmt.OutLemmas
+public import Proof.github_com.prometheus.client_golang.prometheus.Registry
+public import Proof.runtime.PkgInitRes
 
 @[expose] public section
 
@@ -76,35 +82,43 @@ local macro "mem_tac" : tactic =>
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
-section opaqueInits
-namespace go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- **The trust boundary: `go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp`'s untranslated `init` functions return.** Goose
-names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
-here, so the model does not unfold them (`@! init.<k>`: the semantics' `functions`, which
-the package's `Assumptions` do not constrain for them). Go runs them at program start, and
-etcd starts, so each returns without panicking. A fact about the Go code, as the axioms of
-other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
-axiom initFuncsOk :
-    ∀ f ∈ ([init.«0»] : List GoString),
-    {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
-
-/-- `linkHeartbeatSize = proto.Size(&linkHeartbeatMessage)` (`stream.go`): the heartbeat's encoding's size (two bytes), an `int` from `0` to below `2^50`; nothing writes it (the stream writer adds it to its metrics). -/
-axiom linkHeartbeatSize_init :
-    {{ (True : IProp GF) }} (App (Val linkHeartbeatSize.init) (Val #()))
-    {{ RET #(); ∃ n : w64, globalAddr linkHeartbeatSize ↦ n ∗ ⌜0 ≤ sint.Z n ∧ sint.Z n < 2 ^ 50⌝ }}
-
-end go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
-end opaqueInits
-
 /-- A lookup in `<[k := v]> m` finds `v` or one of `m`'s values. -/
 theorem EtcdGrove.lookup_insert_some {K V : Type} [DecidableEq K] (m : GMap K V) (k k' : K) (v w : V)
     (h : (<[k := v]> m) !! k' = some w) : w = v ∨ m !! k' = some w := by
   rw [GMap.lookup_insert_eq_iff] at h
   by_cases hk : k = k' <;> simp [hk] at h <;> simp [h]
+
+namespace go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
+
+/-- The fully-qualified names of the metrics this package's `init()` registers with
+prometheus's default registry, in its order (`MustRegister`; `metrics.go`). -/
+def regNames : List GoString :=
+  [EtcdGrove.prometheus.fqName go!"etcd" go!"network" go!"active_peers",
+   EtcdGrove.prometheus.fqName go!"etcd" go!"network" go!"disconnected_peers_total",
+   EtcdGrove.prometheus.fqName go!"etcd" go!"network" go!"peer_sent_bytes_total",
+   EtcdGrove.prometheus.fqName go!"etcd" go!"network" go!"peer_received_bytes_total",
+   EtcdGrove.prometheus.fqName go!"etcd" go!"network" go!"peer_sent_failures_total",
+   EtcdGrove.prometheus.fqName go!"etcd" go!"network" go!"peer_received_failures_total",
+   EtcdGrove.prometheus.fqName go!"etcd" go!"network" go!"snapshot_send_success",
+   EtcdGrove.prometheus.fqName go!"etcd" go!"network" go!"snapshot_send_inflights_total",
+   EtcdGrove.prometheus.fqName go!"etcd" go!"network" go!"snapshot_send_failures",
+   EtcdGrove.prometheus.fqName go!"etcd" go!"network" go!"snapshot_send_total_duration_seconds",
+   EtcdGrove.prometheus.fqName go!"etcd" go!"network" go!"snapshot_receive_success",
+   EtcdGrove.prometheus.fqName go!"etcd" go!"network" go!"snapshot_receive_inflights_total",
+   EtcdGrove.prometheus.fqName go!"etcd" go!"network" go!"snapshot_receive_failures",
+   EtcdGrove.prometheus.fqName go!"etcd" go!"network" go!"snapshot_receive_total_duration_seconds",
+   EtcdGrove.prometheus.fqName go!"etcd" go!"network" go!"peer_round_trip_time_seconds"]
+
+/-- The packages of this package's import closure (itself included) whose initializers
+register metrics, with their names: their registration rights are its initializer's
+resources (`ownInitResL`, `Proof/runtime/PkgInitRes.lean`). -/
+def regQs : List (GoString × List GoString) :=
+  [(pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.regNames), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regNames)]
+
+/-- The metric names its initializer registers, with those of its import closure: its
+`wp_initialize'`'s precondition has the rights to register them (`namesFree`). -/
+def initNames : List GoString := regQs.flatMap (·.2)
+
+end go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
 
 end Perennial

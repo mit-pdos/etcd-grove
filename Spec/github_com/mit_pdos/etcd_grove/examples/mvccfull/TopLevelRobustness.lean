@@ -3,9 +3,10 @@
 # `mvccfull`: the top-level robustness result, stated
 
 `mvccfull_robust`: the example's closed theorem as an instance of the generic robustness statement
-(`Robustness/Statement.lean`, `Robust crashing stable g bound`: in every execution of the
+(`Robustness/Statement.lean`, `Robust crashing stable g threads bound`: in every execution of the
 machines that may crash and restart and of those that never crash, each a fresh Go process, of
-fewer than `bound` steps, no thread is stuck and none has an unrecovered panic). This file only
+fewer than `bound` steps along which every machine keeps fewer than `threads` threads,
+no thread is stuck and none has an unrecovered panic). This file only
 states it (to audit); the proof is in
 `Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/TopLevelRobustness.lean`.
 -/
@@ -49,12 +50,15 @@ def mvccfull_robust.spec : Prop :=
     [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
     [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [os.file.FieldAssumptions]
-    [os.fileStat.FieldAssumptions] (r : GoString) (HEnv : verifyEnvOff (mvccfullProgram r))
+    [os.fileStat.FieldAssumptions] (r : GoString)
+    (HNs : prometheus.namesUnclaimed (mvccfullProgram r) mvccfullMetricNames)
+    (HEnv : verifyEnvOff (mvccfullProgram r))
     (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (j0 : Fs.Ino)
     (Hr : (r, j0) ∈ (extLocal Fs.fsExt σ.world).fs.roots)
     (Habs : ∀ b ∈ mvccfull.mvccfullNames, (extLocal Fs.fsExt σ.world).fs.treeDur.entry j0 b = none)
     (Hrfit : Fs.DirFits r),
-    Robustness.Robust [] [(mvccfullProgram r, σ)] g (2 ^ 28 - 1)
+    Robustness.Robust [] [(mvccfullProgram r, σ)] g (threads := 2 ^ 28)
+      (bound := 2 ^ 28 - 1)
 
 end adequacy
 end EtcdGrove

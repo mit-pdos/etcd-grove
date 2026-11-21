@@ -65,7 +65,7 @@ theorem plainTree_of_els {P : Pages} {hwm root : Nat} {lo hi : Option (List w8)}
     have hv : (leafValue pg j).length = leafVsize pg j := by
       unfold leafValue bytesAt; simp only [List.length_take, List.length_drop]; have := hwf.1; omega
     simp only at h1 h2 h3
-    exact ⟨h1, by omega, by omega⟩
+    exact ⟨h1, by omega, by simpa only [hk, hv] using h3⟩
 
 omit [GooseSemantics] [GooseInterp] go_gctx hos in
 theorem bk_node_of_bs {X : WX} {bl n : Loc} {rn : NRec} (h : X.node bl n = some rn) :

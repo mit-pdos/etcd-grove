@@ -13,7 +13,11 @@
 # backend: `AuthBackend`'s users and roles); `sync`, `zap` and `adt` for the struct `authStore`
 # (its locks, its logger, the permission cache's interval trees); `strings`, `sync/atomic`,
 # grpc's `metadata` and `rpctypes` for the request side's bodies.
-translate = ["!*", "AuthInfo",
+translate = ["!*",
+  # (etcdstorage, 2026-11-20) metrics.go's `init.0` (`prometheus.MustRegister` of the metrics), translated:
+  # proved by `etc/gen-init.py` over `MustRegister`'s spec with the names' registration rights (the
+  # user's decision, 2026-11-20: mvccrand's and mvccfull's closed theorems take `namesUnclaimed`)
+  "init.0", "AuthInfo",
   "authStore.IsAuthEnabled", "authStore.Revision",
   "authStore.isOpPermitted", "authStore.IsPutPermitted", "authStore.IsRangePermitted",
   "authStore.IsDeleteRangePermitted", "authStore.IsAdminPermitted", "authStore.lockedReadTx",

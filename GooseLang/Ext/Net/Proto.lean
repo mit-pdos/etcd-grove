@@ -2,7 +2,7 @@
 **Per-address protocols over the net extension** (proved, not trusted): the vocabulary
 dsverify-lab's network kits reason in (its `NetConn` ghost vocabulary, `old/dsverify/harness/lean/Harness/
 GooseLang/Ext/NetConn/Specs.lean`), as predicates over the extension's ghost state (`netEnd`,
-`netDir`, `netPend`, `netPlan`, `netLis`, `Ghost.lean`), with **laws**: for each `net` operation,
+`netDir`, `netPend`, `netLis`, `Ghost.lean`), with **laws**: for each `net` operation,
 the update its one canonical spec (`Net/Spec/net/`) takes, built from the vocabulary, and what the
 caller has after it. A kit proof calls the canonical spec and applies a law; there is no second
 spec of a `net` function (`notes/dsverify-net-port-plan.md`, phase 4; `notes/decisions.md`, "The
@@ -13,8 +13,8 @@ The vocabulary (`[π : NetProtoGS]`, the library's global ghost names, made once
 
 * `Proto GF := Nat → List w8 → IProp GF`: what the bytes of one direction of the connection `cn`
   mean; `protoPrefix P cn W`: `W` is empty or a prefix of some `ext` with `□ P cn ext`.
-* `addrTok a` (persistent): `a` is a plan address (`netPlan`, and the ghost state's plan); what
-  `Listen` needs, with this node's host (`addrTok_listenAt`). `addrUnset a` (exclusive): `a`'s
+* `addrTok a` (persistent): `a` is a valid address (`addrOk`, D20); what `Listen`, `Dial` and
+  `Accept` need (`addrTok_ok`). `addrUnset a` (exclusive): `a`'s
   pending set, empty, its protocols not set; `addr_set_proto` (`addrs_set_proto`, every address of
   a list) sets them once: `addrProto a P Q` (persistent), `P` for what dialers write, `Q` for what
   acceptors write. Both from the extension's start resources (`addrs_start`).
@@ -55,8 +55,7 @@ read result: `ReadOutcome`), not the lab's codes; a `Write` is a loop of steps (
 update `write_acc` builds, and `sendTok`'s exclusivity is what keeps the bytes contiguous in the
 ghost state (Go's write lock, D25, is not needed for it: no kit writes on one end from two threads
 without a lock, `notes/dsverify-net-port-plan.md`, phase 0); `addrTok` is persistent (`Listen` of
-an address in use fails with a `sys` error here, instead of needing the token); `Listen` needs the
-node's host to be the address's (`ListenAt`, D6, D21); a `Read`'s protocol fact is one step later
+an address in use fails with a `sys` error here, instead of needing the token); a `Read`'s protocol fact is one step later
 (`recvTokL`); an accepted connection may be one a failed dial abandoned (D16; its tokens are
 deposited all the same, and its reader sees an empty, shut direction).
 -/
@@ -320,20 +319,23 @@ def addrInvP (a : GoString) (γa : GName) (P Q : Proto GF) : IProp GF :=
     ([∗map] cn ↦ _u ∈ setMap S, pendRes a γa cn) ∗ ([∗map] cn ↦ γ ∈ cmA, connElem cn γ) ∗
     [∗map] cn ↦ γ ∈ cmA, protoSt cn γ P Q)
 
-/-- `a` is a plan address, at the host `h` (persistent). -/
-def addrTok (a : GoString) : IProp GF :=
-  iprop(∃ h, netPlan NG a h ∗ ⌜(NG (Gg := Gg)).plan !! a = some h⌝)
+/-- `a` is a valid address (persistent). -/
+def addrTok (a : GoString) : IProp GF := iprop(⌜addrOk a = true⌝)
 
-instance addrTok_persistent a : Persistent (addrTok (Gg := Gg) a) := by
+instance addrTok_persistent a : Persistent (addrTok (GF := GF) a) := by
   unfold addrTok; infer_instance
 
-/-- `a`'s protocols are not set: its pending set, empty (exclusive). -/
-def addrUnset (a : GoString) : IProp GF := iprop(netPend NG a ∅ ∗ addrTok a)
+/-- `a`'s protocols are not set: its pending set, empty (exclusive), and its listening token. -/
+def addrUnset (a : GoString) : IProp GF := iprop(netPend NG a ∅ ∗ addrTok a ∗ netLisTok NG a)
 
-/-- `a`'s protocols: `P` for what its dialers write, `Q` for what its acceptors write
-(persistent). -/
+/-- The namespace of the invariant of `a`'s listening token. -/
+def lisTokN (a : GoString) : Namespace := (nroot.@"netproto_listok").@a
+
+/-- `a`'s protocols: `P` for what its dialers write, `Q` for what its acceptors write, and its
+listening token in an invariant (persistent: whoever has it may listen at `a`, `listen_au`). -/
 def addrProto (a : GoString) (P Q : Proto GF) : IProp GF :=
-  iprop(∃ γa, inv (addrN a) (addrInvP a γa P Q) ∗ addrTok a ∗ regCtx)
+  iprop(∃ γa, inv (addrN a) (addrInvP a γa P Q) ∗ inv (lisTokN a) (netLisTok NG a) ∗ addrTok a ∗
+    regCtx)
 
 instance addrProto_persistent a P Q : Persistent (addrProto (Gg := Gg) a P Q) := by
   unfold addrProto; infer_instance
@@ -505,35 +507,45 @@ theorem netProto_alloc (E : CoPset) : ⊢ |={E}=> ∃ π : NetProtoGS, regCtx (G
   iexact Hinv
 
 theorem addrUnset_tok (a : GoString) : addrUnset (Gg := Gg) a ⊢ addrTok a := by
-  unfold addrUnset; iintro ⟨-, $⟩
+  unfold addrUnset; iintro ⟨-, $, -⟩
 
 theorem addrProto_tok (a : GoString) (P Q : Proto GF) [NetProtoGS] :
     addrProto (Gg := Gg) a P Q ⊢ addrTok a := by
-  unfold addrProto; iintro ⟨%γa, -, $, -⟩
+  unfold addrProto; iintro ⟨%γa, -, -, $, -⟩
 
 theorem addrProto_regCtx (a : GoString) (P Q : Proto GF) [NetProtoGS] :
     addrProto (Gg := Gg) a P Q ⊢ regCtx := by
-  unfold addrProto; iintro ⟨%γa, -, -, $⟩
+  unfold addrProto; iintro ⟨%γa, -, -, -, $⟩
 
-/-- `Listen` of the plan address `a` itself, at a node whose host is `a`'s: what
-`net.Listen.spec` needs (`ListenAt`). -/
-theorem addrTok_listenAt (a : GoString) (host : GoString) :
-    addrTok (Gg := Gg) a ⊢ ∃ h, netPlan NG a h ∗
-      ⌜host = h → ListenAt (NG (Gg := Gg)).plan host a a⌝ := by
-  unfold addrTok
-  iintro ⟨%h, Hp, %hp⟩
-  iexists h
-  iframe Hp
-  ipureintro
-  intro hh; subst hh
-  exact ⟨hp, .inl rfl⟩
+/-- `Listen` of `a` (`net.Listen.spec`'s update): its listening token, given at the step and put
+back. -/
+theorem listen_au (a : GoString) (P Q : Proto GF) [NetProtoGS] :
+    addrProto (Gg := Gg) a P Q ⊢ |={⊤,∅}=> netLisTok NG a ∗ (netLisTok NG a ={∅,⊤}=∗ True) := by
+  unfold addrProto
+  iintro ⟨%γa, -, #Htok, -, -⟩
+  iinv Htok with >Ht Hclose
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  iframe Ht
+  iintro Ht
+  imod Hmask
+  imod Hclose $$ [Ht] with -
+  · inext; iexact Ht
+  imodintro
+  itrivial
+
+/-- `a` is valid: what `net.Listen.spec`, `net.Dial.spec` and `Listener.Accept.spec` need. -/
+theorem addrTok_ok (a : GoString) : addrTok (GF := GF) a ⊢ ⌜addrOk a = true⌝ := by
+  unfold addrTok; iintro $
 
 /-- Set the protocols of an address, once: `P` for what its dialers write, `Q` for what its
 acceptors write. -/
 theorem addr_set_proto [NetProtoGS] (E : CoPset) (a : GoString) (P Q : Proto GF) :
     ⊢ regCtx (Gg := Gg) -∗ addrUnset a ={E}=∗ addrProto a P Q := by
   unfold addrUnset
-  iintro #Hreg ⟨Hp, #Ht⟩
+  iintro #Hreg ⟨Hp, #Ht, Htk⟩
+  imod inv_alloc (lisTokN a) E (netLisTok (NG (Gg := Gg)) a) $$ [Htk] with #Htok
+  · inext; iexact Htk
   imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := ConnPNames) with ⟨%γa, Ha⟩
   imod inv_alloc (addrN a) E (addrInvP (Gg := Gg) a γa P Q) $$ [Hp Ha] with #Hinv
   · inext
@@ -548,7 +560,7 @@ theorem addr_set_proto [NetProtoGS] (E : CoPset) (a : GoString) (P Q : Proto GF)
   imodintro
   unfold addrProto
   iexists γa
-  iframe Hinv Ht Hreg
+  iframe Hinv Htok Ht Hreg
 
 /-- Set the protocols of every address of a list, `P a` and `Q a` for the address `a`. -/
 theorem addrs_set_proto [NetProtoGS] (E : CoPset) (P Q : GoString → Proto GF) :
@@ -1009,7 +1021,7 @@ theorem conn_register (a : GoString) (γa : GName) (P Q : Proto GF) (cn : Nat)
 /-- The update `net.Dial.spec` (and `net.DialTimeout.spec`) takes, with `Qfail := True`, for an
 address with protocols `P` and `Q`: a new connection's dialer gets its end's tokens (writing with
 `P`, reading with `Q`) and its fresh token; its acceptor's are deposited at the address (also when
-the dial fails and leaves the connection pending, abandoned: D16). The plan entry the spec needs
+the dial fails and leaves the connection pending, abandoned: D16). The validity the spec needs
 is in `addrProto` (`addrProto_tok`). -/
 theorem dial_au (a : GoString) (P Q : Proto GF) :
     addrProto (Gg := Gg) a P Q ⊢
@@ -1020,7 +1032,7 @@ theorem dial_au (a : GoString) (P Q : Proto GF) :
            (netEnd NG cn false { NetEnd.fresh with closed := true } -∗
             netDir NG cn false ⟨[], .fin⟩ ={∅,⊤}=∗ True)) := by
   unfold addrProto
-  iintro ⟨%γa, #Hai, #Ht, #Hreg⟩
+  iintro ⟨%γa, #Hai, -, #Ht, #Hreg⟩
   iinv Hai with Hj Hclose
   iunfold addrInvP at Hj
   icases Hj with ⟨%S, %cmA, >Hp, >HaA, >Hdeps, >Hes, Hps⟩
@@ -1125,7 +1137,7 @@ theorem accept_au (a : GoString) (P Q : Proto GF) (hL : NetLocalGS GF) (l : w64)
             netConnAt NG cn a ={∅,⊤}=∗
               netLis hL l a o ∗ connEnd cn true Q P [] [] ∗ connFresh cn true)) := by
   unfold addrProto
-  iintro ⟨%γa, #Hai, #Ht, #Hreg⟩ Hl
+  iintro ⟨%γa, #Hai, -, #Ht, #Hreg⟩ Hl
   iinv Hai with Hj Hclose
   iunfold addrInvP at Hj
   icases Hj with ⟨%S, %cmA, >Hp, >HaA, >Hdeps, >Hes, Hps⟩
@@ -1186,7 +1198,7 @@ theorem accept_shared_au (a : GoString) (P Q : Proto GF) (hL : NetLocalGS GF) (l
           (⌜o = true⌝ -∗ ∀ cn, ⌜cn ∈ S⌝ -∗ netLis hL l a o -∗ netPend NG a (S \ {[cn]}) -∗
             netConnAt NG cn a ={∅,⊤}=∗ connEnd cn true Q P [] [] ∗ connFresh cn true)) := by
   unfold addrProto
-  iintro ⟨%γa, #Hai, #Ht, #Hreg⟩ #Hli
+  iintro ⟨%γa, #Hai, -, #Ht, #Hreg⟩ #Hli
   iinv Hai with Hj Hclose
   iunfold addrInvP at Hj
   icases Hj with ⟨%S, %cmA, >Hp, >HaA, >Hdeps, >Hes, Hps⟩
@@ -1340,116 +1352,63 @@ end ends
 
 end laws
 
-/-! ### The start: every plan address unset -/
+/-! ### The start: every valid address unset -/
 
 section start
 
-theorem ofList_lookup_none (l : List (GoString × GoString)) (k : GoString)
-    (h : ∀ y ∈ l, y.1 ≠ k) : (GMap.ofList l) !! k = none := by
-  induction l with
-  | nil => rfl
-  | cons x l ih =>
-    obtain ⟨k', v⟩ := x
-    simp only [GMap.ofList]
-    rw [GMap.lookup_insert_ne _ _ (h (k', v) List.mem_cons_self)]
-    exact ih (fun y hy => h y (List.mem_cons_of_mem _ hy))
-
-theorem keysDistinct_cons {x : GoString × GoString} {l : List (GoString × GoString)}
-    (h : keysDistinct (x :: l) = true) : (∀ y ∈ l, y.1 ≠ x.1) ∧ keysDistinct l = true := by
-  obtain ⟨k, v⟩ := x
-  simp only [keysDistinct, Bool.and_eq_true, List.all_eq_true, Bool.not_eq_eq_eq_not,
-    Bool.not_true, beq_eq_false_iff_ne, ne_eq] at h
-  exact ⟨h.1, h.2⟩
-
-theorem ofList_lookup_of_mem (l : List (GoString × GoString)) (hd : keysDistinct l = true)
-    (x : GoString × GoString) (hx : x ∈ l) : (GMap.ofList l) !! x.1 = some x.2 := by
-  induction l with
-  | nil => cases hx
-  | cons y l ih =>
-    obtain ⟨h1, h2⟩ := keysDistinct_cons hd
-    obtain ⟨k, v⟩ := y
-    simp only [GMap.ofList]
-    rcases List.mem_cons.1 hx with rfl | hx
-    · exact GMap.lookup_insert _ _ _
-    · rw [GMap.lookup_insert_ne _ _ (fun e => h1 x hx e.symm)]
-      exact ih h2 hx
-
 variable {GF : BundledGFunctors}
 
-theorem bigSepM_ofList_list (Φ : GoString → GoString → IProp GF) :
-    ∀ (l : List (GoString × GoString)), keysDistinct l = true →
-      ([∗map] a ↦ h ∈ GMap.ofList l, Φ a h) ⊢ [∗list] x ∈ l, Φ x.1 x.2
-  | [], _ => by
+/-- Take the entries of the keys `l` (distinct) out of a big separating conjunction over a map. -/
+theorem bigSepM_take_list {V : Type} (Φ : GoString → V → IProp GF) (f : GoString → V) :
+    ∀ (m : GMap GoString V) (l : List GoString), l.Nodup → (∀ a ∈ l, m !! a = some (f a)) →
+      ([∗map] a ↦ v ∈ m, Φ a v) ⊢ [∗list] a ∈ l, Φ a (f a)
+  | _, [], _, _ => by
     iintro -
     iapply BigSepL.bigSepL_nil.2
     iempintro
-  | (k, v) :: l, hd => by
-    obtain ⟨h1, h2⟩ := keysDistinct_cons hd
-    have hn : PartialMap.get? (GMap.ofList l) k = none := by
-      rw [gmap_get?_eq]; exact ofList_lookup_none l k h1
+  | m, a :: l, hnd, hs => by
+    have hv : PartialMap.get? m a = some (f a) := by
+      rw [gmap_get?_eq]; exact hs a List.mem_cons_self
+    have hl : ∀ b ∈ l, (Std.delete m a) !! b = some (f b) := by
+      intro b hb
+      have hne : a ≠ b := fun e => (List.nodup_cons.1 hnd).1 (e ▸ hb)
+      show (GMap.delete a m) !! b = some (f b)
+      rw [GMap.lookup_delete_ne _ hne]
+      exact hs b (List.mem_cons_of_mem _ hb)
     iintro Hm
-    simp only [GMap.ofList]
-    icases (BigSepM.bigSepM_insert (Φ := Φ) (x := v) hn).1 $$ Hm with ⟨Hk, Hm⟩
+    icases (BigSepM.bigSepM_delete (Φ := Φ) hv).1 $$ Hm with ⟨Ha, Hm⟩
     iapply BigSepL.bigSepL_cons.2
-    iframe Hk
-    iapply bigSepM_ofList_list Φ l h2 $$ Hm
-
-theorem bigSepM_fmap_ofList_list {V : Type} (f : GoString → V) (Ψ : GoString → V → IProp GF) :
-    ∀ (l : List (GoString × GoString)), keysDistinct l = true →
-      ([∗map] a ↦ S ∈ GMap.fmap f (GMap.ofList l), Ψ a S) ⊢ [∗list] x ∈ l, Ψ x.1 (f x.2)
-  | [], _ => by
-    iintro -
-    iapply BigSepL.bigSepL_nil.2
-    iempintro
-  | (k, v) :: l, hd => by
-    obtain ⟨h1, h2⟩ := keysDistinct_cons hd
-    have hn : PartialMap.get? (GMap.fmap f (GMap.ofList l)) k = none := by
-      rw [gmap_get?_eq, GMap.lookup_fmap, ofList_lookup_none l k h1]; rfl
-    iintro Hm
-    simp only [GMap.ofList]
-    rw [GMap.fmap_insert]
-    icases (BigSepM.bigSepM_insert (Φ := Ψ) (x := f v) hn).1 $$ Hm with ⟨Hk, Hm⟩
-    iapply BigSepL.bigSepL_cons.2
-    iframe Hk
-    iapply bigSepM_fmap_ofList_list f Ψ l h2 $$ Hm
+    iframe Ha
+    iapply bigSepM_take_list Φ f _ l (List.nodup_cons.1 hnd).2 hl $$ Hm
 
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} [Gg : GooseGlobalGS hlc GF]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
-/-- The start resources hold the ghost state's plan, the network's. -/
-theorem netStart_plan (hG : NetGS GF) (g : NetGlobal) : netStart hG g ⊢ ⌜hG.plan = g.plan⌝ := by
+/-- The extension's start resources: every address of a list of distinct valid addresses,
+unset. -/
+theorem addrs_start (g : NetGlobal) (addrs : List GoString) (hnd : addrs.Nodup)
+    (hok : ∀ a ∈ addrs, addrOk a = true) :
+    netStart (NG (Gg := Gg)) g ⊢ [∗list] a ∈ addrs, addrUnset (Gg := Gg) a := by
   unfold netStart
-  iintro ⟨-, -, %h⟩
-  ipureintro; exact h
-
-/-- The extension's start resources, for a plan given as a list `pl` with distinct addresses
-(`PlanWellFormed`): every address unset. -/
-theorem addrs_start (g : NetGlobal) (pl : List (GoString × GoString))
-    (hpl : g.plan = GMap.ofList pl) (hd : keysDistinct pl = true) :
-    netStart (NG (Gg := Gg)) g ⊢ [∗list] x ∈ pl, addrUnset (Gg := Gg) x.1 := by
-  unfold netStart
-  iintro ⟨Hplans, Hpends, %hG⟩
-  rw [hpl] at hG
-  unfold pendInit
-  rw [hpl]
-  ihave Hplans := bigSepM_ofList_list (fun a h => netPlan (NG (Gg := Gg)) a h) pl hd $$ Hplans
-  ihave Hpends := bigSepM_fmap_ofList_list (fun _ => (∅ : GSet Nat))
-    (fun a S => netPend (NG (Gg := Gg)) a S) pl hd $$ Hpends
-  iapply BigSepL.bigSepL_mono (Φ := fun _ x => iprop(netPend (NG (Gg := Gg)) x.1 ∅ ∗
-    netPlan (NG (Gg := Gg)) x.1 x.2))
-  · intro k x hk
-    unfold addrUnset addrTok
-    iintro ⟨Hp, Hpl⟩
-    iframe Hp
-    iexists x.2
-    iframe Hpl
-    ipureintro
-    rw [hG]
-    exact ofList_lookup_of_mem pl hd x (List.mem_of_getElem? hk)
-  iapply BigSepL.bigSepL_sep_eqv.2
-  iframe Hpends Hplans
+  iintro ⟨Hpends, Htoks⟩
+  ihave Hpends := bigSepM_take_list (fun a S => netPend (NG (Gg := Gg)) a S) (fun _ => ∅)
+    pendInit addrs hnd (fun a ha => addrSpace_lookup_ok _ (hok a ha)) $$ Hpends
+  ihave Htoks := bigSepM_take_list (fun a _ => netLisTok (NG (Gg := Gg)) a) (fun _ => ())
+    (addrSpace ()) addrs hnd (fun a ha => addrSpace_lookup_ok _ (hok a ha)) $$ Htoks
+  ihave Hb : ([∗list] a ∈ addrs, iprop(netPend (NG (Gg := Gg)) a ∅ ∗
+      netLisTok (NG (Gg := Gg)) a)) $$ [Hpends Htoks]
+  · iapply BigSepL.bigSepL_sep_eqv.2
+    iframe Hpends Htoks
+  iapply BigSepL.bigSepL_mono (Φ := fun _ a => iprop(netPend (NG (Gg := Gg)) a ∅ ∗
+    netLisTok (NG (Gg := Gg)) a)) ?_ $$ Hb
+  intro k a hk
+  unfold addrUnset addrTok
+  iintro ⟨Hp, Ht⟩
+  iframe Hp Ht
+  ipureintro
+  exact hok a (List.mem_of_getElem? hk)
 
 end start
 

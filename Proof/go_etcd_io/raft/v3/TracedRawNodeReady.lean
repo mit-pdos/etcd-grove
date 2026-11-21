@@ -63,6 +63,7 @@ abbrev RawNode.Ready.tracedTriple : Prop :=
       "#Hlead" ∷ (⌜roleAfter rs.role ss = StateLeader⌝ -∗ [∗list] q ∈ ms, isRaftMsg γ id q.st) ∗
       -- (restart S7.3, `RawNode.Ready.spec`'s) each message's `MsgSnap` facts, outright
       "#Hsnapto" ∷ ([∗list] q ∈ ms, snapToOk γ id q.st) ∗
+      "#Hsrcs" ∷ readyMsgOrigins γ id rs.sn ms ∗
       "#Hss" ∷ softStateIs rd.SoftState' ss ∗
       "#Hce" ∷ entsRO rd.CommittedEntries' ce ∗
       "#Hcommitted" ∷ isCommitted γ (rs.delivered ++ ce) ∗
@@ -103,7 +104,7 @@ theorem RawNode.Ready.traced
   ihave #HhardO := hsOptC_hsOpt _ _ $$ Hhard
   imod ownRawNodeReady_handout ⊤ γ rn id rs rd ce es ms L q g h CoPset.subseteq_top
     $$ HhardO Hlive Hfree Hrn
-    with ⟨%W, %ss0, Hrn, Happ, #Hfrz, #Hdk, Hcr, -, -, Hlive, Hpb, #Hss0, %Hssn0, #Hmw, #Hml, #Hmss, -⟩
+    with ⟨%W, %ss0, Hrn, Happ, #Hfrz, #Hdk, Hcr, -, -, Hlive, Hpb, #Hss0, %Hssn0, #Hmw, #Hml, #Hmss, #Hsrcs, -⟩
   wp_apply wp_RawNode_acceptReady γ rn id { rs with bw := W } rd ce es ms h L
     (fun _ => ⟨Htcb, Hfit⟩) $$ [$Hrn $HhardO]
     as %steps %ss H
@@ -113,7 +114,7 @@ theorem RawNode.Ready.traced
   subst Hsseq
   iapply HΦ $$ %rd %ce %es %ms %sts %h %steps %L %ss0 %W
   iframe Hss Hce Hcommitted Hents Hmsgs Hmsgs_cap Hmsgs_own Hcr Happ Hrs Hrs_ok Hhard Hhsw
-    Hsnapz Hfrz Hdk Hlive Hmss
+    Hsnapz Hfrz Hdk Hlive Hmss Hsrcs
   isplitl [Hrn]
   · iExactEq Hrn; rfl
   isplitl [Hpb]

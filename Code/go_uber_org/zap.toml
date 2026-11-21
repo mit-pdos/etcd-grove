@@ -3,11 +3,28 @@
 # The log-level constant `DebugLevel` (the auth plan's S5, 2026-10-24: `auth.authStore.Authenticate`
 # calls `lg.Check(zap.DebugLevel, ...)`; an untranslated constant is a value of unknown shape, which
 # a proof cannot step past).
-translate = ["!*", "DebugLevel"]
+# (2026-11-20, prove-zap) the field constructors and the leveled logging methods, proved outright
+# over the real code (`Logger.check` stays the trust boundary, as do `Panic`/`Fatal`/`Stack`/`NewNop`).
+translate = ["!*", "DebugLevel", "InfoLevel", "WarnLevel", "ErrorLevel",
+  "Bool", "ByteString", "Duration", "Error", "NamedError", "Skip", "Int", "Int32", "Int64",
+  "String", "Stringer", "Strings", "Array", "Uint", "Uint32", "Uint64",
+  "Logger.Check", "Logger.Debug", "Logger.Info", "Logger.Warn", "Logger.Error",
+  # (prove-initleft, 2026-11-21) the package variables but `_minTimeInt64`/`_maxTimeInt64` (Perennial's
+  # `time.Unix` is names only) and `_sinkRegistry`, so that their initializers are translated
+  # (`etc/gen-init.py`; until then `opaqueInitsOk`), with what they call: `NewNop`, `Sugar`/`clone`
+  "errNoEncoderNameSpecified", "_encoderNameToConstructor", "_errArrayElemPool", "_globalL", "_globalS",
+  "_", "NewNop", "Logger.Sugar", "Logger.clone"]
 # zapcore so that the generic `anyFieldC[T]` (a function type returning `zapcore.Field`) is
 # translated: Goose emits an axiomatized generic type as `∀ (T : go.type), go.type`, which
 # does not elaborate (the Lean name is go.GoType).
-imports = ["!*", "go.uber.org/zap/zapcore"]
+imports = ["!*", "go.uber.org/zap/zapcore",
+  # (2026-11-20) `Stringer`'s parameter is a `fmt.Stringer`
+  "fmt",
+  # (prove-initleft, 2026-11-21) what the package variables' initializers call
+  "errors", "io", "go.uber.org/zap/internal/pool",
+  "go.uber.org/zap/internal",
+  # (prove-initleft) `AtomicLevel`'s field, an `*atomic.Int32` (the `var _` assertion builds one)
+  "sync/atomic"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

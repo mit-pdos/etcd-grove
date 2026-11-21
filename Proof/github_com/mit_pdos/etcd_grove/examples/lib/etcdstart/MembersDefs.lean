@@ -311,9 +311,9 @@ at the member's name, URLs and id, its `memberBoot`, its network's HTTP side and
 def memberPre (N : Nat) (token : GoString) (ms : List GMember) (ps : List w64)
     (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)
     (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF) (lm : lease.Mode)
-    (x : GMember × MemberG GF) : IProp GF :=
+    (x : GMember × MemberG GF) (cmp : Bool := false) : IProp GF :=
   iprop(bootPremise N ps bootLog ctxs dir token x.1.Name' (urlsN ms x.1) x.2.id ∗
-    memberBoot x.2.γ ctxs x.2.ρ x.2.E Φs x.2.id (m := lm) ∗ netHttpOk γn x.2.id ∗
+    memberBoot x.2.γ ctxs x.2.ρ x.2.E Φs x.2.id cmp lm ∗ netHttpOk γn x.2.id ∗
     memberFreshRes x.1.Name' ⟨some x.1.Peer', none⟩ γn)
 
 end defs

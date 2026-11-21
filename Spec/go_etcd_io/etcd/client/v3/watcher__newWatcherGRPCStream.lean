@@ -36,17 +36,18 @@ metadata (`WithCancelValCtx`'s; G2, 2026-10-30), its key `streamKeyFromCtx(inctx
 its channels made, with its `run` started (under the thread bound `isClientWatcher` carries, which
 keeps its wait group's counter below `2^31`: `InvWatchWg.lean`). -/
 abbrev watcher.newWatcherGRPCStream.spec : Prop :=
-  ∀ (V : WEnv GF) (w : Loc) (inctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)),
+  ∀ (V : WEnv GF) (w : Loc) (inctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF))
+    (om : GrpcMd),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
-      isPkgInit (PROP := IProp GF) pkg_id.context ∗ isClientWatcher V w ∗ EtcdGrove.context.watchCtx inctx cs }}
+      isPkgInit (PROP := IProp GF) pkg_id.context ∗ isClientWatcher V w ∗ EtcdGrove.context.watchCtx inctx cs ∗
+      metadata.outMD inctx om }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty @!! go!"newWatcherGRPCStream")) (Val #(GoInterface.ok inctx)))
   {{ (wgs : Loc), RET #wgs; ∃ (G : WgsPrm GF) (callSl : GoSlice),
       ⌜G.wgs = wgs ∧ G.w = w⌝ ∗ watcherF w go!"callOpts" ↦□ callSl ∗ isWGS V G callSl ∗
       -- (G2, 2026-10-30) the stream's context has `inctx`'s outgoing metadata, and its key is
-      -- `inctx`'s
-      ⌜metadata.outgoingOf (GoInterface.ok G.ctx) = metadata.outgoingOf (GoInterface.ok inctx) ∧
-        G.ckey = streamKeyOf (metadata.outgoingOf (GoInterface.ok inctx))⌝ }}
+      -- `inctx`'s (errdesc stage 1: the metadata `om` of the precondition, `G.omd`)
+      ⌜G.omd = om ∧ G.ckey = streamKeyOf om⌝ }}
 
 end spec
 

@@ -1,9 +1,11 @@
 # Types and names only: function and method bodies are axiomatized.
 translate = ["!*",
   # (prove-errinits, 2026-11-19) `ErrNotTCP` (`errors.New`) translated
-  "ErrNotTCP"]
+  "ErrNotTCP",
+  # (prove-etcdapi, 2026-11-20) `IsClosedConnError`, proved over `strings.Contains`'s spec
+  "IsClosedConnError"]
 # (unit N4, 2026-10-17: `crypto/tls` and zap, so that `TLSInfo` is translated)
-imports = ["!*", "crypto/tls", "errors", "go.uber.org/zap"]
+imports = ["!*", "crypto/tls", "errors", "go.uber.org/zap", "strings"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

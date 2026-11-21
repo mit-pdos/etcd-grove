@@ -40,7 +40,7 @@ theorem NewAlreadyExists.wp_proof
   · ipureintro; rfl
   iintro %asl ⟨Hasl, -⟩
   iapply wp_fupd
-  wp_apply (_root_.Perennial.fmt.wp_Sprintf _ _ _ (DFrac.own 1) (by
+  wp_apply (_root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ (DFrac.own 1) (by
     exact _root_.Perennial.fmt.ArgsWf.cons_string _ _ (_root_.Perennial.fmt.ArgsWf.cons_string _ _
       _root_.Perennial.fmt.ArgsWf.nil)))
     $$ [$Hasl] as %s -

@@ -40,7 +40,7 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 /-- **`cli.Put(ctx, key, val)` through a client whose `KV` is a `*kv` over `conn`** (`clientTokAt`'s
 parts) to a member with auth on: `client_put_on` through the `*Client` method. -/
 theorem client_Put_on (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
-    (ρ : ReqNames) (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (ρ : ReqNames) (cid mid : w64) (ci : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
     (key val : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log)
     (hsz : opSizeOk (opPutModel key val [])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
@@ -49,22 +49,22 @@ theorem client_Put_on (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply
             GoInterface) ∗
         kvObjAtC api conn [addr] ∗
         isGrpcRpcMd addr go!"/etcdserverpb.KV/Put" (etcdPutSpecOn s E ρ cid mid) ∗
-        srvApi.kvLogLb E.γs F ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
+        srvApi.kvLogLb E.γs F ∗ metadata.outMD ci om ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
         □ kvOpAu1 ρ.rd.kv (.put (putKeyOp key val)) Q }}
       (App (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
           go!"Put")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (⌜err = GoInterface.nil⌝ ∗ ∃ m : PutRespM, putRespMsg resp m ∗
             putReplied E ρ.rd F (putKeyOp key val) Q cid mid m ∗
-            ∃ md, ⌜clientAttemptMd conn (GoInterface.ok ci) md⌝ ∗
+            ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
               v3rpc.writeGrantOn s E ρ (auth.mdTokenOf md) (irrPut (putKeyOp key val))) ∨
           (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err) }} := by
-  iintro %Φ ⟨#Pc, #Hkvf, #Hkv, #Hreg, #HF, #Hctx, #Hce, #Hopts, #Hau⟩ HΦ
+  iintro %Φ ⟨#Pc, #Hkvf, #Hkv, #Hreg, #HF, #Hom, #Hctx, #Hce, #Hopts, #Hau⟩ HΦ
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
   wp_pures
   wp_auto
   imod srvReqLogLb_nil (GF := GF) ρ.raft with #H0
-  wp_apply (client_put_on_nil api conn addr s E ρ cid mid ci cd key val sl Q F hsz) $$ [] as %resp %err Hout
+  wp_apply (client_put_on_nil api conn addr s E ρ cid mid ci om cd key val sl Q F hsz) $$ [] as %resp %err Hout
   · iframe #
     ileft
     imodintro
@@ -91,7 +91,7 @@ theorem client_Put_on_law_holds : client_Put_on.law (GF := GF) (hG := hG) :=
 `Put` spec): `client_put_on`'s persistent update through the `*Client` method, so that the caller's
 update (`akHist_writeAu`) sees the grant. -/
 theorem client_Put_onG (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
-    (ρ : ReqNames) (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (ρ : ReqNames) (cid mid : w64) (ci : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
     (key val : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log)
     (hsz : opSizeOk (opPutModel key val [])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
@@ -100,21 +100,21 @@ theorem client_Put_onG (cl api conn : Loc) (addr : GoString) (s : Loc) (E : appl
             GoInterface) ∗
         kvObjAtC api conn [addr] ∗
         isGrpcRpcMd addr go!"/etcdserverpb.KV/Put" (etcdPutSpecOn s E ρ cid mid) ∗
-        srvApi.kvLogLb E.γs F ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
-        □ clientOpAuOn s E ρ conn (GoInterface.ok ci) (.put (putKeyOp key val)) Q }}
+        srvApi.kvLogLb E.γs F ∗ metadata.outMD ci om ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
+        □ clientOpAuOn s E ρ conn om (.put (putKeyOp key val)) Q }}
       (App (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
           go!"Put")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (⌜err = GoInterface.nil⌝ ∗ ∃ m : PutRespM, putRespMsg resp m ∗
             putReplied E ρ.rd F (putKeyOp key val) Q cid mid m ∗
-            ∃ md, ⌜clientAttemptMd conn (GoInterface.ok ci) md⌝ ∗
+            ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
               v3rpc.writeGrantOn s E ρ (auth.mdTokenOf md) (irrPut (putKeyOp key val))) ∨
           (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err) }} := by
-  iintro %Φ ⟨#Pc, #Hkvf, #Hkv, #Hreg, #HF, #Hctx, #Hce, #Hopts, #Hau⟩ HΦ
+  iintro %Φ ⟨#Pc, #Hkvf, #Hkv, #Hreg, #HF, #Hom, #Hctx, #Hce, #Hopts, #Hau⟩ HΦ
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (client_put_on_nil api conn addr s E ρ cid mid ci cd key val sl Q F hsz) $$ [] as %resp %err Hout
+  wp_apply (client_put_on_nil api conn addr s E ρ cid mid ci om cd key val sl Q F hsz) $$ [] as %resp %err Hout
   · iframe #
   iapply HΦ
   icases Hout with (⟨%Herr, Hr⟩ | ⟨%Herr, #Hke⟩)
@@ -130,7 +130,7 @@ theorem client_Put_onG (cl api conn : Loc) (addr : GoString) (s : Loc) (E : appl
 /-- **`cli.Get(ctx, key, opts...)` through a client whose `KV` is a `*kv` over `conn`** to a
 member with auth on: `client_range_on` through the `*Client` method. -/
 theorem client_Get_on (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
-    (γr : ReadNames) (cid mid c : w64) (n : Nat) (ci : GoInterfaceOk)
+    (γr : ReadNames) (cid mid c : w64) (n : Nat) (ci : GoInterfaceOk) (om : GrpcMd)
     (cd : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
     (gs : List (OpFull → OpFull)) (R : IProp GF) (Q : KVState → IProp GF) (F : mvcc.Log)
     (hsz : opSizeOk (opGetModel key gs)) :
@@ -141,7 +141,7 @@ theorem client_Get_on (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply
         kvObjAtC api conn [addr] ∗
         isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (etcdRangeSpecOn s E γr cid mid) ∗
         committedAtLeast γr c ∗ srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode n ∗
-        ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAtRes sl gs R ∗ R ∗
+        metadata.outMD ci om ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAtRes sl gs R ∗ R ∗
         sortNamesIf (opGetModel key gs).base.sortSet ∗
         ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1⌝ ∗
         □ (⌜Q = fun _ => iprop(True)⌝ ∨
@@ -151,14 +151,14 @@ theorem client_Get_on (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); R ∗
         ((⌜err = GoInterface.nil⌝ ∗ ∃ m : RangeRespM, rangeRespMsg resp m ∗
             rangeReplyOk E γr c F (rangeWireOf (opGetModel key gs)) cid mid Q m ∗
-            ∃ md, ⌜clientAttemptMd conn (GoInterface.ok ci) md⌝ ∗
+            ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
               v3rpc.rangeAuthed s E γr c n (auth.mdTokenOf md) (rangeWireOf (opGetModel key gs))) ∨
           (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err)) }} := by
-  iintro %Φ ⟨#Pc, #Hkvf, #Hkv, #Hreg, #Hc, #HF, #Hn, #Hctx, #Hce, Hopts, HR, Hsn, %Hg, #Hdq⟩ HΦ
+  iintro %Φ ⟨#Pc, #Hkvf, #Hkv, #Hreg, #Hc, #HF, #Hn, #Hom, #Hctx, #Hce, Hopts, HR, Hsn, %Hg, #Hdq⟩ HΦ
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Get_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (client_range_on api conn addr s E γr cid mid c n ci cd key sl gs R Q F hsz)
+  wp_apply (client_range_on api conn addr s E γr cid mid c n ci om cd key sl gs R Q F hsz)
     $$ [Hopts HR Hsn] as %resp %err Hout
   · iframe #
     iframe Hopts HR Hsn
@@ -173,7 +173,7 @@ theorem client_Get_on_law_holds : client_Get_on.law (GF := GF) (hG := hG) :=
 auth on, the update persistent and told the delete's grant: `client_delete_on` through the
 `*Client` method. -/
 theorem client_Delete_on (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
-    (ρ : ReqNames) (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (ρ : ReqNames) (cid mid : w64) (ci : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
     (key : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log) (hk : key ≠ [])
     (hsz : opSizeOk (opDeleteModel key [])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
@@ -182,22 +182,22 @@ theorem client_Delete_on (cl api conn : Loc) (addr : GoString) (s : Loc) (E : ap
             GoInterface) ∗
         kvObjAtC api conn [addr] ∗
         isGrpcRpcMd addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpecOn s E ρ cid mid) ∗
-        srvApi.kvLogLb E.γs F ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
-        □ clientOpAuOn s E ρ conn (GoInterface.ok ci) (.deleteRange (txn.deleteOpOf key [] false)) Q }}
+        srvApi.kvLogLb E.γs F ∗ metadata.outMD ci om ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
+        □ clientOpAuOn s E ρ conn om (.deleteRange (txn.deleteOpOf key [] false)) Q }}
       (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
           go!"Delete")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (⌜err = GoInterface.nil⌝ ∗ ∃ m : DelRespM, delRespMsg resp m ∗
             deleteReplied E ρ.rd F (txn.deleteOpOf key [] false) Q cid mid m ∗
-            ∃ md, ⌜clientAttemptMd conn (GoInterface.ok ci) md⌝ ∗
+            ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
               v3rpc.writeGrantOn s E ρ (auth.mdTokenOf md)
                 (irrDeleteRange (txn.deleteOpOf key [] false))) ∨
           (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }} := by
-  iintro %Φ ⟨#Pc, #Hkvf, #Hkv, #Hreg, #HF, #Hctx, #Hce, #Hopts, #Hau⟩ HΦ
+  iintro %Φ ⟨#Pc, #Hkvf, #Hkv, #Hreg, #HF, #Hom, #Hctx, #Hce, #Hopts, #Hau⟩ HΦ
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Delete_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (client_delete_on api conn addr s E ρ cid mid ci cd key sl Q F hk hsz) $$ []
+  wp_apply (client_delete_on api conn addr s E ρ cid mid ci om cd key sl Q F hk hsz) $$ []
     as %resp %err Hout
   · iframe #
   iapply HΦ

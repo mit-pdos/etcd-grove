@@ -409,7 +409,7 @@ theorem srvMem_bootStorage
     (wp_FirstIndex : MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG))
     (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
     (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
-    (γr : SrvRaft) (ms : Loc) (γs : MemStorNames) (F : GName → IProp GF)
+    (γr : SrvRaft) (ms : Loc) (γs : MemStorNames) (applied pin : GName) (F : GName → IProp GF)
     (htr : Cluster.trace γr.cl = none)
     (hsz : γs.sz = true) :
     letI : MemStorReg GF := ⟨γr.reg⟩
@@ -417,11 +417,11 @@ theorem srvMem_bootStorage
     memStorReg ms γs ∗ memStorLock ms γs ∗ memStorFresh ms γs 0 memSnapEmpty ∗
       memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
       memLog (GF := GF) γs 0 DFrac.discard [(zero_val EntryM : EntryM)] ∗ memEnd (GF := GF) γs 1 ∗
-      (∀ K : GName, memStorInv ms γs γr.cl K -∗
+      (∀ K : GName, memStorInvT ms γs γr.cl K (srvStoredOrigin γr.cl applied pin 0) -∗
         memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) -∗ F K) ⊢
       restartStorage γr.cl (memStorIface ms)
         ⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩
-        memSnapEmpty.Metadata'.ConfState' 0 F := by
+        memSnapEmpty.Metadata'.ConfState' 0 F (fun sv => iprop(snapshotValid γr.cl sv ∗ (srvStoredOrigin γr.cl applied pin 0) sv)) := by
   letI : MemStorReg GF := ⟨γr.reg⟩
   letI := srvStor (GF := GF) γr
   iintro ⟨#Hreg, #Hl, Hfresh, Hmeta, #Hlog, He, HF⟩
@@ -431,7 +431,7 @@ theorem srvMem_bootStorage
   iexists (⟨MemoryStorage.ty.PointerType, intoVal ms⟩ : GoInterfaceOk)
   iexists iprop(memStorFresh ms γs 0 memSnapEmpty ∗
     memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗ memEnd γs 1 ∗
-    (∀ K : GName, memStorInv ms γs γr.cl K -∗
+    (∀ K : GName, memStorInvT ms γs γr.cl K (srvStoredOrigin γr.cl applied pin 0) -∗
       memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) -∗ F K))
   iexists 0
   isplitr
@@ -471,20 +471,22 @@ theorem srvMem_bootStorage
     rw [hce]
     iexact Hcs
   iintro %K #HA #HD
-  imod memStorInvP_alloc ms γs (memStorJ γr.cl K) ⊤ 0 memSnapEmpty $$ Hl Hfresh [] [] with #Hinv
+  imod memStorInvP_alloc ms γs (memStorJT γr.cl K (srvStoredOrigin γr.cl applied pin 0)) ⊤ 0 memSnapEmpty $$ Hl Hfresh [] [] with #Hinv
   · iintro !> %k %hk
     have : k = 0 := by omega
     subst this
+    simp only [memStorJT]
     iapply memStorJ_B_le_one γr.cl K 0 (by decide)
     iapply nodeAppliedLb_zero γr.cl K
   · ileft; ipureintro; rfl
-  ihave #Hinv' : memStorInv ms γs γr.cl K $$ []
-  · unfold memStorInv; iexact Hinv
+  ihave #Hinv' : memStorInvT ms γs γr.cl K (srvStoredOrigin γr.cl applied pin 0) $$ []
+  · unfold memStorInvT; iexact Hinv
   ihave HFK := HF $$ %K Hinv' Hmeta
   imodintro
   isplitr
-  · iapply memStorage_isStorage wp_LastIndex wp_FirstIndex wp_Term wp_Entries wp_Snapshot
-      ms γs γr.cl K (fun _ => hsz) htr $$ Hinv' Hreg
+  · ihave #Hstorage := memStorage_isStorageT wp_LastIndex wp_FirstIndex wp_Term wp_Entries wp_Snapshot
+      ms γs γr.cl K (srvStoredOrigin γr.cl applied pin 0) (fun _ => hsz) htr $$ Hinv' Hreg
+    iExactEq Hstorage; rfl
   iframe HFK
   iunfold storHolds
   have hb : (⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩ : StorContents).b = 0 := by
@@ -578,7 +580,7 @@ theorem srvMem_restartStorage
     (wp_FirstIndex : MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG))
     (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
     (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
-    (γr : SrvRaft) (ms : Loc) (γs : MemStorNames) (σ : StorContents) (cs : ConfStateM) (A : Nat)
+    (γr : SrvRaft) (ms : Loc) (γs : MemStorNames) (applied pin : GName) (σ : StorContents) (cs : ConfStateM) (A : Nat)
     (F : GName → IProp GF) (Hbc : σ.b ≤ σ.commit)
     (htr : Cluster.trace γr.cl = none) (hsz : γs.sz = true)
     -- (auth-lease S4, 2026-11-16) outside the cluster's no-snapshot mode (`RestartNode`'s)
@@ -587,9 +589,9 @@ theorem srvMem_restartStorage
     letI := srvStor (GF := GF) γr
     memStorReg ms γs ∗ memStorLock ms γs ∗ memStorRestarted ms γs σ cs ∗
       (⌜σ.b = 0⌝ ∨ snapshotValid γr.cl (walSnapCS σ cs)) ∗
-      (∀ K : GName, memStorInv ms γs γr.cl K -∗ memStorMeta ms γs σ.hs -∗
+      (∀ K : GName, memStorInvT ms γs γr.cl K (srvStoredOrigin γr.cl applied pin σ.b) -∗ memStorMeta ms γs σ.hs -∗
         memSnapNone γs (walSnapCS σ cs) -∗ F K) ⊢
-      restartStorage γr.cl (memStorIface ms) σ cs A F := by
+      restartStorage γr.cl (memStorIface ms) σ cs A F (fun sv => iprop(snapshotValid γr.cl sv ∗ (srvStoredOrigin γr.cl applied pin σ.b) sv)) := by
   letI : MemStorReg GF := ⟨γr.reg⟩
   letI := srvStor (GF := GF) γr
   iintro ⟨#Hreg, #Hl, Hrest, Hval, HF⟩
@@ -602,7 +604,7 @@ theorem srvMem_restartStorage
   iexists iprop(memStorFresh ms γs σ.b (walSnapCS σ cs) ∗ memStorMeta ms γs σ.hs ∗
     memLog γs (σ.b + 1) (DFrac.own 1) σ.ents ∗ memEnd γs (σ.last + 1) ∗
     (⌜σ.b = 0⌝ ∨ snapshotValid γr.cl (walSnapCS σ cs)) ∗ memSnapNone γs (walSnapCS σ cs) ∗
-    (∀ K : GName, memStorInv ms γs γr.cl K -∗ memStorMeta ms γs σ.hs -∗
+    (∀ K : GName, memStorInvT ms γs γr.cl K (srvStoredOrigin γr.cl applied pin σ.b) -∗ memStorMeta ms γs σ.hs -∗
       memSnapNone γs (walSnapCS σ cs) -∗ F K))
   iexists σ.b
   isplitr
@@ -635,13 +637,14 @@ theorem srvMem_restartStorage
   iapply HΦ $$ %hp %csp %true
   iframe Hhs Hcs
   iintro %K #HA #HD
-  ihave #HB : □ (∀ k, ⌜k ≤ σ.b⌝ -∗ (memStorJ γr.cl K).B k) $$ []
+  ihave #HB : □ (∀ k, ⌜k ≤ σ.b⌝ -∗ (memStorJT γr.cl K (srvStoredOrigin γr.cl applied pin σ.b)).B k) $$ []
   · iintro !> %k %hk
+    simp only [memStorJT]
     iapply memStorJ_B_off γr.cl K k Hns
     iapply nodeAppliedLb_mono γr.cl K _ k (by omega) $$ HA
   ihave Hsv : (⌜(walSnapCS σ cs).Metadata'.Index' = W64 0⌝ ∨
-      (memStorJ γr.cl K).SV (walSnapCS σ cs) ∗
-        (memStorJ γr.cl K).DL (uint.nat (walSnapCS σ cs).Metadata'.Index')) $$ [Hval]
+      (memStorJT γr.cl K (srvStoredOrigin γr.cl applied pin σ.b)).SV (walSnapCS σ cs) ∗
+        (memStorJT γr.cl K (srvStoredOrigin γr.cl applied pin σ.b)).DL (uint.nat (walSnapCS σ cs).Metadata'.Index')) $$ [Hval]
   · by_cases h0 : σ.b = 0
     · ileft; ipureintro
       unfold StorContents.b at h0
@@ -650,20 +653,23 @@ theorem srvMem_restartStorage
     · icases Hval with (%H | #Hv)
       · exact absurd H h0
       iright
-      simp only [memStorJ]
+      simp only [memStorJT, memStorJ]
       isplitr
-      · iexact Hv
+      · iframe Hv
+        iunfold srvStoredOrigin
+        ileft; ipureintro; rw [walSnapCS_index]; exact Nat.le_refl _
       rw [walSnapCS_index]
       iapply nodeCommitLb_mono γr.cl K _ _ Hbc $$ HD
-  imod memStorInvP_alloc ms γs (memStorJ γr.cl K) ⊤ σ.b (walSnapCS σ cs) $$ Hl Hfresh HB Hsv
+  imod memStorInvP_alloc ms γs (memStorJT γr.cl K (srvStoredOrigin γr.cl applied pin σ.b)) ⊤ σ.b (walSnapCS σ cs) $$ Hl Hfresh HB Hsv
     with #Hinv
-  ihave #Hinv' : memStorInv ms γs γr.cl K $$ []
-  · unfold memStorInv; iexact Hinv
+  ihave #Hinv' : memStorInvT ms γs γr.cl K (srvStoredOrigin γr.cl applied pin σ.b) $$ []
+  · unfold memStorInvT; iexact Hinv
   ihave HFK := HF $$ %K Hinv' Hmeta Hsn
   imodintro
   isplitr
-  · iapply memStorage_isStorage wp_LastIndex wp_FirstIndex wp_Term wp_Entries wp_Snapshot
-      ms γs γr.cl K (fun _ => hsz) htr $$ Hinv' Hreg
+  · ihave #Hstorage := memStorage_isStorageT wp_LastIndex wp_FirstIndex wp_Term wp_Entries wp_Snapshot
+      ms γs γr.cl K (srvStoredOrigin γr.cl applied pin σ.b) (fun _ => hsz) htr $$ Hinv' Hreg
+    iExactEq Hstorage; rfl
   iframe HFK
   iunfold storHolds
   simp only [Nat.sub_self, List.take_zero, List.drop_zero]
@@ -748,7 +754,7 @@ abbrev NodeStartSpec : Prop :=
     {{ (r : Loc), RET #r;
         ∃ (γw : RNNames GF) (rv : raftNode),
           ⌜γw.node = γr ∧ γw.id = cv.ID' ∧ γw.pre = [] ∧ γw.ms = bv.storage' ∧ γw.γs = γs ∧
-            γw.wal = ν ∧ γw.ss = ss ∧ γw.a0 = [] ∧
+            γw.wal = ν ∧ γw.ss = ss ∧ γw.a0 = [] ∧ γw.snap0 = 0 ∧
             rv.lg' = bv.lg' ∧ rv.raftNodeConfig'.raftStorage' = bv.storage' ∧
             rv.raftNodeConfig'.heartbeat' = bv.heartbeat' ∧
             rv.raftNodeConfig'.transport' = GoInterface.nil ∧
@@ -785,7 +791,7 @@ abbrev NodeStartSpec : Prop :=
           -- (2026-10-30, the repair) the storage's invariant at the justifications of its key (the
           -- wrapper's, `γw.key`; `memStorInv`, allocated by `InitialState`, `restartStorage`'s
           -- frame) and its hard state
-          memStorInv bv.storage' γs γr.cl γw.key ∗
+          srvAttachedMem bv.storage' γs γr.cl γw.key E.γr.cursor γw.nl γw.snap0 ∗
           memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
           -- (2026-11-04, R2b-3d) the claim on the loop's stop escrow, kept for the server's stop
           rnStopClaim γw }}
@@ -879,7 +885,7 @@ abbrev NodeStartSpecR : Prop :=
             rnNodeAddr a ↦□ rnNodeIface γw ∗ raftPropose E.γr.raft (rnNodeIface γw) ∗
             rnTransportAddr a ↦□ tr) ∗
           b ↦{dq} bv ∗ bv.peers' ↦*{dq} pv ∗
-          memStorInv bv.storage' γs γr.cl γw.key ∗ memStorMeta bv.storage' γs σ.hs ∗
+          srvAttachedMem bv.storage' γs γr.cl γw.key E.γr.cursor γw.nl γw.snap0 ∗ memStorMeta bv.storage' γs σ.hs ∗
           -- (restart S6 B2, 2026-11-14) the storage's snapshot not yet opened for writes, the WAL's
           -- (which `run`'s `Snapshot()` answers: `restart_snapOnceR`)
           memSnapNone γs (walSnapCS σ cs) ∗

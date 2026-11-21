@@ -3,6 +3,7 @@ module
 
 public import Perennial.Code.context
 public import Code.google_golang_org.grpc.metadata
+public import Code.google_golang_org.grpc.peer
 public import Perennial.Golang.Defn
 public import TrustedCode.google_golang_org.grpc
 
@@ -705,8 +706,6 @@ opaque Decompressor.underlying [GooseExts] [GoGlobalContext] : go.GoType
 opaque gzipDecompressor.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque callInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque PeerCallOption.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque PerRPCCredsCallOption.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
@@ -1566,6 +1565,42 @@ noncomputable def newTraceContext [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def newTraceEventLog [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newTraceEventLog"
 
+/-- StaticMethod returns a CallOption which specifies that a call is being made
+    to a method that is static, which means the method is known at compile time
+    and doesn't change at runtime. This can be used as a signal to stats plugins
+    that this method is safe to include as a key to a measurement.
+
+    go: rpc_util.go:256:6 -/
+noncomputable def StaticMethod.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc CallOption.ty))) (App (Val (GoInstruction (GoZeroVal CallOption.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (Convert StaticMethodCallOption.ty CallOption.ty))) (App (Val (GoInstruction (CompositeLiteral StaticMethodCallOption.ty))) (LiteralValue [])))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore CallOption.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad CallOption.ty))) (Var "$res0")))))
+
+/-- Peer returns a CallOption that retrieves peer information for a unary RPC.
+    The peer field will be populated *after* the RPC completes.
+
+    go: rpc_util.go:312:6 -/
+noncomputable def Peer.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc CallOption.ty))) (App (Val (GoInstruction (GoZeroVal CallOption.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.peer.Peer.ty)))) (Var "p"))
+  (Let "$r0" (App (Val (GoInstruction (Convert PeerCallOption.ty CallOption.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.peer.Peer.ty)))) (Var "p"))
+  (App (Val (GoInstruction (CompositeLiteral PeerCallOption.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"PeerAddr")) (ElementExpression (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.peer.Peer.ty) (Var "$v0")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore CallOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad CallOption.ty))) (Var "$res0")))))
+
 /-- WaitForReady configures the RPC's behavior when the client is in
     TRANSIENT_FAILURE, which occurs when all addresses fail to connect.  If
     waitForReady is false, the RPC will fail immediately.  Otherwise, the client
@@ -1627,8 +1662,148 @@ noncomputable def MaxCallSendMsgSize.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore CallOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad CallOption.ty))) (Var "$res0")))))
 
+/-- Send pushes one message into the stream of requests to be consumed by the
+    server. The type of message which can be sent is determined by the Req type
+    parameter of the GenericClientStream receiver.
+
+    go: stream_interfaces.go:176:41 -/
+noncomputable def GenericClientStream.Send.impl [GooseExts] [GoGlobalContext] (Req Res : go.GoType) : val :=
+  (LamV "x"
+  (Lam "m"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (GenericClientStream.ty Req Res))))) (Var "x"))
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Req)))) (Var "m"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType Req) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Req)))) (Var "m")))
+  (App (App (Val (GoInstruction (MethodResolve ClientStream.ty go!"SendMsg"))) (App (Val (GoInstruction (GoLoad ClientStream.ty))) (App (Val (GoInstruction (StructFieldRef (GenericClientStream.ty Req Res) go!"ClientStream"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (GenericClientStream.ty Req Res))))) (Var "x"))))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
+
+/-- Recv reads one message from the stream of responses generated by the server.
+    The type of the message returned is determined by the Res type parameter
+    of the GenericClientStream receiver.
+
+    go: stream_interfaces.go:183:41 -/
+noncomputable def GenericClientStream.Recv.impl [GooseExts] [GoGlobalContext] (Req Res : go.GoType) : val :=
+  (LamV "x"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Res)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Res)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (GenericClientStream.ty Req Res))))) (Var "x"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc Res))) (App (Val (GoInstruction (GoZeroVal Res))) (Val #())))
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Res)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Res)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Res)))) (Var "m"))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Res)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType Res) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Res)))) (Var "m")))
+  (App (App (Val (GoInstruction (MethodResolve ClientStream.ty go!"RecvMsg"))) (App (Val (GoInstruction (GoLoad ClientStream.ty))) (App (Val (GoInstruction (StructFieldRef (GenericClientStream.ty Req Res) go!"ClientStream"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (GenericClientStream.ty Req Res))))) (Var "x"))))) (Var "$a0")))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Res)))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Res)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Res)))) (Pair (Var "m") (Var "$r0")))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Res)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
+
+/-- Send pushes one message into the stream of responses to be consumed by the
+    client. The type of message which can be sent is determined by the Res
+    type parameter of the serverStreamServer receiver.
+
+    go: stream_interfaces.go:218:41 -/
+noncomputable def GenericServerStream.Send.impl [GooseExts] [GoGlobalContext] (Req Res : go.GoType) : val :=
+  (LamV "x"
+  (Lam "m"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (GenericServerStream.ty Req Res))))) (Var "x"))
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Res)))) (Var "m"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType Res) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Res)))) (Var "m")))
+  (App (App (Val (GoInstruction (MethodResolve ServerStream.ty go!"SendMsg"))) (App (Val (GoInstruction (GoLoad ServerStream.ty))) (App (Val (GoInstruction (StructFieldRef (GenericServerStream.ty Req Res) go!"ServerStream"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (GenericServerStream.ty Req Res))))) (Var "x"))))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
+
+/-- Recv reads one message from the stream of requests generated by the client.
+    The type of the message returned is determined by the Req type parameter
+    of the clientStreamServer receiver.
+
+    go: stream_interfaces.go:232:41 -/
+noncomputable def GenericServerStream.Recv.impl [GooseExts] [GoGlobalContext] (Req Res : go.GoType) : val :=
+  (LamV "x"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Req)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Req)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (GenericServerStream.ty Req Res))))) (Var "x"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc Req))) (App (Val (GoInstruction (GoZeroVal Req))) (Val #())))
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Req)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Req)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Req)))) (Var "m"))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Req)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType Req) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Req)))) (Var "m")))
+  (App (App (Val (GoInstruction (MethodResolve ServerStream.ty go!"RecvMsg"))) (App (Val (GoInstruction (GoLoad ServerStream.ty))) (App (Val (GoInstruction (StructFieldRef (GenericServerStream.ty Req Res) go!"ServerStream"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (GenericServerStream.ty Req Res))))) (Var "x"))))) (Var "$a0")))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Req)))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Req)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Req)))) (Pair (Var "m") (Var "$r0")))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Req)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
+
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.google_golang_org.grpc.metadata]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.google_golang_org.grpc.metadata, pkg_id.google_golang_org.grpc.peer]
 
 opaque «_».init [GooseExts] [GoGlobalContext] : val
 
@@ -1636,6 +1811,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.google_golang_org.grpc)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1774,6 +1950,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.context.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.metadata.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.google_golang_org.grpc.peer.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc EnableTracing go.bool)) (Val #()))))))))
 
@@ -2946,22 +3124,38 @@ attribute [instance] TrailerCallOption.TypeAssumptions.type_repr
   TrailerCallOption.TypeAssumptions.method_set
   TrailerCallOption.TypeAssumptions.ptr_method_set
 
-opaque PeerCallOption.nonempty_type : NonemptyType.{0}
-def PeerCallOption : Type := PeerCallOption.nonempty_type.type
-instance PeerCallOption.nonempty : Nonempty PeerCallOption := PeerCallOption.nonempty_type.property
-opaque PeerCallOption.zero_val : ZeroVal PeerCallOption := ⟨Classical.ofNonempty⟩
-attribute [instance] PeerCallOption.zero_val
+structure PeerCallOption [GooseExts] where
+  mk ::
+  PeerAddr' : Loc
+
+noncomputable instance PeerCallOption.zero_val [GooseExts] : ZeroVal PeerCallOption :=
+  ⟨PeerCallOption.mk zeroValDef⟩
+
+@[reducible] noncomputable def PeerCallOption.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"PeerAddr" (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.peer.Peer.ty))]
+
+@[irreducible] noncomputable def PeerCallOption.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  PeerCallOption.fieldsUnsealed
+
+noncomputable instance equals_unfold_PeerCallOption [GooseExts] [GoGlobalContext] :
+    EqualsUnfold PeerCallOption.fields PeerCallOption.fieldsUnsealed :=
+  ⟨by unfold PeerCallOption.fields; rfl⟩
+
+@[reducible] noncomputable def PeerCallOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType PeerCallOption.fields)
 
 class PeerCallOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PeerCallOption.underlying PeerCallOption
   underlying : go.UnderlyingDirectedEq PeerCallOption.ty PeerCallOption.underlying
-  isUnderlying : go.IsUnderlying PeerCallOption.underlying PeerCallOption.underlying
+  get_PeerAddr : ∀ (x : PeerCallOption), go.IsGoStepPureDetTagged under (StructFieldGet PeerCallOption.underlying go!"PeerAddr") #x (Val #(x.PeerAddr'))
+  set_PeerAddr : ∀ (x : PeerCallOption) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PeerCallOption.underlying go!"PeerAddr") (PairV #x #y) (Val #(({ x with PeerAddr' := y } : PeerCallOption)))
   method_set : go.MethodSetIs PeerCallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PeerCallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] PeerCallOption.TypeAssumptions.type_repr
   PeerCallOption.TypeAssumptions.underlying
-  PeerCallOption.TypeAssumptions.isUnderlying
+  PeerCallOption.TypeAssumptions.get_PeerAddr
+  PeerCallOption.TypeAssumptions.set_PeerAddr
   PeerCallOption.TypeAssumptions.method_set
   PeerCallOption.TypeAssumptions.ptr_method_set
 
@@ -4709,6 +4903,16 @@ class GenericClientStream.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
   set_ClientStream : ∀ (Req Res : go.GoType) (Req' Res' : Type) (x : (GenericClientStream Req' Res')) (y : ClientStream), go.IsGoStepPureDetTagged under (StructFieldSet (GenericClientStream.underlying Req Res) go!"ClientStream") (PairV #x #y) (Val #(({ x with ClientStream' := y } : (GenericClientStream Req' Res'))))
   method_set : ∀ (Req Res : go.GoType), go.MethodSetIs (GenericClientStream.ty Req Res) [(go!"CloseSend", (some (go.signature.Signature [] false [go.error]))), (go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Header", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Trailer", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty])))]
   ptr_method_set : ∀ (Req Res : go.GoType), go.MethodSetIs (go.GoType.PointerType (GenericClientStream.ty Req Res)) [(go!"CloseAndRecv", (some (go.signature.Signature [] false [(go.GoType.PointerType Res), go.error]))), (go!"CloseSend", (some (go.signature.Signature [] false [go.error]))), (go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Header", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error]))), (go!"Recv", (some (go.signature.Signature [] false [(go.GoType.PointerType Res), go.error]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Send", (some (go.signature.Signature [(go.GoType.PointerType Req)] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Trailer", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty])))]
+  CloseSend_unfold : ∀ (Req Res : go.GoType), MethodUnfold (GenericClientStream.ty Req Res) go!"CloseSend" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve ClientStream.ty go!"CloseSend"))) (App (Val (GoInstruction (StructFieldGet (GenericClientStream.ty Req Res) go!"ClientStream"))) (Var "$r"))))
+  Context_unfold : ∀ (Req Res : go.GoType), MethodUnfold (GenericClientStream.ty Req Res) go!"Context" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve ClientStream.ty go!"Context"))) (App (Val (GoInstruction (StructFieldGet (GenericClientStream.ty Req Res) go!"ClientStream"))) (Var "$r"))))
+  ptr_CloseSend_unfold : ∀ (Req Res : go.GoType), MethodUnfold (go.GoType.PointerType (GenericClientStream.ty Req Res)) go!"CloseSend" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve ClientStream.ty go!"CloseSend"))) (App (Val (GoInstruction (GoLoad ClientStream.ty))) (App (Val (GoInstruction (StructFieldRef (GenericClientStream.ty Req Res) go!"ClientStream"))) (Var "$r")))))
+  ptr_Context_unfold : ∀ (Req Res : go.GoType), MethodUnfold (go.GoType.PointerType (GenericClientStream.ty Req Res)) go!"Context" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve ClientStream.ty go!"Context"))) (App (Val (GoInstruction (GoLoad ClientStream.ty))) (App (Val (GoInstruction (StructFieldRef (GenericClientStream.ty Req Res) go!"ClientStream"))) (Var "$r")))))
+  ptr_Recv_unfold : ∀ (Req Res : go.GoType), MethodUnfold (go.GoType.PointerType (GenericClientStream.ty Req Res)) go!"Recv" (GenericClientStream.Recv.impl Req Res)
+  ptr_Send_unfold : ∀ (Req Res : go.GoType), MethodUnfold (go.GoType.PointerType (GenericClientStream.ty Req Res)) go!"Send" (GenericClientStream.Send.impl Req Res)
 
 attribute [instance] GenericClientStream.TypeAssumptions.type_repr
   GenericClientStream.TypeAssumptions.underlying
@@ -4716,6 +4920,12 @@ attribute [instance] GenericClientStream.TypeAssumptions.type_repr
   GenericClientStream.TypeAssumptions.set_ClientStream
   GenericClientStream.TypeAssumptions.method_set
   GenericClientStream.TypeAssumptions.ptr_method_set
+  GenericClientStream.TypeAssumptions.CloseSend_unfold
+  GenericClientStream.TypeAssumptions.Context_unfold
+  GenericClientStream.TypeAssumptions.ptr_CloseSend_unfold
+  GenericClientStream.TypeAssumptions.ptr_Context_unfold
+  GenericClientStream.TypeAssumptions.ptr_Recv_unfold
+  GenericClientStream.TypeAssumptions.ptr_Send_unfold
 
 structure GenericServerStream [GooseExts] (Req Res : Type) where
   mk ::
@@ -4744,6 +4954,12 @@ class GenericServerStream.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
   set_ServerStream : ∀ (Req Res : go.GoType) (Req' Res' : Type) (x : (GenericServerStream Req' Res')) (y : ServerStream), go.IsGoStepPureDetTagged under (StructFieldSet (GenericServerStream.underlying Req Res) go!"ServerStream") (PairV #x #y) (Val #(({ x with ServerStream' := y } : (GenericServerStream Req' Res'))))
   method_set : ∀ (Req Res : go.GoType), go.MethodSetIs (GenericServerStream.ty Req Res) [(go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SendHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SetHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SetTrailer", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [])))]
   ptr_method_set : ∀ (Req Res : go.GoType), go.MethodSetIs (go.GoType.PointerType (GenericServerStream.ty Req Res)) [(go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Recv", (some (go.signature.Signature [] false [(go.GoType.PointerType Req), go.error]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Send", (some (go.signature.Signature [(go.GoType.PointerType Res)] false [go.error]))), (go!"SendAndClose", (some (go.signature.Signature [(go.GoType.PointerType Res)] false [go.error]))), (go!"SendHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SetHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SetTrailer", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [])))]
+  Context_unfold : ∀ (Req Res : go.GoType), MethodUnfold (GenericServerStream.ty Req Res) go!"Context" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve ServerStream.ty go!"Context"))) (App (Val (GoInstruction (StructFieldGet (GenericServerStream.ty Req Res) go!"ServerStream"))) (Var "$r"))))
+  ptr_Context_unfold : ∀ (Req Res : go.GoType), MethodUnfold (go.GoType.PointerType (GenericServerStream.ty Req Res)) go!"Context" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve ServerStream.ty go!"Context"))) (App (Val (GoInstruction (GoLoad ServerStream.ty))) (App (Val (GoInstruction (StructFieldRef (GenericServerStream.ty Req Res) go!"ServerStream"))) (Var "$r")))))
+  ptr_Recv_unfold : ∀ (Req Res : go.GoType), MethodUnfold (go.GoType.PointerType (GenericServerStream.ty Req Res)) go!"Recv" (GenericServerStream.Recv.impl Req Res)
+  ptr_Send_unfold : ∀ (Req Res : go.GoType), MethodUnfold (go.GoType.PointerType (GenericServerStream.ty Req Res)) go!"Send" (GenericServerStream.Send.impl Req Res)
 
 attribute [instance] GenericServerStream.TypeAssumptions.type_repr
   GenericServerStream.TypeAssumptions.underlying
@@ -4751,6 +4967,10 @@ attribute [instance] GenericServerStream.TypeAssumptions.type_repr
   GenericServerStream.TypeAssumptions.set_ServerStream
   GenericServerStream.TypeAssumptions.method_set
   GenericServerStream.TypeAssumptions.ptr_method_set
+  GenericServerStream.TypeAssumptions.Context_unfold
+  GenericServerStream.TypeAssumptions.ptr_Context_unfold
+  GenericServerStream.TypeAssumptions.ptr_Recv_unfold
+  GenericServerStream.TypeAssumptions.ptr_Send_unfold
 
 abbrev traceEventLog [GooseExts] : Type := GoInterface
 
@@ -5069,11 +5289,14 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   payload_instance : payload.TypeAssumptions
   fmtStringer_instance : fmtStringer.TypeAssumptions
   stringer_instance : stringer.TypeAssumptions
+  StaticMethod_unfold : FuncUnfold StaticMethod [] StaticMethod.impl
+  Peer_unfold : FuncUnfold Peer [] Peer.impl
   WaitForReady_unfold : FuncUnfold WaitForReady [] WaitForReady.impl
   MaxCallRecvMsgSize_unfold : FuncUnfold MaxCallRecvMsgSize [] MaxCallRecvMsgSize.impl
   MaxCallSendMsgSize_unfold : FuncUnfold MaxCallSendMsgSize [] MaxCallSendMsgSize.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_metadata_Assumption : _root_.Perennial.google_golang_org.grpc.metadata.Assumptions
+  import_peer_Assumption : _root_.Perennial.google_golang_org.grpc.peer.Assumptions
 
 attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.ConnectParams_instance
@@ -5202,11 +5425,14 @@ attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.payload_instance
   Assumptions.fmtStringer_instance
   Assumptions.stringer_instance
+  Assumptions.StaticMethod_unfold
+  Assumptions.Peer_unfold
   Assumptions.WaitForReady_unfold
   Assumptions.MaxCallRecvMsgSize_unfold
   Assumptions.MaxCallSendMsgSize_unfold
   Assumptions.import_context_Assumption
   Assumptions.import_metadata_Assumption
+  Assumptions.import_peer_Assumption
 
 end google_golang_org.grpc
 

@@ -15,14 +15,21 @@ translate = ["!*", "NewBackendHooks", "BackendHooks.OnPreCommitUnsafe", "Backend
   "OpenSnapshotBackend", "NewStorage", "storage.SaveSnap", "storage.Release", "storage.Save",
   "storage.Close", "storage.Sync",
   # (prove-errinits, 2026-11-19) the quota's package variables: a gauge and two `humanize.Bytes`
-  "quotaBackendBytes", "DefaultQuotaSize", "maxQuotaSize", "DefaultQuotaBytes", "MaxQuotaBytes"]
+  "quotaBackendBytes", "DefaultQuotaSize", "maxQuotaSize", "DefaultQuotaBytes", "MaxQuotaBytes",
+  # (mustreg, 2026-11-20) metrics.go's `init.0` (`prometheus.MustRegister` of the metrics), translated:
+  # proved by `etc/gen-init.py` over `MustRegister`'s spec with the names' registration rights
+  "init.0",
+  # (etcdstorage, 2026-11-20) the quota's cost of a request (quota.go), over the `RequestOp` getters
+  "BackendQuota.Cost", "costPut", "costTxnReq", "costTxn", "kvOverhead", "leaseOverhead"]
 imports = ["!*", "sync", "github.com/dustin/go-humanize",
   "github.com/prometheus/client_golang/prometheus", "go.uber.org/zap", "google.golang.org/protobuf/proto", "fmt", "os",
   "go.etcd.io/etcd/server/v3/config", "go.etcd.io/etcd/server/v3/etcdserver/api/snap",
   "go.etcd.io/etcd/server/v3/etcdserver/cindex", "go.etcd.io/etcd/server/v3/storage/backend",
   "go.etcd.io/etcd/server/v3/storage/schema", "go.etcd.io/raft/v3/raftpb",
   "github.com/Masterminds/semver/v3", "go.etcd.io/etcd/server/v3/storage/wal",
-  "go.etcd.io/etcd/server/v3/storage/wal/walpb"]
+  "go.etcd.io/etcd/server/v3/storage/wal/walpb",
+  # (etcdstorage, 2026-11-20) for the quota's `Cost` (the request types and `RequestOp`'s getters)
+  "go.etcd.io/etcd/api/v3/etcdserverpb"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

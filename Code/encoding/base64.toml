@@ -1,6 +1,10 @@
-# Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
-# notes/k8s-etcd3-goose.md).
-translate = ["!*"]
+# Types and names only (project k8s-apiserver; notes/k8s-etcd3-goose.md), but (2026-11-20,
+# prove-b64clock) with their bodies what the package's initializer and `EncodeToString` run:
+# `NewEncoding`, `WithPadding`, `EncodedLen`, `Encode`, `EncodeToString`, the four encodings'
+# variables and the constants they use, proved in `Proof/encoding/base64/`.
+translate = ["!*", "Encoding", "NewEncoding", "Encoding.WithPadding", "Encoding.EncodedLen", "Encoding.Encode",
+  "Encoding.EncodeToString", "StdEncoding", "URLEncoding", "RawStdEncoding", "RawURLEncoding",
+  "StdPadding", "NoPadding", "decodeMapInitialize", "invalidIndex"]
 imports = ["!*"]
 
 # translate the definitions of all type declarations goose supports

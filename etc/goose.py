@@ -11,7 +11,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                projects' pins (GO_MOD_PINS; without --check, only a warning).
   --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putgetc, putget3, putgetN, leaseN, leaseexpiryN, txnlinfaultsN, restartN, authN, authlease, auth3, etcd-wal,
                linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, raft-noax, kvdurable-noax, raft-tla, tracecheck, k8s-apiserver,
-               k8s-daemonset, k8s-compactor, k8s-all, bbolt-bank or bbolttest; repeatable; default: all).
+               k8s-daemonset, k8s-compactor, k8s-all, k8s-authz, k8s-authz-driver, bbolt-bank or bbolttest; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
                $ETCD_RAFT_SRC).  For a pinned revision not yet pushed, or for trying
@@ -187,13 +187,15 @@ PROJECTS = [
         # `Put` refuses an entry (key plus value) above 2^28 bytes with `ErrValueTooLarge` (3f8520bd, branch
         # `goose-lean-entrymax`; issues/bbolt-max-value-size-unusable.md: `Put` accepted values a page of four
         # entries cannot hold within `MaxAllocSize`; the verified bbolt's `bboltEntryMax`; approved by the
-        # user 2026-11-19, auth-schema-srv port, route (d')). With bodies (bbolt.toml, bbolt/**.toml; notes/bbolt-v2-infra.md). Its `os`,
+        # user 2026-11-19, auth-schema-srv port, route (d')). Branch goose-lean-init-image (42c80a7) restricts init recovery to the
+        # first write's four-page image. With bodies (bbolt.toml, bbolt/**.toml; notes/bbolt-v2-infra.md). Its `os`,
         # `io/fs`, `syscall` and `golang.org/x/sys/unix` (project bboltfs: the models of the Linux
         # file extension osFsExt), `hash` and `encoding/hex` (project etcd) are this repository's
         # translations. Modules
         # Code.go_etcd_io.bbolt*, GeneratedProof.go_etcd_io.bbolt*.
         repo="https://github.com/upamanyus/bbolt",
-        rev="3f8520bd72989b6cf959eef13e151b90031ed6bc",
+        # Split oversized leaves and admit all individually readable key/value pairs.
+        rev="ca88bb6a8339da5d5c29eccf120e1b621021b4f9",
         lean_roots=["go.etcd.io/bbolt=", "golang.org/x/sys=", "syscall=", "hash=",
                     "encoding/hex=", "os=", "io/fs="],
         packages=[
@@ -331,7 +333,8 @@ PROJECTS = [
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="d3feef9bcdddb9ad15ee5fc8bf725050395debb4",
+        # Includes legacy WAL recovery and the same-term snapshot send without an index guard.
+        rev="34f5142d062b6b138420e6d192a5b649d7063fd9",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
@@ -470,10 +473,19 @@ PROJECTS = [
             "go.opentelemetry.io/otel/trace/embedded",
             "go.opentelemetry.io/otel/codes",
             "go.opentelemetry.io/otel/attribute",
+            # (prove-misc, 2026-11-20) names only but its package variables: the carrier interface
+            # otelgrpc's `metadataSupplier` is asserted to implement (`var _ propagation.TextMapCarrier`)
+            "go.opentelemetry.io/otel/propagation",
             "google.golang.org/protobuf/proto",
             "google.golang.org/protobuf/reflect/protoreflect",
             "go.uber.org/zap",
             "go.uber.org/zap/zapcore",
+            # (prove-misc, 2026-11-20) what zapcore's package variables call: its generic `sync.Pool`
+            # wrapper (`pool.New`) and its terminal colors (`color.Add`, `fmt.Sprintf`)
+            "go.uber.org/zap/internal/pool",
+            "go.uber.org/zap/internal/color",
+            # (prove-initleft, 2026-11-21) types only: `LeveledEnabler`, which zap's `var _` asserts
+            "go.uber.org/zap/internal",
             # names only: the auto-compactor's clock (the spec-first pilot)
             "github.com/jonboulle/clockwork",
             "github.com/dustin/go-humanize",
@@ -1591,7 +1603,11 @@ PROJECTS = [
             "k8s.io/apimachinery/pkg/util/diff",
             "k8s.io/apimachinery/pkg/util/cache",
         ],
-        owned=[os.path.join("k8s_io", "apiserver"), os.path.join("k8s_io", "apimachinery"),
+        # (of k8s.io/apiserver, the packages it translates: pkg/authorization and
+        # pkg/authentication are project k8s-authz's, from the fork with conditional authorization)
+        owned=[os.path.join("k8s_io", "apiserver", "pkg", d)
+               for d in ("audit", "endpoints", "features", "storage", "util")] +
+              [os.path.join("k8s_io", "apimachinery"),
                os.path.join("k8s_io", "api"),
                os.path.join("k8s_io", "client_go"),
                os.path.join("k8s_io", "klog"), os.path.join("k8s_io", "component_base"),
@@ -1669,6 +1685,47 @@ PROJECTS = [
                     "go.uber.org=", "google.golang.org=", "net=", "os=", "io/fs="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8s", "compactor")],
+    ),
+    Project(
+        name="k8s-authz",
+        # Kubernetes' conditional authorization (KEP-5681): k8s.io/apiserver's authorizer package
+        # (conditions, conditions maps, the union decision builder, partial evaluation) and union
+        # authorizer, with bodies, from the fork github.com/luxas/kubernetes, branch
+        # impl-conditional-authz-review (not merged upstream), resolved in the repository's go.work
+        # (its staging modules: apimachinery at the fork's commit too, ~2026-11-03, while project
+        # k8s-apiserver's apimachinery names are of examples/k8s/etcd3's pin, 2026-10-21). Names only:
+        # k8s.io/apiserver/pkg/authentication/user (Code/k8s_io/apiserver/pkg/authentication/user.toml).
+        # The rest it names (apimachinery's sets, errors, validation, field, fields, labels, runtime,
+        # schema; net/http) is project k8s-apiserver's translation (the empty root). Its driver is
+        # project k8s-authz-driver.
+        repo="https://github.com/luxas/kubernetes",
+        rev="c67a81026c8b193849a47fdc05398baeafdf55e4",
+        lean_roots=["k8s.io=", "net="],
+        packages=[
+            # with bodies
+            "k8s.io/apiserver/pkg/authorization/authorizer",
+            "k8s.io/apiserver/pkg/authorization/union",
+            # types and names only
+            "k8s.io/apiserver/pkg/authentication/user",
+        ],
+        owned=[os.path.join("k8s_io", "apiserver", "pkg", "authorization"),
+               os.path.join("k8s_io", "apiserver", "pkg", "authentication")],
+        counted_modules=["k8s.io/apiserver"],
+    ),
+    Project(
+        name="k8s-authz-driver",
+        # The driver of project k8s-authz's conditional authorization: package `.` of
+        # examples/k8s/authz, a Go module of its own whose go.mod replaces k8s.io/apiserver and the
+        # other staging modules by the fork's subdirectory modules at project k8s-authz's pin
+        # (GO_MOD_PINS checks the two agree), with bodies: kube-apiserver's two-phase protocol over a
+        # union of leaf authorizers that behave arbitrarily (math/rand, Perennial's). Everything it
+        # names outside the package is project k8s-authz's and k8s-apiserver's (the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "k8s", "authz"),
+        lean_roots=["k8s.io=", "net=", "github.com/mit-pdos/etcd-grove="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8s", "authz")],
     ),
     Project(
         name="k8s-all",
@@ -1805,14 +1862,14 @@ PROJECTS = [
         # (Named `bbolt` until 2026-11-05, when the main tree's bbolt (project `bbolt`, the fork's
         # goose-lean-v2) got bodies; the bank test moves onto it in the clean-up after the merge.)
         # bbolt with its bodies, for the top-level test bbolttest: the fork upamanyus/bbolt, branch
-        # goose-lean (v1.5.0 with the `unsafe` forms of Perennial's byte memory, crash-safe init,
+        # goose-lean-bank-init-image (first-write recovery on goose-lean, v1.5.0 with the `unsafe` forms of Perennial's byte memory, crash-safe init,
         # the fix of etcd-io/bbolt#1311). Translated into the parallel tree Bbolt (modules
         # Bbolt.Code.go_etcd_io.bbolt*, ...), since project etcd translates go.etcd.io/bbolt (names
         # only) into the main tree; nothing outside Bbolt imports it. Its `os`, `syscall`,
         # `golang.org/x/sys/unix` and `io/fs` are project bboltfs's (the Linux file extension), its
         # `hash/fnv` and `encoding/hex` project etcd's; the rest of the standard library Perennial's.
         repo="https://github.com/upamanyus/bbolt",
-        rev="3207bacf270d8eb83155f226ebfc864c2cbef6b2",
+        rev="2e1663644f604d5a2c4f040bc744e047cde8fd8e",
         root="Bbolt",
         lean_roots=["go.etcd.io/bbolt=Bbolt", "os=", "syscall=", "golang.org/x/sys=", "io/fs=",
                     "hash=", "encoding/hex="],
@@ -1854,12 +1911,15 @@ GO_MOD_PINS = {
                                          "go.etcd.io/bbolt": "bbolt"},
     os.path.join("examples", "raft", "kvwitness", "go.mod"): {"go.etcd.io/raft/v3": "raft-witness"},
     os.path.join("examples", "raft", "kvdurablenoax", "go.mod"): {"go.etcd.io/raft/v3": "raft-noax"},
+    os.path.join("examples", "raft", "kvnet", "go.mod"): {"go.etcd.io/raft/v3": "raft-noax"},
     os.path.join("examples", "raft", "tracecheck", "go.mod"): {"go.etcd.io/raft/v3": "raft"},
     os.path.join("examples", "bbolt", "bank", "go.mod"): {"go.etcd.io/bbolt": "bbolt-bank"},
     # the Kubernetes etcd3 store's driver, a module of its own (it requires k8s.io/apiserver)
     os.path.join("examples", "k8s", "etcd3", "go.mod"): {"go.etcd.io/etcd/": "etcd", "go.etcd.io/raft/v3": "raft"},
     # Kubernetes' compactor's example, a module of its own (it requires k8s.io/apiserver)
     os.path.join("examples", "k8s", "compactor", "go.mod"): {"go.etcd.io/etcd/": "etcd", "go.etcd.io/raft/v3": "raft"},
+    # conditional authorization's driver: the Kubernetes staging modules, from the fork
+    os.path.join("examples", "k8s", "authz", "go.mod"): {"k8s.io/": "k8s-authz"},
     # the one closed Kubernetes theorem's program, a module of its own (it requires both drivers')
     os.path.join("examples", "k8s", "all", "go.mod"): {"go.etcd.io/etcd/": "etcd", "go.etcd.io/raft/v3": "raft"},
 }

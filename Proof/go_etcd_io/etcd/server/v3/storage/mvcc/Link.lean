@@ -66,6 +66,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newTreeIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newWatchableStore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newWatcherBatch
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newWatcherGroup
+public import Proof.os.Getenv
 public import Proof.google_golang_org.protobuf.proto.Marshal
 public import Proof.google_golang_org.protobuf.proto.Unmarshal
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.rangeEvents
@@ -120,6 +121,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__restore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__scheduleCompaction
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__setupMetricsReporter
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__updateCompactRev
+public import Proof.strings.ToLower
 public import Proof.time.Time__Unix
 public import Proof.go_opentelemetry_io.otel.trace.SpanFromContext
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.TODO
@@ -145,6 +147,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Put
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Range
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Rev
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Assert
+public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.IsVerificationEnabled
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Verify
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Cancel
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Chan
@@ -194,9 +197,11 @@ public import Proof.go_uber_org.zap.Logger__Error
 public import Proof.go_uber_org.zap.Logger__Info
 public import Proof.go_uber_org.zap.Logger__Panic
 public import Proof.go_uber_org.zap.Logger__Warn
+public import Proof.go_uber_org.zap.Logger__check
 public import Proof.go_uber_org.zap.NewNop
 public import Proof.go_uber_org.zap.String
 public import Proof.go_uber_org.zap.Uint32
+public import Proof.go_uber_org.zap.zapcore.CheckedEntry__Write
 public import Proof.context.Link
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.Link
@@ -341,17 +346,37 @@ theorem mvcc.treeIndex.wp_keyIndex [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.treeIndex.keyIndex.spec (GF := GF) (hG := hG) :=
   mvcc.treeIndex.keyIndex.wp_proof btree.BTree.wp_Get
 
+theorem os.wp_Getenv :
+    os.Getenv.spec (GF := GF) (hG := hG) :=
+  os.Getenv.wp_proof
+
+theorem strings.wp_ToLower :
+    strings.ToLower.spec (GF := GF) (hG := hG) :=
+  strings.ToLower.wp_proof
+
+theorem verify.wp_IsVerificationEnabled :
+    verify.IsVerificationEnabled.spec (GF := GF) (hG := hG) :=
+  verify.IsVerificationEnabled.wp_proof os.wp_Getenv strings.wp_ToLower
+
 theorem verify.wp_Verify :
     verify.Verify.spec (GF := GF) (hG := hG) :=
-  verify.Verify.wp_proof
+  verify.Verify.wp_proof verify.wp_IsVerificationEnabled
 
 theorem zap.wp_Error :
     zap.Error.spec (GF := GF) (hG := hG) :=
   zap.Error.wp_proof
 
+theorem zap.Logger.wp_check :
+    zap.Logger.check.spec (GF := GF) (hG := hG) :=
+  zap.Logger.check.wp_proof
+
+theorem zapcore.CheckedEntry.wp_Write :
+    zapcore.CheckedEntry.Write.spec (GF := GF) (hG := hG) :=
+  zapcore.CheckedEntry.Write.wp_proof
+
 theorem zap.Logger.wp_Warn :
     zap.Logger.Warn.spec (GF := GF) (hG := hG) :=
-  zap.Logger.Warn.wp_proof
+  zap.Logger.Warn.wp_proof zap.Logger.wp_check zapcore.CheckedEntry.wp_Write
 
 theorem proto.wp_Unmarshal :
     proto.Unmarshal.spec (GF := GF) (hG := hG) :=
@@ -359,7 +384,7 @@ theorem proto.wp_Unmarshal :
 
 theorem zap.Logger.wp_Info :
     zap.Logger.Info.spec (GF := GF) (hG := hG) :=
-  zap.Logger.Info.wp_proof
+  zap.Logger.Info.wp_proof zap.Logger.wp_check zapcore.CheckedEntry.wp_Write
 
 theorem mvcc.wp_UnsafeSetScheduledCompact :
     mvcc.UnsafeSetScheduledCompact.spec (GF := GF) (hG := hG) :=
@@ -475,7 +500,7 @@ theorem proto.wp_Marshal :
 
 theorem zap.Logger.wp_Error :
     zap.Logger.Error.spec (GF := GF) (hG := hG) :=
-  zap.Logger.Error.wp_proof
+  zap.Logger.Error.wp_proof zap.Logger.wp_check zapcore.CheckedEntry.wp_Write
 
 theorem mvcc.storeTxnCommon.wp_FirstRev :
     mvcc.storeTxnCommon.FirstRev.spec (GF := GF) (hG := hG) :=

@@ -106,7 +106,7 @@ theorem RawNode.Bootstrap.wp_proof
     RawNode.Bootstrap.spec (GF := GF) (hG := hG) := by
   intro γ md rn r id si sdr pre s peers dq pv ps ctxs bootLog R1 R2 R3 R4 R5 R6 R7 R8 R9 Hgtr0
     Htrsc
-  wp_start as ⟨Hfresh, Hpeers, #Hctx, #Hmarshal, Hghost, #Hcommitted, #Hcl, Hcap, #Hnc, #Hnscap⟩
+  wp_start as ⟨Hfresh, Hpeers, #Hctx, #Hmarshal, Hghost, #Hcommitted, #Hcl, Hhistory, Hcap, #Hnc, #Hnscap⟩
   iunfold rawNodeFresh at Hfresh
   icases Hfresh with ⟨%rnv, %sv, %hprev, Hfresh⟩
   iNamed Hfresh
@@ -119,7 +119,7 @@ theorem RawNode.Bootstrap.wp_proof
   ihave Hcap : trCapB (GF := GF) s.gh.tr γ rnv.raft' id (bootCfg ps) false (bootPhase ps id)
       (bootAt ps id 2) $$ [Hcap]
   · rw [Hgtr0]; iexact Hcap
-  obtain ⟨Hp, Hse, Hue, Hsd, Hcm0, Hap0, Hapg0, Hun, Hsn, Hsg, Hdtk0'⟩ := Hlog
+  obtain ⟨Hp, Hse, Hue, Hsd, Hcm0, Hap0, Hapg0, Hun, Hsn, Hsg, Hdtk0', Hksn⟩ := Hlog
   obtain ⟨Ht0, Hv0, Hr, Ho, Hrst, Hrpd⟩ := Hterm0
   ihave %Hplen := ownSlice_len $$ Hpeers
   have Hpslen : ps.length = pv.length := by rw [R1, List.length_map]
@@ -410,7 +410,8 @@ theorem RawNode.Bootstrap.wp_proof
     %(⟨⟨(by intro h; rw [Hs1gh, Hgh] at h; cases h),
         (by have h := Hgh0.1.2.1; rw [Hs1ls] at h; exact h.of_fields rfl rfl rfl rfl rfl (Int.le_refl _)),
         (by have h := Hgh0.1.2.2; rw [Hs1ls] at h; exact h)⟩,
-      (by intro h; rw [Hs1gh, Hgh] at h; cases h), (by rw [Hs1ls]; rfl)⟩)
+      (by intro h; rw [Hs1gh, Hgh] at h; cases h), (by rw [Hs1ls]; rfl),
+      (by rw [Hs1ls]; exact List.Subset.refl _)⟩)
     %(by intro h; rw [Hs1r] at h; cases h)
   generalize Hs2 : ({ s1 with logst := logAppend s.logst bootLog } : NState) = s2
   have Hs2ls : s2.logst = logAppend s.logst bootLog := by rw [← Hs2]
@@ -772,7 +773,7 @@ theorem RawNode.Bootstrap.wp_proof
   iapply HΦ
   isplitl []
   · ipureintro; rfl
-  isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap Hrntr]
+  isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap Hrntr Hhistory]
   · cases md with
     | static =>
       iunfold bootInit at Hghost
@@ -820,12 +821,14 @@ theorem RawNode.Bootstrap.wp_proof
         (PhsOk.zero rfl rfl (by rw [HNls]; simp only [logAppend, Hsn]) Hpcut)
         (by show sk.gh.tr = γ.reTrace; rw [HNgh]; exact Hgtr0)
         (by show sk.gh.lq = []; rw [HNgh])
-        $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] [] [] [] Hrntr
+        $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] [] [] [] [Hhistory] [] Hrntr
       · iapply pendList_nil
       · iapply ackInv_none; intro _ _ _ _ h; cases h
       · ipureintro; trivial
       · first | (rw [HNls]; simp only [logAppend, Hsn]) | (simp only; rw [HNls]; simp only [logAppend, Hsn])
         iapply snapLocOk_none
+      · rw [HNls]; simp only [logAppend, Hksn]; iapply restoredSnapHistory_nil
+      · iapply restoreLedger_fresh γ id _ ({ sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap } } : NState) (by change sk.logst.ksn = []; rw [HNls]; simp [logAppend, Hksn]) HNo $$ Hhistory
       · -- (durability stage II, G2) a fresh node's durable state's tie (`durTie_fresh`)
         iapply durTie_fresh γ _ _ rfl
         · show sk.logst.prev = _; rw [HNls]; exact Hp
@@ -893,12 +896,14 @@ theorem RawNode.Bootstrap.wp_proof
         (PhsOk.zero rfl rfl (by rw [HNls]; simp only [logAppend, Hsn]) Hpcut)
         (by show sk.gh.tr = γ.reTrace; rw [HNgh]; exact Hgtr0)
         (by show sk.gh.lq = []; rw [HNgh])
-        $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] [] [] [] Hrntr
+        $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] [] [] [] [Hhistory] [] Hrntr
       · iapply pendList_nil
       · iapply ackInv_none; intro _ _ _ _ h; cases h
       · ipureintro; trivial
       · first | (rw [HNls]; simp only [logAppend, Hsn]) | (simp only; rw [HNls]; simp only [logAppend, Hsn])
         iapply snapLocOk_none
+      · rw [HNls]; simp only [logAppend, Hksn]; iapply restoredSnapHistory_nil
+      · iapply restoreLedger_fresh γ id _ ({ sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap } } : NState) (by change sk.logst.ksn = []; rw [HNls]; simp [logAppend, Hksn]) HNo $$ Hhistory
       · -- (durability stage II, G2) a fresh node's durable state's tie (`durTie_fresh`)
         iapply durTie_fresh γ _ _ rfl
         · show sk.logst.prev = _; rw [HNls]; exact Hp

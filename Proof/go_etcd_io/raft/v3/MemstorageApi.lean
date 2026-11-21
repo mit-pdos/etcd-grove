@@ -101,28 +101,13 @@ theorem memStorInv_alloc (ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GNa
   -- PORT(durability stage II): restated (I-4: keyed by `K`, the generalized attach)
   sorry
 
-/-- **A registered `MemoryStorage` meets the storage contract of key `K`**, at an untraced cluster
-(2026-11-12, trace-check, Q39 (a): `storBnd` is gated on the trace; at a traced one `memStorJ`'s
-bound, the applied index, is not the contract's). (out_size C2) A
-cluster that bounds proposed data needs a sized storage (`γs.sz`, chosen at `NewMemoryStorage`). -/
-theorem memStorage_isStorage
-    (wp_LastIndex : MemoryStorage.LastIndex.spec (GF := GF) (hG := hG))
-    (wp_FirstIndex : MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG))
-    (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
-    (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
-    (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
-    (ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName)
-    (hsz : γ.maxData.isSome = true → γs.sz = true) (htr : Cluster.trace γ = none) :
-    ⊢ memStorInv (GF := GF) ms γs γ K -∗ memStorReg ms γs -∗ isStorage γ K (memStorIface ms) := by
-  -- (2026-11-12, Q39 (a)) `storBnd` is gated on the trace, so no longer `memBnd (memStorJ γ K)`:
-  -- the bound is converted through `storBnd_intro_untraced`, at the untraced cluster `htr`
-  unfold memStorInv
-  iintro #Hinv #Hreg
-  ihave #H := memStorage_isStorageP wp_LastIndex wp_FirstIndex wp_Term wp_Entries wp_Snapshot ms γs
-    (memStorJ γ K) $$ Hinv Hreg
-  -- (out_size C2) at the cluster's flag: the storage's own when the cluster bounds proposed data
-  -- (`hsz`), unsized otherwise (`isStorageP_unsize`)
-  ihave #H' : isStorageP γ.maxData.isSome (snapshotValid γ) (memBnd (memStorJ γ K))
+private theorem memStorage_contract (ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName)
+    (SV : SnapshotM → IProp GF) (hsz : γ.maxData.isSome = true → γs.sz = true)
+    (htr : Cluster.trace γ = none) :
+    isStorageP γs.sz SV (memBnd (memStorJ γ K)) (nodeCommitLb γ K) (memStorIface ms) ⊢
+      isStorageP γ.maxData.isSome SV (storBnd γ K) (nodeCommitLb γ K) (memStorIface ms) := by
+  iintro #H
+  ihave #H' : isStorageP γ.maxData.isSome SV (memBnd (memStorJ γ K))
     (nodeCommitLb γ K) (memStorIface ms) $$ []
   · by_cases h : γ.maxData.isSome = true
     · have e : γ.maxData.isSome = γs.sz := by rw [h, hsz h]
@@ -132,7 +117,6 @@ theorem memStorage_isStorage
       rw [e]
       ihave #H2 := isStorageP_unsize _ _ _ _ _ $$ H
       iExactEq H2; rfl
-  unfold isStorage
   unfold isStorageP
   icases H' with ⟨%i, %Hst, #H1, #H2, #H3, #H4, #H5, #Hbound, #Hlen⟩
   iexists i
@@ -146,6 +130,72 @@ theorem memStorage_isStorage
   imodintro
   iapply storBnd_intro_untraced γ K k c htr Hns $$ Hk
   ipureintro; exact Hck
+
+/-- **A registered `MemoryStorage` meets the storage contract of key `K`**, at an untraced cluster
+(2026-11-12, trace-check, Q39 (a): `storBnd` is gated on the trace; at a traced one `memStorJ`'s
+bound, the applied index, is not the contract's). (out_size C2) A
+cluster that bounds proposed data needs a sized storage (`γs.sz`, chosen at `NewMemoryStorage`). -/
+theorem memStorage_isStorage
+    (wp_LastIndex : MemoryStorage.LastIndex.spec (GF := GF) (hG := hG))
+    (wp_FirstIndex : MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG))
+    (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
+    (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
+    (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
+    (ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName)
+    (hsz : γ.maxData.isSome = true → γs.sz = true) (htr : Cluster.trace γ = none) :
+    ⊢ memStorInv (GF := GF) ms γs γ K -∗ memStorReg ms γs -∗ isStorage γ K (memStorIface ms) := by
+  unfold isStorage memStorInv
+  iintro #Hinv #Hreg
+  iapply memStorage_contract ms γs γ K (snapshotValid γ) hsz htr
+  ihave #H := memStorage_isStorageP wp_LastIndex wp_FirstIndex wp_Term wp_Entries wp_Snapshot
+    ms γs (memStorJ γ K) $$ Hinv Hreg
+  iExactEq H; rfl
+
+/-- The stored snapshot also carries the client's persistent source tag. -/
+def memStorJT (γ : Cluster) (K : GName) (Tg : SnapshotM → IProp GF) [∀ sv, Persistent (Tg sv)] : MemJust GF :=
+  { memStorJ γ K with
+    SV := fun sv => iprop(snapshotValid γ sv ∗ Tg sv)
+    SV_pers := fun _ => by infer_instance }
+
+/-- The memory storage invariant used by a client tracking snapshot provenance. -/
+def memStorInvT (ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName)
+    (Tg : SnapshotM → IProp GF) [∀ sv, Persistent (Tg sv)] : IProp GF :=
+  memStorInvP ms γs (memStorJT γ K Tg)
+
+theorem memStorInvT_alloc (ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName)
+    (Tg : SnapshotM → IProp GF) [∀ sv, Persistent (Tg sv)] (c : Nat) (sv : SnapshotM) (E : CoPset)
+    (Hcap : clusterNoSnap γ → c ≤ 1) :
+    ⊢ memStorLock (GF := GF) ms γs -∗ memStorFresh ms γs c sv -∗ nodeAppliedLb γ K c -∗
+      (⌜sv.Metadata'.Index' = W64 0⌝ ∨ (snapshotValid γ sv ∗ Tg sv) ∗
+        nodeCommitLb γ K (uint.nat sv.Metadata'.Index')) ={E}=∗
+      memStorInvT ms γs γ K Tg := by
+  iintro #Hl Hf #Ha Hv
+  unfold memStorInvT
+  iapply memStorInvP_alloc ms γs (memStorJT γ K Tg) E c sv $$ Hl Hf [] [Hv]
+  rotate_left
+  · iExactEq Hv; rfl
+  iintro !> %k %hk
+  simp only [memStorJT, memStorJ]
+  isplitr
+  · iapply nodeAppliedLb_mono γ K c k hk $$ Ha
+  ipureintro; exact fun h => Nat.le_trans hk (Hcap h)
+
+theorem memStorage_isStorageT
+    (wp_LastIndex : MemoryStorage.LastIndex.spec (GF := GF) (hG := hG))
+    (wp_FirstIndex : MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG))
+    (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
+    (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
+    (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
+    (ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName)
+    (Tg : SnapshotM → IProp GF) [∀ sv, Persistent (Tg sv)]
+    (hsz : γ.maxData.isSome = true → γs.sz = true) (htr : Cluster.trace γ = none) :
+    ⊢ memStorInvT (GF := GF) ms γs γ K Tg -∗ memStorReg ms γs -∗ isStorageT γ K Tg (memStorIface ms) := by
+  unfold memStorInvT isStorageT
+  iintro #Hinv #Hreg
+  iapply memStorage_contract ms γs γ K (fun sv => iprop(snapshotValid γ sv ∗ Tg sv)) hsz htr
+  ihave #H := memStorage_isStorageP wp_LastIndex wp_FirstIndex wp_Term wp_Entries wp_Snapshot
+    ms γs (memStorJT γ K Tg) $$ Hinv Hreg
+  iExactEq H; rfl
 
 end api
 

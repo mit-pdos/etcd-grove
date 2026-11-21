@@ -2,7 +2,13 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.errors
+public import Perennial.GeneratedProof.fmt
+public import GeneratedProof.go_uber_org.zap.internal
+public import GeneratedProof.go_uber_org.zap.internal.pool
 public import GeneratedProof.go_uber_org.zap.zapcore
+public import Perennial.GeneratedProof.io
+public import Perennial.GeneratedProof.sync.atomic
 public import Perennial.Golang.Theory
 public import Code.go_uber_org.zap
 
@@ -138,12 +144,33 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_uber_org.zap.Assumptions]
 
 noncomputable instance AtomicLevel_typed_pointsto :
-    TypedPointsto (GF := GF) go_uber_org.zap.AtomicLevel :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_uber_org.zap.AtomicLevel where
+  typedPointstoDef l v dq := iprop(
+    "l" ∷ typedPointsto (structFieldRef go_uber_org.zap.AtomicLevel go!"l" l) v.l' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance AtomicLevel_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.AtomicLevel go_uber_org.zap.AtomicLevel.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.AtomicLevel go_uber_org.zap.AtomicLevel.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance AtomicLevel_access_load_l (l : Loc) (v : go_uber_org.zap.AtomicLevel) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.AtomicLevel go!"l" l) v.l' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.AtomicLevel go!"l" l) v.l' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance AtomicLevel_access_store_l (l : Loc) (v : go_uber_org.zap.AtomicLevel) (l' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.AtomicLevel go!"l" l) v.l' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.AtomicLevel go!"l" l) l' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with l' := l' } : go_uber_org.zap.AtomicLevel) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end AtomicLevel
@@ -613,25 +640,6 @@ noncomputable instance Logger_access_store_clock (l : Loc) (v : go_uber_org.zap.
 
 end def_
 end Logger
-
-namespace Sink
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_uber_org.zap.Assumptions]
-
-noncomputable instance Sink_typed_pointsto :
-    TypedPointsto (GF := GF) go_uber_org.zap.Sink :=
-  sorry -- axiomatized type
-
-noncomputable instance Sink_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.Sink go_uber_org.zap.Sink.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Sink
 
 namespace errSinkNotFound
 section def_

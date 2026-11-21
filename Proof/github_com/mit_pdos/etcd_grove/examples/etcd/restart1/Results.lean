@@ -81,7 +81,7 @@ and nothing else is in the range.
   theorem to use its stop-side parts: the disk snapshot's save and release (`SnapCount = 1`), the
   WAL's close and bbolt's close at the stop (each failure is logged as fatal or returned on a path
   that ends the run).
-- `HNs` (`namesUnclaimed`): the read package's metric names are claimed by no one else at start.
+- `HNs` (`namesUnclaimed`): the program's metric names (`initNames`: its closure's registering packages', mustreg 2026-11-20) are claimed by no one else at start.
 - `HDs` (`dataDirsAbsent [restart1.etcd]`): the data directory does not exist when the program
   starts (the test runs in a fresh `t.TempDir()`).
 - `HEnv` (`verifyEnvOff`): `ETCD_VERIFY` is unset for the run (both incarnations).
@@ -142,8 +142,8 @@ theorem etcd_restart1_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
-    (Hsteps : RealNsteps n ([restart1Program], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 2 ≤ 2 ^ 28) :
+    (Hsteps : RealNstepsBelow (2 ^ 28) n ([restart1Program], ((σ, g) : CfgState)) κs (t2, σ2))
+    (Hn : n + 12 ≤ 2 ^ 40) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=

@@ -27,10 +27,10 @@ variable [sem : go.Semantics]
 /-- `s.Code()` of a read-only status of code `c` returns `c`. Go (`internal/status/status.go`):
 `if s == nil || s.s == nil { return codes.OK }; return codes.Code(s.s.Code)`, for a non-nil `s`
 with a non-nil `s.s`, as every constructor builds it: a read of a status whose code never changes
-(`grpcStatusRO`). -/
+(`status.statusAt`; until errdesc stage 2a, 2026-11-20, `grpcStatusRO`). -/
 abbrev status.Status.Code.spec : Prop :=
-  ∀ (s : Loc) (c : w32),
-  {{ grpcStatusRO (PROP := IProp GF) s c }}
+  ∀ (s : Loc) (c : w32) (m : GoString),
+  {{ EtcdGrove.status.statusAt (GF := GF) s c m }}
     (App (Val (s @!! go.GoType.PointerType google_golang_org.grpc.status.Status.ty @!! go!"Code"))
       (Val #()))
   {{ RET #c; True }}
