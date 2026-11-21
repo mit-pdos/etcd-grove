@@ -1,85 +1,163 @@
-//go:build etcddist_sketch
-
-// Package client is the program of a client machine of etcd_dist_safe (notes/etcd-dist-plan.md;
-// DRAFT, a sketch: not built, not translated, kept out of every build by its build tag). One
-// process runs one workload against the cluster's client endpoints, checks its property and
-// panics if the check fails; the machine never crashes (Lean: Robust's stable list), so the
+// Package client is the program of a client machine of etcd_dist_safe (notes/etcd-dist-plan.md,
+// §2): one process runs one workload against the cluster's client endpoints, checks its property
+// and panics if the check fails; the machine never crashes (Lean: Robust's stable list), so the
 // workload keeps its history.
 //
 // Each workload is today's driver with its start removed: the driver's Main minus etcdstart's
-// StartMembers/Serve/bridges/partitioner, the clients made of the endpoints it is given. The
-// functions called below are the PROPOSED split of each driver into its start and its workload
-// (stage D1 of the plan); none exists yet. Faults are the network's (the net extension's cuts,
-// delays, refused dials) and the server machines' crashes, never the program's: no bridge, no
-// CutPeer/MendPeer, no HardStop.
+// StartMembers/Serve, the bridges, the partitioner, CutPeer/MendPeer and HardStop, its clients made
+// of the endpoints it is given. Faults are the network's (cuts, delays, refused dials) and the
+// server machines' crashes, never the program's. Where a driver's helpers are exported and take
+// clients, they are called (txnlin.Apply/Gen/Model, etcdstart.Writer/Collect/Check, auth.SetUp/
+// Work/CheckHistory, ...); where its workload is inline in Main or its helpers are unexported, the
+// code is copied here, each copy saying which driver function it is (the list: the plan's §2,
+// "Copies").
 //
-// Rules every checker follows (etcd-grove#24, the grpc model's errors): any non-OK gRPC error is
-// an unknown outcome (the request may or may not have been applied), never "not applied"; a
-// server stream's clean end (io.EOF, a closed watch channel) is never taken as complete (grpc-go's
-// spurious EOF after a transparent retry, nonissues/grpc-transparent-retry-spurious-eof.md); and
-// keepalive is never relied on for safety (the model accepts its options and does nothing).
+// Rules every checker follows (etcd-grove#24, the grpc model's errors), audited per workload in the
+// plan (§2, "The error rules, audited"): any non-OK gRPC error is an unknown outcome (the request
+// may or may not have been applied, now or later), never "not applied"; a server stream's clean end
+// (io.EOF, a closed watch channel) is never taken as complete (grpc-go's spurious EOF after a
+// transparent retry, nonissues/grpc-transparent-retry-spurious-eof.md); and keepalive is never
+// relied on for safety (the model accepts its options and does nothing).
 //
-// Keys (review F1): each workload writes only under its own prefix (its Kind's name and "/"),
-// and kv's List ranges stay inside its prefix, so no two workloads write one key; a workload whose
-// check reads the store's revisions as its own (kv, watch, cache, auth, authLease) runs beside
-// none that writes keys (Lean: Compatible). Main clears the proxy variables first, as the server
-// does (review F8).
+// Keys (Q1, review F1): each workload writes only under its own prefix, and no two workloads write
+// one key: kv's keys are txnlin's (k0, k1, k2; its List ranges over [k, l)), auth's and authLease's
+// are package auth's (a/..., c/..., z/...: they run alone), and the others' prefixes below start
+// with none of a, c/, k, z. A workload whose check reads the store's revisions as its own (kv,
+// watch, cache, auth, authLease) runs beside none that writes keys (Lean: Compatible).
+//
+// Clients on separate machines (the plan's §2, the user's decision): a workload with several
+// clients is written as one function per client, over its own clientv3 client (kvApply, the
+// writers, auth's principals), and the orchestrating part (generating the operations, recording
+// the history, the check) apart, so that dsverify's Remote (examples/lib/remote) can put each
+// client on a machine of its own; until then they are goroutines of this process.
 package client
+
+import (
+	"go.uber.org/zap"
+
+	clientv3 "go.etcd.io/etcd/client/v3"
+
+	"github.com/mit-pdos/etcd-grove/examples/etcd/dist/env"
+	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
+)
 
 // Kind is a workload's kind (Lean: Workload's constructors, in this order).
 type Kind int
 
 const (
-	KV           Kind = iota // txnlinfaultsN's workload: partition.Check, porcupine (txnlin's model)
-	Watch                    // partition.MainWatch's workload: a watch from revision 1 and writers (etcdstart.Check)
-	Cache                    // cache's workload: etcd's watch cache over the client (cachekv's check)
+	KV           Kind = iota // txnlinfaultsN's workload: concurrent clients, porcupine (txnlin's model)
+	Watch                    // partition.MainWatch's: a watch from revision 1 and writers (etcdstart.Check)
+	Cache                    // cache's: etcd's watch cache over the client (cachekv's checks)
 	Compact                  // compactwatch's rounds: Put, explicit Compact, latest and old Gets; watches
-	PutGet                   // compacted's Put then Get
-	Auth                     // authN's set-up, barrier, four principals and checks
+	PutGet                   // compacted's Put then Get, in rounds
+	Auth                     // authN's set-up, barriers, four principals and checks
 	AuthLease                // authlease's lease rows of auth
 	LeaseRead                // leaseN's Leases/TimeToLive reads at every member
 	LeaseCatchup             // leasecatchup's grant, fillers and listing (no cut: the network's)
-	LeaseExpiry              // leaseexpiryN's 2 s leases, polled until gone, listed once more
-	Durable                  // restartN's check: acknowledged Puts all present, at version 1
+	LeaseExpiry              // leaseexpiryN's shortest leases, polled until gone, listed once more
+	Durable                  // restartN's check over gRPC: acknowledged Puts present, at version 1
 )
+
+var kindNames = []string{"kv", "watch", "cache", "compact", "putget", "auth", "authLease",
+	"leaseRead", "leaseCatchup", "leaseExpiry", "durable"}
+
+// String is the kind's name (the Lean constructor's).
+func (k Kind) String() string {
+	if k < 0 || int(k) >= len(kindNames) {
+		return "unknown"
+	}
+	return kindNames[k]
+}
 
 // Workload is one client machine's workload and its parameters (Lean: Workload).
 type Workload struct {
 	Kind    Kind
-	Clients int // KV: concurrent clients; Watch, Cache: writers; Durable: Puts
+	Clients int // KV: concurrent clients; Watch, Cache: writers; Durable: Puts (at most MaxDurable)
 	Ops     int // KV: operations per client; Watch, Cache: Puts per writer
 }
 
+// Result is how a workload ended without a panic: Checked if its checks ran (and passed: a failed
+// check is a panic), otherwise Why names the step that ended it (an error, a stream that ended, a
+// lease never seen gone): the specs allow every step to fail.
+type Result struct {
+	Checked bool
+	Why     string
+}
+
+// checked and ended are a workload's results.
+func checked() Result         { return Result{Checked: true} }
+func ended(why string) Result { return Result{Why: why} }
+func (r Result) String() string {
+	if r.Checked {
+		return "checked"
+	}
+	return "ended: " + r.Why
+}
+
+// The prefixes of the workloads that write keys under a prefix of their own (see the package doc).
+const (
+	watchPrefix   = "wk/"
+	cachePrefix   = "ck/"
+	compactPrefix = "cw/"
+	putgetPrefix  = "pg/"
+	durablePrefix = "du/"
+)
+
+// newClient connects a client of the endpoints eps (etcdstart.NewClients: the examples' timeouts
+// and etcd's default retries).
+func newClient(eps []string) (*clientv3.Client, error) {
+	return etcdstart.NewClients(eps, zap.NewNop())
+}
+
+// rotate is eps starting at its i-th (mod len) element: the clients of a workload prefer
+// different members (clientv3's balancer picks among the endpoints, the first first).
+func rotate(eps []string, i int) []string {
+	k := len(eps)
+	out := make([]string, k)
+	for j := 0; j < k; j++ {
+		out[j] = eps[(i+j)%k]
+	}
+	return out
+}
+
 // Main runs w against the members' client endpoints eps (in the members' order: the workloads
-// that pick a member, authN's principals, leaseN's per-member reads, use eps[i mod len(eps)]).
-// Results are dropped: a failed check is a panic inside the workload.
-func Main(w Workload, eps []string) {
-	clearProxyEnv() // PROPOSED: the server's, shared
+// that pick a member use eps[i mod len(eps)]), after clearing the proxy variables as the server
+// does (review F8). A failed check is a panic inside the workload.
+func Main(w Workload, eps []string) Result {
+	env.ClearProxy()
+	if len(eps) == 0 {
+		return ended("no endpoint")
+	}
 	switch w.Kind {
 	case KV:
-		txnlinfaultsN.Run(eps, w.Clients, w.Ops) // PROPOSED: NewClients(eps) x clients; partition.Check; panic on Illegal
+		return RunKV(eps, w.Clients, w.Ops)
 	case Watch:
-		partition.RunWatch(eps, w.Clients, w.Ops) // PROPOSED: MainWatch minus the start and partitioner
+		return RunWatch(eps, w.Clients, w.Ops)
 	case Cache:
-		cache.Run(eps, w.Clients, w.Ops) // PROPOSED
+		return RunCache(eps, w.Clients, w.Ops)
 	case Compact:
-		compactwatch.Run(eps) // PROPOSED
+		return RunCompact(eps)
 	case PutGet:
-		compacted.Run(eps) // PROPOSED
+		return RunPutGet(eps)
 	case Auth:
-		authN.Run(eps) // PROPOSED: principal i through eps[i mod k]
+		return RunAuth(eps)
 	case AuthLease:
-		authlease.Run(eps) // PROPOSED
+		return RunAuthLease(eps)
 	case LeaseRead:
-		leaseN.Run(eps) // PROPOSED
+		return RunLeaseRead(eps)
 	case LeaseCatchup:
-		leasecatchup.Run(eps) // PROPOSED: grant via eps[k-1], fillers via eps[0], list at eps[k-1]
+		return RunLeaseCatchup(eps)
 	case LeaseExpiry:
-		leaseexpiryN.Run(eps) // PROPOSED
+		return RunLeaseExpiry(eps)
 	case Durable:
-		restartN.RunDurable(eps, w.Clients) // PROPOSED: at most 256 Puts of distinct keys, then a
-		// linearizable Range: every acknowledged Put's key present with its value at version 1, every
-		// other key in the range one whose Put was attempted (an unknown outcome may have applied); no
-		// revision check (other clients write)
+		return RunDurable(eps, w.Clients)
 	}
+	return ended("unknown workload")
+}
+
+// Args is a client machine's configuration, as cmd/client reads it: its workload and the members'
+// client endpoints, in the members' order.
+type Args struct {
+	W   Workload
+	Eps []string
 }
