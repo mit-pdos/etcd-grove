@@ -38,17 +38,17 @@ theorem watcher.newWatcherGRPCStream.wp_proof
     (wp_key : streamKeyFromCtx.spec (GF := GF) (hG := hG))
     (wp_run : watchGRPCStream.run.spec (GF := GF) (hG := hG)) :
     watcher.newWatcherGRPCStream.spec (GF := GF) (hG := hG) := by
-  intro V w inctx cs
-  wp_start as ⟨#Hw, #Hin⟩
+  intro V w inctx cs om
+  wp_start as ⟨#Hw, #Hin, #Hom⟩
   ihave #Hw' := Hw
   iunfold isClientWatcher at Hw'
   icases Hw' with ⟨%callSl, %vs, %Hwnn, #Hrem, #Hco, #Hvs, #Hok, #Hlg, #Hmu, #Hf, #Hlgok, %Hlgb⟩
   wp_auto
   wp_alloc vcp as Hvc
   ipersist Hvc
-  wp_apply wp_WithCancel vcp inctx cs $$ [] as %cx %γc %cancel ⟨#Hcspec, #Hcx, %Hmd, #HcxO⟩
+  wp_apply wp_WithCancel vcp inctx cs om $$ [] as %cx %γc %cancel ⟨#Hcspec, #Hcx, #Hmd, #HcxO⟩
   · iframe #
-  wp_apply wp_key inctx cs $$ []
+  wp_apply wp_key inctx cs om $$ []
   · iframe #
   wp_apply wp_map_make1 (K := w64) (V := Loc) as %m0 Hm0
   wp_apply chan.wp_make1 (V := Loc) as %respc %γresp ⟨#Hrespc, %-, Hrespo⟩
@@ -73,7 +73,7 @@ theorem watcher.newWatcherGRPCStream.wp_proof
   ipersist closingc
   ipersist lg
   imod wgsWg_init _ Hlgb $$ wg with Hadder
-  imod start_bag (reqP V (streamKeyOf (metadata.outgoingOf (GoInterface.ok cx)))) _ reqc γreq
+  imod start_bag (reqP V (streamKeyOf om)) _ reqc γreq
     (by trivial) $$ Hreqc Hreqo with #Hbreq
   imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := Unit) with ⟨%γws, Hws⟩
   -- (D25) `respc`'s SPSC over every epoch of `run`, the epochs' mono list
@@ -83,7 +83,7 @@ theorem watcher.newWatcherGRPCStream.wp_proof
   imod start_bag (errP γr γep) _ errc γerr (by trivial) $$ Herrc Herro with #Hberr
   -- (D25) the generations of `resumec`
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γend, Hgen, -⟩
-  let G : WgsPrm GF := ⟨«$r0_ptr», w, cx, { Values := ∅, Deadline := none, Done_gn := γc, PDone := iprop(True) }, γc, cancel, streamKeyOf (metadata.outgoingOf (GoInterface.ok inctx)), reqc, γreq, respc, donec, γdone, errc, γerr, closingc, γcl, γws, γr, γep, γend⟩
+  let G : WgsPrm GF := ⟨«$r0_ptr», w, cx, { Values := ∅, Deadline := none, Done_gn := γc, PDone := iprop(True) }, γc, cancel, streamKeyOf om, reqc, γreq, respc, donec, γdone, errc, γerr, closingc, γcl, γws, γr, γep, γend, om⟩
   imod start_bag (closingP V G) _ closingc γcl (by trivial) $$ Hclc Hclo with #Hbcl
   imod alloc_broadcast_chan (E := ⊤) (closeErrPub «$r0_ptr») γdone donec $$ Hdonec Hdoneo with Hdb
   icases ownBroadcastChan_dup_unknown _ _ _ _ $$ Hdb with ⟨Hdb, #Hdbu⟩
@@ -111,7 +111,7 @@ theorem watcher.newWatcherGRPCStream.wp_proof
   iapply HΦ
   iexists G, callSl
   iframe #
-  ipureintro; exact ⟨⟨rfl, rfl⟩, Hmd, rfl⟩
+  ipureintro; exact ⟨⟨rfl, rfl⟩, rfl, rfl⟩
 
 end proof
 

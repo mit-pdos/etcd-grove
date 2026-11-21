@@ -41231,3 +41231,33 @@ need validity. The next step is to preserve the pin at node startup and the sour
 
 This supersedes the October 31 decision to retain the server's snapshot-index guard.
 The invariant argument and remaining obligations are in [the removal plan](snapguard-removal-plan.md).
+
+## Outgoing metadata as a per-run relation (2026-11-20 · the user's soundness fix · branch `prove-errdesc/2026-11-20`, stage 1)
+
+**Supersedes in part:** the auth plan's E2f (`metadata.outgoingOf`, "a function of the context value
+for the same reason: a context is immutable") and G2's use of it for the watch's stream key; and
+premise-fixes-7's opaque `Prop` `metadata.builtRawMD`.
+
+**Why.** `metadata.outgoingOf : GoInterface → GrpcMd` was a fixed Lean function of a context value,
+and the posts of `AppendToOutgoingContext`, `withVersion`, `WithCancelValCtx`,
+`WithTimeoutBackgroundMd` equated it with caller-chosen data for a context the call allocates. A fresh
+allocation may be any location, so no implementation can meet those posts (two runs of
+`AppendToOutgoingContext(ctx, "k", "a")` and `(…, "b")` from one heap may return the same `*valueCtx`;
+etcd-refimpl's `README.md` "Findings"; `notes/errdesc-ghost-plan.md` §0).
+
+**Decision** (`notes/errdesc-ghost-plan.md` §2.1, Part II of `notes/perheap-scope.md`):
+`metadata.outMD ctx md` (persistent; `Proof/context/LibKeysChain.lean`), Perennial's chain at grpc's
+outgoing key holding a value `v` that `metadata.outgoingHeld v md` (not a `rawMD` and `none`, or one
+grpc made with view `f`, the opaque leaf `□ metadata.builtRawMDRaw v f`, and `some f`).
+`outgoingCtxOkC ctx := ∃ md, outMD ctx md` (name kept); `outgoingCtxOk` (WP form) carries the same
+`outgoingHeld`. No agreement law. Every spec that relates a context's metadata to something takes the
+metadata as a parameter `om` with `metadata.outMD ctx om` in its precondition: the client's call
+contracts (`attemptPre conn om …`, `clientAttemptMd conn om md`, `clientOpAuOn`/`clientGrant`/
+`clientHistAu` and the retry interceptor's contract over `om`), grpc's attempt contract
+(`grpcAttemptMd conn om md`; `grpcInvokerOk` and `ClientConn.NewStream` take `outMD ctx om`), the watch
+(`watcher.Watch`'s `om`, kept in the watch's record `WsPrm.omd` and the stream's `WgsPrm.omd`;
+`watchCheckOk … om …`). A caller with no stake in the metadata takes one from `ctxOk`/`watchCtx`
+(`ctxOk_outgoingC`, `watchCtx_outMD`); the examples state theirs (`metadata.outMD ci (akOut who)`).
+Axioms restated (none added): `AppendToOutgoingContext`, `withVersion`, `streamKeyFromCtx`,
+`WithCancelValCtx`, `WithTimeoutBackgroundMd`, `ClientConn.NewStream` (and the meaning of
+`ClientConn.Invoke`'s and `WithRequireLeader`'s through `grpcInvokerOk`/`outgoingCtxOkC`).

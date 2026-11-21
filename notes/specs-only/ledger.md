@@ -25,6 +25,23 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-20: `metadata.AppendToOutgoingContext.spec`, `withVersion.spec`, `streamKeyFromCtx.spec`, `context.WithCancelValCtx.spec`, `context.WithTimeoutBackgroundMd.spec`, `grpc.ClientConn.NewStream.spec` -- posts fix a pure function of an allocated context
+
+- **Spec.** The real specs above (`Spec/google_golang_org/grpc/metadata/AppendToOutgoingContext.lean`, ...), and
+  the definitions in trusted contracts that use `metadata.outgoingOf` (`grpcAttemptMd`, `grpcInvokerOk`); the
+  plan's `outMD` (`SpecPlan/Spec/google_golang_org/grpc/Api.lean:283`).
+- **Defect.** Unprovable by any implementation: each post equates `metadata.outgoingOf` (a fixed Lean
+  function) of a context the call allocates with caller-chosen metadata; a fresh allocation may be any
+  location (etcd-refimpl `README.md`, "Findings").
+- **Evidence.** The refimpl finding; `notes/errdesc-ghost-plan.md` §0.
+- **Proposed change.** `metadata.outMD ctx md` (the plan's `outMD`, with `Option` metadata: the 2026-11-18
+  entry below) in place of `outgoingOf`: each spec takes `∀ md`, `outMD ctx md` in its precondition, and
+  states the result's `outMD` at `md` (`mdAdd md k v`, `mdSet md …`, `md`, `none`); `streamKeyFromCtx`
+  returns `streamKeyOf md`; `grpcAttemptMd conn om md` over the metadata `om` the attempt contract's
+  precondition relates to the context.
+- **Decision.** Accepted (the user's soundness fix, task of 2026-11-20); applied on branch
+  `prove-errdesc/2026-11-20` (stage 1).
+
 ## 2026-11-18: `leaseStep`'s grant -- a server-chosen id is fresh in the history, the plan says only "not live"
 
 - **Spec.** `SpecPlan/Spec/go_etcd_io/etcd/api/v3/Model.lean`, `leaseStep` (`.leaseGrant`: `σ.leases id' = none`);

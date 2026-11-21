@@ -45,10 +45,10 @@ abbrev noAuth.spec : Prop :=
       auth.authPubLbM E.authMode n ∗ lease.lessorLb (mvcc.api.mvccLeases E.γ) ml ∗
       □ (∀ (tok : Option GoString) (K : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF),
           akTokSeen γa who tok -∗ leaseCheckFrom s E tok n K ={⊤}=∗ False) ∗
-      □ (∀ (conn : Loc) (ctx : GoInterface) (id' : w64),
+      □ (∀ (conn : Loc) (ctx : GrpcMd) (id' : w64),
           clientOpAuOn s E ρ conn ctx (.leaseGrant id' grantTTLv) (Qg id')) ∗
-      □ (∀ (conn : Loc) (ctx : GoInterface), attemptTokOk conn (akTokP γa who) -∗
-          ⌜metadata.outgoingOf ctx = akOut who⌝ -∗ clientOpAuOn s E ρ conn ctx (.leaseRevoke id) Qr) }}
+      □ (∀ (conn : Loc) (ctx : GrpcMd), attemptTokOk conn (akTokP γa who) -∗
+          ⌜ctx = akOut who⌝ -∗ clientOpAuOn s E ρ conn ctx (.leaseRevoke id) Qr) }}
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.authlease.noAuth)) (Val #cli))
       (Val #who)) (Val #id))
   {{ RET #(); True }}

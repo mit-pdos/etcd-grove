@@ -39,8 +39,8 @@ theorem watcher.Watch.wp_proof
     (wp_key : streamKeyFromCtx.spec (GF := GF) (hG := hG))
     (wp_newStream : watcher.newWatcherGRPCStream.spec (GF := GF) (hG := hG)) :
     watcher.Watch.spec (GF := GF) (hG := hG) := by
-  intro w V γ ctx cs key sl gs rev Q n
-  wp_start as ⟨#Hw, %Hkst, #Hctx, #Hopts, %Hreq, #Hbound, #Hau⟩
+  intro w V γ ctx cs om key sl gs rev Q n
+  wp_start as ⟨#Hw, %Hkst, #Hctx, #Hom, #Hopts, %Hreq, #Hbound, #Hau⟩
   obtain ⟨Hrw, Hnp, Hrev1, Hsz⟩ := Hreq
   have Hrev : 0 ≤ sint.Z rev := by omega
   -- (D47) a first firing of the read update (at the start log), for the responses that report nothing
@@ -95,11 +95,11 @@ theorem watcher.Watch.wp_proof
   let P0 : WsPrm GF := ⟨(opWatchModel key gs).watchNorm, rev, ctx, cs, (opWatchModel key gs).key,
     (opWatchModel key gs).base.rangeEnd, op.createdNotify', op.progressNotify',
     op.watchBufLogEnabled', zero_val GoSlice, retc, γret, null, ⟨⟨γret, 0, 0⟩, 0, 0, false⟩, null,
-    null, ⟨γret, 0, 0⟩, 0, 0, 0, true, 0, γ, Q, n, if V.nm = 1 then n else 0⟩
+    null, ⟨γret, 0, 0⟩, 0, 0, 0, true, 0, γ, Q, n, if V.nm = 1 then n else 0, om⟩
   imod wsBdOk_intro V P0 rfl $$ Hbound with #Hbd
   -- the spec's row is the watch's (`wsRow_eq`)
   have hrow : iprop(□ (⌜V.nm = 1⌝ → watchCheckOk (V.mem 0).2.tag (V.mem 0).2.s V.conn
-      (GoInterface.ok ctx) n (opWatchModel key gs).key (opWatchModel key gs).base.rangeEnd)) =
+      om n (opWatchModel key gs).key (opWatchModel key gs).base.rangeEnd)) =
       wsRow (GF := GF) V P0 := (wsRow_eq V P0).symm
   imod start_bag (retcP V (opWatchModel key gs).watchNorm rev true Q (wsRow V P0)) _ retc γret
     (by trivial) $$ Hretc Hreto with #Hbret
@@ -123,7 +123,7 @@ theorem watcher.Watch.wp_proof
   rw [HrevEq] at *
   rw [Hffr, Hfr] at *
   rw [Hfpk, Hpk] at *
-  ihave #HreqP : reqP V (streamKeyOf (metadata.outgoingOf (GoInterface.ok ctx)))
+  ihave #HreqP : reqP V (streamKeyOf om)
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.watchRequest.ty)
       #«$r0_ptr») $$ []
   · unfold reqP
@@ -147,8 +147,8 @@ theorem watcher.Watch.wp_proof
     isplitr
     · ipureintro; exact ⟨Hkst.symm, hcpl⟩
     ipureintro; rfl
-  wp_apply wp_key ctx cs
-  · iexact Hctx
+  wp_apply wp_key ctx cs om
+  · iframe #
   ihave Hinv : iprop(∃ (b : Bool) (cc : Loc), "ok" ∷ ok_ptr ↦ b ∗
       "closeCh" ∷ closeCh_ptr ↦ cc ∗
       "Hcc" ∷ closeChRes V.kv (opWatchModel key gs).watchNorm Q (wsRow V P0) rev
@@ -201,20 +201,20 @@ theorem watcher.Watch.wp_proof
   simp only [hm, _root_.decide_false]
   wp_auto
   wp_apply wp_map_lookup1 go.string go_etcd_io.etcd.client.v3.watchGRPCStream.ty.PointerType m M
-    (streamKeyOf (metadata.outgoingOf (GoInterface.ok ctx))) (DFrac.own 1) $$ [$HM] as HM
+    (streamKeyOf om) (DFrac.own 1) $$ [$HM] as HM
   wp_join iprop(∃ (G : WgsPrm GF) (M' : GMap GoString Loc), wgs_ptr ↦ G.wgs ∗ m ↦$ M' ∗
       (□ [∗map] k ↦ x ∈ M', ∃ G' : WgsPrm GF, ⌜G'.wgs = x ∧ G'.w = w ∧
-        streamKeyOf (metadata.outgoingOf (GoInterface.ok G'.ctx)) = k⌝ ∗ isWGS V G' callSl) ∗
-      ⌜G.w = w ∧ streamKeyOf (metadata.outgoingOf (GoInterface.ok G.ctx)) = (streamKeyOf (metadata.outgoingOf (GoInterface.ok ctx)))⌝ ∗
+        streamKeyOf G'.omd = k⌝ ∗ isWGS V G' callSl) ∗
+      ⌜G.w = w ∧ streamKeyOf G.omd = (streamKeyOf om)⌝ ∗
       isWGS V G callSl ∗ w_ptr ↦ w ∗ ctx_ptr ↦ GoInterface.ok ctx ∗
-      ctxKey_ptr ↦ (streamKeyOf (metadata.outgoingOf (GoInterface.ok ctx))) ∗ watcherF w go!"streams" ↦ m)
+      ctxKey_ptr ↦ (streamKeyOf om) ∗ watcherF w go!"streams" ↦ m)
     with [wgs HM w Hctxp ctxKey Hst] as ⟨%G, %M', wgs, HM, #HMs', %HGw, #HG, w, Hctxp, ctxKey, Hst⟩
-  · wp_apply wp_newStream V w ctx cs $$ [] as %wgs' ⟨%G, %callSl', %HGeq, #Hco', #HG, %HGo⟩
+  · wp_apply wp_newStream V w ctx cs om $$ [] as %wgs' ⟨%G, %callSl', %HGeq, #Hco', #HG, %HGo⟩
     · iframe #
     icombine Hco Hco' gives %Hcs
     obtain ⟨-, rfl⟩ := Hcs
-    wp_apply wp_mapInsert go.string m M (streamKeyOf (metadata.outgoingOf (GoInterface.ok ctx))) wgs' $$ [$HM] as HM
-    have HGk : streamKeyOf (metadata.outgoingOf (GoInterface.ok G.ctx)) = (streamKeyOf (metadata.outgoingOf (GoInterface.ok ctx))) := by
+    wp_apply wp_mapInsert go.string m M (streamKeyOf om) wgs' $$ [$HM] as HM
+    have HGk : streamKeyOf G.omd = (streamKeyOf om) := by
       rw [HGo.1]
     wp_join_done
     iexists G, _
@@ -229,7 +229,7 @@ theorem watcher.Watch.wp_proof
       iframe #
       ipureintro; exact ⟨rfl, HGeq.2, HGk⟩
     ipureintro; exact ⟨HGeq.2, HGk⟩
-  · cases h : M !! (streamKeyOf (metadata.outgoingOf (GoInterface.ok ctx))) with
+  · cases h : M !! (streamKeyOf om) with
     | none => exact absurd (by simp [h]; rfl) Hif
     | some x =>
       simp only [h, Option.getD_some] at Hif ⊢
@@ -241,7 +241,7 @@ theorem watcher.Watch.wp_proof
       ipureintro; exact HGx.2
   obtain ⟨HGw, HGk⟩ := HGw
   -- (G2) the request is at the stream's key
-  ihave #HreqG : reqP V (streamKeyOf (metadata.outgoingOf (GoInterface.ok G.ctx)))
+  ihave #HreqG : reqP V (streamKeyOf G.omd)
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.watchRequest.ty)
       #«$r0_ptr») $$ []
   · rw [HGk]; iexact HreqP

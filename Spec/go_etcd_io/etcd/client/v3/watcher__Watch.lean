@@ -82,15 +82,18 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- See the file header.
-The update's commit is told the revision's room (`kvRoom σ`; 2026-11-05, H-rr1). -/
+The update's commit is told the revision's room (`kvRoom σ`; 2026-11-05, H-rr1).
+(errdesc stage 1, 2026-11-20) The check is at the context's outgoing metadata `om`, which the
+precondition relates to `ctx` (`metadata.outMD ctx om`; `watchCtx` gives some); until then at the pure
+`metadata.outgoingOf ctx`. -/
 abbrev watcher.Watch.spec : Prop :=
   ∀ (w : Loc) (V : WEnv GF) (γ : KVNames) (ctx : GoInterfaceOk)
-    (ctx_desc : context.ContextDesc (IProp GF)) (key : GoString) (opts_sl : GoSlice)
+    (ctx_desc : context.ContextDesc (IProp GF)) (om : GrpcMd) (key : GoString) (opts_sl : GoSlice)
     (opts : List (OpFull → OpFull)) (rev : w64) (Q : KVState → IProp GF) (n : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       isPkgInit (PROP := IProp GF) pkg_id.context ∗ isClientWatcher V w ∗ ⌜V.kst = γ.st⌝ ∗
-      EtcdGrove.context.watchCtx ctx ctx_desc ∗ optsAt opts_sl opts ∗
+      EtcdGrove.context.watchCtx ctx ctx_desc ∗ metadata.outMD ctx om ∗ optsAt opts_sl opts ∗
       ⌜(opWatchModel key opts).isRangeWatchP rev = true ∧ ¬ opWatchPanics key opts ∧
         1 ≤ sint.Z rev ∧ watchSizeOk (opWatchModel key opts)⌝ ∗
       □ (⌜V.nm = 1 ∧ 0 < n⌝ → auth.authPubLbM (V.mem 0).2.E.authMode n) ∗
@@ -101,7 +104,7 @@ abbrev watcher.Watch.spec : Prop :=
   {{ (ch : Loc) (γw : EtcdWatchNames), RET #ch;
       isSpsc γw.spsc ch (watchStateElemP V.kv γw (opWatchModel key opts).watchNorm Q
         iprop(□ (⌜V.nm = 1⌝ → watchCheckOk (V.mem 0).2.tag (V.mem 0).2.s V.conn
-          (GoInterface.ok ctx) n (opWatchModel key opts).key (opWatchModel key opts).base.rangeEnd)))
+          om n (opWatchModel key opts).key (opWatchModel key opts).base.rangeEnd)))
         (fun _ => iprop(True)) ∗
       spscConsumer γw.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
       monoListIdxOwn γw.cur 0 (rev - W64 1) }}

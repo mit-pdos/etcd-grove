@@ -82,10 +82,13 @@ theorem leaseClient.LeaseKeepAlive.wp_proof
   ihave #Hgrpc : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc $$ []
   · iPkgInit
   wp_bind (App (App (App (App (Val _) _) _) _) _)
-  -- (D32) the one-address case
+  -- (D32) the one-address case; (errdesc stage 1) at some outgoing metadata of the context
+  ihave #HctxO := ctxOk_outgoingC ctx cd $$ Hctx
+  iunfold metadata.outgoingCtxOkC at HctxO
+  icases HctxO with ⟨%om, #Hom⟩
   have hNS := wp_NewStream conn [addr] [ic] go!"/etcdserverpb.Lease/LeaseKeepAlive"
     pbLeaseKeepAliveRequestT pbLeaseKeepAliveResponseT pbLeaseKeepAliveRequestT_reg
-    pbLeaseKeepAliveResponseT_reg (fun _ => Up) (fun _ _ => Spec) ctx cd
+    pbLeaseKeepAliveResponseT_reg (fun _ => Up) (fun _ _ => Spec) ctx cd om
   simp only [pbLeaseKeepAliveRequestT, pbLeaseKeepAliveResponseT] at hNS
   iapply (hNS _ copts ([sm] ++ vs))
   · iframe #
