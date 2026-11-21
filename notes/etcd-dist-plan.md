@@ -95,8 +95,13 @@ lease workloads) is an **orchestrator** machine running `remote.RunRemote` plus 
 running `remote.ServeClient`. The orchestrator issues each client's operations as remote calls, records the
 history and runs the check (porcupine for kv). The generic lemma `remoteDistSafe` is proved there. Why this
 form: a proof cannot exploit clients that share a process (a prophecy cannot cross machines; the note's §2).
-The port to the net extension builds on phase 6's port of the shared harness (driver, recorder, checker,
-porcupine's axiom; `notes/dsverify-net-port-plan.md`); `Remote` is not in that plan, and is ours (etcd-grove#24).
+The harness pieces are ours (etcd-grove#24, 2026-11-21 22:22Z: phase 6 has not started and moved them to this
+claim). Most need no port: porcupine is verified here (`Proof/github_com/anishathalye/porcupine/`, no axiom), so
+dsverify's porcupine axiom is replaced by that proof; the driver and recorder are `examples/lib/lintest`
+(proved: `Run` never returns `Illegal` when `apply` is logically atomic), and `examples/raft/kvnet/kvcheck` (#22)
+is the closest existing `ServeClient`-like node. So the port is the orchestration (`RunRemote`, `ServeClient`)
+over `lintest`/`kvcheck` and the net extension, in a neutral home, `examples/lib/remote`, which phase 6's kits
+will reuse.
 The workload table's "one machine per workload" (§2) becomes "one orchestrator plus k_c client machines per
 workload"; single-client workloads (putget, compact, durable) stay one machine.
 
@@ -275,7 +280,7 @@ For upamanyus:
 | D5 transport | phase 7 S1-S5 | 60-110k lines (option B's estimate) | upamanyus |
 | D6 server | one `NewServer` spec for both starts; `walFoRes`; C6; the backend after a crash; `TrustBoundary` discharged | weeks | D4 |
 | D7 cluster | global/local ghost split, the restart invariant | weeks | D6 |
-| D8 clients | port dsverify's `Remote` (orchestrator + client nodes, `remoteDistSafe`) onto the net extension over phase 6's harness port; each workload's client operations as `Remote` calls | ~2k lines + the port | D1, phase 6 |
+| D8 clients | port dsverify's `Remote` orchestration (`RunRemote`, `ServeClient`, `remoteDistSafe`) onto the net extension in `examples/lib/remote`, over `lintest`/`kvcheck` and the verified porcupine; each workload's client operations as `Remote` calls | ~2k lines + the port | D1 |
 | D9 assembly | the theorem; `WellFormed` consumed; retire `etcd_safe`, leaseexpiryN's | ~2k lines | all |
 
 **Interim milestone (Q7)**: D1, D2, D5 (S1-S5), D7 without crashes, D8, D9 over `goose_dist_adequacy`:
