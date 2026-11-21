@@ -566,6 +566,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__updateFieldIfExist
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Tracer__Start
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.newTrace
 public import Proof.go_etcd_io.etcd.client.pkg.v3.transport.IsClosedConnError
+public import Proof.go_etcd_io.etcd.client.pkg.v3.transport.NewTimeoutTransport
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.IDFromString
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.ID__String
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.ID__String_ptr
@@ -2993,13 +2994,17 @@ theorem v3compactor.wp_New :
     v3compactor.New.spec (GF := GF) (hG := hG) :=
   v3compactor.New.wp_proof zap.wp_NewNop clockwork.wp_NewRealClock v3compactor.wp_newPeriodic v3compactor.wp_newRevision fmt.wp_Errorf v3compactor.Periodic.wp_Run v3compactor.Periodic.wp_Stop v3compactor.Periodic.wp_Pause v3compactor.Periodic.wp_Resume v3compactor.Revision.wp_Run v3compactor.Revision.wp_Stop v3compactor.Revision.wp_Pause v3compactor.Revision.wp_Resume
 
+theorem transport.wp_NewTimeoutTransport :
+    transport.NewTimeoutTransport.spec (GF := GF) (hG := hG) :=
+  transport.NewTimeoutTransport.wp_proof
+
 theorem rafthttp.wp_newStreamRoundTripper :
     rafthttp.newStreamRoundTripper.spec (GF := GF) (hG := hG) :=
-  rafthttp.newStreamRoundTripper.wp_proof
+  rafthttp.newStreamRoundTripper.wp_proof transport.wp_NewTimeoutTransport
 
 theorem rafthttp.wp_NewRoundTripper :
     rafthttp.NewRoundTripper.spec (GF := GF) (hG := hG) :=
-  rafthttp.NewRoundTripper.wp_proof
+  rafthttp.NewRoundTripper.wp_proof transport.wp_NewTimeoutTransport
 
 theorem probing.wp_NewProber :
     probing.NewProber.spec (GF := GF) (hG := hG) :=
