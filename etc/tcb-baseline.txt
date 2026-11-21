@@ -51,7 +51,6 @@ axiom Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.opaqueInitsOk
 axiom Perennial.go_opentelemetry_io.otel.attribute.opaqueInitsOk
 axiom Perennial.go_opentelemetry_io.otel.trace.opaqueInitsOk
-axiom Perennial.golang_org.x.crypto.bcrypt.opaqueInitsOk
 axiom Perennial.golang_org.x.sys.unix.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.codes.initFuncsOk
 axiom Perennial.google_golang_org.grpc.credentials.opaqueInitsOk
@@ -116,7 +115,6 @@ axiom auth.authStore.AuthInfoFromTLS.wp_proof
 axiom auth.authStore.selectPassword.wp_proof
 axiom auth.newTokenProviderJWT.wp_proof
 axiom auth.redactToken.wp_proof
-axiom auth.tokenSimple.genTokenPrefix.wp_proof
 axiom backend.backend.Snapshot.wp_proof
 axiom backend.newBoltLoggerZap.wp_proof
 axiom backend.wp_mutexLit

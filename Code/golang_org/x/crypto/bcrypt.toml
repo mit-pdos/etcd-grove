@@ -1,8 +1,13 @@
 # Names only, but for the cost bounds `auth.NewAuthStore` checks its `bcryptCost` against
 # (`MinCost`, `MaxCost`, `DefaultCost`; the auth plan's E2a, 2026-10-25: names-only constants are
-# values of unknown shape, which a comparison cannot evaluate). Hashing stays the trust boundary.
-translate = ["!*", "MinCost", "MaxCost", "DefaultCost"]
-imports = ["!*"]
+# values of unknown shape, which a comparison cannot evaluate), and (prove-authcrypto, 2026-11-21)
+# the package's variables, whose initializers `etc/gen-init.py` proves (until then the
+# trust-boundary axiom `opaqueInitsOk`): `bcEncoding = base64.NewEncoding(alphabet)` (over
+# `NewEncoding`'s spec: the alphabet is 64 distinct symbols, no newline), three `errors.New` errors
+# and the byte-slice literal `magicCipherData`. Hashing stays the trust boundary.
+translate = ["!*", "MinCost", "MaxCost", "DefaultCost", "alphabet", "bcEncoding",
+  "ErrMismatchedHashAndPassword", "ErrHashTooShort", "ErrPasswordTooLong", "magicCipherData"]
+imports = ["!*", "errors", "encoding/base64"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

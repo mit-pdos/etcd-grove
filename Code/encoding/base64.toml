@@ -4,8 +4,12 @@
 # variables and the constants they use, proved in `Proof/encoding/base64/`.
 translate = ["!*", "Encoding", "NewEncoding", "Encoding.WithPadding", "Encoding.EncodedLen", "Encoding.Encode",
   "Encoding.EncodeToString", "StdEncoding", "URLEncoding", "RawStdEncoding", "RawURLEncoding",
-  "StdPadding", "NoPadding", "decodeMapInitialize", "invalidIndex"]
-imports = ["!*"]
+  "StdPadding", "NoPadding", "decodeMapInitialize", "invalidIndex",
+  # (prove-authcrypto, 2026-11-21) the decoder `DecodeString` runs (`authStore.selectPassword`,
+  # bcrypt's `base64Decode`), with its bodies, proved in `Proof/encoding/base64/`
+  "Encoding.DecodeString", "Encoding.Decode", "Encoding.decodeQuantum", "Encoding.DecodedLen",
+  "decodedLen", "assemble32", "assemble64"]
+imports = ["!*", "internal/byteorder", "strconv"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

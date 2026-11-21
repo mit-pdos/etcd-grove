@@ -94,8 +94,12 @@ translate = ["!*",
   "authStore.Close",
   # (revoke-open pass 2, 2026-11-06) the root context the server's lease revocation runs under
   # (`s.authStore.WithRoot(s.ctx)`); proved in the auth-off case only, its `IsAuthEnabled` branch
-  "authStore.WithRoot"]
-imports = ["!*", "bytes", "context", "errors", "fmt", "sort", "strconv", "strings", "time", "sync", "sync/atomic",
+  "authStore.WithRoot",
+  # (prove-authcrypto, 2026-11-21) the simple provider's `genTokenPrefix` with its body, over
+  # Perennial's `crypto/rand.Int` (its trusted model) and `math/big`'s `NewInt`/`Int64`, and the
+  # constants it reads; until then names only (the trust boundary)
+  "tokenSimple.genTokenPrefix", "letters", "defaultSimpleTokenLength"]
+imports = ["!*", "bytes", "context", "crypto/rand", "math/big", "errors", "fmt", "sort", "strconv", "strings", "time", "sync", "sync/atomic",
   "go.uber.org/zap", "google.golang.org/grpc/metadata", "golang.org/x/crypto/bcrypt",
   "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/authpb",
   "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "go.etcd.io/etcd/pkg/v3/adt",

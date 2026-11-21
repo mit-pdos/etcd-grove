@@ -19,6 +19,7 @@ public import Proof.runtime.PkgInit
 public import Perennial.Code.bytes
 public import Perennial.Code.cmp
 public import Perennial.Code.context
+public import Perennial.Code.crypto.rand
 public import Perennial.Code.encoding.binary
 public import Perennial.Code.errors
 public import Perennial.Code.fmt
@@ -29,6 +30,7 @@ public import Perennial.Code.io
 public import Perennial.Code.iter
 public import Perennial.Code.log
 public import Perennial.Code.math
+public import Perennial.Code.math.big
 public import Perennial.Code.reflect
 public import Perennial.Code.slices
 public import Perennial.Code.sort
@@ -55,6 +57,7 @@ inductive ExternalInit [GooseExts] [GoGlobalContext] : GoString → val → Prop
   | bytes : ExternalInit pkg_id.bytes _root_.Perennial.bytes.initialize'
   | cmp : ExternalInit pkg_id.cmp _root_.Perennial.cmp.initialize'
   | context : ExternalInit pkg_id.context _root_.Perennial.context.initialize'
+  | crypto_rand : ExternalInit pkg_id.crypto.rand _root_.Perennial.crypto.rand.initialize'
   | encoding_binary : ExternalInit pkg_id.encoding.binary _root_.Perennial.encoding.binary.initialize'
   | errors : ExternalInit pkg_id.errors _root_.Perennial.errors.initialize'
   | fmt : ExternalInit pkg_id.fmt _root_.Perennial.fmt.initialize'
@@ -65,6 +68,7 @@ inductive ExternalInit [GooseExts] [GoGlobalContext] : GoString → val → Prop
   | iter : ExternalInit pkg_id.iter _root_.Perennial.iter.initialize'
   | log : ExternalInit pkg_id.log _root_.Perennial.log.initialize'
   | math : ExternalInit pkg_id.math _root_.Perennial.math.initialize'
+  | math_big : ExternalInit pkg_id.math.big _root_.Perennial.math.big.initialize'
   | reflect : ExternalInit pkg_id.reflect _root_.Perennial.reflect.initialize'
   | slices : ExternalInit pkg_id.slices _root_.Perennial.slices.initialize'
   | sort : ExternalInit pkg_id.sort _root_.Perennial.sort.initialize'
