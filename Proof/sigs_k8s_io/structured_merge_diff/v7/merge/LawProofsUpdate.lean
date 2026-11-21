@@ -257,6 +257,60 @@ theorem key_notin_take {α : Type} (keys : List α) (j : Int) (key : α) (hnd : 
   have := list_nodup_getElem?_inj keys hnd i j.toNat key hi' Hkey
   omega
 
+/-- A manager's set after `update`'s two in-place loops (`ck`: the managers with a conflict, `rk`:
+those losing the removed paths). -/
+def finSet (C : Cmp) (ck rk : List GoString) (k : GoString) (e : VSet) : PathSet :=
+  if k ∈ rk then
+    ((if k ∈ ck then e.set.diff (e.set.inter (C.modified.union C.added)) else e.set).diff C.removed)
+  else (if k ∈ ck then e.set.diff (e.set.inter (C.modified.union C.added)) else e.set)
+
+theorem empty_iff (s : PathSet) : s.IsEmpty ↔ ∀ q, q ∉ s := FSet_isEmpty_iff_law_holds s
+
+/-- The two loops compute `afterUpdate`'s set. -/
+theorem finSet_eq (mf : MF) (mgr : GoString) (C : Cmp) (hs : keysSorted mf = true)
+    (ck rk : List GoString)
+    (hck : ∀ k, k ∈ ck ↔ ((conflictsMF mf mgr C).get k).isSome = true)
+    (hrk : ∀ k, k ∈ rk ↔ ((mf.get k).isSome = true ∧ k ≠ mgr ∧ ¬ C.removed.IsEmpty))
+    (k : GoString) (e : VSet) (he : mf.get k = some e) :
+    finSet C ck rk k e = (if k = mgr then e.set
+      else (e.set.diff (conflictsOfMgr (conflictsOf mf mgr C) k)).diff C.removed) := by
+  have hcg := conflictsMF_get mf mgr C hs k
+  rw [he] at hcg
+  simp only [Option.bind_some] at hcg
+  unfold finSet
+  by_cases hkm : k = mgr
+  · have h1 : k ∉ ck := by
+      rw [hck k, hcg]; simp [hkm]
+    have h2 : k ∉ rk := by rw [hrk k]; simp [hkm]
+    rw [if_neg h2, if_neg h1, if_pos hkm]
+  · rw [if_neg hkm]
+    have hckk : k ∈ ck ↔ ¬ (e.set.inter (C.modified.union C.added)).IsEmpty := by
+      rw [hck k, hcg]; simp only [hkm, ite_false]; split <;> simp_all
+    have hrkk : k ∈ rk ↔ ¬ C.removed.IsEmpty := by
+      rw [hrk k, he]; simp [hkm]
+    have hcm := mem_conflictsOfMgr mf mgr C hs k e he hkm
+    apply FSet.ext'
+    intro q
+    have hd : ∀ (a b : PathSet), q ∈ a.diff b ↔ q ∈ a ∧ q ∉ b := fun a b => FSet_mem_diff_law_holds a b q
+    rw [hd, hd, hcm q]
+    by_cases h1 : k ∈ ck
+    · by_cases h2 : k ∈ rk
+      · simp only [h1, h2, ite_true, hd]
+      · have hre : C.removed.IsEmpty := Classical.byContradiction fun h => h2 (hrkk.2 h)
+        simp only [h1, h2, ite_true, ite_false, hd]
+        have := (empty_iff _).1 hre q
+        simp_all
+    · have hce : (e.set.inter (C.modified.union C.added)).IsEmpty :=
+        Classical.byContradiction fun h => h1 (hckk.2 h)
+      have hq := (empty_iff _).1 hce q
+      by_cases h2 : k ∈ rk
+      · simp only [h1, h2, ite_true, ite_false, hd]
+        simp_all
+      · have hre : C.removed.IsEmpty := Classical.byContradiction fun h => h2 (hrkk.2 h)
+        simp only [h1, h2, ite_false]
+        have := (empty_iff _).1 hre q
+        simp_all
+
 end MUpd
 
 section iprop
