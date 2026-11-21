@@ -3,6 +3,9 @@ module
 
 public import GeneratedProof.hash.crc32
 public import SpecPlan.Spec.PkgInit.Base
+public import SpecPlan.Spec.PkgInit.hash
+public import Perennial.Proof.sync.Base
+public import Perennial.Proof.sync.atomic.Base
 
 @[expose] public section
 noncomputable section

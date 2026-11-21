@@ -68,6 +68,27 @@ noncomputable def WrapperFor [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def Propagators [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/tracing.Propagators"
 
+/-- SpanFromContext returns the *Span from the current context. It is composed of the active
+    OpenTelemetry and k8s.io/utils/trace spans.
+
+    go: tracing.go:88:6 -/
+noncomputable def SpanFromContext.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "ctx"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Span.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Span.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc Span.ty))) (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_opentelemetry_io.otel.trace.SpanFromContext []))) (Val #())) (Var "$a0")))
+  (Let "$v1" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.utils.trace.FromContext []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral Span.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"otelSpan")) (ElementExpression _root_.Perennial.go_opentelemetry_io.otel.trace.Span.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"utilSpan")) (ElementExpression (go.GoType.PointerType _root_.Perennial.k8s_io.utils.trace.Trace.ty) (Var "$v1")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Span.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Span.ty)))) (Var "$res0")))))
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.component_base.tracing where
   pkgImportedPkgs := [pkg_id.go_opentelemetry_io.otel.trace, pkg_id.k8s_io.utils.trace]
 
@@ -182,12 +203,14 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Span_instance : Span.TypeAssumptions
   TracerProvider_instance : TracerProvider.TypeAssumptions
   noopTracerProvider_instance : noopTracerProvider.TypeAssumptions
+  SpanFromContext_unfold : FuncUnfold SpanFromContext [] SpanFromContext.impl
   import_otel_trace_Assumption : _root_.Perennial.go_opentelemetry_io.otel.trace.Assumptions
   import_utils_trace_Assumption : _root_.Perennial.k8s_io.utils.trace.Assumptions
 
 attribute [instance] Assumptions.Span_instance
   Assumptions.TracerProvider_instance
   Assumptions.noopTracerProvider_instance
+  Assumptions.SpanFromContext_unfold
   Assumptions.import_otel_trace_Assumption
   Assumptions.import_utils_trace_Assumption
 

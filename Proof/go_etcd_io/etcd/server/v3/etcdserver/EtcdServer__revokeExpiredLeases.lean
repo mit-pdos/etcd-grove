@@ -123,7 +123,7 @@ theorem EtcdServer.revokeExpiredLeases.wp_proof
     wp_apply hEL s E ρ γr 3 $$ [Glr Grdr G3] as %b ⟨Glr, Grdr, G3⟩
     · rw [hoff, isServerReqM_false, isServerReadM_false]
       iframe #; iframe Glr Grdr G3
-      ipureintro; omega
+      ipureintro; left; rfl
     imod raftLoanL_giveBack (srvLgReader s) ⊤ (fun _ _ => CoPset.mem_full) $$ [GloanR Glr]
       with G1
     · iframe

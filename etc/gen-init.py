@@ -461,6 +461,25 @@ its translated initializers: the interface assertions `var _ Condition = Generic
            ['imodintro', 'unfold authorizerInit',
             'iexists _; iexact HErrorConditionEvaluationNotSupported'],
 )
+# (prove-k8s4, 2026-11-21) apimachinery's `fields`: its two variables with their initializers
+SPECIAL['k8s_io.apimachinery.pkg.fields'] = dict(
+    doc='''Its fact is `True`. Its initializer allocates its variables, initializes its imports and runs their
+translated initializers (`selector.go`): `valueEscaper = strings.NewReplacer(...)` of three pairs
+(Perennial's `strings.wp_NewReplacer`, translated since Perennial 60800ea5e) and `termOperators`, a slice
+literal of the operator constants (prove-k8s4, 2026-11-21; until then the trust-boundary axiom
+`opaqueInitsOk`).''',
+    alloc_types={'valueEscaper': 'Loc', 'termOperators': 'GoSlice'},
+    before={'$end': ['try wp_auto',
+        'wp_apply (wp_slice_literal (l := [go!"\\\\", go!"\\\\\\\\", go!",", go!"\\\\,", go!"=", go!"\\\\="]));'
+        ' isplitr; (· ipureintro; rfl); iintro %pEsc ⟨SEsc, -⟩',
+        'try wp_auto',
+        'wp_apply (_root_.Perennial.strings.wp_NewReplacer _',
+        '    [go!"\\\\", go!"\\\\\\\\", go!",", go!"\\\\,", go!"=", go!"\\\\="] _ (by decide)) $$ [SEsc] as %r ⟨-, -⟩',
+        '· iframe SEsc',
+        'try wp_auto',
+        'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %pOps ⟨-, -⟩',
+        'try wp_auto']},
+)
 # (2026-11-19) apimachinery's `util/validation/field` (names only but `NewPath`,
 # `ErrorList.ToAggregate` and `(*Error).Error`'s code, translated with bodies)
 SPECIAL['k8s_io.apimachinery.pkg.util.validation.field'] = dict(
@@ -954,6 +973,31 @@ says returns.''',
            FIN_PRE[:6] +
            ['imodintro', 'unfold EtcdGrove.wal.walInit EtcdGrove.WalFs.walCrcTable EtcdGrove.wal.metricsInit',
             'iframe #'],
+)
+# (prove-etcdint3, 2026-11-21) `hash/crc32`'s initializer translated (until then the trust-boundary
+# axiom `opaqueInitsOk` of its three variables): `IEEETable = simpleMakeTable(IEEE)`, over its proved
+# spec, and the two `sync.OnceFunc`s (closures not run at initialization)
+SPECIAL['hash.crc32'] = dict(
+    doc='''Its fact (`crc32Init`, `PkgInit.lean`): `IEEETable` holds, read-only, a pointer to the IEEE
+table, read-only. Its initializer allocates its variables, initializes its imports and runs their
+translated initializers: `simpleMakeTable(IEEE)` (`crc32.go:101`, over its spec) and the two
+`sync.OnceFunc(func() {...})` (`castagnoliInitOnce`, `ieeeInitOnce`: Perennial's `sync.wp_OnceFunc`;
+their functions run only when called). (prove-etcdint3, 2026-11-21: until then untranslated, the
+trust-boundary axiom `opaqueInitsOk`, and its fact `True`.)''',
+    imports=['Proof.hash.crc32.simpleMakeTable', 'Proof.hash.crc32.simplePopulateTable'],
+    alloc_types=dict(IEEETable='Loc', castagnoliInitOnce='GoFunc', ieeeInitOnce='GoFunc'),
+    before=dict(
+        IEEETable=['try wp_auto',
+                   'rw [show (W32 3988292384) = _root_.Perennial.hash.crc32.ieeePoly from rfl]',
+                   'wp_apply (_root_.Perennial.EtcdGrove.hash.crc32.simpleMakeTable.wp_proof _root_.Perennial.EtcdGrove.hash.crc32.simplePopulateTable.wp_proof) as %tI HtI',
+                   'try wp_auto'],
+        castagnoliInitOnce=['try wp_auto', 'wp_apply _root_.Perennial.sync.wp_OnceFunc as %_ -', 'try wp_auto'],
+        ieeeInitOnce=['try wp_auto', 'wp_apply _root_.Perennial.sync.wp_OnceFunc as %_ -', 'try wp_auto'],
+        **{'$end': ['try wp_auto']}),
+    finish=['ipersist HIEEETable',
+            'imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HtI with #HtI'] +
+           FIN_PRE[:6] +
+           ['imodintro', 'unfold hash.crc32.crc32Init hash.crc32.ieeeTableArr', 'iexists _', 'iframe HIEEETable', 'iexact HtI'],
 )
 # (WAL package init, 2026-11-13) the part's raft root package (names-only): `emptyState`, a
 # translated `&pb.HardState{}`; (W4c U4, 2026-11-14) in its fact (`rootInit`, `PkgInit.lean`), as the
@@ -2125,17 +2169,19 @@ _E['finish'] = ([f'ipersist H{x}' for x in _ETCD_ERRMSGS] + FIN_PRE[:6] +
      'iframe #', 'ipureintro', 'exact ⟨_, _, rfl, rfl⟩'])
 
 _B = SPECIAL['go_etcd_io.etcd.server.v3.storage.backend']
-_B['custom']['boltOpenOptions'] = dict(
-    doc='/-- `boltOpenOptions = &bolt.Options{MmapFlags: syscall.MAP_POPULATE, NoFreelistSync: true}` (`config_linux.go`; nil on other systems, but the file model is Linux\'s, configuration C): read-write options with the default page size and `OpenFile`, `NoFreelistSync`, no `Timeout`. (S3e, 2026-11-18: until then possibly nil.) -/',
-    post='∃ p : Loc, globalAddr boltOpenOptions ↦ p ∗ ∃ o : EtcdGrove.backend.OptsM, EtcdGrove.backend.optsAt p DFrac.discard o ∗ ⌜o.ok ∧ o.noFreelistSync = true ∧ o.timeout = W64 0⌝',
-    pat='⟨%p@, H@, #S@⟩')
+# (prove-etcdint3, 2026-11-21) `boltOpenOptions` translated (`&bolt.Options{...}`, over project bboltfs's
+# `syscall.MAP_POPULATE`): its allocation persisted, and `boltOpenOptionsOk` from it (until then the
+# trust-boundary axiom `boltOpenOptions_init`)
+_B['alloc_types']['boltOpenOptions'] = 'Loc'
+_B['before']['boltOpenOptions'] = ['try wp_auto', 'irename : (_ ↦ (_ : _root_.Perennial.go_etcd_io.bbolt.Options) : IProp GF) => HpbOO']
 _B['doc'] = _B['doc'].replace("hold `Histogram`s whose `Observe` returns.", "hold `Histogram`s whose `Observe` returns, and `boltOpenOptions` (`boltOpenOptionsOk`).")
 # (2026-11-07, R10) the defaults `DefaultBackendConfig` loads (translated stores of constants)
 _B['doc'] = _B['doc'].replace("and `boltOpenOptions` (`boltOpenOptionsOk`).", "and `boltOpenOptions` (`boltOpenOptionsOk`), and `defaultBatchInterval`,\n`defaultBatchLimit`, `InitialMmapSize` their translated initializers' constants.")
 _B['finish'] = (['ipersist HcommitSec', 'ipersist HrebalanceSec', 'ipersist HspillSec', 'ipersist HwriteSec',
-                 'ipersist HboltOpenOptions', 'ipersist HdefaultBatchInterval',
-                 'ipersist HdefaultBatchLimit', 'ipersist HInitialMmapSize'] + FIN_PRE[:6] +
-                ['imodintro', 'unfold backendInit EtcdGrove.backend.boltOpenOptionsOk', 'iframe #',
+                 'ipersist HboltOpenOptions', 'ipersist HpbOO', 'ipersist HdefaultBatchInterval',
+                 'ipersist HdefaultBatchLimit', 'ipersist HInitialMmapSize',
+                 'ihave #HbOO : (EtcdGrove.backend.boltOpenOptionsOk : IProp GF) $$ []', '· iapply EtcdGrove.backend.boltOpenOptionsOk_intro $$ HboltOpenOptions HpbOO', '  ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩'] + FIN_PRE[:6] +
+                ['imodintro', 'unfold backendInit', 'iframe #',
                  # `defaultBatchInterval`'s store: `100 * time.Millisecond`, unevaluated
                  'rw [show (W64 100000000 : w64) = W64 100 * W64 1000000 from by decide]',
                  'iexact HdefaultBatchInterval'])
@@ -2571,7 +2617,7 @@ WatchableKV = (*watchableStore)(nil)`) are translated too (until then the trust-
             ['ipersist HchanBufLen', 'ipersist HmaxWatchersPerSync', 'ipersist HwatchResyncPeriod',
              'ipersist HwatchBatchMaxRevs', 'ipersist HrestoreChunkKeys',
              'ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []',
-             '· iapply isPkgInit_access $$ Hd5',
+             '· iapply isPkgInit_access $$ {Hd:go_etcd_io.etcd.server.v3.storage.schema}',
              'icases Hsi with ⟨-, -, -, -, -, #HSK, #HFK, -⟩',
              'ihave #VCP : (EtcdGrove.errVarCell ErrCompacted go!"mvcc: required revision has been compacted" : IProp GF) $$ []',
              '· unfold EtcdGrove.errVarCell; iexists _; iframe HErrCompacted CCP',
@@ -3300,22 +3346,28 @@ SPECIAL[_ZC]['doc'] = SPECIAL[_ZC]['doc'].replace("Its fact is `True`.", "Its fa
 SPECIAL[_ZC]['finish'] = ['ipersist HDefaultClock'] + FIN_PRE[:6] + [
     'imodintro', f'iexists (zero_val {_ZC}.systemClock)', 'itrivial']
 # (prove-initleft, 2026-11-21) zap's package variables, translated but `_minTimeInt64`/`_maxTimeInt64`
-# (Perennial's `time.Unix` is names only) and `_sinkRegistry`
+# (Perennial's `time.Unix` is names only) and `_sinkRegistry`; (prove-srvloops2, 2026-11-21)
+# `_minTimeInt64`/`_maxTimeInt64` translated (`time.Unix`), held by zap's fact (`zap.Time` reads them)
 _Z = 'go_uber_org.zap'
 _ZENC = (f'(go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.{_ZC}.EncoderConfig.ty] false '
          f'[_root_.Perennial.{_ZC}.Encoder.ty, go.error]))')
 SPECIAL[_Z] = newvars_cfg(dict(
-    doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+    doc='''Its fact: `_minTimeInt64` and `_maxTimeInt64` hold fixed times (prove-srvloops2, 2026-11-21: `zap.Time`
+compares with them; until then `True`). Its initializer initializes its imports, allocates its variables and runs
 their translated initializers (prove-initleft, 2026-11-21; until then the trust-boundary axiom
 `opaqueInitsOk` covered them all): `errNoEncoderNameSpecified` (`errors.New`), the encoder constructors (a
 map literal of two func literals), `_errArrayElemPool` (`pool.New`, proved), `_globalL = NewNop()`
 (`zapcore.NewNopCore()`, `zapcore.AddSync(io.Discard)` over any writer, `zapcore.DefaultClock` from
 zapcore's fact), `_globalS = _globalL.Sugar()` (a copy of the logger) and the interface assertion
-`var _ internal.LeveledEnabler = AtomicLevel{}`; `_minTimeInt64`/`_maxTimeInt64` (`time.Unix`, names only
-in Perennial) and `_sinkRegistry` (`newSinkRegistry`) stay untranslated, `opaqueInitsOk`.''',
+`var _ internal.LeveledEnabler = AtomicLevel{}`, and (prove-srvloops2) `_minTimeInt64`/`_maxTimeInt64`
+(`time.Unix`); `_sinkRegistry` (`newSinkRegistry`) stays untranslated, `opaqueInitsOk`.''',
     alloc_types={'_encoderNameToConstructor': 'Loc', '_errArrayElemPool': 'Loc', '_globalL': 'Loc',
-                 '_globalS': 'Loc'},
+                 '_globalS': 'Loc', '_minTimeInt64': '_root_.Perennial.time.Time',
+                 '_maxTimeInt64': '_root_.Perennial.time.Time'},
+    finish=['ipersist H_minTimeInt64', 'ipersist H_maxTimeInt64'] + FIN_PRE[:6],
     before={
+        '_minTimeInt64': ['try wp_auto', 'wp_apply _root_.Perennial.time.wp_Unix as %tmin -', 'try wp_auto'],
+        '_maxTimeInt64': ['try wp_auto', 'wp_apply _root_.Perennial.time.wp_Unix as %tmax -', 'try wp_auto'],
         '_encoderNameToConstructor': map_lit_steps('Henc', 'GoString', 'GoFunc', 'go.string', _ZENC, 2),
         '_errArrayElemPool': _zc_pool('pea'),
         '_globalL': ['try wp_auto',
