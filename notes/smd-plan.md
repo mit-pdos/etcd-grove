@@ -998,3 +998,10 @@ the Prove phase's. To do before the walkers' proofs.
   key list's bound for `FieldList.Sort`; schema well-formedness, decided for the driver's schema).
 - (round 2, D1e, ownership rule) `keyedAssociativeListItemToPathElement` pre `rel = .associative`
   (`FieldList.Sort` needs distinct key names, which `list_wf` gives only for associative lists).
+- (round 3, T2, ownership rule) the reconcile walker cluster names the walker's path slice
+  (`rwOwnAt … ps …`, same `ps` before and after): Go assigns a reconcile walker's `path` once.
+- (round 3, coordinator) D9's `inputsSmall` is one combined bound: the objects' sizes plus the
+  managers' union's trie nodes `< smdSizeMax` (separate bounds let Apply's new managers' union reach
+  ~2·smdSizeMax, beyond `prune`'s premise).
+- (round 3, coordinator) `merge_size.law` takes the inputs' conformance (without it, lists repeating
+  a key may break it).
