@@ -111,6 +111,7 @@ theorem lease.lessor.Grant.wp_proof
   have hid0 : id ≠ W64 0 := by assumption
   wp_apply hNew as %l ⟨%Hlnn, HID, Httl, Hrem, HexMu, Hexp, Hmu0, ⟨%sm, HiS, Hsm⟩, ⟨%rc, Hrc, Hrcl⟩⟩
   ipersist Hrc
+  icases revokeCloser_recv rc $$ Hrcl with ⟨Hrcl, #Hrr⟩
   -- the new lease's locks
   icases ptsto_halves_split _ _ $$ Hexp with ⟨Hexp, HexpG⟩
   imod (sync.init_RWMutex (leaseExpiry l) (E := ⊤) (lsF go!"expiryMu" l)) $$ [HexpG] HexMu
@@ -240,7 +241,7 @@ theorem lease.lessor.Grant.wp_proof
       isplitr
       · iexists (grantTTL mt ttl); iexact Httl
       isplitr
-      · iexists rc; iexact Hrc
+      · iexists rc; iframe Hrc Hrr
       isplitl [Hrem]
       · iexists _; iexact Hrem
       iexists _; iexact Hexp

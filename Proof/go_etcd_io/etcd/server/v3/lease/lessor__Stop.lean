@@ -1,11 +1,13 @@
 /-
 Proof of `Spec/go_etcd_io/etcd/server/v3/lease/lessor__Stop.lean` (prove-ps2-lease, 2026-11-21; an
 axiom since R2b-3c part 2, 2026-11-04). `Stop` is `close(le.stopC); <-le.doneC`: the close with
-`stopC`'s close right, the receive on `doneC` as a broadcast channel's (both in `lessorStopTok`).
+`stopC`'s close token (a close-once channel, `wp_once_close`; prove-ps2-renew), the receive on
+`doneC` as a broadcast channel's (both in `lessorStopTok`).
 -/
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__Stop
+public import Proof.go_etcd_io.etcd.server.v3.lease.LessorLemmas
 
 @[expose] public section
 
@@ -29,10 +31,9 @@ theorem lease.lessor.Stop.wp_proof : lease.lessor.Stop.spec (GF := GF) (hG := hG
   intro lp
   wp_start as Htok
   iunfold lessorStopTok at Htok
-  icases Htok with ⟨%c, %d, %γc, %γd, #Hc, #Hd, Hstop, #Hdone⟩
+  icases Htok with ⟨%c, %d, %γt, %γd, #Hc, #Hd, #Hstop, Ht, #Hdone⟩
   (try wp_auto)
-  wp_apply wp_broadcast_chan_close c γc iprop(True) $$ [$Hstop] as -
-  · iintro !>; itrivial
+  wp_apply (wp_once_close c γt) $$ [$Hstop $Ht]
   (try wp_auto)
   wp_apply chan.wp_receive (V := Unit) d γd $$ [] as -
   · iapply ownBroadcastChan_is_chan _ _ _ _ $$ Hdone

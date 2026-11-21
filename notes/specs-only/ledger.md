@@ -3942,3 +3942,21 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   thread lends the one it holds (`apply.bkRT`). The observation `Q` and the rest are unchanged.
 - **Decision.** Taken under the user's direction of 2026-11-20 ("make your own choice ... the top-level robustness theorems
   should have fewer axioms"): it retires the `backend.Snapshot` axiom from every collection that reaches it.
+
+## 2026-11-21: `lessor.Renew` proved; `stopC` and `revokec` close-once channels (prove-ps2-renew)
+
+- **Spec.** `lease.lessor.Renew.spec` (`Spec/go_etcd_io/etcd/server/v3/lease/lessor__Renew.lean`; a names-only
+  trust-boundary axiom until this change), unchanged. The definitions under it: `lease.lessorStopTok`
+  (`LessorBackend.lean`), `lessorExtra`, `leaseMeta`, `revokeCloser` (`InvLessor.lean`), `leaseInit` (`Base.lean`).
+- **Defect.** Not provable over the real code with the invariant as it was: `Renew`'s `select` receives on the lease's
+  `revokec` (whose whole channel state was the revoker's `revokeCloser`), on `stopC` (a broadcast channel whose receive
+  side nothing in `lessorInv` held, and `ownBroadcastChan` is stated at `HasLC.hasLC` only, the lessor's invariant at any
+  `hlc`), and `leaseRenewed.Inc()` calls a counter `leaseInit` did not describe.
+- **Evidence.** `lessor.go:396-456`; the translation (`lessor.Renew.impl`).
+- **Proposed change.** `revokec` and `stopC` close-once channels as `demotec` already was (`onceChanInv`, `onceRecv`,
+  renamed from `demoteChanInv`/`demoteRecv`): `revokeCloser c` the channel's `onceRecv` and close token, `leaseMeta`'s
+  `revokec` its `revokeRecv`; `lessorStopTok` `stopC`'s close token, `lessorExtra` its `lessorStopRecv`; `leaseInit` adds
+  `leaseRenewed`'s `counterSpec` (grouped with `leaseRevoked`'s). No spec a caller sees changes; `NewLessor`'s axiom
+  claims more of its result (checked: `notes/axiom-review/lessor-demotec-stop.md`, prove-ps2-renew section).
+- **Decision.** Applied (prove-ps2-renew, 2026-11-21): `Renew` and `Lease.expired` translated and proved, the axiom
+  retired; `NewLease`, `initAndRecover`, `Grant`, `Revoke`, `Stop` re-proved over the new definitions.

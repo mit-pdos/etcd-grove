@@ -190,6 +190,7 @@ theorem recover_one (γl : GName) (γr : LessorRdNames) (hs : List LSnap)
   icases Hl with ⟨%Hlnn, HID, Httl, Hrem, HexMu, Hexp, Hmu0, ⟨%sm, HiS, Hsm⟩, ⟨%c, Hrc, Hrcl⟩⟩
   ipersist Httl
   ipersist Hrc
+  icases revokeCloser_recv c $$ Hrcl with ⟨Hrcl, #Hrr⟩
   -- registered with the empty set, under the readers' invariant
   ihave #Hrd' := Hrd
   iunfold lessorRdInv at Hrd'
@@ -269,7 +270,7 @@ theorem recover_one (γl : GName) (γr : LessorRdNames) (hs : List LSnap)
     isplitr
     · iexists _; iexact Httl
     isplitr
-    · iexists c; iexact Hrc
+    · iexists c; iframe Hrc Hrr
     isplitl [Hrem]
     · iexists _; iexact Hrem
     iexists _; iexact Hexp

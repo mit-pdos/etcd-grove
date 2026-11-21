@@ -204,14 +204,16 @@ instance lessorExpiredC_persistent (lp : Loc) (GA : w64 → IProp GF) :
 /-- **The right to stop the lessor `lp` once** (2026-11-04, R2b-3c part 2, the user's approval;
 an opaque axiom until prove-ps2-lease, 2026-11-21): `NewLessor` gives it, `lessor.Stop` takes it.
 Its `stopC` and `doneC` (read-only: `newLessor` sets them, `lessor.go:238-239`, nothing writes
-them after) are broadcast channels (Perennial's `ownBroadcastChan`, nothing ever sent, closed at
-most once): this right holds `stopC`'s close right (`.Pending`: `close(le.stopC)`, which a second
-call would make panic, is `Stop`'s alone; the expiry loop and `Renew` only receive on it, with the
-channel's persistent `.Unknown`), and `doneC`'s receive side (`.Unknown`: `runLoop`'s deferred
+them after) are channels on which nothing is ever sent, closed at most once: this right holds
+`stopC`'s close token (`stopC` is a close-once channel, `onceRecv`, prove-ps2-renew, 2026-11-21:
+`close(le.stopC)`, which a second call would make panic, is `Stop`'s alone; the expiry loop and
+`Renew` only receive on it, through the lessor's `lessorStopRecv`; a broadcast channel's `.Pending`
+until then, but `Renew` needs the receive side at any `hlc`, which `ownBroadcastChan` is not stated
+at), and `doneC`'s receive side (a broadcast channel's `.Unknown`: `runLoop`'s deferred
 `close(le.doneC)`, `lessor.go:621`, holds its close right). -/
 def lessorStopTok (lp : Loc) : IProp GF :=
-  iprop(∃ (c d : GoChan) (γc γd : ChanNames), lF go!"stopC" lp ↦□ c ∗ lF go!"doneC" lp ↦□ d ∗
-    ownBroadcastChan c γc iprop(True) .Pending ∗ ownBroadcastChan d γd iprop(True) .Unknown)
+  iprop(∃ (c d : GoChan) (γt : GName) (γd : ChanNames), lF go!"stopC" lp ↦□ c ∗ lF go!"doneC" lp ↦□ d ∗
+    onceRecv c γt ∗ token γt ∗ ownBroadcastChan d γd iprop(True) .Unknown)
 
 end defs
 

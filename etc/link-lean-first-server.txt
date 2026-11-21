@@ -377,10 +377,12 @@ EtcdServer__checkLeaseTimeToLive: EtcdServer__AuthInfoFromCtx EtcdServer__AuthSt
 EtcdServer__leaseTimeToLive:
 EtcdServer__LeaseTimeToLive: EtcdServer__requireAuthInfo+C EtcdServer__checkLeaseTimeToLive EtcdServer__leaseTimeToLive EtcdServer__AuthStore
 # The lease keep-alive entry point (the lease-renew plan, 2026-11-01; its contracts approved by
-# the user): the trust boundary is the lessor's `Renew`, `ensureLeadership`, `waitAppliedIndex`,
+# the user): the trust boundary was the lessor's `Renew` (until 2026-11-21), `ensureLeadership`, `waitAppliedIndex`,
 # `waitLeader` (names-only; `waitAppliedIndex` proved by prove-etcdserver, `waitLeader` by prove-srvloops)
-# and the forwarding, `leasehttp.RenewHTTP`.
-lease_lessor__Renew:
+# and the forwarding, `leasehttp.RenewHTTP`. (prove-ps2-renew, 2026-11-21) `Renew` proved over the
+# real code: its `select`'s receives on close-once channels, the refresh under the write lock.
+lease_Lease__expired: lease_Lease__Remaining
+lease_lessor__Renew: lease_lessor__isPrimary lease_Lease__expired lease_Lease__refresh lease_LeaseExpiredNotifier__RegisterOrUpdate
 EtcdServer__raftStatus:
 EtcdServer__isActive: raftNode__getLatestTickTs
 EtcdServer__ensureLeadership:

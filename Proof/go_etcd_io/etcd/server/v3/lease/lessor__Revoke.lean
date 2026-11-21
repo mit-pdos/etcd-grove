@@ -56,7 +56,7 @@ theorem lease.lessor.Revoke.wp_proof
   · iPkgInit
   ihave Hli : (leaseInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hli with ⟨#Hnf, -, -, -, -, ⟨%crv, #Hcrv, #Hcrvs⟩, -, -⟩
+  icases Hli with ⟨#Hnf, -, -, -, -, ⟨⟨%crv, #Hcrv, #Hcrvs⟩, -⟩, -, -⟩
   ihave #Hnf' := Hnf
   iunfold leaseErrVar at Hnf'
   icases Hnf' with ⟨%enf, #Henf, -⟩

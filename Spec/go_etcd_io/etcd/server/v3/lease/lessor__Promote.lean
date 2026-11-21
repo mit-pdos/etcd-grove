@@ -34,7 +34,7 @@ through `lessorCfg`'s logger, nil or a zap logger (`zapLoggerOk`; 2026-11-10, th
 of 2026-11-07, sweep B3-2: until then unconstrained, and a zero `&zap.Logger{}` panicked here).
 (prove-ps2-lease, 2026-11-21) Its `le.demotec = make(chan struct{})` (`lessor.go:484`, under the write
 lock) keeps `demotec`'s ghost state (`lessorExtra`'s `demoteTie`, InvLessor.lean): the fresh channel
-is idle and owned (`chan.wp_make1`); a fresh token `γt` and `demoteChanInv` at `.Idle` are
+is idle and owned (`chan.wp_make1`); a fresh token `γt` and `onceChanInv` at `.Idle` are
 allocated, and around the store (one atomic step) the invariant `demoteOuter` is opened, the ghost
 variable (half the lock's, held whole under the write lock, half the invariant's) set to the new
 channel, and its token put in; the old channel's token, if a previous `Promote` left one, is

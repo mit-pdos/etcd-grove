@@ -54,7 +54,7 @@ theorem demote_close {ty : go.GoType} {dir : go.ChanDir}
   imod Hclose $$ [Hv'] with -
   · inext; iunfold demoteOuter; iexists chan.nil; iframe Hv'; ileft; ipureintro; rfl
   imodintro
-  iunfold demoteRecv at Hrecv
+  iunfold onceRecv at Hrecv
   icases Hrecv with ⟨%γc, #Hch, #Hci⟩
   iapply chan.wp_close (ct := ty) (V := Unit) dc γc $$ Hch
   iintro _
@@ -64,7 +64,7 @@ theorem demote_close {ty : go.GoType} {dir : go.ChanDir}
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   inext
-  iunfold demoteChanInv at Hi
+  iunfold onceChanInv at Hi
   icases Hi with ⟨%st, Hc, Hs⟩
   iexists st
   iframe Hc
@@ -74,7 +74,7 @@ theorem demote_close {ty : go.GoType} {dir : go.ChanDir}
     iintro Hc
     imod Hmask with -
     imod Hclose2 $$ [Hc Htok] with -
-    · inext; iunfold demoteChanInv; iexists .Closed []; dsimp only; iframe
+    · inext; iunfold onceChanInv; iexists .Closed []; dsimp only; iframe
     imodintro
     iapply HΦ $$ Hv
   case Closed.nil =>
@@ -99,7 +99,7 @@ theorem lease.lessor.Demote.wp_proof
   iunfold lessorMu at HR
   icases HR with ⟨%lm, %im, %M, %I, %rd0, %L, Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL, #Hsz, #Hls, Hx, Hhist⟩
   iunfold lessorExtra at Hx
-  icases Hx with ⟨%dc, %np, %h, %hx, %bl, Hdc, Hnp, Hnot, Hh, Hhq, Hcp, Hmeta, Hbl, Hdt⟩
+  icases Hx with ⟨%dc, %np, %h, %hx, %bl, Hdc, Hnp, Hnot, Hh, Hhq, Hcp, Hmeta, Hbl, Hdt, #Hstr⟩
   (try wp_auto)
   -- every lease's expiry to `forever`
   wp_func_lits
@@ -157,6 +157,7 @@ theorem lease.lessor.Demote.wp_proof
       iunfold lessorExtra
       iexists chan.nil, np', h', [], bl
       iframe
+      iframe Hstr
       iunfold demoteTie
       iexists γr
       iframe Hpr Hout Hgv
@@ -179,6 +180,7 @@ theorem lease.lessor.Demote.wp_proof
       iunfold lessorExtra
       iexists chan.nil, np', h', [], bl
       iframe
+      iframe Hstr
       iunfold demoteTie
       iexists γr
       iframe Hpr Hout Hgv

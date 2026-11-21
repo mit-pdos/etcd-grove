@@ -50,3 +50,28 @@ still holds the closed channel, so the invariant must tell "closed, being cleare
 from "open"; only state the lock's guard shares (the variable) can, at fractional ownership.
 Why not Perennial's `ownBroadcastChan` for `demotec`: it is stated at `HasLC.hasLC`, the lessor's
 invariant at any `hlc`.
+
+## prove-ps2-renew (2026-11-21): `Renew` proved; `stopC` and `revokec` close-once channels
+
+Retired: `lease.lessor.Renew.wp_proof` (translated with its body, and `Lease.expired`). Its `select`
+receives on a lease's `revokec`, on `demotec` and on `stopC`, which needs each channel's state reachable
+by any receiver, at any `hlc` (the lessor's invariant is stated at any `hlc`, `ownBroadcastChan` only at
+`HasLC.hasLC`). The `demotec` invariant's channel predicates are now shared, renamed: `onceChanInv`,
+`onceRecv` (namespace `onceChanN`); `wp_once_close`, `once_recvAu` and `demote_recv` in `LessorLemmas`.
+
+- `stopC` (`lessorStopTok`, `LessorBackend.lean`): a close-once channel, its token in `lessorStopTok`
+  (was: a broadcast channel's `.Pending`); its receive side `lessorStopRecv lp` (persistent: `stopC ↦□ c`
+  and `onceRecv c γt`) is a new conjunct of `lessorExtra` (under `le.mu`, though read-only: `Renew` holds
+  only `lessorInv`). `doneC` stays a broadcast channel. `Stop` (proved) closes with `wp_once_close`.
+  `NewLessor` (axiom) must now produce both: one fresh channel (`make(chan struct{})`, `lessor.go:238`),
+  one invariant (`inv_alloc`, ghost only) whose persistent `onceRecv` goes into the lock's guard and the
+  token into `lessorStopTok`; the two existentials are witnessed by the same names. `runLoop` (in
+  `NewLessor`'s claim) receives on `stopC` through `lessorStopRecv`.
+- `revokec` (`revokeCloser`, `leaseMeta`): `revokeCloser c` is now a close-once channel and its token
+  (was: `isChan` and the channel's whole `ownChan .Idle`); `leaseMeta`'s `revokec` conjunct gains the
+  persistent `revokeRecv c`. Both proved: `NewLease` and `initAndRecover` allocate the invariant at the
+  `make`, `Grant` and `recover_one` copy the receive side into `leaseMeta` (`revokeCloser_recv`),
+  `Revoke`'s deferred close is `wp_once_close`. No axiom states either.
+- `leaseInit` (`Base.lean`) gains `leaseRenewed`'s `counterSpec`, grouped with `leaseRevoked`'s (so the
+  clients' positional patterns are unchanged); its initializer is translated and proved
+  (`etc/gen-init.py`), no axiom.

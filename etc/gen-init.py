@@ -1844,12 +1844,13 @@ SPECIAL['go_etcd_io.etcd.server.v3.lease'] = dict(
     doc='''Its fact (`leaseInit`, `Base.lean`): the error variables `ErrNotPrimary`,
 `ErrLeaseNotFound`, `ErrLeaseExists`, `ErrLeaseTTLTooLarge` (translated `errors.New` calls: leaf pointer errors
 without `Is`, by `EtcdGrove.ErrorStringLeaf`, whose `Error()` returns), `forever` (the zero
-`time.Time`), the counters `leaseGranted`, `leaseRevoked` and the histogram `leaseTotalTTLs`
+`time.Time`), the counters `leaseGranted`, `leaseRevoked`, `leaseRenewed` and the histogram `leaseTotalTTLs`
 (`metrics.go`, translated: over prometheus's constructor specs; until 2026-11-19 the trust-boundary
 axioms `<X>_init`); `opaqueInitsOk` states the
 other untranslated initializers run.''',
     imports=['Proof.errors.NewVarCell', 'Perennial.Proof.context.NewErrorString', 'Perennial.Proof.errors.NewVar'] + PROM_CTORS,
-    alloc_types={'leaseGranted': 'GoInterface', 'leaseRevoked': 'GoInterface', 'leaseTotalTTLs': 'GoInterface',
+    alloc_types={'leaseGranted': 'GoInterface', 'leaseRevoked': 'GoInterface', 'leaseRenewed': 'GoInterface',
+                 'leaseTotalTTLs': 'GoInterface',
                  'ErrNotPrimary': 'GoInterface',
                  'ErrLeaseTTLTooLarge': 'GoInterface', 'ErrLeaseExists': 'GoInterface',
                  'ErrLeaseNotFound': 'GoInterface', 'forever': '_root_.Perennial.time.Time'},
@@ -1860,9 +1861,11 @@ other untranslated initializers run.''',
         'wp_apply EtcdGrove.wp_New_errorString_cell as %xTL ⟨#MTL, #CTL⟩'] +
         metric_steps_to('leaseGranted', 'counter', 'go_etcd_io.etcd.server.v3.lease.counterSpec'),
         'leaseRevoked': metric_steps_to('leaseRevoked', 'counter', 'go_etcd_io.etcd.server.v3.lease.counterSpec'),
+        # (prove-ps2-renew, 2026-11-21) `Renew`'s `leaseRenewed.Inc()`
+        'leaseRenewed': metric_steps_to('leaseRenewed', 'counter', 'go_etcd_io.etcd.server.v3.lease.counterSpec'),
         'leaseTotalTTLs': metric_steps_to('leaseTotalTTLs', 'hist', 'go_etcd_io.etcd.server.v3.storage.backend.histSpec')},
     finish=['ipersist HErrNotPrimary', 'ipersist HErrLeaseNotFound', 'ipersist HErrLeaseExists', 'ipersist HErrLeaseTTLTooLarge',
-            'ipersist Hforever', 'ipersist HleaseGranted', 'ipersist HleaseRevoked',
+            'ipersist Hforever', 'ipersist HleaseGranted', 'ipersist HleaseRevoked', 'ipersist HleaseRenewed',
             'ipersist HleaseTotalTTLs',
             'ihave #TNP := EtcdGrove.errorMsg_triple _ _ _ $$ MNP',
             'ihave #TNF := EtcdGrove.errorMsg_triple _ _ _ $$ MNF',
@@ -3118,13 +3121,15 @@ def _more_metrics(cfg, metrics, consts=()):
     imps += [m for m in PROM_CTORS if m not in imps]
     return cfg
 
-_more_metrics(SPECIAL['go_etcd_io.etcd.server.v3.lease'], [('leaseRenewed', 'counter')],
+_more_metrics(SPECIAL['go_etcd_io.etcd.server.v3.lease'], [],
               ['defaultLeaseRevokeRate', 'leaseCheckpointRate', 'defaultLeaseCheckpointInterval',
                'maxLeaseCheckpointBatchSize', 'defaultExpiredleaseRetryInterval'])
+# (prove-ps2-renew, 2026-11-21) `leaseRenewed` is in the fact now (`Renew`'s `Inc()`): its steps
+# (with the `counterSpec` conversion) are in the package's `before` above
 SPECIAL['go_etcd_io.etcd.server.v3.lease']['doc'] = SPECIAL['go_etcd_io.etcd.server.v3.lease']['doc'].replace(
     """axioms `<X>_init`); `opaqueInitsOk` states the
 other untranslated initializers run.""", """axioms `<X>_init`). Its other variables' initializers are translated too (2026-11-19, until then
-`opaqueInitsOk`): the rate and interval constants (`lessor.go`) and the counter `leaseRenewed`.""")
+`opaqueInitsOk`): the rate and interval constants (`lessor.go`).""")
 _more_metrics(SPECIAL['go_etcd_io.etcd.server.v3.storage.backend'],
               [('defragSec', 'hist'), ('defragBlockingSec', 'hist'), ('isDefragActive', 'gauge')])
 # (backend-snapshot B4, 2026-11-21) `snapshotTransferSec`'s histogram is a fact too: `Snapshot`'s
