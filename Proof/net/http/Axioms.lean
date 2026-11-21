@@ -3,7 +3,9 @@
 of `Proof/net/http/Boundary.lean` the proofs use, assumed, and the registration of an address's
 protocol. Lean-first. Each is a fact about Go's `net/http`, `io` and `bytes` (read against the
 statement's docstring in `Boundary.lean`); the specs not listed (`respRead_spec`, `HeaderGet_spec`)
-stay statements until a proof uses them.
+stay statements until a proof uses them. (prove-http3, 2026-11-21) `Header.Set` and `Get`'s
+(`HeaderSet_ok`, `HeaderSetPtr_ok`, `HeaderGetPtr_ok`, `HeaderGetOwnPtr_ok`) are theorems of
+`Proof/net/http/Proved.lean`, over net/http's and net/textproto's code.
 
 Soundness of the specs stated for any `HttpNet` (`Error_ok`, ...): their resources
 (`respWriter H`, `respReader H`) come only from `Serve` and `RoundTrip`, which need an address's
@@ -75,17 +77,8 @@ axiom ReadFull_stream_ok : ReadFull_stream_spec (GF := GF)
 /-- `ResponseWriter.WriteHeader` of a final status (`respWriteHeader_spec`). -/
 axiom respWriteHeader_ok (H : HttpNet GF) : respWriteHeader_spec H
 
-/-- `Header.Set` (`HeaderSet_spec`): `textproto.MIMEHeader.Set` of the canonical key. -/
-axiom HeaderSet_ok : HeaderSet_spec (GF := GF)
-
 /-- `ResponseWriter.Header()` before the commit (`RespHeader_spec`): the writer's header map, lent. -/
 axiom RespHeader_ok : RespHeader_spec (GF := GF)
-
-/-- `Header.Get` through a pointer (`HeaderGetPtr_spec`): the map's `Get`. -/
-axiom HeaderGetPtr_ok : HeaderGetPtr_spec (GF := GF)
-
-/-- `Header.Set` through a pointer (`HeaderSetPtr_spec`): the map's `Set`. (Stage 5e-3.) -/
-axiom HeaderSetPtr_ok : HeaderSetPtr_spec (GF := GF)
 
 /-- `io.ReadAll` of a prefix reader (`ReadAll_spec`): it reads until `EOF` or an error. -/
 axiom ReadAll_ok : ReadAll_spec (GF := GF)
@@ -95,9 +88,6 @@ axiom Flush_ok (H : HttpNet GF) : Flush_spec H
 
 /-- `http.Error` (`Error_spec`): its headers, `WriteHeader(code)`, `fmt.Fprintln(w, msg)`. -/
 axiom Error_ok (H : HttpNet GF) : Error_spec H
-
-/-- `bytes.NewBuffer` (`NewBuffer_spec`). -/
-axiom NewBuffer_ok : NewBuffer_spec (GF := GF)
 
 /-- `Request.WithContext` (`WithContext_spec`): a shallow copy with the context. -/
 axiom WithContext_ok : WithContext_spec (GF := GF)
@@ -119,10 +109,6 @@ axiom NewRequest_ok : NewRequest_spec (GF := GF)
 
 /-- (stage 5e-3) `url.URL.String` of a plain URL (`URLString_spec`). -/
 axiom URLString_ok : URLString_spec (GF := GF)
-
-/-- (rafthttp stage 6e) `Header.Get` on a request's header map being built
-(`HeaderGetOwnPtr_spec`). -/
-axiom HeaderGetOwnPtr_ok : HeaderGetOwnPtr_spec (GF := GF)
 
 /-- (rafthttp stage 6e) a request's `URL` field, read-only (`reqURL_spec`). -/
 axiom reqURL_ok : reqURL_spec (GF := GF)
@@ -154,10 +140,6 @@ axiom Handle_ok : Handle_spec (GF := GF)
 
 /-- (stage 6c) a built mux's dispatch (`mux_handlerOk_spec`). -/
 axiom mux_handlerOk_ok (H : HttpNet GF) : mux_handlerOk_spec H
-
-/-- (stage 5e-3) `nil` is a reader of no bytes, an empty request body (`readerHas`'s docstring,
-`NewRequest`'s `nil` body). -/
-axiom readerHas_nil : ⊢ readerHas (GF := GF) GoInterface.nil []
 
 end axioms
 

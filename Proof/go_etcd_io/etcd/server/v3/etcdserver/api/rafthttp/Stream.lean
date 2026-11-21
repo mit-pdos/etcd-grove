@@ -373,7 +373,7 @@ request's registered connection, from the member owning the request's host to it
 def streamResp (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) (st : w64) (w : List w8) :
     IProp GF :=
   iprop(⌜st = W64 200⌝ → ∃ c : StreamKey, streamReg Rh γk c ∗
-    streamSent (c.2.1.codec Rh.γn.N.Sz (Rh.owner R.host) c.2.2) Rh.γn.N c.1 c.2.2 w)
+    streamSent (c.2.1.codec True (Rh.owner R.host) c.2.2) Rh.γn.N c.1 c.2.2 w)
 
 instance streamResp_persistent (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) (st : w64)
     (w : List w8) : Persistent (streamResp Rh R γk st w) := by
@@ -814,11 +814,11 @@ theorem streamSent_compat (C : StreamCodec) (N : NetPayload GF) (γw : GName) (r
   exact Hfr.compat Hc' hz
 
 /-- **The msgappv2 decoder's premise** from a stream's bytes. -/
-theorem streamSent_v2Compat (N : NetPayload GF) (γw : GName) (frm to : w64)
+theorem streamSent_v2Compat (Sz : Prop) (N : NetPayload GF) (γw : GName) (frm to : w64)
     (fr : List (MsgWire × List w8)) (s : V2St) (ys : List w8)
-    (Hfr : Chain (v2Codec N.Sz frm to) (v2Codec N.Sz frm to).init fr s) :
-    ⊢ streamSent (v2Codec N.Sz frm to) N γw to (chainBytes fr ++ ys) -∗
-      ⌜V2Compat N.Sz frm to s ys⌝ := by
+    (Hfr : Chain (v2Codec Sz frm to) (v2Codec Sz frm to).init fr s) :
+    ⊢ streamSent (v2Codec Sz frm to) N γw to (chainBytes fr ++ ys) -∗
+      ⌜V2Compat Sz frm to s ys⌝ := by
   iintro Hs
   ihave %H := streamSent_compat _ N γw to fr s ys Hfr $$ Hs
   ipureintro

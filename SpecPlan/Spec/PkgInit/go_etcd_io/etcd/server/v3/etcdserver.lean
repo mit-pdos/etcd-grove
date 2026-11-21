@@ -7,6 +7,8 @@ public import Perennial.Proof.context.Base
 public import SpecPlan.Spec.PkgInit.github_com.Masterminds.semver.v3
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.api.v3.etcdserverpb
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.api.v3.version
+public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.version
+public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.storage.schema
 public import SpecPlan.Spec.PkgInit.encoding.json
 public import Perennial.Proof.errors.Base
 public import Perennial.Proof.fmt.Base
@@ -56,6 +58,7 @@ public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.read
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.features
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.lease
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.lease.leasehttp
+public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.storage.schema.snapshotmeta
 public import SpecPlan.Spec.PkgInit.encoding.base64
 public import SpecPlan.Spec.PkgInit.go_opentelemetry_io.otel.«attribute»
 public import SpecPlan.Spec.PkgInit.go_opentelemetry_io.otel.trace

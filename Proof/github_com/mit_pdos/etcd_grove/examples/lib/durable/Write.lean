@@ -6,7 +6,7 @@ Rocq counterpart): `Write` is the extension's `"Write"` (its trusted model), who
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.durable.Write
-import GooseLang.Ext.Fs.NotCrashedAcc
+import Perennial.GooseLang.NotCrashed
 
 @[expose] public section
 

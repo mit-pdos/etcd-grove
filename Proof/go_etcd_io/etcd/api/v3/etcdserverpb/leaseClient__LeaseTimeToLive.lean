@@ -34,8 +34,8 @@ theorem leaseClient.LeaseTimeToLive.wp_proof
     (wp_StaticMethod : grpc.StaticMethod.spec (GF := GF) (hG := hG))
     (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG)) :
     leaseClient.LeaseTimeToLive.spec (GF := GF) (hG := hG) := by
-  intro lc conn addr Spec Q ctx cd inp req opts vs
-  wp_start as ⟨#Hstub, #Hconn, #Hrpc, #Hpre, #Hctx, Hin, #Hopts, #Hok, %Hsz⟩
+  intro lc conn addr Spec Q ctx om cd inp req opts vs
+  wp_start as ⟨#Hstub, #Hconn, #Hrpc, #Hom, #Hpre, #Hctx, Hin, #Hopts, #Hok, %Hsz⟩
   wp_auto
   wp_apply wp_StaticMethod as %sm ⟨#Hsm, %Hsms⟩
   wp_apply wp_slice_literal (V := GoInterface) [sm]
@@ -59,7 +59,7 @@ theorem leaseClient.LeaseTimeToLive.wp_proof
   · simp only [pbLeaseTimeToLiveResponse]
     iexact «$r0»
   have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.Lease/LeaseTimeToLive" pbLeaseTimeToLiveRequestT
-    pbLeaseTimeToLiveResponseT pbLeaseTimeToLiveRequestT_reg pbLeaseTimeToLiveResponseT_reg Spec (req.ID', req.Keys') Q ctx cd inp «$r0_ptr» copts ([sm] ++ vs)
+    pbLeaseTimeToLiveResponseT pbLeaseTimeToLiveRequestT_reg pbLeaseTimeToLiveResponseT_reg Spec (req.ID', req.Keys') Q ctx om cd inp «$r0_ptr» copts ([sm] ++ vs)
   simp only [pbLeaseTimeToLiveRequestT, pbLeaseTimeToLiveResponseT] at hI
   rw [show (pbLeaseTimeToLiveRequest (GF := GF)).ty = etcdserverpb.LeaseTimeToLiveRequest.ty from rfl,
     show (pbLeaseTimeToLiveResponse (GF := GF)).ty = etcdserverpb.LeaseTimeToLiveResponse.ty from rfl] at hI

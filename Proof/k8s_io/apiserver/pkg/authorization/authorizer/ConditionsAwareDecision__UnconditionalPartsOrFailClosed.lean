@@ -15,7 +15,7 @@ public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAware
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__PossibleDecisions
 public import Spec.k8s_io.apimachinery.pkg.util.sets.ListW
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.Decision__String
-public import Spec.fmt.SprintfArgs
+public import Spec.fmt.SprintfSlice
 public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.FmtArgs
 public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.PtrMethods
 public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.PtrMethodsB1
@@ -51,7 +51,7 @@ theorem ConditionsAwareDecision.UnconditionalPartsOrFailClosed.wp_proof
     (wp_ConditionsAwareDecision_PossibleDecisions : EtcdGrove.authorizer.ConditionsAwareDecision.PossibleDecisions.spec (GF := GF) (hG := hG))
     (wp_List : EtcdGrove.sets.List'.specW (GF := GF) (hG := hG))
     (wp_Decision_String : EtcdGrove.authorizer.Decision.String.spec (GF := GF) (hG := hG))
-    (wp_SprintfArgs : EtcdGrove.fmt.SprintfArgs.spec (GF := GF) (hG := hG)) :
+    (wp_SprintfSlice : EtcdGrove.fmt.SprintfSlice.spec (GF := GF) (hG := hG)) :
     ConditionsAwareDecision.UnconditionalPartsOrFailClosed.spec (GF := GF) (hG := hG) := by
   intro d m
   wp_start as #Hd
@@ -106,15 +106,15 @@ theorem ConditionsAwareDecision.UnconditionalPartsOrFailClosed.wp_proof
   · ipureintro; rfl
   iintro %asl ⟨Hasl, -⟩
   try wp_auto
-  wp_apply (wp_SprintfArgs _ _ _ (DFrac.own 1)) $$ [$Hasl] as %r Hasl
-  · fmt_args_intro
+  wp_apply (wp_SprintfSlice _ _ _ (DFrac.own 1)) $$ [$Hasl] as %r Hasl
+  · fmt_args_intro_sl
     isplitl
     · iapply (Decision.sliceArgOkAt wp_Decision_String sl ks ⟨by decide, Or.inl rfl, rfl⟩)
       isplitr
       · iPkgInit
       · iexact Hsl
     isplitl
-    · simp only [fmt.argOkAt]; ileft; ipureintro
+    · iapply fmt.argOkAtSl_of_base; simp only [fmt.argOkAtBase]; ileft; ipureintro
       exact (show _root_.Perennial.fmt.ArgsWf [interface.mkOk go.string #str] from
         .cons_string _ _ .nil) _ (List.mem_singleton_self _)
     · itrivial

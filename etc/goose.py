@@ -11,7 +11,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                projects' pins (GO_MOD_PINS; without --check, only a warning).
   --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putgetc, putget3, putgetN, leaseN, leaseexpiryN, txnlinfaultsN, restartN, authN, authlease, auth3, etcd-wal,
                linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, raft-noax, kvdurable-noax, raft-tla, tracecheck, k8s-apiserver,
-               k8s-daemonset, k8s-compactor, k8s-all, k8s-authz, k8s-authz-driver, bbolt-bank or bbolttest; repeatable; default: all).
+               k8s-daemonset, k8s-compactor, k8s-all, etcd-all, k8s-authz, k8s-authz-driver, bbolt-bank or bbolttest; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
                $ETCD_RAFT_SRC).  For a pinned revision not yet pushed, or for trying
@@ -71,10 +71,10 @@ GO_TOOLCHAIN = "go1.27.3"
 RAFT_REV = "d2c16c558247d0a07b96986fc348a003dad80f6e"
 
 # The part RaftNoAx (raft without hand-written axioms, notes/raft-noax-part.md): project raft-noax's
-# pin (the fork's branch raft37-goose-lean-noax, notes/raft-noax.md), and project kvdurable-noax's
+# pin (the fork's branch raft37-goose-lean-noax-wire-core, notes/raft-noax.md), and project kvdurable-noax's
 # source directory and Go package, examples/raft/kvdurablenoax (`etc/copy-part.py`, which reads these,
 # renames the copied kvdurable proofs' package accordingly).
-RAFT_NOAX_REV = "91e2ea70f48377487eccbf01bf80dd9787fac450"
+RAFT_NOAX_REV = "e98d795867e6d626df1cc4e71faa00c1c1f42764"
 KVDURABLE_NOAX_DIR = os.path.join("examples", "raft", "kvdurablenoax")
 KVDURABLE_NOAX_PKG = "github.com/mit-pdos/etcd-grove/examples/raft/kvdurablenoax"
 
@@ -194,7 +194,8 @@ PROJECTS = [
         # translations. Modules
         # Code.go_etcd_io.bbolt*, GeneratedProof.go_etcd_io.bbolt*.
         repo="https://github.com/upamanyus/bbolt",
-        rev="42c80a7ed7d7f32877b08551879e51a2d7ca1816",
+        # Split oversized leaves and admit all individually readable key/value pairs.
+        rev="ca88bb6a8339da5d5c29eccf120e1b621021b4f9",
         lean_roots=["go.etcd.io/bbolt=", "golang.org/x/sys=", "syscall=", "hash=",
                     "encoding/hex=", "os=", "io/fs="],
         packages=[
@@ -332,7 +333,16 @@ PROJECTS = [
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="d3feef9bcdddb9ad15ee5fc8bf725050395debb4",
+        # Includes legacy WAL recovery and the same-term snapshot send without an index guard.
+        # Then (auth-mediation M3, 2026-11-21, the user's Q4 option (i) via etcd-grove-03) 4416a5786
+        # (branch `goose-lean-rangestream-clone`, on 34f5142d0): upstream's fix of the keys-only
+        # `RangeStream` data race cherry-picked (etcd-io/etcd@9acc0ebe37: `rangeStream`'s next key is
+        # `append(bytes.Clone(lastKey), 0)`, no longer an append into mvcc's index key;
+        # nonissues/etcd-rangestream-keysonly-index-key-race.md).
+        # goose-lean-replay-snapshot-readers keeps the legacy WAL recovery and RangeStream fixes.
+        # Same-term snapshots stream the backend during restart replay. The label comes from the
+        # frozen image and its Ready's retained entry terms (issues/etcd-merged-snapshot-replay-failure.md).
+        rev="d7c7f6434abce9ad25ac5152b4e74a322fbec8c5",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
@@ -374,6 +384,7 @@ PROJECTS = [
             "go.etcd.io/etcd/server/v3/etcdserver/cindex",
             "go.etcd.io/etcd/server/v3/etcdserver",
             "go.etcd.io/etcd/server/v3/storage/schema",
+            "go.etcd.io/etcd/server/v3/storage/schema/snapshotmeta",
             # with bodies (pkg/v3/adt.toml): the interval tree of mvcc's watcher groups
             "go.etcd.io/etcd/pkg/v3/adt",
             # with bodies (etcdserver/txn.toml): the server's Range, Put, DeleteRange, Txn over
@@ -478,6 +489,12 @@ PROJECTS = [
             "google.golang.org/protobuf/reflect/protoreflect",
             "go.uber.org/zap",
             "go.uber.org/zap/zapcore",
+            # (prove-misc, 2026-11-20) what zapcore's package variables call: its generic `sync.Pool`
+            # wrapper (`pool.New`) and its terminal colors (`color.Add`, `fmt.Sprintf`)
+            "go.uber.org/zap/internal/pool",
+            "go.uber.org/zap/internal/color",
+            # (prove-initleft, 2026-11-21) types only: `LeveledEnabler`, which zap's `var _` asserts
+            "go.uber.org/zap/internal",
             # names only: the auto-compactor's clock (the spec-first pilot)
             "github.com/jonboulle/clockwork",
             "github.com/dustin/go-humanize",
@@ -486,6 +503,9 @@ PROJECTS = [
             # standard-library packages Perennial does not translate: their names are here
             # (encoding/hex: the backend's putSeq check formats keys with it)
             "net/http",
+            # (prove-http3, 2026-11-21) `CanonicalMIMEHeaderKey` and `MIMEHeader.Set`/`Get`, with
+            # their bodies (Code/net/textproto.toml): what `http.Header.Set`/`Get` call
+            "net/textproto",
             # (net: the interface net.Addr, the type of grpc's peer.Peer's fields; unit P3a)
             "net",
             "encoding/hex",
@@ -501,6 +521,8 @@ PROJECTS = [
             "go.etcd.io/etcd/client/v3/kubernetes",
             # names only: grpc's logger, which the etcd3 store names (project k8s-apiserver)
             "google.golang.org/grpc/grpclog",
+            # (prove-k8s3, 2026-11-21) types only: the interface grpclog's `LoggerV2` names
+            "google.golang.org/grpc/grpclog/internal",
             "go.etcd.io/etcd/api/v3/etcdserverpb",
             "go.etcd.io/etcd/api/v3/mvccpb",
             "go.etcd.io/etcd/api/v3/v3rpc/rpctypes",
@@ -1267,6 +1289,22 @@ PROJECTS = [
                     "go.uber.org=", "google.golang.org=", "net="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "restart1")],
+    ),
+    Project(
+        name="etcd-all",
+        # The program of the one closed etcd theorem, etcd_safe (notes/etcd-unified-scope.md):
+        # package `.` of examples/etcd/all (a package of the examples' Go module, examples/go.mod),
+        # eleven drivers at once in four parts (KV, Auth, Lease, Restart), with bodies. Everything
+        # it names outside the package is the drivers' and the etcd project's translations (the
+        # empty root): the drivers are not translated again.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "etcd", "all"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
+                    "go.etcd.io/etcd=", "go.etcd.io/raft/v3=", "go.uber.org=",
+                    "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "all")],
     ),
     Project(
         name="etcd-wal",

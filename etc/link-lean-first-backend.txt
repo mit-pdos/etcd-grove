@@ -4,8 +4,7 @@
 # take bbolt's canonical specs (`@` callees, linked in Proof/go_etcd_io/bbolt/Link.lean), converted to
 # the backend's vocabulary (InvBbolt.lean, at `theFs`) by private lemmas in each proof file; the `_kv`
 # specs are gone. `Open` and `DB.Close` are S3f's (interim axioms until it lands). The
-# trust boundary: those two; `sort.Stable` (Perennial translates it, proves only
-# `sort.Sort`); `verify.Assert`/`Verify` and verify.go's lock checks `ValidateCalled*` (names-only:
+# trust boundary: those two; `verify.Assert`; `os.Getenv` and `strings.ToLower`, over which `verify.Verify`, `verify.IsVerificationEnabled` and verify.go's lock checks `ValidateCalled*` are proved (etcdstorage, 2026-11-20; until then axioms,
 # they read ETCD_VERIFY and the call stack; stated as returning: the lock checks off); zap's field
 # constructors and `Logger.Fatal`; `time.Duration.Seconds`. `sort.Sort` is Perennial's.
 # The constructor (2026-10-17, branch `construct`): `New`, `newBackend`, `newBatchTxBuffered`,
@@ -14,9 +13,10 @@
 # `BboltOptions.lean`'s axioms, `sync.Mutex{}` through `MutexLit.lean`'s: lemmas, not linked).
 # `NewDefaultBackend` and `DefaultBackendConfig` are not proved (the server builds its
 # configuration itself).
-ValidateCalledInsideApply:
-ValidateCalledInsideUnittest:
-ValidateCalledOutSideApply:
+verify_IsVerificationEnabled: os_Getenv strings_ToLower
+ValidateCalledInsideApply: verify_IsVerificationEnabled
+ValidateCalledInsideUnittest: verify_IsVerificationEnabled
+ValidateCalledOutSideApply: verify_IsVerificationEnabled
 bbolt_Bucket__Cursor: @
 bbolt_Bucket__ForEach: @
 bbolt_DB__Close: @
@@ -37,10 +37,17 @@ bbolt_Tx__Rollback: @
 bbolt_Tx__Size: @
 bbolt_Tx__WriteTo: @
 bbolt_Tx__Stats: @
-sort_Stable:
+sort_swapRange:
+sort_rotate: sort_swapRange
+sort_insertionSort:
+sort_symMerge: sort_rotate
+sort_stable: sort_insertionSort sort_symMerge
+sort_Stable: sort_stable
 time_Duration__Seconds:
 verify_Assert:
-verify_Verify:
+os_Getenv:
+strings_ToLower:
+verify_Verify: verify_IsVerificationEnabled
 zap_Error:
 zap_Logger__Fatal:
 zap_Logger__Panic:
@@ -145,3 +152,5 @@ backend__Snapshot:
 snapshot__WriteTo: bbolt_Tx__WriteTo
 snapshot__Size: bbolt_Tx__Size
 snapshot__Close: bbolt_Tx__Rollback
+snapshot__UnsafeRange: bbolt_Tx__Bucket bbolt_Bucket__Cursor unsafeRange
+snapshot__UnsafeForEach: unsafeForEach

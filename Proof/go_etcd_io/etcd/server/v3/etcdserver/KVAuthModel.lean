@@ -1920,15 +1920,19 @@ instance kvInvM_persistent (on : Bool) (γ : ServerRaftNames) (γk : KVNames)
     (st₀ : auth.AuthState) : Persistent (kvInvM (GF := GF) on γ γk st₀) := by
   cases on <;> unfold kvInvM <;> infer_instance
 
-/-- **An admin entry's result tied to its step** (the auth plan's E3x, persistent): for a
-dispatched admin request, its result `ar` read-only, whose error `nil` says the step from `st` to
-`st'` succeeded (`adminStepOk`); nothing for another request or outcome. What the apply thread hands
-the waiter (`resultIsWOn`), at the model's step. -/
+/-- **An admin entry's result tied to its step** (the auth plan's E3x, persistent): for an
+admin request, a refused outcome (`authApplierV3.Apply`'s `needAdminPermission` check) names why,
+the request's principal not admitted at `st` (`auth.adminOk`; auth-mediation M4, 2026-11-21); a
+dispatched one has its result `ar` read-only, whose error `nil` says the step from `st` to `st'`
+succeeded (`adminStepOk`); nothing for another request or a skipped entry. What the apply thread
+hands the waiter (`resultIsWOn`), at the model's step. -/
 def adminTieAr (ar : Loc) (rq : apply.IRRModel) (st st' : auth.AuthState) (out : apply.ApplyOut) :
     IProp GF :=
-  iprop(⌜apply.needAdminPermission rq = false ∨ ∀ o b, out ≠ .dispatched o b⌝ ∨
-    ∃ v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result, ar ↦□ v ∗
-      ⌜v.Err' = GoInterface.nil → adminStepOk rq st st'⌝)
+  iprop(⌜apply.needAdminPermission rq = false ∨ out = .skipped⌝ ∨
+    ⌜out = .rejected ∧ ¬ auth.adminOk st (some (auth.authInfoM (apply.principalOf rq)))⌝ ∨
+    (⌜∃ o b, out = .dispatched o b⌝ ∗
+      ∃ v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result, ar ↦□ v ∗
+        ⌜v.Err' = GoInterface.nil → adminStepOk rq st st'⌝))
 
 instance adminTieAr_persistent (ar : Loc) (rq : apply.IRRModel) (st st' : auth.AuthState)
     (out : apply.ApplyOut) : Persistent (adminTieAr (GF := GF) ar rq st st' out) := by

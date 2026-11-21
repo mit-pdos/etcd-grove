@@ -218,9 +218,22 @@ theorem Tx.WriteTo.wp_proof (wp_Pgid : internal.common.Meta.Pgid.spec (GF := GF)
         wp_apply wp_Errorf _ _ _ _ $$ [$Hsl2] as %ei ⟨-, #HiS, %Hty, %Hptr⟩
         · iframe; iframe #
           fmt_args_ok
+          · -- the page id, a `Pgid` (a named `uint64` without methods): `ArgWf` (since fmtmodel the
+            -- non-method-verb integer case asks for a method)
+            ileft; ipureintro
+            refine Perennial.EtcdGrove.fmt.argWf_of_argsWf (_root_.Perennial.fmt.ArgsWf.cons_int _ (uint.Z (W64 (i : Int))) []
+              (_root_.Perennial.fmt.IntArgValue.named _ _ (uint.Z (W64 (i : Int))) ?_ ?_
+                (_root_.Perennial.fmt.NoFmtMethods.of_methodSetIs_nil _) ?_) _root_.Perennial.fmt.ArgsWf.nil)
+            · simp [_root_.Perennial.fmt.IsIntType, internal.common.Pgid.ty, go.int, go.int64, go.int32,
+                go.int16, go.int8, go.uint, go.uint64, go.uint32, go.uint16, go.uint8]
+            · rw [go.is_underlying]; simp [_root_.Perennial.fmt.IsIntType]
+            · rw [go.is_underlying]; exact .uint64 _
           iunfold fmtErrorOk at Hwe'
           icases Hwe' with ⟨%hwe, #Hwm⟩
-          iright; ileft; iframe Hwm; ipureintro; exact hwe
+          iright; ileft
+          isplitr
+          · iexact Hwm
+          · ipureintro; exact hwe
         try wp_auto
         wp_for_post
         try wp_auto
@@ -350,7 +363,7 @@ theorem Tx.WriteTo.wp_proof (wp_Pgid : internal.common.Meta.Pgid.spec (GF := GF)
       CoPset.in_diff.2 ⟨CoPset.subseteq_top x hx, fun hp => Ht0.2.2 x ⟨nclose_subseteq K.N "pages" x hp, hx⟩⟩
     ihave #Hrd := os.File.readerAtOk (hRead) f fn.1 fn.2 (DFrac.own (QpMul q.half sync.rfrac).half)
       (DFrac.own (QpMul q.half sync.rfrac).half) (dbFd K.p.ino) (wtRs C.pages fx) _
-      (⊤ \ ↑(pagesN K.N)) _ rfl hosE $$ Hos Heof Hacc
+      (⊤ \ ↑(pagesN K.N)) _ rfl hosE (by intro ii T h _; cases h; exact ⟨eofl, rfl⟩) $$ Hos Heof Hacc
     icases HWr with ⟨%cw, HWr, %hcw⟩
     have hcw' : cw = true := hcw (by omega)
     subst hcw'

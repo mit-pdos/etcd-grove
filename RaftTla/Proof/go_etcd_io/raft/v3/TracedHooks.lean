@@ -349,7 +349,7 @@ theorem traceCommit.tracedSpec_of_spec (h : traceCommit.spec (GF := GF) (hG := h
   ihave Hgate := trCapB_hookGate s.gh.tr γ r id c tl0 _ b _ (fun C => SimIdle C s) Λ Λ' iprop(emp)
     (phaseStepB_commit id c s) (fun _ e he => by rw [nodeEvOf_name_commit he]; rfl) hΛ hOk Hok
     $$ [$Htl0 $Hcap $Hfx]
-  iapply wp_ncfupd_app
+  iapply (wp_ncfupd _ _ rfl)
   iunfold HookGate at Hgate
   unfold ncfupd
   iintro Hnc

@@ -488,6 +488,7 @@ theorem watcher_close_au (w : Loc) (γ : WatcherNames) (Pb : WatcherPub GF)
       closeAu γ.ch go_etcd_io.etcd.client.v3.WatchResponse Φ := by
   iintro #Hinv Hopen Htok #Hp #Hc #HPc HΦ
   unfold closeAu
+  iapply ncfupd_of_fupd
   iinv Hinv with Hi Hclose
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
@@ -587,6 +588,7 @@ theorem wp_watcher_send (w ch : Loc) (γ : WatcherNames) (pred : Option (GoStrin
       unfold nonblockingSendAu
       isplit
       · unfold nonblockingSendAuInner
+        iapply ncfupd_of_fupd
         iinv Hinv with Hi Hclose
         iapply fupd_mask_intro Std.LawfulSet.empty_subset
         iintro Hmask
@@ -681,6 +683,7 @@ theorem watcher_recv_au (w ch : Loc) (γ : WatcherNames) (pred : Option (GoStrin
   icombine HrespCh Hch' gives %Heq
   subst Heq
   unfold recvAu
+  iapply ncfupd_of_fupd
   iinv Hinv with Hi Hclose
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
@@ -798,6 +801,7 @@ theorem watcher_recv_au (w ch : Loc) (γ : WatcherNames) (pred : Option (GoStrin
       ipureintro; simp_all [chanInflight, chanIsClosed]
     imodintro
     unfold recvNestedAu
+    iapply ncfupd_of_fupd
     iinv Hinv with Hi Hclose
     all_goals first | (solve_ndisj; done) | skip
     iapply fupd_mask_intro Std.LawfulSet.empty_subset

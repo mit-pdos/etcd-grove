@@ -4,7 +4,7 @@
 
 The bugs with a valid failing Go test (format: [README.md](README.md)); the findings without one are in [../nonissues/](../nonissues/INDEX.md).
 
-## Not reported (73)
+## Not reported (77)
 
 | Issue | Blocks proof | Upstream links |
 |---|---|---|
@@ -49,6 +49,7 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [bbolt: `Cursor.Prev` returns nil in the middle of a bucket after deletes in the same transaction](bbolt-cursor-prev-empty-leaf.md) | no | etcd-io/bbolt#734 pr merged; boltdb/bolt#450 issue closed |
 | [bbolt: `Get` panics on values committed together whose sizes add up to more than 2 GiB](bbolt-large-values-leaf-unreadable.md) | no | etcd-io/bbolt#931 issue closed; etcd-io/bbolt#182 issue closed |
 | [bbolt fork reinitializes a nonempty database when both meta pages are zero](bbolt-open-zero-meta-reinitializes-data.md) | no |  |
+| [The bbolt fork rejects a readable 256 MiB value](bbolt-put-refuses-readable-entry.md) | no |  |
 | [bbolt: on 32-bit platforms every transaction panics with "unaligned 64-bit atomic operation"](bbolt-txstats-unaligned-32bit.md) | no | etcd-io/bbolt#1300 pr merged; etcd-io/bbolt#577 issue closed |
 | [bbolt: a database restored from `Tx.WriteTo` loses both meta pages after two failed commits](bbolt-writeto-meta-parity.md) | no | etcd-io/bbolt#1311 issue open |
 | [server: the alarms gauge counts an alarm activated twice twice, and stays at 1 after it is disarmed](etcd-apply-alarm-gauge-reactivate.md) | no |  |
@@ -58,6 +59,7 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [etcdserver: `LeaseTimeToLive` with `Keys` returns key names the caller may not read](etcd-lease-timetolive-keys-toctou.md) | no | etcd-io/etcd#15656 pr merged |
 | [v3rpc: a follower's `LeaseTimeToLive` crashes the member when the leader's peer URL replies without a response header](etcd-leasehttp-timetolive-nil-header-panic.md) | no |  |
 | [leasehttp: a follower's `LeaseTimeToLive` crashes the member when the leader's peer URL answers 200 with an empty body](etcd-leasehttp-timetolive-nil-response-panic.md) | no |  |
+| [The etcd fork reports a current-term snapshot as failed during restart replay](etcd-merged-snapshot-replay-failure.md) | no |  |
 | [mvcc: when every key has been deleted, a follower that has not yet applied a compaction reports a different hash than the leader's compaction hash](etcd-mvcc-compact-hash-empty-keyspace.md) | no | etcd-io/etcd#22517 issue open; etcd-io/etcd#22515 pr open |
 | [mvcc: HashKV of a compacted revision during a snapshot restore reports current revision 1](etcd-mvcc-hashbyrev-restore-rev1.md) | no | etcd-io/etcd#22608 issue closed; etcd-io/etcd#22609 pr merged |
 | [mvcc: after a compaction at revision 0, HashKV of the latest revision returns the hash of revision 0](etcd-mvcc-hashbyrev-zero-stored.md) | no |  |
@@ -67,6 +69,7 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [mvcc: a member that crashes during a compaction at revision 0 restarts with compact revision -1, and the corruption check then alarms](etcd-restore-scheduled-compact-zero.md) | no | etcd-io/etcd#17780 issue closed |
 | [server: a require-leader stream's context returns a non-nil Err while its Done channel is still open](etcd-stream-interceptor-err-before-done.md) | no | etcd-io/etcd#12196 pr merged; golang/go#75533 issue closed |
 | [etcdserver: a follower killed while persisting a received snapshot cannot restart](etcd-wal-received-snapshot-save-crash-no-restart.md) | no | etcd-io/etcd#19095 pr merged; etcd-io/etcd#19674 issue closed |
+| [The etcd fork cannot restart from a snapshot in a WAL written with older segment names](etcd-wal-upgrade-legacy-segment-name.md) | no |  |
 | [clientv3: Watcher.Close can hang forever after the member refuses a watch](etcd-watch-close-hang-refused-create.md) | no | etcd-io/etcd#10131 issue closed; etcd-io/etcd#14296 pr merged |
 | [clientv3: after a reconnect, a watch from the current revision delivers an event committed before the watch](etcd-watch-current-resume-past-event.md) | no | etcd-io/etcd#15248 pr merged |
 | [watch: a PrevKv watch's first events can arrive without PrevKv when the key is written while the watch is created](etcd-watch-prevkv-before-created.md) | no | kubernetes/kubernetes#121285 issue closed; kubernetes/kubernetes#100112 issue closed; etcd-io/etcd#6120 issue closed |
@@ -79,6 +82,7 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [raft: with `AsyncStorageWrites`, entries applied after a snapshot that includes them diverge the state machine](raft-async-snapshot-during-apply-divergence.md) | no | etcd-io/raft#8 pr merged |
 | [raft: a crash after a `Ready`'s entries are written but before its `HardState` lets two nodes commit different entries at one index](raft-commit-lost-with-entries-kept.md) | no | etcd-io/raft#300 pr closed; etcd-io/raft#234 issue closed |
 | [raft: `Status()` reports `AutoLeave: false` in a joint configuration entered with auto-leave](raft-config-clone-autoleave.md) | no |  |
+| [The noax Raft fork rejects a configuration change carrying an optional protobuf field](raft-noax-confchange-wire-compat.md) | no |  |
 | [raft: `MaxSizePerMsg: 0` panics on the first committed entry](raft-zero-max-size-per-msg.md) | no |  |
 | [concurrency: a retried Serializable STM attempt reads keys from two revisions](stm-serializable-snapshot.md) | no |  |
 

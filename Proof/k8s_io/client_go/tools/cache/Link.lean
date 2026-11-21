@@ -72,8 +72,10 @@ public import Proof.k8s_io.client_go.tools.cache.cache__Transaction
 public import Proof.k8s_io.client_go.tools.cache.cache__Update
 public import Proof.k8s_io.utils.clock.RealClock__Now
 public import Proof.k8s_io.client_go.tools.cache.controller__processLoop
+public import Proof.errors.AsNoMatch
 public import Proof.k8s_io.apimachinery.pkg.api.errors.IsTooManyRequests
 public import Proof.errors.Join
+public import Proof.k8s_io.apimachinery.pkg.api.errors.reasonAndCodeForError
 public import Proof.k8s_io.client_go.tools.cache.handleWatch
 public import Proof.k8s_io.client_go.tools.cache.isExpiredError
 public import Proof.k8s_io.client_go.tools.cache.isUnsupportedTableListObject
@@ -312,7 +314,7 @@ theorem schema.GroupVersionResource.wp_Empty_ptr :
 
 theorem trace.wp_New :
     EtcdGrove.trace.New.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.trace.New.wp_proof
+  EtcdGrove.trace.New.wp_proof _root_.Perennial.time.wp_Now
 
 theorem trace.Trace.wp_LogIfLong :
     EtcdGrove.trace.Trace.LogIfLong.spec (GF := GF) (hG := hG) :=
@@ -386,9 +388,17 @@ theorem cache.retryWithDeadlineImpl.wp_ShouldRetry :
     EtcdGrove.cache.retryWithDeadlineImpl.ShouldRetry.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cache.retryWithDeadlineImpl.ShouldRetry.wp_proof cache.retryWithDeadlineImpl.wp_reset clock.RealClock.wp_Now _root_.Perennial.time.Time.wp_Sub
 
+theorem errors.wp_AsNoMatch :
+    EtcdGrove.errors.AsNoMatch.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.errors.AsNoMatch.wp_proof
+
+theorem apierrors.wp_reasonAndCodeForError :
+    EtcdGrove.apierrors.reasonAndCodeForError.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apierrors.reasonAndCodeForError.wp_proof errors.wp_AsNoMatch
+
 theorem apierrors.wp_IsTooManyRequests :
     EtcdGrove.apierrors.IsTooManyRequests.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apierrors.IsTooManyRequests.wp_proof
+  EtcdGrove.apierrors.IsTooManyRequests.wp_proof apierrors.wp_reasonAndCodeForError
 
 theorem cache.Reflector.wp_resyncChan :
     EtcdGrove.cache.Reflector.resyncChan.spec (GF := GF) (hG := hG) :=

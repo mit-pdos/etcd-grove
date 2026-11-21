@@ -77,7 +77,7 @@ theorem rafthttp.Transport.AddPeer_core
   iunfold trFixed at Htr'
   icases Htr' with ⟨%lg, %ls, %ss0, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr,
     #Hlg, #Hlgz, #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok,
-    #Hdrf, #Hls, %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx, %HmemU, #HrPool⟩
+    #Hdrf, #Hls, %Hlsnn, #Hss, %Hssnn, #HssI, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx, %HmemU, #HrPool⟩
   ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   ihave #Hlgo := zapLoggerOk_orNil _ $$ Hlgz
   obtain ⟨Hmem, Hturls⟩ := HmemU
@@ -137,7 +137,7 @@ theorem rafthttp.Transport.AddPeer_core
   icases Hts with ⟨%ls', #Hls', #Hlsi, Hlsf⟩
   ihave %Hlseq := typedPointsto_agree_wand _ _ _ _ _ $$ Hls Hls'
   subst Hlseq
-  wp_apply hFollower ls ids $$ [Hlsf] as %fs ⟨%Hfs, Hlsf⟩
+  wp_apply hFollower ls ids $$ [Hlsf] as %fs ⟨%Hfs, #Hfsok, Hlsf⟩
   · iframe; iframe #
   ihave Hts : trStats t 1 $$ [Hlsf]
   · iunfold trStats; iexists ls; iframe; iframe #
@@ -242,7 +242,7 @@ theorem rafthttp.Transport.AddRemote_core
   iunfold trFixed at Htr'
   icases Htr' with ⟨%lg, %ls, %ss0, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr,
     #Hlg, #Hlgz, #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok,
-    #Hdrf, #Hls, %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx, %HmemU, #HrPool⟩
+    #Hdrf, #Hls, %Hlsnn, #Hss, %Hssnn, #HssI, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx, %HmemU, #HrPool⟩
   ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   ihave #Hlgo := zapLoggerOk_orNil _ $$ Hlgz
   obtain ⟨Hmem, Hturls⟩ := HmemU

@@ -4,7 +4,8 @@
 
 def Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.regQs : List (GoString × List
     GoString) :=
-  [(pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership,
+  [(pkg_id.go_etcd_io.etcd.server.v3.auth, go_etcd_io.etcd.server.v3.auth.regNames),
+    (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership,
       go_etcd_io.etcd.server.v3.etcdserver.api.membership.regNames),
     (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp,
       go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.regNames),
@@ -13,7 +14,10 @@ def Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.regQs : List
     (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply, go_etcd_io.etcd.server.v3.etcdserver.apply.regNames),
     (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read, go_etcd_io.etcd.server.v3.etcdserver.read.regNames),
     (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn, go_etcd_io.etcd.server.v3.etcdserver.txn.regNames),
+    (pkg_id.go_etcd_io.etcd.server.v3.lease, go_etcd_io.etcd.server.v3.lease.regNames),
     (pkg_id.go_etcd_io.etcd.server.v3.storage, go_etcd_io.etcd.server.v3.storage.regNames),
+    (pkg_id.go_etcd_io.etcd.server.v3.storage.backend, go_etcd_io.etcd.server.v3.storage.backend.regNames),
+    (pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, go_etcd_io.etcd.server.v3.storage.mvcc.regNames),
     (pkg_id.go_etcd_io.etcd.server.v3.storage.wal, go_etcd_io.etcd.server.v3.storage.wal.regNames)]
 
 def Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.initNames : List GoString :=

@@ -1,6 +1,8 @@
 /-
 `etcdserverpb.RangeRequest.GetKey()` (`api/etcdserverpb/rpc.pb.go`, translated for the server's request
-path: the read side's trace attributes, unit 3b). Lean-first (no Rocq counterpart).
+path: the read side's trace attributes, unit 3b). Lean-first (no Rocq counterpart). At any fraction
+`dq` of the field, given back (auth-mediation M3, 2026-11-21: `EtcdServer.RangeStream` reads the field
+it owns; was `↦□`).
 -/
 module
 
@@ -23,11 +25,11 @@ variable [sem : go.Semantics]
 
 /-- `p.GetKey()` on a non-nil `*RangeRequest` returns its `Key` field. -/
 abbrev RangeRequest.GetKey.spec : Prop :=
-  ∀ (p : Loc) (v : GoSlice),
+  ∀ (p : Loc) (v : GoSlice) (dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ ⌜p ≠ null⌝ ∗
-      structFieldRef etcdserverpb.RangeRequest go!"Key" p ↦□ v }}
+      structFieldRef etcdserverpb.RangeRequest go!"Key" p ↦{dq} v }}
     (App (Val (p @!! go.GoType.PointerType etcdserverpb.RangeRequest.ty @!! go!"GetKey")) (Val #()))
-  {{ RET #v; True }}
+  {{ RET #v; structFieldRef etcdserverpb.RangeRequest go!"Key" p ↦{dq} v }}
 
 end spec
 

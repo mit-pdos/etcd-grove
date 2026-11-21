@@ -35,14 +35,14 @@ theorem lessor.Grant.wp_proof
     (wp_GetHeader : LeaseGrantResponse.GetHeader.spec (GF := GF) (hG := hG))
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     lessor.Grant.spec (GF := GF) (hG := hG) := by
-  intro l conn addr Spec Q ctx cd ttl
-  wp_start as ⟨#Hrem, #Hrpc, #Hpre, #Hctx, #Hce⟩
+  intro l conn addr Spec Q ctx om cd ttl
+  wp_start as ⟨#Hrem, #Hrpc, #Hom, #Hpre, #Hctx, #Hce⟩
   iunfold lessorRemoteAtC at Hrem
   icases Hrem with ⟨%rlc, %sl, #Hremote, #Hrlc, #Hconn, #Hcopts, #Hco⟩
   iunfold callOptsAt at Hco
   icases Hco with ⟨%vs, #Hsl, %Hcap, #Hok, -⟩
   wp_auto
-  wp_apply wp_retry rlc conn addr Spec Q ctx cd _ _ sl vs $$ [«$r0»] as %resp %err ⟨-, Hres⟩
+  wp_apply wp_retry rlc conn addr Spec Q ctx om cd _ _ sl vs $$ [«$r0»] as %resp %err ⟨-, Hres⟩
   · iframe #
     iframe
     simp only
@@ -81,7 +81,7 @@ theorem lessor.Grant.wp_proof
     | nil => exact absurd rfl Hne
     | ok ei =>
       wp_auto
-      ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
+      ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_descIs _ $$ Hse
       wp_apply wp_ContextError ctx cd (GoInterface.ok ei) mC $$ [$Hse $HmC] as %err' ⟨%Herr', #Hse', -, -⟩
       · iframe #; ipureintro; exact fun _ => Hce'
       iapply HΦ

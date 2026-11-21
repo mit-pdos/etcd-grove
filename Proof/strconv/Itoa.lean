@@ -1,9 +1,11 @@
 /-
-The trust boundary: `strconv.Itoa` (Perennial's `strconv` is names-only; Go's `Itoa(i)` is `FormatInt(int64(i), 10)`; K4 of `notes/k8s-compactor-plan.md`, the compactor example's writer).
+`strconv.Itoa`, proved over Perennial's translation of Go's (stdlib2, 2026-11-21; until then a
+trust-boundary axiom).
 -/
 module
 
 public import Spec.strconv.Itoa
+public import Perennial.Proof.strconv.Link
 
 @[expose] public section
 
@@ -14,15 +16,20 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI
+open Iris Iris.BI Iris.ProofMode
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [package_sem : _root_.Perennial.strconv.Assumptions]
 
-axiom strconv.Itoa.wp_proof : strconv.Itoa.spec (GF := GF) (hG := hG)
+theorem strconv.Itoa.wp_proof : strconv.Itoa.spec (GF := GF) (hG := hG) := by
+  intro i
+  iintro %Φ #Hpkg HΦ
+  wp_apply _root_.Perennial.strconv.wp_Itoa i
+  iapply HΦ; ipureintro; rfl
 
 end proof
 

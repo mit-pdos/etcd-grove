@@ -47,8 +47,9 @@ theorem v3rpc.isClientCtxErr.wp_proof
     iapply HΦ; itrivial
   | nil =>
     wp_auto
-    ihave ⟨%mF, #HmF⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
-    wp_apply wp_FromError err mF $$ [$Hst $Hse $HmF] as %ev %ok ⟨-, #HCode, #HMsg, -⟩
+    ihave ⟨%mF, #HmF⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_descIs _ $$ Hse
+    ihave ⟨%cFE, #HcFE⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_code _ $$ Hse
+    wp_apply wp_FromError err mF cFE $$ [$Hst $Hse $HmF $HcFE] as %ev %ok ⟨-, #HCode, #HMsg, -⟩
     cases ok
     · wp_auto
       iapply HΦ; itrivial

@@ -62,17 +62,20 @@ import (
 
 // The members' address ranges: member i's peer address is 127.0.0.1:(PeerBase+i), its client address
 // 127.0.0.1:(ClientBase+i) (not served: the program serves no gRPC). Not another example's, so that
-// the examples' tests can run at once.
+// the examples' tests, and examples/etcd/all's parts, can run at once (until 2026-11-21 29000 and
+// 30000, authN's).
 const (
-	PeerBase   uint64 = 29000
-	ClientBase uint64 = 30000
+	PeerBase   uint64 = 14000
+	ClientBase uint64 = 15000
 )
 
 // Token is the cluster's token (etcd's --initial-cluster-token), from which, with its peer URL, etcd
 // computes each member's id. The theorem's premise on the ids (their 16 low bits distinct and not 0)
 // fails for some k <= 1000 at most tokens (putgetN's Token); this token is the first "restartN-<i>" at
-// which it holds for every k <= 1000 (TestMemberIDs checks it).
-const Token = "restartN-1440"
+// which it holds for every k <= 300, also from the ids of examples/etcd/all's other clusters
+// (etcd_safe's Hlow; TestMemberIDs here and there). Above 300 members the ids are not checked:
+// etcd_restartN_safe's premise on them may be false there.
+const Token = "restartN-11208"
 
 // The members' snapshot settings (etcdstart.BuildServer): a disk snapshot every SnapCount applied
 // entries, raft's log then compacted to SnapCatchUp entries below it.

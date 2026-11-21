@@ -37,8 +37,8 @@ theorem kv.Do.wp_generic
     (wp_retry_DeleteRange : retryKVClient.DeleteRange.spec (GF := GF) (hG := hG))
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Do.specG (GF := GF) (hG := hG) := by
-  intro api conn addr ci cd opv o Sp Qp Sr Qr Sd Qd Ψr
-  wp_start as ⟨#Hkv, #Hctx, #Hce, #Hat, Hrun, %Hsz⟩
+  intro api conn addr ci om cd opv o Sp Qp Sr Qr Sd Qd Ψr
+  wp_start as ⟨#Hkv, #Hom, #Hctx, #Hce, #Hat, Hrun, %Hsz⟩
   iunfold kvObjAtC at Hkv
   icases Hkv with ⟨%rkv, %sl, #Hremote, #Hrkv, #Hconn, #Hcopts, #Hco⟩
   iunfold callOptsAt at Hco
@@ -70,7 +70,7 @@ theorem kv.Do.wp_generic
       iunfold sortNamesOk at Hsn'
       icases Hsn' with ⟨⟨%e, #He, %Hev, #Hse, #Hcl⟩, -, -⟩
       wp_auto
-      ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
+      ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_descIs _ $$ Hse
       wp_apply wp_ContextError ci cd e mC $$ [$Hse $HmC] as %err' ⟨%Herr', #Hse', #Hclw, -⟩
       · iframe #; ipureintro; exact fun _ => Hev.2
       ihave #Hcl' := Hclw $$ Hcl
@@ -91,9 +91,9 @@ theorem kv.Do.wp_generic
     wp_apply wp_toRangeRequest opv o $$ [] as %r ⟨%req, Hr, #Hk, #He, %Hreq⟩
     · iframe #; ipureintro; exact Ht
     obtain ⟨Hreq, Hunk⟩ := Hreq
-    ihave #Hrun' : □ ▷ attemptPre conn (GoInterface.ok ci) Sr (rangeReqOp req o.key o.base.rangeEnd) Qr Ψr $$ []
+    ihave #Hrun' : □ ▷ attemptPre conn om Sr (rangeReqOp req o.key o.base.rangeEnd) Qr Ψr $$ []
     · rw [Hreq]; iexact Hrun
-    wp_apply wp_retry_Range rkv conn addr Sr Qr ci cd r req o.key o.base.rangeEnd sl vs Ψr $$ [Hr]
+    wp_apply wp_retry_Range rkv conn addr Sr Qr ci om cd r req o.key o.base.rangeEnd sl vs Ψr $$ [Hr]
       as %resp %err ⟨-, Hres, Heo⟩
     · iframe #
       iframe
@@ -118,20 +118,20 @@ theorem kv.Do.wp_generic
       | nil => exact absurd rfl Hne
       | ok ei =>
         wp_auto
-        ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
-        wp_apply wp_ContextError ci cd (GoInterface.ok ei) mC $$ [$Hse $HmC] as %err' ⟨%Herr', #Hse', #Hclw, #Hd', -⟩
+        ihave Heo1 := Heo $$ %(by simp)
+        iunfold ifcErrOut at Heo1
+        icases Heo1 with ⟨%d, #Hd, Heo1⟩
+        wp_apply wp_ContextError ci cd (GoInterface.ok ei) d $$ [$Hse $Hd] as %err' ⟨%Herr', #Hse', #Hclw, #Hd', -⟩
         · iframe #; ipureintro; exact fun _ => Hce'
         ihave #Hcl' := Hclw $$ Hcl
         iapply HΦ
-        isplitl [Heo]
-        · icases Hd' with (%hd | #hctx)
-          · rcases hd with hd | hd
+        isplitl [Heo1]
+        · icases Hd' with (Hd' | #hctx)
+          · icases Hd' with (%hd | #Hd2)
             · exact absurd hd (by simp)
             iright
             iintro -
-            iapply (ifcErrOut_desc _ _ _ _ _ (Or.inl hd))
-            iapply Heo
-            ipureintro; simp
+            iapply (ifcErrOut_intro _ _ _ _ d) $$ Hd2 Heo1
           · ileft; iexact hctx
         unfold doOut
         simp only [Ht, ↓reduceIte]
@@ -151,7 +151,7 @@ theorem kv.Do.wp_generic
     unfold OpFields at Hf
     obtain ⟨-, hpk, -⟩ := Hf
     obtain ⟨-, -, -, -, hlease, hiv, hil, -⟩ := Hf2
-    ihave Hrun' : reqPre conn go!"/etcdserverpb.KV/Put" addr vs (attemptPre conn (GoInterface.ok ci) Sp (putReqOp
+    ihave Hrun' : reqPre conn go!"/etcdserverpb.KV/Put" addr vs (attemptPre conn om Sp (putReqOp
         { state' := zeroValDef, Key' := opv.key', Value' := opv.val', Lease' := opv.leaseID',
           PrevKv' := opv.prevKV', IgnoreValue' := opv.ignoreValue',
           IgnoreLease' := opv.ignoreLease', unknownFields' := slice.nil, sizeCache' := 0 }
@@ -159,7 +159,7 @@ theorem kv.Do.wp_generic
     · simp only [putReqOp, putWireOf, hlease, hpk, hiv, hil]
       iapply kvReqPre_conn api rkv conn go!"/etcdserverpb.KV/Put" ⟨go!"Put", rfl⟩ addr vs _ Hsc $$ [Hrun]
       iframe Hremote Hrkv Hrun
-    wp_apply wp_retry_Put rkv conn addr Sp Qp ci cd _ _ o.key o.val sl vs $$ [«$r0» Hrun']
+    wp_apply wp_retry_Put rkv conn addr Sp Qp ci om cd _ _ o.key o.val sl vs $$ [«$r0» Hrun']
       as %resp %err ⟨-, Hres⟩
     · iframe #
       iframe
@@ -184,7 +184,7 @@ theorem kv.Do.wp_generic
       | nil => exact absurd rfl Hne
       | ok ei =>
         wp_auto
-        ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
+        ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_descIs _ $$ Hse
         wp_apply wp_ContextError ci cd (GoInterface.ok ei) mC $$ [$Hse $HmC] as %err' ⟨%Herr', #Hse', #Hclw, -⟩
         · iframe #; ipureintro; exact fun _ => Hce'
         ihave #Hcl' := Hclw $$ Hcl
@@ -210,14 +210,14 @@ theorem kv.Do.wp_generic
     icases Hat0 with ⟨%Hf, #Hend⟩
     unfold OpFields at Hf
     obtain ⟨-, hpk, -⟩ := Hf
-    ihave Hrun' : reqPre conn go!"/etcdserverpb.KV/DeleteRange" addr vs (attemptPre conn (GoInterface.ok ci) Sd (deleteReqOp
+    ihave Hrun' : reqPre conn go!"/etcdserverpb.KV/DeleteRange" addr vs (attemptPre conn om Sd (deleteReqOp
         { state' := zeroValDef, Key' := opv.key', RangeEnd' := opv.end', PrevKv' := opv.prevKV',
           unknownFields' := slice.nil, sizeCache' := 0 }
         o.key o.base.rangeEnd) Qd) $$ [Hrun]
     · simp only [deleteReqOp, deleteWireOf, hpk]
       iapply kvReqPre_conn api rkv conn go!"/etcdserverpb.KV/DeleteRange" ⟨go!"DeleteRange", rfl⟩ addr vs _ Hsc $$ [Hrun]
       iframe Hremote Hrkv Hrun
-    wp_apply wp_retry_DeleteRange rkv conn addr Sd Qd ci cd _ _ o.key o.base.rangeEnd sl vs
+    wp_apply wp_retry_DeleteRange rkv conn addr Sd Qd ci om cd _ _ o.key o.base.rangeEnd sl vs
       $$ [«$r0» Hrun'] as %resp %err ⟨-, Hres⟩
     · iframe #
       iframe
@@ -243,7 +243,7 @@ theorem kv.Do.wp_generic
       | nil => exact absurd rfl Hne
       | ok ei =>
         wp_auto
-        ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
+        ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_descIs _ $$ Hse
         wp_apply wp_ContextError ci cd (GoInterface.ok ei) mC $$ [$Hse $HmC] as %err' ⟨%Herr', #Hse', #Hclw, -⟩
         · iframe #; ipureintro; exact fun _ => Hce'
         ihave #Hcl' := Hclw $$ Hcl
@@ -273,12 +273,15 @@ theorem kv.Do.wp_members
     kv.Do.specM (GF := GF) (hG := hG) := by
   intro api ms ci cd opv o c F Q
   iintro %Φ ⟨#Pc, #Hkv, #Hctx, #Hce, Hat, Hrun, %Hsz⟩ HΦ
+  ihave #HctxO := ctxOk_outgoingC ci cd $$ Hctx
+  iunfold metadata.outgoingCtxOkC at HctxO
+  icases HctxO with ⟨%om, #Hom⟩
   iunfold isKV at Hkv
   icases Hkv with ⟨#Hobj, #Hregs⟩
   icases (kvObjAt_conn api (ms.map SrvAt.addr)).1 $$ Hobj with ⟨%conn, #Hobj⟩
   -- the plain specs at every metadata (`GrpcSpec.md`)
   iapply (kv.Do.wp_generic wp_IsSortOptionValid wp_toRangeRequest wp_retry_Range wp_retry_Put
-    wp_retry_DeleteRange wp_ContextError api conn (ms.map SrvAt.addr) ci cd opv o
+    wp_retry_DeleteRange wp_ContextError api conn (ms.map SrvAt.addr) ci om cd opv o
     (GrpcSpec.md (kvPutSpec ms)) (putAns ms F (putWireOf o) Q)
     (GrpcSpec.md (kvRangeSpec ms)) (rangeAns ms c F (rangeWireOf o) Q)
     (GrpcSpec.md (kvDeleteSpec ms)) (delAns ms F (deleteWireOf o) Q) (fun _ => iprop(True))) $$ [Hat Hrun]
@@ -297,7 +300,7 @@ theorem kv.Do.wp_members
       · iapply (isGrpcRpcs_md _ _ _).1; iapply (kvRegs_rpcRange ms) $$ Hregs
       imodintro
       inext
-      iapply (attemptPre_md conn (GoInterface.ok ci) (kvRangeSpec ms) (rangeWireOf o)
+      iapply (attemptPre_md conn om (kvRangeSpec ms) (rangeWireOf o)
         (rangeAns ms c F (rangeWireOf o) Q))
       iapply (rangeSpec_of ms c F (rangeWireOf o) Q)
       iframe Hk Hu
@@ -309,7 +312,7 @@ theorem kv.Do.wp_members
       · iapply (isGrpcRpcs_md _ _ _).1; iapply (kvRegs_rpcPut ms) $$ Hregs
       iapply (kvReqPre_wand api (ms.map SrvAt.addr) (floorsAt ms F) _ _
         ((putSpec_of ms F (putWireOf o) Q Hp.2).trans
-          (attemptPre_md conn (GoInterface.ok ci) (kvPutSpec ms) _ _)))
+          (attemptPre_md conn om (kvPutSpec ms) _ _)))
       iframe HF Hu
     · iright
       iright
@@ -319,7 +322,7 @@ theorem kv.Do.wp_members
       · iapply (isGrpcRpcs_md _ _ _).1; iapply (kvRegs_rpcDelete ms) $$ Hregs
       iapply (kvReqPre_wand api (ms.map SrvAt.addr) (floorsAt ms F) _ _
         ((deleteSpec_of ms F (deleteWireOf o) Q Hd.2).trans
-          (attemptPre_md conn (GoInterface.ok ci) (kvDeleteSpec ms) _ _)))
+          (attemptPre_md conn om (kvDeleteSpec ms) _ _)))
       iframe HF Hu
   inext
   iintro %r %err ⟨-, Hout⟩

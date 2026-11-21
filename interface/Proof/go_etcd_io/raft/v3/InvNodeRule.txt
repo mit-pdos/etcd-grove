@@ -9,6 +9,8 @@ theorem nodeCrash [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (id
 def skippedIn (γ : Cluster) (l : List LogEntry) (a b : Nat) : IProp GF :=
   [∗list] j ∈ List.range' a (b - a), iprop(∀ e, ⌜l[j]? = some e ∧ e.isConfChange⌝ → confDecided γ j ConfDecision.skip)
 
+def (sealed) nodeInstalledIndex (γ : Cluster) (n : Loc) (i : w64) : IProp GF
+
 def isStorage (γ : Cluster) (K : GName) (st : Storage) (SV : SnapshotM → IProp GF := snapshotValid
     γ) : IProp GF :=
   isStorageP γ.maxData.isSome SV (storBnd γ K) (nodeCommitLb γ K) st
@@ -115,6 +117,18 @@ def snapshotValid (γ : Cluster) (sv : SnapshotM) : IProp GF :=
                             ↑sv.Metadata'.ConfState'.LearnersNext'.length ≤
                           2 ^ 62⌝)
 
+theorem readySnapSources_installed_le [package_sem : Assumptions] (γ : Cluster) (n : Loc) (id
+    handoutTerm : w64) (ms observed : List QMsg) (bound observedBound : Nat) (sourceInstall
+    observedInstall : Option w64) (q : QMsg) (sv : SnapshotM) (hq : q ∈ ms) (ht : q.st.msg.Type' =
+    MsgSnap) (hsv : q.st.snap = some sv) : ⊢ readySnapSources γ n id handoutTerm ms bound
+    sourceInstall -∗ readySnapSources γ n id q.st.msg.Term' observed observedBound observedInstall
+    -∗ snapshotLeader γ id q.st.msg.Term' -∗ nodeInstalledIndex γ n sv.Metadata'.Index' -∗ ⌜uint.nat
+    sv.Metadata'.Index' ≤ observedBound⌝
+
+theorem readySnapSources_installed [package_sem : Assumptions] (γ : Cluster) (n : Loc) (id term i :
+    w64) (ms : List QMsg) (bound : Nat) : readySnapSources γ n id term ms bound (some i) ⊢
+    nodeInstalledIndex γ n i
+
 def (sealed) nodeBoot (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (id :
     w64) : IProp GF
 
@@ -134,6 +148,9 @@ theorem storBnd_intro_untraced [package_sem : Assumptions] (γ : Cluster) (K : G
 
 theorem nodeBoot_persistent (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs : List (List w8))
     (id : w64) : Persistent (nodeBoot γ N vs ctxs id)
+
+theorem instPersistentIPropNodeInstalledIndex (γ : Cluster) (n : Loc) (i : w64) : Persistent
+    (nodeInstalledIndex γ n i)
 
 theorem nodeTagPin_persistent (γ : Cluster) (n : Loc) (SV : SnapshotM → IProp GF) : Persistent
     (nodeTagPin γ n SV)
@@ -258,6 +275,12 @@ theorem ownSnapsMade_snapshotValid_data [package_sem : Assumptions] (γ : Cluste
 
 theorem ownSnapsMade_timeless (γ : Cluster) (S : List SnapRec) : Timeless (ownSnapsMade γ S)
 
+theorem readySnapSources_sameTerm_le [package_sem : Assumptions] (γ : Cluster) (n : Loc) (id term :
+    w64) (ms observed : List QMsg) (bound observedBound : Nat) (q : QMsg) (SV : SnapshotM → IProp
+    GF) (hq : q ∈ ms) (ht : q.st.msg.Type' = MsgSnap) : ⊢ readySnapSources γ n id term ms bound -∗
+    readySnapSources γ n id term observed observedBound -∗ snapshotLeader γ id term -∗ nodeTagPin γ
+    n SV -∗ ∃ sv, ⌜q.st.snap = some sv⌝ ∗ (▷ SV sv ∨ ⌜uint.nat sv.Metadata'.Index' ≤ observedBound⌝)
+
 theorem ownConfDecisions_witness [package_sem : Assumptions] (γ : Cluster) (D : GMap Nat
     ConfDecision) (k : Nat) (d : ConfDecision) : D !! k = some d → ownConfDecisions γ D ⊢
     ownConfDecisions γ D ∗ confDecided γ k d
@@ -265,10 +288,11 @@ theorem ownConfDecisions_witness [package_sem : Assumptions] (γ : Cluster) (D :
 theorem confDecided_persistent (γ : Cluster) (k : Nat) (d : ConfDecision) : Persistent (confDecided
     γ k d)
 
-theorem readySnapSources_msgSnap [package_sem : Assumptions] (γ : Cluster) (n : Loc) (ms : List
-    QMsg) (q : QMsg) (SV : SnapshotM → IProp GF) (hq : q ∈ ms) (ht : q.st.msg.Type' = MsgSnap) : ⊢
-    readySnapSources γ n ms -∗ nodeTagPin γ n SV -∗ ∃ sv, ⌜q.st.snap = some sv⌝ ∗ (▷ SV sv ∨
-    nodeRestoreCert γ n sv)
+theorem readySnapSources_msgSnap [package_sem : Assumptions] (γ : Cluster) (n : Loc) (id : w64)
+    {term : w64} {bound : Nat} {installed : Option w64} (ms : List QMsg) (q : QMsg) (SV : SnapshotM
+    → IProp GF) (hq : q ∈ ms) (ht : q.st.msg.Type' = MsgSnap) : ⊢ readySnapSources γ n id term ms
+    bound installed -∗ nodeTagPin γ n SV -∗ ∃ sv, ⌜q.st.snap = some sv⌝ ∗ (▷ SV sv ∨ nodeRestoreCert
+    γ n sv ∗ nodeRestoreSource γ id (snapId sv))
 
 def (sealed) ownSnapsMade (γ : Cluster) (S : List SnapRec) : IProp GF
 
@@ -298,5 +322,13 @@ theorem snapshotCert_make [package_sem : Assumptions] (γ : Cluster) (N : Namesp
     cs m → ⊢ isCluster γ N -∗ isCommittedLogLb γ l -∗ confAt γ l.length m -∗ ownSnapsMade γ S ={E}=∗
     ownSnapsMade γ (S ++ [{ index := l.length, conf := m, data := d }]) ∗ snapshotCert γ N { sid :=
     { term' := t, index' := i }, cl := cs.lists, al := m.autoLeave, dat := d }
+
+theorem readySnapSources_le [package_sem : Assumptions] (γ : Cluster) (n : Loc) (id term handoutTerm
+    : w64) (ms observed : List QMsg) (bound observedBound : Nat) (q : QMsg) (SV : SnapshotM → IProp
+    GF) (hq : q ∈ ms) (ht : q.st.msg.Type' = MsgSnap) (he : term = handoutTerm ∨ term =
+    q.st.msg.Term') (sourceInstall observedInstall : Option w64 := none) : ⊢ readySnapSources γ n id
+    handoutTerm ms bound sourceInstall -∗ readySnapSources γ n id term observed observedBound
+    observedInstall -∗ snapshotLeader γ id term -∗ nodeTagPin γ n SV -∗ ∃ sv, ⌜q.st.snap = some sv⌝
+    ∗ (▷ SV sv ∨ ⌜uint.nat sv.Metadata'.Index' ≤ observedBound⌝)
 
 def (sealed) nodeRestoreCert (γ : Cluster) (n : Loc) (sv : SnapshotM) : IProp GF

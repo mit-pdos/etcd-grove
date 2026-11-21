@@ -72,16 +72,16 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.authlease.Assumptions]
 
 /-- **The token an attempt of `who`'s call carries** (`akTokSeen_attempt` at `reqCtx`'s context). -/
-theorem akTokSeen_md (γa : auth.AuthNames) (who : GoString) (conn : Loc) (c : GoInterface) (md : GrpcMd)
-    (hout : metadata.outgoingOf c = akOut who) (hmd : clientAttemptMd conn c md) :
+theorem akTokSeen_md (γa : auth.AuthNames) (who : GoString) (conn : Loc) (c : GrpcMd) (md : GrpcMd)
+    (hout : c = akOut who) (hmd : clientAttemptMd conn c md) :
     attemptTokOk (GF := GF) conn (akTokP γa who) ⊢ akTokSeen γa who (auth.mdTokenOf md) :=
   akTokSeen_attempt γa who conn md (by unfold clientAttemptMd at hmd; rw [hout] at hmd; exact hmd)
 
 /-- `Grant(ttl)`'s attempts, refuted. -/
 theorem grant_attempt_refuted (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γl : GName)
-    (γa : auth.AuthNames) (who : GoString) (conn : Loc) (c : GoInterface) (n : Nat) (ttl : w64)
+    (γa : auth.AuthNames) (who : GoString) (conn : Loc) (c : GrpcMd) (n : Nat) (ttl : w64)
     (Q : w64 → KVState → IProp GF) (Φ : LeaseGrantRespM → IProp GF)
-    (hout : metadata.outgoingOf c = akOut who) :
+    (hout : c = akOut who) :
     attemptTokOk conn (akTokP γa who) ∗ auth.authPubLbM E.authMode n ∗
       □ (∀ (tok : Option GoString) (K : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF) m,
           akTokSeen γa who tok -∗ leaseCheckFrom s E tok n K -∗ Φ m) ∗
@@ -113,7 +113,7 @@ theorem grant_attempt_refuted (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γl
   iapply Hno $$ %_ %_ %m Hs Hck
 
 /-- `Revoke(id)`'s attempts, with the caller's update `Q` and the reply's result. -/
-theorem revoke_attempt (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) (c : GoInterface)
+theorem revoke_attempt (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) (c : GrpcMd)
     (n : Nat) (id : w64) (Q : KVState → IProp GF) (Φ : LeaseRevokeRespM → IProp GF) :
     auth.authPubLbM E.authMode n ∗ □ clientOpAuOn s E ρ conn c (.leaseRevoke id) Q ∗
       □ (∀ (md : GrpcMd) (m : LeaseRevokeRespM), ⌜clientAttemptMd conn c md⌝ -∗
@@ -142,9 +142,9 @@ theorem revoke_attempt (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc
 
 /-- `Revoke(id)`'s attempts, refuted. -/
 theorem revoke_attempt_refuted (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γa : auth.AuthNames)
-    (who : GoString) (conn : Loc) (c : GoInterface) (n : Nat) (id : w64) (Q : KVState → IProp GF)
+    (who : GoString) (conn : Loc) (c : GrpcMd) (n : Nat) (id : w64) (Q : KVState → IProp GF)
     (Φ : LeaseRevokeRespM → IProp GF)
-    (hout : metadata.outgoingOf c = akOut who) :
+    (hout : c = akOut who) :
     attemptTokOk conn (akTokP γa who) ∗ auth.authPubLbM E.authMode n ∗
       □ (∀ (tok : Option GoString) (K : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF) m,
           akTokSeen γa who tok -∗ leaseCheckFrom s E tok n K -∗ Φ m) ∗
@@ -173,8 +173,8 @@ theorem revoke_attempt_refuted (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γ
 
 /-- `TimeToLive(req)`'s attempts, the reply's check at the token of one of them handed to `Φ`. -/
 theorem ttl_attempt_seen (s : Loc) (E : apply.AEnv GF) (γl : GName) (γa : auth.AuthNames)
-    (who : GoString) (conn : Loc) (c : GoInterface) (n m : Nat) (req : w64 × Bool)
-    (Φ : LeaseTTLRespM → IProp GF) (hout : metadata.outgoingOf c = akOut who) :
+    (who : GoString) (conn : Loc) (c : GrpcMd) (n m : Nat) (req : w64 × Bool)
+    (Φ : LeaseTTLRespM → IProp GF) (hout : c = akOut who) :
     attemptTokOk conn (akTokP γa who) ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m ∗
       □ (∀ (r : LeaseTTLRespM) (tok : Option GoString), akTokSeen γa who tok -∗
           leaseCheckFrom s E tok n (fun info => if req.2 then
@@ -197,9 +197,9 @@ theorem ttl_attempt_seen (s : Loc) (E : apply.AEnv GF) (γl : GName) (γa : auth
 
 /-- `TimeToLive(req)`'s attempts, refuted. -/
 theorem ttl_attempt_refuted (s : Loc) (E : apply.AEnv GF) (γl : GName) (γa : auth.AuthNames)
-    (who : GoString) (conn : Loc) (c : GoInterface) (n m : Nat) (req : w64 × Bool)
+    (who : GoString) (conn : Loc) (c : GrpcMd) (n m : Nat) (req : w64 × Bool)
     (Φ : LeaseTTLRespM → IProp GF)
-    (hout : metadata.outgoingOf c = akOut who) :
+    (hout : c = akOut who) :
     attemptTokOk conn (akTokP γa who) ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m ∗
       □ (∀ (tok : Option GoString) (K : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF) m,
           akTokSeen γa who tok -∗ leaseCheckFrom s E tok n K -∗ Φ m) ⊢
@@ -222,8 +222,8 @@ theorem ttl_attempt_refuted (s : Loc) (E : apply.AEnv GF) (γl : GName) (γa : a
 /-- `Leases()`'s attempts, the listing and the reply's check at the token of one of them handed to
 `Φ`. -/
 theorem leases_attempt_seen (s : Loc) (E : apply.AEnv GF) (γl : GName) (γa : auth.AuthNames)
-    (who : GoString) (conn : Loc) (c : GoInterface) (n m : Nat) (Φ : LeaseLeasesRespM → IProp GF)
-    (hout : metadata.outgoingOf c = akOut who) :
+    (who : GoString) (conn : Loc) (c : GrpcMd) (n m : Nat) (Φ : LeaseLeasesRespM → IProp GF)
+    (hout : c = akOut who) :
     attemptTokOk conn (akTokP γa who) ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m ∗
       □ (∀ (r : LeaseLeasesRespM) (tok : Option GoString) (i : Nat), ⌜m ≤ i⌝ -∗ akTokSeen γa who tok -∗
           lease.leaseIdsAt γl i r.ids -∗
@@ -247,9 +247,9 @@ theorem leases_attempt_seen (s : Loc) (E : apply.AEnv GF) (γl : GName) (γa : a
 
 /-- `Leases()`'s attempts, refuted. -/
 theorem leases_attempt_refuted (s : Loc) (E : apply.AEnv GF) (γl : GName) (γa : auth.AuthNames)
-    (who : GoString) (conn : Loc) (c : GoInterface) (n m : Nat)
+    (who : GoString) (conn : Loc) (c : GrpcMd) (n m : Nat)
     (Φ : LeaseLeasesRespM → IProp GF)
-    (hout : metadata.outgoingOf c = akOut who) :
+    (hout : c = akOut who) :
     attemptTokOk conn (akTokP γa who) ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m ∗
       □ (∀ (tok : Option GoString) (K : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF) m,
           akTokSeen γa who tok -∗ leaseCheckFrom s E tok n K -∗ Φ m) ⊢

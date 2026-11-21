@@ -54,7 +54,7 @@ theorem rnMsgR_open (E : RNEnv GF) (γ : RNNames GF) (m : Loc) :
     · iintro %h
       exact absurd h Hty
   · iunfold rnSnapMsg at Hs
-    icases Hs with ⟨%st, Hm, %Hty, #Hsm, Hc, #Huf⟩
+    icases Hs with ⟨%st, Hm, %Hty, #Hsm, Hc, #Huf, #Hsrc⟩
     iexists DFrac.own 1, st
     iframe Hm
     isplit
@@ -63,7 +63,7 @@ theorem rnMsgR_open (E : RNEnv GF) (γ : RNNames GF) (m : Loc) :
     · iintro %_ Hm
       iunfold rnSnapMsg
       iexists st
-      iframe Hm Hsm Hc Huf
+      iframe Hm Hsm Hc Huf Hsrc
       ipureintro; exact Hty
 
 /-- `m.GetTo()` at any fraction. -/
@@ -239,7 +239,8 @@ theorem raftNode.processMessages.wp_proof
             · iexact Hbagch
             unfold nonblockingSendAu nonblockingSendAuInner
             isplit
-            · iinv Hinv with Hi Hclose
+            · iapply ncfupd_of_fupd
+              iinv Hinv with Hi Hclose
               iapply fupd_mask_intro Std.LawfulSet.empty_subset
               iintro Hmask
               inext
@@ -313,7 +314,7 @@ theorem raftNode.processMessages.wp_proof
           isplitr
           · ipureintro; rfl
           iintro %asl ⟨Hasl, -⟩
-          wp_apply _root_.Perennial.fmt.wp_Sprintf _ _ _ (DFrac.own 1)
+          wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ (DFrac.own 1)
             (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (_root_.Perennial.fmt.IntArgValue.uint64 to)
               _root_.Perennial.fmt.ArgsWf.nil) $$ [$Hfmt $Hasl] as %str -
           wp_apply wp_String _ _ $$ [$Hzap] as %f0 -

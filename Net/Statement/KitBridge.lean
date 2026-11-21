@@ -1,6 +1,6 @@
 /-
 **From a kit's boot WPs to its robustness statement** (proved; `notes/dsverify-net-port-plan.md`,
-phase 4): a kit's machines never crash, so its statement is `Robust [] nodes g bound`
+phase 4): a kit's machines never crash, so its statement is `Robust [] nodes g threads bound`
 (`Robustness/Statement.lean`) under the kit's deployment (`KitDeploy`, `KitDeploy.lean`), and this
 file proves it from one WP per machine.
 
@@ -86,20 +86,20 @@ theorem nodeWp_of_kitBoot [lctx : GoLocalContext] [G : GooseGlobalGS .hasLC netG
 /-- **The bridge**: under the kit's deployment, an update from the extension's start resources
 (every address of the kit unset) to a share `Ps i` for each machine `i`, and each machine's boot
 program safe from its share (`KitBootWp`), give the kit's statement, `Robust` with no crashing
-machine, for any bound. -/
+machine, for any thread bound and step bound. -/
 theorem robust_of_kitBoot [lctx : GoLocalContext] (addrs : List GoString)
-    (nodes : List (Expr × state)) (g : GlobalState) (bound : Nat)
+    (nodes : List (Expr × state)) (g : GlobalState) (threads bound : Nat)
     (Hstart : ∀ [GooseGlobalGS .hasLC netGF],
       ⊢ ([∗list] a ∈ addrs, addrUnset a) ={⊤}=∗
         ∃ Ps : Nat → IProp netGF,
           ⌜∀ (i : Nat) (m : Expr × state), nodes[i]? = some m → KitBootWp m.1 (Ps i)⌝ ∗
           [∗list] i ↦ _m ∈ nodes, Ps i) :
-    KitDeploy addrs nodes g → Robust [] nodes g bound := by
-  rintro ⟨Hnd, Hok, Hconns, -⟩ hfresh n κs c hsteps _ i tp σ hi e he
+    KitDeploy addrs nodes g → Robust [] nodes g threads bound := by
+  rintro ⟨Hnd, Hok, Hconns, -⟩ hfresh _ _ n κs c hsteps _ i tp σ hi e he
   simp only [List.map_nil, List.nil_append] at hfresh hsteps
   have H := goose_dist_adequacy (GF := netGF) (n + 1) (n + 2) nodes g (fun _ v => v = #())
     (fun _ p h => intoVal_ne_PanicV () p h.symm) ⟨Hconns, trivial⟩ (fun _ _ => ⟨trivial, trivial⟩)
-    ?_ n κs c (distNsteps_of_crash_nil hsteps) (Nat.lt_succ_self n)
+    ?_ n κs c (distNsteps_of_crash_nil hsteps.nsteps) (Nat.lt_succ_self n)
     (fun m hm => (hfresh m hm).2.2) (DistThreadsBelow.of_single ?_) i tp σ hi
   · exact ⟨H.2.1 e he, H.2.2 e he⟩
   · intro G _
@@ -123,14 +123,14 @@ theorem robust_of_kitBoot [lctx : GoLocalContext] (addrs : List GoString)
 obligation gets the registry's names and every address of the kit unset, and sets their protocols
 itself (`addrs_set_proto`). -/
 theorem robust_of_kitProto [lctx : GoLocalContext] (addrs : List GoString)
-    (nodes : List (Expr × state)) (g : GlobalState) (bound : Nat)
+    (nodes : List (Expr × state)) (g : GlobalState) (threads bound : Nat)
     (Hstart : ∀ [GooseGlobalGS .hasLC netGF] [NetProtoGS],
       ⊢ regCtx -∗ ([∗list] a ∈ addrs, addrUnset a) ={⊤}=∗
         ∃ Ps : Nat → IProp netGF,
           ⌜∀ (i : Nat) (m : Expr × state), nodes[i]? = some m → KitBootWp m.1 (Ps i)⌝ ∗
           [∗list] i ↦ _m ∈ nodes, Ps i) :
-    KitDeploy addrs nodes g → Robust [] nodes g bound := by
-  refine robust_of_kitBoot addrs nodes g bound ?_
+    KitDeploy addrs nodes g → Robust [] nodes g threads bound := by
+  refine robust_of_kitBoot addrs nodes g threads bound ?_
   intro G
   iintro Hs
   imod netProto_alloc ⊤ with ⟨%π, #Hreg⟩

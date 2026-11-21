@@ -18,18 +18,6 @@ plan, `notes/partition-plan.md`), restated, with the trust base of each printed 
   `steps`). From `isPkgInit linkv3p`, the right to listen on
   the nine addresses, the main thread's token and `Main`'s named premises
   (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/partition/Main.lean`).
-* **`etcd_partition_safe`** (`Adequacy.lean`'s `etcd_partition_adequate`): the closed theorem. Every real
-  execution of `n` steps of `linkv3p`'s initialization followed by `Main(clients, ops, sched)`,
-  the schedule built as a slice literal of any list of steps, from a fresh state with one
-  thread, has no stuck thread, no thread ended in a panic (so never "linkv3p: porcupine found
-  the history not linearizable"), and the main thread's result, if any, is `Ok` or `Unknown`;
-  under the hypotheses its signature lists (until 2026-10-22 linkv3's, `linkv3_safe`, retired by
-  D34): at linkv3p's configuration, v3rpc's method sets as
-  an instance, `Run`'s bounds on `clients` and `ops` (`linkv_safe`'s, as `linkvtxn_safe`'s)
-  and the schedule's length below `2^63`; executions of `n + 2 ≤ 2^28` steps (the server's bound,
-  since J8a-6, 2026-11-01: the transport's thread pool; from 2026-10-21 `2^29`, watchkv's: a
-  member's watch run slot needs the thread bound below Go's `RWMutex` reader bound; until then
-  `2^31`).
 
 * **`linkv3p_MainWatch`** (`Link.lean`'s `etcd_partition.wp_MainWatch`; W4 of
   `notes/watch-cut-plan.md`, 2026-10-22): `MainWatch(nw, nops, sched)` -- watchkv's workload over
@@ -38,12 +26,6 @@ plan, `notes/partition-plan.md`), restated, with the trust base of each printed 
   through clients picked at random, the watch read up to the highest successful put and checked
   against the writes -- does not panic and returns `WatchOk`, `WatchFailed` or `WatchEnded`, for
   every schedule. From the same resources as `Main`.
-* **`etcd_partition_watch_safe`** (`AdequacyWatch.lean`'s `etcd_partition_watch_adequate`): its closed theorem,
-  under `etcd_partition_safe`'s hypotheses but `Run`'s bounds, the client watcher's (watchkv's
-  `watch_safe`: its class premises and `ContextErrsClient`) and watchkv's bounds on `nw` and
-  `nops`; executions of `n + 2 ≤ 2^28` steps. The watch's events are the cluster's committed
-  history's (`etcdModelOfHistory`), the watch resumed at any member after a cut (D32): no gap, no
-  repeat, every successful put reported at its revision, whatever the schedule.
 
 What the theorem says of partitions: the network model (`Transport.Start`'s axiom) lets any
 message be lost, so the proofs of raft and of etcd's server never needed delivery; this program
@@ -58,11 +40,17 @@ again (its `Blackhole` panics on a second call, `nonissues/etcd-bridge-blackhole
 Each client is configured with every member's bridge (failover, D27): each attempt of a call goes
 to one member, and the reply is that member's; the client's results take the conjunction of the
 members' specs (`Proof/go_etcd_io/etcd/client/v3/Results.lean`, "The client's KV calls").
+
+**The closed theorems retired (2026-11-21, the user's decision D2 of `notes/etcd-unified-scope.md`).**
+Its closed theorems `etcd_partition_safe` and `etcd_partition_watch_safe` (with their `_adequate` and `_robust`
+forms, `Adequacy.lean`, `AdequacyWatch.lean`, `PkgTable.lean`, `TopLevelDefs.lean` and the `TopLevelRobustness.lean`
+pair) are gone: the one closed etcd theorem `etcd_safe` (`examples/etcd/all`,
+`Proof/github_com/mit_pdos/etcd_grove/examples/etcd/all/Results.lean`) runs `MainWatch`, and txnlinfaultsN's
+`Main` (in it) covers `Main`'s workload at three members (`notes/etcd-unified-scope.md` §1.3, §4); the function triples here stay.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.AdequacyWatch
-public import Robustness.Statement
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.Link
 
 @[expose] public section
 
@@ -101,108 +89,8 @@ theorem linkv3p_MainWatch [go_etcd_io.etcd.cache.v3.Assumptions]
 
 end results
 
-section adequacy
-attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
-variable [go_gctx : GoGlobalContext]
-
-/-- **The partitioned three-member instance is safe, in the operational semantics**
-(`etcd_partition_adequate`, see the file header and `Adequacy.lean`). -/
-theorem etcd_partition_safe [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.partition.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
-    [log.NewModel]
-    (Hctx : ∀ hG : HeapGS .hasLC linkvGF, ContextReadErrs (GF := linkvGF) (hG := linkvHeapAt hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC linkvGF, ContextErrsClient (GF := linkvGF) (hG := linkvHeapAt hG lctx))
-    (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (Hbf : etcd_partition.BootFacts id₁ id₂ id₃ ps ctxs boot)
-    (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
-    (clients ops : w64)
-    (Hc0 : 0 ≤ sint.Z clients) (Hc31 : sint.Z clients < 2 ^ 31) (Hops : 0 ≤ sint.Z ops)
-    (Hmul : sint.Z clients * sint.Z ops < 2 ^ 60)
-    (steps : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step)
-    (Hsteps : steps.length < 2 ^ 63)
-    (HNs : prometheus.namesUnclaimed (linkv3pProgram clients ops steps) linkv3pNames)
-    (HAs : addrsUnclaimed (linkv3pProgram clients ops steps) linkv3pAddrs)
-    -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the members' data directories,
-    -- fresh at start (`dataDirsAbsent`; their distinctness is now `decide`d, no longer a hypothesis)
-    (HDs : dataDirsAbsent (linkv3pProgram clients ops steps) [(memberDataDir etcd_partition.name₁), (memberDataDir etcd_partition.name₂), (memberDataDir etcd_partition.name₃)])
-    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
-    (HEnv : verifyEnvOff (linkv3pProgram clients ops steps))
-    (n : Nat)
-    (Hprem : ∀ hG : HeapGS .hasLC linkvGF,
-      ⊢ etcd_partition.premises (GF := linkvGF) (hG := linkvHeapAt hG lctx) n id₁ id₂ id₃ ps ctxs boot)
-    (σ : state) (g : GlobalState)
-    (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
-    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
-    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [(memberDataDir etcd_partition.name₁), (memberDataDir etcd_partition.name₂), (memberDataDir etcd_partition.name₃)])
-    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
-    (Hthreads : σ.threads = 1)
-    (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
-    (Hsteps' : RealNsteps n ([linkv3pProgram clients ops steps], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 2 ≤ 2 ^ 28) :
-    (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
-    (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  etcd_partition_adequate Hctx Hcec id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hrf Hdbo clients ops Hc0 Hc31 Hops
-    Hmul steps Hsteps HNs HAs HDs HEnv n Hprem σ g Hfs HWal Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
-
-/-- **The watch run over the partitioned cluster is safe, in the operational semantics**
-(`etcd_partition_watch_adequate`, see the file header and `AdequacyWatch.lean`). -/
-theorem etcd_partition_watch_safe [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.partition.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
-    [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
-    [log.NewModel]
-    (Hctx : ∀ hG : HeapGS .hasLC linkvGF, ContextReadErrs (GF := linkvGF) (hG := linkvHeapAt hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC linkvGF,
-      ContextErrsClient (GF := linkvGF) (hG := linkvHeapAt hG lctx))
-    (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (Hbf : etcd_partition.BootFacts id₁ id₂ id₃ ps ctxs boot)
-    (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
-    (nw nops : w64)
-    (H0 : 0 ≤ sint.Z nw) (H31 : sint.Z nw < 2 ^ 31) (Hops : 0 ≤ sint.Z nops)
-    (Hmul : sint.Z nw * sint.Z nops < 2 ^ 62)
-    (steps : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step)
-    (Hsteps : steps.length < 2 ^ 63)
-    (HNs : prometheus.namesUnclaimed (linkv3pWatchProgram nw nops steps) linkv3pNames)
-    (HAs : addrsUnclaimed (linkv3pWatchProgram nw nops steps) linkv3pAddrs)
-    -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the members' data directories,
-    -- fresh at start (`dataDirsAbsent`; their distinctness is now `decide`d, no longer a hypothesis)
-    (HDs : dataDirsAbsent (linkv3pWatchProgram nw nops steps) [(memberDataDir etcd_partition.name₁), (memberDataDir etcd_partition.name₂), (memberDataDir etcd_partition.name₃)])
-    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
-    (HEnv : verifyEnvOff (linkv3pWatchProgram nw nops steps))
-    (n : Nat)
-    (Hprem : ∀ hG : HeapGS .hasLC linkvGF,
-      ⊢ etcd_partition.premises (GF := linkvGF) (hG := linkvHeapAt hG lctx) n id₁ id₂ id₃ ps ctxs boot)
-    (σ : state) (g : GlobalState)
-    (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
-    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
-    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [(memberDataDir etcd_partition.name₁), (memberDataDir etcd_partition.name₂), (memberDataDir etcd_partition.name₃)])
-    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
-    (Hthreads : σ.threads = 1)
-    (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
-    (Hsteps' : RealNsteps n ([linkv3pWatchProgram nw nops steps], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 2 ≤ 2 ^ 28) :
-    (∀ v t2', t2 = Val v :: t2' → v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) ∧
-    (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  etcd_partition_watch_adequate Hctx Hcec id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hrf Hdbo nw nops H0 H31
-    Hops Hmul steps Hsteps HNs HAs HDs HEnv n Hprem σ g Hfs HWal Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
-
-end adequacy
-
 #print axioms linkv3p_Main
-#print axioms etcd_partition_adequate
-#print axioms etcd_partition_safe
 #print axioms linkv3p_MainWatch
-#print axioms etcd_partition_watch_adequate
-#print axioms etcd_partition_watch_safe
 
 end EtcdGrove
 end Perennial

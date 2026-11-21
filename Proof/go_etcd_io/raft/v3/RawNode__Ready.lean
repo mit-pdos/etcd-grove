@@ -54,7 +54,7 @@ theorem RawNode.Ready.wp_proof
   iNamed H
   -- (2026-11-01, durability stage II (k)) the hand-out is the cut: the batch queued in `g`
   ihave #HhardO := hsOptC_hsOpt _ _ $$ Hhard
-  iapply wp_ncfupd_app
+  iapply (wp_ncfupd _ _ rfl)
   unfold ncfupd
   iintro Hnc
   imod ownRawNodeReady_handout ⊤ γ rn id rs rd ce es ms L x q g h CoPset.subseteq_top CoPset.subseteq_top

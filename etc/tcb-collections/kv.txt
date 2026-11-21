@@ -47,7 +47,6 @@ roots ^Proof/github_com/mit_pdos/etcd_grove/examples/raft/kv/(Link|Results)\.lea
 axiom DescribeConfChange.wp_proof
 axiom ccDecodeV2_nil
 axiom entryEncC_ok
-axiom fmt.Errorf.wp_proof
 axiom pbEntryC_reg
 axiom proto.CloneConfState.wp_proof
 axiom proto.ClonePb.wp_proof

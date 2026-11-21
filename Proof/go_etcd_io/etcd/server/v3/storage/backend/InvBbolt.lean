@@ -21,8 +21,9 @@ instances in scope, `theFs_eq` rewrites `theFs` to them (`onFs_eq`).
 a bucket's cursor order is its sorted entry list (`bktEnts`, bbolt's by `bktEnts_eq`).
 
 **Predicates** (over bbolt's, whose names `γ : DBNames := bbolt.BoltName` are):
-- `ownDB db γ D`: the open database `db` (`isBolt`) with committed data `D`, all of it
-  (`boltState γ 1 D`), and (S3e) what it keeps of its file (`dbRestF γ`: since S5 the inode and the
+- `ownDB db γ D`: the open database `db` (`isBolt`) with committed data `D`, half of it
+  (`boltState γ (1/2) D`; the other half, `dbHalf γ D`, is the backend's commit invariant's:
+  backend-snapshot B1, 2026-11-20), and (S3e) what it keeps of its file (`dbRestF γ`: since S5 the inode and the
   closer token only); `wrTok γ`: `emp` (bbolt's writer needs no token: `Begin(true)` waits for
   its lock); `isDB db γ`: `db` is the database `γ` (persistent).
 - `txLive tx γ q T`: the transaction `tx` of `γ`, live, with the view `T` (`boltTx`; fractional;
@@ -253,10 +254,21 @@ database is open (the server's snapshot install). -/
 def dbRestF [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (γ : DBNames) : IProp GF :=
   iprop(∃ i : Ino, bbolt.boltIno γ i ∗ bbolt.boltCloser γ)
 
-/-- `db` is the open database `γ` with committed data `D`, all of it, and what it keeps of its
-file (`dbRestF`, S3e). -/
+/-- `db` is the open database `γ` with committed data `D`: half of bbolt's `boltState` (the other
+half is the backend's commit invariant's, `cmtInv`, through which a commit fires bbolt's update and a
+snapshot reads the committed data without the batch lock: backend-snapshot B1, 2026-11-20; until
+then all of it), and what it keeps of its file (`dbRestF`, S3e). -/
 def ownDB (db : Loc) (γ : DBNames) (D : Data) : IProp GF :=
-  onFs iprop(bbolt.isBolt db γ ∗ bbolt.boltState γ 1 D ∗ dbRestF γ)
+  onFs iprop(bbolt.isBolt db γ ∗ bbolt.boltState γ (1 : Qp).half D ∗ dbRestF γ)
+
+/-- **The other half of the committed data's `boltState`** (backend-snapshot B1): what the
+constructor puts in the backend's commit invariant (`cmtInv`) beside `ownDB`'s half, and what
+`Close` takes back out of it. -/
+def dbHalf (γ : DBNames) (D : Data) : IProp GF :=
+  onFs iprop(bbolt.boltState γ (1 : Qp).half D)
+
+instance dbHalf_timeless (γ : DBNames) (D : Data) : Timeless (dbHalf (GF := GF) γ D) := by
+  unfold dbHalf onFs; split <;> infer_instance
 
 /-- **The claim on the name `path`, which names the inode `i`** (S5), at the instances: `path` is
 `d/b`, with the path of `d`, a share of the call permission, and the whole claim on `b`, whose
@@ -547,6 +559,52 @@ theorem boltState_au_back [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (γ : DB
   imod Hacc with Hacc
   isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
   icases Hacc with ⟨%q, %D', Hx, Hucl⟩
+  icases Hucl with ⟨-, Hcommit⟩
+  isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
+  imod Hcommit $$ Hx with ⟨Hs, -⟩
+  imodintro
+  iexact Hs
+
+/-- The whole committed data's `boltState` as two halves, both ways (backend-snapshot B1: `ownDB`'s and
+the commit invariant's). -/
+theorem boltState_halves [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (γ : DBNames) (D : Data) :
+    bbolt.boltState (GF := GF) γ 1 D ⊣⊢
+      bbolt.boltState γ (1 : Qp).half D ∗ bbolt.boltState γ (1 : Qp).half D := by
+  conv => lhs; rw [← Qp.half_add_half 1]
+  exact (bbolt.boltState_fractional γ D).fractional _ _
+
+/-- **A read update from a share `q` of the committed data** (backend-snapshot B1: the batch lock
+holds half of `boltState`): bbolt's `boltState_read_au` at any share, the share back at the commit. -/
+theorem boltState_read_au_q [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (γ : DBNames) (q : Qp)
+    (D : Data) :
+    bbolt.boltState (GF := GF) γ q D ⊢
+      AU <{ ∃∃ (q' : Qp) (D' : bbolt.Data), bbolt.boltState γ q' D' }> @ ⊤ \ ↑γ.ns, ∅
+        <{ bbolt.boltState γ q' D', COMM bbolt.boltState γ q D ∗ ⌜D' = D⌝ }> := by
+  iintro H
+  iauintro
+  unfold atomic_acc
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hcl
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iexists q, D
+  iframe H
+  isplit
+  · iintro H; imod Hcl with -; imodintro; iexact H
+  · iintro H; imod Hcl with -; imodintro; iframe H; ipureintro; rfl
+
+/-- `boltState_au_back` at a share `q` (`boltState_read_au_q`'s update, unfired). -/
+theorem boltState_au_back_q [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (γ : DBNames) (q : Qp)
+    (D : Data) :
+    (AU <{ ∃∃ (q' : Qp) (D' : bbolt.Data), bbolt.boltState (GF := GF) γ q' D' }> @ ⊤ \ ↑γ.ns, ∅
+        <{ bbolt.boltState γ q' D', COMM bbolt.boltState γ q D ∗ ⌜D' = D⌝ }>) ⊢
+    |={⊤}=> bbolt.boltState γ q D := by
+  iintro Hau
+  ihave Hau := atomic_update_mask_weaken (Eo2 := ⊤) (fun _ _ => CoPset.mem_full) $$ Hau
+  ihave Hacc := aupd_aacc $$ Hau
+  unfold atomic_acc
+  imod Hacc with Hacc
+  isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
+  icases Hacc with ⟨%q', %D', Hx, Hucl⟩
   icases Hucl with ⟨-, Hcommit⟩
   isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
   imod Hcommit $$ Hx with ⟨Hs, -⟩

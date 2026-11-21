@@ -7,13 +7,15 @@ Rocq counterpart).
 * **`auth3_Main`** (`MainLinked.lean`'s `etcd_auth3.wp_Main`): `Main()` -- three members with the
   simple token provider, then authkv's run across them (`run`) -- does not panic and returns `Ok`,
   `Failed` or `WatchEnded` (`Spec/.../auth3/Main.lean`).
-* **`etcd_auth3_safe`** (`Adequacy.lean`'s `etcd_auth3_adequate`): the closed theorem.
+
+**The closed theorem retired (2026-11-21, the user's decision D2 of `notes/etcd-unified-scope.md`).**
+Its closed theorem `etcd_auth3_safe` (with its `_adequate` and `_robust` forms, `Adequacy.lean`, `PkgTable.lean`, `TopLevelDefs.lean` and the
+`TopLevelRobustness.lean` pair) is gone: the one closed etcd theorem `etcd_safe` (`examples/etcd/all`,
+`Proof/github_com/mit_pdos/etcd_grove/examples/etcd/all/Results.lean`) subsumes it (`notes/etcd-unified-scope.md` §1.3, §4); the function triples here stay.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth3.Adequacy
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth3.MainLinked
-public import Robustness.Statement
 
 @[expose] public section
 
@@ -44,84 +46,7 @@ theorem auth3_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
 
 end results
 
-section adequacy
-attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
-variable [go_gctx : GoGlobalContext]
-
-/-- **The three-member authentication example is safe, in the operational semantics**
-(`etcd_auth3_adequate`, see `Adequacy.lean`'s header for the program and the hypotheses): every
-real execution of `n` steps of `auth3`'s initialization followed by `Main()`, from a fresh state
-with one thread, has no stuck thread, no thread ended in a panic, and the main thread's result, if
-any, is `0`, `1` or `2`. Not panicking means none of authkv's checks failed, at any member: every
-member serves gRPC; the auth state is set up and auth enabled through member 1; root then makes a
-linearizable read at each member (the barrier: each member has applied the set-up before any
-principal uses it); then the four principals' workloads run at once, each through its own member
-(`u` through member 2, `v` through member 3, the client with no token through member 1, the one
-with a token no provider issued through member 2), so each member refuses every forbidden request
-of the principals that use it (writes, ranges, transactions, watches; a refusal is an error, a watch
-outside `[a, b)` reports no event) and replies only with keys the principal may read; root's
-history watch through member 1 holds only permitted writes, and `u`'s watch through member 2 only
-keys of `[a, b)`.
-
-**What the result does not say:** everything `etcd_auth_safe`'s list says (liveness; `Failed` and
-`WatchEnded` skip the history's or `u`'s watch check; a refusal is any error; the cases not
-exercised; `u`'s permitted requests need not succeed; password checking is not verified; only the
-simple token provider; no client-certificate authentication; a refused watch is read for 2 s
-only; the history's check attributes a write to the principal its key names), and:
-* each principal uses one member: a principal's requests are checked at its member only (the
-  client with no token at member 1, `u` and the invalid token at member 2, `v` at member 3), not at
-  every member;
-* the barrier is the driver's: a member that has not yet applied `AuthEnable` serves a watch with
-  auth off (`nonissues/etcd-watch-lagging-member-auth-off.md`), which etcd does not promise
-  against; the theorem is about clients that use a member only after root's linearizable read
-  there returned;
-* the proof covers snapshot installs (`NewServer`'s spec is generic in the snapshot settings), but
-  this run never reaches one (the members' `NoSnapCount`/`NoSnapCatchUp`), so the auth state
-  carried by a snapshot is not exercised (variant B's);
-* tokens are used only at the member that issued them (the client of one endpoint never fails
-  over), so a token's validity at another member is not exercised;
-* no member fails, restarts or is partitioned. -/
-theorem etcd_auth3_safe [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth3.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
-    [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
-    [log.NewModel]
-    (Hctx : ∀ hG : HeapGS .hasLC putgetGF, ContextReadErrs (GF := putgetGF) (hG := heapAt hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC putgetGF, ContextErrsClient (GF := putgetGF) (hG := heapAt hG lctx))
-    (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (Hbf : etcd_putget3.BootFacts id₁ id₂ id₃ ps ctxs boot)
-    (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
-    (HNs : prometheus.namesUnclaimed auth3Program auth3Names)
-    (HAs : addrsUnclaimed auth3Program auth3Addrs)
-    (HDs : dataDirsAbsent auth3Program [(memberDataDir etcd_auth3.name₁), (memberDataDir etcd_auth3.name₂), (memberDataDir etcd_auth3.name₃)])
-    (HEnv : verifyEnvOff auth3Program)
-    (n : Nat)
-    (Hprem : ∀ hG : HeapGS .hasLC putgetGF,
-      ⊢ etcd_auth3.premises (GF := putgetGF) (hG := heapAt hG lctx) n id₁ id₂ id₃ ps ctxs boot)
-    (σ : state) (g : GlobalState)
-    (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
-    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
-    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [(memberDataDir etcd_auth3.name₁), (memberDataDir etcd_auth3.name₂), (memberDataDir etcd_auth3.name₃)])
-    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
-    (Hthreads : σ.threads = 1)
-    (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
-    (Hsteps : RealNsteps n ([auth3Program], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 2 ≤ 2 ^ 28) :
-    (∀ v t2', t2 = Val v :: t2' → v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) ∧
-    (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  etcd_auth3_adequate Hctx Hcec id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hrf Hdbo HNs HAs HDs
-    HEnv n Hprem σ g Hfs HWal Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
-
-end adequacy
-
 #print axioms auth3_Main
-#print axioms etcd_auth3_adequate
-#print axioms etcd_auth3_safe
 
 end EtcdGrove
 end Perennial

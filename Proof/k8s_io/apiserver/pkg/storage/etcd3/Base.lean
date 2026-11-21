@@ -37,6 +37,7 @@ public import Proof.encoding.base64.Base
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.RegistryDefs
 public import Proof.k8s_io.apiserver.pkg.util.feature.Gate
 public import Perennial.Proof.context.Base
+public import Proof.math.rand.Base
 
 @[expose] public section
 
@@ -46,6 +47,26 @@ set_option linter.unusedSectionVars false
 noncomputable section
 
 namespace Perennial
+
+namespace EtcdGrove.apierrors
+variable [GooseExts]
+
+/-- `errors.go:49-67`'s `knownReasons` (`StatusReasonUnknown`, `""`, is commented out there), in the
+map literal's order. -/
+def knownReasons : List GoString :=
+  [go!"Unauthorized", go!"Forbidden", go!"NotFound", go!"AlreadyExists", go!"Conflict",
+   go!"Gone", go!"Invalid", go!"ServerTimeout", go!"StorageReadError", go!"Timeout",
+   go!"TooManyRequests", go!"BadRequest", go!"MethodNotAllowed", go!"NotAcceptable",
+   go!"RequestEntityTooLarge", go!"UnsupportedMediaType", go!"InternalError", go!"Expired",
+   go!"ServiceUnavailable"]
+
+/-- The map `knownReasons` holds: its literal's entries inserted in order (prove-k8s2). Irreducible,
+so that the proof automation does not compute lookups in it; `knownReasonsMap_lookup` states them. -/
+@[irreducible] def knownReasonsMap : GMap GoString Unit :=
+  knownReasons.foldl (fun m r => <[r := ()]> m) ∅
+
+end EtcdGrove.apierrors
+
 namespace k8s_io.apiserver.pkg.storage.etcd3
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std
@@ -176,6 +197,14 @@ instance k8s_io_apimachinery_pkg_util_wait_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.wait :=
   build_get_is_pkg_init_wf
 
+-- (selection: moved from kubernetes' Base, labels imports it since prove-k8s, 2026-11-20)
+instance k8s_io_apimachinery_pkg_selection_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.selection :=
+  define_is_pkg_init iprop(True)
+instance k8s_io_apimachinery_pkg_selection_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.selection :=
+  build_get_is_pkg_init_wf
+
 -- (version: moved from the cacher's Base, featuregate imports it)
 instance k8s_io_apimachinery_pkg_util_version_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.version :=
@@ -242,9 +271,15 @@ instance k8s_io_apimachinery_pkg_apis_meta_v1_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1 :=
   build_get_is_pkg_init_wf
 
+/-- `apimachinery/pkg/api/errors`' fact (prove-k8s2, 2026-11-20; `True` until then): `knownReasons`
+holds, read-only for good, the map of the 19 known reasons, which `IsTimeout` looks reasons up in. -/
+abbrev apierrorsInit : IProp GF :=
+  iprop(∃ mp : Loc, globalAddr _root_.Perennial.k8s_io.apimachinery.pkg.api.errors.knownReasons ↦□ mp ∗
+    mp ↦$□ EtcdGrove.apierrors.knownReasonsMap)
+
 instance k8s_io_apimachinery_pkg_api_errors_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.api.errors :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init apierrorsInit
 instance k8s_io_apimachinery_pkg_api_errors_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.api.errors :=
   build_get_is_pkg_init_wf
@@ -371,6 +406,13 @@ instance k8s_io_apiserver_pkg_storage_etcd3_metrics_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3.metrics :=
   build_get_is_pkg_init_wf
 
+instance google_golang_org_grpc_grpclog_internal_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.grpclog.internal :=
+  define_is_pkg_init iprop(True)
+instance google_golang_org_grpc_grpclog_internal_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.grpclog.internal :=
+  build_get_is_pkg_init_wf
+
 instance google_golang_org_grpc_grpclog_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.grpclog :=
   define_is_pkg_init iprop(True)
@@ -426,6 +468,14 @@ instance k8s_io_component_base_tracing_is_pkg_init_inst :
   define_is_pkg_init iprop(True)
 instance k8s_io_component_base_tracing_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.component_base.tracing :=
+  build_get_is_pkg_init_wf
+
+-- (prove-k8s2, 2026-11-20; moved here from `authorization/authorizer/Base.lean`) `flowcontrol` imports it
+instance k8s_io_apiserver_pkg_authentication_user_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.k8s_io.apiserver.pkg.authentication.user :=
+  define_is_pkg_init iprop(True)
+instance k8s_io_apiserver_pkg_authentication_user_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apiserver.pkg.authentication.user :=
   build_get_is_pkg_init_wf
 
 instance k8s_io_apiserver_pkg_util_flowcontrol_is_pkg_init_inst :

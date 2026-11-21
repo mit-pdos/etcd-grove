@@ -3,12 +3,12 @@
 2026-11-15). Lean-first (no Rocq counterpart). restart3's (`restart/Defs.lean`) for the `k` members of
 `examples/etcd/restartN/restartN.go`, with putgetN's members (`etcd_putgetN.dirN`, `BootFacts`).
 
-**The members** (`members k`, `etcdstart.Members("restartN", k, 29000, 30000)`): member `i` (from `0`)
-named `restartN-i`, peer address `127.0.0.1:(29000+i)`, client address `127.0.0.1:(30000+i)` (not
+**The members** (`members k`, `etcdstart.Members("restartN", k, 14000, 15000)`): member `i` (from `0`)
+named `restartN-i`, peer address `127.0.0.1:(14000+i)`, client address `127.0.0.1:(15000+i)` (not
 served).
 
-**The pure facts** (`BootFacts`): putgetN's, at the token `restartN-1440` (`TestMemberIDs` in
-`restartN_test.go` checks the ids for every `k ≤ 1000`).
+**The pure facts** (`BootFacts`): putgetN's, at the token `restartN-11208` (`TestMemberIDs` in
+`restartN_test.go` checks the ids for every `k ≤ 300`, the bound of `examples/etcd/all`).
 
 **The Iris premises** (`premises`, persistent): `bootstrap`'s contract for each member's first start
 (`etcdstart.bootPremise`, putgetN's `[∗list]`) and, for the members that may be stopped (`stopCands k`:
@@ -41,7 +41,7 @@ section pure
 variable [GooseExts]
 
 /-- **The members of `Run(k)`'s cluster** (`Members("restartN", k, PeerBase, ClientBase)`). -/
-abbrev members (k : Nat) : List GMember := membersOf go!"restartN" k (W64 29000) (W64 30000)
+abbrev members (k : Nat) : List GMember := membersOf go!"restartN" k (W64 14000) (W64 15000)
 
 /-- **The members that may be stopped** (`Run`'s choice: member `k - 1`, or `k - 2` if `k > 2` and
 member `k - 1` leads): the last `min 2 (k - 1)` members, with their ids. -/
@@ -64,7 +64,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.Assumptions]
 
 /-- **The token of `restartN`'s cluster** (`Token`). -/
-abbrev token : GoString := go!"restartN-1440"
+abbrev token : GoString := go!"restartN-11208"
 
 /-- **`Run(k)`'s named premises** (persistent; see the file header), at the bound `N`, the member ids
 (in the members' order), the peers `ps` (in `bootstrap`'s order), the peers' contexts and the bootstrap

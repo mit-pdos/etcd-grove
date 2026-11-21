@@ -5,6 +5,8 @@ public import Perennial.Code.context
 public import Code.github_com.Masterminds.semver.v3
 public import Code.go_etcd_io.etcd.api.v3.etcdserverpb
 public import Code.go_etcd_io.etcd.api.v3.version
+public import Code.go_etcd_io.etcd.server.v3.etcdserver.version
+public import Code.go_etcd_io.etcd.server.v3.storage.schema
 public import Code.encoding.json
 public import Perennial.Code.errors
 public import Perennial.Code.fmt
@@ -54,6 +56,7 @@ public import Code.go_etcd_io.etcd.server.v3.etcdserver.read
 public import Code.go_etcd_io.etcd.server.v3.features
 public import Code.go_etcd_io.etcd.server.v3.lease
 public import Code.go_etcd_io.etcd.server.v3.lease.leasehttp
+public import Code.go_etcd_io.etcd.server.v3.storage.schema.snapshotmeta
 public import Code.encoding.base64
 public import Code.go_opentelemetry_io.otel.«attribute»
 public import Code.go_opentelemetry_io.otel.trace
@@ -228,6 +231,16 @@ noncomputable def AccessController.ty [GooseExts] [GoGlobalContext] : go.GoType 
 
 attribute [irreducible] AccessController.ty
 
+noncomputable def replayTermRun.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver.replayTermRun" [])
+
+attribute [irreducible] replayTermRun.ty
+
+noncomputable def replayTerms.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver.replayTerms" [])
+
+attribute [irreducible] replayTerms.ty
+
 noncomputable def RaftKV.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver.RaftKV" [])
 
@@ -301,7 +314,8 @@ opaque DowngradeEnabledPath [GooseExts] [GoGlobalContext] : val
 @[reducible] noncomputable def traceThreshold [GooseExts] [GoGlobalContext] : val :=
   #(W64 100000000)
 
-opaque applyTimeout [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def applyTimeout [GooseExts] [GoGlobalContext] : val :=
+  #(W64 1000000000)
 
 opaque initialStreamChunkLimit [GooseExts] [GoGlobalContext] : val
 
@@ -374,8 +388,6 @@ noncomputable def raftStatus [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def monitorVersionInterval [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.monitorVersionInterval"
 
-opaque monitorVersionInterval.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def recommendedMaxRequestBytesString [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.recommendedMaxRequestBytesString"
 
@@ -387,6 +399,9 @@ noncomputable def bootstrap [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def buildConfStateFromV3store [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.buildConfStateFromV3store"
+
+noncomputable def confStateFromMembers [GooseExts] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/etcdserver.confStateFromMembers"
 
 noncomputable def bootstrapStorage [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.bootstrapStorage"
@@ -523,6 +538,9 @@ noncomputable def NewAccessController [GooseExts] [GoGlobalContext] : GoString :
 noncomputable def newSnapshotReaderCloser [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.newSnapshotReaderCloser"
 
+noncomputable def replayTermsFromStorage [GooseExts] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/etcdserver.replayTermsFromStorage"
+
 noncomputable def firstCompareKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.firstCompareKey"
 
@@ -574,7 +592,65 @@ noncomputable def NewRaftLoggerZap [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def NewRaftLoggerFromZapCore [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.NewRaftLoggerFromZapCore"
 
-/-- go: bootstrap.go:159:30 -/
+/-- go: adapters.go:36:6 -/
+noncomputable def NewServerVersionAdapter.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Server.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Server.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType serverVersionAdapter.ty) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Server.ty))) (App (Val (GoInstruction (GoAlloc serverVersionAdapter.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (App (Val (GoInstruction (CompositeLiteral serverVersionAdapter.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"EtcdServer")) (ElementExpression (go.GoType.PointerType EtcdServer.ty) (Var "$v0")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Server.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Server.ty))) (Var "$res0")))))
+
+/-- go: bootstrap.go:137:6 -/
+noncomputable def confStateFromMembers.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "members"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "members" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Var "members"))
+  (Let "learners" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.uint64)))) (Val #())))
+  (Let "voters" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.uint64)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (Var "voters"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (Var "learners"))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Voters")) (ElementExpression (go.GoType.SliceType go.uint64) (Var "$v0"))), (KeyedElement (some (KeyField go!"Learners")) (ElementExpression (go.GoType.SliceType go.uint64) (Var "$v1")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Var "members"))
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Val #())))
+  (App (App (Val (map.forRange _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes.ty go!"IsLearner"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty go!"RaftAttributes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Var "m")))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (Var "learners"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty go!"ID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Var "m"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.uint64)))) (LiteralValue [(KeyedElement none (ElementExpression go.uint64 (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType go.uint64)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.uint64)))) (Pair (Var "learners") (Var "$r0")))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (Var "voters"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty go!"ID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Var "m"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.uint64)))) (LiteralValue [(KeyedElement none (ElementExpression go.uint64 (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType go.uint64)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.uint64)))) (Pair (Var "voters") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Pair (Var "m") (Var "$value")))))))))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty))) (Var "$res0")))))
+
+/-- go: bootstrap.go:163:30 -/
 noncomputable def bootstrappedServer.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -584,7 +660,7 @@ noncomputable def bootstrappedServer.Close.impl [GooseExts] [GoGlobalContext] : 
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType bootstrappedStorage.ty) go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedStorage.ty)))) (App (Val (GoInstruction (StructFieldRef bootstrappedServer.ty go!"storage"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedServer.ty)))) (Var "s"))))) (Val #())))))
   (Val #()))))
 
-/-- go: bootstrap.go:168:31 -/
+/-- go: bootstrap.go:172:31 -/
 noncomputable def bootstrappedStorage.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -594,7 +670,7 @@ noncomputable def bootstrappedStorage.Close.impl [GooseExts] [GoGlobalContext] :
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType bootstrappedBackend.ty) go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedBackend.ty)))) (App (Val (GoInstruction (StructFieldRef bootstrappedStorage.ty go!"backend"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedStorage.ty)))) (Var "s"))))) (Val #())))))
   (Val #()))))
 
-/-- go: bootstrap.go:180:31 -/
+/-- go: bootstrap.go:184:31 -/
 noncomputable def bootstrappedBackend.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -604,7 +680,7 @@ noncomputable def bootstrappedBackend.Close.impl [GooseExts] [GoGlobalContext] :
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty go!"Close"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (App (Val (GoInstruction (StructFieldRef bootstrappedBackend.ty go!"be"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedBackend.ty)))) (Var "s"))))) (Val #())))))
   (Val #()))))
 
-/-- go: bootstrap.go:594:28 -/
+/-- go: bootstrap.go:598:28 -/
 noncomputable def bootstrappedRaft.newRaftNode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "ss"
@@ -617,6 +693,7 @@ noncomputable def bootstrappedRaft.newRaftNode.impl [GooseExts] [GoGlobalContext
   (Let "wal" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.WAL.ty)))) (Var "wal"))
   (Let "ss" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter.ty)))) (Var "ss"))
   (Let "n" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (Val #())))
+  (Let "terms" (App (Val (GoInstruction (GoAlloc replayTerms.ty))) (App (Val (GoInstruction (GoZeroVal replayTerms.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"Status"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (Var "n")))
@@ -638,11 +715,12 @@ noncomputable def bootstrappedRaft.newRaftNode.impl [GooseExts] [GoGlobalContext
   (Let "$v2" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (Var "n"))
   (Let "$v3" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef bootstrappedRaft.ty go!"heartbeat"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedRaft.ty)))) (Var "b"))))
   (Let "$v4" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty)))) (App (Val (GoInstruction (StructFieldRef bootstrappedRaft.ty go!"storage"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedRaft.ty)))) (Var "b"))))
-  (Let "$v5" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef bootstrappedRaft.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedRaft.ty)))) (Var "b"))))
+  (Let "$v5" (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "terms"))
+  (Let "$v6" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef bootstrappedRaft.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedRaft.ty)))) (Var "b"))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.WAL.ty)))) (Var "wal"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter.ty)))) (Var "ss"))
   (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.NewStorage []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (App (Val (GoInstruction (CompositeLiteral raftNodeConfig.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"lg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"isIDRemoved")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [go.uint64] false [go.bool])) (Var "$v1"))), (KeyedElement (some (KeyField go!"Node")) (ElementExpression _root_.Perennial.go_etcd_io.raft.v3.Node.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"heartbeat")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v3"))), (KeyedElement (some (KeyField go!"raftStorage")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty) (Var "$v4"))), (KeyedElement (some (KeyField go!"storage")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Storage.ty (Var "$v5")))]))))))))
+  (App (Val (GoInstruction (CompositeLiteral raftNodeConfig.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"lg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"isIDRemoved")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [go.uint64] false [go.bool])) (Var "$v1"))), (KeyedElement (some (KeyField go!"Node")) (ElementExpression _root_.Perennial.go_etcd_io.raft.v3.Node.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"heartbeat")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v3"))), (KeyedElement (some (KeyField go!"raftStorage")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty) (Var "$v4"))), (KeyedElement (some (KeyField go!"initialReplayTerms")) (ElementExpression replayTerms.ty (Var "$v5"))), (KeyedElement (some (KeyField go!"storage")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Storage.ty (Var "$v6")))])))))))))
   (App (App (Val (GoInstruction (FuncResolve newRaftNode []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -657,18 +735,23 @@ noncomputable def bootstrappedRaft.newRaftNode.impl [GooseExts] [GoGlobalContext
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (GlobalVarAddr raftStatusMu))) (Val #()))) (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.Peer.ty)))) (App (Val (GoInstruction (StructFieldRef bootstrappedRaft.ty go!"peers"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedRaft.ty)))) (Var "b"))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.Peer.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty)))) (App (Val (GoInstruction (StructFieldRef bootstrappedRaft.ty go!"storage"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedRaft.ty)))) (Var "b"))))
+  (App (App (Val (GoInstruction (FuncResolve replayTermsFromStorage []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.Config.ty)))) (App (Val (GoInstruction (StructFieldRef bootstrappedRaft.ty go!"config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedRaft.ty)))) (Var "b"))))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.raft.v3.RestartNode []))) (Val #())) (Var "$a0")))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (Pair (Var "n") (Var "$r0")))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (Pair (Var "n") (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore replayTerms.ty))) (Pair (Var "terms") (Var "$r0"))))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.Config.ty)))) (App (Val (GoInstruction (StructFieldRef bootstrappedRaft.ty go!"config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedRaft.ty)))) (Var "b"))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.Peer.ty)))) (App (Val (GoInstruction (StructFieldRef bootstrappedRaft.ty go!"peers"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedRaft.ty)))) (Var "b"))))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.raft.v3.StartNode []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (Pair (Var "n") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (Pair (Var "n") (Var "$r0"))))))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftNode.ty)))) (Var "$res0"))))))))
 
-/-- go: bootstrap.go:741:29 -/
+/-- go: bootstrap.go:748:29 -/
 noncomputable def bootstrappedWAL.MemoryStorage.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "wal"
   (Lam BAnon
@@ -709,6 +792,28 @@ noncomputable def bootstrappedWAL.MemoryStorage.impl [GooseExts] [GoGlobalContex
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty)))) (Pair (Var "s") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty)))) (Var "$res0"))))))
+
+/-- go: corrupt.go:63:6 -/
+noncomputable def newCorruptionChecker.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "lg"
+  (Lam "s"
+  (Lam "storage"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType corruptionChecker.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType corruptionChecker.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "storage" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.HashStorage.ty))) (Var "storage"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc corruptionChecker.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$v1" (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.HashStorage.ty))) (Var "storage"))
+  (App (Val (GoInstruction (CompositeLiteral hasherAdapter.ty))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType EtcdServer.ty) (Var "$v0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.HashStorage.ty (Var "$v1")))]))))
+  (App (Val (GoInstruction (CompositeLiteral corruptionChecker.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"lg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"hasher")) (ElementExpression hasherAdapter.ty (Var "$v1")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType corruptionChecker.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType corruptionChecker.ty)))) (Var "$res0")))))))
 
 /-- go: interface.go:22:22 -/
 noncomputable def EtcdServer.ApplyWait.impl [GooseExts] [GoGlobalContext] : val :=
@@ -819,7 +924,7 @@ noncomputable def EtcdServer.LinearizableReadNotify.impl [GooseExts] [GoGlobalCo
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: raft.go:126:6 -/
+/-- go: raft.go:128:6 -/
 noncomputable def newRaftNode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType raftNode.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType raftNode.ty)))) (Val #())))
@@ -897,7 +1002,7 @@ noncomputable def newRaftNode.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- raft.Node does not have locks in Raft package
 
-    go: raft.go:162:20 -/
+    go: raft.go:164:20 -/
 noncomputable def raftNode.tick.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -917,7 +1022,7 @@ noncomputable def raftNode.tick.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty)))) (App (Val (GoInstruction (StructFieldRef raftNode.ty go!"tickMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftNode.ty)))) (Var "r"))))) (Val #()))))))
   (Val #()))))
 
-/-- go: raft.go:169:20 -/
+/-- go: raft.go:171:20 -/
 noncomputable def raftNode.getLatestTickTs.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -946,7 +1051,7 @@ noncomputable def raftNode.getLatestTickTs.impl [GooseExts] [GoGlobalContext] : 
 /-- start prepares and starts raftNode in a new goroutine. It is no longer safe
     to modify the fields after it has been started.
 
-    go: raft.go:177:20 -/
+    go: raft.go:179:20 -/
 noncomputable def raftNode.start.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "rh"
@@ -965,6 +1070,11 @@ noncomputable def raftNode.start.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(W64 0))
   (Let "raftTerm" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad replayTerms.ty))) (App (Val (GoInstruction (StructFieldRef raftNodeConfig.ty go!"initialReplayTerms"))) (App (Val (GoInstruction (StructFieldRef raftNode.ty go!"raftNodeConfig"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftNode.ty)))) (Var "r")))))
+  (Let "terms" (App (Val (GoInstruction (GoAlloc replayTerms.ty))) (App (Val (GoInstruction (GoZeroVal replayTerms.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil replayTerms.ty))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (App (Val doFor) (Lam BAnon
   (Val #true))) (Lam BAnon
@@ -994,13 +1104,19 @@ noncomputable def raftNode.start.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.protobuf.proto.Clone []))) (Val #())) (Var "$a0"))))
   (Let "raftSnap" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "committedEntries"))
-  (Let "$v1" (App (Val (GoInstruction (TypeAssert (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty) _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.Ready.ty go!"Snapshot"))) (Var "rd"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.Ready.ty go!"Entries"))) (Var "rd")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType replayTerms.ty) go!"appendEntries"))) (Var "terms")) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "terms"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "committedEntries"))
+  (Let "$v2" (App (Val (GoInstruction (TypeAssert (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty) _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.Ready.ty go!"Snapshot"))) (Var "rd"))))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.protobuf.proto.Clone []))) (Val #())) (Var "$a0"))))
-  (Let "$v2" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Var "notifyc"))
-  (Let "$v3" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Var "raftAdvancedC"))
-  (Let "$v4" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "raftTerm"))
-  (App (Val (GoInstruction (CompositeLiteral toApply.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"entries")) (ElementExpression (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)) (Var "$v0"))), (KeyedElement (some (KeyField go!"snapshot")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"notifyc")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v2"))), (KeyedElement (some (KeyField go!"raftAdvancedC")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v3"))), (KeyedElement (some (KeyField go!"raftTerm")) (ElementExpression go.uint64 (Var "$v4")))])))))))
+  (Let "$v3" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Var "notifyc"))
+  (Let "$v4" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Var "raftAdvancedC"))
+  (Let "$v5" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "raftTerm"))
+  (App (Val (GoInstruction (CompositeLiteral toApply.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"replayTerms")) (ElementExpression replayTerms.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"entries")) (ElementExpression (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)) (Var "$v1"))), (KeyedElement (some (KeyField go!"snapshot")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty) (Var "$v2"))), (KeyedElement (some (KeyField go!"notifyc")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v3"))), (KeyedElement (some (KeyField go!"raftAdvancedC")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v4"))), (KeyedElement (some (KeyField go!"raftTerm")) (ElementExpression go.uint64 (Var "$v5")))]))))))))
   (Let "ap" (App (Val (GoInstruction (GoAlloc toApply.ty))) (App (Val (GoInstruction (GoZeroVal toApply.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1187,6 +1303,24 @@ noncomputable def raftNode.start.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (FuncResolve updateCommittedIndex []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore toApply.ty))) (Pair (Var "ap") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "committedEntries"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty) go!"GetIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "committedEntries")) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "committedEntries"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 1)))))))) (Val #()))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType replayTerms.ty) go!"after"))) (Var "terms")) (Var "$a0")))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore replayTerms.ty))) (Pair (Var "terms") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore replayTerms.ty))) (Pair (Var "terms") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Var "raftSnap"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.raft.v3.IsEmptySnap []))) (Val #())) (Var "$a0"))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil replayTerms.ty))) (Val UntypedNil))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore replayTerms.ty))) (Pair (Var "terms") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Pair (Var "raftSnap") (Var "$r0")))))))))
   (App (Val doExecute)
@@ -1277,6 +1411,10 @@ noncomputable def raftNode.start.impl [GooseExts] [GoGlobalContext] : val :=
   (Lam BAnon
   (Val #())))))
   (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore replayTerms.ty))) (Pair (App (Val (GoInstruction (StructFieldRef raftNodeConfig.ty go!"initialReplayTerms"))) (App (Val (GoInstruction (StructFieldRef raftNode.ty go!"raftNodeConfig"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftNode.ty)))) (Var "r")))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore replayTerms.ty))) (Pair (Var "terms") (Var "$r0")))))))))
+  (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "raftTerm") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "islead") (Var "$r0")))))))))
@@ -1294,7 +1432,7 @@ noncomputable def raftNode.start.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "internalTimeout") (Var "$r0"))))))))))
   (Val #()))))
 
-/-- go: raft.go:361:6 -/
+/-- go: raft.go:373:6 -/
 noncomputable def updateCommittedIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ap"
   (Lam "rh"
@@ -1326,7 +1464,7 @@ noncomputable def updateCommittedIndex.impl [GooseExts] [GoGlobalContext] : val 
   (Val #()))))))))
   (Val #()))))
 
-/-- go: raft.go:374:20 -/
+/-- go: raft.go:386:20 -/
 noncomputable def raftNode.processMessages.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "ms"
@@ -1443,7 +1581,7 @@ noncomputable def raftNode.processMessages.impl [GooseExts] [GoGlobalContext] : 
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "sentAppResp") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))))) (Var "$res0"))))))
 
-/-- go: raft.go:421:20 -/
+/-- go: raft.go:433:20 -/
 noncomputable def raftNode.apply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -1458,7 +1596,7 @@ noncomputable def raftNode.apply.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv toApply.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv toApply.ty)))) (Var "$res0"))))))
 
-/-- go: raft.go:425:20 -/
+/-- go: raft.go:437:20 -/
 noncomputable def raftNode.stop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -1477,7 +1615,7 @@ noncomputable def raftNode.stop.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))]))))))))
   (Val #()))))
 
-/-- go: raft.go:437:20 -/
+/-- go: raft.go:449:20 -/
 noncomputable def raftNode.onStop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -1517,7 +1655,7 @@ noncomputable def raftNode.onStop.impl [GooseExts] [GoGlobalContext] : val :=
     ticks in multi data-center deployments, thus
     speeding up election process.
 
-    go: raft.go:462:20 -/
+    go: raft.go:474:20 -/
 noncomputable def raftNode.advanceTicks.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "ticks"
@@ -1538,7 +1676,7 @@ noncomputable def raftNode.advanceTicks.impl [GooseExts] [GoGlobalContext] : val
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))
   (Val #()))))
 
-/-- go: raft.go:468:20 -/
+/-- go: raft.go:480:20 -/
 noncomputable def raftNode.ReadState.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -2349,6 +2487,22 @@ noncomputable def EtcdServer.Cluster.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Cluster.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Cluster.ty))) (Var "$res0"))))))
 
+/-- go: server.go:629:22 -/
+noncomputable def EtcdServer.ApplyWaitCommit.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (Let "$r0" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"getCommittedIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #()))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.pkg.v3.wait.WaitTime.ty go!"Wait"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.pkg.v3.wait.WaitTime.ty))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"applyWait"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Var "$res0"))))))
+
 /-- go: server.go:646:22 -/
 noncomputable def EtcdServer.RaftHandler.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
@@ -2495,7 +2649,7 @@ noncomputable def EtcdServer.ReportSnapshot.impl [GooseExts] [GoGlobalContext] :
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftNode.ty) go!"ReportSnapshot"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"r"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Var "$a0")) (Var "$a1")))))))))
   (Val #())))))
 
-/-- go: server.go:752:22 -/
+/-- go: server.go:755:22 -/
 noncomputable def EtcdServer.run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -2608,11 +2762,12 @@ noncomputable def EtcdServer.run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty go!"ConfState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty go!"Metadata"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Var "sn"))))))
-  (Let "$v1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty) go!"GetIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty go!"Metadata"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Var "sn"))))) (Val #()))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty go!"ConfState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty go!"Metadata"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Var "sn"))))))
   (Let "$v2" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty) go!"GetIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty go!"Metadata"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Var "sn"))))) (Val #()))
-  (Let "$v3" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty) go!"GetTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty go!"Metadata"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Var "sn"))))) (Val #()))
-  (Let "$v4" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty) go!"GetIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty go!"Metadata"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Var "sn"))))) (Val #()))
-  (App (Val (GoInstruction (CompositeLiteral etcdProgress.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"confState")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"diskSnapshotIndex")) (ElementExpression go.uint64 (Var "$v1"))), (KeyedElement (some (KeyField go!"memorySnapshotIndex")) (ElementExpression go.uint64 (Var "$v2"))), (KeyedElement (some (KeyField go!"appliedt")) (ElementExpression go.uint64 (Var "$v3"))), (KeyedElement (some (KeyField go!"appliedi")) (ElementExpression go.uint64 (Var "$v4")))])))))))
+  (Let "$v3" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty) go!"GetIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty go!"Metadata"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Var "sn"))))) (Val #()))
+  (Let "$v4" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty) go!"GetTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty go!"Metadata"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Var "sn"))))) (Val #()))
+  (Let "$v5" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty) go!"GetIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty go!"Metadata"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Var "sn"))))) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral etcdProgress.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"replayConf")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"confState")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"diskSnapshotIndex")) (ElementExpression go.uint64 (Var "$v2"))), (KeyedElement (some (KeyField go!"memorySnapshotIndex")) (ElementExpression go.uint64 (Var "$v3"))), (KeyedElement (some (KeyField go!"appliedt")) (ElementExpression go.uint64 (Var "$v4"))), (KeyedElement (some (KeyField go!"appliedi")) (ElementExpression go.uint64 (Var "$v5")))]))))))))
   (Let "ep" (App (Val (GoInstruction (GoAlloc etcdProgress.ty))) (App (Val (GoInstruction (GoZeroVal etcdProgress.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2755,7 +2910,7 @@ noncomputable def EtcdServer.run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0"))))))))))
   (Val #()))))
 
-/-- go: server.go:855:22 -/
+/-- go: server.go:859:22 -/
 noncomputable def EtcdServer.revokeExpiredLeases.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "leases"
@@ -2868,10 +3023,156 @@ noncomputable def EtcdServer.revokeExpiredLeases.impl [GooseExts] [GoGlobalConte
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"GoAttach"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Var "$a0")))))))
   (Val #()))))
 
+/-- isActive checks if the etcd instance is still actively processing the
+    heartbeat message (ticks). It returns false if no heartbeat has been
+    received within 3 * tickMs.
+
+    go: server.go:909:22 -/
+noncomputable def EtcdServer.isActive.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftNode.ty) go!"getLatestTickTs"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"r"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Val #()))
+  (Let "latestTickTs" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Time.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 3)) (App (Val (GoInstruction (Convert go.uint _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoLoad go.uint))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty go!"TickMs"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"Cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))))))) (Val #(W64 1000000))))
+  (Let "threshold" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Now []))) (Val #())) (Val #()))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.time.Time.ty go!"After"))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "threshold"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"Add"))) (Var "latestTickTs")) (Var "$a0")))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "threshold") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "latestTickTs") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
+/-- ensureLeadership checks whether current member is still the leader.
+
+    go: server.go:916:22 -/
+noncomputable def EtcdServer.ensureLeadership.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"Logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #()))
+  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"ctx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty) go!"ReqTimeout"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"Cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Val #()))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.WithTimeout []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "cancel" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.CancelFunc.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.CancelFunc.ty))) (Val #())))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.Context.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (StructFieldGet _root_.Perennial.go_etcd_io.raft.v3.SoftState.ty go!"Lead"))) (App (Val (GoInstruction (StructFieldGet _root_.Perennial.go_etcd_io.raft.v3.BasicStatus.ty go!"SoftState"))) (App (Val (GoInstruction (StructFieldGet _root_.Perennial.go_etcd_io.raft.v3.Status.ty go!"BasicStatus"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"raftStatus"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #())))))
+  (Let "newLeaderID" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "newLeaderID")) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"MemberID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #()))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"Current member isn't a leader"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"local-member-id"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"MemberID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #()))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Uint64 []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl1" (Let "$a0" (Val #(go!"new-lead"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "newLeaderID"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Uint64 []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Warn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "newLeaderID") (Var "$r0")))))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.read.Read.ty) go!"LinearizableReadNotify"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.read.Read.ty)))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"read"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))) (Var "$a0")))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"Failed to check current member's leadership"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Error []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Warn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "cancel"))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "cancel") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))))
+  (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"isActive"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"The member is active, skip checking leadership"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"latestTickTs"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftNode.ty) go!"getLatestTickTs"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"r"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Val #()))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Time []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl1" (Let "$a0" (Val #(go!"now"))
+  (Let "$a1" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Now []))) (Val #())) (Val #()))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Time []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Debug"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
 /-- Cleanup removes allocated objects by EtcdServer.NewServer in
     situation that EtcdServer::Start was not called (that takes care of cleanup).
 
-    go: server.go:943:22 -/
+    go: server.go:947:22 -/
 noncomputable def EtcdServer.Cleanup.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -2914,7 +3215,7 @@ noncomputable def EtcdServer.Cleanup.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (Val #()))))
 
-/-- go: server.go:979:22 -/
+/-- go: server.go:983:22 -/
 noncomputable def EtcdServer.applyAll.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ep"
@@ -2937,24 +3238,21 @@ noncomputable def EtcdServer.applyAll.impl [GooseExts] [GoGlobalContext] : val :
   (Let "$r0" (Fst (Var "$recvVal"))
   (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #())) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef toApply.ty go!"raftTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType toApply.ty)))) (Var "apply")))))) (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty) go!"GetIndex"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty) go!"GetMetadata"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetSnapshot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))) (Val #()))) (Val #())) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef etcdProgress.ty go!"appliedi"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType etcdProgress.ty)))) (Var "ep")))))) (Val #false)))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef etcdProgress.ty go!"appliedi"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType etcdProgress.ty)))) (Var "ep")))) (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.cindex.ConsistentIndexer.ty go!"ConsistentIndex"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.cindex.ConsistentIndexer.ty))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"consistIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))) (Val #())))))
-  (App (Val doExecute)
-  (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetTo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))
-  (Let "$a1" (Val #(W64 2))
-  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"ReportSnapshot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Var "$a0")) (Var "$a1")))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #())) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef toApply.ty go!"raftTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType toApply.ty)))) (Var "apply")))))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef etcdProgress.ty go!"appliedt"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType etcdProgress.ty)))) (Var "ep"))))
   (Let "$a2" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef etcdProgress.ty go!"appliedi"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType etcdProgress.ty)))) (Var "ep"))))
   (Let "$a3" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (App (Val (GoInstruction (StructFieldRef etcdProgress.ty go!"confState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType etcdProgress.ty)))) (Var "ep"))))
-  (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"createMergedSnapshotMessage"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
+  (Let "$a4" (App (Val (GoInstruction (GoLoad replayTerms.ty))) (App (Val (GoInstruction (StructFieldRef toApply.ty go!"replayTerms"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType toApply.ty)))) (Var "apply"))))
+  (Let "$a5" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (App (Val (GoInstruction (StructFieldRef etcdProgress.ty go!"replayConf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType etcdProgress.ty)))) (Var "ep"))))
+  (App (App (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"createMergedSnapshotMessage"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5"))))))))
   (Let "merged" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)))) (Var "merged"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"sendMergedSnap"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Var "$a0"))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)))) (Pair (Var "merged") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)))) (Pair (Var "merged") (Var "$r0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetTo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))
   (Let "$a1" (Val #(W64 2))
@@ -2996,7 +3294,7 @@ noncomputable def EtcdServer.applyAll.impl [GooseExts] [GoGlobalContext] : val :
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"applySnapshot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Var "$a0")) (Var "$a1"))))))))))
   (Val #())))))
 
-/-- go: server.go:1032:22 -/
+/-- go: server.go:1023:22 -/
 noncomputable def EtcdServer.applySnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ep"
@@ -3111,9 +3409,13 @@ noncomputable def EtcdServer.applySnapshot.impl [GooseExts] [GoGlobalContext] : 
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty go!"ConfState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty go!"Metadata"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (App (Val (GoInstruction (StructFieldRef toApply.ty go!"snapshot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType toApply.ty)))) (Var "toApply"))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"NewUberApplier"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #()))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.UberApplier.ty))) (Pair (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"uberApply"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef etcdProgress.ty go!"replayConf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType etcdProgress.ty)))) (Var "ep"))) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef etcdProgress.ty go!"confState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType etcdProgress.ty)))) (Var "ep"))) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -3416,7 +3718,7 @@ noncomputable def EtcdServer.applySnapshot.impl [GooseExts] [GoGlobalContext] : 
   (Val #())))))))))
   (Val #())))))
 
-/-- go: server.go:1192:22 -/
+/-- go: server.go:1184:22 -/
 noncomputable def EtcdServer.NewUberApplier.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -3451,7 +3753,7 @@ noncomputable def EtcdServer.NewUberApplier.impl [GooseExts] [GoGlobalContext] :
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions.ty))) (Pair (Var "opts") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.UberApplier.ty))) (Var "$res0"))))))
 
-/-- go: server.go:1211:6 -/
+/-- go: server.go:1203:6 -/
 noncomputable def verifyConsistentIndexIsLatest.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "snapshot"
   (Lam "cindex"
@@ -3482,7 +3784,7 @@ noncomputable def verifyConsistentIndexIsLatest.impl [GooseExts] [GoGlobalContex
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.Verify []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
   (Val #()))))
 
-/-- go: server.go:1221:22 -/
+/-- go: server.go:1213:22 -/
 noncomputable def EtcdServer.applyEntries.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ep"
@@ -3574,7 +3876,7 @@ noncomputable def EtcdServer.applyEntries.impl [GooseExts] [GoGlobalContext] : v
   (Val #()))))))))
   (Val #())))))
 
-/-- go: server.go:1247:22 -/
+/-- go: server.go:1239:22 -/
 noncomputable def EtcdServer.ForceSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -3585,7 +3887,7 @@ noncomputable def EtcdServer.ForceSnapshot.impl [GooseExts] [GoGlobalContext] : 
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"forceDiskSnapshot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Var "$r0")))))))
   (Val #()))))
 
-/-- go: server.go:1251:22 -/
+/-- go: server.go:1243:22 -/
 noncomputable def EtcdServer.snapshotIfNeededAndCompactRaftLog.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ep"
@@ -3620,7 +3922,7 @@ noncomputable def EtcdServer.snapshotIfNeededAndCompactRaftLog.impl [GooseExts] 
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "shouldSnapshotToDisk") (Var "$r0"))))))))))
   (Val #()))))
 
-/-- go: server.go:1262:22 -/
+/-- go: server.go:1254:22 -/
 noncomputable def EtcdServer.shouldSnapshotToDisk.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ep"
@@ -3636,7 +3938,7 @@ noncomputable def EtcdServer.shouldSnapshotToDisk.impl [GooseExts] [GoGlobalCont
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
-/-- go: server.go:1266:22 -/
+/-- go: server.go:1258:22 -/
 noncomputable def EtcdServer.shouldSnapshotToMemory.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ep"
@@ -3652,7 +3954,7 @@ noncomputable def EtcdServer.shouldSnapshotToMemory.impl [GooseExts] [GoGlobalCo
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
-/-- go: server.go:1274:22 -/
+/-- go: server.go:1266:22 -/
 noncomputable def EtcdServer.isLeader.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -3669,7 +3971,7 @@ noncomputable def EtcdServer.isLeader.impl [GooseExts] [GoGlobalContext] : val :
 
 /-- HardStop stops the server without coordination with other members in the cluster.
 
-    go: server.go:1350:22 -/
+    go: server.go:1342:22 -/
 noncomputable def EtcdServer.HardStop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -3691,7 +3993,7 @@ noncomputable def EtcdServer.HardStop.impl [GooseExts] [GoGlobalContext] : val :
 /-- StoppingNotify returns a channel that receives an empty struct
     when the server is being stopped.
 
-    go: server.go:1394:22 -/
+    go: server.go:1386:22 -/
 noncomputable def EtcdServer.StoppingNotify.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -3706,7 +4008,7 @@ noncomputable def EtcdServer.StoppingNotify.impl [GooseExts] [GoGlobalContext] :
   (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Var "$res0"))))))
 
-/-- go: server.go:1396:22 -/
+/-- go: server.go:1388:22 -/
 noncomputable def EtcdServer.checkMembershipOperationPermission.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -3757,7 +4059,7 @@ noncomputable def EtcdServer.checkMembershipOperationPermission.impl [GooseExts]
   (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: server.go:1417:22 -/
+/-- go: server.go:1409:22 -/
 noncomputable def EtcdServer.AddMember.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -3868,7 +4170,7 @@ noncomputable def EtcdServer.AddMember.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: server.go:1476:22 -/
+/-- go: server.go:1468:22 -/
 noncomputable def EtcdServer.RemoveMember.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -3945,7 +4247,7 @@ noncomputable def EtcdServer.RemoveMember.impl [GooseExts] [GoGlobalContext] : v
 
 /-- PromoteMember promotes a learner node to a voting node.
 
-    go: server.go:1494:22 -/
+    go: server.go:1486:22 -/
 noncomputable def EtcdServer.PromoteMember.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -4161,7 +4463,7 @@ noncomputable def EtcdServer.PromoteMember.impl [GooseExts] [GoGlobalContext] : 
     local node is leader (therefore has enough information) but decided the learner node is not ready
     to be promoted.
 
-    go: server.go:1540:22 -/
+    go: server.go:1532:22 -/
 noncomputable def EtcdServer.promoteMember.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -4273,7 +4575,7 @@ noncomputable def EtcdServer.promoteMember.impl [GooseExts] [GoGlobalContext] : 
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: server.go:1687:22 -/
+/-- go: server.go:1679:22 -/
 noncomputable def EtcdServer.UpdateMember.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -4357,7 +4659,7 @@ noncomputable def EtcdServer.UpdateMember.impl [GooseExts] [GoGlobalContext] : v
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0"))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: server.go:1704:22 -/
+/-- go: server.go:1696:22 -/
 noncomputable def EtcdServer.MemberList.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -4423,7 +4725,7 @@ noncomputable def EtcdServer.MemberList.impl [GooseExts] [GoGlobalContext] : val
   (Val #()))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: server.go:1717:22 -/
+/-- go: server.go:1709:22 -/
 noncomputable def EtcdServer.setCommittedIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "v"
@@ -4435,7 +4737,7 @@ noncomputable def EtcdServer.setCommittedIndex.impl [GooseExts] [GoGlobalContext
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Uint64.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"committedIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Var "$a0")))))))
   (Val #()))))
 
-/-- go: server.go:1721:22 -/
+/-- go: server.go:1713:22 -/
 noncomputable def EtcdServer.getCommittedIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -4450,7 +4752,7 @@ noncomputable def EtcdServer.getCommittedIndex.impl [GooseExts] [GoGlobalContext
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))
 
-/-- go: server.go:1725:22 -/
+/-- go: server.go:1717:22 -/
 noncomputable def EtcdServer.setAppliedIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "v"
@@ -4462,7 +4764,7 @@ noncomputable def EtcdServer.setAppliedIndex.impl [GooseExts] [GoGlobalContext] 
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Uint64.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"appliedIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Var "$a0")))))))
   (Val #()))))
 
-/-- go: server.go:1729:22 -/
+/-- go: server.go:1721:22 -/
 noncomputable def EtcdServer.getAppliedIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -4477,7 +4779,7 @@ noncomputable def EtcdServer.getAppliedIndex.impl [GooseExts] [GoGlobalContext] 
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))
 
-/-- go: server.go:1733:22 -/
+/-- go: server.go:1725:22 -/
 noncomputable def EtcdServer.setTerm.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "v"
@@ -4489,7 +4791,7 @@ noncomputable def EtcdServer.setTerm.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Uint64.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Var "$a0")))))))
   (Val #()))))
 
-/-- go: server.go:1737:22 -/
+/-- go: server.go:1729:22 -/
 noncomputable def EtcdServer.getTerm.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -4504,7 +4806,7 @@ noncomputable def EtcdServer.getTerm.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))
 
-/-- go: server.go:1741:22 -/
+/-- go: server.go:1733:22 -/
 noncomputable def EtcdServer.setLead.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "v"
@@ -4516,7 +4818,7 @@ noncomputable def EtcdServer.setLead.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Uint64.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"lead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Var "$a0")))))))
   (Val #()))))
 
-/-- go: server.go:1745:22 -/
+/-- go: server.go:1737:22 -/
 noncomputable def EtcdServer.getLead.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -4536,7 +4838,7 @@ noncomputable def EtcdServer.getLead.impl [GooseExts] [GoGlobalContext] : val :=
     read-only requests (leader is not able to respond any read-only requests
     as long as linearizable semantic is required)
 
-    go: server.go:1757:22 -/
+    go: server.go:1749:22 -/
 noncomputable def EtcdServer.FirstCommitInTermNotify.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -4551,7 +4853,7 @@ noncomputable def EtcdServer.FirstCommitInTermNotify.impl [GooseExts] [GoGlobalC
   (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Var "$res0"))))))
 
-/-- go: server.go:1769:22 -/
+/-- go: server.go:1761:22 -/
 noncomputable def EtcdServer.MemberID.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -4566,7 +4868,7 @@ noncomputable def EtcdServer.MemberID.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Var "$res0"))))))
 
-/-- go: server.go:1771:22 -/
+/-- go: server.go:1763:22 -/
 noncomputable def EtcdServer.Leader.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -4581,7 +4883,7 @@ noncomputable def EtcdServer.Leader.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Var "$res0"))))))
 
-/-- go: server.go:1773:22 -/
+/-- go: server.go:1765:22 -/
 noncomputable def EtcdServer.Lead.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -4596,7 +4898,7 @@ noncomputable def EtcdServer.Lead.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))
 
-/-- go: server.go:1775:22 -/
+/-- go: server.go:1767:22 -/
 noncomputable def EtcdServer.CommittedIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -4611,7 +4913,7 @@ noncomputable def EtcdServer.CommittedIndex.impl [GooseExts] [GoGlobalContext] :
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))
 
-/-- go: server.go:1777:22 -/
+/-- go: server.go:1769:22 -/
 noncomputable def EtcdServer.AppliedIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -4626,7 +4928,7 @@ noncomputable def EtcdServer.AppliedIndex.impl [GooseExts] [GoGlobalContext] : v
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))
 
-/-- go: server.go:1779:22 -/
+/-- go: server.go:1771:22 -/
 noncomputable def EtcdServer.Term.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -4641,7 +4943,7 @@ noncomputable def EtcdServer.Term.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))
 
-/-- go: server.go:1885:22 -/
+/-- go: server.go:1877:22 -/
 noncomputable def EtcdServer.sendMergedSnap.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "merged"
@@ -4743,7 +5045,7 @@ noncomputable def EtcdServer.sendMergedSnap.impl [GooseExts] [GoGlobalContext] :
     applies them to the current state of the EtcdServer.
     The given entries should not be empty.
 
-    go: server.go:1928:22 -/
+    go: server.go:1920:22 -/
 noncomputable def EtcdServer.apply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "es"
@@ -4916,7 +5218,7 @@ noncomputable def EtcdServer.apply.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- applyEntryNormal applies an EntryNormal type raftpb request to the EtcdServer
 
-    go: server.go:1981:22 -/
+    go: server.go:1973:22 -/
 noncomputable def EtcdServer.applyEntryNormal.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "e"
@@ -5059,7 +5361,7 @@ noncomputable def EtcdServer.applyEntryNormal.impl [GooseExts] [GoGlobalContext]
 /-- applyConfChange applies a ConfChange to the server. It is only
     invoked with a ConfChange that has already passed through Raft
 
-    go: server.go:2043:22 -/
+    go: server.go:2035:22 -/
 noncomputable def EtcdServer.applyConfChange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "cc"
@@ -5299,7 +5601,7 @@ noncomputable def EtcdServer.applyConfChange.impl [GooseExts] [GoGlobalContext] 
 
 /-- TODO: non-blocking snapshot
 
-    go: server.go:2119:22 -/
+    go: server.go:2111:22 -/
 noncomputable def EtcdServer.snapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ep"
@@ -5432,7 +5734,7 @@ noncomputable def EtcdServer.snapshot.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0")))))))))))
   (Val #())))))
 
-/-- go: server.go:2173:22 -/
+/-- go: server.go:2165:22 -/
 noncomputable def EtcdServer.compactRaftLog.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "snapi"
@@ -5502,7 +5804,7 @@ noncomputable def EtcdServer.compactRaftLog.impl [GooseExts] [GoGlobalContext] :
 
 /-- CutPeer drops messages to the specified peer.
 
-    go: server.go:2207:22 -/
+    go: server.go:2199:22 -/
 noncomputable def EtcdServer.CutPeer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "id"
@@ -5532,7 +5834,7 @@ noncomputable def EtcdServer.CutPeer.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- MendPeer recovers the message dropping behavior of the given peer.
 
-    go: server.go:2215:22 -/
+    go: server.go:2207:22 -/
 noncomputable def EtcdServer.MendPeer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "id"
@@ -5560,7 +5862,7 @@ noncomputable def EtcdServer.MendPeer.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty)))) (Pair (Var "tr") (Var "$r0")))))))))))))))
   (Val #()))))
 
-/-- go: server.go:2226:22 -/
+/-- go: server.go:2218:22 -/
 noncomputable def EtcdServer.ClusterVersion.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -5585,7 +5887,201 @@ noncomputable def EtcdServer.ClusterVersion.impl [GooseExts] [GoGlobalContext] :
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)))) (Var "$res0"))))))
 
-/-- go: server.go:2393:22 -/
+/-- go: server.go:2277:22 -/
+noncomputable def EtcdServer.monitorKVHash.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam BAnon
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty go!"CorruptCheckTime"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"Cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))))
+  (Let "t" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "t"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.NewTicker []))) (Val #())) (Var "$a0")))
+  (Let "checkTicker" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.time.Ticker.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.time.Ticker.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"Logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #()))
+  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (Val #true))) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve CorruptionChecker.ty go!"PeriodicCheck"))) (App (Val (GoInstruction (GoLoad CorruptionChecker.ty))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"corruptionChecker"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))) (Val #()))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"failed to check hash KV"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Error []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Warn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"isLeader"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #())))
+  (App (Val doContinue) (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"be"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$a2" (Val #false)
+  (Let "$a3" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty)))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.AllBuckets))) (Val #())))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.VerifyBackendConsistency []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))))))
+  (Let "$ch0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"stopping"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))
+  (Let "$ch1" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.time.Ticker.ty go!"C"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.time.Ticker.ty)))) (Var "checkTicker"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none [(CommClause (RecvCase (go.GoType.StructType []) (Var "$ch0")) (Lam "$recvVal"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"server has stopped; stopping kv hash's monitor"))
+  (Let "$a1" (Val #slice.nil)
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Info"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1")))))))),
+  (CommClause (RecvCase _root_.Perennial.time.Time.ty (Var "$ch1")) (Lam "$recvVal"
+  (App (Val doExecute)
+  (Val #()))))])))))))
+  (Lam BAnon
+  (Val #())))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"enabled corruption checking"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"local-member-id"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty go!"String"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"MemberID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #()))) (Val #()))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl1" (Let "$a0" (Val #(go!"interval"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "t"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Duration []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Info"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Ticker.ty) go!"Stop"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.time.Ticker.ty)))) (Var "checkTicker")))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.time.Ticker.ty)))) (Pair (Var "checkTicker") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "t")) (Val #(W64 0)))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "t") (Var "$r0"))))))))))
+  (Val #()))))
+
+/-- go: server.go:2308:22 -/
+noncomputable def EtcdServer.monitorCompactHash.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty go!"CompactHashCheckTime"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"Cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))))
+  (Let "t" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (Val #true))) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve CorruptionChecker.ty go!"CompactHashCheck"))) (App (Val (GoInstruction (GoLoad CorruptionChecker.ty))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"corruptionChecker"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))) (Val #())))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"isLeader"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #())))
+  (App (Val doContinue) (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "$ch0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "t"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.After []))) (Val #())) (Var "$a0")))
+  (Let "$ch1" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"stopping"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none [(CommClause (RecvCase _root_.Perennial.time.Time.ty (Var "$ch0")) (Lam "$recvVal"
+  (App (Val doExecute)
+  (Val #())))),
+  (CommClause (RecvCase (go.GoType.StructType []) (Var "$ch1")) (Lam "$recvVal"
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"Logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #()))
+  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"server has stopped; stopping compact hash's monitor"))
+  (Let "$a1" (Val #slice.nil)
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Info"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0")))))))))])))))))
+  (Lam BAnon
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "t") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (Val #(go!"CompactHashCheck"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"FeatureEnabled"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Var "$a0"))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Val #()))))
+
+/-- monitorDowngrade every DowngradeCheckTime checks if it's the leader and cancels downgrade if needed.
+
+    go: server.go:2365:22 -/
+noncomputable def EtcdServer.monitorDowngrade.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (Let "$r0" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"Logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #()))
+  (Let "$a1" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve NewServerVersionAdapter []))) (Val #())) (Var "$a0")))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.NewMonitor []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "monitor" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Monitor.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Monitor.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty go!"DowngradeCheckTime"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"Cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))))
+  (Let "t" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (Val #true))) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Monitor.ty) go!"CancelDowngradeIfNeeded"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Monitor.ty)))) (Var "monitor"))) (Val #())))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"isLeader"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #())))
+  (App (Val doContinue) (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "$ch0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "t"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.After []))) (Val #())) (Var "$a0")))
+  (Let "$ch1" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"stopping"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none [(CommClause (RecvCase _root_.Perennial.time.Time.ty (Var "$ch0")) (Lam "$recvVal"
+  (App (Val doExecute)
+  (Val #())))),
+  (CommClause (RecvCase (go.GoType.StructType []) (Var "$ch1")) (Lam "$recvVal"
+  (App (Val doReturn)
+  (Val #()))))])))))))
+  (Lam BAnon
+  (Val #())))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "t")) (Val #(W64 0)))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "t") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Monitor.ty)))) (Pair (Var "monitor") (Var "$r0")))))))))
+  (Val #()))))
+
+/-- go: server.go:2385:22 -/
 noncomputable def EtcdServer.parseProposeCtxErr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "err"
@@ -5687,7 +6183,7 @@ noncomputable def EtcdServer.parseProposeCtxErr.impl [GooseExts] [GoGlobalContex
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
-/-- go: server.go:2426:22 -/
+/-- go: server.go:2418:22 -/
 noncomputable def EtcdServer.KV.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -5702,7 +6198,7 @@ noncomputable def EtcdServer.KV.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty))) (Var "$res0"))))))
 
-/-- go: server.go:2427:22 -/
+/-- go: server.go:2419:22 -/
 noncomputable def EtcdServer.Backend.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -5728,7 +6224,7 @@ noncomputable def EtcdServer.Backend.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"bemu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Val #())))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (Var "$res0"))))))
 
-/-- go: server.go:2433:22 -/
+/-- go: server.go:2425:22 -/
 noncomputable def EtcdServer.AuthStore.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -5743,7 +6239,7 @@ noncomputable def EtcdServer.AuthStore.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore.ty))) (Var "$res0"))))))
 
-/-- go: server.go:2435:22 -/
+/-- go: server.go:2427:22 -/
 noncomputable def EtcdServer.restoreAlarms.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -5793,7 +6289,7 @@ noncomputable def EtcdServer.restoreAlarms.impl [GooseExts] [GoGlobalContext] : 
     the etcdserver waitgroup.
     The passed function should interrupt on s.StoppingNotify().
 
-    go: server.go:2447:22 -/
+    go: server.go:2439:22 -/
 noncomputable def EtcdServer.GoAttach.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "f"
@@ -5851,7 +6347,7 @@ noncomputable def EtcdServer.GoAttach.impl [GooseExts] [GoGlobalContext] : val :
 
 /-- IsLearner returns if the local member is raft learner
 
-    go: server.go:2471:22 -/
+    go: server.go:2463:22 -/
 noncomputable def EtcdServer.IsLearner.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -5868,7 +6364,7 @@ noncomputable def EtcdServer.IsLearner.impl [GooseExts] [GoGlobalContext] : val 
 
 /-- IsMemberExist returns if the member with the given id exists in cluster.
 
-    go: server.go:2476:22 -/
+    go: server.go:2468:22 -/
 noncomputable def EtcdServer.IsMemberExist.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "id"
@@ -5885,7 +6381,24 @@ noncomputable def EtcdServer.IsMemberExist.impl [GooseExts] [GoGlobalContext] : 
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
-/-- go: server.go:2489:22 -/
+/-- raftStatus returns the raft status of this etcd node.
+
+    go: server.go:2473:22 -/
+noncomputable def EtcdServer.raftStatus.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.Status.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.Status.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"Status"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef raftNodeConfig.ty go!"Node"))) (App (Val (GoInstruction (StructFieldRef raftNode.ty go!"raftNodeConfig"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"r"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.Status.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Status.ty))) (Var "$res0"))))))
+
+/-- go: server.go:2481:22 -/
 noncomputable def EtcdServer.getTxPostLockInsideApplyHook.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -5926,16 +6439,20 @@ noncomputable def EtcdServer.getTxPostLockInsideApplyHook.impl [GooseExts] [GoGl
     a snapshot of v2 store inside raft.Snapshot as []byte, a snapshot of v3 KV in the top level message
     as ReadCloser.
 
-    go: snapshot_merge.go:32:22 -/
+    go: snapshot_merge.go:34:22 -/
 noncomputable def EtcdServer.createMergedSnapshotMessage.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "m"
   (Lam "snapt"
   (Lam "snapi"
   (Lam "confState"
+  (Lam "terms"
+  (Lam "replayConf"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (Let "replayConf" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Var "replayConf"))
+  (Let "terms" (App (Val (GoInstruction (GoAlloc replayTerms.ty))) (Var "terms"))
   (Let "confState" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Var "confState"))
   (Let "snapi" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "snapi"))
   (Let "snapt" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "snapt"))
@@ -5946,6 +6463,7 @@ noncomputable def EtcdServer.createMergedSnapshotMessage.impl [GooseExts] [GoGlo
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty go!"Snapshot"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"be"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))) (Val #()))
   (Let "dbsnap" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Snapshot.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Snapshot.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Snapshot.ty))) (Var "dbsnap"))
@@ -5977,15 +6495,104 @@ noncomputable def EtcdServer.createMergedSnapshotMessage.impl [GooseExts] [GoGlo
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Pair (Var "snapshot") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.io.ReadCloser.ty))) (Pair (Var "rc") (Var "$r0")))))))))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Snapshot.ty _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Snapshot.ty))) (Var "dbsnap")))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.UnsafeReadConsistentIndex []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "term" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Let "ci" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "ci")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "snapi")))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "ci"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Var "replayConf")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Val UntypedNil))))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "ci"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType replayTerms.ty) go!"covers"))) (Var "terms")) (Var "$a0"))) (Val #false))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "ci"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType replayTerms.ty) go!"termAt"))) (Var "terms")) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Var "replayConf"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Pair (Var "confState") (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "snapt") (Var "$r0"))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "term"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$a1" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Snapshot.ty _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Snapshot.ty))) (Var "dbsnap")))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.Meta))) (Val #())))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.MetaConfStateName))) (Val #())))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.snapshotmeta.ReadConfState []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Var "confState")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Val UntypedNil)))))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$a1" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Snapshot.ty _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Snapshot.ty))) (Var "dbsnap")))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.Members))) (Val #())))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.snapshotmeta.ReadMembers []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "members" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Var "members"))
+  (App (App (Val (GoInstruction (FuncResolve confStateFromMembers []))) (Val #())) (Var "$a0")))
+  (Let "cs" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Var "cs")
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Pair (Var "confState") (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty))) (Pair (Var "cs") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"couldn't read members from snapshot"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Error []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Panic"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Pair (Var "members") (Var "$r0"))))))))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Pair (Var "confState") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "snapt")) (Val #(W64 0)))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "ci"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType replayTerms.ty) go!"termAt"))) (Var "terms")) (Var "$a0")))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "snapt") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "snapt") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "snapi") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "term") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "ci") (Var "$r0")))))))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Snapshot.ty))) (Pair (Var "dbsnap") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty go!"Commit"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"KV"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #()))) (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0")))))))))))))
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)))) (Var "$res0")))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)))) (Var "$res0")))))))))))
 
-/-- go: snapshot_merge.go:56:6 -/
+/-- go: snapshot_merge.go:83:6 -/
 noncomputable def newSnapshotReaderCloser.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "snapshot"
@@ -6074,6 +6681,290 @@ noncomputable def newSnapshotReaderCloser.impl [GooseExts] [GoGlobalContext] : v
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.io.PipeReader.ty)))) (Pair (Var "pr") (Var "$r0")))))))))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.io.ReadCloser.ty))) (Var "$res0"))))))
+
+/-- Read the same recovered log that RestartNode will use. Bootstrap still
+    owns storage exclusively: its first and last indices are stable and Entries
+    over that range succeeds. An empty storage has first == last+1.
+
+    go: snapshot_terms.go:25:6 -/
+noncomputable def replayTermsFromStorage.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "storage"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc replayTerms.ty))) (App (Val (GoInstruction (GoZeroVal replayTerms.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "storage" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty)))) (Var "storage"))
+  (Let "__p" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty) go!"FirstIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty)))) (Var "storage"))) (Val #()))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "first" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty) go!"LastIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty)))) (Var "storage"))) (Val #()))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "last" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "first"))
+  (Let "$a1" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "last")) (Val #(W64 1))))
+  (Let "$a2" (Val #(W64 18446744073709551615))
+  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty) go!"Entries"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty)))) (Var "storage"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "entries" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "entries"))
+  (App (App (Val (GoInstruction (MethodResolve replayTerms.ty go!"appendEntries"))) (App (Val (GoInstruction (Convert go.untypedNil replayTerms.ty))) (Val UntypedNil))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore replayTerms.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Var "$r1")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (Var "entries") (Var "$r0")))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "first")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "last")))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil replayTerms.ty))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore replayTerms.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (Var "$r1")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "last") (Var "$r0")))))))))))))
+  (App (Val doExecute)
+  (Var "$r1")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "first") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "$res0")))))
+
+/-- after discards entries that this batch has already handed to the applier.
+
+    go: snapshot_terms.go:36:22 -/
+noncomputable def replayTerms.after.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "r"
+  (Lam "index"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc replayTerms.ty))) (App (Val (GoInstruction (GoZeroVal replayTerms.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc replayTerms.ty))) (Var "r"))
+  (Let "index" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "index"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "r"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore replayTerms.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (App (App (Val doFor) (Lam BAnon
+  (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "r"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [replayTerms.ty]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef replayTermRun.ty go!"last"))) (App (Val (GoInstruction (IndexRef replayTerms.ty))) (Pair (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "r")) (Val #(W64 0)))))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "index")))) (Val #false)))) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "r"))
+  (App (Val (GoInstruction (Slice replayTerms.ty))) (Pair (Pair (Var "$s") (Val #(W64 1))) (App (App (Val (GoInstruction (FuncResolve go.len [replayTerms.ty]))) (Val #())) (Var "$s")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore replayTerms.ty))) (Pair (Var "r") (Var "$r0")))))))
+  (Lam BAnon
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "$res0"))))))
+
+/-- appendEntries replaces the suffix beginning at the first new entry. Old
+    batches may still refer to r, including a range cut in the middle.
+
+    go: snapshot_terms.go:45:22 -/
+noncomputable def replayTerms.appendEntries.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "r"
+  (Lam "ents"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc replayTerms.ty))) (App (Val (GoInstruction (GoZeroVal replayTerms.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc replayTerms.ty))) (Var "r"))
+  (Let "ents" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "ents"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty) go!"GetIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "ents")) (Val #(W64 0)))))) (Val #()))
+  (Let "first" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "r"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [replayTerms.ty]))) (Val #())) (Var "$a0")))
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "r"))
+  (App (Val (GoInstruction (FullSlice replayTerms.ty))) (Pair (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))))
+  (Let "out" (App (Val (GoInstruction (GoAlloc replayTerms.ty))) (App (Val (GoInstruction (GoZeroVal replayTerms.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "out"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore replayTerms.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "ents"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty) go!"GetTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "ents")) (Val #(W64 0)))))) (Val #()))
+  (Let "term" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "ents"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))) (Val #())) (Var "$a0")))
+  (Let "count" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty) go!"GetIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "ents")) (Val #(W64 0)))))) (Val #()))
+  (Let "$v1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty) go!"GetIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "ents")) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "count")) (Val #(W64 1)))))))) (Val #()))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "term"))
+  (App (Val (GoInstruction (CompositeLiteral replayTermRun.ty))) (LiteralValue [(KeyedElement none (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement none (ElementExpression go.uint64 (Var "$v1"))), (KeyedElement none (ElementExpression go.uint64 (Var "$v2")))])))))
+  (Let "run" (App (Val (GoInstruction (GoAlloc replayTermRun.ty))) (App (Val (GoInstruction (GoZeroVal replayTermRun.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "out"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad replayTermRun.ty))) (Var "run"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType replayTermRun.ty)))) (LiteralValue [(KeyedElement none (ElementExpression replayTermRun.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [replayTerms.ty]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "ents"))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoLoad go.int))) (Var "count"))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))) (Val #())) (Var "$s")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (Var "ents") (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore replayTerms.ty))) (Pair (Var "out") (Var "$r0"))))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "out"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [replayTerms.ty]))) (Val #())) (Var "$a0")))
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (Val #(W64 0)))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef replayTermRun.ty go!"term"))) (App (Val (GoInstruction (IndexRef replayTerms.ty))) (Pair (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "out")) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (Val #(W64 1)))))))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "term")))) (Val #false)))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef replayTermRun.ty go!"first"))) (App (Val (GoInstruction (IndexRef replayTerms.ty))) (Pair (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "out")) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (Val #(W64 1))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "out"))
+  (App (Val (GoInstruction (FullSlice replayTerms.ty))) (Pair (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (Val #(W64 1))))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (Val #(W64 1)))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore replayTerms.ty))) (Pair (Var "out") (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef replayTermRun.ty go!"first"))) (Var "run")) (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore replayTermRun.ty))) (Pair (Var "run") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty) go!"GetTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "ents")) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "count")) (Val #(W64 1)))))))) (Val #())) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "term"))))))
+  (Let "$r0" (Val #(W64 1))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty) go!"GetTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "ents")) (App (Val (GoInstruction (GoLoad go.int))) (Var "count")))))) (Val #())) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "term")))))) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "count") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "count")) (Val #(W64 1)))))))))
+  (Lam BAnon
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "count") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "count") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "term") (Var "$r0")))))))))
+  (Lam BAnon
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (Let "$a0" (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "r"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [replayTerms.ty]))) (Val #())) (Var "$a0"))))) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef replayTermRun.ty go!"first"))) (App (Val (GoInstruction (IndexRef replayTerms.ty))) (Pair (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "r")) (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "first")))) (Val #false)))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "out"))
+  (Let "$a1" (Let "$sl0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef replayTermRun.ty go!"first"))) (App (Val (GoInstruction (IndexRef replayTerms.ty))) (Pair (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "r")) (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))))))
+  (Let "$v1" (App (Val (GoInstruction (GoOp GoSub go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "first")) (Val #(W64 1))))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef replayTermRun.ty go!"term"))) (App (Val (GoInstruction (IndexRef replayTerms.ty))) (Pair (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "r")) (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))))))
+  (App (Val (GoInstruction (CompositeLiteral replayTermRun.ty))) (LiteralValue [(KeyedElement none (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement none (ElementExpression go.uint64 (Var "$v1"))), (KeyedElement none (ElementExpression go.uint64 (Var "$v2")))])))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType replayTermRun.ty)))) (LiteralValue [(KeyedElement none (ElementExpression replayTermRun.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [replayTerms.ty]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore replayTerms.ty))) (Pair (Var "out") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore replayTerms.ty))) (Pair (Var "out") (Var "$r0")))))))))
+  (App (App (App (Val doFor) (Lam BAnon
+  (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (Val #(W64 0)))) (App (Val (GoInstruction (GoOp GoGe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef replayTermRun.ty go!"last"))) (App (Val (GoInstruction (IndexRef replayTerms.ty))) (Pair (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "r")) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (Val #(W64 1)))))))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "first")))) (Val #false)))) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (Val #(W64 1)))))))))
+  (Lam BAnon
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "first") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "ents"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "r"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore replayTerms.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "$res0"))))))
+
+/-- covers reports whether an index is in this Ready's retained log suffix.
+
+    go: snapshot_terms.go:81:22 -/
+noncomputable def replayTerms.covers.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "r"
+  (Lam "index"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc replayTerms.ty))) (Var "r"))
+  (Let "index" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "index"))
+  (Let "$r0" (If (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "r"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [replayTerms.ty]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef replayTermRun.ty go!"first"))) (App (Val (GoInstruction (IndexRef replayTerms.ty))) (Pair (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "r")) (Val #(W64 0)))))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "index")))) (Val #false)) (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "index")) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef replayTermRun.ty go!"last"))) (App (Val (GoInstruction (IndexRef replayTerms.ty))) (Pair (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "r")) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "r"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [replayTerms.ty]))) (Val #())) (Var "$a0"))) (Val #(W64 1)))))))))) (Val #false))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
+/-- termAt reads an index in this batch's log. The caller holds a current-term
+    snapshot request from this member. Its elected log contains the committed
+    backend prefix, even if the recovered HardState.Commit was lower.
+
+    go: snapshot_terms.go:88:22 -/
+noncomputable def replayTerms.termAt.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "r"
+  (Lam "index"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc replayTerms.ty))) (Var "r"))
+  (Let "index" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "index"))
+  (Let "$r0" (Val #(W64 0))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef replayTermRun.ty go!"term"))) (App (Val (GoInstruction (IndexRef replayTerms.ty))) (Pair (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "r")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef replayTermRun.ty go!"last"))) (App (Val (GoInstruction (IndexRef replayTerms.ty))) (Pair (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "r")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "index")))))) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))
+  (Lam BAnon
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))
 
 /-- firstCompareKey returns first non-empty key in the list of comparison operations.
 
@@ -6485,7 +7376,7 @@ noncomputable def numConnectedSince.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "connectedNum") (Var "$r0"))))))))))))
   (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))))
 
-/-- go: v3_server.go:106:22 -/
+/-- go: v3_server.go:107:22 -/
 noncomputable def EtcdServer.Range.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -6725,7 +7616,171 @@ noncomputable def EtcdServer.Range.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: v3_server.go:295:22 -/
+/-- go: v3_server.go:158:22 -/
+noncomputable def EtcdServer.RangeStream.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "r"
+  (Lam "rs"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (Let "rs" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KV_RangeStreamServer.ty))) (Var "rs"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (_root_.Perennial.google_golang_org.grpc.ServerStreamingServer.ty _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse.ty) go!"Context"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KV_RangeStreamServer.ty))) (Var "rs"))) (Val #()))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.Context.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "span" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_opentelemetry_io.otel.trace.Span.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_opentelemetry_io.otel.trace.Span.ty))) (Val #())))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (Val #(go!"range_streaming"))
+  (Let "$a2" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.go_opentelemetry_io.otel.trace.SpanStartEventOption.ty _root_.Perennial.go_opentelemetry_io.otel.trace.SpanStartOption.ty))) (Let "$a0" (Let "$sl0" (Let "$a0" (Val #(go!"range_begin"))
+  (Let "$a1" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty) go!"GetKey"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r"))) (Val #())))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_opentelemetry_io.otel.«attribute».String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl1" (Let "$a0" (Val #(go!"range_end"))
+  (Let "$a1" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty) go!"GetRangeEnd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r"))) (Val #())))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_opentelemetry_io.otel.«attribute».String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl2" (Let "$a0" (Val #(go!"rev"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty) go!"GetRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r"))) (Val #()))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_opentelemetry_io.otel.«attribute».Int64 []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl3" (Let "$a0" (Val #(go!"limit"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty) go!"GetLimit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r"))) (Val #()))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_opentelemetry_io.otel.«attribute».Int64 []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl4" (Let "$a0" (Val #(go!"count_only"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty) go!"GetCountOnly"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r"))) (Val #()))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_opentelemetry_io.otel.«attribute».Bool' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_opentelemetry_io.otel.«attribute».KeyValue.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_opentelemetry_io.otel.«attribute».KeyValue.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_opentelemetry_io.otel.«attribute».KeyValue.ty (Var "$sl1"))), (KeyedElement none (ElementExpression _root_.Perennial.go_opentelemetry_io.otel.«attribute».KeyValue.ty (Var "$sl2"))), (KeyedElement none (ElementExpression _root_.Perennial.go_opentelemetry_io.otel.«attribute».KeyValue.ty (Var "$sl3"))), (KeyedElement none (ElementExpression _root_.Perennial.go_opentelemetry_io.otel.«attribute».KeyValue.ty (Var "$sl4")))])))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_opentelemetry_io.otel.trace.WithAttributes []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_opentelemetry_io.otel.trace.SpanStartOption.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_opentelemetry_io.otel.trace.SpanStartOption.ty (Var "$sl0")))])))
+  (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_opentelemetry_io.otel.trace.Tracer.ty go!"Start"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_opentelemetry_io.otel.trace.Tracer.ty))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Tracer))) (Val #())))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"Logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #()))
+  (Let "$a2" (Val #(go!"range_streaming"))
+  (Let "$a3" (Let "$sl0" (Let "$v0" (Val #(go!"range_begin"))
+  (Let "$v1" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r")))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Field.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Key")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Value")) (ElementExpression go.string (Var "$v1")))]))))
+  (Let "$sl1" (Let "$v0" (Val #(go!"range_end"))
+  (Let "$v1" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty go!"RangeEnd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r")))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Field.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Key")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Value")) (ElementExpression go.string (Var "$v1")))]))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Field.ty (Var "$sl1")))]))))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.EnsureTrace []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "trace" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Lam "ai"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "ai" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty)))) (Var "ai"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty)))) (Var "ai"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r"))))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty go!"RangeEnd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r"))))
+  (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore.ty go!"IsRangePermitted"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore.ty))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"authStore"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))
+  (Let "chk" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty)] false [go.error]))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty)] false [go.error]))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "$r0" (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KV_RangeStreamServer.ty))) (Var "rs"))
+  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"rangeStream"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))
+  (Val #())))
+  (Let "get" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [] false []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [] false []))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty)] false [go.error]))))) (Var "chk"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [] false []))))) (Var "get"))
+  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"doSerialize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "serr" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "serr")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "serr"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "serr") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [] false []))))) (Pair (Var "get") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty)] false [go.error]))))) (Pair (Var "chk") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty go!"Serializable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r")))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.read.Read.ty) go!"LinearizableReadNotify"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.read.Read.ty)))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"read"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))) (Var "$a0")))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"agreement among raft nodes before linearized reading"))
+  (Let "$a1" (Val #slice.nil)
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty) go!"Step"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Var "trace"))) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Pair (Var "trace") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0")))))))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #slice.nil)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_opentelemetry_io.otel.trace.Span.ty go!"End"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_opentelemetry_io.otel.trace.Span.ty))) (Var "span")))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Var "$a0"))
+  (App (Var "$oldf") (Val #())))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_opentelemetry_io.otel.trace.Span.ty))) (Pair (Var "span") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
+
+/-- go: v3_server.go:296:22 -/
 noncomputable def EtcdServer.Put.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -6814,7 +7869,7 @@ noncomputable def EtcdServer.Put.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: v3_server.go:310:22 -/
+/-- go: v3_server.go:311:22 -/
 noncomputable def EtcdServer.DeleteRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -6899,7 +7954,7 @@ noncomputable def EtcdServer.DeleteRange.impl [GooseExts] [GoGlobalContext] : va
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: v3_server.go:325:22 -/
+/-- go: v3_server.go:326:22 -/
 noncomputable def EtcdServer.Txn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -7194,7 +8249,7 @@ noncomputable def EtcdServer.Txn.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "readOnly") (Var "$r0"))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: v3_server.go:382:22 -/
+/-- go: v3_server.go:383:22 -/
 noncomputable def EtcdServer.Compact.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -7399,7 +8454,7 @@ noncomputable def EtcdServer.Compact.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: v3_server.go:434:22 -/
+/-- go: v3_server.go:435:22 -/
 noncomputable def EtcdServer.LeaseGrant.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -7512,7 +8567,44 @@ noncomputable def EtcdServer.LeaseGrant.impl [GooseExts] [GoGlobalContext] : val
   (Val #())))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: v3_server.go:470:22 -/
+/-- go: v3_server.go:459:22 -/
+noncomputable def EtcdServer.waitAppliedIndex.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$ch0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"ApplyWaitCommit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #()))
+  (Let "$ch1" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"stopping"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))
+  (Let "$ch2" (Let "$a0" (Val applyTimeout)
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.After []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none [(CommClause (RecvCase (go.GoType.StructType []) (Var "$ch0")) (Lam "$recvVal"
+  (App (Val doExecute)
+  (Val #())))),
+  (CommClause (RecvCase (go.GoType.StructType []) (Var "$ch1")) (Lam "$recvVal"
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrStopped))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))),
+  (CommClause (RecvCase _root_.Perennial.time.Time.ty (Var "$ch2")) (Lam "$recvVal"
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeoutWaitAppliedIndex))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))]))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
+
+/-- go: v3_server.go:471:22 -/
 noncomputable def EtcdServer.LeaseRevoke.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -7614,7 +8706,7 @@ noncomputable def EtcdServer.LeaseRevoke.impl [GooseExts] [GoGlobalContext] : va
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: v3_server.go:488:22 -/
+/-- go: v3_server.go:489:22 -/
 noncomputable def EtcdServer.LeaseRenew.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -7963,7 +9055,7 @@ noncomputable def EtcdServer.LeaseRenew.impl [GooseExts] [GoGlobalContext] : val
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: v3_server.go:574:22 -/
+/-- go: v3_server.go:575:22 -/
 noncomputable def EtcdServer.checkLeaseRenew.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -8088,7 +9180,7 @@ noncomputable def EtcdServer.checkLeaseRenew.impl [GooseExts] [GoGlobalContext] 
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "rev") (Var "$r0")))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
-/-- go: v3_server.go:607:22 -/
+/-- go: v3_server.go:608:22 -/
 noncomputable def EtcdServer.checkLeaseTimeToLive.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -8229,7 +9321,7 @@ noncomputable def EtcdServer.checkLeaseTimeToLive.impl [GooseExts] [GoGlobalCont
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "rev") (Var "$r0")))))))))))
   (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: v3_server.go:698:22 -/
+/-- go: v3_server.go:699:22 -/
 noncomputable def EtcdServer.LeaseTimeToLive.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -8349,7 +9441,7 @@ noncomputable def EtcdServer.LeaseTimeToLive.impl [GooseExts] [GoGlobalContext] 
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: v3_server.go:726:22 -/
+/-- go: v3_server.go:727:22 -/
 noncomputable def EtcdServer.newHeader.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -8371,7 +9463,7 @@ noncomputable def EtcdServer.newHeader.impl [GooseExts] [GoGlobalContext] : val 
 
 /-- LeaseLeases is really ListLeases !???
 
-    go: v3_server.go:737:22 -/
+    go: v3_server.go:738:22 -/
 noncomputable def EtcdServer.LeaseLeases.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -8440,7 +9532,7 @@ noncomputable def EtcdServer.LeaseLeases.impl [GooseExts] [GoGlobalContext] : va
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty))))) (Pair (Var "ls") (Var "$r0"))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: v3_server.go:751:22 -/
+/-- go: v3_server.go:752:22 -/
 noncomputable def EtcdServer.checkLeaseLeases.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -8573,7 +9665,90 @@ noncomputable def EtcdServer.checkLeaseLeases.impl [GooseExts] [GoGlobalContext]
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "rev") (Var "$r0")))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
-/-- go: v3_server.go:813:22 -/
+/-- go: v3_server.go:786:22 -/
+noncomputable def EtcdServer.waitLeader.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "ctx"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$r0" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"Leader"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #()))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty) go!"Member"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty)))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"cluster"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))) (Var "$a0")))
+  (Let "leader" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Var "leader"))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes.ty go!"PeerURLs"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty go!"RaftAttributes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Var "leader")))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoLeader))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Var "leader")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Val UntypedNil)))))) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (Convert go.int _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty go!"ElectionTicks"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"Cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))))) (App (Val (GoInstruction (Convert go.uint _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoLoad go.uint))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty go!"TickMs"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"Cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))))))) (Val #(W64 1000000))))
+  (Let "dur" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$ch0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "dur"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.After []))) (Val #())) (Var "$a0")))
+  (Let "$ch1" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"stopping"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))
+  (Let "$ch2" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Done"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))) (Val #()))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none [(CommClause (RecvCase _root_.Perennial.time.Time.ty (Var "$ch0")) (Lam "$recvVal"
+  (Let "$r0" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"Leader"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #()))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty) go!"Member"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty)))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"cluster"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))) (Var "$a0")))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Pair (Var "leader") (Var "$r0"))))))),
+  (CommClause (RecvCase (go.GoType.StructType []) (Var "$ch1")) (Lam "$recvVal"
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrStopped))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))),
+  (CommClause (RecvCase (go.GoType.StructType []) (Var "$ch2")) (Lam "$recvVal"
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoLeader))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))])))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "dur") (Var "$r0")))))))))
+  (Lam BAnon
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Pair (Var "leader") (Var "$r0"))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
+
+/-- go: v3_server.go:814:22 -/
 noncomputable def EtcdServer.AuthEnable.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -8626,7 +9801,7 @@ noncomputable def EtcdServer.AuthEnable.impl [GooseExts] [GoGlobalContext] : val
   (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Pair (Var "resp") (Var "$r0"))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: v3_server.go:821:22 -/
+/-- go: v3_server.go:822:22 -/
 noncomputable def EtcdServer.AuthDisable.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -8679,7 +9854,7 @@ noncomputable def EtcdServer.AuthDisable.impl [GooseExts] [GoGlobalContext] : va
   (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Pair (Var "resp") (Var "$r0"))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: v3_server.go:829:22 -/
+/-- go: v3_server.go:830:22 -/
 noncomputable def EtcdServer.AuthStatus.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -8732,7 +9907,7 @@ noncomputable def EtcdServer.AuthStatus.impl [GooseExts] [GoGlobalContext] : val
   (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Pair (Var "resp") (Var "$r0"))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: v3_server.go:837:22 -/
+/-- go: v3_server.go:838:22 -/
 noncomputable def EtcdServer.Authenticate.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -8916,7 +10091,7 @@ noncomputable def EtcdServer.Authenticate.impl [GooseExts] [GoGlobalContext] : v
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: v3_server.go:891:22 -/
+/-- go: v3_server.go:892:22 -/
 noncomputable def EtcdServer.UserAdd.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -9010,7 +10185,7 @@ noncomputable def EtcdServer.UserAdd.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: v3_server.go:908:22 -/
+/-- go: v3_server.go:909:22 -/
 noncomputable def EtcdServer.UserDelete.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -9063,7 +10238,7 @@ noncomputable def EtcdServer.UserDelete.impl [GooseExts] [GoGlobalContext] : val
   (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Pair (Var "resp") (Var "$r0"))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: v3_server.go:916:22 -/
+/-- go: v3_server.go:917:22 -/
 noncomputable def EtcdServer.UserChangePassword.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -9157,7 +10332,7 @@ noncomputable def EtcdServer.UserChangePassword.impl [GooseExts] [GoGlobalContex
   (Val #()))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: v3_server.go:933:22 -/
+/-- go: v3_server.go:934:22 -/
 noncomputable def EtcdServer.UserGrantRole.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -9210,7 +10385,7 @@ noncomputable def EtcdServer.UserGrantRole.impl [GooseExts] [GoGlobalContext] : 
   (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Pair (Var "resp") (Var "$r0"))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: v3_server.go:941:22 -/
+/-- go: v3_server.go:942:22 -/
 noncomputable def EtcdServer.UserGet.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -9263,7 +10438,7 @@ noncomputable def EtcdServer.UserGet.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Pair (Var "resp") (Var "$r0"))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: v3_server.go:949:22 -/
+/-- go: v3_server.go:950:22 -/
 noncomputable def EtcdServer.UserList.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -9316,7 +10491,7 @@ noncomputable def EtcdServer.UserList.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Pair (Var "resp") (Var "$r0"))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: v3_server.go:957:22 -/
+/-- go: v3_server.go:958:22 -/
 noncomputable def EtcdServer.UserRevokeRole.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -9369,7 +10544,7 @@ noncomputable def EtcdServer.UserRevokeRole.impl [GooseExts] [GoGlobalContext] :
   (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Pair (Var "resp") (Var "$r0"))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: v3_server.go:965:22 -/
+/-- go: v3_server.go:966:22 -/
 noncomputable def EtcdServer.RoleAdd.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -9422,7 +10597,7 @@ noncomputable def EtcdServer.RoleAdd.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Pair (Var "resp") (Var "$r0"))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: v3_server.go:973:22 -/
+/-- go: v3_server.go:974:22 -/
 noncomputable def EtcdServer.RoleGrantPermission.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -9475,7 +10650,7 @@ noncomputable def EtcdServer.RoleGrantPermission.impl [GooseExts] [GoGlobalConte
   (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Pair (Var "resp") (Var "$r0"))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: v3_server.go:981:22 -/
+/-- go: v3_server.go:982:22 -/
 noncomputable def EtcdServer.RoleGet.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -9528,7 +10703,7 @@ noncomputable def EtcdServer.RoleGet.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Pair (Var "resp") (Var "$r0"))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: v3_server.go:989:22 -/
+/-- go: v3_server.go:990:22 -/
 noncomputable def EtcdServer.RoleList.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -9581,7 +10756,7 @@ noncomputable def EtcdServer.RoleList.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Pair (Var "resp") (Var "$r0"))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: v3_server.go:997:22 -/
+/-- go: v3_server.go:998:22 -/
 noncomputable def EtcdServer.RoleRevokePermission.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -9634,7 +10809,7 @@ noncomputable def EtcdServer.RoleRevokePermission.impl [GooseExts] [GoGlobalCont
   (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Pair (Var "resp") (Var "$r0"))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: v3_server.go:1005:22 -/
+/-- go: v3_server.go:1006:22 -/
 noncomputable def EtcdServer.RoleDelete.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -9687,7 +10862,7 @@ noncomputable def EtcdServer.RoleDelete.impl [GooseExts] [GoGlobalContext] : val
   (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Pair (Var "resp") (Var "$r0"))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: v3_server.go:1013:22 -/
+/-- go: v3_server.go:1014:22 -/
 noncomputable def EtcdServer.raftRequest.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -9798,7 +10973,7 @@ noncomputable def EtcdServer.raftRequest.impl [GooseExts] [GoGlobalContext] : va
 
 /-- doSerialize handles the auth logic, with permissions checked by "chk", for a serialized request "get". Returns a non-nil error on authentication failure.
 
-    go: v3_server.go:1035:22 -/
+    go: v3_server.go:1036:22 -/
 noncomputable def EtcdServer.doSerialize.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -9888,7 +11063,7 @@ noncomputable def EtcdServer.doSerialize.impl [GooseExts] [GoGlobalContext] : va
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Pair (Var "trace") (Var "$r0"))))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))))
 
-/-- go: v3_server.go:1059:22 -/
+/-- go: v3_server.go:1060:22 -/
 noncomputable def EtcdServer.processInternalRaftRequestOnce.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -10199,7 +11374,7 @@ noncomputable def EtcdServer.processInternalRaftRequestOnce.impl [GooseExts] [Go
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "ai") (Var "$r0"))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: v3_server.go:1136:6 -/
+/-- go: v3_server.go:1137:6 -/
 noncomputable def getRequestType.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -10426,7 +11601,7 @@ noncomputable def getRequestType.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Watchable returns a watchable interface attached to the etcdserver.
 
-    go: v3_server.go:1204:22 -/
+    go: v3_server.go:1205:22 -/
 noncomputable def EtcdServer.Watchable.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -10441,7 +11616,7 @@ noncomputable def EtcdServer.Watchable.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty))) (Var "$res0"))))))
 
-/-- go: v3_server.go:1206:22 -/
+/-- go: v3_server.go:1207:22 -/
 noncomputable def EtcdServer.AuthInfoFromCtx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -10509,7 +11684,7 @@ noncomputable def EtcdServer.AuthInfoFromCtx.impl [GooseExts] [GoGlobalContext] 
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty)))) (Pair (Var "authInfo") (Var "$r0")))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
-/-- go: v3_server.go:1277:22 -/
+/-- go: v3_server.go:1278:22 -/
 noncomputable def EtcdServer.requireAuthInfo.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -10570,9 +11745,7 @@ noncomputable def EtcdServer.requireAuthInfo.impl [GooseExts] [GoGlobalContext] 
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.github_com.Masterminds.semver.v3, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.version, pkg_id.encoding.json, pkg_id.errors, pkg_id.fmt, pkg_id.io, pkg_id.net.http, pkg_id.time, pkg_id.github_com.dustin.go_humanize, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.client.pkg.v3.fileutil, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.pkg.v3.pbutil, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors, pkg_id.go_etcd_io.etcd.server.v3.storage, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.wal, pkg_id.go_etcd_io.raft.v3, pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.strconv, pkg_id.sync, pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.log, pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil, pkg_id.go_etcd_io.etcd.pkg.v3.contention, pkg_id.math, pkg_id.sync.atomic, pkg_id.go_etcd_io.etcd.pkg.v3.featuregate, pkg_id.go_etcd_io.etcd.pkg.v3.idutil, pkg_id.go_etcd_io.etcd.pkg.v3.notify, pkg_id.go_etcd_io.etcd.pkg.v3.schedule, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil, pkg_id.go_etcd_io.etcd.pkg.v3.wait, pkg_id.go_etcd_io.etcd.server.v3.auth, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read, pkg_id.go_etcd_io.etcd.server.v3.features, pkg_id.go_etcd_io.etcd.server.v3.lease, pkg_id.go_etcd_io.etcd.server.v3.lease.leasehttp, pkg_id.encoding.base64, pkg_id.go_opentelemetry_io.otel.«attribute», pkg_id.go_opentelemetry_io.otel.trace, pkg_id.golang_org.x.crypto.bcrypt, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn]
-
-opaque «_».init [GooseExts] [GoGlobalContext] : val
+  pkgImportedPkgs := [pkg_id.context, pkg_id.github_com.Masterminds.semver.v3, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.version, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.version, pkg_id.go_etcd_io.etcd.server.v3.storage.schema, pkg_id.encoding.json, pkg_id.errors, pkg_id.fmt, pkg_id.io, pkg_id.net.http, pkg_id.time, pkg_id.github_com.dustin.go_humanize, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.client.pkg.v3.fileutil, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.pkg.v3.pbutil, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors, pkg_id.go_etcd_io.etcd.server.v3.storage, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.wal, pkg_id.go_etcd_io.raft.v3, pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.strconv, pkg_id.sync, pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.log, pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil, pkg_id.go_etcd_io.etcd.pkg.v3.contention, pkg_id.math, pkg_id.sync.atomic, pkg_id.go_etcd_io.etcd.pkg.v3.featuregate, pkg_id.go_etcd_io.etcd.pkg.v3.idutil, pkg_id.go_etcd_io.etcd.pkg.v3.notify, pkg_id.go_etcd_io.etcd.pkg.v3.schedule, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil, pkg_id.go_etcd_io.etcd.pkg.v3.wait, pkg_id.go_etcd_io.etcd.server.v3.auth, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read, pkg_id.go_etcd_io.etcd.server.v3.features, pkg_id.go_etcd_io.etcd.server.v3.lease, pkg_id.go_etcd_io.etcd.server.v3.lease.leasehttp, pkg_id.go_etcd_io.etcd.server.v3.storage.schema.snapshotmeta, pkg_id.encoding.base64, pkg_id.go_opentelemetry_io.otel.«attribute», pkg_id.go_opentelemetry_io.otel.trace, pkg_id.golang_org.x.crypto.bcrypt, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -10659,6 +11832,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType serverVersionAdapter.ty) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Server.ty))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType serverVersionAdapter.ty)))) (Val UntypedNil)))
   (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd"))
   (Let "$v1" (Val #(go!"server"))
   (Let "$v2" (Val #(go!"has_leader"))
@@ -10808,6 +11985,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewGauge []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoSub _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.ConnWriteTimeout))) (Val #()))) (Val #(W64 1000000000))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val recommendedMaxRequestBytes))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.dustin.go_humanize.Bytes []))) (Val #())) (Var "$a0")))
@@ -10823,7 +12001,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (GlobalVarAddr recommendedMaxRequestBytesString))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val monitorVersionInterval.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr monitorVersionInterval))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr fdLimit))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -10861,9 +12039,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr isLeader))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr hasLeader))) (Val #())) (Var "$r0"))))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr hasLeader))) (Val #())) (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.context.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -10872,6 +12048,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.api.v3.version.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.encoding.json.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -10971,6 +12151,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.lease.leasehttp.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.snapshotmeta.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val _root_.Perennial.encoding.base64.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_opentelemetry_io.otel.«attribute».initialize') (Val #()))))))
@@ -11023,6 +12205,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc raftStatus (go.GoType.FunctionType (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.raft.v3.Status.ty])))) (Val #()))))))
   (App (Val doExecute)
+  (App (Val (go.GlobalAlloc monitorVersionInterval _root_.Perennial.time.Duration.ty)) (Val #()))))))
+  (App (Val doExecute)
   (App (Val (go.GlobalAlloc recommendedMaxRequestBytesString go.string)) (Val #()))))))))
 
 structure serverVersionAdapter [GooseExts] where
@@ -11050,8 +12234,8 @@ class serverVersionAdapter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoca
   underlying : go.UnderlyingDirectedEq serverVersionAdapter.ty serverVersionAdapter.underlying
   get_EtcdServer : ∀ (x : serverVersionAdapter), go.IsGoStepPureDetTagged under (StructFieldGet serverVersionAdapter.underlying go!"EtcdServer") #x (Val #(x.EtcdServer'))
   set_EtcdServer : ∀ (x : serverVersionAdapter) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet serverVersionAdapter.underlying go!"EtcdServer") (PairV #x #y) (Val #(({ x with EtcdServer' := y } : serverVersionAdapter)))
-  method_set : go.MethodSetIs serverVersionAdapter.ty [(go!"AddMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"Alarm", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"Alarms", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty))]))), (go!"AppliedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"ApplyWait", (some (go.signature.Signature [go.uint64] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"ApplyWaitCommit", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"AuthDisable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error]))), (go!"AuthInfoFromCtx", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error]))), (go!"AuthStore", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore.ty]))), (go!"Authenticate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"Backend", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty]))), (go!"Cleanup", (some (go.signature.Signature [] false []))), (go!"ClientCertAuthEnabled", (some (go.signature.Signature [] false [go.bool]))), (go!"Cluster", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Cluster.ty]))), (go!"ClusterVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"CommittedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"Compact", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), go.error]))), (go!"Config", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty]))), (go!"CorruptionChecker", (some (go.signature.Signature [] false [CorruptionChecker.ty]))), (go!"CutPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"Defragment", (some (go.signature.Signature [] false [go.error]))), (go!"DeleteRange", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty), go.error]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Downgrade", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"DowngradeEnabledHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"DowngradeInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/version.DowngradeInfo" []))]))), (go!"FeatureEnabled", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty] false [go.bool]))), (go!"FirstCommitInTermNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"ForceSnapshot", (some (go.signature.Signature [] false []))), (go!"GoAttach", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"HardStop", (some (go.signature.Signature [] false []))), (go!"HashKVHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"IsHostWhitelisted", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"IsIDRemoved", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"IsLearner", (some (go.signature.Signature [] false [go.bool]))), (go!"IsMemberExist", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.bool]))), (go!"KV", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty]))), (go!"Lead", (some (go.signature.Signature [] false [go.uint64]))), (go!"Leader", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"LeaderChanged", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"LeaderChangedNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"LeaseGrant", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty), go.error]))), (go!"LeaseHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"LeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesResponse.ty), go.error]))), (go!"LeaseRenew", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.int64, go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error]))), (go!"LeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error]))), (go!"LinearizableReadNotify", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Logger", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)]))), (go!"MemberID", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"MemberId", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"MemberList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberListRequest.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"MendPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"MoveLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64, go.uint64] false [go.error]))), (go!"NewUberApplier", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.UberApplier.ty]))), (go!"NextRequestID", (some (go.signature.Signature [] false [go.uint64]))), (go!"OriginAllowed", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"PauseSending", (some (go.signature.Signature [] false []))), (go!"Process", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error]))), (go!"PromoteMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"Put", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty), go.error]))), (go!"RaftHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"Range", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty), go.error]))), (go!"RangeStream", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty), (go.GoType.Named go!"google.golang.org/grpc.ServerStreamingServer" [_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse.ty])] false [go.error]))), (go!"ReadyNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"RemoveMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"ReportSnapshot", (some (go.signature.Signature [go.uint64, _root_.Perennial.go_etcd_io.raft.v3.SnapshotStatus.ty] false []))), (go!"ReportUnreachable", (some (go.signature.Signature [go.uint64] false []))), (go!"RequestTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"ResumeSending", (some (go.signature.Signature [] false []))), (go!"RoleAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"Start", (some (go.signature.Signature [] false []))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"StopNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Stopping", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"StoppingNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"StorageVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"Term", (some (go.signature.Signature [] false [go.uint64]))), (go!"TryTransferLeadershipOnShutdown", (some (go.signature.Signature [] false [go.error]))), (go!"Txn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty), go.error]))), (go!"UpdateMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"UserAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error]))), (go!"Version", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/version.Manager" []))]))), (go!"Watchable", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.adjustTicks", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.apply", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)), (go.GoType.PointerType etcdProgress.ty), (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [go.uint64, go.uint64, go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyAll", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyConfChange", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty), (go.GoType.PointerType etcdProgress.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false [go.bool, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyEntries", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyEntryNormal", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applySnapshot", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseRenew", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.uint64, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkMembershipOperationPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.compactRaftLog", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.configure", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.createMergedSnapshotMessage", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty), go.uint64, go.uint64, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.doSerialize", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty)] false [go.error])), (go.GoType.FunctionType (go.signature.Signature [] false []))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeCancel", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeValidate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.ensureLeadership", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getAppliedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getCommittedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getLead", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getPeerHashKVs", (some (go.signature.Signature [go.int64] false [(go.GoType.SliceType (go.GoType.PointerType peerHashKVResp.ty))]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getTxPostLockInsideApplyHook", (some (go.signature.Signature [] false [(go.GoType.FunctionType (go.signature.Signature [] false []))]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.hasMultipleVotingMembers", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isActive", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isLeader", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isLearnerReady", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), go.uint64] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.leaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayAddMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayPromoteMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayRemoveMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorClusterVersions", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorCompactHash", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorDowngrade", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorKVHash", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorStorageVersion", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.newHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.parseProposeCtxErr", (some (go.signature.Signature [go.error, _root_.Perennial.time.Time.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.processInternalRaftRequestOnce", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.promoteMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.publishV3", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.purgeFile", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.raftRequest", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.ProtoMessage" []), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.raftStatus", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.raft.v3.Status.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.rangeStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty), (go.GoType.Named go!"google.golang.org/grpc.ServerStreamingServer" [_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse.ty])] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.requireAuthInfo", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.restoreAlarms", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.revokeExpiredLeases", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty))] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.run", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.sendMergedSnap", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setAppliedIndex", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setCommittedIndex", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setLead", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setTerm", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.shouldSnapshotToDisk", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.shouldSnapshotToMemory", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.snapshot", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), go.bool] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.snapshotIfNeededAndCompactRaftLog", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.start", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.stopWithDelay", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty, go.error] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.triggerCorruptAlarm", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.updateClusterVersionV3", (some (go.signature.Signature [go.string] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.waitAppliedIndex", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.waitLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty), go.error])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverVersionAdapter.ty) [(go!"AddMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"Alarm", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"Alarms", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty))]))), (go!"AppliedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"ApplyWait", (some (go.signature.Signature [go.uint64] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"ApplyWaitCommit", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"AuthDisable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error]))), (go!"AuthInfoFromCtx", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error]))), (go!"AuthStore", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore.ty]))), (go!"Authenticate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"Backend", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty]))), (go!"Cleanup", (some (go.signature.Signature [] false []))), (go!"ClientCertAuthEnabled", (some (go.signature.Signature [] false [go.bool]))), (go!"Cluster", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Cluster.ty]))), (go!"ClusterVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"CommittedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"Compact", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), go.error]))), (go!"Config", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty]))), (go!"CorruptionChecker", (some (go.signature.Signature [] false [CorruptionChecker.ty]))), (go!"CutPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"Defragment", (some (go.signature.Signature [] false [go.error]))), (go!"DeleteRange", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty), go.error]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Downgrade", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"DowngradeCancel", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"DowngradeEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)] false [go.error]))), (go!"DowngradeEnabledHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"DowngradeInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/version.DowngradeInfo" []))]))), (go!"FeatureEnabled", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty] false [go.bool]))), (go!"FirstCommitInTermNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"ForceSnapshot", (some (go.signature.Signature [] false []))), (go!"GetClusterVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"GetDowngradeInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/version.DowngradeInfo" []))]))), (go!"GetMembersVersions", (some (go.signature.Signature [] false [(go.GoType.MapType go.string (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.version.Versions.ty))]))), (go!"GetStorageVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"GoAttach", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"HardStop", (some (go.signature.Signature [] false []))), (go!"HashKVHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"IsHostWhitelisted", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"IsIDRemoved", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"IsLearner", (some (go.signature.Signature [] false [go.bool]))), (go!"IsMemberExist", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.bool]))), (go!"KV", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty]))), (go!"Lead", (some (go.signature.Signature [] false [go.uint64]))), (go!"Leader", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"LeaderChanged", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"LeaderChangedNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"LeaseGrant", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty), go.error]))), (go!"LeaseHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"LeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesResponse.ty), go.error]))), (go!"LeaseRenew", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.int64, go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error]))), (go!"LeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error]))), (go!"LinearizableReadNotify", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Logger", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)]))), (go!"MemberID", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"MemberId", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"MemberList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberListRequest.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"MendPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"MoveLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64, go.uint64] false [go.error]))), (go!"NewUberApplier", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.UberApplier.ty]))), (go!"NextRequestID", (some (go.signature.Signature [] false [go.uint64]))), (go!"OriginAllowed", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"PauseSending", (some (go.signature.Signature [] false []))), (go!"Process", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error]))), (go!"PromoteMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"Put", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty), go.error]))), (go!"RaftHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"Range", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty), go.error]))), (go!"RangeStream", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty), (go.GoType.Named go!"google.golang.org/grpc.ServerStreamingServer" [_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse.ty])] false [go.error]))), (go!"ReadyNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"RemoveMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"ReportSnapshot", (some (go.signature.Signature [go.uint64, _root_.Perennial.go_etcd_io.raft.v3.SnapshotStatus.ty] false []))), (go!"ReportUnreachable", (some (go.signature.Signature [go.uint64] false []))), (go!"RequestTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"ResumeSending", (some (go.signature.Signature [] false []))), (go!"RoleAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"Start", (some (go.signature.Signature [] false []))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"StopNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Stopping", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"StoppingNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"StorageVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"Term", (some (go.signature.Signature [] false [go.uint64]))), (go!"TryTransferLeadershipOnShutdown", (some (go.signature.Signature [] false [go.error]))), (go!"Txn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty), go.error]))), (go!"UpdateClusterVersion", (some (go.signature.Signature [go.string] false []))), (go!"UpdateMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"UpdateStorageVersion", (some (go.signature.Signature [_root_.Perennial.github_com.Masterminds.semver.v3.Version.ty] false [go.error]))), (go!"UserAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error]))), (go!"Version", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/version.Manager" []))]))), (go!"Watchable", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.adjustTicks", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.apply", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)), (go.GoType.PointerType etcdProgress.ty), (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [go.uint64, go.uint64, go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyAll", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyConfChange", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty), (go.GoType.PointerType etcdProgress.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false [go.bool, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyEntries", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyEntryNormal", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applySnapshot", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseRenew", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.uint64, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkMembershipOperationPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.compactRaftLog", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.configure", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.createMergedSnapshotMessage", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty), go.uint64, go.uint64, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.doSerialize", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty)] false [go.error])), (go.GoType.FunctionType (go.signature.Signature [] false []))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeCancel", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeValidate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.ensureLeadership", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getAppliedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getCommittedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getLead", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getPeerHashKVs", (some (go.signature.Signature [go.int64] false [(go.GoType.SliceType (go.GoType.PointerType peerHashKVResp.ty))]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getTxPostLockInsideApplyHook", (some (go.signature.Signature [] false [(go.GoType.FunctionType (go.signature.Signature [] false []))]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.hasMultipleVotingMembers", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isActive", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isLeader", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isLearnerReady", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), go.uint64] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.leaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayAddMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayPromoteMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayRemoveMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorClusterVersions", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorCompactHash", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorDowngrade", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorKVHash", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorStorageVersion", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.newHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.parseProposeCtxErr", (some (go.signature.Signature [go.error, _root_.Perennial.time.Time.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.processInternalRaftRequestOnce", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.promoteMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.publishV3", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.purgeFile", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.raftRequest", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.ProtoMessage" []), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.raftStatus", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.raft.v3.Status.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.rangeStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty), (go.GoType.Named go!"google.golang.org/grpc.ServerStreamingServer" [_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse.ty])] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.requireAuthInfo", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.restoreAlarms", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.revokeExpiredLeases", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty))] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.run", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.sendMergedSnap", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setAppliedIndex", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setCommittedIndex", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setLead", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setTerm", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.shouldSnapshotToDisk", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.shouldSnapshotToMemory", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.snapshot", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), go.bool] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.snapshotIfNeededAndCompactRaftLog", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.start", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.stopWithDelay", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty, go.error] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.triggerCorruptAlarm", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.updateClusterVersionV3", (some (go.signature.Signature [go.string] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.waitAppliedIndex", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.waitLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty), go.error])))]
+  method_set : go.MethodSetIs serverVersionAdapter.ty [(go!"AddMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"Alarm", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"Alarms", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty))]))), (go!"AppliedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"ApplyWait", (some (go.signature.Signature [go.uint64] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"ApplyWaitCommit", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"AuthDisable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error]))), (go!"AuthInfoFromCtx", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error]))), (go!"AuthStore", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore.ty]))), (go!"Authenticate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"Backend", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty]))), (go!"Cleanup", (some (go.signature.Signature [] false []))), (go!"ClientCertAuthEnabled", (some (go.signature.Signature [] false [go.bool]))), (go!"Cluster", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Cluster.ty]))), (go!"ClusterVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"CommittedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"Compact", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), go.error]))), (go!"Config", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty]))), (go!"CorruptionChecker", (some (go.signature.Signature [] false [CorruptionChecker.ty]))), (go!"CutPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"Defragment", (some (go.signature.Signature [] false [go.error]))), (go!"DeleteRange", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty), go.error]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Downgrade", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"DowngradeEnabledHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"DowngradeInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo.ty)]))), (go!"FeatureEnabled", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty] false [go.bool]))), (go!"FirstCommitInTermNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"ForceSnapshot", (some (go.signature.Signature [] false []))), (go!"GoAttach", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"HardStop", (some (go.signature.Signature [] false []))), (go!"HashKVHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"IsHostWhitelisted", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"IsIDRemoved", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"IsLearner", (some (go.signature.Signature [] false [go.bool]))), (go!"IsMemberExist", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.bool]))), (go!"KV", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty]))), (go!"Lead", (some (go.signature.Signature [] false [go.uint64]))), (go!"Leader", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"LeaderChanged", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"LeaderChangedNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"LeaseGrant", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty), go.error]))), (go!"LeaseHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"LeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesResponse.ty), go.error]))), (go!"LeaseRenew", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.int64, go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error]))), (go!"LeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error]))), (go!"LinearizableReadNotify", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Logger", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)]))), (go!"MemberID", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"MemberId", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"MemberList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberListRequest.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"MendPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"MoveLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64, go.uint64] false [go.error]))), (go!"NewUberApplier", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.UberApplier.ty]))), (go!"NextRequestID", (some (go.signature.Signature [] false [go.uint64]))), (go!"OriginAllowed", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"PauseSending", (some (go.signature.Signature [] false []))), (go!"Process", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error]))), (go!"PromoteMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"Put", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty), go.error]))), (go!"RaftHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"Range", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty), go.error]))), (go!"RangeStream", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty), (go.GoType.Named go!"google.golang.org/grpc.ServerStreamingServer" [_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse.ty])] false [go.error]))), (go!"ReadyNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"RemoveMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"ReportSnapshot", (some (go.signature.Signature [go.uint64, _root_.Perennial.go_etcd_io.raft.v3.SnapshotStatus.ty] false []))), (go!"ReportUnreachable", (some (go.signature.Signature [go.uint64] false []))), (go!"RequestTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"ResumeSending", (some (go.signature.Signature [] false []))), (go!"RoleAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"Start", (some (go.signature.Signature [] false []))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"StopNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Stopping", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"StoppingNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"StorageVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"Term", (some (go.signature.Signature [] false [go.uint64]))), (go!"TryTransferLeadershipOnShutdown", (some (go.signature.Signature [] false [go.error]))), (go!"Txn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty), go.error]))), (go!"UpdateMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"UserAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error]))), (go!"Version", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Manager.ty)]))), (go!"Watchable", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.adjustTicks", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.apply", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)), (go.GoType.PointerType etcdProgress.ty), (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [go.uint64, go.uint64, go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyAll", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyConfChange", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty), (go.GoType.PointerType etcdProgress.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false [go.bool, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyEntries", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyEntryNormal", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applySnapshot", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseRenew", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.uint64, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkMembershipOperationPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.compactRaftLog", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.configure", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.createMergedSnapshotMessage", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty), go.uint64, go.uint64, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty), replayTerms.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.doSerialize", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty)] false [go.error])), (go.GoType.FunctionType (go.signature.Signature [] false []))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeCancel", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeValidate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.ensureLeadership", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getAppliedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getCommittedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getLead", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getPeerHashKVs", (some (go.signature.Signature [go.int64] false [(go.GoType.SliceType (go.GoType.PointerType peerHashKVResp.ty))]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getTxPostLockInsideApplyHook", (some (go.signature.Signature [] false [(go.GoType.FunctionType (go.signature.Signature [] false []))]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.hasMultipleVotingMembers", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isActive", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isLeader", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isLearnerReady", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), go.uint64] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.leaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayAddMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayPromoteMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayRemoveMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorClusterVersions", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorCompactHash", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorDowngrade", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorKVHash", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorStorageVersion", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.newHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.parseProposeCtxErr", (some (go.signature.Signature [go.error, _root_.Perennial.time.Time.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.processInternalRaftRequestOnce", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.promoteMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.publishV3", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.purgeFile", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.raftRequest", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.ProtoMessage" []), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.raftStatus", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.raft.v3.Status.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.rangeStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty), (go.GoType.Named go!"google.golang.org/grpc.ServerStreamingServer" [_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse.ty])] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.requireAuthInfo", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.restoreAlarms", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.revokeExpiredLeases", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty))] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.run", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.sendMergedSnap", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setAppliedIndex", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setCommittedIndex", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setLead", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setTerm", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.shouldSnapshotToDisk", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.shouldSnapshotToMemory", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.snapshot", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), go.bool] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.snapshotIfNeededAndCompactRaftLog", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.start", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.stopWithDelay", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty, go.error] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.triggerCorruptAlarm", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.updateClusterVersionV3", (some (go.signature.Signature [go.string] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.waitAppliedIndex", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.waitLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverVersionAdapter.ty) [(go!"AddMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"Alarm", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"Alarms", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty))]))), (go!"AppliedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"ApplyWait", (some (go.signature.Signature [go.uint64] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"ApplyWaitCommit", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"AuthDisable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error]))), (go!"AuthInfoFromCtx", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error]))), (go!"AuthStore", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore.ty]))), (go!"Authenticate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"Backend", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty]))), (go!"Cleanup", (some (go.signature.Signature [] false []))), (go!"ClientCertAuthEnabled", (some (go.signature.Signature [] false [go.bool]))), (go!"Cluster", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Cluster.ty]))), (go!"ClusterVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"CommittedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"Compact", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), go.error]))), (go!"Config", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty]))), (go!"CorruptionChecker", (some (go.signature.Signature [] false [CorruptionChecker.ty]))), (go!"CutPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"Defragment", (some (go.signature.Signature [] false [go.error]))), (go!"DeleteRange", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty), go.error]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Downgrade", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"DowngradeCancel", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"DowngradeEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)] false [go.error]))), (go!"DowngradeEnabledHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"DowngradeInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo.ty)]))), (go!"FeatureEnabled", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty] false [go.bool]))), (go!"FirstCommitInTermNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"ForceSnapshot", (some (go.signature.Signature [] false []))), (go!"GetClusterVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"GetDowngradeInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo.ty)]))), (go!"GetMembersVersions", (some (go.signature.Signature [] false [(go.GoType.MapType go.string (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.version.Versions.ty))]))), (go!"GetStorageVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"GoAttach", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"HardStop", (some (go.signature.Signature [] false []))), (go!"HashKVHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"IsHostWhitelisted", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"IsIDRemoved", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"IsLearner", (some (go.signature.Signature [] false [go.bool]))), (go!"IsMemberExist", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.bool]))), (go!"KV", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty]))), (go!"Lead", (some (go.signature.Signature [] false [go.uint64]))), (go!"Leader", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"LeaderChanged", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"LeaderChangedNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"LeaseGrant", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty), go.error]))), (go!"LeaseHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"LeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesResponse.ty), go.error]))), (go!"LeaseRenew", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.int64, go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error]))), (go!"LeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error]))), (go!"LinearizableReadNotify", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Logger", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)]))), (go!"MemberID", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"MemberId", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"MemberList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberListRequest.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"MendPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"MoveLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64, go.uint64] false [go.error]))), (go!"NewUberApplier", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.UberApplier.ty]))), (go!"NextRequestID", (some (go.signature.Signature [] false [go.uint64]))), (go!"OriginAllowed", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"PauseSending", (some (go.signature.Signature [] false []))), (go!"Process", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error]))), (go!"PromoteMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"Put", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty), go.error]))), (go!"RaftHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"Range", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty), go.error]))), (go!"RangeStream", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty), (go.GoType.Named go!"google.golang.org/grpc.ServerStreamingServer" [_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse.ty])] false [go.error]))), (go!"ReadyNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"RemoveMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"ReportSnapshot", (some (go.signature.Signature [go.uint64, _root_.Perennial.go_etcd_io.raft.v3.SnapshotStatus.ty] false []))), (go!"ReportUnreachable", (some (go.signature.Signature [go.uint64] false []))), (go!"RequestTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"ResumeSending", (some (go.signature.Signature [] false []))), (go!"RoleAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"Start", (some (go.signature.Signature [] false []))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"StopNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Stopping", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"StoppingNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"StorageVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"Term", (some (go.signature.Signature [] false [go.uint64]))), (go!"TryTransferLeadershipOnShutdown", (some (go.signature.Signature [] false [go.error]))), (go!"Txn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty), go.error]))), (go!"UpdateClusterVersion", (some (go.signature.Signature [go.string] false []))), (go!"UpdateMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"UpdateStorageVersion", (some (go.signature.Signature [_root_.Perennial.github_com.Masterminds.semver.v3.Version.ty] false [go.error]))), (go!"UserAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error]))), (go!"Version", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Manager.ty)]))), (go!"Watchable", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.adjustTicks", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.apply", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)), (go.GoType.PointerType etcdProgress.ty), (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [go.uint64, go.uint64, go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyAll", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyConfChange", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty), (go.GoType.PointerType etcdProgress.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false [go.bool, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyEntries", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyEntryNormal", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applySnapshot", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseRenew", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.uint64, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkMembershipOperationPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.compactRaftLog", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.configure", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.createMergedSnapshotMessage", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty), go.uint64, go.uint64, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty), replayTerms.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.doSerialize", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty)] false [go.error])), (go.GoType.FunctionType (go.signature.Signature [] false []))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeCancel", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeValidate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.ensureLeadership", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getAppliedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getCommittedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getLead", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getPeerHashKVs", (some (go.signature.Signature [go.int64] false [(go.GoType.SliceType (go.GoType.PointerType peerHashKVResp.ty))]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getTxPostLockInsideApplyHook", (some (go.signature.Signature [] false [(go.GoType.FunctionType (go.signature.Signature [] false []))]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.hasMultipleVotingMembers", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isActive", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isLeader", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isLearnerReady", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), go.uint64] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.leaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayAddMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayPromoteMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayRemoveMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorClusterVersions", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorCompactHash", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorDowngrade", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorKVHash", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorStorageVersion", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.newHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.parseProposeCtxErr", (some (go.signature.Signature [go.error, _root_.Perennial.time.Time.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.processInternalRaftRequestOnce", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.promoteMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.publishV3", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.purgeFile", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.raftRequest", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.ProtoMessage" []), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.raftStatus", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.raft.v3.Status.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.rangeStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty), (go.GoType.Named go!"google.golang.org/grpc.ServerStreamingServer" [_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse.ty])] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.requireAuthInfo", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.restoreAlarms", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.revokeExpiredLeases", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty))] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.run", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.sendMergedSnap", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setAppliedIndex", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setCommittedIndex", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setLead", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setTerm", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.shouldSnapshotToDisk", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.shouldSnapshotToMemory", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.snapshot", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), go.bool] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.snapshotIfNeededAndCompactRaftLog", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.start", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.stopWithDelay", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty, go.error] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.triggerCorruptAlarm", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.updateClusterVersionV3", (some (go.signature.Signature [go.string] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.waitAppliedIndex", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.waitLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty), go.error])))]
 
 attribute [instance] serverVersionAdapter.TypeAssumptions.type_repr
   serverVersionAdapter.TypeAssumptions.underlying
@@ -11557,8 +12741,8 @@ class hasherAdapter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   set_EtcdServer : ∀ (x : hasherAdapter) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet hasherAdapter.underlying go!"EtcdServer") (PairV #x #y) (Val #(({ x with EtcdServer' := y } : hasherAdapter)))
   get_HashStorage : ∀ (x : hasherAdapter), go.IsGoStepPureDetTagged under (StructFieldGet hasherAdapter.underlying go!"HashStorage") #x (Val #(x.HashStorage'))
   set_HashStorage : ∀ (x : hasherAdapter) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.HashStorage), go.IsGoStepPureDetTagged under (StructFieldSet hasherAdapter.underlying go!"HashStorage") (PairV #x #y) (Val #(({ x with HashStorage' := y } : hasherAdapter)))
-  method_set : go.MethodSetIs hasherAdapter.ty [(go!"AddMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"Alarm", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"Alarms", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty))]))), (go!"AppliedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"ApplyWait", (some (go.signature.Signature [go.uint64] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"ApplyWaitCommit", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"AuthDisable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error]))), (go!"AuthInfoFromCtx", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error]))), (go!"AuthStore", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore.ty]))), (go!"Authenticate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"Backend", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty]))), (go!"Cleanup", (some (go.signature.Signature [] false []))), (go!"ClientCertAuthEnabled", (some (go.signature.Signature [] false [go.bool]))), (go!"Cluster", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Cluster.ty]))), (go!"ClusterVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"CommittedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"Compact", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), go.error]))), (go!"Config", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty]))), (go!"CorruptionChecker", (some (go.signature.Signature [] false [CorruptionChecker.ty]))), (go!"CutPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"Defragment", (some (go.signature.Signature [] false [go.error]))), (go!"DeleteRange", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty), go.error]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Downgrade", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"DowngradeEnabledHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"DowngradeInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/version.DowngradeInfo" []))]))), (go!"FeatureEnabled", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty] false [go.bool]))), (go!"FirstCommitInTermNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"ForceSnapshot", (some (go.signature.Signature [] false []))), (go!"GoAttach", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"HardStop", (some (go.signature.Signature [] false []))), (go!"Hash", (some (go.signature.Signature [] false [go.uint32, go.int64, go.error]))), (go!"HashByRev", (some (go.signature.Signature [go.int64] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash.ty, go.int64, go.error]))), (go!"HashKVHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"Hashes", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash.ty)]))), (go!"IsHostWhitelisted", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"IsIDRemoved", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"IsLearner", (some (go.signature.Signature [] false [go.bool]))), (go!"IsMemberExist", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.bool]))), (go!"KV", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty]))), (go!"Lead", (some (go.signature.Signature [] false [go.uint64]))), (go!"Leader", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"LeaderChanged", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"LeaderChangedNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"LeaseGrant", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty), go.error]))), (go!"LeaseHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"LeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesResponse.ty), go.error]))), (go!"LeaseRenew", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.int64, go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error]))), (go!"LeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error]))), (go!"LinearizableReadNotify", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Logger", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)]))), (go!"MemberID", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"MemberId", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"MemberList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberListRequest.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"MendPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"MoveLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64, go.uint64] false [go.error]))), (go!"NewUberApplier", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.UberApplier.ty]))), (go!"NextRequestID", (some (go.signature.Signature [] false [go.uint64]))), (go!"OriginAllowed", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"PauseSending", (some (go.signature.Signature [] false []))), (go!"PeerHashByRev", (some (go.signature.Signature [go.int64] false [(go.GoType.SliceType (go.GoType.PointerType peerHashKVResp.ty))]))), (go!"Process", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error]))), (go!"PromoteMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"Put", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty), go.error]))), (go!"RaftHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"Range", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty), go.error]))), (go!"RangeStream", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty), (go.GoType.Named go!"google.golang.org/grpc.ServerStreamingServer" [_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse.ty])] false [go.error]))), (go!"ReadyNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"RemoveMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"ReportSnapshot", (some (go.signature.Signature [go.uint64, _root_.Perennial.go_etcd_io.raft.v3.SnapshotStatus.ty] false []))), (go!"ReportUnreachable", (some (go.signature.Signature [go.uint64] false []))), (go!"ReqTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"RequestTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"ResumeSending", (some (go.signature.Signature [] false []))), (go!"RoleAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"Start", (some (go.signature.Signature [] false []))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"StopNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Stopping", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"StoppingNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"StorageVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"Store", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash.ty] false []))), (go!"Term", (some (go.signature.Signature [] false [go.uint64]))), (go!"TriggerCorruptAlarm", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"TryTransferLeadershipOnShutdown", (some (go.signature.Signature [] false [go.error]))), (go!"Txn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty), go.error]))), (go!"UpdateMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"UserAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error]))), (go!"Version", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/version.Manager" []))]))), (go!"Watchable", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.adjustTicks", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.apply", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)), (go.GoType.PointerType etcdProgress.ty), (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [go.uint64, go.uint64, go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyAll", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyConfChange", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty), (go.GoType.PointerType etcdProgress.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false [go.bool, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyEntries", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyEntryNormal", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applySnapshot", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseRenew", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.uint64, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkMembershipOperationPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.compactRaftLog", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.configure", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.createMergedSnapshotMessage", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty), go.uint64, go.uint64, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.doSerialize", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty)] false [go.error])), (go.GoType.FunctionType (go.signature.Signature [] false []))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeCancel", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeValidate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.ensureLeadership", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getAppliedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getCommittedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getLead", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getPeerHashKVs", (some (go.signature.Signature [go.int64] false [(go.GoType.SliceType (go.GoType.PointerType peerHashKVResp.ty))]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getTxPostLockInsideApplyHook", (some (go.signature.Signature [] false [(go.GoType.FunctionType (go.signature.Signature [] false []))]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.hasMultipleVotingMembers", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isActive", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isLeader", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isLearnerReady", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), go.uint64] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.leaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayAddMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayPromoteMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayRemoveMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorClusterVersions", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorCompactHash", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorDowngrade", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorKVHash", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorStorageVersion", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.newHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.parseProposeCtxErr", (some (go.signature.Signature [go.error, _root_.Perennial.time.Time.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.processInternalRaftRequestOnce", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.promoteMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.publishV3", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.purgeFile", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.raftRequest", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.ProtoMessage" []), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.raftStatus", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.raft.v3.Status.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.rangeStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty), (go.GoType.Named go!"google.golang.org/grpc.ServerStreamingServer" [_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse.ty])] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.requireAuthInfo", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.restoreAlarms", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.revokeExpiredLeases", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty))] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.run", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.sendMergedSnap", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setAppliedIndex", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setCommittedIndex", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setLead", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setTerm", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.shouldSnapshotToDisk", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.shouldSnapshotToMemory", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.snapshot", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), go.bool] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.snapshotIfNeededAndCompactRaftLog", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.start", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.stopWithDelay", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty, go.error] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.triggerCorruptAlarm", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.updateClusterVersionV3", (some (go.signature.Signature [go.string] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.waitAppliedIndex", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.waitLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty), go.error])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType hasherAdapter.ty) [(go!"AddMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"Alarm", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"Alarms", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty))]))), (go!"AppliedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"ApplyWait", (some (go.signature.Signature [go.uint64] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"ApplyWaitCommit", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"AuthDisable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error]))), (go!"AuthInfoFromCtx", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error]))), (go!"AuthStore", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore.ty]))), (go!"Authenticate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"Backend", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty]))), (go!"Cleanup", (some (go.signature.Signature [] false []))), (go!"ClientCertAuthEnabled", (some (go.signature.Signature [] false [go.bool]))), (go!"Cluster", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Cluster.ty]))), (go!"ClusterVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"CommittedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"Compact", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), go.error]))), (go!"Config", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty]))), (go!"CorruptionChecker", (some (go.signature.Signature [] false [CorruptionChecker.ty]))), (go!"CutPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"Defragment", (some (go.signature.Signature [] false [go.error]))), (go!"DeleteRange", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty), go.error]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Downgrade", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"DowngradeEnabledHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"DowngradeInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/version.DowngradeInfo" []))]))), (go!"FeatureEnabled", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty] false [go.bool]))), (go!"FirstCommitInTermNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"ForceSnapshot", (some (go.signature.Signature [] false []))), (go!"GoAttach", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"HardStop", (some (go.signature.Signature [] false []))), (go!"Hash", (some (go.signature.Signature [] false [go.uint32, go.int64, go.error]))), (go!"HashByRev", (some (go.signature.Signature [go.int64] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash.ty, go.int64, go.error]))), (go!"HashKVHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"Hashes", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash.ty)]))), (go!"IsHostWhitelisted", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"IsIDRemoved", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"IsLearner", (some (go.signature.Signature [] false [go.bool]))), (go!"IsMemberExist", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.bool]))), (go!"KV", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty]))), (go!"Lead", (some (go.signature.Signature [] false [go.uint64]))), (go!"Leader", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"LeaderChanged", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"LeaderChangedNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"LeaseGrant", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty), go.error]))), (go!"LeaseHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"LeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesResponse.ty), go.error]))), (go!"LeaseRenew", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.int64, go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error]))), (go!"LeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error]))), (go!"LinearizableReadNotify", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Logger", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)]))), (go!"MemberID", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"MemberId", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"MemberList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberListRequest.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"MendPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"MoveLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64, go.uint64] false [go.error]))), (go!"NewUberApplier", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.UberApplier.ty]))), (go!"NextRequestID", (some (go.signature.Signature [] false [go.uint64]))), (go!"OriginAllowed", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"PauseSending", (some (go.signature.Signature [] false []))), (go!"PeerHashByRev", (some (go.signature.Signature [go.int64] false [(go.GoType.SliceType (go.GoType.PointerType peerHashKVResp.ty))]))), (go!"Process", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error]))), (go!"PromoteMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"Put", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty), go.error]))), (go!"RaftHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"Range", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty), go.error]))), (go!"RangeStream", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty), (go.GoType.Named go!"google.golang.org/grpc.ServerStreamingServer" [_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse.ty])] false [go.error]))), (go!"ReadyNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"RemoveMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"ReportSnapshot", (some (go.signature.Signature [go.uint64, _root_.Perennial.go_etcd_io.raft.v3.SnapshotStatus.ty] false []))), (go!"ReportUnreachable", (some (go.signature.Signature [go.uint64] false []))), (go!"ReqTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"RequestTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"ResumeSending", (some (go.signature.Signature [] false []))), (go!"RoleAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"Start", (some (go.signature.Signature [] false []))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"StopNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Stopping", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"StoppingNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"StorageVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"Store", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash.ty] false []))), (go!"Term", (some (go.signature.Signature [] false [go.uint64]))), (go!"TriggerCorruptAlarm", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"TryTransferLeadershipOnShutdown", (some (go.signature.Signature [] false [go.error]))), (go!"Txn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty), go.error]))), (go!"UpdateMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"UserAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error]))), (go!"Version", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/version.Manager" []))]))), (go!"Watchable", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.adjustTicks", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.apply", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)), (go.GoType.PointerType etcdProgress.ty), (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [go.uint64, go.uint64, go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyAll", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyConfChange", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty), (go.GoType.PointerType etcdProgress.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false [go.bool, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyEntries", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyEntryNormal", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applySnapshot", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseRenew", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.uint64, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkMembershipOperationPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.compactRaftLog", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.configure", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.createMergedSnapshotMessage", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty), go.uint64, go.uint64, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.doSerialize", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty)] false [go.error])), (go.GoType.FunctionType (go.signature.Signature [] false []))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeCancel", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeValidate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.ensureLeadership", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getAppliedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getCommittedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getLead", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getPeerHashKVs", (some (go.signature.Signature [go.int64] false [(go.GoType.SliceType (go.GoType.PointerType peerHashKVResp.ty))]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getTxPostLockInsideApplyHook", (some (go.signature.Signature [] false [(go.GoType.FunctionType (go.signature.Signature [] false []))]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.hasMultipleVotingMembers", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isActive", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isLeader", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isLearnerReady", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), go.uint64] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.leaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayAddMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayPromoteMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayRemoveMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorClusterVersions", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorCompactHash", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorDowngrade", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorKVHash", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorStorageVersion", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.newHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.parseProposeCtxErr", (some (go.signature.Signature [go.error, _root_.Perennial.time.Time.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.processInternalRaftRequestOnce", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.promoteMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.publishV3", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.purgeFile", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.raftRequest", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.ProtoMessage" []), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.raftStatus", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.raft.v3.Status.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.rangeStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty), (go.GoType.Named go!"google.golang.org/grpc.ServerStreamingServer" [_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse.ty])] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.requireAuthInfo", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.restoreAlarms", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.revokeExpiredLeases", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty))] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.run", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.sendMergedSnap", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setAppliedIndex", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setCommittedIndex", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setLead", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setTerm", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.shouldSnapshotToDisk", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.shouldSnapshotToMemory", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.snapshot", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), go.bool] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.snapshotIfNeededAndCompactRaftLog", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.start", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.stopWithDelay", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty, go.error] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.triggerCorruptAlarm", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.updateClusterVersionV3", (some (go.signature.Signature [go.string] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.waitAppliedIndex", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.waitLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty), go.error])))]
+  method_set : go.MethodSetIs hasherAdapter.ty [(go!"AddMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"Alarm", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"Alarms", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty))]))), (go!"AppliedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"ApplyWait", (some (go.signature.Signature [go.uint64] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"ApplyWaitCommit", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"AuthDisable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error]))), (go!"AuthInfoFromCtx", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error]))), (go!"AuthStore", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore.ty]))), (go!"Authenticate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"Backend", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty]))), (go!"Cleanup", (some (go.signature.Signature [] false []))), (go!"ClientCertAuthEnabled", (some (go.signature.Signature [] false [go.bool]))), (go!"Cluster", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Cluster.ty]))), (go!"ClusterVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"CommittedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"Compact", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), go.error]))), (go!"Config", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty]))), (go!"CorruptionChecker", (some (go.signature.Signature [] false [CorruptionChecker.ty]))), (go!"CutPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"Defragment", (some (go.signature.Signature [] false [go.error]))), (go!"DeleteRange", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty), go.error]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Downgrade", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"DowngradeEnabledHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"DowngradeInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo.ty)]))), (go!"FeatureEnabled", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty] false [go.bool]))), (go!"FirstCommitInTermNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"ForceSnapshot", (some (go.signature.Signature [] false []))), (go!"GoAttach", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"HardStop", (some (go.signature.Signature [] false []))), (go!"Hash", (some (go.signature.Signature [] false [go.uint32, go.int64, go.error]))), (go!"HashByRev", (some (go.signature.Signature [go.int64] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash.ty, go.int64, go.error]))), (go!"HashKVHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"Hashes", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash.ty)]))), (go!"IsHostWhitelisted", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"IsIDRemoved", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"IsLearner", (some (go.signature.Signature [] false [go.bool]))), (go!"IsMemberExist", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.bool]))), (go!"KV", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty]))), (go!"Lead", (some (go.signature.Signature [] false [go.uint64]))), (go!"Leader", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"LeaderChanged", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"LeaderChangedNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"LeaseGrant", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty), go.error]))), (go!"LeaseHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"LeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesResponse.ty), go.error]))), (go!"LeaseRenew", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.int64, go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error]))), (go!"LeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error]))), (go!"LinearizableReadNotify", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Logger", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)]))), (go!"MemberID", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"MemberId", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"MemberList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberListRequest.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"MendPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"MoveLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64, go.uint64] false [go.error]))), (go!"NewUberApplier", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.UberApplier.ty]))), (go!"NextRequestID", (some (go.signature.Signature [] false [go.uint64]))), (go!"OriginAllowed", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"PauseSending", (some (go.signature.Signature [] false []))), (go!"PeerHashByRev", (some (go.signature.Signature [go.int64] false [(go.GoType.SliceType (go.GoType.PointerType peerHashKVResp.ty))]))), (go!"Process", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error]))), (go!"PromoteMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"Put", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty), go.error]))), (go!"RaftHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"Range", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty), go.error]))), (go!"RangeStream", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty), (go.GoType.Named go!"google.golang.org/grpc.ServerStreamingServer" [_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse.ty])] false [go.error]))), (go!"ReadyNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"RemoveMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"ReportSnapshot", (some (go.signature.Signature [go.uint64, _root_.Perennial.go_etcd_io.raft.v3.SnapshotStatus.ty] false []))), (go!"ReportUnreachable", (some (go.signature.Signature [go.uint64] false []))), (go!"ReqTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"RequestTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"ResumeSending", (some (go.signature.Signature [] false []))), (go!"RoleAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"Start", (some (go.signature.Signature [] false []))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"StopNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Stopping", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"StoppingNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"StorageVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"Store", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash.ty] false []))), (go!"Term", (some (go.signature.Signature [] false [go.uint64]))), (go!"TriggerCorruptAlarm", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"TryTransferLeadershipOnShutdown", (some (go.signature.Signature [] false [go.error]))), (go!"Txn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty), go.error]))), (go!"UpdateMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"UserAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error]))), (go!"Version", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Manager.ty)]))), (go!"Watchable", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.adjustTicks", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.apply", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)), (go.GoType.PointerType etcdProgress.ty), (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [go.uint64, go.uint64, go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyAll", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyConfChange", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty), (go.GoType.PointerType etcdProgress.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false [go.bool, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyEntries", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyEntryNormal", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applySnapshot", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseRenew", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.uint64, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkMembershipOperationPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.compactRaftLog", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.configure", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.createMergedSnapshotMessage", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty), go.uint64, go.uint64, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty), replayTerms.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.doSerialize", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty)] false [go.error])), (go.GoType.FunctionType (go.signature.Signature [] false []))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeCancel", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeValidate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.ensureLeadership", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getAppliedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getCommittedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getLead", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getPeerHashKVs", (some (go.signature.Signature [go.int64] false [(go.GoType.SliceType (go.GoType.PointerType peerHashKVResp.ty))]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getTxPostLockInsideApplyHook", (some (go.signature.Signature [] false [(go.GoType.FunctionType (go.signature.Signature [] false []))]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.hasMultipleVotingMembers", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isActive", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isLeader", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isLearnerReady", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), go.uint64] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.leaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayAddMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayPromoteMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayRemoveMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorClusterVersions", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorCompactHash", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorDowngrade", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorKVHash", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorStorageVersion", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.newHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.parseProposeCtxErr", (some (go.signature.Signature [go.error, _root_.Perennial.time.Time.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.processInternalRaftRequestOnce", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.promoteMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.publishV3", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.purgeFile", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.raftRequest", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.ProtoMessage" []), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.raftStatus", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.raft.v3.Status.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.rangeStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty), (go.GoType.Named go!"google.golang.org/grpc.ServerStreamingServer" [_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse.ty])] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.requireAuthInfo", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.restoreAlarms", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.revokeExpiredLeases", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty))] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.run", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.sendMergedSnap", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setAppliedIndex", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setCommittedIndex", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setLead", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setTerm", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.shouldSnapshotToDisk", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.shouldSnapshotToMemory", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.snapshot", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), go.bool] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.snapshotIfNeededAndCompactRaftLog", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.start", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.stopWithDelay", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty, go.error] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.triggerCorruptAlarm", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.updateClusterVersionV3", (some (go.signature.Signature [go.string] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.waitAppliedIndex", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.waitLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType hasherAdapter.ty) [(go!"AddMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"Alarm", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"Alarms", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty))]))), (go!"AppliedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"ApplyWait", (some (go.signature.Signature [go.uint64] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"ApplyWaitCommit", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"AuthDisable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error]))), (go!"AuthInfoFromCtx", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error]))), (go!"AuthStore", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore.ty]))), (go!"Authenticate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"Backend", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty]))), (go!"Cleanup", (some (go.signature.Signature [] false []))), (go!"ClientCertAuthEnabled", (some (go.signature.Signature [] false [go.bool]))), (go!"Cluster", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Cluster.ty]))), (go!"ClusterVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"CommittedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"Compact", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), go.error]))), (go!"Config", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty]))), (go!"CorruptionChecker", (some (go.signature.Signature [] false [CorruptionChecker.ty]))), (go!"CutPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"Defragment", (some (go.signature.Signature [] false [go.error]))), (go!"DeleteRange", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty), go.error]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Downgrade", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"DowngradeEnabledHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"DowngradeInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo.ty)]))), (go!"FeatureEnabled", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty] false [go.bool]))), (go!"FirstCommitInTermNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"ForceSnapshot", (some (go.signature.Signature [] false []))), (go!"GoAttach", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"HardStop", (some (go.signature.Signature [] false []))), (go!"Hash", (some (go.signature.Signature [] false [go.uint32, go.int64, go.error]))), (go!"HashByRev", (some (go.signature.Signature [go.int64] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash.ty, go.int64, go.error]))), (go!"HashKVHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"Hashes", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash.ty)]))), (go!"IsHostWhitelisted", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"IsIDRemoved", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"IsLearner", (some (go.signature.Signature [] false [go.bool]))), (go!"IsMemberExist", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.bool]))), (go!"KV", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty]))), (go!"Lead", (some (go.signature.Signature [] false [go.uint64]))), (go!"Leader", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"LeaderChanged", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"LeaderChangedNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"LeaseGrant", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty), go.error]))), (go!"LeaseHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"LeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesResponse.ty), go.error]))), (go!"LeaseRenew", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.int64, go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error]))), (go!"LeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error]))), (go!"LinearizableReadNotify", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Logger", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)]))), (go!"MemberID", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"MemberId", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"MemberList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberListRequest.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"MendPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"MoveLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64, go.uint64] false [go.error]))), (go!"NewUberApplier", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.UberApplier.ty]))), (go!"NextRequestID", (some (go.signature.Signature [] false [go.uint64]))), (go!"OriginAllowed", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"PauseSending", (some (go.signature.Signature [] false []))), (go!"PeerHashByRev", (some (go.signature.Signature [go.int64] false [(go.GoType.SliceType (go.GoType.PointerType peerHashKVResp.ty))]))), (go!"Process", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error]))), (go!"PromoteMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"Put", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty), go.error]))), (go!"RaftHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"Range", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty), go.error]))), (go!"RangeStream", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty), (go.GoType.Named go!"google.golang.org/grpc.ServerStreamingServer" [_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse.ty])] false [go.error]))), (go!"ReadyNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"RemoveMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"ReportSnapshot", (some (go.signature.Signature [go.uint64, _root_.Perennial.go_etcd_io.raft.v3.SnapshotStatus.ty] false []))), (go!"ReportUnreachable", (some (go.signature.Signature [go.uint64] false []))), (go!"ReqTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"RequestTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"ResumeSending", (some (go.signature.Signature [] false []))), (go!"RoleAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"Start", (some (go.signature.Signature [] false []))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"StopNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Stopping", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"StoppingNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"StorageVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"Store", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash.ty] false []))), (go!"Term", (some (go.signature.Signature [] false [go.uint64]))), (go!"TriggerCorruptAlarm", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"TryTransferLeadershipOnShutdown", (some (go.signature.Signature [] false [go.error]))), (go!"Txn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty), go.error]))), (go!"UpdateMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"UserAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error]))), (go!"Version", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Manager.ty)]))), (go!"Watchable", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.adjustTicks", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.apply", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)), (go.GoType.PointerType etcdProgress.ty), (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [go.uint64, go.uint64, go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyAll", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyConfChange", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty), (go.GoType.PointerType etcdProgress.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false [go.bool, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyEntries", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyEntryNormal", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applySnapshot", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseRenew", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.uint64, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkMembershipOperationPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.compactRaftLog", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.configure", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.createMergedSnapshotMessage", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty), go.uint64, go.uint64, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty), replayTerms.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.doSerialize", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty)] false [go.error])), (go.GoType.FunctionType (go.signature.Signature [] false []))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeCancel", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeValidate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.ensureLeadership", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getAppliedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getCommittedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getLead", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getPeerHashKVs", (some (go.signature.Signature [go.int64] false [(go.GoType.SliceType (go.GoType.PointerType peerHashKVResp.ty))]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getTxPostLockInsideApplyHook", (some (go.signature.Signature [] false [(go.GoType.FunctionType (go.signature.Signature [] false []))]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.hasMultipleVotingMembers", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isActive", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isLeader", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isLearnerReady", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), go.uint64] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.leaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayAddMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayPromoteMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayRemoveMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorClusterVersions", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorCompactHash", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorDowngrade", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorKVHash", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorStorageVersion", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.newHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.parseProposeCtxErr", (some (go.signature.Signature [go.error, _root_.Perennial.time.Time.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.processInternalRaftRequestOnce", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.promoteMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.publishV3", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.purgeFile", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.raftRequest", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.ProtoMessage" []), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.raftStatus", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.raft.v3.Status.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.rangeStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty), (go.GoType.Named go!"google.golang.org/grpc.ServerStreamingServer" [_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse.ty])] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.requireAuthInfo", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.restoreAlarms", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.revokeExpiredLeases", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty))] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.run", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.sendMergedSnap", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setAppliedIndex", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setCommittedIndex", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setLead", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setTerm", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.shouldSnapshotToDisk", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.shouldSnapshotToMemory", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.snapshot", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), go.bool] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.snapshotIfNeededAndCompactRaftLog", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.start", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.stopWithDelay", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty, go.error] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.triggerCorruptAlarm", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.updateClusterVersionV3", (some (go.signature.Signature [go.string] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.waitAppliedIndex", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.waitLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty), go.error])))]
 
 attribute [instance] hasherAdapter.TypeAssumptions.type_repr
   hasherAdapter.TypeAssumptions.underlying
@@ -11698,6 +12882,40 @@ attribute [instance] hashKVHandler.TypeAssumptions.type_repr
   hashKVHandler.TypeAssumptions.method_set
   hashKVHandler.TypeAssumptions.ptr_method_set
 
+abbrev replayTerms [GooseExts] : Type := GoSlice
+
+@[reducible] noncomputable def replayTerms.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.SliceType replayTermRun.ty)
+
+class replayTerms.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq replayTerms.ty replayTerms.underlying
+  method_set : go.MethodSetIs replayTerms.ty [(go!"go.etcd.io/etcd/server/v3/etcdserver.after", (some (go.signature.Signature [go.uint64] false [replayTerms.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.appendEntries", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))] false [replayTerms.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.covers", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.termAt", (some (go.signature.Signature [go.uint64] false [go.uint64])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType replayTerms.ty) [(go!"go.etcd.io/etcd/server/v3/etcdserver.after", (some (go.signature.Signature [go.uint64] false [replayTerms.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.appendEntries", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))] false [replayTerms.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.covers", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.termAt", (some (go.signature.Signature [go.uint64] false [go.uint64])))]
+  after_unfold : MethodUnfold replayTerms.ty go!"after" replayTerms.after.impl
+  appendEntries_unfold : MethodUnfold replayTerms.ty go!"appendEntries" replayTerms.appendEntries.impl
+  covers_unfold : MethodUnfold replayTerms.ty go!"covers" replayTerms.covers.impl
+  termAt_unfold : MethodUnfold replayTerms.ty go!"termAt" replayTerms.termAt.impl
+  ptr_after_unfold : MethodUnfold (go.GoType.PointerType replayTerms.ty) go!"after" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve replayTerms.ty go!"after"))) (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "$r"))))
+  ptr_appendEntries_unfold : MethodUnfold (go.GoType.PointerType replayTerms.ty) go!"appendEntries" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve replayTerms.ty go!"appendEntries"))) (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "$r"))))
+  ptr_covers_unfold : MethodUnfold (go.GoType.PointerType replayTerms.ty) go!"covers" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve replayTerms.ty go!"covers"))) (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "$r"))))
+  ptr_termAt_unfold : MethodUnfold (go.GoType.PointerType replayTerms.ty) go!"termAt" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve replayTerms.ty go!"termAt"))) (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "$r"))))
+
+attribute [instance] replayTerms.TypeAssumptions.underlying
+  replayTerms.TypeAssumptions.method_set
+  replayTerms.TypeAssumptions.ptr_method_set
+  replayTerms.TypeAssumptions.after_unfold
+  replayTerms.TypeAssumptions.appendEntries_unfold
+  replayTerms.TypeAssumptions.covers_unfold
+  replayTerms.TypeAssumptions.termAt_unfold
+  replayTerms.TypeAssumptions.ptr_after_unfold
+  replayTerms.TypeAssumptions.ptr_appendEntries_unfold
+  replayTerms.TypeAssumptions.ptr_covers_unfold
+  replayTerms.TypeAssumptions.ptr_termAt_unfold
+
 structure toApply [GooseExts] where
   mk ::
   entries' : GoSlice
@@ -11705,16 +12923,18 @@ structure toApply [GooseExts] where
   notifyc' : GoChan
   raftAdvancedC' : GoChan
   raftTerm' : w64
+  replayTerms' : replayTerms
 
 noncomputable instance toApply.zero_val [GooseExts] : ZeroVal toApply :=
-  ⟨toApply.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+  ⟨toApply.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] noncomputable def toApply.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"entries" (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))),
 (go.field_decl.FieldDecl go!"snapshot" (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)),
 (go.field_decl.FieldDecl go!"notifyc" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))),
 (go.field_decl.FieldDecl go!"raftAdvancedC" (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))),
-(go.field_decl.FieldDecl go!"raftTerm" go.uint64)]
+(go.field_decl.FieldDecl go!"raftTerm" go.uint64),
+(go.field_decl.FieldDecl go!"replayTerms" replayTerms.ty)]
 
 @[irreducible] noncomputable def toApply.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   toApply.fieldsUnsealed
@@ -11739,6 +12959,8 @@ class toApply.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   set_raftAdvancedC : ∀ (x : toApply) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet toApply.underlying go!"raftAdvancedC") (PairV #x #y) (Val #(({ x with raftAdvancedC' := y } : toApply)))
   get_raftTerm : ∀ (x : toApply), go.IsGoStepPureDetTagged under (StructFieldGet toApply.underlying go!"raftTerm") #x (Val #(x.raftTerm'))
   set_raftTerm : ∀ (x : toApply) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet toApply.underlying go!"raftTerm") (PairV #x #y) (Val #(({ x with raftTerm' := y } : toApply)))
+  get_replayTerms : ∀ (x : toApply), go.IsGoStepPureDetTagged under (StructFieldGet toApply.underlying go!"replayTerms") #x (Val #(x.replayTerms'))
+  set_replayTerms : ∀ (x : toApply) (y : replayTerms), go.IsGoStepPureDetTagged under (StructFieldSet toApply.underlying go!"replayTerms") (PairV #x #y) (Val #(({ x with replayTerms' := y } : toApply)))
   method_set : go.MethodSetIs toApply.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType toApply.ty) []
 
@@ -11754,11 +12976,14 @@ attribute [instance] toApply.TypeAssumptions.type_repr
   toApply.TypeAssumptions.set_raftAdvancedC
   toApply.TypeAssumptions.get_raftTerm
   toApply.TypeAssumptions.set_raftTerm
+  toApply.TypeAssumptions.get_replayTerms
+  toApply.TypeAssumptions.set_replayTerms
   toApply.TypeAssumptions.method_set
   toApply.TypeAssumptions.ptr_method_set
 
 structure raftNodeConfig [GooseExts] where
   mk ::
+  initialReplayTerms' : replayTerms
   lg' : Loc
   isIDRemoved' : GoFunc
   Node' : _root_.Perennial.go_etcd_io.raft.v3.Node
@@ -11768,10 +12993,11 @@ structure raftNodeConfig [GooseExts] where
   transport' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transporter
 
 noncomputable instance raftNodeConfig.zero_val [GooseExts] : ZeroVal raftNodeConfig :=
-  ⟨raftNodeConfig.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+  ⟨raftNodeConfig.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] noncomputable def raftNodeConfig.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
-  [(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
+  [(go.field_decl.FieldDecl go!"initialReplayTerms" replayTerms.ty),
+(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
 (go.field_decl.FieldDecl go!"isIDRemoved" (go.GoType.FunctionType (go.signature.Signature [go.uint64] false [go.bool]))),
 (go.field_decl.EmbeddedField go!"Node" _root_.Perennial.go_etcd_io.raft.v3.Node.ty),
 (go.field_decl.FieldDecl go!"raftStorage" (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty)),
@@ -11792,6 +13018,8 @@ noncomputable instance equals_unfold_raftNodeConfig [GooseExts] [GoGlobalContext
 class raftNodeConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying raftNodeConfig.underlying raftNodeConfig
   underlying : go.UnderlyingDirectedEq raftNodeConfig.ty raftNodeConfig.underlying
+  get_initialReplayTerms : ∀ (x : raftNodeConfig), go.IsGoStepPureDetTagged under (StructFieldGet raftNodeConfig.underlying go!"initialReplayTerms") #x (Val #(x.initialReplayTerms'))
+  set_initialReplayTerms : ∀ (x : raftNodeConfig) (y : replayTerms), go.IsGoStepPureDetTagged under (StructFieldSet raftNodeConfig.underlying go!"initialReplayTerms") (PairV #x #y) (Val #(({ x with initialReplayTerms' := y } : raftNodeConfig)))
   get_lg : ∀ (x : raftNodeConfig), go.IsGoStepPureDetTagged under (StructFieldGet raftNodeConfig.underlying go!"lg") #x (Val #(x.lg'))
   set_lg : ∀ (x : raftNodeConfig) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet raftNodeConfig.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : raftNodeConfig)))
   get_isIDRemoved : ∀ (x : raftNodeConfig), go.IsGoStepPureDetTagged under (StructFieldGet raftNodeConfig.underlying go!"isIDRemoved") #x (Val #(x.isIDRemoved'))
@@ -11851,6 +13079,8 @@ class raftNodeConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
 
 attribute [instance] raftNodeConfig.TypeAssumptions.type_repr
   raftNodeConfig.TypeAssumptions.underlying
+  raftNodeConfig.TypeAssumptions.get_initialReplayTerms
+  raftNodeConfig.TypeAssumptions.set_initialReplayTerms
   raftNodeConfig.TypeAssumptions.get_lg
   raftNodeConfig.TypeAssumptions.set_lg
   raftNodeConfig.TypeAssumptions.get_isIDRemoved
@@ -12332,10 +13562,11 @@ class EtcdServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   get_corruptionChecker : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"corruptionChecker") #x (Val #(x.corruptionChecker'))
   set_corruptionChecker : ∀ (x : EtcdServer) (y : CorruptionChecker), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"corruptionChecker") (PairV #x #y) (Val #(({ x with corruptionChecker' := y } : EtcdServer)))
   method_set : go.MethodSetIs EtcdServer.ty [(go!"IsHostWhitelisted", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"OriginAllowed", (some (go.signature.Signature [go.string] false [go.bool])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EtcdServer.ty) [(go!"AddMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"Alarm", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"Alarms", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty))]))), (go!"AppliedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"ApplyWait", (some (go.signature.Signature [go.uint64] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"ApplyWaitCommit", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"AuthDisable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error]))), (go!"AuthInfoFromCtx", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error]))), (go!"AuthStore", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore.ty]))), (go!"Authenticate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"Backend", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty]))), (go!"Cleanup", (some (go.signature.Signature [] false []))), (go!"ClientCertAuthEnabled", (some (go.signature.Signature [] false [go.bool]))), (go!"Cluster", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Cluster.ty]))), (go!"ClusterVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"CommittedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"Compact", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), go.error]))), (go!"Config", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty]))), (go!"CorruptionChecker", (some (go.signature.Signature [] false [CorruptionChecker.ty]))), (go!"CutPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"Defragment", (some (go.signature.Signature [] false [go.error]))), (go!"DeleteRange", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty), go.error]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Downgrade", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"DowngradeEnabledHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"DowngradeInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/version.DowngradeInfo" []))]))), (go!"FeatureEnabled", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty] false [go.bool]))), (go!"FirstCommitInTermNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"ForceSnapshot", (some (go.signature.Signature [] false []))), (go!"GoAttach", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"HardStop", (some (go.signature.Signature [] false []))), (go!"HashKVHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"IsHostWhitelisted", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"IsIDRemoved", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"IsLearner", (some (go.signature.Signature [] false [go.bool]))), (go!"IsMemberExist", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.bool]))), (go!"KV", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty]))), (go!"Lead", (some (go.signature.Signature [] false [go.uint64]))), (go!"Leader", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"LeaderChanged", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"LeaderChangedNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"LeaseGrant", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty), go.error]))), (go!"LeaseHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"LeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesResponse.ty), go.error]))), (go!"LeaseRenew", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.int64, go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error]))), (go!"LeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error]))), (go!"LinearizableReadNotify", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Logger", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)]))), (go!"MemberID", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"MemberId", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"MemberList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberListRequest.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"MendPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"MoveLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64, go.uint64] false [go.error]))), (go!"NewUberApplier", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.UberApplier.ty]))), (go!"NextRequestID", (some (go.signature.Signature [] false [go.uint64]))), (go!"OriginAllowed", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"PauseSending", (some (go.signature.Signature [] false []))), (go!"Process", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error]))), (go!"PromoteMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"Put", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty), go.error]))), (go!"RaftHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"Range", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty), go.error]))), (go!"RangeStream", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty), (go.GoType.Named go!"google.golang.org/grpc.ServerStreamingServer" [_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse.ty])] false [go.error]))), (go!"ReadyNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"RemoveMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"ReportSnapshot", (some (go.signature.Signature [go.uint64, _root_.Perennial.go_etcd_io.raft.v3.SnapshotStatus.ty] false []))), (go!"ReportUnreachable", (some (go.signature.Signature [go.uint64] false []))), (go!"RequestTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"ResumeSending", (some (go.signature.Signature [] false []))), (go!"RoleAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"Start", (some (go.signature.Signature [] false []))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"StopNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Stopping", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"StoppingNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"StorageVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"Term", (some (go.signature.Signature [] false [go.uint64]))), (go!"TryTransferLeadershipOnShutdown", (some (go.signature.Signature [] false [go.error]))), (go!"Txn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty), go.error]))), (go!"UpdateMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"UserAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error]))), (go!"Version", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/version.Manager" []))]))), (go!"Watchable", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.adjustTicks", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.apply", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)), (go.GoType.PointerType etcdProgress.ty), (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [go.uint64, go.uint64, go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyAll", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyConfChange", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty), (go.GoType.PointerType etcdProgress.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false [go.bool, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyEntries", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyEntryNormal", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applySnapshot", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseRenew", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.uint64, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkMembershipOperationPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.compactRaftLog", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.configure", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.createMergedSnapshotMessage", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty), go.uint64, go.uint64, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.doSerialize", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty)] false [go.error])), (go.GoType.FunctionType (go.signature.Signature [] false []))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeCancel", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeValidate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.ensureLeadership", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getAppliedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getCommittedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getLead", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getPeerHashKVs", (some (go.signature.Signature [go.int64] false [(go.GoType.SliceType (go.GoType.PointerType peerHashKVResp.ty))]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getTxPostLockInsideApplyHook", (some (go.signature.Signature [] false [(go.GoType.FunctionType (go.signature.Signature [] false []))]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.hasMultipleVotingMembers", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isActive", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isLeader", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isLearnerReady", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), go.uint64] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.leaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayAddMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayPromoteMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayRemoveMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorClusterVersions", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorCompactHash", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorDowngrade", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorKVHash", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorStorageVersion", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.newHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.parseProposeCtxErr", (some (go.signature.Signature [go.error, _root_.Perennial.time.Time.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.processInternalRaftRequestOnce", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.promoteMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.publishV3", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.purgeFile", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.raftRequest", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.ProtoMessage" []), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.raftStatus", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.raft.v3.Status.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.rangeStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty), (go.GoType.Named go!"google.golang.org/grpc.ServerStreamingServer" [_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse.ty])] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.requireAuthInfo", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.restoreAlarms", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.revokeExpiredLeases", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty))] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.run", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.sendMergedSnap", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setAppliedIndex", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setCommittedIndex", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setLead", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setTerm", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.shouldSnapshotToDisk", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.shouldSnapshotToMemory", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.snapshot", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), go.bool] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.snapshotIfNeededAndCompactRaftLog", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.start", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.stopWithDelay", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty, go.error] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.triggerCorruptAlarm", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.updateClusterVersionV3", (some (go.signature.Signature [go.string] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.waitAppliedIndex", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.waitLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EtcdServer.ty) [(go!"AddMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"Alarm", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"Alarms", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty))]))), (go!"AppliedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"ApplyWait", (some (go.signature.Signature [go.uint64] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"ApplyWaitCommit", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"AuthDisable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error]))), (go!"AuthInfoFromCtx", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error]))), (go!"AuthStore", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore.ty]))), (go!"Authenticate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"Backend", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty]))), (go!"Cleanup", (some (go.signature.Signature [] false []))), (go!"ClientCertAuthEnabled", (some (go.signature.Signature [] false [go.bool]))), (go!"Cluster", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Cluster.ty]))), (go!"ClusterVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"CommittedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"Compact", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), go.error]))), (go!"Config", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty]))), (go!"CorruptionChecker", (some (go.signature.Signature [] false [CorruptionChecker.ty]))), (go!"CutPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"Defragment", (some (go.signature.Signature [] false [go.error]))), (go!"DeleteRange", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty), go.error]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Downgrade", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"DowngradeEnabledHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"DowngradeInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo.ty)]))), (go!"FeatureEnabled", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty] false [go.bool]))), (go!"FirstCommitInTermNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"ForceSnapshot", (some (go.signature.Signature [] false []))), (go!"GoAttach", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"HardStop", (some (go.signature.Signature [] false []))), (go!"HashKVHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"IsHostWhitelisted", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"IsIDRemoved", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"IsLearner", (some (go.signature.Signature [] false [go.bool]))), (go!"IsMemberExist", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.bool]))), (go!"KV", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty]))), (go!"Lead", (some (go.signature.Signature [] false [go.uint64]))), (go!"Leader", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"LeaderChanged", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"LeaderChangedNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"LeaseGrant", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty), go.error]))), (go!"LeaseHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"LeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesResponse.ty), go.error]))), (go!"LeaseRenew", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.int64, go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error]))), (go!"LeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error]))), (go!"LinearizableReadNotify", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Logger", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)]))), (go!"MemberID", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"MemberId", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"MemberList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberListRequest.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"MendPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"MoveLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64, go.uint64] false [go.error]))), (go!"NewUberApplier", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.UberApplier.ty]))), (go!"NextRequestID", (some (go.signature.Signature [] false [go.uint64]))), (go!"OriginAllowed", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"PauseSending", (some (go.signature.Signature [] false []))), (go!"Process", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error]))), (go!"PromoteMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"Put", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty), go.error]))), (go!"RaftHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"Range", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty), go.error]))), (go!"RangeStream", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty), (go.GoType.Named go!"google.golang.org/grpc.ServerStreamingServer" [_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse.ty])] false [go.error]))), (go!"ReadyNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"RemoveMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"ReportSnapshot", (some (go.signature.Signature [go.uint64, _root_.Perennial.go_etcd_io.raft.v3.SnapshotStatus.ty] false []))), (go!"ReportUnreachable", (some (go.signature.Signature [go.uint64] false []))), (go!"RequestTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"ResumeSending", (some (go.signature.Signature [] false []))), (go!"RoleAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"Start", (some (go.signature.Signature [] false []))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"StopNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Stopping", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"StoppingNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"StorageVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"Term", (some (go.signature.Signature [] false [go.uint64]))), (go!"TryTransferLeadershipOnShutdown", (some (go.signature.Signature [] false [go.error]))), (go!"Txn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty), go.error]))), (go!"UpdateMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"UserAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error]))), (go!"Version", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Manager.ty)]))), (go!"Watchable", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.adjustTicks", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.apply", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)), (go.GoType.PointerType etcdProgress.ty), (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [go.uint64, go.uint64, go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyAll", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyConfChange", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty), (go.GoType.PointerType etcdProgress.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false [go.bool, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyEntries", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyEntryNormal", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applySnapshot", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseRenew", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.uint64, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkMembershipOperationPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.compactRaftLog", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.configure", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.createMergedSnapshotMessage", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty), go.uint64, go.uint64, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty), replayTerms.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.doSerialize", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty)] false [go.error])), (go.GoType.FunctionType (go.signature.Signature [] false []))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeCancel", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeValidate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.ensureLeadership", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getAppliedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getCommittedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getLead", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getPeerHashKVs", (some (go.signature.Signature [go.int64] false [(go.GoType.SliceType (go.GoType.PointerType peerHashKVResp.ty))]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getTxPostLockInsideApplyHook", (some (go.signature.Signature [] false [(go.GoType.FunctionType (go.signature.Signature [] false []))]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.hasMultipleVotingMembers", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isActive", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isLeader", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isLearnerReady", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), go.uint64] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.leaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayAddMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayPromoteMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayRemoveMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorClusterVersions", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorCompactHash", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorDowngrade", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorKVHash", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorStorageVersion", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.newHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.parseProposeCtxErr", (some (go.signature.Signature [go.error, _root_.Perennial.time.Time.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.processInternalRaftRequestOnce", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.promoteMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.publishV3", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.purgeFile", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.raftRequest", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.ProtoMessage" []), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.raftStatus", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.raft.v3.Status.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.rangeStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty), (go.GoType.Named go!"google.golang.org/grpc.ServerStreamingServer" [_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse.ty])] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.requireAuthInfo", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.restoreAlarms", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.revokeExpiredLeases", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty))] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.run", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.sendMergedSnap", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setAppliedIndex", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setCommittedIndex", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setLead", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setTerm", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.shouldSnapshotToDisk", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.shouldSnapshotToMemory", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.snapshot", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), go.bool] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.snapshotIfNeededAndCompactRaftLog", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.start", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.stopWithDelay", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty, go.error] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.triggerCorruptAlarm", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.updateClusterVersionV3", (some (go.signature.Signature [go.string] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.waitAppliedIndex", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.waitLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty), go.error])))]
   ptr_AddMember_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"AddMember" EtcdServer.AddMember.impl
   ptr_AppliedIndex_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"AppliedIndex" EtcdServer.AppliedIndex.impl
   ptr_ApplyWait_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"ApplyWait" EtcdServer.ApplyWait.impl
+  ptr_ApplyWaitCommit_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"ApplyWaitCommit" EtcdServer.ApplyWaitCommit.impl
   ptr_AuthDisable_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"AuthDisable" EtcdServer.AuthDisable.impl
   ptr_AuthEnable_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"AuthEnable" EtcdServer.AuthEnable.impl
   ptr_AuthInfoFromCtx_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"AuthInfoFromCtx" EtcdServer.AuthInfoFromCtx.impl
@@ -12380,6 +13611,7 @@ class EtcdServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   ptr_Put_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Put" EtcdServer.Put.impl
   ptr_RaftHandler_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"RaftHandler" EtcdServer.RaftHandler.impl
   ptr_Range_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Range" EtcdServer.Range.impl
+  ptr_RangeStream_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"RangeStream" EtcdServer.RangeStream.impl
   ptr_RemoveMember_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"RemoveMember" EtcdServer.RemoveMember.impl
   ptr_ReportSnapshot_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"ReportSnapshot" EtcdServer.ReportSnapshot.impl
   ptr_ReportUnreachable_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"ReportUnreachable" EtcdServer.ReportUnreachable.impl
@@ -12417,18 +13649,24 @@ class EtcdServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   ptr_compactRaftLog_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"compactRaftLog" EtcdServer.compactRaftLog.impl
   ptr_createMergedSnapshotMessage_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"createMergedSnapshotMessage" EtcdServer.createMergedSnapshotMessage.impl
   ptr_doSerialize_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"doSerialize" EtcdServer.doSerialize.impl
+  ptr_ensureLeadership_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"ensureLeadership" EtcdServer.ensureLeadership.impl
   ptr_getAppliedIndex_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"getAppliedIndex" EtcdServer.getAppliedIndex.impl
   ptr_getCommittedIndex_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"getCommittedIndex" EtcdServer.getCommittedIndex.impl
   ptr_getLead_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"getLead" EtcdServer.getLead.impl
   ptr_getTerm_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"getTerm" EtcdServer.getTerm.impl
   ptr_getTxPostLockInsideApplyHook_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"getTxPostLockInsideApplyHook" EtcdServer.getTxPostLockInsideApplyHook.impl
+  ptr_isActive_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"isActive" EtcdServer.isActive.impl
   ptr_isLeader_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"isLeader" EtcdServer.isLeader.impl
+  ptr_monitorCompactHash_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"monitorCompactHash" EtcdServer.monitorCompactHash.impl
+  ptr_monitorDowngrade_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"monitorDowngrade" EtcdServer.monitorDowngrade.impl
+  ptr_monitorKVHash_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"monitorKVHash" EtcdServer.monitorKVHash.impl
   ptr_newHeader_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"newHeader" EtcdServer.newHeader.impl
   ptr_parseProposeCtxErr_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"parseProposeCtxErr" EtcdServer.parseProposeCtxErr.impl
   ptr_processInternalRaftRequestOnce_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"processInternalRaftRequestOnce" EtcdServer.processInternalRaftRequestOnce.impl
   ptr_promoteMember_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"promoteMember" EtcdServer.promoteMember.impl
   ptr_purgeFile_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"purgeFile" EtcdServer.purgeFile.impl
   ptr_raftRequest_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"raftRequest" EtcdServer.raftRequest.impl
+  ptr_raftStatus_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"raftStatus" EtcdServer.raftStatus.impl
   ptr_requireAuthInfo_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"requireAuthInfo" EtcdServer.requireAuthInfo.impl
   ptr_restoreAlarms_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"restoreAlarms" EtcdServer.restoreAlarms.impl
   ptr_revokeExpiredLeases_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"revokeExpiredLeases" EtcdServer.revokeExpiredLeases.impl
@@ -12443,6 +13681,8 @@ class EtcdServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   ptr_snapshot_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"snapshot" EtcdServer.snapshot.impl
   ptr_snapshotIfNeededAndCompactRaftLog_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"snapshotIfNeededAndCompactRaftLog" EtcdServer.snapshotIfNeededAndCompactRaftLog.impl
   ptr_start_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"start" EtcdServer.start.impl
+  ptr_waitAppliedIndex_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"waitAppliedIndex" EtcdServer.waitAppliedIndex.impl
+  ptr_waitLeader_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"waitLeader" EtcdServer.waitLeader.impl
 
 attribute [instance] EtcdServer.TypeAssumptions.type_repr
   EtcdServer.TypeAssumptions.underlying
@@ -12545,6 +13785,7 @@ attribute [instance] EtcdServer.TypeAssumptions.type_repr
   EtcdServer.TypeAssumptions.ptr_AddMember_unfold
   EtcdServer.TypeAssumptions.ptr_AppliedIndex_unfold
   EtcdServer.TypeAssumptions.ptr_ApplyWait_unfold
+  EtcdServer.TypeAssumptions.ptr_ApplyWaitCommit_unfold
   EtcdServer.TypeAssumptions.ptr_AuthDisable_unfold
   EtcdServer.TypeAssumptions.ptr_AuthEnable_unfold
   EtcdServer.TypeAssumptions.ptr_AuthInfoFromCtx_unfold
@@ -12589,6 +13830,7 @@ attribute [instance] EtcdServer.TypeAssumptions.type_repr
   EtcdServer.TypeAssumptions.ptr_Put_unfold
   EtcdServer.TypeAssumptions.ptr_RaftHandler_unfold
   EtcdServer.TypeAssumptions.ptr_Range_unfold
+  EtcdServer.TypeAssumptions.ptr_RangeStream_unfold
   EtcdServer.TypeAssumptions.ptr_RemoveMember_unfold
   EtcdServer.TypeAssumptions.ptr_ReportSnapshot_unfold
   EtcdServer.TypeAssumptions.ptr_ReportUnreachable_unfold
@@ -12626,18 +13868,24 @@ attribute [instance] EtcdServer.TypeAssumptions.type_repr
   EtcdServer.TypeAssumptions.ptr_compactRaftLog_unfold
   EtcdServer.TypeAssumptions.ptr_createMergedSnapshotMessage_unfold
   EtcdServer.TypeAssumptions.ptr_doSerialize_unfold
+  EtcdServer.TypeAssumptions.ptr_ensureLeadership_unfold
   EtcdServer.TypeAssumptions.ptr_getAppliedIndex_unfold
   EtcdServer.TypeAssumptions.ptr_getCommittedIndex_unfold
   EtcdServer.TypeAssumptions.ptr_getLead_unfold
   EtcdServer.TypeAssumptions.ptr_getTerm_unfold
   EtcdServer.TypeAssumptions.ptr_getTxPostLockInsideApplyHook_unfold
+  EtcdServer.TypeAssumptions.ptr_isActive_unfold
   EtcdServer.TypeAssumptions.ptr_isLeader_unfold
+  EtcdServer.TypeAssumptions.ptr_monitorCompactHash_unfold
+  EtcdServer.TypeAssumptions.ptr_monitorDowngrade_unfold
+  EtcdServer.TypeAssumptions.ptr_monitorKVHash_unfold
   EtcdServer.TypeAssumptions.ptr_newHeader_unfold
   EtcdServer.TypeAssumptions.ptr_parseProposeCtxErr_unfold
   EtcdServer.TypeAssumptions.ptr_processInternalRaftRequestOnce_unfold
   EtcdServer.TypeAssumptions.ptr_promoteMember_unfold
   EtcdServer.TypeAssumptions.ptr_purgeFile_unfold
   EtcdServer.TypeAssumptions.ptr_raftRequest_unfold
+  EtcdServer.TypeAssumptions.ptr_raftStatus_unfold
   EtcdServer.TypeAssumptions.ptr_requireAuthInfo_unfold
   EtcdServer.TypeAssumptions.ptr_restoreAlarms_unfold
   EtcdServer.TypeAssumptions.ptr_revokeExpiredLeases_unfold
@@ -12652,6 +13900,8 @@ attribute [instance] EtcdServer.TypeAssumptions.type_repr
   EtcdServer.TypeAssumptions.ptr_snapshot_unfold
   EtcdServer.TypeAssumptions.ptr_snapshotIfNeededAndCompactRaftLog_unfold
   EtcdServer.TypeAssumptions.ptr_start_unfold
+  EtcdServer.TypeAssumptions.ptr_waitAppliedIndex_unfold
+  EtcdServer.TypeAssumptions.ptr_waitLeader_unfold
 
 abbrev ServerPeer [GooseExts] : Type := GoInterface
 
@@ -12730,6 +13980,7 @@ attribute [instance] downgradeEnabledHandler.TypeAssumptions.type_repr
 
 structure etcdProgress [GooseExts] where
   mk ::
+  replayConf' : Loc
   confState' : Loc
   diskSnapshotIndex' : w64
   memorySnapshotIndex' : w64
@@ -12737,10 +13988,11 @@ structure etcdProgress [GooseExts] where
   appliedi' : w64
 
 noncomputable instance etcdProgress.zero_val [GooseExts] : ZeroVal etcdProgress :=
-  ⟨etcdProgress.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+  ⟨etcdProgress.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] noncomputable def etcdProgress.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
-  [(go.field_decl.FieldDecl go!"confState" (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)),
+  [(go.field_decl.FieldDecl go!"replayConf" (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)),
+(go.field_decl.FieldDecl go!"confState" (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)),
 (go.field_decl.FieldDecl go!"diskSnapshotIndex" go.uint64),
 (go.field_decl.FieldDecl go!"memorySnapshotIndex" go.uint64),
 (go.field_decl.FieldDecl go!"appliedt" go.uint64),
@@ -12759,6 +14011,8 @@ noncomputable instance equals_unfold_etcdProgress [GooseExts] [GoGlobalContext] 
 class etcdProgress.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying etcdProgress.underlying etcdProgress
   underlying : go.UnderlyingDirectedEq etcdProgress.ty etcdProgress.underlying
+  get_replayConf : ∀ (x : etcdProgress), go.IsGoStepPureDetTagged under (StructFieldGet etcdProgress.underlying go!"replayConf") #x (Val #(x.replayConf'))
+  set_replayConf : ∀ (x : etcdProgress) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet etcdProgress.underlying go!"replayConf") (PairV #x #y) (Val #(({ x with replayConf' := y } : etcdProgress)))
   get_confState : ∀ (x : etcdProgress), go.IsGoStepPureDetTagged under (StructFieldGet etcdProgress.underlying go!"confState") #x (Val #(x.confState'))
   set_confState : ∀ (x : etcdProgress) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet etcdProgress.underlying go!"confState") (PairV #x #y) (Val #(({ x with confState' := y } : etcdProgress)))
   get_diskSnapshotIndex : ∀ (x : etcdProgress), go.IsGoStepPureDetTagged under (StructFieldGet etcdProgress.underlying go!"diskSnapshotIndex") #x (Val #(x.diskSnapshotIndex'))
@@ -12774,6 +14028,8 @@ class etcdProgress.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
 
 attribute [instance] etcdProgress.TypeAssumptions.type_repr
   etcdProgress.TypeAssumptions.underlying
+  etcdProgress.TypeAssumptions.get_replayConf
+  etcdProgress.TypeAssumptions.set_replayConf
   etcdProgress.TypeAssumptions.get_confState
   etcdProgress.TypeAssumptions.set_confState
   etcdProgress.TypeAssumptions.get_diskSnapshotIndex
@@ -12940,6 +14196,53 @@ attribute [instance] AccessController.TypeAssumptions.type_repr
   AccessController.TypeAssumptions.method_set
   AccessController.TypeAssumptions.ptr_method_set
 
+structure replayTermRun [GooseExts] where
+  mk ::
+  first' : w64
+  last' : w64
+  term' : w64
+
+noncomputable instance replayTermRun.zero_val [GooseExts] : ZeroVal replayTermRun :=
+  ⟨replayTermRun.mk zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def replayTermRun.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"first" go.uint64),
+(go.field_decl.FieldDecl go!"last" go.uint64),
+(go.field_decl.FieldDecl go!"term" go.uint64)]
+
+@[irreducible] noncomputable def replayTermRun.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  replayTermRun.fieldsUnsealed
+
+noncomputable instance equals_unfold_replayTermRun [GooseExts] [GoGlobalContext] :
+    EqualsUnfold replayTermRun.fields replayTermRun.fieldsUnsealed :=
+  ⟨by unfold replayTermRun.fields; rfl⟩
+
+@[reducible] noncomputable def replayTermRun.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType replayTermRun.fields)
+
+class replayTermRun.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying replayTermRun.underlying replayTermRun
+  underlying : go.UnderlyingDirectedEq replayTermRun.ty replayTermRun.underlying
+  get_first : ∀ (x : replayTermRun), go.IsGoStepPureDetTagged under (StructFieldGet replayTermRun.underlying go!"first") #x (Val #(x.first'))
+  set_first : ∀ (x : replayTermRun) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet replayTermRun.underlying go!"first") (PairV #x #y) (Val #(({ x with first' := y } : replayTermRun)))
+  get_last : ∀ (x : replayTermRun), go.IsGoStepPureDetTagged under (StructFieldGet replayTermRun.underlying go!"last") #x (Val #(x.last'))
+  set_last : ∀ (x : replayTermRun) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet replayTermRun.underlying go!"last") (PairV #x #y) (Val #(({ x with last' := y } : replayTermRun)))
+  get_term : ∀ (x : replayTermRun), go.IsGoStepPureDetTagged under (StructFieldGet replayTermRun.underlying go!"term") #x (Val #(x.term'))
+  set_term : ∀ (x : replayTermRun) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet replayTermRun.underlying go!"term") (PairV #x #y) (Val #(({ x with term' := y } : replayTermRun)))
+  method_set : go.MethodSetIs replayTermRun.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType replayTermRun.ty) []
+
+attribute [instance] replayTermRun.TypeAssumptions.type_repr
+  replayTermRun.TypeAssumptions.underlying
+  replayTermRun.TypeAssumptions.get_first
+  replayTermRun.TypeAssumptions.set_first
+  replayTermRun.TypeAssumptions.get_last
+  replayTermRun.TypeAssumptions.set_last
+  replayTermRun.TypeAssumptions.get_term
+  replayTermRun.TypeAssumptions.set_term
+  replayTermRun.TypeAssumptions.method_set
+  replayTermRun.TypeAssumptions.ptr_method_set
+
 abbrev RaftKV [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def RaftKV.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
@@ -13054,15 +14357,21 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   raftReadyHandler_instance : raftReadyHandler.TypeAssumptions
   confChangeResponse_instance : confChangeResponse.TypeAssumptions
   AccessController_instance : AccessController.TypeAssumptions
+  replayTermRun_instance : replayTermRun.TypeAssumptions
+  replayTerms_instance : replayTerms.TypeAssumptions
   RaftKV_instance : RaftKV.TypeAssumptions
   Lessor_instance : Lessor.TypeAssumptions
   Authenticator_instance : Authenticator.TypeAssumptions
   zapRaftLogger_instance : zapRaftLogger.TypeAssumptions
+  NewServerVersionAdapter_unfold : FuncUnfold NewServerVersionAdapter [] NewServerVersionAdapter.impl
+  confStateFromMembers_unfold : FuncUnfold confStateFromMembers [] confStateFromMembers.impl
+  newCorruptionChecker_unfold : FuncUnfold newCorruptionChecker [] newCorruptionChecker.impl
   newRaftNode_unfold : FuncUnfold newRaftNode [] newRaftNode.impl
   updateCommittedIndex_unfold : FuncUnfold updateCommittedIndex [] updateCommittedIndex.impl
   NewServer_unfold : FuncUnfold NewServer [] NewServer.impl
   verifyConsistentIndexIsLatest_unfold : FuncUnfold verifyConsistentIndexIsLatest [] verifyConsistentIndexIsLatest.impl
   newSnapshotReaderCloser_unfold : FuncUnfold newSnapshotReaderCloser [] newSnapshotReaderCloser.impl
+  replayTermsFromStorage_unfold : FuncUnfold replayTermsFromStorage [] replayTermsFromStorage.impl
   firstCompareKey_unfold : FuncUnfold firstCompareKey [] firstCompareKey.impl
   firstOpKey_unfold : FuncUnfold firstOpKey [] firstOpKey.impl
   firstOpType_unfold : FuncUnfold firstOpType [] firstOpType.impl
@@ -13077,7 +14386,9 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_semver_Assumption : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions
   import_etcdserverpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
-  import_version_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.version.Assumptions
+  import_v3_version_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.version.Assumptions
+  import_etcdserver_version_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Assumptions
+  import_schema_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.Assumptions
   import_json_Assumption : _root_.Perennial.encoding.json.Assumptions
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
   import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
@@ -13127,6 +14438,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_features_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.features.Assumptions
   import_lease_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Assumptions
   import_leasehttp_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.leasehttp.Assumptions
+  import_snapshotmeta_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.snapshotmeta.Assumptions
   import_base64_Assumption : _root_.Perennial.encoding.base64.Assumptions
   import_attribute_Assumption : _root_.Perennial.go_opentelemetry_io.otel.«attribute».Assumptions
   import_trace_Assumption : _root_.Perennial.go_opentelemetry_io.otel.trace.Assumptions
@@ -13163,15 +14475,21 @@ attribute [instance] Assumptions.serverVersionAdapter_instance
   Assumptions.raftReadyHandler_instance
   Assumptions.confChangeResponse_instance
   Assumptions.AccessController_instance
+  Assumptions.replayTermRun_instance
+  Assumptions.replayTerms_instance
   Assumptions.RaftKV_instance
   Assumptions.Lessor_instance
   Assumptions.Authenticator_instance
   Assumptions.zapRaftLogger_instance
+  Assumptions.NewServerVersionAdapter_unfold
+  Assumptions.confStateFromMembers_unfold
+  Assumptions.newCorruptionChecker_unfold
   Assumptions.newRaftNode_unfold
   Assumptions.updateCommittedIndex_unfold
   Assumptions.NewServer_unfold
   Assumptions.verifyConsistentIndexIsLatest_unfold
   Assumptions.newSnapshotReaderCloser_unfold
+  Assumptions.replayTermsFromStorage_unfold
   Assumptions.firstCompareKey_unfold
   Assumptions.firstOpKey_unfold
   Assumptions.firstOpType_unfold
@@ -13186,7 +14504,9 @@ attribute [instance] Assumptions.serverVersionAdapter_instance
   Assumptions.import_context_Assumption
   Assumptions.import_semver_Assumption
   Assumptions.import_etcdserverpb_Assumption
-  Assumptions.import_version_Assumption
+  Assumptions.import_v3_version_Assumption
+  Assumptions.import_etcdserver_version_Assumption
+  Assumptions.import_schema_Assumption
   Assumptions.import_json_Assumption
   Assumptions.import_errors_Assumption
   Assumptions.import_fmt_Assumption
@@ -13236,6 +14556,7 @@ attribute [instance] Assumptions.serverVersionAdapter_instance
   Assumptions.import_features_Assumption
   Assumptions.import_lease_Assumption
   Assumptions.import_leasehttp_Assumption
+  Assumptions.import_snapshotmeta_Assumption
   Assumptions.import_base64_Assumption
   Assumptions.import_attribute_Assumption
   Assumptions.import_trace_Assumption

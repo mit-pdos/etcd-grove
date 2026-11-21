@@ -128,7 +128,8 @@ theorem readyRest_snapTo [package_sem : Assumptions] (γ : Cluster) (N : Namespa
 def readyGotT (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState) (rd : Ready)
     : IProp GF :=
   iprop(∃ ce es h L ms ss,
-      readySnapSources γ n ms ∗
+      readySnapSources γ n id (phsNext st.hardState h).Term' ms (st.afterReady ce es h L ss).delivered.length
+          (Option.map (fun l => l.snap.Metadata'.Index') L) ∗
         committedEntriesAt rd.CommittedEntries' st.delivered.length ce ∗
           isCommittedLogLb γ (st.delivered ++ ce) ∗
             (∃ rs, readStatesPts rd.ReadStates' rs ∗ [∗list] s ∈ rs, readStateOk γ N s.RequestCtx' s.Index') ∗
@@ -146,7 +147,8 @@ theorem isReadyChan_recvAuT [package_sem : Assumptions] (n ch : Loc) (γ : Clust
     isReadyChan n γ N ch -∗ isNode n γ N id -∗ nodeDriver n γ N st -∗ ∃ γc, isChan ch γc Ready ∗ (£
     1 ∗ £ 1 -∗ (▷ ∀ rd, readyGotT n γ N id st rd -∗ Φ rd true) -∗ recvAu γc Ready Φ)
 
-def (sealed) readySnapSources (γ : Cluster) (n : Loc) (ms : List QMsg) : IProp GF
+def (sealed) readySnapSources (γ : Cluster) (n : Loc) (id term : w64) (ms : List QMsg) (bound : Nat)
+    (installed : Option w64 := none) : IProp GF
 
 def (sealed) ownCommittedOps (γ : Cluster) (ops : List LogEntry) : IProp GF
 
@@ -270,6 +272,12 @@ theorem readyRest_indices [package_sem : Assumptions] (γ : Cluster) (N : Namesp
     h L ms ss ⊢ ⌜∀ (e0 : EntryM), es.head? = some e0 → ∀ (j : Nat) (e : EntryM), es[j]? = some e →
     uint.nat e.Index' = uint.nat e0.Index' + j⌝ ∗ readyRest γ N id rd st ce es h L ms ss
 
+theorem readyRest_ents_order [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (id : w64)
+    (rd : Ready) (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L
+    : Option SnapLoan) (ms : List QMsg) (ss : Option (w64 × StateType)) : readyRest γ N id rd st ce
+    es h L ms ss ⊢ readyRest γ N id rd st ce es h L ms ss ∗ ⌜List.Pairwise (fun a b => uint.nat
+    a.Term' ≤ uint.nat b.Term' ∧ uint.nat a.Index' < uint.nat b.Index') es⌝
+
 theorem nodeCommitLb_zero [package_sem : Assumptions] (γ : Cluster) (K : GName) : ⊢ nodeCommitLb γ K
     0
 
@@ -308,7 +316,8 @@ def readyRest (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeD
 def readyGot (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState) (rd : Ready)
     : IProp GF :=
   iprop(∃ ce es h L ms ss,
-      readySnapSources γ n ms ∗
+      readySnapSources γ n id (phsNext st.hardState h).Term' ms (st.afterReady ce es h L ss).delivered.length
+          (Option.map (fun l => l.snap.Metadata'.Index') L) ∗
         committedEntriesAt rd.CommittedEntries' st.delivered.length ce ∗
           isCommittedLogLb γ (st.delivered ++ ce) ∗
             (∃ rs, readStatesPts rd.ReadStates' rs ∗ [∗list] s ∈ rs, readStateOk γ N s.RequestCtx' s.Index') ∗
@@ -359,8 +368,8 @@ theorem msgOut_snap [package_sem : Assumptions] (γ : Cluster) (l : Loc) (dq : D
 
 def (sealed) snapshotCert (γ : Cluster) (N : Namespace) (k : SnapTrip) : IProp GF
 
-theorem readySnapSources_persistent (γ : Cluster) (n : Loc) (ms : List QMsg) : Persistent
-    (readySnapSources γ n ms)
+theorem readySnapSources_persistent (γ : Cluster) (n : Loc) (id term : w64) (ms : List QMsg) (bound
+    : Nat) (installed : Option w64) : Persistent (readySnapSources γ n id term ms bound installed)
 
 theorem readyMsgs_sent [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (id : w64) (ms :
     List QMsg) : ([∗list] q ∈ ms, iprop(msgOut γ q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st)) ∗
@@ -400,6 +409,9 @@ theorem sentMsg_snapTo [package_sem : Assumptions] (γ : Cluster) (N : Namespace
 
 theorem ownCommittedOps_timeless (γ : Cluster) (ops : List LogEntry) : Timeless (ownCommittedOps γ
     ops)
+
+theorem committedAtTerm_mono_term [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (old t c
+    : w64) (ht : uint.Z old ≤ uint.Z t) : committedAtTerm γ N old c ⊢ committedAtTerm γ N t c
 
 theorem readyEnts_entsRO [package_sem : Assumptions] (γ : Cluster) (s : GoSlice) (es : List EntryM)
     : readyEnts γ s es ⊢ entsRO s es

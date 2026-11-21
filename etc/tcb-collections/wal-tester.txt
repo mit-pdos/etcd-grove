@@ -14,9 +14,9 @@
 roots ^WalTester/Proof/github_com/mit_pdos/etcd_grove/examples/etcd/wal/
 axiom binary.ReadInt64LE.wp_proof
 axiom entryEncC_ok
+axiom fmt.ErrorfStrs.wp_proof
 axiom fmt.SprintfWalName.wp_proof
 axiom fmt.SscanfWalName.wp_proof
-axiom io.ReadFull.wp_proof
 axiom pbRecordC_reg
 axiom pbSnapC_reg
 axiom proto.ClonePb.wp_proof
@@ -26,9 +26,5 @@ axiom proto.SizePb.wp_proof
 axiom proto.UnmarshalPb.wp_proof
 axiom recEncC_ok
 axiom snapEncC_ok
-axiom strings.HasSuffix.wp_proof
-axiom time.Duration.Seconds.wp_proof
-axiom time.Duration.Seconds_ptr.wp_proof
 axiom zap.Logger.check.wp_proof
-axiom zap.NewNop.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof

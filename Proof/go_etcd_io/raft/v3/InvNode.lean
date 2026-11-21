@@ -1208,8 +1208,21 @@ theorem readyRest_ents_type (γ : Cluster) (N : Namespace) (id : w64) (rd : Read
   icases readyRest_facts γ N id rd st ce es h L ms ss $$ H with ⟨H, %Hf⟩
   iframe H; ipureintro
   cases L with
-  | none => exact Hf.2.2.2.2.2.2
-  | some l => exact Hf.2.2.2.2
+  | none => exact Hf.2.2.2.2.2.2.1
+  | some l => exact Hf.2.2.2.2.1
+
+/-- A Ready's physical entries have nondecreasing terms and strictly increasing indices. -/
+theorem readyRest_ents_order (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState)
+    (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan) (ms : List QMsg)
+    (ss : Option (w64 × StateType)) :
+    readyRest (GF := GF) γ N id rd st ce es h L ms ss ⊢ readyRest γ N id rd st ce es h L ms ss ∗
+      ⌜es.Pairwise (fun a b => uint.nat a.Term' ≤ uint.nat b.Term' ∧ uint.nat a.Index' < uint.nat b.Index')⌝ := by
+  iintro H
+  icases readyRest_facts γ N id rd st ce es h L ms ss $$ H with ⟨H, %Hf⟩
+  iframe H; ipureintro
+  cases L with
+  | none => exact Hf.2.2.2.2.2.2.2
+  | some l => exact Hf.2.2.2.2.2
 
 /-! ## What etcd's server needs (2026-10-27, branch `server-port`; implemented the same day)
 
@@ -1329,6 +1342,16 @@ leader of term `t` had committed the log through `c`. What the snapshot a server
 instance committedAtTerm_persistent (γ : Cluster) (N : Namespace) (t c : w64) :
     Persistent (committedAtTerm (GF := GF) γ N t c) := by
   unfold committedAtTerm; exact ApiImpl.committedAtTerm_persistent γ N t c
+
+/-- Use a pre-restart commit certificate to label a snapshot in a later
+term, even if the WAL lost its most recent HardState commit. -/
+theorem committedAtTerm_mono_term (γ : Cluster) (N : Namespace) (old t c : w64)
+    (ht : uint.Z old ≤ uint.Z t) :
+    committedAtTerm (GF := GF) γ N old c ⊢ committedAtTerm γ N t c := by
+  unfold committedAtTerm ApiImpl.committedAtTerm
+  iintro ⟨#Hw, Hlb⟩
+  iframe Hlb
+  iapply commitWit_mono_term γ.raft old t c ht $$ Hw
 
 theorem committedAtTerm_committed (γ : Cluster) (N : Namespace) (t c : w64) :
     committedAtTerm (GF := GF) γ N t c ⊢
@@ -1459,12 +1482,12 @@ theorem readStateOk_after (γ : Cluster) (N : Namespace) (c : List w8) (idx : w6
   rw [← Hag.2]; exact Hl1
 
 /-- The sending node's evidence about the source of the snapshots in this Ready. -/
-@[no_expose] def readySnapSources (γ : Cluster) (n : Loc) (ms : List QMsg) : IProp GF :=
-  ApiImpl.snapSources γ n ms
+@[no_expose] def readySnapSources (γ : Cluster) (n : Loc) (id term : w64) (ms : List QMsg) (bound : Nat) (installed : Option w64 := none) : IProp GF :=
+  ApiImpl.snapSources γ n id term ms bound installed
 
-instance readySnapSources_persistent (γ : Cluster) (n : Loc) (ms : List QMsg) :
-    Persistent (readySnapSources (GF := GF) γ n ms) := by
-  unfold readySnapSources; exact ApiImpl.snapSources_persistent γ n ms
+instance readySnapSources_persistent (γ : Cluster) (n : Loc) (id term : w64) (ms : List QMsg) (bound : Nat) (installed : Option w64) :
+    Persistent (readySnapSources (GF := GF) γ n id term ms bound installed) := by
+  unfold readySnapSources; exact ApiImpl.snapSources_persistent γ n id term ms bound installed
 
 /-- (2026-11-01, durability stage I-3; candidate 12 §3) **What receiving a `Ready` gives** (the
 receive's postcondition; until then spelled out in it, with the loop's token in place of *enter*):
@@ -1478,7 +1501,7 @@ def readyGot (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDrive
     (rd : Ready) : IProp GF :=
   iprop(∃ (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan)
       (ms : List QMsg) (ss : Option (w64 × StateType)),
-    readySnapSources γ n ms ∗
+    readySnapSources γ n id (phsNext st.hardState h).Term' ms (st.afterReady ce es h L ss).delivered.length (L.map (fun l => l.snap.Metadata'.Index')) ∗
     committedEntriesAt rd.CommittedEntries' st.delivered.length ce ∗
     isCommittedLogLb γ (st.delivered ++ ce) ∗
     (∃ rs, readStatesPts rd.ReadStates' rs ∗
@@ -1522,7 +1545,7 @@ def readyGotT (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriv
     (rd : Ready) : IProp GF :=
   iprop(∃ (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan)
       (ms : List QMsg) (ss : Option (w64 × StateType)),
-    readySnapSources γ n ms ∗
+    readySnapSources γ n id (phsNext st.hardState h).Term' ms (st.afterReady ce es h L ss).delivered.length (L.map (fun l => l.snap.Metadata'.Index')) ∗
     committedEntriesAt rd.CommittedEntries' st.delivered.length ce ∗
     isCommittedLogLb γ (st.delivered ++ ce) ∗
     (∃ rs, readStatesPts rd.ReadStates' rs ∗

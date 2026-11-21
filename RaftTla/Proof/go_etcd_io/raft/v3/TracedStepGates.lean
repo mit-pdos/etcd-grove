@@ -121,7 +121,7 @@ theorem traceReceiveMessage.gated (h : traceReceiveMessage.spec (GF := GF) (hG :
     traceReceiveMessage.gatedTriple (GF := GF) (hG := hG) := by
   intro c r id s ml dq dqe cap ms Q Hns
   iintro %Φ ⟨#Hpkg, Hphys, Hm, Hg⟩ HΦ
-  iapply wp_ncfupd_app
+  iapply (wp_ncfupd _ _ rfl)
   iunfold HookGateOpt at Hg
   unfold ncfupd
   iintro Hnc

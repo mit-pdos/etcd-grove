@@ -406,8 +406,8 @@ theorem v3rpc.watchServer.Watch.wp_proof
     -- etcd's no-leader error: `errors.Is` on a status error
     ihave #HcS := v3rpc.statusErrOk_of_noLeaderErr $$ [] %cerr HcE
     · iframe #
-    wp_apply hIsS cerr (GoInterface.ok eC) (Or.inr (Or.inl ⟨eC, rfl, HeCp⟩)) $$ [] as %bC -
-    · iframe #
+    wp_apply hIsS cerr (GoInterface.ok eC) none (Or.inr (Or.inl ⟨eC, rfl, HeCp⟩)) $$ [] as %bC -
+    · iframe #; try iapply go_etcd_io.etcd.cache.v3.isDescs_none
     wp_if_destruct
     rotate_left
     all_goals try wp_auto

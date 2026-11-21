@@ -134,7 +134,7 @@ private theorem dispatch_App (P : raft.Step.Postulates (GF := GF) (hG := hG))
       stepClose γ md c id m ents ctx s R Gout -∗
       ▷ stepPostT γ md c r id s m (AppTrunc m ents s) Gout Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
-        {{ v, ncfupd ⊤ (Φ v) }} := by
+        {{ v, ncfupd ⊤ ⊤ (Φ v) }} := by
   obtain ⟨Hto, Hterm, Hfnz, Hfid⟩ := Hm
   iintro #Hinit Hphys Hghost Hrest Hmsg #Hm HG Hgates Hclose HΦ
   -- `maybeAppend`'s batch facts: carried by the message
@@ -225,7 +225,7 @@ private theorem dispatch_Heartbeat (P : raft.Step.Postulates (GF := GF) (hG := h
       stepClose γ md c id m ents ctx s R Gout -∗
       ▷ stepPost γ md c r id s m Gout Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
-        {{ v, ncfupd ⊤ (Φ v) }} := by
+        {{ v, ncfupd ⊤ ⊤ (Φ v) }} := by
   obtain ⟨Hto, Hterm, Hfnz, Hfid⟩ := Hm
   iintro #Hinit Hphys Hghost Hrest Hmsg #Hmc HG Hgates Hclose HΦ
   have Hcl_lem : ⊢ notCrashed -∗ ownRaftGhost (GF := GF) γ id (toPState s) md.isDyn -∗
@@ -291,7 +291,7 @@ private theorem dispatch_AppResp (P : raft.Step.Postulates (GF := GF) (hG := hG)
       stepClose γ md c id m ents ctx s R Gout -∗
       ▷ stepPost γ md c r id s m Gout Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
-        {{ v, ncfupd ⊤ (Φ v) }} := by
+        {{ v, ncfupd ⊤ ⊤ (Φ v) }} := by
   obtain ⟨Hto, Hterm, Hfnz, Hrej⟩ := Hm
   iintro #Hinit Hphys Hghost Hrest Hmsg #Hm HG Hgates Hclose HΦ
   -- (2026-10-13) the read-only facts a commit's release needs, from the ghost state
@@ -418,7 +418,7 @@ private theorem dispatch_HeartbeatResp (P : raft.Step.Postulates (GF := GF) (hG 
       stepClose γ md c id m ents ctx s R Gout -∗
       ▷ stepPost γ md c r id s m Gout Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
-        {{ v, ncfupd ⊤ (Φ v) }} := by
+        {{ v, ncfupd ⊤ ⊤ (Φ v) }} := by
   obtain ⟨Hto, Hterm, Hfnz, Hfid⟩ := Hm
   iintro #Hinit Hphys Hghost Hrest Hmsg #Hm HG Hgates Hclose HΦ
   -- (2026-10-25, T-M M2c) the configuration has a voter, from the ghost state
@@ -473,7 +473,7 @@ private theorem dispatch_Beat (P : raft.Step.Postulates (GF := GF) (hG := hG))
       stepClose γ md c id m ents ctx s R Gout -∗
       ▷ stepPost γ md c r id s m Gout Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
-        {{ v, ncfupd ⊤ (Φ v) }} := by
+        {{ v, ncfupd ⊤ ⊤ (Φ v) }} := by
   iintro #Hinit Hphys Hghost Hrest Hmsg HG Hgates Hclose HΦ
   -- (2026-10-29, stage U7) a leader's term past `0`, for `send`'s stamp (`stepLeader`'s premise)
   have HLT_lem : ⊢ ownRaftGhost (GF := GF) γ id (toPState s) md.isDyn -∗
@@ -512,7 +512,7 @@ private theorem dispatch_CheckQuorum (P : raft.Step.Postulates (GF := GF) (hG :=
       stepClose γ md c id m ents ctx s R Gout -∗
       ▷ stepPost γ md c r id s m Gout Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
-        {{ v, ncfupd ⊤ (Φ v) }} := by
+        {{ v, ncfupd ⊤ ⊤ (Φ v) }} := by
   iintro #Hinit Hphys Hghost Hrest Hmsg HG Hgates Hclose HΦ
   ihave HG := gate_open γ md c id s R $$ Hghost Hrest HG
   wp_apply (wp_Step_MsgCheckQuorum P Q c r id s ml m sn ctx rs ents (ghostIn γ md c id s R) Hty Hterm Hwf)
@@ -554,7 +554,7 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
       stepClose γ md c id m ents ctx s R Gout -∗
       ▷ snapPost γ md c r id s m sn Gout Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
-        {{ v, ncfupd ⊤ (Φ v) }} := by
+        {{ v, ncfupd ⊤ ⊤ (Φ v) }} := by
   obtain ⟨Hto, Hterm, Hfnz, Hfid⟩ := Hm
   iintro #Hinit Hphys Hghost Hrest Hmsg #HmC #Hdat HG Hgates Hclose HΦ
   ihave #Hm := isMessageC_isMessage γ _ $$ HmC
@@ -649,7 +649,7 @@ private theorem dispatch_ReadIndex (P : raft.Step.Postulates (GF := GF) (hG := h
       stepClose γ md c id m ents ctx s R Gout -∗
       ▷ stepPost γ md c r id s m Gout Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
-        {{ v, ncfupd ⊤ (Φ v) }} := by
+        {{ v, ncfupd ⊤ ⊤ (Φ v) }} := by
   iintro #Hinit Hphys Hghost Hrest Hmsg #Hm Hcred HG Hgates Hclose HΦ
   -- a request has an entry (its context)
   have Hne_lem : ⊢ isMessage (GF := GF) γ (absMsg .readIndex m ents ctx) -∗ ⌜ents ≠ []⌝ := by
@@ -724,7 +724,7 @@ private theorem dispatch_ReadIndexResp (P : raft.Step.Postulates (GF := GF) (hG 
       stepClose γ md c id m ents ctx s R Gout -∗
       ▷ stepPost γ md c r id s m Gout Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
-        {{ v, ncfupd ⊤ (Φ v) }} := by
+        {{ v, ncfupd ⊤ ⊤ (Φ v) }} := by
   obtain ⟨Hto, Hterm, -, Hfid⟩ := Hm
   iintro #Hinit Hphys Hghost Hrest Hmsg #Hm HG Hgates Hclose HΦ
   -- a response carries its request's entry

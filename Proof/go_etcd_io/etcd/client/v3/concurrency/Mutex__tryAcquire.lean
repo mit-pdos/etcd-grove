@@ -66,7 +66,7 @@ theorem Mutex.tryAcquire.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := h
     simp [_root_.Perennial.fmt.IsIntType, go_etcd_io.etcd.client.v3.LeaseID.ty, go.int,
       go.int64, go.int32, go.int16, go.int8, go.uint, go.uint64, go.uint32, go.uint16, go.uint8]
   -- Perennial's `fmt.wp_Sprintf`: a `string` and a `LeaseID` (a named `int64` without methods)
-  wp_apply _root_.Perennial.fmt.wp_Sprintf _ _ _ _ ?wf $$ [$Hfmt $Hargs] as %key ⟨Hargs, %Hkey⟩
+  wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ _ ?wf $$ [$Hfmt $Hargs] as %key ⟨Hargs, %Hkey⟩
   case wf =>
     rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]
     simp only [List.set_cons_succ, List.set_cons_zero]

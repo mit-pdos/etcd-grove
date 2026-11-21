@@ -67,9 +67,11 @@ module
 public import Proof.net.InvNet
 public import Proof.context.BgCancel
 public import GeneratedProof.net.http
+public import Proof.net.http.Base
 public import GeneratedProof.net.url
 public import Perennial.Code.io
 public import Perennial.Code.bytes
+public import Perennial.Proof.bytes.BufferBasics
 public import Perennial.Code.encoding.binary
 public import Perennial.Proof.ProofPrelude
 public import Perennial.Ghost.DGhostVar
@@ -349,12 +351,31 @@ theorem reqTicketOnce_use (R : HReq) (γk : GName) (h : onceOnly R) :
   iapply Ht
   ipureintro; exact h
 
-/-- **A header map `hm` holding `hs`** (exclusive; a request's headers being built, or a response
-writer's). -/
-opaque hdrOwn (hm : Loc) (hs : List (GoString × GoString)) : IProp GF
+/-- The values of the key `k` in `hs`, in order: what the header map holds at `k`. -/
+def hdrVals (hs : List (GoString × GoString)) (k : GoString) : List GoString :=
+  (hs.filter (fun kv => kv.1 = k)).map Prod.snd
 
-/-- The header map `hm` of a received request, holding `hs` (opaque). -/
-opaque hdrAtRaw (hm : Loc) (hs : List (GoString × GoString)) : IProp GF
+/-- **A header map at `hm` holding `hs`, with the fraction `dq` of the map** (prove-http3,
+2026-11-21: a definition, until then the opaque `hdrOwn` and `hdrAtRaw`): an `http.Header`
+(`map[string][]string`) at a map `M` whose value at each key `k` is a read-only slice of
+`hdrVals hs k`, and which has no entry at a key with no value in `hs`. -/
+def hdrMap (hm : Loc) (dq : DFrac) (hs : List (GoString × GoString)) : IProp GF :=
+  iprop(∃ M : GMap GoString GoSlice, hm ↦${dq} M ∗
+    □ (∀ (k : GoString) (sl : GoSlice), ⌜M !! k = some sl⌝ -∗ sl ↦*□ hdrVals hs k) ∗
+    ⌜∀ k, M !! k = none → hdrVals hs k = []⌝)
+
+/-- **A header map `hm` holding `hs`** (exclusive; a request's headers being built, or a response
+writer's): the whole map (`hdrMap`). -/
+def hdrOwn (hm : Loc) (hs : List (GoString × GoString)) : IProp GF :=
+  hdrMap hm (DFrac.own 1) hs
+
+/-- The header map `hm` of a received request, holding `hs`: the map, read-only (`hdrMap`). -/
+def hdrAtRaw (hm : Loc) (hs : List (GoString × GoString)) : IProp GF :=
+  hdrMap hm DFrac.discard hs
+
+instance hdrAtRaw_persistent (hm : Loc) (hs : List (GoString × GoString)) :
+    Persistent (hdrAtRaw (GF := GF) hm hs) := by
+  unfold hdrAtRaw hdrMap; infer_instance
 
 /-- **A received request's header map `hm`, holding `hs`** (persistent): `Get` reads it. -/
 def hdrAt (hm : Loc) (hs : List (GoString × GoString)) : IProp GF := iprop(□ hdrAtRaw hm hs)
@@ -600,9 +621,14 @@ theorem errStrOk_nil : ⊢ errStrOk (GF := GF) GoInterface.nil := by
   unfold errStrOk
   ileft; ipureintro; rfl
 
-/-- **A reader holding exactly `bs`** (exclusive; `bytes.NewBuffer(bs)` as an `io.Reader`, or `nil`
-for an empty body): what `NewRequest` takes as the body. -/
-opaque readerHas (rd : GoInterface) (bs : List w8) : IProp GF
+/-- **A reader holding exactly `bs`** (exclusive): what `NewRequest` takes as a fixed body, `nil`
+for an empty body or a `*bytes.Buffer` holding `bs` (Perennial's `bytes.ownBuffer`, what
+`bytes.NewBuffer(bs)` returns). (stdlib2, 2026-11-21: defined; until then opaque, with the axioms
+`NewBuffer_ok` and `readerHas_nil` producing it, now theorems.) -/
+def readerHas (rd : GoInterface) (bs : List w8) : IProp GF :=
+  iprop(⌜rd = GoInterface.nil ∧ bs = []⌝ ∨
+    ∃ l : Loc, ⌜rd = interface.mkOk (go.GoType.PointerType _root_.Perennial.bytes.Buffer.ty) #l⌝ ∗
+      _root_.Perennial.bytes.ownBuffer l bs)
 
 /-- **A stream's prefixes** (D42): `Pre` holds of `[]` and of every prefix of what it holds of. -/
 def prefixClosed (Pre : List w8 → Prop) : Prop := Pre [] ∧ ∀ a b, Pre (a ++ b) → Pre a
@@ -950,10 +976,13 @@ def NewRequest_spec : Prop :=
       {{ (r : Loc), RET (PairV #r #GoInterface.nil);
           reqOwn r ⟨meth, host, path, [], K.bytes⟩ ∗ reqStream r K }}
 
-/-- `hm.Set(k, v)` (`http.Header`'s, a method of the map type) on a header map being built. -/
+/-- `hm.Set(k, v)` (`http.Header`'s, a method of the map type) on a header map being built.
+(prove-http3, 2026-11-21: with net/http's package initialization, which net/textproto's interned
+keys need, `textproto.commonHeaderOnce`; proved, `Proof/net/http/Proved.lean`, as the four header
+specs below.) -/
 def HeaderSet_spec : Prop :=
   ∀ (hm : Loc) (hs : List (GoString × GoString)) (k v : GoString),
-    ⊢ {{ hdrOwn (GF := GF) hm hs }}
+    ⊢ {{ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ hdrOwn hm hs }}
         (App (App (Val (hm @!! _root_.Perennial.net.http.Header.ty @!! go!"Set")) (Val #k))
           (Val #v))
       {{ RET #(); hdrOwn hm (hdrSet hs k v) }}
@@ -962,7 +991,7 @@ def HeaderSet_spec : Prop :=
 `Set`, as `req.Header.Set(k, v)` compiles): the map's `Set`. (2026-10-23, rafthttp stage 5e-3.) -/
 def HeaderSetPtr_spec : Prop :=
   ∀ (p hm : Loc) (hs : List (GoString × GoString)) (k v : GoString),
-    ⊢ {{ p ↦□ hm ∗ hdrOwn (GF := GF) hm hs }}
+    ⊢ {{ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ p ↦□ hm ∗ hdrOwn hm hs }}
         (App (App (Val (p @!! go.GoType.PointerType _root_.Perennial.net.http.Header.ty @!! go!"Set"))
           (Val #k)) (Val #v))
       {{ RET #(); hdrOwn hm (hdrSet hs k v) }}
@@ -970,7 +999,7 @@ def HeaderSetPtr_spec : Prop :=
 /-- `hm.Get(k)` on a received request's header map. -/
 def HeaderGet_spec : Prop :=
   ∀ (hm : Loc) (hs : List (GoString × GoString)) (k : GoString),
-    ⊢ {{ hdrAt (GF := GF) hm hs }}
+    ⊢ {{ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ hdrAt hm hs }}
         (App (Val (hm @!! _root_.Perennial.net.http.Header.ty @!! go!"Get")) (Val #k))
       {{ RET #(hdrGet hs k); True }}
 
@@ -978,7 +1007,7 @@ def HeaderGet_spec : Prop :=
 `r.Header.Get(k)` compiles): the map's `Get`. (2026-10-23, rafthttp stage 5e-2.) -/
 def HeaderGetPtr_spec : Prop :=
   ∀ (p hm : Loc) (hs : List (GoString × GoString)) (k : GoString),
-    ⊢ {{ p ↦□ hm ∗ hdrAt (GF := GF) hm hs }}
+    ⊢ {{ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ p ↦□ hm ∗ hdrAt hm hs }}
         (App (Val (p @!! go.GoType.PointerType _root_.Perennial.net.http.Header.ty @!! go!"Get"))
           (Val #k))
       {{ RET #(hdrGet hs k); True }}
@@ -1291,7 +1320,7 @@ def URLString_spec : Prop :=
 request's `Header` field. -/
 def HeaderGetOwnPtr_spec : Prop :=
   ∀ (p hm : Loc) (hs : List (GoString × GoString)) (k : GoString),
-    ⊢ {{ p ↦□ hm ∗ hdrOwn (GF := GF) hm hs }}
+    ⊢ {{ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ p ↦□ hm ∗ hdrOwn hm hs }}
         (App (Val (p @!! go.GoType.PointerType _root_.Perennial.net.http.Header.ty @!! go!"Get"))
           (Val #k))
       {{ RET #(hdrGet hs k); hdrOwn hm hs }}

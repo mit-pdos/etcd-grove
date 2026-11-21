@@ -45,6 +45,7 @@ theorem backend.txWriteBuffer.putSeq.wp_proof
       structFieldRef txWriteBuffer go!"txBuffer" txw ↦ ({ buckets' := m } : txBuffer) ∗
       ownBks m W.bks)) $$ [txw bucket k Hbk Hbks] as ⟨txw, bucket, k, Hbk, Hbks⟩
   · iframe txw bucket k Hbk Hbks
+    ileft
     iintro ⟨txw, bucket, k, Hbk, Hbks⟩
     icases ownBks_open m W.bks $$ Hbks with ⟨%M, Hm, Hbks⟩
     ihave %Hdom := bksOwn_dom M W.bks $$ Hbks

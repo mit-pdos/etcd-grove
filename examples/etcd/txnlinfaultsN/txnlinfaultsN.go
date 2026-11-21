@@ -51,8 +51,9 @@ const (
 // low bits distinct and not 0: etcd's request ids carry them as the member's prefix) fails for
 // some k <= 1000 at most tokens (the birthday bound of 16 bits); this token is the first
 // "txnlinfaultsN-<i>" at which it holds for every k <= 1000 (TestMemberIDs checks it), as
-// putgetN's.
-const Token = "txnlinfaultsN-6255"
+// putgetN's, and at which it holds also across the clusters of examples/etcd/all (etcd_safe's
+// Hlow: this cluster at k <= 1000, the other k-member ones at k <= 300; its TestMemberIDs).
+const Token = "txnlinfaultsN-12748"
 
 // The members' snapshot settings (partition's): a disk snapshot every SnapCount applied entries,
 // raft's log then compacted to SnapCatchUp entries below it, so that a member a cut kept behind

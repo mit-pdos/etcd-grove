@@ -28,8 +28,8 @@ theorem authClient.UserAdd.wp_proof
     (wp_retry : retryAuthClient.UserAdd.spec (GF := GF) (hG := hG))
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     authClient.UserAdd.spec (GF := GF) (hG := hG) := by
-  intro api conn addr ci cd name pw Spec Q
-  wp_start as ⟨#Hapi, #Hctx, #Hce, #Hrpc, #Hpre, %Hsz⟩
+  intro api conn addr ci om cd name pw Spec Q
+  wp_start as ⟨#Hapi, #Hctx, #Hce, #Hrpc, #Hom, #Hpre, %Hsz⟩
   iunfold authObjAtC at Hapi
   icases Hapi with ⟨%rac, %sl, #Hremote, #Hrac, #Hconn, #Hcopts, #Hsl⟩
   wp_auto
@@ -50,7 +50,7 @@ theorem authClient.UserAdd.wp_proof
     iexact Hopt
   iunfold callOptsAt at Hsl
   icases Hsl with ⟨%vs, #Hvs, -, #Hvok, -⟩
-  wp_apply wp_retry rac conn addr Spec Q ci cd «$a1_ptr» ⟨name, pw⟩ sl vs $$ [Hsend]
+  wp_apply wp_retry rac conn addr Spec Q ci om cd «$a1_ptr» ⟨name, pw⟩ sl vs $$ [Hsend]
     as %resp %err ⟨-, Hres⟩
   · iframe #
     iframe
@@ -59,7 +59,7 @@ theorem authClient.UserAdd.wp_proof
   icases Hres with (⟨%Herr, Hq⟩ | ⟨%Herr, #Hse, #Hcl⟩)
   · subst Herr
     ihave #Hse0 := go_etcd_io.etcd.cache.v3.statusErrOk_nil (GF := GF)
-    ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse0
+    ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_descIs _ $$ Hse0
     wp_apply wp_ContextError ci cd GoInterface.nil mC $$ [$Hse0 $HmC] as %err' ⟨%Herr', -, -⟩
     · iframe #; ipureintro; exact fun h => (h rfl).elim
     obtain ⟨H1, -⟩ := Herr'
@@ -70,7 +70,7 @@ theorem authClient.UserAdd.wp_proof
     iframe
     ipureintro; rfl
   · obtain ⟨Hne, Hce', Hnull⟩ := Herr
-    ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
+    ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_descIs _ $$ Hse
     wp_apply wp_ContextError ci cd err mC $$ [$Hse $HmC] as %err' ⟨%Herr', #Hse', #Hclw, -⟩
     · iframe #; ipureintro; exact fun _ => Hce'
     ihave #Hcl' := Hclw $$ Hcl

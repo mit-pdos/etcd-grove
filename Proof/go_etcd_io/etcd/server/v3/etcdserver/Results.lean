@@ -328,6 +328,15 @@ theorem wait_time (tl : Loc) (P : w64 → IProp GF) :
         #tl) P :=
   isWaitTime_of_timeList wait.timeList.wp_Wait wait.timeList.wp_Trigger tl P
 
+/-- **`NewStorage`'s contract over the real WAL** (wal-item3, 2026-11-21; `RnNewStorageLinked.lean`): given the
+storage package's initialization, `rnNewStorageOk`, from `NewStorage`'s proof and the storage methods' proofs over
+the WAL's linked results at the server's message model (whose hard-state marshal law rests on the registered
+`raftpb.HardState`, `hsEncC_ok`/`pbHsC_reg`). Under `os`'s field assumptions (the WAL's), so not yet passed to
+`bootstrappedRaft.newRaftNode`, whose spec keeps the premise `rnNewStorageOk`. -/
+theorem new_storage_contract [os.fileStat.FieldAssumptions]
+    [os.file.FieldAssumptions] : rnNewStorageOk.law (GF := GF) (hG := hG) :=
+  rnNewStorageOk_law_holds raftpb.SnapshotMetadata.wp_GetIndex
+
 end triples
 
 /-- **The batch, entry by entry** (`entriesStep_trace` on the batch `applyEntries` applies): the
@@ -1389,6 +1398,7 @@ end backend
 #print axioms Perennial.EtcdGrove.lessor_txn_contract
 #print axioms Perennial.EtcdGrove.server_kv_backend
 #print axioms Perennial.EtcdGrove.server_kv_watchable
+#print axioms Perennial.EtcdGrove.new_storage_contract
 
 section latest
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
@@ -2306,7 +2316,7 @@ rows, the apply thread's KV ghost state over the mode-`on` model) with auth on. 
 theorem server_built_gap_on (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc)
     (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF)
     (γn : RNNames GF) (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
-    srvBuiltG on s γ ci TM E ρ γr Er γn b ai₀ c₀ x₀ N ∗ srvBuildGap s γn ai₀ at₀ ⊢
+    srvBuiltG on s γ ci TM E ρ γr Er γn b ai₀ c₀ x₀ N ∗ srvBuildGap s γn γr.cursor ai₀ at₀ ⊢
       isServerBuiltM on s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N :=
   isServerBuilt_of_gapM on s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N
 

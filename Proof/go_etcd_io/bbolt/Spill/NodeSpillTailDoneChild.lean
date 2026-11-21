@@ -33,7 +33,7 @@ variable [GooseExts] [GoGlobalContext]
 theorem tail_ents {X' : WX} {bl n : Loc} {r' : NRec} {lo hi : Option (List w8)}
     {wss : List (List WEntry)} (hun : uNode X' bl n r' lo hi) (hws : wss.flatten = r'.nilCh.ws) :
     ∀ ws ∈ wss, ∀ e ∈ ws, keyIn lo hi e.key ∧ 0 < e.key.length ∧
-      e.key.length + e.value.length ≤ bboltEntryMax := by
+      entryBytesFit e.key.length e.value.length e.pgid := by
   intro ws hws' e he
   have : e ∈ r'.ws := by
     show e ∈ r'.nilCh.ws

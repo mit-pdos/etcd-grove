@@ -1,7 +1,7 @@
 /-
-Trust boundary: `io.NewSectionReader` (an axiom; see `Spec/io/NewSectionReader.lean`). S4,
-2026-11-18; proposed in Perennial as a translation of `io`'s `SectionReader` with bodies
-(`notes/perennial-changes.md`, "`io.NewSectionReader`, `io.CopyN`").
+`io.NewSectionReader`, proved over Perennial's translation of Go's (`io/io.go`): a fresh
+`&SectionReader{r, off, off, off + n, n}` (`io.secReader`). An axiom until 2026-11-21 (S4,
+2026-11-18).
 -/
 module
 
@@ -14,20 +14,31 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI
+open Iris Iris.BI Iris.ProofMode
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [package_sem : _root_.Perennial.io.Assumptions]
 
-/-- **Trust boundary** (S4): Go's `io.NewSectionReader(r, off, n)` (go1.27 `io/io.go`) computes its
-limit (`off + n`, as `off ≤ MaxInt64 - n` here) and returns a fresh `&SectionReader{r, off, off,
-off + n, n}`, touching nothing else: `io.secReader sr r off n` is that struct, owned, and only
-`io.CopyN`'s axiom uses it. What would discharge it: `io`'s `SectionReader` translated with its
-bodies, `secReader` its struct's points-to. -/
-axiom io.NewSectionReader.wp_proof : io.NewSectionReader.spec (GF := GF) (hG := hG)
+theorem io.NewSectionReader.wp_proof : io.NewSectionReader.spec (GF := GF) (hG := hG) := by
+  intro r off n hoff hn hsum
+  wp_start
+  wp_auto
+  rw [decide_eq_true (show sint.Z off ≤ sint.Z (W64 9223372036854775807 - n) by
+    have : sint.Z (W64 9223372036854775807 - n) = 9223372036854775807 - sint.Z n := by word
+    rw [this]
+    have h1 : sint.Z off = off.toNat := by word
+    have h2 : sint.Z n = n.toNat := by word
+    omega)]
+  wp_auto
+  iapply HΦ
+  unfold io.secReader
+  rw [show n + off = off + n by word]
+  iframe «$r0»
+  ipureintro; exact ⟨hoff, hn, hsum⟩
 
 end proof
 

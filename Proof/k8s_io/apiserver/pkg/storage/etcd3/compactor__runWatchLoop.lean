@@ -71,7 +71,7 @@ theorem keyWatchOp_rangeEnd (cur : w64) : (keyWatchOp cur).base.rangeEnd = [] :=
 (`watcher.Watch.spec` through the field). -/
 theorem client_Watch_field (wp_Watch : watcher.Watch.spec (GF := GF) (hG := hG))
     (cl w : Loc) (V : client.WEnv GF) (γ : KVNames) (ctx : GoInterfaceOk)
-    (cd : _root_.Perennial.context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
+    (cd : _root_.Perennial.context.ContextDesc (IProp GF)) (om : GrpcMd) (key : GoString) (sl : GoSlice)
     (opts : List (OpFull → OpFull)) (rev : w64) (Q : KVState → IProp GF) (n : Nat) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
@@ -79,7 +79,7 @@ theorem client_Watch_field (wp_Watch : watcher.Watch.spec (GF := GF) (hG := hG))
         structFieldRef go_etcd_io.etcd.client.v3.Client go!"Watcher" cl ↦□
           GoInterface.ok (client.watcherIfaceOf w) ∗
         client.isClientWatcher V w ∗ ⌜V.kst = γ.st⌝ ∗
-        EtcdGrove.context.watchCtx ctx cd ∗ optsAt sl opts ∗
+        EtcdGrove.context.watchCtx ctx cd ∗ metadata.outMD ctx om ∗ optsAt sl opts ∗
         ⌜(opWatchModel key opts).isRangeWatchP rev = true ∧ ¬ opWatchPanics key opts ∧
           1 ≤ sint.Z rev ∧ watchSizeOk (opWatchModel key opts)⌝ ∗
         □ (⌜V.nm = 1 ∧ 0 < n⌝ → auth.authPubLbM (V.mem 0).2.E.authMode n) ∗
@@ -90,16 +90,16 @@ theorem client_Watch_field (wp_Watch : watcher.Watch.spec (GF := GF) (hG := hG))
     {{ (ch : Loc) (γw : EtcdWatchNames), RET #ch;
         isSpsc γw.spsc ch (watchStateElemP V.kv γw (opWatchModel key opts).watchNorm Q
           iprop(□ (⌜V.nm = 1⌝ → client.watchCheckOk (V.mem 0).2.tag (V.mem 0).2.s V.conn
-            (GoInterface.ok ctx) n (opWatchModel key opts).key
+            om n (opWatchModel key opts).key
             (opWatchModel key opts).base.rangeEnd)))
           (fun _ => iprop(True)) ∗
         spscConsumer γw.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
         monoListIdxOwn γw.cur 0 (rev - W64 1) }} := by
-  iintro %Φ ⟨#P1, #P2, #P3, #Hwf, #Hw, %Hk, #Hctx, #Hopts, %Hpre, #Hauth, #Hau⟩ HΦ
+  iintro %Φ ⟨#P1, #P2, #P3, #Hwf, #Hw, %Hk, #Hctx, #Hom, #Hopts, %Hpre, #Hauth, #Hau⟩ HΦ
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Watch_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (wp_Watch w V γ ctx cd key sl opts rev Q n) $$ [] as %ch %γw H
+  wp_apply (wp_Watch w V γ ctx cd om key sl opts rev Q n) $$ [] as %ch %γw H
   · iframe #
     ipureintro; exact ⟨Hk, Hpre⟩
   iapply HΦ $$ H
@@ -142,6 +142,7 @@ theorem compactor.runWatchLoop.wp_proof
   · iframe #
   imod chanCtx_watch wp_Done wp_Err wp_Value sc γs γi $$ [Pw Hint] with ⟨%γdn, #Hwctx⟩
   · iframe #
+  ihave ⟨%wom, #Hwom⟩ := EtcdGrove.context.watchCtx_outMD _ _ $$ Hwctx
   iunfold clientWatchOk at Hwo
   icases Hwo with ⟨%w, %Vw, #Hwf, #Hcw, %Hkst⟩
   ihave #Hcl' := Hcl
@@ -156,7 +157,7 @@ theorem compactor.runWatchLoop.wp_proof
   · itrivial
   wp_for HI
   (try wp_auto)
-  wp_apply (lc := 2) (wp_After _) as %ach %γach #Hbag
+  wp_apply (lc := 2) (time.After.spec_pkgInit wp_After _) as %ach %γach #Hbag
   (try wp_auto)
   wp_apply (wp_Done sc) $$ [$Pw]
   (try wp_auto)
@@ -225,7 +226,7 @@ theorem compactor.runWatchLoop.wp_proof
     iunfold kvReadAu at Hkr
     iunfold kvAu at Hkr
     wp_apply (client_Watch_field wp_Watch cl w Vw γk (chanCtxVal sc)
-        (_root_.Perennial.context.cdesc ⟨γdn, γi.doneGn⟩ iprop(True)) compactRevKey optsSl
+        (_root_.Perennial.context.cdesc ⟨γdn, γi.doneGn⟩ iprop(True)) wom compactRevKey optsSl
         [withRevM cur] cur (keyHistOk γk recorded) 0) $$ [] as %wch %γw ⟨#Hsp, Hcons, -⟩
     · iframe #
       isplitr

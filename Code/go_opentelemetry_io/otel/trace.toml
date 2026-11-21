@@ -2,7 +2,18 @@
 # watchStream.Watch calls: trace.SpanFromContext, Span.End); `context` imported so that the
 # `Tracer` interface translates (2026-10-12, the request path's unit 2: the server's `Put` calls
 # `traceutil.Tracer.Start`). `WithAttributes` has its body (its `wp_proof` a theorem, 2026-11-18).
-translate = ["!*", "WithAttributes"]
+# `SpanFromContext` has its body, with the no-op span it returns (`noopSpanInstance`, the methods of
+# `noopSpan` that `trace.isSpan` names) and the key it reads (2026-11-20, prove-protootel).
+translate = ["!*", "WithAttributes", "SpanFromContext", "currentSpanKey", "noopSpanInstance",
+  "noopSpan.End", "noopSpan.AddEvent", "noopSpan.RecordError",
+  # (prove-otel4, 2026-11-21) the initializers of `tracerProviderInstance` and `autoInstEnabled`
+  # (`new`) and of the `start`/`ended` func literals (until then `opaqueInitsOk`). Not yet:
+  # `maxSpan = newSpanLimits()`, which goose's guard refuses (modelcheck R4: a call returning a
+  # pointer-free struct in a package-variable initializer, which gc may inline and build in place),
+  # and the `var _ I = T{}` assertions (`"_"`): four are `json.Marshaler`, an alias in go1.27's
+  # `encoding/json` (`= jsonv2.Marshaler`) that goose declares names-only as `opaque Marshaler` but
+  # references as `Marshaler.ty` (notes/perennial-changes.md).
+  "tracerProviderInstance", "start", "ended", "autoInstEnabled"]
 imports = ["!*", "go.opentelemetry.io/otel/trace/embedded", "go.opentelemetry.io/otel/codes", "go.opentelemetry.io/otel/attribute",
   "context"]
 

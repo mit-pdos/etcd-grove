@@ -34,6 +34,7 @@ public import GeneratedProof.encoding.json
 public import GeneratedProof.google_golang_org.grpc.stats
 public import GeneratedProof.go_opentelemetry_io.otel.propagation
 public import GeneratedProof.net.http
+public import Proof.net.http.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.errors.Base
@@ -52,6 +53,7 @@ public import Proof.github_com.prometheus.client_golang.prometheus.Labels
 public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.PkgInit
 -- (wal-link L2, 2026-11-17) `server/v3/storage` imports the WAL since its storage has bodies
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.PkgInit
+public import Proof.net.url.PkgInit
 
 @[expose] public section
 
@@ -650,37 +652,6 @@ variable [sem : go.Semantics]
 
 -- `github.com/Masterminds/semver/v3`: `server/v3/lease/Base.lean` (2026-10-13)
 
--- `etcdserver/version` (types only: `DowngradeInfo`)
-namespace go_etcd_io.etcd.server.v3.etcdserver.version
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.version :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.version :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.server.v3.etcdserver.version
-
--- `net/url` (names only: the element type of `types.URLs`; unit N4, 2026-10-17)
-namespace net.url
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.net.url :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.net.url :=
-  build_get_is_pkg_init_wf
-
-end net.url
-
--- `client/pkg/v3/types` (names only: `ID.String`)
-namespace go_etcd_io.etcd.client.pkg.v3.types
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.types :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.types :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.client.pkg.v3.types
-
-
 -- `pkg/v3/wait` (the `Wait` interface; with bodies since the request path, 2026-10-12: its
 -- package has no variable the code reads)
 namespace go_etcd_io.etcd.pkg.v3.wait
@@ -716,78 +687,6 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm
 
--- `pkg/v3/notify` (moved from `BaseApply.lean`, 2026-10-14, unit P1b: `membership` imports it,
--- for `RaftCluster`'s field types)
-namespace go_etcd_io.etcd.pkg.v3.notify
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.notify :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.notify :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.pkg.v3.notify
-
--- `encoding/json` (names only; D43 M4, 2026-10-26: membership's `ValidateConfigurationChange`
--- unmarshals a conf change's context; moved here from the Kubernetes store's `Base.lean`)
-namespace encoding.json
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.encoding.json :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.encoding.json :=
-  build_get_is_pkg_init_wf
-
-end encoding.json
-
--- `api/membership` (names only but `RaftCluster.ID`; 2026-10-13, the request path's unit 4c: the
--- package variable `ClusterVersionMetrics`, which the server's `start` sets, holds some
--- `*GaugeVec`, with its label name `cluster_version`: D19l (iii), 2026-10-18)
--- (prove-errinits, 2026-11-19: membership imports `path` for its store paths; until then in
--- the server's `BaseApply.lean`)
-namespace internal.bytealg
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.internal.bytealg :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.internal.bytealg :=
-  build_get_is_pkg_init_wf
-
-end internal.bytealg
-
-namespace path
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.path :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.path :=
-  build_get_is_pkg_init_wf
-
-end path
-
-namespace go_etcd_io.etcd.server.v3.etcdserver.api.membership
-
-/-- (D43 M4, 2026-10-26) The package's error variables and their messages (`errors.go`: each an
-`errors.New(msg)`). -/
-def membershipErrMsgs : List (GoString × GoString) :=
-  [(ErrIDRemoved, go!"membership: ID removed"),
-    (ErrIDExists, go!"membership: ID exists"),
-    (ErrIDNotFound, go!"membership: ID not found"),
-    (ErrPeerURLexists, go!"membership: peerURL exists"),
-    (ErrMemberNotLearner, go!"membership: can only promote a learner member"),
-    (ErrTooManyLearners, go!"membership: too many learner members in cluster")]
-
-/-- `api/membership`'s package facts: `ClusterVersionMetrics` (above), and (D43 M4, 2026-10-26)
-every error variable its `errors.New` error (`errorsNewVars membershipErrMsgs`). -/
-abbrev membershipInit : IProp GF :=
-  iprop((∃ gv : Loc,
-    globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterVersionMetrics ↦□ gv ∗
-    ⌜EtcdGrove.prometheus.vecLabels gv [go!"cluster_version"]⌝) ∗
-    EtcdGrove.errorsNewVars membershipErrMsgs)
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership :=
-  define_is_pkg_init membershipInit
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.server.v3.etcdserver.api.membership
-
 -- `etcdserver/api` (names only: `UpdateCapability`, passed as a value; the `Cluster` interface type,
 -- whose methods name `types`, `membership` and `semver`: after their instances)
 namespace go_etcd_io.etcd.server.v3.etcdserver.api
@@ -818,16 +717,7 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.google_golang_
 
 end google_golang_org.grpc.stats
 
--- `net/http` (names only, no translated import; moved from the server's `BaseApply.lean`, prove-misc,
--- 2026-11-20: otel's `propagation` imports it)
-namespace net.http
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.net.http :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.net.http :=
-  build_get_is_pkg_init_wf
-
-end net.http
+-- `net/http`'s instance: `Proof/net/http/Base.lean` (prove-http3, 2026-11-21)
 
 -- otel's `propagation` (names only but its package variables: otelgrpc imports it for
 -- `var _ propagation.TextMapCarrier = metadataSupplier{}`; prove-misc, 2026-11-20)

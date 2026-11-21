@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.strings
 public import Perennial.Golang.Theory
 public import Code.k8s_io.apimachinery.pkg.fields
 
@@ -221,12 +222,33 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.fields.Assumptions]
 
 noncomputable instance UnescapedRune_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.fields.UnescapedRune :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.fields.UnescapedRune where
+  typedPointstoDef l v dq := iprop(
+    "r" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.UnescapedRune go!"r" l) v.r' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance UnescapedRune_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.fields.UnescapedRune k8s_io.apimachinery.pkg.fields.UnescapedRune.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.fields.UnescapedRune k8s_io.apimachinery.pkg.fields.UnescapedRune.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance UnescapedRune_access_load_r (l : Loc) (v : k8s_io.apimachinery.pkg.fields.UnescapedRune) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.UnescapedRune go!"r" l) v.r' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.UnescapedRune go!"r" l) v.r' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance UnescapedRune_access_store_r (l : Loc) (v : k8s_io.apimachinery.pkg.fields.UnescapedRune) (r' : w32) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.UnescapedRune go!"r" l) v.r' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.UnescapedRune go!"r" l) r' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with r' := r' } : k8s_io.apimachinery.pkg.fields.UnescapedRune) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end UnescapedRune

@@ -25,16 +25,25 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
 theorem txn.HasRevisionFilters.wp_proof : txn.HasRevisionFilters.spec (GF := GF) (hG := hG) := by
-  intro r o
-  wp_start as #Hr
-  iunfold txn.rangeRequestIs at Hr
-  icases Hr with ⟨%Hnn, %ksl, %esl, %k, %e, %rev, %limit, %order, %target, %ser, %ko, %co, %minM, %maxM, %minC, %maxC, #Hk, #Hks, #He, #Hes, #Hlim, #Hrev, #Hord, #Htgt, #Hser, #Hko, #Hco, #HminM, #HmaxM, #HminC, #HmaxC, %Ho, -⟩
+  intro r dq o
+  wp_start as Hr
+  iunfold txn.rangeRequestAt at Hr
+  icases Hr with ⟨%Hnn, %ksl, %esl, %k, %e, %rev, %limit, %order, %target, %ser, %ko, %co, %minM, %maxM, %minC, %maxC, Hk, #Hks, #He, #Hes, Hlim, Hrev, #Hord, #Htgt, #Hser, #Hko, #Hco, #HminM, #HmaxM, #HminC, #HmaxC, %Ho, %Hkb⟩
+  -- (auth-mediation M3) the three fields at `dq` are not read: put the request back together
+  ihave Hr : txn.rangeRequestAt r dq o $$ [Hk Hlim Hrev]
+  · iunfold txn.rangeRequestAt
+    isplitr
+    · ipureintro; exact Hnn
+    iexists ksl, esl, k, e, rev, limit, order, target, ser, ko, co, minM, maxM, minC, maxC
+    iframe Hk Hlim Hrev
+    iframe #
+    ipureintro; exact ⟨Ho, Hkb⟩
   wp_auto
   wp_if_destruct <;> (try wp_auto) <;> (try wp_if_destruct) <;> (try wp_auto) <;>
     (try wp_if_destruct) <;> (try wp_auto) <;> (try wp_if_destruct) <;> (try wp_auto)
   all_goals
-    ihave H := HΦ $$ []
-    · itrivial
+    ihave H := HΦ $$ [Hr]
+    · iexact Hr
     iExactEq H
     subst Ho
     simp_all [txn.hasRevFilters, txn.rangeOpOf]

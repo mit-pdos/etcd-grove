@@ -7,14 +7,15 @@ trust base of each printed in the build log (`#print axioms`). Lean-first (no Ro
   (`RaftHandler`, `http.Serve`), `Start`), the first's gRPC server listening at `127.0.0.1:23791`, a
   client, a `Put` of `k` with value `v`, a `Get` of `k`, and a panic unless the `Get` returned `v`
   -- returns: it does not panic (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/putget3/Main.lean`).
-* **`etcd_putget3_safe`** (`Adequacy.lean`'s `etcd_putget3_adequate`): the closed theorem, putget's for the
-  three-member program, under hypotheses of D19a's kinds (without the two marked ones it took
-  until 2026-10-20, `EofFromIoInit` and `ClosedchanFromContextInit`: now theorems).
+
+**The closed theorem retired (2026-11-21, the user's decision D2 of `notes/etcd-unified-scope.md`).**
+Its closed theorem `etcd_putget3_safe` (with its `_adequate` and `_robust` forms, `Adequacy.lean`, `PkgTable.lean`, `TopLevelDefs.lean` and the
+`TopLevelRobustness.lean` pair) is gone: the one closed etcd theorem `etcd_safe` (`examples/etcd/all`,
+`Proof/github_com/mit_pdos/etcd_grove/examples/etcd/all/Results.lean`) subsumes it (`notes/etcd-unified-scope.md` §1.3, §4); the function triples here stay.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putget3.Adequacy
-public import Robustness.Statement
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putget3.MainLinked
 
 @[expose] public section
 
@@ -44,54 +45,7 @@ theorem putget3_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
 
 end results
 
-section adequacy
-attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
-variable [go_gctx : GoGlobalContext]
-
-/-- **putget3 is safe, in the operational semantics** (`etcd_putget3_adequate`, see the
-file header and `Adequacy.lean`). -/
-theorem etcd_putget3_safe [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.putget3.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
-    [log.NewModel]
-    (Hctx : ∀ hG : HeapGS .hasLC putget3GF, ContextReadErrs (GF := putget3GF) (hG := heapAt3 hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC putget3GF, ContextErrsClient (GF := putget3GF) (hG := heapAt3 hG lctx))
-    (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (Hbf : etcd_putget3.BootFacts id₁ id₂ id₃ ps ctxs boot)
-    (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
-    (HNs : prometheus.namesUnclaimed putget3Program putget3Names)
-    (HAs : addrsUnclaimed putget3Program putget3Addrs)
-    -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the members' data directories,
-    -- fresh at start (`dataDirsAbsent`; their distinctness is now `decide`d, no longer a hypothesis)
-    (HDs : dataDirsAbsent putget3Program [(memberDataDir etcd_putget3.name₁), (memberDataDir etcd_putget3.name₂), (memberDataDir etcd_putget3.name₃)])
-    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
-    (HEnv : verifyEnvOff putget3Program)
-    (n : Nat)
-    (Hprem : ∀ hG : HeapGS .hasLC putget3GF,
-      ⊢ etcd_putget3.premises (GF := putget3GF) (hG := heapAt3 hG lctx) n id₁ id₂ id₃ ps ctxs boot)
-    (σ : state) (g : GlobalState)
-    (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
-    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
-    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [(memberDataDir etcd_putget3.name₁), (memberDataDir etcd_putget3.name₂), (memberDataDir etcd_putget3.name₃)])
-    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
-    (Hthreads : σ.threads = 1)
-    (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
-    (Hsteps : RealNsteps n ([putget3Program], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 2 ≤ 2 ^ 28) :
-    (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
-    (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  etcd_putget3_adequate Hctx Hcec id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hrf Hdbo HNs HAs HDs HEnv n Hprem σ g Hfs HWal
-    Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
-
-end adequacy
-
 #print axioms putget3_Main
-#print axioms etcd_putget3_adequate
-#print axioms etcd_putget3_safe
 
 end EtcdGrove
 end Perennial

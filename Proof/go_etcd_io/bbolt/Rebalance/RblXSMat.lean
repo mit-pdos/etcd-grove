@@ -141,10 +141,10 @@ theorem rblX_mat (X X' : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (l : Loc)
     obtain ⟨pg', hpg', -, -, -, htk⟩ := (hkd i w hw).2 hnone
     exact ⟨_, _, htk⟩
   obtain ⟨lo, hi, htkw⟩ := htkw
-  have hkeysEM : ∀ j < pageCount pg, (pageKey pg j).length ≤ bboltEntryMax :=
-    pageKeys_le_of_treeKeysN X.v.pages w.pgid.toNat bboltEntryMax
+  have hkeysEM : ∀ j < pageCount pg, (pageKey pg j).length ≤ branchKeyMax :=
+    pageKeys_le_of_treeKeysN X.v.pages w.pgid.toNat branchKeyMax
       (fun p pg0 ho hp hf j hj => by
-        have := (hPS bl B hb _ p pg0 hposw ho hp hf j hj).2.1.2; omega)
+        have := (hPS bl B hb _ p pg0 hposw ho hp hf j hj).2.1.2; exact this.1)
       _ _ _ htkw (ownHas.root _ pg hpg) pg hpg
   have hkeysMax : bl = X.rl → ∀ j < pageCount pg, (pageKey pg j).length ≤ maxKeySize := by
     intro hroot
@@ -322,22 +322,22 @@ theorem rblX_mat (X X' : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (l : Loc)
       · subst ry; subst y
         obtain ⟨j, hj⟩ := List.mem_iff_getElem?.1 hxw
         obtain ⟨hjl, hjd⟩ := mat_at hd9 j x hj
-        obtain ⟨-, -, e3, e4⟩ := mat_wDat_eq hjd
+        obtain ⟨-, e2, e3, e4⟩ := mat_wDat_eq hjd
         have hkey : x.key = pageKey pg j := by rw [e3, mat_pageW_key]
         refine ⟨(hrbB1.1.2.2.2.2.2.2.2.1 l r hrl).2.2.2.2.1 x hxw, ?_,
           fun hroot => by rw [hkey]; exact hkeysMax (by rw [hroot, hrl']) j hjl⟩
         by_cases hfl : pageFlags pg = leafPageFlag
-        · obtain ⟨-, -, f3, f4⟩ := mat_pageW_leaf pg j hfl
+        · obtain ⟨-, f2, f3, f4⟩ := mat_pageW_leaf pg j hfl
           have hbd := (hPS _ B hb _ _ pg hposw (ownHas.root _ pg hpg) hpg hfl j hjl).2.1.2
-          rw [e3, f3, e4, f4]
+          rw [e3, f3, e4, f4, e2, f2]
           unfold leafKey leafValue bytesAt
           have := List.length_take_le (leafKsize pg j) (pg.drop (elemOff j + leafPos pg j))
           have := List.length_take_le (leafVsize pg j)
             (pg.drop (elemOff j + leafPos pg j + leafKsize pg j))
-          omega
+          exact entryBytesFit_mono hbd (by omega) (by omega)
         · have hv0 : x.value = [] := by rw [e4]; unfold pageW; rw [if_neg hfl]
-          rw [hv0, List.length_nil, Nat.add_zero, hkey]
-          exact hkeysEM j hjl
+          rw [hv0, List.length_nil, hkey]
+          exact entryBytesFit_branch (hkeysEM j hjl) _
       · rw [h3] at hxw
         rw [hrl']; exact hEB c B hb y ry0 h1 x hxw
     · rw [hrl']; exact hEB c C hC y ry hy x hxw

@@ -18,8 +18,13 @@ Why it is true of Go: in a run of `e`, every registration of a name of `Ns` and 
 an address of `As` is made by code whose spec consumes the right (`namesUnclaimed`,
 `addrsUnclaimed`: nothing else registers or binds them), each right exists once in the proof (the
 premise receives one of each), and each consumption is one registration (one listen); so no name
-of `Ns` is registered twice and no address of `As` bound twice, which is what `MustRegister`'s and
-`Listen`'s specs need. The rest is `goose_adequacy`.
+of `Ns` is registered twice and no address of `As` bound twice, and (prometheus-id-collision,
+2026-11-20) since the label-free descriptor IDs of the names of `Ns` are pairwise distinct
+(`hNsIds`: `prometheus.descIdsDistinct Ns`, decided by the kernel for each program's names),
+registering one name of `Ns` registers no other's ID, which is what `MustRegister`'s and
+`Listen`'s specs need. The rest is `goose_adequacy`. (Until then the axiom took any distinct names,
+and was false: two names can share an ID, and the registry refuses the second,
+`notes/axiom-review/prometheus-id-collision.md`.)
 
 (D39a, 2026-10-23) It also receives `httpProtoFree a` for each address of `As`: a purely ghost
 right, the only source of an address's HTTP protocol (`http.reserve`), so each address's protocol
@@ -64,6 +69,7 @@ ghost state, `MustRegister`/`Listen` its operations), a Perennial change propose
 module
 
 public import Perennial.GooseLang.Adequacy
+public import Perennial.GooseLang.AdequacyAlong
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry
 public import Proof.net.InvNet
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalDir
@@ -193,8 +199,37 @@ header). `goose_adequacy`, with the WP proof also given `startRights Ns As Ds`. 
 the axiom again; from 2026-11-08 a corollary of `goose_adequacy_start_files`, which also handed out
 `fileHolds f ∅` for fresh database files: since `fileHolds` is the concrete claim on a name in the
 tree's shared mode, an axiom handing it out beside `extsLocalStart`'s tree could contradict the
-tree's ownership; the files are now derived from the tree, `Proof/runtime/StartFiles.lean`.) -/
+tree's ownership; the files are now derived from the tree, `Proof/runtime/StartFiles.lean`.)
+(2026-11-20) `goose_adequacy_below`'s premises, with the WP proof also given the rights: the
+thread bound is one of this execution (`RealNstepsBelow T n`), not of every execution of `n` steps
+(`RealThreadsBelow`), as Perennial's `goose_adequacy` became `goose_adequacy_below`
+(`AdequacyAlong.lean`), whose proof shows the bound was only ever used along the given
+execution; the satisfiability argument of the file header carries over (rights read as `True`:
+`goose_adequacy_below`, a theorem). The previous statement is `goose_adequacy_start_all`. -/
 axiom goose_adequacy_start [hPre : GooseGpreS GF] (N T : Nat)
+    (e : Expr) (σ : state) (g : GlobalState) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
+    (Hinitg : extsInitgP g.globalWorld) (Hinit : extsInitP σ.world g.globalWorld)
+    (Ns As Ds : List GoString) (hNs : Ns.Nodup) (hAs : As.Nodup) (hDs : Ds.Nodup)
+    (hAsLit : ∀ a ∈ As, netAddrLit a = true)
+    (hNsFree : prometheus.namesUnclaimed e Ns) (hAsFree : addrsUnclaimed e As)
+    (hDsFree : dataDirsAbsent e Ds) (hEnv : verifyEnvOff e)
+    (Hwp : ∀ [hG : HeapGS .hasLC GF],
+      receiptBound GF = N →
+      threadBound GF = T →
+      hG.goose_localGS.goose_go_local_context = σ.goState.goLctx →
+      ⊢ extsGlobalStart (GF := GF) g.globalWorld -∗
+        extsLocalStart (GF := GF) σ.world -∗
+        ownGoState σ.goState.packageState -∗ threadTok -∗ startRights (GF := GF) Ns As Ds ={⊤}=∗
+        WP e @ Stuckness.NotStuck; ⊤ {{ v, ⌜φ v⌝ }})
+    (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNstepsBelow T n ([e], ((σ, g) : CfgState)) κs (t2, σ2))
+    (Hbound : n < N) (Hthreads : σ.threads = 1) :
+    (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
+      (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2)
+
+/-- **`goose_adequacy_start` with `goose_adequacy`'s thread premise** (its statement until
+2026-11-20): every real execution of `n` steps stays below `T` threads. -/
+theorem goose_adequacy_start_all [hPre : GooseGpreS GF] (N T : Nat)
     (e : Expr) (σ : state) (g : GlobalState) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
     (Hinitg : extsInitgP g.globalWorld) (Hinit : extsInitP σ.world g.globalWorld)
     (Ns As Ds : List GoString) (hNs : Ns.Nodup) (hAs : As.Nodup) (hDs : Ds.Nodup)
@@ -212,9 +247,12 @@ axiom goose_adequacy_start [hPre : GooseGpreS GF] (N T : Nat)
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([e], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hbound : n < N) (Hthreads : σ.threads = 1)
-    (Hlive : RealThreadsBelow T n ([e], ((σ, g) : CfgState))) :
+    (Hlive : RealThreadsBelow T n ([e], ((σ, g) : CfgState)))
+    (hNsIds : prometheus.descIdsDistinct Ns := by decide +kernel) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-      (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2)
+      (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
+  goose_adequacy_start N T e σ g φ hφ Hinitg Hinit Ns As Ds hNs hAs hDs hAsLit hNsFree hAsFree
+    hDsFree hEnv Hwp n κs t2 σ2 (RealNstepsBelow.of_threadsBelow Hsteps Hlive) Hbound Hthreads
 
 end adequacy
 

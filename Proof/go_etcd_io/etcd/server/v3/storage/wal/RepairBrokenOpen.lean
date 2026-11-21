@@ -20,7 +20,7 @@ On failure nothing is returned but the path and the call permission (`Repair` re
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RepairBroken
-public import GooseLang.Ext.Fs.NotCrashedAcc
+public import Perennial.GooseLang.NotCrashed
 
 @[expose] public section
 

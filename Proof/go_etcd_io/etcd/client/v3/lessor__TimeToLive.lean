@@ -37,8 +37,8 @@ theorem lessor.TimeToLive.wp_proof
     (wp_GetHeader : LeaseTimeToLiveResponse.GetHeader.spec (GF := GF) (hG := hG))
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     lessor.TimeToLive.spec (GF := GF) (hG := hG) := by
-  intro l conn addr Spec Q ctx cd id osl gs
-  wp_start as ⟨#Hrem, #Hrpc, #Hpre, #Hopts, #Hctx, #Hce⟩
+  intro l conn addr Spec Q ctx om cd id osl gs
+  wp_start as ⟨#Hrem, #Hrpc, #Hom, #Hpre, #Hopts, #Hctx, #Hce⟩
   iunfold lessorRemoteAtC at Hrem
   icases Hrem with ⟨%rlc, %sl, #Hremote, #Hrlc, #Hconn, #Hcopts, #Hco⟩
   iunfold callOptsAt at Hco
@@ -46,7 +46,7 @@ theorem lessor.TimeToLive.wp_proof
   wp_auto
   wp_apply wp_toReq id osl gs $$ [] as %r Hr
   · iframe #
-  wp_apply wp_retry rlc conn addr Spec Q ctx cd _ _ sl vs $$ [Hr] as %resp %err ⟨-, Hres⟩
+  wp_apply wp_retry rlc conn addr Spec Q ctx om cd _ _ sl vs $$ [Hr] as %resp %err ⟨-, Hres⟩
   · iframe #
     iframe
     simp only
@@ -86,7 +86,7 @@ theorem lessor.TimeToLive.wp_proof
     | nil => exact absurd rfl Hne
     | ok ei =>
       wp_auto
-      ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
+      ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_descIs _ $$ Hse
       wp_apply wp_ContextError ctx cd (GoInterface.ok ei) mC $$ [$Hse $HmC] as %err' ⟨%Herr', #Hse', -, -⟩
       · iframe #; ipureintro; exact fun _ => Hce'
       iapply HΦ

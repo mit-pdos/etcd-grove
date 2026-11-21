@@ -1,28 +1,45 @@
 /-
-The trust boundary: `rate.Every` (`golang.org/x/time/rate` is names-only).
+Proof of `Spec/golang_org/x/time/rate/Every.lean` over the real code (x/time/rate v0.16.0,
+`rate.go:25-30`; prove-metrics3, 2026-11-21: until then a trust-boundary axiom): `Inf` for
+`interval <= 0`, else `1 / Limit(interval.Seconds())`, a float division, which does not panic.
 -/
 module
 
 public import Spec.golang_org.x.time.rate.Every
+public import Spec.time.Duration__Seconds_ptr
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI
+open Iris Iris.BI Iris.ProofMode
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : golang_org.x.time.rate.Assumptions]
 
-/-- **Trust boundary** (rafthttp stage 6c): `rate.Every(d)` (`rate.go`) is `Inf` for `d <= 0` and
-`1 / d.Seconds()` otherwise, a floating-point division, which does not panic. -/
-axiom rate.Every.wp_proof : rate.Every.spec (GF := GF) (hG := hG)
+theorem rate.Every.wp_proof
+    (wp_Seconds : time.Duration.Seconds_ptr.spec (GF := GF) (hG := hG)) :
+    rate.Every.spec (GF := GF) (hG := hG) := by
+  intro d
+  wp_start as -
+  ihave #Htime : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
+  · iPkgInit
+  wp_auto
+  wp_if_destruct
+  · rw [show golang_org.x.time.rate.Inf = #(W64 9218868437227405311) from rfl]
+    wp_auto
+    iapply HΦ; itrivial
+  · wp_apply wp_Seconds $$ [$interval] as %f interval
+    iapply HΦ; itrivial
 
 end proof
 

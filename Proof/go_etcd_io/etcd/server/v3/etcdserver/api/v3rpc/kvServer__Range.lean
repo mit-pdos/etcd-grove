@@ -44,8 +44,8 @@ theorem v3rpc.kvServer.Range.wp_proof
   icases HKV with ⟨#HPut, -, -, -, -⟩
   iunfold v3rpc.kvRangeOk at HPut
   wp_auto
-  wp_apply hChk $$ [] as %err #Herr
-  · iframe #
+  wp_apply (hChk r DFrac.discard o) $$ [] as %err ⟨#Herr, -⟩
+  · iframe #; iapply (txn.rangeRequestIs_at r o).mp $$ Hr
   cases hc : v3rpc.rangeCheck o with
   | some e =>
     simp only [v3rpc.checkRes]

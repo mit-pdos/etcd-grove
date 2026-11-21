@@ -270,9 +270,10 @@ theorem adminOut_model (γa : auth.AuthNames) (Own : auth.AuthNames → List aut
     · ipureintro
       exact ⟨hl, adminStateR_of_rejL γa hs st rq hl (hrej rfl).2⟩
     iunfold adminTieAr
+    iright
     ileft
     ipureintro
-    exact Or.inr (fun o b h => by cases h)
+    exact ⟨rfl, (hrej rfl).2 st hl⟩
   · have ha := adminOk_of_passL γa hs st rq hl hn (hpass o b rfl)
     simp only [apply.adminOut, apply.adminDone, ↓reduceIte]
     iintro ⟨%v, %ad, %resp, ⟨%had, -⟩, #Hv, Hres⟩
@@ -297,6 +298,9 @@ theorem adminOut_model (γa : auth.AuthNames) (Own : auth.AuthNames → List aut
             adminStateR_of_step rq st o' ha (Or.inl ⟨m, hkd, hm, h2⟩)⟩
         iunfold adminTieAr
         iright
+        iright
+        isplitr
+        · ipureintro; exact ⟨o, b, rfl⟩
         iexists v
         iframe Hv
         ipureintro
@@ -324,6 +328,9 @@ theorem adminOut_model (γa : auth.AuthNames) (Own : auth.AuthNames → List aut
             adminStateR_of_step rq st o' ha (Or.inr (Or.inl ⟨n, hkd, hm, h2⟩))⟩
         iunfold adminTieAr
         iright
+        iright
+        isplitr
+        · ipureintro; exact ⟨o, b, rfl⟩
         iexists v
         iframe Hv
         ipureintro
@@ -351,6 +358,9 @@ theorem adminOut_model (γa : auth.AuthNames) (Own : auth.AuthNames → List aut
             adminStateR_of_step rq st o' ha (Or.inr (Or.inr (Or.inl ⟨ur.1, ur.2, hkd, hm, h2⟩)))⟩
         iunfold adminTieAr
         iright
+        iright
+        isplitr
+        · ipureintro; exact ⟨o, b, rfl⟩
         iexists v
         iframe Hv
         ipureintro
@@ -378,6 +388,9 @@ theorem adminOut_model (γa : auth.AuthNames) (Own : auth.AuthNames → List aut
             adminStateR_of_step rq st o' ha (Or.inr (Or.inr (Or.inr ⟨nw.1, nw.2, hkd, hm, h2⟩)))⟩
         iunfold adminTieAr
         iright
+        iright
+        isplitr
+        · ipureintro; exact ⟨o, b, rfl⟩
         iexists v
         iframe Hv
         ipureintro
@@ -400,6 +413,9 @@ theorem adminOut_model (γa : auth.AuthNames) (Own : auth.AuthNames → List aut
         exact ⟨histAfter_last hs st o' hl, adminStateR_of_authEnable γa rq st en o' ha hkd h2⟩
       iunfold adminTieAr
       iright
+      iright
+      isplitr
+      · ipureintro; exact ⟨o, b, rfl⟩
       iexists v
       iframe Hv
       ipureintro

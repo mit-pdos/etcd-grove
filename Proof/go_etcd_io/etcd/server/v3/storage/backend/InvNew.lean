@@ -59,7 +59,7 @@ def newPost (γ : BNames) (P : BParams) (W Pk : BNames → IProp GF) (b : Loc) (
     IProp GF :=
   iprop(isBackend γ P (W γ) (Pk γ) b ∗ isStopChans γ P (W γ) (Pk γ) b ∗ bOpen γ 1 ∗
     bViewC γ 1 (vData P (D, ⟨∅, W64 0⟩)) true ∗ plHook γ func.nil ∗ ownToks γ.wb wbInit ∗
-    rbOwn γ (rbData P D) ∗ ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), rdTok γ P b) ∗
+    rbOwn γ (rbData P D) ∗ ([∗list] _x ∈ List.replicate rdSlotsN (), rdTok γ P b) ∗
     -- (the backend-compaction stage, Draft round 2) the creator's part of the deletable keys
     dlInit γ ∗
     -- (the compaction keys' tracked absence, 2026-10-29; question 4) the client's half of their
@@ -173,7 +173,7 @@ def newPostK (γ : BNames) (P : BParams) (W Pk K : BNames → IProp GF) (b : Loc
     IProp GF :=
   iprop(isBackend γ P (W γ) (Pk γ) b ∗ isStopChans γ P (W γ) (Pk γ) b ∗ K γ ∗
     bViewC γ 1 (vData P (D, ⟨∅, W64 0⟩)) true ∗ plHook γ func.nil ∗
-    rbOwn γ (rbData P D) ∗ ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), rdTok γ P b) ∗
+    rbOwn γ (rbData P D) ∗ ([∗list] _x ∈ List.replicate rdSlotsN (), rdTok γ P b) ∗
     dlInit γ ∗ fkCl γ P D ∗ srSlot b ∗ rbClaimToks γ P (fun _ => True))
 
 /-- The constructor's post with the payment rights kept is `newPost`. -/

@@ -28063,6 +28063,25 @@ restarts.
 
 ## The merged snapshot's index guard (2026-10-31, S1 · the user's decision (B))
 
+**2026-11-21, replay repair on the working branch.** Bootstrap recovers
+the configuration of the backend before the apply cursor begins WAL replay.
+Retain that configuration for an outgoing snapshot of the initial image
+and take the term at the image index from the same Ready's log. At restart,
+read the complete retained interval from the rebuilt MemoryStorage before
+calling RestartNode, while bootstrap still owns that storage. Each Ready
+updates its own immutable view from the entries Raft hands out. Installing
+an incoming snapshot clears the retained configuration. The sender can
+also read the metadata and membership from the transaction it streams.
+[Regression and proof status](snapguard-removal-plan.md).
+
+**2026-11-21.** Remove the index comparison in the etcd pin. Both
+`applyAll` proof paths use the bound derived from the outgoing snapshot
+and the current Ready in the matching term. Each worker carries its
+physical apply cursor across jobs so the bound holds during replay as well.
+The separate replay-window
+failure remains in this revision and is tracked in
+[the replay issue](../nonissues/etcd-backward-snapshot-install-panics-watcher.md).
+
 **2026-11-20, R2.** Raft already records the snapshots it has restored in
 `LogState.ksn`. The unstable snapshot path returns membership in that list.
 Carry membership through the outbox and the Ready handout so a later proof
@@ -30867,6 +30886,7 @@ separate backend-switch stage (the `_kv` statements become corollaries, three ar
   slot); `Open` takes `ThreadBoundLe GF (2^29)` (a spare slot for a failed commit's `freepages`)
   and `ReceiptBoundLe GF (2^62)` (txids do not wrap). *D2*: `DB.Stats` pays `statlock`'s slot
   (`statSlot`).
+- The 2026-11-20 decision below supersedes the D4 entry-size bound.
 - *D4, D5 (the user)*: `Put` takes the entry bound `bboltEntryMax = 2^28` (bbolt accepts values it
   cannot store); `FillPercent` is written back only non-NaN.
 - *D13 (the user)*: `OptsM.ok` excludes `Mlock` and `MmapFlags` other than `0`/`MAP_POPULATE`
@@ -39920,6 +39940,37 @@ etcd-grove-81; a restricting change, no further round).**
   `Open`'s docstring) state the wrap-first branch; the masked nonissue's upstreaming option "keep the
   masked success for old-named WALs" brings F-W4a2-2 back.
 
+### Preserve the incoming message through an outgoing Ready
+
+Raft's log records every successful restore in this node instance. A queued
+snapshot from the unstable log carries membership in that history. When
+`readyWithoutAccept` selects its outgoing messages, the Ready keeps the history
+and the selection's membership proof together. The public Ready carries the
+driver's node ID, so its restore evidence identifies a leader different from
+that very node. Restart and Bootstrap establish that the local history starts
+empty. The apply-order comparison is the next part of the index-guard proof.
+
+### WAL upgrade recovery (2026-11-20)
+
+The filename-selected suffix of a WAL written with the current segment naming
+rule contains the newest valid starting snapshot. `readAll_eof_matched` proves
+that folding every record in that suffix sets the reader's match flag, including
+when the starting snapshot is the zero record. An older writer could name a
+segment below a snapshot already in an earlier file. That disk layout requires
+locating the actual record, checking its term, and protecting its segment
+through the next purge. The Go regression and fork fix are recorded in
+`issues/etcd-wal-upgrade-legacy-segment-name.md`.
+
+### Which physical WAL file a CRC seed describes
+
+The CRC seeds in the decoder's accepted records enumerate the segment files in
+order. The lock's path names the corresponding segment. When decoding reaches
+bytes beyond the canonical history, a rejected CRC can arrive after the last
+lock. The counter at that point already covers every lock. A probe of a closed
+prefix file temporarily reserves that inode, obtains its original bytes by
+agreement with the layout, and returns it to the same outstanding inode set.
+These facts support the legacy scan in the fork's `ReadAll` repair.
+
 ## WAL W4b: the history and read lemmas, the crash views, and the purged read (2026-11-12 · plan approved by etcd-grove-81, `/shared/tmp/wal-spec/w4b/plan.md`; C2's premises chosen by the proof, as the plan allows; CP3 approved by etcd-grove-81 under the user's delegation, 2026-11-12: `walCommitLe` as C2's premise, the guard dropped, C4 without `walNoDormant` · branch `wal-w4b`)
 
 Proved only: two unlinked modules over the W4a/W4a.1/W4a.2 axioms, no axiom, `sorry`, opaque or
@@ -41206,8 +41257,48 @@ client_golang v1.24.1 (`MetricVec.Describe` sends its one descriptor; variable l
 
 **Not done:** auth, lease, backend and mvcc register only too, but their closures are reached by
 `mvccrand` and `mvccfull`, whose closed theorems have no `namesUnclaimed` premise: making them
-`PRE_RES` would add that premise, so their `initFuncsOk` stay. `ownInitRes` (the one-package form)
+`PRE_RES` would add that premise, so their `initFuncsOk` stay. (Superseded 2026-11-20 by the next
+entry: done, with that premise.) `ownInitRes` (the one-package form)
 stays in `PkgInit.lean`, unused: deleting it rebuilds every module.
+
+## auth, lease, backend and mvcc register too: mvccrand and mvccfull take `namesUnclaimed` (2026-11-20 · the user's decision · branch `prove-etcdstorage/2026-11-20`)
+
+The previous entry left the four packages' `init()` names-only (`initFuncsOk`), because registering
+their metrics through `PRE_RES` puts the premise `namesUnclaimed` on every closed theorem whose
+program reaches them, and mvccrand's and mvccfull's had none.
+
+**Decision (the user, 2026-11-20, via the coordinator):** extend `namesUnclaimed` to cover them.
+`init.0` of auth (1 metric), lease (4), backend (8) and mvcc (23) is translated and stepped by
+`etc/gen-init.py` (`register(...)`, as the mustreg packages); `mvccrand_adequate`/`mvccrand_robust`
+and `mvccfull_adequate`/`mvccfull_safe`/`mvccfull_robust` take `prometheus.namesUnclaimed` of the
+program's `initNames` (`mvccrandNames`, `mvccfullMetricNames`; until then `[]` was passed to
+`goose_adequacy_start`), and every etcd program's name list (its root's `initNames`) grows by the
+36 names. No other etcd code registers them (grep of the pinned source for the names and the
+`auth`/`lease`/`mvcc` subsystems outside the four `metrics.go`, as mustreg did).
+
+Six of the registered metrics are `NewGaugeFunc` gauges, whose spec posted nothing:
+`NewGaugeFunc.spec` now posts `nameOk (fqName ns sub name) → collectorName g (fqName ns sub name)`
+(a strengthening, true of client_golang v1.24.1: `gauge.go:306` builds one descriptor of that name
+with no labels, `collector.go:113`'s `selfCollector.Describe` sends it); the generator `decide`s the
+name's validity.
+
+
+## `ETCD_VERIFY` read through `os.Getenv`'s spec, not assumed per check (2026-11-20 · the coordinator's group `etcdstorage` · branch `prove-etcdstorage/2026-11-20`)
+
+Sweep repairs 1 (B4) gave each of etcd's `ETCD_VERIFY` checks (`backend.ValidateCalled{Inside,OutSide}Apply`,
+`ValidateCalledInsideUnittest`, `VerifyBackendConsistency`) an axiom taking the token `envVerifyOff`;
+`verify.Verify` was an axiom too.
+
+**Decision:** the one function that reads the environment says it: `os.Getenv`'s post gives
+`envVerifyOff -∗ ⌜key = "ETCD_VERIFY" → etcdVerifyOffValue v⌝`, and `strings.ToLower`'s post says
+exactly when its result is a given lower-case ASCII word (`strings.lowersTo`, `Proof/strings/Lower.lean`:
+the rune-by-rune rule with the two non-ASCII runes Go lower-cases to ASCII, U+0130 and U+212A,
+measured). Both are strengthenings of existing trust-boundary axioms (posts were `True`); the world
+assumption `verifyEnvOff` is unchanged. `verify.IsVerificationEnabled`, `Verify`, the three lock checks
+and `VerifyBackendConsistency` are translated and proved; `Verify`'s premise is weakened to
+"`f` returns true, or `envVerifyOff`" (its five callers take the first, `ileft`), so
+`VerifyBackendConsistency` need not prove the backend consistent. Review:
+`notes/axiom-review/getenv-etcd-verify.md`.
 
 ## The net extension without a plan (v3.4) (2026-11-20 · the user's decision · branch `net-noplan`)
 
@@ -41268,6 +41359,79 @@ need validity. The next step is to preserve the pin at node startup and the sour
 This supersedes the October 31 decision to retain the server's snapshot-index guard.
 The invariant argument and remaining obligations are in [the removal plan](snapguard-removal-plan.md).
 
+## fmtmodel: Perennial's `fmt` model calls what Go calls; the `fmt` specs rest on its spec
+
+**2026-11-20 · accepted (group `fmtmodel`, Perennial `79517dbdf`)** · supersedes in part "`fmt.Errorf`
+with `%w`: no fact from the model" (2026-11-06) and its 2026-11-18 supersession: there is no unfaithful
+model left to keep facts from. Perennial's models of `Sprintf`, `Printf` and `Errorf` now format up to
+the first directive they do not interpret, call the arguments' `Error()`/`String()` that Go calls (under a
+directive-aware premise, `fmt.argsOk`, moved to Perennial from `Spec/fmt/Errorf.lean`), print `%p`
+without reading memory, and `Errorf` returns Go's error by its `%w` directives (`fmt.errorfErr`). Where
+Go reflects into a struct, slice or map, or would call a `Format`/`GoString`, the model is stuck. So the
+proofs here use Perennial's `fmt.wp_Errorf`/`wp_Sprintf`/`wp_Printf` (`Proof/fmt/`), and the calls the
+model does not cover (slices, maps) are trust-boundary axioms (`fmt.ErrorfStrs`, `fmt.ErrorfSlice`,
+`fmt.SprintfSlice`, `cache.wp_Errorf_setArgs`, `appslisters.wp_Errorf_labelArgs`), no longer theorems
+over a model that ignored the arguments. `fmt.ErrorfWrap` keeps its disjunctive post (callers unchanged)
+but is proved through the right disjunct, Go's `*wrapError`. `etc/errorf-wrap-check.py` stays, empty, as
+the gate on any new step into the model's unfolding.
+
+## Recover the snapshot record across legacy WAL filenames (2026-11-20)
+
+The last filename at or below the requested snapshot index can start too late
+on WALs written before the cut rule accounted for snapshots. When the normal
+scan cannot find the record, recovery now examines earlier segments, starting
+with the nearest. A match extends the locked range and restarts decoding. The
+extended scan validates the CRC and snapshot term and returns the committed
+hard state and subsequent entries. The locks also retain earlier segments
+whose snapshot would otherwise disappear during purge.
+
+The verifier’s disk invariant covers the current writer. For that layout the
+public ReadAll proof follows the actual CRC seeds, lock filenames, and snapshot
+records to establish that earlier files cannot supply a missing match. The Go
+upgrade regression covers the older layout in read-only and writable modes,
+then purges and reopens the WAL. [Finding and regression](../issues/etcd-wal-upgrade-legacy-segment-name.md)
+
+## bbolt admits readable values on a split leaf (2026-11-20)
+
+A valid key and value fit a single amd64 leaf when their lengths sum to at
+most `2^31 - 17`. The element header occupies the other 16 bytes of the
+`MaxAllocSize` window. The old 256 MiB limit came from assuming that four
+elements would share the leaf. The fork now measures the proposed prefix
+during spill and can put a single entry on a leaf.
+
+The verified page bound starts at the first element, 16 bytes after the page
+header. Branches still keep at least two children. A leaf key can be promoted
+to a separator, so the file model bounds a key by `branchKeyMax`, the share
+available to one of four branch entries. Every key accepted by `Put` fits
+this bound. `entryBytesFit_legacy` also covers every key and value admitted
+by the previous file model. The fork's regression and the upstream split
+problem are in `issues/bbolt-put-refuses-readable-entry.md`.
+
+
+
+### The RawNode owns the restore history (2026-11-20)
+
+Startup allocates each incarnation’s history. A successful snapshot restore records the incoming sender, term and index in that history. A stale snapshot leaves the history intact. The evidence follows the node through Ready and Advance, including a snapshot outstanding when another restore arrives. The server still needs the observation at handout and the link to the original outgoing message.
+
+### Bounding restored snapshots at Ready handout (2026-11-20)
+
+Keep the restore-index bound in Raft's log invariant. The bound starts at the initial log boundary and follows each accepted restore. At Ready handout, the committed prefix delivered by the batch covers that boundary. Record the hard-state term and this bound together, so the server can compare an observed batch against a snapshot from the same leader term. A message drained in a later term still needs the certificate from its original send.
+
+### Snapshots queued across a term change (2026-11-20)
+
+Record the term on the outgoing message. The proof uses the sender's commit
+bound and the strict commit check at each successful incoming restore to
+preserve that attribution until Ready drains the outbox. The receiver may
+compare a batch in the message's term even if the draining batch is later.
+
+### Recording which committed indices were installed snapshots (2026-11-20)
+
+A successful restore records its index. Ready records the node's current
+commit, through which a later restore cannot change the set of installed
+indices. A snapshot loan returns a receipt for its own index. The server
+can retain the receipt when the Raft driver puts the snapshot in memory
+storage and use it when the same index is sent back out.
+
 ## The listening token and the net+fs bundle (2026-11-21 · the user's request · branch `net-noplan`, stages B and C)
 
 **Token.** `netLisTok a` (`Ghost.lean`): exclusive, one per valid address, in the network's start
@@ -41294,6 +41458,175 @@ own. It also has: both `HasExt` instances, `kvnetGF`/`kvnetGpreS`, the projectio
 crash resources onto each extension's, and `kvnet_dist_crash_adequacy`
 (`goose_dist_crash_adequacy` at `kvnetGF`, with the initial-state conditions discharged from
 `NetGlobal.init` and `FsInit`). There is no change to the file extension.
+## Outgoing metadata as a per-run relation (2026-11-20 · the user's soundness fix · branch `prove-errdesc/2026-11-20`, stage 1)
+
+**Supersedes in part:** the auth plan's E2f (`metadata.outgoingOf`, "a function of the context value
+for the same reason: a context is immutable") and G2's use of it for the watch's stream key; and
+premise-fixes-7's opaque `Prop` `metadata.builtRawMD`.
+
+**Why.** `metadata.outgoingOf : GoInterface → GrpcMd` was a fixed Lean function of a context value,
+and the posts of `AppendToOutgoingContext`, `withVersion`, `WithCancelValCtx`,
+`WithTimeoutBackgroundMd` equated it with caller-chosen data for a context the call allocates. A fresh
+allocation may be any location, so no implementation can meet those posts (two runs of
+`AppendToOutgoingContext(ctx, "k", "a")` and `(…, "b")` from one heap may return the same `*valueCtx`;
+etcd-refimpl's `README.md` "Findings"; `notes/errdesc-ghost-plan.md` §0).
+
+**Decision** (`notes/errdesc-ghost-plan.md` §2.1, Part II of `notes/perheap-scope.md`):
+`metadata.outMD ctx md` (persistent; `Proof/context/LibKeysChain.lean`), Perennial's chain at grpc's
+outgoing key holding a value `v` that `metadata.outgoingHeld v md` (not a `rawMD` and `none`, or one
+grpc made with view `f`, the opaque leaf `□ metadata.builtRawMDRaw v f`, and `some f`).
+`outgoingCtxOkC ctx := ∃ md, outMD ctx md` (name kept); `outgoingCtxOk` (WP form) carries the same
+`outgoingHeld`. No agreement law. Every spec that relates a context's metadata to something takes the
+metadata as a parameter `om` with `metadata.outMD ctx om` in its precondition: the client's call
+contracts (`attemptPre conn om …`, `clientAttemptMd conn om md`, `clientOpAuOn`/`clientGrant`/
+`clientHistAu` and the retry interceptor's contract over `om`), grpc's attempt contract
+(`grpcAttemptMd conn om md`; `grpcInvokerOk` and `ClientConn.NewStream` take `outMD ctx om`), the watch
+(`watcher.Watch`'s `om`, kept in the watch's record `WsPrm.omd` and the stream's `WgsPrm.omd`;
+`watchCheckOk … om …`). A caller with no stake in the metadata takes one from `ctxOk`/`watchCtx`
+(`ctxOk_outgoingC`, `watchCtx_outMD`); the examples state theirs (`metadata.outMD ci (akOut who)`).
+Axioms restated (none added): `AppendToOutgoingContext`, `withVersion`, `streamKeyFromCtx`,
+`WithCancelValCtx`, `WithTimeoutBackgroundMd`, `ClientConn.NewStream` (and the meaning of
+`ClientConn.Invoke`'s and `WithRequireLeader`'s through `grpcInvokerOk`/`outgoingCtxOkC`).
+
+### Match a queued snapshot to the server’s apply job (2026-11-20)
+
+A message in `msgSnapC` keeps its own Ready observation. The apply job
+keeps the observation from the batch it is applying. These can be different
+batches. At equal sender and apply terms, the two observations bound a
+restored snapshot directly. For an image obtained from memory storage, use
+its origin at bootstrap, its creator’s applied-index lower bound, or its
+local installation receipt. The saved node location identifies the
+incarnation that installed the snapshot. The server rule leaves the apply
+thread’s index authority available for the remainder of the job.
+
+### Attach the etcd snapshot origin at the two writers (2026-11-21)
+
+The server allocates a location name before attaching MemoryStorage to Raft.
+After startup it records the node returned by StartNode or RestartNode.
+CreateSnapshot retains the apply thread’s index lower bound. ApplySnapshot
+retains the receipt for the index installed by that node. For the initial
+image, the WAL base is the lower bound with which application starts.
+These facts are carried by the same storage invariant used for reads and
+compaction. The job reads its own node’s outgoing channel and compares the
+message with the Ready actually delivered to that job.
+
+## Sending a merged snapshot while replay catches up
+
+**2026-11-21 · fork repair and linked server proof**
+
+The replay cursor can be at 3 while a reopened backend contains index 7.
+Reporting failure on that path leaves a follower waiting for data the
+sender already has. The replay fork streams the backend and reads its
+metadata in the same bbolt read transaction. For older databases it uses
+the immutable log for the Ready being applied to recover the entry term,
+and the membership in that database to recover the configuration.
+
+The sender and the schema package use the same readers for the saved
+configuration and membership. Keeping these functions in the snapshotmeta
+package lets the sender verify the decoders without importing their
+initialization dependencies into the MVCC proof.
+
+The startup worker reads the retained log from the same MemoryStorage that
+RestartNode takes. Each Ready carries its own immutable view of the term runs.
+Replacing entries after the committed backend index preserves the term even
+when the replacement splits a run. Advancing the apply cursor retains that
+term until the cursor reaches the backend index. These facts supply the
+historical entry term to the snapshot sender under the graceful restart
+contract. After a power loss the recovered HardState commit can be lower.
+The Go regression reopens that state and checks delivery. A top-level proof
+of that recovery case would also need the previous quorum's commit evidence.
+[Reproduction and fork revision](../issues/etcd-merged-snapshot-replay-failure.md).
+
+## A status's code as a per-run relation (2026-11-20 · the user's soundness fix · branch `prove-errdesc2/2026-11-20`, stage 2a)
+
+**Supersedes in part:** the watch slice's W-C (`statusCode : GoInterface → w32`, "the status is embedded
+in the error value, so the code is a function of the error") and E1's `grpcStatusRO`/`grpcStatusROP`.
+
+**Why.** As for the outgoing metadata (stage 1, above): `statusCode` was a fixed function of an error
+value, and the producers of a status (`status.Error`, grpc's model) fix it at a value they allocate.
+
+**Decision** (`notes/errdesc-ghost-plan.md` §7): the opaque leaf `status.statusAtRaw s c m` (no law),
+`status.statusAt s c m := ⌜s ≠ null⌝ ∗ □ statusAtRaw s c m` (SpecPlan's `statusAt`) in place of
+`grpcStatusRO s c`; `grpcErrMethodsOk`'s `GRPCStatus` clause gives `∃ s c m, (□ returns s) ∗
+statusAt s c m`; `statusCodeIs err c` (nil: `OK`; no `GRPCStatus() *Status`: `Unknown`; else the
+status's code) with `statusErrOk_code`. `status.FromError` takes `∀ c`, pre `statusCodeIs err c`, and its
+`Code()` returns `c`; `status.Status.Code` takes `statusAt s c m`; `isHaltErr`'s post gives the code
+through `statusCodeIs`. Axioms restated: `status.FromError`, `status.Status.Code` (and `status.Code`'s,
+`status.Error`'s meaning through `statusErrOk`); none added. The message (`errDesc`) is stage 2b.
+
+## An error's description as a per-run relation (2026-11-21 · the user's soundness fix · branch `prove-errdesc2b/2026-11-21`, stage 2b)
+
+**Supersedes:** D29's "the description is a function of the error" (`errDesc : GoInterface → GoString`),
+"`errDesc` in a module of its own", and the fromerror-wand entry's `⌜ok = false → errDesc err = m⌝`.
+
+**Why.** As for the outgoing metadata (stage 1) and the status code (stage 2a): `errDesc` was a fixed function
+of an error value, and `status.Error`'s post (`errDesc err = msg` of the pointer it allocates) and
+`status.FromError`'s (`Message()` returns `errDesc err`) could be met by no implementation.
+
+**Decision** (`notes/errdesc-ghost-plan.md` §8): `descIs err m` (nil: `""`; an `EtcdError` value: its `desc`,
+a fact of a pointer-free value; otherwise its stable `Error()` or its read-only status's message), with no
+agreement law. Axioms restated, none added: `status.Error` (post `descIs err msg`), `status.FromError` (pre
+`descIs err m`, `Message()` returns `m`), `errors.IsStatusErr` (pre `isDescs err target dm`; post
+`b → (∀ m m', dm = some (m, m') → err = target ∨ m = m') ∧ T3`), `grpc.model.respond` (pre
+`handlerErrOut Ψe err`), `waitRetryBackoff` (post `err = nil ∨ notHandlerErr err`),
+`v3rpc.toGRPCErrorMap_init` (`grpcErrMapOk` an `IProp`), and through their definitions `ClientConn.Invoke`
+(`grpcInvokerOk`), `status.Code`/`errors.Is` (`grpcErrMethodsOk`'s `Is` clause). `rpctypes.errDesc_etcdError`
+is gone (`descIs_etcdError` is definitional), and so is fmtmodel's `rpctypes.errDesc_wrapError` (the
+description of a `*fmt.wrapError`, now `errorfWrap_descIs`, proved); `context.WithTimeoutBackgroundMd` is
+proved besides (−3 axioms).
+
+**One strengthening of a trusted post** (`grpcInvokerOk`, hence `ClientConn.Invoke`): the invoker's error
+satisfies `notLearnerErr err` (it is not `rpctypes.ErrGRPCNotSupportedForLearner`'s value). Needed because
+`isSafeRetry`'s `errors.Is(err, ErrGRPCNotSupportedForLearner)` is `true` of that value by `==`, and without
+agreement the invoker's description of `err` (no refusal) could not exclude it. True of grpc-go v1.84: the
+bare invoker's errors are built by grpc (`status.FromProto(...).Err()`, `status.FromContextError`, a fresh
+`*status.Error` each), or `io.EOF` or the context's error; grpc imports no etcd package, so never returns its
+variable. Not a new axiom; a fact added to an existing axiom's post.
+
+**Top-level statements**: none names `errDesc`; their texts are unchanged (only the definitions above moved).
+
+## zap's `loggerRaw` split: `NewNop`'s loggers defined, the others opaque (2026-11-21 · group `zap3` · branch `prove-zap3/2026-11-21`)
+
+**The change.** `zap.loggerRaw l` (`Spec/go_uber_org/zap/Defs.lean`), until then opaque, is now
+`zap.nopLogger l ∨ zap.loggerOther l`: `nopLogger` is defined (a persistent points-to of a `Logger`
+whose core is zapcore's `nopCore`, not in development mode, adding no caller, default terminal hooks:
+`zap.nopLoggerVal`), `loggerOther` opaque, with the old docstring's meaning minus `NewNop`. So the set
+of loggers `zapLoggerOk` covers is unchanged (no caller-visible spec moves), and `zap.NewNop`'s spec is
+proved over zap's code (`Proof/go_uber_org/zap/NewNop.lean`, over `zap_wp_NewNop_init`, whose post now
+gives `nopLoggerVal`).
+
+**Why not define `loggerRaw` as `NewNop`'s loggers only.** Every verified program's logger is
+`NewNop()`'s, and with that definition `Logger.check`, `Panic`, `CheckedEntry.Write` (its `zapEntry`
+then never produced below `DPanicLevel`) could be proved too; but every spec taking `zapLoggerOk`
+(`NewServer`, the WAL, mvcc, the client) would then cover nop loggers only: a weaker spec, which the
+proving briefs exclude without the user's decision. With the split, `check`/`Panic`/`Fatal`/`Write`
+keep their axioms over all of `zapLoggerOk`; proving their nop case alone would narrow, not retire, them.
+(`Fatal` also needs `os.Exit`, names-only in Perennial; `Panic`'s nop case needs zapcore's `_cePool`
+as an `isPool` in zapcore's fact and `pool.New`/`Get`/`Put` specs over `sync.Pool`'s.)
+
+**The docstring's meaning sharpened.** The old `loggerRaw` admitted `ioCore` over any non-nil write
+syncer and encoder; one that panics (a user `WriteSyncer`) makes `check`'s and `Write`'s axioms false
+of Go. `loggerOther` requires zap's own encoders, write syncers and level enablers, or ones whose
+methods return without panicking. No proof depended on the looser reading (only `NewNop` produces
+`zapLoggerOk`).
+
+## Configuration changes use protobuf wire order on the noax fork (2026-11-21)
+
+A Raft caller can receive a configuration change from a different protobuf
+encoder. An optional field, including one inside a nested change, must survive
+a decode and re-encode. The producer of a configuration entry also controls field
+order and can repeat a field. The old fork accepted only the ordering its own
+encoder wrote. The public formatter regression demonstrates the difference for
+both message versions. [Issue and regression](../issues/raft-noax-confchange-wire-compat.md).
+
+The repaired implementation decodes fields in wire order. The last decoded
+singular field supplies its value, repeated changes accumulate, and unknown
+fields keep their original value bytes. Its group scanner checks matching
+end tags and the same depth bound as protobuf-go. The Lean wire model ties a
+successful skip to the protobuf grammar used when allocating a message, and
+shows any field admitted by that grammar can be skipped. The encoder proof uses
+both facts to account for extension bytes in nested changes and both top-level
+messages. [Noax codec proofs](raft-noax-codec.md).
 
 ## Raft's crash law: the crash invariant, the token through every ghost step (2026-11-21 · the coordinating session · branch `worktree-agent-aa878c2e224f33d0c`)
 

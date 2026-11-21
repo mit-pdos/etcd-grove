@@ -21,6 +21,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Handle
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.ReaderRun
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.PeerStatus
 public import Spec.github_com.xiang90.probing.NewProber
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.Defs
 
 @[expose] public section
 
@@ -76,7 +77,7 @@ def trFixed (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF
     t.[rafthttp.Transport, go!"pipelineRt"] ↦□ prt ∗ http.roundTripperOk (raftHttpNet Rh) prt ∗
     t.[rafthttp.Transport, go!"DialRetryFrequency"] ↦□ drf ∗
     t.[rafthttp.Transport, go!"LeaderStats"] ↦□ ls ∗ ⌜ls ≠ null⌝ ∗
-    t.[rafthttp.Transport, go!"ServerStats"] ↦□ ss ∗ ⌜ss ≠ null⌝ ∗
+    t.[rafthttp.Transport, go!"ServerStats"] ↦□ ss ∗ ⌜ss ≠ null⌝ ∗ v2stats.isServerStats ss ∗
     t.[rafthttp.Transport, go!"pipelineProber"] ↦□ pp ∗
     t.[rafthttp.Transport, go!"streamProber"] ↦□ sp ∗
     streamRegInv Rh ∗ (□ ∀ pid : w64, ⌜Rh.member pid ∧ pid ≠ lid⌝ -∗ pipeReg Rh pid) ∗
@@ -136,7 +137,7 @@ shape from `lid` (what the msgappv2 stream encodes: `V2EncOk`); its wire content
 for both; derived from the sender's content since raft-entsize, which deleted the trust-boundary
 axiom `swMsgBound_phys`, stage 6d's bound restated in stage A of the per-type models). -/
 def peerMsg (Rh : RaftHttp GF) (lid pid : w64) (ml : Loc) : IProp GF :=
-  iprop(∃ st : MsgSt, msgOwn ml DFrac.discard st ∗ msgSzC Rh.γn.N.Sz ml st ∗ □ Rh.γn.N.P st ∗
+  iprop(∃ st : MsgSt, msgOwn ml DFrac.discard st ∗ msgSzC True ml st ∗ □ Rh.γn.N.P st ∗
     Rh.γn.N.O st ∗
     ⌜MsgMarshals st ∧ st.msg.To' = pid ∧ st.msg.Type' ≠ MsgSnap ∧ st.resps = [] ∧
       (st.msg.Type' = MsgApp → AppShape st ∧ st.msg.From' = lid)⌝)
@@ -171,7 +172,7 @@ def remoteStop (Rh : RaftHttp GF) (pid : w64) (R : IProp GF) (g : Loc) : IProp G
 /-- **A message the member `lid` sends** (what `Transport.Send` takes; stage 6c): `peerMsg`'s but
 for its recipient, `Send`'s routing (by `To`). -/
 def sendMsg (Rh : RaftHttp GF) (lid : w64) (ml : Loc) : IProp GF :=
-  iprop(∃ st : MsgSt, msgOwn ml DFrac.discard st ∗ msgSzC Rh.γn.N.Sz ml st ∗ □ Rh.γn.N.P st ∗
+  iprop(∃ st : MsgSt, msgOwn ml DFrac.discard st ∗ msgSzC True ml st ∗ □ Rh.γn.N.P st ∗
     Rh.γn.N.O st ∗
     ⌜MsgMarshals st ∧ st.msg.Type' ≠ MsgSnap ∧ st.resps = [] ∧
       (st.msg.Type' = MsgApp → AppShape st ∧ st.msg.From' = lid)⌝)
@@ -192,7 +193,7 @@ theorem sendMsg_of_netBundle (Rh : RaftHttp GF) (lid : w64) (ml : Loc) :
   iintro Hb
   iunfold netBundle at Hb
   icases Hb with ⟨%st, #Hm, #HP, HO, %H, %c, #Hc, %Hcs⟩
-  ihave #Hbd : msgSzC Rh.γn.N.Sz ml st $$ []
+  ihave #Hbd : msgSzC True ml st $$ []
   · iunfold msgSzC
     iexists c
     iframe Hc
@@ -222,6 +223,8 @@ theorem pipeMsg_of_peerMsg (Rh : RaftHttp GF) (lid pid : w64) (ml : Loc) :
   iintro Hpm
   iunfold peerMsg at Hpm
   icases Hpm with ⟨%st, Hm, #Hb, #HP, HO, %H⟩
+  ihave #Hb' := msgSzC_mono (Sz' := Rh.γn.N.Sz) (fun _ => trivial) _ _ $$ Hb
+  iclear Hb
   iunfold pipeMsg
   iexists st
   iframe; iframe #
@@ -244,7 +247,7 @@ theorem swMsg_v2_of_peerMsg (Rh : RaftHttp GF) (lid pid : w64) (ml : Loc) (st : 
     (Hm : MsgMarshals st ∧ st.msg.To' = pid ∧ st.msg.Type' ≠ MsgSnap ∧ st.resps = [] ∧
       (st.msg.Type' = MsgApp → AppShape st ∧ st.msg.From' = lid))
     (hty : st.msg.Type' = MsgApp) :
-    ⊢ msgOwn ml DFrac.discard st -∗ msgSzC Rh.γn.N.Sz ml st -∗ □ Rh.γn.N.P st -∗ Rh.γn.N.O st -∗
+    ⊢ msgOwn ml DFrac.discard st -∗ msgSzC True ml st -∗ □ Rh.γn.N.P st -∗ Rh.γn.N.O st -∗
       swMsg Rh .msgAppV2 lid pid ml := by
   iintro Hm' #Hb #HP HO
   iunfold swMsg

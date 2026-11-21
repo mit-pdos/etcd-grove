@@ -124,7 +124,7 @@ backend-compaction stage's thin-view round: `safeSt` no longer says it). -/
 theorem sessWf_C_in_S {P : BParams} {st : BSess} {n kc vc : GoString} (hst : sessWf P st)
     (hn0 : st.ndel = W64 0) (hHB : P.HB n = false) (hc : (bktOf st.C n).lookup kc = some vc) :
     ∃ vs, (bktOf st.S n).lookup kc = some vs := by
-  obtain ⟨-, -, -, -, -, -, -, -, -, hag, -⟩ := hst
+  obtain ⟨-, -, -, -, -, -, -, -, -, hag, -, -⟩ := hst
   have h := hag hn0 n hHB kc
   have hC : dget st.C n kc = some vc := by rw [dget_eq_bktOf]; exact hc
   have hv : (ovB P.BT st.W.bks (viewOf P st) n kc).isSome := by
@@ -152,12 +152,13 @@ theorem sessWf_put {P : BParams} {st : BSess} {bi : BucketInfo} {kb vb : GoStrin
     (hp : sint.Z st.pend + 1 < 2 ^ 58)
     (hSB : P.SB bi.name = true → ∀ kc vc, (bktOf st.C bi.name).lookup kc = some vc → strLt kc kb) :
     sessWf P (st.put bi kb vb seq) := by
-  obtain ⟨hWf, hRf, hWi, hRi, hp0, hp1, hn0, hnp, hR0, hag, hsf⟩ := hst
+  obtain ⟨hWf, hRf, hWi, hRi, hp0, hp1, hn0, hnp, hR0, hag, hsf, hpc⟩ := hst
   have hWbks : (if seq then st.W.putSeq bi.id (kb, vb) else st.W.put bi.id (kb, vb)).bks =
       wbAdd st.W.bks bi.id (kb, vb) := by
     cases seq <;> rfl
   have hpz : sint.Z (st.pend + W64 1) = sint.Z st.pend + 1 := by word
-  refine ⟨?_, hRf, ?_, hRi, ?_, ?_, hn0, ?_, ?_, ?_, safeSt_put hP hb hsf hSB⟩
+  refine ⟨?_, hRf, ?_, hRi, ?_, ?_, hn0, ?_, ?_, ?_, safeSt_put hP hb hsf hSB,
+    fun h => absurd h (pend_add_one_ne hp0 hp1)⟩
   · show (if seq then st.W.putSeq bi.id (kb, vb) else st.W.put bi.id (kb, vb)).Wf
     cases seq
     · exact WBuf.put_wf hWf
@@ -211,11 +212,11 @@ contents since the thin-view Draft round; a safe-range delete is the compaction'
 theorem sessWf_del {P : BParams} {st : BSess} {bi : BucketInfo} {kb : GoString}
     (hst : sessWf P st) (hp : sint.Z st.pend + 1 < 2 ^ 58) :
     sessWf P (st.del bi kb) := by
-  obtain ⟨hWf, hRf, hWi, hRi, hp0, hp1, hn0, hnp, hR0, hag, hsf⟩ := hst
+  obtain ⟨hWf, hRf, hWi, hRi, hp0, hp1, hn0, hnp, hR0, hag, hsf, hpc⟩ := hst
   have hpz : sint.Z (st.pend + W64 1) = sint.Z st.pend + 1 := by word
   have hnz : sint.Z (st.ndel + W64 1) = sint.Z st.ndel + 1 := by word
   refine ⟨hWf, hRf, hWi, hRi, ?_, ?_, ?_, ?_, ?_, ?_,
-    ⟨hsf.1, fun n i hn hsbn => hsf.2 n i hn hsbn⟩⟩
+    ⟨hsf.1, fun n i hn hsbn => hsf.2 n i hn hsbn⟩, fun h => absurd h (pend_add_one_ne hp0 hp1)⟩
   · show 0 ≤ sint.Z (st.pend + W64 1); omega
   · show sint.Z (st.pend + W64 1) < 2 ^ 58; omega
   · show 0 ≤ sint.Z (st.ndel + W64 1); omega
@@ -232,11 +233,12 @@ theorem sessWf_del {P : BParams} {st : BSess} {bi : BucketInfo} {kb : GoString}
 theorem sessWf_delBucket {P : BParams} {st : BSess} {bi : BucketInfo}
     (hst : sessWf P st) (hp : sint.Z st.pend + 1 < 2 ^ 58) (hSB : P.SB bi.name = false) :
     sessWf P (st.delBucket bi) := by
-  obtain ⟨hWf, hRf, hWi, hRi, hp0, hp1, hn0, hnp, hR0, hag, hsf⟩ := hst
+  obtain ⟨hWf, hRf, hWi, hRi, hp0, hp1, hn0, hnp, hR0, hag, hsf, hpc⟩ := hst
   have hpz : sint.Z (st.pend + W64 1) = sint.Z st.pend + 1 := by word
   have hnz : sint.Z (st.ndel + W64 1) = sint.Z st.ndel + 1 := by word
   refine ⟨hWf, hRf, hWi, hRi, ?_, ?_, ?_, ?_, ?_, ?_,
-    safeSt_S_nonSB hsf hSB rfl rfl rfl (fun n hn => bktOf_delete_ne _ _ _ (Ne.symm hn))⟩
+    safeSt_S_nonSB hsf hSB rfl rfl rfl (fun n hn => bktOf_delete_ne _ _ _ (Ne.symm hn)),
+    fun h => absurd h (pend_add_one_ne hp0 hp1)⟩
   · show 0 ≤ sint.Z (st.pend + W64 1); omega
   · show sint.Z (st.pend + W64 1) < 2 ^ 58; omega
   · show 0 ≤ sint.Z (st.ndel + W64 1); omega
@@ -253,10 +255,11 @@ theorem sessWf_delBucket {P : BParams} {st : BSess} {bi : BucketInfo}
 theorem sessWf_create {P : BParams} {st : BSess} {bi : BucketInfo}
     (hst : sessWf P st) (hp : sint.Z st.pend + 1 < 2 ^ 58) :
     sessWf P (st.create bi) := by
-  obtain ⟨hWf, hRf, hWi, hRi, hp0, hp1, hn0, hnp, hR0, hag, hsf⟩ := hst
+  obtain ⟨hWf, hRf, hWi, hRi, hp0, hp1, hn0, hnp, hR0, hag, hsf, hpc⟩ := hst
   have hpz : sint.Z (st.pend + W64 1) = sint.Z st.pend + 1 := by word
   have hsf' : safeSt P (st.create bi) := ⟨hsf.1, fun n i hn hsbn => hsf.2 n i hn hsbn⟩
-  refine ⟨hWf, hRf, hWi, hRi, ?_, ?_, hn0, ?_, ?_, ?_, hsf'⟩
+  refine ⟨hWf, hRf, hWi, hRi, ?_, ?_, hn0, ?_, ?_, ?_, hsf',
+    fun h => absurd h (pend_add_one_ne hp0 hp1)⟩
   · show 0 ≤ sint.Z (st.pend + W64 1); omega
   · show sint.Z (st.pend + W64 1) < 2 ^ 58; omega
   · show sint.Z st.ndel ≤ sint.Z (st.pend + W64 1); omega

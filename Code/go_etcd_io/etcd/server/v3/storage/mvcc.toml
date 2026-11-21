@@ -8,6 +8,10 @@
 # notes/restore-plan.md R0: store.restore, restoreIntoIndex, restoreChunk, the key index's
 # restore). The rest of the package (compaction, hashing) is names only.
 translate = ["!*",
+  # (etcdstorage, 2026-11-20) metrics.go's `init.0` (`prometheus.MustRegister` of the metrics), translated:
+  # proved by `etc/gen-init.py` over `MustRegister`'s spec with the names' registration rights (the
+  # user's decision, 2026-11-20: mvccrand's and mvccfull's closed theorems take `namesUnclaimed`)
+  "init.0",
   # revision.go
   "revBytesLen", "markedRevBytesLen", "markBytePosition", "markTombstone",
   "Revision.GreaterThan", "RevToBytes", "BytesToRev", "newBucketKey", "NewRevBytes",
@@ -110,8 +114,11 @@ translate = ["!*",
   "watchableStore.Compact",
   "watchableStoreTxnWrite.FirstRev", "watchableStoreTxnWrite.Rev",
   "watchableStoreTxnWrite.Range", "watchableStoreTxnWrite.DeleteRange",
-  "watchableStoreTxnWrite.Put", "watchableStoreTxnWrite.Changes"]
-imports = ["!*", "bytes", "context", "encoding/binary", "errors", "fmt", "hash", "math", "sync", "time",
+  "watchableStoreTxnWrite.Put", "watchableStoreTxnWrite.Changes",
+  # (prove-etcdint3, 2026-11-21) hash.go's compaction hasher, over `hash/crc32`'s digest (`New`, `Write`,
+  # `Sum32`: proved, with the trusted `MakeTable`/`update`)
+  "newKVHasher", "kvHasher.WriteKeyValue", "kvHasher.Hash"]
+imports = ["!*", "bytes", "context", "encoding/binary", "errors", "fmt", "hash", "hash/crc32", "math", "sync", "time",
   "go.etcd.io/etcd/pkg/v3/schedule", "go.etcd.io/etcd/pkg/v3/adt",
   "go.etcd.io/etcd/client/v3", "go.etcd.io/etcd/client/pkg/v3/verify",
   "go.opentelemetry.io/otel/trace",

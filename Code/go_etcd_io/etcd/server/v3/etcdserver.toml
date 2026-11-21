@@ -23,6 +23,10 @@ translate = ["!*",
   # the request path (v3_server.go, tracing.go, util.go, interface.go, server.go): the KV
   # entry points, the proposal and its wait, the serialized read, and what they call
   "EtcdServer.Range", "EtcdServer.Put", "EtcdServer.DeleteRange", "EtcdServer.Txn",
+  # (auth-mediation M3, 2026-11-21) the streamed range's serialized read; its pages
+  # (`rangeStream`, `adjustChunkLimit`) are names only, a trust-boundary spec (option (B), the
+  # user's choice: `Spec/.../etcdserver/EtcdServer__rangeStream.lean`)
+  "EtcdServer.RangeStream",
   # (the spec-first pilot, 2026-10-27: the auto-compactor's Compactable)
   "EtcdServer.Compact",
   "EtcdServer.raftRequest", "EtcdServer.doSerialize", "EtcdServer.processInternalRaftRequestOnce",
@@ -149,7 +153,8 @@ translate = ["!*",
   # (D22 S-h, 2026-10-20) the merged snapshot's sender (snapshot_merge.go, server.go): the merged
   # message, its reader goroutine over the backend snapshot and `io.Pipe`, and its send with the
   # in-flight count released by a `GoAttach` goroutine
-  "EtcdServer.createMergedSnapshotMessage", "newSnapshotReaderCloser", "EtcdServer.sendMergedSnap",
+  "replayTerms", "replayTermRun", "replayTermsFromStorage", "replayTerms.after", "replayTerms.covers", "replayTerms.appendEntries", "replayTerms.termAt",
+  "confStateFromMembers", "EtcdServer.createMergedSnapshotMessage", "newSnapshotReaderCloser", "EtcdServer.sendMergedSnap",
   "releaseDelayAfterSnapshot",
   # (D43 M5e, 2026-10-26) the membership change's application (server.go), over the cluster's
   # proved writers, raft's `ApplyConfChange`, the transport's `AddPeer`/`RemovePeer`
@@ -160,8 +165,29 @@ translate = ["!*",
   # (revoke-open pass 2, 2026-11-06) run's expiry arm (server.go): the round's goroutine, its
   # leadership check and a `LeaseRevoke` per lease in goroutines of their own; until then names
   # only, run's open premise `srvRevokeOpen`
-  "EtcdServer.revokeExpiredLeases", "maxPendingRevokes"]
-imports = ["!*", "context", "io", "errors", "encoding/json", "fmt", "net/http", "sync", "sync/atomic", "time", "go.uber.org/zap", "github.com/dustin/go-humanize", "google.golang.org/protobuf/proto", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/client/pkg/v3/types", "go.etcd.io/etcd/pkg/v3/contention", "go.etcd.io/etcd/pkg/v3/idutil", "go.etcd.io/etcd/pkg/v3/notify", "go.etcd.io/etcd/pkg/v3/pbutil", "go.etcd.io/etcd/pkg/v3/wait", "go.etcd.io/etcd/server/v3/auth", "go.etcd.io/etcd/server/v3/config", "go.etcd.io/etcd/server/v3/etcdserver/api/membership", "go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp", "go.etcd.io/etcd/server/v3/etcdserver/api/snap", "go.etcd.io/etcd/server/v3/etcdserver/api/v2stats", "go.etcd.io/etcd/server/v3/etcdserver/api/v3alarm", "go.etcd.io/etcd/server/v3/etcdserver/api/v3compactor", "go.etcd.io/etcd/server/v3/etcdserver/apply", "go.etcd.io/etcd/server/v3/etcdserver/cindex", "go.etcd.io/etcd/server/v3/etcdserver/errors", "go.etcd.io/etcd/server/v3/etcdserver/read", "go.etcd.io/etcd/server/v3/lease", "go.etcd.io/etcd/server/v3/storage", "go.etcd.io/etcd/server/v3/storage/backend", "go.etcd.io/etcd/server/v3/storage/mvcc", "go.etcd.io/raft/v3", "go.etcd.io/raft/v3/raftpb", "strconv", "go.opentelemetry.io/otel/attribute", "go.opentelemetry.io/otel/trace", "go.etcd.io/etcd/pkg/v3/traceutil", "go.etcd.io/etcd/pkg/v3/featuregate", "go.etcd.io/etcd/server/v3/features", "go.etcd.io/etcd/server/v3/etcdserver/txn", "go.etcd.io/etcd/server/v3/etcdserver/api", "github.com/prometheus/client_golang/prometheus", "go.etcd.io/etcd/pkg/v3/schedule", "go.etcd.io/etcd/api/v3/version", "github.com/Masterminds/semver/v3", "log", "go.etcd.io/etcd/client/pkg/v3/logutil", "go.etcd.io/etcd/server/v3/storage/wal", "math", "go.etcd.io/etcd/server/v3/etcdserver/api/etcdhttp/types", "golang.org/x/crypto/bcrypt", "encoding/base64", "go.etcd.io/etcd/server/v3/lease/leasehttp", "go.etcd.io/etcd/client/pkg/v3/fileutil"]
+  "EtcdServer.revokeExpiredLeases", "maxPendingRevokes",
+  # (prove-etcdserver, 2026-11-20) the corruption checker's constructor (an allocation), and the
+  # three monitors that return at once with their check off (`monitorKVHash`, `monitorCompactHash`,
+  # `monitorDowngrade`, with the version adapter's constructor): until then names-only axioms
+  "newCorruptionChecker", "EtcdServer.monitorKVHash", "EtcdServer.monitorCompactHash",
+  "EtcdServer.monitorDowngrade", "NewServerVersionAdapter",
+  # (prove-etcdserver, 2026-11-20) the adapter's interface check `var _ serverversion.Server =
+  # (*serverVersionAdapter)(nil)` (a conversion; `Server` translated since then): until then `opaqueInitsOk`
+  "_",
+  # (prove-etcdserver, 2026-11-20) `rafthttp.ConnWriteTimeout - time.Second` (rafthttp's fact holds
+  # `ConnWriteTimeout` since then): until then `opaqueInitsOk`
+  "monitorVersionInterval",
+  # (prove-etcdserver, 2026-11-20) the lease paths' applied-index wait (`v3_server.go`, `server.go`):
+  # until then a names-only contract (the lease-renew plan's C3)
+  "EtcdServer.waitAppliedIndex", "EtcdServer.ApplyWaitCommit", "applyTimeout",
+  # (prove-srvloops, 2026-11-21) the forwarding paths' leader wait (`v3_server.go`): until then a
+  # names-only contract (the lease-renew plan's C4)
+  "EtcdServer.waitLeader",
+  # (prove-srvloops2, 2026-11-21) the lease paths' leadership check (`server.go`): `ensureLeadership`
+  # over `isActive` (the latest tick under `tickMu`'s read lock) and `raftStatus` (raft's
+  # `Node.Status`); until then a names-only contract (the lease-renew plan's C2)
+  "EtcdServer.ensureLeadership", "EtcdServer.isActive", "EtcdServer.raftStatus"]
+imports = ["!*", "context", "io", "errors", "encoding/json", "fmt", "net/http", "sync", "sync/atomic", "time", "go.uber.org/zap", "github.com/dustin/go-humanize", "google.golang.org/protobuf/proto", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/client/pkg/v3/types", "go.etcd.io/etcd/pkg/v3/contention", "go.etcd.io/etcd/pkg/v3/idutil", "go.etcd.io/etcd/pkg/v3/notify", "go.etcd.io/etcd/pkg/v3/pbutil", "go.etcd.io/etcd/pkg/v3/wait", "go.etcd.io/etcd/server/v3/auth", "go.etcd.io/etcd/server/v3/config", "go.etcd.io/etcd/server/v3/etcdserver/api/membership", "go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp", "go.etcd.io/etcd/server/v3/etcdserver/api/snap", "go.etcd.io/etcd/server/v3/etcdserver/api/v2stats", "go.etcd.io/etcd/server/v3/etcdserver/api/v3alarm", "go.etcd.io/etcd/server/v3/etcdserver/api/v3compactor", "go.etcd.io/etcd/server/v3/etcdserver/apply", "go.etcd.io/etcd/server/v3/etcdserver/cindex", "go.etcd.io/etcd/server/v3/etcdserver/errors", "go.etcd.io/etcd/server/v3/etcdserver/read", "go.etcd.io/etcd/server/v3/lease", "go.etcd.io/etcd/server/v3/storage", "go.etcd.io/etcd/server/v3/storage/backend", "go.etcd.io/etcd/server/v3/storage/mvcc", "go.etcd.io/raft/v3", "go.etcd.io/raft/v3/raftpb", "strconv", "go.opentelemetry.io/otel/attribute", "go.opentelemetry.io/otel/trace", "go.etcd.io/etcd/pkg/v3/traceutil", "go.etcd.io/etcd/pkg/v3/featuregate", "go.etcd.io/etcd/server/v3/features", "go.etcd.io/etcd/server/v3/etcdserver/txn", "go.etcd.io/etcd/server/v3/etcdserver/api", "github.com/prometheus/client_golang/prometheus", "go.etcd.io/etcd/pkg/v3/schedule", "go.etcd.io/etcd/api/v3/version", "github.com/Masterminds/semver/v3", "log", "go.etcd.io/etcd/client/pkg/v3/logutil", "go.etcd.io/etcd/server/v3/storage/wal", "math", "go.etcd.io/etcd/server/v3/etcdserver/api/etcdhttp/types", "golang.org/x/crypto/bcrypt", "encoding/base64", "go.etcd.io/etcd/server/v3/lease/leasehttp", "go.etcd.io/etcd/client/pkg/v3/fileutil", "go.etcd.io/etcd/server/v3/storage/schema", "go.etcd.io/etcd/server/v3/storage/schema/snapshotmeta", "go.etcd.io/etcd/server/v3/etcdserver/version"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

@@ -122,7 +122,7 @@ theorem raft.applyConfChange.spec_proof
   intro c r id s cc ccm dq c' Q Happ0 Hsz Hltz Hcand Hli2 Htrg
   wp_start as H
   iNamed H
-  iapply wp_ncfupd_app
+  iapply (wp_ncfupd _ _ rfl)
   iunfold HookGate at Hgate
   unfold ncfupd
   iintro Hnc

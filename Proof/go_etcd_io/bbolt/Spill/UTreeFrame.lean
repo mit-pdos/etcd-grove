@@ -129,7 +129,7 @@ theorem uNode_frame {X X' : WX} {bl : Loc} {T : List Loc} (hfr : spFrame X X' bl
     by rw [hs.2.2.2.2.2.2]; exact hcap, by rw [hs.2.2.2.1, length_of_dat hs.2.2.1]; exact hlen,
     wsSorted_of_dat hs.2.2.1 hsort, fun w' hw' => ?_, ?_⟩
   · obtain ⟨w, hw, he⟩ := mem_of_dat hs.2.2.1 hw'
-    rw [wDat_key he, wDat_value he]; exact hent w hw
+    rw [wDat_key he, wDat_value he, wDat_pgid he]; exact hent w hw
   · unfold ownPg at hown ⊢; rw [nodeSim_pgid hs, hfr.2.2.2.2.1]; exact hown
 
 theorem spilledN_frame {X X' : WX} {bl : Loc} {T : List Loc} (hfr : spFrame X X' bl T) {c : Loc}

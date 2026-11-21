@@ -123,7 +123,7 @@ theorem EtcdServer.revokeExpiredLeases.wp_proof
     wp_apply hEL s E ρ γr 3 $$ [Glr Grdr G3] as %b ⟨Glr, Grdr, G3⟩
     · rw [hoff, isServerReqM_false, isServerReadM_false]
       iframe #; iframe Glr Grdr G3
-      ipureintro; omega
+      ipureintro; left; rfl
     imod raftLoanL_giveBack (srvLgReader s) ⊤ (fun _ _ => CoPset.mem_full) $$ [GloanR Glr]
       with G1
     · iframe
@@ -275,7 +275,7 @@ theorem EtcdServer.revokeExpiredLeases.wp_proof
             iintro %al ⟨Hal, -⟩
             (try wp_auto)
             -- `fmt.Sprintf("%016x", lid)` of an `int64`: Perennial's `fmt.wp_Sprintf`
-            wp_apply _root_.Perennial.fmt.wp_Sprintf _ _ _ (DFrac.own 1) ?wf $$ [$Hal]
+            wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ (DFrac.own 1) ?wf $$ [$Hal]
               as %msg ⟨-, -⟩
             case wf =>
               exact _root_.Perennial.fmt.ArgsWf.cons_int _ _ []

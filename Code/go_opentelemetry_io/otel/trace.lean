@@ -227,7 +227,8 @@ opaque EventConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque timestampOption.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque currentSpanKey [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def currentSpanKey [GooseExts] [GoGlobalContext] : val :=
+  #(W64 0)
 
 opaque hexLU [GooseExts] [GoGlobalContext] : val
 
@@ -278,17 +279,11 @@ opaque errDuplicate [GooseExts] [GoGlobalContext] : val
 noncomputable def tracerProviderInstance [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/trace.tracerProviderInstance"
 
-opaque tracerProviderInstance.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def start [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/trace.start"
 
-opaque start.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ended [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/trace.ended"
-
-opaque ended.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def maxSpan [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/trace.maxSpan"
@@ -298,12 +293,8 @@ opaque maxSpan.init [GooseExts] [GoGlobalContext] : val
 noncomputable def noopSpanInstance [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/trace.noopSpanInstance"
 
-opaque noopSpanInstance.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def autoInstEnabled [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/trace.autoInstEnabled"
-
-opaque autoInstEnabled.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def nilTraceID [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/trace.nilTraceID"
@@ -479,6 +470,94 @@ noncomputable def WithAttributes.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore SpanStartEventOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad SpanStartEventOption.ty))) (Var "$res0")))))
 
+/-- SpanFromContext returns the current Span from ctx.
+
+    If no Span is currently set in ctx an implementation of a Span that
+    performs no operations is returned.
+
+    go: context.go:37:6 -/
+noncomputable def SpanFromContext.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "ctx"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Span.ty))) (App (Val (GoInstruction (GoZeroVal Span.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Span.ty))) (App (Val (GoInstruction (GlobalVarAddr noopSpanInstance))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Span.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 Span.ty))) (Let "$a0" (App (Val (GoInstruction (Convert traceContextKeyType.ty go.any))) (Val currentSpanKey))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Value"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))) (Var "$a0"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "span" (App (Val (GoInstruction (GoAlloc Span.ty))) (App (Val (GoInstruction (GoZeroVal Span.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Span.ty))) (Var "span"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Span.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Span.ty))) (Pair (Var "span") (Var "$r0")))))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.context.Context.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx")) (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.context.Context.ty))) (Val UntypedNil)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Span.ty))) (App (Val (GoInstruction (GlobalVarAddr noopSpanInstance))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Span.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad Span.ty))) (Var "$res0")))))
+
+/-- End does nothing.
+
+    go: noop.go:70:17 -/
+noncomputable def noopSpan.End.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (App (Val doExecute)
+  (Val #())))
+  (Val #()))))
+
+/-- RecordError does nothing.
+
+    go: noop.go:73:17 -/
+noncomputable def noopSpan.RecordError.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Lam BAnon
+  (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (App (Val doExecute)
+  (Val #())))
+  (Val #())))))
+
+/-- AddEvent does nothing.
+
+    go: noop.go:76:17 -/
+noncomputable def noopSpan.AddEvent.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Lam BAnon
+  (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (App (Val doExecute)
+  (Val #())))
+  (Val #())))))
+
 noncomputable instance info' : PkgInfo pkg_id.go_opentelemetry_io.otel.trace where
   pkgImportedPkgs := [pkg_id.context, pkg_id.go_opentelemetry_io.otel.«attribute», pkg_id.go_opentelemetry_io.otel.codes, pkg_id.go_opentelemetry_io.otel.trace.embedded]
 
@@ -497,12 +576,34 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc autoTracerProvider.ty))) (App (Val (GoInstruction (GoZeroVal autoTracerProvider.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Lam BAnon
+  (Lam BAnon
+  (Lam BAnon
+  (Lam BAnon
+  (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (App (Val doExecute)
+  (Val #())))
+  (Val #())))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (App (Val doExecute)
+  (Val #())))
+  (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert noopSpan.ty Span.ty))) (App (Val (GoInstruction (CompositeLiteral noopSpan.ty))) (LiteralValue [])))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -516,9 +617,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val «_».init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val autoInstEnabled.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType go.bool)))) (Pair (App (Val (GoInstruction (GlobalVarAddr autoInstEnabled))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val noopSpanInstance.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore Span.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr noopSpanInstance))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val «_».init) (Val #()))))))
   (App (Val doExecute)
@@ -530,15 +631,15 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val maxSpan.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val ended.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))))) (Pair (App (Val (GoInstruction (GlobalVarAddr ended))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val start.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType autoSpan.ty), (go.GoType.PointerType SpanContext.ty), (go.GoType.PointerType go.bool), (go.GoType.PointerType SpanContext.ty)] false []))))) (Pair (App (Val (GoInstruction (GlobalVarAddr start))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val «_».init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val tracerProviderInstance.init) (Val #()))))))
+  (App (Val «_».init) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType autoTracerProvider.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr tracerProviderInstance))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.context.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -546,7 +647,17 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_opentelemetry_io.otel.codes.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc tracerProviderInstance (go.GoType.PointerType autoTracerProvider.ty))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc start (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType autoSpan.ty), (go.GoType.PointerType SpanContext.ty), (go.GoType.PointerType go.bool), (go.GoType.PointerType SpanContext.ty)] false [])))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ended (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte)] false [])))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc noopSpanInstance Span.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc autoInstEnabled (go.GoType.PointerType go.bool))) (Val #()))))))))
 
 structure autoTracerProvider [GooseExts] where
   mk ::
@@ -1047,6 +1158,15 @@ class noopSpan.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   set_Span : ∀ (x : noopSpan) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.Span), go.IsGoStepPureDetTagged under (StructFieldSet noopSpan.underlying go!"Span") (PairV #x #y) (Val #(({ x with Span' := y } : noopSpan)))
   method_set : go.MethodSetIs noopSpan.ty [(go!"AddEvent", (some (go.signature.Signature [go.string, (go.GoType.SliceType EventOption.ty)] true []))), (go!"AddLink", (some (go.signature.Signature [Link.ty] false []))), (go!"End", (some (go.signature.Signature [(go.GoType.SliceType SpanEndOption.ty)] true []))), (go!"IsRecording", (some (go.signature.Signature [] false [go.bool]))), (go!"RecordError", (some (go.signature.Signature [go.error, (go.GoType.SliceType EventOption.ty)] true []))), (go!"SetAttributes", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_opentelemetry_io.otel.«attribute».KeyValue.ty)] true []))), (go!"SetError", (some (go.signature.Signature [go.bool] false []))), (go!"SetName", (some (go.signature.Signature [go.string] false []))), (go!"SetStatus", (some (go.signature.Signature [_root_.Perennial.go_opentelemetry_io.otel.codes.Code.ty, go.string] false []))), (go!"SpanContext", (some (go.signature.Signature [] false [SpanContext.ty]))), (go!"TracerProvider", (some (go.signature.Signature [] false [TracerProvider.ty]))), (go!"go.opentelemetry.io/otel/trace.tracerProvider", (some (go.signature.Signature [(go.GoType.PointerType go.bool)] false [TracerProvider.ty]))), (go!"go.opentelemetry.io/otel/trace/embedded.span", (some (go.signature.Signature [] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType noopSpan.ty) [(go!"AddEvent", (some (go.signature.Signature [go.string, (go.GoType.SliceType EventOption.ty)] true []))), (go!"AddLink", (some (go.signature.Signature [Link.ty] false []))), (go!"End", (some (go.signature.Signature [(go.GoType.SliceType SpanEndOption.ty)] true []))), (go!"IsRecording", (some (go.signature.Signature [] false [go.bool]))), (go!"RecordError", (some (go.signature.Signature [go.error, (go.GoType.SliceType EventOption.ty)] true []))), (go!"SetAttributes", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_opentelemetry_io.otel.«attribute».KeyValue.ty)] true []))), (go!"SetError", (some (go.signature.Signature [go.bool] false []))), (go!"SetName", (some (go.signature.Signature [go.string] false []))), (go!"SetStatus", (some (go.signature.Signature [_root_.Perennial.go_opentelemetry_io.otel.codes.Code.ty, go.string] false []))), (go!"SpanContext", (some (go.signature.Signature [] false [SpanContext.ty]))), (go!"TracerProvider", (some (go.signature.Signature [] false [TracerProvider.ty]))), (go!"go.opentelemetry.io/otel/trace.tracerProvider", (some (go.signature.Signature [(go.GoType.PointerType go.bool)] false [TracerProvider.ty]))), (go!"go.opentelemetry.io/otel/trace/embedded.span", (some (go.signature.Signature [] false [])))]
+  AddEvent_unfold : MethodUnfold noopSpan.ty go!"AddEvent" noopSpan.AddEvent.impl
+  End_unfold : MethodUnfold noopSpan.ty go!"End" noopSpan.End.impl
+  RecordError_unfold : MethodUnfold noopSpan.ty go!"RecordError" noopSpan.RecordError.impl
+  ptr_AddEvent_unfold : MethodUnfold (go.GoType.PointerType noopSpan.ty) go!"AddEvent" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve noopSpan.ty go!"AddEvent"))) (App (Val (GoInstruction (GoLoad noopSpan.ty))) (Var "$r"))))
+  ptr_End_unfold : MethodUnfold (go.GoType.PointerType noopSpan.ty) go!"End" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve noopSpan.ty go!"End"))) (App (Val (GoInstruction (GoLoad noopSpan.ty))) (Var "$r"))))
+  ptr_RecordError_unfold : MethodUnfold (go.GoType.PointerType noopSpan.ty) go!"RecordError" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve noopSpan.ty go!"RecordError"))) (App (Val (GoInstruction (GoLoad noopSpan.ty))) (Var "$r"))))
 
 attribute [instance] noopSpan.TypeAssumptions.type_repr
   noopSpan.TypeAssumptions.underlying
@@ -1054,6 +1174,12 @@ attribute [instance] noopSpan.TypeAssumptions.type_repr
   noopSpan.TypeAssumptions.set_Span
   noopSpan.TypeAssumptions.method_set
   noopSpan.TypeAssumptions.ptr_method_set
+  noopSpan.TypeAssumptions.AddEvent_unfold
+  noopSpan.TypeAssumptions.End_unfold
+  noopSpan.TypeAssumptions.RecordError_unfold
+  noopSpan.TypeAssumptions.ptr_AddEvent_unfold
+  noopSpan.TypeAssumptions.ptr_End_unfold
+  noopSpan.TypeAssumptions.ptr_RecordError_unfold
 
 abbrev TraceID [GooseExts] : Type := (GoArray w8 16)
 
@@ -1554,6 +1680,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   member_instance : member.TypeAssumptions
   TraceState_instance : TraceState.TypeAssumptions
   WithAttributes_unfold : FuncUnfold WithAttributes [] WithAttributes.impl
+  SpanFromContext_unfold : FuncUnfold SpanFromContext [] SpanFromContext.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_attribute_Assumption : _root_.Perennial.go_opentelemetry_io.otel.«attribute».Assumptions
   import_codes_Assumption : _root_.Perennial.go_opentelemetry_io.otel.codes.Assumptions
@@ -1599,6 +1726,7 @@ attribute [instance] Assumptions.autoTracerProvider_instance
   Assumptions.member_instance
   Assumptions.TraceState_instance
   Assumptions.WithAttributes_unfold
+  Assumptions.SpanFromContext_unfold
   Assumptions.import_context_Assumption
   Assumptions.import_attribute_Assumption
   Assumptions.import_codes_Assumption

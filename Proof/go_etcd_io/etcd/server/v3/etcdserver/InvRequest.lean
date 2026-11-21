@@ -1485,6 +1485,8 @@ index is already deposited (`pend`, a ghost variable whose halves the applied in
 the apply thread hold: the apply thread deposits the log after an entry before `setAppliedIndex`,
 so that the proposer the entry answers learns it, `srvAppliedPre`). -/
 structure ReadNames where
+  /-- The index reached by this incarnation’s serial Go apply worker. -/
+  cursor : GName
   applied : GName
   committed : GName
   notifier : GName

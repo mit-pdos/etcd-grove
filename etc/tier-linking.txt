@@ -31,7 +31,6 @@ Proof.go_etcd_io.etcd.client.v3.ServerKVTxn  # client.isEtcdTxnKVTodo_of_kv: ove
 Proof.go_etcd_io.etcd.client.v3.TxnPlain  # client.v3.txn.wp_Else_plain: over linked results
 Proof.go_etcd_io.etcd.client.v3.experimental.recipes.KVOfServer  # recipes.isEtcdRecipesClient_of_km: over linked results
 Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServerR  # NewServer.wp_proofR: over linked results
-Proof.github_com.mit_pdos.etcd_grove.examples.etcd.cache.PkgTable  # the program's package table, over its initializer's linked results (generated: etc/gen-init.py)
 # The examples' entry points (2026-11-18, tiers3): each `main`/`run`/cluster start composes the started
 # server's served results (`etcdstart.kv_served`, `wk_served_nd`, ...: the whole server's linked proof
 # at the started member) with the client's linked calls; only their `MainLinked`/`Link` import them.

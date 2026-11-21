@@ -318,7 +318,7 @@ public import Proof.os.fileStat__Size
 public import Proof.reflect.DeepEqual
 public import Proof.sort.SliceIsSorted
 public import Proof.sort.Sort
-public import Proof.sort.SortAnyLess
+public import Proof.sort.SortAnyLessLinked
 public import Proof.strings.ToLower
 public import Proof.syscall.Fdatasync
 public import Proof.syscall.Flock
@@ -1614,6 +1614,10 @@ theorem internal.freelist.shared.wp_Rollback :
 theorem node.wp_pageElementSize :
     _root_.Perennial.EtcdGrove.bbolt.node.pageElementSize.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.node.pageElementSize.wp_proof
+
+theorem node.wp_readableLeafPrefix :
+    _root_.Perennial.EtcdGrove.bbolt.node.readableLeafPrefix.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.bbolt.node.readableLeafPrefix.wp_proof _root_.Perennial.EtcdGrove.bbolt.internal.common.Inode.wp_Key _root_.Perennial.EtcdGrove.bbolt.internal.common.Inode.wp_Value
 
 theorem node.wp_sizeLessThan :
     _root_.Perennial.EtcdGrove.bbolt.node.sizeLessThan.spec (GF := GF) (hG := hG) :=

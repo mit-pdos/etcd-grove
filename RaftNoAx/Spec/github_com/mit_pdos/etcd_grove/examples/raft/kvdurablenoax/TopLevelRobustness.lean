@@ -4,9 +4,10 @@
 # `raft/kvdurable`: the top-level robustness results, stated
 
 `raft_kvdurable_porcupine_robust`, `raft_kvdurableN_porcupine_robust`: the example's closed theorems as instances of the generic robustness statement
-(`Robustness/Statement.lean`, `Robust crashing stable g bound`: in every execution of the
+(`Robustness/Statement.lean`, `Robust crashing stable g threads bound`: in every execution of the
 machines that may crash and restart and of those that never crash, each a fresh Go process, of
-fewer than `bound` steps, no thread is stuck and none has an unrecovered panic). This file only
+fewer than `bound` steps along which every machine keeps fewer than `threads` threads,
+no thread is stuck and none has an unrecovered panic). This file only
 states them (to audit); the proofs are in
 `Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/TopLevelRobustness.lean`.
 -/
@@ -45,7 +46,8 @@ def raft_kvdurable_porcupine_robust.spec : Prop :=
     [hLog : log.NewModel] (dir : GoString) (σ : state) (g : GlobalState)
     (Hfiles : ∀ i ∈ raft_kvreconf.allIds,
       extLocal durableExt σ.world !! raft_kvdurable.kdFileName dir i = none),
-    Robustness.Robust [] [(kvdurableProgram dir, σ)] g (2 ^ 61)
+    Robustness.Robust [] [(kvdurableProgram dir, σ)] g (threads := 2 ^ 61 + 1)
+      (bound := 2 ^ 61)
 
 /-- **`raft_kvdurableN_porcupine_safe` as a robustness statement** (`Robustness.Robust`,
 `Robustness/Statement.lean`): the program alone on one machine that never crashes,
@@ -58,7 +60,8 @@ def raft_kvdurableN_porcupine_robust.spec : Prop :=
     (g : GlobalState)
     (Hfiles : ∀ i ∈ raft_kvreconf.bootVoters (k + 4),
       extLocal durableExt σ.world !! raft_kvdurable.kdFileName dir i = none),
-    Robustness.Robust [] [(kvdurableProgramN dir k, σ)] g (2 ^ 61)
+    Robustness.Robust [] [(kvdurableProgramN dir k, σ)] g (threads := 2 ^ 61 + 1)
+      (bound := 2 ^ 61)
 
 end closed
 end EtcdGrove

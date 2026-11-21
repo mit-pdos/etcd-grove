@@ -685,7 +685,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
                 ihave #Hcs := go_etcd_io.etcd.cache.v3.isCtxErr_fmtErrorOk ci $$ Hce
                 rw [show (go!"rangeKeys: context cancelled: %w" : GoString) = go!"rangeKeys: context cancelled: " ++ go!"%w" from rfl]
                 wp_apply (hWrap go!"rangeKeys: context cancelled: " _ ci (DFrac.own 1) (by decide))
-                  $$ [$Hasl $Hcs] as %e0 ⟨-, #Hw, %Hpre⟩
+                  $$ [$Hasl $Hcs] as %e0 ⟨-, #Hw⟩
                 ihave #He' : mvcc.rangeKeysErr (GoInterface.ok e0) $$ []
                 · iunfold mvcc.rangeKeysErr
                   isplitl
@@ -696,7 +696,6 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
                     isplitr
                     · ipureintro; rfl
                     iframe Hw
-                    ipureintro; exact Hpre
                   iexists e0
                   iunfold EtcdGrove.fmt.errorfWrapIs at Hw
                   icases Hw with (#HM | #HW)

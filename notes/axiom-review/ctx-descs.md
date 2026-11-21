@@ -171,3 +171,28 @@ step 1).
    an opaque Lean function, and whose antecedent is satisfiable standalone (persistent points-tos,
    `isPkgInit` of fragments), is checked by `crossWorld`. It must be true for every heap that has
    those cells, not only the one an execution builds.
+
+## The per-execution reading retired (errdesc, 2026-11-20)
+
+The table's row "`toGRPCErrorMap_init` (axiom) and the `status.FromError.spec` wand … triple posts (per
+execution)" and the same reading of `metadata.outgoingOf` relied on posts being "claims about one
+execution's heap" while the functions they constrain (`errDesc`, `statusCode`, `outgoingOf`) are the same
+in every execution. That reading does not hold of the Lean statements: a fresh allocation may be any
+location, so a post that fixes a pure function at a value the call allocates cannot be met by any
+implementation (etcd-refimpl `README.md`, "Findings": `status.Error`, `FromError`,
+`AppendToOutgoingContext`). The fix (`notes/errdesc-ghost-plan.md`, Part II of `notes/perheap-scope.md`)
+makes these per-run relations instead of functions:
+
+- **Stage 1 (outgoing metadata, landed with branch `prove-errdesc/2026-11-20`):** `metadata.outgoingOf`
+  and the opaque `Prop` `metadata.builtRawMD` are gone; `metadata.outMD ctx md` (Perennial's chain at
+  grpc's key, over the opaque `IProp` leaf `metadata.builtRawMDRaw v f`, no law) replaces them. The
+  posts that equated `outgoingOf` of an allocated context now give `outMD` of it, at metadata the
+  precondition fixed (`notes/decisions.md`, "Outgoing metadata as a per-run relation").
+- **Stage 2a (status codes, branch `prove-errdesc2/2026-11-20`):** `statusCode` and `grpcStatusROP` are gone;
+  `status.statusAt s c m` (over the opaque leaf `status.statusAtRaw`) and `statusCodeIs err c` replace them.
+- **Stage 2b (descriptions, branch `prove-errdesc2b/2026-11-21`):** `errDesc` is gone, and with it the axiom
+  `rpctypes.errDesc_etcdError`; `descIs err m` (over `errorMsgIs` and `status.statusAt`, with an `EtcdError`
+  value's `desc` as a pure pin) replaces it, with no agreement law (`notes/errdesc-ghost-plan.md` §8,
+  `notes/decisions.md`, "An error's description as a per-run relation"). The per-execution reading of this
+  note is retired for errors, codes and outgoing metadata: no trusted text names a pure function of an error
+  or context value any more.

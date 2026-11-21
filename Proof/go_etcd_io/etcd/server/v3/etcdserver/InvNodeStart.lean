@@ -41,6 +41,7 @@ cluster's `bootstrappedRaft.newRaftNode` (`bootstrap.go`) are specified over, be
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftNode
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReplayModel
 public import Proof.go_etcd_io.raft.v3.Protocol.Facts
 public import Perennial.Ghost.GhostVar
 public import Perennial.Ghost.GhostMap
@@ -133,6 +134,11 @@ inductive RNBoot where
   | fresh
   | restart (σ : StorContents) (cs : ConfStateM) (S : RaftState) (a : Nat) (m : Membership)
       (A₀ : List EntryModel)
+
+/-- Initial immutable term runs over the entries retained above the restored snapshot. -/
+def RNBoot.seedRuns : RNBoot → List replayTermRun
+  | .fresh => []
+  | .restart σ _ _ _ _ _ => (σ.ents.map EntryModel.ofM).foldl replayAddEntry []
 
 /-- The wrapper's restart point's backend log (`RNNames.a0`): `[]` fresh, `A₀` at a restart. -/
 def RNBoot.a0 : RNBoot → List EntryModel
@@ -308,14 +314,15 @@ configuration point `a` between the restored base and commit, the bootstrap log 
 at `σ`, `cs` and `Applied = 0`, with the frame `Q`; the cluster, its receipts' bound, the id vacant,
 the durable state `S`, the configuration `m` at `a`). -/
 def rnBootPre (γr : SrvRaft) (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk)
-    (pv : List Peer) (ps : List w64) (ctxs : List (List w8)) (Q : GName → IProp GF) :
+    (pv : List Peer) (ps : List w64) (ctxs : List (List w8)) (Q : GName → IProp GF)
+    (SV : SnapshotM → IProp GF) :
     RNBoot → IProp GF
   | .fresh =>
     letI := srvStor (GF := GF) γr
     iprop(⌜rnStartCfg bv cv lok pv ps⌝ ∗
       restartStorage γr.cl (memStorIface bv.storage')
         ⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩
-        memSnapEmpty.Metadata'.ConfState' 0 Q ∗
+        memSnapEmpty.Metadata'.ConfState' 0 Q SV ∗
       nodeBoot γr.cl srvClusterN ps ctxs cv.ID' ∗ nodeVacant γr.cl cv.ID' ∗
       raftState γr.cl cv.ID' RaftState.init)
   | .restart σ cs S a m _ =>
@@ -324,7 +331,10 @@ def rnBootPre (γr : SrvRaft) (bv : bootstrappedRaft) (cv : Config) (lok : GoInt
         confStateIs cs m ∧ StorageHolds S σ ∧
         -- (auth-lease S4, 2026-11-16) outside the cluster's no-snapshot mode (`RestartNode`'s)
         ¬ clusterNoSnap γr.cl⌝ ∗
-      restartStorage γr.cl (memStorIface bv.storage') σ cs 0 Q ∗
+      (∀ Φ : val → IProp GF, ▷ (∀ out : GoSlice,
+          out ↦*□ (σ.ents.map EntryModel.ofM).foldl replayAddEntry [] ∗
+            restartStorage γr.cl (memStorIface bv.storage') σ cs 0 Q SV -∗ Φ #out) -∗
+        WP (App (Val (@! replayTermsFromStorage)) (Val #bv.storage')) {{ Φ }}) ∗
       isCluster γr.cl srvClusterN ∗ readyFits γr.cl srvClusterN ∗ (∃ x, nodeVacantA γr.cl cv.ID' x) ∗
       raftState γr.cl cv.ID' S ∗ confAt γr.cl a m)
 

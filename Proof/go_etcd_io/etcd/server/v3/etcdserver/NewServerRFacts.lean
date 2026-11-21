@@ -610,18 +610,20 @@ token was generalized to the attached snapshot, approved by etcd-grove-81; until
 records' certificate and the server's log, from which the exact answer did not follow.) -/
 theorem restart_snapOnceR [MemStorReg GF] (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
     (E : RNEnv GF) (γ : RNNames GF) (r ms0 : Loc) (γs : MemStorNames) (σ : StorContents)
-    (cs : ConfStateM) (γr : ServerRaftNames) (A : List EntryModel) (Hms0 : γ.ms = ms0)
+    (cs : ConfStateM) (γr : ServerRaftNames) (A : List EntryModel) (Hms0 : γ.ms = ms0) (hboot : γ.snap0 = σ.b)
     (hb : σ.b ≤ A.length) (hcs : confStateIs cs (Membership.simple γr.raft.cfg))
     (hsz : GMap.size γr.raft.cfg ≤ 2 ^ 20) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver -∗
-      isRaftNode E γ r -∗ memStorInv ms0 γs γ.node.cl γ.key -∗ memSnapNone γs (walSnapCS σ cs) -∗
+      isRaftNode E γ r -∗ srvAttachedMem ms0 γs γ.node.cl γ.key E.γr.cursor γ.nl γ.snap0 -∗ memSnapNone γs (walSnapCS σ cs) -∗ monoNatAuthOwn E.γr.cursor 1 0 -∗
       ∃ ms : Loc, rnRaftStorageAddr r ↦□ ms ∗
         rnSnapOnceR (MemStorReg.memStorRegName (GF := GF)) γ.node.cl γ.key ms γs
-          (W64 (A.take σ.b).length) σ.base.term' γr A := by
+          (W64 (A.take σ.b).length) σ.base.term' γr A E.γr.cursor γ.nl γ.snap0 := by
   subst Hms0
-  iintro #Hpkg #Hrn #Hinv Hnone
+  iintro #Hpkg #Hrn #Hinv Hnone Hcursor
   ihave #Hinv0 := Hinv
-  iunfold memStorInv at Hinv
+  iunfold srvAttachedMem at Hinv
+  icases Hinv with ⟨%pin, -, -, #Hinv⟩
+  iunfold memStorInvT at Hinv
   ihave #Hrn' := Hrn
   iunfold isRaftNode at Hrn'
   iNamed Hrn'
@@ -637,7 +639,7 @@ theorem restart_snapOnceR [MemStorReg GF] (wp_Snapshot : MemoryStorage.Snapshot.
   iNamed Hinit
   ihave #Hc0 := memCompacted_zero (GF := GF) γs
   iapply wp_fupd
-  wp_apply wp_Snapshot γ.ms γs (memStorJ γ.node.cl γ.key) none 0 (some (walSnapCS σ cs)) _
+  wp_apply wp_Snapshot γ.ms γs (memStorJT γ.node.cl γ.key (srvStoredOrigin γ.node.cl E.γr.cursor pin γ.snap0)) none 0 (some (walSnapCS σ cs)) _
     $$ [$Hraft $Hc0 Hnone $ErrSnapUnavail] as %snap %err ⟨Hnone, %Herr, %sv, Hw, %Hsv, -⟩
   · isplitr [Hnone]
     · iapply memStorAt_none_intro $$ Hinv
@@ -654,9 +656,11 @@ theorem restart_snapOnceR [MemStorReg GF] (wp_Snapshot : MemoryStorage.Snapshot.
     rw [hl]
     show σ.base.index' = W64 σ.b
     unfold StorContents.b; simp
-  iapply HΦ $$ %snap %pm %pc %(walSnapCS σ cs) [] Hsn Hpm Hpc [] [] [] []
+  iapply HΦ $$ %snap %pm %pc %(walSnapCS σ cs) [] Hsn Hpm Hpc [] [] [] [] Hcursor
   · ipureintro
-    exact ⟨hidx, rfl, Hnn.1, Hnn.2⟩
+    refine ⟨hidx, rfl, Hnn.1, Hnn.2, ?_⟩
+    rw [← hidx, walSnapCS_index, hboot]
+    exact Nat.le_refl _
   · iapply (epCsOk_of_csOptA _ (walSnapCS σ cs).Metadata'.ConfState'
       (by simpa [walSnapCS] using csIdCount_simple_le cs _ hcs hsz)) $$ Hcs
   · iapply epCsAt_voters

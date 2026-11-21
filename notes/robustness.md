@@ -26,12 +26,28 @@ in the top-level theorem, no reading bytes off the network):
 
     Fresh lctx σ := σ.goState.goLctx = lctx ∧ σ.goState.packageState = ∅ ∧ σ.threads = 1
 
-    Robust crashing stable g bound :=
+    Robust crashing stable g threads bound :=
       (∀ m ∈ crashing ++ stable, Fresh lctx m.2) →
-      ∀ n κs c, DistCrashNsteps (crashing.map Prod.fst) n (distInit (crashing ++ stable) g) κs c →
+      extsInitGlobal g → (∀ m ∈ crashing ++ stable, extsInitLocal m.2 g) →
+      ∀ n κs c, DistCrashNstepsBelow (crashing.map Prod.fst) threads n
+                  (distInit (crashing ++ stable) g) κs c →
         n < bound → ∀ i tp σ, c.nodes[i]? = some (tp, σ) →
           ∀ e ∈ tp, RealNotStuck e (σ, c.global) ∧ ¬ UnrecoveredPanic e
 
+- **Every machine and the network start in their extensions' initial states** (2026-11-21, for
+  kvnet's statement): Perennial's trusted `ExtSemantics.initLocal`/`initGlobal` (Perennial
+  `c0ec40070`, `extsInitLocal`/`extsInitGlobal`), premises inside `Robust` as `Fresh` is, so that no
+  instance states an extension's start conditions itself. The bridges (`of_single`,
+  `of_single_crashing`, `of_all`, `of_all_crashing`, the kits') take the same hypotheses as before
+  and drop the new premises; no example's proof changed.
+- **The thread bound** (2026-11-20, the user's: "we need to have the thread bounds NOT be imposing
+  the step bounds (2^28 is a joke)"; branch `robust-threads`): the executions are those along which
+  every machine keeps fewer than `threads` live threads (Perennial's `DistCrashNstepsBelow`), a premise
+  about the run, so an instance's step bound is its proofs' (receipts), not its thread bound. Until
+  then `Robust` had none, and every instance whose proof needs a constant thread bound (the etcd
+  server's `2^28`) had its step bound below it. An instance with no thread bound of its own states
+  `threads := bound + 1`, its statement without one (`Robust.toAll`). The header of
+  `Robustness/Statement.lean` says what it excludes (reviewed twice by a subagent, 2026-11-20).
 - **No semantics of its own.** The executions are Perennial's `DistCrashNsteps`
   (`DistLang.lean`), the relation `goose_dist_crash_adequacy` is about; the extensions are the
   instances `[GooseExts] [GooseSemantics]`.
@@ -86,8 +102,10 @@ them. `find . -name TopLevelRobustness.lean` lists them all.)
 | several machines, `DistCrashNsteps` | `Robust.of_all` | `Robust (system …) [] g bound` | the seven TCP examples (`Net/…/net/*`) |
 | several machines that never crash, `DistNsteps` (2026-11-19) | `robust_of_kitBoot`, `robust_of_kitProto` (`Net/Statement/KitBridge.lean`: `distNsteps_of_crash_nil`, then `goose_dist_adequacy`), under the kit deployment premise `KitDeploy plan hosts nodes g` (`Net/Statement/KitDeploy.lean`) | `KitDeploy … → Robust [] nodes g bound` | the network kits (`notes/dsverify-net-port-plan.md`, phases 4 and 6); `echo_kit_robust` (`Net/…/net/echo/RobustLinked.lean`), the non-vacuity check |
 
-- **The bound** is the example's own: `2^61` or `2^63` (raft's, lintest's), `2^28 - 1` (the
-  etcd-server examples: their proofs cap the thread bound, which is `n + 2`), `2^30 - 1`
+- **The bound** is the example's own: `2^61` or `2^63` (raft's, lintest's), `2^40 - 11` at `2^28` threads
+  (the 22 `etcd/*` examples, since 2026-11-20: the backend's write-back budget; until then `2^28 - 1`,
+  their proofs' thread bound `n + 2`), `2^61 - 3` at `2^31` threads (tracecheck), `2^28 - 1` (`k8s/all`,
+  `mvccfull`, `mvccrand`, still at `threads := 2^28`), `2^30 - 1`
   (`logkvrw`, `bboltfs`), and any `bound` (a parameter) where the theorem had none (the TCP and
   `osfs` examples, `prophkv`). `bboltfs`'s statement took a thread-bound hypothesis
   (`RealCrashThreadsBelow … (2^30)`); its `Robust` form derives it from the step bound.

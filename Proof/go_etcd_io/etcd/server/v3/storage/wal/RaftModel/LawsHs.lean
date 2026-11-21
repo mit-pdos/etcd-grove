@@ -2,9 +2,9 @@
 **The raftpb instance's hard-state laws** (W4c U4 b of `notes/wal-fsext-w4c-plan.md`, "W4c U4 log"):
 `WalPbIn.NilLaw`, `ZeroLaw`, `MustSyncLaw` (raft's `MustSync`, `rawnode.go:191`), `IsEmptyLaw` (raft's
 `IsEmptyHardState`, `node.go:122`, over raft's package fact `isInitialized`: `emptyState`), and
-`WalHsOwn`'s `zero`, `getCommit`, `freeze` of `walRaftHsO`. (`WalHsOwn.unmarshal`, `reset`,
-`MarshalHsLaw` and `CloneHsLaw` need a trusted model of `raftpb.HardState` the part does not have:
-the U4 log.) Lean-first.
+`WalHsOwn`'s `zero`, `getCommit`, `freeze` of `walRaftHsO`. (`MarshalHsLaw`: `LawsHsMarshal.lean`, over the
+registered `raftpb.HardState`, wal-item3; `WalHsOwn.unmarshal`, `reset` and `CloneHsLaw` are not proved: the
+U4 log.) Lean-first.
 -/
 module
 

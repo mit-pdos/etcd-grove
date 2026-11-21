@@ -70,27 +70,36 @@ def k8sQueriedFeatures : List GoString :=
   [go!"AllowUnsafeMalformedObjectDeletion", go!"ListFromCacheSnapshot", go!"EtcdRangeStream",
    go!"WatchList", go!"ConcurrentWatchObjectDecode"]
 
+/-- The opaque assertion under `featureOff` (only `featureOff` names it). -/
+opaque featureOffRaw (g : GoInterfaceOk) (s : GoString) : IProp GF
+
 /-- **`Set(s=false)` succeeded on the gate `g`** (opaque, persistent): `g`'s set value of `s` is
 `false`, for the rest of the run (no code sets it back: the file header's assumption). Given only
-by `featureGateOk`'s `Set` triple, for an `s` whose `k8sSetValue` is `false`. -/
-opaque featureOff (g : GoInterfaceOk) (s : GoString) : IProp GF
+by `featureGateOk`'s `Set` triple, for an `s` whose `k8sSetValue` is `false`. Persistent by
+definition (a fact of the run, once true): the persistent part of an opaque assertion (until
+prove-k8s3, 2026-11-21, an opaque assertion and the axiom `featureOff_persistent`). -/
+def featureOff (g : GoInterfaceOk) (s : GoString) : IProp GF :=
+  iprop(□ featureOffRaw g s)
 
 /-- It is persistent (a fact of the run, once true). -/
-axiom featureOff_persistent (g : GoInterfaceOk) (s : GoString) :
-    Persistent (featureOff (GF := GF) g s)
+instance featureOff_persistent (g : GoInterfaceOk) (s : GoString) :
+    Persistent (featureOff (GF := GF) g s) := by
+  unfold featureOff; infer_instance
 
-attribute [instance] featureOff_persistent
+/-- The opaque assertion under `featureOn` (only `featureOn` names it). -/
+opaque featureOnRaw (g : GoInterfaceOk) (s : GoString) : IProp GF
 
 /-- **`Set(s=true)` succeeded on the gate `g`** (opaque, persistent; k8s 7f-5, T5-c): `g`'s set value
 of `s` is `true`, for the rest of the run (the file header's assumption). Given only by
-`featureGateOk`'s `Set` triple, for an `s` whose `k8sSetValue` is `true` (`WatchList`). -/
-opaque featureOn (g : GoInterfaceOk) (s : GoString) : IProp GF
+`featureGateOk`'s `Set` triple, for an `s` whose `k8sSetValue` is `true` (`WatchList`). Persistent
+by definition, as `featureOff` (until prove-k8s3, the axiom `featureOn_persistent`). -/
+def featureOn (g : GoInterfaceOk) (s : GoString) : IProp GF :=
+  iprop(□ featureOnRaw g s)
 
 /-- It is persistent (a fact of the run, once true). -/
-axiom featureOn_persistent (g : GoInterfaceOk) (s : GoString) :
-    Persistent (featureOn (GF := GF) g s)
-
-attribute [instance] featureOn_persistent
+instance featureOn_persistent (g : GoInterfaceOk) (s : GoString) :
+    Persistent (featureOn (GF := GF) g s) := by
+  unfold featureOn; infer_instance
 
 /-- What `Set(s ++ "=" ++ b)` gives: `featureOn` for `true`, `featureOff` for `false`. -/
 def featureSet (g : GoInterfaceOk) (s : GoString) (b : Bool) : IProp GF :=

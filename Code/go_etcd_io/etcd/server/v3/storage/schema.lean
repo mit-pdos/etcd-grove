@@ -11,6 +11,8 @@ public import Code.go_etcd_io.etcd.server.v3.auth
 public import Code.go_etcd_io.etcd.api.v3.authpb
 public import Code.go_etcd_io.etcd.client.pkg.v3.verify
 public import Code.go_etcd_io.etcd.server.v3.lease.leasepb
+public import Code.github_com.Masterminds.semver.v3
+public import Code.go_etcd_io.etcd.api.v3.version
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -104,8 +106,6 @@ noncomputable def migrationStep.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/schema.migrationStep" [])
 
 attribute [irreducible] migrationStep.ty
-
-opaque migrationStep.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 @[reducible] noncomputable def revBytesLen [GooseExts] [GoGlobalContext] : val :=
   #(8 : Int)
@@ -222,8 +222,6 @@ noncomputable def MetaStorageVersionName [GooseExts] [GoGlobalContext] : GoStrin
 noncomputable def schemaChanges [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.schemaChanges"
 
-opaque schemaChanges.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def emptyStorageVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.emptyStorageVersion"
 
@@ -319,6 +317,9 @@ noncomputable def bytesToLeaseID [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def NewMembershipBackend [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.NewMembershipBackend"
+
+noncomputable def UnsafeReadMembers [GooseExts] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/storage/schema.UnsafeReadMembers"
 
 noncomputable def mustParseMemberIDFromBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.mustParseMemberIDFromBytes"
@@ -1498,6 +1499,33 @@ noncomputable def bucket.IsSafeRangeBucket.impl [GooseExts] [GoGlobalContext] : 
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
+/-- addNewField represents adding new field when upgrading. Downgrade will remove the field.
+
+    go: changes.go:25:6 -/
+noncomputable def addNewField.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "bucket"
+  (Lam "fieldName"
+  (Lam "fieldValue"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc schemaChange.ty))) (App (Val (GoInstruction (GoZeroVal schemaChange.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "fieldValue" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "fieldValue"))
+  (Let "fieldName" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "fieldName"))
+  (Let "bucket" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (Var "bucket"))
+  (Let "$r0" (App (Val (GoInstruction (Convert simpleSchemaChange.ty schemaChange.ty))) (Let "$v0" (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (Var "bucket"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "fieldName"))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "fieldValue"))
+  (App (Val (GoInstruction (CompositeLiteral setKeyAction.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Bucket")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"FieldName")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v1"))), (KeyedElement (some (KeyField go!"FieldValue")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v2")))])))))
+  (Let "$v1" (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (Var "bucket"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "fieldName"))
+  (App (Val (GoInstruction (CompositeLiteral deleteKeyAction.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Bucket")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"FieldName")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v1")))]))))
+  (App (Val (GoInstruction (CompositeLiteral simpleSchemaChange.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"upgrade")) (ElementExpression setKeyAction.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"downgrade")) (ElementExpression deleteKeyAction.ty (Var "$v1")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore schemaChange.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad schemaChange.ty))) (Var "$res0")))))))
+
 /-- UnsafeCreateMetaBucket creates the `meta` bucket (if it does not exist yet).
 
     go: cindex.go:25:6 -/
@@ -1822,7 +1850,7 @@ noncomputable def leaseIDToBytes.impl [GooseExts] [GoGlobalContext] : val :=
     Refer to https://github.com/etcd-io/etcd/pull/19343#discussion_r1958056718
     revive:disable-next-line:unexported-return
 
-    go: membership.go:43:6 -/
+    go: membership.go:44:6 -/
 noncomputable def NewMembershipBackend.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "be"
@@ -1841,14 +1869,15 @@ noncomputable def NewMembershipBackend.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType membershipBackend.ty)))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.storage.schema where
-  pkgImportedPkgs := [pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.bytes, pkg_id.encoding.binary, pkg_id.go_etcd_io.etcd.server.v3.auth, pkg_id.go_etcd_io.etcd.api.v3.authpb, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify, pkg_id.go_etcd_io.etcd.server.v3.lease.leasepb]
-
-opaque «_».init [GooseExts] [GoGlobalContext] : val
+  pkgImportedPkgs := [pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.bytes, pkg_id.encoding.binary, pkg_id.go_etcd_io.etcd.server.v3.auth, pkg_id.go_etcd_io.etcd.api.v3.authpb, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify, pkg_id.go_etcd_io.etcd.server.v3.lease.leasepb, pkg_id.github_com.Masterminds.semver.v3, pkg_id.go_etcd_io.etcd.api.v3.version]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.storage.schema)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1901,9 +1930,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (Let "$v0" (Val #(W8 0))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.byte)))) (LiteralValue [(KeyedElement none (ElementExpression go.byte (Var "$v0")))])))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType authBackend.ty) _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthBackend.ty))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType authBackend.ty)))) (Val UntypedNil)))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType authReadTx.ty) _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType authReadTx.ty)))) (Val UntypedNil)))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType authBatchTx.ty) _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthBatchTx.ty))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType authBatchTx.ty)))) (Val UntypedNil)))
   (Let "$r0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (Val #(go!"key")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (Val #(go!"meta")))
@@ -2015,11 +2044,19 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (Val #(go!"")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$k0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.version.V3_6))) (Val #())))
+  (Let "$v1" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (App (Val (GoInstruction (GlobalVarAddr Meta))) (Val #())))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GlobalVarAddr MetaStorageVersionName))) (Val #())))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GlobalVarAddr emptyStorageVersion))) (Val #())))
+  (App (App (App (App (Val (GoInstruction (FuncResolve addNewField []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$k2" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.version.V3_7))) (Val #())))
+  (Let "$k3" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.version.V3_8))) (Val #())))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty (go.GoType.SliceType schemaChange.ty))))) (LiteralValue [(KeyedElement (some (KeyExpression _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty (Var "$k0"))) (ElementLiteralValue [(KeyedElement none (ElementExpression schemaChange.ty (Var "$v1")))])), (KeyedElement (some (KeyExpression _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty (Var "$k2"))) (ElementLiteralValue [])), (KeyedElement (some (KeyExpression _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty (Var "$k3"))) (ElementLiteralValue []))]))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
   (App (Val doExecute)
-  (App (Val schemaChanges.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty (go.GoType.SliceType schemaChange.ty))))) (Pair (App (Val (GoInstruction (GlobalVarAddr schemaChanges))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GlobalVarAddr emptyStorageVersion))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -2087,13 +2124,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GlobalVarAddr metaBucketName))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GlobalVarAddr keyBucketName))) (Val #())) (Var "$r0"))))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GlobalVarAddr keyBucketName))) (Val #())) (Var "$r0")))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GlobalVarAddr authDisabled))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -2118,6 +2149,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.github_com.Masterminds.semver.v3.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_etcd_io.etcd.api.v3.version.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc authEnabled (go.GoType.SliceType go.byte))) (Val #()))))))
   (App (Val doExecute)
@@ -2188,6 +2223,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (go.GlobalAlloc ClusterDowngradeKeyName (go.GoType.SliceType go.byte))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc MetaStorageVersionName (go.GoType.SliceType go.byte))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc schemaChanges (go.GoType.MapType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty (go.GoType.SliceType schemaChange.ty)))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc emptyStorageVersion (go.GoType.SliceType go.byte))) (Val #()))))))))
 
@@ -2697,7 +2734,7 @@ class membershipBackend.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCo
   get_be : ∀ (x : membershipBackend), go.IsGoStepPureDetTagged under (StructFieldGet membershipBackend.underlying go!"be") #x (Val #(x.be'))
   set_be : ∀ (x : membershipBackend) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend), go.IsGoStepPureDetTagged under (StructFieldSet membershipBackend.underlying go!"be") (PairV #x #y) (Val #(({ x with be' := y } : membershipBackend)))
   method_set : go.MethodSetIs membershipBackend.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType membershipBackend.ty) [(go!"ClusterVersionFromBackend", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/Masterminds/semver/v3.Version" []))]))), (go!"DowngradeInfoFromBackend", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/version.DowngradeInfo" []))]))), (go!"MustCreateBackendBuckets", (some (go.signature.Signature [] false []))), (go!"MustDeleteMemberFromBackend", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.ID" [])] false []))), (go!"MustReadMembersFromBackend", (some (go.signature.Signature [] false [(go.GoType.MapType (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.ID" []) (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.Member" []))), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.ID" []) go.bool)]))), (go!"MustSaveClusterVersionToBackend", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/Masterminds/semver/v3.Version" []))] false []))), (go!"MustSaveDowngradeToBackend", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/version.DowngradeInfo" []))] false []))), (go!"MustSaveMemberToBackend", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.Member" []))] false []))), (go!"TrimClusterFromBackend", (some (go.signature.Signature [] false [go.error]))), (go!"TrimMembershipFromBackend", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/schema.readMembersFromBackend", (some (go.signature.Signature [] false [(go.GoType.MapType (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.ID" []) (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.Member" []))), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.ID" []) go.bool), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType membershipBackend.ty) [(go!"ClusterVersionFromBackend", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"DowngradeInfoFromBackend", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/version.DowngradeInfo" []))]))), (go!"MustCreateBackendBuckets", (some (go.signature.Signature [] false []))), (go!"MustDeleteMemberFromBackend", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.ID" [])] false []))), (go!"MustReadMembersFromBackend", (some (go.signature.Signature [] false [(go.GoType.MapType (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.ID" []) (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.Member" []))), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.ID" []) go.bool)]))), (go!"MustSaveClusterVersionToBackend", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)] false []))), (go!"MustSaveDowngradeToBackend", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/version.DowngradeInfo" []))] false []))), (go!"MustSaveMemberToBackend", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.Member" []))] false []))), (go!"TrimClusterFromBackend", (some (go.signature.Signature [] false [go.error]))), (go!"TrimMembershipFromBackend", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/schema.readMembersFromBackend", (some (go.signature.Signature [] false [(go.GoType.MapType (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.ID" []) (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.Member" []))), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.ID" []) go.bool), go.error])))]
 
 attribute [instance] membershipBackend.TypeAssumptions.type_repr
   membershipBackend.TypeAssumptions.underlying
@@ -2722,22 +2759,44 @@ attribute [instance] migrationPlan.TypeAssumptions.underlying
   migrationPlan.TypeAssumptions.method_set
   migrationPlan.TypeAssumptions.ptr_method_set
 
-opaque migrationStep.nonempty_type : NonemptyType.{0}
-def migrationStep : Type := migrationStep.nonempty_type.type
-instance migrationStep.nonempty : Nonempty migrationStep := migrationStep.nonempty_type.property
-opaque migrationStep.zero_val : ZeroVal migrationStep := ⟨Classical.ofNonempty⟩
-attribute [instance] migrationStep.zero_val
+structure migrationStep [GooseExts] where
+  mk ::
+  target' : _root_.Perennial.github_com.Masterminds.semver.v3.Version
+  actions' : ActionList
+
+noncomputable instance migrationStep.zero_val [GooseExts] : ZeroVal migrationStep :=
+  ⟨migrationStep.mk zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def migrationStep.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"target" _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty),
+(go.field_decl.FieldDecl go!"actions" ActionList.ty)]
+
+@[irreducible] noncomputable def migrationStep.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  migrationStep.fieldsUnsealed
+
+noncomputable instance equals_unfold_migrationStep [GooseExts] [GoGlobalContext] :
+    EqualsUnfold migrationStep.fields migrationStep.fieldsUnsealed :=
+  ⟨by unfold migrationStep.fields; rfl⟩
+
+@[reducible] noncomputable def migrationStep.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType migrationStep.fields)
 
 class migrationStep.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying migrationStep.underlying migrationStep
   underlying : go.UnderlyingDirectedEq migrationStep.ty migrationStep.underlying
-  isUnderlying : go.IsUnderlying migrationStep.underlying migrationStep.underlying
+  get_target : ∀ (x : migrationStep), go.IsGoStepPureDetTagged under (StructFieldGet migrationStep.underlying go!"target") #x (Val #(x.target'))
+  set_target : ∀ (x : migrationStep) (y : _root_.Perennial.github_com.Masterminds.semver.v3.Version), go.IsGoStepPureDetTagged under (StructFieldSet migrationStep.underlying go!"target") (PairV #x #y) (Val #(({ x with target' := y } : migrationStep)))
+  get_actions : ∀ (x : migrationStep), go.IsGoStepPureDetTagged under (StructFieldGet migrationStep.underlying go!"actions") #x (Val #(x.actions'))
+  set_actions : ∀ (x : migrationStep) (y : ActionList), go.IsGoStepPureDetTagged under (StructFieldSet migrationStep.underlying go!"actions") (PairV #x #y) (Val #(({ x with actions' := y } : migrationStep)))
   method_set : go.MethodSetIs migrationStep.ty [(go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeExecute", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType migrationStep.ty) [(go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeExecute", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [go.error])))]
 
 attribute [instance] migrationStep.TypeAssumptions.type_repr
   migrationStep.TypeAssumptions.underlying
-  migrationStep.TypeAssumptions.isUnderlying
+  migrationStep.TypeAssumptions.get_target
+  migrationStep.TypeAssumptions.set_target
+  migrationStep.TypeAssumptions.get_actions
+  migrationStep.TypeAssumptions.set_actions
   migrationStep.TypeAssumptions.method_set
   migrationStep.TypeAssumptions.ptr_method_set
 
@@ -2766,6 +2825,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   unsafeGetAllRoles_unfold : FuncUnfold unsafeGetAllRoles [] unsafeGetAllRoles.impl
   unsafeGetUser_unfold : FuncUnfold unsafeGetUser [] unsafeGetUser.impl
   unsafeGetAllUsers_unfold : FuncUnfold unsafeGetAllUsers [] unsafeGetAllUsers.impl
+  addNewField_unfold : FuncUnfold addNewField [] addNewField.impl
   UnsafeCreateMetaBucket_unfold : FuncUnfold UnsafeCreateMetaBucket [] UnsafeCreateMetaBucket.impl
   UnsafeReadConsistentIndex_unfold : FuncUnfold UnsafeReadConsistentIndex [] UnsafeReadConsistentIndex.impl
   ReadConsistentIndex_unfold : FuncUnfold ReadConsistentIndex [] ReadConsistentIndex.impl
@@ -2786,6 +2846,8 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_authpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Assumptions
   import_verify_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.Assumptions
   import_leasepb_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.Assumptions
+  import_semver_Assumption : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions
+  import_version_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.version.Assumptions
 
 attribute [instance] Assumptions.action_instance
   Assumptions.setKeyAction_instance
@@ -2811,6 +2873,7 @@ attribute [instance] Assumptions.action_instance
   Assumptions.unsafeGetAllRoles_unfold
   Assumptions.unsafeGetUser_unfold
   Assumptions.unsafeGetAllUsers_unfold
+  Assumptions.addNewField_unfold
   Assumptions.UnsafeCreateMetaBucket_unfold
   Assumptions.UnsafeReadConsistentIndex_unfold
   Assumptions.ReadConsistentIndex_unfold
@@ -2831,6 +2894,8 @@ attribute [instance] Assumptions.action_instance
   Assumptions.import_authpb_Assumption
   Assumptions.import_verify_Assumption
   Assumptions.import_leasepb_Assumption
+  Assumptions.import_semver_Assumption
+  Assumptions.import_version_Assumption
 
 end go_etcd_io.etcd.server.v3.storage.schema
 

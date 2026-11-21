@@ -1,10 +1,10 @@
 /-
-`time.Unix` (untranslated in Perennial's `time`): returns some `Time` (see the spec). An axiom of
-the trust boundary (item 8, 2026-10-17: `client/v3`'s package initializer).
+`time.Unix`, proved over Perennial's translation of Go's.
 -/
 module
 
 public import Spec.time.Unix
+public import Perennial.Proof.time.Link
 
 @[expose] public section
 
@@ -13,7 +13,7 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI
+open Iris Iris.BI Iris.ProofMode
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -22,7 +22,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : time.Assumptions]
 
-axiom time.Unix.wp_proof : time.Unix.spec (GF := GF) (hG := hG)
+theorem time.Unix.wp_proof : time.Unix.spec (GF := GF) (hG := hG) := by
+  intro sec nsec
+  iintro %Φ #Hpkg HΦ
+  wp_apply _root_.Perennial.time.wp_Unix as %t -
+  iapply HΦ; itrivial
 
 end proof
 

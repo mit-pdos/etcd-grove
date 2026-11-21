@@ -2,8 +2,19 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.errors
 public import Perennial.GeneratedProof.fmt
+public import GeneratedProof.go_uber_org.zap.internal
+public import GeneratedProof.go_uber_org.zap.internal.pool
 public import GeneratedProof.go_uber_org.zap.zapcore
+public import Perennial.GeneratedProof.io
+public import Perennial.GeneratedProof.math
+public import GeneratedProof.net.url
+public import GeneratedProof.os
+public import Perennial.GeneratedProof.strings
+public import Perennial.GeneratedProof.sync
+public import Perennial.GeneratedProof.sync.atomic
+public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.go_uber_org.zap
 
@@ -17,44 +28,6 @@ namespace Perennial
 open Iris Iris.BI
 noncomputable section
 namespace go_uber_org.zap
-
-namespace durations
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_uber_org.zap.Assumptions]
-
-noncomputable instance durations_typed_pointsto :
-    TypedPointsto (GF := GF) go_uber_org.zap.durations :=
-  sorry -- axiomatized type
-
-noncomputable instance durations_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.durations go_uber_org.zap.durations.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end durations
-
-namespace times
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_uber_org.zap.Assumptions]
-
-noncomputable instance times_typed_pointsto :
-    TypedPointsto (GF := GF) go_uber_org.zap.times :=
-  sorry -- axiomatized type
-
-noncomputable instance times_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.times go_uber_org.zap.times.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end times
 
 namespace SamplingConfig
 section def_
@@ -139,12 +112,33 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_uber_org.zap.Assumptions]
 
 noncomputable instance AtomicLevel_typed_pointsto :
-    TypedPointsto (GF := GF) go_uber_org.zap.AtomicLevel :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_uber_org.zap.AtomicLevel where
+  typedPointstoDef l v dq := iprop(
+    "l" ∷ typedPointsto (structFieldRef go_uber_org.zap.AtomicLevel go!"l" l) v.l' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance AtomicLevel_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.AtomicLevel go_uber_org.zap.AtomicLevel.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.AtomicLevel go_uber_org.zap.AtomicLevel.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance AtomicLevel_access_load_l (l : Loc) (v : go_uber_org.zap.AtomicLevel) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.AtomicLevel go!"l" l) v.l' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.AtomicLevel go!"l" l) v.l' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance AtomicLevel_access_store_l (l : Loc) (v : go_uber_org.zap.AtomicLevel) (l' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.AtomicLevel go!"l" l) v.l' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.AtomicLevel go!"l" l) l' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with l' := l' } : go_uber_org.zap.AtomicLevel) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end AtomicLevel
@@ -615,25 +609,6 @@ noncomputable instance Logger_access_store_clock (l : Loc) (v : go_uber_org.zap.
 end def_
 end Logger
 
-namespace Sink
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_uber_org.zap.Assumptions]
-
-noncomputable instance Sink_typed_pointsto :
-    TypedPointsto (GF := GF) go_uber_org.zap.Sink :=
-  sorry -- axiomatized type
-
-noncomputable instance Sink_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.Sink go_uber_org.zap.Sink.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Sink
-
 namespace errSinkNotFound
 section def_
 
@@ -723,12 +698,67 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_uber_org.zap.Assumptions]
 
 noncomputable instance sinkRegistry_typed_pointsto :
-    TypedPointsto (GF := GF) go_uber_org.zap.sinkRegistry :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_uber_org.zap.sinkRegistry where
+  typedPointstoDef l v dq := iprop(
+    "mu" ∷ typedPointsto (structFieldRef go_uber_org.zap.sinkRegistry go!"mu" l) v.mu' dq ∗
+    "factories" ∷ typedPointsto (structFieldRef go_uber_org.zap.sinkRegistry go!"factories" l) v.factories' dq ∗
+    "openFile" ∷ typedPointsto (structFieldRef go_uber_org.zap.sinkRegistry go!"openFile" l) v.openFile' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance sinkRegistry_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.sinkRegistry go_uber_org.zap.sinkRegistry.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.sinkRegistry go_uber_org.zap.sinkRegistry.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance sinkRegistry_access_load_mu (l : Loc) (v : go_uber_org.zap.sinkRegistry) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.sinkRegistry go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.sinkRegistry go!"mu" l) v.mu' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance sinkRegistry_access_store_mu (l : Loc) (v : go_uber_org.zap.sinkRegistry) (mu' : sync.Mutex) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.sinkRegistry go!"mu" l) v.mu' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.sinkRegistry go!"mu" l) mu' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : go_uber_org.zap.sinkRegistry) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance sinkRegistry_access_load_factories (l : Loc) (v : go_uber_org.zap.sinkRegistry) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.sinkRegistry go!"factories" l) v.factories' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.sinkRegistry go!"factories" l) v.factories' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance sinkRegistry_access_store_factories (l : Loc) (v : go_uber_org.zap.sinkRegistry) (factories' : GoMap) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.sinkRegistry go!"factories" l) v.factories' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.sinkRegistry go!"factories" l) factories' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with factories' := factories' } : go_uber_org.zap.sinkRegistry) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance sinkRegistry_access_load_openFile (l : Loc) (v : go_uber_org.zap.sinkRegistry) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.sinkRegistry go!"openFile" l) v.openFile' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.sinkRegistry go!"openFile" l) v.openFile' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance sinkRegistry_access_store_openFile (l : Loc) (v : go_uber_org.zap.sinkRegistry) (openFile' : GoFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.sinkRegistry go!"openFile" l) v.openFile' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.sinkRegistry go!"openFile" l) openFile' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with openFile' := openFile' } : go_uber_org.zap.sinkRegistry) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end sinkRegistry

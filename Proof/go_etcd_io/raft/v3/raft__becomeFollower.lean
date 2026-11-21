@@ -62,7 +62,7 @@ theorem raft.becomeFollower.wp_proof
   have Hgh : ({ becomeFollower s term lead with prvals := pvs } : NState).gh.tr = s.gh.tr := by
     first | rfl | (simp [becomeFollower, resetTo, resetTo0]) | (cases s; rfl)
   icases trOwn_split_V s.gh.tr c V r id _ HV $$ Hphys with ⟨Hown, Hback⟩
-  iapply wp_ncfupd_app
+  iapply (wp_ncfupd _ _ rfl)
   iunfold HookGate at Hgate
   unfold ncfupd
   iintro Hnc

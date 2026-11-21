@@ -298,7 +298,7 @@ theorem raft.appendEntry.wp_proof
     -- (Q8 stage 1, slice 6) the `Replicate` lines, either mode: the caller's gate, raft's state
     -- under `trOwn`
     ihave Hg := Hgrep $$ Hrc HG
-    iapply wp_ncfupd_app
+    iapply (wp_ncfupd _ _ rfl)
     iunfold HookGateN at Hg
     unfold ncfupd
     iintro Hnc

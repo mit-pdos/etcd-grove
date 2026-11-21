@@ -115,7 +115,7 @@ theorem raft.maybeCommit.wp_proof
   have Hout : maybeCommitOut c s b N := ⟨Hq, by rw [Hb]; exact decide_eq_true_iff⟩
   icases trOwn_split _ _ $$ Hphys with ⟨Hown, Hback⟩
   ihave Hgate := Hgate $$ %b %N %Hout
-  iapply wp_ncfupd_app
+  iapply (wp_ncfupd _ _ rfl)
   iunfold HookGate at Hgate
   unfold ncfupd
   iintro Hnc

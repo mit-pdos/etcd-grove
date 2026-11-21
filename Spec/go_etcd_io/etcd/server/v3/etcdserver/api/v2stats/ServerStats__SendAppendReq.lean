@@ -6,6 +6,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.Defs
 
 @[expose] public section
 
@@ -23,7 +24,10 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `st.SendAppendReq(n)` on a non-nil `*ServerStats` returns.
+/-- `st.SendAppendReq(n)` on a non-nil `*ServerStats` made by `NewServerStats` (`v2stats.isServerStats`: its
+rate queues allocated) returns. (Until rafthttpfix, 2026-11-20, the premise was `st ≠ null` only,
+which was false: a zero `&ServerStats{}` has nil queues and `statsQueue.Insert` dereferences nil,
+`notes/axiom-review/v2stats-serverstats-queues.md`.)
 
 Why it is true of the Go code (`v2stats/server.go:114-129`, `queue.go` at the etcd pin): it takes
 the stats' mutex, becomes leader (`becomeLeader`: the state and the start time, if not leader
@@ -33,7 +37,8 @@ unlocks; it only touches the stats' own fields, which only its methods read, und
 locks. -/
 abbrev v2stats.ServerStats.SendAppendReq.spec : Prop :=
   ∀ (st : Loc) (n : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats ∗ ⌜st ≠ null⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats ∗ ⌜st ≠ null⌝ ∗
+      v2stats.isServerStats st }}
     (App (Val (st @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats.ty @!! go!"SendAppendReq")) (Val #n))
   {{ RET #(); True }}
 

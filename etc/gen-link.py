@@ -671,15 +671,20 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                               # (2026-10-27) the node API's results at the server's storage model
                               # (`=srvApi_wp_*` callees)
                               "Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeApiLink",
-                              # (the lease-read plan, 2026-10-31) `sort.Sort` for any `Less`, the
-                              # axiom `lessor.Leases` takes (`=EtcdGrove.sort.«Sort».wp_anyLess`)
-                              "Proof.sort.SortAnyLess",
+                              # (the lease-read plan, 2026-10-31) `sort.Sort` for any `Less`, which
+                              # `lessor.Leases` takes (`=EtcdGrove.sort.«Sort».wp_anyLess`; an axiom
+                              # until 2026-11-21)
+                              "Proof.sort.SortAnyLessLinked",
                               # (the `lean` merge, R6/R8, 2026-11-07) mvcc's API laws the server's
                               # proofs take as terms (`=mvcc.api.*` callees)
                               "Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults",
                               # (the import tiers, 2026-11-18) `NewServer`'s node start, a law
                               # (`=raftNode_of_StartNode_law_holds`)
-                              "Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeStartLinked"]}
+                              "Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeStartLinked",
+                              # (wal-item3, 2026-11-21) `NewStorage`'s contract proved over the WAL
+                              # (`rnNewStorageOk_law_holds`, under `os`'s field assumptions; not yet
+                              # passed to `newRaftNode`: imported so the trust-base report sees it)
+                              "Proof.go_etcd_io.etcd.server.v3.etcdserver.RnNewStorageLinked"]}
 # (R9, the `lean` merge, 2026-11-07) the examples' allocations take mvcc's `names_nonempty.law`
 # (`=mvcc.api.*`: the stand-in apply environment's store name)
 for _m in ["--cachekv", "--watchkv", "--linkvtxn", "--k8setcd3", "--cluster3", "--authkv"]:
@@ -802,7 +807,7 @@ EXTRA_VARS = {"--kvdurable": "variable [HasExt durableExt] [go.IntoValInj GoStri
 # (`lessorApplyOk`, `etcdserver/SnapRO.lean`), a section variable (its `LEAN_FIRST` entry above)
 NAMESPACED["--mvccrand"] = "mvccrand"
 EXTRA_IMPORTS["--mvccrand"] = ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults",
-                               "Perennial.Proof.sort.Link"]
+                               "Perennial.Proof.sort.Link", "Perennial.Proof.time.Link"]
 EXTRA_VARS["--mvccrand"] = ("variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]\n"
                             "variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]\n")
 # mvcc's full tester (examples/mvccfull, F1 Draft, 2026-11-09): as mvccrand's, and the lessor's
@@ -810,7 +815,7 @@ EXTRA_VARS["--mvccrand"] = ("variable [mvcc_sem : go_etcd_io.etcd.server.v3.stor
 NAMESPACED["--mvccfull"] = "mvccfull"
 EXTRA_IMPORTS["--mvccfull"] = ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults",
                                "Perennial.Proof.sort.Link", "Perennial.Proof.time.Link",
-                               "Proof.sort.SortAnyLess",
+                               "Proof.sort.SortAnyLessLinked",
                                # (F1 Prove, 2026-11-10) `Compact`'s channel made (`compactChan.law`)
                                "Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiCompactChanResults"]
 EXTRA_VARS["--mvccfull"] = EXTRA_VARS["--mvccrand"]

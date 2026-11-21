@@ -33,6 +33,9 @@ theorem kv.Compact.wp_proof
     kv.Compact.spec (GF := GF) (hG := hG) := by
   intro api γ dup ci cd rev Hr1 Hcmp
   wp_start as ⟨#Hkv, #Hctx, #Hce, #Hrv⟩
+  ihave #HctxO := ctxOk_outgoingC ci cd $$ Hctx
+  iunfold metadata.outgoingCtxOkC at HctxO
+  icases HctxO with ⟨%om, #Hom⟩
   iunfold isKv at Hkv
   icases Hkv with ⟨%ms, #Hkv⟩
   iunfold isKvOf at Hkv
@@ -57,14 +60,14 @@ theorem kv.Compact.wp_proof
   obtain ⟨hrv, hph, hun⟩ := Hrq
   simp only at hrv hph
   ihave Hrun : reqPre conn go!"/etcdserverpb.KV/Compact" (ms.map SrvAt.addr) vs
-      (attemptPre conn (GoInterface.ok ci) (GrpcSpec.md (kvCompactSpec ms))
+      (attemptPre conn om (GrpcSpec.md (kvCompactSpec ms))
         ⟨req.Revision', req.Physical'⟩ (fun _ => iprop(True))) $$ []
   · iapply reqPre_box
     imodintro
     inext
     rw [hrv, hph]
     iapply (attemptPre_md (Req := pbCompactionRequest) (Rep := pbCompactionResponse) conn
-      (GoInterface.ok ci) (kvCompactSpec ms) ⟨rev, false⟩ (fun _ => iprop(True)))
+      om (kvCompactSpec ms) ⟨rev, false⟩ (fun _ => iprop(True)))
     unfold kvCompactSpec
     iapply (anySpec_intro ms (fun x => etcdCompactSpec x.E x.γr x.cid x.mid) ⟨rev, false⟩
       (fun _ => iprop(True)) (fun x => kvRevLbZ x.γr.kv (sint.Z rev + x.γr.kv.cret)) (fun x => kvRevLbZ x.γr.kv (sint.Z rev + x.γr.kv.cret))
@@ -80,7 +83,7 @@ theorem kv.Compact.wp_proof
         itrivial))
     iframe HC HR
   wp_apply wp_retry_Compact rkv conn (ms.map SrvAt.addr) (GrpcSpec.md (kvCompactSpec ms))
-      (fun _ => iprop(True)) ci cd p req sl vs $$ [Hreq Hrun] as %resp %err ⟨-, Hres⟩
+      (fun _ => iprop(True)) ci om cd p req sl vs $$ [Hreq Hrun] as %resp %err ⟨-, Hres⟩
   · iframe #
     iframe
     isplitl []
@@ -101,7 +104,7 @@ theorem kv.Compact.wp_proof
     | nil => exact absurd rfl Hne
     | ok ei =>
       wp_auto
-      ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
+      ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_descIs _ $$ Hse
       wp_apply wp_ContextError ci cd (GoInterface.ok ei) mC $$ [$Hse $HmC] as %err' ⟨%Herr', #Hse', #Hclw, -⟩
       · iframe #; ipureintro; exact fun _ => Hce'
       ihave #Hcl' := Hclw $$ Hcl

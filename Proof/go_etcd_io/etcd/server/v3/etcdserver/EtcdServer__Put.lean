@@ -355,6 +355,7 @@ theorem EtcdServer.Put.wp_proof
             refine (Hwire.2.2.2 ?_)
             simp [irrNoZeroEnd, apply.withHeader, irrPut, apply.irrEmpty]
           subst Hrq
+          ihave Herr := appliedErr_of_M _ _ _ _ _ _ $$ Herr
           iframe Herr
           iexact Hhb
         · iright; iexact Hdep

@@ -265,25 +265,6 @@ noncomputable instance Encoder_into_val_typed :
 end def_
 end Encoder
 
-namespace Delim
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : encoding.json.Assumptions]
-
-noncomputable instance Delim_typed_pointsto :
-    TypedPointsto (GF := GF) encoding.json.Delim :=
-  sorry -- axiomatized type
-
-noncomputable instance Delim_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) encoding.json.Delim encoding.json.Delim.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Delim
-
 end encoding.json
 end
 end Perennial

@@ -43,24 +43,27 @@ theorem isHaltErr.wp_proof
   cases ce with
   | ok cei =>
     wp_auto
-    iapply HΦ; ipureintro; intro h; cases h
+    ihave ⟨%c, #Hc⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_code _ $$ Hse
+    iapply HΦ; iexists c; iframe Hc; ipureintro; intro h; cases h
   | nil =>
     wp_auto
     cases err with
     | nil =>
       wp_auto
-      iapply HΦ; ipureintro; intro _; left; rfl
+      ihave ⟨%c, #Hc⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_code _ $$ Hse
+      iapply HΦ; iexists c; iframe Hc; ipureintro; intro _; left; rfl
     | ok ei =>
       wp_auto
-      ihave ⟨%mF, #HmF⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
-      wp_apply wp_FromError (GoInterface.ok ei) mF $$ [$Hst $Hse $HmF] as %ev %ok ⟨-, #HCode, -⟩
+      ihave ⟨%mF, #HmF⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_descIs _ $$ Hse
+      ihave ⟨%c, #Hc⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_code _ $$ Hse
+      wp_apply wp_FromError (GoInterface.ok ei) mF c $$ [$Hst $Hse $HmF $Hc] as %ev %ok ⟨-, #HCode, -⟩
       wp_apply HCode
       wp_if_destruct
-      · iapply HΦ; ipureintro; intro _; right; left; exact Hif
+      · iapply HΦ; iexists _; iframe Hc; ipureintro; intro _; right; left; rfl
       · wp_apply HCode
         wp_if_destruct
-        · iapply HΦ; ipureintro; intro _; right; right; exact Hif
-        · iapply HΦ; ipureintro; intro h; cases h
+        · iapply HΦ; iexists _; iframe Hc; ipureintro; intro _; right; right; rfl
+        · iapply HΦ; iexists c; iframe Hc; ipureintro; intro h; cases h
 
 end proof
 

@@ -87,10 +87,11 @@ def rnFixed (a : Loc) (rv : raftNode) : IProp GF :=
 instance rnFixed_persistent (a : Loc) (rv : raftNode) : Persistent (rnFixed (GF := GF) a rv) := by
   unfold rnFixed; infer_instance
 
-/-- The struct at `a`, split: its fixed fields read-only, `transport` and `latestTickTs` owned. -/
+/-- The struct at `a`, split: its fixed fields read-only and its transport, tick timestamp and replay terms owned. -/
 theorem rnFixed_split (a : Loc) (rv : raftNode) :
     a ↦ rv ⊢ |={⊤}=> rnFixed (GF := GF) a rv ∗
-      rnTransportAddr a ↦ rv.raftNodeConfig'.transport' ∗ rnLatestTickTsAddr a ↦ rv.latestTickTs' := by
+      rnTransportAddr a ↦ rv.raftNodeConfig'.transport' ∗ rnLatestTickTsAddr a ↦ rv.latestTickTs' ∗
+      rnReplayTermsAddr a ↦ rv.raftNodeConfig'.initialReplayTerms' := by
   iintro Ha
   iStructNamedSuffix Ha "R"
   iStructNamedSuffix raftNodeConfigR "C"
@@ -110,7 +111,7 @@ theorem rnFixed_split (a : Loc) (rv : raftNode) :
   ipersist stoppedR
   ipersist doneR
   imodintro
-  iframe transportC latestTickTsR
+  iframe transportC latestTickTsR initialReplayTermsC
   iunfold rnFixed
   simp only [named]
   iframe #
@@ -118,8 +119,13 @@ theorem rnFixed_split (a : Loc) (rv : raftNode) :
 /-- **Installing the wrapper** (see the file header): the struct value `rv` at `a` (the server's
 `r` field, after the copy and the transport set), its fresh `tickMu`, the components' predicates
 and what the node and the server provide give `isRaftNode E γ a` and the right to close `done`.
-A fancy update: `tickMu`'s guard over `latestTickTs` is made here (`sync.init_RWMutex`). -/
-theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames GF) (a : Loc) (rv : raftNode) :
+A fancy update: `tickMu`'s guard over `latestTickTs` is made here (`sync.init_RWMutex`), and
+(srvloops2, 2026-11-21, bounds B2 for `tickMu`) its reader slots become the pools `rnTickPool` (thread
+pools at levels 3 and 4, half of the lock's `2 ^ 30 - 1` slots each, under `threadBound GF ≤ 2 ^ 29`);
+the node is raft's (`Hnode`, recorded in `isRaftNode`). -/
+theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames GF) (a : Loc) (rv : raftNode)
+    (Hnode : rv.raftNodeConfig'.Node' = interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.node.ty) #γ.nl)
+    (Hbnd : threadBound GF ≤ 2 ^ 29) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       rnEnvOk E γ ∗ rnLogFits γ ∗ rnReadStateBridge E γ ∗
       -- (restart S3 item 7) the restart data
@@ -134,13 +140,14 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames GF) (a : Loc) (rv : r
       isRNTransport E rv.raftNodeConfig'.transport' ∗
       rnParts E γ rv ∗
       rnFixed a rv ∗ rnTransportAddr a ↦□ rv.raftNodeConfig'.transport' ∗
-      rnLatestTickTsAddr a ↦ rv.latestTickTs' ∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ∗
+      rnLatestTickTsAddr a ↦ rv.latestTickTs' ∗ rnReplayTermsAddr a ↦ rv.raftNodeConfig'.initialReplayTerms' ∗
+      rnReplayState γ rv.raftNodeConfig'.initialReplayTerms' γ.snap0 ∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ∗
       ownBroadcastChan rv.done' γ.done (rnDoneEsc γ) .Pending ⊢
-      |={⊤}=> isRaftNode E γ a ∗ rnDoneTok γ a ∗
+      |={⊤}=> isRaftNode E γ a ∗ rnWorkerStartTok γ a ∗
         rnNodeAddr a ↦□ rv.raftNodeConfig'.Node' ∗
         rnTransportAddr a ↦□ rv.raftNodeConfig'.transport' := by
   iintro ⟨#Hpkg, #Henv, #Hfits, #Hrsb, #Hrok, #Hreg, #Hni, #Hidri, %Hmsγ, #Hmsi, #Hsti, #Hdur, #Htri, #Hparts,
-    #Hfix, #transportC, latestTickTsR, Hmu, Hdtok⟩
+    #Hfix, #transportC, latestTickTsR, Hreplay, #Hseed, Hmu, Hdtok⟩
   iunfold rnParts at Hparts
   iNamed Hparts
   iunfold rnFixed at Hfix
@@ -149,7 +156,20 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames GF) (a : Loc) (rv : r
   · iPkgInit
   imod sync.init_RWMutex (rnTickInv a) rv.tickMu' $$ [latestTickTsR] Hmu with Hslots
   · inext; iunfold rnTickInv; iexists rv.latestTickTs'; iexact latestTickTsR
-  icases sync.ownRWMutex_slots_guard _ _ $$ Hslots with ⟨-, #Hmug⟩
+  icases sync.ownRWMutex_slots_guard _ _ $$ Hslots with ⟨Hslots, #Hmug⟩
+  -- (srvloops2) `tickMu`'s pools at levels 3 and 4, half of the slots each
+  have hsplit : Int.toNat sync.rwmutex.actualMaxReaders = (2 ^ 29 - 1) + 2 ^ 29 := by
+    rw [sync.rwmutex.actualMaxReaders_unseal]; decide
+  ihave ⟨Hs3, Hs4⟩ : ([∗list] _x ∈ List.replicate (2 ^ 29 - 1) (),
+      sync.ownRWMutex rv.tickMu' (rnTickInv a)) ∗
+      [∗list] _x ∈ List.replicate (2 ^ 29) (), sync.ownRWMutex rv.tickMu' (rnTickInv a) $$ [Hslots]
+  · rw [hsplit, ← List.replicate_append_replicate]
+    iapply BigSepL.bigSepL_append.1
+    iexact Hslots
+  imod threadPool.initL (rnTickPoolN 3) 3 (sync.ownRWMutex rv.tickMu' (rnTickInv a)) ⊤
+      (2 ^ 29 - 1) (by omega) $$ Hs3 with ⟨%γt3, #Htp3⟩
+  imod threadPool.initL (rnTickPoolN 4) 4 (sync.ownRWMutex rv.tickMu' (rnTickInv a)) ⊤
+      (2 ^ 29) (by omega) $$ Hs4 with ⟨%γt4, #Htp4⟩
   imodintro
   isplitr
   · iunfold isRaftNode
@@ -161,13 +181,24 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames GF) (a : Loc) (rv : r
     iframe #
     isplitr
     · ipureintro; exact Hmsγ
-    rw [Hmsγ]
-    iexact Hmsi
+    isplitr
+    · rw [Hmsγ]; iexact Hmsi
+    isplitr
+    · ipureintro; exact Hnode
+    iunfold rnTickPool
+    iintro %l %hl
+    rcases hl with rfl | rfl
+    · iexists γt3; iexact Htp3
+    · iexists γt4; iexact Htp4
   · iframe NodeC transportC
-    iunfold rnDoneTok
-    iexists rv.done', rv.raftNodeConfig'.storage'
-    iframe doneR Hdtok
-    iexact storageC
+    iunfold rnWorkerStartTok
+    isplitl [Hdtok]
+    · iunfold rnDoneTok
+      iexists rv.done', rv.raftNodeConfig'.storage'
+      iframe doneR Hdtok
+      iexact storageC
+    iexists rv.raftNodeConfig'.initialReplayTerms'
+    iframe Hreplay Hseed
 
 /-- **The loop's and the apply side's tokens at the start** (`rnLoopTok γ []`, `rnApplyTok γ
 []`): from the node API's driver at its start (`NodeDriverState.init`: nothing delivered, with
@@ -200,6 +231,8 @@ theorem rnToks_of_start (γ : RNNames GF) (hpre : γ.pre = []) (ha : γ.a0 = [])
     rw [h]; iapply deliveredLogLb_committed $$ Hdl
   isplitl [Hdrv HrS Hcfg Hrun Hprod Hcum Hwv Hwok]
   · iunfold rnLoopTok
+    isplitr
+    · ipureintro; rw [hs0]; exact Nat.zero_le _
     iexists hsZero
     iunfold rnLoopTokP
     iexists [], [[]], RaftState.init, W64 0
@@ -254,7 +287,7 @@ restored hard state `p`; the durable state `S`; a follower), its view `v` after 
 (`commit0 ≤ p.Commit'`). -/
 theorem rnToks_of_restart (γ : RNNames GF) (P : List EntryModel) (p : HardStateM) (S : RaftState)
     (v : ConfigView) (hpre : γ.pre = []) (hidx : srvIdxOkW (W64 0) P)
-    (hc0 : γ.commit0 ≤ uint.nat p.Commit')
+    (hc0 : γ.commit0 ≤ uint.nat p.Commit') (hs0 : γ.snap0 ≤ (rnLogOf γ P).length)
     (hcfg : srvCfgOk γ.node.cfg (rnGhost γ P) v) :
     (letI := srvStor (GF := GF) γ.node;
       iprop(nodeDriver γ.nl γ.node.cl srvClusterN
@@ -274,6 +307,8 @@ theorem rnToks_of_restart (γ : RNNames GF) (P : List EntryModel) (p : HardState
   · iapply deliveredLogLb_committed $$ Hdl
   isplitl [Hdrv HrS Hcfg Hrun Hprod Hcum Hwv Hwok]
   · iunfold rnLoopTok
+    isplitr
+    · ipureintro; exact hs0
     iexists p
     iunfold rnLoopTokP
     iexists [], [P], S, StateFollower
@@ -409,7 +444,7 @@ theorem srvMem_bootStorage
     (wp_FirstIndex : MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG))
     (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
     (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
-    (γr : SrvRaft) (ms : Loc) (γs : MemStorNames) (F : GName → IProp GF)
+    (γr : SrvRaft) (ms : Loc) (γs : MemStorNames) (applied pin : GName) (F : GName → IProp GF)
     (htr : Cluster.trace γr.cl = none)
     (hsz : γs.sz = true) :
     letI : MemStorReg GF := ⟨γr.reg⟩
@@ -417,11 +452,11 @@ theorem srvMem_bootStorage
     memStorReg ms γs ∗ memStorLock ms γs ∗ memStorFresh ms γs 0 memSnapEmpty ∗
       memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
       memLog (GF := GF) γs 0 DFrac.discard [(zero_val EntryM : EntryM)] ∗ memEnd (GF := GF) γs 1 ∗
-      (∀ K : GName, memStorInv ms γs γr.cl K -∗
+      (∀ K : GName, memStorInvT ms γs γr.cl K (srvStoredOrigin γr.cl applied pin 0) -∗
         memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) -∗ F K) ⊢
       restartStorage γr.cl (memStorIface ms)
         ⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩
-        memSnapEmpty.Metadata'.ConfState' 0 F := by
+        memSnapEmpty.Metadata'.ConfState' 0 F (fun sv => iprop(snapshotValid γr.cl sv ∗ (srvStoredOrigin γr.cl applied pin 0) sv)) := by
   letI : MemStorReg GF := ⟨γr.reg⟩
   letI := srvStor (GF := GF) γr
   iintro ⟨#Hreg, #Hl, Hfresh, Hmeta, #Hlog, He, HF⟩
@@ -431,7 +466,7 @@ theorem srvMem_bootStorage
   iexists (⟨MemoryStorage.ty.PointerType, intoVal ms⟩ : GoInterfaceOk)
   iexists iprop(memStorFresh ms γs 0 memSnapEmpty ∗
     memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗ memEnd γs 1 ∗
-    (∀ K : GName, memStorInv ms γs γr.cl K -∗
+    (∀ K : GName, memStorInvT ms γs γr.cl K (srvStoredOrigin γr.cl applied pin 0) -∗
       memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) -∗ F K))
   iexists 0
   isplitr
@@ -471,20 +506,22 @@ theorem srvMem_bootStorage
     rw [hce]
     iexact Hcs
   iintro %K #HA #HD
-  imod memStorInvP_alloc ms γs (memStorJ γr.cl K) ⊤ 0 memSnapEmpty $$ Hl Hfresh [] [] with #Hinv
+  imod memStorInvP_alloc ms γs (memStorJT γr.cl K (srvStoredOrigin γr.cl applied pin 0)) ⊤ 0 memSnapEmpty $$ Hl Hfresh [] [] with #Hinv
   · iintro !> %k %hk
     have : k = 0 := by omega
     subst this
+    simp only [memStorJT]
     iapply memStorJ_B_le_one γr.cl K 0 (by decide)
     iapply nodeAppliedLb_zero γr.cl K
   · ileft; ipureintro; rfl
-  ihave #Hinv' : memStorInv ms γs γr.cl K $$ []
-  · unfold memStorInv; iexact Hinv
+  ihave #Hinv' : memStorInvT ms γs γr.cl K (srvStoredOrigin γr.cl applied pin 0) $$ []
+  · unfold memStorInvT; iexact Hinv
   ihave HFK := HF $$ %K Hinv' Hmeta
   imodintro
   isplitr
-  · iapply memStorage_isStorage wp_LastIndex wp_FirstIndex wp_Term wp_Entries wp_Snapshot
-      ms γs γr.cl K (fun _ => hsz) htr $$ Hinv' Hreg
+  · ihave #Hstorage := memStorage_isStorageT wp_LastIndex wp_FirstIndex wp_Term wp_Entries wp_Snapshot
+      ms γs γr.cl K (srvStoredOrigin γr.cl applied pin 0) (fun _ => hsz) htr $$ Hinv' Hreg
+    iExactEq Hstorage; rfl
   iframe HFK
   iunfold storHolds
   have hb : (⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩ : StorContents).b = 0 := by
@@ -578,7 +615,7 @@ theorem srvMem_restartStorage
     (wp_FirstIndex : MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG))
     (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
     (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
-    (γr : SrvRaft) (ms : Loc) (γs : MemStorNames) (σ : StorContents) (cs : ConfStateM) (A : Nat)
+    (γr : SrvRaft) (ms : Loc) (γs : MemStorNames) (applied pin : GName) (σ : StorContents) (cs : ConfStateM) (A : Nat)
     (F : GName → IProp GF) (Hbc : σ.b ≤ σ.commit)
     (htr : Cluster.trace γr.cl = none) (hsz : γs.sz = true)
     -- (auth-lease S4, 2026-11-16) outside the cluster's no-snapshot mode (`RestartNode`'s)
@@ -587,9 +624,9 @@ theorem srvMem_restartStorage
     letI := srvStor (GF := GF) γr
     memStorReg ms γs ∗ memStorLock ms γs ∗ memStorRestarted ms γs σ cs ∗
       (⌜σ.b = 0⌝ ∨ snapshotValid γr.cl (walSnapCS σ cs)) ∗
-      (∀ K : GName, memStorInv ms γs γr.cl K -∗ memStorMeta ms γs σ.hs -∗
+      (∀ K : GName, memStorInvT ms γs γr.cl K (srvStoredOrigin γr.cl applied pin σ.b) -∗ memStorMeta ms γs σ.hs -∗
         memSnapNone γs (walSnapCS σ cs) -∗ F K) ⊢
-      restartStorage γr.cl (memStorIface ms) σ cs A F := by
+      restartStorage γr.cl (memStorIface ms) σ cs A F (fun sv => iprop(snapshotValid γr.cl sv ∗ (srvStoredOrigin γr.cl applied pin σ.b) sv)) := by
   letI : MemStorReg GF := ⟨γr.reg⟩
   letI := srvStor (GF := GF) γr
   iintro ⟨#Hreg, #Hl, Hrest, Hval, HF⟩
@@ -602,7 +639,7 @@ theorem srvMem_restartStorage
   iexists iprop(memStorFresh ms γs σ.b (walSnapCS σ cs) ∗ memStorMeta ms γs σ.hs ∗
     memLog γs (σ.b + 1) (DFrac.own 1) σ.ents ∗ memEnd γs (σ.last + 1) ∗
     (⌜σ.b = 0⌝ ∨ snapshotValid γr.cl (walSnapCS σ cs)) ∗ memSnapNone γs (walSnapCS σ cs) ∗
-    (∀ K : GName, memStorInv ms γs γr.cl K -∗ memStorMeta ms γs σ.hs -∗
+    (∀ K : GName, memStorInvT ms γs γr.cl K (srvStoredOrigin γr.cl applied pin σ.b) -∗ memStorMeta ms γs σ.hs -∗
       memSnapNone γs (walSnapCS σ cs) -∗ F K))
   iexists σ.b
   isplitr
@@ -635,13 +672,14 @@ theorem srvMem_restartStorage
   iapply HΦ $$ %hp %csp %true
   iframe Hhs Hcs
   iintro %K #HA #HD
-  ihave #HB : □ (∀ k, ⌜k ≤ σ.b⌝ -∗ (memStorJ γr.cl K).B k) $$ []
+  ihave #HB : □ (∀ k, ⌜k ≤ σ.b⌝ -∗ (memStorJT γr.cl K (srvStoredOrigin γr.cl applied pin σ.b)).B k) $$ []
   · iintro !> %k %hk
+    simp only [memStorJT]
     iapply memStorJ_B_off γr.cl K k Hns
     iapply nodeAppliedLb_mono γr.cl K _ k (by omega) $$ HA
   ihave Hsv : (⌜(walSnapCS σ cs).Metadata'.Index' = W64 0⌝ ∨
-      (memStorJ γr.cl K).SV (walSnapCS σ cs) ∗
-        (memStorJ γr.cl K).DL (uint.nat (walSnapCS σ cs).Metadata'.Index')) $$ [Hval]
+      (memStorJT γr.cl K (srvStoredOrigin γr.cl applied pin σ.b)).SV (walSnapCS σ cs) ∗
+        (memStorJT γr.cl K (srvStoredOrigin γr.cl applied pin σ.b)).DL (uint.nat (walSnapCS σ cs).Metadata'.Index')) $$ [Hval]
   · by_cases h0 : σ.b = 0
     · ileft; ipureintro
       unfold StorContents.b at h0
@@ -650,20 +688,23 @@ theorem srvMem_restartStorage
     · icases Hval with (%H | #Hv)
       · exact absurd H h0
       iright
-      simp only [memStorJ]
+      simp only [memStorJT, memStorJ]
       isplitr
-      · iexact Hv
+      · iframe Hv
+        iunfold srvStoredOrigin
+        ileft; ipureintro; rw [walSnapCS_index]; exact Nat.le_refl _
       rw [walSnapCS_index]
       iapply nodeCommitLb_mono γr.cl K _ _ Hbc $$ HD
-  imod memStorInvP_alloc ms γs (memStorJ γr.cl K) ⊤ σ.b (walSnapCS σ cs) $$ Hl Hfresh HB Hsv
+  imod memStorInvP_alloc ms γs (memStorJT γr.cl K (srvStoredOrigin γr.cl applied pin σ.b)) ⊤ σ.b (walSnapCS σ cs) $$ Hl Hfresh HB Hsv
     with #Hinv
-  ihave #Hinv' : memStorInv ms γs γr.cl K $$ []
-  · unfold memStorInv; iexact Hinv
+  ihave #Hinv' : memStorInvT ms γs γr.cl K (srvStoredOrigin γr.cl applied pin σ.b) $$ []
+  · unfold memStorInvT; iexact Hinv
   ihave HFK := HF $$ %K Hinv' Hmeta Hsn
   imodintro
   isplitr
-  · iapply memStorage_isStorage wp_LastIndex wp_FirstIndex wp_Term wp_Entries wp_Snapshot
-      ms γs γr.cl K (fun _ => hsz) htr $$ Hinv' Hreg
+  · ihave #Hstorage := memStorage_isStorageT wp_LastIndex wp_FirstIndex wp_Term wp_Entries wp_Snapshot
+      ms γs γr.cl K (srvStoredOrigin γr.cl applied pin σ.b) (fun _ => hsz) htr $$ Hinv' Hreg
+    iExactEq Hstorage; rfl
   iframe HFK
   iunfold storHolds
   simp only [Nat.sub_self, List.take_zero, List.drop_zero]
@@ -748,7 +789,7 @@ abbrev NodeStartSpec : Prop :=
     {{ (r : Loc), RET #r;
         ∃ (γw : RNNames GF) (rv : raftNode),
           ⌜γw.node = γr ∧ γw.id = cv.ID' ∧ γw.pre = [] ∧ γw.ms = bv.storage' ∧ γw.γs = γs ∧
-            γw.wal = ν ∧ γw.ss = ss ∧ γw.a0 = [] ∧
+            γw.wal = ν ∧ γw.ss = ss ∧ γw.a0 = [] ∧ γw.snap0 = 0 ∧
             rv.lg' = bv.lg' ∧ rv.raftNodeConfig'.raftStorage' = bv.storage' ∧
             rv.raftNodeConfig'.heartbeat' = bv.heartbeat' ∧
             rv.raftNodeConfig'.transport' = GoInterface.nil ∧
@@ -767,7 +808,7 @@ abbrev NodeStartSpec : Prop :=
           -- half of the node's running token (`StartNode`'s `nodeRunning 1`, the other half in
           -- `rnLoopTok`)
           rnLoopTok γw [] ∗ rnApplyTok γw [] ∗ (letI := srvStor (GF := GF) γw.node; nodeRunning γw.nl γw.node.cl srvClusterN (1 : Qp).half) ∗
-          -- the installer: `isRaftNode` and `rnDoneTok` at the address `a` the struct is copied
+          -- the installer: `isRaftNode` and `rnWorkerStartTok` at the address `a` the struct is copied
           -- to, once its `transport` is set to `tr`, with the server's own: `rnEnvOk` for the
           -- wrapper's names, the committed index's invariant of the server `s` and the read
           -- contexts' invariant (2026-10-27); (2026-11-05, R2b-3d stage 5c) the `transport` field
@@ -775,8 +816,11 @@ abbrev NodeStartSpec : Prop :=
           (∀ (a s : Loc) (tr : GoInterface), rnEnvOk E γw -∗ srvCommittedInv s E.γr -∗
             srvRdCtxInv E.γr.raft issued -∗
             rnFixed a rv -∗ rnTransportAddr a ↦□ tr -∗ rnLatestTickTsAddr a ↦ rv.latestTickTs' -∗
-            isRNTransport E tr -∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ={⊤}=∗
-            isRaftNode E γw a ∗ rnDoneTok γw a ∗
+            rnReplayTermsAddr a ↦ rv.raftNodeConfig'.initialReplayTerms' -∗
+            isRNTransport E tr -∗ rv.tickMu' ↦ (zero_val sync.RWMutex) -∗
+            -- (srvloops2, 2026-11-21) the bound `tickMu`'s pool of reader slots needs
+            ⌜threadBound GF ≤ 2 ^ 29⌝ ={⊤}=∗
+            isRaftNode E γw a ∗ rnWorkerStartTok γw a ∗
             rnNodeAddr a ↦□ rnNodeIface γw ∗ raftPropose E.γr.raft (rnNodeIface γw) ∗
             rnTransportAddr a ↦□ tr) ∗
           -- the receiver and (2026-11-05: until then kept, as the node API's `StartNode` did until
@@ -785,7 +829,7 @@ abbrev NodeStartSpec : Prop :=
           -- (2026-10-30, the repair) the storage's invariant at the justifications of its key (the
           -- wrapper's, `γw.key`; `memStorInv`, allocated by `InitialState`, `restartStorage`'s
           -- frame) and its hard state
-          memStorInv bv.storage' γs γr.cl γw.key ∗
+          srvAttachedMem bv.storage' γs γr.cl γw.key E.γr.cursor γw.nl γw.snap0 ∗
           memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
           -- (2026-11-04, R2b-3d) the claim on the loop's stop escrow, kept for the server's stop
           rnStopClaim γw }}
@@ -874,12 +918,15 @@ abbrev NodeStartSpecR : Prop :=
           (∀ (a s : Loc) (tr : GoInterface), rnEnvOk E γw -∗ srvCommittedInv s E.γr -∗
             srvRdCtxInv E.γr.raft issued -∗
             rnFixed a rv -∗ rnTransportAddr a ↦□ tr -∗ rnLatestTickTsAddr a ↦ rv.latestTickTs' -∗
-            isRNTransport E tr -∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ={⊤}=∗
-            isRaftNode E γw a ∗ rnDoneTok γw a ∗
+            rnReplayTermsAddr a ↦ rv.raftNodeConfig'.initialReplayTerms' -∗
+            isRNTransport E tr -∗ rv.tickMu' ↦ (zero_val sync.RWMutex) -∗
+            -- (srvloops2, 2026-11-21) the bound `tickMu`'s pool of reader slots needs
+            ⌜threadBound GF ≤ 2 ^ 29⌝ ={⊤}=∗
+            isRaftNode E γw a ∗ rnWorkerStartTok γw a ∗
             rnNodeAddr a ↦□ rnNodeIface γw ∗ raftPropose E.γr.raft (rnNodeIface γw) ∗
             rnTransportAddr a ↦□ tr) ∗
           b ↦{dq} bv ∗ bv.peers' ↦*{dq} pv ∗
-          memStorInv bv.storage' γs γr.cl γw.key ∗ memStorMeta bv.storage' γs σ.hs ∗
+          srvAttachedMem bv.storage' γs γr.cl γw.key E.γr.cursor γw.nl γw.snap0 ∗ memStorMeta bv.storage' γs σ.hs ∗
           -- (restart S6 B2, 2026-11-14) the storage's snapshot not yet opened for writes, the WAL's
           -- (which `run`'s `Snapshot()` answers: `restart_snapOnceR`)
           memSnapNone γs (walSnapCS σ cs) ∗

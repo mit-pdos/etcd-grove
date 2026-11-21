@@ -1,20 +1,21 @@
 /-
 Lean-first (no Rocq counterpart).
 
-The package initialization instance of the standard library's `encoding/base64` (names only:
-Perennial does not translate it, `notes/perennial-changes.md`; the k8s-apiserver project's
-`Code/encoding/base64.toml`), and the one thing the proofs read of it: `StdEncoding`
+The package initialization instance of the standard library's `encoding/base64` (Perennial does
+not translate it; the k8s-apiserver project's `Code/encoding/base64.toml` translates the types and,
+with their bodies, what the initializer and `EncodeToString` run), and the one thing the proofs read of it: `StdEncoding`
 (`base64.go`, `NewEncoding(encodeStd)`) holds a fixed `*Encoding` whose `EncodeToString` returns
 the standard base64 encoding `stdEnc` of its argument's bytes (the auth plan's E2x, 2026-10-26:
 `EtcdServer.UserAdd` and `UserChangePassword` put a password's hash in their request
 `base64.StdEncoding.EncodeToString`-encoded). Stated as the method call's own WP on the loaded
-pointer, since `Encoding` is an axiomatized type (its methods are not even named). The fact is
-established by the trust-boundary axiom `StdEncoding_init` (`Proof/encoding/base64/Init.lean`,
-`etc/gen-init.py`). Until 2026-10-26 the instance (fact `True`) was in
+pointer. Until 2026-11-20 the fact was the trust-boundary axiom `StdEncoding_init` and `stdEnc` was
+opaque; now the package's initializer and `EncodeToString` are translated with their bodies
+(`Code/encoding/base64.toml`) and proved (`Proof/encoding/base64/`), and `stdEnc` is base64
+(`b64Enc`) over the standard alphabet. Until 2026-10-26 the instance (fact `True`) was in
 `k8s_io/apiserver/pkg/storage/etcd3/Base.lean`. Restated in stage 7e-2 (`notes/k8s-7e-2-draft.md`
 §5.4, attacked T15): also `RawURLEncoding` (`storage.EncodeContinue`'s continue token), whose
-`EncodeToString` returns `rawUrlEnc` of its argument's bytes (`RawURLEncoding_init`); the fact is
-the two parts, `stdEncInit` and `rawUrlEncInit`.
+`EncodeToString` returns `rawUrlEnc` of its argument's bytes; the fact is the two parts,
+`stdEncInit` and `rawUrlEncInit`.
 -/
 module
 
@@ -31,14 +32,35 @@ namespace encoding.base64
 
 open Iris Iris.BI
 
-/-- **base64's standard encoding** (`StdEncoding.EncodeToString`, RFC 4648 with padding) of a
-byte string. Opaque: what the proofs need is only that `selectPassword`'s decoding of such an
-encoding has no error (its trust boundary, the auth plan's E2u), not the encoding itself. -/
-opaque stdEnc : List w8 → GoString
+/-- **Base64** (RFC 4648 §4) of a byte string over the 64-symbol alphabet `alpha`: each 3-byte
+group becomes the 4 symbols of its four 6-bit pieces, most significant first; a final group of 1
+or 2 bytes becomes 2 or 3 symbols (its bits padded with zeros on the right), followed by 2 or 1
+copies of the padding byte `pad` when there is one (`none`: no padding, `NoPadding`). -/
+def b64Enc (alpha : List w8) (pad : Option w8) : List w8 → List w8
+  | b0 :: b1 :: b2 :: rest =>
+    alpha.getD (b0 >>> 2).toNat 0 :: alpha.getD (((b0 &&& 3) <<< 4) ||| (b1 >>> 4)).toNat 0 ::
+      alpha.getD (((b1 &&& 15) <<< 2) ||| (b2 >>> 6)).toNat 0 :: alpha.getD (b2 &&& 63).toNat 0 ::
+      b64Enc alpha pad rest
+  | [b0, b1] =>
+    [alpha.getD (b0 >>> 2).toNat 0, alpha.getD (((b0 &&& 3) <<< 4) ||| (b1 >>> 4)).toNat 0,
+      alpha.getD ((b1 &&& 15) <<< 2).toNat 0] ++ pad.toList
+  | [b0] => [alpha.getD (b0 >>> 2).toNat 0, alpha.getD ((b0 &&& 3) <<< 4).toNat 0] ++ pad.toList ++ pad.toList
+  | [] => []
 
-/-- **base64's URL encoding without padding** (`RawURLEncoding.EncodeToString`) of a byte string.
-Opaque (stage 7e-2: the continue token's encoding; no property of it is used). -/
-opaque rawUrlEnc : List w8 → GoString
+/-- `StdEncoding`'s alphabet (`base64.go`'s `NewEncoding` argument). -/
+def stdAlphabet : GoString := go!"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+
+/-- `URLEncoding`'s alphabet. -/
+def urlAlphabet : GoString := go!"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+
+/-- **base64's standard encoding** (`StdEncoding.EncodeToString`, RFC 4648 with padding `=`) of a
+byte string. (Opaque until 2026-11-20, when the package's initializer and `EncodeToString` were
+proved over the real code, `Proof/encoding/base64/`.) -/
+def stdEnc (d : List w8) : GoString := b64Enc stdAlphabet (some 61) d
+
+/-- **base64's URL encoding without padding** (`RawURLEncoding.EncodeToString`) of a byte
+string. -/
+def rawUrlEnc (d : List w8) : GoString := b64Enc urlAlphabet none d
 
 section init
 variable [GooseExts] [GooseSemantics] [GooseInterp]

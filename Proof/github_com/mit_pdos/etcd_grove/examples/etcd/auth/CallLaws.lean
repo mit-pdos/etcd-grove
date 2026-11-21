@@ -34,7 +34,7 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 that use it (the import tiers); `client_Put_on_law_holds` proves it. -/
 abbrev client_Put_on.law : Prop :=
   ∀ (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
-      (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+      (cid mid : w64) (ci : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
       (key val : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log)
       (hsz : opSizeOk (opPutModel key val [])),
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
@@ -43,14 +43,14 @@ abbrev client_Put_on.law : Prop :=
               GoInterface) ∗
           kvObjAtC api conn [addr] ∗
           isGrpcRpcMd addr go!"/etcdserverpb.KV/Put" (etcdPutSpecOn s E ρ cid mid) ∗
-          srvApi.kvLogLb E.γs F ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
+          srvApi.kvLogLb E.γs F ∗ metadata.outMD ci om ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
           □ kvOpAu1 ρ.rd.kv (.put (putKeyOp key val)) Q }}
         (App (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
             go!"Put")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
           (⌜err = GoInterface.nil⌝ ∗ ∃ m : PutRespM, putRespMsg resp m ∗
               putReplied E ρ.rd F (putKeyOp key val) Q cid mid m ∗
-              ∃ md, ⌜clientAttemptMd conn (GoInterface.ok ci) md⌝ ∗
+              ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
                 v3rpc.writeGrantOn s E ρ (auth.mdTokenOf md) (irrPut (putKeyOp key val))) ∨
             (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err) }}
 
@@ -58,7 +58,7 @@ abbrev client_Put_on.law : Prop :=
 that use it (the import tiers); `client_Get_on_law_holds` proves it. -/
 abbrev client_Get_on.law : Prop :=
   ∀ (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
-      (cid mid c : w64) (n : Nat) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+      (cid mid c : w64) (n : Nat) (ci : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
       (key : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (R : IProp GF)
       (Q : KVState → IProp GF) (F : mvcc.Log) (hsz : opSizeOk (opGetModel key gs)),
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
@@ -68,7 +68,7 @@ abbrev client_Get_on.law : Prop :=
           kvObjAtC api conn [addr] ∗
           isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (etcdRangeSpecOn s E γr cid mid) ∗
           committedAtLeast γr c ∗ srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode n ∗
-          ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAtRes sl gs R ∗ R ∗
+          metadata.outMD ci om ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAtRes sl gs R ∗ R ∗
           sortNamesIf (opGetModel key gs).base.sortSet ∗
           ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1⌝ ∗
           □ (⌜Q = fun _ => iprop(True)⌝ ∨
@@ -78,7 +78,7 @@ abbrev client_Get_on.law : Prop :=
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); R ∗
           ((⌜err = GoInterface.nil⌝ ∗ ∃ m : RangeRespM, rangeRespMsg resp m ∗
               rangeReplyOk E γr c F (rangeWireOf (opGetModel key gs)) cid mid Q m ∗
-              ∃ md, ⌜clientAttemptMd conn (GoInterface.ok ci) md⌝ ∗
+              ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
                 v3rpc.rangeAuthed s E γr c n (auth.mdTokenOf md) (rangeWireOf (opGetModel key gs))) ∨
             (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err)) }}
 
@@ -123,10 +123,11 @@ abbrev work_put.law : Prop :=
   ∀ (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
       (cid mid : w64) (γa : auth.AuthNames) (Lset : List EntryModel) (n : Nat) (who : GoString)
       (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (k v : GoString)
-      (hγa : E.authMode = .on γa) (hout : metadata.outgoingOf (GoInterface.ok ci) = akOut who)
+      (hγa : E.authMode = .on γa)
       (hop : akOpGranted who (.put (putKeyOp k v)) → opHistOk (.put (putKeyOp k v)))
       (hsz : opSizeOk (opPutModel k v [])),
-    {{ akCallEnv cl api conn addr s E ρ cid mid γa Lset n who ∗ ctxOk ci cd ∗ ctxErrClient ci cd }}
+    {{ akCallEnv cl api conn addr s E ρ cid mid γa Lset n who ∗ metadata.outMD ci (akOut who) ∗
+          ctxOk ci cd ∗ ctxErrClient ci cd }}
         (App (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
             go!"Put")) (Val #(GoInterface.ok ci))) (Val #k)) (Val #v)) (Val #slice.nil))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -138,10 +139,11 @@ abbrev work_delete.law : Prop :=
   ∀ (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
       (cid mid : w64) (γa : auth.AuthNames) (Lset : List EntryModel) (n : Nat) (who : GoString)
       (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (k : GoString) (hk : k ≠ [])
-      (hγa : E.authMode = .on γa) (hout : metadata.outgoingOf (GoInterface.ok ci) = akOut who)
+      (hγa : E.authMode = .on γa)
       (hop : akOpGranted who (.deleteRange (txn.deleteOpOf k [] false)) → opHistOk (.deleteRange (txn.deleteOpOf k [] false)))
       (hsz : opSizeOk (opDeleteModel k [])),
-    {{ akCallEnv cl api conn addr s E ρ cid mid γa Lset n who ∗ ctxOk ci cd ∗ ctxErrClient ci cd }}
+    {{ akCallEnv cl api conn addr s E ρ cid mid γa Lset n who ∗ metadata.outMD ci (akOut who) ∗
+          ctxOk ci cd ∗ ctxErrClient ci cd }}
         (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
             go!"Delete")) (Val #(GoInterface.ok ci))) (Val #k)) (Val #slice.nil))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -154,10 +156,11 @@ abbrev work_get.law : Prop :=
       (cid mid : w64) (γa : auth.AuthNames) (Lset : List EntryModel) (n : Nat) (who : GoString)
       (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
       (gs : List (OpFull → OpFull)) (hγa : E.authMode = .on γa)
-      (hout : metadata.outgoingOf (GoInterface.ok ci) = akOut who)
+     
       (hg : ¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1)
       (hs : (opGetModel key gs).base.sortSet = false) (hsz : opSizeOk (opGetModel key gs)),
-    {{ akCallEnv cl api conn addr s E ρ cid mid γa Lset n who ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗
+    {{ akCallEnv cl api conn addr s E ρ cid mid γa Lset n who ∗ metadata.outMD ci (akOut who) ∗
+          ctxOk ci cd ∗ ctxErrClient ci cd ∗
           optsAt sl gs }}
         (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
             go!"Get")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
@@ -178,7 +181,7 @@ abbrev work_commit.law : Prop :=
   ∀ (cl api conn tp : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
       (cid mid : w64) (γa : auth.AuthNames) (Lset : List EntryModel) (n : Nat) (who : GoString)
       (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (b : TxnBuild)
-      (hγa : E.authMode = .on γa) (hout : metadata.outgoingOf (GoInterface.ok ci) = akOut who)
+      (hγa : E.authMode = .on γa)
       (hp : TxnModel.plain (txnWireOf b.model)) (hin : txnModelIn (txnWireOf b.model))
       (hsz : txnSizeOk (txnWireOf b.model))
       (hsh : ∀ tw : txn.TxnModelW, tw.toModel = txnWireOf b.model → kvShapeAll (irrTxn tw))
@@ -186,6 +189,7 @@ abbrev work_commit.law : Prop :=
       (hpl : txn.txnPlain (txnWireOf b.model) ∧ txnNoZeroEnd (txnWireOf b.model))
       (hop : akOpGranted who (.txn (txnWireOf b.model)) → opHistOk (.txn (txnWireOf b.model))),
     {{ akCallEnv cl api conn addr s E ρ cid mid γa Lset n who ∗ txnObjAt tp [addr] ci cd b ∗
+          metadata.outMD ci (akOut who) ∗
           txnKvIs tp api }}
         (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Commit"))
           (Val #()))
@@ -205,9 +209,9 @@ abbrev then_commit_nested_refused.law : Prop :=
       (cid mid : w64) (γa : auth.AuthNames) (Lset : List EntryModel) (n : Nat) (who : GoString)
       (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (sl tsl : GoSlice)
       (op : go_etcd_io.etcd.client.v3.Op) (hwho : who ∈ principals) (hγa : E.authMode = .on γa)
-      (hout : metadata.outgoingOf (GoInterface.ok ci) = akOut who),
+     ,
     {{ akCallEnv cl api conn addr s E ρ cid mid γa Lset n who ∗
-          txnObjAt tp [addr] ci cd TxnBuild.empty ∗ txnKvIs tp api ∗
+          txnObjAt tp [addr] ci cd TxnBuild.empty ∗ metadata.outMD ci (akOut who) ∗ txnKvIs tp api ∗
           sl ↦*□ [op] ∗ opFullAt op OpFull.txnInit ∗ cmpsAt op.cmps' [] ∗
           ⌜op.thenOps' = tsl ∧ op.elseOps' = slice.nil⌝ ∗
           opsAt tsl [opPutModel (keyOfK go!"c" who go!"t3") go!"vt" []] }}

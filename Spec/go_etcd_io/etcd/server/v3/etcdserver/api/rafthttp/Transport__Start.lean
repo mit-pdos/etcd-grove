@@ -55,6 +55,7 @@ abbrev rafthttp.Transport.Start.spec : Prop :=
       snap.isSnapshotter tv.Snapshotter' sd ∗
       inv snapDirN (snapDirInv sd γd γn.N.img Rm) ∗ netHttpOk γn tv.ID' ∗
       v2stats.isLeaderStats tv.LeaderStats' ∗ v2stats.lsFollowers tv.LeaderStats' 1 ∗
+      v2stats.isServerStats tv.ServerStats' ∗
       raftPool R }}
     (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"Start")) (Val #()))
   {{ (err : GoInterface), RET #err;

@@ -363,12 +363,12 @@ theorem Bucket.Put.wp_writer [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
     ipureintro; exact ⟨⟨hKB, hKN, hTc⟩, hok, hcur', hbase, hgens, hwr, hwc⟩
   rw [decide_eq_false (show ¬ sint.Z (W64 2147483646) < sint.Z value.len by rw [hmv, hvZeq]; exact hv1)]
   wp_auto
-  have hsub : sint.Z (W64 268435456 - key.len) = 268435456 - (kb.length : Int) := by
+  have hsub : sint.Z (W64 2147483631 - key.len) = 2147483631 - (kb.length : Int) := by
     obtain ⟨h1, h2⟩ := Hkl
     have hkle : kb.length ≤ 32768 := by unfold maxKeySize at hkL; omega
     simp only [sint.nat, sint.Z] at h1 h2 ⊢
     word
-  have hc2 : sint.Z (W64 268435456 - key.len) < sint.Z value.len ↔
+  have hc2 : sint.Z (W64 2147483631 - key.len) < sint.Z value.len ↔
       bboltEntryMax < kb.length + vb.length := by
     rw [hsub, hvZeq]; clear hsub hvZeq hmv hv1; unfold bboltEntryMax; omega
   clear hsub hvZeq hmv hv1
@@ -519,7 +519,7 @@ theorem Bucket.Put.wp_writer [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
     [] Hh Hcv Hsk
   · ipureintro; rw [setNode_eq X3 b l B3 _ HB3]; exact ⟨rfl, rfl, rfl⟩
   have hpp := putPost T X X3 n b l B3 rl kb vb sl ins' hok hcur' hgens hwr hbl Hmg hok3 Hok3.2.1
-    HB3 Hrl hlf (by have := hk0; omega) hbnd (by simpa [putEnt, NRec.withEnts] using Hinsl)
+    HB3 Hrl hlf (by have := hk0; omega) (entryBytesFit_put (by omega) hbnd) (by simpa [putEnt, NRec.withEnts] using Hinsl)
   obtain ⟨hok4, hd4, hg4, hwr4, hk4⟩ := hpp
   have hT' : T.setBkt n (m.insert kb vb) =
       TxView.ofC (c.1, c.2.1, c.2.2.1.insert n (m.insert kb vb), c.2.2.2) := by

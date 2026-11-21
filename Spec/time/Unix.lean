@@ -1,8 +1,9 @@
 /-
-`time.Unix(sec, nsec)`, of Go's `time` package (not translated in Perennial's `time`: no body, so
-the call cannot be stepped): returns some `Time`. `client/v3`'s package initializer calls it
-(`watch.go`: `zeroTime = time.Unix(0, 0)`; item 8, 2026-10-17). A trust-boundary axiom, true of
-Go's `time.Unix` (it never panics).
+`time.Unix(sec, nsec)`, of Go's `time` package: returns some `Time`. `client/v3`'s package
+initializer calls it (`watch.go`: `zeroTime = time.Unix(0, 0)`; item 8, 2026-10-17). Proved
+(`Proof/time/Unix.lean`) over Perennial's translation of Go's (2026-11-20; until then a
+trust-boundary axiom, with no premise). It reads the package variable `time.Local`, so it needs
+`time`'s `isPkgInit` (the initializer that calls it has it).
 -/
 module
 
@@ -27,7 +28,7 @@ variable [package_sem : time.Assumptions]
 /-- `time.Unix(sec, nsec)`: some `Time`. -/
 abbrev time.Unix.spec : Prop :=
   ∀ sec nsec : w64,
-  {{ (True : IProp GF) }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.time }}
     (App (App (Val (@! time.Unix)) (Val #sec)) (Val #nsec))
   {{ (t : time.Time), RET #t; True }}
 

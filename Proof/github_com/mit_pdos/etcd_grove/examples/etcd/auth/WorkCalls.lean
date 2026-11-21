@@ -3,7 +3,7 @@
 2026-10-30). Lean-first (no Rocq counterpart).
 
 A request of `Work`'s is sent in `reqCtx(who)`'s context, whose outgoing metadata is `akOut who`
-(`reqCtx_out`). A write sends the update `akWriteAu`: `akHist_writeAu` at the write's grant, which
+(`reqCtx`'s `metadata.outMD`). A write sends the update `akWriteAu`: `akHist_writeAu` at the write's grant, which
 `akOpGranted_of_grant` reads at `setupSt` (`Q`: the write was granted to `who`). So a write's
 reply with no error was granted (`work_put`, `work_delete`): its point permission is `who`'s
 (`akGranted_point`), and a refused write's reply is an error.
@@ -25,7 +25,7 @@ public import Spec.go_etcd_io.raft.v3.MemoryStorage__ApplySnapshot
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__Compact
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Lemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.NetErr
-public import Proof.sort.SortAnyLess
+public import Spec.sort.SortAnyLess
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadRaft
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.TimeListIfc
@@ -59,17 +59,6 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver client
 
 section pure
 variable [GooseExts]
-
-/-- **`reqCtx(who)`'s context carries `akOut who`** (`reqCtx.spec`'s post). -/
-theorem reqCtx_out (who : GoString) (c c0 : GoInterface) (h0 : metadata.outgoingOf c0 = none)
-    (h : if who = go!"bad" then
-      metadata.outgoingOf c = metadata.mdAdd (metadata.outgoingOf c0) go!"token" badToken
-      else c = c0) :
-    metadata.outgoingOf c = akOut who := by
-  unfold akOut
-  by_cases hb : who = go!"bad"
-  · rw [if_pos hb] at h; rw [if_pos hb, h, h0]
-  · rw [if_neg hb] at h; rw [if_neg hb, h, h0]
 
 /-- A put's request needs the write permission on its key. -/
 theorem put_perm_mem (o : OpFull) :
@@ -749,19 +738,19 @@ theorem akAuthFixed_lb (γa : auth.AuthNames) (ρ : ReqNames) (Lset : List Entry
 `setupSt` (`akOpGranted_of_grant`), at the set-up's log; its result, the write granted to `who`.
 `hop`: a granted write is one the history admits. -/
 theorem akWriteAu (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames) (ρ : ReqNames)
-    (Lset : List EntryModel) (n : Nat) (who : GoString) (conn : Loc) (ctx : GoInterface)
-    (op : KVOp) (hγa : E.authMode = .on γa) (hout : metadata.outgoingOf ctx = akOut who)
+    (Lset : List EntryModel) (n : Nat) (who : GoString) (conn : Loc)
+    (op : KVOp) (hγa : E.authMode = .on γa)
     (hop : akOpGranted who op → opHistOk op) :
     akHistInv (GF := GF) ρ.kv ∗ akAuthFixed γa ρ Lset n ∗ attemptTokOk conn (akTokP γa who) ∗
       □ (srvTLSId s -∗ False) ⊢
-      □ clientOpAuOn s E ρ conn ctx op (fun _ => iprop(⌜akOpGranted who op⌝)) := by
+      □ clientOpAuOn s E ρ conn (akOut who) op (fun _ => iprop(⌜akOpGranted who op⌝)) := by
   iintro ⟨#Hinv, #Hf, #Hat, #Htls⟩
   ihave #HL := akAuthFixed_lb γa ρ Lset n $$ Hf
-  ihave #Hw := akHist_writeAu ρ.kv op (clientGrant s E ρ conn ctx op Lset)
+  ihave #Hw := akHist_writeAu ρ.kv op (clientGrant s E ρ conn (akOut who) op Lset)
     (fun _ => iprop(⌜akOpGranted who op⌝)) $$ [Hinv]
   · iframe Hinv
     iintro !> %σ Hg
-    imod (akOpGranted_of_grant s E γa ρ Lset n who conn ctx op σ _ hγa hout authHistN_akMask)
+    imod (akOpGranted_of_grant s E γa ρ Lset n who conn op σ _ hγa authHistN_akMask)
       $$ [] Hg with %Hok
     · iframe #
     imodintro

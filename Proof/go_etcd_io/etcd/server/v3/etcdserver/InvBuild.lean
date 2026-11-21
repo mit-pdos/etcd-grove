@@ -223,7 +223,7 @@ def srvEr (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.A
 `NewServer.spec` takes, the KV state's variable having gone into the KV invariant and the
 client's `etcdKV` at raft's allocation (`srvRaftBoot_alloc`, `NewServerAlloc.lean`). -/
 def srvReadNamesFreshNK (γr : ReadNames) : IProp GF :=
-  iprop(monoNatAuthOwn γr.applied 1 0 ∗ monoNatAuthOwn γr.committed 1 0 ∗
+  iprop(monoNatAuthOwn γr.cursor 1 0 ∗ monoNatAuthOwn γr.applied 1 0 ∗ monoNatAuthOwn γr.committed 1 0 ∗
     (∃ x : Loc × NeedNames, ghostVar γr.notifier 1 x) ∗
     ghostMapAuth γr.logs 1 (∅ : GMap w64 mvcc.Log) ∗ ghostVar γr.pend 1 false ∗
     ghostVar γr.kv.hi 1 γr.kv.log0.length)
@@ -348,7 +348,7 @@ def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     "%Hmidc" ∷ ⌜γn.id ∈ γr.raft.raft.cfg⌝ ∗
     -- (J8b, 2026-11-01) the meta reads of the backends a snapshot opens (`bootOk`'s `#HmetaSnap`)
     "#HmetaSnap" ∷ srvMetaSnap γ ∗
-    "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
+    "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnWorkerStartTok γn (srvRAddr s) ∗
     "#Hcci" ∷ context.isClosedchanInit ∗
     "#Hwci" ∷ waitClosecInit ∗
     "Hw" ∷ (∃ w : GoInterface, srvWAddr s ↦ w) ∗
@@ -403,8 +403,8 @@ read view and the write budget `txn.storeWTs` were rows here until unit N4's `Ne
 2026-10-17; the uber-applier's `applierFor`/`applyKV` until D14i; `storeSmall`, the id budget,
 `clusterVersionOk` and the thread bound until D17, the same day: `srvBuilt`, from
 `NewServer.spec`'s workload premises and the cluster's `Version` contract.) -/
-def srvBuildGap (s : Loc) (γn : RNNames GF) (ai₀ at₀ : w64) : IProp GF :=
-  iprop("Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce γn.node.reg γn.node.cl γn.key ms γn.γs ai₀ at₀))
+def srvBuildGap (s : Loc) (γn : RNNames GF) (applied : GName) (ai₀ at₀ : w64) : IProp GF :=
+  iprop("Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce γn.node.reg γn.node.cl γn.key ms γn.γs ai₀ at₀ applied γn.nl γn.snap0))
 
 end defs
 

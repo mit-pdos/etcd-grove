@@ -42,10 +42,10 @@ theorem etcd_leaseexpiryN_robust : etcd_leaseexpiryN_robust.spec := by
   intro lctx sem package_sem cache_sem _ _ Hctx Hcec k hk1 hk ids ps ctxs boot Hlen Hbf Hap Haf Hbuq
     Hrf Hdbo Hlp HNs HAs HDs HEnv Hprem σ g Hfs HWal
   exact
-    Robustness.Robust.of_single fun hf n κs t2 σ2 hn Hsteps =>
+    Robustness.Robust.of_single_below fun hf n κs t2 σ2 hn Hsteps =>
       (etcd_leaseexpiryN_safe
         Hctx Hcec k hk1 hk ids ps ctxs boot Hlen Hbf Hap Haf Hbuq Hrf Hdbo Hlp HNs HAs HDs HEnv n
-        (Hprem n (by omega)) σ g Hfs HWal hf.1 hf.2.1 hf.2.2 κs t2 σ2 Hsteps (by omega)).2
+        (Hprem n) σ g Hfs HWal hf.1 hf.2.1 hf.2.2 κs t2 σ2 Hsteps (by omega)).2
 
 end adequacy
 end EtcdGrove

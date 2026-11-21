@@ -95,7 +95,7 @@ theorem txnResp_warn (hSize : proto.Size.spec (GF := GF) (hG := hG)) (resp : Loc
   · iapply txn.txnRespShow_of_rd $$ Hrd
   iunfold txn.sizeOk
   iintro !> %Φ !> ⟨#Hp, Hh⟩ HΦ
-  wp_apply (hSize.2.2 resp) $$ [$Hp $Hrd $Hh] as %n ⟨-, Hh⟩
+  wp_apply (hSize.2.2 resp) $$ [$Hp $Hrd $Hh] as %n Hh
   iapply HΦ $$ Hh
 
 set_option hygiene false in
@@ -460,7 +460,7 @@ local macro "txn_tailOnR" : tactic => `(tactic| (
       $$ [resp err Hsr Hlr Hown0 Hard] as %serr Hds
   · iframe #
     isplitr
-    · iintro %a %info %dq !> %Φ' ⟨Ha, Hard⟩ HΦ'
+    · iintro %a %info %dq !> %Φ' ⟨Ha, Hard, HGc⟩ HΦ'
       wp_auto
       wp_apply (hCTA w.auth w.lessor E.RD (.on γa) nA
           (fun info k e err => auth.permRefusalM (.on γa) nA info k e .read err) a info dq r tw) $$ [Ha Hard]
@@ -469,7 +469,7 @@ local macro "txn_tailOnR" : tactic => `(tactic| (
         ipureintro; exact apply.readonlyW_of_txnReadonly tw (by rw [Htw]; exact hro)
       ihave #HcE := authApplyErrIs_apply cerr $$ HcE0
       iapply HΦ'
-      iframe Ha Hard HcE0
+      iframe Ha Hard HGc HcE0
       isplitr [Hrf]
       · iintro %Hn
         ihave ⟨%L, %HL, #Hv⟩ := Hcl $$ %Hn
@@ -481,7 +481,7 @@ local macro "txn_tailOnR" : tactic => `(tactic| (
         ihave ⟨%x, %hx, -, Hw⟩ := Hrf $$ %hne
         iexists x; iframe Hw; ipureintro; exact hx
     isplitr
-    · iintro !> %Φ' ⟨⟨Hresp, Herr, Hsr, Hlr⟩, Hown0⟩ HΦ'
+    · iintro !> %Φ' ⟨⟨Hresp, Herr, Hsr, Hlr⟩, Hown0, -⟩ HΦ'
       wp_auto
       wp_apply hLg s w.lg $$ [Hlr] as ⟨-, Hlr⟩
       · iframe #; iframe Hlr
@@ -1294,7 +1294,8 @@ theorem EtcdServer.Txn.wp_proof
           iexists tw
           isplitr; · ipureintro; rfl
           icases Hfail with (⟨%hm, %rq', %Hwire, Herr, #Hhb⟩ | Hdep)
-          · ileft; iexists hm, rq'; iframe Herr
+          · ihave Herr := appliedErr_of_M _ _ _ _ _ _ $$ Herr
+            ileft; iexists hm, rq'; iframe Herr
             isplitr
             · ipureintro; exact Hwire
             iexact Hhb

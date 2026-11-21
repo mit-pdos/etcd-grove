@@ -4746,8 +4746,8 @@ writes and its storage-version monitor, `etcdStorage_open.law`). -/
 abbrev nReaders : Nat := backend.rdStockN - 2
 
 /-- The store's readers' number (2026-11-02, the backend-auth-split stage). -/
-theorem nReaders_val : nReaders = 536870781 := by
-  show backend.rdStockN - 2 = 536870781
+theorem nReaders_val : nReaders = 536870780 := by
+  show backend.rdStockN - 2 = 536870780
   rw [backend.rdStockN_val]
 
 /-- A lock's reader slots, as many as the store's readers (`nReaders`, the backend's stock: at most
@@ -5662,17 +5662,16 @@ theorem ctxErrorf_ok (err : GoInterface) :
 
 /-- **`rangeKeys`' error for a done context** (persistent; k8s etcd3 7c-2 part 2, G2-a,
 2026-11-06): `ctxErrorf`; `fmt.ErrorfWrap`'s error (`fmt.errorfWrapIs`: the model's, with its
-message cell, or Go's `*fmt.wrapError`) with the description `fmt.ErrorfWrap`'s post gives Go's
-(N1b; conditional on Go's `Unwrap` method since H0, 2026-11-18): it starts with the format's text
+message cell, or Go's `*fmt.wrapError`), whose description (`errorfWrap_descIs`; until errdesc stage 2b,
+2026-11-21, a conjunct of `fmt.ErrorfWrap`'s post, conditional on Go's `Unwrap` method since H0): starts
+with the format's text
 before `%w`, `"rangeKeys: context cancelled: "` (`kvstore_txn.go:121`), so that it is not one of the
 descriptions the gRPC layer gives mvcc's read errors; and its `Error()` returns a message with that
 text first (S5: what `togRPCError`'s fallback makes a description of). -/
 def rangeKeysErr (err : GoInterface) : IProp GF :=
   iprop(ctxErrorf err ∗
     (∃ (ii : GoInterfaceOk) (inner : GoInterface), ⌜err = GoInterface.ok ii⌝ ∗
-      EtcdGrove.fmt.errorfWrapIs ii inner go!"rangeKeys: context cancelled: " ∗
-      ⌜methodSet ii.ty !! go!"Unwrap" = some (go.Signature [] false [go.error]) →
-        go!"rangeKeys: context cancelled: " <+: go_etcd_io.etcd.cache.v3.errDesc err⌝) ∗
+      EtcdGrove.fmt.errorfWrapIs ii inner go!"rangeKeys: context cancelled: ") ∗
     ∃ (ii : GoInterfaceOk) (s : GoString), ⌜err = GoInterface.ok ii⌝ ∗
       □ ∀ Φ : val → IProp GF, ▷ Φ #(go!"rangeKeys: context cancelled: " ++ s) -∗
         WP (App (Val #(methods ii.ty go!"Error" ii.v)) (Val #())) {{ Φ }})

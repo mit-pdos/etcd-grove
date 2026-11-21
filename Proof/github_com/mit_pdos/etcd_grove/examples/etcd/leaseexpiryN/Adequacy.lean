@@ -33,7 +33,6 @@ extensions were `TrivialExt.lean`'s `[idIssueExt]`.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.AdequacyMembers
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.Adequacy
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.MainLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.PkgTable
 public import Proof.runtime.Start
@@ -57,6 +56,20 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
 attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
   etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
+
+/-! ## The ghost-state bundle -/
+
+/-- The universal camera at slot 0 (putgetN's, moved here unchanged when putgetN's closed theorem
+retired, 2026-11-21). -/
+def putgetNGF_allG : AllG putgetNGF := ⟨⟨0, rfl⟩⟩
+
+instance putgetNGF_gooseGpreS : GooseGpreS putgetNGF where
+  goose_preG_iris := ⟨⟨⟨1, rfl⟩, ⟨2, rfl⟩, ⟨3, rfl⟩⟩, ⟨⟨4, rfl⟩⟩⟩
+  goose_preG_heap := ⟨⟨5, rfl⟩⟩
+  goose_preG_proph := ⟨⟨⟨6, rfl⟩⟩⟩
+  goosePreGExts := (⟨putgetNGF_allG⟩, ⟨putgetNGF_allG⟩, PUnit.unit)
+  goose_preG_go_state := ⟨@GhostVarG.mk _ _ ⟨7, rfl⟩⟩
+  goosePreGAllG := putgetNGF_allG
 
 /-! ## The closed theorem -/
 
@@ -94,12 +107,12 @@ theorem etcd_leaseexpiryN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
-    (Hsteps : RealNsteps n ([leaseexpiryNProgram k], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 2 ≤ 2 ^ 28) :
+    (Hsteps : RealNstepsBelow (2 ^ 28) n ([leaseexpiryNProgram k], ((σ, g) : CfgState)) κs (t2, σ2))
+    (Hn : n + 12 ≤ 2 ^ 40) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine etcd_adequate_members (GF := putgetNGF) (hmsL := etcd_leaseexpiryN.startAddrs_names_len k) (hbody := rfl) (HWal := HWal) (hn := by omega) (hAsLit := etcd_leaseexpiryN.leaseexpiryNAddrs_lit k hk)
+  refine etcd_adequate_members_below (GF := putgetNGF) (hmsL := etcd_leaseexpiryN.startAddrs_names_len k) (hbody := rfl) (HWal := HWal) (hn := by omega) (hAsLit := etcd_leaseexpiryN.leaseexpiryNAddrs_lit k hk)
     (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.Main) #(W64 (k : Int)))
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) (etcd_leaseexpiryN.leaseexpiryNAddrs k)
@@ -107,7 +120,7 @@ theorem etcd_leaseexpiryN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (etcd_leaseexpiryN.leaseexpiryNDirs_nodup k hk) (etcd_leaseexpiryN.startAddrs k) []
     (etcd_leaseexpiryN.leaseexpiryNAddrs_perm k) (etcd_leaseexpiryN.leaseexpiryNDirs_perm k)
     σ g ⟨trivial, trivial, trivial⟩ ⟨trivial, Hfs, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
-    n κs t2 σ2 Hsteps fun hG HN HT => ?_
+    (2 ^ 28) n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC putgetNGF := heapAtN hG lctx
   haveI := Hctx hG
   haveI := Hcec hG

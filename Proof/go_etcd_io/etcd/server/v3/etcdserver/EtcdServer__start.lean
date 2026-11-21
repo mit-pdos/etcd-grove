@@ -101,7 +101,9 @@ theorem EtcdServer.start.wp_proof
     (hRT : EtcdServer.RequestTimeout.spec (GF := GF) (hG := hG))
     (hAI : EtcdServer.AppliedIndex.spec (GF := GF) (hG := hG))
     (hRSt : raftNode.ReadState.spec (GF := GF) (hG := hG))
-    (hRI : raftNode.ReadIndex.spec (GF := GF) (hG := hG)) :
+    (hRI : raftNode.ReadIndex.spec (GF := GF) (hG := hG))
+    -- (srvloops2, 2026-11-21) raft's `node.Status`, for the leadership check's view (`srvLeadCheckOk`)
+    (hSt : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; node.Status.spec (GF := GF) (hG := hG)) :
     EtcdServer.start.spec (GF := GF) (hG := hG) := by
   intro s γ ci TM C E ρ γr Er γn b ai₀ at₀ c₀ x₀ N
   wp_start as ⟨%hC, Hb⟩
@@ -286,7 +288,10 @@ theorem EtcdServer.start.wp_proof
   ihave #Hvi : iprop(globalAddr go_etcd_io.etcd.api.v3.version.Version ↦□ go!"3.8.0-alpha.0" ∗
       (∃ v : github_com.Masterminds.semver.v3.Version,
         globalAddr go_etcd_io.etcd.api.v3.version.V3_6 ↦□ v) ∗
-      globalAddr go_etcd_io.etcd.api.v3.version.MinClusterVersion ↦□ go!"3.0.0") $$ []
+      globalAddr go_etcd_io.etcd.api.v3.version.MinClusterVersion ↦□ go!"3.0.0" ∗
+      (∃ v7 v8 : github_com.Masterminds.semver.v3.Version,
+        globalAddr go_etcd_io.etcd.api.v3.version.V3_7 ↦□ v7 ∗
+        globalAddr go_etcd_io.etcd.api.v3.version.V3_8 ↦□ v8)) $$ []
   · iapply isPkgInit_access $$ Hpver
   icases Hvi with ⟨#Hverv, -⟩
   ihave #Hpmem : isPkgInit (PROP := IProp GF)
@@ -545,6 +550,13 @@ theorem EtcdServer.start.wp_proof
   icases Hvd with ⟨#R1, #R2, %R3, #R4, #R5, #R6, #R7, #R8, #R9, #R10, #R11, #R12, #R13⟩
   let awi : GoInterface :=
     interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.wait.timeList.ty) #tl
+  -- (srvloops2, 2026-11-21) what the leadership check reads: the wrapper's `tickMu` pool and node,
+  -- and `s.ctx`
+  ihave #Hlck : srvLeadCheckOk s $$ []
+  · ihave #Hpraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
+    · iPkgInit
+    iapply srvLeadCheckOk_of hSt s Er γn cctx _
+    iframe Hpraft Hrn Hctx Hcctx
   ihave #Hrd : isServerReadM C.isOn s E γr $$ []
   · iunfold isServerReadM
     iexists ({ vd with read := rd, aw := awi, lc := lcn, stopping := sgc } : ReadFields)
@@ -558,7 +570,9 @@ theorem EtcdServer.start.wp_proof
     · iunfold stopChan
       iexists γsg
       iexact HsgU
-    iapply readBound_of_read C s E vd.auth hm $$ [$HaR $R6 $Hrdy]
+    isplitr
+    · iapply readBound_of_read C s E vd.auth hm $$ [$HaR $R6 $Hrdy]
+    iexact Hlck
   -- `go s.run()`, with the write budget backed by time receipts (D19b; made by `NewServer` since
   -- M2's item 15, stage B3)
   iunfold srvWTBudget at HWB

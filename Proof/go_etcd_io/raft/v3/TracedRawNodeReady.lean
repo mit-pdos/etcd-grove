@@ -63,7 +63,7 @@ abbrev RawNode.Ready.tracedTriple : Prop :=
       "#Hlead" ∷ (⌜roleAfter rs.role ss = StateLeader⌝ -∗ [∗list] q ∈ ms, isRaftMsg γ id q.st) ∗
       -- (restart S7.3, `RawNode.Ready.spec`'s) each message's `MsgSnap` facts, outright
       "#Hsnapto" ∷ ([∗list] q ∈ ms, snapToOk γ id q.st) ∗
-      "#Hsrcs" ∷ qSrcs rs.sn ms ∗
+      "#Hsrcs" ∷ readyMsgOrigins γ id rs.sn ms ∗
       "#Hss" ∷ softStateIs rd.SoftState' ss ∗
       "#Hce" ∷ entsRO rd.CommittedEntries' ce ∗
       "#Hcommitted" ∷ isCommitted γ (rs.delivered ++ ce) ∗
@@ -102,7 +102,7 @@ theorem RawNode.Ready.traced
     as %rd %ce %es %ms %sts %h %L H
   iNamed H
   ihave #HhardO := hsOptC_hsOpt _ _ $$ Hhard
-  iapply wp_ncfupd_app
+  iapply (wp_ncfupd _ _ rfl)
   unfold ncfupd
   iintro Hnc
   imod ownRawNodeReady_handout ⊤ γ rn id rs rd ce es ms L x q g h CoPset.subseteq_top CoPset.subseteq_top

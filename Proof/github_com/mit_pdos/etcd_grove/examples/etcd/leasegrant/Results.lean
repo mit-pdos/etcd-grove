@@ -10,16 +10,15 @@ base of each printed in the build log (`#print axioms`). Lean-first (no Rocq cou
   -- returns: it does not panic. From
   `isPkgInit leasegrant`, the right to listen on the address, the main thread's token and `Main`'s
   named premises (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/leasegrant/Main.lean`).
-* **`etcd_leasegrant_safe`** (`Adequacy.lean`'s `etcd_leasegrant_adequate`): the closed
-  theorem. Every real execution of `n` steps of `leasegrant`'s initialization followed by `Main()`,
-  from a fresh state with one thread, has no stuck thread, no thread ended in a panic, and the main
-  thread's result, if any, is `#()`; under hypotheses of D19a's kinds (`notes/decisions.md`,
-  D19r), as putget's.
+
+**The closed theorem retired (2026-11-21, the user's decision D2 of `notes/etcd-unified-scope.md`).**
+Its closed theorem `etcd_leasegrant_safe` (with its `_adequate` and `_robust` forms, `Adequacy.lean`, `PkgTable.lean`, `TopLevelDefs.lean` and the
+`TopLevelRobustness.lean` pair) is gone: the one closed etcd theorem `etcd_safe` (`examples/etcd/all`,
+`Proof/github_com/mit_pdos/etcd_grove/examples/etcd/all/Results.lean`) subsumes it (`notes/etcd-unified-scope.md` §1.3, §4); the function triples here stay.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leasegrant.Adequacy
-public import Robustness.Statement
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leasegrant.MainLinked
 
 @[expose] public section
 
@@ -49,54 +48,7 @@ theorem leasegrant_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
 
 end results
 
-section adequacy
-attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
-variable [go_gctx : GoGlobalContext]
-
-/-- **The adequacy example is safe, in the operational semantics** (`etcd_leasegrant_adequate`, see the
-file header and `Adequacy.lean`). -/
-theorem etcd_leasegrant_safe [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leasegrant.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
-    [log.NewModel]
-    (Hctx : ∀ hG : HeapGS .hasLC leasegrantGF, ContextReadErrs (GF := leasegrantGF) (hG := heapAtLgr hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC leasegrantGF, ContextErrsClient (GF := leasegrantGF) (hG := heapAtLgr hG lctx))
-    (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (Hbf : etcd_leasegrant.BootFacts id ctxs boot)
-    (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
-    (Hlp : leasePeersOk) (Hlne : lease.leasesNoExpiry)
-    (HNs : prometheus.namesUnclaimed leasegrantProgram leasegrantNames)
-    (HAs : addrsUnclaimed leasegrantProgram [go!"127.0.0.1:23956"])
-    -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
-    (HDs : dataDirsAbsent leasegrantProgram [go!"/tmp/etcd-grove-data/leasegrant.etcd"])
-    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
-    (HEnv : verifyEnvOff leasegrantProgram)
-    (n : Nat)
-    (Hprem : ∀ hG : HeapGS .hasLC leasegrantGF,
-      ⊢ etcd_leasegrant.premises (GF := leasegrantGF) (hG := heapAtLgr hG lctx) n id ctxs boot)
-    (σ : state) (g : GlobalState)
-    (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
-    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
-    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"/tmp/etcd-grove-data/leasegrant.etcd"])
-    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
-    (Hthreads : σ.threads = 1)
-    (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
-    (Hsteps : RealNsteps n ([leasegrantProgram], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 2 ≤ 2 ^ 28) :
-    (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
-    (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  etcd_leasegrant_adequate Hctx Hcec id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hlp Hlne HNs HAs HDs HEnv n Hprem σ g Hfs HWal
-    Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
-
-end adequacy
-
 #print axioms leasegrant_Main
-#print axioms etcd_leasegrant_adequate
-#print axioms etcd_leasegrant_safe
 
 end EtcdGrove
 end Perennial

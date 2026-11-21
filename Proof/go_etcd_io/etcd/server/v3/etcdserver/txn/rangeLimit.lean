@@ -43,7 +43,8 @@ theorem txn.rangeLimit.wp_proof
   have hlimo : o.base.limit = limit := by subst Ho; rfl
   wp_if_destruct
   · rename_i Hdef
-    wp_apply (hHas r o) $$ [$Hr]
+    wp_apply (hHas r DFrac.discard o) $$ [] as -
+    · iframe #; iapply (txn.rangeRequestIs_at r o).mp $$ Hr
     cases hh : txn.hasRevFilters o
     · wp_auto
       wp_if_destruct <;> (try wp_auto) <;> (try wp_if_destruct) <;> (try wp_auto)

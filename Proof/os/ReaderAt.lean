@@ -33,7 +33,7 @@ header): with the file (`os.ownFile`), its descriptor (`osFd`) and `Q` as the re
 theorem os.File.readerAtOk (hRead : os.File.ReadAt.specRacyLt (GF := GF) (hG := hG))
     (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (dq : DFrac) (d : OsFd)
     (rs : List (Nat × DFrac × List ByteG)) (Q : IProp GF) (E : CoPset) (eof : GoInterface)
-    (hrd : d.readable = true) (hE : ↑osN ⊆ E) :
+    (hrd : d.readable = true) (hE : ↑osN ⊆ E) (heof : _root_.Perennial.io.ptrTyped eof) :
     ⊢ osInv (GF := GF) -∗ globalAddr io.EOF ↦□ eof -∗ os.heldAcc d.ino rs Q E -∗
       io.readerAtOk ⟨go.GoType.PointerType os.File.ty, #f⟩
         iprop(os.ownFile (GF := GF) f fd name dqf ∗ osFd (GF := GF) fd dq d ∗ Q)
@@ -49,12 +49,20 @@ theorem os.File.readerAtOk (hRead : os.File.ReadAt.specRacyLt (GF := GF) (hG := 
     $$ [Hfo Hb Hfd HQ]
   · iframe; iframe #
   inext
-  iintro %n %err ⟨Hfo, Hfd, HQ, %vs', Hb, %h, -⟩
+  iintro %n %err ⟨Hfo, Hfd, HQ, %vs', Hb, %h, Herr⟩
   obtain ⟨h1, h2, h3⟩ := h
+  ihave %hty : ⌜_root_.Perennial.io.ptrTyped err⌝ $$ [Herr]
+  · icases Herr with (%hc | ⟨%pe, %hpe, -, -⟩)
+    · ipureintro
+      rcases hc with ⟨rfl, -⟩ | ⟨rfl, -⟩
+      · exact _root_.Perennial.io.ptrTyped_nil
+      · exact heof
+    · ipureintro
+      rw [hpe]; intro ii T h _; cases h; exact ⟨pe, rfl⟩
   iapply HΦ
   iframe
   ipureintro
-  refine ⟨h1, h2, fun i x hx hi bt hh => ?_⟩
+  refine ⟨h1, h2, fun i x hx hi bt hh => ?_, hty⟩
   have := h3 (o.toNat + i) bt hh (by omega) (by omega)
   rw [show o.toNat + i - o.toNat = i by omega, hx] at this
   exact Option.some.inj this

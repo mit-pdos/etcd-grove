@@ -45,6 +45,18 @@ def deleteAll (s : GMap K Elem) (ks : List K) : GMap K Elem :=
 @[simp] theorem deleteAll_cons (s : GMap K Elem) (k : K) (ks : List K) :
     deleteAll s (k :: ks) = deleteAll (GMap.delete k s) ks := rfl
 
+/-- `insertAll` adds at most one key per item (prove-k8s, 2026-11-20: the bound `List'`'s spec takes,
+for `request`'s initializer). -/
+theorem size_insertAll_le (s : GMap K Elem) (ks : List K) :
+    GMap.size (insertAll s ks) ≤ GMap.size s + ks.length := by
+  induction ks generalizing s with
+  | nil => simp
+  | cons k ks ih =>
+    rw [insertAll_cons]
+    have h := ih (<[k := present]> s)
+    rw [GMap.map_size_insert] at h
+    split at h <;> simp only [List.length_cons] <;> omega
+
 theorem insertAll_append (s : GMap K Elem) (ks ks' : List K) :
     insertAll s (ks ++ ks') = insertAll (insertAll s ks) ks' := by
   unfold insertAll; rw [List.foldl_append]

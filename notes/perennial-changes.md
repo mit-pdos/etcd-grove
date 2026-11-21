@@ -17,44 +17,97 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
-### `fmt`'s models that call the arguments' formatting methods, `%p`, and `Errorf`'s `%w`: what retires this repository's `fmt` axioms (2026-11-20, prove-reflectfmt)
+### otel trace's `maxSpan` and `var _` assertions: two goose limits (2026-11-21, prove-otel4)
 
-- **Limitation.** Perennial's models of `Sprintf`, `Printf` and `Errorf` (`Perennial/TrustedCode/fmt.lean`) never
-  call an argument's method, so their specs admit only `fmt.ArgsWf` arguments (predeclared basic types, methodless
-  named integers and strings); `Errorf` is `errors.New(format)` (no formatting, no `%w`); `%p` and `%0Nx` give
-  arbitrary output; `Sscanf` has no model. Go's `fmt` itself cannot be translated (reflection on every argument,
-  `sync.Pool`, float formatting).
-- **Needed by.** The eight `fmt` axioms left here after prove-reflectfmt (2026-11-20): `fmt.Errorf`, `fmt.ErrorfPlain`,
-  `fmt.Printf`, `fmt.SprintfArgs` (arguments whose `Error()`/`String()` `fmt` calls: `fmt.argsOk`),
-  `fmt.SprintfClientPtr` (`%p` of a pointer), `fmt.SprintfWalName` (`%016x`), `fmt.Sscanf` (`%d`),
-  `fmt.SscanfWalName` (`%016x-%016x.wal`). Also the proofs over the model outside its faithful domain
-  (`fmt.ErrorfErrs`, `fmt.ErrorfStrs`, `fmt.ErrorfWrap`, client-go's `wp_Errorf_setArgs`), whose faithfulness is
-  argued in their headers, not checked.
-- **Proposed (general, not shaped by one caller; one Perennial branch, three steps).**
-  1. *Formatting methods.* The models' per-argument step (`formatArg`) does what `printArg`/`handleMethods` do on a
-     non-`%T`/`%p` verb, for the cases a spec admits: for a method verb (`v s x X q`, not `#v`) an argument whose
-     dynamic type has `Error() string` (and no `Format`) gets its `Error()` called, else one with `String() string`
-     (and no `Format`, no `Error`) its `String()`, the result formatted as a string (exactly for `%s`/`%v`,
-     arbitrary otherwise); any other non-basic argument stays outside the spec. The specs' premise becomes this
-     repository's directive-aware `fmt.argsOk mv format xs` (`Spec/fmt/Errorf.lean`: `fmt.fmtDirectives`,
-     `fmt.argOkAt`, `fmt.stringMethodSpec`), moved to Perennial with its tests (`examples/premisefix/fmtarg`, the
-     three fmt-soundness attacks), and the posts keep `SprintfOut` with the method results as `StrArgValue`s.
-     Retires `fmt.SprintfArgs`, `fmt.Printf` and, with step 3, `fmt.Errorf`.
-  2. *`%p`.* `formatArg` at `p` of a pointer, func, map, chan or unsafe pointer returns an arbitrary string without
-     reading memory (Go's `printArg` does `%p` first, `fmt/print.go:686-693`); the premise admits such an argument
-     under `p` only (`fmt.SprintfClientArgOkAt`'s rule, for any pointer type). Retires `fmt.SprintfClientPtr`, and
-     bbolt's `(*Options).String` (the 2026-11-17 entry below).
-  3. *`Errorf`.* The model formats as `Sprintf` does, then returns `errors.New(s)` when no directive's verb is `w`
-     (Go's `case 0`, `fmt/errors.go`), else a fresh `*fmt.wrapError`/`*fmt.wrapErrors` holding the `%w` arguments
-     (translated: both are plain structs with `Error`/`Unwrap`); the spec says which. Retires `fmt.ErrorfPlain` (its
-     post is the no-`w` case) and lets `fmt.ErrorfWrap`/`fmt.ErrorfErrs` rest on a faithful model.
-  Together with the `%0Nx` and `Sscanf` proposals (the 2026-11-13 entry "`Sprintf`'s `%0Nx`, `Sscanf`'s `%0Nx`"),
-  every `fmt` axiom here goes.
-- **Workaround here.** The axioms, each narrowed to the calls etcd makes; prove-reflectfmt (2026-11-20) retired
-  `fmt.SprintfNamed` and `fmt.SprintfID` (their calls are within Perennial's `fmt.wp_Sprintf` since `ArgWf` admits
-  methodless named integers and strings, or within `fmt.SprintfArgs`) and fixed `fmt.SprintfClientPtr`'s premise
-  (`notes/axiom-review/sprintfclientptr.md`).
-- **Status.** Proposed only (the Perennial branch is the `stdlib` agent's at the time).
+- **Limitation 1 (the guard).** `var maxSpan = newSpanLimits()` (`go.opentelemetry.io/otel/trace` v1.47.0,
+  `auto.go:622`) is refused by goose's modelcheck (R4, `docs/design/unsafe-memory.md`: a call returning a
+  pointer-free struct in a package-variable initializer, which gc may inline and build in place). Here the callee's
+  literal elements are `firstEnv(...)` calls returning `int`s, which cannot overlap `maxSpan`, but the guard does not
+  look at callee bodies. The doc says any change to the guard's rule needs the project owner's approval: not
+  proposed by this repository; `maxSpan.init` stays in `go_opentelemetry_io.otel.trace.opaqueInitsOk`.
+- **Limitation 2 (axiomatized aliases).** goose declares a names-only type alias as `opaque X : go.GoType`, but
+  every reference to an alias names its descriptor `X.ty` (`TypeIdent`), as a translated alias declares it. In
+  go1.27 `encoding/json.Marshaler` is an alias (`= jsonv2.Marshaler`, `v2_encode.go:206`), so otel trace's four
+  `var _ json.Marshaler = ...` assertions do not compile (`Code/encoding/json.lean` is names-only), and with them
+  every `var _` of the package (goose's `"_"` selects them all): 11 entries stay in `opaqueInitsOk`. Today such a
+  reference is avoided by translating the alias itself (`protoimpl.toml`), which for `json.Marshaler` needs
+  `encoding/json/v2` translated (reflect, an `init`).
+- **Tried (not proposed).** goose declaring an axiomatized alias's descriptor `opaque X.ty` (patch
+  `/shared/tmp/otel4/alias.patch`, goose's tests pass) makes the `var _` assertions compile, and the rest of the tree
+  builds (with encoding/json's `IsPkgInit` instance moved from `apply/Base.lean` to `mvcc/Base.lean`), but the
+  initializer still does not step: `Convert TraceID.ty encoding.json.Marshaler.ty` needs `Marshaler.ty` known to be
+  an interface type, which an opaque descriptor is not; `attributeOption{}` also needs a `wp_slice_literal` step.
+  So retiring these entries needs `json.Marshaler`'s target translated (the alias in `Code/encoding/json.toml` and
+  `encoding/json/v2`'s `Marshaler`, names-only), on top of the goose fix: not done (the PR was not opened).
+- **Done here.** The other four initializers (`tracerProviderInstance`, `autoInstEnabled`, `start`, `ended`)
+  translated: `opaqueInitsOk` from 15 entries to 12.
+
+### Goose keeps a struct axiomatized when a field's type is another package's alias (2026-11-21, prove-k8s4)
+
+- **Limitation.** `translate_types` fails a type whose definition mentions an alias of another package
+  (`goose/util/autotypes.go`: "alias from another package"), whatever that package's translation does with
+  the alias. So `watch.FakeWatcher`/`RaceFreeFakeWatcher` (field `logger klog.Logger`, klog translating
+  `Logger = logr.Logger`) stay opaque, and the `var _ Interface = &FakeWatcher{}` checks of `watch`'s
+  initializer cannot be stepped: `watch.opaqueInitsOk` stays.
+- **Workaround.** None: the axiom stays.
+- **Proposed change.** Goose decides such an alias with the imported package's own translation decision
+  (its configuration in the same configuration directory, extended by `ExtendFilter`), with the goose example
+  `xpkgalias`: Perennial PR mit-pdos/perennial#646 (in review). Then `watch.toml` imports `sync` and klog and
+  translates `DefaultChanSize` and `_` (`/shared/tmp/k8s4/watch-toml.patch`), and gen-init proves `watch`'s
+  initializer.
+- **Status.** Open (PR #646 in review).
+
+### `strconv.Atoi` had no body: landed in Perennial `78ac98e99`, not yet in the pin (2026-11-21, prove-metrics3)
+
+- **Limitation.** Perennial translated `strconv` without `Atoi`, so otel trace's `firstEnv` (`maxSpan =
+  newSpanLimits()`, `trace/auto.go:622-690`, v1.47.0) could not be stepped and stays in
+  `go_opentelemetry_io.otel.trace.opaqueInitsOk`.
+- **Landed.** Perennial `78ac98e99` (on `lean`): `strconv.Atoi` and `internal/strconv.Atoi` translated, with
+  specs (a nil error, `ErrSyntax` or `ErrRange`, wrapped by `toError` in `strconv`; the number unspecified) and
+  proofs.
+- **Status.** Waiting for a pin bump past Perennial `7ad4f91b1` (its crash-token channel updates need
+  `ncfupd_of_fupd` in this repository's channel proofs: the coordinator's). Then: translate otel trace's
+  `maxSpan`, `newSpanLimits`, `firstEnv` (over `os.Getenv`'s spec and `strconv.wp_Atoi`) and its other
+  initializers (`/shared/tmp/extlib-metrics3-triage.md`).
+
+### `-x` of a `float64` does not step: `Float64Semantics` has no `GoNeg` (2026-11-21, prove-metrics3)
+
+- **Limitation.** `FloatOps` has `float64Neg`/`float32Neg`, but `Float64Semantics`/`Float32Semantics`
+  (`Perennial/Golang/Defn/Predeclared.lean`) give no rule for `GoUnOp GoNeg go.float64` (only the untyped
+  constant's `neg_untyped_float`), so a run-time float negation is stuck.
+- **Needed by.** x/time/rate's token bucket: `reserveN`'s `lim.limit.durationFromTokens(-tokens)` (`rate.go:357`),
+  which `Limiter.Reserve` and `Limiter.Wait` run (their axioms stay; the rest of the bucket, `advance`,
+  `durationFromTokens`, `tokensFromDuration`, the lock, steps: draft proofs in `/shared/tmp/metrics3/rate-draft/`).
+- **Workaround here.** None: the two functions stay trust-boundary axioms.
+- **Proposed (general).** `neg_float64 (v : w64) : ⟦GoUnOp GoNeg go.float64, #v⟧ ⤳[under] #(float64Neg v)` and its
+  `float32` twin, completing the existing scheme (a trusted-semantics change: Perennial's `fix-semantics` workflow,
+  with the user's sign-off).
+- **Status.** Not started.
+
+### Float facts: `FloatOps` has no laws, so no float-dependent panic can be excluded (2026-11-20, prove-promdeep)
+
+- **Limitation.** `FloatOps` (`Perennial/Golang/Defn/PostLang.lean`) is a field of the semantics class with no laws:
+  `float64Leb`, `float64Add`, `uint64ToFloat64`, ... are arbitrary functions. A proof cannot show
+  `¬ (float64(n) < 0)` for an unsigned `n`, nor relate the float order to the bits' order, and an axiom here stating
+  such a fact would be false of some instance (inconsistent), so a local workaround can only keep the whole function
+  behind an axiom.
+- **Needed by.** prometheus (`/shared/tmp/extlib-promdeep-triage.md`): `counter.Add`'s `if v < 0 { panic }` (inside
+  `NewCounter`'s and `CounterVec.WithLabelValues`'s posts, `metric.counterSpec`), `newHistogram`'s bucket checks
+  (`bucketsOk` is stated over the bits' order), `ExponentialBuckets` (exact doubling); also x/time/rate's token bucket
+  and `lessor.Promote` (smalllibs, etcdstorage).
+- **Workaround here.** The functions stay trust-boundary axioms.
+- **Proposed (general).** IEEE-754 binary64 facts as assumptions of the semantics (a `FloatLaws` class over
+  `FloatOps`, required by `go.Semantics` or by the packages that need it): the order of finite non-negative floats is
+  their bits' order, `uint64ToFloat64`/`int64ToFloat64` of a non-negative integer is non-negative and finite, NaN
+  compares false, doubling a normal float whose result is normal adds `2^52` to its bits. Or a full model (Lean's
+  `Float` is opaque to the kernel; a bit-level IEEE model would be checkable). Each law is true of Go's `float64`.
+- **Status.** PR https://github.com/mit-pdos/perennial/pull/648 (pgaps, 2026-11-21; review by upamanyus):
+  the sign facts `counter.Add` needs (`lt_zero_false_of_sign_clear`: a float64 with a clear sign bit is not
+  `< +0`; `{int64,uint64,int32,uint32}ToFloat64_sign_clear`), with float64/float32 negation steps (`neg_float64`,
+  `neg_float32`, which x/time/rate's `reserveN` needs: `-tokens`); Go evidence `docs/design/float/float_test.go`.
+  The order and doubling laws (histogram buckets, `ExponentialBuckets`) are not in it. Float-to-integer
+  conversion already steps (Perennial `08d191151`, an arbitrary integer): `lessor.scheduleCheckpointIfNeeded` is
+  proved on the current pin (pgaps); `lessor.Promote` is blocked by its spec (ledger 2026-11-21), not by floats.
 
 ### `wp_apply` with a `have`-local spec can close the goal with `sorry` (2026-11-20, k8s-authz)
 
@@ -100,7 +153,7 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   every snippet is provably panic-free from it.
 - **Status.** Requirements only.
 
-### Adequacy's thread bound is about every execution, so it caps the step count: landed, in the pin since `c44b74871` (2026-11-19, the closed theorems' step bounds)
+### Adequacy's thread bound is about every execution, so it caps the step count: landed, in the pin since `c44b74871` (2026-11-19, the closed theorems' step bounds; the distributed form since `1b144292b`, 2026-11-20)
 
 - **Limitation.** `goose_adequacy` (`Perennial/GooseLang/Adequacy.lean`) takes the thread bound as
   `RealThreadsBelow T n`: *every* execution of at most `n` steps keeps fewer than `T` threads. A
@@ -120,10 +173,19 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `goose_adequacy_of_below` derives the old theorem.
 - **Uses.** The trace check (branch `tracecheck-thread-bound`): `init_adequate_below`
   (`examples/lib/etcdstart/Adequacy.lean`), `raft_tracecheck_safe` at `n + 4 ≤ 2^61` and
-  `RealNstepsBelow (2 ^ 31) n`. To do: the etcd examples (needs `goose_adequacy_start_files`, an axiom
-  here, restated over `RealNstepsBelow`; their step count is then capped by `Main.spec`'s write-back
-  budget `n + 11 ≤ backend.wbInit = 2^40 - 1`), and the crash and distributed variants with a thread
-  parameter in `Robust`.
+  `RealNstepsBelow (2 ^ 31) n`. (2026-11-20, branch `robust-threads`) The etcd examples, through
+  `goose_adequacy_start` restated over `RealNstepsBelow` (this repository's axiom, `Proof/runtime/Start.lean`;
+  its old form the theorem `goose_adequacy_start_all`) and `etcdstart`'s `etcd_adequate*_below`: 22
+  closed theorems at `RealNstepsBelow (2 ^ 28) n` and `n + 12 ≤ 2^40` (the backend's write-back budget,
+  `backend.wbInit = 2^40 - 1`, a proof constant: next to raise, with mvcc's and the server's
+  `receiptBound ≤ 2^48`).
+- **The distributed form** (Perennial `910c71c0e`, docs `1b144292b`, on `lean` 2026-11-20; `review-trusted`:
+  OK): `DistCfgThreadsBelow` and `DistCrashNstepsBelow boots T n c κs c'` in `DistLang.lean` (a
+  distributed execution, crashes included, every configuration of which has fewer than `T` threads on
+  every node), with `nsteps`, `start`, `mono`, `of_threadsBelow`, `of_single`. `Robust` quantifies over it
+  (`Robust crashing stable g threads bound`). Open: crash and distributed adequacy theorems over it
+  (`goose_crash_adequacy`, `goose_dist_crash_adequacy` still take the all-executions premise), so the crash
+  and multi-machine examples state `threads := bound + 1` (their statement without a thread bound).
 
 ### `go.NotInterface` of the predeclared named types; the standard-library axioms that only bodies would discharge (2026-11-19, branch `prove-stdlib/2026-11-19`)
 
@@ -144,7 +206,10 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   each stays an axiom here until Perennial's `*.toml` translates it (`Seconds`: never, a float).
   The cheap ones to translate: `strings.HasSuffix`/`TrimSuffix`/`Contains` (over
   `internal/stringslite`), `strconv.FormatBool`/`ParseBool`, `io.ReadFull`/`ReadAtLeast`.
-- **Status.** Open.
+- **Status.** Partly done (2026-11-20, Perennial `e9988b5cd`, branch `prove-stdlib`): Perennial
+  translates and proves `strings.HasSuffix`/`TrimSuffix` (over `internal/stringslite`'s),
+  `strconv.FormatBool`/`ParseBool`, `errors.Join`, `time.Time.IsZero`/`Time.Unix`/`time.Unix` and
+  `sort.StringSlice`'s methods; the axioms here became theorems over them. The rest is open.
 
 ### `SprintfOut` of a literal prefix and of `pre%vmid%v` (2026-11-18, k8s 7g)
 
@@ -261,6 +326,12 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   written` left", the type assertions `src.(WriterTo)` (a `*LimitedReader` has none) and
   `dst.(ReaderFrom)` (excluded by `writerPlain`) by the method sets goose emits. The axioms then
   become theorems with the same statements. Not yet proposed.
+- **Status.** DONE (stdlib3, 2026-11-21): Perennial `9097e1e6d` translates the seven (`io.toml`);
+  etcd-grove proves both specs over the translation (`Proof/io/NewSectionReader.lean`,
+  `Proof/io/CopyN.lean`). `io.secReader` is now defined (the struct's points-to, with
+  `NewSectionReader`'s premises), and `io.readerAtOk`'s post says the error is well-typed
+  (`io.ptrTyped`: comparing it with `io.EOF` must step; `os.File.readerAtOk` proves it). The proofs
+  stayed in etcd-grove (the contracts are etcd-grove's); moving them to Perennial is still open.
 
 ### `wp_auto`'s free-variable checks were exponential on struct values: landed, in the pin since `3afd77e35` (2026-11-18, perf2; pin bump 2026-11-19)
 
@@ -333,8 +404,10 @@ rebuilds everything; no bump of its own).
   part's `filepathlite.Dir` shows) and `strings.HasSuffix` (a call of `stringslite.HasSuffix`), with
   specs `RET #(decide (pre <+: s))` / `#(decide (suf <:+ s))` in `Perennial/Proof/{internal/
   stringslite,strings}/`. Then `filepathlite.IsAbs.spec` is proved in the part (`RET #(decide
-  (p.head? = some (W8 47)))` from `go!"/" <+: p`) and the HasSuffix axiom becomes a theorem. Not yet
-  proposed.
+  (p.head? = some (W8 47)))` from `go!"/" <+: p`) and the HasSuffix axiom becomes a theorem.
+- **Status.** `HasSuffix` done (2026-11-20, Perennial `e9988b5cd`): `stringslite.HasSuffix`/`TrimSuffix`
+  and `strings.HasSuffix`/`TrimSuffix` translated and proved, the axiom here a theorem.
+  `stringslite.HasPrefix` (and `IsAbs`) still open.
 
 ### `append` does not model `growslice`'s `maxAlloc` limit (2026-11-14, branch `wal-small14`)
 
@@ -376,13 +449,16 @@ log, third session; pending the user's review). General fix: `append` (and `make
   (`LinuxFs/Proof/os/SharedAu.lean`).
 - **Proposed.** Both lemmas in Perennial's `GooseLang/Lifting.lean`, beside `wp_ext_acc` (they use
   only `goose_bstateInterp_eq` and iris's `wp_unfold`); generic, nothing about `fsExt`.
-- **Status.** Recorded; the local copies go when the pin has them.
+- **Status.** Done: Perennial `7ad4f91b1` (`GooseLang/NotCrashed.lean`, Upamanyu Sharma) has both, with
+  `wp_atomic_nc`'s update written `|NC={E1,E2}=> ...` (`ncfupd`, a reducible abbreviation of the same
+  wand); the local copies were deleted at the pin bump of 2026-11-21 (branch
+  `pinbump/perennial-ncfupd-2026-11-21`).
 - **Addition (2026-11-21, raft's crash law, `notes/raft-crash-law-design.md` (i)).** The crash-token
   update `ncfupd E P := notCrashed -∗ |={E}=> notCrashed ∗ P` (Rocq Perennial's `ncfupd`) with
   `wp_ncfupd` (before a step: `wp_notCrashed_acc`) and **`wp_ncfupd_post`**: for a non-value `e`,
   `WP e @ s; E {{ v, ncfupd E (Φ v) }} ⊢ WP e @ s; E {{ Φ }}` (the postcondition's update run after
   `e`'s last step, by the state interpretation it holds; Löb over `wp_unfold`, as iris's
-  `wp_strong_mono`). Local, proved: `GooseLang/NotCrashed.lean`. Raft's ghost steps take the token,
+  `wp_strong_mono`). Proved locally first (`GooseLang/NotCrashed.lean`); Perennial `7ad4f91b1` has it, and the local module went at the merge of `lean` (2026-11-21). Raft's ghost steps take the token,
   and `raft.Step`'s arms, whose ghost step runs at the return, get it by `wp_ncfupd_post`. Proposed for
   `GooseLang/Lifting.lean` with the two above.
 
@@ -413,6 +489,11 @@ fresh table where Go returns one shared pointer. **Proposed upstream**: the same
 GooseLang `simplePopulateTable` (or by translating `crc32_generic.go` with bodies and trusting only
 `Update`'s dispatch to it), with `IEEE` alongside; then this part's names-only `hash/crc32` and the
 local model go.
+(2026-11-21, prove-etcdint3: the second form, locally. `Code/hash/crc32.toml` translates `New`,
+`digest.Write`/`Sum32`, `Update`, `simpleMakeTable`/`simplePopulateTable` and the package's
+initializers (`IEEETable`, the two `sync.OnceFunc`s) with bodies, and trusts `MakeTable` and the
+dispatching `update` (in place of `Update`, which calls it): mvcc's hasher is proved over them, and
+`hash.crc32.opaqueInitsOk` is gone. Still a local model, pending the user's review.)
 
 ### `io.ReadFull`/`ReadAtLeast` and `binary.Read`'s fast path without bodies (2026-11-13, WAL leaf specs, branch `wal-leaf-std2`)
 
@@ -445,8 +526,30 @@ local model go.
 - **Status.** (2026-11-14, `wal-leaf6`) The WAL's `Link.lean` (`LinuxFs/`) rests on both axioms
   through the part's generated copies of `Proof/io/ReadFull.lean` and `Proof/encoding/binary/
   ReadInt64LE.lean` (`etc/gen-part-copies.py`: the same statements, not new axioms).
+  (2026-11-21, group `stdlib2`, Perennial `d5bf68438`) (1) done in Perennial: `io.ReadAtLeast`,
+  `io.ReadFull` and `io.ReadAll` translated and proved over a reader contract `io.readerOk ri Pre S E`
+  (`Perennial/Proof/io/Reader.lean`: non-negative counts, a per-call condition `Pre`, and the
+  reader's errors well-typed, `io.ptrTyped`, which stepping `err == EOF` needs); `bytes.NewBuffer`
+  and `(*Buffer).Read` too (`bytes.ownBuffer`). This repository's `io.ReadFull.wp_proof` is not yet a
+  wrapper: `io.readerStream` does not promise `ptrTyped` of the reader's errors, and the WAL's
+  (`decRdE`'s `IoE`) come from the file-system layer without it; `http.ReadAll_ok` needs in addition a
+  bound on the body (`2^60`, ReadAll's `int` sizes in the model), `http.ReadFull_stream_ok` the
+  invariant `bodyStream rd Pre Φ r ⊢ ⌜Pre r⌝`. `http.NewBuffer_ok` and `http.readerHas_nil` are
+  theorems (`readerHas` defined over `bytes.ownBuffer`).
 
-### Operations on untyped rune constants have no step (2026-11-13, WAL leaf specs, branch `wal-leaf-std2`)
+### Operations on untyped rune constants have no step (2026-11-13, WAL leaf specs, branch `wal-leaf-std2`) -- DONE (Perennial `04b42a139`, pin moved 2026-11-21, branch `pin-04b`)
+
+- **Done.** Perennial `04b42a139` (fix-semantics Cases 39/40): goose folds constant expressions of untyped
+  runes (`Separator == '/'` is now a constant), `UntypedIntSemantics.convert_untyped_int_to_string` steps
+  `string(c)` of an untyped integer to `go.runeString c` (its UTF-8 encoding, U+FFFD if not a code point),
+  and `string(b)` of a byte is `go.runeString b` too (no longer the one byte `b`). The local class
+  `UntypedRuneSemantics` (`Proof/internal/filepathlite/UntypedRune.lean`) is deleted; `filepathlite.Base`,
+  `FromSlash`, `filepath.join` and the WAL's, WalTester's and the server's `NewStorage` results no longer take
+  it (`go.runeString 47 = [W8 47]` by `decide`). `rnNewStorageOk` stays a premise of the closed theorems: what
+  is left for passing the law to `newRaftNode` is `os`'s `fileStat`/`file` field assumptions
+  (`notes/wal-item3-handoff.md`). `bufio.opaqueInitsOk` (`errorRune`) stays: its initializer is untranslated
+  (names-only), so the new step does not reach it; translating `bufio`'s initializers would.
+- The entry as it was:
 
 - **Missing.** Goose emits `Separator == '/'` (`GoOp GoEquals go.untypedRune`) and `string(Separator)`
   (`Convert go.untypedRune go.string`) of `internal/filepathlite`'s untyped constant as run-time
@@ -462,6 +565,14 @@ local model go.
   expressions"), or Perennial's `UntypedIntSemantics` gains the two steps. Not yet proposed.
 - **Also hit** (2026-11-20, `prove-smallinits`): `bufio`'s `errorRune = []byte(string(utf8.RuneError))`
   (`Convert go.untypedRune go.string #65533`, a non-ASCII rune), so `bufio.opaqueInitsOk` stays.
+- **Also blocks** (2026-11-21, wal-item3): removing the premise `rnNewStorageOk` from every closed theorem over
+  the server. `rnNewStorageOk_law_holds` (`etcdserver/RnNewStorageLinked.lean`) proves it from the WAL's linked
+  results, which take `[UntypedRuneSemantics]` (storage `Save` → WAL `Save` → `cut` → `filepath.join`); passing
+  the law to `bootstrappedRaft.newRaftNode` would put the class in every closed statement. Decided by
+  etcd-grove-03 (option (c)): the premise stays until this general fix (the two steps in Perennial's
+  `UntypedIntSemantics`, `string(c)` of an untyped rune and `==` of untyped runes, or Goose folding constant
+  expressions) lands and the pin moves; then `newRaftNode`'s proof takes `rnNewStorageOk.law`
+  (`=rnNewStorageOk_law_holds`) and the class is discharged. No Perennial branch started yet.
 
 ### `Sprintf`'s `%0Nx`, `Sscanf`'s `%0Nx` of a `uint64`, `Time.Format` (2026-11-13, WAL leaf specs, branch `wal-leaf-std2`)
 
@@ -969,7 +1080,8 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   of Perennial's `sort.Strings.spec`), an axiom.
 - **Proposed change.** Translate the methods in Perennial's `sort` and prove `Sort` as
   `sort.Strings` is proved; then the axiom here goes.
-- **Status.** Open.
+- **Status.** Done (2026-11-20, Perennial `e9988b5cd`): `Len`, `Less`, `Swap`, `Sort` translated and
+  proved; `sort.StringSlice.Sort.wp_proof` here is a theorem over `sort.StringSlice.wp_Sort`.
 
 ### Tooling: incremental proof checks, and long `·` blocks as auxiliary theorems
 
@@ -1061,6 +1173,12 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   sibling branch's `0 < prev`; and a `word` side goal later in the same proof failed with "unknown
   free variable" (a cached term over a hypothesis of another goal). Workaround there: `omega` on
   `BitVec.toNat` for the first, the `word` fact proved at the top of the proof for the second.
+- **Seen again** (2026-11-21, `sort.Stable`'s proofs, branch `prove-stdlib4-stable`): "unknown free
+  variable" from `word` in `rotate`'s, `symMerge`'s and `stable`'s proofs, each time with a hypothesis
+  holding an `if` (or a loop condition `#!decide (i = j) = #true`) in the context, and gone once that
+  hypothesis was cleared, kept in the Iris context (`symMerge`'s `Hsr0`), or introduced after the
+  `word`s; once it was a false goal (`stable`'s invariant `bs ≤ 2^62`), so the error can hide a
+  plain failure. Workaround there: those hypotheses kept out of `word`'s context.
 - **Status.** Not started (found 2026-10-21, `raft-retarget`, now on `lean`).
 
 ### Specs: a law for `Done()` of an `isContext` context (2026-10-27, the compactor pilot)
@@ -1356,7 +1474,10 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   `false`.
 - **Proposed.** An empty composite literal of a type whose underlying type is not a struct (and
   has no literal rule) is its zero value; or `sync.Mutex`'s model as a struct.
-- **Status.** Not started.
+- **Status.** PR https://github.com/mit-pdos/perennial/pull/649 (pgaps, 2026-11-21: a step rule for the empty
+  literal at `go.bool`) closed after review: Upamanyu Sharma asked for `sync.Mutex` modeled as a struct with one
+  `bool` field instead (no new trusted rule); his session writes that change and retires `backend.wp_mutexLit`
+  (etcd-grove#16).
 
 ### Semantics: `float64(c)` of an untyped integer constant (2026-10-27, client-go workqueue)
 
@@ -1481,7 +1602,11 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   `Reflector.expectedType` field was elaborated against them: the two instances are incoherent
   (a proof that mixes a struct's `Type'` field with a `Type'` cell would not connect them). Not
   unsound, but only a fix at the source (above) gives one instance.
-- **Status.** Not started.
+- **Status.** Done (2026-11-20, group `reflecttype`, Perennial `090fdac23`): `Perennial/Code/reflect.toml`
+  translates `Type` (`translate = ["!*", "Type"]`), so `reflect.Type'` is `GoInterface` with the
+  interface's method list as its underlying type, and Perennial's interface instances apply; the
+  generated `sorry`s are gone, and with them this repository's `type_intoVal_inj`,
+  `type_typed_pointsto` and `type_into_val_typed` (`Proof/reflect/Values.lean`): one instance.
 
 ### Goose: a names-only package's constants are values of unknown shape
 
@@ -1589,7 +1714,8 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   (`Code/hash.toml`, `-lean-root hash=`, as `encoding/hex`), which makes Goose translate
   `kvHasher` as a struct. Proposed: `hash`'s interfaces in Perennial's standard library (and
   `hash/crc32`'s model, which would make `newKVHasher`, `kvHasher.WriteKeyValue` and `Hash`
-  provable); then this repository's `hash` translation goes.
+  provable); then this repository's `hash` translation goes. (2026-11-21: the three are proved, over this repository's
+  local `hash/crc32` model; the upstream proposal stands.)
 
 ### `encoding/binary`'s `Write`/`Read`, and protobuf at the bytes (2026-10-22, rafthttp stage 3, branch `rafthttp-plan`)
 
@@ -1758,6 +1884,88 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Status.** Recorded only.
 
 ## Landed
+
+### `strings.NewReplacer` and `Replacer` not translated (2026-11-21, prove-k8s4; landed 2026-11-21, Perennial `60800ea5e`, in the pin since the ncfupd bump)
+
+- **Missing.** Perennial's `strings` translated neither `NewReplacer` nor `Replacer`'s definition (its `once
+  sync.Once` and `r replacer` fields: `strings.toml` imported neither `sync` nor `io`).
+- **Needed by.** k8s `fields`' `valueEscaper = strings.NewReplacer(...)` (`fields.opaqueInitsOk`).
+- **Change.** `strings.toml` translates `NewReplacer` and imports `sync` and `io` (as Go's `strings` does);
+  `strings.NewReplacer.spec` (an even number of strings: a new `Replacer` holding a copy, `strings.ownReplacer`)
+  proved; `strings.initialize'.wp_proof` takes io's and sync's init specs. On Perennial `lean` as `60800ea5e`;
+  pinned with the ncfupd bump (`2ca9ce4d1d`). (Briefly pinned as a cherry-pick, `b3f7173f8`, since lean's
+  commits in between need etcd-grove changes of their own).
+
+### Goose: a struct field (or type argument) of type `rune` fails to translate (2026-11-20, prove-b64clock; landed 2026-11-21, Perennial `1a1bb0633`, `ef31258ab`, `c8e356cb1`; pin bumped 2026-11-21)
+
+- **Missing.** go/types names `int32`'s alias `rune` (`types.Typ[types.Rune]`: `Kind() == Int32`,
+  `Name() == "rune"`), and Goose's three tables keyed on `Basic.Name()` list only `"int32"`:
+  `goose/types.go` `basicLeanType` ("Unknown basic type rune"), `goose/proofgen/types.go` `toLeanType`
+  (`log.Fatalf("unknown basic type rune")`) and `goose/util/autotypes.go` `typeTranslatability.check`
+  (so `translate_types` axiomatizes every struct with a `rune` field). `byte` (`uint8`'s alias) is listed.
+- **Needed by.** `encoding/base64`'s `Encoding` (`padChar rune`): the package's initializer and
+  `EncodeToString`, proved on branch `prove-b64clock/2026-11-20` (retires `StdEncoding_init`,
+  `RawURLEncoding_init` and base64's `opaqueInitsOk`), need the struct translated. The fix also
+  translates k8s `fields.UnescapedRune` and an `encoding/json` type that are axiomatized today (their
+  regenerated files are on that branch; nothing proved reads them).
+- **Workaround here.** None: the branch's `Code/encoding/base64.lean` and `GeneratedProof/` were generated
+  with the patched translator (`etc/goose.py --project k8s-apiserver --perennial <clone>`); it builds
+  against the pinned Perennial (no Lean file changes), but `etc/goose.py --check` fails until the pin
+  has the fix, so the branch waits for it.
+- **Proposed.** Add `"rune"` to the `int32` case of the three tables (3 lines). A commit is ready, not
+  pushed: branch `goose-rune-fields` (`1a1bb0633`, on Perennial `c44b74871`) of the clone
+  `/shared/tmp/b64clock/perennial`. A goose test (a struct with a `rune` field in `testdata`) would
+  go with it. **Status.** Landed on Perennial's `lean` as `c8e356cb1` (the fix `1a1bb0633`, `fmt.readRune`
+  regenerated, a goose unit test `runeStruct`/`useRuneStruct`); the pin moved to it on branch
+  `pin/perennial-int-2026-11-21`, with `prove-b64clock` merged.
+
+### `fmt`'s models that call the arguments' formatting methods, `%p`, and `Errorf`'s `%w`: what retires this repository's `fmt` axioms (2026-11-20, prove-reflectfmt)
+
+- **Limitation.** Perennial's models of `Sprintf`, `Printf` and `Errorf` (`Perennial/TrustedCode/fmt.lean`) never
+  call an argument's method, so their specs admit only `fmt.ArgsWf` arguments (predeclared basic types, methodless
+  named integers and strings); `Errorf` is `errors.New(format)` (no formatting, no `%w`); `%p` and `%0Nx` give
+  arbitrary output; `Sscanf` has no model. Go's `fmt` itself cannot be translated (reflection on every argument,
+  `sync.Pool`, float formatting).
+- **Needed by.** The eight `fmt` axioms left here after prove-reflectfmt (2026-11-20): `fmt.Errorf`, `fmt.ErrorfPlain`,
+  `fmt.Printf`, `fmt.SprintfArgs` (arguments whose `Error()`/`String()` `fmt` calls: `fmt.argsOk`),
+  `fmt.SprintfClientPtr` (`%p` of a pointer), `fmt.SprintfWalName` (`%016x`), `fmt.Sscanf` (`%d`),
+  `fmt.SscanfWalName` (`%016x-%016x.wal`). Also the proofs over the model outside its faithful domain
+  (`fmt.ErrorfErrs`, `fmt.ErrorfStrs`, `fmt.ErrorfWrap`, client-go's `wp_Errorf_setArgs`), whose faithfulness is
+  argued in their headers, not checked.
+- **Proposed (general, not shaped by one caller; one Perennial branch, three steps).**
+  1. *Formatting methods.* The models' per-argument step (`formatArg`) does what `printArg`/`handleMethods` do on a
+     non-`%T`/`%p` verb, for the cases a spec admits: for a method verb (`v s x X q`, not `#v`) an argument whose
+     dynamic type has `Error() string` (and no `Format`) gets its `Error()` called, else one with `String() string`
+     (and no `Format`, no `Error`) its `String()`, the result formatted as a string (exactly for `%s`/`%v`,
+     arbitrary otherwise); any other non-basic argument stays outside the spec. The specs' premise becomes this
+     repository's directive-aware `fmt.argsOk mv format xs` (`Spec/fmt/Errorf.lean`: `fmt.fmtDirectives`,
+     `fmt.argOkAt`, `fmt.stringMethodSpec`), moved to Perennial with its tests (`examples/premisefix/fmtarg`, the
+     three fmt-soundness attacks), and the posts keep `SprintfOut` with the method results as `StrArgValue`s.
+     Retires `fmt.SprintfArgs`, `fmt.Printf` and, with step 3, `fmt.Errorf`.
+  2. *`%p`.* `formatArg` at `p` of a pointer, func, map, chan or unsafe pointer returns an arbitrary string without
+     reading memory (Go's `printArg` does `%p` first, `fmt/print.go:686-693`); the premise admits such an argument
+     under `p` only (`fmt.SprintfClientArgOkAt`'s rule, for any pointer type). Retires `fmt.SprintfClientPtr`, and
+     bbolt's `(*Options).String` (the 2026-11-17 entry below).
+  3. *`Errorf`.* The model formats as `Sprintf` does, then returns `errors.New(s)` when no directive's verb is `w`
+     (Go's `case 0`, `fmt/errors.go`), else a fresh `*fmt.wrapError`/`*fmt.wrapErrors` holding the `%w` arguments
+     (translated: both are plain structs with `Error`/`Unwrap`); the spec says which. Retires `fmt.ErrorfPlain` (its
+     post is the no-`w` case) and lets `fmt.ErrorfWrap`/`fmt.ErrorfErrs` rest on a faithful model.
+  Together with the `%0Nx` and `Sscanf` proposals (the 2026-11-13 entry "`Sprintf`'s `%0Nx`, `Sscanf`'s `%0Nx`"),
+  every `fmt` axiom here goes.
+- **Workaround here.** The axioms, each narrowed to the calls etcd makes; prove-reflectfmt (2026-11-20) retired
+  `fmt.SprintfNamed` and `fmt.SprintfID` (their calls are within Perennial's `fmt.wp_Sprintf` since `ArgWf` admits
+  methodless named integers and strings, or within `fmt.SprintfArgs`) and fixed `fmt.SprintfClientPtr`'s premise
+  (`notes/axiom-review/sprintfclientptr.md`).
+- **Status.** Landed in Perennial `79517dbdf` (fmtmodel, 2026-11-20; the pin reaches it with this branch):
+  steps 1-3 as proposed, the premise `fmt.argsOk`/`fmt.argOkAt` moved to Perennial (`Perennial/Proof/fmt/Args.lean`),
+  `Errorf`'s post `fmt.errorfErr` (which error, by the `%w` directives), the model's Go and its differential tests
+  in `goose/model/fmt/`; reviewed adversarially (two findings fixed before landing:
+  `notes/axiom-review/errorf-setargs.md`). Here it retired `fmt.Errorf`, `fmt.ErrorfPlain`, `fmt.Printf`,
+  `fmt.SprintfArgs`, `fmt.SprintfClientPtr`, and re-proved `fmt.ErrorfErrs`, `fmt.ErrorfWrap`, `fmt.ErrorfLeaf` from it.
+  The model is stuck on reflection into slices and maps, so `fmt.ErrorfStrs`, `cache.wp_Errorf_setArgs` (proved
+  over the old model until now) and the slice calls (`fmt.ErrorfSlice`, `fmt.SprintfSlice`) are axioms; and
+  `fmt.ErrorfWrap`'s description conjunct rests on `rpctypes.errDesc_wrapError`. Left: `%0Nx` and `Sscanf`
+  (the 2026-11-13 entry): `fmt.SprintfWalName`, `fmt.Sscanf`, `fmt.SscanfWalName`.
 
 ### `WithCancel` over any `isContext` parent keeps the parent's Done proposition (landed 2026-11-15, Perennial `cbccb8321`, `2d8857406`, `e9e6351d9`; pin bumped 2026-11-15)
 
@@ -2460,6 +2668,13 @@ strict weak order. Not `wp_Sort`'s induction without the order: with any `Less`,
 "outside unchanged" invariant fails; the proof needs a whole-slice invariant (every index in
 `[0, n)`, the list a permutation). The local axiom goes when it lands.
 
+**Proved here, 2026-11-21** (branch `prove-ps2-sort`): `sort.Sort.wp_anyLess` is a theorem
+(`Proof/sort/SortAnyLessLinked.lean`) over Perennial's translation of `pdqsort` and its helpers, each
+with an any-`Less` spec (`Spec/sort/<fn>AnyLess.lean`) and proof (`Proof/sort/<fn>AnyLess.lean`):
+Perennial's loops with the whole-slice invariant above (bounds and a permutation), as `sort.Stable`'s
+helpers are proved here. Perennial needs no change; the specs could still move there (as the
+proposed change above) if another user of Perennial needs them.
+
 ## A thread pool's loans are fewer than the live threads (2026-11-01, bounds B2's leasing pilot)
 
 `threadPool` (`Perennial/Proof/ThreadPool.lean`) lends a copy of its resource for a thread token
@@ -3151,11 +3366,33 @@ parameter.
   the real code: k8s apimachinery's `apierrors.IsTimeout`/`HasStatusCause` (`errors.As(err, &status)`
   then a field of the status) stay axioms. (See also "`errors.Is`/`errors.As` at non-pointer targets
   and for leaves" above.)
-- **Workaround here.** Their specs stay trust-boundary axioms.
+- **Workaround here.** ~~Their specs stay trust-boundary axioms.~~ Since prove-k8s2 (2026-11-20) the four
+  checks (and `IsTooManyRequests`, `SuggestsClientDelay`) are proved over their bodies, over one narrow
+  local axiom, `errors.AsNoMatch` (`Spec/errors/AsNoMatch.lean`: `false` and the target unchanged for
+  `nil`, a non-matching leaf, or a one-level wrapper unwrapping to one), which also replaced
+  `errors.AsLeafTy` (`notes/axiom-review/asnomatch.md`).
 - **Proposed change.** An `errors.As` spec that, for a leaf error (no `Unwrap`, no `As`), returns `true`
   exactly when the error's dynamic type is the target's element type (or implements it, for an
-  interface target), and then stores the error's value into the target. Status: not proposed (found by
-  the refimpl session, 2026-11-18).
+  interface target), and then stores the error's value into the target; and the no-match walk of
+  `AsNoMatch` (any depth). Status: not proposed (found by the refimpl session, 2026-11-18).
+
+## 2026-11-20: Goose cannot name another package's type alias in a struct field (klog's `Logger`, k8s `watch`'s watchers)
+
+- **Missing.** `typeNameable` (`goose/lean_types.go`) rejects every alias declared in another package
+  ("an alias that is not translated is declared opaque without a descriptor"), even one that package
+  translates (klog's `Logger = logr.Logger`, translated as `Logger.ty := logr.Logger.ty`): a struct
+  with a field of such a type is declared opaque. Function bodies are not affected (client-go's
+  `features` allocates a `klog.Logger` local). `apimachinery/pkg/watch`'s `FakeWatcher` and
+  `RaceFreeFakeWatcher` (`logger klog.Logger`) therefore stay opaque even with klog, logr and `sync`
+  imported, and their `var _ Interface = &FakeWatcher{}` initializers cannot be stepped through.
+- **Needed by.** `Perennial.k8s_io.apimachinery.pkg.watch.opaqueInitsOk` (prove-k8s2's item 4; the
+  package's other initializers, `DefaultChanSize` and the `var _` of `Recorder`, `ProxyWatcher` and
+  `MockWatcher`, translate).
+- **Workaround here.** The axiom stays.
+- **Proposed change.** Goose: name a foreign alias by its target (`types.Unalias`) when the target is
+  nameable (its package imported), in both `typeNameable` and the Lean type of a field; or emit an
+  `abbrev` Lean type for each translated alias and accept foreign aliases whose package translates them.
+  Status: not proposed.
 
 ## 2026-11-19: `wp_slice_make3` does not say the slice is not `nil` (k8s 7g, `toEventReference`)
 
@@ -3187,18 +3424,84 @@ parameter.
 - **Proposed (general).** Fix the two docstrings ("the first binding of a key wins"); documentation only.
   **Status.** Recorded only.
 
+## 2026-11-20: `≤u` has no transitive instance (a named type whose underlying is another named interface; branch `prove-k8s`)
+
+- **The gap.** `go.UnderlyingEq` (`≤u`, `Perennial/Golang/Theory/PostLifting.lean`) has only the
+  reflexive instance and one `<u` step (`unfold_to_underlying_eq`), unlike `↓u` (`is_underlying_unfold`
+  chains). So converting a value to an interface type declared as another named interface (apimachinery's
+  `type Codec Serializer`) does not step: `convert_to_interface` needs `Codec.ty ≤u go.InterfaceType _`,
+  two `<u` steps away.
+- **Worked around locally.** The one place it is needed (`unstructured`'s initializer,
+  `UnstructuredJSONScheme runtime.Codec = unstructuredJSONScheme{}`): a local `haveI` of the two-step
+  instance (`etc/gen-init.py`, `Proof/k8s_io/apimachinery/pkg/apis/meta/v1/unstructured/Init.lean`).
+- **Proposed (general).** A transitive instance `[t <u t'] [t' ≤u u] : t ≤u u` (as for `↓u`; `<u` is
+  directed, so search terminates). **Status.** Recorded only.
+
 ## 2026-11-20: `time.After` and the timers have no clock content (clockwork's real clock)
+
+**Done (2026-11-21, prove-clock; Perennial `2a3d3f7d1`):** Perennial models the runtime's monotonic
+clock (a model-only cell allocated by `asynctimerchan`'s trusted initializer, readings a CAS loop
+that only advances it), `time.After` waits for it, `time.clockLb n` is its lower bound, and
+`time.After.spec` gives `T ≥ n` and values carrying `Ψ T` derived from `clockLb (T + d)`
+(`time.After.spec_pkgInit` is the old shape). clockwork's axioms are definitions over it.
+`runtimeNano`/`runtimeNow`/the other timers still read arbitrary values (future work: their specs
+would take `isPkgInit time`).
 
 - **The gap.** Perennial's `time.After(d)` spec gives a bag of times with no logical content
   (`isChanBag γ ch (fun _ => True)`), and `time.Now` arbitrary readings; there is no ghost clock that
-  a receive on `After`'s channel bounds from below. clockwork's `NewRealClock` (`After` is
-  `time.After`) therefore cannot be proved to give `clockwork.clockOk` (`After`'s values come only
-  once `clockLb γc (T + d)`), and its ghost predicates (`clockLb`, `stampAt`, `realClock` and their
-  laws, 9 axioms with `NewRealClock.wp_proof`) stay axioms.
+  a receive on `After`'s channel bounds from below. The model (`TrustedCode/time.lean`) agrees: `NewTimer`'s
+  goroutine sends `arbitraryTime` at once, whatever `d`, and `runtimeNano`/`runtimeNow` return arbitrary
+  integers. clockwork's `NewRealClock` (`After` is `time.After`) therefore cannot be proved to give
+  `clockwork.clockOk` (`After`'s values come only once `clockLb γc (T + d)`), and its ghost predicates
+  (`clockLb`, `stampAt`, `realClock` and their laws, 9 axioms with `NewRealClock.wp_proof`) stay axioms.
+- **Re-checked (prove-b64clock, 2026-11-20).** etcd uses `NewRealClock` (`v3compactor.New`), `Clock.Now`
+  and `Clock.After` (`periodic.go`, `revision.go`), nothing else. clockwork v0.5.0's real clock is thin
+  wrappers (`clockwork.go`: `After` is `time.After(d)`, `Now` is `time.Now()`, the rest likewise), so with
+  clock content in Perennial's `time` specs, `NewRealClock` is a short proof over translated bodies. Over
+  the current model no definition of `clockLb`/`stampAt` makes `NewRealClock` provable and keeps time
+  content: `After`'s channel delivers without the model's clock advancing, so `clockLb (T + d)` must hold
+  for every `d` without time passing, i.e. be trivial (`clockLb := True`, `stampAt P T := P`), which empties
+  the compactor's results (C1's "at least `period` old") of their time content. So it needs this change.
 - **Worked around locally.** The clockwork axioms (`Proof/github_com/jonboulle/clockwork/Defs.lean`).
-- **Proposed (general).** A monotonic ghost clock in Perennial's `time` model (`runtimeNano`'s readings
-  bounded below by a persistent `clockLb`, `After`/`NewTimer`/`Sleep` firing only past `now + d`),
-  from which clockwork's predicates would be definitions. **Status.** Recorded only (prove-smalllibs).
+- **Proposed (concrete).** A monotonic ghost clock in Perennial's `time`, the clock that
+  `runtime.nanotime` reads (the source of `Time`'s monotonic reading and of the timers' `when`):
+  1. *Model* (`TrustedCode/time.lean`): a model-global cell `monoNow : w64` (allocated by `time`'s trusted
+     initializer). `runtimeNano` advances it by an arbitrary non-negative amount (a CAS loop on
+     `ArbitraryInt`) and returns it; `runtimeNow`'s monotonic component is a `runtimeNano` reading (its wall
+     component stays arbitrary: the wall clock jumps). `NewTimer(d)` reads `start := runtimeNano()` before
+     forking, and its goroutine spins `for runtimeNano() < start + max(d, 0) {}` before each send (Go's
+     `when(d)`, `time/sleep.go`; partial correctness, so the spin's termination is irrelevant); `After` is
+     `NewTimer(d).C` as now; `Sleep(d)` spins the same way; `NewTicker(d)`'s k-th send waits for
+     `start + k·d`. Faithful because Go's runtime fires a timer only once `nanotime() ≥ when`
+     (`runtime/time.go`, `timer.unlockAndRun`), and `nanotime` is monotonic.
+  2. *Ghost state* (`Proof/time/Base.lean`): `isInit` gains `inv (∃ n, monoNow ↦ n ∗ mono_nat_auth γclk n ∗
+     stampsAuth γst n)`, `γclk` a fixed name (from `time`'s `isPkgInit`). Exported:
+     `time.clockLb n := mono_nat_lb γclk n` (persistent; `clockLb_le`; `clockLb_zero`), and
+     `time.stampAt P T` (persistent): `∃ γ, savedProp γ (□ P) ∗ stamp γst γ T`, where `stampsAuth γst n` is a
+     ghost map of stamps all at times `≤ n`, inserted only by the model's clock reads at the current `n`
+     (so a stamp cannot be made up afterwards: `stampAt_intro` is no law), with `stampAt_elim` (`P` back,
+     under a later from the saved prop's agreement) and `stampAt_clockLb`. Iris-Lean has both pieces
+     (`Iris/BI/Lib/MonoNat.lean`, `Iris/Instances/Lib/SavedProp.lean`).
+  3. *Specs* (strengthened posts; the one weakened premise is `isPkgInit time`, which `After`, `NewTimer`,
+     `NewTicker`, `Sleep` and `AfterFunc` would need to reach the invariant; their callers here hold it:
+     the `examples/raft/kv*` replicas' `sleep`/`tick`, the etcd examples' `holdToken`/`stop`/`check`, the
+     leases' `MainLinked`): `Now` returns `t` with `∃ m ≥ n, clockLb m` (`n` any bound the caller holds)
+     and `t`'s monotonic reading `m`; `After(d)` takes `clockLb n` and `□ P` and returns `∃ T ≥ n,
+     stampAt P T ∗ isChanBag γ ch (fun _ => clockLb (T + sint.Z d))`, likewise `NewTimer`'s `C`;
+     `Sleep(d)` returns `clockLb (T + d)`; optionally `Time.Sub` of two monotonic times is the difference of
+     their readings (which would also give the compactor's first sample, timed by `Now()`, its full bound).
+  4. *Here*, after the pin bump: `clockwork.clockLb γc n := time.clockLb n`, `stampAt γc P T := time.stampAt P T`
+     (the clock name unused: `realClock` any name; etcd has no fake clock), their laws theorems; translate
+     `realClock`'s `Now`/`After` and `NewRealClock` (`Code/github_com/jonboulle/clockwork.toml`) and prove
+     `NewRealClock.wp_proof`: the 9 axioms go, `clockOk` and every compactor statement unchanged. (The
+     package's initializer: `keyClock` is translated since 2026-11-20; `ErrFakeClockDeadlineExceeded`'s
+     `fmt.Errorf("...: %w", ...)` stays in `opaqueInitsOk` until Perennial's `Errorf` models `%w`.)
+- **Remark (soundness, re-read 2026-11-20).** The axioms are true of clockwork v0.5.0's real clock but for
+  one corner: Go's `when(d)` saturates at `maxWhen = 2^63 - 1` (`time/sleep.go`), so for `T + d ≥ 2^63`
+  the timer fires at `2^63 - 1` ns while `clockOk` promises `clockLb (T + d)`; reachable only after 292
+  years of monotonic time. The proposal's model should saturate the same way (the posts then say
+  `clockLb (min (T + d) (2^63 - 1))`, or premise `T + d < 2^63`).
+  **Status.** Proposed; for the user to sequence (a Perennial change: model, ghost state and specs).
 
 ## 2026-11-20: `time.Duration.Seconds` is names-only (x/time/rate's `Every`)
 
@@ -3207,3 +3510,41 @@ parameter.
   `rate.Every` (`1 / Limit(interval.Seconds())`) cannot be stepped; its axiom stays.
 - **Proposed (general).** Translate `Duration.Seconds` (and `Minutes`, `Hours`) over the uninterpreted
   `FloatOps`; float constants as their bits. **Status.** Recorded only (prove-smalllibs).
+
+## 2026-11-20 · Deleting from and clearing a nil Go map
+
+The WAL lock-release loop deletes a file from a map that is allocated only when
+recovery encounters an old segment name. At Perennial pin `c44b74871`,
+`delete_map` checks the key and then reads the map at its address. On nil the
+read gets stuck. The sibling `clear_map` similarly attempts a store to nil.
+On the builder, Go returned normally for both operations on a nil
+`map[any]int` with a valid key and panicked for `delete(m, []int{1})`.
+
+Perennial commit `15145e014` checks the key before testing for nil in delete
+and returns immediately on nil in both builtins. The map length and lookup
+rules already handle the nil map at the builtin boundary. The WAL verification
+needs the valid-key case for a pointer key. The WAL release proof passed against the merged commit. [Perennial PR #645](https://github.com/mit-pdos/perennial/pull/645)
+
+The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's previous Perennial revision `c44b74871`. The intervening upstream translation of `reflect.Type` changed instance selection in 32 trust collections. The backport keeps those collections comparable.
+
+## 2026-11-21: `time.Unix` is names-only (zap's `_minTimeInt64`/`_maxTimeInt64`)
+
+- **The gap.** Perennial's `time` translates `Now` and the `Time` methods but not `Unix` nor `unixTime`
+  (`time.go`: the seconds/nanoseconds normalization, then `Time{uint64(nsec), sec + unixToInternal, Local}`),
+  so zap's package variables `_minTimeInt64 = time.Unix(0, math.MinInt64)` and `_maxTimeInt64` cannot be
+  stepped: they stay in zap's `opaqueInitsOk` (prove-initleft, which translated zap's other variables).
+- **Proposed (general).** Translate `Unix` and `unixTime` (as `Now`, which reads `Local` too) and prove
+  `time.Unix.spec` (some `Time`, no panic: the divisions are by the constant `1e9`). **Status.** Recorded only.
+  (srvloops2, 2026-11-21) **Done**: Perennial's pin `c8e356cb1` has `Unix` and `time.Unix.spec`; zap's two
+  variables are translated and in zap's fact (`Proof/go_uber_org/zap/PkgInit.lean`, `etc/gen-init.py`).
+
+## 2026-11-21: `Time.Location` is names-only (`zap.Time`, `ensureLeadership`'s debug log)
+
+- **The gap.** `zap.Time(key, val)` builds its field from `val.UnixNano()` and `val.Location()`; Perennial's
+  `time` did not translate `Time.Location` (`l := t.loc; if l == nil { l = UTC }`), so `zap.Time` had no
+  provable spec, and `EtcdServer.ensureLeadership` (which logs `zap.Time` twice) stayed an axiom.
+- **Change (general).** `Time.Location` translated, `time.Time.Location.spec` (some `*Location`, `t.loc` when not
+  nil) proved over `UTC`'s global, held by time's `isInit`. **Status.** Landed on Perennial `lean` as
+  `7103946b3` (2026-11-21, srvloops2); the pin bump is pending (the coordinator's queue). With it,
+  `zap.Time.wp_proof` and `EtcdServer.ensureLeadership.wp_proof` (written and checked against it but the
+  `Location` call, branch `prove-srvloops2`'s follow-up) retire `EtcdServer.ensureLeadership.wp_proof`.

@@ -386,8 +386,7 @@ abbrev raft.tickHeartbeat.tracedTriple : Prop :=
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
       "Hghost" ∷ ownStepGhost γ md c id s' ∗
       "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-      "%Hcm" ∷ ⌜uint.Z s.logst.committed ≤ uint.Z s'.logst.committed ∧
-        PVoteLe (toPState s) (toPState s')⌝ ∗
+      "%Hcm" ∷ ⌜TickProgress s s'⌝ ∗
       "%Htick" ∷ ⌜TickStep s s'⌝ ∗
       -- (2026-11-12, implementation step 2) the step's `OutTyStep` and the flag monotone (design N1)
       "%Houtty" ∷ ⌜OutTyStep s s'⌝ ∗

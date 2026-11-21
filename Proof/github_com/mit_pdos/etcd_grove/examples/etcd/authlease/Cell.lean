@@ -270,7 +270,7 @@ theorem len_of_lb (γc : CellNames) (ps ps0 : List Nat) :
 /-- **A grant's update under the cell** (any principal's, at a TTL at most the maximum; the revocable
 mode): it records its id in `gs` and tells the caller so. Its grant's freshness keeps `Lu` gone after
 the revocation (thaw 1, `writeGrantG_grant_fresh`). -/
-theorem cell_grantAu (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) (ctx : GoInterface)
+theorem cell_grantAu (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) (ctx : GrpcMd)
     (γc : CellNames) (ttl : w64) (L₀ : List EntryModel) (httl : sint.Z ttl ≤ maxLeaseTTL)
     (hrev : ρ.kv.lm = .revocable) :
     cellInv (GF := GF) ρ.kv γc ⊢ □ ∀ id : w64, kvAu1G ρ.kv (kvOpStep (.leaseGrant id ttl))

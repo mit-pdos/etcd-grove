@@ -1313,32 +1313,33 @@ metadata is `m` reaches a handler that sees the metadata `md`** (the auth plan's
 metadata since G2): the retry interceptor sends
 every attempt on `withVersion(ctx)`, a context whose outgoing metadata is `ctx`'s with the API
 version's key set (`withVersion.spec`), and grpc's attempt on it delivers `md`
-(`grpcAttemptMd`). -/
+(`grpcAttemptMd`). (errdesc stage 1, 2026-11-20) Over metadata values only: `withVersion`'s context's
+metadata is `mdSet m …` (until then a context `c` with that pure `metadata.outgoingOf c`). -/
 def clientAttemptMdOf (conn : Loc) (m : GrpcMd) (md : GrpcMd) : Prop :=
-  ∃ (c : GoInterface) (v : GoString),
-    metadata.outgoingOf c = metadata.mdSet m go!"client-api-version" [v] ∧
-    grpcAttemptMd conn c md
+  ∃ v : GoString, grpcAttemptMd conn (metadata.mdSet m go!"client-api-version" [v]) md
 
-/-- `clientAttemptMdOf` at a context's outgoing metadata (G2, 2026-10-30: the relation depends on
-the context only through it, so a fact about a gRPC stream opened with another context of the same
-metadata can be stated over the metadata). -/
-abbrev clientAttemptMd (conn : Loc) (ctx : GoInterface) (md : GrpcMd) : Prop :=
-  clientAttemptMdOf conn (metadata.outgoingOf ctx) md
+/-- `clientAttemptMdOf` (the name the callers' statements use). Until errdesc stage 1 (2026-11-20) it
+took a context, through the pure `metadata.outgoingOf ctx`; now the context's outgoing metadata `om`,
+which the statements relate to the context by `metadata.outMD ci om`. -/
+abbrev clientAttemptMd (conn : Loc) (om : GrpcMd) (md : GrpcMd) : Prop :=
+  clientAttemptMdOf conn om md
 
 /-- **A call's precondition at every attempt** (the auth plan's E3zc): the metadata-indexed `Spec`'s
 for the request `m` and the caller's `Φ`, at every metadata an attempt of the call on `conn` with
-the context `ctx` may deliver (`clientAttemptMd`). At a plain spec (`GrpcSpec.md`) it is the
-spec's (`attemptPre_md`). The error outcome `Ψe` (k8s 7e-1: what the caller asks of a failed
-attempt's description, `ifcErrOut`) is `fun _ => True` by default, for the callers that ask none. -/
-def attemptPre {Req Rep : ProtoMsg GF} (conn : Loc) (ctx : GoInterface) (Spec : GrpcSpecMd Req Rep)
+a context whose outgoing metadata is `om` may deliver (`clientAttemptMd`; errdesc stage 1, 2026-11-20:
+until then indexed by the context, through the pure `metadata.outgoingOf ctx`; the contracts that take
+it relate `om` to their context by `metadata.outMD ctx om`). At a plain spec (`GrpcSpec.md`) it is the
+spec's (`attemptPre_md`). The error outcome `Ψe` (k8s 7e-1: what the caller asks of a failed attempt's
+description, `ifcErrOut`) is `fun _ => True` by default, for the callers that ask none. -/
+def attemptPre {Req Rep : ProtoMsg GF} (conn : Loc) (om : GrpcMd) (Spec : GrpcSpecMd Req Rep)
     (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF := fun _ => iprop(True)) :
     IProp GF :=
-  iprop(∀ md, ⌜clientAttemptMd conn ctx md⌝ -∗ Spec md m Φ Ψe)
+  iprop(∀ md, ⌜clientAttemptMd conn om md⌝ -∗ Spec md m Φ Ψe)
 
 /-- A plain spec's precondition is one at every attempt. -/
-theorem attemptPre_md {Req Rep : ProtoMsg GF} (conn : Loc) (ctx : GoInterface)
+theorem attemptPre_md {Req Rep : ProtoMsg GF} (conn : Loc) (om : GrpcMd)
     (Spec : GrpcSpec Req Rep) (m : Req.M) (Φ : Rep.M → IProp GF) :
-    Spec m Φ ⊢ attemptPre conn ctx (GrpcSpec.md Spec) m Φ := by
+    Spec m Φ ⊢ attemptPre conn om (GrpcSpec.md Spec) m Φ := by
   iintro H
   unfold attemptPre
   iintro %md -
@@ -1350,18 +1351,17 @@ theorem attemptPre_md {Req Rep : ProtoMsg GF} (conn : Loc) (ctx : GoInterface)
     itrivial
 
 /-- The precondition at every attempt gives the attempt contract's, on `withVersion(ctx)`'s
-context `c` (`withVersion.spec`'s outgoing metadata). -/
-theorem attemptPre_attempt {Req Rep : ProtoMsg GF} (conn : Loc) (ctx c : GoInterface) (v : GoString)
-    (hc : metadata.outgoingOf c =
-      metadata.mdSet (metadata.outgoingOf ctx) go!"client-api-version" [v])
+context (`withVersion.spec`'s outgoing metadata `mdSet om …`). -/
+theorem attemptPre_attempt {Req Rep : ProtoMsg GF} (conn : Loc) (om : GrpcMd) (v : GoString)
     (Spec : GrpcSpecMd Req Rep) (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) :
-    attemptPre conn ctx Spec m Φ Ψe ⊢
-      ∀ md, ⌜grpcAttemptMd conn c md⌝ -∗ Spec md m Φ Ψe := by
+    attemptPre conn om Spec m Φ Ψe ⊢
+      ∀ md, ⌜grpcAttemptMd conn (metadata.mdSet om go!"client-api-version" [v]) md⌝ -∗
+        Spec md m Φ Ψe := by
   iintro H %md %h
   unfold attemptPre
   iapply H
   ipureintro
-  exact ⟨c, v, hc, h⟩
+  exact ⟨v, h⟩
 
 /-- **The retry interceptor's error outcome** (k8s 7e-1): the caller's `Ψe` at a returned error's
 description when it is a handler's (`handlerDescs`), for a KV method on a refusal-free connection
@@ -1370,50 +1370,50 @@ error is then the last attempt's (a wait's error is a context error's, never a h
 description: `waitRetryBackoff.spec`), with the invoker's outcome (`grpcInvokerOk`). -/
 def ifcErrOut (method : GoString) (addr : List GoString) (Ψe : GoString → IProp GF)
     (err : GoInterface) : IProp GF :=
-  iprop(⌜kvMethod method ∧ ∀ a ∈ addr, noRefusalAt a⌝ -∗
-    ⌜go_etcd_io.etcd.cache.v3.errDesc err ∈ handlerDescs⌝ -∗
-    Ψe (go_etcd_io.etcd.cache.v3.errDesc err))
+  iprop(∃ d : GoString, go_etcd_io.etcd.cache.v3.descIs err d ∗
+    (⌜kvMethod method ∧ ∀ a ∈ addr, noRefusalAt a⌝ -∗ ⌜d ∈ handlerDescs⌝ -∗ Ψe d))
+
+theorem ifcErrOut_intro (method : GoString) (addr : List GoString) (Ψe : GoString → IProp GF)
+    (err : GoInterface) (d : GoString) :
+    go_etcd_io.etcd.cache.v3.descIs (GF := GF) err d ⊢
+      (⌜kvMethod method ∧ ∀ a ∈ addr, noRefusalAt a⌝ -∗ ⌜d ∈ handlerDescs⌝ -∗ Ψe d) -∗
+      ifcErrOut method addr Ψe err := by
+  iintro #Hd H
+  unfold ifcErrOut
+  iexists d
+  iframe Hd H
 
 theorem ifcErrOut_notin (method : GoString) (addr : List GoString) (Ψe : GoString → IProp GF)
-    (err : GoInterface) (h : err = GoInterface.nil ∨ go_etcd_io.etcd.cache.v3.errDesc err ∉ handlerDescs)
-    (hne : err ≠ GoInterface.nil) : ⊢ ifcErrOut (GF := GF) method addr Ψe err := by
-  unfold ifcErrOut
+    (err : GoInterface) : notHandlerErr (GF := GF) err ⊢ ifcErrOut method addr Ψe err := by
+  unfold notHandlerErr go_etcd_io.etcd.cache.v3.notDescIn ifcErrOut
+  iintro ⟨-, %d, #Hd, %hd⟩
+  iexists d
+  iframe Hd
   iintro - %hm
-  rcases h with h | h
-  · exact absurd h hne
-  · exact absurd hm h
+  exact absurd hm hd
 
 theorem ifcErrOut_of_attempt (method : GoString) (addr : List GoString) (Ψe : GoString → IProp GF)
-    (err : GoInterface) :
-    (⌜go_etcd_io.etcd.cache.v3.errDesc err ∈ handlerDescs⌝ -∗
-      Ψe (go_etcd_io.etcd.cache.v3.errDesc err)) ⊢ ifcErrOut (GF := GF) method addr Ψe err := by
+    (err : GoInterface) (d : GoString) :
+    go_etcd_io.etcd.cache.v3.descIs (GF := GF) err d ⊢
+      (⌜d ∈ handlerDescs⌝ -∗ Ψe d) -∗ ifcErrOut method addr Ψe err := by
+  iintro #Hd H
   unfold ifcErrOut
-  iintro H - %hm
+  iexists d
+  iframe Hd
+  iintro - %hm
   iapply H
   ipureintro; exact hm
 
 theorem ifcErrOut_absurd (method : GoString) (addr : List GoString) (Ψe : GoString → IProp GF)
     (err : GoInterface) (h : (kvMethod method ∧ ∀ a ∈ addr, noRefusalAt a) → False) :
-    ⊢ ifcErrOut (GF := GF) method addr Ψe err := by
+    go_etcd_io.etcd.cache.v3.statusErrOk (GF := GF) err ⊢ ifcErrOut method addr Ψe err := by
+  iintro #Hs
+  ihave ⟨%d, #Hd⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_descIs _ $$ Hs
   unfold ifcErrOut
+  iexists d
+  iframe Hd
   iintro %hk
   exact absurd hk h
-
-/-- The outcome carries over to an error `err'` of the same description, or of none of the handlers'
-(`ContextError`'s result). -/
-theorem ifcErrOut_desc (method : GoString) (addr : List GoString) (Ψe : GoString → IProp GF)
-    (err err' : GoInterface)
-    (h : go_etcd_io.etcd.cache.v3.errDesc err' = go_etcd_io.etcd.cache.v3.errDesc err ∨
-      go_etcd_io.etcd.cache.v3.errDesc err' ∉ handlerDescs) :
-    ifcErrOut (GF := GF) method addr Ψe err ⊢ ifcErrOut method addr Ψe err' := by
-  unfold ifcErrOut
-  iintro H %hk %hm
-  rcases h with h | h
-  · rw [h] at hm ⊢
-    iapply H
-    · ipureintro; exact hk
-    · ipureintro; exact hm
-  · exact absurd hm h
 
 /-- **The client's retry interceptor's contract** (persistent; unit P3a: what
 `Client.unaryClientInterceptor` returns, `Client__unaryClientInterceptor.lean`): called on a
@@ -1421,7 +1421,8 @@ connection to `addr` (`grpcConn`, any interceptors) with an invoker making one a
 (`grpcInvokerOk`), for a method registered at `addr` with the metadata-indexed `Spec`
 (`isGrpcRpcsMd`; since 2026-10-28, the auth plan's E3zc: a plain spec is `GrpcSpec.md`), the
 request `inp` (`Req.send`, given back), a zero reply `out` (`Rep.blank`), the client's call options
-(`callOptsOk`) and the caller's `□ ▷ attemptPre conn ctx Spec m Φ` (persistent: the request may be
+(`callOptsOk`) and the caller's `□ ▷ attemptPre conn om Spec m Φ` (at the context's outgoing
+metadata `om`, `metadata.outMD ctx om`; persistent: the request may be
 delivered several times, the attempts; at every metadata an attempt may deliver, `clientAttemptMd`),
 for a request whose encoding is below `grpcMsgMax` (`Req.wireLen`, since 2026-10-30: the attempt
 contract's premise, `grpcInvokerOk`), it returns
@@ -1438,10 +1439,10 @@ def etcdInterceptorOk (ic : GoFunc) : IProp GF :=
       (_ : grpcReqModelOf GF Req.ty = some Req) (_ : grpcRepModelOf GF Rep.ty = some Rep)
       (Spec : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg)
       (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) (ctx : GoInterfaceOk)
-      (cd : context.ContextDesc (IProp GF)) (inp out : Loc) (opts : GoSlice)
+      (cd : context.ContextDesc (IProp GF)) (om : GrpcMd) (inp out : Loc) (opts : GoSlice)
       (vs : List GoInterface),
     {{ grpcConn conn addr ics dopts ∗ grpcInvokerOk conn addr inv ∗ isGrpcRpcsMd addr method Spec ∗
-        □ ▷ attemptPre conn (GoInterface.ok ctx) Spec m Φ Ψe ∗ ctxOk ctx cd ∗ Req.send inp m ∗ Rep.blank out ∗
+        □ ▷ attemptPre conn om Spec m Φ Ψe ∗ ctxOk ctx cd ∗ metadata.outMD ctx om ∗ Req.send inp m ∗ Rep.blank out ∗
         opts ↦*□ vs ∗ callOptsOk vs ∗ ⌜Req.wireLen m < grpcMsgMax⌝ }}
       (interceptorCall ic #(GoInterface.ok ctx) #method
         #(interface.mkOk (go.GoType.PointerType Req.ty) #inp : GoInterface)
@@ -1483,10 +1484,11 @@ def etcdInterceptorOkM (md : AttemptMode) (ic : GoFunc) : IProp GF :=
       (_ : grpcReqModelOf GF Req.ty = some Req) (_ : grpcRepModelOf GF Rep.ty = some Rep)
       (Spec : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg)
       (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) (ctx : GoInterfaceOk)
-      (cd : context.ContextDesc (IProp GF)) (inp out : Loc) (opts : GoSlice)
+      (cd : context.ContextDesc (IProp GF)) (om : GrpcMd) (inp out : Loc) (opts : GoSlice)
       (vs : List GoInterface),
     {{ grpcConn conn addr ics dopts ∗ grpcInvokerOk conn addr inv ∗ isGrpcRpcsMd addr method Spec ∗
-        modePre md method addr vs (attemptPre conn (GoInterface.ok ctx) Spec m Φ Ψe) ∗ ctxOk ctx cd ∗
+        modePre md method addr vs (attemptPre conn om Spec m Φ Ψe) ∗ ctxOk ctx cd ∗
+        metadata.outMD ctx om ∗
         Req.send inp m ∗ Rep.blank out ∗ opts ↦*□ vs ∗ callOptsOk vs ∗ ⌜Req.wireLen m < grpcMsgMax⌝ }}
       (interceptorCall ic #(GoInterface.ok ctx) #method
         #(interface.mkOk (go.GoType.PointerType Req.ty) #inp : GoInterface)
@@ -1519,10 +1521,10 @@ theorem etcdInterceptorOkM_split (ic : GoFunc) :
   isplitl []
   · ihave #H0 := H $$ %AttemptMode.any
     unfold etcdInterceptorOkM etcdInterceptorOk
-    iintro !> %conn %addr %ics %dopts %inv %method %Req %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd %inp
-      %out %opts %vs %Ψ !> ⟨#Hgc, #Hinv, #Hrpc, #Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok, #Hsz⟩ HΨ
+    iintro !> %conn %addr %ics %dopts %inv %method %Req %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd %om
+      %inp %out %opts %vs %Ψ !> ⟨#Hgc, #Hinv, #Hrpc, #Hpre, #Hctx, #Hom, Hsend, Hblank, #Hopts, #Hok, #Hsz⟩ HΨ
     iapply H0 $$ %conn %addr %ics %dopts %inv %method %Req %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd
-      %inp %out %opts %vs %Ψ [Hsend Hblank] HΨ
+      %om %inp %out %opts %vs %Ψ [Hsend Hblank] HΨ
     unfold modePre
     iframe #
     iframe
@@ -1637,6 +1639,15 @@ theorem ctxShape_noGRPCStatus (e : GoInterfaceOk) (hc : clientErr (GoInterface.o
     have := go.method_set_is (t := _root_.Perennial.context.deadlineExceededError.ty) go!"GRPCStatus"
     simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at this
     simp [this]
+
+/-- **A client context error's description is its message** (errdesc stage 2b): of a context error's
+shape (no `EtcdError`, no `GRPCStatus` for a client error), its stable `Error()`. -/
+theorem ctxErr_descIs (e : GoInterfaceOk) (m : GoString) (hc : clientErr (GoInterface.ok e))
+    (hs : go_etcd_io.etcd.cache.v3.ctxErrShape e) :
+    go_etcd_io.etcd.cache.v3.errorMsgIs (GF := GF) e m ⊢
+      go_etcd_io.etcd.cache.v3.descIs (GoInterface.ok e) m := by
+  iintro #H
+  iapply (go_etcd_io.etcd.cache.v3.descIs_of_msg e m hs.1 (ctxShape_noGRPCStatus e hc hs)) $$ H
 
 namespace client
 

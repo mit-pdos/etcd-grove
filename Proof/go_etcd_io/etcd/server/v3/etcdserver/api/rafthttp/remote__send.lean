@@ -135,7 +135,7 @@ theorem rafthttp.remote.send.wp_proof
   ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   ihave #Hph' := Hph
   iunfold pipeHandleOk at Hph'
-  icases Hph' with ⟨-, %ps', %fs', %r, %id', %γd', %wc, %γ, -, -, -, -, -, #Hmc, #Hb⟩
+  icases Hph' with ⟨-, %ps', %fs', %r, %id', %γd', %wc, %γ, -, -, -, -, -, -, #Hmc, #Hb⟩
   iunfold pipeMsg at Hpay
   icases Hpay with ⟨%st, #Hm, #Hbd, #HP, HO, %Hst⟩
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []

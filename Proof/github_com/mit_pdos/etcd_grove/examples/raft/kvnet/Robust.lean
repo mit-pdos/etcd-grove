@@ -136,7 +136,7 @@ def kvnetRobust [lctx : GoLocalContext] [go.Semantics] (replica : NodeConfig →
     ClientStart σc →
     FreshNet g →
     Robust ((cfgs.zip sys).map (fun p => (replica p.1, p.2)))
-      [(client (replicaAddrs cfgs), σc)] g (2 ^ 61)
+      [(client (replicaAddrs cfgs), σc)] g (threads := 2 ^ 61 + 1) (bound := 2 ^ 61)
 
 end deployment
 

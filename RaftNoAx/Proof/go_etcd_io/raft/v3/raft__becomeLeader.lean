@@ -151,7 +151,7 @@ theorem raft.becomeLeader.wp_proof
     subst hs1; exact fun e he => he
   icases trOwn_split s.gh.tr _ $$ Hphys with ⟨Hown, Hback⟩
   ihave Hg := Hgbl $$ HG
-  iapply wp_ncfupd_app
+  iapply (wp_ncfupd _ _ rfl)
   iunfold HookGate at Hg
   unfold ncfupd
   iintro Hnc

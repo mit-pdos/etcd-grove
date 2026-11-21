@@ -81,6 +81,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.hooks__OnPreCommit
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.newBatchTxBuffered
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.newBoltLoggerZap
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.newBucketBuffer
+public import Proof.os.Getenv
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__Lock
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__RLock
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__RUnlock
@@ -90,8 +91,16 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__UnsafeRang
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__reset
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.snapshot__Close
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.snapshot__Size
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.snapshot__UnsafeForEach
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.snapshot__UnsafeRange
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.snapshot__WriteTo
 public import Proof.sort.Stable
+public import Proof.sort.insertionSort
+public import Proof.sort.rotate
+public import Proof.sort.stable
+public import Proof.sort.swapRange
+public import Proof.sort.symMerge
+public import Proof.strings.ToLower
 public import Proof.time.Duration__Seconds
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.txBuffer__reset
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.txReadBuffer__ForEach
@@ -106,6 +115,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer__wri
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.unsafeForEach
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.unsafeRange
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Assert
+public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.IsVerificationEnabled
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Verify
 public import Proof.go_uber_org.zap.Error
 public import Proof.go_uber_org.zap.Logger__Fatal
@@ -145,17 +155,29 @@ theorem wp_NewHooks :
     EtcdGrove.backend.NewHooks.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.NewHooks.wp_proof hooks.wp_OnPreCommitUnsafe
 
+theorem os.wp_Getenv :
+    EtcdGrove.os.Getenv.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.os.Getenv.wp_proof
+
+theorem strings.wp_ToLower :
+    EtcdGrove.strings.ToLower.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.strings.ToLower.wp_proof
+
+theorem verify.wp_IsVerificationEnabled :
+    EtcdGrove.verify.IsVerificationEnabled.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.verify.IsVerificationEnabled.wp_proof os.wp_Getenv strings.wp_ToLower
+
 theorem wp_ValidateCalledInsideApply :
     EtcdGrove.backend.ValidateCalledInsideApply.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.backend.ValidateCalledInsideApply.wp_proof
+  EtcdGrove.backend.ValidateCalledInsideApply.wp_proof verify.wp_IsVerificationEnabled
 
 theorem wp_ValidateCalledInsideUnittest :
     EtcdGrove.backend.ValidateCalledInsideUnittest.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.backend.ValidateCalledInsideUnittest.wp_proof
+  EtcdGrove.backend.ValidateCalledInsideUnittest.wp_proof verify.wp_IsVerificationEnabled
 
 theorem wp_ValidateCalledOutSideApply :
     EtcdGrove.backend.ValidateCalledOutSideApply.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.backend.ValidateCalledOutSideApply.wp_proof
+  EtcdGrove.backend.ValidateCalledOutSideApply.wp_proof verify.wp_IsVerificationEnabled
 
 theorem wp_newBoltLoggerZap :
     EtcdGrove.backend.newBoltLoggerZap.spec (GF := GF) (hG := hG) :=
@@ -289,9 +311,29 @@ theorem backend.wp_ReadTx :
     EtcdGrove.backend.backend.ReadTx.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.backend.ReadTx.wp_proof
 
+theorem sort.wp_insertionSort :
+    EtcdGrove.sort.insertionSort.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.sort.insertionSort.wp_proof
+
+theorem sort.wp_swapRange :
+    EtcdGrove.sort.swapRange.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.sort.swapRange.wp_proof
+
+theorem sort.wp_rotate :
+    EtcdGrove.sort.rotate.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.sort.rotate.wp_proof sort.wp_swapRange
+
+theorem sort.wp_symMerge :
+    EtcdGrove.sort.symMerge.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.sort.symMerge.wp_proof sort.wp_rotate
+
+theorem sort.wp_stable :
+    EtcdGrove.sort.stable.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.sort.stable.wp_proof sort.wp_insertionSort sort.wp_symMerge
+
 theorem sort.wp_Stable :
     EtcdGrove.sort.Stable.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.sort.Stable.wp_proof
+  EtcdGrove.sort.Stable.wp_proof sort.wp_stable
 
 theorem bucketBuffer.wp_Len :
     EtcdGrove.backend.bucketBuffer.Len.spec (GF := GF) (hG := hG) :=
@@ -479,7 +521,7 @@ theorem batchTx.wp_UnsafeSeqPut :
 
 theorem verify.wp_Verify :
     EtcdGrove.verify.Verify.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.verify.Verify.wp_proof
+  EtcdGrove.verify.Verify.wp_proof verify.wp_IsVerificationEnabled
 
 theorem txWriteBuffer.wp_putSeq :
     EtcdGrove.backend.txWriteBuffer.putSeq.spec (GF := GF) (hG := hG) :=
@@ -563,6 +605,14 @@ theorem snapshot.wp_Close :
 theorem snapshot.wp_Size :
     EtcdGrove.backend.snapshot.Size.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.snapshot.Size.wp_proof bbolt.Tx.wp_Size
+
+theorem snapshot.wp_UnsafeForEach :
+    EtcdGrove.backend.snapshot.UnsafeForEach.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.snapshot.UnsafeForEach.wp_proof wp_unsafeForEach
+
+theorem snapshot.wp_UnsafeRange :
+    EtcdGrove.backend.snapshot.UnsafeRange.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.snapshot.UnsafeRange.wp_proof bbolt.Tx.wp_Bucket bbolt.Bucket.wp_Cursor wp_unsafeRange
 
 theorem snapshot.wp_WriteTo :
     EtcdGrove.backend.snapshot.WriteTo.spec (GF := GF) (hG := hG) :=

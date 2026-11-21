@@ -69,7 +69,7 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
         uint.Z ai = A.length ∧ lastTermIs A at0 ∧
         storage.diskOk ∧ uint.Z g ≤ uint.Z (ciEff γ st.k) ∧
         uint.Z (ciEff γ st.k) ≤ uint.Z g ∧ uint.Z g = uint.Z γr.raft.ai0 + (ghostOf rp A).length ∧ γn.node = γr.raft.raft ∧ γr.raft.pre = [] ∧
-        (A ++ unapplied ai ms).length ≤ n ∧
+        (A ++ unapplied ai ms).length = n ∧ γn.snap0 ≤ n ∧ γn.a0 = rp.A₀ ∧
         -- (auth-lease S4, 2026-11-16, L1 option 1) in the cluster's no-snapshot mode, the applied
         -- index within the write tokens taken (`snapshotIfNeededAndCompactRaftLog`'s)
         (clusterNoSnap γr.raft.raft.cl → uint.nat ai ≤ w)⌝ ∗
@@ -106,11 +106,11 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
       -- (2026-10-31, #11) what the snapshot takes: the disk snapshot's storage, the server's KV over
       -- the store, the storage's invariant at the storage key `nk`, the apply side's half of the WAL token
       srvSnapDisk s γr ∗ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ □ mvcc.api.isMvcc kv E.γ ∗ ⌜kv = E.kv⌝) ∗
-      (letI : MemStorReg GF := ⟨γr.raft.raft.reg⟩; memStorInv mst γs γr.raft.raft.cl nk) ∗
+      (letI : MemStorReg GF := ⟨γr.raft.raft.reg⟩; srvAttachedMem mst γs γr.raft.raft.cl nk γr.cursor γn.nl γn.snap0) ∗
       rnWalTokA γn (srvRAddr s) q ∗
       -- (2026-10-31, S1) the batch's raft term `rt` (`apply.raftTerm`, the merge's guard), good for
       -- the log (`rnRtOk`: `0`, or a term committed through at least `n`)
-      taRaftTermAddr ap ↦□ rt ∗ rnRtOk γn rt n ∗
+      taRaftTermAddr ap ↦□ rt ∗ taReplayBatch ap γn rt n ∗ rnRtOk γn rt n ∗ srvMergeAttachment s γr γn ∗ monoNatAuthOwn γr.cursor 1 n ∗ epReplayCfg ep γr.raft rp.A₀.length A.length ∗
       -- (D22 J1b, 2026-10-31; the user's decision) what each snapshot install takes and gives back
       -- (`srvSnapOwn`), passed through the batch; (restart S6, CP2 route (C), 2026-11-13) at the
       -- ghost applied index `g` (until then Go's `ai`)
@@ -126,7 +126,7 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
       -- `γ`, `TM`, `E`, `b`)
       ∃ (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (E' : apply.AEnv GF) (b' : GoInterface)
         (st' : ApplyState) (ai' at' a' t' : w64) (cs' : Loc) (g' : w64),
-        ⌜beSucc γ E γ' E'⌝ ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗ isServerC C s γ' ci TM' E' ρ γr ∗ srvApRes s γr (ghostOf rp (A ++ unapplied ai ms)) ∗
+        ⌜beSucc γ E γ' E'⌝ ∗ monoNatAuthOwn γr.cursor 1 n ∗ epReplayCfg ep γr.raft rp.A₀.length (A ++ unapplied ai ms).length ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗ isServerC C s γ' ci TM' E' ρ γr ∗ srvApRes s γr (ghostOf rp (A ++ unapplied ai ms)) ∗
         epAppliedIAddr ep ↦ ai' ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs' ∗
         epCsAt ρ.raft (ghostOf rp (A ++ unapplied ai ms)) cs' ∗
         srvSnapState s ep mst γs ai' (W64 0) ∗ applyThread γ' st' ∗ acTok C (ciEff γ' st'.k) ∗ applyBackend γ' ci b' ∗ ciApplying ci a' t' ∗
@@ -217,7 +217,7 @@ abbrev EtcdServer.applyAll.specSnapM : Prop :=
   -- (until the lease-expiry plan's S2–S4, 2026-11-05, also `γr.kv.lg = false`: a cluster that
   -- grants no lease, the lease-grant plan's D2 interim restriction)
   -- the batch's term good for a log at least the snapshot's (the merge's guard)
-  γn.node = γr.raft.raft → uint.nat sv.Metadata'.Index' ≤ n →
+  γn.node = γr.raft.raft → uint.nat sv.Metadata'.Index' = n → γn.snap0 ≤ n →
   -- (auth-lease S4 item 7b F4) outside the cluster's no-snapshot mode (the payload's, `rnApSnap`): the
   -- snapshot path frees the lessor window
   ¬ clusterNoSnap γr.raft.raft.cl →
@@ -240,7 +240,7 @@ abbrev EtcdServer.applyAll.specSnapM : Prop :=
           srvFrozenAt γs (uint.nat sv.Metadata'.Index') ∗
           srvFrozenBelow γs (uint.nat sv.Metadata'.Index') ∗
           rnWalHanded γn (uint.nat sv.Metadata'.Index'))) ∗
-      taRaftTermAddr ap ↦□ rt ∗ rnRtOk γn rt n ∗
+      taRaftTermAddr ap ↦□ rt ∗ taReplayField ap ∗ rnRtOk γn rt n ∗ srvMergeAttachment s γr γn ∗ monoNatAuthOwn γr.cursor 1 n ∗ (∃ p : Loc, epReplayConfAddr ep ↦ p) ∗
       -- the apply thread's resources, as `spec`'s
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗
       srvSnapState s ep mst γs ai (W64 0) ∗ applyThread γ st ∗ applyBackend γ ci b ∗
@@ -270,7 +270,7 @@ abbrev EtcdServer.applyAll.specSnapM : Prop :=
   {{ RET #();
       ∃ (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (E' : apply.AEnv GF) (b' : GoInterface)
         (st' : ApplyState) (A' : List EntryModel) (cs' : Loc),
-        ⌜beSucc γ E γ' E'⌝ ∗ isServerM E.authOn s γ' ci TM' E' ρ γr ∗ srvApRes s γr A' ∗
+        ⌜beSucc γ E γ' E'⌝ ∗ monoNatAuthOwn γr.cursor 1 n ∗ epReplayConfAddr ep ↦ (null : Loc) ∗ isServerM E.authOn s γ' ci TM' E' ρ γr ∗ srvApRes s γr A' ∗
         srvRLogLb γr.raft A' ∗
         epAppliedIAddr ep ↦ sv.Metadata'.Index' ∗ epAppliedTAddr ep ↦ sv.Metadata'.Term' ∗
         epConfState ep cs' ∗ epCsAt ρ.raft A' cs' ∗
