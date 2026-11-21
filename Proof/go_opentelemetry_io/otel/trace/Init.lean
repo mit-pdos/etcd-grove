@@ -5,8 +5,11 @@ Package initialization of `go_opentelemetry_io.otel.trace`
 Its fact (`traceInit`, `storage/mvcc/Base.lean`): `noopSpanInstance` holds a `noopSpan` as a
 `Span`, read-only for good. Its initializer allocates it, initializes its imports and runs its
 translated initializer (`noopSpan{}` converted to `Span`, `noop.go`; prove-protootel, 2026-11-20:
-until then in `opaqueInitsOk`) and the untranslated initializers of its other variables, which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking.
+until then in `opaqueInitsOk`), those of `tracerProviderInstance` and
+`autoInstEnabled` (`new`) and of the `start`/`ended` func literals (prove-otel4, 2026-11-21), and the
+untranslated initializers of its other variables (`maxSpan`, which goose's guard refuses, and the
+`var _ I = T{}` assertions: `trace.toml`), which the trust-boundary axiom `opaqueInitsOk` says run
+without panicking.
 -/
 module
 
@@ -45,17 +48,13 @@ Goose translates them names-only, so each `X.init` is an axiom of the translatio
 runs them at program start, and etcd starts, so each returns without panicking.
 Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
 axiom opaqueInitsOk :
-    ∀ v ∈ ([tracerProviderInstance.init,
+    ∀ v ∈ ([«_».init,
         «_».init,
-        «_».init,
-        start.init,
-        ended.init,
         maxSpan.init,
         «_».init,
         «_».init,
         «_».init,
         «_».init,
-        autoInstEnabled.init,
         «_».init,
         «_».init,
         «_».init,
@@ -86,24 +85,28 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   iapply wp_fupd
+  wp_apply wp_GlobalAlloc (V := Loc) autoInstEnabled _ as HautoInstEnabled
   wp_apply wp_GlobalAlloc (V := GoInterface) noopSpanInstance _ as HnoopSpanInstance
+  wp_apply wp_GlobalAlloc (V := GoFunc) ended _ as Hended
+  wp_apply wp_GlobalAlloc (V := GoFunc) start _ as Hstart
+  wp_apply wp_GlobalAlloc (V := Loc) tracerProviderInstance _ as HtracerProviderInstance
   wp_apply (_root_.Perennial.go_opentelemetry_io.otel.trace.embedded.wp_initialize'_lb _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
   wp_apply (_root_.Perennial.go_opentelemetry_io.otel.codes.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
   wp_apply (_root_.Perennial.go_opentelemetry_io.otel.«attribute».wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.context _root_.Perennial.context.initialize'
       EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (opaqueInitsOk tracerProviderInstance.init (by mem_tac))
+  -- translated initializer of tracerProviderInstance))
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk start.init (by mem_tac))
-  wp_apply (opaqueInitsOk ended.init (by mem_tac))
+  -- translated initializer of start))
+  -- translated initializer of ended))
   wp_apply (opaqueInitsOk maxSpan.init (by mem_tac))
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
   -- translated initializer of noopSpanInstance))
-  wp_apply (opaqueInitsOk autoInstEnabled.init (by mem_tac))
+  -- translated initializer of autoInstEnabled))
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
   wp_apply (opaqueInitsOk «_».init (by mem_tac))

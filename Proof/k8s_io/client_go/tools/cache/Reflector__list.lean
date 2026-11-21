@@ -100,6 +100,8 @@ theorem Reflector.list.wp_proof
   · ipureintro; rfl
   iintro %sl0 ⟨-, -⟩
   (try wp_auto)
+  ihave #Hutrace : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.utils.trace $$ []
+  · iPkgInit
   wp_apply wp_traceNew as %tr %Htr
   (try wp_auto)
   wp_apply (chan.wp_make2 (V := Unit) (W64 1)) as %lch %γl ⟨#Hlch, -, Hlown⟩
