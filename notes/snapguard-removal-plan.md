@@ -1,5 +1,42 @@
 # Removing the merged snapshot's index guard (plan, 2026-11-20)
 
+## Index check removed from the verified Go source
+
+The etcd pin is `34f5142d062b`. In `applyAll`, the successful term
+comparison identifies the queued message's leader term. The source tag
+distinguishes a snapshot present at bootstrap, one created by the apply
+thread, and one installed by Raft. The apply job uses the proof for its
+actual node and Ready to bound the original snapshot index. Both apply
+paths pass this bound to Raft when they replace the message's snapshot.
+
+The apply worker tracks its own cursor from the startup snapshot through
+each serialized job. This matters on restart, when the backend's applied
+index can already exceed the worker's position. Local snapshot creation
+attaches a lower bound for this incarnation's worker cursor. The server
+can therefore establish the physical index comparison immediately after
+the term matches, including in the replay window.
+
+The replay deferral remains a separate change. Its fork regression tests
+exercise a frozen backend at index 7 and a recovered HardState commit of 3
+with both current and legacy metadata. The replay proof still has to
+establish the term and membership for the image actually sent.
+[Replay issue](../nonissues/etcd-backward-snapshot-install-panics-watcher.md).
+
+## The two MemoryStorage writers and the apply job
+
+Bootstrap now allocates the saved node location before starting Raft and
+fills it with the actual node afterwards. A restart tags its initial image
+at the WAL base. The driver attaches the receipt for the installed index
+to `ApplySnapshot`. The apply thread attaches its applied-index lower
+bound to `CreateSnapshot`. Compaction preserves the same storage invariant.
+
+The apply job uses the outgoing channel from the node that produced its
+Ready. The run loop supplies the exact delivered length of that Ready
+and the boot snapshot bound. The successful merge can compare the index
+against its applied-index authority after the first Go step, including
+when the outbox and apply job refer to different Ready batches.
+
+
 ## Server proof at the two channels
 
 Raft’s outgoing Ready observation now travels with the specific message in

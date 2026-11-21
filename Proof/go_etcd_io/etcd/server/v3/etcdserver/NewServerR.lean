@@ -1438,7 +1438,7 @@ theorem NewServer.wp_proofRG
     iframe
   -- the read names
   iunfold srvReadNamesFreshNK at Hrd
-  icases Hrd with ⟨Hap, Hcm, Hnot, Hlogs, Hpend, Hkhi⟩
+  icases Hrd with ⟨Hcursor, Hap, Hcm, Hnot, Hlogs, Hpend, Hkhi⟩
   -- (restart) the certificates' bound at the image's KV model
   imod (ghostVar_update (kvModel ρ.rd.kv A).length _ _) $$ Hkhi with Hkhi
   icases hHalves _ _ $$ Hkhi with ⟨Hkhi1, Hkhi2⟩
@@ -1596,9 +1596,10 @@ theorem NewServer.wp_proofRG
   ihave %HlastT := restart_lastTerm γ A σ (by omega) (walReadFacts_F3 σ Hwrf) $$ [HA0 Hcert]
   · iframe HA0 Hcert
   ihave ⟨%msR, #HmsR, HsnapR⟩ := restart_snapOnceR h85 _ γrn (srvRAddr s) bv.storage' γs σ cs
-      ρ.rd.raft A Hrn7 (by omega) (by rw [HρRaft]; exact Hcsv) (by rw [HρRaft]; exact Hcfg20)
-      $$ Hpkg Hrn [] Hmsnone
-  · rw [Hrn1]; iexact Hminv
+      ρ.rd.raft A Hrn7 Hrns0 (by omega) (by rw [HρRaft]; exact Hcsv) (by rw [HρRaft]; exact Hcfg20)
+      $$ Hpkg Hrn [] Hmsnone [Hcursor]
+  · rw [Hrn1]; iExactEq Hminv; rfl
+  · iExactEq Hcursor; rfl
   ihave #Hrn' := Hrn
   iunfold isRaftNode at Hrn'
   iNamedPrefix Hrn' "N"
