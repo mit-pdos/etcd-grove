@@ -1,7 +1,7 @@
 /-
 `context.WithTimeout(context.Background(), d)` with its outgoing metadata (the auth-mode merge's 5b,
 2026-10-29): `WithTimeoutBackground`'s, and the context carries no outgoing gRPC metadata
-(`metadata.outgoingOf`, opaque: grpc's `metadata` is names-only, `Outgoing.lean`). What a caller
+(`metadata.outMD`, a per-run relation: grpc's `metadata` is names-only, `Outgoing.lean`). What a caller
 needs to know that an attempt of a client with no credentials carries no token
 (`clientTokAt … (fun _ => False)`'s second disjunct: the context's own). Lean-first (no Rocq
 counterpart).
@@ -37,7 +37,9 @@ no value, and `WithTimeout` adds none (a `*timerCtx` whose `Value` defers to its
 `FromOutgoingContext` of it finds nothing. (premise-fixes-7) Its library values are well formed
 (`context.libCtxOk ctx'`): it answers every library key with `Background()`'s `nil`.
 (premise-fixes-8, C1) So does Perennial's chain (`metadata.outgoingCtxOkC ctx'`): `context.value`
-walks from the `*timerCtx` to its parent `Background()`, never written, which answers `nil`. -/
+walks from the `*timerCtx` to its parent `Background()`, never written, which answers `nil`.
+(errdesc stage 1, 2026-11-20) "No outgoing metadata" is the per-run relation `metadata.outMD ctx' none`
+(until then the pure `metadata.outgoingOf ctx' = none`, of a context the call allocates). -/
 abbrev context.WithTimeoutBackgroundMd.spec : Prop :=
   ∀ (d : _root_.Perennial.time.Duration),
   {{ isPkgInit (PROP := IProp GF) pkg_id.context ∗ context.isClosedchanInit }}
@@ -47,7 +49,7 @@ abbrev context.WithTimeoutBackgroundMd.spec : Prop :=
       RET (PairV #(interface.ok ctx') #cancel);
       □ (∀ Φ : val → IProp GF, True -∗ ▷ (True -∗ Φ #()) -∗
         WP (App (Val #cancel) (Val #())) {{ Φ }}) ∗
-      context.isContext ctx' cd ∗ ⌜metadata.outgoingOf (GoInterface.ok ctx') = none⌝ ∗
+      context.isContext ctx' cd ∗ metadata.outMD ctx' none ∗
       context.libCtxOk ctx' ∗ metadata.outgoingCtxOkC ctx' }}
 
 end spec

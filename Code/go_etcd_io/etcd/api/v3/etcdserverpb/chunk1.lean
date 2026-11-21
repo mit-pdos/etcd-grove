@@ -806,7 +806,9 @@ class RequestOp.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   method_set : go.MethodSetIs RequestOp.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType RequestOp.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetRequest", (some (go.signature.Signature [] false [isRequestOp_Request.ty]))), (go!"GetRequestDeleteRange", (some (go.signature.Signature [] false [(go.GoType.PointerType DeleteRangeRequest.ty)]))), (go!"GetRequestPut", (some (go.signature.Signature [] false [(go.GoType.PointerType PutRequest.ty)]))), (go!"GetRequestRange", (some (go.signature.Signature [] false [(go.GoType.PointerType RangeRequest.ty)]))), (go!"GetRequestTxn", (some (go.signature.Signature [] false [(go.GoType.PointerType TxnRequest.ty)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_GetRequest_unfold : MethodUnfold (go.GoType.PointerType RequestOp.ty) go!"GetRequest" RequestOp.GetRequest.impl
+  ptr_GetRequestPut_unfold : MethodUnfold (go.GoType.PointerType RequestOp.ty) go!"GetRequestPut" RequestOp.GetRequestPut.impl
   ptr_GetRequestRange_unfold : MethodUnfold (go.GoType.PointerType RequestOp.ty) go!"GetRequestRange" RequestOp.GetRequestRange.impl
+  ptr_GetRequestTxn_unfold : MethodUnfold (go.GoType.PointerType RequestOp.ty) go!"GetRequestTxn" RequestOp.GetRequestTxn.impl
 
 attribute [instance] RequestOp.TypeAssumptions.type_repr
   RequestOp.TypeAssumptions.underlying
@@ -821,7 +823,9 @@ attribute [instance] RequestOp.TypeAssumptions.type_repr
   RequestOp.TypeAssumptions.method_set
   RequestOp.TypeAssumptions.ptr_method_set
   RequestOp.TypeAssumptions.ptr_GetRequest_unfold
+  RequestOp.TypeAssumptions.ptr_GetRequestPut_unfold
   RequestOp.TypeAssumptions.ptr_GetRequestRange_unfold
+  RequestOp.TypeAssumptions.ptr_GetRequestTxn_unfold
 
 class RequestOp_RequestRange.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RequestOp_RequestRange.underlying RequestOp_RequestRange

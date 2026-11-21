@@ -10,6 +10,9 @@ triple returning `true`.
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/pkg/v3/verify/Verify.lean` (the check always
 run, returning `true`): verification off allowed (no check needed then).
 
+(2026-11-20, ledger, the proof's finding) `f` a `GoFunc` and the details a map (`d : Loc`): with any
+`val`s, `Verify` would panic on a panic value before calling `f` or when storing the details.
+
 Margin: none.
 -/
 module
@@ -34,10 +37,10 @@ variable [sem : go.Semantics]
 
 /-- `Verify(msg, f)`: no panic, verification off or `f` returning `true` (keeping `P`). -/
 def Verify.spec : Prop :=
-  ∀ (msg : GoString) (f : val) (P : IProp GF),
+  ∀ (msg : GoString) (f : GoFunc) (P : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.verify ∗ P ∗
-      (verifyOff ∨ (P -∗ WP (App (Val f) (Val #())) {{ r, ∃ d : val, ⌜r = PairV #true d⌝ ∗ P }})) }}
-    (App (App (Val (@! go_etcd_io.etcd.client.pkg.v3.verify.Verify)) (Val #msg)) (Val f))
+      (verifyOff ∨ (P -∗ WP (App (Val #f) (Val #())) {{ r, ∃ d : Loc, ⌜r = PairV #true #d⌝ ∗ P }})) }}
+    (App (App (Val (@! go_etcd_io.etcd.client.pkg.v3.verify.Verify)) (Val #msg)) (Val #f))
   {{ RET #(); P }}
 
 end spec

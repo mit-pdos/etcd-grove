@@ -30,8 +30,8 @@ theorem etcdserverpb.authClient.UserGrantRole.wp_proof
     (wp_StaticMethod : grpc.StaticMethod.spec (GF := GF) (hG := hG))
     (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG)) :
     etcdserverpb.authClient.UserGrantRole.spec (GF := GF) (hG := hG) := by
-  intro ac conn addr Spec Q ctx cd inp m opts vs
-  wp_start as ⟨#Hstub, #Hconn, #Hrpc, #Hpre, #Hctx, Hsend, #Hopts, #Hok, %Hsz⟩
+  intro ac conn addr Spec Q ctx om cd inp m opts vs
+  wp_start as ⟨#Hstub, #Hconn, #Hrpc, #Hom, #Hpre, #Hctx, Hsend, #Hopts, #Hok, %Hsz⟩
   wp_auto
   wp_apply wp_StaticMethod as %sm ⟨#Hsm, %Hsms⟩
   wp_apply wp_slice_literal (V := GoInterface) [sm]
@@ -49,12 +49,12 @@ theorem etcdserverpb.authClient.UserGrantRole.wp_proof
   ihave Hblank : pbAuthUserGrantRoleResponse (GF := GF) |>.blank «$r0_ptr» $$ [«$r0»]
   · simp only [pbAuthUserGrantRoleResponse]
     iexact «$r0»
-  have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.Auth/UserGrantRole" pbAuthUserGrantRoleRequestT pbAuthUserGrantRoleResponseT pbAuthUserGrantRoleRequestT_reg pbAuthUserGrantRoleResponseT_reg Spec m Q ctx cd inp «$r0_ptr» copts
+  have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.Auth/UserGrantRole" pbAuthUserGrantRoleRequestT pbAuthUserGrantRoleResponseT pbAuthUserGrantRoleRequestT_reg pbAuthUserGrantRoleResponseT_reg Spec m Q ctx om cd inp «$r0_ptr» copts
     ([sm] ++ vs)
   simp only [pbAuthUserGrantRoleRequestT, pbAuthUserGrantRoleResponseT] at hI
   rw [show (pbAuthUserGrantRoleRequest (GF := GF)).ty = etcdserverpb.AuthUserGrantRoleRequest.ty from rfl,
     show (pbAuthUserGrantRoleResponse (GF := GF)).ty = etcdserverpb.AuthUserGrantRoleResponse.ty from rfl] at hI
-  ihave Hpre' : reqPre (GF := GF) conn go!"/etcdserverpb.Auth/UserGrantRole" addr ([sm] ++ vs) (attemptPre conn (GoInterface.ok ctx) Spec m Q) $$ []
+  ihave Hpre' : reqPre (GF := GF) conn go!"/etcdserverpb.Auth/UserGrantRole" addr ([sm] ++ vs) (attemptPre conn om Spec m Q) $$ []
   · iapply reqPre_box; iexact Hpre
   wp_apply hI $$ [Hsend Hblank Hpre'] as %err ⟨Hin', Hres⟩
   · iframe #

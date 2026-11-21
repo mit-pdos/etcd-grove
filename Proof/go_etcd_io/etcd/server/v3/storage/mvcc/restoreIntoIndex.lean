@@ -530,6 +530,7 @@ theorem mvcc.restoreIntoIndex.wp_proof
           currentRev_ptr ↦ mvcc.restoreLastRev (ents.take n))) $$ [rev currentRev]
         as ⟨rev, currentRev⟩
       · iframe rev currentRev
+        ileft
         iintro ⟨rev, currentRev⟩
         wp_auto
         wp_apply (wp_map_make1 (K := GoString) (V := GoInterface) go.string go.any) as %mm Hmm

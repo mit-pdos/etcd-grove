@@ -9,6 +9,7 @@ public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.api.v3.etcdserverpb
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.api.v3.mvccpb
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.pkg.v3.traceutil
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.storage.mvcc
+public import Perennial.Proof.strconv.Base
 public import Perennial.Proof.time.Base
 public import SpecPlan.Spec.PkgInit.github_com.prometheus.client_golang.prometheus
 public import SpecPlan.Spec.PkgInit.google_golang_org.protobuf.proto

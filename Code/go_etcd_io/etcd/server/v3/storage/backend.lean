@@ -179,7 +179,8 @@ attribute [irreducible] bucketBuffer.ty
 @[reducible] noncomputable def bucketBufferInitialSize [GooseExts] [GoGlobalContext] : val :=
   #(512 : Int)
 
-opaque EnvVerifyValueLock [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def EnvVerifyValueLock [GooseExts] [GoGlobalContext] : val :=
+  #(go!"lock")
 
 noncomputable def defaultBatchLimit [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.defaultBatchLimit"
@@ -2159,6 +2160,51 @@ noncomputable def NewHooks.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore Hooks.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad Hooks.ty))) (Var "$res0")))))
 
+/-- go: metrics.go:106:6 -/
+noncomputable def init.«0».impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Seq (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty))) (App (Val (GoInstruction (GlobalVarAddr isDefragActive))) (Val #()))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty (Var "$sl0")))])))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.MustRegister []))) (Val #())) (Var "$a0"))))))
+  (App (Val doExecute)
+  (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty))) (App (Val (GoInstruction (GlobalVarAddr snapshotTransferSec))) (Val #()))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty (Var "$sl0")))])))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.MustRegister []))) (Val #())) (Var "$a0")))))))
+  (App (Val doExecute)
+  (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty))) (App (Val (GoInstruction (GlobalVarAddr defragBlockingSec))) (Val #()))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty (Var "$sl0")))])))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.MustRegister []))) (Val #())) (Var "$a0")))))))
+  (App (Val doExecute)
+  (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty))) (App (Val (GoInstruction (GlobalVarAddr defragSec))) (Val #()))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty (Var "$sl0")))])))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.MustRegister []))) (Val #())) (Var "$a0")))))))
+  (App (Val doExecute)
+  (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty))) (App (Val (GoInstruction (GlobalVarAddr writeSec))) (Val #()))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty (Var "$sl0")))])))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.MustRegister []))) (Val #())) (Var "$a0")))))))
+  (App (Val doExecute)
+  (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty))) (App (Val (GoInstruction (GlobalVarAddr spillSec))) (Val #()))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty (Var "$sl0")))])))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.MustRegister []))) (Val #())) (Var "$a0")))))))
+  (App (Val doExecute)
+  (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty))) (App (Val (GoInstruction (GlobalVarAddr rebalanceSec))) (Val #()))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty (Var "$sl0")))])))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.MustRegister []))) (Val #())) (Var "$a0")))))))
+  (App (Val doExecute)
+  (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty))) (App (Val (GoInstruction (GlobalVarAddr commitSec))) (Val #()))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty (Var "$sl0")))])))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.MustRegister []))) (Val #())) (Var "$a0"))))))
+  (Val #())))
+
 /-- go: read_tx.go:54:31 -/
 noncomputable def baseReadTx.UnsafeForEach.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "baseReadTx"
@@ -3459,6 +3505,210 @@ noncomputable def bucketBuffer.CopyUsed.impl [GooseExts] [GoGlobalContext] : val
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
   (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.Assert []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bucketBuffer.ty)))) (Var "$res0"))))))
+
+/-- go: verify.go:31:6 -/
+noncomputable def ValidateCalledInsideApply.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "lg"
+  (Seq (App (Val exceptionDo)
+  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (FuncResolve insideApply []))) (Val #())) (Val #())))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"Called outside of APPLY!"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"stacktrace"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Stack []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Panic"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (FuncResolve verifyLockEnabled []))) (Val #())) (Val #())))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Val #())))
+
+/-- go: verify.go:40:6 -/
+noncomputable def ValidateCalledOutSideApply.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "lg"
+  (Seq (App (Val exceptionDo)
+  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (App (Val (GoInstruction (FuncResolve insideApply []))) (Val #())) (Val #()))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"Called inside of APPLY!"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"stacktrace"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Stack []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Panic"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (FuncResolve verifyLockEnabled []))) (Val #())) (Val #())))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Val #())))
+
+/-- go: verify.go:49:6 -/
+noncomputable def ValidateCalledInsideUnittest.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "lg"
+  (Seq (App (Val exceptionDo)
+  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (FuncResolve insideUnittest []))) (Val #())) (Val #())))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"Lock called outside of unit test!"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"stacktrace"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Stack []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Fatal"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (FuncResolve verifyLockEnabled []))) (Val #())) (Val #())))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Val #())))
+
+/-- go: verify.go:58:6 -/
+noncomputable def verifyLockEnabled.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (Let "$a0" (Val EnvVerifyValueLock)
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.IsVerificationEnabled []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
+
+/-- VerifyBackendConsistency verifies data in ReadTx and BatchTx are consistent.
+
+    go: verify.go:73:6 -/
+noncomputable def VerifyBackendConsistency.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "b"
+  (Lam "lg"
+  (Lam "skipSafeRangeBucket"
+  (Lam "bucket"
+  (Seq (App (Val exceptionDo)
+  (Let "bucket" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Bucket.ty)))) (Var "bucket"))
+  (Let "skipSafeRangeBucket" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "skipSafeRangeBucket"))
+  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "b" (App (Val (GoInstruction (GoAlloc Backend.ty))) (Var "b"))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"bucket data mismatch"))
+  (Let "$a1" (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string go.any)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.string go.any)))) (Val #())))
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.MapType go.string go.any)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.any)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Bucket.ty)))) (Var "bucket"))
+  (Let "bkt" (App (Val (GoInstruction (GoAlloc Bucket.ty))) (App (Val (GoInstruction (GoZeroVal Bucket.ty))) (Val #())))
+  (App (App (Val (slice.forRange Bucket.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad Backend.ty))) (Var "b"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad Bucket.ty))) (Var "bkt"))
+  (App (App (App (Val (GoInstruction (FuncResolve unsafeVerifyTxConsistency []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "details" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string go.any)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.string go.any)))) (Val #())))
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (Let "$r0" (Val #false)
+  (Let "$r1" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.any)))) (Var "details"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.any)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.any)))) (Pair (Var "details") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r0"))))))))))))))
+  (If (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "skipSafeRangeBucket")) (App (App (Val (GoInstruction (MethodResolve Bucket.ty go!"IsSafeRangeBucket"))) (App (Val (GoInstruction (GoLoad Bucket.ty))) (Var "bkt"))) (Val #())) (Val #false))
+  (App (Val doContinue) (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Bucket.ty))) (Pair (Var "bkt") (Var "$value")))))))))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve ReadTx.ty go!"RUnlock"))) (App (App (Val (GoInstruction (MethodResolve Backend.ty go!"ReadTx"))) (App (Val (GoInstruction (GoLoad Backend.ty))) (Var "b"))) (Val #())))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve ReadTx.ty go!"RLock"))) (App (App (Val (GoInstruction (MethodResolve Backend.ty go!"ReadTx"))) (App (Val (GoInstruction (GoLoad Backend.ty))) (Var "b"))) (Val #()))) (Val #()))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve BatchTx.ty go!"Unlock"))) (App (App (Val (GoInstruction (MethodResolve Backend.ty go!"BatchTx"))) (App (Val (GoInstruction (GoLoad Backend.ty))) (Var "b"))) (Val #())))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve BatchTx.ty go!"LockOutsideApply"))) (App (App (Val (GoInstruction (MethodResolve Backend.ty go!"BatchTx"))) (App (Val (GoInstruction (GoLoad Backend.ty))) (Var "b"))) (Val #()))) (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"verifyBackendConsistency"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"skipSafeRangeBucket"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.bool))) (Var "skipSafeRangeBucket"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Bool' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Debug"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals Backend.ty))) (Pair (App (Val (GoInstruction (GoLoad Backend.ty))) (Var "b")) (App (Val (GoInstruction (Convert go.untypedNil Backend.ty))) (Val UntypedNil)))))
+  (Let "$r0" (Val #true)
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.MapType go.string go.any)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.any)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Pair (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.any)))) (Var "$res1")))))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.Verify []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))))
+  (Val #()))))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.storage.backend where
   pkgImportedPkgs := [pkg_id.bytes, pkg_id.fmt, pkg_id.io, pkg_id.sync, pkg_id.sync.atomic, pkg_id.time, pkg_id.github_com.dustin.go_humanize, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.bbolt, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify, pkg_id.errors, pkg_id.math, pkg_id.go_etcd_io.bbolt.errors, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.encoding.hex, pkg_id.sort]
@@ -4945,7 +5195,13 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   unsafeForEach_unfold : FuncUnfold unsafeForEach [] unsafeForEach.impl
   newBatchTxBuffered_unfold : FuncUnfold newBatchTxBuffered [] newBatchTxBuffered.impl
   NewHooks_unfold : FuncUnfold NewHooks [] NewHooks.impl
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   newBucketBuffer_unfold : FuncUnfold newBucketBuffer [] newBucketBuffer.impl
+  ValidateCalledInsideApply_unfold : FuncUnfold ValidateCalledInsideApply [] ValidateCalledInsideApply.impl
+  ValidateCalledOutSideApply_unfold : FuncUnfold ValidateCalledOutSideApply [] ValidateCalledOutSideApply.impl
+  ValidateCalledInsideUnittest_unfold : FuncUnfold ValidateCalledInsideUnittest [] ValidateCalledInsideUnittest.impl
+  verifyLockEnabled_unfold : FuncUnfold verifyLockEnabled [] verifyLockEnabled.impl
+  VerifyBackendConsistency_unfold : FuncUnfold VerifyBackendConsistency [] VerifyBackendConsistency.impl
   import_bytes_Assumption : _root_.Perennial.bytes.Assumptions
   import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
   import_io_Assumption : _root_.Perennial.io.Assumptions
@@ -5001,7 +5257,13 @@ attribute [instance] Assumptions.Backend_instance
   Assumptions.unsafeForEach_unfold
   Assumptions.newBatchTxBuffered_unfold
   Assumptions.NewHooks_unfold
+  Assumptions.«init.0_unfold»
   Assumptions.newBucketBuffer_unfold
+  Assumptions.ValidateCalledInsideApply_unfold
+  Assumptions.ValidateCalledOutSideApply_unfold
+  Assumptions.ValidateCalledInsideUnittest_unfold
+  Assumptions.verifyLockEnabled_unfold
+  Assumptions.VerifyBackendConsistency_unfold
   Assumptions.import_bytes_Assumption
   Assumptions.import_fmt_Assumption
   Assumptions.import_io_Assumption

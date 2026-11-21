@@ -43,8 +43,8 @@ abbrev foreign.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.authlease ∗
       clientTokAt cli [addr] (akTokP γa who) ∗ etcdstart.etcdLeaseServedOn addr s E ρ ∗
       auth.authPubLbM E.authMode n ∗ lease.lessorLb (mvcc.api.mvccLeases E.γ) m ∗ R ∗
-      □ (∀ (conn : Loc) (ctx : GoInterface), attemptTokOk conn (akTokP γa who) -∗
-          ⌜metadata.outgoingOf ctx = akOut who⌝ -∗ clientOpAuOn s E ρ conn ctx (.leaseRevoke id) Qr) ∗
+      □ (∀ (conn : Loc) (ctx : GrpcMd), attemptTokOk conn (akTokP γa who) -∗
+          ⌜ctx = akOut who⌝ -∗ clientOpAuOn s E ρ conn ctx (.leaseRevoke id) Qr) ∗
       □ (∀ σ, Qr σ -∗ R ={⊤}=∗ False) ∗
       □ (∀ tok : Option GoString, akTokSeen γa who tok -∗
           leaseCheckFrom s E tok n (fun info =>

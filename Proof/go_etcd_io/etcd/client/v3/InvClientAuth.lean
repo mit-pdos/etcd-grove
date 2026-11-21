@@ -400,7 +400,7 @@ theorem mdTokenOf_norm (md md' : GrpcMd) (hne : ∀ k, mdGet md k ≠ some [])
 /-- **Every attempt on the connection `conn` carries a token meeting `P`, or the context's own**
 (persistent; the auth plan's C1, 2026-10-28; C1's review, Q1): the handler of an attempt of a call
 with a context of outgoing metadata `m` (over the metadata since G2, 2026-10-30; a context's is
-`m := outgoingOf ctx`) sees a token meeting `P` (trimmed of `"Bearer "`, as the server reads it,
+the `m` of `metadata.outMD ctx m`) sees a token meeting `P` (trimmed of `"Bearer "`, as the server reads it,
 `auth.mdTokenOf`), or the token of the outgoing metadata as grpc delivers it
 (`metadata.mdNorm`). -/
 def attemptTokOk (conn : Loc) (P : GoString → IProp GF) : IProp GF :=
@@ -418,12 +418,12 @@ theorem attemptTokOk_of (conn : Loc) (P : GoString → IProp GF) :
   unfold connTokOk attemptTokOk
   iintro #H
   iintro !> %m %md %h
-  obtain ⟨c, v, hc, cm, hy, hvals, hne⟩ := h
+  obtain ⟨v, cm, hy, hvals, hne⟩ := h
   have hot : ∀ k, k ≠ go!"client-api-version" →
-      metadata.mdVals (metadata.outgoingOf c) k = metadata.mdVals m k := by
+      metadata.mdVals (metadata.mdSet m go!"client-api-version" [v]) k = metadata.mdVals m k := by
     intro k hk
     unfold metadata.mdVals
-    rw [hc, metadata.mdVals_mdSet_ne _ _ _ _ hk]
+    rw [metadata.mdVals_mdSet_ne _ _ _ _ hk]
   have htok := hvals _ grpcReservedKey_token
   have hauth := hvals _ grpcReservedKey_authorization
   rw [hot _ (by decide)] at htok

@@ -32,12 +32,12 @@ request has no unknown fields (a struct literal) and its encoding is below `grpc
 grpc marshals before it checks a size, `grpcInvokerOk`). -/
 abbrev kVClient.DeleteRange.spec : Prop :=
   ∀ (kc conn : Loc) (addr : List GoString) (Spec : GrpcSpecMd (GF := GF) pbDeleteRangeRequest pbDeleteRangeResponse)
-    (Φ : DelRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (Φ : DelRespM → IProp GF) (ctx : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
     (inp : Loc) (req : etcdserverpb.DeleteRangeRequest) (k e : GoString) (opts : GoSlice)
     (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ kvStubAt kc conn ∗
       isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.KV/DeleteRange" Spec ∗
-      reqPre conn go!"/etcdserverpb.KV/DeleteRange" addr vs (attemptPre conn (GoInterface.ok ctx) Spec (deleteReqOp req k e) Φ) ∗ ctxOk ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗
+      metadata.outMD ctx om ∗ reqPre conn go!"/etcdserverpb.KV/DeleteRange" addr vs (attemptPre conn om Spec (deleteReqOp req k e) Φ) ∗ ctxOk ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗
       opts ↦*□ vs ∗ callOptsOk vs ∗
       ⌜req.unknownFields' = slice.nil ∧ (pbDeleteRangeRequest (GF := GF)).wireLen (deleteReqOp req k e) < grpcMsgMax⌝ }}
     (App (App (App (Val (kc @!! go.GoType.PointerType etcdserverpb.kVClient.ty @!! go!"DeleteRange"))
