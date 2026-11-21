@@ -3340,6 +3340,24 @@ parameter.
 - **Proposed change.** `wp_slice_copy`'s post `sint.Z n = min vs.length vs'.length` (or
   `n = W64 (min ...)`). Status: not proposed.
 
+## 2026-11-20: goose does not take a `go build -overlay` file (models of standard-library packages, phase 5.2 of `notes/dsverify-net-port-plan.md`, branch `models-rpc-http`)
+
+- **Missing.** goose and proofgen load packages with golang.org/x/tools/go/packages, which parses the
+  files `go list` names by reading them from disk. With `-overlay` in GOFLAGS, `go list` applies the
+  overlay but go/packages then reads the real files (type-checking the original source) and cannot
+  open a file the overlay adds (tried: "zz_model.go: no such file or directory"). go/packages has
+  its own `Config.Overlay` (file contents by path), which goose does not set.
+- **Who.** The models of standard-library packages (`models/net/rpc`, `models/net/http`): the
+  standard library cannot be replaced by a module, so a model build substitutes files.
+- **Workaround here.** `models/goroot.py farm`: a GOROOT of symbolic links whose modelled packages'
+  Go files are the models'; `etc/goose.py` runs goose with `GOROOT` set to it for a project with
+  `std_models` (project `models-net`).
+- **Proposed change.** goose and proofgen take `-overlay FILE` (the go command's JSON format), read
+  it into `packages.Config.Overlay` and pass `-overlay` in `BuildFlags`, so one overlay file serves
+  `go build`, `go test` and the translation. General (any project translating patched sources),
+  small.
+- **Status.** Not proposed yet.
+
 ## 2026-11-18: `translate_types` refuses a struct with a field of a cross-package generic alias (grpc's `health.Server`)
 
 - **Missing.** grpc's `health.Server` stays axiomatized (`sorry -- axiomatized type`) because the type of
@@ -3540,3 +3558,29 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
   `7103946b3` (2026-11-21, srvloops2); the pin bump is pending (the coordinator's queue). With it,
   `zap.Time.wp_proof` and `EtcdServer.ensureLeadership.wp_proof` (written and checked against it but the
   `Location` call, branch `prove-srvloops2`'s follow-up) retire `EtcdServer.ensureLeadership.wp_proof`.
+
+## 2026-11-20: goose imports a vendored package by its import path (the net/http model, phase 5.2 of `notes/dsverify-net-port-plan.md`, branch `models-rpc-http-lean`)
+
+- **The gap.** net/http imports `golang.org/x/net/http/httpguts`, which the toolchain vendors as
+  `vendor/golang.org/x/net/http/httpguts`. goose translates that package, and names its declarations,
+  by its package path (`Net.Code.vendor.golang_org.x.net.http.httpguts`, namespace
+  `Perennial.vendor.golang_org.x.net.http.httpguts`), but the importing file's `import` line uses the
+  import path (`Net.Code.golang_org.x.net.http.httpguts`), a module that does not exist; and its `imports`
+  filter (`Code/**.toml`) matches the import path too.
+- **Worked around locally.** Project models-net's lean root `golang.org/x/net/http/httpguts=Net` and two
+  hand-written forwarding modules, `Net/{Code,GeneratedProof}/golang_org/x/net/http/httpguts.lean`
+  (one `public import` each of the vendored translation); `Net/Code/net/http.toml` lists both paths in
+  `imports`.
+- **Proposed (general).** goose emits the import of a vendored package by its package path (the
+  `types.Package.Path()` of the resolved package, as it already does for the names). Small, general
+  (any translation of a standard-library package that imports a vendored one: net/http, crypto/tls, ...).
+  **Status.** Recorded only.
+
+## 2026-11-20: goose refuses a named type declared over `rune` (the encoding/json model, `Delim`)
+
+- **The gap.** `type Delim rune` (Go's encoding/json) fails: "[unsupported]: Unknown basic type rune"
+  (`goose/types.go`, `basicLeanType`), though `rune` is an alias of `int32`, which goose takes.
+- **Worked around locally.** The model (`models/encoding/json/v2_stream.go`, marked MODEL) spells it
+  `type Delim int32`: the same type in Go (an alias), so no program observes a difference.
+- **Proposed (general).** Map the predeclared alias `rune` to `int32` (and `byte` to `uint8`, if not already)
+  in `basicLeanType`. **Status.** Recorded only.

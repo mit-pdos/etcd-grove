@@ -49,6 +49,23 @@ consumes an export, phase 3).
 
 ## Open work, in order
 
+**Update (2026-11-21, second session).** Items 1-3's Go halves are ready to land as one stack:
+`models-rpc-http-lean` (`50e9626bd2`: merged with `origin/lean`; item 1's `ErrShutdown` checked: the
+model produces it too, about one run in 20 in both builds, a race in Go's `Client` code, which the
+model keeps, so the test now allows it) ← `models-grpc-land` (`models-grpc` merged, `models/diff.py`
+the fuller script with grpc's entry and dropped-package report; `TestAtMostOnce` fixed: grpc-go's own
+spurious clean end of a server stream after a transparent retry, `nonissues/grpc-transparent-retry-spurious-eof.md`)
+← `models-json-land` (`models-json` merged: gates.sh, README, goroot.py, the plan resolved). All on
+origin. Checked on `models-json-land`: the gates' whole `models` section (`go vet`/`go test` of
+`models` at go1.27.3, jsongen `--check` of both inputs, `rpcdifftest/run.sh`, `grpcdifftest/run.sh`,
+`jsonstreamtest/run.sh`, `examples/models`), `etc/goose.py --check --project models` and
+`--project models-net`. **Not done: the full `lake build`** (stopped at 12499/19030 jobs by the
+machine's memory pressure while another session built; `Net/Code/models_lab/jsoncodec.lean` changed,
+so `Net`'s jsoncodec proofs are rebuilt), hence no `etc/land.sh`. Next: from the worktree holding the
+`.lake` (`agent-a6df7e3fe86988fc1`, now on `models-json-land`), `lake build`, then `etc/land.sh` (it
+lands all three), push `lean`, delete the merged branches (`models-rpc-http`, `models-rpc-http-lean`,
+`models-grpc`, `models-grpc-land`, `models-json`, `models-json-land`) and their worktrees.
+
 1. **net/rpc Lean half: land it.** Branch `models-rpc-http-lean` (origin, `a83b1c5a49`; on
    `models-rpc-http`'s Go half, merged with lean): translations compile; proved (no axiom): the frame
    codec, `readFull`/`readFrame`, the codec registry, `clientCodec.ReadResponseHeader`; collection
@@ -108,7 +125,7 @@ consumes an export, phase 3).
 - **Never `rm`** (it prompts the user and stalls the session): `git worktree remove [-f -f]`, `lake
   clean`, `go clean -cache`.
 - **One Lean build environment fits on the disk** (a `.lake` is 25-45 GB). Move it between worktrees
-  with `mv`, never copy. The built one is in `.claude/worktrees/agent-a9a5dda109e09fcc9` (at
+  with `mv`, never copy. The built one is in `.claude/worktrees/agent-a6df7e3fe86988fc1` since 2026-11-21 (moved from `agent-a9a5dda109e09fcc9`, built there at
   `b5b7ee6f58`).
 - **A notes-only landing must be notes-only against LOCAL `lean`** (`git diff --name-only lean HEAD`),
   or `etc/land.sh` runs the full gates and builds a 30 GB `.lake`. Local `lean` and `origin/lean`

@@ -1,0 +1,6 @@
+# The receivers of the net/rpc model's differential tests (rpc_test.go). The codec (codec/) is
+# generated from this by models/net/rpc/rpcgen.py:
+#   models/net/rpc/rpcgen.py models/internal/rpcdifftest/rpc.toml models/internal/rpcdifftest/codec --pkg codec
+[rpc]
+imports = { difftest = "models.lab/internal/rpcdifftest" }
+receivers = ["*difftest.Arith", "*difftest.NoMethods", "*difftest.Greeter"]

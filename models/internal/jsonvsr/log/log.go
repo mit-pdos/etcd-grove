@@ -1,0 +1,54 @@
+// Copied from go-vsr (github.com/tangledbytes/go-vsr, Apache License 2.0), the dsverify
+// verification fork at 215992d, pkg/log/log.go: as it is.
+// A test input of the encoding/json model: what the vsr-net kit sends over TCP as JSON
+// (../json.toml; the stream tests in ../../jsonstreamtest).
+
+package log
+
+type Log struct {
+	Data      string `json:"data"`
+	ClientID  uint64 `json:"client_id,string"`
+	RequestID uint64 `json:"request_id,string"`
+}
+
+type Logs []Log
+
+func NewLogs() Logs {
+	return make(Logs, 0)
+}
+
+func (l Logs) Len() int {
+	return len(l)
+}
+
+func (l *Logs) Add(log Log) {
+	*l = append(*l, log)
+}
+
+func (l Logs) OpAt(i int) string {
+	return (l)[i-1].Data
+}
+
+func (l Logs) ClientIDAt(i int) uint64 {
+	return (l)[i-1].ClientID
+}
+
+func (l Logs) RequestIDAt(i int) uint64 {
+	return (l)[i-1].RequestID
+}
+
+func (l *Logs) TruncateAfter(i int) {
+	*l = (*l)[:(i - 1)]
+}
+
+func (l *Logs) After(i int) Logs {
+	return (*l)[i:]
+}
+
+func (l *Logs) Merge(logs Logs) {
+	*l = append(*l, logs...)
+}
+
+func (l Logs) Last() Log {
+	return l[len(l)-1]
+}
