@@ -47,7 +47,7 @@ theorem readReq_agree (γ : RaftNames) (c : List w8) (L1 L2 : List EntryM) :
   exact congrArg Prod.snd H
 
 section inv
-variable [InvGS GF] [CrashGS GF]
+variable [InvGS GF]
 
 /-- Firing a read's update with both halves of the commit invariant open. -/
 theorem readAu_fire_open (γ : RaftNames) (Qr : List EntryM → IProp GF)
@@ -377,7 +377,7 @@ theorem doomed_intro (γ : RaftNames) (T t n : w64) (G : List EntryM) (a : w64) 
       exact ⟨Hwo.1, fun hT x hx => GMap.elem_of_union_l _ (Hwo.2 hT x hx)⟩
 
 section inv
-variable [InvGS GF] [CrashGS GF]
+variable [InvGS GF]
 
 /-- An index of a log past the leader's campaign log `l0` is in the leader's term-log authority
 `M`, hence at most `L` (2026-10-16, stage R8a): the index `z` (in range of `w64`) names an entry of
@@ -404,6 +404,7 @@ private theorem leadFrags_idx_le (γt : GName) (M : GMap w64 (EntryM × w64)) (l
   have Hw := Hwf _ _ He (by omega)
   ipureintro; omega
 
+variable [CrashGS GF] in
 /-- A log of the leader of `s.term` (`leadPrefix`) is within the leader's own log (2026-10-16,
 stage R8a, D11; the core of `ownLogGhost_within`, which takes the full log): the prefix names
 the leader's own term log (`isTermLog` against `leadLogOwn`'s entry), whose fragments are all in
@@ -461,6 +462,7 @@ theorem ownLogGhost_prefix_within (γ : RaftNames) (id : w64) (s : PState) (kl :
   iexists γm, terms, fp, γw, wins
   iframe % # ∗
 
+variable [CrashGS GF] in
 /-- A leader's current log is at least as long as every log of its term (`leadFull`): the
 entries it created are in its term log, whose indices are within its log
 (`leadLogOwn`). -/
@@ -494,6 +496,7 @@ theorem ownLogGhost_within (γ : RaftNames) (id : w64) (s : PState) (kl : Option
       simp only [List.length_cons]; push_cast at *; omega
   omega
 
+variable [CrashGS GF] in
 /-- What a leader has: its full log, with records, which extends its campaign log and is
 a `leadFull` of its term; and every log of its term is within it. -/
 theorem node_leader (γ : RaftNames) (id2 : w64) (ps2 : PState) :
@@ -651,6 +654,7 @@ theorem CampOk.term_nz {T : w64} {F : List EntryM} (H : CampOk T F) : T ≠ W64 
   rw [hT] at this
   exact Int.lt_irrefl _ this
 
+variable [CrashGS GF] in
 /-- A candidate's or a leader's term is nonzero (2026-10-10): it holds the record of its
 campaign at that term (`campOwn`), and a campaign does not wrap the term (`CampOk`).
 `Step` gives a leader's to `appendEntry` (through `stepLeader`), which stamps the
@@ -683,6 +687,7 @@ theorem ownRaftGhost_term_nz (γ : RaftNames) (id : w64) (s : PState) :
 
 /-! ### Arrival at the leader -/
 
+variable [CrashGS GF] in
 /-- The persistent facts of a node's log state the arrival needs. -/
 theorem ownLogGhost_commitIn (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : DurMaps) :
     ⊢ ownLogGhost (GF := GF) γ id s kl W -∗
@@ -709,6 +714,7 @@ private theorem plogTermAt_ones (L : List EntryM) (c : w64) :
   rw [He]
   simp only [Option.map_eq_map, Option.map_some, Hones e (List.mem_of_getElem? He)]
 
+variable [CrashGS GF] in
 /-- The commit index is past the bootstrap log (`ownLogGhost`'s conjunct, 2026-10-16). -/
 private theorem ownLogGhost_boot_commit (γ : RaftNames) (id : w64) (s : PState)
     (kl : Option w64) (W : DurMaps) :
@@ -718,6 +724,7 @@ private theorem ownLogGhost_boot_commit (γ : RaftNames) (id : w64) (s : PState)
   iNamed H
   ipureintro; exact Hboot
 
+variable [CrashGS GF] in
 /-- The case split at the leader's arrival: the global committed log `P` is justified by a
 commit at a term `t`; above `T` it dooms the request, at `T` it is the leader's own (at most
 its commit index), below `T` it is behind the leader's own committed entry of `T`. Since
@@ -823,6 +830,7 @@ theorem leaderWit_leader (γ : RaftNames) (id : w64) (s : PState) (h : s.role = 
     leaderWit (GF := GF) γ id s = isLeader γ id s.term := by
   unfold leaderWit; rw [h]
 
+variable [CrashGS GF] in
 /-- A request arriving at the leader of `T`, whose commit index is at an entry of `T`: it
 is recorded, read at the commit index, doomed or not. -/
 theorem ownRaftGhost_read_arrive (γ : RaftNames) (id : w64) (s : PState) (c : List w8)

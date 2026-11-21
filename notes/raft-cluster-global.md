@@ -107,3 +107,18 @@ no `HeapGS`, `StorageModel`, `go.Semantics` or package assumptions. Under `HeapG
 - **Risk:** a lemma stated under `HeapGS` that `iapply`s a law stated under `G` must unify the two
   instance paths for `InvGS`/`AllG`. They are reducible, but this must be checked on the first file
   (`InvApi`) before the rest.
+
+## (d) Decision (the coordinating session, 2026-11-21)
+
+Option 3, explicit node handles: the node-level predicates take an opaque `nh : NodeH` (the node's
+location and names; `nh.loc` for code values), which `StartNode`/`RestartNode` return, and the node
+table goes. Also the `GooseGlobalGS` sectioning of the shared predicates and allocation lemmas. The
+unification risk of (c) was checked on `InvApi` first: its `api` section moved to
+`[G : GooseGlobalGS]` with `gooseInvGS` as a local instance, and `InvNode`, `InvApiView` and
+`InvNodeRule` (lemmas under `HeapGS` over those definitions) built unchanged.
+
+Found while doing it: every raft file that declared `[CrashGS GF]` in its section variables (23
+files, from A) made all its lemmas take the instance, because Lean includes instance-implicit
+variables whose dependencies are included. `CrashGS` is local (per generation), so those lemmas could
+not be used at `GooseGlobalGS`. The fix: the variable lines no longer declare it, and the
+declarations that use the crash token take it with `variable [CrashGS GF] in`.

@@ -215,9 +215,8 @@ end uninames
 section api
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+variable {GF : BundledGFunctors} [G : GooseGlobalGS HasLC.hasLC GF]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-! ## The client's views of the committed log, and their laws -/
 
@@ -248,13 +247,11 @@ instance cmtFactsS_timeless (γ : Cluster) (l : List LogEntry) :
     Timeless (cmtFactsS (GF := GF) γ l) := by
   unfold cmtFactsS; infer_instance
 
-omit [StorageModel GF] sem package_sem in
 theorem cmtFacts_nil (γ : Cluster) : ⊢ cmtFacts (GF := GF) γ [] := by
   unfold cmtFacts
   isplitr; · ipureintro; intro e he; simp at he
   imodintro; iintro %k %e %h; simp at h
 
-omit [StorageModel GF] sem package_sem in
 theorem cmtFacts_take (γ : Cluster) (L : List EntryM) (n : Nat) :
     cmtFacts (GF := GF) γ L ⊢ cmtFacts γ (L.take n) := by
   unfold cmtFacts
@@ -269,7 +266,6 @@ theorem cmtFacts_take (γ : Cluster) (L : List EntryM) (n : Nat) :
     iapply H2 $$ %k %e %h
   · cases h
 
-omit [StorageModel GF] sem package_sem in
 theorem cmtFacts_snoc (γ : Cluster) (L : List EntryM) (e : EntryM) :
     CCDecodes e.Type' e.Data' →
     ⊢ cmtFacts (GF := GF) γ L -∗ ev2At γ.raft L e -∗ cmtFacts γ (L ++ [e]) := by
@@ -296,7 +292,6 @@ theorem cmtFacts_snoc (γ : Cluster) (L : List EntryM) (e : EntryM) :
     rw [List.take_left]
     iexact He
 
-omit [StorageModel GF] sem package_sem in
 theorem cmtFactsS_prefix (γ : Cluster) (L : List EntryM) (l : List LogEntry) (H : l <+: strip L) :
     cmtFacts (GF := GF) γ L ⊢ cmtFactsS γ l := by
   iintro #H
@@ -311,7 +306,6 @@ theorem cmtFactsS_prefix (γ : Cluster) (L : List EntryM) (l : List LogEntry) (H
     rw [← ht, List.take_left]
   iapply cmtFacts_take γ L l.length $$ H
 
-omit [StorageModel GF] sem package_sem in
 /-- (2026-10-29, stage U5) A bootstrap log's facts: `ConfChange`s that decode. -/
 theorem cmtFacts_bootOk (γ : Cluster) {ps : List w64} {L : List EntryM} (H : BootLogOk ps L) :
     ⊢ cmtFacts (GF := GF) γ L := by
@@ -355,7 +349,6 @@ instance ownCommittedOps_timeless (γ : Cluster) (ops : List LogEntry) :
     Timeless (ownCommittedOps (GF := GF) γ ops) := by
   unfold ownCommittedOps; infer_instance
 
-omit [StorageModel GF] sem package_sem in
 theorem ownCommittedOps_get_lb_impl (γ : Cluster) (ops : List LogEntry) :
     ownCommittedOps (GF := GF) γ ops ⊢
       ownCommittedOps γ ops ∗ ∃ l, isCommittedLogLb γ l ∗ ⌜opsOf l = ops⌝ := by
@@ -366,7 +359,6 @@ theorem ownCommittedOps_get_lb_impl (γ : Cluster) (ops : List LogEntry) :
   · iexists l; iframe Hl; ipureintro; exact Hops
   · iexists l; iframe Hl; ipureintro; exact Hops
 
-omit [StorageModel GF] sem package_sem in
 theorem ownCommittedOps_lb_prefix_impl (γ : Cluster) (ops l : List LogEntry) :
     ownCommittedOps (GF := GF) γ ops ∗ isCommittedLogLb γ l ⊢ ⌜opsOf l <+: ops⌝ := by
   unfold ownCommittedOps isCommittedLogLb
@@ -375,12 +367,10 @@ theorem ownCommittedOps_lb_prefix_impl (γ : Cluster) (ops l : List LogEntry) :
   icases mono_list_auth_lb_valid $$ Ha Hlb with %H
   ipureintro; exact H.2
 
-omit [StorageModel GF] sem package_sem in
 theorem isCommittedLogLb_nil_impl (γ : Cluster) : ⊢ isCommittedLogLb (GF := GF) γ [] := by
   unfold isCommittedLogLb
   ileft; ipureintro; rfl
 
-omit [StorageModel GF] sem package_sem in
 theorem isCommittedLogLb_mono_impl (γ : Cluster) (l1 l2 : List LogEntry) :
     l1 <+: l2 → isCommittedLogLb (GF := GF) γ l2 ⊢ isCommittedLogLb γ l1 := by
   intro Hp
@@ -398,7 +388,6 @@ theorem isCommittedLogLb_mono_impl (γ : Cluster) (l1 l2 : List LogEntry) :
   icases Hcf with ⟨%L, %HL, #Hc⟩
   iapply cmtFactsS_prefix γ L l1 (by rw [HL]; exact Hp) $$ Hc
 
-omit [StorageModel GF] sem package_sem in
 theorem isCommittedLogLb_agree_impl (γ : Cluster) (l1 l2 : List LogEntry) :
     isCommittedLogLb (GF := GF) γ l1 ∗ isCommittedLogLb γ l2 ⊢ ⌜l1 <+: l2 ∨ l2 <+: l1⌝ := by
   unfold isCommittedLogLb
@@ -415,9 +404,8 @@ end api
 section inv
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+variable {GF : BundledGFunctors} [G : GooseGlobalGS HasLC.hasLC GF]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- The adapter's invariant's namespace, beside raft's (`N .@ "raft"`). -/
 def apiN (N : Namespace) : Namespace := N .@ "api"
@@ -552,7 +540,6 @@ instance rdPool_persistent (γ : Cluster) (N : Namespace) :
     Persistent (rdPool (GF := GF) γ N) := by
   unfold rdPool; infer_instance
 
-omit [StorageModel GF] sem package_sem in
 private instance rdCred_timeless' (γ : RaftNames) (n : Nat) : Timeless (rdCred (GF := GF) γ n) := by
   unfold rdCred; infer_instance
 
@@ -638,9 +625,8 @@ end inv
 section ctx
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+variable {GF : BundledGFunctors} [G : GooseGlobalGS HasLC.hasLC GF]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **The read contexts, the client's**: the authority of `ctxs`, whose domain is `U`. -/
 def ownReadCtxs (γ : Cluster) (U : GSet (List w8)) : IProp GF :=
@@ -679,7 +665,6 @@ instance isReadCtx_persistent (γ : Cluster) (N : Namespace) (c : List w8)
     (Q : List LogEntry → IProp GF) : Persistent (isReadCtx (GF := GF) γ N c Q) := by
   unfold isReadCtx; infer_instance
 
-omit [StorageModel GF] sem package_sem in
 theorem readCtx_commit_after_impl (γ : Cluster) (N : Namespace) (U : GSet (List w8))
     (c : List w8) (Q : List LogEntry → IProp GF) (l0 : List LogEntry) :
     c ∉ U →
@@ -722,7 +707,6 @@ theorem readCtx_commit_after_impl (γ : Cluster) (N : Namespace) (U : GSet (List
   · iexists γq
     iframe Hel
 
-omit [StorageModel GF] sem package_sem in
 theorem readCtx_commit_impl (γ : Cluster) (N : Namespace) (U : GSet (List w8)) (c : List w8)
     (Q : List LogEntry → IProp GF) :
     c ∉ U →
@@ -851,9 +835,8 @@ end boot
 section alloc
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+variable {GF : BundledGFunctors} [G : GooseGlobalGS HasLC.hasLC GF]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- A set of distinct elements, as a list. -/
 theorem bigSepM_listToSet (Φ : w64 → IProp GF) (ps : List w64) (Hnd : ps.Nodup) :
@@ -1010,9 +993,8 @@ end alloc
 section facts
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+variable {GF : BundledGFunctors} [G : GooseGlobalGS HasLC.hasLC GF]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 theorem raftN_api (N : Namespace) {E : CoPset} (HE : ↑N ⊆ E) (x : String) :
     (↑((N .@ "raft") .@ x) : CoPset) ⊆ E \ ↑(apiN N) := by
@@ -1285,7 +1267,6 @@ theorem api_readStates (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N �
       readStateOk (GF := GF) γ N st.RequestCtx' st.Index')).2
     iframe H1 H
 
-omit [StorageModel GF] sem package_sem in
 theorem readStateOk_used_impl (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64)
     (U : GSet (List w8)) :
     readStateOk (GF := GF) γ N c idx ∗ ownReadCtxs γ U ⊢ ⌜c ∈ U⌝ := by
@@ -1481,9 +1462,8 @@ certificate namespace `N` (`RaftNames.reCertNs`: the conversion opens the adapte
 section cert
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+variable {GF : BundledGFunctors} [G : GooseGlobalGS HasLC.hasLC GF]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- (2026-10-28, stage U2) What raft's `snapAtOk` says of the committed prefix `L` of the
 snapshot `k`'s length, in a cluster that keeps a registry of the snapshots made: its last term is

@@ -36,7 +36,7 @@ open Iris Iris.BI GMap go_etcd_io.raft.v3
 
 section ghost
 variable [GooseExts]
-variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [CrashGS GF]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-! ### The log ghost state across a step -/
 
@@ -162,6 +162,7 @@ private theorem matchedOk_nl (γ : RaftNames) (id : w64) (s : PState) (fp : List
   · contradiction
   · rfl
 
+variable [CrashGS GF] in
 theorem ownLogGhost_upd (γ : RaftNames) (id : w64) (s s' : PState) (kl kl' : Option w64) (W : DurMaps) :
     (s'.role = .leader →
        s.role = .leader ∧ s'.term = s.term ∧
@@ -280,6 +281,7 @@ theorem ownLogGhost_upd (γ : RaftNames) (id : w64) (s s' : PState) (kl kl' : Op
   iexists γm, terms, fp', γw, wins
   iframe # ∗ <;> iframe %
 
+variable [CrashGS GF] in
 theorem ownLogGhost_recs (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : DurMaps) :
     ⊢ ownLogGhost (GF := GF) γ id s kl W -∗ ⌜LogOk s⌝ ∗ logRecs γ s.base s.log := by
   unfold ownLogGhost
@@ -288,6 +290,7 @@ theorem ownLogGhost_recs (γ : RaftNames) (id : w64) (s : PState) (kl : Option w
   isplitr; · ipureintro; exact Hlog_ok
   iexact Hrecs
 
+variable [CrashGS GF] in
 theorem ownLogGhost_wf (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : DurMaps) :
     ⊢ ownLogGhost (GF := GF) γ id s kl W -∗ ⌜PlogWf s.base s.log⌝ := by
   unfold ownLogGhost
@@ -295,6 +298,7 @@ theorem ownLogGhost_wf (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64
   iNamed H
   ipureintro; exact Hfull.2.1
 
+variable [CrashGS GF] in
 theorem ownLogGhost_matched (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : DurMaps) :
     ⊢ ownLogGhost (GF := GF) γ id s kl W -∗
       ∃ fp, ⌜FullOk s.base fp⌝ ∗ logRecs γ base0 fp ∗ matchedOk γ id s fp := by
@@ -305,6 +309,7 @@ theorem ownLogGhost_matched (γ : RaftNames) (id : w64) (s : PState) (kl : Optio
   isplitr; · ipureintro; exact Hfull.1
   iframe Hfrecs Hmatched
 
+variable [CrashGS GF] in
 theorem ownLogGhost_base (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : DurMaps) :
     ⊢ ownLogGhost (GF := GF) γ id s kl W -∗ baseOk γ s.base := by
   unfold ownLogGhost
@@ -312,6 +317,7 @@ theorem ownLogGhost_base (γ : RaftNames) (id : w64) (s : PState) (kl : Option w
   iNamed H
   iexact Hbase
 
+variable [CrashGS GF] in
 /-- The node's committed prefix, with the compacted prefix it is of. -/
 theorem ownLogGhost_cmt (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : DurMaps) :
     ⊢ ownLogGhost (GF := GF) γ id s kl W -∗
@@ -323,6 +329,7 @@ theorem ownLogGhost_cmt (γ : RaftNames) (id : w64) (s : PState) (kl : Option w6
   isplitr; · ipureintro; exact Hfull.1
   iframe Hfrecs Hcmt
 
+variable [CrashGS GF] in
 theorem ownLogGhost_inv (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : DurMaps) :
     ⊢ ownLogGhost (GF := GF) γ id s kl W -∗ raftCommitInv γ := by
   unfold ownLogGhost
@@ -358,6 +365,7 @@ theorem cprefix_app (fp : List EntryM) (s : PState) (es : List EntryM) :
   apply List.take_append_of_le_length
   omega
 
+variable [CrashGS GF] in
 /-- Learning the leader of the term, from one of its messages: the bound goes up to the
 term plus one. The caller supplies that the node is not in the winning quorum if it has
 not voted (`vote_excl`). -/
@@ -388,6 +396,7 @@ theorem ownLogGhost_learn (γ : RaftNames) (id : w64) (s : PState) (kl : Option 
   iexists γm, terms, fp, γw, wins
   iframe # ∗ <;> iframe %
 
+variable [CrashGS GF] in
 /-- The same, for a step that leaves the log alone. The caller says how the commit fact
 moves to the new commit index. -/
 theorem ownLogGhost_mono' (γ : RaftNames) (id : w64) (s s' : PState)
@@ -460,6 +469,7 @@ theorem ownLogGhost_mono' (γ : RaftNames) (id : w64) (s s' : PState)
     rw [Hlog]
     iapply hist_mono γ _ t i _ _ (KlStep_bnd s s' kl kl' Hkl) $$ Hh
 
+variable [CrashGS GF] in
 /-- The same, when `Match` and the commit index do not change either, at the same
 term ... -/
 theorem ownLogGhost_mono (γ : RaftNames) (id : w64) (s s' : PState) (kl : Option w64) (W : DurMaps) :
@@ -496,6 +506,7 @@ theorem ownLogGhost_mono (γ : RaftNames) (id : w64) (s s' : PState) (kl : Optio
     rw [Hcm, Hlog]
     iexact Hc
 
+variable [CrashGS GF] in
 /-- ... or at a higher term, where the known leader is forgotten. -/
 theorem ownLogGhost_mono_up (γ : RaftNames) (id : w64) (s s' : PState) (kl : Option w64) (W : DurMaps) :
     s'.log = s.log →
@@ -581,6 +592,7 @@ theorem ack_invs_insert (γ : RaftNames) (s : PState) (kl : Option w64)
     iintro %Hlt
     exact absurd Hlt (by simp only; omega)
 
+variable [CrashGS GF] in
 /-- A node acknowledges at its own term, with the justification `acksOk` asks of it and
 the history `histsOk` asks of it. (2026-10-31, durability stage I-1: the acknowledgement is a
 pending promise, added to the virtual maps; its fragment, behind theirs, is what its message
@@ -659,6 +671,7 @@ private theorem campOwn_l (γ : RaftNames) (id : w64) (camps : GMap w64 (List En
   unfold campOwn
   rw [H]
 
+variable [CrashGS GF] in
 /-- A leader's whole log is a log of the leader of its term, with its full log and the
 commit fact about it. -/
 theorem ownLogGhost_lead_full (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : DurMaps) :
@@ -710,6 +723,7 @@ theorem ownLogGhost_lead_full (γ : RaftNames) (id : w64) (s : PState) (kl : Opt
       iframe # ∗ <;> iframe %
     · iexact Hcown
 
+variable [CrashGS GF] in
 /-- A leader stepping down at its term (2026-10-14, stage B5: `StepR.stepDown`): its term
 log is dropped (`TermsOk`'s keys allow a non-candidate at its term); its acknowledgements of
 its term, within its log (`LeadAcksOk`), are justified by its own prefix. -/
@@ -811,6 +825,7 @@ theorem boot_term_le (γ : RaftNames) (F : List EntryM) (T : w64) :
   rw [show uint.Z (W64 1) = 1 from rfl] at this
   omega
 
+variable [CrashGS GF] in
 /-- The bootstrap log in a node's full log (2026-10-16, stage R8b, D12): the commit index is
 past it (`ownLogGhost`'s conjunct), so, with the records, it is a prefix of the full log, and a
 non-empty one puts the term at `≥ 1` (`TermsLe`). -/
@@ -839,6 +854,7 @@ theorem ownLogGhost_boot (γ : RaftNames) (id : w64) (s : PState) (kl : Option w
   isplitr; · ipureintro; exact ⟨Hf, Hbpre⟩
   iexact Hfrecs
 
+variable [CrashGS GF] in
 /-- `Step.campaign`, on the log ghost state: record the campaign log (the full log,
 unchanged since) and, for the self-vote, the vote-time log -- with the histories of
 every earlier acknowledgement; the new term has no known leader. (2026-10-31, durability stage
@@ -1045,6 +1061,7 @@ theorem ownLogGhost_campaign (γ : RaftNames) (id : w64) (s : PState) (kl : Opti
   iframe Hfrecs Hcommit
   ipureintro; exact ⟨Hf, rfl⟩
 
+variable [CrashGS GF] in
 /-- A first vote, on the log ghost state: record the vote-time log, which has the
 histories of all acknowledgements, at the node's bound -- the term, or the term plus one
 if it knows the term's leader. (2026-10-31, durability stage I-1: a pending `Prom.vote` for `c`,
@@ -1353,6 +1370,7 @@ theorem slotN_diff_crash (E : CoPset) (γ : RaftNames) (id : w64) :
   have h2 := nclose_subseteq (raftN γ .@ "crash") id p h
   exact ndot_ne_disjoint (raftN γ) (show "slot" ≠ "crash" by decide) p ⟨h1, h2⟩
 
+variable [CrashGS GF] in
 /-- **The slot's half of the virtual maps, used through its view** (2026-11-21, the crash invariant):
 the update `f` gets the piece, with the generation running (`notCrashed`), and gives it back. -/
 theorem cviewV_use (E : CoPset) (γ : RaftNames) (id : w64) (γs : SlotNames) (V : DurMaps)
@@ -1424,6 +1442,7 @@ theorem crashNs_diff_slot (E : CoPset) (γ : RaftNames) (id : w64) :
   have h2 := nclose_subseteq (raftN γ .@ "crash") id p hp
   exact ndot_ne_disjoint (raftN γ) (show "slot" ≠ "crash" by decide) p ⟨h1, h2⟩
 
+variable [CrashGS GF] in
 /-- **Opening the slot against the view of the node's virtual maps** (2026-11-21, the crash
 invariant: the slot's half is there, read with the generation running): `slot_open`, the crash
 invariant opened inside the slot's and closed again at once. -/
@@ -1507,6 +1526,7 @@ theorem durShares_camp (γ : RaftNames) (id : w64) (q : Qp) (E : DurMaps) (γc' 
   iframe Hv Ha Hc Hl He
   ipureintro; exact Hn
 
+variable [CrashGS GF] in
 /-- An entered campaign record, through the slot: it is in the virtual maps, and no campaign of
 its term is pending (`PromsFresh`). -/
 theorem slot_campK (Em : CoPset) (γ : RaftNames) (id : w64) (γs : SlotNames) (V : DurMaps)
@@ -1549,6 +1569,7 @@ theorem durShares_evs (γ : RaftNames) (id : w64) (q : Qp) (E : DurMaps) (γe' :
   iframe Hv Ha Hc Hl He
   ipureintro; exact Hn
 
+variable [CrashGS GF] in
 theorem ownLogGhost_acks_term (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : DurMaps) :
     ⊢ ownLogGhost (GF := GF) γ id s kl W -∗ ⌜AcksTerm s W.acks⌝ := by
   unfold ownLogGhost
@@ -1556,6 +1577,7 @@ theorem ownLogGhost_acks_term (γ : RaftNames) (id : w64) (s : PState) (kl : Opt
   iNamed H
   ipureintro; exact Hacks_term
 
+variable [CrashGS GF] in
 theorem ownLogGhost_acks_ok (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : DurMaps) :
     ⊢ ownLogGhost (GF := GF) γ id s kl W -∗ acksOk γ s W.acks := by
   unfold ownLogGhost
@@ -1565,6 +1587,7 @@ theorem ownLogGhost_acks_ok (γ : RaftNames) (id : w64) (s : PState) (kl : Optio
 
 /- A non-leader's own acknowledgement of its term above its commit index is justified by
 its log. -/
+variable [CrashGS GF] in
 /-- A node not yet voted in its term is in no winning quorum of it. (2026-10-31, durability R2:
 through the slot invariant's entered votes, which the virtual maps extend.) -/
 theorem vote_excl (E : CoPset) (γ : RaftNames) (id : w64) (s : PState) (γs : SlotNames)
@@ -1590,6 +1613,7 @@ theorem vote_excl (E : CoPset) (γ : RaftNames) (id : w64) (s : PState) (γs : S
     · imodintro; iframe Hnc Hv; ipureintro; exact fun _ => Hin
   · imodintro; iframe Hnc Hv; ipureintro; exact fun H => absurd H H0
 
+variable [CrashGS GF] in
 /-- A non-leader's own acknowledgement of its term above its commit index agrees with its log.
 (2026-10-31, durability R2: the fragment is an entered one, found through the slot.) -/
 theorem ownLogGhost_ack_agree (E : CoPset) (γ : RaftNames) (id : w64) (s : PState)

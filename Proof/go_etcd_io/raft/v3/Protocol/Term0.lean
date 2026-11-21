@@ -26,7 +26,7 @@ open Iris Iris.BI Iris.ProofMode GMap go_etcd_io.raft.v3
 
 section ghost
 variable [GooseExts]
-variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [CrashGS GF]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-- **A record's term is at least `1`**, in every cluster: a leader's term is its campaign's,
 nonzero; a boot entry's is `1`. -/
@@ -44,6 +44,7 @@ theorem isEntryR_term_one (γ : RaftNames) (e : EntryM) (pt : w64) :
     obtain ⟨-, -, Ht, -⟩ := Hb
     rw [Ht]; word
 
+variable [CrashGS GF] in
 /-- **At term `0` a node's log is empty**: its boundary is the initial one, its suffix empty. -/
 theorem ownLogGhost_term0 (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : DurMaps) :
     ⊢ ownLogGhost (GF := GF) γ id s kl W -∗
