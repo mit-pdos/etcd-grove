@@ -9,6 +9,7 @@ public import GeneratedProof.go_uber_org.zap.internal.pool
 public import GeneratedProof.go_uber_org.zap.zapcore
 public import Perennial.GeneratedProof.io
 public import Perennial.GeneratedProof.sync.atomic
+public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.go_uber_org.zap
 
@@ -22,44 +23,6 @@ namespace Perennial
 open Iris Iris.BI
 noncomputable section
 namespace go_uber_org.zap
-
-namespace durations
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_uber_org.zap.Assumptions]
-
-noncomputable instance durations_typed_pointsto :
-    TypedPointsto (GF := GF) go_uber_org.zap.durations :=
-  sorry -- axiomatized type
-
-noncomputable instance durations_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.durations go_uber_org.zap.durations.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end durations
-
-namespace times
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_uber_org.zap.Assumptions]
-
-noncomputable instance times_typed_pointsto :
-    TypedPointsto (GF := GF) go_uber_org.zap.times :=
-  sorry -- axiomatized type
-
-noncomputable instance times_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.times go_uber_org.zap.times.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end times
 
 namespace SamplingConfig
 section def_

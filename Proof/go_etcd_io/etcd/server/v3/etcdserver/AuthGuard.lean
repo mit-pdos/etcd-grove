@@ -249,7 +249,7 @@ theorem srvAuthAt_of_views (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   iunfold isServerRead at Hr
   icases Hr with ⟨%vr, Hr⟩
   iunfold srvReadFieldsAt at Hr
-  icases Hr with ⟨-, -, -, -, -, -, -, #Has2, #Hast, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hrb⟩
+  icases Hr with ⟨-, -, -, -, -, -, -, #Has2, #Hast, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hrb, -⟩
   icombine Has Has2 gives %Heq
   ihave #Hreq' : isReqAuth vr.auth E.RD $$ []
   · rw [← Heq]; iexact Hreq

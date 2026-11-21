@@ -4,6 +4,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Net
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.MonitorsOn
 
 @[expose] public section
@@ -29,13 +30,16 @@ until it succeeds or `stopping` is closed). It proposes, through `s.raftRequest`
 then the contract took only the package's initialization, and its proposals were outside the
 model). On success it closes `s.readych` (`close(s.readych)`), with the right to (`srvReadyCloser`,
 2026-10-23: until then the contract closed a channel it did not own). (2026-11-02, the cluster-rows
-stage: its requests name the server's own id, `s.MemberID()`, `monitorReq lid`.) -/
+stage: its requests name the server's own id, `s.MemberID()`, `monitorReq lid`.) (srvloops2, 2026-11-21, bounds B2 for `lgMu`) With
+`GoAttach`'s pool of `s.lgMu` reader slots (`raftPool (srvLgReader s)`, `srvGoAttachOk`'s, persistent) and a
+level-1 token (`levelTok 1`, given back), with which `Logger()` borrows a slot for its read lock (until then
+`Logger()` read-locked without one: what the spec now rules out). -/
 abbrev EtcdServer.publishV3.spec : Prop :=
   ∀ (on : Bool) (s : Loc) (d : _root_.Perennial.time.Duration) (E : apply.AEnv GF) (ρ : ReqNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvMonitorPermitM on s E ρ ∗ srvReadyCloser s }}
+      srvMonitorPermitM on s E ρ ∗ srvReadyCloser s ∗ raftPool (srvLgReader s) ∗ levelTok 1 }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"publishV3")) (Val #d))
-  {{ RET #(); True }}
+  {{ RET #(); levelTok 1 }}
 
 end spec
 

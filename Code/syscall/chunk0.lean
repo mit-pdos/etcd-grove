@@ -1550,7 +1550,8 @@ opaque MAP_NONBLOCK [GooseExts] [GoGlobalContext] : val
 
 opaque MAP_NORESERVE [GooseExts] [GoGlobalContext] : val
 
-opaque MAP_POPULATE [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def MAP_POPULATE [GooseExts] [GoGlobalContext] : val :=
+  #(32768 : Int)
 
 opaque MAP_PRIVATE [GooseExts] [GoGlobalContext] : val
 

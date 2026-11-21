@@ -3,6 +3,9 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import ManualProof.hash.crc32
+public import GeneratedProof.hash
+public import Perennial.GeneratedProof.sync
+public import Perennial.GeneratedProof.sync.atomic
 public import Perennial.Golang.Theory
 public import Code.hash.crc32
 

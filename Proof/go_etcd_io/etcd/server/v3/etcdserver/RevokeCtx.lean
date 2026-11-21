@@ -12,7 +12,7 @@ pools backed by thread tokens (`threadPool.isThreadPoolL`), borrowed with one le
 | 0 | a started goroutine's slot in `s.wg` (`goAttachInv`) |
 | 1 | `wg.Add`'s pending token; `raftPool` (`lgMu`) |
 | 2 | the outer pool `B` (`wgMu` ∗ `read.mux`); the inner pool `I` (`leadTimeMu` ∗ `E.RD`; per-type stage B: moved from 1, so that a gRPC run holds `raftPool` and `I` at once) |
-| 3 | `ensureLeadership`'s token; (per-type stage B) the gRPC run pool |
+| 3 | `ensureLeadership`'s token (`tickMu`'s pool at level 3, `rnTickPool`; srvloops2); (per-type stage B) the gRPC run pool |
 
 Levels 0–1 exist at every thread bound; levels 2–3 need `srvRevokeLevels` (`srvRevokeK` levels,
 `RevokeLevels.lean`), which only the revocable run configuration carries (`lease.runCfg`,

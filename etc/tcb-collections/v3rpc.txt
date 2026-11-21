@@ -60,7 +60,6 @@ axiom grpc_prometheus.NewServerMetrics.wp_proof
 axiom grpc_prometheus.ServerMetrics.InitializeMetrics.wp_proof
 axiom grpc_prometheus.ServerMetrics.StreamServerInterceptor.wp_proof
 axiom grpc_prometheus.ServerMetrics.UnaryServerInterceptor.wp_proof
-axiom grpc_prometheus.WithServerHandlingTimeHistogram.wp_proof
 axiom health.NewServer.wp_proof
 axiom health.Server.SetServingStatus.wp_proof
 axiom lease.lessor.Renew.wp_proof
@@ -68,9 +67,6 @@ axiom leasehttp.RenewHTTP.wp_proof
 axiom metadata.FromIncomingContext.wp_proof
 axiom mvcc.ReportEventReceived.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof
-axiom mvcc.kvHasher.Hash.wp_proof
-axiom mvcc.kvHasher.WriteKeyValue.wp_proof
-axiom mvcc.newKVHasher.wp_proof
 axiom os.Getenv.wp_proof
 axiom otelgrpc.NewServerHandler.wp_proof
 axiom pbAuthEnableRequestT_reg
@@ -84,7 +80,6 @@ axiom pbAuthUserAddResponseT_reg
 axiom pbAuthUserGrantRoleRequestT_reg
 axiom pbAuthUserGrantRoleResponseT_reg
 axiom promSrvMetrics
-axiom promSrvMetricsOpt
 axiom promSrvMetrics_persistent
 axiom prometheus.CounterVec.WithLabelValues.wp_proof
 axiom prometheus.HistogramVec.WithLabelValues.wp_proof
