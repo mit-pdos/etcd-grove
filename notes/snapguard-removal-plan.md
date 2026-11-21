@@ -1,5 +1,21 @@
 # Removing the merged snapshot's index guard (plan, 2026-11-20)
 
+## Original send term across Ready batches
+
+The raw node records each queued snapshot's committed index and the term at
+which it was stamped. A successful restore answers with an append response
+and requires an index above the old commit. It therefore cannot create a
+new restore at the index of an already queued snapshot. Elections, ticks,
+configuration changes and Advance preserve this fact. At handout the proof
+matches the concrete message to its member of the protocol outbox.
+
+`readySnapSources_le` compares the restored snapshot with the applying
+Ready in the message's own term, even if its sending Ready drained the
+message in a later term. The storage case still returns the caller's storage
+tag. For the server, creation and bootstrap can supply the applied-index
+lower bound. Installation from a snapshot Ready needs that Ready's restore
+evidence and its position in the driver's batch sequence.
+
 ## 2026-11-20 · the Ready history and the remaining send-time obligation
 
 The main linked proof passes with a monotone restore history on each RawNode.

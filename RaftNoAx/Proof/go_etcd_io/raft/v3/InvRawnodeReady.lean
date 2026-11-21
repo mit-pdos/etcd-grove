@@ -797,6 +797,45 @@ theorem ksnCerts_of_link (γ : RaftNames) (sn : StorNames) (ks : List SnapTrip)
   imod ksnCerts_of_ok γ sn ks E hE $$ Hl Hs with #Hr
   imodintro; iright; iexact Hr
 
+/-- Every concrete queue member has its corresponding protocol message in the outbox. -/
+theorem outboxRelP_member {o : List Msg} {ms1 ms2 : List QMsg} {q : QMsg}
+    (Hp : outboxRelP o ms1 ms2) (Hq : q ∈ ms1 ++ ms2) :
+    ∃ a, msgAbs q.st a ∧ ∀ x ∈ a.toList, x ∈ o := by
+  obtain ⟨as1, as2, Ho, Hf1, Hf2⟩ := Hp
+  have hsub : ∀ (l : List QMsg) (as_ : List (Option Msg)),
+      List.Forall₂ (fun q a => msgAbs q.st a) l as_ → q ∈ l →
+      ∃ a, msgAbs q.st a ∧ ∀ x ∈ a.toList, x ∈ absList as_ := by
+    intro l as_ hf hm
+    induction hf with
+    | nil => cases hm
+    | @cons q' a' l' as' ha hf ih =>
+      rcases List.mem_cons.1 hm with rfl | hm
+      · refine ⟨a', ha, fun x hx => ?_⟩
+        cases a' with
+        | none => cases hx
+        | some y =>
+          simp only [Option.toList_some, List.mem_singleton] at hx
+          subst hx; simp [absList]
+      · obtain ⟨a, h1, h2⟩ := ih hm
+        refine ⟨a, h1, fun x hx => ?_⟩
+        have := h2 x hx
+        cases a' <;> simp_all [absList]
+  rcases List.mem_append.1 Hq with hm | hm
+  · obtain ⟨a, h1, h2⟩ := hsub ms1 as1 Hf1 hm
+    exact ⟨a, h1, fun x hx => Ho.symm.subset (List.mem_append_left _ (h2 x hx))⟩
+  · obtain ⟨a, h1, h2⟩ := hsub ms2 as2 Hf2 hm
+    exact ⟨a, h1, fun x hx => Ho.symm.subset (List.mem_append_right _ (h2 x hx))⟩
+
+theorem outboxRelP_snapshot {o : List Msg} {ms1 ms2 : List QMsg} {q : QMsg} {sv : SnapshotM}
+    (Hp : outboxRelP o ms1 ms2) (hq : q ∈ ms1 ++ ms2) (ht : q.st.msg.Type' = MsgSnap)
+    (hsv : q.st.snap = some sv) : absSnap q.st.msg sv sv.Metadata'.ConfState'.lists ∈ o := by
+  obtain ⟨a, ha, hin⟩ := outboxRelP_member Hp hq
+  rcases ha with ⟨hn, -⟩ | ⟨ty, hty, hne, -⟩ | ⟨sv', -, hv, rfl⟩
+  · rw [ht, mtypeOf_MsgSnap] at hn; cases hn
+  · rw [ht, mtypeOf_MsgSnap] at hty; cases hty; exact False.elim (hne rfl)
+  · cases hv.symm.trans hsv
+    exact hin _ (by simp)
+
 /-- A queued message's contribution is in the outbox, so it was legitimately sent
 (`isRaftMsg`, 2026-10-16): what `readyWithoutAccept` says of the messages it hands out, and
 `acceptReady` of the self-addressed responses it queues. (D22 S-b′3) With its certificate
@@ -816,32 +855,7 @@ theorem outboxRelP_isRaftMsg (γ : RaftNames) (id : w64) (s : NState) (o : List 
     -- (restart S7.3, 2026-11-14) a `MsgSnap` not to the node (`send`'s panic)
     (Hsn : SnapNotSelf id q.st) :
     ([∗list] x ∈ o, isMessage (GF := GF) γ x) ⊢ qCert γ q -∗ xfW γ s -∗ isRaftMsg γ id q.st := by
-  obtain ⟨as1, as2, Ho, Hf1, Hf2⟩ := Hp
-  have Hex : ∃ a, msgAbs q.st a ∧ ∀ x ∈ a.toList, x ∈ o := by
-    have hsub : ∀ (l : List QMsg) (as_ : List (Option Msg)),
-        List.Forall₂ (fun q a => msgAbs q.st a) l as_ → q ∈ l →
-        ∃ a, msgAbs q.st a ∧ ∀ x ∈ a.toList, x ∈ absList as_ := by
-      intro l as_ hf hm
-      induction hf with
-      | nil => cases hm
-      | @cons q' a' l' as' ha hf ih =>
-        rcases List.mem_cons.1 hm with rfl | hm
-        · refine ⟨a', ha, fun x hx => ?_⟩
-          cases a' with
-          | none => cases hx
-          | some y =>
-            simp only [Option.toList_some, List.mem_singleton] at hx
-            subst hx; simp [absList]
-        · obtain ⟨a, h1, h2⟩ := ih hm
-          refine ⟨a, h1, fun x hx => ?_⟩
-          have := h2 x hx
-          cases a' <;> simp_all [absList]
-    rcases List.mem_append.1 Hq with hm | hm
-    · obtain ⟨a, h1, h2⟩ := hsub ms1 as1 Hf1 hm
-      exact ⟨a, h1, fun x hx => Ho.symm.subset (List.mem_append_left _ (h2 x hx))⟩
-    · obtain ⟨a, h1, h2⟩ := hsub ms2 as2 Hf2 hm
-      exact ⟨a, h1, fun x hx => Ho.symm.subset (List.mem_append_right _ (h2 x hx))⟩
-  obtain ⟨a, Ha, Hin⟩ := Hex
+  obtain ⟨a, Ha, Hin⟩ := outboxRelP_member Hp Hq
   have Hnsnap : γ.reNoSnap = true → q.st.msg.Type' ≠ MsgSnap := by
     intro hns hty
     rcases Ha with ⟨Hn, -⟩ | ⟨ty', Hty', Hne, -⟩ | ⟨sv, -, -, rfl⟩
@@ -930,32 +944,7 @@ theorem outboxRelP_isRaftMsg_gen (γ : RaftNames) (id : w64) (s : NState) (o : L
     -- (restart S7.3, 2026-11-14) a `MsgSnap` not to the node (`send`'s panic)
     (Hsn : SnapNotSelf id q.st) :
     ([∗list] x ∈ o, R x) ⊢ qCert γ q -∗ xfW γ s -∗ isRaftMsg γ id q.st := by
-  obtain ⟨as1, as2, Ho, Hf1, Hf2⟩ := Hp
-  have Hex : ∃ a, msgAbs q.st a ∧ ∀ x ∈ a.toList, x ∈ o := by
-    have hsub : ∀ (l : List QMsg) (as_ : List (Option Msg)),
-        List.Forall₂ (fun q a => msgAbs q.st a) l as_ → q ∈ l →
-        ∃ a, msgAbs q.st a ∧ ∀ x ∈ a.toList, x ∈ absList as_ := by
-      intro l as_ hf hm
-      induction hf with
-      | nil => cases hm
-      | @cons q' a' l' as' ha hf ih =>
-        rcases List.mem_cons.1 hm with rfl | hm
-        · refine ⟨a', ha, fun x hx => ?_⟩
-          cases a' with
-          | none => cases hx
-          | some y =>
-            simp only [Option.toList_some, List.mem_singleton] at hx
-            subst hx; simp [absList]
-        · obtain ⟨a, h1, h2⟩ := ih hm
-          refine ⟨a, h1, fun x hx => ?_⟩
-          have := h2 x hx
-          cases a' <;> simp_all [absList]
-    rcases List.mem_append.1 Hq with hm | hm
-    · obtain ⟨a, h1, h2⟩ := hsub ms1 as1 Hf1 hm
-      exact ⟨a, h1, fun x hx => Ho.symm.subset (List.mem_append_left _ (h2 x hx))⟩
-    · obtain ⟨a, h1, h2⟩ := hsub ms2 as2 Hf2 hm
-      exact ⟨a, h1, fun x hx => Ho.symm.subset (List.mem_append_right _ (h2 x hx))⟩
-  obtain ⟨a, Ha, Hin⟩ := Hex
+  obtain ⟨a, Ha, Hin⟩ := outboxRelP_member Hp Hq
   have Hnsnap : γ.reNoSnap = true → q.st.msg.Type' ≠ MsgSnap := by
     intro hns hty
     rcases Ha with ⟨Hn, -⟩ | ⟨ty', Hty', Hne, -⟩ | ⟨sv, -, -, rfl⟩
@@ -1705,7 +1694,7 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     Hstor Hpvoff rfl rfl
     (Int.le_refl _) ⟨Hrnfl.1, fun h => absurd Hrnfl.2 (Int.not_le.2 h)⟩ Hloan.1
     Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hlc Hsloc Hhist [Hledger] [Hdur] [Hrntr]
-  · unfold restoreLedger; iexact Hledger
+  · unfold restoreLedger restoreClock queuedRestoreTerms; iexact Hledger
   · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) $$ Hdur
   · iapply rnTrace_congr γ _ id c (s := s) (s' := s') rfl rfl rfl rfl rfl $$ Hrntr
 
@@ -2285,6 +2274,8 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
   imod restoreLedger_ready γ id rs.sn s $$ Hledger with ⟨Hledger, #Hmark⟩
   icases (entails_wand (persistent_entails_left (restoreLedger_send_all γ id rs.sn s)))
     $$ Hledger with ⟨Hledger, #Htimed⟩
+  icases (entails_wand (persistent_entails_left (restoreLedger_outbox γ id rs.sn s)))
+    $$ Hledger with ⟨Hledger, #Hqueued⟩
   ihave Hlog : ownRaftLog s.log s.logst $$ [Hlog]
   · iExactEq Hlog; rfl
   -- (2026-10-18, D19b stage 5) the indices handed out, from the log and the ghost state
@@ -2348,6 +2339,13 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
     · ipureintro; exact hMax
     rw [Htrm]
     iframe Hmark Htimed
+    isplitr
+    · iintro %q %hq %sv %hs %k %hk
+      have hm := outboxRelP_snapshot Houtbox (Hmslen.subset (List.mem_append_left _ hq)) hs.1 hs.2
+      iunfold queuedRestoreTerms at Hqueued
+      icases Hqueued $$ %_ %hm %(by rfl) with ⟨-, #Hterms⟩
+      ihave #Hterm := Hterms $$ %k %hk
+      iExactEq Hterm; rfl
     rw [Hstor.2, Hgh_unst.1.2.2]
     iapply qSrcs_sub s.gh.sn (ms1 ++ ms2) ms
       (fun q hq => Hmslen.subset (List.mem_append_left _ hq)) (· ∈ s.logst.ksn) $$ Hscert

@@ -41266,3 +41266,10 @@ Startup allocates each incarnation’s history. A successful snapshot restore re
 ### Bounding restored snapshots at Ready handout (2026-11-20)
 
 Keep the restore-index bound in Raft's log invariant. The bound starts at the initial log boundary and follows each accepted restore. At Ready handout, the committed prefix delivered by the batch covers that boundary. Record the hard-state term and this bound together, so the server can compare an observed batch against a snapshot from the same leader term. A message drained in a later term still needs the certificate from its original send.
+
+### Snapshots queued across a term change (2026-11-20)
+
+Record the term on the outgoing message. The proof uses the sender's commit
+bound and the strict commit check at each successful incoming restore to
+preserve that attribution until Ready drains the outbox. The receiver may
+compare a batch in the message's term even if the draining batch is later.

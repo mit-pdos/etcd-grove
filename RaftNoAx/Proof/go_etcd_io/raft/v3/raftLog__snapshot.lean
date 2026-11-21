@@ -69,7 +69,9 @@ theorem raftLog.snapshot.wp_proof
     isplitr
     · ipureintro
       exact ⟨by simp, Hk, Happlied.1, plogTermAt_base _ _⟩
-    iapply ksnCerts_mem _ _ _ Hk $$ Hkcert
+    iunfold logRestoreCerts at Hkcert
+    icases Hkcert with ⟨#Hcerts, -⟩
+    iapply ksnCerts_mem _ _ _ Hk $$ Hcerts
   | none =>
     -- `l.unstable.snapshot` is `null`: the `Storage`'s
     ihave %Hnosnap := (ownSnap_None _).1 $$ Husnap

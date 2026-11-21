@@ -305,7 +305,7 @@ theorem RawNode.Step.traced
       ihave #Hhist' := restoredSnapHistory_keep γ id Hsd $$ Hhist
       ihave Hledger' := restoreLedger_keep γ id rs.sn (s := s) (s' := s')
         (by first | exact Href.voteLe.1 | exact Hcv.1.voteLe.1 | exact Hvr.1 | omega)
-        (logStoreRec_ksn Hsd) $$ Hledger
+        (logStoreRec_ksn Hsd) (by first | exact Href.commit_mono | exact Hcv.commit | exact Hc) (by first | exact Href.snapQueue | exact Hcv.queue | exact Hcv.1.snapQueue) $$ Hledger
       ihave #Hsloc' : snapLocOk γ id s'.logst.snap $$ []
       · rw [Hsn]; iexact Hsloc
       -- (slice 25n) the capability back, idle at the end state
@@ -557,7 +557,7 @@ theorem wp_rn_raft_Step_prop_traced (wp_raft_Step : raft.Step.spec (GF := GF) (h
   ihave #Hhist' := restoredSnapHistory_keep γ id Hfr'.2.2.2.2.2.1 $$ Hhist
   ihave Hledger' := restoreLedger_keep γ id rs.sn (s := s) (s' := s')
     (by first | exact Href.voteLe.1 | exact Hcv.1.voteLe.1 | exact Hvr.1 | omega)
-    (logStoreRec_ksn Hfr'.2.2.2.2.2.1) $$ Hledger
+    (logStoreRec_ksn Hfr'.2.2.2.2.2.1) (by first | exact Href.commit_mono | exact Hcv.commit | exact Hc) (by first | exact Href.snapQueue | exact Hcv.queue | exact Hcv.1.snapQueue) $$ Hledger
   ihave #Hsloc' := snapLocOk_keep γ id (.inl Hfr'.2.2.2.1) $$ Hsloc
   -- (slice 25n) the capability back, idle at the end state
   have Hgh' : s'.gh = s.gh := Hfr'.2.2.2.2.2.2.2.2.1
