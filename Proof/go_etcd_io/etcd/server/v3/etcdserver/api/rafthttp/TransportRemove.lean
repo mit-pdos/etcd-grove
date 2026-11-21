@@ -191,7 +191,7 @@ theorem rafthttp.Transport.removePeer_core
     iapply HΦ
     iframe Hp Hpm Hg
     iunfold trStats; iexists ls; iframe #
-    iunfold v2stats.lsFollowers; iexists fm, _; iframe #; iframe
+    iunfold v2stats.lsFollowers; iexists fm, _; iframe Hfmm; iframe #
     isplitr
     · ipureintro
       intro k v hk

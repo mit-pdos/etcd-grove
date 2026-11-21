@@ -86,8 +86,8 @@ theorem v2stats.LeaderStats.Follower.wp_proof :
     isplitr
     · iexact Hnew'
     iunfold v2stats.lsFollowers
-    iexists fm, _
-    iframe #; iframe
+    iexists fm, (<[name := «$r0_ptr»]>FM)
+    iframe Hm; iframe Hf
     isplitr
     · ipureintro
       intro k v h
