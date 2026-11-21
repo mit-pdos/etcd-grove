@@ -4,8 +4,10 @@ module
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.bytes
 public import Perennial.GeneratedProof.encoding.binary
+public import GeneratedProof.github_com.Masterminds.semver.v3
 public import GeneratedProof.go_etcd_io.etcd.api.v3.authpb
 public import GeneratedProof.go_etcd_io.etcd.api.v3.etcdserverpb
+public import GeneratedProof.go_etcd_io.etcd.api.v3.version
 public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.verify
 public import GeneratedProof.go_etcd_io.etcd.server.v3.auth
 public import GeneratedProof.go_etcd_io.etcd.server.v3.lease.leasepb
@@ -582,12 +584,50 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
 noncomputable instance migrationStep_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.schema.migrationStep :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.schema.migrationStep where
+  typedPointstoDef l v dq := iprop(
+    "target" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.migrationStep go!"target" l) v.target' dq ∗
+    "actions" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.migrationStep go!"actions" l) v.actions' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance migrationStep_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.schema.migrationStep go_etcd_io.etcd.server.v3.storage.schema.migrationStep.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.schema.migrationStep go_etcd_io.etcd.server.v3.storage.schema.migrationStep.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance migrationStep_access_load_target (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.migrationStep) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.migrationStep go!"target" l) v.target' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.migrationStep go!"target" l) v.target' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance migrationStep_access_store_target (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.migrationStep) (target' : github_com.Masterminds.semver.v3.Version) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.migrationStep go!"target" l) v.target' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.migrationStep go!"target" l) target' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with target' := target' } : go_etcd_io.etcd.server.v3.storage.schema.migrationStep) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance migrationStep_access_load_actions (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.migrationStep) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.migrationStep go!"actions" l) v.actions' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.migrationStep go!"actions" l) v.actions' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance migrationStep_access_store_actions (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.migrationStep) (actions' : go_etcd_io.etcd.server.v3.storage.schema.ActionList) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.migrationStep go!"actions" l) v.actions' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.migrationStep go!"actions" l) actions' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with actions' := actions' } : go_etcd_io.etcd.server.v3.storage.schema.migrationStep) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end migrationStep

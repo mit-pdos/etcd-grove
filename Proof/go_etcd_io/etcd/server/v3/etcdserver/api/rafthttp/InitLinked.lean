@@ -20,7 +20,7 @@ public import Proof.github_com.Masterminds.semver.v3.Init
 public import Proof.github_com.dustin.go_humanize.Init
 public import Proof.github_com.prometheus.client_golang.prometheus.Init
 public import Proof.github_com.xiang90.probing.Init
-public import Proof.go_etcd_io.etcd.api.v3.version.Init
+public import Proof.go_etcd_io.etcd.api.v3.version.InitLinked
 public import Proof.go_etcd_io.etcd.client.pkg.v3.transport.InitLinked
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.httputil.Init
