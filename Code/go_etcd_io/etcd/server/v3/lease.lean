@@ -1404,6 +1404,172 @@ noncomputable def lessor.Leases.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le")))) (Val #()))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType Lease.ty))))) (Var "$res0"))))))
 
+/-- go: lessor.go:480:19 -/
+noncomputable def lessor.Promote.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "le"
+  (Lam "extend"
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "le" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType lessor.ty)))) (Var "le"))
+  (Let "extend" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "extend"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType lessor.ty) go!"unsafeLeases"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le"))) (Val #()))
+  (Let "leases" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType Lease.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType Lease.ty))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Lease.ty) go!"Remaining"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType Lease.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType Lease.ty))))) (Var "leases")) (Val #(W64 0)))))) (Val #()))
+  (Let "baseWindow" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "baseWindow")) (Val #(W64 1000000000))))
+  (Let "nextWindow" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 0))
+  (Let "expires" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoDiv go.int))) (Pair (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (Val #(W64 3)) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"leaseRevokeRate"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le")))))) (Val #(W64 4))))
+  (Let "targetExpiresPerSecond" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType Lease.ty))))) (Var "leases"))
+  (Let "l" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Lease.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Lease.ty)))) (Val #())))
+  (App (App (Val (slice.forRange (go.GoType.PointerType Lease.ty))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Lease.ty) go!"Remaining"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l"))) (Val #()))
+  (Let "remaining" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoMul go.float64))) (Pair (App (Val (GoInstruction (Convert _root_.Perennial.time.Duration.ty go.float64))) (Val #(W64 1000000000))) (App (Val (GoInstruction (GoOp GoDiv go.float64))) (Pair (App (Val (GoInstruction (Convert go.int go.float64))) (App (Val (GoInstruction (GoLoad go.int))) (Var "expires"))) (App (Val (GoInstruction (Convert go.int go.float64))) (App (Val (GoInstruction (GoLoad go.int))) (Var "targetExpiresPerSecond")))))))
+  (Let "rateDelay" (App (Val (GoInstruction (GoAlloc go.float64))) (App (Val (GoInstruction (GoZeroVal go.float64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.float64 _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoLoad go.float64))) (Var "rateDelay")))
+  (Let "delay" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "baseWindow")) (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "delay"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc LeaseWithTime.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad LeaseID.ty))) (App (Val (GoInstruction (StructFieldRef Lease.ty go!"ID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l"))))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (StructFieldRef Lease.ty go!"expiry"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l"))))
+  (App (Val (GoInstruction (CompositeLiteral LeaseWithTime.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"id")) (ElementExpression LeaseID.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"time")) (ElementExpression _root_.Perennial.time.Time.ty (Var "$v1")))])))))
+  (Let "item" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType LeaseWithTime.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType LeaseWithTime.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType lessor.ty) go!"scheduleCheckpointIfNeeded"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le"))) (Var "$a0"))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaseWithTime.ty)))) (Var "item"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType LeaseExpiredNotifier.ty) go!"RegisterOrUpdate"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaseExpiredNotifier.ty)))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"leaseExpiredNotifier"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le"))))) (Var "$a0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType LeaseWithTime.ty)))) (Pair (Var "item") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "delay")) (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "extend"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Lease.ty) go!"refresh"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l"))) (Var "$a0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "nextWindow") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "delay") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.float64))) (Pair (Var "rateDelay") (App (Val (GoInstruction (GoOp GoSub go.float64))) (Pair (App (Val (GoInstruction (GoLoad go.float64))) (Var "rateDelay")) (App (Val (GoInstruction (Convert _root_.Perennial.time.Duration.ty go.float64))) (App (Val (GoInstruction (GoOp GoSub _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "remaining")) (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "baseWindow")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.float64))) (Pair (Var "rateDelay") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "expires")) (App (Val (GoInstruction (GoLoad go.int))) (Var "targetExpiresPerSecond")))))
+  (App (Val doContinue) (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "expires") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "expires")) (Val #(W64 1))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "remaining")) (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "nextWindow")))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "remaining"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "baseWindow")) (Val #(W64 1000000000))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 1))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doContinue) (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "expires") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "nextWindow") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "baseWindow") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "remaining") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Lease.ty)))) (Pair (Var "l") (Var "$value"))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "targetExpiresPerSecond") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "expires") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "nextWindow") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "baseWindow") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert leasesByExpiry.ty _root_.Perennial.sort.Interface.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType Lease.ty))))) (Var "leases")))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.«Sort» []))) (Val #())) (Var "$a0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType Lease.ty))))) (Pair (Var "leases") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType LeaseID.ty (go.GoType.PointerType Lease.ty))))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"leaseMap"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.MapType LeaseID.ty (go.GoType.PointerType Lease.ty))]))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"leaseRevokeRate"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le")))))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType LeaseID.ty (go.GoType.PointerType Lease.ty))))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"leaseMap"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le"))))
+  (Let "l" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Lease.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Lease.ty)))) (Val #())))
+  (App (App (Val (map.forRange LeaseID.ty (go.GoType.PointerType Lease.ty))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc LeaseWithTime.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad LeaseID.ty))) (App (Val (GoInstruction (StructFieldRef Lease.ty go!"ID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l"))))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (StructFieldRef Lease.ty go!"expiry"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l"))))
+  (App (Val (GoInstruction (CompositeLiteral LeaseWithTime.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"id")) (ElementExpression LeaseID.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"time")) (ElementExpression _root_.Perennial.time.Time.ty (Var "$v1")))])))))
+  (Let "item" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType LeaseWithTime.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType LeaseWithTime.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType lessor.ty) go!"scheduleCheckpointIfNeeded"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le"))) (Var "$a0"))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaseWithTime.ty)))) (Var "item"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType LeaseExpiredNotifier.ty) go!"RegisterOrUpdate"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaseExpiredNotifier.ty)))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"leaseExpiredNotifier"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le"))))) (Var "$a0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType LeaseWithTime.ty)))) (Pair (Var "item") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "extend"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Lease.ty) go!"refresh"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Lease.ty)))) (Var "l"))) (Var "$a0")))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Lease.ty)))) (Pair (Var "l") (Var "$value")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Pair (App (Val (GoInstruction (StructFieldRef lessor.ty go!"demotec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le"))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le")))) (Val #()))))))))
+  (Val #()))))
+
 /-- go: lessor.go:534:19 -/
 noncomputable def lessor.Demote.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "le"
@@ -2507,6 +2673,7 @@ class lessor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   ptr_Grant_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"Grant" lessor.Grant.impl
   ptr_Leases_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"Leases" lessor.Leases.impl
   ptr_Lookup_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"Lookup" lessor.Lookup.impl
+  ptr_Promote_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"Promote" lessor.Promote.impl
   ptr_Recover_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"Recover" lessor.Recover.impl
   ptr_Renew_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"Renew" lessor.Renew.impl
   ptr_Revoke_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"Revoke" lessor.Revoke.impl
@@ -2571,6 +2738,7 @@ attribute [instance] lessor.TypeAssumptions.type_repr
   lessor.TypeAssumptions.ptr_Grant_unfold
   lessor.TypeAssumptions.ptr_Leases_unfold
   lessor.TypeAssumptions.ptr_Lookup_unfold
+  lessor.TypeAssumptions.ptr_Promote_unfold
   lessor.TypeAssumptions.ptr_Recover_unfold
   lessor.TypeAssumptions.ptr_Renew_unfold
   lessor.TypeAssumptions.ptr_Revoke_unfold

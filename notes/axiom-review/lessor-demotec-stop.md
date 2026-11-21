@@ -75,3 +75,14 @@ by any receiver, at any `hlc` (the lessor's invariant is stated at any `hlc`, `o
 - `leaseInit` (`Base.lean`) gains `leaseRenewed`'s `counterSpec`, grouped with `leaseRevoked`'s (so the
   clients' positional patterns are unchanged); its initializer is translated and proved
   (`etc/gen-init.py`), no axiom.
+
+## prove-ps2-promote (2026-11-21): `Promote` proved
+
+Retired: `lease.lessor.Promote.wp_proof` (translated with its body). The `demotec` claim above is now a proof:
+`chan.wp_make1`, `token_alloc` and `inv_alloc` of `onceChanInv` at `.Idle`, and `promote_swap` (open `demoteOuter`
+with a later credit, set the ghost variable's two halves to the new channel, put its token in, drop the old
+channel's). The rest of the body: every lease refreshed, registered with the notifier and its checkpoint scheduled
+(`leaseMeta`); with `leaseRevokeRate` or more leases, the sort (`sorter_byExpiry`, moved to `SortByExpiry.lean`) and
+`Remaining()` of each sorted lease, which take the level-0 token and the two bounds the spec now has (ledger
+2026-11-21); the float arithmetic steps by Perennial's uninterpreted `FloatOps`, the float-to-`Duration` conversion to
+any value (`wp_ArbitraryInt`).

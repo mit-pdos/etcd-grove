@@ -1494,10 +1494,6 @@ theorem math.wp_Ceil :
     math.Ceil.spec (GF := GF) (hG := hG) :=
   math.Ceil.wp_proof
 
-theorem lease.lessor.wp_Promote :
-    lease.lessor.Promote.spec (GF := GF) (hG := hG) :=
-  lease.lessor.Promote.wp_proof
-
 theorem lease.lessor.wp_clearScheduledLeasesCheckpoints :
     lease.lessor.clearScheduledLeasesCheckpoints.spec (GF := GF) (hG := hG) :=
   lease.lessor.clearScheduledLeasesCheckpoints.wp_proof
@@ -3164,6 +3160,10 @@ theorem rafthttp.Transport.wp_Start :
 theorem rafthttp.Transport.wp_AddRemote :
     rafthttp.Transport.AddRemote.spec (GF := GF) (hG := hG) :=
   rafthttp.Transport.AddRemote.wp_proof types.wp_NewURLs rafthttp.wp_startRemote types.ID.wp_String_ptr zap.Logger.wp_Info zap.wp_String zap.wp_Strings
+
+theorem lease.lessor.wp_Promote :
+    lease.lessor.Promote.spec (GF := GF) (hG := hG) :=
+  lease.lessor.Promote.wp_proof lease.lessor.wp_unsafeLeases EtcdGrove.sort.«Sort».wp_anyLess lease.leasesByExpiry.wp_Len lease.leasesByExpiry.wp_Less lease.leasesByExpiry.wp_Swap lease.Lease.wp_Remaining lease.Lease.wp_refresh lease.LeaseExpiredNotifier.wp_RegisterOrUpdate lease.lessor.wp_scheduleCheckpointIfNeeded
 
 theorem lease.lessor.wp_Demote :
     lease.lessor.Demote.spec (GF := GF) (hG := hG) :=
