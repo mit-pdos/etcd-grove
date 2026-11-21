@@ -1,0 +1,13 @@
+# (prove-http3, 2026-11-21) `CanonicalMIMEHeaderKey` and `MIMEHeader.Set`/`Get` with their bodies:
+# what `http.Header.Set`/`Get` call (the axioms `http.HeaderSet_ok`, ... proved over them), with the
+# package variables (`commonHeader`, its `sync.Once`, the byte-slice literals and
+# `errMessageTooLarge`) translated, so that the package initializer has no trust-boundary axiom.
+# The other functions are names only.
+translate = ["!*", "MIMEHeader", "MIMEHeader.Set", "MIMEHeader.Get", "CanonicalMIMEHeaderKey",
+             "canonicalMIMEHeaderKey", "validHeaderFieldByte", "toLower", "commonHeader",
+             "commonHeaderOnce", "initCommonHeader", "crnl", "dotcrnl", "colon", "nl",
+             "errMessageTooLarge"]
+imports = ["!*", "sync", "errors"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

@@ -286,6 +286,7 @@ variable [go_etcd_io.etcd.pkg.v3.pbutil.Assumptions]
 variable [go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions]
 variable [_root_.Perennial.strings.Assumptions]
 variable [FsStepSat (NoIoErr Sio)]
+variable [_root_.Perennial.io.Assumptions]
 variable [FsStepSat (NoMapLockErr Sio)]
 
 theorem binary.wp_ReadInt64LE :
@@ -1319,6 +1320,7 @@ variable [go_etcd_io.etcd.pkg.v3.pbutil.Assumptions]
 variable [go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions]
 variable [_root_.Perennial.strings.Assumptions]
 variable [FsStepSat (NoIoErr Sio)]
+variable [_root_.Perennial.io.Assumptions]
 variable [FsStepSat (NoMapLockErr Sio)]
 
 theorem filepath.wp_IsAbs
@@ -2085,6 +2087,7 @@ variable [go_etcd_io.etcd.pkg.v3.pbutil.Assumptions]
 variable [go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions]
 variable [_root_.Perennial.strings.Assumptions]
 variable [FsStepSat (NoIoErr Sio)]
+variable [_root_.Perennial.io.Assumptions]
 variable [FsStepSat (NoMapLockErr Sio)]
 
 theorem law_lockKind_agree
