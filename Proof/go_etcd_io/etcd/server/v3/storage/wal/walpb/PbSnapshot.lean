@@ -22,7 +22,10 @@ model; the pattern of `PbRecord.lean`).
   fields are valid at their schemas. Measured: `examples/stdlib/walpb/snapshot_test.go`
   (`TestSnapshotEncoder`: 200,000 random contents, `proto.Marshal`/`proto.Size` against
   `snapEnc`/`walSnapSize`, `proto.Unmarshal(snapEnc c)` giving back exactly `c` at both levels;
-  `TestSnapshotSchema`: the descriptors against `walSnapSchema`/`csSchema`).
+  `TestSnapshotSchema`: the descriptors against `walSnapSchema`/`csSchema`); the premise in full, at
+  both levels: `snapshot_adv_test.go` (unknown fields with groups, depth-10001 groups, large and
+  reserved numbers, non-minimal values; the generic specs the registration enrolls the type in;
+  axiom review 2026-11-21, `notes/axiom-review/wal-pb-fmt.md`).
 - `pbSnapC_reg`: the registration, of the exact shape `pbModelOf GF walpb.Snapshot.ty = some …`.
 
 **The WAL's snapshot predicates** (the part's, in place of the main tree's `WalDisk.lean` ones, which

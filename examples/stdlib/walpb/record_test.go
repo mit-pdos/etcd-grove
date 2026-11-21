@@ -1,6 +1,6 @@
 // Package walpb checks the Lean model of walpb.Record's wire format
 // (Proof/go_etcd_io/etcd/server/v3/storage/WalPbWire.lean) and the trusted facts the registration
-// of walpb.Record states over it (LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/walpb/PbRecord.lean:
+// of walpb.Record states over it (Proof/go_etcd_io/etcd/server/v3/storage/wal/walpb/PbRecord.lean:
 // recEncC_ok, and the proto specs at the type: SizePb, MarshalPb, MarshalAppendCachedPb,
 // UnmarshalPb's D1/D2) against protobuf-go (the version examples/go.mod selects) and the walpb
 // package at the fork's pin.
