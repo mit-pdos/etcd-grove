@@ -138,15 +138,15 @@ at a restart the WAL snapshot's `ConfState`, `bootstrap.go:449-478`; nothing at 
 lower bound of the storage's snapshot (`memSnapLb γs 0`, the writers' handle; a first start's from
 `memSnapNone`) and the storage's invariant. -/
 def rnSnapOnceR (rg : GName) (cl : Cluster) (nk : GName) (ms : Loc) (γs : MemStorNames) (i t : w64)
-    (γ : ServerRaftNames) (A₀ : List EntryModel) : IProp GF :=
+    (γ : ServerRaftNames) (A₀ : List EntryModel) (applied : GName) (n : Loc) (boot : Nat) : IProp GF :=
   iprop(∀ Φ : val → IProp GF,
     ▷ (∀ (sn pm cs : Loc) (sv : SnapshotM),
-      ⌜sv.Metadata'.Index' = i ∧ sv.Metadata'.Term' = t ∧ pm ≠ null ∧ cs ≠ null⌝ -∗
+      ⌜sv.Metadata'.Index' = i ∧ sv.Metadata'.Term' = t ∧ pm ≠ null ∧ cs ≠ null ∧ boot ≤ uint.nat i⌝ -∗
       ownSnapM sn DFrac.discard sv -∗
       sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦□ pm -∗
       pm.[go_etcd_io.raft.v3.raftpb.SnapshotMetadata, go!"ConfState"] ↦□ cs -∗
       epCsOk cs -∗ epCsAt γ A₀ cs -∗ (|==> memSnapLb γs 0) -∗
-      (letI : MemStorReg GF := ⟨rg⟩; memStorInv ms γs cl nk) -∗
+      (letI : MemStorReg GF := ⟨rg⟩; srvAttachedMem ms γs cl nk applied n boot) -∗
       Φ (PairV #sn #(GoInterface.nil))) -∗
     WP (App (Val (ms @!! go.GoType.PointerType go_etcd_io.raft.v3.MemoryStorage.ty @!! go!"Snapshot"))
       (Val #())) {{ Φ }})
@@ -192,7 +192,7 @@ def srvBuiltRestartR (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoI
     IProp GF :=
   iprop(∃ P : List EntryModel, ⌜P <+: γn.a0 ∧ lastTermIs P at₀⌝ ∗
     (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗
-      rnSnapOnceR γn.node.reg γn.node.cl γn.key ms γn.γs (W64 P.length) at₀ γr.raft γn.a0) ∗
+      rnSnapOnceR γn.node.reg γn.node.cl γn.key ms γn.γs (W64 P.length) at₀ γr.raft γn.a0 γr.applied γn.nl γn.snap0) ∗
     rnLoopTok γn P ∗ rnApplyTok γn P ∗
     applyBuiltR C s γ ci b E γr ai₀ c₀ x₀ γn.a0 (W64 P.length) ∗
     srvSnapOwn s ci E γr γ (ai₀ + W64 γn.a0.length))
@@ -360,7 +360,7 @@ def srvRunRestartR (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInt
       -- (`rnRestartOk_mode`)
       (clusterNoSnap γn.node.cl → A₀ = [])⌝ ∗
     (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗
-      rnSnapOnceR γn.node.reg γn.node.cl γn.key ms γn.γs (W64 P.length) at₀ γr.raft A₀) ∗
+      rnSnapOnceR γn.node.reg γn.node.cl γn.key ms γn.γs (W64 P.length) at₀ γr.raft A₀ γr.applied γn.nl γn.snap0) ∗
     srvRestartAtR C s γ ci b E γr ai₀ c₀ x₀ γw A₀ (W64 P.length) ∗
     rnLoopTok γn P ∗ rnApplyTok γn P)
 
@@ -603,8 +603,8 @@ theorem applyBuiltOn_C (γa : auth.AuthNames) (s : Loc) (γ : ApplyNames) (ci : 
 
 /-- **A first start's `Hsnap` gives the restart form at `A₀ = []`**. -/
 theorem rnSnapOnceR_first (rg : GName) (cl : Cluster) (nk : GName) (ms : Loc) (γs : MemStorNames)
-    (i t : w64) (γ : ServerRaftNames) :
-    rnSnapOnce (GF := GF) rg cl nk ms γs i t ⊢ rnSnapOnceR rg cl nk ms γs i t γ [] := by
+    (i t : w64) (γ : ServerRaftNames) (applied : GName) (n : Loc) (boot : Nat) :
+    rnSnapOnce (GF := GF) rg cl nk ms γs i t applied n boot ⊢ rnSnapOnceR rg cl nk ms γs i t γ [] applied n boot := by
   iintro H
   iunfold rnSnapOnceR
   iintro %Φ HΦ
@@ -639,7 +639,7 @@ theorem srvBuiltRestartR_first (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc
     (E : apply.AEnv GF) (γr : ReadNames) (γn : RNNames GF) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV)
     (ha0 : γn.a0 = []) (hai : ai₀ = W64 0) (hc : c₀ = ai₀) :
     (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗
-        rnSnapOnce (GF := GF) γn.node.reg γn.node.cl γn.key ms γn.γs ai₀ at₀) ∗
+        rnSnapOnce (GF := GF) γn.node.reg γn.node.cl γn.key ms γn.γs ai₀ at₀ γr.applied γn.nl γn.snap0) ∗
       rnLoopTok γn [] ∗ rnApplyTok γn [] ∗ applyBuiltC C s γ ci b E γr ai₀ c₀ x₀ ∗
       srvSnapBoot s ci E γr γ ⊢
     srvBuiltRestartR C s γ ci b E γr γn ai₀ at₀ c₀ x₀ := by
@@ -790,7 +790,7 @@ theorem isServerBuiltC_of_gap (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc)
     (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF)
     (γn : RNNames GF) (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat)
     (hC : E.authMode = C.mode) :
-    srvBuiltG C.isOn s γ ci TM E ρ γr Er γn b ai₀ c₀ x₀ N ∗ srvBuildGap s γn ai₀ at₀ ∗
+    srvBuiltG C.isOn s γ ci TM E ρ γr Er γn b ai₀ c₀ x₀ N ∗ srvBuildGap s γn γr.applied ai₀ at₀ ∗
         srvStop.slot s E γn Er ⊢
       isServerBuiltC C s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N := by
   iintro ⟨Hb, Hg, Hsk⟩
@@ -1055,7 +1055,7 @@ theorem srvRunRestartR_first (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) 
     (hEr : Er.C = srvCM C.isOn ρ E ai₀ c₀ x₀ ∧ Er.γr = γr ∧
       (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0) ∧ γn.a0 = []) :
     (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗
-        rnSnapOnce (GF := GF) γn.node.reg γn.node.cl γn.key ms γn.γs ai₀ at₀) ∗
+        rnSnapOnce (GF := GF) γn.node.reg γn.node.cl γn.key ms γn.γs ai₀ at₀ γr.applied γn.nl γn.snap0) ∗
       applyStartC C s γ ci b E γr ai₀ c₀ x₀ γw ∗ rnLoopTok γn [] ∗ rnApplyTok γn [] ⊢
     srvRunRestartR C s γ ci b E ρ γr Er γn ai₀ at₀ c₀ x₀ γw := by
   obtain ⟨h1, h2, ⟨hc, hp, ha⟩, h4⟩ := hEr

@@ -68,18 +68,20 @@ theorem raftNode_of_StartNode
   iintro %Φ Hpre HΦ
   iNamed Hpre
   obtain ⟨Hcfg, Hhb, Hnodup, H0, Hpslen, Hvs, Hwal, Hfit, HtrC⟩ := Hraft
+  imod (dghostVar_alloc (GF := GF) (A := Loc) null) with ⟨%pin, HpinW⟩
   ihave Hbs := srvMem_bootStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
-      wp_Entries γr bv.storage' γs
-      (fun K => iprop(memStorInv bv.storage' γs γr.cl K ∗
+      wp_Entries γr bv.storage' γs E.γr.applied pin
+      (fun K => iprop(memStorInvT bv.storage' γs γr.cl K (srvStoredOrigin γr.cl E.γr.applied pin 0) ∗
         memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)))) HtrC Hγsz
       $$ [Hfresh Hmeta Hend]
   · iframe Hreg Hlock Hfresh Hmeta Hlog0 Hend
     iintro %K Hi Hm
     iframe Hi Hm
   icases Hboot with ⟨#Hnboot, HrS, Hvac⟩
+  iapply wp_fupd
   wp_apply (wp_bnr E γr b ss wal cl sd dq bv cv lok γs [] ν pv ps ctxs
-    (fun K => iprop(memStorInv bv.storage' γs γr.cl K ∗
-      memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)))) .fresh (snapshotValid γr.cl) (fun _ => by iintro H; iexact H))
+    (fun K => iprop(memStorInvT bv.storage' γs γr.cl K (srvStoredOrigin γr.cl E.γr.applied pin 0) ∗
+      memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)))) .fresh (fun sv => iprop(snapshotValid γr.cl sv ∗ (srvStoredOrigin γr.cl E.γr.applied pin 0) sv)) (fun _ => by iintro ⟨H, -⟩; iexact H))
     $$ [Hb Hc Hbs Hpeers HrS Hvac]
     as %r Hpost
   · iframe #; iframe Hb Hc Hpeers
@@ -101,6 +103,13 @@ theorem raftNode_of_StartNode
   icases Hbpost with ⟨#Hsfresh, Hdrv, HrS, Hncfg⟩
   simp only [RNBoot.a0, RNBoot.t0, RNBoot.commit0, RNBoot.snap0] at Hnames
   obtain ⟨Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs, Hwwal, Hwss, Hwa0, Hwt0, Hwc0, Hws0⟩ := Hnames
+  imod dghostVar_update n pin null $$ HpinW with HpinW
+  imod dghostVar_persist pin 1 n $$ HpinW with #Hloc
+  ihave #Hattach : srvAttachedMem bv.storage' γs γr.cl γw.key E.γr.applied γw.nl γw.snap0 $$ []
+  · rw [Hwnl, Hws0]
+    iunfold srvAttachedMem
+    iexists pin
+    iframe Hloc Hpin Hminv
   iunfold rnBuilt at Hbuilt
   iNamed Hbuilt
   obtain ⟨Hrvlg, Hrvcfg⟩ := Hrv
@@ -136,11 +145,12 @@ theorem raftNode_of_StartNode
     unfold SrvRaft.cfg
     rw [Hvs]
     iexact Hncfg
+  imodintro
   iapply HΦ
   iexists γw, rv
   isplitr
   · ipureintro
-    refine ⟨Hwnode, Hwid, Hwpre, Hwms, Hwγs, Hwwal, Hwss, Hwa0, Hrvlg, ?_, ?_, ?_, ?_⟩ <;> rw [Hrvcfg]
+    refine ⟨Hwnode, Hwid, Hwpre, Hwms, Hwγs, Hwwal, Hwss, Hwa0, Hws0, Hrvlg, ?_, ?_, ?_, ?_⟩ <;> rw [Hrvcfg]
     all_goals first | rfl | simp only [rnNodeIface, Hwnl]
   ihave #Hsti' : isWalStorage rv.raftNodeConfig'.storage' γw.wal.h γw.ss $$ []
   · rw [Hrvcfg]; iexact Hsti
@@ -148,7 +158,7 @@ theorem raftNode_of_StartNode
   · rw [Hrvcfg]; iexact Hrd1
   ihave Hrd2' : walStorRd rv.raftNodeConfig'.storage' γw.wal.h $$ [Hrd2]
   · rw [Hrvcfg]; iexact Hrd2
-  iframe Hsti' Hrd1' Hrd2' Hr Hmu Hloop Happly Hb Hpeers Hminv Hmeta Hsc
+  iframe Hsti' Hrd1' Hrd2' Hr Hmu Hloop Happly Hb Hpeers Hattach Hmeta Hsc
   isplitr
   · iapply rnStepIfc_of_isNode γw (wp_Step γw.node) (wp_ReportUnreachable γw.node)
       (wp_ReportSnapshot γw.node) (by rw [Hwnode]; exact HtrC)
@@ -272,9 +282,10 @@ theorem raftNode_of_RestartNode
     iapply srvFrozenTerms_restart γs (A₀.take σ.b) (memDummy (walSnapCS σ cs)) Hlt
     rw [hlen]
     iframe Hcp He0
+  imod (dghostVar_alloc (GF := GF) (A := Loc) null) with ⟨%pin, HpinW⟩
   ihave Hbs := srvMem_restartStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
-      wp_Entries γr bv.storage' γs σ cs 0
-      (fun K => iprop(memStorInv bv.storage' γs γr.cl K ∗ memStorMeta bv.storage' γs σ.hs ∗
+      wp_Entries γr bv.storage' γs E.γr.applied pin σ cs 0
+      (fun K => iprop(memStorInvT bv.storage' γs γr.cl K (srvStoredOrigin γr.cl E.γr.applied pin σ.b) ∗ memStorMeta bv.storage' γs σ.hs ∗
         memSnapNone γs (walSnapCS σ cs))) Hbc HtrC Hγsz Hnsm
       $$ [Hfresh Hmeta Hents Hend Hval Hsn]
   · iframe Hreg Hlock Hval
@@ -283,10 +294,11 @@ theorem raftNode_of_RestartNode
       iframe Hfresh Hmeta Hcp He0 Hsn Hents Hend
     iintro %K Hi Hm Hn
     iframe Hi Hm Hn
+  iapply wp_fupd
   wp_apply (wp_bnr E γr b ss wal cl sd dq bv cv lok γs [] ν pv [] ctxs
-    (fun K => iprop(memStorInv bv.storage' γs γr.cl K ∗ memStorMeta bv.storage' γs σ.hs ∗
+    (fun K => iprop(memStorInvT bv.storage' γs γr.cl K (srvStoredOrigin γr.cl E.γr.applied pin σ.b) ∗ memStorMeta bv.storage' γs σ.hs ∗
       memSnapNone γs (walSnapCS σ cs)))
-    (.restart σ cs S A₀.length (Membership.simple γr.cfg) A₀) (snapshotValid γr.cl) (fun _ => by iintro H; iexact H))
+    (.restart σ cs S A₀.length (Membership.simple γr.cfg) A₀) (fun sv => iprop(snapshotValid γr.cl sv ∗ (srvStoredOrigin γr.cl E.γr.applied pin σ.b) sv)) (fun _ => by iintro ⟨H, -⟩; iexact H))
     $$ [Hb Hc Hbs Hpeers HrS Hvac]
     as %r Hpost
   · iframe #; iframe Hb Hc Hpeers
@@ -312,6 +324,13 @@ theorem raftNode_of_RestartNode
   icases Hbpost with ⟨%l, #Hl, %Hll, Hdrv, HrS, Hncfg⟩
   simp only [RNBoot.a0, RNBoot.t0, RNBoot.commit0, RNBoot.snap0] at Hnames
   obtain ⟨Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs, Hwwal, Hwss, Hwa0, Hwt0, Hwc0, Hws0⟩ := Hnames
+  imod dghostVar_update n pin null $$ HpinW with HpinW
+  imod dghostVar_persist pin 1 n $$ HpinW with #Hloc
+  ihave #Hattach : srvAttachedMem bv.storage' γs γr.cl γw.key E.γr.applied γw.nl γw.snap0 $$ []
+  · rw [Hwnl, Hws0]
+    iunfold srvAttachedMem
+    iexists pin
+    iframe Hloc Hpin Hminv
   -- the driver's delivered log is the backend's up to the base (committed logs agree)
   ihave %Hleq : ⌜l = srvLE ⟨γr, [], W64 0⟩ (A₀.take σ.b)⌝ $$ []
   · iunfold srvRLogLb at HA0
@@ -369,6 +388,7 @@ theorem raftNode_of_RestartNode
     $$ [Hdrv HrS Hncfg Hrun1 Hprod Hcons Hcum Hcum0 Hwview Hwok]
   · rw [Hsrv, Hwnode, Hwnl, Hwms, Hwid, Hwwal, Hwγs]
     iframe Hdrv HrS Hncfg Hrun1 Hprod Hcons Hcum Hcum0 Hwview Hwok Hfz
+  imodintro
   iapply HΦ
   iexists γw, rv
   isplitr
@@ -382,7 +402,7 @@ theorem raftNode_of_RestartNode
   · rw [Hrvcfg]; iexact Hrd1
   ihave Hrd2' : walStorRd rv.raftNodeConfig'.storage' γw.wal.h $$ [Hrd2]
   · rw [Hrvcfg]; iexact Hrd2
-  iframe Hsti' Hrd1' Hrd2' Hr Hmu Hloop Happly Hb Hpeers Hminv Hmeta Hsnone Hsc
+  iframe Hsti' Hrd1' Hrd2' Hr Hmu Hloop Happly Hb Hpeers Hattach Hmeta Hsnone Hsc
   isplitr
   · iapply rnStepIfc_of_isNode γw (wp_Step γw.node) (wp_ReportUnreachable γw.node)
       (wp_ReportSnapshot γw.node) (by rw [Hwnode]; exact HtrC)

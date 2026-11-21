@@ -296,7 +296,7 @@ public import RaftWitness.Proof.slices.Sort
 public import RaftWitness.Proof.go_etcd_io.raft.v3.stepCandidate
 public import RaftWitness.Proof.go_etcd_io.raft.v3.stepFollower
 public import RaftWitness.Proof.go_etcd_io.raft.v3.stepLeader
-public import RaftWitness.Proof.strconv.FormatUint
+public import Proof.strconv.FormatUint
 public import RaftWitness.Proof.strings.Join
 public import RaftWitness.Proof.go_etcd_io.raft.v3.traceBecomeCandidate
 public import RaftWitness.Proof.go_etcd_io.raft.v3.traceBecomeFollower

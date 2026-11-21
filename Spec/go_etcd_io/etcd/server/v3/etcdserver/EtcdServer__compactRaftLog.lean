@@ -59,7 +59,7 @@ abbrev EtcdServer.compactRaftLog.spec : Prop :=
       srvInflight s ∗
       rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗
       (letI : MemStorReg GF := ⟨γr.reg⟩
-       iprop(memStorInv ms γs γr.cl K ∗ nodeAppliedLb γr.cl K (uint.nat snapi))) ∗
+       iprop(srvCompactMem ms γs γr.cl K ∗ nodeAppliedLb γr.cl K (uint.nat snapi))) ∗
       memSnapLb γs (uint.nat snapi) ∗
       ((∃ e, memLog γs (compactIdx snapi scu) DFrac.discard [e]) ∨
         memCompacted γs (compactIdx snapi scu)) ∗

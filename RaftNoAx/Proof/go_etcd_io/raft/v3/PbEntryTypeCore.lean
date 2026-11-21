@@ -1,15 +1,12 @@
--- The copy for the part `RaftNoAx/` of `Proof/go_etcd_io/raft/v3/PbEntryTypeCore.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
-The declarations `entDecode`, `EntWireOk`, `entryEncC`, `entryEncC_ok`, `entryTree`, `pbEntryM`,
-`pbEntryC`, `pbEncC_pbEntryC`, `pbEntryC_ty`, `pbEntryC_roC`, `pbEntryC_C`, `pbEntryC_modelOf`,
-`pbEntryC_size`, `pbEntryC_marshals`, `pbEntryC_wire`, `pbEntryC_decOk`, `pbEntryC_ufValid`,
-`pbEntryC_blank`, `pbEntryC_dec`, `pbEntryC_decC`, `entPtsCC_freeze`, `pbEntryC_reg` and its `Sat`
-theorem `pbEntryC_sat` (with `optCell_freeze`, `bytesC_freeze`, `treeWp_entryTree`: the model-param
-gate's rule 7 wants it in the registration's module) of
-`Proof/go_etcd_io/raft/v3/PbEntryType.lean`, split from it so that the WAL
-(`Proof/go_etcd_io/etcd/server/v3/storage/wal/`) imports them without the rest (until 2026-11-15 an
-extract of `etc/gen-part-copies.py` for the part `LinuxFs/`; notes/wal-lean-integration.md). The
-source imports this module.
+The part's own (prove-raftex, 2026-11-20; until then a copy of the main tree's
+`Proof/go_etcd_io/raft/v3/PbEntryTypeCore.lean`): the main file's declarations but its protobuf trust
+boundary, which no module of the part uses since stage 2 (`notes/raft-noax-part.md`: the part's
+raft calls `raftpb.CloneEntry`/`EntrySize`, Entry's own functions, not `proto.ClonePb`/`SizePb` at a
+registered instance). Dropped: the opaque encoder `entryEncC` with its axiom `entryEncC_ok`, the
+instance `pbEntryC` with its `simp` lemmas, and its registration axiom `pbEntryC_reg`; so the part
+declares no axiom. Kept: `entDecode`, `EntWireOk`, `entryTree`, `pbEntryM`, `entPtsCC_freeze`,
+`optCell_freeze`, `bytesC_freeze`, `treeWp_entryTree`, `pbEntryC_sat` (`pbEntryM.Sat`).
 -/
 module
 
@@ -43,15 +40,6 @@ def EntWireOk (e : EntryM) (bs : List w8) : Prop :=
   entDecode bs = some e
 
 end extract
-
-/-- **The encoding of an `Entry`'s wire content** (opaque: protobuf-go's `Marshal`). -/
-opaque entryEncC [GooseExts] (c : EntryC) : List w8
-
-/-- **The trust boundary: `Entry`'s encoding** (the type's one trusted fact). Tested in Go: the
-round trip `Unmarshal(Marshal(e))` gives the getters' view, and `proto.Size(e)` is `entrySize`,
-for every presence combination and for unknown fields routed as `ufWire` says. -/
-axiom entryEncC_ok [GooseExts] (c : EntryC) : ufWire entrySchema c.uf → entrySize c < 2 ^ 63 →
-    EntWireOk c.model (entryEncC c) ∧ (entryEncC c).length = entrySize c
 
 section extract
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -103,44 +91,6 @@ def pbEntryM : PbModelC GF where
     iframe H
     ipureintro; rfl
 
-/-- **`raftpb.Entry` at its wire content** (the registered instance): the data and the encoder,
-whose `enc_ok` is the type's one trusted fact `entryEncC_ok`. -/
-def pbEntryC : PbTypeC GF where
-  data := pbEntryM
-  encd := { enc := entryEncC
-            enc_ok := fun c _ hu hs => entryEncC_ok c (hu _ (List.mem_singleton.2 rfl)) hs }
-
-@[simp] theorem pbEncC_pbEntryC (c : EntryC) : pbEncC (pbEntryC (GF := GF)) c = entryEncC c := rfl
-
-@[simp] theorem pbEntryC_ty : (pbEntryC (GF := GF)).data.ty = raftpb.Entry.ty := rfl
-
-@[simp] theorem pbEntryC_roC : (pbEntryC (GF := GF)).data.roC = entRoC := rfl
-
-@[simp] theorem pbEntryC_C : (pbEntryC (GF := GF)).data.C = EntryC := rfl
-
-@[simp] theorem pbEntryC_modelOf : (pbEntryC (GF := GF)).data.modelOf = EntryC.model := rfl
-
-@[simp] theorem pbEntryC_size : (pbEntryC (GF := GF)).data.size = entrySize := rfl
-
-@[simp] theorem pbEntryC_marshals (e : EntryM) : (pbEntryC (GF := GF)).data.marshals e = True := rfl
-
-@[simp] theorem pbEntryC_wire : (pbEntryC (GF := GF)).data.wire = EntWireOk := rfl
-
-@[simp] theorem pbEntryC_decOk (c : EntryC) : (pbEntryC (GF := GF)).data.decOk c = True := rfl
-
-@[simp] theorem pbEntryC_ufValid (c : EntryC) :
-    (pbEntryC (GF := GF)).data.ufValid c = ∀ q ∈ [(entrySchema, c.uf)], ufWire q.1 q.2 := rfl
-
-@[simp] theorem pbEntryC_blank (l : Loc) :
-    (pbEntryC (GF := GF)).data.blank l = iprop(l ↦ (zero_val raftpb.Entry)) := rfl
-
-@[simp] theorem pbEntryC_dec (l : Loc) (e : EntryM) :
-    (pbEntryC (GF := GF)).data.dec l e = iprop(∃ c, entPtsCC l (DFrac.own 1) c ∗ ⌜c.model = e⌝) :=
-  rfl
-
-@[simp] theorem pbEntryC_decC (l : Loc) (c : EntryC) :
-    (pbEntryC (GF := GF)).data.decC l c = entPtsCC l (DFrac.own 1) c := rfl
-
 /-- (out_size C3) **An entry at a content, frozen**: its fields' points-to made persistent. -/
 theorem entPtsCC_freeze (l : Loc) (dq : DFrac) (c : EntryC) :
     entPtsCC (GF := GF) l dq c ⊢ |==> entRoC l c := by
@@ -157,11 +107,6 @@ theorem entPtsCC_freeze (l : Loc) (dq : DFrac) (c : EntryC) :
   iframe HT cT HI cI HY cY HD Hd Hpb
 
 end extract
-
-/-- **The registration** of `pbEntryC` (exact shape). -/
-axiom pbEntryC_reg [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
-    {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [go.Semantics] :
-    pbModelOf GF raftpb.Entry.ty = some (pbEntryC (GF := GF))
 
 /-! ## `Sat` -/
 
@@ -271,7 +216,7 @@ theorem treeWp_entryTree (e : EntryM) (Φ : val → IProp GF) :
     simp only [EntryC.model] at h1 h2 h3 h4 ⊢
     rw [← h1, ← h2, ← h3, ← h4]
 
-/-- **`pbEntryC`'s decoded model is satisfiable** by the generic store. -/
+/-- **`pbEntryM` is satisfiable** by the generic store. -/
 theorem pbEntryC_sat : (pbEntryM (GF := GF)).Sat := by
   refine ⟨⟨raftpb.Entry, inferInstance, inferInstance,
     (inferInstance : IntoValTyped raftpb.Entry raftpb.Entry.ty), fun l => .rfl⟩, ?_⟩

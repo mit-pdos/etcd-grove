@@ -115,9 +115,9 @@ theorem EtcdServer.snapshot.wp_proof
     Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, Hwt, #Hwh, Htt⟩
   -- (R2b-1 stage 5) the applied log's committed lower bound, kept from `srvSnapStor`
   iunfold srvSnapStor at Hstor
-  icases Hstor with ⟨Hmsi, #Hncl, #Hrli, ⟨%Aw, #HAw, %HAwp⟩⟩
+  icases Hstor with ⟨Hmsi, #HappliedAt, #Hncl, #Hrli, ⟨%Aw, #HAw, %HAwp⟩⟩
   ihave Hstor : srvSnapStor ms γs γr nk ai at' $$ [Hmsi]
-  · iunfold srvSnapStor; iframe Hmsi Hncl Hrli; iexists Aw; iframe HAw; ipureintro; exact HAwp
+  · iunfold srvSnapStor; iframe Hmsi HappliedAt Hncl Hrli; iexists Aw; iframe HAw; ipureintro; exact HAwp
   iunfold isServerM at Hsrv
   icases Hsrv with ⟨%Hrd, #Hsci, ⟨%sv, #Hfl'⟩, #Hat0, -, #Hrn⟩
   ihave #Hsci' := Hsci
