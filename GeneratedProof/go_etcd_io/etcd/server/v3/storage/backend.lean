@@ -17,6 +17,7 @@ public import Perennial.GeneratedProof.math
 public import Perennial.GeneratedProof.sort
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.sync.atomic
+public import GeneratedProof.syscall
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.server.v3.storage.backend

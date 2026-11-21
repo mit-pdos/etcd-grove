@@ -341,7 +341,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h52 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.storage.backend (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h26, h14, h13, h4, h1, h5, h27, h19, h49, h50, h0, h45, h30, h51, h48, h11, True.intro⟩
+    exact ⟨h26, h14, h13, h4, h1, h5, h27, h19, h49, h50, h0, h45, h30, h28, h51, h48, h11, True.intro⟩
   have h53 : GetIsPkgInitProp pkg_id.google_golang_org.protobuf.reflect.protoreflect (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
