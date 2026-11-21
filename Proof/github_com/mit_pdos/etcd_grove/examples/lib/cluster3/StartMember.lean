@@ -196,7 +196,7 @@ theorem StartMember.wp_proof
   · iframe; iframe #
     isplitr
     · ipureintro; rw [HEw]; simp
-    iapply BigSepL.bigSepL_singleton.2; iexact Hkv
+    iapply BigSepL.bigSepL_nil.2; iempintro
   -- the registrations' old form (`serverRegsOk`, exact since auth-mediation M1)
   replace Hregs := v3rpc.serverRegsOk_sub Hregs
   haveI := Hms
