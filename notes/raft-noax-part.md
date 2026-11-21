@@ -244,3 +244,20 @@ Checked (2026-11-18): `lake build RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.
 (3832 jobs), `etc/copy-part.py --check` (0 differ); `#print axioms` of the four `wp_proof`s: Lean's
 three and Goose's type axioms only, no `sorryAx`; `AxPath2` on `raft_kvdurable_porcupine_safe` reaches
 `sorryAx` only through the codec (`MarshalConfChangeV1.wp_proof`, ...).
+
+## The part declares no axiom (2026-11-20, prove-raftex)
+
+Stage 3b left the closed theorem axiom-free, but the part still declared 13 axioms, none reached:
+- 11 stage-1 copies (`proto.{CloneConfState,ClonePb,CloneSnapshot,MarshalConfChange,
+  MarshalConfChangeV2,SizePb,UnmarshalConfChange,UnmarshalConfChangeV2}.wp_proof`,
+  `DescribeConfChange.wp_proof`, and the axiom-free `fmt.Sprintf`, `strings.Join` proofs): modules of the
+  main tree's closure that only the main versions of the part's own files import. `etc/copy-part.py`
+  now drops the copies no module of the part imports (to a fixpoint; `Results`, `TopLevelRobustness`
+  and `Link` modules are roots), so it deleted them and `--check` keeps them out;
+- `entryEncC_ok` and `pbEntryC_reg` in `PbEntryTypeCore` (imported by `PbEntryType`, but nothing in the
+  part names `entryEncC`, `pbEntryC` or its lemmas: the part's raft calls `raftpb.CloneEntry`/`EntrySize`,
+  not `proto.ClonePb`/`SizePb` at the registered instance). The part's `PbEntryTypeCore` is now its own,
+  without them (and without `entryEncC`, `pbEntryC` and its `simp` lemmas).
+
+`grep -rn '^axiom' RaftNoAx` finds none. (The baseline `etc/tcb-baseline.txt` lists names, which the
+main tree still declares, so it does not change.)

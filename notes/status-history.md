@@ -12,6 +12,7 @@ sections were added at the top). Sections moved later are appended at the end, n
 
 ## Last updated entries (all 164, until 2026-10-22)
 
+- 2026-11-20 (**Outgoing snapshot restore history at Ready**). A node records the incoming protocol message when its log accepts a snapshot. A later Ready handing that snapshot to the transport supplies the source and its election evidence for the actual sending node.
 - 2026-10-22 (Perennial idioms, branch `perennial-idioms`: the synchronous SPSC channel, the thread-token join and `wp_fork_tok_upd` moved to Perennial (landed: the pin `537c426e0`; branch `idioms`, `537c426e0`) and the watch client's local copies deleted; needs that branch until the pin moves; no statement of a closed theorem changed, trust base unchanged; see "Perennial idioms: the watch client's three workarounds upstreamed")
 - 2026-10-22 (clean-up, branch `cleanup`: the watch client's `closeSubstream`/`run` joined again (CPU 52s -> 7s, 148s -> 131s), the one-attempt client machinery deleted (D31's follow-up), `gen-init.py`'s `CLOSEDCHAN` variant and kv's re-proof of raft's initialization removed; no statement of a closed theorem changed, trust base unchanged; see "Clean-up: the watch client's joins, the one-attempt client, the init variants")
 - 2026-10-22 (watches across a cut, W4: `linkv3p_watch_safe`, watchkv's watch workload over linkv3p's partitioned cluster, the watch resumed at any member, its events the cluster's committed history's; no axiom added; see "Watches across a cut")
