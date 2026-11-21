@@ -55,8 +55,6 @@ opaque v1AlphaServerImpl.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque v1AlphaServerStreamAdapter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque GRPCServer.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
 opaque ExtensionResolver.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque ServerOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
@@ -79,15 +77,14 @@ noncomputable def NewServerV1 [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.reflection where
   pkgImportedPkgs := [pkg_id.google_golang_org.grpc]
 
-opaque «_».init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.google_golang_org.grpc.reflection)) (Lam BAnon
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty) GRPCServer.ty))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (Val UntypedNil)))
   (App (Val doExecute)
-  (App (Val «_».init) (Val #())))))
+  (Val #())))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.initialize') (Val #()))))))))
 
@@ -129,22 +126,17 @@ attribute [instance] v1AlphaServerStreamAdapter.TypeAssumptions.type_repr
   v1AlphaServerStreamAdapter.TypeAssumptions.method_set
   v1AlphaServerStreamAdapter.TypeAssumptions.ptr_method_set
 
-opaque GRPCServer.nonempty_type : NonemptyType.{0}
-def GRPCServer : Type := GRPCServer.nonempty_type.type
-instance GRPCServer.nonempty : Nonempty GRPCServer := GRPCServer.nonempty_type.property
-opaque GRPCServer.zero_val : ZeroVal GRPCServer := ⟨Classical.ofNonempty⟩
-attribute [instance] GRPCServer.zero_val
+abbrev GRPCServer [GooseExts] : Type := GoInterface
+
+@[reducible] noncomputable def GRPCServer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"GetServiceInfo" (go.signature.Signature [] false [(go.GoType.MapType go.string _root_.Perennial.google_golang_org.grpc.ServiceInfo.ty)])), (go.InterfaceElem.MethodElem go!"RegisterService" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty), go.any] false []))])
 
 class GRPCServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying GRPCServer.underlying GRPCServer
   underlying : go.UnderlyingDirectedEq GRPCServer.ty GRPCServer.underlying
-  isUnderlying : go.IsUnderlying GRPCServer.underlying GRPCServer.underlying
   method_set : go.MethodSetIs GRPCServer.ty [(go!"GetServiceInfo", (some (go.signature.Signature [] false [(go.GoType.MapType go.string _root_.Perennial.google_golang_org.grpc.ServiceInfo.ty)]))), (go!"RegisterService", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty), go.any] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType GRPCServer.ty) []
 
-attribute [instance] GRPCServer.TypeAssumptions.type_repr
-  GRPCServer.TypeAssumptions.underlying
-  GRPCServer.TypeAssumptions.isUnderlying
+attribute [instance] GRPCServer.TypeAssumptions.underlying
   GRPCServer.TypeAssumptions.method_set
   GRPCServer.TypeAssumptions.ptr_method_set
 

@@ -36,13 +36,21 @@ struct's exported fields by name (`ConfigChangeContext`'s `Member` is embedded, 
 the object's; `ID` an integer, `PeerURLs` and `ClientURLs` arrays of strings, `IsLearner` a
 boolean, `Name` a string), allocating the slices, and leaves the other fields as the JSON says; it reads `data`, writes nothing else, and
 returns `nil` on input it decodes. `ccContextOf`/`ccMemberOf` are opaque functions of the bytes:
-the spec claims only that the decoding is a function of them. -/
+the spec claims only that the decoding is a function of them. The URL slices are fresh only if
+`*p`'s were `nil` (2026-11-20, prove-reflectfmt: until then any `v`): `encoding/json` decodes an
+array into the existing slice, reusing its backing array while its capacity lasts (go1.27.3
+`encoding/json/decode.go:553-556`, `array`: `v.Grow`/`v.SetLen` on the field's own slice), so a non-nil
+`PeerURLs` would come back aliased to memory the caller still owns
+(`notes/axiom-review/json-unmarshal-alias.md`, `examples/axiomcx/jsonunmarshalalias`). Both
+callers decode into `new(ConfigChangeContext)`. -/
 abbrev encoding.json.Unmarshal.spec : Prop :=
   ∀ (sl : GoSlice) (bs : List w8) (dq : DFrac) (p : Loc)
     (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext) (id : w64)
     (prom : Bool),
   membership.ccContextOf bs = some (id, prom) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.encoding.json ∗ sl ↦*{dq} bs ∗ p ↦ v }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.encoding.json ∗ sl ↦*{dq} bs ∗ p ↦ v ∗
+      ⌜v.Member'.RaftAttributes'.PeerURLs' = slice.nil ∧
+        v.Member'.Attributes'.ClientURLs' = slice.nil⌝ }}
     (App (App (Val (@! _root_.Perennial.encoding.json.Unmarshal)) (Val #sl))
       (Val #(interface.mkOk (go.GoType.PointerType
         go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext.ty) #p)))

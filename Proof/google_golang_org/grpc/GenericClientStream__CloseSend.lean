@@ -1,6 +1,7 @@
 /-
-Trust boundary: `(*GenericClientStream[Req, Res]).CloseSend()`, promoted from the embedded `ClientStream` (an axiom; see
-`Spec/google_golang_org/grpc/GenericClientStream__CloseSend.lean`: Goose does not translate methods of generic types).
+`(*GenericClientStream[Req, Res]).CloseSend()` over its translated body (prove-grpcext, 2026-11-20; a trust-boundary
+axiom while Goose emitted no body for a method of a generic type): see
+`Spec/google_golang_org/grpc/GenericClientStream__CloseSend.lean`.
 -/
 module
 
@@ -13,16 +14,21 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI
+open Iris Iris.BI Iris.ProofMode
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : google_golang_org.grpc.Assumptions]
 
-/-- **Trust boundary** (W-W): `(*GenericClientStream[Req, Res]).CloseSend()`, promoted from the embedded `ClientStream`: `x.ClientStream.CloseSend()`. -/
-axiom grpc.GenericClientStream.CloseSend.wp_proof : grpc.GenericClientStream.CloseSend.spec (GF := GF) (hG := hG)
+theorem grpc.GenericClientStream.CloseSend.wp_proof : grpc.GenericClientStream.CloseSend.spec (GF := GF) (hG := hG) := by
+  intro T U V W _ _ _ _ p si Φ
+  iintro ⟨#Hf, Hwp⟩
+  rw [method_unfold (t := go.GoType.PointerType (google_golang_org.grpc.GenericClientStream.ty T U)) (m := go!"CloseSend")]
+  wp_auto
+  iexact Hwp
 
 end proof
 
