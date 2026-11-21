@@ -404,19 +404,20 @@ instance ctxErrIs_persistent (err : GoInterface) : Persistent (ctxErrIs (GF := G
 status `s`, so the code and message `status.FromError` reads are the error's (`statusCode`,
 `errDesc`); and `Is` returns `true` only for a target with the same description
 (`errors.IsStatusErr`'s post: an `Is` that answered `true` regardless would refute it).
-(k8s 7f-5a-P step 5, E1, approved by etcd-grove-81 2026-11-15) The status `s` is read-only with the
-error's code (`grpcStatusRO s (statusCode e)`): grpc's `*Status` is not immutable in Go (a
-whole-struct assignment `*s = *t` from any package copies its unexported fields); the fact is a
-guarantee of the producer that built `s` (with `status.New`/`Error`) and never writes it after, as
-grpc and etcd do (`examples/premisefix/grpcstatusro`; `notes/k8s-7f5a-draft.md` §11.2); a status
-may be shared (package-level `status.Error` values). -/
+(k8s 7f-5a-P step 5, E1, approved by etcd-grove-81 2026-11-15) The status `s` is read-only: grpc's
+`*Status` is not immutable in Go (a whole-struct assignment `*s = *t` from any package copies its
+unexported fields); the fact is a guarantee of the producer that built `s` (with `status.New`/`Error`)
+and never writes it after, as grpc and etcd do (`examples/premisefix/grpcstatusro`;
+`notes/k8s-7f5a-draft.md` §11.2); a status may be shared (package-level `status.Error` values).
+(errdesc stage 2a, 2026-11-20) Read-only with some code `c` and message `m`, the per-run relation
+`status.statusAt s c m` (until then `grpcStatusRO s (statusCode e)`, the pure `statusCode`). -/
 def grpcErrMethodsOk (e : GoInterfaceOk) : IProp GF :=
   iprop((⌜methodSet e.ty !! go!"GRPCStatus" =
       some (go.Signature [] false
         [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty])⌝ →
-    ∃ s : Loc, (□ ∀ Φ : val → IProp GF, ▷ Φ #s -∗
+    ∃ (s : Loc) (c : w32) (m : GoString), (□ ∀ Φ : val → IProp GF, ▷ Φ #s -∗
       WP (App (Val #(methods e.ty go!"GRPCStatus" e.v)) (Val #())) {{ Φ }}) ∗
-      EtcdGrove.grpcStatusRO s (EtcdGrove.statusCode (GoInterface.ok e))) ∗
+      EtcdGrove.status.statusAt s c m) ∗
     (⌜methodSet e.ty !! go!"Is" = some (go.Signature [go.error] false [go.bool])⌝ →
     □ ∀ (target : GoInterface) (Φ : val → IProp GF),
       ▷ (∀ b : Bool, ⌜b = true → errDesc (GoInterface.ok e) = errDesc target⌝ -∗ Φ #b) -∗
@@ -442,6 +443,26 @@ def statusErrOk (err : GoInterface) : IProp GF :=
 
 instance statusErrOk_persistent (err : GoInterface) : Persistent (statusErrOk (GF := GF) err) := by
   unfold statusErrOk; infer_instance
+
+/-- **The gRPC status code of `err` is `c`** (persistent; errdesc stage 2a, 2026-11-20: until then the
+pure `statusCode err`): what `status.FromError(err).Code()` and `status.Code(err)` return. `nil`:
+`OK`; an error without grpc's `GRPCStatus() *Status`: `Unknown` (grpc v1.84.0 `status.go:96-127`);
+one with it: the code of the read-only status it stably returns (`grpcErrMethodsOk`). -/
+def statusCodeIs (err : GoInterface) (c : w32) : IProp GF :=
+  iprop(⌜err = GoInterface.nil ∧ c = W32 0⌝ ∨
+    (∃ e : GoInterfaceOk, ⌜err = GoInterface.ok e ∧ methodSet e.ty !! go!"GRPCStatus" ≠
+      some (go.Signature [] false
+        [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty]) ∧ c = W32 2⌝) ∨
+    ∃ (e : GoInterfaceOk) (s : Loc) (m : GoString), ⌜err = GoInterface.ok e ∧
+      methodSet e.ty !! go!"GRPCStatus" = some (go.Signature [] false
+        [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty])⌝ ∗
+      (□ ∀ Φ : val → IProp GF, ▷ Φ #s -∗
+        WP (App (Val #(methods e.ty go!"GRPCStatus" e.v)) (Val #())) {{ Φ }}) ∗
+      EtcdGrove.status.statusAt s c m)
+
+instance statusCodeIs_persistent (err : GoInterface) (c : w32) :
+    Persistent (statusCodeIs (GF := GF) err c) := by
+  unfold statusCodeIs; infer_instance
 
 -- The names-only target of the alias `grpc/status.Status` (imported by `grpc/status` since
 -- `client/v3/leasing` names it).
@@ -900,6 +921,36 @@ theorem statusErrOk_msg (err : GoInterface) :
     iintro %e %h
     cases h
     iexact Hm
+
+
+/-- An error grpc's `status` accepts has some code (errdesc stage 2a). -/
+theorem statusErrOk_code (err : GoInterface) :
+    statusErrOk (GF := GF) err ⊢ ∃ c : w32, statusCodeIs err c := by
+  iintro #H
+  cases err with
+  | nil =>
+    iexists W32 0
+    unfold statusCodeIs
+    ileft; ipureintro; exact ⟨rfl, rfl⟩
+  | ok e0 =>
+    unfold statusErrOk
+    icases H $$ %e0 %rfl with ⟨-, -, #Hm, -⟩
+    unfold grpcErrMethodsOk
+    icases Hm with ⟨Hg, -⟩
+    by_cases hg : methodSet e0.ty !! go!"GRPCStatus" = some (go.Signature [] false
+        [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty])
+    · ihave ⟨%s, %c, %m, #Hs, #Hst⟩ := Hg $$ %hg
+      iexists c
+      unfold statusCodeIs
+      iright; iright
+      iexists e0, s, m
+      iframe Hs Hst
+      ipureintro; exact ⟨rfl, hg⟩
+    · iexists W32 2
+      unfold statusCodeIs
+      iright; ileft
+      iexists e0
+      ipureintro; exact ⟨rfl, hg, rfl⟩
 
 /-- **A context error wrapped by `%w`** (one or more levels; errorf-wrap, 2026-11-06; persistent):
 `rangeKeys`' `fmt.Errorf("rangeKeys: context cancelled: %w", ctx.Err())` (`kvstore_txn.go:121`) and

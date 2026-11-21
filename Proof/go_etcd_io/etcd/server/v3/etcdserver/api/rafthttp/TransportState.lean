@@ -219,6 +219,7 @@ theorem rafthttp.Transport.Start_full
         snap.isSnapshotter tv.Snapshotter' sd ∗
         inv snapDirN (snapDirInv sd γd γn.N.img Rm) ∗ netHttpOk γn tv.ID' ∗
         v2stats.isLeaderStats tv.LeaderStats' ∗ v2stats.lsFollowers tv.LeaderStats' 1 ∗
+        v2stats.isServerStats tv.ServerStats' ∗
         raftPool R }}
       (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"Start")) (Val #()))
     {{ (err : GoInterface), RET #err;
@@ -226,7 +227,7 @@ theorem rafthttp.Transport.Start_full
         ⌜err = GoInterface.nil⌝ ∗ ∃ c : TrN GF, ⌜c.lid = tv.ID' ∧ c.γd = γd ∧ c.R = R ∧ c.L = L⌝ ∗
           trLive γn t c [] ∗
           [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), transportTok γn t c }} := by
-  wp_start_folded as ⟨Ht, #Hlgz, %Hpre, #Huvs, #Hraft, #Hss, #Hdir, #Hnet, #Hlsi, Hlsf, #HrPool⟩
+  wp_start_folded as ⟨Ht, #Hlgz, %Hpre, #Huvs, #Hraft, #Hss, #Hdir, #Hnet, #Hlsi, Hlsf, #HssI, #HrPool⟩
   iStructNamed Ht
   obtain ⟨Hssnn, Hlsnn, Hmu0, Hmem, HLnd, Hturls⟩ := Hpre
   iapply wp_fupd

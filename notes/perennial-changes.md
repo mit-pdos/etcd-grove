@@ -17,6 +17,27 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Goose: a struct field (or type argument) of type `rune` fails to translate (2026-11-20, prove-b64clock)
+
+- **Missing.** go/types names `int32`'s alias `rune` (`types.Typ[types.Rune]`: `Kind() == Int32`,
+  `Name() == "rune"`), and Goose's three tables keyed on `Basic.Name()` list only `"int32"`:
+  `goose/types.go` `basicLeanType` ("Unknown basic type rune"), `goose/proofgen/types.go` `toLeanType`
+  (`log.Fatalf("unknown basic type rune")`) and `goose/util/autotypes.go` `typeTranslatability.check`
+  (so `translate_types` axiomatizes every struct with a `rune` field). `byte` (`uint8`'s alias) is listed.
+- **Needed by.** `encoding/base64`'s `Encoding` (`padChar rune`): the package's initializer and
+  `EncodeToString`, proved on branch `prove-b64clock/2026-11-20` (retires `StdEncoding_init`,
+  `RawURLEncoding_init` and base64's `opaqueInitsOk`), need the struct translated. The fix also
+  translates k8s `fields.UnescapedRune` and an `encoding/json` type that are axiomatized today (their
+  regenerated files are on that branch; nothing proved reads them).
+- **Workaround here.** None: the branch's `Code/encoding/base64.lean` and `GeneratedProof/` were generated
+  with the patched translator (`etc/goose.py --project k8s-apiserver --perennial <clone>`); it builds
+  against the pinned Perennial (no Lean file changes), but `etc/goose.py --check` fails until the pin
+  has the fix, so the branch waits for it.
+- **Proposed.** Add `"rune"` to the `int32` case of the three tables (3 lines). A commit is ready, not
+  pushed: branch `goose-rune-fields` (`1a1bb0633`, on Perennial `c44b74871`) of the clone
+  `/shared/tmp/b64clock/perennial`. A goose test (a struct with a `rune` field in `testdata`) would
+  go with it. **Status.** Proposed; for the user to sequence.
+
 ### Float facts: `FloatOps` has no laws, so no float-dependent panic can be excluded (2026-11-20, prove-promdeep)
 
 - **Limitation.** `FloatOps` (`Perennial/Golang/Defn/PostLang.lean`) is a field of the semantics class with no laws:
@@ -3162,11 +3183,33 @@ parameter.
   the real code: k8s apimachinery's `apierrors.IsTimeout`/`HasStatusCause` (`errors.As(err, &status)`
   then a field of the status) stay axioms. (See also "`errors.Is`/`errors.As` at non-pointer targets
   and for leaves" above.)
-- **Workaround here.** Their specs stay trust-boundary axioms.
+- **Workaround here.** ~~Their specs stay trust-boundary axioms.~~ Since prove-k8s2 (2026-11-20) the four
+  checks (and `IsTooManyRequests`, `SuggestsClientDelay`) are proved over their bodies, over one narrow
+  local axiom, `errors.AsNoMatch` (`Spec/errors/AsNoMatch.lean`: `false` and the target unchanged for
+  `nil`, a non-matching leaf, or a one-level wrapper unwrapping to one), which also replaced
+  `errors.AsLeafTy` (`notes/axiom-review/asnomatch.md`).
 - **Proposed change.** An `errors.As` spec that, for a leaf error (no `Unwrap`, no `As`), returns `true`
   exactly when the error's dynamic type is the target's element type (or implements it, for an
-  interface target), and then stores the error's value into the target. Status: not proposed (found by
-  the refimpl session, 2026-11-18).
+  interface target), and then stores the error's value into the target; and the no-match walk of
+  `AsNoMatch` (any depth). Status: not proposed (found by the refimpl session, 2026-11-18).
+
+## 2026-11-20: Goose cannot name another package's type alias in a struct field (klog's `Logger`, k8s `watch`'s watchers)
+
+- **Missing.** `typeNameable` (`goose/lean_types.go`) rejects every alias declared in another package
+  ("an alias that is not translated is declared opaque without a descriptor"), even one that package
+  translates (klog's `Logger = logr.Logger`, translated as `Logger.ty := logr.Logger.ty`): a struct
+  with a field of such a type is declared opaque. Function bodies are not affected (client-go's
+  `features` allocates a `klog.Logger` local). `apimachinery/pkg/watch`'s `FakeWatcher` and
+  `RaceFreeFakeWatcher` (`logger klog.Logger`) therefore stay opaque even with klog, logr and `sync`
+  imported, and their `var _ Interface = &FakeWatcher{}` initializers cannot be stepped through.
+- **Needed by.** `Perennial.k8s_io.apimachinery.pkg.watch.opaqueInitsOk` (prove-k8s2's item 4; the
+  package's other initializers, `DefaultChanSize` and the `var _` of `Recorder`, `ProxyWatcher` and
+  `MockWatcher`, translate).
+- **Workaround here.** The axiom stays.
+- **Proposed change.** Goose: name a foreign alias by its target (`types.Unalias`) when the target is
+  nameable (its package imported), in both `typeNameable` and the Lean type of a field; or emit an
+  `abbrev` Lean type for each translated alias and accept foreign aliases whose package translates them.
+  Status: not proposed.
 
 ## 2026-11-19: `wp_slice_make3` does not say the slice is not `nil` (k8s 7g, `toEventReference`)
 
@@ -3215,14 +3258,59 @@ parameter.
 
 - **The gap.** Perennial's `time.After(d)` spec gives a bag of times with no logical content
   (`isChanBag γ ch (fun _ => True)`), and `time.Now` arbitrary readings; there is no ghost clock that
-  a receive on `After`'s channel bounds from below. clockwork's `NewRealClock` (`After` is
-  `time.After`) therefore cannot be proved to give `clockwork.clockOk` (`After`'s values come only
-  once `clockLb γc (T + d)`), and its ghost predicates (`clockLb`, `stampAt`, `realClock` and their
-  laws, 9 axioms with `NewRealClock.wp_proof`) stay axioms.
+  a receive on `After`'s channel bounds from below. The model (`TrustedCode/time.lean`) agrees: `NewTimer`'s
+  goroutine sends `arbitraryTime` at once, whatever `d`, and `runtimeNano`/`runtimeNow` return arbitrary
+  integers. clockwork's `NewRealClock` (`After` is `time.After`) therefore cannot be proved to give
+  `clockwork.clockOk` (`After`'s values come only once `clockLb γc (T + d)`), and its ghost predicates
+  (`clockLb`, `stampAt`, `realClock` and their laws, 9 axioms with `NewRealClock.wp_proof`) stay axioms.
+- **Re-checked (prove-b64clock, 2026-11-20).** etcd uses `NewRealClock` (`v3compactor.New`), `Clock.Now`
+  and `Clock.After` (`periodic.go`, `revision.go`), nothing else. clockwork v0.5.0's real clock is thin
+  wrappers (`clockwork.go`: `After` is `time.After(d)`, `Now` is `time.Now()`, the rest likewise), so with
+  clock content in Perennial's `time` specs, `NewRealClock` is a short proof over translated bodies. Over
+  the current model no definition of `clockLb`/`stampAt` makes `NewRealClock` provable and keeps time
+  content: `After`'s channel delivers without the model's clock advancing, so `clockLb (T + d)` must hold
+  for every `d` without time passing, i.e. be trivial (`clockLb := True`, `stampAt P T := P`), which empties
+  the compactor's results (C1's "at least `period` old") of their time content. So it needs this change.
 - **Worked around locally.** The clockwork axioms (`Proof/github_com/jonboulle/clockwork/Defs.lean`).
-- **Proposed (general).** A monotonic ghost clock in Perennial's `time` model (`runtimeNano`'s readings
-  bounded below by a persistent `clockLb`, `After`/`NewTimer`/`Sleep` firing only past `now + d`),
-  from which clockwork's predicates would be definitions. **Status.** Recorded only (prove-smalllibs).
+- **Proposed (concrete).** A monotonic ghost clock in Perennial's `time`, the clock that
+  `runtime.nanotime` reads (the source of `Time`'s monotonic reading and of the timers' `when`):
+  1. *Model* (`TrustedCode/time.lean`): a model-global cell `monoNow : w64` (allocated by `time`'s trusted
+     initializer). `runtimeNano` advances it by an arbitrary non-negative amount (a CAS loop on
+     `ArbitraryInt`) and returns it; `runtimeNow`'s monotonic component is a `runtimeNano` reading (its wall
+     component stays arbitrary: the wall clock jumps). `NewTimer(d)` reads `start := runtimeNano()` before
+     forking, and its goroutine spins `for runtimeNano() < start + max(d, 0) {}` before each send (Go's
+     `when(d)`, `time/sleep.go`; partial correctness, so the spin's termination is irrelevant); `After` is
+     `NewTimer(d).C` as now; `Sleep(d)` spins the same way; `NewTicker(d)`'s k-th send waits for
+     `start + k·d`. Faithful because Go's runtime fires a timer only once `nanotime() ≥ when`
+     (`runtime/time.go`, `timer.unlockAndRun`), and `nanotime` is monotonic.
+  2. *Ghost state* (`Proof/time/Base.lean`): `isInit` gains `inv (∃ n, monoNow ↦ n ∗ mono_nat_auth γclk n ∗
+     stampsAuth γst n)`, `γclk` a fixed name (from `time`'s `isPkgInit`). Exported:
+     `time.clockLb n := mono_nat_lb γclk n` (persistent; `clockLb_le`; `clockLb_zero`), and
+     `time.stampAt P T` (persistent): `∃ γ, savedProp γ (□ P) ∗ stamp γst γ T`, where `stampsAuth γst n` is a
+     ghost map of stamps all at times `≤ n`, inserted only by the model's clock reads at the current `n`
+     (so a stamp cannot be made up afterwards: `stampAt_intro` is no law), with `stampAt_elim` (`P` back,
+     under a later from the saved prop's agreement) and `stampAt_clockLb`. Iris-Lean has both pieces
+     (`Iris/BI/Lib/MonoNat.lean`, `Iris/Instances/Lib/SavedProp.lean`).
+  3. *Specs* (strengthened posts; the one weakened premise is `isPkgInit time`, which `After`, `NewTimer`,
+     `NewTicker`, `Sleep` and `AfterFunc` would need to reach the invariant; their callers here hold it:
+     the `examples/raft/kv*` replicas' `sleep`/`tick`, the etcd examples' `holdToken`/`stop`/`check`, the
+     leases' `MainLinked`): `Now` returns `t` with `∃ m ≥ n, clockLb m` (`n` any bound the caller holds)
+     and `t`'s monotonic reading `m`; `After(d)` takes `clockLb n` and `□ P` and returns `∃ T ≥ n,
+     stampAt P T ∗ isChanBag γ ch (fun _ => clockLb (T + sint.Z d))`, likewise `NewTimer`'s `C`;
+     `Sleep(d)` returns `clockLb (T + d)`; optionally `Time.Sub` of two monotonic times is the difference of
+     their readings (which would also give the compactor's first sample, timed by `Now()`, its full bound).
+  4. *Here*, after the pin bump: `clockwork.clockLb γc n := time.clockLb n`, `stampAt γc P T := time.stampAt P T`
+     (the clock name unused: `realClock` any name; etcd has no fake clock), their laws theorems; translate
+     `realClock`'s `Now`/`After` and `NewRealClock` (`Code/github_com/jonboulle/clockwork.toml`) and prove
+     `NewRealClock.wp_proof`: the 9 axioms go, `clockOk` and every compactor statement unchanged. (The
+     package's initializer: `keyClock` is translated since 2026-11-20; `ErrFakeClockDeadlineExceeded`'s
+     `fmt.Errorf("...: %w", ...)` stays in `opaqueInitsOk` until Perennial's `Errorf` models `%w`.)
+- **Remark (soundness, re-read 2026-11-20).** The axioms are true of clockwork v0.5.0's real clock but for
+  one corner: Go's `when(d)` saturates at `maxWhen = 2^63 - 1` (`time/sleep.go`), so for `T + d ≥ 2^63`
+  the timer fires at `2^63 - 1` ns while `clockOk` promises `clockLb (T + d)`; reachable only after 292
+  years of monotonic time. The proposal's model should saturate the same way (the posts then say
+  `clockLb (min (T + d) (2^63 - 1))`, or premise `T + d < 2^63`).
+  **Status.** Proposed; for the user to sequence (a Perennial change: model, ghost state and specs).
 
 ## 2026-11-20: `time.Duration.Seconds` is names-only (x/time/rate's `Every`)
 

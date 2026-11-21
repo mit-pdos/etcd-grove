@@ -2566,7 +2566,7 @@ theorem watchGRPCStream.run.wp_proof
       icases Herr with ⟨%Hen, #Herrk, #Hsec, Hpback⟩
       ihave #Hse := closeErrOk_status _ $$ Hsec
       wp_auto
-      wp_apply +noauto wp_isHaltErr G.ctx G.cd err $$ [] as %bh %Hbh
+      wp_apply +noauto wp_isHaltErr G.ctx G.cd err $$ [] as %bh -
       · iframe Hse HGctx
       cases bh
       · -- (D25) not a halting error: no leader, or a reconnection

@@ -103,7 +103,6 @@ axiom Perennial.k8s_io.apiserver.pkg.storage.value.initFuncsOk
 axiom Perennial.k8s_io.apiserver.pkg.storage.value.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.util.feature.DefaultFeatureGate_init
 axiom Perennial.k8s_io.apiserver.pkg.util.feature.DefaultMutableFeatureGate_init
-axiom Perennial.k8s_io.apiserver.pkg.util.flowcontrol.opaqueInitsOk
 axiom Perennial.k8s_io.component_base.featuregate.opaqueInitsOk
 axiom Perennial.k8s_io.component_base.metrics.initFuncsOk
 axiom Perennial.k8s_io.component_base.metrics.opaqueInitsOk
@@ -125,15 +124,10 @@ axiom WithRequireLeader.wp_proof
 axiom addFeatureGateMetrics.wp_proof
 axiom addrUnclaimed
 axiom api.IsCapabilityEnabled.wp_proof
-axiom apierrors.HasStatusCause.wp_proof
-axiom apierrors.IsTimeout.wp_proof
-axiom apierrors.IsTooManyRequests.wp_proof
 axiom apierrors.NewInternalError.wp_proof
-axiom apierrors.SuggestsClientDelay.wp_proof
 axiom apimeta.GetItemsPtr.wp_proof
 axiom apply.irrDecode_utf8
 axiom apply.memberEnc_id_learner
-axiom apply.memberKey_inj
 axiom audit.GetAuditIDTruncated.wp_proof
 axiom auth.NewAuthStore.wp_proof
 axiom auth.newTokenProviderJWT.wp_proof
@@ -175,7 +169,7 @@ axiom encoding.json.Unmarshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom entryEncC_ok
 axiom envVerifyOffTok
-axiom errors.AsLeafTy.wp_proof
+axiom errors.AsNoMatch.wp_proof
 axiom errors.IsCtxErr.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof
 axiom errors.IsStatusErr.wp_proof
@@ -387,11 +381,9 @@ axiom proto.Unmarshal.wp_proof
 axiom proto.UnmarshalConfChange.wp_proof
 axiom proto.UnmarshalConfChangeV2.wp_proof
 axiom proto.UnmarshalPb.wp_proof
-axiom rafthttp.NewRoundTripper.wp_proof
 axiom rafthttp.Transport.ActiveSince.wp_proof
 axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.netErrNotRemoved_ok
-axiom rafthttp.newStreamRoundTripper.wp_proof
 axiom rand.Int63n.wp_proof
 axiom rate.Every.wp_proof
 axiom rate.Limiter.Wait.wp_proof
@@ -470,6 +462,7 @@ axiom traceutil.Tracer.Start.wp_proof
 axiom tracing.Span.AddEvent.wp_proof
 axiom tracing.Span.End.wp_proof
 axiom tracing.Start.wp_proof
+axiom transport.NewTimeoutTransport.wp_proof
 axiom txn.WarnOfExpensiveRequest.wp_proof
 axiom txn.WarnOfFailedRequest.wp_proof
 axiom types.IDFromString.wp_proof

@@ -41482,3 +41482,19 @@ image, the WAL base is the lower bound with which application starts.
 These facts are carried by the same storage invariant used for reads and
 compaction. The job reads its own node’s outgoing channel and compares the
 message with the Ready actually delivered to that job.
+## A status's code as a per-run relation (2026-11-20 · the user's soundness fix · branch `prove-errdesc2/2026-11-20`, stage 2a)
+
+**Supersedes in part:** the watch slice's W-C (`statusCode : GoInterface → w32`, "the status is embedded
+in the error value, so the code is a function of the error") and E1's `grpcStatusRO`/`grpcStatusROP`.
+
+**Why.** As for the outgoing metadata (stage 1, above): `statusCode` was a fixed function of an error
+value, and the producers of a status (`status.Error`, grpc's model) fix it at a value they allocate.
+
+**Decision** (`notes/errdesc-ghost-plan.md` §7): the opaque leaf `status.statusAtRaw s c m` (no law),
+`status.statusAt s c m := ⌜s ≠ null⌝ ∗ □ statusAtRaw s c m` (SpecPlan's `statusAt`) in place of
+`grpcStatusRO s c`; `grpcErrMethodsOk`'s `GRPCStatus` clause gives `∃ s c m, (□ returns s) ∗
+statusAt s c m`; `statusCodeIs err c` (nil: `OK`; no `GRPCStatus() *Status`: `Unknown`; else the
+status's code) with `statusErrOk_code`. `status.FromError` takes `∀ c`, pre `statusCodeIs err c`, and its
+`Code()` returns `c`; `status.Status.Code` takes `statusAt s c m`; `isHaltErr`'s post gives the code
+through `statusCodeIs`. Axioms restated: `status.FromError`, `status.Status.Code` (and `status.Code`'s,
+`status.Error`'s meaning through `statusErrOk`); none added. The message (`errDesc`) is stage 2b.

@@ -1266,6 +1266,11 @@ polling the endpoint's `Status`, and returns), `opaqueInitsOk` the others.''',
     finish=FIN_PRE[:6],
 )
 
+# (prove-b64clock, 2026-11-20) clockwork's `keyClock = contextKey("clock")`, translated (a string
+# conversion, which `wp_auto` runs); `ErrFakeClockDeadlineExceeded`'s `fmt.Errorf("...: %w", ...)` stays
+# untranslated (`opaqueInitsOk`): Perennial's `Errorf` model is faithful only for formats without verbs.
+SPECIAL['github_com.jonboulle.clockwork'] = dict(alloc_types={'keyClock': 'GoString'})
+
 SPECIAL['encoding.base64'] = dict(
     doc='''Its fact (`base64Init`, `encoding/base64/Base.lean`; the auth plan's E2x, 2026-10-26;
 k8s 7e-2, 2026-11-09): `StdEncoding` and `RawURLEncoding` hold fixed `*Encoding`s whose
@@ -3438,13 +3443,28 @@ their translated initializers (prove-k8s, 2026-11-20; until then the trust-bound
                 'as %sl5 %ks5 ⟨H3, S5, -⟩', '· iframe',
                 'try wp_auto', 'wp_func_call', 'wp_call', 'try wp_auto',
                 f'{_SETS_NEW} $$ [S5] as %r5 ⟨H5, -⟩', '· iframe', 'try wp_auto']})
+SPECIAL['k8s_io.apiserver.pkg.util.flowcontrol'] = dict(doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+their translated initializers (prove-k8s2, 2026-11-20; until then the trust-boundary axiom
+`opaqueInitsOk`): `readOnlyVerbs = sets.NewString(...)` (`sets` with bodies: `New`'s spec) and the
+two interface assertions `var _ fmt.GoStringer = RequestDigest{}` and
+`var _ fmt.GoStringer = (*priorityLevelState)(nil)` (conversions to an interface).''',
+    alloc_types=_ALLOC_ANY,
+    imports=['Proof.k8s_io.apimachinery.pkg.util.sets.New', 'Proof.k8s_io.apimachinery.pkg.util.sets.Set__Insert'],
+    before={'readOnlyVerbs': _newstring_steps('1', '[go!"get", go!"list", go!"watch", go!"proxy"]')})
 _AE = 'k8s_io.apimachinery.pkg.api.errors'
-SPECIAL[_AE] = dict(doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
-their translated initializers: `var _ error = &StatusError{}` and `knownReasons`, a map literal of the
-19 known reasons (prove-k8s, 2026-11-20; until then the trust-boundary axiom `opaqueInitsOk`).''',
+SPECIAL[_AE] = dict(doc='''Its fact (`apierrorsInit`, `storage/etcd3/Base.lean`; prove-k8s2, 2026-11-20, `True` until then):
+`knownReasons` holds, read-only for good, the map of the 19 known reasons (`knownReasonsMap`), which
+`IsTimeout` looks reasons up in. Its initializer initializes its imports, allocates its variables and
+runs their translated initializers: `var _ error = &StatusError{}` and `knownReasons`, a map literal
+of the 19 known reasons (prove-k8s, 2026-11-20; until then the trust-boundary axiom `opaqueInitsOk`).''',
     alloc_types={'knownReasons': 'Loc'},
     before={'knownReasons': ['try wp_auto', 'wp_alloc_anon'] + map_lit_steps('Hkr', 'GoString', 'Unit',
-        'k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty', '(go.GoType.StructType [])', 19)})
+        'k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty', '(go.GoType.StructType [])', 19)},
+    finish=['ipersist HknownReasons', 'ipersist Hkr'] + FIN_PRE[:6] + [
+        'imodintro', 'unfold k8s_io.apiserver.pkg.storage.etcd3.apierrorsInit', 'iexists _',
+        'iframe HknownReasons',
+        'unfold EtcdGrove.apierrors.knownReasonsMap EtcdGrove.apierrors.knownReasons',
+        'simp only [List.foldl]', 'iexact Hkr'])
 SPECIAL['k8s_io.apimachinery.pkg.util.errors'] = newvars_cfg(dict(
     doc='''Its fact is `True`. Its initializer initializes its imports, allocates `ErrPreconditionViolated` and
 runs its translated initializer, an `errors.New` call (prove-smallinits, 2026-11-20; until then the
