@@ -11,9 +11,15 @@ public import Perennial.Proof.bytes.Base
 public import Perennial.Proof.encoding.binary.Base
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.auth
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.api.v3.authpb
+public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.client.pkg.v3.types
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.client.pkg.v3.verify
+public import SpecPlan.Spec.PkgInit.encoding.json
+public import Perennial.Proof.log.Base
+public import SpecPlan.Spec.PkgInit.go_etcd_io.raft.v3.raftpb
+public import Perennial.Proof.fmt.Base
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.lease.leasepb
 public import SpecPlan.Spec.PkgInit.github_com.Masterminds.semver.v3
+public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.api.membership
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.api.v3.version
 
 @[expose] public section
