@@ -39,7 +39,7 @@ theorem storage.costPut_wp (r : Loc) (o : OpFull) :
   wp_start as #Hr
   iunfold txn.putRequestIs at Hr
   icases Hr with ⟨%Hnn, %ksl, %vsl, %k, %v, %l, %pk, %iv, %il, #HK, -, #HV, -⟩
-  wp_auto
+  try wp_auto
   iapply HΦ
   itrivial
 
@@ -67,44 +67,44 @@ theorem storage.costTxn_wp
       {{ (c : w64), RET #c; True }} := by
     intro p op hop
     wp_start as #Hp
-    wp_auto
+    try wp_auto
     wp_apply (hPut p op) $$ [$Hp] as %rr Hrr
     icases Hrr with (⟨%o, %Ho, #Hr⟩ | %Hrn)
-    · iunfold txn.putRequestIs at Hr
-      icases Hr with ⟨%Hnn, -⟩
-      wp_auto
+    · ihave %Hnn : (⌜rr ≠ null⌝ : IProp GF) $$ []
+      · iunfold txn.putRequestIs at Hr; icases Hr with ⟨%H, -⟩; ipureintro; exact H
+      try wp_auto
       wp_if_destruct
       · exact absurd rfl Hnn
       wp_apply (storage.costPut_wp rr o) $$ [] as %c -
-      · iunfold txn.putRequestIs; iframe #; ipureintro; exact Hnn
-      wp_auto
+      · iframe #
+      try wp_auto
       iapply HΦ; itrivial
     · obtain ⟨rfl, -⟩ := Hrn
-      wp_auto
+      try wp_auto
       wp_apply (hTxn p op) $$ [$Hp] as %tr Htr
       cases op
       case txn cs' ts' es' =>
         icases Htr with ⟨%Htn, #Hf⟩
-        wp_auto
+        try wp_auto
         wp_if_destruct
         · exact absurd rfl Htn
         have hlt : sizeOf ts' + sizeOf es' < n := by
           simp only [TxnOp.txn.sizeOf_spec] at hop; omega
         wp_apply (ih tr cs' ts' es' hlt) $$ [] as %c -
         · iframe #; ipureintro; exact Htn
-        wp_auto
+        try wp_auto
         iapply HΦ; itrivial
       all_goals
         icases Htr with %Htn
         subst Htn
-        wp_auto
+        try wp_auto
         iapply HΦ; itrivial
   wp_start as ⟨%Hrnn, #Hf⟩
   iunfold txn.txnFieldsIs at Hf
   icases Hf with ⟨%csl, %ssl, %fsl, %cps, %sps, %fps, #Hc, #Hcs, #Hcm, #Hs, #Hss, #Hsm, #Hfl, #Hfs, #Hfm⟩
   ihave %Hslen := ownSlice_len _ _ _ $$ Hss
   ihave %Hflen := ownSlice_len _ _ _ $$ Hfs
-  wp_auto
+  try wp_auto
   -- the success branch
   ihave IH : (∃ (k : w64) (uv : Loc) (acc : w64), "i" ∷ i_ptr ↦ k ∗ "u" ∷ u_ptr ↦ uv ∗
       "acc" ∷ sizeSuccess_ptr ↦ acc ∗ "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ sint.Z ssl.len⌝ : IProp GF)
@@ -115,6 +115,7 @@ theorem storage.costTxn_wp
   wp_for IH
   wp_if_destruct
   · obtain ⟨hk0, hkl⟩ := Hk
+    have Hif : sint.Z k < sint.Z ssl.len := by simpa using Hif
     have hlt : sint.nat k < sps.length := by have := Hslen.1; word
     list_elem sps (sint.nat k) as p
     simp only [show (0 ≤ sint.Z k ∧ sint.Z k < sint.Z ssl.len) from ⟨hk0, Hif⟩, _root_.and_self,
@@ -124,16 +125,16 @@ theorem storage.costTxn_wp
     ihave ⟨%op, %Hop, #Hp⟩ := txn.requestOpsIs_elem sps ts (sint.nat k) p Hp_lookup $$ Hsm
     have hle : sizeOf op ≤ sizeOf ts + sizeOf es := by
       have := List.sizeOf_lt_of_mem (List.mem_of_getElem? Hop); omega
-    wp_auto
+    try wp_auto
     wp_apply (hreq p op hle) $$ [] as %c -
     · iframe #
-    wp_auto
+    try wp_auto
     wp_for_post
     iframe
     iexists k + W64 1, p, _
     iframe
     ipureintro; exact ⟨by word, by word⟩
-  wp_auto
+  try wp_auto
   -- the failure branch
   ihave IH : (∃ (k : w64) (uv : Loc) (acc : w64), "i" ∷ i_ptr ↦ k ∗ "u" ∷ u_ptr ↦ uv ∗
       "acc" ∷ sizeFailure_ptr ↦ acc ∗ "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ sint.Z fsl.len⌝ : IProp GF)
@@ -144,6 +145,7 @@ theorem storage.costTxn_wp
   wp_for IH
   wp_if_destruct
   · obtain ⟨hk0, hkl⟩ := Hk
+    have Hif : sint.Z k < sint.Z fsl.len := by simpa using Hif
     have hlt : sint.nat k < fps.length := by have := Hflen.1; word
     list_elem fps (sint.nat k) as p
     simp only [show (0 ≤ sint.Z k ∧ sint.Z k < sint.Z fsl.len) from ⟨hk0, Hif⟩, _root_.and_self,
@@ -153,17 +155,17 @@ theorem storage.costTxn_wp
     ihave ⟨%op, %Hop, #Hp⟩ := txn.requestOpsIs_elem fps es (sint.nat k) p Hp_lookup $$ Hfm
     have hle : sizeOf op ≤ sizeOf ts + sizeOf es := by
       have := List.sizeOf_lt_of_mem (List.mem_of_getElem? Hop); omega
-    wp_auto
+    try wp_auto
     wp_apply (hreq p op hle) $$ [] as %c -
     · iframe #
-    wp_auto
+    try wp_auto
     wp_for_post
     iframe
     iexists k + W64 1, p, _
     iframe
     ipureintro; exact ⟨by word, by word⟩
-  wp_auto
-  wp_if_destruct <;> (wp_auto; iapply HΦ; itrivial)
+  try wp_auto
+  wp_if_destruct <;> ((try wp_auto); iapply HΦ; itrivial)
 
 theorem storage.BackendQuota.Cost.wp_proof
     (hPut : RequestOp.GetRequestPut.spec (GF := GF) (hG := hG))
@@ -172,12 +174,12 @@ theorem storage.BackendQuota.Cost.wp_proof
   intro q t r
   wp_start as #Hq
   iunfold apply.quotaReqOk at Hq
-  wp_auto
+  try wp_auto
   icases Hq with (⟨%Ht, %o, #Hr⟩ | ⟨%Ht, %m, #Hr⟩ | %Ht) <;> subst Ht
   · wp_auto
     wp_apply (storage.costPut_wp r o) $$ [] as %c -
     · iframe #
-    wp_auto
+    try wp_auto
     iapply HΦ; itrivial
   · wp_auto
     iunfold txn.txnRequestIs at Hr
@@ -185,7 +187,7 @@ theorem storage.BackendQuota.Cost.wp_proof
     wp_apply (storage.costTxn_wp hPut hTxn _ r m.cmps m.thenOps m.elseOps (Nat.lt_succ_self _))
       $$ [] as %c -
     · iframe #; ipureintro; exact Hnn
-    wp_auto
+    try wp_auto
     iapply HΦ; itrivial
   · wp_auto
     iapply HΦ; itrivial

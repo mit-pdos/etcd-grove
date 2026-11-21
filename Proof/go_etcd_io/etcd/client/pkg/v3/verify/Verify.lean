@@ -29,26 +29,26 @@ theorem verify.Verify.wp_proof
     verify.Verify.spec (GF := GF) (hG := hG) := by
   intro msg f P
   wp_start as ⟨HP, Hf⟩
-  try wp_auto
+  wp_auto
   wp_apply hEnabled as %b Hb
   icases Hf with (Hf | #Hvoff)
   · cases b
     · wp_auto
       iapply HΦ; iexact HP
     · wp_auto
-      wp_bind (App (Val f) (Val #()))
+      wp_bind (App (Val #f) (Val #()))
       iapply (wp_wand) $$ [Hf HP]
       · iapply Hf; iexact HP
       iintro %r ⟨%d, %hr, HP⟩
       subst hr
-      wp_auto
+      try wp_auto
       wp_func_call
       wp_call
-      wp_auto
+      try wp_auto
       iapply HΦ; iexact HP
   · ispecialize Hb $$ Hvoff
     icases Hb with %Hb
-    obtain rfl : b = false := Hb (Or.inl rfl)
+    obtain rfl : b = false := Hb (Or.inl (by first | rfl | trivial))
     wp_auto
     iapply HΦ; iexact HP
 
