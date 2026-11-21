@@ -243,6 +243,9 @@ theorem confDecide [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (D
 theorem ownConfDecisions_timeless (γ : Cluster) (D : GMap Nat ConfDecision) : Timeless
     (ownConfDecisions γ D)
 
+theorem nodeRestoreCert_persistent (γ : Cluster) (n : Loc) (sv : SnapshotM) : Persistent
+    (nodeRestoreCert γ n sv)
+
 theorem ownSnapsMade_snapshotValid_data [package_sem : Assumptions] (γ : Cluster) (S : List SnapRec)
     (sv : SnapshotM) : ownSnapsMade γ S ∗ snapshotValid γ sv ⊢ ⌜∃ r, r ∈ S ∧ r.data = sv.Data'⌝
 
@@ -254,6 +257,11 @@ theorem ownConfDecisions_witness [package_sem : Assumptions] (γ : Cluster) (D :
 
 theorem confDecided_persistent (γ : Cluster) (k : Nat) (d : ConfDecision) : Persistent (confDecided
     γ k d)
+
+theorem readySnapSources_msgSnap [package_sem : Assumptions] (γ : Cluster) (n : Loc) (ms : List
+    QMsg) (q : QMsg) (SV : SnapshotM → IProp GF) (hq : q ∈ ms) (ht : q.st.msg.Type' = MsgSnap) : ⊢
+    readySnapSources γ n ms -∗ nodeTagPin γ n SV -∗ ∃ sv, ⌜q.st.snap = some sv⌝ ∗ (▷ SV sv ∨
+    nodeRestoreCert γ n sv)
 
 def (sealed) ownSnapsMade (γ : Cluster) (S : List SnapRec) : IProp GF
 
@@ -280,3 +288,5 @@ theorem snapshotCert_make [package_sem : Assumptions] (γ : Cluster) (N : Namesp
     cs m → ⊢ isCluster γ N -∗ isCommittedLogLb γ l -∗ confAt γ l.length m -∗ ownSnapsMade γ S ={E}=∗
     ownSnapsMade γ (S ++ [{ index := l.length, conf := m, data := d }]) ∗ snapshotCert γ N { sid :=
     { term' := t, index' := i }, cl := cs.lists, al := m.autoLeave, dat := d }
+
+def (sealed) nodeRestoreCert (γ : Cluster) (n : Loc) (sv : SnapshotM) : IProp GF
