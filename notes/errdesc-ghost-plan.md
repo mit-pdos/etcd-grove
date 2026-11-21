@@ -151,3 +151,67 @@ SpecPlan's `outMD`/`errView`/`statusAt`: the `Option` metadata and `descIs`, alr
   only rebuild); the examples' auth specs take `outMD` in place of a pure equation (they are proved, not
   trusted).
 - **Concurrent landings** touch `InvGrpc.lean`, `cache/v3/Base.lean`, `rpctypes`: merge `lean` often.
+
+## 6. Stage 1 as landed (2026-11-20)
+
+- `metadata.builtRawMDRaw v f` (opaque `IProp`, `{hlc}`-generic, `LibKeys.lean`), `metadata.outgoingHeld v md`,
+  `metadata.outMD ctx md` (chain form, `LibKeysChain.lean`); `outgoingCtxOkC ctx := ∃ md, outMD ctx md`,
+  `outgoingCtxOk` (WP form) `∃ v md, valueAt … ∗ outgoingHeld v md`. Laws: `outMD_background`/`_todo`/`_from`/
+  `_valueCtx`/`_ownKey`/`_raw`/`_bgFrom`/`_todoFrom`, `outgoingCtxOkC_of_outMD`, `outgoingCtxOk_of_outMD`,
+  `watchCtx_outMD`, `txnObjAt_outMD`.
+- The metadata travels as a parameter `om : GrpcMd`, always bound right after its context (`ctx om cd`), with
+  `metadata.outMD ctx om` just before `ctxOk ctx cd` in the precondition. Contracts indexed by a context
+  became indexed by `om` (`attemptPre conn om`, `clientAttemptMd conn om md`, `clientOpAuOn s E ρ conn om`,
+  `clientGrant`, `clientHistAu`, `txnUpdAtOn`, `doRunGen`, `watchCheckOk`). A caller indifferent to the
+  metadata takes one from `ctxOk` (`ctxOk_outgoingC`) or `watchCtx` (`watchCtx_outMD`).
+- The examples' `hout : outgoingOf ctx = akOut who` became `metadata.outMD ci (akOut who)` in the laws'
+  preconditions (auth) or a metadata-typed index with `ctx = akOut who` (authlease); `reqCtx_out` is gone
+  (`reqCtx`'s post gives `outMD ci (akOut who)` up to unfolding `akOut`).
+- Not done: `WithCancelValCtx` and `WithTimeoutBackgroundMd` stay axioms (restated); both are provable from
+  Perennial's `WithCancel`/`WithTimeout` models plus the chain laws (the Scope's m6/Q6), a follow-up that
+  removes two axioms.
+
+## 7. Stage 2, the concrete design (for the implementer)
+
+The same discipline as stage 1: the description travels as a parameter `m : GoString` next to its error,
+with a relation in the precondition; posts of producers give `∃ m, descIs err m ∗ P m`.
+
+1. **Vocabulary** (`Proof/google_golang_org/grpc/status/StatusRO.lean`, `ErrDesc.lean`):
+   `opaque status.statusAtRaw (s : Loc) (c : w32) (m : GoString) : IProp GF` ({hlc}-generic, no law);
+   `statusAt s c m := ⌜s ≠ null⌝ ∗ □ statusAtRaw s c m` (replaces `grpcStatusRO s c`);
+   `statusErrIs e c m := ⌜GRPCStatus ∈ e.ty⌝ ∗ ∃ s, (□ GRPCStatus() returns s) ∗ statusAt s c m`;
+   `errView err c m ok` (SpecPlan's: nil/OK/""/true, a leaf without `GRPCStatus` with `errorMsgIs e m`,
+   `Unknown`, false, or `statusErrIs e c m`, true); `descIs err m` (nil and `""`; no `GRPCStatus` and
+   `errorMsgIs e m`; or `∃ c, statusErrIs e c m`; with the `EtcdError` pin
+   `∀ y, err = mkOk EtcdError.ty #y → m = y.desc`).
+2. **`statusErrOk`** (`cache/v3/Base.lean`): its `∃ m, errorMsgIs e m` gains the pin
+   (`∃ m, errorMsgIs e m ∗ ⌜pin e m⌝`), and `grpcErrMethodsOk`'s `GRPCStatus` clause gives
+   `∃ s c m, (□ returns s) ∗ statusAt s c m`; `Is` gives
+   `□ ∀ target m m', descIs (ok e) m -∗ descIs target m' -∗ WP e.Is(target) {b. ⌜b → m = m'⌝}`.
+   Laws: `statusErrOk_errView : statusErrOk err ⊢ ∃ c m ok, errView err c m ok`,
+   `statusErrOk_descIs : statusErrOk err ⊢ ∃ m, descIs err m` (what a caller indifferent to the
+   description uses), `descIs_of_errView` (with the pin from `statusErrOk`), `descIs_etcdError`
+   (proved from `EtcdError.Error`'s spec; replaces the axiom `rpctypes.errDesc_etcdError`).
+3. **Axioms restated** (no new one): `status.Error` (post `statusErrIs e c msg`, the type and pointer facts
+   kept), `status.FromError` (`∀ err c m ok`, pre `statusErrOk err ∗ errView err c m ok`; `Code()` returns `c`,
+   `Message()` `m`), `status.Status.Code` (pre `statusAt s c m`), `errors.IsStatusErr` (`∀ m m'`, pre
+   `descIs err m ∗ descIs target m'`; `b → (err = target ∨ m = m') ∧ T3`), `grpc.model.respond`
+   (`∀ m`, pre `descIs err m ∗ (⌜err ≠ nil ∧ m ∈ handlerDescs⌝ -∗ Ψe m)`), `waitRetryBackoff`
+   (`∃ m, descIs err m ∗ ⌜m ∉ handlerDescs⌝`), `v3rpc.toGRPCErrorMap_init` (`grpcErrMapOk` an `IProp`: every
+   key and value with a `descIs` meeting today's pure facts).
+4. **The handler outcome** becomes a definition `handlerErrOut Ψe err := ∃ m, descIs err m ∗
+   (⌜err ≠ nil ∧ m ∈ handlerDescs⌝ -∗ Ψe m)` replacing the literal text in `grpcMethodOkMd`,
+   `grpcHandlerOk*`, the handler specs and `UnaryHandlerLemmas` (one `sed`), with laws `handlerErrOut_nil`
+   and `handlerErrOut_all` (from `□ ∀ d, Ψe d` and `statusErrOk_descIs`/`srvErrOk`). `grpcDecOk` and
+   `srvInterceptorOk` (`errDesc err ∉ handlerDescs`) become `∃ m, descIs err m ∗ ⌜m ∉ handlerDescs⌝`
+   (`notHandlerErr err`), with a law from `ctxErrIs`. The invoker's error outcome (`grpcInvokerOk`) gives
+   `handlerErrOut Ψe err` and `noRefusal` restated `err = nil ∨ ∃ m, descIs err m ∗ ⌜m ∉ refusalDescs⌝`.
+5. **Client chains** (the Scope's §3.3): `rpctypes.Error`/`ErrorDesc` pre `descIs err m`, post `descIs err' m`;
+   `shouldRefreshToken`/`isSafeRetry*` pre `descIs err m`, post `b → m ∈ refusalDescs` (the identity branch
+   closed by the pin: the targets are `EtcdError` values, and `ErrGRPCNotSupportedForLearner`'s own
+   `descIs` from `rpctypesInit`); `ifcErrOut` over `m`; k8s `listReadError`/`readErrIs` and
+   `KVService.rangeErrOut` carry `∃ m, descIs err m ∗ …`.
+6. **Server chains**: `rangeErrDesc`, `grpcErrOut`, `notReadDesc`, `ctxErrDescs`, `mvcc.rangeKeysErr`
+   (`errorfWrap_descIs` replaces `ErrorfWrap`'s conditional `pre <+: errDesc` conjunct, which goes).
+7. **Order**: 1-2 (vocabulary; everything rebuilds), 3 (axioms), 4 (handler outcome, mostly textual), then the
+   chains 5-6 file by file from the build's errors, as stage 1 went. Estimate 4-6 days.
