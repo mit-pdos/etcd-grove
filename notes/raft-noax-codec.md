@@ -3,6 +3,22 @@
 Part of the raft-noax track (`notes/raft-noax.md`: the Go changes; `notes/raft-noax-part.md`: the part
 `RaftNoAx/`). Branch `raft-noax-codec` (off `raft-noax`, merged back from it after stage 3a).
 
+## Wire compatibility repair, November 21
+
+On the original noax fork, adding an optional field to a configuration entry
+changed the public formatter's result from a node description to an encoding
+error. Revision `e98d795867e6` reads fields in wire order, applies protobuf's
+duplicate-field rules and retains unknown bytes when encoding. The VM ran the
+Raft Go suite and the differential tests against protobuf-go. [Regression and
+fork revision](../issues/raft-noax-confchange-wire-compat.md).
+
+The wire model accepts non-minimal varints, converts enum values to their low
+32 bits and checks protobuf's separate field-number limits inside and outside
+groups. `CCWireSound` characterizes the bytes skipped by the Go scanner.
+`CCWireRoundtrip` proves that V1, V2 and each nested change decode to the
+original getters when the input includes retained unknowns. The size proof
+includes those bytes at each level. The original proof is recorded below.
+
 ## Stage 3b (2026-11-18): the codecs proved, `ccDecodeV2_nil` a theorem
 
 What was left after stage 3a (the clones and `EntrySize`): the four `sorry`s of

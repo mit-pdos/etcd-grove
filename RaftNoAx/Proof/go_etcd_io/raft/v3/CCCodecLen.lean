@@ -8,7 +8,7 @@ counted present), what their specs' posts bound the bytes by.
 -/
 module
 
-public import RaftNoAx.Proof.go_etcd_io.raft.v3.CCCodecLemmas
+public import RaftNoAx.Proof.go_etcd_io.raft.v3.CCWireRoundtrip
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.PbContentOwn
 
 @[expose] public section
@@ -73,7 +73,7 @@ theorem ccEncOpt_bytes_le (tag : w8) (o : Option (List w8))
 /-- `MarshalConfChangeV1`'s output is at most `ccLenMax` long (every field counted present). -/
 theorem ccEncodeV1_length_le [GooseExts] (id : Option w64) (ty : Option w32) (nid : Option w64)
     (ctx : Option (List w8)) (hctx : ∀ c, ctx = some c → c.length < 2 ^ 64) (uf : List w8) :
-    (ccEncodeV1 id ty nid ctx).length ≤
+    (ccEncodeV1 id ty nid ctx ++ uf).length ≤
       ccLenMax (.v1 ⟨ty.getD (W32 0), nid.getD (W64 0), ctx.getD [], id.getD (W64 0)⟩ uf) := by
   unfold ccEncodeV1
   simp only [ccLenMax, List.length_append]
@@ -95,7 +95,7 @@ theorem ccEncodeSingle_length_le' [GooseExts] {c : ConfChangeSingleM} {e : List 
 
 theorem ccEncChanges_length_le [GooseExts] :
     ∀ (chs : List (ConfChangeSingleM × List w8)) (encs : List (List w8)),
-    List.Forall₂ (fun ch e => CCSingleEnc ch.1 e) chs encs →
+    List.Forall₂ (fun ch e => CCSingleWireEnc ch.1 ch.2 e ∧ e.length < 2^64) chs encs →
     (ccEncChanges encs).length ≤
       (chs.map fun ch => lenSize (fieldVarintSize (enumWire ch.1.Type') +
         fieldVarintSize (uint.nat ch.1.NodeId') + ch.2.length)).sum := by
@@ -104,10 +104,9 @@ theorem ccEncChanges_length_le [GooseExts] :
   | nil => simp [ccEncChanges]
   | @cons ch e chs' encs' hce _ ih =>
     simp only [ccEncChanges, List.map_cons, List.sum_cons, List.length_append]
-    have hl := ccEncodeSingle_length_le' hce
-    have h22 : e.length < 2 ^ 64 := by
-      obtain ⟨ty, nid, rfl, -, -⟩ := hce
-      have := ccEncodeSingle_length_le ty nid; omega
+    obtain ⟨⟨known, hknown, heq, _⟩, h22⟩ := hce
+    have hl := ccEncodeSingle_length_le' hknown
+    have hlen : e.length = known.length + ch.2.length := by rw [heq, List.length_append]
     have he : (W8 18 :: ccBytesEnc e).length = lenSize e.length := by
       have : uint.nat (W64 (e.length : Int)) = e.length := by word
       simp only [List.length_cons, ccBytesEnc, ccVarint, List.length_append, lenSize, varintSize, this]
@@ -119,9 +118,9 @@ theorem ccEncChanges_length_le [GooseExts] :
 /-- `MarshalConfChangeV2`'s output is at most `ccLenMax` long. -/
 theorem ccEncodeV2_length_le [GooseExts] (t : Option w32)
     (chs : List (ConfChangeSingleM × List w8)) (encs : List (List w8))
-    (H : List.Forall₂ (fun ch e => CCSingleEnc ch.1 e) chs encs)
+    (H : List.Forall₂ (fun ch e => CCSingleWireEnc ch.1 ch.2 e ∧ e.length < 2^64) chs encs)
     (ctx : Option (List w8)) (hctx : ∀ c, ctx = some c → c.length < 2 ^ 64) (uf : List w8) :
-    (ccEncodeV2 t encs ctx).length ≤ ccLenMax (.v2 (t.getD (W32 0)) chs (ctx.getD []) uf) := by
+    (ccEncodeV2 t encs ctx ++ uf).length ≤ ccLenMax (.v2 (t.getD (W32 0)) chs (ctx.getD []) uf) := by
   unfold ccEncodeV2
   simp only [ccLenMax, List.length_append]
   have := ccEncOpt_enum_le (W8 8) t
