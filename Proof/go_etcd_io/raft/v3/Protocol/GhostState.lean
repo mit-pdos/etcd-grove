@@ -32,6 +32,7 @@ public import Perennial.Ghost.GhostVar
 public import Iris.BI.Lib.Atomic
 public import Iris.Instances.Lib.FUpd
 public import Perennial.Std.Namespaces
+public import Perennial.GooseLang.CrashToken
 
 @[expose] public section
 
@@ -1334,9 +1335,332 @@ instance campKey_persistent (γ : RaftNames) (id t : w64) :
     Persistent (campKey (GF := GF) γ id t) := by
   unfold campKey; infer_instance
 
+
+/-! ### The crash invariant (2026-11-21, `notes/raft-crash-law-design.md` (b1), (i))
+
+A node of `id` armed from its vacant slot (`nodeVacant_arm`, `Protocol/Enter.lean`) keeps the six
+timeless exclusive pieces a stop or a crash needs (the slot's half of its virtual maps `V`, its whole
+generation `slotLive 1 g`, and the four leader-side authorities of terms, winning quorums, commit
+bounds and read registries, each key with its fragment and campaign) in a per-arm invariant
+`nodeCrashInv γ id x`, whose other disjunct is the generation's `crashed` with the arm's token: a
+crash (`nodeCrash`) takes them out and gives the slot back. The node holds a half view of each
+(`cview`): every update opens the invariant with `notCrashed` (`nodeCrashInv_acc`), and so does
+every read of the slot against its entered maps (`slot_open`); the contents are the view's. -/
+
+/-- The names of node `id`'s slot: its virtual maps, its queue, its generation. -/
+abbrev SlotNames := GName × GName × GName
+
+/-- The five per-id promise maps, as pure values. -/
+structure DurMaps where
+  voted : GMap w64 w64
+  acks : GMap (w64 × w64) Unit
+  camps : GMap w64 (List EntryM × w64)
+  vlogs : GMap Nat ((w64 × Bool) × List EntryM)
+  evs : List Aev
+
+instance DurMaps_countable : Pos.Countable DurMaps :=
+  .ofInjective (fun W => Pos.Countable.encode (W.voted, W.acks, W.camps, W.vlogs, W.evs))
+    (by
+      rintro ⟨_, _, _, _, _⟩ ⟨_, _, _, _, _⟩ h
+      have h := Pos.encode_inj h
+      simp_all)
+
+/-- A share of the generation `g` of node `id` (R8): the running node's (`q = 1` in all), which
+*enter* and the cut need and the stop consumes whole. -/
+def slotLive (γ : RaftNames) (id : w64) (q : Qp) (g : Nat) : IProp GF :=
+  iprop(∃ γs : SlotNames, ⌜γ.reSlot !! id = some γs⌝ ∗ ghostVar γs.2.2 q.half g)
+
+/-- **The names of an arm of node `id`'s crash invariant**: the views of its six pieces and the
+crash token. -/
+structure CrashNames where
+  v : GName
+  g : GName
+  t : GName
+  w : GName
+  l : GName
+  q : GName
+  tok : GName
+deriving DecidableEq, Inhabited
+
+/-- The names as a list (the invariant's namespace). -/
+def CrashNames.toList (x : CrashNames) : List GName := [x.v, x.g, x.t, x.w, x.l, x.q, x.tok]
+
+theorem CrashNames.toList_inj {x y : CrashNames} (h : x.toList = y.toList) : x = y := by
+  rcases x with ⟨_, _, _, _, _, _, _⟩
+  rcases y with ⟨_, _, _, _, _, _, _⟩
+  simp only [CrashNames.toList, List.cons.injEq, and_true] at h
+  obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := h
+  rfl
+
+/-- Node `id`'s crash invariants' namespace (every arm's). -/
+def crashNs (γ : RaftNames) (id : w64) : Namespace := (raftN γ .@ "crash") .@ id
+
+/-- An arm's crash invariant's namespace. -/
+def crashN (γ : RaftNames) (id : w64) (x : CrashNames) : Namespace := (crashNs γ id) .@ x.toList
+
+theorem crashN_sub (γ : RaftNames) (id : w64) (x : CrashNames) :
+    (↑(crashN γ id x) : CoPset) ⊆ ↑(crashNs γ id) :=
+  nclose_subseteq _ _
+
+theorem crashNs_raftN (γ : RaftNames) (id : w64) : (↑(crashNs γ id) : CoPset) ⊆ ↑(raftN γ) :=
+  fun p hp => nclose_subseteq (raftN γ) "crash" p (nclose_subseteq (raftN γ .@ "crash") id p hp)
+
+/-- The crash invariants are outside the commit invariant's registry half. -/
+theorem crashNs_sub_reg {γ : RaftNames} {id : w64} : (↑(crashNs γ id) : CoPset) ⊆ ⊤ \ ↑(raftRegN γ) :=
+  fun p hp => mask_ndot_ne' (raftN γ) "crash" "reg" (by decide) p (nclose_subseteq _ _ p hp)
+
+/-- **A leader-side piece** at the view name `n`: the map `m` (the view's other half), its
+authority (named by `names !! id`), each key with its fragment and campaign. -/
+def leadPiece {A : Type} [Pos.Countable A] (γ : RaftNames) (id : w64) (n : GName)
+    (names : GMap w64 GName) : IProp GF :=
+  iprop(∃ (m : GMap w64 A) (γm : GName), ⌜names !! id = some γm⌝ ∗ ghostVar n (1 : Qp).half m ∗
+    ghostMapAuth γm 1 m ∗ [∗map] t ↦ a ∈ m, t ↪[γm]□ a ∗ campKey γ id t)
+
+instance leadPiece_timeless {A : Type} [Pos.Countable A] (γ : RaftNames) (id : w64) (n : GName)
+    (names : GMap w64 GName) : Timeless (leadPiece (A := A) (GF := GF) γ id n names) := by
+  unfold leadPiece campKey; infer_instance
+
+/-- **The six pieces, with their views' other halves** (the crash invariant's live disjunct). -/
+def crashLeft (γ : RaftNames) (id : w64) (x : CrashNames) : IProp GF :=
+  iprop(∃ (γs : SlotNames) (V : DurMaps) (g : Nat), ⌜γ.reSlot !! id = some γs⌝ ∗
+    ghostVar x.v (1 : Qp).half V ∗ ghostVar γs.1 (1 : Qp).half V ∗
+    ghostVar x.g (1 : Qp).half g ∗ slotLive γ id 1 g ∗
+    leadPiece (A := TermRec) γ id x.t γ.reTerms ∗ leadPiece (A := GSet w64) γ id x.w γ.reWins ∗
+    leadPiece (A := GName) γ id x.l γ.reLcm ∗ leadPiece (A := GName) γ id x.q γ.reRdq)
+
+instance crashLeft_timeless (γ : RaftNames) (id : w64) (x : CrashNames) :
+    Timeless (crashLeft (GF := GF) γ id x) := by
+  unfold crashLeft slotLive; infer_instance
+
+section crash
+variable [CrashGS GF]
+
+/-- **An arm's crash invariant**: the six pieces while the generation runs; the generation's
+`crashed` and the arm's token once it crashed and the pieces were taken out (`nodeCrash`). -/
+def nodeCrashInv (γ : RaftNames) (id : w64) (x : CrashNames) : IProp GF :=
+  inv (crashN γ id x) iprop(crashLeft γ id x ∨ (crashed ∗ dghostVar x.tok (DFrac.own 1) ()))
+
+instance nodeCrashInv_persistent (γ : RaftNames) (id : w64) (x : CrashNames) :
+    Persistent (nodeCrashInv (GF := GF) γ id x) := by
+  unfold nodeCrashInv; infer_instance
+
+/-- **A view** (a share `q` of the view named `sel x`) of a piece of an arm of node `id`. -/
+def cview {A : Type} [Pos.Countable A] (γ : RaftNames) (id : w64) (sel : CrashNames → GName)
+    (q : Qp) (a : A) : IProp GF :=
+  iprop(∃ x : CrashNames, nodeCrashInv γ id x ∗ ghostVar (sel x) q a)
+
+/-- **Opening an arm's crash invariant while the generation runs** (`notCrashed` refutes the crash
+disjunct), around an update of the pieces. -/
+theorem nodeCrashInv_acc (E : CoPset) (γ : RaftNames) (id : w64) (x : CrashNames) (R : IProp GF) :
+    ↑(crashNs γ id) ⊆ E →
+    ⊢ notCrashed -∗ nodeCrashInv γ id x -∗
+      (crashLeft γ id x ={E \ ↑(crashN γ id x)}=∗ crashLeft γ id x ∗ R) ={E}=∗ notCrashed ∗ R := by
+  intro HE
+  iintro Hnc #Hinv Hf
+  unfold nodeCrashInv
+  imod inv_acc (E := E) (fun p hp => HE p (crashN_sub γ id x p hp)) $$ Hinv with ⟨Hi, Hclose⟩
+  icases Hi with (>Hb | ⟨>Hc, -⟩)
+  · imod Hf $$ Hb with ⟨Hb, HR⟩
+    imod Hclose $$ [Hb] with -
+    · inext; ileft; iexact Hb
+    imodintro
+    iframe
+  · iexfalso; iapply notCrashed_crashed $$ Hnc Hc
+
+/-- **Two arms of one id are one** while the generation runs: both live disjuncts would hold the
+full term-map authority. -/
+theorem nodeCrashInv_agree (E : CoPset) (γ : RaftNames) (id : w64) (x y : CrashNames) :
+    ↑(crashNs γ id) ⊆ E →
+    ⊢ notCrashed -∗ nodeCrashInv γ id x -∗ nodeCrashInv γ id y ={E}=∗ notCrashed ∗ ⌜x = y⌝ := by
+  intro HE
+  iintro Hnc #Hx #Hy
+  by_cases hxy : x = y
+  · imodintro; iframe Hnc; ipureintro; exact hxy
+  have hl : x.toList ≠ y.toList := fun h => hxy (CrashNames.toList_inj h)
+  have hdis := ndot_ne_disjoint (crashNs γ id) hl
+  have Hx' : (↑(crashN γ id x) : CoPset) ⊆ E := fun p hp => HE p (crashN_sub γ id x p hp)
+  have Hy' : (↑(crashN γ id y) : CoPset) ⊆ E \ ↑(crashN γ id x) := by
+    intro p hp
+    rw [Iris.Std.LawfulSet.mem_diff]
+    exact ⟨HE p (crashN_sub γ id y p hp), fun h => hdis p ⟨h, hp⟩⟩
+  unfold nodeCrashInv
+  imod inv_acc (E := E) Hx' $$ Hx with ⟨Hix, -⟩
+  imod inv_acc (E := E \ ↑(crashN γ id x)) Hy' $$ Hy with ⟨Hiy, -⟩
+  icases Hix with (>Hlx | ⟨>Hc, -⟩)
+  · icases Hiy with (>Hly | ⟨>Hc, -⟩)
+    · iexfalso
+      unfold crashLeft leadPiece
+      icases Hlx with ⟨%γs, %V, %g, %Hs, -, -, -, -, ⟨%m, %γm, %Hm, -, Ha, -⟩, -, -, -⟩
+      icases Hly with ⟨%γs', %V', %g', %Hs', -, -, -, -, ⟨%m', %γm', %Hm', -, Ha', -⟩, -, -, -⟩
+      rw [Hm] at Hm'; cases Hm'
+      icases ghostMapAuth_valid_2 _ _ _ _ _ $$ Ha Ha' with %H
+      exact absurd H.1 (Qp_one_add_not_le _)
+    · iexfalso; iapply notCrashed_crashed $$ Hnc Hc
+  · iexfalso; iapply notCrashed_crashed $$ Hnc Hc
+
+/-- A lens on the crash invariant's live disjunct: one piece out, and back. -/
+def CrashLens (γ : RaftNames) (id : w64) (P : CrashNames → IProp GF) : Prop :=
+  ∀ x, crashLeft (GF := GF) γ id x ⊢ P x ∗ (P x -∗ crashLeft γ id x)
+
+theorem crashLens_t (γ : RaftNames) (id : w64) :
+    CrashLens (GF := GF) γ id (fun x => leadPiece (A := TermRec) γ id x.t γ.reTerms) := by
+  intro x; unfold crashLeft
+  iintro ⟨%γs, %V, %g, %Hs, H1, H2, H3, H4, Ht, Hw, Hl, Hq⟩
+  iframe Ht
+  iintro Ht
+  iexists γs, V, g
+  iframe
+  ipureintro; exact Hs
+
+theorem crashLens_w (γ : RaftNames) (id : w64) :
+    CrashLens (GF := GF) γ id (fun x => leadPiece (A := GSet w64) γ id x.w γ.reWins) := by
+  intro x; unfold crashLeft
+  iintro ⟨%γs, %V, %g, %Hs, H1, H2, H3, H4, Ht, Hw, Hl, Hq⟩
+  iframe Hw
+  iintro Hw
+  iexists γs, V, g
+  iframe
+  ipureintro; exact Hs
+
+theorem crashLens_l (γ : RaftNames) (id : w64) :
+    CrashLens (GF := GF) γ id (fun x => leadPiece (A := GName) γ id x.l γ.reLcm) := by
+  intro x; unfold crashLeft
+  iintro ⟨%γs, %V, %g, %Hs, H1, H2, H3, H4, Ht, Hw, Hl, Hq⟩
+  iframe Hl
+  iintro Hl
+  iexists γs, V, g
+  iframe
+  ipureintro; exact Hs
+
+theorem crashLens_q (γ : RaftNames) (id : w64) :
+    CrashLens (GF := GF) γ id (fun x => leadPiece (A := GName) γ id x.q γ.reRdq) := by
+  intro x; unfold crashLeft
+  iintro ⟨%γs, %V, %g, %Hs, H1, H2, H3, H4, Ht, Hw, Hl, Hq⟩
+  iframe Hq
+  iintro Hq
+  iexists γs, V, g
+  iframe
+  ipureintro; exact Hs
+
+/-- The slot's half of the virtual maps `V`, with its view's other half. -/
+def crashV (γ : RaftNames) (id : w64) (x : CrashNames) : IProp GF :=
+  iprop(∃ (γs : SlotNames) (V : DurMaps), ⌜γ.reSlot !! id = some γs⌝ ∗
+    ghostVar x.v (1 : Qp).half V ∗ ghostVar γs.1 (1 : Qp).half V)
+
+theorem crashLens_v (γ : RaftNames) (id : w64) : CrashLens (GF := GF) γ id (crashV γ id) := by
+  intro x; unfold crashLeft crashV
+  iintro ⟨%γs, %V, %g, %Hs, H1, H2, H3, H4, Ht, Hw, Hl, Hq⟩
+  isplitl [H1 H2]
+  · iexists γs, V; iframe; ipureintro; exact Hs
+  iintro ⟨%γs', %V', %Hs', H1, H2⟩
+  rw [Hs] at Hs'; cases Hs'
+  iexists γs, V', g
+  iframe
+  ipureintro; exact Hs
+
+/-- The generation, with its view's other half. -/
+def crashG (γ : RaftNames) (id : w64) (x : CrashNames) : IProp GF :=
+  iprop(∃ g : Nat, ghostVar x.g (1 : Qp).half g ∗ slotLive γ id 1 g)
+
+theorem crashLens_g (γ : RaftNames) (id : w64) : CrashLens (GF := GF) γ id (crashG γ id) := by
+  intro x; unfold crashLeft crashG
+  iintro ⟨%γs, %V, %g, %Hs, H1, H2, H3, H4, Ht, Hw, Hl, Hq⟩
+  isplitl [H3 H4]
+  · iexists g; iframe
+  iintro ⟨%g', H3, H4⟩
+  iexists γs, V, g'
+  iframe
+  ipureintro; exact Hs
+
+/-- **Inserting a key into a leader-side map held in the crash invariant** (the win's inserts), at
+its view: the authority and the view move together, the new key's fragment out. -/
+theorem cview_insert {A : Type} [Pos.Countable A] (E : CoPset) (γ : RaftNames) (id : w64)
+    (sel : CrashNames → GName) (names : GMap w64 GName)
+    (hlens : CrashLens (GF := GF) γ id (fun x => leadPiece (A := A) γ id (sel x) names))
+    (m : GMap w64 A) (γm : GName) (t : w64) (a : A) :
+    ↑(crashNs γ id) ⊆ E → names !! id = some γm → m !! t = none →
+    ⊢ notCrashed -∗ cview γ id sel (1 : Qp).half m -∗ campKey γ id t ={E}=∗
+      notCrashed ∗ cview γ id sel (1 : Qp).half (<[t := a]> m) ∗ t ↪[γm]□ a := by
+  intro HE Hγm Hfree
+  unfold cview
+  iintro Hnc ⟨%x, #Hinv, Hv⟩ #Hck
+  iapply nodeCrashInv_acc E γ id x _ HE $$ Hnc Hinv
+  iintro Hl
+  icases hlens x $$ Hl with ⟨Hp, Hback⟩
+  unfold leadPiece
+  icases Hp with ⟨%m0, %γm0, %Hn, Hv0, Ha, #Hf⟩
+  rw [Hγm] at Hn; cases Hn
+  icases ghostVar_agree _ _ _ _ _ $$ Hv Hv0 with %Hm
+  subst Hm
+  imod ghost_map_insert_persist t a Hfree $$ Ha with ⟨Ha, #Hnew⟩
+  imod ghostVar_update_halves (<[t := a]> m) (sel x) _ _ $$ Hv Hv0 with ⟨Hv, Hv0⟩
+  imodintro
+  isplitr [Hv]
+  · iapply Hback
+    iexists (<[t := a]> m), γm
+    iframe Hv0 Ha
+    isplitr; · ipureintro; exact Hγm
+    iapply (BigSepM.bigSepM_insert (Φ := fun k a => iprop(k ↪[γm]□ a ∗ campKey γ id k)) Hfree).2
+    iframe Hnew Hck Hf
+  iframe Hnew
+  iexists x
+  iframe Hinv Hv
+
+/-- **Using a leader-side map's authority, read only** (a trace line's freshness check, the traced
+win's): the authority lent to `f` and given back, at the view's contents. -/
+theorem cview_auth_use {A : Type} [Pos.Countable A] (E : CoPset) (γ : RaftNames) (id : w64)
+    (sel : CrashNames → GName) (names : GMap w64 GName)
+    (hlens : CrashLens (GF := GF) γ id (fun x => leadPiece (A := A) γ id (sel x) names))
+    (m : GMap w64 A) (γm : GName) (P Q : IProp GF) :
+    ↑(crashNs γ id) ⊆ E → names !! id = some γm →
+    ⊢ notCrashed -∗ cview γ id sel (1 : Qp).half m -∗ P -∗
+      (ghostMapAuth γm 1 m -∗ P -∗ ghostMapAuth γm 1 m ∗ Q) ={E}=∗
+      notCrashed ∗ cview γ id sel (1 : Qp).half m ∗ Q := by
+  intro HE Hγm
+  unfold cview
+  iintro Hnc ⟨%x, #Hinv, Hv⟩ HP Hf
+  imod nodeCrashInv_acc E γ id x iprop(ghostVar (sel x) (1 : Qp).half m ∗ Q) HE
+    $$ Hnc Hinv [Hv HP Hf] with ⟨Hnc, Hv, HQ⟩
+  · iintro Hl
+    icases hlens x $$ Hl with ⟨Hp, Hback⟩
+    unfold leadPiece
+    icases Hp with ⟨%m0, %γm0, %Hn, Hv0, Ha, #Hfr⟩
+    rw [Hγm] at Hn; cases Hn
+    icases ghostVar_agree _ _ _ _ _ $$ Hv Hv0 with %Hm
+    subst Hm
+    icases Hf $$ Ha HP with ⟨Ha, HQ⟩
+    imodintro
+    iframe Hv HQ
+    iapply Hback
+    iexists m, γm
+    iframe Hv0 Ha Hfr
+    ipureintro; exact Hγm
+  imodintro
+  iframe Hnc HQ
+  iexists x
+  iframe Hinv Hv
+
+/-- **A pure fact of a leader-side map's authority** (`cview_auth_use`, the fact read out). -/
+theorem cview_auth_pure {A : Type} [Pos.Countable A] (E : CoPset) (γ : RaftNames) (id : w64)
+    (sel : CrashNames → GName) (names : GMap w64 GName)
+    (hlens : CrashLens (GF := GF) γ id (fun x => leadPiece (A := A) γ id (sel x) names))
+    (m : GMap w64 A) (γm : GName) (P : IProp GF) (φ : Prop)
+    (h : (ghostMapAuth γm 1 m ∗ P : IProp GF) ⊢ ⌜φ⌝) :
+    ↑(crashNs γ id) ⊆ E → names !! id = some γm →
+    ⊢ notCrashed -∗ cview γ id sel (1 : Qp).half m -∗ P ={E}=∗
+      notCrashed ∗ cview γ id sel (1 : Qp).half m ∗ P ∗ ⌜φ⌝ := by
+  intro HE Hγm
+  iintro Hnc Hv HP
+  iapply cview_auth_use E γ id sel names hlens m γm P iprop(P ∗ ⌜φ⌝) HE Hγm $$ Hnc Hv HP
+  iintro Ha HP
+  icases persistent_entails_right h $$ [Ha HP] with ⟨%Hφ, Ha, HP⟩
+  · iframe Ha HP
+  iframe Ha HP
+  ipureintro; exact Hφ
+
 def lcmOwn (γ : RaftNames) (id : w64) (s : PState) : IProp GF :=
   iprop(∃ γl, ∃ (lcm : GMap w64 GName), ⌜γ.reLcm !! id = some γl⌝ ∗
-    ghostMapAuth γl 1 lcm ∗ ([∗map] t ↦ γc ∈ lcm, t ↪[γl]□ γc ∗ campKey γ id t) ∗
+    cview γ id CrashNames.l (1 : Qp).half lcm ∗ ([∗map] t ↦ γc ∈ lcm, t ↪[γl]□ γc ∗ campKey γ id t) ∗
     ⌜LcmOk lcm s⌝ ∗ lcmLead s lcm)
 
 /-- Across a step: a leader stays one only within its term, leaves a term only for a
@@ -1391,13 +1715,14 @@ theorem lcmOwn_mono (γ : RaftNames) (id : w64) (s s' : PState) :
 
 /-- A candidate that wins its term allocates the term's lower bound, at its commit
 index. -/
-theorem lcmOwn_win (γ : RaftNames) (id : w64) (s s' : PState) :
+theorem lcmOwn_win (E : CoPset) (γ : RaftNames) (id : w64) (s s' : PState) :
+    ↑(crashNs γ id) ⊆ E →
     s.role = .candidate → s'.role = .leader → s'.term = s.term →
     uint.Z s.commit ≤ uint.Z s'.commit →
-    campKey (GF := GF) γ id s.term ∗ lcmOwn γ id s ⊢ |==> lcmOwn γ id s' := by
-  intro Hr Hr' Hte Hcm
+    ⊢ notCrashed -∗ campKey (GF := GF) γ id s.term ∗ lcmOwn γ id s ={E}=∗ notCrashed ∗ lcmOwn γ id s' := by
+  intro HE Hr Hr' Hte Hcm
   unfold lcmOwn
-  iintro ⟨#Hck, %γl, %lcm, %Hγl, Ha, #Hf, %Hok, -⟩
+  iintro Hnc ⟨#Hck, %γl, %lcm, %Hγl, Ha, #Hf, %Hok, -⟩
   have Hfree : lcm !! s.term = none := by
     cases h : lcm !! s.term with
     | none => rfl
@@ -1406,8 +1731,10 @@ theorem lcmOwn_win (γ : RaftNames) (id : w64) (s s' : PState) :
       · omega
       · exact absurd Hr Hl
   imod mono_nat_own_alloc (GF := GF) (uint.nat s.commit) with ⟨%γc, Hac, -⟩
-  imod ghost_map_insert_persist s.term γc Hfree $$ Ha with ⟨Ha, #Hfc⟩
+  imod cview_insert E γ id CrashNames.l γ.reLcm (crashLens_l γ id) lcm γl s.term γc HE Hγl Hfree
+    $$ Hnc Ha Hck with ⟨Hnc, Ha, #Hfc⟩
   imodintro
+  iframe Hnc
   iexists γl, (<[s.term := γc]> lcm)
   iframe Ha
   isplitr; · ipureintro; exact Hγl
@@ -1495,6 +1822,8 @@ theorem lcmOwn_bound_keep (γ : RaftNames) (id : w64) (s : PState) (n : w64) :
   have h3 : (uint.nat n : Int) ≤ c := by exact_mod_cast Hv.2
   have h4 : (c : Int) ≤ uint.nat s.commit := by exact_mod_cast Hcle
   omega
+
+end crash
 
 /-! ### The read-index ghost state of a node (2026-10-12, notes/decisions.md, "Read-index")
 
@@ -1603,6 +1932,9 @@ theorem rdCount_append (a b : List Msg) : rdCount (a ++ b) = rdCount a + rdCount
 theorem rdCount_singleton (m : Msg) : rdCount [m] = if m.ty = .readIndex then 1 else 0 := by
   unfold rdCount; by_cases h : m.ty = .readIndex <;> simp [h]
 
+section crash2
+variable [CrashGS GF]
+
 /-- A `ReadState` handed out (2026-10-13): its context holds the bytes `c` (D6: the context
 is its bytes; until then a slice proposed holding `c`), and its index is at least the log `c`
 was created knowing (`readOk`). -/
@@ -1634,7 +1966,7 @@ theorem rdLead_nl (γ : RaftNames) (s : PState) (rqm : GMap w64 GName) (h : s.ro
 
 def rdOwn (γ : RaftNames) (id : w64) (s : PState) : IProp GF :=
   iprop(∃ γl, ∃ (rqm : GMap w64 GName), ⌜γ.reRdq !! id = some γl⌝ ∗
-    ghostMapAuth γl 1 rqm ∗ ([∗map] t ↦ γq ∈ rqm, t ↪[γl]□ γq ∗ campKey γ id t) ∗
+    cview γ id CrashNames.q (1 : Qp).half rqm ∗ ([∗map] t ↦ γq ∈ rqm, t ↪[γl]□ γq ∗ campKey γ id t) ∗
     ⌜LcmOk rqm s⌝ ∗ rdLead γ s rqm ∗
     ([∗list] st ∈ s.rd.states, readStateRaw γ st) ∗
     ([∗list] p ∈ s.rd.pend, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗ readReq γ c Lc) ∗
@@ -1715,14 +2047,15 @@ theorem rdOwn_mono (γ : RaftNames) (id : w64) (s s' : PState) :
     rdOwn_mono' γ id s s' Hlead Hnl Hle Hst Hpd Hcnt Hpo Hcand
 
 /-- Winning: a registry for the term, empty, the read-only object fresh. -/
-theorem rdOwn_win (γ : RaftNames) (id : w64) (s s' : PState) :
+theorem rdOwn_win (E : CoPset) (γ : RaftNames) (id : w64) (s s' : PState) :
+    ↑(crashNs γ id) ⊆ E →
     s.role = .candidate → s'.role = .leader → s'.term = s.term →
     s'.rd = rdNL s.rd → rdCount s'.outbox ≤ rdCount s.outbox →
     (propsOf s'.outbox).Subperm (propsOf s.outbox) →
-    campKey (GF := GF) γ id s.term ∗ rdOwn γ id s ⊢ |==> rdOwn γ id s' := by
-  intro Hr Hr' Hte Hrd Hcnt Hpo
+    ⊢ notCrashed -∗ campKey (GF := GF) γ id s.term ∗ rdOwn γ id s ={E}=∗ notCrashed ∗ rdOwn γ id s' := by
+  intro HE Hr Hr' Hte Hrd Hcnt Hpo
   unfold rdOwn
-  iintro ⟨#Hck, %γl, %rqm, %Hγl, Ha, #Hf, %Hok, -, #Hst0, #Hpd0, Hcr, #Hinv, Htk⟩
+  iintro Hnc ⟨#Hck, %γl, %rqm, %Hγl, Ha, #Hf, %Hok, -, #Hst0, #Hpd0, Hcr, #Hinv, Htk⟩
   have Hfree : rqm !! s.term = none := by
     cases h : rqm !! s.term with
     | none => rfl
@@ -1731,7 +2064,8 @@ theorem rdOwn_win (γ : RaftNames) (id : w64) (s s' : PState) :
       · omega
       · exact absurd Hr Hl
   imod mono_list_own_alloc (GF := GF) ([] : List RqRec) with ⟨%γq, Haq, -⟩
-  imod ghost_map_insert_persist s.term γq Hfree $$ Ha with ⟨Ha, #Hfq⟩
+  imod cview_insert E γ id CrashNames.q γ.reRdq (crashLens_q γ id) rqm γl s.term γq HE Hγl Hfree
+    $$ Hnc Ha Hck with ⟨Hnc, Ha, #Hfq⟩
   have Hpd : s'.rd.pend = s.rd.pend := by rw [Hrd]; rfl
   have Hst : s'.rd.states = s.rd.states := by rw [Hrd]; rfl
   ihave Hcr := (rdCred_split γ (s'.rd.pend.length + rdCount s'.outbox)
@@ -1744,6 +2078,7 @@ theorem rdOwn_win (γ : RaftNames) (id : w64) (s s' : PState) :
   · rw [Nat.zero_add]; iexact Hcr0
   icases Hcr0 with ⟨Hz, -⟩
   imodintro
+  iframe Hnc
   iexists γl, (<[s.term := γq]> rqm)
   iframe Ha Hinv Hcr
   isplitr; · ipureintro; exact Hγl
@@ -1980,7 +2315,7 @@ theorem rdOwn_hbResp_pos (γ : RaftNames) (id : w64) (s : PState) (Hr : s.role =
     ⊢ rdOwn (GF := GF) γ id s -∗ rqLb γ id s.term recs0 -∗
       ⌜uint.nat q ≤ uint.nat s.rd.ro.confirmed + s.rd.ro.pending.length⌝ := by
   unfold rdOwn
-  iintro ⟨%γl, %rqm, %Hγl, Ha, -, -, Hl, -⟩ #Hlb
+  iintro ⟨%γl, %rqm, %Hγl, -, #Hf, -, Hl, -⟩ #Hlb
   unfold rdLead
   rw [Hr]
   icases Hl with ⟨%γq, %recs, %Hq', Hauth, -, %Hlen, -⟩
@@ -1988,11 +2323,9 @@ theorem rdOwn_hbResp_pos (γ : RaftNames) (id : w64) (s : PState) (Hr : s.role =
   icases Hlb with ⟨%γl', %γq'', %Hγl', #Hel, #Hlb⟩
   rw [Hγl] at Hγl'
   cases Hγl'
-  icases ghost_map_lookup $$ Ha Hel with %Hq2
-  have Hqq : γq = γq'' := by
-    have h1 : rqm !! s.term = some γq'' := Hq2
-    rw [Hq'] at h1
-    exact Option.some.inj h1
+  -- the term's fragment, the node's own (2026-11-21: the authority is in the crash invariant)
+  ihave ⟨#Hown, -⟩ := BigSepM.bigSepM_lookup (Φ := fun t γq => iprop(t ↪[γl]□ γq ∗ campKey γ id t)) Hq' $$ Hf
+  icases ghostMapElem_agree _ _ _ _ _ _ $$ Hown Hel with %Hqq
   subst Hqq
   icases mono_list_auth_lb_valid $$ Hauth Hlb with %Hpre
   ipureintro
@@ -2038,6 +2371,8 @@ theorem hbCtx_isMessage (γ : RaftNames) (id T : w64) (r : ReadOnly) (ctx : List
     iframe Hlb Hrs
     ipureintro; exact ⟨Hq, by omega⟩
 
+end crash2
+
 /-- The terms a node has won: as `TermsOk`. -/
 def WinsOk (wins : GMap w64 (GSet w64)) (s : PState) : Prop :=
   ∀ t, (wins !! t).isSome →
@@ -2078,21 +2413,6 @@ Completeness keep their meaning.
 - `raftIdSlot γ id`, the protocol part of `nodeVacant`: what a node's volatile half gives back at a
   stop (`raft_stop`) and takes at a restart (`raft_restart`): the leader-side authorities (R6),
   each key's campaign, the virtual maps' half, the generation's half and a free queue slot. -/
-
-/-- The five per-id promise maps, as pure values. -/
-structure DurMaps where
-  voted : GMap w64 w64
-  acks : GMap (w64 × w64) Unit
-  camps : GMap w64 (List EntryM × w64)
-  vlogs : GMap Nat ((w64 × Bool) × List EntryM)
-  evs : List Aev
-
-instance DurMaps_countable : Pos.Countable DurMaps :=
-  .ofInjective (fun W => Pos.Countable.encode (W.voted, W.acks, W.camps, W.vlogs, W.evs))
-    (by
-      rintro ⟨_, _, _, _, _⟩ ⟨_, _, _, _, _⟩ h
-      have h := Pos.encode_inj h
-      simp_all)
 
 /-- No promise at all. -/
 def DurMaps.empty : DurMaps := ⟨∅, ∅, ∅, ∅, []⟩
@@ -2684,9 +3004,6 @@ def durShares (γ : RaftNames) (id : w64) (q : Qp) (E : DurMaps) : IProp GF :=
 -- fragment of a leader-side map a campaign's term, a wand no allocation could establish) deleted:
 -- each key carries its `campKey` in the maps' fragment conjuncts, next to the authorities.
 
-/-- The names of node `id`'s slot: its virtual maps, its queue, its generation. -/
-abbrev SlotNames := GName × GName × GName
-
 /-- A queued batch: the durable state it enters, the virtual maps at its cut, and (2026-11-01,
 stage II(d)) the entered maps it was cut from, which the slot pins (`slotBody`) and the batch's
 facts (`batchOk`, carried by `pendBatch`) are relative to. -/
@@ -2783,11 +3100,6 @@ def slotInv (γ : RaftNames) (id : w64) : IProp GF := inv (slotN γ id) (slotBod
 instance slotInv_persistent (γ : RaftNames) (id : w64) : Persistent (slotInv (GF := GF) γ id) := by
   unfold slotInv; infer_instance
 
-/-- A share of the generation `g` of node `id` (R8): the running node's (`q = 1` in all), which
-*enter* and the cut need and the stop consumes whole. -/
-def slotLive (γ : RaftNames) (id : w64) (q : Qp) (g : Nat) : IProp GF :=
-  iprop(∃ γs : SlotNames, ⌜γ.reSlot !! id = some γs⌝ ∗ ghostVar γs.2.2 q.half g)
-
 /-- Generation `g`'s queue is free: no batch cut and not entered. -/
 def slotFree (γ : RaftNames) (id : w64) (g : Nat) : IProp GF :=
   iprop(∃ γs : SlotNames, ⌜γ.reSlot !! id = some γs⌝ ∗ g ↪[γs.2.1] (none : Option RaftBatch))
@@ -2829,13 +3141,52 @@ def raftIdSlot (γ : RaftNames) (id : w64) : IProp GF :=
     (∃ (γl : GName) (rqm : GMap w64 GName), ⌜γ.reRdq !! id = some γl⌝ ∗ ghostMapAuth γl 1 rqm ∗
       [∗map] t ↦ γq ∈ rqm, t ↪[γl]□ γq ∗ campKey γ id t))
 
+section crash3
+variable [CrashGS GF]
+
+/-- (2026-11-21, the crash invariant) **A share `q` of the generation `g` of an arm of node `id`**:
+the client's and `run`'s (half each of the view's half); the invariant keeps the slot's share
+(`slotLive 1 g`). What *enter* and the cut read the generation through, and the stop bumps. -/
+def genView (γ : RaftNames) (id : w64) (x : CrashNames) (q : Qp) (g : Nat) : IProp GF :=
+  iprop(nodeCrashInv γ id x ∗ ghostVar x.g q.half g)
+
+instance genView_fractional (γ : RaftNames) (id : w64) (x : CrashNames) (g : Nat) :
+    Fractional (fun q => genView (GF := GF) γ id x q g) where
+  fractional p q := by
+    unfold genView
+    constructor
+    · iintro ⟨#Hi, Hv⟩
+      icases ((ghostVar_half_fractional (GF := GF) x.g g).fractional p q).1 $$ Hv with ⟨H1, H2⟩
+      iframe Hi H1 H2
+    · iintro ⟨⟨#Hi, H1⟩, ⟨-, H2⟩⟩
+      iframe Hi
+      iapply ((ghostVar_half_fractional (GF := GF) x.g g).fractional p q).2
+      iframe H1 H2
+
+/-- (2026-11-21, the crash invariant) **No node of `id` runs, armed** (`nodeVacantA`'s body): the
+views of the six pieces, which are in the arm's crash invariant, the generation's queue free, and
+the invariants the slot's are. What a stop gives back and a start or restart takes. -/
+def raftArmed (γ : RaftNames) (id : w64) (x : CrashNames) : IProp GF :=
+  iprop(∃ (V : DurMaps) (g : Nat) (terms : GMap w64 TermRec) (wins : GMap w64 (GSet w64))
+      (lcm rqm : GMap w64 GName), ⌜id ≠ W64 0⌝ ∗
+    ghostVar x.v (1 : Qp).half V ∗ ghostVar x.g (1 : Qp).half g ∗
+    ghostVar x.t (1 : Qp).half terms ∗ ghostVar x.w (1 : Qp).half wins ∗
+    ghostVar x.l (1 : Qp).half lcm ∗ ghostVar x.q (1 : Qp).half rqm ∗
+    slotFree γ id g ∗ nodeCrashInv γ id x ∗ slotInv γ id ∗ raftCommitInv γ ∗ rdCredInv γ)
+
+/-- (2026-11-21, the crash invariant) **An arm's crash token**: what turns the dead generation's
+`crashed` into the vacant slot (`raft_crash`). -/
+def raftCrashTok (γ : RaftNames) (id : w64) (x : CrashNames) : IProp GF :=
+  iprop(dghostVar x.tok (DFrac.own 1) () ∗ nodeCrashInv γ id x ∗ slotInv γ id ∗ raftCommitInv γ ∗
+    rdCredInv γ ∗ ⌜id ≠ W64 0⌝)
+
 def ownLogGhost (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : DurMaps) :
     IProp GF :=
   iprop(∃ γm, ∃ (terms : GMap w64 TermRec),
     ∃ (fp : List EntryM), ∃ γw,
     ∃ (wins : GMap w64 (GSet w64)),
     "%Htname"  ∷ ⌜γ.reTerms !! id = some γm⌝ ∗
-    "Hterms"   ∷ ghostMapAuth γm 1 terms ∗
+    "Hterms"   ∷ cview γ id CrashNames.t (1 : Qp).half terms ∗
     "#Htfrags" ∷ ([∗map] t ↦ γt ∈ terms, t ↪[γm]□ γt ∗ campKey γ id t) ∗
     "%Hterms_ok" ∷ ⌜TermsOk terms s⌝ ∗
     "Htlog"    ∷ leadLogOwn γ s terms ∗
@@ -2859,7 +3210,7 @@ def ownLogGhost (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : 
     "#Hhists"  ∷ histsOk γ s kl (fp ++ s.log) W.acks ∗
     -- 2026-10-05: winning quorums and the known leader
     "%Hwname"  ∷ ⌜γ.reWins !! id = some γw⌝ ∗
-    "Hwins"    ∷ ghostMapAuth γw 1 wins ∗
+    "Hwins"    ∷ cview γ id CrashNames.w (1 : Qp).half wins ∗
     -- 2026-10-31 (R6): the quorums' elements, for the slot at a stop
     "#Hwfrags" ∷ ([∗map] t ↦ q ∈ wins, t ↪[γw]□ q ∗ campKey γ id t) ∗
     "%Hwins_ok" ∷ ⌜WinsOk wins s⌝ ∗
@@ -2892,7 +3243,7 @@ def ownRaftGhost (γ : RaftNames) (id : w64) (s : PState) (md : Bool := false) :
     -- cut `πc`, fresh, with their justifications; the invariants below are over `virt V πc`
     "%Hsname" ∷ ⌜γ.reSlot !! id = some γs⌝ ∗
     "#Hslot"  ∷ slotInv γ id ∗
-    "Hvirt"   ∷ ghostVar γs.1 (1 : Qp).half V ∗
+    "Hvirt"   ∷ cview γ id CrashNames.v (1 : Qp).half V ∗
     "#Hpend"  ∷ promsJust γ id V πc ∗
     "%Hfresh" ∷ ⌜PromsFresh V πc⌝ ∗
     "%Hidnz"  ∷ ⌜id ≠ W64 0⌝ ∗
@@ -2924,7 +3275,7 @@ theorem ownRaftGhost_intro (γ : RaftNames) (id : w64) (s : PState) (γs : SlotN
     γ.reDyn.isSome = md →
     PromsFresh V πc →
     ⊢ slotInv (GF := GF) γ id -∗
-      ghostVar γs.1 (1 : Qp).half V -∗
+      cview γ id CrashNames.v (1 : Qp).half V -∗
       promsJust γ id V πc -∗
       ⌜VoteHistOk (virt V πc).voted s⌝ -∗
       ([∗list] m ∈ s.outbox, outMsgOk γ id s πc (virt V πc) m) -∗
@@ -3058,6 +3409,8 @@ theorem ownRaftGhost_isLeader (γ : RaftNames) (id : w64) (s : PState) :
   iNamed H
   unfold leaderWit; simp only [Hrole]
   iexact Hlead
+
+end crash3
 
 end inv
 

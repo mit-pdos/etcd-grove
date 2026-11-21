@@ -36,20 +36,56 @@ theorem lease.LeaseExpiredNotifier.RegisterOrUpdate.wp_proof
     (hFix : heap.Fix.spec (GF := GF) (hG := hG))
     (hHPush : heap.Push.spec (GF := GF) (hG := hG)) :
     lease.LeaseExpiredNotifier.RegisterOrUpdate.spec (GF := GF) (hG := hG) := by
-  intro np item id k
+  intro np item id k M
   wp_start as ⟨Hn, Hit⟩
   ihave #Hheap : isPkgInit (PROP := IProp GF) pkg_id.container.heap $$ []
   · iPkgInit
   ihave #Hiface := queue_heapIface hLen hLess hSwap hPush (nF go!"queue" np) $$ Hpkg
-  iunfold notifierAt at Hn
-  icases Hn with ⟨%mp, %s, %M, %xs, Hm, HM, Hq, Hqa, %Hinv⟩
-  ihave Hit' := Hit
-  iunfold lwtAt at Hit'
-  icases Hit' with ⟨#Hid, Ht, Hix⟩
+  iunfold notifierAtM at Hn
+  icases Hn with ⟨%mp, %s, %xs, Hm, HM, Hq, Hqa, %Hinv⟩
   iunfold queueAt at Hqa
   icases Hqa with ⟨Hs, Hcap, Hits⟩
   ihave %Hlen := ownSlice_len s _ _ $$ Hs
   simp only [List.length_map] at Hlen
+  icases Hit with (Hit | %Hq0)
+  rotate_left
+  · -- (prove-ps2-newlessor3) `item` is the item queued under `id` (the expiry loop's): its `id`
+    -- and `time` are the queue's
+    have hmem : (item, id) ∈ xs := (Hinv.2 id item).1 Hq0
+    obtain ⟨n, hn, hxn⟩ := List.mem_iff_getElem.mp hmem
+    have hxn' : xs[n]? = some (item, id) := by rw [List.getElem?_eq_getElem hn, hxn]
+    icases (BigSepL.bigSepL_lookup_acc hxn').1 $$ Hits with ⟨Hold, Hits⟩
+    iunfold lwtAt at Hold
+    icases Hold with ⟨#Hoid, ⟨%to, Hto⟩, Hoix⟩
+    wp_auto
+    wp_apply (wp_map_lookup2 LeaseID.ty (go.GoType.PointerType LeaseWithTime.ty) mp M id) $$ HM
+      as HM
+    rw [Hq0]
+    simp only [Option.getD_some, Option.isSome_some, _root_.decide_true]
+    wp_auto
+    ihave Hits := Hits $$ %(item, id) [Hoid Hto Hoix]
+    · iunfold lwtAt; iframe Hoid Hoix; iexists to; iexact Hto
+    rw [list_set_lookup_self xs n _ hxn']
+    have hn63 : (n : Int) < 2 ^ 63 := by have := Hlen.1; word
+    wp_apply (hFix (Loc × w64) (interface.mk (go.GoType.PointerType LeaseQueue.ty)
+        #(nF go!"queue" np)) (queueHeap (nF go!"queue" np)) queueElem xs (W64 (n : Int))
+        (by word) (by word)) $$ [$Hheap $Hiface Hq Hs Hcap Hits] as ⟨%ys, Hys, %Hperm⟩
+    · iunfold queueHeap; iexists s; iframe; iunfold queueAt; iframe
+    iapply HΦ
+    iunfold queueHeap at Hys
+    icases Hys with ⟨%s', Hq', Hqa'⟩
+    iunfold notifierAt
+    iexists M
+    iunfold notifierAtM
+    iexists mp, s', ys
+    iframe
+    ipureintro
+    constructor
+    · exact (List.Perm.map Prod.fst Hperm).nodup_iff.mpr Hinv.1
+    · intro id' p'; rw [Hinv.2 id' p']; exact Hperm.mem_iff.symm
+  ihave Hit' := Hit
+  iunfold lwtAt at Hit'
+  icases Hit' with ⟨#Hid, Ht, Hix⟩
   wp_auto
   wp_apply (wp_map_lookup2 LeaseID.ty (go.GoType.PointerType LeaseWithTime.ty) mp M id) $$ HM
     as HM
@@ -76,7 +112,9 @@ theorem lease.LeaseExpiredNotifier.RegisterOrUpdate.wp_proof
     iunfold queueHeap at Hys
     icases Hys with ⟨%s', Hq', Hqa'⟩
     iunfold notifierAt
-    iexists mp, s', M, ys
+    iexists M
+    iunfold notifierAtM
+    iexists mp, s', ys
     iframe
     ipureintro
     constructor
@@ -102,7 +140,9 @@ theorem lease.LeaseExpiredNotifier.RegisterOrUpdate.wp_proof
     iunfold queueHeap at Hys
     icases Hys with ⟨%s', Hq', Hqa'⟩
     iunfold notifierAt
-    iexists mp, s', _, ys
+    iexists _
+    iunfold notifierAtM
+    iexists mp, s', ys
     iframe
     ipureintro
     constructor

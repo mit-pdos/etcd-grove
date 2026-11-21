@@ -115,8 +115,13 @@ theorem raft.maybeCommit.wp_proof
   have Hout : maybeCommitOut c s b N := ⟨Hq, by rw [Hb]; exact decide_eq_true_iff⟩
   icases trOwn_split _ _ $$ Hphys with ⟨Hown, Hback⟩
   ihave Hgate := Hgate $$ %b %N %Hout
+  iapply (wp_ncfupd _ _ rfl)
   iunfold HookGate at Hgate
-  imod Hgate with ⟨%tl, #Htl, Hfire⟩
+  unfold ncfupd
+  iintro Hnc
+  imod Hgate $$ Hnc with ⟨Hnc, %tl, #Htl, Hfire⟩
+  imodintro
+  iframe Hnc
   wp_apply wp_traceCommit c r id _ tl (Q b N) $$ [Htl Hown Hfire] as ⟨Hown, HQ⟩
   · iframe Htl Hown
     iapply traceFire_mono_E _ tl _ _ _ (fun e he => by cases b <;> (cases s; exact he)) $$ Hfire

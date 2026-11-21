@@ -360,7 +360,9 @@ theorem trCapB_gateNone (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c :
   iintro ⟨HX, Hcap⟩
   icases trCapB_logger γd γ r id c b Φ Λ $$ Hcap with ⟨%tl, #Htl, Hcap⟩
   iunfold HookGateOpt
+  iintro Hnc
   imodintro
+  iframe Hnc
   iexists tl
   iframe Htl
   isplitr

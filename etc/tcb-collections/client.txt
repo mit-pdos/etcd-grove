@@ -28,7 +28,6 @@ axiom envVerifyOffTok
 axiom errors.IsCtxErr.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof
 axiom errors.IsStatusErr.wp_proof
-axiom etcdResolverOwn
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
 axiom go_humanize.Bytes.wp_proof
@@ -98,9 +97,6 @@ axiom proto.Size.wp_proof
 axiom proto.Unmarshal.wp_proof
 axiom reflect.DeepEqual.wp_proof_pgidSet
 axiom reflect.ValueOf.wp_proof
-axiom resolver.EtcdManualResolver.Close.wp_proof
-axiom resolver.EtcdManualResolver.SetEndpoints.wp_proof
-axiom resolver.New.wp_proof
 axiom sort.SliceIsSorted.wp_proof
 axiom status.Code.wp_proof
 axiom status.Error.wp_proof

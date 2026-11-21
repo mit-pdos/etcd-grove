@@ -41708,3 +41708,54 @@ uses a static cluster. [Regression and fix](../issues/raft-witness-joint-progres
   field) returned a type error for a string with an escape sequence, which the real Unmarshal
   unescapes and decodes; it now panics (NotModelled) on any escape there, as `Str` does elsewhere.
   Found by the mutation tests of the reworked generator; the old per-type tests had no escapes.
+
+## Raft's crash law: the crash invariant, the token through every ghost step (2026-11-21 · the coordinating session · branch `worktree-agent-aa878c2e224f33d0c`)
+
+`notes/raft-crash-law-design.md`, sections (b1), (f), (g), (h), (i); `notes/kvnet-proof-plan.md`
+decision A. A replica killed at any instruction must leave its id restartable.
+
+**Ghost state.**
+- Per arm of an id, the crash invariant
+  `nodeCrashInv γ id x := inv (crashN γ id x) ((∃ X, views ½ X ∗ slotX X) ∨ crashed ∗ tok)` holds the
+  six timeless pieces of `raftIdSlot`: `V`'s half, `slotLive 1 g`, and the authorities of
+  terms, wins, lcm and rqm. `x : CrashNames` names the views and the token.
+- `ownRaftGhost`/`ownLogGhost`/`lcmOwn`/`rdOwn` and the client's and run's generation shares hold view
+  halves in their place.
+- The arm's names are carried in `NodeNames`. A stop agrees the run's names with the client's (two
+  armed invariants of one id would both hold the full `terms` authority; the namespace includes the
+  names).
+
+**API.**
+- `nodeVacant_arm`, `nodeCrash`.
+- `StartNode`/`RestartNode` take the armed vacancy `nodeVacantA`, and `node.Stop` gives it back.
+- `readyEnter` and `Ready`'s enter wand are crash-token updates (`ncfupd`).
+
+**Why the token everywhere** (the two gaps found in implementation):
+- The traced win lends the term map's authority across the trace line (f).
+- Ordinary steps (votes, heartbeats, appends, snapshots, read index) read the slot's half of `V`
+  against the entered maps (`slot_open`) (g).
+
+A thread needs `notCrashed` not only to update state a crash may change but also to read state a
+later generation changes (h). So every ghost step takes the token: `ncfupd`,
+`wp_ncfupd`/`wp_ncfupd_post` (`GooseLang/NotCrashed.lean`, proved).
+
+**Rejected.**
+- Fresh names per incarnation (b2): new cross-generation protocol reasoning.
+- A per-generation slot name for `V` (h): it does not remove the token.
+- (b3) deferred.
+
+**Applying it** (2026-11-21, the implementing session):
+- The cut runs inside the `readyc` send's atomic update, where no client step supplies the token
+  (design note (j)). Option 1 was chosen: channel updates that carry `notCrashed`, a Perennial
+  change (branch `nc-chan`). `node.run`'s proof waits for it.
+- "Same `x`" across a stop: `StartNode`/`RestartNode` give a persistent `nodeArm n γ x`, and
+  `node.Stop` gives `∃ x, nodeVacantA γ id x ∗ nodeArm n γ x`. `nodeArm_agree` ties the result to the
+  start, so `node.Stop`'s precondition did not change.
+- A client whose crash is `node.Stop`'s arms with `nodeVacant_armD`, which drops the crash token, and
+  keeps `∃ x, nodeVacantA …`. This covers kv, kvreconf, kvdurable and the server.
+- kvdurable enters inside the durable write's update. So the durable `Write.spec` lends the token when
+  the update opens (`wp_atomic_nc` at the extension's atomic step: a new `Language.Atomic` instance
+  for its `"Write"`).
+- A client with its own `[AllG GF]` (kvdurable) names the token by the notation `notCrashedG`,
+  which is the state interpretation's `gooseAllG` instance. A bare `notCrashed` would resolve to the
+  client's own instance and not match raft's.

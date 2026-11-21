@@ -642,7 +642,7 @@ theorem trCap_fire : trCap_fire.statement (GF := GF) := by
     · inext; iunfold simInv; iexists L, σ, A, B, phP, phM, Bt, Dn; iunfold traceFrag; iframe HL HA HB HBt HDn Hfσ; ipureintro; exact Hp
     imodintro
     iframe Hnode Hbt Hfx
-  · iintro HL
+  · iintro ⟨HL, Hnc⟩
     imod Hmask with -
     iunfold simNode at Hnode
     icases ghost_map_lookup $$ HA Hnode with %HAid
@@ -660,7 +660,7 @@ theorem trCap_fire : trCap_fire.statement (GF := GF) := by
         σ.server = confAbs C ∧ σ.s (idAbs id) = σ.s (idAbs id) ∧ σ.preVote = false ∧ σ.checkQuorum = false ∧
         σ.violated = .ok none :=
       ⟨HΦ, HE, by rw [hcs, hsrv], hΦ', hle, hsrv, rfl, hpv, hcq, hv⟩
-    imod Hfx $$ %C %cs %P %e %(σ.s (idAbs id)) %a' %P' %σ %hpre Htbl Hfσ with ⟨Htbl, #Hfσ', HR⟩
+    imod Hfx $$ %C %cs %P %e %(σ.s (idAbs id)) %a' %P' %σ %hpre Hnc Htbl Hfσ with ⟨Hnc, Htbl, #Hfσ', HR⟩
     have hsrv' : (withNode σ (idAbs id) a' _root_.id (fun b => List.foldl Etcdraft.Bag.with b P')).server =
         confAbs C := hsrv
     icases trKeep_pure (simFx_violated γ C _ hsrv') $$ [$Htbl $Hfσ'] with ⟨⟨Htbl, -⟩, %hv'⟩
@@ -693,6 +693,7 @@ theorem trCap_fire : trCap_fire.statement (GF := GF) := by
         simEvents_snoc C.length _ (Nat.le_of_eq hperm.length_eq) L e hasc (hOk e HE) (evBootLogOk_of_name L e hname),
         bootDn_snoc C L e Dn (bootSegs_snoc_other C L e id hC hnid hseg (.inl hname)) hdn⟩
     imodintro
+    iframe Hnc
     isplitr [HR]
     rotate_left
     · iexact HR
@@ -1130,7 +1131,7 @@ theorem trCap_fire_ready : trCap_fire_ready.statement (GF := GF) := by
     · inext; iunfold simInv; iexists L, σ, A, B, phP, phM, Bt, Dn; iunfold traceFrag; iframe HL HA HB HBt HDn Hfσ; ipureintro; exact Hp
     imodintro
     iframe Hnode Hbt
-  · iintro HL
+  · iintro ⟨HL, Hnc⟩
     imod Hmask with -
     iunfold simNode at Hnode
     icases ghost_map_lookup $$ HA Hnode with %HAid
@@ -1184,6 +1185,7 @@ theorem trCap_fire_ready : trCap_fire_ready.statement (GF := GF) := by
         simEvents_snoc C.length _ (Nat.le_of_eq hperm.length_eq) L e hasc (hOk e HE) (evBootLogOk_of_name L e (by rw [hname1']; rfl)),
         bootDn_snoc C L e Dn (bootSegs_snoc_other C L e id hC hnid1 hseg (.inl (by rw [hname1']; rfl))) hdn⟩
     imodintro
+    iframe Hnc
     isplitl [Hnode Hbt]
     · iunfold trCapB
       iexists tn, C, tl, toC σ.server ((σ.ready (idAbs id)).s (idAbs id)), []
@@ -1255,7 +1257,7 @@ theorem trCap_fire_recv : trCap_fire_recv.statement (GF := GF) := by
     · inext; iunfold simInv; iexists L, σ, A, B, phP, phM, Bt, Dn; iunfold traceFrag; iframe HL HA HB HBt HDn Hfσ; ipureintro; exact Hp
     imodintro
     iframe Hnode Hbt Htok
-  · iintro HL
+  · iintro ⟨HL, Hnc⟩
     imod Hmask with -
     iunfold simNode at Hnode
     icases ghost_map_lookup $$ HA Hnode with %HAid
@@ -1338,6 +1340,7 @@ theorem trCap_fire_recv : trCap_fire_recv.statement (GF := GF) := by
         simEvents_snoc C.length _ (Nat.le_of_eq hperm.length_eq) L e hasc (hOk e HE) (evBootLogOk_of_name L e hname),
         bootDn_snoc C L e Dn (bootSegs_snoc_other C L e id hC hnid hseg (.inl hname)) hdn⟩
     imodintro
+    iframe Hnc
     iunfold trCapB
     iexists tn, C, tl, toC σ.server a', P ++ P'
     iunfold simNode
@@ -1389,7 +1392,7 @@ theorem trCap_fire_boot : trCap_fire_boot.statement (GF := GF) := by
     · inext; iunfold simInv; iexists L, σ, A, B, phP, phM, Bt, Dn; iunfold traceFrag; iframe HL HA HB HBt HDn Hfσ; ipureintro; exact Hp
     imodintro
     iframe Hnode Hbt
-  · iintro HL
+  · iintro ⟨HL, Hnc⟩
     imod Hmask with -
     obtain ⟨hrun, hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hbtC, hasc, hseg, hdn⟩ := Hp
     icases Hbt with ⟨%o0, Hbt, %hΛo0⟩
@@ -1430,6 +1433,7 @@ theorem trCap_fire_boot : trCap_fire_boot.statement (GF := GF) := by
         bootDn_snoc C L e Dn (bootSegs_snoc_boot C L e id o0 hC hnid hseg (simRun_parse C L σ hrun) hnb
           (by rw [parseLine_ev _ _ _ hpl] at hbl; exact hbl) hlast0 (hBN C cs P HΦ e HE o0 hΛo0)) hdn⟩
     imodintro
+    iframe Hnc
     iunfold trCapB
     iexists tn, C, tl, cs, P
     iframe Hdir Htl Hlg Hinv Hnode
@@ -1539,7 +1543,7 @@ theorem trCap_fire_bf : trCap_fire_bf.statement (GF := GF) := by
     · inext; iunfold simInv; iexists L, σ, A, B, phP, phM, Bt, Dn; iunfold traceFrag; iframe HL HA HB HBt HDn Hfσ; ipureintro; exact Hp
     imodintro
     iframe Hnode Hbt
-  · iintro HL
+  · iintro ⟨HL, Hnc⟩
     imod Hmask with -
     iunfold simNode at Hnode
     icases ghost_map_lookup $$ HA Hnode with %HAid
@@ -1595,6 +1599,7 @@ theorem trCap_fire_bf : trCap_fire_bf.statement (GF := GF) := by
           simEvents_snoc C.length _ (Nat.le_of_eq hperm.length_eq) L e hasc (hOk e HE) (evBootLogOk_of_booted L e id hnid1 hbooted),
           bootDn_snoc C L e Dn (bootSegs_snoc_other C L e id hC hnid1 hseg (.inr hbooted)) hdn⟩
       imodintro
+      iframe Hnc
       iunfold trCapB
       iexists tn, C, tl, cs, P
       iunfold simNode
@@ -1635,6 +1640,7 @@ theorem trCap_fire_bf : trCap_fire_bf.statement (GF := GF) := by
           simEvents_snoc C.length _ (Nat.le_of_eq hperm.length_eq) L e hasc (hOk e HE) (evBootLogOk_of_booted L e id hnid1 hbooted),
           bootDn_snoc C L e Dn (bootSegs_snoc_other C L e id hC hnid1 hseg (.inr hbooted)) hdn⟩
       imodintro
+      iframe Hnc
       iunfold trCapB
       iexists tn, C, tl, toC σ.server (bfSrv (σ.s (idAbs id))), P ++ []
       iunfold simNode
@@ -1688,7 +1694,7 @@ theorem trCap_fire_booted : trCap_fire_booted.statement (GF := GF) := by
     · inext; iunfold simInv; iexists L, σ, A, B, phP, phM, Bt, Dn; iunfold traceFrag; iframe HL HA HB HBt HDn Hfσ; ipureintro; exact Hp
     imodintro
     iframe Hnode Hbt Hfx
-  · iintro HL
+  · iintro ⟨HL, Hnc⟩
     imod Hmask with -
     iunfold simNode at Hnode
     icases ghost_map_lookup $$ HA Hnode with %HAid
@@ -1714,7 +1720,7 @@ theorem trCap_fire_booted : trCap_fire_booted.statement (GF := GF) := by
         σ.server = confAbs C ∧ σ.s (idAbs id) = σ.s (idAbs id) ∧ σ.preVote = false ∧ σ.checkQuorum = false ∧
         σ.violated = .ok none :=
       ⟨HΦ, HE, by rw [hcs, hsrv], hΦ', hle, hsrv, rfl, hpv, hcq, hv⟩
-    imod Hfx $$ %C %cs %P %e %(σ.s (idAbs id)) %a' %P' %σ %hpre Htbl Hfσ with ⟨Htbl, #Hfσ', HR⟩
+    imod Hfx $$ %C %cs %P %e %(σ.s (idAbs id)) %a' %P' %σ %hpre Hnc Htbl Hfσ with ⟨Hnc, Htbl, #Hfσ', HR⟩
     have hsrv' : (withNode σ (idAbs id) a' _root_.id (fun b => List.foldl Etcdraft.Bag.with b P')).server =
         confAbs C := hsrv
     icases trKeep_pure (simFx_violated γ C _ hsrv') $$ [$Htbl $Hfσ'] with ⟨⟨Htbl, -⟩, %hv'⟩
@@ -1743,6 +1749,7 @@ theorem trCap_fire_booted : trCap_fire_booted.statement (GF := GF) := by
         simEvents_snoc C.length _ (Nat.le_of_eq hperm.length_eq) L e hasc (hOk e HE) (evBootLogOk_of_booted L e id hnid hbooted),
         bootDn_snoc C L e Dn (bootSegs_snoc_other C L e id hC hnid hseg (.inr hbooted)) hdn⟩
     imodintro
+    iframe Hnc
     isplitr [HR]
     rotate_left
     · iexact HR
@@ -1873,8 +1880,10 @@ theorem trCapB_hookGate (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64
     simp only [FxPresUT, trCapB]
     iintro ⟨#Hl, -, HR⟩
     iunfold HookGate
+    iintro Hnc
     imod HR
     imodintro
+    iframe Hnc
     iexists tl0
     isplitr
     · iexact Hl
@@ -1889,7 +1898,9 @@ theorem trCapB_hookGate (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64
     iintro ⟨-, Hcap, Hfx⟩
     icases trCapB_logger γd γ r id c b Φ Λ $$ Hcap with ⟨%tl, #Htl, Hcap⟩
     iunfold HookGate
+    iintro Hnc
     imodintro
+    iframe Hnc
     iexists tl
     isplitr
     · iexact Htl
@@ -1965,7 +1976,9 @@ theorem trCapB_hookGate_bf (tr : Option GName) (γ : RaftNames) (r : Loc) (id : 
     simp only [trCapB]
     iintro ⟨#Hl, -, -⟩
     iunfold HookGate
+    iintro Hnc
     imodintro
+    iframe Hnc
     iexists tl0
     isplitr
     · iexact Hl
@@ -1979,7 +1992,9 @@ theorem trCapB_hookGate_bf (tr : Option GName) (γ : RaftNames) (r : Loc) (id : 
     icases trCapB_logger γd γ r id cC b Φ Λ $$ Hcap with ⟨%tl, #Htl, Hcap⟩
     obtain ⟨hOkT, hOkF⟩ := hOk rfl
     iunfold HookGate
+    iintro Hnc
     imodintro
+    iframe Hnc
     iexists tl
     isplitr
     · iexact Htl

@@ -424,7 +424,7 @@ theorem NewServer.wp_proofRG
     iunfold srvClusterOk at Hco
     icases Hco with ⟨-, -, -, #H, -⟩
     iexact H
-  ihave Hvac : nodeVacant γ.cl cv.ID' $$ [Hvac]
+  ihave Hvac : (∃ x, nodeVacantA γ.cl cv.ID' x) $$ [Hvac]
   · rw [Hrid]; iexact Hvac
   ihave HrS : raftState γ.cl cv.ID' S $$ [HrS]
   · rw [Hrid]; iexact HrS
@@ -555,9 +555,11 @@ theorem NewServer.wp_proofRG
   icases Hfg' with ⟨%fgi, %Hfgi, #Hen⟩
   rw [Hfgi]
   (try wp_auto)
-  wp_apply Hen $$ [] as %ckpp -
+  wp_apply +noauto Hen $$ [] as %ckpp -
   · ipureintro; simp [serverFeatures]
-  (try wp_auto)
+  -- (prove-ps2-newlessor3) a time receipt, at the resolution of `srv.Cfg.ReqTimeout()`, for
+  -- `NewLessor`'s second write-back token, of the write budget's stock (`wbSupply_of_stock`)
+  wp_take_receipt as Hrk0
   wp_apply h20 $$ [] as %reqto -
   · iframe TickMsS ElectionTicksS
   (try wp_auto)
@@ -623,6 +625,15 @@ theorem NewServer.wp_proofRG
   · iExactEq Hwb; rfl
   rw [show (5 : Nat) = 1 + 4 from rfl]
   icases (ownToks_add 4 1 d.γB.wb).1 $$ Hwb with ⟨Hwl, Hwb⟩
+  -- (prove-ps2-newlessor3) `NewLessor`'s second write-back token, from the write budget's stock
+  ihave #HpoolA := HWBp $$ %({ E₀ with γbe := γbe } : apply.AEnv GF) []
+  · ipureintro; rfl
+  ihave #Hsup := wbSupply_of_stock ({ E₀ with γbe := γbe } : apply.AEnv GF) γp
+    ({ d with cm := true } : mvcc.KBReal) $$ [$HpoolA $Hstock]
+  imod Hsup $$ Hrk0 with Hwk0
+  ihave Hwl : ownToks d.γB.wb 2 $$ [Hwl Hwk0]
+  · iunfold backend.wbTok at Hwk0
+    iapply (ownToks_add 1 1 d.γB.wb).2; iframe Hwl Hwk0
   -- `lease.NewLessor`
   rw [Hbe0]
   -- (restart) `lease.NewLessor` over the image's `lease` bucket: its records (as `applySnapshot`'s
@@ -645,17 +656,18 @@ theorem NewServer.wp_proofRG
     as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlmode, #Hlcfg, -, #Hlexp, #Hlgd, Hlrd, Hlown, HlWt, HlEv,
       Hlrvk, Hro, HleOn, #Hlbe, Hlstop, #HlReq, ⟨%ls, %Hls, HlAt0⟩, #Hllk'⟩
   · iframe HB Hclok
-    unfold backend.wbTok
     iunfold backend.rbOwn at Hrbo
     iframe Hopen Hwl Hrbo
     isplitr; · iright; iexact Hzlg
     isplitr; · ipureintro; simp
-    imodintro
-    rcases hGA with hg | hn
-    · iapply (BigSepL.bigSepL_intro (P := iprop(emp))
-        (fun {_ _} _ => by unfold srvGrantGuard; exact pure_intro ⟨hg, fun h => absurd h (by decide)⟩))
-      iempintro
-    · rw [hn]; iapply BigSepL.bigSepL_nil.2; itrivial
+    isplitr
+    · imodintro
+      rcases hGA with hg | hn
+      · iapply (BigSepL.bigSepL_intro (P := iprop(emp))
+          (fun {_ _} _ => by unfold srvGrantGuard; exact pure_intro ⟨hg, fun h => absurd h (by decide)⟩))
+        iempintro
+      · rw [hn]; iapply BigSepL.bigSepL_nil.2; itrivial
+    ipureintro; exact Nat.le_trans Hbnd (by decide)
   -- (restart) the boot's buckets: the image's lease bucket put back (`D`'s)
   ihave Hrbo : backend.rbOwnIn d.γB (fun _ => True)
       ((backend.rbData d.P D).insert go!"lease" ((D.lookup go!"lease").getD ∅)) $$ [Hrbo]
@@ -909,10 +921,6 @@ theorem NewServer.wp_proofRG
   wp_take_receipt as Hrk1
   wp_apply +noauto h29 as %ab ⟨%abl, %Hab, #Hablg, #Habbe⟩
   wp_take_receipt as Hrk2
-  ihave #HpoolA := HWBp $$ %({ E₀ with γbe := γbe } : apply.AEnv GF) []
-  · ipureintro; rfl
-  ihave #Hsup := wbSupply_of_stock ({ E₀ with γbe := γbe } : apply.AEnv GF) γp
-    ({ d with cm := true } : mvcc.KBReal) $$ [$HpoolA $Hstock]
   imod Hsup $$ Hrk1 with Hwk1
   imod Hsup $$ Hrk2 with Hwk2
   ihave Hwk1 : backend.wbTok d.γB $$ [Hwk1]

@@ -98,8 +98,10 @@ abbrev RestartNode.spec : Prop :=
   -- client's, `notes/trace-validation-q6.md` item 9): raft's hook paths are proved untraced only;
   -- stage 1 replaces this premise by the gate (`startTrace`, `TracedApiDraft.lean`)
   Cluster.trace γ = none →
+  -- (2026-11-21, the crash invariant) the id's vacancy armed at `x` (`nodeVacant_arm`)
+  ∀ (x : CrashNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
-      isCluster γ N ∗ nodeVacant γ cv.ID' ∗
+      isCluster γ N ∗ nodeVacantA γ cv.ID' x ∗
       -- (2026-11-02, stage II (p)) the receipts' bound past the bootstrap log within `2^61`
       -- (`readyFits`): the stored log's last index has a time receipt, so it fits a word with room
       -- for one more (`newRaft`'s premise) [scope]
@@ -123,7 +125,7 @@ abbrev RestartNode.spec : Prop :=
         ⌜(LogEntry.toEntries l 0).drop σ.b = σ.ents.take (l.length - σ.b)⌝ ∗
         nodeDriver n γ N ⟨interface.ok si, l, σ.hs, none, K, S, StateFollower⟩ ∗
         nodeConfig n γ N ⟨a, m⟩ ∗
-        nodeRunning n γ N 1 ∗ nodeTagPin γ n SV ∗
+        nodeRunning n γ N 1 ∗ nodeTagPin γ n SV ∗ nodeArm n γ x ∗
         Q S ∗ F K }}
 
 end spec

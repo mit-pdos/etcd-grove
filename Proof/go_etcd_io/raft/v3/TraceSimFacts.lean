@@ -273,7 +273,7 @@ end pure
 
 section ghost
 variable [GooseExts]
-variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [CrashGS GF]
 
 /-- **A server's facts**: node `j`'s server `v` in the simulation's state. Its log is raft's
 recorded log `es` followed, at a leader, by its **pending entries** `pend`: the entries its

@@ -128,7 +128,7 @@ theorem Cluster.start.wp_proof
     (wp_Warningf : quietLogger.Warningf.spec (GF := GF) (hG := hG)) :
     Cluster.start.spec (GF := GF) (hG := hG) := by
   intro γ vs dir c id S fo Hid1 Hid9
-  wp_start as ⟨#Hc, #HfInv, Hvac, Hwr, #Hknown⟩
+  wp_start as ⟨#Hc, #HfInv, ⟨%x, Hvac⟩, Hwr, #Hknown⟩
   ihave #Hc' := Hc
   iunfold isClusterC at Hc'
   iNamed Hc'
@@ -461,9 +461,9 @@ theorem Cluster.start.wp_proof
           · rw [h1]; simp; word
           · omega)
       (by simp only [kdContents_some_commit]; exact Hsc)
-      (by rw [Hbl0]; omega) Hinit Hns HcTL Htr0)
+      (by rw [Hbl0]; omega) Hinit Hns HcTL Htr0 x)
     $$ [$Hraft $Hcv $Hlogger $HisC $Hfits Hvac Hau Hrs]
-    as %nd ⟨%n, %S', %l, %K, %Hnd, #HisNode, #Hl', %Hllen, %HS1b, Hdrv, Hncfg, Hrun, -, ⟨Hwr, %HS'⟩,
+    as %nd ⟨%n, %S', %l, %K, %Hnd, #HisNode, #Hl', %Hllen, %HS1b, Hdrv, Hncfg, Hrun, -, -, ⟨Hwr, %HS'⟩,
       ⟨Hmeta, #HmsInv⟩⟩
   · rw [HcID, ← Hiface, HA]
     iframe Hvac Hrs

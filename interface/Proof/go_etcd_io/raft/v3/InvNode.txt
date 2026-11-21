@@ -25,8 +25,11 @@ def readyEnter (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st st' : Nod
     List QMsg) : IProp GF :=
   iprop(∀ E q,
       ⌜↑N ⊆ E⌝ -∗
-        raftState γ id st.durable ∗ nodeRunning n γ N q ={E}=∗
-          raftState γ id st'.durable ∗ nodeRunning n γ N q ∗ nodeDriver n γ N st' ∗ readyMsgs γ N id ms)
+        notCrashed -∗
+          raftState γ id st.durable ∗ nodeRunning n γ N q ={E}=∗
+            notCrashed ∗ raftState γ id st'.durable ∗ nodeRunning n γ N q ∗ nodeDriver n γ N st' ∗ readyMsgs γ N id ms)
+
+theorem nodeArm_persistent (n : Loc) (γ : Cluster) (x : CrashNames) : Persistent (nodeArm n γ x)
 
 def (sealed) isReadCtx (γ : Cluster) (N : Namespace) (c : List w8) (Q : List LogEntry → IProp GF) :
     IProp GF
@@ -96,6 +99,8 @@ theorem snapLocalMsg_notSnap [package_sem : Assumptions] (γ : Cluster) (id : w6
 
 theorem deliveredLogLb_committed [package_sem : Assumptions] (n : Loc) (γ : Cluster) (N : Namespace)
     (l : List LogEntry) : deliveredLogLb n γ N l ⊢ isCommittedLogLb γ l
+
+def (sealed) nodeArm (n : Loc) (γ : Cluster) (x : CrashNames) : IProp GF
 
 theorem isCommittedLogLb_nil (γ : Cluster) : ⊢ isCommittedLogLb γ []
 
@@ -192,6 +197,9 @@ theorem deliveredLogLb_nodeCommitLb [package_sem : Assumptions] (n : Loc) (γ : 
 
 theorem readStateOk_after (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64) (l0 : List
     LogEntry) : readStateOk γ N c idx ∗ readCtxAfter γ N c l0 ⊢ ⌜l0.length ≤ uint.nat idx⌝
+
+theorem nodeArm_agree [package_sem : Assumptions] (n : Loc) (γ : Cluster) (x x' : CrashNames) : ⊢
+    nodeArm n γ x -∗ nodeArm n γ x' -∗ ⌜x = x'⌝
 
 theorem snapshotLeader_persistent (γ : Cluster) (id t : w64) : Persistent (snapshotLeader γ id t)
 
@@ -407,6 +415,8 @@ theorem committedAtTerm_mono_term [package_sem : Assumptions] (γ : Cluster) (N 
 
 theorem readyEnts_entsRO [package_sem : Assumptions] (γ : Cluster) (s : GoSlice) (es : List EntryM)
     : readyEnts γ s es ⊢ entsRO s es
+
+def (sealed) nodeCrashTok (γ : Cluster) (id : w64) (x : CrashNames) : IProp GF
 
 def (sealed) nodeRestoreSource (γ : Cluster) (id : w64) (p : entryID) : IProp GF
 
@@ -642,5 +652,7 @@ def readySnap (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeD
 theorem readySnap_mode [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (id : w64) (rd :
     Ready) (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (l : SnapLoan) : readySnap
     γ N id rd st ce es (some l) ⊢ ⌜¬clusterNoSnap γ⌝ ∗ readySnap γ N id rd st ce es (some l)
+
+def (sealed) nodeVacantA (γ : Cluster) (id : w64) (x : CrashNames) : IProp GF
 
 def (sealed) snapTo (γ : Cluster) (id : w64) (st : MsgSt) : IProp GF

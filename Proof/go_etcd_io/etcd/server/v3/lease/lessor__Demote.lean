@@ -13,6 +13,7 @@ public import Spec.go_etcd_io.etcd.server.v3.lease.Lease__forever
 public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__clearScheduledLeasesCheckpoints
 public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__clearLeaseExpiredNotifier
 public import Proof.go_etcd_io.etcd.server.v3.lease.LessorLemmas
+public import Proof.go_etcd_io.etcd.server.v3.lease.NotifCell
 
 @[expose] public section
 
@@ -100,6 +101,7 @@ theorem lease.lessor.Demote.wp_proof
   icases HR with ⟨%lm, %im, %M, %I, %rd0, %L, Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL, #Hsz, #Hls, Hx, Hhist⟩
   iunfold lessorExtra at Hx
   icases Hx with ⟨%dc, %np, %h, %hx, %bl, Hdc, Hnp, Hnot, Hh, Hhq, Hcp, Hmeta, Hbl, Hdt, #Hstr⟩
+  imod (notif_wopen lp γl np ⊤ (fun _ _ => CoPset.mem_full)) $$ [$Hnp $Hnot] with ⟨Hnp, Hnot, Hntk⟩
   (try wp_auto)
   -- every lease's expiry to `forever`
   wp_func_lits
@@ -144,6 +146,7 @@ theorem lease.lessor.Demote.wp_proof
   · subst hdc
     simp only [decide_true, Bool.not_true]
     (try wp_auto)
+    imod (notif_wclose lp γl np' ⊤ (fun _ _ => CoPset.mem_full)) $$ [$Hnp $Hnot $Hntk] with ⟨Hnp, Hnot⟩
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hdc Hnp Hnot Hh Hhq Hcp
         Hmeta Hbl Hgv Hhist]
     · iframe #
@@ -165,8 +168,9 @@ theorem lease.lessor.Demote.wp_proof
     itrivial
   · simp only [hdc, decide_false, Bool.not_false]
     wp_auto_lc 1
-    wp_apply (demote_close dc γr.2.2.2.2.2.2 hdc) $$ [$Hlc1 $Hgv $Hout] as Hgv
+    wp_apply (demote_close dc γr.2.2.2.2.2.2.1 hdc) $$ [$Hlc1 $Hgv $Hout] as Hgv
     (try wp_auto)
+    imod (notif_wclose lp γl np' ⊤ (fun _ _ => CoPset.mem_full)) $$ [$Hnp $Hnot $Hntk] with ⟨Hnp, Hnot⟩
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hdc Hnp Hnot Hh Hhq Hcp
         Hmeta Hbl Hgv Hhist]
     · iframe #

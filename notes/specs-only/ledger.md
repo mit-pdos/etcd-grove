@@ -25,6 +25,45 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-21: raft's node API -- no node of an id is restartable after a real crash (`nodeVacant` returns only from `node.Stop`)
+
+- **Spec.** `Spec/go_etcd_io/raft/v3/StartNode.lean`, `RestartNode.lean`, `node__Stop.lean`,
+  `RawNode__Ready.lean` (the enter wand); `InvNode.lean`'s `readyEnter` and the new laws
+  `nodeVacant_arm`, `nodeCrash`. SpecPlan's raft node specs, likewise.
+- **Defect.** Too weak for a crashing client: a process killed at any instruction loses its threads'
+  resources, so `nodeVacant` (needed by `RestartNode`) never comes back. kvnet's crash obligation
+  (`goose_dist_crash_adequacy`'s wand, given the dead generation's `crashed`) cannot be met.
+- **Evidence.** `notes/kvnet-proof-plan.md` gap 1; `notes/raft-crash-law-design.md` (a).
+- **Proposed change.**
+  - `nodeVacant_arm : nodeVacant ={E}=∗ ∃ x, nodeVacantA ∗ nodeCrashTok` and
+    `nodeCrash : crashed -∗ nodeCrashTok ={E}=∗ nodeVacant`.
+  - `StartNode`/`RestartNode` take `nodeVacantA γ id x`, and `node.Stop`'s post gives it back (same `x`).
+  - `readyEnter` and `Ready`'s enter wand become crash-token updates (`ncfupd E`: the client applies them
+    at a step, by `wp_ncfupd`).
+  - Clients: kvdurable keeps its `node.Stop` path and drops its `nodeCrashTok`; the etcd server likewise;
+    kvnet's boot obligation arms.
+- **Decision.** Accepted (the coordinating session, 2026-11-21, design route 1, sections (b1), (f),
+  (i)); applied on branch `worktree-agent-aa878c2e224f33d0c`.
+- **As applied** (2026-11-21, the implementing session):
+  - "Same `x`" needs the client to know the arm the node started from. `StartNode`/`RestartNode` give
+    a persistent `nodeArm n γ x` (sealed; `nodeArm_agree`). `node.Stop`'s post is
+    `∃ x, nodeVacantA γ id x ∗ nodeArm n γ x`, so its precondition is unchanged.
+  - `nodeCrash` also takes `isCluster γ N` and `↑N ⊆ E` (for `↑(raftN) ⊆ E`).
+  - `nodeVacant_armD : nodeVacant ={E}=∗ ∃ x, nodeVacantA γ id x` (the token dropped) is for clients
+    whose crash is `node.Stop`'s: kv, kvreconf, kvdurable and the server. They keep the vacancy as
+    `∃ x, nodeVacantA …` where they kept `nodeVacant` (kvdurable's `Cluster.start`, `Replica.stop`,
+    `Replica.crash`; the server's restart image, `rnStopImage`, `rnBootPre`'s restart).
+  - `examples/lib/durable`'s `Write.spec`: the update may use `notCrashed` when it opens (handed back
+    at once; `wp_atomic_nc` at the extension's step). Strictly more permissive for a client. kvdurable's
+    *enter* runs in the write's update, so it needs the token there.
+  - The server's `raftNode.stop` post (`Spec/go_etcd_io/etcd/server/v3/etcdserver/raftNode__stop.lean`)
+    gives `∃ x, nodeVacantA …` in place of `nodeVacant`.
+  - The traced `StartNode.tracedSpec` (`TracedNodeApi.lean`) and the Draft's `StartNode.gatedSpec`
+    (`TracedApiDraft.lean`) changed as `StartNode.spec` did.
+  - In raft's `with_tla` build (`RaftTla/`, per (f)), the trace logger's contract (`isTraceLogger`) and
+    the trace check's `SyncRecorder.TraceEvent.spec` take the update in its crash-token form: the
+    token is lent at the commit and handed back.
+
 ## 2026-11-20: `cache.wp_Errorf_setArgs` -- reads the maps it formats without owning them
 
 - **Spec.** `Proof/k8s_io/client_go/tools/cache/ErrorfSet.lean`, `wp_Errorf_setArgs` (a lemma over Perennial's
@@ -4013,7 +4052,38 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** The post gives `Int.toNat actualMaxReaders - 1` slots (the loop keeps one); the rest unchanged.
 - **Decision.** Approved by the user (2026-11-21), on the condition that every caller still proves: applied, the callers'
   slot arithmetic adjusted (`NewServer`, `NewServerR`, `mvccfull`'s `runner.open`, `mvccrand`'s `runChecks`).
+## 2026-11-21: `resolver.EtcdManualResolver.Close` had no premise (prove-grpc3)
 
+- **Spec.** `resolver.EtcdManualResolver.Close.spec` (an axiom until this change), `resolver.New.spec`.
+- **Defect.** Premise `isPkgInit` only, for any `r : Loc`: `Close` is promoted from the embedded `*manual.Resolver`
+  (grpc v1.84.0 `resolver/manual/manual.go:103-105`, `r.CloseCallback()`), so a nil `r` (or one whose `Resolver` is
+  nil) panics on the field's load, and the axiom proved the call returns. False as stated; the package is
+  `internal`, so only etcd's client calls it, always on `New`'s result.
+- **Evidence.** Code reading (`client/v3/internal/resolver/resolver.go:31-41`, `manual.go:32-41,103-105`); the proof
+  over the translated code needs the field and the callback; `notes/axiom-review/grpc3-resolver-close.md`.
+- **Proposed change.** `Close` takes `etcdResolverCloser r` (half of `r.Resolver`, the manual resolver's
+  `CloseCallback` and that it returns), which `New`'s post now also gives (a strengthening); `newClient` keeps it
+  for the failed dial's `Close`. Converges to the spec plan's resolver predicates when they have a closing right.
+- **Decision.** Applied (prove-grpc3, 2026-11-21), with `New`, `SetEndpoints` and `Close` proved over the translated
+  code and `etcdResolverOwn` defined (no longer an axiom).
+
+## 2026-11-21: `lease.NewLessor`'s write-back tokens and thread bound (prove-ps2-newlessor3)
+
+- **Spec.** `lease.NewLessor.spec` (`Spec/go_etcd_io/etcd/server/v3/lease/NewLessor.lean`; a trust-boundary axiom).
+- **Defect.** Not provable over the real code: its pre gave one write-back token (`backend.wbTok d.γB`), while the
+  proved `lessor.initAndRecover.spec` takes two (`tx.Unlock()` after `UnsafeCreateLeaseBucket`, `lessor.go:814`, and
+  `b.ForceCommit()`, `:834`, whose proved `backend.ForceCommit.spec` charges one); and the forked `runLoop`'s
+  `findExpiredLeases` calls `l.expired()` → `Remaining()`, which read-locks the lease's `expiryMu` with a slot of the
+  lease's pool, which exists only under `threadBound GF ≤ 2^30 - 1` (`isLeaseObj`), a bound the pre did not give.
+- **Evidence.** `lessor.go:208-249, 640-750, 808-835`; `Spec/.../lease/lessor__initAndRecover.lean`;
+  `isLeaseObj` (`InvLessor.lean`); `/shared/tmp/ps2/newlessor/plan.md` (items 2 and 4).
+- **Proposed change.** The pre takes `ownToks d.γB.wb 2` (as `lessor.Recover.spec`) and `⌜threadBound GF ≤ 2^30 - 1⌝`
+  (as `Renew`, `Promote`, `Leases`). Rejected alternative for the tokens: a `ForceCommit.spec` that charges none (#16's
+  commit path).
+- **Decision.** Approved by the user (2026-11-21), applied: `NewServer`/`NewServerR` mint the second token from the
+  write budget's supply (`wbSupply_of_stock`, a receipt at `ReqTimeout()`'s resolution: no change to the boot's
+  `bootLeft` or to any top-level premise) and discharge the bound from theirs (`2^28`); mvccrand's `runChecks` and
+  mvccfull's `inc_open_backend` give one more token from their fresh backend's (proof-internal).
 
 ## 2026-11-21: a streamed request body's `Read` count and errors; `ReadFull` of it with `io`'s initialization (prove-http3)
 
