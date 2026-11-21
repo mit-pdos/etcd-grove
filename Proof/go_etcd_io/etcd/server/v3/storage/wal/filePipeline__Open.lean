@@ -92,7 +92,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.Open.wp_proof :
       iright
       iunfold pipeDead
       iframe
-      ipureintro; exact ⟨Hne, rfl⟩
+      ipureintro; exact ⟨Hne.1, rfl, Hne.2⟩
   iapply BigAndL.bigAndL_nil.2
   itrivial
 

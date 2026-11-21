@@ -35,7 +35,7 @@ noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
     proof keeps that goroutine's thread token for the store's goroutine to exit with (as
     examples/k8s/etcd3's holdToken).
 
-    go: all.go:23:6 -/
+    go: all.go:24:6 -/
 noncomputable def holdToken.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -48,27 +48,29 @@ noncomputable def holdToken.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (Val #())))
 
-/-- Main runs k8setcd3.MainPartition(k, clients, ops, watchers, wops, sched1) on a goroutine and
-    compactor.MainPartition(sched2) on its own, and returns when both have (a process ends when its
+/-- Main runs k8setcd3.MainPartition(k1, clients, ops, watchers, wops, sched1) on a goroutine and
+    compactor.MainPartition(k2, sched2) on its own, and returns when both have (a process ends when its
     main returns).
 
-    go: all.go:32:6 -/
+    go: all.go:33:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "k"
+  (LamV "k1"
   (Lam "clients"
   (Lam "ops"
   (Lam "watchers"
   (Lam "wops"
   (Lam "sched1"
+  (Lam "k2"
   (Lam "sched2"
   (Seq (App (Val exceptionDo)
   (Let "sched2" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))) (Var "sched2"))
+  (Let "k2" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "k2"))
   (Let "sched1" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))) (Var "sched1"))
   (Let "wops" (App (Val (GoInstruction (GoAlloc go.int))) (Var "wops"))
   (Let "watchers" (App (Val (GoInstruction (GoAlloc go.int))) (Var "watchers"))
   (Let "ops" (App (Val (GoInstruction (GoAlloc go.int))) (Var "ops"))
   (Let "clients" (App (Val (GoInstruction (GoAlloc go.int))) (Var "clients"))
-  (Let "k" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "k"))
+  (Let "k1" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "k1"))
   (Let "$go" (App (Val (GoInstruction (FuncResolve holdToken []))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "wg" (App (Val (GoInstruction (GoAlloc _root_.Perennial.sync.WaitGroup.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.sync.WaitGroup.ty))) (Val #())))
@@ -79,7 +81,7 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Done"))) (Var "wg")) (Val #())))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k"))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k1"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "clients"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad go.int))) (Var "ops"))
   (Let "$a3" (App (Val (GoInstruction (GoLoad go.int))) (Var "watchers"))
@@ -92,8 +94,9 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Wait"))) (Var "wg")) (Val #())))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))) (Var "sched2"))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.MainPartition []))) (Val #())) (Var "$a0")))))))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k2"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))) (Var "sched2"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.MainPartition []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
   (Fork
   (App (Var "$go") (Val #()))))))))
@@ -102,8 +105,8 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Add"))) (Var "wg")) (Var "$a0"))))))))
   (App (Val doExecute)
   (Fork
-  (App (Var "$go") (Val #()))))))))))))))
-  (Val #())))))))))
+  (App (Var "$go") (Val #())))))))))))))))
+  (Val #()))))))))))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.all where
   pkgImportedPkgs := [pkg_id.sync, pkg_id.time, pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.compactor, pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.cluster3]

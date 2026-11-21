@@ -53,9 +53,9 @@ theorem os.OpenFile.wp_proofCreateTruncSnc : os.OpenFile.specCreateTruncSnc (GF 
     iintro Hr
     ihave Hw := (osNames_join j _ q r h hq).1 $$ [Hn Hr]
     · iframe
-    iapply wp_osOpenCreateS' R d b j dq h t s0 qc fl hfl hcr (.inr hn) hb hnd hs osN_sub_au
+    iapply wp_osOpenCreateSW R d b j dq h t s0 qc fl hfl hcr (.inr hn) hb hnd hs osN_sub_au
       osShN_sub_au $$ Hos Hsi Hp Hw Hk
-    iintro %fd %e Hperm Hp Hres
+    iintro %fd %e %hW Hperm Hp Hres
     icases Hres with (⟨%i, %hi, -, -⟩ | ⟨%hn', %x, %i, Hlog, Hw, Hm, Hr⟩ | ⟨%he, Hw⟩)
     · rw [hn] at hi; cases hi
     · -- the file created
@@ -95,7 +95,9 @@ theorem os.OpenFile.wp_proofCreateTruncSnc : os.OpenFile.specCreateTruncSnc (GF 
         iright
         isplitr
         · ipureintro; exact ⟨(fun h => by cases h), rfl⟩
-        iapply (EtcdGrove.fmtErrorOkOrNil_of _) $$ Hok
+        isplitl []
+        · iapply (EtcdGrove.fmtErrorOkOrNil_of _) $$ Hok
+        ipureintro; exact (hW he0).resolve_left (fun h4 => he4 (by rw [h4]; rfl))
       · obtain ⟨rfl, hfd0⟩ := he
         wp_auto
         iStructNamed inner
@@ -156,7 +158,9 @@ theorem os.OpenFile.wp_proofCreateTruncSnc : os.OpenFile.specCreateTruncSnc (GF 
         iright
         isplitr
         · ipureintro; exact ⟨(fun h => by cases h), rfl⟩
-        iapply (EtcdGrove.fmtErrorOkOrNil_of _) $$ Hok
+        isplitl []
+        · iapply (EtcdGrove.fmtErrorOkOrNil_of _) $$ Hok
+        ipureintro; exact (hW he0).resolve_left (fun h4 => he4 (by rw [h4]; rfl))
   · obtain ⟨x, sx, i⟩ := xs
     have hi : (h.log x (crEnt j b i sx) (<[b := .file i]> h.cur)).cur !! b = some (.file i) := by
       simp only [NamesH.log]; exact GMap.lookup_insert _ _ _
@@ -165,7 +169,7 @@ theorem os.OpenFile.wp_proofCreateTruncSnc : os.OpenFile.specCreateTruncSnc (GF 
     isimp only [crTr, trFile] at Hm
     icases Hm with ⟨%m, %bs, Hm, Hb, -, %hmb⟩
     ihave Hc := mcellsAny_of_empty (GF := GF) m.maps hmb.2.2.1 0 (pageEnd m.size)
-    wp_apply +noauto wp_osOpenTruncS R d b j i (.only [b]) dq (DFrac.own q) _ t s0 qc fl m bs
+    wp_apply +noauto wp_osOpenTruncSW R d b j i (.only [b]) dq (DFrac.own q) _ t s0 qc fl m bs
       hfl htr hb (by simp [NameSet.Mem]) hi hmb.1 CoPset.subseteq_top CoPset.subseteq_top
       $$ Hos Hsi Hp Hn Hk Hm Hb Hc
       as %fd %e %hres Hperm Hp Hn Htr Hfd
@@ -207,7 +211,8 @@ theorem os.OpenFile.wp_proofCreateTruncSnc : os.OpenFile.specCreateTruncSnc (GF 
         iframe
         iassumption
     · iclear Hfd
-      have hfd : fd = -1 := by rcases hres with ⟨h, -⟩ | ⟨-, h⟩; exact absurd h he0; exact h
+      have hfd : fd = -1 := by rcases hres with ⟨h, -⟩ | ⟨-, h, -⟩; exact absurd h he0; exact h
+      have hW := fun hne : e ≠ 0 => (hres.resolve_left (fun h => hne h.1)).2.2
       subst hfd
       ihave Hm : trFile i False $$ [Htr]
       · icases Htr with (⟨-, Hm, Hb, -⟩ | ⟨%n, Hd⟩)
@@ -236,7 +241,9 @@ theorem os.OpenFile.wp_proofCreateTruncSnc : os.OpenFile.specCreateTruncSnc (GF 
       iright
       isplitr
       · ipureintro; exact ⟨(fun h => by cases h), rfl⟩
-      iapply (EtcdGrove.fmtErrorOkOrNil_of _) $$ Hok
+      isplitl []
+      · iapply (EtcdGrove.fmtErrorOkOrNil_of _) $$ Hok
+      ipureintro; exact (hW he0).resolve_left (fun h4 => he4 (by rw [h4]; rfl))
 
 /-- `specCreateTruncS` from `specCreateTruncSnc`: an `osAU` is an `osAUnc`. -/
 theorem os.OpenFile.wp_proofCreateTruncS : os.OpenFile.specCreateTruncS (GF := GF) (hG := hG) := by

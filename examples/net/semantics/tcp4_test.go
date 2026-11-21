@@ -23,7 +23,7 @@ func opErrNet(err error) string {
 	return ""
 }
 
-// TestTcp4 (D23: "tcp4" behaves as "tcp" on the plan's IPv4 addresses, the
+// TestTcp4 (D23: "tcp4" behaves as "tcp" on the valid IPv4 addresses, the
 // network's name in the errors' Net). Listen("tcp4", a) and Dial("tcp4", a),
 // DialTimeout("tcp4", a, d) of an IPv4 address connect as "tcp" does; every
 // *OpError carries Go's network string: Dial's and Listen's the one passed

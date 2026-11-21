@@ -541,7 +541,14 @@ theorem wal.bootRes_intro (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) 
 configuration's WAL directory with the member's metadata and no records (`walOpened … walFresh`),
 and the right to close it with its files kept (the purge's, `walPurgeRight`). (raft-entsize §5,
 [r3g], 2026-11-09) Sized (`true`): `wal.Create` writes the metadata, an empty snapshot record and no
-entry record, so every entry record (none) is of a content of bounded size. -/
+entry record, so every entry record (none) is of a content of bounded size. (wal-fsfix2, 2026-11-20, approved
+by the user via etcd-grove-03) The open WAL's area (`WalA`, `h.toWalA`; a faithful `bootstrap` hands on
+`walAreaFresh`'s, though the post ties only `h.dir` to it) carries, besides the
+no-I/O-error instance, the no-lock-error one (`satL`: its files' `flock` calls succeed whenever they can), the
+WAL directory's `Fs.DirFits` (`fits`) and every path below it covered by path (`covP`: there `NoIoErr`'s path clauses apply, an `open`, `rename`,
+`mkdir`, `unlink` or `rmdir` that can succeed does and a failing `unlink`/`rmdir` gives Linux's errno, `PathErrno`;
+and `NoMapLockErr`'s `open` clause with no free fd). Old → new: covered by `NoIoErr` by inode only → also by `NoMapLockErr`, and by path in its
+directory, which fits. -/
 @[no_expose] def wal.bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id cid : w64)
     (w : Loc) : IProp GF :=
   iprop(∃ h : WalH GF, ⌜h.w = w⌝ ∗

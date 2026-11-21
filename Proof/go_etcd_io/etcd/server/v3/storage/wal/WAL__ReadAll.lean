@@ -712,6 +712,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
           · iframe; iframe #
           icases Hed with (⟨%hed, -⟩ | ⟨%hed, -⟩)
           · -- its error
+            replace hed := hed.1
             rcases ed with ei | _
             rotate_left
             · exact absurd rfl hed

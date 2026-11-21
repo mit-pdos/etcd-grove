@@ -304,10 +304,10 @@ theorem DB.close.wp_proof_ownedNoErrM [os.Assumptions] [syscall.Assumptions]
     $$ [Hfd Hfl] as %e ⟨%he, Hout⟩
   · iframe; iframe #
   have he0 : e = 0 := by
-    rcases he (Or.inl rfl) with he | ⟨hn, -⟩ | hn
+    rcases he with he | ⟨hn, -⟩ | hn
     · exact he
     · exact absurd rfl hn
-    · exact absurd hne hn
+    · exact absurd (FsNoErr.on hne) hn
   subst he0
   unfold lockOut
   icases Hout with ⟨%d', Hfd, Hfl, %hd'⟩

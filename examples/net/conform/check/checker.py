@@ -4,16 +4,18 @@ transcribed in model.py) produce a traced run? README.md has the design; in shor
 1. Load the run (trace.py): its node processes, and its drivers' process events.
 2. Nodes: a node is its `node` name; its processes, in time order, are its incarnations, a crash
    (D10, D11) between each and the next (processes of one name that overlap in time are distinct
-   nodes with the same host).
+   nodes of the same name).
 3. Map each call's result to the extension's (mapping.py, by net.lean), checking the shape rules;
    flag what the model has no step for (scope).
-4. The plan (D13): given (`plan=`), or inferred from the run's Listen and Dial addresses, each
-   address at the host of the node that listens there; checked well formed (D20).
+4. The addresses (D6, D8, D20, D21; v3.4: no plan): each Listen's address must be valid or a
+   valid wildcard (`listenOk`), each Dial's valid (`addrOk`); any other is out of scope (the model
+   panics).
 5. Pair the two ends of each connection by their address 4-tuples.
-6. Split the run into independent components: one per plan address (its listeners, Accepts, the
-   listeners' Closes, the Dials of it, the crashes of its host) and one per connection (the
-   operations on its two ends); search each for a linearization (lincheck.py) through the lazy
-   model (lazy.py).
+6. Split the run into independent components: one per port (the listeners at an address or
+   wildcard with that port, their Accepts and Closes, the Dials of addresses with it, the crashes
+   of the nodes with operations there: a listener takes only connections dialed to its port,
+   `lisAccepts`) and one per connection (the operations on its two ends); search each for a
+   linearization (lincheck.py) through the lazy model (lazy.py).
 7. Merge the components' linearizations into one, and replay it through model.py's literal
    relations (replay.py): the witness.
 """
@@ -101,12 +103,14 @@ def show_conn_state(st, W):
 
 def show_addr_state(st):
     open_, pend, tok = st
-    return (f"open listeners {sorted(f'{n}:{l}' for n, l in open_)}; pending connections "
-            f"{len(pend)}; pending connections no Dial returned: {tok}")
+    return (f"open listeners {sorted(f'{n}:{l} at {a.decode()}' for n, l, a in open_)}; pending "
+            f"connections {sorted(a.decode() for _, a in pend)}; pending connections no Dial returned: "
+            f"{[(a.decode(), k) for a, k in tok]}")
 
 
 class Chain:
-    """A node: a sequence of processes (incarnations), a crash between each and the next."""
+    """A node: a sequence of processes (incarnations), a crash between each and the next. Its
+    `host` is the traces' machine name (the witness's, to match processes; the model has none)."""
 
     def __init__(self, name, host):
         self.name, self.host, self.procs = name, host, []
@@ -124,8 +128,8 @@ class Comp:
 
 
 class Checker:
-    def __init__(self, run, plan=None, limit=5_000_000, replay=True):
-        self.run, self.given_plan, self.limit, self.do_replay = run, plan, limit, replay
+    def __init__(self, run, limit=5_000_000, replay=True):
+        self.run, self.limit, self.do_replay = run, limit, replay
         self.findings = []
         self.notes = []
         self.stats = collections.Counter()
@@ -145,8 +149,7 @@ class Checker:
         self.clock_checks()
         self.make_chains()
         self.classify()
-        self.make_plan()
-        self.resolve_listeners()
+        self.addresses()
         self.pair()
         self.build_components()
         self.search_all()
@@ -231,7 +234,7 @@ class Checker:
                 placed.procs.append(p)
             if len(chains) > 1:
                 self.notes.append(f"node {node!r}: processes overlapping in time, taken as {len(chains)} "
-                                  "nodes with the same host")
+                                  "nodes of the same name")
         for ch in self.chains:
             for i, p in enumerate(ch.procs):
                 self.chain_of[p.pid] = (ch, i)
@@ -318,105 +321,44 @@ class Checker:
                                                  "not a refutation)", [describe(c)]))
 
     # -----------------------------------------------------------------------------------------
-    def make_plan(self):
-        """The plan: given, or inferred (README.md, "The plan")."""
-        self.lenient = {}   # id(Listen call) -> the address it is checked as listening at
-        if self.given_plan is not None:
-            plan = {a.encode() if isinstance(a, str) else a: (h.encode() if isinstance(h, str) else h)
-                    for a, h in self.given_plan}
-        else:
-            plan = {}
-            wild = []
-            for c in self.calls:
-                if c.op != "Listen" or c.b.get("net") != "tcp" or c.sock() in self.out_sockets:
-                    continue
-                a = c.b.get("addr", "").encode()
-                host = self.chain_of[c.proc.pid][0].host
-                if M.wild_port(a) is not None:
-                    wild.append((c, a, host))
-                    continue
-                if M.parse_addr(a) is None:
-                    continue  # not a canonical a.b.c.d:p: no plan has it (D13, D20); its Listen is stuck
-                if M.port_of(a) == b"0":
-                    ok = c.e is not None and c.e.get("err") is None and isinstance(c.e.get("new"), dict)
-                    if not ok:
-                        continue
-                    port = (c.e["new"].get("local") or {}).get("s", "").rsplit(":", 1)[-1].encode()
-                    a = a[:-1] + port
-                    self.lenient[id(c)] = a
-                self._plan_host(plan, a, host, c)
-            for c in self.calls:
-                if c.op in ("Dial", "DialTimeout") and c.b.get("net") == "tcp":
-                    a = c.b.get("addr", "").encode()
-                    if M.parse_addr(a) is not None:  # else no plan has it: the Dial is stuck
-                        plan.setdefault(a, None)
-            for c, a, host in wild:
-                p = M.wild_port(a)
-                if p == b"0":
-                    ok = c.e is not None and c.e.get("err") is None and isinstance(c.e.get("new"), dict)
-                    if not ok:
-                        continue
-                    p = (c.e["new"].get("local") or {}).get("s", "").rsplit(":", 1)[-1].encode()
-                cands = [x for x in plan if M.port_of(x) == p]
-                if len(cands) == 1:
-                    a0 = cands[0]
-                elif not cands:
-                    a0 = b"127.0.0.1:" + p
-                    self.notes.append(f"wildcard Listen {a.decode()} at {c.where()}: no address with its port "
-                                      f"in the run; the plan is given {a0.decode()} for it")
-                else:
-                    continue  # ListenAt has no address: the Listen is out of scope (below)
-                if M.wild_port(a) == b"0":
-                    self.lenient[id(c)] = a0
-                self._plan_host(plan, a0, host, c)
-            for a in list(plan):
-                if plan[a] is None:
-                    plan[a] = b"-"  # dialed, never listened at: any host (none of the run's nodes)
-        self.plan = plan
-        self.plan_list = sorted(plan.items())
-        if not M.plan_well_formed(self.plan_list):
-            bad = [a.decode() for a, _ in self.plan_list if not M.addr_ok(a)]
-            self.findings.append(Finding("scope", "-", f"the plan is not well formed (D20, Deploy.lean's "
-                                         f"PlanWellFormed): {', '.join(bad[:6])}{' ...' if len(bad) > 6 else ''}"
-                                         " (port 0, ephemeral ports or not canonical); checked under it all the same"))
-        if self.lenient:
-            self.findings.append(Finding("scope", "-", f"{len(self.lenient)} Listen(s) of port 0 (D12: not "
-                                         "modeled); each checked as a Listen of the address the kernel gave it"))
-        self.stats["plan addresses"] = len(plan)
-
-    def _plan_host(self, plan, a, host, c):
-        h = plan.get(a)
-        if h is not None and h != host:
-            self.find("scope", c, f"{a.decode()} is listened at by nodes {h.decode()!r} and {host.decode()!r}: "
-                      "a plan gives an address one host (ListenAt)")
-            return
-        plan[a] = host
-
-    def resolve_listeners(self):
-        self.lis_addr = {}   # listener socket -> a0
-        self.listen_a0 = {}  # id(Listen call) -> a0
+    def addresses(self):
+        """The addresses (README.md, "Addresses"; v3.4: no plan). A Listen is in scope if its
+        address is valid or a valid wildcard (`listenOk`), a Dial if its address is valid
+        (`addrOk`); any other is a panic of the model. A Listen of port 0 (D12: not modeled) that
+        succeeded is checked as a Listen of the port the kernel gave it."""
+        self.lenient = {}      # id(Listen call) -> the address it is checked as listening at
+        self.lis_addr = {}     # listener socket -> the address it listens at
+        self.listen_addr = {}  # id(Listen call) -> that address
         for c in self.calls:
             if c.op != "Listen" or c.b.get("net") != "tcp" or c.e is None or id(c) not in self.mapped:
                 continue
-            ch = self.chain_of[c.proc.pid][0]
-            a = self.lenient.get(id(c), c.b.get("addr", "").encode())
-            a0 = M.listen_resolve(self.plan, ch.host, a)
-            if a0 is None:
-                self.find("scope", c, f"ListenAt has no plan address for {a.decode()} at host "
-                          f"{ch.host.decode()!r}: the model's Listen is stuck")
+            a = c.b.get("addr", "").encode()
+            if ((M.parse_addr(a) is not None and M.port_of(a) == b"0") or M.wild_port(a) == b"0"):
+                ok = c.e.get("err") is None and isinstance(c.e.get("new"), dict)
+                if ok:
+                    port = (c.e["new"].get("local") or {}).get("s", "").rsplit(":", 1)[-1].encode()
+                    a = a[:-1] + port
+                    self.lenient[id(c)] = a
+            if not M.listen_ok(a):
+                self.find("scope", c, f"Listen of {a.decode()!r}: not a valid address or wildcard "
+                          "(listenOk, D6, D20, D21): the model's Listen panics")
                 new = c.new()
                 if isinstance(new, dict) and new.get("id"):
                     self.out_sockets.add((c.proc.pid, new["id"]))
                 continue
-            self.listen_a0[id(c)] = a0
+            self.listen_addr[id(c)] = a
             m = self.mapped[id(c)]
             if m.res and m.res[0] == "ok":
-                self.lis_addr[(c.proc.pid, m.res[1]["id"])] = a0
+                self.lis_addr[(c.proc.pid, m.res[1]["id"])] = a
+        if self.lenient:
+            self.findings.append(Finding("scope", "-", f"{len(self.lenient)} Listen(s) of port 0 (D12: not "
+                                         "modeled); each checked as a Listen of the port the kernel gave it"))
         self.out_dials = set()  # ids of Dial calls out of scope: their connections are projected out
         for c in self.calls:
             if c.op == "Dial" or c.op == "DialTimeout":
-                if c.b.get("net") == "tcp" and self.plan.get(c.b.get("addr", "").encode()) is None:
-                    self.find("scope", c, f"Dial of {c.b.get('addr')}, not a plan address (DialStep is stuck)")
+                if c.b.get("net") == "tcp" and not M.addr_ok(c.b.get("addr", "").encode()):
+                    self.find("scope", c, f"Dial of {c.b.get('addr')!r}, not a valid address (addrOk, "
+                              "D20): the model's Dial panics")
                     self.out_dials.add(id(c))
 
     # -----------------------------------------------------------------------------------------
@@ -488,12 +430,13 @@ class Checker:
                 self.comps.append(cp)
             return conn[ck]
 
-        def comp_a(a0):
-            if a0 not in addr:
-                cp = Comp("addr", a0, Z.ADDR0)
-                addr[a0] = cp
+        def comp_a(a):
+            p = M.addr_port(a)  # the component of the port
+            if p not in addr:
+                cp = Comp("addr", p, Z.ADDR0)
+                addr[p] = cp
                 self.comps.append(cp)
-            return addr[a0]
+            return addr[p]
 
         for (pid, sid), why in self.taint.items():
             if (pid, sid) in self.end_conn:
@@ -532,18 +475,15 @@ class Checker:
                     continue
                 self.add_addr_op(comp_a(self.lis_addr[c.sock()]), c)
             elif c.op == "Listen":
-                if id(c) in self.listen_a0:
-                    self.add_addr_op(comp_a(self.listen_a0[id(c)]), c)
+                if id(c) in self.listen_addr:
+                    self.add_addr_op(comp_a(self.listen_addr[id(c)]), c)
             elif c.op in ("Dial", "DialTimeout"):
                 a = c.b.get("addr", "").encode()
-                if c.b.get("net") == "tcp" and self.plan.get(a) is not None:
+                if c.b.get("net") == "tcp" and M.addr_ok(a):
                     self.add_addr_op(comp_a(a), c)
-        # crashes, in the address components of their node's host
+        # crashes, in the port components their node has operations in
         for cp in list(addr.values()):
-            host = self.plan.get(cp.key)
             for ch in self.chains:
-                if ch.host != host:
-                    continue
                 for i in range(len(ch.procs) - 1):
                     p, q = ch.procs[i], ch.procs[i + 1]
                     mine = [j for j, x in enumerate(cp.calls) if x is not None and x.proc is p]
@@ -568,7 +508,7 @@ class Checker:
                     cp.items.append({"kind": "crash", "chain": ch, "index": i})
                     for j in later:
                         cp.ops[j].preds |= 1 << k
-        self.stats["components: addresses"] = len(addr)
+        self.stats["components: ports"] = len(addr)
         self.stats["components: connections"] = len(conn)
 
     def _deadline(self, c):
@@ -652,7 +592,7 @@ class Checker:
         item = {"kind": "addr", "op": c.op, "node": node}
         if pending:
             if c.op in ("Dial", "DialTimeout"):
-                step = lambda st, dn: Z.dial_pending(st)
+                step = lambda st, dn, a=c.b.get("addr", "").encode(): Z.dial_pending(st, a)
                 opt = True
             elif c.op == "ListenerClose":
                 lid = c.id
@@ -673,23 +613,26 @@ class Checker:
                 step = lambda st, dn, k=m.res[1]: ([], f"a Listen failure of kind {k} (ListenStep: only sys)")
             else:
                 lid = (c.proc.pid, m.res[1]["id"]) if ok else None
-                step = lambda st, dn, node=node, lid=lid, ok=ok: Z.listen(st, node, lid, ok)
+                la = self.listen_addr[id(c)]
+                step = lambda st, dn, node=node, lid=lid, la=la, ok=ok: Z.listen(st, node, lid, la, ok)
         elif c.op == "Accept":
             lid = (c.proc.pid, c.id)
+            la = self.lis_addr[c.sock()]
             if m.res[0] == "ok":
                 ck = self.accept_conn.get(id(c))
-                step = lambda st, dn, node=node, lid=lid, ck=ck: Z.accept(st, node, lid, None, ck)
+                step = lambda st, dn, node=node, lid=lid, la=la, ck=ck: Z.accept(st, node, lid, la, None, ck)
             else:
-                step = lambda st, dn, node=node, lid=lid, k=m.res[1]: Z.accept(st, node, lid, k, None)
+                step = lambda st, dn, node=node, lid=lid, la=la, k=m.res[1]: Z.accept(st, node, lid, la, k, None)
         elif c.op == "ListenerClose":
             lid = (c.proc.pid, c.id)
             step = lambda st, dn, node=node, lid=lid, res=m.res: Z.lis_close(st, node, lid, res)
         else:  # Dial, DialTimeout
+            a = c.b.get("addr", "").encode()
             if m.res[0] == "ok":
                 ck = ("D", c.proc.pid, m.res[1]["id"])
-                step = lambda st, dn, ck=ck: Z.dial_ok(st, ck)
+                step = lambda st, dn, ck=ck, a=a: Z.dial_ok(st, ck, a)
             else:
-                step = lambda st, dn, k=m.res[1]: Z.dial_fail(st, k)
+                step = lambda st, dn, a=a, k=m.res[1]: Z.dial_fail(st, a, k)
         cp.ops.append(lincheck.Op(c.call, c.ret, step, describe(c), ref=c))
         cp.calls.append(c)
         cp.items.append(item)
@@ -707,7 +650,7 @@ class Checker:
         self.stats["max search steps (one component)"] = steps
 
     def report_fail(self, cp, r):
-        name = (f"address {cp.key.decode()}" if cp.kind == "addr" else
+        name = (f"port {cp.key.decode()}" if cp.kind == "addr" else
                 f"connection {self.conn_name(cp.key)}")
         f = r.fail
         if f.get("op") is None:
@@ -747,8 +690,8 @@ def _choice(ch):
     return f"   <- {ch}"
 
 
-def check_run(run, plan=None, limit=5_000_000, replay=True):
-    return Checker(run, plan=plan, limit=limit, replay=replay).check()
+def check_run(run, limit=5_000_000, replay=True):
+    return Checker(run, limit=limit, replay=replay).check()
 
 
 def report(res, max_findings=5, verbose=False):

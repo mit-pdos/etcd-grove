@@ -7,7 +7,7 @@
 Generic in the open, as `fileutil.LockFile.spec` (`fileutil.OpenTriple`, the shape of the part's
 open specs `os.OpenFile.specCreateS`, `specCreateTruncS`, `wp_fileS`), at the flag `walOpenFlag
 forceNew`:
-* `specLocked`: `LockFile`'s post (`fileutil.lockPost`);
+* `specLocked`: `LockFile`'s post (`fileutil.lockPostW`: a lock error witnessed, `¬ FsNoErrIno`);
 * `specFile`: the open's own post (`fileutil.openPost`).
 The package initialized (`isPkgInit wal`; `fileutil`'s through it). Proved in
 `Proof/go_etcd_io/etcd/server/v3/storage/wal/createNewWALFile.lean`. Lean-first (plan W2,
@@ -16,6 +16,7 @@ W4's "not done" lists).
 module
 
 public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.LockDefs
+public import GooseLang.Ext.Fs.FsNoErr
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.PkgInit
 
 @[expose] public section
@@ -50,7 +51,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.createNewWALFile.specLocked : Prop 
         [go.GoType.PointerType go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile.ty])) (Val #path))
       (Val #forceNew))
   {{ (lf : Loc) (err : GoInterface), RET (PairV #lf #err);
-      fileutil.lockPost A C path (wal.walOpenFlag forceNew) lf err }}
+      fileutil.lockPostW (¬ FsNoErrIno) A C path (wal.walOpenFlag forceNew) lf err }}
 
 /-- See the file header. -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.createNewWALFile.specFile : Prop :=

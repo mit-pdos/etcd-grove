@@ -85,23 +85,17 @@ axiom Perennial.google_golang_org.grpc.opaqueInitsOk
 axiom Perennial.hash.crc32.opaqueInitsOk
 axiom Perennial.internal.bytealg.initFuncsOk
 axiom Perennial.internal.runtime.sys.opaqueInitsOk
-axiom Perennial.k8s_io.apimachinery.pkg.api.errors.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.api.meta.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.api.validate.content.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.apis.meta.v1.initFuncsOk
 axiom Perennial.k8s_io.apimachinery.pkg.apis.meta.v1.opaqueInitsOk
-axiom Perennial.k8s_io.apimachinery.pkg.apis.meta.v1.unstructured.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.fields.opaqueInitsOk
-axiom Perennial.k8s_io.apimachinery.pkg.labels.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.runtime.opaqueInitsOk
-axiom Perennial.k8s_io.apimachinery.pkg.util.runtime.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.util.validation.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.util.version.opaqueInitsOk
-axiom Perennial.k8s_io.apimachinery.pkg.util.wait.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.watch.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.audit.initFuncsOk
 axiom Perennial.k8s_io.apiserver.pkg.audit.opaqueInitsOk
-axiom Perennial.k8s_io.apiserver.pkg.endpoints.request.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.features.init_0_ok
 axiom Perennial.k8s_io.apiserver.pkg.features.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.storage.etcd3.klogWrapper_toLoggerV2
@@ -118,7 +112,6 @@ axiom Perennial.k8s_io.component_base.metrics.initFuncsOk
 axiom Perennial.k8s_io.component_base.metrics.opaqueInitsOk
 axiom Perennial.k8s_io.klog.v2.initFuncsOk
 axiom Perennial.k8s_io.klog.v2.opaqueInitsOk
-axiom Perennial.k8s_io.utils.trace.opaqueInitsOk
 axiom Perennial.math.rand.opaqueInitsOk
 axiom Perennial.net.http.initFuncsOk
 axiom Perennial.net.http.opaqueInitsOk
@@ -192,6 +185,7 @@ axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithTimeoutBackgroundMd.wp_proof
 axiom context.WithValue.wp_proof
+axiom context.madeCancelCtx_of_isCancelCtx
 axiom conversion.EnforcePtr.wp_proof
 axiom corev1.Node.DeepCopyObject.wp_proof
 axiom corev1.Pod.DeepCopyObject.wp_proof
@@ -202,6 +196,8 @@ axiom dataDirAbsent
 axiom dataDirFresh
 axiom dataDirsApart
 axiom encoding.json.Marshal.wp_proof
+axiom encoding.json.MarshalConfigChangeContext.wp_proof
+axiom encoding.json.MarshalMember.wp_proof
 axiom encoding.json.Unmarshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom entryEncC_ok
@@ -222,8 +218,6 @@ axiom fmt.ErrorfPlain.wp_proof
 axiom fmt.Printf.wp_proof
 axiom fmt.SprintfArgs.wp_proof
 axiom fmt.SprintfClientPtr.wp_proof
-axiom fmt.SprintfID.wp_proof
-axiom fmt.SprintfNamed.wp_proof
 axiom fmt.SprintfWalName.wp_proof
 axiom fmt.Sscanf.wp_proof
 axiom fmt.SscanfWalName.wp_proof

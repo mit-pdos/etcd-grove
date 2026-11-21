@@ -71,7 +71,6 @@ public import Spec.fmt.ErrorfErrsNot
 public import Spec.fmt.ErrorfErrsTerm
 public import Spec.fmt.SprintfBroken
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.ExistCallees
-public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__cutNoErr
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__renameWALUnlock
 public import Spec.google_golang_org.protobuf.proto.UnmarshalWalRecordE
 public import Spec.internal.filepathlite.IsAbs
@@ -186,6 +185,7 @@ variable [go_etcd_io.etcd.pkg.v3.crc.Assumptions]
 variable [hash.crc32.Assumptions]
 variable [go_etcd_io.etcd.pkg.v3.pbutil.Assumptions]
 variable [FsStepSat (NoIoErr Sio)]
+variable [FsStepSat (NoMapLockErr Sio)]
 
 theorem zap.wp_NewNop :
     _root_.Perennial.EtcdGrove.zap.NewNop.spec (GF := GF) (hG := hG) :=
@@ -666,6 +666,7 @@ variable [go_etcd_io.etcd.pkg.v3.crc.Assumptions]
 variable [hash.crc32.Assumptions]
 variable [go_etcd_io.etcd.pkg.v3.pbutil.Assumptions]
 variable [FsStepSat (NoIoErr Sio)]
+variable [FsStepSat (NoMapLockErr Sio)]
 
 theorem github_com.mit_pdos.etcd_grove.examples.lib.durable.wp_tryRead
     (h_errors_IsPathErrnoNotExist : _root_.Perennial.EtcdGrove.errors.IsPathErrnoNotExist.spec
@@ -779,8 +780,7 @@ theorem etcd_wal.member.wp_save
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.wp_phsNext (fun W : WalGS GF =>
     (_root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_Save (walRaftP
     (GF := GF)) walRaftMr h_WalPbIn_GetIndexLaw h_WalPbIn_IsEmptyLaw h_WalPbIn_MarshalEntLaw
-    h_WalPbIn_MarshalHsLaw h_WalPbIn_MustSyncLaw h_WalPbIn_SizeLaw h_WalPbIn_ZeroLaw
-    noErr_ioNone))
+    h_WalPbIn_MarshalHsLaw h_WalPbIn_MustSyncLaw h_WalPbIn_SizeLaw h_WalPbIn_ZeroLaw))
 
 theorem etcd_wal.member.wp_opEntries
     (h_WalPbIn_GetIndexLaw : WalPbIn.GetIndexLaw (walRaftP (GF := GF))) (h_WalPbIn_IsEmptyLaw :
@@ -853,7 +853,7 @@ theorem etcd_wal.member.wp_saveSnap
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.wp_storeOracle
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.wp_newU64 (fun W : WalGS GF =>
     (_root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_SaveSnapshot
-    (walRaftP (GF := GF)) walRaftMr h_WalPbIn_IsEmptyLaw h_WalPbIn_MarshalHsLaw noErr_ioNone))
+    (walRaftP (GF := GF)) walRaftMr h_WalPbIn_IsEmptyLaw h_WalPbIn_MarshalHsLaw))
 
 theorem go_etcd_io.etcd.client.pkg.v3.fileutil.wp_ReadDir
     (h_errors_IsPathErrnoTerm : _root_.Perennial.EtcdGrove.errors.IsPathErrnoTerm.spec (GF :=

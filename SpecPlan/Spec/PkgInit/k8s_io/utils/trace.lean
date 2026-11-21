@@ -3,6 +3,7 @@ module
 
 public import GeneratedProof.k8s_io.utils.trace
 public import SpecPlan.Spec.PkgInit.Base
+public import SpecPlan.Spec.PkgInit.k8s_io.klog.v2
 
 @[expose] public section
 noncomputable section

@@ -12,7 +12,8 @@ the other). So are `Dial`'s and `Accept`'s, over the address's pending set (`net
 program keeps in an invariant with its per-address protocol. Every operation may stutter (D22: a
 wait), which one rule handles for all, by Löb induction (`wp_net_op`, as Perennial's Grove specs
 do), so an update is opened only at the step that decides; the panics of invalid uses are excluded
-there by the resources (the connection or listener exists, the address is the plan's). Each takes
+there by the resources (the connection or listener exists) and premises (the address is valid,
+`addrOk`). Each takes
 `netConnAt c a` (persistent, from `Dial` or `Accept`): the connection exists, and its ends' ids are
 in range and not `0`. Results are the values the step returns: a failure's kind as its code (`errCode`,
 `NetErr.code`, `failV`); a `Dial` that fails may leave its connection, abandoned (D16), whose
@@ -83,17 +84,14 @@ theorem setEnd_endSt_self (cn : NetConn) (s : Bool) : cn.setEnd s (cn.endSt s) =
 theorem setOut_out_self (cn : NetConn) (s : Bool) : cn.setOut s (cn.out s) = cn := by
   cases s <;> rfl
 
-@[simp] theorem setConn_plan (g : NetGlobal) (c : Nat) (cn : NetConn) :
-    (g.setConn c cn).plan = g.plan := rfl
-
 @[simp] theorem setConn_conns (g : NetGlobal) (c : Nat) (cn : NetConn) :
     (g.setConn c cn).conns = g.conns.insert c cn := rfl
 
 theorem setConn_self {g : NetGlobal} {c : Nat} {cn : NetConn} (h : g.conns !! c = some cn) :
     g.setConn c cn = g := by
   cases g with
-  | mk plan conns =>
-    simp only [NetGlobal.setConn, NetGlobal.mk.injEq, true_and]
+  | mk conns =>
+    simp only [NetGlobal.setConn, NetGlobal.mk.injEq]
     apply GMap.ext; intro k; simp only [GMap.lookup_insert_eq_iff]
     split <;> simp_all
 
@@ -118,7 +116,7 @@ theorem pendOk_setConn {g : NetGlobal} {pm : GMap GoString (GSet Nat)} {c : Nat}
     by_cases hk : c = k
     · subst hk; simp [hc, ha, hacc]
     · simp [hk]
-  · simp only [setConn_conns, setConn_plan, GMap.lookup_insert_eq_iff] at hk ⊢
+  · simp only [setConn_conns, GMap.lookup_insert_eq_iff] at hk ⊢
     by_cases hck : c = k
     · subst hck; simp only [↓reduceIte, Option.some.injEq] at hk; subst hk
       rw [ha]; exact h3 c cn hc
@@ -126,14 +124,14 @@ theorem pendOk_setConn {g : NetGlobal} {pm : GMap GoString (GSet Nat)} {c : Nat}
 
 
 /-- A dial keeps `PendOk`, the new connection pending at its address. -/
-theorem pendOk_dial {g : NetGlobal} {pm : GMap GoString (GSet Nat)} {c : Nat} {a h : GoString}
+theorem pendOk_dial {g : NetGlobal} {pm : GMap GoString (GSet Nat)} {c : Nat} {a : GoString}
     {S : GSet Nat} {cn : NetConn} (hp : PendOk g pm) (hc : g.conns !! c = none)
-    (h0 : c ≠ 0) (hb : 2 * c + 1 < 2 ^ 64) (ha : g.plan !! a = some h) (hS : pm !! a = some S)
+    (h0 : c ≠ 0) (hb : 2 * c + 1 < 2 ^ 64) (ha : addrOk a = true) (hS : pm !! a = some S)
     (hca : cn.addr = a) (hacc : cn.accepted = false) :
     PendOk (g.setConn c cn) (pm.insert a (S ∪ {[c]})) := by
   obtain ⟨h1, h2, h3⟩ := hp
   refine ⟨fun a' => ?_, fun a' S' k hS' => ?_, fun k cn₁ hk => ?_⟩
-  · simp only [GMap.lookup_insert_eq_iff, setConn_plan]
+  · simp only [GMap.lookup_insert_eq_iff]
     by_cases haa : a = a'
     · subst haa; simp [ha]
     · simp [haa, h1 a']
@@ -152,11 +150,11 @@ theorem pendOk_dial {g : NetGlobal} {pm : GMap GoString (GSet Nat)} {c : Nat} {a
       by_cases hkc : c = k
       · subst hkc; simp [hc, hca, haa]
       · simp [hkc]
-  · simp only [setConn_conns, setConn_plan, GMap.lookup_insert_eq_iff] at hk ⊢
+  · simp only [setConn_conns, GMap.lookup_insert_eq_iff] at hk ⊢
     by_cases hkc : c = k
     · subst hkc
       simp only [↓reduceIte, Option.some.injEq] at hk; subst hk
-      exact ⟨by simp [hca, ha], h0, hb⟩
+      exact ⟨by rw [hca]; exact ha, h0, hb⟩
     · simp only [hkc, ↓reduceIte] at hk; exact h3 k cn₁ hk
 
 /-- An accept keeps `PendOk`, the connection no longer pending. -/
@@ -166,7 +164,7 @@ theorem pendOk_accept {g : NetGlobal} {pm : GMap GoString (GSet Nat)} {c : Nat} 
     PendOk (g.setConn c { cn with accepted := true }) (pm.insert cn.addr (S \ {[c]})) := by
   obtain ⟨h1, h2, h3⟩ := hp
   refine ⟨fun a' => ?_, fun a' S' k hS' => ?_, fun k cn' hk => ?_⟩
-  · simp only [GMap.lookup_insert_eq_iff, setConn_plan]
+  · simp only [GMap.lookup_insert_eq_iff]
     by_cases haa : cn.addr = a'
     · subst haa; rw [← h1]; simp [hS]
     · simp [haa, h1 a']
@@ -185,7 +183,7 @@ theorem pendOk_accept {g : NetGlobal} {pm : GMap GoString (GSet Nat)} {c : Nat} 
       by_cases hkc : c = k
       · subst hkc; simp [hcn, haa]
       · simp [hkc]
-  · simp only [setConn_conns, setConn_plan, GMap.lookup_insert_eq_iff] at hk ⊢
+  · simp only [setConn_conns, GMap.lookup_insert_eq_iff] at hk ⊢
     by_cases hkc : c = k
     · subst hkc
       simp only [↓reduceIte, Option.some.injEq] at hk; subst hk
@@ -265,8 +263,8 @@ theorem netCtx_acc (hG : NetGS GF) (g : NetGlobal) (c : Nat) (γ : ConnNames) :
           @connCtx GF hG.allG γ cn' -∗ netCtx hG (g.setConn c cn') := by
   letI := hG.allG
   unfold netCtx netNames
-  iintro ⟨%nm, %pm, Hn, Hp, Hl, %Hpure, Hconns⟩ #Hγ
-  obtain ⟨Hdom, Hpend, Hpln⟩ := Hpure
+  iintro ⟨%nm, %pm, Hn, Hp, %Hpure, Hconns⟩ #Hγ
+  obtain ⟨Hdom, Hpend⟩ := Hpure
   icases ghost_map_lookup $$ Hn Hγ with %Hnγ
   have hsome : (g.conns !! c).isSome := by rw [← Hdom c]; simp [Hnγ]
   obtain ⟨cn, hcn⟩ := Option.isSome_iff_exists.mp hsome
@@ -281,11 +279,10 @@ theorem netCtx_acc (hG : NetGS GF) (g : NetGlobal) (c : Nat) (γ : ConnNames) :
   iintro %cn' %Hah Hcc'
   obtain ⟨ha, hacc⟩ := Hah
   iexists nm, pm
-  rw [setConn_plan]
-  iframe Hn Hp Hl
+  iframe Hn Hp
   isplitr
   · ipureintro
-    refine ⟨fun k => ?_, pendOk_setConn Hpend hcn ha hacc, Hpln⟩
+    refine ⟨fun k => ?_, pendOk_setConn Hpend hcn ha hacc⟩
     rw [Hdom k]; simp only [setConn_conns, GMap.lookup_insert_eq_iff]
     by_cases hk : c = k
     · subst hk; simp [hcn]
@@ -312,15 +309,15 @@ theorem netCtx_lookup (hG : NetGS GF) (g : NetGlobal) (c : Nat) (γ : ConnNames)
     netCtx hG g -∗ netNames hG c γ -∗ ⌜∃ cn, g.conns !! c = some cn⌝ ∗ netCtx hG g := by
   letI := hG.allG
   unfold netCtx netNames
-  iintro ⟨%nm, %pm, Hn, Hp, Hl, %Hpure, Hconns⟩ #Hγ
-  obtain ⟨Hdom, Hpend, Hpln⟩ := Hpure
+  iintro ⟨%nm, %pm, Hn, Hp, %Hpure, Hconns⟩ #Hγ
+  obtain ⟨Hdom, Hpend⟩ := Hpure
   icases ghost_map_lookup $$ Hn Hγ with %Hnγ
   have hsome : (g.conns !! c).isSome := by rw [← Hdom c]; simp [Hnγ]
   isplitr
   · ipureintro; exact Option.isSome_iff_exists.mp hsome
   iexists nm, pm
-  iframe Hn Hp Hl Hconns
-  ipureintro; exact ⟨Hdom, Hpend, Hpln⟩
+  iframe Hn Hp Hconns
+  ipureintro; exact ⟨Hdom, Hpend⟩
 
 
 /-- The connection's part of the context, by the end `s` and the direction `t`: their ghost
@@ -913,25 +910,6 @@ theorem wp_net_AnyString (Φ : val → IProp GF) :
     iapply HΦ
   · exact absurd rfl hnv
 
-/-- The plan has `a` at `h` (the context is kept). -/
-theorem netCtx_plan (hG : NetGS GF) (g : NetGlobal) (a h : GoString) :
-    netCtx hG g -∗ netPlan hG a h -∗ ⌜g.plan !! a = some h⌝ := by
-  letI := hG.allG
-  unfold netCtx netPlan
-  iintro ⟨%nm, %pm, Hn, Hp, Hl, %Hpure, Hconns⟩ #Ha
-  iapply ghost_map_lookup $$ Hl Ha
-
-/-- The network's plan is the ghost state's (the context is kept). -/
-theorem netCtx_plan_eq (hG : NetGS GF) (g : NetGlobal) :
-    netCtx hG g -∗ ⌜g.plan = hG.plan⌝ ∗ netCtx hG g := by
-  letI := hG.allG
-  unfold netCtx
-  iintro ⟨%nm, %pm, Hn, Hp, Hl, %Hpure, Hconns⟩
-  isplitr; · ipureintro; exact Hpure.2.2
-  iexists nm, pm
-  iframe Hn Hp Hl Hconns
-  ipureintro; exact Hpure
-
 theorem lisAddrs_insert (m : GMap w64 (GoString × Bool)) (l : w64) (x : GoString × Bool) :
     lisAddrs (m.insert l x) = (lisAddrs m).insert l x.1 := by
   unfold lisAddrs
@@ -943,69 +921,50 @@ theorem lisAddrs_lookup (m : GMap w64 (GoString × Bool)) (l : w64) :
     (lisAddrs m).lookup l = (m.lookup l).map Prod.fst := by
   unfold lisAddrs; rw [GMap.lookup_fmap]
 
-/-- `ListenAt` is functional: a `Listen` of `a` resolves to one address. -/
-theorem listenAt_unique {P : GMap GoString GoString} {h a a0 a1 : GoString}
-    (h0 : ListenAt P h a a0) (h1 : ListenAt P h a a1) : a0 = a1 := by
-  obtain ⟨hp0, rfl | ⟨hn0, p0, hw0, hq0, hu0⟩⟩ := h0 <;>
-    obtain ⟨hp1, rfl | ⟨hn1, p1, hw1, hq1, hu1⟩⟩ := h1
-  · rfl
-  · rw [hn1] at hp0; cases hp0
-  · rw [hn0] at hp1; cases hp1
-  · rw [hw0] at hw1; cases hw1
-    exact (hu0 a1 (by rw [hp1]; rfl) hq1).symm
-
-/-- An address of the plan at `h`: a `Listen` of it listens at it. -/
-theorem listenAt_self {P : GMap GoString GoString} {h a : GoString} (hp : P !! a = some h) :
-    ListenAt P h a a := ⟨hp, .inl rfl⟩
-
-/-- D6, D21. `Listen` of `a`, which resolves to `a0` (`ListenAt`, over the network's plan, at this
-node's host): a failure, or a new open listener at `a0` (and its address, persistent). -/
-theorem wp_net_Listen (a a0 : GoString) (Φ : val → IProp GF) :
-    ⌜ListenAt (netG (G := G)).plan (netL (L := L)).host a a0⌝ -∗
-    (Φ (failV .sys) ∧ ∀ l : w64, ⌜l ≠ 0⌝ -∗ netLis (netL (L := L)) l a0 true -∗
-      netLisAt (netL (L := L)) l a0 -∗ Φ (PairV (#l) (#(W64 0)))) -∗
+/-- D6. `Listen` of the valid address `a` (`addrOk`; not a wildcard, D21, which the semantics allows
+and this spec does not cover): a failure, or a new open listener at `a` (and its address,
+persistent). -/
+theorem wp_net_Listen (a : GoString) (Φ : val → IProp GF) :
+    ⌜addrOk a = true⌝ -∗
+    (Φ (failV .sys) ∧ ∀ l : w64, ⌜l ≠ 0⌝ -∗ netLis (netL (L := L)) l a true -∗
+      netLisAt (netL (L := L)) l a -∗ Φ (PairV (#l) (#(W64 0)))) -∗
     WP (ExternalOp netExt.name "Listen" (Val (#a))) @ sk; E {{ Φ }} := by
   letI := (netL (L := L)).allG
-  iintro %Hla HΦ
+  iintro %Hok HΦ
   iapply wp_net_op "Listen" (#a) (by simp) Φ
   inext
   iintro %σ %g %e' %σ' %g' %Hst Hl Hg
-  icases netCtx_plan_eq _ g $$ Hg with ⟨%Hpln, Hg⟩
   unfold netLocalCtx
-  icases Hl with ⟨%Hhost, Hlis, Hat⟩
-  have Hla' : ListenAt g.plan σ.host a a0 := by rw [Hpln, Hhost]; exact Hla
-  obtain ⟨a', Hv, ⟨a1, Hla1, Hcase⟩, rfl⟩ :=
-    Hst.resolve_right fun ⟨hnv, _⟩ => hnv ⟨a, a0, rfl, Hla'⟩
+  icases Hl with ⟨Hlis, Hat⟩
+  obtain ⟨a', Hv, -, Hcase, rfl⟩ :=
+    Hst.resolve_right fun ⟨hnv, _⟩ => hnv ⟨a, rfl, by simp [listenOk, Hok]⟩
   obtain rfl := go.intoVal_inj (V := GoString) Hv
-  obtain rfl := listenAt_unique Hla' Hla1
   rcases Hcase with ⟨rfl, rfl⟩ | ⟨-, l, hl0, hl, rfl, rfl⟩
   · icases HΦ with ⟨HΦ, -⟩
     imodintro
-    isplitl [Hlis Hat]
-    · iframe Hlis Hat; ipureintro; exact Hhost
-    iframe Hg
+    iframe Hlis Hat Hg
     iapply wp_value'
     iexact HΦ
   · have hla : (lisAddrs σ.lis).lookup l = none := by rw [lisAddrs_lookup, hl]; rfl
-    imod ghost_map_insert l (a0, true) hl $$ Hlis with ⟨Hlis, Hel⟩
-    imod ghost_map_insert_persist l a0 hla $$ Hat with ⟨Hat, #Hla⟩
+    imod ghost_map_insert l (a, true) hl $$ Hlis with ⟨Hlis, Hel⟩
+    imod ghost_map_insert_persist l a hla $$ Hat with ⟨Hat, #Hla⟩
     icases HΦ with ⟨-, HΦ⟩
     imodintro
     isplitl [Hlis Hat]
     · simp only
       rw [lisAddrs_insert]
-      iframe Hlis Hat; ipureintro; exact Hhost
+      iframe Hlis Hat
     iframe Hg
     iapply wp_value'
     iapply HΦ $$ %l %hl0 [Hel]
     · unfold netLis; iexact Hel
-    · unfold netLisAt; iexact Hla
+    · unfold netLisAt; iframe Hla; ipureintro; exact Hok
 
 theorem netLocal_lookup (hL : NetLocalGS GF) (σ : NetLocal) (l : w64) (a : GoString) (o : Bool) :
     netLocalCtx hL σ -∗ netLis hL l a o -∗ ⌜σ.lis !! l = some (a, o)⌝ := by
   letI := hL.allG
   unfold netLocalCtx netLis
-  iintro ⟨%Hhost, Hlis, -⟩ Hel
+  iintro ⟨Hlis, -⟩ Hel
   iapply ghost_map_lookup $$ Hlis Hel
 
 /-- The listener `l` exists in the node's state, at `a`. -/
@@ -1013,7 +972,7 @@ theorem netLisAt_lookup (hL : NetLocalGS GF) (σ : NetLocal) (l : w64) (a : GoSt
     netLocalCtx hL σ -∗ netLisAt hL l a -∗ ⌜∃ o, σ.lis !! l = some (a, o)⌝ := by
   letI := hL.allG
   unfold netLocalCtx netLisAt
-  iintro ⟨%Hhost, Hlis, Hat⟩ Hel
+  iintro ⟨Hlis, Hat⟩ ⟨Hel, -⟩
   icases ghost_map_lookup $$ Hat Hel with %Hla
   ipureintro
   rw [lisAddrs_lookup] at Hla
@@ -1048,7 +1007,7 @@ theorem wp_net_LisClose (l : w64) (a : GoString) (Φ : val → IProp GF) :
   have ho' : o' = false := by unfold LisCloseOutcome at Hout; split at Hout <;> exact Hout.2
   subst ho'
   unfold netLocalCtx netLis
-  icases Hl with ⟨%Hhost, Hlis, Hat⟩
+  icases Hl with ⟨Hlis, Hat⟩
   imod ghost_map_update (a, false) $$ Hlis Hel with ⟨Hlis, Hel⟩
   imod Hk $$ %res %Hout Hel with HΦ
   have hsame : lisAddrs (σ.lis.insert l (a, false)) = lisAddrs σ.lis := by
@@ -1063,7 +1022,7 @@ theorem wp_net_LisClose (l : w64) (a : GoString) (Φ : val → IProp GF) :
   isplitl [Hlis Hat]
   · simp only
     rw [hsame]
-    iframe Hlis Hat; ipureintro; exact Hhost
+    iframe Hlis Hat
   iapply wp_value'
   iexact HΦ
 
@@ -1072,10 +1031,10 @@ and empty. -/
 def netFresh (hG : NetGS GF) (c : Nat) (s : Bool) : IProp GF :=
   iprop(netEnd hG c s NetEnd.fresh ∗ netDir hG c s NetDir.fresh)
 
-/-- A new connection `cn` numbered `c`, dialed to the plan address `a`: the network with it, `c`
+/-- A new connection `cn` numbered `c`, dialed to the valid address `a`: the network with it, `c`
 pending at `a`, and its ends' and directions' resources. -/
-theorem netCtx_dial (hG : NetGS GF) (g : NetGlobal) (a h : GoString) (c : Nat) (cn : NetConn)
-    (S : GSet Nat) (ha : g.plan !! a = some h) (hc : g.conns !! c = none) (h0 : c ≠ 0)
+theorem netCtx_dial (hG : NetGS GF) (g : NetGlobal) (a : GoString) (c : Nat) (cn : NetConn)
+    (S : GSet Nat) (ha : addrOk a = true) (hc : g.conns !! c = none) (h0 : c ≠ 0)
     (hb : 2 * c + 1 < 2 ^ 64) (hca : cn.addr = a) (hacc : cn.accepted = false)
     (hl0 : cn.lock false = false) (hl1 : cn.lock true = false) :
     netCtx hG g -∗ netPend hG a S ==∗
@@ -1084,8 +1043,8 @@ theorem netCtx_dial (hG : NetGS GF) (g : NetGlobal) (a h : GoString) (c : Nat) (
       netEnd hG c true (cn.endSt true) ∗ netDir hG c true (cn.out true) := by
   letI := hG.allG
   unfold netCtx
-  iintro ⟨%nm, %pm, Hn, Hpm, Hpl, %Hpure, Hconns⟩ Hpend
-  obtain ⟨Hdom, Hpok, Hpln⟩ := Hpure
+  iintro ⟨%nm, %pm, Hn, Hpm, %Hpure, Hconns⟩ Hpend
+  obtain ⟨Hdom, Hpok⟩ := Hpure
   unfold netPend
   icases ghost_map_lookup $$ Hpm Hpend with %HS
   have hcS : c ∉ S := by
@@ -1109,13 +1068,13 @@ theorem netCtx_dial (hG : NetGS GF) (g : NetGlobal) (a h : GoString) (c : Nat) (
   imodintro
   isplitr; · ipureintro; exact hcS
   iframe Hpend
-  isplitl [Hn Hpm Hpl Hconns Hv0' Hv1' Hq0' Hq1' Hw0 Hw1]
+  isplitl [Hn Hpm Hconns Hv0' Hv1' Hq0' Hq1' Hw0 Hw1]
   · iexists nm.insert c γ, pm.insert a (S ∪ {[c]})
-    rw [setConn_plan, setConn_conns]
-    iframe Hn Hpm Hpl
+    rw [setConn_conns]
+    iframe Hn Hpm
     isplitr
     · ipureintro
-      refine ⟨fun k => ?_, pendOk_dial Hpok hc h0 hb ha HS hca hacc, Hpln⟩
+      refine ⟨fun k => ?_, pendOk_dial Hpok hc h0 hb ha HS hca hacc⟩
       simp only [GMap.lookup_insert_eq_iff]
       by_cases hk : c = k
       · subst hk; simp
@@ -1147,12 +1106,12 @@ theorem netCtx_dial (hG : NetGS GF) (g : NetGlobal) (a h : GoString) (c : Nat) (
   isplitl [Hv1]; · iexists γ; iframe Hγ Hv1
   iexists γ; iframe Hγ Hq1 Ht1
 
-/-- D8, D16. `Dial` of `a`, an address of the plan: a failure that leaves nothing; or a new
+/-- D8, D16. `Dial` of `a`, a valid address (`addrOk`): a failure that leaves nothing; or a new
 connection `c` to `a`, pending at `a` (`netPend`, by a logically atomic update), with its
 acceptor's end's resources, and either the dialer's (the dial succeeds) or, abandoned, a closed
 dialer's end and its shut direction (the dial fails). -/
-theorem wp_net_Dial (a h : GoString) (Φ : val → IProp GF) :
-    netPlan netG a h -∗
+theorem wp_net_Dial (a : GoString) (Φ : val → IProp GF) :
+    ⌜addrOk a = true⌝ -∗
     (Φ (failV .sys) ∧
       |={E,∅}=> ∃ S, netPend netG a S ∗
         ∀ c, ⌜c ∉ S⌝ -∗ netPend netG a (S ∪ {[c]}) -∗ netConnAt netG c a -∗
@@ -1162,13 +1121,12 @@ theorem wp_net_Dial (a h : GoString) (Φ : val → IProp GF) :
             netDir netG c false ⟨[], .fin⟩ ={∅,E}=∗ Φ (failV .sys)))) -∗
     WP (ExternalOp netExt.name "Dial" (Val (#a))) @ sk; E {{ Φ }} := by
   letI := (netG (G := G)).allG
-  iintro #Hp HΦ
+  iintro %Hpa HΦ
   iapply wp_net_op "Dial" (#a) (by simp) Φ
   inext
   iintro %σ %g %e' %σ' %g' %Hst Hl Hg
-  icases netCtx_plan _ g a _ $$ Hg Hp with %Hpa
   obtain ⟨a0, Hv, ⟨-, Hcase⟩, rfl⟩ :=
-    Hst.resolve_right fun ⟨hnv, _⟩ => hnv ⟨a, rfl, by simp [Hpa]⟩
+    Hst.resolve_right fun ⟨hnv, _⟩ => hnv ⟨a, rfl, Hpa⟩
   obtain rfl := go.intoVal_inj (V := GoString) Hv
   rcases Hcase with ⟨rfl, rfl⟩ | ⟨c, ⟨hc0, hc, hb⟩, rfl, rfl⟩ | ⟨c, ⟨hc0, hc, hb⟩, rfl, rfl⟩
   · -- a failure
@@ -1180,7 +1138,7 @@ theorem wp_net_Dial (a h : GoString) (Φ : val → IProp GF) :
   · -- a new connection `c`
     icases HΦ with ⟨-, HAU⟩
     imod HAU with ⟨%S, Hpend, Hk⟩
-    imod netCtx_dial _ g a _ c (NetConn.fresh a) S Hpa hc hc0 hb rfl rfl rfl rfl $$ Hg Hpend
+    imod netCtx_dial _ g a c (NetConn.fresh a) S Hpa hc hc0 hb rfl rfl rfl rfl $$ Hg Hpend
       with ⟨%HcS, Hg, Hpend, #Hat, He0, Hd0, He1, Hd1⟩
     simp only [NetConn.fresh, NetConn.endSt, NetConn.out]
     icases Hk $$ %c %HcS Hpend Hat [He1 Hd1] with Hk
@@ -1195,7 +1153,7 @@ theorem wp_net_Dial (a h : GoString) (Φ : val → IProp GF) :
   · -- a failure that leaves the connection `c`, abandoned
     icases HΦ with ⟨-, HAU⟩
     imod HAU with ⟨%S, Hpend, Hk⟩
-    imod netCtx_dial _ g a _ c (NetConn.abandoned a) S Hpa hc hc0 hb rfl rfl rfl rfl $$ Hg Hpend
+    imod netCtx_dial _ g a c (NetConn.abandoned a) S Hpa hc hc0 hb rfl rfl rfl rfl $$ Hg Hpend
       with ⟨%HcS, Hg, Hpend, #Hat, He0, Hd0, He1, Hd1⟩
     simp only [NetConn.abandoned, NetConn.endSt, NetConn.out]
     icases Hk $$ %c %HcS Hpend Hat [He1 Hd1] with Hk
@@ -1217,7 +1175,8 @@ theorem connCtx_addr [AllG GF] (γ : ConnNames) (cn : NetConn) :
   ipureintro; exact H
 
 
-/-- D7. `Accept` of the listener `l` at `a`, by a logically atomic update over its state and the
+/-- D7. `Accept` of the listener `l` at `a` (valid, `netLisAt`: not a wildcard, so the connections
+it takes are those dialed to `a`, `lisAccepts_addrOk`), by a logically atomic update over its state and the
 address's pending set: a failure (both unchanged), `closed` if the listener is closed and `sys` if
 it is open; or, only if the listener is open, a connection `c` pending at `a`, now accepted (taken
 out of the pending set). The update is opened only at the step that decides (a wait is a stutter,
@@ -1233,6 +1192,8 @@ theorem wp_net_Accept (l : w64) (a : GoString) (Φ : val → IProp GF) :
     WP (ExternalOp netExt.name "Accept" (Val (#l))) @ sk; E {{ Φ }} := by
   letI := (netG (G := G)).allG
   iintro #Hla HAU
+  ihave %Hok : ⌜addrOk a = true⌝ $$ []
+  · unfold netLisAt; icases Hla with ⟨-, %h⟩; ipureintro; exact h
   iapply wp_net_op "Accept" (#l) (by simp) Φ
   inext
   iintro %σ %g %e' %σ' %g' %Hst Hl Hg
@@ -1244,6 +1205,7 @@ theorem wp_net_Accept (l : w64) (a : GoString) (Φ : val → IProp GF) :
   rw [Hll] at Hl0
   obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj Hl0)
   rcases Hcase with ⟨ho, rfl, rfl⟩ | ⟨ho, rfl, rfl⟩ | ⟨ho, c, cn, hcn, haddr, hacc, hb, rfl, rfl⟩
+  all_goals try (have haddr := ((lisAccepts_addrOk Hok).mp haddr).symm)
   · -- a failure, the listener closed
     imod HAU with ⟨%o', %S, Hel, Hpend, HΦ⟩
     icases netLocal_lookup _ _ l a o' $$ Hl Hel with %Hll'
@@ -1277,8 +1239,8 @@ theorem wp_net_Accept (l : w64) (a : GoString) (Φ : val → IProp GF) :
     obtain ⟨-, rfl⟩ := Prod.mk.inj (Option.some.inj Hll')
     icases HΦ with ⟨-, Hk⟩
     unfold netCtx
-    icases Hg with ⟨%nm, %pm, Hn, Hpm, Hpl, %Hpure, Hconns⟩
-    obtain ⟨Hdom, Hpok, Hpln⟩ := Hpure
+    icases Hg with ⟨%nm, %pm, Hn, Hpm, %Hpure, Hconns⟩
+    obtain ⟨Hdom, Hpok⟩ := Hpure
     unfold netPend
     icases ghost_map_lookup $$ Hpm Hpend with %HS
     have hcS : c ∈ S := (Hpok.2.1 a S c HS).2 ⟨cn, hcn, haddr, hacc⟩
@@ -1298,11 +1260,11 @@ theorem wp_net_Accept (l : w64) (a : GoString) (Φ : val → IProp GF) :
     iframe Hl
     isplitr [HΦ]
     · iexists nm, pm.insert a (S \ {[c]})
-      rw [setConn_plan, setConn_conns]
-      iframe Hn Hpm Hpl
+      rw [setConn_conns]
+      iframe Hn Hpm
       isplitr
       · ipureintro
-        refine ⟨fun k => ?_, ?_, Hpln⟩
+        refine ⟨fun k => ?_, ?_⟩
         · rw [Hdom k]; simp only [GMap.lookup_insert_eq_iff]
           by_cases hk : c = k
           · subst hk; simp [hcn]
