@@ -800,13 +800,13 @@ instance nodeRestoreCert_persistent (γ : Cluster) (n : Loc) (sv : SnapshotM) :
 /-- For an outgoing MsgSnap, the storage supplied its pinned certificate or raft
 carried the certificate for a received snapshot. The later comes from saved
 predicate agreement and applies only to the client-selected certificate. -/
-theorem readySnapSources_msgSnap (γ : Cluster) (n : Loc) (id : w64) (ms : List QMsg)
+theorem readySnapSources_msgSnap (γ : Cluster) (n : Loc) (id : w64) {term : w64} (ms : List QMsg)
     (q : QMsg) (SV : SnapshotM → IProp GF) (hq : q ∈ ms) (ht : q.st.msg.Type' = MsgSnap) :
-    ⊢ readySnapSources (GF := GF) γ n id ms -∗ nodeTagPin γ n SV -∗
+    ⊢ readySnapSources (GF := GF) γ n id term ms -∗ nodeTagPin γ n SV -∗
       ∃ sv : SnapshotM, ⌜q.st.snap = some sv⌝ ∗ (▷ SV sv ∨ nodeRestoreCert γ n sv ∗ nodeRestoreSource γ id (snapId sv)) := by
   haveI (γn : NodeNames) := ApiImpl.nodeTabOk_persistent (GF := GF) γ n γn
   unfold readySnapSources ApiImpl.snapSources nodeTagPin
-  iintro ⟨%γn, #Htab, #Hs⟩ ⟨%γp, #Htabp, #Hpin⟩
+  iintro ⟨%γn, #Htab, #Hs, -⟩ ⟨%γp, #Htabp, #Hpin⟩
   iunfold readyMsgOrigins at Hs
   icases Hs with ⟨%ks, #Hhist, #Hs⟩
   iunfold qSrcs at Hs
