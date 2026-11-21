@@ -164,8 +164,7 @@ Proved, no axiom or `sorry` (`lake build KvNet`: 2749 jobs):
 ## The replica layer: plan (2026-11-21, after the crash law; not started)
 
 Go text, kvnet's `replica.go`/`storage.go`/`codec.go` against kvdurablenoax's `kv.go`/`storage.go`
-(function by function, the package name aside; `/tmp`-free method: the functions' bodies compared
-with the package path normalized):
+(function by function, the bodies compared with the package name normalized):
 
 - **The same text** (copy+rename by `RENAME_KVNET`, as the codecs): `newStorage`, `image.{applySnapshot,
   append,createSnapshot,compact}` (only the panic strings differ: unreached), `Storage.{ApplySnapshot,
