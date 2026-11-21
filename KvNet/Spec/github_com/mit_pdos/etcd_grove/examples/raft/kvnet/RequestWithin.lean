@@ -2,7 +2,7 @@
 `RequestWithin(addr, kind, timeout, total, payload)` (`examples/raft/kvnet/client.go`):
 `RequestVia(DialTCP, ...)`. As `RequestVia`'s spec, with the dialer `DialTCP` (`net.DialTimeout` at
 `"tcp"`): for a valid address `addr`, the caller's update of the dial (`DialTCP`'s) takes the new
-connection's resources `connRes cn false W Rd` (`Client.lean`: nothing written or read, the caller's
+connection's resources `connRes cn false T W Rd` (`Client.lean`: nothing written or read, the caller's
 write, read and close accessors for the end `false` of `cn`) or, the dial abandoned, gives `Fl`.
 -/
 module
@@ -43,7 +43,7 @@ abbrev RequestWithin.spec : Prop :=
             netConnAt (extGlobalGS netExt (G := hG.goose_globalGS)) cn addr -∗
             netFresh (extGlobalGS netExt (G := hG.goose_globalGS)) cn true -∗
             ((netFresh (extGlobalGS netExt (G := hG.goose_globalGS)) cn false ={∅,⊤}=∗
-                connRes cn false W Rd) ∧
+                connRes cn false (helloClientB :: putB (reqBytes kind tmo pl)) W Rd) ∧
              (netEnd (extGlobalGS netExt (G := hG.goose_globalGS)) cn false
                 { NetEnd.fresh with closed := true } -∗
               netDir (extGlobalGS netExt (G := hG.goose_globalGS)) cn false ⟨[], .fin⟩ ={∅,⊤}=∗

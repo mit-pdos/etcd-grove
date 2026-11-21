@@ -4,7 +4,7 @@
 timeout payload)`), reads one frame, and answers its body after a first byte `1`; the connection is
 closed on the way out (`defer c.Close()`) and by a timer after `total` (`closeAfter`, disarmed on
 the way out). At the byte level, as the frame specs: the caller's dialer, called once, gives either
-an error with `Fl`, or a connection end with `connRes cn s W Rd` (`Client.lean`: nothing written or
+an error with `Fl`, or a connection end with `connRes cn s T W Rd` (`T` the request's stream) (`Client.lean`: nothing written or
 read yet, the caller's write, read and close accessors); the post says what the call wrote and read
 on it. On `(b, true)`: it wrote `helloClient :: putB req` and read `putB (1 :: b')`, `b` holding `b'`.
 On `false`: the dial failed (`Fl`), or what it wrote and read so far.
@@ -46,7 +46,8 @@ abbrev RequestVia.spec : Prop :=
       (∀ (d : _root_.Perennial.time.Duration) (Φ : val → IProp GF),
         (∀ (c err : GoInterface),
           ((⌜err = interface.nil⌝ ∗ ∃ (cn : Nat) (s : Bool) (a : GoString),
-              net.isConn (GF := GF) c cn s a ∗ connRes cn s W Rd) ∨
+              net.isConn (GF := GF) c cn s a ∗
+                connRes cn s (helloClientB :: putB (reqBytes kind tmo pl)) W Rd) ∨
             (⌜err ≠ interface.nil⌝ ∗ Fl)) -∗ Φ (PairV #c #err)) -∗
         WP (App (App (Val #dial) (Val #addr)) (Val #d)) {{ Φ }}) }}
     (App (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.kvnet.RequestVia))

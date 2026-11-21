@@ -145,3 +145,27 @@ random members until one answers `(v, true)`, which `client_reply` turns into `F
 F.readOk id seq key` at the replica `id` chosen; an answer gives `F.ansRead id seq key v`.
 (kvdurable's `Cluster.do`/`Read` then turn these into the AU's `Φ`, by `kd_collect` and the read
 slot: kvnet's store layer, after B.)
+
+## Implemented (2026-11-21)
+
+Proved, no axiom or `sorry` (`lake build KvNet`: 2765 jobs), over an abstract `F : KvFacts GF`:
+
+- `KvNet/Proof/.../kvnet/Proto.lean`: `KvFacts` (persistent fields; `confOk` on the payload bytes,
+  `PutConfChange` having no pure model yet), `kvFull`/`kvP` (a prefix of a full stream: prefix-closed,
+  `kvP_closed`), `kvQ`, `framesOk`, `reqOk`, `ansOk`; the laws `client_reply` (and `client_reply_L`
+  from `recvTokL`, `▷`), `server_request`, `server_reply`, `server_noans`, `peer_send`, `server_peer`,
+  `putB_cons_prefix` (frames are prefix-free below `2^64`); the glue `kv_connRes` (from `dial_au`'s
+  `connEnd` to `RequestVia`'s `connRes`) and `kv_dial` (`Request`'s dial update from `addrProto`).
+  The protocols carry explicit length bounds (`putB`'s prefix is injective below `2^64` only).
+- `Client.lean`'s `wAcc` now takes the stream the call will write (`T`): the library's `write_acc`
+  builds an accessor only for bytes the protocol means; `RequestVia`/`RequestWithin`/`Request` pass
+  `T := helloClientB :: putB (reqBytes kind tmo pl)`.
+- kvcheck (`kvcheck/Client.lean`: `addrsProto F ls`, each replica address valid with its protocols,
+  `isCheckerP`): `checker.request` (an answer gives `▷ ansOk F id kind pl b'`), `checker.randomMember`,
+  `checker.do` (`∃ n, F.ansOp (encodeOp n kind key val) v`, from the caller's one-shot minting law),
+  `checker.read` (`∃ id seq, F.ansRead id seq key v`, from a persistent per-attempt minting law).
+  Partial correctness: the loops retry forever.
+
+Waiting for B: `F`'s instance (the table above), the minting laws' proofs, `addrs_set_proto` in
+`Hstart`; then the server side (`serveClient`, `servePeer`, `Transport`) over `server_request`,
+`server_reply`, `server_peer`, `peer_send`, and kvdurable's `Cluster.do`/`Read`-style collection.

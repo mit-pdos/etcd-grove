@@ -40,7 +40,7 @@ abbrev Request.spec : Prop :=
             netConnAt (extGlobalGS netExt (G := hG.goose_globalGS)) cn addr -∗
             netFresh (extGlobalGS netExt (G := hG.goose_globalGS)) cn true -∗
             ((netFresh (extGlobalGS netExt (G := hG.goose_globalGS)) cn false ={∅,⊤}=∗
-                connRes cn false W Rd) ∧
+                connRes cn false (helloClientB :: putB (reqBytes kind tmo pl)) W Rd) ∧
              (netEnd (extGlobalGS netExt (G := hG.goose_globalGS)) cn false
                 { NetEnd.fresh with closed := true } -∗
               netDir (extGlobalGS netExt (G := hG.goose_globalGS)) cn false ⟨[], .fin⟩ ={∅,⊤}=∗

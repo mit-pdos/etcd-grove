@@ -10,8 +10,8 @@ The vocabulary of kvnet's client request path (`examples/raft/kvnet/client.go`: 
   written `w` on the connection), the reads (`Rd got`: it has read `got`) and the closes of the end
   `s` of the connection `cn` (the deferred `c.Close()` and `closeAfter`'s timer); the accessors open
   the end's and the direction's state (`netEnd`, `netDir`) for one call, as the frame specs' do.
-* `connRes cn s W Rd`: what a dialer gives with a connection: nothing written or read, and the three
-  accessors.
+* `connRes cn s T W Rd`: what a dialer gives with a connection, for a call that writes the stream
+  `T`: nothing written or read, and the three accessors (the writes' within `T`).
 -/
 module
 
@@ -41,9 +41,11 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 
 /-- The caller's accessor for the writes on the end `s` of `cn`: from `W w` (this call has written
-`w`), one `Write` of `rs`, of which the first `k` bytes go through. -/
-def wAcc (cn : Nat) (s : Bool) (W : List w8 → IProp GF) : IProp GF :=
-  iprop(□ (∀ (w rs : List w8), W w -∗
+`w`), one `Write` of `rs`, of which the first `k` bytes go through, for writes within the stream `T`
+the call will write (`w ++ rs <+: T`: a protocol over the connection's bytes, `Proto.lean`'s
+`write_acc`, only allows the bytes it means). -/
+def wAcc (cn : Nat) (s : Bool) (T : List w8) (W : List w8 → IProp GF) : IProp GF :=
+  iprop(□ (∀ (w rs : List w8), ⌜w ++ rs <+: T⌝ -∗ W w -∗
     |={⊤,∅}=> ∃ st d, netEnd (extGlobalGS netExt (G := hG.goose_globalGS)) cn s st ∗
       netDir (extGlobalGS netExt (G := hG.goose_globalGS)) cn s d ∗
       ∀ k res d', ⌜WriteOutcome st d rs k res d'⌝ -∗
@@ -69,17 +71,17 @@ def cAcc (cn : Nat) (s : Bool) : IProp GF :=
         netEnd (extGlobalGS netExt (G := hG.goose_globalGS)) cn s st' -∗
         netDir (extGlobalGS netExt (G := hG.goose_globalGS)) cn s d' ={∅,⊤}=∗ True))
 
-instance wAcc_persistent (cn : Nat) (s : Bool) (W : List w8 → IProp GF) :
-    Persistent (wAcc cn s W) := by unfold wAcc; infer_instance
+instance wAcc_persistent (cn : Nat) (s : Bool) (T : List w8) (W : List w8 → IProp GF) :
+    Persistent (wAcc cn s T W) := by unfold wAcc; infer_instance
 instance rAcc_persistent (cn : Nat) (s : Bool) (Rd : List w8 → IProp GF) :
     Persistent (rAcc cn s Rd) := by unfold rAcc; infer_instance
 instance cAcc_persistent (cn : Nat) (s : Bool) : Persistent (cAcc (GF := GF) cn s) := by
   unfold cAcc; infer_instance
 
-/-- What a dialer gives with the end `s` of a new connection `cn`: nothing written or read, and the
-caller's accessors. -/
-def connRes (cn : Nat) (s : Bool) (W Rd : Nat → Bool → List w8 → IProp GF) : IProp GF :=
-  iprop(W cn s [] ∗ Rd cn s [] ∗ wAcc cn s (W cn s) ∗ rAcc cn s (Rd cn s) ∗ cAcc cn s)
+/-- What a dialer gives with the end `s` of a new connection `cn`, for a call that will write the
+stream `T`: nothing written or read, and the caller's accessors. -/
+def connRes (cn : Nat) (s : Bool) (T : List w8) (W Rd : Nat → Bool → List w8 → IProp GF) : IProp GF :=
+  iprop(W cn s [] ∗ Rd cn s [] ∗ wAcc cn s T (W cn s) ∗ rAcc cn s (Rd cn s) ∗ cAcc cn s)
 
 end defs
 

@@ -37,7 +37,7 @@ theorem RequestWithin.wp_proof (wp_RequestVia : RequestVia.spec (GF := GF) (hG :
       addr kind tmo total payload pl dqp W Rd Fl eof ed Hpl $$ [Hp Hupd] as %b %ok Hpost
   · iframe Hp Heof Hed
     iintro %d %Φ' HΦ'
-    wp_apply wp_DialTCP addr d et ed Fl (fun cn => connRes cn false W Rd) $$ [Hupd]
+    wp_apply wp_DialTCP addr d et ed Fl (fun cn => connRes cn false (helloClientB :: putB (reqBytes kind tmo pl)) W Rd) $$ [Hupd]
       as %c %err Hres
     · iframe Het Hed Hupd
       ipureintro; exact Ha

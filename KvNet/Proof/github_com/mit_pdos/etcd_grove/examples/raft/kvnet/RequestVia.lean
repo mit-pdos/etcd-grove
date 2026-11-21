@@ -114,9 +114,9 @@ theorem RequestVia.wp_proof (wp_putUint64 : putUint64.spec (GF := GF) (hG := hG)
     as %ok1 ⟨%w1, %res1, HW1, Hh, %Hw1⟩
   · iframe Hc Hh Hed HW0
     imodintro
-    iintro %w %rs %- HP
+    iintro %w %rs %Hwrs HP
     iunfold wAcc at Hwa
-    iapply Hwa $$ HP
+    iapply Hwa $$ %w %rs %(by rw [Hwrs]; exact ⟨_, rfl⟩) HP
   cases ok1
   · -- the hello's write failed
     try wp_auto
@@ -149,10 +149,10 @@ theorem RequestVia.wp_proof (wp_putUint64 : putUint64.spec (GF := GF) (hG := hG)
     as %ok2 ⟨%w2, %res2, HW2, Hrq, %Hw2⟩
   · iframe Hc Hrq Hed HW1
     imodintro
-    iintro %w %rs %- HP
+    iintro %w %rs %Hwrs HP
     iunfold wAcc at Hwa
     simp only [← List.cons_append]
-    iapply Hwa $$ %(W8 67 :: w) %rs HP
+    iapply Hwa $$ %(W8 67 :: w) %rs %(by rw [List.cons_append, Hwrs]; exact List.prefix_refl _) HP
   cases ok2
   · -- the request's write failed
     try wp_auto
