@@ -8,7 +8,7 @@
   (`etcdstart.premises`), a fresh data directory and the compactor registry's authority with no
   endpoint claimed (`regAuth ∅`), under the named hypothesis of
   `clock.RealClock.After`.
-* **`k8s_compactor_MainPartition`** (`MainLinked.lean`; K6): `MainPartition(sched)` does not panic.
+* **`k8s_compactor_MainPartition`** (`MainLinked.lean`; K6): `MainPartition(k, sched)` does not panic.
   From `isPkgInit`, the right to listen on the nine addresses of `clusterCfg` (the members' peer
   addresses with their HTTP rights), the schedule read-only (any steps), the main thread's token,
   the cluster's premises (`cluster3.premises`), fresh data directories and `regAuth ∅`, under the

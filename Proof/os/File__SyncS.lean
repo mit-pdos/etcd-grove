@@ -1,11 +1,12 @@
 /-
 The proof of `Spec/os/File__SyncS.lean`: the fd's kind (a directory's), then the model's `EINTR`
-loop by Löb induction over the shared `DirSync` (`wp_osDirSyncS`).
+loop by Löb induction over the shared `DirSync` (`wp_osDirSyncSW`: an errno only when `¬ FsNoErrIno`).
 -/
 module
 
 public import Proof.os.ErrorOk
 public import Spec.os.File__SyncS
+public import GooseLang.Ext.Fs.NoIoErrSpecs
 
 @[expose] public section
 
@@ -36,8 +37,8 @@ theorem os.File.Sync.wp_proofDirS : os.File.Sync.specDirS (GF := GF) (hG := hG) 
   wp_apply wp_osFdKindDirS fd j ph CoPset.subseteq_top $$ Hinv Hd as Hd
   try wp_auto
   iloeb as IH generalizing Hd HΦ
-  wp_apply wp_osDirSyncS R fd j ph n CoPset.subseteq_top CoPset.subseteq_top
-    $$ Hinv Hsi Hd Hlb as %e Hd Hr
+  wp_apply wp_osDirSyncSW R fd j ph n CoPset.subseteq_top CoPset.subseteq_top
+    $$ Hinv Hsi Hd Hlb as %e Hd Hr %hne
   by_cases he4 : e = W64 4
   · rw [decide_eq_true he4]
     wp_auto
@@ -67,7 +68,7 @@ theorem os.File.Sync.wp_proofDirS : os.File.Sync.specDirS (GF := GF) (hG := hG) 
     · isplitl [] <;> iassumption
     ileft
     iframe Hok
-    ipureintro; intro h; cases h
+    ipureintro; exact ⟨fun h => (by cases h), hne he0⟩
 
 end proof
 

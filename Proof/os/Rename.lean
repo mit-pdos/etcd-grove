@@ -79,9 +79,9 @@ private theorem rename_fileNE :
   iclear Hls
   wp_auto
   wp_bind (ExternalOp _ _ _)
-  iapply wp_osRenameFileSNE Sio hS R d bs d' bt j j' i N N' dq dq' h h' t2 s1 qc hbs hbt hN hN'
+  iapply wp_osRenameFileSNE Sio R d bs d' bt j j' i N N' dq dq' h h' t2 s1 qc hbs hbt hN hN'
     hkey hsrc htgt (Nat.le_trans (Nat.le_max_left _ _) hs1)
-    (Nat.le_trans (Nat.le_max_right _ _) hs1) hsr hfit CoPset.subseteq_top CoPset.subseteq_top
+    (Nat.le_trans (Nat.le_max_right _ _) hs1) hsr (.inl (hS _)) hfit CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hp Hp' Hn1 Hn2 Hk
   iintro Hperm Hp Hp' ⟨%x, -, Hn1, Hn2⟩
   wp_auto

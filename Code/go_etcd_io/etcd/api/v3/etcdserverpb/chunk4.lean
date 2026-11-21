@@ -16,6 +16,205 @@ noncomputable section
 
 namespace go_etcd_io.etcd.api.v3.etcdserverpb
 
+class AuthRoleGrantPermissionResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying AuthRoleGrantPermissionResponse.underlying AuthRoleGrantPermissionResponse
+  underlying : go.UnderlyingDirectedEq AuthRoleGrantPermissionResponse.ty AuthRoleGrantPermissionResponse.underlying
+  get_state : ∀ (x : AuthRoleGrantPermissionResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleGrantPermissionResponse.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : AuthRoleGrantPermissionResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleGrantPermissionResponse.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : AuthRoleGrantPermissionResponse)))
+  get_Header : ∀ (x : AuthRoleGrantPermissionResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleGrantPermissionResponse.underlying go!"Header") #x (Val #(x.Header'))
+  set_Header : ∀ (x : AuthRoleGrantPermissionResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleGrantPermissionResponse.underlying go!"Header") (PairV #x #y) (Val #(({ x with Header' := y } : AuthRoleGrantPermissionResponse)))
+  get_unknownFields : ∀ (x : AuthRoleGrantPermissionResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleGrantPermissionResponse.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : AuthRoleGrantPermissionResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleGrantPermissionResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : AuthRoleGrantPermissionResponse)))
+  get_sizeCache : ∀ (x : AuthRoleGrantPermissionResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleGrantPermissionResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : AuthRoleGrantPermissionResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleGrantPermissionResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : AuthRoleGrantPermissionResponse)))
+  method_set : go.MethodSetIs AuthRoleGrantPermissionResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthRoleGrantPermissionResponse.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType ResponseHeader.ty)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+
+attribute [instance] AuthRoleGrantPermissionResponse.TypeAssumptions.type_repr
+  AuthRoleGrantPermissionResponse.TypeAssumptions.underlying
+  AuthRoleGrantPermissionResponse.TypeAssumptions.get_state
+  AuthRoleGrantPermissionResponse.TypeAssumptions.set_state
+  AuthRoleGrantPermissionResponse.TypeAssumptions.get_Header
+  AuthRoleGrantPermissionResponse.TypeAssumptions.set_Header
+  AuthRoleGrantPermissionResponse.TypeAssumptions.get_unknownFields
+  AuthRoleGrantPermissionResponse.TypeAssumptions.set_unknownFields
+  AuthRoleGrantPermissionResponse.TypeAssumptions.get_sizeCache
+  AuthRoleGrantPermissionResponse.TypeAssumptions.set_sizeCache
+  AuthRoleGrantPermissionResponse.TypeAssumptions.method_set
+  AuthRoleGrantPermissionResponse.TypeAssumptions.ptr_method_set
+
+class AuthRoleRevokePermissionResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying AuthRoleRevokePermissionResponse.underlying AuthRoleRevokePermissionResponse
+  underlying : go.UnderlyingDirectedEq AuthRoleRevokePermissionResponse.ty AuthRoleRevokePermissionResponse.underlying
+  get_state : ∀ (x : AuthRoleRevokePermissionResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleRevokePermissionResponse.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : AuthRoleRevokePermissionResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleRevokePermissionResponse.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : AuthRoleRevokePermissionResponse)))
+  get_Header : ∀ (x : AuthRoleRevokePermissionResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleRevokePermissionResponse.underlying go!"Header") #x (Val #(x.Header'))
+  set_Header : ∀ (x : AuthRoleRevokePermissionResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleRevokePermissionResponse.underlying go!"Header") (PairV #x #y) (Val #(({ x with Header' := y } : AuthRoleRevokePermissionResponse)))
+  get_unknownFields : ∀ (x : AuthRoleRevokePermissionResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleRevokePermissionResponse.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : AuthRoleRevokePermissionResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleRevokePermissionResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : AuthRoleRevokePermissionResponse)))
+  get_sizeCache : ∀ (x : AuthRoleRevokePermissionResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleRevokePermissionResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : AuthRoleRevokePermissionResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleRevokePermissionResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : AuthRoleRevokePermissionResponse)))
+  method_set : go.MethodSetIs AuthRoleRevokePermissionResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthRoleRevokePermissionResponse.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType ResponseHeader.ty)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+
+attribute [instance] AuthRoleRevokePermissionResponse.TypeAssumptions.type_repr
+  AuthRoleRevokePermissionResponse.TypeAssumptions.underlying
+  AuthRoleRevokePermissionResponse.TypeAssumptions.get_state
+  AuthRoleRevokePermissionResponse.TypeAssumptions.set_state
+  AuthRoleRevokePermissionResponse.TypeAssumptions.get_Header
+  AuthRoleRevokePermissionResponse.TypeAssumptions.set_Header
+  AuthRoleRevokePermissionResponse.TypeAssumptions.get_unknownFields
+  AuthRoleRevokePermissionResponse.TypeAssumptions.set_unknownFields
+  AuthRoleRevokePermissionResponse.TypeAssumptions.get_sizeCache
+  AuthRoleRevokePermissionResponse.TypeAssumptions.set_sizeCache
+  AuthRoleRevokePermissionResponse.TypeAssumptions.method_set
+  AuthRoleRevokePermissionResponse.TypeAssumptions.ptr_method_set
+
+class RangeStreamResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying RangeStreamResponse.underlying RangeStreamResponse
+  underlying : go.UnderlyingDirectedEq RangeStreamResponse.ty RangeStreamResponse.underlying
+  get_state : ∀ (x : RangeStreamResponse), go.IsGoStepPureDetTagged under (StructFieldGet RangeStreamResponse.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : RangeStreamResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet RangeStreamResponse.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : RangeStreamResponse)))
+  get_RangeResponse : ∀ (x : RangeStreamResponse), go.IsGoStepPureDetTagged under (StructFieldGet RangeStreamResponse.underlying go!"RangeResponse") #x (Val #(x.RangeResponse'))
+  set_RangeResponse : ∀ (x : RangeStreamResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RangeStreamResponse.underlying go!"RangeResponse") (PairV #x #y) (Val #(({ x with RangeResponse' := y } : RangeStreamResponse)))
+  get_unknownFields : ∀ (x : RangeStreamResponse), go.IsGoStepPureDetTagged under (StructFieldGet RangeStreamResponse.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : RangeStreamResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet RangeStreamResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : RangeStreamResponse)))
+  get_sizeCache : ∀ (x : RangeStreamResponse), go.IsGoStepPureDetTagged under (StructFieldGet RangeStreamResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : RangeStreamResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet RangeStreamResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : RangeStreamResponse)))
+  method_set : go.MethodSetIs RangeStreamResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RangeStreamResponse.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetRangeResponse", (some (go.signature.Signature [] false [(go.GoType.PointerType RangeResponse.ty)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+
+attribute [instance] RangeStreamResponse.TypeAssumptions.type_repr
+  RangeStreamResponse.TypeAssumptions.underlying
+  RangeStreamResponse.TypeAssumptions.get_state
+  RangeStreamResponse.TypeAssumptions.set_state
+  RangeStreamResponse.TypeAssumptions.get_RangeResponse
+  RangeStreamResponse.TypeAssumptions.set_RangeResponse
+  RangeStreamResponse.TypeAssumptions.get_unknownFields
+  RangeStreamResponse.TypeAssumptions.set_unknownFields
+  RangeStreamResponse.TypeAssumptions.get_sizeCache
+  RangeStreamResponse.TypeAssumptions.set_sizeCache
+  RangeStreamResponse.TypeAssumptions.method_set
+  RangeStreamResponse.TypeAssumptions.ptr_method_set
+
+class KVClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq KVClient.ty KVClient.underlying
+  method_set : go.MethodSetIs KVClient.ty [(go!"Compact", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType CompactionRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType CompactionResponse.ty), go.error]))), (go!"DeleteRange", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType DeleteRangeRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType DeleteRangeResponse.ty), go.error]))), (go!"Put", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType PutRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType PutResponse.ty), go.error]))), (go!"Range", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType RangeRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType RangeResponse.ty), go.error]))), (go!"RangeStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType RangeRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(_root_.Perennial.google_golang_org.grpc.ServerStreamingClient.ty RangeStreamResponse.ty), go.error]))), (go!"Txn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType TxnRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType TxnResponse.ty), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType KVClient.ty) []
+
+attribute [instance] KVClient.TypeAssumptions.underlying
+  KVClient.TypeAssumptions.method_set
+  KVClient.TypeAssumptions.ptr_method_set
+
+class kVClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying kVClient.underlying kVClient
+  underlying : go.UnderlyingDirectedEq kVClient.ty kVClient.underlying
+  get_cc : ∀ (x : kVClient), go.IsGoStepPureDetTagged under (StructFieldGet kVClient.underlying go!"cc") #x (Val #(x.cc'))
+  set_cc : ∀ (x : kVClient) (y : _root_.Perennial.google_golang_org.grpc.ClientConnInterface), go.IsGoStepPureDetTagged under (StructFieldSet kVClient.underlying go!"cc") (PairV #x #y) (Val #(({ x with cc' := y } : kVClient)))
+  method_set : go.MethodSetIs kVClient.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType kVClient.ty) [(go!"Compact", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType CompactionRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType CompactionResponse.ty), go.error]))), (go!"DeleteRange", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType DeleteRangeRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType DeleteRangeResponse.ty), go.error]))), (go!"Put", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType PutRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType PutResponse.ty), go.error]))), (go!"Range", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType RangeRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType RangeResponse.ty), go.error]))), (go!"RangeStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType RangeRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(_root_.Perennial.google_golang_org.grpc.ServerStreamingClient.ty RangeStreamResponse.ty), go.error]))), (go!"Txn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType TxnRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType TxnResponse.ty), go.error])))]
+  ptr_Compact_unfold : MethodUnfold (go.GoType.PointerType kVClient.ty) go!"Compact" kVClient.Compact.impl
+  ptr_DeleteRange_unfold : MethodUnfold (go.GoType.PointerType kVClient.ty) go!"DeleteRange" kVClient.DeleteRange.impl
+  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType kVClient.ty) go!"Put" kVClient.Put.impl
+  ptr_Range_unfold : MethodUnfold (go.GoType.PointerType kVClient.ty) go!"Range" kVClient.Range.impl
+  ptr_Txn_unfold : MethodUnfold (go.GoType.PointerType kVClient.ty) go!"Txn" kVClient.Txn.impl
+
+attribute [instance] kVClient.TypeAssumptions.type_repr
+  kVClient.TypeAssumptions.underlying
+  kVClient.TypeAssumptions.get_cc
+  kVClient.TypeAssumptions.set_cc
+  kVClient.TypeAssumptions.method_set
+  kVClient.TypeAssumptions.ptr_method_set
+  kVClient.TypeAssumptions.ptr_Compact_unfold
+  kVClient.TypeAssumptions.ptr_DeleteRange_unfold
+  kVClient.TypeAssumptions.ptr_Put_unfold
+  kVClient.TypeAssumptions.ptr_Range_unfold
+  kVClient.TypeAssumptions.ptr_Txn_unfold
+
+class KVServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq KVServer.ty KVServer.underlying
+  method_set : go.MethodSetIs KVServer.ty [(go!"Compact", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType CompactionRequest.ty)] false [(go.GoType.PointerType CompactionResponse.ty), go.error]))), (go!"DeleteRange", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType DeleteRangeRequest.ty)] false [(go.GoType.PointerType DeleteRangeResponse.ty), go.error]))), (go!"Put", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType PutRequest.ty)] false [(go.GoType.PointerType PutResponse.ty), go.error]))), (go!"Range", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType RangeRequest.ty)] false [(go.GoType.PointerType RangeResponse.ty), go.error]))), (go!"RangeStream", (some (go.signature.Signature [(go.GoType.PointerType RangeRequest.ty), (_root_.Perennial.google_golang_org.grpc.ServerStreamingServer.ty RangeStreamResponse.ty)] false [go.error]))), (go!"Txn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType TxnRequest.ty)] false [(go.GoType.PointerType TxnResponse.ty), go.error]))), (go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedKVServer", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType KVServer.ty) []
+
+attribute [instance] KVServer.TypeAssumptions.underlying
+  KVServer.TypeAssumptions.method_set
+  KVServer.TypeAssumptions.ptr_method_set
+
+class UnimplementedKVServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying UnimplementedKVServer.underlying UnimplementedKVServer
+  underlying : go.UnderlyingDirectedEq UnimplementedKVServer.ty UnimplementedKVServer.underlying
+  method_set : go.MethodSetIs UnimplementedKVServer.ty [(go!"Compact", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType CompactionRequest.ty)] false [(go.GoType.PointerType CompactionResponse.ty), go.error]))), (go!"DeleteRange", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType DeleteRangeRequest.ty)] false [(go.GoType.PointerType DeleteRangeResponse.ty), go.error]))), (go!"Put", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType PutRequest.ty)] false [(go.GoType.PointerType PutResponse.ty), go.error]))), (go!"Range", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType RangeRequest.ty)] false [(go.GoType.PointerType RangeResponse.ty), go.error]))), (go!"RangeStream", (some (go.signature.Signature [(go.GoType.PointerType RangeRequest.ty), (_root_.Perennial.google_golang_org.grpc.ServerStreamingServer.ty RangeStreamResponse.ty)] false [go.error]))), (go!"Txn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType TxnRequest.ty)] false [(go.GoType.PointerType TxnResponse.ty), go.error]))), (go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedKVServer", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/api/v3/etcdserverpb.testEmbeddedByValue", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnimplementedKVServer.ty) [(go!"Compact", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType CompactionRequest.ty)] false [(go.GoType.PointerType CompactionResponse.ty), go.error]))), (go!"DeleteRange", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType DeleteRangeRequest.ty)] false [(go.GoType.PointerType DeleteRangeResponse.ty), go.error]))), (go!"Put", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType PutRequest.ty)] false [(go.GoType.PointerType PutResponse.ty), go.error]))), (go!"Range", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType RangeRequest.ty)] false [(go.GoType.PointerType RangeResponse.ty), go.error]))), (go!"RangeStream", (some (go.signature.Signature [(go.GoType.PointerType RangeRequest.ty), (_root_.Perennial.google_golang_org.grpc.ServerStreamingServer.ty RangeStreamResponse.ty)] false [go.error]))), (go!"Txn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType TxnRequest.ty)] false [(go.GoType.PointerType TxnResponse.ty), go.error]))), (go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedKVServer", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/api/v3/etcdserverpb.testEmbeddedByValue", (some (go.signature.Signature [] false [])))]
+
+attribute [instance] UnimplementedKVServer.TypeAssumptions.type_repr
+  UnimplementedKVServer.TypeAssumptions.underlying
+  UnimplementedKVServer.TypeAssumptions.method_set
+  UnimplementedKVServer.TypeAssumptions.ptr_method_set
+
+class UnsafeKVServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq UnsafeKVServer.ty UnsafeKVServer.underlying
+  method_set : go.MethodSetIs UnsafeKVServer.ty [(go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedKVServer", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnsafeKVServer.ty) []
+
+attribute [instance] UnsafeKVServer.TypeAssumptions.underlying
+  UnsafeKVServer.TypeAssumptions.method_set
+  UnsafeKVServer.TypeAssumptions.ptr_method_set
+
+class WatchClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq WatchClient.ty WatchClient.underlying
+  method_set : go.MethodSetIs WatchClient.ty [(go!"Watch", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(_root_.Perennial.google_golang_org.grpc.BidiStreamingClient.ty WatchRequest.ty WatchResponse.ty), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType WatchClient.ty) []
+
+attribute [instance] WatchClient.TypeAssumptions.underlying
+  WatchClient.TypeAssumptions.method_set
+  WatchClient.TypeAssumptions.ptr_method_set
+
+class watchClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying watchClient.underlying watchClient
+  underlying : go.UnderlyingDirectedEq watchClient.ty watchClient.underlying
+  get_cc : ∀ (x : watchClient), go.IsGoStepPureDetTagged under (StructFieldGet watchClient.underlying go!"cc") #x (Val #(x.cc'))
+  set_cc : ∀ (x : watchClient) (y : _root_.Perennial.google_golang_org.grpc.ClientConnInterface), go.IsGoStepPureDetTagged under (StructFieldSet watchClient.underlying go!"cc") (PairV #x #y) (Val #(({ x with cc' := y } : watchClient)))
+  method_set : go.MethodSetIs watchClient.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType watchClient.ty) [(go!"Watch", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(_root_.Perennial.google_golang_org.grpc.BidiStreamingClient.ty WatchRequest.ty WatchResponse.ty), go.error])))]
+  ptr_Watch_unfold : MethodUnfold (go.GoType.PointerType watchClient.ty) go!"Watch" watchClient.Watch.impl
+
+attribute [instance] watchClient.TypeAssumptions.type_repr
+  watchClient.TypeAssumptions.underlying
+  watchClient.TypeAssumptions.get_cc
+  watchClient.TypeAssumptions.set_cc
+  watchClient.TypeAssumptions.method_set
+  watchClient.TypeAssumptions.ptr_method_set
+  watchClient.TypeAssumptions.ptr_Watch_unfold
+
+class WatchServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq WatchServer.ty WatchServer.underlying
+  method_set : go.MethodSetIs WatchServer.ty [(go!"Watch", (some (go.signature.Signature [(_root_.Perennial.google_golang_org.grpc.BidiStreamingServer.ty WatchRequest.ty WatchResponse.ty)] false [go.error]))), (go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedWatchServer", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType WatchServer.ty) []
+
+attribute [instance] WatchServer.TypeAssumptions.underlying
+  WatchServer.TypeAssumptions.method_set
+  WatchServer.TypeAssumptions.ptr_method_set
+
+class UnimplementedWatchServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying UnimplementedWatchServer.underlying UnimplementedWatchServer
+  underlying : go.UnderlyingDirectedEq UnimplementedWatchServer.ty UnimplementedWatchServer.underlying
+  method_set : go.MethodSetIs UnimplementedWatchServer.ty [(go!"Watch", (some (go.signature.Signature [(_root_.Perennial.google_golang_org.grpc.BidiStreamingServer.ty WatchRequest.ty WatchResponse.ty)] false [go.error]))), (go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedWatchServer", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/api/v3/etcdserverpb.testEmbeddedByValue", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnimplementedWatchServer.ty) [(go!"Watch", (some (go.signature.Signature [(_root_.Perennial.google_golang_org.grpc.BidiStreamingServer.ty WatchRequest.ty WatchResponse.ty)] false [go.error]))), (go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedWatchServer", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/api/v3/etcdserverpb.testEmbeddedByValue", (some (go.signature.Signature [] false [])))]
+
+attribute [instance] UnimplementedWatchServer.TypeAssumptions.type_repr
+  UnimplementedWatchServer.TypeAssumptions.underlying
+  UnimplementedWatchServer.TypeAssumptions.method_set
+  UnimplementedWatchServer.TypeAssumptions.ptr_method_set
+
+class UnsafeWatchServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq UnsafeWatchServer.ty UnsafeWatchServer.underlying
+  method_set : go.MethodSetIs UnsafeWatchServer.ty [(go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedWatchServer", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnsafeWatchServer.ty) []
+
+attribute [instance] UnsafeWatchServer.TypeAssumptions.underlying
+  UnsafeWatchServer.TypeAssumptions.method_set
+  UnsafeWatchServer.TypeAssumptions.ptr_method_set
+
 class LeaseClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq LeaseClient.ty LeaseClient.underlying
   method_set : go.MethodSetIs LeaseClient.ty [(go!"LeaseGrant", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType LeaseGrantRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType LeaseGrantResponse.ty), go.error]))), (go!"LeaseKeepAlive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(_root_.Perennial.google_golang_org.grpc.BidiStreamingClient.ty LeaseKeepAliveRequest.ty LeaseKeepAliveResponse.ty), go.error]))), (go!"LeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType LeaseLeasesRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType LeaseLeasesResponse.ty), go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType LeaseRevokeRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType LeaseRevokeResponse.ty), go.error]))), (go!"LeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType LeaseTimeToLiveRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType LeaseTimeToLiveResponse.ty), go.error])))]

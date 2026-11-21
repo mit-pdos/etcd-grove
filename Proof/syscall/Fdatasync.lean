@@ -28,10 +28,23 @@ variable [syscall.Assumptions]
 theorem syscall.Fdatasync.wp_proof : syscall.Fdatasync.spec (GF := GF) (hG := hG) := by
   intro fd dq d m lo xs hcov
   wp_start as ⟨#Hinv, Hfd, Hm, Hbs⟩
-  wp_apply wp_osFsync fd dq d m lo xs hcov CoPset.subseteq_top $$ Hinv Hfd Hm Hbs as %e Hr Hfd
-  iapply wp_errno
-  iapply HΦ
-  iframe
+  by_cases hne : FsNoErrIno
+  · obtain ⟨Sio, hSio, hs1, -, -⟩ := hne
+    wp_apply wp_osFsyncNE (Sio := Sio) hSio fd dq d m lo xs hcov CoPset.subseteq_top $$ Hinv Hfd Hm Hbs
+      as Hm Hbs Hfd
+    iapply wp_errno
+    iapply HΦ
+    iframe Hfd
+    ileft
+    iframe
+    ipureintro; rfl
+  · wp_apply wp_osFsync fd dq d m lo xs hcov CoPset.subseteq_top $$ Hinv Hfd Hm Hbs as %e Hr Hfd
+    iapply wp_errno
+    iapply HΦ
+    iframe Hfd
+    icases Hr with (H | ⟨%he, Hm, Hbs⟩)
+    · ileft; iexact H
+    · iright; iframe Hm Hbs; ipureintro; exact ⟨he.1, he.2, hne⟩
 
 theorem syscall.Fdatasync.wp_proofB : syscall.Fdatasync.specB (GF := GF) (hG := hG) := by
   intro fd dq d m

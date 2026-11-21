@@ -35,10 +35,10 @@ theorem wp_main
     (wp_ReadFull : wire.ReadFull.spec (GF := GF) (hG := hG))
     (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
     (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
-    (γm : GName) (h : GoString) :
+    (γm : GName) :
     {{ isPkgInit (PROP := IProp GF)
           pkg_id.github_com.mit_pdos.etcd_grove.examples.net.echo.cmd.junk ∗
-        echoInvs γm ∗ netPlan G srvAddr h }}
+        echoInvs γm ∗ ⌜addrOk srvAddr = true⌝ }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
   wp_start as ⟨#Hinvs, #Hplan⟩
@@ -51,7 +51,7 @@ theorem wp_main
   · iPkgInit
   icases wire.ed_init $$ Hwire with ⟨%ed, #Hed⟩
   (try wp_auto)
-  wp_apply wp_SendJunk wp_Dial wp_ReadFull wp_Write wp_Close γm h eof ed $$ []
+  wp_apply wp_SendJunk wp_Dial wp_ReadFull wp_Write wp_Close γm eof ed $$ []
   · iframe Hinvs Hplan Heof Hed
   (try wp_auto)
   iapply HΦ

@@ -27,6 +27,7 @@ module
 public import Proof.os.SharedAu
 public import GooseLang.Ext.Fs.Falloc
 public import GooseLang.Ext.Fs.Zeros
+public import GooseLang.Ext.Fs.NoIoErrResize
 
 @[expose] public section
 
@@ -157,24 +158,52 @@ theorem wp_osFtruncateStart_au (fd sz : w64) (dq : DFrac) (d : OsFd) (m : OsMeta
   iapply HΦ $$ %t %n %hn Hfd HQ
 
 /-- **`ftruncate`'s second step, split**: the update lends the token and commits with what the step
-leaves (`rsOutT`). -/
+leaves (`rsOutT`); an errno only when the file system can fail on an inode or the target is past
+`maxBytes` (wal-fsfix2: `NoIoErr` covers `FtruncateFinish`, `ftFinish_noErr`). -/
 theorem wp_osFtruncateFinish_au (t : Nat) (p : Ino) (tg : Nat) (m : OsMeta) (xs : List ByteG)
     (n : Nat) (Q : w64 → IProp GF) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗
       osAUnc (L := L) (A := w64) (rsTok (L := L) true t p tg m xs n) (rsOutT (L := L) p tg m xs n) Q -∗
-      (∀ e : w64, Q e -∗ Φ (#e)) -∗
+      (∀ e : w64, Q e -∗ ⌜e ≠ 0 → ¬ FsNoErrIno ∨ maxBytes < tg⌝ -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "FtruncateFinish" (Val (osTokV t))) {{ Φ }} := by
   iintro #Hinv Hau HΦ
   iapply wp_aunc_step "FtruncateFinish" _ _ _ _ Φ $$ Hau
   iintro Ht
-  iapply wp_osFtruncateFinishK m.cut.isNone t p tg m xs n Option.isNone_iff_eq_none.1 osN_sub_au $$ Hinv Ht
-  iintro %e Hr
-  iright
-  iexists e
-  isplitl [Hr]
-  · unfold rsOutT; iexact Hr
-  iintro HQ
-  iapply HΦ $$ HQ
+  by_cases hno : FsNoErrIno ∧ tg ≤ maxBytes
+  · obtain ⟨⟨Sio, hi, h1, -, -⟩, htg⟩ := hno
+    iapply wp_ext_postS "FtruncateFinish" (osTokV t) (by simp [val.isPanic])
+      (rsTok (L := L) true t p tg m xs n)
+      (fun (st : OsState) => ∃ c, st.proc.inflight !! t = some c ∧ c.kind = rsKind true tg ∧
+        c.target = tg)
+      (rsTok_inflight true t p tg m xs n) (· = #(0 : w64))
+      (fun h st g e' h' st' g' ⟨c, hc, hk, htc⟩ hs => ftFinish_noErr (Sio := Sio) hi t c tg
+        h st g e' h' st' g' ⟨hc, hk, htc ▸ htg⟩ hs) _ $$ Ht
+    iintro Ht
+    iapply wp_osFtruncateFinishK m.cut.isNone t p tg m xs n Option.isNone_iff_eq_none.1 osN_sub_au
+      $$ Hinv Ht
+    iintro %e Hr %he
+    have he0 : e = 0 := go.intoVal_inj he
+    subst he0
+    iright
+    iexists 0
+    isplitl [Hr]
+    · unfold rsOutT; iexact Hr
+    iintro HQ
+    iapply HΦ $$ HQ
+    ipureintro; intro h; exact absurd rfl h
+  · iapply wp_osFtruncateFinishK m.cut.isNone t p tg m xs n Option.isNone_iff_eq_none.1 osN_sub_au
+      $$ Hinv Ht
+    iintro %e Hr
+    iright
+    iexists e
+    isplitl [Hr]
+    · unfold rsOutT; iexact Hr
+    iintro HQ
+    iapply HΦ $$ HQ
+    ipureintro; intro _
+    by_cases h : FsNoErrIno
+    · exact .inr (Nat.lt_of_not_le fun h' => hno ⟨h, h'⟩)
+    · exact .inl h
 
 /-- **`fallocate`'s first step (mode 0), split**: the caller's half of the `OsMeta`, the update's
 lent at the step; the update commits with the token of the growth to `max size (off + len)`. -/
@@ -208,19 +237,46 @@ theorem wp_osFallocFinish_au (t : Nat) (p : Ino) (tg : Nat) (m : OsMeta) (n : Na
     (hgrow : m.size ≤ tg) (Q : w64 → IProp GF) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗
       osAUnc (L := L) (A := w64) (rsTok (L := L) false t p tg m [] n) (rsOutF (L := L) p tg m n) Q -∗
-      (∀ e : w64, Q e -∗ Φ (#e)) -∗
+      (∀ e : w64, Q e -∗ ⌜e ≠ 0 → ¬ FsNoErrIno ∨ maxBytes < tg⌝ -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "FallocFinish" (Val (osTokV t))) {{ Φ }} := by
   iintro #Hinv Hau HΦ
   iapply wp_aunc_step "FallocFinish" _ _ _ _ Φ $$ Hau
   iintro Ht
-  iapply wp_osFallocFinishK m.cut.isNone t p tg m n hgrow Option.isNone_iff_eq_none.1 osN_sub_au $$ Hinv Ht
-  iintro %e Hr
-  iright
-  iexists e
-  isplitl [Hr]
-  · unfold rsOutF; iexact Hr
-  iintro HQ
-  iapply HΦ $$ HQ
+  by_cases hno : FsNoErrIno ∧ tg ≤ maxBytes
+  · obtain ⟨⟨Sio, hi, h1, -, -⟩, htg⟩ := hno
+    iapply wp_ext_postS "FallocFinish" (osTokV t) (by simp [val.isPanic])
+      (rsTok (L := L) false t p tg m [] n)
+      (fun (st : OsState) => ∃ c, st.proc.inflight !! t = some c ∧ c.kind = rsKind false tg ∧
+        c.target = tg)
+      (rsTok_inflight false t p tg m [] n) (· = #(0 : w64))
+      (fun h st g e' h' st' g' ⟨c, hc, hk, htc⟩ hs => fallocFinish_noErr (Sio := Sio) hi t c tg
+        h st g e' h' st' g' ⟨hc, hk, htc ▸ htg⟩ hs) _ $$ Ht
+    iintro Ht
+    iapply wp_osFallocFinishK m.cut.isNone t p tg m n hgrow Option.isNone_iff_eq_none.1 osN_sub_au
+      $$ Hinv Ht
+    iintro %e Hr %he
+    have he0 : e = 0 := go.intoVal_inj he
+    subst he0
+    iright
+    iexists 0
+    isplitl [Hr]
+    · unfold rsOutF; iexact Hr
+    iintro HQ
+    iapply HΦ $$ HQ
+    ipureintro; intro h; exact absurd rfl h
+  · iapply wp_osFallocFinishK m.cut.isNone t p tg m n hgrow Option.isNone_iff_eq_none.1 osN_sub_au
+      $$ Hinv Ht
+    iintro %e Hr
+    iright
+    iexists e
+    isplitl [Hr]
+    · unfold rsOutF; iexact Hr
+    iintro HQ
+    iapply HΦ $$ HQ
+    ipureintro; intro _
+    by_cases h : FsNoErrIno
+    · exact .inr (Nat.lt_of_not_le fun h' => hno ⟨h, h'⟩)
+    · exact .inl h
 
 end au
 

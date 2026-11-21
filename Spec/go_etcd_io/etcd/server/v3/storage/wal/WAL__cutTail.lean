@@ -6,17 +6,22 @@ seventh session), hypotheses of `WAL.cut.wp_proof` until proved:
   `SegFl` of `walTailsRes`, `CrashOk` across the resize; branch `wal-zte`). The tail's size becomes
   its write position (`walTailW` at `sz := o0 + |out|`), its resize window open until `cut`'s fdatasync
   (`TailMetaW`: a crash may leave the old size; `wal-tc3`). The tail may be in a window before too (a
-  `Save`'s writes past the preallocated size, W6 log, thirteenth session).
+  `Save`'s writes past the preallocated size, W6 log, thirteenth session). An error only when the file
+  system can fail on an inode or the position is past `maxBytes` (`specAu`'s witness, wal-fsfix2).
 * `WAL.sync.specCut`: `w.sync()` of a handle whose tail was so truncated (its window open,
   `walHandleIn … TailMetaW`; the post's handle exact again: the fdatasync closes it), the page writer's pending
   bytes written past its size: the tail sized to its stream, synced. `WAL.sync.spec` at a handle
   with `sz = o0 + |out|` but for the size after the flush (`sz := |tailStream|`): its writer accepts
-  the pending bytes past the size.
+  the pending bytes past the size. Parameterised by the files with no I/O error (`Sio`, as
+  `cut.spec`): an error only when `Sio` misses an inode (`¬ walCov Sio`); when it covers every inode,
+  the pending bytes end at most at `maxBytes`.
 *Error*: the handle lost (as `sync.spec`'s). Lean-first.
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Handle
+public import GooseLang.Ext.Fs.FsNoErr
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleShared
 
 @[expose] public section
 
@@ -35,6 +40,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
+variable {Sio : IoSet} [FsStepSat (NoIoErr Sio)]
 
 /-- The handle after `cut`'s `sync`: everything flushed, the tail sized to its stream. -/
 def cutSynced (h : WalHS) : WalHS :=
@@ -52,20 +58,21 @@ abbrev os.File.Truncate.specWalTail (Mr : WalMarshal) : Prop :=
   {{ (err : GoInterface), RET #err;
       (⌜err = GoInterface.nil⌝ ∗ walTailW f fd name dir γ i H md cuts o0 (o0 + out.length) out
           TailMetaW) ∨
-      ⌜err ≠ GoInterface.nil⌝ }}
+      ⌜err ≠ GoInterface.nil ∧ (¬ FsNoErrIno ∨ maxBytes < o0 + out.length)⌝ }}
 
 /-- **`w.sync()` after `cut`'s truncate** (see the file header). -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specCut (P : WalPbIn GF) (Mr : WalMarshal) :
     Prop :=
   ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (h : WalHS),
   h.rest = 0 → h.sz = h.o0 + h.out.length →
+  (walCov Sio → h.o0 + h.out.length + h.pend.length ≤ maxBytes) →
   {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walHandleIn P Mr w dir h TailMetaW }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"sync")) (Val #()))
   {{ (err : GoInterface), RET #err;
       (⌜err = GoInterface.nil⌝ ∗
           walHandleIn P Mr w dir (cutSynced h) ∗
           WalFs.walSyncedLb dir h.H.length) ∨
-      ⌜err ≠ GoInterface.nil⌝ }}
+      ⌜err ≠ GoInterface.nil ∧ ¬ walCov Sio⌝ }}
 
 end spec
 

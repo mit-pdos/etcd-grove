@@ -102,9 +102,9 @@ theorem etcdstart.decStr_ascii (p : w64) : asciiStr (decStr p)
 def etcdstart.memberPre (N : Nat) (token : GoString) (ms : List etcdstart.GMember) (ps : List w64)
     (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString) (Φs : w64 → w64 →
     List w8 → GName → IProp GF) (γn : NetNames GF) (lm : lease.Mode) (x : etcdstart.GMember ×
-    etcdstart.MemberG GF) : IProp GF :=
+    etcdstart.MemberG GF) (cmp : Bool := false) : IProp GF :=
   iprop(etcdstart.bootPremise N ps bootLog ctxs dir token x.fst.Name' (etcdstart.urlsN ms x.fst) x.snd.id ∗
-      etcdstart.memberBoot x.snd.γ ctxs x.snd.ρ x.snd.E Φs x.snd.id false lm ∗
+      etcdstart.memberBoot x.snd.γ ctxs x.snd.ρ x.snd.E Φs x.snd.id cmp lm ∗
         netHttpOk γn x.snd.id ∗ etcdstart.memberFreshRes x.fst.Name' { peer := some x.fst.Peer' } γn)
 
 theorem etcdstart.iuOf_mem (ms : List etcdstart.GMember) (hnd : (List.map (fun x => x.Name')

@@ -103,6 +103,13 @@ theorem etcdFsExts_sat : Fs.FsStepSat (Fs.NoIoErr allIo) (S := etcdFsSem) :=
   haveI : Fs.FsStepSat etcdSQ := Fs.fsSemWithS_sat etcdSQ (fun _ _ => True)
   Fs.fsStepSat_and_left (Fs.NoIoErr allIo) (Fs.NoMapLockErr allIo)
 
+/-- Every step of the restricted semantics has no lock or mapping error (`etcdSQ`'s second half: what the
+WAL's area carries for `cut`'s lock, `WalA.satL`; wal-fsfix2). -/
+theorem etcdFsExts_satL : Fs.FsStepSat (Fs.NoMapLockErr allIo) (S := etcdFsSem) :=
+  letI := etcdFsSem
+  haveI : Fs.FsStepSat etcdSQ := Fs.fsSemWithS_sat etcdSQ (fun _ _ => True)
+  Fs.fsStepSat_and_right (Fs.NoIoErr allIo) (Fs.NoMapLockErr allIo)
+
 attribute [local instance] etcdFsExts_hasFs etcdFsSemOk
 
 section start

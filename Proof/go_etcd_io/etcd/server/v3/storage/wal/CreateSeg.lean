@@ -142,8 +142,8 @@ theorem wp_createSeg [os.file.FieldAssumptions]
       iframe
   wp_apply wp_create (child dir b) false _ _ A (crIno b h) hT $$ [$Hos $Hpkg $Hsi $Hp $Hperm $Hn]
     as %lf %err Hpost
-  unfold fileutil.lockPost
-  icases Hpost with ⟨%o, (⟨%he, HA, %f, %fd, %i, %k, %hc, Hlf, Hf, Hoff, Hfd, Hlk, #Hkind⟩ | ⟨%he, %ok, HA⟩)⟩
+  unfold fileutil.lockPostW
+  icases Hpost with ⟨%o, (⟨%he, HA, %f, %fd, %i, %k, %hc, Hlf, Hf, Hoff, Hfd, Hlk, #Hkind⟩ | ⟨%he, %ok, HA, %hWk⟩)⟩
   · simp only [A]
     icases HA with ⟨Hp, Hperm, Ho, Hm⟩
     iapply HΦ

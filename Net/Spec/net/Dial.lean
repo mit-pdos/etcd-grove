@@ -1,5 +1,5 @@
 /-
-`net.Dial("tcp", a)` for an address `a` of the plan (`netPlan`; `Dial.impl`,
+`net.Dial("tcp", a)` for a valid address `a` (`addrOk`, D20; `Dial.impl`,
 `Net/TrustedCode/net.lean`): the extension's `Dial` (D8, D16). A failure that leaves nothing gives
 the caller's `Qfail`; a new connection `cn` is taken by a logically atomic update over `a`'s pending
 set (`netPend`), which gets `cn` (with `netConnAt` and its acceptor's end's fresh resources,
@@ -9,7 +9,7 @@ closed and its direction shut and empty, the call failing with `Qfail`. A failur
 `*OpError{Op: "dial", Source: nil, Addr: x}`, `x` a `*TCPAddr`, whose `Err` is an `*os.SyscallError`
 (`resErr`, D14). Proved in `Net/Proof/net/Dial.lean`.
 
-The network `nw` is `"tcp"` or `"tcp4"` (`tcpNet`, D23): the same on the plan's IPv4
+The network `nw` is `"tcp"` or `"tcp4"` (`tcpNet`, D23): the same on the valid IPv4
 addresses, the network kept in the connection or listener and put in its errors.
 -/
 module
@@ -34,8 +34,8 @@ variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 
 /-- See the file header. -/
 abbrev Dial.spec : Prop :=
-  ∀ (nw : GoString), tcpNet nw → ∀ (a h : GoString) (Qfail : IProp GF) (Qok : Nat → IProp GF),
-  {{ netPlan (extGlobalGS netExt (G := hG.goose_globalGS)) a h ∗
+  ∀ (nw : GoString), tcpNet nw → ∀ (a : GoString) (Qfail : IProp GF) (Qok : Nat → IProp GF),
+  {{ ⌜addrOk a = true⌝ ∗
       (Qfail ∧
         |={⊤,∅}=> ∃ S, netPend (extGlobalGS netExt (G := hG.goose_globalGS)) a S ∗
           ∀ cn, ⌜cn ∉ S⌝ -∗ netPend (extGlobalGS netExt (G := hG.goose_globalGS)) a (S ∪ {[cn]}) -∗ netConnAt (extGlobalGS netExt (G := hG.goose_globalGS)) cn a -∗

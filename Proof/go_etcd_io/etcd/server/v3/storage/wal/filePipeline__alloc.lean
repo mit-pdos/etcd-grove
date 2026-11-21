@@ -80,7 +80,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.alloc.wp_proof
   (try wp_auto)
   wp_apply wp_createTmp wp_create wp_open R dir dq j (pipeTmp n) (pipeTmp_nameOk n)
     $$ [$Hos $Hpkg $Hsi $Hp $Hperm $Hc] as %lf %e ⟨Hp, Hperm, Hr⟩
-  icases Hr with (⟨%he, %f, %fd, %i, %h, %lo, %lk, #Hlf, Hf, Hoff, Hfd, Hlks, Htr, Hn, %hfi⟩ | ⟨%he, Hc⟩)
+  icases Hr with (⟨%he, %f, %fd, %i, %h, %lo, %lk, #Hlf, Hf, Hoff, Hfd, Hlks, Htr, Hn, %hfi⟩ | ⟨%he, Hc, %hw⟩)
   · subst he
     (try wp_auto)
     iunfold fileutil.lockedFile at Hlf
@@ -124,10 +124,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.alloc.wp_proof
       ipureintro
       refine ⟨hfd, hm'.2.1.trans hmaps, hcur, hm'.2.2.2.1.1.trans hcut0, hm'.2.2.2.1.2.1 (by omega), ?_, ?_,
         hm'.2.2.2.2 ⟨rfl, hzp0 trivial⟩⟩
-      · rw [hm'.1, hw.2.2 rfl]
+      · rw [hm'.1, hw.2.2.1 rfl]
         have := BitVec.toInt_eq_toNat_cond sz
         split at this <;> omega
-      · rw [hm'.1, hw.2.2 rfl]
+      · rw [hm'.1, hw.2.2.1 rfl]
         have := BitVec.toInt_eq_toNat_cond sz
         split at this <;> omega
     | ok ei =>
@@ -156,7 +156,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.alloc.wp_proof
       iframe Hperm Hp
       iright
       isplitr
-      · ipureintro; exact fun h => by cases h
+      · ipureintro; exact ⟨fun h => (by cases h), pipeErrW_of_ino (hw.2.2.2 fun h => (by cases h))⟩
       iframe Hcnt
       iunfold tmpClaim
       iexists h
@@ -181,7 +181,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.alloc.wp_proof
     iframe
     iright
     iframe
-    ipureintro; exact he
+    ipureintro; exact ⟨he, pipeErrW_of_child (by
+      have : (pipeTmp n).length = 5 := by unfold pipeTmp; split <;> rfl
+      omega) hw⟩
 
 end proof
 

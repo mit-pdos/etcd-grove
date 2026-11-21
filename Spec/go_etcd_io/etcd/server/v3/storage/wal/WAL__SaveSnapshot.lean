@@ -31,7 +31,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
-variable {Sio : IoSet} [FsStepSat (NoIoErr Sio)]
+variable {Sio : IoSet} [FsStepSat (NoIoErr Sio)] [FsStepSat (NoMapLockErr Sio)]
 
 /-- **`w.SaveSnapshot(e)`** (S/wal.go:1148-1184, with the fork's fixes 0007-0008): one snapshot record of
 `e`'s index and term (its conf state non-nil unless the index is 0, `ValidateSnapshotForWrite`); `snapi` and
@@ -43,7 +43,8 @@ syncs).
 update commits after `w.mu.Lock()`, before the record is encoded. *Success*: the share, `Q d`, the history
 written and synced to its new length. *Error* (only when `Sio` misses an inode, and then the caller holds the
 whole share: the encode's write, the flush, a `Seek`, the fdatasync, the cut): committed (`Q d`), the handle
-lost, as `Save`'s.
+lost, as `Save`'s. When `Sio` covers every inode, the WAL directory fits and its children's paths are in
+`Sio` (`cut.spec`'s premise, as `Save`'s).
 
 *`pre …`* (`Create`'s `w` before the rename, `walPreIn`; its encoder writes the first segment in `nm.tmp`, a
 file the program owns wholly, whose writer is generic: `W` accepted, `B` broken, `io.writerStream`, and `S`
@@ -57,7 +58,8 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.spec (P : WalPbIn 
     (md : SnapshotMetadataM) (al cs : Bool) (sized : Bool) (Q : WalDur → IProp GF),
   {{ match st with
       | .shared γ q => iprop(WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWS Sio P Mr w dir γ q ∗
-          ⌜walCov Sio ∨ q = 1⌝ ∗ walSnapAt Mr sp md al cs ∗
+          ⌜walCov Sio ∨ q = 1⌝ ∗ ⌜walCov Sio → DirFits dir ∧ ∀ b, Sio.path (child dir b)⌝ ∗
+          walSnapAt Mr sp md al cs ∗
           ⌜md.Index' = W64 0 ∨ cs = true⌝ ∗ ⌜uint.nat md.Index' < 2 ^ 64 - 1⌝ ∗
           ⌜(Mr.encSnap md al).length < 2 ^ 40⌝ ∗
           AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅
