@@ -16,11 +16,9 @@ translate = ["!*", "EnableTracing", "WaitForReady", "MaxCallSendMsgSize", "MaxCa
   "GenericClientStream.Send", "GenericClientStream.Recv", "GenericServerStream.Send",
   "GenericServerStream.Recv", "GenericClientStream.CloseSend", "GenericClientStream.Context",
   "GenericServerStream.Context",
-  # (phase 7 S1, 2026-11-21, notes/phase7-plan.md; grpc is the model's since S0) the option
-  # constructors that only store a closure, with their bodies: the dial options etcd's client sets
-  # and the server options v3rpc sets, and the closures' holders
-  "newFuncDialOption", "funcDialOption.apply", "WithTransportCredentials", "WithPerRPCCredentials",
-  "WithUnaryInterceptor", "WithStreamInterceptor", "WithResolvers",
+  # (phase 7 S1, 2026-11-21, notes/phase7-plan.md; grpc is the model's since S0) the server
+  # option constructors that only store a closure, with their bodies, and the closures' holder (the
+  # dial options' come with `dialOptions`, whose fields need more of grpc's packages)
   "newFuncServerOption", "funcServerOption.apply", "KeepaliveEnforcementPolicy", "MaxRecvMsgSize",
   "MaxSendMsgSize", "MaxConcurrentStreams", "ChainUnaryInterceptor", "ChainStreamInterceptor"]
 imports = ["!*", "context", "google.golang.org/grpc/metadata", "google.golang.org/grpc/peer",

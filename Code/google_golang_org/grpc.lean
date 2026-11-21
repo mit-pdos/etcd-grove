@@ -1623,166 +1623,6 @@ noncomputable def newTraceContext [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def newTraceEventLog [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newTraceEventLog"
 
-/-- go: dialoptions.go:147:28 -/
-noncomputable def funcDialOption.apply.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "fdo"
-  (Lam "do"
-  (Seq (App (Val exceptionDo)
-  (Let "fdo" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType funcDialOption.ty)))) (Var "fdo"))
-  (Let "do" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType dialOptions.ty)))) (Var "do"))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType dialOptions.ty)))) (Var "do"))
-  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType dialOptions.ty)] false []))))) (App (Val (GoInstruction (StructFieldRef funcDialOption.ty go!"f"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType funcDialOption.ty)))) (Var "fdo")))) (Var "$a0")))))))
-  (Val #()))))
-
-/-- go: dialoptions.go:151:6 -/
-noncomputable def newFuncDialOption.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "f"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType funcDialOption.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType funcDialOption.ty)))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType dialOptions.ty)] false []))))) (Var "f"))
-  (Let "$r0" (App (Val (GoInstruction (GoAlloc funcDialOption.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType dialOptions.ty)] false []))))) (Var "f"))
-  (App (Val (GoInstruction (CompositeLiteral funcDialOption.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"f")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType dialOptions.ty)] false [])) (Var "$v0")))]))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType funcDialOption.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType funcDialOption.ty)))) (Var "$res0")))))
-
-/-- WithTransportCredentials returns a DialOption which configures a connection
-    level security credentials (e.g., TLS/SSL). This should not be used together
-    with WithCredentialsBundle.
-
-    go: dialoptions.go:438:6 -/
-noncomputable def WithTransportCredentials.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "creds"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc DialOption.ty))) (App (Val (GoInstruction (GoZeroVal DialOption.ty))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "creds" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.credentials.TransportCredentials.ty))) (Var "creds"))
-  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType funcDialOption.ty) DialOption.ty))) (Let "$a0" (Lam "o"
-  (Seq (App (Val exceptionDo)
-  (Let "o" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType dialOptions.ty)))) (Var "o"))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.credentials.TransportCredentials.ty))) (Var "creds"))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.credentials.TransportCredentials.ty))) (Pair (App (Val (GoInstruction (StructFieldRef connectOptions.ty go!"TransportCredentials"))) (App (Val (GoInstruction (StructFieldRef dialOptions.ty go!"copts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType dialOptions.ty)))) (Var "o")))) (Var "$r0")))))))
-  (Val #())))
-  (App (App (Val (GoInstruction (FuncResolve newFuncDialOption []))) (Val #())) (Var "$a0"))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore DialOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (App (Val (GoInstruction (GoLoad DialOption.ty))) (Var "$res0")))))
-
-/-- WithPerRPCCredentials returns a DialOption which sets credentials and places
-    auth state on each outbound RPC.
-
-    go: dialoptions.go:446:6 -/
-noncomputable def WithPerRPCCredentials.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "creds"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc DialOption.ty))) (App (Val (GoInstruction (GoZeroVal DialOption.ty))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "creds" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.credentials.PerRPCCredentials.ty))) (Var "creds"))
-  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType funcDialOption.ty) DialOption.ty))) (Let "$a0" (Lam "o"
-  (Seq (App (Val exceptionDo)
-  (Let "o" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType dialOptions.ty)))) (Var "o"))
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.credentials.PerRPCCredentials.ty)))) (App (Val (GoInstruction (StructFieldRef connectOptions.ty go!"PerRPCCredentials"))) (App (Val (GoInstruction (StructFieldRef dialOptions.ty go!"copts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType dialOptions.ty)))) (Var "o")))))
-  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.credentials.PerRPCCredentials.ty))) (Var "creds"))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.credentials.PerRPCCredentials.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.credentials.PerRPCCredentials.ty (Var "$sl0")))])))
-  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.credentials.PerRPCCredentials.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.credentials.PerRPCCredentials.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef connectOptions.ty go!"PerRPCCredentials"))) (App (Val (GoInstruction (StructFieldRef dialOptions.ty go!"copts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType dialOptions.ty)))) (Var "o")))) (Var "$r0")))))))
-  (Val #())))
-  (App (App (Val (GoInstruction (FuncResolve newFuncDialOption []))) (Val #())) (Var "$a0"))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore DialOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (App (Val (GoInstruction (GoLoad DialOption.ty))) (Var "$res0")))))
-
-/-- WithUnaryInterceptor returns a DialOption that specifies the interceptor for
-    unary RPCs.
-
-    go: dialoptions.go:586:6 -/
-noncomputable def WithUnaryInterceptor.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "f"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc DialOption.ty))) (App (Val (GoInstruction (GoZeroVal DialOption.ty))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "f" (App (Val (GoInstruction (GoAlloc UnaryClientInterceptor.ty))) (Var "f"))
-  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType funcDialOption.ty) DialOption.ty))) (Let "$a0" (Lam "o"
-  (Seq (App (Val exceptionDo)
-  (Let "o" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType dialOptions.ty)))) (Var "o"))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad UnaryClientInterceptor.ty))) (Var "f"))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore UnaryClientInterceptor.ty))) (Pair (App (Val (GoInstruction (StructFieldRef dialOptions.ty go!"unaryInt"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType dialOptions.ty)))) (Var "o"))) (Var "$r0")))))))
-  (Val #())))
-  (App (App (Val (GoInstruction (FuncResolve newFuncDialOption []))) (Val #())) (Var "$a0"))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore DialOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (App (Val (GoInstruction (GoLoad DialOption.ty))) (Var "$res0")))))
-
-/-- WithStreamInterceptor returns a DialOption that specifies the interceptor for
-    streaming RPCs.
-
-    go: dialoptions.go:605:6 -/
-noncomputable def WithStreamInterceptor.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "f"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc DialOption.ty))) (App (Val (GoInstruction (GoZeroVal DialOption.ty))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "f" (App (Val (GoInstruction (GoAlloc StreamClientInterceptor.ty))) (Var "f"))
-  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType funcDialOption.ty) DialOption.ty))) (Let "$a0" (Lam "o"
-  (Seq (App (Val exceptionDo)
-  (Let "o" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType dialOptions.ty)))) (Var "o"))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad StreamClientInterceptor.ty))) (Var "f"))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore StreamClientInterceptor.ty))) (Pair (App (Val (GoInstruction (StructFieldRef dialOptions.ty go!"streamInt"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType dialOptions.ty)))) (Var "o"))) (Var "$r0")))))))
-  (Val #())))
-  (App (App (Val (GoInstruction (FuncResolve newFuncDialOption []))) (Val #())) (Var "$a0"))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore DialOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (App (Val (GoInstruction (GoLoad DialOption.ty))) (Var "$res0")))))
-
-/-- WithResolvers allows a list of resolver implementations to be registered
-    locally with the ClientConn without needing to be globally registered via
-    resolver.Register.  They will be matched against the scheme used for the
-    current Dial only, and will take precedence over the global registry.
-
-    # Experimental
-
-    Notice: This API is EXPERIMENTAL and may be changed or removed in a
-    later release.
-
-    go: dialoptions.go:764:6 -/
-noncomputable def WithResolvers.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "rs"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc DialOption.ty))) (App (Val (GoInstruction (GoZeroVal DialOption.ty))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "rs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.resolver.Builder.ty)))) (Var "rs"))
-  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType funcDialOption.ty) DialOption.ty))) (Let "$a0" (Lam "o"
-  (Seq (App (Val exceptionDo)
-  (Let "o" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType dialOptions.ty)))) (Var "o"))
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.resolver.Builder.ty)))) (App (Val (GoInstruction (StructFieldRef dialOptions.ty go!"resolvers"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType dialOptions.ty)))) (Var "o"))))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.resolver.Builder.ty)))) (Var "rs"))
-  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.resolver.Builder.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.resolver.Builder.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef dialOptions.ty go!"resolvers"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType dialOptions.ty)))) (Var "o"))) (Var "$r0")))))))
-  (Val #())))
-  (App (App (Val (GoInstruction (FuncResolve newFuncDialOption []))) (Val #())) (Var "$a0"))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore DialOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (App (Val (GoInstruction (GoLoad DialOption.ty))) (Var "$res0")))))
-
 /-- StaticMethod returns a CallOption which specifies that a call is being made
     to a method that is static, which means the method is known at compile time
     and doesn't change at runtime. This can be used as a signal to stats plugins
@@ -2719,7 +2559,6 @@ class funcDialOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   set_f : ∀ (x : funcDialOption) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet funcDialOption.underlying go!"f") (PairV #x #y) (Val #(({ x with f' := y } : funcDialOption)))
   method_set : go.MethodSetIs funcDialOption.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType funcDialOption.ty) [(go!"google.golang.org/grpc.apply", (some (go.signature.Signature [(go.GoType.PointerType dialOptions.ty)] false [])))]
-  ptr_apply_unfold : MethodUnfold (go.GoType.PointerType funcDialOption.ty) go!"apply" funcDialOption.apply.impl
 
 attribute [instance] funcDialOption.TypeAssumptions.type_repr
   funcDialOption.TypeAssumptions.underlying
@@ -2727,7 +2566,6 @@ attribute [instance] funcDialOption.TypeAssumptions.type_repr
   funcDialOption.TypeAssumptions.set_f
   funcDialOption.TypeAssumptions.method_set
   funcDialOption.TypeAssumptions.ptr_method_set
-  funcDialOption.TypeAssumptions.ptr_apply_unfold
 
 structure joinDialOption [GooseExts] where
   mk ::
@@ -6109,12 +5947,6 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   payload_instance : payload.TypeAssumptions
   fmtStringer_instance : fmtStringer.TypeAssumptions
   stringer_instance : stringer.TypeAssumptions
-  newFuncDialOption_unfold : FuncUnfold newFuncDialOption [] newFuncDialOption.impl
-  WithTransportCredentials_unfold : FuncUnfold WithTransportCredentials [] WithTransportCredentials.impl
-  WithPerRPCCredentials_unfold : FuncUnfold WithPerRPCCredentials [] WithPerRPCCredentials.impl
-  WithUnaryInterceptor_unfold : FuncUnfold WithUnaryInterceptor [] WithUnaryInterceptor.impl
-  WithStreamInterceptor_unfold : FuncUnfold WithStreamInterceptor [] WithStreamInterceptor.impl
-  WithResolvers_unfold : FuncUnfold WithResolvers [] WithResolvers.impl
   StaticMethod_unfold : FuncUnfold StaticMethod [] StaticMethod.impl
   Peer_unfold : FuncUnfold Peer [] Peer.impl
   WaitForReady_unfold : FuncUnfold WaitForReady [] WaitForReady.impl
@@ -6259,12 +6091,6 @@ attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.payload_instance
   Assumptions.fmtStringer_instance
   Assumptions.stringer_instance
-  Assumptions.newFuncDialOption_unfold
-  Assumptions.WithTransportCredentials_unfold
-  Assumptions.WithPerRPCCredentials_unfold
-  Assumptions.WithUnaryInterceptor_unfold
-  Assumptions.WithStreamInterceptor_unfold
-  Assumptions.WithResolvers_unfold
   Assumptions.StaticMethod_unfold
   Assumptions.Peer_unfold
   Assumptions.WaitForReady_unfold

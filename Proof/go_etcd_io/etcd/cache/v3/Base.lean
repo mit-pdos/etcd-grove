@@ -199,6 +199,31 @@ instance grpc_peer_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.peer :=
   build_get_is_pkg_init_wf
 
+-- grpc's `keepalive` and `stats` (types and names only), before `grpc`, which imports them since
+-- phase 7 S1 (2026-11-21: the types of the model's `serverOptions` fields; `stats` moved here from
+-- the apply package's `Base.lean`)
+instance grpc_keepalive_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.keepalive :=
+  define_is_pkg_init iprop(True)
+instance grpc_keepalive_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.keepalive :=
+  build_get_is_pkg_init_wf
+namespace google_golang_org.grpc.stats
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.stats :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.stats :=
+  build_get_is_pkg_init_wf
+
+end google_golang_org.grpc.stats
+
+-- grpc's `mem` (types and names only; phase 7 S1, 2026-11-21: the type of the model's
+-- `serverOptions.bufferPool`), before `grpc`, which imports it
+instance grpc_mem_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.mem :=
+  define_is_pkg_init iprop(True)
+instance grpc_mem_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.mem :=
+  build_get_is_pkg_init_wf
+
 -- `grpc` (names only; `etcdserverpb`'s streams are its generic interfaces, 2026-10-12: the
 -- request path's `RaftKV` names `KV_RangeStreamServer`), before `etcdserverpb`, which imports it
 /-- grpc's package fact (k8s 7e-1, 2026-11-10): `EnableTracing` (`var EnableTracing bool`, `trace.go:33`
@@ -896,11 +921,6 @@ instance tls_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.crypto.tls :=
   define_is_pkg_init iprop(True)
 instance tls_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.crypto.tls :=
-  build_get_is_pkg_init_wf
-instance grpc_keepalive_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.keepalive :=
-  define_is_pkg_init iprop(True)
-instance grpc_keepalive_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.keepalive :=
   build_get_is_pkg_init_wf
 instance grpc_insecure_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.credentials.insecure :=
   define_is_pkg_init iprop(True)

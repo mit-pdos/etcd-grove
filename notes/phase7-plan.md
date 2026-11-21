@@ -83,6 +83,27 @@ collections' baselines saying what it removes.
   model removed stats handlers (a `NotModelled` panic), but etcd installs one
   (`v3rpc` `Link.lean`), so either the model keeps the stats-handler calls (decided in S1; the
   handler's methods are then the program's code) or the theorem would be vacuous there. No network.
+  **S0 landed** (`715d5e6753`, 2026-11-21). **S1, server side (branch `phase7-s1`, 2026-11-21).**
+  `grpcSrvOpt v k` is a definition (`Proof/google_golang_org/grpc/InvGrpcServer.lean`): `v` is a
+  `*funcServerOption`, read-only, whose closure's persistent WP over a `p ↦ so` does `k`
+  (`srvOptFnOk`): `.neutral` keeps the chains and the stats handlers; `.chainUnary`/`.chainStream`
+  own the chain they append to; the new kind `.stats h` owns `statsHandlers`. A kind owns what its
+  closure reads, so `StatsHandler`'s restated axiom stays true: stated as `.neutral` it would assert a
+  WP of an `append` reading a slice the closure does not own, false for an arbitrary `so`. Proved
+  over the model's bodies (`etc/goose.py`'s grpc translate list): `MaxRecvMsgSize`, `MaxSendMsgSize`,
+  `MaxConcurrentStreams`, `KeepaliveEnforcementPolicy`, `ChainUnaryInterceptor`,
+  `ChainStreamInterceptor` (one recipe: `wp_fupd`, `ipersist` of the captured cells,
+  `wp_func_lits`, step into `newFuncServerOption`, then the closure; the chains through
+  `wp_slice_append`). Still axioms, restated: `NewServer` (`[∗ list]` premise), `CustomCodec`,
+  `StatsHandler` (`.stats h`). For `serverOptions` to be a translated struct, grpc's imports gained
+  `time`, `credentials`, `keepalive`, `stats`, `mem` (`mem` types-only: its two init axioms are new,
+  until S2 translates its pools), and the model's `binaryLogger`/`InTapHandle` options panic when
+  applied (they panicked in `NewServer` before; the fields are gone), so that `tap` and
+  `internal/binarylog` stay untranslated. Trust base: −7 (the six, `grpcSrvOpt`), +2 (`mem`).
+  Users adjusted: v3rpc's `Server` spec (`[∗ list] v ∈ gvs, grpcSrvOpt v .neutral`) and proof, the
+  `etcdstart`/`cluster3` callers. Next in S1: the dial side (`dialOptions` needs `internal/transport`,
+  `channelz`, `internal/backoff` types), the model calling stats handlers (#24, U2), then
+  `NewServer` and `RegisterService`.
 - **S2, the unary pair** (`grpc.model.*`, the trusted `Serve` body, `grpcReplyTo`, `Invoke`'s
   attempt, `grpc.start`): over `model_transport.go`/`model_wire.go` and the net extension's `Conn`,
   from dsverify's unary proofs (Q2). Needs S4's deployment, or an interim single-machine statement

@@ -28,7 +28,7 @@ abbrev grpc.ChainStreamInterceptor.spec : Prop :=
   ∀ (sl : GoSlice) (ics : List GoFunc),
   {{ (sl ↦*□ ics : IProp GF) }}
     (App (Val (@! google_golang_org.grpc.ChainStreamInterceptor)) (Val #sl))
-  {{ (v : GoInterface), RET #v; ⌜grpcSrvOpt v (.chainStream ics)⌝ }}
+  {{ (v : GoInterface), RET #v; grpcSrvOpt v (.chainStream ics) }}
 
 end spec
 
