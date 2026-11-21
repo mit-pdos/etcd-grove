@@ -74,7 +74,9 @@ theorem itemField.wp_proof_of (hPath : isPath_intro.law (GF := GF))
   imod ownSlice_persist $$ Hfs with #Hfs
   imod (keyFieldList_intro hScalar hFL hPersist _ v k) $$ Hfs Hv with #Hfl
   wp_apply (wp_KeyElement _ [(go!"name", .str k)]) as %e2 He2
-  · iexact Hfl
+  · isplit
+    · iexact Hfl
+    · ipureintro; rfl
   wp_apply wp_FieldNameElement as %e3 He3
   wp_apply (wp_slice_literal (l := [e1, e2, e3]))
   isplitr
