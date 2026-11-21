@@ -63,15 +63,18 @@ The new clauses, and why each is true of the Go code (`newLessor` `lessor.go:212
 * **The records are read and decoded** (pre: the entries' equation, replacing `getD ∅ = ∅`):
   `initAndRecover` takes the batch lock (`:811`), creates the bucket (absent: none; present: a
   no-op, `UnsafeCreateLeaseBucket`), and `MustUnsafeGetAllLeases` (`:813`) decodes every record
-  (a panic on an undecodable one; each record here is an encoding, `leaseRecEnc`, so none). One
-  write-back (`wbTok`), with records as without: `UnsafeCreateBucket` always counts a pending
+  (a panic on an undecodable one; each record here is an encoding, `leaseRecEnc`, so none). Two
+  write-back tokens (`ownToks d.γB.wb 2`, as `lessor.Recover.spec`; prove-ps2-newlessor3,
+  2026-11-21, the user's approval: until then one, `wbTok`, which no proof over the real code can
+  meet, since the proved `lessor.initAndRecover.spec` takes two), with records as without: `UnsafeCreateBucket` always counts a pending
   operation (`pending++`, `batch_tx.go:144`), so the first `Unlock` (`:814`) writes back
   (`batch_tx.go:328-333`) and may commit (`pending >= batchLimit`, `:355`); `ForceCommit`
   (`backend.go:377`) is `lock`, `commit`, `Unlock` (`batch_tx.go:362-366`), and `commit` resets
   `pending = 0` (`:300`), so its `Unlock` writes nothing back (a hook the commit runs may write;
   `commit` still resets `pending`). The records change neither `pending` nor the commits (the loop
-  writes no bucket). One token is stronger than what the proved `lessor.initAndRecover.spec` gives
-  (`ownToks γB.wb 2`): the original's known margin, unchanged by records. So the part comes back idle with the bucket as it was
+  writes no bucket). The second token pays `ForceCommit`, whose proved `backend.ForceCommit.spec`
+  charges one although its `Unlock` writes nothing back (the backend's spec is coarser than the
+  code). So the part comes back idle with the bucket as it was
   (`rbOwnIn d.γB S (r.insert "lease" ((r.lookup "lease").getD ∅))`, `Recover`'s post; the
   original's `r.insert "lease" ∅` when it was empty or absent).
 * **One fresh lease per record** (`:815-830`): `ID` the record's, `ttl` the record's raised to
@@ -198,6 +201,12 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   E3zb, 2026-10-28) A lease it returns has the grant guard `GA` of its id: every lease of the map
   was granted (`lessorAuth`'s `leaseGranted`, kept by `Grant`, `Revoke` and `Recover`, which empties
   the map), and the lock's acquisition is the step that strips the guard's agreement's later.
+* **The thread bound** (`⌜threadBound GF ≤ 2 ^ 30 - 1⌝`; prove-ps2-newlessor3, 2026-11-21, the
+  user's approval): the `runLoop` goroutine's `findExpiredLeases` calls `l.expired()`, whose
+  `Remaining()` read-locks the lease's `expiryMu` (`lease.go`), borrowing a slot from the lease's
+  pool (`isLeaseObj`), which exists only under this bound (as `Renew`'s, `Promote`'s, `Leases`').
+  Every caller has it (the server's construction and the examples bound threads by `2 ^ 28` or
+  `2 ^ 29`).
 * The reader slots of `mu` (a `sync.RWMutex`, made by `newLessor`): one per reader (D14i,
   2026-10-17: the store's and the apply thread's lease owner each hold one). All of them but one
   (prove-ps2-newlessor, 2026-11-21, the user's approval): the `runLoop` goroutine read-locks `mu`
@@ -265,8 +274,9 @@ abbrev lease.NewLessor.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
       (⌜lg = null⌝ ∨ zapLoggerOk lg) ∗
       ⌜0 ≤ sint.Z cfg.leaseRevokeRate'⌝ ∗ lease.clusterOk cl ∗
-      backend.isBackend d.γB d.P W Pk d.be ∗ backend.bOpen d.γB qo ∗ backend.wbTok d.γB ∗
-      backend.rbPart d.γB S r ∗ □ ([∗list] id ∈ recs.map (·.1), GA id) }}
+      backend.isBackend d.γB d.P W Pk d.be ∗ backend.bOpen d.γB qo ∗ ownToks d.γB.wb 2 ∗
+      backend.rbPart d.γB S r ∗ □ ([∗list] id ∈ recs.map (·.1), GA id) ∗
+      ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.lease.NewLessor)) (Val #lg))
       (Val #(interface.mkOk
         (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be)))
