@@ -141,3 +141,22 @@ Decided (the coordinator, issue #22, 2026-11-21):
   wrote (a cut stream fails `readFrame`, not `getMsg`).
 - `AddrOk`'s premise `a.length + 1 < 2^63` stays: a canonical address is at most 21 bytes, and the
   top-level premises (`addrOk` of every replica address, fewer than 2^32 replicas) discharge it.
+
+## kvnet's client side and kvcheck's pure parts (2026-11-21)
+
+Proved, no axiom or `sorry` (`lake build KvNet`: 2749 jobs):
+
+- **Request path** (`client.go`; `Client.lean`: `reqBytes`, the caller's persistent accessors
+  `wAcc`/`rAcc`/`cAcc` and `connRes`): `DialTCP` (`net.DialTimeout` at `"tcp"`), `RequestVia` (on
+  `(b', true)` the call wrote `helloClient :: putB (reqBytes kind timeout payload)` and read
+  `putB (1 :: b')` on the connection; `false`: the dial failed, or some bytes were written and read),
+  `RequestWithin`, `Request`, `EncodeRead`, `EncodeDisrupt`. The predicates track the whole stream a
+  call wrote (not the Write errors); the Close accessor is persistent (the deferred `Close` and
+  `closeAfter`'s timer may both close); the dialer is a one-shot wand (DialTCP discharges it from
+  `DialTimeout`'s exclusive update). `EncodeOp` waits: kvdurablenoax's `encode` spec names
+  kvreconf's `encodeOp`, defined in kvreconf's `Base` (which names kvreconf's translation); moving
+  it to a pure codec module would let the part reuse `encode`.
+- **kvcheck** (its own `Base`, `Defs`: `isChecker`, `checkerInv` under the mutex, `issued`): `oneIn`,
+  `below`, `sleep`, `checker.randomID`, `checker.changeID`, `checker.randomChange` (kvdurablenoax's,
+  ported; kvreconf's `ccTransOk` restated in `kvcheck/Defs.lean`, its module naming kvreconf's
+  translation), `checker.fresh` (each number issued once: `issued γ w n` exclusive).
