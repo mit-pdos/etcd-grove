@@ -34,6 +34,9 @@ abbrev backend.batchTx.commit.spec : Prop :=
       -- registrations (`armStep`; `F` kept whole), and a lower bound of the commit counter
       dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗
       (if stop then stopPay γ else iprop(F ∗ cntLb γ n)) ∗
+      -- (B4) a reader's lower bound of the compaction keys' flag at the writer's contents with no read
+      -- buffer, which the commit point leaves in the commit invariant (for a snapshot)
+      fkRd γ P (st.S, ⟨∅, W64 0⟩) ∗
       ⌜st.pend = W64 0 → st.S = st.C⌝ }}
     (App (Val (btOf t @!! go.GoType.PointerType batchTx.ty @!! go!"commit")) (Val #stop))
   {{ RET #(); sync.ownRWMutex (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗

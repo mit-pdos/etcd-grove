@@ -117,7 +117,6 @@ axiom apply.memberEnc_id_learner
 axiom audit.GetAuditIDTruncated.wp_proof
 axiom auth.NewAuthStore.wp_proof
 axiom auth.newTokenProviderJWT.wp_proof
-axiom backend.backend.Snapshot.wp_proof
 axiom binary.WriteUint8.wp_proof
 axiom bridge.New.wp_proof
 axiom bridge.bridge.Blackhole.wp_proof

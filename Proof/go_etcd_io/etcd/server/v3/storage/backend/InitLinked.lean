@@ -267,6 +267,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   ipersist HspillSec
   ipersist HwriteSec
   ipersist HsnapshotTransferSec
+  ipersist HminSnapshotWarningTimeout
   ipersist HboltOpenOptions
   ipersist HpbOO
   ipersist HdefaultBatchInterval
@@ -283,6 +284,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   is_pkg_init_finish
   imodintro
   unfold backendInit
+  rw [show (W64 30000000000 : w64) = W64 30 * W64 1000000000 from by decide]
   iframe #
   rw [show (W64 100000000 : w64) = W64 100 * W64 1000000 from by decide]
   iexact HdefaultBatchInterval

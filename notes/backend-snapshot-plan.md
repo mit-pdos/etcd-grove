@@ -108,6 +108,14 @@ the backend's database by `bDB`), and `Snapshot` borrows the caller's `rdTok`. `
   (Perennial pin `c8e356cb1`, built against a private copy, `.lake/perennial-pin`, since the shared checkout
   was at another pin). B4's registry lemmas (`RegSnap.lean`: `reg_register`, `reg_take`) checked.
 
+- 2026-11-21, **B1-B3 landed** through the land queue (claim #16; `lean` `abd7c00ed5`).
+- 2026-11-21, **B4 done**: `backend.Snapshot` proved (`backend__Snapshot.lean`, written by a subagent over
+  `RegSnap`'s `reg_register`/`reg_take`); the commit invariant keeps `fkRd` at the committed data (the post's), the
+  commit glue takes it at the writer's contents (`unsafeCommit` derives it from `fkHalf`, `fkOkRvG_empty`);
+  `backendInit` gains `minSnapshotWarningTimeout` (the ticker's interval floor: `time.NewTicker` needs `0 < d`, and
+  the float conversion of the size-based interval can be any value). The backend `Link` links it
+  (`batchTxBuffered__Commit+Cnt`).
+
 ## Open: arming at an `Unlock` window's commit (B2)
 
 A registration must be armed for the image `S` *before* the commit point (a snapshotter's `Begin` may
