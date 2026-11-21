@@ -22,6 +22,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : golang_org.x.time.rate.Assumptions]
 
 axiom rate.Limiter.Reserve.wp_proof : rate.Limiter.Reserve.spec (GF := GF) (hG := hG)
 

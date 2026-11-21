@@ -898,9 +898,13 @@ theorem semver.wp_MustParse :
     semver.MustParse.spec (GF := GF) (hG := hG) :=
   semver.MustParse.wp_proof
 
+theorem semver.Version.wp_String :
+    semver.Version.String.spec (GF := GF) (hG := hG) :=
+  semver.Version.String.wp_proof
+
 theorem semver.wp_New :
     semver.New.spec (GF := GF) (hG := hG) :=
-  semver.New.wp_proof
+  semver.New.wp_proof semver.Version.wp_String
 
 theorem semver.Version.wp_Major :
     semver.Version.Major.spec (GF := GF) (hG := hG) :=
@@ -913,10 +917,6 @@ theorem semver.Version.wp_Minor :
 theorem semver.Version.wp_LessThan :
     semver.Version.LessThan.spec (GF := GF) (hG := hG) :=
   semver.Version.LessThan.wp_proof
-
-theorem semver.Version.wp_String :
-    semver.Version.String.spec (GF := GF) (hG := hG) :=
-  semver.Version.String.wp_proof
 
 theorem types.ID.wp_String_ptr :
     types.ID.String_ptr.spec (GF := GF) (hG := hG) :=
