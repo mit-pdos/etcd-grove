@@ -1348,7 +1348,12 @@ of each (`Encoding.WithPadding.wp_proof`); the fact's parts from `EncodeToString
 (`stdEncInit_intro`, `rawUrlEncInit_intro`).''',
     imports=['Proof.encoding.base64.NewEncoding', 'Proof.encoding.base64.Encoding__WithPadding',
              'Proof.encoding.base64.Encoding__EncodeToString', 'Proof.encoding.base64.Encoding__EncodedLen',
-             'Proof.encoding.base64.Encoding__Encode', 'Proof.encoding.base64.InitFacts'],
+             'Proof.encoding.base64.Encoding__Encode', 'Proof.encoding.base64.InitFacts',
+             'Proof.encoding.base64.Encoding__DecodeString', 'Proof.encoding.base64.Encoding__DecodedLen',
+             'Proof.encoding.base64.decodedLen', 'Proof.encoding.base64.Encoding__Decode',
+             'Proof.encoding.base64.Encoding__decodeQuantum', 'Proof.encoding.base64.assemble32',
+             'Proof.encoding.base64.assemble64', 'Proof.internal.byteorder.BEPutUint32',
+             'Proof.internal.byteorder.BEPutUint64'],
     alloc_types={'StdEncoding': 'Loc', 'URLEncoding': 'Loc', 'RawStdEncoding': 'Loc', 'RawURLEncoding': 'Loc'},
     before={'$end': [
         'try wp_auto',
@@ -1369,10 +1374,18 @@ of each (`Encoding.WithPadding.wp_proof`); the fact's parts from `EncodeToString
             'unfold _root_.Perennial.encoding.base64.base64Init', 'isplitl',
             '· iapply (EtcdGrove.base64.stdEncInit_intro (EtcdGrove.base64.Encoding.EncodeToString.wp_proof',
             '      EtcdGrove.base64.Encoding.EncodedLen.wp_proof EtcdGrove.base64.Encoding.Encode.wp_proof)',
-            '    eS encS hS.1 hS.2) $$ HStdEncoding HeS',
-            'iapply (EtcdGrove.base64.rawUrlEncInit_intro (EtcdGrove.base64.Encoding.EncodeToString.wp_proof',
-            '    EtcdGrove.base64.Encoding.EncodedLen.wp_proof EtcdGrove.base64.Encoding.Encode.wp_proof)',
-            '  eRU { encU with padChar\' := W32 (-1) } hU.1 rfl) $$ HRawURLEncoding HeRU'],
+            '    eS encS hS.1 hS.2.1) $$ HStdEncoding HeS',
+            'isplitl',
+            '· iapply (EtcdGrove.base64.rawUrlEncInit_intro (EtcdGrove.base64.Encoding.EncodeToString.wp_proof',
+            '      EtcdGrove.base64.Encoding.EncodedLen.wp_proof EtcdGrove.base64.Encoding.Encode.wp_proof)',
+            '    eRU { encU with padChar\' := W32 (-1) } hU.1 rfl) $$ HRawURLEncoding HeRU',
+            # (prove-authcrypto, 2026-11-21) the decoder's part
+            'iapply (EtcdGrove.base64.stdDecInit_intro (EtcdGrove.base64.Encoding.DecodeString.wp_proof',
+            '    (EtcdGrove.base64.Encoding.DecodedLen.wp_proof EtcdGrove.base64.decodedLen.wp_proof)',
+            '    (EtcdGrove.base64.Encoding.Decode.wp_proof (EtcdGrove.base64.Encoding.decodeQuantum.wp_proof)',
+            '      EtcdGrove.base64.assemble32.wp_proof EtcdGrove.base64.assemble64.wp_proof',
+            '      EtcdGrove.byteorder.BEPutUint32.wp_proof EtcdGrove.byteorder.BEPutUint64.wp_proof))',
+            '  eS encS hS.1 hS.2.1 (by rw [hS.1]; exact hS.2.2.1) hS.2.2.2) $$ HStdEncoding HeS'],
 )
 
 # (prove-authcrypto, 2026-11-21) bcrypt's variables translated (until then `opaqueInitsOk`):
