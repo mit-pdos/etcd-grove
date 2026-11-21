@@ -3212,3 +3212,12 @@ parameter.
   `rate.Every` (`1 / Limit(interval.Seconds())`) cannot be stepped; its axiom stays.
 - **Proposed (general).** Translate `Duration.Seconds` (and `Minutes`, `Hours`) over the uninterpreted
   `FloatOps`; float constants as their bits. **Status.** Recorded only (prove-smalllibs).
+
+## 2026-11-20 · Nil maps in delete and clear
+
+The lock-release loop in the WAL reader deletes keys from a map that can be
+nil. Go returns normally for a comparable key. Perennial previously attempted
+a read at the nil address. Commit `15145e014` models nil delete and clear for
+named and unnamed maps and keeps the dynamic key check before the nil test.
+The Go regressions and all 1,704 Perennial modules passed on the VM.
+[Perennial PR #645](https://github.com/mit-pdos/perennial/pull/645)
