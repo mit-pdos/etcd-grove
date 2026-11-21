@@ -1,6 +1,8 @@
 /-
-The trust boundary: `types.URLs.StringSlice()`: names-only. Lean-first (no Rocq counterpart); the
-server-construction unit, stage N0 (2026-10-16), for `NewServer`.
+The proof of `(*types.URLs).StringSlice`: goose's pointer-method wrapper (load `*p`, call the value
+method), then `make([]string, len(us))` and `out[i] = us[i].String()` for each URL, over
+`url.URL.String`'s spec (`http.URLStringAny_spec`; the loop as `rafthttp.setPeerURLsHeader`'s).
+Until 2026-11-21 a trust-boundary axiom. Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -8,20 +10,81 @@ public import Spec.go_etcd_io.etcd.client.pkg.v3.types.URLs__StringSlice
 
 @[expose] public section
 
+set_option linter.unusedSectionVars false
+
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI
+open Iris Iris.BI Iris.ProofMode
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.client.pkg.v3.types.Assumptions]
 
-axiom types.URLs.StringSlice.wp_proof : types.URLs.StringSlice.spec (GF := GF) (hG := hG)
+theorem types.URLs.StringSlice.wp_proof
+    (hURLString : http.URLStringAny_spec (GF := GF)) :
+    types.URLs.StringSlice.spec (GF := GF) (hG := hG) := by
+  intro p dq sl us
+  wp_start as ⟨Hp, #Hus⟩
+  ihave %Hul := ownSlice_len _ _ _ $$ Hus
+  wp_auto
+  wp_method_call
+  wp_call
+  (try wp_auto)
+  wp_apply wp_slice_make2 (V := GoString) as %out ⟨Hout, Houtcap⟩
+  · ipureintro; exact Hul.2
+  (try wp_auto)
+  -- `for i := range us { out[i] = us[i].String() }`
+  rename_i iu_ptr
+  irename : (iu_ptr ↦ zero_val w64 : IProp GF) => Hiu
+  ihave HF : (∃ (k iv : w64) (xs : List GoString),
+      "i" ∷ i_ptr ↦ k ∗ "Hiu" ∷ iu_ptr ↦ iv ∗ "Hout" ∷ out ↦* xs ∗
+      "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ sint.Z sl.len ∧ xs.length = us.length⌝ : IProp GF)
+    $$ [i Hiu Hout]
+  · iexists W64 0, _, _
+    iframe
+    ipureintro
+    exact ⟨by decide, Hul.2, by rw [List.length_replicate, Hul.1]⟩
+  wp_for HF
+  obtain ⟨Hk1, Hk2, Hk3⟩ := Hk
+  (try simp only [if_decide_bool_eq_true, if_decide_bool_eq_false])
+  wp_if_destruct
+  · have Hb : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z sl.len := ⟨Hk1, Hif⟩
+    simp only [Hb, _root_.and_self, ↓reduceIte]
+    list_elem us (sint.nat k) as u
+    -- the range's element, loaded (unused: the body indexes `us` again)
+    wp_apply (wp_load_slice_index sl (sint.Z k) us DFrac.discard u Hk1) $$ [] as -
+    · iframe #; ipureintro; exact Hu_lookup
+    (try wp_auto)
+    (try simp only [Hb, _root_.and_self, ↓reduceIte])
+    ihave ⟨Hu, -⟩ := (ownSlice_elem_acc (sint.Z k) u sl DFrac.discard us Hk1 Hu_lookup) $$ Hus
+    wp_apply (hURLString _ DFrac.discard u) $$ [Hu] as %s -
+    · iexact Hu
+    (try wp_auto)
+    ihave %Houtl := ownSlice_len $$ Hout
+    have Hb' : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z out.len := by
+      constructor
+      · exact Hk1
+      · have : xs.length = us.length := Hk3
+        word
+    simp only [Hb', _root_.and_self, ↓reduceIte]
+    wp_apply wp_store_slice_index $$ [Hout] as Hout
+    · iframe; ipureintro; constructor <;> word
+    wp_for_post
+    iframe
+    iexists k + W64 1, k, _
+    iframe
+    ipureintro
+    exact ⟨by word, by word, by simp [Hk3]⟩
+  · (try wp_auto)
+    iapply HΦ
+    iframe
+    ipureintro; exact Hk3
 
 end proof
 

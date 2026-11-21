@@ -60,8 +60,7 @@ theorem raftpb.consumeVarint.wp_proof :
       simp only [ccVarintLoop, hc] at Hst
       have hb9 : ¬ (sint.nat n = 9 ∧ 1 < uint.Z c) →
           ccVarintL bs (sint.nat i) = (if uint.Z c < 128 then
-            (if 0 < sint.nat n ∧ c = W8 0 then none
-             else some (vv ||| W64 (uint.Z (c &&& W8 127)) <<< sh, sint.nat i' + 1))
+            some (vv ||| W64 (uint.Z (c &&& W8 127)) <<< sh, sint.nat i' + 1)
             else ccVarintLoop bs f (sint.nat n + 1) (sint.nat i' + 1)
               (vv ||| W64 (uint.Z (c &&& W8 127)) <<< sh) (sh + W64 7)) := by
         intro h; rw [Hst, ite_eq_right h]
@@ -93,42 +92,23 @@ theorem raftpb.consumeVarint.wp_proof :
         · have hc1 : uint.Z c ≤ 1 := by omega
           have Hs2 := hb9 (by omega)
           wp_if_destruct
-          · wp_if_destruct
-            · wp_for_post
-              iapply HΦ
-              iframe
-              ipureintro
-              rw [Hs2, ite_eq_left (by omega), ite_eq_left ⟨by omega, rfl⟩]
-            · wp_for_post
-              iapply HΦ
-              iframe
-              ipureintro
-              rw [Hs2, ite_eq_left (by omega), ite_eq_right (by rintro ⟨_, h⟩; exact Hif h)]
-              exact ⟨rfl, rfl, by omega⟩
+          · wp_for_post
+            iapply HΦ
+            iframe
+            ipureintro
+            rw [Hs2, ite_eq_left (by omega)]
+            exact ⟨rfl, rfl, by omega⟩
           · exfalso; omega
       · -- n ≠ 9
         have hn9 : sint.nat n ≠ 9 := fun h => Hif (h9 h)
         have Hs2 := hb9 (by rintro ⟨h, _⟩; exact hn9 h)
         wp_if_destruct
-        · wp_if_destruct
-          · wp_if_destruct
-            · wp_for_post
-              iapply HΦ
-              iframe
-              ipureintro
-              rw [Hs2, ite_eq_left (by omega), ite_eq_left ⟨by omega, rfl⟩]
-            · wp_for_post
-              iapply HΦ
-              iframe
-              ipureintro
-              rw [Hs2, ite_eq_left (by omega), ite_eq_right (by rintro ⟨_, h⟩; exact Hif h)]
-              exact ⟨rfl, rfl, by omega⟩
-          · wp_for_post
-            iapply HΦ
-            iframe
-            ipureintro
-            rw [Hs2, ite_eq_left (by omega), ite_eq_right (by rintro ⟨h, _⟩; omega)]
-            exact ⟨rfl, rfl, by omega⟩
+        · wp_for_post
+          iapply HΦ
+          iframe
+          ipureintro
+          rw [Hs2, ite_eq_left (by omega)]
+          exact ⟨rfl, rfl, by omega⟩
         · wp_for_post
           iframe
           iexists n + W64 1, i' + W64 1, _, sh + W64 7

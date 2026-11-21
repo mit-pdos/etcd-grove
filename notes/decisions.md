@@ -41609,3 +41609,21 @@ syncer and encoder; one that panics (a user `WriteSyncer`) makes `check`'s and `
 of Go. `loggerOther` requires zap's own encoders, write syncers and level enablers, or ones whose
 methods return without panicking. No proof depended on the looser reading (only `NewNop` produces
 `zapLoggerOk`).
+
+## Configuration changes use protobuf wire order on the noax fork (2026-11-21)
+
+A Raft caller can receive a configuration change from a different protobuf
+encoder. An optional field, including one inside a nested change, must survive
+a decode and re-encode. The producer of a configuration entry also controls field
+order and can repeat a field. The old fork accepted only the ordering its own
+encoder wrote. The public formatter regression demonstrates the difference for
+both message versions. [Issue and regression](../issues/raft-noax-confchange-wire-compat.md).
+
+The repaired implementation decodes fields in wire order. The last decoded
+singular field supplies its value, repeated changes accumulate, and unknown
+fields keep their original value bytes. Its group scanner checks matching
+end tags and the same depth bound as protobuf-go. The Lean wire model ties a
+successful skip to the protobuf grammar used when allocating a message, and
+shows any field admitted by that grammar can be skipped. The encoder proof uses
+both facts to account for extension bytes in nested changes and both top-level
+messages. [Noax codec proofs](raft-noax-codec.md).

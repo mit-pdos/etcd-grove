@@ -448,9 +448,13 @@ theorem NewServer.wp_proofRG
   (try wp_auto)
   -- the configuration, field by field from here on
   iStructNamed cfg
-  ihave %HcuNN := typedPointsto_not_null _ _ _ $$ ClientURLs
-  wp_apply h13 as %cus -
-  · ipureintro; exact HcuNN
+  -- (prove-ps2-misc, 2026-11-21) the field and the URLs, read-only (`bootCfgRO`)
+  ihave #HcU : cfg.ClientURLs' ↦*□ U.client $$ []
+  · iunfold bootCfgRO at Hcfgro
+    icases Hcfgro with ⟨-, #H, -⟩
+    iexact H
+  wp_apply h13 $$ [ClientURLs] as %cus ⟨ClientURLs, -⟩
+  · iframe ClientURLs; iframe #
   (try wp_auto)
   -- the request ids' generator, the notifiers
   ihave #Hipkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.idutil $$ []
