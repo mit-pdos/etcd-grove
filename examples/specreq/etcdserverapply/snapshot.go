@@ -30,20 +30,19 @@ func ReqSnapshotCompact(s *EtcdServer, ep *etcdProgress) {
 	}
 }
 
-// REQ etcdserverapply/merged-snapshot: a MsgSnap the node queued at the current raft term, whose
-// snapshot is at or below the applied index, is merged into one at the applied index and term,
-// with the thread's ConfState, and handed to the transport (msgSent of the new message: R1's
-// msgSent_replaceSnap, issues/etcd-merged-snapshot-stale-term.md's guard).
-// Users: server/etcdserver/server.go:1003-1017 (applyAll), snapshot_merge.go.
-// Assumes: ep is the apply thread's progress after a batch of raft term raftTerm.
+// REQ etcdserverapply/merged-snapshot: the matching-term request is sent at the
+// index of the database it carries, including while the apply cursor is catching up.
+// Users: server/etcdserver/server.go (applyAll), snapshot_merge.go.
+// Assumes: ep is the apply thread's progress after processing this Ready.
 // Specs: applyAll.spec, createMergedSnapshotMessage.spec, sendMergedSnap.spec.
-func ReqMergedSnapshot(s *EtcdServer, ep *etcdProgress, raftTerm uint64) {
+func ReqMergedSnapshot(s *EtcdServer, ep *etcdProgress, apply *toApply) {
 	select {
 	case m := <-s.r.msgSnapC:
-		if m.GetTerm() == raftTerm && m.GetSnapshot().GetMetadata().GetIndex() <= ep.appliedi {
-			merged := s.createMergedSnapshotMessage(m, ep.appliedt, ep.appliedi, ep.confState)
-			if merged.GetSnapshot().GetMetadata().GetIndex() != ep.appliedi {
-				panic("merged-snapshot: not at the applied index")
+		if m.GetTerm() == apply.raftTerm {
+			want := max(ep.appliedi, s.consistIndex.ConsistentIndex())
+			merged := s.createMergedSnapshotMessage(m, ep.appliedt, ep.appliedi, ep.confState, apply.replayTerms, ep.replayConf)
+			if merged.GetSnapshot().GetMetadata().GetIndex() != want {
+				panic("merged-snapshot: label disagrees with backend progress")
 			}
 			s.sendMergedSnap(merged)
 		}

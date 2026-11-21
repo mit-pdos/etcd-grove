@@ -23,6 +23,7 @@ public import Perennial.Proof.context.Link
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.iter.Link
+public import Perennial.Proof.reflect.Link
 public import Perennial.Proof.strconv.Link
 public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.Link
@@ -63,7 +64,6 @@ public import Proof.k8s_io.utils.clock.Init
 public import Proof.net.http.Init
 public import Proof.os.Init
 public import Proof.path.Init
-public import Proof.reflect.Init
 public import Perennial.Proof.context.NewErrorString
 public import Perennial.Proof.errors.NewVar
 public import Perennial.Proof.sync.atomic.Link

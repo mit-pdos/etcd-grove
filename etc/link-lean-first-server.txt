@@ -117,9 +117,9 @@ lease_lessor__SetRangeDeleter:
 # package's and the server's lessor contracts are derived from them (apply/LessorDerive.lean,
 # LessorOk.lean). container/heap's Push and Fix are proved, with the sift loops up and down they
 # call (translated by this repository: Code/container/heap.toml). The trust boundary: api/v3/version's
-# LessThan, schema's MustUnsafePutLease (protobuf's Marshal), and the lessor's
-# scheduleCheckpointIfNeeded and Promote (float-to-integer conversions) and Demote (the close of
-# demotec).
+# LessThan, schema's MustUnsafePutLease (protobuf's Marshal). Demote (prove-ps2-lease, 2026-11-21: an
+# axiom until then) closes demotec with its token (`demoteOuter`, InvLessor.lean); Promote (below,
+# after `Leases`: prove-ps2-promote, 2026-11-21) makes it.
 heap_up:
 heap_down:
 heap_Push: heap_up
@@ -144,12 +144,14 @@ lease_Lease__persistTo: schema_MustUnsafePutLease
 lease_lessor__isPrimary:
 lease_greaterOrEqual: version_LessThan
 lease_lessor__shouldPersistCheckpoints: lease_greaterOrEqual
-lease_lessor__scheduleCheckpointIfNeeded:
+lease_lessor__scheduleCheckpointIfNeeded: lease_Lease__getRemainingTTL time_Duration__Seconds lease_LeaseQueue__Len lease_LeaseQueue__Less lease_LeaseQueue__Swap lease_LeaseQueue__Push heap_Push zap_Logger__Debug zap_Int64 zap_Duration =_root_.Perennial.time.wp_Now =_root_.Perennial.time.Time.wp_Add
 lease_lessor__Grant: lease_NewLease lease_lessor__isPrimary lease_Lease__refresh lease_Lease__forever lease_Lease__persistTo lease_LeaseExpiredNotifier__RegisterOrUpdate lease_lessor__scheduleCheckpointIfNeeded
 lease_lessor__Checkpoint: lease_lessor__shouldPersistCheckpoints lease_Lease__persistTo lease_lessor__isPrimary lease_lessor__scheduleCheckpointIfNeeded
 lease_lessor__ExpiredLeasesC:
-lease_lessor__Promote:
-lease_lessor__Demote:
+lease_newLeaseExpiredNotifier:
+lease_lessor__clearLeaseExpiredNotifier: lease_newLeaseExpiredNotifier
+lease_lessor__clearScheduledLeasesCheckpoints:
+lease_lessor__Demote: lease_Lease__forever lease_lessor__clearScheduledLeasesCheckpoints lease_lessor__clearLeaseExpiredNotifier
 # Revoke (unit T3, 2026-10-25): the lease's keys (`Lease.Keys`), sorted (`sort.StringSlice.Sort`,
 # the trust boundary: Perennial's `sort` has the type only), deleted through the store's range
 # deleter (mvcc's metrics/watchable write transaction), the lease's record deleted
@@ -163,15 +165,17 @@ mvcc_metricsTxnWrite__DeleteRange: @
 mvcc_watchableStoreTxnWrite__End: @
 lease_lessor__Revoke: lease_Lease__Keys sort_StringSlice__Sort schema_UnsafeDeleteLease backend__BatchTx =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_mvccBackend_isBackend_law_holds =mvcc.api.mvccApi_mvccTxn_leaseDelete_law_holds
 # The lessor's listing for the lease read entry points (the lease-read plan, 2026-10-31):
-# `Leases` (read-locked `unsafeLeases`, then sorted by `Remaining()`) and its sorter. The trust
-# boundary: `sort.Sort` for a `Less` that answers anything (`Proof/sort/SortAnyLess.lean`, until
-# Perennial proves it).
+# `Leases` (read-locked `unsafeLeases`, then sorted by `Remaining()`) and its sorter, with `sort.Sort`
+# for a `Less` that answers anything (`Proof/sort/SortAnyLessLinked.lean`; an axiom until 2026-11-21).
 lease_Lease__Remaining: time_Time__IsZero
 lease_lessor__unsafeLeases:
 lease_leasesByExpiry__Len:
 lease_leasesByExpiry__Less: lease_Lease__Remaining
 lease_leasesByExpiry__Swap:
 lease_lessor__Leases: lease_lessor__unsafeLeases =EtcdGrove.sort.«Sort».wp_anyLess lease_leasesByExpiry__Len lease_leasesByExpiry__Less lease_leasesByExpiry__Swap
+# (prove-ps2-promote, 2026-11-21) Promote: a fresh demotec swapped into `demoteOuter`, every lease refreshed and
+# registered, and with `leaseRevokeRate` or more leases the sort of `leasesByExpiry` and `Remaining()` of each
+lease_lessor__Promote: lease_lessor__unsafeLeases =EtcdGrove.sort.«Sort».wp_anyLess lease_leasesByExpiry__Len lease_leasesByExpiry__Less lease_leasesByExpiry__Swap lease_Lease__Remaining lease_Lease__refresh lease_LeaseExpiredNotifier__RegisterOrUpdate lease_lessor__scheduleCheckpointIfNeeded
 schema_bucket__ID:
 schema_bucket__Name:
 schema_bucket__IsSafeRangeBucket:
@@ -271,7 +275,7 @@ raftNode__apply:
 raftNode__onStop:
 raftNode__stop:
 raftNode__processMessages: raftpb_Message__GetTo Message__GetType zap_String zap_Duration zap_Logger__Warn
-raftNode__start: raftNode__tick raftNode__processMessages updateCommittedIndex raftNode__onStop IsEmptySnap IsEmptyHardState HardState__GetCommit HardState__GetTerm Entry__GetType proto_CloneSnapshot zap_Error zap_Logger__Fatal zap_Duration zap_Logger__Warn MemoryStorage__ApplySnapshot =srvApi_wp_MemAppend SnapshotMetadata__GetIndex zap_Uint64 zap_Logger__Info
+raftNode__start: raftNode__tick raftNode__processMessages updateCommittedIndex raftNode__onStop IsEmptySnap IsEmptyHardState HardState__GetCommit HardState__GetTerm Entry__GetType proto_CloneSnapshot zap_Error zap_Logger__Fatal zap_Duration zap_Logger__Warn MemoryStorage__ApplySnapshot =srvApi_wp_MemAppend SnapshotMetadata__GetIndex zap_Uint64 zap_Logger__Info Entry__GetIndex Entry__GetTerm replayTerms__after
 # raft.Node's ReadIndex, promoted (the request path's unit 4b): the read loop's raftInterface.
 raftNode__ReadIndex:
 #
@@ -375,10 +379,13 @@ EtcdServer__checkLeaseTimeToLive: EtcdServer__AuthInfoFromCtx EtcdServer__AuthSt
 EtcdServer__leaseTimeToLive:
 EtcdServer__LeaseTimeToLive: EtcdServer__requireAuthInfo+C EtcdServer__checkLeaseTimeToLive EtcdServer__leaseTimeToLive EtcdServer__AuthStore
 # The lease keep-alive entry point (the lease-renew plan, 2026-11-01; its contracts approved by
-# the user): the trust boundary is the lessor's `Renew`, `ensureLeadership`, `waitAppliedIndex`,
+# the user): the trust boundary was the lessor's `Renew` (until 2026-11-21), `ensureLeadership`, `waitAppliedIndex`,
 # `waitLeader` (names-only; `waitAppliedIndex` proved by prove-etcdserver, `waitLeader` by prove-srvloops)
-# and the forwarding, `leasehttp.RenewHTTP`.
-lease_lessor__Renew:
+# and the forwarding, `leasehttp.RenewHTTP`. (prove-ps2-renew, 2026-11-21) `Renew` proved over the
+# real code: its `select`'s receives on close-once channels, the refresh under the write lock.
+lease_lessor__Renew: lease_lessor__isPrimary lease_Lease__Remaining lease_Lease__refresh lease_LeaseExpiredNotifier__RegisterOrUpdate
+EtcdServer__raftStatus:
+EtcdServer__isActive: raftNode__getLatestTickTs
 EtcdServer__ensureLeadership:
 EtcdServer__waitAppliedIndex: EtcdServer__getCommittedIndex
 EtcdServer__waitLeader: EtcdServer__Leader membership_RaftCluster__Member
@@ -469,6 +476,11 @@ firstOpLease: RequestOp__GetRequest PutRequest__GetLease
 # doSerialize, Range and Txn (both branches), unit 3b.
 EtcdServer__doSerialize: traceutil_Get EtcdServer__AuthInfoFromCtx traceutil_Trace__Step
 EtcdServer__Range: traceutil_Tracer__Start trace_WithAttributes attribute_String attribute_Int64 attribute_Bool RangeRequest__GetKey RangeRequest__GetRangeEnd RangeRequest__GetRevision RangeRequest__GetLimit RangeRequest__GetCountOnly RangeRequest__GetKeysOnly EtcdServer__Logger traceutil_EnsureTrace txn_WarnOfExpensiveReadOnlyRangeRequest traceutil_Trace__AddField traceutil_Trace__LogIfLong strconv_FormatBool time_Duration__Seconds prometheus_HistogramVec__WithLabelValues traceutil_Trace__Step EtcdServer__KV txn_Range =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds EtcdServer__doSerialize etcdserverpb_RangeRequest__String proto_Size
+# auth-mediation M3 (2026-11-21): the streamed range over the trust boundary `rangeStream` (names
+# only, `axiom … .wp_proof`; option (B) of the user's choice, reviewed in
+# notes/axiom-review/rangestream.md) and `doSerialize`.
+EtcdServer__rangeStream:
+EtcdServer__RangeStream: traceutil_Tracer__Start trace_WithAttributes attribute_String attribute_Int64 attribute_Bool RangeRequest__GetKey RangeRequest__GetRangeEnd RangeRequest__GetRevision RangeRequest__GetLimit RangeRequest__GetCountOnly EtcdServer__Logger traceutil_EnsureTrace traceutil_Trace__Step EtcdServer__doSerialize EtcdServer__rangeStream
 EtcdServer__Txn: txn_IsTxnReadonly traceutil_Tracer__Start trace_WithAttributes TxnRequest__GetCompare firstCompareKey attribute_String TxnRequest__GetSuccess firstOpKey firstOpType firstOpLease attribute_Int64 attribute_Int TxnRequest__GetFailure attribute_Bool EtcdServer__Logger traceutil_EnsureTrace txn_IsTxnSerializable traceutil_Trace__Step apply_CheckTxnAuth txn_WarnOfExpensiveReadOnlyTxnRequest traceutil_Trace__LogIfLong strconv_FormatBool time_Duration__Seconds prometheus_HistogramVec__WithLabelValues EtcdServer__KV txn_Txn =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds EtcdServer__doSerialize context_WithValue EtcdServer__raftRequest proto_Size =apply.CheckTxnAuth.wp_lbW_linked
 # The read loop's `server` interface on *EtcdServer (interface.go, server.go; the request path's
 # unit 4b): see ReadServer.lean (`isReadServer_of_server`).
@@ -511,7 +523,7 @@ EtcdServer__Backend:
 EtcdServer__shouldSnapshotToDisk:
 EtcdServer__shouldSnapshotToMemory:
 EtcdServer__snapshotIfNeededAndCompactRaftLog: EtcdServer__shouldSnapshotToDisk EtcdServer__shouldSnapshotToMemory EtcdServer__snapshot EtcdServer__compactRaftLog
-EtcdServer__applyAll: EtcdServer__applySnapshot EtcdServer__applyEntries EtcdServer__Backend EtcdServer__Logger backend_VerifyBackendConsistency EtcdServer__snapshotIfNeededAndCompactRaftLog raftpb_Message__GetTerm EtcdServer__createMergedSnapshotMessage EtcdServer__sendMergedSnap consistentIndex__ConsistentIndex raftpb_Message__GetTo EtcdServer__ReportSnapshot =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_mvccImage_snapshot_law_holds backend__Snapshot storage_BackendHooks__OnPreCommitUnsafe consistentIndex__UnsafeSave batchTxBuffered__UnsafePut batchTxBuffered__UnsafeRange schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket
+EtcdServer__applyAll: EtcdServer__applySnapshot EtcdServer__applyEntries EtcdServer__Backend EtcdServer__Logger backend_VerifyBackendConsistency EtcdServer__snapshotIfNeededAndCompactRaftLog raftpb_Message__GetTerm EtcdServer__createMergedSnapshotMessage EtcdServer__sendMergedSnap raftpb_Message__GetTo EtcdServer__ReportSnapshot =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_mvccImage_snapshot_law_holds backend__Snapshot storage_BackendHooks__OnPreCommitUnsafe consistentIndex__UnsafeSave batchTxBuffered__UnsafePut batchTxBuffered__UnsafeRange schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket
 # The server's apply loop `run` (server.go; the request path's unit 4c, see InvRun.lean): the
 # committed index's and the leader's setters (with bodies), the raft storage snapshot's
 # metadata getters (raft v3.7's raftpb), the FIFO scheduler (in mvcc's list: its results reused from mvcc's Link), and the
@@ -555,7 +567,7 @@ EtcdServer__monitorCompactHash:
 EtcdServer__monitorDowngrade:
 read_NewRead: @
 read_Read__LinearizableReadLoop: @
-EtcdServer__start: EtcdServer__Logger zap_Logger__Info zap_String zap_Uint64 wait_New wait_NewTimeList wait_timeList__Wait wait_timeList__Trigger read_NewRead NewNotifier EtcdServer__MemberID EtcdServer__Cluster membership_RaftCluster__ID types_ID__String Version__String version_Cluster prometheus_GaugeVec__With EtcdServer__run EtcdServer__ApplyWait EtcdServer__Done EtcdServer__Stopping EtcdServer__LeaderChanged EtcdServer__FirstCommitInTermNotify EtcdServer__NextRequestID EtcdServer__RequestTimeout EtcdServer__AppliedIndex raftNode__ReadState raftNode__ReadIndex
+EtcdServer__start: EtcdServer__Logger zap_Logger__Info zap_String zap_Uint64 wait_New wait_NewTimeList wait_timeList__Wait wait_timeList__Trigger read_NewRead NewNotifier EtcdServer__MemberID EtcdServer__Cluster membership_RaftCluster__ID types_ID__String Version__String version_Cluster prometheus_GaugeVec__With EtcdServer__run EtcdServer__ApplyWait EtcdServer__Done EtcdServer__Stopping EtcdServer__LeaderChanged EtcdServer__FirstCommitInTermNotify EtcdServer__NextRequestID EtcdServer__RequestTimeout EtcdServer__AppliedIndex raftNode__ReadState raftNode__ReadIndex =srvApi_wp_Status
 EtcdServer__Start: EtcdServer__start EtcdServer__GoAttach EtcdServer__Logger EtcdServer__adjustTicks EtcdServer__publishV3 config_ServerConfig__ReqTimeout EtcdServer__purgeFile monitorFileDescriptor EtcdServer__monitorClusterVersions EtcdServer__monitorStorageVersion read_Read__LinearizableReadLoop EtcdServer__monitorKVHash EtcdServer__monitorCompactHash EtcdServer__monitorDowngrade
 #
 # Unit P1b (2026-10-14): the request path's leaf functions proved (traceutil, the cluster's
@@ -611,9 +623,10 @@ auth_authStore__BcryptCost:
 auth_isValidPermissionRange: auth_isOpenEnded BytesAffineComparable__Compare
 # The admin side (the auth plan's S4, 2026-10-24): each a step of the model's state appended to the
 # history (`auth/Steps.lean`), over the write side's contracts (`InvAuth.lean`, `authWR`). The trust
-# boundary: zap.Strings, selectPassword (bcrypt, base64).
+# boundary: zap.Strings; `selectPassword` with its body since prove-authcrypto (2026-11-21), over bcrypt's
+# `GenerateFromPassword` (the trust boundary) and base64's decoder (the package fact).
 zap_Strings:
-auth_authStore__selectPassword:
+auth_authStore__selectPassword: bcrypt_GenerateFromPassword
 auth_authStore__setRevision:
 auth_authStore__commitRevision: auth_authStore__Revision
 auth_authStore__UserAdd: auth_authStore__commitRevision auth_authStore__refreshRangePermCache auth_authStore__selectPassword zap_String zap_Logger__Info
@@ -654,9 +667,10 @@ auth_authStore__AuthInfoFromCtx: metadata_FromIncomingContext auth_authStore__au
 zap_Logger__Check: zap_Logger__check
 auth_authStore__Authenticate: auth_authStore__IsAuthEnabled auth_authStore__Revision auth_redactToken zap_String zap_Logger__Check zapcore_CheckedEntry__Write
 # The token prefix (C1's A4, 2026-10-29): the store's, over the provider's contract
-# (`tokenProviderOk`'s `genTokenPrefix` clause); the trust boundary: the simple provider's
-# (`crypto/rand`, `math/big`: names only).
-auth_tokenSimple__genTokenPrefix:
+# (`tokenProviderOk`'s `genTokenPrefix` clause); the simple provider's with its body since
+# prove-authcrypto (2026-11-21), over Perennial's `crypto/rand.Int` (its trusted model) and
+# `math/big` (`=` terms); until then the trust boundary (names only).
+auth_tokenSimple__genTokenPrefix: =_root_.Perennial.math.big.wp_NewInt =_root_.Perennial.crypto.rand.wp_Int =_root_.Perennial.math.big.Int.wp_Int64
 auth_authStore__GenTokenPrefix:
 # The raft wrapper's construction (raft.go, bootstrap.go; stage R8b-C of the raft v3.7 retarget,
 # 2026-10-16): `newRaftNode` (its callees are contracts in its spec, Perennial's `time.Now`, and since
@@ -673,7 +687,7 @@ bootstrappedRaft__newRaftNode: =srvApi_wp_StartNode =srvApi_wp_RestartNode newRa
 # 2026-10-16, D13 and D13a-d: InvBuild.lean, InvBoot.lean, BuildAlloc.lean, BuildGap.lean).
 # `NewServer`, `restoreAlarms` and `NewUberApplier` with their bodies (their proofs unit N1's);
 # the trust boundary (`axiom … .wp_proof`): the names-only callees whose contracts only say they
-# return (the stats, the cluster's `String`/`SetVersionChangedNotifier`, `URLs.StringSlice`,
+# return (the stats, the cluster's `String`/`SetVersionChangedNotifier`,
 # `PeerDialTimeout`, `addFeatureGateMetrics`, `newCorruptionChecker`, mvcc's
 # `store.HashStorage`, `math.Ceil`; schema's auth and alarm backends' constructors proved from
 # their bodies since unit N4, 2026-10-17); and the constructors' contracts, axioms true of
@@ -690,7 +704,8 @@ zap_NewNop: @
 v2stats_NewLeaderStats: zap_NewNop
 membership_RaftCluster__String:
 membership_RaftCluster__SetVersionChangedNotifier:
-types_URLs__StringSlice:
+# `URLs.StringSlice` translated and proved (prove-ps2-misc, 2026-11-21), over `url.URL.String`'s spec.
+types_URLs__StringSlice: =http.URLStringAny_ok
 config_ServerConfig__PeerDialTimeout:
 addFeatureGateMetrics:
 newCorruptionChecker:
@@ -712,8 +727,11 @@ auth_NewTokenProvider: auth_decomposeOpts auth_newTokenProviderSimple auth_newTo
 auth_NewAuthStore:
 # (the spec-first pilot, phase 1, 2026-10-27: notes/compactor-pilot-plan.md) the auto-compactor with
 # its bodies, specified; `New`, `newPeriodic`, `newRevision` and the getters are phase 1's glue
-# (`sorry` until written), `Run` phase 3's and the rest phase 4's. The clock is the trust boundary.
-clockwork_NewRealClock:
+# (`sorry` until written), `Run` phase 3's and the rest phase 4's. The clock: clockwork's real clock over
+# Perennial's model of the runtime clock (2026-11-21, prove-clock).
+clockwork_realClock__Now: =_root_.Perennial.time.wp_Now
+clockwork_realClock__After: =_root_.Perennial.time.wp_After
+clockwork_NewRealClock: clockwork_realClock__Now clockwork_realClock__After
 # `EtcdServer.Compact` (the compactor's Compactable) and the request's getters (its trace attributes);
 # (M2's S3; the apply side's stage 4c, 2026-10-31: over the request path's one spec, at
 # `reqPropOk`'s compaction form)
@@ -851,9 +869,13 @@ io_MultiReader:
 snapshot__WriteTo: @
 snapshot__Size: @
 snapshot__Close: @
+snapshot__UnsafeRange: @
 proto_CloneConfState: @
 newSnapshotReaderCloser: io_Pipe snapshot__WriteTo zap_Int64 go_humanize_Bytes zap_String zap_Logger__Info zap_Error zap_Logger__Warn io_PipeWriter__CloseWithError snapshot__Close
-EtcdServer__createMergedSnapshotMessage: EtcdServer__Logger EtcdServer__KV newSnapshotReaderCloser proto_CloneConfState snapshot__Size snap_NewMessage
+replayTerms__after:
+replayTerms__termAt:
+replayTerms__covers:
+EtcdServer__createMergedSnapshotMessage: EtcdServer__Logger EtcdServer__KV newSnapshotReaderCloser proto_CloneConfState snapshot__Size snap_NewMessage schema_UnsafeReadConsistentIndex snapshot__UnsafeRange schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket replayTerms__covers replayTerms__termAt
 EtcdServer__sendMergedSnap: EtcdServer__Logger EtcdServer__MemberID types_ID__String zap_String snap_Message__GetTo zap_Int64 go_humanize_Bytes zap_Logger__Info EtcdServer__GoAttach snap_Message__CloseNotify zap_Duration zap_Logger__Warn
 # (rafthttp stage 6f, 2026-10-24) rafthttp linked: the transport's methods over their callees
 # (`TransportSpecs.lean`), rafthttp's functions with their bodies, and the callees they reach;
@@ -968,7 +990,8 @@ v2stats_ServerStats__SendAppendReq:
 raftpb_MessageType__String: strconv_Itoa
 strconv_Itoa:
 probing_NewProber:
-rate_Every:
+# (prove-metrics3, 2026-11-21) proved over the real code
+rate_Every: time_Duration__Seconds_ptr
 types_IDFromString:
 strings_TrimSuffix:
 fmt_ErrorfPlain:
@@ -978,10 +1001,10 @@ v3_Version__Major:
 v3_Version__Minor:
 v3_MustParse:
 v3_Version__LessThan:
-binary_ReadUint64:
+binary_ReadUint64: =_root_.Perennial.encoding.binary.bigEndian.wp_Uint64
 proto_UnmarshalPb:
 proto_SizePb: @
-binary_WriteUint64:
+binary_WriteUint64: =_root_.Perennial.encoding.binary.bigEndian.wp_PutUint64
 pbutil_MustMarshalMessage: proto_MarshalPb
 raftpb_Message__GetIndex: @
 raftpb_Message__GetTerm: @

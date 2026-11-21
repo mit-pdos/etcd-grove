@@ -33,7 +33,6 @@ extensions were `TrivialExt.lean`'s `[idIssueExt]`.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.AdequacyMembers
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.Adequacy
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.MainLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.PkgTable
 public import Proof.runtime.Start
@@ -57,6 +56,20 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
 attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
   etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
+
+/-! ## The ghost-state bundle -/
+
+/-- The universal camera at slot 0 (putgetN's, moved here unchanged when putgetN's closed theorem
+retired, 2026-11-21). -/
+def putgetNGF_allG : AllG putgetNGF := ⟨⟨0, rfl⟩⟩
+
+instance putgetNGF_gooseGpreS : GooseGpreS putgetNGF where
+  goose_preG_iris := ⟨⟨⟨1, rfl⟩, ⟨2, rfl⟩, ⟨3, rfl⟩⟩, ⟨⟨4, rfl⟩⟩⟩
+  goose_preG_heap := ⟨⟨5, rfl⟩⟩
+  goose_preG_proph := ⟨⟨⟨6, rfl⟩⟩⟩
+  goosePreGExts := (⟨putgetNGF_allG⟩, ⟨putgetNGF_allG⟩, PUnit.unit)
+  goose_preG_go_state := ⟨@GhostVarG.mk _ _ ⟨7, rfl⟩⟩
+  goosePreGAllG := putgetNGF_allG
 
 /-! ## The closed theorem -/
 

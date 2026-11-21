@@ -23,6 +23,11 @@ theorem backend.bktEnts_eq (m : backend.BktData) : backend.bktEnts m = bbolt.bkt
 
 theorem backend.FsCtx.subsingleton (GF : BundledGFunctors) : Subsingleton (backend.FsCtx GF)
 
+theorem backend.boltState_read_au_q [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (γ :
+    backend.DBNames) (q : Qp) (D : backend.Data) : bbolt.boltState γ q D ⊢ AU <{ ∃∃ q' D',
+    bbolt.boltState γ q' D' }> @ ⊤ \ ↑γ.ns, ∅ <{ bbolt.boltState γ q' D', COMM bbolt.boltState γ q D
+    ∗ ⌜D' = D⌝ }>
+
 structure backend.FsCtx
   (GF : BundledGFunctors) [hG : HeapGS hlc GF] [sem : go.Semantics] : Type 1 where
   S : ExtSemantics Fs.fsExt
@@ -67,6 +72,10 @@ def backend.fileAtF [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (path
 theorem backend.seekIdx_eq (es : List backend.Ent) (k : GoString) : backend.seekIdx es k =
     bbolt.seekIdx es k
 
+theorem backend.boltState_halves [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (γ :
+    backend.DBNames) (D : backend.Data) : bbolt.boltState γ 1 D ⊣⊢ bbolt.boltState γ (Qp.half 1) D ∗
+    bbolt.boltState γ (Qp.half 1) D
+
 theorem backend.txLive_nonnull (tx : Loc) (γ : backend.DBNames) (q : Qp) (T : bbolt.TxView) :
     backend.txLive tx γ q T ⊢ ⌜tx ≠ null⌝
 
@@ -85,7 +94,7 @@ theorem bbolt.boltState.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt 
 
 def backend.ownDB (db : Loc) (γ : backend.DBNames) (D : backend.Data) : IProp GF :=
   backend.onFs fun [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] =>
-    iprop(bbolt.isBolt db γ ∗ bbolt.boltState γ 1 D ∗ backend.dbRestF γ)
+    iprop(bbolt.isBolt db γ ∗ bbolt.boltState γ (Qp.half 1) D ∗ backend.dbRestF γ)
 
 def backend.curAt (tx : Loc) (γ : backend.DBNames) (es : List backend.Ent) (i : Nat) (k v : GoSlice)
     : IProp GF :=
@@ -102,6 +111,9 @@ theorem backend.FsCtx.eq (GF : BundledGFunctors) (a b : backend.FsCtx GF) : a = 
 
 def backend.bktEnts (m : backend.BktData) : List backend.Ent :=
   (GMap.toList m).mergeSort backend.entLe
+
+def backend.dbHalf (γ : backend.DBNames) (D : backend.Data) : IProp GF :=
+  backend.onFs fun [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] => bbolt.boltState γ (Qp.half 1) D
 
 def backend.txBytes (tx : Loc) (γ : backend.DBNames) (s : GoSlice) (b : GoString) : IProp GF :=
   backend.onFs fun [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] => bbolt.txBytes tx γ s b
@@ -322,6 +334,9 @@ theorem backend.wView_wr (D : backend.Data) : bbolt.TxView.wr D = backend.wView 
 theorem backend.wBkt_persistent (tx : Loc) (γ : backend.DBNames) (b : Loc) (n : GoString) (g : Nat)
     : Persistent (backend.wBkt tx γ b n g)
 
+theorem backend.dbHalf_timeless (γ : backend.DBNames) (D : backend.Data) : Timeless (backend.dbHalf
+    γ D)
+
 def backend.Data : Type :=
   GMap GoString backend.BktData
 
@@ -333,3 +348,8 @@ theorem backend.wView.proj_gen (D S : backend.Data) (G : GoString → Nat) : (ba
 
 def backend.wrTok (_γ : backend.DBNames) : IProp GF :=
   iprop(emp)
+
+theorem backend.boltState_au_back_q [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (γ :
+    backend.DBNames) (q : Qp) (D : backend.Data) : AU <{ ∃∃ q' D', bbolt.boltState γ q' D' }> @ ⊤ \
+    ↑γ.ns, ∅ <{ bbolt.boltState γ q' D', COMM bbolt.boltState γ q D ∗ ⌜D' = D⌝ }> ⊢ |={⊤}=>
+    bbolt.boltState γ q D

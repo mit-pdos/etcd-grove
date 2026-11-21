@@ -1,5 +1,6 @@
 /-
-`(*lessor).Renew` (`server/lease/lessor.go`), names only: a trust-boundary contract. Lean-first (no
+`(*lessor).Renew` (`server/lease/lessor.go`), with its body (proved over the real code since
+prove-ps2-renew, 2026-11-21; names only, a trust-boundary contract until then). Lean-first (no
 Rocq counterpart); the lease-renew plan (`notes/lease-renew-plan.md`, 2026-11-01), vocabulary
 `Proof/go_etcd_io/etcd/server/v3/lease/InvLessor.lean`.
 -/
@@ -23,7 +24,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 
-/-- **`le.Renew(id)`** (names-only, a contract; the lease-renew plan's C1), any goroutine, with the
+/-- **`le.Renew(id)`** (the lease-renew plan's C1, a contract until prove-ps2-renew), any goroutine, with the
 lessor (`lessorInv`), its reader pool (`lessorRdPool`; a reader slot of its lock until the lease-src
 plan, 2026-11-02: `Renew` read-locks `le.mu` first and unlocks it before `l.expired()`,
 `lessor.go:396-414`, so the slot is borrowed with the token and given back first) and the level-0
@@ -35,14 +36,17 @@ lease's revocation, or the checkpointer's refusal) or `ErrLeaseNotFound` (no lea
 was revoked while waiting). Nothing is stated of the TTL or of the lease's new expiry, which the
 model does not track.
 
-**Why it is faithful.** `Renew` touches only what `le.mu` guards (`lessorMu`): under `le.mu`'s read
+**What the proof uses** (the contract's reasons, 2026-11-01, now the proof's steps). `Renew` touches only what `le.mu` guards (`lessorMu`): under `le.mu`'s read
 lock it reads the lease map, `remainingTTL` and `demotec`; outside it, `l.expired()` reads the
 expiry under `l.expiryMu`'s read lock (`Remaining`); it waits on the lease's `revokec`, `demotec`
-and `stopC` (receives only); under `le.mu`'s write lock, which it takes through the guard
+and `stopC` (receives only, each a close-once channel whose state is in its own invariant,
+`onceChanInv`: `demotec`'s, which the lessor's `demoteOuter` gives a receiver of the value read
+under the lock, prove-ps2-lease; `revokec`'s, in `leaseMeta`, and `stopC`'s, `lessorStopRecv` in
+`lessorExtra`, prove-ps2-renew, 2026-11-21); under `le.mu`'s write lock, which it takes through the guard
 (`lessorInv`), it reads the lease map again and updates the lease's `expiry` (`refresh`, holding
 `l.expiryMu` too, as `leaseMeta` and `leaseExpiry` split it), `remainingTTL`, and the expiry
 notifier's heap (`RegisterOrUpdate`, `notifierAt`'s shape kept); then `leaseRenewed.Inc()`, a
-metric (not in `leaseInit`: no effect the model sees). It reads `le.cp` under `le.mu`'s read lock (`lessor.go:412`), which `lessorMu` holds at `nil`
+metric (`leaseInit`'s `counterSpec`: no effect the model sees). It reads `le.cp` under `le.mu`'s read lock (`lessor.go:412`), which `lessorMu` holds at `nil`
 (`lessorExtra`; stage B3, 2026-11-12): `newLessor` does not set it (`lessor.go:225-242`), its only
 writer is `SetCheckpointer` (`lessor.go:274-279`), which `NewServer` calls only with the
 `LeaseCheckpoint` feature on (`etcdserver/server.go:393-405`), and the model has no contract for it

@@ -92,7 +92,7 @@ theorem EtcdServer.waitLeader.wp_proof
   wp_for IH
   wp_if_destruct
   · -- still no leader: wait an election
-    wp_apply (lc := 2) time.wp_After as %tch %γa #Htch
+    wp_apply (lc := 2) (time.After.spec_pkgInit time.wp_After _) as %tch %γa #Htch
     (try wp_auto)
     wp_apply HDone as %chD %γD #HcD
     (try wp_auto)

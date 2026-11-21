@@ -97,7 +97,7 @@ theorem backend.backend.ConcurrentReadTx.wp_proof
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   unfold rdTok
-  icases Htok with ⟨%rt, #Hrt, Hmu, Hcr⟩
+  icases Htok with ⟨%rt, #Hrt, Hmu, Hcr, Hbm⟩
   ihave #Hb' := Hb
   unfold isBackend
   icases Hb' with ⟨%t, %rt2, %tm, %db, %lg, %h, -, #Hrt2, -, -, -, -, -, #Htm, -, -, -, #Hg,
@@ -257,7 +257,7 @@ theorem backend.backend.ConcurrentReadTx.wp_proof
     ipureintro; exact ⟨Hbwf, Hbids, HPwf⟩
   isplitr
   · rw [← hLvd]; iexact Hthc
-  isplitl [Hmu]
+  isplitl [Hmu Hbm]
   · iintro Hcr
     iexists rt
     iframe; iframe #

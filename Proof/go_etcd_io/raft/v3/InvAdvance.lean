@@ -227,6 +227,7 @@ theorem adv_recv_au (γ : NodeNames) (rn : Loc) (id : w64) (ch : Loc)
       recvAu γ.advancec Unit Φ := by
   unfold isAdvChan recvAu
   iintro ⟨Hlc1, Hlc2⟩ ⟨#Hchan, #Hinv, #Hrtk⟩ Hdep Hau
+  iapply ncfupd_of_fupd
   iinv Hinv with Hi Hclose
   imod lc_fupd_elim_later (E := ⊤ \ ↑advN) $$ Hlc1 Hi with Hi
   unfold advInv
@@ -247,6 +248,7 @@ theorem adv_recv_au (γ : NodeNames) (rn : Loc) (id : w64) (ch : Loc)
       iframe
     imodintro
     unfold recvNestedAu
+    iapply ncfupd_of_fupd
     iinv Hinv with Hi Hclose
     imod lc_fupd_elim_later (E := ⊤ \ ↑advN) $$ Hlc2 Hi with Hi
     icases Hi with ⟨%s, Hch, Hi⟩
@@ -313,6 +315,7 @@ theorem adv_send_au (γ : NodeNames) (rn : Loc) (id : w64) (ch : Loc) (ds : List
   imod dghostVar_update_halves ((reqOf L ds, loanReq γ.mode L x) : AdvReq) γ.req q0 q0
     $$ Hr1 Hr2 with ⟨Hr1, Hr2⟩
   imod esc_send_prep γ.raft.reTrace γ.esc ms $$ Hcl Hesc with ⟨Hpay, Hheld⟩
+  iapply ncfupd_of_fupd
   iinv Hinv with Hi Hclose
   imod lc_fupd_elim_later (E := ⊤ \ ↑advN) $$ Hlc1 Hi with Hi
   unfold advInv
@@ -341,6 +344,7 @@ theorem adv_send_au (γ : NodeNames) (rn : Loc) (id : w64) (ch : Loc) (ds : List
       iexact Hpay
     imodintro
     unfold sendNestedAu
+    iapply ncfupd_of_fupd
     iinv Hinv with Hi Hclose
     imod lc_fupd_elim_later (E := ⊤ \ ↑advN) $$ Hlc2 Hi with Hi
     icases Hi with ⟨%s, Hch, Hi⟩

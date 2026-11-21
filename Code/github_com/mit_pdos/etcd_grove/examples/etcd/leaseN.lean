@@ -32,7 +32,7 @@ namespace github_com.mit_pdos.etcd_grove.examples.etcd.leaseN
   #(W64 11000)
 
 @[reducible] noncomputable def Token [GooseExts] [GoGlobalContext] : val :=
-  #(go!"leaseN-2422")
+  #(go!"leaseN-1302")
 
 @[reducible] noncomputable def leaseID [GooseExts] [GoGlobalContext] : val :=
   #(W64 7)
@@ -55,7 +55,7 @@ noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
 /-- check makes the lease example's two reads through a new client of the member at addr and
     panics if either answers wrongly; it reports whether both answered.
 
-    go: leaseN.go:61:6 -/
+    go: leaseN.go:63:6 -/
 noncomputable def check.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Lam "lg"
@@ -215,7 +215,7 @@ noncomputable def check.impl [GooseExts] [GoGlobalContext] : val :=
 /-- run serves every started member's gRPC API at its client address, then checks every member's
     lease reads, in the members' order.
 
-    go: leaseN.go:94:6 -/
+    go: leaseN.go:96:6 -/
 noncomputable def run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "srvs"
   (Lam "ms"
@@ -287,7 +287,7 @@ noncomputable def run.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Main starts the k members of a new cluster and checks each member's lease reads (run).
 
-    go: leaseN.go:109:6 -/
+    go: leaseN.go:111:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "k"
   (Seq (App (Val exceptionDo)

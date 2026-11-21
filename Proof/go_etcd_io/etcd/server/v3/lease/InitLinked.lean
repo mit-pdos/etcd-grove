@@ -159,6 +159,11 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of leaseRenewed))
   wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %cleaseRenewed ⟨#CleaseRenewed, %NleaseRenewed⟩
   try wp_auto
+  ihave #EleaseRenewed : (go_etcd_io.etcd.server.v3.lease.counterSpec cleaseRenewed : IProp GF) $$ []
+  · iunfold EtcdGrove.prometheus.metric.counterSpec at CleaseRenewed
+    icases CleaseRenewed with ⟨#K, -, -⟩
+    unfold go_etcd_io.etcd.server.v3.lease.counterSpec
+    iexact K
   -- translated initializer of leaseTotalTTLs))
   wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bleaseTotalTTLs BleaseTotalTTLs
   try wp_auto
@@ -210,6 +215,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   ipersist Hforever
   ipersist HleaseGranted
   ipersist HleaseRevoked
+  ipersist HleaseRenewed
   ipersist HleaseTotalTTLs
   ihave #TNP := EtcdGrove.errorMsg_triple _ _ _ $$ MNP
   ihave #TNF := EtcdGrove.errorMsg_triple _ _ _ $$ MNF

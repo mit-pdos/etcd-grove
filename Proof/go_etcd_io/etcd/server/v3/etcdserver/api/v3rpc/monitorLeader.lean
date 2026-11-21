@@ -68,7 +68,7 @@ theorem v3rpc.monitorLeader.wp_proof
     wp_for HI
     wp_apply wp_StoppingNotify s ch $$ []
     · iframe #
-    wp_apply (lc := 2) time.wp_After as %tch %γt #Hbag
+    wp_apply (lc := 2) (time.After.spec_pkgInit time.wp_After _) as %tch %γt #Hbag
     ihave #Hstc' := Hstc
     iunfold stopChan at Hstc'
     icases Hstc' with ⟨%γst, #Hstc'⟩

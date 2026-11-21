@@ -128,6 +128,54 @@ noncomputable def newFakeTicker [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def newFakeTimer [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/jonboulle/clockwork.newFakeTimer"
 
+/-- NewRealClock returns a Clock which simply delegates calls to the actual time
+    package; it should be used by packages in production.
+
+    go: clockwork.go:27:6 -/
+noncomputable def NewRealClock.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Clock.ty))) (App (Val (GoInstruction (GoZeroVal Clock.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType realClock.ty) Clock.ty))) (App (Val (GoInstruction (GoAlloc realClock.ty))) (App (Val (GoInstruction (CompositeLiteral realClock.ty))) (LiteralValue []))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Clock.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad Clock.ty))) (Var "$res0")))))
+
+/-- go: clockwork.go:33:22 -/
+noncomputable def realClock.After.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "rc"
+  (Lam "d"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "rc" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType realClock.ty)))) (Var "rc"))
+  (Let "d" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "d"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "d"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.After []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)))) (Var "$res0"))))))
+
+/-- go: clockwork.go:41:22 -/
+noncomputable def realClock.Now.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "rc"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Time.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "rc" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType realClock.ty)))) (Var "rc"))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Now []))) (Val #())) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "$res0"))))))
+
 noncomputable instance info' : PkgInfo pkg_id.github_com.jonboulle.clockwork where
   pkgImportedPkgs := [pkg_id.time]
 
@@ -188,11 +236,15 @@ class realClock.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   underlying : go.UnderlyingDirectedEq realClock.ty realClock.underlying
   method_set : go.MethodSetIs realClock.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType realClock.ty) [(go!"After", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)]))), (go!"AfterFunc", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty, (go.GoType.FunctionType (go.signature.Signature [] false []))] false [Timer.ty]))), (go!"NewTicker", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [Ticker.ty]))), (go!"NewTimer", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [Timer.ty]))), (go!"Now", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))), (go!"Since", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [_root_.Perennial.time.Duration.ty]))), (go!"Sleep", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"Until", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [_root_.Perennial.time.Duration.ty])))]
+  ptr_After_unfold : MethodUnfold (go.GoType.PointerType realClock.ty) go!"After" realClock.After.impl
+  ptr_Now_unfold : MethodUnfold (go.GoType.PointerType realClock.ty) go!"Now" realClock.Now.impl
 
 attribute [instance] realClock.TypeAssumptions.type_repr
   realClock.TypeAssumptions.underlying
   realClock.TypeAssumptions.method_set
   realClock.TypeAssumptions.ptr_method_set
+  realClock.TypeAssumptions.ptr_After_unfold
+  realClock.TypeAssumptions.ptr_Now_unfold
 
 opaque FakeClock.nonempty_type : NonemptyType.{0}
 def FakeClock : Type := FakeClock.nonempty_type.type
@@ -531,6 +583,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Timer_instance : Timer.TypeAssumptions
   realTimer_instance : realTimer.TypeAssumptions
   fakeTimer_instance : fakeTimer.TypeAssumptions
+  NewRealClock_unfold : FuncUnfold NewRealClock [] NewRealClock.impl
   import_time_Assumption : _root_.Perennial.time.Assumptions
 
 attribute [instance] Assumptions.Clock_instance
@@ -546,6 +599,7 @@ attribute [instance] Assumptions.Clock_instance
   Assumptions.Timer_instance
   Assumptions.realTimer_instance
   Assumptions.fakeTimer_instance
+  Assumptions.NewRealClock_unfold
   Assumptions.import_time_Assumption
 
 end github_com.jonboulle.clockwork

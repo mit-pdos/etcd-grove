@@ -9,7 +9,7 @@ axiom `opaqueInitsOk`).
 module
 
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Base
-public import Proof.reflect.Init
+public import Perennial.Proof.reflect.Link
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -49,7 +49,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   wp_apply wp_GlobalAlloc (V := _) DefaultNameFunc _ as HDefaultNameFunc
-  wp_apply (_root_.Perennial.reflect.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.reflect _root_.Perennial.reflect.initialize'
+      EtcdGrove.ExternalInit.reflect _root_.Perennial.reflect.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of DefaultNameFunc))
   iframe Hown
   is_pkg_init_finish

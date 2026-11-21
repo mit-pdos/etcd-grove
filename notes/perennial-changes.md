@@ -17,6 +17,73 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### otel trace's `maxSpan` and `var _` assertions: two goose limits (2026-11-21, prove-otel4)
+
+- **Limitation 1 (the guard).** `var maxSpan = newSpanLimits()` (`go.opentelemetry.io/otel/trace` v1.47.0,
+  `auto.go:622`) is refused by goose's modelcheck (R4, `docs/design/unsafe-memory.md`: a call returning a
+  pointer-free struct in a package-variable initializer, which gc may inline and build in place). Here the callee's
+  literal elements are `firstEnv(...)` calls returning `int`s, which cannot overlap `maxSpan`, but the guard does not
+  look at callee bodies. The doc says any change to the guard's rule needs the project owner's approval: not
+  proposed by this repository; `maxSpan.init` stays in `go_opentelemetry_io.otel.trace.opaqueInitsOk`.
+- **Limitation 2 (axiomatized aliases).** goose declares a names-only type alias as `opaque X : go.GoType`, but
+  every reference to an alias names its descriptor `X.ty` (`TypeIdent`), as a translated alias declares it. In
+  go1.27 `encoding/json.Marshaler` is an alias (`= jsonv2.Marshaler`, `v2_encode.go:206`), so otel trace's four
+  `var _ json.Marshaler = ...` assertions do not compile (`Code/encoding/json.lean` is names-only), and with them
+  every `var _` of the package (goose's `"_"` selects them all): 11 entries stay in `opaqueInitsOk`. Today such a
+  reference is avoided by translating the alias itself (`protoimpl.toml`), which for `json.Marshaler` needs
+  `encoding/json/v2` translated (reflect, an `init`).
+- **Tried (not proposed).** goose declaring an axiomatized alias's descriptor `opaque X.ty` (patch
+  `/shared/tmp/otel4/alias.patch`, goose's tests pass) makes the `var _` assertions compile, and the rest of the tree
+  builds (with encoding/json's `IsPkgInit` instance moved from `apply/Base.lean` to `mvcc/Base.lean`), but the
+  initializer still does not step: `Convert TraceID.ty encoding.json.Marshaler.ty` needs `Marshaler.ty` known to be
+  an interface type, which an opaque descriptor is not; `attributeOption{}` also needs a `wp_slice_literal` step.
+  So retiring these entries needs `json.Marshaler`'s target translated (the alias in `Code/encoding/json.toml` and
+  `encoding/json/v2`'s `Marshaler`, names-only), on top of the goose fix: not done (the PR was not opened).
+- **Done here.** The other four initializers (`tracerProviderInstance`, `autoInstEnabled`, `start`, `ended`)
+  translated: `opaqueInitsOk` from 15 entries to 12.
+
+### Goose keeps a struct axiomatized when a field's type is another package's alias (2026-11-21, prove-k8s4)
+
+- **Limitation.** `translate_types` fails a type whose definition mentions an alias of another package
+  (`goose/util/autotypes.go`: "alias from another package"), whatever that package's translation does with
+  the alias. So `watch.FakeWatcher`/`RaceFreeFakeWatcher` (field `logger klog.Logger`, klog translating
+  `Logger = logr.Logger`) stay opaque, and the `var _ Interface = &FakeWatcher{}` checks of `watch`'s
+  initializer cannot be stepped: `watch.opaqueInitsOk` stays.
+- **Workaround.** None: the axiom stays.
+- **Proposed change.** Goose decides such an alias with the imported package's own translation decision
+  (its configuration in the same configuration directory, extended by `ExtendFilter`), with the goose example
+  `xpkgalias`: Perennial PR mit-pdos/perennial#646 (in review). Then `watch.toml` imports `sync` and klog and
+  translates `DefaultChanSize` and `_` (`/shared/tmp/k8s4/watch-toml.patch`), and gen-init proves `watch`'s
+  initializer.
+- **Status.** Open (PR #646 in review).
+
+### `strconv.Atoi` had no body: landed in Perennial `78ac98e99`, not yet in the pin (2026-11-21, prove-metrics3)
+
+- **Limitation.** Perennial translated `strconv` without `Atoi`, so otel trace's `firstEnv` (`maxSpan =
+  newSpanLimits()`, `trace/auto.go:622-690`, v1.47.0) could not be stepped and stays in
+  `go_opentelemetry_io.otel.trace.opaqueInitsOk`.
+- **Landed.** Perennial `78ac98e99` (on `lean`): `strconv.Atoi` and `internal/strconv.Atoi` translated, with
+  specs (a nil error, `ErrSyntax` or `ErrRange`, wrapped by `toError` in `strconv`; the number unspecified) and
+  proofs.
+- **Status.** Waiting for a pin bump past Perennial `7ad4f91b1` (its crash-token channel updates need
+  `ncfupd_of_fupd` in this repository's channel proofs: the coordinator's). Then: translate otel trace's
+  `maxSpan`, `newSpanLimits`, `firstEnv` (over `os.Getenv`'s spec and `strconv.wp_Atoi`) and its other
+  initializers (`/shared/tmp/extlib-metrics3-triage.md`).
+
+### `-x` of a `float64` does not step: `Float64Semantics` has no `GoNeg` (2026-11-21, prove-metrics3)
+
+- **Limitation.** `FloatOps` has `float64Neg`/`float32Neg`, but `Float64Semantics`/`Float32Semantics`
+  (`Perennial/Golang/Defn/Predeclared.lean`) give no rule for `GoUnOp GoNeg go.float64` (only the untyped
+  constant's `neg_untyped_float`), so a run-time float negation is stuck.
+- **Needed by.** x/time/rate's token bucket: `reserveN`'s `lim.limit.durationFromTokens(-tokens)` (`rate.go:357`),
+  which `Limiter.Reserve` and `Limiter.Wait` run (their axioms stay; the rest of the bucket, `advance`,
+  `durationFromTokens`, `tokensFromDuration`, the lock, steps: draft proofs in `/shared/tmp/metrics3/rate-draft/`).
+- **Workaround here.** None: the two functions stay trust-boundary axioms.
+- **Proposed (general).** `neg_float64 (v : w64) : ⟦GoUnOp GoNeg go.float64, #v⟧ ⤳[under] #(float64Neg v)` and its
+  `float32` twin, completing the existing scheme (a trusted-semantics change: Perennial's `fix-semantics` workflow,
+  with the user's sign-off).
+- **Status.** Not started.
+
 ### Float facts: `FloatOps` has no laws, so no float-dependent panic can be excluded (2026-11-20, prove-promdeep)
 
 - **Limitation.** `FloatOps` (`Perennial/Golang/Defn/PostLang.lean`) is a field of the semantics class with no laws:
@@ -34,7 +101,13 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   their bits' order, `uint64ToFloat64`/`int64ToFloat64` of a non-negative integer is non-negative and finite, NaN
   compares false, doubling a normal float whose result is normal adds `2^52` to its bits. Or a full model (Lean's
   `Float` is opaque to the kernel; a bit-level IEEE model would be checkable). Each law is true of Go's `float64`.
-- **Status.** Not started.
+- **Status.** PR https://github.com/mit-pdos/perennial/pull/648 (pgaps, 2026-11-21; review by upamanyus):
+  the sign facts `counter.Add` needs (`lt_zero_false_of_sign_clear`: a float64 with a clear sign bit is not
+  `< +0`; `{int64,uint64,int32,uint32}ToFloat64_sign_clear`), with float64/float32 negation steps (`neg_float64`,
+  `neg_float32`, which x/time/rate's `reserveN` needs: `-tokens`); Go evidence `docs/design/float/float_test.go`.
+  The order and doubling laws (histogram buckets, `ExponentialBuckets`) are not in it. Float-to-integer
+  conversion already steps (Perennial `08d191151`, an arbitrary integer): `lessor.scheduleCheckpointIfNeeded` is
+  proved on the current pin (pgaps); `lessor.Promote` is blocked by its spec (ledger 2026-11-21), not by floats.
 
 ### `wp_apply` with a `have`-local spec can close the goal with `sorry` (2026-11-20, k8s-authz)
 
@@ -253,6 +326,12 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   written` left", the type assertions `src.(WriterTo)` (a `*LimitedReader` has none) and
   `dst.(ReaderFrom)` (excluded by `writerPlain`) by the method sets goose emits. The axioms then
   become theorems with the same statements. Not yet proposed.
+- **Status.** DONE (stdlib3, 2026-11-21): Perennial `9097e1e6d` translates the seven (`io.toml`);
+  etcd-grove proves both specs over the translation (`Proof/io/NewSectionReader.lean`,
+  `Proof/io/CopyN.lean`). `io.secReader` is now defined (the struct's points-to, with
+  `NewSectionReader`'s premises), and `io.readerAtOk`'s post says the error is well-typed
+  (`io.ptrTyped`: comparing it with `io.EOF` must step; `os.File.readerAtOk` proves it). The proofs
+  stayed in etcd-grove (the contracts are etcd-grove's); moving them to Perennial is still open.
 
 ### `wp_auto`'s free-variable checks were exponential on struct values: landed, in the pin since `3afd77e35` (2026-11-18, perf2; pin bump 2026-11-19)
 
@@ -370,7 +449,10 @@ log, third session; pending the user's review). General fix: `append` (and `make
   (`LinuxFs/Proof/os/SharedAu.lean`).
 - **Proposed.** Both lemmas in Perennial's `GooseLang/Lifting.lean`, beside `wp_ext_acc` (they use
   only `goose_bstateInterp_eq` and iris's `wp_unfold`); generic, nothing about `fsExt`.
-- **Status.** Recorded; the local copies go when the pin has them.
+- **Status.** Done: Perennial `7ad4f91b1` (`GooseLang/NotCrashed.lean`, Upamanyu Sharma) has both, with
+  `wp_atomic_nc`'s update written `|NC={E1,E2}=> ...` (`ncfupd`, a reducible abbreviation of the same
+  wand); the local copies were deleted at the pin bump of 2026-11-21 (branch
+  `pinbump/perennial-ncfupd-2026-11-21`).
 
 ### No translation of `hash/crc32`, `bufio`, `path/filepath`; no models of `io.ReadFull`/`io.Copy`, `fmt.Sscanf`, `strings.HasSuffix` (2026-11-13, branch `wal-fsext-translate`)
 
@@ -399,6 +481,11 @@ fresh table where Go returns one shared pointer. **Proposed upstream**: the same
 GooseLang `simplePopulateTable` (or by translating `crc32_generic.go` with bodies and trusting only
 `Update`'s dispatch to it), with `IEEE` alongside; then this part's names-only `hash/crc32` and the
 local model go.
+(2026-11-21, prove-etcdint3: the second form, locally. `Code/hash/crc32.toml` translates `New`,
+`digest.Write`/`Sum32`, `Update`, `simpleMakeTable`/`simplePopulateTable` and the package's
+initializers (`IEEETable`, the two `sync.OnceFunc`s) with bodies, and trusts `MakeTable` and the
+dispatching `update` (in place of `Update`, which calls it): mvcc's hasher is proved over them, and
+`hash.crc32.opaqueInitsOk` is gone. Still a local model, pending the user's review.)
 
 ### `io.ReadFull`/`ReadAtLeast` and `binary.Read`'s fast path without bodies (2026-11-13, WAL leaf specs, branch `wal-leaf-std2`)
 
@@ -442,7 +529,19 @@ local model go.
   invariant `bodyStream rd Pre Φ r ⊢ ⌜Pre r⌝`. `http.NewBuffer_ok` and `http.readerHas_nil` are
   theorems (`readerHas` defined over `bytes.ownBuffer`).
 
-### Operations on untyped rune constants have no step (2026-11-13, WAL leaf specs, branch `wal-leaf-std2`)
+### Operations on untyped rune constants have no step (2026-11-13, WAL leaf specs, branch `wal-leaf-std2`) -- DONE (Perennial `04b42a139`, pin moved 2026-11-21, branch `pin-04b`)
+
+- **Done.** Perennial `04b42a139` (fix-semantics Cases 39/40): goose folds constant expressions of untyped
+  runes (`Separator == '/'` is now a constant), `UntypedIntSemantics.convert_untyped_int_to_string` steps
+  `string(c)` of an untyped integer to `go.runeString c` (its UTF-8 encoding, U+FFFD if not a code point),
+  and `string(b)` of a byte is `go.runeString b` too (no longer the one byte `b`). The local class
+  `UntypedRuneSemantics` (`Proof/internal/filepathlite/UntypedRune.lean`) is deleted; `filepathlite.Base`,
+  `FromSlash`, `filepath.join` and the WAL's, WalTester's and the server's `NewStorage` results no longer take
+  it (`go.runeString 47 = [W8 47]` by `decide`). `rnNewStorageOk` stays a premise of the closed theorems: what
+  is left for passing the law to `newRaftNode` is `os`'s `fileStat`/`file` field assumptions
+  (`notes/wal-item3-handoff.md`). `bufio.opaqueInitsOk` (`errorRune`) stays: its initializer is untranslated
+  (names-only), so the new step does not reach it; translating `bufio`'s initializers would.
+- The entry as it was:
 
 - **Missing.** Goose emits `Separator == '/'` (`GoOp GoEquals go.untypedRune`) and `string(Separator)`
   (`Convert go.untypedRune go.string`) of `internal/filepathlite`'s untyped constant as run-time
@@ -1066,6 +1165,12 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   sibling branch's `0 < prev`; and a `word` side goal later in the same proof failed with "unknown
   free variable" (a cached term over a hypothesis of another goal). Workaround there: `omega` on
   `BitVec.toNat` for the first, the `word` fact proved at the top of the proof for the second.
+- **Seen again** (2026-11-21, `sort.Stable`'s proofs, branch `prove-stdlib4-stable`): "unknown free
+  variable" from `word` in `rotate`'s, `symMerge`'s and `stable`'s proofs, each time with a hypothesis
+  holding an `if` (or a loop condition `#!decide (i = j) = #true`) in the context, and gone once that
+  hypothesis was cleared, kept in the Iris context (`symMerge`'s `Hsr0`), or introduced after the
+  `word`s; once it was a false goal (`stable`'s invariant `bs ≤ 2^62`), so the error can hide a
+  plain failure. Workaround there: those hypotheses kept out of `word`'s context.
 - **Status.** Not started (found 2026-10-21, `raft-retarget`, now on `lean`).
 
 ### Specs: a law for `Done()` of an `isContext` context (2026-10-27, the compactor pilot)
@@ -1361,7 +1466,10 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   `false`.
 - **Proposed.** An empty composite literal of a type whose underlying type is not a struct (and
   has no literal rule) is its zero value; or `sync.Mutex`'s model as a struct.
-- **Status.** Not started.
+- **Status.** PR https://github.com/mit-pdos/perennial/pull/649 (pgaps, 2026-11-21: a step rule for the empty
+  literal at `go.bool`) closed after review: Upamanyu Sharma asked for `sync.Mutex` modeled as a struct with one
+  `bool` field instead (no new trusted rule); his session writes that change and retires `backend.wp_mutexLit`
+  (etcd-grove#16).
 
 ### Semantics: `float64(c)` of an untyped integer constant (2026-10-27, client-go workqueue)
 
@@ -1598,7 +1706,8 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   (`Code/hash.toml`, `-lean-root hash=`, as `encoding/hex`), which makes Goose translate
   `kvHasher` as a struct. Proposed: `hash`'s interfaces in Perennial's standard library (and
   `hash/crc32`'s model, which would make `newKVHasher`, `kvHasher.WriteKeyValue` and `Hash`
-  provable); then this repository's `hash` translation goes.
+  provable); then this repository's `hash` translation goes. (2026-11-21: the three are proved, over this repository's
+  local `hash/crc32` model; the upstream proposal stands.)
 
 ### `encoding/binary`'s `Write`/`Read`, and protobuf at the bytes (2026-10-22, rafthttp stage 3, branch `rafthttp-plan`)
 
@@ -1767,6 +1876,17 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Status.** Recorded only.
 
 ## Landed
+
+### `strings.NewReplacer` and `Replacer` not translated (2026-11-21, prove-k8s4; landed 2026-11-21, Perennial `60800ea5e`, in the pin since the ncfupd bump)
+
+- **Missing.** Perennial's `strings` translated neither `NewReplacer` nor `Replacer`'s definition (its `once
+  sync.Once` and `r replacer` fields: `strings.toml` imported neither `sync` nor `io`).
+- **Needed by.** k8s `fields`' `valueEscaper = strings.NewReplacer(...)` (`fields.opaqueInitsOk`).
+- **Change.** `strings.toml` translates `NewReplacer` and imports `sync` and `io` (as Go's `strings` does);
+  `strings.NewReplacer.spec` (an even number of strings: a new `Replacer` holding a copy, `strings.ownReplacer`)
+  proved; `strings.initialize'.wp_proof` takes io's and sync's init specs. On Perennial `lean` as `60800ea5e`;
+  pinned with the ncfupd bump (`2ca9ce4d1d`). (Briefly pinned as a cherry-pick, `b3f7173f8`, since lean's
+  commits in between need etcd-grove changes of their own).
 
 ### Goose: a struct field (or type argument) of type `rune` fails to translate (2026-11-20, prove-b64clock; landed 2026-11-21, Perennial `1a1bb0633`, `ef31258ab`, `c8e356cb1`; pin bumped 2026-11-21)
 
@@ -2540,6 +2660,13 @@ strict weak order. Not `wp_Sort`'s induction without the order: with any `Less`,
 "outside unchanged" invariant fails; the proof needs a whole-slice invariant (every index in
 `[0, n)`, the list a permutation). The local axiom goes when it lands.
 
+**Proved here, 2026-11-21** (branch `prove-ps2-sort`): `sort.Sort.wp_anyLess` is a theorem
+(`Proof/sort/SortAnyLessLinked.lean`) over Perennial's translation of `pdqsort` and its helpers, each
+with an any-`Less` spec (`Spec/sort/<fn>AnyLess.lean`) and proof (`Proof/sort/<fn>AnyLess.lean`):
+Perennial's loops with the whole-slice invariant above (bounds and a permutation), as `sort.Stable`'s
+helpers are proved here. Perennial needs no change; the specs could still move there (as the
+proposed change above) if another user of Perennial needs them.
+
 ## A thread pool's loans are fewer than the live threads (2026-11-01, bounds B2's leasing pilot)
 
 `threadPool` (`Perennial/Proof/ThreadPool.lean`) lends a copy of its resource for a thread token
@@ -3304,6 +3431,14 @@ parameter.
 
 ## 2026-11-20: `time.After` and the timers have no clock content (clockwork's real clock)
 
+**Done (2026-11-21, prove-clock; Perennial `2a3d3f7d1`):** Perennial models the runtime's monotonic
+clock (a model-only cell allocated by `asynctimerchan`'s trusted initializer, readings a CAS loop
+that only advances it), `time.After` waits for it, `time.clockLb n` is its lower bound, and
+`time.After.spec` gives `T ≥ n` and values carrying `Ψ T` derived from `clockLb (T + d)`
+(`time.After.spec_pkgInit` is the old shape). clockwork's axioms are definitions over it.
+`runtimeNano`/`runtimeNow`/the other timers still read arbitrary values (future work: their specs
+would take `isPkgInit time`).
+
 - **The gap.** Perennial's `time.After(d)` spec gives a bag of times with no logical content
   (`isChanBag γ ch (fun _ => True)`), and `time.Now` arbitrary readings; there is no ghost clock that
   a receive on `After`'s channel bounds from below. The model (`TrustedCode/time.lean`) agrees: `NewTimer`'s
@@ -3392,3 +3527,16 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
   stepped: they stay in zap's `opaqueInitsOk` (prove-initleft, which translated zap's other variables).
 - **Proposed (general).** Translate `Unix` and `unixTime` (as `Now`, which reads `Local` too) and prove
   `time.Unix.spec` (some `Time`, no panic: the divisions are by the constant `1e9`). **Status.** Recorded only.
+  (srvloops2, 2026-11-21) **Done**: Perennial's pin `c8e356cb1` has `Unix` and `time.Unix.spec`; zap's two
+  variables are translated and in zap's fact (`Proof/go_uber_org/zap/PkgInit.lean`, `etc/gen-init.py`).
+
+## 2026-11-21: `Time.Location` is names-only (`zap.Time`, `ensureLeadership`'s debug log)
+
+- **The gap.** `zap.Time(key, val)` builds its field from `val.UnixNano()` and `val.Location()`; Perennial's
+  `time` did not translate `Time.Location` (`l := t.loc; if l == nil { l = UTC }`), so `zap.Time` had no
+  provable spec, and `EtcdServer.ensureLeadership` (which logs `zap.Time` twice) stayed an axiom.
+- **Change (general).** `Time.Location` translated, `time.Time.Location.spec` (some `*Location`, `t.loc` when not
+  nil) proved over `UTC`'s global, held by time's `isInit`. **Status.** Landed on Perennial `lean` as
+  `7103946b3` (2026-11-21, srvloops2); the pin bump is pending (the coordinator's queue). With it,
+  `zap.Time.wp_proof` and `EtcdServer.ensureLeadership.wp_proof` (written and checked against it but the
+  `Location` call, branch `prove-srvloops2`'s follow-up) retire `EtcdServer.ensureLeadership.wp_proof`.

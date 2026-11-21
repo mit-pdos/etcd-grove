@@ -49,6 +49,7 @@ theorem bcastInternal_nb_recv (ch : GoChan) (γ : ChanNames) (γi : BroadcastInt
   iintro #Hint Hcl HΦ
   ihave #Hinv := isBroadcastChanInternal_inv _ _ _ _ $$ Hint
   unfold nonblockingRecvAuAlt
+  iapply ncfupd_of_fupd
   iinv Hinv with Hi Hclose
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask

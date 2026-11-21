@@ -299,15 +299,15 @@ abbrev senderImage.law : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       kvStoreInv kv γ γr false γs ∗ wSt γs (kvModel γr.kv A) (crevOf γr.kv A) ∗
       srvRLogLb γr.raft A ∗ mvccBackend γ 1 B Pk ∗ backend.bOpen B.γB qo ∗ backend.wbTok B.γB ∗
-      threadTok ∗ R ∗ □ (∀ (d : GMap (GoString × GoString) GoString) (r : GMap GoString backend.BktData),
+      threadTok ∗ backend.rdTok B.γB B.P B.be ∗ R ∗ □ (∀ (d : GMap (GoString × GoString) GoString) (r : GMap GoString backend.BktData),
         R -∗ Pk -∗ backend.hkOwn B.γB d -∗ backend.rbOwn B.γB r -∗ ⌜Q d r⌝) }}
     (App (Val (B.be @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty
       @!! go!"Snapshot")) (Val #()))
   {{ (sp : Loc) (D : backend.Data),
       RET #(interface.mkOk
         (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.snapshot.ty) #sp);
-      backend.snapOpen sp D ∗ backend.bOpen B.γB qo ∗ R ∗ mvccBackend γ 1 B Pk ∗
-      wSt γs (kvModel γr.kv A) (crevOf γr.kv A) ∗ dbImageA γr.raft γr.kv i D }}
+      backend.snapOpen sp D ∗ backend.bOpen B.γB qo ∗ backend.rdTok B.γB B.P B.be ∗ R ∗
+      mvccBackend γ 1 B Pk ∗ wSt γs (kvModel γr.kv A) (crevOf γr.kv A) ∗ dbImageA γr.raft γr.kv i D }}
 
 /-- **The receiver's backend over the image** (from `etcdStorage_open.law`, at the snapshot
 opener's post `newPostKP` at `K := snapOpenK`, with the store's part of the payment rights): the

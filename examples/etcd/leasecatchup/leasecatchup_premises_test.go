@@ -8,8 +8,8 @@ package leasecatchup
 //   - TestLeasePeersOk: leasePeersOk (LeaseRead.lean): every peer URL answers a POST to
 //     /leases/internal (and to /leases, the other path etcd's lease handler serves) not with 200
 //     (404), while it does serve the member's raft handler;
-//   - TestLeasesNoExpiry: lease.leasesNoExpiry (LessorBackend.lean) at TTL 3600: no lease of any
-//     lessor expires or is revoked during the run;
+//   - TestLeasesNoExpiry: lease.leasesNoExpiry (LessorBackend.lean) at TTL grantTTL (MaxLeaseTTL): no
+//     lease of any lessor expires or is revoked during the run;
 //   - TestCatchUpClaim: run.spec's claim, member 3's own grant listed after its restore, and that
 //     the case is not vacuous (member 3's lessor recovered from a snapshot, after the grant);
 //   - TestCatchUpMutant: the same run with member 3's lessor dropping, on Recover, the leases it
@@ -408,8 +408,8 @@ func TestLeasePeersOk(t *testing.T) {
 	requireRestore3(t, o)
 }
 
-// TestLeasesNoExpiry checks lease.leasesNoExpiry at TTL 3600 in Main's run: after the catch-up,
-// every lessor holds every lease granted in the run (g1 and each filler), with the TTL granted, and
+// TestLeasesNoExpiry checks lease.leasesNoExpiry at TTL grantTTL (MaxLeaseTTL) in Main's run: after the
+// catch-up, every lessor holds every lease granted in the run (g1 and each filler), with the TTL granted, and
 // its lease bucket too; on the leader (whose lessor alone has finite expiries, the others are
 // demoted) each lease's remaining time is above TTL minus the run's time, so the expiry loop finds
 // none expired (findExpiredLeases returns only leases with Remaining() <= 0) and sends nothing on

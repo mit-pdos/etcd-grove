@@ -3,6 +3,8 @@ Proof of `Spec/go_etcd_io/etcd/server/v3/etcdserver/raftNode__start.lean`. Lean-
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReplayWorkerTerms
+
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.raftNode__start
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftLoop
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RaftLoopFreeze
@@ -71,7 +73,10 @@ theorem raftNode.start.wp_proof
     (wp_MSAppend : MemoryStorage.Append.spec (GF := GF) (hG := hG))
     (wp_SMGetIndex : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))
     (wp_Uint64 : zap.Uint64.spec (GF := GF) (hG := hG))
-    (wp_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
+    (wp_Info : zap.Logger.Info.spec (GF := GF) (hG := hG))
+    (wp_EntryIndex : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG))
+    (wp_EntryTerm : raftpb.Entry.GetTerm.spec (GF := GF) (hG := hG))
+    (wp_after : replayTerms.after.spec (GF := GF) (hG := hG)) :
     raftNode.start.spec (GF := GF) (hG := hG) := by
   have wp_IsEmptySnapG := wp_IsEmptySnap
   have wp_IsEmptySnap := wp_IsEmptySnap_nil wp_IsEmptySnap
@@ -138,15 +143,20 @@ theorem raftNode.start.wp_proof
   wp_apply wp_fork $$ [Htok Hdone r rh HR HS Hwt Hwl Hrd]
   · -- the goroutine
     wp_apply wp_with_defer as %defer defer
+    iunfold rnWorkerStartTok at Hdone
+    icases Hdone with ⟨Hdone, %initial, Hreplay, #Hseed⟩
+    try wp_auto
     -- (D22a) `raftTerm`, the latest non-empty `HardState`'s term, carried to the batches; (D22 S-b)
     -- `0` or a term raft handed out the witness of (`rnRtOk`); (D22l) `0` or the term of raft's
     -- `prevHardSt` `p`, the driver's (`rnLoopTokP`)
     -- (S1) the restart data (persistent; restart S3 item 7: `isRaftNode`'s `Hrok`), for the stop's
     -- bound at each exit (`rnRestartOk_a0_le`)
     iunfold rnLoopTok at Htok
-    icases Htok with ⟨%p0, Htok⟩
-    ihave HI : iprop(∃ (L' : List EntryModel) (b : Bool) (rt : w64) (p : HardStateM),
-        "islead" ∷ islead_ptr ↦ b ∗ "raftTerm" ∷ raftTerm_ptr ↦ rt ∗
+    icases Htok with ⟨%hbase, %p0, Htok⟩
+    ihave #Hinitial := rnReplayState.advance γ initial _ _ hbase $$ Hseed
+    ihave HI : iprop(∃ (L' : List EntryModel) (b : Bool) (rt : w64) (p : HardStateM) (view : GoSlice),
+        "#Hhistory" ∷ rnReplayState γ view (rnLogOf γ L').length ∗
+        "terms" ∷ terms_ptr ↦ view ∗ "islead" ∷ islead_ptr ↦ b ∗ "raftTerm" ∷ raftTerm_ptr ↦ rt ∗
         "%Hrt" ∷ ⌜uint.Z rt = 0 ∨ rt = p.Term'⌝ ∗
         "Htok" ∷ rnLoopTokP γ L' p b ∗ "HR" ∷ R ∗ "HS" ∷ E.S ∗
         -- (2026-10-31) the loop's half of the WAL's open token; (2026-11-03, R2b-1 stage 6) the
@@ -156,8 +166,9 @@ theorem raftNode.start.wp_proof
           walMetaIs γ.wal.h γ.id cid ∗ walPurgeRight γ.wal.h) ∗
         -- (wal-link L3) the loop's reader token of the storage's lock (its `Save`s, `SaveSnap`, `Sync`)
         "Hrd" ∷ walStorRd (GoInterface.ok si) γ.wal.h)
-        $$ [islead raftTerm Htok HR HS Hwt Hwl Hrd]
-    · iexists L, false, _, p0
+        $$ [terms islead raftTerm Htok HR HS Hwt Hwl Hrd]
+    · iexists L, false, _, p0, initial
+      iframe Hinitial
       iframe
       ipureintro; left; rfl
     wp_for HI
@@ -187,7 +198,8 @@ theorem raftNode.start.wp_proof
       wp_apply wp_tick E γ r $$ [$Hpkg $Hr]
       wp_for_post
       iframe
-      iexists L', b, rt, p
+      iexists L', b, rt, p, view
+      iframe Hhistory
       iframe
       ipureintro; exact Hrt
     -- `rd := <-r.Ready()`
@@ -238,7 +250,7 @@ theorem raftNode.start.wp_proof
         icases Hdata with ⟨%ceL, %esL, %msL, %hs, ⟨%S1, %r1, HrSn⟩, %HwSteps, #Hce, #Hcea, %HA', #HC, #HsvV, #Hinstalled, #Hes, #Hesa, #Hesz,
           #Hmsl, %HmsL, Hraw, ⟨%ss, #Hss, %Hr'⟩, #Hhs, #HhsC, %Hp', ⟨%rsL, #Hrs, #Hrsok⟩⟩
         subst HmsL
-        obtain ⟨-, HLA, Hfit, Hlast⟩ := HA'
+        obtain ⟨-, HLA, Hfit, Hlast, Horder⟩ := HA'
         iunfold readySnap at HrSn
         icases HrSn with ⟨%Hl, Hsn, #HcL, #Hcert, ⟨%k, %old, %Hk, Hlog, Hend⟩, #Hgiven, #HcLbS,
           ⟨#HsnLoc, #HrestoreSrc⟩, -, %Hrns⟩
@@ -361,7 +373,7 @@ theorem raftNode.start.wp_proof
             have h4 : sint.nat rd.ReadStates'.len = (sint.Z rd.ReadStates'.len).toNat := rfl
             have h1 := Hrsl.1
             omega
-          wp_apply (lc := 2) time.wp_After as %ach %γa #Ha
+          wp_apply (lc := 2) (time.After.spec_pkgInit time.wp_After _) as %ach %γa #Ha
           ihave #Hrsk := (BigSepL.bigSepL_lookup (Φ := fun _ rs => srvReadStateOk (GF := GF) E.γr.raft E.RQ rs)
             Hrs_lookup) $$ Hrsok
           wp_apply_core chan.wp_select_blocking
@@ -470,7 +482,8 @@ theorem raftNode.start.wp_proof
             rw [Hp', phsNext_toM_empty p hs (Hehs0.1 rfl)]; exact Hrt
         -- the batch's raft term, with the witness bounding the batch (`nodeDriver_hardStateCommitted`,
         -- on the busy driver at `p'`)
-        ihave #Hrtok := rnRtOk_of_hsC γ rt' A' p' Hrt' $$ Hhsc
+        ihave #Hrtok := rnRtOk_of_hsC γ rt' A' p' Hrt' $$ Hhsc []
+        · ileft; ipureintro; have := uint_nat_eq p'.Commit'; omega
         -- `notifyc` (2026-10-31, #3: two sends, after `Sync` and after the messages, the
         -- two-receive notify, `NotifyC2.lean`), `raftAdvancedC`
         wp_apply chan.wp_make2 (V := Unit) $$ [] as %nc %γnc0 ⟨#Hncch, %Hncap, Hncown⟩
@@ -495,9 +508,35 @@ theorem raftNode.start.wp_proof
         · iPkgInit
         rw [← Hptr]
         wp_apply wp_CloneS.2.2.2.1 l.ptr _ l.snap $$ [$Hppkg $Hsn] as %c1 ⟨Hsn, Hc1⟩
+        imod ownSnapS_persist _ _ _ $$ Hc1 with #Hc1
+        ihave #Hc1M := ownSnapS_M _ _ _ $$ Hc1
+        have hidx0 : decide (l.snap.Metadata'.Index' = W64 0) = false := by
+          apply decide_eq_false; intro h; rw [h] at HbPos; simp at HbPos
+        wp_apply wp_IsEmptySnapG c1 DFrac.discard (some l.snap) $$ [$Hrpkg] as %empty ⟨%Hempty, -⟩
+        · simp only [snapOpt]; iexact Hc1M
+        simp only [Option.elim, hidx0] at Hempty
+        subst Hempty
+        (try wp_auto)
+        have ha : γ.a0.length ≤ (rnLogOf γ A').length := by
+          simp only [rnLogOf, List.length_map, hlenA]
+          rcases Hbwa with ha | ha
+          · simp [ha]
+          · exact Nat.le_of_lt ha
+        ihave #Hempty := rnReplayState.empty γ _ ha
+        rw [method_unfold (t := go.GoType.PointerType replayTerms.ty) (m := go!"appendEntries")]
+        (try wp_auto)
+        wp_apply rnReplayState.appendEntries γ slice.nil rd.Entries' _ esL es Horder
+          (fun _ _ h => False.elim (Nat.not_lt_of_ge ha h)) wp_EntryIndex wp_EntryTerm
+          $$ [$Hpkg $Hempty $Hes $Hesa] as %next #Hnext
+        ihave %hce0 : ⌜ceL.length = 0⌝ $$ []
+        · iunfold entriesAt at Hcea; icases Hcea with ⟨%h, -⟩; ipureintro; exact h
+        ihave %hlen := ownSlice_len rd.CommittedEntries' _ ceL $$ Hce
+        have hc0 : ¬ sint.Z (W64 0) < sint.Z rd.CommittedEntries'.len := by word
+        (try wp_auto)
+        (try simp only [hc0, decide_false, ↓reduceIte])
+        (try wp_auto)
         rw [← Hptr]
         wp_apply wp_CloneS.2.2.2.1 l.ptr _ l.snap $$ [$Hppkg $Hsn] as %c2 ⟨Hsn, Hc2⟩
-        imod ownSnapS_persist _ _ _ $$ Hc1 with #Hc1
         imod ownSnapS_persist _ _ _ $$ Hc2 with #Hc2
         ihave #Hc2M := ownSnapS_M _ _ _ $$ Hc2
         irename notifyc => Hncl
@@ -602,9 +641,6 @@ theorem raftNode.start.wp_proof
             wp_join_done
             all_goals first | (iframe; done) | (iframe; ileft; itrivial) | skip
           -- `if !raft.IsEmptySnap(raftSnap)`: not empty (its index past `0`)
-          have hidx0 : decide (l.snap.Metadata'.Index' = W64 0) = false := by
-            apply decide_eq_false; intro h; rw [h] at HbPos; simp at HbPos
-          ihave #Hc1M := ownSnapS_M _ _ _ $$ Hc1
           wp_apply wp_IsEmptySnapG c1 DFrac.discard (some l.snap) $$ [$Hrpkg] as %b0 ⟨%Hb0, -⟩
           · simp only [snapOpt]; iexact Hc1M
           simp only [Option.elim, hidx0] at Hb0
@@ -938,7 +974,8 @@ theorem raftNode.start.wp_proof
               (try wp_auto)
               wp_for_post
               iframe
-              iexists A', false, rt', p'
+              iexists A', false, rt', p', next
+              iframe Hnext
               iframe
               isplitr
               · ipureintro; exact Hrt'
@@ -990,7 +1027,8 @@ theorem raftNode.start.wp_proof
               (try wp_auto)
               wp_for_post
               iframe
-              iexists A', true, rt', p'
+              iexists A', true, rt', p', next
+              iframe Hnext
               iframe
               isplitr
               · ipureintro; exact Hrt'
@@ -1046,7 +1084,7 @@ theorem raftNode.start.wp_proof
       icases Hbusy with ⟨Hpend, Hcv⟩
       iunfold rnReadyData at Hdata
       icases Hdata with ⟨%ceL, %esL, %msL, %hs, #Hce, #Hcea, #HC, #Hes, #Hesa, #Hesz, Happ, #Hms, %HmsL, Hraw,
-        ⟨%ss, #Hss, %Hr'⟩, #Hhs, #HhsC, %Hp', ⟨%rsL, #Hrs, #Hrsok⟩, %Hsnapnil, #Hcfz, %HwStep⟩
+        ⟨%ss, #Hss, %Hr'⟩, #Hhs, #HhsC, %Hp', ⟨%rsL, #Hrs, #Hrsok⟩, %Hentries, %Hsnapnil, #Hcfz, %HwStep⟩
       subst HmsL
       wp_auto
       -- the `SoftState`: the leader, the gauges, the ready handler
@@ -1161,7 +1199,7 @@ theorem raftNode.start.wp_proof
           have h4 : sint.nat rd.ReadStates'.len = (sint.Z rd.ReadStates'.len).toNat := rfl
           have h1 := Hrsl.1
           omega
-        wp_apply (lc := 2) time.wp_After as %ach %γa #Ha
+        wp_apply (lc := 2) (time.After.spec_pkgInit time.wp_After _) as %ach %γa #Ha
         ihave #Hrsk := (BigSepL.bigSepL_lookup (Φ := fun _ rs => srvReadStateOk (GF := GF) E.γr.raft E.RQ rs)
           Hrs_lookup) $$ Hrsok
         wp_apply_core chan.wp_select_blocking
@@ -1270,7 +1308,8 @@ theorem raftNode.start.wp_proof
           rw [Hp', phsNext_toM_empty p hs (Hehs0.1 rfl)]; exact Hrt
       -- (D22 S-b, D22l) the batch's raft term, with the witness bounding the batch
       -- (`nodeDriver_hardStateCommitted`, on the busy driver at `p'`)
-      ihave #Hrtok := rnRtOk_of_hsC γ rt' (L' ++ ce) p' Hrt' $$ Hhsc
+      ihave #Hrtok := rnRtOk_of_hsC γ rt' (L' ++ ce) p' Hrt' $$ Hhsc []
+      · ileft; ipureintro; have := uint_nat_eq p'.Commit'; omega
       -- `notifyc` (D43 M3: the two-send idiom, depositing the view after the batch if it goes
       -- along, `rnApR`), `raftAdvancedC`
       wp_apply chan.wp_make2 (V := Unit) $$ [] as %nc %γnc0 ⟨#Hncch, %Hncap, Hncown⟩
@@ -1302,6 +1341,60 @@ theorem raftNode.start.wp_proof
       ihave #Hppkg : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
       · iPkgInit
       wp_apply wp_CloneS.2.1 $$ [$Hppkg]
+      wp_apply wp_IsEmptySnap $$ [$Hrpkg]
+      (try wp_auto)
+      rw [method_unfold (t := go.GoType.PointerType replayTerms.ty) (m := go!"appendEntries")]
+      (try wp_auto)
+      wp_apply rnReplayState.appendEntries γ view rd.Entries' _ esL es Hentries.1
+          (fun e he _ => Nat.lt_of_le_of_lt Ha0p (Hentries.2 e he)) wp_EntryIndex wp_EntryTerm
+          $$ [$Hpkg $Hhistory $Hes $Hesa] as %updated #Hupdated
+      (try wp_auto)
+      ihave #Hces := Hcea
+      iunfold entriesAt at Hces
+      icases Hces with ⟨%hcel, #Hcent⟩
+      ihave %hlen := ownSlice_len rd.CommittedEntries' _ ceL $$ Hce
+      wp_join iprop(∃ next : GoSlice, terms_ptr ↦ next ∗ committedEntries_ptr ↦ rd.CommittedEntries' ∗ rnReplayState γ next (rnLogOf γ (L' ++ ce)).length)
+        at next with [terms committedEntries] as ⟨%next, terms, committedEntries, #Hnext⟩
+      · by_cases hc : 0 < ceL.length
+        · have hcmp : sint.Z (W64 0) < sint.Z rd.CommittedEntries'.len := by word
+          simp only [hcmp, _root_.decide_true, ↓reduceIte]
+          (try wp_auto)
+          list_elem ceL (ceL.length - 1) as ent
+          obtain ⟨m, hm⟩ : ∃ m, ce[ceL.length - 1]? = some m :=
+            ⟨_, List.getElem?_eq_getElem (by omega)⟩
+          have hbounds : 0 ≤ sint.Z (rd.CommittedEntries'.len - W64 1) ∧
+              sint.Z (rd.CommittedEntries'.len - W64 1) < sint.Z rd.CommittedEntries'.len := by constructor <;> word
+          simp only [hbounds, ↓reduceIte]
+          (try wp_auto)
+          wp_apply wp_load_slice_index rd.CommittedEntries' (sint.Z (rd.CommittedEntries'.len - W64 1))
+            ceL DFrac.discard ent (by word) $$ [] as -
+          · iframe Hce; ipureintro
+            have he : (sint.Z (rd.CommittedEntries'.len - W64 1)).toNat = ceL.length - 1 := by word
+            rw [he]; exact Hent_lookup
+          ihave #He := Hcent $$ %(ceL.length - 1) %ent %m %Hent_lookup %hm
+          wp_apply wp_entryAt_GetIndex wp_EntryIndex ent m $$ [$Hpbpkg $He]
+          have hget : (L' ++ ce)[L'.length + (ceL.length - 1)]? = some m := by
+            rw [List.getElem?_append_right (by omega), Nat.add_sub_cancel_left]; exact hm
+          have hi := (HidxN _ m hget).1
+          have heq : uint.nat m.index = (rnLogOf γ (L' ++ ce)).length := by
+            simp only [rnLogOf, List.length_map, List.length_append]; word
+          have hle : (rnLogOf γ L').length ≤ uint.nat m.index := by simp [heq, rnLogOf]
+          (try wp_auto)
+          rw [method_unfold (t := go.GoType.PointerType replayTerms.ty) (m := go!"after")]
+          (try wp_auto)
+          wp_apply rnReplayState.after γ updated _ m.index hle wp_after $$ [$Hpkg $Hupdated] as %next #Hm
+          (try wp_auto)
+          isplitr; · itrivial
+          iexists next; iframe terms committedEntries
+          rw [← heq]; iexact Hm
+        · have hcmp : ¬ sint.Z (W64 0) < sint.Z rd.CommittedEntries'.len := by word
+          simp only [hcmp, decide_false, ↓reduceIte]
+          (try wp_auto)
+          isplitr; · itrivial
+          iexists updated; iframe terms committedEntries
+          have hempty : ce = [] := List.eq_nil_of_length_eq_zero (by omega)
+          rw [hempty, List.append_nil]; iexact Hupdated
+      (try wp_auto)
       rw [Hsnapnil]
       wp_apply wp_CloneS.2.1 $$ [$Hppkg]
       irename notifyc => Hncl
@@ -1367,7 +1460,8 @@ theorem raftNode.start.wp_proof
             iexact HacU
           isplitr
           · iexact Hclast
-          iexact Hrtok
+          iframe Hrtok
+          iapply rnReplayState.job γ next rt' _ $$ Hnext
         inext
         iintro Hprod
         wp_auto
@@ -1603,7 +1697,8 @@ theorem raftNode.start.wp_proof
             (try wp_auto)
             wp_for_post
             iframe
-            iexists (L' ++ ce), false, rt', p'
+            iexists (L' ++ ce), false, rt', p', next
+            iframe Hnext
             iframe
             isplitr
             · ipureintro; exact Hrt'
@@ -1668,7 +1763,8 @@ theorem raftNode.start.wp_proof
               (try wp_auto)
               wp_for_post
               iframe
-              iexists (L' ++ ce), false, rt', p'
+              iexists (L' ++ ce), false, rt', p', next
+              iframe Hnext
               iframe
               isplitr
               · ipureintro; exact Hrt'
@@ -1749,7 +1845,8 @@ theorem raftNode.start.wp_proof
             (try wp_auto)
             wp_for_post
             iframe
-            iexists (L' ++ ce), true, rt', p'
+            iexists (L' ++ ce), true, rt', p', next
+            iframe Hnext
             iframe
             isplitr
             · ipureintro; exact Hrt'
@@ -1808,7 +1905,8 @@ theorem raftNode.start.wp_proof
               (try wp_auto)
               wp_for_post
               iframe
-              iexists (L' ++ ce), true, rt', p'
+              iexists (L' ++ ce), true, rt', p', next
+              iframe Hnext
               iframe
               isplitr
               · ipureintro; exact Hrt'

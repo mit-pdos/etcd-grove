@@ -183,7 +183,7 @@ theorem lessor.sendKeepAliveLoop.wp_proof
     · iexact Hscc
     unfold context.isContextDef
     iNamed Hsc2
-    wp_apply +noauto time.wp_After as %tch %γt #Htch
+    wp_apply +noauto (time.After.spec_pkgInit time.wp_After _) as %tch %γt #Htch
     (try wp_auto)
     wp_apply HCtx as %cx #Hcx
     ihave #Hcx2 : iprop(context.isContextDef cx cd) $$ [Hcx]

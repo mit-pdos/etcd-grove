@@ -39,6 +39,7 @@ public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.go_opentelemetry_io.otel.trace.Init
 public import Proof.go_uber_org.zap.Init
 public import Proof.hash.Init
+public import Proof.hash.crc32.Init
 public import Perennial.Proof.context.NewErrorString
 public import Perennial.Proof.errors.NewVar
 public import Proof.errors.NewVarCell

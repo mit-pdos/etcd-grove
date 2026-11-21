@@ -14,6 +14,7 @@ public import Code.go_etcd_io.etcd.client.pkg.v3.verify
 public import Perennial.Code.errors
 public import Perennial.Code.math
 public import Code.go_etcd_io.bbolt.errors
+public import Code.syscall
 public import Code.github_com.prometheus.client_golang.prometheus
 public import Code.encoding.hex
 public import Perennial.Code.sort
@@ -203,8 +204,6 @@ noncomputable def safeRangeBucketNames [GooseExts] [GoGlobalContext] : GoString 
 noncomputable def boltOpenOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.boltOpenOptions"
 
-opaque boltOpenOptions.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def commitSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.commitSec"
 
@@ -313,7 +312,7 @@ noncomputable def VerifyBackendConsistency [GooseExts] [GoGlobalContext] : GoStr
 noncomputable def unsafeVerifyTxConsistency [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.unsafeVerifyTxConsistency"
 
-/-- go: backend.go:180:6 -/
+/-- go: backend.go:182:6 -/
 noncomputable def DefaultBackendConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc BackendConfig.ty))) (App (Val (GoInstruction (GoZeroVal BackendConfig.ty))) (Val #())))
@@ -331,7 +330,7 @@ noncomputable def DefaultBackendConfig.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore BackendConfig.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad BackendConfig.ty))) (Var "$res0")))))
 
-/-- go: backend.go:189:6 -/
+/-- go: backend.go:191:6 -/
 noncomputable def New.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "bcfg"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Backend.ty))) (App (Val (GoInstruction (GoZeroVal Backend.ty))) (Val #())))
@@ -346,7 +345,7 @@ noncomputable def New.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore Backend.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad Backend.ty))) (Var "$res0")))))
 
-/-- go: backend.go:193:6 -/
+/-- go: backend.go:195:6 -/
 noncomputable def WithMmapSize.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "size"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc BackendConfigOption.ty))) (App (Val (GoInstruction (GoZeroVal BackendConfigOption.ty))) (Val #())))
@@ -366,7 +365,7 @@ noncomputable def WithMmapSize.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore BackendConfigOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad BackendConfigOption.ty))) (Var "$res0")))))
 
-/-- go: backend.go:199:6 -/
+/-- go: backend.go:201:6 -/
 noncomputable def WithTimeout.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "timeout"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc BackendConfigOption.ty))) (App (Val (GoInstruction (GoZeroVal BackendConfigOption.ty))) (Val #())))
@@ -386,7 +385,7 @@ noncomputable def WithTimeout.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore BackendConfigOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad BackendConfigOption.ty))) (Var "$res0")))))
 
-/-- go: backend.go:205:6 -/
+/-- go: backend.go:207:6 -/
 noncomputable def NewDefaultBackend.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "path"
@@ -430,7 +429,7 @@ noncomputable def NewDefaultBackend.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore BackendConfig.ty))) (Pair (Var "bcfg") (Var "$r0")))))))))))
   (App (Val (GoInstruction (GoLoad Backend.ty))) (Var "$res0")))))))
 
-/-- go: backend.go:215:6 -/
+/-- go: backend.go:217:6 -/
 noncomputable def newBackend.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "bcfg"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType backend.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType backend.ty)))) (Val #())))
@@ -566,7 +565,7 @@ noncomputable def newBackend.impl [GooseExts] [GoGlobalContext] : val :=
     write operations. The write result can be retrieved within the same tx immediately.
     The write result is isolated with other txs until the current one get committed.
 
-    go: backend.go:284:19 -/
+    go: backend.go:286:19 -/
 noncomputable def backend.BatchTx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -581,7 +580,7 @@ noncomputable def backend.BatchTx.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore BatchTx.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad BatchTx.ty))) (Var "$res0"))))))
 
-/-- go: backend.go:288:19 -/
+/-- go: backend.go:290:19 -/
 noncomputable def backend.SetTxPostLockInsideApplyHook.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "hook"
@@ -604,7 +603,7 @@ noncomputable def backend.SetTxPostLockInsideApplyHook.impl [GooseExts] [GoGloba
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTxBuffered.ty) go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b"))))) (Val #()))))))))
   (Val #()))))
 
-/-- go: backend.go:296:19 -/
+/-- go: backend.go:298:19 -/
 noncomputable def backend.ReadTx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -623,7 +622,7 @@ noncomputable def backend.ReadTx.impl [GooseExts] [GoGlobalContext] : val :=
     A) creates and keeps a copy of backend.readTx.txReadBuffer,
     B) references the boltdb read Tx (and its bucket cache) of current batch interval.
 
-    go: backend.go:301:19 -/
+    go: backend.go:303:19 -/
 noncomputable def backend.ConcurrentReadTx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -733,7 +732,7 @@ noncomputable def backend.ConcurrentReadTx.impl [GooseExts] [GoGlobalContext] : 
 
 /-- ForceCommit forces the current batching tx to commit.
 
-    go: backend.go:377:19 -/
+    go: backend.go:379:19 -/
 noncomputable def backend.ForceCommit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -743,7 +742,7 @@ noncomputable def backend.ForceCommit.impl [GooseExts] [GoGlobalContext] : val :
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTxBuffered.ty) go!"Commit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b"))))) (Val #())))))
   (Val #()))))
 
-/-- go: backend.go:381:19 -/
+/-- go: backend.go:383:19 -/
 noncomputable def backend.Snapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -895,7 +894,7 @@ noncomputable def backend.Snapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTxBuffered.ty) go!"Commit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b"))))) (Val #())))))))
   (App (Val (GoInstruction (GoLoad Snapshot.ty))) (Var "$res0"))))))
 
-/-- go: backend.go:455:19 -/
+/-- go: backend.go:457:19 -/
 noncomputable def backend.Size.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -911,7 +910,7 @@ noncomputable def backend.Size.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0"))))))
 
-/-- go: backend.go:459:19 -/
+/-- go: backend.go:461:19 -/
 noncomputable def backend.SizeInUse.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -927,7 +926,7 @@ noncomputable def backend.SizeInUse.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0"))))))
 
-/-- go: backend.go:463:19 -/
+/-- go: backend.go:465:19 -/
 noncomputable def backend.run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -982,7 +981,7 @@ noncomputable def backend.run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Var "$oldf") (Val #()))))))))))))))
   (Val #()))))
 
-/-- go: backend.go:481:19 -/
+/-- go: backend.go:483:19 -/
 noncomputable def backend.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -1017,7 +1016,7 @@ noncomputable def backend.Close.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Commits returns total number of commits since start
 
-    go: backend.go:490:19 -/
+    go: backend.go:492:19 -/
 noncomputable def backend.Commits.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -1033,7 +1032,7 @@ noncomputable def backend.Commits.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0"))))))
 
-/-- go: backend.go:1086:19 -/
+/-- go: backend.go:1088:19 -/
 noncomputable def backend.begin.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "write"
@@ -1091,7 +1090,7 @@ noncomputable def backend.begin.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b")))) (Val #())))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (Var "$res0"))))))
 
-/-- go: backend.go:1101:19 -/
+/-- go: backend.go:1103:19 -/
 noncomputable def backend.unsafeBegin.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "write"
@@ -1131,7 +1130,7 @@ noncomputable def backend.unsafeBegin.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (Pair (Var "tx") (Var "$r0")))))))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (Var "$res0"))))))
 
-/-- go: backend.go:1111:19 -/
+/-- go: backend.go:1113:19 -/
 noncomputable def backend.OpenReadTxN.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -1147,7 +1146,7 @@ noncomputable def backend.OpenReadTxN.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0"))))))
 
-/-- go: backend.go:1115:19 -/
+/-- go: backend.go:1117:19 -/
 noncomputable def backend.LockForSafeRangeDelete.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -1157,7 +1156,7 @@ noncomputable def backend.LockForSafeRangeDelete.impl [GooseExts] [GoGlobalConte
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"safeRangeDeleteMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b")))) (Val #())))))
   (Val #()))))
 
-/-- go: backend.go:1119:19 -/
+/-- go: backend.go:1121:19 -/
 noncomputable def backend.UnlockForSafeRangeDelete.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -1167,7 +1166,82 @@ noncomputable def backend.UnlockForSafeRangeDelete.impl [GooseExts] [GoGlobalCon
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"safeRangeDeleteMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b")))) (Val #())))))
   (Val #()))))
 
-/-- go: backend.go:1129:20 -/
+/-- go: backend.go:1131:20 -/
+noncomputable def snapshot.UnsafeRange.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "bucket"
+  (Lam "key"
+  (Lam "endKey"
+  (Lam "limit"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType snapshot.ty)))) (Var "s"))
+  (Let "limit" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "limit"))
+  (Let "endKey" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "endKey"))
+  (Let "key" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "key"))
+  (Let "bucket" (App (Val (GoInstruction (GoAlloc Bucket.ty))) (Var "bucket"))
+  (Let "$r0" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve Bucket.ty go!"Name"))) (App (Val (GoInstruction (GoLoad Bucket.ty))) (Var "bucket"))) (Val #()))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty) go!"Bucket"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (App (Val (GoInstruction (StructFieldRef snapshot.ty go!"Tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType snapshot.ty)))) (Var "s"))))) (Var "$a0")))
+  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty) go!"Cursor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (Var "b"))) (Val #()))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "key"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "endKey"))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad go.int64))) (Var "limit"))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve unsafeRange []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Pair (Var "$res0") (Var "$r0"))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (Var "b")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (Val UntypedNil)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (Pair (Var "b") (Var "$r0")))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Var "$res1")))))))))))
+
+/-- go: backend.go:1139:20 -/
+noncomputable def snapshot.UnsafeForEach.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "bucket"
+  (Lam "visitor"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType snapshot.ty)))) (Var "s"))
+  (Let "visitor" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))))) (Var "visitor"))
+  (Let "bucket" (App (Val (GoInstruction (GoAlloc Bucket.ty))) (Var "bucket"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (App (Val (GoInstruction (StructFieldRef snapshot.ty go!"Tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType snapshot.ty)))) (Var "s"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad Bucket.ty))) (Var "bucket"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))))) (Var "visitor"))
+  (App (App (App (App (Val (GoInstruction (FuncResolve unsafeForEach []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
+
+/-- go: backend.go:1143:20 -/
 noncomputable def snapshot.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -3711,7 +3785,7 @@ noncomputable def VerifyBackendConsistency.impl [GooseExts] [GoGlobalContext] : 
   (Val #()))))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.storage.backend where
-  pkgImportedPkgs := [pkg_id.bytes, pkg_id.fmt, pkg_id.io, pkg_id.sync, pkg_id.sync.atomic, pkg_id.time, pkg_id.github_com.dustin.go_humanize, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.bbolt, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify, pkg_id.errors, pkg_id.math, pkg_id.go_etcd_io.bbolt.errors, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.encoding.hex, pkg_id.sort]
+  pkgImportedPkgs := [pkg_id.bytes, pkg_id.fmt, pkg_id.io, pkg_id.sync, pkg_id.sync.atomic, pkg_id.time, pkg_id.github_com.dustin.go_humanize, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.bbolt, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify, pkg_id.errors, pkg_id.math, pkg_id.go_etcd_io.bbolt.errors, pkg_id.syscall, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.encoding.hex, pkg_id.sort]
 
 opaque «_».init [GooseExts] [GoGlobalContext] : val
 
@@ -3719,6 +3793,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.storage.backend)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -3758,6 +3834,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 30)) (Val #(W64 1000000000))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.bbolt.Options.ty))) (Let "$v0" (Val #(W64 32768))
+  (Let "$v1" (Val #true)
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.bbolt.Options.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"MmapFlags")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"NoFreelistSync")) (ElementExpression go.bool (Var "$v1")))])))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd"))
   (Let "$v1" (Val #(go!"disk"))
@@ -3862,7 +3941,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr commitSec))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val boltOpenOptions.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Options.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr boltOpenOptions))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr minSnapshotWarningTimeout))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -3900,6 +3979,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.bbolt.errors.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.syscall.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.prometheus.client_golang.prometheus.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.encoding.hex.initialize') (Val #()))))))
@@ -3915,6 +3996,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (go.GlobalAlloc InitialMmapSize go.uint64)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc minSnapshotWarningTimeout _root_.Perennial.time.Duration.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc boltOpenOptions (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Options.ty))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc commitSec _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty)) (Val #()))))))
   (App (Val doExecute)
@@ -3949,11 +4032,11 @@ attribute [instance] Backend.TypeAssumptions.underlying
 abbrev Snapshot [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def Snapshot.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Close" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.MethodElem go!"Size" (go.signature.Signature [] false [go.int64])), (go.InterfaceElem.MethodElem go!"WriteTo" (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error]))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Close" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.MethodElem go!"Size" (go.signature.Signature [] false [go.int64])), (go.InterfaceElem.MethodElem go!"UnsafeForEach" (go.signature.Signature [Bucket.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))] false [go.error])), (go.InterfaceElem.MethodElem go!"UnsafeRange" (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.int64] false [(go.GoType.SliceType (go.GoType.SliceType go.byte)), (go.GoType.SliceType (go.GoType.SliceType go.byte))])), (go.InterfaceElem.MethodElem go!"WriteTo" (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error]))])
 
 class Snapshot.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Snapshot.ty Snapshot.underlying
-  method_set : go.MethodSetIs Snapshot.ty [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Size", (some (go.signature.Signature [] false [go.int64]))), (go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error])))]
+  method_set : go.MethodSetIs Snapshot.ty [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Size", (some (go.signature.Signature [] false [go.int64]))), (go!"UnsafeForEach", (some (go.signature.Signature [Bucket.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))] false [go.error]))), (go!"UnsafeRange", (some (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.int64] false [(go.GoType.SliceType (go.GoType.SliceType go.byte)), (go.GoType.SliceType (go.GoType.SliceType go.byte))]))), (go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Snapshot.ty) []
 
 attribute [instance] Snapshot.TypeAssumptions.underlying
@@ -4353,7 +4436,7 @@ class snapshot.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   get_donec : ∀ (x : snapshot), go.IsGoStepPureDetTagged under (StructFieldGet snapshot.underlying go!"donec") #x (Val #(x.donec'))
   set_donec : ∀ (x : snapshot) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet snapshot.underlying go!"donec") (PairV #x #y) (Val #(({ x with donec' := y } : snapshot)))
   method_set : go.MethodSetIs snapshot.ty [(go!"Bucket", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)]))), (go!"Check", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.CheckOption.ty)] true [(go.GoType.ChannelType go.ChanDir.recvonly go.error)]))), (go!"Commit", (some (go.signature.Signature [] false [go.error]))), (go!"Copy", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.error]))), (go!"CopyFile", (some (go.signature.Signature [go.string, (go.GoType.Named go!"io/fs.FileMode" [])] false [go.error]))), (go!"CreateBucket", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty), go.error]))), (go!"CreateBucketIfNotExists", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty), go.error]))), (go!"Cursor", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Cursor.ty)]))), (go!"DB", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.DB.ty)]))), (go!"DeleteBucket", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"ForEach", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)] false [go.error]))] false [go.error]))), (go!"ID", (some (go.signature.Signature [] false [go.int]))), (go!"Inspect", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.bbolt.BucketStructure.ty]))), (go!"MoveBucket", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)] false [go.error]))), (go!"OnCommit", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"Page", (some (go.signature.Signature [go.int] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.PageInfo" [])), go.error]))), (go!"Rollback", (some (go.signature.Signature [] false [go.error]))), (go!"Size", (some (go.signature.Signature [] false [go.int64]))), (go!"Stats", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.bbolt.TxStats.ty]))), (go!"Writable", (some (go.signature.Signature [] false [go.bool]))), (go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error]))), (go!"go.etcd.io/bbolt.allocate", (some (go.signature.Signature [go.int] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" [])), go.error]))), (go!"go.etcd.io/bbolt.check", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.checkConfig.ty, (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false []))), (go!"go.etcd.io/bbolt.checkInvariantProperties", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" []))), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) go.bool), _root_.Perennial.go_etcd_io.bbolt.KVStringer.ty, (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false []))), (go!"go.etcd.io/bbolt.close", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.commitFreelist", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/bbolt.forEachPage", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" [])), go.int, (go.GoType.SliceType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []))] false []))] false []))), (go!"go.etcd.io/bbolt.forEachPageInternal", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" [])), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" [])), go.int, (go.GoType.SliceType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []))] false []))] false []))), (go!"go.etcd.io/bbolt.init", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.DB.ty)] false []))), (go!"go.etcd.io/bbolt.nonPhysicalRollback", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.page", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" [])] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" []))]))), (go!"go.etcd.io/bbolt.recursivelyCheckBucket", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" []))), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) go.bool), _root_.Perennial.go_etcd_io.bbolt.KVStringer.ty, (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false []))), (go!"go.etcd.io/bbolt.recursivelyCheckBucketInPage", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" []))), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) go.bool), _root_.Perennial.go_etcd_io.bbolt.KVStringer.ty, (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false []))), (go!"go.etcd.io/bbolt.recursivelyCheckPage", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" []))), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) go.bool), _root_.Perennial.go_etcd_io.bbolt.KVStringer.ty, (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false []))), (go!"go.etcd.io/bbolt.recursivelyCheckPageKeyOrder", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.string])), (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false []))), (go!"go.etcd.io/bbolt.recursivelyCheckPageKeyOrderInternal", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []), (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.SliceType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" [])), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.string])), (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false [(go.GoType.SliceType go.byte)]))), (go!"go.etcd.io/bbolt.rollback", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.write", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/bbolt.writeMeta", (some (go.signature.Signature [] false [go.error])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType snapshot.ty) [(go!"Bucket", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)]))), (go!"Check", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.CheckOption.ty)] true [(go.GoType.ChannelType go.ChanDir.recvonly go.error)]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Commit", (some (go.signature.Signature [] false [go.error]))), (go!"Copy", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.error]))), (go!"CopyFile", (some (go.signature.Signature [go.string, (go.GoType.Named go!"io/fs.FileMode" [])] false [go.error]))), (go!"CreateBucket", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty), go.error]))), (go!"CreateBucketIfNotExists", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty), go.error]))), (go!"Cursor", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Cursor.ty)]))), (go!"DB", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.DB.ty)]))), (go!"DeleteBucket", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"ForEach", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)] false [go.error]))] false [go.error]))), (go!"ID", (some (go.signature.Signature [] false [go.int]))), (go!"Inspect", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.bbolt.BucketStructure.ty]))), (go!"MoveBucket", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)] false [go.error]))), (go!"OnCommit", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"Page", (some (go.signature.Signature [go.int] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.PageInfo" [])), go.error]))), (go!"Rollback", (some (go.signature.Signature [] false [go.error]))), (go!"Size", (some (go.signature.Signature [] false [go.int64]))), (go!"Stats", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.bbolt.TxStats.ty]))), (go!"Writable", (some (go.signature.Signature [] false [go.bool]))), (go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error]))), (go!"go.etcd.io/bbolt.allocate", (some (go.signature.Signature [go.int] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" [])), go.error]))), (go!"go.etcd.io/bbolt.check", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.checkConfig.ty, (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false []))), (go!"go.etcd.io/bbolt.checkInvariantProperties", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" []))), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) go.bool), _root_.Perennial.go_etcd_io.bbolt.KVStringer.ty, (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false []))), (go!"go.etcd.io/bbolt.close", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.commitFreelist", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/bbolt.forEachPage", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" [])), go.int, (go.GoType.SliceType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []))] false []))] false []))), (go!"go.etcd.io/bbolt.forEachPageInternal", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" [])), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" [])), go.int, (go.GoType.SliceType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []))] false []))] false []))), (go!"go.etcd.io/bbolt.init", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.DB.ty)] false []))), (go!"go.etcd.io/bbolt.nonPhysicalRollback", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.page", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" [])] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" []))]))), (go!"go.etcd.io/bbolt.recursivelyCheckBucket", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" []))), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) go.bool), _root_.Perennial.go_etcd_io.bbolt.KVStringer.ty, (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false []))), (go!"go.etcd.io/bbolt.recursivelyCheckBucketInPage", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" []))), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) go.bool), _root_.Perennial.go_etcd_io.bbolt.KVStringer.ty, (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false []))), (go!"go.etcd.io/bbolt.recursivelyCheckPage", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" []))), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) go.bool), _root_.Perennial.go_etcd_io.bbolt.KVStringer.ty, (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false []))), (go!"go.etcd.io/bbolt.recursivelyCheckPageKeyOrder", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.string])), (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false []))), (go!"go.etcd.io/bbolt.recursivelyCheckPageKeyOrderInternal", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []), (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.SliceType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" [])), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.string])), (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false [(go.GoType.SliceType go.byte)]))), (go!"go.etcd.io/bbolt.rollback", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.write", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/bbolt.writeMeta", (some (go.signature.Signature [] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType snapshot.ty) [(go!"Bucket", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)]))), (go!"Check", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.CheckOption.ty)] true [(go.GoType.ChannelType go.ChanDir.recvonly go.error)]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Commit", (some (go.signature.Signature [] false [go.error]))), (go!"Copy", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.error]))), (go!"CopyFile", (some (go.signature.Signature [go.string, (go.GoType.Named go!"io/fs.FileMode" [])] false [go.error]))), (go!"CreateBucket", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty), go.error]))), (go!"CreateBucketIfNotExists", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty), go.error]))), (go!"Cursor", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Cursor.ty)]))), (go!"DB", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.DB.ty)]))), (go!"DeleteBucket", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"ForEach", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)] false [go.error]))] false [go.error]))), (go!"ID", (some (go.signature.Signature [] false [go.int]))), (go!"Inspect", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.bbolt.BucketStructure.ty]))), (go!"MoveBucket", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)] false [go.error]))), (go!"OnCommit", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"Page", (some (go.signature.Signature [go.int] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.PageInfo" [])), go.error]))), (go!"Rollback", (some (go.signature.Signature [] false [go.error]))), (go!"Size", (some (go.signature.Signature [] false [go.int64]))), (go!"Stats", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.bbolt.TxStats.ty]))), (go!"UnsafeForEach", (some (go.signature.Signature [Bucket.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))] false [go.error]))), (go!"UnsafeRange", (some (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.int64] false [(go.GoType.SliceType (go.GoType.SliceType go.byte)), (go.GoType.SliceType (go.GoType.SliceType go.byte))]))), (go!"Writable", (some (go.signature.Signature [] false [go.bool]))), (go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error]))), (go!"go.etcd.io/bbolt.allocate", (some (go.signature.Signature [go.int] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" [])), go.error]))), (go!"go.etcd.io/bbolt.check", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.checkConfig.ty, (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false []))), (go!"go.etcd.io/bbolt.checkInvariantProperties", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" []))), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) go.bool), _root_.Perennial.go_etcd_io.bbolt.KVStringer.ty, (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false []))), (go!"go.etcd.io/bbolt.close", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.commitFreelist", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/bbolt.forEachPage", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" [])), go.int, (go.GoType.SliceType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []))] false []))] false []))), (go!"go.etcd.io/bbolt.forEachPageInternal", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" [])), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" [])), go.int, (go.GoType.SliceType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []))] false []))] false []))), (go!"go.etcd.io/bbolt.init", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.DB.ty)] false []))), (go!"go.etcd.io/bbolt.nonPhysicalRollback", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.page", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" [])] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" []))]))), (go!"go.etcd.io/bbolt.recursivelyCheckBucket", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" []))), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) go.bool), _root_.Perennial.go_etcd_io.bbolt.KVStringer.ty, (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false []))), (go!"go.etcd.io/bbolt.recursivelyCheckBucketInPage", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" []))), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) go.bool), _root_.Perennial.go_etcd_io.bbolt.KVStringer.ty, (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false []))), (go!"go.etcd.io/bbolt.recursivelyCheckPage", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" []))), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) go.bool), _root_.Perennial.go_etcd_io.bbolt.KVStringer.ty, (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false []))), (go!"go.etcd.io/bbolt.recursivelyCheckPageKeyOrder", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.string])), (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false []))), (go!"go.etcd.io/bbolt.recursivelyCheckPageKeyOrderInternal", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []), (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.SliceType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" [])), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.string])), (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false [(go.GoType.SliceType go.byte)]))), (go!"go.etcd.io/bbolt.rollback", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.write", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/bbolt.writeMeta", (some (go.signature.Signature [] false [go.error])))]
   Size_unfold : MethodUnfold snapshot.ty go!"Size" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty) go!"Size"))) (App (Val (GoInstruction (StructFieldGet snapshot.ty go!"Tx"))) (Var "$r"))))
   WriteTo_unfold : MethodUnfold snapshot.ty go!"WriteTo" (LamV "$r"
@@ -4361,6 +4444,8 @@ class snapshot.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   ptr_Close_unfold : MethodUnfold (go.GoType.PointerType snapshot.ty) go!"Close" snapshot.Close.impl
   ptr_Size_unfold : MethodUnfold (go.GoType.PointerType snapshot.ty) go!"Size" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty) go!"Size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (App (Val (GoInstruction (StructFieldRef snapshot.ty go!"Tx"))) (Var "$r")))))
+  ptr_UnsafeForEach_unfold : MethodUnfold (go.GoType.PointerType snapshot.ty) go!"UnsafeForEach" snapshot.UnsafeForEach.impl
+  ptr_UnsafeRange_unfold : MethodUnfold (go.GoType.PointerType snapshot.ty) go!"UnsafeRange" snapshot.UnsafeRange.impl
   ptr_WriteTo_unfold : MethodUnfold (go.GoType.PointerType snapshot.ty) go!"WriteTo" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty) go!"WriteTo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (App (Val (GoInstruction (StructFieldRef snapshot.ty go!"Tx"))) (Var "$r")))))
 
@@ -4378,6 +4463,8 @@ attribute [instance] snapshot.TypeAssumptions.type_repr
   snapshot.TypeAssumptions.WriteTo_unfold
   snapshot.TypeAssumptions.ptr_Close_unfold
   snapshot.TypeAssumptions.ptr_Size_unfold
+  snapshot.TypeAssumptions.ptr_UnsafeForEach_unfold
+  snapshot.TypeAssumptions.ptr_UnsafeRange_unfold
   snapshot.TypeAssumptions.ptr_WriteTo_unfold
 
 structure zapBoltLogger [GooseExts] where
@@ -5215,6 +5302,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
   import_math_Assumption : _root_.Perennial.math.Assumptions
   import_bbolt_errors_Assumption : _root_.Perennial.go_etcd_io.bbolt.errors.Assumptions
+  import_syscall_Assumption : _root_.Perennial.syscall.Assumptions
   import_prometheus_Assumption : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
   import_hex_Assumption : _root_.Perennial.encoding.hex.Assumptions
   import_sort_Assumption : _root_.Perennial.sort.Assumptions
@@ -5277,6 +5365,7 @@ attribute [instance] Assumptions.Backend_instance
   Assumptions.import_errors_Assumption
   Assumptions.import_math_Assumption
   Assumptions.import_bbolt_errors_Assumption
+  Assumptions.import_syscall_Assumption
   Assumptions.import_prometheus_Assumption
   Assumptions.import_hex_Assumption
   Assumptions.import_sort_Assumption

@@ -385,7 +385,7 @@ theorem Run.wp_proof
     github_com.mit_pdos.etcd_grove.examples.etcd.restartN.ClientBase]
   (try wp_auto)
   -- `ms := etcdstart.Members("restartN", k, PeerBase, ClientBase)`
-  wp_apply (wp_Members go!"restartN" (W64 k) (W64 29000) (W64 30000) (by word)) as %msl Hmsl
+  wp_apply (wp_Members go!"restartN" (W64 k) (W64 14000) (W64 15000) (by word)) as %msl Hmsl
   imod ownSlice_persist _ _ _ $$ Hmsl with #Hmsl
   ihave #Hmsl' : msl ↦*□ members k $$ []
   · iExactEq Hmsl; rw [show uint.nat (W64 (k : Int)) = k by word]

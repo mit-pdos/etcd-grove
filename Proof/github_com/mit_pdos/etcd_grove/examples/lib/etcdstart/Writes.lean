@@ -29,7 +29,7 @@ public import Spec.go_etcd_io.raft.v3.MemoryStorage__ApplySnapshot
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__Compact
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Lemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.NetErr
-public import Proof.sort.SortAnyLess
+public import Spec.sort.SortAnyLess
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadRaft
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.TimeListIfc

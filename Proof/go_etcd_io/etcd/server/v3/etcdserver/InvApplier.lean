@@ -85,6 +85,7 @@ abbrev cfgElectionTicksAddr (c : Loc) : Loc :=
 abbrev cfgTickMsAddr (c : Loc) : Loc :=
   structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"TickMs" c
 
+abbrev epReplayConfAddr (ep : Loc) : Loc := structFieldRef etcdProgress go!"replayConf" ep
 abbrev epConfStateAddr (ep : Loc) : Loc := structFieldRef etcdProgress go!"confState" ep
 abbrev epAppliedTAddr (ep : Loc) : Loc := structFieldRef etcdProgress go!"appliedt" ep
 abbrev epAppliedIAddr (ep : Loc) : Loc := structFieldRef etcdProgress go!"appliedi" ep
@@ -408,6 +409,18 @@ def entriesAt (ents : List Loc) (ms : List EntryModel) : IProp GF :=
     □ (∀ (n : Nat) (e : Loc) (m : EntryModel), ⌜ents[n]? = some e⌝ -∗ ⌜ms[n]? = some m⌝ -∗
       entryAt e m))
 
+/-- A suffix of entries is modelled by the suffix of the models. -/
+theorem entriesAt_drop (ents : List Loc) (ms : List EntryModel) (k : Nat) :
+    entriesAt (GF := GF) ents ms ⊢ entriesAt (ents.drop k) (ms.drop k) := by
+  iunfold entriesAt
+  iintro ⟨%Hl, #H⟩
+  isplitr
+  · ipureintro; simp [Hl]
+  imodintro
+  iintro %n %e %m %He %Hm
+  rw [List.getElem?_drop] at He Hm
+  iapply H $$ %(k + n) %e %m %He %Hm
+
 instance entriesAt_persistent (ents : List Loc) (ms : List EntryModel) :
     Persistent (entriesAt (GF := GF) ents ms) := by
   unfold entriesAt; infer_instance
@@ -498,6 +511,11 @@ instance epCsVoters_persistent (γs : ServerRaftNames) (cs : Loc) :
     Persistent (epCsVoters (GF := GF) γs cs) := by
   unfold epCsVoters; infer_instance
 
+/-- The initial backend's configuration is available until the cursor reaches
+its log length. Installing a later snapshot clears the pointer. -/
+def epReplayCfg (ep : Loc) (γs : ServerRaftNames) (base cursor : Nat) : IProp GF :=
+  iprop(∃ p : Loc, epReplayConfAddr ep ↦ p ∗ (⌜base ≤ cursor⌝ ∨ epCsVoters γs p))
+
 /-- (2026-10-31, S5) **`ep.confState` after the applied log `L`** (persistent; the apply loop's):
 nothing applied yet, or it reports the voters (the log's first entry is a conf entry,
 `srv_first_entry`, that validates on a fresh backend, `ccValidOn_boot`). -/
@@ -580,7 +598,9 @@ theorem srvGrantGuard_expired_off (lg on : Bool) (ls : GoSlice) :
   · rfl
   · exact absurd (Hg.2 h) Hnx
 
-/-- `l` is a `lease.Lessor` whose `Promote` returns (in memory: no backend writes); and
+/-- `l` is a `lease.Lessor` whose `Promote` returns (in memory: no backend writes), on a thread
+holding its token (`threadTok`, given back; prove-ps2-promote, 2026-11-21: the real `Promote`'s sort
+and `Remaining()` borrow reader slots of the leases' `expiryMu` with its level 0); and
 (2026-10-13, the request path's unit 4c: the server's `run`) whose `Demote` returns and whose
 `ExpiredLeasesC` returns a channel of slices of expired leases under the server's grant guard
 `srvGrantGuard lg on` (`lease.expiredLeases`; the lease-expiry plan's X4, 2026-11-04: until then a
@@ -594,7 +614,7 @@ and auth mode (`E.lg`, `E.authMode.isOn`). -/
 def lessorOk (lg on : Bool) (l : GoInterface) : IProp GF :=
   iprop(∃ li : GoInterfaceOk, ⌜l = GoInterface.ok li⌝ ∗
     □ (∀ d : w64,
-      {{ True }} (App (Val #(methods li.ty go!"Promote" li.v)) (Val #d)) {{ RET #(); True }}) ∗
+      {{ threadTok }} (App (Val #(methods li.ty go!"Promote" li.v)) (Val #d)) {{ RET #(); threadTok }}) ∗
     □ ({{ True }} (App (Val #(methods li.ty go!"Demote" li.v)) (Val #())) {{ RET #(); True }}) ∗
     □ ({{ True }} (App (Val #(methods li.ty go!"ExpiredLeasesC" li.v)) (Val #()))
       {{ (c : GoChan), RET #c; ∃ γc : ChanNames,

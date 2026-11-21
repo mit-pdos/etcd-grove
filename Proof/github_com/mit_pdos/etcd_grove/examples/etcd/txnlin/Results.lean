@@ -10,16 +10,15 @@ Lean-first (no Rocq counterpart).
   and returns `Ok` or `Unknown`. From `isPkgInit linkvtxn`, the right to listen on
   `127.0.0.1:23796`, the main thread's token and `Main`'s named premises
   (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/txnlin/Main.lean`).
-* **`etcd_txnlin_safe`** (`Adequacy.lean`'s `etcd_txnlin_adequate`): the closed theorem. Every real
-  execution of `n` steps of `linkvtxn`'s initialization followed by `Main(clients, ops)`, from a
-  fresh state with one thread, has no stuck thread, no thread ended in a panic (so never
-  "linkvtxn: porcupine found the history not linearizable"), and the main thread's result, if any,
-  is `Ok` or `Unknown`; under linkv's hypotheses (`etcd_txnlin_safe`) at linkvtxn's configuration.
+
+**The closed theorem retired (2026-11-21, the user's decision D2 of `notes/etcd-unified-scope.md`).**
+Its closed theorem `etcd_txnlin_safe` (with its `_adequate` and `_robust` forms, `Adequacy.lean`, `PkgTable.lean`, `TopLevelDefs.lean` and the
+`TopLevelRobustness.lean` pair) is gone: the one closed etcd theorem `etcd_safe` (`examples/etcd/all`,
+`Proof/github_com/mit_pdos/etcd_grove/examples/etcd/all/Results.lean`) subsumes it (`notes/etcd-unified-scope.md` §1.3, §4); the function triples here stay.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Adequacy
-public import Robustness.Statement
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Link
 
 @[expose] public section
 
@@ -51,56 +50,7 @@ theorem linkvtxn_Main [go_etcd_io.etcd.cache.v3.Assumptions]
 
 end results
 
-section adequacy
-attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
-variable [go_gctx : GoGlobalContext]
-
-/-- **The linearizability instance is safe, in the operational semantics** (`etcd_txnlin_adequate`,
-see the file header and `Adequacy.lean`). -/
-theorem etcd_txnlin_safe [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
-    [log.NewModel]
-    (Hctx : ∀ hG : HeapGS .hasLC linkvtxnGF, ContextReadErrs (GF := linkvtxnGF) (hG := linkvtxnHeapAt hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC linkvtxnGF, ContextErrsClient (GF := linkvtxnGF) (hG := linkvtxnHeapAt hG lctx))
-    (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (Hbf : etcd_putget.BootFacts id ctxs boot)
-    (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
-    (clients ops : w64)
-    (Hc0 : 0 ≤ sint.Z clients) (Hc31 : sint.Z clients < 2 ^ 31) (Hops : 0 ≤ sint.Z ops)
-    (Hmul : sint.Z clients * sint.Z ops < 2 ^ 60)
-    (HNs : prometheus.namesUnclaimed (linkvtxnProgram clients ops) linkvtxnNames)
-    (HAs : addrsUnclaimed (linkvtxnProgram clients ops) [go!"127.0.0.1:23796"])
-    -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
-    (HDs : dataDirsAbsent (linkvtxnProgram clients ops) [go!"/tmp/etcd-grove-data/linkvtxn.etcd"])
-    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
-    (HEnv : verifyEnvOff (linkvtxnProgram clients ops))
-    (n : Nat)
-    (Hprem : ∀ hG : HeapGS .hasLC linkvtxnGF,
-      ⊢ etcd_txnlin.premises (GF := linkvtxnGF) (hG := linkvtxnHeapAt hG lctx) n id ctxs boot)
-    (σ : state) (g : GlobalState)
-    (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
-    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
-    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"/tmp/etcd-grove-data/linkvtxn.etcd"])
-    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
-    (Hthreads : σ.threads = 1)
-    (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
-    (Hsteps : RealNstepsBelow (2 ^ 28) n ([linkvtxnProgram clients ops], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 12 ≤ 2 ^ 40) :
-    (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
-    (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  etcd_txnlin_adequate Hctx Hcec id ctxs boot Hbf Haf Hbuq Hrf Hdbo clients ops Hc0 Hc31 Hops Hmul
-    HNs HAs HDs HEnv n Hprem σ g Hfs HWal Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
-
-end adequacy
-
 #print axioms linkvtxn_Main
-#print axioms etcd_txnlin_adequate
-#print axioms etcd_txnlin_safe
 
 end EtcdGrove
 end Perennial

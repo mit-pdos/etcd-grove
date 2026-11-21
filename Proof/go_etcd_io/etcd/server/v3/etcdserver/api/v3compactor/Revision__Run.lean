@@ -105,7 +105,7 @@ theorem v3compactor.Revision.Run.wp_proof
     icases clockwork.clockOk_ok _ _ $$ Hclk with %Hci
     obtain ⟨ci, Hci⟩ := Hci
     subst Hci
-    icases clockwork.clockLb_init (GF := GF) clockwork.realClock with ⟨%n0, #Hn0⟩
+    icases clockwork.clockLb_init _ _ $$ Hclk with ⟨%n0, #Hn0⟩
     simp only [go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.revInterval]
     (try wp_auto)
     ihave #HA := clockwork.clockOk_After _ _ (W64 300000000000) (iprop(True) : IProp GF) n0 $$ Hclk [] Hn0

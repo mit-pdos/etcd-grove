@@ -6,7 +6,7 @@ module
 
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.InvPb
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.PbContentOwn
-public import RaftNoAx.Proof.go_etcd_io.raft.v3.CCCodecLen
+public import RaftNoAx.Proof.go_etcd_io.raft.v3.CCWireRoundtrip
 
 @[expose] public section
 
@@ -24,12 +24,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `marshalConfChangeSingle(s)` (`raftpb/noax.go`) of a change of a `ConfChangeV2`'s list (non-`nil`, frozen, `ccsRoC`): a fresh slice holding `ccEncodeSingle` of its set fields, whose unset fields are those whose model value is zero (`CCSingleEnc`). -/
+/-- `marshalConfChangeSingle(s)` (`raftpb/noax.go`) of a change of a `ConfChangeV2`'s list (non-`nil`, frozen, `ccsRoC`): a fresh slice containing its set fields and its preserved unknown fields. -/
 abbrev raftpb.marshalConfChangeSingle.spec : Prop :=
   ∀ (p : Loc) (c : ConfChangeSingleM) (uf : List w8),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ ccsRoC p c uf }}
     (App (Val #(functions raftpb.marshalConfChangeSingle [])) (Val #p))
-  {{ (s : GoSlice) (bs : List w8), RET #s; s ↦* bs ∗ ⌜CCSingleEnc c bs⌝ }}
+  {{ (s : GoSlice) (bs : List w8), RET #s; s ↦* bs ∗ ⌜CCSingleWireEnc c uf bs⌝ }}
 
 end spec
 

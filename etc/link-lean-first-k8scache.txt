@@ -6,7 +6,7 @@
 # the trust boundary: names-only functions (axioms)
 strconv_ParseInt:
 time_Duration__Seconds:
-trace_New:
+trace_New: =_root_.Perennial.time.wp_Now
 trace_Trace__LogIfLong:
 schema_GroupVersionResource__Empty_ptr:
 runtime_HandleCrashWithLogger:

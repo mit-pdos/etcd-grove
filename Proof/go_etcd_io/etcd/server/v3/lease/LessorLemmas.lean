@@ -312,7 +312,7 @@ theorem winBody_push (γr : LessorRdNames) (hs : List LSnap) (τ σ' : LSnap) (w
     lessorWinBody (GF := GF) γr hs ∗ winOwn γr w ⊢ lessorWinBody γr (hs ++ [σ']) ∗ winOwn γr w := by
   unfold lessorWinBody winOwn
   iintro ⟨⟨%ws, Ha, %Hok⟩, %ws0, Ho, %Hw⟩
-  ihave %Hag := monoListAuthOwn_agree γr.2.2.2.2.2 _ _ ws ws0 $$ Ha Ho
+  ihave %Hag := monoListAuthOwn_agree γr.2.2.2.2.2.1 _ _ ws ws0 $$ Ha Ho
   obtain ⟨-, rfl⟩ := Hag
   isplitl [Ha]
   · iexists ws; iframe Ha; ipureintro
@@ -360,7 +360,7 @@ theorem win_push (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (w : Opti
   ihave %H1 := lessorPinR_agree γl γr γr1 $$ [$Hpr $Hp1]
   ihave %H2 := lessorPinR_agree γl γr γr2 $$ [$Hpr $Hp2]
   subst H1; subst H2
-  ihave %Hag := monoListAuthOwn_agree γr.2.2.2.2.2 _ _ ws0 ws $$ Hwo Hwt
+  ihave %Hag := monoListAuthOwn_agree γr.2.2.2.2.2.1 _ _ ws0 ws $$ Hwo Hwt
   obtain ⟨-, rfl⟩ := Hag
   obtain ⟨T, hT⟩ := Hlast
   obtain ⟨hσ, hlen⟩ := getLast?_getElem? hT
@@ -373,11 +373,11 @@ theorem win_push (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (w : Opti
   obtain ⟨-, rfl⟩ := Hh
   iunfold lessorWinBody at HW
   icases HW with ⟨%ws1, Hwi, %HWok⟩
-  ihave %Hag := monoListAuthOwn_agree γr.2.2.2.2.2 _ _ ws0 ws1 $$ Hwo Hwi
+  ihave %Hag := monoListAuthOwn_agree γr.2.2.2.2.2.1 _ _ ws0 ws1 $$ Hwo Hwi
   obtain ⟨-, rfl⟩ := Hag
-  ihave Hfull := (win_full γr.2.2.2.2.2 ws0).2 $$ [$Hwi $Hwo $Hwt]
+  ihave Hfull := (win_full γr.2.2.2.2.2.1 ws0).2 $$ [$Hwi $Hwo $Hwt]
   imod monoListAuthOwn_update_app [(hs.length - 1, x)] $$ Hfull with ⟨Hfull, -⟩
-  icases (win_full γr.2.2.2.2.2 _).1 $$ Hfull with ⟨Hwi, Hwo, Hwt⟩
+  icases (win_full γr.2.2.2.2.2.1 _).1 $$ Hfull with ⟨Hwi, Hwo, Hwt⟩
   imod Hclose $$ [Hh HS HU HQ Hwi] with -
   · inext; iunfold lessorRdBody; iexists hs, Sm0; iframe Hh HS HU Htie Hids HQ
     isplitr
@@ -431,7 +431,7 @@ theorem win_wit (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (w : Optio
   obtain ⟨-, rfl⟩ := Hh
   iunfold lessorWinBody at HW
   icases HW with ⟨%ws1, Hwi, %HWok⟩
-  ihave %Hag := monoListAuthOwn_agree γr.2.2.2.2.2 _ _ ws0 ws1 $$ Hwo Hwi
+  ihave %Hag := monoListAuthOwn_agree γr.2.2.2.2.2.1 _ _ ws0 ws1 $$ Hwo Hwi
   obtain ⟨-, rfl⟩ := Hag
   have hs_lt : s < hs.length := by
     unfold lastWin at Hw
@@ -1036,29 +1036,128 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **`close(c)` by the closer of a lease's `revokec`** (unit T3: `Revoke`'s deferred close): the
-channel idle, owned, so the close does not panic. -/
+/-- **The lessor's current `demotec`** `dc` (not nil) **is a close-once channel** (prove-ps2-renew,
+2026-11-21; `Renew`, under the read lock): with the lock's share of `demotec`'s ghost variable `γd`,
+which agrees with the outer invariant's half, its persistent `onceRecv`, out of `demoteOuter`. -/
+theorem demote_recv (γd : GName) (q : Qp) (dc : GoChan) (hdc : dc ≠ chan.nil) :
+    £ 1 ∗ ghostVar (GF := GF) γd q dc ∗ inv demoteOuterN (demoteOuter γd) ⊢
+      |={⊤}=> ghostVar γd q dc ∗ ∃ γt : GName, onceRecv dc γt := by
+  iintro ⟨Hlc, Hv, #Hout⟩
+  iinv Hout with Ho Hclose
+  imod lc_fupd_elim_later (E := ⊤ \ ↑demoteOuterN) $$ Hlc Ho with Ho
+  iunfold demoteOuter at Ho
+  icases Ho with ⟨%dc', Hv', Hor⟩
+  ihave %Heq := ghostVar_agree _ _ _ _ _ $$ Hv Hv'
+  subst Heq
+  icases Hor with (%Hnil | ⟨%γt, #Hrecv, Htok⟩)
+  · exact absurd Hnil hdc
+  imod Hclose $$ [Hv' Htok] with -
+  · inext; iunfold demoteOuter; iexists _; iframe Hv'; iright; iexists γt; iframe Hrecv Htok
+  imodintro
+  iframe Hv
+  iexists γt; iexact Hrecv
+
+/-- **`close(c)` of a close-once channel** with its token (prove-ps2-renew, 2026-11-21): the
+channel's invariant, open, takes the token at the close; closed, it holds the token already, which
+refutes the second close. -/
+theorem wp_once_close {ty : go.GoType} {dir : go.ChanDir}
+    [ty ↓u go.ChannelType dir (go.StructType [])] (c : GoChan) (γt : GName) :
+    {{ onceRecv (GF := GF) c γt ∗ token γt }} (App (Val #(functions go.close [ty])) (Val #c))
+    {{ RET #(); True }} := by
+  iintro %Φ ⟨#Hr, Htok⟩ HΦ
+  iunfold onceRecv at Hr
+  icases Hr with ⟨%γc, #Hch, #Hci⟩
+  iapply chan.wp_close (ct := ty) (V := Unit) c γc $$ Hch
+  iintro _
+  unfold closeAu
+  iapply ncfupd_of_fupd
+  iinv Hci with Hi Hclose2
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  inext
+  iunfold onceChanInv at Hi
+  icases Hi with ⟨%st, Hc, Hs⟩
+  iexists st
+  iframe Hc
+  rcases st with _ | _ | _ | _ | _ | _ | (_ | ⟨_, _⟩)
+  all_goals dsimp only
+  case Idle =>
+    iintro Hc
+    imod Hmask with -
+    imod Hclose2 $$ [Hc Htok] with -
+    · inext; iunfold onceChanInv; iexists .Closed []; dsimp only; iframe
+    imodintro
+    iapply HΦ
+    itrivial
+  case Closed.nil =>
+    iapply (token_exclusive γt) $$ Htok Hs
+  all_goals first | itrivial | (iexfalso; iexact Hs)
+
+/-- **`close(c)` by the closer of a lease's `revokec`** (unit T3: `Revoke`'s deferred close): a
+close-once channel and its token (`wp_once_close`). -/
 theorem wp_revokec_close {ty : go.GoType} {dir : go.ChanDir}
     [ty ↓u go.ChannelType dir (go.StructType [])] (c : GoChan) :
     {{ revokeCloser (GF := GF) c }} (App (Val #(functions go.close [ty])) (Val #c))
     {{ RET #(); True }} := by
   iintro %Φ Hcl HΦ
   iunfold revokeCloser at Hcl
-  icases Hcl with ⟨%γc, #Hch, Hown⟩
-  iapply chan.wp_close (ct := ty) (V := Unit) c γc $$ Hch
-  iintro _
-  unfold closeAu
+  icases Hcl with ⟨%γt, #Hr, Htok⟩
+  iapply (wp_once_close (ty := ty) c γt) $$ [$Hr $Htok]
+  iexact HΦ
+
+/-- **A receive on a close-once channel** (prove-ps2-renew, 2026-11-21; a `select` case's
+`recvAu`): it completes only once the channel is closed (nothing is ever sent), with `ok = false`.
+The channel's state is stepped inside its invariant (an idle channel to a waiting receiver, which
+waits until it is closed). -/
+theorem once_recvAu (γc : ChanNames) (γt : GName) (Φ : Unit → Bool → IProp GF) :
+    inv onceChanN (onceChanInv (GF := GF) γc γt) ⊢ (∀ v : Unit, Φ v false) -∗ recvAu γc Unit Φ := by
+  iintro #Hci HΦ
+  unfold recvAu
+  iapply ncfupd_of_fupd
+  iinv Hci with Hi Hclose
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   inext
-  iexists .Idle
-  dsimp only
-  iframe Hown
-  iintro -
-  imod Hmask with -
-  imodintro
-  iapply HΦ
-  itrivial
+  iunfold onceChanInv at Hi
+  icases Hi with ⟨%st, Hc, Hs⟩
+  iexists st
+  iframe Hc
+  rcases st with (_ | ⟨_, _⟩) | _ | _ | _ | _ | _ | (_ | ⟨_, _⟩)
+  all_goals dsimp only
+  case Idle =>
+    iintro Hc
+    imod Hmask with -
+    imod Hclose $$ [Hc] with -
+    · inext; iunfold onceChanInv; iexists .RcvPending; dsimp only; iframe
+    imodintro
+    unfold recvNestedAu
+    iapply ncfupd_of_fupd
+    iinv Hci with Hi Hclose
+    iapply fupd_mask_intro Std.LawfulSet.empty_subset
+    iintro Hmask
+    inext
+    iunfold onceChanInv at Hi
+    icases Hi with ⟨%st, Hc, Hs⟩
+    iexists st
+    iframe Hc
+    rcases st with (_ | ⟨_, _⟩) | _ | _ | _ | _ | _ | (_ | ⟨_, _⟩)
+    all_goals dsimp only
+    case Closed.nil =>
+      iintro Hc
+      imod Hmask with -
+      imod Hclose $$ [Hc Hs] with -
+      · inext; iunfold onceChanInv; iexists .Closed []; dsimp only; iframe
+      imodintro
+      iapply HΦ
+    all_goals first | itrivial | (iexfalso; iexact Hs)
+  case Closed.nil =>
+    iintro Hc
+    imod Hmask with -
+    imod Hclose $$ [Hc Hs] with -
+    · inext; iunfold onceChanInv; iexists .Closed []; dsimp only; iframe
+    imodintro
+    iapply HΦ
+  all_goals first | itrivial | (iexfalso; iexact Hs)
 
 end closeLemmas
 

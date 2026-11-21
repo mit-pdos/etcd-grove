@@ -28063,6 +28063,17 @@ restarts.
 
 ## The merged snapshot's index guard (2026-10-31, S1 · the user's decision (B))
 
+**2026-11-21, replay repair on the working branch.** Bootstrap recovers
+the configuration of the backend before the apply cursor begins WAL replay.
+Retain that configuration for an outgoing snapshot of the initial image
+and take the term at the image index from the same Ready's log. At restart,
+read the complete retained interval from the rebuilt MemoryStorage before
+calling RestartNode, while bootstrap still owns that storage. Each Ready
+updates its own immutable view from the entries Raft hands out. Installing
+an incoming snapshot clears the retained configuration. The sender can
+also read the metadata and membership from the transaction it streams.
+[Regression and proof status](snapguard-removal-plan.md).
+
 **2026-11-21.** Remove the index comparison in the etcd pin. Both
 `applyAll` proof paths use the bound derived from the outgoing snapshot
 and the current Ready in the matching term. Each worker carries its
@@ -41498,6 +41509,34 @@ image, the WAL base is the lower bound with which application starts.
 These facts are carried by the same storage invariant used for reads and
 compaction. The job reads its own node’s outgoing channel and compares the
 message with the Ready actually delivered to that job.
+
+## Sending a merged snapshot while replay catches up
+
+**2026-11-21 · fork repair and linked server proof**
+
+The replay cursor can be at 3 while a reopened backend contains index 7.
+Reporting failure on that path leaves a follower waiting for data the
+sender already has. The replay fork streams the backend and reads its
+metadata in the same bbolt read transaction. For older databases it uses
+the immutable log for the Ready being applied to recover the entry term,
+and the membership in that database to recover the configuration.
+
+The sender and the schema package use the same readers for the saved
+configuration and membership. Keeping these functions in the snapshotmeta
+package lets the sender verify the decoders without importing their
+initialization dependencies into the MVCC proof.
+
+The startup worker reads the retained log from the same MemoryStorage that
+RestartNode takes. Each Ready carries its own immutable view of the term runs.
+Replacing entries after the committed backend index preserves the term even
+when the replacement splits a run. Advancing the apply cursor retains that
+term until the cursor reaches the backend index. These facts supply the
+historical entry term to the snapshot sender under the graceful restart
+contract. After a power loss the recovered HardState commit can be lower.
+The Go regression reopens that state and checks delivery. A top-level proof
+of that recovery case would also need the previous quorum's commit evidence.
+[Reproduction and fork revision](../issues/etcd-merged-snapshot-replay-failure.md).
+
 ## A status's code as a per-run relation (2026-11-20 · the user's soundness fix · branch `prove-errdesc2/2026-11-20`, stage 2a)
 
 **Supersedes in part:** the watch slice's W-C (`statusCode : GoInterface → w32`, "the status is embedded
@@ -41545,3 +41584,64 @@ bare invoker's errors are built by grpc (`status.FromProto(...).Err()`, `status.
 variable. Not a new axiom; a fact added to an existing axiom's post.
 
 **Top-level statements**: none names `errDesc`; their texts are unchanged (only the definitions above moved).
+
+## zap's `loggerRaw` split: `NewNop`'s loggers defined, the others opaque (2026-11-21 · group `zap3` · branch `prove-zap3/2026-11-21`)
+
+**The change.** `zap.loggerRaw l` (`Spec/go_uber_org/zap/Defs.lean`), until then opaque, is now
+`zap.nopLogger l ∨ zap.loggerOther l`: `nopLogger` is defined (a persistent points-to of a `Logger`
+whose core is zapcore's `nopCore`, not in development mode, adding no caller, default terminal hooks:
+`zap.nopLoggerVal`), `loggerOther` opaque, with the old docstring's meaning minus `NewNop`. So the set
+of loggers `zapLoggerOk` covers is unchanged (no caller-visible spec moves), and `zap.NewNop`'s spec is
+proved over zap's code (`Proof/go_uber_org/zap/NewNop.lean`, over `zap_wp_NewNop_init`, whose post now
+gives `nopLoggerVal`).
+
+**Why not define `loggerRaw` as `NewNop`'s loggers only.** Every verified program's logger is
+`NewNop()`'s, and with that definition `Logger.check`, `Panic`, `CheckedEntry.Write` (its `zapEntry`
+then never produced below `DPanicLevel`) could be proved too; but every spec taking `zapLoggerOk`
+(`NewServer`, the WAL, mvcc, the client) would then cover nop loggers only: a weaker spec, which the
+proving briefs exclude without the user's decision. With the split, `check`/`Panic`/`Fatal`/`Write`
+keep their axioms over all of `zapLoggerOk`; proving their nop case alone would narrow, not retire, them.
+(`Fatal` also needs `os.Exit`, names-only in Perennial; `Panic`'s nop case needs zapcore's `_cePool`
+as an `isPool` in zapcore's fact and `pool.New`/`Get`/`Put` specs over `sync.Pool`'s.)
+
+**The docstring's meaning sharpened.** The old `loggerRaw` admitted `ioCore` over any non-nil write
+syncer and encoder; one that panics (a user `WriteSyncer`) makes `check`'s and `Write`'s axioms false
+of Go. `loggerOther` requires zap's own encoders, write syncers and level enablers, or ones whose
+methods return without panicking. No proof depended on the looser reading (only `NewNop` produces
+`zapLoggerOk`).
+
+## Configuration changes use protobuf wire order on the noax fork (2026-11-21)
+
+A Raft caller can receive a configuration change from a different protobuf
+encoder. An optional field, including one inside a nested change, must survive
+a decode and re-encode. The producer of a configuration entry also controls field
+order and can repeat a field. The old fork accepted only the ordering its own
+encoder wrote. The public formatter regression demonstrates the difference for
+both message versions. [Issue and regression](../issues/raft-noax-confchange-wire-compat.md).
+
+The repaired implementation decodes fields in wire order. The last decoded
+singular field supplies its value, repeated changes accumulate, and unknown
+fields keep their original value bytes. Its group scanner checks matching
+end tags and the same depth bound as protobuf-go. The Lean wire model ties a
+successful skip to the protobuf grammar used when allocating a message, and
+shows any field admitted by that grammar can be skipped. The encoder proof uses
+both facts to account for extension bytes in nested changes and both top-level
+messages. [Noax codec proofs](raft-noax-codec.md).
+
+## An index supported by both halves for a shared Raft witness
+
+**2026-11-21 · accepted**
+
+The original fork fix for the joint-configuration election bug dropped the
+witness request when exactly one half selected it. The Go regression
+demonstrates that a live majority in each half can then stall indefinitely
+under the same availability pattern.
+
+The new tracker computes each half's index from the regular acknowledgers in
+its replication set. A half selecting the witness needs quorum minus one. A
+half excluding it needs a full regular majority. The shared witness receives
+the lower index. In the second case, the larger group of acknowledgers still
+intersects the regular votes of a candidate checked against the stored set.
+The protocol proof uses this intersection for leader completeness. The etcd
+server uses the separate ordinary Raft implementation, and the witness example
+uses a static cluster. [Regression and fix](../issues/raft-witness-joint-progress.md)

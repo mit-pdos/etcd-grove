@@ -11,9 +11,6 @@ axiom context.WithValue.wp_proof
 axiom envVerifyOffTok
 axiom go_humanize.Bytes.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof
-axiom mvcc.kvHasher.Hash.wp_proof
-axiom mvcc.kvHasher.WriteKeyValue.wp_proof
-axiom mvcc.newKVHasher.wp_proof
 axiom os.Getenv.wp_proof
 axiom prometheus.HistogramVec.WithLabelValues.wp_proof
 axiom proto.Marshal.wp_proof
@@ -22,10 +19,7 @@ axiom proto.Unmarshal.wp_proof
 axiom reflect.DeepEqual.wp_proof_pgidSet
 axiom reflect.ValueOf.wp_proof
 axiom sort.SliceIsSorted.wp_proof
-axiom sort.Sort.wp_anyLess
-axiom sort.Stable.wp_proof
 axiom strings.ToLower.wp_proof
-axiom time.Duration.Seconds.wp_proof
 axiom zap.Logger.Fatal.wp_proof
 axiom zap.Logger.Panic.wp_proof
 axiom zap.Logger.check.wp_proof

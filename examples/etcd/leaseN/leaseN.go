@@ -42,10 +42,12 @@ const (
 )
 
 // Token is the cluster's token (etcd's --initial-cluster-token), from which, with its peer URL,
-// etcd computes each member's id: the first leaseN-<n> whose first 1000 members' ids have distinct
-// nonzero 16 low bits (putgetN's BootFacts; TestMemberIDs). The cluster grants no lease, so the
+// etcd computes each member's id: the first leaseN-<n> whose first 300 members' ids have distinct
+// nonzero 16 low bits, also from the ids of examples/etcd/all's other clusters (putgetN's BootFacts,
+// etcd_safe's Hlow; TestMemberIDs here and there). Above 300 members the ids are not checked:
+// etcd_leaseN_safe's premise on them may be false there. The cluster grants no lease, so the
 // ids' 15 low bits need not be distinct.
-const Token = "leaseN-2422"
+const Token = "leaseN-1302"
 
 // The lease id TimeToLive asks about: any id, since no member holds a lease.
 const leaseID = clientv3.LeaseID(7)

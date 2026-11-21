@@ -205,7 +205,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
          go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty) #t : GoInterface) ∗
        trLive γn t c rs ∗ srvMemberIDAddr s ↦□ idm ∗
        srvMembersDir cl ps dir ∗
-       epMemSnapAddr ep ↦ msi ∗ epConfState ep cs0 ∗
+       epMemSnapAddr ep ↦ msi ∗ epConfState ep cs0 ∗ (∃ p : Loc, epReplayConfAddr ep ↦ p) ∗
        srvCfgFieldAddr s go!"ServerFeatureGate" ↦□ fg ∗ isFeatureGate fg ∗
        srvCfgFieldAddr s go!"QuotaBackendBytes" ↦□ quota ∗
        srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ wad ∗
@@ -231,8 +231,8 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applySnapshot")) (Val #ep))
         (Val #ap))
     {{ RET #(); snapWalkPost s ep sv γ ci E ρ γr d D A A' x ss (config.backendPathOf cfg.DataDir') hk γt γn t c rs idm lp al ast cl memI
-        quota wad Lr recs U reqOf ∗ notifyRcvN γnc 1 ∗ threadTok ∗ rnWalTokA γw (srvRAddr s) q }} := by
-  wp_start as ⟨#Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, HwT, Hrcv, Hai, Hat, Hdsi, Hlr, Hbr, #Hcfg, #Hcfgl, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hvoff, #Hbh, Hst, Hab, HKV, HRS, HL0, HEv0, #HRqs, #HGrs, #Hlinv, #Hlpf, #Hlrev, #Hlcfg, #Hkvf, #Him, HCp, #HkSz, #HWP, #Hstpf, #Hsws, #Hsdinv, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Hclgz, #Htrf, Htlive, #Hmidf, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HoSC, HoOh, HthT, HauR, #HA', #HmetaB⟩
+        quota wad Lr recs U reqOf ∗ notifyRcvN γnc 1 ∗ threadTok ∗ epReplayConfAddr ep ↦ (null : Loc) ∗ rnWalTokA γw (srvRAddr s) q }} := by
+  wp_start as ⟨#Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, HwT, Hrcv, Hai, Hat, Hdsi, Hlr, Hbr, #Hcfg, #Hcfgl, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hvoff, #Hbh, Hst, Hab, HKV, HRS, HL0, HEv0, #HRqs, #HGrs, #Hlinv, #Hlpf, #Hlrev, #Hlcfg, #Hkvf, #Him, HCp, #HkSz, #HWP, #Hstpf, #Hsws, #Hsdinv, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Hclgz, #Htrf, Htlive, #Hmidf, #Hmembers, Hmsi, Hcs0, ⟨%boot, Hboot⟩, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HoSC, HoOh, HthT, HauR, #HA', #HmetaB⟩
   ihave #Hsrv' := Hsrv
   iunfold isServerM at Hsrv'
   icases Hsrv' with ⟨-, -, ⟨%sfv, #Hfl⟩, #Hatm, -⟩
@@ -1153,7 +1153,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   imodintro
   wp_pures
   iapply HΦ
-  iframe Hrcv HthT
+  iframe Hrcv HthT Hboot
   ihave HnPl : backend.bkRPool (GF := GF) d'.γB d'.P d'.be $$ [HnPl]
   · rw [hP']; iexact HnPl
   ihave #HnB2 : backend.isBackend (GF := GF) d'.γB d'.P (mvcc.api.mvccW d'.gx)

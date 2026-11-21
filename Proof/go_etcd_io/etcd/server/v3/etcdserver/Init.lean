@@ -79,6 +79,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.Init
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Init
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Init
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.Init
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.snapshotmeta.Init
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Init
 public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.go_opentelemetry_io.otel.attribute.Init

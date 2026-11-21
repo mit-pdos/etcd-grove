@@ -41,13 +41,13 @@ noncomputable def member.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 attribute [irreducible] member.ty
 
 @[reducible] noncomputable def PeerBase [GooseExts] [GoGlobalContext] : val :=
-  #(W64 29000)
+  #(W64 14000)
 
 @[reducible] noncomputable def ClientBase [GooseExts] [GoGlobalContext] : val :=
-  #(W64 30000)
+  #(W64 15000)
 
 @[reducible] noncomputable def Token [GooseExts] [GoGlobalContext] : val :=
-  #(go!"restartN-1440")
+  #(go!"restartN-11208")
 
 @[reducible] noncomputable def SnapCount [GooseExts] [GoGlobalContext] : val :=
   #(W64 1)
@@ -103,7 +103,7 @@ noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
 /-- key is the i-th Put's key, "k" followed by the byte i (i < 256): the keys are distinct, in the
     order of i, and all in [RangeKey, RangeEnd).
 
-    go: restartN.go:94:6 -/
+    go: restartN.go:97:6 -/
 noncomputable def key.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "i"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
@@ -121,7 +121,7 @@ noncomputable def key.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- value is the i-th Put's value, "v" followed by the byte i.
 
-    go: restartN.go:99:6 -/
+    go: restartN.go:102:6 -/
 noncomputable def value.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "i"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
@@ -139,7 +139,7 @@ noncomputable def value.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- ServeHTTP serves r with the current incarnation's handler.
 
-    go: restartN.go:117:21 -/
+    go: restartN.go:120:21 -/
 noncomputable def raftSwap.ServeHTTP.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "sw"
   (Lam "w"
@@ -167,7 +167,7 @@ noncomputable def raftSwap.ServeHTTP.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- set makes h the handler of the member's current incarnation.
 
-    go: restartN.go:125:21 -/
+    go: restartN.go:128:21 -/
 noncomputable def raftSwap.set.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "sw"
   (Lam "h"
@@ -190,7 +190,7 @@ noncomputable def raftSwap.set.impl [GooseExts] [GoGlobalContext] : val :=
     Building a member that was stopped finds its data directory (the member's name + ".etcd"): etcd
     restarts it from its WAL.
 
-    go: restartN.go:144:6 -/
+    go: restartN.go:147:6 -/
 noncomputable def build.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "peer"
@@ -231,7 +231,7 @@ noncomputable def build.impl [GooseExts] [GoGlobalContext] : val :=
 /-- newMember serves member name's peer handler on a listener at peerAddr, forwarding to the built
     first incarnation s's raft handler, and starts s.
 
-    go: restartN.go:151:6 -/
+    go: restartN.go:154:6 -/
 noncomputable def newMember.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "name"
@@ -314,7 +314,7 @@ noncomputable def newMember.impl [GooseExts] [GoGlobalContext] : val :=
     servers and the members' records, in the members' order, and the cluster's map, or the first error
     (the members started before it keep running).
 
-    go: restartN.go:168:6 -/
+    go: restartN.go:171:6 -/
 noncomputable def startMembers.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ms"
   (Lam "lg"
@@ -481,7 +481,7 @@ noncomputable def startMembers.impl [GooseExts] [GoGlobalContext] : val :=
 /-- restartMember builds a new incarnation of the stopped member m (on its data directory, at its
     addresses), swaps m's peer handler to its raft handler, and starts it.
 
-    go: restartN.go:193:6 -/
+    go: restartN.go:196:6 -/
 noncomputable def restartMember.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam "cluster"
@@ -546,7 +546,7 @@ noncomputable def restartMember.impl [GooseExts] [GoGlobalContext] : val :=
 /-- put puts key(i) with value value(i) through s's own API, in a context with the request timeout,
     cancelled after the call.
 
-    go: restartN.go:205:6 -/
+    go: restartN.go:208:6 -/
 noncomputable def put.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "i"
@@ -604,7 +604,7 @@ noncomputable def put.impl [GooseExts] [GoGlobalContext] : val :=
     shutdown stops the raft node and the transport and calls Cleanup, which closes the lessor, the KV
     store, the auth store and the backend, so that the data directory can be opened again).
 
-    go: restartN.go:217:6 -/
+    go: restartN.go:220:6 -/
 noncomputable def stop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "k"
@@ -628,7 +628,7 @@ noncomputable def stop.impl [GooseExts] [GoGlobalContext] : val :=
     unless it returns exactly the N1 + N2 Puts' keys, in order, each with its value at version 1, at the
     response revision 1 + N1 + N2. It reports whether the check ran: false if the Range failed.
 
-    go: restartN.go:228:6 -/
+    go: restartN.go:231:6 -/
 noncomputable def check.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -737,7 +737,7 @@ noncomputable def check.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Run is Main(k) with the logger lg, so that a test can count what the members log. It reports whether
     the check ran (and passed): false if a step failed first, or if k < 2. It leaves the members running.
 
-    go: restartN.go:257:6 -/
+    go: restartN.go:260:6 -/
 noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "k"
   (Lam "lg"
@@ -908,7 +908,7 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Main runs the example with k members and no logging (Run).
 
-    go: restartN.go:295:6 -/
+    go: restartN.go:298:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "k"
   (Seq (App (Val exceptionDo)

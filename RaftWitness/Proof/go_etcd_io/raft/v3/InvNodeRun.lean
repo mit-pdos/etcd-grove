@@ -350,6 +350,7 @@ theorem tick_rcv_au (γ : NodeNames) (Φ : Unit → Bool → IProp GF) :
       recvAu γ.tick Unit Φ := by
   iintro #Hinv Hlc Hcont
   unfold recvAu
+  iapply ncfupd_of_fupd
   iinv Hinv with Hi Hclose
   imod lc_fupd_elim_later $$ Hlc Hi with Hi
   unfold tickInv

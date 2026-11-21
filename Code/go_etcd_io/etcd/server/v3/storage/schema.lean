@@ -318,6 +318,9 @@ noncomputable def bytesToLeaseID [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def NewMembershipBackend [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.NewMembershipBackend"
 
+noncomputable def UnsafeReadMembers [GooseExts] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/storage/schema.UnsafeReadMembers"
+
 noncomputable def mustParseMemberIDFromBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.mustParseMemberIDFromBytes"
 
@@ -1847,7 +1850,7 @@ noncomputable def leaseIDToBytes.impl [GooseExts] [GoGlobalContext] : val :=
     Refer to https://github.com/etcd-io/etcd/pull/19343#discussion_r1958056718
     revive:disable-next-line:unexported-return
 
-    go: membership.go:43:6 -/
+    go: membership.go:44:6 -/
 noncomputable def NewMembershipBackend.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "be"
