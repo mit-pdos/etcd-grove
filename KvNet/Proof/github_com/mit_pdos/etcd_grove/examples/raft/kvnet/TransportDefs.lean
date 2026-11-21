@@ -71,6 +71,15 @@ def isTransportCore (F : KvFacts GF) (t : Loc) (γ : Cluster) (N : Namespace) (i
     t.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Transport, go!"stats"] ↦□ sp ∗
     isStats sp ∗ isNode n γ N id ∗ stepLaw F γ N id ∗ ⌜Cluster.trace γ = none⌝)
 
+/-- A peer's sender `p` (see the file header): its id, its address with its protocols. -/
+def isPeerAddr (F : KvFacts GF) (p : Loc) (pid : w64) (a : GoString) : IProp GF :=
+  iprop(p.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.peer, go!"id"] ↦□ pid ∗
+    p.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.peer, go!"addr"] ↦□ a ∗
+    addrProto a (kvP F pid) (kvQ F pid) ∗ ⌜addrOk a = true⌝)
+
+instance isPeerAddr_persistent F p pid a : Persistent (isPeerAddr (GF := GF) F p pid a) := by
+  unfold isPeerAddr; infer_instance
+
 instance isTransportCore_persistent F t γ N id n :
     Persistent (isTransportCore (GF := GF) F t γ N id n) := by
   unfold isTransportCore; infer_instance
