@@ -17,6 +17,7 @@ public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.iter.Link
 public import Perennial.Proof.math.Link
+public import Perennial.Proof.reflect.Link
 public import Perennial.Proof.sort.Link
 public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.Link
@@ -55,7 +56,6 @@ public import Proof.k8s_io.component_base.tracing.Init
 public import Proof.k8s_io.klog.v2.Init
 public import Proof.k8s_io.utils.clock.Init
 public import Proof.net.http.Init
-public import Proof.reflect.Init
 
 @[expose] public section
 
