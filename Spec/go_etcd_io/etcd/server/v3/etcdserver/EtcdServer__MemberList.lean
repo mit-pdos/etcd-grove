@@ -7,6 +7,8 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthGuard
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthWhy
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReqOn
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__Members
 public import Proof.context.LibKeys
 @[expose] public section
@@ -38,18 +40,22 @@ the committed index `c` the caller knew of, the reader slot `srvReadReader`, the
 (auth-guard-completeness G3, 2026-11-14) For a caller holding a lower bound `n` of the auth
 store's published index: an error that is one of the auth package's variables is the guard's, refused
 for the authenticated class's reason (`authedWhy`; the read path's errors are not auth variables,
-`readErrIs_authErrVarIs`). -/
+`readErrIs_authErrVarIs`).
+(auth-mediation M2, 2026-11-20, decided by etcd-grove-03) In either auth mode, as `EtcdServer.Range`:
+the server's views at `E.authOn` (`isServerReqM`, `isServerReadM`), the read's dependency at the
+mode's KV state (`kvStM`); until then auth off only (`isServerReq`). -/
 abbrev EtcdServer.MemberList.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF))
     (tok : Option GoString) (r : Loc) (lin : Bool) (dq : DFrac) (c : w64)
     (g : GName) (Q : List EntryModel → IProp GF) (n : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerReq s E ρ ∗ isServerRead s E γr ∗ □ auth.authPubLbM E.authMode n ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗
+      isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ □ auth.authPubLbM E.authMode n ∗
+      mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗
       □ (⌜E.authMode.isOn = true⌝ → auth.ctxToken (GoInterface.ok ctx) tok) ∗ E.RD ∗
       structFieldRef etcdserverpb.MemberListRequest go!"Linearizable" r ↦{dq} lin ∗
       srvReadReader s γr ∗ committedAtLeast γr c ∗ savedPredOwn g DFrac.discard Q ∗
-      kvDep γr.kv Q }}
+      kvDep γr.kv Q (kvStM E.authOn γr.kv) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"MemberList"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err); E.RD ∗

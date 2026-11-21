@@ -2655,7 +2655,8 @@ guarding `raftStatus` (`rnRaftStatusOk`; the names-only `init()` registers an `e
 reads `raftStatus` under the mutex). (revoke-open, 2026-11-06) And the counter `leaseExpired`
 (`metrics.go`, translated: `prometheus.NewCounter` of a `CounterOpts` literal, the trust-boundary
 axiom `NewCounter.wp_proof`), which
-`revokeExpiredLeases` increments.""",
+`revokeExpiredLeases` increments. (auth-mediation M2, 2026-11-20) And `PromoteMember`'s metrics,
+the counter `learnerPromoteSucceed` and the counter vector `learnerPromoteFailed`.""",
     imports=PROM_CTORS,
     alloc_types={'raftStatusMu': '_root_.Perennial.sync.Mutex', 'raftStatus': 'GoFunc',
                  'leaseExpired': 'GoInterface', **{x: 'GoInterface' for x, _ in _SRV_METRICS}},
@@ -2664,7 +2665,7 @@ axiom `NewCounter.wp_proof`), which
         'wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %cLE ⟨#CLE, -⟩',
         'try wp_auto'], **_srv_steps},
     finish=([f'ipersist H{x}' for x, _, _ in _SRV_VECS] + [f'ipersist H{x}' for x, _ in _SRV_METRICS] +
-            ['ipersist HleaseExpired'] +
+            ['ipersist HleaseExpired', 'ipersist HlearnerPromoteSucceed', 'ipersist HlearnerPromoteFailed'] +
             ['imod sync.init_Mutex (iprop(∃ f : GoFunc, globalAddr raftStatus ↦ f)) ⊤ (globalAddr raftStatusMu) $$ HraftStatusMu [HraftStatus] with #HRSM',
              '· inext', '  iexists _', '  iframe HraftStatus'] +
             sum([errLeafFrom('go_etcd_io.etcd.server.v3.etcdserver.errors', x, m,
@@ -2813,7 +2814,7 @@ specs; until 2026-11-19 the trust-boundary axioms `<X>_init`),
              for i, x in enumerate(_V_HIST)] +
             ['-- `traceutil.Tracer`',
              'ihave Hti : (go_etcd_io.etcd.pkg.v3.traceutil.traceutilInit : IProp GF) $$ []',
-             '· iapply isPkgInit_access $$ Hd44',
+             '· iapply isPkgInit_access $$ {Hd:go_etcd_io.etcd.pkg.v3.traceutil}',
              'icases Hti with #HTR',
              '-- the progress interval\'s lock and what it guards (`progressReportInterval`, `10 * time.Minute`)',
              'imod (sync.init_RWMutex EtcdGrove.v3rpc.intervalP EtcdGrove.v3rpc.intervalMu (E := ⊤)) $$ [HprogressReportInterval] HprogressReportIntervalMu with HIS',

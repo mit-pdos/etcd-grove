@@ -38,6 +38,7 @@ public import Code.go_etcd_io.etcd.server.v3.etcdserver.version
 public import Code.go_etcd_io.etcd.server.v3.storage
 public import Code.go_etcd_io.etcd.server.v3.storage.backend
 public import Code.go_etcd_io.etcd.server.v3.storage.mvcc
+public import Code.go_etcd_io.etcd.server.v3.etcdserver.api.membership
 public import Perennial.Code.math.rand
 public import Code.go_opentelemetry_io.otel.«attribute»
 public import Code.go_opentelemetry_io.otel.trace
@@ -4777,6 +4778,412 @@ noncomputable def NewClusterServer.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType ClusterServer.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ClusterServer.ty)))) (Var "$res0")))))
 
+/-- go: member.go:43:26 -/
+noncomputable def ClusterServer.MemberAdd.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "cs"
+  (Lam "ctx"
+  (Lam "r"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberAddResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberAddResponse.ty)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "cs" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ClusterServer.ty)))) (Var "cs"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberAddRequest.ty)))) (Var "r"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberAddRequest.ty go!"PeerURLs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberAddRequest.ty)))) (Var "r"))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.NewURLs []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "urls" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Now []))) (Val #())) (Val #()))
+  (Let "now" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Time.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Var "m")))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"AddMember"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (App (Val (GoInstruction (StructFieldRef ClusterServer.ty go!"server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ClusterServer.ty)))) (Var "cs"))))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "merr" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "membs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberAddResponse.ty))) (Let "$v0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ClusterServer.ty) go!"header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ClusterServer.ty)))) (Var "cs"))) (Val #()))
+  (Let "$v1" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Member.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty go!"ID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Var "m"))))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes.ty go!"PeerURLs"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty go!"RaftAttributes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Var "m")))))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes.ty go!"IsLearner"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty go!"RaftAttributes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Var "m")))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Member.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ID")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"PeerURLs")) (ElementExpression (go.GoType.SliceType go.string) (Var "$v1"))), (KeyedElement (some (KeyField go!"IsLearner")) (ElementExpression go.bool (Var "$v2")))]))))))
+  (Let "$v2" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Var "membs"))
+  (App (App (Val (GoInstruction (FuncResolve membersToProtoMembers []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberAddResponse.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Header")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"Member")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Member.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"Members")) (ElementExpression (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Member.ty)) (Var "$v2")))]))))))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberAddResponse.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "merr")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberAddResponse.ty)))) (Val UntypedNil))
+  (Let "$r1" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "merr"))
+  (App (App (Val (GoInstruction (FuncResolve togRPCError []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberAddResponse.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "merr") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Pair (Var "membs") (Var "$r0"))))))))))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberAddRequest.ty go!"IsLearner"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberAddRequest.ty)))) (Var "r"))))
+  (Let "$r0" (Let "$a0" (Val #(go!""))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Var "urls"))
+  (Let "$a2" (Val #(go!""))
+  (Let "$a3" (Var "now")
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.NewMemberAsLearner []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Pair (Var "m") (Var "$r0")))))
+  (Let "$r0" (Let "$a0" (Val #(go!""))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Var "urls"))
+  (Let "$a2" (Val #(go!""))
+  (Let "$a3" (Var "now")
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.NewMember []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Pair (Var "m") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "now") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberAddResponse.ty)))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCMemberBadURLs))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberAddResponse.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Pair (Var "urls") (Var "$r0"))))))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberAddResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
+
+/-- go: member.go:72:26 -/
+noncomputable def ClusterServer.MemberRemove.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "cs"
+  (Lam "ctx"
+  (Lam "r"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberRemoveResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberRemoveResponse.ty)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "cs" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ClusterServer.ty)))) (Var "cs"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberRemoveRequest.ty)))) (Var "r"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberRemoveRequest.ty go!"ID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberRemoveRequest.ty)))) (Var "r"))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"RemoveMember"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (App (Val (GoInstruction (StructFieldRef ClusterServer.ty go!"server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ClusterServer.ty)))) (Var "cs"))))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "membs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberRemoveResponse.ty))) (Let "$v0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ClusterServer.ty) go!"header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ClusterServer.ty)))) (Var "cs"))) (Val #()))
+  (Let "$v1" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Var "membs"))
+  (App (App (Val (GoInstruction (FuncResolve membersToProtoMembers []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberRemoveResponse.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Header")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"Members")) (ElementExpression (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Member.ty)) (Var "$v1")))])))))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberRemoveResponse.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberRemoveResponse.ty)))) (Val UntypedNil))
+  (Let "$r1" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve togRPCError []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberRemoveResponse.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Pair (Var "membs") (Var "$r0"))))))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberRemoveResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
+
+/-- go: member.go:80:26 -/
+noncomputable def ClusterServer.MemberUpdate.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "cs"
+  (Lam "ctx"
+  (Lam "r"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberUpdateResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberUpdateResponse.ty)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "cs" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ClusterServer.ty)))) (Var "cs"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberUpdateRequest.ty)))) (Var "r"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberUpdateRequest.ty go!"ID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberUpdateRequest.ty)))) (Var "r"))))
+  (Let "$v1" (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberUpdateRequest.ty go!"PeerURLs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberUpdateRequest.ty)))) (Var "r"))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"PeerURLs")) (ElementExpression (go.GoType.SliceType go.string) (Var "$v0")))])))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ID")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"RaftAttributes")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes.ty (Var "$v1")))]))))
+  (Let "m" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))) (Var "m"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"UpdateMember"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (App (Val (GoInstruction (StructFieldRef ClusterServer.ty go!"server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ClusterServer.ty)))) (Var "cs"))))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "membs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberUpdateResponse.ty))) (Let "$v0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ClusterServer.ty) go!"header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ClusterServer.ty)))) (Var "cs"))) (Val #()))
+  (Let "$v1" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Var "membs"))
+  (App (App (Val (GoInstruction (FuncResolve membersToProtoMembers []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberUpdateResponse.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Header")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"Members")) (ElementExpression (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Member.ty)) (Var "$v1")))])))))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberUpdateResponse.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberUpdateResponse.ty)))) (Val UntypedNil))
+  (Let "$r1" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve togRPCError []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberUpdateResponse.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Pair (Var "membs") (Var "$r0"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))) (Pair (Var "m") (Var "$r0")))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberUpdateResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
+
+/-- go: member.go:92:26 -/
+noncomputable def ClusterServer.MemberList.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "cs"
+  (Lam "ctx"
+  (Lam "r"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberListResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberListResponse.ty)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "cs" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ClusterServer.ty)))) (Var "cs"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberListRequest.ty)))) (Var "r"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberListRequest.ty)))) (Var "r"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"MemberList"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (App (Val (GoInstruction (StructFieldRef ClusterServer.ty go!"server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ClusterServer.ty)))) (Var "cs"))))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "members" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Var "members"))
+  (App (App (Val (GoInstruction (FuncResolve membersToProtoMembers []))) (Val #())) (Var "$a0")))
+  (Let "membs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Member.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Member.ty))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberListResponse.ty))) (Let "$v0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ClusterServer.ty) go!"header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ClusterServer.ty)))) (Var "cs"))) (Val #()))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Member.ty))))) (Var "membs"))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberListResponse.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Header")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"Members")) (ElementExpression (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Member.ty)) (Var "$v1")))])))))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberListResponse.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Member.ty))))) (Pair (Var "membs") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberListResponse.ty)))) (Val UntypedNil))
+  (Let "$r1" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve togRPCError []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberListResponse.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Pair (Var "members") (Var "$r0"))))))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberListResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
+
+/-- go: member.go:102:26 -/
+noncomputable def ClusterServer.MemberPromote.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "cs"
+  (Lam "ctx"
+  (Lam "r"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberPromoteResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberPromoteResponse.ty)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "cs" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ClusterServer.ty)))) (Var "cs"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberPromoteRequest.ty)))) (Var "r"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberPromoteRequest.ty go!"ID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberPromoteRequest.ty)))) (Var "r"))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"PromoteMember"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (App (Val (GoInstruction (StructFieldRef ClusterServer.ty go!"server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ClusterServer.ty)))) (Var "cs"))))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "membs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberPromoteResponse.ty))) (Let "$v0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ClusterServer.ty) go!"header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ClusterServer.ty)))) (Var "cs"))) (Val #()))
+  (Let "$v1" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Var "membs"))
+  (App (App (Val (GoInstruction (FuncResolve membersToProtoMembers []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberPromoteResponse.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Header")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"Members")) (ElementExpression (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Member.ty)) (Var "$v1")))])))))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberPromoteResponse.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberPromoteResponse.ty)))) (Val UntypedNil))
+  (Let "$r1" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve togRPCError []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberPromoteResponse.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Pair (Var "membs") (Var "$r0"))))))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberPromoteResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
+
+/-- header includes leader_id so clients can learn this member's leader view from
+    a Cluster RPC instead of a separate Status request. See #22268.
+
+    go: member.go:112:26 -/
+noncomputable def ClusterServer.header.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "cs"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "cs" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ClusterServer.ty)))) (Var "cs"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty))) (Let "$v0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Cluster.ty go!"ID"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Cluster.ty))) (App (Val (GoInstruction (StructFieldRef ClusterServer.ty go!"cluster"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ClusterServer.ty)))) (Var "cs"))))) (Val #()))
+  (Let "$v1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"MemberID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (App (Val (GoInstruction (StructFieldRef ClusterServer.ty go!"server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ClusterServer.ty)))) (Var "cs"))))) (Val #()))
+  (Let "$v2" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (App (Val (GoInstruction (StructFieldRef ClusterServer.ty go!"server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ClusterServer.ty)))) (Var "cs"))))) (Val #()))
+  (Let "$v3" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"Leader"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (App (Val (GoInstruction (StructFieldRef ClusterServer.ty go!"server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ClusterServer.ty)))) (Var "cs"))))) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ClusterId")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"MemberId")) (ElementExpression go.uint64 (Var "$v1"))), (KeyedElement (some (KeyField go!"RaftTerm")) (ElementExpression go.uint64 (Var "$v2"))), (KeyedElement (some (KeyField go!"LeaderId")) (ElementExpression go.uint64 (Var "$v3")))])))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (Var "$res0"))))))
+
+/-- go: member.go:116:6 -/
+noncomputable def membersToProtoMembers.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "membs"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Member.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Member.ty))))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "membs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Var "membs"))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Member.ty))]))) (Val #())) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Var "membs"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))]))) (Val #())) (Var "$a0"))))
+  (Let "protoMembs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Member.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Member.ty))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Member.ty))))) (Var "protoMembs"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Member.ty))))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Var "membs"))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val (slice.forRange (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Member.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes.ty go!"Name"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty go!"Attributes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Var "membs")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))))))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty go!"ID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Var "membs")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes.ty go!"PeerURLs"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty go!"RaftAttributes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Var "membs")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))))))
+  (Let "$v3" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes.ty go!"ClientURLs"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty go!"Attributes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Var "membs")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))))))
+  (Let "$v4" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes.ty go!"IsLearner"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty go!"RaftAttributes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Var "membs")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Member.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"ID")) (ElementExpression go.uint64 (Var "$v1"))), (KeyedElement (some (KeyField go!"PeerURLs")) (ElementExpression (go.GoType.SliceType go.string) (Var "$v2"))), (KeyedElement (some (KeyField go!"ClientURLs")) (ElementExpression (go.GoType.SliceType go.string) (Var "$v3"))), (KeyedElement (some (KeyField go!"IsLearner")) (ElementExpression go.bool (Var "$v4")))]))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Member.ty)))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Member.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Member.ty))))) (Var "protoMembs")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Member.ty))))) (Pair (Var "protoMembs") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Member.ty))))) (Var "$res0")))))
+
 /-- go: metrics.go:105:6 -/
 noncomputable def init.«0».impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -6682,7 +7089,7 @@ noncomputable def FiltersFromRequest.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.FilterFunc.ty)))) (Var "$res0")))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.server.v3.auth, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.crypto.tls, pkg_id.math, pkg_id.sync, pkg_id.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc, pkg_id.google_golang_org.grpc.health, pkg_id.google_golang_org.grpc.health.grpc_health_v1, pkg_id.go_etcd_io.etcd.client.v3.credentials, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply, pkg_id.go_etcd_io.etcd.server.v3.features, pkg_id.time, pkg_id.unicode.utf8, pkg_id.google_golang_org.grpc.metadata, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api, pkg_id.go_etcd_io.raft.v3, pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.status, pkg_id.go_etcd_io.etcd.pkg.v3.adt, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn, pkg_id.errors, pkg_id.io, pkg_id.go_etcd_io.etcd.server.v3.lease, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.version, pkg_id.go_etcd_io.etcd.server.v3.storage, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, pkg_id.math.rand, pkg_id.go_opentelemetry_io.otel.«attribute», pkg_id.go_opentelemetry_io.otel.trace, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.server.v3.auth, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.crypto.tls, pkg_id.math, pkg_id.sync, pkg_id.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc, pkg_id.google_golang_org.grpc.health, pkg_id.google_golang_org.grpc.health.grpc_health_v1, pkg_id.go_etcd_io.etcd.client.v3.credentials, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply, pkg_id.go_etcd_io.etcd.server.v3.features, pkg_id.time, pkg_id.unicode.utf8, pkg_id.google_golang_org.grpc.metadata, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api, pkg_id.go_etcd_io.raft.v3, pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.status, pkg_id.go_etcd_io.etcd.pkg.v3.adt, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn, pkg_id.errors, pkg_id.io, pkg_id.go_etcd_io.etcd.server.v3.lease, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.version, pkg_id.go_etcd_io.etcd.server.v3.storage, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership, pkg_id.math.rand, pkg_id.go_opentelemetry_io.otel.«attribute», pkg_id.go_opentelemetry_io.otel.trace, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil]
 
 opaque «_».init [GooseExts] [GoGlobalContext] : val
 
@@ -6690,6 +7097,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -6923,6 +7331,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.math.rand.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -7922,6 +8332,12 @@ class ClusterServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   set_UnsafeClusterServer : ∀ (x : ClusterServer) (y : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.UnsafeClusterServer), go.IsGoStepPureDetTagged under (StructFieldSet ClusterServer.underlying go!"UnsafeClusterServer") (PairV #x #y) (Val #(({ x with UnsafeClusterServer' := y } : ClusterServer)))
   method_set : go.MethodSetIs ClusterServer.ty [(go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedClusterServer", (some (go.signature.Signature [] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClusterServer.ty) [(go!"MemberAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberAddResponse.ty), go.error]))), (go!"MemberList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberListResponse.ty), go.error]))), (go!"MemberPromote", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberPromoteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberPromoteResponse.ty), go.error]))), (go!"MemberRemove", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberRemoveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberRemoveResponse.ty), go.error]))), (go!"MemberUpdate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberUpdateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberUpdateResponse.ty), go.error]))), (go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedClusterServer", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.header", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)])))]
+  ptr_MemberAdd_unfold : MethodUnfold (go.GoType.PointerType ClusterServer.ty) go!"MemberAdd" ClusterServer.MemberAdd.impl
+  ptr_MemberList_unfold : MethodUnfold (go.GoType.PointerType ClusterServer.ty) go!"MemberList" ClusterServer.MemberList.impl
+  ptr_MemberPromote_unfold : MethodUnfold (go.GoType.PointerType ClusterServer.ty) go!"MemberPromote" ClusterServer.MemberPromote.impl
+  ptr_MemberRemove_unfold : MethodUnfold (go.GoType.PointerType ClusterServer.ty) go!"MemberRemove" ClusterServer.MemberRemove.impl
+  ptr_MemberUpdate_unfold : MethodUnfold (go.GoType.PointerType ClusterServer.ty) go!"MemberUpdate" ClusterServer.MemberUpdate.impl
+  ptr_header_unfold : MethodUnfold (go.GoType.PointerType ClusterServer.ty) go!"header" ClusterServer.header.impl
 
 attribute [instance] ClusterServer.TypeAssumptions.type_repr
   ClusterServer.TypeAssumptions.underlying
@@ -7933,6 +8349,12 @@ attribute [instance] ClusterServer.TypeAssumptions.type_repr
   ClusterServer.TypeAssumptions.set_UnsafeClusterServer
   ClusterServer.TypeAssumptions.method_set
   ClusterServer.TypeAssumptions.ptr_method_set
+  ClusterServer.TypeAssumptions.ptr_MemberAdd_unfold
+  ClusterServer.TypeAssumptions.ptr_MemberList_unfold
+  ClusterServer.TypeAssumptions.ptr_MemberPromote_unfold
+  ClusterServer.TypeAssumptions.ptr_MemberRemove_unfold
+  ClusterServer.TypeAssumptions.ptr_MemberUpdate_unfold
+  ClusterServer.TypeAssumptions.ptr_header_unfold
 
 structure quotaAlarmer [GooseExts] where
   mk ::
@@ -8366,6 +8788,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   NewLeaseServer_unfold : FuncUnfold NewLeaseServer [] NewLeaseServer.impl
   NewMaintenanceServer_unfold : FuncUnfold NewMaintenanceServer [] NewMaintenanceServer.impl
   NewClusterServer_unfold : FuncUnfold NewClusterServer [] NewClusterServer.impl
+  membersToProtoMembers_unfold : FuncUnfold membersToProtoMembers [] membersToProtoMembers.impl
   «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   NewQuotaKVServer_unfold : FuncUnfold NewQuotaKVServer [] NewQuotaKVServer.impl
   NewQuotaLeaseServer_unfold : FuncUnfold NewQuotaLeaseServer [] NewQuotaLeaseServer.impl
@@ -8417,6 +8840,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_storage_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Assumptions
   import_backend_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Assumptions
   import_mvcc_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions
+  import_membership_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions
   import_rand_Assumption : _root_.Perennial.math.rand.Assumptions
   import_attribute_Assumption : _root_.Perennial.go_opentelemetry_io.otel.«attribute».Assumptions
   import_trace_Assumption : _root_.Perennial.go_opentelemetry_io.otel.trace.Assumptions
@@ -8475,6 +8899,7 @@ attribute [instance] Assumptions.AuthServer_instance
   Assumptions.NewLeaseServer_unfold
   Assumptions.NewMaintenanceServer_unfold
   Assumptions.NewClusterServer_unfold
+  Assumptions.membersToProtoMembers_unfold
   Assumptions.«init.0_unfold»
   Assumptions.NewQuotaKVServer_unfold
   Assumptions.NewQuotaLeaseServer_unfold
@@ -8526,6 +8951,7 @@ attribute [instance] Assumptions.AuthServer_instance
   Assumptions.import_storage_Assumption
   Assumptions.import_backend_Assumption
   Assumptions.import_mvcc_Assumption
+  Assumptions.import_membership_Assumption
   Assumptions.import_rand_Assumption
   Assumptions.import_attribute_Assumption
   Assumptions.import_trace_Assumption

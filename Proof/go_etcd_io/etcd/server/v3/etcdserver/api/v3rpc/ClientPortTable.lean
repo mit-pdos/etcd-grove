@@ -23,6 +23,15 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MemberList
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Put
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Range
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RemoveMember
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AddMember
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__UpdateMember
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__promoteMember
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__PromoteMember
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ClusterServer__MemberAdd
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ClusterServer__MemberRemove
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ClusterServer__MemberUpdate
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ClusterServer__MemberList
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ClusterServer__MemberPromote
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RoleAdd
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RoleDelete
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RoleGet
@@ -225,28 +234,37 @@ def v3rpc.clientPortTable : List v3rpc.PortRow :=
           v3rpc.LeaseServer.leaseKeepAlive.spec (GF := GF) (hG := hG) ∧
           v3rpc.LeaseServer.LeaseKeepAlive.spec (GF := GF) (hG := hG),
       why := "checked per renewal (each response's kaDn); margins: nonissues/etcd-lease-renew-keys-follower-lag.md, nonissues/etcd-lease-checks-lagging-member.md" },
-    { key := go!"/etcdserverpb.Cluster/MemberAdd", isPrefix := false, cls := .admin, status := .guard,
-      specs :=
-          EtcdServer.checkMembershipOperationPermission.spec (GF := GF) (hG := hG),
-      why := "stage M2: EtcdServer.AddMember and ClusterServer.MemberAdd are names-only" },
-    { key := go!"/etcdserverpb.Cluster/MemberRemove", isPrefix := false, cls := .admin, status := .server,
+    { key := go!"/etcdserverpb.Cluster/MemberAdd", isPrefix := false, cls := .admin, status := .contract,
       specs :=
           EtcdServer.checkMembershipOperationPermission.spec (GF := GF) (hG := hG) ∧
-          EtcdServer.RemoveMember.spec (GF := GF) (hG := hG),
-      why := "stage M2: the wrapper ClusterServer.MemberRemove is names-only" },
-    { key := go!"/etcdserverpb.Cluster/MemberUpdate", isPrefix := false, cls := .admin, status := .guard,
+          EtcdServer.AddMember.spec (GF := GF) (hG := hG) ∧
+          v3rpc.ClusterServer.MemberAdd.spec (GF := GF) (hG := hG),
+      why := "configure, mayAddMember and NewMember(AsLearner) are names-only contracts (MemberContracts.lean, InvCluster.lean); margin: the request's peer URLs are a non-empty list of plain http://host:port URLs (types.NewURLs' trust-boundary spec covers no other)" },
+    { key := go!"/etcdserverpb.Cluster/MemberRemove", isPrefix := false, cls := .admin, status := .contract,
       specs :=
-          EtcdServer.checkMembershipOperationPermission.spec (GF := GF) (hG := hG),
-      why := "stage M2: EtcdServer.UpdateMember and ClusterServer.MemberUpdate are names-only" },
-    { key := go!"/etcdserverpb.Cluster/MemberList", isPrefix := false, cls := .authenticated, status := .server,
+          EtcdServer.checkMembershipOperationPermission.spec (GF := GF) (hG := hG) ∧
+          EtcdServer.RemoveMember.spec (GF := GF) (hG := hG) ∧
+          v3rpc.ClusterServer.MemberRemove.spec (GF := GF) (hG := hG),
+      why := "configure and mayRemoveMember are names-only contracts (AuthGuard.lean)" },
+    { key := go!"/etcdserverpb.Cluster/MemberUpdate", isPrefix := false, cls := .admin, status := .contract,
+      specs :=
+          EtcdServer.checkMembershipOperationPermission.spec (GF := GF) (hG := hG) ∧
+          EtcdServer.UpdateMember.spec (GF := GF) (hG := hG) ∧
+          v3rpc.ClusterServer.MemberUpdate.spec (GF := GF) (hG := hG),
+      why := "configure is a names-only contract (MemberContracts.lean)" },
+    { key := go!"/etcdserverpb.Cluster/MemberList", isPrefix := false, cls := .authenticated, status := .e2e,
       specs :=
           EtcdServer.requireAuthInfo.spec (GF := GF) (hG := hG) ∧
-          EtcdServer.MemberList.spec (GF := GF) (hG := hG),
-      why := "stage M2: the wrapper ClusterServer.MemberList is names-only" },
-    { key := go!"/etcdserverpb.Cluster/MemberPromote", isPrefix := false, cls := .admin, status := .guard,
+          EtcdServer.MemberList.spec (GF := GF) (hG := hG) ∧
+          v3rpc.ClusterServer.MemberList.spec (GF := GF) (hG := hG),
+      why := "" },
+    { key := go!"/etcdserverpb.Cluster/MemberPromote", isPrefix := false, cls := .admin, status := .contract,
       specs :=
-          EtcdServer.checkMembershipOperationPermission.spec (GF := GF) (hG := hG),
-      why := "stage M2: EtcdServer.PromoteMember and ClusterServer.MemberPromote are names-only" },
+          EtcdServer.checkMembershipOperationPermission.spec (GF := GF) (hG := hG) ∧
+          EtcdServer.promoteMember.spec (GF := GF) (hG := hG) ∧
+          EtcdServer.PromoteMember.spec (GF := GF) (hG := hG) ∧
+          v3rpc.ClusterServer.MemberPromote.spec (GF := GF) (hG := hG),
+      why := "configure and mayPromoteMember are names-only contracts (MemberContracts.lean); off the leader, the forwarding promoteMemberHTTP is the contract promoteHTTPOk (the leader's re-check)" },
     { key := go!"/etcdserverpb.Maintenance/Defragment", isPrefix := false, cls := .admin, status := .contract,
       specs :=
           v3rpc.authMaintenanceServer.isPermitted.spec (GF := GF) (hG := hG) ∧
