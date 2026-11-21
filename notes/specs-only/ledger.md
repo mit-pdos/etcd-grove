@@ -3540,3 +3540,21 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `ModeSpecs.spec_off` adjust (`specOff` takes the same premise on `C`).
 - **Decision.** Decided by etcd-grove-03 (2026-11-21: a stronger proved spec); the `G` frame on `chk`, the obvious
   filling (a weaker requirement on the caller's `chk`), decided by the M3 agent.
+
+## 2026-11-21: an admin request refused at apply names no reason at the proposer (auth-mediation M4)
+
+- **Spec.** `adminTieAr` (`Proof/.../etcdserver/KVAuthModel.lean`), through `resultIsWOn`/`resPostM` (the waiter's and
+  `processInternalRaftRequestOnce.spec`'s mode-`on` result) and `adminOutOn` (`AdminOn.lean`, the Auth entry points'
+  mode-`on` answer); `EtcdServer.raftRequest.spec`'s error branch.
+- **Defect.** A refused outcome (`.rejected`, `authApplierV3.Apply`'s `needAdminPermission` check) carried nothing, and
+  the error branch of `raftRequest`/`adminOutOn` only `appliedErr` (the result's `Err`, no outcome, no prefix): a client
+  could not tell why its admin request failed (refusal-completeness at the proposer, G4 left).
+- **Evidence.** `adminOut_model` (`ApplyTieOn.lean`) already has `adminRejL` at the latest state (`hrej`) and dropped it.
+- **Proposed change.** `adminTieAr`'s rejected case states `¬ auth.adminOk st (principal of rq)`; `raftRequest.spec`'s
+  error branch gives `appliedErrM E.authOn` (off: `appliedErr`; on: `appliedErrOn`, at the committed prefix `L` before
+  the entry, with the result, the step's outcome and `adminTieM true` of that one outcome, `resultIsOn`), and
+  `adminOutOn`'s error branch `appliedErrOn`. Stronger posts; `appliedErr_of_M` forgets.
+- **Decision.** Approved by the user (2026-11-21, via etcd-grove-03), as proposed in `notes/auth-mediation-handoff.md`
+  ("M4 proposal"); the exact error-branch form (`appliedErrOn`, the outcome bound in the same existential as the result,
+  so the tie is not vacuous) decided by the M4 agent. It reaches the five admin kinds the mode-`on` proposer admits
+  (`adminPropOk`: AuthEnable, UserAdd, RoleAdd, UserGrantRole, RoleGrantPermission), not the other seven Auth rows.

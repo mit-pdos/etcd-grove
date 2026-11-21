@@ -171,7 +171,10 @@ on `nil`, the request applied at the committed prefix `L` before its entry (`app
 the response `*T` pointing to `l`; with E3x's `adminDoneM`: its step from the state `L` reaches
 succeeded, `adminStepOk`), the auth state after it published (`pubAfterM true`), the
 proposal's result `Qh` and (5b) the header bound to the call's token `tok` (`hdrBoundM`); else
-the error the apply thread answered with, or the request perhaps proposed. -/
+the error the apply thread answered with (auth-mediation M4, 2026-11-21: `appliedErrOn`, at the
+committed prefix before the entry, with the outcome's admin tie, so a request refused at apply names
+why: its principal not admitted at the auth state that prefix reaches), or the request perhaps
+proposed. -/
 def adminOutOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
     (rq : apply.IRRModel) (F : mvcc.Log)
     (Qh : apply.HeaderModel → List EntryModel → IProp GF) (T : go.GoType) (l : Loc)
@@ -184,7 +187,7 @@ def adminOutOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoStr
         pubAfterM true E ρ rq' L ∗ □ Qh hm L ∗ hdrBoundM true s E tok hm) ∨
      (⌜err ≠ GoInterface.nil⌝ ∗
        ((∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
-          ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ appliedErr E rq' F err) ∨
+          ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ appliedErrOn E ρ rq' F err) ∨
         srvMaybeDeposited ρ rq))))
 
 end defs
@@ -323,7 +326,9 @@ theorem authRaftOk_on (hRR : EtcdServer.raftRequest.spec (GF := GF) (hG := hG))
     isplitr
     · ipureintro; exact Hne
     icases Hfail with (⟨%hm, %rq', %Hwire, Herr, -⟩ | Hdep)
-    · ileft; iexists hm, rq'; iframe Herr; ipureintro; exact Hwire
+    · ileft; iexists hm, rq'
+      ihave Herr := appliedErrOn_of_M E ρ rq' F err $$ Herr
+      iframe Herr; ipureintro; exact Hwire
     · iright; iexact Hdep
 
 end lemmas

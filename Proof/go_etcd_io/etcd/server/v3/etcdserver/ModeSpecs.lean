@@ -518,6 +518,7 @@ theorem EtcdServer.raftRequest.spec_off
     · iframe HaE
       isplitr
       · ipureintro; exact Hr
+      ihave Ha := appliedErr_of_M _ E ρ rq' F _ $$ Ha
       ileft; iexists hm, rq'; iframe Ha; ipureintro; exact Hw
     · iframe HaE Hdep
       ipureintro; exact Hr
