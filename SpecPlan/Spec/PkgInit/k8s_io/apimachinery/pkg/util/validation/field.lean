@@ -3,6 +3,10 @@ module
 
 public import GeneratedProof.k8s_io.apimachinery.pkg.util.validation.field
 public import SpecPlan.Spec.PkgInit.Base
+public import Perennial.Proof.fmt.Base
+public import SpecPlan.Spec.PkgInit.encoding.json
+public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.util.errors
+public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.util.sets
 
 @[expose] public section
 noncomputable section
