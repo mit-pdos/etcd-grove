@@ -36,6 +36,11 @@ Bootstrap now reads the retained suffix directly from the restored MemoryStorage
 before RestartNode receives it. A VM regression checks an empty suffix on fresh
 and compacted storage, then verifies the exact three term runs after appending
 four entries above the snapshot base. The source is pinned at `995dedf00f36`.
+Lean checked the complete translated storage read and both node constructors.
+The storage owner obtains the exact immutable runs and hands the same storage
+to RestartNode. The durable Raft invariant supplies term ordering and identifies
+the terms of the committed backend prefix under the existing restart contract.
+The Ready loop still has to preserve the receipt that it sends to the apply worker.
 
 At fork revision `1e59f9f173ea` the VM checked the sender with cached and
 uncached configuration, the range check on the immutable log, and the

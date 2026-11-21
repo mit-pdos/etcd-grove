@@ -8,6 +8,10 @@ tiers").
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeStart
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReplaySeed
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.replayTermsFromStorage
+public import Proof.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
+public import Proof.go_etcd_io.raft.v3.raftpb.Entry__GetTerm
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeBridgeLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeStartLaws
 
@@ -97,8 +101,8 @@ theorem raftNode_of_StartNode
     isplitl [Hvac]
     · iExactEq Hvac; rfl
     iExactEq HrS; rfl
-  icases Hpost with ⟨%n, %γw, %f, %st, %Hnames, #Hnode, Hrun, #Hpin, Hbpost, #Hidri, #Hsti, Hrd1, Hrd2,
-    Hbuilt, Hb, Hpeers, ⟨#Hminv, Hmeta⟩⟩
+  icases Hpost with ⟨%n, %γw, %f, %st, %terms, %Hnames, #Hnode, Hrun, #Hpin, Hbpost, #Hidri, #Hsti, Hrd1, Hrd2,
+    #Hseed, Hbuilt, Hb, Hpeers, ⟨#Hminv, Hmeta⟩⟩
   simp only [rnBootPost, RNBoot.P]
   icases Hbpost with ⟨#Hsfresh, Hdrv, HrS, Hncfg⟩
   simp only [RNBoot.a0, RNBoot.t0, RNBoot.commit0, RNBoot.snap0] at Hnames
@@ -287,23 +291,23 @@ theorem raftNode_of_RestartNode
     rw [hlen]
     iframe Hcp He0
   imod (dghostVar_alloc (GF := GF) (A := Loc) null) with ⟨%pin, HpinW⟩
-  ihave Hbs := srvMem_restartStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
-      wp_Entries γr bv.storage' γs E.γr.cursor pin σ cs 0
-      (fun K => iprop(memStorInvT bv.storage' γs γr.cl K (srvStoredOrigin γr.cl E.γr.cursor pin σ.b) ∗ memStorMeta bv.storage' γs σ.hs ∗
-        memSnapNone γs (walSnapCS σ cs))) Hbc HtrC Hγsz Hnsm
-      $$ [Hfresh Hmeta Hents Hend Hval Hsn]
-  · iframe Hreg Hlock Hval
-    isplitl [Hfresh Hmeta Hents Hend Hsn]
-    · iunfold memStorRestarted
-      iframe Hfresh Hmeta Hcp He0 Hsn Hents Hend
-    iintro %K Hi Hm Hn
-    iframe Hi Hm Hn
+  ihave #Himage : isCommittedLogLb γr.cl (A₀.map EntryModel.toLE) $$ []
+  · iunfold srvRLogLb at HA0
+    icases HA0 with ⟨#Himage, -⟩
+    iExactEq Himage
+    simp [srvLE]
   iapply wp_fupd
+  imod replaySeed_facts γr.cl cv.ID' srvClusterN S σ (A₀.map EntryModel.toLE)
+      Hhold (by simp; exact Nat.le_trans Hac Hhold.2.2.2.2.2.2.2.1) $$ [$Hclu $HrS $Himage]
+    with ⟨HrS, %hseed⟩
+  ihave Hrest : memStorRestarted bv.storage' γs σ cs $$ [Hfresh Hmeta Hsn Hents Hend]
+  · iunfold memStorRestarted
+    iframe Hfresh Hmeta Hcp He0 Hsn Hents Hend
   wp_apply (wp_bnr E γr b ss wal cl sd dq bv cv lok γs [] ν pv [] ctxs
     (fun K => iprop(memStorInvT bv.storage' γs γr.cl K (srvStoredOrigin γr.cl E.γr.cursor pin σ.b) ∗ memStorMeta bv.storage' γs σ.hs ∗
       memSnapNone γs (walSnapCS σ cs)))
     (.restart σ cs S A₀.length (Membership.simple γr.cfg) A₀) (fun sv => iprop(snapshotValid γr.cl sv ∗ (srvStoredOrigin γr.cl E.γr.cursor pin σ.b) sv)) (fun _ => by iintro ⟨H, -⟩; iexact H))
-    $$ [Hb Hc Hbs Hpeers HrS Hvac]
+    $$ [Hb Hc Hrest Hval Hpeers HrS Hvac]
     as %r Hpost
   · iframe #; iframe Hb Hc Hpeers
     isplitr
@@ -311,8 +315,18 @@ theorem raftNode_of_RestartNode
     simp only [rnBootPre]
     isplitr
     · ipureintro; exact ⟨Hcfg, Hba, Hac, Hboot, Hcs, Hhold, Hnsm⟩
-    isplitl [Hbs]
-    · iExactEq Hbs; rfl
+    isplitl [Hrest Hval]
+    · iintro %Ψ HΨ
+      wp_apply replayTermsFromStorage.wp_proof wp_FirstIndex wp_LastIndex wp_Entries
+          raftpb.Entry.GetIndex.wp_proof raftpb.Entry.GetTerm.wp_proof bv.storage' γs σ cs hseed.1
+          $$ [$Hpkg $Hlock $Hrest] as %out ⟨Hrest, #Hterms⟩
+      iapply HΨ
+      iframe Hterms
+      iapply srvMem_restartStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
+        wp_Entries γr bv.storage' γs E.γr.cursor pin σ cs 0 _ Hbc HtrC Hγsz Hnsm
+      iframe Hreg Hlock Hrest Hval
+      iintro %K Hi Hm Hn
+      iframe Hi Hm Hn
     isplitr
     · iExactEq Hclu; rfl
     isplitr
@@ -322,8 +336,8 @@ theorem raftNode_of_RestartNode
     isplitl [HrS]
     · iExactEq HrS; rfl
     iExactEq Hconf; rfl
-  icases Hpost with ⟨%n, %γw, %f, %st, %Hnames, #Hnode, Hrun, #Hpin, Hbpost, #Hidri, #Hsti, Hrd1, Hrd2,
-    Hbuilt, Hb, Hpeers, ⟨#Hminv, Hmeta, Hsnone⟩⟩
+  icases Hpost with ⟨%n, %γw, %f, %st, %terms, %Hnames, #Hnode, Hrun, #Hpin, Hbpost, #Hidri, #Hsti, Hrd1, Hrd2,
+    #Hseed, Hbuilt, Hb, Hpeers, ⟨#Hminv, Hmeta, Hsnone⟩⟩
   simp only [rnBootPost, RNBoot.P]
   icases Hbpost with ⟨%l, #Hl, %Hll, Hdrv, HrS, Hncfg⟩
   simp only [RNBoot.a0, RNBoot.t0, RNBoot.commit0, RNBoot.snap0] at Hnames

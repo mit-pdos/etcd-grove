@@ -1,6 +1,7 @@
 /- Prefixes retained by appendEntries are shared with previously delivered Ready batches. -/
 module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReplayModel
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
 public import Proof.go_etcd_io.raft.v3.Protocol.Ghost
 
@@ -13,15 +14,6 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-
-/-- The update to the output of the outer loop. An equal term extends the
-last run while retaining the first index at which that term occurred. -/
-def replayJoin (runs : List replayTermRun) (r : replayTermRun) : List replayTermRun :=
-  match runs.getLast? with
-  | some old =>
-    if old.term' = r.term' then runs.dropLast ++ [{ r with first' := old.first' }]
-    else runs ++ [r]
-  | none => [r]
 
 theorem replayJoin_snoc (pre : List replayTermRun) (a b : replayTermRun) :
     replayJoin (pre ++ [a]) b =
@@ -42,9 +34,6 @@ theorem replayJoin_same (pre : List replayTermRun) (a b : replayTermRun) (h : a.
       simp [replayJoin_snoc, hm, hm', h]
       rw [show xs ++ [last, a] = (xs ++ [last]) ++ [a] by simp, replayJoin_snoc]
       simp [h]
-
-def replayAddEntry (runs : List replayTermRun) (e : EntryModel) : List replayTermRun :=
-  replayJoin runs ⟨e.index, e.index, e.term⟩
 
 /-- Emitting an entire equal-term group gives the same output as feeding the
 physical entries one at a time, including when the previous batch ends in that term. -/
