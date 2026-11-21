@@ -87,21 +87,6 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 section toLoggerV2
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-
-/-- **The trust boundary: `logger.go`'s conversion of a `klogWrapper` to `grpclog.LoggerV2`** (an
-interface: a struct converted to it is the interface holding it). `type LoggerV2
-internal.LoggerV2` names a package this translation does not import, so the type is
-axiomatized (Goose's gap G3, `notes/k8s-etcd3-goose.md`) and the conversion does not step; the
-axiom says it returns the interface holding the `klogWrapper` (what Perennial's
-`convert_to_interface` gives a non-interface type; since 2026-11-20, prove-grpcsmall, so that
-`SetLoggerV2`'s premise, not a `*componentData`, is discharged: it returned some interface). -/
-axiom k8s_io.apiserver.pkg.storage.etcd3.klogWrapper_toLoggerV2 (v : val) :
-    {{ (True : IProp GF) }}
-      (App (Val (GoInstruction (Convert k8s_io.apiserver.pkg.storage.etcd3.klogWrapper.ty
-        google_golang_org.grpc.grpclog.LoggerV2.ty))) (Val v))
-    {{ RET #(interface.mkOk k8s_io.apiserver.pkg.storage.etcd3.klogWrapper.ty v); True }}
 
 /-- A `klogWrapper` is not grpc's `*componentData` (`SetLoggerV2`'s premise). -/
 theorem k8s_io.apiserver.pkg.storage.etcd3.klogWrapper_ne_componentData (v w : val) :

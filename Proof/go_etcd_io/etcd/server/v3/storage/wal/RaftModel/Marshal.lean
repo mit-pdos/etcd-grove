@@ -10,9 +10,9 @@ canonical contents, `RaftModel/Codec.lean`, `RaftModel/EntCodec.lean`) and `walR
 - `walRaftMr_createOk : WalMarshalCreateOk walRaftMr` (`Create`'s initial snapshot record);
 - `walRaftMr_encState_lt` (`walAreaOk`'s bound on the hard state's encoding, ledger 2026-11-14).
 
-The hard state's bytes `hsEnc` are not yet tied to protobuf-go by a trusted fact (`Codec.lean`): these
-laws are pure and hold of the definitions; the Iris laws that need the tie (`WalPbIn.MarshalHsLaw`, ...)
-are the U4 log's blocked items. Lean-first.
+These laws are pure and hold of the definitions. The hard state's bytes `hsEnc` are tied to protobuf-go
+by the registered `raftpb.HardState`'s trusted fact `hsEncC_ok` (wal-item3, 2026-11-21, `PbHardState.lean`),
+over which `WalPbIn.MarshalHsLaw` is proved (`LawsHsMarshal.lean`). Lean-first.
 -/
 module
 
