@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.k8s_io.apimachinery.pkg.util.sets
 public import Perennial.Golang.Theory
 public import Code.k8s_io.apiserver.pkg.endpoints.request
 
@@ -307,12 +308,50 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.endpoints.request.Assumptions]
 
 noncomputable instance RequestInfoFactory_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory where
+  typedPointstoDef l v dq := iprop(
+    "APIPrefixes" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory go!"APIPrefixes" l) v.APIPrefixes' dq ∗
+    "GrouplessAPIPrefixes" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory go!"GrouplessAPIPrefixes" l) v.GrouplessAPIPrefixes' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance RequestInfoFactory_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance RequestInfoFactory_access_load_APIPrefixes (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory go!"APIPrefixes" l) v.APIPrefixes' dq)
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory go!"APIPrefixes" l) v.APIPrefixes' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance RequestInfoFactory_access_store_APIPrefixes (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory) (APIPrefixes' : k8s_io.apimachinery.pkg.util.sets.String) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory go!"APIPrefixes" l) v.APIPrefixes' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory go!"APIPrefixes" l) APIPrefixes' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with APIPrefixes' := APIPrefixes' } : k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance RequestInfoFactory_access_load_GrouplessAPIPrefixes (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory go!"GrouplessAPIPrefixes" l) v.GrouplessAPIPrefixes' dq)
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory go!"GrouplessAPIPrefixes" l) v.GrouplessAPIPrefixes' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance RequestInfoFactory_access_store_GrouplessAPIPrefixes (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory) (GrouplessAPIPrefixes' : k8s_io.apimachinery.pkg.util.sets.String) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory go!"GrouplessAPIPrefixes" l) v.GrouplessAPIPrefixes' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory go!"GrouplessAPIPrefixes" l) GrouplessAPIPrefixes' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with GrouplessAPIPrefixes' := GrouplessAPIPrefixes' } : k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end RequestInfoFactory

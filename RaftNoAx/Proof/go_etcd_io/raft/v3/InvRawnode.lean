@@ -1068,8 +1068,8 @@ theorem SdtTie.snap {rs rs' : RNState} {s s' : NState} {sv : SnapshotM} {m : Mes
     SdtTie rs' s' := by
   apply SdtTie.keep H _ (by rw [hdl]) hsl hsn
   rcases Hsl with h | h
-  · exact h.2.2.2.2.2.2
-  · exact h.2.2.2.2.2.2.2.2
+  · exact h.2.2.2.2.2.2.1
+  · exact h.2.2.2.2.2.2.2.2.1
 
 /-- No loan, no snapshot acknowledgement queued. -/
 theorem LoanOk.none_noack {rs : RNState} {s : NState} (H : LoanOk rs s) (h : rs.slent = none) :
@@ -2253,6 +2253,50 @@ theorem restoredSnapSource_of_message (γ : RaftNames) (id : w64) (m : MessageM)
   · ipureintro; exact ⟨rfl, h, rfl, rfl⟩
   iapply isMessageC_isMessage $$ Hm
 
+/-- Each snapshot in the local log's restore history has an incoming protocol
+message. Draining the Ready or replacing the pending snapshot preserves it. -/
+def restoredSnapHistory (γ : RaftNames) (id : w64) (ks : List SnapTrip) : IProp GF :=
+  iprop(∀ (k : SnapTrip), ⌜k ∈ ks⌝ -∗ restoredSnapSource γ id k.sid)
+
+instance (γ : RaftNames) (id : w64) (ks : List SnapTrip) :
+    Persistent (restoredSnapHistory (GF := GF) γ id ks) := by unfold restoredSnapHistory; infer_instance
+
+/-- Every restored snapshot in the messages of this Ready belongs to the
+sending node's successful restore history. -/
+def readyMsgOrigins (γ : RaftNames) (id : w64) (st : StorNames) (ms : List QMsg) : IProp GF :=
+  iprop(∃ ks : List SnapTrip, restoredSnapHistory γ id ks ∗ qSrcs st ms (· ∈ ks))
+
+instance (γ : RaftNames) (id : w64) (st : StorNames) (ms : List QMsg) :
+    Persistent (readyMsgOrigins (GF := GF) γ id st ms) := by unfold readyMsgOrigins; infer_instance
+
+theorem restoredSnapHistory_keep (γ : RaftNames) (id : w64) {ls ls' : LogState}
+    (h : logStoreRec ls' = logStoreRec ls) :
+    restoredSnapHistory (GF := GF) γ id ls.ksn ⊢ restoredSnapHistory γ id ls'.ksn := by
+  rw [logStoreRec_ksn h]
+
+theorem restoredSnapHistory_nil (γ : RaftNames) (id : w64) :
+    ⊢ restoredSnapHistory (GF := GF) γ id [] := by
+  unfold restoredSnapHistory
+  iintro %k %hk
+  cases hk
+
+theorem restoredSnapHistory_step (γ : RaftNames) (id : w64) {s s' : NState}
+    {sv : SnapshotM} {m : MessageM} (h : SnapLogStep sv m s s') :
+    ⊢ restoredSnapHistory (GF := GF) γ id s.logst.ksn -∗ restoredSnapSource γ id (snapId sv) -∗
+      restoredSnapHistory γ id s'.logst.ksn := by
+  iintro #Hhist #Hrecv
+  rcases h with h | h
+  · rw [h.2.2.2.2.2.2.2]; iexact Hhist
+  · obtain ⟨cl, hk⟩ := h.2.2.2.2.2.2.2.2.2
+    unfold restoredSnapHistory
+    iintro %k %hmem
+    rw [hk] at hmem
+    rcases List.mem_append.1 hmem with h | h
+    · iapply Hhist $$ %k %h
+    · cases List.mem_singleton.1 h
+      simp only [snapTrip]
+      iexact Hrecv
+
 /-- (2026-10-26, D22 J2, R-loc) **The pending snapshot is local to the node**: the receiver-local
 fact (`snapLocal`, `RaftNames.reSnapLoc`) of the pending snapshot's index, if one is pending.
 `RawNode.Step` of a `MsgSnap` sets it from the message's (`netP`); every other step keeps or clears
@@ -2840,6 +2884,7 @@ def ownRawNode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp GF 
   "%Hloan" ∷ ⌜LoanOk rs s⌝ ∗
   -- (2026-10-26, D22 J2, R-loc) the pending snapshot's receiver-local fact
   "#Hsloc" ∷ snapLocOk γ id s.logst.snap ∗
+  "#Hhist" ∷ restoredSnapHistory γ id s.logst.ksn ∗
   -- (2026-10-28, stage U4a) the record of the storage's terms
   "%Hsdt" ∷ ⌜SdtTie rs s⌝ ∗
   -- (2026-11-01, durability stage I fix G2) the recorded role is the last reported soft state's,
@@ -2887,16 +2932,17 @@ theorem ownRawNode_intro_tr (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState
       loanCom γ rs.slent -∗
       -- (2026-10-26, D22 J2) the pending snapshot's receiver-local fact
       snapLocOk γ id s.logst.snap -∗
+      restoredSnapHistory γ id s.logst.ksn -∗
       -- (2026-11-01, durability stage I fix G2) the durable state's tie
       durTie γ rs s -∗
       -- (2026-11-11, Q8 stage 1 slice 25n) the trace capability
       rnTrace γ rnv.raft' id c rs.delivered s -∗
       ownRawNode γ rn id rs := by
-  iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs #Hloanc #Hsloc #Hdur Hrntr
+  iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs #Hloanc #Hsloc #Hhist #Hdur Hrntr
   unfold ownRawNode
   iexists s, c, fp, ds, rnv, sv, hprev, steps
   simp only [named]
-  iframe Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs Hloanc Hsloc Hdur Hrntr
+  iframe Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs Hloanc Hsloc Hhist Hdur Hrntr
   ipureintro
   exact ⟨Hwf, Hin, Hasync, Hdlen, Hunp, Hsnap, Hstok, Htrm, Hstor, Hpvoff, Hrs_out,
     Hrs_unst, Hrs_clb, Hrnfl, Hloan, Hsdt, Hrole, Hphs, Hgtr, Hglq⟩
@@ -2930,14 +2976,15 @@ theorem ownRawNode_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
       loanCom γ rs.slent -∗
       -- (2026-10-26, D22 J2) the pending snapshot's receiver-local fact
       snapLocOk γ id s.logst.snap -∗
+      restoredSnapHistory γ id s.logst.ksn -∗
       -- (2026-11-01, durability stage I fix G2) the durable state's tie
       durTie γ rs s -∗
       ownRawNode γ rn id rs := by
-  iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs #Hloanc #Hsloc #Hdur
+  iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs #Hloanc #Hsloc #Hhist #Hdur
   ihave Hrntr := rnTrace_none (GF := GF) γ rnv.raft' id c rs.delivered s (Hgtr.trans Hntr)
   iapply ownRawNode_intro_tr γ rn id rs s c fp (ds := ds) rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp
     Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt Hrole Hphs Hgtr Hglq
-    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs Hloanc Hsloc Hdur Hrntr
+    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs Hloanc Hsloc Hhist Hdur Hrntr
 
 /-- (2026-11-12, trace-check implementation step 3; design §3.2 item 1 (e), §3.4 lemma (ii)) **In the
 dynamic mode `applied` is at most the configuration index** the `RawNode` holds (`rs.capplied`, the
@@ -3029,12 +3076,13 @@ theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
       certLink γ s.gh.sn -∗
       -- (2026-10-26, D22 J2) the pending snapshot's receiver-local fact
       snapLocOk γ id s.logst.snap -∗
+      restoredSnapHistory γ id s.logst.ksn -∗
       -- (raft-final phase 2) the leader witness and the transfer records' witnesses
       leadW γ id (toPState s) -∗ xfW γ s -∗
       -- (2026-11-01, durability stage I fix G2) the durable state's tie
       durTie γ rs s -∗
       ownRawNode γ rn id rs := by
-  iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs #Hloanc #Hcl #Hsloc #Hlw #Hxw #Hdur
+  iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs #Hloanc #Hcl #Hsloc #Hhist #Hlw #Hxw #Hdur
   obtain ⟨rfl, Hwf⟩ := Hrel
   ihave %Hst := ownRaftGhost_static γ id _ $$ Hghost
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
@@ -3046,7 +3094,7 @@ theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     ipureintro; exact ⟨Hnl, CfgStatic.simple γ _ Hst, Htrk⟩
   iapply ownRawNode_intro γ rn id rs s _ [] rnv sv hprev steps Hwf (fun _ => Hin) Hasync Hdlen
     Hunp Hsnap Hstok Htrm Hstor (Hpvoff.static_fp Hm) Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
-    Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs Hloanc Hsloc Hdur
+    Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs Hloanc Hsloc Hhist Hdur
 
 /-- The mode is the ghost state's (2026-10-14, stage B7 part 2): static exactly when `γ` is. -/
 theorem ownRawNode_mode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
@@ -3067,7 +3115,7 @@ theorem ownRawNode_mode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
     | dyn dec c0 h0 _ => rw [hm] at Hm; simp [RNMode.isDyn] at Hm; simp [Option.isSome_iff_ne_none.1 Hm]
   iapply ownRawNode_intro_tr γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp Hsnap
     Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
-    Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hdur Hrntr
+    Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hhist Hdur Hrntr
 
 /-- (2026-11-12, trace-check implementation step 3) **At a traced node the log starts at index `1`**
 (`TrNoSnap`: a compaction is a contradiction), under an update. -/
@@ -3273,7 +3321,7 @@ theorem ownRawNode_raise_tc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState
     (stepsOk_mono s _ _ rfl ⟨rfl, rfl⟩ (Int.le_refl _) rfl Hle' Hstok) Htrm Hstor
     ⟨H1, rfl, Int.le_trans H3 Hle', fun h => Int.le_trans (H4 h) Hle', H5⟩ Hrs_out Hrs_unst Hrs_clb Hrnfl
     ⟨Hloan.1, Hloan.2.1, Hloan.2.2.1, Hloan.2.2.2⟩
-    Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc [Hdur] [Hrntr]
+    Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hhist [Hdur] [Hrntr]
   · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) $$ Hdur
   · iapply rnTrace_congr γ _ id cf (s := s) (s' := { s with gh := { s.gh with tc := tc } }) rfl rfl rfl rfl rfl $$ Hrntr
 
@@ -3287,7 +3335,7 @@ theorem ownRawNode_term_tc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
   · ipureintro; rw [Htrm, Hpvoff.2.1]; exact Hpvoff.2.2.1
   iapply ownRawNode_intro_tr γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp Hsnap
     Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
-    Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hdur Hrntr
+    Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hhist Hdur Hrntr
 
 /-- The storage handshake, at the RawNode (2026-10-10; until then `ownRawNode_persist`,
 which lent the client the storage itself): the receipt of the application's append of
@@ -3326,7 +3374,7 @@ theorem ownRawNode_appended (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState
     Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl
     ⟨Hloan.1, Hloan.2.1, (fun l (h : rs.slent = some l) => by rw [Hsl] at h; cases h),
         Hloan.2.2.2⟩
-    Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc [Hdur] [Hrntr]
+    Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hhist [Hdur] [Hrntr]
   · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) $$ Hdur
   · iapply rnTrace_congr γ _ id cf (s := s) (s' := { s with logst := { s.logst with unpersisted := [] } }) rfl rfl rfl rfl rfl $$ Hrntr
 
@@ -3457,7 +3505,7 @@ theorem ownRawNode_raise_floor (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
       ⟨fun h => by simp at h, Hrnfl.2⟩
       ⟨Hloan.1, Hloan.2.1, (fun l (h : rs.slent = some l) => by rw [Hsl] at h; cases h),
         Hloan.2.2.2⟩
-      Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc [Hdur] [Hrntr]
+      Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hhist [Hdur] [Hrntr]
     · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) $$ Hdur
     · iapply rnTrace_congr γ _ id cf (s := s) (s' := { s with logst := { s.logst with fl := s.logst.applying } }) rfl rfl rfl rfl rfl $$ Hrntr
   iexists s.logst.applying
@@ -3493,7 +3541,7 @@ theorem ownRawNode_capLoan (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
   · ipureintro; exact Hloan.2.2.2.2.1
   iapply ownRawNode_intro_tr γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp Hsnap
     Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
-    Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hdur Hrntr
+    Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hhist Hdur Hrntr
 
 end rawnode
 

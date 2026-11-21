@@ -185,10 +185,12 @@ theorem newRaft.wp_proof [package_sem : Assumptions] (wp_Config_validate : Confi
                                                                                                                               s.progress.domSet =
                                                                                                                                   cs'.prs.domSet ∧
                                                                                                                                 s.logst.dtk =
-                                                                                                                                  uint.nat
-                                                                                                                                    (committedAfter
-                                                                                                                                      σ.prev
-                                                                                                                                      hs)⌝ ∗
+                                                                                                                                    uint.nat
+                                                                                                                                      (committedAfter
+                                                                                                                                        σ.prev
+                                                                                                                                        hs) ∧
+                                                                                                                                  s.logst.ksn =
+                                                                                                                                    []⌝ ∗
                                                                             trNoCut γ.reTrace (GoInterface.ok si) ∗
                                                                               trCapB γ.reTrace γ r cv.ID' (bootCfg vs)
                                                                                 false (bootPhase vs cv.ID')

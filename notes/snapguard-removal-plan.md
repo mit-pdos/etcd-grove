@@ -30,6 +30,29 @@ from the receiver. The Ready contract carries this evidence to the server via
 `nodeRestoreSource`. The next obligation is to order the restore relative to
 the Ready batches already applied when the server consumes the outgoing message.
 
+## Queued snapshot provenance (2026-11-20)
+
+The unstable branch of `raftLog.snapshot` returns a snapshot in the node's
+`LogState.ksn`. The outgoing message now carries that membership from
+`raft.maybeSendSnapshot` through both message queues to
+`RawNode.readyWithoutAccept`. The storage branch retains the storage
+certificate supplied at startup. A successful restore appends to `ksn`, so
+later log updates preserve the queued evidence.
+
+The remaining step is to associate each member of that list with its
+successful incoming Step and to compare its term and index to the Ready
+already processed by the server.
+
+## Outgoing restore evidence at Ready (2026-11-20)
+
+`readySnapSources_msgSnap` now returns the sending node's local restore source
+alongside its restore certificate. `SnapLogStep` appends the actual incoming
+snapshot on both successful Step paths. The local history survives handling
+further messages, acknowledgments, and draining the pending snapshot. Restart
+and Bootstrap start a fresh history. The remaining temporal comparison must
+bind the incoming protocol message's term to the local restore and order it
+against the Ready processed by the apply thread.
+
 ## HANDOFF (2026-11-20, first session paused by the coordinator)
 
 **Done** (branch `prove-nosnapguard/2026-11-20`, worktree `/shared/etcd-grove-wt/prove-nosnapguard`, off

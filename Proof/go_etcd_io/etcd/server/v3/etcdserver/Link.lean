@@ -266,7 +266,6 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstOpLease
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstOpType
 public import Proof.fmt.ErrorfPlain
 public import Proof.fmt.SprintfArgs
-public import Proof.fmt.SprintfID
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.getRequestType
 public import Proof.container.heap.Fix
 public import Proof.container.heap.Init_
@@ -964,10 +963,6 @@ theorem types.wp_NewURLs :
 theorem fmt.wp_ErrorfPlain :
     fmt.ErrorfPlain.spec (GF := GF) (hG := hG) :=
   fmt.ErrorfPlain.wp_proof
-
-theorem fmt.wp_SprintfID :
-    fmt.SprintfID.spec (GF := GF) (hG := hG) :=
-  fmt.SprintfID.wp_proof
 
 theorem proto.wp_MarshalPb :
     proto.MarshalPb.spec (GF := GF) (hG := hG) :=
@@ -2178,7 +2173,7 @@ theorem rafthttp.peerStatus.wp_activate :
 
 theorem rafthttp.peerStatus.wp_deactivate :
     rafthttp.peerStatus.deactivate.spec (GF := GF) (hG := hG) :=
-  rafthttp.peerStatus.deactivate.wp_proof zap.Logger.wp_Warn zap.Logger.wp_Debug zap.wp_String zap.wp_Error types.ID.wp_String_ptr prometheus.GaugeVec.wp_WithLabelValues prometheus.CounterVec.wp_WithLabelValues fmt.wp_SprintfID
+  rafthttp.peerStatus.deactivate.wp_proof zap.Logger.wp_Warn zap.Logger.wp_Debug zap.wp_String zap.wp_Error types.ID.wp_String_ptr prometheus.GaugeVec.wp_WithLabelValues prometheus.CounterVec.wp_WithLabelValues fmt.wp_SprintfArgs types.ID.wp_String
 
 theorem rafthttp.wp_isMsgApp :
     rafthttp.isMsgApp.spec (GF := GF) (hG := hG) :=
@@ -2766,7 +2761,7 @@ theorem EtcdServer.wp_restoreAlarms :
 
 theorem EtcdServer.wp_revokeExpiredLeases :
     EtcdServer.revokeExpiredLeases.spec (GF := GF) (hG := hG) :=
-  EtcdServer.revokeExpiredLeases.wp_proof EtcdServer.wp_GoAttach EtcdServer.wp_Logger EtcdServer.wp_ensureLeadership EtcdServer.wp_MemberID EtcdServer.wp_LeaseRevoke auth.authStore.wp_WithRoot zap.wp_Uint64 zap.wp_String zap.wp_Error zap.Logger.wp_Warn fmt.wp_SprintfID
+  EtcdServer.revokeExpiredLeases.wp_proof EtcdServer.wp_GoAttach EtcdServer.wp_Logger EtcdServer.wp_ensureLeadership EtcdServer.wp_MemberID EtcdServer.wp_LeaseRevoke auth.authStore.wp_WithRoot zap.wp_Uint64 zap.wp_String zap.wp_Error zap.Logger.wp_Warn
 
 theorem wp_addFeatureGateMetrics :
     addFeatureGateMetrics.spec (GF := GF) (hG := hG) :=

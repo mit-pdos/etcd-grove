@@ -28063,6 +28063,12 @@ restarts.
 
 ## The merged snapshot's index guard (2026-10-31, S1 · the user's decision (B))
 
+**2026-11-20, R2.** Raft already records the snapshots it has restored in
+`LogState.ksn`. The unstable snapshot path returns membership in that list.
+Carry membership through the outbox and the Ready handout so a later proof
+can recover the incoming message that installed the snapshot.
+
+
 *Superseded on 2026-11-20 by the decision to carry the snapshot source through raft's API below.*
 
 **2026-10-31 · accepted**
@@ -39913,6 +39919,16 @@ etcd-grove-81; a restricting change, no further round).**
   restore); the five summaries of `walGuardPos` (`Impl.lean`'s `WalDur.unl`, `Specs.lean` thrice,
   `Open`'s docstring) state the wrap-first branch; the masked nonissue's upstreaming option "keep the
   masked success for old-named WALs" brings F-W4a2-2 back.
+
+### Preserve the incoming message through an outgoing Ready
+
+Raft's log records every successful restore in this node instance. A queued
+snapshot from the unstable log carries membership in that history. When
+`readyWithoutAccept` selects its outgoing messages, the Ready keeps the history
+and the selection's membership proof together. The public Ready carries the
+driver's node ID, so its restore evidence identifies a leader different from
+that very node. Restart and Bootstrap establish that the local history starts
+empty. The apply-order comparison is the next part of the index-guard proof.
 
 ### WAL upgrade recovery (2026-11-20)
 

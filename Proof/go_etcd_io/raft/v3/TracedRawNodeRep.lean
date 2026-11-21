@@ -201,6 +201,7 @@ theorem RawNode.ReportUnreachable.traced
   icases Herr with (%Herr | ⟨%Hc', -⟩)
   · iapply HΦ
     simp only [named]
+    ihave #Hhist' := restoredSnapHistory_keep γ id Hsd $$ Hhist
     ihave #Hsloc' := snapLocOk_keep γ id (.inl Hsn) $$ Hsloc
     iapply ownRawNode_intro_tr γ rn id rs s' cf fp rnv sv hprev steps Hwf' Hin
       Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
@@ -212,7 +213,7 @@ theorem RawNode.ReportUnreachable.traced
       (Hsdt.ofRec Hsn Hsd) Hrole
         (Hphs.keep rfl rfl rfl (HsLe.of_step Href.voteLe Hc) Hsn (.inl (Hip4 (by msg_ne))))
         (by rw [Hgh]; exact Hgtr) (by rw [Hgh]; exact Hglq)
-      $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' [Hdur] Hrntr
+      $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' Hhist' [Hdur] Hrntr
     · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) Hsn Hpv (logStoreRec_stored Hsd) $$ Hdur
   · exfalso; revert Hc'; msg_ne
 
