@@ -111,7 +111,6 @@ axiom addrUnclaimed
 axiom api.IsCapabilityEnabled.wp_proof
 axiom apply.irrDecode_utf8
 axiom apply.memberEnc_id_learner
-axiom apply.memberKey_inj
 axiom auth.authStore.AuthInfoFromTLS.wp_proof
 axiom auth.authStore.selectPassword.wp_proof
 axiom auth.newTokenProviderJWT.wp_proof
@@ -383,8 +382,6 @@ axiom strconv.FormatBool.wp_proof
 axiom strconv.FormatUint.wp_proof
 axiom strconv.Itoa.wp_proof
 axiom streamKeyFromCtx.wp_proof
-axiom streamKeyOf_none
-axiom streamKeyOf_single
 axiom strings.HasSuffix.wp_proof
 axiom strings.SplitN.wp_proof
 axiom strings.ToLower.wp_proof
@@ -418,7 +415,6 @@ axiom v3rpc.ctxCauseOk_cancellable
 axiom v3rpc.logUnaryRequestStats.wp_proof
 axiom v3rpc.pbWatchRequestT_reg
 axiom v3rpc.pbWatchResponseT_reg
-axiom verify.Verify.wp_proof
 axiom verifyEnvOff
 axiom version.Cluster.wp_proof
 axiom waitRetryBackoff.wp_proof

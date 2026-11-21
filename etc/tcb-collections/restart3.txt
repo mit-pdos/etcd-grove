@@ -98,7 +98,6 @@ axiom addFeatureGateMetrics.wp_proof
 axiom addrUnclaimed
 axiom apply.irrDecode_utf8
 axiom apply.memberEnc_id_learner
-axiom apply.memberKey_inj
 axiom auth.NewAuthStore.wp_proof
 axiom auth.newTokenProviderJWT.wp_proof
 axiom backend.ValidateCalledInsideApply.wp_proof
@@ -305,7 +304,6 @@ axiom v2stats.ServerStats.RecvAppendReq.wp_proof
 axiom v2stats.ServerStats.SendAppendReq.wp_proof
 axiom v3alarm.AlarmStore.restore.wp_proof
 axiom v3alarm.NewAlarmStore.wp_proof
-axiom verify.Verify.wp_proof
 axiom verifyEnvOff
 axiom version.Cluster.wp_proof
 axiom zap.Logger.Fatal.wp_proof

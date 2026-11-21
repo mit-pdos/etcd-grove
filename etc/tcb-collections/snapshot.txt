@@ -122,7 +122,6 @@ axiom types.NewURLs.wp_proof
 axiom v2stats.FollowerStats.Fail.wp_proof
 axiom v2stats.FollowerStats.Succ.wp_proof
 axiom v3alarm.AlarmStore.restore.wp_proof
-axiom verify.Verify.wp_proof
 axiom zap.Logger.Fatal.wp_proof
 axiom zap.Logger.Panic.wp_proof
 axiom zap.Logger.check.wp_proof
