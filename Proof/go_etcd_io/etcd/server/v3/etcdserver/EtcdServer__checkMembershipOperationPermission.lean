@@ -53,11 +53,13 @@ theorem EtcdServer.checkMembershipOperationPermission.wp_proof
     $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr0, #Hb, -, #Hz, #Hne, -⟩
   · iframe #
   ihave #Herr := authApplyErrIs_apply _ $$ Herr0
+  ihave #Hvar0 : authErrVarIs err $$ []
+  · iunfold authApplyErrIs at Herr0; icases Herr0 with ⟨-, #H⟩; iexact H
   (try wp_auto)
   rcases err with ei | _
   · (try wp_auto)
     iapply HΦ
-    iframe HRD
+    iframe HRD Hvar0
     iunfold adminOutC
     isplitr
     · iunfold adminOutB
@@ -84,8 +86,10 @@ theorem EtcdServer.checkMembershipOperationPermission.wp_proof
         (try wp_auto)
         wp_apply HAdmNil $$ [$HRD] as %err2 ⟨HRD, #Herr2, %Hoff, #Hv⟩
         (try wp_auto)
+        ihave #Hvar2 : authErrVarIs err2 $$ []
+        · rw [Hoff hon]; iunfold authErrVarIs; ileft; ipureintro; rfl
         iapply HΦ
-        iframe HRD
+        iframe HRD Hvar2
         iunfold adminOutC
         isplitr
         · iunfold adminOutB
@@ -104,8 +108,10 @@ theorem EtcdServer.checkMembershipOperationPermission.wp_proof
         (try wp_auto)
         wp_apply HAdm $$ [$Hap $HRD] as %err2 ⟨-, HRD, #Herr2, %Hoff, #Hv⟩
         (try wp_auto)
+        ihave #Hvar2 : authErrVarIs err2 $$ []
+        · rw [Hoff hon]; iunfold authErrVarIs; ileft; ipureintro; rfl
         iapply HΦ
-        iframe HRD
+        iframe HRD Hvar2
         iunfold adminOutC
         isplitr
         · iunfold adminOutB
@@ -130,9 +136,11 @@ theorem EtcdServer.checkMembershipOperationPermission.wp_proof
         wp_apply HAdmN $$ [$HRD] as %err2 ⟨HRD, -, #Herr2, #Hv⟩
         · iframe #; iunfold auth.authInfoAt; ipureintro; rfl
         ihave #Herr2' := authApplyErrIs_apply _ $$ Herr2
+        ihave #Hvar2 : authErrVarIs err2 $$ []
+        · iunfold authApplyErrIs at Herr2; icases Herr2 with ⟨-, #H⟩; iexact H
         (try wp_auto)
         iapply HΦ
-        iframe HRD
+        iframe HRD Hvar2
         iunfold adminOutC
         isplitr
         · iunfold adminOutB
@@ -157,9 +165,11 @@ theorem EtcdServer.checkMembershipOperationPermission.wp_proof
         wp_apply HAdmS $$ [$HRD] as %err2 ⟨HRD, -, #Herr2, #Hv⟩
         · iframe #; iunfold auth.authInfoAt; iexact Hap
         ihave #Herr2' := authApplyErrIs_apply _ $$ Herr2
+        ihave #Hvar2 : authErrVarIs err2 $$ []
+        · iunfold authApplyErrIs at Herr2; icases Herr2 with ⟨-, #H⟩; iexact H
         (try wp_auto)
         iapply HΦ
-        iframe HRD
+        iframe HRD Hvar2
         iunfold adminOutC
         isplitr
         · iunfold adminOutB

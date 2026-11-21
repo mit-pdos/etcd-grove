@@ -61,6 +61,35 @@ theorem loop_step (n : w64) (k : w32)
   obtain ⟨h1, h2, h4, h5⟩ := hk
   word
 
+/-- **Endpoints claimed for one cluster** (`k8s.epOf_alloc` over a list of distinct endpoints, none
+claimed yet): `MainPartition`'s `k` bridges, for the API servers sharing the process's compactor. -/
+theorem epOfs_alloc [sync.Assumptions] (γk : KVNames) :
+    ∀ (L : List GoString) (M : GMap GoString GName), L.Nodup → (∀ a ∈ L, M.lookup a = none) →
+      k8s.regAuth M ⊢ |==> ∃ M', k8s.regAuth M' ∗
+        [∗list] ep ∈ L, k8s.epOf (GF := GF) ep γk (fun _ => iprop(True))
+  | [], M, _, _ => by
+    iintro Hreg
+    imodintro
+    iexists M
+    iframe
+    iapply BigSepL.bigSepL_nil.2; itrivial
+  | a :: L, M, hnd, hfree => by
+    iintro Hreg
+    imod (k8s.epOf_alloc M a γk (fun _ => iprop(True)) (hfree a (by simp))) $$ Hreg
+      with ⟨%γa, Hreg, #Hep⟩
+    have hnd' := List.nodup_cons.1 hnd
+    imod (epOfs_alloc γk L (M.insert a γa) hnd'.2 (fun b hb => by
+      have hne : a ≠ b := fun h => hnd'.1 (h ▸ hb)
+      show (<[a := γa]> M) !! b = none
+      rw [GMap.lookup_insert_ne M γa hne]
+      exact hfree b (by simp [hb]))) $$ Hreg with ⟨%M', Hreg, Heps⟩
+    imodintro
+    iexists M'
+    iframe Hreg
+    iapply BigSepL.bigSepL_cons.2
+    iframe Hep
+    iexact Heps
+
 end mainVars
 
 end k8s_compactor

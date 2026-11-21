@@ -485,11 +485,13 @@ func TestDialTimeoutAccepted(t *testing.T) {
 	}
 }
 
-// TestWildcardListen (D21, Impl.lean ListenAt, wildPort; extends
+// TestWildcardListen (D21, Impl.lean wildOk, wildPort, lisAccepts; extends
 // TestAddressAliases). Each wildcard spelling, ":P", "0.0.0.0:P" and
 // "[::]:P", listens: its Addr is "[::]:P" (Go's dual-stack wildcard); it
-// accepts a Dial of "127.0.0.1:P"; and with it open, Listen of "127.0.0.1:P"
-// fails (EADDRINUSE). Measured.
+// accepts a Dial of "127.0.0.1:P" (lisAccepts: a wildcard takes any address
+// with its port; Linux, every local one); and with it open, Listen of
+// "127.0.0.1:P" fails (EADDRINUSE: a sys failure the model allows, v3.4, which
+// also allows success, its listeners being per address string). Measured.
 func TestWildcardListen(t *testing.T) {
 	t.Parallel()
 	for _, h := range []string{"", "0.0.0.0", "[::]"} {

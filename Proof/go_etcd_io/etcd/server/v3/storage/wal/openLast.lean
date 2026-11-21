@@ -173,6 +173,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openLast.wp_proof [os.file.FieldAs
           hbok hbN hbi) (by decide)
       $$ [Hpd Hj Hperm] as %lf %err Hpost
     · iframe; iframe #
+    ihave Hpost := fileutil.lockPost_of_W _ _ _ _ _ _ _ $$ Hpost
     iunfold fileutil.lockPost at Hpost
     icases Hpost with ⟨%u, Hpost⟩
     icases Hpost with (⟨%herr, ⟨Hpd, Hj, Hperm⟩, %f, %fd, %i, %k, ⟨%hfd, %hi⟩, #Hlf, Hf, Hoff, Hfd, Hlk, #Hkind⟩ |

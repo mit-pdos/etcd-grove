@@ -33,10 +33,11 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 /-- The network's ghost state. -/
 abbrev G : NetGS GF := extGlobalGS netExt (G := Gg)
 
-/-- The invariant of the plan address `a`: its pending connections, each with its dialer's
-deposit `Φ cn`. -/
+/-- The invariant of the address `a`: its listening token (`netLisTok`, so that a node that
+listens at `a` takes it at its `Listen`'s step, `listen_au`, after every restart), and its pending
+connections, each with its dialer's deposit `Φ cn`. -/
 def addrInv (a : GoString) (Φ : Nat → IProp GF) : IProp GF :=
-  iprop(∃ S, netPend G a S ∗ [∗map] cn ↦ _u ∈ setMap S, Φ cn)
+  iprop(netLisTok G a ∗ ∃ S, netPend G a S ∗ [∗map] cn ↦ _u ∈ setMap S, Φ cn)
 
 /-- A dial of `a` whose dialer deposits `Φ cn` (made, at the address's invariant's mask, from the
 new connection's acceptor end, `mk`) and keeps its own end and `R cn`; a dial that fails leaving
@@ -54,7 +55,7 @@ theorem dial_au (N : Namespace) (a : GoString) (Φ R : Nat → IProp GF) [∀ cn
   iintro #Hinv Hmk
   iinv Hinv with Hi Hclose
   unfold addrInv
-  icases Hi with ⟨%S, >Hpend, >Hdeps⟩
+  icases Hi with ⟨>Htk, %S, >Hpend, >Hdeps⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   iexists S
@@ -64,8 +65,9 @@ theorem dial_au (N : Namespace) (a : GoString) (Φ R : Nat → IProp GF) [∀ cn
   · iintro Hd
     imod Hmask
     imod Hmk $$ %cn Hat Ha with ⟨HΦ, HR⟩
-    imod Hclose $$ [Hpend Hdeps HΦ] with -
+    imod Hclose $$ [Htk Hpend Hdeps HΦ] with -
     · inext
+      iframe Htk
       iexists S ∪ {[cn]}
       iframe Hpend
       rw [setMap_insert]
@@ -76,8 +78,9 @@ theorem dial_au (N : Namespace) (a : GoString) (Φ R : Nat → IProp GF) [∀ cn
   · iintro - -
     imod Hmask
     imod Hmk $$ %cn Hat Ha with ⟨HΦ, -⟩
-    imod Hclose $$ [Hpend Hdeps HΦ] with -
+    imod Hclose $$ [Htk Hpend Hdeps HΦ] with -
     · inext
+      iframe Htk
       iexists S ∪ {[cn]}
       iframe Hpend
       rw [setMap_insert]
@@ -107,7 +110,7 @@ theorem dial_both_au (N : Namespace) (a : GoString) (Φ R : Nat → IProp GF)
   iintro #Hinv Hmk HmkAb
   iinv Hinv with Hi Hclose
   unfold addrInv
-  icases Hi with ⟨%S, >Hpend, >Hdeps⟩
+  icases Hi with ⟨>Htk, %S, >Hpend, >Hdeps⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   iexists S
@@ -117,8 +120,9 @@ theorem dial_both_au (N : Namespace) (a : GoString) (Φ R : Nat → IProp GF)
   · iintro Hd
     imod Hmask
     imod Hmk $$ %cn Hat Hd Ha with ⟨HΦ, HR⟩
-    imod Hclose $$ [Hpend Hdeps HΦ] with -
+    imod Hclose $$ [Htk Hpend Hdeps HΦ] with -
     · inext
+      iframe Htk
       iexists S ∪ {[cn]}
       iframe Hpend
       rw [setMap_insert]
@@ -129,8 +133,9 @@ theorem dial_both_au (N : Namespace) (a : GoString) (Φ R : Nat → IProp GF)
   · iintro He Hd
     imod Hmask
     imod HmkAb $$ %cn Hat He Hd Ha with HΦ
-    imod Hclose $$ [Hpend Hdeps HΦ] with -
+    imod Hclose $$ [Htk Hpend Hdeps HΦ] with -
     · inext
+      iframe Htk
       iexists S ∪ {[cn]}
       iframe Hpend
       rw [setMap_insert]
@@ -146,7 +151,7 @@ theorem accept_au (N : Namespace) (a : GoString) (Φ : Nat → IProp GF) [∀ cn
   iintro #Hinv
   iinv Hinv with Hi Hclose
   unfold addrInv
-  icases Hi with ⟨%S, >Hpend, >Hdeps⟩
+  icases Hi with ⟨>Htk, %S, >Hpend, >Hdeps⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   iexists S
@@ -157,8 +162,9 @@ theorem accept_au (N : Namespace) (a : GoString) (Φ : Nat → IProp GF) [∀ cn
     rw [gmap_get?_eq]; exact (GMap.elem_of_gset _ _).1 HcS
   icases (BigSepM.bigSepM_delete hl).1 $$ Hdeps with ⟨Hp, Hdeps⟩
   rw [setMap_delete]
-  imod Hclose $$ [Hpend Hdeps] with -
+  imod Hclose $$ [Htk Hpend Hdeps] with -
   · inext
+    iframe Htk
     iexists S \ {[cn]}
     iframe Hpend Hdeps
   imodintro
@@ -177,7 +183,7 @@ theorem accept_lis_au (N : Namespace) (a : GoString) (Φ : Nat → IProp GF) [�
   iintro #Hinv Hl
   iinv Hinv with Hi Hclose
   unfold addrInv
-  icases Hi with ⟨%S, >Hpend, >Hdeps⟩
+  icases Hi with ⟨>Htk, %S, >Hpend, >Hdeps⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   iexists o, S
@@ -185,8 +191,9 @@ theorem accept_lis_au (N : Namespace) (a : GoString) (Φ : Nat → IProp GF) [�
   isplit
   · iintro Hl Hpend
     imod Hmask
-    imod Hclose $$ [Hpend Hdeps] with -
+    imod Hclose $$ [Htk Hpend Hdeps] with -
     · inext
+      iframe Htk
       iexists S
       iframe Hpend Hdeps
     imodintro
@@ -197,25 +204,46 @@ theorem accept_lis_au (N : Namespace) (a : GoString) (Φ : Nat → IProp GF) [�
       rw [gmap_get?_eq]; exact (GMap.elem_of_gset _ _).1 HcS
     icases (BigSepM.bigSepM_delete hl).1 $$ Hdeps with ⟨Hp, Hdeps⟩
     rw [setMap_delete]
-    imod Hclose $$ [Hpend Hdeps] with -
+    imod Hclose $$ [Htk Hpend Hdeps] with -
     · inext
+      iframe Htk
       iexists S \ {[cn]}
       iframe Hpend Hdeps
     imodintro
     iframe Hl Hp
 
-/-- The address's invariant of a fresh network: nothing pending. -/
+/-- The address's invariant of a fresh network: its listening token, nothing pending. -/
 theorem addrInv_alloc (N : Namespace) (a : GoString) (Φ : Nat → IProp GF) :
-    netPend G a ∅ ={⊤}=∗ inv N (addrInv a Φ) := by
-  iintro Hpend
+    netPend G a ∅ -∗ netLisTok G a ={⊤}=∗ inv N (addrInv a Φ) := by
+  iintro Hpend Htk
   iapply inv_alloc
   inext
   unfold addrInv
+  iframe Htk
   iexists ∅
   iframe Hpend
   iapply BigSepM.bigSepM_empty.2
   iempintro
 
+
+/-- `Listen` of `a` by any node that knows the address's invariant: the update of `net.Listen`
+that gives the listening token at the step and puts it back. -/
+theorem listen_au (N : Namespace) (a : GoString) (Φ : Nat → IProp GF) :
+    ⊢ inv N (addrInv a Φ) -∗
+      |={⊤,∅}=> netLisTok G a ∗ (netLisTok G a ={∅,⊤}=∗ True) := by
+  iintro #Hinv
+  iinv Hinv with Hi Hclose
+  unfold addrInv
+  icases Hi with ⟨>Htk, Hrest⟩
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  iframe Htk
+  iintro Htk
+  imod Hmask
+  imod Hclose $$ [Htk Hrest] with -
+  · inext; iframe Htk Hrest
+  imodintro
+  itrivial
 
 end wps
 

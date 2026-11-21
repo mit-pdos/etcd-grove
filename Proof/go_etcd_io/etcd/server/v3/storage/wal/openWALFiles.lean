@@ -129,7 +129,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
       · isplitl []; · iexact Hinv
         isplitl []; · iexact Hsi
         iframe
-      icases Hr with (⟨%fd, %hh, Hf, Ho, Hfd⟩ | ⟨%hh, Herr, %ee, %hee, #Hep⟩)
+      icases Hr with (⟨%fd, %hh, Hf, Ho, Hfd⟩ | ⟨%hh, Herr, %ee, %hee, #Hep, -⟩)
       · obtain ⟨rfl, hfd0⟩ := hh
         (try wp_auto)
         wp_apply wp_slice_literal (V := Loc) [null]

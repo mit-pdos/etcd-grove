@@ -2,7 +2,7 @@ package kvnet
 
 import (
 	"fmt"
-	"sync/atomic"
+	"sync"
 )
 
 // The counters of Stats, by index.
@@ -47,17 +47,21 @@ var StatNames = [NumStats]string{
 // Stats counts what an incarnation exercised, for the tests' coverage report (the driver reads
 // them over the client protocol, ReqStatus); the store does not read them.
 type Stats struct {
-	c [NumStats]atomic.Uint64
+	mu sync.Mutex
+	c  [NumStats]uint64
 }
 
-func (s *Stats) add(i int) { s.c[i].Add(1) }
+func (s *Stats) add(i int) {
+	s.mu.Lock()
+	s.c[i]++
+	s.mu.Unlock()
+}
 
 // Snapshot is the counters' values.
 func (s *Stats) Snapshot() [NumStats]uint64 {
-	var v [NumStats]uint64
-	for i := range v {
-		v[i] = s.c[i].Load()
-	}
+	s.mu.Lock()
+	v := s.c
+	s.mu.Unlock()
 	return v
 }
 

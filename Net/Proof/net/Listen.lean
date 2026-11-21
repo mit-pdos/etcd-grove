@@ -27,12 +27,12 @@ variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 variable [go.BasicIntoValInj]
 
 theorem Listen.wp_proof : Listen.spec (GF := GF) (hG := hG) := by
-  intro nw hnw a a0
-  wp_start as %Hla
+  intro nw hnw a
+  wp_start as ⟨%Hla, Htok⟩
   wp_apply wp_netOk nw hnw
   (try wp_auto)
   wp_bind (ExternalOp _ _ _)
-  iapply wp_net_Listen a a0 $$ %Hla
+  iapply wp_net_Listen a $$ %Hla Htok
   isplit
   · -- a failure
     rw [Listener_ty_eq]

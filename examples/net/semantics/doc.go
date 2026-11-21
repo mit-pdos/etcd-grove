@@ -3,7 +3,8 @@
 // ReadStep, WriteStep, CloseStep, CloseWriteStep, SetDeadlineStep, ListenStep,
 // AcceptStep, DialStep, LisClose and the node crash; each operation's outcome
 // is a relation there: ReadOutcome, WriteOutcome, CloseOutcome,
-// CloseWriteOutcome, DeadlineOutcome, LisCloseOutcome, ListenAt), and of the
+// CloseWriteOutcome, DeadlineOutcome, LisCloseOutcome; the addresses addrOk,
+// listenOk, lisAccepts), and of the
 // trusted net models (Net/TrustedCode/net.lean), numbered D1-D25 as in
 // Impl.lean's header:
 //
@@ -15,8 +16,8 @@
 //	D6  ListenStep       D13  the deployment     D17 Close of an open end or listener succeeds
 //	D7  AcceptStep       D14  the error kinds    D18 addresses (TrustedCode/net.lean)
 //	                                             D19 DialTimeout (TrustedCode/net.lean)
-//	                                             D20 PlanWellFormed (Deploy.lean)
-//	                                             D21 wildcard Listen (ListenAt)
+//	                                             D20 valid addresses (addrOk, portOk)
+//	                                             D21 wildcard Listen (wildOk, lisAccepts)
 //	                                             D22 steps: every operation may stutter
 //	                                                 (waiting); invalid uses panic (NetStep)
 //	                                             D23 the network "tcp4" (TrustedCode/net.lean)
@@ -103,6 +104,10 @@
 //	TestListenTwice              D6   EADDRINUSE at an open listener's address; success after its Close measured   ListenStep
 //	TestListenTakenByOtherProcess D6  another process's listener: EADDRINUSE too (the model also allows  measured   ListenStep
 //	                                  success: more than Linux)
+//	TestListenNotLocal           D6,D13 an address that is not this machine's (192.0.2.1, TEST-NET-1):    measured   ListenStep (sys), listenOk
+//	                                  EADDRNOTAVAIL, an *OpError around an *os.SyscallError (bind):
+//	                                  the model's sys failure (v3.4: no plan, any machine may listen
+//	                                  at any valid address; the kernel refuses one not its own)
 //	TestDialRefused              D8   no listener: ECONNREFUSED                                          measured   DialStep (sys)
 //	TestAcceptAfterListenerClose D7,D9,D17 LisClose: nil, wakes Accept with ErrClosed; Accept and Close  measured   AcceptStep, LisCloseOutcome
 //	                                  after it: ErrClosed
@@ -127,18 +132,28 @@
 //	TestZeroValues               D12,D22 a zero TCPConn/TCPListener: bare syscall.EINVAL, no socket       measured   model.einval (the models' id-0 check,
 //	                                  touched                                                                         before the extension: net.lean)
 //
-// Addresses (addr_test.go, v3_test.go; Deploy.lean):
+// Addresses (addr_test.go, v3_test.go, listen_test.go; Impl.lean addrOk, wildOk, lisAccepts). v3.4
+// (2026-11-20): no plan and no hosts. Any machine may listen at any valid address (addrOk) or
+// valid wildcard (wildOk): a Listen at an address that is not the machine's fails
+// (TestListenNotLocal, EADDRNOTAVAIL), which the model allows as sys; a Listen at one that is
+// another machine's (on that machine) is the proofs' business (a ghost token per address), and
+// the closed world below. A wildcard listener takes connections dialed to any address with its
+// port (lisAccepts): Linux, every local address with the port (TestAddressAliases,
+// TestWildcardListen); the model, any address, a superset (sound: a connection the kernel
+// delivers to it is one the model lets it accept).
 //
-//	TestAddressAliases           D13,D20 "localhost:P", ":P" reach 127.0.0.1:P's listener; ":P"'s      measured   PlanWellFormed (excludes them)
-//	                                  listener takes 127.0.0.1:P, 127.0.0.2:P; Listen(127.0.0.1:P) with
-//	                                  ":P" open: EADDRINUSE
-//	TestWildcardListen           D21  ":P", "0.0.0.0:P", "[::]:P" listen, Addr "[::]:P", accept a Dial  measured   ListenAt, wildPort
-//	                                  of 127.0.0.1:P, conflict with Listen(127.0.0.1:P)
+//	TestAddressAliases           D13,D20,D21 "localhost:P", ":P" reach 127.0.0.1:P's listener; ":P"'s measured   addrOk (excludes them as Dial
+//	                                  listener takes 127.0.0.1:P, 127.0.0.2:P; Listen(127.0.0.1:P) with              addresses), lisAccepts (a wildcard
+//	                                  ":P" open: EADDRINUSE                                                          takes any address with its port)
+//	TestWildcardListen           D21  ":P", "0.0.0.0:P", "[::]:P" listen, Addr "[::]:P", accept a Dial  measured   wildOk, wildPort, lisAccepts
+//	                                  of 127.0.0.1:P, conflict with Listen(127.0.0.1:P) (EADDRINUSE: a
+//	                                  sys failure the model allows; it also allows success)
 //	TestAddrs                    D18  LocalAddr, RemoteAddr, Addr: non-nil *TCPAddr, the same at every    measured   model.anyTCPAddr, conn.LocalAddr
 //	                                  call, after a reset and after Close; zero TCPConn's nil; zero
 //	                                  TCPListener's Addr panics
-//	(the closed world)           D13  no process outside the system uses the plan's addresses            assumed    (prose: Impl.lean D13)
-//	(ephemeral ports)            D20  a port outside 32768-60999 cannot be a Dial's own source port       documented PlanWellFormed (Linux
+//	(the closed world)           D13  no process but the deployment's nodes, on any machine, accepts a    assumed    (prose: Impl.lean D13)
+//	                                  connection a node dials or dials one a node's listener can accept
+//	(ephemeral ports)            D20  a port outside 32768-60999 cannot be a Dial's own source port       documented portOk, addrOk (Linux
 //	                                  (ip_local_port_range's default; Go's selfConnect: tcpsock_posix.go)            ip_local_port_range)
 //
 // Process death (process_test.go):
@@ -155,7 +170,7 @@
 //	(the stutter convention)     D22  every operation may take a step that changes nothing; a blocked     documented NetStep, IsNetStep, OrInvalid;
 //	                                  Read, Accept, Write step is that stutter until an outcome decides            Tests.lean: isNetStep_total,
 //	                                  it; every state has an outcome besides it; an argument the                   isNetStep_result
-//	                                  extension cannot use (an address outside the plan: D13; an id
+//	                                  extension cannot use (an invalid address: D13, D20, D21; an id
 //	                                  naming nothing) panics (GooseLang's stuck Panic). The convention
 //	                                  of Perennial's Grove extension (Perennial/GooseLang/Ext/Grove/
 //	                                  Impl.lean, GroveStep); no Go behavior of its own: a stutter is
@@ -163,7 +178,7 @@
 //
 // v3.3 (tcp4_test.go, sockopt_test.go, writelock_test.go; notes/dsverify-net-port-plan.md, phase 2):
 //
-//	TestTcp4                     D23  "tcp4" as "tcp" on IPv4 plan addresses (Listen, Dial, DialTimeout,  measured   model.netOk, conn's and TCPListener's
+//	TestTcp4                     D23  "tcp4" as "tcp" on valid IPv4 addresses (Listen, Dial, DialTimeout,  measured   model.netOk, conn's and TCPListener's
 //	                                  the wildcards ":P", "0.0.0.0:P", "[::]:P" every IPv4 address);                net field, model.opError's network
 //	                                  every *OpError's Net the network string: Dial's and Listen's
 //	                                  the call's, a connection's its Dial's or its listener's (Read,
@@ -288,6 +303,17 @@
 // model, which Go's fdMutex excludes (TestWriteLock); a Write's first step now
 // takes the end's write lock and its last releases it, a first step waiting
 // (a stutter, its only outcome) while another Write holds it.
+//
+// v3.4 (2026-11-20, notes/net-tcp.md, v3.4): no plan and no hosts (D6, D13,
+// D20, D21). Before, the deployment's plan named each address the program may
+// use and the host that may listen at it, and Listen panicked at an address
+// that was not its host's (a wildcard resolving to the plan's only address
+// with its port); now Listen of any valid address or wildcard (listenOk) may
+// succeed on any machine, a Dial of any valid address (addrOk), and a wildcard
+// listener takes connections dialed to any address with its port
+// (lisAccepts). It only adds behaviors, each from a step that was a panic: a
+// Listen the kernel refuses (EADDRNOTAVAIL, TestListenNotLocal; EADDRINUSE)
+// is a sys failure, and which machine listens where is the proofs' business.
 //
 // Not measured here: D12 (ENOMEM, ENOBUFS), unreachable addresses. What a
 // peer sees of a machine that dies silently (nothing, then its kernel's
