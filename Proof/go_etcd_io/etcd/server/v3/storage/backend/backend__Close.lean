@@ -36,7 +36,7 @@ private theorem bbolt.kvGlue_DB__Close
     (h : ∀ [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions],
       bbolt.DB.Close.spec (GF := GF) (hG := hG)) :
   ∀ (db : Loc) (γ : DBNames) (D : backend.Data),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ isDB db γ ∗ ownDB db γ D }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ isDB db γ ∗ ownDB db γ D ∗ dbHalf γ D }}
     (App (Val (db @!! go.GoType.PointerType go_etcd_io.bbolt.DB.ty @!! go!"Close")) (Val #()))
   {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ backend.bClosed γ D }} := by
   intro db γ D
@@ -46,10 +46,13 @@ private theorem bbolt.kvGlue_DB__Close
     iexfalso; iexact H
   · haveI := fax; haveI := fsax
     have h' := @h fax fsax
-    simp only [backend.bClosed, backend.ownDB, backend.isDB, onFs_some hfs]
+    simp only [backend.bClosed, backend.ownDB, backend.dbHalf, backend.isDB, onFs_some hfs]
     obtain ⟨Sio, hino, hpath', hs1, hs2⟩ := nex.ok
     have hne : Fs.FsNoErr := Fs.fsNoErr_of Sio hino hpath'
-    iintro %Φ ⟨-, #Hdb, -, Hst, Hrest⟩ HΦ
+    iintro %Φ ⟨-, #Hdb, ⟨-, Hst, Hrest⟩, Hh⟩ HΦ
+    -- (backend-snapshot B1) the batch lock's half and the commit invariant's, the whole
+    ihave Hst := (backend.boltState_halves γ D).2 $$ [Hst Hh]
+    · iframe Hst Hh
     unfold dbRestF
     icases Hrest with ⟨%i, #Hino, Hcl⟩
     wp_apply (h' db γ i D) $$ [$Hdb $Hino $Hst $Hcl] as %err Hres
@@ -97,7 +100,7 @@ theorem backend.backend.Close.wp_proof
   imod lc_fupd_elim_later (E := ⊤) $$ Hlc3 HY with HY
   iunfold bDBOut at Hout
   iunfold bDBOutG at Hout
-  icases Hout with ⟨⟨%db', %C, #Hbdb, Hown, Hg⟩, HW, HPk⟩
+  icases Hout with ⟨⟨%db', %C, #Hbdb, Hown, Hhalf, Hg⟩, HW, HPk⟩
   -- (R2b-3c part 2) what the stopped lock held, at the committed data
   ihave Hsv := bStopG_view γ P W Pk C $$ [$Hg $HW $HPk]
   iunfold bDB at Hbdb
@@ -107,7 +110,7 @@ theorem backend.backend.Close.wp_proof
   obtain ⟨rfl, rfl⟩ := Hag
   wp_auto
   wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hmug2] as ⟨Hwl, Hdbp⟩
-  wp_apply (hClose db' γ.db C) $$ [$Hisdb2 $Hown] as %err ⟨%He, Hf⟩
+  wp_apply (hClose db' γ.db C) $$ [$Hisdb2 $Hown $Hhalf] as %err ⟨%He, Hf⟩
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl $Hdbp]
   iapply HΦ
   iframe HY

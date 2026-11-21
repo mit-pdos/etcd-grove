@@ -29,7 +29,7 @@ def backend.newPost (γ : backend.BNames) (P : backend.BParams) (W Pk : backend.
             backend.plHook γ func.nil ∗
               ownToks γ.wb backend.wbInit ∗
                 backend.rbOwn γ (backend.rbData P D) ∗
-                  ([∗list] _x ∈ List.replicate sync.rwmutex.actualMaxReaders.toNat (), backend.rdTok γ P b) ∗
+                  ([∗list] _x ∈ List.replicate backend.rdSlotsN (), backend.rdTok γ P b) ∗
                     backend.dlInit γ ∗ backend.fkCl γ P D ∗ backend.srSlot b)
 
 theorem backend.newPost_of_K (γ : backend.BNames) (P : backend.BParams) (W Pk : backend.BNames →
@@ -48,7 +48,7 @@ def backend.newPostK (γ : backend.BNames) (P : backend.BParams) (W Pk K : backe
           backend.bViewC γ 1 (backend.vData P (D, { bks := ∅, ver := W64 0 })) true ∗
             backend.plHook γ func.nil ∗
               backend.rbOwn γ (backend.rbData P D) ∗
-                ([∗list] _x ∈ List.replicate sync.rwmutex.actualMaxReaders.toNat (), backend.rdTok γ P b) ∗
+                ([∗list] _x ∈ List.replicate backend.rdSlotsN (), backend.rdTok γ P b) ∗
                   backend.dlInit γ ∗ backend.fkCl γ P D ∗ backend.srSlot b ∗ backend.rbClaimToks γ P fun x => True)
 
 def backend.hooksAt (b : Loc) (h : GoInterface) : IProp GF :=
