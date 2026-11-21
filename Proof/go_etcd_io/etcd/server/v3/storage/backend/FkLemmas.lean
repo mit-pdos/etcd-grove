@@ -589,7 +589,6 @@ theorem fkOkG_commit {P : BParams} {st : BSess} {C' : Data} {tx' : Loc} {cnt' : 
 theorem fkOkG_setHw {P : BParams} {st : BSess} (x : Bool) (f : Nat) (g : FkG)
     (h : fkOkG P f g st) : fkOkG P f g (st.setHw x) := h
 
-/-- The readers' state of a batch state: at a flag not past the open's value, it is the open's. -/
 /-- (backend-snapshot B4, 2026-11-21) A readers' state's facts at the compaction keys hold of the same
 committed data with an empty read buffer, at any version: every fact reads the buffer's entries only (and
 an empty buffer has none). What a snapshot, whose read transaction has no buffer, takes of a commit's. -/
@@ -600,6 +599,7 @@ theorem fkOkRvG_empty {P : BParams} {f : Nat} {g : FkG} {C : Data} {R : RBuf} (v
     fun hw => ⟨(h.1.2 hw).1, fun n k i _ _ e he => by simp [hb] at he⟩⟩, fun hle => ⟨(h.2 hle).1,
     fun n k i _ _ e he => by simp [hb] at he⟩⟩
 
+/-- The readers' state of a batch state: at a flag not past the open's value, it is the open's. -/
 theorem fkOkRvG_of {P : BParams} {st : BSess} {f : Nat} {g : FkG} (h : fkOkG P f g st) :
     fkOkRvG P f g (st.C, st.R) :=
   ⟨fkOkRv_of h.1, fun hle => by
