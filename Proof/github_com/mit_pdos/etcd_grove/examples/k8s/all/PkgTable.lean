@@ -381,7 +381,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h32 : GetIsPkgInitProp pkg_id.go_uber_org.zap (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h13, h30, h4, h28, h12, h0, h31, True.intro⟩
+    exact ⟨h13, h5, h30, h4, h28, h12, h0, h31, True.intro⟩
   have h33 : GetIsPkgInitProp pkg_id.google_golang_org.grpc.codes (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -557,7 +557,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h76 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.storage.backend (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h49, h13, h12, h3, h0, h5, h50, h32, h73, h74, h4, h69, h53, h75, h72, h63, True.intro⟩
+    exact ⟨h49, h13, h12, h3, h0, h5, h50, h32, h73, h74, h4, h69, h53, h51, h75, h72, h63, True.intro⟩
   have h77 : GetIsPkgInitProp pkg_id.encoding.binary (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -737,7 +737,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h121 : GetIsPkgInitProp pkg_id.hash.crc32 (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact True.intro
+    exact ⟨h54, h3, h0, True.intro⟩
   have h122 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.pkg.v3.crc (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -793,7 +793,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h135 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h54, h3, h32, h76, h90, h126, h49, h4, h13, h6, h26, h127, h129, h69, h5, h43, h74, h130, h77, h50, h75, h45, h134, h78, True.intro⟩
+    exact ⟨h54, h121, h3, h32, h76, h90, h126, h49, h4, h13, h6, h26, h127, h129, h69, h5, h43, h74, h130, h77, h50, h75, h45, h134, h78, True.intro⟩
   have h136 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.pkg.v3.contention (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl

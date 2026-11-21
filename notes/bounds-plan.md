@@ -224,6 +224,13 @@ This deletes the counted stocks (70 places), `etcdGrpcSlots_of_started`, `watchR
   with the main thread's token, `testMiniboltConcurrent`'s readers with their forked threads'
   (`wp_fork_tok_body`), so its 2-of-`actualMaxReaders` split is gone.
 
+- **The server's `lgMu` and `tickMu` (srvloops2, 2026-11-21).** `lgMu`: the `Logger()`-calling monitors
+  (`adjustTicks`, `publishV3`, `monitorClusterVersions`, `monitorStorageVersion`) take `GoAttach`'s pool
+  (`raftPool (srvLgReader s)`, `srvGoAttachOk`'s) and a level-1 token, as the plan says (the handle and a
+  token); `Start`'s two counted slots for `monitorFileDescriptor`/`monitorDowngrade` remain. `tickMu`: its
+  slots, dropped until then, are thread pools at levels 3 and 4 (`rnTickPool`, `InvRaftNode.lean`), its
+  only reader `ensureLeadership`'s `isActive`, called at level 3 (the revocation) or 4 (`LeaseRenew`).
+
 ### B3. Wait groups backed by thread tokens
 
 - Inventory the `WaitGroup`s whose counter is bounded by an `Add` count.

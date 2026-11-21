@@ -47,6 +47,7 @@ public import Perennial.Golang.Theory.Chan.Idioms.Idioms
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopChan
 public import Proof.go_etcd_io.etcd.server.v3.storage.InvOpen
 public import Perennial.Ghost.MonoList
+public import Perennial.Proof.ThreadPool
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NotifyC2
 public import Proof.go_etcd_io.raft.v3.MemstorageApi
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.WalApi
@@ -1837,6 +1838,33 @@ instance isRNTicker_persistent (tk : Loc) : Persistent (isRNTicker (GF := GF) tk
 def rnTickInv (r : Loc) (q : Qp) : IProp GF :=
   iprop(∃ t : time.Time, rnLatestTickTsAddr r ↦{DFrac.own q} t)
 
+/-- **The levels of a thread token that borrow a reader slot of `tickMu`** (`rnTickPool`; srvloops2,
+2026-11-21, bounds B2 for `tickMu`): its only reader is `ensureLeadership`'s `isActive`, called by the
+revocation's outer goroutine with its level 3 (levels 1 and 2 lent to its pools for the round,
+`RevokeCtx.lean`) and by `LeaseRenew` on a gRPC run with its spare level 4 (`v3rpc.ctxErrLvl`; level 3
+is the run pool's for the run). The read lock is held only inside `getLatestTickTs`. -/
+abbrev rnTickLvlOk (l : Nat) : Prop := l = 3 ∨ l = 4
+
+/-- The namespace of `tickMu`'s pools of reader slots. -/
+def rnTickPoolN0 : Namespace := nroot .@ "etcdserver_tick_pool"
+
+/-- The namespace of `tickMu`'s pool of reader slots at level `l`. -/
+def rnTickPoolN (l : Nat) : Namespace := rnTickPoolN0 .@ l
+
+/-- **`tickMu`'s pools of reader slots** (persistent; srvloops2, 2026-11-21, bounds B2 for `tickMu`):
+at each level `rnTickLvlOk` admits, a thread pool of the lock's reader slots
+(`sync.ownRWMutex mu (rnTickInv r)`), made when the wrapper is installed (`isRaftNode_of_rnParts`,
+half of the fresh lock's slots each), from which a reader of `latestTickTs` borrows one around
+`getLatestTickTs` (until then the slots were dropped, and `ensureLeadership.spec` assumed its read
+lock needed none). -/
+def rnTickPool (r mu : Loc) : IProp GF :=
+  iprop(∀ l : Nat, ⌜rnTickLvlOk l⌝ → ∃ γ : GName,
+    threadPool.isThreadPoolL (rnTickPoolN l) l γ (sync.ownRWMutex mu (rnTickInv r)))
+
+instance rnTickPool_persistent (r mu : Loc) : Persistent (rnTickPool (GF := GF) r mu) := by
+  unfold rnTickPool; infer_instance
+
+
 /-! ## `applyc` -/
 
 /-- A unit channel with no logical content (`notifyc`, `stopped`). -/
@@ -2319,7 +2347,10 @@ def isRaftNode (E : RNEnv GF) (γ : RNNames GF) (r : Loc) : IProp GF :=
     "#Hstc" ∷ rnStoppedAddr r ↦□ stc ∗ "#Hstci" ∷ rnStopBag E γ stc ∗
     "#Hdnc" ∷ rnDoneAddr r ↦□ dnc ∗
     -- (2026-11-03, R2b-3b) its close announces the stop's escrow (until then `True`)
-    "#Hdnci" ∷ ownBroadcastChan dnc γ.done (rnDoneEsc γ) .Unknown)
+    "#Hdnci" ∷ ownBroadcastChan dnc γ.done (rnDoneEsc γ) .Unknown ∗
+    -- (srvloops2, 2026-11-21) the node is raft's (`rnNodeIface`), and `tickMu`'s pool of reader slots
+    "%Hnif" ∷ ⌜n = interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.node.ty) #γ.nl⌝ ∗
+    "#Htp" ∷ rnTickPool r mu)
 
 instance isRaftNode_persistent (E : RNEnv GF) (γ : RNNames GF) (r : Loc) :
     Persistent (isRaftNode E γ r) where
@@ -2331,7 +2362,9 @@ instance isRaftNode_persistent (E : RNEnv GF) (γ : RNNames GF) (r : Loc) :
     iexists lg, mu, ms, td, tk, n, st, tr, idr, hb, msc, apc, rsc, stc, dnc
     simp only [named]
     iframe #
-    ipureintro; exact Hmsγ
+    isplitr
+    · ipureintro; exact Hmsγ
+    ipureintro; exact Hnif
 
 /-- The right to close `done` (the loop's: its deferred `onStop`). -/
 def rnDoneTok (γ : RNNames GF) (r : Loc) : IProp GF :=

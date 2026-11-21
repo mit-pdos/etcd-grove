@@ -168,7 +168,7 @@ theorem raftNode_of_StartNode
   isplitl [Hrun2]
   · rw [Hwnode, Hwnl]; iexact Hrun2
   -- the installer
-  iintro %a %s %tr #Henv' #Hcommi #Hrdi #Hfix Htrf Hlts Hreplay #Htri Hmu'
+  iintro %a %s %tr #Henv' #Hcommi #Hrdi #Hfix Htrf Hlts Hreplay #Htri Hmu' %Hb30
   ihave #Hrsb : rnReadStateBridge E γw $$ []
   · iapply rnReadStateBridge_of_raft E γw $$ Henv'
   ihave #Hni : isRaftNodeIfc E γw (rnNodeIface γw) $$ []
@@ -187,8 +187,12 @@ theorem raftNode_of_StartNode
       { rv with raftNodeConfig' := { rv.raftNodeConfig' with transport' := tr } } $$ []
   · simp only [rnFixed]
     iexact Hfix
+  have hn0 : ({ rv with raftNodeConfig' := { rv.raftNodeConfig' with transport' := tr } } :
+      raftNode).raftNodeConfig'.Node' =
+      interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.node.ty) #γw.nl := by
+    simp only [Hrvcfg, rnNodeIface, Hwnl]
   imod (isRaftNode_of_rnParts E γw a
-    { rv with raftNodeConfig' := { rv.raftNodeConfig' with transport' := tr } })
+    { rv with raftNodeConfig' := { rv.raftNodeConfig' with transport' := tr } } hn0 Hb30)
     $$ [Htrf Hlts Hreplay Hmu' Hdtok] with ⟨#Hrn, Hdone, #Hnodef, #Htrf⟩
   · iframe Hpkg Henv' Hfits' Hrsb Hreg' Hfix' Htrf Hlts Hreplay Hmu' Hdtok
     isplitr
@@ -410,7 +414,7 @@ theorem raftNode_of_RestartNode
   isplitl [Hrun2]
   · rw [Hwnode, Hwnl]; iexact Hrun2
   -- the installer
-  iintro %a %s %tr #Henv' #Hcommi #Hrdi #Hfix Htrf Hlts Hreplay #Htri Hmu'
+  iintro %a %s %tr #Henv' #Hcommi #Hrdi #Hfix Htrf Hlts Hreplay #Htri Hmu' %Hb30
   ihave #Hrsb : rnReadStateBridge E γw $$ []
   · iapply rnReadStateBridge_of_raft E γw $$ Henv'
   ihave #Hni : isRaftNodeIfc E γw (rnNodeIface γw) $$ []
@@ -429,8 +433,12 @@ theorem raftNode_of_RestartNode
       { rv with raftNodeConfig' := { rv.raftNodeConfig' with transport' := tr } } $$ []
   · simp only [rnFixed]
     iexact Hfix
+  have hn0 : ({ rv with raftNodeConfig' := { rv.raftNodeConfig' with transport' := tr } } :
+      raftNode).raftNodeConfig'.Node' =
+      interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.node.ty) #γw.nl := by
+    simp only [Hrvcfg, rnNodeIface, Hwnl]
   imod (isRaftNode_of_rnParts E γw a
-    { rv with raftNodeConfig' := { rv.raftNodeConfig' with transport' := tr } })
+    { rv with raftNodeConfig' := { rv.raftNodeConfig' with transport' := tr } } hn0 Hb30)
     $$ [Htrf Hlts Hreplay Hmu' Hdtok] with ⟨#Hrn, Hdone, #Hnodef, #Htrf⟩
   · iframe Hpkg Henv' Hfits' Hrsb Hreg' Hfix' Htrf Hlts Hreplay Hmu' Hdtok
     isplitr

@@ -92,38 +92,48 @@ theorem EtcdServer.Start.wp_proof
   -- (premise-fixes-6) the server's logger a zap logger (the monitors' and `adjustTicks`'s)
   ihave #HlgOk : srvLoggerOk s $$ []
   · iunfold srvLoggerOk; iexists vd.lg; iframe Hlgf Hlgn
-  -- `func() { s.adjustTicks() }`
-  wp_apply wp_GoAttach_tok hGA s γg _ iprop(True) $$ [Hgr] as Hgr
-  · iframe Hgr
-    isplitr
-    · itrivial
-    iintro !> %Φ' ⟨-, Hrun⟩ HΦ'
-    ihave HΦ' := goRunning_frame γg _ $$ Hrun HΦ'
-    wp_auto
-    wp_apply hAdj C.isOn s E { wait := γw, rd := ρ.rd } $$ []
-    · iframe #
-    iapply HΦ'
-    try itrivial
-  -- `func() { s.publishV3(s.Cfg.ReqTimeout()) }`, with the right to close `readych`
-  wp_apply wp_GoAttach_tok hGA s γg _ (srvReadyCloser s) $$ [Hgr Hrc] as Hgr
-  · iframe Hgr Hrc
-    iintro !> %Φ' ⟨Hrc, Hrun⟩ HΦ'
-    ihave HΦ' := goRunning_frame γg _ $$ Hrun HΦ'
-    wp_auto
-    wp_apply hReqT (structFieldRef EtcdServer go!"Cfg" s) vq.electionTicks vq.tickMs $$ [] as %d -
-    · iframe #
-    wp_apply hPub C.isOn s _ E { wait := γw, rd := ρ.rd } $$ [Hrc]
-    · iframe #; iframe Hrc; iapply srvMonitorPermitM_of C.isOn s E { wait := γw, rd := ρ.rd } γn.id HmidcS; iframe Hreq HlgOk HmidS
-    iapply HΦ'
-    try itrivial
-  -- `s.purgeFile` (wal-link L2): over `GoAttach`'s protocol and its goroutine's tokens, with no WAL
-  -- purge (`srvMonitorsOff`'s `MaxWALFiles`)
+  -- (srvloops2, 2026-11-21, bounds B2 for `lgMu`) `GoAttach`'s pool of `lgMu` reader slots
+  -- (`raftPool`), from which the goroutines that call `Logger()` borrow one with their level 1
   iunfold srvGoResAt at Hgr
   icases Hgr with ⟨Hwr, Hgt⟩
   iunfold srvWgReaderAt at Hwr
   icases Hwr with ⟨#Hgok, Hwm⟩
   ihave Hgr : srvGoResAt s γg $$ [Hwm Hgt]
   · iunfold srvGoResAt; iunfold srvWgReaderAt; iframe Hwm Hgt; iframe #
+  ihave #Hgok' := Hgok
+  iunfold srvGoAttachOk at Hgok'
+  icases Hgok' with ⟨%gch, %gc, -, -, -, -, -, -, -, #HrP, -⟩
+  -- `func() { s.adjustTicks() }`, with `GoAttach`'s `lgMu` pool and the goroutine's level 1
+  wp_apply wp_GoAttach_tokT hGA s γg _ iprop(True) $$ [Hgr] as Hgr
+  · iframe Hgr
+    isplitr
+    · itrivial
+    iintro !> %Φ' ⟨-, Hrun, Htf⟩ HΦ'
+    icases (threadTokFrom_succ (GF := GF) 1 (threadBound_gt (GF := GF))).1 $$ Htf with ⟨G1, Gt2⟩
+    (try wp_auto)
+    wp_apply hAdj C.isOn s E { wait := γw, rd := ρ.rd } $$ [G1] as G1
+    · iframe #; iframe G1
+    iapply HΦ'
+    iframe Hrun
+    iapply (threadTokFrom_succ (GF := GF) 1 (threadBound_gt (GF := GF))).2
+    iframe
+  -- `func() { s.publishV3(s.Cfg.ReqTimeout()) }`, with the right to close `readych` (and the `lgMu`
+  -- pool and the goroutine's level 1)
+  wp_apply wp_GoAttach_tokT hGA s γg _ (srvReadyCloser s) $$ [Hgr Hrc] as Hgr
+  · iframe Hgr Hrc
+    iintro !> %Φ' ⟨Hrc, Hrun, Htf⟩ HΦ'
+    icases (threadTokFrom_succ (GF := GF) 1 (threadBound_gt (GF := GF))).1 $$ Htf with ⟨G1, Gt2⟩
+    (try wp_auto)
+    wp_apply hReqT (structFieldRef EtcdServer go!"Cfg" s) vq.electionTicks vq.tickMs $$ [] as %d -
+    · iframe #
+    wp_apply hPub C.isOn s _ E { wait := γw, rd := ρ.rd } $$ [Hrc G1] as G1
+    · iframe #; iframe Hrc G1; iapply srvMonitorPermitM_of C.isOn s E { wait := γw, rd := ρ.rd } γn.id HmidcS; iframe Hreq HlgOk HmidS
+    iapply HΦ'
+    iframe Hrun
+    iapply (threadTokFrom_succ (GF := GF) 1 (threadBound_gt (GF := GF))).2
+    iframe
+  -- `s.purgeFile` (wal-link L2): over `GoAttach`'s protocol and its goroutine's tokens, with no WAL
+  -- purge (`srvMonitorsOff`'s `MaxWALFiles`)
   ihave #Hoff' := Hoff
   iunfold srvMonitorsOff at Hoff'
   icases Hoff' with ⟨-, -, -, #Hmwf⟩
@@ -148,27 +158,35 @@ theorem EtcdServer.Start.wp_proof
     · iframe #
     iapply HΦ'
     try itrivial
-  -- `s.monitorClusterVersions`, `s.monitorStorageVersion`
-  wp_apply wp_GoAttach_tok hGA s γg _ iprop(True) $$ [Hgr] as Hgr
+  -- `s.monitorClusterVersions`, `s.monitorStorageVersion` (each with the `lgMu` pool and
+  -- the goroutine's level 1)
+  wp_apply wp_GoAttach_tokT hGA s γg _ iprop(True) $$ [Hgr] as Hgr
   · iframe Hgr
     isplitr
     · itrivial
-    iintro !> %Φ' ⟨-, Hrun⟩ HΦ'
-    ihave HΦ' := goRunning_frame γg _ $$ Hrun HΦ'
-    wp_apply hMCV C.isOn s E { wait := γw, rd := ρ.rd } $$ []
-    · iframe #; iapply srvMonitorPermitM_of C.isOn s E { wait := γw, rd := ρ.rd } γn.id HmidcS; iframe Hreq HlgOk HmidS
+    iintro !> %Φ' ⟨-, Hrun, Htf⟩ HΦ'
+    icases (threadTokFrom_succ (GF := GF) 1 (threadBound_gt (GF := GF))).1 $$ Htf with ⟨G1, Gt2⟩
+    (try wp_auto)
+    wp_apply hMCV C.isOn s E { wait := γw, rd := ρ.rd } $$ [G1] as G1
+    · iframe #; iframe G1; iapply srvMonitorPermitM_of C.isOn s E { wait := γw, rd := ρ.rd } γn.id HmidcS; iframe Hreq HlgOk HmidS
     iapply HΦ'
-    try itrivial
+    iframe Hrun
+    iapply (threadTokFrom_succ (GF := GF) 1 (threadBound_gt (GF := GF))).2
+    iframe
   -- (H2, 2026-11-05) with its receipt at `γg`, the budget's registered name
-  wp_apply wp_GoAttach_tok hGA s γg _ (srvSVRes s E) $$ [Hgr Hsv] as Hgr
+  wp_apply wp_GoAttach_tokT hGA s γg _ (srvSVRes s E) $$ [Hgr Hsv] as Hgr
   · iframe Hgr Hsv
-    iintro !> %Φ' ⟨HL, Hrun⟩ HΦ'
+    iintro !> %Φ' ⟨HL, Hrun, Htf⟩ HΦ'
+    icases (threadTokFrom_succ (GF := GF) 1 (threadBound_gt (GF := GF))).1 $$ Htf with ⟨G1, Gt2⟩
+    (try wp_auto)
     iunfold goRunning at Hrun
-    wp_apply hMSV C.isOn s E { wait := γw, rd := ρ.rd } γp γg.run $$ [HL Hrun] as Hrun
-    · iframe #; iframe HL Hrun
+    wp_apply hMSV C.isOn s E { wait := γw, rd := ρ.rd } γp γg.run $$ [HL Hrun G1] as ⟨Hrun, G1⟩
+    · iframe #; iframe HL Hrun G1
     iapply HΦ'
     iunfold goRunning
-    iexact Hrun
+    iframe Hrun
+    iapply (threadTokFrom_succ (GF := GF) 1 (threadBound_gt (GF := GF))).2
+    iframe
   -- `s.read.LinearizableReadLoop`, verified
   icases Hrl with ⟨%rd, #Hrdf, #Hrlp⟩
   wp_auto

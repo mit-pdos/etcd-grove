@@ -352,6 +352,8 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- (2026-11-04, the lease-expiry plan's Part C) what the construction takes of the lease slot
   have Hslg : ∃ m' : lease.Mode, lease.runCfg (GF := GF) ρ.rd.kv.lm m' := ⟨m, lease.bootCfg_run Hlbc⟩
   replace Hbnd : threadBound GF ≤ 2 ^ 28 := Hbnd
+  -- (srvloops2, 2026-11-21) `tickMu`'s pool of reader slots (the installer's)
+  have HtickB : threadBound GF ≤ 2 ^ 29 := by omega
   letI : MemStorReg GF := ⟨γ.reg⟩
   wp_start
   iNamed Hpre
@@ -1576,7 +1578,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- `Stop` names it (`srvTrStop`)
   ipersist Htrf
   imod Hinst $$ %(srvRAddr s) %s %(interface.mkOk (go.GoType.PointerType api.rafthttp.Transport.ty) #t)
-    [Henv] [Hcmi] [] [] [] [HlatestTs] [Hreplay] [] [Hrtm] with ⟨#Hrn, Hrdone, #Hnodef, #Hprop, -⟩
+    [Henv] [Hcmi] [] [] [] [HlatestTs] [Hreplay] [] [Hrtm] %HtickB with ⟨#Hrn, Hrdone, #Hnodef, #Hprop, -⟩
   · iexact Henv
   · iexact Hcmi
   · simp only [srvErM]; iexact Hrdctx
