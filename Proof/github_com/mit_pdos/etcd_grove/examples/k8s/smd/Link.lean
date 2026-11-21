@@ -1595,7 +1595,7 @@ theorem smd.typed.validatingObjectWalker.wp_prepareDescent :
 
 theorem smd.typed.validatingObjectWalker.wp_visitListItemsBody :
     EtcdGrove.smd.typed.validatingObjectWalker.visitListItems.specBody (GF := GF) (hG := hG) :=
-  EtcdGrove.smd.typed.validatingObjectWalker.visitListItems.wp_proofBody smd.fieldpath.wp_MakePathElementSet smd.fieldpath.PathElementSet.wp_Has smd.fieldpath.PathElementSet.wp_Insert smd.value.heapAllocator.wp_Free smd.value.freelistAllocator.wp_Free smd.value.listUnstructured.wp_AtUsing smd.value.listUnstructured.wp_AtUsing_ptr smd.value.listUnstructured.wp_Length smd.value.listUnstructured.wp_Length_ptr smd.typed.wp_listItemToPathElement smd.typed.validatingObjectWalker.wp_finishDescent smd.typed.validatingObjectWalker.wp_prepareDescent
+  EtcdGrove.smd.typed.validatingObjectWalker.visitListItems.wp_proofBody smd.fieldpath.wp_MakePathElementSet smd.fieldpath.PathElementSet.wp_Has smd.fieldpath.PathElementSet.wp_Insert smd.value.heapAllocator.wp_Free smd.value.freelistAllocator.wp_Free smd.value.listUnstructured.wp_AtUsing smd.value.listUnstructured.wp_AtUsing_ptr smd.value.listUnstructured.wp_Length smd.value.listUnstructured.wp_Length_ptr smd.typed.wp_listItemToPathElement smd.typed.validatingObjectWalker.wp_finishDescent smd.typed.validatingObjectWalker.wp_prepareDescent smd.value.listUnstructured.wp_At smd.value.listUnstructured.wp_At_ptr
 
 theorem smd.typed.ValidationErrors.wp_WithPrefix :
     EtcdGrove.smd.typed.ValidationErrors.WithPrefix.spec (GF := GF) (hG := hG) :=
