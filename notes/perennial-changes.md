@@ -402,6 +402,11 @@ fresh table where Go returns one shared pointer. **Proposed upstream**: the same
 GooseLang `simplePopulateTable` (or by translating `crc32_generic.go` with bodies and trusting only
 `Update`'s dispatch to it), with `IEEE` alongside; then this part's names-only `hash/crc32` and the
 local model go.
+(2026-11-21, prove-etcdint3: the second form, locally. `Code/hash/crc32.toml` translates `New`,
+`digest.Write`/`Sum32`, `Update`, `simpleMakeTable`/`simplePopulateTable` and the package's
+initializers (`IEEETable`, the two `sync.OnceFunc`s) with bodies, and trusts `MakeTable` and the
+dispatching `update` (in place of `Update`, which calls it): mvcc's hasher is proved over them, and
+`hash.crc32.opaqueInitsOk` is gone. Still a local model, pending the user's review.)
 
 ### `io.ReadFull`/`ReadAtLeast` and `binary.Read`'s fast path without bodies (2026-11-13, WAL leaf specs, branch `wal-leaf-std2`)
 
@@ -1601,7 +1606,8 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   (`Code/hash.toml`, `-lean-root hash=`, as `encoding/hex`), which makes Goose translate
   `kvHasher` as a struct. Proposed: `hash`'s interfaces in Perennial's standard library (and
   `hash/crc32`'s model, which would make `newKVHasher`, `kvHasher.WriteKeyValue` and `Hash`
-  provable); then this repository's `hash` translation goes.
+  provable); then this repository's `hash` translation goes. (2026-11-21: the three are proved, over this repository's
+  local `hash/crc32` model; the upstream proposal stands.)
 
 ### `encoding/binary`'s `Write`/`Read`, and protobuf at the bytes (2026-10-22, rafthttp stage 3, branch `rafthttp-plan`)
 

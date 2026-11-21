@@ -509,7 +509,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h76 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.storage.backend (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h52, h13, h12, h4, h1, h5, h53, h22, h73, h74, h0, h69, h56, h75, h72, h11, True.intro⟩
+    exact ⟨h52, h13, h12, h4, h1, h5, h53, h22, h73, h74, h0, h69, h56, h54, h75, h72, h11, True.intro⟩
   have h77 : GetIsPkgInitProp pkg_id.encoding.binary (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -697,7 +697,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h123 : GetIsPkgInitProp pkg_id.hash.crc32 (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact True.intro
+    exact ⟨h57, h4, h1, True.intro⟩
   have h124 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.pkg.v3.crc (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -753,7 +753,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h137 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h57, h4, h22, h76, h84, h128, h52, h0, h13, h6, h34, h129, h131, h69, h5, h46, h74, h132, h77, h53, h75, h48, h136, h78, True.intro⟩
+    exact ⟨h57, h123, h4, h22, h76, h84, h128, h52, h0, h13, h6, h34, h129, h131, h69, h5, h46, h74, h132, h77, h53, h75, h48, h136, h78, True.intro⟩
   have h138 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.pkg.v3.contention (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl

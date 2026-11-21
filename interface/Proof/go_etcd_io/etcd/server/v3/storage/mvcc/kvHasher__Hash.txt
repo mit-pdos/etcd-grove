@@ -2,14 +2,13 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-axiom mvcc.kvHasher.Hash.wp_proof : mvcc.kvHasher.Hash.spec
+theorem mvcc.kvHasher.Hash.wp_proof (hSum : hash.crc32.digest.Sum32.spec) : mvcc.kvHasher.Hash.spec
   -- `Perennial.EtcdGrove.mvcc.kvHasher.Hash.spec`, unfolded:
   ∀ (hp : Loc) (h : go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-            typedPointsto hp h (DFrac.own 1) ∗ ⌜mvcc.kvHasherOk h⌝ -∗
-          (▷ ∀ r, typedPointsto hp h (DFrac.own 1) -∗ Φ (intoVal r)) -∗
+        isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ typedPointsto hp h (DFrac.own 1) ∗ mvcc.kvHasherOk h -∗
+          (▷ ∀ r, typedPointsto hp h (DFrac.own 1) ∗ mvcc.kvHasherOk h -∗ Φ (intoVal r)) -∗
             WP
               ((intoVal
                   (methods go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher.ty.PointerType go!"Hash"
