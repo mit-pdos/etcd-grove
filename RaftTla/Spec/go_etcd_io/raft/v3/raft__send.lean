@@ -274,7 +274,7 @@ abbrev raft.send.spec : Prop :=
       "Hm" ∷ msgOwnZ s.gh.sn.sz ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ ∗
       -- (D22 S-b′3; U8 v2: valid or received, as the node's storage names pin it, `tsSrc`) a
       -- `MsgSnap`'s snapshot certified (`tsSrc_ne` for any other type)
-      "#Hsrc" ∷ tsSrc s.gh.sn m.Type' sn ∗
+      "#Hsrc" ∷ tsSrc s.gh.sn m.Type' sn (· ∈ s.logst.ksn) ∗
       -- (2026-11-09, Q8 stage 1 slice 5) the hook's gate, the caller's
       "Hgate" ∷ HookGateOpt s.gh.tr r (sendOutGate id s c m.Type' out) Q }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"send")) (Val #ml))

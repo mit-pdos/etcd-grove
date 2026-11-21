@@ -165,11 +165,11 @@ theorem raft.maybeSendSnapshot.wp_proof
     ihave ⟨%Hsle, %Hsterm, #Hcert⟩ : ⌜uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.committed⌝ ∗
         ⌜plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) sv.Metadata'.Index'
           = some sv.Metadata'.Term'⌝ ∗
-        (∀ ty, tsSrc (GF := GF) s.gh.sn ty (some sv)) $$ [Hsrcs]
+        (∀ ty, tsSrc (GF := GF) s.gh.sn ty (some sv) (· ∈ s.logst.ksn)) $$ [Hsrcs]
     · icases Hsrcs with (⟨%Hp, #Hk⟩ | ⟨%Hp, #Hk⟩)
       · isplitr; · ipureintro; exact Hp.2.2.1
         isplitr; · ipureintro; exact Hp.2.2.2
-        iintro %ty; iapply tsSrc_ksn; rw [← Hnsn.2]; iexact Hk
+        iintro %ty; iapply tsSrc_ksn _ _ _ _ Hp.2.1; rw [← Hnsn.2]; iexact Hk
       · isplitr; · ipureintro; exact Hp.2.2.1
         isplitr; · ipureintro; exact Hp.2.2.2
         iintro %ty; iapply tsSrc_snap; rw [← Hnsn.2]; iexact Hk

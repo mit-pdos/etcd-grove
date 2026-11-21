@@ -733,7 +733,7 @@ theorem qCert_of_src (γ : RaftNames) (sn : StorNames) (q : QMsg)
   iunfold storCertOk at Hok
   icases Hok with ⟨#Hsv', #Hks, -⟩
   ihave Hc' : |={E}=> raftSnapCertD γ (snapTrip sv sv.Metadata'.ConfState'.lists) $$ [Hc]
-  · icases Hc with (#Hc | #Hc)
+  · icases Hc with (#Hc | ⟨#Hc, -⟩)
     · iapply Hsv' $$ %_ %E %hE Hc
     · iapply Hks $$ %_ %E %hE Hc
   imod Hc' with #Hc'
@@ -1083,7 +1083,7 @@ def ownRaftPhysReady (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl : GoSlice
     -- (2026-10-19, D21 M2r) the modes' facts of the queues
     "%Hxf" ∷ ⌜XfOk id s (ms1 ++ ms2)⌝ ∗
     -- (D22 S-b′3) the queues' certificates' source (`ownRaftPhys`'s `Hscert`)
-    "#Hscert" ∷ qSrcs s.gh.sn (ms1 ++ ms2) ∗
+    "#Hscert" ∷ qSrcs s.gh.sn (ms1 ++ ms2) (· ∈ s.logst.ksn) ∗
     -- (2026-11-11, slice 28n) with the self-addressed ones, among the queues (`MsSub`)
     "%Hmslen" ∷ ⌜MsSub id ms ms1 ms2⌝ ∗
     "Hundo" ∷ (msl ↦* ms.map QMsg.loc -∗ ownSliceCap Loc msl (DFrac.own 1) -∗
@@ -1117,7 +1117,7 @@ def ownRaftPhysReady (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl : GoSlice
         ⌜g.ns = s.gh.ns ∧ LogNsKeep s ls' ∧ ∀ m ∈ o, m ∈ s.outbox⌝ -∗
         ⌜s.role = .leader → uint.Z (logLast s.logst) ≤ uint.Z (logLast ls')⌝ -∗
         ⌜XfOk id { s with outbox := o, logst := ls', gh := g, rd := rd' } (ms1' ++ ms2')⌝ -∗
-        qSrcs g.sn (ms1' ++ ms2') -∗
+        qSrcs g.sn (ms1' ++ ms2') (· ∈ ls'.ksn) -∗
         ⌜g.tr = s.gh.tr⌝ -∗
         ⌜LqOk g.lq ms1' ms2'⌝ -∗
         ownRaftLog s.log ls' -∗
