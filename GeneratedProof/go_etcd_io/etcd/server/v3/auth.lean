@@ -5,6 +5,7 @@ public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.bytes
 public import Perennial.GeneratedProof.context
 public import Perennial.GeneratedProof.crypto.rand
+public import GeneratedProof.encoding.base64
 public import Perennial.GeneratedProof.errors
 public import Perennial.GeneratedProof.fmt
 public import GeneratedProof.github_com.prometheus.client_golang.prometheus

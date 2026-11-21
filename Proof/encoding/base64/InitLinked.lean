@@ -14,6 +14,15 @@ public import Proof.encoding.base64.Encoding__WithPadding
 public import Proof.encoding.base64.Encoding__EncodeToString
 public import Proof.encoding.base64.Encoding__EncodedLen
 public import Proof.encoding.base64.Encoding__Encode
+public import Proof.encoding.base64.Encoding__DecodeString
+public import Proof.encoding.base64.Encoding__DecodedLen
+public import Proof.encoding.base64.decodedLen
+public import Proof.encoding.base64.Encoding__Decode
+public import Proof.encoding.base64.Encoding__decodeQuantum
+public import Proof.encoding.base64.assemble32
+public import Proof.encoding.base64.assemble64
+public import Proof.internal.byteorder.BEPutUint32
+public import Proof.internal.byteorder.BEPutUint64
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -95,10 +104,17 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   isplitl
   · iapply (EtcdGrove.base64.stdEncInit_intro (EtcdGrove.base64.Encoding.EncodeToString.wp_proof
         EtcdGrove.base64.Encoding.EncodedLen.wp_proof EtcdGrove.base64.Encoding.Encode.wp_proof)
-      eS encS hS.1 hS.2) $$ HStdEncoding HeS
-  iapply (EtcdGrove.base64.rawUrlEncInit_intro (EtcdGrove.base64.Encoding.EncodeToString.wp_proof
-      EtcdGrove.base64.Encoding.EncodedLen.wp_proof EtcdGrove.base64.Encoding.Encode.wp_proof)
-    eRU { encU with padChar' := W32 (-1) } hU.1 rfl) $$ HRawURLEncoding HeRU
+      eS encS hS.1 hS.2.1) $$ HStdEncoding HeS
+  isplitl
+  · iapply (EtcdGrove.base64.rawUrlEncInit_intro (EtcdGrove.base64.Encoding.EncodeToString.wp_proof
+        EtcdGrove.base64.Encoding.EncodedLen.wp_proof EtcdGrove.base64.Encoding.Encode.wp_proof)
+      eRU { encU with padChar' := W32 (-1) } hU.1 rfl) $$ HRawURLEncoding HeRU
+  iapply (EtcdGrove.base64.stdDecInit_intro (EtcdGrove.base64.Encoding.DecodeString.wp_proof
+      (EtcdGrove.base64.Encoding.DecodedLen.wp_proof EtcdGrove.base64.decodedLen.wp_proof)
+      (EtcdGrove.base64.Encoding.Decode.wp_proof (EtcdGrove.base64.Encoding.decodeQuantum.wp_proof)
+        EtcdGrove.base64.assemble32.wp_proof EtcdGrove.base64.assemble64.wp_proof
+        EtcdGrove.byteorder.BEPutUint32.wp_proof EtcdGrove.byteorder.BEPutUint64.wp_proof))
+    eS encS hS.1 hS.2.1 (by rw [hS.1]; exact hS.2.2.1) hS.2.2.2) $$ HStdEncoding HeS
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

@@ -1460,7 +1460,7 @@ theorem auth.wp_isValidPermissionRange :
 
 theorem auth.authStore.wp_selectPassword :
     auth.authStore.selectPassword.spec (GF := GF) (hG := hG) :=
-  auth.authStore.selectPassword.wp_proof
+  auth.authStore.selectPassword.wp_proof bcrypt.wp_GenerateFromPassword
 
 theorem auth.authStore.wp_setupMetricsReporter :
     auth.authStore.setupMetricsReporter.spec (GF := GF) (hG := hG) :=

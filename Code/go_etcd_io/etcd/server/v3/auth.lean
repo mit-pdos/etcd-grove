@@ -15,6 +15,7 @@ public import Perennial.Code.math.big
 public import Perennial.Code.strconv
 public import Perennial.Code.strings
 public import Perennial.Code.bytes
+public import Code.encoding.base64
 public import Perennial.Code.sort
 public import Perennial.Code.sync.atomic
 public import Code.golang_org.x.crypto.bcrypt
@@ -2145,6 +2146,52 @@ noncomputable def authStore.Recover.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef authStore.ty go!"beMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as")))) (Val #())))))))
   (Val #()))))
+
+/-- go: store.go:420:22 -/
+noncomputable def authStore.selectPassword.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "as"
+  (Lam "password"
+  (Lam "hashedPassword"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "as" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authStore.ty)))) (Var "as"))
+  (Let "hashedPassword" (App (Val (GoInstruction (GoAlloc go.string))) (Var "hashedPassword"))
+  (Let "password" (App (Val (GoInstruction (GoAlloc go.string))) (Var "password"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "hashedPassword"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.encoding.base64.Encoding.ty) go!"DecodeString"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.encoding.base64.Encoding.ty)))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.encoding.base64.StdEncoding))) (Val #())))) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0"))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "password")) (Val #(go!""))))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "hashedPassword")) (Val #(go!"")))) (Val #false)))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoLoad go.string))) (Var "password")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef authStore.ty go!"bcryptCost"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.golang_org.x.crypto.bcrypt.GenerateFromPassword []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (Val #()))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
 /-- go: store.go:428:22 -/
 noncomputable def authStore.UserAdd.impl [GooseExts] [GoGlobalContext] : val :=
@@ -4873,12 +4920,13 @@ noncomputable def authStore.setupMetricsReporter.impl [GooseExts] [GoGlobalConte
   (Val #()))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.auth where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.errors, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.sync, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.fmt, pkg_id.go_etcd_io.etcd.api.v3.authpb, pkg_id.go_etcd_io.etcd.pkg.v3.adt, pkg_id.crypto.rand, pkg_id.math.big, pkg_id.strconv, pkg_id.strings, pkg_id.bytes, pkg_id.sort, pkg_id.sync.atomic, pkg_id.golang_org.x.crypto.bcrypt, pkg_id.google_golang_org.grpc.metadata, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.errors, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.sync, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.fmt, pkg_id.go_etcd_io.etcd.api.v3.authpb, pkg_id.go_etcd_io.etcd.pkg.v3.adt, pkg_id.crypto.rand, pkg_id.math.big, pkg_id.strconv, pkg_id.strings, pkg_id.bytes, pkg_id.encoding.base64, pkg_id.sort, pkg_id.sync.atomic, pkg_id.golang_org.x.crypto.bcrypt, pkg_id.google_golang_org.grpc.metadata, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.auth)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -5151,6 +5199,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.strings.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.bytes.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.encoding.base64.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.sort.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -5815,6 +5865,7 @@ class authStore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   ptr_isRangeOpPermitted_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"isRangeOpPermitted" authStore.isRangeOpPermitted.impl
   ptr_lockedReadTx_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"lockedReadTx" authStore.lockedReadTx.impl
   ptr_refreshRangePermCache_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"refreshRangePermCache" authStore.refreshRangePermCache.impl
+  ptr_selectPassword_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"selectPassword" authStore.selectPassword.impl
   ptr_setRevision_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"setRevision" authStore.setRevision.impl
   ptr_setupMetricsReporter_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"setupMetricsReporter" authStore.setupMetricsReporter.impl
 
@@ -5878,6 +5929,7 @@ attribute [instance] authStore.TypeAssumptions.type_repr
   authStore.TypeAssumptions.ptr_isRangeOpPermitted_unfold
   authStore.TypeAssumptions.ptr_lockedReadTx_unfold
   authStore.TypeAssumptions.ptr_refreshRangePermCache_unfold
+  authStore.TypeAssumptions.ptr_selectPassword_unfold
   authStore.TypeAssumptions.ptr_setRevision_unfold
   authStore.TypeAssumptions.ptr_setupMetricsReporter_unfold
 
@@ -5956,6 +6008,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
   import_strings_Assumption : _root_.Perennial.strings.Assumptions
   import_bytes_Assumption : _root_.Perennial.bytes.Assumptions
+  import_base64_Assumption : _root_.Perennial.encoding.base64.Assumptions
   import_sort_Assumption : _root_.Perennial.sort.Assumptions
   import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
   import_bcrypt_Assumption : _root_.Perennial.golang_org.x.crypto.bcrypt.Assumptions
@@ -6008,6 +6061,7 @@ attribute [instance] Assumptions.tokenJWT_instance
   Assumptions.import_strconv_Assumption
   Assumptions.import_strings_Assumption
   Assumptions.import_bytes_Assumption
+  Assumptions.import_base64_Assumption
   Assumptions.import_sort_Assumption
   Assumptions.import_atomic_Assumption
   Assumptions.import_bcrypt_Assumption
