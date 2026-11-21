@@ -11,6 +11,7 @@ public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.LawProofsStage
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.LawProofsMF
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.LawProofsIter
 import all Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Defs
+import all Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Defs
 
 @[expose] public section
 
@@ -149,6 +150,92 @@ theorem mfVis_all (mf : MF) (keys : List GoString) (hs : keysSorted mf = true)
       fpD.mem_lookupKV mf k e (fpD.keysSorted_pairwise mf hs) hme
     exact ⟨k, (hk k).2 (by rw [hget]; rfl), e, hget, hq⟩
 
+/-! ## `ConflictsFromManagers`' pairs -/
+
+/-- The (manager, path) pairs of the managers among `ks`. -/
+def pairVis (mf : MF) (ks : List GoString) (c : GoString × Path) : Prop :=
+  c.1 ∈ ks ∧ ∃ e, mf.get c.1 = some e ∧ c.2 ∈ e.set
+
+theorem mfPairs_mem_iff (mf : MF) (c : GoString × Path) :
+    c ∈ mfPairs mf ↔ ∃ me ∈ mf, c.1 = me.1 ∧ c.2 ∈ me.2.set := by
+  induction mf with
+  | nil =>
+    unfold mfPairs
+    simp only [List.foldr_nil, List.not_mem_nil, false_and, exists_false, iff_false]
+    intro h
+    exact (FSet_isEmpty_iff_law_holds (FSet.empty : FSet (GoString × Path))).1 (by rfl) c h
+  | cons me rest ih =>
+    unfold mfPairs at ih ⊢
+    simp only [List.foldr_cons]
+    rw [FSet_mem_union_law_holds, ih, FSet.mem_map']
+    constructor
+    · rintro (⟨x, hx, rfl⟩ | ⟨me', hme', h1, h2⟩)
+      · exact ⟨me, List.mem_cons_self, rfl, hx⟩
+      · exact ⟨me', List.mem_cons_of_mem _ hme', h1, h2⟩
+    · rintro ⟨me', hme', h1, h2⟩
+      rcases List.mem_cons.1 hme' with rfl | hme'
+      · exact Or.inl ⟨c.2, h2, by rw [← h1]⟩
+      · exact Or.inr ⟨me', hme', h1, h2⟩
+
+theorem pairVis_all (mf : MF) (keys : List GoString) (hs : keysSorted mf = true)
+    (hk : ∀ k, k ∈ keys ↔ (mf.get k).isSome = true) (c : GoString × Path) :
+    pairVis mf keys c ↔ c ∈ mfPairs mf := by
+  rw [mfPairs_mem_iff]
+  constructor
+  · rintro ⟨-, e, he, hq⟩
+    exact ⟨(c.1, e), fpD.lookupKV_some_mem mf c.1 e he, rfl, hq⟩
+  · rintro ⟨⟨k, e⟩, hme, h1, hq⟩
+    simp only at h1 hq
+    have hget : mf.get k = some e :=
+      fpD.mem_lookupKV mf k e (fpD.keysSorted_pairwise mf hs) hme
+    subst h1
+    exact ⟨(hk _).2 (by rw [hget]; rfl), e, hget, hq⟩
+
+/-- One more manager's pairs. -/
+theorem pairVis_step (mf : MF) (keys : List GoString) (j : Int) (key : GoString) (e : VSet)
+    (l : List (GoString × Path)) (done : List Path) (hj : 0 ≤ j) (Hkey : keys[j.toNat]? = some key)
+    (hnd : keys.Nodup) (he : mf.get key = some e)
+    (hl : l.Nodup ∧ ∀ c, c ∈ l ↔ pairVis mf (keys.take j.toNat) c)
+    (hdone : done.Nodup ∧ FSet.ofList done = e.set) :
+    (l ++ done.map (fun q => (key, q))).Nodup ∧
+      ∀ c, c ∈ l ++ done.map (fun q => (key, q)) ↔ pairVis mf (keys.take (j + 1).toNat) c := by
+  have Htake : keys.take (j + 1).toNat = keys.take j.toNat ++ [key] := by
+    rw [show (j + 1).toNat = j.toNat + 1 by omega, List.take_add_one, Hkey]; rfl
+  have hjlt : j.toNat < keys.length := by
+    have := List.getElem?_eq_some_iff.1 Hkey; exact this.1
+  have hkey_notin : key ∉ keys.take j.toNat := by
+    intro hm
+    have hk := List.getElem?_eq_some_iff.1 Hkey
+    obtain ⟨i, hi, hik⟩ := List.mem_iff_getElem.1 hm
+    rw [List.getElem_take] at hik
+    have hilt : i < j.toNat := by simp [List.length_take] at hi; omega
+    have hi' : keys[i]? = some key := by
+      rw [List.getElem?_eq_some_iff]; exact ⟨by omega, hik⟩
+    have := list_nodup_getElem?_inj keys hnd i j.toNat key hi' Hkey
+    omega
+  have hmemd : ∀ q, q ∈ done ↔ q ∈ e.set := by
+    intro q; rw [← hdone.2, FSet.mem_ofList']
+  refine ⟨?_, fun c => ?_⟩
+  · refine List.nodup_append.2 ⟨hl.1, List.pairwise_map.2 (hdone.1.imp (fun h e => h (by cases e; rfl))), ?_⟩
+    intro a ha b hb hab
+    subst hab
+    obtain ⟨q, -, rfl⟩ := List.mem_map.1 hb
+    exact hkey_notin ((hl.2 _).1 ha).1
+  · rw [List.mem_append, hl.2, Htake]
+    unfold pairVis
+    constructor
+    · rintro (⟨h1, h2⟩ | h)
+      · exact ⟨List.mem_append_left _ h1, h2⟩
+      · obtain ⟨q, hq, rfl⟩ := List.mem_map.1 h
+        exact ⟨by simp, e, he, (hmemd q).1 hq⟩
+    · rintro ⟨h1, e', he', hq⟩
+      rcases List.mem_append.1 h1 with h1 | h1
+      · exact Or.inl ⟨h1, e', he', hq⟩
+      · simp at h1
+        right
+        rw [h1] at he'; rw [he] at he'; cases he'
+        exact List.mem_map.2 ⟨c.2, (hmemd _).2 hq, by rw [← h1]⟩
+
 /-! ## Reading an `isMF` map -/
 
 section iprop
@@ -178,6 +265,30 @@ theorem isSet_not_null (p : Loc) (S : PathSet) : isSet (GF := GF) p S ⊢ ⌜p �
     simp only [trieRep]
     icases H with ⟨%v, %es, %ns, Hp, -⟩
     iapply typedPointsto_not_null $$ Hp
+
+/-- One more conflict at the end of a `Conflicts` slice. -/
+theorem isConflictL_snoc : ∀ (xs : List merge.Conflict) (cs : List (GoString × Path))
+    (x : merge.Conflict) (m : GoString) (p : Path),
+    isConflictL (GF := GF) xs cs ∗ isPath x.Path' p ⊢ ⌜x.Manager' = m⌝ -∗
+      isConflictL (xs ++ [x]) (cs ++ [(m, p)])
+  | [], [], x, m, p => by
+    iintro ⟨-, Hp⟩ %hm
+    simp only [List.nil_append, isConflictL]
+    iframe Hp
+    ipureintro; exact hm
+  | y :: ys, (m', p') :: cs, x, m, p => by
+    iintro ⟨Hl, Hp⟩ %hm
+    simp only [List.cons_append, isConflictL]
+    icases Hl with ⟨%hy, Hy, Hl⟩
+    iframe Hy
+    isplitr
+    · ipureintro; exact hy
+    iapply isConflictL_snoc ys cs x m p $$ [Hl Hp] %hm
+    iframe Hl Hp
+  | [], _ :: _, _, _, _ => by
+    iintro ⟨Hl, -⟩; simp only [isConflictL]; icases Hl with %h; exact h.elim
+  | _ :: _, [], _, _, _ => by
+    iintro ⟨Hl, -⟩; simp only [isConflictL]; icases Hl with %h; exact h.elim
 
 end iprop
 
