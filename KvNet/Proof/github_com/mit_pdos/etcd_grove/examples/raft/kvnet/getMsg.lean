@@ -147,7 +147,7 @@ theorem getMsg.wp_proof (wp_getUint64 : getUint64.spec (GF := GF) (hG := hG))
     (wp_getSnapshot : getSnapshot.spec (GF := GF) (hG := hG))
     (wp_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     getMsg.spec (GF := GF) (hG := hG) := by
-  intro b st Hwf Hcase
+  intro b st Hwf
   wp_start as Hb
   ihave #Hpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
   · iPkgInit
@@ -263,20 +263,11 @@ theorem getMsg.wp_proof (wp_getUint64 : getUint64.spec (GF := GF) (hG := hG))
     wp_apply (wp_slice_make3 (V := Loc) (W64 0) (W64 st.ents.length) (n_nonneg _ Henl))
       as %sv0 ⟨Hsv0, Hcap0, -⟩
     try wp_auto
-    -- the bytes after the entries' number: frozen if there are entries (then no snapshot)
-    ihave Hr3 : |==> r3 ↦*{if st.ents = [] then DFrac.own 1 else DFrac.discard}
-        (encEntries st.ents ++ encSnapOpt st.snap) $$ [Hr3]
-    · by_cases He : st.ents = []
-      · rw [if_pos He]; imodintro; iexact Hr3
-      · rw [if_neg He]
-        iapply (ownSlice_dfractional (GF := GF) _ _).dfractional_persist _ $$ Hr3
-    imod Hr3 with Hr3
     ihave IH : iprop(∃ (j : w64) (sv rv : GoSlice) (ls : List Loc),
         "i" ∷ i_ptr ↦ j ∗ "ents" ∷ ents_ptr ↦ sv ∗ "rest" ∷ rest_ptr ↦ rv ∗
         "Hsv" ∷ sv ↦* ls ∗ "Hcap" ∷ ownSliceCap Loc sv (DFrac.own 1) ∗
         "#Hls" ∷ ([∗list] l;e ∈ ls;st.ents.take (uint.nat j), entRO l e) ∗
-        "Hrv" ∷ rv ↦*{if st.ents = [] then DFrac.own 1 else DFrac.discard}
-          (encEntries (st.ents.drop (uint.nat j)) ++ encSnapOpt st.snap) ∗
+        "Hrv" ∷ rv ↦* (encEntries (st.ents.drop (uint.nat j)) ++ encSnapOpt st.snap) ∗
         "%Hj" ∷ ⌜uint.nat j ≤ st.ents.length⌝)
       $$ [i ents rest Hsv0 Hcap0 Hr3]
     · iexists W64 0, sv0, r3, []
@@ -289,8 +280,6 @@ theorem getMsg.wp_proof (wp_getUint64 : getUint64.spec (GF := GF) (hG := hG))
     wp_for IH
     wp_if_destruct
     · obtain ⟨Hin, Hj1⟩ := loop_in j _ Henl Hif
-      have Hne : st.ents ≠ [] := by intro h; rw [h] at Hin; exact Nat.not_lt_zero _ Hin
-      rw [if_neg Hne]
       obtain ⟨e0, He0⟩ : ∃ e0, st.ents[uint.nat j]? = some e0 :=
         ⟨_, List.getElem?_eq_getElem Hin⟩
       have Hdrop : st.ents.drop (uint.nat j) = e0 :: st.ents.drop (uint.nat j + 1) := by
@@ -301,7 +290,7 @@ theorem getMsg.wp_proof (wp_getUint64 : getUint64.spec (GF := GF) (hG := hG))
       rw [Hdrop]
       simp only [encEntries, List.append_assoc]
       try wp_auto
-      wp_apply wp_getEntry rv e0 _ Hwf0 $$ [$Hrv] as %le %rest2 ⟨Hle, #Hrest2⟩
+      wp_apply wp_getEntry rv (DFrac.own 1) e0 _ Hwf0 $$ [$Hrv] as %le %rest2 ⟨Hle, Hrest2⟩
       try wp_auto
       imod entOwn_freeze _ _ $$ Hle with #Hle
       wp_apply wp_slice_literal (V := Loc) [le]
@@ -317,7 +306,6 @@ theorem getMsg.wp_proof (wp_getUint64 : getUint64.spec (GF := GF) (hG := hG))
         rw [List.take_add_one, He0]; rfl
       rw [Hj1, Htk]
       iframe
-      iframe Hrest2
       isplitl []
       · iapply entsBig_app
         iframe Hls
@@ -372,8 +360,7 @@ theorem getMsg.wp_proof (wp_getUint64 : getUint64.spec (GF := GF) (hG := hG))
         iapply HΦ
         iexact Hm
       | some s =>
-        have He : st.ents = [] := Hcase.resolve_right (by rw [Hs]; simp)
-        simp only [Hs, encSnapOpt, He, ↓reduceIte, List.length_cons] at Hlv ⊢
+        simp only [Hs, encSnapOpt, List.length_cons] at Hlv ⊢
         rw [ite_eq_left (show 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z rv.len by word)]
         wp_apply wp_load_slice_index rv (sint.Z (W64 0)) _ _ (W8 1) (by decide) $$ [$Hrv] as Hrv
         · ipureintro; rfl

@@ -5,12 +5,9 @@ capacity (`msgPtsC l 1 1 true`, what `copyMsg` gives and raft's `Step` takes), a
 the bytes `putMsg` wrote, for a message `getMsg` reads back (`MsgWf`: a type raft has, entries and a
 snapshot of Go slices' lengths).
 
-**The premise `st.ents = [] ∨ st.snap = none`** (no raft message carries both: `MsgApp` entries,
-`MsgSnap` a snapshot): the decoders this one calls disagree on the bytes' fraction -- `getEntry`
-reads read-only bytes (`↦*□`: the entry's data aliases them, and an entry's data is read-only for
-good) and `getSnapshot` owned ones (the snapshot's data aliases them, owned with the snapshot) --
-and the entries come before the snapshot, each decoder taking the rest of the bytes after it. With
-no entries the bytes stay owned for the snapshot; with no snapshot they are frozen for the entries.
+The bytes stay owned throughout: `getEntry` reads them at any fraction (the entry's data, a
+slice of `b`, made read-only inside it), and `getSnapshot` takes the rest, owned (until the
+ledger's change of 2026-11-21 to `getEntry`, a premise `st.ents = [] ∨ st.snap = none`).
 -/
 module
 
@@ -37,7 +34,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Assum
 
 /-- See the file header. -/
 abbrev getMsg.spec : Prop :=
-  ∀ (b : GoSlice) (st : MsgSt), MsgWf st → (st.ents = [] ∨ st.snap = none) →
+  ∀ (b : GoSlice) (st : MsgSt), MsgWf st →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet ∗
       b ↦* encMsg st }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.kvnet.getMsg)) (Val #b))

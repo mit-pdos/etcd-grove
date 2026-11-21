@@ -32,22 +32,23 @@ theorem getEntry.wp_proof (wp_getUint64 : getUint64.spec (GF := GF) (hG := hG))
     (wp_getBytes : getBytes.spec (GF := GF) (hG := hG))
     (wp_Enum : raftpb.EntryType.Enum.spec (GF := GF) (hG := hG)) :
     getEntry.spec (GF := GF) (hG := hG) := by
-  intro b e r Hwf
-  wp_start as #Hb
+  intro b dq e r Hwf
+  wp_start as Hb
   ihave #Hpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
   · iPkgInit
   try wp_auto
   simp only [encEntry, List.append_assoc] at *
-  wp_apply wp_getUint64 b DFrac.discard e.Term' _ $$ [$Hb] as %r1 ⟨#Hr1, -⟩
+  wp_apply wp_getUint64 b dq e.Term' _ $$ [$Hb] as %r1 ⟨Hr1, -⟩
   try wp_auto
-  wp_apply wp_getUint64 r1 DFrac.discard e.Index' _ $$ [$Hr1] as %r2 ⟨#Hr2, -⟩
+  wp_apply wp_getUint64 r1 dq e.Index' _ $$ [$Hr1] as %r2 ⟨Hr2, -⟩
   try wp_auto
-  wp_apply wp_getUint64 r2 DFrac.discard _ _ $$ [$Hr2] as %r3 ⟨#Hr3, -⟩
+  wp_apply wp_getUint64 r2 dq _ _ $$ [$Hr2] as %r3 ⟨Hr3, -⟩
   try wp_auto
   have Hty : uint.Z (W64 (sint.Z e.Type')) = uint.Z e.Type' := by have := Hwf.1; word
   rw [decide_eq_false (by rw [Hty]; have := Hwf.1; word)]
   try wp_auto
-  wp_apply wp_getBytes r3 DFrac.discard e.Data' r Hwf.2 $$ [$Hpkg $Hr3] as %v %rest ⟨#Hv, #Hrest, -⟩
+  wp_apply wp_getBytes r3 dq e.Data' r Hwf.2 $$ [$Hpkg $Hr3] as %v %rest ⟨Hv, Hrest, -⟩
+  imod ownSlice_persist v dq e.Data' $$ Hv with #Hv
   try wp_auto
   have Hty32 : W32 (uint.Z (W64 (sint.Z e.Type'))) = e.Type' := by word
   rw [Hty32]
