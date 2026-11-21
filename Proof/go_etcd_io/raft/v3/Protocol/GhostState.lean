@@ -1606,6 +1606,40 @@ theorem cview_insert {A : Type} [Pos.Countable A] (E : CoPset) (γ : RaftNames) 
   iexists x
   iframe Hinv Hv
 
+/-- **Using a leader-side map's authority, read only** (a trace line's freshness check, the traced
+win's): the authority lent to `f` and given back, at the view's contents. -/
+theorem cview_auth_use {A : Type} [Pos.Countable A] (E : CoPset) (γ : RaftNames) (id : w64)
+    (sel : CrashNames → GName) (names : GMap w64 GName)
+    (hlens : CrashLens (GF := GF) γ id (fun x => leadPiece (A := A) γ id (sel x) names))
+    (m : GMap w64 A) (γm : GName) (P Q : IProp GF) :
+    ↑(crashNs γ id) ⊆ E → names !! id = some γm →
+    ⊢ notCrashed -∗ cview γ id sel (1 : Qp).half m -∗ P -∗
+      (ghostMapAuth γm 1 m -∗ P -∗ ghostMapAuth γm 1 m ∗ Q) ={E}=∗
+      notCrashed ∗ cview γ id sel (1 : Qp).half m ∗ Q := by
+  intro HE Hγm
+  unfold cview
+  iintro Hnc ⟨%x, #Hinv, Hv⟩ HP Hf
+  imod nodeCrashInv_acc E γ id x iprop(ghostVar (sel x) (1 : Qp).half m ∗ Q) HE
+    $$ Hnc Hinv [Hv HP Hf] with ⟨Hnc, Hv, HQ⟩
+  · iintro Hl
+    icases hlens x $$ Hl with ⟨Hp, Hback⟩
+    unfold leadPiece
+    icases Hp with ⟨%m0, %γm0, %Hn, Hv0, Ha, #Hfr⟩
+    rw [Hγm] at Hn; cases Hn
+    icases ghostVar_agree _ _ _ _ _ $$ Hv Hv0 with %Hm
+    subst Hm
+    icases Hf $$ Ha HP with ⟨Ha, HQ⟩
+    imodintro
+    iframe Hv HQ
+    iapply Hback
+    iexists m, γm
+    iframe Hv0 Ha Hfr
+    ipureintro; exact Hγm
+  imodintro
+  iframe Hnc HQ
+  iexists x
+  iframe Hinv Hv
+
 def lcmOwn (γ : RaftNames) (id : w64) (s : PState) : IProp GF :=
   iprop(∃ γl, ∃ (lcm : GMap w64 GName), ⌜γ.reLcm !! id = some γl⌝ ∗
     cview γ id CrashNames.l (1 : Qp).half lcm ∗ ([∗map] t ↦ γc ∈ lcm, t ↪[γl]□ γc ∗ campKey γ id t) ∗

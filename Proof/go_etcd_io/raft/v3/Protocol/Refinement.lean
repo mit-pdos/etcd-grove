@@ -881,7 +881,7 @@ def winPend (γ : RaftNames) (c : CfgM) (id : w64) (s : PState) (md : Bool) : IP
       (∀ m ∈ ms, m.ty = .snap → ∀ T, γ.reTracked = some T → id ∈ T ∧ m.dst ∈ T) ∧
       (∀ m ∈ ms, m.ty = .snap → m.dst ∈ c.voters ∪ c.learners) ∧
       plogLastIndexZ s.base s.log + 1 ≤ (n : Int) + γ.reBoot.length⌝ -∗
-    notCrashed -∗ ⧖ n ={⊤ \ ↑(raftRegN γ)}=∗ notCrashed ∗
+    ∀ E, ⌜↑(crashNs γ id) ⊆ E⌝ -∗ notCrashed -∗ ⧖ n ={E}=∗ notCrashed ∗
       ownRaftGhost γ id (psendMsgs (pwinState id s mt) ([pselfAck id (pwinState id s mt)] ++ ms)) md)
 
 /-- (2026-11-11, trace-check Q8 stage 1 slice 25b) **`Step.win` in three phases, the first**: the
@@ -903,7 +903,7 @@ theorem ownRaftGhost_step_win_reg (γ : RaftNames) (c : CfgM) (id : w64) (s : PS
         ∃ (γm : GName) (terms : GMap w64 TermRec),
           ⌜γ.reTerms !! id = some γm ∧ terms !! s.term = none⌝ ∗
           cview γ id CrashNames.t (1 : Qp).half terms ∗
-          (notCrashed -∗ cview γ id CrashNames.t (1 : Qp).half terms ={⊤ \ ↑(raftRegN γ)}=∗
+          (∀ E, ⌜↑(crashNs γ id) ⊆ E⌝ -∗ notCrashed -∗ cview γ id CrashNames.t (1 : Qp).half terms ={E}=∗
             notCrashed ∗ leadFull γ s.term (fp ++ s.log) ∗ winPend γ c id s md) := by
   intro Hrole Hq
   iintro Hnc #Henv Hown
@@ -1014,7 +1014,7 @@ theorem ownRaftGhost_step_win_reg (γ : RaftNames) (c : CfgM) (id : w64) (s : PS
   isplitl [Hterms]
   · iexact Hterms
   -- the second phase: the term log, holding the leader's entry
-  iintro Hnc Hterms
+  iintro %Ew %HEw Hnc Hterms
   obtain ⟨e, He⟩ : ∃ e, pleaderEntry s = e := ⟨_, rfl⟩
   obtain ⟨pt0, Hpt⟩ : ∃ pt0, (plogLast s.base s.log).term' = pt0 := ⟨_, rfl⟩
   imod ghost_map_alloc (GF := GF) ({[e.Index' := (e, pt0)]} : GMap w64 (EntryM × w64)) with
@@ -1022,8 +1022,8 @@ theorem ownRaftGhost_step_win_reg (γ : RaftNames) (c : CfgM) (id : w64) (s : PS
   ihave Htel := BigSepM.bigSepM_lookup (Φ := fun i (x : EntryM × w64) => iprop(i ↪[γt] x))
     (GMap.lookup_singleton_eq e.Index' (e, pt0)) $$ Htel
   imod ghostMapElem_persist $$ Htel with #Htel
-  imod cview_insert (⊤ \ ↑(raftRegN γ)) γ id CrashNames.t γ.reTerms (crashLens_t γ id) terms γm s.term
-      ((γt, s.base), s.log) crashNs_sub_reg Htname Hfree $$ Hnc Hterms Hck0 with ⟨Hnc, Hterms, #Htnew⟩
+  imod cview_insert Ew γ id CrashNames.t γ.reTerms (crashLens_t γ id) terms γm s.term
+      ((γt, s.base), s.log) HEw Htname Hfree $$ Hnc Hterms Hck0 with ⟨Hnc, Hterms, #Htnew⟩
   ihave #Htl : isTermLog γ id s.term γt s.base s.log $$ []
   · unfold isTermLog; iexists γm; isplitr
     · ipureintro; exact Htname
@@ -1057,7 +1057,7 @@ theorem ownRaftGhost_step_win_reg (γ : RaftNames) (c : CfgM) (id : w64) (s : PS
   · iexact Hfull1
   -- the last phase: the entry's record, with the receipt
   iunfold winPend
-  iintro %mt %ms %n %Hpre Hnc #Hrcpt
+  iintro %mt %ms %n %Hpre %Ep %HEp Hnc #Hrcpt
   obtain ⟨Hnw, Hmt, Hms, Hce, Htr, Hdc, Hrb⟩ := Hpre
   obtain ⟨Hmid, Hmoth⟩ := Hmt
   have Hs2log : (pwinState id s mt).log = s.log ++ [pleaderEntry s] := rfl
@@ -1415,10 +1415,10 @@ theorem ownRaftGhost_step_win_reg (γ : RaftNames) (c : CfgM) (id : w64) (s : PS
     iapply Hhnew; ipureintro; omega
   have Hwl2' : PlogWfR s2.base s2.log := by rw [Hs2base]; exact PlogWf_wfR _ _ Hwl2
   -- the commit lower bound of the new term (2026-10-12)
-  imod lcmOwn_win (⊤ \ ↑(raftRegN γ)) γ id s s2 crashNs_sub_reg Hrole Hs2role Hs2term
+  imod lcmOwn_win Ep γ id s s2 HEp Hrole Hs2role Hs2term
     (by rw [Hs2commit]; exact Int.le_refl _) $$ Hnc [$Hck $Hlcm] with ⟨Hnc, Hlcm⟩
   -- the read registry of the new term (2026-10-13)
-  imod rdOwn_win (⊤ \ ↑(raftRegN γ)) γ id s (psendMsgs s2 ([pselfAck id s2] ++ ms)) crashNs_sub_reg
+  imod rdOwn_win Ep γ id s (psendMsgs s2 ([pselfAck id s2] ++ ms)) HEp
     Hrole Hs2role
     Hs2term Hs2rd
     (by
@@ -1497,7 +1497,7 @@ theorem ownRaftGhost_step_win_reg (γ : RaftNames) (c : CfgM) (id : w64) (s : PS
 /-- (2026-11-11, trace-check Q8 stage 1 slice 25b) **The last phase of a win, taken**: `winPend`'s
 elimination, at the matched map `mt`, the broadcast `ms` and the receipt `⧖ n` covering the empty
 entry's index (a traced caller's, at the empty entry's `Replicate` line, with `appendEntry`'s receipt). -/
-theorem ownRaftGhost_step_win_entry (γ : RaftNames) (c : CfgM) (id : w64) (s : PState)
+theorem ownRaftGhost_step_win_entry (E : CoPset) (γ : RaftNames) (c : CfgM) (id : w64) (s : PState)
     (mt : GMap w64 w64) (ms : List Msg) (n : Nat) :
     plogLastIndexZ s.base s.log + 1 < 2 ^ 64 →
     LeaderMatchOk id s mt →
@@ -1507,14 +1507,15 @@ theorem ownRaftGhost_step_win_entry (γ : RaftNames) (c : CfgM) (id : w64) (s : 
     -- (restart S7.3, 2026-11-14) a snapshot to a voter or learner of the configuration
     (∀ m ∈ ms, m.ty = .snap → m.dst ∈ c.voters ∪ c.learners) →
     plogLastIndexZ s.base s.log + 1 ≤ (n : Int) + γ.reBoot.length →
-    ⊢ notCrashed -∗ ⧖ n -∗ winPend (GF := GF) γ c id s md ={⊤ \ ↑(raftRegN γ)}=∗ notCrashed ∗
+    ↑(crashNs γ id) ⊆ E →
+    ⊢ notCrashed -∗ ⧖ n -∗ winPend (GF := GF) γ c id s md ={E}=∗ notCrashed ∗
       ownRaftGhost γ id (psendMsgs (pwinState id s mt) ([pselfAck id (pwinState id s mt)] ++ ms)) md := by
-  intro Hnw Hmt Hms Hce Htr Hdc Hrb
+  intro Hnw Hmt Hms Hce Htr Hdc Hrb HE
   have Hpre := And.intro Hnw (And.intro Hmt (And.intro Hms (And.intro Hce (And.intro Htr
     (And.intro Hdc Hrb)))))
   iintro Hnc #Hrcpt Hp
   iunfold winPend at Hp
-  iapply Hp $$ %mt %ms %n %Hpre Hnc Hrcpt
+  iapply Hp $$ %mt %ms %n %Hpre %E %HE Hnc Hrcpt
 
 /-- `Step.win`: allocate the term log -- recording the candidate's base and log, and
 holding the leader's entry -- and acknowledge the old and the new last index. (2026-11-11, trace-check
@@ -1543,8 +1544,9 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (id : w64)
   iintro Hnc #Hrcpt #Henv Hown
   imod ownRaftGhost_step_win_reg γ c id s Hrole Hq $$ Hnc Henv Hown with
     ⟨Hnc, -, %fp, -, -, -, %γm, %terms, -, Ha, Hw⟩
-  imod Hw $$ Hnc Ha with ⟨Hnc, -, Hp⟩
-  iapply ownRaftGhost_step_win_entry γ c id s mt ms n Hnw Hmt Hms Hce Htr Hdc Hrb $$ Hnc Hrcpt Hp
+  imod Hw $$ %(⊤ \ ↑(raftRegN γ)) %crashNs_sub_reg Hnc Ha with ⟨Hnc, -, Hp⟩
+  iapply ownRaftGhost_step_win_entry (⊤ \ ↑(raftRegN γ)) γ c id s mt ms n Hnw Hmt Hms Hce Htr Hdc Hrb
+    crashNs_sub_reg $$ Hnc Hrcpt Hp
 
 /-- `Step.beat`: a heartbeat carries the leadership, a commit index the leader has, and
 the `Match` it is bounded by. -/
