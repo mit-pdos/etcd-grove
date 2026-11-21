@@ -85,7 +85,10 @@ axiom etcdserverpb.AlarmType.String.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom fmt.ErrorfPlain.wp_proof
 axiom fmt.SprintfArgs.wp_proof
+axiom fmt.SprintfWalName.wp_proof
+axiom fmt.SscanfWalName.wp_proof
 axiom go_humanize.Bytes.wp_proof
+axiom hsEncC_ok
 axiom http.CloseIdleConnections_ok
 axiom http.Error_ok
 axiom http.Flush_ok
@@ -149,7 +152,10 @@ axiom mvcc.newKVHasher.wp_proof
 axiom newCorruptionChecker.wp_proof
 axiom os.Getenv.wp_proof
 axiom pbEntryC_reg
+axiom pbHsC_reg
 axiom pbMessageC_reg
+axiom pbRecordC_reg
+axiom pbSnapC_reg
 axiom pbutil.MustUnmarshalMessage.wp_proof
 axiom probing.NewHandler.wp_proof
 axiom probing.NewProber.wp_proof
@@ -161,6 +167,7 @@ axiom proto.CloneConfState.wp_proof
 axiom proto.ClonePb.wp_proof
 axiom proto.CloneSnapshot.wp_proof
 axiom proto.Marshal.wp_proof
+axiom proto.MarshalAppendCachedRecord.wp_proof
 axiom proto.MarshalAppendPb.wp_proof
 axiom proto.MarshalConfChange.wp_proof
 axiom proto.MarshalConfChangeV2.wp_proof
@@ -184,6 +191,7 @@ axiom rafthttp.netErrNotRemoved_ok
 axiom rafthttp.newStreamRoundTripper.wp_proof
 axiom rate.Every.wp_proof
 axiom rate.Limiter.Wait.wp_proof
+axiom recEncC_ok
 axiom reflect.DeepEqual.wp_proof_pgidSet
 axiom reflect.ValueOf.wp_proof
 axiom schema.MustUnsafeGetAllLeases.wp_proof
@@ -198,7 +206,9 @@ axiom semver.Version.String.wp_proof
 axiom semver.semverValid_simple
 axiom snap.NewMessage.wp_proof
 axiom snap.Snapshotter.DBFilePath.wp_proof
+axiom snap.Snapshotter.ReleaseSnapDBs.wp_proof
 axiom snap.Snapshotter.SaveDBFrom.wp_proof
+axiom snapEncC_ok
 axiom sort.SliceIsSorted.wp_proof
 axiom sort.Sort.wp_anyLess
 axiom sort.Stable.wp_proof
@@ -209,6 +219,7 @@ axiom storage.OpenBackend.wp_proof
 axiom strconv.FormatBool.wp_proof
 axiom strconv.FormatUint.wp_proof
 axiom strconv.Itoa.wp_proof
+axiom strings.HasSuffix.wp_proof
 axiom strings.ToLower.wp_proof
 axiom strings.TrimSuffix.wp_proof
 axiom time.Duration.Seconds.wp_proof
