@@ -12,7 +12,8 @@ untranslated initializers: the four the fact reads are translated (`metrics.go`:
 `prometheus.NewHistogram(...)` of `ExponentialBuckets`, over their specs; until 2026-11-19 the
 trust-boundary axioms `<X>_init`), and so are (2026-11-19, until then `opaqueInitsOk`) the others,
 `defragSec`, `defragBlockingSec` and the gauge `isDefragActive`; (2026-11-21) `snapshotTransferSec`'s
-histogram, which `Snapshot`'s goroutine observes, is in the fact.
+histogram, which `Snapshot`'s goroutine observes, is in the fact, and so is `minSnapshotWarningTimeout`,
+the floor of its ticker's interval.
 -/
 module
 

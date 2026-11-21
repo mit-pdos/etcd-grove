@@ -2183,10 +2183,15 @@ _B['doc'] = _B['doc'].replace("and `boltOpenOptions` (`boltOpenOptionsOk`).", "a
 _B['finish'] = (['ipersist HcommitSec', 'ipersist HrebalanceSec', 'ipersist HspillSec', 'ipersist HwriteSec',
                  # (backend-snapshot B4, 2026-11-21) `Snapshot`'s goroutine observes it
                  'ipersist HsnapshotTransferSec',
+                 # (backend-snapshot B4, 2026-11-21) the floor of `Snapshot`'s ticker interval
+                 'ipersist HminSnapshotWarningTimeout',
                  'ipersist HboltOpenOptions', 'ipersist HpbOO', 'ipersist HdefaultBatchInterval',
                  'ipersist HdefaultBatchLimit', 'ipersist HInitialMmapSize',
                  'ihave #HbOO : (EtcdGrove.backend.boltOpenOptionsOk : IProp GF) $$ []', '· iapply EtcdGrove.backend.boltOpenOptionsOk_intro $$ HboltOpenOptions HpbOO', '  ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩'] + FIN_PRE[:6] +
-                ['imodintro', 'unfold backendInit', 'iframe #',
+                ['imodintro', 'unfold backendInit',
+                 # `minSnapshotWarningTimeout`'s store: `30 * time.Second`, unevaluated
+                 'rw [show (W64 30000000000 : w64) = W64 30 * W64 1000000000 from by decide]',
+                 'iframe #',
                  # `defaultBatchInterval`'s store: `100 * time.Millisecond`, unevaluated
                  'rw [show (W64 100000000 : w64) = W64 100 * W64 1000000 from by decide]',
                  'iexact HdefaultBatchInterval'])
@@ -3135,7 +3140,8 @@ SPECIAL['go_etcd_io.etcd.server.v3.storage.backend']['doc'] = SPECIAL['go_etcd_i
     """trust-boundary axioms `<X>_init`), `opaqueInitsOk` states the others.""",
     """trust-boundary axioms `<X>_init`), and so are (2026-11-19, until then `opaqueInitsOk`) the others,
 `defragSec`, `defragBlockingSec` and the gauge `isDefragActive`; (2026-11-21) `snapshotTransferSec`'s
-histogram, which `Snapshot`'s goroutine observes, is in the fact.""")
+histogram, which `Snapshot`'s goroutine observes, is in the fact, and so is `minSnapshotWarningTimeout`,
+the floor of its ticker's interval.""")
 _more_metrics(SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc'],
               [('sentBytes', 'counter'), ('receivedBytes', 'counter')])
 SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.snap'] = newvars_cfg(_more_metrics(dict(

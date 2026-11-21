@@ -77,6 +77,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx__
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx__RUnlock
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx__Unlock
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx__UnsafeRange
+public import Proof.github_com.dustin.go_humanize.Bytes
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.hooks__OnPreCommitUnsafe
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.newBatchTxBuffered
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.newBoltLoggerZap
@@ -115,13 +116,18 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.unsafeRange
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Assert
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.IsVerificationEnabled
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Verify
+public import Proof.go_uber_org.zap.Duration
 public import Proof.go_uber_org.zap.Error
+public import Proof.go_uber_org.zap.Int64
 public import Proof.go_uber_org.zap.Logger__Fatal
 public import Proof.go_uber_org.zap.Logger__Panic
+public import Proof.go_uber_org.zap.Logger__Warn
+public import Proof.go_uber_org.zap.Logger__check
 public import Proof.go_uber_org.zap.NewNop
 public import Proof.go_uber_org.zap.Stack
 public import Proof.go_uber_org.zap.String
 public import Proof.go_uber_org.zap.Stringer
+public import Proof.go_uber_org.zap.zapcore.CheckedEntry__Write
 public import Proof.go_etcd_io.bbolt.Link
 
 @[expose] public section
@@ -381,6 +387,34 @@ theorem backend.wp_SizeInUse :
     EtcdGrove.backend.backend.SizeInUse.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.backend.SizeInUse.wp_proof
 
+theorem batchTxBuffered.wp_CommitCnt :
+    EtcdGrove.backend.batchTxBuffered.Commit.specCnt (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.batchTxBuffered.Commit.wp_proofCnt batchTx.wp_lock batchTxBuffered.wp_commit batchTx.wp_Unlock
+
+theorem zap.wp_Duration :
+    EtcdGrove.zap.Duration.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Duration.wp_proof
+
+theorem zap.wp_Int64 :
+    EtcdGrove.zap.Int64.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Int64.wp_proof
+
+theorem go_humanize.wp_Bytes :
+    EtcdGrove.go_humanize.Bytes.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.go_humanize.Bytes.wp_proof
+
+theorem zap.Logger.wp_check :
+    EtcdGrove.zap.Logger.check.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Logger.check.wp_proof
+
+theorem zapcore.CheckedEntry.wp_Write :
+    EtcdGrove.zapcore.CheckedEntry.Write.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zapcore.CheckedEntry.Write.wp_proof
+
+theorem zap.Logger.wp_Warn :
+    EtcdGrove.zap.Logger.Warn.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Logger.Warn.wp_proof zap.Logger.wp_check zapcore.CheckedEntry.wp_Write
+
 theorem backend.wp_UnlockForSafeRangeDelete :
     EtcdGrove.backend.backend.UnlockForSafeRangeDelete.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.backend.UnlockForSafeRangeDelete.wp_proof
@@ -594,7 +628,7 @@ theorem backend.wp_Close :
 
 theorem backend.wp_Snapshot :
     EtcdGrove.backend.backend.Snapshot.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.backend.backend.Snapshot.wp_proof
+  EtcdGrove.backend.backend.Snapshot.wp_proof batchTxBuffered.wp_CommitCnt bbolt.DB.wp_Begin zap.wp_Error zap.Logger.wp_Fatal bbolt.Tx.wp_Size _root_.Perennial.time.wp_Now _root_.Perennial.time.wp_NewTicker _root_.Perennial.time.Ticker.wp_Stop _root_.Perennial.time.wp_Since zap.wp_Duration zap.wp_Int64 go_humanize.wp_Bytes zap.wp_String zap.Logger.wp_Warn time.Duration.wp_Seconds
 
 theorem snapshot.wp_Close :
     EtcdGrove.backend.snapshot.Close.spec (GF := GF) (hG := hG) :=
