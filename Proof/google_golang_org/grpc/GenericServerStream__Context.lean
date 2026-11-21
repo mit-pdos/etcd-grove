@@ -1,6 +1,7 @@
 /-
-Trust boundary: `(*GenericServerStream[Req, Res]).Context()`, promoted from the embedded `ServerStream` (an axiom; see
-`Spec/google_golang_org/grpc/GenericServerStream__Context.lean`: Goose does not translate methods of generic types).
+`(*GenericServerStream[Req, Res]).Context()` over its translated body (prove-grpcext, 2026-11-20; a trust-boundary
+axiom while Goose emitted no body for a method of a generic type): see
+`Spec/google_golang_org/grpc/GenericServerStream__Context.lean`.
 -/
 module
 
@@ -13,16 +14,21 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI
+open Iris Iris.BI Iris.ProofMode
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : google_golang_org.grpc.Assumptions]
 
-/-- **Trust boundary** (W-W): `(*GenericServerStream[Req, Res]).Context()`, promoted from the embedded `ServerStream`: `x.ServerStream.Context()`. -/
-axiom grpc.GenericServerStream.Context.wp_proof : grpc.GenericServerStream.Context.spec (GF := GF) (hG := hG)
+theorem grpc.GenericServerStream.Context.wp_proof : grpc.GenericServerStream.Context.spec (GF := GF) (hG := hG) := by
+  intro T U V W _ _ _ _ p si Φ
+  iintro ⟨#Hf, Hwp⟩
+  rw [method_unfold (t := go.GoType.PointerType (google_golang_org.grpc.GenericServerStream.ty T U)) (m := go!"Context")]
+  wp_auto
+  iexact Hwp
 
 end proof
 

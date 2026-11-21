@@ -8,8 +8,14 @@
 # `MaxCallSendMsgSize`, `MaxCallRecvMsgSize` (struct literals of one scalar field).
 # (prove-grpcsmall, 2026-11-20) `StaticMethod` and `Peer` (`rpc_util.go`), with their bodies (struct
 # literals of the call options): `Peer`'s option holds a `*peer.Peer`, hence the import of `peer`.
+# (prove-grpcext, 2026-11-20) the generic stream wrappers' methods etcd calls, with their bodies
+# (`GenericClientStream.{Send,Recv}`, `GenericServerStream.{Send,Recv}`) and promoted ones
+# (`GenericClientStream.{CloseSend,Context}`, `GenericServerStream.Context`): their specs' axioms are theorems.
 translate = ["!*", "EnableTracing", "WaitForReady", "MaxCallSendMsgSize", "MaxCallRecvMsgSize",
-  "StaticMethod", "Peer"]
+  "StaticMethod", "Peer",
+  "GenericClientStream.Send", "GenericClientStream.Recv", "GenericServerStream.Send",
+  "GenericServerStream.Recv", "GenericClientStream.CloseSend", "GenericClientStream.Context",
+  "GenericServerStream.Context"]
 imports = ["!*", "context", "google.golang.org/grpc/metadata", "google.golang.org/grpc/peer"]
 
 # translate the definitions of all type declarations goose supports

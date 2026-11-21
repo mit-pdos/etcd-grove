@@ -3062,6 +3062,26 @@ which the trust-boundary axiom `initFuncsOk` says returns.''',
     alloc_types={'strToCode': 'Loc'},
     before={'strToCode': map_lit_steps('Hsc', 'GoString', 'w32', 'go.string', f'{_GC}.Code.ty', 17)},
 )
+_GM = 'google_golang_org.grpc.metadata'
+SPECIAL[_GM] = dict(
+    doc='''Its fact is `True`. Its initializer allocates `loggableMetadataKeys`, initializes its imports, runs
+its variable's translated initializer, a map literal of the keys `MD.String` prints (prove-grpcext,
+2026-11-20; until then the trust-boundary axiom `opaqueInitsOk`), and its untranslated `init` function
+(it sets `internal.FromOutgoingContextRaw`, another package's variable), which the trust-boundary
+axiom `initFuncsOk` says returns.''',
+    alloc_types={'loggableMetadataKeys': 'Loc'},
+    before={'loggableMetadataKeys': map_lit_steps('Hlk', 'GoString', 'Bool', 'go.string', 'go.bool', 10)},
+)
+_GL = 'google_golang_org.grpc.grpclog'
+SPECIAL[_GL] = dict(
+    doc='''Its fact is `True`. Its initializer initializes its imports, allocates `cache` and runs its
+translated initializer, an empty map literal (prove-grpcext, 2026-11-20; until then the trust-boundary
+axiom `opaqueInitsOk`), and its untranslated `init` function (`SetLoggerV2(newLoggerV2())`), which the
+trust-boundary axiom `initFuncsOk` says returns.''',
+    alloc_types={'cache': 'Loc'},
+    before={'cache': map_lit_steps('Hc', 'GoString', 'Loc', 'go.string',
+        f'(go.GoType.PointerType {_GL}.componentData.ty)', 0)},
+)
 _OP = 'go_opentelemetry_io.otel.propagation'
 SPECIAL[_OP] = dict(
     doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
