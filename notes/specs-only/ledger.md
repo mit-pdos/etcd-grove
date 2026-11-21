@@ -3862,3 +3862,51 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   as `Leases.spec` does; the server's callers (`LessorOk.lean`'s contract, `NewServer`'s promotion on becoming
   leader) supply them. Not applied: it changes the server's lessor contract.
 - **Decision.** Open (the axiom stays).
+
+## 2026-11-21 · the backend image can be ahead of the merged snapshot's apply cursor
+
+- **Spec.** `EtcdServer.createMergedSnapshotMessage` and `MemoryStorage.Entries`.
+- **Defect.** The old sender postcondition fixed the label at the apply cursor.
+  A restarted leader may already have a later committed image. The storage
+  read postcondition allowed a strict prefix even for an unlimited read.
+- **Evidence.** The Go regression reopens an image at index 7 with entry
+  term 2 and recovered commit 3. The Raft storage implementation returns
+  the entire requested interval for an unlimited successful read.
+- **Decision.** The implementation proof uses the image's index, its entry
+  term, and its configuration. It reads the initial log from the actual
+  MemoryStorage before RestartNode and maintains an immutable history per
+  Ready. The public storage spec retains the bounded-read prefix guarantee
+  and identifies the complete interval for the unlimited case.
+  [Replay regression](../../issues/etcd-merged-snapshot-replay-failure.md).
+## 2026-11-21: `FollowerStats.Fail` takes the stats' mutex (prove-ps2)
+
+- **Spec.** `v2stats.FollowerStats.Fail.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v2stats/`; a
+  trust-boundary axiom until this change, `leader.go` names-only).
+- **Defect.** Not provable over the real code: `Fail` locks the stats' embedded `sync.Mutex` and increments
+  `Counts.Fail` (`leader.go:131-135`), and the premise (`fs ≠ null`) gave no mutex and no points-to. True of Go by its
+  type safety (every non-nil `*FollowerStats` points to a valid one), not provable in the logic.
+- **Evidence.** The translation (`Code/go_etcd_io/etcd/server/v3/etcdserver/api/v2stats.lean`, `FollowerStats.Fail.impl`).
+- **Proposed change.** A persistent `v2stats.isFollowerStats fs` (the mutex, guarding `Counts.Fail`), allocated by
+  `LeaderStats.Follower` with the stats (`&FollowerStats{}`) and kept for the map's values by `lsFollowers`;
+  `Follower`'s post gives it (a strengthening), `startPeer` takes it (its one caller, `Transport.AddPeer`, gets it
+  from `Follower`), the pipeline keeps it (`pipeHandleOk`: `nil` or the mutex) and passes it to `Fail`. The user's
+  decision (2026-11-21): an ownership premise every caller discharges may be added.
+- **Decision.** Applied (prove-ps2, 2026-11-21): `Fail` translated and proved, the axiom retired.
+- **Decision.** Applied (prove-k8s3, 2026-11-21); `apierrors.NewInternalError.wp_proof` is a theorem.
+
+## 2026-11-20: `backend.Snapshot` proved; its pre lends a reader's token (backend-snapshot B3/B4)
+
+- **Spec.** `backend.backend.Snapshot.spec` (`Spec/go_etcd_io/etcd/server/v3/storage/backend/backend__Snapshot.lean`),
+  and the statements that restate it: mvcc's `mvccImage_snapshot.law` (`Spec/.../storage/mvcc/EtcdBackend.lean`), the
+  server's `senderImage.law` (`KVStoreApi.lean`).
+- **Defect.** Unprovable as stated (an axiom until now): `Snapshot` read-locks `b.mu` around bbolt's `Begin(false)`, which
+  takes the caller's `threadTok` for `mmaplock`'s slot; one thread token cannot also pay for `b.mu`'s slot (thread pools
+  borrow the whole token), and the pre had no other reader resource.
+- **Evidence.** `notes/backend-snapshot-plan.md`, "The reader slot of `b.mu`" (Perennial's `threadPool.borrow`,
+  bbolt's `Begin.spec`).
+- **Proposed change.** Every backend reader's token `rdTok` carries a read slot of `b.mu` (`bmSlot`; the constructor makes
+  `actualMaxReaders - 1` tokens, the batch transaction keeping one of `b.mu`'s slots); the pre and post of the three
+  statements add the caller's `rdTok`, lent (SpecPlan's `Snapshot` takes a counted reader slot too). The server's apply
+  thread lends the one it holds (`apply.bkRT`). The observation `Q` and the rest are unchanged.
+- **Decision.** Taken under the user's direction of 2026-11-20 ("make your own choice ... the top-level robustness theorems
+  should have fewer axioms"): it retires the `backend.Snapshot` axiom from every collection that reaches it.

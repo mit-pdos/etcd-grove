@@ -15,7 +15,6 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [auth: adding a user or role with a name longer than 32768 bytes makes every member exit](etcd-auth-useradd-long-name-fatal.md) | yes | etcd-io/etcd#10907 pr merged |
 | [etcdserver: a restarted member panics on a leader transfer to it while it applies the entries replayed from its WAL](etcd-compact-past-raft-applied.md) | yes | etcd-io/etcd#9079 issue closed; etcd-io/etcd#12134 pr merged; etcd-io/etcd#7470 issue closed; etcd-io/etcd#18825 pr merged; etcd-io/etcd#17098 issue closed |
 | [etcdserver: two membership changes while the leader's apply loop lags can lose an acknowledged write](etcd-leader-advance-before-applyconfchange.md) | yes | etcd-io/raft#80 issue open; etcd-io/raft#354 issue open |
-| [The etcd fork reports a current-term snapshot as failed during restart replay](etcd-merged-snapshot-replay-failure.md) | yes |  |
 | [etcdserver: a leader that steps down while saving a Ready can send a follower a snapshot of a term above the follower's term](etcd-merged-snapshot-stale-term.md) | yes | etcd-io/etcd#7470 issue closed; etcd-io/etcd#7513 pr merged; etcd-io/raft#47 pr open; etcd-io/raft#108 issue open |
 | [etcdserver: a member that catches up by a snapshot rejects writes with "database space exceeded" while its db is under its quota](etcd-quota-stale-backend-after-snapshot.md) | yes | etcd-io/etcd#20553 pr merged |
 | [rafthttp: a raft message the member rejects makes the peer handler panic and answer 500 instead of 403](etcd-rafthttp-pipeline-process-error-panic.md) | yes | etcd-io/etcd#10569 issue closed; etcd-io/etcd#17078 pr merged; etcd-io/etcd#3579 pr merged |
@@ -60,6 +59,7 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [etcdserver: `LeaseTimeToLive` with `Keys` returns key names the caller may not read](etcd-lease-timetolive-keys-toctou.md) | no | etcd-io/etcd#15656 pr merged |
 | [v3rpc: a follower's `LeaseTimeToLive` crashes the member when the leader's peer URL replies without a response header](etcd-leasehttp-timetolive-nil-header-panic.md) | no |  |
 | [leasehttp: a follower's `LeaseTimeToLive` crashes the member when the leader's peer URL answers 200 with an empty body](etcd-leasehttp-timetolive-nil-response-panic.md) | no |  |
+| [The etcd fork reports a current-term snapshot as failed during restart replay](etcd-merged-snapshot-replay-failure.md) | no |  |
 | [mvcc: when every key has been deleted, a follower that has not yet applied a compaction reports a different hash than the leader's compaction hash](etcd-mvcc-compact-hash-empty-keyspace.md) | no | etcd-io/etcd#22517 issue open; etcd-io/etcd#22515 pr open |
 | [mvcc: HashKV of a compacted revision during a snapshot restore reports current revision 1](etcd-mvcc-hashbyrev-restore-rev1.md) | no | etcd-io/etcd#22608 issue closed; etcd-io/etcd#22609 pr merged |
 | [mvcc: after a compaction at revision 0, HashKV of the latest revision returns the hash of revision 0](etcd-mvcc-hashbyrev-zero-stored.md) | no |  |

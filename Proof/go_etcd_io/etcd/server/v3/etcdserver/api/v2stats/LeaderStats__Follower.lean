@@ -31,7 +31,7 @@ theorem v2stats.LeaderStats.Follower.wp_proof :
   wp_start as ⟨#Hmu, Hfo⟩
   iunfold v2stats.isLeaderStats at Hmu
   iunfold v2stats.lsFollowers at Hfo
-  icases Hfo with ⟨%fm, %FM, #Hf, Hm, %Hnn⟩
+  icases Hfo with ⟨%fm, %FM, #Hf, Hm, %Hnn, #Hfs⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_auto
@@ -55,6 +55,8 @@ theorem v2stats.LeaderStats.Follower.wp_proof :
     iapply HΦ
     isplitr
     · ipureintro; exact Hnn _ _ hk
+    isplitr
+    · iapply Hfs; ipureintro; exact hk
     iunfold v2stats.lsFollowers
     iexists fm, FM
     iframe #; iframe
@@ -63,6 +65,13 @@ theorem v2stats.LeaderStats.Follower.wp_proof :
     simp only [Option.getD_none, Option.isSome_none, Bool.false_eq_true, _root_.decide_false]
     (try wp_auto)
     ihave %Hr0 := typedPointsto_not_null $$ «$r0»
+    iStructNamed «$r0»
+    iStructNamed Counts
+    imod sync.init_Mutex iprop(∃ c : w64, v2stats.fsFailAddr «$r0_ptr» ↦ c) ⊤
+      (v2stats.fsMutexAddr «$r0_ptr») $$ Mutex [Fail] with #Hnew
+    · inext; iexists _; iexact Fail
+    ihave #Hnew' : v2stats.isFollowerStats «$r0_ptr» $$ []
+    · iunfold v2stats.isFollowerStats; iexact Hnew
     wp_apply wp_mapInsert $$ [Hm] as Hm
     · iframe Hm
     (try wp_auto)
@@ -74,14 +83,22 @@ theorem v2stats.LeaderStats.Follower.wp_proof :
     iapply HΦ
     isplitr
     · ipureintro; exact Hr0
+    isplitr
+    · iexact Hnew'
     iunfold v2stats.lsFollowers
-    iexists fm, _
-    iframe #; iframe
-    ipureintro
-    intro k v h
+    iexists fm, (<[name := «$r0_ptr»]>FM)
+    iframe Hm; iframe Hf
+    isplitr
+    · ipureintro
+      intro k v h
+      by_cases hkn : k = name
+      · subst hkn; simp at h; subst h; exact Hr0
+      · rw [GMap.lookup_insert_ne _ _ (Ne.symm hkn)] at h; exact Hnn _ _ h
+    imodintro
+    iintro %k %v %h
     by_cases hkn : k = name
-    · subst hkn; simp at h; subst h; exact Hr0
-    · rw [GMap.lookup_insert_ne _ _ (Ne.symm hkn)] at h; exact Hnn _ _ h
+    · subst hkn; simp at h; subst h; iexact Hnew'
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm hkn)] at h; iapply Hfs; ipureintro; exact h
 
 end proof
 

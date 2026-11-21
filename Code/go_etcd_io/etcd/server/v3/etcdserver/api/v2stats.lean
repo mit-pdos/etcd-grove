@@ -163,6 +163,29 @@ noncomputable def LeaderStats.Follower.impl [GooseExts] [GoGlobalContext] : val 
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType LeaderStats.ty) go!"Lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaderStats.ty)))) (Var "ls"))) (Val #()))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType FollowerStats.ty)))) (Var "$res0"))))))
 
+/-- Fail updates the FollowerStats with an unsuccessful send
+
+    go: leader.go:131:26 -/
+noncomputable def FollowerStats.Fail.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "fs"
+  (Lam BAnon
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "fs" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType FollowerStats.ty)))) (Var "fs"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef CountsStats.ty go!"Fail"))) (App (Val (GoInstruction (StructFieldRef FollowerStats.ty go!"Counts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType FollowerStats.ty)))) (Var "fs")))) (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef CountsStats.ty go!"Fail"))) (App (Val (GoInstruction (StructFieldRef FollowerStats.ty go!"Counts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType FollowerStats.ty)))) (Var "fs"))))) (Val #(W64 1)))))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType FollowerStats.ty) go!"Unlock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType FollowerStats.ty)))) (Var "fs")))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType FollowerStats.ty) go!"Lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType FollowerStats.ty)))) (Var "fs"))) (Val #())))))))
+  (Val #()))))
+
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats where
   pkgImportedPkgs := [pkg_id.sync, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.raft.v3]
 
@@ -421,6 +444,11 @@ class FollowerStats.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   set_Mutex : ∀ (x : FollowerStats) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet FollowerStats.underlying go!"Mutex") (PairV #x #y) (Val #(({ x with Mutex' := y } : FollowerStats)))
   method_set : go.MethodSetIs FollowerStats.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType FollowerStats.ty) [(go!"Fail", (some (go.signature.Signature [] false []))), (go!"Lock", (some (go.signature.Signature [] false []))), (go!"Succ", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false [])))]
+  ptr_Fail_unfold : MethodUnfold (go.GoType.PointerType FollowerStats.ty) go!"Fail" FollowerStats.Fail.impl
+  ptr_Lock_unfold : MethodUnfold (go.GoType.PointerType FollowerStats.ty) go!"Lock" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef FollowerStats.ty go!"Mutex"))) (Var "$r"))))
+  ptr_Unlock_unfold : MethodUnfold (go.GoType.PointerType FollowerStats.ty) go!"Unlock" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef FollowerStats.ty go!"Mutex"))) (Var "$r"))))
 
 attribute [instance] FollowerStats.TypeAssumptions.type_repr
   FollowerStats.TypeAssumptions.underlying
@@ -432,6 +460,9 @@ attribute [instance] FollowerStats.TypeAssumptions.type_repr
   FollowerStats.TypeAssumptions.set_Mutex
   FollowerStats.TypeAssumptions.method_set
   FollowerStats.TypeAssumptions.ptr_method_set
+  FollowerStats.TypeAssumptions.ptr_Fail_unfold
+  FollowerStats.TypeAssumptions.ptr_Lock_unfold
+  FollowerStats.TypeAssumptions.ptr_Unlock_unfold
 
 structure RequestStats [GooseExts] where
   mk ::

@@ -5,7 +5,11 @@ Lean-first (no Rocq counterpart).
 * `v2stats.isLeaderStats ls` (persistent): the stats' embedded `sync.Mutex`, guarding nothing the
   proofs need (`Follower` takes it).
 * `v2stats.lsFollowers ls q` (fractional): the `Followers` field (written only by the constructor,
-  read-only) and its map at the fraction `q`, its values non-nil. The map's writers are
+  read-only) and its map at the fraction `q`, its values non-nil follower stats
+  (`v2stats.isFollowerStats`).
+* `v2stats.isFollowerStats fs` (persistent; prove-ps2, 2026-11-21): the follower stats' embedded
+  `sync.Mutex`, guarding the failure count `Counts.Fail` (what `Fail` writes; `Succ`, assumed, writes
+  only the other fields). `Follower` allocates it with the stats (`&FollowerStats{}`). The map's writers are
   the transport's (`AddPeer`'s `Follower` call and `removePeer`'s unlocked `delete`), both under the
   transport's write lock, which therefore owns it (`trLockP`), not the stats' own mutex.
 -/
@@ -34,6 +38,11 @@ abbrev v2stats.lsFollowersAddr (ls : Loc) : Loc :=
 
 abbrev v2stats.lsMutexAddr (ls : Loc) : Loc := structFieldRef v2stats.LeaderStats go!"Mutex" ls
 
+abbrev v2stats.fsMutexAddr (fs : Loc) : Loc := structFieldRef v2stats.FollowerStats go!"Mutex" fs
+
+abbrev v2stats.fsFailAddr (fs : Loc) : Loc :=
+  structFieldRef v2stats.CountsStats go!"Fail" (structFieldRef v2stats.FollowerStats go!"Counts" fs)
+
 end addrs
 
 section defs
@@ -50,22 +59,31 @@ instance v2stats.isLeaderStats_persistent (ls : Loc) :
     Persistent (v2stats.isLeaderStats (GF := GF) ls) := by
   unfold v2stats.isLeaderStats; infer_instance
 
+/-- **The follower stats `fs`** (persistent): see the file header. -/
+def v2stats.isFollowerStats (fs : Loc) : IProp GF :=
+  sync.isMutex (v2stats.fsMutexAddr fs) iprop(∃ c : w64, v2stats.fsFailAddr fs ↦ c)
+
+instance v2stats.isFollowerStats_persistent (fs : Loc) :
+    Persistent (v2stats.isFollowerStats (GF := GF) fs) := by
+  unfold v2stats.isFollowerStats; infer_instance
+
 /-- **The followers' map of `ls`** at the fraction `q`: see the file header. -/
 def v2stats.lsFollowers (ls : Loc) (q : Qp) : IProp GF :=
   iprop(∃ (fm : Loc) (FM : GMap GoString Loc), v2stats.lsFollowersAddr ls ↦□ fm ∗
-    ownMap fm (DFrac.own q) FM ∗ ⌜∀ k v, FM !! k = some v → v ≠ null⌝)
+    ownMap fm (DFrac.own q) FM ∗ ⌜∀ k v, FM !! k = some v → v ≠ null⌝ ∗
+    □ (∀ k v, ⌜FM !! k = some v⌝ → v2stats.isFollowerStats v))
 
 instance v2stats.lsFollowers_fractional (ls : Loc) :
     Fractional (v2stats.lsFollowers (GF := GF) ls) where
   fractional q1 q2 := by
     unfold v2stats.lsFollowers
     refine ⟨?_, ?_⟩
-    · iintro ⟨%fm, %FM, #Hf, Hm, %Hnn⟩
+    · iintro ⟨%fm, %FM, #Hf, Hm, %Hnn, #Hfs⟩
       icases ((ownMap_fractional (GF := GF) fm FM).fractional q1 q2).1 $$ Hm with ⟨H1, H2⟩
       isplitl [H1]
       · iexists fm, FM; iframe; iframe #; ipureintro; exact Hnn
       · iexists fm, FM; iframe; iframe #; ipureintro; exact Hnn
-    · iintro ⟨⟨%fm, %FM, #Hf, H1, %Hnn⟩, ⟨%fm', %FM', #Hf', H2, -⟩⟩
+    · iintro ⟨⟨%fm, %FM, #Hf, H1, %Hnn, #Hfs⟩, ⟨%fm', %FM', #Hf', H2, -, -⟩⟩
       ihave %Hfa := typedPointsto_agree_wand _ _ _ _ _ $$ Hf Hf'
       subst Hfa
       ihave %HMa := ownMap_agree fm _ _ FM FM' $$ [H1 H2]

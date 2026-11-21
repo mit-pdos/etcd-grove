@@ -64,7 +64,7 @@ theorem lease.lessor.initAndRecover.wp_proof
   · iPkgInit
   ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hspkg
-  icases Hsi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%bk, #HL, -⟩⟩
+  icases Hsi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%bk, #HL, -⟩, -⟩
   ihave #Hbk := mvcc.lease_isBucket hID hName hSafe bk $$ [$Hspkg $HL]
   icases backend.isBackend_b γB P W Pk be $$ HB with ⟨%t', %rt, %db, %lg, -, -, -, -, -, -, -, -,
     -, -, -, %HPw⟩

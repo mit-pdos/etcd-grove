@@ -192,6 +192,10 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BsnapshotTransferSec as %csnapshotTransferSec ⟨#CsnapshotTransferSec, %NsnapshotTransferSec⟩
   try wp_auto
+  ihave #EsnapshotTransferSec : (go_etcd_io.etcd.server.v3.storage.backend.histSpec csnapshotTransferSec : IProp GF) $$ []
+  · iunfold EtcdGrove.prometheus.metric.histSpec at CsnapshotTransferSec
+    unfold go_etcd_io.etcd.server.v3.storage.backend.histSpec
+    iexact CsnapshotTransferSec
   -- translated initializer of isDefragActive))
   wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cisDefragActive ⟨#CisDefragActive, #DisDefragActive, %NisDefragActive⟩
   try wp_auto
@@ -262,6 +266,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   ipersist HrebalanceSec
   ipersist HspillSec
   ipersist HwriteSec
+  ipersist HsnapshotTransferSec
   ipersist HboltOpenOptions
   ipersist HpbOO
   ipersist HdefaultBatchInterval
