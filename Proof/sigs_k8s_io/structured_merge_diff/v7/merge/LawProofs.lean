@@ -6,6 +6,7 @@ Prove phase (2026-11-20).
 module
 
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.LawProofsStage
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.LawProofsM1
 
 @[expose] public section
 
@@ -43,8 +44,8 @@ theorem MF.set_sorted_law_holds : MF.set_sorted.law := by
   exact LawProofs.insertKV_pairwise k e mf h
 
 /-- Removing paths adds no node. -/
-theorem removeItems_size_law_holds : removeItems_size.law := by
-  sorry
+theorem removeItems_size_law_holds : removeItems_size.law :=
+  fun S t x R => removeAt_size S t R x
 
 /-- `prune`'s passes keep the object conforming (D10 (b)). -/
 theorem prune_conforms_law_holds : prune_conforms.law := by

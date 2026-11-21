@@ -150,6 +150,76 @@ theorem mfVis_all (mf : MF) (keys : List GoString) (hs : keysSorted mf = true)
       fpD.mem_lookupKV mf k e (fpD.keysSorted_pairwise mf hs) hme
     exact ⟨k, (hk k).2 (by rw [hget]; rfl), e, hget, hq⟩
 
+/-! ## Removing paths adds no node (`removeItems_size`) -/
+
+theorem UVal.size_pos (x : UVal) : 1 ≤ x.size := by
+  cases x <;> simp [UVal.size]
+
+mutual
+theorem removeAt_size (S : Schema) (t : TypeRef) (R : PathSet) :
+    ∀ x : UVal, (removeAt S t R x).size ≤ x.size
+  | .list vs => by
+    unfold removeAt
+    split
+    · split
+      · simp [UVal.size]
+      · split
+        · simp [UVal.size]
+        · rename_i e rel ks _ _ _ _
+          simp only [UVal.size]
+          have := removeL_size S e ks R vs
+          omega
+    · exact Nat.le_refl _
+    · simp [UVal.size]
+  | .map kvs => by
+    unfold removeAt
+    split
+    · split
+      · simp [UVal.size]
+      · split
+        · simp [UVal.size]
+        · rename_i fs e rel _ _ _ _
+          simp only [UVal.size]
+          have := removeM_size S fs e R kvs
+          omega
+    · exact Nat.le_refl _
+    · simp [UVal.size]
+  | .null => by unfold removeAt; split <;> simp [UVal.size]
+  | .bool b => by unfold removeAt; split <;> simp [UVal.size]
+  | .int i => by unfold removeAt; split <;> simp [UVal.size]
+  | .str s => by unfold removeAt; split <;> simp [UVal.size]
+theorem removeL_size (S : Schema) (e : TypeRef) (ks : List GoString) (R : PathSet) :
+    ∀ vs : List UVal, UVal.sizeL (removeL S e ks R vs) ≤ UVal.sizeL vs
+  | [] => by simp [removeL, UVal.sizeL]
+  | v :: vs => by
+    have h1 := removeL_size S e ks R vs
+    unfold removeL
+    split
+    · split
+      · simp only [UVal.sizeL]; omega
+      · split
+        · rename_i pe _ _ _
+          have := removeAt_size S e (R.under pe) v
+          simp only [UVal.sizeL]; omega
+        · simp only [UVal.sizeL]; omega
+    · simp only [UVal.sizeL]; omega
+theorem removeM_size (S : Schema) (fs : List (GoString × TypeRef)) (e : Option TypeRef)
+    (R : PathSet) : ∀ kvs : List (GoString × UVal), UVal.sizeM (removeM S fs e R kvs) ≤ UVal.sizeM kvs
+  | [] => by simp [removeM, UVal.sizeM]
+  | (k, v) :: kvs => by
+    have h1 := removeM_size S fs e R kvs
+    unfold removeM
+    split
+    · simp only [UVal.sizeM]; omega
+    · split
+      · simp only [UVal.sizeM]
+        split
+        · rename_i t _
+          have := removeAt_size S t (R.under (.field k)) v; omega
+        · have := UVal.size_pos v; simp [UVal.size]; omega
+      · simp only [UVal.sizeM]; omega
+end
+
 /-! ## `ConflictsFromManagers`' pairs -/
 
 /-- The (manager, path) pairs of the managers among `ks`. -/
