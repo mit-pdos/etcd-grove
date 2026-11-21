@@ -14,6 +14,59 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
+/-- The update to the output of the outer loop. An equal term extends the
+last run while retaining the first index at which that term occurred. -/
+def replayJoin (runs : List replayTermRun) (r : replayTermRun) : List replayTermRun :=
+  match runs.getLast? with
+  | some old =>
+    if old.term' = r.term' then runs.dropLast ++ [{ r with first' := old.first' }]
+    else runs ++ [r]
+  | none => [r]
+
+theorem replayJoin_snoc (pre : List replayTermRun) (a b : replayTermRun) :
+    replayJoin (pre ++ [a]) b =
+      if a.term' = b.term' then pre ++ [{ b with first' := a.first' }] else (pre ++ [a]) ++ [b] := by
+  simp [replayJoin, List.getLast?_append]
+
+theorem replayJoin_same (pre : List replayTermRun) (a b : replayTermRun) (h : a.term' = b.term') :
+    replayJoin (replayJoin pre a) b = replayJoin pre { b with first' := a.first' } := by
+  by_cases he : pre = []
+  · subst pre
+    change replayJoin ([] ++ [a]) b = _
+    simp [replayJoin_snoc, replayJoin, h]
+  · obtain ⟨xs, last, rfl⟩ : ∃ xs last, pre = xs ++ [last] :=
+      ⟨pre.dropLast, pre.getLast he, (List.dropLast_concat_getLast he).symm⟩
+    by_cases hm : last.term' = a.term'
+    · simp [replayJoin_snoc, hm, h, hm.trans h]
+    · have hm' : last.term' ≠ b.term' := fun e => hm (e.trans h.symm)
+      simp [replayJoin_snoc, hm, hm', h]
+      rw [show xs ++ [last, a] = (xs ++ [last]) ++ [a] by simp, replayJoin_snoc]
+      simp [h]
+
+def replayAddEntry (runs : List replayTermRun) (e : EntryModel) : List replayTermRun :=
+  replayJoin runs ⟨e.index, e.index, e.term⟩
+
+/-- Emitting an entire equal-term group gives the same output as feeding the
+physical entries one at a time, including when the previous batch ends in that term. -/
+theorem replayFold_same (es : List EntryModel) (pre : List replayTermRun) (r : replayTermRun)
+    (hall : ∀ e ∈ es, e.term = r.term') :
+    es.foldl replayAddEntry (replayJoin pre r) =
+      replayJoin pre { r with last' := (es.getLast?.map EntryModel.index).getD r.last' } := by
+  induction es generalizing r with
+  | nil => simp
+  | cons e xs ih =>
+    have he := hall e (by simp)
+    let next := replayTermRun.mk r.first' e.index r.term'
+    have hmerge : replayAddEntry (replayJoin pre r) e = replayJoin pre next := by
+      unfold replayAddEntry
+      rw [replayJoin_same pre r _ he.symm]
+      simp only [next, he]
+    rw [List.foldl_cons, hmerge, ih next (fun x hx => hall x (List.mem_cons_of_mem _ hx))]
+    cases xs with
+    | nil => rfl
+    | cons x xs =>
+      simp [next, List.getLast?_cons_cons, List.getLast?_eq_some_getLast (List.cons_ne_nil x xs)]
+
 /-- The third index in `r[:n:n]` gives the writer a prefix with no writable slack.
 The old Ready can continue reading every run, including the discarded suffix. -/
 theorem replayTerms_prefix (r : GoSlice) (runs : List replayTermRun) (n : w64)
