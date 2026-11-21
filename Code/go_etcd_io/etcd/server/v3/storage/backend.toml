@@ -52,7 +52,7 @@ translate = ["!*",
   "batchTxBuffered.UnsafeRange", "batchTxBuffered.UnsafeForEach",
   "batchTxBuffered.safePending", "batchTxBuffered.TryLock",
   # snapshot's *bolt.Tx
-  "snapshot.WriteTo", "snapshot.Size"]
+  "snapshot.UnsafeRange", "snapshot.UnsafeForEach", "snapshot.WriteTo", "snapshot.Size"]
 imports = ["!*", "bytes", "encoding/hex", "errors", "fmt", "io", "math", "sort", "sync", "sync/atomic", "time",
   "go.uber.org/zap", "go.etcd.io/bbolt", "go.etcd.io/bbolt/errors",
   "go.etcd.io/etcd/client/pkg/v3/verify",

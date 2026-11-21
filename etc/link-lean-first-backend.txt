@@ -145,3 +145,5 @@ backend__Snapshot:
 snapshot__WriteTo: bbolt_Tx__WriteTo
 snapshot__Size: bbolt_Tx__Size
 snapshot__Close: bbolt_Tx__Rollback
+snapshot__UnsafeRange: bbolt_Tx__Bucket bbolt_Bucket__Cursor unsafeRange
+snapshot__UnsafeForEach: unsafeForEach

@@ -334,7 +334,7 @@ PROJECTS = [
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
         # Includes legacy WAL recovery and the same-term snapshot send without an index guard.
-        rev="34f5142d062b6b138420e6d192a5b649d7063fd9",
+        rev="03c73a97acffff218b6cb19f91b2586e7321317b",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",

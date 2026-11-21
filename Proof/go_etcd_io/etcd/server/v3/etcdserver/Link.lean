@@ -476,6 +476,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.waitSchedu
 public import Proof.golang_org.x.time.rate.Every
 public import Proof.golang_org.x.time.rate.Limiter__Wait
 public import Proof.golang_org.x.time.rate.NewLimiter
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.replayTerms__after
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.replayTerms__termAt
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MustUnsafeGetAllLeases
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MustUnsafePutLease
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MustUnsafeSaveConfStateToBackend
@@ -3108,6 +3110,14 @@ theorem raftNode.wp_getLatestTickTs :
 theorem rafthttp.wp_reportCriticalError :
     rafthttp.reportCriticalError.spec (GF := GF) (hG := hG) :=
   rafthttp.reportCriticalError.wp_proof
+
+theorem replayTerms.wp_after :
+    replayTerms.after.spec (GF := GF) (hG := hG) :=
+  replayTerms.after.wp_proof
+
+theorem replayTerms.wp_termAt :
+    replayTerms.termAt.spec (GF := GF) (hG := hG) :=
+  replayTerms.termAt.wp_proof
 
 theorem wait.wp_NewWithResponse :
     wait.NewWithResponse.spec (GF := GF) (hG := hG) :=

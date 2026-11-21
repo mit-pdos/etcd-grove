@@ -14,7 +14,7 @@
 # their initializers are translated (`etc/gen-init.py`), not trust-boundary axioms. (2026-11-19) `UnsafeDeleteLease` with
 # `leaseIDToBytes` (and `leasepb`).
 translate = ["!*", "UnsafeReadConsistentIndex", "ReadConsistentIndex", "UnsafeUpdateConsistentIndex", "UnsafeUpdateConsistentIndexForce", "unsafeUpdateConsistentIndex", "Meta", "MetaConsistentIndexKeyName", "MetaTermKeyName", "UnsafeCreateMetaBucket", "Key", "keyBucketName", "metaBucketName", "bucket.ID", "bucket.Name", "bucket.String", "bucket.IsSafeRangeBucket", "NewAlarmBackend", "NewAuthBackend",
-  "NewMembershipBackend",
+  "NewMembershipBackend", "UnsafeConfStateFromBackend", "UnsafeReadMembers", "mustParseMemberIDFromBytes",
   "UnsafeCreateAuthRolesBucket", "revBytesLen", "authEnabled", "authDisabled",
   "Auth", "AuthUsers", "AuthRoles", "authBucketName", "authUsersBucketName", "authRolesBucketName",
   "Lease", "leaseBucketName", "UnsafeCreateLeaseBucket", "UnsafeDeleteLease", "leaseIDToBytes",
@@ -32,7 +32,7 @@ translate = ["!*", "UnsafeReadConsistentIndex", "ReadConsistentIndex", "UnsafeUp
   "Alarm", "Cluster", "Members", "MembersRemoved", "Test", "AllBuckets",
   "ScheduledCompactKeyName", "FinishedCompactKeyName", "MetaConfStateName", "ClusterClusterVersionKeyName",
   "ClusterDowngradeKeyName", "MetaStorageVersionName", "emptyStorageVersion"]
-imports = ["!*", "bytes", "encoding/binary", "google.golang.org/protobuf/proto", "go.etcd.io/etcd/api/v3/authpb", "go.etcd.io/etcd/server/v3/storage/backend", "go.etcd.io/etcd/client/pkg/v3/verify",
+imports = ["!*", "encoding/json", "log", "fmt", "go.etcd.io/etcd/client/pkg/v3/types", "go.etcd.io/etcd/server/v3/etcdserver/api/membership", "go.etcd.io/raft/v3/raftpb", "bytes", "encoding/binary", "google.golang.org/protobuf/proto", "go.etcd.io/etcd/api/v3/authpb", "go.etcd.io/etcd/server/v3/storage/backend", "go.etcd.io/etcd/client/pkg/v3/verify",
   "go.uber.org/zap", "go.etcd.io/etcd/server/v3/auth", "go.etcd.io/etcd/api/v3/etcdserverpb",
   "go.etcd.io/etcd/server/v3/lease/leasepb"]
 
