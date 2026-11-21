@@ -605,16 +605,36 @@ private theorem os.File.WriteAt.wp_NE : os.File.WriteAt.tripleNE (GF := GF) (hG 
     ipureintro; exact h2
   · subst he; exact absurd rfl hne
 
-/-- **`os.File.WriteAt.spec`**: by cases on `FsNoErr`, the error-free triple (`FsNoErr`'s set of inodes, its
-step premises) or the triple without the witness, whose error arm then has `¬ FsNoErr`. -/
-theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) := by
+/-- **`os.File.WriteAt.spec` with the inode witness** (wal-fsfix2): by cases on `FsNoErrIno`, the
+error-free triple (its inodes, its step premise) or the triple without the witness, whose error arm then
+has `¬ FsNoErrIno` (a call on an inode needs no path covered). `WriteAt.spec` is its corollary
+(`FsNoErr` gives `FsNoErrIno`); `WriteAt.specLong` uses it for a write of at most `maxRW`. -/
+theorem os.File.WriteAt.wp_ino (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice)
+    (data : List w8) (dqs : DFrac) (off : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (xs : List ByteG)
+    (hw : d.writable = true) (hoff : 0 ≤ off.toInt) (hsz : off.toNat ≤ m.size)
+    (hend : off.toNat + data.length < 2 ^ 63) (hpos : 0 < data.length)
+    (hlen : data.length ≤ 0x40000000) (hxs : xs.length = min (off.toNat + data.length) m.size - off.toNat) :
+  {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ sl ↦*{dqs} data ∗
+      osFd (GF := GF) fd dq d ∗ osMeta (GF := GF) d.ino (DFrac.own 1) m ∗
+      osBytes (GF := GF) d.ino (off.toNat) (DFrac.own 1) xs ∗
+      mcellsAny (GF := GF) m.maps (off.toNat) (off.toNat + data.length) }}
+    (App (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"WriteAt")) (Val #sl))
+      (Val #off))
+  {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
+      os.ownFile f fd name dqf ∗ sl ↦*{dqs} data ∗ osFd fd dq d ∗
+      ∃ (j : Nat) (ys : List ByteG),
+        ⌜j ≤ data.length ∧ os.PwOut m off.toNat data j xs ys ∧ PwCut off.toNat data.length j ∧
+          ((j = data.length ∧ n = W64 data.length ∧ err = interface.nil) ∨
+           (n = W64 0 ∧ err ≠ interface.nil ∧ (¬ FsNoErrIno ∨ maxBytes < off.toNat + data.length)))⌝ ∗
+        osMeta d.ino (DFrac.own 1) (pwPost m off.toNat data.length j) ∗
+        osBytes d.ino (off.toNat) (DFrac.own 1) ys ∗
+        mcellsAny m.maps (off.toNat) (off.toNat + data.length) ∗
+      fmtErrorOkOrNil err }} := by
   have hW := os.File.WriteAt.wp_old (GF := GF) (hG := hG)
   have hNE := os.File.WriteAt.wp_NE (GF := GF) (hG := hG)
-  intro f fd name dqf sl data dqs off dq d m xs hw hoff hsz hend hpos hlen hxs
   iintro %Φ Hpre HΦ
-  by_cases hne : FsNoErr ∧ off.toNat + data.length ≤ maxBytes
-  · obtain ⟨⟨Sio, hSio, hs1, hs2, hsp⟩, hmb⟩ := hne
-    haveI := hs1
+  by_cases hne : FsNoErrIno ∧ off.toNat + data.length ≤ maxBytes
+  · obtain ⟨⟨Sio, hSio, hs1, -, -⟩, hmb⟩ := hne
     iapply hNE Sio hSio f fd name dqf sl data dqs off dq d m xs hw hoff hsz hmb hpos hlen hxs
       $$ Hpre
     inext
@@ -627,8 +647,8 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
     · ipureintro
       exact ⟨Nat.le_refl _, hys, ⟨Or.inr (Or.inl rfl), Or.inr hmb⟩, Or.inl ⟨rfl, rfl, rfl⟩⟩
     · iapply fmtErrorOkOrNil_nil
-  · have hw' : ¬ FsNoErr ∨ maxBytes < off.toNat + data.length := by
-      by_cases hf : FsNoErr
+  · have hw' : ¬ FsNoErrIno ∨ maxBytes < off.toNat + data.length := by
+      by_cases hf : FsNoErrIno
       · exact Or.inr (Nat.lt_of_not_le (fun h2 => hne ⟨hf, h2⟩))
       · exact Or.inl hf
     iapply hW f fd name dqf sl data dqs off dq d m xs hw hoff hsz hend hpos hlen hxs $$ Hpre
@@ -643,6 +663,24 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
     rcases h.2.2.2 with h4 | h4
     · exact Or.inl h4
     · exact Or.inr ⟨h4.1, h4.2, hw'⟩
+
+/-- **`os.File.WriteAt.spec`**: `wp_ino`, its witness weakened (`FsNoErr` gives `FsNoErrIno`). -/
+theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) := by
+  intro f fd name dqf sl data dqs off dq d m xs hw hoff hsz hend hpos hlen hxs
+  iintro %Φ Hpre HΦ
+  iapply os.File.WriteAt.wp_ino f fd name dqf sl data dqs off dq d m xs hw hoff hsz hend hpos hlen hxs
+    $$ Hpre
+  inext
+  iintro %n %err ⟨Hfo, Hsl, Hfd, %j, %ys, %h, Hm, Hb, Hc, #Hok⟩
+  iapply HΦ
+  iframe Hfo Hsl Hfd
+  iexists j, ys
+  iframe Hm Hb Hc Hok
+  ipureintro
+  refine ⟨h.1, h.2.1, h.2.2.1, ?_⟩
+  rcases h.2.2.2 with h4 | ⟨h1, h2, h3⟩
+  · exact Or.inl h4
+  · exact Or.inr ⟨h1, h2, h3.imp_left (fun hn hf => hn hf.on)⟩
 
 end proof
 

@@ -104,9 +104,17 @@ def walFileAt (fls : List Loc) (k : Nat) : IProp GF :=
   iprop(∃ (fd : w64) (nm : GoString) (d : OsFd), os.ownFile (fls.getD k null) fd nm (DFrac.own 1) ∗
     osFd fd (DFrac.own 1) d ∗ fdLocks fd d)
 
+/-- The optional legacy search range retains the iterator's directory listing
+and the exact suffix whose files are already open. -/
+def walReadFallback (w : Loc) (dir : GoString) (allNames selected : List GoString) : IProp GF :=
+  iprop(∃ fb : Loc, structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fallback" w ↦ fb ∗
+    (⌜fb = null⌝ ∨ ∃ (v : go_etcd_io.etcd.server.v3.storage.wal.walReadRange) (names : List GoString),
+      fb ↦ v ∗ v.names' ↦* names ∗ ⌜0 < sint.Z v.first' ∧ sint.nat v.first' < names.length ∧
+        dir.length < 2 ^ 61 ∧ names = allNames ∧ names.drop (sint.nat v.first') = selected⌝))
+
 /-- See the file header. -/
 def walReadTie (dir : GoString) (write : Bool) (s : w64 × w64) (j : Ino) (fs : List (DecFile GF))
-    (lfs : List Loc) : IProp GF :=
+    (lfs : List Loc) (w : Loc) : IProp GF :=
   iprop(∃ (X : List GoString) (hj : NamesH) (gs : List SegG) (fls : List Loc),
     osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
     walOutFrag (W := W) ⟨gs.map (·.ino), [(j, .except X)], if write then [dir] else []⟩ ∗
@@ -121,6 +129,7 @@ def walReadTie (dir : GoString) (write : Bool) (s : w64 × w64) (j : Ino) (fs : 
         F.bs = g.bs.map (·.1) ∧ hj.cur !! g.name = some (.file g.ino) ∧
         ∃ (f : Loc) (fd : w64) (lo lk : Option Bool), fls[k]? = some f ∧
           F.S = walFileS f fd (child dir g.name) (walSegFd write lo lk g.ino) g⌝ ∗
+    walReadFallback w dir (walNames hj.cur) (gs.map (·.name)) ∗
     [∗list] k ↦ lf ∈ lfs, if write then fileutil.lockedFile lf (fls.getD k null) else ⌜lf = null⌝)
 
 /-- **The fields of a handle `Open` made** (draft, see the file header): the logger, the
@@ -140,7 +149,7 @@ def walReadH (write : Bool) (w : Loc) (dir : GoString) (s : w64 × w64) : IProp 
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"decoder" w ↦
       interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.decoder.ty) #dec ∗
     ownDecoder dec IoE eof fs 0 0#32 true ∗ (decEnv IoE eof ueof ∗ ⌜¬ IoE GoInterface.nil⌝) ∗
-    walReadTie dir write s j fs lfs ∗
+    walReadTie dir write s j fs lfs w ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks ∗
     locks ↦* lfs ∗ ownSliceCap Loc locks (DFrac.own 1) ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"readClose" w ↦ rc ∗
@@ -154,7 +163,8 @@ def walReadH (write : Bool) (w : Loc) (dir : GoString) (s : w64 × w64) : IProp 
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"unsafeNoSync" w ↦ false ∗
     sync.isMutex (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"mu" w)
       (BI.pure True : IProp GF) ∗
-    encEnv ∗ walCrcTable)
+    encEnv ∗ walCrcTable ∗
+    structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"snapBefore" w ↦ (null : Loc))
 
 /-- **`w` is the WAL `Open` opened in `dir` at the snapshot `s`, not yet read** (the specs' handle;
 sealed): the ghost handle, `openAtIndex`'s fields in write mode, `w.dirFile`

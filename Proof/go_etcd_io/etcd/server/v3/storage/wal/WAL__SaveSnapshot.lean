@@ -26,6 +26,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__SaveSnapshot
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CalleeCov
+public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__cut
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__SaveSnapshotPre
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.encoder__encode
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot__GetIndex
@@ -73,7 +74,8 @@ theorem walLastHS_snap (H : WalHist) (md : SnapshotMetadataM) (al : Bool) :
 
 /-- **`SaveSnapshot` on a share of an open WAL** (the state `shared`; see the file header). -/
 theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_shared [os.file.FieldAssumptions]
-    [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions] (P : WalPbIn GF) (Mr : WalMarshal)
+    [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions] [FsStepSat (NoMapLockErr Sio)] (P : WalPbIn GF)
+    (Mr : WalMarshal)
     (wp_sync : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.spec (W := W) P Mr)
     (wp_syncNE : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specNoErr (Sio := Sio) (W := W) P Mr)
     (wp_encodeTail : go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.specTail (W := W) Mr)
@@ -83,13 +85,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_shared [os.fil
     (wp_GetIndex : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.GetIndex.spec (GF := GF)
       (hG := hG))
     (wp_Marshal : go_etcd_io.etcd.pkg.v3.pbutil.MustMarshalMessage.specWalSnap (GF := GF) Mr)
-    (wp_cut : go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.spec (W := W) P Mr)
-    (wp_cutNE : go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.specNoErr (Sio := Sio) (W := W) P Mr)
+    (wp_cut : go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.spec (Sio := Sio) (W := W) P Mr)
     (wp_tail : go_etcd_io.etcd.server.v3.storage.wal.WAL.tail.spec (GF := GF) (hG := hG))
     (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (γ : WalShN) (q : Qp) (sp : Loc)
     (md : SnapshotMetadataM) (al cs : Bool) (sized : Bool) (Q : WalDur → IProp GF) :
   {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWS Sio P Mr w dir γ q ∗
-      ⌜walCov Sio ∨ q = 1⌝ ∗ walSnapAt Mr sp md al cs ∗
+      ⌜walCov Sio ∨ q = 1⌝ ∗ ⌜walCov Sio → DirFits dir ∧ ∀ b, Sio.path (child dir b)⌝ ∗
+      walSnapAt Mr sp md al cs ∗
       ⌜md.Index' = W64 0 ∨ cs = true⌝ ∗ ⌜uint.nat md.Index' < 2 ^ 64 - 1⌝ ∗
       ⌜(Mr.encSnap md al).length < 2 ^ 40⌝ ∗
       AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅
@@ -99,7 +101,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_shared [os.fil
       (⌜err = GoInterface.nil⌝ ∗ walOpenWS Sio P Mr w dir γ q ∗ ∃ d : WalDur, Q d ∗
           WalFs.walLenLb w dir (d.H.length + 1) ∗ WalFs.walSyncedLb dir (d.H.length + 1)) ∨
       (⌜err ≠ GoInterface.nil ∧ ¬ walCov Sio⌝ ∗ ∃ d : WalDur, Q d) }} := by
-  wp_start as ⟨#Harea, Hw, %hq, #Hs, %hcs, %hidx, %hsz, Hau⟩
+  wp_start as ⟨#Harea, Hw, %hq, %hcov, #Hs, %hcs, %hidx, %hsz, Hau⟩
   icases walOpenWS_pers Sio P Mr w dir γ q $$ Hw with ⟨Hw, #Hpers⟩
   icases walShPers_facts Sio P Mr w dir γ $$ Hpers with ⟨#Hmu, #Hsync, #Hseg⟩
   ihave %hS := walAreaOk_encState walCodec Mr R jr r $$ Harea
@@ -417,8 +419,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_shared [os.fil
     have hcpos : walCutPos (h2.H.map WalOpG.toM) h2.H.length := by rw [eH]; exact walCutPos_snap h.H md al
     have hsz2 : h2.md.length + (Mr.encState h2.st).length < 2 ^ 42 := by
       have := hS h2.st; rw [emd]; omega
-    wp_apply (walCov_cut P Mr wp_cut wp_cutNE R jr r w dir h2 hrest3 hst3 (by rw [epc]; omega) hcuts hpw
-      hcpos (by rw [hlenH]; omega) hsz2 hroom3) $$ [Hh2] as %err Hres
+    wp_apply (wp_cut R jr r w dir h2 hrest3 hst3 (by rw [epc]; omega) hcuts hpw
+      hcpos (by rw [hlenH]; omega) hsz2 hcov hroom3) $$ [Hh2] as %err Hres
     · iframe Harea Hh2
     icases Hres with (⟨%herr, %h', Hh, %hh', #Hsyn⟩ | %herr)
     · obtain ⟨hH', hmd', hcuts', hrest', hst', -, -, hpc', hroom'⟩ := hh'
@@ -678,7 +680,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_pre
       · ipureintro; exact H0
       iexists _, _
       iframe He
-      icases Hbad with (Hb | Hw')
+      icases Hbad with (Hb | ⟨-, Hw'⟩)
       · ileft; iexists _, _; iexact Hb
       · iright; iexists _; iexact Hw'))
 
@@ -695,7 +697,8 @@ variable {Sio : IoSet} [FsStepSat (NoIoErr Sio)]
 
 /-- See the file header. -/
 theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_proof [os.file.FieldAssumptions]
-    [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions] (P : WalPbIn GF) (Mr : WalMarshal)
+    [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions] [FsStepSat (NoMapLockErr Sio)] (P : WalPbIn GF)
+    (Mr : WalMarshal)
     (wp_sync : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.spec (W := W) P Mr)
     (wp_syncNE : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specNoErr (Sio := Sio) (W := W) P Mr)
     (wp_syncPre : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specPre (GF := GF))
@@ -709,15 +712,14 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_proof [os.file
     (wp_Marshal : go_etcd_io.etcd.pkg.v3.pbutil.MustMarshalMessage.specWalSnap (GF := GF) Mr)
     (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := hG))
     (wp_Unlock : sync.Mutex.Unlock.spec (GF := GF) (hG := hG))
-    (wp_cut : go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.spec (W := W) P Mr)
-    (wp_cutNE : go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.specNoErr (Sio := Sio) (W := W) P Mr)
+    (wp_cut : go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.spec (Sio := Sio) (W := W) P Mr)
     (wp_tail : go_etcd_io.etcd.server.v3.storage.wal.WAL.tail.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.spec (Sio := Sio) (W := W) P Mr := by
   intro R jr r w dir st sp md al cs sized Q
   cases st with
   | shared γ q =>
     exact go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_shared P Mr wp_sync wp_syncNE wp_encodeTail
-      wp_encodeTailNE wp_Validate wp_GetIndex wp_Marshal wp_cut wp_cutNE wp_tail R jr r w dir γ q sp md al cs sized Q
+      wp_encodeTailNE wp_Validate wp_GetIndex wp_Marshal wp_cut wp_tail R jr r w dir γ q sp md al cs sized Q
   | pre lg mds mdb e lt f snapi enti Wr Br Sr lim out pend c =>
     exact go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_pre Mr wp_syncPre wp_encode wp_Validate
       wp_GetIndex wp_Marshal wp_Lock wp_Unlock wp_tail w lg dir mds mdb e lt f snapi enti Wr Br Sr lim out pend c sp md al cs

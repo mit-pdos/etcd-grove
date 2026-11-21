@@ -130,11 +130,10 @@ theorem wp_boot_client [hG : HeapGS .hasLC GF] [sem : go.Semantics]
 halfclose's protocol, the plan's entry for `SrvAddr` (at `h`: as the client's `Dial` needs it, and in
 the network's plan, as the server's `Listen` does), a fresh package state, and for the server
 (`i = 0`), that its host is `h`. -/
-def nodePre [G : GooseGlobalGS .hasLC GF] (h : GoString) (i : Nat) (L : GooseLocalGS GF) :
+def nodePre [G : GooseGlobalGS .hasLC GF] (i : Nat) (L : GooseLocalGS GF) :
     IProp GF :=
-  iprop((∃ γm, hcInvs (Gg := G) γm) ∗ netPlan (extGlobalGS netExt) srvAddr h ∗
-    ⌜(extGlobalGS netExt (G := G)).plan !! srvAddr = some h⌝ ∗ ownGoState (hG := L.goose_go_stateGS) ∅ ∗
-    ⌜i = 0 → (extLocalGS netExt (L := L)).host = h⌝)
+  iprop((∃ γm, hcInvs (Gg := G) γm) ∗ ⌜addrOk srvAddr = true⌝ ∗
+    ownGoState (hG := L.goose_go_stateGS) ∅)
 
 set_option linter.unusedVariables false in
 /-- `halfclose_crash_safety` for executions of fewer than `N` steps along which every node has fewer
@@ -145,12 +144,8 @@ use it (it restricts the theorem to the deployment D13 describes). -/
 theorem halfclose_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     [server_sem : cmd.server.Assumptions] [client_sem : cmd.client.Assumptions]
     [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
-    [hPre : GooseGpreS GF] (N T : Nat) (σs σc : state) (g : GlobalState) (h : GoString)
+    [hPre : GooseGpreS GF] (N T : Nat) (σs σc : state) (g : GlobalState)
     (Hs : NodeStart lctx σs) (Hc : NodeStart lctx σc)
-    (Hhost : (extLocal netExt σs.world).host = h)
-    (Hplan : (extGlobal netExt g.globalWorld).plan.lookup srvAddr = some h)
-    (pl : List (GoString × GoString)) (Hwf : PlanWellFormed pl)
-    (Hpl : (extGlobal netExt g.globalWorld).plan = GMap.ofList pl)
     (Hconns : (extGlobal netExt g.globalWorld).conns = ∅)
     (n : Nat) (κs : List Observation) (c : DistCfg)
     (Hsteps : DistCrashNsteps ((system σs σc).map Prod.fst) n
@@ -164,24 +159,23 @@ theorem halfclose_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semanti
       (∀ e, e ∈ tp → ¬ UnrecoveredPanic e) := by
   refine goose_dist_crash_adequacy (GF := GF) N T (system σs σc) g (fun _ v => v = #())
     (fun _ p h => intoVal_ne_PanicV () p h.symm) ⟨Hconns, trivial⟩
-    (fun _ _ => ⟨trivial, trivial⟩) (fun i L => nodePre h i L) ?_ ?_
+    (fun _ _ => ⟨trivial, trivial⟩) (fun i L => nodePre i L) ?_ ?_
     n κs c Hsteps Hbound ?_ Hlive
   · -- the global setup and the first generation of every node
     intro G _
     iintro Hg
     icases net_globalStart g.globalWorld $$ Hg with Hnet
     unfold netStart
-    icases Hnet with ⟨Hplans, Hpends, %HGplan⟩
-    have HGp : (extGlobalGS netExt (G := G)).plan !! srvAddr = some h := by
-      rw [HGplan]; exact Hplan
-    have Hpl : PartialMap.get? (extGlobal netExt g.globalWorld).plan srvAddr = some h := by
-      rw [gmap_get?_eq]; exact Hplan
-    ihave #Hp := (BigSepM.bigSepM_lookup (Φ := fun a h => netPlan (extGlobalGS netExt) a h) Hpl)
-      $$ Hplans
-    have Hpe : PartialMap.get? (pendInit (extGlobal netExt g.globalWorld)) srvAddr = some ∅ := by
-      rw [gmap_get?_eq]; simp [pendInit, GMap.lookup_fmap, Hplan]
+    have Hpe : PartialMap.get? pendInit srvAddr = some ∅ := by
+      rw [gmap_get?_eq]; exact addrSpace_lookup_ok _ (by decide)
+    icases Hnet with ⟨Hnet, Htoks⟩
     ihave Hpend := (BigSepM.bigSepM_lookup (Φ := fun a S => netPend (extGlobalGS netExt) a S) Hpe)
-      $$ Hpends
+      $$ Hnet
+    have Hte : PartialMap.get? (addrSpace ()) srvAddr = some () := by
+      rw [gmap_get?_eq]; exact addrSpace_lookup_ok _ (by decide)
+    ihave Htk := (BigSepM.bigSepM_lookup (Φ := fun a (_ : Unit) => netLisTok (extGlobalGS netExt) a)
+      Hte) $$ Htoks
+    have HGp : addrOk srvAddr = true := by decide
     -- halfclose's protocol: the connections' states (none yet), then the address's invariant
     letI := (extGlobalGS netExt (G := G)).allG
     imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := HcNames) with ⟨%γm, Hm⟩
@@ -192,25 +186,22 @@ theorem halfclose_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semanti
       iframe Hm
       iapply BigSepM.bigSepM_empty.2
       iempintro
-    imod wire.addrInv_alloc addrN srvAddr (connProto (Gg := G) γm) $$ Hpend with #HaddrInv
+    imod wire.addrInv_alloc addrN srvAddr (connProto (Gg := G) γm) $$ Hpend Htk with #HaddrInv
     imodintro
     simp only [system]
     unfold nodeStart
     isplitl []
     · -- the server: its host is `h`
-      iintro %L %_ %_ Hstart Hgs
-      ihave Hl := net_localStart (L := L) σs.world $$ Hstart
-      iunfold lisStart at Hl
-      icases Hl with ⟨%Hh, -⟩
+      iintro %L %_ %_ - Hgs
       rw [Hs.packageState]
       imodintro
       simp only []
       unfold nodePre hcInvs
-      iframe Hgs Hp
+      iframe Hgs
       isplitl []
       · iexists γm
         iframe HaddrInv HhcInv
-      ipureintro; exact ⟨HGp, fun _ => Hh.trans Hhost⟩
+      ipureintro; exact HGp
     isplitl []
     · -- the client
       iintro %L %_ %_ - Hgs
@@ -218,11 +209,11 @@ theorem halfclose_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semanti
       imodintro
       simp only []
       unfold nodePre hcInvs
-      iframe Hgs Hp
+      iframe Hgs
       isplitl []
       · iexists γm
         iframe HaddrInv HhcInv
-      ipureintro; exact ⟨HGp, fun h0 => by cases h0⟩
+      ipureintro; exact HGp
     iempintro
   · -- every generation of every node: its boot program, and its next precondition
     intro hG _ _ i e σ Hes Hlctx
@@ -239,31 +230,24 @@ theorem halfclose_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semanti
     subst Hlctx
     letI hG : HeapGS .hasLC GF := ⟨G, ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
     unfold nodePre
-    iintro ⟨⟨%γm, #Hinvs⟩, #Hplan, %HGp, Hgs, %Hh⟩ _
+    iintro ⟨⟨%γm, #Hinvs⟩, #Hplan, Hgs⟩ _
     imodintro
     isplitl [Hgs]
     · rcases Hnode with ⟨rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩
       · iapply wp_boot_server _ (cmd.server.wp_main net.Listen.wp_proof
           net.Listener.Accept.wp_proof net.Conn.Read.wp_proof net.Conn.Write.wp_proof
           net.Conn.Close.wp_proof γm) $$ [] Hgs
-        iframe Hinvs
-        ipureintro; rw [Hh rfl]; exact HGp
+        iframe Hinvs Hplan
       · iapply wp_boot_client _ (cmd.client.wp_main net.Dial.wp_proof net.Conn.Read.wp_proof
           net.Conn.Write.wp_proof net.TCPConn.CloseWrite.wp_proof net.Conn.Close.wp_proof
-          γm h) $$ [] Hgs
+          γm) $$ [] Hgs
         iframe Hinvs Hplan
     · -- after a crash: the host is kept, the rest is persistent
-      iintro %L' _ Hcs Hgs'
-      icases net_crashStart _ L' $$ Hcs with %Hhost'
+      iintro %L' _ - Hgs'
       imodintro
       iframe Hgs' Hplan
-      isplitl []
-      · iexists γm
-        iexact Hinvs
-      ipureintro
-      refine ⟨HGp, fun hi => ?_⟩
-      rw [Hhost']
-      exact Hh hi
+      iexists γm
+      iexact Hinvs
   · intro n hn
     simp only [system, List.mem_cons, List.not_mem_nil, _root_.or_false] at hn
     rcases hn with rfl | rfl
@@ -288,12 +272,8 @@ thread bound `n + 2`, which an execution of `n` steps from single threads respec
 theorem halfclose_crash_safety [lctx : GoLocalContext] [sem : go.Semantics]
     [server_sem : cmd.server.Assumptions] [client_sem : cmd.client.Assumptions]
     [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
-    (σs σc : state) (g : GlobalState) (h : GoString)
+    (σs σc : state) (g : GlobalState)
     (Hs : NodeStart lctx σs) (Hc : NodeStart lctx σc)
-    (Hhost : (extLocal netExt σs.world).host = h)
-    (Hplan : (extGlobal netExt g.globalWorld).plan.lookup srvAddr = some h)
-    (pl : List (GoString × GoString)) (Hwf : PlanWellFormed pl)
-    (Hpl : (extGlobal netExt g.globalWorld).plan = GMap.ofList pl)
     (Hconns : (extGlobal netExt g.globalWorld).conns = ∅)
     (n : Nat) (κs : List Observation) (c : DistCfg)
     (Hsteps : DistCrashNsteps ((system σs σc).map Prod.fst) n
@@ -302,8 +282,7 @@ theorem halfclose_crash_safety [lctx : GoLocalContext] [sem : go.Semantics]
       (∀ v tp', tp = Val v :: tp' → v = #()) ∧
       (∀ e, e ∈ tp → RealNotStuck e (σ, c.global)) ∧
       (∀ e, e ∈ tp → ¬ UnrecoveredPanic e) :=
-  halfclose_crash_safety_bounded (GF := netGF) (n + 1) (n + 2) σs σc g h Hs Hc Hhost Hplan
-    pl Hwf Hpl Hconns n κs c Hsteps (by omega)
+  halfclose_crash_safety_bounded (GF := netGF) (n + 1) (n + 2) σs σc g Hs Hc Hconns n κs c Hsteps (by omega)
     (DistCrashThreadsBelow.of_single (fun (i : Nat) (tp : List Expr) (σ : state) hi => by
       simp only [distInit, system, List.map_cons, List.map_nil] at hi
       match i, hi with
@@ -313,7 +292,7 @@ theorem halfclose_crash_safety [lctx : GoLocalContext] [sem : go.Semantics]
 end adequacy
 
 /-- The plan of halfclose's deployment is well formed (D20). -/
-example : PlanWellFormed [(srvAddr, go!"h")] := by decide
+example : addrOk srvAddr = true := by decide
 
 #print axioms halfclose_crash_safety
 

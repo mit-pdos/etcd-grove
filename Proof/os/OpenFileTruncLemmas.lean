@@ -110,7 +110,8 @@ theorem os.OpenFile.wp_truncS (d b : GoString) (flag : w64) (perm : w32) (R : Ro
         ((∃ fd : w64, ⌜err = interface.nil ∧ 0 ≤ fd.toInt⌝ ∗ os.ownFile f fd (child d b) (DFrac.own 1) ∗
             os.ownOff f (W64 0) ∗
             osFd fd (DFrac.own 1) (openFd i (flag ||| W64 0x80000))) ∨
-         ⌜err ≠ interface.nil ∧ f = null⌝ ∗ fmtErrorOkOrNil err) }} := by
+         ⌜err ≠ interface.nil ∧ f = null⌝ ∗ fmtErrorOkOrNil err ∗
+           ⌜¬ (FsNoErrOn (· = child d b) ∧ PathFits (child d b))⌝) }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm, Hf⟩
   generalize hfl' : flag ||| W64 0x80000 = fl at hfl htr ⊢
   imod osNames_next R j _ _ h CoPset.subseteq_top $$ Hsi Hn with ⟨Hn, #Hlb⟩
@@ -124,7 +125,7 @@ theorem os.OpenFile.wp_truncS (d b : GoString) (flag : w64) (perm : w32) (R : Ro
   isimp only [trFile] at Hf
   icases Hf with ⟨%m, %bs, Hm, Hb, -, %hmb⟩
   ihave Hc := mcellsAny_of_empty (GF := GF) m.maps hmb.2.2.1 0 (pageEnd m.size)
-  wp_apply +noauto wp_osOpenTruncS R d b j i N dq dqn h t s0 qc fl m bs
+  wp_apply +noauto wp_osOpenTruncSW R d b j i N dq dqn h t s0 qc fl m bs
     hfl htr hb hN hi hmb.1 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hp Hn Hk Hm Hb Hc
     as %fd %e %hres Hperm Hp Hn Htr Hfd
@@ -163,7 +164,8 @@ theorem os.OpenFile.wp_truncS (d b : GoString) (flag : w64) (perm : w32) (R : Ro
       iframe
       iassumption
   · iclear Hfd
-    have hfd : fd = -1 := by rcases hres with ⟨h, -⟩ | ⟨-, h⟩; exact absurd h he0; exact h
+    have hfd : fd = -1 := by rcases hres with ⟨h, -⟩ | ⟨-, h, -⟩; exact absurd h he0; exact h
+    have hW := fun hne : e ≠ 0 => (hres.resolve_left (fun h => hne h.1)).2.2
     subst hfd
     ihave Hm : trFile i False $$ [Htr]
     · icases Htr with (⟨-, Hm, Hb, -⟩ | ⟨%n, Hd⟩)
@@ -190,7 +192,9 @@ theorem os.OpenFile.wp_truncS (d b : GoString) (flag : w64) (perm : w32) (R : Ro
     iright
     isplitr
     · ipureintro; exact ⟨(fun h => by cases h), rfl⟩
-    iapply (EtcdGrove.fmtErrorOkOrNil_of _) $$ Hok
+    isplitl []
+    · iapply (EtcdGrove.fmtErrorOkOrNil_of _) $$ Hok
+    ipureintro; exact (hW he0).resolve_left (fun h4 => he4 (by rw [h4]; rfl))
 
 end truncS
 

@@ -112,13 +112,10 @@ theorem wp_boot [hG : HeapGS .hasLC GF] [sem : go.Semantics] [package_sem : cmd.
   ipureintro; rfl
 
 /-- The precondition of the node's boot program in the generation with local ghost state `L`:
-the address's invariant, the plan's entry for `Addr` (at `h`, as a resource for `Dial` and in the
-network's ghost state's plan for `Listen`), a fresh package state, and that the node's host is
-`h`. -/
-def nodePre [G : GooseGlobalGS .hasLC GF] (h : GoString) (L : GooseLocalGS GF) : IProp GF :=
-  iprop((∃ γm, shutInvs (Gg := G) γm) ∗ netPlan (extGlobalGS netExt) addr h ∗
-    ⌜(extGlobalGS netExt (G := G)).plan !! addr = some h⌝ ∗
-    ownGoState (hG := L.goose_go_stateGS) ∅ ∗ ⌜(extLocalGS netExt (L := L)).host = h⌝)
+the address's invariant, `Addr`'s validity, and a fresh package state. -/
+def nodePre [G : GooseGlobalGS .hasLC GF] (L : GooseLocalGS GF) : IProp GF :=
+  iprop((∃ γm, shutInvs (Gg := G) γm) ∗ ⌜addrOk addr = true⌝ ∗
+    ownGoState (hG := L.goose_go_stateGS) ∅)
 
 set_option linter.unusedVariables false in
 /-- `shutdown_crash_safety` for executions of fewer than `N` steps along which the node has fewer
@@ -127,12 +124,8 @@ than `T` live threads, under any ghost state `GF` with `GooseGpreS GF`:
 checked by `decide`; the proof does not need it). -/
 theorem shutdown_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : cmd.node.Assumptions] [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
-    [hPre : GooseGpreS GF] (N T : Nat) (σ0 : state) (g : GlobalState) (h : GoString)
+    [hPre : GooseGpreS GF] (N T : Nat) (σ0 : state) (g : GlobalState)
     (H0 : NodeStart lctx σ0)
-    (Hhost : (extLocal netExt σ0.world).host = h)
-    (Hplan : (extGlobal netExt g.globalWorld).plan.lookup addr = some h)
-    (pl : List (GoString × GoString)) (Hwf : PlanWellFormed pl)
-    (Hpl : (extGlobal netExt g.globalWorld).plan = GMap.ofList pl)
     (Hconns : (extGlobal netExt g.globalWorld).conns = ∅)
     (n : Nat) (κs : List Observation) (c : DistCfg)
     (Hsteps : DistCrashNsteps ((system σ0).map Prod.fst) n (distInit (system σ0) g) κs c)
@@ -144,22 +137,23 @@ theorem shutdown_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantic
       (∀ e, e ∈ tp → ¬ UnrecoveredPanic e) := by
   refine goose_dist_crash_adequacy (GF := GF) N T (system σ0) g (fun _ v => v = #())
     (fun _ p h => intoVal_ne_PanicV () p h.symm) ⟨Hconns, trivial⟩
-    (fun _ _ => ⟨trivial, trivial⟩) (fun _ L => nodePre h L) ?_ ?_
+    (fun _ _ => ⟨trivial, trivial⟩) (fun _ L => nodePre L) ?_ ?_
     n κs c Hsteps Hbound ?_ Hlive
   · -- the global setup and the node's first generation
     intro G _
     iintro Hg
     icases net_globalStart g.globalWorld $$ Hg with Hnet
     unfold netStart
-    icases Hnet with ⟨Hplans, Hpends, %HGplan⟩
-    have Hpl : PartialMap.get? (extGlobal netExt g.globalWorld).plan addr = some h := by
-      rw [gmap_get?_eq]; exact Hplan
-    ihave #Hp := (BigSepM.bigSepM_lookup (Φ := fun a h => netPlan (extGlobalGS netExt) a h) Hpl)
-      $$ Hplans
-    have Hpe : PartialMap.get? (pendInit (extGlobal netExt g.globalWorld)) addr = some ∅ := by
-      rw [gmap_get?_eq]; simp [pendInit, GMap.lookup_fmap, Hplan]
+    have Hpe : PartialMap.get? pendInit addr = some ∅ := by
+      rw [gmap_get?_eq]; exact addrSpace_lookup_ok _ (by decide)
+    icases Hnet with ⟨Hnet, Htoks⟩
     ihave Hpend := (BigSepM.bigSepM_lookup (Φ := fun a S => netPend (extGlobalGS netExt) a S) Hpe)
-      $$ Hpends
+      $$ Hnet
+    have Hte : PartialMap.get? (addrSpace ()) addr = some () := by
+      rw [gmap_get?_eq]; exact addrSpace_lookup_ok _ (by decide)
+    ihave Htk := (BigSepM.bigSepM_lookup (Φ := fun a (_ : Unit) => netLisTok (extGlobalGS netExt) a)
+      Hte) $$ Htoks
+    have HGp : addrOk addr = true := by decide
     -- the acceptors' directions (none yet), then the address's invariant
     letI := (extGlobalGS netExt (G := G)).allG
     imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := Unit) with ⟨%γm, Hm⟩
@@ -170,27 +164,22 @@ theorem shutdown_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantic
       iframe Hm
       iapply BigSepM.bigSepM_empty.2
       iempintro
-    imod wire.addrInv_alloc addrN addr (connProto (Gg := G) γm) $$ Hpend with #HaddrInv
+    imod wire.addrInv_alloc addrN addr (connProto (Gg := G) γm) $$ Hpend Htk with #HaddrInv
     imodintro
     simp only [system]
     unfold nodeStart
     isplitl []
     · -- the node: its host is `h`
-      iintro %L %_ %_ Hstart Hgs
-      ihave Hl := net_localStart (L := L) σ0.world $$ Hstart
-      iunfold lisStart at Hl
-      icases Hl with ⟨%Hh, -⟩
+      iintro %L %_ %_ - Hgs
       rw [H0.packageState]
       imodintro
       simp only []
       unfold nodePre shutInvs
-      iframe Hgs Hp
+      iframe Hgs
       isplitl []
       · iexists γm
         iframe HaddrInv HdownInv
-      isplitr
-      · ipureintro; rw [HGplan]; exact Hplan
-      ipureintro; exact Hh.trans Hhost
+      ipureintro; exact HGp
     iempintro
   · -- every generation of the node: its boot program, and its next precondition
     intro hG _ _ i e σ Hes Hlctx
@@ -203,28 +192,19 @@ theorem shutdown_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantic
     subst Hlctx
     letI hG : HeapGS .hasLC GF := ⟨G, ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
     unfold nodePre
-    iintro ⟨⟨%γm, #Hinvs⟩, #Hplan, %HGpl, Hgs, %Hh⟩ _
+    iintro ⟨⟨%γm, #Hinvs⟩, #Hplan, Hgs⟩ _
     imodintro
     isplitl [Hgs]
     · iapply wp_boot _ (cmd.node.wp_main net.Listen.wp_proof net.Listener.Accept.wp_proof
         net.Listener.Close.wp_proof net.Dial.wp_proof net.Conn.Read.wp_proof
         net.Conn.Write.wp_proof net.Conn.Close.wp_proof γm) $$ [] Hgs
-      rw [Hh]
       iframe Hinvs Hplan
-      ipureintro; exact HGpl
     · -- after a crash: the host is kept, the rest is persistent
-      iintro %L' _ Hcs Hgs'
-      icases net_crashStart _ L' $$ Hcs with %Hhost'
+      iintro %L' _ - Hgs'
       imodintro
       iframe Hgs' Hplan
-      isplitl []
-      · iexists γm
-        iexact Hinvs
-      isplitr
-      · ipureintro; exact HGpl
-      ipureintro
-      rw [Hhost']
-      exact Hh
+      iexists γm
+      iexact Hinvs
   · intro n hn
     simp only [system, List.mem_cons, List.not_mem_nil, _root_.or_false] at hn
     subst hn
@@ -247,12 +227,8 @@ thread bound `n + 2`, which an execution of `n` steps from a single thread respe
 `DistCrashThreadsBelow.of_single`.) -/
 theorem shutdown_crash_safety [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : cmd.node.Assumptions] [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
-    (σ0 : state) (g : GlobalState) (h : GoString)
+    (σ0 : state) (g : GlobalState)
     (H0 : NodeStart lctx σ0)
-    (Hhost : (extLocal netExt σ0.world).host = h)
-    (Hplan : (extGlobal netExt g.globalWorld).plan.lookup addr = some h)
-    (pl : List (GoString × GoString)) (Hwf : PlanWellFormed pl)
-    (Hpl : (extGlobal netExt g.globalWorld).plan = GMap.ofList pl)
     (Hconns : (extGlobal netExt g.globalWorld).conns = ∅)
     (n : Nat) (κs : List Observation) (c : DistCfg)
     (Hsteps : DistCrashNsteps ((system σ0).map Prod.fst) n (distInit (system σ0) g) κs c) :
@@ -260,8 +236,7 @@ theorem shutdown_crash_safety [lctx : GoLocalContext] [sem : go.Semantics]
       (∀ v tp', tp = Val v :: tp' → v = #()) ∧
       (∀ e, e ∈ tp → RealNotStuck e (σ, c.global)) ∧
       (∀ e, e ∈ tp → ¬ UnrecoveredPanic e) :=
-  shutdown_crash_safety_bounded (GF := netGF) (n + 1) (n + 2) σ0 g h H0 Hhost Hplan
-    pl Hwf Hpl Hconns n κs c Hsteps (by omega)
+  shutdown_crash_safety_bounded (GF := netGF) (n + 1) (n + 2) σ0 g H0 Hconns n κs c Hsteps (by omega)
     (DistCrashThreadsBelow.of_single (fun (i : Nat) (tp : List Expr) (σ : state) hi => by
       simp only [distInit, system, List.map_cons, List.map_nil] at hi
       match i, hi with
@@ -269,8 +244,8 @@ theorem shutdown_crash_safety [lctx : GoLocalContext] [sem : go.Semantics]
 
 end adequacy
 
-/-- The plan with the node's address alone is well formed (D20). -/
-example : PlanWellFormed [(go!"127.0.0.1:7106", go!"h")] := by decide
+/-- The node's address is valid (D20). -/
+example : addrOk go!"127.0.0.1:7106" = true := by decide
 
 /-- `Addr` is that address. -/
 example : addr = go!"127.0.0.1:7106" := rfl

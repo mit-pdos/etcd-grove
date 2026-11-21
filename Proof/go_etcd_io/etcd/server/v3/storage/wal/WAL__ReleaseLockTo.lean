@@ -71,7 +71,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proof
   iunfold walHandleIn at Hh
   icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j,
     %rc, Hlg, #Hzap, Hdir, Hdf, Hdff, Hmd, #Hmds, Hsp, #Hst, Hdec, Hrc, Hns, #Hmu', Henti, Hsnapi,
-    He, %Hen, Henc, Htw, Hdh, Hlocks, Hls, Hcap, %Hlt, -, #Hltf, Hfp, Hpipe, #Henv, #Hcrc, #Hwpk,
+    He, %Hen, Henc, Htw, Hdh, Hlocks, Hls, Hcap, %Hlt, #Hbefore, #Hltf, Hfp, Hpipe, #Henv, #Hcrc, #Hwpk,
     Hopen, %Hpure⟩
   ihave ⟨Htw, #Hfn⟩ := walTailW_named f fd name dir h.γ h.ino h.H h.md h.cuts h.o0 h.sz h.out
     TailMetaW $$ Htw
@@ -129,11 +129,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proof
   irename i => i2
   irename Hcnt => i
   ihave IH : iprop(∃ (k : w64) (lv : Loc) (iv : w64),
-      "i" ∷ i_ptr ↦ k ∗ "l" ∷ l_ptr ↦ lv ∗ "i2" ∷ i2_ptr ↦ iv ∗ "Hls" ∷ locks ↦* lfs ∗
+      "i" ∷ i_ptr ↦ k ∗ "l" ∷ l_ptr ↦ lv ∗ "i2" ∷ i2_ptr ↦ iv ∗ "w" ∷ w_ptr ↦ w ∗ "Hls" ∷ locks ↦* lfs ∗
       "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.nat k ≤ lfs.length ∧
         ∀ (k' : Nat) (bn : GoString) (sq ix : Nat), k' < sint.nat k →
           (lsI.map (·.1) ++ [nm0])[k']? = some bn → bn = walFileName sq ix →
-          uint.nat (W64 ix) < uint.nat a⌝) $$ [i l i2 Hls]
+          uint.nat (W64 ix) < uint.nat a⌝) $$ [i l i2 w Hls]
   · iexists W64 0, _, _
     simp only [named]
     iframe
@@ -141,7 +141,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proof
     refine ⟨by decide, by simp, ?_⟩
     intro k' _ _ _ hk'; exfalso; have : sint.nat (W64 0) = 0 := rfl; omega
   wp_join (Q := fun v => iprop(∃ (sm : w64) (fnd : Bool) (err : GoInterface),
-      «$res0_ptr» ↦ err ∗ smaller_ptr ↦ sm ∗ found_ptr ↦ fnd ∗ index_ptr ↦ a ∗ locks ↦* lfs ∗
+      «$res0_ptr» ↦ err ∗ smaller_ptr ↦ sm ∗ found_ptr ↦ fnd ∗ index_ptr ↦ a ∗ w_ptr ↦ w ∗ locks ↦* lfs ∗
       ⌜v = executeVal ∧ err = GoInterface.nil ∧
         ((fnd = false ∧ sm = W64 0 ∧ ∀ (k' : Nat) (bn : GoString) (sq ix : Nat), k' < lfs.length →
             (lsI.map (·.1) ++ [nm0])[k']? = some bn → bn = walFileName sq ix →
@@ -186,6 +186,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proof
       (try wp_auto)
       obtain ⟨rfl, rfl, rfl⟩ := hpe.1 _ _ hs1 hsc1
       wp_auto
+      rw [show (null : Loc) = map.nil from rfl]
+      (try wp_auto)
       wp_if_destruct
       · (try wp_auto)
         iapply wp_for_post_break
@@ -226,7 +228,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proof
         rw [Hll.1]; word
       exact ⟨trivial, rfl, Or.inl ⟨rfl, rfl, fun k' bn2 sq2 ix2 hk' hb2 he2 =>
         Hkp k' bn2 sq2 ix2 (by omega) hb2 he2⟩⟩
-  iintro ⟨%sm, %fnd, %err, «$res0», smaller, found, index, Hls, %Hq⟩
+  iintro ⟨%sm, %fnd, %err, «$res0», smaller, found, index, w, Hls, %Hq⟩
   obtain ⟨rfl, rfl, Hsm⟩ := Hq
   wp_auto
   have hlen63 : (lfs.length : Int) = sint.Z locks.len := by
@@ -269,7 +271,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proof
       iunfold walHandleIn
       iexists lg, df, sp, e, fp, lt, f, mds, locks, lfs, fd, dfd, name, dnm, j, rc
       iframe Hlg Hzap Hdir Hdf Hdff Hmd Hmds Hsp Hst Hdec Hrc Hns Hmu Henti Hsnapi He Henc
-        Hlocks Hls Hcap Hltf Hfp Hpipe Henv Hcrc Hwpk Hopen
+        Hlocks Hls Hcap Hbefore Hltf Hfp Hpipe Henv Hcrc Hwpk Hopen
       isplitr
       · ipureintro; exact Hen
       isplitl [Hf Hfdo Hoff Htk Hm Hbs Hv]
@@ -331,7 +333,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proof
   · wp_for IH2
     obtain ⟨Hk0, Hksm⟩ := Hk
     wp_if_destruct
-    · have hksm : sint.Z k < sint.Z sm' := by simpa using Hif
+    · have hksm : sint.Z k < sint.Z sm' := by simpa [intoVal_eq_iff] using Hif
       have htl : (lfs.dropLast.take (sint.nat sm')).length = sint.nat sm' := by
         rw [List.length_take, hlen]; omega
       have hkl : sint.nat k < (lfs.dropLast.take (sint.nat sm')).length := by rw [htl]; word
@@ -363,6 +365,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proof
       ihave %hlfn := typedPointsto_not_null lf _ _ $$ Hlf2
       simp only [decide_eq_false hlfn]
       wp_auto
+      rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Hk0, by rw [← hlen63]; word⟩)]
+      wp_apply wp_load_slice_index locks (sint.Z k) lfs (DFrac.own 1) lf Hk0 $$ [Hls] as Hls
+      · iframe; ipureintro; exact hlf'
+      (try wp_auto)
+      rw [show (null : Loc) = map.nil from rfl]
+      (try wp_auto)
       rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Hk0, by rw [← hlen63]; word⟩)]
       wp_apply wp_load_slice_index locks (sint.Z k) lfs (DFrac.own 1) lf Hk0 $$ [Hls] as Hls
       · iframe; ipureintro; exact hlf'
@@ -408,7 +416,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proof
       lfs.drop (sint.nat sm'), fd, dfd, name, dnm, j, rc
     rw [dropLast_drop lfs (sint.nat sm')]
     iframe Hlg Hzap Hdir Hdf Hdff Hmd Hmds Hsp Hst Hdec Hrc Hns Hmu Henti Hsnapi He Henc
-      Hlocks Hls Hcap Hltf Hfp Hpipe Henv Hcrc Hwpk Hopen
+      Hlocks Hls Hcap Hbefore Hltf Hfp Hpipe Henv Hcrc Hwpk Hopen
     isplitr
     · ipureintro; exact Hen
     isplitl [Hf Hfdo Hoff Htk Hm Hbs Hv]

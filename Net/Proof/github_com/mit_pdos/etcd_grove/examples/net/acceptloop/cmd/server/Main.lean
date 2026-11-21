@@ -43,8 +43,7 @@ theorem wp_main
     (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
     (γm : GName) :
     {{ isPkgInit (PROP := IProp GF) pkg ∗ echoInvs γm ∗
-        ⌜ListenAt (extGlobalGS netExt (G := hG.goose_globalGS)).plan
-          (extLocalGS netExt (L := hG.goose_localGS)).host srvAddr srvAddr⌝ }}
+        ⌜addrOk srvAddr = true⌝ }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
   wp_start as ⟨#Hinvs, %Hla⟩

@@ -351,6 +351,43 @@ theorem walOpen_triple [os.Assumptions] [os.file.FieldAssumptions] (R : Roots) (
     simp only []
     iframe
 
+/-- `walOpen_triple`, a failed open witnessed (wal-fsfix2): the file system can fail on `d/b`, or the
+path does not fit (`os.OpenFile.wp_fileS`'s error arm). -/
+theorem walOpen_tripleW [os.Assumptions] [os.file.FieldAssumptions] (R : Roots) (d b : GoString) (dq : DFrac) (j i : Ino)
+    (N : NameSet) (dqn : DFrac) (h : NamesH) (qc : Qp) (flag : w64)
+    (hfl : OpenFlagsOk (flag ||| W64 0x80000).toNat)
+    (htr : (flag ||| W64 0x80000).toNat / O_TRUNC % 2 = 0) (hb : NameOk b) (hN : N.Mem b)
+    (hi : h.cur !! b = some (.file i)) :
+    fileutil.OpenTriple (X := Unit)
+      (iprop(osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc))
+      (child d b) flag (W32 384)
+      (fun _ ok => iprop(osPathS (GF := GF) R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc ∗
+        ⌜ok = false → ¬ (FsNoErrOn (· = child d b) ∧ PathFits (child d b))⌝))
+      (fun _ i' => i' = i) := by
+  unfold fileutil.OpenTriple
+  iintro %Φ ⟨#Hinv, #Hsi, Hp, Hn, Hperm⟩ HΦ
+  wp_apply os.OpenFile.wp_fileS d b flag (W32 384) R j i N dq dqn h qc hfl htr hb hN hi
+    $$ [Hp Hn Hperm] as %f %err ⟨Hp, Hn, Hperm, Hr⟩
+  · iframe; isplitl [] <;> iassumption
+  iapply HΦ
+  iunfold fileutil.openPost
+  iexists ()
+  icases Hr with (⟨%fd, %hh, Hf, Ho, Hfd⟩ | ⟨%hh, Herr, %ee, -, -, %hW⟩)
+  · ileft
+    isplitr
+    · ipureintro; exact hh.1
+    simp only []
+    iframe
+    isplitr
+    · ipureintro; nofun
+    ipureintro; exact ⟨hh.2, rfl⟩
+  · iright
+    isplitr
+    · ipureintro; exact hh
+    simp only []
+    iframe
+    ipureintro; exact fun _ => hW
+
 end proof
 
 end EtcdGrove

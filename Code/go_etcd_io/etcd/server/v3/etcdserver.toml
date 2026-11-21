@@ -113,10 +113,15 @@ translate = ["!*",
   "EtcdServer.LeaseRenew",
   # the auth plan's A2 (2026-10-23): the membership operations' admin guard and the member
   # operations it guards (their callees mayRemoveMember, configure, the cluster's Members stay
-  # names only: the specs take their triples; not AddMember, UpdateMember, promoteMember: they
-  # call encoding/json's Marshal, which Perennial has no model of)
+  # names only: the specs take their triples)
   "EtcdServer.checkMembershipOperationPermission", "EtcdServer.RemoveMember",
   "EtcdServer.MemberList",
+  # (auth-mediation M2, 2026-11-20) the other membership operations, over encoding/json's
+  # Marshal of a Member / ConfigChangeContext (trust-boundary specs, Spec/encoding/json/); their
+  # callees mayAddMember, mayPromoteMember, configure, waitLeader, promoteMemberHTTP stay names
+  # only, contracts
+  "EtcdServer.AddMember", "EtcdServer.UpdateMember", "EtcdServer.PromoteMember",
+  "EtcdServer.promoteMember",
   # the auth plan's A3, the API layer (2026-10-24): v3_server.go's Auth service methods (the
   # `Authenticator` interface the gRPC AuthServer calls): each proposes its request through
   # raftRequest; Authenticate checks the password and loops on the revision. UserAdd and

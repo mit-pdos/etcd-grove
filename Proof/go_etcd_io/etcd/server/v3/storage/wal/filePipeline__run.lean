@@ -59,7 +59,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.run.wp_proof
   wp_for HI
   icases HI with ⟨Hsnd, Hprod, Hcnt, Hc, Hres, %hn⟩
   wp_apply wp_alloc fp γ R dir dq j sz n hn $$ [$Hfp' $Hcnt $Hc $Hres] as %lf %err ⟨Hres, Hr⟩
-  icases Hr with (⟨%he, Hcnt, Hfile⟩ | ⟨%he, Hcnt, Hc⟩)
+  icases Hr with (⟨%he, Hcnt, Hfile⟩ | ⟨⟨%he, %hw⟩, Hcnt, Hc⟩)
   · subst he
     wp_auto_lc 3
     wp_apply_core chan.wp_select_blocking
@@ -144,7 +144,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.run.wp_proof
       (GoInterface.ok ei) $$ [$Hspsc $Hprod Hres Hc]
     · iunfold pipeErrP
       isplitr
-      · ipureintro; exact he
+      · ipureintro; exact ⟨he, hw⟩
       iunfold pipeLeft
       iframe Hres
       iexists pipeTmp n

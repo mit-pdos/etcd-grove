@@ -119,7 +119,7 @@ theorem member.saveSnap.wp_proof
   · dsimp only
     iframe; iframe #
     ipureintro
-    refine ⟨Or.inr rfl, Or.inr rfl, ?_, absSnapMd_enc_lt idx term⟩
+    refine ⟨Or.inr rfl, fun hc => absurd hc walCov_ioNone, Or.inr rfl, ?_, absSnapMd_enc_lt idx term⟩
     show uint.nat idx < 2 ^ 64 - 1
     omega
   icases Hr with (⟨%Herr, Hws, %d0, ⟨%hd0, Hwo, Ho⟩, #Hlen1, #Hsy⟩ | ⟨%Herr, %d0, ⟨%hd0, Hwo, Ho⟩⟩)

@@ -28,6 +28,8 @@ theorem etcdFsExts_localStart [GoGlobalContext] [L : GooseLocalGS GF] (w : ExtsL
 def etcdFsExtsSemantics : GooseSemantics :=
   { sems := (idIssue_semantics, etcdFsSem, PUnit.unit) }
 
+theorem etcdFsExts_satL : Fs.FsStepSat fun [GoGlobalContext] => Fs.NoMapLockErr allIo
+
 theorem etcdFsExts_hasIdIssue : HasExt idIssueExt
 
 def allIo : Fs.IoSet :=
