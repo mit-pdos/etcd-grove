@@ -603,6 +603,44 @@ theorem prune_conforms' (S : Schema) (t : TypeRef) (merged : UVal) (mf : MF) (L 
     exact hB (ens_of_mem ((K1 p fl).2.1 (ens_key hi) hgr n v hn))
   · exact nba_mono (fun q hq => (mem_pdiff.1 (mem_pinter.1 hq).1).1) nbaF
 
+/-! ## A reconciled set is consistent with the schema (`Apply`'s last set, `reconcileMF`) -/
+
+theorem reconAt_append (S : Schema) : ∀ (p r : Path) (t : TypeRef),
+    reconAt S t (p ++ r) = (reconAt S t p).bind (fun t' => reconAt S t' r)
+  | [], _, _ => rfl
+  | pe :: p, r, t => by
+    simp only [List.cons_append, reconAt]
+    split
+    · split
+      · next t' _ => exact reconAt_append S p r t'
+      · rfl
+    · rfl
+
+theorem schemaConsistent_reconcile (S : Schema) (t : TypeRef) (s : PathSet) :
+    schemaConsistent S t (reconcile S t s) := by
+  unfold schemaConsistent
+  rw [FSet_isEmpty_iff_law_holds]
+  intro p hp
+  obtain ⟨hpne, ⟨r, hr, hm⟩, t', ha, hat⟩ := (atomicNodes_mem_law_holds S t _ p).1 hp
+  rcases (reconcile_mem_law_holds S t s _).1 hm with ⟨hs, hn⟩ | hm
+  · exact hn ⟨p, (atomicNodes_mem_law_holds S t s p).2 ⟨hpne, ⟨r, hr, hs⟩, t', ha, hat⟩,
+      List.prefix_append p r⟩
+  · obtain ⟨-, -, t'', ha', -⟩ := (atomicNodes_mem_law_holds S t s _).1 hm
+    obtain ⟨pe, r', rfl⟩ := List.exists_cons_of_ne_nil hr
+    have hng : isGranularT S t' = false := by
+      cases hg : isGranularT S t' with
+      | false => rfl
+      | true => rw [granular_not_atomic hg] at hat; cases hat
+    rw [reconAt_append, ha] at ha'
+    simp [reconAt, hng] at ha'
+
+/-- `Apply`'s last set (the applier's reconciled entry) is consistent with the schema. -/
+theorem reconcileMF_get_consistent (S : Schema) (t : TypeRef) (mf : MF) (m : GoString) (L : VSet)
+    (h : (reconcileMF S t mf).get m = some L) : schemaConsistent S t L.set := by
+  rw [reconcileMF_get_law_holds] at h
+  obtain ⟨e, -, rfl⟩ := Option.map_eq_some_iff.1 h
+  exact schemaConsistent_reconcile S t e.set
+
 end Prune
 
 end smd
