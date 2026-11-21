@@ -13,8 +13,8 @@ import (
 // The compact workload's and the putget workload's rounds, and the compact workload's value and
 // assumed retention (compactwatch's).
 const (
-	compactRounds = 5
-	putgetRounds  = 5
+	compactRounds = 20
+	putgetRounds  = 50
 	compactValue  = "v"
 	// the retention checkCompactRev assumes: every compaction is at least one revision behind a
 	// revision the cluster has reached, as the client's (each at its Put's revision minus one) and

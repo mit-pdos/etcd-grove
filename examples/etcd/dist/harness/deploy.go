@@ -294,7 +294,7 @@ type Sizes struct {
 // ShortSizes and FullSizes are the short mode's and the full test's.
 var (
 	ShortSizes = Sizes{KVClients: 3, KVOps: 25, Writers: 3, WriterOps: 15, DurablePuts: 40}
-	FullSizes  = Sizes{KVClients: 4, KVOps: 80, Writers: 4, WriterOps: 50, DurablePuts: 200}
+	FullSizes  = Sizes{KVClients: 4, KVOps: 200, Writers: 4, WriterOps: 200, DurablePuts: 256}
 )
 
 // pick is a random element of xs.

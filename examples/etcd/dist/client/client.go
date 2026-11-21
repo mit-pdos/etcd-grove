@@ -33,6 +33,9 @@
 package client
 
 import (
+	"context"
+	"time"
+
 	"go.uber.org/zap"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -120,6 +123,34 @@ func rotate(eps []string, i int) []string {
 	return out
 }
 
+// How many times, and how far apart, awaitCluster tries its read.
+const (
+	readyTries = 60
+	readyPause = 500 * time.Millisecond
+)
+
+// awaitCluster waits until a linearizable read through a client of eps returns (a liveness wait,
+// as restartN's wait for a leader: the members may still be starting, or down): a read writes
+// nothing, so trying it again is safe, where a workload's first write (auth's set-up) cannot be
+// retried after an unknown outcome. It reports whether one returned.
+func awaitCluster(eps []string) bool {
+	cli, err := newClient(eps)
+	if err != nil {
+		return false
+	}
+	defer cli.Close()
+	for t := 0; t < readyTries; t++ {
+		ctx, cancel := context.WithTimeout(context.Background(), etcdstart.RequestTimeout)
+		_, err := cli.Get(ctx, "dist/ready")
+		cancel()
+		if err == nil {
+			return true
+		}
+		time.Sleep(readyPause)
+	}
+	return false
+}
+
 // Main runs w against the members' client endpoints eps (in the members' order: the workloads
 // that pick a member use eps[i mod len(eps)]), after clearing the proxy variables as the server
 // does (review F8). A failed check is a panic inside the workload.
@@ -127,6 +158,9 @@ func Main(w Workload, eps []string) Result {
 	env.ClearProxy()
 	if len(eps) == 0 {
 		return ended("no endpoint")
+	}
+	if !awaitCluster(eps) {
+		return ended("the cluster never answered a read")
 	}
 	switch w.Kind {
 	case KV:

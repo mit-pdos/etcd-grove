@@ -8,8 +8,8 @@ statement and its definitions, no proofs. Files:
 - its definitions: `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/TopLevelDefs.lean`
   (`Deployment`, `WellFormed`, `Workload`, `Compatible`, `ServerCfg.Supported`, the start states,
   `EtcdEnv`; placeholders marked `PLACEHOLDER`);
-- the Go sketches: `examples/etcd/dist/{server,client}/` and `cmd/{server,client}/` (build tag
-  `etcddist_sketch`, so no build sees them; the client calls driver functions that do not exist yet).
+- the Go programs: `examples/etcd/dist/{server,client,env}/` and `cmd/{server,client}/`, and the
+  deployment harness `examples/etcd/dist/harness/` (stage D1, done: §2, "Stage D1").
 
 Neither Lean file is built (they import the server's proof cone, and the draft has placeholders for
 what is not translated yet).
@@ -104,6 +104,129 @@ over `lintest`/`kvcheck` and the net extension, in a neutral home, `examples/lib
 will reuse.
 The workload table's "one machine per workload" (§2) becomes "one orchestrator plus k_c client machines per
 workload"; single-client workloads (putget, compact, durable) stay one machine.
+
+### Stage D1 (Go), done 2026-11-21
+
+No existing driver's Go changed (`examples/etcd/*`, `examples/lib/etcdstart`, `lintest`, ...): the
+split is in new packages, which call the drivers' exported helpers where they take clients and copy
+the rest. No Goose project and no `etc/goose.py` run (D2). The build tag is gone: everything below
+builds, vets and tests (`go vet ./etcd/dist/...`, `go test ./etcd/dist/...`, go1.27.3).
+
+- **`examples/etcd/dist/server`**: `Main(Config)` (and `MainLogger`, the same with a logger, for the
+  harness's diagnosis). One member; `etcdhttp.NewPeerHandler` (etcd's full peer handler, Q8) served by
+  `http.Server{...}.Serve` on its own peer listener; `s.Start()`; `<-s.ReadyNotify()`; then
+  `v3rpc.Server` (insecure, keepalive enforcement 5 s as `etcdstart.Serve`) by plain
+  `grpc.Server.Serve` on its own client listener (no cmux, U3); `env.ClearProxy()` first (Q10). The
+  addresses are the `Config`'s strings verbatim in `Listen`, `PeerURLs`, `ClientURLs` and the
+  clients' endpoints (U1); `Main` returns without serving if its own name and peer address are not an
+  entry of `Cluster`. Data directory and WAL area: `etcdstart.DataBase/<Name>.etcd` and
+  `etcdstart.WALBase/<Name>.etcd` (the Lean `Member`'s); `Config` has no directory field.
+- **`examples/etcd/dist/env`**: `ClearProxy` (the six proxy variables and `ETCD_VERIFY`), the server's
+  and the clients' one copy.
+- **`examples/etcd/dist/client`**: one package, a file per workload family (`kv.go`, `watch.go` with
+  cache, `compact.go` with putget, `durable.go`, `auth.go`, `authlease.go`, `lease.go`); `Main(w,
+  eps) Result` dispatches on `w.Kind` (the Lean constructors' order) and returns `checked` or why the
+  workload ended without a check; a failed check is a panic. `Args` is `cmd/client`'s JSON.
+  Prefixes: watch `wk/`, cache `ck/`, compact `cw/`, putget `pg/`, durable `du/`; **two exceptions**:
+  kv keeps txnlin's keys (`k0`-`k2`, List over `[k, l)`) and auth/authLease keep package auth's
+  (`a/…`, `c/…`, `z/…`), since both are fixed inside the reused packages; both run as the only key
+  writer (kv) or alone (auth), and no other prefix starts with `k`, `a`, `c/` or `z`.
+- **`cmd/server`, `cmd/client`**: JSON config in, `server.Main`/`client.Main` (the client prints its
+  result). `DIST_LOG` makes the server log to standard error.
+- **`examples/etcd/dist/harness`**: the deployment harness (`TestDist`, `TestWellFormed`; see "The
+  harness" below).
+- **`examples/lib/robust`** (shared with kvnet's driver, additive): the **bridge variant** of the
+  namespace mode and `RerunInUserns`. This machine's root has no `CAP_NET_ADMIN`, a read-only
+  `/proc/sys` (no `ip_forward` in the router), no iptables and no device mapper; inside a user
+  namespace of its own (`unshare -Urnm`) it has veths, bridges and tc. There `NewNetwork` makes a
+  bridge instead of a router (machines on one /16; a block is a tc flower drop on the sender's port;
+  link faults netem as before); a `Reset` block drops (tc cannot send a reset: `CanReset`, and the
+  nemesis then never picks one). `TestNetworkFaults` passes in it.
+
+**Copies** (driver code that could not be reused unchanged, and why):
+
+| Copy (in `dist/client`) | From | Why not reused |
+|---|---|---|
+| `kvClient` | `lintest.runClient` | unexported; and `lintest.Run`'s `apply` gets no client id, so client *i*'s operations could not go through client *i*'s own clientv3 client (the Remote seam) |
+| `RunWatch` | `partition.MainWatch` | one function with its start and partitioner; its `writer` picks a random client per Put (here each writer has its own: `etcdstart.Writer`, reused) |
+| `RunCache`, `cacheCollect`, `awaitProgress`, `checkProgress`, `lastVal`, `hasKey`, `checkGet` | `cache.Main` and its helpers | `Main` starts its member; the helpers are unexported |
+| `RunCompact`, `checkCompactRev` | `compactwatch.Main`, `checkCompactRev` | inline in `Main` with its start; unexported |
+| `RunPutGet` | `compacted.Main` | inline in `Main` |
+| `RunDurable` | `restartN`'s `check` | rewritten: restartN's Puts and Range go through a member's own API in-process, with `HardStop`; its exact revision check cannot hold beside other writers (Q3) |
+| `RunAuth`, `newUserClient`, `barrier` | `authN.run`, its helpers | `run` serves its members' gRPC first (`etcdstart.Serve` of `srvs`); helpers unexported (`auth.SetUp`, `Work`, `CheckHistory`, `LastIn`, `Permitted`, `Principals` reused) |
+| `RunAuthLease`, `reqCtx`, `refused`, `barriers`, `grantPut`, `noAuth`, `foreign`, `absent` | `authlease.run`, its helpers | as authN |
+| `RunLeaseRead`, `leaseReadCheck` | `leaseN.run`, `check` | `run` serves its members; `check` unexported |
+| `RunLeaseCatchup`, `leaseGrant`, `leaseList`, `listed` | `leasecatchup.run` and helpers | `run` starts the cluster and cuts with `PeerStep`; helpers unexported |
+| `RunLeaseExpiry`, `gone` | `leaseexpiryN.run`, `gone` | `run` serves its members; unexported |
+| harness `addrOk` | `kvnet.AddrOk` | kvnet is a Go module of its own |
+| `server.serverConfig` | `etcdstart.newServerMode`, `StartMemberAuth` | unexported, and the snapshot and token-provider settings are fixed there |
+
+Changes from the drivers made in the copies (none weakens a check): a step's error that ended the
+driver's run (compact's and putget's Put or latest Get, leaseRead's per-member reads, leaseExpiry's
+grant or listing) skips that round or member instead, since under the harness's faults errors are
+common; every watch read and every poll is bounded in time (`readTimeout`, 2 min; more polls for
+leaseCatchup), so that a client machine's program ends (a liveness bound: a cancelled watch is an
+end without a check); compact and putget run 20 and 50 rounds of distinct keys. Every workload first waits (bounded) until a
+linearizable read through the cluster returns (`awaitCluster`): the members may still be electing,
+and auth's set-up cannot be retried after an unknown outcome (without the wait, every auth run ended
+in its set-up).
+
+**The error rules, audited** (etcd-grove#24: any non-OK gRPC error is an unknown outcome, never
+"not applied"; a server stream's clean end is never complete; keepalive relied on for nothing):
+
+| Workload | Errors | Streams |
+|---|---|---|
+| kv | an error output is `Err`: txnlin's model keeps a failed write pending, to take effect at any later time or never; a failed read constrains nothing | none |
+| watch, cache | only Puts that returned are `oks`; every watched event must be a Put *attempted* (`tried` includes the failed ones) | `Collect`/`cacheCollect`/`awaitProgress`: a closed channel or an error/cancel/compaction response returns false, an end without a check; read until a revision, never until the channel ends |
+| compact | a failed Put skips its round; a failed Compact is ignored; the old-revision Get checks only if it returned; the watch checks only values it saw | `Collect` and `CompactRev` as above (a closed channel: no check) |
+| putget | a failed Put skips the round (its key is never written again) | none |
+| durable | a failed Put is unknown: its key may be present (with its value, version 1) or not; only acknowledged keys must be present | none |
+| auth | a refusal is any error (`auth.Work`'s `refused`); whether a refused write was applied is checked from root's history watch of what was applied | `Collect` as above; the refused watch's channel is drained, only events checked |
+| authLease | a refusal is any error; each "not applied" is checked by root's later read (`absent`, `z/lease`'s lease) | none |
+| leaseRead | reads only; an error checks nothing | none |
+| leaseCatchup | only grants that returned are compared (`g1`, the last filler) | none |
+| leaseExpiry | a failed grant's lease is never looked at; a failed listing proves nothing | none |
+
+Keepalive: `etcdstart.NewClients` sets it (harmless); no check depends on it.
+
+**The seams for Remote** (dsverify's orchestrator plus one machine per client; another agent ports
+`Remote` into `examples/lib/remote`). Each multi-client workload separates the client nodes' code,
+each over its own `*clientv3.Client`, from the orchestration:
+
+- kv: client node *i* is `kvApply(cli_i)` (one txnlin operation, `txnlin.Apply`: ServeClient's
+  handler); the orchestrator is `kvClient(i, ops, apply_i, clock)` per client (generation by
+  `txnlin.Gen(i)`, call/return stamps, the history) and `RunKV`'s merge and porcupine check, where
+  `apply_i` becomes the remote call. The clock (`lintest.CounterClock`) is the orchestrator's.
+- watch, cache: writer *i* is `etcdstart.Writer(cli_i, w, tried, lo, hi)` (its Puts and its log of
+  successes, which the remote version returns to the orchestrator instead of appending to the shared
+  `Writes`); the watcher (or the cache) and the check stay on the orchestrator (`RunWatch`,
+  `RunCache` after `writers`).
+- auth: principal *who*'s node is `auth.Work(cli_who, who)` (its checks are local: refusals and its
+  own replies); set-up, barriers, the history check and u's watch are the orchestrator's.
+- leaseRead, leaseExpiry: per member, `leaseReadCheck(eps[i])` / grant-then-`gone` over `clis[i]`
+  (independent per member: one node each if wanted); leaseCatchup's two clients (`c3`, `c1`) and
+  authLease's principals are sequential steps of one orchestration, kept in one function.
+- compact, putget, durable: one client each, one machine.
+
+**The harness** (`examples/etcd/dist/harness`, `TestDist`, `DIST_RUN=1`): random well-formed
+deployments of three members (`RandomDeployment`; `WellFormed` is the Lean predicate's Go mirror,
+member ids from etcd's own `membership.NewClusterFromURLsMap`, the token searched until the low 16
+(15) bits are apart): a random `ServerCfg` (compactor off/revision 1, 10, 1000/periodic 10 ms, 1 s,
+snapshots 1-10000 with catch-up 1-2^48, the token provider when needed or at random) and a random
+compatible mix (one of kv/watch/cache, or some of compact/putget/durable, each with lease workloads
+at random; or auth or authLease alone). Every member and every workload is a process of the test
+binary (`RunProcess`, as `cmd/server`/`cmd/client`) on a machine of its own; members at
+`10.77.k.1:2380` (peer) and `:2379` (client). A member's files are a directory of the run's
+(on a dm-flakey disk of its own where available), linked from its data directory and WAL area
+(symbolic links: the paths are fixed by `server.Main`). Faults: a random member killed (SIGKILL) about
+every 4 s, its files synced (or its disk's power lost, where the device mapper exists), restarted
+within 1 s with the same program; on namespaces, `robust.NetNemesis` over all machines (partitions
+both ways or one way, isolations, delay/loss/duplication/reordering), a fault about every second,
+held about 2 s. A run fails on a panic, a member exiting on its own, or a client not done by the
+deadline. `-short`: one deployment with small sizes; otherwise `DIST_ROUNDS` (default 4).
+Root: a root with `CAP_NET_ADMIN` runs namespaces directly; a container's root reruns the test in a
+user namespace (bridge variant, kills only); a non-root reruns by `sudo -n`, or falls back to the
+local mode (one loopback address, kills only).
 
 ## 3. The configuration set
 
@@ -273,14 +396,14 @@ For upamanyus:
 | Stage | Work | Size | Depends on |
 |---|---|---|---|
 | D0 | this draft; reviews; decisions Q1-Q10 | — | — |
-| D1 Go | split each driver into start + `Run(eps, …)`; the two mains; a harness test with `examples/lib/robust` (namespaces, kills, power losses, partitions) over random deployments; audit every check against #24's error rules | 1-2 sessions | — |
+| D1 Go (**done** 2026-11-21, §2 "Stage D1") | each driver's workload without its start, in new packages (the drivers unchanged: helpers reused, the rest copied, the copies listed in §2); the two mains; a harness test with `examples/lib/robust` (namespaces, kills, power losses, partitions) over random deployments; audit every check against #24's error rules | 1-2 sessions | — |
 | D2 translation | goose projects for `server` and `client`; `Init`/`PkgTable`; the main tree's `net` becomes the part's | days | phase 7 S0, S4 |
 | D3 mixed adequacy | the bridge from Perennial's `goose_dist_mixed_crash_adequacy` (exists) to `Robust crashing stable`, extending #22's `[netExt, fsExt]` bridge | smaller than ~1k lines | #22 |
 | D4 bundle | `[net, fs at etcdFsSem, idIssue]` adequacy and crash interpretation; the issue record keyed by incarnation; shared-mode generations | ~1k lines | wal-safe (b) |
 | D5 transport | phase 7 S1-S5 | 60-110k lines (option B's estimate) | upamanyus |
 | D6 server | one `NewServer` spec for both starts; `walFoRes`; C6; the backend after a crash; `TrustBoundary` discharged | weeks | D4 |
 | D7 cluster | global/local ghost split, the restart invariant | weeks | D6 |
-| D8 clients | port dsverify's `Remote` orchestration (`RunRemote`, `ServeClient`, `remoteDistSafe`) onto the net extension in `examples/lib/remote`, over `lintest`/`kvcheck` and the verified porcupine; each workload's client operations as `Remote` calls | ~2k lines + the port | D1 |
+| D8 clients | (seams: §2, "Stage D1") port dsverify's `Remote` orchestration (`RunRemote`, `ServeClient`, `remoteDistSafe`) onto the net extension in `examples/lib/remote`, over `lintest`/`kvcheck` and the verified porcupine; each workload's client operations as `Remote` calls | ~2k lines + the port | D1 |
 | D9 assembly | the theorem; `WellFormed` consumed; retire `etcd_safe`, leaseexpiryN's | ~2k lines | all |
 
 **Interim milestone (Q7)**: D1, D2, D5 (S1-S5), D7 without crashes, D8, D9 over `goose_dist_adequacy`:

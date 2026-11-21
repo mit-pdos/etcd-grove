@@ -75,7 +75,7 @@ func deployRound(t *testing.T, round int, netns bool, crash string, sz Sizes, de
 	if err != nil {
 		t.Fatalf("%v: %v", d, err)
 	}
-	cfg := Config{Crash: crash, CrashPause: 4 * time.Second, Downtime: time.Second, Netns: netns,
+	cfg := Config{Crash: crash, CrashPause: 2 * time.Second, Downtime: time.Second, Netns: netns,
 		NetPause: time.Second, NetHold: 2 * time.Second, Deadline: deadline}
 	work, err := os.MkdirTemp("", "etcddist-")
 	if err != nil {
