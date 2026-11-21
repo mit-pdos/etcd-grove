@@ -88,6 +88,18 @@ it), and clears the proxy variables as the server does. The server serves client
 | `leaseExpiry` | leaseexpiryN | a lease gone from a listing is never listed again | no / no / no |
 | `durable puts` | restartN / restart1 | acknowledged Puts present at version 1, other keys only attempted ones; ≤ 256 Puts | yes / no / no |
 
+**Clients on separate machines (the user, 2026-11-21).** Every client is its own process, as in dsverify-lab's
+distributed setup (the user's design: dsverify-lab `notes/clients-separate-nodes.md`,
+`harness/lean/Harness/Remote.lean`, `Harness/Remote/`). A workload with several clients (kv, watch, the
+lease workloads) is an **orchestrator** machine running `remote.RunRemote` plus one machine per client
+running `remote.ServeClient`. The orchestrator issues each client's operations as remote calls, records the
+history and runs the check (porcupine for kv). The generic lemma `remoteDistSafe` is proved there. Why this
+form: a proof cannot exploit clients that share a process (a prophecy cannot cross machines; the note's §2).
+The port to the net extension builds on phase 6's port of the shared harness (driver, recorder, checker,
+porcupine's axiom; `notes/dsverify-net-port-plan.md`); `Remote` is not in that plan, and is ours (etcd-grove#24).
+The workload table's "one machine per workload" (§2) becomes "one orchestrator plus k_c client machines per
+workload"; single-client workloads (putget, compact, durable) stay one machine.
+
 ## 3. The configuration set
 
 `ServerCfg = {compactor : off | revision r | periodic p, snapCount, catchUp, auth : Bool}`, the same at
@@ -263,7 +275,7 @@ For upamanyus:
 | D5 transport | phase 7 S1-S5 | 60-110k lines (option B's estimate) | upamanyus |
 | D6 server | one `NewServer` spec for both starts; `walFoRes`; C6; the backend after a crash; `TrustBoundary` discharged | weeks | D4 |
 | D7 cluster | global/local ghost split, the restart invariant | weeks | D6 |
-| D8 clients | each workload's `Run` triple from today's | ~2k lines | D1 |
+| D8 clients | port dsverify's `Remote` (orchestrator + client nodes, `remoteDistSafe`) onto the net extension over phase 6's harness port; each workload's client operations as `Remote` calls | ~2k lines + the port | D1, phase 6 |
 | D9 assembly | the theorem; `WellFormed` consumed; retire `etcd_safe`, leaseexpiryN's | ~2k lines | all |
 
 **Interim milestone (Q7)**: D1, D2, D5 (S1-S5), D7 without crashes, D8, D9 over `goose_dist_adequacy`:
