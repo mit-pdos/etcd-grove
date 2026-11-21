@@ -258,7 +258,7 @@ def raftnoax_roots(part):
 KVNET_PKG = "github_com.mit_pdos.etcd_grove.examples.raft.kvnet"
 KVNET_REUSED = [f"Proof.{KVNET_PKG}.{f}" for f in
                 ["putUint64", "getUint64", "putBytes", "getBytes", "putIDs", "getIDs", "putEntry",
-                 "getEntry", "putSnapshot", "getSnapshot", "withTimeout", "encode"]]
+                 "getEntry", "putSnapshot", "getSnapshot", "withTimeout", "encode", "decode"]]
 
 
 def own_roots(part):

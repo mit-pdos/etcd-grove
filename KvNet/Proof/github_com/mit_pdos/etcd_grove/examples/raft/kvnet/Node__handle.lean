@@ -73,12 +73,15 @@ theorem Node.handle.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
   wp_if_destruct
   · -- ReqPropose
     rw [reqOk_propose]
-    wp_apply wp_decode p pl dq $$ [$Hpkg $Hp] as %i %k %key %v %ok Hp
-    try wp_auto
-    cases ok
-    · try wp_auto
+    wp_apply wp_decode p pl dq $$ [$Hpkg $Hp] as Hp
+    unfold decodeRet
+    cases raft_kvreconf.decodeOp pl with
+    | none =>
+      try wp_auto
       iapply HΦ
       ileft; ipureintro; rfl
+    | some r0 =>
+    obtain ⟨i, k, key, v⟩ := r0
     try wp_auto
     wp_apply wp_propose r id p pl dq tmo $$ [$Hpkg $Hrep $Hp $Hok] as %v %ok ⟨%Hvl, Hans⟩
     try wp_auto

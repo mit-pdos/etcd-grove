@@ -1,12 +1,13 @@
-/-
-`decode(b)` (`examples/raft/kvnet/codec.go`): reads an operation's encoding back; `b` only read.
-(kvdurable's `decode` is the same Go text, with the exact results, `decodeRet`; its spec names
-kvreconf's `Base` for `decodeOp`, which the part cannot import: this weaker statement, all a caller
-here needs, stands in until that spec imports kvreconf's `Pure` and the part reuses it.)
+-- The copy for the part `KvNet/` of `RaftNoAx/Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/decode.lean` (etc/copy-part.py; rerun it, do not edit).
+/- Lean-first (no Rocq counterpart). kvreconf's (the same Go text), ported.
+
+`decode(b)` (kv.go): what `encode` wrote (`decodeOp`), or `ok = false` for fewer than 17 bytes
+or a key length past the end.
 -/
 module
 
-public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.NodeDefs
+public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Base
+public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Pure
 
 @[expose] public section
 
@@ -16,23 +17,30 @@ namespace Perennial
 namespace EtcdGrove
 namespace raft_kvnet
 
-open Iris Iris.BI Net go_etcd_io.raft.v3
+open raft_kvreconf (decodeOp)
+open Iris Iris.BI go_etcd_io.raft.v3
+open github_com.anishathalye.porcupine
 
 section spec
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [NetProtoGS] [StorageModel GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- `decode`'s results on `d`. -/
+def decodeRet (d : List w8) : val :=
+  match decodeOp d with
+  | some (i, k, key, v) => PairV (PairV (PairV (PairV #i #k) #key) #v) #true
+  | none => PairV (PairV (PairV (PairV #(W64 0) #(W8 0)) #([] : List w8))
+      #([] : List w8)) #false
 
 /-- See the file header. -/
 abbrev decode.spec : Prop :=
   ∀ (b : GoSlice) (d : List w8) (dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet ∗ b ↦*{dq} d }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.kvnet.decode)) (Val #b))
-  {{ (i : w64) (k : w8) (key v : GoString) (ok : Bool),
-      RET (PairV (PairV (PairV (PairV #i #k) #key) #v) #ok); b ↦*{dq} d }}
+  {{ RET (decodeRet d); b ↦*{dq} d }}
 
 end spec
 

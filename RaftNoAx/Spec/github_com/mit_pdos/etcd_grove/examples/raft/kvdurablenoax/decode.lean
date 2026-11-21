@@ -7,7 +7,7 @@ or a key length past the end.
 module
 
 public import RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Base
-public import RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Base
+public import RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Pure
 
 @[expose] public section
 
