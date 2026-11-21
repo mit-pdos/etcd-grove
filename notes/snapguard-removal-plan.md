@@ -1,5 +1,18 @@
 # Removing the merged snapshot's index guard (plan, 2026-11-20)
 
+## Term and index comparison (2026-11-20)
+
+The node now has a ghost name for a history of term and index observations.
+The send-time lemma bounds the restore term by the term in which the node
+stamps the outgoing message. Election safety excludes equality when the
+incoming snapshot came from another member. A Ready observation in the
+outgoing term therefore bounds the restored index (`restoredSend_index_le`).
+
+The comparison is checked under explicit hypotheses. The remaining work is to
+carry the history authority through each live RawNode, issue observations at
+the physical send and Ready, and relate the Ready index to the server’s apply
+cursor. The runtime guard is still in the etcd pin.
+
 ## Storage contract progress (2026-11-20)
 
 The main raft build checks `isStorageP_mono_SV`, the tagged storage contract
