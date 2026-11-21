@@ -108,6 +108,104 @@ theorem removeM_entriesOf (S : Schema) (fs : List (GoString × TypeRef)) (e : Op
     · by_cases h2 : (R.under (.field k)).IsEmpty <;> simp [h1, h2] <;>
         cases fieldType fs e k <;> rfl
 
+/-- `lookupKV` of a list with one more entry at the end. -/
+theorem lkv_snoc {α : Type} (n : GoString) (f : GoString × α) :
+    ∀ l : List (GoString × α), lookupKV n (l ++ [f]) =
+      match lookupKV n l with
+      | some v => some v
+      | none => if f.1 = n then some f.2 else none
+  | [] => by simp [lookupKV]
+  | (k', v') :: rest => by
+    have ih := lkv_snoc n f rest
+    by_cases h : k' = n <;> simp [lookupKV, h, ih]
+
+theorem lkv_none_of_not_mem {α : Type} (n : GoString) :
+    ∀ l : List (GoString × α), n ∉ l.map (·.1) → lookupKV n l = none
+  | [], _ => rfl
+  | (k', v') :: rest, h => by
+    simp only [List.map_cons, List.mem_cons, not_or] at h
+    have hk : k' ≠ n := fun e => h.1 e.symm
+    simp [lookupKV, hk, lkv_none_of_not_mem n rest h.2]
+
+/-- **A declared fields' prefix one longer** (names distinct): the new field's name maps to its
+type, the others as before. -/
+theorem lkv_take_succ {α : Type} (fs : List (GoString × α)) (j : Nat) (f : GoString × α)
+    (hf : fs[j]? = some f) (hnd : (fs.map (·.1)).Nodup) (n : GoString) :
+    lookupKV n (fs.take (j + 1)) = if f.1 = n then some f.2 else lookupKV n (fs.take j) := by
+  have ht : fs.take (j + 1) = fs.take j ++ [f] := by
+    rw [List.take_add_one, hf]; rfl
+  have hnd2 : ((fs.take j ++ [f]).map (·.1)).Nodup := by
+    rw [← ht, List.map_take]
+    exact hnd.sublist (List.take_sublist _ _)
+  rw [List.map_append, List.nodup_append] at hnd2
+  have hnot : f.1 ∉ (fs.take j).map (·.1) := by
+    intro hm
+    exact hnd2.2.2 _ hm _ (by simp) rfl
+  rw [ht, lkv_snoc]
+  by_cases hn : f.1 = n
+  · subst hn
+    simp [lkv_none_of_not_mem _ _ hnot]
+  · simp only [hn, ite_false]
+    cases lookupKV n (fs.take j) <;> rfl
+
+section wp
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **A range loop over a slice the loop only reads** (`for _, x := range s { body }`): `P i`
+holds before the `i`-th iteration, and the body ends normally (a copy of
+`Proof/k8s_io/api/DeepCopyBase.lean`'s, which this tier does not import). -/
+theorem wp_slice_for_range {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (t : go.GoType)
+    [IntoValTyped (GF := GF) V t] (sl : GoSlice) (vs : List V) (dq : DFrac) (body : GoFunc)
+    (P : Nat → IProp GF) (Φ : val → IProp GF) :
+    sl ↦*{dq} vs -∗ P 0 -∗
+    □ (∀ (i : Nat) (x : V), ⌜vs[i]? = some x⌝ -∗ P i -∗ sl ↦*{dq} vs -∗
+        WP (App (App (Val #body) (Val #(W64 i))) (Val #x))
+          {{ bv, ⌜bv = executeVal⌝ ∗ P (i + 1) ∗ sl ↦*{dq} vs }}) -∗
+    (P vs.length -∗ sl ↦*{dq} vs -∗ Φ executeVal) -∗
+    WP (App (App (Val (slice.forRange t)) (Val #sl)) (Val #body)) {{ Φ }} := by
+  iintro Hs HP #Hiter HΦ
+  ihave %Hlen := ownSlice_len _ _ _ $$ Hs
+  wp_auto
+  ihave Hinv : (∃ (j : Nat), "i" ∷ i_ptr ↦ W64 j ∗ "HP" ∷ P j ∗ "Hs" ∷ sl ↦*{dq} vs ∗
+      "HΦ" ∷ (P vs.length -∗ sl ↦*{dq} vs -∗ Φ executeVal) ∗ "%Hj" ∷ ⌜j ≤ vs.length⌝ :
+      IProp GF) $$ [i HP Hs HΦ]
+  · iexists 0
+    iframe
+    ipureintro; omega
+  wp_for Hinv
+  by_cases hj : j < vs.length
+  · have hc : sint.Z (W64 (j : Int)) < sint.Z sl.len := by word
+    simp only [decide_eq_true hc, ↓reduceIte]
+    wp_auto
+    have h0 : 0 ≤ sint.Z (W64 (j : Int)) := by word
+    simp only [h0, hc, and_self, ↓reduceIte]
+    have hsj : (sint.Z (W64 (j : Int))).toNat = j := by word
+    obtain ⟨x, hx⟩ : ∃ x, vs[j]? = some x := ⟨_, List.getElem?_eq_getElem hj⟩
+    wp_apply (wp_load_slice_index (t := t) sl (sint.Z (W64 (j : Int))) vs dq x h0) $$ [Hs] as Hs
+    · iframe; ipureintro; rw [hsj]; exact hx
+    iapply wp_wand $$ (Hiter $$ %j %x %hx HP Hs)
+    iintro %bv ⟨%hbv, HP, Hs⟩
+    subst hbv
+    iapply wp_for_post_do
+    wp_auto
+    iframe
+    iexists (j + 1)
+    have hw : W64 (j : Int) + W64 1 = W64 ((j + 1 : Nat) : Int) := by word
+    rw [hw]
+    have hj1 : j + 1 ≤ vs.length := hj
+    iframe
+    ipureintro; exact hj1
+  · have hc : ¬ sint.Z (W64 (j : Int)) < sint.Z sl.len := by word
+    simp only [decide_eq_false hc, Bool.false_eq_true, ↓reduceIte]
+    have hjl : j = vs.length := by omega
+    subst hjl
+    iapply HΦ $$ HP Hs
+
+end wp
+
 end LawA5
 
 end smd
