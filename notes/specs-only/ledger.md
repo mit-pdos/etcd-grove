@@ -3769,7 +3769,7 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** Add the entry to the precondition's pure conjunct. Callers: `transformErrorToEvent` (from
   `kErrOk`, which already has it) and the model API server's handlers (from `apimodelInit`, whose error clauses gain
   it: its errors are `errors.New`'s `*errorString`, which has it; the fact is not proved yet, no `Init.lean`).
-- **Decision.** Applied (prove-k8s3, 2026-11-21); `apierrors.NewInternalError.wp_proof` is a theorem.
+- **Decision.** Applied (prove-k8s3, 2026-11-21); `apierrors.NewInternalError.wp_proof` is a theorem. Approved by the user (2026-11-21): the premise makes sense (`.claude/skills/spec/examples/newinternalerror-type-fact.md`).
 
 ## 2026-11-21: the HTTP header specs need net/http's package initialization (prove-http3)
 
