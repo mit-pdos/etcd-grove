@@ -164,6 +164,37 @@ theorem notif_rclose (lp : Loc) (γl : GName) (np : Loc) (E : CoPset) (hE : ↑n
     · iunfold notifShare; iexists γr; iframe Hp Hx Hinv
     iunfold notifRTok; iexists γr; iframe Hp Hy
 
+
+/-- **A registered item's time**, out of the notifier and back (the expiry loop reads and writes the
+first item's `time`, `expireExists`). -/
+theorem notifierAtM_time (np : Loc) (M : GMap w64 Loc) (id : w64) (p : Loc) (h : M.lookup id = some p) :
+    notifierAtM (GF := GF) np 1 M ⊢
+      (∃ t : _root_.Perennial.time.Time, lwF go!"time" p ↦ t) ∗
+        (∀ t' : _root_.Perennial.time.Time, lwF go!"time" p ↦ t' -∗ notifierAtM np 1 M) := by
+  iintro Hn
+  iunfold notifierAtM at Hn
+  icases Hn with ⟨%mp, %s, %xs, Hm, HM, Hq, Hqa, %Hinv⟩
+  iunfold queueAt at Hqa
+  icases Hqa with ⟨Hs, Hcap, Hits⟩
+  have hmem : (p, id) ∈ xs := (Hinv.2 id p).1 h
+  obtain ⟨n, hn, hxn⟩ := List.mem_iff_getElem.mp hmem
+  have hxn' : xs[n]? = some (p, id) := by rw [List.getElem?_eq_getElem hn, hxn]
+  icases (BigSepL.bigSepL_lookup_acc hxn').1 $$ Hits with ⟨Hx, Hits⟩
+  iunfold lwtAt at Hx
+  icases Hx with ⟨#Hid, ⟨%t, Ht⟩, Hix⟩
+  isplitl [Ht]
+  · iexists t; iexact Ht
+  iintro %t' Ht'
+  ihave Hits := Hits $$ %(p, id) [Hid Ht' Hix]
+  · iunfold lwtAt; iframe Hid Hix; iexists t'; iexact Ht'
+  rw [list_set_lookup_self xs n _ hxn']
+  iunfold notifierAtM
+  iexists mp, s, xs
+  iframe
+  iunfold queueAt
+  iframe
+  ipureintro; exact Hinv
+
 end lemmas
 
 end lease
