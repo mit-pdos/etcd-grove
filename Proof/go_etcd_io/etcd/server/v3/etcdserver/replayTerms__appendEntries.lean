@@ -1,7 +1,7 @@
 /- Prefixes retained by appendEntries are shared with previously delivered Ready batches. -/
 module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftpb
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
 public import Proof.go_etcd_io.raft.v3.Protocol.Ghost
 
 @[expose] public section
@@ -197,6 +197,79 @@ theorem replayBatch_scan_lt (es : List EntryModel) (nonempty : 0 < es.length)
   by_cases h : count < es.length
   · exact h
   exact False.elim (different (scanned (es.length - 1) (by omega) (by omega)))
+
+/-- The mixed-term branch advances count to the first entry of the next term. -/
+def replayCountLoop [GooseExts] [GoGlobalContext] (ep cp tp : Loc) : Expr :=
+  let entryPtr := go.GoType.PointerType go_etcd_io.raft.v3.raftpb.Entry.ty
+  let sliceTy := go.GoType.SliceType entryPtr
+  let count := App (Val (GoInstruction (GoLoad go.int))) (Val #cp)
+  let ents := App (Val (GoInstruction (GoLoad sliceTy))) (Val #ep)
+  let slot := App (Val (GoInstruction (IndexRef sliceTy))) (Pair ents count)
+  let ent := App (Val (GoInstruction (GoLoad entryPtr))) slot
+  let getTerm := App (App (Val (GoInstruction (MethodResolve entryPtr go!"GetTerm"))) ent) (Val #())
+  let t := App (Val (GoInstruction (GoLoad go.uint64))) (Val #tp)
+  let test := App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair getTerm t)
+  let next := App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair count (Val #(W64 1)))
+  let body := App (Val doExecute) (App (Val (GoInstruction (GoStore go.int))) (Pair (Val #cp) next))
+  App (App (App (Val doFor) (Val (LamV BAnon test))) (Val (LamV BAnon body)))
+    (Val (LamV BAnon (Val #())))
+
+theorem replayCountLoop_wp (ep cp tp : Loc) (ents : GoSlice) (ls : List Loc) (es : List EntryModel)
+    (hne : 0 < es.length) (t : w64) (hfirst : es[0].term = t)
+    (hlast : es[es.length - 1].term ≠ t) (getTerm : raftpb.Entry.GetTerm.spec (GF := GF) (hG := hG))
+    (Φ : val → IProp GF) :
+    ep ↦ ents ∗ cp ↦ W64 1 ∗ tp ↦ t ∗ ents ↦*□ ls ∗ entriesAt ls es ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗
+      (∀ c : w64, ep ↦ ents -∗ cp ↦ c -∗ tp ↦ t -∗
+        ⌜0 < sint.Z c ∧ ∃ h : sint.nat c < es.length, es[sint.nat c].term ≠ t ∧
+          ∀ (i : Nat) (hi : i < es.length), i < sint.nat c → es[i].term = t⌝ -∗
+        Φ executeVal) ⊢ WP (replayCountLoop ep cp tp) {{ Φ }} := by
+  iintro ⟨He, Hc, Ht, #Hsl, #Hents, #Hpb, HΦ⟩
+  iunfold entriesAt at Hents
+  icases Hents with ⟨%hlen, #Hat⟩
+  ihave %hl := ownSlice_len ents _ ls $$ Hsl
+  unfold replayCountLoop
+  ihave HI : (∃ c : w64, "Hc" ∷ cp ↦ c ∗ "%hc" ∷ ⌜0 < sint.Z c ∧
+      ∀ (i : Nat) (hi : i < es.length), i < sint.nat c → es[i].term = t⌝ : IProp GF) $$ [Hc]
+  · iexists W64 1; iframe Hc; ipureintro
+    refine ⟨by decide, ?_⟩
+    intro i hi h
+    have hi0 : i = 0 := by word
+    subst i; exact hfirst
+  wp_for HI
+  have hb := replayBatch_scan_lt es hne t hlast (sint.nat c) hc.2
+  have hls : sint.nat c < ls.length := by omega
+  let ptr := ls[sint.nat c]
+  let ent := es[sint.nat c]
+  have hptr : ls[sint.nat c]? = some ptr := List.getElem?_eq_getElem hls
+  have hent : es[sint.nat c]? = some ent := List.getElem?_eq_getElem hb
+  ihave #Hent := Hat $$ %(sint.nat c) %ptr %ent %hptr %hent
+  icases ownSlice_elem_acc (sint.Z c) ptr ents DFrac.discard ls (by omega) hptr $$ Hsl with ⟨#Hp, -⟩
+  have hs : sint.nat c < sint.nat ents.len := hl.1 ▸ hls
+  have hbound : 0 ≤ sint.Z c ∧ sint.Z c < sint.Z ents.len := by
+    change (sint.Z c).toNat < (sint.Z ents.len).toNat at hs
+    omega
+  (try wp_auto)
+  (try simp only [hbound, ↓reduceIte])
+  (try wp_auto)
+  wp_apply wp_entryAt_GetTerm getTerm ptr ent $$ [$Hpb $Hent]
+  (try wp_auto)
+  by_cases heq : ent.term = t
+  · simp only [heq, _root_.decide_true, ↓reduceIte]
+    (try wp_auto)
+    wp_for_post
+    iframe
+    iexists c + W64 1; iframe
+    ipureintro; refine ⟨by word, ?_⟩
+    intro i hi hi'
+    by_cases h : i = sint.nat c
+    · subst i; exact heq
+    · exact hc.2 i hi (by word)
+  · simp only [heq, decide_false, ↓reduceIte]
+    (try wp_auto)
+    (try simp only [intoVal_eq_iff, Bool.false_eq_true, decide_false, _root_.decide_true, ↓reduceIte])
+    iapply HΦ $$ %c He Hc Ht
+    ipureintro; exact ⟨hc.1, hb, heq, hc.2⟩
 
 /-- A Ready with no new entries returns exactly the existing slice, for any receiver. -/
 theorem replayTerms.appendEntries_empty (r ents : GoSlice) (hempty : ents.len = W64 0) :
