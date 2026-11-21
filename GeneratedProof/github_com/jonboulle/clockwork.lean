@@ -2,6 +2,8 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.context
+public import Perennial.GeneratedProof.fmt
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.github_com.jonboulle.clockwork
@@ -125,12 +127,135 @@ variable [sem : go.Semantics]
 variable [package_sem' : github_com.jonboulle.clockwork.Assumptions]
 
 noncomputable instance fakeClockContext_typed_pointsto :
-    TypedPointsto (GF := GF) github_com.jonboulle.clockwork.fakeClockContext :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) github_com.jonboulle.clockwork.fakeClockContext where
+  typedPointstoDef l v dq := iprop(
+    "parent" ∷ typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeClockContext go!"parent" l) v.parent' dq ∗
+    "deadline" ∷ typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeClockContext go!"deadline" l) v.deadline' dq ∗
+    "timerDone" ∷ typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeClockContext go!"timerDone" l) v.timerDone' dq ∗
+    "cancel" ∷ typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeClockContext go!"cancel" l) v.cancel' dq ∗
+    "cancelCalled" ∷ typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeClockContext go!"cancelCalled" l) v.cancelCalled' dq ∗
+    "ctxDone" ∷ typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeClockContext go!"ctxDone" l) v.ctxDone' dq ∗
+    "err" ∷ typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeClockContext go!"err" l) v.err' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance fakeClockContext_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) github_com.jonboulle.clockwork.fakeClockContext github_com.jonboulle.clockwork.fakeClockContext.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) github_com.jonboulle.clockwork.fakeClockContext github_com.jonboulle.clockwork.fakeClockContext.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance fakeClockContext_access_load_parent (l : Loc) (v : github_com.jonboulle.clockwork.fakeClockContext) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeClockContext go!"parent" l) v.parent' dq)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeClockContext go!"parent" l) v.parent' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fakeClockContext_access_store_parent (l : Loc) (v : github_com.jonboulle.clockwork.fakeClockContext) (parent' : context.Context) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeClockContext go!"parent" l) v.parent' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeClockContext go!"parent" l) parent' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with parent' := parent' } : github_com.jonboulle.clockwork.fakeClockContext) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fakeClockContext_access_load_deadline (l : Loc) (v : github_com.jonboulle.clockwork.fakeClockContext) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeClockContext go!"deadline" l) v.deadline' dq)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeClockContext go!"deadline" l) v.deadline' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fakeClockContext_access_store_deadline (l : Loc) (v : github_com.jonboulle.clockwork.fakeClockContext) (deadline' : time.Time) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeClockContext go!"deadline" l) v.deadline' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeClockContext go!"deadline" l) deadline' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with deadline' := deadline' } : github_com.jonboulle.clockwork.fakeClockContext) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fakeClockContext_access_load_timerDone (l : Loc) (v : github_com.jonboulle.clockwork.fakeClockContext) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeClockContext go!"timerDone" l) v.timerDone' dq)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeClockContext go!"timerDone" l) v.timerDone' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fakeClockContext_access_store_timerDone (l : Loc) (v : github_com.jonboulle.clockwork.fakeClockContext) (timerDone' : GoChan) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeClockContext go!"timerDone" l) v.timerDone' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeClockContext go!"timerDone" l) timerDone' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with timerDone' := timerDone' } : github_com.jonboulle.clockwork.fakeClockContext) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fakeClockContext_access_load_cancel (l : Loc) (v : github_com.jonboulle.clockwork.fakeClockContext) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeClockContext go!"cancel" l) v.cancel' dq)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeClockContext go!"cancel" l) v.cancel' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fakeClockContext_access_store_cancel (l : Loc) (v : github_com.jonboulle.clockwork.fakeClockContext) (cancel' : GoFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeClockContext go!"cancel" l) v.cancel' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeClockContext go!"cancel" l) cancel' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cancel' := cancel' } : github_com.jonboulle.clockwork.fakeClockContext) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fakeClockContext_access_load_cancelCalled (l : Loc) (v : github_com.jonboulle.clockwork.fakeClockContext) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeClockContext go!"cancelCalled" l) v.cancelCalled' dq)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeClockContext go!"cancelCalled" l) v.cancelCalled' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fakeClockContext_access_store_cancelCalled (l : Loc) (v : github_com.jonboulle.clockwork.fakeClockContext) (cancelCalled' : GoChan) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeClockContext go!"cancelCalled" l) v.cancelCalled' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeClockContext go!"cancelCalled" l) cancelCalled' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cancelCalled' := cancelCalled' } : github_com.jonboulle.clockwork.fakeClockContext) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fakeClockContext_access_load_ctxDone (l : Loc) (v : github_com.jonboulle.clockwork.fakeClockContext) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeClockContext go!"ctxDone" l) v.ctxDone' dq)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeClockContext go!"ctxDone" l) v.ctxDone' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fakeClockContext_access_store_ctxDone (l : Loc) (v : github_com.jonboulle.clockwork.fakeClockContext) (ctxDone' : GoChan) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeClockContext go!"ctxDone" l) v.ctxDone' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeClockContext go!"ctxDone" l) ctxDone' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ctxDone' := ctxDone' } : github_com.jonboulle.clockwork.fakeClockContext) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fakeClockContext_access_load_err (l : Loc) (v : github_com.jonboulle.clockwork.fakeClockContext) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeClockContext go!"err" l) v.err' dq)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeClockContext go!"err" l) v.err' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fakeClockContext_access_store_err (l : Loc) (v : github_com.jonboulle.clockwork.fakeClockContext) (err' : GoError) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeClockContext go!"err" l) v.err' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeClockContext go!"err" l) err' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := err' } : github_com.jonboulle.clockwork.fakeClockContext) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end fakeClockContext

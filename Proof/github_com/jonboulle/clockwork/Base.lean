@@ -7,6 +7,8 @@ module
 
 public import GeneratedProof.github_com.jonboulle.clockwork
 public import Perennial.Proof.time.Base
+public import Perennial.Proof.fmt.Base
+public import Perennial.Proof.context.Base
 
 @[expose] public section
 

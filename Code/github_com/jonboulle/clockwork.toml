@@ -1,9 +1,13 @@
 # Types and names only: the auto-compactor's clock (`Clock`, `NewRealClock`; the spec-first pilot,
 # notes/compactor-pilot-plan.md). Its methods are a trust boundary.
-translate = ["!*"]
+# (2026-11-20, prove-b64clock) but its two package variables' initializers, so that the package's
+# initializer is translated (`etc/gen-init.py`): `keyClock = contextKey("clock")` and
+# `ErrFakeClockDeadlineExceeded = fmt.Errorf("clockwork.FakeClock: %w", context.DeadlineExceeded)`.
+translate = ["!*", "keyClock", "ErrFakeClockDeadlineExceeded"]
 # `time`: the interfaces' methods name `time.Time` and `time.Duration` (without it, Goose axiomatizes
-# `Clock` as an opaque type, whose values are no interface values).
-imports = ["!*", "time"]
+# `Clock` as an opaque type, whose values are no interface values); `context` and `fmt`: the
+# variables' initializers.
+imports = ["!*", "time", "context", "fmt"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
