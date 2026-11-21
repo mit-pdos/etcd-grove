@@ -203,6 +203,21 @@ theorem walDecFile_ok
       exact ⟨hpure, hkx⟩
     isplitl []
     · iunfold io.errAt
+      isplitr
+      rotate_left
+      · -- the error is well-typed: `nil`, `io.EOF`'s `*errorString` or a `*PathError`
+        ihave #Hio : isPkgInit (PROP := IProp GF) pkg_id.io $$ []
+        · iPkgInit
+        ihave Hi := _root_.Perennial.io.isInit_access $$ Hio
+        icases Hi with ⟨-, -, -, -, #HE, -⟩
+        iunfold errors.newVar at HE
+        icases HE with ⟨%xe, #HE, -⟩
+        icombine Heof HE gives %heq
+        ipureintro
+        rcases Hc with h | ⟨-, -, rfl⟩ | ⟨pe, rfl⟩
+        · rw [h]; exact _root_.Perennial.io.ptrTyped_nil
+        · rw [heq]; intro ii T h _; cases h; exact ⟨xe, rfl⟩
+        · intro ii T h _; cases h; exact ⟨pe, rfl⟩
       by_cases hne : err = GoInterface.nil
       · ileft; ipureintro; exact hne
       iright
