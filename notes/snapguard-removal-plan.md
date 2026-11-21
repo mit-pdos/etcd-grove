@@ -26,6 +26,36 @@ configuration and the legacy term to the committed prefix, including
 after a power loss.
 [Replay issue and regression](../issues/etcd-merged-snapshot-replay-failure.md).
 
+### Replay proof handoff, November 21
+
+The public Grove pin removes the index comparison at `7bc6d14671`; the
+replay report and its failing test are on `lean` at `044d40223c`.
+The replay fork still needs its own successful server build and gates.
+The VM checked the constructor that carries the initial replay-term slice
+into `raftNodeConfig`. It also checked that cutting an overwritten term
+range or joining adjacent equal-term ranges preserves earlier lookups.
+
+Three obligations still need proofs.
+
+1. At startup and at each Ready, connect the immutable ranges supplied to
+   this apply job to Raft's log. The translated `raftNode.start` now reads
+   and clears `initialReplayTerms` before its loop, then updates the ranges
+   as it builds the job.
+2. Read the configuration from the frozen image. The missing-key branch
+   of `schema.UnsafeConfStateFromBackend` is checked, including returning
+   the snapshot share to the streaming reader. The present-key branch
+   decodes a `raftpb.ConfState`; the legacy fallback decodes a
+   `*membership.Member`. The current `json.Unmarshal` contract only covers
+   `membership.ConfigChangeContext`. The existing ConfState writer contract
+   bounds the serialized length; it does not identify the serialized
+   configuration. The installed format and each read must agree.
+3. Retain the historical quorum certificate for the durable backend index.
+   `committedAtTerm_mono_term` transports that certificate to a later
+   term. The existing graceful-restart contract takes `i ≤ σ.commit`;
+   the disk state in the regression has `i = 7` and `σ.commit = 3`.
+   The proof has to connect the actual persisted history and the leader
+   term without this inequality.
+
 ## The two MemoryStorage writers and the apply job
 
 Bootstrap now allocates the saved node location before starting Raft and
