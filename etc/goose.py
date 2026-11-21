@@ -512,6 +512,8 @@ PROJECTS = [
             "go.etcd.io/etcd/client/v3/kubernetes",
             # names only: grpc's logger, which the etcd3 store names (project k8s-apiserver)
             "google.golang.org/grpc/grpclog",
+            # (prove-k8s3, 2026-11-21) types only: the interface grpclog's `LoggerV2` names
+            "google.golang.org/grpc/grpclog/internal",
             "go.etcd.io/etcd/api/v3/etcdserverpb",
             "go.etcd.io/etcd/api/v3/mvccpb",
             "go.etcd.io/etcd/api/v3/v3rpc/rpctypes",
