@@ -36,29 +36,57 @@ theorem auth.authStore.selectPassword.wp_proof
   ihave #Hb64 : isPkgInit (PROP := IProp GF) pkg_id.encoding.base64 $$ []
   · iPkgInit
   ihave ⟨%e, #He, #Hdec⟩ := encoding.base64.stdDecInit_access $$ Hb64
+  ihave #Hbc : isPkgInit (PROP := IProp GF) pkg_id.golang_org.x.crypto.bcrypt $$ []
+  · iPkgInit
   try wp_auto
   wp_if_destruct
-  · -- `password != ""`
-    wp_if_destruct
-    · -- `hashedPassword == ""`: hashed with bcrypt
-      trace_state
-      sorry
-    · -- decoded
-      try wp_auto
-      wp_apply Hdec as %b %err %bs Hb %Herr
-      try wp_auto
-      imod ownSlice_persist b _ _ $$ Hb with #Hb
-      iapply HΦ
-      iexists bs; iframe Hb; ipureintro
-      intro hp; exact absurd hp (by assumption)
   · -- `password == ""`: decoded
     try wp_auto
-    wp_apply Hdec as %b %err %bs Hb %Herr
-    try wp_auto
+    wp_bind (App (Val _) (Val _))
+    iapply Hdec
+    inext
+    iintro %b %err %bs Hb %Herr
     imod ownSlice_persist b _ _ $$ Hb with #Hb
+    try wp_auto
     iapply HΦ
     iexists bs; iframe Hb; ipureintro
     intro _ hx; exact Herr hx
+  · -- `password != ""`
+    have hpw := Hif
+    wp_if_destruct
+    · -- `hashedPassword == ""`: hashed with bcrypt
+      try wp_auto
+      wp_apply wp_string_to_bytes password as %psl ⟨Hpsl, -⟩
+      try wp_auto
+      wp_bind (App (App (Val _) (Val _)) (Val _))
+      iapply h_gen $$ [Hpsl]
+      · iframe; iPkgInit
+      inext
+      iintro %h %err ⟨Hpsl, Hor⟩
+      icases Hor with (⟨%ei, %Hei, #Hm, %Hnil⟩ | ⟨%Hnil, %hs, Hh⟩)
+      · subst Hnil
+        try wp_auto
+        iapply HΦ
+        iexists []
+        isplitr
+        · iapply ownSlice_nil
+        ipureintro; intro hp; exact absurd hp (by simpa using hpw)
+      · imod ownSlice_persist h _ _ $$ Hh with #Hh
+        try wp_auto
+        iapply HΦ
+        iexists hs; iframe Hh; ipureintro
+        intro hp; exact absurd hp (by simpa using hpw)
+    · -- decoded
+      try wp_auto
+      wp_bind (App (Val _) (Val _))
+      iapply Hdec
+      inext
+      iintro %b %err %bs Hb %Herr
+      imod ownSlice_persist b _ _ $$ Hb with #Hb
+      try wp_auto
+      iapply HΦ
+      iexists bs; iframe Hb; ipureintro
+      intro hp; exact absurd hp (by simpa using hpw)
 
 end proof
 
