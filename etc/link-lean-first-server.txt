@@ -680,7 +680,7 @@ bootstrappedRaft__newRaftNode: =srvApi_wp_StartNode =srvApi_wp_RestartNode newRa
 # 2026-10-16, D13 and D13a-d: InvBuild.lean, InvBoot.lean, BuildAlloc.lean, BuildGap.lean).
 # `NewServer`, `restoreAlarms` and `NewUberApplier` with their bodies (their proofs unit N1's);
 # the trust boundary (`axiom … .wp_proof`): the names-only callees whose contracts only say they
-# return (the stats, the cluster's `String`/`SetVersionChangedNotifier`, `URLs.StringSlice`,
+# return (the stats, the cluster's `String`/`SetVersionChangedNotifier`,
 # `PeerDialTimeout`, `addFeatureGateMetrics`, `newCorruptionChecker`, mvcc's
 # `store.HashStorage`, `math.Ceil`; schema's auth and alarm backends' constructors proved from
 # their bodies since unit N4, 2026-10-17); and the constructors' contracts, axioms true of
@@ -697,7 +697,8 @@ zap_NewNop: @
 v2stats_NewLeaderStats: zap_NewNop
 membership_RaftCluster__String:
 membership_RaftCluster__SetVersionChangedNotifier:
-types_URLs__StringSlice:
+# `URLs.StringSlice` translated and proved (prove-ps2-misc, 2026-11-21), over `url.URL.String`'s spec.
+types_URLs__StringSlice: =http.URLStringAny_ok
 config_ServerConfig__PeerDialTimeout:
 addFeatureGateMetrics:
 newCorruptionChecker:
@@ -993,10 +994,10 @@ v3_Version__Major:
 v3_Version__Minor:
 v3_MustParse:
 v3_Version__LessThan:
-binary_ReadUint64:
+binary_ReadUint64: =_root_.Perennial.encoding.binary.bigEndian.wp_Uint64
 proto_UnmarshalPb:
 proto_SizePb: @
-binary_WriteUint64:
+binary_WriteUint64: =_root_.Perennial.encoding.binary.bigEndian.wp_PutUint64
 pbutil_MustMarshalMessage: proto_MarshalPb
 raftpb_Message__GetIndex: @
 raftpb_Message__GetTerm: @

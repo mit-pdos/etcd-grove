@@ -663,6 +663,9 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                  "--server": ["Proof.net.http.Axioms", "Perennial.Proof.time.Link",
                               "Perennial.Proof.sync.Link", "Perennial.Proof.context.Link",
                               "Perennial.Proof.strings.Link",
+                              # (stdlib4, 2026-11-21) `binary.Read`/`Write`'s fast path proved over
+                              # Perennial's byte orders (`=_root_.Perennial.encoding.binary.*`)
+                              "Perennial.Proof.encoding.binary.Link",
                               # (prove-authcrypto, 2026-11-21) the simple token provider's
                               # `genTokenPrefix`'s callees (`=` terms)
                               "Perennial.Proof.crypto.rand.Link", "Perennial.Proof.math.big.Link",

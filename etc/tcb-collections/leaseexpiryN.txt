@@ -76,7 +76,6 @@ axiom Perennial.net.http.opaqueInitsOk
 axiom Perennial.net.opaqueInitsOk
 axiom Perennial.net.url.opaqueInitsOk
 axiom Perennial.path.filepath.opaqueInitsOk
-axiom Perennial.reflect.opaqueInitsOk
 axiom Perennial.runtime.GOARCH_amd64
 axiom Perennial.runtime.GOOS_linux
 axiom Perennial.runtime.initFuncsOk
@@ -91,8 +90,6 @@ axiom apply.memberEnc_id_learner
 axiom auth.NewAuthStore.wp_proof
 axiom auth.newTokenProviderJWT.wp_proof
 axiom backend.backend.Snapshot.wp_proof
-axiom binary.ReadUint64.wp_proof
-axiom binary.WriteUint64.wp_proof
 axiom binary.WriteUint8.wp_proof
 axiom bufferM.ownBuffer_new
 axiom bytes.Buffer.Write.wp_proof
@@ -323,7 +320,6 @@ axiom txn.WarnOfExpensiveRequest.wp_proof
 axiom txn.WarnOfFailedRequest.wp_proof
 axiom types.IDFromString.wp_proof
 axiom types.NewURLs.wp_proof
-axiom types.URLs.StringSlice.wp_proof
 axiom v2stats.FollowerStats.Succ.wp_proof
 axiom v2stats.NewServerStats.wp_proof
 axiom v2stats.ServerStats.BecomeLeader.wp_proof
