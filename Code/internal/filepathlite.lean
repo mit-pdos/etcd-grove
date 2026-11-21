@@ -385,7 +385,7 @@ noncomputable def FromSlash.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.untypedRune))) (Pair (Val Separator) (Val #(47 : Int)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (Val #true))
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
