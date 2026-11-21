@@ -93,8 +93,6 @@ axiom reflect.Value.Len.wp_proof
 axiom reflect.Value.Set.wp_proof
 axiom reflect.Value.Type.wp_proof
 axiom reflect.ValueOf.wp_proof
-axiom reflectM.type_intoVal_inj
-axiom reflectM.type_into_val_typed
 axiom reflectM.value_intoVal_inj
 axiom reflectM.value_into_val_typed
 axiom resolver.EtcdManualResolver.Close.wp_proof
@@ -109,11 +107,8 @@ axiom strconv.FormatInt.wp_proof
 axiom strconv.ParseInt.wp_proof
 axiom streamKeyFromCtx.wp_proof
 axiom strings.Contains.wp_proof
-axiom strings.HasSuffix.wp_proof
 axiom strings.SplitN.wp_proof
-axiom strings.TrimSuffix.wp_proof
 axiom time.Duration.Seconds.wp_proof
-axiom time.Time.IsZero.wp_proof
 axiom tracing.Span.AddEvent.wp_proof
 axiom tracing.Span.End.wp_proof
 axiom tracing.Start.wp_proof

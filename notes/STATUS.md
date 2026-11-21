@@ -3363,7 +3363,8 @@ keeps `InOrderInformersBatchProcess` on, so the informers take the batch path.
   (`Type'_typed_pointsto`, `Type'_into_val_typed`): `reflect` is names-only in Perennial and the
   `Reflector` struct has a `reflect.Type` field, so its instances rest on them
   (`notes/perennial-changes.md`, "`reflect.Type` in a struct field"). Baselines updated deliberately
-  (`etc/tcb-baseline.txt`, `clientgo-cache`, `clientgo-informers`).
+  (`etc/tcb-baseline.txt`, `clientgo-cache`, `clientgo-informers`). (Both gone 2026-11-20, group `reflecttype`:
+  Perennial `090fdac23` translates the interface type `reflect.Type`.)
 - **The informer contract, started** (`InformerContract.lean`, `InformerRel.lean`,
   `InformerInv.lean`, `InformerGlue.lean`; all proved, no axiom, no `sorry`, checked with
   `#print axioms`). The model: an informer's state `InfP` (the store's view, the popped deltas, the

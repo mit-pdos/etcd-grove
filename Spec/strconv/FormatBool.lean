@@ -1,5 +1,6 @@
 /-
-`strconv.FormatBool`: the trust boundary (Perennial translates `strconv` names-only). Lean-first (no Rocq counterpart); the request path
+`strconv.FormatBool`: proved (`Proof/strconv/FormatBool.lean`) over Perennial's translation of Go's
+(2026-11-20; until then a trust-boundary axiom). Lean-first (no Rocq counterpart); the request path
 (`notes/decisions.md`, "The request path").
 -/
 module

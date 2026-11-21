@@ -1,7 +1,9 @@
 /-
-`strconv.ParseBool(str)` (names-only in Perennial): the boolean `str` spells, or an error; the
-spec says it returns some boolean and error. The trust boundary: an axiom, `Proof/strconv/ParseBool.lean`. Lean-first (no Rocq
-counterpart).
+`strconv.ParseBool(str)`: the boolean `str` spells, or an error; the spec says it returns some
+boolean and error. Proved (`Proof/strconv/ParseBool.lean`) over Perennial's translation of Go's
+(2026-11-20; until then a trust-boundary axiom, with no premise): on an error it reads `strconv`'s
+`ErrSyntax`, so it needs `strconv`'s `isPkgInit` (the initializer that calls it has it). Lean-first
+(no Rocq counterpart).
 -/
 module
 
@@ -26,7 +28,7 @@ variable [sem : go.Semantics]
 /-- See the file header. -/
 abbrev strconv.ParseBool.spec : Prop :=
   ∀ (str : GoString),
-  {{ (True : IProp GF) }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.strconv }}
     (App (Val (@! strconv.ParseBool)) (Val #str))
   {{ (b : Bool) (err : GoInterface), RET (PairV #b #err); True }}
 
