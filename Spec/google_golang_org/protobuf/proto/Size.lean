@@ -2,7 +2,14 @@
 `proto.Size`: the trust boundary (`google.golang.org/protobuf` is names-only), a case per message
 type sized (as `proto.Clone`'s). Lean-first.
 
-`proto.Size(m)` returns the length of `m`'s encoding, an `int` at least `0`; it reads the
+`proto.Size(m)` returns the length of `m`'s encoding as an `int`, summed with Go's wrapping `int`
+additions (`internal/impl/encode.go`, as `proto.SizePb`'s docstring says): at least `0` only when
+the true size is below `2^63`. That holds of a put request (two byte slices and scalars: memory
+bounds it), but not of the two responses, whose key-values (and a transaction's range responses)
+are read-only pointers that may be shared: their sizes say nothing of the result (2026-11-20,
+`notes/axiom-review/proto-size-wrap.md`: a shared `*KeyValue` with a large value, `2^30` times in a
+range response or `2^15 x 2^15` times through a transaction's responses, makes Go's
+`proto.Size` negative; until then the spec claimed `0 <= n` of both, which no caller used). It reads the
 message's fields (and its sub-messages') and stores the sizes in their size caches with atomic
 stores (protobuf-go's `sizecache`). The cases:
 
@@ -44,8 +51,9 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `proto.Size(m)`: a size, at least `0`, of a put request; of a range response (its header's
-id fields lent); of a read-only transaction's response (its header's id fields lent). -/
+/-- `proto.Size(m)`: a size, at least `0`, of a put request; some `int` of a range response (its
+header's id fields lent) and of a read-only transaction's response (its header's id fields lent),
+whose sizes may wrap (the file header). -/
 abbrev proto.Size.spec : Prop :=
   (∀ (p : Loc) (o : OpFull),
     {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ txn.putRequestIs p o }}
@@ -58,14 +66,14 @@ abbrev proto.Size.spec : Prop :=
         txn.respHdrOwn (structFieldRef etcdserverpb.RangeResponse go!"Header" r) }}
       (App (Val (@! proto.Size))
         (Val #(interface.mkOk (go.GoType.PointerType etcdserverpb.RangeResponse.ty) #r)))
-    {{ (n : w64), RET #n; ⌜0 ≤ sint.Z n⌝ ∗
+    {{ (n : w64), RET #n;
         txn.respHdrOwn (structFieldRef etcdserverpb.RangeResponse go!"Header" r) }}) ∧
   (∀ (r : Loc),
     {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗
         txn.roTxnRespRd r ∗ txn.respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" r) }}
       (App (Val (@! proto.Size))
         (Val #(interface.mkOk (go.GoType.PointerType etcdserverpb.TxnResponse.ty) #r)))
-    {{ (n : w64), RET #n; ⌜0 ≤ sint.Z n⌝ ∗
+    {{ (n : w64), RET #n;
         txn.respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" r) }})
 
 end spec
