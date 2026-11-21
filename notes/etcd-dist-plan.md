@@ -228,6 +228,16 @@ Root: a root with `CAP_NET_ADMIN` runs namespaces directly; a container's root r
 user namespace (bridge variant, kills only); a non-root reruns by `sudo -n`, or falls back to the
 local mode (one loopback address, kills only).
 
+**Results (2026-11-21, this machine: a container's root, so the bridge variant, kills with sync, no
+power losses, no resets).** Two full runs passed, 12 and 16 random deployments (the second after
+`awaitCluster`): no panic, no member exiting on its own, every client done. The second: 118 kills,
+69 partitions (17 one way, 29 isolating a machine), 37 link faults, in 316 s; checks ran in 28 of
+33 workloads (kv 3/3, watch 2/2, cache 2/2, compact 4/4, putget 1/1, durable 3/3, leaseRead 6/6,
+leaseCatchup 4/5, leaseExpiry 1/1, auth 1/6: the others ended in a barrier, root's last Put or its
+history watch under the faults). authLease ran only in the first run (four times), always ending in
+its set-up (before `awaitCluster`). Not exercised here: power losses (no device mapper), resets.
+No check failed, and no bug in etcd was found.
+
 ## 3. The configuration set
 
 `ServerCfg = {compactor : off | revision r | periodic p, snapCount, catchUp, auth : Bool}`, the same at
