@@ -1,5 +1,20 @@
 # Removing the merged snapshot's index guard (plan, 2026-11-20)
 
+## The two MemoryStorage writers and the apply job
+
+Bootstrap now allocates the saved node location before starting Raft and
+fills it with the actual node afterwards. A restart tags its initial image
+at the WAL base. The driver attaches the receipt for the installed index
+to `ApplySnapshot`. The apply thread attaches its applied-index lower
+bound to `CreateSnapshot`. Compaction preserves the same storage invariant.
+
+The apply job uses the outgoing channel from the node that produced its
+Ready. The run loop supplies the exact delivered length of that Ready
+and the boot snapshot bound. The successful merge can compare the index
+against its applied-index authority after the first Go step, including
+when the outbox and apply job refer to different Ready batches.
+
+
 ## Server proof at the two channels
 
 Raft’s outgoing Ready observation now travels with the specific message in

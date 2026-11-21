@@ -2,8 +2,8 @@
 
 The WAL upgrade and both bbolt guard fixes are on `lean`. The two snapshot
 checks in `applyAll` are still in the Go pin. The server proof now carries
-both Ready observations through its channels. The storage attachment and
-the two writers still need to supply the source tag. See
+both Ready observations through its channels. Bootstrap and both
+writers now supply the source tag on the snapshot proof branch. See
 [the snapshot handoff](snapguard-removal-plan.md).
 
 

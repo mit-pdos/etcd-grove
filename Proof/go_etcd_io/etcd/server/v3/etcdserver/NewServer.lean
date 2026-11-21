@@ -1114,7 +1114,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   wp_apply h37 as -
   · iframe Hcid
   (try wp_auto)
-  obtain ⟨Hrn1, Hrn5, Hrn6, Hrn7, Hrn8, Hrnν, Hrnss, Hrna0, Hrn10, Hrn11, Hrn12, Hrn13, Hrn14⟩ := Hrnames
+  obtain ⟨Hrn1, Hrn5, Hrn6, Hrn7, Hrn8, Hrnν, Hrnss, Hrna0, HrnSnapZero, Hrn10, Hrn11, Hrn12, Hrn13, Hrn14⟩ := Hrnames
   -- (2026-10-27) the cluster's kind, at the wrapper's names
   ihave #Hkind : srvClusterOk γrn.srv $$ []
   · ihave #Hsrl' := Hsrl
@@ -1604,11 +1604,12 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iexact HM
   · iexact Hrtm
   -- (D17d) `run`'s snapshot contract, from the storage's snapshot token
-  ihave Hgap : srvBuildGap s γrn (W64 0) (W64 0) $$ [Hsnone]
+  ihave Hgap : srvBuildGap s γrn ρ.rd.applied (W64 0) (W64 0) $$ [Hsnone]
   · iunfold srvBuildGap
     rw [Hrn8, show γrn.node.reg = MemStorReg.memStorRegName (GF := GF) by rw [Hrn1]; rfl]
-    iapply rnSnapOnce_of_tok h85 _ γrn (srvRAddr s) bv.storage' γs Hrn7 $$ Hpkg Hrn [] Hsnone
-    rw [Hrn1]; iexact Hminv
+    ihave Honce := rnSnapOnce_of_tok h85 _ γrn (srvRAddr s) bv.storage' γs Hrn7 HrnSnapZero $$ Hpkg Hrn [] Hsnone
+    · rw [Hrn1]; iExactEq Hminv; rfl
+    iExactEq Honce; rfl
   ihave #Hrn' := Hrn
   iunfold isRaftNode at Hrn'
   iNamedPrefix Hrn' "N"
