@@ -7,8 +7,9 @@
 // snapshot, which member 3 installs (applySnapshot, its lessor recovered from the snapshot's lease
 // bucket). Main panics if member 3, once it lists the last filler (it has caught up), does not list
 // the lease granted through it; the theorem to prove is that it does not, under the deployment
-// premise that no lease granted in the run expires before the run ends (the TTL is an hour; the run
-// takes seconds).
+// premise that no lease granted in the run expires before the run ends (the TTL is etcd's
+// MaxLeaseTTL, about 285 years, so that the premise holds however long the process runs, also when
+// examples/etcd/all runs this example beside unbounded workloads).
 //
 // Each client is of one member (etcdstart.NewClients of that member's bridge), not of the cluster:
 // a member's listing reads only its own lessor (LeaseLeases), and a grant's spec is per member.
@@ -55,8 +56,11 @@ const (
 	SnapCatchUp uint64 = 1
 )
 
-// The TTL every lease is granted with, in seconds: far longer than the run.
-const grantTTL = 3600
+// The TTL every lease is granted with, in seconds: etcd's lease.MaxLeaseTTL, the largest Grant
+// accepts (lessor.go refuses only a TTL above it), so that no lease of the run ever expires, however
+// long the process runs (examples/etcd/all's etcd_safe composes this example with workloads of any
+// length, under the one process-wide premise lease.leasesNoExpiry).
+const grantTTL = 9000000000
 
 // The number of filler grants made while member 3 is cut off (see the test for why it suffices).
 const fillers = 20

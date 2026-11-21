@@ -413,7 +413,8 @@ eleven packages' `Assumptions` (`synthInstance.maxSize` already 4096). R3 the di
   ```
   (n : Nat)
   (Hprem₁ : ∀ hG, ⊢ etcd_txnlinfaultsN.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) k₁ n ids₁ ps₁ ctxs₁ boot₁)
-  … (the eleven `Hprem…` of the spec, each at this `n` instead of `∀ n`) …
+  … (the eleven `Hprem…` of the spec, each at this `n` instead of `∀ n, n + 12 ≤ 2 ^ 40 → …`; the spec's
+  premise, applied to `n` and `Hn`, gives it) …
   (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
   (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (etcdDirs k₁ k₂ k₃ k₄ k₅))
   (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
@@ -434,3 +435,16 @@ eleven packages' `Assumptions` (`synthInstance.maxSize` already 4096). R3 the di
   authlease); one `HWal` over `etcdDirs`; `Hprem…` per cluster at one `n`; the two schedules and the three
   workloads independent; cluster variables named by part (`ids₁…ids₅` with `k₁…k₅`, `pid₁₋₃`, `lid₁₋₃`,
   `cwId`, `cId`, `kvId`, `rId`).
+
+### 8.3 The spec review's F1-F5 (approved by the user, 2026-11-21; review `/shared/tmp/etcdall-e2/review.md`)
+
+- F1: authlease (`Lz`, `Lu`, the refused grants) and leasecatchup (`g1`, the fillers) grant with etcd's
+  `MaxLeaseTTL` (9000000000 s; `lessor.Grant` refuses only `ttl > MaxLeaseTTL`, `lessor.go:286`;
+  `refresh`'s `extend + ttl·1s` stays below 2^63 ns), so `lease.leasesNoExpiry` holds of every run of
+  `etcdall`, however long. Neither driver reads the TTL back except leasecatchup's `TestLeasesNoExpiry`
+  (against the constant). The Lean constants `authlease.grantTTLv`, `etcd_leasecatchup.grantTTL` follow.
+  No other part of `etcd_all` grants a lease (leaseN only lists and reads lease 7, which it never grants).
+- F2, F4: `etcd_robust.spec`'s header states what the retired theorems lose and the file semantics'
+  no-I/O-error and descriptor-limit assumptions at the bounds (2,210 members).
+- F3: the idutil trusted docstring names `examples/etcd/all`'s `Hlow`.
+- F5: the spec's `Hprem…` are guarded by `n + 12 ≤ 2 ^ 40` (as k8s/all's by its bound).

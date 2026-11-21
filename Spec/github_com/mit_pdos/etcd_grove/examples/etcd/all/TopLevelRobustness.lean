@@ -23,17 +23,37 @@ once, eleven etcd examples, each on a cluster of its own, in four parts:
 
 Each panics if its check fails; so no check fails, for every `1 ≤ k₁ ≤ 1000`, every `1 ≤ k₂, k₃, k₄ ≤ 300`,
 every `3 ≤ k₅ ≤ 300`, every two schedules and every workload within the bounds. It is to replace the
-drivers' own closed theorems and the single examples' theorems they subsume (stage E4). leaseexpiryN is
-not in it (N1): its leases expire, which authlease's and leasecatchup's premise `lease.leasesNoExpiry`
-(about every lessor of the process) excludes; it keeps its own theorem. This file only states it (to
-audit); the proof is to be in `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/all/TopLevelRobustness.lean`.
+drivers' own closed theorems and the single examples' theorems they subsume (stage E4). What the
+replaced theorems claimed and this one does not: authN's, authlease's, leaseN's and restartN's own
+theorems claimed `k ≤ 1000`; here they run on at most 300 members (the user's decision N2: with the
+tokens searched for `Hlow`, their `BootFacts` is checked only to 300 anyway); and partition's `Main`
+theorem (porcupine's check of its workload on three members under a partition schedule) has no part
+of its own: txnlinfaultsN runs the same workload and schedule, and covers it at `k₁ = 3`. leaseexpiryN is not in it (N1): its leases expire, which authlease's and leasecatchup's
+premise `lease.leasesNoExpiry` (about every lessor of the process) excludes; it keeps its own theorem.
+That premise is true of every run of this program, however long: authlease and leasecatchup, its only
+drivers that grant leases, grant them with etcd's `MaxLeaseTTL` (9000000000 s, about 285 years).
+
+**What the file semantics assumes** (`etcdFsExts`, `Proof/.../examples/lib/etcdstart/FsExts.lean`, and
+the file extension's `GooseLang/Ext/Fs/Impl.lean`; not premises of the statement, part of the
+semantics it is stated over): no file operation fails with an I/O error (no `ENOSPC`, no `EIO`), and at
+every `open(2)` the process holds fewer descriptors than its `RLIMIT_NOFILE`. At the bounds the process
+runs up to 2,210 members in one process, so a deployment the theorem describes has room for every
+member's WAL (each preallocates a 64 MB segment, `wal.SegmentSizeBytes`: about 141 GB at the bounds,
+plus the members' bbolt files) and a descriptor limit above all members' files and sockets (rafthttp
+keeps several connections per ordered pair of a cluster's members, so `k₁ = 1000` alone needs millions
+of descriptors). A run that runs out of either is outside the semantics, and the theorem says nothing
+of it; measured only at `k = 3` (`TestMainRun`).
+
+This file only states it (to audit); the proof is to be in
+`Proof/github_com/mit_pdos/etcd_grove/examples/etcd/all/TopLevelRobustness.lean`.
 
 **The premises** are the union of the composed drivers' theorems': each cluster's member ids and
 bootstrap log (`BootFacts`; authlease's ids also apart in 15 bits, `Hap`), the server's opaque workload and
 environment premises once (`Haf`, `Hbuq`, `Hrf`, `Hdbo`), the lease premises of leaseN, authlease and
 leasecatchup once (`Hlp`, `Hlne`), the three workloads' bounds, the schedules' lengths, the program's
 metric names, addresses and data directories (all clusters', concatenated), `ETCD_VERIFY` off, each
-cluster's named premises (`Hprem…`, at one step bound `n`), the file system's initial state and the
+cluster's named premises (`Hprem…`, at every step bound `n` with `n + 12 ≤ 2 ^ 40`, the bound the proof
+uses), the file system's initial state and the
 members' WAL areas (`HWal`, all clusters'); and one premise of the composition, `Hlow`: the 16 low bits of
 the ids of the process's every member (all eleven clusters') are distinct, the precondition of the
 trusted model of etcd's request-id generator (`TrustedCode/go_etcd_io/etcd/pkg/v3/idutil.lean`: no two
@@ -165,29 +185,29 @@ def etcd_robust.spec : Prop :=
       (etcdDirs k₁ k₂ k₃ k₄ k₅))
     (HEnv : verifyEnvOff (etcdProgram k₁ clients ops steps₁ nw nops steps₂ cnw cnops k₂ k₃ k₄ k₅))
     -- each cluster's named premises
-    (Hprem₁ : ∀ n : Nat, ∀ hG : HeapGS .hasLC etcdGF,
+    (Hprem₁ : ∀ n : Nat, n + 12 ≤ 2 ^ 40 → ∀ hG : HeapGS .hasLC etcdGF,
       ⊢ etcd_txnlinfaultsN.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) k₁ n ids₁ ps₁ ctxs₁ boot₁)
-    (HpremP : ∀ n : Nat, ∀ hG : HeapGS .hasLC etcdGF,
+    (HpremP : ∀ n : Nat, n + 12 ≤ 2 ^ 40 → ∀ hG : HeapGS .hasLC etcdGF,
       ⊢ etcd_partition.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) n pid₁ pid₂ pid₃ psP ctxsP
           bootP)
-    (HpremCW : ∀ n : Nat, ∀ hG : HeapGS .hasLC etcdGF,
+    (HpremCW : ∀ n : Nat, n + 12 ≤ 2 ^ 40 → ∀ hG : HeapGS .hasLC etcdGF,
       ⊢ etcd_compactwatch.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) n cwId ctxsCW bootCW)
-    (HpremC : ∀ n : Nat, ∀ hG : HeapGS .hasLC etcdGF,
+    (HpremC : ∀ n : Nat, n + 12 ≤ 2 ^ 40 → ∀ hG : HeapGS .hasLC etcdGF,
       ⊢ etcd_compacted.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) n cId ctxsC bootC)
-    (HpremK : ∀ n : Nat, ∀ hG : HeapGS .hasLC etcdGF,
+    (HpremK : ∀ n : Nat, n + 12 ≤ 2 ^ 40 → ∀ hG : HeapGS .hasLC etcdGF,
       ⊢ etcd_cache.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) n kvId ctxsK bootK)
-    (Hprem₂ : ∀ n : Nat, ∀ hG : HeapGS .hasLC etcdGF,
+    (Hprem₂ : ∀ n : Nat, n + 12 ≤ 2 ^ 40 → ∀ hG : HeapGS .hasLC etcdGF,
       ⊢ etcd_authN.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) k₂ n ids₂ ps₂ ctxs₂ boot₂)
-    (Hprem₃ : ∀ n : Nat, ∀ hG : HeapGS .hasLC etcdGF,
+    (Hprem₃ : ∀ n : Nat, n + 12 ≤ 2 ^ 40 → ∀ hG : HeapGS .hasLC etcdGF,
       ⊢ etcd_authlease.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) k₃ n ids₃ ps₃ ctxs₃ boot₃)
-    (Hprem₄ : ∀ n : Nat, ∀ hG : HeapGS .hasLC etcdGF,
+    (Hprem₄ : ∀ n : Nat, n + 12 ≤ 2 ^ 40 → ∀ hG : HeapGS .hasLC etcdGF,
       ⊢ etcd_leaseN.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) k₄ n ids₄ ps₄ ctxs₄ boot₄)
-    (HpremL : ∀ n : Nat, ∀ hG : HeapGS .hasLC etcdGF,
+    (HpremL : ∀ n : Nat, n + 12 ≤ 2 ^ 40 → ∀ hG : HeapGS .hasLC etcdGF,
       ⊢ cluster3.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) etcd_leasecatchup.clusterCfg n
           lid₁ lid₂ lid₃ psL ctxsL bootL)
-    (Hprem₅ : ∀ n : Nat, ∀ hG : HeapGS .hasLC etcdGF,
+    (Hprem₅ : ∀ n : Nat, n + 12 ≤ 2 ^ 40 → ∀ hG : HeapGS .hasLC etcdGF,
       ⊢ etcd_restartN.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) k₅ n ids₅ ps₅ ctxs₅ boot₅)
-    (HpremR : ∀ n : Nat, ∀ hG : HeapGS .hasLC etcdGF,
+    (HpremR : ∀ n : Nat, n + 12 ≤ 2 ^ 40 → ∀ hG : HeapGS .hasLC etcdGF,
       ⊢ etcd_restart1.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) n rId ctxsR bootR)
     (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
