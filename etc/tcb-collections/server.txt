@@ -78,7 +78,7 @@ axiom encoding.json.MarshalMember.wp_proof
 axiom encoding.json.Unmarshal.wp_proof
 axiom entryEncC_ok
 axiom envVerifyOffTok
-axiom errors.AsLeafTy.wp_proof
+axiom errors.AsNoMatch.wp_proof
 axiom errors.IsCtxErr.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom etcdserverpb.AlarmType.String.wp_proof
