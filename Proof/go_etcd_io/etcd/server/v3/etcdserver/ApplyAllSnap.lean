@@ -49,7 +49,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
     (hSINC : EtcdServer.snapshotIfNeededAndCompactRaftLog.specNoop (GF := GF) (hG := hG))
     -- the merge branch, as `wp_proofOn`'s
     (hGT : raftpb.Message.GetTerm.spec (GF := GF) (hG := hG))
-    (hCM : EtcdServer.createMergedSnapshotMessage.spec (GF := GF) (hG := hG))
+    (hCM : EtcdServer.createMergedSnapshotMessage.specCaughtUp (GF := GF) (hG := hG))
     (hSMS : EtcdServer.sendMergedSnap.spec (GF := GF) (hG := hG))
     -- (restart3 A1, 2026-11-15) the fork's window guard and the report of a dropped merged snapshot
     (hCI : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG))
@@ -80,7 +80,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
     rw [hon] at hch ⊢
     simp only [srvApplyKVM_false, kvAppliedM_false, isServerM_false, srvRestRpM_false, srvRestM_false]
     wp_start as ⟨#Hsrv, #Hsa, #Hnid, #Hes, #Hesl, #Hsnf, Hsnv, ⟨#Hcert, #Hsloc⟩, #Hncf, #Hnc2, Hnr0,
-      #Hracf, #Hracc, #Hrtf, #Hrt, #Hmerge, Hcursor, Hai, Hat, Hcs, Hss, Hst, Hbe, Happ, Hlr, Hgr, Hrdk, Hbr, HKV, Hao, #Hlog,
+      #Hracf, #Hracc, #Hrtf, #HreplayField, #Hrt, #Hmerge, Hcursor, Hai, Hat, Hcs, Hss, Hst, Hbe, Happ, Hlr, Hgr, Hrdk, Hbr, HKV, Hao, #Hlog,
       #HW, HWA, Hka, HRS, HAR, #Hkv, HwalT, Hso, #HmetaSnap⟩
     icases srvApRes_cfg_size s γr _ $$ HAR with ⟨HAR, %hsz20⟩
     ihave #Hsrv' := Hsrv
@@ -468,28 +468,9 @@ theorem EtcdServer.applyAll.wp_proofSnapM
           (try wp_auto)
           wp_if_destruct
           · -- The message belongs to the term of this apply batch.
-            ihave ⟨Hcursor, %hidxRaft⟩ := Hidx $$ %(by trivial) Hcursor
+            ihave ⟨Hcursor, %hidxRaft⟩ := Hidx $$ %True.intro Hcursor
             (try wp_auto)
-            -- (restart3 A1) the fork's window guard: false at the snapshot's index (the consistent index the
-            -- snapshot's, `hci'`)
-            ihave #Hcipkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex $$ []
-            · iPkgInit
-            ihave #Hsci2 := Hsrv1
-            iunfold isServer at Hsci2
-            icases Hsci2 with ⟨-, #Hsci3, -⟩
-            iunfold isServerCI at Hsci3
-            icases Hsci3 with ⟨#Hcif, #Hci, #Hinv⟩
-            (try wp_auto)
-            wp_apply_core (wp_ci_get hCI γ' ci b' st' hlo'.1) $$ [Hst Hbe] [-]
-            · iframe Hcipkg Hci Hinv Hst Hbe
-            iintro ⟨Hst, Hbe⟩
-            have hlo4 : loopOk γ' (stLoaded γ' st') sv.Metadata'.Index' :=
-              ⟨by rw [stLoaded_pending]; exact hlo'.1, by rw [stLoaded_p, stLoaded_ciEff]; exact hlo'.2⟩
-            have hci4 : ciEff γ' (stLoaded γ' st').k = sv.Metadata'.Index' := by rw [stLoaded_ciEff]; exact hci'
-            generalize stLoaded γ' st' = st4 at hlo4 hci4 ⊢
-            (try wp_auto)
-            wp_if_destruct
-            · exfalso; rw [hci'] at Hif; first | exact (lt_irrefl _ Hif) | (simp at Hif) | word
+            -- Installing this snapshot already established the backend index at the apply cursor.
             -- (S2's `mergedCreate_window`) the commit's and the snapshot's contracts
             ihave #HsrvM : isServerM false s γ' ci TM' E' ρ γr $$ []
             · rw [isServerM_false]; iexact Hsrv1
@@ -508,7 +489,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
             ihave HRS : srvRestM E'.authOn E' γr A' $$ [HRS]
             · rw [HE'off, srvRestM_false]; iexact HRS
             imod mergedCreate_window hsh hPers hReach hImg hSnap hOn hSave hPut hUR hID hName hSafe false s
-                γ' ci TM' E' ρ γr b' st4 sv.Metadata'.Index' a t A' x' ρ.wait γp ua kv' hlo4 hci4
+                γ' ci TM' E' ρ γr b' st' sv.Metadata'.Index' a t A' x' ρ.wait γp ua kv' hlo'
                 (fun _ => False) (fun _ => True) emp (fun _ h => h.elim)
               $$ [Hst Hbe Happ HKVc HRS Hr1 Hl1 HthT]
               with ⟨%be, %dq, %RC, %RC', %RS, %RS', %Qd, Hkc, HRC, Hbeo, Hbs, HRCS, Hback⟩
@@ -518,8 +499,11 @@ theorem EtcdServer.applyAll.wp_proofSnapM
             -- the snapshot's reader slot; the reader goroutine's fork token comes back
             iunfold srvGoRes at Hgr
             icases Hgr with ⟨HgrW, HgT⟩
-            wp_apply (hCM s m sm sv.Metadata'.Term' sv.Metadata'.Index' cs' fv.lg kv' be dq RC RC'
-                RS RS' Qd γr.raft hmo.2.1
+            iunfold taReplayField at HreplayField
+            icases HreplayField with ⟨%terms, #Hterms⟩
+            (try wp_auto)
+            wp_apply (hCM s m sm sv.Metadata'.Term' sv.Metadata'.Index' (ciEff γ' st'.k) terms cs' fv.lg kv' be dq RC RC'
+                RS RS' Qd γr.raft (by rw [hci']; exact Int.le_refl _) hmo.2.1
               (by have h := Hsh.1.2.2.2.2.2.2.1 (Or.inr (Or.inr Hty)); exact ⟨h.1, h.2, Hsh.1.2.2.2.2.2.2.2⟩))
               $$ [Hlr Hkc HRC Hbeo Hbs HRCS Hm HgT]
               as %mg ⟨Hlr, HRS', Hbeo, HgT, %rc, %Dm, %cm, #Hmg, #Hml, #HszC, #Hcsom, %Hcml, Hrs, HQd⟩
@@ -528,6 +512,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
             · iunfold srvGoRes; iframe HgrW HgT
             imod Hback $$ %Dm HRS' HQd Hbeo
               with ⟨%st3, HthT, Hst, Hbe, Happ, HKVc, HRS, #Hmimg, -, %Hst3⟩
+            simp only [hci']
             ihave HRS : srvRest E' γr A' $$ [HRS]
             · rw [← srvRestM_false, ← HE'off]; iexact HRS
             ihave HKV := HKVk $$ HKVc
@@ -567,7 +552,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
             · iframe #; iframe Hgr Hlr; rw [HγNt]; iframe Hbun
             (try wp_auto)
             have hF3 : loopOk γ' st3 sv.Metadata'.Index' ∧ ciEff γ' st3.k = sv.Metadata'.Index' :=
-              ⟨Hst3.2.1, by rw [Hst3.2.2]; exact hci4⟩
+              ⟨Hst3.2.1, by rw [Hst3.2.2]; exact hci'⟩
             iapply Hfin $$ %st3 %hF3 Hai Hat Hcs Hss Hst Hbe Happ Hlr Hgr Hrdk HKV Hka HRS Hcursor Hao
           · (try wp_auto)
             wp_apply (hGTo.1 m (DFrac.own 1) DFrac.discard false sm) $$ [Hm] as Hm
@@ -588,7 +573,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
   rw [hon] at hch ⊢
   simp only [srvApplyKVM_true, kvAppliedM_true]
   wp_start as ⟨#Hsrv, #Hsa, #Hnid, #Hes, #Hesl, #Hsnf, Hsnv, ⟨#Hcert, #Hsloc⟩, #Hncf, #Hnc2, Hnr0,
-    #Hracf, #Hracc, #Hrtf, #Hrt, #Hmerge, Hcursor, Hai, Hat, Hcs, Hss, Hst, Hbe, Happ, Hlr, Hgr, Hrdk, Hbr, HKV, Hao, #Hlog,
+    #Hracf, #Hracc, #Hrtf, #HreplayField, #Hrt, #Hmerge, Hcursor, Hai, Hat, Hcs, Hss, Hst, Hbe, Happ, Hlr, Hgr, Hrdk, Hbr, HKV, Hao, #Hlog,
     #HW, HWA, Hka, HRS, HAR, #Hkv, HwalT, Hso, #HmetaSnap⟩
   icases srvApRes_cfg_size s γr _ $$ HAR with ⟨HAR, %hsz20⟩
   ihave #Hsrv' := Hsrv
@@ -1001,28 +986,9 @@ theorem EtcdServer.applyAll.wp_proofSnapM
         (try wp_auto)
         wp_if_destruct
         · -- The message belongs to the term of this apply batch.
-          ihave ⟨Hcursor, %hidxRaft⟩ := Hidx $$ %(by trivial) Hcursor
+          ihave ⟨Hcursor, %hidxRaft⟩ := Hidx $$ %True.intro Hcursor
           (try wp_auto)
-          -- (restart3 A1) the fork's window guard: false at the snapshot's index (the consistent index the
-          -- snapshot's, `hci'`)
-          ihave #Hcipkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex $$ []
-          · iPkgInit
-          ihave #Hsci2 := Hsrv1
-          iunfold isServerM at Hsci2
-          icases Hsci2 with ⟨-, #Hsci3, -⟩
-          iunfold isServerCI at Hsci3
-          icases Hsci3 with ⟨#Hcif, #Hci, #Hinv⟩
-          (try wp_auto)
-          wp_apply_core (wp_ci_get hCI γ' ci b' st' hlo'.1) $$ [Hst Hbe] [-]
-          · iframe Hcipkg Hci Hinv Hst Hbe
-          iintro ⟨Hst, Hbe⟩
-          have hlo4 : loopOk γ' (stLoaded γ' st') sv.Metadata'.Index' :=
-            ⟨by rw [stLoaded_pending]; exact hlo'.1, by rw [stLoaded_p, stLoaded_ciEff]; exact hlo'.2⟩
-          have hci4 : ciEff γ' (stLoaded γ' st').k = sv.Metadata'.Index' := by rw [stLoaded_ciEff]; exact hci'
-          generalize stLoaded γ' st' = st4 at hlo4 hci4 ⊢
-          (try wp_auto)
-          wp_if_destruct
-          · exfalso; rw [hci'] at Hif; first | exact (lt_irrefl _ Hif) | (simp at Hif) | word
+          -- Installing this snapshot already established the backend index at the apply cursor.
           ihave #HW' : srvWTPool E' γp $$ []
           · obtain ⟨-, p, P, f, cc, RO, RW, hE⟩ := hbs
             rw [hE]
@@ -1041,7 +1007,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
           ihave HRS : srvRestM E'.authOn E' γr A' $$ [HRS]
           · rw [HE'on]; iexact HRS
           imod mergedCreate_window hsh hPers hReach hImg hSnap hOn hSave hPut hUR hID hName hSafe true
-              s γ' ci TM' E' ρ γr b' st4 sv.Metadata'.Index' a t A' x' ρ.wait γp ua kv' hlo4 hci4
+              s γ' ci TM' E' ρ γr b' st' sv.Metadata'.Index' a t A' x' ρ.wait γp ua kv' hlo'
               auth.authBkts (authBucketsAt (srvAuthAtLog γr.kv srvAuthSt0 A'))
               (srvAuthApplyResB s E' (srvAuthAtLog γr.kv srvAuthSt0 A')) authBkts_rest
             $$ [Hst Hbe Happ HKVc HRS Hr1 Hl1 HthT HL]
@@ -1051,8 +1017,11 @@ theorem EtcdServer.applyAll.wp_proofSnapM
           -- the snapshot's reader slot; the reader goroutine's fork token comes back
           iunfold srvGoRes at Hgr
           icases Hgr with ⟨HgrW, HgT⟩
-          wp_apply (hCM s m sm sv.Metadata'.Term' sv.Metadata'.Index' cs' fv.lg kv' be dq RC RC'
-              RS RS' Qd γr.raft hmo.2.1
+          iunfold taReplayField at HreplayField
+          icases HreplayField with ⟨%terms, #Hterms⟩
+          (try wp_auto)
+          wp_apply (hCM s m sm sv.Metadata'.Term' sv.Metadata'.Index' (ciEff γ' st'.k) terms cs' fv.lg kv' be dq RC RC'
+              RS RS' Qd γr.raft (by rw [hci']; exact Int.le_refl _) hmo.2.1
               (by have h := Hsh.1.2.2.2.2.2.2.1 (Or.inr (Or.inr Hty)); exact ⟨h.1, h.2, Hsh.1.2.2.2.2.2.2.2⟩))
             $$ [Hlr Hkc HRC Hbeo Hbs HRCS Hm HgT]
             as %mg ⟨Hlr, HRS', Hbeo, HgT, %rc, %Dm, %cm, #Hmg, #Hml, #HszC, #Hcsom, %Hcml, Hrs, HQd⟩
@@ -1061,6 +1030,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
           · iunfold srvGoRes; iframe HgrW HgT
           imod Hback $$ %Dm HRS' HQd Hbeo
             with ⟨%st3, HthT, Hst, Hbe, Happ, HKVc, HRS, #Hmimg, HAr, %Hst3⟩
+          simp only [hci']
           ihave HRS : srvRestM true E' γr A' $$ [HRS]
           · rw [← HE'on]; iexact HRS
           ihave HKV := HKVk $$ HKVc HAr
@@ -1109,7 +1079,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
           · iframe #; iframe Hgr Hlr; rw [HγNt]; iframe Hbun
           (try wp_auto)
           have hF3 : loopOk γ' st3 sv.Metadata'.Index' ∧ ciEff γ' st3.k = sv.Metadata'.Index' :=
-            ⟨Hst3.2.1, by rw [Hst3.2.2]; exact hci4⟩
+            ⟨Hst3.2.1, by rw [Hst3.2.2]; exact hci'⟩
           iapply Hfin $$ %st3 %hF3 Hai Hat Hcs Hss Hst Hbe Happ Hlr Hgr Hrdk HKV Hka HRS Hcursor Hao
         · (try wp_auto)
           wp_apply (hGTo.1 m (DFrac.own 1) DFrac.discard false sm) $$ [Hm] as Hm

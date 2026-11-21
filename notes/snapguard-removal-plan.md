@@ -31,6 +31,11 @@ after a power loss.
 The public Grove pin removes the index comparison at `7bc6d14671`; the
 replay report and its failing test are on `lean` at `044d40223c`.
 The replay fork still needs its own successful server build and gates.
+The VM checked `ApplyAllSnap` in both auth modes after pulling public
+`lean` at `2ca9ce4d1d`. Installing an incoming snapshot puts the backend
+at the apply cursor, so a same-term request can use the caught-up sender
+proof with the job's replay field. The ordinary entries branch still
+has to handle a backend ahead of that cursor.
 The VM checked the constructor that carries the initial replay-term slice
 into `raftNodeConfig`. It also checked that cutting an overwritten term
 range or joining adjacent equal-term ranges preserves earlier lookups.
