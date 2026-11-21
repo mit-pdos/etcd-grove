@@ -48,9 +48,9 @@ is stuck and none has an unrecovered panic. -/
 theorem echo_kit_robust [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [srv_sem : cmd.server.Assumptions] [cli_sem : cmd.client.Assumptions]
     [junk_sem : cmd.junk.Assumptions] [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
-    (σs σc σj : state) (g : GlobalState) (bound : Nat) :
-    KitDeploy echoAddrs (system σs σc σj) g → Robust [] (system σs σc σj) g bound := by
-  refine robust_of_kitBoot _ _ g bound ?_
+    (σs σc σj : state) (g : GlobalState) (threads bound : Nat) :
+    KitDeploy echoAddrs (system σs σc σj) g → Robust [] (system σs σc σj) g threads bound := by
+  refine robust_of_kitBoot _ _ g threads bound ?_
   intro G
   iintro Hs
   unfold echoAddrs
