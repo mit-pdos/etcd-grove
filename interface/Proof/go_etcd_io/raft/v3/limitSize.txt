@@ -13,7 +13,8 @@ theorem limitSize.wp_proof [package_sem : Assumptions] (wp_SizePb : proto.SizePb
               ∀ s' n,
                 ⌜n ≤ cs.length ∧
                         (cs ≠ [] → 1 ≤ n) ∧
-                          (sz = true → uint.nat maxSize ≤ entsCutMax → entsCut maxSize (List.take n cs))⌝ ∗
+                          (sz = true → uint.nat maxSize ≤ entsCutMax → entsCut maxSize (List.take n cs)) ∧
+                            (maxSize = W64 (-1) → n = cs.length)⌝ ∗
                     entsPtsC sz s' dq (List.take n cs) ∗ (entsPtsC sz s' dq (List.take n cs) -∗ entsPtsC sz s dq cs) -∗
                   Φ (intoVal s')) -∗
             WP (((intoVal (functions limitSize [])) (intoVal s)) (intoVal maxSize)) {{ Φ }}

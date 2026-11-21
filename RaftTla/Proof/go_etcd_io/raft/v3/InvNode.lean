@@ -1183,8 +1183,21 @@ theorem readyRest_ents_type (γ : Cluster) (N : Namespace) (id : w64) (rd : Read
   icases readyRest_facts γ N id rd st ce es h L ms ss $$ H with ⟨H, %Hf⟩
   iframe H; ipureintro
   cases L with
-  | none => exact Hf.2.2.2.2.2.2
-  | some l => exact Hf.2.2.2.2
+  | none => exact Hf.2.2.2.2.2.2.1
+  | some l => exact Hf.2.2.2.2.1
+
+/-- A Ready's physical entries have nondecreasing terms and strictly increasing indices. -/
+theorem readyRest_ents_order (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState)
+    (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan) (ms : List QMsg)
+    (ss : Option (w64 × StateType)) :
+    readyRest (GF := GF) γ N id rd st ce es h L ms ss ⊢ readyRest γ N id rd st ce es h L ms ss ∗
+      ⌜es.Pairwise (fun a b => uint.nat a.Term' ≤ uint.nat b.Term' ∧ uint.nat a.Index' < uint.nat b.Index')⌝ := by
+  iintro H
+  icases readyRest_facts γ N id rd st ce es h L ms ss $$ H with ⟨H, %Hf⟩
+  iframe H; ipureintro
+  cases L with
+  | none => exact Hf.2.2.2.2.2.2.2
+  | some l => exact Hf.2.2.2.2.2
 
 /-! ## What etcd's server needs (2026-10-27, branch `server-port`; implemented the same day)
 
@@ -1304,6 +1317,16 @@ leader of term `t` had committed the log through `c`. What the snapshot a server
 instance committedAtTerm_persistent (γ : Cluster) (N : Namespace) (t c : w64) :
     Persistent (committedAtTerm (GF := GF) γ N t c) := by
   unfold committedAtTerm; exact ApiImpl.committedAtTerm_persistent γ N t c
+
+/-- Use a pre-restart commit certificate to label a snapshot in a later
+term, even if the WAL lost its most recent HardState commit. -/
+theorem committedAtTerm_mono_term (γ : Cluster) (N : Namespace) (old t c : w64)
+    (ht : uint.Z old ≤ uint.Z t) :
+    committedAtTerm (GF := GF) γ N old c ⊢ committedAtTerm γ N t c := by
+  unfold committedAtTerm ApiImpl.committedAtTerm
+  iintro ⟨#Hw, Hlb⟩
+  iframe Hlb
+  iapply commitWit_mono_term γ.raft old t c ht $$ Hw
 
 theorem committedAtTerm_committed (γ : Cluster) (N : Namespace) (t c : w64) :
     committedAtTerm (GF := GF) γ N t c ⊢

@@ -30,7 +30,7 @@ theorem schema.UnsafeCreateLeaseBucket.wp_proof :
   wp_start as ⟨HP, #HC⟩
   ihave Hsi : (schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hsi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%mb, #Hmb, -⟩⟩
+  icases Hsi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%mb, #Hmb, -⟩, -⟩
   wp_auto
   wp_bind (App (Val #(methods tx.ty _ tx.v)) (Val #mb))
   iapply HC $$ %mb [HP]

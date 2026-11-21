@@ -237,7 +237,7 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
          go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty) #t : GoInterface) ∗
        trLive γn t c rs ∗ srvMemberIDAddr s ↦□ idm ∗
        srvMembersDir cl ps dir ∗
-       epMemSnapAddr ep ↦ msi ∗ epConfState ep cs0 ∗
+       epMemSnapAddr ep ↦ msi ∗ epConfState ep cs0 ∗ (∃ p : Loc, epReplayConfAddr ep ↦ p) ∗
        srvCfgFieldAddr s go!"ServerFeatureGate" ↦□ fg ∗ isFeatureGate fg ∗
        srvCfgFieldAddr s go!"QuotaBackendBytes" ↦□ quota ∗
        srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ wad ∗
@@ -266,7 +266,7 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applySnapshot")) (Val #ep))
         (Val #ap))
     {{ RET #(); srvSnapAppliedM E.authOn s ep sv γ ci E ρ γr d A' ss (config.backendPathOf cfg.DataDir') γt γn t c rs idm lp al ast cl ∗
-      notifyRcvN γnc 1 ∗ threadTok ∗ rnWalTokA γw (srvRAddr s) q }}
+      notifyRcvN γnc 1 ∗ threadTok ∗ epReplayConfAddr ep ↦ (null : Loc) ∗ rnWalTokA γw (srvRAddr s) q }}
 
 /-- **`applySnapshot`'s spec** (J8b, 2026-11-01): both cases, the empty snapshot (`specEmpty`) and a
 non-empty one in the server's auth mode (`specSnapM`; until 2026-11-03 the mode-off `specSnap`), for

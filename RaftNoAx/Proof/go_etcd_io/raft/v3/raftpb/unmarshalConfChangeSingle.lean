@@ -8,6 +8,9 @@ public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.unmarshalConfChangeSingle
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.consumeEnum
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.consumeVarint
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.raftpb.CloneLeaf
+public import RaftNoAx.Proof.go_etcd_io.raft.v3.CCWireSound
+public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.consumeTag
+public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.consumeUnknown
 
 @[expose] public section
 
@@ -41,222 +44,199 @@ theorem ccOptCellW_persist {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (
     imodintro; iexact H
 
 theorem raftpb.unmarshalConfChangeSingle.wp_proof
-    (wp_consumeEnum : raftpb.consumeEnum.spec (GF := GF) (hG := hG))
-    (wp_consumeVarint : raftpb.consumeVarint.spec (GF := GF) (hG := hG)) :
+    (wp_tag : raftpb.consumeTag.spec (GF := GF) (hG := hG))
+    (wp_enum : raftpb.consumeEnum.spec (GF := GF) (hG := hG))
+    (wp_varint : raftpb.consumeVarint.spec (GF := GF) (hG := hG))
+    (wp_unknown : raftpb.consumeUnknown.spec (GF := GF) (hG := hG)) :
     raftpb.unmarshalConfChangeSingle.spec (GF := GF) (hG := hG) := by
   intro d dq bs
   wp_start as Hd
   ihave %Hlen := ownSlice_len $$ Hd
   wp_auto
   ihave %Hsn := typedPointsto_not_null $$ «$r0»
-  iStructNamed «$r0»
-  have hlenZ : sint.Z d.len = (bs.length : Int) := by word
-  have hz0 : sint.Z (W64 0) = 0 := rfl
-  have hn0 : sint.nat (W64 0) = 0 := rfl
-  wp_join (Q := fun v => iprop(
-      (⌜v = executeVal⌝ ∗ ∃ (i1 : w64) (o1 : Option w32) (pt : Loc),
-        "i" ∷ i_ptr ↦ i1 ∗ "HT" ∷ «$r0_ptr».[raftpb.ConfChangeSingle, go!"Type"] ↦ pt ∗
-        "data" ∷ data_ptr ↦ d ∗ "s" ∷ s_ptr ↦ «$r0_ptr» ∗
-        "$res0" ∷ «$res0_ptr» ↦ zero_val Loc ∗ "$res1" ∷ «$res1_ptr» ↦ zero_val Bool ∗
-        "cT" ∷ ccOptCellW pt o1 ∗ "Hd" ∷ d ↦*{dq} bs ∗
-        "%H1" ∷ ⌜ccOptField bs 0 (W8 8) ccEnumL = some (o1, sint.nat i1) ∧ 0 ≤ sint.Z i1 ∧
-          sint.Z i1 ≤ bs.length⌝) ∨
-      (⌜v = returnVal #()⌝ ∗ "Hd" ∷ d ↦*{dq} bs ∗ "$res0" ∷ «$res0_ptr» ↦ null ∗
-        "$res1" ∷ «$res1_ptr» ↦ false ∗ "%Hn" ∷ ⌜ccDecodeSingle bs = none⌝)))
-    at next with [i Type' Hd «$res0» «$res1» data s]
-  · wp_if_destruct
-    · -- 0 < len
-      have h0 : 0 < bs.length := by omega
-      obtain ⟨c, hc⟩ : ∃ c, bs[0]? = some c := ⟨_, List.getElem?_eq_getElem h0⟩
-      simp only [show 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z d.len from ⟨by decide, by omega⟩]
-      wp_apply wp_load_slice_index d (sint.Z (W64 0)) bs dq c (by decide) $$ [Hd] as Hd
-      · iframe; ipureintro; exact hc
-      wp_if_destruct
-      · have h1n : sint.nat (W64 0 + W64 1) = 1 := rfl
-        have h1z : sint.Z (W64 0 + W64 1) = 1 := rfl
-        wp_apply wp_consumeEnum d dq bs (W64 0 + W64 1) (by decide) (by omega) $$ [$Hd]
-          as %v %j %ok ⟨Hd, %Hr⟩
-        have hO : ccOptField bs 0 (W8 8) ccEnumL = (ccEnumL bs 1).map (fun p => (some p.1, p.2)) := by
-          unfold ccOptField; rw [ite_eq_left hc]
-        rw [h1n] at Hr
-        cases he : ccEnumL bs 1 with
-        | none =>
-          rw [he] at Hr
-          subst Hr
-          wp_auto
-          iright
-          iframe
-          ipureintro
-          unfold ccDecodeSingle
-          rw [hO, he]; exact ⟨rfl, rfl⟩
-        | some p =>
-          rw [he] at Hr
-          obtain ⟨v', j'⟩ := p
-          simp only at Hr
-          obtain ⟨rfl, rfl, hj⟩ := Hr
-          have hb := ccEnumL_bound he
-          wp_auto
-          ileft
-          isplitr
-          · ipureintro; rfl
-          iexists j, some v, _
-          simp only [ccOptCellW]
-          iframe
-          ipureintro
-          refine ⟨?_, by omega, by omega⟩
-          rw [hO, he, show sint.nat j = j' from by
-            rw [show sint.nat j = (sint.Z j).toNat from rfl, hj]; simp]
-          rfl
-      · ileft
-        iframe
-        iexists none
-        simp only [ccOptCellW]
-        isplitr
-        · ipureintro; rfl
-        ipureintro
-        refine ⟨?_, by decide, by omega⟩
-        rw [ccOptField_none]
-        · rfl
-        · rw [hc]; simpa using Hif
-    · ileft
-      iframe
-      iexists none
-      simp only [ccOptCellW]
-      isplitr
-      · ipureintro; rfl
-      ipureintro
-      refine ⟨?_, by decide, by omega⟩
-      rw [ccOptField_none]
-      · rfl
-      · rw [List.getElem?_eq_none (by omega)]; simp
-  iintro (⟨%Hv, %i1, %o1, %pt, i, HT, data, s, «$res0», «$res1», cT, Hd, %H1⟩ |
-    ⟨%Hv, Hd, «$res0», «$res1», %Hn⟩) <;> subst Hv
-  rotate_left
-  · wp_auto
-    iapply HΦ
-    rw [Hn]
-    iframe
-    ipureintro; rfl
-  have hi1 : (sint.nat i1 : Int) = sint.Z i1 := by word
-  wp_auto
-  wp_join (Q := fun v => iprop(
-      (⌜v = executeVal⌝ ∗ ∃ (i2 : w64) (o2 : Option w64) (pn : Loc),
-        "i" ∷ i_ptr ↦ i2 ∗ "HN" ∷ «$r0_ptr».[raftpb.ConfChangeSingle, go!"NodeId"] ↦ pn ∗
-        "data" ∷ data_ptr ↦ d ∗ "s" ∷ s_ptr ↦ «$r0_ptr» ∗
-        "$res0" ∷ «$res0_ptr» ↦ zero_val Loc ∗ "$res1" ∷ «$res1_ptr» ↦ zero_val Bool ∗
-        "cN" ∷ ccOptCellW pn o2 ∗ "Hd" ∷ d ↦*{dq} bs ∗
-        "%H2" ∷ ⌜ccOptField bs (sint.nat i1) (W8 16) ccVarintL = some (o2, sint.nat i2) ∧
-          0 ≤ sint.Z i2 ∧ sint.Z i2 ≤ bs.length⌝) ∨
-      (⌜v = returnVal #()⌝ ∗ "Hd" ∷ d ↦*{dq} bs ∗ "$res0" ∷ «$res0_ptr» ↦ null ∗
-        "$res1" ∷ «$res1_ptr» ↦ false ∗ "%Hn" ∷ ⌜ccDecodeSingle bs = none⌝)))
-    at next with [i NodeId Hd «$res0» «$res1» data s]
-  · wp_if_destruct
-    · have hlt : sint.nat i1 < bs.length := by omega
-      have hi1' : sint.Z (i1 + W64 1) = sint.Z i1 + 1 := by word
-      have hi1n : sint.nat (i1 + W64 1) = sint.nat i1 + 1 := by word
-      obtain ⟨c, hc⟩ : ∃ c, bs[sint.nat i1]? = some c := ⟨_, List.getElem?_eq_getElem hlt⟩
-      simp only [show 0 ≤ sint.Z i1 ∧ sint.Z i1 < sint.Z d.len from ⟨H1.2.1, by omega⟩]
-      wp_apply wp_load_slice_index d (sint.Z i1) bs dq c H1.2.1 $$ [Hd] as Hd
-      · iframe; ipureintro; exact hc
-      wp_if_destruct
-      · wp_apply wp_consumeVarint d dq bs (i1 + W64 1) (by omega) (by omega) $$ [$Hd]
-          as %v %j %ok ⟨Hd, %Hr⟩
-        have hO : ccOptField bs (sint.nat i1) (W8 16) ccVarintL =
-            (ccVarintL bs (sint.nat i1 + 1)).map (fun p => (some p.1, p.2)) := by
-          unfold ccOptField; rw [ite_eq_left hc]
-        rw [hi1n] at Hr
-        cases he : ccVarintL bs (sint.nat i1 + 1) with
-        | none =>
-          rw [he] at Hr
-          subst Hr
-          wp_auto
-          iright
-          iframe
-          ipureintro
-          unfold ccDecodeSingle
-          rw [H1.1]
-          simp only [Option.bind_some]
-          rw [hO, he]; simp
-        | some p =>
-          rw [he] at Hr
-          obtain ⟨v', j'⟩ := p
-          simp only at Hr
-          obtain ⟨rfl, rfl, hj⟩ := Hr
-          have hb := ccVarintL_bound he
-          wp_auto
-          ileft
-          isplitr
-          · ipureintro; rfl
-          iexists j, some v, _
-          simp only [ccOptCellW]
-          iframe
-          ipureintro
-          refine ⟨?_, by omega, by omega⟩
-          rw [hO, he, show sint.nat j = j' from by
-            rw [show sint.nat j = (sint.Z j).toNat from rfl, hj]; simp]
-          rfl
-      · ileft
-        iframe
-        iexists none
-        simp only [ccOptCellW]
-        isplitr
-        · ipureintro; rfl
-        ipureintro
-        refine ⟨?_, H1.2.1, H1.2.2⟩
-        rw [ccOptField_none _ _ _ _ (by rw [hc]; simpa using Hif)]
-    · ileft
-      iframe
-      iexists none
-      simp only [ccOptCellW]
-      isplitr
-      · ipureintro; rfl
-      ipureintro
-      refine ⟨?_, H1.2.1, H1.2.2⟩
-      rw [ccOptField_none _ _ _ _ (by rw [List.getElem?_eq_none (by omega)]; simp)]
-  iintro (⟨%Hv, %i2, %o2, %pn, i, HN, data, s, «$res0», «$res1», cN, Hd, %H2⟩ |
-    ⟨%Hv, Hd, «$res0», «$res1», %Hn⟩) <;> subst Hv
-  rotate_left
-  · wp_auto
-    iapply HΦ
-    rw [Hn]
-    iframe
-    ipureintro; rfl
-  have hi2 : (sint.nat i2 : Int) = sint.Z i2 := by word
-  imod ccOptCellW_persist pt o1 ⊤ $$ cT with #cT
-  imod ccOptCellW_persist pn o2 ⊤ $$ cN with #cN
-  ipersist HT
-  ipersist HN
+  icases typedPointsto_split _ _ _ $$ «$r0» with fields
+  simp only [TypedPointsto.typedPointstoDef]
+  icases fields with ⟨state, Type', NodeId, unknownFields, sizeCache, -⟩
   ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
   · iapply ownSlice_nil
-  imod pbMsg_alloc raftpb.ConfChangeSingle «$r0_ptr» _ _ slice.nil [] ⊤ (ufWire_nil _)
-    $$ [state sizeCache unknownFields Hnil] with #Hpbm
-  · iframe
-  wp_auto
-  have hD : ccDecodeSingle bs = if sint.nat i2 = bs.length then
-      some ⟨o1.getD (W32 0), o2.getD (W64 0)⟩ else none := by
-    unfold ccDecodeSingle
-    rw [H1.1]
-    simp only [Option.bind_some]
-    rw [H2.1]
-    simp only [Option.bind_some]
-  wp_if_destruct
-  · iapply HΦ
-    rw [hD, ite_eq_left Hlen.1.symm]
+  ihave Hcap : ownSliceCap (GF := GF) w8 slice.nil (DFrac.own 1) $$ []
+  · iapply ownSliceCap_nil
+  ihave IH : iprop(∃ (i : w64) (pt pn : Loc) (ot : Option w32) (onode : Option w64)
+      (us : GoSlice) (uf : List w8),
+      "i" ∷ i_ptr ↦ i ∗ "HT" ∷ «$r0_ptr».[raftpb.ConfChangeSingle, go!"Type"] ↦ pt ∗
+      "HN" ∷ «$r0_ptr».[raftpb.ConfChangeSingle, go!"NodeId"] ↦ pn ∗
+      "HU" ∷ «$r0_ptr».[raftpb.ConfChangeSingle, go!"unknownFields"] ↦ us ∗
+      "cT" ∷ ccOptCellW pt ot ∗ "cN" ∷ ccOptCellW pn onode ∗
+      "buf" ∷ us ↦* uf ∗ "cap" ∷ ownSliceCap w8 us (DFrac.own 1) ∗
+      "%Hidx" ∷ ⌜0 ≤ sint.Z i ∧ sint.Z i ≤ bs.length⌝ ∗ "%Hwire" ∷ ⌜ufWire ccsSchema uf⌝ ∗
+      "%Hres" ∷ ⌜ccWireSingle bs = ccWireAt bs (ccSingleField bs) (sint.nat i)
+        ⟨ot.getD (W32 0), onode.getD (W64 0)⟩⌝) $$ [i Type' NodeId unknownFields Hnil Hcap]
+  · iexists W64 0, null, null, none, none, slice.nil, []
+    simp only [ccOptCellW]
+    iframe
+    ipureintro
+    exact ⟨⟨by decide, by change (0:Int) ≤ _; omega⟩, .nil, rfl⟩
+  irename «$res0» => resultPtr
+  irename «$res1» => resultOK
+  wp_for_core
+  icases IH with ⟨%i, %pt, %pn, %ot, %onode, %us, %uf, i, HT, HN, HU, cT, cN, buf, cap, %Hidx, %Hwire, %Hres⟩
+  try wp_auto
+  cleanup_bool_decide
+  try wp_auto
+  by_cases Hif : sint.Z i < sint.Z d.len
+  · simp only [decide_eq_true Hif, ↓reduceIte]
+    wp_auto
+    have hi : sint.nat i < bs.length := by word
+    wp_apply wp_tag d dq bs i Hidx.1 Hidx.2 $$ [$Hd] as %tag %start %ok ⟨Hd, %Hr⟩
+    cases ht : ccTagL bs (sint.nat i) (2^29-1) with
+    | none =>
+      rw [ht] at Hr
+      subst Hr
+      wp_auto
+      wp_for_post
+      iapply HΦ
+      rw [Hres, ccWireAt_no_tag _ _ hi ht]
+      iframe
+      ipureintro; rfl
+    | some ts =>
+      obtain ⟨t,k⟩ := ts
+      rw [ht] at Hr
+      obtain ⟨rfl, rfl, hk⟩ := Hr
+      have hbound := ccTagL_bound ht
+      have hkn : sint.nat start = k := by word
+      have hrange : 0 ≤ sint.Z start ∧ sint.Z start ≤ bs.length := by omega
+      wp_auto
+      wp_if_destruct
+      · have htag8 : uint.nat (W64 8) = 8 := by word
+        wp_apply wp_enum d dq bs start hrange.1 hrange.2 $$ [$Hd] as %v %j %ok ⟨Hd, %Hv⟩
+        rw [hkn] at Hv
+        cases hval : ccEnumL bs k with
+        | none =>
+          rw [hval] at Hv
+          subst Hv
+          wp_auto
+          wp_for_post
+          iapply HΦ
+          have hv : ccSingleField bs (uint.nat (W64 8)) k ⟨ot.getD (W32 0), onode.getD (W64 0)⟩ = none := by
+            rw [htag8]; simp [ccSingleField, hval]
+          rw [Hres, ccWireAt_bad_field _ ht hv]
+          iframe
+          ipureintro; rfl
+        | some pair =>
+          obtain ⟨v',endIdx⟩ := pair
+          rw [hval] at Hv
+          obtain ⟨rfl, rfl, hj⟩ := Hv
+          have he := ccEnumL_bound hval
+          have hjn : sint.nat j = endIdx := by word
+          wp_auto
+          wp_for_post
+          iframe
+          iexists j, _, pn, some v, onode, us, uf
+          simp only [ccOptCellW]
+          iframe
+          ipureintro
+          refine ⟨⟨by omega, by omega⟩, Hwire, ?_⟩
+          rw [Hres, hjn]
+          apply ccWireAt_step (ccSingleField_advance _) ht
+          rw [htag8]; simp only [ccSingleField, hval]; rfl
+      · have hnot8 : uint.nat tag ≠ 8 := by word
+        wp_if_destruct
+        · have htag16 : uint.nat (W64 16) = 16 := by word
+          wp_apply wp_varint d dq bs start hrange.1 hrange.2 $$ [$Hd] as %v %j %ok ⟨Hd, %Hv⟩
+          rw [hkn] at Hv
+          cases hval : ccVarintL bs k with
+          | none =>
+            rw [hval] at Hv
+            subst Hv
+            wp_auto
+            wp_for_post
+            iapply HΦ
+            have hv : ccSingleField bs (uint.nat (W64 16)) k ⟨ot.getD (W32 0), onode.getD (W64 0)⟩ = none := by
+              rw [htag16]; simp [ccSingleField, hval]
+            rw [Hres, ccWireAt_bad_field _ ht hv]
+            iframe
+            ipureintro; rfl
+          | some pair =>
+            obtain ⟨v',endIdx⟩ := pair
+            rw [hval] at Hv
+            obtain ⟨rfl, rfl, hj⟩ := Hv
+            have he := ccVarintL_bound hval
+            have hjn : sint.nat j = endIdx := by word
+            wp_auto
+            wp_for_post
+            iframe
+            iexists j, pt, _, ot, some v, us, uf
+            simp only [ccOptCellW]
+            iframe
+            ipureintro
+            refine ⟨⟨by omega, by omega⟩, Hwire, ?_⟩
+            rw [Hres, hjn]
+            apply ccWireAt_step (ccSingleField_advance _) ht
+            rw [htag16]; simp only [ccSingleField, hval]; rfl
+        · have hnot16 : uint.nat tag ≠ 16 := by word
+          wp_apply wp_unknown d dq bs start tag us uf hrange.1 hrange.2 $$ [$Hd $buf $cap]
+            as %out %j %ok ⟨Hd, cap, Hfield⟩
+          rw [hkn]
+          cases hs : ccSkipField bs k (uint.nat tag) with
+          | none =>
+            dsimp only
+            icases Hfield with ⟨%Hfail, buf⟩
+            obtain ⟨rfl, rfl, rfl⟩ := Hfail
+            wp_auto
+            wp_for_post
+            iapply HΦ
+            have hv : ccSingleField bs (uint.nat tag) k ⟨ot.getD (W32 0), onode.getD (W64 0)⟩ = none := by
+              unfold ccSingleField; split <;> first | contradiction | simp [hs]
+            rw [Hres, ccWireAt_bad_field _ ht hv]
+            iframe
+            ipureintro; rfl
+          | some endIdx =>
+            dsimp only
+            icases Hfield with ⟨%Hok, buf⟩
+            obtain ⟨rfl, hj⟩ := Hok
+            have he := ccSkipField_bound hbound.2 hs
+            have hjn : sint.nat j = endIdx := by word
+            wp_auto
+            wp_for_post
+            iframe
+            iexists j, pt, pn, ot, onode, out, _
+            iframe
+            ipureintro
+            refine ⟨⟨by omega, by omega⟩, ccUnknown_valid Hwire ht hs ?_, ?_⟩
+            · simp [Routed, ccsSchema]; omega
+            · rw [Hres, hjn]
+              apply ccWireAt_step (ccSingleField_advance _) ht
+              unfold ccSingleField; split <;> first | contradiction | simp [hs]
+  · have hend : sint.nat i = bs.length := by word
+    rw [hend, ccWireAt_end] at Hres
+    simp only [decide_eq_false Hif, Bool.false_eq_true, ↓reduceIte]
+    iapply wp_fupd
+    imod ccOptCellW_persist pt ot ⊤ $$ cT with #cT
+    imod ccOptCellW_persist pn onode ⊤ $$ cN with #cN
+    ipersist HT
+    ipersist HN
+    have hs : ufWire (pbSchemaOf raftpb.ConfChangeSingle.ty) uf := by
+      simpa [pbSchemaOf, raftpb.Entry.ty, raftpb.Message.ty, raftpb.Snapshot.ty,
+        raftpb.SnapshotMetadata.ty, raftpb.ConfState.ty, raftpb.HardState.ty,
+        raftpb.ConfChange.ty, raftpb.ConfChangeSingle.ty] using Hwire
+    imod pbMsg_alloc raftpb.ConfChangeSingle «$r0_ptr» _ _ us uf ⊤ hs $$ [state sizeCache HU buf] with #Hpb
+    · iframe
+    wp_auto
+    iapply HΦ
+    rw [Hres]
     iframe
     isplitr
     · ipureintro; rfl
     unfold ccsRO ccsPts
-    iexists pt, pn, []
+    iexists pt, pn, uf
     isplitr
     · ipureintro; exact Hsn
-    ihave #HcT : (cellRO pt (o1.getD (W32 0)) : IProp GF) $$ [cT]
-    · rw [show W32 0 = zero_val w32 from rfl]; iapply (nx_optCell_cellRO pt o1); iexact cT
-    ihave #HcN : (cellRO pn (o2.getD (W64 0)) : IProp GF) $$ [cN]
-    · rw [show W64 0 = zero_val w64 from rfl]; iapply (nx_optCell_cellRO pn o2); iexact cN
+    ihave #HcT : (cellRO pt (ot.getD (W32 0)) : IProp GF) $$ [cT]
+    · rw [show W32 0 = zero_val w32 from rfl]; iapply (nx_optCell_cellRO pt ot); iexact cT
+    ihave #HcN : (cellRO pn (onode.getD (W64 0)) : IProp GF) $$ [cN]
+    · rw [show W64 0 = zero_val w64 from rfl]; iapply (nx_optCell_cellRO pn onode); iexact cN
     simp only
-    iframe HT HN Hpbm HcT HcN
-  · have hne : sint.nat i2 ≠ bs.length := fun h => Hif (by word)
-    iapply HΦ
-    rw [hD, ite_eq_right hne]
-    iframe
-    ipureintro; rfl
+    iframe HT HN Hpb HcT HcN
+end proof
+end EtcdGrove
+end Perennial

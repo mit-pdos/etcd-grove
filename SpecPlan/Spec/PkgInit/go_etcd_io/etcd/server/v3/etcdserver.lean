@@ -58,6 +58,7 @@ public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.read
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.features
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.lease
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.lease.leasehttp
+public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.storage.schema.snapshotmeta
 public import SpecPlan.Spec.PkgInit.encoding.base64
 public import SpecPlan.Spec.PkgInit.go_opentelemetry_io.otel.«attribute»
 public import SpecPlan.Spec.PkgInit.go_opentelemetry_io.otel.trace

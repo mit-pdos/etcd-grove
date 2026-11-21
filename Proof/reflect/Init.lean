@@ -2,9 +2,8 @@
 Package initialization of `reflect`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports and runs the untranslated
-initializers of its variables (`X.init`, axioms of the translation), which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking.
+Its fact is `True`. Its initializer initializes its imports and runs the trusted
+initializers of its variables (`X.init`, models in `TrustedCode/` that do nothing).
 -/
 module
 
@@ -27,30 +26,6 @@ local macro "mem_tac" : tactic =>
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
-section opaqueInits
-namespace reflect
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- **The trust boundary: `reflect`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([intArgRegs.init,
-        floatArgRegs.init,
-        floatRegSize.init,
-        stringType.init,
-        kindNames.init,
-        bytesType.init,
-        uint8Type.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
-end reflect
-end opaqueInits
-
 section init
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -71,13 +46,17 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
-  wp_apply (opaqueInitsOk intArgRegs.init (by mem_tac))
-  wp_apply (opaqueInitsOk floatArgRegs.init (by mem_tac))
-  wp_apply (opaqueInitsOk floatRegSize.init (by mem_tac))
-  wp_apply (opaqueInitsOk stringType.init (by mem_tac))
-  wp_apply (opaqueInitsOk kindNames.init (by mem_tac))
-  wp_apply (opaqueInitsOk bytesType.init (by mem_tac))
-  wp_apply (opaqueInitsOk uint8Type.init (by mem_tac))
+  wp_apply wp_GlobalAlloc (V := TODO) kindNames _ as HkindNames
+  wp_apply wp_GlobalAlloc (V := TODO) floatRegSize _ as HfloatRegSize
+  wp_apply wp_GlobalAlloc (V := TODO) floatArgRegs _ as HfloatArgRegs
+  wp_apply wp_GlobalAlloc (V := TODO) intArgRegs _ as HintArgRegs
+  -- translated initializer of intArgRegs))
+  -- translated initializer of floatArgRegs))
+  -- translated initializer of floatRegSize))
+  wp_call  -- stringType: its trusted initializer does nothing
+  -- translated initializer of kindNames))
+  wp_call  -- bytesType: its trusted initializer does nothing
+  wp_call  -- uint8Type: its trusted initializer does nothing
   iframe Hown
   is_pkg_init_finish
 

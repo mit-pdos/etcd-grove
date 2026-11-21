@@ -496,9 +496,13 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   (try wp_auto)
   -- the configuration, field by field from here on
   iStructNamed cfg
-  ihave %HcuNN := typedPointsto_not_null _ _ _ $$ ClientURLs
-  wp_apply h13 as %cus -
-  · ipureintro; exact HcuNN
+  -- (prove-ps2-misc, 2026-11-21) the field and the URLs, read-only (`bootCfgRO`)
+  ihave #HcU : cfg.ClientURLs' ↦*□ U.client $$ []
+  · iunfold bootCfgRO at Hcfgro
+    icases Hcfgro with ⟨-, #H, -⟩
+    iexact H
+  wp_apply h13 $$ [ClientURLs] as %cus ⟨ClientURLs, -⟩
+  · iframe ClientURLs; iframe #
   (try wp_auto)
   -- the request ids' generator, the notifiers
   ihave #Hipkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.idutil $$ []
@@ -1126,7 +1130,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iexact Hcl0
   -- (D21 M2) what the transport's calls into the server read (`srvProcOk`): the wrapper's
   -- fixed fields split off its struct (the node's among them), the member id, the stats
-  imod rnFixed_split (srvRAddr s) rvr $$ r with ⟨#Hfix, Htrf, HlatestTs⟩
+  imod rnFixed_split (srvRAddr s) rvr $$ r with ⟨#Hfix, Htrf, HlatestTs, Hreplay⟩
   ihave #HNodeC : rnNodeAddr (srvRAddr s) ↦□ rnNodeIface γrn $$ []
   · rw [← Hrn14]
     iunfold rnFixed at Hfix
@@ -1578,13 +1582,14 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- `Stop` names it (`srvTrStop`)
   ipersist Htrf
   imod Hinst $$ %(srvRAddr s) %s %(interface.mkOk (go.GoType.PointerType api.rafthttp.Transport.ty) #t)
-    [Henv] [Hcmi] [] [] [] [HlatestTs] [] [Hrtm] %HtickB with ⟨#Hrn, Hrdone, #Hnodef, #Hprop, -⟩
+    [Henv] [Hcmi] [] [] [] [HlatestTs] [Hreplay] [] [Hrtm] %HtickB with ⟨#Hrn, Hrdone, #Hnodef, #Hprop, -⟩
   · iexact Henv
   · iexact Hcmi
   · simp only [srvErM]; iexact Hrdctx
   · iexact Hfix
   · iexact Htrf
   · iexact HlatestTs
+  · iexact Hreplay
   · -- (D21 M2) the raft wrapper's messages carry their bundle into the network
     ihave #Htrall' : netTransport γn id (transportIface t)
         (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk) (srvTrStopK γk)).S

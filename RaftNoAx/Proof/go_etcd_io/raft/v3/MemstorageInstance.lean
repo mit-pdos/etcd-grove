@@ -401,7 +401,11 @@ theorem memStorage_isStorageP
       isplitr
       · ipureintro; exact He
       iapply memStorCompacted_of ms γs _ $$ Hreg Hc
-    · iright; iexact Hres
+    · iright
+      icases Hres with ⟨%he, Hread, %hn, %hcap, %hp, -⟩
+      iframe Hread
+      isplitr; · ipureintro; exact he
+      ipureintro; exact ⟨hn, hcap, hp⟩
   isplitr
   · iintro %c
     imodintro

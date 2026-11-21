@@ -71,10 +71,10 @@ GO_TOOLCHAIN = "go1.27.3"
 RAFT_REV = "d2c16c558247d0a07b96986fc348a003dad80f6e"
 
 # The part RaftNoAx (raft without hand-written axioms, notes/raft-noax-part.md): project raft-noax's
-# pin (the fork's branch raft37-goose-lean-noax, notes/raft-noax.md), and project kvdurable-noax's
+# pin (the fork's branch raft37-goose-lean-noax-wire-core, notes/raft-noax.md), and project kvdurable-noax's
 # source directory and Go package, examples/raft/kvdurablenoax (`etc/copy-part.py`, which reads these,
 # renames the copied kvdurable proofs' package accordingly).
-RAFT_NOAX_REV = "91e2ea70f48377487eccbf01bf80dd9787fac450"
+RAFT_NOAX_REV = "e98d795867e6d626df1cc4e71faa00c1c1f42764"
 KVDURABLE_NOAX_DIR = os.path.join("examples", "raft", "kvdurablenoax")
 KVDURABLE_NOAX_PKG = "github.com/mit-pdos/etcd-grove/examples/raft/kvdurablenoax"
 
@@ -339,7 +339,10 @@ PROJECTS = [
         # `RangeStream` data race cherry-picked (etcd-io/etcd@9acc0ebe37: `rangeStream`'s next key is
         # `append(bytes.Clone(lastKey), 0)`, no longer an append into mvcc's index key;
         # nonissues/etcd-rangestream-keysonly-index-key-race.md).
-        rev="4416a5786332f9489e5f641810e8aeace53e92aa",
+        # goose-lean-replay-snapshot-readers keeps the legacy WAL recovery and RangeStream fixes.
+        # Same-term snapshots stream the backend during restart replay. The label comes from the
+        # frozen image and its Ready's retained entry terms (issues/etcd-merged-snapshot-replay-failure.md).
+        rev="d7c7f6434abce9ad25ac5152b4e74a322fbec8c5",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
@@ -381,6 +384,7 @@ PROJECTS = [
             "go.etcd.io/etcd/server/v3/etcdserver/cindex",
             "go.etcd.io/etcd/server/v3/etcdserver",
             "go.etcd.io/etcd/server/v3/storage/schema",
+            "go.etcd.io/etcd/server/v3/storage/schema/snapshotmeta",
             # with bodies (pkg/v3/adt.toml): the interval tree of mvcc's watcher groups
             "go.etcd.io/etcd/pkg/v3/adt",
             # with bodies (etcdserver/txn.toml): the server's Range, Put, DeleteRange, Txn over
