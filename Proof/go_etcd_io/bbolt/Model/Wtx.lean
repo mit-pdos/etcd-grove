@@ -297,7 +297,7 @@ def posRoot (B : BRec) (c : Nat) : Prop :=
 nodes it materializes; `Bucket.Bucket_w` proves it on open from `rootShape` for a view value,
 `Put`'s premise for a written one). -/
 def inlineBnd (ipg : List w8) : Prop :=
-  ∀ j < pageCount ipg, leafKsize ipg j + leafVsize ipg j ≤ bboltEntryMax
+  ∀ j < pageCount ipg, entryBytesFit (leafKsize ipg j) (leafVsize ipg j)
 
 /-- A nested bucket's value, well-formed and good; (batch 37, U6e) a tree bucket's leaves hold
 plain entries only (nesting depth 2, as `rootShape` for the view: `Bucket.node` gives it from the
@@ -306,7 +306,7 @@ def bvalOK (pages : Pages) (hwm : Nat) (v : List w8) : Prop :=
   bucketWF pages hwm v ∧
     (inBucketRoot v = 0 → inlineGood (inlinePage v) ∧ inlineBnd (inlinePage v)) ∧
     (inBucketRoot v ≠ 0 → ∀ pg, bktLeafPg pages v pg → ∀ j < pageCount pg,
-      leafFlags pg j % 2 = 0 ∧ 0 < leafKsize pg j ∧ leafKsize pg j + leafVsize pg j ≤ bboltEntryMax)
+      leafFlags pg j % 2 = 0 ∧ 0 < leafKsize pg j ∧ entryBytesFit (leafKsize pg j) (leafVsize pg j))
 
 /-- The node `l` (record `r`) of the bucket `bl` (record `B`) is well-formed. -/
 def nodeClean (v : View) (hwm : Nat) (bl : Loc) (B : BRec) (l : Loc) (r : NRec) : Prop :=
@@ -368,13 +368,13 @@ def posShape (X : WX) : Prop :=
       -- batch 38 (S1): the view leaf entries are bounded (`rootShape`'s clauses; item 3/batch
       -- 43.4: the root bucket's too, unconditionally), and the root bucket's names at most
       -- `MaxKeySize` (`rootShape`'s name bound)
-      (0 < leafKsize pg i ∧ leafKsize pg i + leafVsize pg i ≤ bboltEntryMax) ∧
+      (0 < leafKsize pg i ∧ entryBytesFit (leafKsize pg i) (leafVsize pg i)) ∧
       (bl = X.rl → leafKsize pg i ≤ maxKeySize) ∧
       -- maintainer 13 (item 2): a root bucket's entry that is a bucket has `rootShape`'s nested
       -- clause (its own leaves plain, keys non-empty, entries bounded)
       (bl = X.rl → leafFlags pg i % 2 = bucketLeafFlag → ∀ bpg, bktLeafPg X.v.pages (leafValue pg i) bpg →
         ∀ j < pageCount bpg, leafFlags bpg j % 2 = 0 ∧ 0 < leafKsize bpg j ∧
-          leafKsize bpg j + leafVsize bpg j ≤ bboltEntryMax)
+          entryBytesFit (leafKsize bpg j) (leafVsize bpg j))
 
 /-- **The root bucket is not inline** (batch 37, U7f): its root is a page (the view's meta root at
 `beginRWTx`; no operation makes it inline). -/
@@ -480,7 +480,7 @@ and header or inline value, `rootShape`; a branch key is a leaf key, by exact br
 `MaxKeySize` (`rootShape`'s name bound; `CreateBucket`'s premise), the third conjunct. -/
 def entriesBounded (X : WX) : Prop :=
   ∀ bl B, X.t.bs !! bl = some B → ∀ l r, B.ns !! l = some r → ∀ w ∈ r.ws,
-    0 < w.key.length ∧ w.key.length + w.value.length ≤ bboltEntryMax ∧
+    0 < w.key.length ∧ entryBytesFit w.key.length w.value.length w.pgid ∧
       (bl = X.rl → w.key.length ≤ maxKeySize)
 
 /-- The handles: each is a bucket of the transaction (current handles are in `buckets`'

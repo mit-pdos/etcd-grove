@@ -62,7 +62,7 @@ theorem wtxHeap_bkt_node_acc (tx : Loc) (dq : DFrac) (X : WX) (bl : Loc) (B : BR
 are bounded by its entries' bound. -/
 theorem wOwns_lens (v : View) :
     ∀ (ins : List Inode) (ws : List WEntry), wsLive ws →
-    (∀ w ∈ ws, w.key.length + w.value.length ≤ bboltEntryMax) →
+    (∀ w ∈ ws, entryBytesFit w.key.length w.value.length w.pgid) →
     ([∗list] it;w ∈ ins;ws, wOwn (GF := GF) v true it w) ⊢
       ⌜∀ it ∈ ins, it.key'.len.toNat + it.value'.len.toNat < 2 ^ 62⌝
   | [], [], _, _ => by
@@ -97,7 +97,8 @@ theorem wOwns_lens (v : View) :
         rw [Hv.1, show sint.nat x.value'.len = (sint.Z x.value'.len).toNat from rfl]
         have := Hv.2; unfold sint.Z at this ⊢; rw [BitVec.toInt_eq_toNat_cond] at this ⊢
         split <;> omega
-      unfold bboltEntryMax at hbw
+      have hbytes := hbw.2.1
+      unfold bboltEntryMax at hbytes
       omega
     · exact Hr x hx
 
@@ -170,7 +171,7 @@ theorem wtxW_inl_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (c : Lo
     (hcr : c ≠ C.bv.tx'.[Tx, go!"root"]) (hnull : C.bv.rootNode' = null → ins = [])
     (hrn : C.bv.rootNode' ≠ null → ∃ rn, C.ns !! C.bv.rootNode' = some rn ∧ rn.nv = nv ∧
       rn.ins = ins ∧ C.bv.rootNode' ∈ X.live ∧ wsLive rn.ws ∧
-      ∀ w ∈ rn.ws, w.key.length + w.value.length ≤ bboltEntryMax) :
+      ∀ w ∈ rn.ws, entryBytesFit w.key.length w.value.length w.pgid) :
     wtxW (GF := GF) K tx r m X ⊢ c.[Bucket, go!"tx"] ↦□ C.bv.tx' ∗
       c.[Bucket, go!"rootNode"] ↦ C.bv.rootNode' ∗
       (if C.bv.rootNode' = null then emp else C.bv.rootNode' ↦ nv ∗ nv.inodes' ↦* ins) ∗

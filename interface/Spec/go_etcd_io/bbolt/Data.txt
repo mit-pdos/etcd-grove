@@ -2,6 +2,12 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
+theorem bbolt.entryBytesFit_put {k v : Nat} (hk : k ≤ bbolt.maxKeySize) (hv : k + v ≤
+    bbolt.bboltEntryMax) : bbolt.entryBytesFit k v
+
+theorem bbolt.entryBytesFit_leaf {k v : Nat} {child : w64} (h : bbolt.entryBytesFit k v child) :
+    bbolt.entryBytesFit k v
+
 theorem bbolt.TxView.dropBkt.proj_rw (T : bbolt.TxView) (n : GoString) : (T.dropBkt n).rw = T.rw
 
 theorem bbolt.TxView.setBkt.proj_base (T : bbolt.TxView) (n : GoString) (m : bbolt.BktData) :
@@ -23,14 +29,20 @@ structure bbolt.TxView : Type where
 theorem bbolt.TxView.dropBkt.proj_gen (T : bbolt.TxView) (n : GoString) : (T.dropBkt n).gen = fun x
     => if x = n then T.gen n + 1 else T.gen x
 
+def bbolt.branchKeyMax : Nat :=
+  (2 ^ 31 - 1) / 4 - 16
+
 def bbolt.TxView.setBkt (T : bbolt.TxView) (n : GoString) (m : bbolt.BktData) : bbolt.TxView :=
   { rw := T.rw, base := T.base, cur := <[n := m]>T.cur, gen := T.gen }
 
 def bbolt.float64IsNaN (f : w64) : Prop :=
   BitVec.toNat f / 2 ^ 52 % 2 ^ 11 = 2 ^ 11 - 1 ∧ BitVec.toNat f % 2 ^ 52 ≠ 0
 
+def bbolt.entryBytesFit (k v : Nat) (child : w64 := W64 0) : Prop :=
+  k ≤ bbolt.branchKeyMax ∧ k + v ≤ bbolt.bboltEntryMax ∧ (child ≠ W64 0 → k + v ≤ bbolt.branchKeyMax)
+
 def bbolt.bboltEntryMax : Nat :=
-  2 ^ 28
+  2 ^ 31 - 17
 
 theorem bbolt.TxView.setBkt.proj_rw (T : bbolt.TxView) (n : GoString) (m : bbolt.BktData) :
     (T.setBkt n m).rw = T.rw
@@ -52,7 +64,16 @@ def bbolt.BoltEnt : Type :=
 theorem bbolt.TxView.setBkt.proj_gen (T : bbolt.TxView) (n : GoString) (m : bbolt.BktData) :
     (T.setBkt n m).gen = T.gen
 
+theorem bbolt.entryBytesFit_branch {k : Nat} (h : k ≤ bbolt.branchKeyMax) (child : w64) :
+    bbolt.entryBytesFit k 0 child
+
 theorem bbolt.TxView.ro.proj_base (D : bbolt.Data) : (bbolt.TxView.ro D).base = D
+
+theorem bbolt.entryBytesFit_legacy {k v : Nat} {child : w64} (h : k + v ≤ 2 ^ 28) :
+    bbolt.entryBytesFit k v child
+
+theorem bbolt.entryBytesFit_mono {k v k' v' : Nat} {child : w64} (h : bbolt.entryBytesFit k v child)
+    (hk : k' ≤ k) (hv : v' ≤ v) : bbolt.entryBytesFit k' v' child
 
 def bbolt.BktData : Type :=
   GMap GoString GoString
