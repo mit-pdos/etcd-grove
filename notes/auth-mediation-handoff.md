@@ -23,11 +23,12 @@
   unchanged; `etc/auth-mediation-check.py --check --update` (row 2 `none` -> `e2e`). Until the fork commit is pushed,
   the checks that clone etcd (`auth-mediation-check`, `goose.py --check`) need `.lake/goose/etcd` at `4416a5786`
   (`git -C .lake/goose/etcd fetch /shared/tmp/authm3fix/etcd 4416a5786... && git -C .lake/goose/etcd checkout --detach FETCH_HEAD`).
-- `etc/gates.sh` (2026-11-21, log `/shared/tmp/authm3fix/gates.log`): everything passes (tcb 533/0, 71 collections
-  match, links, goose, interfaces, tiers, auth-mediation) except `axiom-tok` and its selftest: rule 5, 48 axioms tainted
-  by `metadata.builtRawMDRaw`, `transportMDRaw`, `status.statusAtRaw`, `envVerifyOffTok` (none of M3's: `rangeStream` is
-  not listed); mo25's gates at `dc24475728` passed it, so it came with lean `dc24475728..3ac6cb4031` (whose mo27 build
-  ran no gates). Reported to etcd-grove-03. **At the LAND STOP**: the coordinator lands; the user pushes the fork first.
+- `etc/gates.sh` (2026-11-21, first run, log `/shared/tmp/authm3fix/gates.log`): only `axiom-tok` and its selftest
+  failed: rule 5, 48 axioms tainted by M3's new axiom `EtcdServer.rangeStream.wp_proof` (its walk through
+  `isServerReqM`/`isServerReadM` capped and truncated; rule-3/7 keys identical to `leaseTimeToLive`'s, no mint). Fixed
+  by three allow-list entries in `etc/axiom-tok-allow.txt`, copies of `leaseTimeToLive`'s (approved by the user,
+  2026-11-21, via etcd-grove-03; questions.md Q5). Gates rerun after it: see the commit after this one / the report.
+  **At the LAND STOP**: the coordinator lands (the fork branch is pushed).
 
 ## M4 proposal (approved 2026-11-21; implemented in `a351492b8d`)
 
