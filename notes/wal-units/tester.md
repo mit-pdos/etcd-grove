@@ -721,3 +721,58 @@ conjunct before the old bullets); `rw [Prod.mk.injEq, Prod.mk.injEq] at he` rath
 drop a component that reduces (a layout's `.j` through `cutLay`/`purgeLayP`). A `lake build` of
 `Proof.go_etcd_io.etcd.server.v3.storage.wal.Link` after an `Inv.lean` definition change took about 25 minutes
 in one slot (3329 jobs).
+
+# Handoff (branch `wal-safe`, 2026-11-21, session 4 of etcd-grove-03's delegates): step 2 (B) done; (D) and step 3 not started
+
+**State.** `fcd2e39948` (on `70bc6e12a8`): no axiom, no `sorry`; the WAL Link, the tester's Links (`Link`,
+`InitLinked`, durable's `Link`) and the WAL's outside users (`etcdserver/RnNewStorageLinked`,
+`etcdstart/WalAreasInit`) build at Perennial `d648cfe22`.
+
+**(B), as built** (differs from the previous handoff's design in two points, both decided here):
+- Fractions: the program holds **three quarters** (`qTmp`, `tmpClaim`), the invariant a quarter (`qTmpI`,
+  `tmpHalf j b := ∃ h n0, osNames j [b] ¼ h ∗ osCommitLb n0 ∗ ⌜HistFoP True n0 j [b] h⌝`). Halves would
+  have broken `tmpClaims_walTmpsRes` (`Close` puts two claims back; with ¾ two on one name contradict,
+  `qTmp_two`).
+- The invariant's quarters are a separate map, `walTmpHalves Ls` (`∃ Jh ⊇ layouts' directories`,
+  `[∗map] Jh, walTmpsHalf J`); `walTmpParked Ls T := walTmpParked0 Ls T ∗ walTmpHalves Ls` (the old
+  definition and lemmas renamed `…0`, the old names restated; `walTmpParked_create` takes
+  `walTmpsHalf lay.j`; `walTmpParked_acc`).
+- `TmpAu.lean`: `walInvBody_tmpAcc`, `walParked_tmpAcc`, `walTmp_osAUnc` (the caller keeps a quarter in
+  the update, the call gets half: `q = r = ½`). Users: `PipeLemmas.wp_createTmp`/`wp_removeTmp` (now take
+  `walInv` and `walDirKey dir j X`; `isFilePipe` has `∃ C Mr jr r X, walInv ∗ walDirKey dir j X`, so the five
+  pipeline specs take `[W : WalGS GF]`, `newFilePipeline.spec` the conjunct), `CutAu.walCut_osAUnc` (new
+  premise `tmp ∈ walTmps`; `walCutP`/`walCutQ` hold a quarter of the pipeline file's claim).
+- Create: `createJ_claims` takes `syncDir(nm.tmp)`'s `osCommitLb` and returns `walTmpsHalf J` (`HistFoP.of_coh`);
+  `walCreateP` carries it to the commit (`walParked_create`) or back to `create_unmint`/`create_Jback`
+  (`tmpClaim_join`). `RenameWALOk`'s spine law (spec of `renameWAL`) also returns the invariant and the
+  new WAL's key (for its `newFilePipeline`), `create_spine` gives them from `createU`.
+- Boot: `walDir_boot` (new premise `V.2 = []`) returns `walTmpsRes J ∗ walTmpsHalf J` (`HistFoP.of_boot`,
+  `osCommitLb 0`), `walInv_alloc` takes that map. Crash: `walInv_crash`'s pure post has, after `NoDirX`,
+  `∀ nm J, walNameOk nm → V'.now.entry jr nm = some (.dir J) → ∀ b ∈ walTmps, ∀ J', entsOf V'.now J !! b ≠ some (.dir J')`
+  (`tmpHalf_crash`, `tmpHalvesL_crash`, `tmpHalvesM_crash`, `crash_tmpNoDir`).
+- Tester: `tester_crash`'s `hfo : BootFoNmTmp V'.now e.jr` (defined in the tester's `Crash.lean`: `BootFoRest`
+  without its first part).
+
+**Next: (D) `nm.tmp`** (gives `BootFoNmTmp`, so `hfo` and `TCrashed`'s carried fact go), unchanged plan:
+1. `os.RemoveAll.specSubS` (new spec in `Spec/os/RemoveAll.lean`, proof a new `Proof/os/RemoveAllSub*.lean`):
+   any entry at `d/b`, every directory under it claimed whole (`SubCover`); post: the claims back, `b` and its
+   subtree some sub-forest of what they were, or `b` gone. Proof by Löb/strong induction over
+   `model.removeAllFrom`'s recursion; reuse `RemoveAllFrom` (the dir case), `RemoveAllLeaf` (a file entry),
+   `RemoveAllParts`, `RemoveAllAbsentN`. Note `specDirS` covers only one level of files. Expect 1-2 sessions.
+2. `TouchDirAll` with a directory `.touch`: an `os.OpenFile` spec answering an error on a directory
+   (check the fsExt semantics of open with `O_WRONLY|O_CREAT` on a directory first), then `fileutil.TouchDirAll`'s
+   error arm; `Create` returns an error, nothing committed (the tester's `Boot` returns `StatusDown`).
+3. `walAreaRes` without `TmpOk`, `tmpClTouch` accepting any entry; `Create`'s proof over 1-2
+   (`CreateTmp.wp_removeAllTmp`). Then retire `hfo`/`BootFoNmTmp` and `TCrashed`'s fact; if cheap,
+   `renameWALPost`'s dead arm 2 (`Create.lean` ~1185).
+
+**Then step 3** (the tester onto `fsSQ_crash_adequacyShared`): the plan in the handoff two sections up; the
+hard stop before the closed statement stands.
+
+**Pitfalls (new).** `etc/lean-check.py` (with `LAKE_OPTS=--packages=/shared/tmp/manifest-d64.json`) works well
+here: it rebuilds changed imports itself, a few seconds per WAL file; use `-a` and read the summary line (a
+filter on `error:` alone hides `lake setup-file` failures of an import). `osNames_join`/`osCommitLb_zero` need
+`[go.BasicIntoValInj]` in the section (`osNames_frac` and the inline `monoNatLbOwn_0` do not). `iunfold` takes
+one name. Inside a `have h : P ⊢ Q := …` (or a `BigSepL.bigSepL_mono` element) the outer Iris context is gone:
+put the persistent facts you need in `P`. `BI.or_false` and `_root_.or_false` are ambiguous once
+`TmpClaim` is imported: write `_root_.or_false`.
