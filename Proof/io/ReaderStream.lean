@@ -40,9 +40,11 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `err` is `nil` or an error with the evidence `E r err` (persistently). -/
+/-- `err` is `nil` or an error with the evidence `E r err` (persistently), and well-typed
+(`_root_.Perennial.io.ptrTyped`: a value of a pointer type is a location, Go's typing, which the
+model does not have; what comparing it with `io.EOF` needs to step, in `io.ReadFull`). -/
 def io.errAt (E : List w8 → GoInterface → IProp GF) (r : List w8) (err : GoInterface) : IProp GF :=
-  iprop(⌜err = GoInterface.nil⌝ ∨ □ E r err)
+  iprop((⌜err = GoInterface.nil⌝ ∨ □ E r err) ∗ ⌜_root_.Perennial.io.ptrTyped err⌝)
 
 instance io.errAt_persistent (E : List w8 → GoInterface → IProp GF) (r : List w8)
     (err : GoInterface) : Persistent (io.errAt E r err) := by
@@ -50,7 +52,10 @@ instance io.errAt_persistent (E : List w8 → GoInterface → IProp GF) (r : Lis
 
 theorem io.errAt_nil (E : List w8 → GoInterface → IProp GF) (r : List w8) :
     ⊢ io.errAt E r GoInterface.nil := by
-  unfold io.errAt; ileft; ipureintro; rfl
+  unfold io.errAt
+  isplitl []
+  · ileft; ipureintro; rfl
+  · ipureintro; exact _root_.Perennial.io.ptrTyped_nil
 
 theorem io.errAt_eq {E : List w8 → GoInterface → IProp GF} {r r' : List w8} {err : GoInterface}
     (h : r = r') : io.errAt E r err ⊢ io.errAt E r' err := by
@@ -70,6 +75,36 @@ def io.readerStream (ri : GoInterfaceOk) (S : List w8 → IProp GF)
 instance io.readerStream_persistent (ri : GoInterfaceOk) (S : List w8 → IProp GF)
     (E : List w8 → GoInterface → IProp GF) : Persistent (io.readerStream ri S E) := by
   unfold io.readerStream; infer_instance
+
+/-- A stream reader meets Perennial's `io.Reader` contract (`io.readerOk`), with each read ending
+below `2^62`. -/
+theorem io.readerStream_readerOk (ri : GoInterfaceOk) (S : List w8 → IProp GF)
+    (E : List w8 → GoInterface → IProp GF) :
+    io.readerStream ri S E ⊢
+      _root_.Perennial.io.readerOk ri (fun r m => r.length + m < 2 ^ 62) S E := by
+  iintro #Hr
+  unfold _root_.Perennial.io.readerOk
+  iunfold io.readerStream at Hr
+  imodintro
+  iintro %r %p %xs %Φ
+  imodintro
+  iintro ⟨%hpre, HS, Hp⟩ HΦ
+  iapply Hr $$ %r %p %xs [HS Hp]
+  · iframe HS Hp
+    ipureintro; exact hpre
+  inext
+  iintro %n %err ⟨%ys, %hys, #He, Hp, HS⟩
+  iunfold io.errAt at He
+  icases He with ⟨#He, %hty⟩
+  iapply HΦ
+  iexists ys
+  iframe Hp HS
+  isplitl []
+  · ipureintro; exact hys
+  isplitl []
+  · unfold _root_.Perennial.io.errAt
+    iexact He
+  · ipureintro; exact hty
 
 /-- See the file header. -/
 def io.readFullRes (E : List w8 → GoInterface → IProp GF) (eof ueof : GoInterface)
