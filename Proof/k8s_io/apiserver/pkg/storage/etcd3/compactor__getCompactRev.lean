@@ -247,7 +247,9 @@ theorem compactor.getCompactRev.wp_proof
     (try wp_auto)
     wp_apply wp_bytes_to_string valSl v0.value DFrac.discard $$ [Hvals] as -
     · iexact Hvals
-    wp_apply wp_ParseInt v0.value (W64 10) (W64 64) as %n %perr %Hp
+    ihave #Pstrconv : isPkgInit (PROP := IProp GF) pkg_id.strconv $$ []
+    · iPkgInit
+    wp_apply wp_ParseInt v0.value (W64 10) (W64 64) (by word) (by word) (by word) (by word) as %n %perr %Hp
     obtain ⟨rfl, rfl⟩ := Hp cv Hcv rfl rfl
     (try wp_auto)
     wp_if_destruct

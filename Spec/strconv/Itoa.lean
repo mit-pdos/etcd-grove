@@ -1,6 +1,6 @@
 /-
-`strconv.Itoa`: the trust boundary (Perennial translates `strconv` names-only; the axiom is
-`Proof/strconv/Itoa.lean`). Lean-first (no Rocq counterpart); K4 of `notes/k8s-compactor-plan.md`:
+`strconv.Itoa`: proved (`Proof/strconv/Itoa.lean`) over Perennial's translation of Go's
+(stdlib2, 2026-11-21; until then a trust-boundary axiom). Lean-first (no Rocq counterpart); K4 of `notes/k8s-compactor-plan.md`:
 the compactor example's writer puts `Itoa(i)`. Go's `Itoa(i)` is `FormatInt(int64(i), 10)`
 (`strconv/itoa.go`), so its spec is `FormatInt.spec`'s at base 10.
 -/

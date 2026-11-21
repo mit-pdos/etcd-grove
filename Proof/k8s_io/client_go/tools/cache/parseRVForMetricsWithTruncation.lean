@@ -57,11 +57,15 @@ theorem parseRVForMetricsWithTruncation.wp_proof
         refine ⟨by word, by word, by word⟩
       simp only [hb, _root_.and_self, ↓reduceIte]
       (try wp_auto)
-      wp_apply wp_ParseInt as %n %err _
+      ihave #Pstrconv : isPkgInit (PROP := IProp GF) pkg_id.strconv $$ []
+      · iPkgInit
+      wp_apply (wp_ParseInt _ (W64 10) (W64 64) (by word) (by word) (by word) (by word)) as %n %err _
       (try wp_auto)
       iapply HΦ; itrivial
     · (try wp_auto)
-      wp_apply wp_ParseInt as %n %err _
+      ihave #Pstrconv : isPkgInit (PROP := IProp GF) pkg_id.strconv $$ []
+      · iPkgInit
+      wp_apply (wp_ParseInt _ (W64 10) (W64 64) (by word) (by word) (by word) (by word)) as %n %err _
       (try wp_auto)
       iapply HΦ; itrivial
 
