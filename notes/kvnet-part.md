@@ -76,7 +76,9 @@ part's own (as in `RaftNoAx/`).
   file), and gen-init's initializers of those packages name it (the first instance in the part's
   proofs wins). The general fix is to move them in the main tree into a protobuf module that cache's
   `Base` imports; that rebuilds the 7635 modules importing `Base` (`etc/importers.py --count`), so it
-  waits for a change that rebuilds them anyway; the part's file then goes.
+  waits for a change that rebuilds them anyway; the part's file then goes. **Follow-up** (accepted
+  2026-11-21 by the coordinator, issue #22): move the four instances to a main-tree protobuf module
+  when a rebuild of `Base`'s importers is acceptable, then delete the part's file.
 - **kvnet's and kvcheck's own initializers and `PkgTable`** are not generated yet: gen-init needs their
   `IsPkgInit` instances (their facts: `StatNames`' array literal), which belong to kvnet's proof. Add
   the packages to `KVNET_INITS` (and the program to a `PkgTable`) when the instances exist.

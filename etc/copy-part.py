@@ -79,6 +79,14 @@ KVD_MAIN = "github.com/mit-pdos/etcd-grove/examples/raft/kvdurable"
 # path (goose.KVDURABLE_NOAX_PKG); empty while that is kvdurable's own. (Read by etc/gen-link.py.)
 RENAME = {k: v for k, v in [(lean_pkg(KVD_MAIN), lean_pkg(goose.KVDURABLE_NOAX_PKG))] if k != v}
 
+# KvNet's: kvnet's storage.go is kvdurablenoax's, and its codec helpers (putBytes, getBytes) and
+# withTimeout are kv.go's/cluster.go's, the same Go text in another package, so the part takes their
+# specs and proofs (and the pure codec, `Codec.lean`) from RaftNoAx's kvdurablenoax, the package
+# path and the proofs' namespace renamed; a module the part has a file of its own of (`Base.lean`:
+# kvnet's package initialization) is the part's.
+RENAME_KVNET = {lean_pkg(goose.KVDURABLE_NOAX_PKG): "github_com.mit_pdos.etcd_grove.examples.raft.kvnet",
+                "raft_kvdurable": "raft_kvnet"}
+
 NOTE = "(etc/copy-part.py; rerun it, do not edit)"
 
 IMPORT_RE = re.compile(r"(?m)^((?:(?:public|private|meta)\s+)*import\s+(?:all\s+)?)(\S+)")
@@ -106,14 +114,14 @@ def under(mod, prefixes):
     return any(mod == q or mod.startswith(q + ".") for q in prefixes)
 
 
-def unrename(dotted):
-    for k, v in RENAME.items():
+def unrename(dotted, table=None):
+    for k, v in (RENAME if table is None else table).items():
         dotted = re.sub(rf"(?<![\w.]){re.escape(v)}(?![\w])", k, dotted)
     return dotted
 
 
-def rename(txt):
-    for k, v in RENAME.items():
+def rename(txt, table=None):
+    for k, v in (RENAME if table is None else table).items():
         txt = re.sub(rf"(?<![\w]){re.escape(k)}(?![\w])", v, txt)
         ks, vs = k.replace(".", "/"), v.replace(".", "/")
         txt = re.sub(rf"(?<![\w]){re.escape(ks)}(?![\w])", vs, txt)
@@ -152,10 +160,16 @@ class Part:
         """(source root, file) of `mod` in the first source tree that has it, or None; a clash
         (two source parts, neither the main tree) stops the script unless gen-init writes `mod`."""
         found = []
+        # (a part that renames a package takes its modules from the source package's: KvNet's
+        # kvnet codec proofs are kvdurablenoax's, `RENAME_KVNET`)
+        cands = [mod] + ([rename(mod, {v: k for k, v in self.renames.items()})]
+                         if self.own_first and rename(mod, {v: k for k, v in self.renames.items()}) != mod else [])
         for s in self.sources:
-            p = os.path.join(ROOT, *([s] if s else []), *mod.split(".")) + ".lean"
-            if os.path.exists(p):
-                found.append((s, p))
+            for c in cands:
+                p = os.path.join(ROOT, *([s] if s else []), *c.split(".")) + ".lean"
+                if os.path.exists(p):
+                    found.append((s, p))
+                    break
         parts = [f for f in found if f[0]]
         if len(parts) > 1 and mod not in self.gen_init_mods() and not mod.endswith(".Link"):
             sys.exit(f"copy-part: {self.name}: {mod} is in more than one source tree "
@@ -183,12 +197,22 @@ class Part:
                 self._imports[mod] = None
             else:
                 src, path = r
-                self._imports[mod] = [strip(m.group(2), src)
+                self._imports[mod] = [self.view(strip(m.group(2), src))
                                       for m in IMPORT_RE.finditer(header_part(read(path)))]
         return self._imports[mod]
 
     def roots(self):
         return self._roots(self)
+
+    def pkg(self, owned):
+        """The Lean package path (dotted) the source trees name a package the part owns by: RaftNoAx's
+        renamed kvdurable is the main tree's kvdurable; KvNet's packages are its own."""
+        d = owned.replace(os.sep, ".")
+        return d if self.own_first else unrename(d, self.renames)
+
+    def view(self, mod):
+        """A module path a source file imports, as the part names it (its renamed packages')."""
+        return rename(mod, self.renames) if self.own_first else mod
 
     def gen_init_mods(self):
         if not hasattr(self, "_gi"):
@@ -229,10 +253,19 @@ def raftnoax_roots(part):
     return [f"Proof.{lean_pkg(KVD_MAIN)}.Results", f"Proof.{lean_pkg(KVD_MAIN)}.TopLevelRobustness"]
 
 
+# KvNet's proofs taken from kvdurablenoax (`RENAME_KVNET`) that no module of the part imports yet:
+# kvnet's codec helpers and withTimeout, roots until kvnet's `Link.lean` links them.
+KVNET_PKG = "github_com.mit_pdos.etcd_grove.examples.raft.kvnet"
+KVNET_REUSED = [f"Proof.{KVNET_PKG}.{f}" for f in
+                ["putUint64", "getUint64", "putBytes", "getBytes", "putIDs", "getIDs", "putEntry",
+                 "getEntry", "putSnapshot", "getSnapshot", "withTimeout"]]
+
+
 def own_roots(part):
     """The part's own hand-written modules under `Spec/` and `Proof/` (not copies, not generated),
-    and the modules gen-init writes for it (built with the part, so their imports must be there)."""
-    out = sorted(part.gen_init_mods())
+    the modules gen-init writes for it (built with the part, so their imports must be there), and
+    (KvNet) the reused proofs `KVNET_REUSED`."""
+    out = sorted(part.gen_init_mods()) + (KVNET_REUSED if part.name == "KvNet" else [])
     gi = part.gen_init_mods()
     for d in ("Spec", "Proof"):
         for dp, _, fs in os.walk(os.path.join(ROOT, part.name, d)):
@@ -267,7 +300,7 @@ def kvnet_gen_init_paths():
 
 PARTS = {
     "RaftNoAx": Part("RaftNoAx", [""], raftnoax_roots, False, RENAME, raftnoax_gen_init_paths),
-    "KvNet": Part("KvNet", ["Net", "WalTester", "RaftNoAx", ""], own_roots, True, {},
+    "KvNet": Part("KvNet", ["Net", "WalTester", "RaftNoAx", ""], own_roots, True, RENAME_KVNET,
                   kvnet_gen_init_paths),
 }
 
@@ -284,17 +317,17 @@ def closure(part):
 
 
 def under_translated(part, m):
-    pkgs = [unrename(o.replace(os.sep, ".")) for o in part.owned()]
+    pkgs = [part.pkg(o) for o in part.owned()]
     return under(m, [f"{d}.{p}" for d in ("Code", "GeneratedProof") for p in pkgs])
 
 
 def compute(part):
     """(the closure's modules the part has, with why; the files to write: part path -> text)."""
     P = part.name
-    pkgs = [unrename(o.replace(os.sep, ".")) for o in part.owned()]
+    pkgs = [part.pkg(o) for o in part.owned()]
     seed_prefixes = [f"{d}.{p}" for d in ("Code", "GeneratedProof", "TrustedCode", "ManualProof") for p in pkgs]
     # every module of a renamed package goes with it, whether or not it reaches a seed
-    seed_prefixes += [f"{d}.{k}" for d in ("Spec", "Proof") for k in part.renames]
+    seed_prefixes += [f"{d}.{k}" for d in ("Spec", "Proof") for k in part.renames if not part.own_first]
     cl = closure(part)
     gi = part.gen_init_mods()
     memo = {}
@@ -316,7 +349,7 @@ def compute(part):
         s = part.piece_source(o)
         if s is None and part.sources != [""]:
             continue
-        p = unrename(o.replace(os.sep, "."))
+        p = part.pkg(o)
         for d in ("TrustedCode", "ManualProof"):
             base = os.path.join(ROOT, *([s] if s else []), d, *p.split("."))
             for f in ([base + ".lean"] if os.path.isfile(base + ".lean") else []) + [
@@ -355,7 +388,7 @@ def compute(part):
         s = txt.index(head)
 
         def imp(mm, src=src, m=m):
-            x = strip(mm.group(2), src)
+            x = part.view(strip(mm.group(2), src))
             if x in members:
                 return mm.group(1) + f"{P}.{x}"
             if src and mm.group(2).startswith(src + "."):
@@ -364,7 +397,8 @@ def compute(part):
             return mm.group(1) + x
         txt = txt[:s] + IMPORT_RE.sub(imp, head) + txt[s + len(head):]
         if part.renames:
-            txt = rename(txt)
+            txt = rename(txt, part.renames)
+        if part.renames and not part.own_first:
             dst = os.path.join(P, rename(rel))
         else:
             dst = os.path.join(P, *m.split(".")) + ".lean"
@@ -375,7 +409,7 @@ def compute(part):
         s = part.piece_source(o)
         if s is None and part.sources != [""]:
             continue
-        src_o = unrename(o.replace(os.sep, ".")).replace(".", os.sep)
+        src_o = part.pkg(o).replace(".", os.sep)
         base = os.path.join(ROOT, *([s] if s else []), "Code", src_o)
         tomls = ([base + ".toml"] if os.path.isfile(base + ".toml") else []) + sorted(
             os.path.join(dp, x) for dp, _, fs in os.walk(base) for x in fs if x.endswith(".toml"))
@@ -430,6 +464,8 @@ def prune_unimported(part, why, files):
         for m in sorted(alive & set(copied)):
             if m.endswith((".Results", ".TopLevelRobustness", ".Link")):
                 continue
+            if part.name == "KvNet" and m[len(P) + 1:] in KVNET_REUSED:
+                continue
             if m.startswith((f"{P}.TrustedCode.", f"{P}.ManualProof.")) and part.sources != [""]:
                 continue  # (a translated package's, kept whether or not imported)
             if not any(i in alive for i in importers.get(m, ())):
@@ -437,7 +473,7 @@ def prune_unimported(part, why, files):
                 changed = True
     for m in set(copied) - alive:
         del files[copied[m]]
-        why.pop(unrename(m[len(P) + 1:]), None)
+        why.pop(unrename(m[len(P) + 1:], part.renames), None)
 
 
 def existing_copies(P):
