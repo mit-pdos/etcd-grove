@@ -24,7 +24,7 @@ NAMES = re.compile(r'\b(errDesc|statusCode|statusErrOk|errorMsgIs|grpcErrMethods
 
 # file (and axiom name, for an axiom declared in a proof file): why it is true of Go
 REVIEWED = {
-    'Proof/go_etcd_io/etcd/api/v3/v3rpc/rpctypes/ErrDescWrap.lean':
+    'Proof/go_etcd_io/etcd/api/v3/v3rpc/rpctypes/ErrDescWrap.lean:rpctypes.errDesc_wrapError':
         '(fmtmodel) a *fmt.wrapError has no GRPCStatus and Error() returns its msg field, which the '
         'premise holds read-only for good (stable): FromError\'s message is err.Error() on every path',
     'Spec/google_golang_org/grpc/status/FromError.lean':
