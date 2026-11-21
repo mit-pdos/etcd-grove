@@ -1144,6 +1144,12 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   sibling branch's `0 < prev`; and a `word` side goal later in the same proof failed with "unknown
   free variable" (a cached term over a hypothesis of another goal). Workaround there: `omega` on
   `BitVec.toNat` for the first, the `word` fact proved at the top of the proof for the second.
+- **Seen again** (2026-11-21, `sort.Stable`'s proofs, branch `prove-stdlib4-stable`): "unknown free
+  variable" from `word` in `rotate`'s, `symMerge`'s and `stable`'s proofs, each time with a hypothesis
+  holding an `if` (or a loop condition `#!decide (i = j) = #true`) in the context, and gone once that
+  hypothesis was cleared, kept in the Iris context (`symMerge`'s `Hsr0`), or introduced after the
+  `word`s; once it was a false goal (`stable`'s invariant `bs ≤ 2^62`), so the error can hide a
+  plain failure. Workaround there: those hypotheses kept out of `word`'s context.
 - **Status.** Not started (found 2026-10-21, `raft-retarget`, now on `lean`).
 
 ### Specs: a law for `Done()` of an `isContext` context (2026-10-27, the compactor pilot)
