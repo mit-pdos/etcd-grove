@@ -7,9 +7,9 @@ kept anywhere; this script computes it, for review (and CI reports its size):
 
     models/diff.py MODEL [--stat]
 
-MODEL is the model's directory under models/ (`net/rpc`, `net/http`, ...). Prints the unified diff
-from the pinned upstream source to the model (`--stat`: per file, lines added and removed, and
-the totals). For each directory of the model holding Go files, the upstream directory of the same
+MODEL is the model's directory under models/ (`net/rpc`, `net/http`, `grpc`, ...). Prints the unified diff
+from the pinned upstream source to the model (`--stat`: per file, lines added and removed, the totals,
+and, for a module model, the upstream packages the model does not have). For each directory of the model holding Go files, the upstream directory of the same
 package is compared: a file in both is diffed, a file only in the model is added, an upstream Go
 file (not a test) missing from the model is removed. Non-Go files (the generators, notes) are
 not part of the comparison.
@@ -35,7 +35,9 @@ MODELS = goroot.MODELS
 
 # Models of Go modules: the model's directory under models/ -> (module path, version). The model's
 # tree mirrors the module's (a package at <dir>/<sub> models the module's <path>/<sub>).
-MODULE_MODELS = {}
+MODULE_MODELS = {
+    "grpc": ("google.golang.org/grpc", "v1.84.0"),
+}
 
 
 def go_files(d):
@@ -45,17 +47,36 @@ def go_files(d):
             and os.path.isfile(os.path.join(d, f))}
 
 
+def module_root(model):
+    """The module's source directory (the module cache; offline, as `go mod download` of a
+    module the models' go.sum already has)."""
+    path, version = MODULE_MODELS[model]
+    env = dict(os.environ, GOWORK="off", GOFLAGS="-mod=mod")
+    env.setdefault("GOPROXY", "off")
+    r = subprocess.run(["go", "mod", "download", "-json", f"{path}@{version}"],
+                       capture_output=True, text=True, check=True, cwd=MODELS, env=env)
+    return json.loads(r.stdout)["Dir"]
+
+
+def dropped_packages(model):
+    """The upstream package directories of a module model that the model lacks."""
+    up = module_root(model)
+    base = os.path.join(MODELS, model)
+    out = []
+    for d, _, _ in os.walk(up):
+        rel = os.path.relpath(d, up)
+        if go_files(d) and not os.path.isdir(os.path.join(base, rel)):
+            out.append(rel)
+    return sorted(out)
+
+
 def upstream_dir(model):
     """[(model directory, upstream directory)] for the model's Go package directories."""
     if model in goroot.STD_MODELS:
         root = goroot.goroot()
         return [(os.path.join(MODELS, model), os.path.join(root, "src", model))]
     if model in MODULE_MODELS:
-        path, version = MODULE_MODELS[model]
-        r = subprocess.run(["go", "mod", "download", "-json", f"{path}@{version}"],
-                           capture_output=True, text=True, check=True,
-                           cwd=MODELS, env=dict(os.environ, GOWORK="off"))
-        up = json.loads(r.stdout)["Dir"]
+        up = module_root(model)
         base = os.path.join(MODELS, model)
         out = []
         for d, _, fs in os.walk(base):
@@ -106,6 +127,10 @@ def main():
         for rel, kind, add, dele in rows:
             print(f"{rel:<{w}}  {kind:<7}  +{add:<6} -{dele}")
         print(f"{len(rows)} files differ: +{tot_add} -{tot_del} lines")
+        if a.model.strip("/") in MODULE_MODELS:
+            dropped = dropped_packages(a.model.strip("/"))
+            print(f"{len(dropped)} upstream package directories are not in the model (the packages no "
+                  f"program here reaches, or no longer reaches through the model)")
 
 
 if __name__ == "__main__":

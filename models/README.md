@@ -19,6 +19,7 @@ neutral module path"). Translated by goose project `models` (`etc/goose.py`, lea
 | `net/rpc/rpcgen.py`: the net/rpc codec generator (gob's encoding and merging decode, reflection's receivers) | as pbgen: plain Go a program's proof uses | **the generator** (`rpcgen_core.py`: the claim, the subset, the refusals, gob's decode rules cited); its input derived by reflection (`rpcdesc/`, net/rpc's `suitableMethods` copied) | `internal/rpcgenrand` (random Go types against real gob; one refused input per construct); the generated test beside each codec |
 | `net/http/`: Go 1.27.3's `net/http` as a model | Go's code (the server's connection loop, the response writer, ServeMux, handlers, Request/Response) but for the HTTP/1.x head parser (`textproto_model.go`); not modelled (a panic): chunked bodies, TLS, HTTP/2, the Transport; translated by `models-net`: types, the parser, and with their bodies what net/rpc's HTTP path runs (`ReadResponse`, `Handle`, ServeMux's dispatch, `Serve`/`ListenAndServe`, `conn.serve` up to a hijack; `Net/Code/net/http.toml`); no spec proved yet | that every behavior of Go's net/http is one of the model's (`textproto_model.go`'s doc) | `internal/httpdifftest` (raw server exchanges and `ReadRequest`/`ReadResponse` on heads and mutations, against golden transcripts the real build writes) |
 | `json/`: the JSON codec generator `jsongen.py` | as for pbgen: plain Go over `jsoncodec` | its output for the listed types (a hand-written `[json]` table, still the audited input: not yet reworked as pbgen was; the plan note, phase 5.1, says what carries over) | the generated tests (`internal/jsondifftest`) against `encoding/json` |
+| `grpc/`: grpc-go v1.84.0 as a model (a module model: Go module `google.golang.org/grpc`, put in place by a `replace`, `grpc/gomodel.py`) | grpc-go's code (status, codes, metadata, peer, credentials, resolver, encoding, the options, `invoke`, the interceptor chains, the client stream's attempts and replay, the server stream, `processRPC`, `Serve`, `GracefulStop`, `Stop`) but for its transport and connection management, replaced by the model's (`model_*.go`: one stream per connection; see below); Lean: specs to come (phase 5.4's Lean half) | that every behavior of grpc-go v1.84.0 over Linux TCP, as the program observes it, is one of the model's (`model_transport.go`'s and `model_clientconn.go`'s docs; below) | `internal/grpcdifftest` (`run.sh`: the same tests against grpc-go and the model, faults included; the invariants with the model's choices random; `examples/` built against the model; `--etcd`: etcd's examples over the model) |
 
 Layout: a model's Go package at the top (`pbcodec/`, `jsoncodec/`, `pbdesc/`, `rpcdesc/`), its
 generator in a directory named for the library (`protobuf/`, `json/`, `net/rpc/`), its differential
@@ -31,6 +32,54 @@ real package through `goroot.py` (`overlay`: a `go build -overlay` file, with `-
 program's generated registration; `farm`: a GOROOT of links, for goose, a project's `std_models` in
 `etc/goose.py`). Where a model does not model the library it panics with a value that has a
 `NotModelled` method.
+
+## The grpc model (`grpc/`)
+
+`grpc/` is grpc-go v1.84.0 (the version `examples/go.mod` pins), the packages a program of this
+repository reaches, as the module `google.golang.org/grpc`: a model build replaces the real module by
+it (`grpc/gomodel.py DIR GOARGS...`: the module's go.mod plus the `replace`, as a temporary
+`-modfile`; the normal build never sees the model). It keeps grpc-go's API: every exported name of
+the packages etcd, its dependencies (otelgrpc, the prometheus interceptors) and the kits use, which
+`examples/` building against it checks. The packages it no longer reaches are not in it
+(`internal/transport`, the balancers, `internal/idle`, the delegating resolver, ...). Its changes are
+marked `MODEL:`, and its difference from grpc-go is computed, never stored: `diff.py grpc [--stat]`
+(2026-11-20: 16 files of the root package, +2724 -3807 lines). What it replaces:
+
+- **The transport** (`model_transport.go` over `model_wire.go`), in place of HTTP/2: one stream per
+  connection. The client writes HTTP/2's 24-byte preface (cmux's `HTTP2()` matcher reads exactly
+  it) and writes a stream only once the server's preface arrived (as grpc-go waits for SETTINGS:
+  a connection made in a blackhole never carries a stream), then header blocks carrying grpc-go's own header fields (made by grpc-go's
+  `createHeaderFields`, read by its `operateHeaders`, `writeStatus`, ...; `model_http_util.go` is
+  `http_util.go`'s helpers verbatim), gRPC's length-prefixed messages (read by grpc-go's `parser`,
+  which checks the size limit before reading a message) and RST_STREAM codes. Not modelled, and not
+  observable by the program: multiplexing, flow control, HPACK, settings, pings, keepalive (a dead
+  connection is a cut, which the network may make at any time).
+- **The connection management** (`model_clientconn.go`), in place of the balancers, subchannels,
+  picker and idleness manager: the program's resolver (built when the ClientConn leaves idleness,
+  closed when it enters it or closes); an attempt dials any address the resolver reported since it
+  was built, with the dial options' dialer and the credentials' handshake (insecure only), and gets
+  a connection of its own; a fail-fast attempt fails with Unavailable when its dial fails.
+- **Removed:** channelz, stats handlers, binary logging, tracing, server workers, retry policies and
+  hedging (no service config but round robin's, which has none).
+
+**The trusted claim:** every behavior of grpc-go v1.84.0 over Linux TCP, as the program observes it
+(what handlers run with which requests, metadata, deadlines and contexts; what calls and streams
+return; which program callbacks run: dialers, resolvers, credentials, interceptors, codecs), is a
+behavior of the model. Not wire compatibility: both ends run the model. Its choice points are
+`modelChoose`/`modelChooseN` (`model_choose.go`, the only declarations with a hand-written GooseLang
+body: any value; in Go the common side, or random with `GRPC_MODEL_CHOOSE=random`).
+*Over-approximations* (more behaviors than grpc-go): a stream not yet dispatched may be refused
+(REFUSED_STREAM; grpc-go's MaxConcurrentStreams and GOAWAY), and a refused first attempt is retried
+transparently, as grpc-go does; a connection failure before a stream's status ends it with any
+non-OK code; any address reported since the resolver's build may be dialed; a fail-fast RPC may fail
+with Unavailable at its pick; the ClientConn may enter idleness whenever no RPC is active. *Outside
+the model* (a panic with a `NotModelled` method): transport credentials other than insecure, a
+service config other than `{"loadBalancingPolicy": "round_robin"}`, compression, stats handlers,
+binary logging, `InTapHandle`, `Server.ServeHTTP`, a unix address with a custom dialer.
+*Invisible simplifications*: one stream per connection (only a connection's addresses could tell,
+and they are any address), no HTTP/2 framing, no server workers. `RegisterService` does not make
+grpc-go's reflection check of the handler's type (grpc-go exits when it fails; generated code cannot
+fail it).
 
 ## The other kinds of trusted model
 

@@ -657,6 +657,90 @@ tests kept as differential tests against the real library, a "not modelled" pani
    generic stream wrappers, `InvGrpcStream.lean`'s two queues as a proved fact), interceptors,
    metadata, resolvers and idleness, `GracefulStop`/`Stop`, `WaitForReady`, transparent retry only
    when not dispatched.
+
+   **Go half done (2026-11-20, branch `models-grpc`; the Lean half next).** Under the user's
+   decisions of 2026-11-19/20 (a model is a first-class Go package in `models/`, its diff from the
+   real library computed; one stream per connection, Q2; the trusted claim: every behavior of
+   grpc-go v1.84.0 over Linux TCP, as the program observes it, is one of the model's), the model is
+   `models/grpc`, the Go module `google.golang.org/grpc` with v1.84.0's API, unary *and* streams:
+   grpc-go's source of the packages the examples reach, with the root package's transport and
+   connection management replaced (`models/README.md`, "The grpc model": what is kept, what
+   replaced, the over-approximations, what is outside the model). A model build replaces the module
+   with `models/grpc/gomodel.py DIR GOARGS...` (a temporary `-modfile`: the module's go.mod plus the
+   `replace`; the normal build never sees it). *Kept as grpc-go's code*: every subpackage the
+   programs use (status, codes, metadata, peer, credentials, resolver and its dns/passthrough/
+   manual resolvers, encoding and its proto codec, keepalive, health, reflection, mem, ...), and in
+   the root package the options and their constructors, `invoke`, the interceptor chains, the
+   generic stream wrappers, the client stream's attempts, commit, replay buffer and transparent
+   retry (`shouldRetry`'s unprocessed case, first attempt only, as grpc-go), `SendMsg`/`RecvMsg`/
+   `Header`/`Trailer`/`CloseSend`/`finish`, the server stream, `processRPC`, `handleStream`'s
+   lookup and its Unimplemented texts, `Serve`'s loop, the connection set, `GracefulStop`/`Stop`,
+   the message framing and size checks (`parser.recvMsg`, `encode`, `msgHeader`, `recv`), the header
+   helpers (`model_http_util.go`: `http_util.go` verbatim). *Replaced* (the `model_*.go` files,
+   2.3k lines): the HTTP/2 transport by `model_transport.go` over `model_wire.go` (preface, header
+   blocks of grpc-go's own header fields (a stream written only after the server's preface arrived, as grpc-go waits for SETTINGS; found by `examples/etcd/partition`'s blackholed bridge, `TestBlackhole`), made and read by grpc-go's `createHeaderFields`,
+   `operateHeaders`, `writeHeaderLocked`, `writeStatus`, `writeEarlyAbort`, `handleRSTStream`
+   adapted from hpack; gRPC messages; RST_STREAM codes: REFUSED_STREAM for an undispatched stream,
+   CANCEL at the server's deadline); the balancers, subchannels, picker, idleness manager by
+   `model_clientconn.go` (the program's resolver built on leaving idleness, every reported address,
+   a dial and an insecure handshake per attempt, fail-fast and wait-for-ready, idleness when quiet
+   at the model's choice); `service_config.go`'s parser by the round-robin config only. *Removed*:
+   channelz, stats handlers, binary logging, tracing, server workers, retry policies, the
+   subchannels' health-check streams; the packages no longer reached (`internal/transport`, the
+   balancers, `internal/idle`, the delegating resolver, ...: 18). Choice points `modelChoose`/
+   `modelChooseN` (`model_choose.go`). The computed diff against v1.84.0 (the reached packages):
+   16 files of the root package differ, +2724 -3807 lines (`models/diff.py grpc --stat`; the five `model_*.go` files added,
+   2464 lines; `balancer_wrapper.go`, `picker_wrapper.go`, `resolver_wrapper.go` and the two
+   `clientconn_disconnect_reason` files removed; `clientconn.go` +94 -1217, `stream.go` +54 -849,
+   `server.go` +87 -456, `service_config.go` +14 -231, `rpc_util.go` +3 -4, `dialoptions.go` +2 -3),
+   and 18 packages dropped whole. *What etcd and the kits reference that had to be kept*: all of
+   the API (nothing was dropped from an exported surface the examples use): `ServeHTTP` (etcd's TLS
+   path; now a `NotModelled` panic), `WithBlock`, `Dial`/`DialContext`, `ErrClientConnTimeout`,
+   `PickFirstBalancerName` (a literal now), the `Peer`/`Header`/`Trailer`/`WaitForReady`/
+   `MaxCall*` call options, `ServiceRegistrar`, `UnknownServiceHandler`, `GetServiceInfo`,
+   `NewContextWithServerTransportStream`, `SetSendCompressor`/`ClientSupportedCompressors` (over
+   the model's server stream), `WithResolvers`, `resolver/manual`, `serviceconfig`, `health`,
+   `reflection`, `stats` (types only). *Evidence*: `models/internal/grpcdifftest` (`run.sh`, in
+   the gates' models section): 31 tests, each unchanged against grpc-go and the model: unary and
+   the three stream kinds, metadata both ways (reserved keys as grpc-go's transport adds them,
+   `-bin` values, trailers-only responses whose trailer holds the content type), status messages
+   (percent-encoding, non-ASCII), `SendHeader` twice, unknown services and methods, malformed
+   names, `UnknownServiceHandler`, deadlines (the client's and the server's RST_STREAM: both
+   messages accepted), cancellation seen by the handler, size limits with grpc-go's texts, an
+   unreachable server, `WaitForReady` until a server starts, a cut connection (calls and streams),
+   `Stop` and `GracefulStop` mid-call and mid-stream, `Close` (`ErrClientConnClosing`), interceptor
+   order, `health` (unary and `Watch`), a manual resolver with the round-robin config, QuePaxa's
+   generated service (`quepaxa/`, the kit quepaxa-net-2's use), 200 concurrent calls; and
+   `TestAtMostOnce` (calls and streams through a proxy cutting every 15 ms: a handler runs at most
+   once per call, a success ran it once and returns its reply, a stream's messages in order and
+   complete), also run with the model's choices random. `-race` clean in both modes. etcd's
+   examples serve and call over the model (`run.sh --etcd`; `examples/` builds against it):
+   putget, watch, lease, auth, putget3, leasegrant, compactwatch, cache, leaseexpiry pass, timings
+   as over grpc-go. *Known gaps in Go runs* (not in the claim): a model connection has no keepalive,
+   so a silently dead peer (a partition without a reset) hangs a stream until its context ends
+   where grpc-go fails it after its keepalive timeout (in the semantics a cut may come at any time,
+   which covers it). This shows in `examples/etcd/partition` (passes over grpc-go in 165 s): over
+   the model `TestMainRun`, `TestClientCuts` pass, `TestFailover` (killed after 374 s),
+   `TestWriteOnce` ("no put failed: the cuts cut nothing": a model put waits for its connection's
+   server preface instead of failing on an established connection) and `TestWatchFailover` (a watch
+   on a blackholed member never ends: no keepalive close) fail: they assert grpc-go's keepalive
+   closes and its reuse of established connections, timings the model's Go realization does not
+   reproduce (the model's behaviors include grpc-go's: a cut may end a connection at any moment). A
+   keepalive in the model's transport (pings while streams are active, a close after the timeout)
+   would bring the Go runs closer; not done. The first runs also found two real faults of the model,
+   fixed: a stream written before the server's preface (an under-approximation, above) and the
+   address choice's Go body always the first address (now round-robin over the addresses not
+   failing, `modelChooseAddr`). *For the Lean half*: specs for the model's transport and connection management
+   (`newClientTransportStream`, `reader`, `operateHeaders`, `closeStream`, `Write`,
+   `ReadMessageHeader`/`Read`, `getTransportConn`, `dialAddr`, the resolver wrapper,
+   `exitIdleMode`/`enterIdleMode`, `serverTransport.HandleStreams`/`operateHeaders`, the server
+   stream's methods, the wire's readers and writers) and for the kept code on the call paths
+   (`invoke`, `newClientStream`, `withRetry`, `shouldRetry`, `SendMsg`/`RecvMsg`, `finish`,
+   `Serve`, `handleRawConn`, `handleStream`, `processRPC`, `stop`, `parser.recvMsg`, `recv`,
+   `encode`, `toRPCErr`); `modelChoose`/`modelChooseN` the trusted declarations; goose's needs to
+   check first: `mem.BufferSlice` and its pools, `fmt`'s verbs in `status.Errorf`, generics
+   (`GenericClientStream`), `sync.Cond`, `time.AfterFunc`, `url.Parse` (targets), the dns
+   resolver's IP-literal path, map iteration in `createHeaderFields`.
 5. dsverify's other library models (`log`, `log/slog`, `sync.Map`, `math/rand`, zerolog, go-redis,
    gogoproto, `cmap`, `gods`, `uuid`) stay lab-side, except where this repository already translates
    the package (then one copy, here).

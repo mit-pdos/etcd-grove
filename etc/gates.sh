@@ -262,6 +262,9 @@ python3 models/json/jsongen.py models/internal/jsondifftest/json.toml models/int
 # and against the models (an overlay of the toolchain's source, models/goroot.py)
 GOTOOLCHAIN=go1.27.3 models/internal/rpcdifftest/run.sh >> "$tmp/nm.log" 2>&1 || nm=1
 (cd examples && GOWORK=off gotest ./models/...) >> "$tmp/nm.log" 2>&1 || nm=1
+# the grpc model (models/grpc; phase 5.4): its differential test against grpc-go v1.84.0 and the
+# model, the model's invariants with its choices random, and examples/ built against the model
+models/internal/grpcdifftest/run.sh >> "$tmp/nm.log" 2>&1 || nm=1
 if [ $nm = 0 ]; then echo "models: ok"; else echo "models: FAILED"; tail -20 "$tmp/nm.log"; fail=1; fi
 # the per-type stage's joint landing: stage A's restated swMsgBound_phys is gone (raft-entsize
 # deleted it); etc/joint-landing-check.py refuses it in the baselines (reads them only), with its
