@@ -29,6 +29,7 @@ public import Perennial.Proof.strings
 public import Perennial.Proof.strconv.Base
 public import Perennial.Proof.crypto.rand.Base
 public import Perennial.Proof.math.big.Base
+public import Proof.encoding.base64.Base
 public import Perennial.Proof.context
 public import Perennial.Proof.errors
 public import Proof.errors.NewVarCell

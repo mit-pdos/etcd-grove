@@ -1408,6 +1408,9 @@ PROJECTS = [
         local=os.path.join("examples", "k8s", "etcd3"),
         lean_roots=["k8s.io=", "go.etcd.io/etcd=", "google.golang.org=", "go.uber.org=", "os=", "io/fs=",
                     "go.opentelemetry.io=", "net=", "encoding/json=", "encoding/base64=",
+                    # (prove-authcrypto, 2026-11-21) base64's decoder's big-endian stores
+                    # (Code/internal/byteorder.toml), with their bodies
+                    "internal/byteorder=",
                     "path=", "github.com/mit-pdos/etcd-grove=",
                     "github.com/anishathalye/porcupine=",
                     # the etcd project's names-only translations, which client-go's workqueue
@@ -1568,6 +1571,7 @@ PROJECTS = [
             "k8s.io/utils/trace",
             "encoding/json",
             "encoding/base64",
+            "internal/byteorder",
             # types only (the context sweep's fixes, 2026-11-13): runtime/trace's context key
             "runtime/trace",
             # (`path` is the etcd project's, with the bodies rafthttp needs: `Code/path.toml`)
@@ -1622,7 +1626,7 @@ PROJECTS = [
                os.path.join("encoding", "json"),
                os.path.join("github_com", "go_logr"),
                os.path.join("github_com", "spf13"),
-               os.path.join("encoding", "base64"),
+               os.path.join("encoding", "base64"), os.path.join("internal", "byteorder"),
                os.path.join("runtime", "trace"),
                os.path.join("github_com", "google"), "maps",
                os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8s", "etcd3")],

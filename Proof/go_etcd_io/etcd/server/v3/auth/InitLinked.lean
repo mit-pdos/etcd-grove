@@ -25,7 +25,7 @@ public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Init
 public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.InitLinked
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Init
 public import Proof.go_uber_org.zap.InitLinked
-public import Proof.golang_org.x.crypto.bcrypt.Init
+public import Proof.golang_org.x.crypto.bcrypt.InitLinked
 public import Proof.google_golang_org.grpc.metadata.Init
 public import Proof.github_com.prometheus.client_golang.prometheus.NewGaugeFunc
 public import Proof.github_com.prometheus.client_golang.prometheus.MustRegister
