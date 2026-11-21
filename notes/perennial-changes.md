@@ -377,6 +377,14 @@ log, third session; pending the user's review). General fix: `append` (and `make
 - **Proposed.** Both lemmas in Perennial's `GooseLang/Lifting.lean`, beside `wp_ext_acc` (they use
   only `goose_bstateInterp_eq` and iris's `wp_unfold`); generic, nothing about `fsExt`.
 - **Status.** Recorded; the local copies go when the pin has them.
+- **Addition (2026-11-21, raft's crash law, `notes/raft-crash-law-design.md` (i)).** The crash-token
+  update `ncfupd E P := notCrashed -∗ |={E}=> notCrashed ∗ P` (Rocq Perennial's `ncfupd`) with
+  `wp_ncfupd` (before a step: `wp_notCrashed_acc`) and **`wp_ncfupd_post`**: for a non-value `e`,
+  `WP e @ s; E {{ v, ncfupd E (Φ v) }} ⊢ WP e @ s; E {{ Φ }}` (the postcondition's update run after
+  `e`'s last step, by the state interpretation it holds; Löb over `wp_unfold`, as iris's
+  `wp_strong_mono`). Local, proved: `GooseLang/NotCrashed.lean`. Raft's ghost steps take the token,
+  and `raft.Step`'s arms, whose ghost step runs at the return, get it by `wp_ncfupd_post`. Proposed for
+  `GooseLang/Lifting.lean` with the two above.
 
 ### No translation of `hash/crc32`, `bufio`, `path/filepath`; no models of `io.ReadFull`/`io.Copy`, `fmt.Sscanf`, `strings.HasSuffix` (2026-11-13, branch `wal-fsext-translate`)
 

@@ -354,3 +354,22 @@ readers need `notCrashed` regardless of where `V`'s half lives. The real choice 
 
 Nothing implemented, no decisions.md or ledger entry: the decision of this section is not carried
 out until one of the two is chosen.
+
+## (i) Route 1, with the token through every ghost step (decided 2026-11-21)
+
+**Decision** (the coordinating session, 2026-11-21, after (h)): route 1 as in (b1). The crash
+invariant holds the six pieces of (a): `V`'s half, `slotLive 1 g` and the four leader-side
+authorities. The node holds views of them. `notCrashed` is threaded through **every** ghost step,
+the generic `ownRaftGhost_stepC`/`ownRaftGhostR_stepR` included, not only the five update points.
+The win and the trace update are per (f). (h)'s per-generation name is dropped. (b3) remains a
+later simplification that keeps the API.
+
+The token reaches the steps as follows:
+- through the crash-token update `ncfupd E P := notCrashed -∗ |={E}=> notCrashed ∗ P`
+  (`GooseLang/NotCrashed.lean`);
+- before a step, by `wp_ncfupd` (from `wp_notCrashed_acc`);
+- at a function's return, by `wp_ncfupd_post`, proved: for a non-value `e`,
+  `WP e {{ v, ncfupd E (Φ v) }} ⊢ WP e {{ Φ }}`. This covers `raft.Step`'s arms, whose ghost step runs
+  after the physical lemma's `wp_apply`.
+
+Proposed for Perennial in `notes/perennial-changes.md` ("notCrashed before a step").

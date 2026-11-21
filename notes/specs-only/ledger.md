@@ -25,6 +25,26 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-21: raft's node API -- no node of an id is restartable after a real crash (`nodeVacant` returns only from `node.Stop`)
+
+- **Spec.** `Spec/go_etcd_io/raft/v3/StartNode.lean`, `RestartNode.lean`, `node__Stop.lean`,
+  `RawNode__Ready.lean` (the enter wand); `InvNode.lean`'s `readyEnter` and the new laws
+  `nodeVacant_arm`, `nodeCrash`. SpecPlan's raft node specs, likewise.
+- **Defect.** Too weak for a crashing client: a process killed at any instruction loses its threads'
+  resources, so `nodeVacant` (needed by `RestartNode`) never comes back. kvnet's crash obligation
+  (`goose_dist_crash_adequacy`'s wand, given the dead generation's `crashed`) cannot be met.
+- **Evidence.** `notes/kvnet-proof-plan.md` gap 1; `notes/raft-crash-law-design.md` (a).
+- **Proposed change.**
+  - `nodeVacant_arm : nodeVacant ={E}=∗ ∃ x, nodeVacantA ∗ nodeCrashTok` and
+    `nodeCrash : crashed -∗ nodeCrashTok ={E}=∗ nodeVacant`.
+  - `StartNode`/`RestartNode` take `nodeVacantA γ id x`, and `node.Stop`'s post gives it back (same `x`).
+  - `readyEnter` and `Ready`'s enter wand become crash-token updates (`ncfupd E`: the client applies them
+    at a step, by `wp_ncfupd`).
+  - Clients: kvdurable keeps its `node.Stop` path and drops its `nodeCrashTok`; the etcd server likewise;
+    kvnet's boot obligation arms.
+- **Decision.** Accepted (the coordinating session, 2026-11-21, design route 1, sections (b1), (f),
+  (i)); applied on branch `worktree-agent-aa878c2e224f33d0c`.
+
 ## 2026-11-18: `leaseStep`'s grant -- a server-chosen id is fresh in the history, the plan says only "not live"
 
 - **Spec.** `SpecPlan/Spec/go_etcd_io/etcd/api/v3/Model.lean`, `leaseStep` (`.leaseGrant`: `σ.leases id' = none`);

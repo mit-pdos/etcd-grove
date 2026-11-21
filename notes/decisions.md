@@ -41294,3 +41294,38 @@ own. It also has: both `HasExt` instances, `kvnetGF`/`kvnetGpreS`, the projectio
 crash resources onto each extension's, and `kvnet_dist_crash_adequacy`
 (`goose_dist_crash_adequacy` at `kvnetGF`, with the initial-state conditions discharged from
 `NetGlobal.init` and `FsInit`). There is no change to the file extension.
+
+## Raft's crash law: the crash invariant, the token through every ghost step (2026-11-21 · the coordinating session · branch `worktree-agent-aa878c2e224f33d0c`)
+
+`notes/raft-crash-law-design.md`, sections (b1), (f), (g), (h), (i); `notes/kvnet-proof-plan.md`
+decision A. A replica killed at any instruction must leave its id restartable.
+
+**Ghost state.**
+- Per arm of an id, the crash invariant
+  `nodeCrashInv γ id x := inv (crashN γ id x) ((∃ X, views ½ X ∗ slotX X) ∨ crashed ∗ tok)` holds the
+  six timeless pieces of `raftIdSlot`: `V`'s half, `slotLive 1 g`, and the authorities of
+  terms, wins, lcm and rqm. `x : CrashNames` names the views and the token.
+- `ownRaftGhost`/`ownLogGhost`/`lcmOwn`/`rdOwn` and the client's and run's generation shares hold view
+  halves in their place.
+- The arm's names are carried in `NodeNames`. A stop agrees the run's names with the client's (two
+  armed invariants of one id would both hold the full `terms` authority; the namespace includes the
+  names).
+
+**API.**
+- `nodeVacant_arm`, `nodeCrash`.
+- `StartNode`/`RestartNode` take the armed vacancy `nodeVacantA`, and `node.Stop` gives it back.
+- `readyEnter` and `Ready`'s enter wand are crash-token updates (`ncfupd`).
+
+**Why the token everywhere** (the two gaps found in implementation):
+- The traced win lends the term map's authority across the trace line (f).
+- Ordinary steps (votes, heartbeats, appends, snapshots, read index) read the slot's half of `V`
+  against the entered maps (`slot_open`) (g).
+
+A thread needs `notCrashed` not only to update state a crash may change but also to read state a
+later generation changes (h). So every ghost step takes the token: `ncfupd`,
+`wp_ncfupd`/`wp_ncfupd_post` (`GooseLang/NotCrashed.lean`, proved).
+
+**Rejected.**
+- Fresh names per incarnation (b2): new cross-generation protocol reasoning.
+- A per-generation slot name for `V` (h): it does not remove the token.
+- (b3) deferred.
