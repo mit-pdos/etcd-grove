@@ -13,9 +13,8 @@ replica reported `lastConf`.
 * `issued γ w n`: `fresh` issued `n` from the counter `w` (`false`: `nextOp`, `true`: `nextRead`),
   exclusively: no number is issued twice (`issued_excl`).
 
-Also kvreconf's `ccToV2`/`ccTransOk`/`ccTransOk_v1` (`kvreconf/Rule.lean`), restated here over the
-same definitions (raft's `ConfChangeIM`, `enterJointOf`): the part does not translate kvreconf,
-whose `Rule` module names its translation.
+A change's shape (`ccToV2`, `ccTransOk`, `ccTransOk_v1`) is kvreconf's, from its pure model
+(`kvreconf/Pure.lean`), exported here.
 -/
 module
 
@@ -23,6 +22,7 @@ public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvc
 public import KvNet.Proof.go_etcd_io.raft.v3.InvPbLog
 public import KvNet.Proof.go_etcd_io.raft.v3.CCModel
 public import Perennial.Ghost.GhostMap
+public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Pure
 
 @[expose] public section
 
@@ -37,22 +37,7 @@ namespace raft_kvcheck
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
-section conf
-variable [GooseExts]
-
-/-- `AsV2`'s answer on a change (kvreconf's `ccToV2`). -/
-def ccToV2 : ConfChangeIM → ConfChangeV2M
-  | .v1 c => c.asV2
-  | .v2 cc => cc
-
-/-- A change's transition is defined for its changes (kvreconf's `ccTransOk`). -/
-def ccTransOk (o : ConfChangeIM) : Prop :=
-  enterJointOf (ccToV2 o).transition (ccToV2 o).changes.length ≠ none
-
-theorem ccTransOk_v1 (c : ConfChangeM) : ccTransOk (.v1 c) := by
-  simp [ccTransOk, ccToV2, ConfChangeM.asV2, enterJointOf]
-
-end conf
+export raft_kvreconf (ccToV2 ccTransOk ccTransOk_v1)
 
 /-- The ghost names of a checker: the numbers issued from `nextOp` and from `nextRead`. -/
 structure CheckerNames where
