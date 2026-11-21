@@ -15,7 +15,13 @@
   No Perennial branch started (coordinator).
 - Follow-up note: `InvProto.lean` calls `PbEncC.enc` "an opaque per-type encoder" though `hsEnc`/`snapEnc` are
   transparent (trusted wording, left as is).
-- Next: full timed build, gates (tcb `--check --update`: +2 axioms and the opaque), STATUS, land stop.
+- b4: `new_storage_contract` (server `Results.lean`) restates the law so the trust-base report sees it (a theorem of
+  a `*Linked` module is no root); `rnNewStorageOk_law_holds`/`walStorSpecs_holds` take `raftpb.SnapshotMetadata.
+  GetIndex.spec` as an argument (raft's API: a non-`Link` module may not import its proof). For (b) the callee is
+  then `=rnNewStorageOk_law_holds raftpb.SnapshotMetadata.wp_GetIndex` or a server-Link wrapper.
+- Done: full timed build `20261121-030610-3509586`, then `20261121-041317-3903591` (incremental); tcb +3 (`hsEncC_ok`,
+  `pbHsC_reg`, `snap.Snapshotter.ReleaseSnapDBs.wp_proof` newly reached), collection `server` +11; `model-param`
+  `MIN_REGS` 39; STATUS. Next: gates green, then the land stop (report to etcd-grove-03).
 
 ## Previous START HERE (2026-11-21 b1) — sources written, NOT BUILT (disk full while seeding); next: seed, build, gates
 

@@ -28,7 +28,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.storage__Release
 public import Proof.google_golang_org.protobuf.proto.MarshalPb
 public import Proof.google_golang_org.protobuf.proto.SizePb
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter__ReleaseSnapDBs
-public import Proof.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
+public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
 
 @[expose] public section
 
@@ -50,7 +50,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [UntypedRuneSemantics] [os.fileStat.FieldAssumptions] [os.file.FieldAssumptions]
 
 /-- **The storage methods' specs at every open WAL** (see the file header). -/
-theorem walStorSpecs_holds (h : WalH GF) : walStorSpecs h := by
+theorem walStorSpecs_holds
+    (wpGI : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG)) (h : WalH GF) :
+    walStorSpecs h := by
   letI := h.ext; letI := h.semOk; letI := h.has; letI := h.W; letI := h.inj; haveI := h.sat
   haveI := h.satL
   have L := walSrvPb_laws (GF := GF) (hG := hG)
@@ -65,13 +67,15 @@ theorem walStorSpecs_holds (h : WalH GF) : walStorSpecs h := by
         (walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_Sync walSrvP walSrvMr),
       storage.storage.Close.wp_proof walSrvP walSrvMr
         (walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_Close walSrvP walSrvMr),
-      storage.storage.Release.wp_proof walSrvP walSrvMr raftpb.SnapshotMetadata.GetIndex.wp_proof
+      storage.storage.Release.wp_proof walSrvP walSrvMr wpGI
         (walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_ReleaseLockTo walSrvP walSrvMr)
         snap.Snapshotter.ReleaseSnapDBs.wp_proof⟩
 
 /-- **`NewStorage`'s contract** (`rnNewStorageOk.law`, see the file header). -/
-theorem rnNewStorageOk_law_holds : rnNewStorageOk.law (GF := GF) (hG := hG) :=
-  rnNewStorageOk_holds storage.NewStorage.wp_proof walStorSpecs_holds
+theorem rnNewStorageOk_law_holds
+    (wpGI : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG)) :
+    rnNewStorageOk.law (GF := GF) (hG := hG) :=
+  rnNewStorageOk_holds storage.NewStorage.wp_proof (walStorSpecs_holds wpGI)
 
 end linked
 

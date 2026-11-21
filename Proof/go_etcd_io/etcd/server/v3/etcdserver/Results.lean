@@ -336,7 +336,7 @@ the WAL's linked results at the server's message model (whose hard-state marshal
 `rnNewStorageOk` until Perennial's semantics steps untyped rune constants (`notes/perennial-changes.md`). -/
 theorem new_storage_contract [UntypedRuneSemantics] [os.fileStat.FieldAssumptions]
     [os.file.FieldAssumptions] : rnNewStorageOk.law (GF := GF) (hG := hG) :=
-  rnNewStorageOk_law_holds
+  rnNewStorageOk_law_holds raftpb.SnapshotMetadata.wp_GetIndex
 
 end triples
 
