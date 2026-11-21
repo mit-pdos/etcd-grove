@@ -427,7 +427,6 @@ axiom rafthttp.Transport.ActiveSince.wp_proof
 axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.netErrNotRemoved_ok
 axiom rand.Int63n.wp_proof
-axiom rate.Every.wp_proof
 axiom rate.Limiter.Reserve.wp_proof
 axiom rate.Limiter.Wait.wp_proof
 axiom recEncC_ok
@@ -498,7 +497,6 @@ axiom traceutil.Trace.LogWithStepThreshold.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
 axiom tracing.Span.AddEvent.wp_proof
 axiom tracing.Span.End.wp_proof
-axiom tracing.SpanFromContext.wp_proof
 axiom tracing.Start.wp_proof
 axiom transport.NewTimeoutTransport.wp_proof
 axiom txn.WarnOfExpensiveRequest.wp_proof

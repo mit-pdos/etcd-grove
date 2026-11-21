@@ -311,7 +311,6 @@ axiom proto.UnmarshalPb.wp_proof
 axiom rafthttp.Transport.ActiveSince.wp_proof
 axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.netErrNotRemoved_ok
-axiom rate.Every.wp_proof
 axiom rate.Limiter.Wait.wp_proof
 axiom recEncC_ok
 axiom reflect.DeepEqual.wp_proof_pgidSet
