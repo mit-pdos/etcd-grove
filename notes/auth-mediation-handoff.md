@@ -27,7 +27,7 @@
   failed: rule 5, 48 axioms tainted by M3's new axiom `EtcdServer.rangeStream.wp_proof` (its walk through
   `isServerReqM`/`isServerReadM` capped and truncated; rule-3/7 keys identical to `leaseTimeToLive`'s, no mint). Fixed
   by three allow-list entries in `etc/axiom-tok-allow.txt`, copies of `leaseTimeToLive`'s (approved by the user,
-  2026-11-21, via etcd-grove-03; questions.md Q5). Gates rerun after it: see the commit after this one / the report.
+  2026-11-21, via etcd-grove-03; questions.md Q5). Gates rerun after it (`3ba93fe947`, log `/shared/tmp/authm3fix/gates2.log`): all passed (tcb 533/0, axiom-tok ok, goose with `.lake/goose/etcd` at the pushed `4416a5786`).
   **At the LAND STOP**: the coordinator lands (the fork branch is pushed).
 
 ## M4 proposal (approved 2026-11-21; implemented in `a351492b8d`)
