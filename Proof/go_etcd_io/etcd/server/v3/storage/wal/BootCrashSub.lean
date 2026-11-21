@@ -443,6 +443,30 @@ def BootFo (m : Tree) (jr : Ino) : Prop :=
     FilesOnly (entsOf m J)) ∧
   (∀ nm i, walNameOk nm → m.entry jr (tmpName nm) ≠ some (.file i))
 
+/-- **What of `BootFo` the WAL's crash does not give yet** (`walInv_crash` gives every WAL directory's names
+but the pipeline's, `NoDirX`): the pipeline names of every WAL directory hold no directory; every `nm.tmp`
+directory holds only files; no `nm.tmp` is a file (step 2 of `notes/wal-units/tester.md`'s handoff: the
+first from the pipeline claims' halves in the invariant, the other two to go with a general `os.RemoveAll`). -/
+def BootFoRest (m : Tree) (jr : Ino) : Prop :=
+  (∀ nm J, walNameOk nm → m.entry jr nm = some (.dir J) → ∀ b ∈ walTmps, ∀ J', entsOf m J !! b ≠ some (.dir J')) ∧
+  (∀ nm J, walNameOk nm → m.entry jr (tmpName nm) = some (.dir J) → FilesOnly (entsOf m J)) ∧
+  (∀ nm i, walNameOk nm → m.entry jr (tmpName nm) ≠ some (.file i))
+
+/-- **`BootFo` from the crash's `NoDirX` and the rest.** -/
+theorem bootFo_of {m : Tree} {jr : Ino}
+    (hx : ∀ nm J, walNameOk nm → m.entry jr nm = some (.dir J) → NoDirX (entsOf m J))
+    (hr : BootFoRest m jr) : BootFo m jr := by
+  refine ⟨fun nm J hw he => ?_, hr.2.2⟩
+  rcases he with he | he
+  · intro c n hc
+    cases n with
+    | file i => exact ⟨i, rfl⟩
+    | dir J' =>
+      by_cases hct : c ∈ walTmps
+      · exact absurd hc (hr.1 nm J hw he c hct J')
+      · exact absurd hc (hx nm J hw he c J' hct)
+  · exact hr.2.1 nm J hw he
+
 /-! ## The area's claims tagged with their name (`walAreaRes`'s) -/
 
 /-- The whole claims of the directories under each `nm.<sfx>`, tagged with it. -/
