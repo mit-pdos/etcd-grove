@@ -4013,3 +4013,19 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** The post gives `Int.toNat actualMaxReaders - 1` slots (the loop keeps one); the rest unchanged.
 - **Decision.** Approved by the user (2026-11-21), on the condition that every caller still proves: applied, the callers'
   slot arithmetic adjusted (`NewServer`, `NewServerR`, `mvccfull`'s `runner.open`, `mvccrand`'s `runChecks`).
+
+
+## 2026-11-21: a streamed request body's `Read` count and errors; `ReadFull` of it with `io`'s initialization (prove-http3)
+
+- **Spec.** `http.bodyStreamRead_spec` (axiom `bodyStreamRead_ok`), `http.ReadFull_stream_spec` (axiom until now),
+  `http.bodyStream` (opaque until now); `rafthttp.bodyStream_readFullAt`.
+- **Defect.** `bodyStreamRead_spec` said `ys.length = sint.nat n`, which a `Read` returning `-1` met; `io.ReadFull`
+  (`ReadAtLeast`'s `buf[n:]`) of such a reader panics, so the axiom `ReadFull_stream_ok` implicitly assumed `0 ≤ n`
+  (the same flaw prove-http found in `prefixReaderOk`, `notes/axiom-review/http-readall-negread.md`). `ReadFull_stream_spec`
+  had no `isPkgInit pkg_id.io`, which `io.ReadFull` needs (`io.EOF`, `io.ErrUnexpectedEOF`).
+- **Evidence.** Perennial's `io.ReadFull.spec` (`Perennial/Spec/io/ReadFull.lean`), proved over the translated code.
+- **Proposed change.** `bodyStreamRead_spec`'s post: `sint.Z n = ys.length`, and the error `errStrOk` and
+  `io.ptrTyped` (what `ReadFull_stream_ok` claimed of the errors it passed on); `bodyStream` defined as its raw fact
+  with `⌜Pre r ∧ rd ≠ nil⌝` (Go's server request bodies are never nil); `ReadFull_stream_spec` takes `isPkgInit io`,
+  and `bodyStream_readFullAt` takes it (the snapshot handler has it).
+- **Decision.** Applied (prove-http3, 2026-11-21): `ReadFull_stream_ok` is a theorem over Perennial's `io.ReadFull`.
