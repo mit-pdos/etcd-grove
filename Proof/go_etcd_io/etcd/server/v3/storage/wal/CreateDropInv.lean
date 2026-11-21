@@ -276,11 +276,16 @@ theorem segsNamedC_of_walEq {segs : List SegG} {E1 E2 : Ents}
 /-- **`WalsNamed` carries over.** -/
 theorem walsNamed_drop {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat} {jr : Ino}
     {N : NameSet} {h : NamesH} {b : GoString} (hd : DropOk cl jr N h b) (hbw : walNameP b = false)
-    (hnW : ¬ WalDirClaimOf Ls (jr, N, h)) (hok : WalsNamed Ls cl n) :
+    (hnW : ¬ WalDirClaimOf Ls (jr, N, h)) (hA : WalsAt jr Ls cl) (hok : WalsNamed Ls cl n) :
     WalsNamed Ls (dropClaims cl jr N h b) n := by
   intro dir lay hl
-  obtain ⟨h1, h2⟩ := hok dir lay hl
-  refine ⟨fun hj hw => h1 hj (walDirClaim_of_drop hbw hnW hl hw), fun m' hr => ?_⟩
+  obtain ⟨h1, h2, h3⟩ := hok dir lay hl
+  refine ⟨fun hj hw => h1 hj (walDirClaim_of_drop hbw hnW hl hw), fun m' hr => ?_,
+    fun N' hj hm => ?_⟩
+  rotate_left
+  · rcases mem_dropClaims hm with he | ⟨hm, -⟩
+    · exact absurd (congrArg Prod.fst he) (hA.ne hl)
+    · exact h3 N' hj hm
   obtain ⟨v, hr1⟩ := hd.crash hr
   refine segsNamedC_of_walEq (fun b' hb' => ?_) (h2 _ hr1)
   rw [entsOf_entry, entsOf_entry, treeSetE_entry_ne]

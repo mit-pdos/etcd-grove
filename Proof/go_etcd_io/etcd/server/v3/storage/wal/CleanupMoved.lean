@@ -363,8 +363,9 @@ theorem walsNamed_moved {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat} 
     (H : MovedHyp cl jr N h st nm brk J) (hA : WalsAt jr Ls cl) (hok : WalsNamed Ls cl n) :
     WalsNamed Ls (movClaims cl jr N h x st nm brk J) n := by
   intro dir lay hl
-  obtain ⟨h1, h2⟩ := hok dir lay hl
-  refine ⟨fun hj hw => h1 hj ((walDirClaim_moved (hA.ne hl)).1 hw), fun m' hr => ?_⟩
+  obtain ⟨h1, h2, h3⟩ := hok dir lay hl
+  refine ⟨fun hj hw => h1 hj ((walDirClaim_moved (hA.ne hl)).1 hw), fun m' hr => ?_,
+    fun N' hj hm => h3 N' hj ((mem_movClaims_ne (c := (lay.j, N', hj)) (hA.ne hl)).1 hm)⟩
   rcases regionCrashed_moved H hr with hr' | ⟨hr', -⟩
   · exact h2 m' hr'
   · have := h2 _ hr'

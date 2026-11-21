@@ -354,7 +354,7 @@ theorem walInvBody_drop (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
   isplitr
   · ipureintro; exact ⟨absentNone_drop hd hbn hab.1, hab.2⟩
   isplitr
-  · ipureintro; exact walsNamed_drop hd hbw hW hwn
+  · ipureintro; exact walsNamed_drop hd hbw hW hAt hwn
   isplitl [Hpa Hoa Hsegs Hpc Htp How]
   · iexists bp, WalOut.empty
     iframe Hpa Hoa Hsegs Hpc Htp How

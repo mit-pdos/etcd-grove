@@ -470,7 +470,9 @@ theorem walsNamed_start (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     (hcl : ∀ c ∈ cl, c.2.2 = namesOf V c.1 c.2.1)
     (hdirs : ∀ nm J, walNameOk nm → V.now.entry jr nm = some (.dir J) →
       ∃ h, (J, NameSet.except walTmps, h) ∈ cl)
-    (hst : WalsStart C Mr R jr s Ls V.now) : WalsNamed Ls cl 0 := by
+    (hst : WalsStart C Mr R jr s Ls V.now)
+    (hfo : ∀ nm J, walNameOk nm → V.now.entry jr nm = some (.dir J) → NoDirX (entsOf V.now J)) :
+    WalsNamed Ls cl 0 := by
   have hc : ∀ c ∈ cl, c.2.2 = ⟨restrictN c.2.1 (entsOf V.now c.1), [],
       restrictN c.2.1 (entsOf V.now c.1)⟩ := fun c h => by rw [hcl c h, namesOf_nil hV]
   intro dir lay hL
@@ -484,7 +486,15 @@ theorem walsNamed_start (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   rw [hL] at hL'; cases hL'
   obtain ⟨h, hjm⟩ := hdirs nm lay.j hin.1 he
   rw [(hst.2.2.2.2.2 dir lay hL).2.1, List.nil_append]
-  refine ⟨fun hj ⟨X, hX, hm, _⟩ => ?_, fun m' hreg => ?_⟩
+  refine ⟨fun hj ⟨X, hX, hm, _⟩ => ?_, fun m' hreg => ?_, fun N hj hm => ?_⟩
+  rotate_left 2
+  · have e := hc _ hm
+    simp only at e
+    refine HistFoP.of_boot (by rw [e]) (fun b hbN hP J hd => ?_)
+    rw [e] at hd
+    simp only at hd
+    rw [restrictN_lookup _ _ _ hbN] at hd
+    exact hfo nm lay.j hin.1 he b J hP hd
   · have e := hc _ hm
     simp only at e
     rw [e]
@@ -666,7 +676,8 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     (hnames : ∀ nm J, walNameOk nm → V.now.entry jr nm = some (.dir J) →
       ∃ h, (jr, NameSet.only [nm], h) ∈ cl)
     (hnok : ∀ b h, (jr, NameSet.only [b], h) ∈ cl → NameOk b) (hbd : WalsBounded s)
-    (hdr : DirsRoots R s) (qs : Qp)
+    (hdr : DirsRoots R s)
+    (hfo : ∀ nm J, walNameOk nm → V.now.entry jr nm = some (.dir J) → NoDirX (entsOf V.now J)) (qs : Qp)
     (E : CoPset) :
     ⊢ walStart L W C Mr R jr r s V.now -∗
       osClaims L (cl.map (fun c => (c, DFrac.own 1))) -∗
@@ -831,7 +842,7 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
       exact ⟨absentNone_start s jr V cl hV hcl harea hstart.2.2.1, hav⟩
     isplitr
     · ipureintro
-      exact walsNamed_start C Mr R jr s Ls V cl hV hcl hdirs hstart
+      exact walsNamed_start C Mr R jr s Ls V cl hV hcl hdirs hstart hfo
     isplitl [Hpk Hpo Hc2 Hp Htmp Hoth]
     · unfold walParked
       iexists true, WalOut.empty

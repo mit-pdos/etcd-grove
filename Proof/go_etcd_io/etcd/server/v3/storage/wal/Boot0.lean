@@ -132,7 +132,8 @@ theorem walBoot0 (hPre : AbsDiskGpreS GF) (C : WalCodec) (hC : C.Ok) (Mr : WalMa
     (fun nm J h he => (hdir nm J h he).elim) (fun nm J _ h he => (hdir nm J h he).elim) hWR
     (dirsOk_roots hR (walBoot0St_dirsRoots hr) cl 0) (dirsAvoid_roots hR (walBoot0St_dirsRoots hr) jr)
     ∅ (fun dir nm J hin he => (hdir nm J hin.1 he).elim) (fun nm J h he => (hdir nm J h he).elim)
-    (fun b h hc => by simp [cl, N] at hc) (walBoot0St_bounded r) (walBoot0St_dirsRoots hr) 1 E
+    (fun b h hc => by simp [cl, N] at hc) (walBoot0St_bounded r) (walBoot0St_dirsRoots hr)
+    (fun nm J h he => (hdir nm J h he).elim) 1 E
     $$ Hst [Har] [] Hsp [] with ⟨#Hinv, %Ls, %hLs, Hnw, -, Hcl⟩
   · unfold osClaims
     simp only [cl, List.map_cons, List.map_nil]

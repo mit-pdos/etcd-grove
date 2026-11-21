@@ -105,6 +105,7 @@ theorem rmOtherCommit_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : In
     · rw [hX b hm] at hb; cases hb
     · rw [e, hbtw] at hb; cases hb
   exact nonwalHist_pure hW hWC hCO hAN hNm hDK hAt hK hl hc0 hcoh' hc
+    (fun b hb hw J => by rw [hbt' b hb hw, purgeNames_bt]; simp)
     (nonWalCrash_rm hcl hcoh1 hst hbt' hothers hbtw)
     (fun hdo => dirsOk_purge hdo hcl hcoh1 hst hbt' hcur hothers)
     (fun hjjr' han => absentNone_purge han hjjr' hcl hcoh1 hst hbt' hothers)

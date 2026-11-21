@@ -90,9 +90,10 @@ theorem walsNamed_cover {Ls : GMap GoString WalLay} {cl cl' : List Claim} {n : N
     (hc : CoverOk jr cl cl' n) (hA : WalsAt jr Ls cl) (hok : WalsNamed Ls cl n) :
     WalsNamed Ls cl' n := by
   intro dir lay hl
-  obtain ⟨h1, h2⟩ := hok dir lay hl
+  obtain ⟨h1, h2, h3⟩ := hok dir lay hl
   exact ⟨fun hj hw => h1 hj ((walDirClaim_cover hc (hA.ne hl)).2 hw),
-    fun m' hr => h2 m' (hc.sub m' hr)⟩
+    fun m' hr => h2 m' (hc.sub m' hr),
+    fun N hj hm => h3 N hj ((hc.other (lay.j, N, hj) (hA.ne hl)).1 hm)⟩
 
 /-- **`WalsCreateOk` carries over.** -/
 theorem walsCreateOk_cover {jr : Ino} {cl cl' : List Claim} {n : Nat} (hc : CoverOk jr cl cl' n)

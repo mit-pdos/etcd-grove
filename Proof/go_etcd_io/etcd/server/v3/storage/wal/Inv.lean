@@ -44,6 +44,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Ghost
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Abs
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Cut
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.TmpClaim
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HistFo
 public import GooseLang.Ext.Fs.TreeShared
 public import Proof.os.CrashFile
 
@@ -573,11 +574,14 @@ def SegsNamedC (segs : List SegG) (ents : Ents) : Prop :=
 directory the invariant holds (`WalDirClaim`), and after every crash the claims allow (with the
 segments removed since the directory's last sync, which a crash may bring back). Established
 at the start (`WalsStart`'s, from the crash: `walCrash_pure`); `cut`'s rename and `Create` must keep
-it. -/
+it. And **no claim of a WAL's directory leaves a directory a crash may keep**, but at the pipeline's
+names (`HistFoN`, `HistFo.lean`: the crash boot's files-only fact, `walFoRes`; every entry logged in
+those claims is a file's or a removal, at an invariant step). -/
 def WalsNamed (Ls : GMap GoString WalLay) (cl : List Claim) (n : Nat) : Prop :=
   ∀ dir lay, Ls !! dir = some lay →
     (∀ hj, WalDirClaim lay.j hj cl → SegsNamed lay.segs hj.cur) ∧
-    ∀ m', RegionCrashed cl n m' → SegsNamedC (lay.pg ++ lay.segs) (entsOf m' lay.j)
+    (∀ m', RegionCrashed cl n m' → SegsNamedC (lay.pg ++ lay.segs) (entsOf m' lay.j)) ∧
+    ∀ N hj, (lay.j, N, hj) ∈ cl → HistFoN n lay.j N hj
 
 theorem SegsNamed.crash {segs : List SegG} {ents : Ents} (h : SegsNamed segs ents)
     (hsub : ∀ i ∈ walInos ents, i ∈ segs.map (·.ino)) : SegsNamedC segs ents :=

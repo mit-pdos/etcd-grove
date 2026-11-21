@@ -502,7 +502,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         · ipureintro
           exact walsNamed_create (x := x) (st := s0) Hok Hnm hnew hc hcoh (Nat.le_trans hlb hls) hne
             hnmN htmpN hcnm hctmp hothers htw hnw hlay.2.2 hX hsn hJC hJcoh
-            (fun xe hxe => Nat.lt_of_lt_of_le (hJm xe hxe) (Nat.le_max_right _ _)) hpg
+            (fun xe hxe => Nat.lt_of_lt_of_le (hJm xe hxe) (Nat.le_max_right _ _)) hpg HAt hJo
         isplitl [Hpk]
         · unfold createClaims; iexact Hpk
         isplitl [Hdk Hcp]

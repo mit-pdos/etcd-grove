@@ -464,7 +464,8 @@ theorem walBootCrash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     (fun nm J h he => ⟨_, bootCl_dirs h he⟩) (bootCl_dirs1 hwf hr) hWR
     (dirsOk_roots hR hdr _ 0) (dirsAvoid_roots hR hdr jr) (bootJm V jr r)
     (fun dir nm J hin he => bootJm_lookup dir nm J hin he) (fun nm J h he => ⟨_, bootCl_names h he⟩)
-    (bootCl_nok hwf) hbd hdr 1 E $$ Hst [Har Hwc Hnc] [Hwt] Hsp [Hwo]
+    (bootCl_nok hwf) hbd hdr
+    (fun nm J h he b J' _ hd => by obtain ⟨i, hi⟩ := hfo.1 nm J h (.inl he) b _ hd; cases hi) 1 E $$ Hst [Har Hwc Hnc] [Hwt] Hsp [Hwo]
     with ⟨#Hinv, %Ls, %hLs, Hnw, %hnc, Hcl⟩
   · unfold osClaims bootCl
     rw [List.map_cons, List.map_append]
