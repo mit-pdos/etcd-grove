@@ -118,13 +118,6 @@ instance k8s_io_client_go_util_flowcontrol_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.client_go.util.flowcontrol :=
   build_get_is_pkg_init_wf
 
-instance k8s_io_apimachinery_pkg_selection_is_pkg_init_inst :
-    IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.selection :=
-  define_is_pkg_init iprop(True)
-instance k8s_io_apimachinery_pkg_selection_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.selection :=
-  build_get_is_pkg_init_wf
-
 instance k8s_io_component_helpers_scheduling_corev1_nodeaffinity_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.component_helpers.scheduling.corev1.nodeaffinity :=
   define_is_pkg_init iprop(True)

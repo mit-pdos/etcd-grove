@@ -237,7 +237,7 @@ theorem tail_top_uTree {Xf : WX} {bl pl : Loc} {rp : NRec} {lo hi : Option (List
     obtain ⟨p, hpi, -, hk, hv⟩ := dat_get hws hi
     obtain ⟨-, -, -, -, -, -, -, -, -, -, hkin, hkl, hkb, -⟩ := hp i p hpi
     rw [hk, hv]
-    exact ⟨hkin, hkl, by simpa using hkb⟩
+    exact ⟨hkin, hkl, entryBytesFit_branch hkb _⟩
   have H := uTree.branch (X := Xf) (bl := bl) (P := spP Xf) (hwm := Xf.t.mv.pgid'.toNat)
     pl rp lo hi h es hrp hun hleaf (by omega) (by simp [es, finUEs, hlen]) ?_ (by rw [finUEs_ch]; exact List.nodup_nil) ?_
     (by rw [hcs]; exact hnd) (by rw [finUEs_N]; exact List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩) ?_

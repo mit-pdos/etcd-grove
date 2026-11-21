@@ -49,8 +49,6 @@ opaque UnexpectedObjectError.underlying [GooseExts] [GoGlobalContext] : go.GoTyp
 noncomputable def knownReasons [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.knownReasons"
 
-opaque knownReasons.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def HasStatusCause [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.HasStatusCause"
 
@@ -370,8 +368,6 @@ noncomputable def NewTimeoutError.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.api.errors where
   pkgImportedPkgs := [pkg_id.fmt, pkg_id.net.http, pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1, pkg_id.k8s_io.apimachinery.pkg.runtime.schema]
 
-opaque «_».init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apimachinery.pkg.api.errors)) (Lam BAnon
@@ -381,10 +377,29 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType StatusError.ty) go.error))) (App (Val (GoInstruction (GoAlloc StatusError.ty))) (App (Val (GoInstruction (CompositeLiteral StatusError.ty))) (LiteralValue []))))
+  (Let "$r0" (Let "$k0" (Val #(go!"Unauthorized"))
+  (Let "$k1" (Val #(go!"Forbidden"))
+  (Let "$k2" (Val #(go!"NotFound"))
+  (Let "$k3" (Val #(go!"AlreadyExists"))
+  (Let "$k4" (Val #(go!"Conflict"))
+  (Let "$k5" (Val #(go!"Gone"))
+  (Let "$k6" (Val #(go!"Invalid"))
+  (Let "$k7" (Val #(go!"ServerTimeout"))
+  (Let "$k8" (Val #(go!"StorageReadError"))
+  (Let "$k9" (Val #(go!"Timeout"))
+  (Let "$k10" (Val #(go!"TooManyRequests"))
+  (Let "$k11" (Val #(go!"BadRequest"))
+  (Let "$k12" (Val #(go!"MethodNotAllowed"))
+  (Let "$k13" (Val #(go!"NotAcceptable"))
+  (Let "$k14" (Val #(go!"RequestEntityTooLarge"))
+  (Let "$k15" (Val #(go!"UnsupportedMediaType"))
+  (Let "$k16" (Val #(go!"InternalError"))
+  (Let "$k17" (Val #(go!"Expired"))
+  (Let "$k18" (Val #(go!"ServiceUnavailable"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty (go.GoType.StructType []))))) (LiteralValue [(KeyedElement (some (KeyExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty (Var "$k0"))) (ElementLiteralValue [])), (KeyedElement (some (KeyExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty (Var "$k1"))) (ElementLiteralValue [])), (KeyedElement (some (KeyExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty (Var "$k2"))) (ElementLiteralValue [])), (KeyedElement (some (KeyExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty (Var "$k3"))) (ElementLiteralValue [])), (KeyedElement (some (KeyExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty (Var "$k4"))) (ElementLiteralValue [])), (KeyedElement (some (KeyExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty (Var "$k5"))) (ElementLiteralValue [])), (KeyedElement (some (KeyExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty (Var "$k6"))) (ElementLiteralValue [])), (KeyedElement (some (KeyExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty (Var "$k7"))) (ElementLiteralValue [])), (KeyedElement (some (KeyExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty (Var "$k8"))) (ElementLiteralValue [])), (KeyedElement (some (KeyExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty (Var "$k9"))) (ElementLiteralValue [])), (KeyedElement (some (KeyExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty (Var "$k10"))) (ElementLiteralValue [])), (KeyedElement (some (KeyExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty (Var "$k11"))) (ElementLiteralValue [])), (KeyedElement (some (KeyExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty (Var "$k12"))) (ElementLiteralValue [])), (KeyedElement (some (KeyExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty (Var "$k13"))) (ElementLiteralValue [])), (KeyedElement (some (KeyExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty (Var "$k14"))) (ElementLiteralValue [])), (KeyedElement (some (KeyExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty (Var "$k15"))) (ElementLiteralValue [])), (KeyedElement (some (KeyExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty (Var "$k16"))) (ElementLiteralValue [])), (KeyedElement (some (KeyExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty (Var "$k17"))) (ElementLiteralValue [])), (KeyedElement (some (KeyExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty (Var "$k18"))) (ElementLiteralValue []))])))))))))))))))))))))
   (App (Val doExecute)
-  (App (Val knownReasons.init) (Val #())))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty (go.GoType.StructType []))))) (Pair (App (Val (GoInstruction (GlobalVarAddr knownReasons))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.fmt.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -392,7 +407,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc knownReasons (go.GoType.MapType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty (go.GoType.StructType [])))) (Val #()))))))))
 
 structure StatusError [GooseExts] where
   mk ::

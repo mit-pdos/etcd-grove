@@ -55,14 +55,14 @@ theorem nil_els {X : WX} {fl : FLPg} {C : CommitSt} {B0 : BRec} (hpre : spillPre
   -- an element's facts
   have hel : ∀ e ∈ treeEls X.v.pages B0.ib.root'.toNat, e.1 % 2 = bucketLeafFlag ∧
       (0 < e.2.1.length ∧ e.2.1.length ≤ maxKeySize) ∧
-      e.2.1.length + e.2.2.length ≤ bboltEntryMax := by
+      entryBytesFit e.2.1.length e.2.2.length := by
     intro e he
     obtain ⟨id, pg, i, -, ho, hp, hfl, hi, rfl, hkl, hvl⟩ := treeEls_srcWF hs he
     have hsh := hshape ho hp hfl i hi
     refine ⟨hsh.1.2 rfl, ⟨?_, ?_⟩, ?_⟩
     · show 0 < (leafKey pg i).length; rw [hkl]; exact hsh.2.1.1
     · show (leafKey pg i).length ≤ maxKeySize; rw [hkl]; exact hsh.2.2.1 rfl
-    · show (leafKey pg i).length + (leafValue pg i).length ≤ bboltEntryMax
+    · show entryBytesFit (leafKey pg i).length (leafValue pg i).length
       rw [hkl, hvl]; exact hsh.2.1.2
   -- the names
   have hbkP : ∀ pg ∈ treeLeaves X.v.pages B0.ib.root'.toNat, pageFlags pg = leafPageFlag ∧

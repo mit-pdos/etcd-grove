@@ -39,12 +39,12 @@ variable [GooseExts]
 of its leaves a plain key/value, its key not empty, within `bboltEntryMax`. -/
 def plainTree (P : Pages) (root : Nat) : Prop :=
   ∀ pg ∈ treeLeaves P root, ∀ j < pageCount pg,
-    leafFlags pg j % 2 = 0 ∧ 0 < leafKsize pg j ∧ leafKsize pg j + leafVsize pg j ≤ bboltEntryMax
+    leafFlags pg j % 2 = 0 ∧ 0 < leafKsize pg j ∧ entryBytesFit (leafKsize pg j) (leafVsize pg j)
 
 /-- **Plain leaf elements** (by data): flags of a plain entry, key not empty, the entry within
 `bboltEntryMax` (a nested bucket's entries, `leafShape`, `entriesBounded`). -/
 def plainEls (E : List El) : Prop :=
-  ∀ e ∈ E, e.1 % 2 = 0 ∧ 0 < e.2.1.length ∧ e.2.1.length + e.2.2.length ≤ bboltEntryMax
+  ∀ e ∈ E, e.1 % 2 = 0 ∧ 0 < e.2.1.length ∧ entryBytesFit e.2.1.length e.2.2.length
 
 /-- **The bucket record after `b.rootNode = b.rootNode.root(); b.SetRootPage(pgid)`**. -/
 def bkRooted (B : BRec) (rt : Loc) (pgid : w64) : BRec :=

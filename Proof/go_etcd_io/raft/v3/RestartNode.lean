@@ -777,7 +777,7 @@ private theorem wp_RestartNode_impl
   have Hgh : s.gh = { sn := s.gh.sn } := by
     have h := Hgh; rw [Hgtr0, HtrG] at h; exact h
   obtain ⟨Ht, Hv, Hr, Ho, Hst0, Hpd⟩ := Hterm
-  obtain ⟨Hlp, Hse0, Hue, Hsd, Hcm, Hap, Hapg, Hun, Hsn0, Hsg, Hdtk⟩ := Hlog
+  obtain ⟨Hlp, Hse0, Hue, Hsd, Hcm, Hap, Hapg, Hun, Hsn0, Hsg, Hdtk, Hksn⟩ := Hlog
   -- the term ceiling raised to the term, which the budget covers (`termLB`)
   have Htc0 : uint.Z s.gh.tc ≤ uint.Z S.term := by
     rw [Hgh]; exact uint_Z_nonneg _
@@ -928,12 +928,13 @@ private theorem wp_RestartNode_impl
           exact ⟨hi2, t, ht⟩⟩
       Hsvr.1.symm HphsR
       (show s.gh.tr = γ.raft.reTrace by rw [Hgh, HtrG])
-      $$ Hrn Hphys Hghost [] Hsoft Hph Hsteps Hsteps_cap [] HcD [] [] [] Hdurt
+      $$ Hrn Hphys Hghost [] Hsoft Hph Hsteps Hsteps_cap [] HcD [] [] [] [] Hdurt
     · iunfold sdrOk; iexists _; iexact Hsd0
     · iapply pendList_nil
     · iapply ackInv_none; intro _ _ _ _ h; cases h
     · iapply loanCom_none γ.raft rfl
     · rw [show s1.logst.snap = none from Hsn0]; iapply snapLocOk_none
+    · rw [show s1.logst.ksn = [] from Hksn]; iapply restoredSnapHistory_nil
   -- the driver's view of the configuration is the node's: at the configuration point `a`
   have Hhp : hprev = σ.hs := by rw [Hhz, Hca]
   -- raft's certified terms of the committed log handed out (the attach record's)
