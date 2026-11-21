@@ -42,7 +42,7 @@ theorem rafthttp.pipeline.start.wp_proof
   iunfold pipeFixed at Hf
   icases Hf with ⟨%tr, %pk, %ec, %lg, %urls, %uvs, %lid, %cid, %rt, %ps, %fs, %r, %id, %γd,
     #Htr, #Hpk, #Hec, #Hto, #Hlg, #Hlgz, #Hurls, #Huvs, #Hlid, #Hcid, #Hrtf, #Hrt, #Hpick, #Hps,
-    #Hpsok, #Hfs, #Hr, #Hraft, #Hreg, %Hmemt, %Hturls⟩
+    #Hpsok, #Hfs, #Hfso, #Hr, #Hraft, #Hreg, %Hmemt, %Hturls⟩
   ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

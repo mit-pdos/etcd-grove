@@ -21,7 +21,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 /-- **`startPeer(t, urls, peerID, fs)`** on a started transport of the member `lid` (`trFixed`, with
 its pool of `Raft` resources `R`, `raftPool`), with `peerID`'s URLs (non-empty, its own: `peerURL`)
-and follower stats: a started peer (`peerOk`) and the right to stop it. The peer's two receiving
+and follower stats (with their mutex, `v2stats.isFollowerStats`, which the pipeline's `Fail` takes;
+prove-ps2, 2026-11-21): a started peer (`peerOk`) and the right to stop it. The peer's two receiving
 goroutines, which call `Process`, each borrow an `R` from the pool with their thread tokens and give
 it back when they exit. (Until J8a-6, 2026-11-01: eight copies of `R`, for those two, the two stream
 writers and the pipeline's four goroutines, which need none; `peer.stop` gave four back.) -/
@@ -30,7 +31,7 @@ abbrev rafthttp.startPeer.spec : Prop :=
     (uvs : List net.url.URL) (pid : w64) (fs : Loc),
   uvs ≠ [] → (∀ u ∈ uvs, peerURL Rh pid u) → fs ≠ null → Rh.member lid → lid ≠ pid → Rh.member pid →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-      trFixed Rh t lid γd R ∗ urls ↦*□ uvs }}
+      trFixed Rh t lid γd R ∗ urls ↦*□ uvs ∗ v2stats.isFollowerStats fs }}
     (App (App (App (App (Val (@! rafthttp.startPeer)) (Val #t)) (Val #urls)) (Val #pid)) (Val #fs))
   {{ (p : Loc), RET #p; peerOk Rh lid pid γd R p ∗ peerStop Rh pid R p }}
 

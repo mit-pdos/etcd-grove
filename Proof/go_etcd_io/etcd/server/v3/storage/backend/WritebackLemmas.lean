@@ -109,9 +109,9 @@ theorem safeSt_writeback {P : BParams} {st : BSess} (hs : safeSt P st) : safeSt 
 
 theorem sessWf_writeback {P : BParams} {st : BSess} (hst : sessWf P st) (hpn : st.pend ≠ W64 0) :
     sessWf P (wbSt P st) := by
-  obtain ⟨hWf, hRf, hWi, hRi, hp0, hp1, hn0, hnp, hR0, hag, hsf⟩ := hst
+  obtain ⟨hWf, hRf, hWi, hRi, hp0, hp1, hn0, hnp, hR0, hag, hsf, hpc⟩ := hst
   refine ⟨writebackW_wf _ _, writebackR_wf _ hRf, idsOk_writebackW hWi, idsOk_writebackR hWi hRi,
-    hp0, hp1, hn0, hnp, ?_, ?_, safeSt_writeback hsf⟩
+    hp0, hp1, hn0, hnp, ?_, ?_, safeSt_writeback hsf, fun hp => absurd hp hpn⟩
   · intro hp
     exact absurd hp hpn
   · intro hn

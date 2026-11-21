@@ -163,7 +163,7 @@ theorem snapImageG (Hp : persistent.law (GF := GF)) (Hr : mvccState_reachable.la
     (Q : GMap (GoString × GoString) GoString → GMap GoString backend.BktData → Prop) :
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       kvStoreInvG kv γ Nx Cp γs ∗ wStQ γs q log c ∗ mvccBackend γ 1 (etcdStorage bk) Pk ∗
-      backend.bOpen bk.γB qo ∗ backend.wbTok bk.γB ∗ threadTok ∗ R ∗
+      backend.bOpen bk.γB qo ∗ backend.wbTok bk.γB ∗ threadTok ∗ backend.rdTok bk.γB bk.P bk.be ∗ R ∗
       □ (∀ (d : GMap (GoString × GoString) GoString) (r : GMap GoString backend.BktData),
         R -∗ Pk -∗ backend.hkOwn bk.γB d -∗ backend.rbOwn bk.γB r -∗ ⌜Q d r⌝) }}
     (App (Val (bk.be @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty
@@ -171,11 +171,11 @@ theorem snapImageG (Hp : persistent.law (GF := GF)) (Hr : mvccState_reachable.la
   {{ (sp : Loc) (D : backend.Data),
       RET #(interface.mkOk
         (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.snapshot.ty) #sp);
-      backend.snapOpen sp D ∗ backend.bOpen bk.γB qo ∗ R ∗ mvccBackend γ 1 (etcdStorage bk) Pk ∗
-      wStQ γs q log c ∗ ⌜Q (backend.hkData bk.P D) (backend.rbData bk.P D)⌝ ∗
+      backend.snapOpen sp D ∗ backend.bOpen bk.γB qo ∗ backend.rdTok bk.γB bk.P bk.be ∗ R ∗
+      mvccBackend γ 1 (etcdStorage bk) Pk ∗ wStQ γs q log c ∗ ⌜Q (backend.hkData bk.P D) (backend.rbData bk.P D)⌝ ∗
       ⌜imageStOk log c⌝ ∗ ∃ u : Bool, mvccImage D log c u }} := by
   haveI := kvStoreInvG_persistent Hp kv γ Nx Cp γs
-  iintro %Ψ ⟨#Hpkg, #Hk, Hw, HB, Ho, Hwb, Htok, HR, #HQ⟩ HΨ
+  iintro %Ψ ⟨#Hpkg, #Hk, Hw, HB, Ho, Hwb, Htok, Hrd, HR, #HQ⟩ HΨ
   -- the writer's state reachable (the image certificate carries it to the receiver's `Restore`)
   imod writer_facts Nx Cp Hp Hr kv γ γs log c $$ Hk Hw with ⟨Hw, -, -, -, %Hre⟩
   ihave HAU := au_snap Nx Cp Hp kv γ γs log c (wStQ γs q log c) $$ Hk Hw []
@@ -185,9 +185,9 @@ theorem snapImageG (Hp : persistent.law (GF := GF)) (Hr : mvccState_reachable.la
   icases Hk' with ⟨#Hm, -⟩
   iunfold auSnap at HAU
   iapply (hImg hSnap kv γ bk Pk qo R Q (fun σ => iprop(⌜σ = stAt log c⌝ ∗ wStQ γs q log c)))
-    $$ [HB Ho Hwb Htok HR HAU]
+    $$ [HB Ho Hwb Htok Hrd HR HAU]
   · iframe #; iframe
-  iintro !> %sp %D ⟨Hsn, Ho, HR, HB, %HQD, %σ, %u, ⟨%Hσ, Hw⟩, #Him⟩
+  iintro !> %sp %D ⟨Hsn, Ho, Hrd, HR, HB, %HQD, %σ, %u, ⟨%Hσ, Hw⟩, #Him⟩
   subst Hσ
   iapply HΨ
   iframe
@@ -207,11 +207,11 @@ theorem senderImage_holds (Hp : persistent.law (GF := GF))
   intro hSnap hImg _ _ kv γ γr γs i A B Pk qo R Q hQ hi
   rw [kvStoreInv_eq]
   haveI := kvStoreInvG_persistent Hp kv γ (kvNx γr false) (crevOk γr) γs
-  iintro %Ψ ⟨#Hpkg, #Hk, Hw, #Hlb, HB, Ho, Hwb, Htok, HR, #HQ⟩ HΨ
+  iintro %Ψ ⟨#Hpkg, #Hk, Hw, #Hlb, HB, Ho, Hwb, Htok, Hrd, HR, #HQ⟩ HΨ
   iapply (snapImageG Hp Hr hImg hSnap (kvNx γr false) (crevOk γr) kv γ γs (kvModel γr.kv A)
-    (crevOf γr.kv A) B Pk qo R Q) $$ [Hw HB Ho Hwb Htok HR]
+    (crevOf γr.kv A) B Pk qo R Q) $$ [Hw HB Ho Hwb Htok Hrd HR]
   · iframe #; iframe
-  iintro !> %sp %D ⟨Hsn, Ho, HR, HB, Hw, %HQD, %Hre, %u, #Him⟩
+  iintro !> %sp %D ⟨Hsn, Ho, Hrd, HR, HB, Hw, %HQD, %Hre, %u, #Him⟩
   iapply HΨ
   iframe
   iapply (dbImageA_of_send γr.raft γr.kv i D A u hi (hQ D HQD) Hre)

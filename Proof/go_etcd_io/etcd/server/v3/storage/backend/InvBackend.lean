@@ -399,6 +399,9 @@ def bOpen (γ : BNames) (q : Qp) : IProp GF :=
 /-- The backend stopped (persistent). -/
 def bStopped (γ : BNames) : IProp GF := dghostVar γ.opn DFrac.discard true
 
+instance bStopped_timeless (γ : BNames) : Timeless (bStopped (GF := GF) γ) := by
+  unfold bStopped; infer_instance
+
 /-- (2026-11-04, R2b-3c) **The backend's bbolt database is `db`, the file at `path`** (persistent). -/
 def bDBAt (γ : BNames) (db : Loc) (path : GoString) : IProp GF :=
   dghostVar γ.dbf DFrac.discard ((db, path) : Loc × GoString)
@@ -1186,6 +1189,21 @@ theorem viewQ_split (γ : BNames) (a b : Qp) (phys L : VData) :
     iframe Hv
     iframe #
 
+-- (backend-snapshot B2, from `InvSnapshot.lean`: the registrations' wands name them)
+/-- **The batch lock's quarter of the readers' view, its physical view at `vd`** (see the file
+header): the quarter at some logical view `L` that `vd` is thin of (question 2, option (a), the
+user's, 2026-10-29: the batch lock's quarter is over the logical view, `batchViewQ`; until then the
+quarter at `vd` itself, an instance: `viewQ_exact`). -/
+def viewAt (γ : BNames) (vd : VData) : IProp GF :=
+  iprop(∃ L : VData, viewQ γ (1 : Qp).half.half vd L)
+
+/-- **The batch lock's quarter of the readers' view at a commit, with the safe-range buckets'
+deleted entries** (the user's decision, 2026-11-04, probe M2: a snapshot's observation knows the
+safe-range bucket exactly): the quarter at a logical view `L`, the physical view `vd` thin of it,
+and `vd` exactly `L` but the deleted entries `X` on the safe-range buckets (`dlVd`). -/
+def viewAtD (γ : BNames) (P : BParams) (vd X : VData) : IProp GF :=
+  iprop(∃ L : VData, viewQ γ (1 : Qp).half.half vd L ∗ ⌜dlVd P vd L X⌝)
+
 /-- A quarter at an exact view. -/
 theorem viewQ_exact (γ : BNames) (q : Qp) (vd : VData) :
     ghostVar (GF := GF) γ.view q vd ⊢ viewQ γ q vd vd := by
@@ -1314,7 +1332,9 @@ def bStopG (γ : BNames) (P : BParams) (C : Data) : IProp GF :=
 committed data `C`, with the lock's ghost shares at `C` (`bStopG`, R2b-3c part 2) (the stop's
 commit's; `CommitAndStop` adds the lock's client resources, `bDBOut`). -/
 def bDBOutG (γ : BNames) (P : BParams) : IProp GF :=
-  iprop(∃ (db : Loc) (C : Data), bDB γ db ∗ ownDB db γ.db C ∗ bStopG γ P C)
+  iprop(∃ (db : Loc) (C : Data), bDB γ db ∗ ownDB db γ.db C ∗
+    -- (backend-snapshot B1) the commit invariant's half, which the stop's commit took out
+    dbHalf γ.db C ∗ bStopG γ P C)
 
 /-- (R2b-3c) **What `CommitAndStop` gives up**: the stopped batch transaction's (`bDBOutG`) and the
 batch lock's client resources `W ∗ Pk`, which the stopped lock no longer holds (the stop's escrow,
@@ -1614,6 +1634,168 @@ def metricsInv (b : Loc) : IProp GF :=
 instance metricsInv_persistent (b : Loc) : Persistent (metricsInv (GF := GF) b) := by
   unfold metricsInv; infer_instance
 
+/-! ## The commit point (backend-snapshot B1, 2026-11-20; `notes/backend-snapshot-plan.md`)
+
+bbolt's `boltState` of the committed data is shared: the batch lock holds half (`ownDB`), the
+commit invariant `cmtInv` the other half (`dbHalf`). A commit fires bbolt's update at its
+linearization point by opening the invariant (both halves to the committed contents); a read
+transaction under the batch lock reads its own half; `backend.Snapshot`, which holds no lock, reads
+the invariant's. `Close` takes the invariant's half once the backend is stopped (`bStopped`, the
+invariant's other case). -/
+
+/-- The commit invariant's namespace. -/
+abbrev cmtN : Namespace := bN.@"cmt"
+
+/-! ### Snapshots' observations, registered (B2) -/
+
+/-- **A snapshot's observation** (`backend.Snapshot.spec`'s `Q`): a fact of the safe-range view, the
+hook's own keys, the tracked buckets and the compaction keys' values of the committed data. -/
+abbrev ObsQ : Type :=
+  VData → GMap (GoString × GoString) GoString → GMap GoString BktData → FkVals → Prop
+
+/-- The observation `Q` of the data `D`. -/
+def obsAt (P : BParams) (Q : ObsQ) (D : Data) : Prop :=
+  Q (sData P D) (hkData P D) (rbData P D) (fkVals D)
+
+/-- **A snapshot's observation, from `R`** (persistent; `backend.Snapshot.spec`'s premise): with the
+batch lock's resources and its halves of the writer's contents, `R` gives `Q`. -/
+def obsWand (γ : BNames) (P : BParams) (W Pk R : IProp GF) (Q : ObsQ) : IProp GF :=
+  iprop(□ (∀ (vd : VData) (d : GMap (GoString × GoString) GoString) (r : GMap GoString BktData)
+      (v : FkVals), ∀ X : VData,
+      R -∗ W -∗ Pk -∗ viewAtD γ P vd X -∗ dlsOwn γ X -∗ hkOwn γ d -∗ rbOwn γ r -∗ fkdOwn γ v -∗
+        ⌜Q vd d r v⌝))
+
+instance obsWand_persistent (γ : BNames) (P : BParams) (W Pk R : IProp GF) (Q : ObsQ) :
+    Persistent (obsWand (GF := GF) γ P W Pk R Q) := by
+  unfold obsWand; infer_instance
+
+/-- **The batch lock's inputs to an observation at the writer's contents `S`**: its client
+resources and its halves at `S` (`InvStop.lean`'s `bStopView` without the readers' lower bound);
+what a commit holds at its commit point, where `S` becomes the committed data. -/
+def obsIn (γ : BNames) (P : BParams) (W Pk : IProp GF) (S : Data) : IProp GF :=
+  iprop(W ∗ Pk ∗ (∃ X : VData, viewAtD γ P (sData P S) X ∗ dlsOwn γ X) ∗
+    hkOwn γ (hkData P S) ∗ rbOwn γ (rbData P S) ∗ fkdOwn γ (fkVals S))
+
+/-- An observation's wand applied to the inputs at `S`: `Q` of `S`, the inputs and `R` kept (the
+conclusion is pure). -/
+theorem obsWand_apply (γ : BNames) (P : BParams) (W Pk R : IProp GF) (Q : ObsQ) (S : Data) :
+    obsIn (GF := GF) γ P W Pk S ∗ R ∗ obsWand γ P W Pk R Q ⊢
+      (obsIn γ P W Pk S ∗ R ∗ obsWand γ P W Pk R Q) ∗ ⌜obsAt P Q S⌝ := by
+  refine (and_intro .rfl ?_).trans persistent_and_sep_mp
+  unfold obsIn obsWand obsAt
+  iintro ⟨⟨HW, HPk, ⟨%X, Hva, Hdl⟩, Hhk, Hrb, Hfk⟩, HR, #Hw⟩
+  iapply Hw $$ HR HW HPk Hva Hdl Hhk Hrb Hfk
+
+/-- The same from any frame `F` that gives the inputs (`hF`, an entailment: the frame is kept
+whole, the conclusion being pure), with `R` and the wand under a later (a registration's, in the
+commit invariant): `Q` of `S` after an `◇`. -/
+theorem obsWand_apply_later (γ : BNames) (P : BParams) (W Pk R : IProp GF) (Q : ObsQ) (S : Data)
+    (F : IProp GF) (hF : F ⊢ |==> obsIn γ P W Pk S) :
+    F ∗ ▷ R ∗ ▷ obsWand γ P W Pk R Q ⊢ ◇ ((F ∗ ▷ R ∗ ▷ obsWand γ P W Pk R Q) ∗ ⌜obsAt P Q S⌝) := by
+  have h0 : obsIn (GF := GF) γ P W Pk S ∗ ▷ R ∗ ▷ obsWand γ P W Pk R Q ⊢ ▷ ⌜obsAt P Q S⌝ := by
+    iintro ⟨Hi, HR, Hw⟩
+    inext
+    ihave Hp := obsWand_apply γ P W Pk R Q S $$ [$Hi $HR $Hw]
+    icases Hp with ⟨-, %Hp⟩
+    ipureintro; exact Hp
+  have h1 := h0.trans (Timeless.timeless (P := iprop(⌜obsAt P Q S⌝)))
+  -- the inputs may be had only after a ghost update (a hypothetical one: its effects are dropped,
+  -- the conclusion being pure)
+  have h : F ∗ ▷ R ∗ ▷ obsWand γ P W Pk R Q ⊢ ◇ ⌜obsAt P Q S⌝ := by
+    iintro ⟨Hi, HR, Hw⟩
+    ihave Hi := hF $$ Hi
+    imod Hi
+    iapply h1
+    iframe Hi HR Hw
+  refine (and_intro except0_intro h).trans ?_
+  refine except0_and.2.trans (except0_mono persistent_and_sep_mp)
+
+/-- **The registry's names** (persistent): the free name `γ.txb` (unused since stage S1) holds, read-only,
+the registry map's `gm` and the commit counter's `gc`. -/
+def cmtNames (γ : BNames) (gm gc : GName) : IProp GF :=
+  dghostVar γ.txb DFrac.discard ((gm, gc) : GName × GName)
+
+instance cmtNames_persistent (γ : BNames) (gm gc : GName) :
+    Persistent (cmtNames (GF := GF) γ gm gc) := by
+  unfold cmtNames; infer_instance
+
+/-- **A registration's entry** at the commit count `c` and the committed data `Dc`, of the
+registration `e = (γR, γΨ, n)` (the saved `R`, the saved observation, the count it was made at): the
+other halves of the saved `R` and observation, `R` itself, the wand, and, once a commit point came after
+it, the observation of the committed data. -/
+def regEntry (γ : BNames) (P : BParams) (W Pk : IProp GF) (c : Nat) (Dc : Data)
+    (e : GName × GName × Nat) : IProp GF :=
+  iprop(∃ (R : IProp GF) (Q : ObsQ), savedPropOwn e.1 (DFrac.own (1 : Qp).half) R ∗
+    savedPredOwn e.2.1 (DFrac.own (1 : Qp).half) (fun D : Data => iprop(⌜obsAt P Q D⌝)) ∗
+    R ∗ obsWand γ P W Pk R Q ∗ ⌜e.2.2 < c → obsAt P Q Dc⌝)
+
+/-- **The registered observations at the committed data `Dc`**: the count of commit points `c`, the
+registrations `M`, each one's entry. -/
+def cmtRegs (γ : BNames) (P : BParams) (W Pk : IProp GF) (Dc : Data) : IProp GF :=
+  iprop(∃ (gm gc : GName) (c : Nat) (M : GMap Nat (GName × GName × Nat)), cmtNames γ gm gc ∗
+    monoNatAuthOwn gc 1 c ∗ ghostMapAuth gm 1 M ∗ [∗map] _i ↦ e ∈ M, regEntry γ P W Pk c Dc e)
+
+/-- **The commit invariant's content**: the committed data's other half (`dbHalf`) with the
+registrations at it, or the backend stopped (`Close` has taken the half). -/
+def cmtBody (γ : BNames) (P : BParams) (W Pk : IProp GF) : IProp GF :=
+  iprop((∃ Dc : Data, dbHalf γ.db Dc ∗ cmtRegs γ P W Pk Dc) ∨ bStopped γ)
+
+/-- **A commit point came after the count `n`** (persistent): a lower bound of the commit counter. -/
+def cntLb (γ : BNames) (n : Nat) : IProp GF :=
+  iprop(⌜n = 0⌝ ∨ ∃ gm gc : GName, cmtNames γ gm gc ∗ monoNatLbOwn gc n)
+
+/-- The trivial lower bound. -/
+theorem cntLb_zero (γ : BNames) : ⊢ cntLb (GF := GF) γ 0 := by
+  unfold cntLb; ileft; ipureintro; rfl
+
+instance cntLb_persistent (γ : BNames) (n : Nat) : Persistent (cntLb (GF := GF) γ n) := by
+  unfold cntLb; infer_instance
+
+/-- **The registration `i` of `R` and `Q`** (exclusive; the snapshot's): its map element, its halves
+of the saved `R` and observation, made at the count `n`. -/
+def regTok (γ : BNames) (P : BParams) (i : Nat) (n : Nat) (R : IProp GF) (Q : ObsQ) : IProp GF :=
+  iprop(∃ (gm gc γR γΨ : GName), cmtNames γ gm gc ∗ ghostMapElem gm i (DFrac.own 1) (γR, γΨ, n) ∗
+    savedPropOwn γR (DFrac.own (1 : Qp).half) R ∗
+    savedPredOwn γΨ (DFrac.own (1 : Qp).half) (fun D : Data => iprop(⌜obsAt P Q D⌝)))
+
+/-- **The backend's commit invariant** (persistent; see the section header). -/
+def cmtInv (γ : BNames) (P : BParams) (W Pk : IProp GF) : IProp GF :=
+  inv cmtN (cmtBody γ P W Pk)
+
+instance cmtInv_persistent (γ : BNames) (P : BParams) (W Pk : IProp GF) :
+    Persistent (cmtInv (GF := GF) γ P W Pk) := by
+  unfold cmtInv; infer_instance
+
+/-- **A stopping commit's payment** (`payIn`'s stop case): the clients' half and the `run`
+goroutine's quarter of the open flag. With the batch lock's quarter they make the backend stopped
+(`opn_stop_cmt`), at the stop's commit point, where the commit takes the commit invariant's half
+out for `Close` and leaves `bStopped` in its place (backend-snapshot B1). -/
+def stopPay (γ : BNames) : IProp GF :=
+  iprop(dghostVar γ.opn (DFrac.own (1 : Qp).half) false ∗
+    dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false)
+
+/-- The open flag's shares make the backend stopped (`InvBatch.lean`'s `opn_stop`, over
+`stopPay`). -/
+theorem opn_stop_cmt (γ : BNames) :
+    dghostVar (GF := GF) γ.opn (DFrac.own (1 : Qp).half.half) false ∗ stopPay γ ==∗ bStopped γ := by
+  unfold stopPay
+  iintro ⟨H1, Ho, H2⟩
+  icombine H1 H2 as H
+  unfold bStopped
+  imod dghostVar_update_halves true γ.opn false false $$ H Ho with ⟨H, -⟩
+  iapply dghostVar_persist $$ H
+
+/-- The commit invariant's namespace is not the database's (`dbFile`: `γ.ns = dbNs path`). -/
+theorem cmtN_dbNs (p : GoString) : (↑cmtN : CoPset) ⊆ ⊤ \ ↑(dbNs p) := by
+  intro x hx
+  rw [Iris.Std.LawfulSet.mem_diff]
+  refine ⟨CoPset.mem_full, fun h' => ?_⟩
+  have h1 : x ∈ (↑(nroot.@"backend") : CoPset) := nclose_subseteq (nroot.@"backend") "cmt" x hx
+  have h2 : x ∈ (↑(nroot.@"etcdBackendDb") : CoPset) := by
+    unfold dbNs at h'
+    exact nclose_subseteq _ _ x h'
+  exact ndot_ne_disjoint nroot (show ("backend" : String) ≠ "etcdBackendDb" by decide) x ⟨h1, h2⟩
+
 /-- `b` is a backend with parameters `P`, ghost names `γ`, the client's batch-lock resources
 `W` (the lock holder's) and `Pk` (the hooks') (persistent). (Sweep repairs 1, B4, 2026-11-07) With
 `ETCD_VERIFY` off (`envVerifyOff`): what its batch transaction's lock checks
@@ -1632,7 +1814,9 @@ def isBackend (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) : IProp GF
     -- (2026-11-04, R2b-3c) the database and its file
     (∃ path : GoString, bDBAt γ db path ∗ dbFile db γ.db path) ∗
     -- (sweep repairs 1, B4) `ETCD_VERIFY` off
-    envVerifyOff)
+    envVerifyOff ∗
+    -- (backend-snapshot B1) the commit invariant
+    cmtInv γ P W Pk)
 
 instance isBackend_persistent (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) :
     Persistent (isBackend γ P W Pk b) := by
@@ -1645,8 +1829,21 @@ theorem isBackend_envVerifyOff (γ : BNames) (P : BParams) (W Pk : IProp GF) (b 
   iintro #Hb
   unfold isBackend
   icases Hb with ⟨%t, %rt, %tm, %db, %lg, %h, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
-    -, -, -, #Hv⟩
+    -, -, -, #Hv, -⟩
   iexact Hv
+
+/-- (backend-snapshot B1) **A backend's commit invariant**, and its database's namespace (what a
+commit or a snapshot opens it beside: `cmtN_dbNs`). -/
+theorem isBackend_cmtInv (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) :
+    isBackend γ P W Pk b ⊢ cmtInv γ P W Pk ∗ ∃ path : GoString, ⌜γ.db.ns = dbNs path⌝ := by
+  iintro #Hb
+  unfold isBackend
+  icases Hb with ⟨%t, %rt, %tm, %db, %lg, %h, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
+    -, -, ⟨%path, -, #Hf⟩, -, #Hc⟩
+  iframe Hc
+  iexists path
+  unfold dbFile
+  iexact Hf
 
 /-! ## Readers -/
 
@@ -1675,10 +1872,18 @@ def crTok (γ : BNames) (b : Loc) : IProp GF :=
   iprop(∃ (rt tm : Loc), bF go!"readTx" b ↦□ rt ∗ rtmuOf (baseOf rt) ↦□ tm ∗
     sync.ownRWMutex tm (fun q => tmTok γ q) ∗ ownToks γ.rdt 1)
 
-/-- A reader's token: a slot of `readTx.mu`, and `crTok`. -/
+/-- **A read slot of `b.mu`** over the backend's database (backend-snapshot B3, 2026-11-20): what
+`Snapshot` read-locks `b.mu` with, around bbolt's `Begin(false)`; every reader's token carries one
+(`rdTok`), so a snapshotter lends its own (`notes/backend-snapshot-plan.md`, "The reader slot of
+`b.mu`"). -/
+def bmSlot (γ : BNames) (b : Loc) : IProp GF :=
+  iprop(∃ db : Loc, bDB γ db ∗ sync.ownRWMutex (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db))
+
+/-- A reader's token: a slot of `readTx.mu`, `crTok`, and (backend-snapshot B3) a read slot of
+`b.mu` (`bmSlot`). -/
 def rdTok (γ : BNames) (P : BParams) (b : Loc) : IProp GF :=
   iprop(∃ rt : Loc, bF go!"readTx" b ↦□ rt ∗ sync.ownRWMutex (rmuOf (baseOf rt)) (rtRes γ P rt) ∗
-    crTok γ b)
+    crTok γ b ∗ bmSlot γ b)
 
 /-- What `baseReadTx.UnsafeRange` needs of its receiver `base` (a shared or a concurrent read
 transaction): its read buffer at `dq` (writable buffers unless read-only for good, a
@@ -1717,7 +1922,8 @@ own (`UnsafeRange`, `rtHeldF_lend'`, `rtHeldF_read'`). -/
 def rtHeld (γ : BNames) (P : BParams) (b : Loc) (rtx : Loc) (rv : RView) : IProp GF :=
   iprop(∃ (rt : Loc) (rd : RdSt) (H : GMap (w64 × Nat) RView) (L : VData), bF go!"readTx" b ↦□ rt ∗
     sync.ownRWMutexRLocked (rmuOf (baseOf rt)) (rtRes γ P rt) ∗
-    rtResAt γ P rt sync.rfrac rd rv H (L := L) ∗ ⌜rd.rtx = rtx ∧ rtx ≠ Loc.null⌝ ∗ crTok γ b)
+    rtResAt γ P rt sync.rfrac rd rv H (L := L) ∗ ⌜rd.rtx = rtx ∧ rtx ≠ Loc.null⌝ ∗
+    iprop(crTok γ b ∗ bmSlot γ b))
 
 /-- The shared read transaction held with the share `p` of bbolt's transaction (`rtHeld` holds
 `sync.rfrac.half`; a part lent to another reader of the same snapshot, `rtHeld_lend`: the restore
@@ -1725,12 +1931,25 @@ plan's R5b), its interval live (`rtHeld`). -/
 def rtHeldF (γ : BNames) (P : BParams) (b : Loc) (rtx : Loc) (rv : RView) (p : Qp) : IProp GF :=
   iprop(∃ (rt : Loc) (rd : RdSt) (H : GMap (w64 × Nat) RView) (L : VData), bF go!"readTx" b ↦□ rt ∗
     sync.ownRWMutexRLocked (rmuOf (baseOf rt)) (rtRes γ P rt) ∗
-    rtResAt γ P rt sync.rfrac rd rv H p L ∗ ⌜rd.rtx = rtx ∧ rtx ≠ Loc.null⌝ ∗ crTok γ b)
+    rtResAt γ P rt sync.rfrac rd rv H p L ∗ ⌜rd.rtx = rtx ∧ rtx ≠ Loc.null⌝ ∗
+    iprop(crTok γ b ∗ bmSlot γ b))
 
 theorem rtHeld_eq (γ : BNames) (P : BParams) (b : Loc) (rtx : Loc) (rv : RView) :
     rtHeld (GF := GF) γ P b rtx rv = rtHeldF γ P b rtx rv sync.rfrac.half := rfl
 
 end preds
+
+/-- **The number of reader's tokens the constructor makes** (backend-snapshot B3, 2026-11-20): one
+fewer than `readTx.mu`'s and `b.mu`'s `actualMaxReaders` slots, since each token carries a slot of
+both (`rdTok`) and the batch transaction keeps one of `b.mu`'s. (Irreducible, as `rdStockN`: a unifier
+unfolding it would materialize `List.replicate` of about `2 ^ 30` elements; `newBackend` took 61 GB.) -/
+@[irreducible] def rdSlotsN : Nat := Int.toNat sync.rwmutex.actualMaxReaders - 1
+
+theorem rdSlotsN_pos : 0 < rdSlotsN := by
+  unfold rdSlotsN; rw [sync.rwmutex.actualMaxReaders_unseal]; decide
+
+theorem rdSlotsN_add_one : rdSlotsN + 1 = Int.toNat sync.rwmutex.actualMaxReaders := by
+  unfold rdSlotsN; rw [sync.rwmutex.actualMaxReaders_unseal]; decide
 
 section shares
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -1743,8 +1962,7 @@ orchestrator's decision: the shares counted): half of the open token divided amo
 every reader's token and the remainder back, the whole open token is reassembled
 (`bOpen_one_shares`), which the old backend's `Close` needs (`applySnapshot`). -/
 def rdOpen : Qp :=
-  Qp.divide_even (1 : Qp).half (Int.toNat sync.rwmutex.actualMaxReaders)
-    (by have := sync.actualMaxReaders_ge_2; omega)
+  Qp.divide_even (1 : Qp).half rdSlotsN (by have := rdSlotsN_pos; omega)
 
 /-- `q` plus `n` shares `s`. -/
 def qpRep (q s : Qp) : Nat → Qp
@@ -1802,17 +2020,16 @@ theorem bOpen_rep (γ : BNames) (q s : Qp) : ∀ n : Nat,
 /-- **The whole open token is the constructors' half and every reader's share** (W7). -/
 theorem bOpen_one_shares (γ : BNames) :
     bOpen (GF := GF) γ 1 ⊣⊢ bOpen γ (1 : Qp).half ∗
-      [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), bOpen γ rdOpen := by
-  have h : qpRep (1 : Qp).half rdOpen (Int.toNat sync.rwmutex.actualMaxReaders) = 1 := by
+      [∗list] _x ∈ List.replicate rdSlotsN (), bOpen γ rdOpen := by
+  have h : qpRep (1 : Qp).half rdOpen rdSlotsN = 1 := by
     apply Subtype.ext
     rw [qpRep_val]
-    have := sync.actualMaxReaders_ge_2
-    have hN : ((Int.toNat sync.rwmutex.actualMaxReaders : Nat) : Rat) ≠ 0 := by
-      exact_mod_cast (show Int.toNat sync.rwmutex.actualMaxReaders ≠ 0 by omega)
+    have := rdSlotsN_pos
+    have hN : ((rdSlotsN : Nat) : Rat) ≠ 0 := by
+      exact_mod_cast (show rdSlotsN ≠ 0 by omega)
     simp only [rdOpen, Qp.val_divide_even, Qp.val_half, Qp.val_one]
     grind
-  have hr := bOpen_rep (GF := GF) (hG := hG) γ (1 : Qp).half rdOpen
-    (Int.toNat sync.rwmutex.actualMaxReaders)
+  have hr := bOpen_rep (GF := GF) (hG := hG) γ (1 : Qp).half rdOpen rdSlotsN
   rw [h] at hr
   exact hr
 

@@ -28,6 +28,8 @@ importable Proof.go_etcd_io.raft.v3.ConfRule
 # `ownConfDecisions`, `confDecide`, `skippedIn`, `ownSnapsMade`, `snapMade`, `nodeFounder`,
 # `cluster_alloc_dec`, sealed, with laws (until the switch, of a rule fixed at allocation)
 importable Proof.go_etcd_io.raft.v3.InvNodeRule
+# A client retaining durable-state ownership can observe the ordered, committed log prefix.
+importable Proof.go_etcd_io.raft.v3.DurableLogView
 # (2026-10-28, the conf-change decision switch) a client library deciding conf entries by a rule over
 # the cluster's decisions: `confPolicy` (persistent), `confPolicy_alloc`, `confPolicy_decide`
 importable Proof.go_etcd_io.raft.v3.ConfPolicy

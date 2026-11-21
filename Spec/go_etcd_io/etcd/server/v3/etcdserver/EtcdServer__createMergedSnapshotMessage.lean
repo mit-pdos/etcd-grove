@@ -1,5 +1,5 @@
 /-
-`s.createMergedSnapshotMessage(m, snapt, snapi, confState)` (`snapshot_merge.go`): the merged
+`s.createMergedSnapshotMessage(m, snapt, snapi, confState, terms, boot)` (`snapshot_merge.go`): the merged
 snapshot message. Lean-first (no Rocq counterpart); D22 S-h, 2026-10-20 (`notes/decisions.md`, "D22
 S-h carried out"); the vocabulary is `InvSnapSend.lean`. (A `True`-postcondition axiom until D19p,
 2026-10-18, which removed it as false.)
@@ -7,6 +7,9 @@ S-h carried out"); the vocabulary is `InvSnapSend.lean`. (A `True`-postcondition
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvSnapSend
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.CindexBackend
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.replayTerms__termAt
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Defs
 
 @[expose] public section
 
@@ -24,42 +27,105 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `s.createMergedSnapshotMessage(ml, snapt, snapi, cs)`, by the apply thread (the logger's reader
-slot), of an owned raft message `ml` (`m.Snapshot` is written) and a valid `ep.confState` `cs`
-(`epCsOk`: nil or read-only for good), given the contracts of `s.KV().Commit()` and of
-`s.be.Snapshot()` (`srvKVCommitOk`, `srvBeSnapOk`, with their resources, `Snapshot()`'s from what
-`Commit()` gives back, `RC' -∗ RS`: D22 the stored-index window, 2026-10-23; `s.kv` read-only,
-`s.be` at some fraction, given back: the apply thread's, `srvBeOwn`, D22 receiver epochs, S7b): the merged message `mg` (`mergedMsg`: `NewMessage` of `ml` and a reader `rc`), the raft
-message read-only for good with its snapshot replaced by `(c, snapi, snapt)`, `c` the content of
-`cs` (`csOpt`; `proto.Clone`'s copy, so the sender's later changes to `ep.confState` do not reach
-it), and the reader streaming a bbolt image of the backend snapshot's data `D`, of which the
-caller's observation `Qd` holds (strict M1, 2026-11-06: a resource, `srvBeSnapOk`'s, in place of
-a pure fact: the snapshot's image is mvcc's persistent `mvccImage`). The reader goroutine (`newSnapshotReaderCloser`) does not panic.
-(2026-11-06, `notes/begin-tok-plan.md`) The caller's `threadTok` pays for `Snapshot()`'s reader
-slot (`srvBeSnapOk`), and the reader goroutine's fork token comes back to it. (raft-entsize [r3c],
-2026-11-09) `cs` is the voters' conf state (`epCsVoters`, in place of `epCsOk`) of a configuration
-of at most `2 ^ 20` members (`srvMemOk`'s bound), so the merged conf state `c` lists at most
-`2 ^ 20` ids: what bounds the merged message's size. (raft-entsize [r3c], 2026-11-10) The raft
-message has no top-level unknown fields (`pbMsg … []`, `rnSnapMsg`'s) and no entries, `Context` or
-responses (a `MsgSnap`'s `SentMsgShape`), so the merged message is frozen at a content below
-`2 ^ 47` bytes (`msgSzC False`): what the envelope's encoder needs (`netSnapBundle`). -/
-abbrev EtcdServer.createMergedSnapshotMessage.spec : Prop :=
-  ∀ (s ml : Loc) (st : MsgSt) (snapt snapi : w64) (cs lg : Loc) (kv be : GoInterface) (dq : DFrac)
+/-- The frozen backend has reached at most the apply cursor. Its bytes can be sent with the
+current apply metadata, independently of the retained replay terms. -/
+abbrev EtcdServer.createMergedSnapshotMessage.specCaughtUp : Prop :=
+  ∀ (s ml : Loc) (st : MsgSt) (snapt snapi ci : w64) (terms : GoSlice) (boot cs lg : Loc) (kv be : GoInterface) (dq : DFrac)
     (RC RC' RS RS' : IProp GF) (Qd : backend.Data → IProp GF) (γs : ServerRaftNames),
-  GMap.size γs.raft.cfg ≤ 2 ^ 20 → st.ents = [] ∧ st.ctx = [] ∧ st.resps = [] →
+  uint.Z ci ≤ uint.Z snapi → GMap.size γs.raft.cfg ≤ 2 ^ 20 → st.ents = [] ∧ st.ctx = [] ∧ st.resps = [] →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvLgAddr s ↦□ lg ∗ zapLoggerOk lg ∗ srvLgReader s ∗
       srvKVAddr s ↦□ kv ∗ srvKVCommitOk kv RC RC' ∗ RC ∗
-      srvBeAddr s ↦{dq} be ∗ srvBeSnapOk be RS RS' Qd ∗ (RC' -∗ RS) ∗
+      srvBeAddr s ↦{dq} be ∗ srvBeSnapOk be RS RS' (fun D =>
+        iprop(Qd D ∗ ⌜∃ term : w64, metaIs D (ci, term)⌝)) ∗ (RC' -∗ RS) ∗
       msgOwn ml (DFrac.own 1) st ∗ pbMsg go_etcd_io.raft.v3.raftpb.Message ml [] ∗
       epCsVoters γs cs ∗ threadTok }}
-    (App (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!!
-      go!"createMergedSnapshotMessage")) (Val #ml)) (Val #snapt)) (Val #snapi)) (Val #cs))
+    (App (App (App (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!!
+      go!"createMergedSnapshotMessage")) (Val #ml)) (Val #snapt)) (Val #snapi)) (Val #cs)) (Val #terms)) (Val #boot))
   {{ (mg : Loc), RET #mg; srvLgReader s ∗ RS' ∗ srvBeAddr s ↦{dq} be ∗ threadTok ∗
       ∃ (rc : GoInterface) (D : backend.Data) (c : ConfStateM),
         mergedMsg mg ml rc ∗ msgOwn ml DFrac.discard (mergedSt st c snapi snapt) ∗
         msgSzC False ml (mergedSt st c snapi snapt) ∗
         csOpt cs DFrac.discard c ∗
+        ⌜(c.Voters' ++ c.Learners' ++ c.VotersOutgoing' ++ c.LearnersNext').length ≤ 2 ^ 20⌝ ∗
+        backend.readerStreams rc (fun bs => backend.boltImage bs D) ∗ Qd D }}
+
+/-- The IDs and learner bits of a legacy member map determine the configuration
+for every permissible map iteration order. -/
+def replaySnapshotMembers (γ : ServerRaftNames) (mp : Loc) : IProp GF :=
+  iprop(∃ (ptrs : GMap w64 Loc) (memberID : w64 → w64) (learner : w64 → Bool),
+    mp ↦$ ptrs ∗
+    □ (∀ (k : w64) (p : Loc), ⌜ptrs !! k = some p⌝ -∗
+      membership.mIDAddr p ↦□ memberID k ∗ membership.mIsLearnerAddr p ↦□ learner k) ∗
+    ⌜∀ keys : List w64, (∀ k, k ∈ keys ↔ (ptrs !! k).isSome) → keys.Nodup →
+      confStateIs (.mk ((keys.filter (fun k => !learner k)).map memberID)
+        ((keys.filter learner).map memberID) [] [] false) (Membership.simple γ.raft.cfg)⌝)
+
+/-- Recovery from the absent configuration key reads the members in the same
+transaction that will be streamed. -/
+def replayMemberRead (γs : ServerRaftNames) (D : backend.Data) (lg sp : Loc) (γ : GName) : Prop :=
+  ∀ (bucket : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema.snapshotmeta ∗
+    isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+    globalAddr go_etcd_io.etcd.server.v3.storage.schema.Members ↦□ bucket ∗ backend.snapOpenQ sp D γ 1 }}
+    (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.snapshotmeta.ReadMembers)) (Val #lg))
+      (Val #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.snapshot.ty) #sp))) (Val #bucket))
+  {{ (mp : Loc), RET (PairV #mp #GoInterface.nil); backend.snapOpenQ sp D γ 1 ∗ replaySnapshotMembers γs mp }}
+
+/-- A modern configuration decodes directly. An absent key makes the frozen
+members available to the translated recovery loop. -/
+def replayConfigRead (γs : ServerRaftNames) (D : backend.Data) : Prop :=
+  ∀ (lg sp : Loc) (γ : GName) (bucket : GoInterface) (key : GoSlice),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema.snapshotmeta ∗
+    isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ backend.isBucket bucket mvcc.metaBI ∗
+    key ↦*□ (go!"confState" : GoString) ∗ backend.snapOpenQ sp D γ 1 }}
+    (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.snapshotmeta.ReadConfState)) (Val #lg))
+      (Val #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.snapshot.ty) #sp))) (Val #bucket)) (Val #key))
+  {{ (p : Loc), RET #p; backend.snapOpenQ sp D γ 1 ∗
+    (if p = null then ⌜replayMemberRead (GF := GF) γs D lg sp γ⌝ else epCsVoters γs p) }}
+
+/-- The term at the durable index is either stored in Meta or supplied by the
+immutable log of the job that is sending the snapshot. -/
+def replaySnapshotTerm (terms : GoSlice) (ci stored chosen : w64) : IProp GF :=
+  if stored = W64 0 then iprop(∃ (runs : List replayTermRun) (r : replayTermRun),
+      terms ↦*□ runs ∗ ⌜replayRunAt runs ci = some r ∧ r.term' = chosen⌝)
+  else iprop(⌜stored = chosen⌝)
+
+/-- The bootstrap configuration belongs to the initial backend. The sender can
+pair it with the immutable Ready's term when that log contains the image index.
+An installed backend or an uncovered index uses the frozen metadata instead. -/
+def replayImageMetadata (γs : ServerRaftNames) (D : backend.Data) (boot : Loc)
+    (terms : GoSlice) (ci stored chosen : w64) : IProp GF :=
+  iprop(∃ useBoot : Bool,
+    (if boot = null then ⌜useBoot = false⌝ else ∃ runs : List replayTermRun,
+      terms ↦*□ runs ∗ ⌜replayRunCovers runs ci = useBoot⌝) ∗
+    (if useBoot then epCsVoters γs boot ∗ replaySnapshotTerm terms ci (W64 0) chosen
+     else replaySnapshotTerm terms ci stored chosen ∗ ⌜replayConfigRead (GF := GF) γs D⌝))
+
+/-- The sent index, term and configuration describe the backend image in the
+restart window and the apply cursor once replay has caught up. -/
+abbrev EtcdServer.createMergedSnapshotMessage.spec : Prop :=
+  ∀ (s ml : Loc) (st : MsgSt) (snapt snapi ci backendTerm : w64) (terms : GoSlice) (boot cs lg : Loc) (kv be : GoInterface) (dq : DFrac)
+    (RC RC' RS RS' : IProp GF) (Qd : backend.Data → IProp GF) (γs : ServerRaftNames),
+  GMap.size γs.raft.cfg ≤ 2 ^ 20 → st.ents = [] ∧ st.ctx = [] ∧ st.resps = [] →
+  let ahead := uint.Z snapi < uint.Z ci
+  let labelIndex := if ahead then ci else snapi
+  let labelTerm := if ahead then backendTerm else snapt
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      srvLgAddr s ↦□ lg ∗ zapLoggerOk lg ∗ srvLgReader s ∗
+      srvKVAddr s ↦□ kv ∗ srvKVCommitOk kv RC RC' ∗ RC ∗
+      srvBeAddr s ↦{dq} be ∗ srvBeSnapOk be RS RS' (fun D =>
+        iprop(Qd D ∗ ∃ stored : w64, ⌜metaIs D (ci, stored)⌝ ∗
+          (⌜ahead⌝ -∗ replayImageMetadata γs D boot terms ci stored backendTerm))) ∗ (RC' -∗ RS) ∗
+      msgOwn ml (DFrac.own 1) st ∗ pbMsg go_etcd_io.raft.v3.raftpb.Message ml [] ∗
+      epCsVoters γs cs ∗ threadTok }}
+    (App (App (App (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!!
+      go!"createMergedSnapshotMessage")) (Val #ml)) (Val #snapt)) (Val #snapi)) (Val #cs)) (Val #terms)) (Val #boot))
+  {{ (mg : Loc), RET #mg; srvLgReader s ∗ RS' ∗ srvBeAddr s ↦{dq} be ∗ threadTok ∗
+      ∃ (rc : GoInterface) (D : backend.Data) (c : ConfStateM),
+        mergedMsg mg ml rc ∗ msgOwn ml DFrac.discard (mergedSt st c labelIndex labelTerm) ∗
+        msgSzC False ml (mergedSt st c labelIndex labelTerm) ∗
+        (⌜¬ahead⌝ -∗ csOpt cs DFrac.discard c) ∗ ⌜confStateIs c (Membership.simple γs.raft.cfg)⌝ ∗
         ⌜(c.Voters' ++ c.Learners' ++ c.VotersOutgoing' ++ c.LearnersNext').length ≤ 2 ^ 20⌝ ∗
         backend.readerStreams rc (fun bs => backend.boltImage bs D) ∗ Qd D }}
 

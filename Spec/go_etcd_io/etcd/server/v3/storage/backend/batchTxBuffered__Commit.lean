@@ -34,6 +34,17 @@ abbrev backend.batchTxBuffered.Commit.spec : Prop :=
     (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"Commit")) (Val #()))
   {{ RET #(); bOpen γ qo ∗ Y }}
 
+/-- (backend-snapshot B2) **`Commit.spec` with the commit counter**: the commit passes a commit point
+(or a no-op one), which arms the snapshots' registrations (`backend.Snapshot`'s own `Commit()`): a lower
+bound `n` of the counter before is `n + 1` after. -/
+abbrev backend.batchTxBuffered.Commit.specCnt : Prop :=
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (qo : Qp) (X Y : IProp GF)
+    (n : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ bOpen γ qo ∗ wbTok γ ∗ X ∗ commitReq γ P Pk b X Y ∗
+      cntLb γ n }}
+    (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"Commit")) (Val #()))
+  {{ RET #(); bOpen γ qo ∗ Y ∗ cntLb γ (n + 1) }}
+
 end spec
 
 end EtcdGrove
