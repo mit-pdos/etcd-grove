@@ -203,6 +203,39 @@ instance (cl : Cluster) (applied pin : GName) (boot : Nat) (sv : SnapshotM) :
     Persistent (srvStoredOrigin (GF := GF) cl applied pin boot sv) := by
   unfold srvStoredOrigin; infer_instance
 
+instance [MemStorReg GF] (ms : Loc) (gs : MemStorNames) (cl : Cluster) (key applied pin : GName)
+    (boot : Nat) : Persistent (memStorInvT (GF := GF) ms gs cl key (srvStoredOrigin cl applied pin boot)) := by
+  unfold memStorInvT; infer_instance
+
+/-- The server retains the storage invariant and identifies the actual node
+that attached it. The name `pin` is allocated before calling StartNode. -/
+def srvAttachedMem [MemStorReg GF] (ms : Loc) (gs : MemStorNames) (cl : Cluster) (key applied : GName)
+    (n : Loc) (boot : Nat) : IProp GF :=
+  iprop(∃ pin : GName, dghostVar pin DFrac.discard n ∗
+    nodeTagPin cl n (fun sv => iprop(snapshotValid cl sv ∗ srvStoredOrigin cl applied pin boot sv)) ∗
+    memStorInvT ms gs cl key (srvStoredOrigin cl applied pin boot))
+
+instance [MemStorReg GF] (ms : Loc) (gs : MemStorNames) (cl : Cluster) (key applied : GName)
+    (n : Loc) (boot : Nat) : Persistent (srvAttachedMem (GF := GF) ms gs cl key applied n boot) := by
+  unfold srvAttachedMem memStorInvT; infer_instance
+
+/-- Creating a snapshot requires the applied-index name of the writer. -/
+def srvCreateMem [MemStorReg GF] (ms : Loc) (gs : MemStorNames) (cl : Cluster) (key applied : GName) :
+    IProp GF :=
+  iprop(∃ pin boot, memStorInvT ms gs cl key (srvStoredOrigin cl applied pin boot))
+
+instance [MemStorReg GF] (ms : Loc) (gs : MemStorNames) (cl : Cluster) (key applied : GName) :
+    Persistent (srvCreateMem (GF := GF) ms gs cl key applied) := by
+  unfold srvCreateMem; infer_instance
+
+/-- Compaction uses the storage bounds at its key and preserves the stored snapshot. -/
+def srvCompactMem [MemStorReg GF] (ms : Loc) (gs : MemStorNames) (cl : Cluster) (key : GName) : IProp GF :=
+  iprop(∃ applied, srvCreateMem ms gs cl key applied)
+
+instance [MemStorReg GF] (ms : Loc) (gs : MemStorNames) (cl : Cluster) (key : GName) :
+    Persistent (srvCompactMem (GF := GF) ms gs cl key) := by
+  unfold srvCompactMem; infer_instance
+
 /-- The Ready batch from which the server received this outgoing message. -/
 def rnMessageSource (γ : RNNames GF) (q : QMsg) : IProp GF :=
   letI := srvStor (GF := GF) γ.node
@@ -1154,15 +1187,15 @@ instance (γ : RNNames GF) (t : w64) (bound : Nat) :
 /-- The outgoing message and the applying batch can be from different Ready
 calls. The equality of terms is supplied by the server's term check. -/
 theorem srv_snapshot_index_le (γ : RNNames GF) (rd : ReadNames) (pin : GName)
-    (q : QMsg) (sv : SnapshotM) (ai : w64) (bound : Nat)
+    (q : QMsg) (sv : SnapshotM) (bound : Nat)
     (ht : q.st.msg.Type' = MsgSnap) (hs : q.st.snap = some sv)
-    (hb : γ.snap0 ≤ uint.nat ai) (ha : bound ≤ uint.nat ai) :
+    (hb : γ.snap0 ≤ bound) :
     letI := srvStor (GF := GF) γ.node
     rnMessageSource γ q ⊢ rnBatchSource γ q.st.msg.Term' bound -∗
       sentMsg γ.node.cl srvClusterN γ.id q.st -∗ dghostVar pin DFrac.discard γ.nl -∗
       nodeTagPin γ.node.cl γ.nl (fun s => iprop(snapshotValid γ.node.cl s ∗
-        srvStoredOrigin γ.node.cl rd.applied pin γ.snap0 s)) -∗
-      ▷ (srvAppliedOwn rd ai -∗ srvAppliedOwn rd ai ∗ ⌜uint.nat sv.Metadata'.Index' ≤ uint.nat ai⌝) := by
+        srvStoredOrigin γ.node.cl rd.cursor pin γ.snap0 s)) -∗
+      ▷ (monoNatAuthOwn rd.cursor 1 bound -∗ monoNatAuthOwn rd.cursor 1 bound ∗ ⌜uint.nat sv.Metadata'.Index' ≤ bound⌝) := by
   letI := srvStor (GF := GF) γ.node
   iintro #Hsrc #Hobs #Hsent #Hpin #Htag
   iunfold rnMessageSource at Hsrc
@@ -1181,11 +1214,8 @@ theorem srv_snapshot_index_le (γ : RNNames GF) (rd : ReadNames) (pin : GName)
     iintro Hown
     icases Horigin with (%hi | Hlb | ⟨%n, #Hn, #Hinstalled⟩)
     · iframe Hown; ipureintro; omega
-    · iunfold srvAppliedOwn at Hown
-      icases Hown with ⟨Hauth, Hpending⟩
-      ihave %hi := monoNatLbOwn_valid rd.applied _ _ _ $$ Hauth Hlb
-      iunfold srvAppliedOwn
-      iframe Hauth Hpending
+    · ihave %hi := monoNatLbOwn_valid rd.cursor _ _ _ $$ Hown Hlb
+      iframe Hown
       ipureintro; exact hi.2
     · ihave %hn := dghostVar_agree pin n DFrac.discard γ.nl DFrac.discard $$ Hn Hpin
       subst n
@@ -1854,6 +1884,31 @@ def rnRtOk (γ : RNNames GF) (t : w64) (n : Nat) : IProp GF :=
 instance rnRtOk_persistent (γ : RNNames GF) (t : w64) (n : Nat) :
     Persistent (rnRtOk (GF := GF) γ t n) := by
   unfold rnRtOk; infer_instance
+
+/-- Before evaluating GetTerm the worker can retain a conditional index
+bound. Its first Go step discharges the storage tag's later modality. -/
+theorem srv_merge_index (γ : RNNames GF) (rd : ReadNames) (pin : GName)
+    (q : QMsg) (sv : SnapshotM) (term : w64) (bound : Nat)
+    (ht : q.st.msg.Type' = MsgSnap) (hs : q.st.snap = some sv)
+    (hb : γ.snap0 ≤ bound) :
+    letI := srvStor (GF := GF) γ.node
+    rnMessageSource γ q ⊢ rnRtOk γ term bound -∗ sentMsg γ.node.cl srvClusterN γ.id q.st -∗
+      dghostVar pin DFrac.discard γ.nl -∗ nodeTagPin γ.node.cl γ.nl
+        (fun s => iprop(snapshotValid γ.node.cl s ∗ srvStoredOrigin γ.node.cl rd.cursor pin γ.snap0 s)) -∗
+      ▷ (⌜q.st.msg.Term' = term⌝ -∗ monoNatAuthOwn rd.cursor 1 bound -∗ monoNatAuthOwn rd.cursor 1 bound ∗
+        ⌜uint.nat sv.Metadata'.Index' ≤ bound⌝) := by
+  letI := srvStor (GF := GF) γ.node
+  iintro #Hsrc #Hrt #Hsent #Hloc #Hpin
+  by_cases he : q.st.msg.Term' = term
+  · subst term
+    iunfold rnRtOk at Hrt
+    icases Hrt with (%hzero | ⟨%c, -, -, #Hbatch⟩)
+    · ihave %shape := sentMsg_shape γ.node.cl srvClusterN γ.id q.st $$ Hsent
+      exact False.elim (shape.1.2.2.2.1 (by rw [ht]; exact msgSnap_not_termless) hzero)
+    · ihave Hle := srv_snapshot_index_le γ rd pin q sv bound ht hs hb
+        $$ Hsrc Hbatch Hsent Hloc Hpin
+      inext; iintro -; iexact Hle
+  · inext; iintro %he'; exact False.elim (he he')
 
 /-- (2026-10-31) The term the `Ready` loop records (`0` or the driver's hard state's) is good for a
 batch of the log the driver was delivered, `pre ++ L` (`nodeDriver_hardStateCommitted`). -/

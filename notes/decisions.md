@@ -28063,6 +28063,14 @@ restarts.
 
 ## The merged snapshot's index guard (2026-10-31, S1 · the user's decision (B))
 
+**2026-11-21.** Remove the index comparison in the etcd pin. Both
+`applyAll` proof paths use the bound derived from the outgoing snapshot
+and the current Ready in the matching term. Each worker carries its
+physical apply cursor across jobs so the bound holds during replay as well.
+The separate replay-window
+failure remains in this revision and is tracked in
+[the replay issue](../nonissues/etcd-backward-snapshot-install-panics-watcher.md).
+
 **2026-11-20, R2.** Raft already records the snapshots it has restored in
 `LogState.ksn`. The unstable snapshot path returns membership in that list.
 Carry membership through the outbox and the Ready handout so a later proof
@@ -41463,3 +41471,14 @@ its origin at bootstrap, its creator’s applied-index lower bound, or its
 local installation receipt. The saved node location identifies the
 incarnation that installed the snapshot. The server rule leaves the apply
 thread’s index authority available for the remainder of the job.
+
+### Attach the etcd snapshot origin at the two writers (2026-11-21)
+
+The server allocates a location name before attaching MemoryStorage to Raft.
+After startup it records the node returned by StartNode or RestartNode.
+CreateSnapshot retains the apply thread’s index lower bound. ApplySnapshot
+retains the receipt for the index installed by that node. For the initial
+image, the WAL base is the lower bound with which application starts.
+These facts are carried by the same storage invariant used for reads and
+compaction. The job reads its own node’s outgoing channel and compares the
+message with the Ready actually delivered to that job.
