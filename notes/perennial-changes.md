@@ -32,10 +32,13 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   every `var _` of the package (goose's `"_"` selects them all): 11 entries stay in `opaqueInitsOk`. Today such a
   reference is avoided by translating the alias itself (`protoimpl.toml`), which for `json.Marshaler` needs
   `encoding/json/v2` translated (reflect, an `init`).
-- **Proposed (general).** goose declares an axiomatized alias's descriptor `opaque X.ty` (branch
-  `goose-axiom-alias-ty` of Perennial, a PR against `lean`: a translator change, for review). With it and a pin
-  bump: translate otel trace's `"_"`, `nilTraceID`, `nilSpanID` with `time` and `encoding/json` imported (checked
-  on a scratch copy: the translation then compiles) and `gen-init` proves them.
+- **Tried (not proposed).** goose declaring an axiomatized alias's descriptor `opaque X.ty` (patch
+  `/shared/tmp/otel4/alias.patch`, goose's tests pass) makes the `var _` assertions compile, and the rest of the tree
+  builds (with encoding/json's `IsPkgInit` instance moved from `apply/Base.lean` to `mvcc/Base.lean`), but the
+  initializer still does not step: `Convert TraceID.ty encoding.json.Marshaler.ty` needs `Marshaler.ty` known to be
+  an interface type, which an opaque descriptor is not; `attributeOption{}` also needs a `wp_slice_literal` step.
+  So retiring these entries needs `json.Marshaler`'s target translated (the alias in `Code/encoding/json.toml` and
+  `encoding/json/v2`'s `Marshaler`, names-only), on top of the goose fix: not done (the PR was not opened).
 - **Done here.** The other four initializers (`tracerProviderInstance`, `autoInstEnabled`, `start`, `ended`)
   translated: `opaqueInitsOk` from 15 entries to 12.
 
