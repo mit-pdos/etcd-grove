@@ -2547,6 +2547,15 @@ theorem outMsgOk_pend (γ : RaftNames) (id : w64) (s : PState) (πc : List Prom)
   isplitl; · iexact H
   ipureintro; exact ⟨Hp, Hns⟩
 
+/-- Sending a snapshot requires the leader certificate of its source and term. -/
+theorem isMessage_snapshotLeader (γ : RaftNames) (m : Msg) (ht : m.ty = .snap) :
+    isMessage (GF := GF) γ m ⊢ isLeader γ m.src m.term := by
+  unfold isMessage
+  rw [ht]
+  dsimp only
+  iintro ⟨#Hleader, -⟩
+  iexact Hleader
+
 /-- (restart S7.3) **A snapshot's destination fact, out of a message's facts**: the `.snap`
 clause's `snapDstOk`. -/
 theorem isMessage_snapDst (γ : RaftNames) (m : Msg) (Hty : m.ty = .snap) :

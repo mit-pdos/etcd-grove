@@ -106,7 +106,7 @@ def isRaftMsg (γ : RaftNames) (id : w64) (st : MsgSt) : IProp GF :=
   iprop(⌜SentMsgShape st⌝ ∗
       (∃ a, ⌜msgAbs st a⌝ ∗ [∗list] x ∈ a.toList, isMessageC γ x) ∗
         msgDat γ st ∗
-          ⌜AppFrom id st⌝ ∗
+          ⌜replicationFrom id st⌝ ∗
             □ (⌜st.msg.Type' = MsgTransferLeader ∧ st.msg.Term' ≠ W64 0⌝ -∗ isLeader γ st.msg.To' st.msg.Term') ∗
               ⌜SnapNotSelf id st⌝ ∗ ⌜γ.reNoSnap = true → st.msg.Type' ≠ MsgSnap⌝)
 
@@ -249,6 +249,12 @@ def advReceipt (st : Storage) (n : Nat) (es : List EntryM) : Option SnapLoan →
     iprop(∃ a,
         appendReceipt st es a ∗ ⌜a ≠ [] → ∀ (e0 : EntryM), es.head? = some e0 → uint.nat e0.Index' - 1 + a.length ≤ n⌝)
   | some l => snapReceipt st l es
+
+theorem isRaftMsg_snapshotLeader [package_sem : Assumptions] (γ : RaftNames) (id : w64) (st : MsgSt)
+    (ht : st.msg.Type' = MsgSnap) : isRaftMsg γ id st ⊢ isLeader γ st.msg.From' st.msg.Term'
+
+def replicationFrom (id : w64) (st : MsgSt) : Prop :=
+  st.msg.Type' = MsgApp ∨ st.msg.Type' = MsgSnap → st.msg.From' = id
 
 theorem NoConfIn_prefix {D F : List EntryM} {lo hi : Nat} (hp : D <+: F) (hhi : hi ≤ D.length) (h :
     NoConfIn D lo hi) : NoConfIn F lo hi

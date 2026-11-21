@@ -808,7 +808,7 @@ theorem outboxRelP_isRaftMsg (γ : RaftNames) (id : w64) (s : NState) (o : List 
     (Hns : γ.reNoSnap = true → ∀ x ∈ o, x.ty ≠ .snap)
     -- (raft-final, 2026-10-29: the design's §2.6) `XfOk`'s clauses 1-3 of the message: its shape,
     -- a `MsgApp` the node's own, a stamped `MsgTransferLeader` recorded in `NGhost.xw`
-    (Hsh : SentMsgShape q.st) (Hfr : AppFrom id q.st)
+    (Hsh : SentMsgShape q.st) (Hfr : replicationFrom id q.st)
     (Hxw : q.st.msg.Type' = MsgTransferLeader → q.st.msg.Term' ≠ W64 0 →
       (s.gh.xw !! (q.st.msg.To', q.st.msg.Term')).isSome)
     -- (Q8 stage 1 slice 10) in a traced cluster, the outbox's numbers (`NsLink`'s `OutTr`)
@@ -922,7 +922,7 @@ theorem outboxRelP_isRaftMsg_gen (γ : RaftNames) (id : w64) (s : NState) (o : L
     (Hns : γ.reNoSnap = true → ∀ x ∈ o, x.ty ≠ .snap)
     -- (raft-final, 2026-10-29: the design's §2.6) `XfOk`'s clauses 1-3 of the message: its shape,
     -- a `MsgApp` the node's own, a stamped `MsgTransferLeader` recorded in `NGhost.xw`
-    (Hsh : SentMsgShape q.st) (Hfr : AppFrom id q.st)
+    (Hsh : SentMsgShape q.st) (Hfr : replicationFrom id q.st)
     (Hxw : q.st.msg.Type' = MsgTransferLeader → q.st.msg.Term' ≠ W64 0 →
       (s.gh.xw !! (q.st.msg.To', q.st.msg.Term')).isSome)
     -- (Q8 stage 1 slice 10) in a traced cluster, the outbox's numbers (`NsLink`'s `OutTr`)
