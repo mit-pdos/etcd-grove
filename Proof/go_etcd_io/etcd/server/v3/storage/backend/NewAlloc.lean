@@ -255,6 +255,31 @@ theorem rep_one_slots (A : IProp GF) :
   icases BigSepL.bigSepL_cons.1 $$ H with ⟨H1, H⟩
   iframe
 
+/-- **`b.mu`'s read slots past the batch transaction's** (backend-snapshot B3), one for each
+reader's token, as one opaque resource: irreducible, so that framing in `newBackend` (whose context
+holds other lists of `actualMaxReaders` slots) never unifies it with them (a replicated list of about
+`2 ^ 30` elements: 61 GB, 2026-11-21). -/
+@[irreducible] def bmStock (b db : Loc) : IProp GF :=
+  iprop([∗list] _x ∈ List.replicate rdSlotsN (),
+    sync.ownRWMutex (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db))
+
+theorem bmStock_unfold (b db : Loc) :
+    bmStock (GF := GF) b db ⊣⊢ [∗list] _x ∈ List.replicate rdSlotsN (),
+      sync.ownRWMutex (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) := by
+  unfold bmStock; exact .rfl
+
+/-- `b.mu`'s slots from its initialization: the batch transaction's and the stock. -/
+theorem bm_slots_split (b db : Loc) :
+    ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+      sync.ownRWMutex (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db)) ⊢
+    sync.ownRWMutex (GF := GF) (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗
+      bmStock b db := by
+  refine (rep_one_slots _).trans ?_
+  iintro ⟨H1, H⟩
+  iframe H1
+  iapply (bmStock_unfold b db).2
+  iexact H
+
 theorem cacheInv_alloc (γ : BNames) :
     ghostMapAuth (GF := GF) γ.cached 1 (∅ : GMap (w64 × Nat) Bool) ∗
       ghostVar γ.cur (1 : Qp).half (((W64 0, 0) : w64 × Nat), false) ∗
@@ -538,8 +563,7 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
     sync.isRWMutexGuard (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗
     sync.ownRWMutex (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗
     -- (backend-snapshot B3) `b.mu`'s other read slots, one for each reader's token
-    ([∗list] _x ∈ List.replicate rdSlotsN (),
-      sync.ownRWMutex (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db)) ∗ isDB db γd ∗
+    bmStock b db ∗ isDB db γd ∗
     dbFile db γd path ∗
     muOf t ↦ (false : Bool) ∗ txFOf t ↦ wtx ∗ pendOf t ↦ (W64 0) ∗ delOf t ↦ (W64 0) ∗
     ownWB (wbOf t) ⟨∅, ∅⟩ ∗ bF go!"txPostLockInsideApplyHook" b ↦ func.nil ∗
@@ -820,6 +844,7 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
   have hle : rdSlotsN ≤ Int.toNat sync.rwmutex.actualMaxReaders := by have := rdSlotsN_add_one; omega
   ihave Hrmus := rep_le _ _ hle _ $$ Hrmus
   ihave Htms := rep_le _ _ hle _ $$ Htms
+  ihave Hbmus := (bmStock_unfold b db).1 $$ Hbmus
   ihave Hrmus := rep_zip2 rdSlotsN _ _ $$ [$Hrmus $Hbmus]
   ihave Hrds := rep_zip rdSlotsN
     iprop(sync.ownRWMutex (rmuOf (baseOf rt)) (rtRes γ P rt) ∗

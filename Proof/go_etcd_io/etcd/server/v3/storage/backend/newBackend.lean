@@ -270,7 +270,7 @@ theorem backend.newBackend.wp_proof
     (bF go!"mu" «$r0_ptr») (HPfrac := ptOwn_fractional _ _) $$ [db] mu with Hmus
   · inext; iexact db
   icases rep_guard _ actualMaxReaders_pos' _ _ $$ Hmus with ⟨Hmus, #Hmug⟩
-  icases rep_one_slots _ $$ Hmus with ⟨Hmu1, Hbmus⟩
+  icases bm_slots_split «$r0_ptr» db $$ Hmus with ⟨Hmu1, Hbmus⟩
   -- `b.safeRangeDeleteMu`: a reader's slot of it (`srSlot`, Q5-2)
   imod sync.init_RWMutex (fun _ => iprop(True)) (E := ⊤)
     (bF go!"safeRangeDeleteMu" «$r0_ptr») $$ [] safeRangeDeleteMu with Hsrs

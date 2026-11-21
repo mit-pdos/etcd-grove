@@ -1941,8 +1941,9 @@ end preds
 
 /-- **The number of reader's tokens the constructor makes** (backend-snapshot B3, 2026-11-20): one
 fewer than `readTx.mu`'s and `b.mu`'s `actualMaxReaders` slots, since each token carries a slot of
-both (`rdTok`) and the batch transaction keeps one of `b.mu`'s. -/
-def rdSlotsN : Nat := Int.toNat sync.rwmutex.actualMaxReaders - 1
+both (`rdTok`) and the batch transaction keeps one of `b.mu`'s. (Irreducible, as `rdStockN`: a unifier
+unfolding it would materialize `List.replicate` of about `2 ^ 30` elements; `newBackend` took 61 GB.) -/
+@[irreducible] def rdSlotsN : Nat := Int.toNat sync.rwmutex.actualMaxReaders - 1
 
 theorem rdSlotsN_pos : 0 < rdSlotsN := by
   unfold rdSlotsN; rw [sync.rwmutex.actualMaxReaders_unseal]; decide
