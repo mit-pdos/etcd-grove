@@ -78,7 +78,6 @@ axiom Perennial.k8s_io.apimachinery.pkg.api.meta.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.api.validate.content.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.apis.meta.v1.initFuncsOk
 axiom Perennial.k8s_io.apimachinery.pkg.apis.meta.v1.opaqueInitsOk
-axiom Perennial.k8s_io.apimachinery.pkg.fields.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.runtime.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.util.version.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.watch.opaqueInitsOk
