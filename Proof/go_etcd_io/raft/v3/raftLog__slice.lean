@@ -233,7 +233,7 @@ theorem raftLog.slice.wp_proof
     · unfold entsCutRO
       iexists cs0.take nlim
       iframe Hs2
-      ipureintro; exact ⟨by rw [List.map_take, Hcs0], Hn1c.2.2⟩
+      ipureintro; exact ⟨by rw [List.map_take, Hcs0], Hn1c.2.2.1⟩
     reopen_unstable
     ihave Hcap := ownSliceCap_empty (V := Loc)
       (slice.fullSlice s1 Loc (W64 0) s1.len s1.len) rfl
@@ -495,7 +495,7 @@ theorem raftLog.slice.wp_proof
           ipureintro
           refine ⟨by rw [List.map_append, Hcse.1, Hcs1], fun hs hm => ?_⟩
           exact extend_cut maxSize sz1 cse (cs0.take nlim) (HseOk hs) (Hs1Ok hs) hm (Hcse.2 hs hm)
-            (Hsz1 hs) (by assumption) (Hn1c.2.2 hs) (.inr ⟨sz2, Hsz2 hs, by assumption⟩)
+            (Hsz1 hs) (by assumption) (Hn1c.2.2.1 hs) (.inr ⟨sz2, Hsz2 hs, by assumption⟩)
         imodintro
         iapply HΦ $$ %sx %_ %interface.nil
         isplitl [Hl HStorage Huents Huents_cap]
@@ -515,7 +515,7 @@ theorem raftLog.slice.wp_proof
           ipureintro
           refine ⟨by rw [List.map_append, Hcse.1, Hcs1], fun hs hm => ?_⟩
           refine extend_cut maxSize sz1 cse (cs0.take nlim) (HseOk hs) (Hs1Ok hs) hm (Hcse.2 hs hm)
-            (Hsz1 hs) (by assumption) (Hn1c.2.2 hs) (.inl ?_)
+            (Hsz1 hs) (by assumption) (Hn1c.2.2.1 hs) (.inl ?_)
           have h2 := congrArg List.length Hcs1
           simp only [List.length_map] at h2
           rw [h2, Hs1len.1]

@@ -38,7 +38,8 @@ abbrev limitSize.spec : Prop :=
     (App (App (Val #(functions limitSize [])) (Val #s)) (Val #maxSize))
   {{ (s' : GoSlice) (n : Nat), RET #s';
       ⌜n ≤ cs.length ∧ (cs ≠ [] → 1 ≤ n) ∧
-        (sz = true → uint.nat maxSize ≤ entsCutMax → entsCut maxSize (cs.take n))⌝ ∗
+        (sz = true → uint.nat maxSize ≤ entsCutMax → entsCut maxSize (cs.take n)) ∧
+        (maxSize = W64 (-1) → n = cs.length)⌝ ∗
       entsPtsC sz s' dq (cs.take n) ∗
       (entsPtsC sz s' dq (cs.take n) -∗ entsPtsC sz s dq cs) }}
 

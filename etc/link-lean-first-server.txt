@@ -163,9 +163,8 @@ mvcc_metricsTxnWrite__DeleteRange: @
 mvcc_watchableStoreTxnWrite__End: @
 lease_lessor__Revoke: lease_Lease__Keys sort_StringSlice__Sort schema_UnsafeDeleteLease backend__BatchTx =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_mvccBackend_isBackend_law_holds =mvcc.api.mvccApi_mvccTxn_leaseDelete_law_holds
 # The lessor's listing for the lease read entry points (the lease-read plan, 2026-10-31):
-# `Leases` (read-locked `unsafeLeases`, then sorted by `Remaining()`) and its sorter. The trust
-# boundary: `sort.Sort` for a `Less` that answers anything (`Proof/sort/SortAnyLess.lean`, until
-# Perennial proves it).
+# `Leases` (read-locked `unsafeLeases`, then sorted by `Remaining()`) and its sorter, with `sort.Sort`
+# for a `Less` that answers anything (`Proof/sort/SortAnyLessLinked.lean`; an axiom until 2026-11-21).
 lease_Lease__Remaining: time_Time__IsZero
 lease_lessor__unsafeLeases:
 lease_leasesByExpiry__Len:
@@ -271,7 +270,7 @@ raftNode__apply:
 raftNode__onStop:
 raftNode__stop:
 raftNode__processMessages: raftpb_Message__GetTo Message__GetType zap_String zap_Duration zap_Logger__Warn
-raftNode__start: raftNode__tick raftNode__processMessages updateCommittedIndex raftNode__onStop IsEmptySnap IsEmptyHardState HardState__GetCommit HardState__GetTerm Entry__GetType proto_CloneSnapshot zap_Error zap_Logger__Fatal zap_Duration zap_Logger__Warn MemoryStorage__ApplySnapshot =srvApi_wp_MemAppend SnapshotMetadata__GetIndex zap_Uint64 zap_Logger__Info
+raftNode__start: raftNode__tick raftNode__processMessages updateCommittedIndex raftNode__onStop IsEmptySnap IsEmptyHardState HardState__GetCommit HardState__GetTerm Entry__GetType proto_CloneSnapshot zap_Error zap_Logger__Fatal zap_Duration zap_Logger__Warn MemoryStorage__ApplySnapshot =srvApi_wp_MemAppend SnapshotMetadata__GetIndex zap_Uint64 zap_Logger__Info Entry__GetIndex Entry__GetTerm replayTerms__after
 # raft.Node's ReadIndex, promoted (the request path's unit 4b): the read loop's raftInterface.
 raftNode__ReadIndex:
 #
@@ -518,7 +517,7 @@ EtcdServer__Backend:
 EtcdServer__shouldSnapshotToDisk:
 EtcdServer__shouldSnapshotToMemory:
 EtcdServer__snapshotIfNeededAndCompactRaftLog: EtcdServer__shouldSnapshotToDisk EtcdServer__shouldSnapshotToMemory EtcdServer__snapshot EtcdServer__compactRaftLog
-EtcdServer__applyAll: EtcdServer__applySnapshot EtcdServer__applyEntries EtcdServer__Backend EtcdServer__Logger backend_VerifyBackendConsistency EtcdServer__snapshotIfNeededAndCompactRaftLog raftpb_Message__GetTerm EtcdServer__createMergedSnapshotMessage EtcdServer__sendMergedSnap consistentIndex__ConsistentIndex raftpb_Message__GetTo EtcdServer__ReportSnapshot =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_mvccImage_snapshot_law_holds backend__Snapshot storage_BackendHooks__OnPreCommitUnsafe consistentIndex__UnsafeSave batchTxBuffered__UnsafePut batchTxBuffered__UnsafeRange schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket
+EtcdServer__applyAll: EtcdServer__applySnapshot EtcdServer__applyEntries EtcdServer__Backend EtcdServer__Logger backend_VerifyBackendConsistency EtcdServer__snapshotIfNeededAndCompactRaftLog raftpb_Message__GetTerm EtcdServer__createMergedSnapshotMessage EtcdServer__sendMergedSnap raftpb_Message__GetTo EtcdServer__ReportSnapshot =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_mvccImage_snapshot_law_holds backend__Snapshot storage_BackendHooks__OnPreCommitUnsafe consistentIndex__UnsafeSave batchTxBuffered__UnsafePut batchTxBuffered__UnsafeRange schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket
 # The server's apply loop `run` (server.go; the request path's unit 4c, see InvRun.lean): the
 # committed index's and the leader's setters (with bodies), the raft storage snapshot's
 # metadata getters (raft v3.7's raftpb), the FIFO scheduler (in mvcc's list: its results reused from mvcc's Link), and the
@@ -861,9 +860,13 @@ io_MultiReader:
 snapshot__WriteTo: @
 snapshot__Size: @
 snapshot__Close: @
+snapshot__UnsafeRange: @
 proto_CloneConfState: @
 newSnapshotReaderCloser: io_Pipe snapshot__WriteTo zap_Int64 go_humanize_Bytes zap_String zap_Logger__Info zap_Error zap_Logger__Warn io_PipeWriter__CloseWithError snapshot__Close
-EtcdServer__createMergedSnapshotMessage: EtcdServer__Logger EtcdServer__KV newSnapshotReaderCloser proto_CloneConfState snapshot__Size snap_NewMessage
+replayTerms__after:
+replayTerms__termAt:
+replayTerms__covers:
+EtcdServer__createMergedSnapshotMessage: EtcdServer__Logger EtcdServer__KV newSnapshotReaderCloser proto_CloneConfState snapshot__Size snap_NewMessage schema_UnsafeReadConsistentIndex snapshot__UnsafeRange schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket replayTerms__covers replayTerms__termAt
 EtcdServer__sendMergedSnap: EtcdServer__Logger EtcdServer__MemberID types_ID__String zap_String snap_Message__GetTo zap_Int64 go_humanize_Bytes zap_Logger__Info EtcdServer__GoAttach snap_Message__CloseNotify zap_Duration zap_Logger__Warn
 # (rafthttp stage 6f, 2026-10-24) rafthttp linked: the transport's methods over their callees
 # (`TransportSpecs.lean`), rafthttp's functions with their bodies, and the callees they reach;

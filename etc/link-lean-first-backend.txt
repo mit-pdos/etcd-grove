@@ -159,3 +159,5 @@ zap_Logger__Warn: zap_Logger__check zapcore_CheckedEntry__Write
 zap_Logger__check:
 zapcore_CheckedEntry__Write:
 go_humanize_Bytes:
+snapshot__UnsafeRange: bbolt_Tx__Bucket bbolt_Bucket__Cursor unsafeRange
+snapshot__UnsafeForEach: unsafeForEach

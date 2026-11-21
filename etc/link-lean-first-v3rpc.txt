@@ -190,9 +190,11 @@ newStreamInterceptor: monitorLeader api_IsCapabilityEnabled EtcdServer__MemberID
 # side is the trust boundary (axioms, `Proof/google_golang_org/grpc/InvGrpcServer.lean`): its options,
 # `NewServer`, `Server.RegisterService` (under the generated `Register*Server`, proved), grpc's health
 # service and grpc-prometheus's metrics; otelgrpc's stats handler, prometheus's `Register`. etcd's
-# `NewMaintenanceServer` is assumed (an axiom: its literal stores a `version.Server`, axiomatized
-# by the translation). The server's getters `Cluster`, `FeatureEnabled` are linked in its Link (`@`).
+# `NewMaintenanceServer` is proved (2026-11-21; until then an axiom, its literal storing a
+# `version.Server` the translation axiomatized) over the store's `HashStorage` (mvcc's API, `=`).
+# The server's getters `Cluster`, `FeatureEnabled`, `KV` are linked in its Link (`@`).
 EtcdServer__Cluster: @
+EtcdServer__KV: @
 EtcdServer__FeatureEnabled: @
 grpc_CustomCodec:
 grpc_StatsHandler:
@@ -222,7 +224,7 @@ RegisterLeaseServer: grpc_Server__RegisterService
 RegisterClusterServer: grpc_Server__RegisterService
 RegisterAuthServer: grpc_Server__RegisterService
 RegisterMaintenanceServer: grpc_Server__RegisterService
-NewMaintenanceServer:
+NewMaintenanceServer: EtcdServer__KV =mvcc.api.mvccApi_watchableStore_HashStorage_wp_api newHeader zap_NewNop
 NewLeaseServer: newHeader zap_NewNop
 NewQuotaLeaseServer: NewLeaseServer
 # The client lease's stage (c), its workload-free half (2026-10-18): lease.go's unary handlers over

@@ -134,7 +134,7 @@ public import Proof.go_uber_org.zap.zapcore.CheckedEntry__Write
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Perennial.Proof.sort.Link
 public import Perennial.Proof.time.Link
-public import Proof.sort.SortAnyLess
+public import Proof.sort.SortAnyLessLinked
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiCompactChanResults
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Link
 

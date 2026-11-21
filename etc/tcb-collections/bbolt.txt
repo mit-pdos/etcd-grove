@@ -11,5 +11,4 @@ axiom envVerifyOffTok
 axiom os.Getenv.wp_proof
 axiom reflect.DeepEqual.wp_proof_pgidSet
 axiom sort.SliceIsSorted.wp_proof
-axiom sort.Sort.wp_anyLess
 axiom strings.ToLower.wp_proof

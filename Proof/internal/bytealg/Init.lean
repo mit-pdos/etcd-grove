@@ -8,7 +8,7 @@ initialized variable).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.PkgInit
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section

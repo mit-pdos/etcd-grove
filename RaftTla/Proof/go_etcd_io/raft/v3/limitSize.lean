@@ -53,7 +53,7 @@ theorem limitSize.wp_proof
     iapply HΦ $$ %s %0
     simp only [List.take_zero]
     isplitr
-    · ipureintro; exact ⟨by simp, fun h => absurd rfl h, fun _ _ => Or.inr (by simp)⟩
+    · ipureintro; exact ⟨by simp, fun h => absurd rfl h, (fun _ _ => Or.inr (by simp)), fun _ => rfl⟩
     isplitl
     · iunfold entsPtsC; iexists ls; iframe Hs Hb; ipureintro; exact Hz
     · iintro H; iexact H
@@ -124,7 +124,8 @@ theorem limitSize.wp_proof
       iapply HΦ $$ %(slice.slice s Loc (W64 0) lim) %(sint.nat lim)
       isplitr
       · ipureintro
-        refine ⟨by word, fun _ => by word, fun h1 h2 => ?_⟩
+        refine ⟨by word, fun _ => by word, ?_, fun heq => by subst maxSize; exfalso; word⟩
+        intro h1 h2
         obtain ⟨Ha, Hcut⟩ := Hlim.2.2 h1 h2
         unfold entsCut
         rcases Hcut with h | h
@@ -167,7 +168,8 @@ theorem limitSize.wp_proof
     rw [List.take_length]
     isplitr
     · ipureintro
-      refine ⟨Nat.le_refl _, fun _ => Hne, fun h1 h2 => ?_⟩
+      refine ⟨Nat.le_refl _, fun _ => Hne, ?_, fun _ => rfl⟩
+      intro h1 h2
       obtain ⟨Ha, Hcut⟩ := Hlim.2.2 h1 h2
       rw [Hle, List.take_length] at Ha
       unfold entsCut
