@@ -375,7 +375,7 @@ theorem walSrvP_unmarshalEnt (wp_Unmarshal : proto.UnmarshalPb.spec (GF := GF) (
   exact ⟨rfl, hu, hp, hs⟩
 
 /-- **The server's instance's laws** (`MarshalHsLaw`, `CloneHsLaw` and `WalHsOwn` are not among them, as for
-the raftpb instance: they need `raftpb.HardState`'s trusted model, `RaftModel/Laws.lean`). -/
+the raftpb instance, `RaftModel/Laws.lean`; `MarshalHsLaw` is `walSrvP_marshalHs`, `LawsHsMarshal.lean`). -/
 theorem walSrvPb_laws : WalPbLaws (walSrvP (GF := GF)) walSrvMr walSrvU where
   nil := walRaftP_nil
   zero := walRaftP_zero

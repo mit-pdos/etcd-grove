@@ -636,6 +636,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeApiLink
 public import Proof.sort.SortAnyLess
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeStartLinked
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RnNewStorageLinked
 public import Proof.context.Link
 public import Proof.fmt.Link
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link

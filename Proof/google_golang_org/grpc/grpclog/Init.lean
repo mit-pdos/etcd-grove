@@ -10,6 +10,7 @@ trust-boundary axiom `initFuncsOk` says returns.
 module
 
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Base
+public import Proof.google_golang_org.grpc.grpclog.internal.Init
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -69,6 +70,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   wp_apply wp_GlobalAlloc (V := Loc) cache _ as Hcache
+  wp_apply (_root_.Perennial.google_golang_org.grpc.grpclog.internal.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of cache))
   try wp_auto
   wp_apply (wp_map_make1 (K := GoString) (V := Loc) go.string (go.GoType.PointerType google_golang_org.grpc.grpclog.componentData.ty)) as %mHc Hc
