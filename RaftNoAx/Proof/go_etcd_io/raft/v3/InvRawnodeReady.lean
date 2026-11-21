@@ -1694,7 +1694,7 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     Hstor Hpvoff rfl rfl
     (Int.le_refl _) ⟨Hrnfl.1, fun h => absurd Hrnfl.2 (Int.not_le.2 h)⟩ Hloan.1
     Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hlc Hsloc Hhist [Hledger] [Hdur] [Hrntr]
-  · unfold restoreLedger restoreClock queuedRestoreTerms; iexact Hledger
+  · unfold restoreLedger restoreClock queuedRestoreTerms localInstallations; iexact Hledger
   · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) $$ Hdur
   · iapply rnTrace_congr γ _ id c (s := s) (s' := s') rfl rfl rfl rfl rfl $$ Hrntr
 
@@ -1760,10 +1760,16 @@ theorem ownRaftLog_applying_lt (l : Loc) (ls : LogState) :
 (`Hkcert`), read out without consuming the log: what a snapshot `Ready` reads its loan's decisions
 from (`ksnCerts_of_link`). -/
 theorem ownRaftLog_restoreCerts (l : Loc) (ls : LogState) :
-    ⊢ ownRaftLog (GF := GF) l ls -∗ logRestoreCerts ls.sn ls.ksn ls.prev.index' ∗ ownRaftLog l ls := by
+    ⊢ ownRaftLog (GF := GF) l ls -∗ logRestoreCerts ls.sn ls.ksn ls.prev.index' ∗
+      (∀ sid : entryID, ⌜ls.snap = some sid⌝ -∗ ⌜∃ k ∈ ls.ksn, k.sid = sid⌝) ∗ ownRaftLog l ls := by
   iintro H0
   iNamed H0
   iframe Hkcert
+  isplitr
+  · iintro %sid %hs
+    iunfold pendKsn at Hpksn
+    icases Hpksn $$ %sid %hs with ⟨%sv, -, %hid, %hmem, -⟩
+    ipureintro; exact ⟨_, hmem, hid⟩
   iapply ownRaftLog_intro (sn := ls.sn) l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore
     Hoffset Happlied Hpapplied Hcommitted Hapg Hip Hipb Hpersist Happlying
     Hpaused Hasz Hamx Hstor Hpend Hfl Hsip Hsipn Hlent Hq Hprel Hsat Hfr rfl rfl rfl rfl rfl $$ Hl
@@ -1772,7 +1778,7 @@ theorem ownRaftLog_restoreCerts (l : Loc) (ls : LogState) :
 theorem ownRaftLog_kcert (l : Loc) (ls : LogState) :
     ⊢ ownRaftLog (GF := GF) l ls -∗ ksnCerts ls.sn ls.ksn ∗ ownRaftLog l ls := by
   iintro Hlog
-  icases ownRaftLog_restoreCerts l ls $$ Hlog with ⟨#Hcerts, Hlog⟩
+  icases ownRaftLog_restoreCerts l ls $$ Hlog with ⟨#Hcerts, -, Hlog⟩
   iunfold logRestoreCerts at Hcerts
   icases Hcerts with ⟨#Hks, -⟩
   iframe Hks Hlog
@@ -2252,7 +2258,7 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
       -- (restart S7.3, 2026-11-14) the messages' `MsgSnap` facts, at once (not behind `W`'s
       -- fragments: they read only the committed log and the sender's configuration at its step)
       ([∗list] q ∈ ms, snapToOk γ id q.st) ∗
-      readyMsgOrigins γ id rs.sn ms ∗ handoutOrigins γ id rs.sn (phsNext rs.phs hrd).Term' ms (dlvAfter rs.delivered ce L).length ∗
+      readyMsgOrigins γ id rs.sn ms ∗ handoutOrigins γ id rs.sn (phsNext rs.phs hrd).Term' ms (dlvAfter rs.delivered ce L).length (L.map (fun l => l.snap.Metadata'.Index')) ∗
       -- (2026-11-01, durability stage II (m)) what the `Ready` is past, and within (`ReadyFacts`)
       ⌜ReadyFacts rs.dur rs.phs (phsNext rs.phs hrd) rs.delivered ce es L⌝ := by
   iintro #Hh Hlive Hfree H
@@ -2271,7 +2277,7 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
   icases Hphys with ⟨%rsl, %sl1, %sl2, %ms1, %ms2, Hphys⟩
   iNamed Hphys
   simp only [Bool.false_eq_true, ↓reduceIte]
-  imod restoreLedger_ready γ id rs.sn s $$ Hledger with ⟨Hledger, #Hmark⟩
+  imod restoreLedger_ready γ id rs.sn s $$ Hledger with ⟨Hledger, #Hmark, #Hview, #Hseen⟩
   icases (entails_wand (persistent_entails_left (restoreLedger_send_all γ id rs.sn s)))
     $$ Hledger with ⟨Hledger, #Htimed⟩
   icases (entails_wand (persistent_entails_left (restoreLedger_outbox γ id rs.sn s)))
@@ -2320,7 +2326,7 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
     intro h
     have := Hpa0 (Hrdp.1 h).2
     omega
-  icases ownRaftLog_restoreCerts s.log s.logst $$ Hlog with ⟨#HcsLog, Hlog⟩
+  icases ownRaftLog_restoreCerts s.log s.logst $$ Hlog with ⟨#HcsLog, #HpendIndex, Hlog⟩
   iunfold logRestoreCerts at HcsLog
   icases HcsLog with ⟨-, %hBound⟩
   have hMax : maxRestored s.logst.ksn ≤ (dlvAfter rs.delivered ce L).length := by
@@ -2332,7 +2338,7 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
       rw [Hpv l rfl]
       change uint.nat l.snap.Metadata'.Index' ≤ l.dlv.length
       word
-  ihave #Hobs : handoutOrigins γ id rs.sn rs.term ms (dlvAfter rs.delivered ce L).length $$ []
+  ihave #Hobs : handoutOrigins γ id rs.sn rs.term ms (dlvAfter rs.delivered ce L).length (L.map (fun l => l.snap.Metadata'.Index')) $$ []
   · unfold handoutOrigins
     iexists s.logst.ksn
     isplitr
@@ -2346,9 +2352,28 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
       icases Hqueued $$ %_ %hm %(by rfl) with ⟨-, #Hterms⟩
       ihave #Hterm := Hterms $$ %k %hk
       iExactEq Hterm; rfl
-    rw [Hstor.2, Hgh_unst.1.2.2]
-    iapply qSrcs_sub s.gh.sn (ms1 ++ ms2) ms
-      (fun q hq => Hmslen.subset (List.mem_append_left _ hq)) (· ∈ s.logst.ksn) $$ Hscert
+    isplitr
+    · rw [Hstor.2, Hgh_unst.1.2.2]
+      iapply qSrcs_sub s.gh.sn (ms1 ++ ms2) ms
+        (fun q hq => Hmslen.subset (List.mem_append_left _ hq)) (· ∈ s.logst.ksn) $$ Hscert
+    isplitr
+    · iintro %i %hi
+      cases L with
+      | none => cases hi
+      | some l =>
+        have hix : l.snap.Metadata'.Index' = i := Option.some.inj hi
+        ihave %hp := HpendIndex $$ %(snapId l.snap) %((Hrdp.2 l rfl).2.1)
+        obtain ⟨k, hk, hid⟩ := hp
+        have he : k.sid.index' = i := (congrArg entryID.index' hid).trans hix
+        rw [← he]; iapply Hseen $$ %k %hk
+    · imodintro; iintro %q %hq %sv %hs #Hsi
+      have hm := outboxRelP_snapshot Houtbox (Hmslen.subset (List.mem_append_left _ hq)) hs.1 hs.2
+      iunfold queuedRestoreTerms at Hqueued
+      icases Hqueued $$ %_ %hm %(by rfl) with ⟨%hcommit, -⟩
+      change uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.committed at hcommit
+      ihave %hmem := installSeen_mem rs.sn.installs _ (by exact (show uint.nat sv.Metadata'.Index' ≤ uint.nat s.logst.committed by word)) $$ Hview Hsi
+      obtain ⟨k, hk, hi⟩ := List.mem_map.1 hmem
+      iexists k; ipureintro; exact ⟨hk, by word⟩
   ihave %Hag : ⌜L = none → ∀ k e, (s.logst.sents ++ s.logst.uents)[k]? = some e →
       uint.nat s.logst.prev.index' + k < (rs.delivered ++ ce).length →
       (rs.delivered ++ ce)[uint.nat s.logst.prev.index' + k]? = some e⌝ $$ [Hghost]

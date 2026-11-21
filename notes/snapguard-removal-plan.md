@@ -1,5 +1,21 @@
 # Removing the merged snapshot's index guard (plan, 2026-11-20)
 
+## Snapshot installation receipts for memory storage
+
+A Ready carrying a snapshot yields `nodeInstalledIndex` for this node
+incarnation and the installed index. The driver can put that receipt in
+the snapshot's storage tag. `readySnapSources_installed_le` uses it after
+a snapshot is read back from storage. Each new restore exceeds the node's
+previous commit, so a receipt at an already queued index identifies a
+restore in the queueing node's history. This supplies the original sending
+term even when the queue waits across elections.
+
+On the server side the three tag sources are the boot index, the apply
+thread's applied-index lower bound at creation, and this installation
+receipt. The server's tag must refer to the same node attachment. The
+MemoryStorage tag and the queue and apply-batch resources still need to
+be retained in the server proof.
+
 ## Original send term across Ready batches
 
 The raw node records each queued snapshot's committed index and the term at
