@@ -317,6 +317,12 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   written` left", the type assertions `src.(WriterTo)` (a `*LimitedReader` has none) and
   `dst.(ReaderFrom)` (excluded by `writerPlain`) by the method sets goose emits. The axioms then
   become theorems with the same statements. Not yet proposed.
+- **Status.** DONE (stdlib3, 2026-11-21): Perennial `9097e1e6d` translates the seven (`io.toml`);
+  etcd-grove proves both specs over the translation (`Proof/io/NewSectionReader.lean`,
+  `Proof/io/CopyN.lean`). `io.secReader` is now defined (the struct's points-to, with
+  `NewSectionReader`'s premises), and `io.readerAtOk`'s post says the error is well-typed
+  (`io.ptrTyped`: comparing it with `io.EOF` must step; `os.File.readerAtOk` proves it). The proofs
+  stayed in etcd-grove (the contracts are etcd-grove's); moving them to Perennial is still open.
 
 ### `wp_auto`'s free-variable checks were exponential on struct values: landed, in the pin since `3afd77e35` (2026-11-18, perf2; pin bump 2026-11-19)
 
