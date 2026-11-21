@@ -183,7 +183,7 @@ theorem wp_srv_createSnapshot
          ⌜snap = null ∧ err = eood⌝) }} := by
   iintro %Φ ⟨#Hpkg, Hstor, #Hecs, #Hft, #Hlb0, #Heood⟩ HΦ
   iunfold srvSnapStor at Hstor
-  icases Hstor with ⟨#Hmsi, Hdl, #Hrli, ⟨%A, #HA, %HAp⟩⟩
+  icases Hstor with ⟨#Hmsi, #HappliedAt, Hdl, #Hrli, ⟨%A, #HA, %HAp⟩⟩
   iunfold epCsCfg at Hecs
   iunfold epCsVoters at Hecs
   icases Hecs with ⟨%c, #Hc, %Hcs⟩
@@ -202,14 +202,19 @@ theorem wp_srv_createSnapshot
   ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
   · iapply ownSlice_nil
   -- (2026-11-02, the lean merge) `CreateSnapshot` attached (mode `none`, durability stage I-5)
-  wp_apply hCS ms γs (memStorJ γr.raft.raft.cl nk) none ai e cs DFrac.discard c slice.nil [] eood
+  iunfold srvCreateMem at Hmsi
+  icases Hmsi with ⟨%pin, %boot, #Hminv⟩
+  iunfold memStorInvT at Hminv
+  ihave #Horigin : srvStoredOrigin γr.raft.raft.cl γr.applied pin boot (memSnapMade ai e.Term' c []) $$ []
+  · iunfold srvStoredOrigin
+    iright; ileft
+    iExactEq HappliedAt; rfl
+  wp_apply hCS ms γs (memStorJT γr.raft.raft.cl nk (srvStoredOrigin γr.raft.raft.cl γr.applied pin boot)) none ai e cs DFrac.discard c slice.nil [] eood
     $$ [Hnil Hdl] as %snap %err ⟨-, #Hlb, Hres⟩
   · rw [memStorAt_none]
-    simp only [memStorJ]
+    simp only [memStorJT, memStorJ]
     iframe Hnil Hdl
     iframe #
-    iExactEq Hmsi
-    rfl
   iapply HΦ
   iframe Hlb
   icases Hres with (⟨%Herr, Hsn, -⟩ | ⟨%Herr, -⟩)
