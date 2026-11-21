@@ -429,7 +429,7 @@ theorem io.wp_copyBuffer (w : GoInterfaceOk) (Wr : Bool → List w8 → IProp GF
             iapply ownSlice_trivial_slice_2
             iapply e $$ Hs1 Hs2
           ipureintro
-          exact ⟨by omega, by rw [hWnw, hlen'], hbn', hHd', Or.inl rfl⟩
+          exact ⟨by omega, by rw [hWnw, hlen']; omega, hbn', hHd', Or.inl rfl⟩
     · -- `nr == 0`: nothing written
       rw [show sint.Z (W64 0) = 0 from rfl, hkz] at Hif
       have hk0 : k = W64 0 := by apply BitVec.eq_of_toNat_eq; simp; omega
