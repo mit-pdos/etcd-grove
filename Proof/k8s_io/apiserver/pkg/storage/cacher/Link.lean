@@ -31,6 +31,7 @@ public import Proof.k8s_io.apiserver.pkg.storage.cacher.store.newBtreeStore
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.store.snapshotter__Add
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.store.snapshotter__UpdateResourceVersion
 public import Proof.time.Duration__Seconds
+public import Proof.k8s_io.utils.trace.FromContext
 public import Proof.k8s_io.component_base.tracing.SpanFromContext
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.watchCache__WaitUntilFreshAndGet
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.watchCache__checkSnapshotResourceVersion
@@ -159,9 +160,13 @@ theorem wp_newBtreeStore :
     EtcdGrove.cacher.newBtreeStore.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cacher.newBtreeStore.wp_proof btree.wp_New
 
+theorem trace.wp_FromContext :
+    EtcdGrove.trace.FromContext.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.trace.FromContext.wp_proof
+
 theorem tracing.wp_SpanFromContext :
     EtcdGrove.tracing.SpanFromContext.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.tracing.SpanFromContext.wp_proof
+  EtcdGrove.tracing.SpanFromContext.wp_proof trace.wp_FromContext
 
 theorem watchCache.wp_waitUntilFreshLocked :
     EtcdGrove.cacher.watchCache.waitUntilFreshLocked.spec (GF := GF) (hG := hG) :=
