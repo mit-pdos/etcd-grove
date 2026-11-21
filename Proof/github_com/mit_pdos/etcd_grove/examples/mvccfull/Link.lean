@@ -120,11 +120,17 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.stream__pic
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.stream__receive
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.stream__recvOne
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.stream__watch
+public import Proof.time.Duration__Seconds
 public import Proof.time.Time__IsZero
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.TODO
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.walkKeys
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.watcher__matches
+public import Proof.go_uber_org.zap.Duration
+public import Proof.go_uber_org.zap.Int64
+public import Proof.go_uber_org.zap.Logger__Debug
+public import Proof.go_uber_org.zap.Logger__check
 public import Proof.go_uber_org.zap.NewNop
+public import Proof.go_uber_org.zap.zapcore.CheckedEntry__Write
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Perennial.Proof.sort.Link
 public import Perennial.Proof.time.Link
@@ -355,9 +361,33 @@ theorem lease.LeaseExpiredNotifier.wp_RegisterOrUpdate :
     EtcdGrove.lease.LeaseExpiredNotifier.RegisterOrUpdate.spec (GF := GF) (hG := hG) :=
   EtcdGrove.lease.LeaseExpiredNotifier.RegisterOrUpdate.wp_proof lease.LeaseQueue.wp_Len lease.LeaseQueue.wp_Less lease.LeaseQueue.wp_Swap lease.LeaseQueue.wp_Push heap.wp_Fix heap.wp_Push
 
+theorem time.Duration.wp_Seconds :
+    EtcdGrove.time.Duration.Seconds.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.time.Duration.Seconds.wp_proof
+
+theorem zap.Logger.wp_check :
+    EtcdGrove.zap.Logger.check.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Logger.check.wp_proof
+
+theorem zapcore.CheckedEntry.wp_Write :
+    EtcdGrove.zapcore.CheckedEntry.Write.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zapcore.CheckedEntry.Write.wp_proof
+
+theorem zap.Logger.wp_Debug :
+    EtcdGrove.zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Logger.Debug.wp_proof zap.Logger.wp_check zapcore.CheckedEntry.wp_Write
+
+theorem zap.wp_Int64 :
+    EtcdGrove.zap.Int64.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Int64.wp_proof
+
+theorem zap.wp_Duration :
+    EtcdGrove.zap.Duration.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Duration.wp_proof
+
 theorem lease.lessor.wp_scheduleCheckpointIfNeeded :
     EtcdGrove.lease.lessor.scheduleCheckpointIfNeeded.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.lease.lessor.scheduleCheckpointIfNeeded.wp_proof
+  EtcdGrove.lease.lessor.scheduleCheckpointIfNeeded.wp_proof lease.Lease.wp_getRemainingTTL time.Duration.wp_Seconds lease.LeaseQueue.wp_Len lease.LeaseQueue.wp_Less lease.LeaseQueue.wp_Swap lease.LeaseQueue.wp_Push heap.wp_Push zap.Logger.wp_Debug zap.wp_Int64 zap.wp_Duration _root_.Perennial.time.wp_Now _root_.Perennial.time.Time.wp_Add
 
 theorem sort.StringSlice.wp_Sort :
     EtcdGrove.sort.StringSlice.Sort.spec (GF := GF) (hG := hG) :=

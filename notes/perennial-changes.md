@@ -101,7 +101,13 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   their bits' order, `uint64ToFloat64`/`int64ToFloat64` of a non-negative integer is non-negative and finite, NaN
   compares false, doubling a normal float whose result is normal adds `2^52` to its bits. Or a full model (Lean's
   `Float` is opaque to the kernel; a bit-level IEEE model would be checkable). Each law is true of Go's `float64`.
-- **Status.** Not started.
+- **Status.** PR https://github.com/mit-pdos/perennial/pull/648 (pgaps, 2026-11-21; review by upamanyus):
+  the sign facts `counter.Add` needs (`lt_zero_false_of_sign_clear`: a float64 with a clear sign bit is not
+  `< +0`; `{int64,uint64,int32,uint32}ToFloat64_sign_clear`), with float64/float32 negation steps (`neg_float64`,
+  `neg_float32`, which x/time/rate's `reserveN` needs: `-tokens`); Go evidence `docs/design/float/float_test.go`.
+  The order and doubling laws (histogram buckets, `ExponentialBuckets`) are not in it. Float-to-integer
+  conversion already steps (Perennial `08d191151`, an arbitrary integer): `lessor.scheduleCheckpointIfNeeded` is
+  proved on the current pin (pgaps); `lessor.Promote` is blocked by its spec (ledger 2026-11-21), not by floats.
 
 ### `wp_apply` with a `have`-local spec can close the goal with `sorry` (2026-11-20, k8s-authz)
 
@@ -1460,7 +1466,10 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   `false`.
 - **Proposed.** An empty composite literal of a type whose underlying type is not a struct (and
   has no literal rule) is its zero value; or `sync.Mutex`'s model as a struct.
-- **Status.** Not started.
+- **Status.** PR https://github.com/mit-pdos/perennial/pull/649 (pgaps, 2026-11-21; review by upamanyus): one
+  step rule, `composite_literal_bool_empty` (the empty literal at `go.bool` is `false`; Go has no boolean composite
+  literal, so it is reached only through the `Mutex` models). Once pinned, `backend.wp_mutexLit` and
+  `MutexLitSemantics` go.
 
 ### Semantics: `float64(c)` of an untyped integer constant (2026-10-27, client-go workqueue)
 
