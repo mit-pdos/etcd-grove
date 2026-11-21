@@ -1,7 +1,10 @@
 # Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
 # notes/k8s-etcd3-goose.md).
-translate = ["!*"]
-imports = ["!*"]
+# (prove-k8s, 2026-11-20) the variables' initializers (until then `opaqueInitsOk`): `sets.NewString`
+# calls (`sets` with bodies), one of `namespaceSubresources.List()`.
+translate = ["!*", "specialVerbs", "specialVerbsNoSubresources", "namespaceSubresources", "verbsWithSelectors",
+  "NamespaceSubResourcesForTest"]
+imports = ["!*", "k8s.io/apimachinery/pkg/util/sets"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

@@ -36,8 +36,8 @@ theorem rafthttp.checkStreamSupport.wp_proof
     (hMinor : semver.Version.Minor.spec (GF := GF) (hG := hG))
     (hString : semver.Version.String.spec (GF := GF) (hG := hG)) :
     rafthttp.checkStreamSupport.spec (GF := GF) (hG := hG) := by
-  intro v t Hv
-  wp_start as -
+  intro v x t Hvnn
+  wp_start as #Hv
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hri with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
@@ -45,13 +45,13 @@ theorem rafthttp.checkStreamSupport.wp_proof
   ihave #Hspkg : isPkgInit (PROP := IProp GF) pkg_id.github_com.Masterminds.semver.v3 $$ []
   · iPkgInit
   wp_auto
-  wp_apply hMajor $$ [] as %ma -
-  · iframe #; ipureintro; exact Hv
-  wp_apply hMinor $$ [] as %mi -
-  · iframe #; ipureintro; exact Hv
-  wp_apply hNew as %nv %Hnv
+  wp_apply hMajor v DFrac.discard x $$ [] as -
+  · iframe #
+  wp_apply hMinor v DFrac.discard x $$ [] as -
+  · iframe #
+  wp_apply hNew as %nv ⟨%Hnv, %onv, #Hnvx⟩
   (try wp_auto)
-  wp_apply hString $$ [] as %ks -
+  wp_apply hString nv $$ [] as %ks -
   · iframe #; ipureintro; exact Hnv
   (try wp_auto)
   -- `supportedStream[nv.String()]`: a read-only slice (nil if the version is absent)
