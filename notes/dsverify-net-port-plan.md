@@ -837,6 +837,11 @@ tests kept as differential tests against the real library, a "not modelled" pani
 
 ### Phase 6: the statement and the kits
 
+*(2026-11-21, etcd-grove#24: the shared harness pieces (driver, recorder, checker, porcupine) and dsverify's
+`Remote` (clients on machines of their own) moved to kaashoek's `etcd-dist` claim: `examples/lib/remote` over
+`lintest`/`kvcheck` and the verified porcupine, whose proof replaces the lab's porcupine axiom; the kits are
+ported onto it.)*
+
 - The statement: `KitDeploy plan hosts nodes g → Robust [] nodes g bound` (phase 4, above; the
   user's decision, 2026-11-19, in place of the lab's `SafeDist`), proved through `robust_of_kitBoot`
   or `robust_of_kitProto`; the lab's `driver_dist_safe`, goal template and checks follow (the lab's

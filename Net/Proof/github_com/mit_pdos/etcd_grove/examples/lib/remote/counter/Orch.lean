@@ -58,7 +58,7 @@ theorem Orch.wp_proof
     lintestN_disj
   have hlen' : sint.Z addrs.len = 2 := by
     have := Hal.1; rw [hlen] at this; word
-  wp_apply wp_Check (cR γs) cS γp m addrs addrL cd _ (W64 20) d hE hL (cS_pendDec γs)
+  wp_apply wp_Check (cR γs) cS γp m addrs addrL cd _ (W64 20) d hE hL (cS_pendDec γs) (cR_encOut_inj γs)
     (fun st => cR_timeless γs st) hrb (by rw [hlen']; decide) (by decide)
     (by rw [hlen']; decide) $$ [Hlib]
   · iframe #

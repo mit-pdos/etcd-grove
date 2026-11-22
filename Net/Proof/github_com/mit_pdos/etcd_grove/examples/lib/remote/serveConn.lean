@@ -4,7 +4,7 @@ The proof of `serveConn` (`Net/Spec/.../lib/remote/serveConn.lean`) on the accep
 `recvTok_L`); on a frame `bd` read whole, its protocol fact (`recvTokL_later` and a later
 credit, `recvTok_proto`) is the slot's input's (`req_read`: `bd = encIn i`), so `DecIn` returns
 `iv i` if anything. Then the slot's claim (`slot_claim`: the acceptor's fresh token and a credit)
-gives the update `lin R i Φ`, which `op` takes (`opMaybe`); an answered output `o` with `Φ o` is
+gives the update `slotUpd R i Φ`, which `op` takes (`opMaybe`); an answered output `o` with `Φ o` is
 recorded in the slot (`slot_done`, a credit), so its reply, as the unknown output's, meets the
 acceptor's protocol `repP`: `EncOut`, then, if the encoding is at most `MaxLen` bytes,
 `SetDeadline` and `writeFrame` with the acceptor's `sendTok`. Last, `Close` (`close_au`).
@@ -126,7 +126,7 @@ theorem serveConn.wp_proof
   obtain rfl := Hx rfl
   -- claim the slot's update, and run `op` with it
   -- (the laws' updates are over the global ghost state's invariants, those of `hG` up to unfolding)
-  ihave Hcl : (|={⊤}=> lin (Gg := hG.goose_globalGS) R i Ψ ∗
+  ihave Hcl : (|={⊤}=> slotUpd (Gg := hG.goose_globalGS) R i Ψ ∗
       runTok (Gg := hG.goose_globalGS) (O := O) γ : IProp GF) $$ [Hfresh Hlc2]
   · iapply slot_claim R ⊤ CoPset.subseteq_top γ i Ψ $$ Hsi Hfresh Hlc2
   imod Hcl with ⟨Hlin, Hrun⟩

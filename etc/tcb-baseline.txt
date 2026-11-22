@@ -374,7 +374,6 @@ axiom rafthttp.Transport.ActiveSince.wp_proof
 axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.netErrNotRemoved_ok
 axiom rand.Int63n.wp_proof
-axiom rate.Limiter.Reserve.wp_proof
 axiom rate.Limiter.Wait.wp_proof
 axiom recEncC_ok
 axiom reflect.Append.wp_proof
