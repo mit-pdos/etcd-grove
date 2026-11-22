@@ -124,7 +124,31 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 - **Proposed (general).** `neg_float64 (v : w64) : ⟦GoUnOp GoNeg go.float64, #v⟧ ⤳[under] #(float64Neg v)` and its
   `float32` twin, completing the existing scheme (a trusted-semantics change: Perennial's `fix-semantics` workflow,
   with the user's sign-off).
-- **Status.** Not started.
+- **Status.** Landed: Perennial `c14cca87a` (#654, IEEE 754 floats: `neg_float64`/`neg_float32`, relational,
+  `wp_float64_neg`), in the pin since `d845edaf90`. `Limiter.Reserve` is proved over the real code
+  (prove-metrics-float, 2026-11-22: `reserveN`, `advance`, `durationFromTokens`, `tokensFromDuration` translated).
+
+### `ExponentialBuckets` and `math.Ceil` after the IEEE 754 floats: what is still missing (2026-11-22, prove-metrics-float, claim #27)
+
+- **`ExponentialBuckets`.** Its translation needs nothing new (`histogram.go:315`, `panic`, `make`, a loop of
+  `start *= factor`), and Perennial `c14cca87a` steps every operation. What its spec (exact buckets, `expBuckets`:
+  `start`'s bits plus `i * 2^52`) needs is the doubling law, now a theorem of Perennial's model rather than an
+  assumption: for a positive normal `x` (`2^52 ≤ x.toNat < 0x7FE0000000000000`, sign clear),
+  `float64Encodes (float64Mul x 0x4000000000000000) f ↔ f = x + 2^52` (`mulDef`'s `round false (m * 2)` of a
+  significand on the grid: `floorLog2 ((2^52 + T) * pow2 k) = 52 + k`, `roundHalfEven` of an integer, `encode` of a
+  normal). It is a fact about Perennial's own definitions that belongs to no Go package, so it goes to Perennial's
+  `Perennial/Golang/Theory/Float.lean` (CLAUDE.md, "There is no `Proof/Lib/`"), with the general `floorLog2`
+  characterization (`pow2 (floorLog2 a) ≤ a < pow2 (floorLog2 a + 1)` for `a > 0`) it rests on. Until then
+  `prometheus.ExponentialBuckets.wp_proof` stays an axiom (its spec re-read against v1.24.1: true, no float edge case
+  reached: `start` normal and positive, `factor = 2`, every bucket normal; the product after the last may overflow
+  to `+Inf`, unused).
+- **`math.Ceil`.** Perennial's `math.toml` translates only constants and tables: `Ceil` has no body, and on amd64
+  (and arm64, 386, ...) it is `archCeil`, assembly (`floor_amd64.s`: `ROUNDSD` with SSE4.1, else a bit-level
+  fallback), behind `haveArchCeil`, an opaque constant of the translation. Proposed: translate `Ceil`/`ceil`/`floor`/
+  `Modf` and model `archCeil` (or `haveArchCeil = false` with a trusted equivalence: `ceil`'s Go body is exact),
+  with a spec (the least integral float `≥ x`; NaN, `±Inf`, `±0` unchanged). Until then `math.Ceil.wp_proof` stays
+  an axiom (its spec, some `float64`, is true: `Ceil` never panics).
+- **Status.** Not started (to be filed by the claim's coordinator).
 
 ### Float facts: `FloatOps` has no laws, so no float-dependent panic can be excluded (2026-11-20, prove-promdeep)
 
@@ -3300,6 +3324,14 @@ name in the macro (`_root_.decide_true`), and consider failing loudly instead of
   `errors.wp_As_first (hT : AsTarget T) (h : AsFirst T err #x) : {{ isPkgInit errors ∗ l ↦ v }} As err &l
   {{ RET #true; l ↦ x }}` is `errors.AsLinkError.spec`'s case. The three `wp_As` callers here gain `x` and an
   `iright`. (c) `Errno.Is`'s comparisons: `601b7fb5d` (the 2026-11-13 entry's status).
+- **Status (2026-11-22, errors-astype, etcd-grove#29).** (1) is superseded for `renameWAL`: the fork's
+  `wal.go` now calls `errors.AsType[*os.LinkError](err)` (upamanyus/etcd@edc800c6f), which Perennial translates, and
+  the first-match case is proved here from that translation (`errors.AsTypeMatch.spec`/`wp_proof`,
+  `Spec/errors/AsTypeMatch.lean`, `Proof/errors/AsTypeMatch.lean`: a non-interface `T` equal to `err`'s dynamic type,
+  `(x, true)`, no tree premise); `errors.AsLinkError.spec` is gone. **Proposed (general, replacing (1) and (b)):**
+  `AsTypeMatch` as a lemma of Perennial's `Proof/errors/` beside `wp_AsType` (and an interface-`T` case), since it
+  is about Perennial's own `AsType`; then this repository's copy goes. `errors.As` (reflection, the axiom) stays
+  only for the code that still calls it (rafthttp's non-error target, k8s).
 
 ## 2026-11-14: `io.Copy`/`copyBuffer` without bodies (the WAL's `Repair`, branch `wal-copy1`)
 
@@ -3664,3 +3696,48 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
   (`Net/Proof/.../lib/remote/Serve.lean`, with a comment).
 - **Proposed (general).** `wp_apply` re-raises its post-processing's error instead of admitting the
   goal. **Status.** Recorded only.
+
+## 2026-11-22: `math.Float64bits` is names-only (`zap.Float64`, `Client.roundRobinQuorumBackoff`)
+
+- **The gap.** Perennial's `math` translation has `Float64bits` (and presumably `Float64frombits`) as names
+  only, so zap's `Float64(key, val)` (`Field{..., Integer: int64(math.Float64bits(val))}`) has no spec, and
+  `clientv3.Client.roundRobinQuorumBackoff`'s closure, which logs `zap.Float64("jitterFraction", ...)`,
+  stays a trust-boundary axiom (its other callees, `Endpoints`, `GetLogger`, `zap.Uint`/`Duration`,
+  `Debug`, `jitterUp`'s `rand.Float64` and float operations, have specs).
+- **Worked around locally.** Not: the axiom stays (prove-ps2-client, 2026-11-22).
+- **Proposed (general).** mit-pdos/perennial#675 (prove-ps2-succ's, in review) translates `Float64bits` and
+  `Float64frombits` with specs. **Status.** Waits for #675 and a pin bump.
+
+## 2026-11-22: `%+v` of a map is arbitrary in the `fmt` model (`clientv3.streamKeyFromCtx`)
+
+- **The gap.** `SprintfOut` formats `%s`/`%v` of strings and the integer verbs; any other directive's
+  output is arbitrary (`SprintfOut.other`), so `fmt.Sprintf("%+v", map[string][]string(md))` (the watch's
+  stream key) has no determined result, and `streamKeyFromCtx`'s spec (the key is a function of the
+  outgoing metadata, `streamKeyOf`) is unprovable over it.
+- **Proposed (general).** `%v`/`%+v` of a map: Go prints `map[` then the entries sorted by key (`fmt`'s
+  `internal/fmtsort`), `k:v` separated by spaces, then `]`. **Status.** Recorded only.
+
+## 2026-11-22: extension state access at generation start, distributed (`goose_dist_mixed_crash_adequacy`; etcd-dist D3, branch `dist-crash-bridge`)
+
+- **Missing.** The distributed counterpart of the 2026-11-21 entry "extension state access at generation
+  start" (branch `wal-safe`, `goose_crash_adequacy`). In `Perennial/GooseLang/DistAdequacy.lean`, a
+  crashing node's generation is made by `BootWp` (`Hwp`: `P i L -∗ threadTok ={⊤}=∗ WP ∗ crashFrame`),
+  its first one through `nodeStart` and `goose_nodes_init_gen`, and a stable node's by `nodeWpBody`;
+  none of them can touch the node's extensions' local interpretation, though the proof holds the node's
+  state interpretation at each point (`goose_nodes_init_gen` after allocating `L`; `dist_crash_node`
+  after `goose_crash_step`, its `Hσ`). So a crashing machine over the Linux file extension cannot switch
+  to the shared mode (`treeCtx_switchG`) before its WP, and its crash frame cannot take what the shared
+  mode allocates. The bridge `robust_of_netFsBoot` (`Net/Statement/NetFsBridge.lean`) is therefore in
+  the legacy mode only; D4 (etcd's bundle, shared-mode generations) needs the change.
+- **Proposed (general), with the single-node one.** `BootWp`'s conclusion becomes
+  `P i L -∗ threadTok ={⊤}=∗ ∀ w, extsLocalCtx (L := L) w ={⊤}=∗ extsLocalCtx (L := L) w ∗
+  (gooseWptp [e] … ∗ crashFrame T es P i L)`, and so does `goose_dist_mixed_crash_adequacy`'s `Hwp`
+  (and `goose_dist_crash_adequacy`'s); `nodeWpBody` likewise for stable nodes. In `dist_crash_node`, apply
+  it to the node's part of `Hσ` before `bstateInterp_split` (with `wal-safe`'s `bstate_extsLocal_acc`); in
+  `goose_nodes_init_gen`, where the node's `nodeInterp` is made. Callers adapt by ignoring it
+  (`iintro %w Hext; iframe Hext`). No statement of an adequacy theorem's conclusion changes.
+- **Not worked around** (D3's scope: record and stop): a local copy would duplicate `dist_soundness`,
+  `goose_nodes_init_gen`, `dist_crash_node` and the mixed theorem (several hundred lines of
+  `DistAdequacy.lean`); D4 decides between the copy and waiting for the Perennial change.
+- **Status.** Proposed only (2026-11-22). To be designed with the single-node change as one Perennial
+  branch.

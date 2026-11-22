@@ -269,6 +269,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServerR
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.isConnectedSince
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.isConnectedToQuorumSince
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.tickToDur
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest__String
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.exceedsRequestLimit
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstCompareKey
@@ -610,6 +611,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats__RecvAppendReq
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats__SendAppendReq
 public import Proof.github_com.Masterminds.semver.v3.MustParse
+public import Proof.github_com.Masterminds.semver.v3.NewVersion
 public import Proof.github_com.Masterminds.semver.v3.Version__LessThan
 public import Proof.github_com.Masterminds.semver.v3.Version__Major
 public import Proof.github_com.Masterminds.semver.v3.Version__Minor
@@ -996,9 +998,13 @@ theorem PutRequest.wp_GetKey :
     PutRequest.GetKey.spec (GF := GF) (hG := hG) :=
   PutRequest.GetKey.wp_proof
 
+theorem semver.wp_NewVersion :
+    semver.NewVersion.spec (GF := GF) (hG := hG) :=
+  semver.NewVersion.wp_proof
+
 theorem semver.wp_MustParse :
     semver.MustParse.spec (GF := GF) (hG := hG) :=
-  semver.MustParse.wp_proof
+  semver.MustParse.wp_proof semver.wp_NewVersion
 
 theorem semver.Version.wp_String :
     semver.Version.String.spec (GF := GF) (hG := hG) :=
@@ -1335,6 +1341,10 @@ theorem snap.Message.wp_CloseNotify :
 theorem zap.Logger.wp_Fatal :
     zap.Logger.Fatal.spec (GF := GF) (hG := hG) :=
   zap.Logger.Fatal.wp_proof
+
+theorem wp_tickToDur :
+    tickToDur.spec (GF := GF) (hG := hG) :=
+  tickToDur.wp_proof
 
 theorem TxnRequest.wp_GetCompare :
     TxnRequest.GetCompare.spec (GF := GF) (hG := hG) :=
@@ -2413,7 +2423,7 @@ theorem notify.wp_NewNotifier :
 
 theorem version.wp_Cluster :
     version.Cluster.spec (GF := GF) (hG := hG) :=
-  version.Cluster.wp_proof
+  version.Cluster.wp_proof semver.wp_NewVersion semver.Version.wp_Major semver.Version.wp_Minor _root_.Perennial.fmt.wp_Sprintf _root_.Perennial.strings.wp_Split
 
 theorem prometheus.GaugeVec.wp_With :
     prometheus.GaugeVec.With.spec (GF := GF) (hG := hG) :=
@@ -2787,9 +2797,13 @@ theorem EtcdServer.wp_start [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.start.spec (GF := GF) (hG := hG) :=
   EtcdServer.start.wp_proof EtcdServer.wp_Logger zap.Logger.wp_Info zap.wp_String zap.wp_Uint64 wait.wp_New wait.wp_NewTimeList wait.timeList.wp_Wait wait.timeList.wp_Trigger read.wp_NewRead notify.wp_NewNotifier EtcdServer.wp_MemberID EtcdServer.wp_Cluster membership.RaftCluster.wp_ID types.ID.wp_String semver.Version.wp_String version.wp_Cluster prometheus.GaugeVec.wp_With EtcdServer.wp_run EtcdServer.wp_ApplyWait EtcdServer.wp_Done EtcdServer.wp_Stopping EtcdServer.wp_LeaderChanged EtcdServer.wp_FirstCommitInTermNotify EtcdServer.wp_NextRequestID EtcdServer.wp_RequestTimeout EtcdServer.wp_AppliedIndex raftNode.wp_ReadState raftNode.wp_ReadIndex srvApi_wp_Status
 
+theorem raftNode.wp_advanceTicks :
+    raftNode.advanceTicks.spec (GF := GF) (hG := hG) :=
+  raftNode.advanceTicks.wp_proof raftNode.wp_tick
+
 theorem EtcdServer.wp_adjustTicks :
     EtcdServer.adjustTicks.spec (GF := GF) (hG := hG) :=
-  EtcdServer.adjustTicks.wp_proof
+  EtcdServer.adjustTicks.wp_proof EtcdServer.wp_Logger membership.RaftCluster.wp_Members EtcdServer.wp_MemberID types.ID.wp_String zap.wp_String zap.wp_Int' wp_tickToDur zap.Logger.wp_Info raftNode.wp_advanceTicks
 
 theorem EtcdServer.wp_publishV3 :
     EtcdServer.publishV3.spec (GF := GF) (hG := hG) :=
@@ -3254,10 +3268,6 @@ theorem wp_NewServerR [go_etcd_io.etcd.cache.v3.Assumptions] :
 theorem mvcc.store.wp_HashStorage :
     mvcc.store.HashStorage.spec (GF := GF) (hG := hG) :=
   mvcc.store.HashStorage.wp_proof
-
-theorem raftNode.wp_advanceTicks :
-    raftNode.advanceTicks.spec (GF := GF) (hG := hG) :=
-  raftNode.advanceTicks.wp_proof raftNode.wp_tick
 
 theorem rafthttp.wp_reportCriticalError :
     rafthttp.reportCriticalError.spec (GF := GF) (hG := hG) :=

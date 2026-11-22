@@ -5,6 +5,7 @@ public import Perennial.Code.sync
 public import Perennial.Code.time
 public import Code.github_com.anishathalye.porcupine
 public import Perennial.Code.github_com.goose_lang.primitive
+public import Code.github_com.mit_pdos.gokv.trusted_proph
 public import Code.github_com.mit_pdos.etcd_grove.examples.lib.lintest
 public import KvNet.Code.github_com.mit_pdos.etcd_grove.examples.raft.kvnet
 public import KvNet.Code.go_etcd_io.raft.v3.raftpb
@@ -64,7 +65,7 @@ noncomputable def Check [GooseExts] [GoGlobalContext] : GoString :=
 
 /-- oneIn is true with probability 1/n.
 
-    go: kvcheck.go:45:6 -/
+    go: kvcheck.go:46:6 -/
 noncomputable def oneIn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -80,7 +81,7 @@ noncomputable def oneIn.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- below is a random number in [0, n) (0 if n is 0).
 
-    go: kvcheck.go:48:6 -/
+    go: kvcheck.go:49:6 -/
 noncomputable def below.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
@@ -106,7 +107,7 @@ noncomputable def below.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- randomID is a random replica's id.
 
-    go: kvcheck.go:66:19 -/
+    go: kvcheck.go:67:19 -/
 noncomputable def checker.randomID.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -125,7 +126,7 @@ noncomputable def checker.randomID.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- request sends one request to replica id (kvnet.Request).
 
-    go: kvcheck.go:71:19 -/
+    go: kvcheck.go:72:19 -/
 noncomputable def checker.request.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "id"
@@ -160,7 +161,7 @@ noncomputable def checker.request.impl [GooseExts] [GoGlobalContext] : val :=
 /-- randomMember is a random member of the latest configuration a replica reported, or, one time in
     four or if there is none, a random replica.
 
-    go: kvcheck.go:77:19 -/
+    go: kvcheck.go:78:19 -/
 noncomputable def checker.randomMember.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -228,7 +229,7 @@ noncomputable def checker.randomMember.impl [GooseExts] [GoGlobalContext] : val 
 /-- conf asks a random replica for its configuration, and records it (randomMember); nil if it
     does not answer, or its answer does not decode.
 
-    go: kvcheck.go:94:19 -/
+    go: kvcheck.go:95:19 -/
 noncomputable def checker.conf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -306,7 +307,7 @@ noncomputable def checker.conf.impl [GooseExts] [GoGlobalContext] : val :=
 /-- fresh is a fresh number from *next (an operation id or a read sequence number); it never
     returns once all are used (2^64 - 1 of them: it does not happen), so none is ever reused.
 
-    go: kvcheck.go:111:19 -/
+    go: kvcheck.go:112:19 -/
 noncomputable def checker.fresh.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "next"
@@ -352,7 +353,7 @@ noncomputable def checker.fresh.impl [GooseExts] [GoGlobalContext] : val :=
 /-- do runs one operation through the log: it gives it a fresh id and proposes it at a random
     member until one answers (the same encoding each time: it takes effect once).
 
-    go: kvcheck.go:126:19 -/
+    go: kvcheck.go:127:19 -/
 noncomputable def checker.«do».impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "kind"
@@ -406,9 +407,12 @@ noncomputable def checker.«do».impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))))
 
 /-- read returns key's value by a read index at a random member, retried (each attempt a fresh
-    read) until one answers.
+    read) until one answers. The prophecy p, resolved with the answer, is for the proof only, as in
+    kvdurable's Cluster.Read (examples/raft/kvdurable/cluster.go): it tells the proof of read
+    (KvNet/Proof/.../kvnet/kvcheck/checker__read.lean), at each change of the store, whether the
+    key's value then is the answer (the read's linearization point). It has no effect.
 
-    go: kvcheck.go:137:19 -/
+    go: kvcheck.go:141:19 -/
 noncomputable def checker.read.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "key"
@@ -416,6 +420,9 @@ noncomputable def checker.read.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Val exceptionDo)
   (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType checker.ty)))) (Var "c"))
   (Let "key" (App (Val (GoInstruction (GoAlloc go.string))) (Var "key"))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.goose_lang.primitive.NewProph []))) (Val #())) (Val #()))
+  (Let "p" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (App (Val doFor) (Lam BAnon
   (Val #true))) (Lam BAnon
   (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (StructFieldRef checker.ty go!"nextRead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType checker.ty)))) (Var "c")))
@@ -437,12 +444,17 @@ noncomputable def checker.read.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "v")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty))) (Var "p"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "v"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.gokv.trusted_proph.ResolveBytes []))) (Val #())) (Var "$a0")) (Var "$a1"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -452,12 +464,14 @@ noncomputable def checker.read.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "req") (Var "$r0")))))))))
   (Lam BAnon
-  (Val #()))))))
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty))) (Pair (Var "p") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
 
 /-- sleep waits a random time below 2*pause, or until stop; it says whether to stop.
 
-    go: kvcheck.go:147:6 -/
+    go: kvcheck.go:153:6 -/
 noncomputable def sleep.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "pause"
   (Lam "stop"
@@ -487,7 +501,7 @@ noncomputable def sleep.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- changeID is the id a random change names: one of the configuration's, or another replica's.
 
-    go: kvcheck.go:157:19 -/
+    go: kvcheck.go:163:19 -/
 noncomputable def checker.changeID.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "cs"
@@ -533,7 +547,7 @@ noncomputable def checker.changeID.impl [GooseExts] [GoGlobalContext] : val :=
     transition, as a ConfChangeV2, or, for one change of the automatic transition, one time in two
     as a ConfChange.
 
-    go: kvcheck.go:169:19 -/
+    go: kvcheck.go:175:19 -/
 noncomputable def checker.randomChange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "cs"
@@ -646,7 +660,7 @@ noncomputable def checker.randomChange.impl [GooseExts] [GoGlobalContext] : val 
 /-- reconfigure proposes random configuration changes through random replicas, at random times,
     until stop, never waiting for one to be committed (as kvdurable's).
 
-    go: kvcheck.go:203:19 -/
+    go: kvcheck.go:209:19 -/
 noncomputable def checker.reconfigure.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "stop"
@@ -677,7 +691,7 @@ noncomputable def checker.reconfigure.impl [GooseExts] [GoGlobalContext] : val :
 /-- disrupt moves leadership at random times until stop: a transfer to a random replica, a
     campaign, or a leader forgotten, asked of a random replica.
 
-    go: kvcheck.go:212:19 -/
+    go: kvcheck.go:218:19 -/
 noncomputable def checker.disrupt.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "stop"
@@ -706,7 +720,7 @@ noncomputable def checker.disrupt.impl [GooseExts] [GoGlobalContext] : val :=
     (kvnet.ValidAddrs), and unless porcupine accepts the history of the operations it ran (the
     package's comment); otherwise it returns once they are done.
 
-    go: kvcheck.go:223:6 -/
+    go: kvcheck.go:229:6 -/
 noncomputable def Check.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addrs"
   (Lam "voters"
@@ -868,12 +882,13 @@ noncomputable def Check.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck where
-  pkgImportedPkgs := [pkg_id.sync, pkg_id.time, pkg_id.github_com.anishathalye.porcupine, pkg_id.github_com.goose_lang.primitive, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest, pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet, pkg_id.go_etcd_io.raft.v3.raftpb]
+  pkgImportedPkgs := [pkg_id.sync, pkg_id.time, pkg_id.github_com.anishathalye.porcupine, pkg_id.github_com.goose_lang.primitive, pkg_id.github_com.mit_pdos.gokv.trusted_proph, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest, pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet, pkg_id.go_etcd_io.raft.v3.raftpb]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -888,6 +903,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.github_com.anishathalye.porcupine.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.goose_lang.primitive.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.github_com.mit_pdos.gokv.trusted_proph.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -986,6 +1003,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_time_Assumption : _root_.Perennial.time.Assumptions
   import_porcupine_Assumption : _root_.Perennial.github_com.anishathalye.porcupine.Assumptions
   import_primitive_Assumption : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
+  import_trusted_proph_Assumption : _root_.Perennial.github_com.mit_pdos.gokv.trusted_proph.Assumptions
   import_lintest_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Assumptions
   import_kvnet_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Assumptions
   import_raftpb_Assumption : _root_.Perennial.go_etcd_io.raft.v3.raftpb.Assumptions
@@ -999,6 +1017,7 @@ attribute [instance] Assumptions.checker_instance
   Assumptions.import_time_Assumption
   Assumptions.import_porcupine_Assumption
   Assumptions.import_primitive_Assumption
+  Assumptions.import_trusted_proph_Assumption
   Assumptions.import_lintest_Assumption
   Assumptions.import_kvnet_Assumption
   Assumptions.import_raftpb_Assumption

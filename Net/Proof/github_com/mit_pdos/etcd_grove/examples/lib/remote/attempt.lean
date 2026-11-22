@@ -1,10 +1,10 @@
 /-
 The proof of `attempt` (`Net/Spec/.../lib/remote/attempt.lean`): `DialTimeout` with the update
-`dial_au` (a new connection's dialer end, `connEnd cn false (reqP R) (repP R) [] []`, and its
+`dial_au` (a new connection's dialer end, `connEnd cn false (reqP S) (repP S) [] []`, and its
 `connFresh`), the slot registered with the caller's update (`slot_register`), the deadline set
 (`deadline_au`, its result ignored), the request's frame written (`writeFrame`, under `reqP`'s fact
 for this slot), the reply's frame read (`readFrame`); a whole reply is, after a later credit strips
-`recvTokL`'s later, a frame `repP` allows (`recvTok_proto`, `rep_read`): `i`'s unknown output, or an
+`recvTokL`'s later, a frame `repP` allows (`recvTok_proto`, `rep_read`): an answer to `i` that is not an output, or an
 output `o` the slot recorded, whose `Φ o` the dialer takes with its token (`slot_take`, a second
 credit). The close's result is ignored (`close_au`).
 -/
@@ -38,7 +38,7 @@ variable [sem : go.Semantics]
 variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.lib.remote.Assumptions]
 variable [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
-variable {St I O : Type} [Pos.Countable I] [Pos.Countable O]
+variable {I O : Type} [Pos.Countable I] [Pos.Countable O]
 
 theorem attempt.wp_proof (wp_DialTimeout : net.DialTimeout.spec (GF := GF) (hG := hG))
     (wp_SetDeadline : net.Conn.SetDeadline.spec (GF := GF) (hG := hG))
@@ -46,17 +46,17 @@ theorem attempt.wp_proof (wp_DialTimeout : net.DialTimeout.spec (GF := GF) (hG :
     (wp_deadline : deadline.spec (GF := GF) (hG := hG))
     (wp_writeFrame : writeFrame.spec (GF := GF) (hG := hG))
     (wp_readFrame : readFrame.spec (GF := GF) (hG := hG)) :
-    attempt.spec (GF := GF) (hG := hG) (St := St) (I := I) (O := O) := by
-  intro R a i Φo req dq d Hlen
+    attempt.spec (GF := GF) (hG := hG) (I := I) (O := O) := by
+  intro S a i Φo req dq d Hlen
   wp_start as ⟨#Hm, #Ha, Hreq, HL⟩
   ihave ⟨%et, #Het⟩ := et_init $$ Hpkg
   ihave ⟨%ed, #Hed⟩ := ed_init $$ Hpkg
   ihave ⟨%eof, #Heof⟩ := eof_init $$ Hpkg
   ihave %Hok := addrTok_ok a $$ [Ha]
-  · unfold remoteAddr; iapply addrProto_tok $$ Ha
+  · unfold svcAddr; iapply addrProto_tok $$ Ha
   wp_auto_lc 2
   wp_apply wp_DialTimeout go!"tcp" net.tcpNet_tcp a d et ed iprop(True)
-      (fun cn => iprop(connEnd (Gg := hG.goose_globalGS) cn false (reqP R) (repP R) [] [] ∗
+      (fun cn => iprop(connEnd (Gg := hG.goose_globalGS) cn false (reqP S) (repP S) [] [] ∗
         connFresh (Gg := hG.goose_globalGS) cn false)) $$ []
     as %c %err (⟨%Herr, %cn, #Hc, ⟨Hend, Hfresh⟩⟩ | ⟨-, %x, %e, -, #Herr, -⟩)
   · iframe Het Hed
@@ -64,20 +64,20 @@ theorem attempt.wp_proof (wp_DialTimeout : net.DialTimeout.spec (GF := GF) (hG :
     · ipureintro; exact Hok
     isplit
     · itrivial
-    · unfold remoteAddr
-      iapply dial_au a (reqP R) (repP R) $$ Ha
+    · unfold svcAddr
+      iapply dial_au a (reqP S) (repP S) $$ Ha
   · subst Herr
     unfold net.isConn
     icases Hc with ⟨%t, %la, %ra, %Hct, #Hca⟩
     subst Hct
     wp_auto
     iapply fupd_wp
-    imod slot_register R ⊤ (fun _ _ => CoPset.mem_full) cn i Φo $$ Hm Hfresh HL
+    imod slot_register S ⊤ (fun _ _ => CoPset.mem_full) cn i Φo $$ Hm Hfresh HL
       with ⟨%γ, #Hso, #Hsi, Htk⟩
     imodintro
     unfold connEnd
     icases Hend with ⟨Hsend, Hrecv⟩
-    ihave #Hconn := sendTok_connIs cn false (reqP R) [] $$ Hsend
+    ihave #Hconn := sendTok_connIs cn false (reqP S) [] $$ Hsend
     wp_apply wp_deadline as %tm -
     wp_apply wp_SetDeadline t cn false a la ra tm (fun _ => iprop(True)) $$ [] as %err' -
     · iframe Hca
@@ -95,7 +95,7 @@ theorem attempt.wp_proof (wp_DialTimeout : net.DialTimeout.spec (GF := GF) (hG :
       iexists t, la, ra
       iframe Hca
       ipureintro; rfl
-    wp_apply wp_writeFrame _ cn false a (reqP R) [] req (R.encIn i) dq ed Hlen $$ [Hreq Hsend]
+    wp_apply wp_writeFrame _ cn false a (reqP S) [] req (S.encIn i) dq ed Hlen $$ [Hreq Hsend]
       as %ok ⟨%w, Hreq, -, -⟩
     · iframe Hc Hreq Hsend Hed
       imodintro
@@ -120,8 +120,8 @@ theorem attempt.wp_proof (wp_DialTimeout : net.DialTimeout.spec (GF := GF) (hG :
       ileft
       itrivial
     wp_auto
-    ihave HrL := recvTok_L cn false (repP R) [] $$ Hrecv
-    wp_apply wp_readFrame _ cn false a (repP R) [] eof ed $$ [HrL] as %b %ok ⟨%got, HrL, Hres⟩
+    ihave HrL := recvTok_L cn false (repP S) [] $$ Hrecv
+    wp_apply wp_readFrame _ cn false a (repP S) [] eof ed $$ [HrL] as %b %ok ⟨%got, HrL, Hres⟩
     · iframe Hc Heof Hed HrL
     icases Hres with (%Hf | ⟨%bd, %Hbd, Hb⟩)
     · wp_apply wp_Close t cn false a la ra (fun _ => iprop(True)) $$ [] as %err'' -
@@ -139,19 +139,19 @@ theorem attempt.wp_proof (wp_DialTimeout : net.DialTimeout.spec (GF := GF) (hG :
       ileft
       ipureintro; exact Hf
     obtain ⟨rfl, rfl, Hbl⟩ := Hbd
-    ihave HrL := recvTokL_later cn false (repP R) _ $$ HrL
+    ihave HrL := recvTokL_later cn false (repP S) _ $$ HrL
     iapply fupd_wp
-    imod (lc_fupd_elim_later (GF := GF) (E := ⊤) (P := recvTok (Gg := hG.goose_globalGS) cn false (repP R) ([] ++ frame bd))) $$ Hlc1 HrL with HrT
-    icases recvTok_proto cn false (repP R) _ $$ HrT with ⟨-, #Hpp⟩
+    imod (lc_fupd_elim_later (GF := GF) (E := ⊤) (P := recvTok (Gg := hG.goose_globalGS) cn false (repP S) ([] ++ frame bd))) $$ Hlc1 HrL with HrT
+    icases recvTok_proto cn false (repP S) _ $$ HrT with ⟨-, #Hpp⟩
     rw [List.nil_append]
-    icases rep_read R cn γ i bd (by simp only [maxLen] at Hbl; omega) $$ Hso Hpp with ⟨%v, %Hv, Hvk⟩
+    icases rep_read S cn γ i bd (by simp only [maxLen] at Hbl; omega) $$ Hso Hpp with ⟨%v, %Hv, Hvk⟩
     subst Hv
-    ihave HΦv : iprop(|={⊤}=> ((∃ o, ⌜v = R.ov o⌝ ∗ Φo o) ∨ ⌜v = R.unk i⌝)) $$ [Hvk Htk Hlc2]
+    ihave HΦv : iprop(|={⊤}=> ((∃ o, ⌜v = S.ov o⌝ ∗ Φo o) ∨ ⌜S.unkAns i v⌝)) $$ [Hvk Htk Hlc2]
     · icases Hvk with (%Hu | ⟨%o, %Ho, #Hlb⟩)
       · imodintro
         iright
         ipureintro; exact Hu
-      · imod slot_take R ⊤ (fun _ _ => CoPset.mem_full) γ i Φo o $$ Hsi Htk Hlb Hlc2 with HΦo
+      · imod slot_take S ⊤ (fun _ _ => CoPset.mem_full) γ i Φo o $$ Hsi Htk Hlb Hlc2 with HΦo
         imodintro
         ileft
         iexists o

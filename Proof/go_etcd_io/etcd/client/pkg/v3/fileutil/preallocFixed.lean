@@ -6,7 +6,7 @@ module
 public import Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.preallocFixed
 public import Spec.os.File__Fd
 public import Proof.syscall.FileOps
-public import Perennial.Proof.errors.As
+public import Perennial.Proof.errors.Link
 
 @[expose] public section
 
@@ -44,11 +44,9 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.preallocFixed.wp_proof
   rw [show errnoErr e = interface.ok ⟨syscall.Errno.ty, #e⟩ from if_neg he]
   wp_auto
   ihave #Htree := errno_errTree (GF := GF) e
-  wp_apply errors.As.wp_proof (· = interface.ok ⟨syscall.Errno.ty, #e⟩)
-      (interface.ok ⟨syscall.Errno.ty, #e⟩) errno_ptr (T' := w64) (T := syscall.Errno.ty)
-      (zero_val w64) errno_asTarget $$ [errno] as %b %v' Herrno
-  · iframe; isplitr; · iexact Htree
-    ipureintro; rfl
+  wp_apply errors.wp_AsType (· = interface.ok ⟨syscall.Errno.ty, #e⟩)
+      (interface.ok ⟨syscall.Errno.ty, #e⟩) (T' := w64) (T := syscall.Errno.ty) as %v' %b -
+  · iframe Htree; ipureintro; rfl
   cases b
   · wp_auto
     iapply HΦ

@@ -10,5 +10,4 @@
 roots ^Proof/k8s_io/client_go/util/workqueue/Link\.lean$
 axiom klog.Background.wp_proof
 axiom math.Pow.wp_proof
-axiom rate.Limiter.Reserve.wp_proof
 axiom utilruntime.HandleCrashWithLogger.wp_proof

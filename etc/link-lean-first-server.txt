@@ -555,9 +555,11 @@ strconv_FormatUint:
 types_ID__String: strconv_FormatUint
 types_ID__String_ptr: types_ID__String
 Version__String:
-version_Cluster:
+# (prove-ps2-client, 2026-11-22) `version.Cluster` proved over semver's `NewVersion`
+version_Cluster: v3_NewVersion v3_Version__Major v3_Version__Minor =_root_.Perennial.fmt.wp_Sprintf =_root_.Perennial.strings.wp_Split
 prometheus_GaugeVec__With:
-EtcdServer__adjustTicks:
+etcdserver_tickToDur:
+EtcdServer__adjustTicks: EtcdServer__Logger RaftCluster__Members EtcdServer__MemberID types_ID__String zap_String zap_Int etcdserver_tickToDur zap_Logger__Info raftNode__advanceTicks
 EtcdServer__publishV3:
 EtcdServer__purgeFile: EtcdServer__Logger
 monitorFileDescriptor:
@@ -1016,7 +1018,9 @@ fmt_ErrorfPlain:
 semver_v3_New: Version__String
 v3_Version__Major:
 v3_Version__Minor:
-v3_MustParse:
+# (prove-ps2-client, 2026-11-22) `MustParse` proved over `NewVersion` (the trust boundary)
+v3_MustParse: v3_NewVersion
+v3_NewVersion:
 v3_Version__LessThan:
 binary_ReadUint64: =_root_.Perennial.encoding.binary.bigEndian.wp_Uint64
 proto_UnmarshalPb:

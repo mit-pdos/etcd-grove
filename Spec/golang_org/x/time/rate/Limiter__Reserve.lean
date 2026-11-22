@@ -1,6 +1,6 @@
 /-
-`(*rate.Limiter).Reserve()`: the trust boundary (`golang.org/x/time/rate` is names-only). Lean-first;
-for client-go's bucket rate limiter (`k8s.io/client-go/util/workqueue`, `TypedBucketRateLimiter.When`).
+`(*rate.Limiter).Reserve()` (prove-metrics-float, 2026-11-22: proved over the real code, until then
+the trust boundary). Lean-first; for client-go's bucket rate limiter (`k8s.io/client-go/util/workqueue`, `TypedBucketRateLimiter.When`).
 -/
 module
 

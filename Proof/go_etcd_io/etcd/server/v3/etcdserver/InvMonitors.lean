@@ -89,19 +89,24 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **The monitors' configuration, as `NewServer` leaves it** (audit B4a; see the file header):
 the corruption check's and the downgrade check's intervals and the feature gate at `cfg`'s values
 (read-only), an `lgMu` reader slot (`monitorDowngrade`'s `Logger()`), and (wal-link L2) the WAL
-purge's file count (read-only). -/
+purge's file count (read-only), and (prove-ps2-srv, 2026-11-22) the initial election tick advance's switch
+(`adjustTicks`, read-only). -/
 def srvMonitorCfg (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : IProp GF :=
   iprop(srvCfgFieldAddr s go!"CorruptCheckTime" ↦□ cfg.CorruptCheckTime' ∗
     srvCfgFieldAddr s go!"DowngradeCheckTime" ↦□ cfg.DowngradeCheckTime' ∗
     srvCfgFieldAddr s go!"ServerFeatureGate" ↦□ cfg.ServerFeatureGate' ∗
     srvLgReader s ∗
     -- (wal-link L2, 2026-11-17) the WAL purge's file count (`purgeFile`)
-    srvCfgFieldAddr s go!"MaxWALFiles" ↦□ cfg.MaxWALFiles')
+    srvCfgFieldAddr s go!"MaxWALFiles" ↦□ cfg.MaxWALFiles' ∗
+    -- (prove-ps2-srv, 2026-11-22) the initial election tick advance (`adjustTicks`)
+    srvCfgFieldAddr s go!"InitialElectionTickAdvance" ↦□ cfg.InitialElectionTickAdvance')
 
 /-- **The hash and downgrade monitors are off** (persistent; audit B4a, see the file header): no
 corruption check (`CorruptCheckTime = 0`), no downgrade check (`DowngradeCheckTime = 0`), the
-feature gate answering `false` for `CompactHashCheck`, and (wal-link L2) no WAL purge
-(`MaxWALFiles = 0`). -/
+feature gate answering `false` for `CompactHashCheck`, (wal-link L2) no WAL purge
+(`MaxWALFiles = 0`), and (prove-ps2-srv, 2026-11-22) no initial election tick advance in a cluster of
+several members (`InitialElectionTickAdvance = false`: `adjustTicks` then returns at once there,
+without its wait loop over the transport's `ActivePeers`; a single member still fast-forwards). -/
 def srvMonitorsOff (s : Loc) : IProp GF :=
   iprop(srvCfgFieldAddr s go!"CorruptCheckTime" ↦□ (W64 0) ∗
     srvCfgFieldAddr s go!"DowngradeCheckTime" ↦□ (W64 0) ∗
@@ -109,7 +114,10 @@ def srvMonitorsOff (s : Loc) : IProp GF :=
       featureIs fg go!"CompactHashCheck" false) ∗
     -- (wal-link L2, 2026-11-17) no WAL purge (`purgeFile`: `MaxWALFiles = 0`; no example sets it,
     -- `notes/wal-link-scope.md` C7)
-    srvCfgFieldAddr s go!"MaxWALFiles" ↦□ (W64 0))
+    srvCfgFieldAddr s go!"MaxWALFiles" ↦□ (W64 0) ∗
+    -- (prove-ps2-srv, 2026-11-22) no initial election tick advance (`adjustTicks`; no example sets
+    -- it, the zero value)
+    srvCfgFieldAddr s go!"InitialElectionTickAdvance" ↦□ false)
 
 instance srvMonitorsOff_persistent (s : Loc) : Persistent (srvMonitorsOff (GF := GF) s) := by
   unfold srvMonitorsOff; infer_instance

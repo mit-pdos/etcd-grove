@@ -12,6 +12,9 @@ func TestMsgRoundTrip(t *testing.T) {
 	ents := []*pb.Entry{
 		{Term: new(uint64(3)), Index: new(uint64(7)), Type: pb.EntryNormal.Enum(), Data: []byte("op")},
 		{Term: new(uint64(3)), Index: new(uint64(8)), Type: pb.EntryConfChangeV2.Enum(), Data: []byte{}},
+		// a message's entry of any type reads back, a negative one too
+		{Term: new(uint64(3)), Index: new(uint64(9)), Type: pb.EntryType(-5).Enum(), Data: []byte("x")},
+		{Term: new(uint64(3)), Index: new(uint64(10)), Type: pb.EntryType(1 << 30).Enum(), Data: []byte{}},
 	}
 	snap := &pb.Snapshot{Data: []byte("state"), Metadata: &pb.SnapshotMetadata{Index: new(uint64(6)), Term: new(uint64(2)),
 		ConfState: &pb.ConfState{Voters: []uint64{1, 2}, Learners: []uint64{3}, VotersOutgoing: []uint64{1},
