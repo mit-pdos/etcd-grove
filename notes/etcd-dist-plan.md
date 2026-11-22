@@ -526,12 +526,12 @@ reads them (`clearProxyEnv`), which puts the fact in the program, where it is ve
    facts list), with the extra errors the model gives (REFUSED_STREAM, any code on a cut, idleness).
 4. **The cluster's invariants across machines**: today `etcd_adequate_members_below` allocates the
    cluster's ghost state in one process. Distributed: allocated once in the global ghost state (as
-   `KitBridge`'s `Hstart`), each member's local state rebuilt after a crash from its files and the
+   `DistBridge`'s `Hstart`), each member's local state rebuilt after a crash from its files and the
    global invariants (the raft log's durability invariant, the restart plan's `InvRestart`); the
    clients' specs over the cluster's API (`srvApi`) unchanged.
 5. **The workloads**: the drivers' workload triples (`partition.Check`, `auth.Work`, ...) carry over;
    each driver's `Run` half is its `Main` triple minus the start's resources.
-6. **Assembly**: a bridge as `KitBridge` for crashing and stable machines; `Link`s of the two programs;
+6. **Assembly**: a bridge as `DistBridge` for crashing and stable machines; `Link`s of the two programs;
    `etc/gen-init.py` entries; a TCB collection.
 
 ## 8. Open questions
@@ -585,12 +585,12 @@ For upamanyus:
 **upamanyus's answers (etcd-grove#24, 2026-11-21 22:19Z):**
 - **U1:** yes, S4's shape.
   - Keep the exact address spellings: clients dial exactly the `a.b.c.d:p` their member listens on.
-  - Reuse `Net/Statement/KitDeploy.lean`'s `NetStart`/`ServerStart` definitions rather than restating them, so `KitBridge` applies.
+  - Reuse `Net/Statement/DistDeploy.lean`'s `NetStart`/`ServerStart` definitions rather than restating them, so `DistBridge` applies.
   - A restarted member's `Listen` on the same address is allowed: net v3.4's `crash_init` drops listeners and cuts connections.
 - **U2:** S1 makes the gRPC model call the stats handler, with differential tests. `grpcStatsHandlerOk` becomes proved of otelgrpc's handler.
 - **U3:** no cmux; keep plain `grpc.Server.Serve`.
 - **U4:** the mixed adequacy already exists in Perennial at `d648cfe22`: `goose_dist_mixed_crash_adequacy` (`GooseLang/DistAdequacy.lean:852`) and `_init` (`InitAdequacy.lean:196`).
-  - Missing: our bridge to `Robust crashing stable`. `robust_of_kitBoot` covers the all-stable case only.
+  - Missing: our bridge to `Robust crashing stable`. `robust_of_distBoot` covers the all-stable case only.
   - kvnet's claim #22 is building the crashing bridge for `[netExt, fsExt]` (`GooseLang/Ext/NetFs/Adequacy.lean`). **D3 extends that; coordinate on #22.**
 - **U5:** nothing from the transport side; the extensions need only commute with the net extension's per-machine crash semantics.
 - **Extra:** rafthttp's client uses `http.ProxyFromEnvironment`, and S5 treats a non-nil proxy as `NotModelled`, so Q10's `clearProxyEnv` is what it needs. The environment as machine-local state is an `os` model question: entry for `notes/perennial-changes.md`.

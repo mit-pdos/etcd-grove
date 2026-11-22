@@ -11,7 +11,7 @@ public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.count
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.cmd.client0.Base
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.cmd.client1.Base
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.cmd.server.Base
-public import Net.Statement.KitDeploy
+public import Net.Statement.DistDeploy
 public import Robustness.Statement
 
 @[expose] public section

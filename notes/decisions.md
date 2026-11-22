@@ -41903,3 +41903,15 @@ Perennial's `goose_dist_mixed_crash_adequacy`. Kits had only the no-crash bridge
 - The minimal instance is echo (server crashing, client stable, over `kvnetExts`), since echo's proofs are
   over any extensions with the net extension: only the boot programs (a program's syntax is over its
   extension list) and `wp_boot` are restated.
+
+## The distributed deployment's start and bridge: `Kit*` renamed `Dist*` (2026-11-22 · branch `dist-rename`)
+
+**Decision (the user's, kaashoek):** "kit" is dsverify-lab's word for its examples; the predicates
+`Net/Statement/` states are a distributed deployment's start and its bridge, whatever the program. So
+`KitDeploy.lean`/`KitBridge.lean` are `DistDeploy.lean`/`DistBridge.lean` (`Net.Statement.DistDeploy`,
+`Net.Statement.DistBridge`), and `KitDeploy` → `DistDeploy`, `KitBootWp`/`KitBootWpG` →
+`DistBootWp`/`DistBootWpG`, `nodeWp_of_kitBoot`/`nodeWp_of_kitBootG` → `nodeWp_of_distBoot`/
+`nodeWp_of_distBootG`, `robust_of_kitBoot`/`robust_of_kitProto` (and their `RB` variants) →
+`robust_of_distBoot`/`robust_of_distProto` (`…RB`), and echo's instance `echo_kit_robust` →
+`echo_dist_robust`. Statements, definitions and axioms unchanged. Older entries keep the old names;
+prose about the lab's own kits (its examples, "phase 6's kits") keeps the word.
