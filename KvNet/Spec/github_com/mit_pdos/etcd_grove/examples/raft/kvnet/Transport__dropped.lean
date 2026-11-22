@@ -27,7 +27,7 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- See the file header. -/
 abbrev Transport.dropped.spec : Prop :=
-  ∀ (F : KvFacts GF) (t : Loc) (γ : Cluster) (N : Namespace) (id : w64) (n : Loc) (m : Loc)
+  ∀ (F : KvFacts GF) (t : Loc) (γ : Cluster) (N : Namespace) (id : w64) (n : NodeH) (m : Loc)
     (dq dqe : DFrac) (cap : Bool) (st : MsgSt),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet ∗
       isTransportCore F t γ N id n ∗ msgPtsC m dq dqe cap st }}

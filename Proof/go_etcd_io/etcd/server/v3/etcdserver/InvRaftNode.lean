@@ -43,6 +43,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftMsg
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.Inv
 public import Proof.go_etcd_io.raft.v3.MemstorageInstance
+public import Proof.go_etcd_io.raft.v3.NodeInstalls
 public import Perennial.Golang.Theory.Chan.Idioms.Idioms
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopChan
 public import Proof.go_etcd_io.etcd.server.v3.storage.InvOpen
@@ -95,7 +96,7 @@ post, `restartStorage`'s continuation), which the node's storage bounds (`nodeAp
 structure RNNames [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] (GF : BundledGFunctors) where
   node : SrvRaft
   id : w64
-  nl : Loc
+  nl : NodeH
   pre : List EntryModel
   ms : Loc
   γs : MemStorNames
@@ -202,7 +203,7 @@ def rnMsgOk (E : RNEnv GF) (m : Loc) : IProp GF :=
 by the boot index. The other writers are the apply thread and the Raft driver. -/
 def srvStoredOrigin (cl : Cluster) (applied pin : GName) (boot : Nat) (sv : SnapshotM) : IProp GF :=
   iprop(⌜uint.nat sv.Metadata'.Index' ≤ boot⌝ ∨ monoNatLbOwn applied (uint.nat sv.Metadata'.Index') ∨
-    ∃ n : Loc, dghostVar pin DFrac.discard n ∗ nodeInstalledIndex cl n sv.Metadata'.Index')
+    ∃ n : NodeH, dghostVar pin DFrac.discard n.installs ∗ nodeInstalledIndex cl n sv.Metadata'.Index')
 
 instance (cl : Cluster) (applied pin : GName) (boot : Nat) (sv : SnapshotM) :
     Persistent (srvStoredOrigin (GF := GF) cl applied pin boot sv) := by
@@ -215,13 +216,13 @@ instance [MemStorReg GF] (ms : Loc) (gs : MemStorNames) (cl : Cluster) (key appl
 /-- The server retains the storage invariant and identifies the actual node
 that attached it. The name `pin` is allocated before calling StartNode. -/
 def srvAttachedMem [MemStorReg GF] (ms : Loc) (gs : MemStorNames) (cl : Cluster) (key applied : GName)
-    (n : Loc) (boot : Nat) : IProp GF :=
-  iprop(∃ pin : GName, dghostVar pin DFrac.discard n ∗
+    (n : NodeH) (boot : Nat) : IProp GF :=
+  iprop(∃ pin : GName, dghostVar pin DFrac.discard n.installs ∗
     nodeTagPin cl n (fun sv => iprop(snapshotValid cl sv ∗ srvStoredOrigin cl applied pin boot sv)) ∗
     memStorInvT ms gs cl key (srvStoredOrigin cl applied pin boot))
 
 instance [MemStorReg GF] (ms : Loc) (gs : MemStorNames) (cl : Cluster) (key applied : GName)
-    (n : Loc) (boot : Nat) : Persistent (srvAttachedMem (GF := GF) ms gs cl key applied n boot) := by
+    (n : NodeH) (boot : Nat) : Persistent (srvAttachedMem (GF := GF) ms gs cl key applied n boot) := by
   unfold srvAttachedMem memStorInvT; infer_instance
 
 /-- Creating a snapshot requires the applied-index name of the writer. -/
@@ -1200,7 +1201,7 @@ theorem srv_snapshot_index_le (γ : RNNames GF) (rd : ReadNames) (pin : GName)
     (hb : γ.snap0 ≤ bound) :
     letI := srvStor (GF := GF) γ.node
     rnMessageSource γ q ⊢ rnBatchSource γ q.st.msg.Term' bound -∗
-      sentMsg γ.node.cl srvClusterN γ.id q.st -∗ dghostVar pin DFrac.discard γ.nl -∗
+      sentMsg γ.node.cl srvClusterN γ.id q.st -∗ dghostVar pin DFrac.discard γ.nl.installs -∗
       nodeTagPin γ.node.cl γ.nl (fun s => iprop(snapshotValid γ.node.cl s ∗
         srvStoredOrigin γ.node.cl rd.cursor pin γ.snap0 s)) -∗
       ▷ (monoNatAuthOwn rd.cursor 1 bound -∗ monoNatAuthOwn rd.cursor 1 bound ∗ ⌜uint.nat sv.Metadata'.Index' ≤ bound⌝) := by
@@ -1225,8 +1226,8 @@ theorem srv_snapshot_index_le (γ : RNNames GF) (rd : ReadNames) (pin : GName)
     · ihave %hi := monoNatLbOwn_valid rd.cursor _ _ _ $$ Hown Hlb
       iframe Hown
       ipureintro; exact hi.2
-    · ihave %hn := dghostVar_agree pin n DFrac.discard γ.nl DFrac.discard $$ Hn Hpin
-      subst n
+    · ihave %hn := dghostVar_agree pin n.installs DFrac.discard γ.nl.installs DFrac.discard $$ Hn Hpin
+      ihave #Hinstalled := nodeInstalledIndex_installs γ.node.cl n γ.nl hn _ $$ Hinstalled
       ihave %hi := readySnapSources_installed_le γ.node.cl γ.nl γ.id term ms other limit bound
         inst oinst q sv hq ht hs $$ Hsrc Hobs Hlead Hinstalled
       iframe Hown; ipureintro; omega
@@ -1939,7 +1940,7 @@ theorem srv_merge_index (γ : RNNames GF) (rd : ReadNames) (pin : GName)
     (hb : γ.snap0 ≤ bound) :
     letI := srvStor (GF := GF) γ.node
     rnMessageSource γ q ⊢ rnRtOk γ term bound -∗ sentMsg γ.node.cl srvClusterN γ.id q.st -∗
-      dghostVar pin DFrac.discard γ.nl -∗ nodeTagPin γ.node.cl γ.nl
+      dghostVar pin DFrac.discard γ.nl.installs -∗ nodeTagPin γ.node.cl γ.nl
         (fun s => iprop(snapshotValid γ.node.cl s ∗ srvStoredOrigin γ.node.cl rd.cursor pin γ.snap0 s)) -∗
       ▷ (⌜q.st.msg.Term' = term⌝ -∗ monoNatAuthOwn rd.cursor 1 bound -∗ monoNatAuthOwn rd.cursor 1 bound ∗
         ⌜uint.nat sv.Metadata'.Index' ≤ bound⌝) := by
@@ -2414,7 +2415,7 @@ def isRaftNode (E : RNEnv GF) (γ : RNNames GF) (r : Loc) : IProp GF :=
     -- (2026-11-03, R2b-3b) its close announces the stop's escrow (until then `True`)
     "#Hdnci" ∷ ownBroadcastChan dnc γ.done (rnDoneEsc γ) .Unknown ∗
     -- (srvloops2, 2026-11-21) the node is raft's (`rnNodeIface`), and `tickMu`'s pool of reader slots
-    "%Hnif" ∷ ⌜n = interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.node.ty) #γ.nl⌝ ∗
+    "%Hnif" ∷ ⌜n = interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.node.ty) #γ.nl.loc⌝ ∗
     "#Htp" ∷ rnTickPool r mu)
 
 instance isRaftNode_persistent (E : RNEnv GF) (γ : RNNames GF) (r : Loc) :

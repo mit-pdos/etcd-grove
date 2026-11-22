@@ -127,7 +127,7 @@ attribute [local instance] memStorageModel
 /-- **A replica as `RunConcurrent` made it**, before its `app` starts: its read-only part, its
 fields, its storage's metadata, its node idle at the start, and its completion witness. -/
 def repStart (γ : Cluster) (r : Loc) (id : w64) (ms : Loc) : IProp GF :=
-  iprop(∃ (n : Loc) (γs : MemStorNames) (K : GName),
+  iprop(∃ (n : NodeH) (γs : MemStorNames) (K : GName),
     repInfo γ r id n ms γs ∗ repOwn r ∗ memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
     nodeDriver n γ tcRaftN (NodeDriverState.init (memStorIface ms) K) ∗
     raftState γ id RaftState.init ∗ nodeConfig n γ tcRaftN ⟨0, tcMem⟩ ∗
@@ -489,7 +489,7 @@ theorem RunConcurrent.wp_proof
         icases typedPointsto_split _ _ _ $$ «$sl0» with Hrf
         simp only [TypedPointsto.typedPointstoDef]
         icases Hrf with ⟨Rid, Rnode, Rstor, Rappl, Rsi, Rcs, -⟩
-        imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Rid with #Rid
+        imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Rid with #Rid.loc
         imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Rnode with #Rnode
         imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Rstor with #Rstor
         wp_auto

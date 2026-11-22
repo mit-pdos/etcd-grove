@@ -26,7 +26,7 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- See the file header. -/
 abbrev Node.status.spec (F : KvFacts GF) (rep : Loc → w64 → IProp GF) : Prop :=
-  ∀ (nd : Loc) (γ : Cluster) (N : Namespace) (id : w64) (n : Loc),
+  ∀ (nd : Loc) (γ : Cluster) (N : Namespace) (id : w64) (n : NodeH),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet ∗ isNodeS F rep nd γ N id n }}
     (App (Val (nd @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Node.ty @!! go!"status")) (Val #()))
   {{ (s : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Status), RET #s; True }}

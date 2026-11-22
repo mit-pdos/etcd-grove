@@ -33,7 +33,7 @@ abbrev StartNode.spec (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
   ∀ (cfg : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.NodeConfig),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet ∗ S }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.kvnet.StartNode)) (Val #cfg))
-  {{ (nd : Loc), RET #nd; ∃ (γ : Cluster) (N : Namespace) (n : Loc),
+  {{ (nd : Loc), RET #nd; ∃ (γ : Cluster) (N : Namespace) (n : NodeH),
       isNodeS F rep nd γ N cfg.ID' n ∗ confLaw F rep cf γ N cfg.ID' }}
 
 end spec

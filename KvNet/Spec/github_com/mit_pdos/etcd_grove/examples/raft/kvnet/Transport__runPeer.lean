@@ -31,7 +31,7 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- See the file header. -/
 abbrev Transport.runPeer.spec : Prop :=
-  ∀ (F : KvFacts GF) (t : Loc) (γ : Cluster) (N : Namespace) (id : w64) (n : Loc) (p : Loc)
+  ∀ (F : KvFacts GF) (t : Loc) (γ : Cluster) (N : Namespace) (id : w64) (n : NodeH) (p : Loc)
     (pid : w64) (a : GoString) (et ed : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet ∗
       isTransportCore F t γ N id n ∗ isPeer F p pid a ∗ globalAddr net.errTimeout ↦□ et ∗

@@ -38,7 +38,7 @@ def srvRunH (γs : ServerRaftNames) (dv : Option Loc) : IProp GF :=
 
 theorem srvRunH_none (γs : ServerRaftNames) : srvRunH (GF := GF) γs none = iprop(True) := rfl
 
-theorem srvRunH_some (γs : ServerRaftNames) (n : Loc) :
+theorem srvRunH_some (γs : ServerRaftNames) (n : NodeH) :
     srvRunH (GF := GF) γs (some n) =
       (letI := srvStor (GF := GF) γs.raft; nodeRunning n γs.raft.cl srvClusterN (1 : Qp).half) := rfl
 

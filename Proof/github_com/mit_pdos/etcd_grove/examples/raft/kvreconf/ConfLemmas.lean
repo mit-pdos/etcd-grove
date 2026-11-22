@@ -52,7 +52,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions]
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
-variable [StorageModel GF] [AllG GF]
+variable [StorageModel GF]
 
 /-- **Every committed conf entry is shaped** (the store's invariant, `confShaped_of_ops`). -/
 theorem rkv_confShaped (γr : RNames) (l : List LogEntry) (E : CoPset) (hE : ↑rkvN ⊆ E) :

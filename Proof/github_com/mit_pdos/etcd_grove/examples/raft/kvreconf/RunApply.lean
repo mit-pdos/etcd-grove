@@ -51,7 +51,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KvrStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KvrStor GF]
 
 attribute [local instance] kvrStorageModel
 
@@ -114,7 +114,7 @@ theorem skippedIn_prefix (γ : Cluster) (l l' : List LogEntry) (a b : Nat) (hp :
   rw [← hget]; exact he
 
 /-- The applier's view carried to a longer delivered log. -/
-theorem appNode_extend (γr : RNames) (n : Loc) (l l' : List LogEntry) (k : Nat) (m : Membership)
+theorem appNode_extend (γr : RNames) (n : NodeH) (l l' : List LogEntry) (k : Nat) (m : Membership)
     (hp : l <+: l') (hk : k ≤ l.length) :
     appNode (GF := GF) γr n l k m ∗ deliveredLogLb n γr.cluster kvrRaftN l' ⊢ appNode γr n l' k m := by
   unfold appNode
@@ -127,7 +127,7 @@ theorem appNode_extend (γr : RNames) (n : Loc) (l l' : List LogEntry) (k : Nat)
 
 /-- The applier's view opened for `Advance`: the node's configuration view, every conf entry
 from its index skipped. -/
-theorem appNode_open (γr : RNames) (n : Loc) (l : List LogEntry) (k : Nat) (m : Membership) :
+theorem appNode_open (γr : RNames) (n : NodeH) (l : List LogEntry) (k : Nat) (m : Membership) :
     appNode (GF := GF) γr n l k m ⊢ ∃ v : ConfigView, nodeConfig n γr.cluster kvrRaftN v ∗
       skippedIn γr.cluster l v.applied k ∗
       (nodeConfig n γr.cluster kvrRaftN v -∗ appNode γr n l k m) := by

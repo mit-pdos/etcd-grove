@@ -69,12 +69,12 @@ instance stepLaw_persistent F γ N id : Persistent (stepLaw (GF := GF) F γ N id
   unfold stepLaw; infer_instance
 
 /-- The transport's fixed fields, its node and stats, and the step law (see the file header). -/
-def isTransportCore (F : KvFacts GF) (t : Loc) (γ : Cluster) (N : Namespace) (id : w64) (n : Loc) :
+def isTransportCore (F : KvFacts GF) (t : Loc) (γ : Cluster) (N : Namespace) (id : w64) (n : NodeH) :
     IProp GF :=
   iprop(∃ (sp : Loc),
     t.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Transport, go!"id"] ↦□ id ∗
     t.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Transport, go!"node"] ↦□
-      interface.mkOk (go.GoType.PointerType node.ty) #n ∗
+      interface.mkOk (go.GoType.PointerType node.ty) #n.loc ∗
     t.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Transport, go!"stats"] ↦□ sp ∗
     isStats sp ∗ isNode n γ N id ∗ stepLaw F γ N id ∗ ⌜Cluster.trace γ = none⌝)
 

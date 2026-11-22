@@ -139,7 +139,7 @@ Ready batch the apply worker received. -/
 def srvMergeAttachment (s : Loc) (rd : ReadNames) (γ : RNNames GF) : IProp GF :=
   letI := srvStor (GF := GF) γ.node
   iprop(∃ chan pin, rnMsgSnapCAddr (srvRAddr s) ↦□ chan ∗ isRNMsgSnapC γ chan ∗
-    dghostVar pin DFrac.discard γ.nl ∗ nodeTagPin γ.node.cl γ.nl
+    dghostVar pin DFrac.discard γ.nl.installs ∗ nodeTagPin γ.node.cl γ.nl
       (fun sv => iprop(snapshotValid γ.node.cl sv ∗ srvStoredOrigin γ.node.cl rd.cursor pin γ.snap0 sv)))
 
 instance (s : Loc) (rd : ReadNames) (γ : RNNames GF) :

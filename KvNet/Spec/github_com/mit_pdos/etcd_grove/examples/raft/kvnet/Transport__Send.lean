@@ -33,7 +33,7 @@ def sendElem (F : KvFacts GF) (m : Loc) : IProp GF :=
 
 /-- See the file header. -/
 abbrev Transport.Send.spec : Prop :=
-  ∀ (F : KvFacts GF) (t : Loc) (γ : Cluster) (N : Namespace) (id : w64) (n : Loc) (msl : GoSlice)
+  ∀ (F : KvFacts GF) (t : Loc) (γ : Cluster) (N : Namespace) (id : w64) (n : NodeH) (msl : GoSlice)
     (dqs : DFrac) (ms : List Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet ∗
       isTransportCore F t γ N id n ∗ isPeers F t ∗ msl ↦*{dqs} ms ∗ [∗list] m ∈ ms, sendElem F m }}

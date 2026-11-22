@@ -330,7 +330,7 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The driver's view after the committed log `pre ++ L`** (see the file
 header): the node API's `nodeConfig` of the node `n` with `srvCfgOk` at the cluster's voters. -/
-def srvCfgView (γs : ServerRaftNames) (n : Loc) (pre L : List EntryModel) : IProp GF :=
+def srvCfgView (γs : ServerRaftNames) (n : NodeH) (pre L : List EntryModel) : IProp GF :=
   letI := srvStor (GF := GF) γs.raft
   iprop(∃ v : ConfigView, nodeConfig n γs.raft.cl srvClusterN v ∗
     ⌜srvCfgOk γs.raft.cfg (pre ++ L) v⌝)
@@ -344,7 +344,7 @@ driver's view and a share of the node's running token (the apply side's half, `d
 refutes raft's stopped answer, `nodeRunning_stopped`: etcd stops raft only after the scheduler is
 drained), it returns the new `*ConfState`, owned, of the membership `m'`, and the view at
 `⟨k + 1, m'⟩`. -/
-def raftApplyCC (γs : ServerRaftNames) (n : Loc) (nd : GoInterface) : IProp GF :=
+def raftApplyCC (γs : ServerRaftNames) (n : NodeH) (nd : GoInterface) : IProp GF :=
   letI := srvStor (GF := GF) γs.raft
   iprop(∃ ni : GoInterfaceOk, ⌜nd = GoInterface.ok ni⌝ ∗
     □ (∀ (c : GoInterface) (cm : ConfChangeM) (l : List LogEntry) (v : ConfigView)
@@ -359,7 +359,7 @@ def raftApplyCC (γs : ServerRaftNames) (n : Loc) (nd : GoInterface) : IProp GF 
           nodeConfig n γs.raft.cl srvClusterN ⟨k + 1, m'⟩ ∗
           nodeRunning n γs.raft.cl srvClusterN q }}))
 
-instance raftApplyCC_persistent (γs : ServerRaftNames) (n : Loc) (nd : GoInterface) :
+instance raftApplyCC_persistent (γs : ServerRaftNames) (n : NodeH) (nd : GoInterface) :
     Persistent (raftApplyCC (GF := GF) γs n nd) := by
   unfold raftApplyCC; infer_instance
 
@@ -374,15 +374,15 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The server `s`'s raft node, for its conf changes** (persistent; 2026-10-30, the repair: until
 then `srvRaftNodeDyn`, in a dynamic cluster): `s.r`'s `Node` (the node `n`) meets `raftApplyCC`. -/
-def srvRaftNodeCC (s : Loc) (γs : ServerRaftNames) (n : Loc) : IProp GF :=
+def srvRaftNodeCC (s : Loc) (γs : ServerRaftNames) (n : NodeH) : IProp GF :=
   iprop(∃ nd : GoInterface, srvNodeAddr s ↦□ nd ∗ raftApplyCC γs n nd)
 
-instance srvRaftNodeCC_persistent (s : Loc) (γs : ServerRaftNames) (n : Loc) :
+instance srvRaftNodeCC_persistent (s : Loc) (γs : ServerRaftNames) (n : NodeH) :
     Persistent (srvRaftNodeCC (GF := GF) s γs n) := by
   unfold srvRaftNodeCC; infer_instance
 
 /-- The contract reads only the cluster. -/
-theorem srvRaftNodeCC_congr (s : Loc) (γ1 γ2 : ServerRaftNames) (n : Loc) (h : γ1.raft = γ2.raft) :
+theorem srvRaftNodeCC_congr (s : Loc) (γ1 γ2 : ServerRaftNames) (n : NodeH) (h : γ1.raft = γ2.raft) :
     srvRaftNodeCC (GF := GF) s γ1 n = srvRaftNodeCC s γ2 n := by
   unfold srvRaftNodeCC raftApplyCC; rw [h]
 

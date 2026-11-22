@@ -124,7 +124,7 @@ A fancy update: `tickMu`'s guard over `latestTickTs` is made here (`sync.init_RW
 pools at levels 3 and 4, half of the lock's `2 ^ 30 - 1` slots each, under `threadBound GF ≤ 2 ^ 29`);
 the node is raft's (`Hnode`, recorded in `isRaftNode`). -/
 theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames GF) (a : Loc) (rv : raftNode)
-    (Hnode : rv.raftNodeConfig'.Node' = interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.node.ty) #γ.nl)
+    (Hnode : rv.raftNodeConfig'.Node' = interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.node.ty) #γ.nl.loc)
     (Hbnd : threadBound GF ≤ 2 ^ 29) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       rnEnvOk E γ ∗ rnLogFits γ ∗ rnReadStateBridge E γ ∗

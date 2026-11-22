@@ -235,7 +235,7 @@ layer 4), its durable state (`raftState`, at `RaftState.init`), its configuratio
 `run` holds of the storage (`runStor`, persistent, at the same key; until 2026-10-30 the storage's
 snapshot token). -/
 def drvRes (γr : RKVNames) (id : w64) (nd : GoInterface) (st : Loc) : IProp GF :=
-  iprop(∃ (n : Loc) (K : GName), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
+  iprop(∃ (n : NodeH) (K : GName), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n.loc⌝ ∗
     isNode n γr.cluster kvRaftN id ∗
     nodeDriver n γr.cluster kvRaftN (NodeDriverState.init (kvStorIface st) K) ∗
     raftState γr.cluster id RaftState.init ∗
@@ -373,7 +373,7 @@ theorem StartCluster.wp_proof
     wp_apply wp_mapInsert go.uint64 mS S id0 st $$ [$HmS] as HmS
     wp_for_post
     iframe
-    iexists k + W64 1, id0, <[id0 := interface.mkOk (go.GoType.PointerType node.ty) #n]> M,
+    iexists k + W64 1, id0, <[id0 := interface.mkOk (go.GoType.PointerType node.ty) #n.loc]> M,
       <[id0 := st]> S
     have Hk1 : sint.nat (k + W64 1) = sint.nat k + 1 := by word
     rw [Hk1, take_succ_of_getElem? _ _ _ Hid0]
@@ -396,7 +396,7 @@ theorem StartCluster.wp_proof
       ipureintro; rfl
     isplitl
     · iapply (BigSepL.bigSepL_append (Φ := fun _ id => iprop(∃ (nd : GoInterface) (st' : Loc),
-          ⌜(<[id0 := interface.mkOk (go.GoType.PointerType node.ty) #n]> M) !! id = some nd ∧
+          ⌜(<[id0 := interface.mkOk (go.GoType.PointerType node.ty) #n.loc]> M) !! id = some nd ∧
             (<[id0 := st]> S) !! id = some st'⌝ ∗ drvRes (GF := GF) γr id nd st'))).2
       isplitl [Hdone]
       · iapply (BigSepL.bigSepL_mono (Φ := fun _ id => iprop(∃ (nd : GoInterface) (st' : Loc),
@@ -413,7 +413,7 @@ theorem StartCluster.wp_proof
         rw [GMap.lookup_insert_ne _ _ (Ne.symm Hne), GMap.lookup_insert_ne _ _ (Ne.symm Hne)]
         exact Hl
       · iapply (BigSepL.bigSepL_singleton (Φ := fun _ id => iprop(∃ (nd : GoInterface) (st' : Loc),
-          ⌜(<[id0 := interface.mkOk (go.GoType.PointerType node.ty) #n]> M) !! id = some nd ∧
+          ⌜(<[id0 := interface.mkOk (go.GoType.PointerType node.ty) #n.loc]> M) !! id = some nd ∧
             (<[id0 := st]> S) !! id = some st'⌝ ∗ drvRes (GF := GF) γr id nd st'))).2
         iexists _, st
         isplitr

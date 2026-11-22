@@ -31,7 +31,7 @@ variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 
 /-- See the file header. -/
 abbrev Transport.dial.spec : Prop :=
-  ∀ (F : KvFacts GF) (t : Loc) (γ : Cluster) (N : Namespace) (id : w64) (n : Loc) (p : Loc)
+  ∀ (F : KvFacts GF) (t : Loc) (γ : Cluster) (N : Namespace) (id : w64) (n : NodeH) (p : Loc)
     (pid : w64) (a : GoString) (et ed : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet ∗
       isTransportCore F t γ N id n ∗ isPeerAddr F p pid a ∗ globalAddr net.errTimeout ↦□ et ∗

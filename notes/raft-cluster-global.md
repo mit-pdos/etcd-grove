@@ -158,3 +158,33 @@ are equal by unfolding.
 The scripts used are in `.lake/tmp/scripts/` of the worktree (not committed): `globsec.py` moves a
 section to the global variables, `heapwrap.py` wraps a declaration that needs the heap, `locfix.py`
 and `binderfix.py` handle `NodeH` vs `Loc`, and `fixloop.sh` runs them.
+
+## (f) Status (2026-11-22, branch `raft-cluster-global-2`, second session)
+
+**Done in this session:**
+- `InvNode`/`InvNodeRule`: every declaration whose statement and proof need no heap or Go semantics is
+  in a global section (`section api`, `{GF} [AllG GF] [ReceiptGS GF] [InvGS GF]`), the rest in
+  `section apiHeap` runs, in file order (split by a classifier over the built environment, which
+  follows each declaration's constants to the heap classes; `.lake/tmp/rcg/Classify.lean`,
+  `split.py`). Global now: `Cluster.*`, `isCluster`, `isCommittedLogLb`, `ownCommittedOps`,
+  `ownReadCtxs`, the read-context facts, `sentMsg`, `msgCredits`, `snapshotCert`, `raftState`,
+  `nodeVacant(A)`, `nodeCrashTok`, `nodeArm`, `confAt`, `confDecided`, `ownConfDecisions`,
+  `ownSnapsMade`, `snapMade`, `joinAuth`, `joinAuth_join`, `nodeVacant_arm(D)`, `nodeCrash`, and
+  their laws. `nodeVacantA`/`nodeCrashTok` take `[CrashGS GF]` per declaration. Still heap: the
+  node-level predicates, `nodeBoot` (its `bootMarshal` is a WP), hence `cluster_alloc(_ns,_traced)`;
+  new `cluster_alloc_nb` is the global allocation without a bootstrap log (kvnet's `Hstart`).
+- `NodeInstalls.lean` (importable): `NodeH.installs` (a `GName`) and `nodeInstalledIndex_installs`.
+  The etcd server pinned its node's location in a `dghostVar` before `StartNode` returns; `NodeH`
+  holds functions (not `Pos.Countable`), so the server pins `n.installs` instead.
+- Clients: a static sweep (`.lake/tmp/rcg/sweep.py`): a variable a node-level predicate takes as its
+  node gets `NodeH` in its declaration's binder (order kept), `#n`/`n @!!` get `.loc`; client
+  definitions whose binder changed become node-level predicates at that position (per package),
+  to a fixpoint. The server's `RNNames.nl : NodeH` (`#γ.nl.loc` in code).
+- The client sections' stray `[AllG GF]` variables (kvreconf, kvdurable, RaftNoAx/KvNet own files)
+  are removed (`notes/decisions.md`, "One `AllG`"): with the raft vocabulary taking `[AllG GF]` as an
+  instance argument, the second instance made a client's hypotheses and raft's laws different terms.
+  Specs that relied on `AllG` to fix `GF` get `(GF := GF)` on their first predicate.
+- `kvdurable/Store.lean`: `KdNames`, the namespaces, `kdMask`, `rkvVal`, `opAu`, `opSlot`, `kvCore`,
+  `readSlot`, `readReg`, `rkvInvBody`, `rkvInv`, `waitP`, `kvLb`, `readAns`, `kdSnapRecOk`,
+  `kdSnapInv`, moved out of `Defs.lean` (statements unchanged) into a global section; `Defs` imports
+  it. RaftNoAx's copy (`kvdurablenoax/Store.lean`) is what kvnet imports.

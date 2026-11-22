@@ -26,13 +26,13 @@ variable [go_gctx : GoGlobalContext] [go.IntoValInj GoString]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
 
 attribute [local instance] kdStorageModel
 
 /-- See the file header. -/
 abbrev Replica.snapshot.spec : Prop :=
-  ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r n st sts sq : Loc)
+  ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r : Loc) (n : NodeH) (st sts sq : Loc)
     (ρ : KdRepNames) (q : KSnapReq) (known : w64) (qp : Qp),
   {{ isReplicaR γ vs dir id r n st sts sq ρ ∗ snapReqOk γ ρ.key ρ.γs ρ.ph q ∗
       memSnapLb ρ.γs (uint.nat known) ∗ monoNatLbOwn ρ.ph.is (uint.nat known) ∗

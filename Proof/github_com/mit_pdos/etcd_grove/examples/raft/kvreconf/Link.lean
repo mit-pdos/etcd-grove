@@ -136,15 +136,15 @@ theorem raft_kvreconf.wp_sleep :
     raft_kvreconf.sleep.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.sleep.wp_proof raft_kvreconf.wp_below _root_.Perennial.time.wp_After
 
-theorem raft_kvreconf.Cluster.wp_all [AllG GF] [KvrStor GF] :
+theorem raft_kvreconf.Cluster.wp_all [KvrStor GF] :
     raft_kvreconf.Cluster.all.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Cluster.all.wp_proof
 
-theorem raft_kvreconf.Cluster.wp_random [AllG GF] [KvrStor GF] :
+theorem raft_kvreconf.Cluster.wp_random [KvrStor GF] :
     raft_kvreconf.Cluster.random.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Cluster.random.wp_proof raft_kvreconf.Cluster.wp_all raft_kvreconf.wp_below
 
-theorem raft_kvreconf.Cluster.wp_Disrupt [AllG GF] [KvrStor GF] :
+theorem raft_kvreconf.Cluster.wp_Disrupt [KvrStor GF] :
     raft_kvreconf.Cluster.Disrupt.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Cluster.Disrupt.wp_proof raft_kvreconf.wp_sleep raft_kvreconf.Cluster.wp_random raft_kvreconf.wp_below node.wp_TransferLeadership node.wp_Campaign node.wp_ForgetLeader node.wp_Status context.wp_WithTimeoutBackground
 
@@ -152,11 +152,11 @@ theorem raft_kvreconf.wp_encode :
     raft_kvreconf.encode.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.encode.wp_proof
 
-theorem raft_kvreconf.Cluster.wp_replica [AllG GF] [KvrStor GF] :
+theorem raft_kvreconf.Cluster.wp_replica [KvrStor GF] :
     raft_kvreconf.Cluster.replica.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Cluster.replica.wp_proof
 
-theorem raft_kvreconf.Replica.wp_conf [AllG GF] [KvrStor GF] :
+theorem raft_kvreconf.Replica.wp_conf [KvrStor GF] :
     raft_kvreconf.Replica.conf.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Replica.conf.wp_proof
 
@@ -164,11 +164,11 @@ theorem raft_kvreconf.wp_oneIn :
     raft_kvreconf.oneIn.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.oneIn.wp_proof
 
-theorem raft_kvreconf.Cluster.wp_randomMember [AllG GF] [KvrStor GF] :
+theorem raft_kvreconf.Cluster.wp_randomMember [KvrStor GF] :
     raft_kvreconf.Cluster.randomMember.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Cluster.randomMember.wp_proof raft_kvreconf.Cluster.wp_random raft_kvreconf.Cluster.wp_replica raft_kvreconf.Replica.wp_conf raft_kvreconf.wp_below raft_kvreconf.wp_oneIn raftpb.ConfState.wp_GetVoters raftpb.ConfState.wp_GetLearners
 
-theorem raft_kvreconf.Replica.wp_propose [AllG GF] [KvrStor GF] :
+theorem raft_kvreconf.Replica.wp_propose [KvrStor GF] :
     raft_kvreconf.Replica.propose.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Replica.propose.wp_proof node.wp_Propose context.wp_WithTimeoutBackground
 
@@ -176,15 +176,15 @@ theorem raft_kvreconf.Stats.wp_add :
     raft_kvreconf.Stats.add.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Stats.add.wp_proof
 
-theorem raft_kvreconf.Cluster.wp_do [AllG GF] [KvrStor GF] :
+theorem raft_kvreconf.Cluster.wp_do [KvrStor GF] :
     raft_kvreconf.Cluster.do.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Cluster.do.wp_proof raft_kvreconf.wp_encode raft_kvreconf.Cluster.wp_randomMember raft_kvreconf.Replica.wp_propose raft_kvreconf.Stats.wp_add
 
-theorem raft_kvreconf.Cluster.wp_Get [AllG GF] [KvrStor GF] :
+theorem raft_kvreconf.Cluster.wp_Get [KvrStor GF] :
     raft_kvreconf.Cluster.Get.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Cluster.Get.wp_proof raft_kvreconf.Cluster.wp_do
 
-theorem raft_kvreconf.Cluster.wp_Put [AllG GF] [KvrStor GF] :
+theorem raft_kvreconf.Cluster.wp_Put [KvrStor GF] :
     raft_kvreconf.Cluster.Put.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Cluster.Put.wp_proof raft_kvreconf.Cluster.wp_do
 
@@ -192,19 +192,19 @@ theorem raft_kvreconf.wp_readCtx :
     raft_kvreconf.readCtx.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.readCtx.wp_proof raft_kvreconf.wp_encode
 
-theorem raft_kvreconf.Replica.wp_read [AllG GF] [KvrStor GF] :
+theorem raft_kvreconf.Replica.wp_read [KvrStor GF] :
     raft_kvreconf.Replica.read.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Replica.read.wp_proof raft_kvreconf.wp_readCtx node.wp_ReadIndex context.wp_WithTimeoutBackground
 
-theorem raft_kvreconf.Cluster.wp_Read [AllG GF] [KvrStor GF] :
+theorem raft_kvreconf.Cluster.wp_Read [KvrStor GF] :
     raft_kvreconf.Cluster.Read.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Cluster.Read.wp_proof raft_kvreconf.Cluster.wp_randomMember raft_kvreconf.Replica.wp_read raft_kvreconf.Stats.wp_add _root_.Perennial.github_com.mit_pdos.gokv.trusted_proph.ResolveBytes.wp_proof
 
-theorem raft_kvreconf.Cluster.wp_config [AllG GF] [KvrStor GF] :
+theorem raft_kvreconf.Cluster.wp_config [KvrStor GF] :
     raft_kvreconf.Cluster.config.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Cluster.config.wp_proof
 
-theorem raft_kvreconf.Cluster.wp_tick [AllG GF] [KvrStor GF] :
+theorem raft_kvreconf.Cluster.wp_tick [KvrStor GF] :
     raft_kvreconf.Cluster.tick.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Cluster.tick.wp_proof raft_kvreconf.wp_below
 
@@ -212,23 +212,23 @@ theorem raft_kvreconf.wp_copyMsg :
     raft_kvreconf.copyMsg.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.copyMsg.wp_proof proto.wp_CloneSnapshot
 
-theorem raft_kvreconf.Cluster.wp_dropped [AllG GF] [KvrStor GF] :
+theorem raft_kvreconf.Cluster.wp_dropped [KvrStor GF] :
     raft_kvreconf.Cluster.dropped.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Cluster.dropped.wp_proof raft_kvreconf.Stats.wp_add raftpb.Message.wp_GetTo raftpb.Message.wp_GetType node.wp_ReportUnreachable node.wp_ReportSnapshot
 
-theorem raft_kvreconf.Cluster.wp_step [AllG GF] [KvrStor GF] :
+theorem raft_kvreconf.Cluster.wp_step [KvrStor GF] :
     raft_kvreconf.Cluster.step.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Cluster.step.wp_proof raft_kvreconf.Stats.wp_add raft_kvreconf.wp_oneIn raftpb.Message.wp_GetTo raftpb.Message.wp_GetType node.wp_Step node.wp_ReportUnreachable node.wp_ReportSnapshot context.wp_WithTimeoutBackground
 
-theorem raft_kvreconf.Cluster.wp_deliver [AllG GF] [KvrStor GF] :
+theorem raft_kvreconf.Cluster.wp_deliver [KvrStor GF] :
     raft_kvreconf.Cluster.deliver.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Cluster.deliver.wp_proof raft_kvreconf.Cluster.wp_replica raft_kvreconf.Cluster.wp_dropped raft_kvreconf.Cluster.wp_step raft_kvreconf.wp_copyMsg raft_kvreconf.Stats.wp_add raft_kvreconf.wp_oneIn raft_kvreconf.wp_below raftpb.Message.wp_GetTo
 
-theorem raft_kvreconf.Cluster.wp_send [AllG GF] [KvrStor GF] :
+theorem raft_kvreconf.Cluster.wp_send [KvrStor GF] :
     raft_kvreconf.Cluster.send.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Cluster.send.wp_proof raft_kvreconf.Cluster.wp_replica raft_kvreconf.wp_copyMsg raft_kvreconf.Cluster.wp_deliver
 
-theorem raft_kvreconf.Cluster.wp_sender [AllG GF] [KvrStor GF] :
+theorem raft_kvreconf.Cluster.wp_sender [KvrStor GF] :
     raft_kvreconf.Cluster.sender.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Cluster.sender.wp_proof raft_kvreconf.Cluster.wp_send
 
@@ -236,7 +236,7 @@ theorem raft_kvreconf.wp_decode :
     raft_kvreconf.decode.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.decode.wp_proof
 
-theorem raft_kvreconf.Replica.wp_applyOp [AllG GF] [StorageModel GF] :
+theorem raft_kvreconf.Replica.wp_applyOp [StorageModel GF] :
     raft_kvreconf.Replica.applyOp.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Replica.applyOp.wp_proof raft_kvreconf.wp_decode
 
@@ -244,15 +244,15 @@ theorem raft_kvreconf.wp_validConf [StorageModel GF] :
     raft_kvreconf.validConf.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.validConf.wp_proof RaftLink.tracker.wp_MakeProgressTracker_api RaftLink.confchange.wp_Restore_api RaftLink.confchange.Changer.wp_Simple_api RaftLink.confchange.Changer.wp_EnterJoint_api RaftLink.confchange.Changer.wp_LeaveJoint_api raftpb.ConfChangeV2.wp_LeaveJoint raftpb.ConfChangeV2.wp_EnterJoint raftpb.ConfChangeV2.wp_GetChanges
 
-theorem raft_kvreconf.Replica.wp_applyConf [AllG GF] [StorageModel GF] :
+theorem raft_kvreconf.Replica.wp_applyConf [StorageModel GF] :
     raft_kvreconf.Replica.applyConf.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Replica.applyConf.wp_proof node.wp_ApplyConfChange raft_kvreconf.wp_validConf raft_kvreconf.Stats.wp_add raftpb.ConfChange.wp_AsV2 raftpb.ConfChangeV2.wp_AsV2 raftpb.ConfChangeV2.wp_EnterJoint
 
-theorem raft_kvreconf.Replica.wp_applyEntry [AllG GF] [StorageModel GF] :
+theorem raft_kvreconf.Replica.wp_applyEntry [StorageModel GF] :
     raft_kvreconf.Replica.applyEntry.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Replica.applyEntry.wp_proof raft_kvreconf.Replica.wp_applyOp raft_kvreconf.Replica.wp_applyConf raftpb.Entry.wp_GetType raftpb.Entry.wp_GetData raftpb.Entry.wp_GetIndex proto.wp_UnmarshalConfChange proto.wp_UnmarshalConfChangeV2
 
-theorem raft_kvreconf.Replica.wp_install [AllG GF] [StorageModel GF] :
+theorem raft_kvreconf.Replica.wp_install [StorageModel GF] :
     raft_kvreconf.Replica.install.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Replica.install.wp_proof raft_kvreconf.Stats.wp_add raftpb.SnapshotMetadata.wp_GetConfState raftpb.SnapshotMetadata.wp_GetIndex raftpb.ConfState.wp_GetVotersOutgoing raftpb.ConfState.wp_GetLearners raftpb.ConfState.wp_GetLearnersNext proto.wp_CloneConfState
 
@@ -260,7 +260,7 @@ theorem raft_kvreconf.wp_decodeReadCtx :
     raft_kvreconf.decodeReadCtx.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.decodeReadCtx.wp_proof raft_kvreconf.wp_decode
 
-theorem raft_kvreconf.Replica.wp_answer [AllG GF] [StorageModel GF] :
+theorem raft_kvreconf.Replica.wp_answer [StorageModel GF] :
     raft_kvreconf.Replica.answer.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Replica.answer.wp_proof raft_kvreconf.wp_decodeReadCtx
 
@@ -284,7 +284,7 @@ theorem raft_kvreconf.wp_encodeState :
     raft_kvreconf.encodeState.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.encodeState.wp_proof raft_kvreconf.wp_putMap
 
-theorem raft_kvreconf.Replica.wp_request [AllG GF] [KvrStor GF] :
+theorem raft_kvreconf.Replica.wp_request [KvrStor GF] :
     raft_kvreconf.Replica.request.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Replica.request.wp_proof raft_kvreconf.wp_encodeState
 
@@ -304,23 +304,23 @@ theorem raft_kvreconf.wp_decodeState :
     raft_kvreconf.decodeState.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.decodeState.wp_proof raft_kvreconf.wp_getMap
 
-theorem raft_kvreconf.Replica.wp_run [AllG GF] [KvrStor GF] :
+theorem raft_kvreconf.Replica.wp_run [KvrStor GF] :
     raft_kvreconf.Replica.run.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Replica.run.wp_proof raft_kvreconf.Replica.wp_applyEntry raft_kvreconf.Replica.wp_install raft_kvreconf.Replica.wp_answer raft_kvreconf.Replica.wp_request raft_kvreconf.wp_fits raft_kvreconf.wp_oneIn raft_kvreconf.wp_decodeState node.wp_Ready node.wp_Advance wp_IsEmptySnap wp_IsEmptyHardState raftpb.Snapshot.wp_GetData raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex MemoryStorage.wp_Append MemoryStorage.wp_ApplySnapshot MemoryStorage.wp_SetHardState
 
-theorem raft_kvreconf.Replica.wp_ticker [AllG GF] [KvrStor GF] :
+theorem raft_kvreconf.Replica.wp_ticker [KvrStor GF] :
     raft_kvreconf.Replica.ticker.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Replica.ticker.wp_proof _root_.Perennial.time.wp_NewTicker _root_.Perennial.time.Ticker.wp_Stop node.wp_Tick
 
-theorem raft_kvreconf.Replica.wp_snapshot [AllG GF] [KvrStor GF] :
+theorem raft_kvreconf.Replica.wp_snapshot [KvrStor GF] :
     raft_kvreconf.Replica.snapshot.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Replica.snapshot.wp_proof raft_kvreconf.Stats.wp_add raft_kvreconf.wp_below raftpb.ConfState.wp_GetVotersOutgoing MemoryStorage.wp_CreateSnapshot MemoryStorage.wp_FirstIndex MemoryStorage.wp_Compact
 
-theorem raft_kvreconf.Replica.wp_snapshotter [AllG GF] [KvrStor GF] :
+theorem raft_kvreconf.Replica.wp_snapshotter [KvrStor GF] :
     raft_kvreconf.Replica.snapshotter.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Replica.snapshotter.wp_proof raft_kvreconf.Replica.wp_snapshot
 
-theorem raft_kvreconf.wp_newReplica [AllG GF] [KvrStor GF] :
+theorem raft_kvreconf.wp_newReplica [KvrStor GF] :
     raft_kvreconf.newReplica.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.newReplica.wp_proof raft_kvreconf.Replica.wp_run raft_kvreconf.Replica.wp_ticker raft_kvreconf.Replica.wp_snapshotter proto.wp_CloneConfState
 
@@ -348,7 +348,7 @@ theorem raft_kvreconf.quietLogger.wp_Warningf :
     raft_kvreconf.quietLogger.Warningf.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.quietLogger.Warningf.wp_proof
 
-theorem raft_kvreconf.Cluster.wp_startNew [AllG GF] [KvrStor GF] :
+theorem raft_kvreconf.Cluster.wp_startNew [KvrStor GF] :
     raft_kvreconf.Cluster.startNew.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Cluster.startNew.wp_proof raft_kvreconf.Cluster.wp_config raft_kvreconf.Cluster.wp_tick raft_kvreconf.Cluster.wp_sender raft_kvreconf.wp_newReplica raft_kvreconf.Stats.wp_add wp_RestartNode wp_NewMemoryStorage raft_kvreconf.Storage.wp_InitialState raft_kvreconf.Storage.wp_Snapshot MemoryStorage.wp_LastIndex MemoryStorage.wp_FirstIndex MemoryStorage.wp_Term MemoryStorage.wp_Entries raft_kvreconf.quietLogger.wp_Debugf raft_kvreconf.quietLogger.wp_Errorf raft_kvreconf.quietLogger.wp_Infof raft_kvreconf.quietLogger.wp_Warningf
 
@@ -356,23 +356,23 @@ theorem raft_kvreconf.wp_pick :
     raft_kvreconf.pick.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.pick.wp_proof raft_kvreconf.wp_below
 
-theorem raft_kvreconf.Cluster.wp_randomID [AllG GF] [KvrStor GF] :
+theorem raft_kvreconf.Cluster.wp_randomID [KvrStor GF] :
     raft_kvreconf.Cluster.randomID.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Cluster.randomID.wp_proof raft_kvreconf.Cluster.wp_random raft_kvreconf.Cluster.wp_startNew raft_kvreconf.wp_oneIn raft_kvreconf.wp_pick raftpb.ConfState.wp_GetVoters raftpb.ConfState.wp_GetVotersOutgoing raftpb.ConfState.wp_GetLearners
 
-theorem raft_kvreconf.Cluster.wp_randomChange [AllG GF] [KvrStor GF] :
+theorem raft_kvreconf.Cluster.wp_randomChange [KvrStor GF] :
     raft_kvreconf.Cluster.randomChange.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Cluster.randomChange.wp_proof raft_kvreconf.Cluster.wp_random raft_kvreconf.Cluster.wp_randomID raft_kvreconf.Replica.wp_conf raft_kvreconf.wp_below raft_kvreconf.wp_oneIn raftpb.ConfChangeType.wp_Enum raftpb.ConfChangeTransition.wp_Enum
 
-theorem raft_kvreconf.Cluster.wp_Reconfigure [AllG GF] [KvrStor GF] :
+theorem raft_kvreconf.Cluster.wp_Reconfigure [KvrStor GF] :
     raft_kvreconf.Cluster.Reconfigure.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Cluster.Reconfigure.wp_proof raft_kvreconf.wp_sleep raft_kvreconf.Cluster.wp_randomChange raft_kvreconf.Cluster.wp_random raft_kvreconf.Stats.wp_add node.wp_ProposeConfChange context.wp_WithTimeoutBackground
 
-theorem raft_kvreconf.Replica.wp_stop [AllG GF] [KvrStor GF] :
+theorem raft_kvreconf.Replica.wp_stop [KvrStor GF] :
     raft_kvreconf.Replica.stop.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Replica.stop.wp_proof node.wp_Stop
 
-theorem raft_kvreconf.Cluster.wp_Stop [AllG GF] [KvrStor GF] :
+theorem raft_kvreconf.Cluster.wp_Stop [KvrStor GF] :
     raft_kvreconf.Cluster.Stop.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Cluster.Stop.wp_proof raft_kvreconf.Cluster.wp_all raft_kvreconf.Replica.wp_stop
 
@@ -388,7 +388,7 @@ theorem raft_kvreconf.wp_RandomConfig :
     raft_kvreconf.RandomConfig.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.RandomConfig.wp_proof raft_kvreconf.wp_RandomOptions raft_kvreconf.wp_below
 
-theorem raft_kvreconf.wp_StartCluster [AllG GF] [KvrStor GF] :
+theorem raft_kvreconf.wp_StartCluster [KvrStor GF] :
     raft_kvreconf.StartCluster.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.StartCluster.wp_proof raft_kvreconf.Cluster.wp_config raft_kvreconf.Cluster.wp_tick raft_kvreconf.Cluster.wp_sender raft_kvreconf.wp_newReplica raft_kvreconf.Stats.wp_add wp_RestartNode wp_NewMemoryStorage raft_kvreconf.Storage.wp_InitialState raft_kvreconf.Storage.wp_Snapshot MemoryStorage.wp_LastIndex MemoryStorage.wp_FirstIndex MemoryStorage.wp_Term MemoryStorage.wp_Entries raft_kvreconf.quietLogger.wp_Debugf raft_kvreconf.quietLogger.wp_Errorf raft_kvreconf.quietLogger.wp_Infof raft_kvreconf.quietLogger.wp_Warningf
 
@@ -412,7 +412,7 @@ theorem raft_kvreconf.wp_Model :
     raft_kvreconf.Model.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Model.wp_proof raft_kvreconf.wp_copyMap raft_kvreconf.wp_within raft_kvreconf.wp_hashMap
 
-theorem raft_kvreconf.wp_Run [AllG GF] [KvrStor GF] :
+theorem raft_kvreconf.wp_Run [KvrStor GF] :
     raft_kvreconf.Run.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Run.wp_proof raft_kvreconf.wp_StartCluster raft_kvreconf.Cluster.wp_Reconfigure raft_kvreconf.Cluster.wp_Disrupt raft_kvreconf.Cluster.wp_Put raft_kvreconf.Cluster.wp_Get raft_kvreconf.Cluster.wp_Read raft_kvreconf.wp_Model raft_kvreconf.wp_Gen lintest.wp_Run
 

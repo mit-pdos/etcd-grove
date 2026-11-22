@@ -31,7 +31,7 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 /-- See the file header. -/
 abbrev Node.handle.spec (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
     (cf : GoInterface → List w8 → IProp GF) : Prop :=
-  ∀ (nd : Loc) (γ : Cluster) (N : Namespace) (id : w64) (n : Loc) (kind : w8) (p : GoSlice)
+  ∀ (nd : Loc) (γ : Cluster) (N : Namespace) (id : w64) (n : NodeH) (kind : w8) (p : GoSlice)
     (pl : List w8) (dq : DFrac) (tmo : _root_.Perennial.time.Duration),
   pl.length < 2 ^ 63 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet ∗

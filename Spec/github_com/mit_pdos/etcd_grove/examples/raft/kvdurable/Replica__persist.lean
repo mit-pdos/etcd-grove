@@ -28,16 +28,16 @@ variable [go_gctx : GoGlobalContext] [go.IntoValInj GoString]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
 
 attribute [local instance] kdStorageModel
 
 /-- See the file header. The caller holds no claim on the pending batch (the snapshotter's
 `persist`): a batch pending in `dmu` is entered by this write and left `fired` for `run`. -/
 abbrev Replica.persist.spec : Prop :=
-  ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r n st sts sq ms : Loc)
+  ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r : Loc) (n : NodeH) (st sts sq ms : Loc)
     (γs : MemStorNames) (ph : KdDmuNames) (q : Qp),
-  {{ isReplica γ vs dir id r n st sts sq ms γs ph ∗ nodeRunning n γ.r.cluster kdRaftN q }}
+  {{ isReplica γ vs dir id r n st sts sq ms γs ph ∗ nodeRunning (GF := GF) n γ.r.cluster kdRaftN q }}
     (App (Val (r @!! go.GoType.PointerType kReplicaTy @!! go!"persist")) (Val #()))
   {{ (ok : Bool), RET #ok; nodeRunning n γ.r.cluster kdRaftN q }}
 
@@ -46,7 +46,7 @@ abbrev Replica.persist.spec : Prop :=
 the snapshotter's, `KdPhase.fired`), and `run` gets the loop's token at `st'` and the messages sent
 (`kdBatchRes`). (The other callers, the snapshotter's, hold no claim: `persist.spec`.) -/
 abbrev Replica.persist.specRun : Prop :=
-  ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r n st sts sq ms : Loc)
+  ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r : Loc) (n : NodeH) (st sts sq ms : Loc)
     (γs : MemStorNames) (ph : KdDmuNames) (q : Qp) (st' : NodeDriverState) (qs : List QMsg) (γb : GName),
   {{ isReplica γ vs dir id r n st sts sq ms γs ph ∗ nodeRunning n γ.r.cluster kdRaftN q ∗
       -- `run`'s claim on its batch (the pending phase's variable, `dmu`'s other half), whose

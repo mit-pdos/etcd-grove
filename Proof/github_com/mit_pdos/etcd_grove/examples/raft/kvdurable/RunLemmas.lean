@@ -33,7 +33,7 @@ variable [go_gctx : GoGlobalContext] [go.IntoValInj GoString]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
 
 attribute [local instance] kdStorageModel
 
@@ -100,7 +100,7 @@ theorem kd_skippedIn_prefix (γ : Cluster) (l l' : List LogEntry) (a b : Nat) (h
   rw [← hget]; exact he
 
 /-- The applier's view carried to a longer delivered log. -/
-theorem appNode_extend (γr : KdNames) (n : Loc) (l l' : List LogEntry) (k : Nat) (m : Membership)
+theorem appNode_extend (γr : KdNames) (n : NodeH) (l l' : List LogEntry) (k : Nat) (m : Membership)
     (hp : l <+: l') (hk : k ≤ l.length) :
     appNode (GF := GF) γr n l k m ∗ deliveredLogLb n γr.r.cluster kdRaftN l' ⊢ appNode γr n l' k m := by
   unfold appNode
@@ -113,7 +113,7 @@ theorem appNode_extend (γr : KdNames) (n : Loc) (l l' : List LogEntry) (k : Nat
 
 /-- The applier's view opened for `Advance`: the node's configuration view, every conf entry
 from its index skipped. -/
-theorem appNode_open (γr : KdNames) (n : Loc) (l : List LogEntry) (k : Nat) (m : Membership) :
+theorem appNode_open (γr : KdNames) (n : NodeH) (l : List LogEntry) (k : Nat) (m : Membership) :
     appNode (GF := GF) γr n l k m ⊢ ∃ v : ConfigView, nodeConfig n γr.r.cluster kdRaftN v ∗
       skippedIn γr.r.cluster l v.applied k ∗
       (nodeConfig n γr.r.cluster kdRaftN v -∗ appNode γr n l k m) := by
@@ -248,7 +248,7 @@ theorem kd_snapReceipt (st ms : Loc) (γs : MemStorNames) (l : SnapLoan) (es : L
 
 /-- The applier's view after a snapshot `Ready`'s `Advance`: at the snapshot's index, the end of
 the delivered log. -/
-theorem appNode_snap (γr : KdNames) (n : Loc) (L : List LogEntry) (i : Nat) (m : Membership)
+theorem appNode_snap (γr : KdNames) (n : NodeH) (L : List LogEntry) (i : Nat) (m : Membership)
     (h : L.length = i) :
     nodeConfig (GF := GF) n γr.r.cluster kdRaftN ⟨i, m⟩ ∗ deliveredLogLb n γr.r.cluster kdRaftN L ⊢
       appNode γr n L L.length m := by
