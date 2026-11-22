@@ -241,7 +241,7 @@ theorem confchange.checkInvariants.wp_proof
         -- (raft-noax) `errors.New` of a constant message
         wp_apply errors.wp_New as %e #He
         unfold forMapPostcondition
-        iright; iright; iright
+        iright; iright; iright; ileft
         iexists _
         isplitr
         · ipureintro; rfl
@@ -336,7 +336,7 @@ theorem confchange.checkInvariants.wp_proof
         -- (raft-noax) `errors.New` of a constant message
         wp_apply errors.wp_New as %e #He
         unfold forMapPostcondition
-        iright; iright; iright
+        iright; iright; iright; ileft
         iexists _
         isplitr
         · ipureintro; rfl
@@ -373,7 +373,7 @@ theorem confchange.checkInvariants.wp_proof
       -- (raft-noax) `errors.New` of a constant message
       wp_apply errors.wp_New as %e #He
       unfold forMapPostcondition
-      iright; iright; iright
+      iright; iright; iright; ileft
       iexists _
       isplitr
       · ipureintro; rfl
@@ -434,7 +434,7 @@ theorem confchange.checkInvariants.wp_proof
       -- (raft-noax) `errors.New` of a constant message
       wp_apply errors.wp_New as %e #He
       unfold forMapPostcondition
-      iright; iright; iright
+      iright; iright; iright; ileft
       iexists _
       isplitr
       · ipureintro; rfl
@@ -456,7 +456,7 @@ theorem confchange.checkInvariants.wp_proof
       -- (raft-noax) `errors.New` of a constant message
       wp_apply errors.wp_New as %e #He
       unfold forMapPostcondition
-      iright; iright; iright
+      iright; iright; iright; ileft
       iexists _
       isplitr
       · ipureintro; rfl
@@ -510,7 +510,7 @@ theorem confchange.checkInvariants.wp_proof
       -- (raft-noax) `errors.New` of a constant message
       wp_apply errors.wp_New as %e #He
       unfold forMapPostcondition
-      iright; iright; iright
+      iright; iright; iright; ileft
       iexists _
       isplitr
       · ipureintro; rfl

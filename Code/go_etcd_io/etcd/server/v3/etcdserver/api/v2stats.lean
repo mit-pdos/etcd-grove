@@ -69,20 +69,7 @@ noncomputable def serverStats.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] serverStats.ty
 
-@[reducible] noncomputable def «struct#6de5bf6f».fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
-  [(go.field_decl.Field go!"Name" go.string go!"json:\"leader\""),
-(go.field_decl.Field go!"Uptime" go.string go!"json:\"uptime\""),
-(go.field_decl.Field go!"StartTime" _root_.Perennial.time.Time.ty go!"json:\"startTime\"")]
-
-@[irreducible] noncomputable def «struct#6de5bf6f».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
-  «struct#6de5bf6f».fieldsUnsealed
-
-noncomputable instance «equals_unfold_struct#6de5bf6f» [GooseExts] [GoGlobalContext] :
-    EqualsUnfold «struct#6de5bf6f».fields «struct#6de5bf6f».fieldsUnsealed :=
-  ⟨by unfold «struct#6de5bf6f».fields; rfl⟩
-
-@[reducible] noncomputable def «struct#6de5bf6f».underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.StructType «struct#6de5bf6f».fields)
+opaque serverStats.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque queueCapacity [GooseExts] [GoGlobalContext] : val
 
@@ -583,136 +570,22 @@ attribute [instance] statsQueue.TypeAssumptions.type_repr
   statsQueue.TypeAssumptions.method_set
   statsQueue.TypeAssumptions.ptr_method_set
 
-structure «struct#6de5bf6f» [GooseExts] where
-  mk ::
-  Name' : GoString
-  Uptime' : GoString
-  StartTime' : _root_.Perennial.time.Time
-
-noncomputable instance «struct#6de5bf6f».zero_val [GooseExts] : ZeroVal «struct#6de5bf6f» :=
-  ⟨«struct#6de5bf6f».mk zeroValDef zeroValDef zeroValDef⟩
-
-class «struct#6de5bf6f».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying «struct#6de5bf6f».underlying «struct#6de5bf6f»
-  get_Name : ∀ (x : «struct#6de5bf6f»), go.IsGoStepPureDetTagged under (StructFieldGet «struct#6de5bf6f».underlying go!"Name") #x (Val #(x.Name'))
-  set_Name : ∀ (x : «struct#6de5bf6f») (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet «struct#6de5bf6f».underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : «struct#6de5bf6f»)))
-  get_Uptime : ∀ (x : «struct#6de5bf6f»), go.IsGoStepPureDetTagged under (StructFieldGet «struct#6de5bf6f».underlying go!"Uptime") #x (Val #(x.Uptime'))
-  set_Uptime : ∀ (x : «struct#6de5bf6f») (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet «struct#6de5bf6f».underlying go!"Uptime") (PairV #x #y) (Val #(({ x with Uptime' := y } : «struct#6de5bf6f»)))
-  get_StartTime : ∀ (x : «struct#6de5bf6f»), go.IsGoStepPureDetTagged under (StructFieldGet «struct#6de5bf6f».underlying go!"StartTime") #x (Val #(x.StartTime'))
-  set_StartTime : ∀ (x : «struct#6de5bf6f») (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet «struct#6de5bf6f».underlying go!"StartTime") (PairV #x #y) (Val #(({ x with StartTime' := y } : «struct#6de5bf6f»)))
-
-attribute [instance] «struct#6de5bf6f».TypeAssumptions.type_repr
-  «struct#6de5bf6f».TypeAssumptions.get_Name
-  «struct#6de5bf6f».TypeAssumptions.set_Name
-  «struct#6de5bf6f».TypeAssumptions.get_Uptime
-  «struct#6de5bf6f».TypeAssumptions.set_Uptime
-  «struct#6de5bf6f».TypeAssumptions.get_StartTime
-  «struct#6de5bf6f».TypeAssumptions.set_StartTime
-
-structure serverStats [GooseExts] where
-  mk ::
-  Name' : GoString
-  ID' : GoString
-  State' : _root_.Perennial.go_etcd_io.raft.v3.StateType
-  StartTime' : _root_.Perennial.time.Time
-  LeaderInfo' : «struct#6de5bf6f»
-  RecvAppendRequestCnt' : w64
-  RecvingPkgRate' : w64
-  RecvingBandwidthRate' : w64
-  SendAppendRequestCnt' : w64
-  SendingPkgRate' : w64
-  SendingBandwidthRate' : w64
-  sendRateQueue' : Loc
-  recvRateQueue' : Loc
-
-noncomputable instance serverStats.zero_val [GooseExts] : ZeroVal serverStats :=
-  ⟨serverStats.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
-
-@[reducible] noncomputable def serverStats.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
-  [(go.field_decl.FieldDecl go!"Name" go.string),
-(go.field_decl.FieldDecl go!"ID" go.string),
-(go.field_decl.FieldDecl go!"State" _root_.Perennial.go_etcd_io.raft.v3.StateType.ty),
-(go.field_decl.FieldDecl go!"StartTime" _root_.Perennial.time.Time.ty),
-(go.field_decl.FieldDecl go!"LeaderInfo" «struct#6de5bf6f».underlying),
-(go.field_decl.FieldDecl go!"RecvAppendRequestCnt" go.uint64),
-(go.field_decl.FieldDecl go!"RecvingPkgRate" go.float64),
-(go.field_decl.FieldDecl go!"RecvingBandwidthRate" go.float64),
-(go.field_decl.FieldDecl go!"SendAppendRequestCnt" go.uint64),
-(go.field_decl.FieldDecl go!"SendingPkgRate" go.float64),
-(go.field_decl.FieldDecl go!"SendingBandwidthRate" go.float64),
-(go.field_decl.FieldDecl go!"sendRateQueue" (go.GoType.PointerType statsQueue.ty)),
-(go.field_decl.FieldDecl go!"recvRateQueue" (go.GoType.PointerType statsQueue.ty))]
-
-@[irreducible] noncomputable def serverStats.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
-  serverStats.fieldsUnsealed
-
-noncomputable instance equals_unfold_serverStats [GooseExts] [GoGlobalContext] :
-    EqualsUnfold serverStats.fields serverStats.fieldsUnsealed :=
-  ⟨by unfold serverStats.fields; rfl⟩
-
-@[reducible] noncomputable def serverStats.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.StructType serverStats.fields)
+opaque serverStats.nonempty_type : NonemptyType.{0}
+def serverStats : Type := serverStats.nonempty_type.type
+instance serverStats.nonempty : Nonempty serverStats := serverStats.nonempty_type.property
+opaque serverStats.zero_val : ZeroVal serverStats := ⟨Classical.ofNonempty⟩
+attribute [instance] serverStats.zero_val
 
 class serverStats.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying serverStats.underlying serverStats
   underlying : go.UnderlyingDirectedEq serverStats.ty serverStats.underlying
-  get_Name : ∀ (x : serverStats), go.IsGoStepPureDetTagged under (StructFieldGet serverStats.underlying go!"Name") #x (Val #(x.Name'))
-  set_Name : ∀ (x : serverStats) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet serverStats.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : serverStats)))
-  get_ID : ∀ (x : serverStats), go.IsGoStepPureDetTagged under (StructFieldGet serverStats.underlying go!"ID") #x (Val #(x.ID'))
-  set_ID : ∀ (x : serverStats) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet serverStats.underlying go!"ID") (PairV #x #y) (Val #(({ x with ID' := y } : serverStats)))
-  get_State : ∀ (x : serverStats), go.IsGoStepPureDetTagged under (StructFieldGet serverStats.underlying go!"State") #x (Val #(x.State'))
-  set_State : ∀ (x : serverStats) (y : _root_.Perennial.go_etcd_io.raft.v3.StateType), go.IsGoStepPureDetTagged under (StructFieldSet serverStats.underlying go!"State") (PairV #x #y) (Val #(({ x with State' := y } : serverStats)))
-  get_StartTime : ∀ (x : serverStats), go.IsGoStepPureDetTagged under (StructFieldGet serverStats.underlying go!"StartTime") #x (Val #(x.StartTime'))
-  set_StartTime : ∀ (x : serverStats) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet serverStats.underlying go!"StartTime") (PairV #x #y) (Val #(({ x with StartTime' := y } : serverStats)))
-  get_LeaderInfo : ∀ (x : serverStats), go.IsGoStepPureDetTagged under (StructFieldGet serverStats.underlying go!"LeaderInfo") #x (Val #(x.LeaderInfo'))
-  set_LeaderInfo : ∀ (x : serverStats) (y : «struct#6de5bf6f»), go.IsGoStepPureDetTagged under (StructFieldSet serverStats.underlying go!"LeaderInfo") (PairV #x #y) (Val #(({ x with LeaderInfo' := y } : serverStats)))
-  get_RecvAppendRequestCnt : ∀ (x : serverStats), go.IsGoStepPureDetTagged under (StructFieldGet serverStats.underlying go!"RecvAppendRequestCnt") #x (Val #(x.RecvAppendRequestCnt'))
-  set_RecvAppendRequestCnt : ∀ (x : serverStats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet serverStats.underlying go!"RecvAppendRequestCnt") (PairV #x #y) (Val #(({ x with RecvAppendRequestCnt' := y } : serverStats)))
-  get_RecvingPkgRate : ∀ (x : serverStats), go.IsGoStepPureDetTagged under (StructFieldGet serverStats.underlying go!"RecvingPkgRate") #x (Val #(x.RecvingPkgRate'))
-  set_RecvingPkgRate : ∀ (x : serverStats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet serverStats.underlying go!"RecvingPkgRate") (PairV #x #y) (Val #(({ x with RecvingPkgRate' := y } : serverStats)))
-  get_RecvingBandwidthRate : ∀ (x : serverStats), go.IsGoStepPureDetTagged under (StructFieldGet serverStats.underlying go!"RecvingBandwidthRate") #x (Val #(x.RecvingBandwidthRate'))
-  set_RecvingBandwidthRate : ∀ (x : serverStats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet serverStats.underlying go!"RecvingBandwidthRate") (PairV #x #y) (Val #(({ x with RecvingBandwidthRate' := y } : serverStats)))
-  get_SendAppendRequestCnt : ∀ (x : serverStats), go.IsGoStepPureDetTagged under (StructFieldGet serverStats.underlying go!"SendAppendRequestCnt") #x (Val #(x.SendAppendRequestCnt'))
-  set_SendAppendRequestCnt : ∀ (x : serverStats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet serverStats.underlying go!"SendAppendRequestCnt") (PairV #x #y) (Val #(({ x with SendAppendRequestCnt' := y } : serverStats)))
-  get_SendingPkgRate : ∀ (x : serverStats), go.IsGoStepPureDetTagged under (StructFieldGet serverStats.underlying go!"SendingPkgRate") #x (Val #(x.SendingPkgRate'))
-  set_SendingPkgRate : ∀ (x : serverStats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet serverStats.underlying go!"SendingPkgRate") (PairV #x #y) (Val #(({ x with SendingPkgRate' := y } : serverStats)))
-  get_SendingBandwidthRate : ∀ (x : serverStats), go.IsGoStepPureDetTagged under (StructFieldGet serverStats.underlying go!"SendingBandwidthRate") #x (Val #(x.SendingBandwidthRate'))
-  set_SendingBandwidthRate : ∀ (x : serverStats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet serverStats.underlying go!"SendingBandwidthRate") (PairV #x #y) (Val #(({ x with SendingBandwidthRate' := y } : serverStats)))
-  get_sendRateQueue : ∀ (x : serverStats), go.IsGoStepPureDetTagged under (StructFieldGet serverStats.underlying go!"sendRateQueue") #x (Val #(x.sendRateQueue'))
-  set_sendRateQueue : ∀ (x : serverStats) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet serverStats.underlying go!"sendRateQueue") (PairV #x #y) (Val #(({ x with sendRateQueue' := y } : serverStats)))
-  get_recvRateQueue : ∀ (x : serverStats), go.IsGoStepPureDetTagged under (StructFieldGet serverStats.underlying go!"recvRateQueue") #x (Val #(x.recvRateQueue'))
-  set_recvRateQueue : ∀ (x : serverStats) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet serverStats.underlying go!"recvRateQueue") (PairV #x #y) (Val #(({ x with recvRateQueue' := y } : serverStats)))
+  isUnderlying : go.IsUnderlying serverStats.underlying serverStats.underlying
   method_set : go.MethodSetIs serverStats.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverStats.ty) []
 
 attribute [instance] serverStats.TypeAssumptions.type_repr
   serverStats.TypeAssumptions.underlying
-  serverStats.TypeAssumptions.get_Name
-  serverStats.TypeAssumptions.set_Name
-  serverStats.TypeAssumptions.get_ID
-  serverStats.TypeAssumptions.set_ID
-  serverStats.TypeAssumptions.get_State
-  serverStats.TypeAssumptions.set_State
-  serverStats.TypeAssumptions.get_StartTime
-  serverStats.TypeAssumptions.set_StartTime
-  serverStats.TypeAssumptions.get_LeaderInfo
-  serverStats.TypeAssumptions.set_LeaderInfo
-  serverStats.TypeAssumptions.get_RecvAppendRequestCnt
-  serverStats.TypeAssumptions.set_RecvAppendRequestCnt
-  serverStats.TypeAssumptions.get_RecvingPkgRate
-  serverStats.TypeAssumptions.set_RecvingPkgRate
-  serverStats.TypeAssumptions.get_RecvingBandwidthRate
-  serverStats.TypeAssumptions.set_RecvingBandwidthRate
-  serverStats.TypeAssumptions.get_SendAppendRequestCnt
-  serverStats.TypeAssumptions.set_SendAppendRequestCnt
-  serverStats.TypeAssumptions.get_SendingPkgRate
-  serverStats.TypeAssumptions.set_SendingPkgRate
-  serverStats.TypeAssumptions.get_SendingBandwidthRate
-  serverStats.TypeAssumptions.set_SendingBandwidthRate
-  serverStats.TypeAssumptions.get_sendRateQueue
-  serverStats.TypeAssumptions.set_sendRateQueue
-  serverStats.TypeAssumptions.get_recvRateQueue
-  serverStats.TypeAssumptions.set_recvRateQueue
+  serverStats.TypeAssumptions.isUnderlying
   serverStats.TypeAssumptions.method_set
   serverStats.TypeAssumptions.ptr_method_set
 
@@ -767,7 +640,6 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   statsQueue_instance : statsQueue.TypeAssumptions
   ServerStats_instance : ServerStats.TypeAssumptions
   serverStats_instance : serverStats.TypeAssumptions
-  «struct#6de5bf6f_instance» : «struct#6de5bf6f».TypeAssumptions
   NewLeaderStats_unfold : FuncUnfold NewLeaderStats [] NewLeaderStats.impl
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
@@ -783,7 +655,6 @@ attribute [instance] Assumptions.LeaderStats_instance
   Assumptions.statsQueue_instance
   Assumptions.ServerStats_instance
   Assumptions.serverStats_instance
-  Assumptions.«struct#6de5bf6f_instance»
   Assumptions.NewLeaderStats_unfold
   Assumptions.import_sync_Assumption
   Assumptions.import_time_Assumption
