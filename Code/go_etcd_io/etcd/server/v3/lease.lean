@@ -1623,7 +1623,7 @@ noncomputable def lessor.Promote.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoMul go.float64))) (Pair (App (Val (GoInstruction (Convert _root_.Perennial.time.Duration.ty go.float64))) (Val #(W64 1000000000))) (App (Val (GoInstruction (GoOp GoDiv go.float64))) (Pair (App (Val (GoInstruction (Convert go.int go.float64))) (App (Val (GoInstruction (GoLoad go.int))) (Var "expires"))) (App (Val (GoInstruction (Convert go.int go.float64))) (App (Val (GoInstruction (GoLoad go.int))) (Var "targetExpiresPerSecond")))))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoMul go.float64))) (Pair (Val #(W64 4741671816366391296)) (App (Val (GoInstruction (GoOp GoDiv go.float64))) (Pair (App (Val (GoInstruction (Convert go.int go.float64))) (App (Val (GoInstruction (GoLoad go.int))) (Var "expires"))) (App (Val (GoInstruction (Convert go.int go.float64))) (App (Val (GoInstruction (GoLoad go.int))) (Var "targetExpiresPerSecond")))))))
   (Let "rateDelay" (App (Val (GoInstruction (GoAlloc go.float64))) (App (Val (GoInstruction (GoZeroVal go.float64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon

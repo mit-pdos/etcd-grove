@@ -92,7 +92,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of ErrCRCMismatch))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xC #EC
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xC ⟨#_, #EC⟩
   try wp_auto
   wp_apply (initFuncsOk init.«0» (by mem_tac))
   ipersist HErrCRCMismatch

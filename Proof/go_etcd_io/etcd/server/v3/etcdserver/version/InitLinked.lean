@@ -62,13 +62,13 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (_root_.Perennial.github_com.Masterminds.semver.v3.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of ErrInvalidDowngradeTargetVersion))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrInvalidDowngradeTargetVersion #MErrInvalidDowngradeTargetVersion
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrInvalidDowngradeTargetVersion ⟨#_, #MErrInvalidDowngradeTargetVersion⟩
   -- translated initializer of ErrDowngradeInProcess))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrDowngradeInProcess #MErrDowngradeInProcess
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrDowngradeInProcess ⟨#_, #MErrDowngradeInProcess⟩
   -- translated initializer of ErrNoInflightDowngrade))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrNoInflightDowngrade #MErrNoInflightDowngrade
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrNoInflightDowngrade ⟨#_, #MErrNoInflightDowngrade⟩
   iframe Hown
   is_pkg_init_finish
 

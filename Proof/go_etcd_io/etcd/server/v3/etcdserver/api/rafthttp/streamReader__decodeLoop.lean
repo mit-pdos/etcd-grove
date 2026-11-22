@@ -333,7 +333,7 @@ local macro "dl_rest" T:term : tactic => `(tactic| (
           · iPkgInit
           ihave #Heof := io.eof_of_init $$ Hio
           iunfold errors.newVar at Heof
-          icases Heof with ⟨%xe, #He, #HeM⟩
+          icases Heof with ⟨%xe, #He, #_, #HeM⟩
           wp_auto
           iapply HΦ
           isplitr
