@@ -58,7 +58,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions]
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
-variable [StorageModel GF] [AllG GF]
+variable [StorageModel GF]
 
 include sem in
 theorem ansOf_cons (s : List w8) (pvs : List val) : ansOf (#s :: pvs) = some s := by

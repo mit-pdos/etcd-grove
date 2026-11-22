@@ -503,51 +503,55 @@ noncomputable instance «equals_unfold_struct#9f4eeae4» [GooseExts] [GoGlobalCo
 @[reducible] noncomputable def «struct#9f4eeae4».underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType «struct#9f4eeae4».fields)
 
-opaque methods [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def methods.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  «struct#9f4eeae4».underlying
 
 @[reducible] noncomputable def supportFlags.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   go.uint64
 
-opaque sizeInput [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def sizeInput.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  «struct#39c24ac0».underlying
 
-opaque sizeOutput [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def sizeOutput.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  «struct#09ab9bd9».underlying
 
-opaque marshalInput [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def marshalInput.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  «struct#85bf90eb».underlying
 
-opaque marshalOutput [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def marshalOutput.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  «struct#69fc66c6».underlying
 
-opaque unmarshalInput [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def unmarshalInput.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  «struct#a47ca8a7».underlying
 
-opaque unmarshalOutput [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def unmarshalOutput.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  «struct#9d85598c».underlying
 
-opaque mergeInput [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def mergeInput.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  «struct#07f26e0d».underlying
 
-opaque mergeOutput [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def mergeOutput.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  «struct#9d85598c».underlying
 
-opaque checkInitializedInput [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def checkInitializedInput.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  «struct#dc47f379».underlying
 
-opaque checkInitializedOutput [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def checkInitializedOutput.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  «struct#26ca81e8».underlying
 
-opaque equalInput [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def equalInput.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  «struct#9d8af3ce».underlying
 
-opaque equalOutput [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def equalOutput.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  «struct#f228ed0d».underlying
 
 opaque doNotImplement.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque FieldNumber [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque FieldNumbers.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque FieldRanges.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque FieldDescriptor.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque FieldDescriptors.underlying [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def FieldNumber.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Number" [])
 
 @[reducible] noncomputable def ExtensionDescriptor.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   FieldDescriptor.ty
-
-opaque Message.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque value.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
@@ -872,41 +876,31 @@ attribute [instance] Kind.TypeAssumptions.underlying
   Kind.TypeAssumptions.method_set
   Kind.TypeAssumptions.ptr_method_set
 
-opaque FieldNumbers.nonempty_type : NonemptyType.{0}
-def FieldNumbers : Type := FieldNumbers.nonempty_type.type
-instance FieldNumbers.nonempty : Nonempty FieldNumbers := FieldNumbers.nonempty_type.property
-opaque FieldNumbers.zero_val : ZeroVal FieldNumbers := ⟨Classical.ofNonempty⟩
-attribute [instance] FieldNumbers.zero_val
+abbrev FieldNumbers [GooseExts] : Type := GoInterface
+
+@[reducible] noncomputable def FieldNumbers.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Get" (go.signature.Signature [go.int] false [FieldNumber.ty])), (go.InterfaceElem.MethodElem go!"Has" (go.signature.Signature [FieldNumber.ty] false [go.bool])), (go.InterfaceElem.MethodElem go!"Len" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.MethodElem go!"ProtoInternal" (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.DoNotImplement" [])] false []))])
 
 class FieldNumbers.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying FieldNumbers.underlying FieldNumbers
   underlying : go.UnderlyingDirectedEq FieldNumbers.ty FieldNumbers.underlying
-  isUnderlying : go.IsUnderlying FieldNumbers.underlying FieldNumbers.underlying
-  method_set : go.MethodSetIs FieldNumbers.ty [(go!"Get", (some (go.signature.Signature [go.int] false [(go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Number" [])]))), (go!"Has", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Number" [])] false [go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"ProtoInternal", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.DoNotImplement" [])] false [])))]
+  method_set : go.MethodSetIs FieldNumbers.ty [(go!"Get", (some (go.signature.Signature [go.int] false [FieldNumber.ty]))), (go!"Has", (some (go.signature.Signature [FieldNumber.ty] false [go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"ProtoInternal", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.DoNotImplement" [])] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType FieldNumbers.ty) []
 
-attribute [instance] FieldNumbers.TypeAssumptions.type_repr
-  FieldNumbers.TypeAssumptions.underlying
-  FieldNumbers.TypeAssumptions.isUnderlying
+attribute [instance] FieldNumbers.TypeAssumptions.underlying
   FieldNumbers.TypeAssumptions.method_set
   FieldNumbers.TypeAssumptions.ptr_method_set
 
-opaque FieldRanges.nonempty_type : NonemptyType.{0}
-def FieldRanges : Type := FieldRanges.nonempty_type.type
-instance FieldRanges.nonempty : Nonempty FieldRanges := FieldRanges.nonempty_type.property
-opaque FieldRanges.zero_val : ZeroVal FieldRanges := ⟨Classical.ofNonempty⟩
-attribute [instance] FieldRanges.zero_val
+abbrev FieldRanges [GooseExts] : Type := GoInterface
+
+@[reducible] noncomputable def FieldRanges.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Get" (go.signature.Signature [go.int] false [(go.GoType.ArrayType 2 FieldNumber.ty)])), (go.InterfaceElem.MethodElem go!"Has" (go.signature.Signature [FieldNumber.ty] false [go.bool])), (go.InterfaceElem.MethodElem go!"Len" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.MethodElem go!"ProtoInternal" (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.DoNotImplement" [])] false []))])
 
 class FieldRanges.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying FieldRanges.underlying FieldRanges
   underlying : go.UnderlyingDirectedEq FieldRanges.ty FieldRanges.underlying
-  isUnderlying : go.IsUnderlying FieldRanges.underlying FieldRanges.underlying
-  method_set : go.MethodSetIs FieldRanges.ty [(go!"Get", (some (go.signature.Signature [go.int] false [(go.GoType.ArrayType 2 (go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Number" []))]))), (go!"Has", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Number" [])] false [go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"ProtoInternal", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.DoNotImplement" [])] false [])))]
+  method_set : go.MethodSetIs FieldRanges.ty [(go!"Get", (some (go.signature.Signature [go.int] false [(go.GoType.ArrayType 2 FieldNumber.ty)]))), (go!"Has", (some (go.signature.Signature [FieldNumber.ty] false [go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"ProtoInternal", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.DoNotImplement" [])] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType FieldRanges.ty) []
 
-attribute [instance] FieldRanges.TypeAssumptions.type_repr
-  FieldRanges.TypeAssumptions.underlying
-  FieldRanges.TypeAssumptions.isUnderlying
+attribute [instance] FieldRanges.TypeAssumptions.underlying
   FieldRanges.TypeAssumptions.method_set
   FieldRanges.TypeAssumptions.ptr_method_set
 
@@ -1278,22 +1272,17 @@ attribute [instance] MessageDescriptors.TypeAssumptions.underlying
   MessageDescriptors.TypeAssumptions.method_set
   MessageDescriptors.TypeAssumptions.ptr_method_set
 
-opaque FieldDescriptor.nonempty_type : NonemptyType.{0}
-def FieldDescriptor : Type := FieldDescriptor.nonempty_type.type
-instance FieldDescriptor.nonempty : Nonempty FieldDescriptor := FieldDescriptor.nonempty_type.property
-opaque FieldDescriptor.zero_val : ZeroVal FieldDescriptor := ⟨Classical.ofNonempty⟩
-attribute [instance] FieldDescriptor.zero_val
+abbrev FieldDescriptor [GooseExts] : Type := GoInterface
+
+@[reducible] noncomputable def FieldDescriptor.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Cardinality" (go.signature.Signature [] false [Cardinality.ty])), (go.InterfaceElem.MethodElem go!"ContainingMessage" (go.signature.Signature [] false [MessageDescriptor.ty])), (go.InterfaceElem.MethodElem go!"ContainingOneof" (go.signature.Signature [] false [OneofDescriptor.ty])), (go.InterfaceElem.MethodElem go!"Default" (go.signature.Signature [] false [Value.ty])), (go.InterfaceElem.MethodElem go!"DefaultEnumValue" (go.signature.Signature [] false [EnumValueDescriptor.ty])), (go.InterfaceElem.MethodElem go!"Enum" (go.signature.Signature [] false [EnumDescriptor.ty])), (go.InterfaceElem.MethodElem go!"FullName" (go.signature.Signature [] false [FullName.ty])), (go.InterfaceElem.MethodElem go!"HasDefault" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"HasJSONName" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"HasOptionalKeyword" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"HasPresence" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"Index" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.MethodElem go!"IsExtension" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"IsList" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"IsMap" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"IsPacked" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"IsPlaceholder" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"IsWeak" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"JSONName" (go.signature.Signature [] false [go.string])), (go.InterfaceElem.MethodElem go!"Kind" (go.signature.Signature [] false [Kind.ty])), (go.InterfaceElem.MethodElem go!"MapKey" (go.signature.Signature [] false [FieldDescriptor.ty])), (go.InterfaceElem.MethodElem go!"MapValue" (go.signature.Signature [] false [FieldDescriptor.ty])), (go.InterfaceElem.MethodElem go!"Message" (go.signature.Signature [] false [MessageDescriptor.ty])), (go.InterfaceElem.MethodElem go!"Name" (go.signature.Signature [] false [Name.ty])), (go.InterfaceElem.MethodElem go!"Number" (go.signature.Signature [] false [FieldNumber.ty])), (go.InterfaceElem.MethodElem go!"Options" (go.signature.Signature [] false [ProtoMessage.ty])), (go.InterfaceElem.MethodElem go!"Parent" (go.signature.Signature [] false [Descriptor.ty])), (go.InterfaceElem.MethodElem go!"ParentFile" (go.signature.Signature [] false [FileDescriptor.ty])), (go.InterfaceElem.MethodElem go!"ProtoInternal" (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.DoNotImplement" [])] false [])), (go.InterfaceElem.MethodElem go!"ProtoType" (go.signature.Signature [FieldDescriptor.ty] false [])), (go.InterfaceElem.MethodElem go!"Syntax" (go.signature.Signature [] false [Syntax.ty])), (go.InterfaceElem.MethodElem go!"TextName" (go.signature.Signature [] false [go.string]))])
 
 class FieldDescriptor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying FieldDescriptor.underlying FieldDescriptor
   underlying : go.UnderlyingDirectedEq FieldDescriptor.ty FieldDescriptor.underlying
-  isUnderlying : go.IsUnderlying FieldDescriptor.underlying FieldDescriptor.underlying
-  method_set : go.MethodSetIs FieldDescriptor.ty [(go!"Cardinality", (some (go.signature.Signature [] false [Cardinality.ty]))), (go!"ContainingMessage", (some (go.signature.Signature [] false [MessageDescriptor.ty]))), (go!"ContainingOneof", (some (go.signature.Signature [] false [OneofDescriptor.ty]))), (go!"Default", (some (go.signature.Signature [] false [Value.ty]))), (go!"DefaultEnumValue", (some (go.signature.Signature [] false [EnumValueDescriptor.ty]))), (go!"Enum", (some (go.signature.Signature [] false [EnumDescriptor.ty]))), (go!"FullName", (some (go.signature.Signature [] false [FullName.ty]))), (go!"HasDefault", (some (go.signature.Signature [] false [go.bool]))), (go!"HasJSONName", (some (go.signature.Signature [] false [go.bool]))), (go!"HasOptionalKeyword", (some (go.signature.Signature [] false [go.bool]))), (go!"HasPresence", (some (go.signature.Signature [] false [go.bool]))), (go!"Index", (some (go.signature.Signature [] false [go.int]))), (go!"IsExtension", (some (go.signature.Signature [] false [go.bool]))), (go!"IsList", (some (go.signature.Signature [] false [go.bool]))), (go!"IsMap", (some (go.signature.Signature [] false [go.bool]))), (go!"IsPacked", (some (go.signature.Signature [] false [go.bool]))), (go!"IsPlaceholder", (some (go.signature.Signature [] false [go.bool]))), (go!"IsWeak", (some (go.signature.Signature [] false [go.bool]))), (go!"JSONName", (some (go.signature.Signature [] false [go.string]))), (go!"Kind", (some (go.signature.Signature [] false [Kind.ty]))), (go!"MapKey", (some (go.signature.Signature [] false [FieldDescriptor.ty]))), (go!"MapValue", (some (go.signature.Signature [] false [FieldDescriptor.ty]))), (go!"Message", (some (go.signature.Signature [] false [MessageDescriptor.ty]))), (go!"Name", (some (go.signature.Signature [] false [Name.ty]))), (go!"Number", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Number" [])]))), (go!"Options", (some (go.signature.Signature [] false [ProtoMessage.ty]))), (go!"Parent", (some (go.signature.Signature [] false [Descriptor.ty]))), (go!"ParentFile", (some (go.signature.Signature [] false [FileDescriptor.ty]))), (go!"ProtoInternal", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.DoNotImplement" [])] false []))), (go!"ProtoType", (some (go.signature.Signature [FieldDescriptor.ty] false []))), (go!"Syntax", (some (go.signature.Signature [] false [Syntax.ty]))), (go!"TextName", (some (go.signature.Signature [] false [go.string])))]
+  method_set : go.MethodSetIs FieldDescriptor.ty [(go!"Cardinality", (some (go.signature.Signature [] false [Cardinality.ty]))), (go!"ContainingMessage", (some (go.signature.Signature [] false [MessageDescriptor.ty]))), (go!"ContainingOneof", (some (go.signature.Signature [] false [OneofDescriptor.ty]))), (go!"Default", (some (go.signature.Signature [] false [Value.ty]))), (go!"DefaultEnumValue", (some (go.signature.Signature [] false [EnumValueDescriptor.ty]))), (go!"Enum", (some (go.signature.Signature [] false [EnumDescriptor.ty]))), (go!"FullName", (some (go.signature.Signature [] false [FullName.ty]))), (go!"HasDefault", (some (go.signature.Signature [] false [go.bool]))), (go!"HasJSONName", (some (go.signature.Signature [] false [go.bool]))), (go!"HasOptionalKeyword", (some (go.signature.Signature [] false [go.bool]))), (go!"HasPresence", (some (go.signature.Signature [] false [go.bool]))), (go!"Index", (some (go.signature.Signature [] false [go.int]))), (go!"IsExtension", (some (go.signature.Signature [] false [go.bool]))), (go!"IsList", (some (go.signature.Signature [] false [go.bool]))), (go!"IsMap", (some (go.signature.Signature [] false [go.bool]))), (go!"IsPacked", (some (go.signature.Signature [] false [go.bool]))), (go!"IsPlaceholder", (some (go.signature.Signature [] false [go.bool]))), (go!"IsWeak", (some (go.signature.Signature [] false [go.bool]))), (go!"JSONName", (some (go.signature.Signature [] false [go.string]))), (go!"Kind", (some (go.signature.Signature [] false [Kind.ty]))), (go!"MapKey", (some (go.signature.Signature [] false [FieldDescriptor.ty]))), (go!"MapValue", (some (go.signature.Signature [] false [FieldDescriptor.ty]))), (go!"Message", (some (go.signature.Signature [] false [MessageDescriptor.ty]))), (go!"Name", (some (go.signature.Signature [] false [Name.ty]))), (go!"Number", (some (go.signature.Signature [] false [FieldNumber.ty]))), (go!"Options", (some (go.signature.Signature [] false [ProtoMessage.ty]))), (go!"Parent", (some (go.signature.Signature [] false [Descriptor.ty]))), (go!"ParentFile", (some (go.signature.Signature [] false [FileDescriptor.ty]))), (go!"ProtoInternal", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.DoNotImplement" [])] false []))), (go!"ProtoType", (some (go.signature.Signature [FieldDescriptor.ty] false []))), (go!"Syntax", (some (go.signature.Signature [] false [Syntax.ty]))), (go!"TextName", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType FieldDescriptor.ty) []
 
-attribute [instance] FieldDescriptor.TypeAssumptions.type_repr
-  FieldDescriptor.TypeAssumptions.underlying
-  FieldDescriptor.TypeAssumptions.isUnderlying
+attribute [instance] FieldDescriptor.TypeAssumptions.underlying
   FieldDescriptor.TypeAssumptions.method_set
   FieldDescriptor.TypeAssumptions.ptr_method_set
 
@@ -1311,22 +1300,17 @@ attribute [instance] isFieldDescriptor.TypeAssumptions.underlying
   isFieldDescriptor.TypeAssumptions.method_set
   isFieldDescriptor.TypeAssumptions.ptr_method_set
 
-opaque FieldDescriptors.nonempty_type : NonemptyType.{0}
-def FieldDescriptors : Type := FieldDescriptors.nonempty_type.type
-instance FieldDescriptors.nonempty : Nonempty FieldDescriptors := FieldDescriptors.nonempty_type.property
-opaque FieldDescriptors.zero_val : ZeroVal FieldDescriptors := ⟨Classical.ofNonempty⟩
-attribute [instance] FieldDescriptors.zero_val
+abbrev FieldDescriptors [GooseExts] : Type := GoInterface
+
+@[reducible] noncomputable def FieldDescriptors.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ByJSONName" (go.signature.Signature [go.string] false [FieldDescriptor.ty])), (go.InterfaceElem.MethodElem go!"ByName" (go.signature.Signature [Name.ty] false [FieldDescriptor.ty])), (go.InterfaceElem.MethodElem go!"ByNumber" (go.signature.Signature [FieldNumber.ty] false [FieldDescriptor.ty])), (go.InterfaceElem.MethodElem go!"ByTextName" (go.signature.Signature [go.string] false [FieldDescriptor.ty])), (go.InterfaceElem.MethodElem go!"Get" (go.signature.Signature [go.int] false [FieldDescriptor.ty])), (go.InterfaceElem.MethodElem go!"Len" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.MethodElem go!"ProtoInternal" (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.DoNotImplement" [])] false []))])
 
 class FieldDescriptors.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying FieldDescriptors.underlying FieldDescriptors
   underlying : go.UnderlyingDirectedEq FieldDescriptors.ty FieldDescriptors.underlying
-  isUnderlying : go.IsUnderlying FieldDescriptors.underlying FieldDescriptors.underlying
-  method_set : go.MethodSetIs FieldDescriptors.ty [(go!"ByJSONName", (some (go.signature.Signature [go.string] false [FieldDescriptor.ty]))), (go!"ByName", (some (go.signature.Signature [Name.ty] false [FieldDescriptor.ty]))), (go!"ByNumber", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Number" [])] false [FieldDescriptor.ty]))), (go!"ByTextName", (some (go.signature.Signature [go.string] false [FieldDescriptor.ty]))), (go!"Get", (some (go.signature.Signature [go.int] false [FieldDescriptor.ty]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"ProtoInternal", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.DoNotImplement" [])] false [])))]
+  method_set : go.MethodSetIs FieldDescriptors.ty [(go!"ByJSONName", (some (go.signature.Signature [go.string] false [FieldDescriptor.ty]))), (go!"ByName", (some (go.signature.Signature [Name.ty] false [FieldDescriptor.ty]))), (go!"ByNumber", (some (go.signature.Signature [FieldNumber.ty] false [FieldDescriptor.ty]))), (go!"ByTextName", (some (go.signature.Signature [go.string] false [FieldDescriptor.ty]))), (go!"Get", (some (go.signature.Signature [go.int] false [FieldDescriptor.ty]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"ProtoInternal", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.DoNotImplement" [])] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType FieldDescriptors.ty) []
 
-attribute [instance] FieldDescriptors.TypeAssumptions.type_repr
-  FieldDescriptors.TypeAssumptions.underlying
-  FieldDescriptors.TypeAssumptions.isUnderlying
+attribute [instance] FieldDescriptors.TypeAssumptions.underlying
   FieldDescriptors.TypeAssumptions.method_set
   FieldDescriptors.TypeAssumptions.ptr_method_set
 
@@ -1375,11 +1359,11 @@ attribute [instance] OneofDescriptors.TypeAssumptions.underlying
 abbrev ExtensionTypeDescriptor [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def ExtensionTypeDescriptor.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Cardinality" (go.signature.Signature [] false [Cardinality.ty])), (go.InterfaceElem.MethodElem go!"ContainingMessage" (go.signature.Signature [] false [MessageDescriptor.ty])), (go.InterfaceElem.MethodElem go!"ContainingOneof" (go.signature.Signature [] false [OneofDescriptor.ty])), (go.InterfaceElem.MethodElem go!"Default" (go.signature.Signature [] false [Value.ty])), (go.InterfaceElem.MethodElem go!"DefaultEnumValue" (go.signature.Signature [] false [EnumValueDescriptor.ty])), (go.InterfaceElem.MethodElem go!"Descriptor" (go.signature.Signature [] false [ExtensionDescriptor.ty])), (go.InterfaceElem.MethodElem go!"Enum" (go.signature.Signature [] false [EnumDescriptor.ty])), (go.InterfaceElem.MethodElem go!"FullName" (go.signature.Signature [] false [FullName.ty])), (go.InterfaceElem.MethodElem go!"HasDefault" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"HasJSONName" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"HasOptionalKeyword" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"HasPresence" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"Index" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.MethodElem go!"IsExtension" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"IsList" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"IsMap" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"IsPacked" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"IsPlaceholder" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"IsWeak" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"JSONName" (go.signature.Signature [] false [go.string])), (go.InterfaceElem.MethodElem go!"Kind" (go.signature.Signature [] false [Kind.ty])), (go.InterfaceElem.MethodElem go!"MapKey" (go.signature.Signature [] false [FieldDescriptor.ty])), (go.InterfaceElem.MethodElem go!"MapValue" (go.signature.Signature [] false [FieldDescriptor.ty])), (go.InterfaceElem.MethodElem go!"Message" (go.signature.Signature [] false [MessageDescriptor.ty])), (go.InterfaceElem.MethodElem go!"Name" (go.signature.Signature [] false [Name.ty])), (go.InterfaceElem.MethodElem go!"Number" (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Number" [])])), (go.InterfaceElem.MethodElem go!"Options" (go.signature.Signature [] false [ProtoMessage.ty])), (go.InterfaceElem.MethodElem go!"Parent" (go.signature.Signature [] false [Descriptor.ty])), (go.InterfaceElem.MethodElem go!"ParentFile" (go.signature.Signature [] false [FileDescriptor.ty])), (go.InterfaceElem.MethodElem go!"ProtoInternal" (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.DoNotImplement" [])] false [])), (go.InterfaceElem.MethodElem go!"ProtoType" (go.signature.Signature [FieldDescriptor.ty] false [])), (go.InterfaceElem.MethodElem go!"Syntax" (go.signature.Signature [] false [Syntax.ty])), (go.InterfaceElem.MethodElem go!"TextName" (go.signature.Signature [] false [go.string])), (go.InterfaceElem.MethodElem go!"Type" (go.signature.Signature [] false [ExtensionType.ty]))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Cardinality" (go.signature.Signature [] false [Cardinality.ty])), (go.InterfaceElem.MethodElem go!"ContainingMessage" (go.signature.Signature [] false [MessageDescriptor.ty])), (go.InterfaceElem.MethodElem go!"ContainingOneof" (go.signature.Signature [] false [OneofDescriptor.ty])), (go.InterfaceElem.MethodElem go!"Default" (go.signature.Signature [] false [Value.ty])), (go.InterfaceElem.MethodElem go!"DefaultEnumValue" (go.signature.Signature [] false [EnumValueDescriptor.ty])), (go.InterfaceElem.MethodElem go!"Descriptor" (go.signature.Signature [] false [ExtensionDescriptor.ty])), (go.InterfaceElem.MethodElem go!"Enum" (go.signature.Signature [] false [EnumDescriptor.ty])), (go.InterfaceElem.MethodElem go!"FullName" (go.signature.Signature [] false [FullName.ty])), (go.InterfaceElem.MethodElem go!"HasDefault" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"HasJSONName" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"HasOptionalKeyword" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"HasPresence" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"Index" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.MethodElem go!"IsExtension" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"IsList" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"IsMap" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"IsPacked" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"IsPlaceholder" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"IsWeak" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"JSONName" (go.signature.Signature [] false [go.string])), (go.InterfaceElem.MethodElem go!"Kind" (go.signature.Signature [] false [Kind.ty])), (go.InterfaceElem.MethodElem go!"MapKey" (go.signature.Signature [] false [FieldDescriptor.ty])), (go.InterfaceElem.MethodElem go!"MapValue" (go.signature.Signature [] false [FieldDescriptor.ty])), (go.InterfaceElem.MethodElem go!"Message" (go.signature.Signature [] false [MessageDescriptor.ty])), (go.InterfaceElem.MethodElem go!"Name" (go.signature.Signature [] false [Name.ty])), (go.InterfaceElem.MethodElem go!"Number" (go.signature.Signature [] false [FieldNumber.ty])), (go.InterfaceElem.MethodElem go!"Options" (go.signature.Signature [] false [ProtoMessage.ty])), (go.InterfaceElem.MethodElem go!"Parent" (go.signature.Signature [] false [Descriptor.ty])), (go.InterfaceElem.MethodElem go!"ParentFile" (go.signature.Signature [] false [FileDescriptor.ty])), (go.InterfaceElem.MethodElem go!"ProtoInternal" (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.DoNotImplement" [])] false [])), (go.InterfaceElem.MethodElem go!"ProtoType" (go.signature.Signature [FieldDescriptor.ty] false [])), (go.InterfaceElem.MethodElem go!"Syntax" (go.signature.Signature [] false [Syntax.ty])), (go.InterfaceElem.MethodElem go!"TextName" (go.signature.Signature [] false [go.string])), (go.InterfaceElem.MethodElem go!"Type" (go.signature.Signature [] false [ExtensionType.ty]))])
 
 class ExtensionTypeDescriptor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ExtensionTypeDescriptor.ty ExtensionTypeDescriptor.underlying
-  method_set : go.MethodSetIs ExtensionTypeDescriptor.ty [(go!"Cardinality", (some (go.signature.Signature [] false [Cardinality.ty]))), (go!"ContainingMessage", (some (go.signature.Signature [] false [MessageDescriptor.ty]))), (go!"ContainingOneof", (some (go.signature.Signature [] false [OneofDescriptor.ty]))), (go!"Default", (some (go.signature.Signature [] false [Value.ty]))), (go!"DefaultEnumValue", (some (go.signature.Signature [] false [EnumValueDescriptor.ty]))), (go!"Descriptor", (some (go.signature.Signature [] false [ExtensionDescriptor.ty]))), (go!"Enum", (some (go.signature.Signature [] false [EnumDescriptor.ty]))), (go!"FullName", (some (go.signature.Signature [] false [FullName.ty]))), (go!"HasDefault", (some (go.signature.Signature [] false [go.bool]))), (go!"HasJSONName", (some (go.signature.Signature [] false [go.bool]))), (go!"HasOptionalKeyword", (some (go.signature.Signature [] false [go.bool]))), (go!"HasPresence", (some (go.signature.Signature [] false [go.bool]))), (go!"Index", (some (go.signature.Signature [] false [go.int]))), (go!"IsExtension", (some (go.signature.Signature [] false [go.bool]))), (go!"IsList", (some (go.signature.Signature [] false [go.bool]))), (go!"IsMap", (some (go.signature.Signature [] false [go.bool]))), (go!"IsPacked", (some (go.signature.Signature [] false [go.bool]))), (go!"IsPlaceholder", (some (go.signature.Signature [] false [go.bool]))), (go!"IsWeak", (some (go.signature.Signature [] false [go.bool]))), (go!"JSONName", (some (go.signature.Signature [] false [go.string]))), (go!"Kind", (some (go.signature.Signature [] false [Kind.ty]))), (go!"MapKey", (some (go.signature.Signature [] false [FieldDescriptor.ty]))), (go!"MapValue", (some (go.signature.Signature [] false [FieldDescriptor.ty]))), (go!"Message", (some (go.signature.Signature [] false [MessageDescriptor.ty]))), (go!"Name", (some (go.signature.Signature [] false [Name.ty]))), (go!"Number", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Number" [])]))), (go!"Options", (some (go.signature.Signature [] false [ProtoMessage.ty]))), (go!"Parent", (some (go.signature.Signature [] false [Descriptor.ty]))), (go!"ParentFile", (some (go.signature.Signature [] false [FileDescriptor.ty]))), (go!"ProtoInternal", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.DoNotImplement" [])] false []))), (go!"ProtoType", (some (go.signature.Signature [FieldDescriptor.ty] false []))), (go!"Syntax", (some (go.signature.Signature [] false [Syntax.ty]))), (go!"TextName", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [ExtensionType.ty])))]
+  method_set : go.MethodSetIs ExtensionTypeDescriptor.ty [(go!"Cardinality", (some (go.signature.Signature [] false [Cardinality.ty]))), (go!"ContainingMessage", (some (go.signature.Signature [] false [MessageDescriptor.ty]))), (go!"ContainingOneof", (some (go.signature.Signature [] false [OneofDescriptor.ty]))), (go!"Default", (some (go.signature.Signature [] false [Value.ty]))), (go!"DefaultEnumValue", (some (go.signature.Signature [] false [EnumValueDescriptor.ty]))), (go!"Descriptor", (some (go.signature.Signature [] false [ExtensionDescriptor.ty]))), (go!"Enum", (some (go.signature.Signature [] false [EnumDescriptor.ty]))), (go!"FullName", (some (go.signature.Signature [] false [FullName.ty]))), (go!"HasDefault", (some (go.signature.Signature [] false [go.bool]))), (go!"HasJSONName", (some (go.signature.Signature [] false [go.bool]))), (go!"HasOptionalKeyword", (some (go.signature.Signature [] false [go.bool]))), (go!"HasPresence", (some (go.signature.Signature [] false [go.bool]))), (go!"Index", (some (go.signature.Signature [] false [go.int]))), (go!"IsExtension", (some (go.signature.Signature [] false [go.bool]))), (go!"IsList", (some (go.signature.Signature [] false [go.bool]))), (go!"IsMap", (some (go.signature.Signature [] false [go.bool]))), (go!"IsPacked", (some (go.signature.Signature [] false [go.bool]))), (go!"IsPlaceholder", (some (go.signature.Signature [] false [go.bool]))), (go!"IsWeak", (some (go.signature.Signature [] false [go.bool]))), (go!"JSONName", (some (go.signature.Signature [] false [go.string]))), (go!"Kind", (some (go.signature.Signature [] false [Kind.ty]))), (go!"MapKey", (some (go.signature.Signature [] false [FieldDescriptor.ty]))), (go!"MapValue", (some (go.signature.Signature [] false [FieldDescriptor.ty]))), (go!"Message", (some (go.signature.Signature [] false [MessageDescriptor.ty]))), (go!"Name", (some (go.signature.Signature [] false [Name.ty]))), (go!"Number", (some (go.signature.Signature [] false [FieldNumber.ty]))), (go!"Options", (some (go.signature.Signature [] false [ProtoMessage.ty]))), (go!"Parent", (some (go.signature.Signature [] false [Descriptor.ty]))), (go!"ParentFile", (some (go.signature.Signature [] false [FileDescriptor.ty]))), (go!"ProtoInternal", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.DoNotImplement" [])] false []))), (go!"ProtoType", (some (go.signature.Signature [FieldDescriptor.ty] false []))), (go!"Syntax", (some (go.signature.Signature [] false [Syntax.ty]))), (go!"TextName", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [ExtensionType.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ExtensionTypeDescriptor.ty) []
 
 attribute [instance] ExtensionTypeDescriptor.TypeAssumptions.underlying
@@ -1610,22 +1594,17 @@ attribute [instance] Enum.TypeAssumptions.underlying
   Enum.TypeAssumptions.method_set
   Enum.TypeAssumptions.ptr_method_set
 
-opaque Message.nonempty_type : NonemptyType.{0}
-def Message : Type := Message.nonempty_type.type
-instance Message.nonempty : Nonempty Message := Message.nonempty_type.property
-opaque Message.zero_val : ZeroVal Message := ⟨Classical.ofNonempty⟩
-attribute [instance] Message.zero_val
+abbrev Message [GooseExts] : Type := GoInterface
+
+@[reducible] noncomputable def Message.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Clear" (go.signature.Signature [FieldDescriptor.ty] false [])), (go.InterfaceElem.MethodElem go!"Descriptor" (go.signature.Signature [] false [MessageDescriptor.ty])), (go.InterfaceElem.MethodElem go!"Get" (go.signature.Signature [FieldDescriptor.ty] false [Value.ty])), (go.InterfaceElem.MethodElem go!"GetUnknown" (go.signature.Signature [] false [RawFields.ty])), (go.InterfaceElem.MethodElem go!"Has" (go.signature.Signature [FieldDescriptor.ty] false [go.bool])), (go.InterfaceElem.MethodElem go!"Interface" (go.signature.Signature [] false [ProtoMessage.ty])), (go.InterfaceElem.MethodElem go!"IsValid" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"Mutable" (go.signature.Signature [FieldDescriptor.ty] false [Value.ty])), (go.InterfaceElem.MethodElem go!"New" (go.signature.Signature [] false [Message.ty])), (go.InterfaceElem.MethodElem go!"NewField" (go.signature.Signature [FieldDescriptor.ty] false [Value.ty])), (go.InterfaceElem.MethodElem go!"ProtoMethods" (go.signature.Signature [] false [(go.GoType.PointerType methods.ty)])), (go.InterfaceElem.MethodElem go!"Range" (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [FieldDescriptor.ty, Value.ty] false [go.bool]))] false [])), (go.InterfaceElem.MethodElem go!"Set" (go.signature.Signature [FieldDescriptor.ty, Value.ty] false [])), (go.InterfaceElem.MethodElem go!"SetUnknown" (go.signature.Signature [RawFields.ty] false [])), (go.InterfaceElem.MethodElem go!"Type" (go.signature.Signature [] false [MessageType.ty])), (go.InterfaceElem.MethodElem go!"WhichOneof" (go.signature.Signature [OneofDescriptor.ty] false [FieldDescriptor.ty]))])
 
 class Message.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying Message.underlying Message
   underlying : go.UnderlyingDirectedEq Message.ty Message.underlying
-  isUnderlying : go.IsUnderlying Message.underlying Message.underlying
-  method_set : go.MethodSetIs Message.ty [(go!"Clear", (some (go.signature.Signature [FieldDescriptor.ty] false []))), (go!"Descriptor", (some (go.signature.Signature [] false [MessageDescriptor.ty]))), (go!"Get", (some (go.signature.Signature [FieldDescriptor.ty] false [Value.ty]))), (go!"GetUnknown", (some (go.signature.Signature [] false [RawFields.ty]))), (go!"Has", (some (go.signature.Signature [FieldDescriptor.ty] false [go.bool]))), (go!"Interface", (some (go.signature.Signature [] false [ProtoMessage.ty]))), (go!"IsValid", (some (go.signature.Signature [] false [go.bool]))), (go!"Mutable", (some (go.signature.Signature [FieldDescriptor.ty] false [Value.ty]))), (go!"New", (some (go.signature.Signature [] false [Message.ty]))), (go!"NewField", (some (go.signature.Signature [FieldDescriptor.ty] false [Value.ty]))), (go!"ProtoMethods", (some (go.signature.Signature [] false [(go.GoType.PointerType «struct#9f4eeae4».underlying)]))), (go!"Range", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [FieldDescriptor.ty, Value.ty] false [go.bool]))] false []))), (go!"Set", (some (go.signature.Signature [FieldDescriptor.ty, Value.ty] false []))), (go!"SetUnknown", (some (go.signature.Signature [RawFields.ty] false []))), (go!"Type", (some (go.signature.Signature [] false [MessageType.ty]))), (go!"WhichOneof", (some (go.signature.Signature [OneofDescriptor.ty] false [FieldDescriptor.ty])))]
+  method_set : go.MethodSetIs Message.ty [(go!"Clear", (some (go.signature.Signature [FieldDescriptor.ty] false []))), (go!"Descriptor", (some (go.signature.Signature [] false [MessageDescriptor.ty]))), (go!"Get", (some (go.signature.Signature [FieldDescriptor.ty] false [Value.ty]))), (go!"GetUnknown", (some (go.signature.Signature [] false [RawFields.ty]))), (go!"Has", (some (go.signature.Signature [FieldDescriptor.ty] false [go.bool]))), (go!"Interface", (some (go.signature.Signature [] false [ProtoMessage.ty]))), (go!"IsValid", (some (go.signature.Signature [] false [go.bool]))), (go!"Mutable", (some (go.signature.Signature [FieldDescriptor.ty] false [Value.ty]))), (go!"New", (some (go.signature.Signature [] false [Message.ty]))), (go!"NewField", (some (go.signature.Signature [FieldDescriptor.ty] false [Value.ty]))), (go!"ProtoMethods", (some (go.signature.Signature [] false [(go.GoType.PointerType methods.ty)]))), (go!"Range", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [FieldDescriptor.ty, Value.ty] false [go.bool]))] false []))), (go!"Set", (some (go.signature.Signature [FieldDescriptor.ty, Value.ty] false []))), (go!"SetUnknown", (some (go.signature.Signature [RawFields.ty] false []))), (go!"Type", (some (go.signature.Signature [] false [MessageType.ty]))), (go!"WhichOneof", (some (go.signature.Signature [OneofDescriptor.ty] false [FieldDescriptor.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Message.ty) []
 
-attribute [instance] Message.TypeAssumptions.type_repr
-  Message.TypeAssumptions.underlying
-  Message.TypeAssumptions.isUnderlying
+attribute [instance] Message.TypeAssumptions.underlying
   Message.TypeAssumptions.method_set
   Message.TypeAssumptions.ptr_method_set
 

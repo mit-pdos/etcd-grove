@@ -424,7 +424,7 @@ theorem NewServer.wp_proofRG
     iunfold srvClusterOk at Hco
     icases Hco with ⟨-, -, -, #H, -⟩
     iexact H
-  ihave Hvac : nodeVacant γ.cl cv.ID' $$ [Hvac]
+  ihave Hvac : (∃ x, nodeVacantA γ.cl cv.ID' x) $$ [Hvac]
   · rw [Hrid]; iexact Hvac
   ihave HrS : raftState γ.cl cv.ID' S $$ [HrS]
   · rw [Hrid]; iexact HrS
@@ -448,9 +448,13 @@ theorem NewServer.wp_proofRG
   (try wp_auto)
   -- the configuration, field by field from here on
   iStructNamed cfg
-  ihave %HcuNN := typedPointsto_not_null _ _ _ $$ ClientURLs
-  wp_apply h13 as %cus -
-  · ipureintro; exact HcuNN
+  -- (prove-ps2-misc, 2026-11-21) the field and the URLs, read-only (`bootCfgRO`)
+  ihave #HcU : cfg.ClientURLs' ↦*□ U.client $$ []
+  · iunfold bootCfgRO at Hcfgro
+    icases Hcfgro with ⟨-, #H, -⟩
+    iexact H
+  wp_apply h13 $$ [ClientURLs] as %cus ⟨ClientURLs, -⟩
+  · iframe ClientURLs; iframe #
   (try wp_auto)
   -- the request ids' generator, the notifiers
   ihave #Hipkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.idutil $$ []
@@ -551,9 +555,11 @@ theorem NewServer.wp_proofRG
   icases Hfg' with ⟨%fgi, %Hfgi, #Hen⟩
   rw [Hfgi]
   (try wp_auto)
-  wp_apply Hen $$ [] as %ckpp -
+  wp_apply +noauto Hen $$ [] as %ckpp -
   · ipureintro; simp [serverFeatures]
-  (try wp_auto)
+  -- (prove-ps2-newlessor3) a time receipt, at the resolution of `srv.Cfg.ReqTimeout()`, for
+  -- `NewLessor`'s second write-back token, of the write budget's stock (`wbSupply_of_stock`)
+  wp_take_receipt as Hrk0
   wp_apply h20 $$ [] as %reqto -
   · iframe TickMsS ElectionTicksS
   (try wp_auto)
@@ -619,6 +625,15 @@ theorem NewServer.wp_proofRG
   · iExactEq Hwb; rfl
   rw [show (5 : Nat) = 1 + 4 from rfl]
   icases (ownToks_add 4 1 d.γB.wb).1 $$ Hwb with ⟨Hwl, Hwb⟩
+  -- (prove-ps2-newlessor3) `NewLessor`'s second write-back token, from the write budget's stock
+  ihave #HpoolA := HWBp $$ %({ E₀ with γbe := γbe } : apply.AEnv GF) []
+  · ipureintro; rfl
+  ihave #Hsup := wbSupply_of_stock ({ E₀ with γbe := γbe } : apply.AEnv GF) γp
+    ({ d with cm := true } : mvcc.KBReal) $$ [$HpoolA $Hstock]
+  imod Hsup $$ Hrk0 with Hwk0
+  ihave Hwl : ownToks d.γB.wb 2 $$ [Hwl Hwk0]
+  · iunfold backend.wbTok at Hwk0
+    iapply (ownToks_add 1 1 d.γB.wb).2; iframe Hwl Hwk0
   -- `lease.NewLessor`
   rw [Hbe0]
   -- (restart) `lease.NewLessor` over the image's `lease` bucket: its records (as `applySnapshot`'s
@@ -639,19 +654,20 @@ theorem NewServer.wp_proofRG
       hperm.symm)
     $$ [Hopen Hwl Hrbo]
     as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlmode, #Hlcfg, -, #Hlexp, #Hlgd, Hlrd, Hlown, HlWt, HlEv,
-      Hlrvk, Hro, HleOn, #Hlbe, Hlstop, #HlReq, ⟨%ls, %Hls, HlAt0⟩, #Hllk'⟩
+      Hlrvk, Hro, HleOn, #Hlbe, Hlstop, #HlReq, ⟨%ls, %Hls, HlAt0⟩⟩
   · iframe HB Hclok
-    unfold backend.wbTok
     iunfold backend.rbOwn at Hrbo
     iframe Hopen Hwl Hrbo
     isplitr; · iright; iexact Hzlg
     isplitr; · ipureintro; simp
-    imodintro
-    rcases hGA with hg | hn
-    · iapply (BigSepL.bigSepL_intro (P := iprop(emp))
-        (fun {_ _} _ => by unfold srvGrantGuard; exact pure_intro ⟨hg, fun h => absurd h (by decide)⟩))
-      iempintro
-    · rw [hn]; iapply BigSepL.bigSepL_nil.2; itrivial
+    isplitr
+    · imodintro
+      rcases hGA with hg | hn
+      · iapply (BigSepL.bigSepL_intro (P := iprop(emp))
+          (fun {_ _} _ => by unfold srvGrantGuard; exact pure_intro ⟨hg, fun h => absurd h (by decide)⟩))
+        iempintro
+      · rw [hn]; iapply BigSepL.bigSepL_nil.2; itrivial
+    ipureintro; exact Nat.le_trans Hbnd (by decide)
   -- (restart) the boot's buckets: the image's lease bucket put back (`D`'s)
   ihave Hrbo : backend.rbOwnIn d.γB (fun _ => True)
       ((backend.rbData d.P D).insert go!"lease" ((D.lookup go!"lease").getD ∅)) $$ [Hrbo]
@@ -664,7 +680,6 @@ theorem NewServer.wp_proofRG
   -- (restart) the lessor's history starts at the recovered snapshot (`HlAt0`, `NewLessor`'s), not
   -- `lessorAt_empty`'s
   ihave ⟨Hlt1, HltS⟩ := (ghostVar_split_half (GF := GF) γlt 1 (appliedTable ρ.rd A).ids).1 $$ Hlt
-  ihave #Hllk := lookupOk_of_guard lp (srvGrantGuard ρ.rd.kv.lg false) $$ Hllk'
   (try wp_auto)
   -- `auth.NewTokenProvider`
   ihave #Hapkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []
@@ -770,7 +785,7 @@ theorem NewServer.wp_proofRG
   · iPkgInit
   ihave #Hisl := lease.isLessor_of_lessorInv h49 h50 h51 h52 lp γl $$ [$Hlspkg $Hlinv]
   -- the lessor's reader slots: one for the store, one for the apply thread's lease owner (D14i)
-  icases replicate_take1 _ _ hM1 $$ Hlrd with ⟨Hlrd, Hlrds⟩
+  icases replicate_take1 _ _ (by omega) $$ Hlrd with ⟨Hlrd, Hlrds⟩
   icases replicate_take1 _ _ (by omega) $$ Hlrds with ⟨Hlrd2, Hlrds⟩
   -- (the lease-src plan) the rest in the lessor's reader pool, which the lease service's calls
   -- borrow from with their thread tokens (`threadBound GF ≤ 2 ^ 28`)
@@ -905,10 +920,6 @@ theorem NewServer.wp_proofRG
   wp_take_receipt as Hrk1
   wp_apply +noauto h29 as %ab ⟨%abl, %Hab, #Hablg, #Habbe⟩
   wp_take_receipt as Hrk2
-  ihave #HpoolA := HWBp $$ %({ E₀ with γbe := γbe } : apply.AEnv GF) []
-  · ipureintro; rfl
-  ihave #Hsup := wbSupply_of_stock ({ E₀ with γbe := γbe } : apply.AEnv GF) γp
-    ({ d with cm := true } : mvcc.KBReal) $$ [$HpoolA $Hstock]
   imod Hsup $$ Hrk1 with Hwk1
   imod Hsup $$ Hrk2 with Hwk2
   ihave Hwk1 : backend.wbTok d.γB $$ [Hwk1]
@@ -1107,7 +1118,7 @@ theorem NewServer.wp_proofRG
     iexact Hcl0
   -- (D21 M2) what the transport's calls into the server read (`srvProcOk`): the wrapper's
   -- fixed fields split off its struct (the node's among them), the member id, the stats
-  imod rnFixed_split (srvRAddr s) rvr $$ r with ⟨#Hfix, Htrf, HlatestTs⟩
+  imod rnFixed_split (srvRAddr s) rvr $$ r with ⟨#Hfix, Htrf, HlatestTs, Hreplay⟩
   ihave #HNodeC : rnNodeAddr (srvRAddr s) ↦□ rnNodeIface γrn $$ []
   · rw [← Hrn14]
     iunfold rnFixed at Hfix
@@ -1566,13 +1577,14 @@ theorem NewServer.wp_proofRG
   -- `Stop` names it (`srvTrStop`)
   ipersist Htrf
   imod Hinst $$ %(srvRAddr s) %s %(interface.mkOk (go.GoType.PointerType api.rafthttp.Transport.ty) #t)
-    [Henv] [Hcmi] [] [] [] [HlatestTs] [] [Hrtm] %HtickB with ⟨#Hrn, Hrdone, #Hnodef, #Hprop, -⟩
+    [Henv] [Hcmi] [] [] [] [HlatestTs] [Hreplay] [] [Hrtm] %HtickB with ⟨#Hrn, Hrdone, #Hnodef, #Hprop, -⟩
   · iexact Henv
   · iexact Hcmi
   · simp only [srvErM]; iexact Hrdctx
   · iexact Hfix
   · iexact Htrf
   · iexact HlatestTs
+  · iexact Hreplay
   · -- (D21 M2) the raft wrapper's messages carry their bundle into the network
     ihave #Htrall' : netTransport γn id (transportIface t)
         (srvErM false ρ E₀ (W64 0) (W64 0) (restartKV ρ.rd.kv A) id (srvTrKey γn γk) (srvTrStopK γk)).S
@@ -1607,21 +1619,22 @@ theorem NewServer.wp_proofRG
   iNamedPrefix Hrn' "N"
   -- the lessor
   -- (the lease-expiry plan's X4) at the environment's grant flag and auth mode (`M.isOn = on`)
+  -- (prove-ps2-promote) the bounds `Promote`'s sort needs, from the construction's
+  have Hb30 : threadBound GF ≤ 2 ^ 30 - 1 := by omega
+  have Hr62 : receiptBound GF ≤ 2 ^ 62 := Nat.le_trans Hrb (Nat.pow_le_pow_right (by decide) (by decide))
   ihave #Hlok : lessorOk ρ.rd.kv.lg M.isOn (lease.lessorIface lp) $$ []
   · icases HM with %HM'
     rw [HM'.1]
-    iapply lessorOk_of_lessorInv h57 h58 h59 lp γl ρ.rd.kv.lg false
+    iapply lessorOk_of_lessorInv h57 h58 h59 Hb30 Hr62 lp γl ρ.rd.kv.lg false
     iframe Hlexp Hlcfg Hlinv Hlspkg
   -- (R8) the lessor's and the auth store's apply contracts at the store's backend and the frozen
   -- hook (`snap_isApplyLessor`, `snap_isAuthStore`, as the snapshot walk's)
   ihave #HlinvM : lease.lessorInv lp (mvcc.api.mvccLeases γm) $$ []
   · rw [Hγl]; iexact Hlinv
-  ihave #HllkO : lessorLookupOk lp $$ []
-  · iunfold lessorLookupOk; iexact Hllk
   ihave #Hapl := snap_isApplyLessor h49 h50 h51 h52 h53 h54 h55 h56 h95 M alst astl lp bc.cl'
       ({ d with cm := true } : mvcc.KBReal) γm (mvcc.api.mvccW d.gx)
       (batchLockInv γA (metaTM d.γB d.P)) hook Hhknn HlP
-    $$ [$Hpkg $Hlbe $Hlcfg $HllkO $HlinvM $HBs $Hhooks]
+    $$ [$Hpkg $Hlbe $Hlcfg $HlinvM $HBs $Hhooks]
   ihave #Hast0 := snap_isAuthStore M alst astl lp bc.cl' RD ({ d with cm := true } : mvcc.KBReal)
       (mvcc.api.mvccW d.gx) (batchLockInv γA (metaTM d.γB d.P)) hook Hhknn $$ [$HisAuth $HBs $Hhooks]
   ihave #Hast : apply.isAuthStore ast (fun _ => batchLockInv γA (metaTM d.γB d.P)) hook
@@ -1762,8 +1775,6 @@ theorem NewServer.wp_proofRG
       isplitr
       · iExactEq Hsdir
         rw [Hγn.1, HρRaft]; rfl
-      isplitr
-      · iunfold lessorLookupOk; iexact Hllk
       isplitr
       · iexists _; iexact Hvcn
       isplitr

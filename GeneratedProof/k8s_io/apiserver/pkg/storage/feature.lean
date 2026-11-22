@@ -19,25 +19,6 @@ open Iris Iris.BI
 noncomputable section
 namespace k8s_io.apiserver.pkg.storage.feature
 
-namespace FeatureSupportChecker
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.storage.feature.Assumptions]
-
-noncomputable instance FeatureSupportChecker_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.feature.FeatureSupportChecker :=
-  sorry -- axiomatized type
-
-noncomputable instance FeatureSupportChecker_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.feature.FeatureSupportChecker k8s_io.apiserver.pkg.storage.feature.FeatureSupportChecker.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end FeatureSupportChecker
-
 namespace defaultFeatureSupportChecker
 section def_
 

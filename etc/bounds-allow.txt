@@ -7,10 +7,20 @@
 # The cache's prefix bound (`2 ^ 28`): one API pair (`New`, `newCache`), local (B5).
 shared-limit ^Spec/go_etcd_io/etcd/cache/v3/(New|newCache)\.lean$
 stock storage/backend/RdPool\.lean  # the backend's reader pool (the backend-auth-split stage, 2026-11-02): the owner of `readTx.mu`'s reader slots builds its pool from the constructor's slots and their open shares, and counts the remainder (`rdStock`)
+stock ^Proof/go_etcd_io/etcd/server/v3/storage/backend/BmStock\.lean$  # (backend-snapshot B3, 2026-11-21) the owner of `b.mu`'s reader slots: the constructor's slots past the batch transaction's, one in each reader's token (`rdTok`'s `bmSlot`)
 
 # The lessor's reader pool, made of its lock's spare slots by the lock's owner, the lease package
 # (the lease-src plan, 2026-11-02).
 stock ^Proof/go_etcd_io/etcd/server/v3/lease/RdPool\.lean$
+# (prove-ps2-newlessor3, 2026-11-21) The lessor's constructor and its expiry loop (`runLoop`,
+# `revokeExpiredLeases`, `findExpiredLeases`, `Lease.expired`): the constructor's forked loop (`runLoop`'s
+# `findExpiredLeases`) calls `l.expired()` → `Remaining()`, borrowing from the leases' `expiryMu` pools
+# (`isLeaseObj`'s, which exist under `threadBound GF ≤ 2^30 - 1`): the pools' owner's own use.
+spec-thread ^Spec/go_etcd_io/etcd/server/v3/lease/(NewLessor|newLessor|Lease__expired|lessor__(findExpiredLeases|revokeExpiredLeases|runLoop))\.lean$
+# (prove-ps2-newlessor5, 2026-11-21) The lessor's constructor, `le.mu`'s owner: `newLessor` makes the lock
+# (`init_RWMutex`, `NewLessorAlloc`) and hands out its reader slots (one to the expiry loop, the rest to the caller).
+stock ^(Spec|Proof)/go_etcd_io/etcd/server/v3/lease/(newLessor|NewLessorAlloc)\.lean$
+spec-readers ^Spec/go_etcd_io/etcd/server/v3/lease/newLessor\.lean$
 
 # The store's readers, by their owner, mvcc (R-D1, 2026-11-04): the wait group's invariant holds the
 # readers its two loops leave at `Done` (`wsLoopN`), `watchableStore.Close` returns them, and the

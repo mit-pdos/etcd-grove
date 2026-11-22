@@ -19,6 +19,7 @@ included; until then over the sole writer, `backend.Snapshot`'s view and SNAPSHO
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyRDefs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvBuild
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvSnapSend
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__createMergedSnapshotMessage
@@ -511,7 +512,7 @@ revision, the lent buckets given back (`RA`) and their contents in `D` (`QA`'s).
 SNAPSHOT-SORRY #7-cmp's records; compacting stores covered. R4, 2026-11-07: `lean`'s lending and the
 leased rest buckets (`srvRest_open`'s TTLs) ported, the reader token taken; until then the plain
 rest image, `mergedImg`, and `threadTok` alone.) -/
-theorem mergedCreate_window
+theorem mergedCreate_window_replay
     [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
     (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
     (hPers : mvcc.api.persistent.law (GF := GF))
@@ -529,7 +530,9 @@ theorem mergedCreate_window
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (b : GoInterface) (st : ApplyState)
     (ai a t : w64) (A : List EntryModel) (x : apply.ApplyKV) (γw : GName) (γp : WTNames)
     (ua kv : GoInterface)
-    (hok : loopOk γ st ai) (hci : ciEff γ st.k = ai)
+    (rest : apply.RestM)
+    (hbuckets : rest.bk = (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).bk)
+    (hok : loopOk γ st ai)
     -- (#7-on, `lean`'s) the buckets lent to the window (the auth buckets, with auth on)
     (SA : GoString → Prop) (QA : GMap GoString backend.BktData → Prop) (RA : IProp GF)
     (hSA : ∀ n, SA n → n ∈ restBuckets) :
@@ -537,15 +540,16 @@ theorem mergedCreate_window
       isServerM on s γ ci TM E ρ γr ∗ srvKVAddr s ↦□ kv ∗ □ mvcc.api.isMvcc kv E.γ ∗
       srvWTPool E γp ∗ ⧗ 1 ∗ £ 1 ∗ apply.applyTok E ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvApplyKVCore s E γw x ua ∗
-      srvRestM E.authOn E γr A ∗ bkLendW E SA QA RA ⊢
+      srvRestRpM E.authOn E γr A rest ∗ bkLendW E SA QA RA ⊢
     |={⊤}=> ∃ (be : GoInterface) (dq : DFrac) (RC RC' RS RS' : IProp GF)
         (Qd : backend.Data → IProp GF),
       srvKVCommitOk kv RC RC' ∗ RC ∗ srvBeAddr s ↦{dq} be ∗
-      srvBeSnapOk be RS RS' Qd ∗ (RC' -∗ RS) ∗
+      srvBeSnapOk be RS RS' (fun D => iprop(Qd D ∗
+        ⌜∃ term : w64, metaIs D (ciEff γ st.k, term)⌝)) ∗ (RC' -∗ RS) ∗
       (∀ D : backend.Data, RS' -∗ Qd D -∗ srvBeAddr s ↦{dq} be ={⊤}=∗ ∃ st' : ApplyState,
         apply.applyTok E ∗ applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗
-        srvApplyKVCore s E γw x ua ∗ srvRestM E.authOn E γr A ∗
-        mergedImgM E.authMode E.lg γr ai A x.log x.crev D ∗
+        srvApplyKVCore s E γw x ua ∗ srvRestRpM E.authOn E γr A rest ∗
+        mergedImgM E.authMode E.lg γr (ciEff γ st.k) A x.log x.crev D ∗
         RA ∗ ⌜(∃ r, QA r ∧ ∀ n, SA n → D.lookup n = r.lookup n) ∧
           loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝) := by
   haveI := srvApi.kvStoreInvG_persistent hPers E.kv E.γ E.Nx E.Cp E.γs
@@ -620,12 +624,13 @@ theorem mergedCreate_window
   -- the snapshot's write-back token
   imod srvWTPool_take_extra_d E γp d _ $$ Hpool Hr1 Hl1 Hg with ⟨Ht1, Hg⟩
   -- the rest buckets, at the image of the applied log's leases (lease-expiry)
-  ihave ⟨%f, %Hfb, HRs, HLt, #HGI, #HRq, HEv⟩ := srvRestM_open E.authOn E γr A $$ HRs
+  ihave ⟨%f, %Hfb, HRs, HLt, #HGI, #HRq, HEv⟩ := srvRestRpM_open E.authOn E γr A rest $$ HRs
   rw [hRO]
   iunfold srvRestOwnH at HRs
   icases HRs with ⟨Hro, HH⟩
   iunfold srvRestOwn at Hro
   icases Hro with ⟨Hrc, Hrn, Hcl, %Hmi⟩
+  have hbk := restLeasesWith_bk_congr f (srvIds E (appliedTableM E.authOn γr A).ids) _ _ hbuckets
   ihave Hrb : iprop(backend.rbOwnIn (GF := GF) d.γB membership.clusterBkts
       (apply.restLeasesWith f (srvIds E (appliedTableM E.authOn γr A).ids)
         (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk ∗
@@ -633,7 +638,7 @@ theorem mergedCreate_window
       (apply.restLeasesWith f (srvIds E (appliedTableM E.authOn γr A).ids)
         (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk ∗
     RL) $$ [Hrc Hrn Hpa]
-  · iframe Hrc Hrn Hpa
+  · rw [← hbk]; iframe Hrc Hrn Hpa
   have hRB : ∀ n ∈ restBuckets, d.P.RB n = true := fun n hn => by
     simp [mvcc.KBReal.P, hn]
   have hPkd : E.Pk d = batchLockInv γ (metaTM d.γB d.P) := hPk
@@ -646,7 +651,7 @@ theorem mergedCreate_window
       mvcc.api.mvccBackend E.γ 1 (mvcc.api.etcdStorage d) (E.Pk d) ∗ freezeY γ st ∗ emp)
   iexists iprop(mvcc.api.mvccReaders E.γ 1 ∗
       (mvcc.api.mvccBackend E.γ 1 (mvcc.api.etcdStorage d) (E.Pk d) ∗
-      backend.bOpen d.γB backend.rdOpen ∗ backend.wbTok d.γB ∗
+      backend.bOpen d.γB backend.rdOpen ∗ backend.wbTok d.γB ∗ backend.rdTok d.γB d.P d.be ∗
       (freezeY γ st ∗ iprop(backend.rbOwnIn d.γB membership.clusterBkts
           (apply.restLeasesWith f (srvIds E (appliedTableM E.authOn γr A).ids)
             (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk ∗
@@ -656,7 +661,7 @@ theorem mergedCreate_window
         RL)) ∗
       srvApi.wStQ E.γs E.stq x.log x.crev))
   iexists iprop(mvcc.api.mvccReaders E.γ 1 ∗ (backend.bOpen d.γB backend.rdOpen ∗
-      (freezeY γ st ∗ iprop(backend.rbOwnIn d.γB membership.clusterBkts
+      backend.rdTok d.γB d.P d.be ∗ (freezeY γ st ∗ iprop(backend.rbOwnIn d.γB membership.clusterBkts
           (apply.restLeasesWith f (srvIds E (appliedTableM E.authOn γr A).ids)
             (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk ∗
         backend.rbPart d.γB (restSet E.authMode)
@@ -666,7 +671,7 @@ theorem mergedCreate_window
       mvcc.api.mvccBackend E.γ 1 (mvcc.api.etcdStorage d) (E.Pk d)))
   iexists (fun D : backend.Data =>
     iprop(srvApi.wStQ (GF := GF) E.γs E.stq x.log x.crev ∗
-      mergedImgM E.authMode E.lg γr ai A x.log x.crev D ∗
+      mergedImgM E.authMode E.lg γr (ciEff γ st.k) A x.log x.crev D ∗
       ⌜∃ ra, QA ra ∧ ∀ n, SA n → D.lookup n = ra.lookup n⌝))
   isplitr
   · iapply srvKVCommitOk_of_kv hsh kv E.γ 1 (mvcc.api.etcdStorage d) (E.Pk d)
@@ -684,7 +689,7 @@ theorem mergedCreate_window
     iexists ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty, #d.be⟩
     isplitr
     · ipureintro; rfl
-    iintro %Φ !> ⟨⟨Hmr, HmB, Ho, Hwb, HR, Hws⟩, Htok⟩ HΦ
+    iintro %Φ !> ⟨⟨Hmr, HmB, Ho, Hwb, Hrd, HR, Hws⟩, Htok⟩ HΦ
     wp_apply (srvApi.snapImageG hPers hReach hImg hSnap E.Nx E.Cp E.kv E.γ E.γs x.log x.crev d (E.Pk d)
         backend.rdOpen
         iprop(freezeY γ st ∗ iprop(backend.rbOwnIn d.γB membership.clusterBkts
@@ -699,9 +704,9 @@ theorem mergedCreate_window
             (apply.restLeasesWith f (srvIds E (appliedTableM E.authOn γr A).ids)
               (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk.lookup n) ∧
           ∃ ra, QA ra ∧ ∀ n, SA n → r.lookup n = ra.lookup n))
-      $$ [HmB Ho Hwb Htok HR Hws]
-      as %sp %D ⟨Hsn, Ho, HR, HmB, Hws, %HQD, %Hre, %u, #Him⟩
-    · iframe #; iframe HmB Ho Hwb Htok HR Hws
+      $$ [HmB Ho Hwb Htok Hrd HR Hws]
+      as %sp %D ⟨Hsn, Ho, Hrd, HR, HmB, Hws, %HQD, %Hre, %u, #Him⟩
+    · iframe #; iframe HmB Ho Hwb Htok Hrd HR Hws
       rw [hPkd]
       iintro !> %dd %r ⟨HY, Hrc, Hrn, HRL⟩ HPk Hhk Hrb'
       icases Hlaw $$ %r HRL Hrb' with ⟨%Hra, -, Hrb'⟩
@@ -714,27 +719,29 @@ theorem mergedCreate_window
       ipureintro; exact ⟨Hob.1, Hob.2.1, Hra⟩
     iapply HΦ
     simp only []
-    iframe Hsn Hmr Ho HR HmB Hws
+    iframe Hsn Hmr Ho Hrd HR HmB Hws
     obtain ⟨⟨hci1, t1, ht1⟩, hrbD, hraD⟩ := HQD
     rw [backend.hkData_lookup, ciKeys_hk hcK (Or.inl rfl)] at hci1
     rw [backend.hkData_lookup, ciKeys_hk hcK (Or.inr rfl)] at ht1
     isplitl
-    · iunfold mergedImgM
-      isplitr
-      · ipureintro
-        exact ⟨by rw [← hci]; simpa using hci1, ⟨t1, by simpa using ht1⟩,
-          bkRestAtM_of_obs E γr A d f D hRB hrbD Hfb, Hre⟩
-      iexists u; iexact Him
-    ipureintro
-    obtain ⟨ra, hQA, hraD⟩ := hraD
-    refine ⟨ra, hQA, fun n h => ?_⟩
-    have := hraD n h
-    simp only [backend.rbData_lookup, hRB n (hSA n h), ↓reduceIte] at this
-    exact this
-  isplitl [Hopn Ht1 Hrb Hws]
+    · isplitl
+      · iunfold mergedImgM
+        isplitr
+        · ipureintro
+          exact ⟨by simpa using hci1, ⟨t1, by simpa using ht1⟩,
+            bkRestAtM_of_obs E γr A d f D hRB hrbD Hfb, Hre⟩
+        iexists u; iexact Him
+      ipureintro
+      obtain ⟨ra, hQA, hraD⟩ := hraD
+      refine ⟨ra, hQA, fun n h => ?_⟩
+      have := hraD n h
+      simp only [backend.rbData_lookup, hRB n (hSA n h), ↓reduceIte] at this
+      exact this
+    ipureintro; exact ⟨t1, by simpa using hci1, by simpa using ht1⟩
+  isplitl [Hopn Ht1 Hrdt Hrb Hws]
   · iintro ⟨Hmr, HmB, HY, -⟩
-    iframe Hmr HmB Hopn Ht1 HY Hrb Hws
-  · iintro %D ⟨Hmr, Hopn, ⟨HY, Hrb⟩, HmB⟩ ⟨Hws, #Hmi, %Hra'⟩ Hbe
+    iframe Hmr HmB Hopn Ht1 Hrdt HY Hrb Hws
+  · iintro %D ⟨Hmr, Hopn, Hrdt, ⟨HY, Hrb⟩, HmB⟩ ⟨Hws, #Hmi, %Hra'⟩ Hbe
     icases Hrb with ⟨Hrc, Hrn, Hpa⟩
     imod Hlb $$ Hpa with HRA
     imod unfreeze γ st $$ Hinv HY with Hst
@@ -773,7 +780,7 @@ theorem mergedCreate_window
       · iexact Hra
       iexact Hw
     isplitl [Hrc Hrn Hcl HH HLt HEv]
-    · iapply srvRestM_close
+    · iapply srvRestRpM_close
       iframe HLt HGI HRq HEv
       iexists f
       isplitr
@@ -782,11 +789,92 @@ theorem mergedCreate_window
       iunfold srvRestOwnH
       iframe HH
       iunfold srvRestOwn
+      rw [hbk]
       iframe Hrc Hrn Hcl
-      ipureintro; exact Hmi
+      ipureintro; simpa only [hbk] using Hmi
     isplitl [HRA]
     · iexact HRA
     ipureintro; exact ⟨Hra', hok, rfl⟩
+
+/-- The caught-up case uses the applied log's membership image directly. -/
+theorem mergedCreate_window
+    [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
+    (hPers : mvcc.api.persistent.law (GF := GF))
+    (hReach : mvcc.api.mvccState_reachable.law (GF := GF))
+    (hImg : mvcc.api.mvccImage_snapshot.law (GF := GF) (hG := hG))
+    (hSnap : backend.backend.Snapshot.spec (GF := GF) (hG := hG))
+    (hOn : storage.BackendHooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG))
+    (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG))
+    (hPut : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
+    (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (b : GoInterface) (st : ApplyState)
+    (ai a t : w64) (A : List EntryModel) (x : apply.ApplyKV) (γw : GName) (γp : WTNames)
+    (ua kv : GoInterface)
+    (hok : loopOk γ st ai)
+    -- (#7-on, `lean`'s) the buckets lent to the window (the auth buckets, with auth on)
+    (SA : GoString → Prop) (QA : GMap GoString backend.BktData → Prop) (RA : IProp GF)
+    (hSA : ∀ n, SA n → n ∈ restBuckets) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerM on s γ ci TM E ρ γr ∗ srvKVAddr s ↦□ kv ∗ □ mvcc.api.isMvcc kv E.γ ∗
+      srvWTPool E γp ∗ ⧗ 1 ∗ £ 1 ∗ apply.applyTok E ∗
+      applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvApplyKVCore s E γw x ua ∗
+      srvRestM E.authOn E γr A ∗ bkLendW E SA QA RA ⊢
+    |={⊤}=> ∃ (be : GoInterface) (dq : DFrac) (RC RC' RS RS' : IProp GF)
+        (Qd : backend.Data → IProp GF),
+      srvKVCommitOk kv RC RC' ∗ RC ∗ srvBeAddr s ↦{dq} be ∗
+      srvBeSnapOk be RS RS' (fun D => iprop(Qd D ∗
+        ⌜∃ term : w64, metaIs D (ciEff γ st.k, term)⌝)) ∗ (RC' -∗ RS) ∗
+      (∀ D : backend.Data, RS' -∗ Qd D -∗ srvBeAddr s ↦{dq} be ={⊤}=∗ ∃ st' : ApplyState,
+        apply.applyTok E ∗ applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗
+        srvApplyKVCore s E γw x ua ∗ srvRestM E.authOn E γr A ∗
+        mergedImgM E.authMode E.lg γr (ciEff γ st.k) A x.log x.crev D ∗
+        RA ∗ ⌜(∃ r, QA r ∧ ∀ n, SA n → D.lookup n = r.lookup n) ∧
+          loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝) := by
+  simpa only [srvRestRpM_model] using
+    mergedCreate_window_replay hsh hPers hReach hImg hSnap hOn hSave hPut hUR hID hName hSafe
+      on s γ ci TM E ρ γr b st ai a t A x γw γp ua kv _ rfl hok SA QA RA hSA
+
+/-- When the backend is at or below the apply cursor, the sender retains the
+caller's configuration, index and term. -/
+theorem EtcdServer.createMergedSnapshotMessage.caughtUp_of_spec
+    (h : EtcdServer.createMergedSnapshotMessage.spec (GF := GF) (hG := hG)) :
+    EtcdServer.createMergedSnapshotMessage.specCaughtUp (GF := GF) (hG := hG) := by
+  intro s ml st snapt snapi ci terms boot cs lg kv be dq RC RC' RS RS' Qd γs hci hsz hsh
+  iintro %Φ ⟨#Hpkg, #Hlgf, #Hlgn, Hlr, #Hkvf, Hkv, HRC, Hbe, Hsnap, HR, Hm, #Hpb, #Hcs, Htok⟩ HΦ
+  have hn : ¬uint.Z snapi < uint.Z ci := by omega
+  have hc := h s ml st snapt snapi ci snapt terms boot cs lg kv be dq RC RC' RS RS' Qd γs hsz hsh
+  simp only [hn, ↓reduceIte] at hc
+  iapply hc $$ %Φ [Hlr Hkv HRC Hbe Hsnap HR Hm Htok]
+  · iframe Hpkg Hlgf Hlgn Hlr Hkvf Hkv HRC Hbe HR Hm Hpb Hcs Htok
+    iunfold srvBeSnapOk at Hsnap
+    iunfold srvBeSnapOk
+    icases Hsnap with ⟨%bi, %hb, #Hsnap⟩
+    iexists bi
+    isplitr; · ipureintro; exact hb
+    iintro !> %Ψ Hpre HΨ
+    wp_apply Hsnap $$ [Hpre] as %sp %D ⟨Hopen, Hrs, HQ, %hm⟩
+    · iexact Hpre
+    iapply HΨ $$ %sp %D
+    dsimp only
+    iframe Hopen Hrs HQ
+    obtain ⟨t, ht⟩ := hm
+    iexists t
+    isplitr; · ipureintro; exact ht
+    iintro %hf
+    exact hf.elim
+  inext
+  iintro %mg ⟨Hlr, Hrs, Hbe, Htok, %rc, %D, %c, Hmg, Hm, Hsz, Hcs0, -, %hb, Hr, HQ⟩
+  ihave Hopt := Hcs0 $$ %(by trivial)
+  iapply HΦ
+  iframe Hlr Hrs Hbe Htok
+  iexists rc, D, c
+  iframe Hmg Hm Hsz Hopt Hr HQ
+  ipureintro; exact hb
 
 /-- **The leased rest image of an observed snapshot, auth off** (`merged_image`'s rest part): the
 mode-off rest buckets `bkRestAtM .off` of the applied log, at its leases where the cluster grants

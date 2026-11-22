@@ -58,18 +58,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- A suffix of entries is modelled by the suffix of the models. -/
-theorem entriesAt_drop (ents : List Loc) (ms : List EntryModel) (k : Nat) :
-    entriesAt (GF := GF) ents ms ⊢ entriesAt (ents.drop k) (ms.drop k) := by
-  iunfold entriesAt
-  iintro ⟨%Hl, #H⟩
-  isplitr
-  · ipureintro; simp [Hl]
-  imodintro
-  iintro %n %e %m %He %Hm
-  rw [List.getElem?_drop] at He Hm
-  iapply H $$ %(k + n) %e %m %He %Hm
-
 /-- **`applyEntries.specBatch`**, in the environment's auth mode, at a restart point (R2d'a swap batch
 3, 2026-11-06: until then the first-start form, `wp_proofOff`/`wp_proofOn` over `ModeSpecs.lean`'s
 corollaries; the restart form was `ApplyEntriesR.lean`'s `wp_proofBatchROff` and

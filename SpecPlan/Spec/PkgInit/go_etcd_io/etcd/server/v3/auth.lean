@@ -12,9 +12,12 @@ public import SpecPlan.Spec.PkgInit.github_com.prometheus.client_golang.promethe
 public import Perennial.Proof.fmt.Base
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.api.v3.authpb
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.pkg.v3.adt
+public import Perennial.Proof.crypto.rand.Base
+public import Perennial.Proof.math.big.Base
 public import Perennial.Proof.strconv.Base
 public import Perennial.Proof.strings.Base
 public import Perennial.Proof.bytes.Base
+public import SpecPlan.Spec.PkgInit.encoding.base64
 public import Perennial.Proof.sort.Base
 public import Perennial.Proof.sync.atomic.Base
 public import SpecPlan.Spec.PkgInit.golang_org.x.crypto.bcrypt

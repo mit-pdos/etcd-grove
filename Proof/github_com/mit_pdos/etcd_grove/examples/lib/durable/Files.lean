@@ -17,6 +17,7 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.durable.Read
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.durable.Write
 public import GooseLang.Ext.Durable.Files
+public import GooseLang.NotCrashed
 
 @[expose] public section
 
@@ -64,6 +65,21 @@ theorem Read.wp_file (wp_Read : Read.spec (GF := GF) (hG := hG)) (γ : GName) (N
   imodintro
   iapply HΦ $$ Hf
 
+/-- `Write(f, data)`, per file, logically atomic: `f`'s entry then holds `data`. (2026-11-21) The
+update may use the crash token when it opens (`Write.spec`'s). -/
+theorem Write.wp_file_au_nc (wp_Write : Write.spec (GF := GF) (hG := hG)) (γ : GName)
+    (N : Namespace) (f data : GoString) (Φ : val → IProp GF) :
+    ⊢ durableFilesInv γ N -∗
+      (notCrashedG -∗ |={⊤ \ ↑N,∅}=> notCrashedG ∗ ∃ o : Option GoString, dfile γ f o ∗
+        (dfile γ f (some data) ={∅,⊤ \ ↑N}=∗ Φ #())) -∗
+      WP (App (App (Val (@! Write)) (Val #f)) (Val #data)) {{ Φ }} := by
+  iintro #Hinv HAU
+  iapply wp_Write none f data trivial $$ %Φ
+  iintro Hnc
+  rw [durableOwnM_none]
+  iapply durableFiles_write_au_frame γ N ⊤ CoPset.subseteq_top f data _ (Φ #()) $$ Hinv
+  iapply HAU $$ Hnc
+
 /-- `Write(f, data)`, per file, logically atomic: `f`'s entry then holds `data`. -/
 theorem Write.wp_file_au (wp_Write : Write.spec (GF := GF) (hG := hG)) (γ : GName)
     (N : Namespace) (f data : GoString) (Φ : val → IProp GF) :
@@ -72,9 +88,11 @@ theorem Write.wp_file_au (wp_Write : Write.spec (GF := GF) (hG := hG)) (γ : GNa
         (dfile γ f (some data) ={∅,⊤ \ ↑N}=∗ Φ #())) -∗
       WP (App (App (Val (@! Write)) (Val #f)) (Val #data)) {{ Φ }} := by
   iintro #Hinv HAU
-  iapply wp_Write none f data trivial $$ %Φ
-  rw [durableOwnM_none]
-  iapply durableFiles_write_au γ N ⊤ CoPset.subseteq_top f data (Φ #()) $$ Hinv HAU
+  iapply Write.wp_file_au_nc wp_Write γ N f data Φ $$ Hinv
+  iintro Hnc
+  imod HAU with HAU
+  imodintro
+  iframe Hnc HAU
 
 /-- `Write(f, data)`, per file, with the entry in hand: `f`'s entry then holds `data`. -/
 theorem Write.wp_file (wp_Write : Write.spec (GF := GF) (hG := hG)) (γ : GName) (N : Namespace)

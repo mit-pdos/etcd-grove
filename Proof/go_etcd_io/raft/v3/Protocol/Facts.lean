@@ -56,6 +56,8 @@ is dropped by the preamble and needs none of them, except `app_recv_wf`, which h
 any `app` (`isMessage` carries it). All four are proved (the last two since 2026-10-02,
 from the acknowledgement invariant `acksOk` and from arithmetic). -/
 
+variable [CrashGS GF] in
+variable [CrashGS GF] in
 /-- `handleHeartbeat`'s `commitTo(m.Commit)` panics if `lastIndex() < m.Commit`. It does
 not: the leader sends `Commit ≤ pr.Match`, and `isMessage` carries the receiver's
 acknowledgement of `pr.Match` in `m.term`. The receiver acknowledges only at its own term
@@ -65,17 +67,17 @@ justified by its log (`acksOk`, `ackAgree`), and either way within it (`LogOk`).
 holds the ghost state before its term preamble: hence `≤`. -/
 theorem heartbeat_commit_le_last (E : CoPset) (γ : RaftNames) (id : w64) (ps : PState) (m : Msg)
     {md : Bool} :
-    ↑(slotN γ id) ⊆ E →
+    ↑(slotN γ id) ⊆ E → ↑(crashNs γ id) ⊆ E →
     m.ty = .heartbeat →
     m.dst = id →
     uint.Z ps.term ≤ uint.Z m.term →
     (m.term = ps.term → ps.role ≠ .leader) →
-    ⊢ ownRaftGhost (GF := GF) γ id ps md -∗ isMessage γ m ={E}=∗
-      ownRaftGhost γ id ps md ∗ ⌜uint.Z m.commit ≤ plogLastIndexZ ps.base ps.log⌝ := by
-  intro HE Hty Hto Hle Hrole
+    ⊢ notCrashed -∗ ownRaftGhost (GF := GF) γ id ps md -∗ isMessage γ m ={E}=∗
+      notCrashed ∗ ownRaftGhost γ id ps md ∗ ⌜uint.Z m.commit ≤ plogLastIndexZ ps.base ps.log⌝ := by
+  intro HE HC Hty Hto Hle Hrole
   simp only [isMessage, Hty]
   unfold ownRaftGhost isAcked
-  iintro ⟨%γs, %V, %πc, %kl, H⟩ ⟨-, -, ⟨%i, %Hci, Hack⟩, -⟩
+  iintro Hnc ⟨%γs, %V, %πc, %kl, H⟩ ⟨-, -, ⟨%i, %Hci, Hack⟩, -⟩
   iNamed H
   icases persistent_entails_right (wand_entails (ownLogGhost_recs (GF := GF) γ id ps kl (virt V πc))) $$ Hlg
     with ⟨⟨%Hlog_ok, -⟩, Hlg⟩
@@ -83,12 +85,13 @@ theorem heartbeat_commit_le_last (E : CoPset) (γ : RaftNames) (id : w64) (ps : 
   have := plogLastIndexZ_nonneg ps.base ps.log
   icases Hack with (%H0 | ⟨⟨%γa', %Hγa', #Hfrag⟩, -⟩)
   · imodintro
+    iframe Hnc
     isplitl
     · iexists γs, V, πc, kl
       iframe % # ∗
     · ipureintro; omega
   rw [Hto] at Hγa'
-  imod slot_open E γ id γs V Hsname HE $$ Hslot Hvirt with ⟨%E0, %HEV, Hsh, Hvirt, Hcl'⟩
+  imod slot_openV E γ id γs V Hsname HE HC $$ Hnc Hslot Hvirt with ⟨Hnc, Hvirt, %E0, %HEV, Hsh, Hcl'⟩
   icases durShares_ack γ id _ E0 γa' m.term i Hγa' $$ Hsh Hfrag with ⟨%Hk0, Hsh⟩
   imod Hcl' $$ Hsh with -
   have Hk' := virt_acks_isSome V πc (m.term, i) (HEV.2.1 _ (by rw [Hk0]; rfl))
@@ -101,6 +104,7 @@ theorem heartbeat_commit_le_last (E : CoPset) (γ : RaftNames) (id : w64) (ps : 
   have Heq : m.term = ps.term := by word
   have Hr := Hrole Heq
   imodintro
+  iframe Hnc
   isplitl
   · iexists γs, V, πc, kl
     iframe % # ∗
@@ -116,6 +120,7 @@ theorem heartbeat_commit_le_last (E : CoPset) (γ : RaftNames) (id : w64) (ps : 
       ipureintro; simp only at Hil; omega
     · ipureintro; omega
 
+variable [CrashGS GF] in
 /-- What `raftLog.maybeAppend` needs of a received `app`'s batch: carried by the message
 (`AppPayloadOk`). No premise on the terms: it is a fact of the message alone (until
 2026-10-02 it was stated for `m.term = ps.term`). -/
@@ -130,6 +135,8 @@ theorem app_recv_wf (γ : RaftNames) (id : w64) (ps : PState) (m : Msg) {md : Bo
   iintro - ⟨%Hpay, -⟩
   ipureintro; exact Hpay
 
+variable [CrashGS GF] in
+variable [CrashGS GF] in
 /-- `maybeAppend` panics if the first conflicting index is at or below the commit index
 (`ci ≤ l.committed`). Under `maybeAppend`'s caller's premise `committed ≤ m.Index` that is
 arithmetic: a conflict is the index of one of the batch's entries, which are at
@@ -176,6 +183,7 @@ prefix `fp` (determined by the base, `FullOk_unique`) followed by the stored ent
 is a prefix of the global committed log. This is what the implementation side reads off
 a node's ghost state (for `Ready`'s committed entries, ultimately). -/
 
+variable [CrashGS GF] in
 theorem ownRaftGhost_inv (γ : RaftNames) (id : w64) (s : PState) :
     ⊢ ownRaftGhost (GF := GF) γ id s -∗ raftCommitInv γ := by
   unfold ownRaftGhost
@@ -183,6 +191,7 @@ theorem ownRaftGhost_inv (γ : RaftNames) (id : w64) (s : PState) :
   iNamed H
   iapply ownLogGhost_inv $$ Hlg
 
+variable [CrashGS GF] in
 theorem ownRaftGhost_committed (γ : RaftNames) (id : w64) (s : PState) {md : Bool} :
     ⊢ ownRaftGhost (GF := GF) γ id s md -∗
       ∃ fp, ⌜FullOk s.base fp⌝ ∗
@@ -567,6 +576,7 @@ theorem prop_collect (γ : RaftNames) (E : CoPset) (d : List w8)
   imodintro
   iapply Hiff $$ HQ'
 
+variable [CrashGS GF] in
 /-- The data of a committed log's entries. -/
 theorem committed_data (γ : RaftNames) (E : CoPset) (l : List EntryM) :
     ↑(raftN γ) ⊆ E →
@@ -707,103 +717,6 @@ theorem alloc_evs (ids : GSet w64) :
         have Hy' : ids !! x = some uy := Hy
         rw [Hx] at Hy'; cases Hy'
     · iexact Ha
-
-/-- The log ghost state of a node in the initial state, from its fresh maps; since 2026-10-16
-(stage R8b) at `initPStateAt t L` for the bootstrap log `L = γ.reBoot` (with its records, and
-every entry of term `1`), in either mode (2026-10-25, T-M M2a; until then static unless `L` is
-empty: the boot log's conf entries need no witness, `witsB`). -/
-private theorem ownLogGhost_init (γ : RaftNames) (id t : w64) (L : List EntryM)
-    (γm γa γc γl γw γe : GName) :
-    γ.reTerms !! id = some γm → γ.reAcks !! id = some γa → γ.reCamp !! id = some γc →
-    γ.reVlogs !! id = some γl → γ.reWins !! id = some γw → γ.reEvs !! id = some γe →
-    γ.reBoot = L → PlogWf base0 L → (L.length : Int) < 2 ^ 64 →
-    (∀ e ∈ L, e.Term' = W64 1) → (L ≠ [] → 1 ≤ uint.Z t) →
-    ⊢ raftCommitInv (GF := GF) γ -∗ isCommitted γ L -∗ logRecs γ base0 L -∗
-      ghostMapAuth γm 1 (∅ : GMap w64 TermRec) -∗
-      ghostMapAuth γa 1 (∅ : GMap (w64 × w64) Unit) -∗
-      ghostMapAuth γc 1 (∅ : GMap w64 (List EntryM × w64)) -∗
-      ghostMapAuth γl 1 (∅ : GMap Nat ((w64 × Bool) × List EntryM)) -∗
-      ghostMapAuth γw 1 (∅ : GMap w64 (GSet w64)) -∗
-      monoListAuthOwn γe 1 ([] : List Aev) -∗
-      ownLogGhost γ id (initPStateAt t L) none DurMaps.empty := by
-  intro Hγm Hγa Hγc Hγl Hγw Hγe HL HwfL Hlen Hones Ht
-  iintro #Hinv #Hc0 #HrL Hm Ha Hc Hl Hw He
-  iclear Ha Hc Hl He
-  have HWL : uint.Z (W64 (L.length : Int)) = L.length := uint_Z_W64 _ (by omega) Hlen
-  have Hcommit : (initPStateAt t L).commit = W64 (L.length : Int) := rfl
-  have Hlog : (initPStateAt t L).log = L := rfl
-  have Hbase : (initPStateAt t L).base = base0 := rfl
-  have Hterm : (initPStateAt t L).term = t := rfl
-  have Hrole : (initPStateAt t L).role = .follower := rfl
-  have Hcp : cprefix [] (initPStateAt t L) = L := by
-    unfold cprefix; rw [Hlog, Hcommit, List.nil_append, HWL]; simp
-  unfold ownLogGhost
-  simp only [DurMaps.empty]
-  iexists γm, ∅, [], γw, ∅
-  iframe Hm Hw Hinv
-  isplitr; · ipureintro; exact Hγm
-  isplitr; · iapply (BigSepM.bigSepM_empty).2; iempintro
-  isplitr; · ipureintro; intro t Ht; simp at Ht
-  isplitr; · unfold leadLogOwn; rw [Hrole]; iempintro
-  isplitr; · ipureintro; intro k Hk; simp at Hk
-  isplitr; · unfold acksOk; rw [Hrole]; iapply (BigSepM.bigSepM_empty).2; iempintro
-  isplitr
-  · ipureintro
-    unfold LogOk plogLastIndexZ
-    rw [Hlog, Hbase, Hcommit, base0_index, HWL]
-    exact ⟨PlogWf_wfR _ _ HwfL, Int.natCast_nonneg _, by omega⟩
-  isplitr; · rw [Hlog, Hbase]; iexact HrL
-  isplitr; · unfold matchedOk; rw [Hrole]; iempintro
-  isplitr
-  · unfold commitIn
-    isplitr
-    · unfold commitJ; ileft; ipureintro
-      rw [Hlog, Hcommit, HL, HWL, List.nil_append]; exact ⟨Int.le_refl _, rfl⟩
-    · unfold dynOn
-      iright; unfold witsB; iintro %k %Hk %Hb; exfalso
-      have := Hk.2
-      rw [Hcommit, HWL] at this
-      rw [HL] at Hb
-      simp at this
-      omega
-  isplitr; · unfold baseOk; ileft; ipureintro; rfl
-  isplitr
-  · ipureintro
-    rw [Hlog, Hbase]
-    refine ⟨FullOk_base0, HwfL, ?_⟩
-    intro j x Hx
-    rw [List.nil_append] at Hx
-    refine ⟨?_, fun h => by rw [Hrole] at h; cases h⟩
-    rw [Hterm]
-    have := uint_Z_nonneg j
-    by_cases Hj0 : uint.Z j = 0
-    · have Hj : j = base0.index' := uint_Z_inj.mp (by rw [base0_index]; exact Hj0)
-      subst Hj
-      rw [plogTermAt_base] at Hx
-      cases Hx
-      rw [show uint.Z (base0 : entryID).term' = 0 from rfl]; exact uint_Z_nonneg t
-    · obtain ⟨e, He, -, Hxt⟩ := plogTermAt_some_entry _ _ _ _ (PlogWf_wfR _ _ HwfL) Hx
-        (by rw [base0_index]; omega)
-      have Hne : L ≠ [] := by intro h; subst h; simp at He
-      rw [← Hxt, Hones e (List.mem_of_getElem? He), show uint.Z (W64 1) = 1 from rfl]
-      exact Ht Hne
-  isplitr; · unfold logRecs; iapply (BigSepL.bigSepL_nil).2; iempintro
-  isplitr; · ipureintro; intro T HT; simp at HT
-  isplitr; · unfold campOwn; rw [Hrole]; iempintro
-  isplitr; · unfold vlogsOk; iapply (BigSepM.bigSepM_empty).2; iempintro
-  isplitr; · unfold histsOk; iapply (BigSepM.bigSepM_empty).2; iempintro
-  isplitr; · ipureintro; exact Hγw
-  isplitr; · iapply (BigSepM.bigSepM_empty).2; iempintro
-  isplitr; · ipureintro; intro t Ht; simp at Ht
-  isplitr; · unfold klOk; ipureintro; rw [Hrole]; intro h; cases h
-  isplitr
-  · ipureintro
-    refine ⟨fun p1 p2 e1 e2 _ H1 _ => by simp at H1, fun e He => by simp at He,
-      fun t i Hi => by simp at Hi⟩
-  isplitr; · rw [Hcp]; iexact Hc0
-  ipureintro
-  refine ⟨⟨fun h => (by rw [Hrole] at h; cases h), fun h => (by rw [Hrole] at h; cases h)⟩, ?_⟩
-  rw [Hcommit, HWL, HL]; exact Int.le_refl _
 
 private theorem tbl_of_ids (nv : GMap w64 GName) (P : w64 → GName → IProp GF) :
     ∀ m : GMap w64 GName, (∀ k v, m !! k = some v → nv !! k = some v) →
@@ -1838,21 +1751,24 @@ section lemmas
 variable [GooseExts]
 variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
+variable [CrashGS GF] in
 /-- No read credit (2026-10-13). -/
 theorem rdCred_zero (γ : RaftNames) : ⊢ |==> rdCred (GF := GF) γ 0 := by
   unfold rdCred
   exact own_unit _
 
+variable [CrashGS GF] in
 /-- Taking a step that consumes nothing. -/
 theorem ownRaftGhost_step_0 (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (id : w64)
     (HT : TrackedOk γ c id) (B : Int) (HB : B < 2 ^ 64)
     (s s' : PState) :
     StepC c id B s [] s' →
-    ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ £ 1 -∗ ownRaftGhost (GF := GF) γ id s ={⊤}=∗ ownRaftGhost γ id s' := by
+    ⊢ notCrashed -∗ ⧖ (B.toNat - γ.reBoot.length) -∗ £ 1 -∗ ownRaftGhost (GF := GF) γ id s ={⊤}=∗
+      notCrashed ∗ ownRaftGhost γ id s' := by
   intro Hstep
-  iintro #Hrc Hlc Hown
+  iintro Hnc #Hrc Hlc Hown
   imod rdCred_zero (GF := GF) γ with Hcr
-  iapply ownRaftGhost_stepC γ c HC id HT B HB s [] s' Hstep $$ Hrc [] [Hcr] [] Hlc Hown
+  iapply ownRaftGhost_stepC γ c HC id HT B HB s [] s' Hstep $$ Hnc Hrc [] [Hcr] [] Hlc Hown
   · iapply (BigSepL.bigSepL_nil (Φ := fun _ m => isMessage (GF := GF) γ m)).2
     iempintro
   · rw [show rdCount ([] : List Msg) = 0 from rfl]; iexact Hcr

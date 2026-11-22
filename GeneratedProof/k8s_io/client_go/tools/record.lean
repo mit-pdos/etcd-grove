@@ -41,25 +41,6 @@ noncomputable instance CorrelatorOptions_into_val_typed :
 end def_
 end CorrelatorOptions
 
-namespace EventRecorderLogger
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.tools.record.Assumptions]
-
-noncomputable instance EventRecorderLogger_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.tools.record.EventRecorderLogger :=
-  sorry -- axiomatized type
-
-noncomputable instance EventRecorderLogger_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.record.EventRecorderLogger k8s_io.client_go.tools.record.EventRecorderLogger.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end EventRecorderLogger
-
 namespace EventRecorderAdapter
 section def_
 

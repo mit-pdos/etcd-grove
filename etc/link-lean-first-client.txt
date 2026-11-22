@@ -253,7 +253,8 @@ NewLeaseFromLeaseClient: WithRequireLeader Client__GetLogger
 # `SetEndpoints`, `credentialsForEndpoint`, `authority`, `dialSetupOpts`, `dial`,
 # `dialWithBalancer` from its trusted body, `autoSync`). Trust boundary: grpc's dial
 # (`NewClient`, the option constructors, `insecure.NewCredentials`; `InvDial.lean`), the client's
-# names-only `internal/resolver` (`New`, `SetEndpoints`, `Close`) and `internal/endpoint`
+# `internal/resolver` (`New`, `SetEndpoints`, `Close`: proved over the translation since prove-grpc3,
+# 2026-11-21) and the names-only `internal/endpoint`
 # (`RequiresCredentials`), `streamClientInterceptor`, `roundRobinQuorumBackoff` (floats), the API
 # constructors `NewCluster`/`NewMaintenance` (`NewLease` proved since item 1, `NewAuth` since E2h), `strings.SplitN`,
 # `context.WithCancel(TODO())`, `fmt.Sprintf` with a `*Client`.

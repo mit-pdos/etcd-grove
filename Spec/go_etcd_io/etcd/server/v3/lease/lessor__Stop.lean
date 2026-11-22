@@ -33,9 +33,8 @@ it returns once `runLoop` (forked by `newLessor`) returns -- its `select` takes 
 its deferred `close(le.doneC)` runs -- or blocks, which partial correctness allows. `runLoop` runs
 from `NewLessor` on (its effects are in `NewLessor`'s statement), so stopping it adds no behavior;
 the lessor's other methods do not depend on it. Nothing comes back: no client needs the stopped
-loop's state. What would discharge it: `runLoop` translated and verified (its ticker,
-`revokeExpiredLeases`, `checkpointScheduledLeases`), with the stop channels as broadcast channels,
-as the backend's `run`/`Close` are. -/
+loop's state. (prove-ps2-lease, 2026-11-21) Proved, over `lessorStopTok`'s broadcast channels: the
+close with `stopC`'s close right, the receive with `doneC`'s receive side. -/
 abbrev lease.lessor.Stop.spec : Prop :=
   ∀ (lp : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ lease.lessorStopTok lp }}

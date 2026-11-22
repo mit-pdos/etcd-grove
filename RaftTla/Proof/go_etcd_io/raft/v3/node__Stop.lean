@@ -9,6 +9,7 @@ import all RaftTla.Proof.go_etcd_io.raft.v3.InvNode
 import RaftTla.Proof.go_etcd_io.raft.v3.LemmasP5NodeErr
 import RaftTla.Proof.go_etcd_io.raft.v3.InvApi
 import RaftTla.Proof.go_etcd_io.raft.v3.Protocol.Enter
+import GooseLang.NotCrashed
 
 @[expose] public section
 
@@ -41,7 +42,7 @@ private abbrev node.Stop.specRaw : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗
       nodeLiveRaw γ 1 }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Stop")) (Val #()))
-  {{ RET #(); nodeStoppedRaw γ ∗ raftIdSlot γ.raft id }}
+  {{ RET #(); nodeStoppedRaw γ ∗ raftArmed γ.raft id γ.cx }}
 
 end spec
 
@@ -80,11 +81,18 @@ private theorem node.Stop.wp_raw : node.Stop.specRaw (GF := GF) (hG := hG) := by
     unfold stopAns
     icases Hans with ⟨Hsl', %s, %md, Hg⟩
     subst Hgid
-    have Hfr := (slotLive_fractional (GF := GF) γ.raft γ.id γ.gen).fractional (Qp.half 1)
+    have Hfr := (genView_fractional (GF := GF) γ.raft γ.id γ.cx γ.gen).fractional (Qp.half 1)
       (Qp.half 1)
     rw [Qp.half_add_half] at Hfr
     ihave Hsl1 := Hfr.2 $$ [$Hsl $Hsl']
-    imod raft_stop ⊤ γ.raft γ.id s γ.gen (md := md) CoPset.subseteq_top $$ Hsl1 Hg with Hslot
+    -- (2026-11-21, the crash invariant) the stop is a ghost step: at a step, with the token
+    iapply (wp_ncfupd _ _ (by rfl))
+    unfold ncfupd
+    iintro Hnc
+    imod raft_stop ⊤ γ.raft γ.id s γ.cx γ.gen (md := md) CoPset.subseteq_top $$ Hnc Hsl1 Hg
+      with ⟨Hnc, Hslot⟩
+    imodintro
+    iframe Hnc
     wp_auto
     wp_apply chan.wp_receive (V := Unit) nv.done' γ.done $$ [] as -
     · iapply ownBroadcastChan_is_chan _ _ _ _ $$ Hdone
@@ -128,26 +136,30 @@ needed). -/
 private theorem node.wp_Stop_impl
     (hS : EtcdGrove.node.Stop.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.Stop.spec (GF := GF) (hG := hG) := by
-  unfold EtcdGrove.node.Stop.spec EtcdGrove.Cluster EtcdGrove.nodeRunning EtcdGrove.nodeStopped
+  unfold EtcdGrove.node.Stop.spec EtcdGrove.Cluster EtcdGrove.NodeH EtcdGrove.NodeH.loc EtcdGrove.nodeRunning EtcdGrove.nodeStopped
     EtcdGrove.isNode
   intro n γ N id
   iintro %Φ ⟨#Hinit, #Hnd, Hlive⟩ HΦ
   iunfold nodeRunning at Hlive
   icases Hlive with ⟨%γn, %id1, %Hok, #Hn, #Htb, Hl⟩
-  iapply (hS γn id1 n) $$ [Hl]
+  iapply (hS γn id1 n.loc) $$ [Hl]
   · iframe Hinit Hn Hl
   iintro !> ⟨#Hst, Hslot⟩
   iunfold isNode at Hnd
   icases Hnd with ⟨%γn2, %Hok2, #Hn2, -⟩
-  ihave %Hid := isNode_id_agree γn γn2 id1 id n $$ Hn Hn2
+  ihave %Hid := isNode_id_agree γn γn2 id1 id n.loc $$ Hn Hn2
   subst Hid
   iapply HΦ
   isplitr
   · iapply nodeStoppedRaw_nodeStopped n γ N id1 γn Hok.1
     iframe Hn Htb Hst
-  unfold EtcdGrove.nodeVacant nodeVacantU
+  iexists γn.cx
+  unfold EtcdGrove.nodeVacantA nodeVacantAU EtcdGrove.nodeArm nodeArmU
   rw [← Hok.1.1]
-  iexact Hslot
+  iframe Hslot
+  iexists γn
+  iframe Htb
+  ipureintro; rfl
 
 
 end wrap

@@ -28,29 +28,32 @@ section ghost
 variable [GooseExts]
 variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
+variable [CrashGS GF] in
 /-- **A heartbeat of a higher term than its receiver's carries commit `0`** (`heartbeat_commit_le_last`'s
 argument: the heartbeat's commit is at most the receiver's acknowledgement at its term, which is the
 trivial one, the receiver acknowledging only at its own term, `AcksTerm`). -/
 theorem ownRaftGhost_hbHigher (E : CoPset) (γ : RaftNames) (id : w64) (ps : PState) (m : Msg) {md : Bool} :
-    ↑(slotN γ id) ⊆ E → m.ty = .heartbeat → m.dst = id → uint.Z ps.term < uint.Z m.term →
-    ⊢ ownRaftGhost (GF := GF) γ id ps md -∗ isMessage γ m ={E}=∗
-      ownRaftGhost γ id ps md ∗ ⌜uint.Z m.commit = 0 ∧ (γ.reBoot.length : Int) ≤ uint.Z ps.commit⌝ := by
-  intro HE Hty Hto Hlt
+    ↑(slotN γ id) ⊆ E → ↑(crashNs γ id) ⊆ E → m.ty = .heartbeat → m.dst = id →
+    uint.Z ps.term < uint.Z m.term →
+    ⊢ notCrashed -∗ ownRaftGhost (GF := GF) γ id ps md -∗ isMessage γ m ={E}=∗
+      notCrashed ∗ ownRaftGhost γ id ps md ∗ ⌜uint.Z m.commit = 0 ∧ (γ.reBoot.length : Int) ≤ uint.Z ps.commit⌝ := by
+  intro HE HC Hty Hto Hlt
   simp only [isMessage, Hty]
   unfold ownRaftGhost isAcked
-  iintro ⟨%γs, %V, %πc, %kl, H⟩ ⟨-, -, ⟨%i, %Hci, Hack⟩, -⟩
+  iintro Hnc ⟨%γs, %V, %πc, %kl, H⟩ ⟨-, -, ⟨%i, %Hci, Hack⟩, -⟩
   iNamed H
   icases persistent_entails_right (wand_entails (ownLogGhost_boot (GF := GF) γ id ps kl (virt V πc))) $$ Hlg
     with ⟨⟨%Hbt, -⟩, Hlg⟩
   have hc0 := uint_Z_nonneg m.commit
   icases Hack with (%H0 | ⟨⟨%γa', %Hγa', #Hfrag⟩, -⟩)
   · imodintro
+    iframe Hnc
     isplitl
     · iexists γs, V, πc, kl
       iframe % # ∗
     · ipureintro; exact ⟨by omega, Hbt.1⟩
   rw [Hto] at Hγa'
-  imod slot_open E γ id γs V Hsname HE $$ Hslot Hvirt with ⟨%E0, %HEV, Hsh, Hvirt, Hcl'⟩
+  imod slot_openV E γ id γs V Hsname HE HC $$ Hnc Hslot Hvirt with ⟨Hnc, Hvirt, %E0, %HEV, Hsh, Hcl'⟩
   icases durShares_ack γ id _ E0 γa' m.term i Hγa' $$ Hsh Hfrag with ⟨%Hk0, Hsh⟩
   imod Hcl' $$ Hsh with -
   have Hk' := virt_acks_isSome V πc (m.term, i) (HEV.2.1 _ (by rw [Hk0]; rfl))
@@ -274,15 +277,17 @@ theorem stepBundle_traced_utHb : stepBundle_traced.on (GF := GF) (hG := hG) UTHb
     isplitr
     · -- the receive line
       iintro ⟨Hgh, Hc, Htok⟩
-      iapply hookGateOpt_fupd_recv
+      iapply hookGateOpt_nc_recv
+      iintro Hnc
       icases ownStepGhost_nsLink γ md c id s $$ Hgh with ⟨%Hnl, Hgh⟩
       imod ownStepGhost_traceOk γ md c id s hfit $$ Hgh with ⟨%Hb, Hgh⟩
       iunfold ownStepGhost at Hgh
       icases Hgh with ⟨Hg, Hr⟩
       icases ownRaftGhost_logFacts γ id (toPState s) hs0.1 $$ Hg with ⟨Hg, ⟨#HL, #Hcm, #Hci⟩, %Hwr⟩
-      imod ownRaftGhost_hbHigher ⊤ γ id (toPState s) (absMsg .heartbeat m ents ctx) CoPset.subseteq_top rfl hto'
-        hgt $$ Hg Hm with ⟨Hg, %Hcz⟩
+      imod ownRaftGhost_hbHigher ⊤ γ id (toPState s) (absMsg .heartbeat m ents ctx) CoPset.subseteq_top
+        CoPset.subseteq_top rfl hto' hgt $$ Hnc Hg Hm with ⟨Hnc, Hg, %Hcz⟩
       imodintro
+      iframe Hnc
       have hreT : γ.reTrace.isSome := by rw [← Hnl.2.1, htr]; rfl
       have hnb : (absMsg .heartbeat m ents).NumsBelow traceNumBound := (hok .heartbeat hmty hreT htrd).1
       have hc1 : 1 ≤ uint.Z (toPState s).commit := by

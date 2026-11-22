@@ -30,7 +30,7 @@ abbrev AuthorizerFunc.ConditionsAwareAuthorize.spec : Prop :=
   ∀ (f : GoFunc) (ctx a : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.authorization.authorizer ∗ authzFnOk f }}
     (App (App (Val (f @!! AuthorizerFunc.ty @!! go!"ConditionsAwareAuthorize")) (Val #ctx)) (Val #a))
-  {{ (d : ConditionsAwareDecision), RET #d; isWFDecision d }}
+  {{ (d : ConditionsAwareDecision), RET #d; isWFDecisionLe 0 d }}
 
 end spec
 

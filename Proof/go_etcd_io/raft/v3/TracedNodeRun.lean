@@ -856,7 +856,7 @@ theorem wp_applyConf_dyn_g
       have := uint_nat_eq s.logst.applied; omega
     omega
   imod rdCred_zero_upd (GF := GF) γ with Hcr0
-  iapply wp_fupd
+  iapply (wp_ncfupd_post (App _ _) _ rfl)
   wp_apply +noauto hCC cf rnv.raft' id s cc ccm dq cs' γ
       (by rw [Hcfg]; exact Happ) (by have := Hsz; omega) Hltz
       (fun h => by
@@ -874,6 +874,8 @@ theorem wp_applyConf_dyn_g
         have := uint_nat_eq s.term
         omega)
     $$ [$Hphys $Hch $Hcap] as %cs %xs %os %ls %lns %s' ⟨Hphys, Hch, Hcs, %Hcs0, %Hok, Hcap⟩
+  unfold ncfupd
+  iintro Hnc
   -- the ghost step
   let g' : RGh := ⟨k + 1, cs', fp, ds⟩
   have Hadm : AdmS (effDec dec ds) c0 (fun l => l = (rOf s g).full.take (k + 1)) ((rOf s g).full.take (k + 1))
@@ -906,13 +908,14 @@ theorem wp_applyConf_dyn_g
     iframe Hg Hfr
     ipureintro; exact HI
   imod (preceipt_zero_bound (GF := GF) γ.reBoot.length) with #Hrc0
-  imod ownRaftGhostR_stepR γ dec ds c0 h0 HD _ id 0 (by decide) _ _ _ HR $$ Hrc0 HM Hrecs [] [Hcr0] []
-    Hlc Hgr with Hgr
+  imod ownRaftGhostR_stepR γ dec ds c0 h0 HD _ id 0 (by decide) _ _ _ HR $$ Hnc Hrc0 HM Hrecs [] [Hcr0] []
+    Hlc Hgr with ⟨Hnc, Hgr⟩
   · rw [List.nil_append]
     iapply (BigSepL.bigSepL_nil (Φ := fun _ m => isMessage (GF := GF) γ m)).2
     iempintro
   · rw [List.nil_append, show rdCount ([] : List Msg) = 0 from rfl]; iexact Hcr0
   · rw [List.nil_append]; iapply msgsTks_nil
+  iframe Hnc
   ihave Hghost : ownStepGhost γ (.dyn dec c0 h0 g') cs'.cfg id s' $$ [Hgr]
   · iapply (ownStepGhost_dyn γ dec c0 h0 g' cs'.cfg id s').2
     iframe Hgr HM

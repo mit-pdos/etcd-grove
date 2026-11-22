@@ -24,14 +24,14 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KvrStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KvrStor GF]
 
 attribute [local instance] kvrStorageModel
 
 /-- See the file header. -/
 abbrev Replica.stop.spec : Prop :=
   ∀ (γr : RNames) (vs : List w64) (r : Loc),
-  {{ repStop γr vs r }}
+  {{ repStop (GF := GF) γr vs r }}
     (App (Val (r @!! go.GoType.PointerType rReplicaTy @!! go!"stop")) (Val #()))
   {{ RET #(); True }}
 

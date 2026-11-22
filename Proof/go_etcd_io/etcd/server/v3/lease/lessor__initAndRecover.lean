@@ -57,14 +57,14 @@ theorem lease.lessor.initAndRecover.wp_proof
   wp_start as ⟨Hb, Hlm, HM, #Hmt, Hnp, Hnot, Hh, Hhq, #HB, Ho, Htoks, Hrb⟩
   ihave Hli : (leaseInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hli with ⟨-, -, -, #Hfor, -⟩
+  icases Hli with ⟨-, -, -, ⟨#Hfor, -⟩, -⟩
   ihave #Hbpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend $$ []
   · iPkgInit
   ihave #Hspkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema $$ []
   · iPkgInit
   ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hspkg
-  icases Hsi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%bk, #HL, -⟩⟩
+  icases Hsi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%bk, #HL, -⟩, -⟩
   ihave #Hbk := mvcc.lease_isBucket hID hName hSafe bk $$ [$Hspkg $HL]
   icases backend.isBackend_b γB P W Pk be $$ HB with ⟨%t', %rt, %db, %lg, -, -, -, -, -, -, -, -,
     -, -, -, %HPw⟩
@@ -222,6 +222,10 @@ theorem lease.lessor.initAndRecover.wp_proof
     wp_apply +noauto wp_map_make1 (K := LeaseItem) (V := Unit) as %sm Hsm
     wp_raise_receipt Hr
     wp_apply chan.wp_make1 (V := Unit) as %c %γc ⟨#Hch, -, Hown⟩
+    -- (prove-ps2-renew) `revokec` a close-once channel: its invariant and its close token
+    imod (token_alloc (GF := GF)) with ⟨%γt, Htok⟩
+    imod (inv_alloc onceChanN ⊤ (onceChanInv γc γt)) $$ [Hown] with #Hci
+    · inext; iunfold onceChanInv; iexists .Idle; dsimp only; iframe Hown
     (try wp_auto)
     irename «$r0» => Hl
     generalize «$r0_ptr» = l at *
@@ -244,7 +248,7 @@ theorem lease.lessor.initAndRecover.wp_proof
       simp only [recMapFrom, List.foldl_append, List.foldl_cons, List.foldl_nil, Hvx.1]
     rw [hM]
     iframe Hi HM Hr Hlpb Hlps
-    isplitl [Hrl lID lttl lremainingTTL lexpiryMu lexpiry lmu litemSet lrevokec Hsm Hch Hown]
+    isplitl [Hrl lID lttl lremainingTTL lexpiryMu lexpiry lmu litemSet lrevokec Hsm Htok]
     · iapply (BigSepL.bigSepL_snoc (PROP := IProp GF)).2
       iframe Hrl
       iunfold recLease
@@ -256,7 +260,9 @@ theorem lease.lessor.initAndRecover.wp_proof
       · iexists sm; iframe
       iexists c; iframe lrevokec
       iunfold revokeCloser
-      iexists γc; iframe Hch Hown
+      iexists γt; iframe Htok
+      iunfold onceRecv
+      iexists γc; iframe Hch Hci
     ipureintro
     refine ⟨hb1.1, hb1.2, by simp [Hn.2.2]⟩
   · have hnl : sint.nat n = recs.length := by rw [← Hps, Hslen.1]; word

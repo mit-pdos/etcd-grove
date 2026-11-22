@@ -85,7 +85,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions]
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
-variable [StorageModel GF] [AllG GF]
+variable [StorageModel GF]
 
 /-- **The store's invariant** over raft's cluster `γ` (see the file header). -/
 theorem rkvInv_alloc (E : CoPset) (m : Nat) (hm : m < 2 ^ 62) (γ : Cluster) (γn γs : GName) :

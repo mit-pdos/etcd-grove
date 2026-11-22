@@ -43,7 +43,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KvrStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KvrStor GF]
 
 attribute [local instance] kvrStorageModel
 
@@ -119,6 +119,7 @@ theorem Cluster.startNew.wp_proof
   icases Hcl' with ⟨#Hic, -, #Hca0, -, -⟩
   have HnU : nid ∉ U := by rw [HdomU]; omega
   imod joinAuth_join γr.cluster kvrRaftN U nid HnU Hnid0 $$ [$Hic $Hjoin] with ⟨Hjoin, HrS, Hvac⟩
+  imod nodeVacant_armD γr.cluster nid ⊤ $$ Hvac with ⟨%x, Hvac⟩
   ihave %Htr := kvrCluster_untraced γr _ $$ Hcl
   ihave Hboot := kvr_bootStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
     wp_Entries «$r0_ptr» ms bp γs _ (bootCS vs) γr.cluster
@@ -141,9 +142,9 @@ theorem Cluster.startNew.wp_proof
       HcV HcLg HcSt HcM HcDP HcRO HcDC HcSz HcAS (fun h => absurd Hmd h) (Or.inl (by rw [HcAp]; rfl))
       (by rw [HcAp]; simp [StorContents.b]) (by simp [StorContents.commit])
       (by rw [Hbl0]; simp [StorContents.commit]) (bootCS_is vs Hvnd)
-      (fun h => by have := clusterNoSnap_boot _ h; omega) HcTL Htr0)
+      (fun h => by have := clusterNoSnap_boot _ h; omega) HcTL Htr0 x)
     $$ [$Hraft $Hcv $Hlogger Hboot Hvac Hau]
-    as %nd ⟨%n, %S, %l, %K, %Hnd, #HisNode, #Hl, %Hlen, %-, Hdrv, Hncfg, Hrun, -, ⟨HrS, %HS⟩, Hmeta, #HmsInv⟩
+    as %nd ⟨%n, %S, %l, %K, %Hnd, #HisNode, #Hl, %Hlen, %-, Hdrv, Hncfg, Hrun, -, -, ⟨HrS, %HS⟩, Hmeta, #HmsInv⟩
   · have hA : uint.nat cv.Applied' = 0 := by rw [HcAp]; rfl
     rw [HcID, ← Hiface, hA]
     iframe Hboot Hvac Hic Hca0 Hfits

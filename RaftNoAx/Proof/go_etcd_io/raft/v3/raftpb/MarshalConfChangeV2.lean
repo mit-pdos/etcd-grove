@@ -33,14 +33,6 @@ theorem ccEncChanges_snoc (encs : List (List w8)) (e : List w8) :
   | nil => simp [ccEncChanges]
   | cons x xs ih => simp only [List.cons_append, ccEncChanges, ih, List.append_assoc]
 
-omit [GooseSemantics] [GooseInterp] go_gctx hlc GF hG sem package_sem in
-theorem ccForall₂_map_fst {chs : List (ConfChangeSingleM × List w8)} {encs : List (List w8)}
-    (H : List.Forall₂ (fun ch e => CCSingleEnc ch.1 e) chs encs) :
-    List.Forall₂ CCSingleEnc (chs.map Prod.fst) encs := by
-  induction H with
-  | nil => exact .nil
-  | cons h _ ih => exact .cons h ih
-
 theorem raftpb.MarshalConfChangeV2.wp_proof
     (wp_appendEnum : raftpb.appendEnum.spec (GF := GF) (hG := hG))
     (wp_marshalConfChangeSingle : raftpb.marshalConfChangeSingle.spec (GF := GF) (hG := hG))
@@ -53,6 +45,15 @@ theorem raftpb.MarshalConfChangeV2.wp_proof
   obtain ⟨Hc, Hnn⟩ := Hc
   have hp : p' = p := by simp at Hc; exact (GoGlobalContext.intoVal_inj_loc Hc).symm
   subst hp
+  ihave #Hsaved : pbMsg raftpb.ConfChangeV2 p' uf $$ []
+  · iexact Hpb
+  iunfold pbMsg at Hpb
+  icases Hpb with ⟨⟨%st, %scache, %us, -, -, #Hus, #Huf⟩, %Hwire⟩
+  have Hschema : ufWire cc2Schema uf := by
+    change ufWire (pbSchemaOf raftpb.ConfChangeV2.ty) uf at Hwire
+    simpa [pbSchemaOf, raftpb.Entry.ty, raftpb.Message.ty, raftpb.Snapshot.ty,
+      raftpb.SnapshotMetadata.ty, raftpb.ConfState.ty, raftpb.HardState.ty,
+      raftpb.ConfChange.ty, raftpb.ConfChangeSingle.ty, raftpb.ConfChangeV2.ty] using Hwire
   ihave %Hcl := ownSlice_len $$ Hcs
   ihave %Hscl := ownSlice_len $$ Hch
   ihave %Hll := BigSepL2.bigSepL2_length $$ Hccs
@@ -92,7 +93,7 @@ theorem raftpb.MarshalConfChangeV2.wp_proof
       "Hb" ∷ cur ↦* (ccEncOpt (W8 8) ccEnumEnc o1 ++ ccEncChanges encs) ∗
       "Hcap" ∷ ownSliceCap w8 cur (DFrac.own 1) ∗ "Hch" ∷ sc ↦*{dq} ls ∗
       "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ sint.Z i ≤ ls.length ∧
-        List.Forall₂ (fun ch e => CCSingleEnc ch.1 e) (chs.take (sint.nat i)) encs⌝)
+        List.Forall₂ (fun ch e => CCSingleWireEnc ch.1 ch.2 e ∧ e.length < 2^64) (chs.take (sint.nat i)) encs⌝)
       $$ [i s b Hb Hcap Hch]
   · iexists W64 0, cur1, [], _
     simp only [ccEncChanges, List.append_nil]
@@ -119,6 +120,8 @@ theorem raftpb.MarshalConfChangeV2.wp_proof
     iintro %sl2 ⟨Hsl2, -⟩
     wp_apply wp_slice_append $$ [$Hb $Hcap $Hsl2] as %b2 ⟨Hb2, Hcap, -⟩
     wp_apply wp_marshalConfChangeSingle q ch.1 ch.2 $$ [$Hq] as %es %ebs ⟨Hes, %Hebs⟩
+    ihave %Hlen := ownSlice_len $$ Hes
+    have hlen : ebs.length < 2^64 := by word
     wp_apply wp_appendBytes $$ [$Hb2 $Hcap $Hes] as %b3 ⟨Hb3, Hcap, -⟩
     wp_for_post
     iframe
@@ -131,15 +134,15 @@ theorem raftpb.MarshalConfChangeV2.wp_proof
     refine ⟨by word, by word, ?_⟩
     rw [hi1, List.take_add_one, hch]
     simp only [Option.toList_some]
-    exact forall₂_app Hi.2.2 (List.Forall₂.cons Hebs List.Forall₂.nil)
+    exact forall₂_app Hi.2.2 (List.Forall₂.cons ⟨Hebs, hlen⟩ List.Forall₂.nil)
   · have hiE : sint.nat i = chs.length := by word
     rw [hiE, List.take_length] at Hi
     have HF := Hi.2.2
     wp_join iprop(∃ (cur : GoSlice) (o4 : Option (List w8)), "c" ∷ c_ptr ↦ p' ∗ "b" ∷ b_ptr ↦ cur ∗
         "Hb" ∷ cur ↦* (ccEncOpt (W8 8) ccEnumEnc o1 ++ ccEncChanges encs ++ ccEncOpt (W8 26) ccBytesEnc o4) ∗
-        "HC" ∷ p'.[raftpb.ConfChangeV2, go!"Context"] ↦{dq} cs ∗
+        "Hcap" ∷ ownSliceCap w8 cur (DFrac.own 1) ∗ "HC" ∷ p'.[raftpb.ConfChangeV2, go!"Context"] ↦{dq} cs ∗
         "%Ho4" ∷ ⌜o4.getD [] = ctx ∧ ∀ x, o4 = some x → x.length < 2 ^ 64⌝) with [c b Hb Hcap HC]
-        as ⟨%cur4, %o4, c, b, Hb, HC, %Ho4⟩
+        as ⟨%cur4, %o4, c, b, Hb, Hcap, HC, %Ho4⟩
     · iexists _, none
       simp only [ccEncOpt, List.append_nil]
       iframe
@@ -163,14 +166,14 @@ theorem raftpb.MarshalConfChangeV2.wp_proof
       cases h
       have : sint.nat cs.len < 2 ^ 64 := by word
       omega
+    wp_apply wp_slice_append $$ [$Hb $Hcap $Huf] as %out ⟨Hout, -, -⟩
     iapply HΦ
     iframe
     isplitl
-    · iframe cT Hccs Hcs Hpb
+    · iframe cT Hccs Hcs Hsaved
       ipureintro; exact ⟨rfl, Hnn⟩
     ipureintro
-    have HF' : List.Forall₂ CCSingleEnc (chs.map Prod.fst) encs := ccForall₂_map_fst HF
-    have e1 := ccDecodeV2_enc o1 (chs.map Prod.fst) encs HF' o4 Ho4.2
+    have e1 := ccWireV2_enc o1 chs encs HF o4 Ho4.2 uf Hschema
     have e2 := ccEncodeV2_length_le o1 chs encs HF o4 Ho4.2 uf
     rw [Ho1, Ho4.1] at e1 e2
     exact ⟨e1, fun _ => e2⟩

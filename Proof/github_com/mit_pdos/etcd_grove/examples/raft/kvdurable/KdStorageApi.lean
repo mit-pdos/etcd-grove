@@ -138,7 +138,7 @@ theorem Storage.wp_Entries (wp : MemoryStorage.Entries.spec (GF := GF) (hG := hG
   isplitr; · ipureintro; exact He
   isplitr
   · iapply entsPtsC_entsPts _ _ _ cs es Hcm.1 $$ Hcs
-  ipureintro; exact Hr
+  ipureintro; exact ⟨Hr.1, Hr.2.1, Hr.2.2.1⟩
 
 end promoted
 
@@ -148,7 +148,7 @@ variable [go_gctx : GoGlobalContext] [go.IntoValInj GoString]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
 attribute [local instance] kdStorageModel
 
 /-- `kdJ`'s compaction justification is the API's (`storBnd`). -/

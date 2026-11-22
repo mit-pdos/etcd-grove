@@ -59,7 +59,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KvrStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KvrStor GF]
 
 attribute [local instance] kvrStorageModel
 
@@ -134,7 +134,15 @@ theorem Replica.run.wp_proof
     iunfold readyGot at Hgot
     icases Hgot with ⟨%ce, %es, %h, %L, %ms, %ss, -, #Hce, #Hcomm, Hrs, Hrest, -, Henter, -, -⟩
     iunfold readyEnter at Henter
-    imod Henter $$ %⊤ %(1 : Qp) %(by simp) [$Hraft $Hrun] with ⟨Hraft, Hrun, Hdrv, #Hmsgs⟩
+    icases Henter with ⟨Henter, -⟩
+    iunfold readyEnterLive at Henter
+    -- (2026-11-21, the crash invariant) *enter* is a crash-token update: at a step
+    iapply (wp_ncfupd _ _ (by rfl))
+    unfold ncfupd
+    iintro Hnc
+    imod Henter $$ %⊤ %(1 : Qp) %(by simp) Hnc [$Hraft $Hrun] with ⟨Hnc, Hraft, Hrun, Hdrv, #Hmsgs⟩
+    imodintro
+    iframe Hnc
     ihave ⟨%Hidx, Hrest⟩ := readyRest_indices _ _ _ _ _ _ _ _ _ _ $$ Hrest
     try wp_auto
     cases L with

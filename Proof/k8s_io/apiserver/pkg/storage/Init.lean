@@ -10,8 +10,8 @@ shard selector whose label and field selectors' `Empty()` is `true` (`everything
 specs' posts; k8s 7f-5b H2).
 Its initializer allocates its translated variables (`errors.go`, `feature.go`, `selection_predicate.go`:
 six `errors.New` errors, the map `errCodeToMessage`, three strings, and `Everything`, a
-`SelectionPredicate` of `labels.Everything()`, names-only, the trust-boundary axiom
-`labels.Everything.wp_proof`, and `fields.Everything()`, proved: `fields.Everything.wp_proof`), initializes
+`SelectionPredicate` of `labels.Everything()` and `fields.Everything()`, both proved:
+`labels.Everything.wp_proof` (#25, 2026-11-21), `fields.Everything.wp_proof`), initializes
 its imports and runs the translated initializers.
 -/
 module

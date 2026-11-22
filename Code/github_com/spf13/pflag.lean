@@ -332,7 +332,8 @@ opaque ErrorHandling.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque ParseErrorsAllowlist.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque ParseErrorsWhitelist [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def ParseErrorsWhitelist.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  ParseErrorsAllowlist.ty
 
 opaque NormalizedName.underlying [GooseExts] [GoGlobalContext] : go.GoType
 

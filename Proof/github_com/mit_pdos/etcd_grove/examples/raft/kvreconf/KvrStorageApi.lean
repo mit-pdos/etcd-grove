@@ -144,7 +144,7 @@ theorem Storage.wp_Entries (wp : MemoryStorage.Entries.spec (GF := GF) (hG := hG
   isplitr; · ipureintro; exact He
   isplitr
   · iapply entsPtsC_entsPts _ _ _ cs es Hcm.1 $$ Hcs
-  ipureintro; exact Hr
+  ipureintro; exact ⟨Hr.1, Hr.2.1, Hr.2.2.1⟩
 
 theorem Storage.wp_Append (wp : MemoryStorage.Append.spec (GF := GF) (hG := hG))
     (s ms : Loc) (γs : MemStorNames) (k : Nat) (old es : List EntryM) (sl : GoSlice) (dq : DFrac)
@@ -278,7 +278,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions]
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
-variable [KvrStor GF] [AllG GF]
+variable [KvrStor GF]
 attribute [local instance] kvrStorageModel
 
 /-- `kvrJ`'s compaction justification is the API's (`storBnd`). -/

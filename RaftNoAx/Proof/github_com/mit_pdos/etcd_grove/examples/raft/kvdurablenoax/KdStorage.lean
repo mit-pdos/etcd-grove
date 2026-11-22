@@ -424,7 +424,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
-variable [StorageModel GF] [AllG GF]
+variable [StorageModel GF]
 
 /-- The justifications for the `MemoryStorage` of key `K` (raft's `memStorJ`, without its registry;
 2026-11-01, durability stage I-4: keyed by the storage's key, `snapGiven` merged into

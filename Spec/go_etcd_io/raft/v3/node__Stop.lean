@@ -27,13 +27,15 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- **`node.Stop()`**, by the holder of the whole of the node's liveness (`nodeRunning n γ N 1`),
 which it gives up: the node stops (its `run` returns), and `Stop` returns once it has
 (`nodeStopped`), with the node's id vacant again (`nodeVacant`, 2026-11-01, durability stage I-7;
-stage II (n): `Stop` gives it back itself, from `run`'s answer on `stop`), for a restart. -/
+stage II (n): `Stop` gives it back itself, from `run`'s answer on `stop`), for a restart.
+(2026-11-21, the crash invariant) The vacancy comes back armed (`nodeVacantA`), at the arm the node
+was started from (`nodeArm`, which `StartNode`/`RestartNode` gave: `nodeArm_agree`). -/
 abbrev node.Stop.spec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64),
+  ∀ (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗
       nodeRunning n γ N 1 }}
-    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Stop")) (Val #()))
-  {{ RET #(); nodeStopped n γ N ∗ nodeVacant γ id }}
+    (App (Val (n.loc @!! go.GoType.PointerType node.ty @!! go!"Stop")) (Val #()))
+  {{ RET #(); nodeStopped n γ N ∗ ∃ x, nodeVacantA γ id x ∗ nodeArm n γ x }}
 
 end spec
 

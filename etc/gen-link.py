@@ -45,6 +45,7 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --porcupine > Proof/github_com/anishathalye/porcupine/Link.lean
        etc/gen-link.py --porcupine-dag > PorcupineDag/Proof/github_com/anishathalye/porcupine/Link.lean
        etc/gen-link.py --lintest > Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/Link.lean
+       etc/gen-link.py --perclient > Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/perclient/Link.lean
        etc/gen-link.py --lintest-counter > Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/counter/Link.lean
        etc/gen-link.py --lintest-logkv > Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkv/Link.lean
        etc/gen-link.py --lintest-logkvcompact > Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvcompact/Link.lean
@@ -407,6 +408,14 @@ LEAN_FIRST = {
                   "github_com.mit_pdos.etcd_grove.examples.lib.lintest github_com.anishathalye.porcupine",
                   "github_com.mit_pdos.etcd_grove.examples.lib.lintest.Assumptions",
                   "The porcupine driver's proofs (`examples/lib/lintest`)", [""]),
+    # the driver with an apply told the client's id (examples/lib/lintest/perclient), over
+    # porcupine's (`@`)
+    "--perclient": ("link-lean-first-perclient.txt",
+                    "github_com.mit_pdos.etcd_grove.examples.lib.lintest.perclient "
+                    "github_com.anishathalye.porcupine",
+                    "github_com.mit_pdos.etcd_grove.examples.lib.lintest.perclient.Assumptions",
+                    "The porcupine driver's per-client variant's proofs "
+                    "(`examples/lib/lintest/perclient`)", [""]),
     # its instance, a counter under a mutex (examples/lib/lintest/counter), over the driver's (`@`)
     "--lintest-counter": ("link-lean-first-lintest-counter.txt",
                           "github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter "
@@ -538,7 +547,7 @@ LEAN_FIRST = {
                     "client-go's work queue's proofs (`k8s.io/client-go/util/workqueue`)", [""]),
     # client-go's consistency store (k8s.io/client-go/util/consistency, notes/k8s-daemonset-plan.md
     # phase 2) and apimachinery's resource versions, over the trust boundary of
-    # `resourceversion.isWellFormed` (gap C1) and `schema.GroupResource.String`
+    # `schema.GroupResource.String`
     "--consistency": ("link-lean-first-consistency.txt",
                       "k8s_io.client_go.util.consistency k8s_io.apimachinery.pkg.util.resourceversion",
                       "k8s_io.client_go.util.consistency.Assumptions",
@@ -610,7 +619,7 @@ for _m in ["--server", "--v3rpc", "--common", "--cluster3", "--linkv3p", "--link
     EXTS[_m] = "[HasExt idIssueExt]"
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes", "--v3lock": "v3lock", "--v3election": "v3election",
-              "--txn": "txn", "--porcupine": "porcupine", "--porcupine-dag": "porcupine", "--lintest": "lintest",
+              "--txn": "txn", "--porcupine": "porcupine", "--porcupine-dag": "porcupine", "--lintest": "lintest", "--perclient": "perclient",
               "--lintest-counter": "lintest", "--lintest-logkv": "lintest", "--lintest-logkvcompact": "lintest", "--lintest-logkvsnap": "lintest", "--lintest-logkvrw": "lintest", "--lintest-logkvappend": "lintest", "--linkv3p": "etcd_partition", "--linkvtxn": "etcd_txnlin", "--watchkv": "etcd_watch", "--prophkv": "goose_prophkv", "--authkv": "etcd_auth", "--cachekv": "etcd_cache", "--kvdurable": "raft_kvdurable", "--common": "etcdstart", "--cluster3": "cluster3", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--cacher": "cacher", "--k8setcd3": "k8s_etcd3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read",
               "--workqueue": "workqueue", "--consistency": "consistency", "--k8scache": "k8scache", "--k8sinformers": "k8sinformers",
               "--apimodel": "apimodel", "--bboltfs": "osfs_bboltfs"}
@@ -663,6 +672,12 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                  "--server": ["Proof.net.http.Axioms", "Perennial.Proof.time.Link",
                               "Perennial.Proof.sync.Link", "Perennial.Proof.context.Link",
                               "Perennial.Proof.strings.Link",
+                              # (stdlib4, 2026-11-21) `binary.Read`/`Write`'s fast path proved over
+                              # Perennial's byte orders (`=_root_.Perennial.encoding.binary.*`)
+                              "Perennial.Proof.encoding.binary.Link",
+                              # (prove-authcrypto, 2026-11-21) the simple token provider's
+                              # `genTokenPrefix`'s callees (`=` terms)
+                              "Perennial.Proof.crypto.rand.Link", "Perennial.Proof.math.big.Link",
                               "Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Lemmas",
                               # (rafthttp stage 7d) the snapshot sender's: `bytes.Buffer.Write`'s
                               # axiom, net/http's errors not `errMemberRemoved`
@@ -671,9 +686,10 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                               # (2026-10-27) the node API's results at the server's storage model
                               # (`=srvApi_wp_*` callees)
                               "Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeApiLink",
-                              # (the lease-read plan, 2026-10-31) `sort.Sort` for any `Less`, the
-                              # axiom `lessor.Leases` takes (`=EtcdGrove.sort.«Sort».wp_anyLess`)
-                              "Proof.sort.SortAnyLess",
+                              # (the lease-read plan, 2026-10-31) `sort.Sort` for any `Less`, which
+                              # `lessor.Leases` takes (`=EtcdGrove.sort.«Sort».wp_anyLess`; an axiom
+                              # until 2026-11-21)
+                              "Proof.sort.SortAnyLessLinked",
                               # (the `lean` merge, R6/R8, 2026-11-07) mvcc's API laws the server's
                               # proofs take as terms (`=mvcc.api.*` callees)
                               "Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults",
@@ -776,7 +792,7 @@ if ALIAS:
 # The modes whose results rest on porcupine's `checkSingle`, which shares the model's state values
 # in non-atomic invariants (`Shared.lean`) of iris-lean's camera `NaInvG GF`, not yet in
 # Perennial's `allG`: their sections assume the instance (`notes/STATUS.md`, "Porcupine").
-NA_MODES = {"--porcupine", "--porcupine-dag", "--lintest", "--lintest-counter", "--lintest-logkv", "--lintest-logkvcompact", "--lintest-logkvsnap", "--lintest-logkvrw", "--lintest-logkvappend", "--kv", "--kvreconf", "--kvdurable", "--linkv3p",
+NA_MODES = {"--porcupine", "--porcupine-dag", "--lintest", "--perclient", "--lintest-counter", "--lintest-logkv", "--lintest-logkvcompact", "--lintest-logkvsnap", "--lintest-logkvrw", "--lintest-logkvappend", "--kv", "--kvreconf", "--kvdurable", "--linkv3p",
             "--linkvtxn", "--kvwitness", "--k8setcd3"}
 # The modes whose store's storage model is a `def` made a local instance of the Link (kvreconf's
 # `kvrStorageModel`, `KvrStorage.lean`): its specs are stated at it, and raft's results over any
@@ -814,7 +830,7 @@ EXTRA_VARS["--mvccrand"] = ("variable [mvcc_sem : go_etcd_io.etcd.server.v3.stor
 NAMESPACED["--mvccfull"] = "mvccfull"
 EXTRA_IMPORTS["--mvccfull"] = ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults",
                                "Perennial.Proof.sort.Link", "Perennial.Proof.time.Link",
-                               "Proof.sort.SortAnyLess",
+                               "Proof.sort.SortAnyLessLinked",
                                # (F1 Prove, 2026-11-10) `Compact`'s channel made (`compactChan.law`)
                                "Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiCompactChanResults"]
 EXTRA_VARS["--mvccfull"] = EXTRA_VARS["--mvccrand"]

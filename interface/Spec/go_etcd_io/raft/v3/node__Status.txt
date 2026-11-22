@@ -3,10 +3,12 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def node.Status.spec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64),
+  ∀ (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id -∗
           (▷ ∀ st, statusOwn st -∗ Φ (intoVal st)) -∗
-            WP ((intoVal (methods node.ty.PointerType go!"Status" (intoVal n))) (intoVal ()))
+            WP
+              ((intoVal (methods node.ty.PointerType go!"Status" (intoVal n.loc)))
+                (intoVal ()))
               {{ Φ }}

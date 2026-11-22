@@ -137,7 +137,7 @@ theorem rafthttp.Transport.AddPeer_core
   icases Hts with ⟨%ls', #Hls', #Hlsi, Hlsf⟩
   ihave %Hlseq := typedPointsto_agree_wand _ _ _ _ _ $$ Hls Hls'
   subst Hlseq
-  wp_apply hFollower ls ids $$ [Hlsf] as %fs ⟨%Hfs, Hlsf⟩
+  wp_apply hFollower ls ids $$ [Hlsf] as %fs ⟨%Hfs, #Hfsok, Hlsf⟩
   · iframe; iframe #
   ihave Hts : trStats t 1 $$ [Hlsf]
   · iunfold trStats; iexists ls; iframe; iframe #

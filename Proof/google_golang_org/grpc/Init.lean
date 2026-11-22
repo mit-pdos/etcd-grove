@@ -16,8 +16,13 @@ module
 
 public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import Perennial.Proof.context.Link
+public import Perennial.Proof.io.Link
+public import Perennial.Proof.time.Link
+public import Proof.google_golang_org.grpc.credentials.Init
+public import Proof.google_golang_org.grpc.keepalive.Init
 public import Proof.google_golang_org.grpc.metadata.Init
 public import Proof.google_golang_org.grpc.peer.Init
+public import Proof.google_golang_org.grpc.stats.Init
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -49,7 +54,6 @@ runs them at program start, and etcd starts, so each returns without panicking.
 Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
 axiom opaqueInitsOk :
     ∀ v ∈ ([DefaultBackoffConfig.init,
-        noOpRegisterHealthListenerFn.init,
         unaryStreamDesc.init,
         ErrClientConnClosing.init,
         errConnDrain.init,
@@ -61,14 +65,19 @@ axiom opaqueInitsOk :
         errTransportCredsAndBundle.init,
         errNoTransportCredsInBundle.init,
         errTransportCredentialsMissing.init,
-        disconnectionsMetric.init,
-        connectionAttemptsSucceededMetric.init,
-        connectionAttemptsFailedMetric.init,
-        openConnectionsMetric.init,
         «_».init,
         ErrClientConnTimeout.init,
         «_».init,
         «_».init,
+        modelChooseRandom.init,
+        grpcStatusDetailsBinHeader.init,
+        errStreamDone.init,
+        errIllegalHeaderWrite.init,
+        errTransportClosing.init,
+        transportFailureCodes.init,
+        errMalformedFrame.init,
+        http2ErrCodeNames.init,
+        http2ErrConvTab.init,
         errContextCanceled.init,
         errContextDeadline.init,
         statusOK.init,
@@ -76,8 +85,6 @@ axiom opaqueInitsOk :
         defaultServerOptions.init,
         ErrServerStopped.init,
         «_».init,
-        errDuplicatedName.init,
-        errEmptyServiceNonEmptyMethod.init,
         metadataFromOutgoingContextRaw.init,
         emptyMethodConfig.init,
         «_».init,
@@ -95,7 +102,7 @@ the package's `Assumptions` do not constrain for them). Go runs them at program 
 etcd starts, so each returns without panicking. A fact about the Go code, as the axioms of
 other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
 axiom initFuncsOk :
-    ∀ f ∈ ([init.«0», init.«1», init.«2», init.«3», init.«4», init.«5»] : List GoString),
+    ∀ f ∈ ([init.«0», init.«1», init.«2»] : List GoString),
     {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
 
 end google_golang_org.grpc
@@ -110,6 +117,7 @@ variable [package_sem : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 namespace google_golang_org.grpc
 
+set_option maxHeartbeats 8000000 in
 theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.google_golang_org.grpc get_is_pkg_init) (σ0 : GMap GoString Bool) :
     {{ EtcdGrove.ownInitLb get_is_pkg_init σ0 }}
@@ -123,12 +131,18 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_auto
   iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := Bool) EnableTracing _ as HEnableTracing
-  wp_apply (_root_.Perennial.google_golang_org.grpc.peer.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
-  wp_apply (_root_.Perennial.google_golang_org.grpc.metadata.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (_root_.Perennial.google_golang_org.grpc.peer.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd8⟩
+  wp_apply (_root_.Perennial.google_golang_org.grpc.metadata.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd7⟩
+  wp_apply (_root_.Perennial.google_golang_org.grpc.stats.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd6⟩
+  wp_apply (_root_.Perennial.google_golang_org.grpc.credentials.wp_initialize'_lb _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
+  wp_apply (_root_.Perennial.google_golang_org.grpc.keepalive.wp_initialize'_lb _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
+      EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.context _root_.Perennial.context.initialize'
-      EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
+      EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
+      EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   wp_apply (opaqueInitsOk DefaultBackoffConfig.init (by mem_tac))
-  wp_apply (opaqueInitsOk noOpRegisterHealthListenerFn.init (by mem_tac))
   wp_apply (opaqueInitsOk unaryStreamDesc.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrClientConnClosing.init (by mem_tac))
   wp_apply (opaqueInitsOk errConnDrain.init (by mem_tac))
@@ -140,14 +154,19 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk errTransportCredsAndBundle.init (by mem_tac))
   wp_apply (opaqueInitsOk errNoTransportCredsInBundle.init (by mem_tac))
   wp_apply (opaqueInitsOk errTransportCredentialsMissing.init (by mem_tac))
-  wp_apply (opaqueInitsOk disconnectionsMetric.init (by mem_tac))
-  wp_apply (opaqueInitsOk connectionAttemptsSucceededMetric.init (by mem_tac))
-  wp_apply (opaqueInitsOk connectionAttemptsFailedMetric.init (by mem_tac))
-  wp_apply (opaqueInitsOk openConnectionsMetric.init (by mem_tac))
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
   wp_apply (opaqueInitsOk ErrClientConnTimeout.init (by mem_tac))
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
+  wp_apply (opaqueInitsOk modelChooseRandom.init (by mem_tac))
+  wp_apply (opaqueInitsOk grpcStatusDetailsBinHeader.init (by mem_tac))
+  wp_apply (opaqueInitsOk errStreamDone.init (by mem_tac))
+  wp_apply (opaqueInitsOk errIllegalHeaderWrite.init (by mem_tac))
+  wp_apply (opaqueInitsOk errTransportClosing.init (by mem_tac))
+  wp_apply (opaqueInitsOk transportFailureCodes.init (by mem_tac))
+  wp_apply (opaqueInitsOk errMalformedFrame.init (by mem_tac))
+  wp_apply (opaqueInitsOk http2ErrCodeNames.init (by mem_tac))
+  wp_apply (opaqueInitsOk http2ErrConvTab.init (by mem_tac))
   wp_apply (opaqueInitsOk errContextCanceled.init (by mem_tac))
   wp_apply (opaqueInitsOk errContextDeadline.init (by mem_tac))
   wp_apply (opaqueInitsOk statusOK.init (by mem_tac))
@@ -155,8 +174,6 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk defaultServerOptions.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrServerStopped.init (by mem_tac))
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk errDuplicatedName.init (by mem_tac))
-  wp_apply (opaqueInitsOk errEmptyServiceNonEmptyMethod.init (by mem_tac))
   wp_apply (opaqueInitsOk metadataFromOutgoingContextRaw.init (by mem_tac))
   wp_apply (opaqueInitsOk emptyMethodConfig.init (by mem_tac))
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
@@ -168,9 +185,6 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (initFuncsOk init.«0» (by mem_tac))
   wp_apply (initFuncsOk init.«1» (by mem_tac))
   wp_apply (initFuncsOk init.«2» (by mem_tac))
-  wp_apply (initFuncsOk init.«3» (by mem_tac))
-  wp_apply (initFuncsOk init.«4» (by mem_tac))
-  wp_apply (initFuncsOk init.«5» (by mem_tac))
   ipersist HEnableTracing
   iframe Hown
   imodintro

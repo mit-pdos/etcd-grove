@@ -163,12 +163,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 private theorem node.wp_Step_impl
     (hS : EtcdGrove.node.Step.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.Step.spec (GF := GF) (hG := hG) := by
-  unfold EtcdGrove.node.Step.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.stepIn
+  unfold EtcdGrove.node.Step.spec EtcdGrove.Cluster EtcdGrove.NodeH EtcdGrove.NodeH.loc EtcdGrove.isNode EtcdGrove.stepIn
   intro n γ N id ml ctx cd
   iintro %Φ ⟨#Hinit, #Hnode, #Hctx, Hin⟩ HΦ
   iunfold isNode at Hnode
   icases Hnode with ⟨%γn, %Hf, #Hrn, #Htab, -⟩
-  iapply (hS γn id n ml ctx cd) $$ [Hin]
+  iapply (hS γn id n.loc ml ctx cd) $$ [Hin]
   · iframe Hinit Hrn Hctx
     iunfold stepIn at Hin
     icases Hin with ⟨%Hnn, Hin⟩

@@ -6,14 +6,14 @@ theorem RawNode.Ready.wp_proof [package_sem : Assumptions] (wp_RawNode_readyWith
     RawNode.readyWithoutAccept.spec) (wp_RawNode_acceptReady : RawNode.acceptReady.spec) :
     RawNode.Ready.spec
   -- `Perennial.EtcdGrove.RawNode.Ready.spec`, unfolded:
-  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (q : Qp) (g : Nat),
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (x : CrashNames) (rs : RNState) (q : Qp) (g : Nat),
     rs.steps = [] →
       rs.unpersisted = [] →
         γ.reTrace = none →
           ⊢
             ∀ Φ,
               isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                  "Hrn" ∷ ownRawNode γ rn id rs ∗ "Hlive" ∷ slotLive γ id q g ∗ "Hfree" ∷ slotFree γ id g -∗
+                  "Hrn" ∷ ownRawNode γ rn id rs ∗ "Hlive" ∷ genView γ id x q g ∗ "Hfree" ∷ slotFree γ id g -∗
                 (▷
                     ∀ rd ce es ms sts h steps L ss W,
                       "Hrn" ∷
@@ -23,14 +23,16 @@ theorem RawNode.Ready.wp_proof [package_sem : Assumptions] (wp_RawNode_readyWith
                                 cfg := rs.cfg, capplied := rs.capplied, flw := rs.flw, slent := L,
                                 phs := phsNext rs.phs h, dur := readyDurable rs.dur (phsNext rs.phs h) L es,
                                 role := roleAfter rs.role ss, bw := W, hlb := rs.hlb } ∗
-                          "Hlive" ∷ slotLive γ id q g ∗
+                          "Hlive" ∷ genView γ id x q g ∗
                             ("Henter" ∷
                                 ∀ E q',
                                   ⌜↑(raftN γ) ⊆ E⌝ -∗
-                                    ownDurGhost γ id rs.dur ∗ slotLive γ id q' g ={E}=∗
-                                      ownDurGhost γ id (readyDurable rs.dur (phsNext rs.phs h) L es) ∗
-                                        slotLive γ id q' g ∗
-                                          slotFree γ id g ∗ durFrags γ id W ∗ [∗list] q ∈ ms, isRaftMsg γ id q.st) ∗
+                                    notCrashed -∗
+                                      ownDurGhost γ id rs.dur ∗ genView γ id x q' g ={E}=∗
+                                        notCrashed ∗
+                                          ownDurGhost γ id (readyDurable rs.dur (phsNext rs.phs h) L es) ∗
+                                            genView γ id x q' g ∗
+                                              slotFree γ id g ∗ durFrags γ id W ∗ [∗list] q ∈ ms, isRaftMsg γ id q.st) ∗
                               "#Hlead" ∷ (⌜roleAfter rs.role ss = StateLeader⌝ -∗ [∗list] q ∈ ms, isRaftMsg γ id q.st) ∗
                                 ("#Hsnapto" ∷ [∗list] q ∈ ms, snapToOk γ id q.st) ∗
                                   "#Hsrcs" ∷ readyMsgOrigins γ id rs.sn ms ∗

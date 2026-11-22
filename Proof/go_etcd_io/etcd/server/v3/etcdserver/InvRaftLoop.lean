@@ -101,7 +101,8 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames GF) (rcv : List toApply) (A
             srvFrozenRange γ.γs ((γ.pre ++ A).length + 1) ((γ.pre ++ A ++ ce).length + 1) ∗
             srvFrozenTerms γ.γs (γ.pre.length + 1) (A ++ ce) ∗
             rnWalHanded γ (γ.pre ++ A ++ ce).length)) ∗
-        committedLast E.γr ce ∗ rnRtOk γ ap.raftTerm' (rnLogOf γ (A ++ ce)).length) ∨
+        committedLast E.γr ce ∗ rnRtOk γ ap.raftTerm' (rnLogOf γ (A ++ ce)).length ∗
+        rnReplayJob γ ap.replayTerms' ap.raftTerm' (rnLogOf γ (A ++ ce)).length) ∨
       -- (2026-10-30, the repair: snapshots allowed) a snapshot payload: the log jumps to `A'`
       (∃ (A' : List EntryModel) (sv : SnapshotM),
         rnApplyTok γ A' ∗
@@ -148,12 +149,12 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames GF) (rcv : List toApply) (A
     ipureintro; exact Hlen
   ileft
   iunfold rnApN at HP
-  icases HP with ⟨%F, %ce, %ceL, #HF, #HFce, #Hsl, #Hents, #HC, %Hsnap, Hn, HG, #Hrac, #Hcl, #Hrt⟩
+  icases HP with ⟨%F, %ce, %ceL, #HF, #HFce, #Hsl, #Hents, #HC, %Hsnap, Hn, HG, #Hrac, #Hcl, #Hrt, #Hjob⟩
   simp only [Int.toNat_natCast] at *
   ihave %Heq := mono_list_idx_agree γ.cum rcv.length F A $$ HF HA
   subst Heq
   iexists ce, ceL
-  iframe Hsl Hents HC Hn HG Hrac Hcl Hrt
+  iframe Hsl Hents HC Hn HG Hrac Hcl Hrt Hjob
   isplitl [Hcons]
   · iunfold rnApplyTok
     iexists rcv ++ [ap]
@@ -163,7 +164,7 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames GF) (rcv : List toApply) (A
   ipureintro; exact Hsnap
 
 /-- (D43 M3; R2d'a A6, 2026-11-06: over any log, at `pre = []`) A normal entry keeps a view. -/
-theorem srvCfgView_nil_normal1 (γs : ServerRaftNames) (n : Loc) (X : List EntryModel)
+theorem srvCfgView_nil_normal1 (γs : ServerRaftNames) (n : NodeH) (X : List EntryModel)
     (m : EntryModel) (hm : m.typ = W32 0) :
     srvCfgView (GF := GF) γs n [] X ⊢ srvCfgView γs n [] (X ++ [m]) := by
   unfold srvCfgView
@@ -179,7 +180,7 @@ theorem srvCfgView_nil_normal1 (γs : ServerRaftNames) (n : Loc) (X : List Entry
   rcases h with h | h <;> simp at h
 
 /-- (D43 M3; R2d'a A6) Normal entries keep a view over any log. -/
-theorem srvCfgView_nil_normal (γs : ServerRaftNames) (n : Loc) (d : List EntryModel)
+theorem srvCfgView_nil_normal (γs : ServerRaftNames) (n : NodeH) (d : List EntryModel)
     (h : ∀ m, m ∈ d → m.typ = W32 0) :
     ∀ X, srvCfgView (GF := GF) γs n [] X ⊢ srvCfgView γs n [] (X ++ d) := by
   induction d with
@@ -288,7 +289,7 @@ theorem rnCfgAt_back_true (γ : RNNames GF) (L ce : List EntryModel) (hcc : ccIn
 
 /-- (D43 M3) The batch's view option at the apply side: the node's names when the view goes along
 (`rnHands`). -/
-def rnDv (γ : RNNames GF) (ce : List EntryModel) : Option Loc :=
+def rnDv (γ : RNNames GF) (ce : List EntryModel) : Option NodeH :=
   if rnHands γ ce then some γ.nl else none
 
 /-- (D43 M3) The server's node meets the conf-change contract: the wrapper's node contract's

@@ -37,13 +37,13 @@ attribute [local instance] memStorageModel
 /-- What an `app` returns to the `apps` join at its stop: its node (of id `id`, the replica `r`'s)
 with the whole of its liveness, and its share of the network join's adders' right. -/
 def appDone (c : Loc) (W : TcW) (r : Loc) (id : w64) (q : Qp) : IProp GF :=
-  iprop(∃ n : Loc, r.[github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica, go!"node"]
-      ↦□ nodeIface n ∗ isNode n W.cl tcRaftN id ∗ nodeRunning n W.cl tcRaftN 1 ∗
+  iprop(∃ n : NodeH, r.[github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica, go!"node"]
+      ↦□ nodeIface n.loc ∗ isNode n W.cl tcRaftN id ∗ nodeRunning n W.cl tcRaftN 1 ∗
     njAdder tcNetN (c.[G.Cluster, go!"net"]) W.nj q)
 
 /-- See the file header. -/
 abbrev Cluster.app.spec : Prop :=
-  ∀ [ThreadBoundLe GF (2 ^ 31)] (c : Loc) (W : TcW) (r n ms : Loc) (γs : MemStorNames) (id : w64)
+  ∀ [ThreadBoundLe GF (2 ^ 31)] (c : Loc) (W : TcW) (r : Loc) (n : NodeH) (ms : Loc) (γs : MemStorNames) (id : w64)
     (st : NodeDriverState) (v : ConfigView) (hs0 : HardStateM) (q : Qp),
   st.handling = none → st.storage = memStorIface ms → ViewOk st.delivered v →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck ∗

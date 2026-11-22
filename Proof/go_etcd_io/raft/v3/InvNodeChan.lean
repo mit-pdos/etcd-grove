@@ -185,7 +185,7 @@ def budgetN : Namespace := nroot.@"raft_budget"
 section budget
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-- See the file header. The bound `M` is backed by time receipts (D19b, 2026-10-18): `k`
 receipts with `M ≤ k + 1` (the `+ 1` the bootstrap term), and the receipts' bound is at most
@@ -427,6 +427,10 @@ structure NodeNames [GooseExts] where
   (`slotLive`), fixed at its start: `nodeLiveRaw`'s shares hold it, *enter* and the cut need it,
   the stop consumes it whole -/
   gen : Nat := 0
+  /-- (2026-11-21, the crash invariant) the names of the arm of its id's crash invariant the node
+  was started from (`nodeVacantA`): `nodeLiveRaw`'s and `run`'s shares of the generation are views
+  of the arm's (`genView`) -/
+  cx : CrashNames := default
   /-- (2026-11-01, durability stage I-3/I-8) the durable state and the role the driver last
   recorded (`NodeDriverState.durable`, `.role`): halves, the driver's and `run`'s, which travels
   with a `Ready` (`readyCut`) and comes back at `Advance` (`advanceP`), so that `run` cuts the next
@@ -1256,7 +1260,7 @@ the client's, which `Stop` sends on `stop` (the API's `nodeRunning`), or `run`'s
 durability stage I-3, R8) with the same share of the node's generation of its id's slot
 (`slotLive`, at `gen`), which *enter* and the cut need and the stop consumes whole. -/
 def nodeLiveRaw (γ : NodeNames) (q : Qp) : IProp GF :=
-  iprop(dghostVar γ.live (DFrac.own q.half) false ∗ slotLive γ.raft γ.id q.half γ.gen)
+  iprop(dghostVar γ.live (DFrac.own q.half) false ∗ genView γ.raft γ.id γ.cx q.half γ.gen)
 
 /-- (stage II helper) A share of the generation splits and combines. -/
 instance slotLive_fractional (γ : RaftNames) (id : w64) (g : Nat) :
@@ -1286,7 +1290,7 @@ instance nodeLiveRaw_fractional (γ : NodeNames) :
     · iintro ⟨Hl, Hs⟩
       icases ((dghostVar_fractional (GF := GF) γ.live false).fractional p.half q.half).1 $$ Hl
         with ⟨Hl1, Hl2⟩
-      icases ((slotLive_fractional (GF := GF) γ.raft γ.id γ.gen).fractional p.half q.half).1 $$ Hs
+      icases ((genView_fractional (GF := GF) γ.raft γ.id γ.cx γ.gen).fractional p.half q.half).1 $$ Hs
         with ⟨Hs1, Hs2⟩
       isplitl [Hl1 Hs1]
       · iframe Hl1 Hs1
@@ -1295,18 +1299,15 @@ instance nodeLiveRaw_fractional (γ : NodeNames) :
       isplitl [Hl1 Hl2]
       · iapply ((dghostVar_fractional (GF := GF) γ.live false).fractional p.half q.half).2
         iframe Hl1 Hl2
-      · iapply ((slotLive_fractional (GF := GF) γ.raft γ.id γ.gen).fractional p.half q.half).2
+      · iapply ((genView_fractional (GF := GF) γ.raft γ.id γ.cx γ.gen).fractional p.half q.half).2
         iframe Hs1 Hs2
-
-instance nodeLiveRaw_timeless (γ : NodeNames) (q : Qp) : Timeless (nodeLiveRaw (GF := GF) γ q) := by
-  unfold nodeLiveRaw slotLive; infer_instance
 
 /-- (2026-11-01, durability stage II (n), the stop's option (c)) **`run`'s answer on `stop`**: its
 share of the generation (`nodeLiveRaw`'s, `slotLive` at `½`) and its node's volatile protocol
 state (`ownRaftGhost`), which `run` gives up when it stops. `Stop` takes them, adds its own share of
 the generation, and gives the id's slot back itself (`raft_stop`, `nodeVacant`). -/
 def stopAns (γ : NodeNames) (id : w64) : IProp GF :=
-  iprop(slotLive γ.raft id (1 : Qp).half γ.gen ∗ ∃ (s : PState) (md : Bool), ownRaftGhost γ.raft id s md)
+  iprop(genView γ.raft id γ.cx (1 : Qp).half γ.gen ∗ ∃ (s : PState) (md : Bool), ownRaftGhost γ.raft id s md)
 
 /-- (2026-10-29, stage U9a) **The node stopped** (persistent): `run` closed `done`, the
 broadcast's proposition. -/

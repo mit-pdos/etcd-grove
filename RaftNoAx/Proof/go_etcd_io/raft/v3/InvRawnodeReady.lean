@@ -74,6 +74,8 @@ message is a `MsgReadIndex` iff its abstraction is a `readIndex`, `msgAbs_rdCoun
 -/
 module
 
+public import RaftNoAx.Proof.go_etcd_io.raft.v3.LogEntryOrder
+
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.ApiVocab
 import RaftNoAx.Proof.go_etcd_io.raft.v3.InvStorageLaws
 -- (2026-11-01, durability stage II (k), fix C) the cut (`ownRaftGhost_cut`)
@@ -2068,7 +2070,7 @@ within the commit index (G10), and the committed entries are the batch's durable
 (2026-11-02, stage II (q)) And every entry is of a type of raft's (G20, `CCDecodes`). -/
 def ReadyFacts (D : RaftState) (p p' : HardStateM) (d ce es : List EntryM) (L : Option SnapLoan) :
     Prop :=
-  (∀ e ∈ es, uint.Z e.Type' ≤ 2) ∧
+  ((∀ e ∈ es, uint.Z e.Type' ≤ 2) ∧ (es.Pairwise fun a b => uint.nat a.Term' ≤ uint.nat b.Term' ∧ uint.nat a.Index' < uint.nat b.Index')) ∧
   uint.Z p.Commit' ≤ uint.Z p'.Commit' ∧
   uint.nat p'.Commit' ≤ (readyDurable D p' L es).last ∧
   match L with
@@ -2104,7 +2106,7 @@ theorem readyFacts_of (D : RaftState) (p : HardStateM) (ls : LogState) (t v : w6
     (Hag : L = none → ∀ k e, (ls.sents ++ ls.uents)[k]? = some e →
       uint.nat ls.prev.index' + k < (d ++ ce).length →
       (d ++ ce)[uint.nat ls.prev.index' + k]? = some e)
-    (Hty : ∀ e ∈ es, uint.Z e.Type' ≤ 2) :
+    (Hty : (∀ e ∈ es, uint.Z e.Type' ≤ 2) ∧ (es.Pairwise fun a b => uint.nat a.Term' ≤ uint.nat b.Term' ∧ uint.nat a.Index' < uint.nat b.Index')) :
     ReadyFacts D p (HardStateM.mk t v ls.committed) d ce es L := by
   have hfl : (fp.length : Int) = uint.Z ls.prev.index' := Hfp.1
   have hP := uint_nat_eq ls.prev.index'
@@ -2231,11 +2233,12 @@ it and its free queue), the batch is queued, entering the recorded durable state
 applied (`readyDurable`), and the messages' facts are behind its maps' fragments (`W`, recorded
 in `RNState.bw` for the self-addressed responses `acceptReady` queues), at role leader at once. -/
 theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
-    (rd : Ready) (ce es : List EntryM) (ms : List QMsg) (L : Option SnapLoan) (qf : Qp) (g : Nat)
-    (hrd : HardStateM) (HE : ↑(slotN γ id) ⊆ E) :
-    ⊢ hsOpt rd.HardState' hrd -∗ slotLive γ id qf g -∗ slotFree γ id g -∗
+    (rd : Ready) (ce es : List EntryM) (ms : List QMsg) (L : Option SnapLoan) (x : CrashNames)
+    (qf : Qp) (g : Nat)
+    (hrd : HardStateM) (HE : ↑(slotN γ id) ⊆ E) (HC : ↑(crashNs γ id) ⊆ E) :
+    ⊢ hsOpt rd.HardState' hrd -∗ notCrashed -∗ genView γ id x qf g -∗ slotFree γ id g -∗
       ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms false L ={E}=∗
-      ∃ (W : DurMaps) (ss : Option (w64 × StateType)),
+      notCrashed ∗ ∃ (W : DurMaps) (ss : Option (w64 × StateType)),
       ownRawNodeReady γ rn id { rs with bw := W } rd ce es ms true L ∗
       readyOut rs.storage rs.sn es L ∗
       -- (U8 v2) the committed entries below the batch, frozen; raft's certified terms of the
@@ -2251,7 +2254,7 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
       -- entering the recorded durable state with the batch applied, its maps `W`; the messages'
       -- facts behind `W`'s fragments, and at role leader (after the `Ready`'s soft state `ss`) at
       -- once (R9)
-      slotLive γ id qf g ∗ pendBatch γ id g (readyDurable rs.dur (phsNext rs.phs hrd) L es) W ∗
+      genView γ id x qf g ∗ pendBatch γ id g (readyDurable rs.dur (phsNext rs.phs hrd) L es) W ∗
       softStateIs rd.SoftState' ss ∗ ⌜rd.SoftState' = null → ss = none⌝ ∗
       ([∗list] q ∈ ms, □ (durFrags γ id W -∗ isRaftMsg γ id q.st)) ∗
       □ (⌜roleAfter rs.role ss = StateLeader⌝ -∗ [∗list] q ∈ ms, isRaftMsg γ id q.st) ∗
@@ -2261,7 +2264,7 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
       readyMsgOrigins γ id rs.sn ms ∗ handoutOrigins γ id rs.sn (phsNext rs.phs hrd).Term' ms (dlvAfter rs.delivered ce L).length (L.map (fun l => l.snap.Metadata'.Index')) ∗
       -- (2026-11-01, durability stage II (m)) what the `Ready` is past, and within (`ReadyFacts`)
       ⌜ReadyFacts rs.dur rs.phs (phsNext rs.phs hrd) rs.delivered ce es L⌝ := by
-  iintro #Hh Hlive Hfree H
+  iintro #Hh Hnc Hlive Hfree H
   -- (U8 v2) a lent snapshot's committed log ends at it
   ihave %Hllast : ⌜∀ l, L = some l → plogLast base0 l.dlv = snapId l.snap⌝ $$ [H]
   · cases L with
@@ -2610,13 +2613,24 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
     rw [Hes] at he
     unfold nextUnstable at he
     exact List.mem_append_right _ (List.mem_of_mem_drop he)
+  ihave %Horder : ⌜es.Pairwise (fun a b => uint.nat a.Term' ≤ uint.nat b.Term' ∧
+      uint.nat a.Index' < uint.nat b.Index')⌝ $$ []
+  · iunfold storedRecs at Hsr
+    icases Hsr with ⟨%hw, #Hr⟩
+    ihave #HF := logRecs_full γ (toPState s).base fp0 (toPState s).log Hfp0 $$ Hfr0 Hr
+    ihave %hF := logRecs_entryOrder γ _ (full_wf _ _ _ Hfp0 hw) $$ HF
+    ipureintro
+    have hsub : es.Sublist (fp0 ++ (toPState s).log) := by
+      rw [Hes, nextUnstable]
+      exact (List.drop_sublist ..).trans ((List.sublist_append_right ..).trans (List.sublist_append_right ..))
+    exact hF.sublist hsub
   have Hfacts : ReadyFacts rs.dur rs.phs (phsNext rs.phs hrd0) rs.delivered ce es L := by
     rw [Hhseq] at HD'0 ⊢
     exact readyFacts_of rs.dur rs.phs s.logst s.term s.vote rs.delivered ce es fp0 L Hfp0 HD'0
       HDt0 Hphs.commit_le (fun h => Hphs.2.2.1 (.inl h))
       (fun l hl => Hphs.2.2.2 _ (Hrdp.2 l hl).2.1 (fun l' h => by rw [Hloan.2] at h; cases h))
       (fun h => (Hrdp.1 h).2) Hpv Hpst Hes Hcm Hpc (fun h => by rw [Hdl]; exact Hcel h)
-      (fun h => by rw [Hdl]; exact Hpa h) Hag Hty
+      (fun h => by rw [Hdl]; exact Hpa h) Hag ⟨Hty, Horder⟩
   have Hp' := congrArg HardStateM.Term' Hhseq
   have Hv' := congrArg HardStateM.Vote' Hhseq
   have Hc' := congrArg HardStateM.Commit' Hhseq
@@ -2633,9 +2647,9 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
     ihave %Hi1 := HI1n $$ %fp0 %Hfp0 Hfr0
     ihave #HrF := logRecs_full γ (toPState s).base fp0 (toPState s).log Hfp0 $$ Hfr0 Hlrs
     iapply durI1_of_full γ _ _ _ Hdf0 (by rw [HcS]; exact Hi1) $$ HrF
-  imod ownRaftGhost_cut E γ id (toPState s) qf g (readyDurable rs.dur (phsNext rs.phs hrd0) L es)
-    [] (toPState s).outbox HE (by simp) Hp' Hv' Hc' Hbc (by simp) $$ Hdf HI1b Hlive Hfree Hghost
-    with ⟨Hlive, %W, Hpb, Hghost, #Hout', Hcr, Htk⟩
+  imod ownRaftGhost_cut E γ id (toPState s) x qf g (readyDurable rs.dur (phsNext rs.phs hrd0) L es)
+    [] (toPState s).outbox HE HC (by simp) Hp' Hv' Hc' Hbc (by simp) $$ Hdf HI1b Hnc Hlive Hfree Hghost
+    with ⟨Hnc, Hlive, %W, Hpb, Hghost, #Hout', Hcr, Htk⟩
   -- the messages handed out: behind the batch's fragments, and at role leader at once
   ihave #Hmw : iprop([∗list] q ∈ ms, □ (durFrags γ id W -∗ isRaftMsg γ id q.st)) $$ []
   · iapply bigSepL_wand_distrib
@@ -2692,6 +2706,7 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
         (roleAfter rs.role ss' = StateLeader → ms = [] ∨ s.role = .leader)⌝) $$ []
   · iexists ss; iframe Hss; ipureintro; exact Hssl
   imodintro
+  iframe Hnc
   iexists W, ss
   isplitr [Hout Hcr Htk Hlive Hpb]
   · iunfold ownRawNodeReady

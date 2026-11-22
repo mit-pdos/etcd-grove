@@ -333,7 +333,7 @@ fresh `MemoryStorage` (an empty conf state, allocated by raft's `EnsureSnapshot`
 `run` uses only the pointers. (2026-10-31, #11) With the storage's invariant at the node `nid` of the
 cluster `cl` (`memStorInv`, at the registry `rg`; persistent), which `NewServer` allocated: what
 `CreateSnapshot` and `Compact` take (`srvSnapStor`). -/
-def rnSnapOnce (rg : GName) (cl : Cluster) (nk : GName) (ms : Loc) (γs : MemStorNames) (ai₀ at₀ : w64) (applied : GName) (n : Loc) (boot : Nat) :
+def rnSnapOnce (rg : GName) (cl : Cluster) (nk : GName) (ms : Loc) (γs : MemStorNames) (ai₀ at₀ : w64) (applied : GName) (n : NodeH) (boot : Nat) :
     IProp GF :=
   iprop(∀ Φ : val → IProp GF,
     ▷ (∀ (sn pm cs : Loc) (sv : SnapshotM),

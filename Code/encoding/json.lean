@@ -85,7 +85,8 @@ noncomputable def Delim.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Delim.ty
 
-opaque Unmarshaler [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def Unmarshaler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"encoding/json/v2.Unmarshaler" [])
 
 opaque UnmarshalTypeError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
@@ -93,7 +94,8 @@ opaque UnmarshalFieldError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque InvalidUnmarshalError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque Marshaler [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def Marshaler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"encoding/json/v2.Marshaler" [])
 
 opaque UnsupportedTypeError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
@@ -101,13 +103,15 @@ opaque UnsupportedValueError.underlying [GooseExts] [GoGlobalContext] : go.GoTyp
 
 opaque MarshalerError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque Options [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def Options.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"encoding/json/internal/jsonopts.Options" [])
 
 opaque Decoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque Encoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque RawMessage [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def RawMessage.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"encoding/json/jsontext.Value" [])
 
 opaque indentGrowthFactor [GooseExts] [GoGlobalContext] : val
 

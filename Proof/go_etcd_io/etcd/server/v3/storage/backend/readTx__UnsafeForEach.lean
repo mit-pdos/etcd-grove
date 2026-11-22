@@ -43,7 +43,7 @@ theorem backend.readTx.UnsafeForEach.wp_proof
   icombine Hrt Hrt2 gives %Heq
   subst Heq
   unfold crTok
-  icases Hcr with ⟨%rt3, %tm3, #Hrt3, #Htm3, Hown, Hrdt⟩
+  icases Hcr with ⟨⟨%rt3, %tm3, #Hrt3, #Htm3, Hown, Hrdt⟩, Hbm⟩
   icombine Hrt Hrt3 gives %Heq
   subst Heq
   icombine Htm Htm3 gives %Heq

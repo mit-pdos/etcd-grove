@@ -145,7 +145,7 @@ def applyResR (K : AuthC) (C : ApplyCtx GF) (rp : RestartPt) (A : List EntryMode
     (∃ w : Nat, srvWTTaken C.wt.cnt w ∗ ⌜clusterNoSnap C.γr.raft.raft.cl → uint.nat ai ≤ w⌝) ∗
     acTok K (ciEff B.γ st.k) ∗
     -- (restart S6, CP2 route (C), 2026-11-13) at the ghost index `g` (until then Go's `ai`)
-    srvSnapOwn C.s C.ci B.E C.γr B.γ g ∗ monoNatAuthOwn C.γr.cursor 1 A.length ∗
+    srvSnapOwn C.s C.ci B.E C.γr B.γ g ∗ monoNatAuthOwn C.γr.cursor 1 A.length ∗ epReplayCfg C.ep C.γr.raft rp.A₀.length A.length ∗
     ⌜loopOk B.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff B.γ st.k) C.c₀ g ∧
       uint.Z g ≤ uint.Z (ciEff B.γ st.k) ∧
       lastTermIs A at' ∧
@@ -172,7 +172,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
     (C : ApplyCtx GF) (rp : RestartPt) (A ce : List EntryModel)
     (K : AuthC) (hM : C.E.authMode = K.mode) (hRB : receiptBound GF ≤ 2 ^ 48)
     (apL : Loc) (es : GoSlice) (ceL : List Loc) (rac nc : GoChan) (γs : schedule.SchedNames)
-    (dv : Option Loc) (γnc : NotifyNames)
+    (dv : Option NodeH) (γnc : NotifyNames)
     (hidx : srvIdxOk C.ai₀ (A ++ ce)) (hok : logShapeM K.isOn C.ρ.kv.lm (A ++ ce))
     (hpk : logPutsOk (A ++ ce))
     (hw : C.γw = C.ρ.wait)
@@ -193,7 +193,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
     -- consistent index at most its applied one (`isServerRunC`'s)
     (γn : RNNames GF) (rt : w64) (hγn : γn.node = C.γr.raft.raft) (hc0 : uint.Z C.c₀ ≤ uint.Z C.ai₀)
     -- (2026-11-03, R2b-1 stage 5) a fresh start's log, the context's raft names `γn` (the WAL's)
-    (hpre : C.γr.raft.pre = []) (hrn : C.rn = γn) (hprefix : γn.pre = []) (hbase : γn.snap0 ≤ rp.b) :
+    (hpre : C.γr.raft.pre = []) (hrn : C.rn = γn) (hprefix : γn.pre = []) (hbase : γn.snap0 ≤ rp.b) (hbootLog : γn.a0 = rp.A₀) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerApplyAll C.s C.γr ∗ batchWaitOk C.ρ C.E (A ++ ce) ∗
         taEntriesAddr apL ↦□ es ∗ taRaftAdvancedCAddr apL ↦□ rac ∗
@@ -210,19 +210,19 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
         applyResR K C rp A ∗ srvWTPool C.E C.wt ∗ srvRLogLb C.ρ.raft (A ++ ce) ∗
         srvSnapDisk C.s C.γr ∗
         (letI : MemStorReg GF := ⟨C.γr.raft.raft.reg⟩; srvAttachedMem C.ms C.γs C.γr.raft.raft.cl nk C.γr.cursor γn.nl γn.snap0) ∗
-        taRaftTermAddr apL ↦□ rt ∗ rnRtOk γn rt (rnLogOf γn (A ++ ce)).length ∗ srvMergeAttachment C.s C.γr γn }}
+        taRaftTermAddr apL ↦□ rt ∗ taReplayBatch apL γn rt (rnLogOf γn (A ++ ce)).length ∗ rnRtOk γn rt (rnLogOf γn (A ++ ce)).length ∗ srvMergeAttachment C.s C.γr γn }}
       (App (App (Val (C.s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #C.ep))
         (Val #apL))
     {{ RET #(); schedule.schedRunning γs ∗ applyResR K C rp (A ++ ce) ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) C.ρ.raft.raft; nodeRunning n C.ρ.raft.raft.cl srvClusterN (1 : Qp).half)) }} := by
-  have hR : ∀ dv : Option Loc, (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) C.ρ.raft.raft; nodeRunning n C.ρ.raft.raft.cl srvClusterN (1 : Qp).half)) =
+  have hR : ∀ dv : Option NodeH, (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) C.ρ.raft.raft; nodeRunning n C.ρ.raft.raft.cl srvClusterN (1 : Qp).half)) =
       srvRunH (GF := GF) C.ρ.raft dv := fun dv => by cases dv <;> rfl
   simp only [EtcdServer.applyAll.specBatch] at hAA
   rw [hR]
   iintro %Φ ⟨#Hpkg, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, Hdv, #Hdvr, Hrh, #Hesl,
-    #Hents, #Hbc, Hrun, HR, #HWc, #Hlbr, #Hsd, #Hmsinv, #Hrtf, #Hrtok, #Hmerge⟩ HΦ
+    #Hents, #Hbc, Hrun, HR, #HWc, #Hlbr, #Hsd, #Hmsinv, #Hrtf, #HreplayField, #Hrtok, #Hmerge⟩ HΦ
   iunfold applyResR at HR
   icases HR with ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %sa, %g, %HB, #Hsrv, Hai, Hat, Hcs, #Hcv, Hss, Hst, Hbe, Happ, Hlr, Hbr,
-    Hwr, Hrdk, HKV, Hao, #Hlog, Hkr, HRS, HAR, #HlbA0, #HKVf, Hwal, ⟨%w, #HWA, %Hnsw⟩, HtokR, Hso, Hcursor, %Hpure⟩
+    Hwr, Hrdk, HKV, Hao, #Hlog, Hkr, HRS, HAR, #HlbA0, #HKVf, Hwal, ⟨%w, #HWA, %Hnsw⟩, HtokR, Hso, Hcursor, HbootField, %Hpure⟩
   ihave Hwal : rnWalTokA γn (srvRAddr C.s) (1 : Qp).half $$ [Hwal]
   · rw [← hrn]; iexact Hwal
   rw [hw]
@@ -317,7 +317,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
     $$ Hcursor with ⟨Hcursor, -⟩
   iapply (hAA C.s B.γ C.ci B.TM K B.E C.ρ C.γr B.b C.ep apL es ceL ce (ai + 1) rac nc st ai at' a t cs x sa A
       C.ms C.γs C.wt dv γnc w nk (1 : Qp).half γn rt (rnLogOf γn (A ++ ce)).length rp g)
-    $$ [Hai Hat Hcs Hcv Hss Hst Hbe Happ Hlr Hwr Htok Hrdk Hbr HKV Hao Hka HRS Hnrc Hdv HAR HtokR Hrh Hwal Hso Hcursor]
+    $$ [Hai Hat Hcs Hcv Hss Hst Hbe Happ Hlr Hwr Htok Hrdk Hbr HKV Hao Hka HRS Hnrc Hdv HAR HtokR Hrh Hwal Hso Hcursor HbootField]
   · isplitr
     · iexact Hpkg
     isplitr
@@ -325,9 +325,9 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
       exact ⟨by rw [beSucc_authMode HB]; exact hM, hRB, hms, hb1, Hloop, hok',
         (by rw [hun]; exact ((logPutsOk_append A ce).1 hpk).2), hdv,
         by have := uint_nat_eq C.ai₀; omega, Hlt, hdisk, Hci, hcia, by rw [Hkc.2]; exact Hg0, hγn, hpre,
-        by rw [hun]; simp [rnLogOf, hprefix], by simp [rnLogOf, hprefix]; omega, Hnsw⟩
+        by rw [hun]; simp [rnLogOf, hprefix], by simp [rnLogOf, hprefix]; omega, hbootLog, Hnsw⟩
     rw [hun]
-    iframe Hsd Hmsinv HKVf Hwal Hrtf Hrtok Hmerge
+    iframe Hsd Hmsinv HKVf Hwal Hrtf HreplayField Hrtok Hmerge
     iframe HWc' Hracc' Hcv Hkb Hbw' HWA Hlog Hsrv Hbc Hents Hesl Hncb Hnc Hsn Hrac Hes Hsa
     iframe
     iunfold srvGoRes
@@ -336,7 +336,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
     · iexact Hdvr
     iExactEq Hrh; cases dv <;> rfl
   inext
-  iintro ⟨%γ', %TM', %E', %b', %st', %ai', %at'', %a', %t', %cs', %g', %HB', Hcursor, Hrh, #Hsrv', HAR, Hai, Hat, Hcs, #Hcv', Hss, Hst, HtokR, Hbe, Happ, Hlr, Hgr, Hrdk, Hbr, Hao,
+  iintro ⟨%γ', %TM', %E', %b', %st', %ai', %at'', %a', %t', %cs', %g', %HB', Hcursor, HbootField, Hrh, #Hsrv', HAR, Hai, Hat, Hcs, #Hcv', Hss, Hst, HtokR, Hbe, Happ, Hlr, Hgr, Hrdk, Hbr, Hao,
       #Hlb, #HWA', ⟨%x', %sa', HKV, %Hx', #Hlog', Hka, HRS⟩, #HKVf', Hwal, Hso, %Hpost⟩
   ihave HcursorPost : monoNatAuthOwn C.γr.cursor 1 (A ++ ce).length $$ [Hcursor]
   · rw [← hlenCursor]; iexact Hcursor
@@ -373,7 +373,10 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
   iexists ⟨γ', TM', E', b'⟩, st', ai', at'', a', t', cs', x', sa', g'
   isplitr
   · ipureintro; exact beSucc_trans HB HB'
-  iframe HcursorPost Hsrv'
+  ihave HbootOut : epReplayCfg C.ep C.γr.raft rp.A₀.length (A ++ ce).length $$ [HbootField]
+  · iapply (show epReplayCfg (GF := GF) C.ep C.γr.raft rp.A₀.length (A ++ unapplied ai ce).length ⊢
+        epReplayCfg C.ep C.γr.raft rp.A₀.length (A ++ ce).length from by rw [hun]) $$ HbootField
+  iframe HcursorPost HbootOut Hsrv'
   ihave #Hcv'' : epCsAt C.ρ.raft (ghostOf rp (A ++ ce)) cs' $$ []
   · rw [show A ++ ce = A ++ unapplied ai ce by rw [hun]]; iexact Hcv'
   iframe Hcv'' HKVf' HlbA0
@@ -424,7 +427,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- `run_job_body`'s running half, as `srvRunH` (`SDRun.lean`). -/
-theorem run_job_body_match (γs : ServerRaftNames) (dv : Option Loc) :
+theorem run_job_body_match (γs : ServerRaftNames) (dv : Option NodeH) :
     run_job_body.match_1 (fun _ => IProp GF) dv (fun _ => iprop(True))
       (fun n => letI := srvStor (GF := GF) γs.raft; nodeRunning (GF := GF) n γs.raft.cl srvClusterN (1 : Qp).half) =
       srvRunH (GF := GF) γs dv := by
@@ -550,18 +553,18 @@ theorem run_job_snapC (hAA : EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG)
             nodeCommitLb γn.node.cl γn.key (γn.pre ++ A').length ∗
             srvFrozenAt γn.γs (γn.pre ++ A').length ∗ srvFrozenBelow γn.γs (γn.pre ++ A').length ∗
             rnWalHanded γn (γn.pre ++ A').length)) ∗
-        taRaftTermAddr apL ↦□ rt ∗ rnRtOk γn rt (rnLogOf γn A').length ∗ srvMergeAttachment C.s C.γr γn ∗
+        taRaftTermAddr apL ↦□ rt ∗ taReplayField apL ∗ rnRtOk γn rt (rnLogOf γn A').length ∗ srvMergeAttachment C.s C.γr γn ∗
         schedule.schedRunning γs ∗ applyResR K C rp A ∗ srvWTPool C.E C.wt ∗ srvRLogLb C.ρ.raft A' ∗
         srvRLogLb C.ρ.raft A }}
       (App (App (Val (C.s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #C.ep))
         (Val #apL))
     {{ RET #(); schedule.schedRunning γs ∗ applyResR K C rp A' }} := by
   iintro %Φ ⟨#Hpkg, #Hsa, #Hmid, #Hmeta, #Hes, #Hesl, #Hsnf, Hsnv, #Hcl, #Hncf, #Hnc2, Hnr0,
-    #Hracf, #Hracc, #Hrtf, #Hrtok, #Hmerge, Hrun, HR, #HWc, #Hlbr, #HlbA⟩ HΦ
+    #Hracf, #Hracc, #Hrtf, #HreplayField, #Hrtok, #Hmerge, Hrun, HR, #HWc, #Hlbr, #HlbA⟩ HΦ
   iunfold applyResR at HR
   icases HR with ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %sa, %g, %HB, #Hsrv, Hai, Hat, Hcs, #Hcv, Hss,
     Hst, Hbe, Happ, Hlr, Hbr, Hwr, Hrdk, HKV, Hao, #Hlog, Hkr, HRS, HAR, #HlbA0, #HKVf, Hwal, ⟨%w, #HWA, -⟩,
-    HtokR, Hso, Hcursor, %Hpure⟩
+    HtokR, Hso, Hcursor, HbootField, %Hpure⟩
   ihave Hwal : rnWalTokA γn (srvRAddr C.s) (1 : Qp).half $$ [Hwal]
   · rw [← hrn]; iexact Hwal
   obtain ⟨Hloop, Hai0, HJ, Hci, Hlt, Hg0, Hb, Hty, HA0b⟩ := Hpure
@@ -636,6 +639,9 @@ theorem run_job_snapC (hAA : EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG)
   · iapply (isServerM_C K C.s B.γ C.ci B.TM B.E C.ρ C.γr).2 $$ Hsrv
   ihave HKV : srvApplyKVM K.isOn C.s B.E C.ρ.wait x sa $$ [HKV]
   · rw [← hγw]; iapply (srvApplyKVM_C K C.s B.E C.γw x sa).2 $$ HKV
+  ihave HbootRaw : (∃ p : Loc, epReplayConfAddr C.ep ↦ p : IProp GF) $$ [HbootField]
+  · iunfold epReplayCfg at HbootField
+    icases HbootField with ⟨%p, Hpt, -⟩; iexists p; iexact Hpt
   have hS := hAA C.s B.γ C.ci B.TM B.E C.ρ C.γr B.b C.ep apL es sn sv rac nc st ai at' a t cs x
     (ghostOf rp A) C.ms C.γs C.wt γnc w γn.id γn.key (1 : Qp).half γn rt (rnLogOf γn A').length sa
     g r0 hany hag hgi h61 (by rw [← hγn]; exact hboot) hAL hcia hids hraft (by rw [Hkc.1, hc00])
@@ -645,13 +651,13 @@ theorem run_job_snapC (hAA : EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG)
   imod mono_nat_own_update (rnLogOf γn A').length (by rw [hlenCursor]; omega)
     $$ Hcursor with ⟨Hcursor, -⟩
   iapply hS
-    $$ [Hai Hat Hcs Hss Hst Hbe Happ Hlr Hwr Htok Hrdk Hbr HKV Hao Hka HRS HAR Hwal Hso Hsnv Hnr0 Hcursor]
+    $$ [Hai Hat Hcs Hss Hst Hbe Happ Hlr Hwr Htok Hrdk Hbr HKV Hao Hka HRS HAR Hwal Hso Hsnv Hnr0 Hcursor HbootRaw]
   · iframe #
     iframe
     iunfold srvGoRes
     iframe
   inext
-  iintro ⟨%γ', %TM', %E', %b', %st', %A'', %cs', %HB', Hcursor, #Hsrv'', HAR, #Hlb'', Hai, Hat, Hcs,
+  iintro ⟨%γ', %TM', %E', %b', %st', %A'', %cs', %HB', Hcursor, HbootRaw, #Hsrv'', HAR, #Hlb'', Hai, Hat, Hcs,
     #Hcv', Hss, Hst, Hbe, Happ, Hlr, Hgr, Hrdk, Hbr, Hao, #Hal, #HWA', ⟨%x', HKV, #Hlog', Hka, HRS⟩,
     #HKVf', Hwal, Hso, %Hpost⟩
   ihave HcursorPost : monoNatAuthOwn C.γr.cursor 1 A'.length $$ [Hcursor]
@@ -709,7 +715,11 @@ theorem run_job_snapC (hAA : EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG)
     srvAuthAtLog C.γr.kv srvAuthSt0 A'', sv.Metadata'.Index'
   isplitr
   · ipureintro; exact beSucc_trans HB HB'
-  iframe HcursorPost Hsrv3 Hcv'' HKVf' Hlog' HlbA0
+  ihave HbootField : epReplayCfg C.ep C.γr.raft rp.A₀.length A''.length $$ [HbootRaw]
+  · iunfold epReplayCfg
+    iexists (null : Loc); iframe HbootRaw
+    ileft; ipureintro; exact hpast
+  iframe HcursorPost HbootField Hsrv3 Hcv'' HKVf' Hlog' HlbA0
   iframe
   isplitr
   · iexists w; iframe HWA'
@@ -769,7 +779,7 @@ theorem applyResR_start (K : AuthC) (C : ApplyCtx GF) (TM : MetaCI → IProp GF)
     (hbnd : uint.Z C.ai₀ + A₀.length + 1 < 2 ^ 64) (hρ : C.ρ.raft = C.γr.raft) :
     isServerC (GF := GF) K C.s C.γ C.ci TM C.E C.ρ C.γr ∗
       epAppliedIAddr C.ep ↦ ai ∗ epAppliedTAddr C.ep ↦ at' ∗
-      epConfStateAddr C.ep ↦ cs ∗ epCsOk cs ∗ epCsAt C.ρ.raft A₀ cs ∗
+      epConfStateAddr C.ep ↦ cs ∗ epCsOk cs ∗ epCsAt C.ρ.raft A₀ cs ∗ epReplayConfAddr C.ep ↦ cs ∗
       epDiskSnapAddr C.ep ↦ ai ∗ epMemSnapAddr C.ep ↦ ai ∗
       rnRaftStorageAddr (srvRAddr C.s) ↦□ C.ms ∗ memSnapLb C.γs 0 ∗
       (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ □ mvcc.api.isMvcc kv C.E.γ ∗ ⌜kv = C.E.kv⌝) ∗
@@ -777,7 +787,7 @@ theorem applyResR_start (K : AuthC) (C : ApplyCtx GF) (TM : MetaCI → IProp GF)
       (∃ w : Nat, srvWTTaken C.wt.cnt w ∗ ⌜clusterNoSnap C.γr.raft.raft.cl → uint.nat ai ≤ w⌝) ∗
       monoNatAuthOwn C.γr.cursor 1 P.length ∗ srvRestartAtR K C.s C.γ C.ci C.b C.E C.γr C.ai₀ C.c₀ C.x₀ C.γw A₀ ai ⊢
     applyResR K C ⟨P.length, A₀⟩ P := by
-  iintro ⟨#Hsrv, Hai, Hat, Hcsa, #Hcsok, #Hcsat, Hdsi, Hmsi, #Hms, #Hslb, Hkvf, Hwt, Hwtt, Hcursor, Hrs⟩
+  iintro ⟨#Hsrv, Hai, Hat, Hcsa, #Hcsok, #Hcsat, HbootRaw, Hdsi, Hmsi, #Hms, #Hslb, Hkvf, Hwt, Hwtt, Hcursor, Hrs⟩
   iunfold srvRestartAtR at Hrs
   icases Hrs with ⟨%st₀, %a, %t, %f, %g₀, %sa₀, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hwg, Hrdk, Hkv, Hao, Hal, Hkr,
     Hrest, Hap, Hfs, Htok, Hso⟩
@@ -802,7 +812,14 @@ theorem applyResR_start (K : AuthC) (C : ApplyCtx GF) (TM : MetaCI → IProp GF)
   ihave #HlbA' : srvRLogLb C.ρ.raft A₀ $$ []
   · rw [hρ]; iexact HlbA
   iframe Hsrv Hai Hat Hcs Hcsat Hss Hth Hbe Hca Hlg Hbm Hwg Hrdk Hkv Hao Hal Hkr Hrest Hap HlbA' Hkvf Hwt
-  iframe Hcursor Hwtt Htok Hso
+  ihave HbootField : epReplayCfg C.ep C.γr.raft A₀.length P.length $$ [HbootRaw]
+  · iunfold epReplayCfg
+    iexists cs; iframe HbootRaw
+    iunfold epCsAt at Hcsat
+    icases Hcsat with (%hzero | #Hcfg)
+    · ileft; ipureintro; simp [hzero]
+    · iright; rw [← hρ]; iexact Hcfg
+  iframe Hcursor HbootField Hwtt Htok Hso
   ipureintro
   have hl := hP.length_le
   refine ⟨Hloop, hai, Or.inr ⟨?_, ?_⟩, ?_, hlt, Hg, Nat.le_refl _, hty, ?_, hbnd⟩
@@ -831,7 +848,7 @@ theorem stop_split (K : AuthC) (C : ApplyCtx GF) (rp : RestartPt) (A : List Entr
       rnWalTokA C.rn (srvRAddr C.s) (1 : Qp).half ∗ srvTrStop C.s ∗ applyResStopR K C rp A := by
   unfold applyResR applyResStopR
   iintro ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %sa, %g, %hB, H1, H2, H3, H4, H5, H6, H7, H8, H9,
-    H10, H11, H12, Hrdk, H13, H14, H15, H16, H17, Hap, Hlb, H18, Hwt, ⟨%w, H19, -⟩, H20, H21, -, %hp⟩
+    H10, H11, H12, Hrdk, H13, H14, H15, H16, H17, Hap, Hlb, H18, Hwt, ⟨%w, H19, -⟩, H20, H21, -, -, %hp⟩
   ihave H19 : iprop(∃ w : Nat, srvWTTaken C.wt.cnt w) $$ [H19]
   · iexists w; iexact H19
   iframe Hwt
@@ -1180,6 +1197,7 @@ theorem EtcdServer.run.wp_proofG
   -- the apply thread's resources at the empty log
   iStructNamedSuffix ep "E"
   iclear _E
+  irename replayConfE => replayConf
   irename confStateE => confState
   irename diskSnapshotIndexE => diskSnapshotIndex
   irename memorySnapshotIndexE => memorySnapshotIndex
@@ -1215,10 +1233,10 @@ theorem EtcdServer.run.wp_proofG
   have hρr0 : ρ.raft = γr.raft := by rw [← Hrd]
   imod mono_nat_own_update P.length (Nat.zero_le _) $$ Hcursor with ⟨Hcursor, -⟩
   ihave HR0 : iprop(applyResR C ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ ⟨P.length, A₀⟩ P) $$
-      [appliedi appliedt confState diskSnapshotIndex memorySnapshotIndex Hstart Hwth Hcursor]
+      [appliedi appliedt confState replayConf diskSnapshotIndex memorySnapshotIndex Hstart Hwth Hcursor]
   · iapply (applyResR_start C ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ TM P A₀ (W64 P.length) at₀ cs HPA
       (goIdx_P ai₀ P A₀ HPA Hc0a.2.2 Hbnd0) HPt Hc0a.1 Hty0 Hbnd0 hρr0)
-    iframe Hcursor Hsrv appliedi appliedt confState Hcsok diskSnapshotIndex memorySnapshotIndex Hkvf Hwth Hstart
+    iframe Hcursor Hsrv appliedi appliedt confState replayConf Hcsok diskSnapshotIndex memorySnapshotIndex Hkvf Hwth Hstart
     isplitr
     · rw [hρr0]; iexact HcsA0
     isplitr
@@ -1289,7 +1307,7 @@ theorem EtcdServer.run.wp_proofG
     simp only [↓reduceIte]
     icases Hrecv with ⟨HP, Hcons⟩
     icases rnApplyTok_recv Er γn rcv A apv $$ Hcons Hidx HP with
-      (⟨%ce, %ceL, Happly, #Hents, #Hentsat, #HC, %Hsnap, Hnc, HG, #Hrac, #Hcl, #Hrtok⟩ | Hsnp)
+      (⟨%ce, %ceL, Happly, #Hents, #Hentsat, #HC, %Hsnap, Hnc, HG, #Hrac, #Hcl, #Hrtok, #Hjob⟩ | Hsnp)
     rotate_left
     · -- (R2d'a task 4) the snapshot arm: `run_job_snapC` over `applyAll.specSnapM`, inside
       -- the window or past it
@@ -1323,6 +1341,8 @@ theorem EtcdServer.run.wp_proofG
       ipersist ap
       ihave #Hapf := ap
       iStructNamedSuffix Hapf "A"
+      ihave #HreplayField : taReplayField (GF := GF) ap_ptr $$ []
+      · iunfold taReplayField; iexists apv.replayTerms'; iexact replayTermsA
       ihave #HC'' := HC'
       iunfold srvCM at HC''
       icases HC'' with ⟨-, -, #Hlbr⟩
@@ -1413,6 +1433,8 @@ theorem EtcdServer.run.wp_proofG
     ipersist ap
     ihave #Hapf := ap
     iStructNamedSuffix Hapf "A"
+    ihave #HreplayField : taReplayBatch ap_ptr γn apv.raftTerm' (rnLogOf γn (A ++ ce)).length $$ []
+    · iunfold taReplayBatch; iexists apv.replayTerms'; iframe replayTermsA Hjob
     ihave #HC'' := HC'
     iunfold srvCM at HC''
     icases HC'' with ⟨%Hcp, #Hbw, #Hlbr⟩
@@ -1451,7 +1473,7 @@ theorem EtcdServer.run.wp_proofG
         ⟨P.length, A₀⟩ A ce C hM hRB ap_ptr
         apv.entries' ceL apv.raftAdvancedC' apv.notifyc' γs (rnDv γn ce) γnc hidx hok hpk rfl hdvn hdvs
         γn.key ha0 Hdisk γn apv.raftTerm' hgn.symm Hc0a.1
-        (by have h := hpre.symm.trans hp0; rw [← HEγr, ← hρ]; exact h) rfl hp0 HbootAtStart
+        (by have h := hpre.symm.trans hp0; rw [← HEγr, ← hρ]; exact h) rfl hp0 HbootAtStart Ha0
       ihave #Hmsinv' : (letI : MemStorReg GF := ⟨γr.raft.raft.reg⟩;
           srvAttachedMem γn.ms γn.γs γr.raft.raft.cl γn.key γr.cursor γn.nl γn.snap0) $$ []
       · iExactEq Hmsinv; rw [hgn, ← Hmsγ]

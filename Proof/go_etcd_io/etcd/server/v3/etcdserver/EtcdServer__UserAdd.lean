@@ -53,7 +53,7 @@ theorem EtcdServer.UserAdd.wp_proof
     (try wp_auto)
     rcases err with ei | _
     · wp_auto
-      icases Hor with (⟨%ei', %Hei, #Hm⟩ | ⟨%Hnil, -⟩)
+      icases Hor with (⟨%ei', %Hei, #Hm, -⟩ | ⟨%Hnil, -⟩)
       · obtain ⟨Heq, hl, hIs, hG, hF, hk⟩ := Hei
         cases Heq
         iapply HΦ; ileft; iframe HP
@@ -160,7 +160,7 @@ theorem EtcdServer.UserAdd.wp_proof
       (try wp_auto)
       rcases err with ei | _
       · wp_auto
-        icases Hor with (⟨%ei', %Hei, #Hm⟩ | ⟨%Hnil, -⟩)
+        icases Hor with (⟨%ei', %Hei, #Hm, -⟩ | ⟨%Hnil, -⟩)
         · obtain ⟨Heq, hl, hIs, hG, hF, hk⟩ := Hei
           cases Heq
           iapply HΦ; ileft; iframe HP

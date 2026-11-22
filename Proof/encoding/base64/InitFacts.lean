@@ -1,12 +1,13 @@
 /-
 What `encoding/base64`'s initializer (`Init.lean`, `etc/gen-init.py`) needs beyond the functions'
 specs: the two alphabets are valid (`NewEncoding` does not panic on them), and the package fact's
-parts (`stdEncInit`, `rawUrlEncInit`) from the encodings the initializer builds and
-`EncodeToString`'s spec. Lean-first.
+parts (`stdEncInit`, `rawUrlEncInit`, `stdDecInit`) from the encodings the initializer builds and
+`EncodeToString`'s and `DecodeString`'s specs. Lean-first.
 -/
 module
 
 public import Spec.encoding.base64.Encoding__EncodeToString
+public import Spec.encoding.base64.Encoding__DecodeString
 
 @[expose] public section
 
@@ -83,6 +84,32 @@ theorem rawUrlEncInit_intro
   iintro ⟨-, Hsl⟩
   rw [h1, hp]
   iapply HΦ $$ Hsl
+
+/-- `StdEncoding`'s decoder part of the package fact (prove-authcrypto, 2026-11-21), from the encoding
+it holds (`NewEncoding`'s: the standard alphabet, padding `=`, its decode map, not strict). -/
+theorem stdDecInit_intro (wp_DecodeString : base64.Encoding.DecodeString.spec (GF := GF) (hG := hG))
+    (e : Loc) (enc : _root_.Perennial.encoding.base64.Encoding)
+    (h1 : enc.encode'.arr = _root_.Perennial.encoding.base64.stdAlphabet) (h2 : enc.padChar' = W32 61)
+    (h3 : enc.decodeMap'.arr = base64.dmAfter enc.encode'.arr 64) (h4 : enc.strict' = false) :
+    globalAddr _root_.Perennial.encoding.base64.StdEncoding ↦□ e -∗ e ↦□ enc -∗
+      _root_.Perennial.encoding.base64.stdDecInit (GF := GF) := by
+  iintro #Hg #He
+  iexists e
+  iframe Hg
+  imodintro
+  iintro %s %Φ HΦ
+  have hok : base64.decOk enc := ⟨by rw [h1]; decide, by rw [h1]; decide, h3, h2, h4⟩
+  iapply (wp_DecodeString e enc DFrac.discard s h2 h4 (base64.decOk_len hok)) $$ [He]
+  · iexact He
+  inext
+  iintro %b %err ⟨%bs, -, Hb, %Herr⟩
+  iapply HΦ $$ Hb
+  ipureintro
+  rintro ⟨x, rfl⟩
+  apply Herr hok
+  unfold _root_.Perennial.encoding.base64.stdEnc
+  rw [h1]
+  exact base64.b64Enc_ok _ (by decide) x
 
 end facts
 

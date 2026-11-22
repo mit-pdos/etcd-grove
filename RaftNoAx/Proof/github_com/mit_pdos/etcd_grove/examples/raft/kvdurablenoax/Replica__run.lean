@@ -76,7 +76,7 @@ variable [go_gctx : GoGlobalContext] [go.IntoValInj GoString]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
 
 attribute [local instance] kdStorageModel
 
@@ -129,7 +129,7 @@ private theorem ready_ents_wf_G20 (γc : Cluster) (N : Namespace) (id : w64) (rd
   exact ⟨Hty e he, Hd e he⟩
 
 /-- The applier's view at `i` from the node's configuration at `i` (nothing to skip). -/
-private theorem appNode_at (γr : KdNames) (n : Loc) (L : List LogEntry) (i : Nat) (m : Membership) :
+private theorem appNode_at (γr : KdNames) (n : NodeH) (L : List LogEntry) (i : Nat) (m : Membership) :
     nodeConfig (GF := GF) n γr.r.cluster kdRaftN ⟨i, m⟩ ∗ deliveredLogLb n γr.r.cluster kdRaftN L ⊢
       appNode γr n L i m := by
   iintro ⟨Hc, #Hd⟩
@@ -577,6 +577,10 @@ theorem Replica.run.wp_proof
               simp only [ne_eq, not_or, Decidable.not_not] at hn
               exact ⟨hn.2.trans Htie.1.symm, hn.1.trans Htie.2.symm⟩
           subst Hes0
+          -- (2026-11-21, the crash invariant) *enter* at a step, with the token
+          iapply (wp_ncfupd _ _ (by rfl))
+          unfold ncfupd
+          iintro Hnc
           imod dmu_close_enter γ dir id r n st ρ.ms ρ.γs ρ.ph crashed ip M
             (imgAppend (imgSetHardState M (phsNext hd h)) k []) fz
             (max (max fz (uint.nat M.prev)) (D ++ ce).length) S
@@ -587,9 +591,11 @@ theorem Replica.run.wp_proof
               role := roleAfter role ss } ms Hok3 Hh3 rfl HMc3 (by omega) Hfzc3 His3
             (fun σ Hσ Hc => holds_commit_only S σ (phsNext hd h) Hσ Htv.1 Htv.2
               (by rw [imgAppend_hs] at Hc; simpa [imgSetHardState] using Hc))
-            $$ [Hlc1 Hrest Himg Himage Hmeta Hic Hfz3' His Hcm Hcert3 Hph Hclaim Hcmh Henter Hrun]
-            with ⟨HI, Hclaim, Hres, Hrun, Hcmh, #Hicl'⟩
-          · iframe Hlc1 HfInv Hrest Himg Himage Hmeta Hic Hfz3' His Hcm Hcert3 Hph Hclaim Hcmh Henter Hrun
+            $$ [Hlc1 Hnc Hrest Himg Himage Hmeta Hic Hfz3' His Hcm Hcert3 Hph Hclaim Hcmh Henter Hrun]
+            with ⟨Hnc, HI, Hclaim, Hres, Hrun, Hcmh, #Hicl'⟩
+          · iframe Hlc1 Hnc HfInv Hrest Himg Himage Hmeta Hic Hfz3' His Hcm Hcert3 Hph Hclaim Hcmh Henter Hrun
+          imodintro
+          iframe Hnc
           wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked HI]
           · inext; iexact HI
           wp_join_done

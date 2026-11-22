@@ -9,7 +9,10 @@ translate = ["!*", "Set.Get", "Set.Has", "unaryOperators", "binaryOperators", "v
   # the `Token` constants `string2token` maps to (a names-only constant is a value of unknown shape)
   "ErrorToken", "EndOfStringToken", "ClosedParToken", "CommaToken", "DoesNotExistToken", "DoubleEqualsToken",
   "EqualsToken", "GreaterThanToken", "IdentifierToken", "InToken", "LessThanToken", "NotEqualsToken", "NotInToken",
-  "OpenParToken"]
+  "OpenParToken",
+  # (#25, 2026-11-21) `Everything` (it returns `sharedEverythingSelector`), and what its spec says of
+  # the result: `MatchesNothing` (an interface comparison) and `internalSelector.Empty`
+  "Everything", "MatchesNothing", "internalSelector.Empty"]
 imports = ["!*", "k8s.io/apimachinery/pkg/selection"]
 
 # translate the definitions of all type declarations goose supports

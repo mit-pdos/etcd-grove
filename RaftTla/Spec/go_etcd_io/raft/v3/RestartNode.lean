@@ -99,8 +99,10 @@ abbrev RestartNode.spec : Prop :=
   -- client's, `notes/trace-validation-q6.md` item 9): raft's hook paths are proved untraced only;
   -- stage 1 replaces this premise by the gate (`startTrace`, `TracedApiDraft.lean`)
   Cluster.trace γ = none →
+  -- (2026-11-21, the crash invariant) the id's vacancy armed at `x` (`nodeVacant_arm`)
+  ∀ (x : CrashNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
-      isCluster γ N ∗ nodeVacant γ cv.ID' ∗
+      isCluster γ N ∗ nodeVacantA γ cv.ID' x ∗
       -- (2026-11-02, stage II (p)) the receipts' bound past the bootstrap log within `2^61`
       -- (`readyFits`): the stored log's last index has a time receipt, so it fits a word with room
       -- for one more (`newRaft`'s premise) [scope]
@@ -115,8 +117,8 @@ abbrev RestartNode.spec : Prop :=
       restartStorage γ (interface.ok si) σ csm (uint.nat cv.Applied') F SV }}
     (App (Val #(functions RestartNode [])) (Val #c))
   {{ (nd : GoInterface), RET #nd;
-      ∃ (n : Loc) (S : RaftState) (l : List LogEntry) (K : GName),
-        ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
+      ∃ (n : NodeH) (S : RaftState) (l : List LogEntry) (K : GName),
+        ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n.loc⌝ ∗
         isNode n γ N cv.ID' ∗
         isCommittedLogLb γ l ∗ ⌜l.length = max σ.b (uint.nat cv.Applied')⌝ ∗
         -- (2026-11-01, durability stage II (k), addendum S1b) the delivered log is the stored
@@ -124,7 +126,7 @@ abbrev RestartNode.spec : Prop :=
         ⌜(LogEntry.toEntries l 0).drop σ.b = σ.ents.take (l.length - σ.b)⌝ ∗
         nodeDriver n γ N ⟨interface.ok si, l, σ.hs, none, K, S, StateFollower⟩ ∗
         nodeConfig n γ N ⟨a, m⟩ ∗
-        nodeRunning n γ N 1 ∗ nodeTagPin γ n SV ∗
+        nodeRunning n γ N 1 ∗ nodeTagPin γ n SV ∗ nodeArm n γ x ∗
         Q S ∗ F K }}
 
 end spec

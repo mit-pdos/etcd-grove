@@ -135,19 +135,21 @@ abbrev StartNode.tracedSpec : Prop :=
   csm.Voters' = [] → csm.VotersOutgoing' = [] → csm.Learners' = [] → csm.LearnersNext' = [] →
   csm.AutoLeave' = false →
   vs = pv.map Peer.ID' →
+  -- (2026-11-21, the crash invariant) the id's vacancy armed at `x` (`nodeVacant_arm`)
+  ∀ (x : CrashNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
-      nodeBoot γ N vs ctxs cv.ID' ∗ nodeVacant γ cv.ID' ∗
+      nodeBoot γ N vs ctxs cv.ID' ∗ nodeVacantA γ cv.ID' x ∗
       AU <{ ∃∃ (S : RaftState), raftState γ cv.ID' S ∗ ⌜S = RaftState.init⌝ }> @ ⊤ \ ↑N, ∅
          <{ raftState γ cv.ID' S, COMM Q }> ∗
       restartStorage γ (interface.ok si) ⟨hsZero, none, entryID.mk (W64 0) (W64 0), []⟩ csm 0 F ∗
       peers ↦*{dq} pv ∗ peersCtx pv ctxs ∗ startTraceC γ N vs cv }}
     (App (App (Val #(functions StartNode [])) (Val #c)) (Val #peers))
   {{ (nd : GoInterface), RET #nd;
-      ∃ (n : Loc) (K : GName), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
+      ∃ (n : NodeH) (K : GName), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n.loc⌝ ∗
         nodeStartedFresh n γ N vs ctxs cv.ID' ∗
         isNode n γ N cv.ID' ∗ nodeDriver n γ N (NodeDriverState.init (interface.ok si) K) ∗
         nodeConfig n γ N ⟨0, Membership.simple (GMap.listToSet vs)⟩ ∗
-        nodeRunning n γ N 1 ∗ Q ∗ F K ∗ peers ↦*{dq} pv ∗ startDone γ cv.ID' }}
+        nodeRunning n γ N 1 ∗ nodeArm n γ x ∗ Q ∗ F K ∗ peers ↦*{dq} pv ∗ startDone γ cv.ID' }}
 
 omit [StorageModel GF] sem package_sem in
 /-- The empty bag represents the empty list. -/
@@ -247,7 +249,7 @@ theorem trTok_type (γ : Cluster) (st : MsgSt) :
 `readyGotT` (`InvNode.lean`: `readyGot` and the driver's claim on its messages' tokens,
 `readyToksClaim`) for `readyGot`. Proved (`isReadyChan_recvAu.tracedSpec_proof`). -/
 abbrev isReadyChan_recvAu.tracedSpec : Prop :=
-  ∀ (n ch : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState)
+  ∀ (n : NodeH) (ch : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState)
     (Φ : Ready → Bool → IProp GF),
   st.handling = none →
   ⊢ isReadyChan (GF := GF) n γ N ch -∗ isNode n γ N id -∗ nodeDriver n γ N st -∗
@@ -266,7 +268,7 @@ node `src` sent, to `id`, with its credits, its snapshot local to `id`, and its 
 its model the message, no unknown fields in its snapshot's conf state, and of bounded size in a
 cluster with a bound on proposed data, but a `MsgSnap`. -/
 abbrev node.Step.tracedSpec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (src : w64) (st : MsgSt)
+  ∀ (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (src : w64) (st : MsgSt)
     (c : MsgC) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   st.msg.To' = id →
   c.model = ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ → c.csUfNil →
@@ -275,7 +277,7 @@ abbrev node.Step.tracedSpec : Prop :=
       sentMsg γ N src st ∗
       msgPtsCC ml (DFrac.own 1) (DFrac.own 1) true c ∗
       msgCredits γ N st ∗ snapLocalMsg γ id st ∗ trTok γ st }}
-    (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Step"))
+    (App (App (Val (n.loc @!! go.GoType.PointerType node.ty @!! go!"Step"))
       (Val #(interface.ok ctx))) (Val #ml))
   {{ (err : GoInterface), RET #err; nodeErrS n γ N cd err }}
 

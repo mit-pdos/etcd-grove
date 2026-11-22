@@ -26,7 +26,7 @@ variable [go_gctx : GoGlobalContext] [go.IntoValInj GoString]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
 
 attribute [local instance] kdStorageModel
 
@@ -35,7 +35,7 @@ abbrev Replica.crash.spec : Prop :=
   ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r : Loc),
   {{ repStop γ vs dir id r }}
     (App (Val (r @!! go.GoType.PointerType kReplicaTy @!! go!"crash")) (Val #()))
-  {{ RET #(); nodeVacant γ.r.cluster id ∗ ∃ (S : RaftState) (o : Option StorFile), kdWriter γ id S o }}
+  {{ RET #(); (∃ x, nodeVacantA γ.r.cluster id x) ∗ ∃ (S : RaftState) (o : Option StorFile), kdWriter γ id S o }}
 
 end spec
 

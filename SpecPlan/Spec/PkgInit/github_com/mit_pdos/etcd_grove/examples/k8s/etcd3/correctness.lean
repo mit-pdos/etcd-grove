@@ -9,7 +9,7 @@ public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.apis.«meta».v1
 public import SpecPlan.Spec.PkgInit.k8s_io.apiserver.pkg.storage
 public import Perennial.Proof.context.Base
 public import SpecPlan.Spec.PkgInit.maps
-public import SpecPlan.Spec.PkgInit.reflect
+public import Perennial.Proof.reflect.Base
 public import Perennial.Proof.slices.Base
 public import Perennial.Proof.strconv.Base
 public import Perennial.Proof.strings.Base

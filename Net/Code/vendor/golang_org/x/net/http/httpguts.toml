@@ -1,0 +1,6 @@
+# Project models-net (etc/goose.py): Go 1.27.3's vendored `golang.org/x/net/http/httpguts`, names
+# only (the net/http model's server calls `ValidHeaderFieldName`, `ValidHeaderFieldValue`,
+# `ValidHostHeader`).
+translate = ["!*"]
+imports = ["!*"]
+translate_types = true

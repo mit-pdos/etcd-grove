@@ -25,23 +25,32 @@ noncomputable def PartialObjectMetadataList.ty [GooseExts] [GoGlobalContext] : g
 
 attribute [irreducible] PartialObjectMetadataList.ty
 
-opaque Table [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def Table.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Table" [])
 
-opaque TableColumnDefinition [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def TableColumnDefinition.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.TableColumnDefinition" [])
 
-opaque TableRow [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def TableRow.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.TableRow" [])
 
-opaque TableRowCondition [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def TableRowCondition.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.TableRowCondition" [])
 
-opaque RowConditionType [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def RowConditionType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.RowConditionType" [])
 
-opaque ConditionStatus [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def ConditionStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ConditionStatus" [])
 
-opaque IncludeObjectPolicy [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def IncludeObjectPolicy.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.IncludeObjectPolicy" [])
 
-opaque TableOptions [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def TableOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.TableOptions" [])
 
-opaque PartialObjectMetadata [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def PartialObjectMetadata.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PartialObjectMetadata" [])
 
 opaque PartialObjectMetadataList.underlying [GooseExts] [GoGlobalContext] : go.GoType
 

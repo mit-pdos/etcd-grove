@@ -30,4 +30,7 @@ R1). Upstream not searched.
 no: the specs take the precondition as premises (non-negative counts, `utf8Valid` labels), met by
 the store (`isStore` carries `utf8Valid` of its `groupResource`). It is also a repair of this
 repository's trust base: the axioms of `RecordEtcdRequest` and `RecordDecodeError` had no such
-premise and were false of a registered apiserver (`notes/k8s-7e-2-attack.md`, R1).
+premise and were false of a registered apiserver (`notes/k8s-7e-2-attack.md`, R1). So was
+`NewEtcdMetricsTracker`'s (its `NewOperationLatencyTracker` calls `WithLabelValues` on the group and
+the resource): restated with the premises on 2026-11-21 (prove-metrics,
+`examples/premisefix/latencytracker`, `notes/specs-only/ledger.md`).

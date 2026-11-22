@@ -47,7 +47,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions]
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
-variable [StorageModel GF] [AllG GF]
+variable [StorageModel GF]
 
 /-- **Certifying the applier's snapshot** at the committed prefix `ap` (its length `i`, its last
 term `t`), the configuration `cs` denoting `m` there, the data `d` its state. -/

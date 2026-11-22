@@ -24,7 +24,7 @@ theorem backend.newBatchTxBuffered.wp_proof (hBegin : backend.backend.begin.spec
           (▷
               ∀ t,
                 (∃ wtx rtx,
-                    typedPointsto (backend.muOf t) false (DFrac.own 1) ∗
+                    typedPointsto (backend.muOf t) (zero_val sync.Mutex) (DFrac.own 1) ∗
                       typedPointsto (backend.txFOf t) wtx (DFrac.own 1) ∗
                         typedPointsto (backend.pendOf t) (W64 0) (DFrac.own 1) ∗
                           typedPointsto (backend.delOf t) (W64 0) (DFrac.own 1) ∗

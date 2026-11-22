@@ -7,8 +7,11 @@
 # (prove-ps2-v2stats, 2026-11-21) `NewServerStats`, `ServerStats`'s `RecvAppendReq`, `SendAppendReq`,
 # `BecomeLeader`, `becomeLeader` (and the mutex's promoted methods), `statsQueue.Insert` with their
 # bodies: Goose translates unnamed struct types with field tags since Perennial's struct-tags change
-# (mit-pdos/perennial#651), which `serverStats.LeaderInfo` is.
+# (mit-pdos/perennial#655), which `serverStats.LeaderInfo` is.
+# (prove-ps2, 2026-11-21) `FollowerStats.Fail` with its body (and the mutex's promoted methods): the
+# pipeline calls it; until then a trust-boundary axiom.
 translate = ["!*", "NewLeaderStats", "LeaderStats.Follower", "LeaderStats.Lock", "LeaderStats.Unlock",
+  "FollowerStats.Fail", "FollowerStats.Lock", "FollowerStats.Unlock",
   "NewServerStats", "ServerStats.RecvAppendReq", "ServerStats.SendAppendReq", "ServerStats.BecomeLeader",
   "ServerStats.becomeLeader", "ServerStats.Lock", "ServerStats.Unlock", "queueCapacity",
   "statsQueue.Insert"]

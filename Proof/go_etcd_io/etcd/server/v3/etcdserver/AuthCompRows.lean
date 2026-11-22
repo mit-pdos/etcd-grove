@@ -138,7 +138,7 @@ at a restart the WAL snapshot's `ConfState`, `bootstrap.go:449-478`; nothing at 
 lower bound of the storage's snapshot (`memSnapLb γs 0`, the writers' handle; a first start's from
 `memSnapNone`) and the storage's invariant. -/
 def rnSnapOnceR (rg : GName) (cl : Cluster) (nk : GName) (ms : Loc) (γs : MemStorNames) (i t : w64)
-    (γ : ServerRaftNames) (A₀ : List EntryModel) (applied : GName) (n : Loc) (boot : Nat) : IProp GF :=
+    (γ : ServerRaftNames) (A₀ : List EntryModel) (applied : GName) (n : NodeH) (boot : Nat) : IProp GF :=
   iprop(∀ Φ : val → IProp GF,
     ▷ (∀ (sn pm cs : Loc) (sv : SnapshotM),
       ⌜sv.Metadata'.Index' = i ∧ sv.Metadata'.Term' = t ∧ pm ≠ null ∧ cs ≠ null ∧ boot ≤ uint.nat i⌝ -∗
@@ -251,7 +251,7 @@ def srvBuiltRC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
     -- at `ai₀`), `Hloop`/`Happly` at `[]` and `Happ` (`applyBuiltC`), a first start's)
     "HBr" ∷ srvBuiltRestartR C s γ ci b E γr γn ai₀ at₀ c₀ x₀ ∗
     "Hsend" ∷ Er.S ∗
-    "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
+    "Hrdone" ∷ rnWorkerStartTok γn (srvRAddr s) ∗
     "#HNR" ∷ □ (|==> idCred ρ.ids 1) ∗
     "#Hcv" ∷ clusterVersionOk s ∗
     "#Hcci" ∷ context.isClosedchanInit ∗
@@ -404,7 +404,7 @@ def isServerRunC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
     -- (revoke-open, 2026-11-06) the revocation's bundle (`run`'s expiry arm, revocable mode)
     "#Hrvk" ∷ srvRevokeCtx s E ρ γr γg ∗
     -- (restart S4, 2026-11-12: the loop's and the apply side's tokens moved into `HRr`, at `P`)
-    "Hsend" ∷ Er.S ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
+    "Hsend" ∷ Er.S ∗ "Hrdone" ∷ rnWorkerStartTok γn (srvRAddr s) ∗
     "Hcomm" ∷ (∃ c : w64, srvCommittedOwn γr c) ∗
     "Hdc" ∷ ownBroadcastChan v.done γd DQ .Pending ∗
     "Hclose" ∷ token γg.close ∗
@@ -604,7 +604,7 @@ theorem applyBuiltOn_C (γa : auth.AuthNames) (s : Loc) (γ : ApplyNames) (ci : 
 
 /-- **A first start's `Hsnap` gives the restart form at `A₀ = []`**. -/
 theorem rnSnapOnceR_first (rg : GName) (cl : Cluster) (nk : GName) (ms : Loc) (γs : MemStorNames)
-    (i t : w64) (γ : ServerRaftNames) (applied : GName) (n : Loc) (boot : Nat) :
+    (i t : w64) (γ : ServerRaftNames) (applied : GName) (n : NodeH) (boot : Nat) :
     rnSnapOnce (GF := GF) rg cl nk ms γs i t applied n boot ⊢ rnSnapOnceR rg cl nk ms γs i t γ [] applied n boot := by
   iintro H
   iunfold rnSnapOnceR

@@ -668,23 +668,29 @@ opaque «_».underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque _Ctype__GoString_.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque _Ctype___socklen_t [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def _Ctype___socklen_t.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  _Ctype_uint.ty
 
 opaque _Ctype_char.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque _Ctype_int.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque _Ctype_intgo [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def _Ctype_intgo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  _Ctype_long.ty
 
 opaque _Ctype_long.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque _Ctype_ptrdiff_t [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def _Ctype_ptrdiff_t.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  _Ctype_long.ty
 
-opaque _Ctype_sa_family_t [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def _Ctype_sa_family_t.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  _Ctype_ushort.ty
 
-opaque _Ctype_size_t [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def _Ctype_size_t.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  _Ctype_ulong.ty
 
-opaque _Ctype_socklen_t [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def _Ctype_socklen_t.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  _Ctype_uint.ty
 
 opaque _Ctype_struct_addrinfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
@@ -700,21 +706,29 @@ opaque _Ctype_ushort.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque _Ctype_void.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque _C_char [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def _C_char.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  _Ctype_char.ty
 
-opaque _C_uchar [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def _C_uchar.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  _Ctype_uchar.ty
 
-opaque _C_int [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def _C_int.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  _Ctype_int.ty
 
-opaque _C_uint [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def _C_uint.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  _Ctype_uint.ty
 
-opaque _C_socklen_t [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def _C_socklen_t.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  _Ctype_uint.ty
 
-opaque _C_struct_addrinfo [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def _C_struct_addrinfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  _Ctype_struct_addrinfo.ty
 
-opaque _C_struct_sockaddr [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def _C_struct_sockaddr.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  _Ctype_struct_sockaddr.ty
 
-opaque _C_struct___res_state [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def _C_struct___res_state.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType [])
 
 opaque scopeInterfaceLocal [GooseExts] [GoGlobalContext] : val
 

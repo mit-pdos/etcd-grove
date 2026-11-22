@@ -689,7 +689,8 @@ structure v3rpc.GrpcCfg (GF : BundledGFunctors) [GooseExts] where
 
 /-- **The server's fields and contracts `v3rpc.Server` reads** (persistent; see the file header):
 read-only, as `NewServer` left them; (2026-10-31) the transaction budget within protobuf's
-recursion limit (`v3rpc.maxTxnOpsOk`, `NewServer`'s configuration premise). -/
+recursion limit (`v3rpc.maxTxnOpsOk`, `NewServer`'s configuration premise); (2026-11-21) the
+watchable store's `isMvcc` (`NewMaintenanceServer`'s `HashStorage()`; `srvWatchBuilt`'s). -/
 def v3rpc.grpcCfgOk (s : Loc) (C : v3rpc.GrpcCfg GF) : IProp GF :=
   iprop(v3rpc.raftKV s C.A ∗ v3rpc.watchSrvOk s C.E C.tag ∗
     srvKVAddr s ↦□ v3rpc.wsIface C.wsl ∗ v3rpc.srvIdsOk s ∗
@@ -705,7 +706,8 @@ def v3rpc.grpcCfgOk (s : Loc) (C : v3rpc.GrpcCfg GF) : IProp GF :=
     srvCfgFieldAddr s go!"Metrics" ↦□ C.mt ∗
     srvCfgFieldAddr s go!"EnableDistributedTracing" ↦□ C.tr ∗
     srvCfgFieldAddr s go!"TracerOptions" ↦□ C.tsl ∗ C.tsl ↦*□ C.tos ∗
-    srvCfgFieldAddr s go!"MaxConcurrentStreams" ↦□ C.mcs)
+    srvCfgFieldAddr s go!"MaxConcurrentStreams" ↦□ C.mcs ∗
+    □ mvcc.api.isMvcc (v3rpc.wsIface C.wsl) C.E.γ)
 
 instance v3rpc.grpcCfgOk_persistent (s : Loc) (C : v3rpc.GrpcCfg GF) :
     Persistent (v3rpc.grpcCfgOk s C) := by

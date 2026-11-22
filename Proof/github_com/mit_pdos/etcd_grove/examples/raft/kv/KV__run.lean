@@ -247,7 +247,15 @@ theorem KV.run.wp_proof
   iunfold readyGot at Hgot
   icases Hgot with ⟨%ce, %es, %hh, %L, %qs, %ss, -, #Hce, #Hcomm, ⟨%sts, #Hsts, #Hstsok⟩, Hrest, -, Henter, -, -⟩
   iunfold readyEnter at Henter
-  imod Henter $$ %⊤ %(1 : Qp) %(by simp) [$Hraft $Hrun] with ⟨Hraft, Hrun, Hdrv, #Hmsgs⟩
+  icases Henter with ⟨Henter, -⟩
+  iunfold readyEnterLive at Henter
+  -- (2026-11-21, the crash invariant) *enter* is a crash-token update: at a step
+  iapply (wp_ncfupd _ _ (by rfl))
+  unfold ncfupd
+  iintro Hnc
+  imod Henter $$ %⊤ %(1 : Qp) %(by simp) Hnc [$Hraft $Hrun] with ⟨Hnc, Hraft, Hrun, Hdrv, #Hmsgs⟩
+  imodintro
+  iframe Hnc
   ihave ⟨%Hidx, Hrest⟩ := readyRest_indices _ _ _ _ _ _ _ _ _ _ $$ Hrest
   unfold readyRest
   icases Hrest with ⟨#HesO, Hms, Hmsok, -, -, -, %Hbnd, HS, -⟩

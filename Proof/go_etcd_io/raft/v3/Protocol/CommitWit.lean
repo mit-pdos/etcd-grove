@@ -36,6 +36,18 @@ instance commitWit_timeless (γ : RaftNames) (T c : w64) :
     Timeless (commitWit (GF := GF) γ T c) := by
   unfold commitWit; infer_instance
 
+/-- A quorum certificate at or before `old` is also a certificate at or before
+`t`. The recovered WAL's local commit index is irrelevant to this implication. -/
+theorem commitWit_mono_term (γ : RaftNames) (old t c : w64) (ht : uint.Z old ≤ uint.Z t) :
+    commitWit (GF := GF) γ old c ⊢ commitWit γ t c := by
+  unfold commitWit
+  iintro ⟨%F, %Hwf, #Hr, #Hc, #Hknown⟩
+  iexists F
+  iframe Hr Hknown
+  isplitr
+  · ipureintro; exact Hwf
+  iapply commitIn_agree γ F F c old t ht rfl rfl $$ Hc
+
 /-- (D22 S-b, item 2) What a `Ready`'s hard state `h` says, the committed log handed out with it
 of length `n`: nothing for the zero record (a `nil` `HardState` reads as it), else raft's state at
 the `Ready`: the witness of its term and commit index, which bounds what was handed out. (A
@@ -91,6 +103,7 @@ theorem hsWit_of_phsWit (γ : RaftNames) (h : HardStateM) (n : Nat)
   · ileft; ipureintro; exact H
   · iright; iframe H; ipureintro; exact Hn
 
+variable [CrashGS GF] in
 /-- A witness bounds every shorter committed log. -/
 theorem hsWit_mono (γ : RaftNames) (h : HardStateM) (n m : Nat) (H : m ≤ n) :
     hsWit (GF := GF) γ h n ⊢ hsWit γ h m := by
@@ -99,6 +112,7 @@ theorem hsWit_mono (γ : RaftNames) (h : HardStateM) (n m : Nat) (H : m ≤ n) :
   · ileft; ipureintro; exact Hz
   · iright; iframe Hw; ipureintro; omega
 
+variable [CrashGS GF] in
 /-- Every node holds the witness of its own term and commit index. -/
 theorem ownRaftGhost_commitWit (γ : RaftNames) (id : w64) (s : PState) {md : Bool} :
     ⊢ ownRaftGhost (GF := GF) γ id s md -∗ commitWit γ s.term s.commit := by

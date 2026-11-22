@@ -401,11 +401,11 @@ variable [KVStor GF]
 
 /-- Replica `id` at `r`, on node `n` of the store's cluster (`kvCluster`),
 with the storage `st` (persistent). -/
-def isReplica (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc) : IProp GF :=
+def isReplica (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n : NodeH) (st : Loc) : IProp GF :=
   iprop(
     "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kv ∗
     "#Hid" ∷ r.[RKV, go!"id"] ↦□ id ∗
-    "#Hnode" ∷ r.[RKV, go!"node"] ↦□ interface.mkOk (go.GoType.PointerType node.ty) #n ∗
+    "#Hnode" ∷ r.[RKV, go!"node"] ↦□ interface.mkOk (go.GoType.PointerType node.ty) #n.loc ∗
     "#Hst" ∷ r.[RKV, go!"storage"] ↦□ st ∗
     "#Hsrec" ∷ (∃ (ms : Loc) (γs : MemStorNames), kvStorRec st ms γs) ∗
     "#HisNode" ∷ isNode n γr.cluster kvRaftN id ∗
@@ -418,13 +418,13 @@ def isReplica (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc
 
 set_option synthInstance.maxHeartbeats 400000 in
 set_option synthInstance.maxSize 4096 in
-instance isReplica_persistent (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc) :
+instance isReplica_persistent (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n : NodeH) (st : Loc) :
     Persistent (isReplica (GF := GF) γr γp r id n st) := by
   unfold isReplica; infer_instance
 
 /-- A replica (persistent; what `Put`, `Get`, `Append` and `Read` take). -/
 def isKV (γr : RKVNames) (γp : RepNames) (r : Loc) : IProp GF :=
-  iprop(∃ (id : w64) (n st : Loc), isReplica γr γp r id n st)
+  iprop(∃ (id : w64) (n : NodeH) (st : Loc), isReplica γr γp r id n st)
 
 instance isKV_persistent (γr : RKVNames) (γp : RepNames) (r : Loc) :
     Persistent (isKV (GF := GF) γr γp r) := by
@@ -489,7 +489,7 @@ instance runStor_persistent (γr : RKVNames) (K : GName) (st : Loc) :
 /-- **The applier's view of its node** (kvreconf's, 2026-10-30), the committed log delivered `l`
 applied up to `k` at the membership `m`: the node's configuration view at `m`, every conf entry
 from the view's index to `k` rejected (`skippedIn`; the store's log has none). -/
-def appNode (γr : RKVNames) (n : Loc) (l : List LogEntry) (k : Nat) (m : Membership) : IProp GF :=
+def appNode (γr : RKVNames) (n : NodeH) (l : List LogEntry) (k : Nat) (m : Membership) : IProp GF :=
   iprop(∃ v : ConfigView, nodeConfig n γr.cluster kvRaftN v ∗
       deliveredLogLb n γr.cluster kvRaftN l ∗ skippedIn γr.cluster l v.applied k ∗
       ⌜v.membership = m ∧ v.applied ≤ k⌝)

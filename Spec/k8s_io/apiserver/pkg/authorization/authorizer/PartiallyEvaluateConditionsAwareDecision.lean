@@ -1,6 +1,6 @@
 /-
 `PartiallyEvaluateConditionsAwareDecision(ctx, d, data, fn)` (`evaluate.go`): a well-formed
-decision, for a well-formed `d` and a partial evaluation function that can be called (recursively
+decision no deeper than `d`, for a well-formed `d` and a partial evaluation function that can be called (recursively
 through `d`'s unions). Lean-first (no Rocq counterpart).
 -/
 module
@@ -32,7 +32,7 @@ abbrev PartiallyEvaluateConditionsAwareDecision.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.authorization.authorizer ∗ isDecision d m ∗ ⌜m.WF⌝ ∗ maybeEvalFnOk f }}
     (App (App (App (App (Val (@! PartiallyEvaluateConditionsAwareDecision)) (Val #ctx)) (Val #d))
       (Val #data)) (Val #f))
-  {{ (d' : ConditionsAwareDecision), RET #d'; isWFDecision d' }}
+  {{ (d' : ConditionsAwareDecision), RET #d'; isWFDecisionLe m.depth d' }}
 
 end spec
 

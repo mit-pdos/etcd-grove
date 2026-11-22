@@ -155,6 +155,7 @@ private theorem leadLogOwn_nl (γ : RaftNames) (s : PState) (terms : GMap w64 Te
   · contradiction
   · rfl
 
+variable [CrashGS GF] in
 private theorem matchedOk_nl (γ : RaftNames) (id : w64) (s : PState) (fp : List EntryM) :
     s.role ≠ .leader → matchedOk (GF := GF) γ id s fp = iprop(True) := by
   intro H
@@ -163,6 +164,7 @@ private theorem matchedOk_nl (γ : RaftNames) (id : w64) (s : PState) (fp : List
   · contradiction
   · rfl
 
+variable [CrashGS GF] in
 theorem ownLogGhost_upd (γ : RaftNames) (id : w64) (s s' : PState) (kl kl' : Option w64) (W : DurMaps) :
     (s'.role = .leader →
        s.role = .leader ∧ s'.term = s.term ∧
@@ -281,6 +283,7 @@ theorem ownLogGhost_upd (γ : RaftNames) (id : w64) (s s' : PState) (kl kl' : Op
   iexists γm, terms, fp', γw, wins
   iframe # ∗ <;> iframe %
 
+variable [CrashGS GF] in
 theorem ownLogGhost_recs (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : DurMaps) :
     ⊢ ownLogGhost (GF := GF) γ id s kl W -∗ ⌜LogOk s⌝ ∗ logRecs γ s.base s.log := by
   unfold ownLogGhost
@@ -289,6 +292,7 @@ theorem ownLogGhost_recs (γ : RaftNames) (id : w64) (s : PState) (kl : Option w
   isplitr; · ipureintro; exact Hlog_ok
   iexact Hrecs
 
+variable [CrashGS GF] in
 theorem ownLogGhost_wf (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : DurMaps) :
     ⊢ ownLogGhost (GF := GF) γ id s kl W -∗ ⌜PlogWf s.base s.log⌝ := by
   unfold ownLogGhost
@@ -296,6 +300,7 @@ theorem ownLogGhost_wf (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64
   iNamed H
   ipureintro; exact Hfull.2.1
 
+variable [CrashGS GF] in
 theorem ownLogGhost_matched (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : DurMaps) :
     ⊢ ownLogGhost (GF := GF) γ id s kl W -∗
       ∃ fp, ⌜FullOk s.base fp⌝ ∗ logRecs γ base0 fp ∗ matchedOk γ id s fp := by
@@ -306,6 +311,7 @@ theorem ownLogGhost_matched (γ : RaftNames) (id : w64) (s : PState) (kl : Optio
   isplitr; · ipureintro; exact Hfull.1
   iframe Hfrecs Hmatched
 
+variable [CrashGS GF] in
 theorem ownLogGhost_base (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : DurMaps) :
     ⊢ ownLogGhost (GF := GF) γ id s kl W -∗ baseOk γ s.base := by
   unfold ownLogGhost
@@ -313,6 +319,7 @@ theorem ownLogGhost_base (γ : RaftNames) (id : w64) (s : PState) (kl : Option w
   iNamed H
   iexact Hbase
 
+variable [CrashGS GF] in
 /-- The node's committed prefix, with the compacted prefix it is of. -/
 theorem ownLogGhost_cmt (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : DurMaps) :
     ⊢ ownLogGhost (GF := GF) γ id s kl W -∗
@@ -324,6 +331,7 @@ theorem ownLogGhost_cmt (γ : RaftNames) (id : w64) (s : PState) (kl : Option w6
   isplitr; · ipureintro; exact Hfull.1
   iframe Hfrecs Hcmt
 
+variable [CrashGS GF] in
 theorem ownLogGhost_inv (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : DurMaps) :
     ⊢ ownLogGhost (GF := GF) γ id s kl W -∗ raftCommitInv γ := by
   unfold ownLogGhost
@@ -350,6 +358,7 @@ theorem take_prefix_le {A : Type _} (l : List A) (n m : Nat) :
   have : l.take n = (l.take m).take n := by rw [List.take_take, Nat.min_eq_left H]
   rw [this]; exact List.take_prefix _ _
 
+variable [CrashGS GF] in
 /-- A log that grows past the commit index keeps its committed prefix. -/
 theorem cprefix_app (fp : List EntryM) (s : PState) (es : List EntryM) :
     uint.Z s.commit ≤ ((fp ++ s.log).length : Int) →
@@ -359,6 +368,7 @@ theorem cprefix_app (fp : List EntryM) (s : PState) (es : List EntryM) :
   apply List.take_append_of_le_length
   omega
 
+variable [CrashGS GF] in
 /-- Learning the leader of the term, from one of its messages: the bound goes up to the
 term plus one. The caller supplies that the node is not in the winning quorum if it has
 not voted (`vote_excl`). -/
@@ -389,6 +399,7 @@ theorem ownLogGhost_learn (γ : RaftNames) (id : w64) (s : PState) (kl : Option 
   iexists γm, terms, fp, γw, wins
   iframe # ∗ <;> iframe %
 
+variable [CrashGS GF] in
 /-- The same, for a step that leaves the log alone. The caller says how the commit fact
 moves to the new commit index. -/
 theorem ownLogGhost_mono' (γ : RaftNames) (id : w64) (s s' : PState)
@@ -461,6 +472,7 @@ theorem ownLogGhost_mono' (γ : RaftNames) (id : w64) (s s' : PState)
     rw [Hlog]
     iapply hist_mono γ _ t i _ _ (KlStep_bnd s s' kl kl' Hkl) $$ Hh
 
+variable [CrashGS GF] in
 /-- The same, when `Match` and the commit index do not change either, at the same
 term ... -/
 theorem ownLogGhost_mono (γ : RaftNames) (id : w64) (s s' : PState) (kl : Option w64) (W : DurMaps) :
@@ -497,6 +509,7 @@ theorem ownLogGhost_mono (γ : RaftNames) (id : w64) (s s' : PState) (kl : Optio
     rw [Hcm, Hlog]
     iexact Hc
 
+variable [CrashGS GF] in
 /-- ... or at a higher term, where the known leader is forgotten. -/
 theorem ownLogGhost_mono_up (γ : RaftNames) (id : w64) (s s' : PState) (kl : Option w64) (W : DurMaps) :
     s'.log = s.log →
@@ -558,6 +571,7 @@ theorem AcksTerm_insert (s : PState) (acks : GMap (w64 × w64) Unit) (t i : w64)
   · subst Hkk; exact Ht
   · rw [GMap.lookup_insert_ne _ _ (Ne.symm Hkk)] at Hk; exact H k Hk
 
+variable [CrashGS GF] in
 /-- The per-acknowledgement invariants of a new acknowledgement, at the node's term: its
 history, and nothing for the vote-time logs (they are of terms up to this one). -/
 theorem ack_invs_insert (γ : RaftNames) (s : PState) (kl : Option w64)
@@ -582,6 +596,8 @@ theorem ack_invs_insert (γ : RaftNames) (s : PState) (kl : Option w64)
     iintro %Hlt
     exact absurd Hlt (by simp only; omega)
 
+variable [CrashGS GF] in
+variable [CrashGS GF] in
 /-- A node acknowledges at its own term, with the justification `acksOk` asks of it and
 the history `histsOk` asks of it. (2026-10-31, durability stage I-1: the acknowledgement is a
 pending promise, added to the virtual maps; its fragment, behind theirs, is what its message
@@ -650,6 +666,7 @@ private theorem leadLogOwn_l (γ : RaftNames) (s : PState) (terms : GMap w64 Ter
   unfold leadLogOwn
   rw [H]
 
+variable [CrashGS GF] in
 private theorem campOwn_l (γ : RaftNames) (id : w64) (camps : GMap w64 (List EntryM × w64))
     (s : PState) (F : List EntryM) :
     s.role = .leader → campOwn (GF := GF) γ id camps s F =
@@ -660,6 +677,7 @@ private theorem campOwn_l (γ : RaftNames) (id : w64) (camps : GMap w64 (List En
   unfold campOwn
   rw [H]
 
+variable [CrashGS GF] in
 /-- A leader's whole log is a log of the leader of its term, with its full log and the
 commit fact about it. -/
 theorem ownLogGhost_lead_full (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : DurMaps) :
@@ -711,6 +729,7 @@ theorem ownLogGhost_lead_full (γ : RaftNames) (id : w64) (s : PState) (kl : Opt
       iframe # ∗ <;> iframe %
     · iexact Hcown
 
+variable [CrashGS GF] in
 /-- A leader stepping down at its term (2026-10-14, stage B5: `StepR.stepDown`): its term
 log is dropped (`TermsOk`'s keys allow a non-candidate at its term); its acknowledgements of
 its term, within its log (`LeadAcksOk`), are justified by its own prefix. -/
@@ -789,6 +808,7 @@ theorem ownLogGhost_stepDown (γ : RaftNames) (id : w64) (s s' : PState) (kl : O
   iexists γm, terms, fp, γw, wins
   iframe # ∗ <;> iframe %
 
+variable [CrashGS GF] in
 /-- A full log with records that starts with a non-empty bootstrap log has an entry of term `1`
 at index `1`: a bound on its terms bounds `1` (2026-10-16, stage R8b, D12). -/
 theorem boot_term_le (γ : RaftNames) (F : List EntryM) (T : w64) :
@@ -812,6 +832,7 @@ theorem boot_term_le (γ : RaftNames) (F : List EntryM) (T : w64) :
   rw [show uint.Z (W64 1) = 1 from rfl] at this
   omega
 
+variable [CrashGS GF] in
 /-- The bootstrap log in a node's full log (2026-10-16, stage R8b, D12): the commit index is
 past it (`ownLogGhost`'s conjunct), so, with the records, it is a prefix of the full log, and a
 non-empty one puts the term at `≥ 1` (`TermsLe`). -/
@@ -840,6 +861,8 @@ theorem ownLogGhost_boot (γ : RaftNames) (id : w64) (s : PState) (kl : Option w
   isplitr; · ipureintro; exact ⟨Hf, Hbpre⟩
   iexact Hfrecs
 
+variable [CrashGS GF] in
+variable [CrashGS GF] in
 /-- `Step.campaign`, on the log ghost state: record the campaign log (the full log,
 unchanged since) and, for the self-vote, the vote-time log -- with the histories of
 every earlier acknowledgement; the new term has no known leader. (2026-10-31, durability stage
@@ -1046,6 +1069,8 @@ theorem ownLogGhost_campaign (γ : RaftNames) (id : w64) (s : PState) (kl : Opti
   iframe Hfrecs Hcommit
   ipureintro; exact ⟨Hf, rfl⟩
 
+variable [CrashGS GF] in
+variable [CrashGS GF] in
 /-- A first vote, on the log ghost state: record the vote-time log, which has the
 histories of all acknowledgements, at the node's bound -- the term, or the term plus one
 if it knows the term's leader. (2026-10-31, durability stage I-1: a pending `Prom.vote` for `c`,
@@ -1112,6 +1137,7 @@ private theorem ite_pos_elim {PROP : Type _} [BI PROP] {c : Prop} [Decidable c] 
     (h : c) : (if c then P else Q) ⊢ P := by
   rw [ite_eq_left_iff.mpr (fun hn => absurd h hn)]
 
+variable [CrashGS GF] in
 /-- (Lean helper.) One entry's record in a log with records, at any base. -/
 private theorem logRecs_lookup_b (γ : RaftNames) (b : entryID) (es : List EntryM)
     (k : Nat) (e : EntryM) :
@@ -1124,6 +1150,7 @@ private theorem logRecs_lookup_b (γ : RaftNames) (b : entryID) (es : List Entry
   ihave #He' := BigSepL.bigSepL_lookup He $$ H
   iapply ite_pos_elim _ _ Hr $$ He'
 
+variable [CrashGS GF] in
 /-- What a leader's `MsgSnap` carries beyond its leadership. `Qed` since 2026-10-03
 (admitted from 2026-10-02 as a client assumption, before `SnapOk` carried the commit
 bound and the log fact): `isCommittedIdx` is `isCommittedIdx_le` of the commit index;
@@ -1195,6 +1222,7 @@ theorem cfgCommitted_of_env (γ : RaftNames) (id : w64) (c : CfgM) (s : PState) 
     isplitr; · iexact HMR
     ipureintro; exact HR.2.2.2.1
 
+variable [CrashGS GF] in
 /-- What a leader's broadcast carries, from what the leader holds. -/
 theorem replOk_message (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
     (fp : List EntryM) (c : CfgM) :
@@ -1337,6 +1365,56 @@ private theorem slot_batch_le (E : DurMaps) (Mq : GMap Nat (Option RaftBatch)) (
     | none => exact DurLe_refl E
     | some b => exact (H b h).2
 
+/-- The mask with every crash invariant of `id` open is within the one with an arm's open. -/
+theorem crashNs_diff_sub (E : CoPset) (γ : RaftNames) (id : w64) (x : CrashNames) :
+    E \ ↑(crashNs γ id) ⊆ E \ ↑(crashN γ id x) := by
+  intro p hp
+  rw [Iris.Std.LawfulSet.mem_diff] at hp ⊢
+  exact ⟨hp.1, fun h => hp.2 (crashN_sub γ id x p h)⟩
+
+variable [CrashGS GF] in
+/-- The slot is outside every crash invariant. -/
+theorem slotN_diff_crash (E : CoPset) (γ : RaftNames) (id : w64) :
+    ↑(slotN γ id) ⊆ E → ↑(slotN γ id) ⊆ E \ ↑(crashNs γ id) := by
+  intro HE p hp
+  rw [Iris.Std.LawfulSet.mem_diff]
+  refine ⟨HE p hp, fun h => ?_⟩
+  have h1 := nclose_subseteq (raftN γ .@ "slot") id p hp
+  have h2 := nclose_subseteq (raftN γ .@ "crash") id p h
+  exact ndot_ne_disjoint (raftN γ) (show "slot" ≠ "crash" by decide) p ⟨h1, h2⟩
+
+variable [CrashGS GF] in
+/-- **The slot's half of the virtual maps, used through its view** (2026-11-21, the crash invariant):
+the update `f` gets the piece, with the generation running (`notCrashed`), and gives it back. -/
+theorem cviewV_use (E : CoPset) (γ : RaftNames) (id : w64) (γs : SlotNames) (V : DurMaps)
+    (R : IProp GF) :
+    γ.reSlot !! id = some γs → ↑(crashNs γ id) ⊆ E →
+    ⊢ notCrashed -∗ cview γ id CrashNames.v (1 : Qp).half V -∗
+      (ghostVar γs.1 (1 : Qp).half V ={E \ ↑(crashNs γ id)}=∗ ghostVar γs.1 (1 : Qp).half V ∗ R) ={E}=∗
+      notCrashed ∗ cview γ id CrashNames.v (1 : Qp).half V ∗ R := by
+  intro Hs HE
+  unfold cview
+  iintro Hnc ⟨%x, #Hinv, Hv⟩ Hf
+  iapply nodeCrashInv_acc E γ id x _ HE $$ Hnc Hinv
+  iintro Hl
+  icases crashLens_v γ id x $$ Hl with ⟨Hp, Hback⟩
+  unfold crashV
+  icases Hp with ⟨%γs', %V', %Hs', Hv0, Hpc⟩
+  rw [Hs] at Hs'; cases Hs'
+  icases ghostVar_agree _ _ _ _ _ $$ Hv Hv0 with %HV
+  subst HV
+  ihave Hf := Hf $$ Hpc
+  imod fupd_mask_mono (crashNs_diff_sub E γ id x) $$ Hf with ⟨Hpc, HR⟩
+  imodintro
+  isplitr [Hv HR]
+  · iapply Hback
+    iexists γs, V
+    iframe Hv0 Hpc
+    ipureintro; exact Hs
+  iframe HR
+  iexists x
+  iframe Hinv Hv
+
 /-- **Opening the slot** against the node's half of its virtual maps `V`: the entered maps `E`,
 below `V`, with their authority shares, until the slot is closed. -/
 theorem slot_open (Em : CoPset) (γ : RaftNames) (id : w64) (γs : SlotNames) (V : DurMaps) :
@@ -1367,6 +1445,57 @@ theorem slot_open (Em : CoPset) (γ : RaftNames) (id : w64) (γs : SlotNames) (V
     ipureintro; exact ⟨Hdom, Hcur, Hb⟩
   imodintro; ipureintro; trivial
 
+variable [CrashGS GF] in
+/-- The crash invariants are outside the slot's mask. -/
+theorem crashNs_diff_slot (E : CoPset) (γ : RaftNames) (id : w64) :
+    ↑(crashNs γ id) ⊆ E → ↑(crashNs γ id) ⊆ E \ ↑(slotN γ id) := by
+  intro HE p hp
+  rw [Iris.Std.LawfulSet.mem_diff]
+  refine ⟨HE p hp, fun h => ?_⟩
+  have h1 := nclose_subseteq (raftN γ .@ "slot") id p h
+  have h2 := nclose_subseteq (raftN γ .@ "crash") id p hp
+  exact ndot_ne_disjoint (raftN γ) (show "slot" ≠ "crash" by decide) p ⟨h1, h2⟩
+
+variable [CrashGS GF] in
+/-- **Opening the slot against the view of the node's virtual maps** (2026-11-21, the crash
+invariant: the slot's half is there, read with the generation running): `slot_open`, the crash
+invariant opened inside the slot's and closed again at once. -/
+theorem slot_openV (Em : CoPset) (γ : RaftNames) (id : w64) (γs : SlotNames) (V : DurMaps) :
+    γ.reSlot !! id = some γs → ↑(slotN γ id) ⊆ Em → ↑(crashNs γ id) ⊆ Em →
+    ⊢ notCrashed -∗ slotInv (GF := GF) γ id -∗ cview γ id CrashNames.v (1 : Qp).half V
+      ={Em, Em \ ↑(slotN γ id)}=∗
+      notCrashed ∗ cview γ id CrashNames.v (1 : Qp).half V ∗
+      ∃ E, ⌜DurLe E V⌝ ∗ durShares γ id (1 : Qp).half E ∗
+        (durShares γ id (1 : Qp).half E ={Em \ ↑(slotN γ id), Em}=∗ True) := by
+  intro Hs HE HC
+  iintro Hnc #Hslot Hv
+  unfold slotInv
+  iinv Hslot with H Hclose
+  unfold slotBody
+  icases H with ⟨%γs', %E, %g, %Mq, >%Hγs', >Hsh, #Hfr, #Hai, >Hv', >Hg, >Hq, >%Hdom, >%Hcur, >%Hb⟩
+  rw [Hs] at Hγs'; cases Hγs'
+  have Hle := slot_batch_le E Mq g Hb
+  imod cviewV_use (Em \ ↑(slotN γ id)) γ id γs V
+      iprop(⌜V = virtQ E (Mq !! g)⌝ ∗ ghostVar γs.1 (1 : Qp).half (virtQ E (Mq !! g))) Hs
+      (crashNs_diff_slot Em γ id HC) $$ Hnc Hv [Hv'] with ⟨Hnc, Hv, %HV, Hv'⟩
+  · iintro Hv0
+    icases ghostVar_agree γs.1 V (1 : Qp).half _ (1 : Qp).half $$ Hv0 Hv' with %HV
+    imodintro
+    iframe Hv0 Hv'
+    ipureintro; exact HV
+  imodintro
+  iframe Hnc Hv
+  iexists E
+  isplitr; · ipureintro; rw [HV]; exact Hle
+  isplitl [Hsh]; · iexact Hsh
+  iintro Hsh
+  imod Hclose $$ [Hsh Hv' Hg Hq] with -
+  · inext
+    iexists γs, E, g, Mq
+    isplitr; · ipureintro; exact Hs
+    iframe Hsh Hfr Hai Hv' Hg Hq
+    ipureintro; exact ⟨Hdom, Hcur, Hb⟩
+  imodintro; ipureintro; trivial
 /-- An entered vote's fragment against the authority share. -/
 theorem durShares_vote (γ : RaftNames) (id : w64) (q : Qp) (E : DurMaps) (t c : w64) :
     ⊢ durShares (GF := GF) γ id q E -∗ isVote γ id t c -∗
@@ -1395,6 +1524,7 @@ theorem durShares_ack (γ : RaftNames) (id : w64) (q : Qp) (E : DurMaps) (γa' :
   iframe Hv Ha Hc Hl He
   ipureintro; exact Hn
 
+variable [CrashGS GF] in
 /-- An entered campaign record's fragment against the authority share. -/
 theorem durShares_camp (γ : RaftNames) (id : w64) (q : Qp) (E : DurMaps) (γc' : GName) (T : w64)
     (F : List EntryM) (k : w64) :
@@ -1411,23 +1541,25 @@ theorem durShares_camp (γ : RaftNames) (id : w64) (q : Qp) (E : DurMaps) (γc' 
   iframe Hv Ha Hc Hl He
   ipureintro; exact Hn
 
+variable [CrashGS GF] in
 /-- An entered campaign record, through the slot: it is in the virtual maps, and no campaign of
 its term is pending (`PromsFresh`). -/
 theorem slot_campK (Em : CoPset) (γ : RaftNames) (id : w64) (γs : SlotNames) (V : DurMaps)
     (πc : List Prom) (T : w64) (F : List EntryM) (k : w64) :
-    γ.reSlot !! id = some γs → ↑(slotN γ id) ⊆ Em → PromsFresh V πc →
-    ⊢ slotInv (GF := GF) γ id -∗ ghostVar γs.1 (1 : Qp).half V -∗ isCampK γ id T F k ={Em}=∗
-      ghostVar γs.1 (1 : Qp).half V ∗
+    γ.reSlot !! id = some γs → ↑(slotN γ id) ⊆ Em → ↑(crashNs γ id) ⊆ Em → PromsFresh V πc →
+    ⊢ notCrashed -∗ slotInv (GF := GF) γ id -∗ cview γ id CrashNames.v (1 : Qp).half V -∗
+      isCampK γ id T F k ={Em}=∗
+      notCrashed ∗ cview γ id CrashNames.v (1 : Qp).half V ∗
       ⌜(virt V πc).camps !! T = some (F, k) ∧ ∀ F' k', Prom.camp T F' k' ∉ πc⌝ := by
-  intro Hs HE Hfr
-  iintro #Hslot Hv #Hck
-  imod slot_open Em γ id γs V Hs HE $$ Hslot Hv with ⟨%E0, %HEV, Hsh, Hv, Hcl⟩
+  intro Hs HE HC Hfr
+  iintro Hnc #Hslot Hv #Hck
+  imod slot_openV Em γ id γs V Hs HE HC $$ Hnc Hslot Hv with ⟨Hnc, Hv, %E0, %HEV, Hsh, Hcl⟩
   unfold isCampK
   icases Hck with ⟨%γc, %Hc, #Hf, -⟩
   icases durShares_camp γ id _ E0 γc T F k Hc.1 $$ Hsh Hf with ⟨%HE0, Hsh⟩
   imod Hcl $$ Hsh with -
   imodintro
-  iframe Hv
+  iframe Hnc Hv
   ipureintro
   have HV : V.camps !! T = some (F, k) := HEV.2.2.1 T _ HE0
   refine ⟨(DurLe_virt V πc Hfr).2.2.1 T _ HV, fun F' k' Hin => ?_⟩
@@ -1437,6 +1569,7 @@ theorem slot_campK (Em : CoPset) (γ : RaftNames) (id : w64) (γs : SlotNames) (
   rw [Hnone] at Hsome
   cases Hsome
 
+variable [CrashGS GF] in
 /-- An event history's lower bound against the authority share. -/
 theorem durShares_evs (γ : RaftNames) (id : w64) (q : Qp) (E : DurMaps) (γe' : GName) (L : List Aev) :
     γ.reEvs !! id = some γe' →
@@ -1452,6 +1585,7 @@ theorem durShares_evs (γ : RaftNames) (id : w64) (q : Qp) (E : DurMaps) (γe' :
   iframe Hv Ha Hc Hl He
   ipureintro; exact Hn
 
+variable [CrashGS GF] in
 theorem ownLogGhost_acks_term (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : DurMaps) :
     ⊢ ownLogGhost (GF := GF) γ id s kl W -∗ ⌜AcksTerm s W.acks⌝ := by
   unfold ownLogGhost
@@ -1459,6 +1593,7 @@ theorem ownLogGhost_acks_term (γ : RaftNames) (id : w64) (s : PState) (kl : Opt
   iNamed H
   ipureintro; exact Hacks_term
 
+variable [CrashGS GF] in
 theorem ownLogGhost_acks_ok (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : DurMaps) :
     ⊢ ownLogGhost (GF := GF) γ id s kl W -∗ acksOk γ s W.acks := by
   unfold ownLogGhost
@@ -1468,49 +1603,52 @@ theorem ownLogGhost_acks_ok (γ : RaftNames) (id : w64) (s : PState) (kl : Optio
 
 /- A non-leader's own acknowledgement of its term above its commit index is justified by
 its log. -/
+variable [CrashGS GF] in
 /-- A node not yet voted in its term is in no winning quorum of it. (2026-10-31, durability R2:
 through the slot invariant's entered votes, which the virtual maps extend.) -/
 theorem vote_excl (E : CoPset) (γ : RaftNames) (id : w64) (s : PState) (γs : SlotNames)
     (V : DurMaps) (πc : List Prom) (ldr : w64) (q : GSet w64) :
-    γ.reSlot !! id = some γs → ↑(slotN γ id) ⊆ E → VoteHistOk (virt V πc).voted s →
-    ⊢ slotInv (GF := GF) γ id -∗ ghostVar γs.1 (1 : Qp).half V -∗ isWin γ ldr s.term q ={E}=∗
-      ghostVar γs.1 (1 : Qp).half V ∗ ⌜s.vote = W64 0 → id ∉ q⌝ := by
-  intro Hs HE Hhist
-  iintro #Hslot Hv #Hw
+    γ.reSlot !! id = some γs → ↑(slotN γ id) ⊆ E → ↑(crashNs γ id) ⊆ E → VoteHistOk (virt V πc).voted s →
+    ⊢ notCrashed -∗ slotInv (GF := GF) γ id -∗ cview γ id CrashNames.v (1 : Qp).half V -∗
+      isWin γ ldr s.term q ={E}=∗
+      notCrashed ∗ cview γ id CrashNames.v (1 : Qp).half V ∗ ⌜s.vote = W64 0 → id ∉ q⌝ := by
+  intro Hs HE HC Hhist
+  iintro Hnc #Hslot Hv #Hw
   by_cases H0 : s.vote = W64 0
   · by_cases Hin : id ∈ q
     · ihave #Hq := isWin_votes γ ldr s.term q $$ Hw
       ihave #Hf := BigSepM.bigSepM_lookup (Φ := fun v _ => isVote (GF := GF) γ v s.term ldr)
         ((GMap.elem_of_gset _ _).mp Hin) $$ Hq
-      imod slot_open E γ id γs V Hs HE $$ Hslot Hv with ⟨%E0, %Hle, Hsh, Hv, Hcl⟩
+      imod slot_openV E γ id γs V Hs HE HC $$ Hnc Hslot Hv with ⟨Hnc, Hv, %E0, %Hle, Hsh, Hcl⟩
       icases durShares_vote γ id _ E0 s.term ldr $$ Hsh Hf with ⟨%Hl, Hsh⟩
       have H1 := virt_voted_isSome V πc s.term (by rw [Hle.1 _ _ Hl]; rfl)
       have H2 := Hhist.2
       simp only [H0, ite_true] at H2
       rw [H2] at H1
       cases H1
-    · imodintro; iframe Hv; ipureintro; exact fun _ => Hin
-  · imodintro; iframe Hv; ipureintro; exact fun H => absurd H H0
+    · imodintro; iframe Hnc Hv; ipureintro; exact fun _ => Hin
+  · imodintro; iframe Hnc Hv; ipureintro; exact fun H => absurd H H0
 
+variable [CrashGS GF] in
 /-- A non-leader's own acknowledgement of its term above its commit index agrees with its log.
 (2026-10-31, durability R2: the fragment is an entered one, found through the slot.) -/
 theorem ownLogGhost_ack_agree (E : CoPset) (γ : RaftNames) (id : w64) (s : PState)
     (kl : Option w64) (γs : SlotNames) (V : DurMaps) (πc : List Prom) (i : w64) :
-    γ.reSlot !! id = some γs → ↑(slotN γ id) ⊆ E →
-    ⊢ slotInv (GF := GF) γ id -∗ ghostVar γs.1 (1 : Qp).half V -∗
+    γ.reSlot !! id = some γs → ↑(slotN γ id) ⊆ E → ↑(crashNs γ id) ⊆ E →
+    ⊢ notCrashed -∗ slotInv (GF := GF) γ id -∗ cview γ id CrashNames.v (1 : Qp).half V -∗
       ownLogGhost γ id s kl (virt V πc) -∗ isAcked γ id s.term i ={E}=∗
-      ghostVar γs.1 (1 : Qp).half V ∗ ownLogGhost γ id s kl (virt V πc) ∗
+      notCrashed ∗ cview γ id CrashNames.v (1 : Qp).half V ∗ ownLogGhost γ id s kl (virt V πc) ∗
       ∀ (_ : s.role ≠ .leader ∧ uint.Z s.commit < uint.Z i),
         ackAgree γ s.base s.log s.term i := by
-  intro Hs HE
-  iintro #Hslot Hv H Hk
+  intro Hs HE HC
+  iintro Hnc #Hslot Hv H Hk
   unfold isAcked
   icases Hk with (%H0 | ⟨⟨%γa', %Hγa', #Hfrag⟩, -⟩)
-  · imodintro; iframe Hv H
+  · imodintro; iframe Hnc Hv H
     iintro %Hr
     have := Hr.2
     exact absurd H0 (by have := uint_Z_nonneg s.commit; omega)
-  · imod slot_open E γ id γs V Hs HE $$ Hslot Hv with ⟨%E0, %Hle, Hsh, Hv, Hcl⟩
+  · imod slot_openV E γ id γs V Hs HE HC $$ Hnc Hslot Hv with ⟨Hnc, Hv, %E0, %Hle, Hsh, Hcl⟩
     icases durShares_ack γ id _ E0 γa' s.term i Hγa' $$ Hsh Hfrag with ⟨%Hk, Hsh⟩
     imod Hcl $$ Hsh with -
     have Hk' := virt_acks_isSome V πc (s.term, i) (Hle.2.1 _ (by rw [Hk]; rfl))
@@ -1518,7 +1656,7 @@ theorem ownLogGhost_ack_agree (E : CoPset) (γ : RaftNames) (id : w64) (s : PSta
     icases persistent_entails_right (wand_entails (ownLogGhost_acks_ok (GF := GF) γ id s kl (virt V πc))) $$ H
       with ⟨#Hacks_ok, H⟩
     imodintro
-    iframe Hv H
+    iframe Hnc Hv H
     iintro %Hr
     rw [acksOk_nl γ s _ Hr.1]
     ihave #Hk' := BigSepM.bigSepM_lookup (Φ := fun (k : w64 × w64) (_ : Unit) => ackOk (GF := GF) γ s k)

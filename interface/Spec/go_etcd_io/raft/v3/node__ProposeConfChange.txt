@@ -3,7 +3,7 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def node.ProposeConfChange.spec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (c : GoInterface) (o : ConfChangeIM) (cc : ConfChangeIC)
+  ∀ (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (c : GoInterface) (o : ConfChangeIM) (cc : ConfChangeIC)
     (dq : DFrac) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
     γ.trace = none →
       ⊢
@@ -23,7 +23,7 @@ def node.ProposeConfChange.spec : Prop :=
                 (((intoVal
                       (methods node.ty.PointerType
                         go!"ProposeConfChange"
-                        (intoVal n)))
+                        (intoVal n.loc)))
                     (intoVal (GoInterface.ok ctx)))
                   (intoVal c))
                 {{ Φ }}

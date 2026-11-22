@@ -50,7 +50,7 @@ Brief for the prover: as `NewServer.lean:1040-1110` (the lessor's and the auth s
   unfolds to `kbHookIs (some d')` (`hkb'`) `= bkHookIs d'.γB #g`: `g`, `hgnn` and `plHookRO`
   (`hγB`). (`mvcc.hookOk_of_init` is the boot's form, for the `none`-hook case.)
 - `isApplyLessor`: `apply.isApplyLessor_of_lessorInv` (the eight lease specs; `iPkgInit` for the
-  lease package; `lessorLookupOk lp` unfolds to its `Lookup` clause) with `lessorApplyOk lp`
+  lease package) with `lessorApplyOk lp`
   applied at `d'`, `W := mvcc.lateWD d'`, `Pk := E'.P`, `g`, `RW := E'.RW`, its `rwLens` as at
   boot (`srvRestRWH`, `srvObjsOn` taken apart and put back); `mvcc.storeWT`/`storeRT` of `E'.γ`
   are `backend.wbTok d'.γB`/`bkRTx d'.γB d'.P d'.be` (`hkb'`, `rfl`).
@@ -97,14 +97,14 @@ theorem snap_backendOptsOk
       backend.plHookRO γB g ∗
       □ mvcc.api.isMvcc E.kv E.γ ∗ apply.envAus E ∗
       alarmApplyOk al ∗ authApplyOkM E.authMode ast E.RD ∗ lessorApplyOk lp ∗ clusterApplyOk cl ∗
-      lease.lessorCfg lp ∗ lessorLookupOk lp ∗ (∃ n : Loc, membership.rcVersionChangedAddr cl ↦□ n) ∗
+      lease.lessorCfg lp ∗ (∃ n : Loc, membership.rcVersionChangedAddr cl ↦□ n) ∗
       lease.lessorInv lp (mvcc.api.mvccLeases E.γ) ⊢
     apply.backendOptsOk (snapE E (snapγ γ π0 γB) (metaTM γB P) ci d' g γB al ast lp cl d'.be)
       opts' := by
   subst hγB
   obtain ⟨Hu1, Hu2, Hu3, Hu4, Hu5, Hu6, Hu7, Hu8, Hu9⟩ := hopts
   iintro ⟨#Hpkg, #HS, #Hlg, #HCI, #HB, #Hhook, #HisM, #Haus, #HalA, #HauA, #HleA, #HclA, #Hlcfg,
-    #Hllk, #Hvcn, #Hlinv⟩
+    #Hvcn, #Hlinv⟩
   iunfold apply.backendOptsOk
   simp only [snapE_kv, snapE_γ, snapE_Pk, snapE_f, snapE_BkTie, snapE_RD, snapE_authMode, snapE_FS,
     snapE_ciC, snapE_RO, snapE_RW]
@@ -123,7 +123,7 @@ theorem snap_backendOptsOk
   isplitr
   · iapply snap_isApplyLessor hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv _ al ast lp cl d' E.γ W _ g
       hgnn hlp
-    iframe Hpkg HleA Hlcfg Hllk Hlinv HB Hhook
+    iframe Hpkg HleA Hlcfg Hlinv HB Hhook
   isplitr
   · iapply snap_isAuthStore E.authMode al ast lp cl E.RD d' W _ g hgnn
     iframe HauA HB Hhook

@@ -59,18 +59,22 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   ihave %Hlen := ownSlice_len _ _ _ $$ Hpeers
   -- (restart S3 item 5) `len(b.peers) == 0`: `RestartNode` at a restart, `StartNode` fresh; joined
   -- at the node `nn`, its key `K` and what the start gives of the boot
-  wp_join iprop(∃ (nn : Loc) (K : GName),
-      n_ptr ↦ interface.mkOk (go.GoType.PointerType node.ty) #nn ∗ b_ptr ↦ b ∗
-      b.[bootstrappedRaft, go!"config"] ↦{dq} bv.config' ∗
+  wp_join iprop(∃ (nn : NodeH) (K : GName) (view : GoSlice),
+      terms_ptr ↦ view ∗ view ↦*□ bt.seedRuns ∗
+      n_ptr ↦ interface.mkOk (go.GoType.PointerType node.ty) #nn.loc ∗ b_ptr ↦ b ∗
+      b.[bootstrappedRaft, go!"config"] ↦{dq} bv.config' ∗ b.[bootstrappedRaft, go!"storage"] ↦{dq} bv.storage' ∗
       b.[bootstrappedRaft, go!"peers"] ↦{dq} bv.peers' ∗ bv.peers' ↦*{dq} pv ∗
       isNode nn γr.cl srvClusterN cv.ID' ∗ nodeRunning nn γr.cl srvClusterN 1 ∗ nodeTagPin γr.cl nn SV ∗
       rnBootPost γr nn K bv cv ps ctxs bt ∗ Q K)
-    at next with [n b configB peersB Hc Hpeers Hboot] as ⟨%nn, %K, n, b, configB, peersB, Hpeers,
+    at next with [n terms b configB peersB storageB Hc Hpeers Hboot] as ⟨%nn, %K, %view, terms, #Hseed, n, b, configB, storageB, peersB, Hpeers,
       #Hnode, Hrun, #Hpin, Hbpost, HQ⟩
   · cases bt with
     | fresh =>
       iunfold rnBootPre at Hboot
       icases Hboot with ⟨%Hcfg, Hbs, Hboot, Hvac, Hrst⟩
+      -- (2026-11-21, the crash invariant) the vacancy armed (the server keeps no crash token: its
+      -- restart follows `node.Stop`)
+      imod nodeVacant_armD γr.cl cv.ID' ⊤ $$ Hvac with ⟨%x, Hvac⟩
       have Hpvne : pv ≠ [] := by
         intro h; have := Hcfg.peers; subst h; simp at this; exact Hcfg.peersNe this
       have Hlen0 : decide (bv.peers'.len = W64 0) = false := by
@@ -110,22 +114,24 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
           memSnapEmpty.Metadata'.ConfState' (raftState γr.cl cv.ID' RaftState.init) Q
           bv.peers' dq pv SV hValid Hcfg.valid Hcfg.logger Hcfg.storage Hcfg.inflight Hcfg.noForwarding
           Hcfg.readOnly Hcfg.ccValidation Hcfg.sizes Hcfg.noAsync (fun _ => Hcfg.maxMsg) Hcfg.applied
-          rfl rfl rfl rfl rfl Hcfg.peers Hcfg.traceLogger HtrC) $$ [Hc Hbs Hboot Hvac Hau Hpeers]
-        as %nd ⟨%n', %K, %Hnd, #Hfresh, #Hnode, Hdrv, Hncfg, Hrun, #Hpin, Hrst, HQ, Hpeers⟩
+          rfl rfl rfl rfl rfl Hcfg.peers Hcfg.traceLogger HtrC x) $$ [Hc Hbs Hboot Hvac Hau Hpeers]
+        as %nd ⟨%n', %K, %Hnd, #Hfresh, #Hnode, Hdrv, Hncfg, Hrun, #Hpin, -, Hrst, HQ, Hpeers⟩
       · iframe #; iframe Hc Hpeers Hboot Hvac Hau
         iExactEq Hbs; rfl
       subst Hnd
       (try wp_auto)
       isplitr
       · itrivial
-      iexists n', K
-      iframe n b configB peersB Hpeers Hnode Hrun Hpin HQ
+      iexists n', K, slice.nil
+      ihave #Hseed := ownSlice_nil (GF := GF) (V := replayTermRun) DFrac.discard
+      simp only [RNBoot.seedRuns]
+      iframe terms Hseed n b configB storageB peersB Hpeers Hnode Hrun Hpin HQ
       simp only [rnBootPost]
       iframe Hfresh Hrst Hncfg
       iExactEq Hdrv; rfl
     | restart σ cs S a m A₀ =>
       iunfold rnBootPre at Hboot
-      icases Hboot with ⟨%Hpure, Hbs, #Hclu, #Hfits, Hvac, Hrst, #Hconf⟩
+      icases Hboot with ⟨%Hpure, Hbs, #Hclu, #Hfits, ⟨%x, Hvac⟩, Hrst, #Hconf⟩
       obtain ⟨Hcfg, Hba, Hac, Hboot, Hcs, Hhold, Hnsm⟩ := Hpure
       have Hlen0 : decide (bv.peers'.len = W64 0) = true := by
         apply decide_eq_true
@@ -134,6 +140,11 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
         simp at h1
         word
       rw [Hlen0]
+      (try wp_auto)
+      wp_bind (App (Val (@! replayTermsFromStorage)) (Val #bv.storage'))
+      iapply Hbs
+      inext
+      iintro %out ⟨#Hseed, Hbs⟩
       (try wp_auto)
       -- `raft.RestartNode(b.config)`: the update checks that the storage holds `S` (under a later:
       -- `raftState` is not timeless)
@@ -170,9 +181,9 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
           SV hValid Hcfg.valid Hcfg.logger Hcfg.storage Hcfg.inflight Hcfg.noForwarding
           Hcfg.readOnly Hcfg.ccValidation Hcfg.sizes Hcfg.noAsync (fun _ => Hcfg.maxMsg)
           (Or.inl (by rw [Hcfg.applied]; rfl)) (by rw [Hcfg.applied]; simpa using Hba) Hac Hboot Hcs Hnsm
-          Hcfg.traceLogger HtrC)
+          Hcfg.traceLogger HtrC x)
         $$ [Hc Hbs Hvac Hau]
-        as %nd ⟨%n', %S', %l, %K, %Hnd, #Hnode, #Hl, %Hll, %-, Hdrv, Hncfg, Hrun, #Hpin, Hrst, HQ⟩
+        as %nd ⟨%n', %S', %l, %K, %Hnd, #Hnode, #Hl, %Hll, %-, Hdrv, Hncfg, Hrun, #Hpin, -, Hrst, HQ⟩
       · iframe #; iframe Hc Hvac Hau
         rw [Hcfg.applied]
         iExactEq Hbs; rfl
@@ -180,8 +191,9 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
       (try wp_auto)
       isplitr
       · itrivial
-      iexists n', K
-      iframe n b configB peersB Hpeers Hnode Hrun Hpin HQ
+      iexists n', K, out
+      simp only [RNBoot.seedRuns]
+      iframe terms Hseed n b configB storageB peersB Hpeers Hnode Hrun Hpin HQ
       simp only [rnBootPost]
       iexists l
       iframe Hl Hncfg
@@ -214,7 +226,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   (try wp_auto)
   -- `newRaftNode(cfg)`
   wp_apply (wp_newRaftNode E γr cv.ID' nn pre bv.storage' γs K ν ss
-    (raftNodeConfig.mk bv.lg' _ (interface.mkOk (go.GoType.PointerType node.ty) #nn) bv.storage' st
+    (raftNodeConfig.mk view bv.lg' _ (interface.mkOk (go.GoType.PointerType node.ty) #nn.loc) bv.storage' st
       bv.heartbeat' GoInterface.nil) bt.a0 bt.t0 bt.P bt.commit0 bt.snap0) $$ []
     as %r ⟨%γw, %Hγw, Hbuilt⟩
   · iframe #
@@ -225,7 +237,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
     simp only [TypedPointsto.typedPointstoDef, named]
     iframe
   iapply HΦ
-  iexists nn, γw, _, st
+  iexists nn, γw, _, st, view
   isplitr
   · ipureintro
     obtain ⟨h1, h2, h3, h4, h5, h6, -, h8, h8', h9, h10⟩ := Hγw
@@ -238,7 +250,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   · rw [hwal]; iexact Hrd1
   ihave Hrd2' : walStorRd st γw.wal.h $$ [Hrd2]
   · rw [hwal]; iexact Hrd2
-  iframe Hnode Hst' Hrd1' Hrd2' Hbuilt Hb Hpeers HQ Hrun Hpin Hbpost
+  iframe Hseed Hnode Hst' Hrd1' Hrd2' Hbuilt Hb Hpeers HQ Hrun Hpin Hbpost
   -- the closure meets `isRNIDRemoved`
   iunfold isRNIDRemoved
   iintro !> %id' %Φ' !> - HΦ'

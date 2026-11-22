@@ -133,25 +133,6 @@ theorem kvRunM_lbR (on : Bool) (γr : ReadNames) (ai₀ c₀ : w64) (A : List En
   · unfold kvRunM kvRunAtOn kvAppliedOn kvAppliedLOn
     iintro ⟨⟨⟨#H, -⟩, -⟩, -⟩; iexact H
 
-/-- The replay changes only the members: its buckets are the backend log's model's. -/
-theorem restReplay_bk (γr : ReadNames) (rp : RestartPt) (G : List EntryModel) :
-    (restReplay γr rp G).bk = (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ rp.A₀)).bk := by
-  unfold restReplay
-  rw [fold_restEntryV2]
-
-/-- The leases' records written over two images with the same buckets have the same buckets. -/
-theorem restLeasesWith_bk_congr (f : w64 → w64) (ids : List w64) (r r' : apply.RestM)
-    (h : r.bk = r'.bk) : (apply.restLeasesWith f ids r).bk = (apply.restLeasesWith f ids r').bk := by
-  unfold apply.restLeasesWith
-  induction ids generalizing r r' with
-  | nil => exact h
-  | cons id ids ih =>
-    simp only [List.foldl_cons]
-    apply ih
-    unfold apply.restGrantT
-    rw [apply.RestM.putIn_bk, apply.RestM.putIn_bk, h]
-
-
 /-! ## The census (gap 4): every reader of the store retired, the backend's whole open token -/
 
 /-- `a` and `b` copies of `P` are `a + b`. -/
@@ -380,7 +361,7 @@ abbrev stopCleanupImage.spec : Prop :=
         srvStop.cleanupPart C.s C.E ∗ srvStop.censusPart C.s C.E ∗ srvStop.imagePart C.s cfg C.rn ∗
         srvDataDir C.s dd ∗ srvStopReaders C.E ∗
         srvBootApplied C.ρ ∗
-        nodeVacant C.rn.node.cl C.rn.id ∗
+        (∃ x, nodeVacantA C.rn.node.cl C.rn.id x) ∗
         (∃ (S : RaftState) (σ : StorContents), raftState C.rn.node.cl C.rn.id S ∗
           rnWalClosed C.rn (srvRAddr C.s) σ ∗
           ⌜StorageHolds S σ ∧ σ.b ≤ (C.rn.pre ++ A).length ∧

@@ -6,7 +6,7 @@ theorem node.ApplyConfChange.wp_proof [package_sem : Assumptions] (wp_ConfChange
     raftpb.ConfChange.AsV2.spec) (wp_ConfChangeV2_AsV2 : raftpb.ConfChangeV2.AsV2.spec) :
     node.ApplyConfChange.spec
   -- `Perennial.EtcdGrove.node.ApplyConfChange.spec`, unfolded:
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (c : GoInterface) (o o' : ConfChangeIM) (l : List LogEntry)
+  ∀ (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (c : GoInterface) (o o' : ConfChangeIM) (l : List LogEntry)
     (k : Nat) (e : LogEntry) (v : ConfigView) (m' : Membership),
     v.applied ≤ k →
       l[k]? = some e →
@@ -32,6 +32,6 @@ theorem node.ApplyConfChange.wp_proof [package_sem : Assumptions] (wp_ConfChange
                           ((intoVal
                               (methods node.ty.PointerType
                                 go!"ApplyConfChange"
-                                (intoVal n)))
+                                (intoVal n.loc)))
                             (intoVal c))
                           {{ Φ }}

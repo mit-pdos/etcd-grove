@@ -32,6 +32,7 @@ section ghost
 variable [GooseExts]
 variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
+variable [CrashGS GF] in
 /-- **Log matching below the commit index, for a stale append request**: a follower's log, at the
 request's term, has the request's previous entry when it is below its commit index (raft's
 `appStale` does not look; the leader's full log reaches the follower's commit index, `commitIn_ackInF`,

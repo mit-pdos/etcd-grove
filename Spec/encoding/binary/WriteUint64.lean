@@ -1,7 +1,7 @@
 /-
-`binary.Write(w, binary.BigEndian, v)` of a `uint64`: the trust boundary (`encoding/binary`'s
-`Write` is names-only in Perennial; it goes through `reflect`), stated over `w`'s `Write`.
-Lean-first.
+`binary.Write(w, binary.BigEndian, v)` of a `uint64`, stated over `w`'s `Write`. Proved over
+Perennial's translation of `Write` (`Proof/encoding/binary/WriteUint64.lean`; stdlib4, 2026-11-21:
+until then names-only, as `Write` falls back on `reflect`). Lean-first.
 -/
 module
 

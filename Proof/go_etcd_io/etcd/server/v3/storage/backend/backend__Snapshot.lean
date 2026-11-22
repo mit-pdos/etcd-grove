@@ -1,32 +1,49 @@
 /-
-The trust boundary: `Spec/go_etcd_io/etcd/server/v3/storage/backend/backend__Snapshot.lean`
-(its body begins a bbolt read transaction outside the batch lock, which the backend's model of
-bbolt, whose `ownDB` the batch lock holds, does not cover, and starts a ticker goroutine). D22 S-f,
-2026-10-19; `notes/decisions.md`, "D22 S-f carried out". (S4b, 2026-11-18) Translated with its
-body (and its goroutine) since S4b, but still assumed: proving it needs (1) a reader slot of `b.mu`
-outside the batch lock (the backend's slots of `b.mu` other than the batch lock's are not kept
-anywhere: a pool of them, as `RdPool`'s for `readTx.mu`, in `isBackend` or the constructor's post)
-and (2) the observation `Q` at `DB.Begin(false)`'s linearization point, which no thread can apply
-there: the caller holds `R`, the batch lock (or its holder) `W ∗ Pk` and the ghost shares, so the
-commits would have to help (each commit applying every registered snapshotter's observation, with
-the batch lock's ghost shares moved to the commit's linearization point inside bbolt's
-`Tx.Commit`), with `boltState` shared between the batch lock and an invariant
-(`notes/bbolt-integration-plan.md`, "S4b").
+Proof of `Spec/go_etcd_io/etcd/server/v3/storage/backend/backend__Snapshot.lean` (backend-snapshot B4,
+2026-11-21; until then a trust-boundary axiom, D22 S-f; `notes/backend-snapshot-plan.md`). `b.Snapshot()`
+registers the caller's `R` and observation in the commit invariant (`RegSnap.lean`'s `reg_register`)
+before its own `Commit()`, whose commit point (or no-op) arms it (`Commit.specCnt`'s counter); then,
+read-locking `b.mu` with the slot the caller's `rdTok` lends (`bmSlot`), it begins bbolt's read
+transaction, whose update is fired from the commit invariant's half of the committed data `D`, where
+the armed registration is taken out (`reg_take`: `R` back, `Q` of `D`) and the invariant's reader lower
+bound of the compaction keys' flag read (`fkRd`). The snapshot's two channels are broadcast channels,
+`stopc`'s close right in the invariant `snapN` (`InvSnapshot.lean`'s `snapAt`); the warning goroutine
+(its own fork's fuel) ticks at an interval at least `minSnapshotWarningTimeout` (positive: the backend's
+package fact holds its value) until `stopc` closes, then observes `snapshotTransferSec` and closes
+`donec`. Lean-first (no Rocq counterpart).
 -/
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__Snapshot
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__Commit
+public import Spec.go_etcd_io.bbolt.DB__Begin
+public import Spec.go_etcd_io.bbolt.Tx__Size
+public import Spec.go_uber_org.zap.Error
+public import Spec.go_uber_org.zap.Logger__Fatal
+public import Spec.go_uber_org.zap.Logger__Warn
+public import Spec.go_uber_org.zap.Duration
+public import Spec.go_uber_org.zap.Int64
+public import Spec.go_uber_org.zap.String
+public import Spec.github_com.dustin.go_humanize.Bytes
+public import Spec.time.Duration__Seconds
+public import Perennial.Spec.time.Now
+public import Perennial.Spec.time.Since
+public import Perennial.Spec.time.NewTicker
+public import Perennial.Spec.time.Ticker__Stop
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.RegSnap
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBatch
 
 @[expose] public section
 
 set_option linter.iris.dupNamespace false
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.backend backend go_uber_org
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -34,76 +51,329 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
+variable [go_etcd_io.bbolt.Assumptions] [go_uber_org.zap.Assumptions] [_root_.Perennial.time.Assumptions]
+variable [github_com.dustin.go_humanize.Assumptions]
 
-/-- **Trust boundary** (D22 S-f): `b.Snapshot()` commits the batch transaction, then begins a bbolt
-read transaction (which on an open database does not fail: `lg.Fatal` is not reached) over
-bbolt's committed data `D` at that moment, and returns it as the snapshot. Why `Q` holds of `D`:
-`D` is what the last bbolt commit before the read transaction began left (bbolt's isolation of
-`DB.Begin(false)`), and that commit was the call's own (`batchTx.Commit`) or a later one (the
-`run` goroutine's, an `Unlock`'s), or the call's own found nothing pending, the writer's contents
-then being the committed data and the read buffer empty; at the end of each, its committer held
-the batch lock's resources `W ∗ Pk`, the lock's ghost shares were `viewAt γ (sData P C)`,
-`hkOwn γ (hkData P C)`, (D22, 2026-10-23) `rbOwn γ (rbData P C)` and (the user's decision,
-2026-11-04, round 16's F1) `fkdOwn γ (fkVals C)` of the committed `C` (a commit makes the writer's
-contents committed: the hook's shares, the tracked buckets' and the compaction keys' values are of
-the writer's contents, `fkHalf`'s `fkdOwn γ (fkVals st.S)`; the latter is updated only by a put of
-a compaction key, `fkHalf_raise`, every other operation keeping `fkVals` of the writer's contents,
-`fkVals_put`/`_del`/`_create`/`_delBucket`, and a commit or a write-back leaving them unchanged),
-and the caller held `R`, so the observation gives `Q` of the committed `C`, hence of `D` at its
-compaction keys (`fkVals D`) as at the hook's own keys. The compaction keys' clause is the hook keys'
-argument again, over a second ghost variable of the same shape; it adds nothing the existing
-`fkRd` clause relies on (that clause's flag is unchanged; the values' half is a separate ghost
-name). (Question 2, option (a), the user's, 2026-10-29:
-`viewAt γ (sData P C)` is the batch lock's quarter at a logical view the committed data reads thin
-of, as `batchGhostAt` holds it after a commit, `batchViewQ`; a weaker observation than the quarter
-at `sData P C` itself, which a compaction's deletes would make false. To be checked by the `axiom`
-skill before the backend stage's Freeze.) (2026-11-02, the merged snapshot's window; reviewed with
-the `axiom` skill, `notes/axiom-review/backend-snapshot-fk.md`: survives) Why the post's `fkRd γ P
-(D, ⟨∅, W64 0⟩)` holds: at the end of that last commit the batch lock's half of the flag is at some
-`f` with `fkOkG` of the committed state `D` (`fkOkG_commit`), so its lower bound
-(`monoNatLbOwn_get`) with `fkOkRvG` of `D` and an empty read buffer (`fkHalf_rd`,
-`fkOkRvG_of`) is a reader's, as `batchTxBuffered.unsafeCommit` gives its readers over the
-committed data; the flag only grows, so a later put of a compaction key cannot falsify it. What
-would discharge it: bbolt's `DB.Begin(false)` read isolation and the backend's
-commit protocol (`batchTxBuffered.commit`) with a read transaction begun outside the batch lock,
-in a model of bbolt where the database's committed state is shared (a fraction of `ownDB`)
-rather than the batch lock's alone. (The user's decision, 2026-11-04, probe M2: a snapshot restored
-from gives a correct view of the abstract state it is of.) Why the deleted entries' clause holds:
-at the end of that last commit the batch lock's state `st` is out of an `Unlock`'s commit window
-(`commitSt` resets `win`), so its quarter's agreement (`batchViewQ`'s `dlsW`) is the full one,
-`dlsOk P st L` with its logical view `L`: the safe-range entries of `L` missing from the writer's
-contents are exactly the deleted ones `dlR P st.dl`, which are `L`'s; the committed data is the
-writer's contents and the read buffer is empty, so the physical view is `sData P st.S`, and
-`dlVd P (sData P st.S) L (dlR P st.dl)` (`dlVd_of_dlsOk`); the lock's half of the deleted entries is
-at `dlR P st.dl` (`fkHalf`'s `dlsOwn`). The agreement is the backend's own proved invariant: every
-operation keeps it (a delete from a safe-range bucket records the entry, both halves updated with
-the client's, `fkHalf_dl`; a put there is not of a deleted entry, `UnsafeSeqPut`'s and
-`UnsafePut`'s premise; a put session's `Unlock` deleted no safe-range entry the readers see,
-`sbKept`, so `relog` keeps the deleted entries, `dlsOk_relog`; an `Unlock`'s commit window is the
-one exemption, its commit's close re-establishing the agreement at `relog`). So the clause is the
-hook keys' argument again, over a ghost variable of the same shape and the quarter's pure
-agreement; it adds nothing the other clauses rely on. Attacked with the `axiom` skill, survives
-(`notes/axiom-review/backend-snapshot-dls.md`, 2026-11-04; the compaction keys' clause:
-`backend-snapshot-fkd.md`). (2026-11-06, branch `begin-tok`, `notes/begin-tok-plan.md`) Why the pre's
-`threadTok` and `ThreadBoundLe GF (2 ^ 29)`: `Snapshot` (etcd `server/storage/backend/backend.go:381`)
-calls `b.db.Begin(false)` (`:386`), whose `beginTx` takes bbolt's `db.mmaplock.RLock()` (bbolt
-`db.go:875`) and keeps it past `Snapshot`'s return (the `b.mu.RUnlock()` deferred at `:385` is the
-backend's own lock, not `mmaplock`), until `snapshot.Close`'s `s.Tx.Rollback()` (`backend.go:1132`)
-reaches `removeTx`'s `db.mmaplock.RUnlock()` (`db.go:951`). Each open snapshot is so charged a
-thread's token, as `bbolt.DB.Begin_kv` charges a read transaction; the bound keeps the slots below
-`sync.RWMutex`'s `2 ^ 30` readers (`bbolt.Open_kv`'s count). The goroutine it starts
-(`backend.go:393`, living until `Close`'s `<-s.donec`, `:1131`) is a live thread paid by its own
-fork's fuel; the caller's token pays the reader slot: net one token per open snapshot until `Close`
-(reviewed with the `axiom` skill, survives: `notes/axiom-review/begin-tok-restated.md`).
-(S4b, 2026-11-18) `snapOpen` is a definition now (`InvSnapshot.lean`, `snapAt`), so the post claims
-what the body makes: the `*snapshot` `sp` with persistent fields `Tx`, `stopc`, `donec` (the composite
-literal `&snapshot{tx, stopc, donec}`, written once), the read transaction `tx` of `γ.db` whole
-(`txLive tx γ.db 1 (ro D)`: `Begin(false)`'s, the token above its reader slot), and the two fresh
-channels `make(chan struct{})` as broadcast channels with `stopc`'s close right in the invariant
-`snapN` (nobody but `Close` closes `stopc`; the goroutine only receives from it, and closes `donec`
-once, by its `defer`, when it has received; `Close` only receives from `donec`), the ghost variable
-`γ` fresh. -/
-axiom backend.backend.Snapshot.wp_proof : backend.backend.Snapshot.spec (GF := GF) (hG := hG)
+private instance fkRd_timeless (γ : BNames) (P : BParams) (rv : RView) :
+    Timeless (fkRd (GF := GF) γ P rv) := by
+  unfold fkRd fkVR; infer_instance
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
+/-- bbolt's `DB.Begin(false)` outside the batch lock, in the backend's vocabulary, at `theFs`: the
+read update is fired from the commit invariant's half of the committed data `D` (the backend open, so
+not stopped), where the caller's armed registration is taken out (`reg_take`: `R` back, `Q` of `D`)
+and the invariant's reader lower bound of the compaction keys' flag at `D` read. -/
+private theorem bbolt.snapGlue_DBBegin (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+      [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions], bbolt.DB.Begin.spec (GF := GF) (hG := hG)) :
+  ∀ (db : Loc) (γ : BNames) (P : BParams) (W Pk : IProp GF) (path : GoString) (qo : Qp) (i n : Nat)
+    (R : IProp GF) (Q : ObsQ),
+  γ.db.ns = dbNs path →
+  {{ isDB db γ.db ∗ threadTok ∗ cmtInv γ P W Pk ∗ bOpen γ qo ∗ regTok γ P i n R Q ∗
+      cntLb γ (n + 1) ∗ £ 1 ∗ £ 1 }}
+    (App (Val (db @!! go.GoType.PointerType go_etcd_io.bbolt.DB.ty @!! go!"Begin")) (Val #false))
+  {{ (tx : Loc) (err : GoInterface), RET (PairV #tx #err);
+      (⌜err = GoInterface.nil⌝ ∗ ∃ D : backend.Data, txLive tx γ.db 1 (bbolt.TxView.ro D) ∗
+        bOpen γ qo ∗ R ∗ fkRd γ P (D, ⟨∅, W64 0⟩) ∗ ⌜obsAt P Q D⌝) ∨
+      ⌜err ≠ GoInterface.nil⌝ }} := by
+  intro db γ P W Pk path qo i n R Q hns
+  have hE : (↑cmtN : CoPset) ⊆ ⊤ \ ↑γ.db.ns := by rw [hns]; exact cmtN_dbNs path
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  · simp only [backend.isDB, onFs_none hfs]
+    iintro %Φ ⟨H, -⟩ HΦ
+    iexfalso; iexact H
+  · simp only [backend.isDB, backend.txLive, onFs_some hfs]
+    iintro %Φ ⟨#Hdb, Htok, #Hinv, Hopen, Hrg, #Hlb, Hlc1, Hlc2⟩ HΦ
+    ihave Hau : AU <{ ∃∃ (q : Qp) (D : backend.Data), bbolt.boltState γ.db q D }> @ ⊤ \ ↑γ.db.ns, ∅
+        <{ bbolt.boltState γ.db q D,
+           COMM bOpen γ qo ∗ R ∗ fkRd γ P (D, ⟨∅, W64 0⟩) ∗ ⌜obsAt P Q D⌝ }> $$
+        [Hopen Hrg Hlc1 Hlc2]
+    · iauintro
+      unfold atomic_acc
+      iunfold cmtInv at Hinv
+      iinv Hinv with Hb Hclose
+      try exact hE
+      iunfold cmtBody at Hb
+      icases Hb with (⟨%Dc, >Hh, >#Hfk, Hregs⟩ | >#Hst)
+      rotate_left
+      · iexfalso
+        iapply bOpen_stopped γ qo $$ [$Hopen $Hst]
+      isimp only [backend.dbHalf, onFs_some hfs] at Hh
+      iapply fupd_mask_intro Std.LawfulSet.empty_subset
+      iintro Hcl
+      isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+      iexists (1 : Qp).half, Dc
+      iframe Hh
+      isplit
+      · iintro Hh
+        imod Hcl with -
+        imod Hclose $$ [Hh Hregs] with -
+        · inext
+          iunfold cmtBody
+          ileft
+          iexists Dc
+          isimp only [backend.dbHalf, onFs_some hfs]
+          iframe Hh Hregs Hfk
+        imodintro
+        iframe Hopen Hrg Hlc1 Hlc2
+      · iintro Hh
+        imod Hcl with -
+        imod (reg_take γ P W Pk i n R Q Dc _) $$ [$Hrg $Hlb $Hlc1 $Hlc2 $Hregs] with ⟨Hregs, HR, %HQ⟩
+        imod Hclose $$ [Hh Hregs] with -
+        · inext
+          iunfold cmtBody
+          ileft
+          iexists Dc
+          isimp only [backend.dbHalf, onFs_some hfs]
+          iframe Hh Hregs Hfk
+        imodintro
+        iframe Hopen HR Hfk
+        ipureintro; exact HQ
+    have h' := h db γ.db false (fun D => iprop(bOpen γ qo ∗ R ∗ fkRd γ P (D, ⟨∅, W64 0⟩) ∗
+      ⌜obsAt P Q D⌝))
+    simp only [Bool.false_eq_true, ↓reduceIte] at h'
+    wp_apply h' $$ [$Hdb $Htok $Hau] as %tx %err Hr
+    icases Hr with (⟨%He, -, %D, Htx, Hq⟩ | ⟨%He, -, -⟩)
+    · iapply HΦ
+      ileft
+      isplitr; · ipureintro; exact He
+      iexists D
+      iframe Htx Hq
+    · iapply HΦ
+      iright; ipureintro; exact He.1
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
+/-- bbolt's `Tx.Size` of a read transaction in the backend's vocabulary, at `theFs`
+(`snapshot__Size.lean`'s glue). -/
+private theorem bbolt.snapGlue_TxSizeRo (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+      [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions], bbolt.Tx.Size.spec (GF := GF) (hG := hG)) :
+  ∀ (tx : Loc) (γ : DBNames) (q : Qp) (D : backend.Data),
+  {{ txLive (GF := GF) tx γ q (bbolt.TxView.ro D) }}
+    (App (Val (tx @!! go.GoType.PointerType go_etcd_io.bbolt.Tx.ty @!! go!"Size")) (Val #()))
+  {{ (n : w64), RET #n; txLive tx γ q (bbolt.TxView.ro D) }} := by
+  intro tx γ q D
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  · simp only [backend.txLive, onFs_none hfs]
+    iintro %Φ H HΦ
+    iexfalso; iexact H
+  · simp only [backend.txLive, onFs_some hfs]
+    iintro %Φ Hl HΦ
+    wp_apply (h tx γ q (TxView.ro D)) $$ [$Hl] as %n ⟨Hl, -⟩
+    iapply HΦ; iexact Hl
+
+/-- `b.Snapshot()`: see the file header. -/
+theorem backend.backend.Snapshot.wp_proof
+    (hCommit : backend.batchTxBuffered.Commit.specCnt (GF := GF) (hG := hG))
+    (hBegin : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
+      [os.fileStat.FieldAssumptions], bbolt.DB.Begin.spec (GF := GF) (hG := hG))
+    (hError : zap.Error.spec (GF := GF) (hG := hG))
+    (hFatal : zap.Logger.Fatal.spec (GF := GF) (hG := hG))
+    (hSize : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
+      [os.fileStat.FieldAssumptions], bbolt.Tx.Size.spec (GF := GF) (hG := hG))
+    (hNow : _root_.Perennial.time.Now.spec (GF := GF) (hG := hG))
+    (hNewTicker : _root_.Perennial.time.NewTicker.spec (GF := GF) (hG := hG))
+    (hStop : _root_.Perennial.time.Ticker.Stop.spec (GF := GF) (hG := hG))
+    (hSince : _root_.Perennial.time.Since.spec (GF := GF) (hG := hG))
+    (hDuration : zap.Duration.spec (GF := GF) (hG := hG))
+    (hInt64 : zap.Int64.spec (GF := GF) (hG := hG))
+    (hBytes : go_humanize.Bytes.spec (GF := GF) (hG := hG))
+    (hString : zap.String.spec (GF := GF) (hG := hG))
+    (hWarn : zap.Logger.Warn.spec (GF := GF) (hG := hG))
+    (hSeconds : time.Duration.Seconds.spec (GF := GF) (hG := hG)) :
+    backend.backend.Snapshot.spec (GF := GF) (hG := hG) := by
+  replace hBegin := bbolt.snapGlue_DBBegin hBegin
+  replace hSize := bbolt.snapGlue_TxSizeRo hSize
+  intro hTB γ P W Pk b qo R Q
+  wp_start as ⟨#Hb, Hopen, Hwb, Htok, Hrd, HR, #Hwand⟩
+  ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
+  · iPkgInit
+  ihave #Hw : obsWand γ P W Pk R Q $$ []
+  · unfold obsWand; iexact Hwand
+  iclear Hwand
+  icases isBackend_cmtInv γ P W Pk b $$ Hb with ⟨#Hcmt, %path, %hns⟩
+  ihave #Hb' := Hb
+  iunfold isBackend at Hb'
+  icases Hb' with ⟨%t, %rt, %tm, %db, %lg, %h, #Ht, -, -, #Hlg, #Hlgn, -, -, -, -, -, -, -, -, -,
+    -, #Hmug, #Hisdb, -, ⟨%path', #HdbAt, -⟩, -, -⟩
+  -- the package's facts the goroutine reads
+  ihave Hi : (backendInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  icases Hi with ⟨-, -, -, -, -, -, -, -, ⟨%hst, #Hgst, #Hsst⟩, #Hmin⟩
+  unfold histSpec
+  -- (1) the registration
+  imod (reg_register γ P W Pk qo R Q) $$ [$Hcmt $Hopen $HR $Hw] with ⟨Hopen, %i, %n, Hrg, #Hlb⟩
+  wp_auto
+  wp_apply wp_with_defer as %defer defer
+  -- (2) `b.batchTx.Commit()`, which arms it
+  wp_apply (hCommit γ P W Pk b t qo iprop(True) iprop(True) n) $$ [$Hb $Ht $Hopen $Hwb $Hlb]
+    as ⟨Hopen, -, #Hlb'⟩
+  · iapply commitReq_true
+  -- (3) `b.mu.RLock()`, with the slot the caller's reader token lends
+  unfold rdTok
+  icases Hrd with ⟨%rt2, #Hrt2, Hrmu, Hcr, Hbm⟩
+  unfold bmSlot
+  icases Hbm with ⟨%db2, #HdbAt2, Hbmu⟩
+  iunfold bDB at HdbAt2
+  icases HdbAt2 with ⟨%p2, #HdbAt2⟩
+  iunfold bDBAt at HdbAt HdbAt2
+  ihave %Hg := dghostVar_agree γ.dbf ((db, path') : Loc × GoString) _ ((db2, p2) : Loc × GoString) _
+    $$ HdbAt HdbAt2
+  simp only [Prod.mk.injEq] at Hg
+  obtain ⟨hdb, -⟩ := Hg
+  subst hdb
+  wp_apply (lc := 2) sync.RWMutex.wp_RLock $$ [$Hbmu] as ⟨Hrl, Hdbf⟩
+  -- (4) `b.db.Begin(false)`, its update fired from the commit invariant
+  wp_apply (hBegin db γ P W Pk path qo i n R Q hns) $$
+    [$Hisdb $Htok $Hcmt $Hopen $Hrg $Hlb' $Hlc1 $Hlc2] as %tx %err Hr
+  icases Hr with (⟨%Herr, %D, Htx, Hopen, HR, #Hfk, %HQ⟩ | %Herr)
+  rotate_left
+  · -- an error: `lg.Fatal`
+    rcases err with ei | _
+    · wp_auto
+      wp_apply hError as %f -
+      wp_apply wp_slice_literal
+      try (isplitr; (ipureintro; rfl))
+      try iintro %_ ⟨_, -⟩
+      try wp_auto
+      wp_apply hFatal lg $$ [] as %v Hf
+      · iexact Hlgn
+      iexfalso
+      iexact Hf
+    · exact absurd rfl Herr
+  subst Herr
+  wp_auto
+  -- (5) the channels, as broadcast channels
+  wp_apply chan.wp_make1 (V := Unit) as %sc %γsc ⟨#Hsc, %_, Hsoc⟩
+  imod alloc_broadcast_chan (E := ⊤) (iprop(True) : IProp GF) γsc sc $$ Hsc Hsoc with Hspend
+  icases ownBroadcastChan_open _ _ _ _ $$ Hspend with ⟨%γsb, #Hsbi, Hspend⟩
+  ihave #HscU := ownBroadcastChan_close sc γsc iprop(True) Broadcast.Unknown γsb $$ [$Hsbi]
+  ihave Hspend := ownBroadcastChan_close sc γsc iprop(True) Broadcast.Pending γsb $$ [$Hsbi $Hspend]
+  wp_apply chan.wp_make1 (V := Unit) as %dc %γdc ⟨#Hdc, %_, Hdoc⟩
+  imod alloc_broadcast_chan (E := ⊤) (iprop(True) : IProp GF) γdc dc $$ Hdc Hdoc with Hdpend
+  icases ownBroadcastChan_open _ _ _ _ $$ Hdpend with ⟨%γdb, #Hdbi, Hdpend⟩
+  ihave #HdcU := ownBroadcastChan_close dc γdc iprop(True) Broadcast.Unknown γdb $$ [$Hdbi]
+  ihave Hdpend := ownBroadcastChan_close dc γdc iprop(True) Broadcast.Pending γdb $$ [$Hdbi $Hdpend]
+  try wp_auto
+  -- (6) `tx.Size()`
+  wp_apply (hSize tx γ.db 1 D) $$ [$Htx] as %nb Htx
+  try wp_auto
+  -- (7) the warning goroutine, its own fork's fuel
+  ipersist b
+  ipersist stopc
+  ipersist donec
+  ipersist dbBytes
+  wp_apply wp_fork $$ [Hdpend]
+  · wp_auto
+    wp_apply wp_with_defer as %defer2 defer2
+    (try wp_auto)
+    wp_apply wp_float64_div as %_ -
+    (try wp_auto)
+    wp_apply wp_float64_mul as %_ -
+    (try wp_auto)
+    wp_apply wp_ArbitraryInt as %x -
+    have h30 : sint.Z (W64 30000000000) = 30000000000 := by decide
+    -- the ticker's interval: at least `minSnapshotWarningTimeout`, positive
+    wp_join iprop(∃ d : w64, warningTimeout_ptr ↦ d ∗ ⌜0 < sint.Z d⌝) with [warningTimeout]
+      as ⟨%d, warningTimeout, %Hd⟩
+    · iexists _; iframe warningTimeout; ipureintro; omega
+    · iexists _; iframe warningTimeout; ipureintro; omega
+    wp_apply hNow as %st -
+    wp_apply (lc := 2) hNewTicker d as %tk %tch %γt #Htk
+    · ipureintro; exact Hd
+    ihave #Htk' := Htk
+    iunfold _root_.Perennial.time.isTicker at Htk'
+    icases Htk' with ⟨#HtC, #HtI, #HtR, #Htbag⟩
+    try wp_auto
+    wp_for
+    try wp_auto
+    wp_apply_core chan.wp_select_blocking
+    iapply BigAndL.bigAndL_cons.2
+    isplit
+    · -- a tick: a warning
+      simp only [chan.blockingClausePre]
+      iexists _root_.Perennial.time.Time, inferInstance, inferInstance, inferInstance, inferInstance, tch, γt
+      isplitr
+      · ipureintro; rfl
+      isplitr
+      · iapply is_bag_is_chan $$ Htbag
+      iapply bag_recv_au $$ [$Hlc1 $Hlc2] Htbag
+      inext
+      iintro %tm0 -
+      wp_auto_lc 2
+      wp_apply hSince as %dur -
+      wp_apply hDuration as %f1 -
+      wp_apply hInt64 as %f2 -
+      wp_apply hBytes as %str -
+      wp_apply hString as %f3 -
+      wp_apply wp_slice_literal
+      try (isplitr; (ipureintro; rfl))
+      try iintro %_ ⟨_, -⟩
+      try wp_auto
+      wp_apply hWarn lg $$ []
+      · iexact Hlgn
+      wp_for_post
+      iframe
+    iapply BigAndL.bigAndL_cons.2
+    isplit
+    · -- `stopc` closed: observe and return
+      simp only [chan.blockingClausePre]
+      iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, sc, γsc
+      isplitr
+      · ipureintro; rfl
+      isplitr
+      · iexact Hsc
+      iapply broadcast_chan_receive _ _ _ _ _ $$ HscU
+      iintro ⟨-, -⟩
+      try wp_auto
+      wp_apply hSince as %dur -
+      wp_apply hSeconds as %secs -
+      try wp_auto
+      wp_apply Hsst
+      wp_for_post
+      try wp_auto
+      wp_apply hStop tk $$ []
+      · iexists tch, γt; iexact Htk
+      try wp_auto
+      wp_apply (wp_broadcast_chan_close (ty := go.GoType.ChannelType go.ChanDir.sendrecv
+        (go.GoType.StructType [])) dc γdc iprop(True)) $$ [$Hdpend] as -
+      · imodintro; itrivial
+      try wp_auto
+      itrivial
+    iapply BigAndL.bigAndL_nil.2
+    itrivial
+  try wp_auto
+  -- the snapshot's ghost variable, whole, and its invariant with `stopc`'s close right
+  imod (ghostVar_alloc (GF := GF) ((tx, γ.db) : Loc × DBNames)) with ⟨%γs, Hg⟩
+  imod inv_alloc snapN ⊤ iprop(ownBroadcastChan (GF := GF) sc γsc iprop(True) .Pending ∨
+      ghostVar γs 1 (tx, γ.db)) $$ [Hspend] with #Hinv
+  · inext; ileft; iexact Hspend
+  -- (8) the `*snapshot`, its fields read-only for good
+  wp_alloc sp as Hsp
+  iStructNamed Hsp
+  ipersist Tx
+  ipersist stopc
+  ipersist donec
+  try wp_auto
+  -- the deferred `b.mu.RUnlock()`
+  wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl $Hdbf] as Hbmu
+  try wp_auto
+  iapply HΦ
+  iframe Hopen HR Hfk
+  isplitl [Hg Htx]
+  · unfold snapOpen snapOpenQ
+    iexists γs, tx, γ.db
+    iframe Hg Htx
+    unfold snapAt
+    iexists sc, dc, γsc, γdc
+    iframe Tx stopc donec HscU HdcU Hinv
+  isplitl [Hrmu Hcr Hbmu]
+  · iexists rt2
+    iframe Hrt2 Hrmu Hcr
+    iexists db
+    iframe Hbmu
+    unfold bDB bDBAt
+    iexists path'
+    iexact HdbAt
+  ipureintro; exact HQ
 
 end proof
 

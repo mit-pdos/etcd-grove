@@ -27,14 +27,14 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KvrStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KvrStor GF]
 
 attribute [local instance] kvrStorageModel
 
 /-- See the file header. -/
 abbrev Replica.run.spec : Prop :=
-  ∀ (γr : RNames) (vs : List w64) (id : w64) (r n st sts : Loc) (ρ : RepNames) (f : GoFunc),
-  {{ isReplicaR γr vs id r n st sts ρ ∗ runStart γr vs id r n st ρ ∗ sendSpec γr id f }}
+  ∀ (γr : RNames) (vs : List w64) (id : w64) (r : Loc) (n : NodeH) (st sts : Loc) (ρ : RepNames) (f : GoFunc),
+  {{ isReplicaR γr vs id r n st sts ρ ∗ runStart γr vs id r n st ρ ∗ sendSpec (GF := GF) γr id f }}
     (App (Val (r @!! go.GoType.PointerType rReplicaTy @!! go!"run")) (Val #f))
   {{ RET #(); True }}
 

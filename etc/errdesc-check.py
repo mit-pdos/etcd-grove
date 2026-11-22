@@ -35,6 +35,10 @@ REVIEWED = {
         'status.statusAt a premise only: the read-only status the producer built (its code returned)',
     'Spec/k8s_io/apiserver/pkg/storage/etcd3/metrics/RecordEtcdRequest.lean':
         'statusErrOk a premise only (no description or code in its post)',
+    'Spec/k8s_io/apiserver/pkg/storage/etcd3/metrics/OperationLatencyTracker__Record.lean':
+        'statusErrOk a premise only (no description or code in its post; as RecordEtcdRequest, whose '
+        'errorReason Record shares): the caller proves it, store.Get from Client.Get\'s post '
+        '(statusErrOk_split); prove-metrics 2026-11-21, examples/premisefix/latencytracker',
     'Spec/errors/IsStatusErr.lean':
         'a leaf: == compares values, Is answers true only for an equal description (grpcErrMethodsOk)',
     'Spec/fmt/ErrorfWrap.lean':

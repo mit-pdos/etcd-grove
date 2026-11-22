@@ -7,16 +7,17 @@ functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
 Its fact (`leaseInit`, `Base.lean`): the error variables `ErrNotPrimary`,
 `ErrLeaseNotFound`, `ErrLeaseExists`, `ErrLeaseTTLTooLarge` (translated `errors.New` calls: leaf pointer errors
 without `Is`, by `EtcdGrove.ErrorStringLeaf`, whose `Error()` returns), `forever` (the zero
-`time.Time`), the counters `leaseGranted`, `leaseRevoked` and the histogram `leaseTotalTTLs`
+`time.Time`), the counters `leaseGranted`, `leaseRevoked`, `leaseRenewed` and the histogram `leaseTotalTTLs`
 (`metrics.go`, translated: over prometheus's constructor specs; until 2026-11-19 the trust-boundary
 axioms `<X>_init`). Its other variables' initializers are translated too (2026-11-19, until then
-`opaqueInitsOk`): the rate and interval constants (`lessor.go`) and the counter `leaseRenewed`.
+`opaqueInitsOk`): the rate and interval constants (`lessor.go`).
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.lease.Base
 public import Perennial.Proof.context.Link
 public import Perennial.Proof.errors.Link
+public import Perennial.Proof.math.Link
 public import Perennial.Proof.sort.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
