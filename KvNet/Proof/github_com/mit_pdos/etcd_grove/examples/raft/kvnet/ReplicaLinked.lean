@@ -12,6 +12,7 @@ public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Lin
 public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.PkgTable
 public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.TopLevelDefs
 public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.TopPkg
+public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.TopBoot
 
 @[expose] public section
 
@@ -92,6 +93,70 @@ theorem kvReplica_wp
       cl.maxInflightMsgs eof ed hvc hid1 hid2) $$ [Hproto HS]
   · iframe Hproto HS Heof Hed Hcc
   ipureintro; rfl
+
+/-- **A replica's generation** (the body of `TopBridge.lean`'s `CrashBootWpG` for replica `id`), at the
+generation's storage registry (the section's `KdStor`, whose invariant it takes): at the file
+extension's local interpretation `σ` (kept), the boot (`kvGen_boot`), then the program's WP
+(`kvReplica_wp`) and the crash obligation (`kvGen_crash`, with one later credit), which gives the next
+generation's `kvGen` at the same file. -/
+theorem kvRep_gen
+    (h_err : _root_.Perennial.EtcdGrove.errors.IsPathErrnoNotExist.spec (GF := GF) (hG := hG))
+    (γ : KdNames) (vs : List w64) (cl : ClusterConfig) (addrs dir : GoString) (id : w64)
+    (f : DurFs.DFile) (R : Fs.Roots) (σ : Fs.OsState)
+    (hvc : validCluster (splitAddrs addrs) (uint.nat cl.voters) (uint.nat cl.maxSizePerMsg)
+      (uint.nat cl.maxCommittedSizePerReady) (uint.nat cl.maxInflightMsgs) = true)
+    (hid1 : 1 ≤ uint.nat id) (hid2 : uint.nat id ≤ (splitAddrs addrs).length)
+    (hR : Fs.RootsOk R) (hr : (f.d, f.J) ∈ R) (hd : f.d = dir) (hf : f.Ok)
+    (hname : f.name = kdFileName dir id) (hmax : uint.nat id ≤ γ.max)
+    (hγ : γ.r.cluster.dup = true ∧ γ.r.cluster.bootLen = 0 ∧ Cluster.trace γ.r.cluster = none ∧
+      γ.r.cluster.snapLoc = (fun _ => none) ∧ γ.r.cluster.maxData = none ∧ γ.max < 2 ^ 32)
+    (hopts : kvOptsOk ⟨cl.voters, cl.preVote, cl.checkQuorum, cl.stepDownOnRemoval,
+      cl.maxSizePerMsg, cl.maxCommittedSizePerReady, cl.maxInflightMsgs⟩)
+    (hvs : vs = raft_kvreconf.bootVoters (uint.nat cl.voters)) :
+    ⊢ kdStorInv (GF := GF) -∗ kdCluster γ vs -∗ readyFits γ.r.cluster kdRaftN -∗
+      □ (∀ a, ⌜(splitAddrs addrs)[uint.nat id - 1]? = some a⌝ -∗
+        addrProto a (kvP (kvFacts γ (fun _ => True)) id) (kvQ (kvFacts γ (fun _ => True)) id)) -∗
+      □ (∀ M, ⌜addrMapOk (splitAddrs addrs) M⌝ -∗ kvPeerAddrs γ id M) -∗
+      kvGen γ id f R -∗ ownGoState ∅ -∗
+      Fs.fs_interp.localCtx (extLocalGS Fs.fsExt) σ ={⊤}=∗
+      Fs.fs_interp.localCtx (extLocalGS Fs.fsExt) σ ∗
+      (WP (kvnetReplicaProgram cl addrs dir id) @ Stuckness.NotStuck; ⊤ {{ v, ⌜v = #()⌝ }} ∗
+        ∀ (L' : GooseLocalGS GF) (V' : Fs.Hist), £ 1 -∗
+          crashed (hC := hG.goose_localGS.goose_crashGS) -∗ Fs.osInv (L := L') -∗
+          Fs.crashRest (fun _ _ => True) (Fs.gooseOsGS (L := hG.goose_localGS))
+            (Fs.gooseOsGS (L := L')) [] false V' ={⊤}=∗
+          kvGen (hG := ⟨hG.goose_globalGS, L'⟩) γ id f R) := by
+  iintro #Hsi #Hcl #Hrf #Hpr #Hpeer Hg Hgs Hl
+  imod kvGen_boot γ vs dir id f R σ hR hr hd hf hname ⟨hid1, hmax⟩ $$ Hcl Hg Hl
+    with ⟨Hl, %fl, ⟨%hfl1, %hfl2⟩, Hst, Hk⟩
+  imodintro
+  iframe Hl
+  isplitl [Hgs Hst]
+  · iapply kvReplica_wp h_err γ vs cl addrs dir id hvc hid1 hid2 $$ Hgs Hpr
+    iintro #Hcg #Hcc %M %hM
+    unfold kvNodeStart
+    isplitr
+    · ipureintro; rfl
+    iexists fl, 1
+    iframe Hst
+    isplitr
+    · unfold kvStartGlobals
+      unfold raft_kvcheck.connGlobals
+      icases Hcg with ⟨%eof, %ed, %et, -, #Hed, #Het⟩
+      iframe Hrf Hsi Hcc
+      isplitr
+      · ipureintro; exact hγ
+      isplitr
+      · iexists et; iexact Het
+      · iexists ed; iexact Hed
+    isplitr
+    · iapply Hpeer; ipureintro; exact hM
+    ipureintro; exact ⟨hopts, hvs⟩
+  · iintro %L' %V' Hlc #Hcr #Hos' Hrest
+    imod kvGen_crash γ vs id fl L' V' $$ Hcl Hk Hlc Hcr Hrest Hos' with Hg'
+    rw [hfl1, hfl2]
+    imodintro
+    iexact Hg'
 
 end replica
 
