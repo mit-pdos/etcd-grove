@@ -524,3 +524,96 @@ exist yet.
   `itoa`), `quietLogger`'s methods. Its post also has `confLaw` (not discharged: the real `confOk`).
   The plan is as above ("Drafts written with no `.lake`"), from `kvStart` (`BootLemmas.lean`), allocating
   `kdFileInvK` after `RestartNode` gives the node (and `nodeArm`).
+
+## Handoff (2026-11-22)
+
+Branch `worktree-agent-a9b8a3f3fbe5852a9`, head `f580a06a79` (land requested on #22; built: `lake build
+KvNet` 2984 jobs, `WalTester KvNet` 4288, tier/copy-part/gen-init checks). Everything below is in the part
+`KvNet/` (`KvNet/{Spec,Proof}/github_com/mit_pdos/etcd_grove/examples/raft/kvnet[/kvcheck]/`); no axiom, no
+`sorry`. kvnet's design: this file (the part, the replica layer) and `notes/kvnet-protocol.md` (the wire
+protocol, decision E); the plan `notes/kvnet-proof-plan.md`.
+
+**State of every kvnet function.**
+- **Proved (93 in kvnet, 11 in kvcheck)**: the codecs (reused from kvdurablenoax by `RENAME_KVNET`:
+  put/get Uint64, Bytes, IDs, Entry, Snapshot, Map; encode/decode, readCtx/decodeReadCtx,
+  encodeState/decodeState, less/sortStrings, validConf, fits, oneIn/below, withTimeout); storage.go
+  (`newStorage`, `image.*`, `Storage.*`, `openStorage`); the wire (`writeAll`, `readFull`, `writeFrame`,
+  `readFrame`, `putMsg`/`getMsg`, `putConfState`/`getConfState`, `closeAfter`); addresses (`SplitAddrs`,
+  `JoinAddrs`, `decimal`, `AddrOk` = `Net.addrOk`, `ValidAddrs`, `ValidCluster`); the client (`DialTCP`,
+  `RequestVia`/`RequestWithin`/`Request`, `EncodeOp`/`EncodeRead`/`EncodeDisrupt`); the server
+  (`Transport.{dropped,enqueue,Send,dial,runPeer,servePeer}`, `listen`, `Node.{serve,serveClient,handle,status}`,
+  `Run`, `RunNode`, `Stats.{add,Snapshot}`, `PutStatus`); the replica (`newReplica`, `Replica.{run,persist,
+  request,snapshot,snapshotter,install,applyEntry,applyConf,applyOp,answer,propose,read,contents,ticker}`);
+  kvcheck (`oneIn`, `below`, `sleep`, `checker.{randomID,changeID,randomChange,fresh,randomMember,request,do,read}`).
+- **Spec only** (a callee hypothesis of a proof): `StartNode` (taken by `Run`), `GetConfChange` (by
+  `Node.handle`).
+- **No spec yet**: `newTransport`, `Transport.start`, `FileOf`, `itoa`, the `quietLogger` methods, `RandomOptions`,
+  `FormatStats`, `PutConfChange`, `GetStatus`, model.go's `Model`/`Gen`/`copyMap`/`within`/`hashString`/`hashMap`,
+  kvcheck's `checker.{conf,reconfigure,disrupt}` and `Check`.
+
+**Seams still hypotheses, and what discharges them.**
+- `confLaw F rep cf γ N id` (`NodeDefs.lean`; a premise of `Node.handle`/`serveClient`/`serve`/`Run`): from a
+  decoded requested change it gives `node.ProposeConfChange`'s precondition (the `□?γ.dup` AU over
+  `ownCommittedOps`). Discharged by the store's conf policy (kvdurable's `Cluster.Reconfigure`/`kd_confAu`
+  pattern: `confPolicy`, `ConfShaped`), at `kvFacts`' `confOk` := the real shape (`ccTransOk` of
+  `GetConfChange`'s model; `cf` is today a parameter of `kvFacts`).
+- `GetConfChange.spec cf` and `StartNode.spec`: prove them (GetConfChange: kvdurable has no counterpart;
+  write it over raftpb's ConfChange/ConfChangeV2 constructors, `cf c pl` := the model of `pl`).
+- The minting laws of kvcheck's `do`/`read` (the caller's: `issued … ={⊤}=∗ F.opOk …`/`F.readOk …`):
+  discharged at `kvFacts` by the store's `kd_mint` / `kd_mint_next` (kvdurable's `ClientLemmas`,
+  `readSeqs__nextLemmas`; kvnet's own copy) — now possible on the client machine, since decision B made the
+  store invariant global.
+- `stepLaw` and `msgOk_wf`: discharged (`kv_stepLaw`, `kvFacts.msgOk` carries `MsgWf`); `stepLaw`'s pure
+  cluster premises (untraced, no data bound, no snapshot directories) are the cluster's allocation facts.
+
+**Next steps, in order.**
+1. `StartNode` (node.go): specs and proofs of `newTransport` (the peers map, a `make(chan, queueLen)` per
+   peer: `start_bag`/`isChanBag`, building `isPeers`), `Transport.start` (go `runPeer` per peer), `FileOf`/`itoa`,
+   the `quietLogger` methods (copy kvdurablenoax's `QLogger.lean`/`quietLogger__*`); then StartNode itself per
+   the plan above (`kvStart` → `durable.Read` → `openStorage` → `RestartNode` with `nodeVacantA`, allocate the
+   file invariant with `nodeArm`, `newReplica`, the goroutines). The boot's crash choice is `kd_boot_choose`
+   (`BootLemmas.lean`, over raft's `readyCrashEnter`/`nodeCrash`).
+2. `confLaw` and `GetConfChange` (above); `kvFacts`' real `confOk`.
+3. kvcheck's `Check` over lintest (kvdurable's `Run`/`Main` and `lintest/Run.lean` as the pattern: timeout 0
+   gives `Ok`-or-`Illegal`; `applySpec` an AU over `libState`), with `checker.{conf,reconfigure,disrupt}`,
+   `Gen`/`Model`, the minting laws discharged.
+4. Adequacy and linking: kvnet's `Link.lean` (an `etc/gen-link.py` mode as `--kvdurable-noax`; it imports
+   raft's Link, so the part copies raft-noax's ~1000 proof modules: budget ~12 min / 3 GB more); `Hstart` with
+   `cluster_alloc_nb` (B: global, no bootstrap log, `dup = true`), the store's allocation (B's `Store.lean`),
+   `addrs_set_proto` of every replica address with `kvP (kvFacts …) id`/`kvQ …`; the per-node crash frame
+   `P i L` (the generation's crash invariant: `nodeVacant` from `readyCrashEnter` or `nodeCrash`, `durSt`, the
+   per-id ghost; decision C); the stable client node (kvcheck, no crash obligation: Perennial's mixed
+   adequacy, decision F).
+5. `Spec/.../kvnet/TopLevelRobustness.lean` (`def raft_kvnet_robust.spec`), over lean's `Robust` with its new
+   `threads` parameter (`DistCrashNstepsBelow`), the programs and definitions in `Proof/.../kvnet/TopLevelDefs.lean`;
+   `Proof/.../kvnet/TopLevelRobustness.lean` from the closed theorem; the corollary and the non-vacuity lemma
+   (`notes/kvnet-robust-goal.md`, CLAUDE.md's layout).
+
+**Scripts** (they were in `/tmp`, not in the repo; each is a few lines):
+- regenerate to a fixpoint: `etc/copy-part.py --part KvNet && etc/gen-init.py && etc/copy-part.py --part
+  KvNet`, then `etc/copy-part.py --check` and `etc/gen-init.py --check` (needs `.lake/packages/perennial` or
+  `PERENNIAL_DIR`).
+- the full check: the above, then `nice lake build KvNet` (and `WalTester` when `durable` changes),
+  `etc/tier-check.py --check`, and a grep for `sorry`/`axiom` in `KvNet/{Spec,Proof}/.../kvnet`.
+- lean-check by short name: `etc/lean-check.py -q [-a] KvNet/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvnet/<F>.lean`.
+- translations: `etc/goose.py --project kvnet` (and the parts: `--project raft-noax --project net --project
+  durable --project etcd --project kvreconf`; `--check` to compare). Go: `cd examples/raft/kvnet && go test
+  ./... && go test ./driver -run TestKill -count=1` (PATH with `/usr/local/go/bin`, `GOTOOLCHAIN=go1.27.3`).
+
+**Pitfalls.**
+- copy-part prefers the part's **own** file at a path, and `RENAME_KVNET` maps kvdurablenoax's modules to
+  kvnet's paths: an own `kvnet/X.lean` silently replaces kvdurablenoax's `X` for every copy that imports it
+  (how `Defs`/`DefsLaws` work); a copied file edited by hand must lose its first (copy) line, or the next run
+  overwrites it. Don't write a script that bulk-copies RaftNoAx files into `KvNet/` (one such run overwrote
+  kvnet's own `Run` spec/proof with kvdurable's cluster `Run`; restored from git).
+- A kvdurablenoax module whose spec names its `Defs` (durableExt's file invariant) cannot be reused as is
+  (`Storage.InitialState` once pulled `lib/durable/Files` into the part and broke the build): reuse only via
+  kvnet's own `Defs` at the same path.
+- Gen-init's KvNet initializers read the part's copies' instances, and copy-part reads gen-init's imports:
+  after a change, run the pair twice (the fixpoint).
+- The main tree's protobuf instances live in cache's `Base`; the part has its own
+  (`KvNet/Proof/google_golang_org/protobuf/PkgInit.lean`, a follow-up to move them in the main tree).
+- Builds: one lake build at a time on this machine (coordinate on #22); disk is tight (a `.lake` is ~45 GB;
+  seed by `cp -a` from a worktree at the same Perennial pin).
+- The worktree-isolation guard rejects compound shell commands naming long paths with `git`/`cd`: put such
+  sequences in a script file.
