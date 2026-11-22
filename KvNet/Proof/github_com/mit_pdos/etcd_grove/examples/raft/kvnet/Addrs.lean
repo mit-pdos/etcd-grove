@@ -34,10 +34,10 @@ def splitAddrs (s : GoString) : List GoString := splitBy 44 s []
 /-- `JoinAddrs`: the addresses joined by commas. -/
 def joinAddrs (l : List GoString) : GoString := List.intercalate [(44 : w8)] l
 
-/-- (2026-11-22) **`M` maps replica `i` (ids from `1`) to the `i`-th address of `as`, and nothing else**:
+/-- (2026-11-22) **`M` maps replica `i` (ids from `1`) to the `i`-th address of `l`, and nothing else**:
 `RunNode`'s address map. -/
-def addrMapOk (as : List GoString) (M : GMap w64 GoString) : Prop :=
-  ∀ i : w64, M !! i = if 1 ≤ uint.nat i then as[uint.nat i - 1]? else none
+def addrMapOk (l : List GoString) (M : GMap w64 GoString) : Prop :=
+  ∀ i : w64, M !! i = if 1 ≤ uint.nat i then l[uint.nat i - 1]? else none
 
 theorem w8_toNat_eq_iff (c d : w8) : c.toNat = d.toNat ↔ c = d := BitVec.toNat_inj
 

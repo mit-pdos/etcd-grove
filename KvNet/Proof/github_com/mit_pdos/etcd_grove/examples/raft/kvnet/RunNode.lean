@@ -98,7 +98,9 @@ theorem RunNode.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
       rw [GMap.lookup_insert, if_pos (by omega), h1, show sint.nat k + 1 - 1 = sint.nat k by omega, Hx]
     · have hne : uint.nat i ≠ sint.nat k + 1 := by intro h; apply hi; word
       rw [GMap.lookup_insert_ne _ _ (fun h => hi h.symm), Hk.2.2 i]
-      split_ifs <;> first | rfl | (exfalso; omega)
+      by_cases h : 1 ≤ uint.nat i ∧ uint.nat i ≤ sint.nat k
+      · rw [if_pos h, if_pos ⟨h.1, by omega⟩]
+      · rw [if_neg h, if_neg (by omega)]
   · have Hkl : sint.nat k = (splitAddrs addrs).length := by
       have := Hk.2.1; have := Hsll.1; have := Hsll.2; word
     imod ownMap_persist mref _ _ $$ Hm with #Hm
