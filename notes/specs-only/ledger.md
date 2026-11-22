@@ -4544,6 +4544,45 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   track forwarded proposals' entries: not taken.)
 - **Decision.** Applied.
 
+## 2026-11-22: reader slots for the transport's persistent callers; `ActiveSince` proved, `adjustTicks` for both flags (rdslot)
+
+- **Spec.**
+  - `rafthttp.Transport.ActiveSince.spec`: its premise is `transportTok γn t c` (given back), where it was
+    `trState γn t c`.
+  - New `Transport.ActivePeers.spec`, `peer.activeSince.spec` and `peerStatus.activeSince.spec`.
+  - `rafthttp.isTransporter tr Rd`: a new reader-resource parameter `Rd`. `ActiveSince` takes and returns `Rd`
+    (it took `True`), and `ActivePeers` is new.
+  - `isConnectedSince`, `numConnectedSince` and `isConnectedToQuorumSince` take `isTransporter tr Rd ∗ Rd` and
+    return `Rd`. `srvPeersOk`'s conjunct becomes `∃ Rd, isTransporter tr Rd`.
+  - `srvLeadTimeReader s` is redefined as `leadTimeMu`'s slot `∗ srvTrReader s`. The new
+    `srvTrReader s := ∃ tr Rd, s.r.transport ↦□ tr ∗ isTransporter tr Rd ∗ Rd` is one transport reader slot.
+    No spec text changes. Pool `I`'s items and the compactor's `srvCompactR` hold it, built by `NewServer`
+    and `NewServerR` from the transport's reader tokens, which they used to drop.
+  - `srvMonitorsOff` loses `InitialElectionTickAdvance ↦□ false`.
+  - The new `srvMonitorRes s := srvLgReader s ∗ srvTrReader s ∗ ∃ b, InitialElectionTickAdvance ↦□ b`
+    replaces `srvMonitorCfg`'s `srvLgReader s` and the switch's field. It also replaces `Start.spec`'s third
+    `srvLgReader s` (monitorDowngrade's) and `memberBuilt`'s/`memberBuiltR`'s `srvLgReader s`.
+  - `adjustTicks.spec` takes `srvGoAttachOk s γg`, `srvTrReader s` (given back) and the switch's field at any
+    value, in place of `srvMonitorsOff s`.
+- **Defect.**
+  - `ActiveSince`'s axiom read-locked `t.mu` without a reader token. Its callers are on the request path
+    (`parseProposeCtxErr`), any number at once, and the axiom's docstring rested on "physically at most
+    `2^30 - 1`". The same blocked `ActivePeers`.
+  - `adjustTicks` was therefore proved only under `InitialElectionTickAdvance = false` (ledger, the
+    entry above). etcd's own default (`embed`) is true.
+- **Evidence.**
+  - The design: `/shared/tmp/ps2/rdslot/design.md`. It follows the bounds plan's rule 2: the server's pool
+    `I` (level 2), which every gRPC run and revocation goroutine already borrows `leadTimeMu`'s slot from,
+    now holds the transport's slot beside it. `parseProposeCtxErr` read-locks `leadTimeMu`, then, not
+    nested, the transport.
+  - `adjustTicks` and the compactor are one-off goroutines with counted slots (D2 (a)).
+  - The count: `2^30 - 1` tokens hold 2 (Send key, `CutPeer`/`MendPeer`), `2^29` (the peer handler),
+    `2^28 - 1` (`I`), 1 (the compactor) and 1 (`adjustTicks`).
+  - No top-level statement changes. No new axiom, `threadBound` or `List.replicate` in a Spec file.
+- **Proposed change.** As above.
+- **Decision.** Applied. Every caller discharges the new resources: `Start.spec`'s `srvMonitorRes` (one more
+  transport slot than the `lgMu` slot it replaces) comes from `NewServer`'s `srvMonitorCfg`, through the
+  examples' `memberBuilt`. `Start.spec` no longer needs the switch to be false.
 ## 2026-11-22: kvcheck's `randomChange` bounds its changes (KvNet)
 
 - **Spec.** `checker.randomChange.spec`'s post (`kvcheck/checker__randomChange.lean`): `⌜ccTransOk o⌝` becomes
@@ -4556,6 +4595,18 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** As above (a stronger post).
 - **Decision.** Applied.
 
+## 2026-11-22: bbolt's `(*Options).String` takes the package's `isPkgInit` (ps2 misc2)
+
+- **Spec.** `Options.String.spec` (`Spec/go_etcd_io/bbolt/Options__String.lean`): the pre gains
+  `isPkgInit pkg_id.go_etcd_io.bbolt`.
+- **Defect.** The axiom is now proved over the real code, and its body calls `fmt.Sprintf`, whose
+  spec takes `isPkgInit pkg_id.fmt`; the old pre (`optsAt` and `loggerPtrOk` only) had no package
+  initialization to get it from.
+- **Evidence.** `Proof/go_etcd_io/bbolt/Options__String.lean`. The only caller, `Open` (through
+  `options_logArgOk`, `Open/LogFmt.lean`), holds the package's `isPkgInit` (its own pre's).
+- **Proposed change.** As above (a premise every caller discharges). `SpecPlan`'s
+  `Options.String.spec` should take it too (not edited here).
+- **Decision.** Applied.
 ## 2026-11-22: kvcheck's `fresh`/`do`/`read` at the store; `read` gets a prophecy (KvNet, Go and Lean)
 
 - **Spec.** kvcheck's checker (`kvcheck/Defs.lean`): `CheckerNames` (the ghost maps of issued numbers) and

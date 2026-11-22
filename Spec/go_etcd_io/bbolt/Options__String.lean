@@ -1,12 +1,13 @@
 /-
 `(*Options).String` (bbolt): its spec in bbolt's API (the frozen spec of 2026-11-03,
 `notes/bbolt-spec-decisions.md`, D13's family). Its proof, `Proof/go_etcd_io/bbolt/Options__String.lean`,
-is a trust-boundary axiom: `Options` is translated since 2026-11-17, but no spec of `fmt.Sprintf`
-covers `String`'s `%p` of a func and of an interface (that file's header).
+proves it over Perennial's `fmt.Sprintf` and `time.Duration.String` (ps2 misc2, 2026-11-22: a
+trust-boundary axiom until then, when no `fmt.Sprintf` spec covered `%p`).
 -/
 module
 
 public import Spec.go_etcd_io.bbolt.Options
+public import Proof.go_etcd_io.bbolt.PkgInit
 
 @[expose] public section
 
@@ -34,10 +35,13 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- **`(*Options).String()` reads the options and returns a string** (round 7, D13's family). True: `String` only reads the 15 fields and formats them with
 `fmt.Sprintf` (`Duration`'s `String`, `FreelistType` as a string, `%p` of a func and an interface),
-which cannot fail. With it, `Open` proves `logArgOk (optsAt opts dq o) 's' (*Options)`. -/
+which cannot fail. With it, `Open` proves `logArgOk (optsAt opts dq o) 's' (*Options)`. (ps2 misc2,
+2026-11-22) The package's `isPkgInit`, which the proof needs for `fmt.Sprintf`'s (a premise every
+caller holds: `Open`'s own; `notes/specs-only/ledger.md`). -/
 abbrev Options.String.spec : Prop :=
   ∀ (l : Loc) (dq : DFrac) (o : OptsM),
-  {{ optsAt (GF := GF) l dq o ∗ ⌜loggerPtrOk o.logger⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ optsAt (GF := GF) l dq o ∗
+      ⌜loggerPtrOk o.logger⌝ }}
     (App (Val #(methods (go.GoType.PointerType go_etcd_io.bbolt.Options.ty) go!"String" #l))
       (Val #()))
   {{ (s : GoString), RET #s; optsAt l dq o }}
