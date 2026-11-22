@@ -220,8 +220,8 @@ theorem Node.handle.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
       ipureintro; rfl
   wp_if_destruct
   · -- ReqStatus
-    wp_apply wp_status nd γ N id n $$ [$Hpkg $Hnd] as %s ⟨%M, %c, HM, #Hcs⟩
-    wp_apply wp_PutStatus s M (DFrac.own 1) c $$ [$Hpkg $HM $Hcs] as %sl ⟨%bs, Hbs, -⟩
+    wp_apply wp_status nd γ N id n $$ [$Hpkg $Hnd] as %s ⟨%M, %c, HM, #Hcs, %HSt⟩
+    wp_apply wp_PutStatus s M (DFrac.own 1) c HSt $$ [$Hpkg $HM $Hcs] as %sl ⟨%bs, Hbs, -⟩
     try wp_auto
     iapply HΦ
     iright
