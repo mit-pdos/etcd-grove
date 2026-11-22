@@ -231,6 +231,7 @@ agent working on net (2026-11-20).
   item 3 otherwise (no plan and no hosts) was done in v3.4 (2026-11-20).
 - **The statement's trusted instances** (item 13): `[os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]`
   added next to `net.FieldAssumptions` (approved by the coordinator; ledger 2026-11-22).
-- **Pending decisions** (reported on #22 with exact texts): `[log.NewModel]` (raft's package initializer calls
-  `log.New`), and `dir.length < 2 ^ 39` (`durable`'s `DFile.Ok`). Until decided, the proof carries both, with
-  `errors.IsPathErrnoNotExist.spec` (Perennial PR #677), as hypotheses of `raft_kvnet_robust_of_errors`.
+- **`[log.NewModel]` and `dir.length < 2 ^ 39`: in the statement** (approved by the coordinator, 2026-11-22;
+  ledger 2026-11-22): the instance binder in both statements (raft's package initializer calls `log.New`), the
+  premise in the main one (`durable`'s `DFile.Ok`). `errors.IsPathErrnoNotExist.spec` (Perennial PR #677) stays a
+  hypothesis of `raft_kvnet_robust_of_errors`.

@@ -4673,3 +4673,18 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** As above.
 - **Decision.** Applied: approved by the coordinator (zeldovich-agent's session, relaying the decision on
   #22), 2026-11-22.
+## 2026-11-22: kvnet's top-level statement takes `[log.NewModel]` and `dir.length < 2 ^ 39` (KvNet)
+
+- **Spec.** `raft_kvnet_robust.spec` and `raft_kvnet_robust_example.spec`
+  (`KvNet/Spec/.../kvnet/TopLevelRobustness.lean`): an instance binder `[log_sem : log.NewModel]` next to the
+  `os` ones (both statements); a premise `dir.length < 2 ^ 39` after `replicas.length < 2 ^ 32` (the main
+  statement; the example's `/var/lib/kvnet` meets it by computation). The header lists both.
+- **Defect.** (1) `kvnet.initialize'` initializes raft, whose initializer calls `log.New` (`defaultLogger`,
+  `discardLogger`), which Perennial translates names-only: raft's `wp_initialize'` takes the trusted class
+  `log.NewModel` (`Proof/log/NewModel.lean`), as kvdurable(-noax)'s closed theorem does. (2) Each replica's file
+  is `durable`'s `DFile ⟨dir, J, "replica-<id>"⟩`, and `StartNode`'s start resource needs `DFile.Ok`, which has
+  `f.d.length + f.tb.length < 2 ^ 40` (`WalTester/.../lib/durable/Defs.lean`, the path arithmetic of
+  `filepath`/`os`); `tb` is at most 27 bytes, and nothing in `FsInit`/`RootsOk` bounds a root's length.
+- **Evidence.** Reported on mit-pdos/etcd-grove#22 (gaps 4 and 5, with the exact texts).
+- **Proposed change.** As above.
+- **Decision.** Applied: approved by the coordinator (relayed to the kvnet-proof session, 2026-11-22).
