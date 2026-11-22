@@ -4,3 +4,129 @@
 # `CounterMetric` are translated (2026-11-18: the field types of etcd3's `OperationLatencyTracker`).
 translate = ["!*", "ObserverMetric", "CounterMetric"]
 imports = ["!*"]
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`; until 2026-11-22
+# their initializers were untranslated, `opaqueInitsOk`). goose refuses a reference to one from
+# translated code, so no verified code reads them; each reason says why not running the
+# initializer is unobservable.
+[[skip]]
+names = ["DefBuckets", "noopCounterVec", "noopHistogramVec", "noopTimingHistogramVec",
+  "noopGaugeVec", "noop", "disabledMetrics", "labelValueAllowLists", "defObjectives",
+  "BuildVersion"]
+reason = """
+Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable."""
+
+[[skip]]
+names = ["disabledMetricsTotal", "hiddenMetricsTotal",
+  "cardinalityEnforcementUnexpectedCategorizationsTotal", "processStartTime",
+  "registeredMetricsTotal", "buildInfo"]
+reason = """
+Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable."""
+
+[[skip]]
+names = ["versionRe"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values:
+`regexp.MustCompile` of a constant pattern compiles it (it panics only on an invalid pattern, and
+these compile: Go runs the initializer at every start of every program importing the package);
+compilation terminates. So it terminates, cannot panic and has no effect beyond its variable."""
+
+[[skip]]
+names = ["errNotRegistered"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values: `errors.New` of a
+constant allocates an `*errorString`. So it terminates, cannot panic and has no effect beyond its
+variable."""
+
+[[skip]]
+names = ["_@collector.go:190"]
+reason = """
+An interface check: `&BaseStableCollector{}` converted to `StableCollector`. No call, no panic, no
+effect."""
+
+[[skip]]
+names = ["_@counter.go:40"]
+reason = """
+An interface check: `&Counter{}` converted to `Metric`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@counter.go:141"]
+reason = """
+An interface check: `&CounterVec{}` converted to `kubeCollector`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@counter.go:142"]
+reason = """
+An interface check: `&CounterVec{}` converted to `CounterVecMetric`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@gauge.go:38"]
+reason = """
+An interface check: `&Gauge{}` converted to `GaugeMetric`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@gauge.go:39"]
+reason = """
+An interface check: `&Gauge{}` converted to `Registerable`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@gauge.go:40"]
+reason = """
+An interface check: `&Gauge{}` converted to `kubeCollector`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@gauge.go:97"]
+reason = """
+An interface check: `&GaugeVec{}` converted to `GaugeVecMetric`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@gauge.go:98"]
+reason = """
+An interface check: `&GaugeVec{}` converted to `Registerable`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@gauge.go:99"]
+reason = """
+An interface check: `&GaugeVec{}` converted to `kubeCollector`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@timing_histogram.go:44"]
+reason = """
+An interface check: `&TimingHistogram{}` converted to `GaugeMetric`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@timing_histogram.go:45"]
+reason = """
+An interface check: `&TimingHistogram{}` converted to `Registerable`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@timing_histogram.go:46"]
+reason = """
+An interface check: `&TimingHistogram{}` converted to `kubeCollector`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@timing_histogram.go:113"]
+reason = """
+An interface check: `&TimingHistogramVec{}` converted to `GaugeVecMetric`. No call, no panic, no
+effect."""
+
+[[skip]]
+names = ["_@timing_histogram.go:114"]
+reason = """
+An interface check: `&TimingHistogramVec{}` converted to `Registerable`. No call, no panic, no
+effect."""
+
+[[skip]]
+names = ["_@timing_histogram.go:115"]
+reason = """
+An interface check: `&TimingHistogramVec{}` converted to `kubeCollector`. No call, no panic, no
+effect."""
+# --- end of skipped package variables ---

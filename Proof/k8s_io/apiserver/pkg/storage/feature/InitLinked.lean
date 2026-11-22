@@ -53,9 +53,6 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (_root_.Perennial.go_etcd_io.etcd.client.v3.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.context _root_.Perennial.context.initialize'
       EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (opaqueInitsOk v3_4_31.init (by mem_tac))
-  wp_apply (opaqueInitsOk v3_5_0.init (by mem_tac))
-  wp_apply (opaqueInitsOk v3_5_13.init (by mem_tac))
   wp_apply DefaultFeatureSupportChecker_init as #HDefaultFeatureSupportChecker
   iframe Hown
   imodintro

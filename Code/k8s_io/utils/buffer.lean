@@ -56,8 +56,6 @@ attribute [irreducible] Ring.ty
 noncomputable def ErrInvalidSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/buffer.ErrInvalidSize"
 
-opaque ErrInvalidSize.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def NewTypedRingFixed [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/buffer.NewTypedRingFixed"
 
@@ -652,13 +650,18 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType (TypedRingFixed.ty go.byte)) _root_.Perennial.io.Writer.ty))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType (TypedRingFixed.ty go.byte))))) (Val UntypedNil)))
+  (Let "$r0" (Let "$a0" (Val #(go!"size must be positive"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
   (App (Val doExecute)
-  (App (Val ErrInvalidSize.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrInvalidSize))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.errors.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.io.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.io.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrInvalidSize go.error)) (Val #()))))))))
 
 structure TypedRingFixed [GooseExts] (T : Type) where
   mk ::

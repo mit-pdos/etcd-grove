@@ -75,21 +75,6 @@ opaque upperhex [GooseExts] [GoGlobalContext] : val
 
 opaque defaultMaxParams [GooseExts] [GoGlobalContext] : val
 
-noncomputable def table [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/url.table"
-
-opaque table.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def urlstrictcolons [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/url.urlstrictcolons"
-
-opaque urlstrictcolons.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def urlmaxqueryparams [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/url.urlmaxqueryparams"
-
-opaque urlmaxqueryparams.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ishex [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/url.ishex"
 
@@ -174,6 +159,29 @@ noncomputable def stringContainsCTLByte [GooseExts] [GoGlobalContext] : GoString
 noncomputable def JoinPath [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/url.JoinPath"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `table` (`var table = [256]encoding{ '!': encodeFragment | encodeZone | encodeHost, '"': encodeZone | encodeHost, '$': encodeFragm … [sha256:7cbf65e4f6f78ecf]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `urlstrictcolons` (`var urlstrictcolons = godebug.New("urlstrictcolons")`): Their initializers call, besides literals of constants and other variables' values:
+`internal/godebug.New` of a constant name allocates a `*Setting` holding the name (the environment
+is read on the first `Value`, not here). So each terminates, cannot panic and has no effect beyond
+its variable.
+- `urlmaxqueryparams` (`var urlmaxqueryparams = godebug.New("urlmaxqueryparams")`): Their initializers call, besides literals of constants and other variables' values:
+`internal/godebug.New` of a constant name allocates a `*Setting` holding the name (the environment
+is read on the first `Value`, not here). So each terminates, cannot panic and has no effect beyond
+its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"net/url.table", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var table = [256]encoding{ '!': encodeFragment | encodeZone | encodeHost, '\"': encodeZone | encodeHost, '$': encodeFragm … [sha256:7cbf65e4f6f78ecf]"⟩,
+  ⟨"net/url.urlstrictcolons", "Their initializers call, besides literals of constants and other variables' values:\n`internal/godebug.New` of a constant name allocates a `*Setting` holding the name (the environment\nis read on the first `Value`, not here). So each terminates, cannot panic and has no effect beyond\nits variable.", "var urlstrictcolons = godebug.New(\"urlstrictcolons\")"⟩,
+  ⟨"net/url.urlmaxqueryparams", "Their initializers call, besides literals of constants and other variables' values:\n`internal/godebug.New` of a constant name allocates a `*Setting` holding the name (the environment\nis read on the first `Value`, not here). So each terminates, cannot panic and has no effect beyond\nits variable.", "var urlmaxqueryparams = godebug.New(\"urlmaxqueryparams\")"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.net.url where
   pkgImportedPkgs := []
 
@@ -183,14 +191,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.net.url)) (Lam BAnon
   (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val urlmaxqueryparams.init) (Val #())))))
-  (App (Val doExecute)
-  (App (Val urlstrictcolons.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val table.init) (Val #()))))))))
+  (Val #()))))))
 
 abbrev encoding [GooseExts] : Type := w8
 

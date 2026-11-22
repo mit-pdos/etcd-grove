@@ -813,164 +813,19 @@ opaque truncateSize [GooseExts] [GoGlobalContext] : val
 
 opaque Version [GooseExts] [GoGlobalContext] : val
 
-noncomputable def DefaultBackoffConfig [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.DefaultBackoffConfig"
-
-opaque DefaultBackoffConfig.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def unaryStreamDesc [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.unaryStreamDesc"
-
-opaque unaryStreamDesc.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrClientConnClosing [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.ErrClientConnClosing"
-
-opaque ErrClientConnClosing.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errConnDrain [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.errConnDrain"
-
-opaque errConnDrain.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errConnClosing [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.errConnClosing"
-
-opaque errConnClosing.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errConnIdling [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.errConnIdling"
-
-opaque errConnIdling.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def invalidDefaultServiceConfigErrPrefix [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.invalidDefaultServiceConfigErrPrefix"
-
-opaque invalidDefaultServiceConfigErrPrefix.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def PickFirstBalancerName [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.PickFirstBalancerName"
-
-opaque PickFirstBalancerName.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errNoTransportSecurity [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.errNoTransportSecurity"
-
-opaque errNoTransportSecurity.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errTransportCredsAndBundle [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.errTransportCredsAndBundle"
-
-opaque errTransportCredsAndBundle.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errNoTransportCredsInBundle [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.errNoTransportCredsInBundle"
-
-opaque errNoTransportCredsInBundle.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errTransportCredentialsMissing [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.errTransportCredentialsMissing"
-
-opaque errTransportCredentialsMissing.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrClientConnTimeout [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.ErrClientConnTimeout"
-
-opaque ErrClientConnTimeout.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def globalDialOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.globalDialOptions"
 
 noncomputable def globalPerTargetDialOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.globalPerTargetDialOptions"
 
-noncomputable def modelChooseRandom [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.modelChooseRandom"
-
-opaque modelChooseRandom.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def grpcStatusDetailsBinHeader [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.grpcStatusDetailsBinHeader"
-
-opaque grpcStatusDetailsBinHeader.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errStreamDone [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.errStreamDone"
-
-opaque errStreamDone.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errIllegalHeaderWrite [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.errIllegalHeaderWrite"
-
-opaque errIllegalHeaderWrite.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errTransportClosing [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.errTransportClosing"
-
-opaque errTransportClosing.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def transportFailureCodes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.transportFailureCodes"
-
-opaque transportFailureCodes.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errMalformedFrame [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.errMalformedFrame"
-
-opaque errMalformedFrame.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def http2ErrCodeNames [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.http2ErrCodeNames"
-
-opaque http2ErrCodeNames.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def http2ErrConvTab [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.http2ErrConvTab"
-
-opaque http2ErrConvTab.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errContextCanceled [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.errContextCanceled"
-
-opaque errContextCanceled.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errContextDeadline [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.errContextDeadline"
-
-opaque errContextDeadline.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def statusOK [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.statusOK"
-
-opaque statusOK.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def logger [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.logger"
 
 opaque logger.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def defaultServerOptions [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.defaultServerOptions"
-
-opaque defaultServerOptions.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def globalServerOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.globalServerOptions"
-
-noncomputable def ErrServerStopped [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.ErrServerStopped"
-
-opaque ErrServerStopped.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def metadataFromOutgoingContextRaw [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.metadataFromOutgoingContextRaw"
-
-opaque metadataFromOutgoingContextRaw.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def emptyMethodConfig [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc.emptyMethodConfig"
-
-opaque emptyMethodConfig.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def EnableTracing [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.EnableTracing"
@@ -2211,54 +2066,176 @@ noncomputable def GenericServerStream.Recv.impl [GooseExts] [GoGlobalContext] (R
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Req)))) (Pair (Var "m") (Var "$r0")))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Req)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `DefaultBackoffConfig` (`var DefaultBackoffConfig = BackoffConfig{ MaxDelay: 120 * time.Second, }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `unaryStreamDesc` (`var unaryStreamDesc = &StreamDesc{ServerStreams: false, ClientStreams: false}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `ErrClientConnClosing` (`var // ErrClientConnClosing indicates that the operation is illegal because // the ClientConn is closing. // // Deprecat … [sha256:1c1a3aec6e00cd78]`): Their initializers call, besides literals of constants and other variables' values:
+`status.New`/`status.Error` of a constant code and message allocate a status (and its error). So
+each terminates, cannot panic and has no effect beyond its variable.
+- `errConnDrain` (`var // errConnDrain indicates that the connection starts to be drained and does not accept any new RPCs. errConnDrain =  … [sha256:5b2b90476782df22]`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errConnClosing` (`var // errConnClosing indicates that the connection is closing. errConnClosing = errors.New("grpc: the connection is clo … [sha256:312c4e578d8bf59e]`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errConnIdling` (`var // errConnIdling indicates the connection is being closed as the channel // is moving to an idle mode due to inactiv … [sha256:7c5c26fc0a7708ab]`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `invalidDefaultServiceConfigErrPrefix` (`var // invalidDefaultServiceConfigErrPrefix is used to prefix the json parsing error for the default // service config.  … [sha256:9e87fdf7ec3cc8d0]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `PickFirstBalancerName` (`var // PickFirstBalancerName is the name of the pick_first balancer. PickFirstBalancerName = "pick_first" // MODEL: pick … [sha256:74b21509397851af]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `errNoTransportSecurity` (`var // errNoTransportSecurity indicates that there is no transport security // being set for ClientConn. Users should ei … [sha256:d33399006d70bdc8]`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errTransportCredsAndBundle` (`var // errTransportCredsAndBundle indicates that creds bundle is used together // with other individual Transport Creden … [sha256:ba4e03d8da6f30c5]`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errNoTransportCredsInBundle` (`var // errNoTransportCredsInBundle indicated that the configured creds bundle // returned a transport credentials which  … [sha256:2a89870d6444d451]`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errTransportCredentialsMissing` (`var // errTransportCredentialsMissing indicates that users want to transmit // security information (e.g., OAuth2 token) … [sha256:7c8fc15c938bc751]`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `_@clientconn.go:456` (`var _ ClientConnInterface = (*ClientConn)(nil)`): An interface check: a nil pointer converted to `ClientConnInterface`. No call, no panic, no effect.
+- `ErrClientConnTimeout` (`var ErrClientConnTimeout = errors.New("grpc: timed out when dialing")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `_@codec.go:60` (`var _ baseCodec = codecV0Bridge{}`): An interface check: `codecV0Bridge{}` converted to `baseCodec`. No call, no panic, no effect.
+- `_@codec.go:81` (`var _ encoding.CodecV2 = codecV1Bridge{}`): An interface check: `codecV1Bridge{}` converted to `encoding.CodecV2`. No call, no panic, no effect.
+- `modelChooseRandom` (`var modelChooseRandom = os.Getenv("GRPC_MODEL_CHOOSE") == "random"`): Its initializer calls, besides literals of constants and other variables' values: `os.Getenv` reads
+the environment. So it terminates, cannot panic and has no effect beyond its variable.
+- `grpcStatusDetailsBinHeader` (`var grpcStatusDetailsBinHeader = "grpc-status-details-bin"`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `errStreamDone` (`var // errStreamDone is transport's: a write on a stream that is done. errStreamDone = errors.New("the stream is done")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errIllegalHeaderWrite` (`var // errIllegalHeaderWrite is transport.ErrIllegalHeaderWrite. errIllegalHeaderWrite = status.Error(codes.Internal, "t … [sha256:df6b2816da3bf9df]`): Their initializers call, besides literals of constants and other variables' values:
+`status.New`/`status.Error` of a constant code and message allocate a status (and its error). So
+each terminates, cannot panic and has no effect beyond its variable.
+- `errTransportClosing` (`var // errConnClosing is transport.ErrConnClosing. errTransportClosing = connectionError{Desc: "transport is closing"}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `transportFailureCodes` (`var transportFailureCodes = []codes.Code{ codes.Unavailable, codes.Canceled, codes.Unknown, codes.InvalidArgument, codes … [sha256:f9e600427b6a4a95]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `errMalformedFrame` (`var errMalformedFrame = errors.New("grpc: malformed frame")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `http2ErrCodeNames` (`var http2ErrCodeNames = []string{"NO_ERROR", "PROTOCOL_ERROR", "INTERNAL_ERROR", "FLOW_CONTROL_ERROR", "SETTINGS_TIMEOUT … [sha256:5ad9f0056e461157]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `http2ErrConvTab` (`var http2ErrConvTab = []codes.Code{codes.Internal, codes.Internal, codes.Internal, codes.ResourceExhausted, codes.Intern … [sha256:40bfc6fadbf46f27]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `errContextCanceled` (`var errContextCanceled = status.Error(codes.Canceled, context.Canceled.Error())`): Their initializers call, besides literals of constants and other variables' values:
+`status.New`/`status.Error` of a constant code and message allocate a status (and its error);
+`context.Canceled.Error()`/`DeadlineExceeded.Error()` return constant strings. So each terminates,
+cannot panic and has no effect beyond its variable.
+- `errContextDeadline` (`var errContextDeadline = status.Error(codes.DeadlineExceeded, context.DeadlineExceeded.Error())`): Their initializers call, besides literals of constants and other variables' values:
+`status.New`/`status.Error` of a constant code and message allocate a status (and its error);
+`context.Canceled.Error()`/`DeadlineExceeded.Error()` return constant strings. So each terminates,
+cannot panic and has no effect beyond its variable.
+- `statusOK` (`var statusOK = status.New(codes.OK, "")`): Their initializers call, besides literals of constants and other variables' values:
+`status.New`/`status.Error` of a constant code and message allocate a status (and its error). So
+each terminates, cannot panic and has no effect beyond its variable.
+- `defaultServerOptions` (`var defaultServerOptions = serverOptions{ maxConcurrentStreams: math.MaxUint32, maxReceiveMessageSize: defaultServerMaxR … [sha256:aa3dcd153a10a22e]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `ErrServerStopped` (`var ErrServerStopped = errors.New("grpc: the server has been stopped")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `_@server.go:1014` (`var _ http.Handler = (*Server)(nil)`): An interface check: a nil pointer converted to `http.Handler`. No call, no panic, no effect.
+- `metadataFromOutgoingContextRaw` (`var metadataFromOutgoingContextRaw = internal.FromOutgoingContextRaw.(func(context.Context) (metadata.MD, [][]string, bo … [sha256:c5234af11967de4d]`): `internal.FromOutgoingContextRaw.(func(context.Context) (metadata.MD, [][]string, bool))`: the type
+assertion of a function value that `metadata`'s `init` (run before this package's, which imports it)
+has set to `fromOutgoingContextRaw`, of that type, so it succeeds: no call, no panic, no effect
+beyond the variable.
+- `emptyMethodConfig` (`var emptyMethodConfig = serviceconfig.MethodConfig{}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `_@stream_interfaces.go:169` (`var _ ServerStreamingClient[string] = (*GenericClientStream[int, string])(nil)`): An interface check: a nil pointer converted to `ServerStreamingClient[string]`. No call, no panic,
+no effect.
+- `_@stream_interfaces.go:170` (`var _ ClientStreamingClient[int, string] = (*GenericClientStream[int, string])(nil)`): An interface check: a nil pointer converted to `ClientStreamingClient[int, string]`. No call, no
+panic, no effect.
+- `_@stream_interfaces.go:171` (`var _ BidiStreamingClient[int, string] = (*GenericClientStream[int, string])(nil)`): An interface check: a nil pointer converted to `BidiStreamingClient[int, string]`. No call, no
+panic, no effect.
+- `_@stream_interfaces.go:211` (`var _ ServerStreamingServer[string] = (*GenericServerStream[int, string])(nil)`): An interface check: a nil pointer converted to `ServerStreamingServer[string]`. No call, no panic,
+no effect.
+- `_@stream_interfaces.go:212` (`var _ ClientStreamingServer[int, string] = (*GenericServerStream[int, string])(nil)`): An interface check: a nil pointer converted to `ClientStreamingServer[int, string]`. No call, no
+panic, no effect.
+- `_@stream_interfaces.go:213` (`var _ BidiStreamingServer[int, string] = (*GenericServerStream[int, string])(nil)`): An interface check: a nil pointer converted to `BidiStreamingServer[int, string]`. No call, no
+panic, no effect.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"google.golang.org/grpc.DefaultBackoffConfig", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var DefaultBackoffConfig = BackoffConfig{ MaxDelay: 120 * time.Second, }"⟩,
+  ⟨"google.golang.org/grpc.unaryStreamDesc", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var unaryStreamDesc = &StreamDesc{ServerStreams: false, ClientStreams: false}"⟩,
+  ⟨"google.golang.org/grpc.ErrClientConnClosing", "Their initializers call, besides literals of constants and other variables' values:\n`status.New`/`status.Error` of a constant code and message allocate a status (and its error). So\neach terminates, cannot panic and has no effect beyond its variable.", "var // ErrClientConnClosing indicates that the operation is illegal because // the ClientConn is closing. // // Deprecat … [sha256:1c1a3aec6e00cd78]"⟩,
+  ⟨"google.golang.org/grpc.errConnDrain", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var // errConnDrain indicates that the connection starts to be drained and does not accept any new RPCs. errConnDrain =  … [sha256:5b2b90476782df22]"⟩,
+  ⟨"google.golang.org/grpc.errConnClosing", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var // errConnClosing indicates that the connection is closing. errConnClosing = errors.New(\"grpc: the connection is clo … [sha256:312c4e578d8bf59e]"⟩,
+  ⟨"google.golang.org/grpc.errConnIdling", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var // errConnIdling indicates the connection is being closed as the channel // is moving to an idle mode due to inactiv … [sha256:7c5c26fc0a7708ab]"⟩,
+  ⟨"google.golang.org/grpc.invalidDefaultServiceConfigErrPrefix", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var // invalidDefaultServiceConfigErrPrefix is used to prefix the json parsing error for the default // service config.  … [sha256:9e87fdf7ec3cc8d0]"⟩,
+  ⟨"google.golang.org/grpc.PickFirstBalancerName", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var // PickFirstBalancerName is the name of the pick_first balancer. PickFirstBalancerName = \"pick_first\" // MODEL: pick … [sha256:74b21509397851af]"⟩,
+  ⟨"google.golang.org/grpc.errNoTransportSecurity", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var // errNoTransportSecurity indicates that there is no transport security // being set for ClientConn. Users should ei … [sha256:d33399006d70bdc8]"⟩,
+  ⟨"google.golang.org/grpc.errTransportCredsAndBundle", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var // errTransportCredsAndBundle indicates that creds bundle is used together // with other individual Transport Creden … [sha256:ba4e03d8da6f30c5]"⟩,
+  ⟨"google.golang.org/grpc.errNoTransportCredsInBundle", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var // errNoTransportCredsInBundle indicated that the configured creds bundle // returned a transport credentials which  … [sha256:2a89870d6444d451]"⟩,
+  ⟨"google.golang.org/grpc.errTransportCredentialsMissing", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var // errTransportCredentialsMissing indicates that users want to transmit // security information (e.g., OAuth2 token) … [sha256:7c8fc15c938bc751]"⟩,
+  ⟨"google.golang.org/grpc._@clientconn.go:456", "An interface check: a nil pointer converted to `ClientConnInterface`. No call, no panic, no effect.", "var _ ClientConnInterface = (*ClientConn)(nil)"⟩,
+  ⟨"google.golang.org/grpc.ErrClientConnTimeout", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var ErrClientConnTimeout = errors.New(\"grpc: timed out when dialing\")"⟩,
+  ⟨"google.golang.org/grpc._@codec.go:60", "An interface check: `codecV0Bridge{}` converted to `baseCodec`. No call, no panic, no effect.", "var _ baseCodec = codecV0Bridge{}"⟩,
+  ⟨"google.golang.org/grpc._@codec.go:81", "An interface check: `codecV1Bridge{}` converted to `encoding.CodecV2`. No call, no panic, no effect.", "var _ encoding.CodecV2 = codecV1Bridge{}"⟩,
+  ⟨"google.golang.org/grpc.modelChooseRandom", "Its initializer calls, besides literals of constants and other variables' values: `os.Getenv` reads\nthe environment. So it terminates, cannot panic and has no effect beyond its variable.", "var modelChooseRandom = os.Getenv(\"GRPC_MODEL_CHOOSE\") == \"random\""⟩,
+  ⟨"google.golang.org/grpc.grpcStatusDetailsBinHeader", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var grpcStatusDetailsBinHeader = \"grpc-status-details-bin\""⟩,
+  ⟨"google.golang.org/grpc.errStreamDone", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var // errStreamDone is transport's: a write on a stream that is done. errStreamDone = errors.New(\"the stream is done\")"⟩,
+  ⟨"google.golang.org/grpc.errIllegalHeaderWrite", "Their initializers call, besides literals of constants and other variables' values:\n`status.New`/`status.Error` of a constant code and message allocate a status (and its error). So\neach terminates, cannot panic and has no effect beyond its variable.", "var // errIllegalHeaderWrite is transport.ErrIllegalHeaderWrite. errIllegalHeaderWrite = status.Error(codes.Internal, \"t … [sha256:df6b2816da3bf9df]"⟩,
+  ⟨"google.golang.org/grpc.errTransportClosing", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var // errConnClosing is transport.ErrConnClosing. errTransportClosing = connectionError{Desc: \"transport is closing\"}"⟩,
+  ⟨"google.golang.org/grpc.transportFailureCodes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var transportFailureCodes = []codes.Code{ codes.Unavailable, codes.Canceled, codes.Unknown, codes.InvalidArgument, codes … [sha256:f9e600427b6a4a95]"⟩,
+  ⟨"google.golang.org/grpc.errMalformedFrame", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errMalformedFrame = errors.New(\"grpc: malformed frame\")"⟩,
+  ⟨"google.golang.org/grpc.http2ErrCodeNames", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var http2ErrCodeNames = []string{\"NO_ERROR\", \"PROTOCOL_ERROR\", \"INTERNAL_ERROR\", \"FLOW_CONTROL_ERROR\", \"SETTINGS_TIMEOUT … [sha256:5ad9f0056e461157]"⟩,
+  ⟨"google.golang.org/grpc.http2ErrConvTab", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var http2ErrConvTab = []codes.Code{codes.Internal, codes.Internal, codes.Internal, codes.ResourceExhausted, codes.Intern … [sha256:40bfc6fadbf46f27]"⟩,
+  ⟨"google.golang.org/grpc.errContextCanceled", "Their initializers call, besides literals of constants and other variables' values:\n`status.New`/`status.Error` of a constant code and message allocate a status (and its error);\n`context.Canceled.Error()`/`DeadlineExceeded.Error()` return constant strings. So each terminates,\ncannot panic and has no effect beyond its variable.", "var errContextCanceled = status.Error(codes.Canceled, context.Canceled.Error())"⟩,
+  ⟨"google.golang.org/grpc.errContextDeadline", "Their initializers call, besides literals of constants and other variables' values:\n`status.New`/`status.Error` of a constant code and message allocate a status (and its error);\n`context.Canceled.Error()`/`DeadlineExceeded.Error()` return constant strings. So each terminates,\ncannot panic and has no effect beyond its variable.", "var errContextDeadline = status.Error(codes.DeadlineExceeded, context.DeadlineExceeded.Error())"⟩,
+  ⟨"google.golang.org/grpc.statusOK", "Their initializers call, besides literals of constants and other variables' values:\n`status.New`/`status.Error` of a constant code and message allocate a status (and its error). So\neach terminates, cannot panic and has no effect beyond its variable.", "var statusOK = status.New(codes.OK, \"\")"⟩,
+  ⟨"google.golang.org/grpc.defaultServerOptions", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var defaultServerOptions = serverOptions{ maxConcurrentStreams: math.MaxUint32, maxReceiveMessageSize: defaultServerMaxR … [sha256:aa3dcd153a10a22e]"⟩,
+  ⟨"google.golang.org/grpc.ErrServerStopped", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var ErrServerStopped = errors.New(\"grpc: the server has been stopped\")"⟩,
+  ⟨"google.golang.org/grpc._@server.go:1014", "An interface check: a nil pointer converted to `http.Handler`. No call, no panic, no effect.", "var _ http.Handler = (*Server)(nil)"⟩,
+  ⟨"google.golang.org/grpc.metadataFromOutgoingContextRaw", "`internal.FromOutgoingContextRaw.(func(context.Context) (metadata.MD, [][]string, bool))`: the type\nassertion of a function value that `metadata`'s `init` (run before this package's, which imports it)\nhas set to `fromOutgoingContextRaw`, of that type, so it succeeds: no call, no panic, no effect\nbeyond the variable.", "var metadataFromOutgoingContextRaw = internal.FromOutgoingContextRaw.(func(context.Context) (metadata.MD, [][]string, bo … [sha256:c5234af11967de4d]"⟩,
+  ⟨"google.golang.org/grpc.emptyMethodConfig", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var emptyMethodConfig = serviceconfig.MethodConfig{}"⟩,
+  ⟨"google.golang.org/grpc._@stream_interfaces.go:169", "An interface check: a nil pointer converted to `ServerStreamingClient[string]`. No call, no panic,\nno effect.", "var _ ServerStreamingClient[string] = (*GenericClientStream[int, string])(nil)"⟩,
+  ⟨"google.golang.org/grpc._@stream_interfaces.go:170", "An interface check: a nil pointer converted to `ClientStreamingClient[int, string]`. No call, no\npanic, no effect.", "var _ ClientStreamingClient[int, string] = (*GenericClientStream[int, string])(nil)"⟩,
+  ⟨"google.golang.org/grpc._@stream_interfaces.go:171", "An interface check: a nil pointer converted to `BidiStreamingClient[int, string]`. No call, no\npanic, no effect.", "var _ BidiStreamingClient[int, string] = (*GenericClientStream[int, string])(nil)"⟩,
+  ⟨"google.golang.org/grpc._@stream_interfaces.go:211", "An interface check: a nil pointer converted to `ServerStreamingServer[string]`. No call, no panic,\nno effect.", "var _ ServerStreamingServer[string] = (*GenericServerStream[int, string])(nil)"⟩,
+  ⟨"google.golang.org/grpc._@stream_interfaces.go:212", "An interface check: a nil pointer converted to `ClientStreamingServer[int, string]`. No call, no\npanic, no effect.", "var _ ClientStreamingServer[int, string] = (*GenericServerStream[int, string])(nil)"⟩,
+  ⟨"google.golang.org/grpc._@stream_interfaces.go:213", "An interface check: a nil pointer converted to `BidiStreamingServer[int, string]`. No call, no\npanic, no effect.", "var _ BidiStreamingServer[int, string] = (*GenericServerStream[int, string])(nil)"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc where
   pkgImportedPkgs := [pkg_id.time, pkg_id.context, pkg_id.io, pkg_id.google_golang_org.grpc.keepalive, pkg_id.google_golang_org.grpc.resolver, pkg_id.net, pkg_id.google_golang_org.grpc.credentials, pkg_id.google_golang_org.grpc.stats, pkg_id.google_golang_org.grpc.metadata, pkg_id.google_golang_org.grpc.peer]
-
-opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.google_golang_org.grpc)) (Lam BAnon
   (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2280,85 +2257,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #()))))))
   (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val emptyMethodConfig.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val metadataFromOutgoingContextRaw.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrServerStopped.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val defaultServerOptions.init) (Val #()))))))
-  (App (Val doExecute)
   (App (Val logger.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val statusOK.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errContextDeadline.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errContextCanceled.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val http2ErrConvTab.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val http2ErrCodeNames.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errMalformedFrame.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val transportFailureCodes.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errTransportClosing.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errIllegalHeaderWrite.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errStreamDone.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val grpcStatusDetailsBinHeader.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val modelChooseRandom.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrClientConnTimeout.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errTransportCredentialsMissing.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errNoTransportCredsInBundle.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errTransportCredsAndBundle.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errNoTransportSecurity.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val PickFirstBalancerName.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val invalidDefaultServiceConfigErrPrefix.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errConnIdling.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errConnClosing.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errConnDrain.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrClientConnClosing.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val unaryStreamDesc.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val DefaultBackoffConfig.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.time.initialize') (Val #()))))))
   (App (Val doExecute)

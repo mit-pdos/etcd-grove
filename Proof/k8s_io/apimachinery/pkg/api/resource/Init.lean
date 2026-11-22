@@ -2,10 +2,9 @@
 Package initialization of `k8s_io.apimachinery.pkg.api.resource`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports, runs the untranslated
-initializers of its variables (`X.init`, axioms of the translation), which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untranslated
-`init` functions, which the trust-boundary axiom `initFuncsOk` says return.
+Its fact is `True`. Its initializer initializes its imports and runs its untranslated
+`init` functions, which the trust-boundary axiom `initFuncsOk` says return (it has no
+initialized variable).
 -/
 module
 
@@ -34,32 +33,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-
-/-- **The trust boundary: `k8s_io.apimachinery.pkg.api.resource`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([Zero.init,
-        zeroBytes.init,
-        bigTen.init,
-        bigZero.init,
-        bigOne.init,
-        bigThousand.init,
-        big1024.init,
-        decZero.init,
-        decOne.init,
-        maxAllowed.init,
-        MaxMilliValue.init,
-        ErrFormatWrong.init,
-        ErrNumeric.init,
-        ErrSuffix.init,
-        ErrInvalidLengthGenerated.init,
-        ErrIntOverflowGenerated.init,
-        maxInt64.init,
-        minInt64.init,
-        quantitySuffixer.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
 /-- **The trust boundary: `k8s_io.apimachinery.pkg.api.resource`'s untranslated `init` functions return.** Goose
 names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
@@ -94,25 +67,6 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
-  wp_apply (opaqueInitsOk Zero.init (by mem_tac))
-  wp_apply (opaqueInitsOk zeroBytes.init (by mem_tac))
-  wp_apply (opaqueInitsOk bigTen.init (by mem_tac))
-  wp_apply (opaqueInitsOk bigZero.init (by mem_tac))
-  wp_apply (opaqueInitsOk bigOne.init (by mem_tac))
-  wp_apply (opaqueInitsOk bigThousand.init (by mem_tac))
-  wp_apply (opaqueInitsOk big1024.init (by mem_tac))
-  wp_apply (opaqueInitsOk decZero.init (by mem_tac))
-  wp_apply (opaqueInitsOk decOne.init (by mem_tac))
-  wp_apply (opaqueInitsOk maxAllowed.init (by mem_tac))
-  wp_apply (opaqueInitsOk MaxMilliValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrFormatWrong.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrNumeric.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrSuffix.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrInvalidLengthGenerated.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrIntOverflowGenerated.init (by mem_tac))
-  wp_apply (opaqueInitsOk maxInt64.init (by mem_tac))
-  wp_apply (opaqueInitsOk minInt64.init (by mem_tac))
-  wp_apply (opaqueInitsOk quantitySuffixer.init (by mem_tac))
   wp_apply (initFuncsOk init.«0» (by mem_tac))
   iframe Hown
   is_pkg_init_finish

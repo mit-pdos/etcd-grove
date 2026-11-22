@@ -94,11 +94,6 @@ opaque nameKey [GooseExts] [GoGlobalContext] : val
 
 opaque errKey [GooseExts] [GoGlobalContext] : val
 
-noncomputable def runtimeInfo [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/go-logr/logr.runtimeInfo"
-
-opaque runtimeInfo.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def FromContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/go-logr/logr.FromContext"
 
@@ -135,29 +130,36 @@ noncomputable def ToSlogHandler [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def kvListToAttrs [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/go-logr/logr.kvListToAttrs"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `runtimeInfo` (`var runtimeInfo = RuntimeInfo{ CallDepth: 1, }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `_@sloghandler.go:44` (`var _ slog.Handler = &slogHandler{}`): An interface check: `&slogHandler{}` converted to `slog.Handler`. No call, no panic, no effect.
+- `_@slogsink.go:29` (`var _ LogSink = &slogSink{}`): An interface check: `&slogSink{}` converted to `LogSink`. No call, no panic, no effect.
+- `_@slogsink.go:30` (`var _ CallDepthLogSink = &slogSink{}`): An interface check: `&slogSink{}` converted to `CallDepthLogSink`. No call, no panic, no effect.
+- `_@slogsink.go:31` (`var _ Underlier = &slogSink{}`): An interface check: `&slogSink{}` converted to `Underlier`. No call, no panic, no effect.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"github.com/go-logr/logr.runtimeInfo", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var runtimeInfo = RuntimeInfo{ CallDepth: 1, }"⟩,
+  ⟨"github.com/go-logr/logr._@sloghandler.go:44", "An interface check: `&slogHandler{}` converted to `slog.Handler`. No call, no panic, no effect.", "var _ slog.Handler = &slogHandler{}"⟩,
+  ⟨"github.com/go-logr/logr._@slogsink.go:29", "An interface check: `&slogSink{}` converted to `LogSink`. No call, no panic, no effect.", "var _ LogSink = &slogSink{}"⟩,
+  ⟨"github.com/go-logr/logr._@slogsink.go:30", "An interface check: `&slogSink{}` converted to `CallDepthLogSink`. No call, no panic, no effect.", "var _ CallDepthLogSink = &slogSink{}"⟩,
+  ⟨"github.com/go-logr/logr._@slogsink.go:31", "An interface check: `&slogSink{}` converted to `Underlier`. No call, no panic, no effect.", "var _ Underlier = &slogSink{}"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.github_com.go_logr.logr where
   pkgImportedPkgs := []
-
-opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.go_logr.logr)) (Lam BAnon
   (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val «_».init) (Val #())))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val runtimeInfo.init) (Val #()))))))))
+  (Val #()))))))
 
 structure contextKey [GooseExts] where
   mk ::

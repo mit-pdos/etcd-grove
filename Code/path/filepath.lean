@@ -38,21 +38,6 @@ opaque ListSeparator [GooseExts] [GoGlobalContext] : val
 noncomputable def ErrBadPattern [GooseExts] [GoGlobalContext] : GoString :=
   go!"path/filepath.ErrBadPattern"
 
-noncomputable def SkipDir [GooseExts] [GoGlobalContext] : GoString :=
-  go!"path/filepath.SkipDir"
-
-opaque SkipDir.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def SkipAll [GooseExts] [GoGlobalContext] : GoString :=
-  go!"path/filepath.SkipAll"
-
-opaque SkipAll.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def lstat [GooseExts] [GoGlobalContext] : GoString :=
-  go!"path/filepath.lstat"
-
-opaque lstat.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def Match [GooseExts] [GoGlobalContext] : GoString :=
   go!"path/filepath.Match"
 
@@ -476,6 +461,29 @@ noncomputable def join.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "e") (Var "$value"))))))))))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")))))
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `SkipDir` (`var SkipDir error = fs.SkipDir`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `SkipAll` (`var SkipAll error = fs.SkipAll`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `lstat` (`var lstat = os.Lstat // for testing`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"path/filepath.SkipDir", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var SkipDir error = fs.SkipDir"⟩,
+  ⟨"path/filepath.SkipAll", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var SkipAll error = fs.SkipAll"⟩,
+  ⟨"path/filepath.lstat", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var lstat = os.Lstat // for testing"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.path.filepath where
   pkgImportedPkgs := [pkg_id.errors, pkg_id.internal.filepathlite, pkg_id.os, pkg_id.strings, pkg_id.io.fs]
 
@@ -493,17 +501,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val #(go!"syntax error in pattern"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val lstat.init) (Val #())))))
-  (App (Val doExecute)
-  (App (Val SkipAll.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val SkipDir.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrBadPattern))) (Val #())) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrBadPattern))) (Val #())) (Var "$r0")))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.errors.initialize') (Val #()))))))
   (App (Val doExecute)

@@ -39,15 +39,7 @@ Goose translates them names-only, so each `X.init` is an axiom of the translatio
 runs them at program start, and etcd starts, so each returns without panicking.
 Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
 axiom opaqueInitsOk :
-    ∀ v ∈ ([«_».init,
-        defaultEncoderID.init,
-        «_».init,
-        «_».init,
-        keyValueType.init,
-        emptyHash.init,
-        userDefinedEmptySet.init,
-        emptySet.init,
-        _Type_index.init] : List val),
+    ∀ v ∈ ([defaultEncoderID.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
 end go_opentelemetry_io.otel.«attribute»
@@ -73,15 +65,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
   wp_apply (opaqueInitsOk defaultEncoderID.init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk keyValueType.init (by mem_tac))
-  wp_apply (opaqueInitsOk emptyHash.init (by mem_tac))
-  wp_apply (opaqueInitsOk userDefinedEmptySet.init (by mem_tac))
-  wp_apply (opaqueInitsOk emptySet.init (by mem_tac))
-  wp_apply (opaqueInitsOk _Type_index.init (by mem_tac))
   iframe Hown
   is_pkg_init_finish
 
