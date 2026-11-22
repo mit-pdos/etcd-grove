@@ -131,3 +131,30 @@ latter, a lemma whose conclusion is a fancy update, used under `HeapGS`, could n
 caller under `HeapGS` synthesizes its own instance, and kvnet's `Hstart` (only `GooseGlobalGS`)
 supplies `G.gooseAllG`/`G.goose_receiptGS`/`G.gooseInvGS`. At that boundary the two instance paths
 are equal by unfolding.
+
+## (e) Status (2026-11-22, commit `4e73336696`, branch `raft-cluster-global`)
+
+**Done** (raft's `Link` builds):
+- `NodeH` (`InvApi`, sealed in `InvNode` with `NodeH.loc`); the node-level predicates take it; the node
+  table and `nodeTabInv` are gone (`nodeTabOk γ n γn := ⌜γn = n.names⌝`, so the agreement lemmas
+  kept their statements); `RestartNode`/`TracedStartNode` persist the struct and build the handle
+  `⟨n_ptr, γn⟩`; `StartNode`/`RestartNode`/`node.*` specs over `nh` (`nh.loc` in code).
+- Global sections (`{GF} [AllG GF] [ReceiptGS GF] [InvGS GF]`) in `InvApi`, `ApiVocab`, `InvApiDec`,
+  `InvApiJoin`, `InvApiBoot`, `InvApiDecAlloc`, `ConfPolicy`, and `InvNodeChan`'s budget. The
+  declarations that need the heap moved to sections of their own (`…Heap<N>`).
+- `CrashGS` per declaration in the 22 ghost-level files.
+
+**Left:**
+- `InvNode`'s and `InvNodeRule`'s sealed wrappers in global sections. An automated try made a mess
+  of the section structure (a wrap crossed an `end api`, which gave `whnf` timeouts) and was
+  reverted. Do it by hand: move the shared wrappers (`Cluster.*`, `isCommittedLogLb`, `sentMsg`,
+  `msgCredits`, `snapshotCert`, `raftState`, `nodeVacant(A)`, `nodeCrashTok`, `isCluster`, `confAt`,
+  `confPolicy`, the alloc laws) into a global section at the top of each file.
+- The shared store module (`kvreconf/Store.lean`: `rkvInv`, `opSlot`, `readSlot`, `waitP`, `kvLb`,
+  `kvCore`, `kdSnapInv`, the conf policy).
+- The clients (kv, kvreconf, kvdurable, the etcd server, etcdstart, the trace check, kvwitness?).
+- The generated copies (`etc/gen-raft-tla.py`, `etc/copy-part.py`), Links, interfaces, gates.
+
+The scripts used are in `.lake/tmp/scripts/` of the worktree (not committed): `globsec.py` moves a
+section to the global variables, `heapwrap.py` wraps a declaration that needs the heap, `locfix.py`
+and `binderfix.py` handle `NodeH` vs `Loc`, and `fixloop.sh` runs them.
