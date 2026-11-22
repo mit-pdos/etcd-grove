@@ -796,3 +796,34 @@ cherry-picked onto `101637598`; step 2 builds against `/shared/tmp/manifest-pip1
 
 **Sign-off points** (`notes/prom-registry-start-change.md`, the draft of the final trusted diff, part 1): the `dto`
 initializer axioms that come with `Desc` as a struct, and `NewDesc` left untranslated.
+
+### Step 2, milestone 2 (2026-11-22): Option 4 for prometheus, the package side
+
+Built against `/shared/tmp/manifest-pip1016.json` (Perennial `101637598` plus Option 4, `6d0c4f8dc`).
+* **`collectorName` is a definition** (`RegInv.lean`, persistent `IProp`: a descriptor pointer `p ↦□ d`, `d`
+  named `n`, ID `descId n`, valid, and `describes c [p]`); the axiom in `Registry.lean` is deleted. The seven
+  constructor specs' posts changed only from `⌜collectorName c n⌝` to `collectorName c n` (and `NewGaugeFunc`'s
+  `⌜nameOk → collectorName⌝` to `(⌜nameOk⌝ → collectorName)`), plus an import of `RegInv` (a flag for #18).
+* **Option 4** (`PkgInit.lean`): `class PromRegGS (GF) where γ : GName` (`EtcdGrove.prometheus`, `RegInv.lean`);
+  `promInit γ := ∃ r, globalAddr defaultRegistry ↦□ r ∗ globalAddr DefaultRegisterer ↦□ interface.mkOk
+  (*Registry) #r ∗ isRegistry γ r`; `IsPkgInitParam` instance (`Param := PromRegGS GF`), the local
+  `isPkgInit_inst [x : PromRegGS GF]`, `get_isPkgInit_wf_inst [PromRegGS GF]`. The 53 importers' hand-written
+  `GetIsPkgInitWf` instances (46 files, WalTester's tester included) take `[EtcdGrove.prometheus.PromRegGS GF]`;
+  the generated Init/InitLinked/PkgTable files a section variable `promreg_gs` (`SPECIAL[prometheus]`'s
+  `vars`/`table_vars`). Code needing prometheus initialized only (the vectors' specs, the server's six proofs)
+  names `isPkgInitSome`. `isRegistry`/`idTok` are generic in `HasLC` (importers' facts are).
+* **Rights keyed by ID** (`PkgInitRes.lean`): `regRes (q, Ns, Ks) := idToks γ (Ns.map descId ++ Ks)` at
+  `PromRegGS.γ`, `regsFree`, `regResL`, `regKeysOf`, `regQsOk` (IDs nodup, none built-in, no built-in name),
+  `idToks_regsFree`. `namesFree`/`nameFree`/`namesUnclaimed`/`descIdsDistinct`/`readRegPerm` are still there
+  (Start.lean, the closed proofs, `read/Metrics.lean`), for the next milestone to delete.
+* **`prometheus.MustRegister`/`Register` are theorems** (over `(*Registry).MustRegister`/`Register`'s specs);
+  their specs quantify `∀ [promreg_gs : PromRegGS GF]`. **Axioms removed**: `collectorName`,
+  `prometheus.MustRegister.wp_proof`, `prometheus.Register.wp_proof`. **Axiom changed**:
+  `grpc_prometheus.NewServerMetrics.wp_proof`, whose post gains `∃ ps ds, describes ⟨*ServerMetrics, m⟩ ps ∗
+  ps ↦□ ds ∗ ⌜srvDescsOk (!os.isEmpty) ds⌝` (true of providers/prometheus v1.1.0's `Describe`; the names, IDs
+  and validity only). `v3rpc.metricsP`'s `nil` case holds `∃ x : PromRegGS GF, isPkgInit (inst x) prometheus ∗
+  idToks x.γ grpcKeys`; `getServerMetrics` registers with them.
+* **gen-init**: prometheus's initializer keeps the maps, splits the `Registry`, `isRegistry_init` at the
+  instance's `γ`, fact `promInit γ` (`INST_HAND`); the registering packages take `idToks γ [descId n]` per
+  registration (`idToks_names_cons`) and call `MustRegister.wp_proof (Registry.MustRegister.wp_proof
+  Registry.Register.wp_proof)`; `REG_KEYS` (v3rpc: `grpcKeys`, stored in `metricsP`).
