@@ -125,10 +125,6 @@ theorem unaryIcsOf_perRPCCreds (ds : List GrpcDialOpt) (pc : GoInterface) :
 
 end defs
 
-/-- **The dial option `o` does `d`** (an axiomatized property: introduced only by the axioms of
-grpc's option constructors; see the file header). -/
-axiom grpcDialOptIs [GooseExts] (o : GoInterface) (d : GrpcDialOpt) : Prop
-
 /-- **`si` is etcd's client stream interceptor** (an axiomatized property: introduced only by the
 client's `streamClientInterceptor` axiom; what grpc's `ClientConn.NewStream` axiom assumes of a
 connection's stream interceptor). -/
@@ -145,9 +141,71 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
+/-- The fields of grpc's `dialOptions` the descriptors are about (`GrpcDialOpt`) other than the one
+an option sets, unchanged. -/
+def dialOptsKeep (d : GrpcDialOpt) (o o' : google_golang_org.grpc.dialOptions) : Prop :=
+  (match d with | .unaryInterceptor _ => True | _ => o'.unaryInt' = o.unaryInt') ∧
+  (match d with | .streamInterceptor _ => True | _ => o'.streamInt' = o.streamInt') ∧
+  (match d with | .resolvers _ => True | _ => o'.resolvers' = o.resolvers') ∧
+  (match d with
+    | .perRPCCreds _ => True
+    | _ => o'.copts'.PerRPCCredentials' = o.copts'.PerRPCCredentials')
+
+/-- What an interceptor option sets (`unaryInt`, `streamInt`); nothing for the other descriptors. -/
+def dialOptSets (d : GrpcDialOpt) (o' : google_golang_org.grpc.dialOptions) : Prop :=
+  match d with
+  | .unaryInterceptor ic => o'.unaryInt' = ic
+  | .streamInterceptor ic => o'.streamInt' = ic
+  | _ => True
+
+/-- **What the closure `f` of a dial option `d` does to `*dialOptions`** (persistent; phase 7 S1,
+`notes/phase7-plan.md`: grpc is the model's, `models/grpc`): applied to `p ↦ dopt`, it returns with
+`p ↦ dopt'`, where `dopt'` sets what `d` sets (`.unaryInterceptor ic`: `unaryInt` is `ic`; likewise
+`.streamInterceptor`; `.resolvers rbs`: the resolvers, whose elements `us` and capacity it is given,
+are `us ++ rbs`; `.perRPCCreds pc`: the per-RPC credentials, likewise, `cs ++ [pc]`;
+`.transportCreds`, `.keepalive`: fields no descriptor is about) and keeps the others
+(`dialOptsKeep`). -/
+def dialOptFnOk (f : GoFunc) : GrpcDialOpt → IProp GF
+  | .resolvers rbs => iprop(□ ∀ (p : Loc) (dopt : google_golang_org.grpc.dialOptions)
+      (us : List GoInterface) (Φ : val → IProp GF),
+      p ↦ dopt -∗ dopt.resolvers' ↦* us -∗ ownSliceCap GoInterface dopt.resolvers' (DFrac.own 1) -∗
+      ▷ (∀ dopt' : google_golang_org.grpc.dialOptions, p ↦ dopt' -∗
+        dopt'.resolvers' ↦* (us ++ rbs) -∗ ownSliceCap GoInterface dopt'.resolvers' (DFrac.own 1) -∗
+        ⌜dialOptsKeep (.resolvers rbs) dopt dopt'⌝ -∗ Φ #()) -∗
+      WP (App (Val #f) (Val #p)) {{ Φ }})
+  | .perRPCCreds pc => iprop(□ ∀ (p : Loc) (dopt : google_golang_org.grpc.dialOptions)
+      (cs : List GoInterface) (Φ : val → IProp GF),
+      p ↦ dopt -∗ dopt.copts'.PerRPCCredentials' ↦* cs -∗
+      ownSliceCap GoInterface dopt.copts'.PerRPCCredentials' (DFrac.own 1) -∗
+      ▷ (∀ dopt' : google_golang_org.grpc.dialOptions, p ↦ dopt' -∗
+        dopt'.copts'.PerRPCCredentials' ↦* (cs ++ [pc]) -∗
+        ownSliceCap GoInterface dopt'.copts'.PerRPCCredentials' (DFrac.own 1) -∗
+        ⌜dialOptsKeep (.perRPCCreds pc) dopt dopt'⌝ -∗ Φ #()) -∗
+      WP (App (Val #f) (Val #p)) {{ Φ }})
+  | d => iprop(□ ∀ (p : Loc) (dopt : google_golang_org.grpc.dialOptions) (Φ : val → IProp GF),
+      p ↦ dopt -∗ ▷ (∀ dopt' : google_golang_org.grpc.dialOptions, p ↦ dopt' -∗
+        ⌜dialOptSets d dopt' ∧ dialOptsKeep d dopt dopt'⌝ -∗ Φ #()) -∗
+      WP (App (Val #f) (Val #p)) {{ Φ }})
+
+instance dialOptFnOk_persistent (f : GoFunc) (d : GrpcDialOpt) :
+    Persistent (dialOptFnOk (GF := GF) f d) := by
+  cases d <;> unfold dialOptFnOk <;> infer_instance
+
+/-- **The dial option `o` does `d`** (persistent; a definition since phase 7 S1, 2026-11-22: grpc's
+`*funcDialOption`, read-only, whose closure does `d`, `dialOptFnOk`; introduced by the option
+constructors' specs). -/
+def grpcDialOptIs (o : GoInterface) (d : GrpcDialOpt) : IProp GF :=
+  iprop(∃ (l : Loc) (f : GoFunc),
+    ⌜o = interface.mkOk (go.GoType.PointerType google_golang_org.grpc.funcDialOption.ty) #l⌝ ∗
+    l ↦□ google_golang_org.grpc.funcDialOption.mk f ∗ dialOptFnOk f d)
+
+instance grpcDialOptIs_persistent (o : GoInterface) (d : GrpcDialOpt) :
+    Persistent (grpcDialOptIs (GF := GF) o d) := by
+  unfold grpcDialOptIs; infer_instance
+
 /-- **The slice `sl` of dial options, read-only, doing `ds`** (persistent). -/
 def dialOptsAt (sl : GoSlice) (ds : List GrpcDialOpt) : IProp GF :=
-  iprop(∃ os : List GoInterface, sl ↦*□ os ∗ ⌜List.Forall₂ grpcDialOptIs os ds⌝)
+  iprop(∃ os : List GoInterface, sl ↦*□ os ∗ [∗list] o;d ∈ os;ds, grpcDialOptIs o d)
 
 instance dialOptsAt_persistent (sl : GoSlice) (ds : List GrpcDialOpt) :
     Persistent (dialOptsAt (GF := GF) sl ds) := by

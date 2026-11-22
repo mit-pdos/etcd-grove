@@ -36,7 +36,8 @@ The copies, by kind:
   raft-noax and kvdurable-noax, the parts of projects kvreconf and etcd; KvNet: project kvnet, the
   parts of projects raft-noax, net, durable and etcd).
 - the package initializers etc/gen-init.py writes for the part (`PARTS[part]`, `KVNET_INITS`), and
-  the `Link.lean` files (etc/gen-link.py): none, those scripts write them.
+  the part's own and the main tree's `Link.lean` files (etc/gen-link.py): none, those scripts write
+  them (a source part's `Link`, raft-noax's or `durable`'s that kvnet's `Link` uses, is copied).
 - every other module of the closure that reaches a seed (`Spec/`, `Proof/`), and the trusted code
   and manual proofs (`TrustedCode/`, `ManualProof/`) of the part's translated packages, with the
   Goose configuration (`Code/**.toml`) of those packages (from the source tree whose goose piece
@@ -296,7 +297,7 @@ def own_roots(part):
                     continue
                 f = os.path.join(dp, x)
                 m = os.path.relpath(f, os.path.join(ROOT, part.name))[:-len(".lean")].replace(os.sep, ".")
-                if m in gi or m.endswith(".Link") or is_copy_line(first_line(f)):
+                if m in gi or is_copy_line(first_line(f)):
                     continue
                 out.append(m)
     return sorted(out)
@@ -391,10 +392,10 @@ def compute(part):
         if m in gi:
             why[m] = "etc/gen-init.py"
             continue
-        if m.endswith(".Link"):
+        r = part.resolve(m)
+        if m.endswith(".Link") and (r is None or r[0] in (P, "")):
             why[m] = "etc/gen-link.py"
             continue
-        r = part.resolve(m)
         if r is None:
             sys.exit(f"copy-part: {P}: {m} is imported but no tree has it")
         src, path = r

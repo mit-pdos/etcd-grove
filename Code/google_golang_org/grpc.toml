@@ -20,11 +20,15 @@ translate = ["!*", "EnableTracing", "WaitForReady", "MaxCallSendMsgSize", "MaxCa
   # option constructors that only store a closure, with their bodies, and the closures' holder (the
   # dial options' come with `dialOptions`, whose fields need more of grpc's packages)
   "newFuncServerOption", "funcServerOption.apply", "KeepaliveEnforcementPolicy", "MaxRecvMsgSize",
-  "MaxSendMsgSize", "MaxConcurrentStreams", "ChainUnaryInterceptor", "ChainStreamInterceptor"]
+  "MaxSendMsgSize", "MaxConcurrentStreams", "ChainUnaryInterceptor", "ChainStreamInterceptor",
+  # (phase 7 S1, dial side, 2026-11-22) the dial options etcd's client sets, and their holder
+  "newFuncDialOption", "funcDialOption.apply", "WithTransportCredentials", "WithPerRPCCredentials",
+  "WithUnaryInterceptor", "WithStreamInterceptor", "WithResolvers"]
 imports = ["!*", "context", "google.golang.org/grpc/metadata", "google.golang.org/grpc/peer",
-  # (phase 7 S1) the types of `serverOptions`' fields, so that the struct is translated
-  "time", "io", "google.golang.org/grpc/credentials", "google.golang.org/grpc/keepalive",
-  "google.golang.org/grpc/stats"]
+  # (phase 7 S1) the types of `serverOptions`' and `dialOptions`' fields, so that the structs are
+  # translated
+  "time", "io", "net", "google.golang.org/grpc/credentials", "google.golang.org/grpc/keepalive",
+  "google.golang.org/grpc/stats", "google.golang.org/grpc/resolver"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
@@ -86,7 +90,7 @@ Their initializers call, besides literals of constants and other variables' valu
 cannot panic and has no effect beyond its variable."""
 
 [[skip]]
-names = ["_@clientconn.go:459"]
+names = ["_@clientconn.go:456"]
 reason = """
 An interface check: a nil pointer converted to `ClientConnInterface`. No call, no panic, no effect."""
 

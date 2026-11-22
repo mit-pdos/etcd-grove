@@ -1,0 +1,183 @@
+-- The copy for the part `KvNet/` of `RaftNoAx/Proof/go_etcd_io/raft/v3/RawNode__ProposeConfChange.lean` (etc/copy-part.py; rerun it, do not edit).
+/- Proof of `Spec/go_etcd_io/raft/v3/RawNode__ProposeConfChange.lean`, Lean-first
+(2026-10-13). As `RawNode.Propose`'s, on `confChangeToMsg`'s message; the entry's data is
+recorded as proposed (`propRegister`), which gives its `entData` (`entData_cc`) and the
+bytes `Step` needs (`ccEntsOk_cc`). 
+raft v3.7 (2026-10-16, stage R5): `confChangeToMsg` returns the message `msgIn ml 1`, which is
+passed to `Step` for good; the entry's bytes are in its record (D6), so no registration of the
+data (`propRegister`) and `ccEntsOk_cc` is pure. 2026-10-27: the proposal is tracked under its key
+(`cc_propose_ghost`, from the caller's `ccPropArg`), its ticket on the entry.
+-/
+module
+
+public import KvNet.Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange
+public import KvNet.Spec.go_etcd_io.raft.v3.confChangeToMsg
+public import KvNet.Spec.go_etcd_io.raft.v3.raft__Step
+-- `Step.commit_mono`
+public import KvNet.Proof.go_etcd_io.raft.v3.Protocol.Facts
+public import KvNet.Proof.go_etcd_io.raft.v3.TracedUntracedRaftStep
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
+open RawNodeOwnAccess
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- A premise of `Step` about another message type: `MsgProp` (`W32 2`) is not it. -/
+local macro "msg_ne" : tactic => `(tactic| (intro Hc; simp [propMsgM, MsgProp, MsgHup, MsgVote,
+  MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgHeartbeat, MsgAppResp, MsgHeartbeatResp,MsgCheckQuorum,
+  MsgSnap, MsgBeat, MsgStorageAppendResp, MsgStorageApplyResp, MsgReadIndex, MsgReadIndexResp,
+  MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader] at Hc))
+
+theorem RawNode.ProposeConfChange.wp_proof
+    (wp_confChangeToMsg : confChangeToMsg.spec (GF := GF) (hG := hG))
+    (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
+    RawNode.ProposeConfChange.spec (GF := GF) (hG := hG) := by
+  -- (2026-11-10, Q8 stage 1 slice 11) `Step`'s untraced instance (`TracedUntracedRaftStep.lean`)
+  have wp_raft_Step := raft.Step.untraced wp_raft_Step
+  intro γ rn id rs c o cc dq HtrG
+  wp_start as H
+  iNamed H
+  iNamed Hrn
+  -- (raft-entsize §3; out_size C3, P5) the conf change at its content, its size within the
+  -- cluster's bound (`Hmd`), itself at most `2^31` (`certLink`)
+  obtain ⟨Ho, Hmd⟩ := Hmd
+  subst Ho
+  icases ownStepGhost_certLink γ _ cf id s $$ Hghost with ⟨#Hlink, Hghost⟩
+  iunfold certLink at Hlink
+  icases Hlink with ⟨-, -, %Hszl, %Hmb⟩
+  have Hcsz : s.gh.sn.sz = true → ∀ cc', some cc = some cc' → ccSize cc' + 64 ≤ entBytesMax := by
+    intro hs cc' h
+    cases h
+    rw [Hszl] at hs
+    obtain ⟨b, hb⟩ := Option.isSome_iff_exists.1 hs
+    have := Hmd b hb; have := (Hmb b hb).1
+    simp only [entBytesMax]; omega
+  ihave Hc : ccPtsCCo c dq (some cc) $$ [Hc]
+  · simp only [ccPtsCCo]; iexact Hc
+  wp_auto_lc 1
+  wp_apply wp_confChangeToMsg c (some cc) dq s.gh.sn.sz $$ [$Hc] as %ml %bs ⟨Hc, Hm, %Hbs⟩
+  · ipureintro; exact Hcsz
+  ihave Hc := ccPtsCCo_own c dq (some cc) $$ Hc
+  simp only [Option.map_some] at Hbs ⊢
+  generalize cc.model = o at *
+  -- (2026-10-27) the proposal's ghost work: tracked under its key, its ticket on the entry
+  ihave #Hcinv := ownStepGhost_inv γ _ cf id s $$ Hghost
+  imod cc_propose_ghost γ o bs Hbs $$ Hcinv Harg with ⟨#Hent, Htk⟩
+  ihave #Hcc := ccEntsOk_cc (GF := GF) o bs Hbs
+  imod rdCred_zero_upd (GF := GF) γ with Hcr
+  icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.guard rs.capplied rs.cfg (ds := ds)) $$ Hphys with ⟨%Hpf, Hphys⟩
+  icases ownRaftPhysC_sn cf rnv.raft' id s $$ Hphys with ⟨%Hns0, Hphys⟩
+  wp_apply wp_raft_Step cf _ γ _ id s ml propMsgM [ccEntryM (some o) bs] [] none []
+    (by simp [StepMsg, stepMsgTypes, propMsgM, MsgProp]) 
+    (by msg_ne) (by msg_ne)
+    (by msg_ne) (by msg_ne)
+    (by msg_ne) (by msg_ne)
+    (by msg_ne) (by msg_ne)
+    (by msg_ne) (by msg_ne)
+    (by msg_ne)
+    (fun _ => ⟨rfl, .inl rfl⟩) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
+    (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf
+    (GMode.Pre.of_facts Hpf (by msg_ne) (by msg_ne)) (fun h => absurd h (by msg_ne))
+    (by tr_none) $$ [$Hphys $Hghost $Hlc1 Hm Hcr Htk]
+  · -- the message: its one-entry batch, owned, with the entry's bytes; `Context` nil
+    simp only [propMsgM, MsgProp, ite_true]
+    isplitr
+    · imodintro
+      iintro %h
+      exact absurd h.1 (by msg_ne)
+    isplitl [Hm Htk]
+    · simp only [named]
+      isplitl [Hm]
+      · rw [flag_moves (by decide : movesB (W32 2) = true)]; iexact Hm
+      isplitl [Htk]
+      · isplitr
+        · iexists [some o]
+          iexact Hcc
+        iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => entTk (GF := GF) γ e)).2
+        iexact Htk
+      isplitr
+      · ipureintro
+        intro _
+        exact ⟨List.cons_ne_nil _ _, by simp⟩
+      isplitr
+      · ipureintro; simp
+      isplitr
+      · ipureintro
+        intro Hc
+        simp [MsgStorageApplyResp] at Hc
+      · imodintro
+        iintro %ty %Hty _
+        rw [show mtypeOf (W32 2) = some .propose from rfl] at Hty
+        cases Hty
+        unfold isMessage absMsg absMsgFrom
+        isplitr
+        · ipureintro
+          exact ⟨rfl, List.cons_ne_nil _ _, by simp, fun e _ => TrNoConf.of_none HtrG e⟩
+        iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => propData (GF := GF) γ e)).2
+        iexact Hent
+    isplitl [Hcr]
+    · have H215 : ¬ ((W32 2 : w32) = W32 15) := by word
+      simp only [MsgReadIndex, H215, ite_false]
+      iexact Hcr
+    · imodintro
+      iintro %Hc
+      simp [MsgSnap] at Hc
+  simp only [propMsgM, MsgProp]
+  iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hc', %Hloc, %_, %_, %Htm, %_, -, -, Herr⟩
+  have Hc := Href.commit_mono
+  have e1 := Href.keep (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)); subst e1
+  have e2 := Hc' (by msg_ne); subst c'
+  wp_auto
+  -- what the `RawNode` tracks is kept: `LocalStepOk`, and the commit index does not move
+  -- back (`Step.commit_mono`)
+  obtain ⟨Hfr, Hap, -⟩ := Hloc.1 (fun h => absurd h (by msg_ne)) (.inl rfl)
+  icases ownRaftPhysC_sn cf rnv.raft' id s' $$ Hphys with ⟨%Hsn1, Hphys⟩
+  have Hap' := Hap (fun Hc => absurd Hc (by msg_ne))
+  ihave #Hstr' := ackInv_keep (rs' := rs) γ rfl Hstok (by rw [Hfr.1]; exact Int.le_refl _)
+    Hfr.2.2.2.2.1 Hfr.2.2.2.1 (logStoreRec_stored Hfr.2.2.2.2.2.1) Hfr.2.1 $$ Hstrecs
+  iapply HΦ
+  simp only [named]
+  iframe Hc
+  isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap Hpend Hledger]
+  ihave #Hhist' := restoredSnapHistory_keep γ id Hfr.2.2.2.2.2.1 $$ Hhist
+  ihave Hledger' := restoreLedger_keep γ id rs.sn (s := s) (s' := s')
+    (by first | exact Href.voteLe.1 | exact Hcv.1.voteLe.1 | exact Hvr.1 | omega)
+    (logStoreRec_ksn Hfr.2.2.2.2.2.1) (by first | exact Href.commit_mono | exact Hcv.commit | exact Hc) (by first | exact Href.snapQueue | exact Hcv.queue | exact Hcv.1.snapQueue) $$ Hledger
+  ihave #Hsloc' := snapLocOk_keep γ id (.inl Hfr.2.2.2.1) $$ Hsloc
+  · iapply ownRawNode_intro γ rn id rs s' cf fp rnv sv hprev steps Hwf' Hin Hasync
+      (by rw [Hap']; exact Hdlen) (by rw [Hfr.2.2.1]; exact Hunp)
+      (by rw [Hfr.2.2.2.1]; exact Hsnap)
+      (stepsOk_mono s s' _ Hfr.1 ⟨Hfr.2.2.2.2.1, (logStoreRec_stored Hfr.2.2.2.2.2.1)⟩ Hc Hap'
+        (tc_le_of_gh Hfr.2.2.2.2.2.2.2.2.1) Hstok)
+      (by rw [Hfr.1]; exact Htrm) (by rw [Hfr.2.2.2.2.2.2.1]; exact ⟨Hstor.1, by rw [Hsn1.2, Hfr.2.2.2.2.2.2.2.2.1, ← Hns0.2]; exact Hstor.2⟩)
+      (Hpvoff.keep rfl rfl Hfr.2.2.2.2.2.2.2.1 Hfr.2.2.2.2.2.2.2.2.1 Hfr.1 Hfr.2.2.2.2.2.2.2.2.2.1 Hfr.2.2.2.1
+        (PreGuardF.step (Htm (by msg_ne))))
+      (by rw [Hfr.2.2.2.2.2.2.2.2.1]; exact Hrs_out) (by rw [Hfr.2.2.2.2.2.2.2.2.1]; exact Hrs_unst)
+      (Int.le_trans Hrs_clb Hc)
+      (RNFl.keep Hrnfl Hfr.2.2.2.2.2.2.2.2.2.2.1 Hfr.2.2.2.2.2.2.2.2.2.2.2 Hap')
+      (Hloan.keep Hfr.2.2.2.2.2.2.2.2.1 Hfr.2.2.2.1 Hfr.2.2.2.2.2.2.2.2.2.2.1 (logStoreRec_stored Hfr.2.2.2.2.2.1) Hfr.2.2.1 Hap' Hc)
+      (Hsdt.ofRec Hfr.2.2.2.1 Hfr.2.2.2.2.2.1) Hrole
+      (Hphs.keep rfl rfl rfl (HsLe.of_step Href.voteLe Hc) Hfr.2.2.2.1 (.inl Hfr.2.1))
+      (by rw [LocalFrame.ns Hfr]; exact Hgtr) (by rw [LocalFrame.ns Hfr]; exact Hglq) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' Hhist' Hledger' [Hdur]
+    · -- (durability stage II (i)) the step keeps `durTie`'s fields
+      iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) Hfr.2.2.2.1 Hfr.2.2.2.2.1 (logStoreRec_stored Hfr.2.2.2.2.2.1) $$ Hdur
+  icases Herr with (%Herr | ⟨-, #Hd⟩)
+  · ileft; ipureintro; exact Herr
+  · iright; iexact Hd
+
+end proof
+
+end EtcdGrove
+end Perennial
