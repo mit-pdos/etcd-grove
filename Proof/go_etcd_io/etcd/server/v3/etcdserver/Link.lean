@@ -687,6 +687,7 @@ public import Perennial.Proof.strings.Link
 public import Perennial.Proof.encoding.binary.Link
 public import Perennial.Proof.crypto.rand.Link
 public import Perennial.Proof.math.big.Link
+public import Perennial.Proof.math.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Lemmas
 public import Proof.bytes.Buffer__Write
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.NetErr
@@ -2414,7 +2415,7 @@ theorem rafthttp.wp_isMsgSnap :
 
 theorem v2stats.FollowerStats.wp_Succ :
     v2stats.FollowerStats.Succ.spec (GF := GF) (hG := hG) :=
-  v2stats.FollowerStats.Succ.wp_proof
+  v2stats.FollowerStats.Succ.wp_proof _root_.Perennial.math.wp_Sqrt
 
 theorem v2stats.FollowerStats.wp_Fail :
     v2stats.FollowerStats.Fail.spec (GF := GF) (hG := hG) :=

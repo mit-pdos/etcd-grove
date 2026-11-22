@@ -232,7 +232,7 @@ def bootCfgOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop :=
 
 /-- **The bootstrapped record `b`** (see the file header) of the configuration `cfg` for this node `id` of the cluster with
 raft's names `γ` and the bootstrap log `bootLog`, the backend's write-back budget `N + 7` (D14g,
-2026-10-17: what the backend has, within its `2 ^ 40` bound, `backend.bgOk`: `N` for the applied
+2026-10-17: what the backend has, within its `2 ^ 62` bound, `backend.bgOk`: `N` for the applied
 entries, `NewServer.spec`'s lifetime bound, and seven for the construction: `mvcc.New` two,
 `NewLessor` one, `NewAuthStore` two, `NewAlarmStore` one, `SetTxPostLockInsideApplyHook` one;
 until then `2 ^ 64 + 3`, which no backend has); the post-lock hook unset (nil). -/

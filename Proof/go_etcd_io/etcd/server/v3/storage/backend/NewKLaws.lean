@@ -22,7 +22,7 @@ namespace backend
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.backend
 
 /-- The constructor's stock of write-back tokens (`wbInit`), by value. -/
-theorem wbInit_val : wbInit = 2 ^ 40 - 1 := rfl
+theorem wbInit_val : wbInit = 2 ^ 62 - 1 := rfl
 
 /-- The reader pool's size (`rdPoolN`), by value. -/
 theorem rdPoolN_val : rdPoolN = 2 ^ 28 := rfl

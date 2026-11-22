@@ -1071,7 +1071,7 @@ raftpb_Message__GetLogTerm: @
 raftpb_Message__GetCommit: @
 proto_MarshalAppendPb:
 binary_WriteUint8:
-v2stats_FollowerStats__Succ:
+v2stats_FollowerStats__Succ: =_root_.Perennial.math.wp_Sqrt
 prometheus_GaugeVec__WithLabelValues:
 prometheus_CounterVec__WithLabelValues:
 fmt_SprintfArgs:
