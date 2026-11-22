@@ -13,8 +13,8 @@ import (
 
 	"github.com/anishathalye/porcupine"
 	"github.com/mit-pdos/etcd-grove/examples/lib/lintest"
-	"github.com/mit-pdos/etcd-grove/examples/lib/lintest/perclient"
 	lcounter "github.com/mit-pdos/etcd-grove/examples/lib/lintest/counter"
+	"github.com/mit-pdos/etcd-grove/examples/lib/lintest/perclient"
 	"github.com/mit-pdos/etcd-grove/examples/lib/remote"
 )
 

@@ -88,7 +88,7 @@ noncomputable def Run [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def Check [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/lib/remote.Check"
 
-/-- go: remote.go:53:6 -/
+/-- go: remote.go:54:6 -/
 noncomputable def putU64.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "x"
@@ -110,7 +110,7 @@ noncomputable def putU64.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "i") (Var "$r0"))))))))))
   (Val #()))))
 
-/-- go: remote.go:59:6 -/
+/-- go: remote.go:60:6 -/
 noncomputable def getU64.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
@@ -145,7 +145,7 @@ noncomputable def getU64.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- writeAll writes all of b to c; false on an error.
 
-    go: remote.go:68:6 -/
+    go: remote.go:69:6 -/
 noncomputable def writeAll.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "b"
@@ -198,7 +198,7 @@ noncomputable def writeAll.impl [GooseExts] [GoGlobalContext] : val :=
 /-- readFull reads exactly len(buf) bytes from c into buf (io.ReadFull's loop); false on any error
     before buf is full, the connection's end included.
 
-    go: remote.go:81:6 -/
+    go: remote.go:82:6 -/
 noncomputable def readFull.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "buf"
@@ -255,7 +255,7 @@ noncomputable def readFull.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- writeFrame writes body to c as one frame.
 
-    go: remote.go:94:6 -/
+    go: remote.go:95:6 -/
 noncomputable def writeFrame.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "body"
@@ -294,7 +294,7 @@ noncomputable def writeFrame.impl [GooseExts] [GoGlobalContext] : val :=
 /-- readFrame reads one frame from c and returns its body; false on an error, the connection's
     end, or a length past MaxLen.
 
-    go: remote.go:103:6 -/
+    go: remote.go:104:6 -/
 noncomputable def readFrame.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
@@ -377,7 +377,7 @@ noncomputable def readFrame.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- hang never returns.
 
-    go: remote.go:120:6 -/
+    go: remote.go:121:6 -/
 noncomputable def hang.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -391,7 +391,7 @@ noncomputable def hang.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- deadline is d from now.
 
-    go: remote.go:126:6 -/
+    go: remote.go:127:6 -/
 noncomputable def deadline.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Time.ty))) (Val #())))
@@ -409,7 +409,7 @@ noncomputable def deadline.impl [GooseExts] [GoGlobalContext] : val :=
 /-- attempt is one try of a call: it dials addr, sends the request req and reads the reply, all
     within d; false on any failure.
 
-    go: remote.go:132:6 -/
+    go: remote.go:133:6 -/
 noncomputable def attempt.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Lam "req"
@@ -498,11 +498,12 @@ noncomputable def attempt.impl [GooseExts] [GoGlobalContext] : val :=
     node answered, or codec.Unknown(in) if no attempt got an answer that decodes. A request longer
     than MaxLen is never sent: Do then never returns.
 
-    The prophecy says which attempt answered (ReadTries or more: none); it does nothing in Go, and
-    the proof of the caller's linearizability needs it (the commit of an operation whose outcome
-    will be unknown is made before the operation is sent).
+    The prophecy says which attempt answered with a known output (tries: none, or the answer was
+    the unknown output); it does nothing in Go, and the proof of the caller's linearizability needs
+    it (the commit of an operation whose outcome will be unknown is made before the operation is
+    sent, and the commit of one that will be answered by the far side's).
 
-    go: remote.go:155:6 -/
+    go: remote.go:157:6 -/
 noncomputable def Do.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Lam "in"
@@ -574,9 +575,14 @@ noncomputable def Do.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.any))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (Let "$a0" (App (Val (GoInstruction (GoLoad go.any))) (Var "out"))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.bool]))))) (App (Val (GoInstruction (StructFieldRef Codec.ty go!"IsUnknown"))) (Var "codec"))) (Var "$a0")))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.int go.uint64))) (App (Val (GoInstruction (GoLoad go.int))) (Var "tries")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (Var "p")) (Var "$a0"))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int go.uint64))) (App (Val (GoInstruction (GoLoad go.int))) (Var "k")))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (Var "p")) (Var "$a0")))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (Var "p")) (Var "$a0"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -617,7 +623,7 @@ noncomputable def Do.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- listen listens at addr, retrying a failed Listen.
 
-    go: remote.go:180:6 -/
+    go: remote.go:186:6 -/
 noncomputable def listen.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.net.Listener.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.net.Listener.ty))) (Val #())))
@@ -671,7 +677,7 @@ noncomputable def listen.impl [GooseExts] [GoGlobalContext] : val :=
     writes the reply (within d of op's end), then closes. A request that does not arrive whole, or
     does not decode, is not run; an output whose encoding is longer than MaxLen is not sent.
 
-    go: remote.go:192:6 -/
+    go: remote.go:198:6 -/
 noncomputable def serveConn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "sys"
@@ -757,7 +763,7 @@ noncomputable def serveConn.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Serve is a node that serves calls: it listens at addr (retrying a failed Listen) and serves the
     connections one at a time, each request with op(sys, in) (serveConn). It never returns.
 
-    go: remote.go:211:6 -/
+    go: remote.go:217:6 -/
 noncomputable def Serve.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Lam "sys"
@@ -808,7 +814,7 @@ noncomputable def Serve.impl [GooseExts] [GoGlobalContext] : val :=
 /-- ServeClient is client node c's program: sys := newClient(c) (its own client of the system),
     then Serve at addr with op.
 
-    go: remote.go:223:6 -/
+    go: remote.go:229:6 -/
 noncomputable def ServeClient.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "addr"
@@ -843,7 +849,7 @@ noncomputable def ServeClient.impl [GooseExts] [GoGlobalContext] : val :=
     Do, the history traced with a counter clock and checked by porcupine against model within
     timeout (none if timeout <= 0).
 
-    go: remote.go:233:6 -/
+    go: remote.go:239:6 -/
 noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "model"
   (Lam "addrs"
@@ -901,7 +907,7 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Check is Run with no timeout: it panics unless porcupine accepts the history (the theorem:
     it never panics).
 
-    go: remote.go:243:6 -/
+    go: remote.go:249:6 -/
 noncomputable def Check.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "model"
   (Lam "addrs"
@@ -964,9 +970,10 @@ structure Codec [GooseExts] where
   DecOut' : GoFunc
   IsRead' : GoFunc
   Unknown' : GoFunc
+  IsUnknown' : GoFunc
 
 noncomputable instance Codec.zero_val [GooseExts] : ZeroVal Codec :=
-  ⟨Codec.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+  ⟨Codec.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] noncomputable def Codec.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"EncIn" (go.GoType.FunctionType (go.signature.Signature [go.any] false [(go.GoType.SliceType go.byte)]))),
@@ -974,7 +981,8 @@ noncomputable instance Codec.zero_val [GooseExts] : ZeroVal Codec :=
 (go.field_decl.FieldDecl go!"EncOut" (go.GoType.FunctionType (go.signature.Signature [go.any] false [(go.GoType.SliceType go.byte)]))),
 (go.field_decl.FieldDecl go!"DecOut" (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.any, go.bool]))),
 (go.field_decl.FieldDecl go!"IsRead" (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.bool]))),
-(go.field_decl.FieldDecl go!"Unknown" (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.any])))]
+(go.field_decl.FieldDecl go!"Unknown" (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.any]))),
+(go.field_decl.FieldDecl go!"IsUnknown" (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.bool])))]
 
 @[irreducible] noncomputable def Codec.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Codec.fieldsUnsealed
@@ -1001,6 +1009,8 @@ class Codec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   set_IsRead : ∀ (x : Codec) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Codec.underlying go!"IsRead") (PairV #x #y) (Val #(({ x with IsRead' := y } : Codec)))
   get_Unknown : ∀ (x : Codec), go.IsGoStepPureDetTagged under (StructFieldGet Codec.underlying go!"Unknown") #x (Val #(x.Unknown'))
   set_Unknown : ∀ (x : Codec) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Codec.underlying go!"Unknown") (PairV #x #y) (Val #(({ x with Unknown' := y } : Codec)))
+  get_IsUnknown : ∀ (x : Codec), go.IsGoStepPureDetTagged under (StructFieldGet Codec.underlying go!"IsUnknown") #x (Val #(x.IsUnknown'))
+  set_IsUnknown : ∀ (x : Codec) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Codec.underlying go!"IsUnknown") (PairV #x #y) (Val #(({ x with IsUnknown' := y } : Codec)))
   method_set : go.MethodSetIs Codec.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Codec.ty) []
 
@@ -1018,6 +1028,8 @@ attribute [instance] Codec.TypeAssumptions.type_repr
   Codec.TypeAssumptions.set_IsRead
   Codec.TypeAssumptions.get_Unknown
   Codec.TypeAssumptions.set_Unknown
+  Codec.TypeAssumptions.get_IsUnknown
+  Codec.TypeAssumptions.set_IsUnknown
   Codec.TypeAssumptions.method_set
   Codec.TypeAssumptions.ptr_method_set
 

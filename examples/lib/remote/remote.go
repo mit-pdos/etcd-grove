@@ -28,16 +28,17 @@ import (
 )
 
 // Codec is a model's inputs and outputs as bytes (Dec* is false on bytes that are not an
-// encoding), which inputs are reads (a read may be retried; a write may not), and the model's
+// encoding), which inputs are reads (a read may be retried; a write may not), the model's
 // unknown output for an input (the output of an operation whose outcome is unknown: e.g.
-// txnlin's Output{Err: true}).
+// txnlin's Output{Err: true}), and which outputs are unknown ones.
 type Codec struct {
-	EncIn   func(any) []byte
-	DecIn   func([]byte) (any, bool)
-	EncOut  func(any) []byte
-	DecOut  func([]byte) (any, bool)
-	IsRead  func(any) bool
-	Unknown func(any) any
+	EncIn     func(any) []byte
+	DecIn     func([]byte) (any, bool)
+	EncOut    func(any) []byte
+	DecOut    func([]byte) (any, bool)
+	IsRead    func(any) bool
+	Unknown   func(any) any
+	IsUnknown func(any) bool
 }
 
 // MaxLen bounds a frame's body: a reader drops a connection that announces a longer one, and
@@ -149,9 +150,10 @@ func attempt(addr string, req []byte, d time.Duration) ([]byte, bool) {
 // node answered, or codec.Unknown(in) if no attempt got an answer that decodes. A request longer
 // than MaxLen is never sent: Do then never returns.
 //
-// The prophecy says which attempt answered (ReadTries or more: none); it does nothing in Go, and
-// the proof of the caller's linearizability needs it (the commit of an operation whose outcome
-// will be unknown is made before the operation is sent).
+// The prophecy says which attempt answered with a known output (tries: none, or the answer was
+// the unknown output); it does nothing in Go, and the proof of the caller's linearizability needs
+// it (the commit of an operation whose outcome will be unknown is made before the operation is
+// sent, and the commit of one that will be answered by the far side's).
 func Do(addr string, in any, codec Codec, d time.Duration) any {
 	req := codec.EncIn(in)
 	if uint64(len(req)) > MaxLen {
@@ -167,7 +169,11 @@ func Do(addr string, in any, codec Codec, d time.Duration) any {
 		if ok {
 			out, good := codec.DecOut(rep)
 			if good {
-				p.ResolveU64(uint64(k))
+				if codec.IsUnknown(out) {
+					p.ResolveU64(uint64(tries))
+				} else {
+					p.ResolveU64(uint64(k))
+				}
 				return out
 			}
 		}

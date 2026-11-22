@@ -126,8 +126,9 @@ func Codec() remote.Codec {
 			}
 			return Out{Unknown: b[0] == 1, N: int64(n)}, true
 		},
-		IsRead:  func(in any) bool { return !in.(bool) },
-		Unknown: func(in any) any { return Out{Unknown: true} },
+		IsRead:    func(in any) bool { return !in.(bool) },
+		Unknown:   func(in any) any { return Out{Unknown: true} },
+		IsUnknown: func(out any) bool { return out.(Out).Unknown },
 	}
 }
 

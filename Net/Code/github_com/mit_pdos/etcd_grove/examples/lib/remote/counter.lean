@@ -438,7 +438,18 @@ noncomputable def Codec.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.any))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.any))) (Var "$res0")))))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.Codec.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"EncIn")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [go.any] false [(go.GoType.SliceType go.byte)])) (Var "$v0"))), (KeyedElement (some (KeyField go!"DecIn")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.any, go.bool])) (Var "$v1"))), (KeyedElement (some (KeyField go!"EncOut")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [go.any] false [(go.GoType.SliceType go.byte)])) (Var "$v2"))), (KeyedElement (some (KeyField go!"DecOut")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.any, go.bool])) (Var "$v3"))), (KeyedElement (some (KeyField go!"IsRead")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.bool])) (Var "$v4"))), (KeyedElement (some (KeyField go!"Unknown")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.any])) (Var "$v5")))]))))))))
+  (Let "$v6" (Lam "out"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "out" (App (Val (GoInstruction (GoAlloc go.any))) (Var "out"))
+  (Let "$r0" (App (Val (GoInstruction (StructFieldGet Out.ty go!"Unknown"))) (App (Val (GoInstruction (TypeAssert Out.ty))) (App (Val (GoInstruction (GoLoad go.any))) (Var "out"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.Codec.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"EncIn")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [go.any] false [(go.GoType.SliceType go.byte)])) (Var "$v0"))), (KeyedElement (some (KeyField go!"DecIn")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.any, go.bool])) (Var "$v1"))), (KeyedElement (some (KeyField go!"EncOut")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [go.any] false [(go.GoType.SliceType go.byte)])) (Var "$v2"))), (KeyedElement (some (KeyField go!"DecOut")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.any, go.bool])) (Var "$v3"))), (KeyedElement (some (KeyField go!"IsRead")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.bool])) (Var "$v4"))), (KeyedElement (some (KeyField go!"Unknown")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.any])) (Var "$v5"))), (KeyedElement (some (KeyField go!"IsUnknown")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.bool])) (Var "$v6")))])))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -448,7 +459,7 @@ noncomputable def Codec.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Gen is a client's next input: an increment or a read, at random.
 
-    go: counter.go:135:6 -/
+    go: counter.go:136:6 -/
 noncomputable def Gen.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.any))) (App (Val (GoInstruction (GoZeroVal go.any))) (Val #())))
@@ -464,7 +475,7 @@ noncomputable def Gen.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- attempt is AttemptMs as a duration.
 
-    go: counter.go:140:6 -/
+    go: counter.go:141:6 -/
 noncomputable def attempt.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
@@ -480,7 +491,7 @@ noncomputable def attempt.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Orch is the orchestrator's program for the client machines at clientAddrs: it panics unless
     porcupine accepts the history of their operations.
 
-    go: counter.go:146:6 -/
+    go: counter.go:147:6 -/
 noncomputable def Orch.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "clientAddrs"
   (Seq (App (Val exceptionDo)
@@ -498,7 +509,7 @@ noncomputable def Orch.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Client is client machine c's program, at addr, its operations made at the server at
     serverAddr.
 
-    go: counter.go:152:6 -/
+    go: counter.go:153:6 -/
 noncomputable def Client.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "addr"
@@ -554,7 +565,7 @@ noncomputable def Client.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Server is the server's program, at addr: lintest/counter's Counter, served.
 
-    go: counter.go:161:6 -/
+    go: counter.go:162:6 -/
 noncomputable def Server.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Seq (App (Val exceptionDo)

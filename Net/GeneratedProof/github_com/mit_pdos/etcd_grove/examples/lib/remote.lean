@@ -39,6 +39,7 @@ noncomputable instance Codec_typed_pointsto :
     "DecOut" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.Codec go!"DecOut" l) v.DecOut' dq ∗
     "IsRead" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.Codec go!"IsRead" l) v.IsRead' dq ∗
     "Unknown" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.Codec go!"Unknown" l) v.Unknown' dq ∗
+    "IsUnknown" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.Codec go!"IsUnknown" l) v.IsUnknown' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -141,6 +142,22 @@ noncomputable instance Codec_access_store_Unknown (l : Loc) (v : github_com.mit_
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.Codec go!"Unknown" l) v.Unknown' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.Codec go!"Unknown" l) Unknown' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Unknown' := Unknown' } : github_com.mit_pdos.etcd_grove.examples.lib.remote.Codec) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Codec_access_load_IsUnknown (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.remote.Codec) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.Codec go!"IsUnknown" l) v.IsUnknown' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.Codec go!"IsUnknown" l) v.IsUnknown' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Codec_access_store_IsUnknown (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.remote.Codec) (IsUnknown' : GoFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.Codec go!"IsUnknown" l) v.IsUnknown' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.Codec go!"IsUnknown" l) IsUnknown' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IsUnknown' := IsUnknown' } : github_com.mit_pdos.etcd_grove.examples.lib.remote.Codec) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
