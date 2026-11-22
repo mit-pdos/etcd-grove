@@ -242,6 +242,8 @@ view is at `m`, and its lists report `m`. -/
 private theorem node.wp_Advance_impl
     (hA : EtcdGrove.node.Advance.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.Advance.tracedSpec (GF := GF) := by
+  unfold EtcdGrove.node.Advance.specRaw at hA
+  unfold EtcdGrove.NodeH.loc at hA
   unfold EtcdGrove.node.Advance.tracedSpec EtcdGrove.Cluster EtcdGrove.NodeH EtcdGrove.NodeH.loc EtcdGrove.isCluster EtcdGrove.nodeConfig
     EtcdGrove.nodeDriver EtcdGrove.snapshotCert EtcdGrove.confAt EtcdGrove.nodeStopped
     EtcdGrove.isNode EtcdGrove.nodeAppliedLb EtcdGrove.sentTok
@@ -353,7 +355,7 @@ private theorem node.wp_Advance_impl
   icases Hpost with (⟨Hdrv, Hcf, #Hw, Htoks⟩ | ⟨#Hstp, Hdrv, -⟩)
   rotate_left
   · -- (2026-10-29, stage U9a) the node stopped
-    ihave ⟨Hdrv, #Hnc⟩ := nodeDriver_isNode γn id n ds st.hardState $$ Hdrv
+    ihave ⟨Hdrv, #Hnc⟩ := nodeDriver_isNode γn id n.loc ds st.hardState $$ Hdrv
     iapply HΦ
     iright
     isplitr

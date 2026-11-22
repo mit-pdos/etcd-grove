@@ -309,34 +309,6 @@ private theorem node_pts_excl (n : Loc) (nv nv' : node) :
   icases H2 with ⟨-, -, -, -, -, -, -, -, -, -, ⟨H2, -⟩⟩
   iapply loc_pts_excl _ nv.rn' nv'.rn' $$ rn H2
 
-/-- (2026-11-02, stage II (o)) **Registering a node in the cluster's table**, while its struct is
-owned whole (so it is not in the table yet): its entry, and the struct read-only from then on. -/
-private theorem nodeTab_insert (γ : Cluster) (N : Namespace) (n : Loc) (nv : node) (x : CfgNames) :
-    ⊢ nodeTabInv (GF := GF) γ N -∗ n ↦ nv ={⊤}=∗ n ↦□ nv ∗ n ↪[γ.nodeTab]□ x := by
-  iintro #Hinv Hn
-  unfold nodeTabInv
-  iinv Hinv with ⟨%M, >Hauth, >Hm⟩ Hclose
-  cases hM : M !! n with
-  | some y =>
-    ihave Hy := (BigSepM.bigSepM_lookup (Φ := fun (k : Loc) (_ : CfgNames) =>
-      iprop(∃ nv : node, k ↦□ nv : IProp GF)) hM) $$ Hm
-    icases Hy with ⟨%nv', Hy⟩
-    iexfalso
-    iapply node_pts_excl n nv nv' $$ Hn Hy
-  | none =>
-    imod ghost_map_insert_persist n x hM $$ Hauth with ⟨Hauth, #He⟩
-    ipersist Hn
-    imod Hclose $$ [Hauth Hm] with -
-    · inext
-      iexists (<[n := x]> M)
-      iframe Hauth
-      iapply (BigSepM.bigSepM_insert (Φ := fun (k : Loc) (_ : CfgNames) =>
-        iprop(∃ nv : node, k ↦□ nv : IProp GF)) hM).2
-      iframe Hm
-      iexists nv; iexact Hn
-    imodintro
-    iframe Hn He
-
 /-- **`StartNode`** (2026-11-02, stage II (o); until then a raw triple over raft's internals, the
 wrapper `sorry`): the client's update fires at the call's start (a ghost step: nothing physical is
 read before `setupNode`), inside the id's slot (`raft_start_boot`, through its accessor), which
@@ -367,7 +339,7 @@ private theorem wp_StartNode_impl
   obtain ⟨Hid, Hnd, Hnz, Hlen, Hcfg, ⟨gd, Hmr⟩, Hbl⟩ := Hbp
   ihave #Hcl' := Hcl
   iunfold isClusterU at Hcl'
-  icases Hcl' with ⟨%HU, #Hci, #Hpool, #Htab⟩
+  icases Hcl' with ⟨%HU, #Hci, #Hpool⟩
   ihave #Hci' := Hci
   iunfold clusterInv at Hci'
   icases Hci' with ⟨%HNs, #Hcinv, -, -⟩
@@ -644,18 +616,23 @@ private theorem wp_StartNode_impl
   have Hnok : NodeOk γ γn := ⟨rfl, rfl, rfl⟩
   have Hdy : γn.mode.isDyn = true := HdynOk γn Hnok
   -- the node's table entry, while its struct is owned whole
-  imod nodeTab_insert γ N np nv (cfgNamesOf γn) $$ Htab Hnp with ⟨#Hnp, #Hte⟩
-  haveI := nodeTabOk_persistent (GF := GF) γ np γn
-  ihave #Htb : nodeTabOk (GF := GF) γ np γn $$ []
-  · unfold nodeTabOk; iexact Hte
-  ihave #Htag : EtcdGrove.nodeTagPin γ np Cert $$ []
+  -- (2026-11-22, kvnet decision B) no node table: the node's handle carries its names
+  ipersist Hnp
+  ihave #Hnp := Hnp
+  haveI := nodeTabOk_persistent (GF := GF) γ (⟨np, γn⟩ : ApiImpl.NodeH) γn
+  ihave #Htb : nodeTabOk (GF := GF) γ (⟨np, γn⟩ : ApiImpl.NodeH) γn $$ []
+  · unfold nodeTabOk; ipureintro; rfl
+  ihave #Htag : EtcdGrove.nodeTagPin γ (show EtcdGrove.NodeH from (⟨np, γn⟩ : ApiImpl.NodeH)) Cert $$ []
   · iunfold EtcdGrove.nodeTagPin
+    try dsimp only
     iexists γn
     iframe Htb
     iExactEq Hsv; rfl
-  ihave #Harm : EtcdGrove.nodeArm (GF := GF) np γ x $$ []
+  ihave #Harm : EtcdGrove.nodeArm (GF := GF) (show EtcdGrove.NodeH from (⟨np, γn⟩ : ApiImpl.NodeH)) γ x $$ []
   · iunfold EtcdGrove.nodeArm
+    try dsimp only
     unfold nodeArmU
+    try dsimp only
     iexists γn
     isplit
     · iexact Htb
@@ -724,16 +701,17 @@ private theorem wp_StartNode_impl
       iexists _; iexact Hbw
     itrivial
   iapply HΦ
-  iexists np, K
+  iexists (show EtcdGrove.NodeH from (⟨np, γn⟩ : ApiImpl.NodeH)), K
   isplitr
   · ipureintro; rfl
   -- (step 5, A8.3) the completion witness, `setupNode`'s
   ihave HsD : startDoneB (GF := GF) γ cv.ID' $$ []
   · unfold startDoneB Cluster.trace; iExactEq HbD; rfl
   iframe HQ HF Hpeers HsD Htag Harm
-  ihave #HisN : EtcdGrove.isNode (GF := GF) np γ N cv.ID' $$ []
+  ihave #HisN : EtcdGrove.isNode (GF := GF) (show EtcdGrove.NodeH from (⟨np, γn⟩ : ApiImpl.NodeH)) γ N cv.ID' $$ []
   · iunfold EtcdGrove.isNode
     unfold isNode
+    try dsimp only
     iexists γn
     iframe Hnode Htb Hci Hpool
     ipureintro; exact ⟨Hnok, HU⟩
@@ -751,6 +729,7 @@ private theorem wp_StartNode_impl
   isplitl [Hdlv2 Hreq1 Hreq2 Hdur2 Hq1 Hq2]
   · iunfold EtcdGrove.nodeDriver
     unfold nodeDriver NodeDriverState.init
+    try dsimp only
     iexists γn, cv.ID', []
     isplitr
     · ipureintro; exact ⟨Hnok, rfl, rfl⟩
@@ -777,6 +756,7 @@ private theorem wp_StartNode_impl
   · iunfold EtcdGrove.nodeConfig
     isplitl [Hcap2 Hccq1 Hccq2]
     · unfold nodeConfig
+      try dsimp only
       iexists γn, cv.ID'
       iframe Hnode Htb
       isplitr
@@ -797,6 +777,7 @@ private theorem wp_StartNode_impl
     exact ⟨Nat.le_refl _, _, gd, Hmr, rfl⟩
   iunfold EtcdGrove.nodeRunning
   unfold nodeRunning
+  try dsimp only
   iexists γn, cv.ID'
   iframe Hnode Htb Hlive2
   ipureintro; exact ⟨Hnok, Hdy⟩

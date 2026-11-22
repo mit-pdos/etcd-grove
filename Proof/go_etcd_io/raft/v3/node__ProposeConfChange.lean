@@ -128,6 +128,7 @@ private theorem node.ProposeConfChange.wp_raw
   -- the cluster, whose `raft` is `γ`'s (`fwdP` reads only it)
   have wpS := wp_node_Step
   unfold EtcdGrove.node.Step.spec EtcdGrove.isNode EtcdGrove.stepIn EtcdGrove.Cluster at wpS
+  unfold EtcdGrove.NodeH.loc at wpS
   icases msgInC_nn _ ml _ _ $$ Hm with ⟨%Hnn, Hm⟩
   wp_apply wpS n γc N id ml ctx cd $$ [$HnodeA $Hctx Hm Htk]
   · unfold ApiImpl.stepIn
