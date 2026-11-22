@@ -28,7 +28,7 @@ abbrev grpc.StatsHandler.spec : Prop :=
   ∀ (h : GoInterface),
   {{ (⌜grpcStatsHandlerOk h⌝ : IProp GF) }}
     (App (Val (@! google_golang_org.grpc.StatsHandler)) (Val #h))
-  {{ (v : GoInterface), RET #v; ⌜grpcSrvOpt v .neutral⌝ }}
+  {{ (v : GoInterface), RET #v; grpcSrvOpt v (.stats h) }}
 
 end spec
 
