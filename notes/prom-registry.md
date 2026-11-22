@@ -703,8 +703,10 @@ deletion of `nameFree`/`namesUnclaimed`/`descIdsDistinct`/`readRegPerm`, §5's r
   `DefaultGatherer` (their initializers), `capMetricChan`/`capDescChan`, `AlreadyRegisteredError.Error`,
   `NewInvalidDesc`, `Desc.Err`; `Desc` and `Registry` are structs now. Imports `sync`, `fmt` and client_model's
   `dto` (a new package of the etcd project, types and names only, `Code/github_com/prometheus/client_model/go.toml`;
-  its fact `True`, `Proof/github_com/prometheus/client_model/go/PkgInit.lean`; its initializer has no untranslated
-  part). `Register`'s error paths translate (goose now translates the type switch, `TypeAssert2`) but call
+  its fact `True`, `Proof/github_com/prometheus/client_model/go/PkgInit.lean`; its generated `Init.lean` has the
+  usual trust-boundary axioms of a names-only protobuf package, `opaqueInitsOk` of its variables, `MetricType_name`,
+  `MetricType_value`, the file descriptor's, and `initFuncsOk` of its `init()`: Go runs them, since prometheus
+  imports `dto`; they are new axioms of the trust base, the price of `Desc` as a struct). `Register`'s error paths translate (goose now translates the type switch, `TypeAssert2`) but call
   names-only functions (`fmt.Errorf` is Perennial's trusted model; `Desc.String` and
   `wrappingCollector.unwrapRecursively` have no body), so a run reaching them is stuck. **Not translated**:
   `NewDesc`, `V2.NewDesc`, `Desc.String`, `WithUnit` (they would import common/model, prometheus/internal and
@@ -724,7 +726,8 @@ deletion of `nameFree`/`namesUnclaimed`/`descIdsDistinct`/`readRegPerm`, §5's r
   `EtcdGrove.prometheus.wp_seed_insertAll` (`Proof/.../prometheus/Seed.lean`, by induction on the list; with
   `seed_Registry_eq`/`seed_Collector_eq`/`seed_defaultRegistry_eq`, the trusted file's literal names equal to
   the translation's). **Axioms removed**: `initFuncsOk` (prometheus's `init.«0»`), and `defaultRegistry.init`,
-  `DefaultRegisterer.init`, `DefaultGatherer.init` out of `opaqueInitsOk`. **Added**: none. The fact is still
+  `DefaultRegisterer.init`, `DefaultGatherer.init` out of `opaqueInitsOk`. **Added**: client_model `dto`'s
+  `opaqueInitsOk` and `initFuncsOk` (above). The fact is still
   `True` (the maps are dropped at the end); step 2 makes it the registry.
 * **Hazard until step 2** (as route (a)'s glue had): `MustRegister.wp_proof` and `Register.wp_proof` are still
   the trust-boundary axioms, and `MustRegister`/`Register` now have bodies (`prometheus.Assumptions` unfolds
