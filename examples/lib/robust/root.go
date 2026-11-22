@@ -62,7 +62,7 @@ func RerunAsRoot(args, env []string, out io.Writer) error {
 
 // RerunInUserns runs this program's binary again inside a user namespace of its own, with a
 // network and a mount namespace (unshare -Urnm), where it is root with every capability over its
-// own namespaces: the way a harness that is root without CAP_NET_ADMIN (a container's root) makes
+// own namespaces: the way a process that is root without CAP_NET_ADMIN (a container's root) makes
 // network namespaces (NewNetwork, the bridge variant). The arguments args (the binary's name
 // excluded) and the environment variables env are added; /run/netns is a fresh tmpfs inside, so
 // that its namespaces are invisible to the host's ip netns. Disks (power losses) are not

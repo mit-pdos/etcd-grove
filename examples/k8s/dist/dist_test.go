@@ -6,13 +6,10 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
-	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -204,18 +201,6 @@ func TestCheckLog(t *testing.T) {
 	}
 }
 
-// addrs is the members' addresses of a cluster of machines ms: ports 2380 (peer) and 2379
-// (client) of a machine's address in the namespace mode; in the local mode, ports of the one
-// loopback address from base.
-func addrs(n *robust.Network, ms []*robust.Machine, base int) func(int) (string, string) {
-	return func(i int) (string, string) {
-		if n.Namespaces() {
-			return ms[i].IP + ":2380", ms[i].IP + ":2379"
-		}
-		return fmt.Sprintf("%s:%d", ms[i].IP, base+2*i), fmt.Sprintf("%s:%d", ms[i].IP, base+2*i+1)
-	}
-}
-
 // TestWellFormed checks the deployment predicate on random deployments and on ill-formed ones.
 func TestWellFormed(t *testing.T) {
 	a := func(o int) func(int) (string, string) {
@@ -246,67 +231,24 @@ func TestWellFormed(t *testing.T) {
 	}
 }
 
-// run is one deployment's run: its processes beside the two clusters' members.
-type run struct {
-	d       Deployment
-	cmd     etcddist.Command
-	work    string
-	c1, c2  *etcddist.Cluster
-	lines   [2]string
-	exited  [2]atomic.Bool
-	ownFail chan error
-}
-
-// fail records a failure of the run's own processes.
-func (r *run) fail(err error) {
-	select {
-	case r.ownFail <- err:
-	default:
-	}
-}
-
-// start starts a process on m with the arguments a, its log in logs/name.log; onExit (if not nil)
-// is called if it ends without being killed, with its log's last lines.
-func (r *run) start(m *robust.Machine, name string, a Args, onExit func(err error, tail string)) (*robust.Proc, string, error) {
+// writeArgs writes a's JSON file for the process named name, and returns its path.
+func writeArgs(work, name string, a Args) (string, error) {
 	b, _ := json.Marshal(a)
-	argPath := filepath.Join(r.work, name+".json")
-	logPath := filepath.Join(r.work, "logs", name+".log")
-	if err := os.WriteFile(argPath, b, 0o644); err != nil {
-		return nil, "", err
-	}
-	lf, err := os.Create(logPath)
-	if err != nil {
-		return nil, "", err
-	}
-	p, err := m.Start(r.cmd.Path, []string{roleK8s, argPath}, r.cmd.Env, lf, func(err error) {
-		lf.Sync()
-		b, _ := os.ReadFile(logPath)
-		ls := strings.Split(strings.TrimRight(string(b), "\n"), "\n")
-		if len(ls) > 30 {
-			ls = ls[len(ls)-30:]
-		}
-		onExit(err, strings.Join(ls, "\n"))
-	})
-	if err != nil {
-		lf.Close()
-		return nil, "", err
-	}
-	go func() {
-		<-p.Exited()
-		lf.Close()
-	}()
-	return p, argPath, nil
+	p := filepath.Join(work, name+".json")
+	return p, os.WriteFile(p, b, 0o644)
 }
 
 // deployRound runs one random deployment: the store's cluster of k1 members and the compactor's
-// of k2, each workload's API server (or writer) machines and its orchestrator, under the faults
-// once both orchestrators' set-ups are done; it fails t on a failure.
+// of k2 (each a group of restartables of one robust.Run, each group crashed by a crasher of its
+// own), each workload's API server (or writer) machines and its orchestrator, under the faults
+// (the crashes, and one network nemesis over every machine) once both orchestrators' set-ups are
+// done; it fails t on a failure.
 func deployRound(t *testing.T, round int, netns bool, crash string, k1, k2 int, sz Sizes, deadline time.Duration) {
 	exe, err := os.Executable()
 	if err != nil {
 		t.Fatal(err)
 	}
-	n, err := etcddist.NewNet(netns)
+	n, err := robust.NewNetworkOrLocal(netns, "ed")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -338,75 +280,73 @@ func deployRound(t *testing.T, round int, netns bool, crash string, k1, k2 int, 
 		}
 	}
 	tag := fmt.Sprintf("k%d-%d", os.Getpid(), round)
-	d, err := RandomDeployment(tag, k1, addrs(n, ms1, base), k2, addrs(n, ms2, base+2*k1), sz)
+	d, err := RandomDeployment(tag, k1, etcddist.MemberAddrs(n, ms1, base), k2,
+		etcddist.MemberAddrs(n, ms2, base+2*k1), sz)
 	if err != nil {
 		t.Fatalf("%v: %v", d, err)
 	}
-	cfg := etcddist.Config{Crash: crash, CrashPause: 2 * time.Second, Downtime: time.Second, Netns: netns,
-		NetPause: time.Second, NetHold: 2 * time.Second, Deadline: deadline, SetupWait: setupWait}
-	cfg2 := cfg
-	cfg2.NetPause = 0 // one nemesis, over every machine: the store cluster's (RunFaults)
+	cfg := robust.Config{Crash: crash, CrashPause: 2 * time.Second, Downtime: time.Second, Netns: netns,
+		NetPause: time.Second, NetHold: 2 * time.Second, Deadline: deadline, SetupWait: 3 * time.Minute}
 	work, err := os.MkdirTemp("", "k8sdist-")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.MkdirAll(filepath.Join(work, "logs"), 0o755); err != nil {
+	start := time.Now()
+	r, err := robust.NewRun(cfg, robust.Command{Path: exe, Env: []string{"DIST_PROC=1"}}, n, work)
+	if err != nil {
 		t.Fatal(err)
 	}
-	r := &run{d: d, cmd: etcddist.Command{Path: exe, Env: []string{"DIST_PROC=1"}}, work: work,
-		ownFail: make(chan error, 1)}
-	start := time.Now()
-	r.c1, err = etcddist.Start(d.Store, cfg, r.cmd, filepath.Join(work, "store"), n, ms1)
-	if err != nil {
-		t.Fatalf("%v: %v", d, err)
+	var lines []string
+	c1, err := etcddist.Start(d.Store, r, n, ms1)
+	var c2 *etcddist.Cluster
+	if err == nil {
+		c2, err = etcddist.Start(d.Compactor, r, n, ms2)
 	}
-	r.c2, err = etcddist.Start(d.Compactor, cfg2, r.cmd, filepath.Join(work, "compactor"), n, ms2)
-	if err != nil {
-		r.c1.Stop()
-		t.Fatalf("%v: %v", d, err)
+	if err == nil {
+		lines, err = runClients(r, n, d, append(append([]*robust.Machine{}, ms1...), ms2...))
 	}
-	res := r.runClients(n, append(append([]*robust.Machine{}, ms1...), ms2...), deadline)
-	r.c1.Stop()
-	r.c2.Stop()
-	t.Logf("round %d: %v (%v)\n  store cluster: %s\n  compactor cluster: %s\n  network: %s\n  %s\n  %s", round, d,
-		time.Since(start).Round(time.Second), &r.c1.Stats, &r.c2.Stats, r.c1.NetStats(), r.lines[0], r.lines[1])
-	if res != nil {
-		t.Errorf("round %d: %v (work directory kept: %s)", round, res, work)
+	if err == nil {
+		err = r.Err()
+	}
+	r.Stop()
+	for _, c := range []*etcddist.Cluster{c1, c2} {
+		if c != nil {
+			c.Stop()
+		}
+	}
+	for len(lines) < 2 {
+		lines = append(lines, "")
+	}
+	t.Logf("round %d: %v (%v)\n  %s; network: %s\n  %s\n  %s", round, d,
+		time.Since(start).Round(time.Second), &r.Stats, r.NetStats(), lines[0], lines[1])
+	if err != nil {
+		t.Errorf("round %d: %v (work directory kept: %s)", round, err, work)
 		return
 	}
 	os.RemoveAll(work)
 }
 
-// runClients starts the workloads' client machines (the store's API servers, the compactor's
-// writer and API servers) and orchestrators, holds the faults until both orchestrators have
-// marked their set-up done (or ended, or SetupWait passed), then makes them (both clusters'
-// crashes, one network nemesis over every machine) until both orchestrators are done, the deadline
-// passes or the run fails. It returns the run's first failure, nil if none.
-func (r *run) runClients(n *robust.Network, members []*robust.Machine, deadline time.Duration) error {
+// runClients makes the workloads' machines and runs their processes in r (robust.Run.RunClients):
+// the client machines (the store's API servers, the compactor's writer and API servers), then the
+// orchestrators, the network faults over every machine (the members' and these). It returns the
+// orchestrators' result lines (the store's, the compactor's).
+func runClients(r *robust.Run, n *robust.Network, d Deployment, members []*robust.Machine) ([]string, error) {
 	all := append([]*robust.Machine{}, members...)
-	var nodeProcs []*robust.Proc
-	defer func() {
-		for _, p := range nodeProcs {
-			p.Kill()
-		}
-	}()
 	localPort := 31000 + 20*rand.IntN(80)
-	ws := []Workload{r.d.StoreW, r.d.CompW}
-	epss := [][]string{r.d.Store.Endpoints(), r.d.Compactor.Endpoints()}
-	var orchMs []*robust.Machine
-	var wAddrs [][]string
+	ws := []Workload{d.StoreW, d.CompW}
+	epss := [][]string{d.Store.Endpoints(), d.Compactor.Endpoints()}
+	var nodes, orchs []robust.Client
 	for i, w := range ws {
 		om, err := n.AddMachine(fmt.Sprintf("orch-%s", w.Kind))
 		if err != nil {
-			return err
+			return nil, err
 		}
-		orchMs = append(orchMs, om)
 		all = append(all, om)
 		var nms []*robust.Machine
 		for j := 0; j < NodeCount(w); j++ {
 			nm, err := n.AddMachine(fmt.Sprintf("%s-node-%d", w.Kind, j))
 			if err != nil {
-				return err
+				return nil, err
 			}
 			nms = append(nms, nm)
 			all = append(all, nm)
@@ -421,113 +361,23 @@ func (r *run) runClients(n *robust.Network, members []*robust.Machine, deadline 
 				localPort++
 			}
 		}
-		wAddrs = append(wAddrs, as)
 		for j, nm := range nms {
 			name := fmt.Sprintf("%s-node-%d", w.Kind, j)
-			p, _, err := r.start(nm, name, Args{W: w, Eps: epss[i], Addrs: as, IsNode: true, Node: j},
-				func(err error, tail string) {
-					r.fail(fmt.Errorf("%s's machine exited (%v); its log:\n%s", name, err, tail))
-				})
+			p, err := writeArgs(r.Work(), name, Args{W: w, Eps: epss[i], Addrs: as, IsNode: true, Node: j})
 			if err != nil {
-				return err
+				return nil, err
 			}
-			nodeProcs = append(nodeProcs, p)
+			nodes = append(nodes, robust.Client{Name: name, Machine: nm, Args: []string{roleK8s, p}})
 		}
-	}
-	done := make(chan int, 2)
-	var procs []*robust.Proc
-	var paths []string
-	for i, w := range ws {
 		name := fmt.Sprintf("orch-%s", w.Kind)
-		p, path, err := r.start(orchMs[i], name, Args{W: w, Eps: epss[i], Addrs: wAddrs[i]},
-			func(err error, tail string) {
-				if err != nil {
-					r.fail(fmt.Errorf("%s failed (%v); its log:\n%s", name, err, tail))
-				}
-				ls := strings.Split(tail, "\n")
-				r.lines[i] = strings.TrimSpace(ls[len(ls)-1])
-				r.exited[i].Store(true)
-				done <- i
-			})
+		p, err := writeArgs(r.Work(), name, Args{W: w, Eps: epss[i], Addrs: as})
 		if err != nil {
-			return err
+			return nil, err
 		}
-		procs = append(procs, p)
-		paths = append(paths, path)
+		orchs = append(orchs, robust.Client{Name: name, Machine: om, Args: []string{roleK8s, p}, Ready: p + ".ready"})
 	}
-	defer func() {
-		for _, p := range procs {
-			p.Kill()
-		}
-	}()
-	stop := make(chan struct{})
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		t0 := time.Now()
-		limit := t0.Add(setupWait)
-		for {
-			ok, all2 := 0, true
-			for i, p := range paths {
-				if _, err := os.Stat(p + ".ready"); err == nil {
-					ok++
-				} else if !r.exited[i].Load() {
-					all2 = false
-				}
-			}
-			if all2 || time.Now().After(limit) {
-				for _, c := range []*etcddist.Cluster{r.c1, r.c2} {
-					c.Stats.SetupsDone.Store(int64(ok))
-					c.Stats.FaultsAfter.Store(int64(time.Since(t0)))
-				}
-				break
-			}
-			select {
-			case <-stop:
-				return
-			case <-time.After(100 * time.Millisecond):
-			}
-		}
-		wg.Add(2)
-		go func() { r.c1.RunFaults(all, stop); wg.Done() }()
-		go func() { r.c2.RunFaults(nil, stop); wg.Done() }()
-	}()
-	var err error
-	timeout := time.After(deadline)
-	for k := 0; k < len(procs) && err == nil; k++ {
-		select {
-		case <-done:
-		case <-timeout:
-			err = fmt.Errorf("the orchestrators were not done after %v", deadline)
-		case e := <-r.ownFail:
-			err = e
-		case <-r.c1.Failed():
-			err = r.c1.Err()
-		case <-r.c2.Failed():
-			err = r.c2.Err()
-		}
-	}
-	if err == nil {
-		select {
-		case e := <-r.ownFail:
-			err = e
-		default:
-		}
-	}
-	close(stop)
-	wg.Wait()
-	if err == nil {
-		err = r.c1.Err()
-	}
-	if err == nil {
-		err = r.c2.Err()
-	}
-	return err
+	return r.RunClients(nodes, orchs, all), nil
 }
-
-// setupWait is how long the faults wait for the orchestrators' set-ups (etcd-dist's SetupWait).
-const setupWait = 3 * time.Minute
 
 // TestDist runs random deployments of k8s_safe's program as a distributed deployment: the
 // store's cluster and the compactor's, three members each, every member and
@@ -535,43 +385,22 @@ const setupWait = 3 * time.Minute
 // losses where the device mapper is available) and, on network namespaces, the network fails. It
 // runs only with DIST_RUN set; -short runs one small deployment, otherwise DIST_ROUNDS (default 4).
 // DIST_OPS=n sets the store's clients' operations, DIST_ROUNDS_C=n the compactor's rounds. Faults start once both orchestrators' set-ups
-// are done. A root without CAP_NET_ADMIN (a container) runs the test again in a user namespace of
-// its own (the bridge variant); a non-root runs it again by sudo -n if it can, and in the local
-// mode (one loopback address, no network faults) otherwise.
+// are done. Without network namespaces, the test runs again where it can make them
+// (robust.RerunTest: a container's root in a user namespace of its own, a non-root by sudo -n), and
+// in the local mode (one loopback address, no network faults) if it cannot.
 func TestDist(t *testing.T) {
 	if os.Getenv("DIST_RUN") == "" {
 		t.Skip("set DIST_RUN=1 to run (minutes per deployment; namespaces need root)")
 	}
-	netns := robust.NetnsAvailable() == nil
-	if !netns && os.Getenv("DIST_CHILD") == "" {
-		args := []string{"-test.run=^TestDist$", "-test.v", "-test.count=1", "-test.timeout=3h"}
-		if testing.Short() {
-			args = append(args, "-test.short")
-		}
-		var rerun func([]string, []string, *bytes.Buffer) error
-		if robust.IsRoot() {
-			rerun = func(a, e []string, out *bytes.Buffer) error { return robust.RerunInUserns(a, e, out) }
-		} else if exec.Command("sudo", "-n", "true").Run() == nil {
-			rerun = func(a, e []string, out *bytes.Buffer) error { return robust.RerunAsRoot(a, e, out) }
-		}
-		if rerun != nil {
-			var out bytes.Buffer
-			err := rerun(args, []string{"DIST_RUN=1", "DIST_CHILD=1", "DIST_ROUNDS=" + os.Getenv("DIST_ROUNDS"),
-				"DIST_OPS=" + os.Getenv("DIST_OPS"), "DIST_ROUNDS_C=" + os.Getenv("DIST_ROUNDS_C")}, &out)
-			for _, l := range strings.Split(out.String(), "\n") {
-				if strings.TrimSpace(l) != "" {
-					t.Log(l)
-				}
-			}
-			if err != nil {
-				t.Fatalf("in the namespaces' child: %v", err)
-			}
-			return
-		}
+	if robust.RerunTest(t, "TestDist", "3h", testing.Short(), []string{"DIST_RUN=1",
+		"DIST_ROUNDS=" + os.Getenv("DIST_ROUNDS"), "DIST_OPS=" + os.Getenv("DIST_OPS"),
+		"DIST_ROUNDS_C=" + os.Getenv("DIST_ROUNDS_C")}) {
+		return
 	}
-	crash := etcddist.CrashKill
+	netns := robust.NetnsAvailable() == nil
+	crash := robust.CrashKill
 	if robust.PowerAvailable() == nil {
-		crash = etcddist.CrashMixed
+		crash = robust.CrashMixed
 	}
 	if testing.Short() {
 		deployRound(t, 1, netns, crash, 3, 3, ShortSizes, 8*time.Minute)

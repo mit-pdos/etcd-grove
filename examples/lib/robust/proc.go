@@ -8,8 +8,8 @@ import (
 	"syscall"
 )
 
-// A Proc is a process the harness started on a machine: the program under test, from its own
-// binary, unchanged. It ends when the harness kills it, or on its own (a crash of the program:
+// A Proc is a process started on a machine (Machine.Start): the program under test, from its own
+// binary, unchanged. It ends when it is killed (Kill), or on its own (a crash of the program:
 // the caller learns of it by Start's onExit).
 type Proc struct {
 	cmd    *exec.Cmd
@@ -19,8 +19,8 @@ type Proc struct {
 
 // Start starts the program path with arguments args on m (in its namespace: `ip netns exec`,
 // which execs it, so the process is the program's), with the environment variables env added to
-// the harness's, its standard output and error to out. onExit (if not nil) is called when it ends
-// without the harness having killed it, with Wait's error.
+// this process's, its standard output and error to out. onExit (if not nil) is called when it ends
+// without having been killed, with Wait's error.
 func (m *Machine) Start(path string, args, env []string, out io.Writer, onExit func(error)) (*Proc, error) {
 	var cmd *exec.Cmd
 	if m.ns == "" {
@@ -30,7 +30,7 @@ func (m *Machine) Start(path string, args, env []string, out io.Writer, onExit f
 	}
 	cmd.Env = append(os.Environ(), env...)
 	cmd.Stdout, cmd.Stderr = out, out
-	// a harness that dies takes its processes with it
+	// a process that starts others and dies takes them with it
 	cmd.SysProcAttr = &syscall.SysProcAttr{Pdeathsig: syscall.SIGKILL}
 	if err := cmd.Start(); err != nil {
 		return nil, err

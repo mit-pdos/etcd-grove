@@ -17,9 +17,11 @@ import (
 
 	clientv3 "go.etcd.io/etcd/client/v3"
 
+	"github.com/mit-pdos/etcd-grove/examples/etcd/dist/client"
 	"github.com/mit-pdos/etcd-grove/examples/etcd/dist/enc"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 	"github.com/mit-pdos/etcd-grove/examples/lib/remote"
+	"github.com/mit-pdos/etcd-grove/examples/lib/robust"
 
 	comp "github.com/mit-pdos/etcd-grove/examples/k8s/dist/compactorcopy"
 )
@@ -99,14 +101,14 @@ func CompactorNode(c int, addr string, eps []string) {
 	var d time.Duration
 	switch {
 	case c == 0:
-		cli := connectRetry(eps)
+		cli := client.ConnectRetry(eps)
 		op = func(any, any) any {
 			comp.Writer(cli)
 			return []comp.Log{}
 		}
 		d = writerAttempt
 	case c <= comp.Servers:
-		cli := connectRetry(rotate(eps, c))
+		cli := client.ConnectRetry(robust.Rotate(eps, c))
 		op = func(any, any) any {
 			return []comp.Log{comp.Sample(cli, comp.NewOwn(cli))}
 		}
@@ -116,7 +118,7 @@ func CompactorNode(c int, addr string, eps []string) {
 		// compactor the first one started (the driver's shared API servers dial the same bridges)
 		var clis []*clientv3.Client
 		for i := 0; i < comp.SharedServers; i++ {
-			clis = append(clis, connectRetry(eps))
+			clis = append(clis, client.ConnectRetry(eps))
 		}
 		op = func(any, any) any {
 			ls := make([]comp.Log, len(clis))
@@ -148,7 +150,7 @@ func RunCompactor(w Workload, addrs []string, ready func()) Result {
 	if len(addrs) != CompactorMachines {
 		return ended("not one machine per API server and writer")
 	}
-	if !awaitNodes(addrs) {
+	if !robust.AwaitAccept(addrs) {
 		return ended("a client machine never answered")
 	}
 	ready()
@@ -161,7 +163,9 @@ func RunCompactor(w Workload, addrs []string, ready func()) Result {
 	answered, logs := 0, 0
 	for k := 0; k < rounds; k++ {
 		go remote.Report(addrs[0], 0, codec, writerAttempt)
-		outs, oks := reportAll(addrs[1:], ins, codec, apiserverAttempt)
+		outs, oks := robust.CallAll(addrs[1:], ins, func(a string, in any) (any, bool) {
+			return remote.Report(a, in, codec, apiserverAttempt)
+		})
 		for i := range outs {
 			if !oks[i] {
 				continue

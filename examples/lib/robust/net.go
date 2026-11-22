@@ -15,7 +15,7 @@ import (
 // sysSetns is setns(2) on linux/amd64 (the syscall package has no SYS_SETNS).
 const sysSetns = 308
 
-// dialWorkers is how many OS threads of a machine's namespace dial for the harness at once.
+// dialWorkers is how many OS threads of a machine's namespace dial for this process at once.
 const dialWorkers = 8
 
 // A Network joins machines. In the namespace mode (NewNetwork) every machine is a network
@@ -25,7 +25,7 @@ const dialWorkers = 8
 // on its interfaces), so that to the machines' kernels it is a fault of the network (packets lost,
 // late, duplicated, reordered, a middlebox's reset) and never a local error (a DROP in a
 // machine's own OUTPUT chain fails its sends with EPERM). Nothing is made in the host's namespace.
-// It needs root (IsRoot): run the harness as root (RerunAsRoot).
+// It needs root (IsRoot): run this process as root (RerunAsRoot).
 //
 // The bridge variant of the namespace mode is for a host where the router cannot forward (a
 // container whose /proc/sys is read-only, so ip_forward stays 0) or has no iptables: there the
@@ -49,7 +49,7 @@ type Network struct {
 }
 
 // A Machine is a host of the network: a network namespace with its address (in the local mode,
-// the host itself), on which the harness starts processes (Start) and dials (Dial).
+// the host itself), on which this process starts processes (Start) and dials (Dial).
 type Machine struct {
 	Name string
 	IP   string // its address: a process listening on it is reachable at IP:port

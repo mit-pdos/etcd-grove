@@ -24,6 +24,7 @@ import (
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 	"github.com/mit-pdos/etcd-grove/examples/lib/lintest"
 	"github.com/mit-pdos/etcd-grove/examples/lib/remote"
+	"github.com/mit-pdos/etcd-grove/examples/lib/robust"
 
 	k8s "github.com/mit-pdos/etcd-grove/examples/k8s/dist/storecopy"
 )
@@ -57,7 +58,7 @@ func newKubeClient(eps []string) *kubernetes.Client {
 		if err == nil {
 			return kc
 		}
-		time.Sleep(nodePause)
+		time.Sleep(100 * time.Millisecond)
 	}
 }
 
@@ -66,7 +67,7 @@ func newKubeClient(eps []string) *kubernetes.Client {
 // client c with c mod A = a, remote.Serve at addrs[c] whose operation is the driver's call (or
 // runWatch) through that store. It never returns.
 func StoreNode(w Workload, a int, addrs []string, eps []string) {
-	kc := newKubeClient(rotate(eps, a))
+	kc := newKubeClient(robust.Rotate(eps, a))
 	s, ok := k8s.NewStoreOnly(kc)
 	if !ok {
 		panic("k8sdist: the API server's store could not be made")
@@ -101,7 +102,7 @@ func RunStore(w Workload, eps []string, addrs []string, ready func()) Result {
 	if !ok {
 		return ended("the seeds failed or did not make revisions 2 and 3")
 	}
-	if !awaitNodes(addrs) {
+	if !robust.AwaitAccept(addrs) {
 		return ended("an API server machine never answered")
 	}
 	ready()

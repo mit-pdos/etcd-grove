@@ -23,18 +23,11 @@
 package dist
 
 import (
-	"context"
-	"net"
 	"strconv"
-	"sync"
 	"time"
 
-	clientv3 "go.etcd.io/etcd/client/v3"
-	"go.uber.org/zap"
-
+	"github.com/mit-pdos/etcd-grove/examples/etcd/dist/client"
 	"github.com/mit-pdos/etcd-grove/examples/etcd/dist/env"
-	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
-	"github.com/mit-pdos/etcd-grove/examples/lib/remote"
 )
 
 // Kind is a workload's kind.
@@ -117,93 +110,6 @@ func AddrCount(w Workload) int {
 	return NodeCount(w)
 }
 
-// How many times, and how far apart, awaitCluster tries its read and awaitNodes its connection
-// (etcd-dist's).
-const (
-	readyTries = 60
-	readyPause = 500 * time.Millisecond
-	nodeTries  = 300
-	nodePause  = 100 * time.Millisecond
-)
-
-// awaitCluster waits until a linearizable read through a client of eps returns (etcd-dist's: a
-// liveness wait, a read writes nothing).
-func awaitCluster(eps []string) bool {
-	cli, err := etcdstart.NewClients(eps, zap.NewNop())
-	if err != nil {
-		return false
-	}
-	defer cli.Close()
-	for t := 0; t < readyTries; t++ {
-		ctx, cancel := context.WithTimeout(context.Background(), etcdstart.RequestTimeout)
-		_, err := cli.Get(ctx, "dist/ready")
-		cancel()
-		if err == nil {
-			return true
-		}
-		time.Sleep(readyPause)
-	}
-	return false
-}
-
-// awaitNodes waits until every address accepts a connection (etcd-dist's; a connection that
-// carries no request runs nothing).
-func awaitNodes(addrs []string) bool {
-	for _, a := range addrs {
-		up := false
-		for t := 0; t < nodeTries && !up; t++ {
-			c, err := net.DialTimeout("tcp", a, time.Second)
-			if err == nil {
-				c.Close()
-				up = true
-			} else {
-				time.Sleep(nodePause)
-			}
-		}
-		if !up {
-			return false
-		}
-	}
-	return true
-}
-
-// rotate is eps from its i-th (mod len) element on (etcd-dist's).
-func rotate(eps []string, i int) []string {
-	k := len(eps)
-	out := make([]string, k)
-	for j := 0; j < k; j++ {
-		out[j] = eps[(i+j)%k]
-	}
-	return out
-}
-
-// connectRetry makes a clientv3 client of eps, trying until it succeeds.
-func connectRetry(eps []string) *clientv3.Client {
-	for {
-		cli, err := etcdstart.NewClients(eps, zap.NewNop())
-		if err == nil {
-			return cli
-		}
-		time.Sleep(nodePause)
-	}
-}
-
-// reportAll runs remote.Report at every address with its input, all at once (etcd-dist's).
-func reportAll(addrs []string, ins []any, codec remote.Codec, d time.Duration) ([]any, []bool) {
-	outs := make([]any, len(addrs))
-	oks := make([]bool, len(addrs))
-	var wg sync.WaitGroup
-	for c := range addrs {
-		wg.Add(1)
-		go func() {
-			outs[c], oks[c] = remote.Report(addrs[c], ins[c], codec, d)
-			wg.Done()
-		}()
-	}
-	wg.Wait()
-	return outs, oks
-}
-
 // holdForever never returns.
 func holdForever() {
 	for {
@@ -225,7 +131,7 @@ func MainReady(w Workload, eps []string, addrs []string, ready func()) Result {
 	if len(addrs) != AddrCount(w) {
 		return ended("not one address per client")
 	}
-	if !awaitCluster(eps) {
+	if !client.AwaitCluster(eps) {
 		return ended("the cluster never answered a read")
 	}
 	switch w.Kind {

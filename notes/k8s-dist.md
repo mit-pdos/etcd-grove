@@ -77,16 +77,23 @@ if a copy differs from its source or a source has no copy. Each copy has one add
 | `Writer`, `NewOwn`, `NewShared`, `Servers`, `SharedServers`, `Writes` | `writer`; `apiserver`'s two constructors; the constants | the compactor's machines |
 | `Sample`, `CheckLog`, `Log` | `check` (a modified copy: split in two, the same reads and comparisons) | its reads on the API server, its comparisons on the orchestrator |
 
-Copied from etcd-dist into `examples/k8s/dist` (unexported there): `awaitCluster`, `awaitNodes`,
-`rotate`, `connectRetry`, `reportAll` (its `dist/client`); `TestDist`'s re-run in a user namespace
-and its per-round set-up (its `dist_test.go`). The runner's process start, set-up wait and fault
-loop are written for two clusters (`dist_test.go`'s `run`), over etcd-dist's `Cluster` for the
-members.
-
-**etcd-dist, additive** (`examples/etcd/dist/run.go`):
-`Cluster.RunFaults(machines, stop)` (the crasher, and one network nemesis over the caller's machines),
-`Cluster.Fail`, `Cluster.Failed`. `examples/lib/remote` is unchanged. `etc/goose.py`: the module's
-`GO_MOD_PINS` (etcd, raft, bbolt) and `CLIENT_GO_PINS` (k8s versions = `examples/k8s/etcd3`'s).
+**No copies of etcd-dist's runner code (since 2026-11-22, the user's decision).** Until then this
+package copied `awaitCluster`, `awaitNodes`, `rotate`, `connectRetry`, `reportAll` from etcd-dist's
+`dist/client` and `TestDist`'s re-run in a user namespace from its test, and ran its own process
+start, set-up wait and fault loop over three additions to etcd-dist's `Cluster` (`RunFaults`,
+`Fail`, `Failed`). All of it is now `examples/lib/robust`'s or exported by etcd-dist, and used here:
+`robust.Run` (one run for both clusters: each cluster's members a `Group` with a crasher of its own,
+as before; `RunClients` starts the API server and writer machines' processes and the two
+orchestrators, holds the faults until both set-ups are done, and makes one network nemesis over every
+machine), `robust.RerunTest`, `robust.AwaitAccept`, `robust.Rotate`, `robust.CallAll` (the compactor's
+calls to its API servers) and `robust.NewNetworkOrLocal`; `client.AwaitCluster` and
+`client.ConnectRetry` (etcd-dist's `dist/client`, exported) and `dist.MemberAddrs` (in place of
+the test's `addrs`). This package imports etcd-dist's `dist` only to deploy its clusters (`Start`,
+`Deployment`, `WellFormed`, `RunProcess` for the members' role), and its `client` and `env` for
+those two etcd client helpers and `ClearProxy`. The faults' counts are now the run's, one line for
+both clusters (`kills …, power losses …`). Where everything lives: `notes/etcd-dist-plan.md` §2,
+"What is generic lives in `examples/lib/robust`". `etc/goose.py`: the module's `GO_MOD_PINS` (etcd,
+raft, bbolt) and `CLIENT_GO_PINS` (k8s versions = `examples/k8s/etcd3`'s).
 
 Departures from the drivers (none weakens a check): porcupine and Kubernetes' checker run with a
 5-minute timeout (`CheckTimeout`; a timeout ends without a verdict, never a failure), where the
