@@ -19,3 +19,8 @@ and lower the hooks' cap `hookMax` from `2^16` to `4` (option A of `notes/step-b
 after the user's question why the per-put receipts had to come from callers: they need not, the put's
 own steps provide them). **Approved by the user, 2026-11-22, via the jtassarotti session.** The cap
 stays `2^16`; no top-level premise strengthened.
+
+**Freeze for step 2 (2026-11-22): approved in advance by the user, via the jtassarotti session**: "If the
+draft works, please proceed, do not wait for me." The first put proved with its receipt is the check;
+if it works, Draft, Review and Prove go on without a stop. A trust-base growth (a new axiom) would
+still stop.
