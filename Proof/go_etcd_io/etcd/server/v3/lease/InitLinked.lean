@@ -15,7 +15,7 @@ public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
 public import Proof.container.heap.Init
 public import Proof.github_com.Masterminds.semver.v3.Init
-public import Proof.github_com.prometheus.client_golang.prometheus.Init
+public import Proof.github_com.prometheus.client_golang.prometheus.InitLinked
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Init
 public import Proof.go_etcd_io.etcd.api.v3.version.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.lease.leasepb.Init
@@ -30,6 +30,7 @@ public import Proof.github_com.prometheus.client_golang.prometheus.NewCounterVec
 public import Proof.github_com.prometheus.client_golang.prometheus.NewGaugeVec
 public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogramVec
 public import Proof.github_com.prometheus.client_golang.prometheus.MustRegister
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Registry__Register
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -54,6 +55,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Assumptions]
+variable [promreg_sem : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Assumptions]
 variable [_root_.Perennial.errors.Assumptions]
 
 namespace go_etcd_io.etcd.server.v3.lease
@@ -189,29 +191,37 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   · ipureintro; rfl
   iintro %s1 ⟨S1, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NleaseGranted $$ [S1 HR1] as S1
+  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
+      _ _ _ _ NleaseGranted $$ [S1 HR1] as S1
   · iframe S1 HR1
+    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok cleaseRevoked])
   isplitr
   · ipureintro; rfl
   iintro %s2 ⟨S2, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NleaseRevoked $$ [S2 HR2] as S2
+  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
+      _ _ _ _ NleaseRevoked $$ [S2 HR2] as S2
   · iframe S2 HR2
+    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok cleaseRenewed])
   isplitr
   · ipureintro; rfl
   iintro %s3 ⟨S3, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NleaseRenewed $$ [S3 HR3] as S3
+  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
+      _ _ _ _ NleaseRenewed $$ [S3 HR3] as S3
   · iframe S3 HR3
+    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok cleaseTotalTTLs])
   isplitr
   · ipureintro; rfl
   iintro %s4 ⟨S4, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NleaseTotalTTLs $$ [S4 HR4] as S4
+  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
+      _ _ _ _ NleaseTotalTTLs $$ [S4 HR4] as S4
   · iframe S4 HR4
+    try iPkgInit
   ipersist HErrNotPrimary
   ipersist HErrLeaseNotFound
   ipersist HErrLeaseExists

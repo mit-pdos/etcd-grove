@@ -20,7 +20,7 @@ public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
 public import Proof.encoding.base64.InitLinked
-public import Proof.github_com.prometheus.client_golang.prometheus.Init
+public import Proof.github_com.prometheus.client_golang.prometheus.InitLinked
 public import Proof.go_etcd_io.etcd.api.v3.authpb.Init
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Init
 public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.InitLinked
@@ -30,6 +30,7 @@ public import Proof.golang_org.x.crypto.bcrypt.InitLinked
 public import Proof.google_golang_org.grpc.metadata.Init
 public import Proof.github_com.prometheus.client_golang.prometheus.NewGaugeFunc
 public import Proof.github_com.prometheus.client_golang.prometheus.MustRegister
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Registry__Register
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -54,6 +55,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.go_etcd_io.etcd.server.v3.auth.Assumptions]
+variable [promreg_sem : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Assumptions]
 
 namespace go_etcd_io.etcd.server.v3.auth
 
@@ -250,8 +252,10 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   · ipureintro; rfl
   iintro %s1 ⟨S1, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ (NcurrentAuthRevision (by decide)) $$ [S1 HR1] as S1
+  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
+      _ _ _ _ (NcurrentAuthRevision (by decide)) $$ [S1 HR1] as S1
   · iframe S1 HR1
+    try iPkgInit
   ipersist HErrRootUserNotExist
   ipersist HErrRootRoleNotExist
   ipersist HErrUserAlreadyExist

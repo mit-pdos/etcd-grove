@@ -16,7 +16,7 @@ public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
 public import Proof.github_com.Masterminds.semver.v3.Init
-public import Proof.github_com.prometheus.client_golang.prometheus.Init
+public import Proof.github_com.prometheus.client_golang.prometheus.InitLinked
 public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.InitLinked
 public import Proof.go_etcd_io.etcd.pkg.v3.crc.InitLinked
 public import Proof.go_etcd_io.etcd.pkg.v3.ioutil.Init
@@ -34,6 +34,7 @@ public import Proof.github_com.prometheus.client_golang.prometheus.NewGauge
 public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogram
 public import Proof.github_com.prometheus.client_golang.prometheus.ExponentialBuckets
 public import Proof.github_com.prometheus.client_golang.prometheus.MustRegister
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Registry__Register
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -58,6 +59,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
+variable [promreg_sem : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Assumptions]
 variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
 variable [_root_.Perennial.log.NewModel]
 
@@ -238,22 +240,28 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   · ipureintro; rfl
   iintro %s1 ⟨S1, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NwalFsyncSec $$ [S1 HR1] as S1
+  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
+      _ _ _ _ NwalFsyncSec $$ [S1 HR1] as S1
   · iframe S1 HR1
+    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok cwalWriteSec])
   isplitr
   · ipureintro; rfl
   iintro %s2 ⟨S2, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NwalWriteSec $$ [S2 HR2] as S2
+  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
+      _ _ _ _ NwalWriteSec $$ [S2 HR2] as S2
   · iframe S2 HR2
+    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok cwalWriteBytes])
   isplitr
   · ipureintro; rfl
   iintro %s3 ⟨S3, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NwalWriteBytes $$ [S3 HR3] as S3
+  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
+      _ _ _ _ NwalWriteBytes $$ [S3 HR3] as S3
   · iframe S3 HR3
+    try iPkgInit
   ipersist HerrBadWALName
   ipersist HErrMetadataConflict
   ipersist HErrFileNotFound

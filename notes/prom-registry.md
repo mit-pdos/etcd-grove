@@ -424,3 +424,65 @@ dependencies), `MustRegister`/`Register`/the initializer as theorems (`localName
 `NewServerMetrics`' clause and `Register.spec`'s rights (which the `metricsP` lock of `v3rpc`'s
 `getServerMetrics` must carry in its `nil` case, from `v3rpc`'s init resources: both collector IDs, with and
 without the histogram, since the option is decided at run time), then stage 5.
+
+## Stage 4 under option 1 (2026-11-22, the session after the user's decisions)
+
+**The user's decisions** (kaashoek, 2026-11-22): (1) the blocker's option 1: every closed theorem that
+reaches prometheus gains `[promreg_sem : promreg.Assumptions]`, so do the generated `Init`/`Link`s and the
+generic start theorems between; the closed statements change only by that instance and by losing
+`HNs`/`Ns`/`hNs`/`hNsIds` (listed in `notes/prom-registry-start-change.md`, for Upamanyu's sign-off, #15);
+(2) zeldovich's constructor change is accepted (#15; #18's branch `prove-ps2-metrics/2026-11-22`):
+`NewGauge`/`NewCounter`'s posts will carry `metric.isGauge`/`isCounter`, their `prometheus.toml` translates
+seven methods and stops treating `Desc`, `Metric` and ~13 more types as opaque. Their constructors' method
+clauses and `MetricRep.lean` are theirs; whichever branch lands second merges `prometheus.toml` (their
+methods plus our `trusted = [...]`). Nothing here depends on `Desc` being opaque (`collectorDescs` reads a
+collector, not a `*Desc`).
+
+**Done** (commit `7d8792914e`, built against `manifest-ln14`):
+* **The rights read the run's name themselves; the builtins take none** (`notes/decisions.md`, the entry of
+  this date): `promreg.idTok k := ⌜k ∉ builtinKeys⌝ ∗ ∃ γ, localName regKey γ ∗ k ↪[γ] ()`, `regTok k :=
+  ⌜k ∈ builtinKeys⌝ ∨ idTok k` in the registry invariant, `isRegistry f r` without `γ`, `SeedBuiltins`
+  without rights, `promReg_alloc m (m !! regKey = none) ks` from `ownLocalNames m`. The three promreg proofs
+  rebuilt (`regToks_insert_builtin`, `union_insert_r_same`). `prometheus.regFree n := ⌜n ∉ builtinNames⌝ ∗
+  idTok (descId n)`; `promKey` gone (`promreg.regKey`); `prometheus.namesFree` is `regFree` of each name.
+* **prometheus's fact and initializer**: `promInit := ∃ l, globalAddr defaultRegistry ↦□ l ∗ isRegistry
+  descId l` (`PkgInit.lean`, hand-written `IsPkgInit`/`GetIsPkgInitWf` with dependencies `[time, promreg]`).
+  `etc/gen-init.py`: `EXTRA_DEPS` (prometheus → promreg; inventory, `pkginfo_imports`, so the package tables),
+  `INST_HAND`, prometheus's `SPECIAL` (the glue's `defaultRegistry.init` and `init.«0»` stepped over
+  `NewRegistry`/`SeedBuiltins`), promreg's `Init.lean` generated, prometheus's split into
+  `Init`/`InitLinked` (it applies the model's proofs), and `PROMREG_VAR` (`variable [promreg_sem : ...]`) in
+  every init and package table whose closure has the model. **Retired**: prometheus's `initFuncsOk`
+  (`init.«0»`) and `defaultRegistry.init` from its `opaqueInitsOk` (the soundness hazard of "Stage 4
+  started" is gone for them).
+* **`MustRegister.wp_proof` is a theorem** (callee: `promreg.Registry.Register.spec`), its spec taking
+  `isPkgInit prometheus` and `regFree n`; the generated registering initializers apply
+  `(MustRegister.wp_proof promreg.Registry.Register.wp_proof)` with `try iPkgInit`. The glue's names
+  (`model.Collector`, `model.Register`, `model.defaultRegistry`) are rewritten to the translation's
+  (`Registry.lean`, `model_*_eq`: `Collector.ty` is irreducible, so the instances do not see through).
+  **Pitfall** (half a session): never let the kernel compare `(nameDesc n dh).ID'` with `descId n`, nor
+  build `idToks (descKeys [nameDesc n dh])` inside a big proof: it unfolds `descId` (the xxhash) on a
+  variable to the recursion limit ("(kernel) deep recursion" at the theorem, whatever `maxRecDepth`).
+  `generalize` the descriptor and go through `wp_Register_single` (a one-descriptor `Register` triple taking
+  `idTok d.ID'`), as `MustRegister.lean` does.
+* The full regeneration (`etc/gen-init.py`, 59 files: the registering packages' steps, `promreg_sem`,
+  prometheus's importers now importing its `InitLinked`, the package tables' rows for promreg, the
+  grpc-prometheus provider's init split) is in the working tree with this note; `read`'s `InitLinked` built.
+
+**Not done (stage 4):**
+* `prometheus.Register.wp_proof` (grpc-prometheus's server metrics, `getServerMetrics`) is still the axiom,
+  now about the glue's concrete code (the same hazard as `opaqueInitsOk` had; flag). Plan: (a) grpc-prometheus
+  `Defs`: the server metrics' names (`grpc_server_started_total`, `_handled_total`, `_msg_received_total`,
+  `_msg_sent_total`, and with the histogram option `grpc_server_handling_seconds`, from the pinned
+  go-grpc-middleware provider's `server_metrics.go`, to confirm) and `srvDescs hist dhs` (their
+  `nameDesc`s in `Describe`'s order); (b) `NewServerMetrics`' post gains `⌜∃ hist dhs, collectorDescsAre (mkOk
+  *ServerMetrics m) (srvDescs hist dhs)⌝` (statement otherwise unchanged; **flag it**, #24's area); (c)
+  `v3rpc.metricsP`'s `nil` case holds `idToks grpcKeys` (the five IDs and both collector IDs, the XOR of four
+  and of five: decided distinct and non-builtin by `decide +kernel`), and v3rpc's init resource gains them:
+  `ownInitResL`'s entries are names (`regQs`), so either v3rpc's entry gets a keys component
+  (`regResL` over `(q, names, keys)`) or the keys go in as pseudo-names; (d) `Register.spec` takes `isPkgInit
+  prometheus`, the collector fact and `idToks (descKeys ds)`, proved like `MustRegister` (one `Register` of
+  `ds`), and `getServerMetrics` splits `idToks grpcKeys` by the option.
+* Stage 5 (the closed theorems) and 6 (gates, the full build, the TCB baseline) as planned above; the closed
+  proofs no longer pass `startRights`' `nameFree`s to the root initializer (the types differ now: `namesFree`
+  is `regFree`'s) but `promReg_alloc`'s rights, from `ownLocalNames ∅`, which only the start model's change
+  gives: **if that change is dropped, the closed proofs have no way to make rights** (open decision).

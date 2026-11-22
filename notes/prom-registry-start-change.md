@@ -110,3 +110,28 @@ implicit `Ns`, `hNs : Ns.Nodup` and `hNsIds`); nothing else in any statement cha
 
 (The list is from the branch's base; the final diff will be checked against it when the threading
 stage is done.)
+
+## Update (2026-11-22, the user's decisions on #15): what else changes
+
+**The start model gains one resource.** The rights are no longer handed out by the start model; each run's
+proof makes them (`promreg.promReg_alloc`) from Perennial's per-generation name supply, `ownLocalNames ∅`
+(perennial#681: the adequacy theorems' `_localNames` variants give it). So the new `goose_adequacy_start`'s
+WP premise also takes `ownLocalNames (GF := GF) ∅` (after `ownGoState σ.goState.packageState`), a resource
+Perennial's own adequacy now hands every generation's program; nothing else is added. Without it the closed
+proofs cannot make the rights (the old `nameFree`s are no longer what the specs take), so this part of the
+change is not droppable on its own.
+
+**Every closed theorem that reaches prometheus gains one instance argument**, `[promreg_sem :
+github_com.mit_pdos.etcd_grove.examples.lib.promreg.Assumptions]` (the user's decision, option 1 of
+`notes/prom-registry.md` "Stage 4 started": the trusted glue calls the model's functions by name, which only
+the model's `Assumptions` unfold), as they already take `mvcc_sem`, `srv_sem`, `cache_sem`. With the loss of
+`HNs`/`Ns`/`hNs`/`hNsIds` above, those are the only two changes to the closed statements.
+
+**The exact list** is to be written here when stage 5 changes them (not yet, 2026-11-22); from the list above
+and the closures that reach prometheus, the expected set: `etcd_robust.spec`/`etcd_safe`,
+`etcd_leaseexpiryN_robust.spec`/`etcd_leaseexpiryN_safe`, `k8s_robust.spec`/`k8s_safe`,
+`mvccfull_robust.spec`/`mvccfull_safe`/`mvccfull_adequate`, `mvccrand_robust.spec`/`mvccrand_adequate`, the
+generic `etcdstart` theorems (`init_adequate(_below)`, `etcd_adequate(_below)`, `etcd_adequate_alloc(_below)`,
+`etcd_adequate_members(_below)`, `etcd_adequate_alloc_members(_below)`), and the WAL tester's (`WalTester/`,
+whose initializer registers the WAL's three metrics) and any other closed theorem whose program imports a
+package above prometheus (the k8s authz driver and the `lintest` programs: to check, by their `PkgTable`s).

@@ -41907,3 +41907,42 @@ it** (`notes/prom-registry.md` is the full design and plan):
      crash adequacy's next generation starts from `ownGoState ∅` and an empty heap) built by the new
      run's initializer, whose invariant names `γ₁`. Double registration across runs is impossible in
      Go anyway (the registry is process memory), and the logic now says the same without an axiom.
+
+## prometheus's registry: the closed theorems take `promreg.Assumptions`; the rights read the run's name themselves (2026-11-22 · branch `prom-registry`; the user's decision on the blocker, option 1)
+
+**Supersedes in part** the entry above: its third bullet (`PromRegGS`, a typeclass instance of the run) and
+the `builtinToks` of its second point.
+
+**Decided by the user** (kaashoek, 2026-11-22, `notes/prom-registry.md` "Stage 4 started", option 1): the
+glue resolves the model's functions by name (`FuncResolve promreg.NewRegistry`, `MethodResolve
+*promreg.Registry "Register"`), which only `promreg.Assumptions` unfolds, and client_golang does not import
+the model, so `prometheus.Assumptions` does not give it. **Every closed theorem that reaches prometheus
+gains one instance argument, `[promreg_sem : promreg.Assumptions]`**, as they already take `mvcc_sem`,
+`srv_sem`, `cache_sem` for packages their `main` does not import; so do the generated `Init`/`InitLinked`/
+`PkgTable` (`etc/gen-init.py`: `PROMREG_VAR` in every file whose closure has the model), the `Link`s
+(`etc/gen-link.py`) and the generic start theorems between. It is satisfiable (the names are the model's own
+package path, which no other code declares) and is what the trusted model means: the semantics' function
+table holds the model's code. Rejected: (2) client_golang's own names as the model's trusted bodies (the
+verified model would become trusted Lean); (3) a translator option adding an import edge (a Perennial
+change, not available now).
+
+**The agent's choices within it:**
+- **No per-run instance: a right reads the run's ghost name itself.** With Perennial's per-generation name
+  supply (`localName`, perennial#681, manifest `local-names-c14`), `promreg.idTok k` is `⌜k ∉ builtinKeys⌝ ∗
+  ∃ γ, localName regKey γ ∗ k ↪[γ] ()`: two rights to `k` agree on `γ` (`localName_agree`), so they are
+  exclusive (`idTok_excl`) with no `γ` anywhere in a statement; `isRegistry f r` and `regInv` take no `γ`
+  either. `PromRegGS` is gone.
+- **The builtins take no rights.** The registry's invariant holds, for each registered ID, `regTok k :=
+  ⌜k ∈ builtinKeys⌝ ∨ idTok k`; `SeedBuiltins` registers the builtins with the left disjunct, and a right is
+  never a builtin's (its pure part), which is what the builtin tokens excluded. So **prometheus's initializer
+  needs no resource**: it stays an `_lb` form, its fact is `promInit := ∃ l, globalAddr defaultRegistry ↦□ l ∗
+  isRegistry descId l`, and the init chain's resource lists (`ownInitResL`) are unchanged but for what
+  `namesFree` now is (`regFree` of each name). Rejected: prometheus as a resource package (`builtinToks` in
+  `ownInitResL`'s list): every importer of prometheus (52 packages, `lb` forms among them) would change form.
+- **prometheus's dependencies are hand-written** (`PkgInit.lean`, `IsPkgInit`/`GetIsPkgInitWf` with `time`
+  and `promreg`): the glue's `defaultRegistry.init` initializes the model's package, which the translation's
+  `pkgImportedPkgs` does not list. `etc/gen-init.py`'s `EXTRA_DEPS` adds it to the inventory and the package
+  tables, `INST_HAND` names the hand-written instance.
+- **A run's rights** (`promReg_alloc`): from the generation's `ownLocalNames m` with `regKey` unset, a fresh
+  ghost map recorded under `regKey` and `idToks ks` for distinct non-builtin `ks`. The closed theorems get
+  `ownLocalNames ∅` from `goose_adequacy_start`'s WP premise (stage 5, the start model's change).

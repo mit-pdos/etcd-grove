@@ -190,7 +190,7 @@ def reg_steps(p, regs):
               f'iintro %s{i} ⟨S{i}, -⟩', 'try wp_auto',
               f'wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)',
               f'    _ _ _ _ {n} $$ [S{i} HR{i}] as S{i}',
-              f'· iframe S{i} HR{i}', '  iPkgInit']
+              f'· iframe S{i} HR{i}', '  try iPkgInit']
     return L
 
 
@@ -4199,6 +4199,7 @@ def gen(p, cfg=None):
                 cfg_imps.append(m)
     if p in PRE_RES and 'Proof.github_com.prometheus.client_golang.prometheus.MustRegister' not in cfg_imps:
         cfg_imps.append('Proof.github_com.prometheus.client_golang.prometheus.MustRegister')
+    if p in PRE_RES and 'Proof.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Registry__Register' not in cfg_imps:
         cfg_imps.append('Proof.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Registry__Register')
     mods = [inst_mod] + sorted({ASSUMED[q][0] if q in ASSUMED else init_module(q) for q in imps}) + cfg_imps
     if newvars: mods.append('Proof.errors.NewVarCell')
