@@ -617,3 +617,68 @@ protocol, decision E); the plan `notes/kvnet-proof-plan.md`.
   seed by `cp -a` from a worktree at the same Perennial pin).
 - The worktree-isolation guard rejects compound shell commands naming long paths with `git`/`cd`: put such
   sequences in a script file.
+
+## `StartNode`'s callees, `GetConfChange`, the conf law (2026-11-22, branch `kvnet-proof`)
+
+Proved (no axiom, no `sorry`; `lake build KvNet` 3008 jobs):
+- `FileOf` (own) and, copied from kvdurablenoax (`KVNET_REUSED`, the same Go text), `itoa`, the four
+  `quietLogger.*f` methods (`QLogger.lean` with them) and `ReconfAu` (`kd_ccAu`, `kd_ccAu_dup`).
+  `qLogger_isLogger` is not copied: kvdurablenoax has it in `Config.lean` with `Cluster.config`; `StartNode`'s
+  proof restates it (ten lines).
+- `newTransport`: the peers map built by `wp_map_for_range` over the read-only address map, each other
+  replica's peer with a fresh bag channel (`start_bag` of `qElem F pid`), given `addrProto a (kvP F pid) (kvQ F
+  pid)` and `addrOk a` of every other address (a persistent premise); post: the id, stats, the unset node field,
+  `isPeers`.
+- `Transport.start`: stores the node, makes `isTransportCore` (the step law and an untraced cluster are the
+  caller's), forks `runPeer` per peer.
+- `getUint64.specAny` (own spec module `getUint64Any`, proof `getUint64.wp_proofAny`): on any bytes; not `ok`
+  (rest the nil slice) when shorter than eight.
+- `GetConfChange` at `cf := kvConfRead` (`ConfDefs.lean`): on any payload, an owned change
+  (`ownConfChangeI … (some o)`) of a defined transition (`ccTransOk`). The payload is made read-only first (the
+  post does not give it back), so the two `getUint64` of the input and `b[0]` share it.
+- `kv_confLaw γ vs dir id` (`ConfLaw.lean`): `confLaw (kvFacts γ (fun _ => True)) (kvRep γ vs dir) kvConfRead
+  γ.r.cluster kdRaftN id`. So `kvFacts`' `confOk` is `True` at the top level: the server proposes whatever change
+  it is asked, and the store's conf policy decides at the commit.
+
+### `StartNode` and the crash frame: blocked on raft's `RestartNode` update (2026-11-22)
+
+**The gap** (ledger 2026-11-22, `RestartNode`). Perennial's (mixed) crash adequacy takes a generation's crash
+obligation when the generation starts (`∀ L', crashed -∗ extsCrashStart … ={⊤}=∗ P i L'`), not as a WPC carried
+through the code. So the next generation's exclusive start resources must sit, from the generation's start on,
+in invariants that the obligation can empty with `crashed` and a token it keeps: `inv (body ∨ crashed ∗ tok)`.
+For kvnet those are raft's `raftState γ id S` and the file's state (what `kd_boot_choose` takes). Any other
+opener must refute the crashed side with `notCrashed`, which a thread has only at a step (`wp_ncfupd`,
+`wp_atomic_nc`, channel `ncfupd`s), or must not need what the crash takes. `RestartNode`'s client update is a
+plain atomic update fired inside `RestartNode` and needs `raftState`: on the crashed side it can produce neither
+`raftState` nor `StorageHolds S σ`, and taking `raftState` out before the call loses it to a crash during
+`RestartNode`. Hence: **`RestartNode`'s update must take and give back `notCrashed`** (as `durWriteSync` does;
+raft's proof fires it before any step). Raft's change: reported on #22, not made here.
+
+**kvnet's design once that lands** (each item checked against the current proofs, not built):
+- The file invariant is allocated at the generation's boot (the crash obligation's `P i L'`, or `Hstart` for the
+  first), not after `RestartNode`: `kdFileInvK γ id γd wr x` with
+  `inv (∃ S s pb, durSt γd s ∗ ghostVar wr ½ (S, s, pb) ∗ fileHolds-part (persistent) ∗
+   ((raftState γ id S ∗ batch's exclusive pieces) ∨ crashed ∗ tokK))`.
+- The node moves into the batch record: `pb = some (γb, S2, q)` holds `∃ n, nodeArm n γ x ∗ readyEnter n … ∗
+  nodeRunning n q ∗ savedPropOwn γb (kdBatchRes γ id n st' ms)`. `persist`/`run` need no `n = n'`: `run` gets
+  its batch's results through the saved proposition's agreement, as now. `persist` needs `nodeArm n γ x` at the
+  rename (from `RestartNode`'s post, kept in `isReplica`).
+- The writer variable becomes per generation (the dead generation's `dmu` keeps the other half): `KdNames.wr`
+  goes, its name joins `KdDmuNames`.
+- Openers: the rename's update (no token) touches only `durSt` and the writer and, on the crashed side, drops the
+  batch's pieces; the sync update and `dmu_close_enter` (`wp_ncfupd`) and `RestartNode`'s update (once it has the
+  token) refute the crashed side.
+- The crash obligation: open the file invariant with `tokK`, take `raftState` and the batch, run `durInv_crash`
+  with `durSt` (given back), close with `crashed ∗ tokK`; `kd_boot_choose`; a fresh writer variable and the
+  next `kdFileInvK` from `durBoot`'s new names.
+- `StartNode.spec`'s `S` must depend on the configuration (`S : NodeConfig → GMap w64 GoString → IProp GF`, and
+  `Run`/`RunNode` likewise): the start resources name `dir`, the id, the voters (`kdCluster γ vs` with `vs` the
+  bootstrap voters), every other address's protocol (for `newTransport`), and the globals `runPeer` needs
+  (`net.errTimeout`). A ledger entry when it is changed.
+
+**Next, in order.** (1) Raft: `RestartNode`'s update with the crash token (raft's agent). (2) kvnet: the file
+invariant's restructuring above (`Defs`, `PersistLemmas`, `Replica.persist`, `RunDmu`, `newReplica`,
+`BootLemmas`), then `StartNode` (template: kvdurablenoax's `Cluster.start`, 524 lines; plus the boot
+configuration loop, `&Stats{}`'s mutex, `newTransport`/`start`, `sendSpec` from `Transport.Send.spec`).
+(3) Independent of (1)-(2): kvcheck's `checker.{conf,reconfigure,disrupt}`, `Gen`/`Model`, `Check` over lintest,
+the minting laws; `PutConfChange`.
