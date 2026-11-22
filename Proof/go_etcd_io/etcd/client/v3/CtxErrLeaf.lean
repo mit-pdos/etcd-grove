@@ -28,10 +28,10 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3
 open go_etcd_io.etcd.cache.v3 (statusErrOk errCellOk errorMsgIs ctxErrMsg ctxErrShape)
 
-section defs
+section statusErr
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
@@ -52,6 +52,15 @@ theorem clientErr_statusError (e : GoInterfaceOk) (hl : errors.isLeafError e)
   intro h
   rw [hty] at h
   simp [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty] at h
+
+end statusErr
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- **A done context's error** (persistent): a non-nil leaf error (`errors.isLeafError`) of a
 context error's shape (`ctxErrShape`: no `Is` method, no `EtcdError`), a pointer if an
