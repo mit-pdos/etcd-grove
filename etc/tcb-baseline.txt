@@ -258,7 +258,6 @@ axiom klog.Verbose.InfoS.wp_proof
 axiom klog.Verbose.Infof.wp_proof
 axiom klog.Warningf.wp_proof
 axiom kmetrics.HistogramVec.WithContext.wp_proof
-axiom labels.Everything.wp_proof
 axiom labels.LabelSelectorAsSelector.wp_proof
 axiom labels.reqsValid
 axiom lease.NewLessor.wp_proof
@@ -411,7 +410,6 @@ axiom reflect.Zero.wp_proof
 axiom reflectM.reflNew_pointsto
 axiom reflectM.value_intoVal_inj
 axiom reflectM.value_into_val_typed
-axiom resourceversion.isWellFormed.wp_proof
 axiom schema.MustUnsafeGetAllLeases.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
 axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
