@@ -1,0 +1,4 @@
+# The copy for the part `KvNet/` of `Net/Code/net/rpc.toml` (etc/copy-part.py; rerun it, do not edit).
+# Project models-net's net/rpc (etc/goose.py): the net/rpc model (models/net/rpc, Go 1.27.3's source
+# with gob and reflection replaced by the program's generated Codec; models/README.md), with all its
+# bodies.

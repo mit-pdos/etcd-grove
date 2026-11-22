@@ -98,7 +98,7 @@ theorem lease.lessor.runLoop.wp_proof
     · iintro !>; itrivial
     (try wp_auto)
     iapply HΦ
-    itrivial
+    iexact Htt
   iapply BigAndL.bigAndL_nil.2
   itrivial
 
