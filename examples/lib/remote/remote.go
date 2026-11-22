@@ -150,10 +150,13 @@ func attempt(addr string, req []byte, d time.Duration) ([]byte, bool) {
 // node answered, or codec.Unknown(in) if no attempt got an answer that decodes. A request longer
 // than MaxLen is never sent: Do then never returns.
 //
-// The prophecy says which attempt answered with a known output (tries: none, or the answer was
-// the unknown output); it does nothing in Go, and the proof of the caller's linearizability needs
-// it (the commit of an operation whose outcome will be unknown is made before the operation is
-// sent, and the commit of one that will be answered by the far side's).
+// The prophecies do nothing in Go; the proof of the caller's linearizability needs them. p says
+// which attempt answered with a known output (tries: none, or the answer was the unknown output):
+// the commit of an operation whose outcome will be unknown is made before the operation is sent,
+// and the commit of one that will be answered by the far side's. q says the bytes of that answer
+// (their count, then each byte): the far side may fire a read's update several times, at
+// different states, and the read commits at the first firing whose output encodes to those bytes
+// (notes/specs-only/ledger.md, 2026-11-22, "remote.opMaybe's read form").
 func Do(addr string, in any, codec Codec, d time.Duration) any {
 	req := codec.EncIn(in)
 	if uint64(len(req)) > MaxLen {
@@ -164,6 +167,7 @@ func Do(addr string, in any, codec Codec, d time.Duration) any {
 		tries = ReadTries
 	}
 	p := primitive.NewProph()
+	q := primitive.NewProph()
 	for k := 0; k < tries; k++ {
 		rep, ok := attempt(addr, req, d)
 		if ok {
@@ -173,6 +177,10 @@ func Do(addr string, in any, codec Codec, d time.Duration) any {
 					p.ResolveU64(uint64(tries))
 				} else {
 					p.ResolveU64(uint64(k))
+					q.ResolveU64(uint64(len(rep)))
+					for j := 0; j < len(rep); j++ {
+						q.ResolveU64(uint64(rep[j]))
+					}
 				}
 				return out
 			}
@@ -180,6 +188,25 @@ func Do(addr string, in any, codec Codec, d time.Duration) any {
 	}
 	p.ResolveU64(uint64(tries))
 	return codec.Unknown(in)
+}
+
+// Report runs one operation with input in at the node listening at addr (Serve), in one attempt
+// within d, and returns the output the node answered and true; false if the attempt got no answer
+// that decodes (the operation may then have run, may still be running, or never run). It is for
+// an operation whose output is a report the caller checks itself, not a model's output: a client's
+// loop run on its own machine and what it saw (a writer's log of its successful Puts). No model, no
+// prophecy, no retry (the loop writes). codec.IsRead, Unknown and IsUnknown are not used. A request
+// longer than MaxLen is never sent: Report then never returns.
+func Report(addr string, in any, codec Codec, d time.Duration) (any, bool) {
+	req := codec.EncIn(in)
+	if uint64(len(req)) > MaxLen {
+		hang()
+	}
+	rep, ok := attempt(addr, req, d)
+	if !ok {
+		return nil, false
+	}
+	return codec.DecOut(rep)
 }
 
 // listen listens at addr, retrying a failed Listen.

@@ -13,11 +13,11 @@ with no proof and the premises on the model parameters (the client's protobuf la
 `h_WalPbIn_CloneHsLaw` (5), `h_WalPbIn_GetIndexLaw` (11), `h_WalPbIn_GetTermLaw` (5),
 `h_WalPbIn_IsEmptyLaw` (11), `h_WalPbIn_MarshalEntLaw` (9), `h_WalPbIn_MarshalHsLaw` (11),
 `h_WalPbIn_MustSyncLaw` (9), `h_WalPbIn_NilLaw` (2), `h_WalPbIn_SizeLaw` (9),
-`h_WalPbIn_UnmarshalEntLaw` (5), `h_WalPbIn_ZeroLaw` (9), `h_errors_AsLinkError` (2),
-`h_errors_IsErrno` (8), `h_errors_IsPathErrnoEof` (5), `h_errors_IsPathErrnoNotExist` (5),
-`h_errors_IsPathErrnoTerm` (8), `h_filepathlite_IsAbs` (2), `h_fmt_ErrorfErrsNot` (5),
-`h_fmt_ErrorfErrsTerm` (5), `h_fmt_SprintfBroken` (2), `h_io_CopyFiles` (5),
-`h_proto_UnmarshalWalRecordE` (5), `h_time_Time_FormatBroken` (2), `h_wal_WAL_renameWALUnlock` (2).
+`h_WalPbIn_UnmarshalEntLaw` (5), `h_WalPbIn_ZeroLaw` (9), `h_errors_IsErrno` (8),
+`h_errors_IsPathErrnoEof` (5), `h_errors_IsPathErrnoNotExist` (5), `h_errors_IsPathErrnoTerm` (8),
+`h_filepathlite_IsAbs` (2), `h_fmt_ErrorfErrsNot` (5), `h_fmt_ErrorfErrsTerm` (5),
+`h_fmt_SprintfBroken` (2), `h_io_CopyFiles` (5), `h_proto_UnmarshalWalRecordE` (5),
+`h_time_Time_FormatBroken` (2), `h_wal_WAL_renameWALUnlock` (2).
 
 `#print axioms` on a result is its trust base (`etc/tcb-report.py`).
 -/
@@ -63,7 +63,6 @@ public import Proof.path.filepath.Join
 public import Proof.path.filepath.join
 public import Proof.strings.HasSuffix
 public import Proof.syscall.Flock
-public import Spec.errors.AsLinkError
 public import Spec.errors.IsErrno
 public import Spec.errors.IsPathErrnoEof
 public import Spec.errors.IsPathErrnoTerm
@@ -992,9 +991,8 @@ theorem etcd_wal.wp_Boot
     (h_WalPbIn_MustSyncLaw : WalPbIn.MustSyncLaw (walRaftP (GF := GF))) (h_WalPbIn_NilLaw :
     WalPbIn.NilLaw (walRaftP (GF := GF))) (h_WalPbIn_SizeLaw : WalPbIn.SizeLaw (walRaftP (GF :=
     GF)) walRaftMr) (h_WalPbIn_UnmarshalEntLaw : WalPbIn.UnmarshalEntLaw (walRaftP (GF := GF))
-    U) (h_WalPbIn_ZeroLaw : WalPbIn.ZeroLaw (walRaftP (GF := GF))) (h_errors_AsLinkError :
-    _root_.Perennial.EtcdGrove.errors.AsLinkError.spec (GF := GF) (hG := hG)) (h_errors_IsErrno
-    : _root_.Perennial.EtcdGrove.errors.IsErrno.spec (GF := GF) (hG := hG))
+    U) (h_WalPbIn_ZeroLaw : WalPbIn.ZeroLaw (walRaftP (GF := GF))) (h_errors_IsErrno :
+    _root_.Perennial.EtcdGrove.errors.IsErrno.spec (GF := GF) (hG := hG))
     (h_errors_IsPathErrnoEof : _root_.Perennial.EtcdGrove.errors.IsPathErrnoEof.spec (GF := GF)
     (hG := hG)) (h_errors_IsPathErrnoNotExist :
     _root_.Perennial.EtcdGrove.errors.IsPathErrnoNotExist.spec (GF := GF) (hG := hG))
@@ -1019,10 +1017,9 @@ theorem etcd_wal.wp_Boot
     (fun W : WalGS GF => (_root_.Perennial.EtcdGrove.walfs.wal.wp_Exist walCodec walRaftMr
     h_errors_IsPathErrnoNotExist)) (fun W : WalGS GF =>
     (_root_.Perennial.EtcdGrove.walfs.wal.wp_CreateFresh (walRaftP (GF := GF)) walRaftMr
-    h_WalPbIn_IsEmptyLaw h_WalPbIn_MarshalHsLaw h_WalPbIn_NilLaw h_errors_AsLinkError
-    h_errors_IsPathErrnoNotExist h_errors_IsPathErrnoTerm h_filepathlite_IsAbs h_fmt_SprintfBroken
-    h_time_Time_FormatBroken (h_wal_WAL_renameWALUnlock W)))
-    _root_.Perennial.EtcdGrove.walTester.etcd_wal.wp_freshOracle
+    h_WalPbIn_IsEmptyLaw h_WalPbIn_MarshalHsLaw h_WalPbIn_NilLaw h_errors_IsPathErrnoNotExist
+    h_errors_IsPathErrnoTerm h_filepathlite_IsAbs h_fmt_SprintfBroken h_time_Time_FormatBroken
+    (h_wal_WAL_renameWALUnlock W))) _root_.Perennial.EtcdGrove.walTester.etcd_wal.wp_freshOracle
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.wp_storeOracle
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.member.wp_resume
     (_root_.Perennial.EtcdGrove.walTester.etcd_wal.member.wp_restart P U HsO h_U_Ok h_U_SnapCoh
@@ -1050,9 +1047,8 @@ theorem etcd_wal.wp_Main
     (h_WalPbIn_MustSyncLaw : WalPbIn.MustSyncLaw (walRaftP (GF := GF))) (h_WalPbIn_NilLaw :
     WalPbIn.NilLaw (walRaftP (GF := GF))) (h_WalPbIn_SizeLaw : WalPbIn.SizeLaw (walRaftP (GF :=
     GF)) walRaftMr) (h_WalPbIn_UnmarshalEntLaw : WalPbIn.UnmarshalEntLaw (walRaftP (GF := GF))
-    U) (h_WalPbIn_ZeroLaw : WalPbIn.ZeroLaw (walRaftP (GF := GF))) (h_errors_AsLinkError :
-    _root_.Perennial.EtcdGrove.errors.AsLinkError.spec (GF := GF) (hG := hG)) (h_errors_IsErrno
-    : _root_.Perennial.EtcdGrove.errors.IsErrno.spec (GF := GF) (hG := hG))
+    U) (h_WalPbIn_ZeroLaw : WalPbIn.ZeroLaw (walRaftP (GF := GF))) (h_errors_IsErrno :
+    _root_.Perennial.EtcdGrove.errors.IsErrno.spec (GF := GF) (hG := hG))
     (h_errors_IsPathErrnoEof : _root_.Perennial.EtcdGrove.errors.IsPathErrnoEof.spec (GF := GF)
     (hG := hG)) (h_errors_IsPathErrnoNotExist :
     _root_.Perennial.EtcdGrove.errors.IsPathErrnoNotExist.spec (GF := GF) (hG := hG))
@@ -1075,10 +1071,10 @@ theorem etcd_wal.wp_Main
     h_WalDecEnvSupply h_WalHsOwn h_WalHsOwn_2 h_WalPbIn_CloneHsLaw h_WalPbIn_GetIndexLaw
     h_WalPbIn_GetTermLaw h_WalPbIn_IsEmptyLaw h_WalPbIn_MarshalEntLaw h_WalPbIn_MarshalHsLaw
     h_WalPbIn_MustSyncLaw h_WalPbIn_NilLaw h_WalPbIn_SizeLaw h_WalPbIn_UnmarshalEntLaw
-    h_WalPbIn_ZeroLaw h_errors_AsLinkError h_errors_IsErrno h_errors_IsPathErrnoEof
-    h_errors_IsPathErrnoNotExist h_errors_IsPathErrnoTerm h_filepathlite_IsAbs h_fmt_ErrorfErrsNot
-    h_fmt_ErrorfErrsTerm h_fmt_SprintfBroken h_io_CopyFiles h_proto_UnmarshalWalRecordE
-    h_time_Time_FormatBroken h_wal_WAL_renameWALUnlock)
+    h_WalPbIn_ZeroLaw h_errors_IsErrno h_errors_IsPathErrnoEof h_errors_IsPathErrnoNotExist
+    h_errors_IsPathErrnoTerm h_filepathlite_IsAbs h_fmt_ErrorfErrsNot h_fmt_ErrorfErrsTerm
+    h_fmt_SprintfBroken h_io_CopyFiles h_proto_UnmarshalWalRecordE h_time_Time_FormatBroken
+    h_wal_WAL_renameWALUnlock)
 
 end links_pending
 

@@ -551,7 +551,9 @@ theorem alarmGetOk_of (st : Loc) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc) (B
   iexact HG
 
 /-- **The `*membership.RaftCluster` `c`** (trust boundary: `membership` is names-only):
-`Version` (a `*semver.Version`, maybe nil) and `ID` return; `SetVersion` (with a version not
+`Version` (a `*semver.Version`, nil or read-only: `cluster.go:580-587` returns
+`semver.MustParse(c.version.String())`, a fresh version nothing else holds; 2026-11-22,
+prove-ps2-semver: until then some pointer, `notes/specs-only/ledger.md`) and `ID` return; `SetVersion` (with a version not
 nil), `UpdateAttributes` and `SetDowngradeInfo` (which keeps the `DowngradeInfo` pointer) write
 the cluster's bucket under the batch lock only with `shouldApplyV3` (`cPre b`: the
 critical-section contract; without it, no write: `ApplyV2storeOnly`; unit 2). (D22, 2026-10-23:
@@ -581,7 +583,7 @@ def isCluster (c : Loc) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc) (BT : mvcc.
     □ ({{ True }}
         (App (Val (c @!! go.GoType.PointerType etcdserver.api.membership.RaftCluster.ty @!!
           go!"Version")) (Val #()))
-      {{ (v : Loc), RET #v; True }}) ∗
+      {{ (v : Loc), RET #v; ⌜v = null⌝ ∨ ∃ x : github_com.Masterminds.semver.v3.Version, v ↦□ x }}) ∗
     □ ({{ True }}
         (App (Val (c @!! go.GoType.PointerType etcdserver.api.membership.RaftCluster.ty @!!
           go!"ID")) (Val #()))

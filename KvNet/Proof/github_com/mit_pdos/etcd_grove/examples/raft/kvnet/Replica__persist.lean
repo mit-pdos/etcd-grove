@@ -52,7 +52,7 @@ theorem Replica.persist.wp_proof
     $$ []
   · iPkgInit
   try wp_auto
-  wp_apply (lc := 1) sync.Mutex.wp_Lock _ _ $$ [$Hdmu] as ⟨Hlocked, HR⟩
+  wp_apply (lc := 2) sync.Mutex.wp_Lock _ _ $$ [$Hdmu] as ⟨Hlocked, HR⟩
   iunfold kdDmuInv at HR
   iNamed HR
   icases Hlive with ⟨%S, %o, %pz, Hwr, %HMok, #Hcert, %Hfb, Hph⟩
@@ -133,9 +133,9 @@ theorem Replica.persist.wp_proof
   wp_apply wp_bytes_to_string sl (encStor M) (DFrac.own 1) $$ [$Hsl] as -
   try wp_auto
   rw [← Hdf.2]
-  wp_apply (wp_Write ph.γd ph.df ph.fR qc (encStor M) Hdf.1 Hdl) $$ Hdur Hos HosS Hdi Hdh Hcpm
-    [r Hwr Hlc1 Hkeep Hpend Hpost Hlocked Himage Hmeta Hic His Hcm HΦ]
-  iapply kd_writeAU γ id n ph q S o M pb _ HMok HSM' $$ HfInv Hwr Hlc1 Hkeep Hcert Hpend
+  wp_apply (wp_Write ph.fl.γd ph.fl.df ph.fl.fR qc (encStor M) Hdf.1 Hdl) $$ Hdur Hos HosS Hdi Hdh Hcpm
+    [r Hwr Hlc1 Hlc2 Hkeep Hpend Hpost Hlocked Himage Hmeta Hic His Hcm HΦ]
+  iapply kd_writeAU γ id n ph q S o M pb _ HMok HSM' $$ HfInv Harm Hwr Hlc1 Hlc2 Hkeep Hcert Hpend
   iintro Hwr Hrun Hout Hdh Hcpm
   rw [HpbQ]
   ihave ⟨%pz', Hph⟩ := Hpost $$ Hout
@@ -175,7 +175,7 @@ theorem Replica.persist.wp_proofRun
     $$ []
   · iPkgInit
   try wp_auto
-  wp_apply (lc := 2) sync.Mutex.wp_Lock _ _ $$ [$Hdmu] as ⟨Hlocked, HR⟩
+  wp_apply (lc := 3) sync.Mutex.wp_Lock _ _ $$ [$Hdmu] as ⟨Hlocked, HR⟩
   iunfold kdDmuInv at HR
   iNamed HR
   icases Hlive with ⟨%S, %o, %pz, Hwr, %HMok, #Hcert, %Hfb, Hph⟩
@@ -263,9 +263,9 @@ theorem Replica.persist.wp_proofRun
   wp_apply wp_bytes_to_string sl (encStor M) (DFrac.own 1) $$ [$Hsl] as -
   try wp_auto
   rw [← Hdf.2]
-  wp_apply (wp_Write ph.γd ph.df ph.fR qc (encStor M) Hdf.1 Hdl) $$ Hdur Hos HosS Hdi Hdh Hcpm
-    [r Hwr Hlc1 Hlc2 Hkeep Hpend Hpost Hph Hclaim Hlocked Himage Hmeta Hic His Hcm HΦ]
-  iapply kd_writeAU γ id n ph q S o M pb _ HMok HSM' $$ HfInv Hwr Hlc1 Hkeep Hcert Hpend
+  wp_apply (wp_Write ph.fl.γd ph.fl.df ph.fl.fR qc (encStor M) Hdf.1 Hdl) $$ Hdur Hos HosS Hdi Hdh Hcpm
+    [r Hwr Hlc1 Hlc2 Hlc3 Hkeep Hpend Hpost Hph Hclaim Hlocked Himage Hmeta Hic His Hcm HΦ]
+  iapply kd_writeAU γ id n ph q S o M pb _ HMok HSM' $$ HfInv Harm Hwr Hlc1 Hlc3 Hkeep Hcert Hpend
   iintro Hwr Hrun Hout Hdh Hcpm
   rw [HpbQ]
   imod Hpost $$ Hout Hlc2 with HA

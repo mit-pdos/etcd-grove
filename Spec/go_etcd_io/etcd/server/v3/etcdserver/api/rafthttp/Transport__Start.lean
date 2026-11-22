@@ -36,7 +36,8 @@ remotes' pipelines, and eight from each `AddPeer`): an error, or the transport l
 transport of its member (`netTransport`: `Send` of the member's messages with a token,
 `SendSnapshot`, and `Stop` with the live right, `Stop_live`; or, once frozen, `trFrozen`,
 `trLive_freeze`, a `Stop` taking the freeze's stop token, `trFrozenTok`, D43 M5e, 2026-10-26:
-free until then) and its `ActiveSince` (`isTransporter`).
+free until then) and its `ActiveSince` and (rdslot, 2026-11-22) `ActivePeers`, each with one of
+the lock's reader tokens (`isTransporter`; until then `ActiveSince` with none).
 
 (Until stage 6d it also took the member's slot, `netSlot`, and `netProcSlots` copies of `R`,
 and asserted what the transport's goroutines and handlers do; these are now proved: each peer's
@@ -65,7 +66,8 @@ abbrev rafthttp.Transport.Start.spec : Prop :=
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), transportTok γn t c) ∗
         netTransport γn c.lid (interface.mkOk (go.GoType.PointerType rafthttp.Transport.ty) #t)
           (transportTok γn t c) iprop(∃ rs : trIds, trLive γn t c rs) ∗
-        rafthttp.isTransporter (interface.mkOk (go.GoType.PointerType rafthttp.Transport.ty) #t) ∗
+        rafthttp.isTransporter (interface.mkOk (go.GoType.PointerType rafthttp.Transport.ty) #t)
+          (transportTok γn t c) ∗
         □ (∀ rs : trIds, trFrozen γn t c rs -∗
           netTransport γn c.lid (interface.mkOk (go.GoType.PointerType rafthttp.Transport.ty) #t)
             (transportTok γn t c) (trFrozenTok c.γr rs)) }}

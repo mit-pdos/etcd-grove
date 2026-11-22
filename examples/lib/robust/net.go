@@ -15,7 +15,7 @@ import (
 // sysSetns is setns(2) on linux/amd64 (the syscall package has no SYS_SETNS).
 const sysSetns = 308
 
-// dialWorkers is how many OS threads of a machine's namespace dial for the harness at once.
+// dialWorkers is how many OS threads of a machine's namespace dial for this process at once.
 const dialWorkers = 8
 
 // A Network joins machines. In the namespace mode (NewNetwork) every machine is a network
@@ -25,13 +25,23 @@ const dialWorkers = 8
 // on its interfaces), so that to the machines' kernels it is a fault of the network (packets lost,
 // late, duplicated, reordered, a middlebox's reset) and never a local error (a DROP in a
 // machine's own OUTPUT chain fails its sends with EPERM). Nothing is made in the host's namespace.
-// It needs root (IsRoot): run the harness as root (RerunAsRoot).
+// It needs root (IsRoot): run this process as root (RerunAsRoot).
+//
+// The bridge variant of the namespace mode is for a host where the router cannot forward (a
+// container whose /proc/sys is read-only, so ip_forward stays 0) or has no iptables: there the
+// router's namespace holds a Linux bridge instead, every machine at 10.77.k.1 on one /16, and the
+// faults are tc's in the bridge's namespace: a block is a flower filter on the ingress of the
+// sender's port that drops the packets to the receiver (a Reset block drops too: tc cannot answer
+// with a TCP reset, CanReset), and link faults are netem on the receiver's port, as in the router
+// variant. NewNetwork picks it by itself. A process without CAP_NET_ADMIN (root in a container that
+// lacks it) can still make one inside a user namespace of its own (RerunInUserns).
 //
 // In the local mode (LocalNetwork) the machines share the host's loopback interface, all at one
 // random address 127.a.b.c, and the network has no faults: what runs where root is not available.
 type Network struct {
 	tag    string // the namespaces' prefix, unique on the host
 	router string // the router's namespace ("" in the local mode)
+	bridge bool   // the router's namespace is a bridge (the bridge variant: no forwarding, no iptables)
 	ip     string // the local mode's address
 
 	mu       sync.Mutex
@@ -39,7 +49,7 @@ type Network struct {
 }
 
 // A Machine is a host of the network: a network namespace with its address (in the local mode,
-// the host itself), on which the harness starts processes (Start) and dials (Dial).
+// the host itself), on which this process starts processes (Start) and dials (Dial).
 type Machine struct {
 	Name string
 	IP   string // its address: a process listening on it is reachable at IP:port
@@ -49,18 +59,50 @@ type Machine struct {
 	dial chan func() // the dialing threads of its namespace (nil in the local mode)
 }
 
-// NetnsAvailable says whether network namespaces can be made: root, and the ip, iptables and tc
-// commands.
+// NetnsAvailable says whether network namespaces can be made: root with CAP_NET_ADMIN, and the
+// ip and tc commands (iptables too for the router variant; without it, NewNetwork makes the
+// bridge variant).
 func NetnsAvailable() error {
 	if !IsRoot() {
 		return fmt.Errorf("network namespaces need root (RerunAsRoot)")
 	}
-	for _, c := range []string{"ip", "iptables-restore", "tc"} {
+	if !HasNetAdmin() {
+		return fmt.Errorf("network namespaces need CAP_NET_ADMIN (RerunInUserns)")
+	}
+	for _, c := range []string{"ip", "tc"} {
 		if _, err := run("which", c); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// HasNetAdmin says whether this process has CAP_NET_ADMIN (in its user namespace).
+func HasNetAdmin() bool {
+	b, err := os.ReadFile("/proc/self/status")
+	if err != nil {
+		return false
+	}
+	for _, l := range strings.Split(string(b), "\n") {
+		if v, ok := strings.CutPrefix(l, "CapEff:"); ok {
+			var caps uint64
+			if _, err := fmt.Sscanf(strings.TrimSpace(v), "%x", &caps); err != nil {
+				return false
+			}
+			return caps&(1<<12) != 0 // CAP_NET_ADMIN
+		}
+	}
+	return false
+}
+
+// routerAvailable says whether the router variant can be made: iptables, and forwarding in the
+// router's namespace (sysctl writes /proc/sys, which a container may mount read-only).
+func (n *Network) routerAvailable() bool {
+	if _, err := run("which", "iptables-restore"); err != nil {
+		return false
+	}
+	_, err := run("ip", "netns", "exec", n.router, "sysctl", "-qw", "net.ipv4.ip_forward=1")
+	return err == nil
 }
 
 // LocalNetwork is a network of the local mode: no namespaces, no faults.
@@ -79,12 +121,20 @@ func NewNetwork(tag string) (*Network, error) {
 	if _, err := run("ip", "netns", "add", n.router); err != nil {
 		return nil, err
 	}
-	for _, c := range [][]string{
+	cmds := [][]string{
 		{"ip", "-n", n.router, "link", "set", "lo", "up"},
-		{"ip", "netns", "exec", n.router, "sysctl", "-qw", "net.ipv4.ip_forward=1"},
 		{"ip", "netns", "exec", n.router, "iptables", "-N", "ROBUST"},
 		{"ip", "netns", "exec", n.router, "iptables", "-A", "FORWARD", "-j", "ROBUST"},
-	} {
+	}
+	if !n.routerAvailable() {
+		n.bridge = true
+		cmds = [][]string{
+			{"ip", "-n", n.router, "link", "set", "lo", "up"},
+			{"ip", "-n", n.router, "link", "add", "br0", "type", "bridge"},
+			{"ip", "-n", n.router, "link", "set", "br0", "up"},
+		}
+	}
+	for _, c := range cmds {
 		if _, err := run(c...); err != nil {
 			n.Close()
 			return nil, err
@@ -95,6 +145,10 @@ func NewNetwork(tag string) (*Network, error) {
 
 // Namespaces says whether the network is of the namespace mode (and can have faults).
 func (n *Network) Namespaces() bool { return n.router != "" }
+
+// CanReset says whether a Reset block refuses connections with a TCP reset (the router variant);
+// in the bridge variant it drops, as a plain block.
+func (n *Network) CanReset() bool { return n.Namespaces() && !n.bridge }
 
 // AddMachine adds a machine named name (for the logs).
 func (n *Network) AddMachine(name string) (*Machine, error) {
@@ -114,6 +168,23 @@ func (n *Network) AddMachine(name string) (*Machine, error) {
 	m.IP = fmt.Sprintf("10.77.%d.1", idx)
 	gw := fmt.Sprintf("10.77.%d.254", idx)
 	r := m.routerIf()
+	if n.bridge {
+		for _, c := range [][]string{
+			{"ip", "netns", "add", m.ns},
+			{"ip", "-n", m.ns, "link", "set", "lo", "up"},
+			{"ip", "-n", m.ns, "link", "add", "eth0", "type", "veth", "peer", "name", r, "netns", n.router},
+			{"ip", "-n", m.ns, "addr", "add", m.IP + "/16", "dev", "eth0"},
+			{"ip", "-n", m.ns, "link", "set", "eth0", "up"},
+			{"ip", "-n", n.router, "link", "set", r, "master", "br0"},
+			{"ip", "-n", n.router, "link", "set", r, "up"},
+			{"ip", "netns", "exec", n.router, "tc", "qdisc", "add", "dev", r, "clsact"},
+		} {
+			if _, err := run(c...); err != nil {
+				return nil, err
+			}
+		}
+		return m, m.startDialers()
+	}
 	for _, c := range [][]string{
 		{"ip", "netns", "add", m.ns},
 		{"ip", "-n", m.ns, "link", "set", "lo", "up"},
@@ -227,6 +298,9 @@ func (n *Network) SetBlocks(bs []Block) error {
 		}
 		return fmt.Errorf("robust: a local network has no faults")
 	}
+	if n.bridge {
+		return n.setBridgeBlocks(bs)
+	}
 	var b strings.Builder
 	b.WriteString("*filter\n-F ROBUST\n")
 	for _, x := range bs {
@@ -237,6 +311,26 @@ func (n *Network) SetBlocks(bs []Block) error {
 	}
 	b.WriteString("COMMIT\n")
 	_, err := runIn(b.String(), "ip", "netns", "exec", n.router, "iptables-restore", "--noflush")
+	return err
+}
+
+// setBridgeBlocks is SetBlocks in the bridge variant: every port's ingress filters removed, then a
+// filter on the sender's port for each block, dropping its IP packets to the receiver.
+func (n *Network) setBridgeBlocks(bs []Block) error {
+	for _, m := range n.Machines() {
+		if _, err := run("ip", "netns", "exec", n.router, "tc", "filter", "del", "dev", m.routerIf(), "ingress"); err != nil {
+			return err
+		}
+	}
+	if len(bs) == 0 {
+		return nil
+	}
+	var b strings.Builder
+	for _, x := range bs {
+		fmt.Fprintf(&b, "filter add dev %s ingress protocol ip prio 1 flower dst_ip %s action drop\n",
+			x.From.routerIf(), x.To.IP)
+	}
+	_, err := runIn(b.String(), "ip", "netns", "exec", n.router, "tc", "-batch", "-")
 	return err
 }
 

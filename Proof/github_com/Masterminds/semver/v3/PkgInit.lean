@@ -1,5 +1,5 @@
 /-
-The package-initialization instance of semver: fact `True` (names only: `MustParse`, `Version.LessThan`/`String`). One home, shared by the server's
+The package-initialization instance of semver: fact `True` (its imports `strings` and `strconv` since 2026-11-22, prove-ps2-semver: `comparePrerelease`, `comparePrePart`). One home, shared by the server's
 `Base.lean` files and the WAL (until 2026-11-15 declared in the lease's `Base.lean` and the WAL's `DepsPkgInit.lean`; notes/wal-lean-integration.md).
 -/
 module
@@ -15,6 +15,7 @@ public import Perennial.Proof.errors
 public import Perennial.Proof.sort
 public import Perennial.Proof.context
 public import Perennial.Proof.bytes
+public import Perennial.Proof.strconv.Base
 
 @[expose] public section
 

@@ -6,7 +6,7 @@ def bbolt.Options.String.spec : Prop :=
   ∀ (l : Loc) (dq : DFrac) (o : bbolt.OptsM),
     ⊢
       ∀ Φ,
-        bbolt.optsAt l dq o ∗ ⌜bbolt.loggerPtrOk o.logger⌝ -∗
+        isPkgInit pkg_id.go_etcd_io.bbolt ∗ bbolt.optsAt l dq o ∗ ⌜bbolt.loggerPtrOk o.logger⌝ -∗
           (▷ ∀ s, bbolt.optsAt l dq o -∗ Φ (intoVal s)) -∗
             WP
               ((intoVal
