@@ -65,11 +65,11 @@ public import Proof.strings.HasSuffix
 public import Proof.syscall.Flock
 public import Spec.errors.IsErrno
 public import Spec.errors.IsPathErrnoEof
+public import Spec.errors.IsPathErrnoNotExist
 public import Spec.errors.IsPathErrnoTerm
 public import Spec.fmt.ErrorfErrsNot
 public import Spec.fmt.ErrorfErrsTerm
 public import Spec.fmt.SprintfBroken
-public import Spec.go_etcd_io.etcd.server.v3.storage.wal.ExistCallees
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__renameWALUnlock
 public import Spec.google_golang_org.protobuf.proto.UnmarshalWalRecordE
 public import Spec.internal.filepathlite.IsAbs

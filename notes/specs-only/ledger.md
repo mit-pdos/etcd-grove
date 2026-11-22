@@ -4021,6 +4021,26 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** `Promote.spec` takes the level-0 token (`levelTok lessorLvl`, given back) and the two bounds,
   as `Leases.spec` does; the server's callers (`LessorOk.lean`'s contract, `NewServer`'s promotion on becoming
   leader) supply them. Not applied: it changes the server's lessor contract.
+- **Decision.** Open (the axiom stays).
+
+## 2026-11-21: v2stats' `ServerStats.BecomeLeader` takes the stats' ownership (prove-ps2-v2stats)
+
+- **Spec.** `v2stats.ServerStats.BecomeLeader.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v2stats/`; a
+  trust-boundary axiom until this change: `ServerStats`' type has an unnamed struct field with tags,
+  `serverStats.LeaderInfo`, which Goose refused until mit-pdos/perennial#655).
+- **Defect.** Not provable over the real code: the premise was `st ≠ null` only, and `BecomeLeader` locks the stats'
+  mutex and writes its fields (`server.go:130-145`), which nothing in the premise owns.
+- **Evidence.** The translation (`Code/go_etcd_io/etcd/server/v3/etcdserver/api/v2stats.lean`,
+  `ServerStats.BecomeLeader.impl`, `ServerStats.becomeLeader.impl`).
+- **Proposed change.** The premise adds `v2stats.isServerStats st` (persistent: the stats' mutex owning the embedded
+  `serverStats`, the two rate queues with their `RWMutex`es), as `RecvAppendReq` and `SendAppendReq` already take
+  (the user's rule of 2026-11-21: a persistent ownership premise in place of `≠ null` alone, when every caller
+  discharges it). Its one caller, `EtcdServer.run`'s `updateLeadership` (`EtcdServer__run.lean`), has it from the
+  server's stats facts (`srvStatsAddr s ↦□ st ∗ v2stats.isServerStats st`, as `InvNet.lean`'s `srvProcOk`).
+  `SpecPlan`'s statement (`isServerStats p`) already has it. `isServerStats`, opaque until now, is defined
+  (`v2stats/Defs.lean`).
+- **Decision.** Applied (prove-ps2-v2stats, 2026-11-21): with `NewServerStats`, `RecvAppendReq`, `SendAppendReq`,
+  the four axioms retired, pending the Perennial pin bump to #655.
 - **Decision.** Applied (prove-ps2-promote, 2026-11-21; heads-up on #10, no objection): `Promote.spec` takes
   `levelTok lessorLvl` (given back) and the two bounds, and is proved over the real code (the axiom retired). The
   server's lessor contract (`lessorOk`, InvApplier.lean) has `Promote` take the caller's `threadTok` (given back; it
@@ -4658,3 +4678,33 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   lock: `do`'s law is `kd_mint` (the counter is the op counter half); `read`'s mints, at every replica id
   at once, the context of the fresh number after the log of the read's start (`kd_mint_next`).
 - **Decision.** Applied (the prophecy: the coordinator's decision, 2026-11-22).
+## 2026-11-22: kvnet's top-level statement takes `os`'s two field-assumption instances (KvNet)
+
+- **Spec.** `raft_kvnet_robust.spec` and `raft_kvnet_robust_example.spec`
+  (`KvNet/Spec/.../kvnet/TopLevelRobustness.lean`): two instance binders added next to `net.FieldAssumptions`,
+  `[os_file_sem : os.file.FieldAssumptions] [os_stat_sem : os.fileStat.FieldAssumptions]`; the header's list
+  of trusted instances names them.
+- **Defect.** `durable`'s proofs (`tryRead`, `tryWrite`, `WriteOpen`, through `StartNode` and `persist`) read
+  files through `os`'s models, which take these trusted struct-field facts (`TrustedCode/os.lean`, of the kind
+  of `net.FieldAssumptions`); `kvcheck.Assumptions` does not include them, so the agreed statement could not be
+  proved without them (found linking kvnet, 2026-11-22: `kvnet/Link.lean`'s section variables).
+- **Evidence.** `KvNet/Proof/.../lib/durable/{tryRead,tryWrite,WriteOpen}.lean`, `kvnet/Link.lean:196-197`;
+  reported on mit-pdos/etcd-grove#22 (gap 3).
+- **Proposed change.** As above.
+- **Decision.** Applied: approved by the coordinator (zeldovich-agent's session, relaying the decision on
+  #22), 2026-11-22.
+## 2026-11-22: kvnet's top-level statement takes `[log.NewModel]` and `dir.length < 2 ^ 39` (KvNet)
+
+- **Spec.** `raft_kvnet_robust.spec` and `raft_kvnet_robust_example.spec`
+  (`KvNet/Spec/.../kvnet/TopLevelRobustness.lean`): an instance binder `[log_sem : log.NewModel]` next to the
+  `os` ones (both statements); a premise `dir.length < 2 ^ 39` after `replicas.length < 2 ^ 32` (the main
+  statement; the example's `/var/lib/kvnet` meets it by computation). The header lists both.
+- **Defect.** (1) `kvnet.initialize'` initializes raft, whose initializer calls `log.New` (`defaultLogger`,
+  `discardLogger`), which Perennial translates names-only: raft's `wp_initialize'` takes the trusted class
+  `log.NewModel` (`Proof/log/NewModel.lean`), as kvdurable(-noax)'s closed theorem does. (2) Each replica's file
+  is `durable`'s `DFile ⟨dir, J, "replica-<id>"⟩`, and `StartNode`'s start resource needs `DFile.Ok`, which has
+  `f.d.length + f.tb.length < 2 ^ 40` (`WalTester/.../lib/durable/Defs.lean`, the path arithmetic of
+  `filepath`/`os`); `tb` is at most 27 bytes, and nothing in `FsInit`/`RootsOk` bounds a root's length.
+- **Evidence.** Reported on mit-pdos/etcd-grove#22 (gaps 4 and 5, with the exact texts).
+- **Proposed change.** As above.
+- **Decision.** Applied: approved by the coordinator (relayed to the kvnet-proof session, 2026-11-22).

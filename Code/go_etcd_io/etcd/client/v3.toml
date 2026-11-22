@@ -313,8 +313,14 @@ translate = [
   # `RetryMaintenanceClient`: until then the trust-boundary axioms `NewCluster.wp_proof`,
   # `NewMaintenance.wp_proof`
   "NewCluster", "RetryClusterClient", "NewMaintenance", "RetryMaintenanceClient",
+  # (prove-ps2-rqb, 2026-11-22) the backoff functions: client.go's `roundRobinQuorumBackoff`,
+  # retry_interceptor.go's `backoffLinearWithJitter` and the variable `defaultOptions` it initializes,
+  # utils.go's `jitterUp` (float arithmetic over `math/rand.Float64`, the trust-boundary axiom
+  # `rand.Float64.wp_proof`): until then the trust-boundary axioms
+  # `Client.roundRobinQuorumBackoff.wp_proof` and `defaultOptions_init`
+  "Client.roundRobinQuorumBackoff", "backoffLinearWithJitter", "jitterUp", "defaultOptions",
 ]
-imports = ["!*", "context", "sync", "time", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/authpb", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "google.golang.org/grpc/codes", "google.golang.org/grpc/status", "google.golang.org/grpc", "google.golang.org/grpc/credentials", "go.etcd.io/etcd/client/v3/internal/resolver", "go.etcd.io/etcd/client/v3/credentials", "go.uber.org/zap", "sync/atomic", "google.golang.org/protobuf/proto", "fmt", "errors", "google.golang.org/grpc/peer", "crypto/tls", "strings", "google.golang.org/grpc/keepalive", "google.golang.org/grpc/credentials/insecure", "go.etcd.io/etcd/client/v3/internal/endpoint", "go.etcd.io/etcd/client/pkg/v3/logutil", "io", "google.golang.org/grpc/metadata"]
+imports = ["!*", "context", "sync", "time", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/authpb", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "google.golang.org/grpc/codes", "google.golang.org/grpc/status", "google.golang.org/grpc", "google.golang.org/grpc/credentials", "go.etcd.io/etcd/client/v3/internal/resolver", "go.etcd.io/etcd/client/v3/credentials", "go.uber.org/zap", "sync/atomic", "google.golang.org/protobuf/proto", "fmt", "errors", "google.golang.org/grpc/peer", "crypto/tls", "strings", "google.golang.org/grpc/keepalive", "google.golang.org/grpc/credentials/insecure", "go.etcd.io/etcd/client/v3/internal/endpoint", "go.etcd.io/etcd/client/pkg/v3/logutil", "io", "google.golang.org/grpc/metadata", "math/rand"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

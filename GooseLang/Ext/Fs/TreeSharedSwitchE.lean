@@ -11,6 +11,7 @@ adequacy). Untrusted.
 module
 
 public import GooseLang.Ext.Fs.TreeSharedSwitch
+public import Perennial.GooseLang.NotCrashed
 
 @[expose] public section
 
@@ -29,22 +30,18 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 variable {s : Stuckness} {E : CoPset}
 
-/-- **The mode switch before any step of a non-value `e`** (see the file header): the whole legacy
-history `V` (no legacy call or directory fd) for the shared mode's resources: its invariant, the whole
-call permission, the log's length, a claim on all names of every directory of the tree; key `[]`'s
-whole permission goes into its dispenser (`osAboveInv`). Irreversible. -/
-theorem wp_osShareE (R : Roots) (V : Hist) (e : Expr) (he : toVal e = none) (hE : ↑osN ⊆ E)
-    (Φ : val → IProp GF) :
-    ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own 1) R V -∗
-      (osSharedInv (L := L) R -∗ osAboveInv (L := L) -∗ osCallPerms (L := L) R -∗
-        osLogLb (L := L) V.2.length -∗
-        ([∗list] j ∈ (GMap.toList V.now).map (·.1),
-          osNames (L := L) j (.except []) (DFrac.own 1) (namesOf V j (.except []))) -∗
-        WP e @ s; E {{ Φ }}) -∗
-      WP e @ s; E {{ Φ }} := by
-  iintro #Hinv Hh HΦ
-  iapply wp_ext_acc (X := fsExt) e Φ he
-  iintro %σ %g Hl Hg
+/-- **The mode switch, at the extension's state interpretation** (the core of `wp_osShareE`): the
+whole legacy history `V` for the shared mode's resources, the interpretation of the local state `σ`
+kept; at any mask `E` (it allocates `osAbN`'s and `osShN`'s invariants). -/
+theorem osShare_ctx (R : Roots) (V : Hist) (σ : OsState) :
+    ⊢ osTree (L := L) (DFrac.own 1) R V -∗
+      fs_interp.localCtx (extLocalGS fsExt) σ ={E}=∗
+      fs_interp.localCtx (extLocalGS fsExt) σ ∗
+      osSharedInv (L := L) R ∗ osAboveInv (L := L) ∗ osCallPerms (L := L) R ∗
+      osLogLb (L := L) V.2.length ∗
+      ([∗list] j ∈ (GMap.toList V.now).map (·.1),
+        osNames (L := L) j (.except []) (DFrac.own 1) (namesOf V j (.except []))) := by
+  iintro Hh Hl
   icases (os_local_ctx_eq σ).mp $$ Hl with Hl
   unfold osCtx
   icases Hl with ⟨HF, Ht, Hof⟩
@@ -99,12 +96,94 @@ theorem wp_osShareE (R : Roots) (V : Hist) (e : Expr) (he : toVal e = none) (hE 
     isplitl []
     · iapply BigSepM.bigSepM_empty.2; itrivial
     · iapply BigSepM.bigSepM_empty.2; itrivial
-  iframe Hg
   simp only [osNames_except]
   ihave Hab' : osAboveInv (L := L) $$ [Hab]
   · unfold osAboveInv; iexact Hab
   unfold osSharedInv osCallPerms osCallPerm osLogLb
-  iapply HΦ $$ Hsi Hab' Hperm Hlb Hcl
+  iframe Hsi Hab' Hperm Hlb Hcl
+
+
+/-- **The mode switch before any step of a non-value `e`** (see the file header): the whole legacy
+history `V` (no legacy call or directory fd) for the shared mode's resources: its invariant, the whole
+call permission, the log's length, a claim on all names of every directory of the tree; key `[]`'s
+whole permission goes into its dispenser (`osAboveInv`). Irreversible. -/
+theorem wp_osShareE (R : Roots) (V : Hist) (e : Expr) (he : toVal e = none) (hE : ↑osN ⊆ E)
+    (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own 1) R V -∗
+      (osSharedInv (L := L) R -∗ osAboveInv (L := L) -∗ osCallPerms (L := L) R -∗
+        osLogLb (L := L) V.2.length -∗
+        ([∗list] j ∈ (GMap.toList V.now).map (·.1),
+          osNames (L := L) j (.except []) (DFrac.own 1) (namesOf V j (.except []))) -∗
+        WP e @ s; E {{ Φ }}) -∗
+      WP e @ s; E {{ Φ }} := by
+  iintro #_ Hh HΦ
+  iapply wp_ext_acc (X := fsExt) e Φ he
+  iintro %σ %g Hl Hg
+  imod osShare_ctx R V σ $$ Hh Hl with ⟨Hl, Hsi, Hab, Hperm, Hlb, Hcl⟩
+  imodintro
+  iframe Hl Hg
+  iapply HΦ $$ Hsi Hab Hperm Hlb Hcl
+
+/-- **Before a step, the generation's crash token and an extension's state interpretation**: both
+accessors of Perennial (`wp_notCrashed_acc`, `wp_ext_acc`) at once, so that an update before the step
+may rule out the generation's `crashed` and read or rewrite the extension's local interpretation. -/
+theorem wp_ext_nc_acc {X : GooseExt} [ExtSemantics X] [I : ExtInterp X] [hX : HasExt X]
+    (e : Expr) (Φ : val → IProp GF) (h : toVal e = none) :
+    (notCrashed -∗ ∀ σ g, I.localCtx (extLocalGS X) σ -∗ I.globalCtx (extGlobalGS X) g ={E}=∗
+      notCrashed ∗ I.localCtx (extLocalGS X) σ ∗ I.globalCtx (extGlobalGS X) g ∗
+      WP e @ s; E {{ Φ }})
+    ⊢ WP e @ s; E {{ Φ }} := by
+  have h' : ToVal.toVal (Val := val) e = none := h
+  iintro Hacc
+  iapply wp_unfold.2
+  unfold wp.pre
+  rw [h']
+  dsimp only
+  iintro %σ₁ %ns %obs %obs' %nt Hσ
+  rcases σ₁ with ⟨σ₁, c⟩
+  icases (goose_bstateInterp_eq σ₁ c ns (obs ++ obs') nt).1 $$ Hσ with ⟨Hσ, Hc, Ht, Hnc⟩
+  icases (goose_stateInterp_eq σ₁ ns (obs ++ obs') nt).mp $$ Hσ with
+    ⟨Hheap, Hext, Hgs, %Hlctx, Hgext, Hproph⟩
+  icases HasExt.localCtx_acc (X := X) _ $$ Hext with ⟨Hl, Hlclose⟩
+  icases HasExt.globalCtx_acc (X := X) _ $$ Hgext with ⟨Hg, Hgclose⟩
+  imod Hacc $$ Hnc %(hX.mem.get σ₁.1.world) %(hX.mem.get σ₁.2.globalWorld) Hl Hg
+    with ⟨Hnc, Hl, Hg, Hwp⟩
+  ihave Hwp := wp_unfold.1 $$ Hwp
+  unfold wp.pre
+  rw [h']
+  dsimp only
+  iapply Hwp $$ %(σ₁, c) %ns %obs %obs' %nt
+  iapply (goose_bstateInterp_eq σ₁ c _ _ _).2
+  iframe Hc Ht Hnc
+  iapply (goose_stateInterp_eq _ _ _ _).mpr
+  ihave Hl := Hlclose $$ Hl
+  ihave Hg := Hgclose $$ Hg
+  rw [ExtIn.set_get, ExtIn.set_get]
+  iframe
+  ipureintro; exact Hlctx
+
+/-- **The mode switch before any step, its history from an update** (for a generation whose crash
+frame must learn of the switch: the history kept in an invariant `inv N (P ∨ crashed ∗ Q)`, opened
+here, at the step, with the crash token, and closed again with what the switch allocated):
+`wp_osShareE` with `osTree` given by a crash-token update from `E` to `E'`, and the update back from
+`E'` to `E` given the shared mode's resources. -/
+theorem wp_osShareE_upd (R : Roots) (V : Hist) (e : Expr) (he : toVal e = none) (E' : CoPset)
+    (Φ : val → IProp GF) :
+    ⊢ (|NC={E, E'}=> osTree (L := L) (DFrac.own 1) R V ∗
+        (osSharedInv (L := L) R -∗ osAboveInv (L := L) -∗ osCallPerms (L := L) R -∗
+          osLogLb (L := L) V.2.length -∗
+          ([∗list] j ∈ (GMap.toList V.now).map (·.1),
+            osNames (L := L) j (.except []) (DFrac.own 1) (namesOf V j (.except []))) ={E', E}=∗
+          WP e @ s; E {{ Φ }})) -∗
+      WP e @ s; E {{ Φ }} := by
+  iintro Hu
+  iapply wp_ext_nc_acc (X := fsExt) e Φ he
+  iintro Hnc %σ %g Hl Hg
+  imod Hu $$ Hnc with ⟨Hnc, Hh, HΦ⟩
+  imod osShare_ctx (E := E') R V σ $$ Hh Hl with ⟨Hl, Hsi, Hab, Hperm, Hlb, Hcl⟩
+  imod HΦ $$ Hsi Hab Hperm Hlb Hcl with Hwp
+  imodintro
+  iframe Hnc Hl Hg Hwp
 
 end specs
 

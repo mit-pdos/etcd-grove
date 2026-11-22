@@ -1619,5 +1619,11 @@ instance fs_interp : ExtInterp fsExt where
     iapply bupd_intro; iexists (); isplitl [] <;> itrivial
   local_init _ hPre st _ h := os_local_init hPre st h
 
+/-- The ghost state can be allocated for every initial state of the semantics (`fs_semantics`'s
+`initLocal` is `fs_interp`'s `initP`, `FsInit`). -/
+instance fs_init_compat : ExtInitCompat fsExt where
+  initgP_of_init _ _ := trivial
+  initP_of_init _ _ h := h
+
 end Fs
 end Perennial

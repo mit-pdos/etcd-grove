@@ -3346,10 +3346,24 @@ noncomputable def rateLimitingType.Forget.impl [GooseExts] [GoGlobalContext] (T 
   (App (App (Val (GoInstruction (MethodResolve (TypedRateLimiter.ty T) go!"Forget"))) (App (Val (GoInstruction (GoLoad (TypedRateLimiter.ty T)))) (App (Val (GoInstruction (StructFieldRef (rateLimitingType.ty T) go!"rateLimiter"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (rateLimitingType.ty T))))) (Var "q"))))) (Var "$a0")))))))
   (Val #()))))
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `_@default_rate_limiters.go:66` (`var _ RateLimiter = &BucketRateLimiter{}`): An interface check: `&BucketRateLimiter{}` converted to `RateLimiter`. No call, no panic, no effect.
+- `_@default_rate_limiters.go:92` (`var _ RateLimiter = &ItemExponentialFailureRateLimiter{}`): An interface check: `&ItemExponentialFailureRateLimiter{}` converted to `RateLimiter`. No call, no
+panic, no effect.
+- `_@default_rate_limiters.go:166` (`var _ RateLimiter = &ItemFastSlowRateLimiter{}`): An interface check: `&ItemFastSlowRateLimiter{}` converted to `RateLimiter`. No call, no panic, no
+effect.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"k8s.io/client-go/util/workqueue._@default_rate_limiters.go:66", "An interface check: `&BucketRateLimiter{}` converted to `RateLimiter`. No call, no panic, no effect.", "var _ RateLimiter = &BucketRateLimiter{}"⟩,
+  ⟨"k8s.io/client-go/util/workqueue._@default_rate_limiters.go:92", "An interface check: `&ItemExponentialFailureRateLimiter{}` converted to `RateLimiter`. No call, no\npanic, no effect.", "var _ RateLimiter = &ItemExponentialFailureRateLimiter{}"⟩,
+  ⟨"k8s.io/client-go/util/workqueue._@default_rate_limiters.go:166", "An interface check: `&ItemFastSlowRateLimiter{}` converted to `RateLimiter`. No call, no panic, no\neffect.", "var _ RateLimiter = &ItemFastSlowRateLimiter{}"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.util.workqueue where
   pkgImportedPkgs := [pkg_id.math, pkg_id.sync, pkg_id.time, pkg_id.golang_org.x.time.rate, pkg_id.container.heap, pkg_id.k8s_io.apimachinery.pkg.util.runtime, pkg_id.k8s_io.klog.v2, pkg_id.k8s_io.utils.clock, pkg_id.context, pkg_id.k8s_io.apimachinery.pkg.util.sets]
-
-opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -3367,18 +3381,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert noopMetricsProvider.ty MetricsProvider.ty))) (App (Val (GoInstruction (CompositeLiteral noopMetricsProvider.ty))) (LiteralValue [])))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore MetricsProvider.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr globalMetricsProvider))) (Val #())) (Var "$r0")))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.math.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -3873,7 +3878,7 @@ class delayingType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   get_metrics : ∀ (T : go.GoType) (T' : Type) (x : (delayingType T')), go.IsGoStepPureDetTagged under (StructFieldGet (delayingType.underlying T) go!"metrics") #x (Val #(x.metrics'))
   set_metrics : ∀ (T : go.GoType) (T' : Type) (x : (delayingType T')) (y : retryMetrics), go.IsGoStepPureDetTagged under (StructFieldSet (delayingType.underlying T) go!"metrics") (PairV #x #y) (Val #(({ x with metrics' := y } : (delayingType T'))))
   method_set : ∀ (T : go.GoType), go.MethodSetIs (delayingType.ty T) [(go!"Add", (some (go.signature.Signature [T] false []))), (go!"Done", (some (go.signature.Signature [T] false []))), (go!"Get", (some (go.signature.Signature [] false [T, go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"ShutDownWithDrain", (some (go.signature.Signature [] false []))), (go!"ShuttingDown", (some (go.signature.Signature [] false [go.bool])))]
-  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (delayingType.ty T)) [(go!"Add", (some (go.signature.Signature [T] false []))), (go!"AddAfter", (some (go.signature.Signature [T, _root_.Perennial.time.Duration.ty] false []))), (go!"Done", (some (go.signature.Signature [T] false []))), (go!"Get", (some (go.signature.Signature [] false [T, go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"ShutDown", (some (go.signature.Signature [] false []))), (go!"ShutDownWithDrain", (some (go.signature.Signature [] false []))), (go!"ShuttingDown", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/client-go/util/workqueue.waitingLoop", (some (go.signature.Signature [(go.GoType.Named go!"github.com/go-logr/logr.Logger" [])] false [])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (delayingType.ty T)) [(go!"Add", (some (go.signature.Signature [T] false []))), (go!"AddAfter", (some (go.signature.Signature [T, _root_.Perennial.time.Duration.ty] false []))), (go!"Done", (some (go.signature.Signature [T] false []))), (go!"Get", (some (go.signature.Signature [] false [T, go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"ShutDown", (some (go.signature.Signature [] false []))), (go!"ShutDownWithDrain", (some (go.signature.Signature [] false []))), (go!"ShuttingDown", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/client-go/util/workqueue.waitingLoop", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty] false [])))]
   Add_unfold : ∀ (T : go.GoType), MethodUnfold (delayingType.ty T) go!"Add" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (TypedInterface.ty T) go!"Add"))) (App (Val (GoInstruction (StructFieldGet (delayingType.ty T) go!"TypedInterface"))) (Var "$r"))))
   Done_unfold : ∀ (T : go.GoType), MethodUnfold (delayingType.ty T) go!"Done" (LamV "$r"

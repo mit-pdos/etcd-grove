@@ -63,16 +63,6 @@ opaque num [GooseExts] [GoGlobalContext] : val
 
 opaque allowed [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrConstraintTooLong [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/Masterminds/semver/v3.ErrConstraintTooLong"
-
-opaque ErrConstraintTooLong.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrTooManyConstraintGroups [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/Masterminds/semver/v3.ErrTooManyConstraintGroups"
-
-opaque ErrTooManyConstraintGroups.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def constraintOps [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.constraintOps"
 
@@ -93,51 +83,6 @@ noncomputable def versionRegex [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def looseVersionRegex [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.looseVersionRegex"
-
-noncomputable def CoerceNewVersion [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/Masterminds/semver/v3.CoerceNewVersion"
-
-opaque CoerceNewVersion.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def DetailedNewVersionErrors [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/Masterminds/semver/v3.DetailedNewVersionErrors"
-
-opaque DetailedNewVersionErrors.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrInvalidSemVer [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/Masterminds/semver/v3.ErrInvalidSemVer"
-
-opaque ErrInvalidSemVer.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrEmptyString [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/Masterminds/semver/v3.ErrEmptyString"
-
-opaque ErrEmptyString.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrInvalidCharacters [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/Masterminds/semver/v3.ErrInvalidCharacters"
-
-opaque ErrInvalidCharacters.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrSegmentStartsZero [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/Masterminds/semver/v3.ErrSegmentStartsZero"
-
-opaque ErrSegmentStartsZero.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrInvalidMetadata [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/Masterminds/semver/v3.ErrInvalidMetadata"
-
-opaque ErrInvalidMetadata.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrInvalidPrerelease [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/Masterminds/semver/v3.ErrInvalidPrerelease"
-
-opaque ErrInvalidPrerelease.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrVersionTooLong [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/Masterminds/semver/v3.ErrVersionTooLong"
-
-opaque ErrVersionTooLong.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def NewConstraint [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.NewConstraint"
@@ -783,6 +728,63 @@ noncomputable def comparePrePart.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `ErrConstraintTooLong` (`var ErrConstraintTooLong = fmt.Errorf("constraint string is too long (max %d bytes)", MaxConstraintLen)`): Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of
+a constant format and constant arguments allocates the formatted error (fmt recovers a panic of a
+formatting method; the arguments have none). So each terminates, cannot panic and has no effect
+beyond its variable.
+- `ErrTooManyConstraintGroups` (`var ErrTooManyConstraintGroups = fmt.Errorf("too many constraint groups (max %d)", MaxConstraintGroups)`): Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of
+a constant format and constant arguments allocates the formatted error (fmt recovers a panic of a
+formatting method; the arguments have none). So each terminates, cannot panic and has no effect
+beyond its variable.
+- `CoerceNewVersion` (`var CoerceNewVersion = true`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `DetailedNewVersionErrors` (`var DetailedNewVersionErrors = true`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `ErrInvalidSemVer` (`var // ErrInvalidSemVer is returned a version is found to be invalid when // being parsed. ErrInvalidSemVer = errors.New … [sha256:c8f6f6960188c1cf]`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `ErrEmptyString` (`var // ErrEmptyString is returned when an empty string is passed in for parsing. ErrEmptyString = errors.New("version st … [sha256:90e6a55dd9750741]`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `ErrInvalidCharacters` (`var // ErrInvalidCharacters is returned when invalid characters are found as // part of a version ErrInvalidCharacters = … [sha256:583b935851ff8b54]`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `ErrSegmentStartsZero` (`var // ErrSegmentStartsZero is returned when a version segment starts with 0. // This is invalid in SemVer. ErrSegmentSt … [sha256:888ea1d7d6001928]`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `ErrInvalidMetadata` (`var // ErrInvalidMetadata is returned when the metadata is an invalid format ErrInvalidMetadata = errors.New("invalid me … [sha256:74742a42061564b0]`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `ErrInvalidPrerelease` (`var // ErrInvalidPrerelease is returned when the pre-release is an invalid format ErrInvalidPrerelease = errors.New("inv … [sha256:c857c50ff1c19027]`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `ErrVersionTooLong` (`var // ErrVersionTooLong is returned when a version string exceeds the // maximum allowed length. ErrVersionTooLong = fm … [sha256:93615bb57819a4ba]`): Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of
+a constant format and constant arguments allocates the formatted error (fmt recovers a panic of a
+formatting method; the arguments have none). So each terminates, cannot panic and has no effect
+beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"github.com/Masterminds/semver/v3.ErrConstraintTooLong", "Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of\na constant format and constant arguments allocates the formatted error (fmt recovers a panic of a\nformatting method; the arguments have none). So each terminates, cannot panic and has no effect\nbeyond its variable.", "var ErrConstraintTooLong = fmt.Errorf(\"constraint string is too long (max %d bytes)\", MaxConstraintLen)"⟩,
+  ⟨"github.com/Masterminds/semver/v3.ErrTooManyConstraintGroups", "Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of\na constant format and constant arguments allocates the formatted error (fmt recovers a panic of a\nformatting method; the arguments have none). So each terminates, cannot panic and has no effect\nbeyond its variable.", "var ErrTooManyConstraintGroups = fmt.Errorf(\"too many constraint groups (max %d)\", MaxConstraintGroups)"⟩,
+  ⟨"github.com/Masterminds/semver/v3.CoerceNewVersion", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var CoerceNewVersion = true"⟩,
+  ⟨"github.com/Masterminds/semver/v3.DetailedNewVersionErrors", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var DetailedNewVersionErrors = true"⟩,
+  ⟨"github.com/Masterminds/semver/v3.ErrInvalidSemVer", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var // ErrInvalidSemVer is returned a version is found to be invalid when // being parsed. ErrInvalidSemVer = errors.New … [sha256:c8f6f6960188c1cf]"⟩,
+  ⟨"github.com/Masterminds/semver/v3.ErrEmptyString", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var // ErrEmptyString is returned when an empty string is passed in for parsing. ErrEmptyString = errors.New(\"version st … [sha256:90e6a55dd9750741]"⟩,
+  ⟨"github.com/Masterminds/semver/v3.ErrInvalidCharacters", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var // ErrInvalidCharacters is returned when invalid characters are found as // part of a version ErrInvalidCharacters = … [sha256:583b935851ff8b54]"⟩,
+  ⟨"github.com/Masterminds/semver/v3.ErrSegmentStartsZero", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var // ErrSegmentStartsZero is returned when a version segment starts with 0. // This is invalid in SemVer. ErrSegmentSt … [sha256:888ea1d7d6001928]"⟩,
+  ⟨"github.com/Masterminds/semver/v3.ErrInvalidMetadata", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var // ErrInvalidMetadata is returned when the metadata is an invalid format ErrInvalidMetadata = errors.New(\"invalid me … [sha256:74742a42061564b0]"⟩,
+  ⟨"github.com/Masterminds/semver/v3.ErrInvalidPrerelease", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var // ErrInvalidPrerelease is returned when the pre-release is an invalid format ErrInvalidPrerelease = errors.New(\"inv … [sha256:c857c50ff1c19027]"⟩,
+  ⟨"github.com/Masterminds/semver/v3.ErrVersionTooLong", "Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of\na constant format and constant arguments allocates the formatted error (fmt recovers a panic of a\nformatting method; the arguments have none). So each terminates, cannot panic and has no effect\nbeyond its variable.", "var // ErrVersionTooLong is returned when a version string exceeds the // maximum allowed length. ErrVersionTooLong = fm … [sha256:93615bb57819a4ba]"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.github_com.Masterminds.semver.v3 where
   pkgImportedPkgs := [pkg_id.strings, pkg_id.strconv]
 
@@ -795,43 +797,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«1» []))) (Val #())) (Val #())))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrVersionTooLong.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrInvalidPrerelease.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrInvalidMetadata.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrSegmentStartsZero.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrInvalidCharacters.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrEmptyString.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrInvalidSemVer.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val DetailedNewVersionErrors.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val CoerceNewVersion.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrTooManyConstraintGroups.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrConstraintTooLong.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.strings.initialize') (Val #()))))))
   (App (Val doExecute)

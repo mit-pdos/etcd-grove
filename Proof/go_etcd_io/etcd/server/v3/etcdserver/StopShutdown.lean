@@ -538,7 +538,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   icases (lc_split (n := 1) (m := 1)).1 $$ Hlc with ⟨Hlc1, Hlc2⟩
   ihave #Hrf' := Hrf
   iunfold srvRunFieldsAt at Hrf'
-  icases Hrf' with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hgok⟩
+  icases Hrf' with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hgok⟩
   iunfold srvGoAttachOk at Hgok
   icases Hgok with ⟨%gch, %gc, -, -, -, #Hginv, -⟩
   imod stop_monitorRT C.E C.wt γg d $$ [Hlc1 Hg Hwd] with ⟨Hg, HoM⟩

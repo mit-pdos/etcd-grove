@@ -27,6 +27,7 @@ public import Code.crypto.tls
 public import Code.google_golang_org.grpc.metadata
 public import Perennial.Code.io
 public import Code.google_golang_org.grpc.peer
+public import Perennial.Code.math.rand
 public import Code.go_etcd_io.etcd.api.v3.mvccpb
 public import Perennial.Golang.Defn
 
@@ -716,8 +717,6 @@ noncomputable def defaultCallOpts [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def defaultOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.defaultOptions"
-
-opaque defaultOptions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def valCtxCh [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.valCtxCh"
@@ -2414,6 +2413,88 @@ noncomputable def newClient.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))
+
+/-- roundRobinQuorumBackoff retries against quorum between each backoff.
+    This is intended for use with a round robin load balancer.
+
+    go: client.go:491:18 -/
+noncomputable def Client.roundRobinQuorumBackoff.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam "waitBetween"
+  (Lam "jitterFraction"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc backoffFunc.ty))) (App (Val (GoInstruction (GoZeroVal backoffFunc.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Client.ty)))) (Var "c"))
+  (Let "jitterFraction" (App (Val (GoInstruction (GoAlloc go.float64))) (Var "jitterFraction"))
+  (Let "waitBetween" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "waitBetween"))
+  (Let "$r0" (Lam "attempt"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "attempt" (App (Val (GoInstruction (GoAlloc go.uint))) (Var "attempt"))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.int go.uint))) (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"Endpoints"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))) (Val #()))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))))
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.uint))) (App (Val (GoInstruction (GoZeroVal go.uint))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.uint))) (Pair (App (Val (GoInstruction (GoOp GoDiv go.uint))) (Pair (App (Val (GoInstruction (GoLoad go.uint))) (Var "n")) (Val #(W64 2)))) (Val #(W64 1))))
+  (Let "quorum" (App (Val (GoInstruction (GoAlloc go.uint))) (App (Val (GoInstruction (GoZeroVal go.uint))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 0))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"backoff skipped"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"attempt"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint))) (Var "attempt"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Uint []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl1" (Let "$a0" (Val #(go!"quorum"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint))) (Var "quorum"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Uint []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Debug"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"GetLogger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))) (Val #()))) (Var "$a0")) (Var "$a1"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint))) (Pair (App (Val (GoInstruction (GoOp GoRemainder go.uint))) (Pair (App (Val (GoInstruction (GoLoad go.uint))) (Var "attempt")) (App (Val (GoInstruction (GoLoad go.uint))) (Var "quorum")))) (Val #(W64 0)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "waitBetween"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.float64))) (Var "jitterFraction"))
+  (App (App (App (Val (GoInstruction (FuncResolve jitterUp []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"backoff"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"attempt"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint))) (Var "attempt"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Uint []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl1" (Let "$a0" (Val #(go!"quorum"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint))) (Var "quorum"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Uint []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl2" (Let "$a0" (Val #(go!"waitBetween"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "waitBetween"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Duration []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl3" (Let "$a0" (Val #(go!"jitterFraction"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.float64))) (Var "jitterFraction"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Float64 []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl2"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl3")))]))))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Debug"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"GetLogger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))) (Val #()))) (Var "$a0")) (Var "$a1"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint))) (Pair (Var "quorum") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint))) (Pair (Var "n") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "$res0")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore backoffFunc.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad backoffFunc.ty))) (Var "$res0")))))))
 
 /-- isHaltErr returns true if the given error and context indicate no forward
     progress can be made, even after reconnecting.
@@ -8485,6 +8566,38 @@ noncomputable def filterCallOptions.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.CallOption.ty))) (Pair (Var "opt") (Var "$value")))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType retryOption.ty)))) (Var "$res1")))))))))
 
+/-- BackoffLinearWithJitter waits a set period of time, allowing for jitter (fractional adjustment).
+
+    For example waitBetween=1s and jitter=0.10 can generate waits between 900ms and 1100ms.
+
+    go: retry_interceptor.go:451:6 -/
+noncomputable def backoffLinearWithJitter.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "waitBetween"
+  (Lam "jitterFraction"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc backoffFunc.ty))) (App (Val (GoInstruction (GoZeroVal backoffFunc.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "jitterFraction" (App (Val (GoInstruction (GoAlloc go.float64))) (Var "jitterFraction"))
+  (Let "waitBetween" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "waitBetween"))
+  (Let "$r0" (Lam "attempt"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "attempt" (App (Val (GoInstruction (GoAlloc go.uint))) (Var "attempt"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "waitBetween"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.float64))) (Var "jitterFraction"))
+  (App (App (App (Val (GoInstruction (FuncResolve jitterUp []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "$res0")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore backoffFunc.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad backoffFunc.ty))) (Var "$res0"))))))
+
 /-- go: txn.go:73:17 -/
 noncomputable def txn.If.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "txn"
@@ -8754,6 +8867,34 @@ noncomputable def txn.Commit.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef txn.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType txn.ty)))) (Var "txn")))) (Val #())))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TxnResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
+
+/-- jitterUp adds random jitter to the duration.
+
+    This adds or subtracts time from the duration within a given jitter fraction.
+    For example for 10s and jitter 0.1, it will return a time within [9s, 11s])
+
+    Reference: https://godoc.org/github.com/grpc-ecosystem/go-grpc-middleware/util/backoffutils
+
+    go: utils.go:28:6 -/
+noncomputable def jitterUp.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "duration"
+  (Lam "jitter"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "jitter" (App (Val (GoInstruction (GoAlloc go.float64))) (Var "jitter"))
+  (Let "duration" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "duration"))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoMul go.float64))) (Pair (App (Val (GoInstruction (GoLoad go.float64))) (Var "jitter")) (App (Val (GoInstruction (GoOp GoSub go.float64))) (Pair (App (Val (GoInstruction (GoOp GoMul go.float64))) (Pair (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.math.rand.Float64 []))) (Val #())) (Val #())) (Val #(W64 4611686018427387904)))) (Val #(W64 4607182418800017408))))))
+  (Let "multiplier" (App (Val (GoInstruction (GoAlloc go.float64))) (App (Val (GoInstruction (GoZeroVal go.float64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.float64 _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoOp GoMul go.float64))) (Pair (App (Val (GoInstruction (Convert _root_.Perennial.time.Duration.ty go.float64))) (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "duration"))) (App (Val (GoInstruction (GoOp GoPlus go.float64))) (Pair (Val #(W64 4607182418800017408)) (App (Val (GoInstruction (GoLoad go.float64))) (Var "multiplier")))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.float64))) (Pair (Var "multiplier") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "$res0"))))))
 
 /-- go: watch.go:56:6 -/
 noncomputable def ensureWatchHeader.impl [GooseExts] [GoGlobalContext] : val :=
@@ -11290,7 +11431,7 @@ noncomputable def progressRequest.toPB.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.ty)))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.v3 where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.fmt, pkg_id.strings, pkg_id.google_golang_org.grpc, pkg_id.go_etcd_io.etcd.api.v3.authpb, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.sync, pkg_id.time, pkg_id.errors, pkg_id.sync.atomic, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.credentials, pkg_id.google_golang_org.grpc.credentials.insecure, pkg_id.google_golang_org.grpc.keepalive, pkg_id.google_golang_org.grpc.status, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes, pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil, pkg_id.go_etcd_io.etcd.client.v3.credentials, pkg_id.go_etcd_io.etcd.client.v3.internal.endpoint, pkg_id.go_etcd_io.etcd.client.v3.internal.resolver, pkg_id.google_golang_org.protobuf.proto, pkg_id.crypto.tls, pkg_id.google_golang_org.grpc.metadata, pkg_id.io, pkg_id.google_golang_org.grpc.peer, pkg_id.go_etcd_io.etcd.api.v3.mvccpb]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.fmt, pkg_id.strings, pkg_id.google_golang_org.grpc, pkg_id.go_etcd_io.etcd.api.v3.authpb, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.sync, pkg_id.time, pkg_id.errors, pkg_id.sync.atomic, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.credentials, pkg_id.google_golang_org.grpc.credentials.insecure, pkg_id.google_golang_org.grpc.keepalive, pkg_id.google_golang_org.grpc.status, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes, pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil, pkg_id.go_etcd_io.etcd.client.v3.credentials, pkg_id.go_etcd_io.etcd.client.v3.internal.endpoint, pkg_id.go_etcd_io.etcd.client.v3.internal.resolver, pkg_id.google_golang_org.protobuf.proto, pkg_id.crypto.tls, pkg_id.google_golang_org.grpc.metadata, pkg_id.io, pkg_id.google_golang_org.grpc.peer, pkg_id.math.rand, pkg_id.go_etcd_io.etcd.api.v3.mvccpb]
 
 opaque «_».init [GooseExts] [GoGlobalContext] : val
 
@@ -11298,6 +11439,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.client.v3)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -11377,6 +11520,13 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (Let "$v2" (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.CallOption.ty))) (App (Val (GoInstruction (GlobalVarAddr defaultMaxCallRecvMsgSize))) (Val #())))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.CallOption.ty (Var "$v0"))), (KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.CallOption.ty (Var "$v1"))), (KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.CallOption.ty (Var "$v2")))])))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc options.ty))) (Let "$v0" (Val nonRepeatable)
+  (Let "$v1" (Val #(W64 0))
+  (Let "$v2" (Let "$a0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 50)) (Val #(W64 1000000))))
+  (Let "$a1" (Val #(W64 4591870180066957722))
+  (App (App (App (Val (GoInstruction (FuncResolve backoffLinearWithJitter []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$v3" (Val #true)
+  (App (Val (GoInstruction (CompositeLiteral options.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"retryPolicy")) (ElementExpression retryPolicy.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"max")) (ElementExpression go.uint (Var "$v1"))), (KeyedElement (some (KeyField go!"backoffFunc")) (ElementExpression backoffFunc.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"retryAuth")) (ElementExpression go.bool (Var "$v3")))])))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -11395,7 +11545,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Pair (App (Val (GoInstruction (GlobalVarAddr valCtxCh))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val defaultOptions.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType options.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr defaultOptions))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr defaultCallOpts))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -11475,6 +11625,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.peer.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.math.rand.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrNoAvailableEndpoints go.error)) (Val #()))))))
@@ -11502,6 +11654,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (go.GlobalAlloc defaultBackoffJitterFraction go.float64)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc defaultCallOpts (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc defaultOptions (go.GoType.PointerType options.ty))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc valCtxCh (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])))) (Val #()))))))
   (App (Val doExecute)

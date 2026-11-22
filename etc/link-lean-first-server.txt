@@ -528,14 +528,18 @@ EtcdServer__applyAll: EtcdServer__applySnapshot EtcdServer__applyEntries EtcdSer
 # The server's apply loop `run` (server.go; the request path's unit 4c, see InvRun.lean): the
 # committed index's and the leader's setters (with bodies), the raft storage snapshot's
 # metadata getters (raft v3.7's raftpb), the FIFO scheduler (in mvcc's list: its results reused from mvcc's Link), and the
-# trust boundary (`axiom … .wp_proof`): v2stats' `BecomeLeader`. (`revokeExpiredLeases`, the expired
+# stats' `BecomeLeader` (with its body since 2026-11-21). (`revokeExpiredLeases`, the expired
 # leases' receive, is unreachable since D19n, 2026-10-18.) Its shutdown (R2c-4, one spec: a stop
 # request on `stop`): the scheduler's `Stop`, `raftNode.stop` (its one spec), `Cleanup` and the
 # image's reads and write (`stop_cleanup_image`).
 SnapshotMetadata__GetTerm: @
 EtcdServer__setCommittedIndex:
 EtcdServer__setLead:
-v2stats_ServerStats__BecomeLeader:
+# v2stats (prove-ps2-v2stats, 2026-11-21): the stats' unlocked half and the rate queue's `Insert`,
+# which `BecomeLeader`, `SendAppendReq` and `RecvAppendReq` call under the stats' mutex.
+v2stats_statsQueue__Insert:
+v2stats_ServerStats__becomeLeader: =_root_.Perennial.time.wp_Now
+v2stats_ServerStats__BecomeLeader: v2stats_ServerStats__becomeLeader
 schedule_NewFIFOScheduler:
 schedule_job__Do:
 schedule_NewJob: schedule_job__Do
@@ -701,7 +705,7 @@ bootstrappedRaft__newRaftNode: =srvApi_wp_StartNode =srvApi_wp_RestartNode newRa
 # `NewServer.spec` (D13b). raft's node methods (for the wrapper's composition, `NodeStart.lean`),
 # mvcc's `New` and `watchableStore.Close` and the backend's `SetTxPostLockInsideApplyHook` are
 # linked in their packages' Links (`@`).
-v2stats_NewServerStats:
+v2stats_NewServerStats: =_root_.Perennial.time.wp_Now
 # `NewLeaderStats` translated and proved (2026-10-22), over zap's `NewNop` (mvcc's `@`).
 zap_NewNop: @
 v2stats_NewLeaderStats: zap_NewNop
@@ -800,7 +804,7 @@ apply_NewUberApplier: @
 # `Process` and the reports with their bodies, the node API's methods (`NodeApiLink.lean`, `=`),
 # the cluster's `IsIDRemoved` with its body; the trust boundary (D21h (A)): the stats'
 # `RecvAppendReq` and `proto.Size` of a raft message.
-v2stats_ServerStats__RecvAppendReq:
+v2stats_ServerStats__RecvAppendReq: =_root_.Perennial.time.wp_Now v2stats_statsQueue__Insert
 proto_SizeMessage:
 RaftCluster__IsIDRemoved:
 EtcdServer__Process: EtcdServer__Logger RaftCluster__IsIDRemoved EtcdServer__MemberID Message__GetFrom raftpb_Message__GetTo Message__GetType types_ID__String proto_SizeMessage v2stats_ServerStats__RecvAppendReq
@@ -1006,7 +1010,7 @@ types_NewURLs:
 # (D43 M5a, 2026-10-26) translated with its body (an axiom until then)
 v2stats_LeaderStats__Follower:
 probing_NewHandler:
-v2stats_ServerStats__SendAppendReq:
+v2stats_ServerStats__SendAppendReq: v2stats_ServerStats__becomeLeader =_root_.Perennial.time.wp_Now v2stats_statsQueue__Insert
 # (Q9 of notes/trace-validation-plan.md, 2026-11-09) proved over its trusted model (an axiom until
 # then), whose fallback is `strconv.Itoa`'s (the trust boundary)
 raftpb_MessageType__String: strconv_Itoa

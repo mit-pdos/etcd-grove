@@ -9,3 +9,42 @@ imports = ["!*", "errors", "k8s.io/apimachinery/pkg/runtime/schema", "k8s.io/com
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`; until 2026-11-22
+# their initializers were untranslated, `opaqueInitsOk`). goose refuses a reference to one from
+# translated code, so no verified code reads them; each reason says why not running the
+# initializer is unobservable.
+[[skip]]
+names = ["etcdRequestLatency", "etcdRequestCounts", "etcdRequestErrorCounts", "objectCounts",
+  "resourceSizeEstimateDesc", "resourceObjectsDesc", "storageSizeDescription",
+  "etcdEventsReceivedCounts", "etcdBookmarkCounts", "etcdBookmarkTotal", "etcdLeaseObjectCounts",
+  "decodeErrorCounts", "listLatency"]
+reason = """
+Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable."""
+
+[[skip]]
+names = ["resourceSizeEstimate", "newObjectCounts"]
+reason = """
+Their initializers call, besides literals of constants and other variables' values:
+`newTimestampedResourceGaugeCollector(desc, nil)` allocates a collector with the real clock and an
+empty map. So each terminates, cannot panic and has no effect beyond its variable."""
+
+[[skip]]
+names = ["storageMonitor", "sinceInSeconds"]
+reason = """
+Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable."""
+
+[[skip]]
+names = ["_@timestamped_resource_gauge_collector.go:64"]
+reason = """
+An interface check: `&timestampedResourceGaugeCollector{}` converted to
+`compbasemetrics.StableCollector`. No call, no panic, no effect."""
+# --- end of skipped package variables ---

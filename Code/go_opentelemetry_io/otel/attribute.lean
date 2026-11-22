@@ -185,31 +185,6 @@ opaque defaultEncoderID.init [GooseExts] [GoGlobalContext] : val
 noncomputable def defaultEncoderInstance [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/attribute.defaultEncoderInstance"
 
-noncomputable def keyValueType [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.opentelemetry.io/otel/attribute.keyValueType"
-
-opaque keyValueType.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def emptyHash [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.opentelemetry.io/otel/attribute.emptyHash"
-
-opaque emptyHash.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def userDefinedEmptySet [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.opentelemetry.io/otel/attribute.userDefinedEmptySet"
-
-opaque userDefinedEmptySet.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def emptySet [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.opentelemetry.io/otel/attribute.emptySet"
-
-opaque emptySet.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def _Type_index [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.opentelemetry.io/otel/attribute._Type_index"
-
-opaque _Type_index.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def NewEncoderID [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/attribute.NewEncoderID"
 
@@ -808,41 +783,52 @@ noncomputable def StringValue.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore Value.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad Value.ty))) (Var "$res0")))))
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `_@encoder.go:53` (`var _ Encoder = &defaultAttrEncoder{}`): An interface check: `&defaultAttrEncoder{}` converted to `Encoder`. No call, no panic, no effect.
+- `_@set.go:53` (`var _ = isComparable(Set{})`): A conversion check: `Set{}` converted to `isComparable`. No call, no panic, no effect.
+- `_@set.go:54` (`var _ = isComparable(Distinct{})`): A conversion check: `Distinct{}` converted to `isComparable`. No call, no panic, no effect.
+- `keyValueType` (`var // keyValueType is used in computeDistinctReflect. keyValueType = reflect.TypeFor[KeyValue]()`): Its initializer calls, besides literals of constants and other variables' values:
+`reflect.TypeOf`/`TypeFor` (and `Elem`) read the static type descriptor of a type. So it terminates,
+cannot panic and has no effect beyond its variable.
+- `emptyHash` (`var // emptyHash is the hash of an empty set. emptyHash = xxhash.New().Sum64()`): Its initializer calls, besides literals of constants and other variables' values:
+`xxhash.New().Sum64()` hashes nothing with a new digest. So it terminates, cannot panic and has no
+effect beyond its variable.
+- `userDefinedEmptySet` (`var // userDefinedEmptySet is an empty set. It was mistakenly exposed to users // as something they can assign to, so it … [sha256:a24321c676c680d7]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `emptySet` (`var emptySet = Set{ hash: emptyHash, data: [0]KeyValue{}, }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `_Type_index` (`var _Type_index = [...]uint8{0, 5, 9, 14, 21, 27, 36, 46, 58, 69, 78, 83, 86}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"go.opentelemetry.io/otel/attribute._@encoder.go:53", "An interface check: `&defaultAttrEncoder{}` converted to `Encoder`. No call, no panic, no effect.", "var _ Encoder = &defaultAttrEncoder{}"⟩,
+  ⟨"go.opentelemetry.io/otel/attribute._@set.go:53", "A conversion check: `Set{}` converted to `isComparable`. No call, no panic, no effect.", "var _ = isComparable(Set{})"⟩,
+  ⟨"go.opentelemetry.io/otel/attribute._@set.go:54", "A conversion check: `Distinct{}` converted to `isComparable`. No call, no panic, no effect.", "var _ = isComparable(Distinct{})"⟩,
+  ⟨"go.opentelemetry.io/otel/attribute.keyValueType", "Its initializer calls, besides literals of constants and other variables' values:\n`reflect.TypeOf`/`TypeFor` (and `Elem`) read the static type descriptor of a type. So it terminates,\ncannot panic and has no effect beyond its variable.", "var // keyValueType is used in computeDistinctReflect. keyValueType = reflect.TypeFor[KeyValue]()"⟩,
+  ⟨"go.opentelemetry.io/otel/attribute.emptyHash", "Its initializer calls, besides literals of constants and other variables' values:\n`xxhash.New().Sum64()` hashes nothing with a new digest. So it terminates, cannot panic and has no\neffect beyond its variable.", "var // emptyHash is the hash of an empty set. emptyHash = xxhash.New().Sum64()"⟩,
+  ⟨"go.opentelemetry.io/otel/attribute.userDefinedEmptySet", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var // userDefinedEmptySet is an empty set. It was mistakenly exposed to users // as something they can assign to, so it … [sha256:a24321c676c680d7]"⟩,
+  ⟨"go.opentelemetry.io/otel/attribute.emptySet", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var emptySet = Set{ hash: emptyHash, data: [0]KeyValue{}, }"⟩,
+  ⟨"go.opentelemetry.io/otel/attribute._Type_index", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var _Type_index = [...]uint8{0, 5, 9, 14, 21, 27, 36, 46, 58, 69, 78, 83, 86}"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.go_opentelemetry_io.otel.«attribute» where
   pkgImportedPkgs := []
-
-opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_opentelemetry_io.otel.«attribute»)) (Lam BAnon
   (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val _Type_index.init) (Val #())))))
-  (App (Val doExecute)
-  (App (Val emptySet.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val userDefinedEmptySet.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val emptyHash.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val keyValueType.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val defaultEncoderID.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))))
+  (App (Val defaultEncoderID.init) (Val #())))))))
 
 abbrev Encoder [GooseExts] : Type := GoInterface
 

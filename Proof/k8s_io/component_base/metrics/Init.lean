@@ -2,10 +2,9 @@
 Package initialization of `k8s_io.component_base.metrics`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports, runs the untranslated
-initializers of its variables (`X.init`, axioms of the translation), which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untranslated
-`init` functions, which the trust-boundary axiom `initFuncsOk` says return.
+Its fact is `True`. Its initializer initializes its imports and runs its untranslated
+`init` functions, which the trust-boundary axiom `initFuncsOk` says return (it has no
+initialized variable).
 -/
 module
 
@@ -34,47 +33,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-
-/-- **The trust boundary: `k8s_io.component_base.metrics`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([DefBuckets.init,
-        «_».init,
-        «_».init,
-        «_».init,
-        «_».init,
-        «_».init,
-        «_».init,
-        «_».init,
-        «_».init,
-        «_».init,
-        «_».init,
-        noopCounterVec.init,
-        noopHistogramVec.init,
-        noopTimingHistogramVec.init,
-        noopGaugeVec.init,
-        noop.init,
-        disabledMetrics.init,
-        disabledMetricsTotal.init,
-        hiddenMetricsTotal.init,
-        cardinalityEnforcementUnexpectedCategorizationsTotal.init,
-        labelValueAllowLists.init,
-        defObjectives.init,
-        processStartTime.init,
-        registeredMetricsTotal.init,
-        BuildVersion.init,
-        «_».init,
-        «_».init,
-        «_».init,
-        «_».init,
-        «_».init,
-        «_».init,
-        buildInfo.init,
-        versionRe.init,
-        errNotRegistered.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
 /-- **The trust boundary: `k8s_io.component_base.metrics`'s untranslated `init` functions return.** Goose
 names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
@@ -109,40 +67,6 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
-  wp_apply (opaqueInitsOk DefBuckets.init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk noopCounterVec.init (by mem_tac))
-  wp_apply (opaqueInitsOk noopHistogramVec.init (by mem_tac))
-  wp_apply (opaqueInitsOk noopTimingHistogramVec.init (by mem_tac))
-  wp_apply (opaqueInitsOk noopGaugeVec.init (by mem_tac))
-  wp_apply (opaqueInitsOk noop.init (by mem_tac))
-  wp_apply (opaqueInitsOk disabledMetrics.init (by mem_tac))
-  wp_apply (opaqueInitsOk disabledMetricsTotal.init (by mem_tac))
-  wp_apply (opaqueInitsOk hiddenMetricsTotal.init (by mem_tac))
-  wp_apply (opaqueInitsOk cardinalityEnforcementUnexpectedCategorizationsTotal.init (by mem_tac))
-  wp_apply (opaqueInitsOk labelValueAllowLists.init (by mem_tac))
-  wp_apply (opaqueInitsOk defObjectives.init (by mem_tac))
-  wp_apply (opaqueInitsOk processStartTime.init (by mem_tac))
-  wp_apply (opaqueInitsOk registeredMetricsTotal.init (by mem_tac))
-  wp_apply (opaqueInitsOk BuildVersion.init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk buildInfo.init (by mem_tac))
-  wp_apply (opaqueInitsOk versionRe.init (by mem_tac))
-  wp_apply (opaqueInitsOk errNotRegistered.init (by mem_tac))
   wp_apply (initFuncsOk init.«0» (by mem_tac))
   iframe Hown
   is_pkg_init_finish

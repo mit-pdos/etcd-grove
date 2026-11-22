@@ -16,18 +16,50 @@ noncomputable section
 
 namespace net.http
 
-class Transport.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying Transport.underlying Transport
-  underlying : go.UnderlyingDirectedEq Transport.ty Transport.underlying
-  isUnderlying : go.IsUnderlying Transport.underlying Transport.underlying
-  method_set : go.MethodSetIs Transport.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Transport.ty) [(go!"CancelRequest", (some (go.signature.Signature [(go.GoType.PointerType Request.ty)] false []))), (go!"Clone", (some (go.signature.Signature [] false [(go.GoType.PointerType Transport.ty)]))), (go!"CloseIdleConnections", (some (go.signature.Signature [] false []))), (go!"NewClientConn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType ClientConn.ty), go.error]))), (go!"RegisterProtocol", (some (go.signature.Signature [go.string, RoundTripper.ty] false []))), (go!"RoundTrip", (some (go.signature.Signature [(go.GoType.PointerType Request.ty)] false [(go.GoType.PointerType Response.ty), go.error]))), (go!"net/http.alternateRoundTripper", (some (go.signature.Signature [(go.GoType.PointerType Request.ty)] false [RoundTripper.ty]))), (go!"net/http.configureHTTP2", (some (go.signature.Signature [Protocols.ty] false []))), (go!"net/http.connectMethodForRequest", (some (go.signature.Signature [(go.GoType.PointerType transportRequest.ty)] false [connectMethod.ty, go.error]))), (go!"net/http.customDialTLS", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [_root_.Perennial.net.Conn.ty, go.error]))), (go!"net/http.decConnsPerHost", (some (go.signature.Signature [connectMethodKey.ty] false []))), (go!"net/http.dial", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [_root_.Perennial.net.Conn.ty, go.error]))), (go!"net/http.dialConn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, connectMethod.ty, go.bool, (go.GoType.FunctionType (go.signature.Signature [] false []))] false [(go.GoType.PointerType persistConn.ty), go.error]))), (go!"net/http.dialConnFor", (some (go.signature.Signature [(go.GoType.PointerType wantConn.ty)] false []))), (go!"net/http.getConn", (some (go.signature.Signature [(go.GoType.PointerType transportRequest.ty), connectMethod.ty] false [(go.GoType.PointerType persistConn.ty), go.error]))), (go!"net/http.hasCustomTLSDialer", (some (go.signature.Signature [] false [go.bool]))), (go!"net/http.http2AddConn", (some (go.signature.Signature [go.string, go.string, _root_.Perennial.net.Conn.ty] false [RoundTripper.ty, go.error]))), (go!"net/http.http2ExternalDial", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, connectMethod.ty] false [RoundTripper.ty, go.error]))), (go!"net/http.http2NewClientConn", (some (go.signature.Signature [_root_.Perennial.net.Conn.ty, (go.GoType.FunctionType (go.signature.Signature [] false []))] false [genericClientConn.ty, go.error]))), (go!"net/http.http2NewClientConnFromContext", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType ClientConn.ty), go.error]))), (go!"net/http.maxHeaderResponseSize", (some (go.signature.Signature [] false [go.int64]))), (go!"net/http.maxIdleConnsPerHost", (some (go.signature.Signature [] false [go.int]))), (go!"net/http.onceSetNextProtoDefaults", (some (go.signature.Signature [] false []))), (go!"net/http.prepareTransportCancel", (some (go.signature.Signature [(go.GoType.PointerType Request.ty), _root_.Perennial.context.CancelCauseFunc.ty] false [_root_.Perennial.context.CancelCauseFunc.ty]))), (go!"net/http.protocols", (some (go.signature.Signature [] false [Protocols.ty]))), (go!"net/http.putOrCloseIdleConn", (some (go.signature.Signature [(go.GoType.PointerType persistConn.ty)] false []))), (go!"net/http.queueForDial", (some (go.signature.Signature [(go.GoType.PointerType wantConn.ty)] false []))), (go!"net/http.queueForIdleConn", (some (go.signature.Signature [(go.GoType.PointerType wantConn.ty)] false [go.bool]))), (go!"net/http.readBufferSize", (some (go.signature.Signature [] false [go.int]))), (go!"net/http.registerProtocol", (some (go.signature.Signature [go.string, RoundTripper.ty] false [go.error]))), (go!"net/http.removeIdleConn", (some (go.signature.Signature [(go.GoType.PointerType persistConn.ty)] false [go.bool]))), (go!"net/http.removeIdleConnLocked", (some (go.signature.Signature [(go.GoType.PointerType persistConn.ty)] false [go.bool]))), (go!"net/http.roundTrip", (some (go.signature.Signature [(go.GoType.PointerType Request.ty)] false [(go.GoType.PointerType Response.ty), go.error]))), (go!"net/http.startDialConnForLocked", (some (go.signature.Signature [(go.GoType.PointerType wantConn.ty)] false []))), (go!"net/http.tryPutIdleConn", (some (go.signature.Signature [(go.GoType.PointerType persistConn.ty)] false [go.error]))), (go!"net/http.useRegisteredProtocol", (some (go.signature.Signature [(go.GoType.PointerType Request.ty)] false [go.bool]))), (go!"net/http.writeBufferSize", (some (go.signature.Signature [] false [go.int])))]
+class connLRU.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying connLRU.underlying connLRU
+  underlying : go.UnderlyingDirectedEq connLRU.ty connLRU.underlying
+  isUnderlying : go.IsUnderlying connLRU.underlying connLRU.underlying
+  method_set : go.MethodSetIs connLRU.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType connLRU.ty) [(go!"net/http.add", (some (go.signature.Signature [(go.GoType.PointerType persistConn.ty)] false []))), (go!"net/http.len", (some (go.signature.Signature [] false [go.int]))), (go!"net/http.remove", (some (go.signature.Signature [(go.GoType.PointerType persistConn.ty)] false []))), (go!"net/http.removeOldest", (some (go.signature.Signature [] false [(go.GoType.PointerType persistConn.ty)])))]
 
-attribute [instance] Transport.TypeAssumptions.type_repr
-  Transport.TypeAssumptions.underlying
-  Transport.TypeAssumptions.isUnderlying
-  Transport.TypeAssumptions.method_set
-  Transport.TypeAssumptions.ptr_method_set
+attribute [instance] connLRU.TypeAssumptions.type_repr
+  connLRU.TypeAssumptions.underlying
+  connLRU.TypeAssumptions.isUnderlying
+  connLRU.TypeAssumptions.method_set
+  connLRU.TypeAssumptions.ptr_method_set
+
+class wantConnQueue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying wantConnQueue.underlying wantConnQueue
+  underlying : go.UnderlyingDirectedEq wantConnQueue.ty wantConnQueue.underlying
+  get_head : ∀ (x : wantConnQueue), go.IsGoStepPureDetTagged under (StructFieldGet wantConnQueue.underlying go!"head") #x (Val #(x.head'))
+  set_head : ∀ (x : wantConnQueue) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet wantConnQueue.underlying go!"head") (PairV #x #y) (Val #(({ x with head' := y } : wantConnQueue)))
+  get_headPos : ∀ (x : wantConnQueue), go.IsGoStepPureDetTagged under (StructFieldGet wantConnQueue.underlying go!"headPos") #x (Val #(x.headPos'))
+  set_headPos : ∀ (x : wantConnQueue) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet wantConnQueue.underlying go!"headPos") (PairV #x #y) (Val #(({ x with headPos' := y } : wantConnQueue)))
+  get_tail : ∀ (x : wantConnQueue), go.IsGoStepPureDetTagged under (StructFieldGet wantConnQueue.underlying go!"tail") #x (Val #(x.tail'))
+  set_tail : ∀ (x : wantConnQueue) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet wantConnQueue.underlying go!"tail") (PairV #x #y) (Val #(({ x with tail' := y } : wantConnQueue)))
+  method_set : go.MethodSetIs wantConnQueue.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType wantConnQueue.ty) [(go!"net/http.all", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType wantConn.ty)] false []))] false []))), (go!"net/http.cleanFrontCanceled", (some (go.signature.Signature [] false []))), (go!"net/http.cleanFrontNotWaiting", (some (go.signature.Signature [] false [go.bool]))), (go!"net/http.len", (some (go.signature.Signature [] false [go.int]))), (go!"net/http.peekFront", (some (go.signature.Signature [] false [(go.GoType.PointerType wantConn.ty)]))), (go!"net/http.popFront", (some (go.signature.Signature [] false [(go.GoType.PointerType wantConn.ty)]))), (go!"net/http.pushBack", (some (go.signature.Signature [(go.GoType.PointerType wantConn.ty)] false [])))]
+
+attribute [instance] wantConnQueue.TypeAssumptions.type_repr
+  wantConnQueue.TypeAssumptions.underlying
+  wantConnQueue.TypeAssumptions.get_head
+  wantConnQueue.TypeAssumptions.set_head
+  wantConnQueue.TypeAssumptions.get_headPos
+  wantConnQueue.TypeAssumptions.set_headPos
+  wantConnQueue.TypeAssumptions.get_tail
+  wantConnQueue.TypeAssumptions.set_tail
+  wantConnQueue.TypeAssumptions.method_set
+  wantConnQueue.TypeAssumptions.ptr_method_set
+
+class closeIdleConnectionser.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq closeIdleConnectionser.ty closeIdleConnectionser.underlying
+  method_set : go.MethodSetIs closeIdleConnectionser.ty [(go!"CloseIdleConnections", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType closeIdleConnectionser.ty) []
+
+attribute [instance] closeIdleConnectionser.TypeAssumptions.underlying
+  closeIdleConnectionser.TypeAssumptions.method_set
+  closeIdleConnectionser.TypeAssumptions.ptr_method_set
 
 class dialClientConner.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq dialClientConner.ty dialClientConner.underlying
@@ -38,14 +70,192 @@ attribute [instance] dialClientConner.TypeAssumptions.underlying
   dialClientConner.TypeAssumptions.method_set
   dialClientConner.TypeAssumptions.ptr_method_set
 
-class closeIdleConnectionser.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq closeIdleConnectionser.ty closeIdleConnectionser.underlying
-  method_set : go.MethodSetIs closeIdleConnectionser.ty [(go!"CloseIdleConnections", (some (go.signature.Signature [] false [])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType closeIdleConnectionser.ty) []
+class Transport.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying Transport.underlying Transport
+  underlying : go.UnderlyingDirectedEq Transport.ty Transport.underlying
+  get_idleMu : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"idleMu") #x (Val #(x.idleMu'))
+  set_idleMu : ∀ (x : Transport) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"idleMu") (PairV #x #y) (Val #(({ x with idleMu' := y } : Transport)))
+  get_closeIdle : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"closeIdle") #x (Val #(x.closeIdle'))
+  set_closeIdle : ∀ (x : Transport) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"closeIdle") (PairV #x #y) (Val #(({ x with closeIdle' := y } : Transport)))
+  get_idleConn : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"idleConn") #x (Val #(x.idleConn'))
+  set_idleConn : ∀ (x : Transport) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"idleConn") (PairV #x #y) (Val #(({ x with idleConn' := y } : Transport)))
+  get_idleConnWait : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"idleConnWait") #x (Val #(x.idleConnWait'))
+  set_idleConnWait : ∀ (x : Transport) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"idleConnWait") (PairV #x #y) (Val #(({ x with idleConnWait' := y } : Transport)))
+  get_idleLRU : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"idleLRU") #x (Val #(x.idleLRU'))
+  set_idleLRU : ∀ (x : Transport) (y : connLRU), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"idleLRU") (PairV #x #y) (Val #(({ x with idleLRU' := y } : Transport)))
+  get_reqMu : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"reqMu") #x (Val #(x.reqMu'))
+  set_reqMu : ∀ (x : Transport) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"reqMu") (PairV #x #y) (Val #(({ x with reqMu' := y } : Transport)))
+  get_reqCanceler : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"reqCanceler") #x (Val #(x.reqCanceler'))
+  set_reqCanceler : ∀ (x : Transport) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"reqCanceler") (PairV #x #y) (Val #(({ x with reqCanceler' := y } : Transport)))
+  get_altMu : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"altMu") #x (Val #(x.altMu'))
+  set_altMu : ∀ (x : Transport) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"altMu") (PairV #x #y) (Val #(({ x with altMu' := y } : Transport)))
+  get_altProto : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"altProto") #x (Val #(x.altProto'))
+  set_altProto : ∀ (x : Transport) (y : _root_.Perennial.sync.atomic.Value), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"altProto") (PairV #x #y) (Val #(({ x with altProto' := y } : Transport)))
+  get_connsPerHostMu : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"connsPerHostMu") #x (Val #(x.connsPerHostMu'))
+  set_connsPerHostMu : ∀ (x : Transport) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"connsPerHostMu") (PairV #x #y) (Val #(({ x with connsPerHostMu' := y } : Transport)))
+  get_connsPerHost : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"connsPerHost") #x (Val #(x.connsPerHost'))
+  set_connsPerHost : ∀ (x : Transport) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"connsPerHost") (PairV #x #y) (Val #(({ x with connsPerHost' := y } : Transport)))
+  get_connsPerHostWait : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"connsPerHostWait") #x (Val #(x.connsPerHostWait'))
+  set_connsPerHostWait : ∀ (x : Transport) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"connsPerHostWait") (PairV #x #y) (Val #(({ x with connsPerHostWait' := y } : Transport)))
+  get_dialsInProgress : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"dialsInProgress") #x (Val #(x.dialsInProgress'))
+  set_dialsInProgress : ∀ (x : Transport) (y : wantConnQueue), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"dialsInProgress") (PairV #x #y) (Val #(({ x with dialsInProgress' := y } : Transport)))
+  get_Proxy : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"Proxy") #x (Val #(x.Proxy'))
+  set_Proxy : ∀ (x : Transport) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"Proxy") (PairV #x #y) (Val #(({ x with Proxy' := y } : Transport)))
+  get_OnProxyConnectResponse : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"OnProxyConnectResponse") #x (Val #(x.OnProxyConnectResponse'))
+  set_OnProxyConnectResponse : ∀ (x : Transport) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"OnProxyConnectResponse") (PairV #x #y) (Val #(({ x with OnProxyConnectResponse' := y } : Transport)))
+  get_DialContext : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"DialContext") #x (Val #(x.DialContext'))
+  set_DialContext : ∀ (x : Transport) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"DialContext") (PairV #x #y) (Val #(({ x with DialContext' := y } : Transport)))
+  get_Dial : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"Dial") #x (Val #(x.Dial'))
+  set_Dial : ∀ (x : Transport) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"Dial") (PairV #x #y) (Val #(({ x with Dial' := y } : Transport)))
+  get_DialTLSContext : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"DialTLSContext") #x (Val #(x.DialTLSContext'))
+  set_DialTLSContext : ∀ (x : Transport) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"DialTLSContext") (PairV #x #y) (Val #(({ x with DialTLSContext' := y } : Transport)))
+  get_DialTLS : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"DialTLS") #x (Val #(x.DialTLS'))
+  set_DialTLS : ∀ (x : Transport) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"DialTLS") (PairV #x #y) (Val #(({ x with DialTLS' := y } : Transport)))
+  get_TLSClientConfig : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"TLSClientConfig") #x (Val #(x.TLSClientConfig'))
+  set_TLSClientConfig : ∀ (x : Transport) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"TLSClientConfig") (PairV #x #y) (Val #(({ x with TLSClientConfig' := y } : Transport)))
+  get_TLSHandshakeTimeout : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"TLSHandshakeTimeout") #x (Val #(x.TLSHandshakeTimeout'))
+  set_TLSHandshakeTimeout : ∀ (x : Transport) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"TLSHandshakeTimeout") (PairV #x #y) (Val #(({ x with TLSHandshakeTimeout' := y } : Transport)))
+  get_DisableKeepAlives : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"DisableKeepAlives") #x (Val #(x.DisableKeepAlives'))
+  set_DisableKeepAlives : ∀ (x : Transport) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"DisableKeepAlives") (PairV #x #y) (Val #(({ x with DisableKeepAlives' := y } : Transport)))
+  get_DisableCompression : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"DisableCompression") #x (Val #(x.DisableCompression'))
+  set_DisableCompression : ∀ (x : Transport) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"DisableCompression") (PairV #x #y) (Val #(({ x with DisableCompression' := y } : Transport)))
+  get_MaxIdleConns : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"MaxIdleConns") #x (Val #(x.MaxIdleConns'))
+  set_MaxIdleConns : ∀ (x : Transport) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"MaxIdleConns") (PairV #x #y) (Val #(({ x with MaxIdleConns' := y } : Transport)))
+  get_MaxIdleConnsPerHost : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"MaxIdleConnsPerHost") #x (Val #(x.MaxIdleConnsPerHost'))
+  set_MaxIdleConnsPerHost : ∀ (x : Transport) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"MaxIdleConnsPerHost") (PairV #x #y) (Val #(({ x with MaxIdleConnsPerHost' := y } : Transport)))
+  get_MaxConnsPerHost : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"MaxConnsPerHost") #x (Val #(x.MaxConnsPerHost'))
+  set_MaxConnsPerHost : ∀ (x : Transport) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"MaxConnsPerHost") (PairV #x #y) (Val #(({ x with MaxConnsPerHost' := y } : Transport)))
+  get_IdleConnTimeout : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"IdleConnTimeout") #x (Val #(x.IdleConnTimeout'))
+  set_IdleConnTimeout : ∀ (x : Transport) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"IdleConnTimeout") (PairV #x #y) (Val #(({ x with IdleConnTimeout' := y } : Transport)))
+  get_ResponseHeaderTimeout : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"ResponseHeaderTimeout") #x (Val #(x.ResponseHeaderTimeout'))
+  set_ResponseHeaderTimeout : ∀ (x : Transport) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"ResponseHeaderTimeout") (PairV #x #y) (Val #(({ x with ResponseHeaderTimeout' := y } : Transport)))
+  get_ExpectContinueTimeout : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"ExpectContinueTimeout") #x (Val #(x.ExpectContinueTimeout'))
+  set_ExpectContinueTimeout : ∀ (x : Transport) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"ExpectContinueTimeout") (PairV #x #y) (Val #(({ x with ExpectContinueTimeout' := y } : Transport)))
+  get_TLSNextProto : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"TLSNextProto") #x (Val #(x.TLSNextProto'))
+  set_TLSNextProto : ∀ (x : Transport) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"TLSNextProto") (PairV #x #y) (Val #(({ x with TLSNextProto' := y } : Transport)))
+  get_ProxyConnectHeader : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"ProxyConnectHeader") #x (Val #(x.ProxyConnectHeader'))
+  set_ProxyConnectHeader : ∀ (x : Transport) (y : Header), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"ProxyConnectHeader") (PairV #x #y) (Val #(({ x with ProxyConnectHeader' := y } : Transport)))
+  get_GetProxyConnectHeader : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"GetProxyConnectHeader") #x (Val #(x.GetProxyConnectHeader'))
+  set_GetProxyConnectHeader : ∀ (x : Transport) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"GetProxyConnectHeader") (PairV #x #y) (Val #(({ x with GetProxyConnectHeader' := y } : Transport)))
+  get_MaxResponseHeaderBytes : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"MaxResponseHeaderBytes") #x (Val #(x.MaxResponseHeaderBytes'))
+  set_MaxResponseHeaderBytes : ∀ (x : Transport) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"MaxResponseHeaderBytes") (PairV #x #y) (Val #(({ x with MaxResponseHeaderBytes' := y } : Transport)))
+  get_WriteBufferSize : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"WriteBufferSize") #x (Val #(x.WriteBufferSize'))
+  set_WriteBufferSize : ∀ (x : Transport) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"WriteBufferSize") (PairV #x #y) (Val #(({ x with WriteBufferSize' := y } : Transport)))
+  get_ReadBufferSize : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"ReadBufferSize") #x (Val #(x.ReadBufferSize'))
+  set_ReadBufferSize : ∀ (x : Transport) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"ReadBufferSize") (PairV #x #y) (Val #(({ x with ReadBufferSize' := y } : Transport)))
+  get_nextProtoOnce : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"nextProtoOnce") #x (Val #(x.nextProtoOnce'))
+  set_nextProtoOnce : ∀ (x : Transport) (y : _root_.Perennial.sync.Once), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"nextProtoOnce") (PairV #x #y) (Val #(({ x with nextProtoOnce' := y } : Transport)))
+  get_closeIdleFunc : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"closeIdleFunc") #x (Val #(x.closeIdleFunc'))
+  set_closeIdleFunc : ∀ (x : Transport) (y : closeIdleConnectionser), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"closeIdleFunc") (PairV #x #y) (Val #(({ x with closeIdleFunc' := y } : Transport)))
+  get_h2Transport : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"h2Transport") #x (Val #(x.h2Transport'))
+  set_h2Transport : ∀ (x : Transport) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"h2Transport") (PairV #x #y) (Val #(({ x with h2Transport' := y } : Transport)))
+  get_h2Config : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"h2Config") #x (Val #(x.h2Config'))
+  set_h2Config : ∀ (x : Transport) (y : http2ExternalTransportConfig), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"h2Config") (PairV #x #y) (Val #(({ x with h2Config' := y } : Transport)))
+  get_h3Transport : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"h3Transport") #x (Val #(x.h3Transport'))
+  set_h3Transport : ∀ (x : Transport) (y : dialClientConner), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"h3Transport") (PairV #x #y) (Val #(({ x with h3Transport' := y } : Transport)))
+  get_tlsNextProtoWasNil : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"tlsNextProtoWasNil") #x (Val #(x.tlsNextProtoWasNil'))
+  set_tlsNextProtoWasNil : ∀ (x : Transport) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"tlsNextProtoWasNil") (PairV #x #y) (Val #(({ x with tlsNextProtoWasNil' := y } : Transport)))
+  get_ForceAttemptHTTP2 : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"ForceAttemptHTTP2") #x (Val #(x.ForceAttemptHTTP2'))
+  set_ForceAttemptHTTP2 : ∀ (x : Transport) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"ForceAttemptHTTP2") (PairV #x #y) (Val #(({ x with ForceAttemptHTTP2' := y } : Transport)))
+  get_HTTP2 : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"HTTP2") #x (Val #(x.HTTP2'))
+  set_HTTP2 : ∀ (x : Transport) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"HTTP2") (PairV #x #y) (Val #(({ x with HTTP2' := y } : Transport)))
+  get_Protocols : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"Protocols") #x (Val #(x.Protocols'))
+  set_Protocols : ∀ (x : Transport) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"Protocols") (PairV #x #y) (Val #(({ x with Protocols' := y } : Transport)))
+  method_set : go.MethodSetIs Transport.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Transport.ty) [(go!"CancelRequest", (some (go.signature.Signature [(go.GoType.PointerType Request.ty)] false []))), (go!"Clone", (some (go.signature.Signature [] false [(go.GoType.PointerType Transport.ty)]))), (go!"CloseIdleConnections", (some (go.signature.Signature [] false []))), (go!"NewClientConn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType ClientConn.ty), go.error]))), (go!"RegisterProtocol", (some (go.signature.Signature [go.string, RoundTripper.ty] false []))), (go!"RoundTrip", (some (go.signature.Signature [(go.GoType.PointerType Request.ty)] false [(go.GoType.PointerType Response.ty), go.error]))), (go!"net/http.alternateRoundTripper", (some (go.signature.Signature [(go.GoType.PointerType Request.ty)] false [RoundTripper.ty]))), (go!"net/http.configureHTTP2", (some (go.signature.Signature [Protocols.ty] false []))), (go!"net/http.connectMethodForRequest", (some (go.signature.Signature [(go.GoType.PointerType transportRequest.ty)] false [connectMethod.ty, go.error]))), (go!"net/http.customDialTLS", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [_root_.Perennial.net.Conn.ty, go.error]))), (go!"net/http.decConnsPerHost", (some (go.signature.Signature [connectMethodKey.ty] false []))), (go!"net/http.dial", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [_root_.Perennial.net.Conn.ty, go.error]))), (go!"net/http.dialConn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, connectMethod.ty, go.bool, (go.GoType.FunctionType (go.signature.Signature [] false []))] false [(go.GoType.PointerType persistConn.ty), go.error]))), (go!"net/http.dialConnFor", (some (go.signature.Signature [(go.GoType.PointerType wantConn.ty)] false []))), (go!"net/http.getConn", (some (go.signature.Signature [(go.GoType.PointerType transportRequest.ty), connectMethod.ty] false [(go.GoType.PointerType persistConn.ty), go.error]))), (go!"net/http.hasCustomTLSDialer", (some (go.signature.Signature [] false [go.bool]))), (go!"net/http.http2AddConn", (some (go.signature.Signature [go.string, go.string, _root_.Perennial.net.Conn.ty] false [RoundTripper.ty, go.error]))), (go!"net/http.http2ExternalDial", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, connectMethod.ty] false [RoundTripper.ty, go.error]))), (go!"net/http.http2NewClientConn", (some (go.signature.Signature [_root_.Perennial.net.Conn.ty, (go.GoType.FunctionType (go.signature.Signature [] false []))] false [genericClientConn.ty, go.error]))), (go!"net/http.http2NewClientConnFromContext", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType ClientConn.ty), go.error]))), (go!"net/http.maxHeaderResponseSize", (some (go.signature.Signature [] false [go.int64]))), (go!"net/http.maxIdleConnsPerHost", (some (go.signature.Signature [] false [go.int]))), (go!"net/http.onceSetNextProtoDefaults", (some (go.signature.Signature [] false []))), (go!"net/http.prepareTransportCancel", (some (go.signature.Signature [(go.GoType.PointerType Request.ty), _root_.Perennial.context.CancelCauseFunc.ty] false [_root_.Perennial.context.CancelCauseFunc.ty]))), (go!"net/http.protocols", (some (go.signature.Signature [] false [Protocols.ty]))), (go!"net/http.putOrCloseIdleConn", (some (go.signature.Signature [(go.GoType.PointerType persistConn.ty)] false []))), (go!"net/http.queueForDial", (some (go.signature.Signature [(go.GoType.PointerType wantConn.ty)] false []))), (go!"net/http.queueForIdleConn", (some (go.signature.Signature [(go.GoType.PointerType wantConn.ty)] false [go.bool]))), (go!"net/http.readBufferSize", (some (go.signature.Signature [] false [go.int]))), (go!"net/http.registerProtocol", (some (go.signature.Signature [go.string, RoundTripper.ty] false [go.error]))), (go!"net/http.removeIdleConn", (some (go.signature.Signature [(go.GoType.PointerType persistConn.ty)] false [go.bool]))), (go!"net/http.removeIdleConnLocked", (some (go.signature.Signature [(go.GoType.PointerType persistConn.ty)] false [go.bool]))), (go!"net/http.roundTrip", (some (go.signature.Signature [(go.GoType.PointerType Request.ty)] false [(go.GoType.PointerType Response.ty), go.error]))), (go!"net/http.startDialConnForLocked", (some (go.signature.Signature [(go.GoType.PointerType wantConn.ty)] false []))), (go!"net/http.tryPutIdleConn", (some (go.signature.Signature [(go.GoType.PointerType persistConn.ty)] false [go.error]))), (go!"net/http.useRegisteredProtocol", (some (go.signature.Signature [(go.GoType.PointerType Request.ty)] false [go.bool]))), (go!"net/http.writeBufferSize", (some (go.signature.Signature [] false [go.int])))]
 
-attribute [instance] closeIdleConnectionser.TypeAssumptions.underlying
-  closeIdleConnectionser.TypeAssumptions.method_set
-  closeIdleConnectionser.TypeAssumptions.ptr_method_set
+attribute [instance] Transport.TypeAssumptions.type_repr
+  Transport.TypeAssumptions.underlying
+  Transport.TypeAssumptions.get_idleMu
+  Transport.TypeAssumptions.set_idleMu
+  Transport.TypeAssumptions.get_closeIdle
+  Transport.TypeAssumptions.set_closeIdle
+  Transport.TypeAssumptions.get_idleConn
+  Transport.TypeAssumptions.set_idleConn
+  Transport.TypeAssumptions.get_idleConnWait
+  Transport.TypeAssumptions.set_idleConnWait
+  Transport.TypeAssumptions.get_idleLRU
+  Transport.TypeAssumptions.set_idleLRU
+  Transport.TypeAssumptions.get_reqMu
+  Transport.TypeAssumptions.set_reqMu
+  Transport.TypeAssumptions.get_reqCanceler
+  Transport.TypeAssumptions.set_reqCanceler
+  Transport.TypeAssumptions.get_altMu
+  Transport.TypeAssumptions.set_altMu
+  Transport.TypeAssumptions.get_altProto
+  Transport.TypeAssumptions.set_altProto
+  Transport.TypeAssumptions.get_connsPerHostMu
+  Transport.TypeAssumptions.set_connsPerHostMu
+  Transport.TypeAssumptions.get_connsPerHost
+  Transport.TypeAssumptions.set_connsPerHost
+  Transport.TypeAssumptions.get_connsPerHostWait
+  Transport.TypeAssumptions.set_connsPerHostWait
+  Transport.TypeAssumptions.get_dialsInProgress
+  Transport.TypeAssumptions.set_dialsInProgress
+  Transport.TypeAssumptions.get_Proxy
+  Transport.TypeAssumptions.set_Proxy
+  Transport.TypeAssumptions.get_OnProxyConnectResponse
+  Transport.TypeAssumptions.set_OnProxyConnectResponse
+  Transport.TypeAssumptions.get_DialContext
+  Transport.TypeAssumptions.set_DialContext
+  Transport.TypeAssumptions.get_Dial
+  Transport.TypeAssumptions.set_Dial
+  Transport.TypeAssumptions.get_DialTLSContext
+  Transport.TypeAssumptions.set_DialTLSContext
+  Transport.TypeAssumptions.get_DialTLS
+  Transport.TypeAssumptions.set_DialTLS
+  Transport.TypeAssumptions.get_TLSClientConfig
+  Transport.TypeAssumptions.set_TLSClientConfig
+  Transport.TypeAssumptions.get_TLSHandshakeTimeout
+  Transport.TypeAssumptions.set_TLSHandshakeTimeout
+  Transport.TypeAssumptions.get_DisableKeepAlives
+  Transport.TypeAssumptions.set_DisableKeepAlives
+  Transport.TypeAssumptions.get_DisableCompression
+  Transport.TypeAssumptions.set_DisableCompression
+  Transport.TypeAssumptions.get_MaxIdleConns
+  Transport.TypeAssumptions.set_MaxIdleConns
+  Transport.TypeAssumptions.get_MaxIdleConnsPerHost
+  Transport.TypeAssumptions.set_MaxIdleConnsPerHost
+  Transport.TypeAssumptions.get_MaxConnsPerHost
+  Transport.TypeAssumptions.set_MaxConnsPerHost
+  Transport.TypeAssumptions.get_IdleConnTimeout
+  Transport.TypeAssumptions.set_IdleConnTimeout
+  Transport.TypeAssumptions.get_ResponseHeaderTimeout
+  Transport.TypeAssumptions.set_ResponseHeaderTimeout
+  Transport.TypeAssumptions.get_ExpectContinueTimeout
+  Transport.TypeAssumptions.set_ExpectContinueTimeout
+  Transport.TypeAssumptions.get_TLSNextProto
+  Transport.TypeAssumptions.set_TLSNextProto
+  Transport.TypeAssumptions.get_ProxyConnectHeader
+  Transport.TypeAssumptions.set_ProxyConnectHeader
+  Transport.TypeAssumptions.get_GetProxyConnectHeader
+  Transport.TypeAssumptions.set_GetProxyConnectHeader
+  Transport.TypeAssumptions.get_MaxResponseHeaderBytes
+  Transport.TypeAssumptions.set_MaxResponseHeaderBytes
+  Transport.TypeAssumptions.get_WriteBufferSize
+  Transport.TypeAssumptions.set_WriteBufferSize
+  Transport.TypeAssumptions.get_ReadBufferSize
+  Transport.TypeAssumptions.set_ReadBufferSize
+  Transport.TypeAssumptions.get_nextProtoOnce
+  Transport.TypeAssumptions.set_nextProtoOnce
+  Transport.TypeAssumptions.get_closeIdleFunc
+  Transport.TypeAssumptions.set_closeIdleFunc
+  Transport.TypeAssumptions.get_h2Transport
+  Transport.TypeAssumptions.set_h2Transport
+  Transport.TypeAssumptions.get_h2Config
+  Transport.TypeAssumptions.set_h2Config
+  Transport.TypeAssumptions.get_h3Transport
+  Transport.TypeAssumptions.set_h3Transport
+  Transport.TypeAssumptions.get_tlsNextProtoWasNil
+  Transport.TypeAssumptions.set_tlsNextProtoWasNil
+  Transport.TypeAssumptions.get_ForceAttemptHTTP2
+  Transport.TypeAssumptions.set_ForceAttemptHTTP2
+  Transport.TypeAssumptions.get_HTTP2
+  Transport.TypeAssumptions.set_HTTP2
+  Transport.TypeAssumptions.get_Protocols
+  Transport.TypeAssumptions.set_Protocols
+  Transport.TypeAssumptions.method_set
+  Transport.TypeAssumptions.ptr_method_set
 
 class transportRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying transportRequest.underlying transportRequest
@@ -225,29 +435,6 @@ attribute [instance] connOrError.TypeAssumptions.type_repr
   connOrError.TypeAssumptions.set_idleAt
   connOrError.TypeAssumptions.method_set
   connOrError.TypeAssumptions.ptr_method_set
-
-class wantConnQueue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying wantConnQueue.underlying wantConnQueue
-  underlying : go.UnderlyingDirectedEq wantConnQueue.ty wantConnQueue.underlying
-  get_head : ∀ (x : wantConnQueue), go.IsGoStepPureDetTagged under (StructFieldGet wantConnQueue.underlying go!"head") #x (Val #(x.head'))
-  set_head : ∀ (x : wantConnQueue) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet wantConnQueue.underlying go!"head") (PairV #x #y) (Val #(({ x with head' := y } : wantConnQueue)))
-  get_headPos : ∀ (x : wantConnQueue), go.IsGoStepPureDetTagged under (StructFieldGet wantConnQueue.underlying go!"headPos") #x (Val #(x.headPos'))
-  set_headPos : ∀ (x : wantConnQueue) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet wantConnQueue.underlying go!"headPos") (PairV #x #y) (Val #(({ x with headPos' := y } : wantConnQueue)))
-  get_tail : ∀ (x : wantConnQueue), go.IsGoStepPureDetTagged under (StructFieldGet wantConnQueue.underlying go!"tail") #x (Val #(x.tail'))
-  set_tail : ∀ (x : wantConnQueue) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet wantConnQueue.underlying go!"tail") (PairV #x #y) (Val #(({ x with tail' := y } : wantConnQueue)))
-  method_set : go.MethodSetIs wantConnQueue.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType wantConnQueue.ty) [(go!"net/http.all", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType wantConn.ty)] false []))] false []))), (go!"net/http.cleanFrontCanceled", (some (go.signature.Signature [] false []))), (go!"net/http.cleanFrontNotWaiting", (some (go.signature.Signature [] false [go.bool]))), (go!"net/http.len", (some (go.signature.Signature [] false [go.int]))), (go!"net/http.peekFront", (some (go.signature.Signature [] false [(go.GoType.PointerType wantConn.ty)]))), (go!"net/http.popFront", (some (go.signature.Signature [] false [(go.GoType.PointerType wantConn.ty)]))), (go!"net/http.pushBack", (some (go.signature.Signature [(go.GoType.PointerType wantConn.ty)] false [])))]
-
-attribute [instance] wantConnQueue.TypeAssumptions.type_repr
-  wantConnQueue.TypeAssumptions.underlying
-  wantConnQueue.TypeAssumptions.get_head
-  wantConnQueue.TypeAssumptions.set_head
-  wantConnQueue.TypeAssumptions.get_headPos
-  wantConnQueue.TypeAssumptions.set_headPos
-  wantConnQueue.TypeAssumptions.get_tail
-  wantConnQueue.TypeAssumptions.set_tail
-  wantConnQueue.TypeAssumptions.method_set
-  wantConnQueue.TypeAssumptions.ptr_method_set
 
 class erringRoundTripper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq erringRoundTripper.ty erringRoundTripper.underlying
@@ -625,19 +812,6 @@ attribute [instance] fakeLocker.TypeAssumptions.type_repr
   fakeLocker.TypeAssumptions.underlying
   fakeLocker.TypeAssumptions.method_set
   fakeLocker.TypeAssumptions.ptr_method_set
-
-class connLRU.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying connLRU.underlying connLRU
-  underlying : go.UnderlyingDirectedEq connLRU.ty connLRU.underlying
-  isUnderlying : go.IsUnderlying connLRU.underlying connLRU.underlying
-  method_set : go.MethodSetIs connLRU.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType connLRU.ty) [(go!"net/http.add", (some (go.signature.Signature [(go.GoType.PointerType persistConn.ty)] false []))), (go!"net/http.len", (some (go.signature.Signature [] false [go.int]))), (go!"net/http.remove", (some (go.signature.Signature [(go.GoType.PointerType persistConn.ty)] false []))), (go!"net/http.removeOldest", (some (go.signature.Signature [] false [(go.GoType.PointerType persistConn.ty)])))]
-
-attribute [instance] connLRU.TypeAssumptions.type_repr
-  connLRU.TypeAssumptions.underlying
-  connLRU.TypeAssumptions.isUnderlying
-  connLRU.TypeAssumptions.method_set
-  connLRU.TypeAssumptions.ptr_method_set
 
 end net.http
 

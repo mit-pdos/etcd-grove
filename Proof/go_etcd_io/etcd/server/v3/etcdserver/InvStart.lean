@@ -149,7 +149,7 @@ def srvRunBuilt (s : Loc) (v : RunFields) : IProp GF :=
   iprop(srvErrorcAddr s ↦□ v.errorc ∗
       (∃ γe : ChanNames, isChanBag γe v.errorc (V := GoInterface) (fun _ => iprop(False))) ∗
     srvCompactorAddr s ↦□ v.compactor ∗ compactorOk v.compactor ∗
-    srvStatsAddr s ↦□ v.stats ∗
+    srvStatsAddr s ↦□ v.stats ∗ v2stats.isServerStats v.stats ∗
     sync.isRWMutexGuard (srvLeadTimeMuAddr s) (leadTimeP s))
 
 instance srvRunBuilt_persistent (s : Loc) (v : RunFields) : Persistent (srvRunBuilt (GF := GF) s v) := by

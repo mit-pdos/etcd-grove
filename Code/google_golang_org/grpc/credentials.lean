@@ -125,20 +125,10 @@ opaque PrivacyAndIntegrity [GooseExts] [GoGlobalContext] : val
 
 opaque alpnFailureHelpMessage [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrConnDispatched [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc/credentials.ErrConnDispatched"
-
-opaque ErrConnDispatched.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def logger [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/credentials.logger"
 
 opaque logger.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def tls12ForbiddenCipherSuites [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc/credentials.tls12ForbiddenCipherSuites"
-
-opaque tls12ForbiddenCipherSuites.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def RequestInfoFromContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/credentials.RequestInfoFromContext"
@@ -173,6 +163,23 @@ noncomputable def NewServerTLSFromCert [GooseExts] [GoGlobalContext] : GoString 
 noncomputable def NewServerTLSFromFile [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/credentials.NewServerTLSFromFile"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `ErrConnDispatched` (`var ErrConnDispatched = errors.New("credentials: rawConn is dispatched out of gRPC")`): Its initializer calls, besides literals of constants and other variables' values: `errors.New` of a
+constant allocates an `*errorString`. So it terminates, cannot panic and has no effect beyond its
+variable.
+- `tls12ForbiddenCipherSuites` (`var tls12ForbiddenCipherSuites = map[uint16]struct{}{ tls.TLS_RSA_WITH_AES_128_CBC_SHA: {}, tls.TLS_RSA_WITH_AES_256_CBC … [sha256:72e235067be72921]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"google.golang.org/grpc/credentials.ErrConnDispatched", "Its initializer calls, besides literals of constants and other variables' values: `errors.New` of a\nconstant allocates an `*errorString`. So it terminates, cannot panic and has no effect beyond its\nvariable.", "var ErrConnDispatched = errors.New(\"credentials: rawConn is dispatched out of gRPC\")"⟩,
+  ⟨"google.golang.org/grpc/credentials.tls12ForbiddenCipherSuites", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var tls12ForbiddenCipherSuites = map[uint16]struct{}{ tls.TLS_RSA_WITH_AES_128_CBC_SHA: {}, tls.TLS_RSA_WITH_AES_256_CBC … [sha256:72e235067be72921]"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.credentials where
   pkgImportedPkgs := [pkg_id.context, pkg_id.net]
 
@@ -184,14 +191,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val tls12ForbiddenCipherSuites.init) (Val #())))))
-  (App (Val doExecute)
-  (App (Val logger.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrConnDispatched.init) (Val #()))))))
+  (App (Val logger.init) (Val #())))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.context.initialize') (Val #()))))))
   (App (Val doExecute)

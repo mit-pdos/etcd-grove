@@ -1001,123 +1001,8 @@ opaque QUICStoreSession [GooseExts] [GoGlobalContext] : val
 
 opaque QUICErrorEvent [GooseExts] [GoGlobalContext] : val
 
-noncomputable def alertText [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.alertText"
-
-opaque alertText.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def signaturePadding [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.signaturePadding"
-
-opaque signaturePadding.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def rsaSignatureSchemes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.rsaSignatureSchemes"
-
-opaque rsaSignatureSchemes.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def globalCertCache [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.globalCertCache"
-
-opaque globalCertCache.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def supportedUpToTLS12 [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.supportedUpToTLS12"
-
-opaque supportedUpToTLS12.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def supportedOnlyTLS12 [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.supportedOnlyTLS12"
-
-opaque supportedOnlyTLS12.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def supportedOnlyTLS13 [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.supportedOnlyTLS13"
-
-opaque supportedOnlyTLS13.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def cipherSuites [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.cipherSuites"
-
-opaque cipherSuites.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def cipherSuitesTLS13 [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.cipherSuitesTLS13"
-
-opaque cipherSuitesTLS13.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def cipherSuitesPreferenceOrder [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.cipherSuitesPreferenceOrder"
-
-opaque cipherSuitesPreferenceOrder.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def cipherSuitesPreferenceOrderNoAES [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.cipherSuitesPreferenceOrderNoAES"
-
-opaque cipherSuitesPreferenceOrderNoAES.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def disabledCipherSuites [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.disabledCipherSuites"
-
-opaque disabledCipherSuites.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def hasGCMAsmAMD64 [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.hasGCMAsmAMD64"
-
-opaque hasGCMAsmAMD64.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def hasGCMAsmARM64 [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.hasGCMAsmARM64"
-
-opaque hasGCMAsmARM64.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def hasGCMAsmS390X [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.hasGCMAsmS390X"
-
-opaque hasGCMAsmS390X.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def hasGCMAsmPPC64 [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.hasGCMAsmPPC64"
-
-opaque hasGCMAsmPPC64.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def hasAESGCMHardwareSupport [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.hasAESGCMHardwareSupport"
-
-opaque hasAESGCMHardwareSupport.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def aesgcmCiphers [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.aesgcmCiphers"
-
-opaque aesgcmCiphers.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def directSigning [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.directSigning"
-
-opaque directSigning.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def helloRetryRequestRandom [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.helloRetryRequestRandom"
-
-opaque helloRetryRequestRandom.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def testingOnlyForceDowngradeCanary [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.testingOnlyForceDowngradeCanary"
-
-noncomputable def deprecatedSessionTicketKey [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.deprecatedSessionTicketKey"
-
-opaque deprecatedSessionTicketKey.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def supportedVersions [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.supportedVersions"
-
-opaque supportedVersions.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errNoCertificates [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.errNoCertificates"
-
-opaque errNoCertificates.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def writerMutex [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.writerMutex"
@@ -1127,131 +1012,6 @@ noncomputable def emptyConfig [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def testingOnlySupportedSignatureAlgorithms [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.testingOnlySupportedSignatureAlgorithms"
-
-noncomputable def tlssha1 [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.tlssha1"
-
-opaque tlssha1.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def _SignatureScheme_index_8 [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls._SignatureScheme_index_8"
-
-opaque _SignatureScheme_index_8.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def _SignatureScheme_index_9 [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls._SignatureScheme_index_9"
-
-opaque _SignatureScheme_index_9.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def _CurveID_index_0 [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls._CurveID_index_0"
-
-opaque _CurveID_index_0.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def _CurveID_index_3 [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls._CurveID_index_3"
-
-opaque _CurveID_index_3.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def _ClientAuthType_index [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls._ClientAuthType_index"
-
-opaque _ClientAuthType_index.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def outBufPool [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.outBufPool"
-
-opaque outBufPool.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errShutdown [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.errShutdown"
-
-opaque errShutdown.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errEarlyCloseWrite [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.errEarlyCloseWrite"
-
-opaque errEarlyCloseWrite.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def tlsmlkem [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.tlsmlkem"
-
-opaque tlsmlkem.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def tlssecpmlkem [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.tlssecpmlkem"
-
-opaque tlssecpmlkem.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def defaultCipherSuitesTLS13 [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.defaultCipherSuitesTLS13"
-
-opaque defaultCipherSuitesTLS13.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def defaultCipherSuitesTLS13NoAES [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.defaultCipherSuitesTLS13NoAES"
-
-opaque defaultCipherSuitesTLS13NoAES.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def allowedSupportedVersionsFIPS [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.allowedSupportedVersionsFIPS"
-
-opaque allowedSupportedVersionsFIPS.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def allowedCurvePreferencesFIPS [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.allowedCurvePreferencesFIPS"
-
-opaque allowedCurvePreferencesFIPS.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def allowedSignatureAlgorithmsFIPS [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.allowedSignatureAlgorithmsFIPS"
-
-opaque allowedSignatureAlgorithmsFIPS.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def allowedCipherSuitesFIPS [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.allowedCipherSuitesFIPS"
-
-opaque allowedCipherSuitesFIPS.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def allowedCipherSuitesTLS13FIPS [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.allowedCipherSuitesTLS13FIPS"
-
-opaque allowedCipherSuitesTLS13FIPS.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errMalformedECHConfigList [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.errMalformedECHConfigList"
-
-opaque errMalformedECHConfigList.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errMalformedECHExt [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.errMalformedECHExt"
-
-opaque errMalformedECHExt.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errInvalidECHExt [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.errInvalidECHExt"
-
-opaque errInvalidECHExt.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def fips140ems [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.fips140ems"
-
-opaque fips140ems.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def tlsmaxrsasize [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.tlsmaxrsasize"
-
-opaque tlsmaxrsasize.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errClientKeyExchange [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.errClientKeyExchange"
-
-opaque errClientKeyExchange.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errServerKeyExchange [GooseExts] [GoGlobalContext] : GoString :=
-  go!"crypto/tls.errServerKeyExchange"
-
-opaque errServerKeyExchange.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def verifyHandshakeSignature [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.verifyHandshakeSignature"
@@ -1622,164 +1382,258 @@ noncomputable def X509KeyPair [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def parsePrivateKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.parsePrivateKey"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `_@alert.go:15` (`var _ error = AlertError(0)`): An interface check: `AlertError(0)` converted to `error`. No call, no panic, no effect.
+- `alertText` (`var alertText = map[alert]string{ alertCloseNotify: "close notify", alertUnexpectedMessage: "unexpected message", alertB … [sha256:01dec27e970b0822]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `signaturePadding` (`var signaturePadding = []byte{ 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, … [sha256:981d00dae59df857]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `rsaSignatureSchemes` (`var rsaSignatureSchemes = []struct { scheme SignatureScheme minModulusBytes int }{ {PSSWithSHA256, crypto.SHA256.Size()* … [sha256:a4af7f5b8fbfa6aa]`): Its initializer calls, besides literals of constants and other variables' values: `crypto.Hash.Size`
+of a constant hash returns a constant (the hash is known: it panics only for an unknown one). So it
+terminates, cannot panic and has no effect beyond its variable.
+- `globalCertCache` (`var globalCertCache = new(weakCertCache)`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `supportedUpToTLS12` (`var supportedUpToTLS12 = []uint16{VersionTLS10, VersionTLS11, VersionTLS12}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `supportedOnlyTLS12` (`var supportedOnlyTLS12 = []uint16{VersionTLS12}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `supportedOnlyTLS13` (`var supportedOnlyTLS13 = []uint16{VersionTLS13}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `cipherSuites` (`var cipherSuites = []*cipherSuite{ {TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256, 32, 0, 12, ecdheRSAKA, suiteECDHE | sui … [sha256:0a41eaa517874694]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `cipherSuitesTLS13` (`var cipherSuitesTLS13 = []*cipherSuiteTLS13{ {TLS_AES_128_GCM_SHA256, 16, aeadAESGCMTLS13, crypto.SHA256}, {TLS_CHACHA20 … [sha256:54dd65adb37a6a04]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `cipherSuitesPreferenceOrder` (`var cipherSuitesPreferenceOrder = []uint16{ TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA2 … [sha256:c30bc89cc5b8205f]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `cipherSuitesPreferenceOrderNoAES` (`var cipherSuitesPreferenceOrderNoAES = []uint16{ TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256, TLS_ECDHE_RSA_WITH_CHACH … [sha256:6332fe99d19c1605]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `disabledCipherSuites` (`var disabledCipherSuites = map[uint16]bool{ TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256: true, TLS_ECDHE_RSA_WITH_AES_128_CB … [sha256:f900a91ec87b3d20]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `hasGCMAsmAMD64` (`var // Keep in sync with crypto/internal/fips140/aes/gcm.supportsAESGCM. hasGCMAsmAMD64 = cpu.X86.HasAES && cpu.X86.HasP … [sha256:9e3077e7922a21dc]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `hasGCMAsmARM64` (`var hasGCMAsmARM64 = cpu.ARM64.HasAES && cpu.ARM64.HasPMULL`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `hasGCMAsmS390X` (`var hasGCMAsmS390X = cpu.S390X.HasAES && cpu.S390X.HasAESCTR && cpu.S390X.HasGHASH`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `hasGCMAsmPPC64` (`var hasGCMAsmPPC64 = runtime.GOARCH == "ppc64" || runtime.GOARCH == "ppc64le"`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `hasAESGCMHardwareSupport` (`var hasAESGCMHardwareSupport = hasGCMAsmAMD64 || hasGCMAsmARM64 || hasGCMAsmS390X || hasGCMAsmPPC64`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `aesgcmCiphers` (`var aesgcmCiphers = map[uint16]bool{ TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256: true, TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384: … [sha256:4d2885d4555857c8]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `directSigning` (`var directSigning crypto.Hash = 0`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `helloRetryRequestRandom` (`var helloRetryRequestRandom = []byte{ 0xCF, 0x21, 0xAD, 0x74, 0xE5, 0x9A, 0x61, 0x11, 0xBE, 0x1D, 0x8C, 0x02, 0x1E, 0x65 … [sha256:ac2bbb876a25c32f]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `deprecatedSessionTicketKey` (`var deprecatedSessionTicketKey = []byte("DEPRECATED")`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `supportedVersions` (`var supportedVersions = []uint16{ VersionTLS13, VersionTLS12, VersionTLS11, VersionTLS10, }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `errNoCertificates` (`var errNoCertificates = errors.New("tls: no certificates configured")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `tlssha1` (`var tlssha1 = godebug.New("tlssha1")`): Their initializers call, besides literals of constants and other variables' values:
+`internal/godebug.New` of a constant name allocates a `*Setting` holding the name (the environment
+is read on the first `Value`, not here). So each terminates, cannot panic and has no effect beyond
+its variable.
+- `_SignatureScheme_index_8` (`var _SignatureScheme_index_8 = [...]uint8{0, 13, 26, 39, 46}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `_SignatureScheme_index_9` (`var _SignatureScheme_index_9 = [...]uint8{0, 7, 14, 21}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `_CurveID_index_0` (`var _CurveID_index_0 = [...]uint8{0, 9, 18, 27}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `_CurveID_index_3` (`var _CurveID_index_3 = [...]uint8{0, 17, 31, 49}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `_ClientAuthType_index` (`var _ClientAuthType_index = [...]uint8{0, 12, 29, 49, 72, 98}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `outBufPool` (`var outBufPool = sync.Pool{ New: func() any { return new([]byte) }, }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `errShutdown` (`var errShutdown = errors.New("tls: protocol is shutdown")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errEarlyCloseWrite` (`var errEarlyCloseWrite = errors.New("tls: CloseWrite called before handshake complete")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `tlsmlkem` (`var tlsmlkem = godebug.New("tlsmlkem")`): Their initializers call, besides literals of constants and other variables' values:
+`internal/godebug.New` of a constant name allocates a `*Setting` holding the name (the environment
+is read on the first `Value`, not here). So each terminates, cannot panic and has no effect beyond
+its variable.
+- `tlssecpmlkem` (`var tlssecpmlkem = godebug.New("tlssecpmlkem")`): Their initializers call, besides literals of constants and other variables' values:
+`internal/godebug.New` of a constant name allocates a `*Setting` holding the name (the environment
+is read on the first `Value`, not here). So each terminates, cannot panic and has no effect beyond
+its variable.
+- `defaultCipherSuitesTLS13` (`var defaultCipherSuitesTLS13 = []uint16{ TLS_AES_128_GCM_SHA256, TLS_AES_256_GCM_SHA384, TLS_CHACHA20_POLY1305_SHA256, }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `defaultCipherSuitesTLS13NoAES` (`var defaultCipherSuitesTLS13NoAES = []uint16{ TLS_CHACHA20_POLY1305_SHA256, TLS_AES_128_GCM_SHA256, TLS_AES_256_GCM_SHA3 … [sha256:f78123d8344da377]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `allowedSupportedVersionsFIPS` (`var allowedSupportedVersionsFIPS = []uint16{ VersionTLS12, VersionTLS13, }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `allowedCurvePreferencesFIPS` (`var allowedCurvePreferencesFIPS = []CurveID{ X25519MLKEM768, SecP256r1MLKEM768, SecP384r1MLKEM1024, MLKEM1024, CurveP256 … [sha256:fdc5eb5fb314fb7f]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `allowedSignatureAlgorithmsFIPS` (`var allowedSignatureAlgorithmsFIPS = []SignatureScheme{ PSSWithSHA256, ECDSAWithP256AndSHA256, Ed25519, MLDSA44, MLDSA65 … [sha256:c33d46c2599f2811]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `allowedCipherSuitesFIPS` (`var allowedCipherSuitesFIPS = []uint16{ TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384, TL … [sha256:76a398debb27692b]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `allowedCipherSuitesTLS13FIPS` (`var allowedCipherSuitesTLS13FIPS = []uint16{ TLS_AES_128_GCM_SHA256, TLS_AES_256_GCM_SHA384, }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `errMalformedECHConfigList` (`var errMalformedECHConfigList = errors.New("tls: malformed ECHConfigList")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errMalformedECHExt` (`var errMalformedECHExt = errors.New("tls: malformed encrypted_client_hello extension")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errInvalidECHExt` (`var errInvalidECHExt = errors.New("tls: client sent invalid encrypted_client_hello extension")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `fips140ems` (`var fips140ems = godebug.New("fips140ems")`): Their initializers call, besides literals of constants and other variables' values:
+`internal/godebug.New` of a constant name allocates a `*Setting` holding the name (the environment
+is read on the first `Value`, not here). So each terminates, cannot panic and has no effect beyond
+its variable.
+- `tlsmaxrsasize` (`var tlsmaxrsasize = godebug.New("tlsmaxrsasize")`): Their initializers call, besides literals of constants and other variables' values:
+`internal/godebug.New` of a constant name allocates a `*Setting` holding the name (the environment
+is read on the first `Value`, not here). So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errClientKeyExchange` (`var errClientKeyExchange = errors.New("tls: invalid ClientKeyExchange message")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errServerKeyExchange` (`var errServerKeyExchange = errors.New("tls: invalid ServerKeyExchange message")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `_@tls.go:115` (`var _ error = timeoutError{}`): An interface check: `timeoutError{}` converted to `error`. No call, no panic, no effect.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"crypto/tls._@alert.go:15", "An interface check: `AlertError(0)` converted to `error`. No call, no panic, no effect.", "var _ error = AlertError(0)"⟩,
+  ⟨"crypto/tls.alertText", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var alertText = map[alert]string{ alertCloseNotify: \"close notify\", alertUnexpectedMessage: \"unexpected message\", alertB … [sha256:01dec27e970b0822]"⟩,
+  ⟨"crypto/tls.signaturePadding", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var signaturePadding = []byte{ 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, … [sha256:981d00dae59df857]"⟩,
+  ⟨"crypto/tls.rsaSignatureSchemes", "Its initializer calls, besides literals of constants and other variables' values: `crypto.Hash.Size`\nof a constant hash returns a constant (the hash is known: it panics only for an unknown one). So it\nterminates, cannot panic and has no effect beyond its variable.", "var rsaSignatureSchemes = []struct { scheme SignatureScheme minModulusBytes int }{ {PSSWithSHA256, crypto.SHA256.Size()* … [sha256:a4af7f5b8fbfa6aa]"⟩,
+  ⟨"crypto/tls.globalCertCache", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var globalCertCache = new(weakCertCache)"⟩,
+  ⟨"crypto/tls.supportedUpToTLS12", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var supportedUpToTLS12 = []uint16{VersionTLS10, VersionTLS11, VersionTLS12}"⟩,
+  ⟨"crypto/tls.supportedOnlyTLS12", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var supportedOnlyTLS12 = []uint16{VersionTLS12}"⟩,
+  ⟨"crypto/tls.supportedOnlyTLS13", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var supportedOnlyTLS13 = []uint16{VersionTLS13}"⟩,
+  ⟨"crypto/tls.cipherSuites", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var cipherSuites = []*cipherSuite{ {TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256, 32, 0, 12, ecdheRSAKA, suiteECDHE | sui … [sha256:0a41eaa517874694]"⟩,
+  ⟨"crypto/tls.cipherSuitesTLS13", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var cipherSuitesTLS13 = []*cipherSuiteTLS13{ {TLS_AES_128_GCM_SHA256, 16, aeadAESGCMTLS13, crypto.SHA256}, {TLS_CHACHA20 … [sha256:54dd65adb37a6a04]"⟩,
+  ⟨"crypto/tls.cipherSuitesPreferenceOrder", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var cipherSuitesPreferenceOrder = []uint16{ TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA2 … [sha256:c30bc89cc5b8205f]"⟩,
+  ⟨"crypto/tls.cipherSuitesPreferenceOrderNoAES", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var cipherSuitesPreferenceOrderNoAES = []uint16{ TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256, TLS_ECDHE_RSA_WITH_CHACH … [sha256:6332fe99d19c1605]"⟩,
+  ⟨"crypto/tls.disabledCipherSuites", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var disabledCipherSuites = map[uint16]bool{ TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256: true, TLS_ECDHE_RSA_WITH_AES_128_CB … [sha256:f900a91ec87b3d20]"⟩,
+  ⟨"crypto/tls.hasGCMAsmAMD64", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var // Keep in sync with crypto/internal/fips140/aes/gcm.supportsAESGCM. hasGCMAsmAMD64 = cpu.X86.HasAES && cpu.X86.HasP … [sha256:9e3077e7922a21dc]"⟩,
+  ⟨"crypto/tls.hasGCMAsmARM64", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var hasGCMAsmARM64 = cpu.ARM64.HasAES && cpu.ARM64.HasPMULL"⟩,
+  ⟨"crypto/tls.hasGCMAsmS390X", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var hasGCMAsmS390X = cpu.S390X.HasAES && cpu.S390X.HasAESCTR && cpu.S390X.HasGHASH"⟩,
+  ⟨"crypto/tls.hasGCMAsmPPC64", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var hasGCMAsmPPC64 = runtime.GOARCH == \"ppc64\" || runtime.GOARCH == \"ppc64le\""⟩,
+  ⟨"crypto/tls.hasAESGCMHardwareSupport", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var hasAESGCMHardwareSupport = hasGCMAsmAMD64 || hasGCMAsmARM64 || hasGCMAsmS390X || hasGCMAsmPPC64"⟩,
+  ⟨"crypto/tls.aesgcmCiphers", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var aesgcmCiphers = map[uint16]bool{ TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256: true, TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384: … [sha256:4d2885d4555857c8]"⟩,
+  ⟨"crypto/tls.directSigning", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var directSigning crypto.Hash = 0"⟩,
+  ⟨"crypto/tls.helloRetryRequestRandom", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var helloRetryRequestRandom = []byte{ 0xCF, 0x21, 0xAD, 0x74, 0xE5, 0x9A, 0x61, 0x11, 0xBE, 0x1D, 0x8C, 0x02, 0x1E, 0x65 … [sha256:ac2bbb876a25c32f]"⟩,
+  ⟨"crypto/tls.deprecatedSessionTicketKey", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var deprecatedSessionTicketKey = []byte(\"DEPRECATED\")"⟩,
+  ⟨"crypto/tls.supportedVersions", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var supportedVersions = []uint16{ VersionTLS13, VersionTLS12, VersionTLS11, VersionTLS10, }"⟩,
+  ⟨"crypto/tls.errNoCertificates", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errNoCertificates = errors.New(\"tls: no certificates configured\")"⟩,
+  ⟨"crypto/tls.tlssha1", "Their initializers call, besides literals of constants and other variables' values:\n`internal/godebug.New` of a constant name allocates a `*Setting` holding the name (the environment\nis read on the first `Value`, not here). So each terminates, cannot panic and has no effect beyond\nits variable.", "var tlssha1 = godebug.New(\"tlssha1\")"⟩,
+  ⟨"crypto/tls._SignatureScheme_index_8", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var _SignatureScheme_index_8 = [...]uint8{0, 13, 26, 39, 46}"⟩,
+  ⟨"crypto/tls._SignatureScheme_index_9", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var _SignatureScheme_index_9 = [...]uint8{0, 7, 14, 21}"⟩,
+  ⟨"crypto/tls._CurveID_index_0", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var _CurveID_index_0 = [...]uint8{0, 9, 18, 27}"⟩,
+  ⟨"crypto/tls._CurveID_index_3", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var _CurveID_index_3 = [...]uint8{0, 17, 31, 49}"⟩,
+  ⟨"crypto/tls._ClientAuthType_index", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var _ClientAuthType_index = [...]uint8{0, 12, 29, 49, 72, 98}"⟩,
+  ⟨"crypto/tls.outBufPool", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var outBufPool = sync.Pool{ New: func() any { return new([]byte) }, }"⟩,
+  ⟨"crypto/tls.errShutdown", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errShutdown = errors.New(\"tls: protocol is shutdown\")"⟩,
+  ⟨"crypto/tls.errEarlyCloseWrite", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errEarlyCloseWrite = errors.New(\"tls: CloseWrite called before handshake complete\")"⟩,
+  ⟨"crypto/tls.tlsmlkem", "Their initializers call, besides literals of constants and other variables' values:\n`internal/godebug.New` of a constant name allocates a `*Setting` holding the name (the environment\nis read on the first `Value`, not here). So each terminates, cannot panic and has no effect beyond\nits variable.", "var tlsmlkem = godebug.New(\"tlsmlkem\")"⟩,
+  ⟨"crypto/tls.tlssecpmlkem", "Their initializers call, besides literals of constants and other variables' values:\n`internal/godebug.New` of a constant name allocates a `*Setting` holding the name (the environment\nis read on the first `Value`, not here). So each terminates, cannot panic and has no effect beyond\nits variable.", "var tlssecpmlkem = godebug.New(\"tlssecpmlkem\")"⟩,
+  ⟨"crypto/tls.defaultCipherSuitesTLS13", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var defaultCipherSuitesTLS13 = []uint16{ TLS_AES_128_GCM_SHA256, TLS_AES_256_GCM_SHA384, TLS_CHACHA20_POLY1305_SHA256, }"⟩,
+  ⟨"crypto/tls.defaultCipherSuitesTLS13NoAES", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var defaultCipherSuitesTLS13NoAES = []uint16{ TLS_CHACHA20_POLY1305_SHA256, TLS_AES_128_GCM_SHA256, TLS_AES_256_GCM_SHA3 … [sha256:f78123d8344da377]"⟩,
+  ⟨"crypto/tls.allowedSupportedVersionsFIPS", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var allowedSupportedVersionsFIPS = []uint16{ VersionTLS12, VersionTLS13, }"⟩,
+  ⟨"crypto/tls.allowedCurvePreferencesFIPS", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var allowedCurvePreferencesFIPS = []CurveID{ X25519MLKEM768, SecP256r1MLKEM768, SecP384r1MLKEM1024, MLKEM1024, CurveP256 … [sha256:fdc5eb5fb314fb7f]"⟩,
+  ⟨"crypto/tls.allowedSignatureAlgorithmsFIPS", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var allowedSignatureAlgorithmsFIPS = []SignatureScheme{ PSSWithSHA256, ECDSAWithP256AndSHA256, Ed25519, MLDSA44, MLDSA65 … [sha256:c33d46c2599f2811]"⟩,
+  ⟨"crypto/tls.allowedCipherSuitesFIPS", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var allowedCipherSuitesFIPS = []uint16{ TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384, TL … [sha256:76a398debb27692b]"⟩,
+  ⟨"crypto/tls.allowedCipherSuitesTLS13FIPS", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var allowedCipherSuitesTLS13FIPS = []uint16{ TLS_AES_128_GCM_SHA256, TLS_AES_256_GCM_SHA384, }"⟩,
+  ⟨"crypto/tls.errMalformedECHConfigList", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errMalformedECHConfigList = errors.New(\"tls: malformed ECHConfigList\")"⟩,
+  ⟨"crypto/tls.errMalformedECHExt", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errMalformedECHExt = errors.New(\"tls: malformed encrypted_client_hello extension\")"⟩,
+  ⟨"crypto/tls.errInvalidECHExt", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errInvalidECHExt = errors.New(\"tls: client sent invalid encrypted_client_hello extension\")"⟩,
+  ⟨"crypto/tls.fips140ems", "Their initializers call, besides literals of constants and other variables' values:\n`internal/godebug.New` of a constant name allocates a `*Setting` holding the name (the environment\nis read on the first `Value`, not here). So each terminates, cannot panic and has no effect beyond\nits variable.", "var fips140ems = godebug.New(\"fips140ems\")"⟩,
+  ⟨"crypto/tls.tlsmaxrsasize", "Their initializers call, besides literals of constants and other variables' values:\n`internal/godebug.New` of a constant name allocates a `*Setting` holding the name (the environment\nis read on the first `Value`, not here). So each terminates, cannot panic and has no effect beyond\nits variable.", "var tlsmaxrsasize = godebug.New(\"tlsmaxrsasize\")"⟩,
+  ⟨"crypto/tls.errClientKeyExchange", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errClientKeyExchange = errors.New(\"tls: invalid ClientKeyExchange message\")"⟩,
+  ⟨"crypto/tls.errServerKeyExchange", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errServerKeyExchange = errors.New(\"tls: invalid ServerKeyExchange message\")"⟩,
+  ⟨"crypto/tls._@tls.go:115", "An interface check: `timeoutError{}` converted to `error`. No call, no panic, no effect.", "var _ error = timeoutError{}"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.crypto.tls where
   pkgImportedPkgs := []
-
-opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.crypto.tls)) (Lam BAnon
   (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val «_».init) (Val #())))))
-  (App (Val doExecute)
-  (App (Val errServerKeyExchange.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errClientKeyExchange.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val tlsmaxrsasize.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val fips140ems.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errInvalidECHExt.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errMalformedECHExt.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errMalformedECHConfigList.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val allowedCipherSuitesTLS13FIPS.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val allowedCipherSuitesFIPS.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val allowedSignatureAlgorithmsFIPS.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val allowedCurvePreferencesFIPS.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val allowedSupportedVersionsFIPS.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val defaultCipherSuitesTLS13NoAES.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val defaultCipherSuitesTLS13.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val tlssecpmlkem.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val tlsmlkem.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errEarlyCloseWrite.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errShutdown.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val outBufPool.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _ClientAuthType_index.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _CurveID_index_3.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _CurveID_index_0.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _SignatureScheme_index_9.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _SignatureScheme_index_8.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val tlssha1.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errNoCertificates.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val supportedVersions.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val deprecatedSessionTicketKey.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val helloRetryRequestRandom.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val directSigning.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val aesgcmCiphers.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val hasAESGCMHardwareSupport.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val hasGCMAsmPPC64.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val hasGCMAsmS390X.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val hasGCMAsmARM64.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val hasGCMAsmAMD64.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val disabledCipherSuites.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val cipherSuitesPreferenceOrderNoAES.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val cipherSuitesPreferenceOrder.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val cipherSuitesTLS13.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val cipherSuites.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val supportedOnlyTLS13.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val supportedOnlyTLS12.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val supportedUpToTLS12.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val globalCertCache.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val rsaSignatureSchemes.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val signaturePadding.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val alertText.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))))
+  (Val #()))))))
 
 abbrev AlertError [GooseExts] : Type := w8
 
