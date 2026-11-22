@@ -3,6 +3,7 @@ module
 
 public import Code.google_golang_org.protobuf.runtime.protoimpl
 public import Perennial.Golang.Defn
+public import TrustedCode.go_etcd_io.etcd.api.v3.mvccpb
 
 @[expose] public section
 
@@ -413,11 +414,13 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Event_EventType_instance : Event_EventType.TypeAssumptions
   KeyValue_instance : KeyValue.TypeAssumptions
   Event_instance : Event.TypeAssumptions
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   import_protoimpl_Assumption : _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.Assumptions
 
 attribute [instance] Assumptions.Event_EventType_instance
   Assumptions.KeyValue_instance
   Assumptions.Event_instance
+  Assumptions.«init.0_unfold»
   Assumptions.import_protoimpl_Assumption
 
 end go_etcd_io.etcd.api.v3.mvccpb
