@@ -878,7 +878,10 @@ Retired at the net swap (2026-11-22, the user's decision; branch `net-swap`, `no
 (`examples/etcd/all`), **`k8s_safe`**/`k8s_robust` (`examples/k8s/all`) and **`etcd_leaseexpiryN_safe`**/`_robust`,
 single-process theorems over the names-only `net`: with `net` the part `Net/`'s, a program that listens runs over
 the net extension, and they are not adapted. Their names go to the distributed theorems (Upamanyu, #24): the
-draft `examples/etcd/dist` statement, until now `etcd_dist_safe`, is `etcd_safe`/`etcd_robust.spec`. Their drivers' per-function proofs
+draft `examples/etcd/dist` statement, until now `etcd_dist_safe`, is `etcd_safe`/`etcd_robust.spec`. No other closed theorem
+on `lean` runs a program that listens: `etcd_putget_safe`, `etcd_putget3_safe`, `etcd_putgetN_safe` (and the other
+per-driver theorems below) were already retired on 2026-11-21 (their `Results.lean` keep only the `Main` triples);
+the remaining closed theorems (raft's kv examples, lintest's, mvcc's, osfs's, prophkv, k8s/authz) import no `net`. Their drivers' per-function proofs
 (`Main`, `MainLinked`, `Init`), the generic machinery, the Go drivers and their tests stay.
 Retired (2026-11-21, the user's decision D2, stage E4 of `notes/etcd-unified-scope.md`), subsumed by `etcd_safe`:
 `etcd_putget_safe`, `etcd_putget3_safe`, `etcd_putgetN_safe`, `etcd_txnlin_safe`, `etcd_partition_safe`,
