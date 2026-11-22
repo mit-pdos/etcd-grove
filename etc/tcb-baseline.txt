@@ -253,7 +253,7 @@ axiom kmetrics.HistogramVec.WithContext.wp_proof
 axiom labels.Everything.wp_proof
 axiom labels.LabelSelectorAsSelector.wp_proof
 axiom labels.reqsValid
-axiom lease.NewLessor.wp_proof
+axiom lease.Lease.expired.wp_proof
 axiom leasehttp.RenewHTTP.wp_proof
 axiom maps.Clone.wp_proof_strBool
 axiom maps.Equal.wp_proof_strBool

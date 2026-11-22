@@ -4153,3 +4153,17 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   deleted. The exported `lessor_apply_contract` (`etcdserver/Results.lean`) keeps its statement text: its last premise
   (the triple) is kept, now unused, and its conclusion loses exactly the conjunct that premise restates. `apply.leaseIs`
   stays (that premise names it).
+
+## 2026-11-21: `lease.NewLessor` proved; `Lease.expired` the expiry payload's trust boundary (prove-ps2-newlessor5)
+
+- **Spec.** `lease.NewLessor.spec` (statement unchanged, now a theorem over `lease.newLessor.spec`, new);
+  `lease.Lease.expired.spec` (now an axiom, `Proof/.../lease/Lease__expired.lean`); `lease.lessor.runLoop.spec`
+  (post `True` to `levelTok leaseLvl`: the forked goroutine ends with its thread token).
+- **Defect.** None in the statements; the constructor's axiom covered code that is now proved, except the
+  expiry loop's payload `¬ leasesNoExpiry` (an opaque premise about the real clock; the model's `time.Now` is
+  arbitrary).
+- **Evidence.** `newLessor.lean`, `NewLessorAlloc.lean`, `NewLessorGhost.lean`, `etcdserver/LessorApplyReal.lean`;
+  `notes/axiom-review/lease-expired-payload.md`.
+- **Proposed change.** Replace `NewLessor`'s axiom by the narrower `Lease.expired` one (the user's choice (a),
+  prove-ps2-newlessor).
+- **Decision.** Approved (the user's (a); net 0 axioms), applied.
