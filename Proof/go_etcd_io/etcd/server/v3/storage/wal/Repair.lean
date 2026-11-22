@@ -560,7 +560,7 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
         iexists gL.om, gL.bs
         iframe Hm Hb
         isplitr
-        · ipureintro; exact ⟨rfl, hTM, hm62, hfd, hTM.loWr _⟩
+        · ipureintro; exact ⟨rfl, hTM, by omega, hfd, hTM.loWr _⟩
         iunfold tailVar at Hv; iexact Hv
       icases Htr with (⟨%hte, Htw⟩ | ⟨%hte, Hf, ⟨%rd, %lo, %lk, Hfd, Hlks⟩, Hoff⟩)
       rotate_left
