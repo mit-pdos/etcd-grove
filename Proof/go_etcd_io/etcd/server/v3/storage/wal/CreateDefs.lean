@@ -52,18 +52,7 @@ theorem walN_sub_au : (↑walN : CoPset) ⊆ osAuMask := by
   exact LawfulSet.mem_diff.2
     ⟨LawfulSet.mem_diff.2 ⟨CoPset.mem_full, fun hn => h1 p ⟨hp, hn⟩⟩, fun hn => h2 p ⟨hp, hn⟩⟩
 
-/-- **`J'` is a directory under `J` through the claims `cl`**: each step a name of a directory whose
-whole claim (`except []`) is in `cl` holding the next directory. -/
-inductive ClReach (cl : List Claim) : Ino → Ino → Prop
-  | refl (J : Ino) : ClReach cl J J
-  | step (J J' J'' : Ino) (h : NamesH) (b : GoString) :
-      (J, NameSet.except [], h) ∈ cl → h.cur !! b = some (.dir J') → ClReach cl J' J'' →
-      ClReach cl J J''
-
-/-- **The claims `cl` cover the subtree of the entry `e`**: every directory under it has its whole
-claim in `cl`. -/
-def SubCover (cl : List Claim) (e : Option Node) : Prop :=
-  ∀ J, e = some (.dir J) → ∀ J', ClReach cl J J' → ∃ h, (J', NameSet.except [], h) ∈ cl
+-- `ClReach`, `SubCover`: moved to `Spec/os/RemoveAll.lean` (os.RemoveAll.specSubS takes them).
 
 /-- **A name `nm.broken.<sfx>` of a WAL name** (W4 session 4): where `Create`'s cleanup renames a WAL
 being created (`cleanupWAL`), whose directory's claims stay the invariant's; `walAreaRes` asks nothing

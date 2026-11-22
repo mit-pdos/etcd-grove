@@ -193,7 +193,8 @@ theorem os.RemoveAll.wp_proofDirS : os.RemoveAll.specDirS (GF := GF) (hG := hG) 
   · iframe; iframe #
   rw [decide_eq_false (show e ≠ W64 0 from he0)]
   wp_auto
-  wp_apply os.model.wp_rmdirLoop_dirSt d b j J R qd h hJ (1 : Qp).half (1 : Qp).half t sg hb hbJ
+  wp_apply os.model.wp_rmdirLoop_dirSt d b j J R qd h hJ (1 : Qp).half (1 : Qp).half t sg (child d b) rfl
+    hb hbJ
     hqg $$ [Hp Hst Hperm Hg] as %e1 ⟨Hp, Hst, Hperm, Hg⟩
   · iframe; iframe #
   by_cases he10 : e1 = W64 0

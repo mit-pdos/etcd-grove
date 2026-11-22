@@ -24,8 +24,14 @@ the WAL's uses need none. `dir.tmp` is the program's before `Create` publishes i
   takes for success (`nil` with `b` still there), and the last `rmdir` may fail after the files are
   gone. The error is `nil` or `fmtErrorOk`. Not covered: a directory holding subdirectories (the
   recursion below one level), and `b` a file.
+* `os.RemoveAll.specSubS` (step 2 (D) of `notes/wal-units/tester.md`'s handoffs): `d/b` holding
+  anything (nothing, a file, or a directory with any subtree), with the whole claims `cl` of every
+  directory under it (`SubCover`), among which no cycle (`ClRanked`), the whole claim on `b` and
+  the whole call permission: the claims back, each holding some of the entries it held (`ClsSub`),
+  and `b` as it was or gone (`EntsSub`); the error `nil` or `fmtErrorOk`, which says nothing of
+  which (as for `specDirS`).
 
-Proved in `Proof/os/RemoveAll.lean`. Lean-first (no Rocq counterpart).
+Proved in `Proof/os/RemoveAll.lean` (`specSubS`: `Proof/os/RemoveAllSub.lean`). Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -51,6 +57,35 @@ def FilesOnly (e : Ents) : Prop := ∀ c n, e !! c = some n → ∃ i, n = .file
 
 /-- The entries `e'` are some of `e`'s. -/
 def EntsSub (e' e : Ents) : Prop := ∀ c n, e' !! c = some n → e !! c = some n
+
+/-- **`J'` is a directory under `J` through the claims `cl`**: each step a name of a directory whose
+whole claim (`except []`) is in `cl` holding the next directory. (Moved from the WAL's `CreateDefs`.) -/
+inductive ClReach (cl : List Claim) : Ino → Ino → Prop
+  | refl (J : Ino) : ClReach cl J J
+  | step (J J' J'' : Ino) (h : NamesH) (b : GoString) :
+      (J, NameSet.except [], h) ∈ cl → h.cur !! b = some (.dir J') → ClReach cl J' J'' →
+      ClReach cl J J''
+
+/-- **The claims `cl` cover the subtree of the entry `e`**: every directory under it has its whole
+claim in `cl`. (Moved from the WAL's `CreateDefs`.) -/
+def SubCover (cl : List Claim) (e : Option Node) : Prop :=
+  ∀ J, e = some (.dir J) → ∀ J', ClReach cl J J' → ∃ h, (J', NameSet.except [], h) ∈ cl
+
+/-- **The claims `cl` hold no cycle**: a rank on directories that grows along every entry of a claim
+of `cl` naming a directory. (A tree's directories have one, their depth; `RemoveAll`'s recursion
+needs it to know that a directory below another is not that one.) -/
+def ClRanked (cl : List Claim) : Prop :=
+  ∃ rk : Ino → Nat, ∀ c ∈ cl, ∀ x K, c.2.2.cur !! x = some (.dir K) → rk c.1 < rk K
+
+/-- What a claim is on: its directory and names. -/
+def clKey (c : Claim) : Ino × NameSet := (c.1, c.2.1)
+
+/-- **`cl'` is `cl` after removals**: the same claims in the same order (directories and names), each
+holding some of the entries it held. -/
+def ClsSub : List Claim → List Claim → Prop
+  | [], [] => True
+  | c' :: cl', c :: cl => clKey c' = clKey c ∧ EntsSub c'.2.2.cur c.2.2.cur ∧ ClsSub cl' cl
+  | _, _ => False
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
@@ -89,6 +124,21 @@ abbrev os.RemoveAll.specDirS : Prop :=
     (App (Val (@! os.RemoveAll)) (Val #(child d b)))
   {{ (err : GoInterface), RET #err; osPathS R d (DFrac.own qd) j ∗ osCallPerm (callKey R d) 1 ∗
       rmAllOut j b J h hJ ∗ fmtErrorOkOrNil err }}
+
+/-- The whole claims `cl`. -/
+def osClaimsW (cl : List Claim) : IProp GF :=
+  iprop([∗list] c ∈ cl, osNames c.1 c.2.1 (DFrac.own 1) c.2.2)
+
+/-- See the file header. -/
+abbrev os.RemoveAll.specSubS : Prop :=
+  ∀ (d b : GoString) (j : Ino) (R : Roots) (qd : Qp) (h : NamesH) (cl : List Claim),
+  NameOk b → SubCover cl (h.cur !! b) → ClRanked cl →
+  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗
+      osNames j (.only [b]) (DFrac.own 1) h ∗ osClaimsW cl ∗ osCallPerm (callKey R d) 1 }}
+    (App (Val (@! os.RemoveAll)) (Val #(child d b)))
+  {{ (err : GoInterface), RET #err; osPathS R d (DFrac.own qd) j ∗ osCallPerm (callKey R d) 1 ∗
+      (∃ (h' : NamesH) (cl' : List Claim), osNames j (.only [b]) (DFrac.own 1) h' ∗ osClaimsW cl' ∗
+        ⌜EntsSub h'.cur h.cur ∧ ClsSub cl' cl⌝) ∗ fmtErrorOkOrNil err }}
 
 end spec
 

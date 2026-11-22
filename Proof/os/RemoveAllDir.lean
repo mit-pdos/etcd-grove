@@ -124,16 +124,18 @@ theorem os.rmDir_cur_none (j : Ino) (b : GoString) (J : Ino) (h : NamesH) (x s :
   simp only [NamesH.log]
   rw [restrictN_lookup _ _ _ (by simp [NameSet.Mem])]; exact GMap.lookup_delete _ _
 
-/-- `rmdir` loop on the directory `d/b` (`J`, the state `rmAllOut`), under the guard `t`: an
+/-- `rmdir` loop on the directory `d/b` (`J`, the state `rmAllOut`), under the guard `t` (of a path
+`pg` in `d`'s root's tree): an
 errno; the state, perhaps with the `rmdir` logged (only on an empty `J`). -/
 theorem os.model.wp_rmdirLoop_dirSt (d b : GoString) (j J : Ino) (R : Roots) (qd : Qp)
-    (h hJ0 : NamesH) (q g : Qp) (t sg : Nat) (hb : NameOk b) (hJ : h.cur !! b = some (.dir J))
+    (h hJ0 : NamesH) (q g : Qp) (t sg : Nat) (pg : GoString)
+    (hkg : callKey R pg = callKey R (child d b)) (hb : NameOk b) (hJ : h.cur !! b = some (.dir J))
     (hqg : q + g = 1) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ rmAllOut j b J h hJ0 ∗
-        osCallPerm (callKey R d) q ∗ osGuardS t sg (child d b) g ∗ osLogLb sg }}
+        osCallPerm (callKey R d) q ∗ osGuardS t sg pg g ∗ osLogLb sg }}
       (App (Val os.model.rmdirLoop) (Val #(child d b)))
     {{ (e : w64), RET #e; osPathS R d (DFrac.own qd) j ∗ rmAllOut j b J h hJ0 ∗ osCallPerm (callKey R d) q ∗
-        osGuardS t sg (child d b) g }} := by
+        osGuardS t sg pg g }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hst, Hperm, Hg, #Hlsg⟩
   iloeb as IH generalizing Hperm Hp Hst Hg
   icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
@@ -177,7 +179,7 @@ theorem os.model.wp_rmdirLoop_dirSt (d b : GoString) (j J : Ino) (R : Roots) (qd
         cases hcc : hJ'.cur !! c with
         | none => rfl
         | some _ => exact absurd ⟨c, by simp [hcc]⟩ hne
-      wp_apply +noauto wp_osRmdirSG R d b j J (DFrac.own qd) h' hJ' t1 s0 t sg (child d b) q g hqg hs rfl hb hJ hemp
+      wp_apply +noauto wp_osRmdirSG R d b j J (DFrac.own qd) h' hJ' t1 s0 t sg pg q g hqg hs hkg hb hJ hemp
         CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi Hp Hb HJ Hk Hg
         as %e Hperm Hg Hp HJ Hres
       unfold osNamesAfter
