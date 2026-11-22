@@ -732,3 +732,53 @@ and `kd_file_alloc` for the next generation.
   `Replica__persist`, `newReplica` (spec, proof), `Addrs`, `StartNode`/`Run`/`RunNode` (specs, proofs); then
   `lake build KvNet`. Then `StartNode`'s proof (template kvdurablenoax's `Cluster.start`; `kv_restartAu`
   replaces `kd_restartAu`).
+
+### The WIP checked and built (2026-11-22, third session on `kvnet-proof`)
+
+`lake build KvNet` 3018 jobs green; `tier-check`, `copy-part --check`, `gen-init --check` pass; no axiom or
+`sorry`. What changed against the WIP's design:
+
+- **The batch record names its node existentially.** `NodeH` is in `Type 1` (its names hold `Type 1` data), so
+  it cannot be in the writer's ghost variable (`KdWv`). `KdWv`'s batch is `Option (GName × RaftState × Qp ×
+  GName)`: the last name `γr` is a saved proposition. The record is `∃ n, kdBatchRec γ id x S S2 q γb n ∗
+  savedPropOwn γr □ (kdBatchRec … n)` (`Defs.lean`). `kd_writeAU` (`PersistLemmas.lean`) allocates `γr` at the
+  rename for the writer's node; at the sync the saved proposition's agreement moves the record to the writer's
+  node under a later, so the lemma takes **two** later credits (`persist` takes `lc := 2`, its `run` variant
+  `lc := 3`). The callers' batch (`kdPendIn γ id n S pb`, `pbTarget`, `pbQ`, `kdRunKeep`, `kdPendOut`) is back to
+  the three-tuple of before the WIP; `pbW γr` makes the writer's four-tuple. `kd_boot_choose` opens the record's
+  existential (it needs no agreement).
+- `fileHolds_persistent` moved to `DefsLaws.lean`. `addrMapOk`'s binder renamed (`as` is a keyword).
+  `RunNode`'s `split_ifs` (Mathlib, not available) replaced by `by_cases`.
+- The ledger entry the WIP cited (kvnet's `StartNode`) was missing; written.
+- **`StartDefs.lean`**: `kvNodeStart γ vs id dir opts M`, the `S` `StartNode`'s proof is to instantiate:
+  `kvStart` (the boot), `kvStartGlobals γ` (kvdurable's `isClusterC` facts: `dup`, no bootstrap log, untraced,
+  no snapshot directories, no data bound, `readyFits`, `kdStorInv`, `context.isClosedchanInit`, the globals
+  `net.errTimeout` and `poll.ErrDeadlineExceeded`), `kvPeerAddrs γ id M` (`newTransport`'s premise at `kvFacts γ
+  (fun _ => True)`), `kvOptsOk opts` and `vs = bootVoters opts.Voters`.
+  **A gap to settle at the top level**: `kvOptsOk` has `MaxInflightMsgs < 2^62` (raft's `RestartNode`), but
+  `ValidCluster` checks only `< 2^63`: either the top-level statement takes it as a premise (the concrete
+  corollary fixes it anyway) or `ValidCluster` (Go, ours) is tightened and retranslated.
+
+**`StartNode`'s proof, what is left to write** (template kvdurablenoax's `Cluster.start`, 526 lines; this
+order follows the Go code):
+1. the boot `ConfState` loop (`boot.Voters = append(...)`, ids `1..Voters`: `ownCSM bp □ (bootCS vs)`), and
+   `&Stats{}` (`isStats`: allocate the mutex with `statsInv`);
+2. `FileOf`; `newStorage`; `durable.Read` (spec `WalTester/Spec/.../durable/Read.lean`: import its KvNet
+   copy, `KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.lib.durable.Read`, and rerun `etc/copy-part.py
+   --part KvNet`), its update over `kdFileInvK` (`durSt` is outside the crash disjunction, so no `notCrashed`
+   is needed; the writer's half pins `cur`, and `kvStart`'s `fileHolds γ S cur` gives the file's facts:
+   simpler than kvdurable, which read the facts from its invariant);
+3. `openStorage` or the empty storage, `MemoryStorage.Snapshot`, the replicated state, `FirstIndex`,
+   `Applied` (`oneIn`/`below`), as in `Cluster.start`;
+4. `newTransport` (from `kvPeerAddrs`), the `raft.Config` literal (`ConfigValid` from `kvOptsOk`, ID ≠ 0 from
+   `1 ≤ id`; the IDs `2^64-1`, `2^64-2` excluded by `id ≤ γ.max`), `quietLogger{}` (restate
+   `qLogger_isLogger`), `RestartNode` with `kd_restartStorage`, `kv_restartAu` (no `restartAu_nc`: the update
+   takes the token), `nodeVacantA γ id fl.x`;
+5. `t.start(node)` (`kv_stepLaw`, `snapLoc id = none` from `kvStartGlobals`);
+6. `tick`, then `newReplica` with `t.Send`'s `sendSpec γ id` — **a lemma still to prove**: from
+   `Transport.Send.spec`, `isTransportCore`, `isPeers` (persistent), each message's `msgOwn … ∗ sentMsg ∗
+   msgCredits` gives `sendElem (kvFacts …)` (`msgPtsC` from `msgOwn`, `MsgWf`, the frame's length `< 2^63`,
+   `□ msgCredits` by `msgCredits_copy` with `dup`);
+7. the post: `isNodeS` (the `Node` struct's fields, `rep r id` = `isRep` from `newReplica`'s `isReplicaR`,
+   `isTransportCore`) and `kv_confLaw`.
+Then `Run`/`RunNode` need no change (they are generic in `S`); the top level instantiates `S := kvNodeStart γ vs`.
