@@ -253,20 +253,18 @@ theorem leasingKV.acquire.wp_proof
     omega
   iunfold txnCommitResultO at Hres
   icases Hres with (⟨%Hne, %Hce, #Hse⟩ | ⟨%Heq, Hok⟩)
-  · -- an error: `errors.As`, then `status.FromError`
+  · -- an error: `errors.AsType`, then `status.FromError`
     obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
       cases err with
       | nil => exact absurd rfl Hne
       | ok e => exact ⟨e, rfl⟩
     (try wp_auto)
-    ihave #Herrs : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
-    · iPkgInit
-    obtain ⟨Htarget, Hce⟩ := Hce
+    obtain ⟨-, Hce⟩ := Hce
     obtain ⟨Hleaf, Htyped, -⟩ := Hce e rfl
     ihave #Htree := errors.isErrorTree_leaf (GF := GF) e Hleaf Htyped
-    wp_apply errors.wp_As (T' := go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError)
+    wp_apply errors.wp_AsType (T' := go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError)
         (T := go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) (· = GoInterface.ok e)
-        (GoInterface.ok e) _ _ Htarget $$ [$Herrs $Htree $serverErr] as %b %v' Hse
+        (GoInterface.ok e) $$ [$Htree] as %v' %b -
     · ipureintro; rfl
     cases b
     · wp_auto
