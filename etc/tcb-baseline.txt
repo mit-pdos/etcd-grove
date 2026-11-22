@@ -123,7 +123,6 @@ axiom bridge.bridge.Blackhole.wp_proof
 axiom bridge.bridge.DropConnections.wp_proof
 axiom bridge.bridge.Unblackhole.wp_proof
 axiom bridge.bridgeAt
-axiom bufferM.ownBuffer_new
 axiom bytes.Buffer.Bytes.wp_proof
 axiom bytes.Buffer.Write.wp_proof
 axiom cache.wp_Errorf_setArgs

@@ -17,6 +17,48 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### The robustness theorems' standard-library leaf axioms: what the pinned Perennial lacks (2026-11-21, claim #26, branch `prove-stdlib-leaves/2026-11-21`)
+
+- **Done here, no Perennial change.** `bufferM.ownBuffer_new` is a theorem, `ownBuffer` a definition
+  (`Proof/bytes/Buffer.lean`: Perennial's `bytes.ownBuffer` plus `buf`'s capacity).
+- **Limitation (`context.WithCancelTodo`).** `WithCancel(TODO())` is translated, and most of it
+  proves from the code here (`TODO()`'s `Done`/`Deadline` from `emptyCtx`, `propagateCancel(TODO(), c)`
+  returning at once on its `nil` `Done()`, `wp_WithCancel_gen_of` whose own `isParentCtx` premise is
+  unused), but its cancel function runs `c.cancel(true, Canceled, nil)`, and Perennial's
+  `cancelCtx.cancel.spec` (through `removeChild.spec`) takes `isParentCtx` of the parent, which is
+  `Background()` or an `isContext`; `TODO()` is neither (its `Done()` is `nil`). A local proof would
+  copy `cancelCtx.cancel`'s 190-line proof to change one premise. Proposed: `isParentCtx` admits
+  `todoCtxVal` (Go treats both empty contexts alike: `parentCancelCtx` returns `false` on a `nil`
+  `Done()`, `removeChild` returns), with `removeChild`'s and `propagateCancel`'s cases for it; then
+  the local axiom is a theorem as above.
+- **Limitation (the rest).** At the pin `d648cfe22` (and Perennial `lean` head `04ed1c622`) none of
+  these has a body or a spec in Perennial, so each stays a local axiom:
+  - `bytes.Buffer.Write`, `bytes.Buffer.Bytes`: `bytes.toml` translates `Buffer.Read`/`empty`/`Reset`
+    only (needs `Write`, `Bytes`, `grow`, `tryGrowByReslice`, `growSlice`; `growSlice`'s `recover`);
+  - `io.Pipe`, `io.PipeWriter.CloseWithError`, `io.MultiReader`: not in `io.toml` (`pipe`'s mutex and
+    channels; `multiReader` is translated as a type only);
+  - `slices.Clone`, `slices.Concat`, `slices.ContainsFunc`: not in `slices.toml` (generic, plain Go);
+  - `strings.Contains`, `strings.SplitN`, `strings.ToLower`: not in `strings.toml` (`Contains` over
+    `stringslite.Index` and `bytealg` (assembly: a trusted model), `SplitN` over `genSplit`,
+    `ToLower` over `unicode` and `Builder`);
+  - `fmt.ErrorfSlice`, `fmt.SprintfSlice`: Perennial's trusted `Sprintf`/`Errorf` model is stuck on a
+    slice argument under `%v`/`%s` (reflection into a slice);
+  - `os.Getenv`, `os.Getpagesize`: `os` is names-only (a model of the process environment, and
+    `syscall.Getpagesize` = 4096 on linux/amd64);
+  - `math.Ceil`: `math` translates only its tables (and `FloatOps` has no laws);
+  - `rand.Int63n`: `math/rand` is names-only (`globalRand`, its lock and source);
+  - `sort.SliceIsSorted`: names-only, through `reflectlite.ValueOf(x).Len()` (the entry below);
+  - `context.WithValue`: `context.toml` excludes it (`reflectlite.TypeOf(key).Comparable()`);
+  - `context.WithCancelValCtx`: `WithCancel` of etcd's `valCtx` takes `propagateCancel`'s last
+    branches (the `afterFuncer` assertion and the goroutine selecting on `parent.Done()` and
+    `child.Done()`), which Perennial's `cancelCtx.propagateCancel.spec` does not cover (its parents:
+    `Background()` or an `isContext`, whose `"#HParentCC"` finds a `*cancelCtx`); a proof also needs
+    a channel invariant for `client/v3`'s never-closed `valCtxCh` from its package initializer.
+- **Proposed.** Translate (or model, where assembly or reflection is reached) and specify each in
+  Perennial, then restate the local specs as theorems over Perennial's; for `WithCancelValCtx`, a
+  `propagateCancel` spec for a parent whose `Done()` is a channel that is never closed.
+- **Status.** Not started in Perennial (to be filed by the claim's coordinator).
+
 ### otel trace's `maxSpan` and `var _` assertions: two goose limits (2026-11-21, prove-otel4)
 
 - **Limitation 1 (the guard).** `var maxSpan = newSpanLimits()` (`go.opentelemetry.io/otel/trace` v1.47.0,
