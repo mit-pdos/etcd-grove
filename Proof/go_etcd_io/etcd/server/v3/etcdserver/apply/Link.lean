@@ -12,6 +12,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Apply
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.CheckTxnAuth
 public import Proof.github_com.Masterminds.semver.v3.MustParse
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.NewUberApplier
+public import Proof.github_com.Masterminds.semver.v3.NewVersion
 public import Proof.github_com.Masterminds.semver.v3.Version__LessThan
 public import Proof.github_com.Masterminds.semver.v3.Version__String
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped__LeaseGrant
@@ -154,9 +155,13 @@ theorem lease.Lease.wp_Keys :
     EtcdGrove.lease.Lease.Keys.spec (GF := GF) (hG := hG) :=
   EtcdGrove.lease.Lease.Keys.wp_proof
 
+theorem semver.wp_NewVersion :
+    EtcdGrove.semver.NewVersion.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.semver.NewVersion.wp_proof
+
 theorem semver.wp_MustParse :
     EtcdGrove.semver.MustParse.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.semver.MustParse.wp_proof
+  EtcdGrove.semver.MustParse.wp_proof semver.wp_NewVersion
 
 theorem context.wp_TODO :
     EtcdGrove.context.TODO.spec (GF := GF) (hG := hG) :=

@@ -137,7 +137,6 @@ axiom corev1.Node.DeepCopyObject.wp_proof
 axiom corev1.Pod.DeepCopyObject.wp_proof
 axiom corev1.Resource.wp_proof
 axiom credentials.perRPCCredential.GetRequestMetadata.wp_proof
-axiom credentials.perRPCCredential.UpdateAuthToken.wp_proof
 axiom dataDirAbsent
 axiom dataDirFresh
 axiom dataDirsApart
@@ -406,7 +405,7 @@ axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
 axiom schema.membershipBackend.MustDeleteMemberFromBackend.wp_proof
 axiom schema.membershipBackend.MustReadMembersFromBackend.wp_proof
 axiom schema.membershipBackend.MustSaveMemberToBackend.wp_proof
-axiom semver.MustParse.wp_proof
+axiom semver.NewVersion.wp_proof
 axiom semver.Version.LessThan.wp_proof
 axiom semver.Version.String.wp_proof
 axiom semver.semverValid_simple
@@ -458,7 +457,6 @@ axiom v3rpc.wp_WithTimeout_weak
 axiom validation.IsDNS1123Subdomain.wp_proof
 axiom validation.IsDomainPrefixedKey.wp_proof
 axiom verifyEnvOff
-axiom version.Cluster.wp_proof
 axiom wait.Jitter.wp_proof
 axiom waitRetryBackoff.wp_proof
 axiom withVersion.wp_proof

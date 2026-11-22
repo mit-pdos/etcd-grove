@@ -1222,6 +1222,31 @@ theorem snapshotCert_valid (γ : Cluster) (N : Namespace) (sv : SnapshotM) :
 
 end api
 
+section api
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- (2026-11-22, ledger `RestartNode`) **A plain restart update is one with the crash token**:
+`RestartNode`'s update is given the generation's `notCrashed` and gives it back; a client that
+does not need it passes it through. -/
+theorem restartAu_nc (γ : Cluster) (N : Namespace) (id : w64) (σ : StorContents)
+    (Q : RaftState → IProp GF) :
+    iprop(AU <{ ∃∃ (S : RaftState), ▷ raftState γ id S ∗ ⌜StorageHolds S σ⌝ }> @ ⊤ \ ↑N, ∅
+      <{ raftState γ id S, COMM Q S }>) ⊢
+    iprop(notCrashed -∗
+      AU <{ ∃∃ (S : RaftState), ▷ raftState γ id S ∗ ⌜StorageHolds S σ⌝ }> @ ⊤ \ ↑N, ∅
+        <{ raftState γ id S, COMM notCrashed ∗ Q S }>) := by
+  iintro HAU Hnc
+  iapply aupd_wand_post
+  iframe HAU
+  isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iintro %_ HQ
+  iframe
+
+end api
+
 
 end EtcdGrove
 end Perennial

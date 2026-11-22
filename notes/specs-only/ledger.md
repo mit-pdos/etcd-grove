@@ -25,6 +25,34 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-22: kvnet's `StartNode`/`Run`/`RunNode` -- the start resource `S` cannot name the node's configuration, and the file invariant cannot be allocated where the crash obligation needs it
+
+- **Spec.** `KvNet/Spec/.../kvnet/StartNode.lean` (`StartNode.spec F rep cf S`, `S : IProp GF`), `Run.lean`,
+  `RunNode.lean` (the same `S`); kvnet's `Defs.lean` (`kdFileInvK γ id n γd`, `kdWriter` over `γ.wr id`).
+- **Defect.** (1) Not provable: `StartNode`'s start resource is one proposition for every `cfg`, but
+  what the start needs names the configuration: the file of `cfg.Dir`/`cfg.ID`, raft's vacancy of
+  `cfg.ID`, the bootstrap voters `1..cfg.Opts.Voters` (`kdCluster γ vs`), every other address's protocol
+  (`newTransport`), raft's `Config` premises on `cfg.Opts`; and `newTransport` reads `cfg.Addrs`, which the
+  precondition does not own. (2) Not provable: the file invariant (which holds `raftState`) is allocated
+  after `RestartNode`, parameterized by its node; with a real crash (decision C) it must exist from the
+  generation's start, carrying a crashed side the crash obligation can take (`inv (… ∨ crashed ∗ tok)`),
+  so it cannot name the node; the writer's ghost variable `γ.wr id` is the store's, so the dead
+  generation's `dmu` and the next generation's writer would share it.
+- **Evidence.** `notes/kvnet-part.md`, "`StartNode` and the crash frame"; Perennial's crash adequacy
+  (`DistAdequacy.lean:555`: the obligation `crashed -∗ extsCrashStart L L' ={⊤}=∗ P i L'` is fixed at the
+  generation's start).
+- **Proposed change.** (1) `S : w64 → GoString → Options → GMap w64 GoString → IProp GF` (id, dir, options,
+  the address map), and `StartNode`'s precondition `cfg.Addrs' ↦$□ M ∗ S cfg.ID' cfg.Dir' cfg.Opts' M`;
+  `Run.spec`/`RunNode.spec` pass the same indexed `S` (RunNode at the options and map it builds). (2) The file
+  invariant `kdFileInvK γ id ph` over the incarnation's file names (`KdDmuNames` gains the writer variable
+  `wr`, the invariant's crash token `tk`, the arm `x`): `∃ S s pb, durSt ∗ ghostVar ph.wr ½ (S,s,pb) ∗
+  ((raftState S ∗ kdFileState γ id ph.x S s pb) ∨ crashed ∗ token ph.tk)`, the pending batch's record
+  holding its node existentially (`∃ n, nodeArm n γ x ∗ readyEnter n … ∗ nodeRunning n q ∗ …`), the share
+  `q` coming back to the writer through a saved proposition (`pb` gains its name); `kdWriter ph …`.
+  Internal to kvnet's part (no client outside it); the top level allocates the file invariant at each
+  generation's boot.
+- **Decision.** Accepted (the kvnet-proof session, 2026-11-22; kvnet's own seam, decision C's plan).
+
 ## 2026-11-22: raft's `RestartNode` -- its client update cannot open a crash invariant (no crash token), so a client cannot keep `raftState` where a crash obligation can take it
 
 - **Spec.** `Spec/go_etcd_io/raft/v3/RestartNode.lean`, `RestartNode.spec`: the update
@@ -48,7 +76,22 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   it before any step of `RestartNode`, where `wp_ncfupd` gives the token. Existing clients (kvdurable,
   kvreconf, the server's start paths) pass a plain update through a lemma like `durWriteSync_of_au` (the token
   unused). Raft's change, not kvnet's.
-- **Decision.** Pending (raft's agent / the coordinator). kvnet's `StartNode` waits for it.
+- **Decision.** Accepted as proposed (the kvnet-proof session, 2026-11-22, on the coordinator's brief), after
+  checking the shape:
+  - *Sound, nothing trusted moves.* The token is the state interpretation's (`HeapGS`'s
+    `goose_crashGS`); raft's proof already ran the restart's ghost step under `wp_ncfupd` (the
+    vacancy's arm needs it, `armed_read`), so it only lends the token to the client's update and takes it
+    back (`raft_restart`'s accessor now `notCrashed -∗ |={…}=> … (… ={∅,…}=∗ notCrashed ∗ R S)`). No axiom,
+    no `Assumptions` field, no Perennial change.
+  - *Minimal.* The token appears once in the precondition's update and once in its `COMM`, nothing else in
+    the triple changes; the same shape as durable's `durWriteSync` and raft's own trace updates (`TraceFire`,
+    `TracedCap.lean`). A weaker alternative (the client update as an `ncfupd` around a plain AU) gives the
+    client nothing more and needs an atomic-update rule Perennial lacks.
+  - *Clients.* `restartAu_nc` (`InvNodeRule.lean`) makes a plain update one; kv, kvreconf (two), kvdurable
+    (and its RaftNoAx copy) and the server's `newRaftNode` wrap theirs before the call. RaftWitness keeps its
+    own (older) spec, untouched; RaftTla/RaftNoAx/KvNet copies regenerated.
+  - SpecPlan's `RestartNode` (and its `newRaft`/`NewRawNode` updates) not changed: its crash story is the
+    vacancy's `raftState_crash` law, to be reconciled when kvnet's form is ported back (open).
 
 ## 2026-11-21: raft's node API -- `isCluster` holds one machine's heap (the node table), and the node predicates agree on a node's names only through it
 
@@ -4385,3 +4428,39 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** As above; `Start.spec` unchanged in statement (its `srvMonitorsOff` premise widened).
 - **Decision.** Applied (the user's standing rule: a trust-boundary spec may change when every caller still proves,
   memory `ownership-premise-ok`; same pattern as audit B4a's monitors-off premises).
+## 2026-11-22: `credentials.NewPerRPCCredentialBundle` takes its package's initialization; `credTokInv` over the lock (prove-ps2-client)
+
+- **Spec.** `credentials.NewPerRPCCredentialBundle.spec`: pre `True` to `isPkgInit
+  pkg_id.go_etcd_io.etcd.client.v3.credentials`. `credTokInv rc P` (the definition `tokenBundleInv`,
+  `UpdateAuthToken.spec` and `GetRequestMetadata.spec` are written in): a bare invariant over `rc.authToken` to
+  `rc.authTokenMu`'s `isRWMutexGuard` over `credTokR rc P` (the field at a fraction, `""` or a `□ P` token), the
+  lock's reader tokens in a thread pool, and `isPkgInit pkg_id.sync`; the bound `threadBound GF ≤ 2^30` kept.
+- **Defect.** None in the old statements: `UpdateAuthToken` was a trust-boundary axiom because its lock had no
+  ghost state; a writer needs only the persistent guard (`RWMutex.wp_Lock_guard`), and `Lock` needs `sync`'s
+  initialization, which nothing on `UpdateAuthToken`'s path had.
+- **Evidence.** `UpdateAuthToken.wp_proof` is now a theorem over its body. `GetRequestMetadata`'s axiom is as true
+  of the new `credTokInv` (its reads are under `RLock`; every write is `UpdateAuthToken`'s, under `Lock`).
+- **Proposed change.** As above. The one caller, `newClient`, has `client/v3`'s initialization, which gives the
+  credentials package's.
+- **Decision.** Applied (a premise every caller discharges; the user's rule of 2026-11-21).
+
+## 2026-11-22: kvnet's `StartNode`: the start resource indexed by the configuration; the file invariant from the generation's boot (KvNet)
+
+- **Spec.** `StartNode.spec`/`Run.spec`/`RunNode.spec` (KvNet): the start resource `S : IProp` becomes
+  `S : w64 → GoString → Options → GMap w64 GoString → IProp` (id, directory, options, address map); `StartNode`
+  takes `cfg.Addrs ↦$□ M ∗ S cfg.ID cfg.Dir cfg.Opts M`; `RunNode` gives `S id dir opts M` at every `M` with
+  `addrMapOk (splitAddrs addrs) M`. `newReplica.spec`: the file's names are one record `fl : KdFileNames`
+  (`durable`'s, the file, its roots, the writer's variable, the invariant's crash token, raft's arm), the file
+  invariant `kdFileInvK γ id fl` (no node) and `nodeArm n γ fl.x` in its precondition. `Replica.persist`'s specs
+  unchanged (the invariant's change is inside `isReplica`).
+- **Defect.** A constant `S` cannot name what `StartNode` needs from the configuration: the directory and id
+  (the file), the voters (`kdCluster γ vs`), every other address's protocol (`newTransport`). And the file
+  invariant, allocated after `RestartNode` in the old design, cannot be emptied by the generation's crash
+  obligation, which Perennial's crash adequacy takes at the generation's start (ledger 2026-11-22, raft's
+  `RestartNode`).
+- **Evidence.** `notes/kvnet-part.md`, "`StartNode` and the crash frame" and "The file invariant from the
+  generation's boot". The pending batch's record names its node existentially (a `NodeH` is in `Type 1`, so it
+  cannot be in the writer's ghost variable), recognized by the writer through a saved proposition; `persist`'s
+  write lemma takes two later credits.
+- **Proposed change.** As above.
+- **Decision.** Applied (checked: `etc/lean-check.py` of every changed module, then `lake build KvNet`).

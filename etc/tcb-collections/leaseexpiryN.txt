@@ -94,7 +94,6 @@ axiom config.ServerConfig.BackendPath.wp_proof
 axiom context.WithCancelTodo.wp_proof
 axiom context.WithValue.wp_proof
 axiom credentials.perRPCCredential.GetRequestMetadata.wp_proof
-axiom credentials.perRPCCredential.UpdateAuthToken.wp_proof
 axiom dataDirAbsent
 axiom dataDirFresh
 axiom dataDirsApart
@@ -277,7 +276,7 @@ axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
 axiom schema.membershipBackend.MustDeleteMemberFromBackend.wp_proof
 axiom schema.membershipBackend.MustReadMembersFromBackend.wp_proof
 axiom schema.membershipBackend.MustSaveMemberToBackend.wp_proof
-axiom semver.MustParse.wp_proof
+axiom semver.NewVersion.wp_proof
 axiom semver.Version.LessThan.wp_proof
 axiom semver.Version.String.wp_proof
 axiom semver.semverValid_simple
@@ -311,7 +310,6 @@ axiom v3rpc.codec_proto
 axiom v3rpc.ctxCauseOk_cancellable
 axiom v3rpc.logUnaryRequestStats.wp_proof
 axiom verifyEnvOff
-axiom version.Cluster.wp_proof
 axiom waitRetryBackoff.wp_proof
 axiom withVersion.wp_proof
 axiom zap.Logger.Fatal.wp_proof

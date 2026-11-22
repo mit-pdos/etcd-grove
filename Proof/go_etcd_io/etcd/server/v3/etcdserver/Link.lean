@@ -611,6 +611,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats__RecvAppendReq
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats__SendAppendReq
 public import Proof.github_com.Masterminds.semver.v3.MustParse
+public import Proof.github_com.Masterminds.semver.v3.NewVersion
 public import Proof.github_com.Masterminds.semver.v3.Version__LessThan
 public import Proof.github_com.Masterminds.semver.v3.Version__Major
 public import Proof.github_com.Masterminds.semver.v3.Version__Minor
@@ -997,9 +998,13 @@ theorem PutRequest.wp_GetKey :
     PutRequest.GetKey.spec (GF := GF) (hG := hG) :=
   PutRequest.GetKey.wp_proof
 
+theorem semver.wp_NewVersion :
+    semver.NewVersion.spec (GF := GF) (hG := hG) :=
+  semver.NewVersion.wp_proof
+
 theorem semver.wp_MustParse :
     semver.MustParse.spec (GF := GF) (hG := hG) :=
-  semver.MustParse.wp_proof
+  semver.MustParse.wp_proof semver.wp_NewVersion
 
 theorem semver.Version.wp_String :
     semver.Version.String.spec (GF := GF) (hG := hG) :=
@@ -2418,7 +2423,7 @@ theorem notify.wp_NewNotifier :
 
 theorem version.wp_Cluster :
     version.Cluster.spec (GF := GF) (hG := hG) :=
-  version.Cluster.wp_proof
+  version.Cluster.wp_proof semver.wp_NewVersion semver.Version.wp_Major semver.Version.wp_Minor _root_.Perennial.fmt.wp_Sprintf _root_.Perennial.strings.wp_Split
 
 theorem prometheus.GaugeVec.wp_With :
     prometheus.GaugeVec.With.spec (GF := GF) (hG := hG) :=

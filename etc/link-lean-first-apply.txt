@@ -8,7 +8,8 @@
 # alarm store's and the cluster's methods, names-only struct pointers: Contracts.lean too) are
 # not listed.
 pbutil_MustUnmarshalMessage:
-MustParse:
+MustParse: NewVersion
+NewVersion:
 Version__LessThan:
 Version__String:
 strconv_FormatUint:
