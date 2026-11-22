@@ -39,6 +39,9 @@ theorem rate.Every.wp_proof
     wp_auto
     iapply HΦ; itrivial
   · wp_apply wp_Seconds $$ [$interval] as %f interval
+    (try wp_auto)
+    wp_apply wp_float64_div as %_ -
+    (try wp_auto)
     iapply HΦ; itrivial
 
 end proof
