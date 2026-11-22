@@ -2,6 +2,10 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import ManualProof.github_com.prometheus.client_golang.prometheus
+public import Perennial.GeneratedProof.fmt
+public import GeneratedProof.github_com.prometheus.client_model.go
+public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.github_com.prometheus.client_golang.prometheus
@@ -9,6 +13,7 @@ public import GeneratedProof.github_com.prometheus.client_golang.prometheus.chun
 public import GeneratedProof.github_com.prometheus.client_golang.prometheus.chunk2
 public import GeneratedProof.github_com.prometheus.client_golang.prometheus.chunk3
 public import GeneratedProof.github_com.prometheus.client_golang.prometheus.chunk4
+public import GeneratedProof.github_com.prometheus.client_golang.prometheus.chunk5
 
 @[expose] public section
 

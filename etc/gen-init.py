@@ -3911,6 +3911,50 @@ register(SPECIAL[_MV], _MV, [
     reg_scalar('totalPutSizeGauge', _D, _MVR, 'total_put_size_in_bytes')])
 
 
+# (prom-registry, route (b), 2026-11-22: notes/prom-registry.md) prometheus's default registry is the real
+# client_golang code (translated with its bodies): its initializer allocates `defaultRegistry`,
+# `DefaultRegisterer` and `DefaultGatherer`, runs `defaultRegistry = NewRegistry()` (stepped into: three empty
+# map literals and the struct) and the two interface conversions, and then its `init()`, whose trusted model
+# (`TrustedCode/github_com/prometheus/client_golang/prometheus.lean`) inserts the built-in collectors' IDs and
+# names into the registry's maps (`EtcdGrove.prometheus.wp_seed_insertAll`). Until then `defaultRegistry.init`,
+# `DefaultRegisterer.init` and `DefaultGatherer.init` were in `opaqueInitsOk` and `init.«0»` the trust-boundary
+# axiom `initFuncsOk`.
+SPECIAL['github_com.prometheus.client_golang.prometheus'] = dict(
+    doc='''Its fact is `True`. Its initializer initializes its imports, runs the untranslated
+initializers of its variables (`X.init`, axioms of the translation), which the trust-boundary axiom
+`opaqueInitsOk` says run without panicking, and its translated ones: `defaultRegistry = NewRegistry()`
+(stepped into) and `DefaultRegisterer`/`DefaultGatherer`, `defaultRegistry` converted to an interface; then
+its `init()`, whose trusted model (route (b), notes/prom-registry.md) inserts the built-in collectors'
+descriptor IDs, names and collector IDs into the registry's maps (`EtcdGrove.prometheus.wp_seed_insertAll`).
+(Until 2026-11-22 `defaultRegistry.init`, `DefaultRegisterer.init` and `DefaultGatherer.init` were among
+`opaqueInitsOk`, and `init.«0»` was the trust-boundary axiom `initFuncsOk`.)''',
+    imports=['Proof.github_com.prometheus.client_golang.prometheus.Seed'],
+    alloc_types={'defaultRegistry': 'Loc', 'DefaultRegisterer': 'GoInterface', 'DefaultGatherer': 'GoInterface'},
+    before={'defaultRegistry': [
+        'try wp_auto',
+        'wp_func_call', 'wp_call', 'try wp_auto',
+        'wp_apply (wp_map_make1 (K := w64) (V := GoInterface) go.uint64 github_com.prometheus.client_golang.prometheus.Collector.ty) as %mC HmC',
+        'try wp_auto',
+        'wp_apply (wp_map_make1 (K := w64) (V := Unit) go.uint64 (go.GoType.StructType [])) as %mD HmD',
+        'try wp_auto',
+        'wp_apply (wp_map_make1 (K := GoString) (V := w64) go.string go.uint64) as %mN HmN',
+        'try wp_auto']},
+    after={'init.«0»': [
+        'simp only [EtcdGrove.prometheus.seed_Registry_eq, EtcdGrove.prometheus.seed_Collector_eq,'
+        ' EtcdGrove.prometheus.seed_defaultRegistry_eq]',
+        'try wp_auto',
+        'wp_apply (EtcdGrove.prometheus.wp_seed_insertAll (K := w64) (V := Unit) go.uint64 (fun id => (id, ()))'
+        ' github_com.prometheus.client_golang.prometheus.seed.descIDs) $$ HmD as HmD',
+        'try wp_auto',
+        'wp_apply (EtcdGrove.prometheus.wp_seed_insertAll (K := GoString) (V := w64) go.string (fun nd => nd)'
+        ' github_com.prometheus.client_golang.prometheus.seed.dims) $$ HmN as HmN',
+        'try wp_auto',
+        'wp_apply (EtcdGrove.prometheus.wp_seed_insertAll (K := w64) (V := GoInterface) go.uint64'
+        ' (fun id => (id, (interface.nil : GoInterface))) github_com.prometheus.client_golang.prometheus.seed.collectorIDs) $$ HmC as HmC',
+        'try wp_auto']},
+)
+
+
 def closure(p):
     seen = set(); st = [p]
     while st:

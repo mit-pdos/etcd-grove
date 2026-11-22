@@ -1,0 +1,9 @@
+# Types and names only (prom-registry, route (b), 2026-11-22): client_model's protobuf messages, for
+# prometheus's `Desc` (its field `constLabelPairs []*dto.LabelPair`), which the default registry's
+# translated `Register` reads. No body, no import: the messages stay opaque (every message has fields
+# of protoimpl's alias types, which translate_types does not translate), and nothing reads them.
+translate = ["!*"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

@@ -369,7 +369,8 @@ PROJECTS = [
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
                     "go.etcd.io/bbolt=", "go.opentelemetry.io=", "os=", "io/fs=",
-                    "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=", "net/http=",
+                    "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=",
+                    "github.com/prometheus/client_model=", "net/http=",
                     "github.com/jonboulle/clockwork=",
                     "net=", "hash=", "path=", "internal/bytealg=", "internal/nettrace=",
                     "encoding/hex=", "container/heap=", "unicode/utf8=",
@@ -522,6 +523,9 @@ PROJECTS = [
             "github.com/dustin/go-humanize",
             # names only: the metrics mvcc's transactions and key index update
             "github.com/prometheus/client_golang/prometheus",
+            # (prom-registry, route (b), 2026-11-22) types and names only: client_model's messages,
+            # the type of prometheus's `Desc.constLabelPairs` (the default registry is translated)
+            "github.com/prometheus/client_model/go",
             # standard-library packages Perennial does not translate: their names are here
             # (encoding/hex: the backend's putSeq check formats keys with it)
             "net/http",

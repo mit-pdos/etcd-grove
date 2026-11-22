@@ -5,6 +5,7 @@ The package-initialization instance of prometheus: fact `True` (names only). One
 module
 
 public import GeneratedProof.github_com.prometheus.client_golang.prometheus
+public import Proof.github_com.prometheus.client_model.go.PkgInit
 public import Perennial.Proof.ProofPrelude
 public import Perennial.Proof.io
 public import Perennial.Proof.fmt

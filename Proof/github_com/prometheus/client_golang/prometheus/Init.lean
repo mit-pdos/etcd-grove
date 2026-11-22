@@ -3,14 +3,22 @@ Package initialization of `github_com.prometheus.client_golang.prometheus`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
 Its fact is `True`. Its initializer initializes its imports, runs the untranslated
-initializers of its variables (`X.init`, axioms of the translation), which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untranslated
-`init` functions, which the trust-boundary axiom `initFuncsOk` says return.
+initializers of its variables (`X.init`, axioms of the translation), which the trust-boundary axiom
+`opaqueInitsOk` says run without panicking, and its translated ones: `defaultRegistry = NewRegistry()`
+(stepped into) and `DefaultRegisterer`/`DefaultGatherer`, `defaultRegistry` converted to an interface; then
+its `init()`, whose trusted model (route (b), notes/prom-registry.md) inserts the built-in collectors'
+descriptor IDs, names and collector IDs into the registry's maps (`EtcdGrove.prometheus.wp_seed_insertAll`).
+(Until 2026-11-22 `defaultRegistry.init`, `DefaultRegisterer.init` and `DefaultGatherer.init` were among
+`opaqueInitsOk`, and `init.«0»` was the trust-boundary axiom `initFuncsOk`.)
 -/
 module
 
 public import Proof.github_com.prometheus.client_golang.prometheus.PkgInit
+public import Perennial.Proof.fmt.Link
+public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
+public import Proof.github_com.prometheus.client_model.go.Init
+public import Proof.github_com.prometheus.client_golang.prometheus.Seed
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -47,9 +55,6 @@ axiom opaqueInitsOk :
         errBucketLabelNotAllowed.init,
         errInconsistentCardinality.init,
         separatorByteSlice.init,
-        defaultRegistry.init,
-        DefaultRegisterer.init,
-        DefaultGatherer.init,
         «_».init,
         errQuantileLabelNotAllowed.init,
         CounterMetricTypePtr.init,
@@ -58,16 +63,6 @@ axiom opaqueInitsOk :
         labelsPool.init,
         V2.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
-/-- **The trust boundary: `github_com.prometheus.client_golang.prometheus`'s untranslated `init` functions return.** Goose
-names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
-here, so the model does not unfold them (`@! init.<k>`: the semantics' `functions`, which
-the package's `Assumptions` do not constrain for them). Go runs them at program start, and
-etcd starts, so each returns without panicking. A fact about the Go code, as the axioms of
-other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
-axiom initFuncsOk :
-    ∀ f ∈ ([init.«0»] : List GoString),
-    {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
 
 end github_com.prometheus.client_golang.prometheus
 end opaqueInits
@@ -92,6 +87,14 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  wp_apply wp_GlobalAlloc (V := GoInterface) DefaultGatherer _ as HDefaultGatherer
+  wp_apply wp_GlobalAlloc (V := GoInterface) DefaultRegisterer _ as HDefaultRegisterer
+  wp_apply wp_GlobalAlloc (V := Loc) defaultRegistry _ as HdefaultRegistry
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
+      EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.fmt _root_.Perennial.fmt.initialize'
+      EtcdGrove.ExternalInit.fmt _root_.Perennial.fmt.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
+  wp_apply (_root_.Perennial.github_com.prometheus.client_model.go.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
       EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   wp_apply (opaqueInitsOk rmNamesForMemStatsMetrics.init (by mem_tac))
@@ -100,9 +103,19 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk errBucketLabelNotAllowed.init (by mem_tac))
   wp_apply (opaqueInitsOk errInconsistentCardinality.init (by mem_tac))
   wp_apply (opaqueInitsOk separatorByteSlice.init (by mem_tac))
-  wp_apply (opaqueInitsOk defaultRegistry.init (by mem_tac))
-  wp_apply (opaqueInitsOk DefaultRegisterer.init (by mem_tac))
-  wp_apply (opaqueInitsOk DefaultGatherer.init (by mem_tac))
+  -- translated initializer of defaultRegistry))
+  try wp_auto
+  wp_func_call
+  wp_call
+  try wp_auto
+  wp_apply (wp_map_make1 (K := w64) (V := GoInterface) go.uint64 github_com.prometheus.client_golang.prometheus.Collector.ty) as %mC HmC
+  try wp_auto
+  wp_apply (wp_map_make1 (K := w64) (V := Unit) go.uint64 (go.GoType.StructType [])) as %mD HmD
+  try wp_auto
+  wp_apply (wp_map_make1 (K := GoString) (V := w64) go.string go.uint64) as %mN HmN
+  try wp_auto
+  -- translated initializer of DefaultRegisterer))
+  -- translated initializer of DefaultGatherer))
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
   wp_apply (opaqueInitsOk errQuantileLabelNotAllowed.init (by mem_tac))
   wp_apply (opaqueInitsOk CounterMetricTypePtr.init (by mem_tac))
@@ -110,7 +123,20 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk UntypedMetricTypePtr.init (by mem_tac))
   wp_apply (opaqueInitsOk labelsPool.init (by mem_tac))
   wp_apply (opaqueInitsOk V2.init (by mem_tac))
-  wp_apply (initFuncsOk init.«0» (by mem_tac))
+  -- the translated init.«0»
+  wp_func_call
+  wp_call
+  try wp_auto
+  simp only [EtcdGrove.prometheus.seed_Registry_eq, EtcdGrove.prometheus.seed_Collector_eq, EtcdGrove.prometheus.seed_defaultRegistry_eq]
+  try wp_auto
+  wp_apply (EtcdGrove.prometheus.wp_seed_insertAll (K := w64) (V := Unit) go.uint64 (fun id => (id, ())) github_com.prometheus.client_golang.prometheus.seed.descIDs) $$ HmD as HmD
+  try wp_auto
+  wp_apply (EtcdGrove.prometheus.wp_seed_insertAll (K := GoString) (V := w64) go.string (fun nd => nd) github_com.prometheus.client_golang.prometheus.seed.dims) $$ HmN as HmN
+  try wp_auto
+  wp_apply (EtcdGrove.prometheus.wp_seed_insertAll (K := w64) (V := GoInterface) go.uint64 (fun id => (id, (interface.nil : GoInterface))) github_com.prometheus.client_golang.prometheus.seed.collectorIDs) $$ HmC as HmC
+  try wp_auto
+  -- translated initializer of defaultRegistry))
+  -- translated initializer of defaultRegistry))
   iframe Hown
   is_pkg_init_finish
 
