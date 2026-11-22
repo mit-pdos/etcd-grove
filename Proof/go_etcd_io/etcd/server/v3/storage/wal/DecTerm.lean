@@ -12,6 +12,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.wal.DecLemmas
 public import Perennial.Proof.errors.Results
 public import Proof.errors.NewVar
 public import Proof.errors.ErrIsTerm
+public import Proof.errors.ErrTree
 
 @[expose] public section
 
@@ -68,6 +69,24 @@ theorem decEnv_ueof_ptr (IoE : GoInterface → Prop) (eof ueof : GoInterface) :
   subst hu
   cases ht
   exact ⟨_, x2, rfl, rfl⟩
+
+/-- **`io.EOF` is a target `fmt.ErrorfErrsNot.spec` admits** (`decEnv`'s `io` initialization): an `*errorString`, a
+pointer error and no `*fmt.wrapError`. -/
+theorem decEnv_eof_target (IoE : GoInterface → Prop) (eof ueof : GoInterface) :
+    decEnv (GF := GF) IoE eof ueof ⊢
+      ⌜∀ tii, eof = interface.ok tii → _root_.Perennial.errors.IsPointerError tii ∧
+        tii.ty ≠ go.GoType.PointerType _root_.Perennial.fmt.wrapError.ty⌝ := by
+  iintro #Henv
+  iunfold decEnv at Henv
+  icases Henv with ⟨#Hio, -, -, -, -, #Heof, -⟩
+  ihave #HI := io.isInit_access $$ Hio
+  icases HI with ⟨-, -, -, -, #HE1, -⟩
+  iunfold errors.newVar at HE1
+  icases HE1 with ⟨%x1, #Hx1, -⟩
+  icombine Heof Hx1 gives %he
+  ipureintro
+  rw [he]
+  exact errorString_target x1
 
 /-- `decUe` of an error `errors.Is` returns on. -/
 theorem decUe_term (e : GoInterface) : errIsTerm (GF := GF) e ⊢ decUe e := by

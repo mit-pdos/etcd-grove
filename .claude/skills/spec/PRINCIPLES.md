@@ -59,6 +59,14 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   (an `isContext` or a quiet context), approved, while its one caller passes
   `wait.ContextForChannel(stopCh)`, which is neither (K4, `notes/decisions.md`, "A context outside
   Perennial's model", 2026-11-04).
+- **A premise about an argument is stated in the form the code consumes it**, so that a proof can use
+  it: what the function's own code does with the argument (the calls, comparisons and method calls it
+  makes on it), not a triple of some other entry point that the code never calls on it. A premise that
+  no proof can use is a hypothesis true of Go that can never be discharged. (`fmt.ErrorfErrsNot.spec`
+  took `errIsNot e t`, a triple of `errors.Is(e, t)`, of its wrapped argument; but `errors.Is` of the
+  `*fmt.wrapError` walks `e`'s tree itself, Go's `is` loop calling `==`, `Is` and `Unwrap` on each
+  node, never `errors.Is(e, _)`. Restated over the tree Perennial's `errors.Is.spec` takes, with the
+  old triple a lemma for the callers that want it; the user's item (3), 2026-11-22, ledger.)
 - **An unsound candidate is replaced by a sound one, not dropped**: every function in the scope
   keeps a spec. When a candidate turns out false (it lets a client reach a path that breaks
   another spec's guarantee), find what is true of the function: often a precondition that names

@@ -191,8 +191,6 @@ structure TOpen : Prop where
   isPathErrnoNotExist : errors.IsPathErrnoNotExist.spec (GF := GF) (hG := hG)
   isPathErrnoTerm : errors.IsPathErrnoTerm.spec (GF := GF) (hG := hG)
   hasPrefix : stringslite.HasPrefix.spec (GF := GF) (hG := hG)
-  errorfErrsNot : fmt.ErrorfErrsNot.spec (GF := GF) (hG := hG)
-  errorfErrsTerm : fmt.ErrorfErrsTerm.spec (GF := GF) (hG := hG)
   unmarshalWalRecordE : proto.UnmarshalWalRecordE.spec (GF := GF) (hG := hG)
 
 end open_
@@ -224,7 +222,7 @@ theorem tMain_linked (h : TOpen (GF := GF) (hG := hG)) : Main.spec (GF := GF) (h
     (walRaftP_cloneHs proto.ClonePb.wp_proof) walPb_laws.getIndex walPb_laws.getTerm walPb_laws.isEmpty walPb_laws.marshalEnt
     (walRaftP_marshalHs proto.MarshalPb.wp_proof) walPb_laws.mustSync walPb_laws.nil walPb_laws.size
     walPb_laws.unmarshalEnt walPb_laws.zero h.isErrno h.isPathErrnoEof h.isPathErrnoNotExist
-    h.isPathErrnoTerm h.errorfErrsNot h.errorfErrsTerm
+    h.isPathErrnoTerm
     h.unmarshalWalRecordE h.hasPrefix
 
 end linked

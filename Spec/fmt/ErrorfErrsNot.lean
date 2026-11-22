@@ -1,35 +1,34 @@
 /-
-`fmt.Errorf(format, args...)` with error arguments, and what `errors.Is` answers on its result for a
-target `t` held by a package variable (`io.EOF`): **a hypothesis** of the WAL decoder's proofs (as
-`fmt.ErrorfErrs.spec`, whose post it extends), not proved here and not an axiom; the general fix is a
-Perennial change (`notes/perennial-changes.md`, 2026-11-14, "`errors.Is` on `fmt.Errorf`'s result").
+`fmt.Errorf(format, args...)` wrapping one error argument (`%w`), and what `errors.Is` answers on its result for a
+pointer target `t` (`io.EOF`): **a hypothesis** of the WAL decoder's proofs until 2026-11-22, now proved
+(`Proof/fmt/ErrorfErrsNot.lean`, from Perennial's `fmt.wp_Errorf` and the `*fmt.wrapError`'s `Unwrap`).
 
-`errIsNot e t`: `e` is not `t` and `errors.Is(e, t)` returns `false`. Why the triple holds in Go:
-`Errorf` returns a fresh `*fmt.wrapError`/`*fmt.wrapErrors` (with `%w`) or a fresh `*errors.errorString`
-(`errors.New`, without), so its result is not `t`, a value a package variable held before the call;
-neither type has an `Is` method, and its `Unwrap` gives the `%w` arguments, each among `errs`, for which
-`errors.Is(_, t)` is false by the premise. Under Perennial's present model (`errors.New(format)`) it holds
-too (a fresh `*errorString`, a leaf: `errors.wp_Is_leaf`), but the premise gives no points-to of `t`'s
-pointer, so the model's freshness cannot be used against it: hence a hypothesis.
+**Restated 2026-11-22** (ledger, "`fmt.ErrorfErrsNot.spec`/`fmt.ErrorfErrsTerm.spec` -- premises no proof can use";
+the user's approval): until then the premises on the error arguments were `errIsNot e t`/`errIsTerm e`, triples
+of `errors.Is(e, _)`, which no proof of `errors.Is` on the result can use (Go's `Is` walks the wrapped error's tree
+itself, never calling `errors.Is` on it). They are now the trees Perennial's `errors.Is.spec` takes
+(`errTreeNot`, `errTreeTerm`: `Spec/errors/ErrTree.lean`), and so is the post; `errIsNot_of_tree`/`errIsTerm_of_tree`
+(`Proof/errors/ErrTree.lean`) give the old triples. The spec is narrowed to the WAL's calls: exactly one `%w`
+directive, whose argument is one of the error arguments (`fmt.wrapsErr`), so the result is a `*fmt.wrapError` of
+it; and a target that is no `*fmt.wrapError` (an `*errors.errorString` such as `io.EOF`), so the result is not the
+target by its type. (With no `%w` the result is an `*errors.errorString` like `io.EOF`, and Perennial's
+`errorfErr` gives no freshness of its pointer against the target's: that case is left out. With two, a
+`*fmt.wrapErrors`, whose `errs` field `errorfErr` does not give.)
 
-`errIsTerm e`: `errors.Is(e, u)` returns, for every pointer target `u` (since 2026-11-14, `wal-vsnap3`;
-ledger, "no `errors.Is(_, io.ErrUnexpectedEOF)` termination"): the result's, given the error arguments'.
-True of Go (the result is a fresh pointer, compared with `u`; its `Unwrap` gives `%w` arguments, whose
-walks return) and of the model (a leaf). No answer is claimed: Go's (`true` on a `%w` of `u`) is not the
-model's (`false`).
-W3a of `notes/wal-fsext-plan.md` (ledger 2026-11-14, "the error's identity"); Lean-first.
+`errIsNot e t`/`errIsTerm e` (defined here, used by the WAL's specs and the trust boundary
+`proto.UnmarshalWalRecordE`): `e` is not `t` and `errors.Is(e, t)` returns `false`; `errors.Is(e, u)` returns, for
+every pointer target `u` (no answer claimed).
 
-Restated 2026-11-18 (fmt soundness; approved by the user, 2026-11-18, via etcd-grove-03): the premise is
-`fmt.ErrorfErrs.spec`'s, `fmt.errArgsWf` (an error argument only under `%v`/`%s`/`%w`, no `#` in the format) with
-`errOk` = `fmtErrorOk` (`Error() string`, no `Format`), so that Go calls only the error arguments'
-`Error()`; the post's `errOk err` says `fmtErrorOk` of the result (true of Go's three result types and of
-the model's). Until then any verb and any type with an `Error()` WP were admitted, which Go does not satisfy
-(`Format` methods, `Error() int`: `Spec/fmt/ErrorfErrs.lean`'s header).
+The premise on the arguments is `fmt.ErrorfErrs.spec`'s (fmt soundness, 2026-11-18): `fmt.errArgsWf` (an error
+argument only under `%v`/`%s`/`%w`, no `#` in the format) with `errOk` = `fmtErrorOk` (`Error() string`, no
+`Format`), so that Go calls only the error arguments' `Error()`; the post's `errOk err` is `fmtErrorOk` of the
+result. W3a of `notes/wal-fsext-plan.md`; Lean-first.
 -/
 module
 
 public import Spec.fmt.ErrorfErrs
 public import Perennial.Proof.errors.Base
+public import Spec.errors.ErrTree
 
 @[expose] public section
 
@@ -65,18 +64,29 @@ def errIsTerm (e : GoInterface) : IProp GF :=
 instance errIsTerm_persistent (e : GoInterface) : Persistent (errIsTerm (GF := GF) e) := by
   unfold errIsTerm; infer_instance
 
+/-- **The format wraps the error `e`**: its directives parse, exactly one `%w` has an argument (Go's
+`wrappedErrs`), and that argument is `e`. -/
+def fmt.wrapsErr (format : GoString) (args : List GoInterface) (e : GoInterfaceOk) : Prop :=
+  ∃ ds j, _root_.Perennial.fmt.fmtDirectives format = some ds ∧
+    _root_.Perennial.fmt.wrapArgs ds args.length = [j] ∧ args[j]? = some (GoInterface.ok e)
+
 /-- See the file header. -/
 abbrev fmt.ErrorfErrsNot.spec : Prop :=
   ∀ (format : GoString) (args_sl : GoSlice) (args : List GoAny) (errs : List GoInterfaceOk)
-    (X : GoString) (t : GoInterface),
-  fmt.errArgsWf errs format args →
-    {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ args_sl ↦* args ∗ globalAddr X ↦□ t ∗
-        [∗list] e ∈ errs, errOk e ∗ errIsNot (GoInterface.ok e) t ∗ errIsTerm (GoInterface.ok e) }}
+    (e : GoInterfaceOk) (t : GoInterface),
+  fmt.errArgsWf errs format args → fmt.wrapsErr format args e → e ∈ errs →
+  (∀ tii, t = interface.ok tii → _root_.Perennial.errors.IsPointerError tii ∧
+    tii.ty ≠ go.GoType.PointerType _root_.Perennial.fmt.wrapError.ty) →
+    {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ args_sl ↦* args ∗
+        ([∗list] e ∈ errs, errOk e) ∗ errTreeNot (GoInterface.ok e) t ∗ errTreeTerm (GoInterface.ok e) }}
       (App (App (Val (@! _root_.Perennial.fmt.Errorf)) (Val #format)) (Val #args_sl))
-    {{ (err : GoInterfaceOk), RET #(interface.ok err); errOk err ∗ errIsNot (GoInterface.ok err) t ∗
-        errIsTerm (GoInterface.ok err) }}
+    {{ (err : GoInterfaceOk), RET #(interface.ok err); errOk err ∗ errTreeNot (GoInterface.ok err) t ∗
+        errTreeTerm (GoInterface.ok err) }}
 
 end spec
+
+/-- **`fmt.wrapsErr` of a call with a literal format** (2026-11-22): the directives and the `%w` argument by `rfl`. -/
+macro "wraps_err" : tactic => `(tactic| exact ⟨_, _, rfl, rfl, rfl⟩)
 
 end EtcdGrove
 end Perennial
