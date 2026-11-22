@@ -78,7 +78,7 @@ theorem EtcdServer.revokeExpiredLeases.wp_proof
   iunfold srvFieldsAt at Hf
   icases Hf with ⟨#Hlgf, #Hlgnn, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmid, -, -, -, -, -, -⟩
   iunfold srvRunFieldsAt at Hrf
-  icases Hrf with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hgok⟩
+  icases Hrf with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hgok⟩
   ihave ⟨%sch, #Hsch, #Hstop⟩ := srvGoAttachOk_stopping s γg $$ Hgok
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit

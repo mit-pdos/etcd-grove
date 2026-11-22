@@ -393,10 +393,6 @@ axiom types.IDFromString.wp_proof
 axiom types.NewURLs.wp_proof
 axiom utilruntime.HandleCrashWithLogger.wp_proof
 axiom v2stats.FollowerStats.Succ.wp_proof
-axiom v2stats.NewServerStats.wp_proof
-axiom v2stats.ServerStats.BecomeLeader.wp_proof
-axiom v2stats.ServerStats.RecvAppendReq.wp_proof
-axiom v2stats.ServerStats.SendAppendReq.wp_proof
 axiom v3alarm.AlarmStore.restore.wp_proof
 axiom v3alarm.NewAlarmStore.wp_proof
 axiom v3rpc.codec_proto
