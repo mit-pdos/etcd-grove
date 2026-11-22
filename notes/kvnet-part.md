@@ -1126,6 +1126,8 @@ raft_kvnet_robust.spec`, a linking module (`KvNet/Proof/.../kvnet/TopLevelRobust
    `receiptBound ≤ 2^63` from `Hstart`'s bound).
 5. The Link's section instances (the imported packages' `Assumptions`) from `kvcheck.Assumptions`.
 Then `raft_kvnet_robust_example` by computation, a non-vacuity lemma, `etc/tcb-collections/kvnet.txt`, and
-removing `Proof/.../raft/kvnet/Robust.lean`. When Perennial's `crash-genstart` lands: prove
+removing `Proof/.../raft/kvnet/Robust.lean`. `CrashBootWpG` follows PR mit-pdos/perennial#683's exact shapes
+(`threadTok -∗ ∀ w, extsLocalCtx w ={⊤}=∗ …`, the crash's `… -∗ ownGoState ∅ -∗ £ 1 ={⊤}=∗ P i L'`;
+`HasExt.localCtx_get` takes the fs component; a clone is at `.lake/perennial-genstart`). When #683 lands: prove
 `RobustOfNetFsBootG` in `Net/Statement/` from the new adequacy (the generation's `extsLocalCtx` projected to the
 fs component by `HasExt.localCtx_acc`) and drop the hypothesis; adjust `CrashBootWpG` to the exact shapes.
