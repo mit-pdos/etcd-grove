@@ -56,7 +56,7 @@ instance out_intoValInj : go.IntoValInj Out where
     simp only [Out.mk.injEq]
     exact ⟨GoGlobalContext.intoVal_inj_bool f1, GoGlobalContext.intoVal_inj_w64 f2⟩
 
-theorem outV_inj {u u' : Bool} {n n' : w64} (h : outV u n = outV u' n') : u = u' ∧ n = n' := by
+theorem codec_outV_inj {u u' : Bool} {n n' : w64} (h : outV u n = outV u' n') : u = u' ∧ n = n' := by
   simp only [outV, interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, true_and] at h
   have h' := go.intoVal_inj h
   simp only [Out.mk.injEq] at h'
@@ -67,7 +67,7 @@ theorem encOutV_outV (u : Bool) (n : w64) : encOutV (outV u n) = encOutB u n := 
   unfold encOutV
   split
   · rename_i h
-    obtain ⟨h1, h2⟩ := outV_inj h.choose_spec
+    obtain ⟨h1, h2⟩ := codec_outV_inj h.choose_spec
     rw [← h1, ← h2]
   · rename_i h
     exact absurd ⟨(u, n), rfl⟩ h
