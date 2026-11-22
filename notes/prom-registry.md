@@ -206,7 +206,7 @@ can write, that is fresh in each run:
    modules above prometheus (and the generated `Init`/`InitLinked`), the closed proofs giving it from
    `promReg_alloc`. As designed, no Perennial change; a diff over thousands of files, conflicting with every
    session in the server's cone, and every closed statement must be checked not to gain the argument.
-2. **A per-generation ghost-name supply in Perennial** (`GooseLocalGS`: a name allocated by the adequacy
+2. **A per-generation ghost-name supply in Perennial** (built in `GoStateGS`, "Option 2": a name allocated by the adequacy
    theorems at each generation's start, for a client's own ghost map, as `packageMonoName` is for the package
    state): `PromRegGS` becomes a definition from `hG`, in scope wherever `hG` is; no ripple. A Perennial
    change (general: any package fact about per-run ghost state needs it), to be proposed on its own
@@ -281,47 +281,42 @@ the user's decision picks option 2 next. Its design follows; nothing is changed 
 
 ## Option 2: a per-generation ghost-name supply in Perennial (design, for review)
 
-**Lean shape** (Perennial, `GooseLang/Lifting.lean` and a new `GooseLang/LocalNames.lean`):
+**Lean shape** (Perennial, mit-pdos/perennial#681, branch `local-names`; `GooseLang/LocalNames.lean`):
 
 ```lean
-class GooseLocalGS (GF : BundledGFunctors) where
+class GoStateGS (GF : BundledGFunctors) where
   ...                                -- unchanged fields
-  /-- The generation's supply of ghost names for libraries: a ghost map from keys to names,
-  whose authority (`ownLocalNames ∅`) the adequacy theorems hand to the generation's program. -/
-  goose_localNamesName : GName
+  localNamesName : GName             -- the generation's supply, with the package state
 
-variable [L : GooseLocalGS GF] [AllG GF]    -- under `HeapGS`, as `ownGoState`
+variable {GF : BundledGFunctors} [hG : GoStateGS GF]
 
-/-- The authority of the generation's name map (exclusive). -/
-def ownLocalNames (m : GMap GoString GName) : IProp GF :=
-  ghostMapAuth L.goose_localNamesName 1 m
-/-- The generation records `γ` under key `k` (persistent). -/
-def localName (k : GoString) (γ : GName) : IProp GF :=
-  k ↪[L.goose_localNamesName]□ γ
-
-instance : Persistent (localName k γ); instance : Timeless (localName k γ)
-instance : Timeless (ownLocalNames m)
-theorem localName_agree : ⊢ localName k γ -∗ localName k γ' -∗ ⌜γ = γ'⌝     -- ghostMapElem_agree
-theorem localName_set (h : m !! k = none) (γ : GName) :
-    ⊢ ownLocalNames m ==∗ ownLocalNames (<[k := γ]> m) ∗ localName k γ   -- ghost_map_insert_persist
-theorem localNames_init : ⊢ |==> ∃ γn, ghostMapAuth γn 1 (∅ : GMap GoString GName)  -- ghost_map_alloc_empty
+def ownLocalNames (m : GMap GoString GName) : IProp GF     -- exclusive authority
+def localName (k : GoString) (γ : GName) : IProp GF         -- persistent record
+theorem localName_agree (k) (γ γ') : ⊢ localName k γ -∗ localName k γ' -∗ ⌜γ = γ'⌝
+theorem localName_set {m} {k} (h : m !! k = none) (γ) :
+    ⊢ ownLocalNames m ==∗ ownLocalNames (<[k := γ]> m) ∗ localName k γ
 ```
+
+**The name lives in `GoStateGS`, not in a new `GooseLocalGS` field** (as first designed here): clients
+rebuild `GooseLocalGS` with its six-field anonymous constructor to substitute the Go context (Perennial's
+crashfs, netfs, `NotCrashedChanTest`, and this repository), and a seventh field broke them all, while they
+keep `GoStateGS` opaque. `GoStateGS` is per generation (it holds `packageInitedName`/`packageMonoName`),
+allocated afresh by `goose_crash_step`, so the supply is per generation as designed.
 
 (`GoString` and `GName = Nat` are `Pos.Countable`; the keys are strings so that a library names its entry
 by its package path, as the package state does.)
 
 **Which adequacy theorems change.** Every theorem that builds a `GooseLocalGS` allocates the name
-(`localNames_init`) beside the package state; there are three, `goose_init` (`Adequacy.lean:131`),
-`goose_local_init` (`DistAdequacy.lean:252`) and `goose_crash_step` (`CrashAdequacy.lean:162`), and each
-returns `ownLocalNames ∅` of the new generation with its `ownGoState`. The resource reaches the program in new variants whose WP premises take
-`ownLocalNames ∅` after `ownGoState …` (and the crash continuations `ownLocalNames (L := L') ∅` after
+(`localNames_init`) beside the package state (`goose_init`, `goose_local_init`, `goose_crash_step`, as
+`_localNames` variants), and each
+returns `ownLocalNames ∅` of the new generation with its `ownGoState`. The resource reaches the program in new variants (`_localNames`) whose WP premises take
+`ownLocalNames ∅` after `ownGoState …` (and the crash continuations the next generation's after
 `ownGoState (hG := L'.goose_go_stateGS) ∅`): `goose_adequacy`, `goose_adequacy_below`, `goose_invariance`,
 `goose_crash_adequacy`, `goose_dist_adequacy`, `goose_dist_crash_adequacy`,
 `goose_dist_mixed_crash_adequacy` and their `_init` wrappers. To spare every existing client, each keeps its
 statement and becomes a corollary of its variant (the extra premise dropped with `-∗`), so the change is
-additive: no client of Perennial or of this repository breaks. Field order in `GooseLocalGS` and the
-anonymous constructors in those proofs (`⟨hFL, …, ⟨γC⟩⟩`) change; nothing outside them builds one (this
-repository: none; `WalTester`'s boot lemmas only take an `L`).
+additive. Changed in place (#681): `crashFrame` (and `BootWp`, `dist_crash_*`), `goState_init`,
+`goStateGSUpdatePre`/`goStateGSUpdate` (one more name).
 
 **In this repository** (after a pin bump that brings it): `goose_adequacy_start` (`Proof/runtime/Start.lean`,
 the trusted start model) gets `ownLocalNames ∅` in its WP premise, a resource Perennial's theorems now give
@@ -330,6 +325,7 @@ wrappers (`fsSQ_crash_adequacyShared`, ...) that the WAL tester's crash proof us
 "github.com/prometheus/client_golang/prometheus"`:
 
 * `PromRegGS` goes; `isRegistry γ l`, `idTok γ`, `regInv γ` take `γ` explicitly (they already do inside).
+  `localName` reads the name from `GoStateGS`, in scope wherever `hG` is.
 * `prometheus.regFree n := ⌜n ∉ builtinNames⌝ ∗ ∃ γ, localName promKey γ ∗ idTok γ (descId n)`.
 * `isPkgInitDef prometheus := ∃ l γ, globalAddr defaultRegistry ↦□ l ∗ localName promKey γ ∗ isRegistry γ l`.
 * `MustRegister`'s proof: the fact's `γ` and the right's `γ'` are equal by `localName_agree`, then
@@ -338,8 +334,8 @@ wrappers (`fsSQ_crash_adequacyShared`, ...) that the WAL tester's crash proof us
   promKey γ` (from `ownLocalNames ∅`), and hands `builtinToks` to prometheus's initializer and the
   `regFree`s to the registering packages through `ownInitResL`, as `startRights` hands `namesFree` today.
 
-**The crash argument.** `localName` reads `hG.goose_localGS.goose_localNamesName`, allocated fresh for each
-generation (`goose_crash_step`), and the generation's program alone holds its authority, `∅` at its start. A
+**The crash argument.** `localName` reads `GoStateGS.localNamesName` (of `hG.goose_localGS.goose_go_stateGS`), allocated fresh for each
+generation (`goose_crash_step_localNames`), and the generation's program alone holds its authority, `∅` at its start. A
 `regFree` or a prometheus fact carried through a crash frame is over the crashed generation's `L` (its
 `localName`, `idTok` and registry are the old ones) and is not the new generation's `regFree`, which every
 spec of the new run is stated over; the new run's `γ` is set once (`localName_set` needs the key absent, and
@@ -362,6 +358,6 @@ discharge. A name recorded per package at its `PackageInitStart` (the map's doma
 state's): the rights must name `γ` before prometheus starts, so this would need the claim scheme above, with
 a per-package exclusive token deposited at the start; more machinery for the same result.
 
-**Status.** Design only; recorded in `notes/perennial-changes.md` (2026-11-22). Nothing changed in Perennial;
-the coordinator brings it to the user. Stages 4–5 wait for the decision (the registry and its proofs, stage
-3', do not depend on it: they are generic in the name).
+**Status.** Built: mit-pdos/perennial#681 (branch `local-names`), on etcd-grove's pin as `local-names-c14`
+(`8dd458684`, worktree `/shared/perennial-local-names-c14`, manifest `/shared/tmp/manifest-ln14.json`). Stages 4–5
+are built against it.

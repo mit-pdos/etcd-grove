@@ -3698,10 +3698,12 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
   on `γ`.
 - **Worked around locally.** Not yet: stages 4–5 of `notes/prom-registry.md` wait; the opaque
   `prometheus.nameFree` axiom stays.
-- **Proposed (general).** A per-generation name supply: `GooseLocalGS.goose_localNamesName : GName`, a
+- **Proposed (general).** A per-generation name supply: `GoStateGS.localNamesName : GName` (first designed as a
+  `GooseLocalGS` field, which broke the clients that rebuild it with its six-field anonymous constructor), a
   ghost map `GoString ⇀ GName` allocated by the three constructors of a generation (`goose_init`,
   `goose_local_init`, `goose_crash_step`), its authority `ownLocalNames ∅` handed to the generation's program
   by new variants of the adequacy theorems (the current statements kept as corollaries, so the change is
   additive), with `localName k γ` (persistent), `localName_agree` and `localName_set`. Exact shape, the
-  theorems that change and the rejected variants: `notes/prom-registry.md`, "Option 2". **Status.** Design
-  only, for the user's decision (2026-11-22); no Perennial branch.
+  theorems that change and the rejected variants: `notes/prom-registry.md`, "Option 2". **Status.** Proposed as
+  mit-pdos/perennial#681 (branch `local-names`; on this repository's pin as `local-names-c14`, `8dd458684`);
+  branch `prom-registry` builds against it.
