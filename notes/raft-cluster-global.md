@@ -197,14 +197,9 @@ and `binderfix.py` handle `NodeH` vs `Loc`, and `fixloop.sh` runs them.
 - `lean` merged at `c912d6c4e0` (its `0c9b410886`).
 - Posted the heads-up on #22.
 
-**Left:**
-- The server (`Proof.go_etcd_io.etcd.server.v3.etcdserver.Results`): build rounds reveal one layer at
-  a time (InvCfgView's `dv`, then `newRaftNode.spec`'s `nl`); continue with `.lake/tmp/rcg/b.sh LOG
-  TARGET` (prints errors per file; `ex:` abbreviates the examples' prefix), fixing with
-  `.lake/tmp/rcg/locfix.py LOG` (`.loc` where a handle stands for a location), `gffix.py LOG`
-  (`(GF := GF)` where a spec relied on the removed `[AllG GF]`), or by hand.
-- etcdstart, the trace check (`RaftTla/.../tracecheck`, its own files swept), RaftNoAx
-  (kvdurablenoax's own files swept), KvNet (its own `kvnet`/`kvcheck` files swept), then interfaces
-  (`etc/gen-interface.py etc/api/<pkg>.txt` after the build), `etc/tcb-report.py --check`, gates,
-  the land request on #22.
-- kvnet itself should use `cluster_alloc_nb` and `kvdurablenoax/Store.lean` in its `Hstart`.
+- The full `lake build` is green; Links, `gen-raft-tla`, `copy-part`, `gen-init` up to date;
+  interfaces regenerated (raft, etcdstart); `tier-check` and the raft API's layout check pass.
+
+**Left:** kvnet itself should use `cluster_alloc_nb` and `kvdurablenoax/Store.lean` (the copy KvNet
+imports) in its `Hstart`. The sweep's scripts are in `.lake/tmp/rcg/` of this worktree (not
+committed).
