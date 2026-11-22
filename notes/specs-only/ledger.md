@@ -4556,6 +4556,18 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** As above (a stronger post).
 - **Decision.** Applied.
 
+## 2026-11-22: bbolt's `(*Options).String` takes the package's `isPkgInit` (ps2 misc2)
+
+- **Spec.** `Options.String.spec` (`Spec/go_etcd_io/bbolt/Options__String.lean`): the pre gains
+  `isPkgInit pkg_id.go_etcd_io.bbolt`.
+- **Defect.** The axiom is now proved over the real code, and its body calls `fmt.Sprintf`, whose
+  spec takes `isPkgInit pkg_id.fmt`; the old pre (`optsAt` and `loggerPtrOk` only) had no package
+  initialization to get it from.
+- **Evidence.** `Proof/go_etcd_io/bbolt/Options__String.lean`. The only caller, `Open` (through
+  `options_logArgOk`, `Open/LogFmt.lean`), holds the package's `isPkgInit` (its own pre's).
+- **Proposed change.** As above (a premise every caller discharges). `SpecPlan`'s
+  `Options.String.spec` should take it too (not edited here).
+- **Decision.** Applied.
 ## 2026-11-22: kvcheck's `fresh`/`do`/`read` at the store; `read` gets a prophecy (KvNet, Go and Lean)
 
 - **Spec.** kvcheck's checker (`kvcheck/Defs.lean`): `CheckerNames` (the ghost maps of issued numbers) and
