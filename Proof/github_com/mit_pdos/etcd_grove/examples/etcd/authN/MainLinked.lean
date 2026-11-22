@@ -49,7 +49,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.authN.Assum
 /-- **A member started with auth on, at any token and snapshot settings** (`StartMemberAuth.lean`):
 `NewServer.specM true` (`server_new_auth_on`), the raft handler served,
 `Start.spec`. -/
-theorem etcd_authN.wp_StartMemberAuth :
+theorem etcd_authN.wp_StartMemberAuth [_root_.Perennial.net.FieldAssumptions] :
     etcdstart.StartMemberAuth.spec (GF := GF) (hG := hG) :=
   etcdstart.StartMemberAuth.wp_proof etcdstart.features.wp_NewDefaultServerFeatureGate
     server_new_auth_on etcdstart.net.wp_Listen EtcdServer.wp_RaftHandler server_Start
@@ -73,7 +73,7 @@ theorem etcd_authN.wp_barrier [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
 
 /-- **authN's `run`**: authkv's run across the `k` members (`run.lean`), over authkv's linked
 `SetUp`, `Work` and checks (`auth/Link.lean`). -/
-theorem etcd_authN.wp_run [go_etcd_io.etcd.cache.v3.Assumptions]
+theorem etcd_authN.wp_run [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_authN.run.spec (GF := GF) (hG := hG) :=
   etcd_authN.run.wp_proof etcdstart.wp_Serve etcdstart.wp_NewClient auth.authStore.wp_BcryptCost
