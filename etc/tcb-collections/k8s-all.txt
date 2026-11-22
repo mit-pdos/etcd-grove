@@ -162,11 +162,6 @@ axiom grpc.NewServer.wp_proof
 axiom grpc.Server.RegisterService.wp_proof
 axiom grpc.StatsHandler.wp_proof
 axiom grpc.WithKeepaliveParams.wp_proof
-axiom grpc.WithPerRPCCredentials.wp_proof
-axiom grpc.WithResolvers.wp_proof
-axiom grpc.WithStreamInterceptor.wp_proof
-axiom grpc.WithTransportCredentials.wp_proof
-axiom grpc.WithUnaryInterceptor.wp_proof
 axiom grpc.model.acceptRun.wp_proof
 axiom grpc.model.acceptRunConns.wp_proof
 axiom grpc.model.finishStream.wp_proof
@@ -176,7 +171,6 @@ axiom grpcAddrIsRaw
 axiom grpcConn
 axiom grpcConn_persistent
 axiom grpcConnsLink
-axiom grpcDialOptIs
 axiom grpcHealthSrv
 axiom grpcHealthSrv_persistent
 axiom grpcProtoCodec

@@ -25,7 +25,7 @@ abbrev grpc.WithTransportCredentials.spec : Prop :=
   ∀ (creds : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc }}
     (App (Val (@! google_golang_org.grpc.WithTransportCredentials)) (Val #creds))
-  {{ (o : GoInterface), RET #o; ⌜grpcDialOptIs o .transportCreds⌝ }}
+  {{ (o : GoInterface), RET #o; grpcDialOptIs o .transportCreds }}
 
 end spec
 

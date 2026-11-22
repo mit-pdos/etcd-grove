@@ -5,6 +5,8 @@ public import Perennial.Code.time
 public import Perennial.Code.context
 public import Perennial.Code.io
 public import Code.google_golang_org.grpc.keepalive
+public import Code.google_golang_org.grpc.resolver
+public import Code.net
 public import Code.google_golang_org.grpc.credentials
 public import Code.google_golang_org.grpc.stats
 public import Code.google_golang_org.grpc.metadata
@@ -652,17 +654,11 @@ opaque ClientConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque baseCodec.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque dialOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
 opaque perTargetDialOption.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque modelPicks.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque ccResolverWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque dialResult.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque connectOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque recvQueue.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
@@ -1632,6 +1628,166 @@ noncomputable def newTraceContext [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def newTraceEventLog [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newTraceEventLog"
 
+/-- go: dialoptions.go:152:28 -/
+noncomputable def funcDialOption.apply.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "fdo"
+  (Lam "do"
+  (Seq (App (Val exceptionDo)
+  (Let "fdo" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType funcDialOption.ty)))) (Var "fdo"))
+  (Let "do" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType dialOptions.ty)))) (Var "do"))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType dialOptions.ty)))) (Var "do"))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType dialOptions.ty)] false []))))) (App (Val (GoInstruction (StructFieldRef funcDialOption.ty go!"f"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType funcDialOption.ty)))) (Var "fdo")))) (Var "$a0")))))))
+  (Val #()))))
+
+/-- go: dialoptions.go:156:6 -/
+noncomputable def newFuncDialOption.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "f"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType funcDialOption.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType funcDialOption.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType dialOptions.ty)] false []))))) (Var "f"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc funcDialOption.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType dialOptions.ty)] false []))))) (Var "f"))
+  (App (Val (GoInstruction (CompositeLiteral funcDialOption.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"f")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType dialOptions.ty)] false [])) (Var "$v0")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType funcDialOption.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType funcDialOption.ty)))) (Var "$res0")))))
+
+/-- WithTransportCredentials returns a DialOption which configures a connection
+    level security credentials (e.g., TLS/SSL). This should not be used together
+    with WithCredentialsBundle.
+
+    go: dialoptions.go:443:6 -/
+noncomputable def WithTransportCredentials.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "creds"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc DialOption.ty))) (App (Val (GoInstruction (GoZeroVal DialOption.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "creds" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.credentials.TransportCredentials.ty))) (Var "creds"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType funcDialOption.ty) DialOption.ty))) (Let "$a0" (Lam "o"
+  (Seq (App (Val exceptionDo)
+  (Let "o" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType dialOptions.ty)))) (Var "o"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.credentials.TransportCredentials.ty))) (Var "creds"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.credentials.TransportCredentials.ty))) (Pair (App (Val (GoInstruction (StructFieldRef connectOptions.ty go!"TransportCredentials"))) (App (Val (GoInstruction (StructFieldRef dialOptions.ty go!"copts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType dialOptions.ty)))) (Var "o")))) (Var "$r0")))))))
+  (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve newFuncDialOption []))) (Val #())) (Var "$a0"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore DialOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad DialOption.ty))) (Var "$res0")))))
+
+/-- WithPerRPCCredentials returns a DialOption which sets credentials and places
+    auth state on each outbound RPC.
+
+    go: dialoptions.go:451:6 -/
+noncomputable def WithPerRPCCredentials.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "creds"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc DialOption.ty))) (App (Val (GoInstruction (GoZeroVal DialOption.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "creds" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.credentials.PerRPCCredentials.ty))) (Var "creds"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType funcDialOption.ty) DialOption.ty))) (Let "$a0" (Lam "o"
+  (Seq (App (Val exceptionDo)
+  (Let "o" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType dialOptions.ty)))) (Var "o"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.credentials.PerRPCCredentials.ty)))) (App (Val (GoInstruction (StructFieldRef connectOptions.ty go!"PerRPCCredentials"))) (App (Val (GoInstruction (StructFieldRef dialOptions.ty go!"copts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType dialOptions.ty)))) (Var "o")))))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.credentials.PerRPCCredentials.ty))) (Var "creds"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.credentials.PerRPCCredentials.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.credentials.PerRPCCredentials.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.credentials.PerRPCCredentials.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.credentials.PerRPCCredentials.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef connectOptions.ty go!"PerRPCCredentials"))) (App (Val (GoInstruction (StructFieldRef dialOptions.ty go!"copts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType dialOptions.ty)))) (Var "o")))) (Var "$r0")))))))
+  (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve newFuncDialOption []))) (Val #())) (Var "$a0"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore DialOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad DialOption.ty))) (Var "$res0")))))
+
+/-- WithUnaryInterceptor returns a DialOption that specifies the interceptor for
+    unary RPCs.
+
+    go: dialoptions.go:591:6 -/
+noncomputable def WithUnaryInterceptor.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "f"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc DialOption.ty))) (App (Val (GoInstruction (GoZeroVal DialOption.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "f" (App (Val (GoInstruction (GoAlloc UnaryClientInterceptor.ty))) (Var "f"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType funcDialOption.ty) DialOption.ty))) (Let "$a0" (Lam "o"
+  (Seq (App (Val exceptionDo)
+  (Let "o" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType dialOptions.ty)))) (Var "o"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad UnaryClientInterceptor.ty))) (Var "f"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore UnaryClientInterceptor.ty))) (Pair (App (Val (GoInstruction (StructFieldRef dialOptions.ty go!"unaryInt"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType dialOptions.ty)))) (Var "o"))) (Var "$r0")))))))
+  (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve newFuncDialOption []))) (Val #())) (Var "$a0"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore DialOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad DialOption.ty))) (Var "$res0")))))
+
+/-- WithStreamInterceptor returns a DialOption that specifies the interceptor for
+    streaming RPCs.
+
+    go: dialoptions.go:610:6 -/
+noncomputable def WithStreamInterceptor.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "f"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc DialOption.ty))) (App (Val (GoInstruction (GoZeroVal DialOption.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "f" (App (Val (GoInstruction (GoAlloc StreamClientInterceptor.ty))) (Var "f"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType funcDialOption.ty) DialOption.ty))) (Let "$a0" (Lam "o"
+  (Seq (App (Val exceptionDo)
+  (Let "o" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType dialOptions.ty)))) (Var "o"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad StreamClientInterceptor.ty))) (Var "f"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore StreamClientInterceptor.ty))) (Pair (App (Val (GoInstruction (StructFieldRef dialOptions.ty go!"streamInt"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType dialOptions.ty)))) (Var "o"))) (Var "$r0")))))))
+  (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve newFuncDialOption []))) (Val #())) (Var "$a0"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore DialOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad DialOption.ty))) (Var "$res0")))))
+
+/-- WithResolvers allows a list of resolver implementations to be registered
+    locally with the ClientConn without needing to be globally registered via
+    resolver.Register.  They will be matched against the scheme used for the
+    current Dial only, and will take precedence over the global registry.
+
+    # Experimental
+
+    Notice: This API is EXPERIMENTAL and may be changed or removed in a
+    later release.
+
+    go: dialoptions.go:767:6 -/
+noncomputable def WithResolvers.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "rs"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc DialOption.ty))) (App (Val (GoInstruction (GoZeroVal DialOption.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "rs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.resolver.Builder.ty)))) (Var "rs"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType funcDialOption.ty) DialOption.ty))) (Let "$a0" (Lam "o"
+  (Seq (App (Val exceptionDo)
+  (Let "o" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType dialOptions.ty)))) (Var "o"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.resolver.Builder.ty)))) (App (Val (GoInstruction (StructFieldRef dialOptions.ty go!"resolvers"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType dialOptions.ty)))) (Var "o"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.resolver.Builder.ty)))) (Var "rs"))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.resolver.Builder.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.resolver.Builder.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef dialOptions.ty go!"resolvers"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType dialOptions.ty)))) (Var "o"))) (Var "$r0")))))))
+  (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve newFuncDialOption []))) (Val #())) (Var "$a0"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore DialOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad DialOption.ty))) (Var "$res0")))))
+
 /-- StaticMethod returns a CallOption which specifies that a call is being made
     to a method that is static, which means the method is known at compile time
     and doesn't change at runtime. This can be used as a signal to stats plugins
@@ -2055,7 +2211,7 @@ noncomputable def GenericServerStream.Recv.impl [GooseExts] [GoGlobalContext] (R
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Req)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc where
-  pkgImportedPkgs := [pkg_id.time, pkg_id.context, pkg_id.io, pkg_id.google_golang_org.grpc.keepalive, pkg_id.google_golang_org.grpc.credentials, pkg_id.google_golang_org.grpc.stats, pkg_id.google_golang_org.grpc.metadata, pkg_id.google_golang_org.grpc.peer]
+  pkgImportedPkgs := [pkg_id.time, pkg_id.context, pkg_id.io, pkg_id.google_golang_org.grpc.keepalive, pkg_id.google_golang_org.grpc.resolver, pkg_id.net, pkg_id.google_golang_org.grpc.credentials, pkg_id.google_golang_org.grpc.stats, pkg_id.google_golang_org.grpc.metadata, pkg_id.google_golang_org.grpc.peer]
 
 opaque «_».init [GooseExts] [GoGlobalContext] : val
 
@@ -2063,6 +2219,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.google_golang_org.grpc)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2209,6 +2367,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.keepalive.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.google_golang_org.grpc.resolver.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.net.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.credentials.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.stats.initialize') (Val #()))))))
@@ -2317,7 +2479,7 @@ class ClientConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   underlying : go.UnderlyingDirectedEq ClientConn.ty ClientConn.underlying
   isUnderlying : go.IsUnderlying ClientConn.underlying ClientConn.underlying
   method_set : go.MethodSetIs ClientConn.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClientConn.ty) [(go!"CanonicalTarget", (some (go.signature.Signature [] false [go.string]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Connect", (some (go.signature.Signature [] false []))), (go!"GetMethodConfig", (some (go.signature.Signature [go.string] false [(go.GoType.Named go!"google.golang.org/grpc/internal/serviceconfig.MethodConfig" [])]))), (go!"GetState", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/grpc/connectivity.State" [])]))), (go!"Invoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.any, go.any, (go.GoType.SliceType CallOption.ty)] true [go.error]))), (go!"NewStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType StreamDesc.ty), go.string, (go.GoType.SliceType CallOption.ty)] true [ClientStream.ty, go.error]))), (go!"ResetConnectBackoff", (some (go.signature.Signature [] false []))), (go!"Target", (some (go.signature.Signature [] false [go.string]))), (go!"WaitForStateChange", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.Named go!"google.golang.org/grpc/connectivity.State" [])] false [go.bool]))), (go!"google.golang.org/grpc.addStream", (some (go.signature.Signature [(go.GoType.PointerType clientTransportStream.ty)] false [go.bool]))), (go!"google.golang.org/grpc.connectionError", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.dialAddr", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/resolver.Address" [])] false [(go.GoType.Named go!"net.Conn" []), _root_.Perennial.google_golang_org.grpc.credentials.AuthInfo.ty, go.error]))), (go!"google.golang.org/grpc.enterIdleMode", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.exitIdleMode", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.getResolver", (some (go.signature.Signature [go.string] false [(go.GoType.Named go!"google.golang.org/grpc/resolver.Builder" [])]))), (go!"google.golang.org/grpc.getServerName", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/resolver.Address" [])] false [go.string]))), (go!"google.golang.org/grpc.getTransportConn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.bool] false [(go.GoType.Named go!"net.Conn" []), _root_.Perennial.google_golang_org.grpc.credentials.AuthInfo.ty, go.error]))), (go!"google.golang.org/grpc.initAuthority", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.initParsedTargetAndResolverBuilder", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.onCallBegin", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.onCallEnd", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.removeStream", (some (go.signature.Signature [(go.GoType.PointerType clientTransportStream.ty)] false []))), (go!"google.golang.org/grpc.updateConnectionError", (some (go.signature.Signature [go.error] false []))), (go!"google.golang.org/grpc.validateTransportCredentials", (some (go.signature.Signature [] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClientConn.ty) [(go!"CanonicalTarget", (some (go.signature.Signature [] false [go.string]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Connect", (some (go.signature.Signature [] false []))), (go!"GetMethodConfig", (some (go.signature.Signature [go.string] false [(go.GoType.Named go!"google.golang.org/grpc/internal/serviceconfig.MethodConfig" [])]))), (go!"GetState", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/grpc/connectivity.State" [])]))), (go!"Invoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.any, go.any, (go.GoType.SliceType CallOption.ty)] true [go.error]))), (go!"NewStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType StreamDesc.ty), go.string, (go.GoType.SliceType CallOption.ty)] true [ClientStream.ty, go.error]))), (go!"ResetConnectBackoff", (some (go.signature.Signature [] false []))), (go!"Target", (some (go.signature.Signature [] false [go.string]))), (go!"WaitForStateChange", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.Named go!"google.golang.org/grpc/connectivity.State" [])] false [go.bool]))), (go!"google.golang.org/grpc.addStream", (some (go.signature.Signature [(go.GoType.PointerType clientTransportStream.ty)] false [go.bool]))), (go!"google.golang.org/grpc.connectionError", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.dialAddr", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.resolver.Address.ty] false [_root_.Perennial.net.Conn.ty, _root_.Perennial.google_golang_org.grpc.credentials.AuthInfo.ty, go.error]))), (go!"google.golang.org/grpc.enterIdleMode", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.exitIdleMode", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.getResolver", (some (go.signature.Signature [go.string] false [_root_.Perennial.google_golang_org.grpc.resolver.Builder.ty]))), (go!"google.golang.org/grpc.getServerName", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.resolver.Address.ty] false [go.string]))), (go!"google.golang.org/grpc.getTransportConn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.bool] false [_root_.Perennial.net.Conn.ty, _root_.Perennial.google_golang_org.grpc.credentials.AuthInfo.ty, go.error]))), (go!"google.golang.org/grpc.initAuthority", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.initParsedTargetAndResolverBuilder", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.onCallBegin", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.onCallEnd", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.removeStream", (some (go.signature.Signature [(go.GoType.PointerType clientTransportStream.ty)] false []))), (go!"google.golang.org/grpc.updateConnectionError", (some (go.signature.Signature [go.error] false []))), (go!"google.golang.org/grpc.validateTransportCredentials", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] ClientConn.TypeAssumptions.type_repr
   ClientConn.TypeAssumptions.underlying
@@ -2434,22 +2596,351 @@ attribute [instance] Codec.TypeAssumptions.underlying
   Codec.TypeAssumptions.method_set
   Codec.TypeAssumptions.ptr_method_set
 
-opaque dialOptions.nonempty_type : NonemptyType.{0}
-def dialOptions : Type := dialOptions.nonempty_type.type
-instance dialOptions.nonempty : Nonempty dialOptions := dialOptions.nonempty_type.property
-opaque dialOptions.zero_val : ZeroVal dialOptions := ⟨Classical.ofNonempty⟩
-attribute [instance] dialOptions.zero_val
+abbrev UnaryClientInterceptor [GooseExts] : Type := GoFunc
+
+@[reducible] noncomputable def UnaryClientInterceptor.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.any, go.any, (go.GoType.PointerType ClientConn.ty), UnaryInvoker.ty, (go.GoType.SliceType CallOption.ty)] true [go.error]))
+
+class UnaryClientInterceptor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq UnaryClientInterceptor.ty UnaryClientInterceptor.underlying
+  method_set : go.MethodSetIs UnaryClientInterceptor.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnaryClientInterceptor.ty) []
+
+attribute [instance] UnaryClientInterceptor.TypeAssumptions.underlying
+  UnaryClientInterceptor.TypeAssumptions.method_set
+  UnaryClientInterceptor.TypeAssumptions.ptr_method_set
+
+abbrev StreamClientInterceptor [GooseExts] : Type := GoFunc
+
+@[reducible] noncomputable def StreamClientInterceptor.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType StreamDesc.ty), (go.GoType.PointerType ClientConn.ty), go.string, Streamer.ty, (go.GoType.SliceType CallOption.ty)] true [ClientStream.ty, go.error]))
+
+class StreamClientInterceptor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq StreamClientInterceptor.ty StreamClientInterceptor.underlying
+  method_set : go.MethodSetIs StreamClientInterceptor.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StreamClientInterceptor.ty) []
+
+attribute [instance] StreamClientInterceptor.TypeAssumptions.underlying
+  StreamClientInterceptor.TypeAssumptions.method_set
+  StreamClientInterceptor.TypeAssumptions.ptr_method_set
+
+abbrev Compressor [GooseExts] : Type := GoInterface
+
+@[reducible] noncomputable def Compressor.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Do" (go.signature.Signature [_root_.Perennial.io.Writer.ty, (go.GoType.SliceType go.byte)] false [go.error])), (go.InterfaceElem.MethodElem go!"Type" (go.signature.Signature [] false [go.string]))])
+
+class Compressor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq Compressor.ty Compressor.underlying
+  method_set : go.MethodSetIs Compressor.ty [(go!"Do", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty, (go.GoType.SliceType go.byte)] false [go.error]))), (go!"Type", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Compressor.ty) []
+
+attribute [instance] Compressor.TypeAssumptions.underlying
+  Compressor.TypeAssumptions.method_set
+  Compressor.TypeAssumptions.ptr_method_set
+
+abbrev Decompressor [GooseExts] : Type := GoInterface
+
+@[reducible] noncomputable def Decompressor.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Do" (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [(go.GoType.SliceType go.byte), go.error])), (go.InterfaceElem.MethodElem go!"Type" (go.signature.Signature [] false [go.string]))])
+
+class Decompressor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq Decompressor.ty Decompressor.underlying
+  method_set : go.MethodSetIs Decompressor.ty [(go!"Do", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Type", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Decompressor.ty) []
+
+attribute [instance] Decompressor.TypeAssumptions.underlying
+  Decompressor.TypeAssumptions.method_set
+  Decompressor.TypeAssumptions.ptr_method_set
+
+structure connectOptions [GooseExts] where
+  mk ::
+  UserAgent' : GoString
+  Dialer' : GoFunc
+  FailOnNonTempDialError' : Bool
+  PerRPCCredentials' : GoSlice
+  TransportCredentials' : _root_.Perennial.google_golang_org.grpc.credentials.TransportCredentials
+  CredsBundle' : _root_.Perennial.google_golang_org.grpc.credentials.Bundle
+  KeepaliveParams' : _root_.Perennial.google_golang_org.grpc.keepalive.ClientParameters
+  StatsHandlers' : GoSlice
+  InitialWindowSize' : w32
+  InitialConnWindowSize' : w32
+  WriteBufferSize' : w64
+  ReadBufferSize' : w64
+  SharedWriteBuffer' : Bool
+  MaxHeaderListSize' : Loc
+  StaticWindowSize' : Bool
+
+noncomputable instance connectOptions.zero_val [GooseExts] : ZeroVal connectOptions :=
+  ⟨connectOptions.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def connectOptions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"UserAgent" go.string),
+(go.field_decl.FieldDecl go!"Dialer" (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [_root_.Perennial.net.Conn.ty, go.error]))),
+(go.field_decl.FieldDecl go!"FailOnNonTempDialError" go.bool),
+(go.field_decl.FieldDecl go!"PerRPCCredentials" (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.credentials.PerRPCCredentials.ty)),
+(go.field_decl.FieldDecl go!"TransportCredentials" _root_.Perennial.google_golang_org.grpc.credentials.TransportCredentials.ty),
+(go.field_decl.FieldDecl go!"CredsBundle" _root_.Perennial.google_golang_org.grpc.credentials.Bundle.ty),
+(go.field_decl.FieldDecl go!"KeepaliveParams" _root_.Perennial.google_golang_org.grpc.keepalive.ClientParameters.ty),
+(go.field_decl.FieldDecl go!"StatsHandlers" (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.stats.Handler.ty)),
+(go.field_decl.FieldDecl go!"InitialWindowSize" go.int32),
+(go.field_decl.FieldDecl go!"InitialConnWindowSize" go.int32),
+(go.field_decl.FieldDecl go!"WriteBufferSize" go.int),
+(go.field_decl.FieldDecl go!"ReadBufferSize" go.int),
+(go.field_decl.FieldDecl go!"SharedWriteBuffer" go.bool),
+(go.field_decl.FieldDecl go!"MaxHeaderListSize" (go.GoType.PointerType go.uint32)),
+(go.field_decl.FieldDecl go!"StaticWindowSize" go.bool)]
+
+@[irreducible] noncomputable def connectOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  connectOptions.fieldsUnsealed
+
+noncomputable instance equals_unfold_connectOptions [GooseExts] [GoGlobalContext] :
+    EqualsUnfold connectOptions.fields connectOptions.fieldsUnsealed :=
+  ⟨by unfold connectOptions.fields; rfl⟩
+
+@[reducible] noncomputable def connectOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType connectOptions.fields)
+
+class connectOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying connectOptions.underlying connectOptions
+  underlying : go.UnderlyingDirectedEq connectOptions.ty connectOptions.underlying
+  get_UserAgent : ∀ (x : connectOptions), go.IsGoStepPureDetTagged under (StructFieldGet connectOptions.underlying go!"UserAgent") #x (Val #(x.UserAgent'))
+  set_UserAgent : ∀ (x : connectOptions) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet connectOptions.underlying go!"UserAgent") (PairV #x #y) (Val #(({ x with UserAgent' := y } : connectOptions)))
+  get_Dialer : ∀ (x : connectOptions), go.IsGoStepPureDetTagged under (StructFieldGet connectOptions.underlying go!"Dialer") #x (Val #(x.Dialer'))
+  set_Dialer : ∀ (x : connectOptions) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet connectOptions.underlying go!"Dialer") (PairV #x #y) (Val #(({ x with Dialer' := y } : connectOptions)))
+  get_FailOnNonTempDialError : ∀ (x : connectOptions), go.IsGoStepPureDetTagged under (StructFieldGet connectOptions.underlying go!"FailOnNonTempDialError") #x (Val #(x.FailOnNonTempDialError'))
+  set_FailOnNonTempDialError : ∀ (x : connectOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet connectOptions.underlying go!"FailOnNonTempDialError") (PairV #x #y) (Val #(({ x with FailOnNonTempDialError' := y } : connectOptions)))
+  get_PerRPCCredentials : ∀ (x : connectOptions), go.IsGoStepPureDetTagged under (StructFieldGet connectOptions.underlying go!"PerRPCCredentials") #x (Val #(x.PerRPCCredentials'))
+  set_PerRPCCredentials : ∀ (x : connectOptions) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet connectOptions.underlying go!"PerRPCCredentials") (PairV #x #y) (Val #(({ x with PerRPCCredentials' := y } : connectOptions)))
+  get_TransportCredentials : ∀ (x : connectOptions), go.IsGoStepPureDetTagged under (StructFieldGet connectOptions.underlying go!"TransportCredentials") #x (Val #(x.TransportCredentials'))
+  set_TransportCredentials : ∀ (x : connectOptions) (y : _root_.Perennial.google_golang_org.grpc.credentials.TransportCredentials), go.IsGoStepPureDetTagged under (StructFieldSet connectOptions.underlying go!"TransportCredentials") (PairV #x #y) (Val #(({ x with TransportCredentials' := y } : connectOptions)))
+  get_CredsBundle : ∀ (x : connectOptions), go.IsGoStepPureDetTagged under (StructFieldGet connectOptions.underlying go!"CredsBundle") #x (Val #(x.CredsBundle'))
+  set_CredsBundle : ∀ (x : connectOptions) (y : _root_.Perennial.google_golang_org.grpc.credentials.Bundle), go.IsGoStepPureDetTagged under (StructFieldSet connectOptions.underlying go!"CredsBundle") (PairV #x #y) (Val #(({ x with CredsBundle' := y } : connectOptions)))
+  get_KeepaliveParams : ∀ (x : connectOptions), go.IsGoStepPureDetTagged under (StructFieldGet connectOptions.underlying go!"KeepaliveParams") #x (Val #(x.KeepaliveParams'))
+  set_KeepaliveParams : ∀ (x : connectOptions) (y : _root_.Perennial.google_golang_org.grpc.keepalive.ClientParameters), go.IsGoStepPureDetTagged under (StructFieldSet connectOptions.underlying go!"KeepaliveParams") (PairV #x #y) (Val #(({ x with KeepaliveParams' := y } : connectOptions)))
+  get_StatsHandlers : ∀ (x : connectOptions), go.IsGoStepPureDetTagged under (StructFieldGet connectOptions.underlying go!"StatsHandlers") #x (Val #(x.StatsHandlers'))
+  set_StatsHandlers : ∀ (x : connectOptions) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet connectOptions.underlying go!"StatsHandlers") (PairV #x #y) (Val #(({ x with StatsHandlers' := y } : connectOptions)))
+  get_InitialWindowSize : ∀ (x : connectOptions), go.IsGoStepPureDetTagged under (StructFieldGet connectOptions.underlying go!"InitialWindowSize") #x (Val #(x.InitialWindowSize'))
+  set_InitialWindowSize : ∀ (x : connectOptions) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet connectOptions.underlying go!"InitialWindowSize") (PairV #x #y) (Val #(({ x with InitialWindowSize' := y } : connectOptions)))
+  get_InitialConnWindowSize : ∀ (x : connectOptions), go.IsGoStepPureDetTagged under (StructFieldGet connectOptions.underlying go!"InitialConnWindowSize") #x (Val #(x.InitialConnWindowSize'))
+  set_InitialConnWindowSize : ∀ (x : connectOptions) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet connectOptions.underlying go!"InitialConnWindowSize") (PairV #x #y) (Val #(({ x with InitialConnWindowSize' := y } : connectOptions)))
+  get_WriteBufferSize : ∀ (x : connectOptions), go.IsGoStepPureDetTagged under (StructFieldGet connectOptions.underlying go!"WriteBufferSize") #x (Val #(x.WriteBufferSize'))
+  set_WriteBufferSize : ∀ (x : connectOptions) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet connectOptions.underlying go!"WriteBufferSize") (PairV #x #y) (Val #(({ x with WriteBufferSize' := y } : connectOptions)))
+  get_ReadBufferSize : ∀ (x : connectOptions), go.IsGoStepPureDetTagged under (StructFieldGet connectOptions.underlying go!"ReadBufferSize") #x (Val #(x.ReadBufferSize'))
+  set_ReadBufferSize : ∀ (x : connectOptions) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet connectOptions.underlying go!"ReadBufferSize") (PairV #x #y) (Val #(({ x with ReadBufferSize' := y } : connectOptions)))
+  get_SharedWriteBuffer : ∀ (x : connectOptions), go.IsGoStepPureDetTagged under (StructFieldGet connectOptions.underlying go!"SharedWriteBuffer") #x (Val #(x.SharedWriteBuffer'))
+  set_SharedWriteBuffer : ∀ (x : connectOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet connectOptions.underlying go!"SharedWriteBuffer") (PairV #x #y) (Val #(({ x with SharedWriteBuffer' := y } : connectOptions)))
+  get_MaxHeaderListSize : ∀ (x : connectOptions), go.IsGoStepPureDetTagged under (StructFieldGet connectOptions.underlying go!"MaxHeaderListSize") #x (Val #(x.MaxHeaderListSize'))
+  set_MaxHeaderListSize : ∀ (x : connectOptions) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet connectOptions.underlying go!"MaxHeaderListSize") (PairV #x #y) (Val #(({ x with MaxHeaderListSize' := y } : connectOptions)))
+  get_StaticWindowSize : ∀ (x : connectOptions), go.IsGoStepPureDetTagged under (StructFieldGet connectOptions.underlying go!"StaticWindowSize") #x (Val #(x.StaticWindowSize'))
+  set_StaticWindowSize : ∀ (x : connectOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet connectOptions.underlying go!"StaticWindowSize") (PairV #x #y) (Val #(({ x with StaticWindowSize' := y } : connectOptions)))
+  method_set : go.MethodSetIs connectOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType connectOptions.ty) []
+
+attribute [instance] connectOptions.TypeAssumptions.type_repr
+  connectOptions.TypeAssumptions.underlying
+  connectOptions.TypeAssumptions.get_UserAgent
+  connectOptions.TypeAssumptions.set_UserAgent
+  connectOptions.TypeAssumptions.get_Dialer
+  connectOptions.TypeAssumptions.set_Dialer
+  connectOptions.TypeAssumptions.get_FailOnNonTempDialError
+  connectOptions.TypeAssumptions.set_FailOnNonTempDialError
+  connectOptions.TypeAssumptions.get_PerRPCCredentials
+  connectOptions.TypeAssumptions.set_PerRPCCredentials
+  connectOptions.TypeAssumptions.get_TransportCredentials
+  connectOptions.TypeAssumptions.set_TransportCredentials
+  connectOptions.TypeAssumptions.get_CredsBundle
+  connectOptions.TypeAssumptions.set_CredsBundle
+  connectOptions.TypeAssumptions.get_KeepaliveParams
+  connectOptions.TypeAssumptions.set_KeepaliveParams
+  connectOptions.TypeAssumptions.get_StatsHandlers
+  connectOptions.TypeAssumptions.set_StatsHandlers
+  connectOptions.TypeAssumptions.get_InitialWindowSize
+  connectOptions.TypeAssumptions.set_InitialWindowSize
+  connectOptions.TypeAssumptions.get_InitialConnWindowSize
+  connectOptions.TypeAssumptions.set_InitialConnWindowSize
+  connectOptions.TypeAssumptions.get_WriteBufferSize
+  connectOptions.TypeAssumptions.set_WriteBufferSize
+  connectOptions.TypeAssumptions.get_ReadBufferSize
+  connectOptions.TypeAssumptions.set_ReadBufferSize
+  connectOptions.TypeAssumptions.get_SharedWriteBuffer
+  connectOptions.TypeAssumptions.set_SharedWriteBuffer
+  connectOptions.TypeAssumptions.get_MaxHeaderListSize
+  connectOptions.TypeAssumptions.set_MaxHeaderListSize
+  connectOptions.TypeAssumptions.get_StaticWindowSize
+  connectOptions.TypeAssumptions.set_StaticWindowSize
+  connectOptions.TypeAssumptions.method_set
+  connectOptions.TypeAssumptions.ptr_method_set
+
+structure dialOptions [GooseExts] where
+  mk ::
+  unaryInt' : UnaryClientInterceptor
+  streamInt' : StreamClientInterceptor
+  chainUnaryInts' : GoSlice
+  chainStreamInts' : GoSlice
+  compressorV0' : Compressor
+  dc' : Decompressor
+  block' : Bool
+  returnLastError' : Bool
+  timeout' : _root_.Perennial.time.Duration
+  authority' : GoString
+  copts' : connectOptions
+  callOptions' : GoSlice
+  disableServiceConfig' : Bool
+  disableRetry' : Bool
+  disableHealthCheck' : Bool
+  minConnectTimeout' : GoFunc
+  defaultServiceConfig' : Loc
+  defaultServiceConfigRawJSON' : Loc
+  resolvers' : GoSlice
+  idleTimeout' : _root_.Perennial.time.Duration
+  defaultScheme' : GoString
+  maxCallAttempts' : w64
+  enableLocalDNSResolution' : Bool
+  useProxy' : Bool
+
+noncomputable instance dialOptions.zero_val [GooseExts] : ZeroVal dialOptions :=
+  ⟨dialOptions.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def dialOptions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"unaryInt" UnaryClientInterceptor.ty),
+(go.field_decl.FieldDecl go!"streamInt" StreamClientInterceptor.ty),
+(go.field_decl.FieldDecl go!"chainUnaryInts" (go.GoType.SliceType UnaryClientInterceptor.ty)),
+(go.field_decl.FieldDecl go!"chainStreamInts" (go.GoType.SliceType StreamClientInterceptor.ty)),
+(go.field_decl.FieldDecl go!"compressorV0" Compressor.ty),
+(go.field_decl.FieldDecl go!"dc" Decompressor.ty),
+(go.field_decl.FieldDecl go!"block" go.bool),
+(go.field_decl.FieldDecl go!"returnLastError" go.bool),
+(go.field_decl.FieldDecl go!"timeout" _root_.Perennial.time.Duration.ty),
+(go.field_decl.FieldDecl go!"authority" go.string),
+(go.field_decl.FieldDecl go!"copts" connectOptions.ty),
+(go.field_decl.FieldDecl go!"callOptions" (go.GoType.SliceType CallOption.ty)),
+(go.field_decl.FieldDecl go!"disableServiceConfig" go.bool),
+(go.field_decl.FieldDecl go!"disableRetry" go.bool),
+(go.field_decl.FieldDecl go!"disableHealthCheck" go.bool),
+(go.field_decl.FieldDecl go!"minConnectTimeout" (go.GoType.FunctionType (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))),
+(go.field_decl.FieldDecl go!"defaultServiceConfig" (go.GoType.PointerType ServiceConfig.ty)),
+(go.field_decl.FieldDecl go!"defaultServiceConfigRawJSON" (go.GoType.PointerType go.string)),
+(go.field_decl.FieldDecl go!"resolvers" (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.resolver.Builder.ty)),
+(go.field_decl.FieldDecl go!"idleTimeout" _root_.Perennial.time.Duration.ty),
+(go.field_decl.FieldDecl go!"defaultScheme" go.string),
+(go.field_decl.FieldDecl go!"maxCallAttempts" go.int),
+(go.field_decl.FieldDecl go!"enableLocalDNSResolution" go.bool),
+(go.field_decl.FieldDecl go!"useProxy" go.bool)]
+
+@[irreducible] noncomputable def dialOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  dialOptions.fieldsUnsealed
+
+noncomputable instance equals_unfold_dialOptions [GooseExts] [GoGlobalContext] :
+    EqualsUnfold dialOptions.fields dialOptions.fieldsUnsealed :=
+  ⟨by unfold dialOptions.fields; rfl⟩
+
+@[reducible] noncomputable def dialOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType dialOptions.fields)
 
 class dialOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying dialOptions.underlying dialOptions
   underlying : go.UnderlyingDirectedEq dialOptions.ty dialOptions.underlying
-  isUnderlying : go.IsUnderlying dialOptions.underlying dialOptions.underlying
+  get_unaryInt : ∀ (x : dialOptions), go.IsGoStepPureDetTagged under (StructFieldGet dialOptions.underlying go!"unaryInt") #x (Val #(x.unaryInt'))
+  set_unaryInt : ∀ (x : dialOptions) (y : UnaryClientInterceptor), go.IsGoStepPureDetTagged under (StructFieldSet dialOptions.underlying go!"unaryInt") (PairV #x #y) (Val #(({ x with unaryInt' := y } : dialOptions)))
+  get_streamInt : ∀ (x : dialOptions), go.IsGoStepPureDetTagged under (StructFieldGet dialOptions.underlying go!"streamInt") #x (Val #(x.streamInt'))
+  set_streamInt : ∀ (x : dialOptions) (y : StreamClientInterceptor), go.IsGoStepPureDetTagged under (StructFieldSet dialOptions.underlying go!"streamInt") (PairV #x #y) (Val #(({ x with streamInt' := y } : dialOptions)))
+  get_chainUnaryInts : ∀ (x : dialOptions), go.IsGoStepPureDetTagged under (StructFieldGet dialOptions.underlying go!"chainUnaryInts") #x (Val #(x.chainUnaryInts'))
+  set_chainUnaryInts : ∀ (x : dialOptions) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet dialOptions.underlying go!"chainUnaryInts") (PairV #x #y) (Val #(({ x with chainUnaryInts' := y } : dialOptions)))
+  get_chainStreamInts : ∀ (x : dialOptions), go.IsGoStepPureDetTagged under (StructFieldGet dialOptions.underlying go!"chainStreamInts") #x (Val #(x.chainStreamInts'))
+  set_chainStreamInts : ∀ (x : dialOptions) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet dialOptions.underlying go!"chainStreamInts") (PairV #x #y) (Val #(({ x with chainStreamInts' := y } : dialOptions)))
+  get_compressorV0 : ∀ (x : dialOptions), go.IsGoStepPureDetTagged under (StructFieldGet dialOptions.underlying go!"compressorV0") #x (Val #(x.compressorV0'))
+  set_compressorV0 : ∀ (x : dialOptions) (y : Compressor), go.IsGoStepPureDetTagged under (StructFieldSet dialOptions.underlying go!"compressorV0") (PairV #x #y) (Val #(({ x with compressorV0' := y } : dialOptions)))
+  get_dc : ∀ (x : dialOptions), go.IsGoStepPureDetTagged under (StructFieldGet dialOptions.underlying go!"dc") #x (Val #(x.dc'))
+  set_dc : ∀ (x : dialOptions) (y : Decompressor), go.IsGoStepPureDetTagged under (StructFieldSet dialOptions.underlying go!"dc") (PairV #x #y) (Val #(({ x with dc' := y } : dialOptions)))
+  get_block : ∀ (x : dialOptions), go.IsGoStepPureDetTagged under (StructFieldGet dialOptions.underlying go!"block") #x (Val #(x.block'))
+  set_block : ∀ (x : dialOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet dialOptions.underlying go!"block") (PairV #x #y) (Val #(({ x with block' := y } : dialOptions)))
+  get_returnLastError : ∀ (x : dialOptions), go.IsGoStepPureDetTagged under (StructFieldGet dialOptions.underlying go!"returnLastError") #x (Val #(x.returnLastError'))
+  set_returnLastError : ∀ (x : dialOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet dialOptions.underlying go!"returnLastError") (PairV #x #y) (Val #(({ x with returnLastError' := y } : dialOptions)))
+  get_timeout : ∀ (x : dialOptions), go.IsGoStepPureDetTagged under (StructFieldGet dialOptions.underlying go!"timeout") #x (Val #(x.timeout'))
+  set_timeout : ∀ (x : dialOptions) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet dialOptions.underlying go!"timeout") (PairV #x #y) (Val #(({ x with timeout' := y } : dialOptions)))
+  get_authority : ∀ (x : dialOptions), go.IsGoStepPureDetTagged under (StructFieldGet dialOptions.underlying go!"authority") #x (Val #(x.authority'))
+  set_authority : ∀ (x : dialOptions) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet dialOptions.underlying go!"authority") (PairV #x #y) (Val #(({ x with authority' := y } : dialOptions)))
+  get_copts : ∀ (x : dialOptions), go.IsGoStepPureDetTagged under (StructFieldGet dialOptions.underlying go!"copts") #x (Val #(x.copts'))
+  set_copts : ∀ (x : dialOptions) (y : connectOptions), go.IsGoStepPureDetTagged under (StructFieldSet dialOptions.underlying go!"copts") (PairV #x #y) (Val #(({ x with copts' := y } : dialOptions)))
+  get_callOptions : ∀ (x : dialOptions), go.IsGoStepPureDetTagged under (StructFieldGet dialOptions.underlying go!"callOptions") #x (Val #(x.callOptions'))
+  set_callOptions : ∀ (x : dialOptions) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet dialOptions.underlying go!"callOptions") (PairV #x #y) (Val #(({ x with callOptions' := y } : dialOptions)))
+  get_disableServiceConfig : ∀ (x : dialOptions), go.IsGoStepPureDetTagged under (StructFieldGet dialOptions.underlying go!"disableServiceConfig") #x (Val #(x.disableServiceConfig'))
+  set_disableServiceConfig : ∀ (x : dialOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet dialOptions.underlying go!"disableServiceConfig") (PairV #x #y) (Val #(({ x with disableServiceConfig' := y } : dialOptions)))
+  get_disableRetry : ∀ (x : dialOptions), go.IsGoStepPureDetTagged under (StructFieldGet dialOptions.underlying go!"disableRetry") #x (Val #(x.disableRetry'))
+  set_disableRetry : ∀ (x : dialOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet dialOptions.underlying go!"disableRetry") (PairV #x #y) (Val #(({ x with disableRetry' := y } : dialOptions)))
+  get_disableHealthCheck : ∀ (x : dialOptions), go.IsGoStepPureDetTagged under (StructFieldGet dialOptions.underlying go!"disableHealthCheck") #x (Val #(x.disableHealthCheck'))
+  set_disableHealthCheck : ∀ (x : dialOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet dialOptions.underlying go!"disableHealthCheck") (PairV #x #y) (Val #(({ x with disableHealthCheck' := y } : dialOptions)))
+  get_minConnectTimeout : ∀ (x : dialOptions), go.IsGoStepPureDetTagged under (StructFieldGet dialOptions.underlying go!"minConnectTimeout") #x (Val #(x.minConnectTimeout'))
+  set_minConnectTimeout : ∀ (x : dialOptions) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet dialOptions.underlying go!"minConnectTimeout") (PairV #x #y) (Val #(({ x with minConnectTimeout' := y } : dialOptions)))
+  get_defaultServiceConfig : ∀ (x : dialOptions), go.IsGoStepPureDetTagged under (StructFieldGet dialOptions.underlying go!"defaultServiceConfig") #x (Val #(x.defaultServiceConfig'))
+  set_defaultServiceConfig : ∀ (x : dialOptions) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet dialOptions.underlying go!"defaultServiceConfig") (PairV #x #y) (Val #(({ x with defaultServiceConfig' := y } : dialOptions)))
+  get_defaultServiceConfigRawJSON : ∀ (x : dialOptions), go.IsGoStepPureDetTagged under (StructFieldGet dialOptions.underlying go!"defaultServiceConfigRawJSON") #x (Val #(x.defaultServiceConfigRawJSON'))
+  set_defaultServiceConfigRawJSON : ∀ (x : dialOptions) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet dialOptions.underlying go!"defaultServiceConfigRawJSON") (PairV #x #y) (Val #(({ x with defaultServiceConfigRawJSON' := y } : dialOptions)))
+  get_resolvers : ∀ (x : dialOptions), go.IsGoStepPureDetTagged under (StructFieldGet dialOptions.underlying go!"resolvers") #x (Val #(x.resolvers'))
+  set_resolvers : ∀ (x : dialOptions) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet dialOptions.underlying go!"resolvers") (PairV #x #y) (Val #(({ x with resolvers' := y } : dialOptions)))
+  get_idleTimeout : ∀ (x : dialOptions), go.IsGoStepPureDetTagged under (StructFieldGet dialOptions.underlying go!"idleTimeout") #x (Val #(x.idleTimeout'))
+  set_idleTimeout : ∀ (x : dialOptions) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet dialOptions.underlying go!"idleTimeout") (PairV #x #y) (Val #(({ x with idleTimeout' := y } : dialOptions)))
+  get_defaultScheme : ∀ (x : dialOptions), go.IsGoStepPureDetTagged under (StructFieldGet dialOptions.underlying go!"defaultScheme") #x (Val #(x.defaultScheme'))
+  set_defaultScheme : ∀ (x : dialOptions) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet dialOptions.underlying go!"defaultScheme") (PairV #x #y) (Val #(({ x with defaultScheme' := y } : dialOptions)))
+  get_maxCallAttempts : ∀ (x : dialOptions), go.IsGoStepPureDetTagged under (StructFieldGet dialOptions.underlying go!"maxCallAttempts") #x (Val #(x.maxCallAttempts'))
+  set_maxCallAttempts : ∀ (x : dialOptions) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet dialOptions.underlying go!"maxCallAttempts") (PairV #x #y) (Val #(({ x with maxCallAttempts' := y } : dialOptions)))
+  get_enableLocalDNSResolution : ∀ (x : dialOptions), go.IsGoStepPureDetTagged under (StructFieldGet dialOptions.underlying go!"enableLocalDNSResolution") #x (Val #(x.enableLocalDNSResolution'))
+  set_enableLocalDNSResolution : ∀ (x : dialOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet dialOptions.underlying go!"enableLocalDNSResolution") (PairV #x #y) (Val #(({ x with enableLocalDNSResolution' := y } : dialOptions)))
+  get_useProxy : ∀ (x : dialOptions), go.IsGoStepPureDetTagged under (StructFieldGet dialOptions.underlying go!"useProxy") #x (Val #(x.useProxy'))
+  set_useProxy : ∀ (x : dialOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet dialOptions.underlying go!"useProxy") (PairV #x #y) (Val #(({ x with useProxy' := y } : dialOptions)))
   method_set : go.MethodSetIs dialOptions.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType dialOptions.ty) []
 
 attribute [instance] dialOptions.TypeAssumptions.type_repr
   dialOptions.TypeAssumptions.underlying
-  dialOptions.TypeAssumptions.isUnderlying
+  dialOptions.TypeAssumptions.get_unaryInt
+  dialOptions.TypeAssumptions.set_unaryInt
+  dialOptions.TypeAssumptions.get_streamInt
+  dialOptions.TypeAssumptions.set_streamInt
+  dialOptions.TypeAssumptions.get_chainUnaryInts
+  dialOptions.TypeAssumptions.set_chainUnaryInts
+  dialOptions.TypeAssumptions.get_chainStreamInts
+  dialOptions.TypeAssumptions.set_chainStreamInts
+  dialOptions.TypeAssumptions.get_compressorV0
+  dialOptions.TypeAssumptions.set_compressorV0
+  dialOptions.TypeAssumptions.get_dc
+  dialOptions.TypeAssumptions.set_dc
+  dialOptions.TypeAssumptions.get_block
+  dialOptions.TypeAssumptions.set_block
+  dialOptions.TypeAssumptions.get_returnLastError
+  dialOptions.TypeAssumptions.set_returnLastError
+  dialOptions.TypeAssumptions.get_timeout
+  dialOptions.TypeAssumptions.set_timeout
+  dialOptions.TypeAssumptions.get_authority
+  dialOptions.TypeAssumptions.set_authority
+  dialOptions.TypeAssumptions.get_copts
+  dialOptions.TypeAssumptions.set_copts
+  dialOptions.TypeAssumptions.get_callOptions
+  dialOptions.TypeAssumptions.set_callOptions
+  dialOptions.TypeAssumptions.get_disableServiceConfig
+  dialOptions.TypeAssumptions.set_disableServiceConfig
+  dialOptions.TypeAssumptions.get_disableRetry
+  dialOptions.TypeAssumptions.set_disableRetry
+  dialOptions.TypeAssumptions.get_disableHealthCheck
+  dialOptions.TypeAssumptions.set_disableHealthCheck
+  dialOptions.TypeAssumptions.get_minConnectTimeout
+  dialOptions.TypeAssumptions.set_minConnectTimeout
+  dialOptions.TypeAssumptions.get_defaultServiceConfig
+  dialOptions.TypeAssumptions.set_defaultServiceConfig
+  dialOptions.TypeAssumptions.get_defaultServiceConfigRawJSON
+  dialOptions.TypeAssumptions.set_defaultServiceConfigRawJSON
+  dialOptions.TypeAssumptions.get_resolvers
+  dialOptions.TypeAssumptions.set_resolvers
+  dialOptions.TypeAssumptions.get_idleTimeout
+  dialOptions.TypeAssumptions.set_idleTimeout
+  dialOptions.TypeAssumptions.get_defaultScheme
+  dialOptions.TypeAssumptions.set_defaultScheme
+  dialOptions.TypeAssumptions.get_maxCallAttempts
+  dialOptions.TypeAssumptions.set_maxCallAttempts
+  dialOptions.TypeAssumptions.get_enableLocalDNSResolution
+  dialOptions.TypeAssumptions.set_enableLocalDNSResolution
+  dialOptions.TypeAssumptions.get_useProxy
+  dialOptions.TypeAssumptions.set_useProxy
   dialOptions.TypeAssumptions.method_set
   dialOptions.TypeAssumptions.ptr_method_set
 
@@ -2573,6 +3064,7 @@ class funcDialOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   set_f : ∀ (x : funcDialOption) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet funcDialOption.underlying go!"f") (PairV #x #y) (Val #(({ x with f' := y } : funcDialOption)))
   method_set : go.MethodSetIs funcDialOption.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType funcDialOption.ty) [(go!"google.golang.org/grpc.apply", (some (go.signature.Signature [(go.GoType.PointerType dialOptions.ty)] false [])))]
+  ptr_apply_unfold : MethodUnfold (go.GoType.PointerType funcDialOption.ty) go!"apply" funcDialOption.apply.impl
 
 attribute [instance] funcDialOption.TypeAssumptions.type_repr
   funcDialOption.TypeAssumptions.underlying
@@ -2580,6 +3072,7 @@ attribute [instance] funcDialOption.TypeAssumptions.type_repr
   funcDialOption.TypeAssumptions.set_f
   funcDialOption.TypeAssumptions.method_set
   funcDialOption.TypeAssumptions.ptr_method_set
+  funcDialOption.TypeAssumptions.ptr_apply_unfold
 
 structure joinDialOption [GooseExts] where
   mk ::
@@ -2665,20 +3158,6 @@ attribute [instance] UnaryInvoker.TypeAssumptions.underlying
   UnaryInvoker.TypeAssumptions.method_set
   UnaryInvoker.TypeAssumptions.ptr_method_set
 
-abbrev UnaryClientInterceptor [GooseExts] : Type := GoFunc
-
-@[reducible] noncomputable def UnaryClientInterceptor.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.any, go.any, (go.GoType.PointerType ClientConn.ty), UnaryInvoker.ty, (go.GoType.SliceType CallOption.ty)] true [go.error]))
-
-class UnaryClientInterceptor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq UnaryClientInterceptor.ty UnaryClientInterceptor.underlying
-  method_set : go.MethodSetIs UnaryClientInterceptor.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnaryClientInterceptor.ty) []
-
-attribute [instance] UnaryClientInterceptor.TypeAssumptions.underlying
-  UnaryClientInterceptor.TypeAssumptions.method_set
-  UnaryClientInterceptor.TypeAssumptions.ptr_method_set
-
 abbrev Streamer [GooseExts] : Type := GoFunc
 
 @[reducible] noncomputable def Streamer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
@@ -2692,20 +3171,6 @@ class Streamer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
 attribute [instance] Streamer.TypeAssumptions.underlying
   Streamer.TypeAssumptions.method_set
   Streamer.TypeAssumptions.ptr_method_set
-
-abbrev StreamClientInterceptor [GooseExts] : Type := GoFunc
-
-@[reducible] noncomputable def StreamClientInterceptor.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType StreamDesc.ty), (go.GoType.PointerType ClientConn.ty), go.string, Streamer.ty, (go.GoType.SliceType CallOption.ty)] true [ClientStream.ty, go.error]))
-
-class StreamClientInterceptor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq StreamClientInterceptor.ty StreamClientInterceptor.underlying
-  method_set : go.MethodSetIs StreamClientInterceptor.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StreamClientInterceptor.ty) []
-
-attribute [instance] StreamClientInterceptor.TypeAssumptions.underlying
-  StreamClientInterceptor.TypeAssumptions.method_set
-  StreamClientInterceptor.TypeAssumptions.ptr_method_set
 
 structure UnaryServerInfo [GooseExts] where
   mk ::
@@ -2928,7 +3393,7 @@ class ccResolverWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCo
   underlying : go.UnderlyingDirectedEq ccResolverWrapper.ty ccResolverWrapper.underlying
   isUnderlying : go.IsUnderlying ccResolverWrapper.underlying ccResolverWrapper.underlying
   method_set : go.MethodSetIs ccResolverWrapper.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ccResolverWrapper.ty) [(go!"NewAddress", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc/resolver.Address" []))] false []))), (go!"ParseServiceConfig", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/serviceconfig.ParseResult" []))]))), (go!"ReportError", (some (go.signature.Signature [go.error] false []))), (go!"UpdateState", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/resolver.State" [])] false [go.error]))), (go!"google.golang.org/grpc.close", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.resolveNow", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.update", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc/resolver.Address" [])), go.error] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ccResolverWrapper.ty) [(go!"NewAddress", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.resolver.Address.ty)] false []))), (go!"ParseServiceConfig", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/serviceconfig.ParseResult" []))]))), (go!"ReportError", (some (go.signature.Signature [go.error] false []))), (go!"UpdateState", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.resolver.State.ty] false [go.error]))), (go!"google.golang.org/grpc.close", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.resolveNow", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.update", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.resolver.Address.ty), go.error] false [])))]
 
 attribute [instance] ccResolverWrapper.TypeAssumptions.type_repr
   ccResolverWrapper.TypeAssumptions.underlying
@@ -2936,22 +3401,50 @@ attribute [instance] ccResolverWrapper.TypeAssumptions.type_repr
   ccResolverWrapper.TypeAssumptions.method_set
   ccResolverWrapper.TypeAssumptions.ptr_method_set
 
-opaque dialResult.nonempty_type : NonemptyType.{0}
-def dialResult : Type := dialResult.nonempty_type.type
-instance dialResult.nonempty : Nonempty dialResult := dialResult.nonempty_type.property
-opaque dialResult.zero_val : ZeroVal dialResult := ⟨Classical.ofNonempty⟩
-attribute [instance] dialResult.zero_val
+structure dialResult [GooseExts] where
+  mk ::
+  conn' : _root_.Perennial.net.Conn
+  authInfo' : _root_.Perennial.google_golang_org.grpc.credentials.AuthInfo
+  err' : GoError
+
+noncomputable instance dialResult.zero_val [GooseExts] : ZeroVal dialResult :=
+  ⟨dialResult.mk zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def dialResult.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"conn" _root_.Perennial.net.Conn.ty),
+(go.field_decl.FieldDecl go!"authInfo" _root_.Perennial.google_golang_org.grpc.credentials.AuthInfo.ty),
+(go.field_decl.FieldDecl go!"err" go.error)]
+
+@[irreducible] noncomputable def dialResult.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  dialResult.fieldsUnsealed
+
+noncomputable instance equals_unfold_dialResult [GooseExts] [GoGlobalContext] :
+    EqualsUnfold dialResult.fields dialResult.fieldsUnsealed :=
+  ⟨by unfold dialResult.fields; rfl⟩
+
+@[reducible] noncomputable def dialResult.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType dialResult.fields)
 
 class dialResult.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying dialResult.underlying dialResult
   underlying : go.UnderlyingDirectedEq dialResult.ty dialResult.underlying
-  isUnderlying : go.IsUnderlying dialResult.underlying dialResult.underlying
+  get_conn : ∀ (x : dialResult), go.IsGoStepPureDetTagged under (StructFieldGet dialResult.underlying go!"conn") #x (Val #(x.conn'))
+  set_conn : ∀ (x : dialResult) (y : _root_.Perennial.net.Conn), go.IsGoStepPureDetTagged under (StructFieldSet dialResult.underlying go!"conn") (PairV #x #y) (Val #(({ x with conn' := y } : dialResult)))
+  get_authInfo : ∀ (x : dialResult), go.IsGoStepPureDetTagged under (StructFieldGet dialResult.underlying go!"authInfo") #x (Val #(x.authInfo'))
+  set_authInfo : ∀ (x : dialResult) (y : _root_.Perennial.google_golang_org.grpc.credentials.AuthInfo), go.IsGoStepPureDetTagged under (StructFieldSet dialResult.underlying go!"authInfo") (PairV #x #y) (Val #(({ x with authInfo' := y } : dialResult)))
+  get_err : ∀ (x : dialResult), go.IsGoStepPureDetTagged under (StructFieldGet dialResult.underlying go!"err") #x (Val #(x.err'))
+  set_err : ∀ (x : dialResult) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet dialResult.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : dialResult)))
   method_set : go.MethodSetIs dialResult.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType dialResult.ty) []
 
 attribute [instance] dialResult.TypeAssumptions.type_repr
   dialResult.TypeAssumptions.underlying
-  dialResult.TypeAssumptions.isUnderlying
+  dialResult.TypeAssumptions.get_conn
+  dialResult.TypeAssumptions.set_conn
+  dialResult.TypeAssumptions.get_authInfo
+  dialResult.TypeAssumptions.set_authInfo
+  dialResult.TypeAssumptions.get_err
+  dialResult.TypeAssumptions.set_err
   dialResult.TypeAssumptions.method_set
   dialResult.TypeAssumptions.ptr_method_set
 
@@ -3017,25 +3510,6 @@ attribute [instance] writeOptions.TypeAssumptions.type_repr
   writeOptions.TypeAssumptions.set_Last
   writeOptions.TypeAssumptions.method_set
   writeOptions.TypeAssumptions.ptr_method_set
-
-opaque connectOptions.nonempty_type : NonemptyType.{0}
-def connectOptions : Type := connectOptions.nonempty_type.type
-instance connectOptions.nonempty : Nonempty connectOptions := connectOptions.nonempty_type.property
-opaque connectOptions.zero_val : ZeroVal connectOptions := ⟨Classical.ofNonempty⟩
-attribute [instance] connectOptions.zero_val
-
-class connectOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying connectOptions.underlying connectOptions
-  underlying : go.UnderlyingDirectedEq connectOptions.ty connectOptions.underlying
-  isUnderlying : go.IsUnderlying connectOptions.underlying connectOptions.underlying
-  method_set : go.MethodSetIs connectOptions.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType connectOptions.ty) []
-
-attribute [instance] connectOptions.TypeAssumptions.type_repr
-  connectOptions.TypeAssumptions.underlying
-  connectOptions.TypeAssumptions.isUnderlying
-  connectOptions.TypeAssumptions.method_set
-  connectOptions.TypeAssumptions.ptr_method_set
 
 structure callHdr [GooseExts] where
   mk ::
@@ -3373,20 +3847,6 @@ attribute [instance] PreparedMsg.TypeAssumptions.type_repr
   PreparedMsg.TypeAssumptions.method_set
   PreparedMsg.TypeAssumptions.ptr_method_set
 
-abbrev Compressor [GooseExts] : Type := GoInterface
-
-@[reducible] noncomputable def Compressor.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Do" (go.signature.Signature [_root_.Perennial.io.Writer.ty, (go.GoType.SliceType go.byte)] false [go.error])), (go.InterfaceElem.MethodElem go!"Type" (go.signature.Signature [] false [go.string]))])
-
-class Compressor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq Compressor.ty Compressor.underlying
-  method_set : go.MethodSetIs Compressor.ty [(go!"Do", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty, (go.GoType.SliceType go.byte)] false [go.error]))), (go!"Type", (some (go.signature.Signature [] false [go.string])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Compressor.ty) []
-
-attribute [instance] Compressor.TypeAssumptions.underlying
-  Compressor.TypeAssumptions.method_set
-  Compressor.TypeAssumptions.ptr_method_set
-
 opaque gzipCompressor.nonempty_type : NonemptyType.{0}
 def gzipCompressor : Type := gzipCompressor.nonempty_type.type
 instance gzipCompressor.nonempty : Nonempty gzipCompressor := gzipCompressor.nonempty_type.property
@@ -3405,20 +3865,6 @@ attribute [instance] gzipCompressor.TypeAssumptions.type_repr
   gzipCompressor.TypeAssumptions.isUnderlying
   gzipCompressor.TypeAssumptions.method_set
   gzipCompressor.TypeAssumptions.ptr_method_set
-
-abbrev Decompressor [GooseExts] : Type := GoInterface
-
-@[reducible] noncomputable def Decompressor.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Do" (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [(go.GoType.SliceType go.byte), go.error])), (go.InterfaceElem.MethodElem go!"Type" (go.signature.Signature [] false [go.string]))])
-
-class Decompressor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq Decompressor.ty Decompressor.underlying
-  method_set : go.MethodSetIs Decompressor.ty [(go!"Do", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Type", (some (go.signature.Signature [] false [go.string])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Decompressor.ty) []
-
-attribute [instance] Decompressor.TypeAssumptions.underlying
-  Decompressor.TypeAssumptions.method_set
-  Decompressor.TypeAssumptions.ptr_method_set
 
 opaque gzipDecompressor.nonempty_type : NonemptyType.{0}
 def gzipDecompressor : Type := gzipDecompressor.nonempty_type.type
@@ -4518,7 +4964,7 @@ class Server.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   underlying : go.UnderlyingDirectedEq Server.ty Server.underlying
   isUnderlying : go.IsUnderlying Server.underlying Server.underlying
   method_set : go.MethodSetIs Server.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Server.ty) [(go!"GetServiceInfo", (some (go.signature.Signature [] false [(go.GoType.MapType go.string ServiceInfo.ty)]))), (go!"GracefulStop", (some (go.signature.Signature [] false []))), (go!"RegisterService", (some (go.signature.Signature [(go.GoType.PointerType ServiceDesc.ty), go.any] false []))), (go!"Serve", (some (go.signature.Signature [(go.GoType.Named go!"net.Listener" [])] false [go.error]))), (go!"ServeHTTP", (some (go.signature.Signature [(go.GoType.Named go!"net/http.ResponseWriter" []), (go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false []))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.addConn", (some (go.signature.Signature [go.string, (go.GoType.PointerType serverTransport.ty)] false [go.bool]))), (go!"google.golang.org/grpc.closeListenersLocked", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.closeServerTransportsLocked", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.drainAllServerTransportsLocked", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.errorf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"google.golang.org/grpc.getCodec", (some (go.signature.Signature [go.string] false [baseCodec.ty]))), (go!"google.golang.org/grpc.handleMalformedMethodName", (some (go.signature.Signature [(go.GoType.PointerType serverTransportStream.ty)] false []))), (go!"google.golang.org/grpc.handleRawConn", (some (go.signature.Signature [go.string, (go.GoType.Named go!"net.Conn" [])] false []))), (go!"google.golang.org/grpc.handleStream", (some (go.signature.Signature [(go.GoType.PointerType serverTransport.ty), (go.GoType.PointerType serverTransportStream.ty)] false []))), (go!"google.golang.org/grpc.isRegisteredMethod", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"google.golang.org/grpc.printf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"google.golang.org/grpc.processRPC", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType serverTransportStream.ty), (go.GoType.PointerType serviceInfo.ty), (go.GoType.PointerType StreamDesc.ty)] false [go.error]))), (go!"google.golang.org/grpc.register", (some (go.signature.Signature [(go.GoType.PointerType ServiceDesc.ty), go.any] false []))), (go!"google.golang.org/grpc.removeConn", (some (go.signature.Signature [go.string, (go.GoType.PointerType serverTransport.ty)] false []))), (go!"google.golang.org/grpc.serveStreams", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType serverTransport.ty), (go.GoType.Named go!"net.Conn" [])] false []))), (go!"google.golang.org/grpc.stop", (some (go.signature.Signature [go.bool] false []))), (go!"google.golang.org/grpc.wrapUnaryHandler", (some (go.signature.Signature [(go.GoType.PointerType MethodDesc.ty)] false [StreamHandler.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Server.ty) [(go!"GetServiceInfo", (some (go.signature.Signature [] false [(go.GoType.MapType go.string ServiceInfo.ty)]))), (go!"GracefulStop", (some (go.signature.Signature [] false []))), (go!"RegisterService", (some (go.signature.Signature [(go.GoType.PointerType ServiceDesc.ty), go.any] false []))), (go!"Serve", (some (go.signature.Signature [_root_.Perennial.net.Listener.ty] false [go.error]))), (go!"ServeHTTP", (some (go.signature.Signature [(go.GoType.Named go!"net/http.ResponseWriter" []), (go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false []))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.addConn", (some (go.signature.Signature [go.string, (go.GoType.PointerType serverTransport.ty)] false [go.bool]))), (go!"google.golang.org/grpc.closeListenersLocked", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.closeServerTransportsLocked", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.drainAllServerTransportsLocked", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.errorf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"google.golang.org/grpc.getCodec", (some (go.signature.Signature [go.string] false [baseCodec.ty]))), (go!"google.golang.org/grpc.handleMalformedMethodName", (some (go.signature.Signature [(go.GoType.PointerType serverTransportStream.ty)] false []))), (go!"google.golang.org/grpc.handleRawConn", (some (go.signature.Signature [go.string, _root_.Perennial.net.Conn.ty] false []))), (go!"google.golang.org/grpc.handleStream", (some (go.signature.Signature [(go.GoType.PointerType serverTransport.ty), (go.GoType.PointerType serverTransportStream.ty)] false []))), (go!"google.golang.org/grpc.isRegisteredMethod", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"google.golang.org/grpc.printf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"google.golang.org/grpc.processRPC", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType serverTransportStream.ty), (go.GoType.PointerType serviceInfo.ty), (go.GoType.PointerType StreamDesc.ty)] false [go.error]))), (go!"google.golang.org/grpc.register", (some (go.signature.Signature [(go.GoType.PointerType ServiceDesc.ty), go.any] false []))), (go!"google.golang.org/grpc.removeConn", (some (go.signature.Signature [go.string, (go.GoType.PointerType serverTransport.ty)] false []))), (go!"google.golang.org/grpc.serveStreams", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType serverTransport.ty), _root_.Perennial.net.Conn.ty] false []))), (go!"google.golang.org/grpc.stop", (some (go.signature.Signature [go.bool] false []))), (go!"google.golang.org/grpc.wrapUnaryHandler", (some (go.signature.Signature [(go.GoType.PointerType MethodDesc.ty)] false [StreamHandler.ty])))]
   ptr_Serve_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"Serve" Server.Serve.impl
 
 attribute [instance] Server.TypeAssumptions.type_repr
@@ -5591,7 +6037,7 @@ class firstLine.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   underlying : go.UnderlyingDirectedEq firstLine.ty firstLine.underlying
   isUnderlying : go.IsUnderlying firstLine.underlying firstLine.underlying
   method_set : go.MethodSetIs firstLine.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType firstLine.ty) [(go!"SetRemoteAddr", (some (go.signature.Signature [(go.GoType.Named go!"net.Addr" [])] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType firstLine.ty) [(go!"SetRemoteAddr", (some (go.signature.Signature [_root_.Perennial.net.Addr.ty] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] firstLine.TypeAssumptions.type_repr
   firstLine.TypeAssumptions.underlying
@@ -5860,6 +6306,12 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   payload_instance : payload.TypeAssumptions
   fmtStringer_instance : fmtStringer.TypeAssumptions
   stringer_instance : stringer.TypeAssumptions
+  newFuncDialOption_unfold : FuncUnfold newFuncDialOption [] newFuncDialOption.impl
+  WithTransportCredentials_unfold : FuncUnfold WithTransportCredentials [] WithTransportCredentials.impl
+  WithPerRPCCredentials_unfold : FuncUnfold WithPerRPCCredentials [] WithPerRPCCredentials.impl
+  WithUnaryInterceptor_unfold : FuncUnfold WithUnaryInterceptor [] WithUnaryInterceptor.impl
+  WithStreamInterceptor_unfold : FuncUnfold WithStreamInterceptor [] WithStreamInterceptor.impl
+  WithResolvers_unfold : FuncUnfold WithResolvers [] WithResolvers.impl
   StaticMethod_unfold : FuncUnfold StaticMethod [] StaticMethod.impl
   Peer_unfold : FuncUnfold Peer [] Peer.impl
   WaitForReady_unfold : FuncUnfold WaitForReady [] WaitForReady.impl
@@ -5876,6 +6328,8 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_io_Assumption : _root_.Perennial.io.Assumptions
   import_keepalive_Assumption : _root_.Perennial.google_golang_org.grpc.keepalive.Assumptions
+  import_resolver_Assumption : _root_.Perennial.google_golang_org.grpc.resolver.Assumptions
+  import_net_Assumption : _root_.Perennial.net.Assumptions
   import_credentials_Assumption : _root_.Perennial.google_golang_org.grpc.credentials.Assumptions
   import_stats_Assumption : _root_.Perennial.google_golang_org.grpc.stats.Assumptions
   import_metadata_Assumption : _root_.Perennial.google_golang_org.grpc.metadata.Assumptions
@@ -6004,6 +6458,12 @@ attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.payload_instance
   Assumptions.fmtStringer_instance
   Assumptions.stringer_instance
+  Assumptions.newFuncDialOption_unfold
+  Assumptions.WithTransportCredentials_unfold
+  Assumptions.WithPerRPCCredentials_unfold
+  Assumptions.WithUnaryInterceptor_unfold
+  Assumptions.WithStreamInterceptor_unfold
+  Assumptions.WithResolvers_unfold
   Assumptions.StaticMethod_unfold
   Assumptions.Peer_unfold
   Assumptions.WaitForReady_unfold
@@ -6020,6 +6480,8 @@ attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.import_context_Assumption
   Assumptions.import_io_Assumption
   Assumptions.import_keepalive_Assumption
+  Assumptions.import_resolver_Assumption
+  Assumptions.import_net_Assumption
   Assumptions.import_credentials_Assumption
   Assumptions.import_stats_Assumption
   Assumptions.import_metadata_Assumption

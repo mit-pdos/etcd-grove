@@ -1,6 +1,7 @@
 /-
-Proof of `Spec/google_golang_org/grpc/WithUnaryInterceptor.lean`: a trust-boundary axiom (item 5, client construction).
-Lean-first (no Rocq counterpart).
+Proof of `Spec/google_golang_org/grpc/WithUnaryInterceptor.lean` over the model's body (phase 7 S1, dial side,
+2026-11-22, `notes/phase7-plan.md`; a trust-boundary axiom until grpc's translation was the model's,
+`models/grpc`, which keeps grpc-go v1.84.0's `WithUnaryInterceptor`): its closure sets `unaryInt`.
 -/
 module
 
@@ -13,17 +14,41 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI
+open Iris Iris.BI Iris.ProofMode
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : google_golang_org.grpc.Assumptions]
 
-/-- **Trust boundary** (item 5): `WithUnaryInterceptor(f)` returns a `funcDialOption` that sets
-`dopts.unaryInt = f` (grpc v1.84.0). -/
-axiom grpc.WithUnaryInterceptor.wp_proof : grpc.WithUnaryInterceptor.spec (GF := GF) (hG := hG)
+set_option goose.wp.extras true in
+theorem grpc.WithUnaryInterceptor.wp_proof : grpc.WithUnaryInterceptor.spec (GF := GF) (hG := hG) := by
+  intro f
+  wp_start
+  iapply wp_fupd
+  wp_auto
+  ipersist f
+  wp_func_lits
+  wp_func_call
+  wp_call
+  wp_auto
+  ipersist «$r0»
+  imodintro
+  iapply HΦ
+  unfold grpcDialOptIs dialOptFnOk
+  iexists _, _
+  isplitr
+  · ipureintro; rfl
+  isplitr
+  · iexact «$r0»
+  imodintro
+  iintro %p %dopt %Ψ Hp HΨ
+  wp_auto
+  iapply HΨ $$ Hp
+  ipureintro
+  simp [dialOptsKeep, dialOptSets]
 
 end proof
 

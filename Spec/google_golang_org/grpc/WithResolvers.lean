@@ -26,7 +26,7 @@ abbrev grpc.WithResolvers.spec : Prop :=
   ∀ (sl : GoSlice) (rbs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ sl ↦*□ rbs }}
     (App (Val (@! google_golang_org.grpc.WithResolvers)) (Val #sl))
-  {{ (o : GoInterface), RET #o; ⌜grpcDialOptIs o (.resolvers rbs)⌝ }}
+  {{ (o : GoInterface), RET #o; grpcDialOptIs o (.resolvers rbs) }}
 
 end spec
 
