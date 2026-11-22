@@ -2,7 +2,8 @@
 `examples/lib/remote`'s linked results: every function's proof applied to its callees' linked
 proofs (the frame helpers' in `FramesLinked.lean`, the net package's, Perennial's `time` and
 `primitive`, lintest's `CounterClock`, perclient's `Run`). The exported results are `wp_Check`,
-`wp_ServeClient`, `wp_Serve` and `wp_Do` (a client node whose operation calls another node).
+`wp_ServeClient`, `wp_Serve`, `wp_Do` (a client node whose operation calls another node) and
+`wp_Report` (an orchestrator's call of a client machine's loop, for its report).
 -/
 module
 
@@ -11,6 +12,7 @@ public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.hang
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.deadline
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.attempt
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Do
+public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Report
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.listen
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.serveConn
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Serve
@@ -58,7 +60,7 @@ theorem wp_hang : hang.spec (GF := GF) (hG := hG) := hang.wp_proof
 theorem wp_deadline : deadline.spec (GF := GF) (hG := hG) :=
   deadline.wp_proof time.wp_Now time.Time.wp_Add
 
-theorem wp_attempt : attempt.spec (GF := GF) (hG := hG) (St := St) (I := I) (O := O) :=
+theorem wp_attempt : attempt.spec (GF := GF) (hG := hG) (I := I) (O := O) :=
   attempt.wp_proof net.DialTimeout.wp_proof net.Conn.SetDeadline.wp_proof net.Conn.Close.wp_proof
     wp_deadline wp_writeFrame wp_readFrame
 
@@ -66,17 +68,20 @@ theorem wp_Do : Do.spec (GF := GF) (hG := hG) (St := St) (I := I) (O := O) :=
   Do.wp_proof wp_attempt wp_hang github_com.goose_lang.primitive.wp_NewProph
     github_com.goose_lang.primitive.ProphId.wp_ResolveU64
 
-theorem wp_listen : listen.spec (GF := GF) (hG := hG) (St := St) (I := I) (O := O) :=
+theorem wp_Report : Report.spec (GF := GF) (hG := hG) (I := I) (O := O) :=
+  Report.wp_proof wp_attempt wp_hang
+
+theorem wp_listen : listen.spec (GF := GF) (hG := hG) (I := I) (O := O) :=
   listen.wp_proof net.Listen.wp_proof time.wp_Sleep
 
-theorem wp_serveConn : serveConn.spec (GF := GF) (hG := hG) (St := St) (I := I) (O := O) :=
+theorem wp_serveConn : serveConn.spec (GF := GF) (hG := hG) (I := I) (O := O) :=
   serveConn.wp_proof wp_deadline net.Conn.SetDeadline.wp_proof wp_readFrame wp_writeFrame
     net.Conn.Close.wp_proof
 
-theorem wp_Serve : Serve.spec (GF := GF) (hG := hG) (St := St) (I := I) (O := O) :=
+theorem wp_Serve : Serve.spec (GF := GF) (hG := hG) (I := I) (O := O) :=
   Serve.wp_proof wp_listen net.Listener.Accept.wp_proof wp_serveConn
 
-theorem wp_ServeClient : ServeClient.spec (GF := GF) (hG := hG) (St := St) (I := I) (O := O) :=
+theorem wp_ServeClient : ServeClient.spec (GF := GF) (hG := hG) (I := I) (O := O) :=
   ServeClient.wp_proof wp_Serve
 
 theorem wp_Run : Run.spec (GF := GF) (hG := hG) (St := St) (I := I) (O := O) :=
