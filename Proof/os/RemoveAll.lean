@@ -54,8 +54,9 @@ theorem os.RemoveAll.wp_proofAbsentS : os.RemoveAll.specAbsentS (GF := GF) (hG :
   wp_auto
   have hnd : ∀ J, h.cur !! b ≠ some (.dir J) := fun J h' => by rw [hn] at h'; cases h'
   wp_apply os.model.wp_unlinkLoop_leaf d b R j (DFrac.own qd) dqn h qc.half hb hnd (.inr hn)
-    $$ [Hp Hn Hperm] as %e ⟨Hp, Hperm, %h', Hn, %hlo⟩
+    $$ [Hp Hn Hperm] as %e ⟨Hp, Hperm, %h', Hn, %hlow⟩
   · iframe; iframe #
+  obtain ⟨hlo, -⟩ := hlow
   obtain rfl := hlo.2 hn
   by_cases he0 : e = W64 0
   · rw [decide_eq_true he0]
@@ -100,8 +101,9 @@ theorem os.RemoveAll.wp_proofAbsentS : os.RemoveAll.specAbsentS (GF := GF) (hG :
       simp only [decide_eq_true (show eo = W64 0 from heo), Bool.not_true]
       wp_auto
       wp_apply os.model.wp_removeAllFrom_leaf d b R j (DFrac.own qd) dqn h' qc.half hb hnd (.inr hn)
-        $$ [Hp Hn Hperm] as %pe ⟨Hp, Hperm, Hpe, %h'', Hn, %hlo'⟩
+        $$ [Hp Hn Hperm] as %pe ⟨Hp, Hperm, Hpe, %h'', Hn, %hlo'w⟩
       · iframe; iframe #
+      obtain ⟨hlo', -⟩ := hlo'w
       obtain rfl := hlo'.2 hn
       wp_apply os.model.wp_closeFd_dir fd j _ $$ [Hfd]
       · iframe; iframe #

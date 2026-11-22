@@ -249,8 +249,9 @@ theorem os.model.wp_removeAllFrom_dir (d b : GoString) (j J : Ino) (R : Roots) (
             (fun J' h' => by
               rw [os.restrict_only_cur] at h'
               obtain ⟨i, hi⟩ := hfo c _ (hsubk c _ h')
-              cases hi) (.inl rfl) $$ [Hpc Hc Hperm] as %pe ⟨Hpc, Hperm, Hpe, %hc', Hc, %hlo⟩
+              cases hi) (.inl rfl) $$ [Hpc Hc Hperm] as %pe ⟨Hpc, Hperm, Hpe, %hc', Hc, %hlow⟩
           · rw [hkd b]; iframe; iframe #
+          obtain ⟨hlo, -⟩ := hlow
           rw [hkd b]
           imod os.osNames_merge1 R J c hc' (hJ'.restrict J (.except [c])) $$ Hsi Hc Hr
             with ⟨%h'', HJ, %hm⟩
