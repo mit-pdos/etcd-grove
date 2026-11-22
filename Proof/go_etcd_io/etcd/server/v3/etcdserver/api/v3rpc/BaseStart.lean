@@ -11,6 +11,7 @@ public import Proof.google_golang_org.grpc.InvGrpcServer
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 public import Perennial.Proof.sync.Base
 public import Proof.go_etcd_io.etcd.cache.v3.Base
+public import Proof.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.Defs
 
 @[expose] public section
 
@@ -97,11 +98,14 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- What `metricsServerLock` guards: `metricsServerCached`, `nil` or metrics. -/
+/-- What `metricsServerLock` guards: `metricsServerCached`, `nil` with the rights to register the
+server metrics with prometheus's default registry (prom-registry, 2026-11-22: `grpcKeys`, from
+`v3rpc`'s initializer's resources; `getServerMetrics` spends them on its one registration), or
+metrics. -/
 def v3rpc.metricsP : IProp GF :=
   iprop(∃ m : Loc,
     globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.metricsServerCached ↦ m ∗
-    (⌜m = null⌝ ∨ promSrvMetrics m))
+    ((⌜m = null⌝ ∗ EtcdGrove.promreg.idToks grpc_prometheus.grpcKeys) ∨ (⌜m ≠ null⌝ ∗ promSrvMetrics m)))
 
 /-- **The package variables of `getServerMetrics`** (persistent; see the file header). -/
 def v3rpc.metricsVars : IProp GF :=

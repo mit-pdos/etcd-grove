@@ -41946,3 +41946,28 @@ change, not available now).
 - **A run's rights** (`promReg_alloc`): from the generation's `ownLocalNames m` with `regKey` unset, a fresh
   ghost map recorded under `regKey` and `idToks ks` for distinct non-builtin `ks`. The closed theorems get
   `ownLocalNames ∅` from `goose_adequacy_start`'s WP premise (stage 5, the start model's change).
+
+## prometheus's registry: rights to IDs with a keys component; `Register` proved; the start model's names gone (2026-11-22 · branch `prom-registry`; the coordinator's decisions on #15)
+
+**Decided by the coordinator** (2026-11-22): the rights are to descriptor IDs and collector IDs, not names,
+so the registration rights get a keys component; no pseudo-names (a name standing for an ID would blur what
+a right means). `prometheus.Register` is proved over the model, retiring its axiom. The start model's
+change (no names; `ownLocalNames ∅` in the WP premise) is required.
+
+**The agent's choices within it:**
+- **`regResL` over `(q, names, keys)`**, entry resource `namesFree names ∗ idToks keys`; a package's
+  `regKeys` is `[]` but for `v3rpc`'s (`grpcKeys`, `etc/gen-init.py`'s `REG_KEYS`). The `wp_initialize'`
+  precondition is `regsFree regQs`, one resource per package, rather than two lists (`initNames`,
+  `initKeys`), so the closed proofs decide one fact (`regQsOk regQs`).
+- **`Register.spec` is generic** (any collector with `collectorDescsAre c ds` and `descsOk descId ds`,
+  the rights `idToks (descKeys ds)`, returns `nil`), not about grpc-prometheus's metrics; the server
+  metrics' descriptors are `NewServerMetrics`' clause (`srvDescs`, `grpc_prometheus` `Defs`).
+- **`getServerMetrics`' rights in its lock** (`metricsP`'s `nil` case holds `idToks grpcKeys`, the IDs of
+  both choices of the histogram option, decided at run time); the `metrics` case now records `m ≠ null`
+  so that the `nil` branch's two cases are exclusive.
+- **The generic start theorems take `ownLocalNames ∅` as the initializer's resource** (`progOk`'s `R`),
+  and each closed proof makes the rights with `wp_init_of_localNames _ regQs (by decide +kernel)`: the
+  kernel decision moves from a premise default (`hNsIds`) into the proof, and the generic theorems take no
+  list at all.
+- **`promreg_sem` follows `Register`'s proof** through v3rpc's `Link` to every linking module above it
+  (`etc/gen-link.py`'s `PROMREG_VAR`, the hand-written linking modules), as option 1 said it would.

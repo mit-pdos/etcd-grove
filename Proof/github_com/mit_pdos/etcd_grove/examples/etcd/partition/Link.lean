@@ -47,6 +47,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.partition.Assumptions]
 variable [NaInvG GF]
+variable [promreg_sem : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Assumptions]
 
 theorem v3.wp_WithCreatedNotify :
     EtcdGrove.WithCreatedNotify.spec (GF := GF) (hG := hG) :=
@@ -83,6 +84,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.partition.Assumptions]
 variable [NaInvG GF]
+variable [promreg_sem : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Assumptions]
 
 theorem context.wp_WithTimeoutBackground :
     EtcdGrove.context.WithTimeoutBackground.spec (GF := GF) (hG := hG) :=

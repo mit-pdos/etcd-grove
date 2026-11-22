@@ -834,6 +834,16 @@ EXTRA_IMPORTS["--mvccfull"] = ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api
                                # (F1 Prove, 2026-11-10) `Compact`'s channel made (`compactChan.law`)
                                "Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiCompactChanResults"]
 EXTRA_VARS["--mvccfull"] = EXTRA_VARS["--mvccrand"]
+# (prom-registry, 2026-11-22) The default registry's model's assumptions (the trusted glue of prometheus's
+# `Register` resolves `promreg`'s functions by name; the user's decision, option 1): every mode whose links
+# reach `prometheus.Register`'s proof (v3rpc's `getServerMetrics`, and those linking over it) takes them.
+PROMREG_VAR = ("variable [promreg_sem : "
+               "_root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Assumptions]\n")
+for _m in ["--v3rpc", "--common", "--cluster3", "--linkv3p", "--linkvtxn", "--watchkv", "--authkv",
+           "--cachekv", "--k8setcd3", "--k8s", "--k8s-etcd3"]:
+    EXTRA_VARS[_m] = EXTRA_VARS.get(_m, "") + PROMREG_VAR
+EXTRA_IMPORTS.setdefault("--v3rpc", []).append(
+    "Proof.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Registry__Register")
 # The section variables a mode's specs take at `HasLC.hasLC` only (the sections after the first,
 # whose heap is at `HasLC.hasLC`): k8s etcd3's, the context errors' descriptions, which the
 # compactor's channel context needs (`chanCtx_ok`; k8s etcd3 7c-2 part 2, S7)

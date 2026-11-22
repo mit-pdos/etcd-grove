@@ -72,6 +72,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assumptions]
+variable [promreg_sem : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Assumptions]
 
 theorem proto.wp_Clone :
     EtcdGrove.proto.Clone.spec (GF := GF) (hG := hG) :=
@@ -203,6 +204,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assumptions]
+variable [promreg_sem : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Assumptions]
 
 theorem context.wp_WithTimeoutBackgroundMd :
     EtcdGrove.context.WithTimeoutBackgroundMd.spec (GF := GF) (hG := hG) :=
@@ -250,6 +252,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assumptions]
+variable [promreg_sem : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Assumptions]
 variable (h_auth_startServer : EtcdGrove.etcd_auth.startServer.spec (GF := GF) (hG := hG))
 include h_auth_startServer
 

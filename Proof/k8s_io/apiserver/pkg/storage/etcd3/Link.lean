@@ -235,6 +235,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
+variable [promreg_sem : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Assumptions]
 
 theorem v3.Client.wp_Ctx :
     EtcdGrove.Client.Ctx.spec (GF := GF) (hG := hG) :=
@@ -431,6 +432,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
+variable [promreg_sem : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Assumptions]
 variable [ctxDescs : EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
 
 theorem v3.Client.wp_Endpoints :
@@ -1056,6 +1058,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
+variable [promreg_sem : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Assumptions]
 variable [ctxDescs : EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
 variable (h_clock_RealClock__After : EtcdGrove.clock.RealClock.After.spec (GF := GF) (hG := hG))
 include h_clock_RealClock__After

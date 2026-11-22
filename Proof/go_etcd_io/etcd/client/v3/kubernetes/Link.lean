@@ -56,6 +56,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
+variable [promreg_sem : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Assumptions]
 
 theorem v3.wp_WithRev :
     EtcdGrove.WithRev.spec (GF := GF) (hG := hG) :=
@@ -155,6 +156,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
+variable [promreg_sem : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Assumptions]
 
 theorem Client.wp_Get :
     EtcdGrove.kubernetes.Client.Get.spec (GF := GF) (hG := hG) :=

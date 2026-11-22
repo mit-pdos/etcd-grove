@@ -62,10 +62,6 @@ def leaseexpiryNProgram [GoSemanticsFunctions] (k : Nat) : Expr :=
   github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.initialize' #() ;;
   (@! github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.Main) #(W64 (k : Int))
 
-/-- The metric names the program's initialization registers (its closure's `PRE_RES` packages', D16;
-mustreg, 2026-11-20, until then the read package's two, `readRegPerm`): its `initNames`. -/
-def leaseexpiryNNames : List GoString := _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.initNames
-
 end adequacy
 end EtcdGrove
 end Perennial

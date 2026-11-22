@@ -87,11 +87,13 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_start as Hown
   iapply EtcdGrove.wp_package_init_resL_self (heq := Hinit.1) (L := EtcdGrove.regResL (GF := GF) regQs)
     (L1 := EtcdGrove.regResL (GF := GF) [])
-    (L2 := EtcdGrove.regResL (GF := GF) [(pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regNames)])
-    (L' := EtcdGrove.regResL (GF := GF) [(pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regNames)]) (R := EtcdGrove.prometheus.namesFree (GF := GF) regNames)
+    (L2 := EtcdGrove.regResL (GF := GF) [(pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regKeys)])
+    (L' := EtcdGrove.regResL (GF := GF) [(pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regKeys)])
+    (R := iprop(EtcdGrove.prometheus.namesFree (GF := GF) regNames ∗ EtcdGrove.promreg.idToks (GF := GF) regKeys))
     (hL := rfl) (hL' := rfl) $$ [Hown] HΦ
   iframe Hown
   iintro ⟨Hown, HR⟩
+  icases HR with ⟨HR, -⟩
   wp_auto
   iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := GoInterface) errMemberNotFound _ as HerrMemberNotFound
@@ -164,7 +166,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
     $$ Hown as ⟨Hown, #Hd18⟩
   wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.github_com.prometheus.client_golang.prometheus.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd17⟩
-  wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) [(pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regNames)])
+  wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) [(pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regKeys)])
       (EtcdGrove.regResL (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regQs)
       (List.Sublist.map _ (List.Sublist.cons₂ _ (List.Sublist.slnil)))
       _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
@@ -666,7 +668,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
 from `wp_initialize'_res`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init ∗ EtcdGrove.prometheus.namesFree (GF := GF) initNames }}
+    {{ ownInitializing get_is_pkg_init ∗ EtcdGrove.prometheus.regsFree (GF := GF) regQs }}
       (App (Val initialize') (Val #()))
     {{ RET #(); ownInitializing get_is_pkg_init ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp }} :=

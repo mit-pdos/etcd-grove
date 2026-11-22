@@ -1,7 +1,7 @@
 /-
 The read package's metrics registration (`read/metrics.go`; item 8, 2026-10-17): the names its
-`init()` registers with prometheus's default registry, and the rights its initializer takes
-(`readRegPerm`). `notes/decisions.md`, "D16: prometheus's default registry".
+`init()` registers with prometheus's default registry (until prom-registry, 2026-11-22, also
+`readRegPerm`, unused since mustreg). `notes/decisions.md`, "D16: prometheus's default registry".
 -/
 module
 
@@ -24,14 +24,6 @@ abbrev slowReadIndexName : GoString :=
 /-- `readIndexFailed`'s fully-qualified name (`etcd_server_read_indexes_failed_total`). -/
 abbrev readIndexFailedName : GoString :=
   prometheus.fqName go!"etcd" go!"server" go!"read_indexes_failed_total"
-
-/-- **The read package's registration rights**: its initializer's `init()` registers its two
-counters (`prometheus.MustRegister(slowReadIndex)`, `MustRegister(readIndexFailed)`), which needs
-the right to register each name. A premise of its `wp_initialize'` and of its importers' until
-mustreg (2026-11-20): since then the rights are `namesFree regNames` (`read/Init.lean`), one entry of
-the registering packages' list (`ownInitResL`), and this definition is unused. -/
-def readRegPerm {GF : BundledGFunctors} : IProp GF :=
-  iprop(prometheus.nameFree slowReadIndexName ∗ prometheus.nameFree readIndexFailedName)
 
 end read
 end EtcdGrove

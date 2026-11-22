@@ -81,6 +81,7 @@ execution of `leaseexpiryNProgram k` from a fresh state with one thread, of `n` 
 has finished, its result is `#()`; no thread is stuck; no thread has ended in a panic. -/
 theorem etcd_leaseexpiryN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.Assumptions]
+    [promreg_sem : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
@@ -93,7 +94,6 @@ theorem etcd_leaseexpiryN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (Hlp : leasePeersOk)
-    (HNs : prometheus.namesUnclaimed (leaseexpiryNProgram k) leaseexpiryNNames)
     (HAs : addrsUnclaimed (leaseexpiryNProgram k) (etcd_leaseexpiryN.leaseexpiryNAddrs k))
     (HDs : dataDirsAbsent (leaseexpiryNProgram k) (etcd_leaseexpiryN.leaseexpiryNDirs k))
     (HEnv : verifyEnvOff (leaseexpiryNProgram k))
@@ -119,14 +119,15 @@ theorem etcd_leaseexpiryN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (etcd_leaseexpiryN.leaseexpiryNAddrs_nodup k hk) (etcd_leaseexpiryN.leaseexpiryNDirs k)
     (etcd_leaseexpiryN.leaseexpiryNDirs_nodup k hk) (etcd_leaseexpiryN.startAddrs k) []
     (etcd_leaseexpiryN.leaseexpiryNAddrs_perm k) (etcd_leaseexpiryN.leaseexpiryNDirs_perm k)
-    σ g ⟨trivial, trivial, trivial⟩ ⟨trivial, Hfs, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
+    σ g ⟨trivial, trivial, trivial⟩ ⟨trivial, Hfs, trivial⟩ Hlctx Hinit Hthreads HAs HDs
     (2 ^ 28) n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC putgetNGF := heapAtN hG lctx
   haveI := Hctx hG
   haveI := Hcec hG
   unfold progOk
-  refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.wp_initialize' _
-    github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.getIsPkgInit_wf, ?_⟩
+  -- (prom-registry, 2026-11-22) the run's registration rights from the generation's supply of names
+  refine ⟨_, _, EtcdGrove.wp_init_of_localNames _ github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.regQs (by decide +kernel) _ _
+    (github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.wp_initialize' _ github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.getIsPkgInit_wf), ?_⟩
   ihave #Hprem' := Hprem hG
   iintro #Hinit Htok ⟨Hms, -⟩
   unfold etcd_leaseexpiryN.startAddrs

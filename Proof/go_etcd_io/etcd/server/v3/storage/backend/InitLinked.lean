@@ -72,10 +72,12 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   iapply EtcdGrove.wp_package_init_resL_self (heq := Hinit.1) (L := EtcdGrove.regResL (GF := GF) regQs)
     (L1 := EtcdGrove.regResL (GF := GF) [])
     (L2 := EtcdGrove.regResL (GF := GF) [])
-    (L' := EtcdGrove.regResL (GF := GF) []) (R := EtcdGrove.prometheus.namesFree (GF := GF) regNames)
+    (L' := EtcdGrove.regResL (GF := GF) [])
+    (R := iprop(EtcdGrove.prometheus.namesFree (GF := GF) regNames ∗ EtcdGrove.promreg.idToks (GF := GF) regKeys))
     (hL := rfl) (hL' := rfl) $$ [Hown] HΦ
   iframe Hown
   iintro ⟨Hown, HR⟩
+  icases HR with ⟨HR, -⟩
   wp_auto
   iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := GoInterface) isDefragActive _ as HisDefragActive
@@ -311,7 +313,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
 from `wp_initialize'_res`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.storage.backend get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init ∗ EtcdGrove.prometheus.namesFree (GF := GF) initNames }}
+    {{ ownInitializing get_is_pkg_init ∗ EtcdGrove.prometheus.regsFree (GF := GF) regQs }}
       (App (Val initialize') (Val #()))
     {{ RET #(); ownInitializing get_is_pkg_init ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend }} :=

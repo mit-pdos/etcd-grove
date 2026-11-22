@@ -494,3 +494,54 @@ applies a theorem taking `promreg_sem` (today none: v3rpc's `Link` applies the `
   proofs no longer pass `startRights`' `nameFree`s to the root initializer (the types differ now: `namesFree`
   is `regFree`'s) but `promReg_alloc`'s rights, from `ownLocalNames ∅`, which only the start model's change
   gives: **if that change is dropped, the closed proofs have no way to make rights** (open decision).
+
+## Stage 4 finished and stage 5 (2026-11-22, the session after "Stage 4 under option 1")
+
+The coordinator's decisions (2026-11-22): the start model's change is required (its own commit; already in
+the sign-off request on #15); the rights are to IDs, not names, so the registration rights get a keys
+component (no pseudo-names); `NewServerMetrics` gains the descriptor clause (flagged); `prometheus.Register`
+proved over the model.
+
+**Done:**
+* **`prometheus.Register` is a theorem** (`Proof/.../prometheus/Register.lean`, callee
+  `promreg.Registry.Register.spec`; the axiom, which once the glue was in place claimed a triple of the
+  glue's code for every semantics, is gone). Its spec is generic: a collector `c` describing `ds`
+  (`collectorDescsAre`), `descsOk descId ds`, `isPkgInit prometheus ∗ idToks (descKeys ds)` ⊢ returns
+  `nil`.
+* **grpc-prometheus's server metrics** (`providers/prometheus/Defs.lean`): `srvNames hist` (the four
+  counter vectors and, with the histogram, the histogram vector, in `Describe`'s order, from
+  `server_metrics.go` of v1.1.0), `srvDescs hist dh` (their label-free `nameDesc`s, one dim hash per name),
+  `srvKeys hist` (`descKeys` of them: `srvDescs_keys`), `grpcKeys` (`ids4 ++ [x4, id5, x5]`: the IDs of
+  either choice; `srvKeys_false`/`_true` by `decide +kernel`), `grpcKeys_srv`. **Flag**:
+  `NewServerMetrics.spec`'s post gains `⌜∃ dh, collectorDescsAre ⟨*ServerMetrics, #m⟩ (srvDescs
+  (!os.isEmpty) dh)⌝` (its axiom's text unchanged; #24's area). No Go evidence yet for the provider (the
+  model test checks client_golang's constructors only): a `TestServerMetricsDescs` beside
+  `TestConstructorDescs` would need the provider in `examples/go.mod` (open).
+* **`v3rpc.metricsP`**: `(⌜m = null⌝ ∗ idToks grpcKeys) ∨ (⌜m ≠ null⌝ ∗ promSrvMetrics m)`;
+  `getServerMetrics` spends the rights on its one registration (its error branch is now dead).
+* **The keys component** (`PkgInitRes.lean`): `regResL` over `(q, names, keys)`, entry resource
+  `namesFree names ∗ idToks keys`; `prometheus.regsFree qs` the `wp_initialize'` precondition (was
+  `namesFree initNames`; `initNames` gone); `regKeysOf`, `regQsOk` (decidable: IDs distinct, none a
+  builtin's, no builtin name), `idToks_regsFree`, `regsFree_alloc`, **`wp_init_of_localNames`** (the
+  initializer's triple from `ownInitializing ∗ ownLocalNames ∅`, given `regQsOk qs`). `etc/gen-init.py`:
+  `REG_KEYS` (v3rpc: `grpcKeys`), a `regKeys` per `PRE_RES` package, the `_self` form splitting `HR` into
+  `HR`/`HK`; v3rpc's lock gets `HK`.
+* **`promreg_sem` in the Links** reaching `Register`'s proof: `etc/gen-link.py`'s `PROMREG_VAR` for
+  `--v3rpc --common --cluster3 --linkv3p --linkvtxn --watchkv --authkv --cachekv --k8setcd3 --k8s
+  --k8s-etcd3` (the modes that take `idIssueExt`, but `--server`), and the hand-written linking modules
+  above them (see the commit).
+* **Stage 5**: `Start.lean` (its own commit: names gone, `ownLocalNames ∅` in the WP premise), the generic
+  etcdstart theorems (`progOk`'s initializer resource is `ownLocalNames ∅`; `Ns`, `HNs`, `hNs`, `hNsIds`
+  gone), the closed proofs (`wp_init_of_localNames _ regQs (by decide +kernel)`), `prometheus.nameFree`,
+  `descIdsDistinct`, `read.readRegPerm`, `namesUnclaimed`/`nameUnclaimed` deleted, the TopLevelDefs'
+  metric-name lists deleted. The exact list of changed closed statements: `notes/prom-registry-start-change.md`.
+
+**Status of the above (2026-11-22, WIP milestone):** committed and pushed as work in progress, not built through
+(a full build against `manifest-ln14` was running with no failure up to job 14617/17938 when this was
+committed). **Superseded in part the same day**: Upamanyu rejected perennial#681 (`ownLocalNames`/`localName`)
+on #15; the start model's change must be removal only, and the registry's ghost name must reach
+prometheus's package fact through untrusted proof code ("Option 4" below). What survives: `Register` proved
+over the model, the keys component (`regsFree`, `REG_KEYS`), `NewServerMetrics`' clause, `metricsP`'s rights,
+`promreg_sem` in the Links and the closed theorems. What goes: `ownLocalNames ∅` in `goose_adequacy_start`
+and in the generic theorems' `progOk`, `wp_init_of_localNames`/`regsFree_alloc` over it, and `idTok`'s
+`localName`.

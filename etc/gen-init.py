@@ -21,7 +21,7 @@ for a package whose import closure contains `PRE_RES` packages, `wp_initialize'_
 `ownInitResL g L`, `Proof/runtime/PkgInitRes.lean`: for each `(q, R)` of `L`, `R` held unless `q`
 is initialized; mustreg, 2026-11-20, until then one `(q, R)`, `ownInitRes g q R`);
 `wp_initialize'` (Perennial's form, with the rights to register the closure's metric names,
-`namesFree initNames`, for the latter) follows. The other packages' (Perennial's, raft's, the B-tree's) `_lb` forms
+`regsFree regQs`, for the latter) follows. The other packages' (Perennial's, raft's, the B-tree's) `_lb` forms
 come from their `wp_initialize'` by `EtcdGrove.initLb_of_spec` (Perennial's
 `initLb_of_initSpec`), over the initializers listed in the generated
 `Proof/runtime/PkgInitExt.lean` (`ExternalInit`).
@@ -165,6 +165,11 @@ ASSUMED = {}
 # (etcdstorage, 2026-11-20, the user's decision) auth, lease, backend and mvcc too: the closed
 # theorems of mvccrand and mvccfull now take the premise `namesUnclaimed` (mustreg had left them out).
 PRE_RES = {}
+# (prom-registry, 2026-11-22) A `PRE_RES` package's IDs besides its names' (`regKeys`, `[]` by default):
+# rights its initializer stores for a later registration of a collector of several descriptors (`v3rpc`:
+# grpc-prometheus's server metrics, which `getServerMetrics` registers, their rights in `metricsP`). The
+# entry's resource is `namesFree regNames ∗ idToks regKeys` (`regResL`); `HK` in the initializer's steps.
+REG_KEYS = {'go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc': 'EtcdGrove.grpc_prometheus.grpcKeys'}
 
 def reg_scalar(x, ns, sub, name, c=None, n=None):
     """A registration of the metric `x` (a `GoInterface`: `c<x>`, its `collectorName` fact `N<x>`,
@@ -2879,7 +2884,7 @@ translated, over prometheus's constructor specs, until 2026-11-19 the trust-boun
 2026-11-19 the axioms `<X>_init`), and from its imports' facts `traceutil.Tracer`, `schema`'s
 `AllBuckets` and the error variables of `etcdserver/errors`, `auth` and raft it returns (leaf
 errors by `EtcdGrove.ErrorStringLeaf`). Its precondition has the
-registration rights of the metric names of its import closure (`namesFree initNames`, decision D16;
+registration rights of the metric names of its import closure (`regsFree regQs`, decision D16;
 the read package's, `EtcdGrove.read.readRegPerm`, until mustreg, 2026-11-20), which it passes on to
 the registering packages' initializers. (D19r (C), 2026-10-18) And `raftStatusMu` (`raft.go`), initialized here,
 guarding `raftStatus` (`rnRaftStatusOk`; the names-only `init()` registers an `expvar` closure that
@@ -2978,8 +2983,10 @@ metadata keys and `etcdserverpb`'s sort-name maps and six `ServiceDesc`s (`svcDe
 facts), and `context.Canceled` a
 pointer error (from the read package's premise `EtcdGrove.ContextReadErrs`: Perennial's `context`
 fact lacks it). Its precondition has the registration rights of the metric
-names of its import closure (`namesFree initNames`, decision D16; mustreg, 2026-11-20), which it
-passes on to its imports' initializers.
+names of its import closure (`regsFree regQs`, decision D16; mustreg, 2026-11-20), which it
+passes on to its imports' initializers, and (prom-registry, 2026-11-22) its own entry's other IDs
+(`regKeys`: grpc-prometheus's server metrics' `grpcKeys`), which it stores with `metricsServerCached`
+(`metricsP`) for `getServerMetrics`.
 (D19j, 2026-10-18) And what `watch.go` reads but `io.EOF` (`watchPkgVars`): `auth`'s and `mvcc`'s
 errors (from their facts), `rpctypes`' (from its), its metrics `streamFailures` (with its label
 names; translated, over `NewCounterVec`'s spec, until 2026-11-19 an axiom) and the four
@@ -3014,9 +3021,10 @@ specs; until 2026-11-19 the trust-boundary axioms `<X>_init`),
              '· iunfold EtcdGrove.errVarLeaf at HCL', '  icases HCL with ⟨%e, #He, %Hl, -⟩',
              '  iexists e', '  iframe He', '  ipureintro; exact Hl.1',
              '-- `getServerMetrics`\' lock and what it guards (`metricsServerCached`, `nil`)',
-             'imod sync.init_Mutex EtcdGrove.v3rpc.metricsP ⊤ EtcdGrove.v3rpc.metricsMu $$ HmetricsServerLock [HmetricsServerCached] with #HMV',
+             'imod sync.init_Mutex EtcdGrove.v3rpc.metricsP ⊤ EtcdGrove.v3rpc.metricsMu $$ HmetricsServerLock [HmetricsServerCached HK] with #HMV',
              '· inext', '  unfold EtcdGrove.v3rpc.metricsP', '  iexists _', '  iframe HmetricsServerCached',
-             '  ileft', '  ipureintro; rfl',
+             '  ileft', '  iunfold _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.regKeys at HK',
+             '  iframe HK', '  ipureintro; rfl',
              '-- the six `ServiceDesc`s, from `etcdserverpb`\'s fact',
              'icases HDescs with ⟨#HK, ⟨%wm, %ws, #HW, %HWp⟩, #HL, #HC, #HA, #HM, -⟩',
              'obtain ⟨rfl, HWp, HWc⟩ := HWp',
@@ -4027,7 +4035,8 @@ def res_list(p):
 
 def qs_lit(rs):
     """The literal list of the packages `rs` with their metric names (`regQs`' elements)."""
-    return '[' + ', '.join(f'(pkg_id.{q}, _root_.Perennial.{q}.regNames)' for q in rs) + ']'
+    return '[' + ', '.join(f'(pkg_id.{q}, _root_.Perennial.{q}.regNames, _root_.Perennial.{q}.regKeys)'
+                           for q in rs) + ']'
 
 
 def sublist_term(big, small):
@@ -4338,14 +4347,15 @@ def gen(p, cfg=None):
             A('  [' + ',\n   '.join(f'EtcdGrove.prometheus.fqName go!"{a}" go!"{b}" go!"{c}"'
                                    for (_, _, _, (a, b, c)) in PRE_RES[p]) + ']')
             A('')
+            A('/-- The IDs besides its names\' this package\'s initializer takes the rights to (prom-registry:')
+            A('a later registration\'s, `REG_KEYS`). -/')
+            A(f'def regKeys : List w64 := {REG_KEYS.get(p, "[]")}')
+            A('')
         A('/-- The packages of this package\'s import closure (itself included) whose initializers')
-        A('register metrics, with their names: their registration rights are its initializer\'s')
-        A('resources (`ownInitResL`, `Proof/runtime/PkgInitRes.lean`). -/')
-        A(f'def regQs : List (GoString × List GoString) :=\n  {qs_lit(rl)}')
-        A('')
-        A('/-- The metric names its initializer registers, with those of its import closure: its')
-        A('`wp_initialize\'`\'s precondition has the rights to register them (`namesFree`). -/')
-        A('def initNames : List GoString := regQs.flatMap (·.2)')
+        A('register metrics, with their names and other IDs: their registration rights are its')
+        A('initializer\'s resources (`ownInitResL`, `Proof/runtime/PkgInitRes.lean`; its `wp_initialize\'`\'s')
+        A('precondition: `regsFree regQs`). -/')
+        A(f'def regQs : List (GoString × List GoString × List w64) :=\n  {qs_lit(rl)}')
         A('')
         A(f'end {p}')
         A('')
@@ -4407,10 +4417,12 @@ def gen(p, cfg=None):
             A('  iapply EtcdGrove.wp_package_init_resL_self (heq := Hinit.1) (L := EtcdGrove.regResL (GF := GF) regQs)')
             A(f'    (L1 := EtcdGrove.regResL (GF := GF) {qs_lit(rl[:i])})')
             A(f'    (L2 := EtcdGrove.regResL (GF := GF) {qs_lit(rl[i + 1:])})')
-            A(f'    (L\' := {body_L}) (R := EtcdGrove.prometheus.namesFree (GF := GF) regNames)')
+            A(f'    (L\' := {body_L})')
+            A('    (R := iprop(EtcdGrove.prometheus.namesFree (GF := GF) regNames ∗ EtcdGrove.promreg.idToks (GF := GF) regKeys))')
             A('    (hL := rfl) (hL\' := rfl) $$ [Hown] HΦ')
             A('  iframe Hown')
             A('  iintro ⟨Hown, HR⟩')
+            A('  icases HR with ⟨HR, HK⟩' if p in REG_KEYS else '  icases HR with ⟨HR, -⟩')
         else:
             A('  iapply EtcdGrove.wp_package_init_resL (heq := Hinit.1) $$ [Hown] HΦ')
             A('  iframe Hown')
@@ -4501,7 +4513,7 @@ def gen(p, cfg=None):
     if form == 'lb':
         A('    {{ ownInitializing get_is_pkg_init }}')
     else:
-        A('    {{ ownInitializing get_is_pkg_init ∗ EtcdGrove.prometheus.namesFree (GF := GF) initNames }}')
+        A('    {{ ownInitializing get_is_pkg_init ∗ EtcdGrove.prometheus.regsFree (GF := GF) regQs }}')
     A(f'      (App (Val initialize\') (Val #()))')
     A('    {{ RET #(); ownInitializing get_is_pkg_init ∗')
     A(f'        isPkgInit (PROP := IProp GF) {st} }}}} :=')

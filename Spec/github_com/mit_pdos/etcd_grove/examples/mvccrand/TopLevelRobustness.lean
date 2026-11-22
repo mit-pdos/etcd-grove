@@ -48,13 +48,13 @@ execution of fewer than `2 ^ 28 - 1` steps no thread is stuck and none has an un
 def mvccrand_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccrand.Assumptions]
+    [promreg_sem : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Assumptions]
     [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
     [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     (Hsort : ∀ hG : HeapGS .hasLC mvccrandGF,
       sort.Slice.spec (GF := mvccrandGF) (hG := heapWith hG lctx))
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] (r : GoString)
-    (HNs : prometheus.namesUnclaimed (mvccrandProgram r) mvccrandNames)
     (HEnv : verifyEnvOff (mvccrandProgram r)) (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (j0 : Fs.Ino)
     (Hr : (r, j0) ∈ (extLocal Fs.fsExt σ.world).fs.roots)

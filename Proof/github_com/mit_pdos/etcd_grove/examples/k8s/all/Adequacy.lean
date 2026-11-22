@@ -127,6 +127,7 @@ with one thread, of `n` steps: if the main thread has finished, its result is `#
 thread has ended in a panic. -/
 theorem k8s_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.all.Assumptions]
+    [promreg_sem : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [k8s_io.apiserver.pkg.storage.etcd3.Assumptions] [k8s_io.apimachinery.pkg.runtime.Assumptions]
     [k8s_io.apimachinery.pkg.runtime.schema.Assumptions] [k8s_io.apiserver.pkg.storage.Assumptions]
@@ -150,7 +151,6 @@ theorem k8s_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hmul : sint.Z clients * sint.Z ops + sint.Z watchers * sint.Z wops < 2 ^ 60)
     (steps₁ steps₂ : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step)
     (Hsteps₁ : steps₁.length < 2 ^ 63) (Hsteps₂ : steps₂.length < 2 ^ 63)
-    (HNs : prometheus.namesUnclaimed (k8sProgram k₁ clients ops watchers wops steps₁ k₂ steps₂) k8sNames)
     (HAs : addrsUnclaimed (k8sProgram k₁ clients ops watchers wops steps₁ k₂ steps₂) (k8sAddrs k₁ k₂))
     (HDs : dataDirsAbsent (k8sProgram k₁ clients ops watchers wops steps₁ k₂ steps₂) (k8sDirs k₁ k₂))
     (HEnv : verifyEnvOff (k8sProgram k₁ clients ops watchers wops steps₁ k₂ steps₂))
@@ -184,7 +184,7 @@ theorem k8s_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (k8s_etcd3N.startAddrs k₁ ++ k8s_compactorN.startAddrs k₂)
     (k8s_etcd3N.bridges k₁ ++ k8s_compactorN.bridges k₂)
     (k8s_all.k8sAddrs_perm k₁ k₂) (k8s_all.k8sDirs_perm k₁ k₂)
-    σ g ⟨trivial, trivial, trivial⟩ ⟨trivial, Hfs, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
+    σ g ⟨trivial, trivial, trivial⟩ ⟨trivial, Hfs, trivial⟩ Hlctx Hinit Hthreads HAs HDs
     n κs t2 σ2 Hsteps' fun hG HN HT => ?_
   letI : HeapGS .hasLC k8sGF := k8sHeapAt hG lctx
   -- the compactor registry, allocated before the program's proof is chosen (as the compactor
@@ -195,8 +195,9 @@ theorem k8s_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   haveI := Hctx hG
   haveI := Hcec hG
   unfold progOk
-  refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.k8s.all.wp_initialize' _
-    github_com.mit_pdos.etcd_grove.examples.k8s.all.getIsPkgInit_wf, ?_⟩
+  -- (prom-registry, 2026-11-22) the run's registration rights from the generation's supply of names
+  refine ⟨_, _, EtcdGrove.wp_init_of_localNames _ github_com.mit_pdos.etcd_grove.examples.k8s.all.regQs (by decide +kernel) _ _
+    (github_com.mit_pdos.etcd_grove.examples.k8s.all.wp_initialize' _ github_com.mit_pdos.etcd_grove.examples.k8s.all.getIsPkgInit_wf), ?_⟩
   ihave #Hp1 := Hprem₁ hG
   ihave #Hp2 := Hprem₂ hG
   iintro #Hinit Htok ⟨⟨Hms, Hbs⟩, Hreg⟩

@@ -113,10 +113,6 @@ def etcdProgram [GoSemanticsFunctions] (k₁ : Nat) (clients ops : w64)
     (Val #(W64 (k₂ : Int)))) (Val #(W64 (k₃ : Int)))) (Val #(W64 (k₄ : Int))))
     (Val #(W64 (k₅ : Int)))
 
-/-- The metric names the program's initialization registers (its closure's `PRE_RES` packages', D16):
-its `initNames`. -/
-def etcdNames : List GoString := _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.all.initNames
-
 /-- The program's addresses: the three members' peer addresses, their client addresses, and the
 bridges' addresses (2026-10-21, `notes/client-cut-plan.md`; partition's, moved here unchanged when its closed theorems
 retired, 2026-11-21). -/

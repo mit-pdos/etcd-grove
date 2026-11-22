@@ -37,10 +37,10 @@ program's package table `PkgTable.lean`) and `mvccfull.wp_Main` (`Link.lean`; `R
 
 **Its hypotheses** are mvccrand's, but `sort.Slice.spec` (`mvccfull.wp_Main` takes no hypothesis:
 the tester's lease checks compare the lessor's list against the model's without sorting it):
-* pure facts of the program's environment: `verifyEnvOff` (`ETCD_VERIFY` unset), (etcdstorage,
-  2026-11-20, the user's decision) `namesUnclaimed` of `mvccfullMetricNames` (no other code of the
-  run registers the metric names mvcc's, the lessor's, the backend's and auth's `init()` register:
-  the etcd examples' premise, now that those `init()`s are translated), and the execution's length
+* pure facts of the program's environment: `verifyEnvOff` (`ETCD_VERIFY` unset)
+  (prom-registry, 2026-11-22: no longer `namesUnclaimed` of the metric names mvcc's, the lessor's,
+  the backend's and auth's `init()` register; the proof makes their rights from the generation's
+  supply of ghost names, `wp_init_of_localNames`), and the execution's length
   (`n + 2 ≤ 2 ^ 28`: the thread bound, and with `N = n + 1` the receipt bound `2 ^ 38`);
 * the semantics: `go.Semantics`, the package assumptions (`mvccfull`'s, mvcc's, the server's,
   the cache's) and (S3e) the `os` structs' field facts; the file extension's steps restricted by
@@ -361,12 +361,12 @@ variable [go_gctx : GoGlobalContext]
 returned: every check of mvcc passed); no thread is stuck; no thread has ended in a panic. -/
 theorem mvccfull_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccfull.Assumptions]
+    [promreg_sem : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Assumptions]
     [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
     [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     (r : GoString)
-    (HNs : prometheus.namesUnclaimed (mvccfullProgram r) mvccfullMetricNames)
     (HEnv : verifyEnvOff (mvccfullProgram r))
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (j0 : Fs.Ino)
@@ -382,9 +382,9 @@ theorem mvccfull_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   refine goose_adequacy_start_all (GF := mvccfullGF) (n + 1) (n + 2) (mvccfullProgram r) σ g
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) ⟨trivial, trivial, trivial⟩
-    ⟨trivial, Hfs, trivial⟩ github_com.mit_pdos.etcd_grove.examples.mvccfull.initNames [] []
-    (by decide +kernel) List.nodup_nil
-    List.nodup_nil (fun _ h => absurd h List.not_mem_nil) HNs
+    ⟨trivial, Hfs, trivial⟩ [] []
+    List.nodup_nil
+    List.nodup_nil (fun _ h => absurd h List.not_mem_nil)
     (fun _ h => absurd h List.not_mem_nil) ⟨fun _ h => absurd h List.not_mem_nil, List.Pairwise.nil⟩
     HEnv ?_ n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads (realThreadsBelow_of_one Hthreads)
   intro hG HN HT HL
@@ -396,9 +396,9 @@ theorem mvccfull_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   rw [Hinit]
   haveI : ThreadBoundLe mvccfullGF (2 ^ 28) := ⟨by rw [HT]; omega⟩
   haveI : ReceiptBoundLe mvccfullGF (2 ^ 38) := ⟨by rw [HN]; omega⟩
-  iintro - Hl Hgs Htok Hrights
+  iintro - Hl Hgs Hln Htok Hrights
   iunfold startRights at Hrights
-  icases Hrights with ⟨Hns, -, -, -, #Hvoff⟩
+  icases Hrights with ⟨-, -, -, #Hvoff⟩
   have Hst : extsLocalStart (GF := mvccfullGF) σ.world ⊢
       Fs.osStart (Fs.gooseOsGS (L := (inferInstance : HeapGS .hasLC mvccfullGF).goose_localGS))
         (extLocal Fs.fsExt σ.world) :=
@@ -412,9 +412,11 @@ theorem mvccfull_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   · iapply Hst $$ Hl
   iintro Hfiles
   unfold mvccfullProgram
-  wp_apply (github_com.mit_pdos.etcd_grove.examples.mvccfull.wp_initialize' _
-    github_com.mit_pdos.etcd_grove.examples.mvccfull.getIsPkgInit_wf) $$ [Hown Hns] as ⟨-, #Hpkg⟩
-  · iframe Hown; iunfold prometheus.namesFree; iexact Hns
+  -- (prom-registry, 2026-11-22) the run's registration rights from the generation's supply of names
+  wp_apply (EtcdGrove.wp_init_of_localNames _ github_com.mit_pdos.etcd_grove.examples.mvccfull.regQs (by decide +kernel) _ _
+    (github_com.mit_pdos.etcd_grove.examples.mvccfull.wp_initialize' _
+      github_com.mit_pdos.etcd_grove.examples.mvccfull.getIsPkgInit_wf)) $$ [Hown Hln] as ⟨-, #Hpkg⟩
+  · iframe Hown Hln
   wp_apply mvccfull.wp_MainConfig as %mx Hmix
   iunfold mvccfull.mainMixOwn at Hmix
   icases Hmix with ⟨%Hp, Hs, Ho, Hc, Hrr, Hrd, Ha, Hstt⟩
