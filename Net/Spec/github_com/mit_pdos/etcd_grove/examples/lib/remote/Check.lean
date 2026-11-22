@@ -33,7 +33,8 @@ abbrev Check.spec : Prop :=
     (m : Model) (addrs : GoSlice) (addrL : List GoString) (cd : remote.Codec) (gen : GoFunc)
     (ops d : w64),
   (↑pendN : CoPset) ⊆ ⊤ \ R.Eop → (↑lintestN : CoPset) ⊆ ⊤ \ (R.Eop ∪ ↑pendN) →
-  PendDec R S → (∀ st, Timeless (R.sysState st)) → receiptBound GF ≤ 2 ^ 63 →
+  PendDec R S → (∀ o o', R.encOut (R.ov o) = R.encOut (R.ov o') → o = o') →
+  (∀ st, Timeless (R.sysState st)) → receiptBound GF ≤ 2 ^ 63 →
   sint.Z addrs.len < 2 ^ 31 → 0 ≤ sint.Z ops → sint.Z addrs.len * sint.Z ops < 2 ^ 60 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote ∗ context.isClosedchanInit ∗ isModel S m ∗
       genSpec gen (fun x => iprop(∃ i, ⌜x = R.iv i⌝)) ∗ addrs ↦*□ addrL ∗

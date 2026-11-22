@@ -813,3 +813,49 @@ paths by hand), `reconfigure` (`PutConfChange`: the payload bound, `randomChange
 (kvdurable's `DriverLemmas`/`Run` are the template: the porcupine result from the lintest theory); then kvnet's
 `Link.lean`, the crash frame (the obligation's lemma: open `kdFileInvK` with `tk`, `durInv_crash`,
 `kd_boot_choose`, `kd_file_alloc`), `TopLevelRobustness`, the corollary, non-vacuity, a tcb collection.
+
+## kvcheck's decoders, `conf`, `reconfigure`; the plan for `Check` (2026-11-22, fifth session on `kvnet-proof`)
+
+Proved (no axiom, no `sorry`):
+- the any-bytes decoders `getIDs.specAny` (`getIDsAny.lean`), `getConfState.specAny` (`getConfStateAny.lean`:
+  the four `getIDs` chained, a nil rest after a failure), and `GetStatus.spec` (`GetStatus.lean`, any bytes: a
+  good status's `Conf` is an owned conf state; the two counter loops over `getUint64.specAny`, `f`'s cells and
+  the status's `Stats` field through `array_acc`);
+- kvcheck's `checker.conf` (the status request, `reqOk` of a status is `True`; the decoded conf state made
+  read-only and stored in `lastConf`);
+- `PutConfChange` (`encCC o`, `ConfCodec.lean`; `encCC_length`: at most `17 + 16 n`), over raftpb's getters
+  (their main-tree specs, copied into the part);
+- `checker.randomChange`'s post bounds its changes (`≤ 3`; ledger 2026-11-22), so `reconfigure`'s payload
+  meets `checker.request`'s bound; `checker.reconfigure` (premise `∀ pl, F.confOk pl`: `True` at the top).
+
+### `Check`: what the current kvcheck specs cannot give, and the plan
+
+`Check` runs `lintest.Run` with `apply` calling `checker.do`/`read`; `applySpec` hands `apply` a one-shot
+update over `libState` (kvdurable's `DriverLemmas.kdAu_of_run` turns it into the store's AU through the
+invariant `checkN` and a copy of the client half). The store's operations then need, as kvdurable's
+`Cluster.do`/`Read` do:
+1. **`do`**: `kd_mint` (needs the store's op counter half `ghostVar γ.r.opn ½ nop`, mints at `nop + 1`,
+   **sequentially**), then after the answer `kd_collect` with the ticket `token γp.2` and the saved
+   predicate. Today's `checker.do.spec` fires its minting law **outside** the checker's lock, on the
+   `issued γ false n` token (numbers issued in order but minted in any order: `kd_mint` cannot), and its
+   post `∃ n, F.ansOp d v` drops the ticket. Fix: the checker's lock holds the store's counters
+   (`checkerInv` with a parameter `Cnt : Bool → w64 → IProp GF`, or `CheckerNames` holding the store's
+   `KdNames`: `ghostVar γ.r.opn ½ a` and, for reads, every replica id's `id ↪[γ.r.rseq] ns` with `ns ≤ b`);
+   `fresh` takes the law `∀ a, ⌜uint.Z a + 1 < 2^64⌝ -∗ Cnt w a ={⊤}=∗ Cnt w (a+1) ∗ L (a+1)` and returns
+   `L n` (no more `issued`); `do`'s law gives `F.opOk (encodeOp n …) ∗ R n` and its post `∃ n, F.ansOp … v ∗
+   R n` (`R n`: the ticket and saved predicate, `£ 1` for `kd_mint` captured in the law from
+   `wp_auto_lc`). Or (simpler to link) state `do`/`read` concretely at `kvFacts γ _` with kvdurable's
+   `Cluster.do`/`Read` shape (AU in, `Φ` out) and do the minting/collecting in their proofs.
+2. **`read`**: linearizable reads need the read slot (`kd_read_start` before minting, `kd_read_take` at the
+   answer) and a **prophecy of the answer** (kvdurable's `Cluster.Read` has `primitive.NewProph()` and
+   `trusted_proph.ResolveBytes(p, []byte(v))` in its Go source). kvcheck's `read` has none: add them to
+   `kvcheck.go` (our own code, as kvdurable's; no-ops in Go; `go.mod` gets gokv's `trusted_proph`),
+   retranslate (`etc/goose.py --project kvnet`). The slot's start history `H0` (`kvLb γ H0` = some committed
+   `l` with `H0 <+: logHist l`) gives the `l0` for `kd_mint_next`, so the answer's `logHist l0 <+: L` gives
+   `H0 <+: L`. The law fires under the lock for every replica id at once (`L (b+1) := [∗list] id, readOk id
+   (b+1) key`: the id is chosen after `fresh`; unused contexts are harmless).
+3. `Model`/`Gen` (model.go): the same Go text as kvdurablenoax's `check.go`'s; add `Model`, `Gen`, `copyMap`,
+   `within`, `hashString`, `hashMap` (and `ModelDefs`) to `etc/copy-part.py`'s `KVNET_REUSED`.
+4. `Check` itself: kvdurable's `Run` (wait group over the proposers and the disruptor, the `stop` broadcast,
+   `lintest.Run` with `CounterClock`, timeout 0 so the result is `Ok`), plus `SplitAddrs`/`ValidAddrs` and
+   the checker's allocation (`addrs`, the mutex with the store's counters).
