@@ -91,16 +91,16 @@ theorem Replica.propose.wp_proof
     simp only [Option.isSome_some, _root_.decide_true]
     try wp_auto
     wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked HmW HW Hwaiters HmR HRd Hreads HmA HA
-      Hcs Hidx]
+      Hcs Hidx HmK HK]
     · inext
       unfold lockInv
       iexists mW, W, mR, Rd
       iframe
       unfold repShared
-      iexists mA, A, csp, c, idx, ap
+      iexists mA, A, csp, c, idx, ap, mK, K
       iframe
       iframe HcsO Hap
-      ipureintro; exact ⟨HA, HAfit⟩
+      ipureintro; exact ⟨HA, HAfit, HKsfit⟩
     try wp_auto
     ihave #Hw : waitP γ d v $$ []
     · unfold waitP
@@ -122,16 +122,16 @@ theorem Replica.propose.wp_proof
       iexists γh
       iframe Hho Hprod
     wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked HmW HW Hwaiters HmR HRd Hreads HmA HA
-      Hcs Hidx]
+      Hcs Hidx HmK HK]
     · inext
       unfold lockInv
       iexists mW, W.insert d ch, mR, Rd
       iframe
       unfold repShared
-      iexists mA, A, csp, c, idx, ap
+      iexists mA, A, csp, c, idx, ap, mK, K
       iframe
       iframe HcsO Hap
-      ipureintro; exact ⟨HA, HAfit⟩
+      ipureintro; exact ⟨HA, HAfit, HKsfit⟩
     try wp_auto
     wp_apply hWT tmo $$ [$Hcci] as %ctx' %cd %cancel ⟨#Hcancel, #Hctx, -⟩
     try wp_auto

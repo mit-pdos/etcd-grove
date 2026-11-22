@@ -400,3 +400,26 @@ Notes for its proof:
   (`StartNode`) reads the file. If the file holds `cur`, the boot applies the law; if it holds `old`, it applies
   `nodeCrash`, which drops the batch.
 - The crash token is the arm's `nodeCrashTok γ id x` (`nodeVacant_arm`). kvnet keeps it in its crash obligation.
+
+### `Replica.contents`, `PutStatus`, `Node.status` (2026-11-22)
+
+- **`kv` under `mu`.** Half of the `kv` field and of its map moved from `repOwn` into `repShared`, as for
+  `applied`, with `MapFits K`. Every access in the Go holds `mu`. `applyOp` combines the halves to write,
+  `install` to store a new map, and `answer`/`request` read with their half. `applyEntry`, `applyConf` and
+  `propose` pass the halves through.
+- **`Replica.contents` is proved** (`Replica__contents.lean`). Pre `isRep γ vs dir id r`; post a fresh map `m ↦$ M`
+  with `MapFits M`, the applied index, and `csOpt csp DFrac.discard c`.
+- **`PutStatus` (open).** Its current spec is unprovable: it takes nothing of what it encodes, and its `< 2^61`
+  has no source. Ownership is easy to add (`s.Contents ↦${dq} M ∗ csOpt s.Conf dq c`, as `putMap`/`putConfState`
+  take; the loops unfold to `wp_for`). The **length bound is not derivable**: `MapFits` bounds each value, but no
+  invariant bounds the number of keys, so the status encoding is unbounded in the model. `serveClient` then needs
+  `len + 9 < 2^63` for `writeFrame`'s `make([]byte, 0, 8+len(body))`. Options:
+  - (a) Go: `writeFrame` returns `false` for a body past `maxFrame`. `readFrame` refuses such frames anyway, so
+    nothing is lost. `writeFrame`'s premise then disappears, and so do the answers' `+ 9` bounds (`MapFits` would
+    be needed only by `PutStatus`'s callers, if at all).
+  - (b) a store-size invariant: lengths in the minted operations plus a bound on their number. Much larger.
+  I left `PutStatus.spec` and `Node.handle` unchanged until this is decided.
+- **`Node.status` (open).** Besides `contents`, it reads `st.HardState`'s term and commit from raft's `Status`, whose
+  `statusOwn` is sealed. It needs a raft API law exposing the hard state's read access (`statusOwn st ⊢ ∃ hs,
+  hsRO st.BasicStatus'.HardState' hs ∨ …`, as `InvStatus.statusOwnRaw` holds), and a spec for `Stats.Snapshot`
+  (easy: the counters under the mutex).

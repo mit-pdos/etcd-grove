@@ -57,6 +57,7 @@ set_option hygiene false in
 unlock, with the lock's half `HA2` of the table `A'` and its committed prefix `apS` (`HapS`,
 `HAS`); the answer `v` sent with `Hw`; the end state from `Hfin`. -/
 local macro "applyop_tail" : tactic => `(tactic| (
+    icases ownMap_halves_split mK K' $$ [$(frameH `HK)] with ⟨HK1, HK2⟩
     wp_apply wp_map_lookup2 go.string (go.GoType.ChannelType go.ChanDir.sendrecv go.string) mW W
       e.data (DFrac.own 1) $$ [$(frameH `HW)] as HW
     cases HWs : W !! e.data with
@@ -64,17 +65,17 @@ local macro "applyop_tail" : tactic => `(tactic| (
       simp only [Option.getD_none, Option.isSome_none, decide_false]
       try wp_auto
       wp_apply sync.Mutex.wp_Unlock _ _ $$ [$(frameH `Hmu) $(frameH `Hlocked) HmA' HA2 Hcs' Hidx'
-          HmW HW Hwaiters HmR HRd Hreads]
+          HmK' HK2 HmW HW Hwaiters HmR HRd Hreads]
       · inext
         unfold lockInv repShared
         iexists mW, W, mR, Rd
         iframe
-        iexists mA, A', csp', c', idx', apS
-        iframe HmA' HA2 Hcs' Hidx' HcsO' HapS
-        ipureintro; exact ⟨HAS, HAfitS⟩
+        iexists mA, A', csp', c', idx', apS, mK, K'
+        iframe HmA' HA2 Hcs' Hidx' HmK' HK2 HcsO' HapS
+        ipureintro; exact ⟨HAS, HAfitS, HKfitS⟩
       try wp_auto
       iapply HΦ
-      iapply Hfin $$ %K' %A' %HKA %HKfitS HmK HK HmA HA1 Hcs Hidx
+      iapply Hfin $$ %K' %A' %HKA %HKfitS HmK HK1 HmA HA1 Hcs Hidx
     | some ch =>
       simp only [Option.getD_some, Option.isSome_some, _root_.decide_true]
       try wp_auto
@@ -86,14 +87,14 @@ local macro "applyop_tail" : tactic => `(tactic| (
       icases Hwt with ⟨%γh, #Hho, Hprod⟩
       try wp_auto
       wp_apply sync.Mutex.wp_Unlock _ _ $$ [$(frameH `Hmu) $(frameH `Hlocked) HmA' HA2 Hcs' Hidx'
-          HmW HW Hwaiters HmR HRd Hreads]
+          HmK' HK2 HmW HW Hwaiters HmR HRd Hreads]
       · inext
         unfold lockInv repShared
         iexists mW, GMap.delete e.data W, mR, Rd
         iframe
-        iexists mA, A', csp', c', idx', apS
-        iframe HmA' HA2 Hcs' Hidx' HcsO' HapS
-        ipureintro; exact ⟨HAS, HAfitS⟩
+        iexists mA, A', csp', c', idx', apS, mK, K'
+        iframe HmA' HA2 Hcs' Hidx' HmK' HK2 HcsO' HapS
+        ipureintro; exact ⟨HAS, HAfitS, HKfitS⟩
       try wp_auto
       wp_apply wp_handoff_send (t := go.string) γh ch
         (fun v => iprop(waitP γ e.data v ∗ ⌜(v.length : Int) + 9 < 2 ^ 63⌝)) iprop(True) iprop(False)
@@ -101,7 +102,7 @@ local macro "applyop_tail" : tactic => `(tactic| (
       iintro -
       try wp_auto
       iapply HΦ
-      iapply Hfin $$ %K' %A' %HKA %HKfitS HmK HK HmA HA1 Hcs Hidx
+      iapply Hfin $$ %K' %A' %HKA %HKfitS HmK HK1 HmA HA1 Hcs Hidx
   ))
 
 theorem Replica.applyOp.wp_proof (wp_decode : decode.spec (GF := GF) (hG := hG)) :
@@ -115,7 +116,7 @@ theorem Replica.applyOp.wp_proof (wp_decode : decode.spec (GF := GF) (hG := hG))
   ihave Hfin : iprop(∀ (K' A' : GMap (List w8) (List w8)),
       ⌜(∀ k, (K' !! k).getD [] = kvFold (logHist (ap ++ [e])) k) ∧
         AppliedOk A' (logHist (ap ++ [e]))⌝ -∗ ⌜MapFits K'⌝ -∗
-      r.[KReplica, go!"kv"] ↦ mK -∗ mK ↦$ K' -∗
+      r.[KReplica, go!"kv"] ↦{DFrac.own (1 : Qp).half} mK -∗ mK ↦${DFrac.own (1 : Qp).half} K' -∗
       r.[KReplica, go!"applied"] ↦{DFrac.own (1 : Qp).half} mA -∗
       mA ↦${DFrac.own (1 : Qp).half} A' -∗
       r.[KReplica, go!"cs"] ↦{DFrac.own (1 : Qp).half} csp -∗
@@ -151,9 +152,14 @@ theorem Replica.applyOp.wp_proof (wp_decode : decode.spec (GF := GF) (hG := hG))
     wp_apply sync.Mutex.wp_Lock _ _ $$ [$Hmu] as ⟨Hlocked, HR⟩
     iNamed HR
     iunfold repShared at Hrep
-    icases Hrep with ⟨%mA', %A0, %csp', %c', %idx', %ap', HmA', HA', Hcs', Hidx', #HcsO', #Hap', %HA0, %HA0fit⟩
+    icases Hrep with ⟨%mA', %A0, %csp', %c', %idx', %ap', %mK', %K0, HmA', HA', Hcs', Hidx', HmK', HK',
+      #HcsO', #Hap', %HA0, %HA0fit, -⟩
     icombine HmA HmA' gives %HmAeq
     subst HmAeq
+    icombine HmK HmK' gives %HmKeq
+    subst HmKeq
+    icases ownMap_halves_combine mK K K0 $$ [$HK $HK'] with ⟨%HKeq0, HK⟩
+    subst HKeq0
     icases ownMap_halves_combine mA A A0 $$ [$HA $HA'] with ⟨%HAeq, HAf⟩
     subst HAeq
     try wp_auto

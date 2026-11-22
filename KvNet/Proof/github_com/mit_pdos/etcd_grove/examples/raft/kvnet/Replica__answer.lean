@@ -59,7 +59,7 @@ theorem Replica.answer.wp_proof (wp_decodeReadCtx : decodeReadCtx.spec (GF := GF
       "i" ∷ i_ptr ↦ k ∗ "rs" ∷ rs_ptr ↦ rsv ∗ "rest" ∷ rest_ptr ↦ restv ∗
       "Hrest" ∷ restv ↦* ps' ∗ "Hcap" ∷ ownSliceCap ReadState restv (DFrac.own 1) ∗
       "Hps'" ∷ ([∗list] v ∈ ps', rsOk γ.r.cluster v) ∗
-      "HK" ∷ mK ↦$ K ∗ "Hidx" ∷ r.[KReplica, go!"index"] ↦{DFrac.own (1 : Qp).half} idx ∗
+      "HK" ∷ mK ↦${DFrac.own (1 : Qp).half} K ∗ "Hidx" ∷ r.[KReplica, go!"index"] ↦{DFrac.own (1 : Qp).half} idx ∗
       "HRd" ∷ mR ↦$ Rd' ∗ "Hreads" ∷ ([∗map] s ↦ ch ∈ Rd', readWaiterOk γ id s ch) ∗
       "Hpsl" ∷ psl ↦*{dq} ps ∗
       "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ (ps.length : Int)⌝) $$ [i rs rest HK Hidx HRd Hreads Hpsl]
@@ -149,7 +149,7 @@ theorem Replica.answer.wp_proof (wp_decodeReadCtx : decodeReadCtx.spec (GF := GF
               $$ Hinv Hok Hmint with %Hc0
             subst Hc0
             try wp_auto
-            wp_apply wp_map_lookup1 go.string go.string mK K key (DFrac.own 1) $$ [$HK] as HK
+            wp_apply wp_map_lookup1 go.string go.string mK K key (DFrac.own (1 : Qp).half) $$ [$HK] as HK
             wp_apply wp_handoff_send (t := go.string) γh ch
               (fun v => iprop(readAns γ c0 v ∗ ⌜(v.length : Int) + 9 < 2 ^ 63⌝)) iprop(True)
               iprop(False) ((K !! key).getD (zero_val GoString)) $$ [$Hho $Hprod]

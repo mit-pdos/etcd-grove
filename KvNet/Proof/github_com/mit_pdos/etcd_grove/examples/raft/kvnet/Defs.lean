@@ -202,8 +202,8 @@ def repOwn (γ : KdNames) (r : Loc) (ap : List LogEntry)
     (idx : w64) (csp : Loc) (m : Membership) (mA : Loc) (A : GMap (List w8) (List w8)) :
     IProp GF :=
   iprop(∃ (mK : Loc) (K : GMap (List w8) (List w8)) (c : ConfStateM),
-    "HmK" ∷ r.[KReplica, go!"kv"] ↦ mK ∗
-    "HK" ∷ mK ↦$ K ∗
+    "HmK" ∷ r.[KReplica, go!"kv"] ↦{DFrac.own (1 : Qp).half} mK ∗
+    "HK" ∷ mK ↦${DFrac.own (1 : Qp).half} K ∗
     "HmA" ∷ r.[KReplica, go!"applied"] ↦{DFrac.own (1 : Qp).half} mA ∗
     "HA" ∷ mA ↦${DFrac.own (1 : Qp).half} A ∗
     "Hcs" ∷ r.[KReplica, go!"cs"] ↦{DFrac.own (1 : Qp).half} csp ∗
@@ -218,18 +218,22 @@ def repOwn (γ : KdNames) (r : Loc) (ap : List LogEntry)
     "%Hsz" ∷ ⌜GMap.size m.ids < 2 ^ 61⌝ ∗
     "#Hcfg" ∷ confAt γ.r.cluster ap.length m)
 
-/-- The lock's half of an incarnation's replicated state (kvreconf's `repShared`). -/
+/-- The lock's half of an incarnation's replicated state (kvreconf's `repShared`), with half of the
+store's map (2026-11-22: kvnet's `contents` reads it under `mu`; the applier writes it under `mu`). -/
 def repShared (γ : KdNames) (r : Loc) : IProp GF :=
   iprop(∃ (mA : Loc) (A : GMap (List w8) (List w8)) (csp : Loc) (c : ConfStateM) (idx : w64)
-      (ap : List LogEntry),
+      (ap : List LogEntry) (mK : Loc) (K : GMap (List w8) (List w8)),
     "HmA" ∷ r.[KReplica, go!"applied"] ↦{DFrac.own (1 : Qp).half} mA ∗
     "HA" ∷ mA ↦${DFrac.own (1 : Qp).half} A ∗
     "Hcs" ∷ r.[KReplica, go!"cs"] ↦{DFrac.own (1 : Qp).half} csp ∗
     "Hidx" ∷ r.[KReplica, go!"index"] ↦{DFrac.own (1 : Qp).half} idx ∗
+    "HmK" ∷ r.[KReplica, go!"kv"] ↦{DFrac.own (1 : Qp).half} mK ∗
+    "HK" ∷ mK ↦${DFrac.own (1 : Qp).half} K ∗
     "#HcsO" ∷ csOpt csp DFrac.discard c ∗
     "#Hap" ∷ isCommittedLogLb γ.r.cluster ap ∗
     "%HA" ∷ ⌜raft_kvreconf.AppliedOk A (raft_kvreconf.logHist ap)⌝ ∗
-    "%HAfit" ∷ ⌜MapFits A⌝)
+    "%HAfit" ∷ ⌜MapFits A⌝ ∗
+    "%HKsfit" ∷ ⌜MapFits K⌝)
 
 /-- An incarnation's `mu` lock invariant (kvreconf's `lockInv` without `nextRead`: the reads'
 sequence numbers are the cluster's, `readSeqs`). -/
