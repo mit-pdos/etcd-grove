@@ -66,7 +66,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of applyTimeout))
   -- translated initializer of ErrLeaseHTTPTimeout))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrLeaseHTTPTimeout #MErrLeaseHTTPTimeout
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrLeaseHTTPTimeout ⟨#MErrLeaseHTTPTimeoutc, #MErrLeaseHTTPTimeout⟩
   ipersist HLeasePrefix
   iframe Hown
   imodintro

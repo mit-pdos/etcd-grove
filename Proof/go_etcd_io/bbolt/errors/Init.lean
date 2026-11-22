@@ -80,64 +80,64 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of ErrDatabaseNotOpen))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrDatabaseNotOpen #MErrDatabaseNotOpen
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrDatabaseNotOpen ⟨#MErrDatabaseNotOpenc, #MErrDatabaseNotOpen⟩
   -- translated initializer of ErrInvalid))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrInvalid #MErrInvalid
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrInvalid ⟨#MErrInvalidc, #MErrInvalid⟩
   -- translated initializer of ErrInvalidMapping))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrInvalidMapping #MErrInvalidMapping
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrInvalidMapping ⟨#MErrInvalidMappingc, #MErrInvalidMapping⟩
   -- translated initializer of ErrVersionMismatch))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrVersionMismatch #MErrVersionMismatch
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrVersionMismatch ⟨#MErrVersionMismatchc, #MErrVersionMismatch⟩
   -- translated initializer of ErrChecksum))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrChecksum #MErrChecksum
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrChecksum ⟨#MErrChecksumc, #MErrChecksum⟩
   -- translated initializer of ErrTimeout))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrTimeout #MErrTimeout
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrTimeout ⟨#MErrTimeoutc, #MErrTimeout⟩
   -- translated initializer of ErrTxNotWritable))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrTxNotWritable #MErrTxNotWritable
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrTxNotWritable ⟨#MErrTxNotWritablec, #MErrTxNotWritable⟩
   -- translated initializer of ErrTxClosed))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrTxClosed #MErrTxClosed
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrTxClosed ⟨#MErrTxClosedc, #MErrTxClosed⟩
   -- translated initializer of ErrDatabaseReadOnly))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrDatabaseReadOnly #MErrDatabaseReadOnly
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrDatabaseReadOnly ⟨#MErrDatabaseReadOnlyc, #MErrDatabaseReadOnly⟩
   -- translated initializer of ErrFreePagesNotLoaded))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrFreePagesNotLoaded #MErrFreePagesNotLoaded
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrFreePagesNotLoaded ⟨#MErrFreePagesNotLoadedc, #MErrFreePagesNotLoaded⟩
   -- translated initializer of ErrBucketNotFound))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrBucketNotFound #MErrBucketNotFound
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrBucketNotFound ⟨#MErrBucketNotFoundc, #MErrBucketNotFound⟩
   -- translated initializer of ErrBucketExists))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrBucketExists #MErrBucketExists
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrBucketExists ⟨#MErrBucketExistsc, #MErrBucketExists⟩
   -- translated initializer of ErrBucketNameRequired))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrBucketNameRequired #MErrBucketNameRequired
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrBucketNameRequired ⟨#MErrBucketNameRequiredc, #MErrBucketNameRequired⟩
   -- translated initializer of ErrKeyRequired))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrKeyRequired #MErrKeyRequired
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrKeyRequired ⟨#MErrKeyRequiredc, #MErrKeyRequired⟩
   -- translated initializer of ErrKeyTooLarge))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrKeyTooLarge #MErrKeyTooLarge
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrKeyTooLarge ⟨#MErrKeyTooLargec, #MErrKeyTooLarge⟩
   -- translated initializer of ErrValueTooLarge))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrValueTooLarge #MErrValueTooLarge
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrValueTooLarge ⟨#MErrValueTooLargec, #MErrValueTooLarge⟩
   -- translated initializer of ErrMaxSizeReached))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrMaxSizeReached #MErrMaxSizeReached
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrMaxSizeReached ⟨#MErrMaxSizeReachedc, #MErrMaxSizeReached⟩
   -- translated initializer of ErrIncompatibleValue))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrIncompatibleValue #MErrIncompatibleValue
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrIncompatibleValue ⟨#MErrIncompatibleValuec, #MErrIncompatibleValue⟩
   -- translated initializer of ErrSameBuckets))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrSameBuckets #MErrSameBuckets
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrSameBuckets ⟨#MErrSameBucketsc, #MErrSameBuckets⟩
   -- translated initializer of ErrDifferentDB))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrDifferentDB #MErrDifferentDB
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrDifferentDB ⟨#MErrDifferentDBc, #MErrDifferentDB⟩
   try wp_auto
   ipersist HErrDatabaseNotOpen
   ipersist HErrInvalid

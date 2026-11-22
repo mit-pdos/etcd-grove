@@ -95,14 +95,14 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of splicePipePool))
   set_option maxRecDepth 20000 in
   wp_apply _root_.Perennial.sync.wp_OnceValue as %cfr -
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xFC #EFC
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xND #END
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xFC ⟨#EFCc, #EFC⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xND ⟨#ENDc, #END⟩
   ipersist HErrFileClosing
   ipersist HErrNoDeadline
   wp_alloc_anon
   wp_auto
   ipersist HErrDeadlineExceeded
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xNP #ENP
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xNP ⟨#ENPc, #ENP⟩
   iframe Hown
   is_pkg_init_finish
 

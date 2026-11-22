@@ -59,10 +59,10 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of ErrNotFound))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrNotFound #MErrNotFound
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrNotFound ⟨#MErrNotFoundc, #MErrNotFound⟩
   -- translated initializer of ErrExist))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrExist #MErrExist
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrExist ⟨#MErrExistc, #MErrExist⟩
   -- translated initializer of «α»))
   iframe Hown
   is_pkg_init_finish

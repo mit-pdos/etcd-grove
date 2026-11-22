@@ -32,6 +32,7 @@ public import GooseLang.Ext.Fs.NoMapLockErr
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RaftModel.Laws
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RaftModel.LawsHsMarshal
 public import Proof.google_golang_org.protobuf.proto.ClonePb
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.DecEnvSupply
 
 @[expose] public section
 
@@ -182,14 +183,10 @@ variable [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions
   [go_etcd_io.raft.v3.Assumptions]
 
 /-- **The specs the tester's proof takes that no proof discharges yet** (the tester Link's hypotheses
-but the model's laws, which are proved): the Perennial-gap specs, `WalDecEnvSupply`, the trust-boundary
-spec of `proto.Unmarshal` on a WAL record. -/
+but the model's laws and `WalDecEnvSupply`, which are proved): the Perennial-gap spec `stringslite.HasPrefix`,
+the trust-boundary spec of `proto.Unmarshal` on a WAL record. (`errors.{IsErrno, IsPathErrnoEof,
+IsPathErrnoNotExist, IsPathErrnoTerm}` and `WalDecEnvSupply` proved 2026-11-22, `wal-safe-errors`.) -/
 structure TOpen : Prop where
-  decEnv : WalDecEnvSupply (GF := GF)
-  isErrno : errors.IsErrno.spec (GF := GF) (hG := hG)
-  isPathErrnoEof : errors.IsPathErrnoEof.spec (GF := GF) (hG := hG)
-  isPathErrnoNotExist : errors.IsPathErrnoNotExist.spec (GF := GF) (hG := hG)
-  isPathErrnoTerm : errors.IsPathErrnoTerm.spec (GF := GF) (hG := hG)
   hasPrefix : stringslite.HasPrefix.spec (GF := GF) (hG := hG)
   unmarshalWalRecordE : proto.UnmarshalWalRecordE.spec (GF := GF) (hG := hG)
 
@@ -217,12 +214,11 @@ variable [_root_.Perennial.go_uber_org.zap.Assumptions]
 `walRaftHsO`), its laws proved, the rest from `TOpen`. -/
 theorem tMain_linked (h : TOpen (GF := GF) (hG := hG)) : Main.spec (GF := GF) (hG := hG) :=
   walTester.etcd_wal.wp_Main walRaftP walRaftU walRaftHsO walRaftU_ok walRaftU_snapCoh
-    h.decEnv (walRaftHsO_own proto.UnmarshalPb.wp_proof)
+    wal_decEnvSupply (walRaftHsO_own proto.UnmarshalPb.wp_proof)
     (walRaftHsO_own proto.UnmarshalPb.wp_proof)
     (walRaftP_cloneHs proto.ClonePb.wp_proof) walPb_laws.getIndex walPb_laws.getTerm walPb_laws.isEmpty walPb_laws.marshalEnt
     (walRaftP_marshalHs proto.MarshalPb.wp_proof) walPb_laws.mustSync walPb_laws.nil walPb_laws.size
-    walPb_laws.unmarshalEnt walPb_laws.zero h.isErrno h.isPathErrnoEof h.isPathErrnoNotExist
-    h.isPathErrnoTerm
+    walPb_laws.unmarshalEnt walPb_laws.zero
     h.unmarshalWalRecordE h.hasPrefix
 
 end linked

@@ -134,11 +134,11 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of noPrefixEnd))
   -- translated initializer of defaultWaitForReady))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrNoAvailableEndpoints #MErrNoAvailableEndpoints
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrNoAvailableEndpoints ⟨#MErrNoAvailableEndpointsc, #MErrNoAvailableEndpoints⟩
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrOldCluster #MErrOldCluster
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrOldCluster ⟨#MErrOldClusterc, #MErrOldCluster⟩
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrMutuallyExclusiveCfg #MErrMutuallyExclusiveCfg
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrMutuallyExclusiveCfg ⟨#MErrMutuallyExclusiveCfgc, #MErrMutuallyExclusiveCfg⟩
   try wp_auto
   wp_apply wp_slice_literal (l := [W8 0])
   isplitr

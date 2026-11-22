@@ -64,17 +64,17 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   -- translated initializer of ErrMismatchedHashAndPassword))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrMismatchedHashAndPassword #MErrMismatchedHashAndPassword
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrMismatchedHashAndPassword ⟨#MErrMismatchedHashAndPasswordc, #MErrMismatchedHashAndPassword⟩
   -- translated initializer of ErrHashTooShort))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrHashTooShort #MErrHashTooShort
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrHashTooShort ⟨#MErrHashTooShortc, #MErrHashTooShort⟩
   -- translated initializer of magicCipherData))
   try wp_auto
   wp_apply (wp_slice_literal (V := w8) (l := _)); isplitr; (· ipureintro; rfl); iintro %sMC ⟨SMC, -⟩
   try wp_auto
   -- translated initializer of ErrPasswordTooLong))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrPasswordTooLong #MErrPasswordTooLong
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrPasswordTooLong ⟨#MErrPasswordTooLongc, #MErrPasswordTooLong⟩
   try wp_auto
   iframe Hown
   imodintro

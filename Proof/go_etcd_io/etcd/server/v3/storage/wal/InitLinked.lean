@@ -181,39 +181,39 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
     iexact K
   -- translated initializer of errBadWALName))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xBW #EBW
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xBW ⟨#EBWc, #EBW⟩
   try wp_auto
   -- translated initializer of SegmentSizeBytes))
   -- translated initializer of openWALFilesFn))
   -- translated initializer of ErrMetadataConflict))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xMC #EMC
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xMC ⟨#EMCc, #EMC⟩
   try wp_auto
   -- translated initializer of ErrFileNotFound))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xFN #EFN
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xFN ⟨#EFNc, #EFN⟩
   try wp_auto
   -- translated initializer of ErrCRCMismatch))
   try wp_auto
   ihave #Hpb : (EtcdGrove.walpb.walpbInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd11
-  icases Hpb with ⟨%eC, #HpbC, #HpbOk, #HpbT⟩
+  icases Hpb with ⟨%eC, #HpbC, #HpbOk, #HpbT, -⟩
   try wp_auto
   -- translated initializer of ErrSnapshotMismatch))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xSM #ESM
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xSM ⟨#ESMc, #ESM⟩
   try wp_auto
   -- translated initializer of ErrSnapshotNotFound))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xSN #ESN
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xSN ⟨#ESNc, #ESN⟩
   try wp_auto
   -- translated initializer of ErrSliceOutOfRange))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xSO #ESO
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xSO ⟨#ESOc, #ESO⟩
   try wp_auto
   -- translated initializer of ErrDecoderNotFound))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xDN #EDN
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xDN ⟨#EDNc, #EDN⟩
   try wp_auto
   -- translated initializer of crcTable))
   try wp_auto
@@ -223,7 +223,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of MaxSaveBatchBytes))
   -- translated initializer of ErrSaveBatchTooLarge))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xBL #EBL
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xBL ⟨#EBLc, #EBL⟩
   try wp_auto
   -- the translated init.«0»
   wp_func_call

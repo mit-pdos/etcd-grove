@@ -1254,3 +1254,55 @@ Then regenerate the Links (the four and `h_WalDecEnvSupply` gone) and drop the f
 - A second etcd-grove worktree against another Perennial keeps `wal-safe`'s build intact: copy `.lake/build` (4.2 GB).
 - `simp only [h]` (no `at`) rewrites the Iris context too; `simp ... at HIs` names a Lean hypothesis, not an Iris one.
 - An Iris triple whose pre is only a points-to needs `(… : IProp GF)` to fix the BI.
+
+# Handoff (branch `wal-safe-errors`, 2026-11-22, session 12 of etcd-grove-03's delegates): the four `errors` specs and `WalDecEnvSupply` proved
+
+Against Perennial `errors-facts-2-d648` (manifest `/shared/tmp/manifest-ef2d.json`), as session 11 planned. No axiom, no
+`sorry`, no Perennial change. `TOpen` now holds only `hasPrefix` and `unmarshalWalRecordE` (`Hinit_wp` untouched).
+
+**Open check answered:** Perennial's `go_eq_interface` steps `==` of two interfaces of different dynamic types to `false`
+without a step of their own, so `Errno.Is` compares an `Errno` (or any non-`*errorString`) target with the four pointer
+errors for free; an `*errorString` target needs its value a pointer (`ErrnoIsTarget`).
+
+**New modules.**
+- `Proof/syscall/ErrnoIs.lean` (defs): `wp_Errno_Is`, the translated `Errno.Is` at any `ErrnoIsTarget`, answer
+  `ErrnoIsPost` (`e == ENOENT` at internal/oserror's `ErrNotExist`, `false` at none of the four); `errnoIsVars` (the four
+  errors and their message cells, distinct by `errors.errorString_ne`), from `isPkgInit syscall` (`errnoIsVars_of_init`;
+  `oserror_isInit` is `internal.oserror.isInit_access` without oserror's `Assumptions`, which its section includes but
+  never uses).
+- `Proof/errors/PathErrnoTree.lean` (defs): `pathErrno_walkTree`, the two-error tree of `os.errnoPathErr` with exact
+  relations (`peS`/`peI`/`peU`, the `Errno`'s answer any `Ie` that `ErrnoIsPost` implies); `errno_walkTree`;
+  `peS_treeTyped`; `(*PathError).Unwrap` (`wp_pathError_Unwrap`).
+- `Proof/errors/{IsErrno,IsPathErrnoTerm,IsPathErrnoEof,IsPathErrnoNotExist}.lean`: the four `wp_proof`s
+  (`IsErrno` over `errors.wp_Is` with `comparableErr_uintptr`; `Term` the tree over-approximated; `Eof` over
+  `wp_Is_tree`; `NotExist` over `wp_Is` and `isWalk_det` against the walk built by hand).
+- `Proof/go_etcd_io/etcd/server/v3/storage/wal/DecEnvSupply.lean`: `wal_decEnvSupply : WalDecEnvSupply`, with `IoE` the
+  `*PathError`s; passed by the tester's `Adequacy.lean` (the WAL Link keeps the premise `h_WalDecEnvSupply`, as the
+  model's laws).
+
+**Package facts strengthened** (`etc/gen-init.py`, all parts regenerated): `io/fs`'s and `os`'s `ErrNotExist` hold
+internal/oserror's `ErrNotExist` (`os.errNotExist_oserror_of_pkgInit`); `walpb`'s `ErrCRCMismatch` keeps its message cell
+(`"walpb: crc mismatch"`, so it differs from `io.EOF`).
+
+**`errors-facts-2` adaptation** (broken on this branch before, outside the tester's cone): `errors.wp_New_errorString`'s
+post now has the message cell, so the generated initializers name it apart (`⟨#Ec, #E⟩`, `etc/gen-init.py`), and raft's
+hand-written `Init.lean` (four trees) likewise; `raft.v3.Init`, `fileutil.InitLinked`, `wal.InitLinked` build again.
+
+**Build:** green (3752 jobs): WAL Link, `durable` and tester Links, tester `Adequacy`, `DecEnvSupply`, `os`/`io.fs`/`walpb`
+Inits, `wal.InitLinked` (with `fileutil.InitLinked`, zap's), raft `Init`. The five new results rest on `propext`,
+`Classical.choice`, `Quot.sound` only. The other generated initializers the cell split rewrote (bbolt, client, k8s, the
+parts' copies, ...) are regenerated, not built. Links regenerated with `LAKE_OPTS=--packages=/shared/tmp/manifest-ef2d.json` (without
+it `etc/gen-link.py` finds no Perennial in this worktree and drops ~50 results).
+
+**Not done / noticed.** `etc/copy-part.py --check` reports `RaftNoAx/TrustedCode/go_etcd_io/raft/v3/raftpb.lean`
+differing from the main tree's (session 11's `HardState.Reset` model, not copied; pre-existing). `tcb-report --check` not
+run (no axiom added or removed).
+
+**Pitfalls (new).**
+- Do not run `etc/lean-check.py` in a worktree on a manifest override: its server's Lake ignores `LAKE_OPTS` for the file
+  workers, clones the pinned Perennial into `.lake/packages/perennial` and rebuilds imports against it (it left
+  `Proof.syscall.PkgInit` built against the wrong `errors`: a kernel error `@errors.isPkgInit_inst GF`). Check a file with
+  `lake --packages=<manifest> env lean FILE` instead (imports built through the build slot).
+- Lean's `repeat` follows only the first goal; after `wp_if_destruct` use `repeat'`.
+- A theorem of a section with `[package_sem : X.Assumptions]` takes it even when unused (`internal.oserror.isInit_access`).
+- `wp_start` unfolds the called function; to apply another spec to the call (`errors.wp_Is`), `iintro %Φ pre HΦ`.

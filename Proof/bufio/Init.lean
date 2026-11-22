@@ -96,17 +96,17 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of ErrBadReadCount))
   -- translated initializer of ErrFinalToken))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %x0 #E0
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %x1 #E1
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %x2 #E2
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %x3 #E3
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %x4 #E4
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %x5 #E5
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %x6 #E6
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %x7 #E7
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %x8 #E8
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %x9 #E9
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %x10 #E10
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %x0 ⟨#E0c, #E0⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %x1 ⟨#E1c, #E1⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %x2 ⟨#E2c, #E2⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %x3 ⟨#E3c, #E3⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %x4 ⟨#E4c, #E4⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %x5 ⟨#E5c, #E5⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %x6 ⟨#E6c, #E6⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %x7 ⟨#E7c, #E7⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %x8 ⟨#E8c, #E8⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %x9 ⟨#E9c, #E9⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %x10 ⟨#E10c, #E10⟩
   wp_apply (opaqueInitsOk errorRune.init (by mem_tac))
   iframe Hown
   is_pkg_init_finish

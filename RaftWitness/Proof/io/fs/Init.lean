@@ -108,8 +108,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_call
   wp_auto
   ipersist HErrClosed
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xSD #ESD
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xSA #ESA
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xSD ⟨#ESDc, #ESD⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xSA ⟨#ESAc, #ESA⟩
   ihave #HClOk := EtcdGrove.errorString_fmtErrorOk xCl _ $$ ECl
   iframe Hown
   is_pkg_init_finish
