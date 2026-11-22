@@ -28,8 +28,8 @@ variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
 theorem clientCodec.ReadResponseBody.wp_proof (wp_readFrame : readFrame.spec (GF := GF) (hG := hG))
     (wp_getCodec : getCodec.spec (GF := GF) (hG := hG)) :
     clientCodec.ReadResponseBody.spec (GF := GF) (hG := hG) := by
-  intro c t cn s a la ra body C Θ P eof ueof ed ef
-  wp_start as ⟨#Hrwc, #Hc, #Hio, #Heof, #Hueof, #Hed, #Hef, #HefV, Hdec, HP, #Hacc⟩
+  intro c t cn s a la ra body C D Θ P eof ueof ed ef
+  wp_start as ⟨#Hrwc, #Hc, #Hio, #Heof, #Hueof, #Hed, #Hef, #HefV, #Hdec, HD, HP, #Hacc⟩
   wp_auto
   wp_apply wp_readFrame t cn s a la ra P eof ueof ed ef
       $$ [$Hc $Hio $Heof $Hueof $Hed $Hef $HefV $HP $Hacc]
@@ -44,7 +44,7 @@ theorem clientCodec.ReadResponseBody.wp_proof (wp_readFrame : readFrame.spec (GF
       iexists got
       iframe HP
       iright
-      iframe Hdec
+      iframe HD
       isplitr
       · ipureintro; exact Hne
       iexact HE
@@ -58,13 +58,12 @@ theorem clientCodec.ReadResponseBody.wp_proof (wp_readFrame : readFrame.spec (GF
     iframe HP
     ileft
     iexists pl
-    isplitr
-    · ipureintro; exact ⟨Hgot, Hpl⟩
-    unfold bodyRes
-    ipureintro; rfl
+    simp only [bodyRes]
+    iframe HD
+    ipureintro; exact ⟨Hgot, Hpl⟩
   | ok b =>
     unfold bodyDec
-    icases Hdec with ⟨#Hset, Hd⟩
+    icases Hdec with ⟨#Hset, #Hd⟩
     wp_auto
     wp_apply wp_getCodec C $$ Hset as %cd #Hcd
     unfold codecIs
@@ -73,10 +72,10 @@ theorem clientCodec.ReadResponseBody.wp_proof (wp_readFrame : readFrame.spec (GF
     wp_auto
     unfold decOk
     wp_bind (App (App (Val #v.Decode') _) _)
-    iapply Hdecok $$ Hp [Hd]
-    · iapply Hd
+    iapply Hdecok $$ Hp [HD]
+    · iapply Hd $$ HD
     inext
-    iintro %err %ok Hp %Hiff HΘ Herr
+    iintro %err %ok Hp %Hiff %Hns HΘ Herr
     wp_auto
     iapply HΦ
     iexists got
@@ -87,8 +86,15 @@ theorem clientCodec.ReadResponseBody.wp_proof (wp_readFrame : readFrame.spec (GF
     · ipureintro; exact ⟨Hgot, Hpl⟩
     unfold bodyRes
     iexists ok
-    iframe HΘ Herr
-    ipureintro; exact Hiff
+    iframe HΘ
+    isplitr
+    · ipureintro; exact Hiff
+    cases ok
+    · simp only [Bool.false_eq_true, ite_false]
+      iframe Herr
+      ipureintro; exact Hns
+    · simp only [ite_true]
+      itrivial
 
 end proof
 

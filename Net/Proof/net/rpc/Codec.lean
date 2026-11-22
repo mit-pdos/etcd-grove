@@ -39,6 +39,28 @@ structure CodecSpec [GooseExts] (GF : BundledGFunctors) where
   enc : GoInterface → (List w8 → IProp GF) → IProp GF
   dec : List w8 → GoInterface → (Bool → IProp GF) → IProp GF
 
+section errs
+variable [GooseExts] [go_gctx : GoGlobalContext]
+
+/-- The `error` `rpc.ServerError(msg)` (Goose converts a value of the named string type to an
+interface as `interface.mkOk ServerError.ty #msg`). -/
+def serverErr (msg : GoString) : GoInterface :=
+  interface.mkOk net.rpc.ServerError.ty #msg
+
+/-- `err`'s dynamic type is not `net/rpc.ServerError` (`nil` is not one either): a comma-ok
+assertion `err.(rpc.ServerError)` fails. -/
+def notServerErr (err : GoInterface) : Prop :=
+  ∀ e : GoInterfaceOk, err = interface.ok e → e.ty ≠ net.rpc.ServerError.ty
+
+theorem serverErr_ne_nil (msg : GoString) : serverErr msg ≠ interface.nil := by
+  unfold serverErr interface.mkOk; simp
+
+theorem notServerErr_serverErr (msg : GoString) : ¬ notServerErr (serverErr msg) := by
+  intro h
+  exact h _ rfl rfl
+
+end errs
+
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
@@ -53,13 +75,14 @@ def encOk (C : CodecSpec GF) (fe : GoFunc) : IProp GF :=
         Φ #sl) -∗
     WP (App (Val #fe) (Val #v)) {{ Φ }})
 
-/-- `Decode`'s function `fd` meets `C.dec`; its errors are some error (`errAny`). -/
+/-- `Decode`'s function `fd` meets `C.dec`; its errors are some error (`errAny`), not a
+`ServerError` (the client passes a decoding error on to its calls as one of its own). -/
 def decOk (C : CodecSpec GF) (fd : GoFunc) : IProp GF :=
   iprop(□ ∀ (data : GoSlice) (dq : DFrac) (bs : List w8) (ptr : GoInterface)
       (Ψ : Bool → IProp GF) (Φ : val → IProp GF),
     data ↦*{dq} bs -∗ C.dec bs ptr Ψ -∗
     ▷ (∀ (err : GoInterface) (ok : Bool), data ↦*{dq} bs -∗ ⌜err = interface.nil ↔ ok = true⌝ -∗
-        Ψ ok -∗ (if ok then iprop(True) else models_lab.errAny err) -∗ Φ #err) -∗
+        ⌜notServerErr err⌝ -∗ Ψ ok -∗ (if ok then iprop(True) else models_lab.errAny err) -∗ Φ #err) -∗
     WP (App (App (Val #fd) (Val #data)) (Val #ptr)) {{ Φ }})
 
 /-- `c` holds a `Codec` whose `Encode` and `Decode` meet `C` (persistent). -/
