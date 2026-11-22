@@ -3,7 +3,7 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def backend.New.spec : Prop :=
-  ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)]
+  ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 60)]
     (cfg : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (P : backend.BParams) (D : backend.Data)
     (W Pk K : backend.BNames → IProp GF),
     ⊢

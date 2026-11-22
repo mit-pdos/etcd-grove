@@ -380,7 +380,7 @@ noncomputable instance bufioFlushWriter_access_store_w (l : Loc) (v : net.http.b
 end def_
 end bufioFlushWriter
 
-namespace Transport
+namespace connLRU
 section def_
 
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
@@ -388,16 +388,90 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
 
-noncomputable instance Transport_typed_pointsto :
-    TypedPointsto (GF := GF) net.http.Transport :=
+noncomputable instance connLRU_typed_pointsto :
+    TypedPointsto (GF := GF) net.http.connLRU :=
   sorry -- axiomatized type
 
-noncomputable instance Transport_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.http.Transport net.http.Transport.underlying :=
+noncomputable instance connLRU_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) net.http.connLRU net.http.connLRU.underlying :=
   sorry -- axiomatized type
 
 end def_
-end Transport
+end connLRU
+
+namespace wantConnQueue
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : net.http.Assumptions]
+
+noncomputable instance wantConnQueue_typed_pointsto :
+    TypedPointsto (GF := GF) net.http.wantConnQueue where
+  typedPointstoDef l v dq := iprop(
+    "head" ∷ typedPointsto (structFieldRef net.http.wantConnQueue go!"head" l) v.head' dq ∗
+    "headPos" ∷ typedPointsto (structFieldRef net.http.wantConnQueue go!"headPos" l) v.headPos' dq ∗
+    "tail" ∷ typedPointsto (structFieldRef net.http.wantConnQueue go!"tail" l) v.tail' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance wantConnQueue_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) net.http.wantConnQueue net.http.wantConnQueue.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance wantConnQueue_access_load_head (l : Loc) (v : net.http.wantConnQueue) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.wantConnQueue go!"head" l) v.head' dq)
+      (typedPointsto (structFieldRef net.http.wantConnQueue go!"head" l) v.head' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance wantConnQueue_access_store_head (l : Loc) (v : net.http.wantConnQueue) (head' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.wantConnQueue go!"head" l) v.head' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.http.wantConnQueue go!"head" l) head' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with head' := head' } : net.http.wantConnQueue) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance wantConnQueue_access_load_headPos (l : Loc) (v : net.http.wantConnQueue) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.wantConnQueue go!"headPos" l) v.headPos' dq)
+      (typedPointsto (structFieldRef net.http.wantConnQueue go!"headPos" l) v.headPos' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance wantConnQueue_access_store_headPos (l : Loc) (v : net.http.wantConnQueue) (headPos' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.wantConnQueue go!"headPos" l) v.headPos' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.http.wantConnQueue go!"headPos" l) headPos' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with headPos' := headPos' } : net.http.wantConnQueue) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance wantConnQueue_access_load_tail (l : Loc) (v : net.http.wantConnQueue) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.wantConnQueue go!"tail" l) v.tail' dq)
+      (typedPointsto (structFieldRef net.http.wantConnQueue go!"tail" l) v.tail' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance wantConnQueue_access_store_tail (l : Loc) (v : net.http.wantConnQueue) (tail' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.wantConnQueue go!"tail" l) v.tail' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.http.wantConnQueue go!"tail" l) tail' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tail' := tail' } : net.http.wantConnQueue) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end wantConnQueue
 
 namespace transportRequest
 section def_
@@ -696,80 +770,6 @@ noncomputable instance connOrError_access_store_idleAt (l : Loc) (v : net.http.c
 
 end def_
 end connOrError
-
-namespace wantConnQueue
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.http.Assumptions]
-
-noncomputable instance wantConnQueue_typed_pointsto :
-    TypedPointsto (GF := GF) net.http.wantConnQueue where
-  typedPointstoDef l v dq := iprop(
-    "head" ∷ typedPointsto (structFieldRef net.http.wantConnQueue go!"head" l) v.head' dq ∗
-    "headPos" ∷ typedPointsto (structFieldRef net.http.wantConnQueue go!"headPos" l) v.headPos' dq ∗
-    "tail" ∷ typedPointsto (structFieldRef net.http.wantConnQueue go!"tail" l) v.tail' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-noncomputable instance wantConnQueue_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.http.wantConnQueue net.http.wantConnQueue.underlying := by
-  solve_into_val_typed_struct
-
-noncomputable instance wantConnQueue_access_load_head (l : Loc) (v : net.http.wantConnQueue) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.wantConnQueue go!"head" l) v.head' dq)
-      (typedPointsto (structFieldRef net.http.wantConnQueue go!"head" l) v.head' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance wantConnQueue_access_store_head (l : Loc) (v : net.http.wantConnQueue) (head' : GoSlice) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.wantConnQueue go!"head" l) v.head' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.wantConnQueue go!"head" l) head' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with head' := head' } : net.http.wantConnQueue) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance wantConnQueue_access_load_headPos (l : Loc) (v : net.http.wantConnQueue) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.wantConnQueue go!"headPos" l) v.headPos' dq)
-      (typedPointsto (structFieldRef net.http.wantConnQueue go!"headPos" l) v.headPos' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance wantConnQueue_access_store_headPos (l : Loc) (v : net.http.wantConnQueue) (headPos' : w64) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.wantConnQueue go!"headPos" l) v.headPos' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.wantConnQueue go!"headPos" l) headPos' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with headPos' := headPos' } : net.http.wantConnQueue) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance wantConnQueue_access_load_tail (l : Loc) (v : net.http.wantConnQueue) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.wantConnQueue go!"tail" l) v.tail' dq)
-      (typedPointsto (structFieldRef net.http.wantConnQueue go!"tail" l) v.tail' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance wantConnQueue_access_store_tail (l : Loc) (v : net.http.wantConnQueue) (tail' : GoSlice) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.wantConnQueue go!"tail" l) v.tail' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.wantConnQueue go!"tail" l) tail' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tail' := tail' } : net.http.wantConnQueue) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-end def_
-end wantConnQueue
 
 namespace persistConnWriter
 section def_
@@ -1200,25 +1200,6 @@ noncomputable instance fakeLocker_into_val_typed :
 
 end def_
 end fakeLocker
-
-namespace connLRU
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.http.Assumptions]
-
-noncomputable instance connLRU_typed_pointsto :
-    TypedPointsto (GF := GF) net.http.connLRU :=
-  sorry -- axiomatized type
-
-noncomputable instance connLRU_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.http.connLRU net.http.connLRU.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end connLRU
 
 end net.http
 end

@@ -349,6 +349,21 @@ noncomputable def RaftCluster.IsIDRemoved.impl [GooseExts] [GoGlobalContext] : v
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType RaftCluster.ty) go!"Lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))) (Val #()))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
+/-- go: cluster.go:247:23 -/
+noncomputable def RaftCluster.SetBackend.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam "be"
+  (Seq (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))
+  (Let "be" (App (Val (GoInstruction (GoAlloc MembershipBackend.ty))) (Var "be"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad MembershipBackend.ty))) (Var "be"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve MembershipBackend.ty go!"MustCreateBackendBuckets"))) (App (Val (GoInstruction (GoLoad MembershipBackend.ty))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"be"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))))) (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore MembershipBackend.ty))) (Pair (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"be"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))) (Var "$r0")))))))))
+  (Val #()))))
+
 /-- go: cluster.go:252:23 -/
 noncomputable def RaftCluster.SetVersionChangedNotifier.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
@@ -1376,6 +1391,7 @@ class RaftCluster.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   ptr_Member_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"Member" RaftCluster.Member.impl
   ptr_Members_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"Members" RaftCluster.Members.impl
   ptr_RemoveMember_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"RemoveMember" RaftCluster.RemoveMember.impl
+  ptr_SetBackend_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"SetBackend" RaftCluster.SetBackend.impl
   ptr_SetVersionChangedNotifier_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"SetVersionChangedNotifier" RaftCluster.SetVersionChangedNotifier.impl
   ptr_Unlock_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"Unlock" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"Mutex"))) (Var "$r"))))
@@ -1417,6 +1433,7 @@ attribute [instance] RaftCluster.TypeAssumptions.type_repr
   RaftCluster.TypeAssumptions.ptr_Member_unfold
   RaftCluster.TypeAssumptions.ptr_Members_unfold
   RaftCluster.TypeAssumptions.ptr_RemoveMember_unfold
+  RaftCluster.TypeAssumptions.ptr_SetBackend_unfold
   RaftCluster.TypeAssumptions.ptr_SetVersionChangedNotifier_unfold
   RaftCluster.TypeAssumptions.ptr_Unlock_unfold
   RaftCluster.TypeAssumptions.ptr_ValidateConfigurationChange_unfold

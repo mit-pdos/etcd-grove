@@ -11,7 +11,6 @@ roots ^Proof/go_etcd_io/etcd/client/v3/kubernetes/Link\.lean$
 roots ^Proof/k8s_io/apiserver/pkg/storage/etcd3/Link\.lean$
 axiom Client.Close.wp_proof
 axiom Client.Endpoints.wp_proof
-axiom Client.roundRobinQuorumBackoff.wp_proof
 axiom Client.streamClientInterceptor.wp_proof
 axiom WithRequireLeader.wp_proof
 axiom audit.GetAuditIDTruncated.wp_proof
@@ -32,15 +31,9 @@ axiom grpc.ClientConn.NewStream.wp_proof
 axiom grpc.ClientConn.Target.wp_proof
 axiom grpc.NewClient.wp_proof
 axiom grpc.WithKeepaliveParams.wp_proof
-axiom grpc.WithPerRPCCredentials.wp_proof
-axiom grpc.WithResolvers.wp_proof
-axiom grpc.WithStreamInterceptor.wp_proof
-axiom grpc.WithTransportCredentials.wp_proof
-axiom grpc.WithUnaryInterceptor.wp_proof
 axiom grpcAddrIsRaw
 axiom grpcConn
 axiom grpcConn_persistent
-axiom grpcDialOptIs
 axiom grpcResolverAt
 axiom grpcSrvCfgRaw
 axiom grpcWrotePeer
@@ -71,6 +64,7 @@ axiom pbTxnRequestT_reg
 axiom pbTxnResponseT_reg
 axiom peer.Peer.String.wp_proof
 axiom proto.Clone.wp_proof
+axiom rand.Float64.wp_proof
 axiom reflect.KindCompare.wp_proof
 axiom reflect.New.wp_proof
 axiom reflect.Type.Elem.wp_proof

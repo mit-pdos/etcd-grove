@@ -80,7 +80,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
   subst Heq
   unfold batchLockedW batchGhostW
   icases Hl with ⟨%t1, %db0', #Ht1, Hown, Hph, ⟨Hv, %n0, %w0, %u00, Hrvs, Ha, Hmo, Hus, Hopn, Hhkd, Hfkh,
-    %Hbg0⟩, %Hwf⟩
+    #Hbr0, %Hbg0⟩, %Hwf⟩
   icombine Ht Ht1 gives %Heq1
   subst Heq1
   imod (rtRes_cm_open γ P rt st.C st.R win) $$ [$Hrr $Hrvs] with
@@ -108,6 +108,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
     isplitl [Hrvs Ha Hmo Hus Hopn Hhkd Hfkh]
     · iexists n0, w0, u00
       iframe
+      iframe #
       ipureintro; exact Hbg0
     · ipureintro; exact Hwf
   wp_auto
@@ -163,7 +164,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
   unfold batchLockedW batchGhostW
   simp only [Bool.false_eq_true, ↓reduceIte]
   icases Hl with ⟨%t1, %db, #Ht1, Hown, Hph, ⟨Hv, %n, %w, %u0, Hrvs, Ha, Hmo, Hus, Hopn, Hhkd, Hfkh,
-    %Hbg⟩, %Hwf'⟩
+    #Hbr, %Hbg⟩, %Hwf'⟩
   unfold batchViewQ
   icases Hv with ⟨%Lb, Hv, %Hdlb⟩
   have Hdlc : dlsS P st' ∧ dlsOk P st' (if win then L' else Lb) := by
@@ -303,7 +304,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
         iframe #
       imod (commit_ghost γ P (st.setHw true) st' st'.C st'.tx m u n w u0 _ ⟨0, 0, 0, 0, false⟩ HWe Hp0 Hs
         Hwf Hbg
-        (Or.inr ⟨HA.1, rfl⟩) Hdlc Htk Hwf') $$ [$Hpay $Ha $Hmo $Hus $Hopn $Hv $Hrvs $Hhkd $Hfkh] with ⟨%cnt', %Hcw, Hg, Hpo⟩
+        (Or.inr ⟨HA.1, rfl⟩) Hdlc Htk Hwf') $$ [$Hpay $Ha $Hmo $Hus $Hopn $Hv $Hrvs $Hhkd $Hfkh $Hbr] with ⟨%cnt', %Hcw, Hg, Hpo⟩
       obtain ⟨hsw, hfo, hv⟩ := commit_final (tx' := st'.tx) (cnt' := cnt') HP Hwf Hcw HWe Hs Hwf' (Or.inr ⟨HA.1, rfl⟩)
       imodintro
       iapply HΦ
@@ -351,7 +352,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
         iframe #
       imod (commit_ghost γ P (st.setHw true) st' st'.S tx' m u n w u0 _ ⟨0, 0, 0, 0, false⟩ HWe Hp0 Hs
         Hwf Hbg
-        (Or.inl rfl) Hdlc Htk Hwf') $$ [$Hpay $Ha $Hmo $Hus $Hopn $Hv $Hrvs $Hhkd $Hfkh] with ⟨%cnt', %Hcw, Hg, Hpo⟩
+        (Or.inl rfl) Hdlc Htk Hwf') $$ [$Hpay $Ha $Hmo $Hus $Hopn $Hv $Hrvs $Hhkd $Hfkh $Hbr] with ⟨%cnt', %Hcw, Hg, Hpo⟩
       obtain ⟨hsw, hfo, hv⟩ := commit_final (tx' := tx') (cnt' := cnt') HP Hwf Hcw HWe Hs Hwf' (Or.inl rfl)
       imodintro
       iapply HΦ

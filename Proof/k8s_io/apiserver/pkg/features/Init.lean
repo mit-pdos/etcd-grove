@@ -39,14 +39,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- **The trust boundary: `k8s_io.apiserver.pkg.features`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([defaultVersionedKubernetesFeatureGates.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
 /-- `init.«0»` (`kube_features.go:347-350`): registers the package's features (and component-base's zpages features) with the default gate `DefaultMutableFeatureGate` holds, under `runtime.Must`; after it the gate has the specs of `featureGateOk` (`util/feature/Gate.lean`). -/
 axiom init_0_ok : ∀ g : GoInterfaceOk,
     {{ (globalAddr k8s_io.apiserver.pkg.util.feature.DefaultMutableFeatureGate ↦□ GoInterface.ok g : IProp GF) }} (App (Val (@! init.«0»)) (Val #()))
@@ -77,7 +69,6 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_auto
   iapply wp_fupd
   wp_apply (_root_.Perennial.k8s_io.apiserver.pkg.util.feature.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (opaqueInitsOk defaultVersionedKubernetesFeatureGates.init (by mem_tac))
   ihave #Hfi : (_root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.featureInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd1
   icases Hfi with ⟨%g0, #Hmg, #Hdg⟩

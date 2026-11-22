@@ -41,9 +41,7 @@ Goose translates them names-only, so each `X.init` is an axiom of the translatio
 runs them at program start, and etcd starts, so each returns without panicking.
 Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
 axiom opaqueInitsOk :
-    ∀ v ∈ ([ErrConnDispatched.init,
-        logger.init,
-        tls12ForbiddenCipherSuites.init] : List val),
+    ∀ v ∈ ([logger.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
 end google_golang_org.grpc.credentials
@@ -72,9 +70,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (_root_.Perennial.net.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.context _root_.Perennial.context.initialize'
       EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (opaqueInitsOk ErrConnDispatched.init (by mem_tac))
   wp_apply (opaqueInitsOk logger.init (by mem_tac))
-  wp_apply (opaqueInitsOk tls12ForbiddenCipherSuites.init (by mem_tac))
   iframe Hown
   is_pkg_init_finish
 

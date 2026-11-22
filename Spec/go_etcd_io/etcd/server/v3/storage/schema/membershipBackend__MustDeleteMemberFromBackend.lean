@@ -1,7 +1,8 @@
 /-
-`(*membershipBackend).MustDeleteMemberFromBackend(id)` (`membership.go`): the trust boundary for
-the member backend's delete (D43 M5b′, 2026-10-26, the user's decision: a contract axiom over the
-tracked buckets, not proved through the batch lock's hook). Lean-first (no Rocq counterpart).
+`(*membershipBackend).MustDeleteMemberFromBackend(id)` (`membership.go`): the member backend's delete
+(D43 M5b′, 2026-10-26, the user's decision: a contract axiom over the tracked buckets, not proved
+through the batch lock's hook; since 2026-11-22, prove-ps2-members, translated with its body and
+proved over the backend's specs). Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -35,13 +36,17 @@ puts `members_removed/<id> := "removed"` (`memberKey`, `removedVal`) in a part o
 back, the Go basis: `TestBksDeleteThenRead`; 2026-11-01, the backend-auth-split stage: until then
 the whole writer's half `rbOwn`), and returns `Post`. Both buckets exist (`UnsafeDelete`/
 `UnsafePut` on a missing bucket is fatal). (R8, 2026-11-07: restated over mvcc's API, the same
-meaning, as `MustSaveMemberToBackend`'s.) -/
+meaning, as `MustSaveMemberToBackend`'s.) (prove-ps2-members, 2026-11-22, when it was proved) Both
+buckets are in the backend's table (`d.P.has`: what the backend's `UnsafeDelete`/`UnsafePut` take, so
+that they are among its ghost names; the server's backends' parameters, `bootOk`'s, the user's approval
+of 2026-11-22); until then not a premise of the axiom. -/
 abbrev schema.membershipBackend.MustDeleteMemberFromBackend.spec : Prop :=
   ∀ (mb lg : Loc) (d : mvcc.KBReal) (P : IProp GF) (f : GoFunc)
     (Pre Q Post : IProp GF) (S : GoString → Prop) (bk : GMap GoString backend.BktData) (id : w64)
     (W : IProp GF),
   (∀ n, membership.memberBkts n → S n) →
   (bk.lookup go!"members").isSome → (bk.lookup go!"members_removed").isSome →
+  d.P.has mvcc.membersBI → d.P.has mvcc.membersRemovedBI →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       schema.mbF go!"be" mb ↦□
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)

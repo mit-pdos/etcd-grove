@@ -9,3 +9,46 @@ imports = ["!*"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`; until 2026-11-22
+# their initializers were untranslated, `opaqueInitsOk`). goose refuses a reference to one from
+# translated code, so no verified code reads them; each reason says why not running the
+# initializer is unobservable.
+[[skip]]
+names = ["keyValueType"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values:
+`reflect.TypeOf`/`TypeFor` (and `Elem`) read the static type descriptor of a type. So it terminates,
+cannot panic and has no effect beyond its variable."""
+
+[[skip]]
+names = ["emptyHash"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values:
+`xxhash.New().Sum64()` hashes nothing with a new digest. So it terminates, cannot panic and has no
+effect beyond its variable."""
+
+[[skip]]
+names = ["userDefinedEmptySet", "emptySet", "_Type_index"]
+reason = """
+Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable."""
+
+[[skip]]
+names = ["_@encoder.go:53"]
+reason = """
+An interface check: `&defaultAttrEncoder{}` converted to `Encoder`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@set.go:53"]
+reason = """
+A conversion check: `Set{}` converted to `isComparable`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@set.go:54"]
+reason = """
+A conversion check: `Distinct{}` converted to `isComparable`. No call, no panic, no effect."""
+# --- end of skipped package variables ---

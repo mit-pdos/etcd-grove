@@ -181,7 +181,7 @@ theorem Replay.validateGet.wp_proof
     case true =>
       wp_auto
       unfold forMapPostcondition
-      iright; iright; iright
+      iright; iright; iright; ileft
       iexists _
       isplitr
       · ipureintro; rfl
@@ -207,7 +207,7 @@ theorem Replay.validateGet.wp_proof
     case true =>
       wp_auto
       unfold forMapPostcondition
-      iright; iright; iright
+      iright; iright; iright; ileft
       iexists _
       isplitr
       · ipureintro; rfl

@@ -49,16 +49,6 @@ opaque DELETE [GooseExts] [GoGlobalContext] : val
 
 opaque file_kv_proto_rawDesc [GooseExts] [GoGlobalContext] : val
 
-noncomputable def Event_EventType_name [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/api/v3/mvccpb.Event_EventType_name"
-
-opaque Event_EventType_name.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def Event_EventType_value [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/api/v3/mvccpb.Event_EventType_value"
-
-opaque Event_EventType_value.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def File_kv_proto [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/mvccpb.File_kv_proto"
 
@@ -67,26 +57,6 @@ noncomputable def file_kv_proto_rawDescOnce [GooseExts] [GoGlobalContext] : GoSt
 
 noncomputable def file_kv_proto_rawDescData [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/mvccpb.file_kv_proto_rawDescData"
-
-noncomputable def file_kv_proto_enumTypes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/api/v3/mvccpb.file_kv_proto_enumTypes"
-
-opaque file_kv_proto_enumTypes.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def file_kv_proto_msgTypes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/api/v3/mvccpb.file_kv_proto_msgTypes"
-
-opaque file_kv_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def file_kv_proto_goTypes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/api/v3/mvccpb.file_kv_proto_goTypes"
-
-opaque file_kv_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def file_kv_proto_depIdxs [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/api/v3/mvccpb.file_kv_proto_depIdxs"
-
-opaque file_kv_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def file_kv_proto_rawDescGZIP [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/mvccpb.file_kv_proto_rawDescGZIP"
@@ -214,6 +184,44 @@ noncomputable def Event.GetKv.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType KeyValue.ty)))) (Var "$res0"))))))
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `Event_EventType_name` (`var Event_EventType_name = map[int32]string{ 0: "PUT", 1: "DELETE", }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `Event_EventType_value` (`var Event_EventType_value = map[string]int32{ "PUT": 0, "DELETE": 1, }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `file_kv_proto_enumTypes` (`var file_kv_proto_enumTypes = make([]protoimpl.EnumInfo, 1)`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `file_kv_proto_msgTypes` (`var file_kv_proto_msgTypes = make([]protoimpl.MessageInfo, 2)`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `file_kv_proto_goTypes` (`var file_kv_proto_goTypes = []any{ (Event_EventType)(0), (*KeyValue)(nil), (*Event)(nil), }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `file_kv_proto_depIdxs` (`var file_kv_proto_depIdxs = []int32{ 0, 1, 1, 3, 3, 3, 3, 0, }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"go.etcd.io/etcd/api/v3/mvccpb.Event_EventType_name", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var Event_EventType_name = map[int32]string{ 0: \"PUT\", 1: \"DELETE\", }"⟩,
+  ⟨"go.etcd.io/etcd/api/v3/mvccpb.Event_EventType_value", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var Event_EventType_value = map[string]int32{ \"PUT\": 0, \"DELETE\": 1, }"⟩,
+  ⟨"go.etcd.io/etcd/api/v3/mvccpb.file_kv_proto_enumTypes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_kv_proto_enumTypes = make([]protoimpl.EnumInfo, 1)"⟩,
+  ⟨"go.etcd.io/etcd/api/v3/mvccpb.file_kv_proto_msgTypes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_kv_proto_msgTypes = make([]protoimpl.MessageInfo, 2)"⟩,
+  ⟨"go.etcd.io/etcd/api/v3/mvccpb.file_kv_proto_goTypes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_kv_proto_goTypes = []any{ (Event_EventType)(0), (*KeyValue)(nil), (*Event)(nil), }"⟩,
+  ⟨"go.etcd.io/etcd/api/v3/mvccpb.file_kv_proto_depIdxs", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_kv_proto_depIdxs = []int32{ 0, 1, 1, 3, 3, 3, 3, 0, }"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.api.v3.mvccpb where
   pkgImportedPkgs := [pkg_id.google_golang_org.protobuf.runtime.protoimpl]
 
@@ -224,26 +232,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (package.init pkg_id.go_etcd_io.etcd.api.v3.mvccpb)) (Lam BAnon
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
-  (App (Val doExecute)
-  (App (Val file_kv_proto_depIdxs.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val file_kv_proto_goTypes.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val file_kv_proto_msgTypes.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val file_kv_proto_enumTypes.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val Event_EventType_value.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val Event_EventType_name.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.initialize') (Val #()))))))))
 

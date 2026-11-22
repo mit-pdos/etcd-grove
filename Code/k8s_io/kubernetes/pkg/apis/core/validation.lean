@@ -57,7 +57,8 @@ attribute [irreducible] PodValidationOptions.ty
 
 opaque ValidateNameFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque ValidateNameFuncWithErrors [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def ValidateNameFuncWithErrors.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/validation.ValidateNameFuncWithErrors" [])
 
 opaque commonHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType
 

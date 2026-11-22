@@ -89,8 +89,8 @@ type connectOptions struct {
 	ReadBufferSize         int
 	SharedWriteBuffer      bool
 	MaxHeaderListSize      *uint32
-	BufferPool             mem.BufferPool
-	StaticWindowSize       bool
+	// MODEL: no BufferPool field (the default pool; withBufferPool panics)
+	StaticWindowSize bool
 }
 
 // callHdr is transport.CallHdr: what a client stream's header fields are made from.

@@ -1,8 +1,10 @@
 /-
 `rand.Float64()` (Go's `math/rand`, names-only in Perennial): a pseudo-random number in `[0, 1)`.
-**A named hypothesis** (outside client-go, no axiom this round; the reflector's `watch` draws its
-watch timeout with it; phase 4 of `notes/k8s-daemonset-plan.md`, fifth round): `?` in
-`etc/link-lean-first-k8scache.txt`. Stated weakly: some `float64` (its bits).
+The trust boundary since 2026-11-22 (prove-ps2-rqb: `Proof/math/rand/Float64.lean`, for the client's
+`jitterUp`); until then only a named hypothesis (the reflector's `watch` draws its watch timeout
+with it; phase 4 of `notes/k8s-daemonset-plan.md`, fifth round: still `?` in
+`etc/link-lean-first-k8scache.txt`). Stated weakly: some `float64` (its bits), which is all its
+callers need (a float converted to an integer is any integer in Perennial's model).
 -/
 module
 

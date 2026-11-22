@@ -246,7 +246,7 @@ theorem confchange.checkInvariants.wp_proof
         wp_apply _root_.Perennial.fmt.wp_Errorf_argsWf _ _ _ ?wf $$ [$Hsl'] as %e #He
         case wf => raft_args_wf
         unfold forMapPostcondition
-        iright; iright; iright
+        iright; iright; iright; ileft
         iexists _
         isplitr
         · ipureintro; rfl
@@ -346,7 +346,7 @@ theorem confchange.checkInvariants.wp_proof
         wp_apply _root_.Perennial.fmt.wp_Errorf_argsWf _ _ _ ?wf $$ [$Hsl'] as %e #He
         case wf => raft_args_wf
         unfold forMapPostcondition
-        iright; iright; iright
+        iright; iright; iright; ileft
         iexists _
         isplitr
         · ipureintro; rfl
@@ -388,7 +388,7 @@ theorem confchange.checkInvariants.wp_proof
       wp_apply _root_.Perennial.fmt.wp_Errorf_argsWf _ _ _ ?wf $$ [$Hsl'] as %e #He
       case wf => raft_args_wf
       unfold forMapPostcondition
-      iright; iright; iright
+      iright; iright; iright; ileft
       iexists _
       isplitr
       · ipureintro; rfl
@@ -454,7 +454,7 @@ theorem confchange.checkInvariants.wp_proof
       wp_apply _root_.Perennial.fmt.wp_Errorf_argsWf _ _ _ ?wf $$ [$Hsl'] as %e #He
       case wf => raft_args_wf
       unfold forMapPostcondition
-      iright; iright; iright
+      iright; iright; iright; ileft
       iexists _
       isplitr
       · ipureintro; rfl
@@ -481,7 +481,7 @@ theorem confchange.checkInvariants.wp_proof
       wp_apply _root_.Perennial.fmt.wp_Errorf_argsWf _ _ _ ?wf $$ [$Hsl'] as %e #He
       case wf => raft_args_wf
       unfold forMapPostcondition
-      iright; iright; iright
+      iright; iright; iright; ileft
       iexists _
       isplitr
       · ipureintro; rfl
@@ -540,7 +540,7 @@ theorem confchange.checkInvariants.wp_proof
       wp_apply _root_.Perennial.fmt.wp_Errorf_argsWf _ _ _ ?wf $$ [$Hsl'] as %e #He
       case wf => raft_args_wf
       unfold forMapPostcondition
-      iright; iright; iright
+      iright; iright; iright; ileft
       iexists _
       isplitr
       · ipureintro; rfl

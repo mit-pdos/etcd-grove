@@ -13,7 +13,9 @@ import (
 // sync, syncfs or fsync.
 //
 // Lean: FsInit (every file `OsFile.ofDisk`: one candidate per byte;
-// `metaLog = []`).
+// `metaLog = []`), the semantics' initial local state (fs_semantics's
+// initLocal, since 2026-11-22: a theorem's premise through Robust's
+// extsInitLocal; before, only the ghost state's initP assumed it).
 //
 // Excluded (under the assumption): the scenario below, where a crash after
 // the first start loses a file the program saw at start.

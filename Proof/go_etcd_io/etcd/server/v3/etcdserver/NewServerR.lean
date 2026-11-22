@@ -270,6 +270,8 @@ theorem NewServer.wp_proofRG
   iunfold srvDiskImageAt at Himg
   icases Himg with ⟨Hvac, HrS, %Himr, #HA, %Himp, ⟨%u, #Hmvi⟩, %Hbl, #Hconf, %Hcsm, Hwsi, Hrauth,
     Hfiles, Hsdimg⟩
+  -- (bkarea, 2026-11-22) the data directory shorter than `2^60` bytes (`srvSnapRO`'s)
+  icases srvFiles_dataDir_len _ _ _ _ $$ Hfiles with ⟨%Hddl, Hfiles⟩
   rw [Hρo] at Himp
   ihave #HA0 : srvRLogLb ⟨γ, [], W64 0⟩ A $$ []
   · rw [← Hρo]; iexact HA
@@ -564,7 +566,7 @@ theorem NewServer.wp_proofRG
   · iframe TickMsS ElectionTicksS
   (try wp_auto)
   -- the backend, from `backend.New`'s postcondition (`bootBackend_of_newPost`)
-  obtain ⟨Hbe0, HbP, Hci0, HhP, HPwf, HPlim, HlP, HalB, HauB, HauUB, HauRB⟩ := Hbe
+  obtain ⟨Hbe0, HbP, Hci0, HhP, HPwf, HPlim, HlP, HalB, HauB, HauUB, HauRB, HmB, HmrB, HcB⟩ := Hbe
   ihave #Hstpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage $$ []
   · iPkgInit
   ihave #Hbkpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend $$ []
@@ -1782,7 +1784,7 @@ theorem NewServer.wp_proofRG
       isplitr
       · ipureintro
         refine ⟨trivial, Hdisk.1, Hmmap, Hbuq, ?_, Hdirps.1, Hdisk.2, HbP,
-          Hci0, HhP, HPwf, HPlim, HlP, ⟨HalB, HauB, HauUB, HauRB⟩, trivial, by omega⟩
+          Hci0, HhP, HPwf, HPlim, HlP, ⟨HalB, HauB, HauUB, HauRB⟩, ⟨HmB, HmrB, HcB⟩, trivial, by omega, Hddl⟩
         rw [HρRaft, Hid]; exact Hsloc
       isplitr
       · iExactEq Hsdir
@@ -2173,7 +2175,7 @@ theorem NewServer.wp_proofRG
   · -- `#Hrunb`
     iexists ⟨errc, null, null, func.nil, cpv, sstats, null⟩
     unfold srvRunBuilt
-    iframe compactor errorc Hltg stats Herrb Hcpok
+    iframe compactor errorc Hltg stats HssI Herrb Hcpok
   isplitl [Hcpt]
   · -- `Hcrun`: no compactor (`hcmpT`)
     iexists cpv

@@ -573,81 +573,6 @@ opaque UntypedValue [GooseExts] [GoGlobalContext] : val
 
 opaque ExemplarMaxRunes [GooseExts] [GoGlobalContext] : val
 
-noncomputable def rmNamesForMemStatsMetrics [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/prometheus/client_golang/prometheus.rmNamesForMemStatsMetrics"
-
-opaque rmNamesForMemStatsMetrics.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def nativeHistogramBounds [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/prometheus/client_golang/prometheus.nativeHistogramBounds"
-
-opaque nativeHistogramBounds.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def DefBuckets [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/prometheus/client_golang/prometheus.DefBuckets"
-
-opaque DefBuckets.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errBucketLabelNotAllowed [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/prometheus/client_golang/prometheus.errBucketLabelNotAllowed"
-
-opaque errBucketLabelNotAllowed.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errInconsistentCardinality [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/prometheus/client_golang/prometheus.errInconsistentCardinality"
-
-opaque errInconsistentCardinality.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def separatorByteSlice [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/prometheus/client_golang/prometheus.separatorByteSlice"
-
-opaque separatorByteSlice.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def defaultRegistry [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/prometheus/client_golang/prometheus.defaultRegistry"
-
-opaque defaultRegistry.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def DefaultRegisterer [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/prometheus/client_golang/prometheus.DefaultRegisterer"
-
-opaque DefaultRegisterer.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def DefaultGatherer [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/prometheus/client_golang/prometheus.DefaultGatherer"
-
-opaque DefaultGatherer.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errQuantileLabelNotAllowed [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/prometheus/client_golang/prometheus.errQuantileLabelNotAllowed"
-
-opaque errQuantileLabelNotAllowed.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def CounterMetricTypePtr [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/prometheus/client_golang/prometheus.CounterMetricTypePtr"
-
-opaque CounterMetricTypePtr.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def GaugeMetricTypePtr [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/prometheus/client_golang/prometheus.GaugeMetricTypePtr"
-
-opaque GaugeMetricTypePtr.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def UntypedMetricTypePtr [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/prometheus/client_golang/prometheus.UntypedMetricTypePtr"
-
-opaque UntypedMetricTypePtr.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def labelsPool [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/prometheus/client_golang/prometheus.labelsPool"
-
-opaque labelsPool.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def V2 [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/prometheus/client_golang/prometheus.V2"
-
-opaque V2.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def NewBuildInfoCollector [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/prometheus/client_golang/prometheus.NewBuildInfoCollector"
 
@@ -1025,7 +950,7 @@ noncomputable def gauge.Dec.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Val exceptionDo)
   (Let "g" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType gauge.ty)))) (Var "g"))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert go.untypedInt go.float64))) (App (Val (GoInstruction (GoUnOp GoNeg go.untypedInt))) (Val #(1 : Int))))
+  (Let "$a0" (Val #(W64 13830554455654793216))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType gauge.ty) go!"Add"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType gauge.ty)))) (Var "g"))) (Var "$a0"))))))
   (Val #()))))
 
@@ -1071,14 +996,90 @@ noncomputable def gauge.Sub.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "g" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType gauge.ty)))) (Var "g"))
   (Let "val" (App (Val (GoInstruction (GoAlloc go.float64))) (Var "val"))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoOp GoMul go.float64))) (Pair (App (Val (GoInstruction (GoLoad go.float64))) (Var "val")) (App (Val (GoInstruction (Convert go.untypedInt go.float64))) (App (Val (GoInstruction (GoUnOp GoNeg go.untypedInt))) (Val #(1 : Int))))))
+  (Let "$a0" (App (Val (GoInstruction (GoOp GoMul go.float64))) (Pair (App (Val (GoInstruction (GoLoad go.float64))) (Var "val")) (Val #(W64 13830554455654793216))))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType gauge.ty) go!"Add"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType gauge.ty)))) (Var "g"))) (Var "$a0")))))))
   (Val #()))))
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `rmNamesForMemStatsMetrics` (`var rmNamesForMemStatsMetrics = []string{ goGCHeapTinyAllocsObjects, goGCHeapAllocsObjects, goGCHeapFreesObjects, goGCHe … [sha256:2b5c34f52124cd70]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `nativeHistogramBounds` (`var nativeHistogramBounds = [][]float64{ {0.5}, {0.5, 0.7071067811865475}, {0.5, 0.5946035575013605, 0.7071067811865475, … [sha256:7e5c5c7a1549983f]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `DefBuckets` (`var DefBuckets = []float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `errBucketLabelNotAllowed` (`var errBucketLabelNotAllowed = fmt.Errorf( "%q is not allowed as label name in histograms", bucketLabel, )`): Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of
+a constant format and constant arguments allocates the formatted error (fmt recovers a panic of a
+formatting method; the arguments have none). So each terminates, cannot panic and has no effect
+beyond its variable.
+- `errInconsistentCardinality` (`var errInconsistentCardinality = errors.New("inconsistent label cardinality")`): Its initializer calls, besides literals of constants and other variables' values: `errors.New` of a
+constant allocates an `*errorString`. So it terminates, cannot panic and has no effect beyond its
+variable.
+- `separatorByteSlice` (`var separatorByteSlice = []byte{model.SeparatorByte} // For convenient use with xxhash.`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `defaultRegistry` (`var defaultRegistry = NewRegistry()`): Its initializer calls, besides literals of constants and other variables' values: `NewRegistry`
+allocates an empty `*Registry` (maps and a mutex). So it terminates, cannot panic and has no effect
+beyond its variable.
+- `DefaultRegisterer` (`var DefaultRegisterer Registerer = defaultRegistry`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `DefaultGatherer` (`var DefaultGatherer Gatherer = defaultRegistry`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `_@registry.go:1039` (`var _ TransactionalGatherer = &MultiTRegistry{}`): An interface check: `&MultiTRegistry{}` converted to `TransactionalGatherer`. No call, no panic, no
+effect.
+- `errQuantileLabelNotAllowed` (`var errQuantileLabelNotAllowed = fmt.Errorf( "%q is not allowed as label name in summaries", quantileLabel, )`): Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of
+a constant format and constant arguments allocates the formatted error (fmt recovers a panic of a
+formatting method; the arguments have none). So each terminates, cannot panic and has no effect
+beyond its variable.
+- `CounterMetricTypePtr` (`var CounterMetricTypePtr = func() *dto.MetricType { d := dto.MetricType_COUNTER; return &d }()`): `func() *dto.MetricType { d := dto.MetricType_X; return &d }()` (the three `*MetricTypePtr`): each
+allocates a constant and returns its address: no panic, no effect beyond its variable.
+- `GaugeMetricTypePtr` (`var GaugeMetricTypePtr = func() *dto.MetricType { d := dto.MetricType_GAUGE; return &d }()`): `func() *dto.MetricType { d := dto.MetricType_X; return &d }()` (the three `*MetricTypePtr`): each
+allocates a constant and returns its address: no panic, no effect beyond its variable.
+- `UntypedMetricTypePtr` (`var UntypedMetricTypePtr = func() *dto.MetricType { d := dto.MetricType_UNTYPED; return &d }()`): `func() *dto.MetricType { d := dto.MetricType_X; return &d }()` (the three `*MetricTypePtr`): each
+allocates a constant and returns its address: no panic, no effect beyond its variable.
+- `labelsPool` (`var labelsPool = &sync.Pool{ New: func() any { return make(Labels) }, }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `V2` (`var V2 = v2{}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"github.com/prometheus/client_golang/prometheus.rmNamesForMemStatsMetrics", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var rmNamesForMemStatsMetrics = []string{ goGCHeapTinyAllocsObjects, goGCHeapAllocsObjects, goGCHeapFreesObjects, goGCHe … [sha256:2b5c34f52124cd70]"⟩,
+  ⟨"github.com/prometheus/client_golang/prometheus.nativeHistogramBounds", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var nativeHistogramBounds = [][]float64{ {0.5}, {0.5, 0.7071067811865475}, {0.5, 0.5946035575013605, 0.7071067811865475, … [sha256:7e5c5c7a1549983f]"⟩,
+  ⟨"github.com/prometheus/client_golang/prometheus.DefBuckets", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var DefBuckets = []float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10}"⟩,
+  ⟨"github.com/prometheus/client_golang/prometheus.errBucketLabelNotAllowed", "Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of\na constant format and constant arguments allocates the formatted error (fmt recovers a panic of a\nformatting method; the arguments have none). So each terminates, cannot panic and has no effect\nbeyond its variable.", "var errBucketLabelNotAllowed = fmt.Errorf( \"%q is not allowed as label name in histograms\", bucketLabel, )"⟩,
+  ⟨"github.com/prometheus/client_golang/prometheus.errInconsistentCardinality", "Its initializer calls, besides literals of constants and other variables' values: `errors.New` of a\nconstant allocates an `*errorString`. So it terminates, cannot panic and has no effect beyond its\nvariable.", "var errInconsistentCardinality = errors.New(\"inconsistent label cardinality\")"⟩,
+  ⟨"github.com/prometheus/client_golang/prometheus.separatorByteSlice", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var separatorByteSlice = []byte{model.SeparatorByte} // For convenient use with xxhash."⟩,
+  ⟨"github.com/prometheus/client_golang/prometheus.defaultRegistry", "Its initializer calls, besides literals of constants and other variables' values: `NewRegistry`\nallocates an empty `*Registry` (maps and a mutex). So it terminates, cannot panic and has no effect\nbeyond its variable.", "var defaultRegistry = NewRegistry()"⟩,
+  ⟨"github.com/prometheus/client_golang/prometheus.DefaultRegisterer", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var DefaultRegisterer Registerer = defaultRegistry"⟩,
+  ⟨"github.com/prometheus/client_golang/prometheus.DefaultGatherer", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var DefaultGatherer Gatherer = defaultRegistry"⟩,
+  ⟨"github.com/prometheus/client_golang/prometheus._@registry.go:1039", "An interface check: `&MultiTRegistry{}` converted to `TransactionalGatherer`. No call, no panic, no\neffect.", "var _ TransactionalGatherer = &MultiTRegistry{}"⟩,
+  ⟨"github.com/prometheus/client_golang/prometheus.errQuantileLabelNotAllowed", "Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of\na constant format and constant arguments allocates the formatted error (fmt recovers a panic of a\nformatting method; the arguments have none). So each terminates, cannot panic and has no effect\nbeyond its variable.", "var errQuantileLabelNotAllowed = fmt.Errorf( \"%q is not allowed as label name in summaries\", quantileLabel, )"⟩,
+  ⟨"github.com/prometheus/client_golang/prometheus.CounterMetricTypePtr", "`func() *dto.MetricType { d := dto.MetricType_X; return &d }()` (the three `*MetricTypePtr`): each\nallocates a constant and returns its address: no panic, no effect beyond its variable.", "var CounterMetricTypePtr = func() *dto.MetricType { d := dto.MetricType_COUNTER; return &d }()"⟩,
+  ⟨"github.com/prometheus/client_golang/prometheus.GaugeMetricTypePtr", "`func() *dto.MetricType { d := dto.MetricType_X; return &d }()` (the three `*MetricTypePtr`): each\nallocates a constant and returns its address: no panic, no effect beyond its variable.", "var GaugeMetricTypePtr = func() *dto.MetricType { d := dto.MetricType_GAUGE; return &d }()"⟩,
+  ⟨"github.com/prometheus/client_golang/prometheus.UntypedMetricTypePtr", "`func() *dto.MetricType { d := dto.MetricType_X; return &d }()` (the three `*MetricTypePtr`): each\nallocates a constant and returns its address: no panic, no effect beyond its variable.", "var UntypedMetricTypePtr = func() *dto.MetricType { d := dto.MetricType_UNTYPED; return &d }()"⟩,
+  ⟨"github.com/prometheus/client_golang/prometheus.labelsPool", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var labelsPool = &sync.Pool{ New: func() any { return make(Labels) }, }"⟩,
+  ⟨"github.com/prometheus/client_golang/prometheus.V2", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var V2 = v2{}"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.github_com.prometheus.client_golang.prometheus where
   pkgImportedPkgs := [pkg_id.errors, pkg_id.math, pkg_id.sync.atomic, pkg_id.time, pkg_id.github_com.prometheus.client_model.go]
-
-opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -1089,56 +1090,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
-  (App (Val doExecute)
-  (App (Val V2.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val labelsPool.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val UntypedMetricTypePtr.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val GaugeMetricTypePtr.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val CounterMetricTypePtr.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errQuantileLabelNotAllowed.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val DefaultGatherer.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val DefaultRegisterer.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val defaultRegistry.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val separatorByteSlice.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errInconsistentCardinality.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errBucketLabelNotAllowed.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val DefBuckets.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val nativeHistogramBounds.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val rmNamesForMemStatsMetrics.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.errors.initialize') (Val #()))))))
   (App (Val doExecute)

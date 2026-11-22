@@ -14,4 +14,4 @@ theorem backend.newPostKP_intro (γ : backend.BNames) (P : backend.BParams) (W P
 
 theorem backend.rdPoolN_val : backend.rdPoolN = 2 ^ 28
 
-theorem backend.wbInit_val : backend.wbInit = 2 ^ 40 - 1
+theorem backend.wbInit_val : backend.wbInit = 2 ^ 62 - 1

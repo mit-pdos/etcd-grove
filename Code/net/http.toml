@@ -8,3 +8,125 @@ imports = ["!*", "net/textproto"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`; until 2026-11-22
+# their initializers were untranslated, `opaqueInitsOk`). goose refuses a reference to one from
+# translated code, so no verified code reads them; each reason says why not running the
+# initializer is unobservable.
+[[skip]]
+names = ["DefaultClient", "sentinelHandler", "timeFormats", "headerSorterPool", "NoBody",
+  "maxSlice", "ErrNotSupported", "ErrUnexpectedTrailer", "ErrMissingBoundary", "ErrNotMultipart",
+  "ErrHeaderTooLong", "ErrShortBody", "ErrMissingContentLength", "reqWriteExcludeHeader",
+  "multipartByReader", "respExcludeHeader", "ErrBodyNotAllowed", "ServerContextKey",
+  "LocalAddrContextKey", "crlf", "colonSpace", "copyBufPool", "extraHeaderKeys",
+  "headerContentLength", "headerDate", "rstAvoidanceDelay", "ErrAbortHandler", "DefaultServeMux",
+  "stateName", "uniqNameNext", "socksnoDeadline", "ErrLineTooLong", "suppressedHeaders304",
+  "suppressedHeadersNoBody", "excludedHeadersNoBody", "singleCRLF", "doubleCRLF",
+  "ErrSkipAltProtocol", "testHookProxyConnectTimeout", "maxWriteWaitBeforeConnReuse", "errTimeout",
+  "errRequestCanceled", "testHookEnterRoundTrip", "testHookWaitResLoop",
+  "testHookRoundTripRetried", "testHookPrePendingDial", "testHookPostPendingDial", "testHookMu",
+  "testHookReadLoopBeforeNextRead", "gzipPool"]
+reason = """
+Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable."""
+
+[[skip]]
+names = ["ErrSchemeMismatch", "ErrUseLastResponse", "errBlankCookie", "errEqualNotFoundInCookie",
+  "errInvalidCookieName", "errInvalidCookieValue", "errCookieNumLimitExceeded",
+  "errCrossOriginRequest", "errCrossOriginRequestFromOldBrowser", "errInvalidUnsafePath",
+  "errSeeker", "errNoOverlap", "errMissingSeek", "errMissingReadDir", "ErrMissingFile",
+  "ErrNoCookie", "errMissingHost", "ErrNoLocation", "ErrHijacked", "ErrContentLength",
+  "ErrWriteAfterFlush", "errTooLarge", "ErrServerClosed", "ErrHandlerTimeout",
+  "ErrBodyReadAfterClose", "errTrailerEOF", "errCannotRewind", "errKeepAlivesDisabled",
+  "errConnBroken", "errCloseIdle", "errTooManyIdle", "errTooManyIdleHost", "errCloseIdleConns",
+  "errReadLoopExiting", "errIdleConnTimeout", "errServerClosedIdle", "errCallerOwnsConn",
+  "errClosedEarly", "errRequestCanceledConn", "errRequestDone", "errReadOnClosedResBody",
+  "errConcurrentReadOnResBody"]
+reason = """
+Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable."""
+
+[[skip]]
+names = ["httpcookiemaxnum", "httpservecontentkeepheaders", "httpservecontentmaxranges",
+  "httpmuxgo121", "http2server", "httplaxcontentlength", "http2client"]
+reason = """
+Their initializers call, besides literals of constants and other variables' values:
+`internal/godebug.New` of a constant name allocates a `*Setting` holding the name (the environment
+is read on the first `Value`, not here). So each terminates, cannot panic and has no effect beyond
+its variable."""
+
+[[skip]]
+names = ["cookieNameSanitizer", "headerNewlineToSpace", "htmlReplacer"]
+reason = """
+Their initializers call, besides literals of constants and other variables' values:
+`strings.NewReplacer` of an even number of constants allocates a replacer. So each terminates,
+cannot panic and has no effect beyond its variable."""
+
+[[skip]]
+names = ["unixEpochTime", "aLongTimeAgo", "socksaLongTimeAgo"]
+reason = """
+Their initializers call, besides literals of constants and other variables' values:
+`time.Unix`/`time.Date` of constants compute a `Time`. So each terminates, cannot panic and has no
+effect beyond its variable."""
+
+[[skip]]
+names = ["nopCloserType", "nopCloserWriterToType"]
+reason = """
+Their initializers call, besides literals of constants and other variables' values:
+`reflect.TypeOf`/`TypeFor` (and `Elem`) read the static type descriptor of a type; `io.NopCloser`
+wraps a reader in a new value. So each terminates, cannot panic and has no effect beyond its
+variable."""
+
+[[skip]]
+names = ["DefaultTransport"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values:
+`defaultTransportDialContext` returns the dialer's method value. So it terminates, cannot panic and
+has no effect beyond its variable."""
+
+[[skip]]
+names = ["_@http.go:200"]
+reason = """
+An interface check: `NoBody` converted to `io.WriterTo`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@http.go:201"]
+reason = """
+An interface check: `NoBody` converted to `io.ReadCloser`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@http2.go:162"]
+reason = """
+An interface check: `http2ResponseWriter{}` converted to `CloseNotifier`. No call, no panic, no
+effect."""
+
+[[skip]]
+names = ["_@http2.go:163"]
+reason = """
+An interface check: `http2ResponseWriter{}` converted to `Flusher`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@http2.go:164"]
+reason = """
+An interface check: `http2ResponseWriter{}` converted to `io.StringWriter`. No call, no panic, no
+effect."""
+
+[[skip]]
+names = ["_@server.go:1832"]
+reason = """
+An interface check: a nil pointer converted to `closeWriter`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@server.go:4122"]
+reason = """
+An interface check: a nil pointer converted to `Pusher`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@transport.go:2153"]
+reason = """
+An interface check: a nil pointer converted to `io.ReaderFrom`. No call, no panic, no effect."""
+# --- end of skipped package variables ---

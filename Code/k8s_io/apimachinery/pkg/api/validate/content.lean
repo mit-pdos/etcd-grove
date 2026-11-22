@@ -62,56 +62,6 @@ opaque labelValueErrMsg [GooseExts] [GoGlobalContext] : val
 
 opaque LabelValueMaxLength [GooseExts] [GoGlobalContext] : val
 
-noncomputable def dns1123LabelRegexp [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/validate/content.dns1123LabelRegexp"
-
-opaque dns1123LabelRegexp.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def dns1123SubdomainRegexp [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/validate/content.dns1123SubdomainRegexp"
-
-opaque dns1123SubdomainRegexp.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def dns1123SubdomainCaselessRegexp [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/validate/content.dns1123SubdomainCaselessRegexp"
-
-opaque dns1123SubdomainCaselessRegexp.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def cIdentifierRegexp [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/validate/content.cIdentifierRegexp"
-
-opaque cIdentifierRegexp.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def conditionReasonRegexp [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/validate/content.conditionReasonRegexp"
-
-opaque conditionReasonRegexp.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def labelKeyRegexp [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/validate/content.labelKeyRegexp"
-
-opaque labelKeyRegexp.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def IsQualifiedName [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/validate/content.IsQualifiedName"
-
-opaque IsQualifiedName.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def labelValueRegexp [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/validate/content.labelValueRegexp"
-
-opaque labelValueRegexp.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def pathSegmentNameMayNotBe [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/validate/content.pathSegmentNameMayNotBe"
-
-opaque pathSegmentNameMayNotBe.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def pathSegmentNameMayNotContain [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/validate/content.pathSegmentNameMayNotContain"
-
-opaque pathSegmentNameMayNotContain.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def IsDecimalInteger [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/validate/content.IsDecimalInteger"
 
@@ -169,6 +119,64 @@ noncomputable def IsPathSegmentName [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def IsPathSegmentPrefix [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/validate/content.IsPathSegmentPrefix"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `dns1123LabelRegexp` (`var dns1123LabelRegexp = regexp.MustCompile("^" + dns1123LabelFmt + "$")`): Their initializers call, besides literals of constants and other variables' values:
+`regexp.MustCompile` of a constant pattern compiles it (it panics only on an invalid pattern, and
+these compile: Go runs the initializer at every start of every program importing the package);
+compilation terminates. So each terminates, cannot panic and has no effect beyond its variable.
+- `dns1123SubdomainRegexp` (`var dns1123SubdomainRegexp = regexp.MustCompile("^" + dns1123SubdomainFmt + "$")`): Their initializers call, besides literals of constants and other variables' values:
+`regexp.MustCompile` of a constant pattern compiles it (it panics only on an invalid pattern, and
+these compile: Go runs the initializer at every start of every program importing the package);
+compilation terminates. So each terminates, cannot panic and has no effect beyond its variable.
+- `dns1123SubdomainCaselessRegexp` (`var dns1123SubdomainCaselessRegexp = regexp.MustCompile("^" + dns1123SubdomainFmtCaseless + "$")`): Their initializers call, besides literals of constants and other variables' values:
+`regexp.MustCompile` of a constant pattern compiles it (it panics only on an invalid pattern, and
+these compile: Go runs the initializer at every start of every program importing the package);
+compilation terminates. So each terminates, cannot panic and has no effect beyond its variable.
+- `cIdentifierRegexp` (`var cIdentifierRegexp = regexp.MustCompile("^" + cIdentifierFmt + "$")`): Their initializers call, besides literals of constants and other variables' values:
+`regexp.MustCompile` of a constant pattern compiles it (it panics only on an invalid pattern, and
+these compile: Go runs the initializer at every start of every program importing the package);
+compilation terminates. So each terminates, cannot panic and has no effect beyond its variable.
+- `conditionReasonRegexp` (`var conditionReasonRegexp = regexp.MustCompile("^" + conditionReasonFmt + "$")`): Their initializers call, besides literals of constants and other variables' values:
+`regexp.MustCompile` of a constant pattern compiles it (it panics only on an invalid pattern, and
+these compile: Go runs the initializer at every start of every program importing the package);
+compilation terminates. So each terminates, cannot panic and has no effect beyond its variable.
+- `labelKeyRegexp` (`var labelKeyRegexp = regexp.MustCompile("^" + labelKeyFmt + "$")`): Their initializers call, besides literals of constants and other variables' values:
+`regexp.MustCompile` of a constant pattern compiles it (it panics only on an invalid pattern, and
+these compile: Go runs the initializer at every start of every program importing the package);
+compilation terminates. So each terminates, cannot panic and has no effect beyond its variable.
+- `IsQualifiedName` (`var IsQualifiedName = IsLabelKey`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `labelValueRegexp` (`var labelValueRegexp = regexp.MustCompile("^" + labelValueFmt + "$")`): Their initializers call, besides literals of constants and other variables' values:
+`regexp.MustCompile` of a constant pattern compiles it (it panics only on an invalid pattern, and
+these compile: Go runs the initializer at every start of every program importing the package);
+compilation terminates. So each terminates, cannot panic and has no effect beyond its variable.
+- `pathSegmentNameMayNotBe` (`var pathSegmentNameMayNotBe = []string{".", ".."}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `pathSegmentNameMayNotContain` (`var pathSegmentNameMayNotContain = []string{"/", "%"}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"k8s.io/apimachinery/pkg/api/validate/content.dns1123LabelRegexp", "Their initializers call, besides literals of constants and other variables' values:\n`regexp.MustCompile` of a constant pattern compiles it (it panics only on an invalid pattern, and\nthese compile: Go runs the initializer at every start of every program importing the package);\ncompilation terminates. So each terminates, cannot panic and has no effect beyond its variable.", "var dns1123LabelRegexp = regexp.MustCompile(\"^\" + dns1123LabelFmt + \"$\")"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/validate/content.dns1123SubdomainRegexp", "Their initializers call, besides literals of constants and other variables' values:\n`regexp.MustCompile` of a constant pattern compiles it (it panics only on an invalid pattern, and\nthese compile: Go runs the initializer at every start of every program importing the package);\ncompilation terminates. So each terminates, cannot panic and has no effect beyond its variable.", "var dns1123SubdomainRegexp = regexp.MustCompile(\"^\" + dns1123SubdomainFmt + \"$\")"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/validate/content.dns1123SubdomainCaselessRegexp", "Their initializers call, besides literals of constants and other variables' values:\n`regexp.MustCompile` of a constant pattern compiles it (it panics only on an invalid pattern, and\nthese compile: Go runs the initializer at every start of every program importing the package);\ncompilation terminates. So each terminates, cannot panic and has no effect beyond its variable.", "var dns1123SubdomainCaselessRegexp = regexp.MustCompile(\"^\" + dns1123SubdomainFmtCaseless + \"$\")"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/validate/content.cIdentifierRegexp", "Their initializers call, besides literals of constants and other variables' values:\n`regexp.MustCompile` of a constant pattern compiles it (it panics only on an invalid pattern, and\nthese compile: Go runs the initializer at every start of every program importing the package);\ncompilation terminates. So each terminates, cannot panic and has no effect beyond its variable.", "var cIdentifierRegexp = regexp.MustCompile(\"^\" + cIdentifierFmt + \"$\")"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/validate/content.conditionReasonRegexp", "Their initializers call, besides literals of constants and other variables' values:\n`regexp.MustCompile` of a constant pattern compiles it (it panics only on an invalid pattern, and\nthese compile: Go runs the initializer at every start of every program importing the package);\ncompilation terminates. So each terminates, cannot panic and has no effect beyond its variable.", "var conditionReasonRegexp = regexp.MustCompile(\"^\" + conditionReasonFmt + \"$\")"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/validate/content.labelKeyRegexp", "Their initializers call, besides literals of constants and other variables' values:\n`regexp.MustCompile` of a constant pattern compiles it (it panics only on an invalid pattern, and\nthese compile: Go runs the initializer at every start of every program importing the package);\ncompilation terminates. So each terminates, cannot panic and has no effect beyond its variable.", "var labelKeyRegexp = regexp.MustCompile(\"^\" + labelKeyFmt + \"$\")"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/validate/content.IsQualifiedName", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var IsQualifiedName = IsLabelKey"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/validate/content.labelValueRegexp", "Their initializers call, besides literals of constants and other variables' values:\n`regexp.MustCompile` of a constant pattern compiles it (it panics only on an invalid pattern, and\nthese compile: Go runs the initializer at every start of every program importing the package);\ncompilation terminates. So each terminates, cannot panic and has no effect beyond its variable.", "var labelValueRegexp = regexp.MustCompile(\"^\" + labelValueFmt + \"$\")"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/validate/content.pathSegmentNameMayNotBe", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var pathSegmentNameMayNotBe = []string{\".\", \"..\"}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/validate/content.pathSegmentNameMayNotContain", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var pathSegmentNameMayNotContain = []string{\"/\", \"%\"}"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.api.validate.content where
   pkgImportedPkgs := []
 
@@ -178,35 +186,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apimachinery.pkg.api.validate.content)) (Lam BAnon
   (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val pathSegmentNameMayNotContain.init) (Val #())))))
-  (App (Val doExecute)
-  (App (Val pathSegmentNameMayNotBe.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val labelValueRegexp.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val IsQualifiedName.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val labelKeyRegexp.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val conditionReasonRegexp.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val cIdentifierRegexp.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val dns1123SubdomainCaselessRegexp.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val dns1123SubdomainRegexp.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val dns1123LabelRegexp.init) (Val #()))))))))
+  (Val #()))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
 

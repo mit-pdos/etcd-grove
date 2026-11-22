@@ -39,17 +39,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- **The trust boundary: `go_etcd_io.etcd.api.v3.authpb`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([file_auth_proto_enumTypes.init,
-        file_auth_proto_msgTypes.init,
-        file_auth_proto_goTypes.init,
-        file_auth_proto_depIdxs.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
 /-- **The trust boundary: `go_etcd_io.etcd.api.v3.authpb`'s untranslated `init` functions return.** Goose
 names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
 here, so the model does not unfold them (`@! init.<k>`: the semantics' `functions`, which
@@ -98,10 +87,6 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (wp_map_make1 (K := GoString) (V := w32) go.string go.int32) as %mv Hmv
   try wp_auto
   repeat (wp_apply (wp_mapInsert (K := GoString) (V := w32) go.string) $$ Hmv as Hmv; try wp_auto)
-  wp_apply (opaqueInitsOk file_auth_proto_enumTypes.init (by mem_tac))
-  wp_apply (opaqueInitsOk file_auth_proto_msgTypes.init (by mem_tac))
-  wp_apply (opaqueInitsOk file_auth_proto_goTypes.init (by mem_tac))
-  wp_apply (opaqueInitsOk file_auth_proto_depIdxs.init (by mem_tac))
   wp_apply (initFuncsOk init.«0» (by mem_tac))
   ipersist HPermission_Type_name
   ipersist Hmn

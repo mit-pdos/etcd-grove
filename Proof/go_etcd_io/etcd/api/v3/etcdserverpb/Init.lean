@@ -44,37 +44,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- **The trust boundary: `go_etcd_io.etcd.api.v3.etcdserverpb`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([file_etcdserver_proto_msgTypes.init,
-        file_etcdserver_proto_goTypes.init,
-        file_etcdserver_proto_depIdxs.init,
-        file_raft_internal_proto_msgTypes.init,
-        file_raft_internal_proto_goTypes.init,
-        file_raft_internal_proto_depIdxs.init,
-        AlarmType_name.init,
-        AlarmType_value.init,
-        RangeRequest_SortOrder_value.init,
-        RangeRequest_SortTarget_value.init,
-        Compare_CompareResult_name.init,
-        Compare_CompareResult_value.init,
-        Compare_CompareTarget_name.init,
-        Compare_CompareTarget_value.init,
-        WatchCreateRequest_FilterType_name.init,
-        WatchCreateRequest_FilterType_value.init,
-        AlarmRequest_AlarmAction_name.init,
-        AlarmRequest_AlarmAction_value.init,
-        DowngradeRequest_DowngradeAction_name.init,
-        DowngradeRequest_DowngradeAction_value.init,
-        file_rpc_proto_enumTypes.init,
-        file_rpc_proto_msgTypes.init,
-        file_rpc_proto_goTypes.init,
-        file_rpc_proto_depIdxs.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
 /-- **The trust boundary: `go_etcd_io.etcd.api.v3.etcdserverpb`'s untranslated `init` functions return.** Goose
 names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
 here, so the model does not unfold them (`@! init.<k>`: the semantics' `functions`, which
@@ -129,40 +98,16 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (_root_.Perennial.go_etcd_io.etcd.api.v3.authpb.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
   wp_apply (_root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (_root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (opaqueInitsOk file_etcdserver_proto_msgTypes.init (by mem_tac))
-  wp_apply (opaqueInitsOk file_etcdserver_proto_goTypes.init (by mem_tac))
-  wp_apply (opaqueInitsOk file_etcdserver_proto_depIdxs.init (by mem_tac))
-  wp_apply (opaqueInitsOk file_raft_internal_proto_msgTypes.init (by mem_tac))
-  wp_apply (opaqueInitsOk file_raft_internal_proto_goTypes.init (by mem_tac))
-  wp_apply (opaqueInitsOk file_raft_internal_proto_depIdxs.init (by mem_tac))
-  wp_apply (opaqueInitsOk AlarmType_name.init (by mem_tac))
-  wp_apply (opaqueInitsOk AlarmType_value.init (by mem_tac))
   -- translated initializer of RangeRequest_SortOrder_name))
   try wp_auto
   wp_apply (wp_map_make1 (K := w32) (V := GoString) go.int32 go.string) as %mHso Hso
   try wp_auto
   repeat (wp_apply (wp_mapInsert (K := w32) (V := GoString) go.int32) $$ Hso as Hso; try wp_auto)
-  wp_apply (opaqueInitsOk RangeRequest_SortOrder_value.init (by mem_tac))
   -- translated initializer of RangeRequest_SortTarget_name))
   try wp_auto
   wp_apply (wp_map_make1 (K := w32) (V := GoString) go.int32 go.string) as %mHst Hst
   try wp_auto
   repeat (wp_apply (wp_mapInsert (K := w32) (V := GoString) go.int32) $$ Hst as Hst; try wp_auto)
-  wp_apply (opaqueInitsOk RangeRequest_SortTarget_value.init (by mem_tac))
-  wp_apply (opaqueInitsOk Compare_CompareResult_name.init (by mem_tac))
-  wp_apply (opaqueInitsOk Compare_CompareResult_value.init (by mem_tac))
-  wp_apply (opaqueInitsOk Compare_CompareTarget_name.init (by mem_tac))
-  wp_apply (opaqueInitsOk Compare_CompareTarget_value.init (by mem_tac))
-  wp_apply (opaqueInitsOk WatchCreateRequest_FilterType_name.init (by mem_tac))
-  wp_apply (opaqueInitsOk WatchCreateRequest_FilterType_value.init (by mem_tac))
-  wp_apply (opaqueInitsOk AlarmRequest_AlarmAction_name.init (by mem_tac))
-  wp_apply (opaqueInitsOk AlarmRequest_AlarmAction_value.init (by mem_tac))
-  wp_apply (opaqueInitsOk DowngradeRequest_DowngradeAction_name.init (by mem_tac))
-  wp_apply (opaqueInitsOk DowngradeRequest_DowngradeAction_value.init (by mem_tac))
-  wp_apply (opaqueInitsOk file_rpc_proto_enumTypes.init (by mem_tac))
-  wp_apply (opaqueInitsOk file_rpc_proto_msgTypes.init (by mem_tac))
-  wp_apply (opaqueInitsOk file_rpc_proto_goTypes.init (by mem_tac))
-  wp_apply (opaqueInitsOk file_rpc_proto_depIdxs.init (by mem_tac))
   -- translated initializer of KV_ServiceDesc))
   -- translated initializer of Watch_ServiceDesc))
   -- translated initializer of Lease_ServiceDesc))

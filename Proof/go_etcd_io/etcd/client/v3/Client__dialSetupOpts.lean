@@ -57,7 +57,7 @@ theorem Client.dialSetupOpts.wp_proof
   iunfold clientNewVars at Hvars
   icases Hvars with ⟨-, ⟨%n0, #Hn0⟩, ⟨%w0, #Hw0⟩, ⟨%j0, #Hj0⟩⟩
   iunfold dialOptsAt at Hds
-  icases Hds with ⟨%os, #Hos, %Hosds⟩
+  icases Hds with ⟨%os, #Hos, #Hosds⟩
   iStructNamed Hcfg
   wp_auto
   ihave Hnil := ownSlice_nil (V := GoInterface) (GF := GF) (DFrac.own 1)
@@ -65,11 +65,11 @@ theorem Client.dialSetupOpts.wp_proof
   -- (2026-10-21, D28) grpc's keepalive option first, if `DialKeepAliveTime` is positive
   wp_join iprop(c_ptr ↦ c ∗ ∃ (o0 : GoSlice) (ka : List GoInterface), opts_ptr ↦ o0 ∗
       o0 ↦* ka ∗ ownSliceCap GoInterface o0 (DFrac.own 1) ∗
-      ⌜List.Forall₂ grpcDialOptIs ka (kaOpts cfg)⌝) at next
-      with [c opts Hnil Hnilc] as ⟨c, %o0, %ka, opts, Ho0, Ho0c, %Hka⟩
+      ([∗list] o;d ∈ ka;kaOpts cfg, grpcDialOptIs o d)) at next
+      with [c opts Hnil Hnilc] as ⟨c, %o0, %ka, opts, Ho0, Ho0c, #Hka⟩
   · wp_if_destruct
     · (try wp_auto)
-      wp_apply wp_WithKeepaliveParams _ $$ [$Hgrpc] as %kv %Hkv
+      wp_apply wp_WithKeepaliveParams _ $$ [$Hgrpc] as %kv #Hkv
       wp_apply wp_slice_literal (V := GoInterface) [kv]
       isplitr
       · ipureintro; rfl
@@ -83,35 +83,33 @@ theorem Client.dialSetupOpts.wp_proof
       iframe c
       iexists ok, [kv]
       iframe
-      ipureintro
       unfold kaOpts
       have hpos : 0 < sint.Z cfg.DialKeepAliveTime' := by
         have h0 : sint.Z (W64 0) = 0 := by decide
         word
       simp only [hpos, ↓reduceIte]
-      exact .cons Hkv .nil
+      iapply BigSepL2.bigSepL2_singleton.2; iexact Hkv
     · wp_join_done
       iframe c
       iexists slice.nil, []
       iframe opts Hnil Hnilc
-      ipureintro
       unfold kaOpts
       have hneg : ¬ 0 < sint.Z cfg.DialKeepAliveTime' := by
         have h0 : sint.Z (W64 0) = 0 := by decide
         word
       simp only [hneg, ↓reduceIte]
-      exact .nil
+      iapply BigSepL2.bigSepL2_nil.2; iempintro
   wp_apply wp_slice_append_dfrac (V := GoInterface) o0 ka (DFrac.own 1) sl os DFrac.discard
     $$ [$Ho0 $Ho0c $Hos] as %o1 ⟨Ho1, Ho1c, -⟩
   · ipureintro; exact DFrac.valid_own_one
   wp_join iprop(∃ (o2 : GoSlice) (v : GoInterface), opts_ptr ↦ o2 ∗ o2 ↦* (ka ++ os ++ [v]) ∗
-      ownSliceCap GoInterface o2 (DFrac.own 1) ∗ ⌜grpcDialOptIs v .transportCreds⌝) at next
-      with [opts Ho1 Ho1c creds] as ⟨%o2, %v, opts, Ho2, Ho2c, %Hv⟩
+      ownSliceCap GoInterface o2 (DFrac.own 1) ∗ grpcDialOptIs v .transportCreds) at next
+      with [opts Ho1 Ho1c creds] as ⟨%o2, %v, opts, Ho2, Ho2c, #Hv⟩
   · cases cr with
     | nil =>
       wp_auto
       wp_apply wp_NewCredentials $$ [$Hins] as %ic -
-      wp_apply wp_WithTransportCredentials ic $$ [$Hgrpc] as %v %Hv
+      wp_apply wp_WithTransportCredentials ic $$ [$Hgrpc] as %v #Hv
       wp_apply wp_slice_literal (V := GoInterface) [v]
       isplitr
       · ipureintro; rfl
@@ -119,11 +117,10 @@ theorem Client.dialSetupOpts.wp_proof
       wp_apply wp_slice_append $$ [$Ho1 $Ho1c $Hl] as %o2 ⟨Ho2, Ho2c, -⟩
       wp_join_done
       iexists o2, v
-      iframe
-      ipureintro; exact Hv
+      iframe; try iexact Hv
     | ok cri =>
       wp_auto
-      wp_apply wp_WithTransportCredentials (GoInterface.ok cri) $$ [$Hgrpc] as %v %Hv
+      wp_apply wp_WithTransportCredentials (GoInterface.ok cri) $$ [$Hgrpc] as %v #Hv
       wp_apply wp_slice_literal (V := GoInterface) [v]
       isplitr
       · ipureintro; rfl
@@ -131,8 +128,7 @@ theorem Client.dialSetupOpts.wp_proof
       wp_apply wp_slice_append $$ [$Ho1 $Ho1c $Hl] as %o2 ⟨Ho2, Ho2c, -⟩
       wp_join_done
       iexists o2, v
-      iframe
-      ipureintro; exact Hv
+      iframe; try iexact Hv
   wp_join iprop(c_ptr ↦ c ∗ ∃ n : w64, unaryMaxRetries_ptr ↦ n) with [c unaryMaxRetries]
     as ⟨c, %nr, unaryMaxRetries⟩
   all_goals try (iframe; iexists _; iframe)
@@ -163,7 +159,7 @@ theorem Client.dialSetupOpts.wp_proof
     iapply BigSepL.bigSepL_cons.2; iframe Hrro
     iapply BigSepL.bigSepL_nil.2; itrivial
   wp_apply wp_streamIc c _ [m0, rro] $$ [$Hc $Hl1 $Hros1] as %si %Hsi
-  wp_apply wp_WithStreamInterceptor si $$ [$Hgrpc] as %o3 %Ho3
+  wp_apply wp_WithStreamInterceptor si $$ [$Hgrpc] as %o3 #Ho3
   wp_apply wp_withMax nr as %m1 #Hm1
   wp_apply wp_slice_literal (V := go_etcd_io.etcd.client.v3.retryOption) [m1, rro]
   isplitr
@@ -176,7 +172,7 @@ theorem Client.dialSetupOpts.wp_proof
     iapply BigSepL.bigSepL_cons.2; iframe Hrro'
     iapply BigSepL.bigSepL_nil.2; itrivial
   wp_apply wp_unaryIc c _ [m1, rro] $$ [$Hc $Hl2 $Hros2] as %ic #Hic
-  wp_apply wp_WithUnaryInterceptor ic $$ [$Hgrpc] as %o4 %Ho4
+  wp_apply wp_WithUnaryInterceptor ic $$ [$Hgrpc] as %o4 #Ho4
   wp_apply wp_slice_literal (V := GoInterface) [o3, o4]
   isplitr
   · ipureintro; rfl
@@ -193,9 +189,23 @@ theorem Client.dialSetupOpts.wp_proof
   · iunfold dialOptsAt
     iexists _
     iframe Ho5
-    ipureintro
     simp only [List.append_assoc, List.cons_append]
-    exact List.Forall₂.append Hka (List.Forall₂.append Hosds (.cons Hv (.cons Ho3 (.cons Ho4 .nil))))
+    ihave %Hlka := BigSepL2.bigSepL2_length $$ Hka
+    ihave %Hlos := BigSepL2.bigSepL2_length $$ Hosds
+    iapply (BigSepL2.bigSepL2_append (Or.inl Hlka)).2
+    isplitl []
+    · iexact Hka
+    iapply (BigSepL2.bigSepL2_append (Or.inl Hlos)).2
+    isplitl []
+    · iexact Hosds
+    iapply BigSepL2.bigSepL2_cons.2
+    isplitl []
+    · iexact Hv
+    simp only [List.nil_append]
+    iapply BigSepL2.bigSepL2_cons.2
+    isplitl []
+    · iexact Ho3
+    iapply BigSepL2.bigSepL2_singleton.2; iexact Ho4
   ipureintro; exact Hsi
 
 end proof

@@ -114,11 +114,32 @@ collections' baselines saying what it removes.
   failed call and the stream kinds against grpc-go's. One visible difference: a connection per stream
   means one `ConnBegin`/`ConnEnd` pair per call. The trusted claim is narrowed in `models/README.md` to
   programs whose behavior does not depend on how many connections carry their calls; otelgrpc's
-  `TagConn`/`HandleConn` do nothing. Client stats handlers still panic `NotModelled`. Next in S1: the dial side (`dialOptions` needs `internal/transport`,
-  `channelz`, `internal/backoff` types), the model calling stats handlers (#24, U2), then
-  `NewServer` and `RegisterService`.
-- **S2, the unary pair** (`grpc.model.*`, the trusted `Serve` body, `grpcReplyTo`, `Invoke`'s
-  attempt, `grpc.start`): over `model_transport.go`/`model_wire.go` and the net extension's `Conn`,
+  `TagConn`/`HandleConn` do nothing. Client stats handlers still panic `NotModelled`. **The dial side (2026-11-22,
+  branch `phase7-dial`).** `grpcDialOptIs o d` is a definition (`InvDial.lean`): a read-only
+  `*funcDialOption` whose closure's persistent WP over `p ↦ dopt` sets what `d` sets
+  (`dialOptSets`) and keeps the other descriptor fields (`dialOptsKeep`); `.resolvers` and
+  `.perRPCCreds` own the slice they append to. `dialOptsAt`'s fact is a `[∗list]`. Proved over the
+  model's bodies: `WithTransportCredentials`, `WithPerRPCCredentials`, `WithUnaryInterceptor`,
+  `WithStreamInterceptor`, `WithResolvers`. `WithKeepaliveParams` stays an axiom (it calls grpc's
+  logger), restated. For `dialOptions`/`connectOptions` to be translated structs: grpc imports `net`
+  and `resolver` too (their instances moved before grpc's in the cache's `Base.lean`), and the model's
+  dial structs name no type of `internal/backoff`, `internal/binarylog`, `channelz` or `mem`
+  (`withBinaryLogger`, `WithChannelzParentID`, `withBufferPool` panic `NotModelled`; the reconnect
+  backoff is `DefaultExponential`, a timing). Trust base −6 (the five, `grpcDialOptIs`). client/v3's
+  `Client__dial*` proofs adjusted. Landed `bbc60799b2`. S1 ends here: `NewServer` and
+  `RegisterService` move to S2 (2026-11-22). Proving them means defining `grpcSrvNew` over the model's
+  `Server` (its services map, the chained interceptor), the predicate the stage-B `Serve` axioms
+  (`acceptRun`, ...) read, so its definition is S2's server invariant; the `Server` struct is also
+  opaque until grpc imports `internal/grpcsync` and the model's `traceEventLog` is dropped.
+- **S2, the unary pair** (`NewServer`, `RegisterService`, `grpc.model.*`, the trusted `Serve` body,
+  `grpcReplyTo`, `Invoke`'s attempt, `grpc.start`). **A resource for the callees (2026-11-22, proving
+  session 2's request on #24):** the contracts S2 restates, the client interceptor chain and the attempt
+  (`grpcInvokerOk`, as `ClientConn.Invoke`/`NewStream` use it), per-RPC credentials'
+  `GetRequestMetadata` and the server interceptor chain (`grpcSrvChain`/`srvChainWP`), take a resource
+  parameter the caller passes in and gets back (as `isTransporter tr Rd`), so that etcd's
+  `Client.Endpoints`, `perRPCCredential.GetRequestMetadata` and `api.IsCapabilityEnabled` can trade it
+  for an `RWMutex` reader slot (`/shared/tmp/ps2/rdslot/design.md`, rafthttp's `8f442de83b`); draft
+  signatures go to #24 before the proofs. over `model_transport.go`/`model_wire.go` and the net extension's `Conn`,
   from dsverify's unary proofs (Q2). Needs S4's deployment, or an interim single-machine statement
   over `goose_dist_adequacy` with one machine, which keeps `etcd_safe`'s single process but adds the
   net extension.
@@ -137,12 +158,11 @@ collections' baselines saying what it removes.
 
 ## For the user
 
-1. **The deployment statement (S2/S4).** May `etcd_safe` (and each etcd example's theorem) change from
-   one process over `addrsUnclaimed` to one machine per member under a deployment plan, with the net
-   extension? The interim alternative keeps one machine but adds the net extension. Until decided, S0
-   and S1 go ahead (they change no statement).
-2. **Stats handlers in the grpc model (S1):** keep them (the model calls the program's handler, as
-   grpc-go does) or a premise that none is installed. Recommended: keep them, since etcd installs one.
+1. **The deployment statement (S2/S4).** Decided 2026-11-22 (the user's answer, relayed by kaashoek on
+   #24): one machine per member, over the net extension. The `net` half of the names-only swap goes to
+   kaashoek's sessions once `phase7-dial` landed (it has, `bbc60799b2`); `net/http` stays here (S5).
+2. **Stats handlers in the grpc model (S1):** kept (landed, `phase7-stats`). Open: the user's approval
+   of the narrowed trusted claim (a handler sees a connection begin/end per stream; #24).
 
 ## Risks
 

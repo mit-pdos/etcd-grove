@@ -98,10 +98,11 @@ opaque ElectionClient.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque electionClient.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque Election_ObserveClient [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def Election_ObserveClient.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/grpc.ServerStreamingClient" [LeaderResponse.ty])
 
 @[reducible] noncomputable def Election_ObserveServer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
-  (_root_.Perennial.google_golang_org.grpc.ServerStreamingServer.ty LeaderResponse.ty)
+  (go.GoType.Named go!"google.golang.org/grpc.ServerStreamingServer" [LeaderResponse.ty])
 
 opaque file_v3election_proto_rawDesc [GooseExts] [GoGlobalContext] : val
 
@@ -123,21 +124,6 @@ noncomputable def file_v3election_proto_rawDescOnce [GooseExts] [GoGlobalContext
 
 noncomputable def file_v3election_proto_rawDescData [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.file_v3election_proto_rawDescData"
-
-noncomputable def file_v3election_proto_msgTypes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.file_v3election_proto_msgTypes"
-
-opaque file_v3election_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def file_v3election_proto_goTypes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.file_v3election_proto_goTypes"
-
-opaque file_v3election_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def file_v3election_proto_depIdxs [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.file_v3election_proto_depIdxs"
-
-opaque file_v3election_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Election_ServiceDesc [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.Election_ServiceDesc"
@@ -599,6 +585,29 @@ noncomputable def ProclaimResponse.GetHeader.impl [GooseExts] [GoGlobalContext] 
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (Var "$res0"))))))
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `file_v3election_proto_msgTypes` (`var file_v3election_proto_msgTypes = make([]protoimpl.MessageInfo, 9)`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `file_v3election_proto_goTypes` (`var file_v3election_proto_goTypes = []any{ (*CampaignRequest)(nil), (*CampaignResponse)(nil), (*LeaderKey)(nil), (*Leade … [sha256:cdf38157561320d9]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `file_v3election_proto_depIdxs` (`var file_v3election_proto_depIdxs = []int32{ 9, 2, 9, 10, 2, 9, 2, 9, 0, 7, 3, 3, 5, 1, 8, 4, 4, 6, 13, 8, 8, 8, 0, }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.file_v3election_proto_msgTypes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_v3election_proto_msgTypes = make([]protoimpl.MessageInfo, 9)"⟩,
+  ⟨"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.file_v3election_proto_goTypes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_v3election_proto_goTypes = []any{ (*CampaignRequest)(nil), (*CampaignResponse)(nil), (*LeaderKey)(nil), (*Leade … [sha256:cdf38157561320d9]"⟩,
+  ⟨"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.file_v3election_proto_depIdxs", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_v3election_proto_depIdxs = []int32{ 9, 2, 9, 10, 2, 9, 2, 9, 0, 7, 3, 3, 5, 1, 8, 4, 4, 6, 13, 8, 8, 8, 0, }"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb where
   pkgImportedPkgs := [pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.google_golang_org.protobuf.reflect.protoreflect, pkg_id.google_golang_org.protobuf.runtime.protoimpl]
 
@@ -611,19 +620,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
   (App (Val doExecute)
   (App (Val Election_ServiceDesc.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val file_v3election_proto_depIdxs.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val file_v3election_proto_goTypes.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val file_v3election_proto_msgTypes.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.initialize') (Val #()))))))
   (App (Val doExecute)

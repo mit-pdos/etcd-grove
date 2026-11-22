@@ -114,6 +114,8 @@ def backend.crtSnap (γ : backend.BNames) (P : backend.BParams) (b crt rtx : Loc
                           □ backend.intvInv γ P rtx cm rv.fst ∗
                             □ backend.wgInv γ rtx rv.fst wg γw γo γt ∗ ⌜rv.snd.Wf ∧ backend.idsOk P rv.snd.bks ∧ P.Wf⌝)
 
+theorem backend.bufRc_persistent (st : backend.BSess) : Persistent (backend.bufRc st)
+
 theorem backend.fkVR_persistent (γ : backend.BNames) (g : backend.FkG) : Persistent (backend.fkVR γ
     g)
 
@@ -219,7 +221,7 @@ def backend.batchGhostAt (γ : backend.BNames) (P : backend.BParams) (st : backe
             monoNatAuthOwn γ.wbc 1 w ∗
               ghostVar γ.used (Qp.half 1) u ∗
                 dghostVar γ.opn (DFrac.own (Qp.half 1).half) false ∗
-                  backend.trkSide γ P st c ∗ backend.fkHalf γ P st ∗ ⌜backend.bgOk P st free n w u⌝)
+                  backend.trkSide γ P st c ∗ backend.fkHalf γ P st ∗ backend.bufRc st ∗ ⌜backend.bgOk P st free n w u⌝)
 
 def backend.viewAtD (γ : backend.BNames) (P : backend.BParams) (vd X : backend.VData) : IProp GF :=
   iprop(∃ L, backend.viewQ γ (Qp.half 1).half vd L ∗ ⌜backend.dlVd P vd L X⌝)
@@ -444,6 +446,9 @@ def backend.batchViewQ0 (γ : backend.BNames) (P : backend.BParams) (st : backen
 
 def backend.cmtInv (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) : IProp GF :=
   inv backend.cmtN (backend.cmtBody γ P W Pk)
+
+def backend.bufRc (st : backend.BSess) : IProp GF :=
+  iprop(∃ m, ⧖m ∗ ⌜backend.bufFit st m ∧ receiptBound GF ≤ 2 ^ 60⌝)
 
 theorem backend.cachedAt_persistent (γ : backend.BNames) (ver : w64) (i : Nat) : Persistent
     (backend.cachedAt γ ver i)
@@ -870,6 +875,9 @@ theorem backend.bFile_persistent (γ : backend.BNames) (path : GoString) : Persi
 
 theorem backend.cmtNames_persistent (γ : backend.BNames) (gm gc : GName) : Persistent
     (backend.cmtNames γ gm gc)
+
+def backend.bufFit (st : backend.BSess) (m : Nat) : Prop :=
+  ∀ (i : w64), (backend.bkOf st.R.bks i).length + (backend.bkOf st.W.bks i).length ≤ m
 
 def backend.wgOpen (γw : GName) (q : Qp) : IProp GF :=
   ghostVar γw q ()

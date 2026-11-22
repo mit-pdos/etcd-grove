@@ -877,6 +877,30 @@ noncomputable def ByteString.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore Field.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad Field.ty))) (Var "$res0"))))))
 
+/-- Float64 constructs a field that carries a float64. The way the
+    floating-point value is represented is encoder-dependent, so marshaling is
+    necessarily lazy.
+
+    go: field.go:122:6 -/
+noncomputable def Float64.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "key"
+  (Lam "val"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Field.ty))) (App (Val (GoInstruction (GoZeroVal Field.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "val" (App (Val (GoInstruction (GoAlloc go.float64))) (Var "val"))
+  (Let "key" (App (Val (GoInstruction (GoAlloc go.string))) (Var "key"))
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
+  (Let "$v1" (Val #(W8 9))
+  (Let "$v2" (App (Val (GoInstruction (Convert go.uint64 go.int64))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.float64))) (Var "val"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.math.Float64bits []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction (CompositeLiteral Field.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Key")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Type")) (ElementExpression _root_.Perennial.go_uber_org.zap.zapcore.FieldType.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"Integer")) (ElementExpression go.int64 (Var "$v2")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Field.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad Field.ty))) (Var "$res0"))))))
+
 /-- Int constructs a field with the given key and value.
 
     go: field.go:152:6 -/
@@ -2716,6 +2740,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Skip_unfold : FuncUnfold Skip [] Skip.impl
   Bool_unfold : FuncUnfold Bool' [] Bool.impl
   ByteString_unfold : FuncUnfold ByteString [] ByteString.impl
+  Float64_unfold : FuncUnfold Float64 [] Float64.impl
   Int_unfold : FuncUnfold Int' [] Int.impl
   Int64_unfold : FuncUnfold Int64 [] Int64.impl
   Int32_unfold : FuncUnfold Int32 [] Int32.impl
@@ -2793,6 +2818,7 @@ attribute [instance] Assumptions.objects_instance
   Assumptions.Skip_unfold
   Assumptions.Bool_unfold
   Assumptions.ByteString_unfold
+  Assumptions.Float64_unfold
   Assumptions.Int_unfold
   Assumptions.Int64_unfold
   Assumptions.Int32_unfold

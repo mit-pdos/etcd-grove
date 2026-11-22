@@ -67,8 +67,9 @@ variable [go_gctx : GoGlobalContext]
 
 /-- **`k8s_safe` as a robustness statement** (`Robustness.Robust`, `Robustness/Statement.lean`; see
 the file header): the program alone on one machine that never crashes, a fresh Go process (`Robust`'s
-premise), under `k8s_safe`'s other hypotheses: in every execution of fewer than `2 ^ 28 - 1` steps no
-thread is stuck and none has an unrecovered panic. -/
+premise), under `k8s_safe`'s other hypotheses (its boot premises `Hprem₁`/`Hprem₂` at every `n` with
+`n + 1 ≤ 2 ^ 48`, as `etcd_robust`'s): in every execution of fewer than `2 ^ 48` steps along
+which fewer than `2 ^ 28` threads are live, no thread is stuck and none has an unrecovered panic. -/
 def k8s_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.all.Assumptions]
@@ -105,15 +106,15 @@ def k8s_robust.spec : Prop :=
     (HAs : addrsUnclaimed (k8sProgram k₁ clients ops watchers wops steps₁ k₂ steps₂) (k8sAddrs k₁ k₂))
     (HDs : dataDirsAbsent (k8sProgram k₁ clients ops watchers wops steps₁ k₂ steps₂) (k8sDirs k₁ k₂))
     (HEnv : verifyEnvOff (k8sProgram k₁ clients ops watchers wops steps₁ k₂ steps₂))
-    (Hprem₁ : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC k8sGF,
+    (Hprem₁ : ∀ n : Nat, n + 1 ≤ 2 ^ 48 → ∀ hG : HeapGS .hasLC k8sGF,
       ⊢ k8s_etcd3N.premises (GF := k8sGF) (hG := k8sHeapAt hG lctx) k₁ n ids ps ctxs boot)
-    (Hprem₂ : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC k8sGF,
+    (Hprem₂ : ∀ n : Nat, n + 1 ≤ 2 ^ 48 → ∀ hG : HeapGS .hasLC k8sGF,
       ⊢ k8s_compactorN.premises (GF := k8sGF) (hG := k8sHeapAt hG lctx) k₂ n ids' ps' ctxs' boot')
     (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
     (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (k8sDirs k₁ k₂)),
     Robustness.Robust [] [(k8sProgram k₁ clients ops watchers wops steps₁ k₂ steps₂, σ)] g
-      (threads := 2 ^ 28) (bound := 2 ^ 28 - 1)
+      (threads := 2 ^ 28) (bound := 2 ^ 48)
 
 end adequacy
 end EtcdGrove

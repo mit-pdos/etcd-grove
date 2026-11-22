@@ -82,26 +82,6 @@ noncomputable def file_auth_proto_rawDescOnce [GooseExts] [GoGlobalContext] : Go
 noncomputable def file_auth_proto_rawDescData [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/authpb.file_auth_proto_rawDescData"
 
-noncomputable def file_auth_proto_enumTypes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/api/v3/authpb.file_auth_proto_enumTypes"
-
-opaque file_auth_proto_enumTypes.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def file_auth_proto_msgTypes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/api/v3/authpb.file_auth_proto_msgTypes"
-
-opaque file_auth_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def file_auth_proto_goTypes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/api/v3/authpb.file_auth_proto_goTypes"
-
-opaque file_auth_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def file_auth_proto_depIdxs [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/api/v3/authpb.file_auth_proto_depIdxs"
-
-opaque file_auth_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def file_auth_proto_rawDescGZIP [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/authpb.file_auth_proto_rawDescGZIP"
 
@@ -385,6 +365,34 @@ noncomputable def Role.GetKeyPermission.impl [GooseExts] [GoGlobalContext] : val
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType Permission.ty))))) (Var "$res0"))))))
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `file_auth_proto_enumTypes` (`var file_auth_proto_enumTypes = make([]protoimpl.EnumInfo, 1)`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `file_auth_proto_msgTypes` (`var file_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 4)`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `file_auth_proto_goTypes` (`var file_auth_proto_goTypes = []any{ (Permission_Type)(0), (*UserAddOptions)(nil), (*User)(nil), (*Permission)(nil), (*R … [sha256:16267bd4aaac1388]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `file_auth_proto_depIdxs` (`var file_auth_proto_depIdxs = []int32{ 1, 0, 3, 3, 3, 3, 3, 0, }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"go.etcd.io/etcd/api/v3/authpb.file_auth_proto_enumTypes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_auth_proto_enumTypes = make([]protoimpl.EnumInfo, 1)"⟩,
+  ⟨"go.etcd.io/etcd/api/v3/authpb.file_auth_proto_msgTypes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 4)"⟩,
+  ⟨"go.etcd.io/etcd/api/v3/authpb.file_auth_proto_goTypes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_auth_proto_goTypes = []any{ (Permission_Type)(0), (*UserAddOptions)(nil), (*User)(nil), (*Permission)(nil), (*R … [sha256:16267bd4aaac1388]"⟩,
+  ⟨"go.etcd.io/etcd/api/v3/authpb.file_auth_proto_depIdxs", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_auth_proto_depIdxs = []int32{ 1, 0, 3, 3, 3, 3, 3, 0, }"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.api.v3.authpb where
   pkgImportedPkgs := [pkg_id.google_golang_org.protobuf.reflect.protoreflect, pkg_id.google_golang_org.protobuf.runtime.protoimpl]
 
@@ -412,20 +420,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (Let "$v5" (Val #(W32 2))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.string go.int32)))) (LiteralValue [(KeyedElement (some (KeyExpression go.string (Var "$k0"))) (ElementExpression go.int32 (Var "$v1"))), (KeyedElement (some (KeyExpression go.string (Var "$k2"))) (ElementExpression go.int32 (Var "$v3"))), (KeyedElement (some (KeyExpression go.string (Var "$k4"))) (ElementExpression go.int32 (Var "$v5")))]))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
-  (App (Val doExecute)
-  (App (Val file_auth_proto_depIdxs.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val file_auth_proto_goTypes.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val file_auth_proto_msgTypes.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val file_auth_proto_enumTypes.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.int32)))) (Pair (App (Val (GoInstruction (GlobalVarAddr Permission_Type_value))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)

@@ -1,3 +1,22 @@
 # Names only (prove-ps2-metrics, 2026-11-22): the type of prometheus's metrics' `labelPairs`.
 translate = ["!*"]
 imports = ["!*"]
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`). goose refuses a
+# reference to one from translated code, so no verified code reads them; the reason says why not
+# running the initializer is unobservable. (`init.0`, `file_io_prometheus_client_metrics_proto_init()`,
+# which registers the file descriptor, stays names-only: `initFuncsOk`, as for etcd's `*pb` packages.)
+[[skip]]
+names = ["MetricType_name", "MetricType_value", "file_io_prometheus_client_metrics_proto_rawDesc",
+  "file_io_prometheus_client_metrics_proto_rawDescData", "file_io_prometheus_client_metrics_proto_enumTypes",
+  "file_io_prometheus_client_metrics_proto_msgTypes", "file_io_prometheus_client_metrics_proto_goTypes",
+  "file_io_prometheus_client_metrics_proto_depIdxs"]
+reason = """
+Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call
+(metrics.pb.go, client_model v0.6.3: the enum's name/value maps, the raw descriptor bytes and
+`rawDescData = rawDesc`, `make([]protoimpl.EnumInfo, 1)`, `make([]protoimpl.MessageInfo, 12)`, the
+Go types' and dependency indices' slices). Each terminates, cannot panic (its sizes, indices and
+keys are constants the compiler checks) and has no effect beyond its variable."""
+# --- end of skipped package variables ---

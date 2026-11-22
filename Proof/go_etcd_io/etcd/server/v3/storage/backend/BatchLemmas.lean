@@ -311,25 +311,6 @@ theorem pend_succ_nat {st : BSess} {P : BParams} (hst : sessWf P st)
   have := hst.2.2.2.2.1
   word
 
-/-- The bounds keep every bucket of both buffers below `bufBound`. -/
-theorem bgOk_bufBound {P : BParams} {st : BSess} {free : Bool} {n w u : Nat}
-    (hP : P.Wf) (hst : sessWf P st) (h : bgOk P st free n w u) (i : w64) :
-    (bkOf st.R.bks i).length + (bkOf st.W.bks i).length < bufBound := by
-  unfold bgOk at h
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, -, -⟩ := h
-  obtain ⟨a1, a2⟩ := h7 i
-  have hv : 0 ≤ uint.Z st.R.ver := by word
-  have hk : st.cnt.k < 2 ^ 40 := by omega
-  have hc : st.cnt.c ≤ st.cnt.k + 2 := by split at h3 <;> omega
-  have hm := hP.2.2.2.1
-  have hmc : P.hookMax * st.cnt.c ≤ 2 ^ 16 * (2 ^ 40 + 2) :=
-    Nat.mul_le_mul hm (by omega)
-  have hme : st.cnt.e ≤ 2 ^ 16 * (2 ^ 40 + 2) :=
-    Nat.le_trans h6 (Nat.mul_le_mul_right _ hm)
-  have hpn : sint.nat st.pend < 2 ^ 58 := by have := hst.2.2.2.2.2.1; word
-  unfold bufBound
-  omega
-
 /-! ## The hook's own keys (`hkData`) across a session's operations -/
 
 theorem hkData_put_other {P : BParams} (st : BSess) (bi : BucketInfo) (kb vb : GoString)

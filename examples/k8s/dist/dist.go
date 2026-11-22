@@ -2,13 +2,16 @@
 // of etcd-dist's (examples/etcd/dist, notes/etcd-dist-plan.md stages D1 and D8): every etcd member a
 // process of etcd-dist's server.Main on a machine of its own, and every Kubernetes component that is
 // a client of etcd on a machine of its own, its checks on an orchestrator machine that reaches the
-// components over Remote (examples/lib/remote). Two workloads, each on a cluster of its own as in
-// k8s_all (the store's k1 members, the compactor's k2):
+// components over Remote (examples/lib/remote). Two workloads at once over one cluster, as one etcd
+// cluster serves all of a control plane's API servers, its compaction running while they serve
+// (k8s_all's program gives each workload a cluster of its own: notes/k8s-dist.md, "One cluster"):
 //
 //   - store (store.go): the etcd3 store's workload (examples/k8s/etcd3's MainPartition): API server
 //     machines, each Kubernetes' etcd3 storage over its own kubernetes client, and an orchestrator
 //     that makes the clients' operations at them (remote.Do), records the history and checks it with
-//     porcupine against the driver's model, then with Kubernetes' checker;
+//     porcupine against the driver's model with foreign revisions (the compactor workload's writes),
+//     accepting etcd's "compacted" error on the reads at an old revision, then, where it applies,
+//     with Kubernetes' checker;
 //   - compactor (compactor.go): Kubernetes' compactor (examples/k8s/compactor's MainPartition): a
 //     writer machine, an API server machine per own compactor and one for the shared one, each API
 //     server's loop one remote.Report whose log the orchestrator checks.
