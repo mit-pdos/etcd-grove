@@ -4543,3 +4543,44 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   (Alternatively a raft API lemma `sentMsg ⊢ ∀ e ∈ st.ents, Type ≤ 2`, which needs raft's message invariant to
   track forwarded proposals' entries: not taken.)
 - **Decision.** Applied.
+
+## 2026-11-22: kvcheck's `randomChange` bounds its changes (KvNet)
+
+- **Spec.** `checker.randomChange.spec`'s post (`kvcheck/checker__randomChange.lean`): `⌜ccTransOk o⌝` becomes
+  `⌜ccTransOk o ∧ (ccToV2 o).changes.length ≤ 3⌝`.
+- **Defect.** `reconfigure` sends `PutConfChange(nil, cc)` through `checker.request`, whose premise bounds the
+  payload (`len + 17 < 2^63`, the frame's header); `encCC o` has at most `17 + 16 n` bytes (`encCC_length`),
+  so the bound needs `n` bounded, and the post said nothing of it. The code makes at most three changes
+  (`count` is `1` or `1 + below(3)`); the proof already tracked `cnt ≤ 3`.
+- **Evidence.** `checker__randomChange.lean` (the loop's invariant), `ConfCodec.lean`.
+- **Proposed change.** As above (a stronger post).
+- **Decision.** Applied.
+
+## 2026-11-22: kvcheck's `fresh`/`do`/`read` at the store; `read` gets a prophecy (KvNet, Go and Lean)
+
+- **Spec.** kvcheck's checker (`kvcheck/Defs.lean`): `CheckerNames` (the ghost maps of issued numbers) and
+  `issued` go; the lock's invariant `checkerInv c γ` holds, with the two counters `a`, `b`, a counter
+  predicate `γ false a ∗ γ true b` (`γ : CheckerCnt GF := Bool → w64 → IProp GF`, the caller's: at the
+  top, the store's op counter half and the read sequence numbers of every replica id, `kvCnt`).
+  `checker.fresh.spec` takes a minting law `∀ a, ⌜uint.Z a + 1 < 2^64⌝ -∗ γ w a ={⊤}=∗ γ w (a + 1) ∗ L (a + 1)`
+  and returns `L n` (no more `issued γ w n`). `checker.do.spec`/`checker.read.spec`: stated at the store
+  (`kvFacts γ cf`, the checker's counters `kvCnt γ ls`, `rkvInv γ`), logically atomic as kvdurable's
+  `Cluster.do`/`Read` (an `AU` over `rkvVal γ` in, `Φ` of the answer out), in place of the caller's minting
+  laws and the answer's fact. The other kvcheck specs: `CheckerNames` becomes `CheckerCnt GF` (no other change).
+  Raft: a new API module `ReadCtxLaws` (`readCtxAfter_agree`: a read context's log is unique).
+- **Defect.** The old specs cannot be linked to the store (found writing `Check`): `do` fired its minting
+  law outside the checker's lock on an `issued` token, but `kd_mint` mints at the store's op counter, in
+  order (`ghostVar γ.r.opn ½ nop`, mints `nop + 1`); `do`'s post dropped the ticket `kd_collect` needs; and
+  a linearizable read needs its answer prophesied (the linearization point is the first change after
+  which the key has the answer: kvdurable's `Cluster.Read`), which kvcheck's `read` did not have. The
+  replica's read answer names the context's committed log existentially (`ansReadK`), so the client needs
+  the log it minted the context after to be that one: agreement on raft's `ctxs` map (`readCtxAfter`,
+  sealed).
+- **Evidence.** `notes/kvnet-part.md`, "kvcheck's decoders, `conf`, `reconfigure`; the plan for `Check`";
+  kvdurable's `Cluster__do.lean`/`Cluster__Read.lean`.
+- **Proposed change.** As above. Go: `checker.read` creates `primitive.NewProph()` and resolves it with the
+  answer (`trusted_proph.ResolveBytes(p, v)`, gokv's, as kvdurable's `Cluster.Read`; no effect in Go),
+  `examples/raft/kvnet/go.mod` requires gokv, project kvnet maps gokv to the main tree. Minting under the
+  lock: `do`'s law is `kd_mint` (the counter is the op counter half); `read`'s mints, at every replica id
+  at once, the context of the fresh number after the log of the read's start (`kd_mint_next`).
+- **Decision.** Applied (the prophecy: the coordinator's decision, 2026-11-22).

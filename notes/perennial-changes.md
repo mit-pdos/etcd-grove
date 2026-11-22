@@ -124,7 +124,31 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 - **Proposed (general).** `neg_float64 (v : w64) : ⟦GoUnOp GoNeg go.float64, #v⟧ ⤳[under] #(float64Neg v)` and its
   `float32` twin, completing the existing scheme (a trusted-semantics change: Perennial's `fix-semantics` workflow,
   with the user's sign-off).
-- **Status.** Not started.
+- **Status.** Landed: Perennial `c14cca87a` (#654, IEEE 754 floats: `neg_float64`/`neg_float32`, relational,
+  `wp_float64_neg`), in the pin since `d845edaf90`. `Limiter.Reserve` is proved over the real code
+  (prove-metrics-float, 2026-11-22: `reserveN`, `advance`, `durationFromTokens`, `tokensFromDuration` translated).
+
+### `ExponentialBuckets` and `math.Ceil` after the IEEE 754 floats: what is still missing (2026-11-22, prove-metrics-float, claim #27)
+
+- **`ExponentialBuckets`.** Its translation needs nothing new (`histogram.go:315`, `panic`, `make`, a loop of
+  `start *= factor`), and Perennial `c14cca87a` steps every operation. What its spec (exact buckets, `expBuckets`:
+  `start`'s bits plus `i * 2^52`) needs is the doubling law, now a theorem of Perennial's model rather than an
+  assumption: for a positive normal `x` (`2^52 ≤ x.toNat < 0x7FE0000000000000`, sign clear),
+  `float64Encodes (float64Mul x 0x4000000000000000) f ↔ f = x + 2^52` (`mulDef`'s `round false (m * 2)` of a
+  significand on the grid: `floorLog2 ((2^52 + T) * pow2 k) = 52 + k`, `roundHalfEven` of an integer, `encode` of a
+  normal). It is a fact about Perennial's own definitions that belongs to no Go package, so it goes to Perennial's
+  `Perennial/Golang/Theory/Float.lean` (CLAUDE.md, "There is no `Proof/Lib/`"), with the general `floorLog2`
+  characterization (`pow2 (floorLog2 a) ≤ a < pow2 (floorLog2 a + 1)` for `a > 0`) it rests on. Until then
+  `prometheus.ExponentialBuckets.wp_proof` stays an axiom (its spec re-read against v1.24.1: true, no float edge case
+  reached: `start` normal and positive, `factor = 2`, every bucket normal; the product after the last may overflow
+  to `+Inf`, unused).
+- **`math.Ceil`.** Perennial's `math.toml` translates only constants and tables: `Ceil` has no body, and on amd64
+  (and arm64, 386, ...) it is `archCeil`, assembly (`floor_amd64.s`: `ROUNDSD` with SSE4.1, else a bit-level
+  fallback), behind `haveArchCeil`, an opaque constant of the translation. Proposed: translate `Ceil`/`ceil`/`floor`/
+  `Modf` and model `archCeil` (or `haveArchCeil = false` with a trusted equivalence: `ceil`'s Go body is exact),
+  with a spec (the least integral float `≥ x`; NaN, `±Inf`, `±0` unchanged). Until then `math.Ceil.wp_proof` stays
+  an axiom (its spec, some `float64`, is true: `Ceil` never panics).
+- **Status.** Not started (to be filed by the claim's coordinator).
 
 ### Float facts: `FloatOps` has no laws, so no float-dependent panic can be excluded (2026-11-20, prove-promdeep)
 
