@@ -37,8 +37,8 @@ names).
 | `etcd/auth` | `authkv` | authentication: users, roles, permissions, tokens | – (retired 2026-11-21: `etcd_safe`) |
 | `etcd/txnlin` | `linkvtxn` | porcupine over the KV API with transactions, as etcd's robustness tester drives it | – (retired 2026-11-21: `etcd_safe`) |
 | `etcd/partition` | `linkv3p` | `txnlin` on three members under network partitions, and a watch | – (retired 2026-11-21: `etcd_safe`) |
-| `etcd/all` | – | the twelve drivers at once in one process (txnlinfaultsN, partition's `MainWatch`, compactwatch, compacted, cache, authN, authlease, leaseN, leasecatchup, restartN, restart1; `notes/etcd-unified-scope.md`); the other `etcd/` drivers' closed theorems retired into it | `etcd_safe` (`etcd_robust`) |
-| `etcd/leaseexpiryN` | – | `leaseexpiry` on `k` members (not in `etcd/all`: its expiry contradicts the lease premise of authlease and leasecatchup) | `etcd_leaseexpiryN_safe` |
+| `etcd/all` | – | the twelve drivers at once in one process (txnlinfaultsN, partition's `MainWatch`, compactwatch, compacted, cache, authN, authlease, leaseN, leasecatchup, restartN, restart1; `notes/etcd-unified-scope.md`); the other `etcd/` drivers' closed theorems retired into it | – (retired 2026-11-22 at the net swap; `etcd_dist_safe` is to replace it) |
+| `etcd/leaseexpiryN` | – | `leaseexpiry` on `k` members (not in `etcd/all`: its expiry contradicts the lease premise of authlease and leasecatchup) | – (retired 2026-11-22 at the net swap; `etcd_dist_safe` is to replace it) |
 | `etcd/bugs` | `etcdbugs` | reproductions of bugs found (`issues/`); not translated | – |
 
 ## `k8s/`: Kubernetes over etcd
@@ -49,7 +49,7 @@ names).
 | `k8s/daemonset` | `k8sdaemonset` | a DaemonSet controller over an API-server model | – |
 | `k8s/authz` | – | Kubernetes' conditional authorization (KEP-5681, the fork github.com/luxas/kubernetes `c67a81026c8b`) as kube-apiserver runs it: phase 1 (`ConditionsAwareAuthorize`) and phase 2 (`EvaluateConditions`) of a union of leaf authorizers that behave arbitrarily, including lying in phase 2; `Main` panics if phase 2 returns an unknown decision or one phase 1 excluded (projects `k8s-authz`, `k8s-authz-driver`) | `k8s_authz_safe` (`k8s_authz_robust`) |
 | `k8s/compactor` | – | Kubernetes' etcd compactor as API servers run it: five API servers (three compactors of their own, two sharing one) and a writer on one member compacting only at its clients' requests (K3, K4 of `notes/k8s-compactor-plan.md`), and on three members under network partitions, any schedule (`MainPartition`, K6; run by `k8s/all`) | – (its closed theorems retired 2026-11-20: `k8s_safe`) |
-| `k8s/all` | – | the two at once in one process: `k8s/etcd3`'s `MainPartition` on `k` members and `k8s/compactor`'s on three more, under two partition schedules (`notes/k8s-unified-scope.md`) | `k8s_safe` (`k8s_robust`) |
+| `k8s/all` | – | the two at once in one process: `k8s/etcd3`'s `MainPartition` on `k` members and `k8s/compactor`'s on three more, under two partition schedules (`notes/k8s-unified-scope.md`) | – (retired 2026-11-22 at the net swap; `etcd_dist_safe` is to replace it) |
 
 ## `bbolt/`: bbolt (`go.etcd.io/bbolt`, the fork with its bodies; the part `Bbolt/`)
 

@@ -807,7 +807,7 @@ fix is Perennial's (`notes/perennial-changes.md`).
   (2026-10-23) left the count as it was: `mvcc.store.restore.wp_proof` a theorem,
   `mvcc.kbNoCmp_metaNone` added. Restore R5f (2026-10-24): 614, `mvcc.store.Restore.wp_proof` a
   theorem.
-- Collections (`etc/tcb-collections/*.txt`; the counts are each file's `axiom` lines; `k8s-all`
+- Collections (`etc/tcb-collections/*.txt`; the counts are each file's `axiom` lines;
   has no `sorry` line):
   | collection | axioms | what |
   |---|---|---|
@@ -821,7 +821,6 @@ fix is Perennial's (`notes/perennial-changes.md`).
   | `client` | 109 | the client's KV path over gRPC (`client/v3/Link.lean`) |
   | `concurrency` | 7 | `client/v3/concurrency` |
   | `k8s` | 75 | the Kubernetes etcd3 store and its kubernetes client (`--k8s`, `--k8s-etcd3` Links) |
-  | `k8s-all` | 597 | the one closed Kubernetes theorem `k8s_safe` (the store and the compactor at once; 2026-11-20) |
   | `kv` | 18 | the key-value store example (`raft_kv_porcupine_safe`) |
   | `lease` | 24 | the client's lessor (`client/v3/lease.go`) |
   | `lease-served` | 65 | the Lease service's unary path from the gRPC handlers |
@@ -856,13 +855,6 @@ from a fresh state with one thread: no thread is stuck, none ended in a panic (s
 own check never failed), and the main thread's result, if any, is as stated. The statements and
 `#print axioms` are in each `Results.lean`, whose header says more.
 
-- **`k8s_safe`** (`Proof/github_com/mit_pdos/etcd_grove/examples/k8s/all/Results.lean`, from `Adequacy.lean`'s
-  `k8s_adequate`; robustness form `k8s_robust`; 2026-11-20, `notes/k8s-unified-scope.md`): `examples/k8s/all` -- in one
-  process, the Kubernetes etcd3 store's partitioned workload on `k` members (porcupine and Kubernetes' own checker against
-  the driver's model) and Kubernetes' compactor run by five API servers and a writer on three more members, each cluster
-  under its own partition schedule, for every `1 ≤ k ≤ 1000` and every two schedules -- returns `#()`. Premises: the two
-  drivers' partition premises and `Hlow` (the process's member ids' 16 low bits distinct). It replaces the five closed
-  theorems `k8s_etcd3{,_cluster,_partition}_safe` and `k8s_compactor{,_partition}_safe` (retired).
 - **`raft_kv_porcupine_safe`** (`Proof/github_com/mit_pdos/etcd_grove/examples/raft/kv/Results.lean`, from
   `AdequacyLinked.lean`'s `raft_kv_adequate`): `examples/raft/kv` -- three raft nodes of a replicated
   key-value store (snapshots and catch-up by `MsgSnap` live since D22 S-r), 4 clients of 25
@@ -881,17 +873,12 @@ own check never failed), and the main thread's result, if any, is as stated. The
   correctness (no termination). Premise `⌜HistOk ops⌝`, in the precondition (2026-11-03). PR #46
   upstream (unmerged) decides a stricter property; its own proof is the part `PorcupineDag/`
   ("Porcupine PR #46" below; `notes/decisions.md`, "Porcupine: sound and complete").
-- **`etcd_safe`** (`Proof/github_com/mit_pdos/etcd_grove/examples/etcd/all/Results.lean`, from `Adequacy.lean`'s
-  `etcd_adequate_of`; robustness form `etcd_robust`; 2026-11-21, `notes/etcd-unified-scope.md`): `examples/etcd/all` --
-  in one process, twelve drivers in four parts: KV (txnlinfaultsN on `k₁ ≤ 1000` members under a partition schedule,
-  partition's `MainWatch` on three, compactwatch, compacted, cache), Auth (authN on `k₂ ≤ 300`, authlease on
-  `k₃ ≤ 300`), Lease (leaseN on `k₄ ≤ 300`, leasecatchup on three), Restart (restartN on `3 ≤ k₅ ≤ 300`, restart1) --
-  does not panic. Premises: the drivers' premises and `Hlow` (the process's member ids' 16 low bits distinct).
-- **`etcd_leaseexpiryN_safe`** (`examples/etcd/leaseexpiryN/Results.lean`; robustness form `etcd_leaseexpiryN_robust`):
-  `k ≤ 1000` members, a lease of the minimum TTL granted through each, then listed once gone: the listing never has it.
-  Kept apart from `etcd_safe` (decision N1: its expiry contradicts `lease.leasesNoExpiry`, which authlease and
-  leasecatchup take).
-
+Retired at the net swap (2026-11-22, the user's decision; branch `net-swap`, `notes/etcd-dist-plan.md` §9, "D2's
+`net` half"; the last `lean` commit where they are proved is tagged by the coordinator): **`etcd_safe`**/`etcd_robust`
+(`examples/etcd/all`), **`k8s_safe`**/`k8s_robust` (`examples/k8s/all`) and **`etcd_leaseexpiryN_safe`**/`_robust`,
+single-process theorems over the names-only `net`: with `net` the part `Net/`'s, a program that listens runs over
+the net extension, and they are not adapted; `etcd_dist_safe` is to replace them. Their drivers' per-function proofs
+(`Main`, `MainLinked`, `Init`), the generic machinery, the Go drivers and their tests stay.
 Retired (2026-11-21, the user's decision D2, stage E4 of `notes/etcd-unified-scope.md`), subsumed by `etcd_safe`:
 `etcd_putget_safe`, `etcd_putget3_safe`, `etcd_putgetN_safe`, `etcd_txnlin_safe`, `etcd_partition_safe`,
 `etcd_partition_watch_safe`, `etcd_compacted_safe`, `etcd_watch_safe`, `etcd_auth_safe`, `etcd_auth3_safe`,

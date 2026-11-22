@@ -640,6 +640,59 @@ the same deployment with no member crashing. Then D3, D4, D6 add the crashes.
 
 ### D2's `net` half: the net swap (plan, 2026-11-22; not started, decisions below)
 
+**Decided (the user, 2026-11-22, relayed by the coordinator).** (1) **Retire** `etcd_robust`/`etcd_safe`,
+`k8s_robust`/`k8s_safe` and leaseexpiryN's closed theorem at the swap, not adapt them: option (i) and steps
+3-4 below are superseded. The coordinator tags the last `lean` commit where they are proved (for the
+paper). Removed: their `TopLevelRobustness` (Spec and Proof), `Results`, `Adequacy`, `TopLevelDefs`,
+`Disjoint`, `PkgTable` and their collections (`etcd-all`, `k8s-all`, `leaseexpiryN`); kept: every
+per-function proof (`Main`, `MainLinked`, `Init`, `InitLinked`, the drivers' proofs), the generic machinery,
+the Go drivers and their tests. (2) **Design D** for the address predicates; `net.Listen` a theorem from
+Net's spec. (3) **The start axiom's address part removed** if nothing left uses it (checked: only the
+retired theorems, through etcdstart's `etcd_adequate*`/`AdequacyMembers`, which go with them; `mvccfull`
+and `mvccrand` pass `As = []`), as one removal-only change with `prom-registry`'s names part (below,
+"The combined start statement"). (4) Start now; merge `lean` when #30's `step-bounds-backend` lands.
+
+**The combined start statement** (this branch's address part and `prom-registry`'s names part; removal only,
+nothing added). Before (`lean`): `startRights Ns As Ds := ([∗list] n ∈ Ns, prometheus.nameFree n) ∗
+([∗list] a ∈ As, netAddrFree a) ∗ ([∗list] a ∈ As, httpProtoFree a) ∗ ([∗list] d ∈ Ds, dataDirFresh d) ∗
+envVerifyOff`, and `goose_adequacy_start … (Ns As Ds) (hNs : Ns.Nodup) (hAs : As.Nodup) (hDs : Ds.Nodup)
+(hAsLit : ∀ a ∈ As, netAddrLit a = true) (hNsFree : prometheus.namesUnclaimed e Ns) (hAsFree :
+addrsUnclaimed e As) (hDsFree : dataDirsAbsent e Ds) (hEnv : verifyEnvOff e) (Hwp : … -∗ startRights Ns As Ds
+={⊤}=∗ WP e …) …`. After both:
+
+```lean
+def startRights {GF : BundledGFunctors} [GooseExts] (Ds : List GoString) : IProp GF :=
+  iprop(([∗list] d ∈ Ds, dataDirFresh d) ∗ envVerifyOff)
+
+axiom goose_adequacy_start [hPre : GooseGpreS GF] (N T : Nat)
+    (e : Expr) (σ : state) (g : GlobalState) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
+    (Hinitg : extsInitgP g.globalWorld) (Hinit : extsInitP σ.world g.globalWorld)
+    (Ds : List GoString) (hDs : Ds.Nodup) (hDsFree : dataDirsAbsent e Ds) (hEnv : verifyEnvOff e)
+    (Hwp : ∀ [hG : HeapGS .hasLC GF], receiptBound GF = N → threadBound GF = T →
+      hG.goose_localGS.goose_go_local_context = σ.goState.goLctx →
+      ⊢ extsGlobalStart (GF := GF) g.globalWorld -∗ extsLocalStart (GF := GF) σ.world -∗
+        ownGoState σ.goState.packageState -∗ threadTok -∗ startRights (GF := GF) Ds ={⊤}=∗
+        WP e @ Stuckness.NotStuck; ⊤ {{ v, ⌜φ v⌝ }})
+    (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNstepsBelow T n ([e], ((σ, g) : CfgState)) κs (t2, σ2))
+    (Hbound : n < N) (Hthreads : σ.threads = 1) : …   -- conclusion unchanged
+```
+
+and `goose_adequacy_start_all` the same way (without `hNsIds`). Gone with the address part: `addrUnclaimed`
+(axiom), `addrsUnclaimed`, the `netAddrFree`/`httpProtoFree` hand-out, `hAsLit`. `netAddrLit` stays (a
+definition the drivers' `Dir` lemmas prove of their addresses). `httpProtoFree` stays an axiomatized
+predicate of net/http's (`http.reserve`, S5) with no source; `addrClaim` (design D) likewise, until
+`etcd_dist_safe`'s deployment premise gives it.
+
+**Conflicts with `prom-registry`** (`/shared/etcd-grove-promreg`, at `8af09c0669`): both edit
+`Proof/runtime/Start.lean` (the two removals: whichever lands second takes the other's text above),
+etcdstart's `Adequacy.lean` (its `etcd_adequate*` take `Ns`; here they go), `mvccfull`/`mvccrand`'s `Adequacy`
+call sites of `goose_adequacy_start` (each drops its own arguments), the retired programs' `PkgTable`s and
+`etc/tcb-collections/{etcd-all,k8s-all,leaseexpiryN}.txt` (`prom-registry` edits them, this branch deletes
+them: take the deletion), `etc/tcb-baseline.txt`, `etc/tcb-collections/mvccfull.txt`, `etc/goose.py` and
+`etc/gen-init.py` (independent hunks). Its planned step-2 edits to etcd/all's, k8s/all's and leaseexpiryN's
+closed proofs (§5 of `notes/prom-registry-start-change.md`) are moot after the retirement.
+
 Branch `net-swap`. Agreed on #24 (upamanyus, 2026-11-22 15:52Z): ours, after `phase7-dial` (on `lean`,
 `bbc60799b2`); `net/http` stays with phase 7 (S5). His constraints: project `etcd`'s `-lean-root net=`
 becomes `net=Net` (as `models-net`), so grpc's translation sees the real `net.Conn`/`net.Listener`;

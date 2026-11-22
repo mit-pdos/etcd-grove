@@ -29,6 +29,7 @@ public import Proof.google_golang_org.grpc.model.finishStream
 public import Proof.google_golang_org.grpc.model.respond
 public import Proof.net.Listen
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
+public import Net.Proof.net.Listen
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Link
@@ -95,7 +96,7 @@ theorem wp_Partitioner :
 
 theorem net.wp_Listen :
     EtcdGrove.net.Listen.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.net.Listen.wp_proof
+  EtcdGrove.net.Listen.wp_proof _root_.Perennial.net.Listen.wp_proof
 
 theorem wp_StartBridge :
     EtcdGrove.cluster3.StartBridge.spec (GF := GF) (hG := hG) :=
