@@ -78,21 +78,8 @@ conf entries outside them are its automatic leaves, empty `ConfChangeV2`s (`opsO
 decode to the empty change (`ccDecodeV2_nil`). `validConf` takes the transition's definedness of the
 change's `AsV2` (`ccToV2`). -/
 
-/-- `AsV2`'s answer on a change. -/
-def ccToV2 : ConfChangeIM → ConfChangeV2M
-  | .v1 c => c.asV2
-  | .v2 cc => cc
-
-/-- A change's transition is defined for its changes (`EnterJoint` panics otherwise; a
-`ConfChange`'s `AsV2` has one change of the automatic transition). -/
-def ccTransOk (o : ConfChangeIM) : Prop :=
-  enterJointOf (ccToV2 o).transition (ccToV2 o).changes.length ≠ none
-
 /-- A conf entry's shape (see the section header). -/
 def ConfShaped (e : LogEntry) : Prop := ∃ o, ccDecode e = some o ∧ ccTransOk o
-
-theorem ccTransOk_v1 (c : ConfChangeM) : ccTransOk (.v1 c) := by
-  simp [ccTransOk, ccToV2, ConfChangeM.asV2, enterJointOf]
 
 /-- `validConf` answers `ConfOk` of the change's `AsV2`, which is the change's. -/
 theorem confOk_toV2 (o : ConfChangeIM) (m : Membership) : ConfOk (.v2 (ccToV2 o)) m ↔ ConfOk o m := by

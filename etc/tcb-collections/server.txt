@@ -26,7 +26,6 @@
 roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/(Link|Results)\.lean$
 axiom DescribeConfChange.wp_proof
 axiom EtcdServer.adjustTicks.wp_proof
-axiom EtcdServer.ensureLeadership.wp_proof
 axiom EtcdServer.leaseTimeToLive.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
@@ -91,7 +90,7 @@ axiom httputil.GracefulClose.wp_proof
 axiom io.MultiReader.wp_proof
 axiom io.Pipe.wp_proof
 axiom io.PipeWriter.CloseWithError.wp_proof
-axiom lease.NewLessor.wp_proof
+axiom lease.Lease.expired.wp_proof
 axiom leasehttp.RenewHTTP.wp_proof
 axiom math.Ceil.wp_proof
 axiom membership.RaftCluster.Recover.wp_proof

@@ -67,7 +67,9 @@ theorem trCapB_hookGateRecv (tr : Option GName) (γ : RaftNames) (r : Loc) (id :
     iintro ⟨-, Hcap, Hfx, Htok⟩
     icases trCapB_logger γd γ r id c b Φ Λ $$ Hcap with ⟨%tl, #Htl, Hcap⟩
     iunfold HookGateOpt
+    iintro Hnc
     imodintro
+    iframe Hnc
     iexists tl
     isplitr
     · iexact Htl

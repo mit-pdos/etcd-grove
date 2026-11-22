@@ -249,7 +249,7 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
        snapAuthResM E.authMode s ast E.RD γr A' ∗
        -- (S8d's named premises, S-j1's: `NewServer`'s contracts of the stores on whichever backend)
        alarmApplyOk al ∗ authApplyOkM E.authMode ast E.RD ∗ lessorApplyOk lp ∗ clusterApplyOk cl ∗
-       lease.lessorCfg lp ∗ lessorLookupOk lp ∗ (∃ n : Loc, membership.rcVersionChangedAddr cl ↦□ n) ∗
+       lease.lessorCfg lp ∗ (∃ n : Loc, membership.rcVersionChangedAddr cl ↦□ n) ∗
        -- (J8a-4, 2026-11-01, the user's decision: `notes/decisions.md`, "J8a-4") the meta reads of
        -- a backend the apply thread opens at the protocol's names `π` over an image whose meta keys
        -- are `π.m0`, from its fresh keys and payment rights (until then of any backend at any names

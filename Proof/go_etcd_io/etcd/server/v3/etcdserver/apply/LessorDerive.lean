@@ -244,7 +244,8 @@ theorem revokeClause_of_lessorInv (hRv : lease.lessor.Revoke.spec (GF := GF) (hG
 2026-11-06: over mvcc's API, at the store's name `γ`, the batch lock `Pk B` of the backend `B` the
 tie `BT` names, the hook `f`; `lean`'s `lessorBackend` shape with the lent part `Ln`): its
 `isTxnLessor`, `Grant` and `Checkpoint` from the proofs, its `Revoke` from
-`revokeClause_of_lessorInv`, its `Lookup` clause given. Premises, per backend `B` the tie names:
+`revokeClause_of_lessorInv`. (Its `Lookup` clause, a premise until prove-ps2-newlessor5, 2026-11-21, deleted
+with `isApplyLessor`'s.) Premises, per backend `B` the tie names:
 the lessor's backend contract (`lessorBackend`) with the backend's write-back token `bkWT B` per
 write, its half of `le.b` on `B` lent (`lessorBeOn lp B.be`), the reader token `bkRT B` lent and the
 `Lease` bucket's part of the tracked buckets; `Grant` takes the last two from the rest resource
@@ -274,13 +275,9 @@ theorem isApplyLessor_of_lessorInv
       □ (∀ B : mvcc.KBReal, BT B -∗ RW -∗ BT B ∗ lease.lessorBeOn lp B.be ∗
         ∃ r, backend.rbPart B.γB (· = mvcc.leaseName) r ∗
           (∀ r', ⌜(r.lookup mvcc.leaseName).isSome → (r'.lookup mvcc.leaseName).isSome⌝ -∗
-            lease.lessorBeOn lp B.be -∗ backend.rbPart B.γB (· = mvcc.leaseName) r' -∗ RW)) ∗
-      □ (∀ id : w64,
-        {{ True }} (App (Val (lp @!! go.GoType.PointerType lease.lessor.ty @!! go!"Lookup"))
-          (Val #id))
-        {{ (l : Loc), RET #l; ⌜l = null⌝ ∨ leaseIs l id }}) ⊢
+            lease.lessorBeOn lp B.be -∗ backend.rbPart B.γB (· = mvcc.leaseName) r' -∗ RW)) ⊢
       isApplyLessor (lease.lessorIface lp) γ Pk f BT RO RW := by
-  iintro ⟨#Hmpkg, #Hlens, #Hpkg, #Hinv, #Hcfg, #Hbe0, #HRW, #HLookup⟩
+  iintro ⟨#Hmpkg, #Hlens, #Hpkg, #Hinv, #Hcfg, #Hbe0, #HRW⟩
   iunfold isApplyLessor
   isplitl []
   · iapply lease.isTxnLessor_of_lessorInv hGL hAt hDt hSRD hLk lp (mvccLeases γ) $$ [$Hpkg $Hinv]
@@ -346,7 +343,6 @@ theorem isApplyLessor_of_lessorInv
   · -- `Revoke` (the lease-revoke plan)
     iapply revokeClause_of_lessorInv hRv lp γ Pk f BT RO
     iframe Hpkg Hmpkg Hinv Hlens
-  isplitr
   · iintro !> %id %rem %B %Pre %Q %Post %Φ !> ⟨Hcs, Hwt, Hrt, HBT, Hrw⟩ HΦ
     icases HRW $$ %B HBT Hrw with ⟨HBT, Hbe, %r, HRb, Hcl⟩
     icases Hbe0 $$ %B HBT with ⟨HBT, #Hbd⟩
@@ -365,7 +361,6 @@ theorem isApplyLessor_of_lessorInv
     · ihave Hrw := Hcl $$ %_ %(fun h => h) Hbe HRb
       iframe Hrw Hnil
       iright; iexact HPre
-  · iexact HLookup
 
 end proof
 

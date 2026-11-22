@@ -1,0 +1,38 @@
+/-
+`c.randomChange(cs)` (kvcheck.go): a random configuration change, as kvdurable's (its ids from
+`changeID(cs)`): owned, and its transition defined for its changes (`ccTransOk`).
+-/
+module
+
+public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.Defs
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace raft_kvcheck
+
+open Iris Iris.BI go_etcd_io.raft.v3
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.Assumptions]
+
+/-- See the file header. -/
+abbrev checker.randomChange.spec : Prop :=
+  ∀ (c : Loc) (γ : CheckerNames) (ls : List GoString) (csp : Loc) (cs : ConfStateM), 0 < ls.length →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck ∗ isChecker c γ ls ∗ csOpt csp DFrac.discard cs }}
+    (App (Val (c @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker.ty @!! go!"randomChange")) (Val #csp))
+  {{ (cc : GoInterface) (o : ConfChangeIM), RET #cc;
+      ownConfChangeI cc (DFrac.own 1) (some o) ∗ ⌜ccTransOk o⌝ }}
+
+end spec
+
+end raft_kvcheck
+end EtcdGrove
+end Perennial

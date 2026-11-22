@@ -553,6 +553,37 @@ theorem snapTo_confAt (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆
   iintro ⟨-, #Hci, -⟩ #Hc0 #Hs
   iapply ApiImpl.snapTo_confAt_impl γ N E HE id st k0 m0 Hty $$ Hci Hc0 Hs
 
+/-- (2026-11-21, the crash invariant: `notes/raft-crash-law-design.md` (i)) **Arming a vacancy**:
+an arm of `id`'s crash invariant, the vacancy for the node to start from (`nodeVacantA`) and the
+arm's crash token for the crash (`nodeCrashTok`). -/
+theorem nodeVacant_arm (γ : Cluster) (id : w64) (E : CoPset) :
+    ⊢ nodeVacant (GF := GF) γ id ={E}=∗ ∃ x, nodeVacantA γ id x ∗ nodeCrashTok γ id x := by
+  unfold nodeVacant nodeVacantA nodeCrashTok
+  exact ApiImpl.nodeVacant_arm_impl γ id E
+
+/-- (2026-11-21) **Arming a vacancy, the crash token dropped**: for a client whose crash is
+`node.Stop`'s (kvdurable, kvreconf, the server), which never needs the vacancy back after a real
+crash. -/
+theorem nodeVacant_armD (γ : Cluster) (id : w64) (E : CoPset) :
+    ⊢ nodeVacant (GF := GF) γ id ={E}=∗ ∃ x, nodeVacantA γ id x := by
+  iintro Hv
+  imod nodeVacant_arm γ id E $$ Hv with ⟨%x, Hv, -⟩
+  imodintro
+  iexists x
+  iexact Hv
+
+/-- (2026-11-21) **A crash gives the vacancy back**: whether a node of `id` ran from the arm or
+not (and whatever it held), the arm's crash token and the crash's `crashed` give `nodeVacant`. -/
+theorem nodeCrash (γ : Cluster) (N : Namespace) (id : w64) (x : CrashNames) (E : CoPset)
+    (HE : ↑N ⊆ E) :
+    ⊢ isCluster (GF := GF) γ N -∗ crashed -∗ nodeCrashTok γ id x ={E}=∗ nodeVacant γ id := by
+  unfold isCluster nodeCrashTok nodeVacant ApiImpl.isClusterU
+  haveI := ApiImpl.clusterInv_persistent (GF := GF) γ N
+  iintro ⟨-, #Hci, -⟩ Hc Htok
+  unfold ApiImpl.clusterInv
+  icases Hci with ⟨%HNs, -⟩
+  iapply ApiImpl.nodeCrash_impl γ N id x E HE HNs $$ Hc Htok
+
 end api
 
 section validLists
@@ -943,7 +974,7 @@ theorem readySnapSources_installed_le (γ : Cluster) (n : Loc) (id handoutTerm :
   icases Ho with ⟨%obs, %hbound, #Hmark, -⟩
   ihave %Hei := ApiImpl.nodeTabOk_agree γ n gn gi $$ Htab Htabi
   have iki : gn.sn.installs = gi.sn.installs :=
-    congrArg (fun k : ApiImpl.CfgNames => k.2.2.2.2.2.2.2.2.2.2.2.2.2.2) Hei
+    congrArg (fun k : ApiImpl.CfgNames => k.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) Hei
   ihave #Hi' : installSeen gn.sn.installs (uint.nat sv.Metadata'.Index') $$ []
   · rw [iki]; iexact Hi
   icases Hknown $$ %q %hq %sv %(And.intro ht hsv) Hi' with ⟨%k, %hk⟩

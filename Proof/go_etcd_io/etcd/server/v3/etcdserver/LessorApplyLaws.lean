@@ -28,14 +28,14 @@ variable [sem : go.Semantics]
 /-- **The lessor `lp`'s backend contract at the backend `d`**, whose post-lock hook is `f` for good
 (not `nil`), with the write right `RW` lending the lessor's write part. -/
 theorem lessorApplyOk_at (lp : Loc) (d : mvcc.KBReal) (W Pk : IProp GF) (f : GoFunc)
-    (RW : IProp GF) :
+    (RW : IProp GF) (hlp : mvcc.leaseParams d.P) :
     lessorApplyOk lp ∗ backend.isBackend d.γB d.P W Pk d.be ∗ backend.plHookRO d.γB f ∗
       ⌜f ≠ func.nil⌝ ∗ rwLens RW (lease.lessorBeOn lp d.be) ⊢
     lease.lessorBackend lp Pk #f (backend.wbTok d.γB) RW (apply.bkRT d)
       (backend.rbPart d.γB (· = go!"lease")) := by
   iintro ⟨#Hok, #Hb, #Hh, %Hf, #Hl⟩
   iunfold lessorApplyOk at Hok
-  iapply Hok $$ %d %W %Pk %f %RW
+  iapply Hok $$ %d %W %Pk %f %RW %hlp
   · iexact Hb
   · iexact Hh
   · ipureintro; exact Hf

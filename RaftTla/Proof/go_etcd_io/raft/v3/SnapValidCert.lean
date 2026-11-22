@@ -131,7 +131,7 @@ end pure
 
 section ghost
 variable [GooseExts]
-variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [CrashGS GF]
 
 /-- **Both certificates of a snapshot made at a committed prefix**: the snapshot `k` at the id of the
 committed prefix `L` (its length and last term), its lists well formed (`SnapListsOk`) and denoting

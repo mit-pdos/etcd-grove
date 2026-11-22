@@ -148,7 +148,7 @@ theorem openStorage.wp_proof
       rw [Hdrop]; exact .rfl
     ihave #Hrv' := EC.1 $$ Hrv
     try wp_auto
-    wp_apply wp_getEntry rv e0 _ Hwf0 $$ [$Hrv'] as %l %rest2 ⟨Hl, #Hrest2⟩
+    wp_apply wp_getEntry rv DFrac.discard e0 _ Hwf0 $$ [$Hrv'] as %l %rest2 ⟨Hl, #Hrest2⟩
     try wp_auto
     wp_apply wp_EGetIndex.1 l (DFrac.own 1) e0 $$ [$Hl] as Hl
     have Hei : e0.Index' = f.prev + W64 1 + j := by
