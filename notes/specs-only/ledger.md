@@ -4099,3 +4099,24 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   with `⌜Pre r ∧ rd ≠ nil⌝` (Go's server request bodies are never nil); `ReadFull_stream_spec` takes `isPkgInit io`,
   and `bodyStream_readFullAt` takes it (the snapshot handler has it).
 - **Decision.** Applied (prove-http3, 2026-11-21): `ReadFull_stream_ok` is a theorem over Perennial's `io.ReadFull`.
+
+## 2026-11-21: the etcd3 store's latency tracker: `Record` of any tracker and error, `NewEtcdMetricsTracker` of any labels (prove-metrics)
+
+- **Spec.** `metrics.OperationLatencyTracker.Record.spec` and `metrics.NewEtcdMetricsTracker.spec`
+  (`Spec/k8s_io/apiserver/pkg/storage/etcd3/metrics/`; trust-boundary axioms in `k8s_robust`'s base).
+- **Defect.** Both false of Go. `Record` took any non-nil `t` and any `err`: a zero
+  `OperationLatencyTracker` panics (`t.latency.Observe` on a nil interface), and for every tracker a
+  typed-nil `*status.Error` panics in `errorReason` (`status.FromError` calls its `GRPCStatus`), whether
+  the metrics are registered or not (`RecordEtcdRequest`'s defect of premise fixes 3).
+  `NewEtcdMetricsTracker` took any group-resource: once `metrics.Register()` has run (the apiserver runs
+  it), `NewOperationLatencyTracker`'s `WithLabelValues` panics on a label that is not valid UTF-8 (the
+  recorders' R1, `nonissues/k8s-apiserver-metrics-negative-or-non-utf8-panic.md`).
+- **Evidence.** apiserver `9c4ec15b8038` `metrics.go:360-398`; `examples/premisefix/latencytracker`
+  (both panics, and the valid inputs' returns, registered and not).
+- **Proposed change.** `NewEtcdMetricsTracker` takes `utf8Valid` of the group and the resource and posts
+  `latencyTrackerOk lt` (opaque, `Proof/.../etcd3/metrics/Tracker.lean`: built by it) in place of
+  `lt ≠ null`; `Record` takes `latencyTrackerOk t` and `statusErrOk err`. `isStore` keeps
+  `latencyTrackerOk c.lt`; `New` passes its `utf8Valid` premises, `store.Get` `Client.Get`'s error
+  (`statusErrOk_split`).
+- **Decision.** Applied (prove-metrics, 2026-11-21): both stay trust-boundary axioms (`Record` observes
+  a float latency, `sinceInSeconds`; both are names-only over component-base's metrics).
