@@ -79,8 +79,8 @@ abbrev newReplica.spec : Prop :=
       (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.kvnet.newReplica)) (Val #id)) (Val #(kdFileName dir id)))
       (Val #(interface.mkOk (go.GoType.PointerType node.ty) #n.loc))) (Val #st)) (Val #mK)) (Val #mA))
       (Val #csp)) (Val #(W64 ap.length))) (Val #rafted)) (Val #tick)) (Val #sts)) (Val #f))
-  {{ (r : Loc), RET #r; ∃ (n' : NodeH) (st' sts' sq' : Loc) (ρ : KdRepNames),
-        isReplicaR γ vs dir id r n' st' sts' sq' ρ }}
+  {{ (r : Loc), RET #r; ∃ (st' sts' sq' : Loc) (ρ : KdRepNames),
+        isReplicaR γ vs dir id r n st' sts' sq' ρ }}
 
 end spec
 

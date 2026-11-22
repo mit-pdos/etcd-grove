@@ -37,14 +37,14 @@ variable [go_gctx : GoGlobalContext]
 
 /-- `k8s_robust.spec` (`Spec/github_com/mit_pdos/etcd_grove/examples/k8s/all/TopLevelRobustness.lean`). -/
 theorem k8s_robust : k8s_robust.spec := by
-  intro lctx sem package_sem promreg_sem cache_sem _ _ _ _ _ _ _ Hctx Hcec Hafter k₁ hk₁1 hk₁ ids ps ctxs boot
+  intro lctx sem package_sem cache_sem _ _ _ _ _ _ _ Hctx Hcec Hafter k₁ hk₁1 hk₁ ids ps ctxs boot
     Hlen Hbf k₂ hk₂1 hk₂ ids' ps' ctxs' boot' Hlen' Hbf' Hlow Haf Hbuq Hrf Hdbo clients ops watchers wops Hc0 Hw0
-    Hc31 Hops Hwops Hmul steps₁ steps₂ Hsteps₁ Hsteps₂ HAs HDs HEnv Hprem₁ Hprem₂ σ g Hfs HWal
+    Hc31 Hops Hwops Hmul steps₁ steps₂ Hsteps₁ Hsteps₂ HNs HAs HDs HEnv Hprem₁ Hprem₂ σ g Hfs HWal
   exact
-    Robustness.Robust.of_single fun hf n κs t2 σ2 hn hexec =>
-      (k8s_safe Hctx Hcec Hafter k₁ hk₁1 hk₁ ids ps ctxs boot Hlen Hbf k₂ hk₂1 hk₂ ids' ps' ctxs'
-        boot' Hlen' Hbf' Hlow Haf Hbuq Hrf Hdbo clients ops watchers wops Hc0 Hw0 Hc31 Hops Hwops Hmul steps₁ steps₂
-        Hsteps₁ Hsteps₂ HAs HDs HEnv n (Hprem₁ n (by omega)) (Hprem₂ n (by omega)) σ g Hfs HWal
+    Robustness.Robust.of_single_below fun hf n κs t2 σ2 hn hexec =>
+      (k8s_adequate_below Hctx Hcec Hafter k₁ hk₁1 hk₁ ids ps ctxs boot Hlen Hbf k₂ hk₂1 (by omega) ids'
+        ps' ctxs' boot' Hlen' Hbf' Haf Hbuq Hrf Hdbo clients ops watchers wops Hc0 Hw0 Hc31 Hops Hwops Hmul steps₁ steps₂
+        Hsteps₁ Hsteps₂ HNs HAs HDs HEnv n (Hprem₁ n (by omega)) (Hprem₂ n (by omega)) σ g Hfs HWal
         hf.1 hf.2.1 hf.2.2 κs t2 σ2 hexec (by omega)).2
 
 end adequacy

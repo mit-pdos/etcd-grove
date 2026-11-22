@@ -114,7 +114,19 @@ collections' baselines saying what it removes.
   failed call and the stream kinds against grpc-go's. One visible difference: a connection per stream
   means one `ConnBegin`/`ConnEnd` pair per call. The trusted claim is narrowed in `models/README.md` to
   programs whose behavior does not depend on how many connections carry their calls; otelgrpc's
-  `TagConn`/`HandleConn` do nothing. Client stats handlers still panic `NotModelled`. Next in S1: the dial side (`dialOptions` needs `internal/transport`,
+  `TagConn`/`HandleConn` do nothing. Client stats handlers still panic `NotModelled`. **The dial side (2026-11-22,
+  branch `phase7-dial`).** `grpcDialOptIs o d` is a definition (`InvDial.lean`): a read-only
+  `*funcDialOption` whose closure's persistent WP over `p ↦ dopt` sets what `d` sets
+  (`dialOptSets`) and keeps the other descriptor fields (`dialOptsKeep`); `.resolvers` and
+  `.perRPCCreds` own the slice they append to. `dialOptsAt`'s fact is a `[∗list]`. Proved over the
+  model's bodies: `WithTransportCredentials`, `WithPerRPCCredentials`, `WithUnaryInterceptor`,
+  `WithStreamInterceptor`, `WithResolvers`. `WithKeepaliveParams` stays an axiom (it calls grpc's
+  logger), restated. For `dialOptions`/`connectOptions` to be translated structs: grpc imports `net`
+  and `resolver` too (their instances moved before grpc's in the cache's `Base.lean`), and the model's
+  dial structs name no type of `internal/backoff`, `internal/binarylog`, `channelz` or `mem`
+  (`withBinaryLogger`, `WithChannelzParentID`, `withBufferPool` panic `NotModelled`; the reconnect
+  backoff is `DefaultExponential`, a timing). Trust base −6 (the five, `grpcDialOptIs`). client/v3's
+  `Client__dial*` proofs adjusted. Next in S1 (`dialOptions` needs `internal/transport`,
   `channelz`, `internal/backoff` types), the model calling stats handlers (#24, U2), then
   `NewServer` and `RegisterService`.
 - **S2, the unary pair** (`grpc.model.*`, the trusted `Serve` body, `grpcReplyTo`, `Invoke`'s
@@ -125,7 +137,7 @@ collections' baselines saying what it removes.
 - **S3, streams** (`NewStream`, the stream ends, `InvGrpcStream.lean`'s two queues as a fact about the
   connection's two byte streams through the model's framing).
 - **S4, the deployment statement.** Each member a machine (one node per member), the client drivers
-  machines or co-located; addresses from the plan (`KitDeploy`-like); `netAddrFree`, `netListenerAt`,
+  machines or co-located; addresses from the plan (`DistDeploy`-like); `netAddrFree`, `netListenerAt`,
   `httpProtoFree`, `addrsUnclaimed` gone; restart examples over the crash adequacy.
 - **S5, net/http.** The server first (`Serve_ok`, the response writer, `Flush`, the body reader, the
   mux) over the model's real server (the largest proof); `reserve`/`register` as a per-address

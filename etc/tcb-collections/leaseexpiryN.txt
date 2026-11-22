@@ -15,14 +15,11 @@ axiom Client.Endpoints.wp_proof
 axiom Client.roundRobinQuorumBackoff.wp_proof
 axiom Client.streamClientInterceptor.wp_proof
 axiom DescribeConfChange.wp_proof
-axiom EtcdServer.adjustTicks.wp_proof
 axiom EtcdServer.leaseTimeToLive.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom EtcdServer.publishV3.wp_proof
-axiom NewCluster.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
-axiom NewMaintenance.wp_proof
 axiom Perennial.bufio.opaqueInitsOk
 axiom Perennial.crypto.tls.opaqueInitsOk
 axiom Perennial.encoding.json.initFuncsOk
@@ -120,11 +117,6 @@ axiom grpc.NewServer.wp_proof
 axiom grpc.Server.RegisterService.wp_proof
 axiom grpc.StatsHandler.wp_proof
 axiom grpc.WithKeepaliveParams.wp_proof
-axiom grpc.WithPerRPCCredentials.wp_proof
-axiom grpc.WithResolvers.wp_proof
-axiom grpc.WithStreamInterceptor.wp_proof
-axiom grpc.WithTransportCredentials.wp_proof
-axiom grpc.WithUnaryInterceptor.wp_proof
 axiom grpc.model.acceptRun.wp_proof
 axiom grpc.model.acceptRunConns.wp_proof
 axiom grpc.model.finishStream.wp_proof
@@ -134,7 +126,6 @@ axiom grpcAddrIsRaw
 axiom grpcConn
 axiom grpcConn_persistent
 axiom grpcConnsLink
-axiom grpcDialOptIs
 axiom grpcHealthSrv
 axiom grpcHealthSrv_persistent
 axiom grpcProtoCodec
@@ -264,7 +255,6 @@ axiom proto.Unmarshal.wp_proof
 axiom proto.UnmarshalConfChange.wp_proof
 axiom proto.UnmarshalConfChangeV2.wp_proof
 axiom proto.UnmarshalPb.wp_proof
-axiom rafthttp.Transport.ActiveSince.wp_proof
 axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.netErrNotRemoved_ok
 axiom rate.Limiter.Wait.wp_proof
@@ -278,7 +268,6 @@ axiom schema.membershipBackend.MustDeleteMemberFromBackend.wp_proof
 axiom schema.membershipBackend.MustReadMembersFromBackend.wp_proof
 axiom schema.membershipBackend.MustSaveMemberToBackend.wp_proof
 axiom semver.NewVersion.wp_proof
-axiom semver.Version.LessThan.wp_proof
 axiom semver.Version.String.wp_proof
 axiom semver.semverValid_simple
 axiom snap.NewMessage.wp_proof
@@ -311,7 +300,6 @@ axiom v3rpc.codec_proto
 axiom v3rpc.ctxCauseOk_cancellable
 axiom v3rpc.logUnaryRequestStats.wp_proof
 axiom verifyEnvOff
-axiom waitRetryBackoff.wp_proof
 axiom withVersion.wp_proof
 axiom zap.Logger.Fatal.wp_proof
 axiom zap.Logger.Panic.wp_proof

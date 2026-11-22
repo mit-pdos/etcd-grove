@@ -142,10 +142,11 @@ theorem srvRevokeOuterPool_intro (s : Loc) (γr : ReadNames) (γg : GoNames) (γ
   iexact H
 
 /-- **The inner pool, from a pool of `leadTimeMu`'s slots** (`NewServer`, which pairs the slots
-in their own form: `srvLeadTimeReader` unfolded). (Moved from `NewServer.lean`, review round 1.) -/
+in their own form: `srvLeadTimeReader` unfolded; rdslot, 2026-11-22: each with a reader slot of
+the transport, `srvTrReader`). (Moved from `NewServer.lean`, review round 1.) -/
 theorem srvRevokeInnerPool_intro (s : Loc) (E : apply.AEnv GF) (γ : GName) :
     threadPool.isThreadPoolL srvRevokeInnerN 2 γ
-        iprop(sync.ownRWMutex (srvLeadTimeMuAddr s) (leadTimeP s) ∗ E.RD) ⊢
+        iprop((sync.ownRWMutex (srvLeadTimeMuAddr s) (leadTimeP s) ∗ srvTrReader s) ∗ E.RD) ⊢
       srvRevokeInnerPool s E := by
   unfold srvRevokeInnerPool srvLeadTimeReader
   iintro #H

@@ -607,7 +607,7 @@ theorem not_mem_take_of {l : List GoString} {j : Nat} {y : GoString}
 
 /-- `ValidCluster(addrs, voters, maxSizePerMsg, maxCommittedSizePerReady, maxInflightMsgs)`. -/
 def validCluster (l : List GoString) (voters msz mcs mif : Nat) : Bool :=
-  validAddrs l voters && !(msz = 0 && mcs = 0) && decide (0 < mif) && decide (mif < 2 ^ 63)
+  validAddrs l voters && !(msz = 0 && mcs = 0) && decide (0 < mif) && decide (mif < 2 ^ 62)
 
 end EtcdGrove.raft_kvnet
 end Perennial

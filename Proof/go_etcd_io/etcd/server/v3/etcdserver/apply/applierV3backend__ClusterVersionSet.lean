@@ -55,9 +55,9 @@ theorem apply.applierV3backend.ClusterVersionSet.wp_proof
   icases Hr with ⟨%Hrnn, #Hver⟩
   iStructNamed Hopts
   wp_auto
-  wp_apply HVer as %prev -
+  wp_apply HVer as %prev Hpv
   wp_apply hMP as %rv Hrv
-  icases Hrv with (⟨-, %nv, %nx, %Hnv, -, #Hsv⟩ | %Hn)
+  icases Hrv with (⟨-, %nv, %nx, %Hnv, #Hnx, #Hsv⟩ | %Hn)
   rotate_left
   · exact absurd Hvalid.1 Hn.1
   obtain ⟨rfl, Hnv⟩ := Hnv
@@ -76,10 +76,13 @@ theorem apply.applierV3backend.ClusterVersionSet.wp_proof
     iframe HRO HFSt
     iapply (apply.mPostV_of _ _ _ _ _ _ _ _ B cr)
     iframe
-  wp_apply hLT as %b -
-  · ipureintro; exact ⟨Hnv, Hif⟩
   have Hprev : prev ≠ null := Hif
+  icases Hpv with (%Hpn | ⟨%px, #Hpx⟩)
+  · exact absurd Hpn Hprev
+  wp_apply hLT nv prev DFrac.discard DFrac.discard nx px $$ [] as -
+  · iframe #
   wp_if_destruct
+  rotate_left
   · -- not a downgrade
     iapply HΦ
     iframe HRO HFSt

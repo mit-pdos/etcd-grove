@@ -503,7 +503,7 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
         isplitr
         · iapply fileMode_logArgOk hModeStr _ _ (by simp [methodVerbs])
         isplitr
-        · iapply options_logArgOk hOptStr opts dq o Hok.2.2.2.2.2
+        · iapply (options_logArgOk hOptStr opts dq o Hok.2.2.2.2.2) $$ Hpkg
         iempintro
       · iexact Hopts
       isplitr

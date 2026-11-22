@@ -99,7 +99,7 @@ theorem watchCheck.complete.wp_proof
       iframe
     · (try wp_auto)
       unfold forMapPostcondition
-      iright; iright; iright
+      iright; iright; iright; ileft
       iexists _
       isplitr
       · ipureintro; rfl

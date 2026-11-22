@@ -25,7 +25,6 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/(Link|Results)\.lean$
 axiom DescribeConfChange.wp_proof
-axiom EtcdServer.adjustTicks.wp_proof
 axiom EtcdServer.leaseTimeToLive.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
@@ -138,7 +137,6 @@ axiom proto.UnmarshalConfChangeV2.wp_proof
 axiom proto.UnmarshalPb.wp_proof
 axiom proto.UnmarshalRole.wp_proof
 axiom proto.UnmarshalUser.wp_proof
-axiom rafthttp.Transport.ActiveSince.wp_proof
 axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.netErrNotRemoved_ok
 axiom rate.Limiter.Wait.wp_proof
@@ -152,7 +150,6 @@ axiom schema.membershipBackend.MustDeleteMemberFromBackend.wp_proof
 axiom schema.membershipBackend.MustReadMembersFromBackend.wp_proof
 axiom schema.membershipBackend.MustSaveMemberToBackend.wp_proof
 axiom semver.NewVersion.wp_proof
-axiom semver.Version.LessThan.wp_proof
 axiom semver.Version.String.wp_proof
 axiom semver.semverValid_simple
 axiom snap.NewMessage.wp_proof

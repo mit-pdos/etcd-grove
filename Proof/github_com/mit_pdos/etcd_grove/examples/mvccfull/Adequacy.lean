@@ -37,11 +37,13 @@ program's package table `PkgTable.lean`) and `mvccfull.wp_Main` (`Link.lean`; `R
 
 **Its hypotheses** are mvccrand's, but `sort.Slice.spec` (`mvccfull.wp_Main` takes no hypothesis:
 the tester's lease checks compare the lessor's list against the model's without sorting it):
-* pure facts of the program's environment: `verifyEnvOff` (`ETCD_VERIFY` unset)
-  (prom-registry, 2026-11-22: no longer `namesUnclaimed` of the metric names mvcc's, the lessor's,
-  the backend's and auth's `init()` register; the proof makes their rights from the generation's
-  supply of ghost names, `wp_init_of_localNames`), and the execution's length
-  (`n + 2 ≤ 2 ^ 28`: the thread bound, and with `N = n + 1` the receipt bound `2 ^ 38`);
+* pure facts of the program's environment: `verifyEnvOff` (`ETCD_VERIFY` unset), (etcdstorage,
+  2026-11-20, the user's decision) `namesUnclaimed` of `mvccfullMetricNames` (no other code of the
+  run registers the metric names mvcc's, the lessor's, the backend's and auth's `init()` register:
+  the etcd examples' premise, now that those `init()`s are translated), and the execution's length
+  (`n + 2 ≤ 2 ^ 28`: the thread bound, and with `N = n + 1` the receipt bound `2 ^ 38`;
+  `mvccfull_adequate_below` takes the thread bound `T ≤ 2 ^ 28` along the execution instead, and
+  only `n + 1 ≤ 2 ^ 38`);
 * the semantics: `go.Semantics`, the package assumptions (`mvccfull`'s, mvcc's, the server's,
   the cache's) and (S3e) the `os` structs' field facts; the file extension's steps restricted by
   `etcdSQ` (no file I/O error);
@@ -355,18 +357,18 @@ instance mvccfullGF_gooseGpreS : GooseGpreS mvccfullGF where
 section adequacy
 variable [go_gctx : GoGlobalContext]
 
-/-- **mvcc's full tester passes** (see the file header): every real execution of
-`mvccfullProgram r` from a fresh state with one thread, whose file system's root `r` has none of
-`Main`'s file names, of `n` steps: if the main thread has finished, its result is `#()` (`Run`
-returned: every check of mvcc passed); no thread is stuck; no thread has ended in a panic. -/
-theorem mvccfull_adequate [lctx : GoLocalContext] [sem : go.Semantics]
+/-- **`mvccfull_adequate` along executions with fewer than `T ≤ 2 ^ 28` live threads**: the
+same conclusion for every execution of `n` steps, `n + 1 ≤ 2 ^ 38` (the receipt bound the proof
+needs), along which fewer than `T` threads are ever live at once (`RealNstepsBelow`): the thread
+bound is a premise on the execution, not a consequence of its length (`goose_adequacy_start`). -/
+theorem mvccfull_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccfull.Assumptions]
-    [promreg_sem : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Assumptions]
     [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
     [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     (r : GoString)
+    (HNs : prometheus.namesUnclaimed (mvccfullProgram r) mvccfullMetricNames)
     (HEnv : verifyEnvOff (mvccfullProgram r))
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (j0 : Fs.Ino)
@@ -374,19 +376,20 @@ theorem mvccfull_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Habs : ∀ b ∈ mvccfull.mvccfullNames, (extLocal Fs.fsExt σ.world).fs.treeDur.entry j0 b = none)
     (Hrfit : Fs.DirFits r)
     (Hthreads : σ.threads = 1)
+    (T : Nat) (HT28 : T ≤ 2 ^ 28)
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
-    (Hsteps : RealNsteps n ([mvccfullProgram r], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 2 ≤ 2 ^ 28) :
+    (Hsteps : RealNstepsBelow T n ([mvccfullProgram r], ((σ, g) : CfgState)) κs (t2, σ2))
+    (Hn : n + 1 ≤ 2 ^ 38) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine goose_adequacy_start_all (GF := mvccfullGF) (n + 1) (n + 2) (mvccfullProgram r) σ g
+  refine goose_adequacy_start (GF := mvccfullGF) (n + 1) T (mvccfullProgram r) σ g
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) ⟨trivial, trivial, trivial⟩
-    ⟨trivial, Hfs, trivial⟩ [] []
-    List.nodup_nil
-    List.nodup_nil (fun _ h => absurd h List.not_mem_nil)
+    ⟨trivial, Hfs, trivial⟩ github_com.mit_pdos.etcd_grove.examples.mvccfull.initNames [] []
+    (by decide +kernel) List.nodup_nil
+    List.nodup_nil (fun _ h => absurd h List.not_mem_nil) HNs
     (fun _ h => absurd h List.not_mem_nil) ⟨fun _ h => absurd h List.not_mem_nil, List.Pairwise.nil⟩
-    HEnv ?_ n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads (realThreadsBelow_of_one Hthreads)
+    HEnv ?_ n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads
   intro hG HN HT HL
   obtain ⟨G, ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
   subst Hlctx
@@ -396,9 +399,9 @@ theorem mvccfull_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   rw [Hinit]
   haveI : ThreadBoundLe mvccfullGF (2 ^ 28) := ⟨by rw [HT]; omega⟩
   haveI : ReceiptBoundLe mvccfullGF (2 ^ 38) := ⟨by rw [HN]; omega⟩
-  iintro - Hl Hgs Hln Htok Hrights
+  iintro - Hl Hgs Htok Hrights
   iunfold startRights at Hrights
-  icases Hrights with ⟨-, -, -, #Hvoff⟩
+  icases Hrights with ⟨Hns, -, -, -, #Hvoff⟩
   have Hst : extsLocalStart (GF := mvccfullGF) σ.world ⊢
       Fs.osStart (Fs.gooseOsGS (L := (inferInstance : HeapGS .hasLC mvccfullGF).goose_localGS))
         (extLocal Fs.fsExt σ.world) :=
@@ -412,11 +415,9 @@ theorem mvccfull_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   · iapply Hst $$ Hl
   iintro Hfiles
   unfold mvccfullProgram
-  -- (prom-registry, 2026-11-22) the run's registration rights from the generation's supply of names
-  wp_apply (EtcdGrove.wp_init_of_localNames _ github_com.mit_pdos.etcd_grove.examples.mvccfull.regQs (by decide +kernel) _ _
-    (github_com.mit_pdos.etcd_grove.examples.mvccfull.wp_initialize' _
-      github_com.mit_pdos.etcd_grove.examples.mvccfull.getIsPkgInit_wf)) $$ [Hown Hln] as ⟨-, #Hpkg⟩
-  · iframe Hown Hln
+  wp_apply (github_com.mit_pdos.etcd_grove.examples.mvccfull.wp_initialize' _
+    github_com.mit_pdos.etcd_grove.examples.mvccfull.getIsPkgInit_wf) $$ [Hown Hns] as ⟨-, #Hpkg⟩
+  · iframe Hown; iunfold prometheus.namesFree; iexact Hns
   wp_apply mvccfull.wp_MainConfig as %mx Hmix
   iunfold mvccfull.mainMixOwn at Hmix
   icases Hmix with ⟨%Hp, Hs, Ho, Hc, Hrr, Hrd, Ha, Hstt⟩
@@ -436,9 +437,38 @@ theorem mvccfull_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   ipureintro
   rfl
 
+/-- **mvcc's full tester passes** (see the file header): every real execution of
+`mvccfullProgram r` from a fresh state with one thread, whose file system's root `r` has none of
+`Main`'s file names, of `n` steps: if the main thread has finished, its result is `#()` (`Run`
+returned: every check of mvcc passed); no thread is stuck; no thread has ended in a panic. -/
+theorem mvccfull_adequate [lctx : GoLocalContext] [sem : go.Semantics]
+    [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccfull.Assumptions]
+    [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
+    (r : GoString)
+    (HNs : prometheus.namesUnclaimed (mvccfullProgram r) mvccfullMetricNames)
+    (HEnv : verifyEnvOff (mvccfullProgram r))
+    (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
+    (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (j0 : Fs.Ino)
+    (Hr : (r, j0) ∈ (extLocal Fs.fsExt σ.world).fs.roots)
+    (Habs : ∀ b ∈ mvccfull.mvccfullNames, (extLocal Fs.fsExt σ.world).fs.treeDur.entry j0 b = none)
+    (Hrfit : Fs.DirFits r)
+    (Hthreads : σ.threads = 1)
+    (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNsteps n ([mvccfullProgram r], ((σ, g) : CfgState)) κs (t2, σ2))
+    (Hn : n + 2 ≤ 2 ^ 28) :
+    (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
+    (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
+    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
+  mvccfull_adequate_below r HNs HEnv σ g Hlctx Hinit Hfs j0 Hr Habs Hrfit Hthreads (n + 2) (by omega)
+    n κs t2 σ2 (RealNstepsBelow.of_one Hsteps Hthreads) (by omega)
+
 end adequacy
 
 #print axioms mvccfull_adequate
+#print axioms mvccfull_adequate_below
 
 end EtcdGrove
 end Perennial

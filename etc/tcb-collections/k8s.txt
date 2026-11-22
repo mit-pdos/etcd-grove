@@ -13,8 +13,6 @@ axiom Client.Close.wp_proof
 axiom Client.Endpoints.wp_proof
 axiom Client.roundRobinQuorumBackoff.wp_proof
 axiom Client.streamClientInterceptor.wp_proof
-axiom NewCluster.wp_proof
-axiom NewMaintenance.wp_proof
 axiom WithRequireLeader.wp_proof
 axiom audit.GetAuditIDTruncated.wp_proof
 axiom context.WithCancelTodo.wp_proof
@@ -25,6 +23,7 @@ axiom encoding.json.Marshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom envVerifyOffTok
 axiom errors.AsNoMatch.wp_proof
+axiom errors.IsDeadlineExceeded.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
@@ -33,15 +32,9 @@ axiom grpc.ClientConn.NewStream.wp_proof
 axiom grpc.ClientConn.Target.wp_proof
 axiom grpc.NewClient.wp_proof
 axiom grpc.WithKeepaliveParams.wp_proof
-axiom grpc.WithPerRPCCredentials.wp_proof
-axiom grpc.WithResolvers.wp_proof
-axiom grpc.WithStreamInterceptor.wp_proof
-axiom grpc.WithTransportCredentials.wp_proof
-axiom grpc.WithUnaryInterceptor.wp_proof
 axiom grpcAddrIsRaw
 axiom grpcConn
 axiom grpcConn_persistent
-axiom grpcDialOptIs
 axiom grpcResolverAt
 axiom grpcSrvCfgRaw
 axiom grpcWrotePeer
@@ -100,7 +93,6 @@ axiom tracing.Start.wp_proof
 axiom v3rpc.pbWatchRequestT_reg
 axiom v3rpc.pbWatchResponseT_reg
 axiom wait.Jitter.wp_proof
-axiom waitRetryBackoff.wp_proof
 axiom withVersion.wp_proof
 axiom zap.Logger.check.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof

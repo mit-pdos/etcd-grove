@@ -577,7 +577,7 @@ local macro "else_point_check" : tactic => `(tactic| (
         · rw [decide_eq_false hc0, hh]
     · wp_auto
       unfold forMapPostcondition
-      iright; iright; iright
+      iright; iright; iright; ileft
       iexists _
       isplitr
       · ipureintro; rfl
@@ -922,7 +922,7 @@ theorem v3rpc.checkIntervals.wp_proof
                     · simp [hkp, hh]
                 · wp_auto
                   unfold forMapPostcondition
-                  iright; iright; iright
+                  iright; iright; iright; ileft
                   iexists _
                   isplitr
                   · ipureintro; rfl
@@ -941,7 +941,7 @@ theorem v3rpc.checkIntervals.wp_proof
               · simp only [_root_.decide_true]
                 wp_auto
                 unfold forMapPostcondition
-                iright; iright; iright
+                iright; iright; iright; ileft
                 iexists _
                 isplitr
                 · ipureintro; rfl
@@ -1029,7 +1029,7 @@ theorem v3rpc.checkIntervals.wp_proof
                       · exact absurd h hnt
                     simp [h2, h3]
                   unfold forMapPostcondition
-                  iright; iright; iright
+                  iright; iright; iright; ileft
                   iexists _
                   isplitr
                   · ipureintro; rfl

@@ -4409,6 +4409,25 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `MapFits` stays for now (the waiters' handoffs still carry it); it is removable.
 - **Decision.** Applied (the coordinator's option (a), 2026-11-22). Unchecked: no `.lake` at the time.
 
+## 2026-11-22: `EtcdServer.adjustTicks` proved with the tick advance off (prove-ps2-srv)
+
+- **Spec.** `EtcdServer.adjustTicks.spec` (`Spec/.../etcdserver/EtcdServer__adjustTicks.lean`): two new premises,
+  `srvMonitorsOff s` and `isRaftNode Er γn (srvRAddr s)` (for any `Er`, `γn`). `srvMonitorsOff` (`InvMonitors.lean`)
+  gets one more conjunct, `Cfg.InitialElectionTickAdvance ↦□ false`, and `srvMonitorCfg` the field at the
+  configuration's value (`NewServer`, `NewServerR` give it from the copied `Cfg`).
+- **Defect.** The axiom held for any configuration; a proof over the real code with
+  `InitialElectionTickAdvance` true needs the multi-member branch's wait loop, whose `transport.ActivePeers()` is
+  not in `rafthttp.isTransporter` (rafthttp's `ActivePeers` read-locks `t.mu` with no reader token, the reason
+  `Transport.ActiveSince` is itself an axiom: a narrower axiom on it would be 1-for-1). `advanceTicks` needs the
+  raft wrapper's contract, which the premise did not give.
+- **Evidence.** `server.go:468-530` (fork `goose-lean`): a single member fast-forwards (`advanceTicks(ElectionTicks
+  - 1)`, proved); with several members and the advance off, `lg.Info` and return. No example sets
+  `InitialElectionTickAdvance` (grep of `examples/`: the zero value, false); `Start`'s callers discharge it as they
+  discharge the other monitors-off fields (`iExactEq …; rfl` on the literal). `Start` has `isRaftNode` in its
+  construction premise (`isServerBuiltC_rn`, `AuthCompRows.lean`).
+- **Proposed change.** As above; `Start.spec` unchanged in statement (its `srvMonitorsOff` premise widened).
+- **Decision.** Applied (the user's standing rule: a trust-boundary spec may change when every caller still proves,
+  memory `ownership-premise-ok`; same pattern as audit B4a's monitors-off premises).
 ## 2026-11-22: `credentials.NewPerRPCCredentialBundle` takes its package's initialization; `credTokInv` over the lock (prove-ps2-client)
 
 - **Spec.** `credentials.NewPerRPCCredentialBundle.spec`: pre `True` to `isPkgInit
@@ -4425,6 +4444,41 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   credentials package's.
 - **Decision.** Applied (a premise every caller discharges; the user's rule of 2026-11-21).
 
+## 2026-11-22: `remote.opMaybe`'s read form needs node 0 to know which firing answers (etcd-dist D8)
+
+- **Spec.** `Net/Proof/.../lib/remote/Defs.lean`, `opMaybe R tok op`: the far side gets the one-shot
+  update `lin R i Φ`; the proposed read form (the coordinator, the user's approval, 2026-11-22) gives it,
+  for a read (`R.B.isWrite i = false`), a persistent read update instead, which it may fire zero or more
+  times, returning `ov o` with `Φ o` of one firing.
+- **Defect.** As proposed, node 0 cannot provide the read form. Node 0's `Φ o` must give lintest's
+  continuation at `(i, ok o)`, which needs lintest's update committed at the firing whose output is `o`;
+  lintest's update is one-shot, so only one firing may commit, and which one is decided by the output the
+  far side *will* return (etcd may serve one read's update several times at different states, e.g. a
+  read retried at another member, `read_ok_au`, and answer from any of them). Committing at the first
+  firing leaves a later firing (whose output may differ) unable to produce its `Φ`; committing at the
+  return is not a linearization point (other clients commit in between). "A read leaves the state
+  unchanged" makes every firing a valid point, but the proof still has to pick the one whose output is
+  returned. txnlin's `Apply` picks it with its revision prophecy (`callInv`), which `remote`'s design
+  (`notes/remote-port-plan.md` §3/§7: node 0's `Do` makes the prophecy, the client's `op` is txnlin's call
+  without its own) removes from the client machine. Also: `lin` (one-shot) cannot yield
+  a persistent update, so "`lin` for a read yields the read form" holds only in the other direction (a
+  read-form operation fired once meets the one-shot form).
+- **Evidence.** The argument above; no proof attempted. Separately, txnlin's `Call.spec` cannot be stated
+  against `remote`'s `opMaybe` yet: its import closure reaches the main tree's `Code.net` (through
+  `cache/v3` and grpc's `peer`), which clashes with `Net/`'s `net` (D2).
+- **Proposed change.** (A, recommended) node 0 prophesies the answered output: `remote.Do` resolves a
+  second prophecy with the answering reply's bytes (a `ResolveU64` per byte, prophecy-only Go code); the
+  answering attempt's slot for a read holds an invariant with lintest's update that commits at the first
+  firing whose output's encoding is the prophesied one, and `Φ o := (encOut (ov o) = prophesied → lintest
+  committed at o)`; with `codecOk` (decode of encode is the identity) the returned output's `Φ` is the
+  commit. The slot body, `serveConn`, `attempt`, `Do`, `Pend` change; the counter's server (one firing) and
+  client (a `Do`) meet the read form directly; `counter_remote_robust`'s statement is unchanged.
+  (B) keep the one-shot form and give `Call` a prophecy at the client machine (against `remote-port-plan.md` §3/§7's design).
+  (C) an etcd-specific revision prophecy at node 0 (not generic).
+- **Decision.** 2026-11-22, kaashoek via etcd-grove-03: option A (the user's decision): `remote.Do` prophesies
+  the answered reply's bytes; a read commits lintest's update at the first firing whose output encodes to them.
+  Applied on `etcd-dist` (`Defs.slotUpd`, `Do.spec`'s choice over the bytes, `pend_choice`'s read commit
+  invariant; `Run.spec`/`Check.spec` gain the premise that distinct outputs have distinct bytes).
 ## 2026-11-22: kvnet's `StartNode`: the start resource indexed by the configuration; the file invariant from the generation's boot (KvNet)
 
 - **Spec.** `StartNode.spec`/`Run.spec`/`RunNode.spec` (KvNet): the start resource `S : IProp` becomes
@@ -4445,3 +4499,192 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   write lemma takes two later credits.
 - **Proposed change.** As above.
 - **Decision.** Applied (checked: `etc/lean-check.py` of every changed module, then `lake build KvNet`).
+
+## 2026-11-22: kvnet's `ValidCluster` checks `MaxInflightMsgs < 2^62` (KvNet, Go and Lean)
+
+- **Spec.** `ValidCluster.spec` (KvNet) through `validCluster` (`Addrs.lean`), and so `RunNode.spec`'s premise:
+  `mif < 2^63` becomes `mif < 2^62`. The Go `ValidCluster` (`examples/raft/kvnet/addrs.go`) the same.
+- **Defect.** Raft's `RestartNode` (and kvnet's `kvOptsOk`, `StartDefs.lean`) needs `MaxInflightMsgs < 2^62`;
+  `ValidCluster` allowed up to `2^63`, so `RunNode`'s premise did not give what `StartNode` needs.
+- **Evidence.** `notes/kvnet-part.md`, "The WIP checked and built", the gap noted with `kvOptsOk`.
+- **Proposed change.** Tighten the Go check (the design: validity is a Lean premise, mirrored by Go panicking on
+  an invalid configuration), retranslate, and the statement draft's `ClusterConfig.Ok` the same.
+- **Decision.** Applied (the coordinator's decision, 2026-11-22).
+
+## 2026-11-22: kvnet's transport takes no frame-length bound with a message; `newReplica` names its node (KvNet)
+
+- **Spec.** `Transport.Send.spec`'s `sendElem F m` and the queue's `qElem F pid m` (`TransportDefs.lean`, so
+  `Transport.enqueue.spec`, `isPeer`) lose the conjunct `(encMsg st).length + 8 < 2^63`. `newReplica.spec`'s
+  post names the node it was given: `∃ st' sts' sq' ρ, isReplicaR γ vs dir id r n st' sts' sq' ρ` (was `∃ n' …`).
+- **Defect.** The bound is not derivable where the messages come from (`run`'s send callback gets raft's
+  `Ready` messages, with no size bound: `MaxSizePerMsg` is any `uint64`), so `StartNode` could not give
+  `t.Send` as `run`'s callback. It is not needed either: `runPeer` encodes the message first (`putMsg`), and
+  the encoding's slice gives `(encMsg st).length < 2^63` (`ownSlice_len`), all the protocol needs. And
+  `StartNode`'s post (`isNodeS`) needs the replica's node to be the transport's: the old post forgot it.
+- **Evidence.** `Transport__runPeer.lean` (the bound's two uses, `peer_send` and the frames' bound, now from
+  the slice); `newReplica.lean`'s last step already named `n`.
+- **Proposed change.** As above.
+- **Decision.** Applied (weaker premises; a stronger post).
+
+## 2026-11-22: kvnet's wire reads a message's entries of any type (`getMsgEntry`; `MsgWf` weakened) (KvNet, Go and Lean)
+
+- **Spec.** `MsgWf` (`Wire.lean`, so `getMsg.spec`'s premise and `kvFacts`' `msgOkK`): a message's entries need
+  only `MsgEntWf` (data of a Go slice's length), no longer `EntWf` (also a type `≤ 2`). New `getMsgEntry.spec`
+  (wire.go's `getMsgEntry`, new): `getEntry.spec` with `MsgEntWf`.
+- **Defect.** `StartNode` must give `run`'s send callback (raft's `Ready` messages, `sentMsg`) to the transport,
+  whose protocol carries `MsgWf`. Nothing in raft's API says a sent message's entries are of raft's types (a
+  forwarded `MsgProp`'s are whatever `Propose` was given; `readyRest_ents_type` covers only the `Ready`'s
+  entries), so the type bound was not derivable. The Go decoder refused other types (`getEntry`'s `typ > 2`,
+  right for the storage file, not needed on the wire: an `EntryType` is an `int32`, written sign-extended,
+  truncated back).
+- **Evidence.** `examples/raft/kvnet/wire_test.go` (entries of types `-5` and `2^30` round-trip); the proofs
+  of `getMsgEntry` and `getMsg`.
+- **Proposed change.** `getMsg` decodes entries with `getMsgEntry` (no type check); `MsgWf` as above.
+  (Alternatively a raft API lemma `sentMsg ⊢ ∀ e ∈ st.ents, Type ≤ 2`, which needs raft's message invariant to
+  track forwarded proposals' entries: not taken.)
+- **Decision.** Applied.
+
+## 2026-11-22: reader slots for the transport's persistent callers; `ActiveSince` proved, `adjustTicks` for both flags (rdslot)
+
+- **Spec.**
+  - `rafthttp.Transport.ActiveSince.spec`: its premise is `transportTok γn t c` (given back), where it was
+    `trState γn t c`.
+  - New `Transport.ActivePeers.spec`, `peer.activeSince.spec` and `peerStatus.activeSince.spec`.
+  - `rafthttp.isTransporter tr Rd`: a new reader-resource parameter `Rd`. `ActiveSince` takes and returns `Rd`
+    (it took `True`), and `ActivePeers` is new.
+  - `isConnectedSince`, `numConnectedSince` and `isConnectedToQuorumSince` take `isTransporter tr Rd ∗ Rd` and
+    return `Rd`. `srvPeersOk`'s conjunct becomes `∃ Rd, isTransporter tr Rd`.
+  - `srvLeadTimeReader s` is redefined as `leadTimeMu`'s slot `∗ srvTrReader s`. The new
+    `srvTrReader s := ∃ tr Rd, s.r.transport ↦□ tr ∗ isTransporter tr Rd ∗ Rd` is one transport reader slot.
+    No spec text changes. Pool `I`'s items and the compactor's `srvCompactR` hold it, built by `NewServer`
+    and `NewServerR` from the transport's reader tokens, which they used to drop.
+  - `srvMonitorsOff` loses `InitialElectionTickAdvance ↦□ false`.
+  - The new `srvMonitorRes s := srvLgReader s ∗ srvTrReader s ∗ ∃ b, InitialElectionTickAdvance ↦□ b`
+    replaces `srvMonitorCfg`'s `srvLgReader s` and the switch's field. It also replaces `Start.spec`'s third
+    `srvLgReader s` (monitorDowngrade's) and `memberBuilt`'s/`memberBuiltR`'s `srvLgReader s`.
+  - `adjustTicks.spec` takes `srvGoAttachOk s γg`, `srvTrReader s` (given back) and the switch's field at any
+    value, in place of `srvMonitorsOff s`.
+- **Defect.**
+  - `ActiveSince`'s axiom read-locked `t.mu` without a reader token. Its callers are on the request path
+    (`parseProposeCtxErr`), any number at once, and the axiom's docstring rested on "physically at most
+    `2^30 - 1`". The same blocked `ActivePeers`.
+  - `adjustTicks` was therefore proved only under `InitialElectionTickAdvance = false` (ledger, the
+    entry above). etcd's own default (`embed`) is true.
+- **Evidence.**
+  - The design: `/shared/tmp/ps2/rdslot/design.md`. It follows the bounds plan's rule 2: the server's pool
+    `I` (level 2), which every gRPC run and revocation goroutine already borrows `leadTimeMu`'s slot from,
+    now holds the transport's slot beside it. `parseProposeCtxErr` read-locks `leadTimeMu`, then, not
+    nested, the transport.
+  - `adjustTicks` and the compactor are one-off goroutines with counted slots (D2 (a)).
+  - The count: `2^30 - 1` tokens hold 2 (Send key, `CutPeer`/`MendPeer`), `2^29` (the peer handler),
+    `2^28 - 1` (`I`), 1 (the compactor) and 1 (`adjustTicks`).
+  - No top-level statement changes. No new axiom, `threadBound` or `List.replicate` in a Spec file.
+- **Proposed change.** As above.
+- **Decision.** Applied. Every caller discharges the new resources: `Start.spec`'s `srvMonitorRes` (one more
+  transport slot than the `lgMu` slot it replaces) comes from `NewServer`'s `srvMonitorCfg`, through the
+  examples' `memberBuilt`. `Start.spec` no longer needs the switch to be false.
+## 2026-11-22: `semver.Version.LessThan` takes its receivers' points-tos and returns `Compare(o) < 0`; the cluster's `Version()` returns a read-only version (prove-ps2-semver)
+
+- **Spec.** `semver.Version.LessThan.spec` (`Spec/github_com/Masterminds/semver/v3/Version__LessThan.lean`): the
+  premise `v ≠ null ∧ o ≠ null` becomes `v ↦{dv} x ∗ o ↦{dw} y` (any fractions, given back); the post, some
+  boolean, becomes `decide (semver.lessThan x y)` (`CompareModel.lean`: semver v3.5.0's `Compare`, line for
+  line). `apply.isCluster`'s `Version` law (`apply/Contracts.lean`, the names-only membership's trust
+  boundary): the post `True` becomes `⌜v = null⌝ ∨ ∃ x, v ↦□ x`.
+- **Defect.** The axiom was unprovable over the real code: `Compare` reads both structs, and a `≠ null` premise
+  gives no points-to (a concurrent writer races). The ownership-premise rule (the user's, 2026-11-21) applies:
+  `version.LessThan` passes its by-value copies (owned), `compareMajorMinorVersion` `New`'s results (`↦□`),
+  `ClusterVersionSet` `MustParse`'s result (`↦□`) and the cluster's `Version()`, for which the contract now says
+  what `cluster.go:580-587` does (nil, or `semver.MustParse(c.version.String())`: a fresh `NewVersion`
+  allocation nothing else holds). That law is a premise of the top-level results (through `clusterApplyOk`,
+  `bootOk`, `bootstrapContract`), so this is a stronger trusted premise, true of the Go code, in exchange for
+  the retired axiom.
+- **Evidence.** `Proof/github_com/Masterminds/semver/v3/{Version__LessThan,Version__Compare,comparePrerelease,
+  comparePrePart,compareSegment,Version__Patch,Version__Prerelease}.lean`, over `strings.Split` and
+  `strconv.ParseUint`; the callers' proofs (`version/LessThan`, `rafthttp/compareMajorMinorVersion`,
+  `apply/applierV3backend__ClusterVersionSet`).
+- **Proposed change.** As above. `SpecPlan`'s `Version.LessThan.spec` (`verAt`, `SemVer.ltb` with an opaque
+  `preLtb`) is the same shape; its `preLtb` could now be defined as `CompareModel`'s `cmpPre … = -1`.
+- **Decision.** Applied (the approved ownership-premise rule; the cluster contract's strengthening recorded
+  here and in the report to #18).
+## 2026-11-22: kvcheck's `randomChange` bounds its changes (KvNet)
+
+- **Spec.** `checker.randomChange.spec`'s post (`kvcheck/checker__randomChange.lean`): `⌜ccTransOk o⌝` becomes
+  `⌜ccTransOk o ∧ (ccToV2 o).changes.length ≤ 3⌝`.
+- **Defect.** `reconfigure` sends `PutConfChange(nil, cc)` through `checker.request`, whose premise bounds the
+  payload (`len + 17 < 2^63`, the frame's header); `encCC o` has at most `17 + 16 n` bytes (`encCC_length`),
+  so the bound needs `n` bounded, and the post said nothing of it. The code makes at most three changes
+  (`count` is `1` or `1 + below(3)`); the proof already tracked `cnt ≤ 3`.
+- **Evidence.** `checker__randomChange.lean` (the loop's invariant), `ConfCodec.lean`.
+- **Proposed change.** As above (a stronger post).
+- **Decision.** Applied.
+
+## 2026-11-22: bbolt's `(*Options).String` takes the package's `isPkgInit` (ps2 misc2)
+
+- **Spec.** `Options.String.spec` (`Spec/go_etcd_io/bbolt/Options__String.lean`): the pre gains
+  `isPkgInit pkg_id.go_etcd_io.bbolt`.
+- **Defect.** The axiom is now proved over the real code, and its body calls `fmt.Sprintf`, whose
+  spec takes `isPkgInit pkg_id.fmt`; the old pre (`optsAt` and `loggerPtrOk` only) had no package
+  initialization to get it from.
+- **Evidence.** `Proof/go_etcd_io/bbolt/Options__String.lean`. The only caller, `Open` (through
+  `options_logArgOk`, `Open/LogFmt.lean`), holds the package's `isPkgInit` (its own pre's).
+- **Proposed change.** As above (a premise every caller discharges). `SpecPlan`'s
+  `Options.String.spec` should take it too (not edited here).
+- **Decision.** Applied.
+## 2026-11-22: kvcheck's `fresh`/`do`/`read` at the store; `read` gets a prophecy (KvNet, Go and Lean)
+
+- **Spec.** kvcheck's checker (`kvcheck/Defs.lean`): `CheckerNames` (the ghost maps of issued numbers) and
+  `issued` go; the lock's invariant `checkerInv c γ` holds, with the two counters `a`, `b`, a counter
+  predicate `γ false a ∗ γ true b` (`γ : CheckerCnt GF := Bool → w64 → IProp GF`, the caller's: at the
+  top, the store's op counter half and the read sequence numbers of every replica id, `kvCnt`).
+  `checker.fresh.spec` takes a minting law `∀ a, ⌜uint.Z a + 1 < 2^64⌝ -∗ γ w a ={⊤}=∗ γ w (a + 1) ∗ L (a + 1)`
+  and returns `L n` (no more `issued γ w n`). `checker.do.spec`/`checker.read.spec`: stated at the store
+  (`kvFacts γ cf`, the checker's counters `kvCnt γ ls`, `rkvInv γ`), logically atomic as kvdurable's
+  `Cluster.do`/`Read` (an `AU` over `rkvVal γ` in, `Φ` of the answer out), in place of the caller's minting
+  laws and the answer's fact. The other kvcheck specs: `CheckerNames` becomes `CheckerCnt GF` (no other change).
+  Raft: a new API module `ReadCtxLaws` (`readCtxAfter_agree`: a read context's log is unique).
+- **Defect.** The old specs cannot be linked to the store (found writing `Check`): `do` fired its minting
+  law outside the checker's lock on an `issued` token, but `kd_mint` mints at the store's op counter, in
+  order (`ghostVar γ.r.opn ½ nop`, mints `nop + 1`); `do`'s post dropped the ticket `kd_collect` needs; and
+  a linearizable read needs its answer prophesied (the linearization point is the first change after
+  which the key has the answer: kvdurable's `Cluster.Read`), which kvcheck's `read` did not have. The
+  replica's read answer names the context's committed log existentially (`ansReadK`), so the client needs
+  the log it minted the context after to be that one: agreement on raft's `ctxs` map (`readCtxAfter`,
+  sealed).
+- **Evidence.** `notes/kvnet-part.md`, "kvcheck's decoders, `conf`, `reconfigure`; the plan for `Check`";
+  kvdurable's `Cluster__do.lean`/`Cluster__Read.lean`.
+- **Proposed change.** As above. Go: `checker.read` creates `primitive.NewProph()` and resolves it with the
+  answer (`trusted_proph.ResolveBytes(p, v)`, gokv's, as kvdurable's `Cluster.Read`; no effect in Go),
+  `examples/raft/kvnet/go.mod` requires gokv, project kvnet maps gokv to the main tree. Minting under the
+  lock: `do`'s law is `kd_mint` (the counter is the op counter half); `read`'s mints, at every replica id
+  at once, the context of the fresh number after the log of the read's start (`kd_mint_next`).
+- **Decision.** Applied (the prophecy: the coordinator's decision, 2026-11-22).
+## 2026-11-22: kvnet's top-level statement takes `os`'s two field-assumption instances (KvNet)
+
+- **Spec.** `raft_kvnet_robust.spec` and `raft_kvnet_robust_example.spec`
+  (`KvNet/Spec/.../kvnet/TopLevelRobustness.lean`): two instance binders added next to `net.FieldAssumptions`,
+  `[os_file_sem : os.file.FieldAssumptions] [os_stat_sem : os.fileStat.FieldAssumptions]`; the header's list
+  of trusted instances names them.
+- **Defect.** `durable`'s proofs (`tryRead`, `tryWrite`, `WriteOpen`, through `StartNode` and `persist`) read
+  files through `os`'s models, which take these trusted struct-field facts (`TrustedCode/os.lean`, of the kind
+  of `net.FieldAssumptions`); `kvcheck.Assumptions` does not include them, so the agreed statement could not be
+  proved without them (found linking kvnet, 2026-11-22: `kvnet/Link.lean`'s section variables).
+- **Evidence.** `KvNet/Proof/.../lib/durable/{tryRead,tryWrite,WriteOpen}.lean`, `kvnet/Link.lean:196-197`;
+  reported on mit-pdos/etcd-grove#22 (gap 3).
+- **Proposed change.** As above.
+- **Decision.** Applied: approved by the coordinator (zeldovich-agent's session, relaying the decision on
+  #22), 2026-11-22.
+## 2026-11-22: kvnet's top-level statement takes `[log.NewModel]` and `dir.length < 2 ^ 39` (KvNet)
+
+- **Spec.** `raft_kvnet_robust.spec` and `raft_kvnet_robust_example.spec`
+  (`KvNet/Spec/.../kvnet/TopLevelRobustness.lean`): an instance binder `[log_sem : log.NewModel]` next to the
+  `os` ones (both statements); a premise `dir.length < 2 ^ 39` after `replicas.length < 2 ^ 32` (the main
+  statement; the example's `/var/lib/kvnet` meets it by computation). The header lists both.
+- **Defect.** (1) `kvnet.initialize'` initializes raft, whose initializer calls `log.New` (`defaultLogger`,
+  `discardLogger`), which Perennial translates names-only: raft's `wp_initialize'` takes the trusted class
+  `log.NewModel` (`Proof/log/NewModel.lean`), as kvdurable(-noax)'s closed theorem does. (2) Each replica's file
+  is `durable`'s `DFile ⟨dir, J, "replica-<id>"⟩`, and `StartNode`'s start resource needs `DFile.Ok`, which has
+  `f.d.length + f.tb.length < 2 ^ 40` (`WalTester/.../lib/durable/Defs.lean`, the path arithmetic of
+  `filepath`/`os`); `tb` is at most 27 bytes, and nothing in `FsInit`/`RootsOk` bounds a root's length.
+- **Evidence.** Reported on mit-pdos/etcd-grove#22 (gaps 4 and 5, with the exact texts).
+- **Proposed change.** As above.
+- **Decision.** Applied: approved by the coordinator (relayed to the kvnet-proof session, 2026-11-22).

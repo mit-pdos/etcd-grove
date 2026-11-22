@@ -130,6 +130,7 @@ end adequacy
 
 #print axioms k8s_all_Main
 #print axioms k8s_adequate
+#print axioms k8s_adequate_below
 #print axioms k8s_safe
 
 end EtcdGrove

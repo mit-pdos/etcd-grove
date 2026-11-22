@@ -6,6 +6,7 @@ public import GeneratedProof.github_com.anishathalye.porcupine
 public import Perennial.GeneratedProof.github_com.goose_lang.primitive
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.lib.lintest
 public import KvNet.GeneratedProof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet
+public import GeneratedProof.github_com.mit_pdos.gokv.trusted_proph
 public import KvNet.GeneratedProof.go_etcd_io.raft.v3.raftpb
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.time

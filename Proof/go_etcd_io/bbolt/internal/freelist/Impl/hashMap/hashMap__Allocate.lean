@@ -129,7 +129,7 @@ theorem alloc_range_find {K V : Type} [ZeroVal K] [DecidableEq K] [ZeroVal V] [g
       iapply wp_wand $$ (Hk $$ %key %v %(⟨Hv, hq⟩) HP Hm)
       iintro %bv ⟨%v', %Hbv, HΦ⟩
       unfold forMapPostcondition
-      iright; iright; iright
+      iright; iright; iright; ileft
       iexists v'
       isplitr
       · ipureintro; exact Hbv

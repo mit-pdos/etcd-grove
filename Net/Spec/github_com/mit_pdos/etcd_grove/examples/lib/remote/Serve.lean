@@ -1,6 +1,7 @@
 /-
-`Serve(addr, sys, op, codec, d)`: the node at `addr` (`remoteAddr`) that serves calls with `op`
-over `sys` (`opMaybe`, its resource `tok sys`): it listens (`listen`) and serves the connections
+`Serve(addr, sys, op, codec, d)`: the node at `addr` (`svcAddr`) that serves calls of the service
+`S` with `op` over `sys` (`svcOp`, its resource `tok sys`: a store's `opMaybe`, `opMaybe_svcOp`; a
+report's loop, `reportOp_svcOp`): it listens (`listen`) and serves the connections
 one at a time (`serveConn`). It never returns. Proved in `Net/Proof/.../lib/remote/Serve.lean`.
 -/
 module
@@ -24,13 +25,13 @@ variable [sem : go.Semantics]
 variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.lib.remote.Assumptions]
 variable [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
-variable {St I O : Type} [Pos.Countable I] [Pos.Countable O]
+variable {I O : Type} [Pos.Countable I] [Pos.Countable O]
 
 /-- See the file header. -/
 abbrev Serve.spec : Prop :=
-  ∀ (R : RBase GF St I O) (a : GoString) (sys : GoInterface) (op : GoFunc) (cd : remote.Codec)
+  ∀ (S : RSvc GF I O) (a : GoString) (sys : GoInterface) (op : GoFunc) (cd : remote.Codec)
     (d : w64) (tok : GoInterface → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote ∗ remoteAddr (Gg := hG.goose_globalGS) R a ∗ codecOk R cd ∗ opMaybe R tok op ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote ∗ svcAddr (Gg := hG.goose_globalGS) S a ∗ wireOk S cd ∗ svcOp S tok op ∗
       tok sys }}
     (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.remote.Serve)) (Val #a)) (Val #sys)) (Val #op)) (Val #cd))
       (Val #d))

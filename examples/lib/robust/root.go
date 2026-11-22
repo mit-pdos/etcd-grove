@@ -59,3 +59,23 @@ func RerunAsRoot(args, env []string, out io.Writer) error {
 	cmd.Stdout, cmd.Stderr = out, out
 	return cmd.Run()
 }
+
+// RerunInUserns runs this program's binary again inside a user namespace of its own, with a
+// network and a mount namespace (unshare -Urnm), where it is root with every capability over its
+// own namespaces: the way a process that is root without CAP_NET_ADMIN (a container's root) makes
+// network namespaces (NewNetwork, the bridge variant). The arguments args (the binary's name
+// excluded) and the environment variables env are added; /run/netns is a fresh tmpfs inside, so
+// that its namespaces are invisible to the host's ip netns. Disks (power losses) are not
+// available there: the device mapper needs the host's root.
+func RerunInUserns(args, env []string, out io.Writer) error {
+	exe, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	script := "mkdir -p /run/netns && mount -t tmpfs robust-netns /run/netns && exec \"$0\" \"$@\""
+	cmd := exec.Command("unshare", append([]string{"-Urnm", "--propagation", "private", "sh", "-c",
+		script, exe}, args...)...)
+	cmd.Env = append(os.Environ(), env...)
+	cmd.Stdout, cmd.Stderr = out, out
+	return cmd.Run()
+}
