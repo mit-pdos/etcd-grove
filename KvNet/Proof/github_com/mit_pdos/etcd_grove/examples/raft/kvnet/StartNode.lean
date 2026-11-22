@@ -576,8 +576,9 @@ theorem StartNode.wp_proof
       GoInterface.ok ⟨go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Storage.ty, #s⟩ :=
     rfl
   have HA : uint.nat cv.Applied' = uint.nat ap0 := by rw [HcAp]
-  iunfold kdCluster at Hcl
-  icases Hcl with ⟨#HisC, -⟩
+  ihave #Hcl' := Hcl
+  iunfold kdCluster at Hcl'
+  icases Hcl' with ⟨#HisC, -⟩
   wp_apply (wp_RestartNode γ.r.cluster kdRaftN cp cv qLogger
       ⟨go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Storage.ty, #s⟩
       (kdContents (some F)) (kdInitCS (raft_kvreconf.bootCS vs) F) (uint.nat F.snap.Metadata'.Index') m
@@ -604,6 +605,55 @@ theorem StartNode.wp_proof
     · iexact Hau
     rw [← Haplen]; iexact Hcap
   subst Hnd HS'
+  try wp_auto
+  ihave #HisNode' : isNode n γ.r.cluster kdRaftN cfg.ID' $$ []
+  · rw [← HcID]; iexact HisNode
+  -- the transport started on the node
+  ihave #Hstep := kv_stepLaw (GF := GF) γ (fun _ => True) cfg.ID' Htr0 Hmd (by rw [Hsl])
+  wp_apply wp_start (kvFacts γ (fun _ => True)) t γ.r.cluster kdRaftN cfg.ID' n sp et ed
+    $$ [$Hpkg $Htid $Htst $Htnode $Hstats' $HtPeers $HisNode' $Hstep $Het $Hed] as #Htc
+  · ipureintro; exact Htr0
+  try wp_auto
+  -- the tick
+  wp_apply wp_below (W64 4) $$ [$Hpkg] as %rt %Hrt
+  have Hrt' := Hrt.2 (by decide)
+  try wp_auto
+  -- the replica
+  ihave #Hsend := kv_sendSpec wp_Send γ (fun _ => True) cfg.ID' t n Hdup $$ [$Htc $HtPeers]
+  have Hl0 : l.length = max (uint.nat F.prev) (uint.nat ap0) := by
+    rw [Hllen, HA]; rfl
+  have Hlsi : l.length ≤ uint.nat F.snap.Metadata'.Index' := by
+    rcases Hap0 with ⟨h1, -⟩ | ⟨h1, h2, -⟩
+    · rw [h1] at Hl0; simp at Hl0; word
+    · omega
+  have Hrafted : uint.nat rf = l.length := by
+    rcases Hap0 with ⟨h1, h2⟩ | ⟨h1, h2, h3⟩
+    · rw [h1] at Hl0; rw [h2, Hl0]; simp
+    · rw [h3, Hl0]; omega
+  ihave #Hfz : memLog γs (uint.nat F.prev + 1) DFrac.discard (F.ents.take (l.length - uint.nat F.prev))
+    $$ [Hfro]
+  · iapply memLog_take_le γs _ F.ents _ _ (by omega) $$ Hfro
+  ihave #Hfzt : raft_kvreconf.frozenTo γs (uint.nat F.prev) l $$ []
+  · unfold raft_kvreconf.frozenTo
+    have h := HS1b
+    simp only [kdContents_some_b, kdContents_some_ents] at h
+    rw [h]; iexact Hfz
+  have Hsiw : F.snap.Metadata'.Index' = W64 ap.length := by rw [Haplen]; word
+  rw [show (#(F.snap.Metadata'.Index') : val) = #(W64 ap.length) by rw [Hsiw]]
+  rw [← Hiface]
+  ihave Hncfg : nodeConfig n γ.r.cluster kdRaftN ⟨ap.length, m⟩ $$ [Hncfg]
+  · rw [Haplen]; iexact Hncfg
+  have Hl0' : uint.nat F.prev ≤ l.length := by rw [Hl0]; omega
+  have Htk := tick_pos rt Hrt'
+  rw [Hdfn]
+  wp_apply (wp_newReplica γ vs cfg.Dir' cfg.ID' n s sp ms γs K mK mA csp Kv A ap l m
+      ccs ip F.hs S' o' F rf _ _ fl qc Htk rfl HFok HFSH Hap61 Hrafted HFof (by omega) Hl0' (by omega)
+      Hid1 Hidm Hmsz Haplen HKfit HAfit HdfOk Hdfn)
+    $$ [$Hpkg $Hcci $Hcl $Hstats' $Hos $HosS $Hdi $HfInv $Hdh $Hcpm $Harm $HisNode' $Hdrv $Hncfg $Hrun
+      $Hrec $HmsInv $Hmeta $Himg $Himage $Hcert $Hwr $Hcmp $Hfz $Hfzt $Hslb $HK $HA $Hcso $Hap $Hcap
+      $Hsend]
+    as %r ⟨%st', %sts', %sq', %ρ, #Hr⟩
+  · ipureintro; exact ⟨Hcfgm, HKv, HAok, Hmd, Hns⟩
   try wp_auto
   done
 

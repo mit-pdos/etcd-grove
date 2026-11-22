@@ -122,6 +122,14 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
 
 attribute [local instance] kdStorageModel
 
+/-- `StartNode`'s tick, `(1 + below(4))` milliseconds, is positive. -/
+theorem tick_pos (rt : w64) (h : uint.Z rt < uint.Z (W64 4)) : 0 < sint.Z ((W64 1 + rt) * W64 1000000) := by
+  have h4 : uint.Z rt < 4 := by word
+  have h1 : uint.Z (W64 1 + rt) = 1 + uint.Z rt := by word
+  have h2 : uint.Z ((W64 1 + rt) * W64 1000000) = (1 + uint.Z rt) * 1000000 := by
+    rw [word.unsigned_mul_nowrap, h1] <;> word
+  word
+
 /-- The file's contents, or the empty image if there is no file. -/
 def kdImgOf (o : Option StorFile) : StorFile := o.getD imgEmpty
 
