@@ -21,7 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/apiserver/pkg/storage"
 
-	etcddist "github.com/mit-pdos/etcd-grove/examples/etcd/dist/harness"
+	etcddist "github.com/mit-pdos/etcd-grove/examples/etcd/dist"
 	"github.com/mit-pdos/etcd-grove/examples/lib/robust"
 
 	comp "github.com/mit-pdos/etcd-grove/examples/k8s/dist/compactorcopy"

@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"math/rand/v2"
 
-	etcddist "github.com/mit-pdos/etcd-grove/examples/etcd/dist/harness"
+	etcddist "github.com/mit-pdos/etcd-grove/examples/etcd/dist"
 )
 
 // Deployment is a k8s deployment: the store's cluster with its workload, the compactor's cluster
