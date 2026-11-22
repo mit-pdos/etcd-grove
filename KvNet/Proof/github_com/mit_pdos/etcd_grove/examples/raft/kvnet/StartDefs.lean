@@ -8,7 +8,7 @@ the one `StartNode`'s proof instantiates it with, `kvNodeStart γ vs dir0 id dir
 * the generation's boot (`kvStart`, `BootLemmas.lean`: the file invariant allocated with its crash
   token, the writer's half, the file's handle, raft's armed vacancy);
 * the cluster's allocation facts the start needs (kvdurable's `isClusterC`'s: a duplicating cluster, no
-  bootstrap log, untraced, no snapshot directories, no data bound, `readyFits`, the storage invariant)
+  bootstrap log, untraced, no snapshot directories, no data bound, at most `2^32` replicas, `readyFits`, the storage invariant)
   and the globals the transport and the replica read;
 * the options: what raft's `RestartNode` takes of them (`kvOptsOk`), the voters `1..opts.Voters` the
   bootstrap configuration `StartNode` builds (`vs`);
@@ -54,7 +54,7 @@ def kvOptsOk (o : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Options) : 
 object): see the file header. -/
 def kvStartGlobals (γ : KdNames) : IProp GF :=
   iprop(⌜γ.r.cluster.dup = true ∧ γ.r.cluster.bootLen = 0 ∧ Cluster.trace γ.r.cluster = none ∧
-      γ.r.cluster.snapLoc = (fun _ => none) ∧ γ.r.cluster.maxData = none⌝ ∗
+      γ.r.cluster.snapLoc = (fun _ => none) ∧ γ.r.cluster.maxData = none ∧ γ.max < 2 ^ 32⌝ ∗
     readyFits γ.r.cluster kdRaftN ∗ kdStorInv ∗ context.isClosedchanInit ∗
     (∃ et : GoInterface, globalAddr net.errTimeout ↦□ et) ∗
     (∃ ed : GoInterface, globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed))

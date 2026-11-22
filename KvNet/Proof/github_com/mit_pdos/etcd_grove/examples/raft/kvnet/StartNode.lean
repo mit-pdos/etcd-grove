@@ -112,7 +112,7 @@ theorem StartNode.wp_proof
   obtain ⟨HdfOk, Hdfn, Hid1, Hidm⟩ := Hfl
   iunfold kvStartGlobals at Hglob
   icases Hglob with ⟨%Hcf, #Hfits, #HstorInv, #Hcci, ⟨%et, #Het⟩, ⟨%ed, #Hed⟩⟩
-  obtain ⟨Hdup, Hbl0, Htr0, Hsl, Hmd⟩ := Hcf
+  obtain ⟨Hdup, Hbl0, Htr0, Hsl, Hmd, Hmax⟩ := Hcf
   obtain ⟨HV1, HV32, HI0, HI62, Hsz⟩ := Hok
   subst Hdir
   try wp_auto
@@ -476,7 +476,7 @@ theorem StartNode.wp_proof
         · exact MapFits_of_lookup kvs K' HKA.1 Hel.1
         · exact MapFits_of_lookup ops A' HKA.2 Hel.2
       iright; iexact Hsv
-  iintro %v ⟨%Hv, %mK, %mA, %csp, %Kv, %A, %cfg, %ap, %m, stats, kv, ops, cs, HK, HA, #Hcso, #Hap, #Hcap,
+  iintro %v ⟨%Hv, %mK, %mA, %csp, %Kv, %A, %ccs, %ap, %m, stats, kv, ops, cs, HK, HA, #Hcso, #Hap, #Hcap,
     %Hrs, Hval⟩
   subst Hv
   obtain ⟨Hcfgm, Haplen, HKv, HAok, Hmsz, Hinit, Hap61, HKfit, HAfit⟩ := Hrs
@@ -532,6 +532,78 @@ theorem StartNode.wp_proof
       iframe stats; try (ipureintro; first | rfl | trivial)
   iintro %v ⟨%Hv, stats⟩
   subst Hv
+  try wp_auto
+  -- the transport
+  ihave #Hpeers' := Hpeers
+  iunfold kvPeerAddrs at Hpeers'
+  wp_apply wp_newTransport (kvFacts γ (fun _ => True)) cfg.ID' cfg.Addrs' M sp $$ [$Hpkg $HM $Hpeers']
+    as %t ⟨#Htid, #Htst, Htnode, #HtPeers⟩
+  try wp_auto
+  -- the configuration
+  generalize «$a0_ptr» = cp
+  ihave Hcv : iprop(∃ cv : Config, cp ↦ cv ∗ ⌜kvCfgOk cfg.ID' s ap0 cv⌝) $$ [«$a0»]
+  · iexists _
+    iframe «$a0»
+    ipureintro
+    unfold kvCfgOk ConfigValid
+    refine ⟨rfl, rfl, rfl, ⟨?_, ?_, ?_, ⟨by simp only; decide, by simp only; decide⟩, ?_, HI0,
+      Or.inl rfl, ?_, Or.inl rfl⟩, HI62, rfl, rfl, rfl, Hsz, rfl, rfl, rfl⟩
+    · intro h; simp only at h; rw [h] at Hid1; simp at Hid1
+    · intro h; simp only at h; have := Hidm; rw [h] at this; word
+    · intro h; simp only at h; have := Hidm; rw [h] at this; word
+    · simp [interface.mkOk, kdStorIface]
+    · simp [interface.mkOk]
+  icases Hcv with ⟨%cv, Hcv, %Hcfg⟩
+  obtain ⟨HcID, HcSt, HcLg, HcV, HcM, HcDP, HcRO, HcDC, HcSz, HcAS, HcAp, HcTL⟩ := Hcfg
+  -- the node restarted
+  have Hsc : uint.nat F.snap.Metadata'.Index' ≤ uint.nat F.hs.Commit' := by
+    by_cases h0 : F.snap.Metadata'.Index' = W64 0
+    · rw [h0]; simp
+    · exact (HFSH.2.2.2.2.2.2.2.2.1 F.snap (by simp only [kdContents]; rw [if_neg h0])).2
+  ihave %Htr := kdCluster_untraced γ vs $$ Hcl
+  have Hns : ¬ clusterNoSnap γ.r.cluster := fun h => by
+    have := clusterNoSnap_boot _ h; omega
+  ihave Hrs := kd_restartStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
+    wp_Entries s ms bp γs F (raft_kvreconf.bootCS vs) e0 γ.r.cluster (uint.nat ap0)
+    (fun K => iprop(memStorMeta ms γs F.hs ∗ memStorInvP ms γs (kdJ γ.r.cluster K))) Htr Hmd Hns HFok He0
+    (by word) Hsc
+    $$ Hpkg Hrec Hsb Hl Hfresh Hmeta Hd0 Hfro Hents Hend Hcmp Hval []
+  · iintro %K Hm Hi; iframe Hm Hi
+  ihave Hau := kv_restartAu (GF := GF) γ cfg.ID' fl (kdContents (some F)) S o' HFSH $$ [$HfInv Hwr]
+  · unfold kdWriter; iexact Hwr
+  ihave #Hlogger := qLogger_isLogger wp_Debugf wp_Errorf wp_Infof wp_Warningf
+  have Hiface : kdStorIface s =
+      GoInterface.ok ⟨go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Storage.ty, #s⟩ :=
+    rfl
+  have HA : uint.nat cv.Applied' = uint.nat ap0 := by rw [HcAp]
+  iunfold kdCluster at Hcl
+  icases Hcl with ⟨#HisC, -⟩
+  wp_apply (wp_RestartNode γ.r.cluster kdRaftN cp cv qLogger
+      ⟨go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Storage.ty, #s⟩
+      (kdContents (some F)) (kdInitCS (raft_kvreconf.bootCS vs) F) (uint.nat F.snap.Metadata'.Index') m
+      (fun S' => iprop(kdWriter fl S o' ∗ ⌜S' = S⌝))
+      (fun K => iprop(memStorMeta ms γs F.hs ∗ memStorInvP ms γs (kdJ γ.r.cluster K)))
+      (snapshotValid γ.r.cluster) (fun _ => by iintro H; iexact H)
+      HcV HcLg HcSt HcM HcDP HcRO HcDC HcSz HcAS (fun h => absurd Hmd h)
+      (by rw [HA]; simp only [kdContents_some_b, kdContents_some_commit]
+          rcases Hap0 with ⟨h1, -⟩ | ⟨h1, h2, -⟩
+          · left; rw [h1]; rfl
+          · right; omega)
+      (by rw [HA]; simp only [kdContents_some_b]
+          rcases Hap0 with ⟨h1, -⟩ | ⟨h1, h2, -⟩
+          · rw [h1]; simp; word
+          · omega)
+      (by simp only [kdContents_some_commit]; exact Hsc)
+      (by rw [Hbl0]; omega) Hinit Hns HcTL Htr0 fl.x)
+    $$ [$Hraft $Hcv $Hlogger $HisC $Hfits Hvac Hau Hrs]
+    as %nd ⟨%n, %S', %l, %K, %Hnd, #HisNode, #Hl', %Hllen, %HS1b, Hdrv, Hncfg, Hrun, -, Harm, ⟨Hwr, %HS'⟩,
+      ⟨Hmeta, #HmsInv⟩⟩
+  · rw [HcID, ← Hiface, HA]
+    iframe Hvac Hrs
+    isplitl [Hau]
+    · iexact Hau
+    rw [← Haplen]; iexact Hcap
+  subst Hnd HS'
   try wp_auto
   done
 

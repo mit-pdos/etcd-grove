@@ -9,6 +9,12 @@ module
 
 public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.BootLemmas
 public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.KdStorageApi
+public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.QLogger
+public import KvNet.Proof.go_etcd_io.raft.v3.InvLogger
+public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.quietLogger__Debugf
+public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.quietLogger__Errorf
+public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.quietLogger__Infof
+public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.quietLogger__Warningf
 
 @[expose] public section
 
@@ -162,6 +168,47 @@ def startStor (stp bp : Loc) (boot : ConfStateM) (F : StorFile) : IProp GF :=
       (F.ents.drop (uint.nat F.snap.Metadata'.Index' - uint.nat F.prev)) ∗
     memEnd γs (uint.nat F.prev + F.ents.length + 1) ∗
     memCompacted γs (uint.nat F.prev) ∗ memSnapLb γs (uint.nat F.snap.Metadata'.Index'))
+
+/-- **A configuration of node `id` on the store's storage `st`, restarted at `applied`** (kvdurable's
+`kdCfgOk`): what `RestartNode.spec` asks of it, with its node id, storage, logger and applied index. -/
+def kvCfgOk (id : w64) (st : Loc) (applied : w64) (cv : Config) : Prop :=
+  cv.ID' = id ∧ cv.Storage' = kdStorIface st ∧ cv.Logger' = GoInterface.ok qLogger ∧
+  ConfigValid cv ∧ sint.Z cv.MaxInflightMsgs' < 2 ^ 62 ∧ cv.DisableProposalForwarding' = false ∧
+  cv.ReadOnlyOption' = W64 0 ∧ cv.DisableConfChangeValidation' = false ∧
+  (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) ∧
+  cv.AsyncStorageWrites' = false ∧ cv.Applied' = applied ∧ TraceLoggerOk cv.TraceLogger'
+
+/-- `quietLogger{}` is a raft `Logger` (kvdurable's `qLogger_isLogger`). -/
+theorem qLogger_isLogger
+    (wp_Debugf : quietLogger.Debugf.spec (GF := GF) (hG := hG))
+    (wp_Errorf : quietLogger.Errorf.spec (GF := GF) (hG := hG))
+    (wp_Infof : quietLogger.Infof.spec (GF := GF) (hG := hG))
+    (wp_Warningf : quietLogger.Warningf.spec (GF := GF) (hG := hG)) :
+    ⊢ isLogger (GF := GF) qLogger := by
+  unfold isLogger
+  iintro %meth %Hmeth %format %args
+  simp only [logMethods, List.mem_cons, List.not_mem_nil, or_false] at Hmeth
+  rcases Hmeth with rfl | rfl | rfl | rfl
+  · dsimp only [qLogger, interface.mk]
+    imodintro
+    iintro %Φ - HΦ
+    iapply (wp_Infof format args) $$ [] HΦ
+    itrivial
+  · dsimp only [qLogger, interface.mk]
+    imodintro
+    iintro %Φ - HΦ
+    iapply (wp_Debugf format args) $$ [] HΦ
+    itrivial
+  · dsimp only [qLogger, interface.mk]
+    imodintro
+    iintro %Φ - HΦ
+    iapply (wp_Warningf format args) $$ [] HΦ
+    itrivial
+  · dsimp only [qLogger, interface.mk]
+    imodintro
+    iintro %Φ - HΦ
+    iapply (wp_Errorf format args) $$ [] HΦ
+    itrivial
 
 end stor
 
