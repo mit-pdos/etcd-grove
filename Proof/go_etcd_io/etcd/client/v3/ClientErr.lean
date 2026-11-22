@@ -1,5 +1,5 @@
 /-
-`clientErr`: what an error etcd's client returns is, as Go's `errors.As` needs it (moved from
+`clientErr`: what an error etcd's client returns is, as Go's `errors.AsType` needs it (moved from
 `cache/v3/InvEtcdTxnOwn.lean` in unit C1, 2026-10-14, so that `rpctypes.Error`'s spec, which
 imports less, can state that it keeps it). Lean-first (no Rocq counterpart).
 -/
@@ -46,9 +46,13 @@ dynamic type is one of `clientErrTys` (since k8s 7e-1), whose
 value, if its dynamic type is `rpctypes.EtcdError`, is an `EtcdError` (Go's typing, which the model
 lacks: `errors.AsTypeTyped`); and `rpctypes.EtcdError` implements `error` (its method set has
 `Error() string`, `func (e EtcdError) Error() string`: `errors.AsTarget`, a method-set fact, which
-the model also lacks, since method sets are uninterpreted). What `errors.As(err, &serverErr)`
-needs (`leasingKV.acquire`, `errors.wp_As`: Go's `As` panics for a target whose element type is
-neither an interface nor implements `error`). -/
+the model also lacks, since method sets are uninterpreted). What `errors.AsType[rpctypes.EtcdError](err)`
+needs is the leaf and typing facts (`ContextError`, `isSafeRetryImmutableRPC`, `leasingKV.acquire`:
+`errors.wp_AsType`, Perennial's proved spec). The `AsTarget` conjunct is what `errors.As(err,
+&serverErr)` needed until etcd-grove#29 moved those calls to `AsType` (Go's `As` panics for a target
+whose element type is neither an interface nor implements `error`); no proof uses it now, and it is
+kept (proved: `rpctypesEtcdError_asTarget`) so that the statements written with `clientErr` are
+unchanged. -/
 def clientErr (err : GoInterface) : Prop :=
   errors.AsTarget v3rpc.rpctypes.EtcdError.ty ∧
   ∀ ii, err = GoInterface.ok ii → errors.isLeafError ii ∧

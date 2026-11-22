@@ -3324,6 +3324,14 @@ name in the macro (`_root_.decide_true`), and consider failing loudly instead of
   `errors.wp_As_first (hT : AsTarget T) (h : AsFirst T err #x) : {{ isPkgInit errors ∗ l ↦ v }} As err &l
   {{ RET #true; l ↦ x }}` is `errors.AsLinkError.spec`'s case. The three `wp_As` callers here gain `x` and an
   `iright`. (c) `Errno.Is`'s comparisons: `601b7fb5d` (the 2026-11-13 entry's status).
+- **Status (2026-11-22, errors-astype, etcd-grove#29).** (1) is superseded for `renameWAL`: the fork's
+  `wal.go` now calls `errors.AsType[*os.LinkError](err)` (upamanyus/etcd@edc800c6f), which Perennial translates, and
+  the first-match case is proved here from that translation (`errors.AsTypeMatch.spec`/`wp_proof`,
+  `Spec/errors/AsTypeMatch.lean`, `Proof/errors/AsTypeMatch.lean`: a non-interface `T` equal to `err`'s dynamic type,
+  `(x, true)`, no tree premise); `errors.AsLinkError.spec` is gone. **Proposed (general, replacing (1) and (b)):**
+  `AsTypeMatch` as a lemma of Perennial's `Proof/errors/` beside `wp_AsType` (and an interface-`T` case), since it
+  is about Perennial's own `AsType`; then this repository's copy goes. `errors.As` (reflection, the axiom) stays
+  only for the code that still calls it (rafthttp's non-error target, k8s).
 
 ## 2026-11-14: `io.Copy`/`copyBuffer` without bodies (the WAL's `Repair`, branch `wal-copy1`)
 
