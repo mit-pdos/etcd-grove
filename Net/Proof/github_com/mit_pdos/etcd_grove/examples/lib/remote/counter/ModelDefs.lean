@@ -1,7 +1,27 @@
 /-
 # remote's counter instance: its porcupine model (`notes/remote-port-plan.md`, R4)
 
-DRAFT
+`Model()` (counter.go) is the counter with pending increments: linkv's pending-writes model
+`pSeq cB` (`Proof/.../etcd/txnlin/PendModel.lean`) of the counter `cB` (`Defs.lean`), on
+porcupine's operations through `cDec`. Its state `State{Lo, K}` stands for a set of
+configurations, which `Equal` compares as values.
+
+- `stepG`: `step`, transcribed on Go's `int64`s (`step`'s spec, `Net/Spec/.../counter/step.lean`).
+- `cSet lo K`: the configurations `State{lo, K}` stands for, `(lo + j, K - j)` for `j ≤ K`: the
+  counter's value and its pending increments (a list of `K - j` `true`s). Closed under late
+  effects (`cSet_closed`), each reached from `(lo, K)` (`cSet_reach`).
+- `ppost_errT`, `ppost_errF`, `ppost_okT`, `ppost_okF`: the model's next set from `cSet lo K`,
+  one per kind of operation (an unknown increment, an unknown read, an answered increment, an
+  answered read), by extensionality.
+- **`stepG_pSeq`**: `step` on `State{lo, K}` (with `lo + K < 2^60`: no overflow) is the model's
+  step on `cSet lo K`: `false` exactly when the model has no next state, else a
+  `State{lo', K'}` of the next set, `lo' + K' ≤ lo + K + 1`.
+- `cS`: the model spec. Its `rep k v s` (`cRep`): `v` is the boxed `State{lo, K}` and `s` is
+  `cSet lo K`, with `lo + K ≤ k` (a step adds at most one) and `lo + K ≤ 2^60` (`Step` runs below
+  index `2^60`; and equal `State`s are then the same `(lo, K)`, so the same set: `stV_inj`).
+- `cS_pendDec`: `cS` decodes as `remote`'s far-side store `cR γ` (`PendDec`): `cDec` on a boxed
+  `bool` and a boxed `Out` (`cDec_box`, by the injectivity of the boxes: an `Out`'s fields are
+  read off its value by deterministic steps, `out_intoVal_inj`).
 -/
 module
 
@@ -468,6 +488,12 @@ theorem cDec_box (b u : Bool) (n : w64) :
     dsimp only
     rw [e3', e2', e1']
   · next hn => exact absurd ⟨b, u, n, rfl⟩ hn
+
+/-- The model's step on porcupine's operation `(boxB b, outV u n)`. -/
+theorem pM_box (S : linkv.PSet w64 Bool) (b u : Bool) (n : w64) :
+    (linkv.pM cB cDec).step S (boxB b, outV u n) =
+      (linkv.pSeq cB).step S (b, if u then .err else .ok n) :=
+  linkv.pM_step cB cDec S _ b _ (cDec_box b u n)
 
 /-- The model's step on porcupine's operation `(boxB b, outV u n)`. -/
 theorem cS_step {GF : BundledGFunctors} (S : linkv.PSet w64 Bool) (b u : Bool) (n : w64) :

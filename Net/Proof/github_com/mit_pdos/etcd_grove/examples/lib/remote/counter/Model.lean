@@ -64,8 +64,24 @@ theorem Model.wp_proof (wp_step : step.spec (GF := GF) (hG := hG)) :
     obtain ⟨lo, K, hk, hb, rfl, rfl⟩ := Hrep
     wp_auto
     wp_apply wp_step as %ok %s' %Hst
-    wp_auto
-    sorry
+    have H := stepG_pSeq lo K (by omega) b u n
+    rw [← Hst] at H
+    obtain ⟨Hok, Hs⟩ := H
+    iapply HΦ'
+    isplitr
+    · ipureintro; exact ⟨lo, K, hk, hb, rfl, rfl⟩
+    isplitr
+    · ipureintro; rw [pM_box]; exact Hok
+    unfold stepPost
+    simp only [pM_box]
+    cases hm : (EtcdGrove.linkv.pSeq cB).step (cSet lo K) (b, if u then .err else .ok n) with
+    | none => simp only; itrivial
+    | some S' =>
+      obtain ⟨lo', K', h1, h2, h3⟩ := Hs S' hm
+      simp only at h1
+      subst h1 h3
+      ipureintro
+      exact ⟨lo', K', by omega, by omega, rfl, rfl⟩
   isplitr
   · ipureintro; nofun
   isplitr
@@ -79,7 +95,23 @@ theorem Model.wp_proof (wp_step : step.spec (GF := GF) (hG := hG)) :
     obtain ⟨lo', K', hj, hb', rfl, rfl⟩ := Hw
     wp_auto
     wp_if_destruct
-    all_goals sorry
+    · iapply HΦ'
+      isplitr
+      · ipureintro; exact ⟨lo, K, hk, hb, rfl, rfl⟩
+      isplitr
+      · ipureintro; exact ⟨lo', K', hj, hb', rfl, rfl⟩
+      ipureintro
+      intro h
+      have hK := of_decide_eq_true h
+      obtain ⟨e1, e2⟩ := stV_inj hb hb' (by simp only [stV, Hif, hK])
+      rw [e1, e2]
+    · iapply HΦ'
+      isplitr
+      · ipureintro; exact ⟨lo, K, hk, hb, rfl, rfl⟩
+      isplitr
+      · ipureintro; exact ⟨lo', K', hj, hb', rfl, rfl⟩
+      ipureintro
+      nofun
   ileft
   ipureintro; trivial
 
