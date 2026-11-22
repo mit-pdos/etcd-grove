@@ -368,7 +368,7 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
     · simp only [Option.isSome_map, hsy]
       wp_auto
       unfold forMapPostcondition
-      iright; iright; iright
+      iright; iright; iright; ileft
       iexists _
       isplitr
       · ipureintro; rfl
@@ -400,7 +400,7 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
       wp_if_destruct
       · (try wp_auto)
         unfold forMapPostcondition
-        iright; iright; iright
+        iright; iright; iright; ileft
         iexists _
         isplitr
         · ipureintro; rfl
@@ -640,7 +640,7 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
     · iunfold mvcc.watchStoreBody; simp only [named]; iframe; iframe #; ipureintro; exact ⟨Hvlen, Hok⟩
     (try wp_auto)
     unfold forMapPostcondition
-    iright; iright; iright
+    iright; iright; iright; ileft
     iexists _
     isplitr
     · ipureintro; rfl
