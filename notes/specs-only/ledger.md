@@ -4508,3 +4508,27 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   (Alternatively a raft API lemma `sentMsg ⊢ ∀ e ∈ st.ents, Type ≤ 2`, which needs raft's message invariant to
   track forwarded proposals' entries: not taken.)
 - **Decision.** Applied.
+
+## 2026-11-22: `semver.Version.LessThan` takes its receivers' points-tos and returns `Compare(o) < 0`; the cluster's `Version()` returns a read-only version (prove-ps2-semver)
+
+- **Spec.** `semver.Version.LessThan.spec` (`Spec/github_com/Masterminds/semver/v3/Version__LessThan.lean`): the
+  premise `v ≠ null ∧ o ≠ null` becomes `v ↦{dv} x ∗ o ↦{dw} y` (any fractions, given back); the post, some
+  boolean, becomes `decide (semver.lessThan x y)` (`CompareModel.lean`: semver v3.5.0's `Compare`, line for
+  line). `apply.isCluster`'s `Version` law (`apply/Contracts.lean`, the names-only membership's trust
+  boundary): the post `True` becomes `⌜v = null⌝ ∨ ∃ x, v ↦□ x`.
+- **Defect.** The axiom was unprovable over the real code: `Compare` reads both structs, and a `≠ null` premise
+  gives no points-to (a concurrent writer races). The ownership-premise rule (the user's, 2026-11-21) applies:
+  `version.LessThan` passes its by-value copies (owned), `compareMajorMinorVersion` `New`'s results (`↦□`),
+  `ClusterVersionSet` `MustParse`'s result (`↦□`) and the cluster's `Version()`, for which the contract now says
+  what `cluster.go:580-587` does (nil, or `semver.MustParse(c.version.String())`: a fresh `NewVersion`
+  allocation nothing else holds). That law is a premise of the top-level results (through `clusterApplyOk`,
+  `bootOk`, `bootstrapContract`), so this is a stronger trusted premise, true of the Go code, in exchange for
+  the retired axiom.
+- **Evidence.** `Proof/github_com/Masterminds/semver/v3/{Version__LessThan,Version__Compare,comparePrerelease,
+  comparePrePart,compareSegment,Version__Patch,Version__Prerelease}.lean`, over `strings.Split` and
+  `strconv.ParseUint`; the callers' proofs (`version/LessThan`, `rafthttp/compareMajorMinorVersion`,
+  `apply/applierV3backend__ClusterVersionSet`).
+- **Proposed change.** As above. `SpecPlan`'s `Version.LessThan.spec` (`verAt`, `SemVer.ltb` with an opaque
+  `preLtb`) is the same shape; its `preLtb` could now be defined as `CompareModel`'s `cmpPre … = -1`.
+- **Decision.** Applied (the approved ownership-premise rule; the cluster contract's strengthening recorded
+  here and in the report to #18).
