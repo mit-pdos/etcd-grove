@@ -14,3 +14,8 @@ and lower the hooks' cap `hookMax` from `2^16` to `4` (option A of `notes/step-b
   parameter: needs the same cap in `bootOk`).
 - Recommendation: **A**. Depends on it: all of step 2's Draft. Not blocked meanwhile: nothing else
   (step 3's Scope comes after step 2).
+
+**Answer (2026-11-22): option D** (one receipt per buffered entry, backend-internal; added to the plan
+after the user's question why the per-put receipts had to come from callers: they need not, the put's
+own steps provide them). **Approved by the user, 2026-11-22, via the jtassarotti session.** The cap
+stays `2^16`; no top-level premise strengthened.

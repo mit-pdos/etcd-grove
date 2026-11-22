@@ -31,7 +31,7 @@ n + 1`): hence `n + 12 ≤ 2^40` in `etcd_robust`, `k8s_robust`, `leaseexpiryN`;
 Behind it, `receiptBound GF ≤ 2^48` (`NewServer.spec`, the id generator: step 3) caps every etcd
 statement at `2^48` whatever the budget.
 
-### The change (recommended: option A)
+### The change (options; decided: D, below)
 
 **A.** Budget `2^56` (`wbInit = 2^56 - 1`, `bgOk`'s `2^40` → `2^56`), cap `hookMax ≤ 4`:
 `4 · (2^56 + 2) + 2^58 + 2^58 < 2^60`. The server's hooks need `3 ≤ hookMax` (`hooksParams`,
@@ -62,6 +62,21 @@ premise strengthened; etcd's bounds to about `2^42`, and step 3 would hit the ba
 **C.** Make the budget depend on the parameter (`wbInit P = 2^58 / (hookMax + 1)`): no cap change,
 but `bootOk`'s `d` is existential, so the examples could not discharge `N + 7 + bootWB ≤ wbInit d.P`
 without a cap on `d.P.hookMax` in `bootOk` anyway: A in another form.
+
+**D.** (2026-11-22, the user's question) One time receipt per buffered entry, inside the backend:
+`putInternal`/`putSeq` (behind `UnsafePut`/`UnsafeSeqPut`, the hook's puts included) take a receipt at
+one of their own Go steps (`wp_go_step_receipt`) and deposit it in the batch lock's invariant with the
+entry (the put holds the lock); `bgOk` holds `⧗ m` for the buffers' `m` entries, so `m < receiptBound`
+whatever `hookMax` and the commits since the last write-back; the write-back drops them. No caller
+changes: the backend's specs gain an instance premise (`[ReceiptBoundLe GF (2^59)]`, met by every
+caller, `≤ 2^48` today). The budget then bounds only the read buffer's `uint64` version and the commit
+counters: about `2^62`. `hookMax`'s cap stays `2^16`; `bootstrapContract` unchanged; `OpenBackend`'s
+text unchanged (its `wbInit` tokens more numerous). More proof work than A (the put/write-back proofs
+and `bgOk` reworked), all backend-internal.
+
+**Decision: D, approved by the user, 2026-11-22, via the jtassarotti session** (`notes/step-bounds-questions.md`, Q1).
+Draft starts with one put proved with its receipt (that the receipt can be deposited with the entry),
+before the rest.
 
 ### Draft (after approval)
 
