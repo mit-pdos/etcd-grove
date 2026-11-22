@@ -4409,6 +4409,25 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `MapFits` stays for now (the waiters' handoffs still carry it); it is removable.
 - **Decision.** Applied (the coordinator's option (a), 2026-11-22). Unchecked: no `.lake` at the time.
 
+## 2026-11-22: `EtcdServer.adjustTicks` proved with the tick advance off (prove-ps2-srv)
+
+- **Spec.** `EtcdServer.adjustTicks.spec` (`Spec/.../etcdserver/EtcdServer__adjustTicks.lean`): two new premises,
+  `srvMonitorsOff s` and `isRaftNode Er γn (srvRAddr s)` (for any `Er`, `γn`). `srvMonitorsOff` (`InvMonitors.lean`)
+  gets one more conjunct, `Cfg.InitialElectionTickAdvance ↦□ false`, and `srvMonitorCfg` the field at the
+  configuration's value (`NewServer`, `NewServerR` give it from the copied `Cfg`).
+- **Defect.** The axiom held for any configuration; a proof over the real code with
+  `InitialElectionTickAdvance` true needs the multi-member branch's wait loop, whose `transport.ActivePeers()` is
+  not in `rafthttp.isTransporter` (rafthttp's `ActivePeers` read-locks `t.mu` with no reader token, the reason
+  `Transport.ActiveSince` is itself an axiom: a narrower axiom on it would be 1-for-1). `advanceTicks` needs the
+  raft wrapper's contract, which the premise did not give.
+- **Evidence.** `server.go:468-530` (fork `goose-lean`): a single member fast-forwards (`advanceTicks(ElectionTicks
+  - 1)`, proved); with several members and the advance off, `lg.Info` and return. No example sets
+  `InitialElectionTickAdvance` (grep of `examples/`: the zero value, false); `Start`'s callers discharge it as they
+  discharge the other monitors-off fields (`iExactEq …; rfl` on the literal). `Start` has `isRaftNode` in its
+  construction premise (`isServerBuiltC_rn`, `AuthCompRows.lean`).
+- **Proposed change.** As above; `Start.spec` unchanged in statement (its `srvMonitorsOff` premise widened).
+- **Decision.** Applied (the user's standing rule: a trust-boundary spec may change when every caller still proves,
+  memory `ownership-premise-ok`; same pattern as audit B4a's monitors-off premises).
 ## 2026-11-22: `credentials.NewPerRPCCredentialBundle` takes its package's initialization; `credTokInv` over the lock (prove-ps2-client)
 
 - **Spec.** `credentials.NewPerRPCCredentialBundle.spec`: pre `True` to `isPkgInit
