@@ -56,7 +56,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of ErrBadPattern))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrBadPattern #MErrBadPattern
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrBadPattern ⟨#_, #MErrBadPattern⟩
   iframe Hown
   is_pkg_init_finish
 

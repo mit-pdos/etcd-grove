@@ -22,6 +22,9 @@ imports = ["google.golang.org/protobuf/runtime/protoimpl",
 trust_proofgen = true
 
 # translate the definitions of all type declarations goose supports
+# (etcd-grove#32, 2026-11-22) the `init` function (the file descriptor's registration) trusted:
+# a model that does nothing (TrustedCode/go_etcd_io/etcd/api/v3/authpb.lean; until then names-only, the axiom `initFuncsOk`)
+trusted = ["init.0"]
 translate_types = true
 
 # --- skipped package variables (mit-pdos/etcd-grove#23) ---
