@@ -466,7 +466,15 @@ collector, not a `*Desc`).
   `idTok d.ID'`), as `MustRegister.lean` does.
 * The full regeneration (`etc/gen-init.py`, 59 files: the registering packages' steps, `promreg_sem`,
   prometheus's importers now importing its `InitLinked`, the package tables' rows for promreg, the
-  grpc-prometheus provider's init split) is in the working tree with this note; `read`'s `InitLinked` built.
+  grpc-prometheus provider's init split): commit `8743c629f9`. Built (3777 jobs): every registering package's
+  `InitLinked`, the etcd/k8s/mvccfull/mvccrand/leaseexpiryN package tables, etcdstart's and the WAL tester's
+  `InitLinked`; `etc/gen-init.py --check` and `etc/tier-check.py --check` pass. Nothing above them (the
+  `Adequacy`/`Results` files, the closed theorems) was built: they still pass `startRights`' `nameFree`s.
+
+**Next session, in order**: `prometheus.Register` (below), then stage 5 from `goose_adequacy_start`
+(`ownLocalNames ∅` in its premise, the names dropped: the final commit), the closed proofs (`promReg_alloc`
+with the program's names' IDs, decided distinct and non-builtin), `etc/gen-link.py` only where a `Link`
+applies a theorem taking `promreg_sem` (today none: v3rpc's `Link` applies the `Register` axiom), stage 6.
 
 **Not done (stage 4):**
 * `prometheus.Register.wp_proof` (grpc-prometheus's server metrics, `getServerMetrics`) is still the axiom,
