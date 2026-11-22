@@ -60,6 +60,9 @@ variable [lc_sem : github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter.A
 def syncInv (γs γc : GName) : IProp GF :=
   inv syncN iprop(∃ n : w64, ghostVar γs (1 : Qp).half n ∗ lintest.counter.counterState γc n)
 
+instance syncInv_persistent (γs γc : GName) : Persistent (syncInv (GF := GF) γs γc) := by
+  unfold syncInv; infer_instance
+
 /-- The server's system: its `*Counter`, in step with the start's ghost variable. -/
 def srvTok (γs : GName) (sys : GoInterface) : IProp GF :=
   iprop(∃ (c : Loc) (γc : GName), ⌜sys = interface.mkOk (go.GoType.PointerType

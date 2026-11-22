@@ -7,7 +7,9 @@ The counter on the server node (`lintest/counter`'s `Counter`, logically atomic 
 
 - `cB`: the base store, an `int64` counter; an input is a `bool` (`true`: increment, a write;
   `false`: read); the output is the counter's value after the step.
-- `cR γ`: its state is `counterState γ` (timeless), the operation's mask `∅` (`Counter.Apply`'s),
+- `cR γ`: its state is half of a ghost variable `γ` allocated at the deployment's start (timeless),
+  which the server keeps in step with its `Counter`'s state (`counterState`, allocated by `New` at
+  run time) in an invariant at `syncN`, the operation's mask (`Server.lean`),
   the inputs boxed `bool`s (`boxB`), the outputs boxed `Out{false, n}` (`outV`), the unknown output
   `Out{true, 0}`; the bytes are `Codec()`'s: an input one byte, an output a byte (unknown or not)
   and the value's 8 little-endian bytes (`encOutV`).
@@ -71,6 +73,9 @@ def cDec (io : OpV) : Option (Bool × linkv.Ans w64) :=
 
 end vals
 
+/-- The server's invariant tying the start's ghost variable to its counter's. -/
+def syncN : Namespace := nroot.@"remote_counter_sync"
+
 section base
 variable [GooseExts] [GoGlobalContext] {GF : BundledGFunctors} [AllG GF]
 
@@ -78,7 +83,7 @@ variable [GooseExts] [GoGlobalContext] {GF : BundledGFunctors} [AllG GF]
 def cR (γ : GName) : RBase GF w64 Bool w64 where
   B := cB
   sysState n := ghostVar γ (1 : Qp).half n
-  Eop := ∅
+  Eop := ↑syncN
   iv := boxB
   ov n := outV false n
   unk _ := outV true (W64 0)
