@@ -388,6 +388,10 @@ PROJECTS = [
                     # `bufio`'s Reader and `path/filepath`'s lexical functions (over
                     # `internal/filepathlite`) with bodies, `hash/crc32` (`hash=` above) names only
                     "bufio=", "path/filepath=", "internal/filepathlite=",
+                    # (crc32-hooks2, 2026-11-22) `hash/crc32`'s `slicingUpdate` calls
+                    # `byteorder.LEUint32` (project k8s-apiserver's translation,
+                    # Code/internal/byteorder.toml)
+                    "internal/byteorder=",
                     # (the same) `fileutil`'s lock and preallocation calls: the per-byte file
                     # extension's `syscall` and `golang.org/x/sys/unix` (project bboltfs's), as `os=`
                     "syscall=", "golang.org/x/sys=", "internal/poll=", "internal/syscall="],

@@ -37,9 +37,9 @@ theorem mvcc.newKVHasher.wp_proof (hMT : hash.crc32.MakeTable.spec (GF := GF) (h
   wp_start
   wp_auto
   rw [show (W32 2197175160) = _root_.Perennial.hash.crc32.castagnoliPoly from rfl]
-  wp_apply hMT as %tab #Htab
   ihave #Hc32 : isPkgInit (PROP := IProp GF) pkg_id.hash.crc32 $$ []
   · iPkgInit
+  wp_apply hMT as %tab #Htab
   wp_apply hNew $$ [] as %d Hd
   · iframe #
   (try wp_auto)

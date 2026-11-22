@@ -134,7 +134,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.NewDecoder.wp_proof
   · have hn : sint.nat n = fs.length := by rw [hfl] at Hn ⊢; word
     rw [hn, Nat.sub_self, List.replicate_zero, List.append_nil, List.take_length, List.drop_length]
     iunfold walCrcTable at Htab
-    icases Htab with ⟨%tab, #Hgt, #Htabarr⟩
+    icases Htab with ⟨%tab, #Hgt, #Htabarr, #Hc32⟩
     wp_auto
     wp_apply HNew (W32 0) tab as %lc Hlc
     wp_alloc d as Hd
@@ -161,7 +161,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.NewDecoder.wp_proof
     · iunfold ownDecCrc
       iexists lc, tab
       iframe
-      iframe Htabarr
+      iframe Htabarr Hc32
       ipureintro; rfl
     ipureintro
     refine ⟨by decide, fun _ => ?_⟩

@@ -32,6 +32,7 @@ public import Proof.hash.crc32.MakeTable
 public import Proof.hash.crc32.New
 public import Proof.hash.crc32.digest__Sum32
 public import Proof.hash.crc32.digest__Write
+public import Proof.hash.crc32.simpleUpdate
 public import Proof.hash.crc32.update
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.eventBatch__add
 public import Proof.fmt.ErrorfWrap
@@ -435,9 +436,13 @@ theorem schema.bucket.wp_Name :
     schema.bucket.Name.spec (GF := GF) (hG := hG) :=
   schema.bucket.Name.wp_proof
 
+theorem hash.crc32.wp_simpleUpdate :
+    hash.crc32.simpleUpdate.spec (GF := GF) (hG := hG) :=
+  hash.crc32.simpleUpdate.wp_proof
+
 theorem hash.crc32.wp_update :
     hash.crc32.update.spec (GF := GF) (hG := hG) :=
-  hash.crc32.update.wp_proof
+  hash.crc32.update.wp_proof hash.crc32.wp_simpleUpdate
 
 theorem hash.crc32.digest.wp_Write :
     hash.crc32.digest.Write.spec (GF := GF) (hG := hG) :=

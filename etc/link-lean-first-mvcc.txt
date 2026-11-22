@@ -260,9 +260,12 @@ schedule_job__Do:
 schedule_job__Name:
 schedule_NewJob: schedule_job__Do
 # (prove-etcdint3, 2026-11-21) the hasher, proved over `hash/crc32`'s digest (`New`, `Write`, `Sum32`,
-# proved; `MakeTable` and `update` trusted models with proved specs)
+# proved; `MakeTable` and `update` trusted models with proved specs; crc32-hooks2, 2026-11-22: translated,
+# `update` over `simpleUpdate`, the trusted models only the arch hooks, which `MakeTable`'s once runs
+# in crc32's initializer)
 crc32_MakeTable:
-crc32_update:
+crc32_simpleUpdate:
+crc32_update: crc32_simpleUpdate
 crc32_New:
 crc32_digest__Write: crc32_update
 crc32_digest__Sum32:

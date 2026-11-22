@@ -3735,7 +3735,15 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
   `archInitCastagnoli` is not a no-op: it fills `castagnoliSSE42TableK1/K2`, which only
   `archUpdateCastagnoli` reads. That is harmless because the model's `archUpdateCastagnoli` reads no
   table.
-- **Status.** Recorded only (not yet proposed to Perennial).
+- **Status.** Resolved by Perennial #679 (`101637598`, the pin since 2026-11-22): `sync.OnceFunc.spec`
+  returns a single-use update that, given `{P} f() {Q}` with `Q` persistent, gives the persistent
+  `{True} g() {Q}`. The crc32 plan above is carried out on branch `crc32-hooks2/2026-11-22`, with two
+  changes: (b)'s once has `Q = castagnoliReady` (the table set up) and `haveInv` is a separate
+  invariant, opened by `update`'s `Load` and the once's `Store`; and (a)'s premise reaches past
+  `pkg/v3/crc`'s `Write` (whose spec gains it) into the WAL's `walCrcTable` and `ownDecCrc`, which now
+  hold `isPkgInit hash/crc32`. `internal/byteorder.LEUint32` is translated (project k8s-apiserver's
+  `byteorder.toml`) for `slicingUpdate`.
+
 ## 2026-11-22: `math.Float64bits` is names-only (`zap.Float64`, `Client.roundRobinQuorumBackoff`)
 
 - **The gap.** Perennial's `math` translation has `Float64bits` (and presumably `Float64frombits`) as names
