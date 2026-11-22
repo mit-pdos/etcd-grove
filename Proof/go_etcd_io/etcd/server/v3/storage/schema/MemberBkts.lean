@@ -24,7 +24,7 @@ open Iris Iris.BI Iris.ProofMode backend
 section buckets
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 variable [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
@@ -109,7 +109,9 @@ end params
 section parts
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-- **One bucket of a part, focused**: the part of a set `S` containing `n` is the part of `n` and
 what puts any part of `n` back, at that bucket's new contents. -/
@@ -122,17 +124,19 @@ theorem rbPart_focus (γ : BNames) (S : GoString → Prop) (r : GMap GoString Bk
     · subst hm; exact ⟨fun _ => Or.inl rfl, fun _ => hS⟩
     · exact ⟨fun h => Or.inr ⟨h, hm⟩, fun h => h.elim (fun e => absurd e hm) And.left⟩
   iintro Hrb
-  ihave Hrb := (rbPart_set γ S _ r hsplit).1 $$ Hrb
-  icases (rbPart_split γ (· = n) (fun m => S m ∧ m ≠ n) r (fun m h1 h2 => h2.2 h1)).1 $$ Hrb
+  ihave Hrb : rbPart γ (fun m => m = n ∨ (S m ∧ m ≠ n)) r $$ [Hrb]
+  · iapply (rbPart_set (GF := GF) γ S (fun m => m = n ∨ (S m ∧ m ≠ n)) r hsplit).1
+    iexact Hrb
+  icases (rbPart_split (GF := GF) γ (· = n) (fun m => S m ∧ m ≠ n) r (fun m h1 h2 => h2.2 h1)).1 $$ Hrb
     with ⟨Hn, Hrest⟩
   iframe Hn
   iintro %v Hn
   ihave Hrest : rbPart γ (fun m => S m ∧ m ≠ n) (r.insert n v) $$ [Hrest]
-  · iapply (rbPart_congr γ _ _ _ (fun m hm => by
+  · iapply (rbPart_congr (GF := GF) γ _ _ _ (fun m hm => by
       rw [GMap.lookup_insert_ne _ _ (Ne.symm hm.2)])).1 $$ Hrest
-  ihave Hrb := (rbPart_split γ (· = n) (fun m => S m ∧ m ≠ n) _ (fun m h1 h2 => h2.2 h1)).2
+  ihave Hrb := (rbPart_split (GF := GF) γ (· = n) (fun m => S m ∧ m ≠ n) _ (fun m h1 h2 => h2.2 h1)).2
     $$ [$Hn $Hrest]
-  iapply (rbPart_set γ S _ _ hsplit).2 $$ Hrb
+  iapply (rbPart_set (GF := GF) γ S (fun m => m = n ∨ (S m ∧ m ≠ n)) _ hsplit).2 $$ Hrb
 
 /-- A tracked bucket's `rbPut` is the part of that bucket. -/
 theorem rbPut_tracked (γ : BNames) (P : BParams) (n : GoString) (S : Data) (h : P.RB n = true) :
@@ -144,7 +148,7 @@ end parts
 section create
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
@@ -159,7 +163,7 @@ theorem create_present (hCB : backend.batchTxBuffered.UnsafeCreateBucket.spec (G
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st ∗ isBucket bk bi ∗
         rbPart γ S r }}
-      (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"UnsafeCreateBucket")) (Val #bk))
+      (App (Val (t @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty @!! go!"UnsafeCreateBucket")) (Val #bk))
     {{ RET #(); batchLocked γ P b (st.create bi) ∗ rbPart γ S r ∗ ⌜(st.create bi).S = st.S⌝ }} := by
   iintro %Φ ⟨#Hpkg, #HB, #Ht, Hl, #Hbk, Hrb⟩ HΦ
   icases rbPart_focus γ S r bi.name hS $$ Hrb with ⟨Hn, Hback⟩
@@ -188,7 +192,8 @@ theorem create_present (hCB : backend.batchTxBuffered.UnsafeCreateBucket.spec (G
     · rw [hc] at hr; cases hr
     · rfl
   ihave Hn : rbPut γ P bi.name st.S $$ [Hn]
-  · rw [← hcS]; iexact Hn
+  · iExactEq Hn
+    exact congrArg (fun S => rbPut (GF := GF) γ P bi.name S false) hcS
   rw [rbPut_tracked γ P bi.name st.S hRB]
   ihave Hn := (rbPart_congr γ _ _ _ hlk).1 $$ Hn
   ihave Hrb := Hback $$ %((r.lookup bi.name).getD ∅) Hn

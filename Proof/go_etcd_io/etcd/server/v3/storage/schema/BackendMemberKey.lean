@@ -37,7 +37,6 @@ theorem schema.BackendMemberKey.wp_proof
   subst Hs
   (try wp_auto)
   wp_apply wp_string_to_bytes (types.idStr id) as %sl ⟨Hsl, -⟩
-  wp_auto
   iapply HΦ
   iexact Hsl
 

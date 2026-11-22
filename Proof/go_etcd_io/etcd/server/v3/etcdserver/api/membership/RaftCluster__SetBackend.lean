@@ -30,14 +30,14 @@ theorem membership.RaftCluster.SetBackend.wp_proof
     (hMC : schema.membershipBackend.MustCreateBackendBuckets.spec (GF := GF) (hG := hG)) :
     membership.RaftCluster.SetBackend.spec (GF := GF) (hG := hG) := by
   intro c oldbe mbl lg d W Pk qo S r hS hm hmr hc
-  wp_start as ⟨Hcb, #Hsch, %Hlg, #Hbe, #Hlgf, #HB, Ho, Hwb, Hrb, %Hr⟩
+  wp_start as ⟨Hcb, %Hlg, #Hbe, #Hlgf, #HB, Ho, Hwb, Hrb, %Hr⟩
   obtain ⟨hrm, hrmr, hrc⟩ := Hr
   iunfold clusterBeOn at Hcb
   icases Hcb with ⟨%mbl0, %lg0, %Hlg0, Hfld, -, -⟩
   wp_auto
-  wp_apply (hMC mbl d W Pk qo S r hS hm hmr hc hrm hrmr hrc) $$ [$Hsch $Hbe $HB $Ho $Hwb $Hrb]
+  wp_apply (hMC mbl d W Pk qo S r hS hm hmr hc hrm hrmr hrc) $$ [$Hpkg2 $Hbe $HB $Ho $Hwb $Hrb]
     as ⟨Ho, Hrb⟩
-  wp_auto
+  (try wp_auto)
   iapply HΦ
   iframe Ho Hrb
   iunfold clusterBeOn

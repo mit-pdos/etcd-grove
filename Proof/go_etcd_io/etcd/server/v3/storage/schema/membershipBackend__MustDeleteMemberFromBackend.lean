@@ -60,9 +60,6 @@ theorem schema.membershipBackend.MustDeleteMemberFromBackend.wp_proof
   have hHBm : d.P.HB mvcc.membersBI.name = true := schema.kb_HB d _ (by decide)
   have hHBr : d.P.HB mvcc.membersRemovedBI.name = true := schema.kb_HB d _ (by decide)
   have hne : mvcc.membersBI.name ≠ mvcc.membersRemovedBI.name := by decide
-  rw [MethodUnfold.method_unfold (t := go.GoType.PointerType
-    go_etcd_io.etcd.server.v3.storage.schema.membershipBackend.ty) (m := go!"MustDeleteMemberFromBackend")]
-  wp_call
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   -- `mkey := BackendMemberKey(id)`
@@ -85,7 +82,8 @@ theorem schema.membershipBackend.MustDeleteMemberFromBackend.wp_proof
   · iright
     iframe Hrun
     ipureintro; exact Hf
-  imod (Hcl $$ HQ) with ⟨HP, HPost⟩
+  ihave HPP := Hcl $$ HQ
+  imod HPP with ⟨HP, HPost⟩
   (try wp_auto)
   have hlim := HPw.2.2.1
   have hp0 := Hfree.2.1
@@ -122,12 +120,14 @@ theorem schema.membershipBackend.MustDeleteMemberFromBackend.wp_proof
     rw [hSm]
   ihave Hm : backend.rbPart d.γB (· = mvcc.membersBI.name) (bk.insert mvcc.membersBI.name
       (((bk.lookup mvcc.membersBI.name).getD ∅).delete (types.idStr id))) $$ [Hm]
-  · rw [schema.rbPut_tracked _ _ _ _ hRBm]
-    iapply (backend.rbPart_congr _ _ _ _ hl1).1 $$ Hm
+  · iapply (backend.rbPart_congr _ _ _ _ hl1).1
+    rw [← schema.rbPut_tracked (GF := GF) d.γB d.P mvcc.membersBI.name _ hRBm]
+    iExactEq Hm
+    rfl
   ihave Hrb := Hback $$ %(((bk.lookup mvcc.membersBI.name).getD ∅).delete (types.idStr id)) Hm
   -- `UnsafePut(MembersRemoved, mkey, []byte("removed"))`
   (try wp_auto)
-  wp_apply wp_string_to_bytes membership.removedVal as %vs ⟨Hvs, -⟩
+  wp_apply wp_string_to_bytes (go!"removed" : GoString) as %vs ⟨Hvs, -⟩
   ipersist Hvs
   (try wp_auto)
   let st1 := st.del mvcc.membersBI (types.idStr id) false
@@ -153,22 +153,22 @@ theorem schema.membershipBackend.MustDeleteMemberFromBackend.wp_proof
   have hlen0 : 0 < (types.idStr id).length := by
     have := types.hexNatF_ne_nil (id.toNat + 1) id.toNat (by omega)
     unfold types.idStr
-    exact List.length_pos_of_ne_nil this
+    exact List.length_pos_iff.mpr this
   have hlen1 : (types.idStr id).length ≤ backend.maxKeySize := by
     have := types.idStr_length id
     unfold backend.maxKeySize; omega
   wp_apply (hUP d.γB d.P W P d.be t st1 bmr mvcc.membersRemovedBI ks vs (types.idStr id)
-      membership.removedVal hmr hlen0 hlen1 (by omega) (fun h => absurd h (by rw [hSBr]; decide))
+      (go!"removed" : GoString) hmr hlen0 hlen1 (by omega) (fun h => absurd h (by rw [hSBr]; decide))
       (fun h => by unfold backend.fkKey at h; exact absurd h.1 (by decide)) false false
       (_hkc := by decide))
     $$ [$Hbpkg $HB $Ht $Hl $Hbmr $Hks $Hvs $Hhkp $Hr $Hfkp] as ⟨Hl, -, Hr, -⟩
   -- the part of `members_removed`, at the entry put
-  let st2 := st1.put mvcc.membersRemovedBI (types.idStr id) membership.removedVal false false
+  let st2 := st1.put mvcc.membersRemovedBI (types.idStr id) (go!"removed" : GoString) false false
   have hl2 : ∀ n, n = mvcc.membersRemovedBI.name →
       (backend.rbData d.P st2.S).lookup n =
         (bk1.insert mvcc.membersRemovedBI.name
           (((bk1.lookup mvcc.membersRemovedBI.name).getD ∅).insert (types.idStr id)
-            membership.removedVal)).lookup n := by
+            (go!"removed" : GoString))).lookup n := by
     intro n hn
     subst hn
     rw [backend.rbData_lookup, if_pos hRBr]
@@ -178,11 +178,13 @@ theorem schema.membershipBackend.MustDeleteMemberFromBackend.wp_proof
     rw [hSr]
   ihave Hr : backend.rbPart d.γB (· = mvcc.membersRemovedBI.name) (bk1.insert mvcc.membersRemovedBI.name
       (((bk1.lookup mvcc.membersRemovedBI.name).getD ∅).insert (types.idStr id)
-        membership.removedVal)) $$ [Hr]
-  · rw [schema.rbPut_tracked _ _ _ _ hRBr]
-    iapply (backend.rbPart_congr _ _ _ _ hl2).1 $$ Hr
+        (go!"removed" : GoString))) $$ [Hr]
+  · iapply (backend.rbPart_congr _ _ _ _ hl2).1
+    rw [← schema.rbPut_tracked (GF := GF) d.γB d.P mvcc.membersRemovedBI.name _ hRBr]
+    iExactEq Hr
+    rfl
   ihave Hrb := Hback2 $$ %(((bk1.lookup mvcc.membersRemovedBI.name).getD ∅).insert (types.idStr id)
-    membership.removedVal) Hr
+    (go!"removed" : GoString)) Hr
   (try wp_auto)
   -- the deferred `Unlock()`: both writes into hook buckets, nothing the readers see changed
   have hvs : backend.viewSame d.P st2 :=

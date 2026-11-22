@@ -52,9 +52,6 @@ theorem schema.membershipBackend.MustCreateBackendBuckets.wp_proof
     intro n h
     simp only [membership.clusterBkts, membership.memberBkts] at h
     rcases h with (rfl | rfl) | rfl <;> simp [mvcc.KBReal.P, mvcc.restBuckets]
-  rw [MethodUnfold.method_unfold (t := go.GoType.PointerType
-    go_etcd_io.etcd.server.v3.storage.schema.membershipBackend.ty) (m := go!"MustCreateBackendBuckets")]
-  wp_call
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply (hBT d.γB d.P W Pk d.be) $$ [$Hbpkg $HB] as %t #Ht
