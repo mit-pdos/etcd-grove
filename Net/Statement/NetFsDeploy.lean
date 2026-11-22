@@ -15,11 +15,12 @@ crash relations' (`Robust`'s executions). What `Robust` states itself (each mach
 process, the extensions' `initLocal`/`initGlobal`) is not repeated.
 
 Two things a reader must know (independent review, 2026-11-22, `notes/dist-crash-bridge.md`):
-- **The start conditions are stated here, not in `Robust`.** At this Perennial pin the network's and the
-  file extension's `initLocal`/`initGlobal` are `True` (Perennial's defaults), so "no listener, no
-  connection" and "files as on disk" hold only because this definition says so. (`Robust`'s header
-  says otherwise and is to be corrected.) Once the extensions state them (`notes/kvnet-robust-goal.md`,
-  items 3-4), this definition shrinks to the address facts.
+- **The start conditions are also `Robust`'s now.** Since 2026-11-22 the net extension's and the
+  file extension's semantics state their initial states (`Net.net_semantics`'s `initLocal`/
+  `initGlobal`: no listener, no connection; `Fs.fs_semantics`'s `initLocal`: `FsInit`), which `Robust`
+  assumes of every machine and of the network; so "no listener, no connection" and "files as on disk"
+  here repeat `Robust`'s premises, and this definition can shrink to the address facts
+  (`robust_of_netFsBoot_addrs`, `NetFsBridge.lean`, takes only those).
 - **Each machine's files are its own.** The model gives each machine its own file system, and the
   file extension assumes that no other process changes its trees: that must count the other machines'
   programs. A deployment where two machines share a root (e.g. two replicas in one mount namespace

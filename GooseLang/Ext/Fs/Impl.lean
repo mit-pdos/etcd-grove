@@ -1314,9 +1314,14 @@ def FsInit (st : OsState) : Prop :=
     ∃ img sz, sz ≤ maxBytes ∧ f = OsFile.ofDisk img sz) ∧
   (∀ i, i ∈ st.fs.files → i < st.fs.nextIno) ∧ (∀ j, j ∈ st.fs.treeDur → j < st.fs.nextIno)
 
+/-- The Linux file extension's semantics: its steps, its crashes (`OsCrash`), and the states a
+machine's first process starts in (`FsInit`, its `initLocal`, since 2026-11-22: the environment's
+"durable at first start", `env_durable_at_first_start.go`, and a fresh process's nothing open,
+`env_fresh_process.go`). The shared state is unconstrained (the extension has none). -/
 instance fs_semantics : ExtSemantics fsExt where
   step := FsStep
   crash := OsCrash
+  initLocal st _ := FsInit st
 
 end Fs
 end Perennial

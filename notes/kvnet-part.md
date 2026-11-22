@@ -924,3 +924,210 @@ Proved (no axiom, no `sorry`; ledger 2026-11-22, "kvcheck's `fresh`/`do`/`read` 
    linking module), the example as a corollary (premises by computation: `addrOk` of the five addresses,
    `splitAddrs` of the joined string), a non-vacuity lemma (machine states with an empty root `dir`, `FsInit`),
    and `etc/tcb-collections/kvnet.txt` (roots `raft_kvnet_robust`; axioms only the existing trust base).
+
+## kvnet's `Link`; two blockers for the top-level theorem (2026-11-22, seventh session on `kvnet-proof`)
+
+**kvnet's `Link.lean`** (`KvNet/Proof/.../kvnet/Link.lean`, namespace `Perennial.EtcdGrove.kvnetLink`):
+`etc/gen-link.py --kvnet` (`etc/link_kvnet.py`, a new binder-reading generator: `link_walfs.py`'s
+rules did not fit, its parameters are WAL-specific and kvnet's specs are instantiated at different
+places). Every kvnet and kvcheck proof is linked (140 results), from its binders: callees are the part's
+own results (kvnet's, kvcheck's, `Net/`'s `net` proofs, copied; gokv's `ResolveBytes`, the main
+tree's) or the linked results of raft-noax's `Link`/`Linked`, `durable`'s `Link` (both copied into the
+part: `etc/copy-part.py` now copies a source part's `Link` when the part imports it, and takes the
+part's own generated `Link` as a root), lintest's, porcupine's and Perennial's `Link`s. The generic proofs
+(`Node.handle`/`serveClient`/`serve`, `Run`, `RunNode`) are linked at the store's parameters
+(`kvFacts γ (fun _ => True)`, `kvRep γ vs dir`, `kvConfRead`, `kvNodeStart γ vs dir`: `INST`); the
+applications pass `_` for parameters and Lean unifies them. The section has `[KdStor GF]` and
+`kdStorageModel` as its `StorageModel`.
+
+**The cost** (the coordinator's question): the raft closure is copied into the part (+773 modules, raft-noax's
+proofs). There is no cheaper correct route under the part rules: the linked results' proofs are in the
+cone of every theorem that uses them, and a part module cannot import `RaftNoAx.*` beside its own copies
+of the same names (the part was built by copying for that reason). Importing `RaftNoAx`'s raft directly
+would mean making the part's raft *be* `RaftNoAx`'s (no `KvNet.Code.go_etcd_io.raft`), a redesign of the
+part, not worth it for one build of ~800 modules.
+
+**`errors.IsPathErrnoNotExist.spec` moved** to its own module `Spec/errors/IsPathErrnoNotExist.lean`
+(with `errIsNotExist`, unchanged), out of the WAL's `ExistCallees.lean`, so that `durable`'s `tryRead` (and
+the part through it) does not import the WAL's `fileutil` specs (whose translation the part does not have).
+The WAL's, the tester's and `durable`'s `Link`s regenerated (one import each).
+
+**Blocker 1 (trusted semantics; reported on #22, 2026-11-22, with the exact text):** the agreed statement
+relies on `Robust`'s `extsInitGlobal`/`extsInitLocal` for "no connection" and "files as on disk", but
+`net_semantics`/`fs_semantics` set no `initLocal`/`initGlobal` (Perennial's defaults, `True`). Without them
+the statement is false (a starting connection at a replica's address carries forged raft messages).
+Option (a), preferred: items 3-4 of `kvnet-robust-goal.md` (`initLocal L _ := L.init`, `initGlobal g :=
+g.init` in `net_semantics`; `initLocal st _ := FsInit st` in `fs_semantics`; untrusted `ExtInitCompat`
+instances). Option (b): the two facts as premises of the statement. The user's decision.
+
+**Blocker 2 (Perennial; reported on #22):** `StartNode` calls `durable.Read`, whose `tryRead` takes
+`errors.IsPathErrnoNotExist.spec`, unproved (Perennial branch `errors-facts`, pending review since
+2026-11-14, plus translating `(*fs.PathError).Unwrap` and `syscall.Errno.Is`). kvnet's `Link` carries it as
+`h_errors_IsPathErrnoNotExist` in `section links_pending` (`StartNode`, `Run`, `RunNode`).
+
+**Gap 3 (the statement's trusted instances; reported on #22):** `durable`'s proofs need `os`'s trusted
+`[os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]` (`TrustedCode/os.lean`, struct-field facts as
+`net.FieldAssumptions`), which `kvcheck.Assumptions` does not include: the statement needs both as
+instance binders (proposed text on #22). Also: lintest's linked results take `[NaInvG GF]`, so the
+top-level's ghost state is `kvnetGF` plus a `NaInvG` slot (kvdurable's `durableGF` has it at slot 11).
+
+`#print axioms` (2026-11-22): `kvnetLink.raft_kvcheck.wp_Check` and `kvnetLink.raft_kvnet.wp_RunNode`
+(over `h_errors_IsPathErrnoNotExist`): `propext`, `Classical.choice`, `Quot.sound`.
+
+### Handoff: what is left for the top-level theorem (after the blockers)
+
+1. **Package initializers**: kvnet's and kvcheck's `wp_initialize'` (and their `PkgTable`, as kvdurable's:
+   `etc/gen-init.py`, `KVNET_INITS` gets `...raft.kvnet` and `...raft.kvnet.kvcheck`; RunNode's
+   precondition needs `isPkgInit kvnet`, `io.EOF`'s and `poll.ErrDeadlineExceeded`'s points-to and
+   `context.isClosedchanInit`; Check's `isPkgInit kvcheck`, `connGlobals`, `context.isClosedchanInit`).
+   Check that gen-init adds no axiom (`etc/tcb-report.py`).
+2. **The bridge**: `Net/Statement/NetFsBridge.lean`'s `robust_of_netFsBoot` (legacy file mode, which is
+   enough: each generation switches to the shared mode at its first step, `Fs.wp_osShareE`, as the WAL
+   tester's `tBoot0`/`tBootCrash` do) at `GF := kvnetGF` (every kvnet ghost state is `AllG`'s). It imports
+   only base modules, so the part can import it as it is (or `copy-part` copies it). Under blocker 1's
+   option (a) its `NetFsDeploy` premise follows from `Robust`'s own premises plus the statement's
+   (`Nodup`, `addrOk`); a variant without `NetFsDeploy` is a few lines.
+3. **The start** (`Hstart`, from `[∗list] a ∈ addrs, addrUnset a`): raft's cluster (`cluster_alloc_nb`,
+   global, no bootstrap log, `dup = true`), the store (`kvdurable`'s `kd_alloc` as the template), every
+   address's protocols (`addrs_set_proto` with `kvP (kvFacts γ (fun _ => True)) id`/`kvQ …`), the client's
+   `Check` resources (`rkvInv γ`, `rkvVal γ kvEmpty`, `kvCnt … false 0`, `kvCnt … true 0`, `addrsProto`).
+4. **A replica's generation** (`CrashBootWp`'s `P i L`): global facts (the store, the cluster, the
+   protocols) and the generation's files (first: `fsStartRes`; later: the crash's `osTree`), the boot's
+   choice (`kd_boot_choose`, done in the crash obligation) and the next file contents. Its WP: switch to
+   the shared mode (`wp_osShareE`), `durable`'s boot on the directory (`DurFs.durBoot`), `kd_file_alloc`,
+   a fresh `KdStor` registry (`kdStorInv`, per generation: it holds heap points-to), then
+   `kvnet.initialize'` and `wp_RunNode γ vs dir` with `kvNodeStart`.
+5. **The crash obligation** (`CrashBootWp`'s frame): as the WAL tester's `tester_crash`: open
+   `kdFileInvK` with its token, `DurFs.durInv_crash`, `crashRest_treeS` for the next tree,
+   `kd_boot_choose`.
+6. **The top-level module** (`TopLevelRobustness.lean`, linking): `raft_kvnet_robust` from the above, the
+   example by computation (`addrOk` of the five addresses, `splitAddrs` of the joined string), a
+   non-vacuity lemma, `#print axioms`, `etc/tcb-collections/kvnet.txt`; then remove
+   `Proof/.../raft/kvnet/Robust.lean` and CLAUDE.md's mention of it.
+
+## The extensions' initial states; a crash frame cannot see what a generation's switch allocates (2026-11-22, eighth session on `kvnet-proof`)
+
+**Done** (the coordinator's decisions on #22; landing requested at `792cb1f6c8`):
+- Decision 1, option (a). `Net.net_semantics` has `initLocal L _ := L.init` and `initGlobal g := g.init` (D26, `TestFreshProcessNoSocket`). `Fs.fs_semantics` has `initLocal st _ := FsInit st` (`env_fresh_process.go`). Also `net_init_compat`, `fs_init_compat`, `NetFs.kvnetInitCompat`, and `Net.robust_of_netFsBoot_addrs`, which needs only `addrs.Nodup` and `addrOk`.
+- Decision 3. Both statements take `[os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]` (ledger entry).
+- Decision 2 (`errors.IsPathErrnoNotExist.spec` as a hypothesis of `raft_kvnet_robust_of_errors`): not started.
+
+**Two more statement gaps**, reported on #22 with exact texts, awaiting decision:
+- `[log.NewModel]`: raft's initializer calls `log.New`. Raft's `wp_initialize'` takes this class, and so does kvdurable's closed theorem.
+- `dir.length < 2 ^ 39`: `durable`'s `DFile.Ok` needs `f.d.length + f.tb.length < 2^40`, and nothing in `FsInit`/`RootsOk` bounds a root's length.
+
+**Unlanded, on the branch:**
+- `Fs.osShare_ctx`: `wp_osShareE`'s core, as an update at the extension's interpretation. `wp_osShareE` is now proved from it, with an unchanged statement.
+- `Fs.wp_ext_nc_acc`: Perennial's `wp_notCrashed_acc` and `wp_ext_acc` at once.
+- `Fs.wp_osShareE_upd`: the switch with the history from a crash-token update, for a history kept in an invariant `inv N (P ∨ crashed ∗ Q)`.
+- `KvNet/.../kvnet/TopCrash.lean`, `durFound_crash_legacy`: a replica's file across a crash before its generation switched. It takes half of `osTree` and `durFound`/`durFoundTmp`, plus the crash's `crashRest` in the legacy mode, and gives the same history and contents in the next generation. It is built from `durable`'s `durCrash_name`/`durCrash_tmp`.
+
+All of these are `lean-check`ed. They are only needed by the design below, which is blocked.
+
+**The blocker** (to be decided before going on). Kvnet's generation boots inside its WP:
+1. the switch to the shared mode (`wp_osShareE`, at the first step);
+2. `durable`'s boot (`durBoot`);
+3. `kd_file_alloc`, `nodeVacant_arm`, and a fresh `KdStor` registry.
+
+That is because Perennial's distributed adequacy gives a generation only `P i L -∗ threadTok ={⊤}=∗ WP ∗ crashFrame`, with no access to the extension's interpretation before the WP. This is the known gap "extension state access at generation start, distributed" (`notes/perennial-changes.md`, 2026-11-22; `notes/dist-crash-bridge.md`).
+
+So the crash frame, proved outside the WP, gets what the boot allocated only through an invariant made before the WP. Those resources are `osSharedInv`, `durInv`, `kdFileInvK` and the crash tokens. The design tried here was `inv genN ((genA ∨ genB ∗ token) ∨ crashed ∗ True)`:
+- genA: half of `osTree`, `durFound`, `durFoundTmp`, `raftState`, `nodeVacant`, `fileHolds`;
+- genB: the switched generation's persistent facts and crash tokens;
+- the switch opens it with `notCrashed` (`wp_osShareE_upd`);
+- the crash frame opens it, takes genA (`durFound_crash_legacy`) or genB (`durInv_crash`, `crashRest_treeS`, `kd_boot_choose`), and closes it with `crashed`.
+
+**Why it fails:** what comes out of an opened invariant is under a later, and the crash frame has no later credit. `▷ inv …` (`durInv`, `osSharedInv`, `kdFileInvK`) cannot be stripped, and neither can raft's sealed `raftState` (it holds `inv budgetN …`), `nodeVacant` or `kdFileState`'s `kdBatchRec`. A credit deposited by the WP's next step races with a crash before it.
+
+The same later problem exists even with the Perennial change. The crash frame must open `kdFileInvK` (decision C's file invariant) and get `▷ (raftState ∗ kdFileState)`, but `kd_boot_choose` and raft's `nodeCrash`/`readyCrashEnter` take them without the later. The earlier handoff's step 3 ("under a later") left this open.
+
+**Options:**
+- (a) Perennial: give the generation the extension's interpretation before its WP (the recorded proposal). Then the boot happens in the frame's context and only `kdFileInvK`'s later is left. For that later, either (a1) Perennial also gives the crash frame a later credit (`£ 1` with `crashed`), or (a2) raft's API gets laws that strip a later given `isCluster` (`▷ raftState γ id S ⊢ ◇ raftState γ id S` from the global budget invariant, and the same for `nodeVacant` and the `kdBatchRec` pieces `readyCrashEnter` takes). (a2) holds only if every invariant inside those predicates is a global one that `isCluster` (or the frame) holds.
+- (b) A local copy of the distributed mixed adequacy with both of (a), as `wal-safe` did for one node (`CrashAdequacyAcc.lean`). Several hundred lines of `DistAdequacy.lean`.
+
+Both need a Perennial change or a copy of Perennial's adequacy. Per the task rules, I stopped here and reported on #22.
+
+**Still to do after the decision:** the original handoff's items 1-6 above. Most of the start allocation is straightforward:
+- `cluster_alloc_nb`, `confPolicy_alloc`, `joinAuth_join` for replicas past the voters;
+- the store, after kvdurable's `kd_alloc`, with `kvCnt … 0` from `rseq` over `bootVoters n`;
+- `netProto_alloc` then `addrs_set_proto`.
+
+Also still to do: the package initializers (gen-init's `KVNET_INITS` plus kvnet's and kvcheck's `PkgTable`), the client's `Check` WP, the example (`splitAddrs` of the literal, `addrOk`, `validCluster`), and the non-vacuity lemma (dir an empty root, `FsInit`).
+
+## The boot at the generation's start; the crash with a later credit (2026-11-22, ninth session on `kvnet-proof`)
+
+The coordinator's decisions (posted on #22): `[log.NewModel]` and `dir.length < 2 ^ 39` are in the statement
+(ledger 2026-11-22); the adequacy blocker takes route (a): Perennial's branch `crash-genstart` (a PR, not landed)
+gives (1) each generation's obligation the node's extensions' local interpretation before its WP and (2) the
+crash obligation `£ 1`. kvnet's proof is written against those shapes.
+
+**Done:**
+- **Package initializers**: kvnet's and kvcheck's `Init.lean` and their programs' `PkgTable.lean`
+  (`etc/gen-init.py`: `KVNET_INITS` gets both, `KVNET_PROGRAMS`, kvnet's `SPECIAL` for `StatNames`); raft's
+  `Init.lean` copied into the part (copy-part, from RaftNoAx's). Built.
+- **`TopBoot.lean`** (defs), all proved:
+  - `kvGen γ id f R` (a generation before its boot: `osInv`, the whole legacy tree with nothing logged and well
+    formed, `raftState`, `nodeVacant`, `fileHolds`, `durFound`/`durFoundTmp`) and `kvCrashKeep γ id fl` (what the
+    crash keeps: the file invariant and its token, raft's arm token, `durInv` and its token, `osSharedInv`);
+  - `kvGen_boot`: at `Fs.fs_interp.localCtx … σ` (kept): `osShare_ctx`, the directory's claim, `durBoot`,
+    `nodeVacant_arm`, `kd_file_alloc`, `osCallPerms_root`; gives `kvStart γ vs dir id fl 1` and `kvCrashKeep`;
+  - `kvGen_crash`: with `£ 1`: `kdFileInvK` opened (the credit strips the later on its contents, so
+    `raftState`/`kdFileState` come out without one: **`kd_boot_choose` needs no new raft law**), `durInv_crash0`
+    inside it (masks disjoint: `ndot_sub_diff`), closed on its crashed side, `crashRest_treeWf`,
+    `crashRest_treeS`, `kd_boot_choose`: the next generation's `kvGen` (at the next local ghost state);
+  - `kvGen_first` (the first generation from `FsInit`'s start resources, the file's two names absent),
+    `fileHolds_init`, `kvGen_stor` (`kvGen` names no storage registry: the same at any `KdStor`),
+    `kdStor_alloc` (a generation's fresh registry: `KdStor` is per generation, its records name the heap).
+- **`TopBridge.lean`**: `CrashBootWpG` and `RobustOfNetFsBootG`, `Net.robust_of_netFsBoot_addrs` in the proposed
+  shape (the fs component of the local interpretation; `£ 1` in the crash obligation), as a `Prop` for
+  `raft_kvnet_robust_of_errors` to take until the Perennial PR lands.
+- **`TopStart.lean`** (defs): `kvnet_store_alloc` (global ghost state only: raft's cluster by `cluster_alloc_nb`,
+  the conf policy, the store's invariant, the snapshots' registry, `readyFits`, every id `1..n`'s `raftState`/
+  `nodeVacant` by `joinAuth_join` past the voters, the client's `rkvVal`, the op counter half and the read
+  sequence numbers; needs `receiptBound GF ≤ 2^61`), `kvnet_addrs_alloc` (after `netProto_alloc`'s `regCtx`), and
+  the conversions under a `HeapGS` (`kvnet_kdCluster`, `kvnet_kvCnt_op`/`_read`, `kvnet_addrsProto`,
+  `kvnet_peerAddrs`). `kvFacts`/`kvQ` are defined over `HeapGS` though they read only global ghost state: the
+  allocation uses global restatements `kvFactsG`/`kvQG` (`kvFacts_eq`, `kvQ_eq`: `rfl`).
+- **`TopPkg.lean`**: `connGlobals_of_net`, `kvnet_pkg_deps`, `kvcheck_pkg_deps` (with Perennial's
+  `context.isClosedchanInit_of_init`).
+- **`TopPure.lean`**: `kvDFile` (`⟨dir, J, "replica-" ++ itoa id⟩`) with `kvDFile_ok`/`kvDFile_name`;
+  `rootForm_of_fsInit`, `fsInit_entry_none` (the empty-directory premise to the tree's entries);
+  `splitAddrs_intercalate`, `validAddrs_of`, `validCluster_of`, `replica_id`, `kvOptsOk_of_clOk`. Every premise was
+  derivable from the statement: no gap.
+- **`TopClient.lean`** (linking, `etc/tier-linking.txt`): `kvcheck_wp_program`, the client's program's WP from the
+  store's client resources and `ownGoState ∅`.
+- **`ReplicaLinked.lean`** (linking): `kvReplica_wp` (init, then linked `wp_RunNode` over
+  `errors.IsPathErrnoNotExist.spec`) and **`kvRep_gen`**: a replica's generation in `CrashBootWpG`'s body shape (at
+  the generation's registry `KdStor`, its invariant given): at the fs local interpretation, `kvGen_boot`, then the
+  WP and the crash obligation (`kvGen_crash`) back to the next generation's `kvGen`. `#print axioms kvRep_gen`:
+  Lean's three and **`path.filepath.opaqueInitsOk`** (the existing trust-base axiom of `filepath`'s untranslated
+  variable initializers, `Proof/path/filepath/Init.lean`; `durable`'s initializer reaches it, kvnet's closure through
+  `WalTester/`'s bodied `durable`). The top theorem will rest on it; kvdurable(-noax)'s does not (its `durable` is
+  trusted).
+- `kvnetGF` has a `NaInvG` slot (8), for lintest's linked results.
+
+### Handoff: what is left for `raft_kvnet_robust_of_errors`
+
+`theorem raft_kvnet_robust_of_errors (Hb : RobustOfNetFsBootG) (Herr : ∀ hG, errors.IsPathErrnoNotExist.spec) :
+raft_kvnet_robust.spec`, a linking module (`KvNet/Proof/.../kvnet/TopLevelRobustness.lean`, name it so), at
+`GF := kvnetGF`:
+1. Apply `Hb` with `addrs := replicas.map (·.1)` (`Nodup`, `addrOk` from the premises).
+2. `Hstart`: `netProto_alloc` (the `NetProtoGS`), `kvnet_store_alloc` (n = replicas.length, v = cl.voters),
+   `kvnet_addrs_alloc` at `kvFactsG γ (fun _ => True)`; split the per-id `raftState`/`nodeVacant` list by index.
+   `Pc i L := ∃ k : KdStor GF, (letI := k; persistent globals ∗ kvGen γ id (kvDFile dir J id) R) ∗ ownGoState ∅`
+   with `J` the root ino of `dir` on machine `i` (the premise `dir ∈ roots`), `R` that machine's roots; the first
+   generation by `kvGen_first` (`fsStartRes`'s `osInv` and `osTree`, the file starts dropped; `fsInit_entry_none`
+   at the file's two names: export `NameOk` of `kvDFile`'s `b`/`tb` from `TopPure`). `Ps 0 :=` the client's pieces.
+3. `CrashBootWpG (kvnetReplicaProgram …) (Pc i)`: per `L`, substitute `lctx` (as preface's `Results.lean` does),
+   `kdStor_alloc` a fresh registry `k'`, move `kvGen`/`kdCluster` from `k` to `k'` (`kvGen_stor`; `kdCluster` the
+   same by unfolding), then `kvRep_gen` at `k'` (premises from `TopPure`), and wrap its crash part into `Pc i L'`
+   (∃ `k'`). The thread token is dropped.
+4. `StableBootWp (kvcheckProgram …) σc (Ps 0)` from `kvcheck_wp_program` (`lctx` substitution; `validAddrs_of`,
+   `receiptBound ≤ 2^63` from `Hstart`'s bound).
+5. The Link's section instances (the imported packages' `Assumptions`) from `kvcheck.Assumptions`.
+Then `raft_kvnet_robust_example` by computation, a non-vacuity lemma, `etc/tcb-collections/kvnet.txt`, and
+removing `Proof/.../raft/kvnet/Robust.lean`. `CrashBootWpG` follows PR mit-pdos/perennial#683's exact shapes
+(`threadTok -∗ ∀ w, extsLocalCtx w ={⊤}=∗ …`, the crash's `… -∗ ownGoState ∅ -∗ £ 1 ={⊤}=∗ P i L'`;
+`HasExt.localCtx_get` takes the fs component; a clone is at `.lake/perennial-genstart`). When #683 lands: prove
+`RobustOfNetFsBootG` in `Net/Statement/` from the new adequacy (the generation's `extsLocalCtx` projected to the
+fs component by `HasExt.localCtx_acc`) and drop the hypothesis; adjust `CrashBootWpG` to the exact shapes.
