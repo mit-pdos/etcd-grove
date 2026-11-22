@@ -27,7 +27,7 @@ variable [promG : promreg.PromRegGS GF]
 initializer's). -/
 abbrev promreg.Registry.SeedBuiltins.spec : Prop :=
   ∀ (f : GoString → w64) (r : Loc),
-  {{ promreg.isRegistry (GF := GF) f r ∗ promreg.builtinToks (GF := GF) }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.promreg ∗ promreg.isRegistry (GF := GF) f r ∗ promreg.builtinToks (GF := GF) }}
     (App (Val (r @!! go.GoType.PointerType promreg.Registry.ty @!! go!"SeedBuiltins")) (Val #()))
   {{ RET #(); True }}
 

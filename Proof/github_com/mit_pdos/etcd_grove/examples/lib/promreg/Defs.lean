@@ -186,7 +186,131 @@ instance isRegistry_persistent (f : GoString → w64) (r : Loc) :
     Persistent (isRegistry (GF := GF) f r) := by
   unfold isRegistry; infer_instance
 
+/-- The rights to the IDs `k :: ks`. -/
+theorem idToks_cons (k : w64) (ks : List w64) :
+    idToks (GF := GF) (k :: ks) ⊣⊢ idTok k ∗ idToks ks := by
+  unfold idToks; exact BigSepL.bigSepL_cons
+
+theorem idToks_app (ks1 ks2 : List w64) :
+    idToks (GF := GF) (ks1 ++ ks2) ⊣⊢ idToks ks1 ∗ idToks ks2 := by
+  unfold idToks; exact BigSepL.bigSepL_append
+
+theorem builtinToks_split :
+    builtinToks (GF := GF) ⊣⊢ idToks builtinIDs ∗ idToks builtinCollectors :=
+  idToks_app builtinIDs builtinCollectors
+
+/-- Two rights to one ID are one too many. -/
+theorem idTok_excl (k : w64) : idTok (GF := GF) k ∗ idTok k ⊢ False := by
+  unfold idTok
+  iintro ⟨H1, H2⟩
+  ihave %H := ghostMapElem_ne _ k k _ () () $$ H1 H2
+  exact (H rfl).elim
+
+/-- The registry's rights exclude a held one. -/
+theorem regToks_absent (M : GMap w64 Bool) (k : w64) :
+    ([∗map] k' ↦ _b ∈ M, idTok (GF := GF) k') ∗ idTok k ⊢
+      ⌜M !! k = none⌝ ∗ ([∗map] k' ↦ _b ∈ M, idTok (GF := GF) k') ∗ idTok k := by
+  iintro ⟨HM, Hk⟩
+  cases h : M !! k with
+  | none => iframe; ipureintro; rfl
+  | some b =>
+    icases (BigSepM.bigSepM_lookup_acc (PROP := IProp GF) (Φ := fun k' (_ : Bool) => idTok (GF := GF) k')
+      (m := M) (i := k) (x := b) h).1 $$ HM with ⟨Hk', -⟩
+    iexfalso
+    iapply (idTok_excl (GF := GF) k)
+    iframe
+
+/-- A right given to the registry. -/
+theorem regToks_insert (M : GMap w64 Bool) (k : w64) (b : Bool) (h : M !! k = none) :
+    ([∗map] k' ↦ _b ∈ M, idTok (GF := GF) k') ∗ idTok k ⊢
+      [∗map] k' ↦ _b ∈ <[k := b]> M, idTok (GF := GF) k' := by
+  iintro ⟨HM, Hk⟩
+  iapply (BigSepM.bigSepM_insert (PROP := IProp GF) (Φ := fun k' (_ : Bool) => idTok (GF := GF) k')
+    (m := M) (i := k) (x := b) h).2
+  iframe
+
 end defs
+
+theorem union_insert_l {V : Type} (m1 m2 : GMap w64 V) (k : w64) (v : V) :
+    (<[k := v]> m1) ∪ m2 = <[k := v]> (m1 ∪ m2) := by
+  apply GMap.ext; intro k'
+  rw [gmap_lookup_union]
+  by_cases e : k = k'
+  · subst e; rw [GMap.lookup_insert, GMap.lookup_insert]; rfl
+  · rw [GMap.lookup_insert_ne _ _ e, GMap.lookup_insert_ne _ _ e, gmap_lookup_union]
+
+theorem union_insert_r {V : Type} (m1 m2 : GMap w64 V) (k : w64) (v : V) (h : m1 !! k = none) :
+    m1 ∪ (<[k := v]> m2) = <[k := v]> (m1 ∪ m2) := by
+  apply GMap.ext; intro k'
+  rw [gmap_lookup_union]
+  by_cases e : k = k'
+  · subst e; rw [GMap.lookup_insert, GMap.lookup_insert, h]; rfl
+  · rw [GMap.lookup_insert_ne _ _ e, GMap.lookup_insert_ne _ _ e, gmap_lookup_union]
+
+
+end promreg
+end EtcdGrove
+
+-- The package's fact: `True` (the model has no package variable).
+namespace github_com.mit_pdos.etcd_grove.examples.lib.promreg
+section pkginit
+open Iris Iris.BI
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.promreg :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.promreg :=
+  build_get_is_pkg_init_wf
+
+end pkginit
+end github_com.mit_pdos.etcd_grove.examples.lib.promreg
+
+namespace EtcdGrove
+namespace promreg
+
+open Iris Iris.BI Iris.ProofMode
+
+/-! ## Allocating a run's rights -/
+
+section alloc
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+
+/-- Elements of the fresh keys `ks` inserted into a ghost map. -/
+theorem ghost_map_insert_list (γ : GName) (ks : List w64) (m : GMap w64 Unit) (hks : ks.Nodup)
+    (hm : ∀ k ∈ ks, m !! k = none) :
+    ghostMapAuth (GF := GF) γ 1 m ⊢ |==> [∗list] k ∈ ks, ghostMapElem (K := w64) (V := Unit) γ k (DFrac.own 1) () := by
+  induction ks generalizing m with
+  | nil => iintro -; imodintro; iapply BigSepL.bigSepL_nil.2; iempintro
+  | cons k ks ih =>
+    have hk : m !! k = none := hm k (List.mem_cons_self ..)
+    obtain ⟨hkn, hnd⟩ := List.nodup_cons.mp hks
+    iintro Ha
+    imod ghost_map_insert k () hk $$ Ha with ⟨Ha, Hk⟩
+    imod (ih (<[k := ()]> m) hnd (fun k' hk' => by
+      have hne : k ≠ k' := fun h => hkn (h ▸ hk')
+      rw [GMap.lookup_insert_ne m () hne]; exact hm k' (List.mem_cons_of_mem _ hk'))) $$ Ha with Hks
+    imodintro
+    iapply BigSepL.bigSepL_cons.2
+    iframe
+
+/-- **A run's rights** (each run's proof calls it once, before initialization): a fresh ghost
+name, the builtins' rights and the rights to the IDs `ks` (pairwise distinct, none a builtin's). -/
+theorem promReg_alloc (ks : List w64) (hks : (builtinKeys ++ ks).Nodup) :
+    ⊢ |==> ∃ _ : PromRegGS GF, builtinToks (GF := GF) ∗ idToks (GF := GF) ks := by
+  imod (ghost_map_alloc_empty (GF := GF) (K := w64) (V := Unit)) with ⟨%γ, Ha⟩
+  imod (ghost_map_insert_list γ (builtinKeys ++ ks) ∅ hks (fun _ _ => rfl)) $$ Ha with Hs
+  imodintro
+  iexists ⟨γ⟩
+  unfold builtinToks idToks idTok
+  iapply (BigSepL.bigSepL_append (PROP := IProp GF)).1
+  iexact Hs
+
+end alloc
 
 end promreg
 end EtcdGrove

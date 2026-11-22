@@ -29,7 +29,7 @@ IDs and the collector ID), returns `OK` (0): the rights are taken by the registr
 abbrev promreg.Registry.Register.spec : Prop :=
   ∀ (f : GoString → w64) (r : Loc) (s : GoSlice) (dq : DFrac) (ds : List promreg.Desc),
   promreg.descsOk f ds →
-  {{ promreg.isRegistry (GF := GF) f r ∗ s ↦*{dq} ds ∗ promreg.idToks (GF := GF) (promreg.descKeys ds) }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.promreg ∗ promreg.isRegistry (GF := GF) f r ∗ s ↦*{dq} ds ∗ promreg.idToks (GF := GF) (promreg.descKeys ds) }}
     (App (Val (r @!! go.GoType.PointerType promreg.Registry.ty @!! go!"Register")) (Val #s))
   {{ RET #(W64 0); s ↦*{dq} ds }}
 

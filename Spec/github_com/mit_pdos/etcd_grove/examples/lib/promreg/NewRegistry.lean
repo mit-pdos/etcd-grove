@@ -27,7 +27,7 @@ variable [promG : promreg.PromRegGS GF]
 right taken), for any naming `f`. -/
 abbrev promreg.NewRegistry.spec : Prop :=
   ∀ (f : GoString → w64),
-  {{ (True : IProp GF) }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.promreg }}
     (App (Val (@! promreg.NewRegistry)) (Val #()))
   {{ (r : Loc), RET #r; promreg.isRegistry f r }}
 
