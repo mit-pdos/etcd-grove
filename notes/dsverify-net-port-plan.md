@@ -733,6 +733,54 @@ tests kept as differential tests against the real library, a "not modelled" pani
    before `send` runs; the model's `Client` is Go's code), so not an under-approximation: the test
    now allows it (not required). Merged with `origin/lean` again (`50e9626bd2`); landing waits for a
    full build, stacked with the grpc and JSON Go halves (`models-grpc-land`, `models-json-land`).
+   **The Lean half, second part: the client (2026-11-22, branch `models-rpc-client`, on `lean`).**
+   *Proved and linked* (`Net/Proof/net/rpc/Results.lean`, `#print axioms` Lean's three; `lake build
+   Net.Proof.net.rpc.Results Net.Proof.net.rpc.NewClient Net.Proof.net.rpc.Dial` green): the client
+   codec's `WriteRequest` (the sticky `werr`; the request `reqWire seq sm eb`, a header and a body
+   frame, written by one `Write` through the library's `sendTok`/`writeP`/`write_acc`; the caller's
+   update `reqUpd` turns the encoding's continuation into the protocol fact, needed only without a
+   write error), `ReadResponseBody` (the decoding resource `D` and `bodyDec`: `D` back on a read
+   failure), `Close`; `newClientCodec`; `Call.done` (a non-blocking send to Perennial's future idiom,
+   `future_fulfill_nb`; a full channel drops the outcome, as Go does); `Client.Close`, `Client.send`,
+   `Client.Go`, `Client.Call`. *Proved over `Client.input.spec`* (not linked: `input`'s proof is not
+   written): `NewClientWithCodec` (forks `input`), `NewClient`, `Dial` (`net.Dial` with `dial_au`, the
+   connection registered, `rpc_register`).
+   *The vocabulary* (`Proto.lean`, `ProtoGhost.lean`, `ClientDefs.lean`, `ClientGhost.lean`, `Errs.lean`;
+   neutral names): dsverify's `RpcWorld` (address -> service -> `MethodSpec`, a registry of
+   connections), `connInv` (requests `L`, the server reader's count, answers `ans`, deposits and
+   escrows, as dsverify's), but over Go's own client: request `i` of a connection has the sequence
+   number `i` (send numbers and writes under `reqMutex`), so `reqProto` is a prefix of `reqsWire L`
+   with fewer than `2 ^ 64` requests, `respProto` a prefix of `respsWire Rs` (answers with their
+   index, `"Service.Method"`, message, reply) with persistent `ans` elements, and a response header
+   determines its answer (`ans_next`, `respHdr_inj`: no dsverify `pick_fresh`). The connection also
+   records the dialer's names of each request (`nm`: `post`, `col` and a token `ap` given up when the
+   request is written), which ties a pending entry to the request it wrote. The numbers are bounded
+   by time receipts (`mutex`'s invariant holds `⧗ n`; `NewClientWithCodec`'s premise `receiptBound GF
+   ≤ 2 ^ 64`). A call is numbered on a caller's ticket (`ticket γt o`): `send` returns the encoding's
+   `Rargs` or the encoding premise with the request unsent (`sendRes`, `unsent`), the `done` channel
+   carries `callPost` with `reqSent` for an answer, and `unsent_reqSent` excludes both; so
+   `Client.Call.spec` is dsverify's statement unchanged (at most one run of the handler, `nil` with
+   `Φ rep ""` and `Θ rep true`, `ServerError(msg)` with `errMsg` and `Φ rep msg` and `D`, other errors
+   `errAny`, not `ServerError`, with `Rargs` and `D` or `Θ false`, or the encoding premise and `D`).
+   `Go`'s spec takes a buffered `done` channel with a future promise (`callDone`; a `nil` `done` not
+   specified).
+   *Statement changes vs dsverify*: `Call.spec`'s premises add `reply ≠ nil` (Go's `Call` with a `nil`
+   reply discards the reply; dsverify's model always decoded); `CodecSpec`'s `decOk` gains
+   `notServerErr` (dsverify's had it; the first part had dropped it). `isClient` takes no
+   `isPkgInit` of `net/rpc`: the package variables the client reads are `cliEnv`'s premises (`io`'s
+   errors, `ErrDeadlineExceeded`, `errFrame`, `ErrShutdown`, `debugLog = false`) until item 5.
+   *Left, `Client.input`* (the reader loop): its spec is stated (`clientAt`, `readerOwn`: what it read,
+   the frames of the answers consumed, and the shutdown flag's quarter). The proof: per response, the
+   header read (`readFrame` with `read_au`, a later credit for `recvTokL_later`), the answer
+   identified (`ans_next`), the entry removed under `mutex` (its `col` traded at `connInv` for the
+   escrow, `reqSent` from the trade), then the body read and `done`; at the end, both locks, the
+   shutdown flag updated (all its fractions), every entry failed with the error. **Found, to settle
+   first**: `input` ends with `err == io.EOF`, and `err` may be a decoding error, whose dynamic value
+   `decOk` does not constrain (`errAny` only): Goose's interface equality on two values of the same
+   type compares their values (`go_eq_interface`), so a decoding error claiming `*errorString` with an
+   ill-shaped value would be stuck. `decOk` should also give the error's value its type's shape (or
+   `input`'s proof case on the type); the generated codec's errors are `errors.New`'s, so any such
+   strengthening holds of it.
 3. **net/http**: (the model's Go is item 2's: the server and `ReadResponse` are Go's code over the
    model's head parser) then option B
    §4.4 (client `Transport.RoundTrip` with the program's dialer, resends, `ServeMux`, `Flusher`,

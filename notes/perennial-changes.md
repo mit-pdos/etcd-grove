@@ -3795,3 +3795,17 @@ crash opens the generation's file invariant (allocated at the boot) and must tak
 `crash-genstart`: PR mit-pdos/perennial#683, awaiting review; its exact shapes are in `TopBridge.lean`'s header). kvnet's proof states the bridge it expects as `RobustOfNetFsBootG`
 (`KvNet/Proof/.../kvnet/TopBridge.lean`) and uses it as a hypothesis until then; its boot and crash lemmas
 (`TopBoot.lean`: `kvGen_boot`, `kvGen_crash`) are proved against those shapes.
+
+## 2026-11-22: two facts of Perennial's channel idioms proved locally (net/rpc client, branch `models-rpc-client`)
+
+- **Limitation.** The future idiom (`Golang/Theory/Chan/Idioms/Future.lean`) fulfils a promise only
+  by a blocking send (`future_fulfill_au`, `wp_future_fulfill`); Go's `net/rpc` `Call.done` fulfils it
+  by a non-blocking one (`select` with a `default`). And nothing says two `isChan` of one channel
+  agree on its capacity (a channel made then turned into a future by `start_future` loses its names).
+- **Workaround here.** `future_fulfill_nb` (`Net/Proof/net/rpc/Call__done.lean`: the future's
+  fulfilment as `nonblockingSendAuInner`, the `Buffered` and `RcvPending` cases of
+  `future_fulfill_au`) and `isChan_cap_agree` (`Net/Proof/net/rpc/Client__Call.lean`, from the
+  `cap` field's persistent points-to).
+- **Proposed.** Both in Perennial, next to `future_fulfill_au` and `isChan_not_null`; or
+  `start_future` stating the future's channel names (`γmf.chanName = γ`).
+- **Status.** Not filed yet.
