@@ -13,8 +13,8 @@ structure QMsg : Type where
 
 theorem mtypeOf_MsgReadIndex : mtypeOf MsgReadIndex = some MsgType.readIndex
 
-theorem readyIdx_persistent (γr : RaftNames) (d ce es : List EntryM) : Persistent (readyIdx γr d ce
-    es)
+theorem readyIdx_persistent [ReceiptGS GF] (γr : RaftNames) (d ce es : List EntryM) : Persistent
+    (readyIdx γr d ce es)
 
 def readyOut (st : Storage) (sn : StorNames) (es : List EntryM) : Option SnapLoan → IProp GF :=
   match x✝ with
@@ -36,7 +36,7 @@ def sentTypes : List w32 :=
   [MsgProp, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp,
     MsgPreVote, MsgPreVoteResp, MsgSnap]
 
-def ccPropArg (γ : RaftNames) (o : ConfChangeIM) : IProp GF :=
+def ccPropArg [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (o : ConfChangeIM) : IProp GF :=
   iprop(∀ bs,
       ⌜MarshalsConfChange (some o) bs⌝ ={⊤}=∗
         ⌜Filler (confChangeEntryType (some o)) bs⌝ ∨
@@ -102,7 +102,7 @@ def readyDurable (S : RaftState) (h' : HardStateM) (L : Option SnapLoan) (es : L
     RaftState :=
   S.next h'.Term' h'.Vote' h'.Commit' (Option.map (fun x => x.snap) L) es
 
-def isRaftMsg (γ : RaftNames) (id : w64) (st : MsgSt) : IProp GF :=
+def isRaftMsg [ReceiptGS GF] (γ : RaftNames) (id : w64) (st : MsgSt) : IProp GF :=
   iprop(⌜SentMsgShape st⌝ ∗
       (∃ a, ⌜msgAbs st a⌝ ∗ [∗list] x ∈ a.toList, isMessageC γ x) ∗
         msgDat γ st ∗
@@ -164,8 +164,8 @@ def ready_countable : Pos.Countable Ready :=
         Messages' := p.snd.snd.snd.snd.snd.snd.fst, MustSync' := p.snd.snd.snd.snd.snd.snd.snd })
     ⋯
 
-def bootInit (γ : RaftNames) (md : RNMode) (id : w64) (V : GSet w64) (bootLog : List EntryM) : IProp
-    GF :=
+def bootInit [ReceiptGS GF] [InvGS GF] [CrashGS GF] (γ : RaftNames) (md : RNMode) (id : w64) (V :
+    GSet w64) (bootLog : List EntryM) : IProp GF :=
   match md with
   | RNMode.static => ownRaftGhost γ id (bootPState bootLog)
   | RNMode.dyn dec c0 h0 h1 =>
@@ -210,7 +210,8 @@ def AppShape (st : MsgSt) : Prop :=
 theorem softStateIs_ne_null [package_sem : Assumptions] (p : Loc) (x : w64 × StateType) :
     softStateIs p (some x) ⊢ ⌜p ≠ null⌝
 
-def rnInit (γ : RaftNames) (md : RNMode) (id : w64) (V : GSet w64) : IProp GF :=
+def rnInit [ReceiptGS GF] [InvGS GF] [CrashGS GF] (γ : RaftNames) (md : RNMode) (id : w64) (V : GSet
+    w64) : IProp GF :=
   match md with
   | RNMode.static => ownRaftGhost γ id initPState
   | RNMode.dyn dec c0 h0 h1 =>
@@ -240,8 +241,8 @@ theorem softStateIs_persistent (p : Loc) (ss : Option (w64 × StateType)) : Pers
 theorem bootMarshal_persistent (ps : List w64) (ctxs : List (List w8)) (bootLog : List EntryM) :
     Persistent (bootMarshal ps ctxs bootLog)
 
-theorem isRaftMsg_dat [package_sem : Assumptions] (γ : RaftNames) (id : w64) (st : MsgSt) :
-    isRaftMsg γ id st ⊢ msgDat γ st
+theorem isRaftMsg_dat [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (st : MsgSt) : isRaftMsg
+    γ id st ⊢ msgDat γ st
 
 def advReceipt (st : Storage) (n : Nat) (es : List EntryM) : Option SnapLoan → IProp GF :=
   match x✝ with
@@ -250,7 +251,7 @@ def advReceipt (st : Storage) (n : Nat) (es : List EntryM) : Option SnapLoan →
         appendReceipt st es a ∗ ⌜a ≠ [] → ∀ (e0 : EntryM), es.head? = some e0 → uint.nat e0.Index' - 1 + a.length ≤ n⌝)
   | some l => snapReceipt st l es
 
-theorem isRaftMsg_snapshotLeader [package_sem : Assumptions] (γ : RaftNames) (id : w64) (st : MsgSt)
+theorem isRaftMsg_snapshotLeader [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (st : MsgSt)
     (ht : st.msg.Type' = MsgSnap) : isRaftMsg γ id st ⊢ isLeader γ st.msg.From' st.msg.Term'
 
 def replicationFrom (id : w64) (st : MsgSt) : Prop :=
@@ -269,7 +270,7 @@ def softStateRO (p : Loc) : IProp GF :=
 def ccEntryM (o : Option ConfChangeIM) (bs : List w8) : EntryM :=
   { Term' := W64 0, Index' := W64 0, Type' := confChangeEntryType o, Data' := bs }
 
-theorem isRaftMsg_snapTo [package_sem : Assumptions] (γ : RaftNames) (id : w64) (st : MsgSt) :
+theorem isRaftMsg_snapTo [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (st : MsgSt) :
     isRaftMsg γ id st ⊢ snapToOk γ id st
 
 def snapToOk (γ : RaftNames) (id : w64) (st : MsgSt) : IProp GF :=
@@ -278,7 +279,8 @@ def snapToOk (γ : RaftNames) (id : w64) (st : MsgSt) : IProp GF :=
 theorem ceFrozen_pers (st : Storage) (n : Nat) (ce es : List EntryM) : Persistent (ceFrozen st n ce
     es)
 
-theorem isRaftMsg_pers (γ : RaftNames) (id : w64) (st : MsgSt) : Persistent (isRaftMsg γ id st)
+theorem isRaftMsg_pers [ReceiptGS GF] (γ : RaftNames) (id : w64) (st : MsgSt) : Persistent
+    (isRaftMsg γ id st)
 
 theorem softStateRO_persistent (p : Loc) : Persistent (softStateRO p)
 
@@ -293,7 +295,7 @@ theorem msgDat_pers (γ : RaftNames) (st : MsgSt) : Persistent (msgDat γ st)
 def sentShapeTypes : List w32 :=
   sentTypes ++ [MsgTimeoutNow, MsgTransferLeader]
 
-def readyIdx (γr : RaftNames) (d ce es : List EntryM) : IProp GF :=
+def readyIdx [ReceiptGS GF] (γr : RaftNames) (d ce es : List EntryM) : IProp GF :=
   iprop(∃ L,
       lastRec γr L ∗
         ⌜L < 2 ^ 64 ∧

@@ -3,7 +3,7 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def node.ReportSnapshot.spec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id to : w64) (status : SnapshotStatus),
+  ∀ (n : NodeH) (γ : Cluster) (N : Namespace) (id to : w64) (status : SnapshotStatus),
     γ.trace = none →
       ⊢
         ∀ Φ,
@@ -13,7 +13,7 @@ def node.ReportSnapshot.spec : Prop :=
                 (((intoVal
                       (methods node.ty.PointerType
                         go!"ReportSnapshot"
-                        (intoVal n)))
+                        (intoVal n.loc)))
                     (intoVal to))
                   (intoVal status))
                 {{ Φ }}

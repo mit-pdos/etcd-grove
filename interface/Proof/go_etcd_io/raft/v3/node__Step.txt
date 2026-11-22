@@ -6,14 +6,14 @@ theorem node.Step.wp_proof [package_sem : Assumptions] (wp_IsLocalMsg : IsLocalM
     (wp_IsLocalMsgTarget : IsLocalMsgTarget.spec) (wp_node_step : node.step.spec) (wp_GetType :
     raftpb.Message.GetType.spec) (wp_GetFrom : raftpb.Message.GetFrom.spec) : node.Step.spec
   -- `Perennial.EtcdGrove.node.Step.spec`, unfolded:
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (ctx : GoInterfaceOk)
+  ∀ (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd ∗ stepIn γ N id ml -∗
           (▷ ∀ err, nodeErrS n γ N cd err -∗ Φ (intoVal err)) -∗
             WP
-              (((intoVal (methods node.ty.PointerType go!"Step" (intoVal n)))
+              (((intoVal (methods node.ty.PointerType go!"Step" (intoVal n.loc)))
                   (intoVal (GoInterface.ok ctx)))
                 (intoVal ml))
               {{ Φ }}

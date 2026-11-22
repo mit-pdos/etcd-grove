@@ -5,7 +5,7 @@
 theorem node.Advance.spec_of_traced [package_sem : Assumptions] (h : node.Advance.tracedSpec) :
     node.Advance.spec
   -- `Perennial.EtcdGrove.node.Advance.spec`, unfolded:
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState) (es : List EntryM) (L : Option SnapLoan)
+  ∀ (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState) (es : List EntryM) (L : Option SnapLoan)
     (v : ConfigView),
     st.handling = some (es, L) →
       (∀ (l : SnapLoan), L = some l → l.dlv.length = uint.nat l.snap.Metadata'.Index') →
@@ -38,12 +38,12 @@ theorem node.Advance.spec_of_traced [package_sem : Assumptions] (h : node.Advanc
                             key := st.key, durable := st.durable, role := st.role } -∗
                     Φ (intoVal ())) -∗
                 WP
-                  ((intoVal (methods node.ty.PointerType go!"Advance" (intoVal n)))
+                  ((intoVal (methods node.ty.PointerType go!"Advance" (intoVal n.loc)))
                     (intoVal ()))
                   {{ Φ }}
 
 def node.Advance.tracedSpec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState) (es : List EntryM) (L : Option SnapLoan)
+  ∀ (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState) (es : List EntryM) (L : Option SnapLoan)
     (v : ConfigView) (ms : List QMsg),
     st.handling = some (es, L) →
       (∀ (l : SnapLoan), L = some l → l.dlv.length = uint.nat l.snap.Metadata'.Index') →
@@ -78,6 +78,6 @@ def node.Advance.tracedSpec : Prop :=
                             key := st.key, durable := st.durable, role := st.role } -∗
                     Φ (intoVal ())) -∗
                 WP
-                  ((intoVal (methods node.ty.PointerType go!"Advance" (intoVal n)))
+                  ((intoVal (methods node.ty.PointerType go!"Advance" (intoVal n.loc)))
                     (intoVal ()))
                   {{ Φ }}
