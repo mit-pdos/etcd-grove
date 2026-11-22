@@ -856,6 +856,16 @@ ported onto it.)*
 - The lab's rig traces of the kits checked with this repository's certified conformance checker
   (`examples/net/conform`).
 
+**Phase 6's state (2026-11-22, branch `dsv-paxos`; `notes/dsv-paxos.md`):** paxos ported. The part
+`Dsverify/` (lean_lib `Dsverify`, goose project `dsv-paxos`, Go in `examples/dsverify/paxos`), the
+kit moved onto `examples/lib/remote` (ten machines: orchestrator, four client machines, five
+servers; a write-once register with pending proposals as porcupine's model). The protocol's proof
+(invariant, agents, transport over `Net/Spec/net` and `Proto.lean`, deployment) compiles; the
+statement `paxos_remote_robust` (`DistDeploy … → Robust [] …`) is proved over two `sorry`s, the kit's
+porcupine model (`Model.wp_proof`) and codec (`Codec.wp_proof`); no axiom added. Found: remote's
+`ServeClient.spec` takes `newClient` as a persistent triple, so a client that needs exclusive
+resources (paxos's one-shot proposer tokens) must be made before `ServeClient` (the kit does).
+
 ### Phase 7: etcd onto the same models (option B, its own stage)
 
 The main tree's names-only `net` becomes the part's; the gRPC and net/http axioms (~130,
