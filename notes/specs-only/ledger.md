@@ -45,7 +45,21 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   The shared predicates and the allocation lemmas are stated at `[GooseGlobalGS]` (their statements
   unchanged). Clients: kv, kvreconf, kvdurable, the etcd server, etcdstart, the trace check.
 - **Decision.** Accepted (the coordinating session, 2026-11-21, option 3 of
-  `notes/raft-cluster-global.md`); being applied on branch `raft-cluster-global`.
+  `notes/raft-cluster-global.md`); applied on branches `raft-cluster-global` and
+  `raft-cluster-global-2` (2026-11-22). As applied:
+  - the shared predicates and laws are stated over `{GF} [AllG GF] [ReceiptGS GF] [InvGS GF]` (not
+    `[GooseGlobalGS]`: a fancy update's instance must be the caller's, `notes/raft-cluster-global.md`
+    (d)); the node-level predicates, `nodeBoot` and `cluster_alloc(_ns,_traced)` stay under `HeapGS`
+    (`bootMarshal` is a WP); the new `cluster_alloc_nb` is the global allocation without a bootstrap
+    log;
+  - `NodeH.installs` and `nodeInstalledIndex_installs` (`NodeInstalls.lean`): the etcd server pinned
+    its node's location in a ghost variable before `StartNode` returns it, and `NodeH` is not
+    `Pos.Countable` (it holds the cluster's names, functions among them); it pins the handle's
+    install record's name instead;
+  - kvdurable's store vocabulary (`rkvInv`, `opSlot`, `readSlot`, `kvCore`, `waitP`, `kvLb`,
+    `readAns`, `kdSnapInv`, `KdNames`) moved to `kvdurable/Store.lean`, global, statements unchanged;
+  - kvreconf's and kvdurable's sections lose their second `[AllG GF]` (`notes/decisions.md`, "One
+    `AllG`"), which made a client's terms differ from raft's global laws.
 
 ## 2026-11-21: `kvdurable.getEntry` -- reads only persistent bytes, so a caller holding owned bytes cannot use it
 

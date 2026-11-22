@@ -289,7 +289,7 @@ theorem rnCfgAt_back_true (γ : RNNames GF) (L ce : List EntryModel) (hcc : ccIn
 
 /-- (D43 M3) The batch's view option at the apply side: the node's names when the view goes along
 (`rnHands`). -/
-def rnDv (γ : RNNames GF) (ce : List EntryModel) : Option Loc :=
+def rnDv (γ : RNNames GF) (ce : List EntryModel) : Option NodeH :=
   if rnHands γ ce then some γ.nl else none
 
 /-- (D43 M3) The server's node meets the conf-change contract: the wrapper's node contract's

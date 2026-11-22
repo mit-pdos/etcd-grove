@@ -41770,9 +41770,15 @@ later generation changes (h). So every ghost step takes the token: `ncfupd`,
   agree by construction.
 - The shared predicates (`isCluster`, `sentMsg`, `msgCredits`, `raftState`, `nodeVacant`, `confAt`,
   `isCommittedLogLb`, `snapshotCert`, `confPolicy`, the stores' invariants) and the allocation lemmas
-  are defined in sections with only `[G : GooseGlobalGS]` (`gooseInvGS` a local instance). Under
-  `HeapGS` a client's use elaborates with `G := hG.goose_globalGS`; `InvApi`'s first section checked
-  that the two instance paths unify.
+  are defined in sections with only `{GF} [AllG GF] [ReceiptGS GF] [InvGS GF]`, as the protocol
+  layer's. (First `[G : GooseGlobalGS]` with `gooseInvGS` a local instance; superseded 2026-11-22: a
+  fancy update concluded under `G.gooseInvGS` could not be eliminated by a caller under `HeapGS`,
+  `notes/raft-cluster-global.md` (d).) A client section must not declare its own `[AllG GF]` beside
+  `HeapGS` ("One `AllG`"): the global laws would take that instance and its hypotheses the heap's.
+- The etcd server's pin of its node (a `dghostVar` set after `StartNode`) holds `NodeH.installs`
+  (a `GName`), not the handle, which is not `Pos.Countable`; `nodeInstalledIndex_installs` transfers
+  the server's facts. *Rejected:* a saved predicate per node (another later at the use), and
+  `nodeInstalledIndex` keyed by the storage key (changes raft's snapshot-source laws).
 - `[CrashGS GF]` (per generation) is taken per declaration (`variable [CrashGS GF] in`), not per
   section. A section variable made every lemma of its file take it.
 

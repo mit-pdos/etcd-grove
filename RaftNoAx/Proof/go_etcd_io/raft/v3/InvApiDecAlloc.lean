@@ -34,9 +34,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 section alloc
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-- **A new cluster of client decisions**, of the voters `vs`, with snapshots (`InvNodeRule`'s
 `cluster_alloc`). -/
@@ -103,17 +101,8 @@ theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (dup : Bool)
     iexists 0, 2 ^ 64 - 2
     iframe H0 Hcr
     ipureintro; omega
-  -- (durability stage I-2) the node table's invariant, empty
-  imod inv_alloc (N .@ "nodetab") E iprop(∃ M : GMap Loc CfgNames, ghostMapAuth γ.nodeTab 1 M ∗
-      [∗map] n ↦ _x ∈ M, ∃ nv : node, n ↦□ nv) $$ [Htab] with #Htabinv
-  · inext
-    iexists ∅
-    rw [Hγt]
-    iframe Htab
-    iapply (BigSepM.bigSepM_empty).2; iempintro
   ihave #Hdc : isClusterU (GF := GF) γ N $$ []
-  · unfold isClusterU rdPool nodeTabInv
-    iframe Htabinv
+  · unfold isClusterU rdPool
     isplitr
     · ipureintro; exact ⟨⟨c0, gd, Hmr⟩, Hcert, by rw [HbootL]; simp⟩
     isplitr

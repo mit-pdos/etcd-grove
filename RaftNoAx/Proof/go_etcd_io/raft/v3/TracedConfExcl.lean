@@ -72,7 +72,7 @@ end lemmaI
 
 section g3
 variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
-variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [CrashGS GF] [StorageModel GF]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [StorageModel GF]
 
 open Iris.BI Iris.ProofMode
 
@@ -117,6 +117,7 @@ theorem logRecs_trNoConf (γ : RaftNames) (b : entryID) (es : List EntryM)
   push_cast at Hi
   omega
 
+variable [CrashGS GF] in
 /-- **G3 (a) at a node** (what the leader exclusion reads, design §3.4 items 4(b) and 5): at a traced
 cluster the `k`-th entry of the node's log (`sents ++ uents`, after `prev`) is a conf entry only at
 an index `prev.index + k + 1 ≤ |γ.reBoot|` (at `prev = 0`: position `k < |γ.reBoot|`, lemma (i)'s

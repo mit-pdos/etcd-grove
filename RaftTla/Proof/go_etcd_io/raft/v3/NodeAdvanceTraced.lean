@@ -71,12 +71,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- See the file header. -/
 private abbrev node.Advance.specRaw : Prop :=
-  ∀ (γ : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM) (ca : Nat)
+  ∀ (γ : NodeNames) (id : w64) (n : NodeH) (ds es : List EntryM) (ca : Nat)
     (cfg : CCState) (p : HardStateM) (L : Option SnapLoan) (ms : List QMsg),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       -- (2026-11-12, trace-check implementation step 1) at a traced node, the driver's claim
       gateTr γ.raft.reTrace (rtkClaim γ.esc ms) ∗
-      nodeDriverBusy γ id n ds es p L ∗ advReceipt γ.stor ds.length es L ∗ nodeCfg γ ca cfg ∗
+      nodeDriverBusy γ id n.loc ds es p L ∗ advReceipt γ.stor ds.length es L ∗ nodeCfg γ ca cfg ∗
       -- (2026-10-15, stage N) **A1**, in the dynamic mode: every conf entry of the committed log
       -- handed out has been applied (`node.ApplyConfChange`): none past the driver's configuration
       -- index (`issues/raft-advance-before-applyconfchange.md`); (2026-10-28, the decision switch) or
@@ -88,8 +88,8 @@ private abbrev node.Advance.specRaw : Prop :=
       (∃ (y : RaftState × StateType) (W : DurMaps), dghostVar γ.dur (DFrac.own (1 : Qp).half) y ∗
         dghostVar γ.bw (DFrac.own (1 : Qp).half) (W, y) ∗ durFrags γ.raft γ.id W ∗
         slotFree γ.raft γ.id γ.gen) }}
-    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
-  {{ RET #(); (nodeDriverChan γ id n ds p ∗
+    (App (Val (n.loc @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
+  {{ RET #(); (nodeDriverChan γ id n.loc ds p ∗
       -- (2026-10-28, stage U3d) the view of the configuration: after a snapshot `Ready`,
       -- dynamically, the snapshot's (`loanCfg`), which a snapshot `Ready` has only outside the
       -- no-snapshot mode
@@ -101,7 +101,7 @@ private abbrev node.Advance.specRaw : Prop :=
       [∗list] q ∈ ms, trTokR γ.raft q.st) ∨
     -- (2026-10-29, stage U9a) or the node stopped (`done` fired first): the driver idle, its view
     -- unchanged
-    (nodeStoppedRaw γ ∗ nodeDriverChan γ id n ds p ∗ nodeCfg γ ca cfg) }}
+    (nodeStoppedRaw γ ∗ nodeDriverChan γ id n.loc ds p ∗ nodeCfg γ ca cfg) }}
 
 end spec
 
@@ -218,10 +218,10 @@ private theorem strip_terms (L : List EntryM) : (strip L).map LogEntry.term = L.
   simp only [strip, List.map_map]; rfl
 
 /-- A busy token with a snapshot's loan holds the loan's committed log. -/
-private theorem busy_dlv (γn : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM)
+private theorem busy_dlv (γn : NodeNames) (id : w64) (n : NodeH) (ds es : List EntryM)
     (p : HardStateM) (l : SnapLoan) :
-    nodeDriverBusy (GF := GF) γn id n ds es p (some l) ⊢
-      nodeDriverBusy γn id n ds es p (some l) ∗ ⌜ds = l.dlv⌝ := by
+    nodeDriverBusy (GF := GF) γn id n.loc ds es p (some l) ⊢
+      nodeDriverBusy γn id n.loc ds es p (some l) ∗ ⌜ds = l.dlv⌝ := by
   unfold nodeDriverBusy
   iintro ⟨#Hn, #Hlb, #Hld, He, %d, %ce, %p0, H1, H2, H3, %Hds, %q, Hq1, Hq2⟩
   isplitl [He H1 H2 H3 Hq1 Hq2]
@@ -243,7 +243,9 @@ view is at `m`, and its lists report `m`. -/
 private theorem node.wp_Advance_impl
     (hA : EtcdGrove.node.Advance.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.Advance.tracedSpec (GF := GF) := by
-  unfold EtcdGrove.node.Advance.tracedSpec EtcdGrove.Cluster EtcdGrove.isCluster EtcdGrove.nodeConfig
+  unfold EtcdGrove.node.Advance.specRaw at hA
+  unfold EtcdGrove.NodeH.loc at hA
+  unfold EtcdGrove.node.Advance.tracedSpec EtcdGrove.Cluster EtcdGrove.NodeH EtcdGrove.NodeH.loc EtcdGrove.isCluster EtcdGrove.nodeConfig
     EtcdGrove.nodeDriver EtcdGrove.snapshotCert EtcdGrove.confAt EtcdGrove.nodeStopped
     EtcdGrove.isNode EtcdGrove.nodeAppliedLb EtcdGrove.sentTok
     EtcdGrove.readyToksClaim
@@ -305,11 +307,11 @@ private theorem node.wp_Advance_impl
   · rw [Hh] at Hh'; cases Hh'
   rw [Hh] at Hh'
   cases Hh'
-  ihave ⟨Htok, #Hn1, -⟩ := busy_isNode_lb γn id n ds es st.hardState L $$ Htok
+  ihave ⟨Htok, #Hn1, -⟩ := busy_isNode_lb γn id n.loc ds es st.hardState L $$ Htok
   -- the node's id is the driver's
   iunfold isNode at Hisn
   icases Hisn with ⟨%γi, -, #Hni, -⟩
-  icases isNode_id_agree γn γi id id0 n $$ Hn1 Hni with %Hid0
+  icases isNode_id_agree γn γi id id0 n.loc $$ Hn1 Hni with %Hid0
   subst Hid0
   ihave %Hdl : ⌜∀ l, L = some l → ds = l.dlv⌝ $$ [Htok]
   · cases L with
@@ -323,7 +325,7 @@ private theorem node.wp_Advance_impl
   · cases L with
     | none => iintro %l %h; cases h
     | some l =>
-      icases nodeDriverBusy_loanDec γn id n ds es st.hardState l $$ Htok with ⟨-, #HlD, %HlDf⟩
+      icases nodeDriverBusy_loanDec γn id n.loc ds es st.hardState l $$ Htok with ⟨-, #HlD, %HlDf⟩
       iintro %l' %h
       cases h
       rw [← Hnok.1]
@@ -334,11 +336,11 @@ private theorem node.wp_Advance_impl
   icases (dghostVar_fractional (GF := GF) γn.dur (st.durable, st.role)).fractional
       (1 : Qp).half (1 : Qp).half |>.1 $$ [Hdur] with ⟨Hdur, Hdur2⟩
   · rw [Qp.half_add_half]; iexact Hdur
-  ihave %Hgid := EtcdGrove.isNode_id γn id n $$ Hn1
+  ihave %Hgid := EtcdGrove.isNode_id γn id n.loc $$ Hn1
   icases Hcfg with ⟨Hcfg, Hcat⟩
   iunfold nodeConfig at Hcfg
   icases Hcfg with ⟨%γn2, %id2, %Hf2, #Hn2, #Htab2, Hcf⟩
-  icases isNode_id_agree γn γn2 id id2 n $$ Hn1 Hn2 with %Hid
+  icases isNode_id_agree γn γn2 id id2 n.loc $$ Hn1 Hn2 with %Hid
   subst Hid
   icases nodeTabOk_agree γ n γn γn2 $$ Htb Htab2 with %Hnm
   ihave Hcf := nodeCfg_names γn2 γn Hnm.symm _ _ $$ Hcf
@@ -354,7 +356,7 @@ private theorem node.wp_Advance_impl
   icases Hpost with (⟨Hdrv, Hcf, #Hw, Htoks⟩ | ⟨#Hstp, Hdrv, -⟩)
   rotate_left
   · -- (2026-10-29, stage U9a) the node stopped
-    ihave ⟨Hdrv, #Hnc⟩ := nodeDriver_isNode γn id n ds st.hardState $$ Hdrv
+    ihave ⟨Hdrv, #Hnc⟩ := nodeDriver_isNode γn id n.loc ds st.hardState $$ Hdrv
     iapply HΦ
     iright
     isplitr

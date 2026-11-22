@@ -54,7 +54,7 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
     (ρ : ReqNames) (γr : ReadNames) (b : GoInterface) (ep ap : Loc) (es : GoSlice)
     (ents : List Loc) (ms : List EntryModel) (f0 : w64) (rac nc : GoChan) (st : ApplyState)
     (ai at0 a t : w64) (cs : Loc) (x : apply.ApplyKV) (sa : auth.AuthState) (A : List EntryModel)
-    (mst : Loc) (γs : MemStorNames) (γp : WTNames) (dv : Option Loc) (γnc : NotifyNames)
+    (mst : Loc) (γs : MemStorNames) (γp : WTNames) (dv : Option NodeH) (γnc : NotifyNames)
     (w : Nat) (nk : GName) (q : Qp) (γn : RNNames GF) (rt : w64) (n : Nat) (rp : RestartPt) (g : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       -- the component the environment's, and the batch's premises (`specBatchOff`'s, the shapes in

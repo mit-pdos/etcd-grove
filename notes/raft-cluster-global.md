@@ -188,3 +188,23 @@ and `binderfix.py` handle `NodeH` vs `Loc`, and `fixloop.sh` runs them.
   `readSlot`, `readReg`, `rkvInvBody`, `rkvInv`, `waitP`, `kvLb`, `readAns`, `kdSnapRecOk`,
   `kdSnapInv`, moved out of `Defs.lean` (statements unchanged) into a global section; `Defs` imports
   it. RaftNoAx's copy (`kvdurablenoax/Store.lean`) is what kvnet imports.
+- The server: `RNNames.nl : NodeH`, the apply thread's view option `dv : Option NodeH` (`rnDv`),
+  `newRaftNode.spec`'s `nl : NodeH`; the pin holds `n.installs` (`InvRaftNode`, `InvApplyAll`,
+  `NodeStartLinked`).
+- Generated: Links (kvreconf, kvdurable lose `[AllG GF]`), `etc/gen-raft-tla.py`, `etc/copy-part.py`
+  (RaftNoAx's own `ApiVocab.lean` got the main tree's section changes by hand: the patch of
+  `52c16abb4b..a8aef4766c`).
+- `lean` merged at `c912d6c4e0` (its `0c9b410886`).
+- Posted the heads-up on #22.
+
+**Left:**
+- The server (`Proof.go_etcd_io.etcd.server.v3.etcdserver.Results`): build rounds reveal one layer at
+  a time (InvCfgView's `dv`, then `newRaftNode.spec`'s `nl`); continue with `.lake/tmp/rcg/b.sh LOG
+  TARGET` (prints errors per file; `ex:` abbreviates the examples' prefix), fixing with
+  `.lake/tmp/rcg/locfix.py LOG` (`.loc` where a handle stands for a location), `gffix.py LOG`
+  (`(GF := GF)` where a spec relied on the removed `[AllG GF]`), or by hand.
+- etcdstart, the trace check (`RaftTla/.../tracecheck`, its own files swept), RaftNoAx
+  (kvdurablenoax's own files swept), KvNet (its own `kvnet`/`kvcheck` files swept), then interfaces
+  (`etc/gen-interface.py etc/api/<pkg>.txt` after the build), `etc/tcb-report.py --check`, gates,
+  the land request on #22.
+- kvnet itself should use `cluster_alloc_nb` and `kvdurablenoax/Store.lean` in its `Hstart`.
