@@ -5,7 +5,7 @@
 
 **porcupine never reports `Illegal`, and `Ok` with no timeout**, when: `S` is the pending-writes
 model of the far side's store `R.B` (`PendDec`) and node 0's invariant `pendCtx` (the far side's
-state `R.sysState`, at the model's initial state, `pendLib`) is in place, the generator gives the
+state `R.sysState`, timeless, at the model's initial state, `pendLib`) is in place, the generator gives the
 store's inputs (`iv i`), the codec is `R`'s (`codecOk`), every address serves `R`'s calls; the
 masks: the far side's (`R.Eop`), node 0's invariant's (`pendN`) and lintest's (`lintestN`) are
 disjoint; lintest's bounds on the history, and the time receipts' (`CounterClock`). Proved in
@@ -41,7 +41,7 @@ abbrev Run.spec : Prop :=
     (m : Model) (addrs : GoSlice) (addrL : List GoString) (cd : remote.Codec) (gen : GoFunc)
     (ops d tmo : w64),
   (↑pendN : CoPset) ⊆ ⊤ \ R.Eop → (↑lintestN : CoPset) ⊆ ⊤ \ (R.Eop ∪ ↑pendN) →
-  PendDec R S → receiptBound GF ≤ 2 ^ 63 →
+  PendDec R S → (∀ st, Timeless (R.sysState st)) → receiptBound GF ≤ 2 ^ 63 →
   sint.Z addrs.len < 2 ^ 31 → 0 ≤ sint.Z ops → sint.Z addrs.len * sint.Z ops < 2 ^ 60 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote ∗ context.isClosedchanInit ∗ isModel S m ∗
       genSpec gen (fun x => iprop(∃ i, ⌜x = R.iv i⌝)) ∗ addrs ↦*□ addrL ∗
