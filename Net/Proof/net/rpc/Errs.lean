@@ -62,7 +62,7 @@ theorem errAny_errorString (x : Loc) (msg : GoString) :
 theorem errAny_newVar (X msg : GoString) (e : GoInterface) :
     errors.newVar (GF := GF) X msg ⊢ globalAddr X ↦□ e -∗ models_lab.errAny e := by
   unfold errors.newVar
-  iintro ⟨%x, #Hx, #HE⟩ #He
+  iintro ⟨%x, #Hx, -, #HE⟩ #He
   icombine He Hx gives %Heq
   subst Heq
   iapply errAny_errorString x msg $$ HE

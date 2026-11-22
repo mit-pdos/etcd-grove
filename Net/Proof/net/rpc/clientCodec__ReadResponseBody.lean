@@ -75,7 +75,7 @@ theorem clientCodec.ReadResponseBody.wp_proof (wp_readFrame : readFrame.spec (GF
     iapply Hdecok $$ Hp [HD]
     · iapply Hd $$ HD
     inext
-    iintro %err %ok Hp %Hiff %Hns HΘ Herr
+    iintro %err %ok Hp %Hiff HΘ Herr
     wp_auto
     iapply HΦ
     iexists got
@@ -91,8 +91,7 @@ theorem clientCodec.ReadResponseBody.wp_proof (wp_readFrame : readFrame.spec (GF
     · ipureintro; exact Hiff
     cases ok
     · simp only [Bool.false_eq_true, ite_false]
-      iframe Herr
-      ipureintro; exact Hns
+      iexact Herr
     · simp only [ite_true]
       itrivial
 

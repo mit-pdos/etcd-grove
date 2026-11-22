@@ -9,8 +9,8 @@ The caller's decoding resource `D` is what it gives up for a decoding; `bodyDec 
 and, from `D`, the codec's `dec` of any payload into `body`, `Θ pl` its outcome. It returns:
 
 * after a whole frame `frameOf pl` (at most `maxFrameN` bytes): `nil` with `D` for a `nil` body;
-  else the decoding's result `ok` with `Θ pl ok` (`nil` exactly when `ok`, otherwise some error,
-  `errAny`, not a `ServerError`);
+  else the decoding's result `ok` with `Θ pl ok` (`nil` exactly when `ok`, otherwise a decoding
+  error, `decErr`);
 * or a read failure (`errFrame`, `ef`, or `readFrame`'s `readErr`), with `D` back (nothing was
   decoded).
 
@@ -57,7 +57,7 @@ def bodyRes (body : GoInterface) (D : IProp GF) (Θ : List w8 → Bool → IProp
   match body with
   | interface.nil => iprop(⌜err = interface.nil⌝ ∗ D)
   | interface.ok _ => iprop(∃ ok : Bool, ⌜err = interface.nil ↔ ok = true⌝ ∗ Θ pl ok ∗
-      (if ok then iprop(True) else iprop(⌜notServerErr err⌝ ∗ models_lab.errAny err)))
+      (if ok then iprop(True) else decErr err))
 
 /-- See the file header. -/
 abbrev clientCodec.ReadResponseBody.spec : Prop :=
