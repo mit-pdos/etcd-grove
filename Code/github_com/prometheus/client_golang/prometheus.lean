@@ -3,6 +3,7 @@ module
 
 public import Perennial.Code.time
 public import Perennial.Golang.Defn
+public import TrustedCode.github_com.prometheus.client_golang.prometheus
 
 @[expose] public section
 
@@ -625,8 +626,6 @@ opaque separatorByteSlice.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultRegistry [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/prometheus/client_golang/prometheus.defaultRegistry"
-
-opaque defaultRegistry.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def DefaultRegisterer [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/prometheus/client_golang/prometheus.DefaultRegisterer"
@@ -3658,6 +3657,9 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   wrappingRegisterer_instance : wrappingRegisterer.TypeAssumptions
   wrappingCollector_instance : wrappingCollector.TypeAssumptions
   wrappingMetric_instance : wrappingMetric.TypeAssumptions
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
+  Register_unfold : FuncUnfold Register [] Register.impl
+  MustRegister_unfold : FuncUnfold MustRegister [] MustRegister.impl
   import_time_Assumption : _root_.Perennial.time.Assumptions
 
 attribute [instance] Assumptions.Collector_instance
@@ -3748,6 +3750,9 @@ attribute [instance] Assumptions.Collector_instance
   Assumptions.wrappingRegisterer_instance
   Assumptions.wrappingCollector_instance
   Assumptions.wrappingMetric_instance
+  Assumptions.«init.0_unfold»
+  Assumptions.Register_unfold
+  Assumptions.MustRegister_unfold
   Assumptions.import_time_Assumption
 
 end github_com.prometheus.client_golang.prometheus
