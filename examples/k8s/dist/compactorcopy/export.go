@@ -24,19 +24,14 @@ import (
 // the revision after Stop, and the two latest Gets of compact_rev_key that follow (each: whether it
 // returned, its header's revision, whether the key was present and its value).
 type Log struct {
-	Samples   []int64
-	Stopped   int64
-	Get1      bool
-	Rev1      int64
-	HasKey    bool
-	Value     string
-	Get2      bool
-	Rev2      int64
-}
-
-// Writer is writer: WriteKey written Writes times through cli, a failed Put skipped.
-func Writer(cli *clientv3.Client) {
-	writer(cli)
+	Samples []int64
+	Stopped int64
+	Get1    bool
+	Rev1    int64
+	HasKey  bool
+	Value   string
+	Get2    bool
+	Rev2    int64
 }
 
 // The driver's constants the distributed workload names.
@@ -119,5 +114,20 @@ func CheckLog(l Log) {
 		if v > l.Rev2 {
 			panic("k8scompactor: compact_rev_key ahead of the cluster")
 		}
+	}
+}
+
+// WriteKeyShared is the writer's key when the compactor workload shares its cluster with the
+// store workload (examples/k8s/dist): outside the store's keys (/registry/objs/...), where the
+// driver's writeKey is not, and outside compact_rev_key.
+const WriteKeyShared = "/k8sdist-compactor/w"
+
+// WriterAt is writer with the key key: key written Writes times through cli, each Put in a
+// context with the request timeout, a failed Put skipped.
+func WriterAt(cli *clientv3.Client, key string) {
+	for i := 0; i < writes; i++ {
+		ctx, cancel := context.WithTimeout(context.Background(), etcdstart.RequestTimeout)
+		_, _ = cli.Put(ctx, key, strconv.Itoa(i))
+		cancel()
 	}
 }

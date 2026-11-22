@@ -1,11 +1,12 @@
 package dist
 
-// The deployment: two etcd clusters, as k8s_all's two (the store's and the compactor's), each an
-// etcd-dist deployment of members with no etcd workload (its members run etcd-dist's server.Main),
-// and the store workload's sizes. WellFormed is etcd-dist's predicate on each cluster, with what
-// the k8s drivers fix of their clusters: etcd's own compactor off (the store's driver has no
-// compactor, the compactor's makes every compaction a client's) and no auth (the drivers' clients
-// log in as nobody).
+// The deployment: one etcd cluster, an etcd-dist deployment of members with no etcd workload (its
+// members run etcd-dist's server.Main), which both workloads use at once, as one etcd cluster
+// serves all of a Kubernetes control plane's API servers, its compaction running while they serve
+// (k8s_all's program has two clusters: notes/k8s-dist.md, "One cluster"); and the workloads'
+// sizes. WellFormed is etcd-dist's predicate on the cluster, with what the k8s drivers fix of their
+// clusters: etcd's own compactor off (every compaction is a Kubernetes compactor's) and no auth
+// (the drivers' clients log in as nobody).
 
 import (
 	"fmt"
@@ -14,44 +15,29 @@ import (
 	etcddist "github.com/mit-pdos/etcd-grove/examples/etcd/dist"
 )
 
-// Deployment is a k8s deployment: the store's cluster with its workload, the compactor's cluster
-// (its workload has no sizes).
+// Deployment is a k8s deployment: the cluster, and the two workloads over it.
 type Deployment struct {
-	Store     etcddist.Deployment
-	StoreW    Workload
-	Compactor etcddist.Deployment
-	CompW     Workload
+	Cluster etcddist.Deployment
+	StoreW  Workload
+	CompW   Workload
 }
 
 func (d Deployment) String() string {
 	w := d.StoreW
-	return fmt.Sprintf("store: %v; clients %d x %d, watchers %d x %d, %d API servers | compactor: %v; %d rounds",
-		d.Store, w.Clients, w.Ops, w.Watchers, w.WOps, w.Apiservers, d.Compactor, d.CompW.Rounds)
+	return fmt.Sprintf("%v | store: clients %d x %d, watchers %d x %d, %d API servers | compactor: %d rounds",
+		d.Cluster, w.Clients, w.Ops, w.Watchers, w.WOps, w.Apiservers, d.CompW.Rounds)
 }
 
-// WellFormed checks d: each cluster etcd-dist's WellFormed with no auth and no etcd compactor; the
-// two clusters' member names and addresses disjoint; the store workload's bounds (the driver's
-// clients+watchers < 2^31, every count non-negative, at least one client, 1 to clients+watchers
-// API servers).
+// WellFormed checks d: the cluster etcd-dist's WellFormed with no auth and no etcd compactor; the
+// store workload's bounds (the driver's clients+watchers < 2^31, every count non-negative, at
+// least one client, 1 to clients+watchers API servers); the compactor's at least one round.
 func WellFormed(d Deployment) error {
-	for _, c := range []etcddist.Deployment{d.Store, d.Compactor} {
-		if err := etcddist.WellFormed(c); err != nil {
-			return err
-		}
-		if c.Cfg.Auth || c.Cfg.Retention != 0 || len(c.Workloads) != 0 {
-			return fmt.Errorf("a k8s cluster has auth, etcd's compactor or an etcd workload")
-		}
+	c := d.Cluster
+	if err := etcddist.WellFormed(c); err != nil {
+		return err
 	}
-	seen := map[string]bool{}
-	for _, c := range []etcddist.Deployment{d.Store, d.Compactor} {
-		for _, m := range c.Members {
-			for _, s := range []string{"name " + m.Name, m.Peer, m.Client} {
-				if seen[s] {
-					return fmt.Errorf("%s in both clusters", s)
-				}
-				seen[s] = true
-			}
-		}
+	if c.Cfg.Auth || c.Cfg.Retention != 0 || len(c.Workloads) != 0 {
+		return fmt.Errorf("the cluster has auth, etcd's compactor or an etcd workload")
 	}
 	w := d.StoreW
 	n := w.Clients + w.Watchers
@@ -100,11 +86,10 @@ func cluster(tag string, k int, addr func(i int) (peer, client string)) etcddist
 	return d
 }
 
-// RandomDeployment is a random well-formed deployment: the store's cluster of k1 members at
-// addr1(i), the compactor's of k2 at addr2(i), the store workload of sizes sz with watchers or not
-// and a random API server count (one, every client its own, or between).
-func RandomDeployment(tag string, k1 int, addr1 func(int) (string, string), k2 int,
-	addr2 func(int) (string, string), sz Sizes) (Deployment, error) {
+// RandomDeployment is a random well-formed deployment: the cluster of k members at addr(i), the
+// store workload of sizes sz with watchers or not and a random API server count (one, every client
+// its own, or between), the compactor's sz.Rounds rounds.
+func RandomDeployment(tag string, k int, addr func(int) (string, string), sz Sizes) (Deployment, error) {
 	w := Workload{Kind: Store, Clients: sz.Clients, Ops: sz.Ops}
 	if rand.IntN(3) != 0 {
 		w.Watchers, w.WOps = sz.Watchers, sz.WOps
@@ -118,7 +103,6 @@ func RandomDeployment(tag string, k1 int, addr1 func(int) (string, string), k2 i
 	default:
 		w.Apiservers = 1 + rand.IntN(n)
 	}
-	d := Deployment{Store: cluster(tag+"s", k1, addr1), StoreW: w, Compactor: cluster(tag+"c", k2, addr2),
-		CompW: Workload{Kind: Compactor, Rounds: sz.Rounds}}
+	d := Deployment{Cluster: cluster(tag, k, addr), StoreW: w, CompW: Workload{Kind: Compactor, Rounds: sz.Rounds}}
 	return d, WellFormed(d)
 }

@@ -105,8 +105,9 @@ func TestVerbatim(t *testing.T) {
 }
 
 // TestStoreCodec checks the store workload's wire on random inputs and on outputs carrying each
-// kind of Raw: every value decodes to itself, a carried Raw is flagged RawOK, and one the
-// encoding does not carry is flagged lost.
+// kind of Raw: every value decodes to itself, a carried Raw is flagged RawOK, one the encoding
+// does not carry is flagged lost, and etcd's "compacted" (a List's error, a watch's Error event) is
+// flagged Compacted.
 func TestStoreCodec(t *testing.T) {
 	str := func() string { return strconv.Itoa(rand.IntN(1000)) }
 	obj := func() k8s.Obj {
@@ -157,6 +158,22 @@ func TestStoreCodec(t *testing.T) {
 			t.Errorf("raw %+v: decoded %+v, RawOK %v, ok %v", r, so.Out.Raw, so.RawOK, ok)
 		}
 	}
+	expired := apierrors.NewResourceExpired("The resourceVersion for the provided list is too old.")
+	wexpired := expired.Status()
+	for _, c := range []struct {
+		r    k8s.Raw
+		comp bool
+	}{
+		{k8s.Raw{Err: expired}, true},
+		{k8s.Raw{Events: []watch.Event{{Type: watch.Added, Object: &o}, {Type: watch.Error, Object: &wexpired}}}, true},
+		{k8s.Raw{Err: storage.NewKeyNotFoundError("/registry/objs/a", 5)}, false},
+		{k8s.Raw{Events: []watch.Event{{Type: watch.Error, Object: &metav1.Status{Status: metav1.StatusFailure, Code: 500}}}}, false},
+	} {
+		so, ok := DecOutput(EncStoreOut(k8s.Output{Err: k8s.EOther, Raw: c.r}))
+		if !ok || so.Compacted != c.comp {
+			t.Errorf("raw %+v: Compacted %v, want %v (ok %v)", c.r, so.Compacted, c.comp, ok)
+		}
+	}
 	for _, r := range []k8s.Raw{{Err: fmt.Errorf("other")}, {Err: apierrors.NewBadRequest("x"), Object: &metav1.List{}}} {
 		so, ok := DecOutput(EncStoreOut(k8s.Output{Raw: r}))
 		if !ok || so.RawOK {
@@ -203,24 +220,18 @@ func TestCheckLog(t *testing.T) {
 
 // TestWellFormed checks the deployment predicate on random deployments and on ill-formed ones.
 func TestWellFormed(t *testing.T) {
-	a := func(o int) func(int) (string, string) {
-		return func(i int) (string, string) {
-			return fmt.Sprintf("10.77.%d.1:2380", o+i+1), fmt.Sprintf("10.77.%d.1:2379", o+i+1)
-		}
+	a := func(i int) (string, string) {
+		return fmt.Sprintf("10.77.%d.1:2380", i+1), fmt.Sprintf("10.77.%d.1:2379", i+1)
 	}
 	for n := 0; n < 50; n++ {
-		if _, err := RandomDeployment("wf", 3, a(0), 3, a(3), FullSizes); err != nil {
+		if _, err := RandomDeployment("wf", 3, a, FullSizes); err != nil {
 			t.Fatalf("a random deployment is not well formed: %v", err)
 		}
 	}
-	d, _ := RandomDeployment("wf", 3, a(0), 3, a(2), FullSizes)
-	if WellFormed(d) == nil {
-		t.Error("an address in both clusters passed")
-	}
-	d, _ = RandomDeployment("wf", 3, a(0), 1, a(3), FullSizes)
+	d, _ := RandomDeployment("wf", 3, a, FullSizes)
 	bad := d
-	bad.Store.Cfg.Retention = 10
-	bad.Store.Cfg.CompactorMode = "revision"
+	bad.Cluster.Cfg.Retention = 10
+	bad.Cluster.Cfg.CompactorMode = "revision"
 	if WellFormed(bad) == nil {
 		t.Error("etcd's compactor passed")
 	}
@@ -228,6 +239,11 @@ func TestWellFormed(t *testing.T) {
 	bad.StoreW.Apiservers = bad.StoreW.Clients + bad.StoreW.Watchers + 1
 	if WellFormed(bad) == nil {
 		t.Error("more API servers than clients passed")
+	}
+	bad = d
+	bad.CompW.Rounds = 0
+	if WellFormed(bad) == nil {
+		t.Error("no compactor round passed")
 	}
 }
 
@@ -238,12 +254,11 @@ func writeArgs(work, name string, a Args) (string, error) {
 	return p, os.WriteFile(p, b, 0o644)
 }
 
-// deployRound runs one random deployment: the store's cluster of k1 members and the compactor's
-// of k2 (each a group of restartables of one robust.Run, each group crashed by a crasher of its
-// own), each workload's API server (or writer) machines and its orchestrator, under the faults
-// (the crashes, and one network nemesis over every machine) once both orchestrators' set-ups are
-// done; it fails t on a failure.
-func deployRound(t *testing.T, round int, netns bool, crash string, k1, k2 int, sz Sizes, deadline time.Duration) {
+// deployRound runs one random deployment: the cluster of k members (a group of restartables of
+// one robust.Run, crashed by its crasher), both workloads' API server (and writer) machines and
+// their orchestrators against it, under the faults (the crashes, and one network nemesis over every
+// machine) once both orchestrators' set-ups are done; it fails t on a failure.
+func deployRound(t *testing.T, round int, netns bool, crash string, k int, sz Sizes, deadline time.Duration) {
 	exe, err := os.Executable()
 	if err != nil {
 		t.Fatal(err)
@@ -253,20 +268,13 @@ func deployRound(t *testing.T, round int, netns bool, crash string, k1, k2 int, 
 		t.Fatal(err)
 	}
 	defer n.Close()
-	var ms1, ms2 []*robust.Machine
-	for i := 0; i < k1; i++ {
-		m, err := n.AddMachine(fmt.Sprintf("store-member-%d", i))
+	var ms []*robust.Machine
+	for i := 0; i < k; i++ {
+		m, err := n.AddMachine(fmt.Sprintf("member-%d", i))
 		if err != nil {
 			t.Fatal(err)
 		}
-		ms1 = append(ms1, m)
-	}
-	for i := 0; i < k2; i++ {
-		m, err := n.AddMachine(fmt.Sprintf("compactor-member-%d", i))
-		if err != nil {
-			t.Fatal(err)
-		}
-		ms2 = append(ms2, m)
+		ms = append(ms, m)
 	}
 	base := 20000 + 2*rand.IntN(4000)
 	if s := os.Getenv("DIST_OPS"); s != "" {
@@ -280,8 +288,7 @@ func deployRound(t *testing.T, round int, netns bool, crash string, k1, k2 int, 
 		}
 	}
 	tag := fmt.Sprintf("k%d-%d", os.Getpid(), round)
-	d, err := RandomDeployment(tag, k1, etcddist.MemberAddrs(n, ms1, base), k2,
-		etcddist.MemberAddrs(n, ms2, base+2*k1), sz)
+	d, err := RandomDeployment(tag, k, etcddist.MemberAddrs(n, ms, base), sz)
 	if err != nil {
 		t.Fatalf("%v: %v", d, err)
 	}
@@ -297,22 +304,16 @@ func deployRound(t *testing.T, round int, netns bool, crash string, k1, k2 int, 
 		t.Fatal(err)
 	}
 	var lines []string
-	c1, err := etcddist.Start(d.Store, r, n, ms1)
-	var c2 *etcddist.Cluster
+	c, err := etcddist.Start(d.Cluster, r, n, ms)
 	if err == nil {
-		c2, err = etcddist.Start(d.Compactor, r, n, ms2)
-	}
-	if err == nil {
-		lines, err = runClients(r, n, d, append(append([]*robust.Machine{}, ms1...), ms2...))
+		lines, err = runClients(r, n, d, ms)
 	}
 	if err == nil {
 		err = r.Err()
 	}
 	r.Stop()
-	for _, c := range []*etcddist.Cluster{c1, c2} {
-		if c != nil {
-			c.Stop()
-		}
+	if c != nil {
+		c.Stop()
 	}
 	for len(lines) < 2 {
 		lines = append(lines, "")
@@ -328,15 +329,14 @@ func deployRound(t *testing.T, round int, netns bool, crash string, k1, k2 int, 
 
 // runClients makes the workloads' machines and runs their processes in r (robust.Run.RunClients):
 // the client machines (the store's API servers, the compactor's writer and API servers), then the
-// orchestrators, the network faults over every machine (the members' and these). It returns the
-// orchestrators' result lines (the store's, the compactor's).
+// orchestrators, every one against the one cluster, the network faults over every machine (the
+// members' and these). It returns the orchestrators' result lines (the store's, the compactor's).
 func runClients(r *robust.Run, n *robust.Network, d Deployment, members []*robust.Machine) ([]string, error) {
 	all := append([]*robust.Machine{}, members...)
 	localPort := 31000 + 20*rand.IntN(80)
-	ws := []Workload{d.StoreW, d.CompW}
-	epss := [][]string{d.Store.Endpoints(), d.Compactor.Endpoints()}
+	eps := d.Cluster.Endpoints()
 	var nodes, orchs []robust.Client
-	for i, w := range ws {
+	for _, w := range []Workload{d.StoreW, d.CompW} {
 		om, err := n.AddMachine(fmt.Sprintf("orch-%s", w.Kind))
 		if err != nil {
 			return nil, err
@@ -363,14 +363,14 @@ func runClients(r *robust.Run, n *robust.Network, d Deployment, members []*robus
 		}
 		for j, nm := range nms {
 			name := fmt.Sprintf("%s-node-%d", w.Kind, j)
-			p, err := writeArgs(r.Work(), name, Args{W: w, Eps: epss[i], Addrs: as, IsNode: true, Node: j})
+			p, err := writeArgs(r.Work(), name, Args{W: w, Eps: eps, Addrs: as, IsNode: true, Node: j})
 			if err != nil {
 				return nil, err
 			}
 			nodes = append(nodes, robust.Client{Name: name, Machine: nm, Args: []string{roleK8s, p}})
 		}
 		name := fmt.Sprintf("orch-%s", w.Kind)
-		p, err := writeArgs(r.Work(), name, Args{W: w, Eps: epss[i], Addrs: as})
+		p, err := writeArgs(r.Work(), name, Args{W: w, Eps: eps, Addrs: as})
 		if err != nil {
 			return nil, err
 		}
@@ -379,8 +379,8 @@ func runClients(r *robust.Run, n *robust.Network, d Deployment, members []*robus
 	return r.RunClients(nodes, orchs, all), nil
 }
 
-// TestDist runs random deployments of k8s_safe's program as a distributed deployment: the
-// store's cluster and the compactor's, three members each, every member and
+// TestDist runs random deployments of k8s_safe's workloads as a distributed deployment over one
+// cluster of three members (where k8s_safe's program has two), every member and
 // every Kubernetes component on a machine of its own, while members crash (kills, and power
 // losses where the device mapper is available) and, on network namespaces, the network fails. It
 // runs only with DIST_RUN set; -short runs one small deployment, otherwise DIST_ROUNDS (default 4).
@@ -403,7 +403,7 @@ func TestDist(t *testing.T) {
 		crash = robust.CrashMixed
 	}
 	if testing.Short() {
-		deployRound(t, 1, netns, crash, 3, 3, ShortSizes, 8*time.Minute)
+		deployRound(t, 1, netns, crash, 3, ShortSizes, 8*time.Minute)
 		return
 	}
 	rounds := 4
@@ -413,6 +413,6 @@ func TestDist(t *testing.T) {
 		}
 	}
 	for i := 1; i <= rounds && !t.Failed(); i++ {
-		deployRound(t, i, netns, crash, 3, 3, FullSizes, 15*time.Minute)
+		deployRound(t, i, netns, crash, 3, FullSizes, 15*time.Minute)
 	}
 }
