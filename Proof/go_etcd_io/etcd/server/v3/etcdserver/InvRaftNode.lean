@@ -677,6 +677,8 @@ theorem rn_enter (γ : RNNames GF) (d ce es : List EntryModel) (p p' : HardState
   iunfold rnPendEnter at Hb
   icases Hb with ⟨HrS, Hent⟩
   iunfold readyEnter at Hent
+  icases Hent with ⟨Hent, -⟩
+  iunfold readyEnterLive at Hent
   imod Hent $$ %⊤ %((1 : Qp).half) %(by simp) Hnc [HrS Hrun] with ⟨Hnc, HrS, Hrun, Hdrv, #Hsent⟩
   · isplitl [HrS]
     · iexact HrS
@@ -931,6 +933,8 @@ theorem rn_enterS (γ : RNNames GF) (d A' es : List EntryModel) (p p' : HardStat
   iunfold rnPendEnter at Hb
   icases Hb with ⟨HrS, Hent⟩
   iunfold readyEnter at Hent
+  icases Hent with ⟨Hent, -⟩
+  iunfold readyEnterLive at Hent
   imod Hent $$ %⊤ %((1 : Qp).half) %(by simp) Hnc [HrS Hrun] with ⟨Hnc, HrS, Hrun, Hdrv, #Hsent⟩
   · isplitl [HrS]
     · iexact HrS

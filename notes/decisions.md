@@ -41828,3 +41828,26 @@ later generation changes (h). So every ghost step takes the token: `ncfupd`,
   compare the Lean semantics with every vector at each build, with the recursion limits (10000
   messages, 10001 groups) as Lean-side constructions. The Go test fails if the committed module is
   not what it writes (`PBWIRE_UPDATE=1` rewrites it); it runs in `etc/gates.sh`'s `models` section.
+
+## A crash may enter a pending batch: `readyEnter` as live ∧ crash (2026-11-22 · branch `raft-crash-enter`)
+
+**Need.** kvnet's write has two durability points, so after a crash in its window the restarted node may find
+the batch's state on disk. Raft must then let the crash enter the batch as well as discard it (`nodeCrash`).
+
+**Choice.** `readyEnter := readyEnterLive ∧ readyEnterCrash`, an additive conjunction over the hand-out's
+resources, and a law `readyCrashEnter` (`InvNode.lean`). Two alternatives were rejected:
+- a separate crash resource beside `readyEnter`: both halves need the batch's `pendBatch`, which is exclusive,
+  and splitting it would give the live *enter* a fraction it cannot update;
+- a sealed `readyEnter` with the law proved from the hand-out: it hides from the interface which half a client
+  fires, for no gain.
+
+The live half is the old wand, so live clients change by one `icases` and the old guarantees stay as they were.
+The law needs two premises beyond the requested statement: `nodeRunning n γ N q` (the node was not stopped, so the
+batch is of the current generation) and `nodeArm n γ x` (the token is the node's arm's). Without them it is
+false of the ghost model (`notes/raft-crash-law-design.md` (k)). At the protocol level, `raft_enter`'s proof is
+now `raft_enter_core`, generic in how the generation is checked. `raft_crash_enter` checks it against the slot's
+share kept in the arm's crash invariant, which the crash token keeps live, then runs `raft_crash`. No ghost state,
+invariant or fragment meaning changed.
+
+**Also:** `statusOwn_hardState`, read access to `node.Status`'s hard state (`hsOpt`), without promising anything of
+the values, as `node.Status.spec` already says.

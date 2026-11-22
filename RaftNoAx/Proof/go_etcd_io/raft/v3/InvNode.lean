@@ -358,6 +358,24 @@ them. -/
 @[no_expose] def statusOwn (st : Status) : IProp GF :=
   statusOwnRaw st
 
+/-- (2026-11-22, for kvnet's `Node.status`) **A `Status`'s hard state can be read**: its
+`*pb.HardState` is `nil` (a stopped node's `Status{}`) or a read-only hard state (`hsOpt`), which the
+getters (`HardState.GetTerm`, `GetCommit`, `GetVote`) read. Read access only: nothing ties the values
+to the cluster. -/
+theorem statusOwn_hardState (st : Status) :
+    statusOwn (GF := GF) st ⊢ statusOwn st ∗ ∃ hs, hsOpt st.BasicStatus'.HardState' hs := by
+  unfold statusOwn statusOwnRaw
+  iintro (%H | ⟨⟨%hs, #Hhs⟩, Hc, Hp⟩)
+  · subst H
+    isplitr
+    · ileft; ipureintro; rfl
+    iexists HardStateM.mk (W64 0) (W64 0) (W64 0)
+    unfold hsOpt; ileft; ipureintro; exact ⟨rfl, rfl⟩
+  · isplitl [Hc Hp]
+    · iright; iframe Hc Hp; iexists hs; iexact Hhs
+    iexists hs
+    unfold hsOpt; iright; iexact Hhs
+
 
 end apiHeap
 
@@ -1078,13 +1096,49 @@ in the write that makes it durable; any other: at once), with a share of the nod
 stopped node's batch is dead), its durable state moves to it, and it gets the loop's token at the
 state after the `Ready` (`st'`, busy) and the right to send the messages (`readyMsgs`). A
 commit-only batch leaves the durable state but its commit index, so even a durable client
-applies it at once. -/
-def readyEnter (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (st st' : NodeDriverState)
+applies it at once. (2026-11-22: `readyEnter`'s live half; until then the whole of it.) -/
+def readyEnterLive (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (st st' : NodeDriverState)
     (ms : List QMsg) : IProp GF :=
   iprop(∀ (E : CoPset) (q : Qp), ⌜↑N ⊆ E⌝ -∗ notCrashed -∗
     raftState γ id st.durable ∗ nodeRunning n γ N q ={E}=∗
       notCrashed ∗ raftState γ id st'.durable ∗ nodeRunning n γ N q ∗ nodeDriver n γ N st' ∗
       readyMsgs γ N id ms)
+
+/-- (2026-11-22, `notes/raft-crash-law-design.md` (k)) **Entering a `Ready`'s batch at a crash**
+(`readyEnter`'s crash half; the law is `readyCrashEnter`): after the crash of the generation that
+ran node `n`, the crash token of the arm `n` was started from (`nodeArm`), with a share of `n`'s
+liveness (`n` not stopped: the batch is of its id's current generation), enters the batch, moving
+the durable state to it, and gives the id's vacancy back (as `nodeCrash`, which discards the batch
+instead). For a client whose write of the batch's state may survive the crash or not (a rename
+before the directory's sync): the next boot enters the batch if its storage holds the batch's
+state, and discards it otherwise. Nothing of the batch reached another node before it was entered,
+but at role leader (`readyLeaderMsgs`), whose messages carry no pending promise. -/
+def readyEnterCrash (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (st st' : NodeDriverState) :
+    IProp GF :=
+  iprop(∀ (E : CoPset) (x : CrashNames) (q : Qp), ⌜↑N ⊆ E⌝ -∗ crashed -∗ nodeCrashTok γ id x -∗
+    nodeArm n γ x -∗ nodeRunning n γ N q -∗ raftState γ id st.durable ={E}=∗
+      raftState γ id st'.durable ∗ nodeVacant γ id)
+
+/-- (2026-11-01, durability stage I-3; candidate 12 §3) **Entering a `Ready`'s batch**: live, from the
+receive's update (`readyEnterLive`), or (2026-11-22) at a crash of the generation
+(`readyEnterCrash`, `readyCrashEnter`): one of the two. -/
+def readyEnter (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (st st' : NodeDriverState)
+    (ms : List QMsg) : IProp GF :=
+  iprop(readyEnterLive n γ N id st st' ms ∧ readyEnterCrash n γ N id st st')
+
+/-- (2026-11-22, `notes/raft-crash-law-design.md` (k)) **A crash may enter a batch cut and not
+entered** (beside `nodeCrash`, which discards it): `readyEnterCrash`. -/
+theorem readyCrashEnter (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64)
+    (st st' : NodeDriverState) (ms : List QMsg) (x : CrashNames) (q : Qp) (E : CoPset)
+    (HE : ↑N ⊆ E) :
+    ⊢ crashed -∗ nodeCrashTok (GF := GF) γ id x -∗ nodeArm n γ x -∗ nodeRunning n γ N q -∗
+      readyEnter n γ N id st st' ms -∗ raftState γ id st.durable ={E}=∗
+        raftState γ id st'.durable ∗ nodeVacant γ id := by
+  iintro #Hc Htok #Harm Hrun Hent Hrs
+  unfold readyEnter
+  icases Hent with ⟨-, Hent⟩
+  unfold readyEnterCrash
+  iapply Hent $$ %E %x %q %HE Hc Htok Harm Hrun Hrs
 
 end apiHeap
 

@@ -25,11 +25,7 @@ theorem isCommittedLogLb_timeless [ReceiptGS GF] (γ : Cluster) (l : List LogEnt
 
 def readyEnter (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (st st' : NodeDriverState) (ms :
     List QMsg) : IProp GF :=
-  iprop(∀ E q,
-      ⌜↑N ⊆ E⌝ -∗
-        notCrashed -∗
-          raftState γ id st.durable ∗ nodeRunning n γ N q ={E}=∗
-            notCrashed ∗ raftState γ id st'.durable ∗ nodeRunning n γ N q ∗ nodeDriver n γ N st' ∗ readyMsgs γ N id ms)
+  iprop(readyEnterLive n γ N id st st' ms ∧ readyEnterCrash n γ N id st st')
 
 theorem nodeArm_persistent (n : NodeH) (γ : Cluster) (x : CrashNames) : Persistent (nodeArm n γ x)
 
@@ -104,6 +100,15 @@ theorem deliveredLogLb_committed [package_sem : Assumptions] (n : NodeH) (γ : C
     Namespace) (l : List LogEntry) : deliveredLogLb n γ N l ⊢ isCommittedLogLb γ l
 
 def (sealed) nodeArm (n : NodeH) (γ : Cluster) (x : CrashNames) : IProp GF
+
+def readyEnterCrash (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (st st' : NodeDriverState)
+    : IProp GF :=
+  iprop(∀ E x q,
+      ⌜↑N ⊆ E⌝ -∗
+        crashed -∗
+          nodeCrashTok γ id x -∗
+            nodeArm n γ x -∗
+              nodeRunning n γ N q -∗ raftState γ id st.durable ={E}=∗ raftState γ id st'.durable ∗ nodeVacant γ id)
 
 theorem isCommittedLogLb_nil [ReceiptGS GF] [InvGS GF] (γ : Cluster) : ⊢ isCommittedLogLb γ []
 
@@ -213,6 +218,9 @@ def (sealed) Cluster.snapLoc (γ : Cluster) : w64 → Option GName
 
 def (sealed) nodeVacant [ReceiptGS GF] [InvGS GF] (γ : Cluster) (id : w64) : IProp GF
 
+theorem statusOwn_hardState [package_sem : Assumptions] (st : Status) : statusOwn st ⊢ statusOwn st
+    ∗ ∃ hs, hsOpt st.BasicStatus'.HardState' hs
+
 def readyEnts (γ : Cluster) (s : GoSlice) (es : List EntryM) : IProp GF :=
   iprop(∃ els cs,
       ownSlice s els DFrac.discard ∗
@@ -251,6 +259,14 @@ theorem Membership.simple_valid (vs : GSet w64) : vs ≠ ∅ → ¬W64 0 ∈ vs 
 theorem msgOut_size [package_sem : Assumptions] (γ : Cluster) (l : Loc) (dq : DFrac) (st : MsgSt) (b
     : Nat) : msgOut γ l dq st ⊢ ∃ c, msgPtsCC l dq DFrac.discard false c ∗ ⌜c.model = st ∧
     (γ.maxData = some b → st.msg.Type' ≠ MsgSnap → msgSizeOk c)⌝
+
+def readyEnterLive (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (st st' : NodeDriverState)
+    (ms : List QMsg) : IProp GF :=
+  iprop(∀ E q,
+      ⌜↑N ⊆ E⌝ -∗
+        notCrashed -∗
+          raftState γ id st.durable ∗ nodeRunning n γ N q ={E}=∗
+            notCrashed ∗ raftState γ id st'.durable ∗ nodeRunning n γ N q ∗ nodeDriver n γ N st' ∗ readyMsgs γ N id ms)
 
 def (sealed) readStateOk [ReceiptGS GF] [InvGS GF] (γ : Cluster) (N : Namespace) (c : List w8) (idx
     : w64) : IProp GF
@@ -434,6 +450,12 @@ theorem readyRest_commit_mono [package_sem : Assumptions] (γ : Cluster) (N : Na
     : Option SnapLoan) (ms : List QMsg) (ss : Option (w64 × StateType)) : readyRest γ N id rd st ce
     es h L ms ss ⊢ readyRest γ N id rd st ce es h L ms ss ∗ ⌜uint.nat st.hardState.Commit' ≤
     uint.nat (phsNext st.hardState h).Commit'⌝
+
+theorem readyCrashEnter [package_sem : Assumptions] (n : NodeH) (γ : Cluster) (N : Namespace) (id :
+    w64) (st st' : NodeDriverState) (ms : List QMsg) (x : CrashNames) (q : Qp) (E : CoPset) (HE : ↑N
+    ⊆ E) : ⊢ crashed -∗ nodeCrashTok γ id x -∗ nodeArm n γ x -∗ nodeRunning n γ N q -∗ readyEnter n
+    γ N id st st' ms -∗ raftState γ id st.durable ={E}=∗ raftState γ id st'.durable ∗ nodeVacant γ
+    id
 
 def (sealed) readyFits [ReceiptGS GF] (γ : Cluster) (_N : Namespace) : IProp GF
 

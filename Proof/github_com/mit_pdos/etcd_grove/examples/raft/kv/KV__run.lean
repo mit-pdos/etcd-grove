@@ -247,6 +247,8 @@ theorem KV.run.wp_proof
   iunfold readyGot at Hgot
   icases Hgot with ⟨%ce, %es, %hh, %L, %qs, %ss, -, #Hce, #Hcomm, ⟨%sts, #Hsts, #Hstsok⟩, Hrest, -, Henter, -, -⟩
   iunfold readyEnter at Henter
+  icases Henter with ⟨Henter, -⟩
+  iunfold readyEnterLive at Henter
   -- (2026-11-21, the crash invariant) *enter* is a crash-token update: at a step
   iapply (wp_ncfupd _ _ (by rfl))
   unfold ncfupd
