@@ -289,6 +289,13 @@ models/internal/grpcdifftest/run.sh >> "$tmp/nm.log" 2>&1 || nm=1
 # golden transcripts, in the real build and in the model build (an overlay: goroot.py)
 models/internal/jsonstreamtest/run.sh >> "$tmp/nm.log" 2>&1 || nm=1
 if [ $nm = 0 ]; then echo "models: ok"; else echo "models: FAILED"; tail -20 "$tmp/nm.log"; fail=1; fi
+# clients on machines of their own (examples/lib/remote, notes/remote-port-plan.md): the library's and
+# its counter instance's tests over real sockets (fault proxy, the four commands as processes, a
+# double-apply control), and lintest's per-client driver
+nr=0
+( (cd examples/lib/remote && GOWORK=off go vet ./... && GOWORK=off gotest ./...) \
+  && (cd examples/lib/lintest && GOWORK=off gotest ./perclient) ) > "$tmp/remote.log" 2>&1 || nr=1
+if [ $nr = 0 ]; then echo "remote: ok"; else echo "remote: FAILED"; tail -20 "$tmp/remote.log"; fail=1; fi
 # the per-type stage's joint landing: stage A's restated swMsgBound_phys is gone (raft-entsize
 # deleted it); etc/joint-landing-check.py refuses it in the baselines (reads them only), with its
 # selftest
