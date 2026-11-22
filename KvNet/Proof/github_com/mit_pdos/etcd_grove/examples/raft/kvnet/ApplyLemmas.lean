@@ -1,4 +1,3 @@
--- The copy for the part `KvNet/` of `RaftNoAx/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/ApplyLemmas.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Lean-first (no Rocq counterpart).
 
@@ -284,6 +283,8 @@ theorem repOwn_other (γ : KdNames) (r : Loc) (ap : List LogEntry)
   · ipureintro; simp; omega
   isplitr
   · ipureintro; rw [Hlh]; exact Hval
+  isplitr
+  · ipureintro; exact HKfit
   isplitr
   · ipureintro; rw [Hlh]; exact HA
   isplitr

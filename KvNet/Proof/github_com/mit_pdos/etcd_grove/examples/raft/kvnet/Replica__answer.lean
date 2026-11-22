@@ -1,4 +1,3 @@
--- The copy for the part `KvNet/` of `RaftNoAx/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/Replica__answer.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 kvreconf's proof (the same Go text), ported. Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvnet/Replica__answer.lean`. Lean-first (no
 Rocq counterpart); kv's `answer` (`Proof/github_com/mit_pdos/etcd_grove/examples/raft/kv/KV__answer.lean`)
@@ -151,14 +150,17 @@ theorem Replica.answer.wp_proof (wp_decodeReadCtx : decodeReadCtx.spec (GF := GF
             subst Hc0
             try wp_auto
             wp_apply wp_map_lookup1 go.string go.string mK K key (DFrac.own 1) $$ [$HK] as HK
-            wp_apply wp_handoff_send (t := go.string) γh ch (readAns γ c0) iprop(True)
+            wp_apply wp_handoff_send (t := go.string) γh ch
+              (fun v => iprop(readAns γ c0 v ∗ ⌜(v.length : Int) + 9 < 2 ^ 63⌝)) iprop(True)
               iprop(False) ((K !! key).getD (zero_val GoString)) $$ [$Hho $Hprod]
             · isplitl
-              · unfold readAns
-                iexists sv.Index', ap, key
-                iframe Hok Hap
-                ipureintro
-                exact ⟨Hle, ⟨rep, sq, Hdec⟩, Hval key⟩
+              · isplitl
+                · unfold readAns
+                  iexists sv.Index', ap, key
+                  iframe Hok Hap
+                  ipureintro
+                  exact ⟨Hle, ⟨rep, sq, Hdec⟩, Hval key⟩
+                · ipureintro; exact HKfit.getD key
               · itrivial
             iintro -
             try wp_auto
@@ -186,7 +188,7 @@ theorem Replica.answer.wp_proof (wp_decodeReadCtx : decodeReadCtx.spec (GF := GF
     iexists mK, K, c
     iframe
     iframe Hap HcsO Hcfg
-    ipureintro; exact ⟨Hlen, Hval, HA, Hcsm, Hsz⟩
+    ipureintro; exact ⟨Hlen, Hval, HKfit, HA, Hcsm, Hsz⟩
 
 end proof
 

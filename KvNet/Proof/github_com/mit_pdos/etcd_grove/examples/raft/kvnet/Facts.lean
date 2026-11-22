@@ -101,17 +101,6 @@ instance kvRep_persistent (γ : KdNames) (vs : List w64) (dir : GoString) (r : L
     Persistent (kvRep (GF := GF) γ vs dir r id) := by
   unfold kvRep; infer_instance
 
-/-- **A store-level law on the answers' lengths** (a seam, to discharge from the store's invariant):
-an answer's value is shorter than `2^61` (the values the store holds are the operations', whose
-lengths `EncodeOp` bounds). Taken as a hypothesis by `Replica.read`'s and `Replica.propose`'s proofs,
-whose specs promise the bound to the server (its reply frame). -/
-abbrev ansLen.law : Prop :=
-  ∀ (γ : KdNames) (c v : List w8), readAns (GF := GF) γ c v ⊢ ⌜v.length < 2 ^ 61⌝
-
-/-- **The same law of an operation's answers** (a seam, as `ansLen.law`). -/
-abbrev waitLen.law : Prop :=
-  ∀ (γ : KdNames) (d v : List w8), waitP (GF := GF) γ d v ⊢ ⌜v.length < 2 ^ 61⌝
-
 end facts
 
 end raft_kvnet

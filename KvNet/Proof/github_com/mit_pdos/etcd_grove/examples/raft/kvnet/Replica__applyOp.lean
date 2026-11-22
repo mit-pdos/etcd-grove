@@ -1,4 +1,3 @@
--- The copy for the part `KvNet/` of `RaftNoAx/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/Replica__applyOp.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 kvreconf's proof (the same Go text), ported. Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvnet/Replica__applyOp.lean`. Lean-first (no
 Rocq counterpart).
@@ -72,10 +71,10 @@ local macro "applyop_tail" : tactic => `(tactic| (
         iframe
         iexists mA, A', csp', c', idx', apS
         iframe HmA' HA2 Hcs' Hidx' HcsO' HapS
-        ipureintro; exact HAS
+        ipureintro; exact ⟨HAS, HAfitS⟩
       try wp_auto
       iapply HΦ
-      iapply Hfin $$ %K' %A' %HKA HmK HK HmA HA1 Hcs Hidx
+      iapply Hfin $$ %K' %A' %HKA %HKfitS HmK HK HmA HA1 Hcs Hidx
     | some ch =>
       simp only [Option.getD_some, Option.isSome_some, _root_.decide_true]
       try wp_auto
@@ -94,14 +93,15 @@ local macro "applyop_tail" : tactic => `(tactic| (
         iframe
         iexists mA, A', csp', c', idx', apS
         iframe HmA' HA2 Hcs' Hidx' HcsO' HapS
-        ipureintro; exact HAS
+        ipureintro; exact ⟨HAS, HAfitS⟩
       try wp_auto
-      wp_apply wp_handoff_send (t := go.string) γh ch (waitP γ e.data) iprop(True) iprop(False)
+      wp_apply wp_handoff_send (t := go.string) γh ch
+        (fun v => iprop(waitP γ e.data v ∗ ⌜(v.length : Int) + 9 < 2 ^ 63⌝)) iprop(True) iprop(False)
         v $$ [$(frameH `Hho) $(frameH `Hprod) $(frameH `Hw)]
       iintro -
       try wp_auto
       iapply HΦ
-      iapply Hfin $$ %K' %A' %HKA HmK HK HmA HA1 Hcs Hidx
+      iapply Hfin $$ %K' %A' %HKA %HKfitS HmK HK HmA HA1 Hcs Hidx
   ))
 
 theorem Replica.applyOp.wp_proof (wp_decode : decode.spec (GF := GF) (hG := hG)) :
@@ -114,21 +114,21 @@ theorem Replica.applyOp.wp_proof (wp_decode : decode.spec (GF := GF) (hG := hG))
   -- the end state, from new map and table facts
   ihave Hfin : iprop(∀ (K' A' : GMap (List w8) (List w8)),
       ⌜(∀ k, (K' !! k).getD [] = kvFold (logHist (ap ++ [e])) k) ∧
-        AppliedOk A' (logHist (ap ++ [e]))⌝ -∗
+        AppliedOk A' (logHist (ap ++ [e]))⌝ -∗ ⌜MapFits K'⌝ -∗
       r.[KReplica, go!"kv"] ↦ mK -∗ mK ↦$ K' -∗
       r.[KReplica, go!"applied"] ↦{DFrac.own (1 : Qp).half} mA -∗
       mA ↦${DFrac.own (1 : Qp).half} A' -∗
       r.[KReplica, go!"cs"] ↦{DFrac.own (1 : Qp).half} csp -∗
       r.[KReplica, go!"index"] ↦{DFrac.own (1 : Qp).half} idx -∗
       ∃ A'', repOwn γ r (ap ++ [e]) idx csp m mA A'') $$ [Hcfg']
-  · iintro %K' %A' %HKA HmK HK HmA HA Hcs Hidx
+  · iintro %K' %A' %HKA %HKfit' HmK HK HmA HA Hcs Hidx
     obtain ⟨HK', HA'⟩ := HKA
     iexists A'
     unfold repOwn
     iexists mK, K', c
     iframe HmK HK HmA HA Hcs Hidx Hce HcsO Hcfg'
     ipureintro
-    refine ⟨by simp; omega, HK', HA', Hcsm, Hsz⟩
+    refine ⟨by simp; omega, HK', HKfit', HA', Hcsm, Hsz⟩
   wp_auto
   wp_apply wp_decode dsl e.data DFrac.discard $$ [$Hd] as -
   cases Hdec : decodeOp e.data with
@@ -140,7 +140,7 @@ theorem Replica.applyOp.wp_proof (wp_decode : decode.spec (GF := GF) (hG := hG))
       by_cases hd : e.data = []
       · exact .inl (odOf_nil e hd)
       · exact .inr ⟨e.data, odOf_normal e Hty hd, .inl Hdec⟩)
-    iapply Hfin $$ %K %A %H HmK HK HmA HA Hcs Hidx
+    iapply Hfin $$ %K %A %H %HKfit HmK HK HmA HA Hcs Hidx
   | some x =>
     obtain ⟨i, kd, key, val⟩ := x
     unfold decodeRet; rw [Hdec]
@@ -151,7 +151,7 @@ theorem Replica.applyOp.wp_proof (wp_decode : decode.spec (GF := GF) (hG := hG))
     wp_apply sync.Mutex.wp_Lock _ _ $$ [$Hmu] as ⟨Hlocked, HR⟩
     iNamed HR
     iunfold repShared at Hrep
-    icases Hrep with ⟨%mA', %A0, %csp', %c', %idx', %ap', HmA', HA', Hcs', Hidx', #HcsO', #Hap', %HA0⟩
+    icases Hrep with ⟨%mA', %A0, %csp', %c', %idx', %ap', HmA', HA', Hcs', Hidx', #HcsO', #Hap', %HA0, %HA0fit⟩
     icombine HmA HmA' gives %HmAeq
     subst HmAeq
     icases ownMap_halves_combine mA A A0 $$ [$HA $HA'] with ⟨%HAeq, HAf⟩
@@ -168,11 +168,14 @@ theorem Replica.applyOp.wp_proof (wp_decode : decode.spec (GF := GF) (hG := hG))
       obtain ⟨v, Hv⟩ : ∃ v, A !! e.data = some v := by
         have := (HA.1 e.data).2 ⟨Hmem, Hdsome⟩
         exact Option.isSome_iff_exists.mp this
-      ihave #Hw : waitP γ e.data ((A !! e.data).getD (zero_val (List w8))) $$ []
-      · unfold waitP
-        iexists ap
-        iframe Hap
-        ipureintro; rw [Hv]; exact HA.2 _ _ Hv
+      ihave #Hw : iprop(waitP γ e.data ((A !! e.data).getD (zero_val (List w8))) ∗
+          ⌜(((A !! e.data).getD (zero_val (List w8))).length : Int) + 9 < 2 ^ 63⌝) $$ []
+      · isplitl
+        · unfold waitP
+          iexists ap
+          iframe Hap
+          ipureintro; rw [Hv]; exact HA.2 _ _ Hv
+        · ipureintro; rw [Hv]; exact HA0fit _ _ Hv
       icases ownMap_halves_split mA A $$ [$HAf] with ⟨HA1, HA2⟩
       obtain ⟨K', HKe⟩ : ∃ K', K' = K := ⟨_, rfl⟩
       subst HKe
@@ -182,10 +185,20 @@ theorem Replica.applyOp.wp_proof (wp_decode : decode.spec (GF := GF) (hG := hG))
       subst HapSe
       ihave #HapS := Hap'
       have HAS := HA0
+      have HAfitS := HA0fit
+      have HKfitS := HKfit
       generalize (A' !! e.data).getD (zero_val (List w8)) = v
       applyop_tail
     · -- the first occurrence: the store's map moves, the table records the answer
       have Hnm : e.data ∉ logHist ap := fun h => Hif (decide_eq_true h)
+      ihave %Hdl := ownSlice_len $$ Hd
+      have Hvl := decodeOp_val_len Hdec
+      have Hdl' : (e.data.length : Int) < 2 ^ 63 := by
+        obtain ⟨h1, -⟩ := Hdl; rw [h1]; word
+      have HKfitS : MapFits (if kd = opPutB then <[key := val]> K else K) := by
+        split
+        · exact HKfit.insert key val (by omega)
+        · exact HKfit
       obtain ⟨K', HK'⟩ : ∃ K', K' = if kd = opPutB then <[key := val]> K else K := ⟨_, rfl⟩
       wp_if_destruct
       wp_apply wp_mapInsert go.string mK K key val $$ [$HK] as HK
@@ -201,16 +214,23 @@ theorem Replica.applyOp.wp_proof (wp_decode : decode.spec (GF := GF) (hG := hG))
         try wp_auto
         have HKA0 := hist_insert ap e K A e.data i _ key val HA Hval Ho Hnm Hdec K' HK'
         rw [show (zero_val (List w8)) = ([] : List w8) from rfl]
+        rw [← HK'] at HKfitS
+        have HAfitS : MapFits (A.insert e.data ((K' !! key).getD [])) :=
+          HA0fit.insert _ _ (HKfitS.getD key)
         obtain ⟨A', HAe⟩ : ∃ A', A' = A.insert e.data ((K' !! key).getD []) := ⟨_, rfl⟩
         rw [← HAe] at HKA0 ⊢
         have HKA := HKA0
         icases ownMap_halves_split mA A' $$ [$HAf] with ⟨HA1, HA2⟩
-        ihave #Hw : waitP γ e.data ((K' !! key).getD []) $$ []
-        · unfold waitP
-          iexists ap ++ [e]
-          iframe Hce
-          ipureintro
-          exact HKA0.2.2 _ _ (by rw [HAe]; show (A.insert e.data _ !! e.data) = _; rw [GMap.lookup_insert_eq])
+        rw [← HAe] at HAfitS
+        ihave #Hw : iprop(waitP γ e.data ((K' !! key).getD []) ∗
+            ⌜(((K' !! key).getD []).length : Int) + 9 < 2 ^ 63⌝) $$ []
+        · isplitl
+          · unfold waitP
+            iexists ap ++ [e]
+            iframe Hce
+            ipureintro
+            exact HKA0.2.2 _ _ (by rw [HAe]; show (A.insert e.data _ !! e.data) = _; rw [GMap.lookup_insert_eq])
+          · ipureintro; exact HKfitS.getD key
         obtain ⟨apS, HapSe⟩ : ∃ x, x = ap ++ [e] := ⟨_, rfl⟩
         rw [← HapSe] at HKA0
         ihave #HapS : isCommittedLogLb γ.r.cluster apS $$ []

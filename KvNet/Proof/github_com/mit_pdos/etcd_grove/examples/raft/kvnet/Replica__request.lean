@@ -1,4 +1,3 @@
--- The copy for the part `KvNet/` of `RaftNoAx/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/Replica__request.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 kvreconf's proof (the same Go text), ported. Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvnet/Replica__request.lean`.
 Lean-first (no Rocq counterpart; kvreconf-snapshot-thread, 2026-10-30: `maybeSnapshot`'s proof,
@@ -148,7 +147,7 @@ theorem Replica.request.wp_proof
   try wp_auto
   ihave Hown : repOwn γ r ap (W64 ap.length) csp m mA A $$ [HmK HK HmA HA Hcs Hidx]
   · unfold repOwn; iexists mK, K, c; iframe; iframe Hap HcsO Hcfg
-    ipureintro; exact ⟨Hlen, Hval, HA, Hcsm, Hsz⟩
+    ipureintro; exact ⟨Hlen, Hval, HKfit, HA, Hcsm, Hsz⟩
   -- `req.compact`
   wp_join iprop(∃ cv : w64, req_ptr ↦
       github_com.mit_pdos.etcd_grove.examples.raft.kvnet.snapReq.mk (W64 ap.length) csp dv cv ∗ index_ptr ↦ W64 ap.length ∗

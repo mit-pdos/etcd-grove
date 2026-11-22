@@ -292,10 +292,28 @@ Proved, no axiom or `sorry` (`lake build KvNet`: 2965 jobs):
   `Replica.read.spec` and `Replica.propose.spec` are proved at `kvFacts`/`kvRep` (the read with the
   client's context and the busy-`seq` check; the proposal with its slot from the request).
 
-**Seams added**: `ansLen.law`, `waitLen.law` (an answer's value is shorter than `2^61`: the server
-promises it to its reply frame; to discharge from the store's invariant, e.g. by bounding the values
-the minted operations carry, which `EncodeOp`'s callers bound); `kvFacts`'s `confOk` is a parameter
-(`cf`) until `confLaw` is discharged.
+**Seams**: `kvFacts`'s `confOk` is a parameter (`cf`) until `confLaw` is discharged. (`ansLen.law`,
+`waitLen.law`, added with `read`/`propose`, are gone: next section.)
+
+### The answers' lengths (2026-11-22): a local bound, no store-level seam
+
+`Replica.read`/`propose` promised `len(v) < 2^61` to the server, which neither `waitP` nor `readAns`
+gives (they say which committed history the value is from, nothing of its length), hence the two seams.
+What the server really needs: `serveClient` writes `resp = append([]byte{1}, ans...)` with
+`writeFrame`, which computes `make([]byte, 0, 8+len(body))`, so `len(v) + 9 < 2^63` (Go panics on the
+negative capacity otherwise); `kvQ`/`server_reply` need only `len(v) < 2^63`. A slice gives `len(v) <
+2^63` (`ownSlice_len`), not the `+ 9`: the bound has to come from an invariant. It is local to the
+replica: every value it holds is `b[17+n:]` of an entry `b` it decoded (`decode`; `decodeOp_val_len`:
+`len(val) + 17 <= len(b) < 2^63`), or a value of a snapshot's map (`install`'s new premises `MapFits K'`,
+`MapFits A'`, which `run` gets from `decodeState`: each value sits inside the snapshot's slice after two
+8-byte length prefixes). So `Defs.lean` has `MapFits M` (every value `v` has `len(v) + 9 < 2^63`) in
+`repOwn` (the store's map `K`) and `repShared` (the applied table `A`), and the waiters' handoffs carry the
+bound with the answer (`waiterOk`, `readWaiterOk`). The server side's posts (`Replica.read`,
+`Replica.propose`, `Node.handle`) promise `(len(v) : Int) + 9 < 2^63`, weaker than `2^61`. That is
+exactly what `serveClient` uses (its proof needed no change). The store-level alternative (lengths in kvreconf's `MintOk`,
+derived through `rkvInv`) would have touched the main tree and kvdurable's minting proofs for no gain.
+Cost: `Replica.{applyOp,answer,request}` and `ApplyLemmas` are now the part's own (out of
+`KVNET_REUSED`: their texts differ from kvdurablenoax's by the bound).
 
 **Next: `persist` (decision C)**. The file's invariant moves to fsExt: per id, with the bodied
 `durable`'s names `γd : DurGS` and file `f : DFile`,

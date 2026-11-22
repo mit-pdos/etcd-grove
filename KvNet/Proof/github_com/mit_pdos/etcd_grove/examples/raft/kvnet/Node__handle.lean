@@ -231,7 +231,7 @@ theorem Node.handle.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
     iexists bs
     rw [ansOk_other F id (W8 5) _ bs (by decide) (by decide)]
     iframe Hbs
-    ipureintro; exact ⟨rfl, Hbl⟩
+    ipureintro; exact ⟨rfl, by omega⟩
   · -- another kind: no answer
     try wp_auto
     iapply HΦ

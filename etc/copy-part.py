@@ -273,7 +273,7 @@ KVNET_REUSED = [f"Proof.{KVNET_PKG}.{f}" for f in
                  # (2026-11-22) over kvnet's own Defs (kvdurablenoax's interface kept)
                  "Storage__SetHardState", "Storage__snapIndex", "Storage__InitialState",
                  "Storage__Snapshot", "openStorage",
-                 "Replica__request", "Replica__applyOp", "Replica__answer"]]
+                 ]]
 
 
 def own_roots(part):

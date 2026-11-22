@@ -4218,3 +4218,16 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** Replace `NewLessor`'s axiom by the narrower `Lease.expired` one (the user's choice (a),
   prove-ps2-newlessor).
 - **Decision.** Approved (the user's (a); net 0 axioms), applied.
+
+## 2026-11-22: kvnet's answers' length bound weakened to what the reply frame needs (KvNet)
+
+- **Spec.** `Replica.read.spec`, `Replica.propose.spec`, `Node.handle.spec` (KvNet, Lean-first; no SpecPlan
+  counterpart): post `len(v) < 2^61` to `(len(v) : Int) + 9 < 2^63`. `Replica.install.spec`: new premises
+  `MapFits K'`, `MapFits A'`.
+- **Defect.** The `2^61` bound was not derivable (the store's `waitP`/`readAns` say nothing of lengths): the
+  proofs took it as two seams (`ansLen.law`, `waitLen.law`). The only consumer (`serveClient`, its `writeFrame`)
+  needs `len(v) + 9 < 2^63`.
+- **Evidence.** `notes/kvnet-part.md`, "The answers' lengths"; `Node__serveClient.lean` unchanged.
+- **Proposed change.** Weaken the posts; carry the bound in the replica's maps (`MapFits`, `Defs.lean`) and
+  waiters; drop the seams.
+- **Decision.** Applied (the coordinator's item 1: weaken locally before strengthening the store).

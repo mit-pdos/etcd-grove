@@ -2,7 +2,7 @@
 kvdurablenoax's proof (the same Go text; kvreconf's), adapted to the server side's spec
 (`KvNet/Spec/.../kvnet/Replica__propose.lean`) at the store's facts (`kvFacts`, `kvRep`, `Facts.lean`):
 the datum's slice at any fraction (persisted here), its minted slot from the request (`F.opOk`), the
-answer's length bound from the store-level law `waitLen.law` (a seam). Lean-first
+answer's length bound from the replica's maps and waiters (`MapFits`, `Defs.lean`). Lean-first
 (no Rocq counterpart); kv's `KV.do` (`Proof/github_com/mit_pdos/etcd_grove/examples/raft/kv/KV__do.lean`)
 with a timeout and the replica's table of applied operations.
 
@@ -45,7 +45,6 @@ attribute [local instance] kdStorageModel
 theorem Replica.propose.wp_proof
     (wp_node_Propose : node.Propose.spec (GF := GF) (hG := hG))
     (hWT : withTimeout.spec (GF := GF) (hG := hG))
-    (Hwl : waitLen.law (GF := GF))
     (γ : KdNames) (vs : List w64) (dir : GoString) (cf : List w8 → Prop) :
     Replica.propose.spec (GF := GF) (hG := hG) (kvFacts γ cf) (kvRep γ vs dir) := by
   intro r id opsl d dq tmo
@@ -79,7 +78,7 @@ theorem Replica.propose.wp_proof
   wp_apply chan.wp_make2 (V := GoString) (W64 1) as %ch %γc ⟨#Hch, %Hcap, Hoc⟩
   · ipureintro; decide
   ihave Hoc : ownChan γc GoString (.Buffered []) $$ Hoc
-  imod start_handoff ch (waitP γ d) iprop(True) iprop(False) γc $$ Hch Hoc
+  imod start_handoff ch (fun v => iprop(waitP γ d v ∗ ⌜(v.length : Int) + 9 < 2 ^ 63⌝)) iprop(True) iprop(False) γc $$ Hch Hoc
     with ⟨%γh, %Hγh, #Hho, Hprod, Hcons⟩
   try wp_auto
   wp_apply sync.Mutex.wp_Lock _ _ $$ [$Hmu] as ⟨Hlocked, HL⟩
@@ -101,14 +100,14 @@ theorem Replica.propose.wp_proof
       iexists mA, A, csp, c, idx, ap
       iframe
       iframe HcsO Hap
-      ipureintro; exact HA
+      ipureintro; exact ⟨HA, HAfit⟩
     try wp_auto
     ihave #Hw : waitP γ d v $$ []
     · unfold waitP
       iexists ap
       iframe Hap
       ipureintro; exact HA.2 d v HAd
-    ihave %Hvl := Hwl γ d v $$ Hw
+    have Hvl := HAfit d v HAd
     iapply HΦ
     simp only [↓reduceIte]
     iframe Hw
@@ -132,7 +131,7 @@ theorem Replica.propose.wp_proof
       iexists mA, A, csp, c, idx, ap
       iframe
       iframe HcsO Hap
-      ipureintro; exact HA
+      ipureintro; exact ⟨HA, HAfit⟩
     try wp_auto
     wp_apply hWT tmo $$ [$Hcci] as %ctx' %cd %cancel ⟨#Hcancel, #Hctx, -⟩
     try wp_auto
@@ -181,7 +180,7 @@ theorem Replica.propose.wp_proof
         · ipureintro; rfl
         isplitr
         · iexact Hhch
-        iapply handoff_rcv_au γh ch (waitP γ d) iprop(True) iprop(False) false _ $$ Hho Hlc1 Hcons
+        iapply handoff_rcv_au γh ch (fun v => iprop(waitP γ d v ∗ ⌜(v.length : Int) + 9 < 2 ^ 63⌝)) iprop(True) iprop(False) false _ $$ Hho Hlc1 Hcons
         inext
         iintro %v %ok ⟨Hcons, Hgot⟩
         try wp_auto
@@ -194,8 +193,7 @@ theorem Replica.propose.wp_proof
           icases Hgot with ⟨-, Hf⟩
           iexfalso; iexact Hf
         simp only [↓reduceIte]
-        icases Hgot with ⟨#Hw, -⟩
-        ihave %Hvl := Hwl γ d v $$ Hw
+        icases Hgot with ⟨⟨#Hw, %Hvl⟩, -⟩
         iapply HΦ
         simp only [↓reduceIte]
         iframe Hw
@@ -251,7 +249,7 @@ theorem Replica.propose.wp_proof
               unfold nonblockingRecvAu
               isplit
               · iapply recvAu_nonblocking
-                iapply handoff_rcv_au γh _ (waitP γ d) iprop(True) iprop(False) false _
+                iapply handoff_rcv_au γh _ (fun v => iprop(waitP γ d v ∗ ⌜(v.length : Int) + 9 < 2 ^ 63⌝)) iprop(True) iprop(False) false _
                   $$ Hho Hlc1 Hcons
                 inext
                 iintro %v %ok ⟨Hcons, Hgot⟩
@@ -263,8 +261,7 @@ theorem Replica.propose.wp_proof
                   icases Hgot with ⟨-, Hf⟩
                   iexfalso; iexact Hf
                 simp only [↓reduceIte]
-                icases Hgot with ⟨#Hw, -⟩
-                ihave %Hvl := Hwl γ d v $$ Hw
+                icases Hgot with ⟨⟨#Hw, %Hvl⟩, -⟩
                 iapply HΦ
                 simp only [↓reduceIte]
                 iframe Hw

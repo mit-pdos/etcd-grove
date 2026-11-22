@@ -103,7 +103,7 @@ local macro "applyentry_tail" : tactic => `(tactic| (
     · rw [show ap.length + 1 = (ap ++ [e]).length by simp]; iexact Hcfg
     simp only [List.length_append, List.length_singleton] at Hlen ⊢
     iframe Hap HcsO Hcfg2
-    ipureintro; exact ⟨Hlen, Hval, HA, Hcsm, Hsz⟩
+    ipureintro; exact ⟨Hlen, Hval, HKfit, HA, Hcsm, Hsz⟩
   ))
 
 theorem Replica.applyEntry.wp_proof
@@ -140,7 +140,7 @@ theorem Replica.applyEntry.wp_proof
     iexists mK, K, c
     iframe
     iframe Hap HcsO Hcfg
-    ipureintro; exact ⟨Hlen, Hval, HA, Hcsm, Hsz⟩
+    ipureintro; exact ⟨Hlen, Hval, HKfit, HA, Hcsm, Hsz⟩
   try wp_auto
   wp_if_destruct
   · -- covered: skipped, the replicated state and the view stay
