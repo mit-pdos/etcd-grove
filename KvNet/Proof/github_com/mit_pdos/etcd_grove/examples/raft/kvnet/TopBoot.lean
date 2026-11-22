@@ -187,6 +187,51 @@ theorem kvGen_crash (γ : KdNames) (vs : List w64) (id : w64) (fl : KdFileNames)
   unfold fileHolds kdSnapCert
   iexact Hfh
 
+/-- No file holds what a node at the initial state holds (kvdurable's `kdEmpty_holds`). -/
+theorem kvEmpty_holds : StorageHolds RaftState.init (kdContents none) := by
+  unfold StorageHolds
+  refine ⟨Int.le_refl _, ?_, ?_, rfl, rfl, ?_, ?_, ?_, ?_, ?_⟩
+  · simp [plogTermAt, RaftState.init, kdContents, kdEmpty]
+  · rfl
+  · simp [StorContents.b, StorContents.commit, kdContents, kdEmpty]
+  · simp [StorContents.commit, RaftState.init, kdContents, kdEmpty]
+  · simp [StorContents.commit, RaftState.init, kdContents, kdEmpty]
+  · intro sv h; simp [kdContents, kdEmpty] at h
+  · intro h; exact absurd rfl h
+
+/-- No file holds the initial durable state. -/
+theorem fileHolds_init (γ : KdNames) : ⊢ fileHolds (GF := GF) γ RaftState.init none := by
+  unfold fileHolds
+  iexists none
+  isplitr
+  · ipureintro; exact ⟨rfl, fun _ h => absurd h (by simp), kvEmpty_holds⟩
+  · iintro %f %h; cases h
+
+/-- **The first generation** (see the file header): the file extension's start resources of a
+machine whose file system `st` starts as on disk (`FsInit`: the tree `st.fs.treeDur`, nothing logged),
+with neither the file nor its temporary in its directory, and the id's durable state at
+`RaftState.init` with its vacancy (the cluster's allocation), give the first generation's `kvGen`. -/
+theorem kvGen_first (γ : KdNames) (id : w64) (f : DFile) (st : OsState) (E : CoPset)
+    (hst : FsInit st) (hb : st.fs.treeDur.entry f.J f.b = none)
+    (ht : st.fs.treeDur.entry f.J f.tb = none) :
+    ⊢ osInv (GF := GF) -∗ osTree (DFrac.own 1) st.fs.roots (st.fs.treeDur, []) -∗
+      raftState γ.r.cluster id RaftState.init -∗ nodeVacant γ.r.cluster id ={E}=∗
+      kvGen γ id f st.fs.roots := by
+  iintro #Hos Ht HrS Hvac
+  imodintro
+  unfold kvGen
+  iexists (st.fs.treeDur, []), RaftState.init, none
+  have hnow : Hist.now (st.fs.treeDur, ([] : List Fs.LogEntry)) = st.fs.treeDur := rfl
+  iframe Hos Ht HrS Hvac
+  isplitr
+  · ipureintro; exact ⟨rfl, by rw [hnow]; exact hst.2.2.2.2.1⟩
+  isplitr
+  · iapply fileHolds_init
+  rw [hnow]
+  isplitr
+  · unfold durFound; rw [hb]; ipureintro; rfl
+  · unfold durFoundTmp; rw [ht]; iempintro
+
 end gen
 
 end raft_kvnet
