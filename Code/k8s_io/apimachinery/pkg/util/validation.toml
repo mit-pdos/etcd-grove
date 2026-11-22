@@ -4,7 +4,8 @@ translate = ["!*",
   # (#23, 2026-11-22) `IsQualifiedName = content.IsLabelKey`: read by the translated
   # `v1helper.IsExtendedResourceName`, so goose cannot skip it; a function value, translated
   "IsQualifiedName"]
-imports = ["!*"]
+# (#23) with its import `content`, whose `IsLabelKey` `IsQualifiedName` holds
+imports = ["!*", "k8s.io/apimachinery/pkg/api/validate/content"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

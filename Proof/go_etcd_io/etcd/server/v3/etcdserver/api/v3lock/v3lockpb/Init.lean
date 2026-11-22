@@ -2,9 +2,10 @@
 Package initialization of `go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports and runs its untranslated
-`init` functions, which the trust-boundary axiom `initFuncsOk` says return (it has no
-initialized variable).
+Its fact is `True`. Its initializer initializes its imports, runs the untranslated
+initializers of its variables (`X.init`, axioms of the translation), which the
+trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untranslated
+`init` functions, which the trust-boundary axiom `initFuncsOk` says return.
 -/
 module
 
@@ -36,6 +37,14 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+
+/-- **The trust boundary: `go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb`'s untranslated variable initializers run.**
+Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
+runs them at program start, and etcd starts, so each returns without panicking.
+Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
+axiom opaqueInitsOk :
+    ∀ v ∈ ([Lock_ServiceDesc.init] : List val),
+    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
 /-- **The trust boundary: `go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb`'s untranslated `init` functions return.** Goose
 names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
@@ -73,6 +82,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (_root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
   wp_apply (_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
+  wp_apply (opaqueInitsOk Lock_ServiceDesc.init (by mem_tac))
   wp_apply (initFuncsOk init.«0» (by mem_tac))
   iframe Hown
   is_pkg_init_finish

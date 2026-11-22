@@ -30,7 +30,7 @@ translate_types = true
 # initializer is unobservable.
 [[skip]]
 names = ["file_v3election_proto_msgTypes", "file_v3election_proto_goTypes",
-  "file_v3election_proto_depIdxs", "Election_ServiceDesc"]
+  "file_v3election_proto_depIdxs"]
 reason = """
 Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
 function values (built, not called) and other package variables' values or addresses, with no call.

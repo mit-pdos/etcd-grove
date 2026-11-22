@@ -26,8 +26,7 @@ translate_types = true
 # translated code, so no verified code reads them; each reason says why not running the
 # initializer is unobservable.
 [[skip]]
-names = ["file_v3lock_proto_msgTypes", "file_v3lock_proto_goTypes", "file_v3lock_proto_depIdxs",
-  "Lock_ServiceDesc"]
+names = ["file_v3lock_proto_msgTypes", "file_v3lock_proto_goTypes", "file_v3lock_proto_depIdxs"]
 reason = """
 Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
 function values (built, not called) and other package variables' values or addresses, with no call.

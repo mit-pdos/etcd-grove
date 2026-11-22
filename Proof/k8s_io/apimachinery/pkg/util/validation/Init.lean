@@ -8,6 +8,7 @@ variable).
 module
 
 public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.Base
+public import Proof.k8s_io.apimachinery.pkg.api.validate.content.Init
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -47,6 +48,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   wp_apply wp_GlobalAlloc (V := _) IsQualifiedName _ as HIsQualifiedName
+  wp_apply (_root_.Perennial.k8s_io.apimachinery.pkg.api.validate.content.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of IsQualifiedName))
   try wp_auto
   iframe Hown
