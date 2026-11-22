@@ -44,10 +44,7 @@ Goose translates them names-only, so each `X.init` is an axiom of the translatio
 runs them at program start, and etcd starts, so each returns without panicking.
 Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
 axiom opaqueInitsOk :
-    ∀ v ∈ ([file_v3election_proto_msgTypes.init,
-        file_v3election_proto_goTypes.init,
-        file_v3election_proto_depIdxs.init,
-        Election_ServiceDesc.init] : List val),
+    ∀ v ∈ ([Election_ServiceDesc.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
 /-- **The trust boundary: `go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb`'s untranslated `init` functions return.** Goose
@@ -87,9 +84,6 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
   wp_apply (_root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (opaqueInitsOk file_v3election_proto_msgTypes.init (by mem_tac))
-  wp_apply (opaqueInitsOk file_v3election_proto_goTypes.init (by mem_tac))
-  wp_apply (opaqueInitsOk file_v3election_proto_depIdxs.init (by mem_tac))
   wp_apply (opaqueInitsOk Election_ServiceDesc.init (by mem_tac))
   wp_apply (initFuncsOk init.«0» (by mem_tac))
   iframe Hown

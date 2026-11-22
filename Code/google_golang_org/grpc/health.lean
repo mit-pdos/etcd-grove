@@ -43,16 +43,6 @@ opaque healthCheckMethod [GooseExts] [GoGlobalContext] : val
 
 opaque maxAllowedServices [GooseExts] [GoGlobalContext] : val
 
-noncomputable def backoffStrategy [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc/health.backoffStrategy"
-
-opaque backoffStrategy.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def backoffFunc [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc/health.backoffFunc"
-
-opaque backoffFunc.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def logger [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health.logger"
 
@@ -76,6 +66,24 @@ noncomputable def registerClientSideHealthCheckListener [GooseExts] [GoGlobalCon
 noncomputable def NewServer [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health.NewServer"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `backoffStrategy` (`var backoffStrategy = backoff.DefaultExponential`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `backoffFunc` (`var backoffFunc = func(ctx context.Context, retries int) bool { d := backoffStrategy.Backoff(retries) timer := time.NewT … [sha256:f055c0bbd9fb414f]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"google.golang.org/grpc/health.backoffStrategy", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var backoffStrategy = backoff.DefaultExponential"⟩,
+  ⟨"google.golang.org/grpc/health.backoffFunc", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var backoffFunc = func(ctx context.Context, retries int) bool { d := backoffStrategy.Backoff(retries) timer := time.NewT … [sha256:f055c0bbd9fb414f]"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.health where
   pkgImportedPkgs := [pkg_id.google_golang_org.grpc.health.grpc_health_v1, pkg_id.sync]
 
@@ -89,18 +97,12 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«1» []))) (Val #())) (Val #())))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #()))))))
   (App (Val doExecute)
   (App (Val logger.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val backoffFunc.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val backoffStrategy.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.initialize') (Val #()))))))
   (App (Val doExecute)

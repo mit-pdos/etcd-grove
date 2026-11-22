@@ -51,7 +51,6 @@ runs them at program start, and etcd starts, so each returns without panicking.
 Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
 axiom opaqueInitsOk :
     ∀ v ∈ ([internalPackages.init,
-        «_».init,
         featureGates.init,
         defaultVersionedKubernetesFeatureGates.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
@@ -105,7 +104,6 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.fmt _root_.Perennial.fmt.initialize'
       EtcdGrove.ExternalInit.fmt _root_.Perennial.fmt.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   wp_apply (opaqueInitsOk internalPackages.init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
   wp_apply (opaqueInitsOk featureGates.init (by mem_tac))
   wp_apply (opaqueInitsOk defaultVersionedKubernetesFeatureGates.init (by mem_tac))
   wp_apply (initFuncsOk init.«0» (by mem_tac))

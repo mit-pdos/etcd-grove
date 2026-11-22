@@ -28,3 +28,41 @@ imports = ["!*", "k8s.io/api/core/v1", "k8s.io/apimachinery/pkg/apis/meta/v1",
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`; until 2026-11-22
+# their initializers were untranslated, `opaqueInitsOk`). goose refuses a reference to one from
+# translated code, so no verified code reads them; each reason says why not running the
+# initializer is unobservable.
+[[skip]]
+names = ["ErrInvalidLengthGenerated", "ErrIntOverflowGenerated", "ErrUnexpectedEndOfGroupGenerated"]
+reason = """
+Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of
+a constant format and constant arguments allocates the formatted error (fmt recovers a panic of a
+formatting method; the arguments have none). So each terminates, cannot panic and has no effect
+beyond its variable."""
+
+[[skip]]
+names = ["SchemeBuilder"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values:
+`runtime.NewSchemeBuilder` allocates a slice of the given functions (it calls none). So it
+terminates, cannot panic and has no effect beyond its variable."""
+
+[[skip]]
+names = ["localSchemeBuilder", "AddToScheme", "map_ControllerRevision",
+  "map_ControllerRevisionList", "map_DaemonSet", "map_DaemonSetCondition", "map_DaemonSetList",
+  "map_DaemonSetSpec", "map_DaemonSetStatus", "map_DaemonSetUpdateStrategy", "map_Deployment",
+  "map_DeploymentCondition", "map_DeploymentList", "map_DeploymentSpec", "map_DeploymentStatus",
+  "map_DeploymentStrategy", "map_ReplicaSet", "map_ReplicaSetCondition", "map_ReplicaSetList",
+  "map_ReplicaSetSpec", "map_ReplicaSetStatus", "map_RollingUpdateDaemonSet",
+  "map_RollingUpdateDeployment", "map_RollingUpdateStatefulSetStrategy", "map_StatefulSet",
+  "map_StatefulSetCondition", "map_StatefulSetList", "map_StatefulSetOrdinals",
+  "map_StatefulSetPersistentVolumeClaimRetentionPolicy", "map_StatefulSetSpec",
+  "map_StatefulSetStatus", "map_StatefulSetUpdateStrategy"]
+reason = """
+Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable."""
+# --- end of skipped package variables ---

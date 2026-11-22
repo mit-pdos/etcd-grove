@@ -32,3 +32,69 @@ imports = ["!*", "k8s.io/apimachinery/pkg/types", "k8s.io/apimachinery/pkg/runti
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`; until 2026-11-22
+# their initializers were untranslated, `opaqueInitsOk`). goose refuses a reference to one from
+# translated code, so no verified code reads them; each reason says why not running the
+# initializer is unobservable.
+[[skip]]
+names = ["ErrInvalidLengthGenerated", "ErrIntOverflowGenerated", "ErrUnexpectedEndOfGroupGenerated"]
+reason = """
+Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of
+a constant format and constant arguments allocates the formatted error (fmt recovers a panic of a
+formatting method; the arguments have none). So each terminates, cannot panic and has no effect
+beyond its variable."""
+
+[[skip]]
+names = ["cborNull", "localSchemeBuilder", "SchemeGroupVersion", "Unversioned", "optionsTypes",
+  "map_APIGroup", "map_APIGroupList", "map_APIResource", "map_APIResourceList", "map_APIVersions",
+  "map_ApplyOptions", "map_Condition", "map_CreateOptions", "map_DeleteOptions",
+  "map_FieldSelectorRequirement", "map_GetOptions", "map_GroupVersionForDiscovery",
+  "map_LabelSelector", "map_LabelSelectorRequirement", "map_List", "map_ListMeta",
+  "map_ListOptions", "map_ManagedFieldsEntry", "map_ObjectMeta", "map_OwnerReference",
+  "map_PartialObjectMetadata", "map_PartialObjectMetadataList", "map_Patch", "map_PatchOptions",
+  "map_Preconditions", "map_RootPaths", "map_ServerAddressByClientCIDR", "map_ShardInfo",
+  "map_Status", "map_StatusCause", "map_StatusDetails", "map_Table", "map_TableColumnDefinition",
+  "map_TableOptions", "map_TableRow", "map_TableRowCondition", "map_TypeMeta", "map_UpdateOptions"]
+reason = """
+Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable."""
+
+[[skip]]
+names = ["scheme"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values:
+`runtime.NewScheme` allocates an empty `*Scheme` and registers the default conversions into it
+(`utilruntime.Must` panics only if those fixed registrations fail, which Go would do at every
+start). So it terminates, cannot panic and has no effect beyond its variable."""
+
+[[skip]]
+names = ["_@helpers.go:311"]
+reason = """
+An interface check: `FieldsV1{}` converted to `json.Marshaler`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@helpers.go:312"]
+reason = """
+An interface check: `&FieldsV1{}` converted to `json.Unmarshaler`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@meta.go:131"]
+reason = """
+An interface check: `&ListMeta{}` converted to `ListInterface`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@micro_time_fuzz.go:40"]
+reason = """
+An interface check: `&MicroTime{}` converted to `randfill.SimpleSelfFiller`. No call, no panic, no
+effect."""
+
+[[skip]]
+names = ["_@time_fuzz.go:40"]
+reason = """
+An interface check: `&Time{}` converted to `randfill.SimpleSelfFiller`. No call, no panic, no
+effect."""
+# --- end of skipped package variables ---

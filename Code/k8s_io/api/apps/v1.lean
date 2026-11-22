@@ -274,190 +274,10 @@ opaque DeploymentReplicaFailure [GooseExts] [GoGlobalContext] : val
 
 opaque ReplicaSetReplicaFailure [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrInvalidLengthGenerated [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/apps/v1.ErrInvalidLengthGenerated"
-
-opaque ErrInvalidLengthGenerated.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrIntOverflowGenerated [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/apps/v1.ErrIntOverflowGenerated"
-
-opaque ErrIntOverflowGenerated.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrUnexpectedEndOfGroupGenerated [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/apps/v1.ErrUnexpectedEndOfGroupGenerated"
-
-opaque ErrUnexpectedEndOfGroupGenerated.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def SchemeGroupVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.SchemeGroupVersion"
 
 opaque SchemeGroupVersion.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def SchemeBuilder [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/apps/v1.SchemeBuilder"
-
-opaque SchemeBuilder.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def localSchemeBuilder [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/apps/v1.localSchemeBuilder"
-
-opaque localSchemeBuilder.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def AddToScheme [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/apps/v1.AddToScheme"
-
-opaque AddToScheme.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ControllerRevision [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/apps/v1.map_ControllerRevision"
-
-opaque map_ControllerRevision.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ControllerRevisionList [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/apps/v1.map_ControllerRevisionList"
-
-opaque map_ControllerRevisionList.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_DaemonSet [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/apps/v1.map_DaemonSet"
-
-opaque map_DaemonSet.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_DaemonSetCondition [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/apps/v1.map_DaemonSetCondition"
-
-opaque map_DaemonSetCondition.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_DaemonSetList [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/apps/v1.map_DaemonSetList"
-
-opaque map_DaemonSetList.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_DaemonSetSpec [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/apps/v1.map_DaemonSetSpec"
-
-opaque map_DaemonSetSpec.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_DaemonSetStatus [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/apps/v1.map_DaemonSetStatus"
-
-opaque map_DaemonSetStatus.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_DaemonSetUpdateStrategy [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/apps/v1.map_DaemonSetUpdateStrategy"
-
-opaque map_DaemonSetUpdateStrategy.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_Deployment [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/apps/v1.map_Deployment"
-
-opaque map_Deployment.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_DeploymentCondition [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/apps/v1.map_DeploymentCondition"
-
-opaque map_DeploymentCondition.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_DeploymentList [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/apps/v1.map_DeploymentList"
-
-opaque map_DeploymentList.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_DeploymentSpec [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/apps/v1.map_DeploymentSpec"
-
-opaque map_DeploymentSpec.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_DeploymentStatus [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/apps/v1.map_DeploymentStatus"
-
-opaque map_DeploymentStatus.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_DeploymentStrategy [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/apps/v1.map_DeploymentStrategy"
-
-opaque map_DeploymentStrategy.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ReplicaSet [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/apps/v1.map_ReplicaSet"
-
-opaque map_ReplicaSet.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ReplicaSetCondition [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/apps/v1.map_ReplicaSetCondition"
-
-opaque map_ReplicaSetCondition.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ReplicaSetList [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/apps/v1.map_ReplicaSetList"
-
-opaque map_ReplicaSetList.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ReplicaSetSpec [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/apps/v1.map_ReplicaSetSpec"
-
-opaque map_ReplicaSetSpec.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ReplicaSetStatus [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/apps/v1.map_ReplicaSetStatus"
-
-opaque map_ReplicaSetStatus.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_RollingUpdateDaemonSet [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/apps/v1.map_RollingUpdateDaemonSet"
-
-opaque map_RollingUpdateDaemonSet.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_RollingUpdateDeployment [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/apps/v1.map_RollingUpdateDeployment"
-
-opaque map_RollingUpdateDeployment.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_RollingUpdateStatefulSetStrategy [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/apps/v1.map_RollingUpdateStatefulSetStrategy"
-
-opaque map_RollingUpdateStatefulSetStrategy.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_StatefulSet [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/apps/v1.map_StatefulSet"
-
-opaque map_StatefulSet.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_StatefulSetCondition [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/apps/v1.map_StatefulSetCondition"
-
-opaque map_StatefulSetCondition.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_StatefulSetList [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/apps/v1.map_StatefulSetList"
-
-opaque map_StatefulSetList.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_StatefulSetOrdinals [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/apps/v1.map_StatefulSetOrdinals"
-
-opaque map_StatefulSetOrdinals.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_StatefulSetPersistentVolumeClaimRetentionPolicy [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/apps/v1.map_StatefulSetPersistentVolumeClaimRetentionPolicy"
-
-opaque map_StatefulSetPersistentVolumeClaimRetentionPolicy.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_StatefulSetSpec [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/apps/v1.map_StatefulSetSpec"
-
-opaque map_StatefulSetSpec.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_StatefulSetStatus [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/apps/v1.map_StatefulSetStatus"
-
-opaque map_StatefulSetStatus.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_StatefulSetUpdateStrategy [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/apps/v1.map_StatefulSetUpdateStrategy"
-
-opaque map_StatefulSetUpdateStrategy.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def encodeVarintGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.encodeVarintGenerated"
@@ -666,6 +486,193 @@ noncomputable def DaemonSetStatus.DeepCopyInto.impl [GooseExts] [GoGlobalContext
   (App (Val (GoInstruction (GoStore DaemonSetStatus.ty))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DaemonSetStatus.ty)))) (Var "out")) (Var "$r0")))))))))
   (Val #()))))
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `ErrInvalidLengthGenerated` (`var ErrInvalidLengthGenerated = fmt.Errorf("proto: negative length found during unmarshaling")`): Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of
+a constant format and constant arguments allocates the formatted error (fmt recovers a panic of a
+formatting method; the arguments have none). So each terminates, cannot panic and has no effect
+beyond its variable.
+- `ErrIntOverflowGenerated` (`var ErrIntOverflowGenerated = fmt.Errorf("proto: integer overflow")`): Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of
+a constant format and constant arguments allocates the formatted error (fmt recovers a panic of a
+formatting method; the arguments have none). So each terminates, cannot panic and has no effect
+beyond its variable.
+- `ErrUnexpectedEndOfGroupGenerated` (`var ErrUnexpectedEndOfGroupGenerated = fmt.Errorf("proto: unexpected end of group")`): Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of
+a constant format and constant arguments allocates the formatted error (fmt recovers a panic of a
+formatting method; the arguments have none). So each terminates, cannot panic and has no effect
+beyond its variable.
+- `SchemeBuilder` (`var // TODO: move SchemeBuilder with zz_generated.deepcopy.go to k8s.io/api. // localSchemeBuilder and AddToScheme will  … [sha256:f6ee821b418718cd]`): Its initializer calls, besides literals of constants and other variables' values:
+`runtime.NewSchemeBuilder` allocates a slice of the given functions (it calls none). So it
+terminates, cannot panic and has no effect beyond its variable.
+- `localSchemeBuilder` (`var localSchemeBuilder = &SchemeBuilder`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `AddToScheme` (`var AddToScheme = localSchemeBuilder.AddToScheme`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ControllerRevision` (`var map_ControllerRevision = map[string]string{ "": "ControllerRevision implements an immutable snapshot of state data.  … [sha256:33d95b55268536fc]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ControllerRevisionList` (`var map_ControllerRevisionList = map[string]string{ "": "ControllerRevisionList is a resource containing a list of Contr … [sha256:579b6a015bcff8a6]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_DaemonSet` (`var map_DaemonSet = map[string]string{ "": "DaemonSet represents the configuration of a daemon set.", "metadata": "metad … [sha256:4d10e1dbf9d50cc7]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_DaemonSetCondition` (`var map_DaemonSetCondition = map[string]string{ "": "DaemonSetCondition describes the state of a DaemonSet at a certain  … [sha256:f3c6836d69583dd9]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_DaemonSetList` (`var map_DaemonSetList = map[string]string{ "": "DaemonSetList is a collection of daemon sets.", "metadata": "Standard li … [sha256:d8a5c4f7bcfac67e]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_DaemonSetSpec` (`var map_DaemonSetSpec = map[string]string{ "": "DaemonSetSpec is the specification of a daemon set.", "selector": "selec … [sha256:7c45730d7ed4356f]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_DaemonSetStatus` (`var map_DaemonSetStatus = map[string]string{ "": "DaemonSetStatus represents the current status of a daemon set.", "curr … [sha256:d343b6267be60371]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_DaemonSetUpdateStrategy` (`var map_DaemonSetUpdateStrategy = map[string]string{ "": "DaemonSetUpdateStrategy is a struct used to control the update … [sha256:cec462ffd0cf9bfb]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_Deployment` (`var map_Deployment = map[string]string{ "": "Deployment enables declarative updates for Pods and ReplicaSets.", "metadat … [sha256:5892bd8a70b5bfd2]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_DeploymentCondition` (`var map_DeploymentCondition = map[string]string{ "": "DeploymentCondition describes the state of a deployment at a certa … [sha256:3247056b23ca91e3]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_DeploymentList` (`var map_DeploymentList = map[string]string{ "": "DeploymentList is a list of Deployments.", "metadata": "metadata is the … [sha256:5674db939474b5ce]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_DeploymentSpec` (`var map_DeploymentSpec = map[string]string{ "": "DeploymentSpec is the specification of the desired behavior of the Depl … [sha256:9bd8e188f2e287b0]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_DeploymentStatus` (`var map_DeploymentStatus = map[string]string{ "": "DeploymentStatus is the most recently observed status of the Deployme … [sha256:155c52494ab44875]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_DeploymentStrategy` (`var map_DeploymentStrategy = map[string]string{ "": "DeploymentStrategy describes how to replace existing pods with new  … [sha256:e9f4e64422c55b04]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ReplicaSet` (`var map_ReplicaSet = map[string]string{ "": "ReplicaSet ensures that a specified number of pod replicas are running at a … [sha256:2557992b88bc5d4a]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ReplicaSetCondition` (`var map_ReplicaSetCondition = map[string]string{ "": "ReplicaSetCondition describes the state of a replica set at a cert … [sha256:dcae1e7aadf67b03]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ReplicaSetList` (`var map_ReplicaSetList = map[string]string{ "": "ReplicaSetList is a collection of ReplicaSets.", "metadata": "Standard  … [sha256:ee79e9052a42ac45]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ReplicaSetSpec` (`var map_ReplicaSetSpec = map[string]string{ "": "ReplicaSetSpec is the specification of a ReplicaSet.", "replicas": "rep … [sha256:a308277ca5251554]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ReplicaSetStatus` (`var map_ReplicaSetStatus = map[string]string{ "": "ReplicaSetStatus represents the current status of a ReplicaSet.", "re … [sha256:aae2e6fd1795e630]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_RollingUpdateDaemonSet` (`var map_RollingUpdateDaemonSet = map[string]string{ "": "Spec to control the desired behavior of daemon set rolling upda … [sha256:01d1c7a613fc9d41]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_RollingUpdateDeployment` (`var map_RollingUpdateDeployment = map[string]string{ "": "Spec to control the desired behavior of rolling update.", "max … [sha256:fa8a9678a0009231]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_RollingUpdateStatefulSetStrategy` (`var map_RollingUpdateStatefulSetStrategy = map[string]string{ "": "RollingUpdateStatefulSetStrategy is used to communica … [sha256:1f6c71b058771da0]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_StatefulSet` (`var map_StatefulSet = map[string]string{ "": "StatefulSet represents a set of pods with consistent identities. Identitie … [sha256:1cdf34ae92bef9f1]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_StatefulSetCondition` (`var map_StatefulSetCondition = map[string]string{ "": "StatefulSetCondition describes the state of a statefulset at a ce … [sha256:544685701adb6231]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_StatefulSetList` (`var map_StatefulSetList = map[string]string{ "": "StatefulSetList is a collection of StatefulSets.", "metadata": "Standa … [sha256:2a9304a24e369bf5]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_StatefulSetOrdinals` (`var map_StatefulSetOrdinals = map[string]string{ "": "StatefulSetOrdinals describes the policy used for replica ordinal  … [sha256:924c3f0985c9065b]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_StatefulSetPersistentVolumeClaimRetentionPolicy` (`var map_StatefulSetPersistentVolumeClaimRetentionPolicy = map[string]string{ "": "StatefulSetPersistentVolumeClaimRetent … [sha256:c65c6c254d5d1da2]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_StatefulSetSpec` (`var map_StatefulSetSpec = map[string]string{ "": "A StatefulSetSpec is the specification of a StatefulSet.", "replicas": … [sha256:d50e9823fa8d13fd]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_StatefulSetStatus` (`var map_StatefulSetStatus = map[string]string{ "": "StatefulSetStatus represents the current state of a StatefulSet.", " … [sha256:94ab2ff665ab5e27]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_StatefulSetUpdateStrategy` (`var map_StatefulSetUpdateStrategy = map[string]string{ "": "StatefulSetUpdateStrategy indicates the strategy that the St … [sha256:a5ea031fc1369db3]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"k8s.io/api/apps/v1.ErrInvalidLengthGenerated", "Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of\na constant format and constant arguments allocates the formatted error (fmt recovers a panic of a\nformatting method; the arguments have none). So each terminates, cannot panic and has no effect\nbeyond its variable.", "var ErrInvalidLengthGenerated = fmt.Errorf(\"proto: negative length found during unmarshaling\")"⟩,
+  ⟨"k8s.io/api/apps/v1.ErrIntOverflowGenerated", "Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of\na constant format and constant arguments allocates the formatted error (fmt recovers a panic of a\nformatting method; the arguments have none). So each terminates, cannot panic and has no effect\nbeyond its variable.", "var ErrIntOverflowGenerated = fmt.Errorf(\"proto: integer overflow\")"⟩,
+  ⟨"k8s.io/api/apps/v1.ErrUnexpectedEndOfGroupGenerated", "Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of\na constant format and constant arguments allocates the formatted error (fmt recovers a panic of a\nformatting method; the arguments have none). So each terminates, cannot panic and has no effect\nbeyond its variable.", "var ErrUnexpectedEndOfGroupGenerated = fmt.Errorf(\"proto: unexpected end of group\")"⟩,
+  ⟨"k8s.io/api/apps/v1.SchemeBuilder", "Its initializer calls, besides literals of constants and other variables' values:\n`runtime.NewSchemeBuilder` allocates a slice of the given functions (it calls none). So it\nterminates, cannot panic and has no effect beyond its variable.", "var // TODO: move SchemeBuilder with zz_generated.deepcopy.go to k8s.io/api. // localSchemeBuilder and AddToScheme will  … [sha256:f6ee821b418718cd]"⟩,
+  ⟨"k8s.io/api/apps/v1.localSchemeBuilder", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var localSchemeBuilder = &SchemeBuilder"⟩,
+  ⟨"k8s.io/api/apps/v1.AddToScheme", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var AddToScheme = localSchemeBuilder.AddToScheme"⟩,
+  ⟨"k8s.io/api/apps/v1.map_ControllerRevision", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ControllerRevision = map[string]string{ \"\": \"ControllerRevision implements an immutable snapshot of state data.  … [sha256:33d95b55268536fc]"⟩,
+  ⟨"k8s.io/api/apps/v1.map_ControllerRevisionList", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ControllerRevisionList = map[string]string{ \"\": \"ControllerRevisionList is a resource containing a list of Contr … [sha256:579b6a015bcff8a6]"⟩,
+  ⟨"k8s.io/api/apps/v1.map_DaemonSet", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_DaemonSet = map[string]string{ \"\": \"DaemonSet represents the configuration of a daemon set.\", \"metadata\": \"metad … [sha256:4d10e1dbf9d50cc7]"⟩,
+  ⟨"k8s.io/api/apps/v1.map_DaemonSetCondition", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_DaemonSetCondition = map[string]string{ \"\": \"DaemonSetCondition describes the state of a DaemonSet at a certain  … [sha256:f3c6836d69583dd9]"⟩,
+  ⟨"k8s.io/api/apps/v1.map_DaemonSetList", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_DaemonSetList = map[string]string{ \"\": \"DaemonSetList is a collection of daemon sets.\", \"metadata\": \"Standard li … [sha256:d8a5c4f7bcfac67e]"⟩,
+  ⟨"k8s.io/api/apps/v1.map_DaemonSetSpec", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_DaemonSetSpec = map[string]string{ \"\": \"DaemonSetSpec is the specification of a daemon set.\", \"selector\": \"selec … [sha256:7c45730d7ed4356f]"⟩,
+  ⟨"k8s.io/api/apps/v1.map_DaemonSetStatus", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_DaemonSetStatus = map[string]string{ \"\": \"DaemonSetStatus represents the current status of a daemon set.\", \"curr … [sha256:d343b6267be60371]"⟩,
+  ⟨"k8s.io/api/apps/v1.map_DaemonSetUpdateStrategy", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_DaemonSetUpdateStrategy = map[string]string{ \"\": \"DaemonSetUpdateStrategy is a struct used to control the update … [sha256:cec462ffd0cf9bfb]"⟩,
+  ⟨"k8s.io/api/apps/v1.map_Deployment", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_Deployment = map[string]string{ \"\": \"Deployment enables declarative updates for Pods and ReplicaSets.\", \"metadat … [sha256:5892bd8a70b5bfd2]"⟩,
+  ⟨"k8s.io/api/apps/v1.map_DeploymentCondition", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_DeploymentCondition = map[string]string{ \"\": \"DeploymentCondition describes the state of a deployment at a certa … [sha256:3247056b23ca91e3]"⟩,
+  ⟨"k8s.io/api/apps/v1.map_DeploymentList", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_DeploymentList = map[string]string{ \"\": \"DeploymentList is a list of Deployments.\", \"metadata\": \"metadata is the … [sha256:5674db939474b5ce]"⟩,
+  ⟨"k8s.io/api/apps/v1.map_DeploymentSpec", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_DeploymentSpec = map[string]string{ \"\": \"DeploymentSpec is the specification of the desired behavior of the Depl … [sha256:9bd8e188f2e287b0]"⟩,
+  ⟨"k8s.io/api/apps/v1.map_DeploymentStatus", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_DeploymentStatus = map[string]string{ \"\": \"DeploymentStatus is the most recently observed status of the Deployme … [sha256:155c52494ab44875]"⟩,
+  ⟨"k8s.io/api/apps/v1.map_DeploymentStrategy", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_DeploymentStrategy = map[string]string{ \"\": \"DeploymentStrategy describes how to replace existing pods with new  … [sha256:e9f4e64422c55b04]"⟩,
+  ⟨"k8s.io/api/apps/v1.map_ReplicaSet", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ReplicaSet = map[string]string{ \"\": \"ReplicaSet ensures that a specified number of pod replicas are running at a … [sha256:2557992b88bc5d4a]"⟩,
+  ⟨"k8s.io/api/apps/v1.map_ReplicaSetCondition", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ReplicaSetCondition = map[string]string{ \"\": \"ReplicaSetCondition describes the state of a replica set at a cert … [sha256:dcae1e7aadf67b03]"⟩,
+  ⟨"k8s.io/api/apps/v1.map_ReplicaSetList", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ReplicaSetList = map[string]string{ \"\": \"ReplicaSetList is a collection of ReplicaSets.\", \"metadata\": \"Standard  … [sha256:ee79e9052a42ac45]"⟩,
+  ⟨"k8s.io/api/apps/v1.map_ReplicaSetSpec", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ReplicaSetSpec = map[string]string{ \"\": \"ReplicaSetSpec is the specification of a ReplicaSet.\", \"replicas\": \"rep … [sha256:a308277ca5251554]"⟩,
+  ⟨"k8s.io/api/apps/v1.map_ReplicaSetStatus", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ReplicaSetStatus = map[string]string{ \"\": \"ReplicaSetStatus represents the current status of a ReplicaSet.\", \"re … [sha256:aae2e6fd1795e630]"⟩,
+  ⟨"k8s.io/api/apps/v1.map_RollingUpdateDaemonSet", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_RollingUpdateDaemonSet = map[string]string{ \"\": \"Spec to control the desired behavior of daemon set rolling upda … [sha256:01d1c7a613fc9d41]"⟩,
+  ⟨"k8s.io/api/apps/v1.map_RollingUpdateDeployment", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_RollingUpdateDeployment = map[string]string{ \"\": \"Spec to control the desired behavior of rolling update.\", \"max … [sha256:fa8a9678a0009231]"⟩,
+  ⟨"k8s.io/api/apps/v1.map_RollingUpdateStatefulSetStrategy", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_RollingUpdateStatefulSetStrategy = map[string]string{ \"\": \"RollingUpdateStatefulSetStrategy is used to communica … [sha256:1f6c71b058771da0]"⟩,
+  ⟨"k8s.io/api/apps/v1.map_StatefulSet", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_StatefulSet = map[string]string{ \"\": \"StatefulSet represents a set of pods with consistent identities. Identitie … [sha256:1cdf34ae92bef9f1]"⟩,
+  ⟨"k8s.io/api/apps/v1.map_StatefulSetCondition", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_StatefulSetCondition = map[string]string{ \"\": \"StatefulSetCondition describes the state of a statefulset at a ce … [sha256:544685701adb6231]"⟩,
+  ⟨"k8s.io/api/apps/v1.map_StatefulSetList", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_StatefulSetList = map[string]string{ \"\": \"StatefulSetList is a collection of StatefulSets.\", \"metadata\": \"Standa … [sha256:2a9304a24e369bf5]"⟩,
+  ⟨"k8s.io/api/apps/v1.map_StatefulSetOrdinals", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_StatefulSetOrdinals = map[string]string{ \"\": \"StatefulSetOrdinals describes the policy used for replica ordinal  … [sha256:924c3f0985c9065b]"⟩,
+  ⟨"k8s.io/api/apps/v1.map_StatefulSetPersistentVolumeClaimRetentionPolicy", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_StatefulSetPersistentVolumeClaimRetentionPolicy = map[string]string{ \"\": \"StatefulSetPersistentVolumeClaimRetent … [sha256:c65c6c254d5d1da2]"⟩,
+  ⟨"k8s.io/api/apps/v1.map_StatefulSetSpec", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_StatefulSetSpec = map[string]string{ \"\": \"A StatefulSetSpec is the specification of a StatefulSet.\", \"replicas\": … [sha256:d50e9823fa8d13fd]"⟩,
+  ⟨"k8s.io/api/apps/v1.map_StatefulSetStatus", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_StatefulSetStatus = map[string]string{ \"\": \"StatefulSetStatus represents the current state of a StatefulSet.\", \" … [sha256:94ab2ff665ab5e27]"⟩,
+  ⟨"k8s.io/api/apps/v1.map_StatefulSetUpdateStrategy", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_StatefulSetUpdateStrategy = map[string]string{ \"\": \"StatefulSetUpdateStrategy indicates the strategy that the St … [sha256:a5ea031fc1369db3]"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.api.apps.v1 where
   pkgImportedPkgs := [pkg_id.k8s_io.api.core.v1, pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1, pkg_id.k8s_io.apimachinery.pkg.util.intstr, pkg_id.k8s_io.apimachinery.pkg.runtime]
 
@@ -679,116 +686,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val map_StatefulSetUpdateStrategy.init) (Val #())))))
-  (App (Val doExecute)
-  (App (Val map_StatefulSetStatus.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_StatefulSetSpec.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_StatefulSetPersistentVolumeClaimRetentionPolicy.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_StatefulSetOrdinals.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_StatefulSetList.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_StatefulSetCondition.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_StatefulSet.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_RollingUpdateStatefulSetStrategy.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_RollingUpdateDeployment.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_RollingUpdateDaemonSet.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ReplicaSetStatus.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ReplicaSetSpec.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ReplicaSetList.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ReplicaSetCondition.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ReplicaSet.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_DeploymentStrategy.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_DeploymentStatus.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_DeploymentSpec.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_DeploymentList.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_DeploymentCondition.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_Deployment.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_DaemonSetUpdateStrategy.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_DaemonSetStatus.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_DaemonSetSpec.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_DaemonSetList.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_DaemonSetCondition.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_DaemonSet.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ControllerRevisionList.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ControllerRevision.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val AddToScheme.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val localSchemeBuilder.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val SchemeBuilder.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val SchemeGroupVersion.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrUnexpectedEndOfGroupGenerated.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrIntOverflowGenerated.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrInvalidLengthGenerated.init) (Val #()))))))
+  (App (Val SchemeGroupVersion.init) (Val #())))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.k8s_io.api.core.v1.initialize') (Val #()))))))
   (App (Val doExecute)

@@ -116,51 +116,6 @@ opaque ipv4RouteFile [GooseExts] [GoGlobalContext] : val
 
 opaque ipv6RouteFile [GooseExts] [GoGlobalContext] : val
 
-noncomputable def defaultTransport [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/util/net.defaultTransport"
-
-opaque defaultTransport.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def defaultProxyFuncPointer [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/util/net.defaultProxyFuncPointer"
-
-opaque defaultProxyFuncPointer.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def codeMatcher [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/util/net.codeMatcher"
-
-opaque codeMatcher.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def wordDecoder [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/util/net.wordDecoder"
-
-opaque wordDecoder.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def preferIPv4 [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/util/net.preferIPv4"
-
-opaque preferIPv4.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def preferIPv6 [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/util/net.preferIPv6"
-
-opaque preferIPv6.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def v4File [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/util/net.v4File"
-
-opaque v4File.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def v6File [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/util/net.v6File"
-
-opaque v6File.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def validSchemes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/util/net.validSchemes"
-
-opaque validSchemes.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def JoinPreservingTrailingSlash [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.JoinPreservingTrailingSlash"
 
@@ -329,6 +284,56 @@ noncomputable def IsHTTP2ConnectionLost [GooseExts] [GoGlobalContext] : GoString
 noncomputable def IsConnectionRefused [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.IsConnectionRefused"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `defaultTransport` (`var defaultTransport = http.DefaultTransport.(*http.Transport)`): `http.DefaultTransport.(*http.Transport)`: net/http initializes `DefaultTransport` (an import,
+initialized first) to a `*Transport`, so the assertion succeeds: no call, no panic, no effect beyond
+the variable.
+- `defaultProxyFuncPointer` (`var defaultProxyFuncPointer = fmt.Sprintf("%p", http.ProxyFromEnvironment)`): Its initializer calls, besides literals of constants and other variables' values: `fmt.Sprintf` of
+constants formats a new string. So it terminates, cannot panic and has no effect beyond its
+variable.
+- `codeMatcher` (`var codeMatcher = regexp.MustCompile('^[0-9]{3}$')`): Its initializer calls, besides literals of constants and other variables' values:
+`regexp.MustCompile` of a constant pattern compiles it (it panics only on an invalid pattern, and
+these compile: Go runs the initializer at every start of every program importing the package);
+compilation terminates. So it terminates, cannot panic and has no effect beyond its variable.
+- `wordDecoder` (`var wordDecoder = &mime.WordDecoder{}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `preferIPv4` (`var preferIPv4 = AddressFamilyPreference{familyIPv4, familyIPv6}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `preferIPv6` (`var preferIPv6 = AddressFamilyPreference{familyIPv6, familyIPv4}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `v4File` (`var v4File = RouteFile{name: ipv4RouteFile, parse: getIPv4DefaultRoutes}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `v6File` (`var v6File = RouteFile{name: ipv6RouteFile, parse: getIPv6DefaultRoutes}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `validSchemes` (`var validSchemes = sets.NewString("http", "https", "")`): Its initializer calls, besides literals of constants and other variables' values:
+`sets.NewString`/`NewInt` allocate a set of constants. So it terminates, cannot panic and has no
+effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"k8s.io/apimachinery/pkg/util/net.defaultTransport", "`http.DefaultTransport.(*http.Transport)`: net/http initializes `DefaultTransport` (an import,\ninitialized first) to a `*Transport`, so the assertion succeeds: no call, no panic, no effect beyond\nthe variable.", "var defaultTransport = http.DefaultTransport.(*http.Transport)"⟩,
+  ⟨"k8s.io/apimachinery/pkg/util/net.defaultProxyFuncPointer", "Its initializer calls, besides literals of constants and other variables' values: `fmt.Sprintf` of\nconstants formats a new string. So it terminates, cannot panic and has no effect beyond its\nvariable.", "var defaultProxyFuncPointer = fmt.Sprintf(\"%p\", http.ProxyFromEnvironment)"⟩,
+  ⟨"k8s.io/apimachinery/pkg/util/net.codeMatcher", "Its initializer calls, besides literals of constants and other variables' values:\n`regexp.MustCompile` of a constant pattern compiles it (it panics only on an invalid pattern, and\nthese compile: Go runs the initializer at every start of every program importing the package);\ncompilation terminates. So it terminates, cannot panic and has no effect beyond its variable.", "var codeMatcher = regexp.MustCompile(`^[0-9]{3}$`)"⟩,
+  ⟨"k8s.io/apimachinery/pkg/util/net.wordDecoder", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var wordDecoder = &mime.WordDecoder{}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/util/net.preferIPv4", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var preferIPv4 = AddressFamilyPreference{familyIPv4, familyIPv6}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/util/net.preferIPv6", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var preferIPv6 = AddressFamilyPreference{familyIPv6, familyIPv4}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/util/net.v4File", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var v4File = RouteFile{name: ipv4RouteFile, parse: getIPv4DefaultRoutes}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/util/net.v6File", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var v6File = RouteFile{name: ipv6RouteFile, parse: getIPv6DefaultRoutes}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/util/net.validSchemes", "Its initializer calls, besides literals of constants and other variables' values:\n`sets.NewString`/`NewInt` allocate a set of constants. So it terminates, cannot panic and has no\neffect beyond its variable.", "var validSchemes = sets.NewString(\"http\", \"https\", \"\")"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.net where
   pkgImportedPkgs := []
 
@@ -338,32 +343,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apimachinery.pkg.util.net)) (Lam BAnon
   (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val validSchemes.init) (Val #())))))
-  (App (Val doExecute)
-  (App (Val v6File.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val v4File.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val preferIPv6.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val preferIPv4.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val wordDecoder.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val codeMatcher.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val defaultProxyFuncPointer.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val defaultTransport.init) (Val #()))))))))
+  (Val #()))))))
 
 opaque RoundTripperWrapper.nonempty_type : NonemptyType.{0}
 def RoundTripperWrapper : Type := RoundTripperWrapper.nonempty_type.type

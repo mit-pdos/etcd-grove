@@ -39,9 +39,7 @@ Goose translates them names-only, so each `X.init` is an axiom of the translatio
 runs them at program start, and etcd starts, so each returns without panicking.
 Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
 axiom opaqueInitsOk :
-    ∀ v ∈ ([DefaultLogFormat.init,
-        DefaultLogLevel.init,
-        DefaultZapLoggerConfig.init] : List val),
+    ∀ v ∈ ([DefaultZapLoggerConfig.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
 end go_etcd_io.etcd.client.pkg.v3.logutil
@@ -67,8 +65,6 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
-  wp_apply (opaqueInitsOk DefaultLogFormat.init (by mem_tac))
-  wp_apply (opaqueInitsOk DefaultLogLevel.init (by mem_tac))
   wp_apply (opaqueInitsOk DefaultZapLoggerConfig.init (by mem_tac))
   iframe Hown
   is_pkg_init_finish
