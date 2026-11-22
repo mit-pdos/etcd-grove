@@ -138,6 +138,9 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
     -- (the backend-auth-split stage) the alarm bucket in the table
     (halbi : d.P.has mvcc.alarmBI ∧
       d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧ d.P.has mvcc.authRolesBI)
+    -- (prove-ps2-members, 2026-11-22) the membership's buckets in the table (`srvSnapRO`'s), which
+    -- the cluster's `SetBackend` takes since it was proved
+    (hmbP : d.P.has mvcc.membersBI ∧ d.P.has mvcc.membersRemovedBI ∧ d.P.has mvcc.clusterBI)
     (hmemb : ((backend.rbData d.P D).lookup go!"members").isSome ∧
       ((backend.rbData d.P D).lookup go!"members_removed").isSome ∧
       ((backend.rbData d.P D).lookup go!"cluster").isSome)

@@ -521,6 +521,7 @@ public import Proof.golang_org.x.time.rate.NewLimiter
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.replayTerms__after
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.replayTerms__covers
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.replayTerms__termAt
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.BackendMemberKey
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MustUnsafeGetAllLeases
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MustUnsafePutLease
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MustUnsafeSaveConfStateToBackend
@@ -563,6 +564,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authReadTx__UnsafeG
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authReadTx__UnsafeReadAuthEnabled
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authReadTx__UnsafeReadAuthRevision
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.leaseIDToBytes
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.membershipBackend__MustCreateBackendBuckets
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.membershipBackend__MustDeleteMemberFromBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.membershipBackend__MustReadMembersFromBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.membershipBackend__MustSaveMemberToBackend
@@ -2563,9 +2565,13 @@ theorem lease.lessor.wp_Recover :
     lease.lessor.Recover.spec (GF := GF) (hG := hG) :=
   lease.lessor.Recover.wp_proof lease.lessor.wp_initAndRecover
 
+theorem schema.membershipBackend.wp_MustCreateBackendBuckets :
+    schema.membershipBackend.MustCreateBackendBuckets.spec (GF := GF) (hG := hG) :=
+  schema.membershipBackend.MustCreateBackendBuckets.wp_proof backend.backend.wp_BatchTx backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeCreateBucket backend.batchTxBuffered.wp_Unlock schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket
+
 theorem membership.RaftCluster.wp_SetBackend :
     membership.RaftCluster.SetBackend.spec (GF := GF) (hG := hG) :=
-  membership.RaftCluster.SetBackend.wp_proof
+  membership.RaftCluster.SetBackend.wp_proof schema.membershipBackend.wp_MustCreateBackendBuckets
 
 theorem membership.RaftCluster.wp_Recover :
     membership.RaftCluster.Recover.spec (GF := GF) (hG := hG) :=
@@ -2763,9 +2769,13 @@ theorem schema.membershipBackend.wp_MustSaveMemberToBackend :
     schema.membershipBackend.MustSaveMemberToBackend.spec (GF := GF) (hG := hG) :=
   schema.membershipBackend.MustSaveMemberToBackend.wp_proof
 
+theorem schema.wp_BackendMemberKey :
+    schema.BackendMemberKey.spec (GF := GF) (hG := hG) :=
+  schema.BackendMemberKey.wp_proof types.ID.wp_String_ptr
+
 theorem schema.membershipBackend.wp_MustDeleteMemberFromBackend :
     schema.membershipBackend.MustDeleteMemberFromBackend.spec (GF := GF) (hG := hG) :=
-  schema.membershipBackend.MustDeleteMemberFromBackend.wp_proof
+  schema.membershipBackend.MustDeleteMemberFromBackend.wp_proof schema.wp_BackendMemberKey backend.backend.wp_BatchTx backend.batchTxBuffered.wp_LockInsideApply backend.batchTxBuffered.wp_UnsafeDelete backend.batchTxBuffered.wp_UnsafePut backend.batchTxBuffered.wp_Unlock schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket
 
 theorem schema.membershipBackend.wp_MustReadMembersFromBackend :
     schema.membershipBackend.MustReadMembersFromBackend.spec (GF := GF) (hG := hG) :=
