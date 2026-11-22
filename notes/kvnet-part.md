@@ -506,3 +506,21 @@ exist yet.
     (`Transport.Send.spec`: `msgPtsC`, `F.msgOk` from `sentMsg`/`msgCredits`/`MsgWf`, and the frame
     bound, which `writeFrame`'s change may make unnecessary);
   - `newReplica`.
+
+### The drafts checked, raft's real crash law, `Node.status` (2026-11-22)
+
+- **Raft's `readyCrashEnter`** (landed on lean) replaces the hypothesis. It also takes `nodeArm n γ x` and a share
+  of `nodeRunning`. In a write's window the file invariant now keeps that share with the batch's *enter*
+  (`KdWv`'s batch records the share `q`). `kd_writeAU` takes `kdRunKeep` (the writer's share, if no batch) and
+  gives back `pbQ q pb`. `persist` puts its share into the batch at the rename and takes it back at the sync.
+  `kd_boot_choose` (`BootLemmas.lean`) takes `nodeArm` and uses the share that waited. `readyEnter` is
+  `readyEnterLive ∧ readyEnterCrash`: the live uses take the left half.
+- **The drafts, checked and fixed**: `writeFrame`, `Node.handle`, `RunDmu`, `newReplica` (`sendSpec` persistent),
+  `Replica.run`. In `run`, the receive's credits come from `chan.wp_receive` (`wp_Ready` without `lc`), and a
+  snapshot's maps get their `MapFits` from their encoding (`MapFits_of_lookup`, `RunLemmas.lean`).
+- **Proved**: `Node.status` (at `kvRep`, through `statusOwn_hardState`), `Stats.Snapshot` (it gives the array's
+  length, 23), `PutStatus` (it takes that length: the stats loop indexes the array value).
+- **`StartNode`: next.** Its callees still without specs: `newTransport`, `Transport.start`, `FileOf` (with
+  `itoa`), `quietLogger`'s methods. Its post also has `confLaw` (not discharged: the real `confOk`).
+  The plan is as above ("Drafts written with no `.lake`"), from `kvStart` (`BootLemmas.lean`), allocating
+  `kdFileInvK` after `RestartNode` gives the node (and `nodeArm`).
