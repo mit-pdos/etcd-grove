@@ -145,8 +145,9 @@ func SetFeatures() bool {
 type Revs struct {
 	anchors []uint64
 	byKey   map[string][]uint64
-	// byKey without the revisions a successful write answered with (each a write of the store's
-	// own, or a no-op update's stored object): the fast model's landings
+	// byKey without the revisions a successful Create, Delete or update not asked to be a no-op
+	// answered with (each, but for an update that left the object as it was, a write of the
+	// store's own): the earlier modes' landings
 	fastByKey map[string][]uint64
 }
 
@@ -240,7 +241,7 @@ func HistoryRevs(ops []porcupine.Operation) Revs {
 		}
 		if out.Err == ENone && out.Name != "" {
 			obj(out.Namespace+"/"+out.Name, out.RV)
-			if isWrite(in) {
+			if in.Kind == KCreate || in.Kind == KDelete || (in.Kind == KUpdate && !in.NoOp) {
 				written[out.RV] = true
 			}
 		}
@@ -372,15 +373,16 @@ func bound(in Input, out Output) uint64 {
 	return 0
 }
 
-// landings are the revisions a pending write w may take effect at on c: the next one, and (each
-// above it, and at most the bound b if b > 0) the revisions the history shows objects of w's key
-// at (without full, but those a successful write answered with); with full, also every anchor
-// and the one after it, whatever the bound.
-func landings(revs Revs, c mcfg, w Input, b uint64, full bool) []uint64 {
+// landings are the revisions a pending write w may take effect at on c, before the operation in
+// answers out: the next one, and (each above it) the revisions the history shows objects of w's
+// key at (without full, but those a successful write answered with, fastByKey), each at most the bound b
+// if b > 0 or where the answer needs w at that revision (shows), and the answer's own revision
+// for w's key; with full, those and every anchor and the one after it, whatever the bound.
+func landings(revs Revs, c mcfg, w Input, b uint64, full bool, in Input, out Output) []uint64 {
 	next := c.st.rv + 1
 	ls := []uint64{next}
 	add := func(r uint64) {
-		if r > next && (full || b == 0 || r <= b) {
+		if r > next && (full || (b > 0 && r <= b) || shows(in, out, w.Key, r)) {
 			ls = append(ls, r)
 		}
 	}
@@ -391,6 +393,11 @@ func landings(revs Revs, c mcfg, w Input, b uint64, full bool) []uint64 {
 	for _, r := range byKey[w.Key] {
 		add(r)
 	}
+	// the answer's own revision for w's key, which byKey may leave out (a no-op update answers
+	// with the stored object, its revision perhaps a pending write's)
+	if in.Key == w.Key && out.Err == ENone && in.Kind != KList && in.Kind != KWatch {
+		add(out.RV)
+	}
 	if full {
 		i := sort.Search(len(revs.anchors), func(i int) bool { return revs.anchors[i] >= c.st.rv })
 		for ; i < len(revs.anchors); i++ {
@@ -399,6 +406,47 @@ func landings(revs Revs, c mcfg, w Input, b uint64, full bool) []uint64 {
 		}
 	}
 	return ls
+}
+
+// shows says whether the answer out to in needs a write of the key key at the revision r to have
+// taken effect: it shows key's object at r (a Get's, a List's item, a watch event's), or it is a
+// write's refusal on key (exists, rejected, a failed precondition), which shows an object there
+// and not its revision.
+func shows(in Input, out Output, key string, r uint64) bool {
+	if in.Kind == KWatch {
+		evs, ok := decodeWEvents(out.WEvents)
+		if !ok || out.WFailed {
+			return false
+		}
+		for _, ev := range evs {
+			if ev.Type < WBookmark && ev.Obj.Namespace+"/"+ev.Obj.Name == key && ev.Obj.ResourceVersion == r {
+				return true
+			}
+		}
+		return false
+	}
+	if in.Kind == KList {
+		its, ok := decodeItemRVs(out.Items)
+		if !ok || out.Err != ENone {
+			return false
+		}
+		for _, it := range its {
+			if it.key == key && it.obj.ResourceVersion == r {
+				return true
+			}
+		}
+		return false
+	}
+	if in.Key != key {
+		return false
+	}
+	switch out.Err {
+	case ENone:
+		return out.RV == r
+	case EExists, ERejected, EInvalid:
+		return true
+	}
+	return false
 }
 
 // histHashes keeps the histories' nodes hash-consed (canon: one node per history, by its
@@ -537,13 +585,13 @@ func pendEqual(a, b []Input) bool {
 
 // settle is every configuration c reaches by its pending writes taking effect, in any order, each
 // at one of its landings (Model's closure, with the revision chosen).
-func settle(hh *histHashes, revs Revs, c mcfg, b uint64, full bool) []mcfg {
-	out := cfgSet{hh: hh}
+func settle(hh *histHashes, revs Revs, c mcfg, b uint64, full bool, in Input, out Output) []mcfg {
+	set := cfgSet{hh: hh}
 	work := []mcfg{c}
 	for len(work) > 0 {
 		d := work[len(work)-1]
 		work = work[:len(work)-1]
-		if !out.add(d) {
+		if !set.add(d) {
 			continue
 		}
 		for i, w := range d.pend {
@@ -554,23 +602,39 @@ func settle(hh *histHashes, revs Revs, c mcfg, b uint64, full bool) []mcfg {
 				work = append(work, mcfg{st: d.st, pend: rest, hist: d.hist})
 				continue
 			}
-			for _, l := range landings(revs, d, w, b, full) {
+			for _, l := range landings(revs, d, w, b, full, in, out) {
 				e := hh.skipTo(d, l-1)
 				st, _ := mstep(w, e.st)
 				work = append(work, advance(e, st, rest))
 			}
 		}
 	}
-	return out.list
+	return set.list
 }
 
+// The modes of SharedModel, each complete where the one before is not, and slower.
+const (
+	// pending writes take effect only before an operation the configuration does not answer
+	// without
+	Lazy = 0
+	// before any operation, at the revisions landings allows without full
+	Eager = 1
+	// at every revision landings allows with full
+	Full = 2
+)
+
 // SharedModel is Model from the seeded store, with foreign revisions (above), the history's
-// revisions revs (HistoryRevs). Without full, a pending write takes effect only at the next
-// revision or at one its key's objects show and no successful write answered with, up to the
-// bound the operation's answer sets (bound): a history it rejects is checked again with full,
-// which also tries every anchor (an Illegal verdict is full's).
-func (s Seeded) SharedModel(revs Revs, full bool) porcupine.Model {
+// revisions revs (HistoryRevs), in the mode mode. Lazy: a configuration's pending writes take
+// effect only before an operation it does not answer without them. Eager (and Lazy then): before
+// any operation, each at the next revision or at one its key's objects show and no successful
+// write answered with, up to the bound the operation's answer sets (bound), or where the answer
+// shows it (shows). Full: also at every anchor and the one after it. Each mode is complete where
+// the one before is not; CheckShared (examples/k8s/dist) runs them in turn on Illegal, and only
+// Full's Illegal is a verdict.
+func (s Seeded) SharedModel(revs Revs, mode int) porcupine.Model {
+	full := mode == Full
 	hh := &histHashes{}
+	memo := map[wkey]bool{}
 	return porcupine.Model{
 		Init: func() any { return state{mcfg{st: s.st0, hist: hh.canonical(histOf(s.h0))}} },
 		Step: func(st, input, output any) (bool, any) {
@@ -579,9 +643,18 @@ func (s Seeded) SharedModel(revs Revs, full bool) porcupine.Model {
 			b := bound(in, out)
 			next := cfgSet{hh: hh}
 			for _, c := range st.(state) {
-				for _, d := range settle(hh, revs, c, b, full) {
+				if mode == Lazy {
+					d := hh.skipTo(c, target(in, out, c.st.rv))
+					if es := stepIdx(memo, d, in, out); len(es) > 0 {
+						for _, e := range es {
+							next.add(e)
+						}
+						continue
+					}
+				}
+				for _, d := range settle(hh, revs, c, b, full, in, out) {
 					d = hh.skipTo(d, target(in, out, d.st.rv))
-					for _, e := range step(d, in, out) {
+					for _, e := range stepIdx(memo, d, in, out) {
 						next.add(e)
 					}
 				}
@@ -720,3 +793,177 @@ func (s Seeded) SeedRevs() (uint64, uint64) {
 // string): for the tests of SharedModel.
 func EncodeItems(items []Obj) string { return encodeItems(items) }
 func RVBytes(n uint64) string        { return rvBytes(n) }
+
+// ---------------------------------------------------------------------------------------------
+// The watch check over an indexed history
+//
+// watchOk reads the history through histAt, a walk back from the configuration's revision: its
+// window of revisions (wantEvents, initialPrefixOk) costs the square of its length in walks. On the
+// shared cluster a watch's window spans the compactor's writes too, thousands of revisions, and
+// the check timed out. watchOkIdx is watchOk line for line (watchListOk, initialPrefixOk,
+// reliableOk, wantEvents likewise), every other function the copy's own, with histAt answered from
+// one walk (hview); TestReplayHistory checks the two agree on every watch step of a history
+// (CrossCheckWatches).
+
+// An hview is the stores of a history at the revisions lo to its own, by revision.
+type hview struct {
+	h   *hnode
+	lo  uint64
+	sts []mstore
+}
+
+// viewFrom is h's view from the revision lo (at least 1).
+func viewFrom(h *hnode, lo uint64) hview {
+	lo = max(lo, 1)
+	v := hview{h: h, lo: lo}
+	n := histLen(h)
+	if n < lo {
+		return v
+	}
+	v.sts = make([]mstore, n-lo+1)
+	for x := h; x != nil && x.n >= lo; x = x.prev {
+		v.sts[x.n-lo] = x.st
+	}
+	return v
+}
+
+// at is histAt(v.h, r): the store at r from the view when r is in it (every revision has its node:
+// histOf, advance and skipTo append one per revision), histAt otherwise.
+func (v hview) at(r uint64) mstore {
+	if r >= v.lo && r-v.lo < uint64(len(v.sts)) {
+		return v.sts[r-v.lo]
+	}
+	return histAt(v.h, r)
+}
+
+// watchOkIdx is watchOk.
+func watchOkIdx(in Input, out Output, c mcfg) bool {
+	if out.WFailed || in.Skip {
+		return true
+	}
+	all, ok := decodeWEvents(out.WEvents)
+	if !ok {
+		return false
+	}
+	evs, ok := checkedEvents(all, c.st.rv)
+	if !ok {
+		return false
+	}
+	if !bookmarksOk(evs) {
+		return false
+	}
+	req, err := parseRV(in.MinRV)
+	if err != nil {
+		return false
+	}
+	if in.SendInit == 2 {
+		return watchListOkIdx(in, req, evs, c)
+	}
+	return reliableOkIdx(in, req, evs, c)
+}
+
+// watchListOkIdx is watchListOk.
+func watchListOkIdx(in Input, req uint64, evs []WEvent, c mcfg) bool {
+	b := firstBookmark(evs)
+	if b < 0 {
+		return initialPrefixOkIdx(in, req, evs, c)
+	}
+	if !evs[b].Obj.Annotated {
+		return false
+	}
+	brv := evs[b].Obj.ResourceVersion
+	if (req != 0 && brv < req) || brv < 1 || brv > c.st.rv {
+		return false
+	}
+	if !eventsEqual(initialEvents(in, histAt(c.hist, brv)), evs[:b]) {
+		return false
+	}
+	return reliableOkIdx(in, req, evs[b:], c)
+}
+
+// initialPrefixOkIdx is initialPrefixOk.
+func initialPrefixOkIdx(in Input, req uint64, evs []WEvent, c mcfg) bool {
+	if len(evs) == 0 {
+		return true
+	}
+	lo := req
+	if lo < 1 {
+		lo = 1
+	}
+	v := viewFrom(c.hist, lo)
+	for r := lo; r <= c.st.rv; r++ {
+		init := initialEvents(in, v.at(r))
+		if len(evs) <= len(init) && eventsEqual(init[:len(evs)], evs) {
+			return true
+		}
+	}
+	return false
+}
+
+// reliableOkIdx is reliableOk.
+func reliableOkIdx(in Input, req uint64, evs []WEvent, c mcfg) bool {
+	if len(evs) == 0 {
+		return true
+	}
+	lo, hi := evRange(evs)
+	lo = reliableLo(in, req, lo)
+	if in.Match == MExact && req == 0 {
+		return false
+	}
+	if hi > c.st.rv+1 {
+		return false
+	}
+	return eventsEqual(wantEventsIdx(in, lo, hi, c), nonBookmarks(evs))
+}
+
+// wantEventsIdx is wantEvents.
+func wantEventsIdx(in Input, lo uint64, hi uint64, c mcfg) []WEvent {
+	var want []WEvent
+	v := viewFrom(c.hist, max(lo, 2)-1)
+	for r := max(lo, 2); r < hi; r++ {
+		ch, ok := changeAt(v.at(r-1), v.at(r), r)
+		if !ok || !keyInScope(in.WKey, in.Recursive, storeKey(ch.key)) {
+			continue
+		}
+		if ev, ok := toEvent(in, ch); ok {
+			want = append(want, ev)
+		}
+	}
+	return want
+}
+
+// crossCheck makes the shared model compute every watch step both ways and panic if they differ.
+var crossCheck bool
+
+// CrossCheckWatches turns the cross-check of watchOkIdx against watchOk on or off (the tests).
+func CrossCheckWatches(on bool) { crossCheck = on }
+
+// A wkey is a watch step: the configuration's (canonical) history and the watch with its events.
+type wkey struct {
+	hist *hnode
+	in   Input
+	evs  string
+	fail bool
+}
+
+// stepIdx is step, with a watch checked by watchOkIdx, its verdict kept in memo per history (a
+// watch's verdict is a function of the history: porcupine tries a watch at many points, and again
+// after it backtracks).
+func stepIdx(memo map[wkey]bool, c mcfg, in Input, out Output) []mcfg {
+	if in.Kind != KWatch {
+		return step(c, in, out)
+	}
+	k := wkey{hist: c.hist, in: in, evs: out.WEvents, fail: out.WFailed}
+	ok, seen := memo[k]
+	if !seen {
+		ok = watchOkIdx(in, out, c)
+		if crossCheck && ok != watchOk(in, out, c) {
+			panic("storecopy: watchOkIdx and watchOk differ")
+		}
+		memo[k] = ok
+	}
+	if !ok {
+		return nil
+	}
+	return []mcfg{c}
+}

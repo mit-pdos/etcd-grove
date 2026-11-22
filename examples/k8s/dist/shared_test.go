@@ -20,13 +20,9 @@ func sequential(ins []k8s.Input, outs []k8s.Output) []porcupine.Operation {
 	return ops
 }
 
-// sharedCheck is RunStore's verdict on ops: the fast SharedModel, then the full one on Illegal.
+// sharedCheck is RunStore's verdict on ops (CheckShared).
 func sharedCheck(s k8s.Seeded, ops []porcupine.Operation) porcupine.CheckResult {
-	revs := k8s.HistoryRevs(ops)
-	r := porcupine.CheckOperationsTimeout(s.SharedModel(revs, false), ops, 0)
-	if r == porcupine.Illegal {
-		r = porcupine.CheckOperationsTimeout(s.SharedModel(revs, true), ops, 0)
-	}
+	r, _ := CheckShared(s, k8s.HistoryRevs(ops), ops, 0)
 	return r
 }
 
@@ -102,7 +98,9 @@ func created10Obj() k8s.Obj {
 }
 
 // TestReplayHistory checks a store history RunStore dumped (DIST_DUMP; the file named by
-// DIST_HISTORY) as RunStore does, for profiling the check.
+// DIST_HISTORY) as RunStore does, for profiling the check; with DIST_CROSS set, every watch step
+// is checked both by watchOk and by the shared model's indexed copy of it, which must agree;
+// DIST_CHECK_TIMEOUT (a duration) replaces each mode's CheckTimeout.
 func TestReplayHistory(t *testing.T) {
 	p := os.Getenv("DIST_HISTORY")
 	if p == "" {
@@ -112,12 +110,17 @@ func TestReplayHistory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	k8s.CrossCheckWatches(os.Getenv("DIST_CROSS") != "")
+	defer k8s.CrossCheckWatches(false)
 	start := time.Now()
 	revs := k8s.HistoryRevs(ops)
-	r := porcupine.CheckOperationsTimeout(seeded.SharedModel(revs, false), ops, CheckTimeout)
-	t.Logf("%d operations: %v in %v", len(ops), r, time.Since(start))
-	// the same history with one Get's answer wrong (another value) is rejected, by the fast model
-	// and by the full one
+	timeout := CheckTimeout
+	if d, err := time.ParseDuration(os.Getenv("DIST_CHECK_TIMEOUT")); err == nil {
+		timeout = d
+	}
+	r, mode := CheckShared(seeded, revs, ops, timeout)
+	t.Logf("%d operations: %v (mode %d) in %v", len(ops), r, mode, time.Since(start))
+	// the same history with one Get's answer wrong (another value) is rejected in every mode
 	for i, op := range ops {
 		out := op.Output.(k8s.Output)
 		if op.Input.(k8s.Input).Kind != k8s.KGet || out.Err != k8s.ENone || out.Name == "" {
@@ -126,10 +129,10 @@ func TestReplayHistory(t *testing.T) {
 		bad := append([]porcupine.Operation{}, ops...)
 		out.Value += "!"
 		bad[i].Output = out
-		for _, full := range []bool{false, true} {
+		for _, mode := range []int{k8s.Lazy, k8s.Eager, k8s.Full} {
 			start := time.Now()
-			r := porcupine.CheckOperationsTimeout(seeded.SharedModel(k8s.HistoryRevs(bad), full), bad, CheckTimeout)
-			t.Logf("a wrong Get (operation %d), full %v: %v in %v", i, full, r, time.Since(start))
+			r := porcupine.CheckOperationsTimeout(seeded.SharedModel(k8s.HistoryRevs(bad), mode), bad, CheckTimeout)
+			t.Logf("a wrong Get (operation %d), mode %d: %v in %v", i, mode, r, time.Since(start))
 			if r != porcupine.Illegal {
 				t.Errorf("a wrong Get passed: %v", r)
 			}

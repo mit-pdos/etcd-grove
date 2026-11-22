@@ -162,11 +162,10 @@ func RunStore(w Workload, eps []string, addrs []string, ready func()) Result {
 	}
 	dumpHistory(seeded, lops)
 	revs := k8s.HistoryRevs(lops)
-	r := porcupine.CheckOperationsTimeout(seeded.SharedModel(revs, false), lops, CheckTimeout)
+	r, mode := CheckShared(seeded, revs, lops, CheckTimeout)
 	full := ""
-	if r == porcupine.Illegal {
-		r = porcupine.CheckOperationsTimeout(seeded.SharedModel(revs, true), lops, CheckTimeout)
-		full = "; the full model decided"
+	if mode != k8s.Lazy {
+		full = "; decided by the " + []string{"lazy", "eager", "full"}[mode] + " model"
 	}
 	if r == porcupine.Illegal {
 		panic("k8sdist: porcupine found the store's history not linearizable")
@@ -248,4 +247,17 @@ func LoadHistory(p string) (k8s.Seeded, []porcupine.Operation, error) {
 			Return: o.Return}
 	}
 	return k8s.SeededAt(d.R1, d.R2), ops, nil
+}
+
+// CheckShared checks the store history ops against SharedModel (revs its HistoryRevs): the lazy
+// model, and on Illegal the eager one, and on Illegal the full one, whose Illegal is the verdict
+// (each mode complete where the one before is not); each with the timeout timeout. It returns the
+// verdict and the mode that gave it.
+func CheckShared(seeded k8s.Seeded, revs k8s.Revs, ops []porcupine.Operation, timeout time.Duration) (porcupine.CheckResult, int) {
+	for mode := k8s.Lazy; ; mode++ {
+		r := porcupine.CheckOperationsTimeout(seeded.SharedModel(revs, mode), ops, timeout)
+		if r != porcupine.Illegal || mode == k8s.Full {
+			return r, mode
+		}
+	}
 }
