@@ -1,10 +1,10 @@
-# `etcd_dist_safe`: etcd as a distributed deployment (plan, DRAFT for review)
+# `etcd_safe`: etcd as a distributed deployment (plan, DRAFT for review)
 
 2026-11-21. Branch `etcd-dist`. A draft for the user and upamanyus (etcd-grove#24): a plan, the
 statement and its definitions, no proofs. Files:
 
 - the statement: `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/TopLevelRobustness.lean`
-  (`etcd_dist_safe.spec`);
+  (`etcd_robust.spec`);
 - its definitions: `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/TopLevelDefs.lean`
   (`Deployment`, `WellFormed`, `Workload`, `Compatible`, `ServerCfg.Supported`, the start states,
   `EtcdEnv`; placeholders marked `PLACEHOLDER`);
@@ -27,7 +27,7 @@ what is not translated yet).
 client addresses, the token), its server configuration `d.cfg`, and a list of workloads, one per
 client machine. Under `d.WellFormed` (decidable), the machines' start states (each member's machine:
 no listener, files as on disk, its data directory and WAL area empty; each client's: no listener;
-the network: no connection), bootstrap's results, and the premises carried over from `etcd_safe`
+the network: no connection), bootstrap's results, and the premises carried over from the single-process `etcd_safe`
 until they are discharged (§5), the deployment is `Robust`:
 
     Robust (servers d σs) (clients d σc) g (threads := 2^28) (bound := 2^40 - 11)
@@ -35,7 +35,7 @@ until they are discharged (§5), the deployment is `Robust`:
 `servers d σs` are the members' machines, each running `server.Main(cfg_m)`, in `Robust`'s
 `crashing` list: a crash at any step, then the same boot program from what the file extension's
 crash relation keeps. `clients d σc` are the client machines, each running `client.Main(w, eps)`, in
-`stable`: never crash, so a client keeps its history. `threads`/`bound` are `etcd_safe`'s, to be fixed by
+`stable`: never crash, so a client keeps its history. `threads`/`bound` are the single-process `etcd_safe`'s, to be fixed by
 the proofs (the bound counts every machine's steps together).
 
 The extensions are any list holding the net extension, the Linux file extension and the request
@@ -491,7 +491,7 @@ reads them (`clearProxyEnv`), which puts the fact in the program, where it is ve
 (Perennial). The alternative is a fork change, rafthttp's transport with `Proxy: nil`, which leaves
 `ETCD_VERIFY` a premise.
 
-## 5. What is still not decidable (carried from `etcd_safe`)
+## 5. What is still not decidable (carried from the single-process `etcd_safe`)
 
 | Premise | Now | Path to remove it |
 |---|---|---|
@@ -508,9 +508,9 @@ reads them (`clearProxyEnv`), which puts the fact in the program, where it is ve
 
 ## 6. Where today's results go
 
-| Today | In `etcd_dist_safe` | Changes | Loses | Gains |
+| Today | In the distributed `etcd_safe` | Changes | Loses | Gains |
 |---|---|---|---|---|
-| `etcd_safe` KV: txnlinfaultsN (`k₁ ≤ 1000`, schedule) | `kv` | partitions are the network's; clients dial members directly | `CutPeer`/`MendPeer` and the bridge's paths (test-only code) | every partition and fault, at any `k` the predicate admits, with crashes |
+| single-process `etcd_safe` KV: txnlinfaultsN (`k₁ ≤ 1000`, schedule) | `kv` | partitions are the network's; clients dial members directly | `CutPeer`/`MendPeer` and the bridge's paths (test-only code) | every partition and fault, at any `k` the predicate admits, with crashes |
 | partition `MainWatch` | `watch` (exclusive) | as above | — | crashes |
 | compactwatch, compacted, cache | `compact`, `putget`, `cache` (exclusive) | the compactor is `cfg.compactor` | — | any compactor setting in the supported set, multiple members |
 | authN, authlease (`k ≤ 300`) | `auth`, `authLease` (exclusive; `cfg.auth`) | — | — | no 300 bound |
@@ -566,7 +566,7 @@ leaseexpiryN in, `noExpiry` conditional; Q3 the `durable` workload under real cr
 up accepted; Q5 a trusted Lean SHA-1 tested against Go first, Perennial's `crypto/sha1` proof later; Q6 the
 carried premises accepted for the first version; Q7 the interim theorem without crashes is the first
 milestone; Q8 etcd's full peer handler; Q9 no further `ServerConfig` fields in the first version; Q10 the
-server clears the proxy variables itself. Open: the name (`etcd_dist_safe` vs. the files' `_robust`
+server clears the proxy variables itself. Open: the name (decided 2026-11-22: `etcd_safe`, the distributed theorems take the plain names; vs. the files' `_robust`
 convention) and U1-U5 (upamanyus, etcd-grove#24).
 
 For the user:
@@ -633,17 +633,19 @@ For upamanyus:
 | D6 server | one `NewServer` spec for both starts; `walFoRes`; C6; the backend after a crash; `TrustBoundary` discharged | weeks | D4 |
 | D7 cluster | global/local ghost split, the restart invariant | weeks | D6 |
 | D8 clients (**Go done** 2026-11-22, §2 "Stage D8"; `remote` ported: `counter_remote_robust`) | (seams: §2, "Stage D1") port dsverify's `Remote` orchestration (`RunRemote`, `ServeClient`, `remoteDistSafe`) onto the net extension in `examples/lib/remote`, over `lintest`/`kvcheck` and the verified porcupine; each workload's client operations as `Remote` calls. Left: the Lean kv instance (blocked on D2's `net` and D7's one KV state; `opMaybe`'s read form done 2026-11-22), watch/cache/auth instances (over `Report`, proved 2026-11-22: §2, "`Report`, proved") | ~2k lines + the port | D1; Lean: D2, D7 |
-| D9 assembly | the theorem; `WellFormed` consumed; retire `etcd_safe`, leaseexpiryN's | ~2k lines | all |
+| D9 assembly | the theorem; `WellFormed` consumed; (the single-process `etcd_safe` and leaseexpiryN's already retired at the net swap) | ~2k lines | all |
 
 **Interim milestone (Q7)**: D1, D2, D5 (S1-S5), D7 without crashes, D8, D9 over `goose_dist_adequacy`:
 the same deployment with no member crashing. Then D3, D4, D6 add the crashes.
 
 ### D2's `net` half: the net swap (plan, 2026-11-22; not started, decisions below)
 
-**Decided (the user, 2026-11-22, relayed by the coordinator).** (1) **Retire** `etcd_robust`/`etcd_safe`,
+**Decided (the user, 2026-11-22, relayed by the coordinator).** (1) **Retire** the single-process `etcd_robust`/`etcd_safe`,
 `k8s_robust`/`k8s_safe` and leaseexpiryN's closed theorem at the swap, not adapt them: option (i) and steps
-3-4 below are superseded. The coordinator tags the last `lean` commit where they are proved (for the
-paper). Removed: their `TopLevelRobustness` (Spec and Proof), `Results`, `Adequacy`, `TopLevelDefs`,
+3-4 below are superseded. The coordinator tags the last `lean` commit where they are proved
+`single-process-final` (for the paper). **Names** (Upamanyu, #24, 2026-11-22): the distributed theorems take
+the plain names, weaker variants the longer ones: this plan's `etcd_dist_safe` is now `etcd_safe` (its
+statement `etcd_robust.spec`), the retired single-process theorem's names. Removed: their `TopLevelRobustness` (Spec and Proof), `Results`, `Adequacy`, `TopLevelDefs`,
 `Disjoint`, `PkgTable` and their collections (`etcd-all`, `k8s-all`, `leaseexpiryN`); kept: every
 per-function proof (`Main`, `MainLinked`, `Init`, `InitLinked`, the drivers' proofs), the generic machinery,
 the Go drivers and their tests. (2) **Design D** for the address predicates; `net.Listen` a theorem from
@@ -682,7 +684,7 @@ and `goose_adequacy_start_all` the same way (without `hNsIds`). Gone with the ad
 (axiom), `addrsUnclaimed`, the `netAddrFree`/`httpProtoFree` hand-out, `hAsLit`. `netAddrLit` stays (a
 definition the drivers' `Dir` lemmas prove of their addresses). `httpProtoFree` stays an axiomatized
 predicate of net/http's (`http.reserve`, S5) with no source; `addrClaim` (design D) likewise, until
-`etcd_dist_safe`'s deployment premise gives it.
+`etcd_safe`'s deployment premise gives it.
 
 **Conflicts with `prom-registry`** (`/shared/etcd-grove-promreg`, at `8af09c0669`): both edit
 `Proof/runtime/Start.lean` (the two removals: whichever lands second takes the other's text above),
@@ -806,7 +808,7 @@ run over the net extension.
     bridges' `28000 + 1000`). `mvccfull`/`mvccrand`: none (they stay on `etcdFsExts`; their trust base
     trades `net.opaqueInitsOk` for Net's trusted initializers). Exported results of `client/v3` and the
     cache: their vocabulary's `netListenerAt` gains `[HasExt Net.netExt]` (design D; interface diffs).
-    `etcd_dist_safe`'s draft is already over the net extension.
+    `etcd_safe`'s draft is already over the net extension.
   - **The trusted start model** (Upamanyu's sign-off): `goose_adequacy_start`'s `startRights` hands out
     `addrClaim a` instead of `netAddrFree a` (the `netLisTok`s come from `extsGlobalStart`, never from the
     axiom: S3e's rule); `hAsLit` becomes `netAddrLit a && addrOk a` (`netAddrLit`, loopback, stays: the
@@ -819,7 +821,7 @@ run over the net extension.
     extension's semantics (`GooseLang/Ext/Net/Impl.lean`).
 - **(ii), considered and not recommended.** (a) Keep the main tree's names-only `net` and put kvremote in a
   part that copies what it imports (KvNet's way): the copy is every module reaching `Code.net`, 9,900. (b)
-  Retire the three listening theorems until `etcd_dist_safe` replaces them (D5 alone is 60-110k lines). (c)
+  Retire the three listening theorems until `etcd_safe` replaces them (D5 alone is 60-110k lines). (c)
   Go to one machine per member now (`goose_dist_adequacy`): that is D9's interim theorem; it needs D7 and
   phase 7's transport, which D2 is meant to unblock.
 
@@ -902,7 +904,7 @@ the model. Dispositions (fixed = in this commit):
 | F12 | low-medium | the durable check "exact" contradicts unknown outcomes; `n < 2^31` vs restartN's 256 keys; version 1 relies on at-most-once delivery | **fixed** (check and bound); at-most-once: D8 |
 | F13 | low | `workloads ≠ []` unneeded; "one of each kind" stricter than needed | **fixed** (dropped `≠ []`); one of each kind kept for now (Q1) |
 | F14 | low | cache, compact, putget proved only on one member without faults; the cache's resumption at another member unchecked | **open**: D8 risk |
-| F15 | low | name: `_robust` is the convention for `TopLevelRobustness`; `cmd/` JSON parsing is a trusted gap | gap **disclosed**; name kept as the coordinator asked (`etcd_dist_safe`), the user's call |
+| F15 | low | name: `_robust` is the convention for `TopLevelRobustness`; `cmd/` JSON parsing is a trusted gap | gap **disclosed**; name kept as the coordinator asked (`etcd_safe`), the user's call |
 
 The review also notes that F3 and F4 make two recorded nonissues reachable under real crashes
 (`nonissues/etcd-request-id-restart-reuse.md`, `nonissues/etcd-watch-lagging-member-auth-off.md`):

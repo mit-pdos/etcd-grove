@@ -874,10 +874,11 @@ own check never failed), and the main thread's result, if any, is as stated. The
   upstream (unmerged) decides a stricter property; its own proof is the part `PorcupineDag/`
   ("Porcupine PR #46" below; `notes/decisions.md`, "Porcupine: sound and complete").
 Retired at the net swap (2026-11-22, the user's decision; branch `net-swap`, `notes/etcd-dist-plan.md` §9, "D2's
-`net` half"; the last `lean` commit where they are proved is tagged by the coordinator): **`etcd_safe`**/`etcd_robust`
+`net` half"; the last `lean` commit where they are proved is tagged `single-process-final`): **`etcd_safe`**/`etcd_robust`
 (`examples/etcd/all`), **`k8s_safe`**/`k8s_robust` (`examples/k8s/all`) and **`etcd_leaseexpiryN_safe`**/`_robust`,
 single-process theorems over the names-only `net`: with `net` the part `Net/`'s, a program that listens runs over
-the net extension, and they are not adapted; `etcd_dist_safe` is to replace them. Their drivers' per-function proofs
+the net extension, and they are not adapted. Their names go to the distributed theorems (Upamanyu, #24): the
+draft `examples/etcd/dist` statement, until now `etcd_dist_safe`, is `etcd_safe`/`etcd_robust.spec`. Their drivers' per-function proofs
 (`Main`, `MainLinked`, `Init`), the generic machinery, the Go drivers and their tests stay.
 Retired (2026-11-21, the user's decision D2, stage E4 of `notes/etcd-unified-scope.md`), subsumed by `etcd_safe`:
 `etcd_putget_safe`, `etcd_putget3_safe`, `etcd_putgetN_safe`, `etcd_txnlin_safe`, `etcd_partition_safe`,
