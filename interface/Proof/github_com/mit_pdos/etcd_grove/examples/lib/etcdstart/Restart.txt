@@ -39,7 +39,7 @@ def etcdstart.memberBuiltR (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg 
               srvServeBuilt s E cfg ∗
                 srvSVRes s E ∗
                   srvMonitorsOff s ∗
-                    srvLgReader s ∗
+                    srvMonitorRes s ∗
                       srvReadyCloser s ∗
                         srvNetMember γn s id τ ∗
                           srvTrTok γn τ ∗

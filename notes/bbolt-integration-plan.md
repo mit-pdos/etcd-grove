@@ -242,7 +242,8 @@ name, `os.OpenFile.specCreateS`), `Close` giving the file back (`fileHolds i D`)
   `syscall.MAP_POPULATE`) stays an axiom, now over the defined `optsAt`.
 * **`Options.String`** stays an axiom (`Proof/go_etcd_io/bbolt/Options__String.lean`): its
   `fmt.Sprintf` has `%p` of a func and of an interface, which no `Sprintf` spec admits
-  (`notes/perennial-changes.md`, 2026-11-17).
+  (`notes/perennial-changes.md`, 2026-11-17). (2026-11-22, ps2 misc2: proved, over Perennial's
+  `Sprintf` model, which now admits `%p` of a func or pointer.)
 * **Fallout.** `wp_auto` now runs `&bolt.Options{}` (literal and allocation) itself: `newBackend`
   and `bboltnan.Run` take the allocated zero value through `optsAt_zero` (the `wp_optsLit`/
   `wp_optsAlloc` steps and `newBackend`'s local `TypeRepr` instances, a workaround for the `sorry`
