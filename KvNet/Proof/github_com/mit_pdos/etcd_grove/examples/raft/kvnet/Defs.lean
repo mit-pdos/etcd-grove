@@ -316,8 +316,11 @@ def kdBatchRes (γ : KdNames) (id : w64) (n : NodeH) (st' : NodeDriverState) (ms
 (`durable`'s `DurSt`), and, during a write's window (between its rename and its sync), the name of the
 pending batch's results (`kdBatchRes`'s saved proposition), the durable state it enters, and the share
 `q` of the writer's `nodeRunning` that waits with its *enter* in the file's invariant (raft's
-`readyCrashEnter` needs it: the node was not stopped since the cut). -/
-abbrev KdWv : Type := RaftState × DurFs.DurSt × Option (GName × RaftState × Qp × NodeH)
+`readyCrashEnter` needs it: the node was not stopped since the cut), and the name `γr` of the saved
+proposition (`kdBatchRec` at the writer's node) by which the writer recognizes its batch's record in
+the invariant: a node handle (`NodeH`, in `Type 1`) cannot be ghost state, so the record names its node
+existentially, and the saved proposition's agreement moves its contents to the writer's node. -/
+abbrev KdWv : Type := RaftState × DurFs.DurSt × Option (GName × RaftState × Qp × GName)
 
 /-- **The right to write replica `id`'s file**, which holds `o`, with its durable state `S`, no write in
 its window (exclusive; the other half in `kdFileBody`). -/
@@ -332,28 +335,37 @@ def fileHolds (γ : KdNames) (S : RaftState) (v : Option GoString) : IProp GF :=
     ⌜v = kdFileVal o ∧ (∀ f, o = some f → KdFileOk f) ∧ StorageHolds S (kdContents o)⌝ ∗
     (∀ f, ⌜o = some f⌝ -∗ kdSnapCert γ f.snap))
 
-/-- **What replica `id`'s file holds** at the client state `s` and durable state `S`, for the node `n`
+/-- **A pending batch's record** in the file's invariant, for the node `n` started from arm `x`: its
+*enter* from `S` to `S2` (`readyEnter`), the share `q` of `nodeRunning` that waits with it, and its
+results' saved proposition at `γb`: what raft's `readyCrashEnter` takes after a crash. -/
+def kdBatchRec (γ : KdNames) (id : w64) (x : CrashNames) (S S2 : RaftState) (q : Qp) (γb : GName)
+    (n : NodeH) : IProp GF :=
+  iprop(∃ (st st' : NodeDriverState) (ms : List QMsg),
+    nodeArm n γ.r.cluster x ∗
+    readyEnter n γ.r.cluster kdRaftN id st st' ms ∗ nodeRunning n γ.r.cluster kdRaftN q ∗
+    savedPropOwn γb DFrac.discard (kdBatchRes γ id n st' ms) ∗
+    ⌜st.durable = S ∧ st'.durable = S2⌝)
+
+/-- **What replica `id`'s file holds** at the client state `s` and durable state `S`
 (see `kdFileInvK`): outside a write's window (`alt = none`) the file holds `S`; in it, the old contents
 hold `S`, and the new ones either `S` too (a write that moves no durable state) or the state that the
-pending batch (its results saved at `γb`) enters (`S2`), whose *enter* (`readyEnter`) waits here: at the sync
-it fires (`persist`); after a crash the next boot either drops the batch (the file kept the old
+pending batch (its results saved at `γb`) enters (`S2`), whose *enter* (`readyEnter`) waits here
+(`kdBatchRec`, at some node, recognized by the writer through the saved proposition at `γr`): at the
+sync it fires (`persist`); after a crash the next boot either drops the batch (the file kept the old
 contents: raft's `nodeCrash`) or enters it (`readyCrashEnter.law`, `notes/kvnet-part.md`). -/
 def kdFileState (γ : KdNames) (id : w64) (x : CrashNames) (S : RaftState) (s : DurFs.DurSt)
-    (pb : Option (GName × RaftState × Qp × NodeH)) : IProp GF :=
+    (pb : Option (GName × RaftState × Qp × GName)) : IProp GF :=
   match s.alt with
   | none => iprop(fileHolds γ S s.cur ∗ ⌜pb = none⌝)
   | some old => iprop(fileHolds γ S old ∗
       match pb with
       | none => fileHolds γ S s.cur
-      | some (γb, S2, q, n) => iprop(∃ (st st' : NodeDriverState) (ms : List QMsg),
-          nodeArm n γ.r.cluster x ∗
-          readyEnter n γ.r.cluster kdRaftN id st st' ms ∗ nodeRunning n γ.r.cluster kdRaftN q ∗
-          savedPropOwn γb DFrac.discard (kdBatchRes γ id n st' ms) ∗
-          ⌜st.durable = S ∧ st'.durable = S2⌝ ∗ fileHolds γ S2 s.cur))
+      | some (γb, S2, q, γr) => iprop(∃ n : NodeH, kdBatchRec γ id x S S2 q γb n ∗
+          savedPropOwn γr DFrac.discard (kdBatchRec γ id x S S2 q γb n) ∗ fileHolds γ S2 s.cur))
 
 /-- The file invariant's body. -/
 def kdFileBody (γ : KdNames) (id : w64) (fl : KdFileNames) : IProp GF :=
-  iprop(∃ (S : RaftState) (s : DurFs.DurSt) (pb : Option (GName × RaftState × Qp × NodeH)),
+  iprop(∃ (S : RaftState) (s : DurFs.DurSt) (pb : Option (GName × RaftState × Qp × GName)),
     DurFs.durSt fl.γd s ∗ ghostVar fl.wr (1 : Qp).half ((S, s, pb) : KdWv) ∗
     ((raftState γ.r.cluster id S ∗ kdFileState γ id fl.x S s pb) ∨ crashed ∗ token fl.tk))
 
