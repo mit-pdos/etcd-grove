@@ -80,7 +80,8 @@ axiom goose_adequacy_start [hPre : GooseGpreS GF] (N T : Nat)
       hG.goose_localGS.goose_go_local_context = σ.goState.goLctx →
       ⊢ extsGlobalStart (GF := GF) g.globalWorld -∗
         extsLocalStart (GF := GF) σ.world -∗
-        ownGoState σ.goState.packageState -∗ threadTok -∗ startRights (GF := GF) As Ds ={⊤}=∗
+        ownGoState σ.goState.packageState -∗ ownLocalNames (GF := GF) ∅ -∗ threadTok -∗
+        startRights (GF := GF) As Ds ={⊤}=∗
         WP e @ Stuckness.NotStuck; ⊤ {{ v, ⌜φ v⌝ }})
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNstepsBelow T n ([e], ((σ, g) : CfgState)) κs (t2, σ2))
@@ -88,6 +89,10 @@ axiom goose_adequacy_start [hPre : GooseGpreS GF] (N T : Nat)
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2)
 ```
+
+(This is the statement as committed on the branch, 2026-11-22: the earlier draft above it in this note's
+history lacked `ownLocalNames ∅`, see "Update" below. The premise is exactly
+`goose_adequacy_below_localNames`' (perennial#681) plus `startRights As Ds`.)
 
 `goose_adequacy_start_all` loses `Ns`, `hNs`, `hNsFree` and `hNsIds` the same way;
 `prometheus.nameUnclaimed` (axiom) and `prometheus.namesUnclaimed` are deleted. The header's
