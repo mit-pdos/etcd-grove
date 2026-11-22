@@ -4021,6 +4021,26 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** `Promote.spec` takes the level-0 token (`levelTok lessorLvl`, given back) and the two bounds,
   as `Leases.spec` does; the server's callers (`LessorOk.lean`'s contract, `NewServer`'s promotion on becoming
   leader) supply them. Not applied: it changes the server's lessor contract.
+- **Decision.** Open (the axiom stays).
+
+## 2026-11-21: v2stats' `ServerStats.BecomeLeader` takes the stats' ownership (prove-ps2-v2stats)
+
+- **Spec.** `v2stats.ServerStats.BecomeLeader.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v2stats/`; a
+  trust-boundary axiom until this change: `ServerStats`' type has an unnamed struct field with tags,
+  `serverStats.LeaderInfo`, which Goose refused until mit-pdos/perennial#655).
+- **Defect.** Not provable over the real code: the premise was `st ≠ null` only, and `BecomeLeader` locks the stats'
+  mutex and writes its fields (`server.go:130-145`), which nothing in the premise owns.
+- **Evidence.** The translation (`Code/go_etcd_io/etcd/server/v3/etcdserver/api/v2stats.lean`,
+  `ServerStats.BecomeLeader.impl`, `ServerStats.becomeLeader.impl`).
+- **Proposed change.** The premise adds `v2stats.isServerStats st` (persistent: the stats' mutex owning the embedded
+  `serverStats`, the two rate queues with their `RWMutex`es), as `RecvAppendReq` and `SendAppendReq` already take
+  (the user's rule of 2026-11-21: a persistent ownership premise in place of `≠ null` alone, when every caller
+  discharges it). Its one caller, `EtcdServer.run`'s `updateLeadership` (`EtcdServer__run.lean`), has it from the
+  server's stats facts (`srvStatsAddr s ↦□ st ∗ v2stats.isServerStats st`, as `InvNet.lean`'s `srvProcOk`).
+  `SpecPlan`'s statement (`isServerStats p`) already has it. `isServerStats`, opaque until now, is defined
+  (`v2stats/Defs.lean`).
+- **Decision.** Applied (prove-ps2-v2stats, 2026-11-21): with `NewServerStats`, `RecvAppendReq`, `SendAppendReq`,
+  the four axioms retired, pending the Perennial pin bump to #655.
 - **Decision.** Applied (prove-ps2-promote, 2026-11-21; heads-up on #10, no objection): `Promote.spec` takes
   `levelTok lessorLvl` (given back) and the two bounds, and is proved over the real code (the axiom retired). The
   server's lessor contract (`lessorOk`, InvApplier.lean) has `Promote` take the caller's `threadTok` (given back; it

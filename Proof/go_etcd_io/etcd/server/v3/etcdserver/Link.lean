@@ -627,6 +627,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.NewServerSt
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats__BecomeLeader
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats__RecvAppendReq
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats__SendAppendReq
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats__becomeLeader
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue__Insert
 public import Proof.github_com.Masterminds.semver.v3.MustParse
 public import Proof.github_com.Masterminds.semver.v3.NewVersion
 public import Proof.github_com.Masterminds.semver.v3.Version__Compare
@@ -1605,10 +1607,6 @@ theorem config.ServerConfig.wp_PeerDialTimeout :
     config.ServerConfig.PeerDialTimeout.spec (GF := GF) (hG := hG) :=
   config.ServerConfig.PeerDialTimeout.wp_proof
 
-theorem v2stats.wp_NewServerStats :
-    v2stats.NewServerStats.spec (GF := GF) (hG := hG) :=
-  v2stats.NewServerStats.wp_proof
-
 theorem v2stats.wp_NewLeaderStats :
     v2stats.NewLeaderStats.spec (GF := GF) (hG := hG) :=
   v2stats.NewLeaderStats.wp_proof zap.wp_NewNop
@@ -2180,9 +2178,13 @@ theorem EtcdServer.wp_NextRequestID :
     EtcdServer.NextRequestID.spec (GF := GF) (hG := hG) :=
   EtcdServer.NextRequestID.wp_proof idutil.Generator.wp_Next
 
+theorem v2stats.statsQueue.wp_Insert :
+    v2stats.statsQueue.Insert.spec (GF := GF) (hG := hG) :=
+  v2stats.statsQueue.Insert.wp_proof
+
 theorem v2stats.ServerStats.wp_RecvAppendReq :
     v2stats.ServerStats.RecvAppendReq.spec (GF := GF) (hG := hG) :=
-  v2stats.ServerStats.RecvAppendReq.wp_proof
+  v2stats.ServerStats.RecvAppendReq.wp_proof _root_.Perennial.time.wp_Now v2stats.statsQueue.wp_Insert
 
 theorem EtcdServer.wp_Process :
     EtcdServer.Process.spec (GF := GF) (hG := hG) :=
@@ -2844,9 +2846,13 @@ theorem EtcdServer.wp_setLead :
     EtcdServer.setLead.spec (GF := GF) (hG := hG) :=
   EtcdServer.setLead.wp_proof
 
+theorem v2stats.ServerStats.wp_becomeLeader :
+    v2stats.ServerStats.becomeLeader.spec (GF := GF) (hG := hG) :=
+  v2stats.ServerStats.becomeLeader.wp_proof _root_.Perennial.time.wp_Now
+
 theorem v2stats.ServerStats.wp_BecomeLeader :
     v2stats.ServerStats.BecomeLeader.spec (GF := GF) (hG := hG) :=
-  v2stats.ServerStats.BecomeLeader.wp_proof
+  v2stats.ServerStats.BecomeLeader.wp_proof v2stats.ServerStats.wp_becomeLeader
 
 theorem EtcdServer.wp_setCommittedIndex :
     EtcdServer.setCommittedIndex.spec (GF := GF) (hG := hG) :=
@@ -3152,6 +3158,10 @@ theorem clockwork.wp_NewRealClock :
     clockwork.NewRealClock.spec (GF := GF) (hG := hG) :=
   clockwork.NewRealClock.wp_proof clockwork.realClock.wp_Now clockwork.realClock.wp_After
 
+theorem v2stats.wp_NewServerStats :
+    v2stats.NewServerStats.spec (GF := GF) (hG := hG) :=
+  v2stats.NewServerStats.wp_proof _root_.Perennial.time.wp_Now
+
 theorem membership.RaftCluster.wp_String :
     membership.RaftCluster.String.spec (GF := GF) (hG := hG) :=
   membership.RaftCluster.String.wp_proof
@@ -3294,7 +3304,7 @@ theorem rafthttp.remote.wp_send :
 
 theorem v2stats.ServerStats.wp_SendAppendReq :
     v2stats.ServerStats.SendAppendReq.spec (GF := GF) (hG := hG) :=
-  v2stats.ServerStats.SendAppendReq.wp_proof
+  v2stats.ServerStats.SendAppendReq.wp_proof v2stats.ServerStats.wp_becomeLeader _root_.Perennial.time.wp_Now v2stats.statsQueue.wp_Insert
 
 theorem rafthttp.Transport.wp_Send :
     rafthttp.Transport.Send.spec (GF := GF) (hG := hG) :=

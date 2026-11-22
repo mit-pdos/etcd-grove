@@ -1197,8 +1197,10 @@ variables (`version.go`: `MinClusterVersion`, `Version`, `APIVersion`, `GitSHA`;
 2026-11-19, until then the trust-boundary axioms `Version_init` and `MinClusterVersion_init`), its `semver`
 versions (`V3_0 = *semver.New(3, 0, 0, "", "")`, ...: `semver.New`'s spec, proved over the real code) and
 `AllVersions` (a slice literal of them; prove-initleft, 2026-11-21: until then the trust-boundary axioms
-`V3_6_init` and `opaqueInitsOk`), and runs its untranslated `init` function, which the trust-boundary
-axiom `initFuncsOk` says returns.''',
+`V3_6_init` and `opaqueInitsOk`), and runs its translated `init` function (prove-ps2-initfuncs,
+2026-11-22; until then the trust-boundary axiom `initFuncsOk`): `APIVersion` set to
+`fmt.Sprintf("%d.%d", ver.Major(), ver.Minor())` of `semver.NewVersion(Version)` when that parses
+(`NewVersion`'s spec, the trust boundary; `Major`/`Minor` proved), left as it was otherwise.''',
     alloc_types=dict({x: 'GoString' for x in ['MinClusterVersion', 'Version', 'APIVersion', 'GitSHA']},
                      **{x: 'github_com.Masterminds.semver.v3.Version' for x in _VERS}, AllVersions='GoSlice'),
     before=dict({x: semver_new_steps(x) for x in _VERS},
@@ -1206,7 +1208,47 @@ axiom `initFuncsOk` says returns.''',
                              'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sav ⟨Sav, -⟩',
                              'try wp_auto']),
     imports=['Proof.github_com.Masterminds.semver.v3.New',
-             'Proof.github_com.Masterminds.semver.v3.Version__String'],
+             'Proof.github_com.Masterminds.semver.v3.Version__String',
+             'Proof.github_com.Masterminds.semver.v3.NewVersion',
+             'Proof.github_com.Masterminds.semver.v3.Version__Major',
+             'Proof.github_com.Masterminds.semver.v3.Version__Minor'],
+    # (prove-ps2-initfuncs, 2026-11-22) `init()` (`version.go`): `APIVersion` from `NewVersion(Version)`
+    after={'init.«0»': [
+        'wp_apply EtcdGrove.semver.NewVersion.wp_proof as %pv %err Hr',
+        'try wp_auto',
+        'wp_bind (If _ _ _)',
+        'iapply (wp_wand_r (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ ∃ s : GoString, globalAddr APIVersion ↦ s)))',
+        'isplitl [Hr HAPIVersion ver]',
+        '· icases Hr with (⟨%Hok, %x, #Hx, -⟩ | %Hbad)',
+        '  · obtain ⟨-, -, Herr⟩ := Hok',
+        '    subst Herr',
+        '    wp_auto',
+        '    wp_apply EtcdGrove.semver.Version.Major.wp_proof $$ [$Hx] as -',
+        '    wp_apply EtcdGrove.semver.Version.Minor.wp_proof $$ [$Hx] as -',
+        '    wp_apply (wp_slice_literal (l := [_, _]))',
+        '    try (isplitr; (ipureintro; rfl))',
+        '    iintro %sla ⟨Hargs, -⟩',
+        '    try wp_auto',
+        '    wp_apply (_root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ _',
+        '      (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (_root_.Perennial.fmt.IntArgValue.uint64 _)',
+        '        (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (_root_.Perennial.fmt.IntArgValue.uint64 _)',
+        '          _root_.Perennial.fmt.ArgsWf.nil))) $$ [$Hargs] as %str -',
+        '    try wp_auto',
+        '    isplitr',
+        '    · ipureintro; rfl',
+        '    iexists _; iexact HAPIVersion',
+        '  · obtain ⟨-, Herr⟩ := Hbad',
+        '    cases err with',
+        '    | nil => exact absurd rfl Herr',
+        '    | ok i =>',
+        '      simp only',
+        '      try wp_auto',
+        '      isplitr',
+        '      · ipureintro; rfl',
+        '      iexists _; iexact HAPIVersion',
+        'iintro %v ⟨%Hv, %s, HAPIVersion⟩',
+        'subst Hv',
+        'try wp_auto']},
     finish=['ipersist HVersion', 'ipersist HV3_6', 'ipersist HMinClusterVersion',
             'ipersist HV3_7', 'ipersist HV3_8'] + FIN_PRE[:6],
 )
@@ -2074,8 +2116,9 @@ initializers (`error.go`, `metadatafields.go`) are untranslated: the trust-bound
 
 SPECIAL['go_etcd_io.etcd.client.v3'] = dict(
     doc='''Its fact (`clientv3Init`, `cache/v3/Base.lean`): `noPrefixEnd` (`op.go`, translated:
-`[]byte{0}`) and `defaultOptions` (`retry_interceptor.go`, untranslated: `&options{...}` whose
-backoff function returns; the trust-boundary axiom `defaultOptions_init`), and its translated
+`[]byte{0}`) and `defaultOptions` (`retry_interceptor.go`, translated since 2026-11-22: `&options{...}`
+whose backoff function, `backoffLinearWithJitter`'s, returns; until then the trust-boundary axiom
+`defaultOptions_init`), and its translated
 `valCtxCh`, `zeroTime` (`time.Unix(0, 0)`, `time.Unix.wp_proof`: proved over Perennial's translation since
 2026-11-20, until then a trust-boundary axiom) and
 `maxBackoff`, and `LeaseResponseChSize` (`lease.go`, translated: `16`; until 2026-11-19 the
@@ -2086,14 +2129,11 @@ too: the three `errors.New` errors, the call options (grpc's `WaitForReady`, `Ma
 `MaxCallRecvMsgSize`), `defaultCallOpts` (their slice) and `defaultBackoffJitterFraction` (until then
 `opaqueInitsOk` and the trust-boundary axioms `defaultCallOpts_init`,
 `defaultBackoffJitterFraction_init`).''',
-    imports=['Proof.time.Unix'],
-    alloc_types={'maxBackoff': 'w64', 'zeroTime': '_root_.Perennial.time.Time', 'valCtxCh': 'GoChan',
+    imports=['Proof.time.Unix', 'Proof.math.rand.Float64', 'Proof.go_etcd_io.etcd.client.v3.jitterUp',
+             'Proof.go_etcd_io.etcd.client.v3.backoffLinearWithJitter'],
+    alloc_types={'maxBackoff': 'w64', 'defaultOptions': 'Loc', 'zeroTime': '_root_.Perennial.time.Time', 'valCtxCh': 'GoChan',
                  'noPrefixEnd': 'GoSlice', 'LeaseResponseChSize': 'w64', 'defaultUnaryMaxRetries': 'w64', 'defaultStreamMaxRetries': 'w64',
                  'defaultBackoffWaitBetween': 'w64'},
-    custom={'defaultOptions': dict(
-        doc='/-- `defaultOptions = &options{retryPolicy: nonRepeatable, ..., backoffFunc: backoffLinearWithJitter(50*time.Millisecond, 0.10), ...}` (`retry_interceptor.go`): a pointer to fixed options whose backoff function returns (`jitterUp`\'s float arithmetic and `rand.Float64`, which do not panic), with the policy `nonRepeatable` (`W8 1`, `retry.go`\'s `iota`; D29). -/',
-        post=f'∃ (dp : Loc) (ov : options), globalAddr defaultOptions ↦ dp ∗ dp ↦□ ov ∗ {CV3}.backoffOk ov.backoffFunc\' ∗ ⌜ov.retryPolicy\' = W8 1⌝',
-        pat='⟨%dp@, %ov@, H@, #P@, #S@, %R@⟩')},
     before={'defaultWaitForReady': [
         'wp_apply wp_slice_literal (l := [W8 0])', 'isplitr', '· ipureintro; rfl',
         'iintro %snp ⟨Hsnp, -⟩', 'try wp_auto'],
@@ -2605,16 +2645,24 @@ _C['before']['defaultWaitForReady'] = (
     ['wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sco ⟨Sco, -⟩',
      'try wp_auto'])
 del _C['before']['ErrNoAvailableEndpoints'], _C['before']['ErrOldCluster'], _C['before']['ErrMutuallyExclusiveCfg']
+# (prove-ps2-rqb, 2026-11-22) `defaultOptions` translated (until then the trust-boundary axiom
+# `defaultOptions_init`): `&options{..., backoffFunc: backoffLinearWithJitter(50ms, 0.10), ...}`, the
+# backoff function by its proof (over `jitterUp`'s and the trust boundary's `rand.Float64`)
+_C['before']['defaultOptions'] = [
+    'try wp_auto',
+    'wp_apply (EtcdGrove.backoffLinearWithJitter.wp_proof (EtcdGrove.jitterUp.wp_proof EtcdGrove.rand.Float64.wp_proof)) as %bfdo #BdefaultOptions',
+    'try wp_auto']
 _C['alloc_types'].update({'defaultWaitForReady': 'GoInterface', 'defaultMaxCallSendMsgSize': 'GoInterface',
                           'defaultMaxCallRecvMsgSize': 'GoInterface', 'defaultCallOpts': 'GoSlice',
                           'defaultBackoffJitterFraction': 'w64'})
-_C['finish'] = (['ipersist Hsnp', 'ipersist HnoPrefixEnd', 'ipersist HdefaultOptions', 'ipersist HdefaultCallOpts',
+_C['finish'] = (['ipersist Hsnp', 'ipersist HnoPrefixEnd', 'ipersist HdefaultOptions', 'ipersist «$r0»', 'ipersist HdefaultCallOpts',
                  'ipersist HdefaultUnaryMaxRetries', 'ipersist HdefaultBackoffWaitBetween',
                  'ipersist HdefaultBackoffJitterFraction', 'ipersist HvalCtxCh', 'ipersist HzeroTime',
                  'ipersist HmaxBackoff', 'ipersist HLeaseResponseChSize', 'ipersist Sco'] + FIN_PRE[:6] +
                 ['imodintro', 'unfold go_etcd_io.etcd.cache.v3.clientv3Init', 'iframe #',
                  'ipureintro',
-                 'refine ⟨RdefaultOptions, rfl, fun v hv => ?_⟩',
+                 # `defaultOptions`' policy (its struct literal's), `defaultCallOpts`' slice
+                 'refine ⟨rfl, rfl, fun v hv => ?_⟩',
                  'have h1 : sint.nat (W64 (0 + 1)) = 1 := rfl',
                  'have h2 : sint.nat (W64 (0 + 1 + 1)) = 2 := rfl',
                  'rw [h1, h2] at hv',

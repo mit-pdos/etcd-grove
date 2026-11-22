@@ -123,6 +123,7 @@ def pkgInitTable : List (GoString × IProp GF) :=
    (pkg_id.math, isPkgInit (PROP := IProp GF) pkg_id.math),
    (pkg_id.math.big, isPkgInit (PROP := IProp GF) pkg_id.math.big),
    (pkg_id.math.bits, isPkgInit (PROP := IProp GF) pkg_id.math.bits),
+   (pkg_id.math.rand, isPkgInit (PROP := IProp GF) pkg_id.math.rand),
    (pkg_id.net, isPkgInit (PROP := IProp GF) pkg_id.net),
    (pkg_id.net.url, isPkgInit (PROP := IProp GF) pkg_id.net.url),
    (pkg_id.os, isPkgInit (PROP := IProp GF) pkg_id.os),
@@ -539,35 +540,39 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h99 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.client.v3 (getIsPkgInit (GF := GF)) := by
+  have h99 : GetIsPkgInitProp pkg_id.math.rand (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h8, h20, h16, h71, h61, h72, h7, h1, h0, h3, h33, h80, h67, h92, h62, h82, h83, h93, h94, h95, h97, h59, h98, h68, h15, h70, h37, True.intro⟩
-  have h100 : GetIsPkgInitProp pkg_id.go_opentelemetry_io.otel.«attribute» (getIsPkgInit (GF := GF)) := by
+    exact ⟨h7, True.intro⟩
+  have h100 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.client.v3 (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact True.intro
-  have h101 : GetIsPkgInitProp pkg_id.go_opentelemetry_io.otel.codes (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact True.intro
-  have h102 : GetIsPkgInitProp pkg_id.go_opentelemetry_io.otel.trace.embedded (getIsPkgInit (GF := GF)) := by
+    exact ⟨h8, h20, h16, h71, h61, h72, h7, h1, h0, h3, h33, h80, h67, h92, h62, h82, h83, h93, h94, h95, h97, h59, h98, h68, h15, h70, h99, h37, True.intro⟩
+  have h101 : GetIsPkgInitProp pkg_id.go_opentelemetry_io.otel.«attribute» (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h103 : GetIsPkgInitProp pkg_id.go_opentelemetry_io.otel.trace (getIsPkgInit (GF := GF)) := by
+  have h102 : GetIsPkgInitProp pkg_id.go_opentelemetry_io.otel.codes (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h8, h100, h101, h102, True.intro⟩
-  have h104 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc (getIsPkgInit (GF := GF)) := by
+    exact True.intro
+  have h103 : GetIsPkgInitProp pkg_id.go_opentelemetry_io.otel.trace.embedded (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h44, h89, h7, h33, h57, h86, h90, h40, h0, h20, h8, h37, h38, h88, h24, h1, h59, h55, h91, h73, h41, h56, h99, h103, h74, True.intro⟩
-  have h105 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccfull (getIsPkgInit (GF := GF)) := by
+    exact True.intro
+  have h104 : GetIsPkgInitProp pkg_id.go_opentelemetry_io.otel.trace (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h1, h2, h8, h13, h7, h3, h19, h33, h37, h38, h88, h57, h104, True.intro⟩
-  exact h105
+    exact ⟨h8, h101, h102, h103, True.intro⟩
+  have h105 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h44, h89, h7, h33, h57, h86, h90, h40, h0, h20, h8, h37, h38, h88, h24, h1, h59, h55, h91, h73, h41, h56, h100, h104, h74, True.intro⟩
+  have h106 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccfull (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h1, h2, h8, h13, h7, h3, h19, h33, h37, h38, h88, h57, h105, True.intro⟩
+  exact h106
 
 end table
 

@@ -2186,7 +2186,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · -- `#Hrunb`
     iexists ⟨errc, null, null, func.nil, cpv, sstats, null⟩
     unfold srvRunBuilt
-    iframe compactor errorc Hltg stats Herrb Hcpok
+    iframe compactor errorc Hltg stats HssI Herrb Hcpok
   isplitl [Hcpt HltC HtokC HlgC HRDC HwrC]
   · -- `Hcrun` (M2, S4): the compactor off, nothing to run; on, its run token and the run's
     -- precondition from the views `start` builds (`compactorRun`)

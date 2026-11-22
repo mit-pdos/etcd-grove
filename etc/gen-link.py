@@ -636,6 +636,8 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                            "Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.CallsLinked"],
                  # (Q8 stage 1, slice 4) Perennial's `time.Sleep` (`traceReceiveMessage`, `=` callee)
                  "--raft": ["Perennial.Proof.time.Link"],
+                 # (prove-ps2-rqb, 2026-11-22) Perennial's `math.Float64bits` (zap's `Float64`, `=` callee)
+                 "--client": ["Perennial.Proof.math.Link"],
                  # Perennial's `time.After` (the compactor's watch loop, `=` callee)
                  "--k8s-etcd3": ["Perennial.Proof.time.Link"],
                  # Perennial's linked results `sets.List`'s proof takes as terms (`=` callees)

@@ -33,6 +33,7 @@ public import Perennial.Proof.strings.Base
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.Init
 public import Spec.fmt.ErrorfWrap
 public import Proof.go_uber_org.zap.PkgInit
+public import Proof.math.rand.Base
 public import Proof.google_golang_org.grpc.status.StatusRO
 
 @[expose] public section

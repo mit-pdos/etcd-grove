@@ -201,6 +201,8 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   withBackoff_unfold : FuncUnfold withBackoff [] withBackoff.impl
   reuseOrNewWithCallOptions_unfold : FuncUnfold reuseOrNewWithCallOptions [] reuseOrNewWithCallOptions.impl
   filterCallOptions_unfold : FuncUnfold filterCallOptions [] filterCallOptions.impl
+  backoffLinearWithJitter_unfold : FuncUnfold backoffLinearWithJitter [] backoffLinearWithJitter.impl
+  jitterUp_unfold : FuncUnfold jitterUp [] jitterUp.impl
   ensureWatchHeader_unfold : FuncUnfold ensureWatchHeader [] ensureWatchHeader.impl
   NewWatcher_unfold : FuncUnfold NewWatcher [] NewWatcher.impl
   NewWatchFromWatchClient_unfold : FuncUnfold NewWatchFromWatchClient [] NewWatchFromWatchClient.impl
@@ -230,6 +232,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_metadata_Assumption : _root_.Perennial.google_golang_org.grpc.metadata.Assumptions
   import_io_Assumption : _root_.Perennial.io.Assumptions
   import_peer_Assumption : _root_.Perennial.google_golang_org.grpc.peer.Assumptions
+  import_rand_Assumption : _root_.Perennial.math.rand.Assumptions
   import_mvccpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
 
 attribute [instance] Assumptions.AuthEnableResponse_instance
@@ -414,6 +417,8 @@ attribute [instance] Assumptions.AuthEnableResponse_instance
   Assumptions.withBackoff_unfold
   Assumptions.reuseOrNewWithCallOptions_unfold
   Assumptions.filterCallOptions_unfold
+  Assumptions.backoffLinearWithJitter_unfold
+  Assumptions.jitterUp_unfold
   Assumptions.ensureWatchHeader_unfold
   Assumptions.NewWatcher_unfold
   Assumptions.NewWatchFromWatchClient_unfold
@@ -443,6 +448,7 @@ attribute [instance] Assumptions.AuthEnableResponse_instance
   Assumptions.import_metadata_Assumption
   Assumptions.import_io_Assumption
   Assumptions.import_peer_Assumption
+  Assumptions.import_rand_Assumption
   Assumptions.import_mvccpb_Assumption
 
 end go_etcd_io.etcd.client.v3

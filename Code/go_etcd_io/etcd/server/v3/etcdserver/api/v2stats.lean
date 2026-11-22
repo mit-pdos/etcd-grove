@@ -84,7 +84,8 @@ noncomputable instance «equals_unfold_struct#6de5bf6f» [GooseExts] [GoGlobalCo
 @[reducible] noncomputable def «struct#6de5bf6f».underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType «struct#6de5bf6f».fields)
 
-opaque queueCapacity [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def queueCapacity [GooseExts] [GoGlobalContext] : val :=
+  #(200 : Int)
 
 noncomputable def NewLeaderStats [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v2stats.NewLeaderStats"
@@ -197,6 +198,225 @@ noncomputable def FollowerStats.Fail.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType FollowerStats.ty) go!"Lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType FollowerStats.ty)))) (Var "fs"))) (Val #())))))))
+  (Val #()))))
+
+/-- Insert function insert a RequestStats into the queue and update the records
+
+    go: queue.go:62:22 -/
+noncomputable def statsQueue.Insert.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "q"
+  (Lam "p"
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "q" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType statsQueue.ty)))) (Var "q"))
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType RequestStats.ty)))) (Var "p"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoRemainder go.int))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef statsQueue.ty go!"back"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType statsQueue.ty)))) (Var "q")))) (Val #(W64 1)))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val queueCapacity))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RequestStats.ty)))) (Var "p"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef statsQueue.ty go!"totalReqSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType statsQueue.ty)))) (Var "q"))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef statsQueue.ty go!"totalReqSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType statsQueue.ty)))) (Var "q")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef RequestStats.ty go!"Size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RequestStats.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 200 (go.GoType.PointerType RequestStats.ty))))) (Pair (App (Val (GoInstruction (StructFieldRef statsQueue.ty go!"items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType statsQueue.ty)))) (Var "q"))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef statsQueue.ty go!"back"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType statsQueue.ty)))) (Var "q"))))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType RequestStats.ty)))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 200 (go.GoType.PointerType RequestStats.ty))))) (Pair (App (Val (GoInstruction (StructFieldRef statsQueue.ty go!"items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType statsQueue.ty)))) (Var "q"))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef statsQueue.ty go!"back"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType statsQueue.ty)))) (Var "q")))))) (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef statsQueue.ty go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType statsQueue.ty)))) (Var "q")))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val queueCapacity)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoRemainder go.int))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef statsQueue.ty go!"back"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType statsQueue.ty)))) (Var "q")))) (Val #(W64 1)))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val queueCapacity))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef statsQueue.ty go!"front"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType statsQueue.ty)))) (Var "q"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef statsQueue.ty go!"totalReqSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType statsQueue.ty)))) (Var "q"))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef statsQueue.ty go!"totalReqSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType statsQueue.ty)))) (Var "q")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef RequestStats.ty go!"Size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RequestStats.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 200 (go.GoType.PointerType RequestStats.ty))))) (Pair (App (Val (GoInstruction (StructFieldRef statsQueue.ty go!"items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType statsQueue.ty)))) (Var "q"))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef statsQueue.ty go!"front"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType statsQueue.ty)))) (Var "q")))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef statsQueue.ty go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType statsQueue.ty)))) (Var "q"))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef statsQueue.ty go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType statsQueue.ty)))) (Var "q")))) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef statsQueue.ty go!"back"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType statsQueue.ty)))) (Var "q"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef statsQueue.ty go!"rwl"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType statsQueue.ty)))) (Var "q"))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef statsQueue.ty go!"rwl"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType statsQueue.ty)))) (Var "q")))) (Val #()))))))))
+  (Val #()))))
+
+/-- go: server.go:33:6 -/
+noncomputable def NewServerStats.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "name"
+  (Lam "id"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ServerStats.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType ServerStats.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "id" (App (Val (GoInstruction (GoAlloc go.string))) (Var "id"))
+  (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc ServerStats.ty))) (Let "$v0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (Var "id"))
+  (App (Val (GoInstruction (CompositeLiteral serverStats.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"ID")) (ElementExpression go.string (Var "$v1")))]))))
+  (App (Val (GoInstruction (CompositeLiteral ServerStats.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"serverStats")) (ElementExpression serverStats.ty (Var "$v0")))]))))
+  (Let "ss" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ServerStats.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType ServerStats.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Now []))) (Val #())) (Val #()))
+  (Let "now" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Time.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "now"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "now"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc statsQueue.ty))) (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (App (Val (GoInstruction (GoUnOp GoNeg go.untypedInt))) (Val #(1 : Int))))
+  (App (Val (GoInstruction (CompositeLiteral statsQueue.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"back")) (ElementExpression go.int (Var "$v0")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc statsQueue.ty))) (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (App (Val (GoInstruction (GoUnOp GoNeg go.untypedInt))) (Val #(1 : Int))))
+  (App (Val (GoInstruction (CompositeLiteral statsQueue.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"back")) (ElementExpression go.int (Var "$v0")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerStats.ty)))) (Var "ss"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType ServerStats.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType statsQueue.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef serverStats.ty go!"recvRateQueue"))) (App (Val (GoInstruction (StructFieldRef ServerStats.ty go!"serverStats"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerStats.ty)))) (Var "ss")))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType statsQueue.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef serverStats.ty go!"sendRateQueue"))) (App (Val (GoInstruction (StructFieldRef ServerStats.ty go!"serverStats"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerStats.ty)))) (Var "ss")))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (App (Val (GoInstruction (StructFieldRef «struct#6de5bf6f».underlying go!"StartTime"))) (App (Val (GoInstruction (StructFieldRef serverStats.ty go!"LeaderInfo"))) (App (Val (GoInstruction (StructFieldRef ServerStats.ty go!"serverStats"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerStats.ty)))) (Var "ss"))))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (App (Val (GoInstruction (StructFieldRef serverStats.ty go!"StartTime"))) (App (Val (GoInstruction (StructFieldRef ServerStats.ty go!"serverStats"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerStats.ty)))) (Var "ss")))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "now") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType ServerStats.ty)))) (Pair (Var "ss") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerStats.ty)))) (Var "$res0"))))))
+
+/-- RecvAppendReq updates the ServerStats in response to an AppendRequest
+    from the given leader being received
+
+    go: server.go:91:24 -/
+noncomputable def ServerStats.RecvAppendReq.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "ss"
+  (Lam "leader"
+  (Lam "reqSize"
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "ss" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ServerStats.ty)))) (Var "ss"))
+  (Let "reqSize" (App (Val (GoInstruction (GoAlloc go.int))) (Var "reqSize"))
+  (Let "leader" (App (Val (GoInstruction (GoAlloc go.string))) (Var "leader"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Now []))) (Val #())) (Val #()))
+  (Let "now" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Time.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 0))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef serverStats.ty go!"RecvAppendRequestCnt"))) (App (Val (GoInstruction (StructFieldRef ServerStats.ty go!"serverStats"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerStats.ty)))) (Var "ss")))) (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef serverStats.ty go!"RecvAppendRequestCnt"))) (App (Val (GoInstruction (StructFieldRef ServerStats.ty go!"serverStats"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerStats.ty)))) (Var "ss"))))) (Val #(W64 1)))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoAlloc RequestStats.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "now"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.int))) (Var "reqSize"))
+  (App (Val (GoInstruction (CompositeLiteral RequestStats.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"SendingTime")) (ElementExpression _root_.Perennial.time.Time.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"Size")) (ElementExpression go.int (Var "$v1")))])))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType statsQueue.ty) go!"Insert"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType statsQueue.ty)))) (App (Val (GoInstruction (StructFieldRef serverStats.ty go!"recvRateQueue"))) (App (Val (GoInstruction (StructFieldRef ServerStats.ty go!"serverStats"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerStats.ty)))) (Var "ss")))))) (Var "$a0")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "leader")) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef «struct#6de5bf6f».underlying go!"Name"))) (App (Val (GoInstruction (StructFieldRef serverStats.ty go!"LeaderInfo"))) (App (Val (GoInstruction (StructFieldRef ServerStats.ty go!"serverStats"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerStats.ty)))) (Var "ss"))))))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "leader"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "now"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (App (Val (GoInstruction (StructFieldRef «struct#6de5bf6f».underlying go!"StartTime"))) (App (Val (GoInstruction (StructFieldRef serverStats.ty go!"LeaderInfo"))) (App (Val (GoInstruction (StructFieldRef ServerStats.ty go!"serverStats"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerStats.ty)))) (Var "ss"))))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef «struct#6de5bf6f».underlying go!"Name"))) (App (Val (GoInstruction (StructFieldRef serverStats.ty go!"LeaderInfo"))) (App (Val (GoInstruction (StructFieldRef ServerStats.ty go!"serverStats"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerStats.ty)))) (Var "ss"))))) (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.StateType.ty))) (Pair (App (Val (GoInstruction (StructFieldRef serverStats.ty go!"State"))) (App (Val (GoInstruction (StructFieldRef ServerStats.ty go!"serverStats"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerStats.ty)))) (Var "ss")))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "now") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ServerStats.ty) go!"Unlock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerStats.ty)))) (Var "ss")))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ServerStats.ty) go!"Lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerStats.ty)))) (Var "ss"))) (Val #())))))))))
+  (Val #())))))
+
+/-- SendAppendReq updates the ServerStats in response to an AppendRequest
+    being sent by this server
+
+    go: server.go:114:24 -/
+noncomputable def ServerStats.SendAppendReq.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "ss"
+  (Lam "reqSize"
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "ss" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ServerStats.ty)))) (Var "ss"))
+  (Let "reqSize" (App (Val (GoInstruction (GoAlloc go.int))) (Var "reqSize"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef serverStats.ty go!"SendAppendRequestCnt"))) (App (Val (GoInstruction (StructFieldRef ServerStats.ty go!"serverStats"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerStats.ty)))) (Var "ss")))) (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef serverStats.ty go!"SendAppendRequestCnt"))) (App (Val (GoInstruction (StructFieldRef ServerStats.ty go!"serverStats"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerStats.ty)))) (Var "ss"))))) (Val #(W64 1)))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoAlloc RequestStats.ty))) (Let "$v0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Now []))) (Val #())) (Val #()))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.int))) (Var "reqSize"))
+  (App (Val (GoInstruction (CompositeLiteral RequestStats.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"SendingTime")) (ElementExpression _root_.Perennial.time.Time.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"Size")) (ElementExpression go.int (Var "$v1")))])))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType statsQueue.ty) go!"Insert"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType statsQueue.ty)))) (App (Val (GoInstruction (StructFieldRef serverStats.ty go!"sendRateQueue"))) (App (Val (GoInstruction (StructFieldRef ServerStats.ty go!"serverStats"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerStats.ty)))) (Var "ss")))))) (Var "$a0")))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ServerStats.ty) go!"becomeLeader"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerStats.ty)))) (Var "ss"))) (Val #()))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ServerStats.ty) go!"Unlock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerStats.ty)))) (Var "ss")))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ServerStats.ty) go!"Lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerStats.ty)))) (Var "ss"))) (Val #()))))))))
+  (Val #()))))
+
+/-- go: server.go:130:24 -/
+noncomputable def ServerStats.BecomeLeader.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "ss"
+  (Lam BAnon
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "ss" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ServerStats.ty)))) (Var "ss"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ServerStats.ty) go!"becomeLeader"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerStats.ty)))) (Var "ss"))) (Val #())))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ServerStats.ty) go!"Unlock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerStats.ty)))) (Var "ss")))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ServerStats.ty) go!"Lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerStats.ty)))) (Var "ss"))) (Val #())))))))
+  (Val #()))))
+
+/-- go: server.go:136:24 -/
+noncomputable def ServerStats.becomeLeader.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "ss"
+  (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (Let "ss" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ServerStats.ty)))) (Var "ss"))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.StateType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.StateType.ty))) (App (Val (GoInstruction (StructFieldRef serverStats.ty go!"State"))) (App (Val (GoInstruction (StructFieldRef ServerStats.ty go!"serverStats"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerStats.ty)))) (Var "ss"))))) (Val #(W64 2))))))
+  (Let "$r0" (Val #(W64 2))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef serverStats.ty go!"ID"))) (App (Val (GoInstruction (StructFieldRef ServerStats.ty go!"serverStats"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerStats.ty)))) (Var "ss")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Now []))) (Val #())) (Val #()))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (App (Val (GoInstruction (StructFieldRef «struct#6de5bf6f».underlying go!"StartTime"))) (App (Val (GoInstruction (StructFieldRef serverStats.ty go!"LeaderInfo"))) (App (Val (GoInstruction (StructFieldRef ServerStats.ty go!"serverStats"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerStats.ty)))) (Var "ss"))))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef «struct#6de5bf6f».underlying go!"Name"))) (App (Val (GoInstruction (StructFieldRef serverStats.ty go!"LeaderInfo"))) (App (Val (GoInstruction (StructFieldRef ServerStats.ty go!"serverStats"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerStats.ty)))) (Var "ss"))))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.StateType.ty))) (Pair (App (Val (GoInstruction (StructFieldRef serverStats.ty go!"State"))) (App (Val (GoInstruction (StructFieldRef ServerStats.ty go!"serverStats"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerStats.ty)))) (Var "ss")))) (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
   (Val #()))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats where
@@ -565,6 +785,7 @@ class statsQueue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   set_rwl : ∀ (x : statsQueue) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet statsQueue.underlying go!"rwl") (PairV #x #y) (Val #(({ x with rwl' := y } : statsQueue)))
   method_set : go.MethodSetIs statsQueue.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType statsQueue.ty) [(go!"Clear", (some (go.signature.Signature [] false []))), (go!"Insert", (some (go.signature.Signature [(go.GoType.PointerType RequestStats.ty)] false []))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Rate", (some (go.signature.Signature [] false [go.float64, go.float64]))), (go!"ReqSize", (some (go.signature.Signature [] false [go.int]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v2stats.frontAndBack", (some (go.signature.Signature [] false [(go.GoType.PointerType RequestStats.ty), (go.GoType.PointerType RequestStats.ty)])))]
+  ptr_Insert_unfold : MethodUnfold (go.GoType.PointerType statsQueue.ty) go!"Insert" statsQueue.Insert.impl
 
 attribute [instance] statsQueue.TypeAssumptions.type_repr
   statsQueue.TypeAssumptions.underlying
@@ -582,6 +803,7 @@ attribute [instance] statsQueue.TypeAssumptions.type_repr
   statsQueue.TypeAssumptions.set_rwl
   statsQueue.TypeAssumptions.method_set
   statsQueue.TypeAssumptions.ptr_method_set
+  statsQueue.TypeAssumptions.ptr_Insert_unfold
 
 structure «struct#6de5bf6f» [GooseExts] where
   mk ::
@@ -747,6 +969,14 @@ class ServerStats.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   set_Mutex : ∀ (x : ServerStats) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet ServerStats.underlying go!"Mutex") (PairV #x #y) (Val #(({ x with Mutex' := y } : ServerStats)))
   method_set : go.MethodSetIs ServerStats.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServerStats.ty) [(go!"BecomeLeader", (some (go.signature.Signature [] false []))), (go!"JSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Lock", (some (go.signature.Signature [] false []))), (go!"RecvAppendReq", (some (go.signature.Signature [go.string, go.int] false []))), (go!"SendAppendReq", (some (go.signature.Signature [go.int] false []))), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v2stats.becomeLeader", (some (go.signature.Signature [] false [])))]
+  ptr_BecomeLeader_unfold : MethodUnfold (go.GoType.PointerType ServerStats.ty) go!"BecomeLeader" ServerStats.BecomeLeader.impl
+  ptr_Lock_unfold : MethodUnfold (go.GoType.PointerType ServerStats.ty) go!"Lock" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef ServerStats.ty go!"Mutex"))) (Var "$r"))))
+  ptr_RecvAppendReq_unfold : MethodUnfold (go.GoType.PointerType ServerStats.ty) go!"RecvAppendReq" ServerStats.RecvAppendReq.impl
+  ptr_SendAppendReq_unfold : MethodUnfold (go.GoType.PointerType ServerStats.ty) go!"SendAppendReq" ServerStats.SendAppendReq.impl
+  ptr_Unlock_unfold : MethodUnfold (go.GoType.PointerType ServerStats.ty) go!"Unlock" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef ServerStats.ty go!"Mutex"))) (Var "$r"))))
+  ptr_becomeLeader_unfold : MethodUnfold (go.GoType.PointerType ServerStats.ty) go!"becomeLeader" ServerStats.becomeLeader.impl
 
 attribute [instance] ServerStats.TypeAssumptions.type_repr
   ServerStats.TypeAssumptions.underlying
@@ -756,6 +986,12 @@ attribute [instance] ServerStats.TypeAssumptions.type_repr
   ServerStats.TypeAssumptions.set_Mutex
   ServerStats.TypeAssumptions.method_set
   ServerStats.TypeAssumptions.ptr_method_set
+  ServerStats.TypeAssumptions.ptr_BecomeLeader_unfold
+  ServerStats.TypeAssumptions.ptr_Lock_unfold
+  ServerStats.TypeAssumptions.ptr_RecvAppendReq_unfold
+  ServerStats.TypeAssumptions.ptr_SendAppendReq_unfold
+  ServerStats.TypeAssumptions.ptr_Unlock_unfold
+  ServerStats.TypeAssumptions.ptr_becomeLeader_unfold
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   LeaderStats_instance : LeaderStats.TypeAssumptions
@@ -769,6 +1005,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   serverStats_instance : serverStats.TypeAssumptions
   «struct#6de5bf6f_instance» : «struct#6de5bf6f».TypeAssumptions
   NewLeaderStats_unfold : FuncUnfold NewLeaderStats [] NewLeaderStats.impl
+  NewServerStats_unfold : FuncUnfold NewServerStats [] NewServerStats.impl
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
@@ -785,6 +1022,7 @@ attribute [instance] Assumptions.LeaderStats_instance
   Assumptions.serverStats_instance
   Assumptions.«struct#6de5bf6f_instance»
   Assumptions.NewLeaderStats_unfold
+  Assumptions.NewServerStats_unfold
   Assumptions.import_sync_Assumption
   Assumptions.import_time_Assumption
   Assumptions.import_zap_Assumption

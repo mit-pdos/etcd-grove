@@ -2175,7 +2175,7 @@ theorem NewServer.wp_proofRG
   · -- `#Hrunb`
     iexists ⟨errc, null, null, func.nil, cpv, sstats, null⟩
     unfold srvRunBuilt
-    iframe compactor errorc Hltg stats Herrb Hcpok
+    iframe compactor errorc Hltg stats HssI Herrb Hcpok
   isplitl [Hcpt]
   · -- `Hcrun`: no compactor (`hcmpT`)
     iexists cpv
