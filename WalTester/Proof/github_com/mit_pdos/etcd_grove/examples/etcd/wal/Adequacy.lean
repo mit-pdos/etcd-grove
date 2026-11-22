@@ -203,7 +203,6 @@ structure TOpen : Prop where
   isAbs : filepathlite.IsAbs.spec (GF := GF) (hG := hG)
   errorfErrsNot : fmt.ErrorfErrsNot.spec (GF := GF) (hG := hG)
   errorfErrsTerm : fmt.ErrorfErrsTerm.spec (GF := GF) (hG := hG)
-  sprintfBroken : fmt.SprintfBroken.spec (GF := GF) (hG := hG)
   copyFiles : io.CopyFiles.spec (GF := GF) (hG := hG)
   unmarshalWalRecordE : proto.UnmarshalWalRecordE.spec (GF := GF) (hG := hG)
   formatBroken : time.Time.Format.specBroken (GF := GF) (hG := hG)
@@ -236,7 +235,7 @@ theorem tMain_linked (h : TOpen (GF := GF) (hG := hG)) : Main.spec (GF := GF) (h
     h.cloneHs walPb_laws.getIndex walPb_laws.getTerm walPb_laws.isEmpty walPb_laws.marshalEnt
     (walRaftP_marshalHs proto.MarshalPb.wp_proof) walPb_laws.mustSync walPb_laws.nil walPb_laws.size
     walPb_laws.unmarshalEnt walPb_laws.zero h.isErrno h.isPathErrnoEof h.isPathErrnoNotExist
-    h.isPathErrnoTerm h.isAbs h.errorfErrsNot h.errorfErrsTerm h.sprintfBroken h.copyFiles
+    h.isPathErrnoTerm h.isAbs h.errorfErrsNot h.errorfErrsTerm h.copyFiles
     h.unmarshalWalRecordE h.formatBroken
 
 end linked
