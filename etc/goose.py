@@ -1953,7 +1953,8 @@ PROJECTS = [
         # kvcheck its linearizability checker over lintest. A Go module of its own, whose go.mod
         # replaces raft by `RAFT_NOAX_REV` (GO_MOD_PINS). Translated into the part KvNet
         # (notes/kvnet-part.md), whose raft, `net` and `durable` are the parts of projects
-        # raft-noax, net and durable translated into it; lintest and porcupine the main tree's.
+        # raft-noax, net and durable translated into it; lintest, porcupine and gokv's trusted_proph
+        # (kvcheck's `read` resolves its prophecy with `ResolveBytes`) the main tree's.
         repo=None,
         rev=None,
         local=os.path.join("examples", "raft", "kvnet"),
@@ -1961,7 +1962,8 @@ PROJECTS = [
         lean_roots=["github.com/mit-pdos/etcd-grove/examples/raft/kvnet=KvNet",
                     "github.com/mit-pdos/etcd-grove/examples/lib/durable=KvNet",
                     "github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=KvNet", "net=KvNet",
-                    "google.golang.org=", "github.com/anishathalye/porcupine=", "os=", "syscall=",
+                    "google.golang.org=", "github.com/anishathalye/porcupine=",
+                    "github.com/mit-pdos/gokv=", "os=", "syscall=",
                     "io/fs=", "internal/poll=", "internal/syscall=", "path/filepath=",
                     "internal/filepathlite="],
         # the store and its checker; not the commands (cmd/, driver/), which only run them

@@ -21,14 +21,14 @@ open Iris Iris.BI Net raft_kvnet go_etcd_io.raft.v3
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF] [NetProtoGS]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [NetProtoGS]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.Assumptions]
 variable [field_sem : net.FieldAssumptions]
 
 /-- See the file header. -/
 abbrev checker.disrupt.spec : Prop :=
-  ∀ (F : KvFacts GF) (c : Loc) (γ : CheckerNames) (ls : List GoString) (stop : Loc) (γc : ChanNames),
+  ∀ (F : KvFacts GF) (c : Loc) (γ : CheckerCnt GF) (ls : List GoString) (stop : Loc) (γc : ChanNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck ∗
       isCheckerP F c γ ls ∗ ownBroadcastChan stop γc iprop(True) .Unknown }}
     (App (Val (c @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker.ty
