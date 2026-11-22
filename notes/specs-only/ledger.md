@@ -4444,6 +4444,41 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   credentials package's.
 - **Decision.** Applied (a premise every caller discharges; the user's rule of 2026-11-21).
 
+## 2026-11-22: `remote.opMaybe`'s read form needs node 0 to know which firing answers (etcd-dist D8)
+
+- **Spec.** `Net/Proof/.../lib/remote/Defs.lean`, `opMaybe R tok op`: the far side gets the one-shot
+  update `lin R i Φ`; the proposed read form (the coordinator, the user's approval, 2026-11-22) gives it,
+  for a read (`R.B.isWrite i = false`), a persistent read update instead, which it may fire zero or more
+  times, returning `ov o` with `Φ o` of one firing.
+- **Defect.** As proposed, node 0 cannot provide the read form. Node 0's `Φ o` must give lintest's
+  continuation at `(i, ok o)`, which needs lintest's update committed at the firing whose output is `o`;
+  lintest's update is one-shot, so only one firing may commit, and which one is decided by the output the
+  far side *will* return (etcd may serve one read's update several times at different states, e.g. a
+  read retried at another member, `read_ok_au`, and answer from any of them). Committing at the first
+  firing leaves a later firing (whose output may differ) unable to produce its `Φ`; committing at the
+  return is not a linearization point (other clients commit in between). "A read leaves the state
+  unchanged" makes every firing a valid point, but the proof still has to pick the one whose output is
+  returned. txnlin's `Apply` picks it with its revision prophecy (`callInv`), which `remote`'s design
+  (`notes/remote-port-plan.md` §3/§7: node 0's `Do` makes the prophecy, the client's `op` is txnlin's call
+  without its own) removes from the client machine. Also: `lin` (one-shot) cannot yield
+  a persistent update, so "`lin` for a read yields the read form" holds only in the other direction (a
+  read-form operation fired once meets the one-shot form).
+- **Evidence.** The argument above; no proof attempted. Separately, txnlin's `Call.spec` cannot be stated
+  against `remote`'s `opMaybe` yet: its import closure reaches the main tree's `Code.net` (through
+  `cache/v3` and grpc's `peer`), which clashes with `Net/`'s `net` (D2).
+- **Proposed change.** (A, recommended) node 0 prophesies the answered output: `remote.Do` resolves a
+  second prophecy with the answering reply's bytes (a `ResolveU64` per byte, prophecy-only Go code); the
+  answering attempt's slot for a read holds an invariant with lintest's update that commits at the first
+  firing whose output's encoding is the prophesied one, and `Φ o := (encOut (ov o) = prophesied → lintest
+  committed at o)`; with `codecOk` (decode of encode is the identity) the returned output's `Φ` is the
+  commit. The slot body, `serveConn`, `attempt`, `Do`, `Pend` change; the counter's server (one firing) and
+  client (a `Do`) meet the read form directly; `counter_remote_robust`'s statement is unchanged.
+  (B) keep the one-shot form and give `Call` a prophecy at the client machine (against `remote-port-plan.md` §3/§7's design).
+  (C) an etcd-specific revision prophecy at node 0 (not generic).
+- **Decision.** 2026-11-22, kaashoek via etcd-grove-03: option A (the user's decision): `remote.Do` prophesies
+  the answered reply's bytes; a read commits lintest's update at the first firing whose output encodes to them.
+  Applied on `etcd-dist` (`Defs.slotUpd`, `Do.spec`'s choice over the bytes, `pend_choice`'s read commit
+  invariant; `Run.spec`/`Check.spec` gain the premise that distinct outputs have distinct bytes).
 ## 2026-11-22: kvnet's `StartNode`: the start resource indexed by the configuration; the file invariant from the generation's boot (KvNet)
 
 - **Spec.** `StartNode.spec`/`Run.spec`/`RunNode.spec` (KvNet): the start resource `S : IProp` becomes
@@ -4507,4 +4542,16 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** `getMsg` decodes entries with `getMsgEntry` (no type check); `MsgWf` as above.
   (Alternatively a raft API lemma `sentMsg ⊢ ∀ e ∈ st.ents, Type ≤ 2`, which needs raft's message invariant to
   track forwarded proposals' entries: not taken.)
+- **Decision.** Applied.
+
+## 2026-11-22: kvcheck's `randomChange` bounds its changes (KvNet)
+
+- **Spec.** `checker.randomChange.spec`'s post (`kvcheck/checker__randomChange.lean`): `⌜ccTransOk o⌝` becomes
+  `⌜ccTransOk o ∧ (ccToV2 o).changes.length ≤ 3⌝`.
+- **Defect.** `reconfigure` sends `PutConfChange(nil, cc)` through `checker.request`, whose premise bounds the
+  payload (`len + 17 < 2^63`, the frame's header); `encCC o` has at most `17 + 16 n` bytes (`encCC_length`),
+  so the bound needs `n` bounded, and the post said nothing of it. The code makes at most three changes
+  (`count` is `1` or `1 + below(3)`); the proof already tracked `cnt ≤ 3`.
+- **Evidence.** `checker__randomChange.lean` (the loop's invariant), `ConfCodec.lean`.
+- **Proposed change.** As above (a stronger post).
 - **Decision.** Applied.

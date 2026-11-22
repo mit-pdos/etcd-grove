@@ -87,6 +87,9 @@ callDel: context_WithTimeoutBackground context_ErrAny =client.client_Delete_st_l
 callTxn: context_WithTimeoutBackground context_ErrAny cmpsFor opsOf thenOf elseOf txnRes withRes =client.client_Txn_st_law_holds txn__If txn__Then txn__Else =txn_Commit_st_law_holds
 call: callGet callList callPut callDel callTxn
 txnlin_Apply: call isWrite
+# remote's client machine (etcd-dist kv, examples/etcd/dist/kvremote): call without prophecies; isWrite exported
+txnlin_Call: call
+txnlin_IsWrite: isWrite
 #
 # the generator, `Check` (over the driver's, `@`) and `Main` (over the examples' shared start's,
 # `common`'s, `@`), as linkv's (linkv-txn stage G)

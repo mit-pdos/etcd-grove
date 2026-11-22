@@ -17,7 +17,7 @@ What crosses a connection of `examples/lib/remote`, over the net extension's pro
   dialer registers its connection `cn` with ghost names `γ` and the input `i` in the slot map
   (`slotOf cn γ i`, persistent), whose invariant (`mapInv`) keeps every registered connection's
   dialer `connFresh cn false`, so a connection gets one slot (`slot_register`). The slot's invariant
-  (`slotInv`, at `slotN cn`) holds the update `lin R i Φ` until the connection's acceptor claims it
+  (`slotInv`, at `slotN cn`) holds the update `slotUpd R i Φ` until the connection's acceptor claims it
   with its own `connFresh cn true` (exclusive, `connFresh_excl`), which stays in the invariant: the
   update is handed out at most once (`slot_claim`). The acceptor keeps half of the slot's monotone
   list `γ.d` (`runTok`), and once its operation answered `o` with `Φ o`, it puts `Φ o` in the slot
@@ -30,9 +30,10 @@ What crosses a connection of `examples/lib/remote`, over the net extension's pro
   `rep_read`, by `frame_prefix_eq`).
 * **The codec** (`codecOk R cd`): `cd`'s functions compute `R`'s encodings and decodings,
   `IsRead`, `Unknown` and `IsUnknown`.
-* **The far side's operation** (`opMaybe R tok op`): given `lin R i Φ`, `op(sys, iv i)` either
-  committed it and returns `ov o` with `Φ o`, or returns `unk i` (the update may have fired, may
-  fire later, or never: the lab's `opAwpMaybe`).
+* **The far side's operation** (`opMaybe R tok op`): given `slotUpd R i Φ` (a write's one-shot
+  `lin R i Φ`; a read's `□ lin R i Φ`, which it may fire zero or more times, each firing giving
+  `Φ` of its output: the read form), `op(sys, iv i)` either returns `ov o` with `Φ o`, or returns
+  `unk i` (a write's update may have fired, may fire later, or never: the lab's `opAwpMaybe`).
 -/
 module
 
@@ -80,6 +81,23 @@ def RBase.outOk {GF : BundledGFunctors} {St I O : Type} (R : RBase GF St I O) (v
     Prop :=
   (∃ o, v = R.ov o) ∨ (∃ i, v = R.unk i)
 
+/-- The bytes `Do`'s second prophecy says (its values: a count `n`, then the bytes, each as a
+`uint64`): the first `n` values after the count, as bytes. -/
+def prophBytes : List w64 → List w8
+  | [] => []
+  | n :: t => (t.take (uint.nat n)).map (fun x => W8 (uint.Z x))
+
+theorem prophBytes_eq (l : List w8) (n : w64) (r : List w64) (hn : uint.nat n = l.length) :
+    prophBytes (n :: (l.map (fun b => W64 (uint.Z b)) ++ r)) = l := by
+  simp only [prophBytes, hn]
+  rw [List.take_left' (by simp)]
+  rw [List.map_map]
+  conv => rhs; rw [← List.map_id l]
+  apply List.map_congr_left
+  intro b _
+  simp only [Function.comp_apply, id_eq]
+  word
+
 end base
 
 /-! ## Ghost names, namespaces -/
@@ -124,6 +142,23 @@ def lin (i : I) (Φ : O → IProp GF) : IProp GF :=
   iprop(|={⊤ \ R.Eop, ∅}=> ∃ st, R.sysState st ∗
     (R.sysState (R.B.step i st).1 ={∅, ⊤ \ R.Eop}=∗ Φ (R.B.step i st).2))
 
+/-- **The update a slot hands to the far side**: a write's one-shot `lin`; a read's `lin`
+persistently, which the far side may fire zero or more times (a read leaves the state unchanged,
+`reads_stay`), each firing giving `Φ` of its output (the read form; `notes/specs-only/ledger.md`,
+2026-11-22, "`remote.opMaybe`'s read form"). -/
+def slotUpd (i : I) (Φ : O → IProp GF) : IProp GF :=
+  if R.B.isWrite i then lin R i Φ else iprop(□ lin R i Φ)
+
+omit π ρ in
+theorem slotUpd_write {i : I} {Φ : O → IProp GF} (h : R.B.isWrite i = true) :
+    slotUpd R i Φ = lin R i Φ := by
+  simp [slotUpd, h]
+
+omit π ρ in
+theorem slotUpd_read {i : I} {Φ : O → IProp GF} (h : R.B.isWrite i = false) :
+    slotUpd R i Φ = iprop(□ lin R i Φ) := by
+  simp [slotUpd, h]
+
 /-- The connection `cn` has the slot `γ`, for the input `i` (persistent). -/
 def slotOf (cn : Nat) (γ : SlotNames) (i : I) : IProp GF :=
   ghostMapElem ρ.slots cn DFrac.discard (γ, i)
@@ -137,7 +172,7 @@ def doneLb (γ : SlotNames) (o : O) : IProp GF := monoListLbOwn γ.d [o]
 /-- The slot's states: the update, unclaimed; claimed (the acceptor's `connFresh` in it);
 answered `o`, with `Φ o` or, once the dialer took it, the dialer's token. -/
 def slotBody (cn : Nat) (γ : SlotNames) (i : I) (Φ : O → IProp GF) : IProp GF :=
-  iprop((lin R i Φ ∗ monoListAuthOwn (A := O) γ.d 1 []) ∨
+  iprop((slotUpd R i Φ ∗ monoListAuthOwn (A := O) γ.d 1 []) ∨
     (connFresh (Gg := Gg) cn true ∗
       (monoListAuthOwn (A := O) γ.d (1 : Qp).half [] ∨
         ∃ o : O, monoListAuthOwn γ.d 1 [o] ∗ (Φ o ∨ token γ.t))))
@@ -228,7 +263,7 @@ theorem slotOf_agree (cn : Nat) (γ γ' : SlotNames) (i i' : I) :
 /-- **Register a connection** (its dialer, once its `Dial` succeeded): its slot, holding the
 update, and the dialer's token. -/
 theorem slot_register (E : CoPset) (hE : ↑mapN ⊆ E) (cn : Nat) (i : I) (Φ : O → IProp GF) :
-    ⊢ mapCtx (Gg := Gg) (I := I) -∗ connFresh (Gg := Gg) cn false -∗ lin R i Φ ={E}=∗
+    ⊢ mapCtx (Gg := Gg) (I := I) -∗ connFresh (Gg := Gg) cn false -∗ slotUpd R i Φ ={E}=∗
       ∃ γ, slotOf cn γ i ∗ slotInv R cn γ i Φ ∗ token γ.t := by
   iintro #Hm Hf HL
   imod mono_list_own_alloc (GF := GF) ([] : List O) with ⟨%γd, Hd, -⟩
@@ -270,7 +305,7 @@ update, and the acceptor's share. -/
 theorem slot_claim (E : CoPset) (hE : ↑(slotN cn) ⊆ E) (γ : SlotNames) (i : I)
     (Φ : O → IProp GF) :
     ⊢ slotInv R cn γ i Φ -∗ connFresh (Gg := Gg) cn true -∗ £ 1 ={E}=∗
-      lin R i Φ ∗ runTok (Gg := Gg) (O := O) γ := by
+      slotUpd R i Φ ∗ runTok (Gg := Gg) (O := O) γ := by
   iintro #Hs Hf Hlc
   unfold slotInv
   iinv Hs with Hb Hclose
@@ -450,7 +485,7 @@ update of `i`, it either committed it and returns the step's output with `Φ` of
 `i`'s unknown output (see the file header). -/
 def opMaybe (tok : GoInterface → IProp GF) (op : GoFunc) : IProp GF :=
   iprop(∀ (sys : GoInterface) (i : I) (Φ : O → IProp GF),
-    {{ tok sys ∗ lin (Gg := hG.goose_globalGS) R i Φ }}
+    {{ tok sys ∗ slotUpd (Gg := hG.goose_globalGS) R i Φ }}
       (App (App (Val #op) (Val #sys)) (Val #(R.iv i)))
     {{ (v : GoInterface), RET #v; tok sys ∗ ((∃ o, ⌜v = R.ov o⌝ ∗ Φ o) ∨ ⌜v = R.unk i⌝) }})
 

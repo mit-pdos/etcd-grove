@@ -278,6 +278,8 @@ KVNET_REUSED = [f"Proof.{KVNET_PKG}.{f}" for f in
                  "quietLogger__Warningf",
                  # (2026-11-22) the conf law's update (kvdurable's `kd_ccAu`)
                  "ReconfAu",
+                 # (2026-11-22) model.go, the same Go text as kvdurablenoax's check.go's (kvcheck's `Check`)
+                 "Model", "Gen", "copyMap", "within", "hashString", "hashMap",
                  ]]
 
 

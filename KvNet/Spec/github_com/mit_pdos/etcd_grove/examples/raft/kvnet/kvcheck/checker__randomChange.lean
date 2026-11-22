@@ -1,6 +1,7 @@
 /-
 `c.randomChange(cs)` (kvcheck.go): a random configuration change, as kvdurable's (its ids from
-`changeID(cs)`): owned, and its transition defined for its changes (`ccTransOk`).
+`changeID(cs)`): owned, its transition defined for its changes (`ccTransOk`), and at most three changes
+(what bounds `PutConfChange`'s bytes, `encCC_length`).
 -/
 module
 
@@ -29,7 +30,8 @@ abbrev checker.randomChange.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck ∗ isChecker c γ ls ∗ csOpt csp DFrac.discard cs }}
     (App (Val (c @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker.ty @!! go!"randomChange")) (Val #csp))
   {{ (cc : GoInterface) (o : ConfChangeIM), RET #cc;
-      ownConfChangeI cc (DFrac.own 1) (some o) ∗ ⌜ccTransOk o⌝ }}
+      ownConfChangeI cc (DFrac.own 1) (some o) ∗
+        ⌜ccTransOk o ∧ (ccToV2 o).changes.length ≤ 3⌝ }}
 
 end spec
 
