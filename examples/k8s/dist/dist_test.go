@@ -394,7 +394,7 @@ func TestDist(t *testing.T) {
 	}
 	if robust.RerunTest(t, "TestDist", "3h", testing.Short(), []string{"DIST_RUN=1",
 		"DIST_ROUNDS=" + os.Getenv("DIST_ROUNDS"), "DIST_OPS=" + os.Getenv("DIST_OPS"),
-		"DIST_ROUNDS_C=" + os.Getenv("DIST_ROUNDS_C")}) {
+		"DIST_ROUNDS_C=" + os.Getenv("DIST_ROUNDS_C"), "DIST_DUMP=" + os.Getenv("DIST_DUMP")}) {
 		return
 	}
 	netns := robust.NetnsAvailable() == nil

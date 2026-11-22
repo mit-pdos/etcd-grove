@@ -1,7 +1,9 @@
 package dist
 
 import (
+	"os"
 	"testing"
+	"time"
 
 	"github.com/anishathalye/porcupine"
 
@@ -33,7 +35,7 @@ func sharedCheck(s k8s.Seeded, ops []porcupine.Operation) porcupine.CheckResult 
 // wrote, the past reads of a store's revisions in such a gap, and a failed write that took effect
 // after one; it rejects what is wrong but for the revision numbers.
 func TestSharedModel(t *testing.T) {
-	s := k8s.SeededFixed()
+	s := k8s.SeededAt(2, 3)
 	seed1 := k8s.Obj{Namespace: "ns-1", Name: "pod-1", Value: "x", ResourceVersion: 2}
 	seed2 := k8s.Obj{Namespace: "ns-2", Name: "pod-2", Value: "x", ResourceVersion: 3}
 	create := k8s.Input{Kind: k8s.KCreate, Key: "ns-1/pod-11", Val: "y", UID: "u1"}
@@ -97,4 +99,41 @@ func TestSharedModel(t *testing.T) {
 
 func created10Obj() k8s.Obj {
 	return k8s.Obj{Namespace: "ns-1", Name: "pod-11", UID: "u1", Value: "y", ResourceVersion: 10}
+}
+
+// TestReplayHistory checks a store history RunStore dumped (DIST_DUMP; the file named by
+// DIST_HISTORY) as RunStore does, for profiling the check.
+func TestReplayHistory(t *testing.T) {
+	p := os.Getenv("DIST_HISTORY")
+	if p == "" {
+		t.Skip("set DIST_HISTORY to a dumped history")
+	}
+	seeded, ops, err := LoadHistory(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	start := time.Now()
+	revs := k8s.HistoryRevs(ops)
+	r := porcupine.CheckOperationsTimeout(seeded.SharedModel(revs, false), ops, CheckTimeout)
+	t.Logf("%d operations: %v in %v", len(ops), r, time.Since(start))
+	// the same history with one Get's answer wrong (another value) is rejected, by the fast model
+	// and by the full one
+	for i, op := range ops {
+		out := op.Output.(k8s.Output)
+		if op.Input.(k8s.Input).Kind != k8s.KGet || out.Err != k8s.ENone || out.Name == "" {
+			continue
+		}
+		bad := append([]porcupine.Operation{}, ops...)
+		out.Value += "!"
+		bad[i].Output = out
+		for _, full := range []bool{false, true} {
+			start := time.Now()
+			r := porcupine.CheckOperationsTimeout(seeded.SharedModel(k8s.HistoryRevs(bad), full), bad, CheckTimeout)
+			t.Logf("a wrong Get (operation %d), full %v: %v in %v", i, full, r, time.Since(start))
+			if r != porcupine.Illegal {
+				t.Errorf("a wrong Get passed: %v", r)
+			}
+		}
+		break
+	}
 }

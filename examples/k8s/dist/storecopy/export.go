@@ -11,6 +11,7 @@ import (
 	"context"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/anishathalye/porcupine"
@@ -144,6 +145,9 @@ func SetFeatures() bool {
 type Revs struct {
 	anchors []uint64
 	byKey   map[string][]uint64
+	// byKey without the revisions a successful write answered with (each a write of the store's
+	// own, or a no-op update's stored object): the fast model's landings
+	fastByKey map[string][]uint64
 }
 
 // rvOfMsg is the resource version a failed precondition's message names (preMsg), or 0.
@@ -189,6 +193,7 @@ func decodeItemRVs(s string) ([]item, bool) {
 func HistoryRevs(ops []porcupine.Operation) Revs {
 	all := map[uint64]bool{}
 	byKey := map[string]map[uint64]bool{}
+	written := map[uint64]bool{}
 	obj := func(key string, rv uint64) {
 		if rv == 0 {
 			return
@@ -235,6 +240,9 @@ func HistoryRevs(ops []porcupine.Operation) Revs {
 		}
 		if out.Err == ENone && out.Name != "" {
 			obj(out.Namespace+"/"+out.Name, out.RV)
+			if isWrite(in) {
+				written[out.RV] = true
+			}
 		}
 		if in.Kind == KList && out.Err == ENone {
 			if its, ok := decodeItemRVs(out.Items); ok {
@@ -250,26 +258,44 @@ func HistoryRevs(ops []porcupine.Operation) Revs {
 	}
 	sort.Slice(r.anchors, func(i, j int) bool { return r.anchors[i] < r.anchors[j] })
 	r.byKey = map[string][]uint64{}
+	r.fastByKey = map[string][]uint64{}
 	for k, m := range byKey {
 		for v := range m {
 			r.byKey[k] = append(r.byKey[k], v)
+			if !written[v] {
+				r.fastByKey[k] = append(r.fastByKey[k], v)
+			}
 		}
 		sort.Slice(r.byKey[k], func(i, j int) bool { return r.byKey[k][i] < r.byKey[k][j] })
+		sort.Slice(r.fastByKey[k], func(i, j int) bool { return r.fastByKey[k][i] < r.fastByKey[k][j] })
 	}
 	return r
 }
 
 // skipTo is c at the revision t (foreign revisions: the store's items unchanged, a store per
-// revision appended to the history), or c if it is at t or beyond.
-func skipTo(c mcfg, t uint64) mcfg {
-	if t <= c.st.rv {
+// revision appended to the history), or c if it is at t or beyond. The stores appended to a
+// history node are built once and shared (gaps), so that histories that skip alike are one.
+func (hh *histHashes) skipTo(c mcfg, t uint64) mcfg {
+	if t <= c.st.rv || c.hist == nil {
 		return c
 	}
-	h := c.hist
-	for r := c.st.rv + 1; r <= t; r++ {
-		h = appendHist(h, mstore{items: c.st.items, rv: r})
+	hh.mu.Lock()
+	base := hh.canonLocked(c.hist)
+	if hh.gaps == nil {
+		hh.gaps = map[*hnode][]*hnode{}
 	}
-	return mcfg{st: mstore{items: c.st.items, rv: t}, pend: c.pend, hist: h}
+	g := hh.gaps[base]
+	for uint64(len(g)) < t-c.st.rv {
+		h := base
+		if len(g) > 0 {
+			h = g[len(g)-1]
+		}
+		g = append(g, hh.intern(h, mstore{items: c.st.items, rv: histLen(h) + 1}, histLen(h)+1))
+	}
+	hh.gaps[base] = g
+	n := g[t-c.st.rv-1]
+	hh.mu.Unlock()
+	return mcfg{st: n.st, pend: c.pend, hist: n}
 }
 
 // target is the least revision a configuration at rv must be at for the operation in to answer
@@ -347,8 +373,9 @@ func bound(in Input, out Output) uint64 {
 }
 
 // landings are the revisions a pending write w may take effect at on c: the next one, and (each
-// above it) the revisions the history shows objects of w's key at; with a bound b (b > 0), also
-// each anchor and the one after it, up to b; with full, those whatever the bound.
+// above it, and at most the bound b if b > 0) the revisions the history shows objects of w's key
+// at (without full, but those a successful write answered with); with full, also every anchor
+// and the one after it, whatever the bound.
 func landings(revs Revs, c mcfg, w Input, b uint64, full bool) []uint64 {
 	next := c.st.rv + 1
 	ls := []uint64{next}
@@ -357,36 +384,137 @@ func landings(revs Revs, c mcfg, w Input, b uint64, full bool) []uint64 {
 			ls = append(ls, r)
 		}
 	}
-	for _, r := range revs.byKey[w.Key] {
+	byKey := revs.fastByKey
+	if full {
+		byKey = revs.byKey
+	}
+	for _, r := range byKey[w.Key] {
 		add(r)
 	}
-	if full || b > 0 {
+	if full {
 		i := sort.Search(len(revs.anchors), func(i int) bool { return revs.anchors[i] >= c.st.rv })
 		for ; i < len(revs.anchors); i++ {
-			a := revs.anchors[i]
-			if !full && a > b {
-				break
-			}
-			add(a)
-			add(a + 1)
+			add(revs.anchors[i])
+			add(revs.anchors[i] + 1)
 		}
 	}
 	return ls
 }
 
-// cfgSet is a set of configurations, bucketed by revision and pending count for the equality test.
+// histHashes keeps the histories' nodes hash-consed (canon: one node per history, by its
+// previous node and its store), so that equal histories are one pointer (histEqual walks two
+// histories back to a node they share, which nodes built apart, by foreign revisions or by
+// pending writes taking effect in different orders, make long), and the foreign revisions
+// appended to each node (gaps, skipTo).
+type histHashes struct {
+	mu    sync.Mutex
+	canon map[ikey][]*hnode
+	is    map[*hnode]bool
+	gaps  map[*hnode][]*hnode
+}
+
+type ikey struct {
+	prev *hnode
+	n    uint64
+	h    uint64
+}
+
+// intern is the canonical node of the store st after the canonical history prev (hh.mu held).
+func (hh *histHashes) intern(prev *hnode, st mstore, n uint64) *hnode {
+	if hh.canon == nil {
+		hh.canon = map[ikey][]*hnode{}
+		hh.is = map[*hnode]bool{}
+	}
+	k := ikey{prev: prev, n: n, h: storeHash(st)}
+	for _, c := range hh.canon[k] {
+		if storeEqual(c.st, st) {
+			return c
+		}
+	}
+	c := &hnode{st: st, n: n, prev: prev}
+	hh.canon[k] = append(hh.canon[k], c)
+	hh.is[c] = true
+	return c
+}
+
+// canonical is h's canonical node.
+func (hh *histHashes) canonical(h *hnode) *hnode {
+	hh.mu.Lock()
+	defer hh.mu.Unlock()
+	return hh.canonLocked(h)
+}
+
+func (hh *histHashes) canonLocked(h *hnode) *hnode {
+	var todo []*hnode
+	n := h
+	for n != nil && !hh.is[n] {
+		todo = append(todo, n)
+		n = n.prev
+	}
+	for i := len(todo) - 1; i >= 0; i-- {
+		n = hh.intern(n, todo[i].st, todo[i].n)
+	}
+	return n
+}
+
+func mix(h, v uint64) uint64 {
+	h ^= v
+	h *= 1099511628211
+	return h
+}
+
+func strHash(h uint64, s string) uint64 {
+	h = mix(h, uint64(len(s)))
+	for i := 0; i < len(s); i++ {
+		h = mix(h, uint64(s[i]))
+	}
+	return h
+}
+
+// storeHash is a hash of a store (its revision and items).
+func storeHash(st mstore) uint64 {
+	h := mix(14695981039346656037, st.rv)
+	for _, it := range st.items {
+		h = strHash(h, it.key)
+		o := it.obj
+		for _, f := range []string{o.Namespace, o.Name, o.UID, o.Value, o.Node, o.App} {
+			h = strHash(h, f)
+		}
+		h = mix(h, o.ResourceVersion)
+		if o.Annotated {
+			h = mix(h, 1)
+		}
+		if it.canon {
+			h = mix(h, 2)
+		}
+	}
+	return h
+}
+
+// cfgSet is a set of configurations, their histories canonical (hh), so that two are equal iff
+// their stores and pending writes are and their histories are one node (configEqual's test).
 type cfgSet struct {
+	hh      *histHashes
 	list    []mcfg
-	buckets map[[2]uint64][]int
+	buckets map[ckey][]int
+}
+
+type ckey struct {
+	hist *hnode
+	rv   uint64
+	np   int
+	h    uint64
 }
 
 func (s *cfgSet) add(c mcfg) bool {
 	if s.buckets == nil {
-		s.buckets = map[[2]uint64][]int{}
+		s.buckets = map[ckey][]int{}
 	}
-	k := [2]uint64{c.st.rv, uint64(len(c.pend))}
+	c.hist = s.hh.canonical(c.hist)
+	k := ckey{hist: c.hist, rv: c.st.rv, np: len(c.pend), h: storeHash(c.st)}
 	for _, i := range s.buckets[k] {
-		if configEqual(s.list[i], c) {
+		d := s.list[i]
+		if storeEqual(d.st, c.st) && pendEqual(d.pend, c.pend) {
 			return false
 		}
 	}
@@ -395,10 +523,22 @@ func (s *cfgSet) add(c mcfg) bool {
 	return true
 }
 
+func pendEqual(a, b []Input) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if !inputEqual(a[i], b[i]) {
+			return false
+		}
+	}
+	return true
+}
+
 // settle is every configuration c reaches by its pending writes taking effect, in any order, each
 // at one of its landings (Model's closure, with the revision chosen).
-func settle(revs Revs, c mcfg, b uint64, full bool) []mcfg {
-	var out cfgSet
+func settle(hh *histHashes, revs Revs, c mcfg, b uint64, full bool) []mcfg {
+	out := cfgSet{hh: hh}
 	work := []mcfg{c}
 	for len(work) > 0 {
 		d := work[len(work)-1]
@@ -415,7 +555,7 @@ func settle(revs Revs, c mcfg, b uint64, full bool) []mcfg {
 				continue
 			}
 			for _, l := range landings(revs, d, w, b, full) {
-				e := skipTo(d, l-1)
+				e := hh.skipTo(d, l-1)
 				st, _ := mstep(w, e.st)
 				work = append(work, advance(e, st, rest))
 			}
@@ -425,21 +565,22 @@ func settle(revs Revs, c mcfg, b uint64, full bool) []mcfg {
 }
 
 // SharedModel is Model from the seeded store, with foreign revisions (above), the history's
-// revisions revs (HistoryRevs). Without full, a pending write takes effect only at the revisions
-// the operation's answer leaves possible (bound) when it bounds them, and otherwise at the next
-// revision or one its key's objects show: a history it rejects is checked again with full, which
-// tries every anchor (an Illegal verdict is full's).
+// revisions revs (HistoryRevs). Without full, a pending write takes effect only at the next
+// revision or at one its key's objects show and no successful write answered with, up to the
+// bound the operation's answer sets (bound): a history it rejects is checked again with full,
+// which also tries every anchor (an Illegal verdict is full's).
 func (s Seeded) SharedModel(revs Revs, full bool) porcupine.Model {
+	hh := &histHashes{}
 	return porcupine.Model{
-		Init: func() any { return state{mcfg{st: s.st0, hist: histOf(s.h0)}} },
+		Init: func() any { return state{mcfg{st: s.st0, hist: hh.canonical(histOf(s.h0))}} },
 		Step: func(st, input, output any) (bool, any) {
 			in := input.(Input)
 			out := output.(Output)
 			b := bound(in, out)
-			var next cfgSet
+			next := cfgSet{hh: hh}
 			for _, c := range st.(state) {
-				for _, d := range settle(revs, c, b, full) {
-					d = skipTo(d, target(in, out, d.st.rv))
+				for _, d := range settle(hh, revs, c, b, full) {
+					d = hh.skipTo(d, target(in, out, d.st.rv))
 					for _, e := range step(d, in, out) {
 						next.add(e)
 					}
@@ -448,13 +589,14 @@ func (s Seeded) SharedModel(revs Revs, full bool) porcupine.Model {
 			return len(next.list) > 0, state(next.list)
 		},
 		Equal: func(a, b any) bool {
+			// the histories are canonical: equal iff one node
 			sa := a.(state)
 			sb := b.(state)
 			if len(sa) != len(sb) {
 				return false
 			}
 			for i := range sa {
-				if !configEqual(sa[i], sb[i]) {
+				if sa[i].hist != sb[i].hist || !storeEqual(sa[i].st, sb[i].st) || !pendEqual(sa[i].pend, sb[i].pend) {
 					return false
 				}
 			}
@@ -549,18 +691,29 @@ func PinnedRead(in Input) bool {
 	return (in.Kind == KList && in.Limit > 0) || in.Kind == KWatch
 }
 
-// SeededFixed is the seeded store the driver's seed makes on a fresh cluster (the seed keys at
-// revisions 2 and 3), without a cluster: for the tests of SharedModel.
-func SeededFixed() Seeded {
-	h := []mstore{{rv: 1}}
-	st := h[0]
+// SeededAt is the seeded store SeedShared makes when its Puts get the revisions r1 < r2 (the
+// driver's seed: 2 and 3), without a cluster: for the tests and for rechecking a dumped history.
+func SeededAt(r1, r2 uint64) Seeded {
+	st := mstore{rv: 1}
+	h := []mstore{st}
 	for i, k := range []string{"ns-1/pod-1", "ns-2/pod-2"} {
+		rv := []uint64{r1, r2}[i]
+		for r := st.rv + 1; r < rv; r++ {
+			h = append(h, mstore{items: st.items, rv: r})
+		}
 		ns, name := splitKey(k)
-		o := Obj{Namespace: ns, Name: name, Value: "x", ResourceVersion: uint64(2 + i)}
-		st = mstore{items: setItem(st.items, item{key: k, obj: o, canon: false}), rv: uint64(2 + i)}
+		o := Obj{Namespace: ns, Name: name, Value: "x", ResourceVersion: rv}
+		st = mstore{items: setItem(st.items, item{key: k, obj: o, canon: false}), rv: rv}
 		h = append(h, st)
 	}
 	return Seeded{st0: st, h0: h}
+}
+
+// SeedRevs are the seeds' revisions.
+func (s Seeded) SeedRevs() (uint64, uint64) {
+	it1, _ := lookup(s.st0.items, "ns-1/pod-1")
+	it2, _ := lookup(s.st0.items, "ns-2/pod-2")
+	return it1.obj.ResourceVersion, it2.obj.ResourceVersion
 }
 
 // EncodeItems is encodeItems (a List output's items), and RVBytes rvBytes (a resource version's
