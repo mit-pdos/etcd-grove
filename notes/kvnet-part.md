@@ -361,3 +361,42 @@ Read against the bodied `durable`'s `Write.spec` (`WalTester/Spec/.../lib/durabl
    invariant's shape. That shape would record, while `alt = some old`, that `old` holds `S` and `cur` holds the
    pending batch's `S'`, plus the crash-side resource of (a). So `persist`, `run` and `StartNode` wait for this
    decision.
+
+### The crash law kvnet needs: entering a cut batch at the next boot (2026-11-22, for raft's agent)
+
+**Decided** (the coordinator, 2026-11-22): raft adds a variant of `nodeCrash`. At a crash with a batch cut and not
+entered, the next generation may either discard the batch (today's `nodeCrash`) or enter it: `StartNode` chooses
+by what `durable.Read` returns. Until raft proves it, kvnet takes it as a law hypothesis (`abbrev
+readyCrashEnter.law : Prop` in kvnet's defs, passed to the `wp_proof`s that need it).
+
+**The statement kvnet needs**, over raft's existing API names (`KvNet/Proof/go_etcd_io/raft/v3/InvNode.lean`:
+`readyEnter` `:1082`, `raftState` `:716`, `nodeVacant` `:721`, `nodeCrashTok` `:734`, `nodeCrash`
+`InvNodeRule.lean:665`, `isCluster`; `crashed` is the generation's, under `[CrashGS GF]` as in `nodeCrash`):
+
+```lean
+variable [CrashGS GF] in
+/-- A batch cut and not entered (its *enter*, `readyEnter`, unused) may be entered after the crash, by
+the next generation: the arm's crash token gives the vacancy back (as `nodeCrash`) and the durable
+state moves to the batch's. -/
+abbrev readyCrashEnter.law : Prop :=
+  ∀ (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (st st' : NodeDriverState) (ms : List QMsg)
+    (x : CrashNames) (E : CoPset), ↑N ⊆ E →
+  ⊢ isCluster (GF := GF) γ N -∗ crashed -∗ nodeCrashTok γ id x -∗
+      readyEnter n γ N id st st' ms -∗ raftState γ id st.durable ={E}=∗
+      raftState γ id st'.durable ∗ nodeVacant γ id
+```
+
+Notes for its proof:
+- `readyEnter` is a plain `def` today, a wand that needs `notCrashed`. The law needs raft to keep, behind it, the
+  batch's crash side: the `pendBatch γ.raft id g st'.durable W` of the cut generation `g`
+  (`Protocol/GhostState.lean:3110`), which `raft_enter` consumes. One way that keeps every client: redefine
+  `readyEnter := readyEnterLive ∧ <crash side>`, where `readyEnterLive` is today's wand. The clients that fire it
+  then add an `and_elim_l`, and the law is `and_elim_r` plus the crash-side lemma. Another way: seal the hand-out
+  and prove the law from it. Either is raft's choice, as long as the statement above holds of the `readyEnter`
+  that `node.Ready`'s post (`readyPost`, `InvNode.lean:1686`/`:1730`) gives.
+- **What kvnet does with it.** `persist` moves the batch's `readyEnter` into the file's invariant at the rename
+  (`alt = some old`: `old` holds `st.durable`, the new `cur` holds `st'.durable`). At the sync
+  (`durWriteSync`, with `notCrashed`) it takes it back out and fires it. After a crash in between, the boot
+  (`StartNode`) reads the file. If the file holds `cur`, the boot applies the law; if it holds `old`, it applies
+  `nodeCrash`, which drops the batch.
+- The crash token is the arm's `nodeCrashTok γ id x` (`nodeVacant_arm`). kvnet keeps it in its crash obligation.
