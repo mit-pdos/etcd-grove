@@ -781,6 +781,22 @@ tests kept as differential tests against the real library, a "not modelled" pani
    ill-shaped value would be stuck. `decOk` should also give the error's value its type's shape (or
    `input`'s proof case on the type); the generated codec's errors are `errors.New`'s, so any such
    strengthening holds of it.
+   **Settled (2026-11-22, same branch):** `decOk`'s failure is now `decErr err` (`Codec.lean`): a fresh
+   `errors.New` error, `interface.mkOk (*errorString) #x` with its `Error()`, which the client
+   turns into `errAny`, `notServerErr` and a pointer `==` compares. The generated codec meets it:
+   its `Decode` fails only with `rpcErrDecode()`, `errors.New("net/rpc model: malformed value")`
+   (`models/net/rpc/rpcgen_core.py`, `HELPERS`). No proof proves or assumes a program codec's `decOk`
+   yet (no kit's codec is proved; the per-kit proofs of the generated codec are still to write), so
+   nothing else changed. After merging `lean` (Perennial `9c3b81f30`): `errors.newVar` gained the
+   `s` field's points-to (`Errs.lean` adjusted); `goose.py --check --project models-net`,
+   `gen-init.py --check`, `copy-part.py --check` clean. The reader's ghost lemmas are proved
+   (`ClientRead.lean`: `resp_hdr`, `resp_body` identify the answer a header and body read are, by
+   `ans_next`, `respHdr_inj` and the connection's registry; `ans_trade` trades the pending call's
+   `col` for `Φ reply msg` and gives `reqSent`, two later credits). `input`'s proof itself is not
+   written: its loop invariant (the `err` cell `nil` with `readerOwn`, or a pointer error with
+   `errAny`, `notServerErr` and the shutdown quarter), the three response cases over those lemmas,
+   and the end (both locks, `down` set from all its fractions, `err == io.EOF` on pointer errors,
+   `wp_map_for_range` over `pending` with its entries' `callRes` as the range's resource).
 3. **net/http**: (the model's Go is item 2's: the server and `ReadResponse` are Go's code over the
    model's head parser) then option B
    §4.4 (client `Transport.RoundTrip` with the program's dialer, resends, `ServeMux`, `Flusher`,
