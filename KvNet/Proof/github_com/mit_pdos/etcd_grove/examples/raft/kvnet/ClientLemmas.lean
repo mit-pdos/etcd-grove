@@ -1,4 +1,3 @@
--- The copy for the part `KvNet/` of `RaftNoAx/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/ClientLemmas.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Lean-first (no Rocq counterpart).
 
@@ -54,6 +53,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Assumptions]
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
 
 attribute [local instance] kdStorageModel
 

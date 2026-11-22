@@ -43,6 +43,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Assumptions]
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
 
 attribute [local instance] kdStorageModel
 

@@ -423,3 +423,30 @@ Notes for its proof:
   `statusOwn` is sealed. It needs a raft API law exposing the hard state's read access (`statusOwn st ⊢ ∃ hs,
   hsRO st.BasicStatus'.HardState' hs ∨ …`, as `InvStatus.statusOwnRaw` holds), and a spec for `Stats.Snapshot`
   (easy: the counters under the mutex).
+
+### `persist` proved (2026-11-22)
+
+- **Defs** (`Defs.lean`). `KdDmuNames` gains the file's names: `γd : DurGS`, `df : DFile`, `fR : Roots`, so
+  `isReplica`'s arity is unchanged.
+  - `dmu` holds `durHandle` and a share of the directory's `osCallPerm`.
+  - `isReplica` holds `osInv`, `osSharedInv`, `durInv`, the file invariant, and `df.Ok ∧ df.name = kdFileName dir id`.
+  - The file invariant `kdFileInvK γ id n ph` is a plain invariant of the generation; the crash obligation carries
+    its contents. It holds `raftState γ id S ∗ durSt γd s ∗` the writer's half `(S, s, pb)`, and `kdFileState`:
+    - outside a window, the file holds `S` (`fileHolds`: decodes, `KdFileOk`, certificate);
+    - in a window, the old contents hold `S`; the new ones hold `S`, or, with `pb = some (γb, S2)`, the batch's
+      `S2`, whose `readyEnter n … st st' ms` and `savedPropOwn γb □ (kdBatchRes …)` wait there. This is what the
+      boot hands to `readyCrashEnter.law`.
+  - The writer's value is `KdWv := RaftState × DurSt × Option (GName × RaftState)`. A `NodeH` cannot sit in a ghost
+    variable (it lives in `Type 1`), hence the node `n` as the invariant's parameter: one node per generation.
+  - Every kvnet file over these predicates now declares `[ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]`.
+    Four former copies became the part's own (the `answer`, `request` and `persist` specs, and `ClientLemmas`).
+- **`PersistLemmas.lean`.** `kd_writeAU`, the write's two atomic updates. At the rename, the batch's *enter*
+  moves into the invariant. At the sync (crash token, one later credit), it fires and the batch's results stay at
+  `γb`. `kdPendIn`/`kdPendOut`, `pbTarget`, `fileHolds_some`.
+- **`Replica__persist.lean`.** `persist.wp_proof`: a batch `waiting` in `dmu` becomes `fired`.
+  `persist.wp_proofRun`: `run`'s own batch's results come back by the saved proposition's agreement, and the phase
+  returns to `idle`. Its spec is the kvdurable one without `ok` (kvnet's `persist` returns nothing).
+- **Next.** `run` (kvdurablenoax's 1615-line proof and its `Run*` lemmas, over `persist.specRun`), `newReplica`
+  (allocates the file invariant: the writer at `(S, ⟨cur, none⟩, none)`), and `StartNode` (reads the file:
+  `fileHolds` of `cur` or of `alt` per durable's crash lemma; `RestartNode` at `nodeVacantA`; after a crash
+  in a window, `readyCrashEnter.law` or `nodeCrash`).

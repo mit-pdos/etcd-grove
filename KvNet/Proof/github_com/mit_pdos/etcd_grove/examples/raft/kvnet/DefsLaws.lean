@@ -34,6 +34,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Assumptions]
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
 
 attribute [local instance] kdStorageModel
 
@@ -71,6 +72,10 @@ instance kdCluster_persistent (γ : KdNames) (vs : List w64) :
 instance kdSnapCert_persistent (γ : KdNames) (sv : SnapshotM) :
     Persistent (kdSnapCert (GF := GF) γ sv) := by
   unfold kdSnapCert; infer_instance
+
+instance kdFileInvK_persistent (γ : KdNames) (id : w64) (n : NodeH) (ph : KdDmuNames) :
+    Persistent (kdFileInvK (GF := GF) γ id n ph) := by
+  unfold kdFileInvK; infer_instance
 
 set_option synthInstance.maxHeartbeats 400000 in
 set_option synthInstance.maxSize 4096 in
@@ -114,6 +119,34 @@ theorem kdRepN_files (id : w64) : (↑(kdRepN .@ uint.nat id) : CoPset) ⊆ ⊤ 
 /-- The replica's file's namespace is not raft's. -/
 theorem kdRepN_raft (id : w64) : (↑(kdRepN .@ uint.nat id) : CoPset) ⊆ ⊤ \ ↑kdRaftN :=
   nclose_subseteq' _ (mask_ndot_ne' nroot "kvdurable_rep" "kvdurable_raft" (by decide))
+
+/-- (2026-11-22) The replica's file's namespace is open inside `durable`'s atomic updates. -/
+theorem kdRepN_sub_durAu (id : w64) : (↑(kdRepN .@ uint.nat id) : CoPset) ⊆ DurFs.durAuMask := by
+  intro x hx
+  have h1 := nclose_subseteq' _ (mask_ndot_ne' nroot "kvdurable_rep" "osfs" (by decide)) x hx
+  have h2 := nclose_subseteq' _ (mask_ndot_ne' nroot "kvdurable_rep" "osfsShared" (by decide)) x hx
+  have h3 := nclose_subseteq' _ (mask_ndot_ne' nroot "kvdurable_rep" "durable" (by decide)) x hx
+  rw [Std.LawfulSet.mem_diff] at h1 h2 h3
+  unfold DurFs.durAuMask Fs.osAuMask
+  rw [Std.LawfulSet.mem_diff, Std.LawfulSet.mem_diff, Std.LawfulSet.mem_diff]
+  exact ⟨⟨⟨CoPset.mem_full, h1.2⟩, h2.2⟩, h3.2⟩
+
+/-- (2026-11-22) Raft's namespace is open inside `durable`'s atomic updates with the file's invariant
+open. -/
+theorem kdRaftN_sub_durAu (id : w64) :
+    (↑kdRaftN : CoPset) ⊆ DurFs.durAuMask \ ↑(kdRepN .@ uint.nat id) := by
+  intro x hx
+  have h1 := mask_ndot_ne' nroot "kvdurable_raft" "osfs" (by decide) x hx
+  have h2 := mask_ndot_ne' nroot "kvdurable_raft" "osfsShared" (by decide) x hx
+  have h3 := mask_ndot_ne' nroot "kvdurable_raft" "durable" (by decide) x hx
+  have h4 := nclose_subseteq' (uint.nat id) (mask_ndot_ne' nroot "kvdurable_rep" "kvdurable_raft" (by decide))
+  rw [Std.LawfulSet.mem_diff] at h1 h2 h3
+  unfold DurFs.durAuMask Fs.osAuMask
+  rw [Std.LawfulSet.mem_diff, Std.LawfulSet.mem_diff, Std.LawfulSet.mem_diff, Std.LawfulSet.mem_diff]
+  refine ⟨⟨⟨⟨CoPset.mem_full, h1.2⟩, h2.2⟩, h3.2⟩, fun h => ?_⟩
+  have := h4 x h
+  rw [Std.LawfulSet.mem_diff] at this
+  exact this.2 hx
 
 end laws
 
