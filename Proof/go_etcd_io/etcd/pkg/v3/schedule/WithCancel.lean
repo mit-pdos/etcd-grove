@@ -91,7 +91,7 @@ theorem wp_WithCancel_Background_nn (PDone' : IProp GF) :
   · iframe #
     isplitl []
     · itrivial
-    unfold isParentCtx; ileft; ipureintro; rfl
+    unfold isParentCtx; ileft; ipureintro; exact Or.inl rfl
   inext
   iintro %c %γ %cancel ⟨%Hnn, #Hcancel, #Hc, #Hf⟩
   ihave #Hdl := deadlineSpec_background (GF := GF)
