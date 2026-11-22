@@ -43,7 +43,6 @@ axiom auth.redactToken.wp_proof
 axiom bcrypt.CompareHashAndPassword.wp_proof
 axiom bcrypt.GenerateFromPassword.wp_proof
 axiom binary.WriteUint8.wp_proof
-axiom bufferM.ownBuffer_new
 axiom bytes.Buffer.Write.wp_proof
 axiom ccDecodeV2_nil
 axiom config.ServerConfig.BackendPath.wp_proof
