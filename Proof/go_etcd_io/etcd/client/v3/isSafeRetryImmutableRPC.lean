@@ -36,8 +36,6 @@ theorem isSafeRetryImmutableRPC.wp_proof
   obtain ⟨Hne, Hce⟩ := Herr
   ihave #Hst : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status $$ []
   · iPkgInit
-  ihave #Herrs : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
-  · iPkgInit
   wp_auto
   ihave ⟨%mR, #HmR⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_descIs _ $$ Hse
   wp_apply wp_rpctypes_Error err mR $$ [$Hse $HmR] as %e1' ⟨%Hne1, #Hse1, %Hce1, -⟩
@@ -47,12 +45,12 @@ theorem isSafeRetryImmutableRPC.wp_proof
     cases e1' with
     | nil => exact absurd rfl Hne1
     | ok e => exact ⟨e, rfl⟩
-  obtain ⟨Htarget, Hce'⟩ := Hc1
+  obtain ⟨-, Hce'⟩ := Hc1
   obtain ⟨Hleaf, Htyped, -⟩ := Hce' e1 rfl
   ihave #Htree := errors.isErrorTree_leaf (GF := GF) e1 Hleaf Htyped
-  wp_apply errors.wp_As (T' := go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError)
+  wp_apply errors.wp_AsType (T' := go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError)
       (T := go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) (· = GoInterface.ok e1)
-      (GoInterface.ok e1) _ _ Htarget $$ [$Herrs $Htree $serverErr] as %b %v' HsE
+      (GoInterface.ok e1) $$ [$Htree] as %v' %b -
   · ipureintro; rfl
   cases b
   · wp_auto

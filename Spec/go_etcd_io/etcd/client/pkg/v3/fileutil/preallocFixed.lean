@@ -1,6 +1,6 @@
 /-
 `fileutil.preallocFixed(f, sizeInBytes)` (preallocate_unix.go): `syscall.Fallocate(fd,
-FALLOC_FL_KEEP_SIZE, 0, sizeInBytes)`, `ENOTSUP` (`errors.As`) treated as success: no visible change,
+FALLOC_FL_KEEP_SIZE, 0, sizeInBytes)`, `ENOTSUP` (`errors.AsType[syscall.Errno]`) treated as success: no visible change,
 any error. Proved in `Proof/go_etcd_io/etcd/client/pkg/v3/fileutil/preallocFixed.lean`.
 Lean-first.
 -/

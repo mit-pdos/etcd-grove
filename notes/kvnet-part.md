@@ -813,3 +813,114 @@ paths by hand), `reconfigure` (`PutConfChange`: the payload bound, `randomChange
 (kvdurable's `DriverLemmas`/`Run` are the template: the porcupine result from the lintest theory); then kvnet's
 `Link.lean`, the crash frame (the obligation's lemma: open `kdFileInvK` with `tk`, `durInv_crash`,
 `kd_boot_choose`, `kd_file_alloc`), `TopLevelRobustness`, the corollary, non-vacuity, a tcb collection.
+
+## kvcheck's decoders, `conf`, `reconfigure`; the plan for `Check` (2026-11-22, fifth session on `kvnet-proof`)
+
+Proved (no axiom, no `sorry`):
+- the any-bytes decoders `getIDs.specAny` (`getIDsAny.lean`), `getConfState.specAny` (`getConfStateAny.lean`:
+  the four `getIDs` chained, a nil rest after a failure), and `GetStatus.spec` (`GetStatus.lean`, any bytes: a
+  good status's `Conf` is an owned conf state; the two counter loops over `getUint64.specAny`, `f`'s cells and
+  the status's `Stats` field through `array_acc`);
+- kvcheck's `checker.conf` (the status request, `reqOk` of a status is `True`; the decoded conf state made
+  read-only and stored in `lastConf`);
+- `PutConfChange` (`encCC o`, `ConfCodec.lean`; `encCC_length`: at most `17 + 16 n`), over raftpb's getters
+  (their main-tree specs, copied into the part);
+- `checker.randomChange`'s post bounds its changes (`≤ 3`; ledger 2026-11-22), so `reconfigure`'s payload
+  meets `checker.request`'s bound; `checker.reconfigure` (premise `∀ pl, F.confOk pl`: `True` at the top).
+
+### `Check`: what the current kvcheck specs cannot give, and the plan
+
+`Check` runs `lintest.Run` with `apply` calling `checker.do`/`read`; `applySpec` hands `apply` a one-shot
+update over `libState` (kvdurable's `DriverLemmas.kdAu_of_run` turns it into the store's AU through the
+invariant `checkN` and a copy of the client half). The store's operations then need, as kvdurable's
+`Cluster.do`/`Read` do:
+1. **`do`**: `kd_mint` (needs the store's op counter half `ghostVar γ.r.opn ½ nop`, mints at `nop + 1`,
+   **sequentially**), then after the answer `kd_collect` with the ticket `token γp.2` and the saved
+   predicate. Today's `checker.do.spec` fires its minting law **outside** the checker's lock, on the
+   `issued γ false n` token (numbers issued in order but minted in any order: `kd_mint` cannot), and its
+   post `∃ n, F.ansOp d v` drops the ticket. Fix: the checker's lock holds the store's counters
+   (`checkerInv` with a parameter `Cnt : Bool → w64 → IProp GF`, or `CheckerNames` holding the store's
+   `KdNames`: `ghostVar γ.r.opn ½ a` and, for reads, every replica id's `id ↪[γ.r.rseq] ns` with `ns ≤ b`);
+   `fresh` takes the law `∀ a, ⌜uint.Z a + 1 < 2^64⌝ -∗ Cnt w a ={⊤}=∗ Cnt w (a+1) ∗ L (a+1)` and returns
+   `L n` (no more `issued`); `do`'s law gives `F.opOk (encodeOp n …) ∗ R n` and its post `∃ n, F.ansOp … v ∗
+   R n` (`R n`: the ticket and saved predicate, `£ 1` for `kd_mint` captured in the law from
+   `wp_auto_lc`). Or (simpler to link) state `do`/`read` concretely at `kvFacts γ _` with kvdurable's
+   `Cluster.do`/`Read` shape (AU in, `Φ` out) and do the minting/collecting in their proofs.
+2. **`read`**: linearizable reads need the read slot (`kd_read_start` before minting, `kd_read_take` at the
+   answer) and a **prophecy of the answer** (kvdurable's `Cluster.Read` has `primitive.NewProph()` and
+   `trusted_proph.ResolveBytes(p, []byte(v))` in its Go source). kvcheck's `read` has none: add them to
+   `kvcheck.go` (our own code, as kvdurable's; no-ops in Go; `go.mod` gets gokv's `trusted_proph`),
+   retranslate (`etc/goose.py --project kvnet`). The slot's start history `H0` (`kvLb γ H0` = some committed
+   `l` with `H0 <+: logHist l`) gives the `l0` for `kd_mint_next`, so the answer's `logHist l0 <+: L` gives
+   `H0 <+: L`. The law fires under the lock for every replica id at once (`L (b+1) := [∗list] id, readOk id
+   (b+1) key`: the id is chosen after `fresh`; unused contexts are harmless).
+3. `Model`/`Gen` (model.go): the same Go text as kvdurablenoax's `check.go`'s; add `Model`, `Gen`, `copyMap`,
+   `within`, `hashString`, `hashMap` (and `ModelDefs`) to `etc/copy-part.py`'s `KVNET_REUSED`.
+4. `Check` itself: kvdurable's `Run` (wait group over the proposers and the disruptor, the `stop` broadcast,
+   `lintest.Run` with `CounterClock`, timeout 0 so the result is `Ok`), plus `SplitAddrs`/`ValidAddrs` and
+   the checker's allocation (`addrs`, the mutex with the store's counters).
+
+## kvcheck's `do`/`read`/`Check` proved; the top-level statement (2026-11-22, sixth session on `kvnet-proof`)
+
+Proved (no axiom, no `sorry`; ledger 2026-11-22, "kvcheck's `fresh`/`do`/`read` at the store"):
+- **Go**: kvcheck's `read` creates `primitive.NewProph()` before its loop and resolves it with the answer
+  (`trusted_proph.ResolveBytes(p, v)`, gokv's, as kvdurable's `Cluster.Read`; no effect in Go). `go.mod`
+  requires gokv; project kvnet maps `github.com/mit-pdos/gokv=` to the main tree (`etc/goose.py`).
+- **The checker's lock** (`kvcheck/Defs.lean`): `CheckerNames`/`issued` gone; `checkerInv c γ` holds a counter
+  predicate `γ : CheckerCnt GF := Bool → w64 → IProp GF` (`γ false nextOp ∗ γ true nextRead`). At the store
+  (`kvcheck/StoreDefs.lean`) `kvCnt γ n`: `ghostVar γ.r.opn ½ a` and, for `bootVoters n`, every replica's
+  `id ↪[γ.r.rseq] ns` with `ns ≤ b`. `fresh` fires the caller's minting law under the lock and returns `L n`.
+- **`do`**: logically atomic at the store (an `AU` over `rkvVal γ`, kvdurable's `Cluster.do` shape): the law is
+  `kd_mint` (a credit taken before `fresh`); the loop keeps the ticket and two credits; the answer's `waitP`
+  collects the result (`kd_collect`).
+- **`read`**: kvdurable's `Cluster.Read` shape: `kd_read_start` at the start (history `H0 = logHist l`), the
+  law mints the read at every replica id after `l` (`kv_mint_reads`, `kvReadMinted`: `readOkK` plus
+  `readCtxAfter … l`); the answer's `ansReadK` names some `l0`, which is `l` by raft's new
+  **`readCtxAfter_agree`** (`Proof/go_etcd_io/raft/v3/ReadCtxLaws.lean`, a new importable module of raft's API,
+  `import all InvNode`, listed in `etc/api/raft.txt`, interface regenerated); `kd_read_take` with the prophecy.
+  All other kvcheck specs only renamed `CheckerNames` to `CheckerCnt GF` (and lost `[AllG GF]`: kvcheck's
+  sections now use `HeapGS`'s, as kvnet's store lemmas do, so the instances agree).
+- **`Check`** (`kvcheck/Check.lean`; spec `KvNet/Spec/.../kvcheck/Check.lean`): at the store `γ`, from
+  `rkvInv γ`, `rkvVal γ kvEmpty`, `kvCnt γ n false 0`, `kvCnt γ n true 0` (`n` the addresses), the addresses'
+  protocols at `kvFacts γ (fun _ => True)`, `connGlobals`, `context.isClosedchanInit`, `receiptBound GF ≤ 2^63`
+  and `validAddrs (splitAddrs addrs) voters`: returns (porcupine answers `Ok`). kvdurable's `Run`/`Main`: the
+  checker's mutex over the counters, the proposers (`1 + below(3)`) and the disruptor joined by a wait group,
+  `lintest.Run` with `CounterClock` over a driver's copy of the store's state (`kvcheck/DriverLemmas.lean`:
+  `kvAu_of_run`, `checkN := nroot.@"kvnet_check"`, `clockN`).
+- **The top-level statement** (statement only): `KvNet/Spec/.../kvnet/TopLevelRobustness.lean`
+  (`raft_kvnet_robust.spec`, `raft_kvnet_robust_example.spec`) over `KvNet/Proof/.../kvnet/TopLevelDefs.lean`
+  (`ClusterConfig`, `ClusterConfig.Ok`, `kvnetReplicaProgram`, `kvcheckProgram`, `fsOf`). The agreed text
+  (`notes/kvnet-robust-goal.md`) adapted only to `Robust`'s thread bound (`threads := 2^61 + 1`, i.e. none, as
+  kvdurable's) and to `MaxInflightMsgs < 2^62`; the trusted instances are `kvcheck.Assumptions` (which
+  includes every imported package's, kvnet's and raft's among them) and `net.FieldAssumptions`. The replica
+  id is `W64 ((i : Int) + 1)` (an elaboration detail of the draft's `(i + 1)`).
+  The main tree's old draft `Proof/.../raft/kvnet/Robust.lean` is still there (CLAUDE.md names it); it goes
+  with the proof, together with CLAUDE.md's mention (item 7 of the goal).
+
+### Handoff: what is left for the top-level theorem
+
+1. **kvnet's `Link.lean`.** No `etc/gen-link.py` mode yet. The list-driven modes (`--kvdurable-noax`) need a
+   spec with no explicit arguments, but ten kvnet specs are parametric (`Run.spec F rep cf S`, `RunNode.spec`,
+   `StartNode.spec`, `Node.{handle,serve,serveClient,status}.spec`, `GetConfChange.spec cf`,
+   `Replica.{propose,read}.spec`). The binder-reading generator `etc/link_walfs.py` (`--walfs`/`--durable`/
+   `--wal-tester`) already handles specs over model parameters (`PARAMS`) and other packages' linked results
+   used as they are (`EXT_LINKS`): a `KVNET` cfg there is the likely route (`PARAMS`: `KvFacts GF`,
+   `Loc → w64 → IProp GF`, `GoInterface → List w8 → IProp GF`, the start resource's type; `EXT_LINKS`: KvNet's
+   copy of raft-noax's `Link` (copying it pulls ~1000 raft proof modules into the part: ~12 min, 3 GB more),
+   KvNet's copy of `WalTester`'s `durable` `Link`, the main tree's lintest and porcupine `Link`s, Perennial's).
+   Net's `net` proofs (`Net/Proof/net/`, KvNet copies) have no `Link` of their own: link them directly.
+2. **The start resources** (the `Hstart` of Perennial's mixed adequacy, `goose_dist_mixed_crash_adequacy_init`;
+   the all-crash `NetFs.kvnet_dist_crash_adequacy` exists in `GooseLang/Ext/NetFs/Adequacy.lean`, a mixed one at
+   `kvnetExts` still to add): raft's cluster (`cluster_alloc_nb`, B: global, no bootstrap log, `dup = true`),
+   the store (`Store.lean`; `kvdurable`'s `kd_alloc` as the template: `ghostVar γ.r.opn ½ 0`, the `rseq`
+   elements of `freshIdsM γ.max 0`, of which `bootVoters n` is the client's `kvCnt γ n true 0`), the protocols of
+   every replica address (`addrs_set_proto` with `kvP (kvFacts γ (fun _ => True)) id`/`kvQ …`), per replica
+   `kvNodeStart γ vs dir` (incl. the directory, `γ.max < 2^32`: `StartDefs.lean`), and the client's `Check`
+   resources above.
+3. **The per-generation crash obligation** (`P i L'`): open `kdFileInvK` with `tk`, take `raftState` and
+   `kdFileState` (under a later), `durInv_crash` with `durSt`, close with `crashed ∗ token`; then
+   `kd_boot_choose`, `kd_file_alloc` for the next generation (`BootLemmas.lean`).
+4. `KvNet/Proof/.../kvnet/TopLevelRobustness.lean` (`theorem raft_kvnet_robust : raft_kvnet_robust.spec`, a
+   linking module), the example as a corollary (premises by computation: `addrOk` of the five addresses,
+   `splitAddrs` of the joined string), a non-vacuity lemma (machine states with an empty root `dir`, `FsInit`),
+   and `etc/tcb-collections/kvnet.txt` (roots `raft_kvnet_robust`; axioms only the existing trust base).

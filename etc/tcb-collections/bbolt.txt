@@ -6,7 +6,6 @@
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/go_etcd_io/bbolt/(Link|Results)\.lean$
-axiom bbolt.Options.String.wp_proof
 axiom envVerifyOffTok
 axiom os.Getenv.wp_proof
 axiom reflect.DeepEqual.wp_proof_pgidSet

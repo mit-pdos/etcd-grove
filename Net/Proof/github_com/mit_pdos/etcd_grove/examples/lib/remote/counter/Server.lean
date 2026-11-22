@@ -47,7 +47,7 @@ theorem Server.wp_proof
     (wp_Apply : CounterApply.spec (GF := GF) (hG := hG))
     (wp_Codec : Codec.spec (GF := GF) (hG := hG))
     (wp_attempt : attempt.spec (GF := GF) (hG := hG))
-    (wp_Serve : remote.Serve.spec (GF := GF) (hG := hG) (St := w64) (I := Bool) (O := w64)) :
+    (wp_Serve : remote.Serve.spec (GF := GF) (hG := hG) (I := Bool) (O := w64)) :
     Server.spec (GF := GF) (hG := hG) := by
   intro γs a
   wp_start as ⟨#Hra, Hs⟩
@@ -63,13 +63,24 @@ theorem Server.wp_proof
     iframe Hs Hcs
   wp_apply (wp_Codec γs) as %cd #Hcd
   wp_apply wp_attempt as %d -
-  wp_apply wp_Serve (cR γs) a _ _ cd d (srvTok γs) $$ [] as ⟨⟩
+  wp_apply wp_Serve (RBase.svc (Gg := hG.goose_globalGS) (cR γs)) a _ _ cd d (srvTok γs) $$ []
+    as ⟨⟩
   iframe #
   isplit
+  · iapply codecOk_wireOk $$ Hcd
+  isplit
   · -- the operation
+    iapply opMaybe_svcOp
     unfold opMaybe
     iintro %sys %i %Φ
     iintro !> %Φr ⟨Htok, HL⟩ HΦr
+    ihave HL : lin (Gg := hG.goose_globalGS) (cR γs) i Φ $$ [HL]
+    · cases hw : (cR (GF := GF) γs).B.isWrite i
+      · rw [slotUpd_read _ hw]
+        icases HL with #HL
+        iexact HL
+      · rw [slotUpd_write _ hw]
+        iexact HL
     unfold srvTok
     icases Htok with ⟨%c', %γc', %Hsys, #Hc', #Hsync', #Hlc'⟩
     subst Hsys

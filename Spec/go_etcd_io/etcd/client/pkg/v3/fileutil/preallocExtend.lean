@@ -1,11 +1,12 @@
 /-
 `fileutil.preallocExtend(f, sizeInBytes)` (preallocate_unix.go): `syscall.Fallocate(fd, 0, 0,
-sizeInBytes)`, a growth of the file to `sizeInBytes`; on `ENOTSUP` or `EINTR` (`errors.As` into an
-`Errno`) the fallback `preallocExtendTrunc`.
+sizeInBytes)`, a growth of the file to `sizeInBytes`; on `ENOTSUP` or `EINTR` (`errors.AsType[syscall.Errno]`,
+since etcd-grove#29) the fallback `preallocExtendTrunc`.
 
 The premises are `preallocExtendTrunc`'s (the file at most `sizeInBytes` long, unmapped, the offset
 known), `sizeInBytes` positive (`Preallocate` skips 0), and `errors`' package initialized (for
-`errors.As`). Post: the offset unchanged, the file grown to some `w` between its size and
+`errors.As`, which the code called until etcd-grove#29; `AsType` does not need it, the premise
+is kept so that the statement is unchanged). Post: the offset unchanged, the file grown to some `w` between its size and
 `sizeInBytes`, all of it on success (`preGrown`: the new bytes a zero run), and on success the
 zeros known from the page cache on (`OsMeta.ZeroPg`) if they were; an error only when the file system
 can fail on an inode (`¬ FsNoErrIno`: a covered `fallocate` below `maxBytes` returns 0, so the fallback

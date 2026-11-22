@@ -355,7 +355,12 @@ PROJECTS = [
         # goose-lean-replay-snapshot-readers keeps the legacy WAL recovery and RangeStream fixes.
         # Same-term snapshots stream the backend during restart replay. The label comes from the
         # frozen image and its Ready's retained entry terms (issues/etcd-merged-snapshot-replay-failure.md).
-        rev="d7c7f6434abce9ad25ac5152b4e74a322fbec8c5",
+        # Then (errors-astype, 2026-11-22, mit-pdos/etcd-grove#29, the user's decision) edc800c6f
+        # (branch `goose-lean-astype`, on d7c7f6434): `errors.As` -> Go 1.26's `errors.AsType`, the
+        # modernize analyzer's errorsastype rewrite across the modules, and by hand where `As` is the
+        # first operand of an `&&` (fileutil's preallocExtend/preallocFixed, isSafeRetryImmutableRPC),
+        # so that those proofs use Perennial's proved `AsType` spec instead of its `errors.As` axiom.
+        rev="edc800c6f26223e2da34f874c0dad3e1b3c668b7",
         # grpc-go v1.84.0 (etcd's go.mod) from its model, models/grpc (the same API; its transport
         # and connection management replaced: models/README.md, "The grpc model"), so that grpc's
         # specs can be proved over the model's bodies (notes/phase7-plan.md, S0)
@@ -1953,7 +1958,8 @@ PROJECTS = [
         # kvcheck its linearizability checker over lintest. A Go module of its own, whose go.mod
         # replaces raft by `RAFT_NOAX_REV` (GO_MOD_PINS). Translated into the part KvNet
         # (notes/kvnet-part.md), whose raft, `net` and `durable` are the parts of projects
-        # raft-noax, net and durable translated into it; lintest and porcupine the main tree's.
+        # raft-noax, net and durable translated into it; lintest, porcupine and gokv's trusted_proph
+        # (kvcheck's `read` resolves its prophecy with `ResolveBytes`) the main tree's.
         repo=None,
         rev=None,
         local=os.path.join("examples", "raft", "kvnet"),
@@ -1961,7 +1967,8 @@ PROJECTS = [
         lean_roots=["github.com/mit-pdos/etcd-grove/examples/raft/kvnet=KvNet",
                     "github.com/mit-pdos/etcd-grove/examples/lib/durable=KvNet",
                     "github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=KvNet", "net=KvNet",
-                    "google.golang.org=", "github.com/anishathalye/porcupine=", "os=", "syscall=",
+                    "google.golang.org=", "github.com/anishathalye/porcupine=",
+                    "github.com/mit-pdos/gokv=", "os=", "syscall=",
                     "io/fs=", "internal/poll=", "internal/syscall=", "path/filepath=",
                     "internal/filepathlite="],
         # the store and its checker; not the commands (cmd/, driver/), which only run them
