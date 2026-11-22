@@ -53,18 +53,19 @@ theorem answerRes_app (L : List RpcReq) (r : RpcReq) (i : Nat)
 `ap`, its deposit `S M eb Φ` for a service of the address) to the connection: its half of the
 request list grows, and the request stream with the request's wire meets the protocol. -/
 theorem req_append (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames)
-    (L : List RpcReq) (sm svc M : GoString) (S : MethodSpec GF) (eb : List w8)
+    (L : List RpcReq) (i : Nat) (hi : L.length = i) (sm svc M : GoString) (S : MethodSpec GF) (eb : List w8)
     (Φ : List w8 → GoString → IProp GF) (post col ap : GName)
     (hL : ∀ r ∈ L, reqOk r) (hlen : L.length + 1 ≤ 2 ^ 64)
     (hsm : sm.length + 16 < 2 ^ 63) (heb : eb.length < 2 ^ 63)
     (hsv : splitSM sm = some (svc, M) ∧ W.SS a svc = some S) :
     isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗ £ 1 ∗
       monoListAuthOwn γ.reqs (1 : Qp).half L ∗
-      ghostMapElem γ.nm L.length .discard (post, col, ap) ∗ token ap ∗
+      ghostMapElem γ.nm i .discard (post, col, ap) ∗ token ap ∗
       savedPredOwn post .discard (fun p : List w8 × GoString => Φ p.1 p.2) ∗ S M eb Φ ⊢
     |={⊤}=> monoListAuthOwn γ.reqs (1 : Qp).half (L ++ [(sm, eb, post, col)]) ∗
       □ reqProto (Gg := hG.goose_globalGS) W a cn
-        (reqsWire L ++ reqWire (W64 L.length) sm eb) := by
+        (reqsWire L ++ reqWire (W64 i) sm eb) := by
+  subst hi
   iintro ⟨#Hrpc, Hlc, Hhalf, #Hnm, Hap, #Hpost, HS⟩
   ihave #Hrpc' := Hrpc
   iunfold isRpcConn at Hrpc'

@@ -36,7 +36,7 @@ abbrev Client.send.spec : Prop :=
     (K : Loc → IProp GF) (Φ : List w8 → GoString → IProp GF) (Rargs D : IProp GF)
     (Θ : List w8 → Bool → IProp GF) (C : CodecSpec GF) (e0 : GoInterface),
   {{ isClientN c W a γ ∗
-      ⌜splitSM sm = some (svc, M) ∧ W.SS a svc = some S ∧ reply ≠ interface.nil⌝ ∗
+      ⌜splitSM sm = some (svc, M) ∧ W.SS a svc = some S ∧ reply ≠ interface.nil ∧ pc ≠ null⌝ ∗
       codecSet C ∗ C.enc args (fun bs => iprop(S M bs Φ ∗ Rargs)) ∗ D ∗
       □ (D -∗ ∀ rep, C.dec rep reply (Θ rep)) ∗
       ghostMapAuth γt 1 (∅ : GMap Unit (Option Nat)) ∗

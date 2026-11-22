@@ -170,7 +170,7 @@ def callRes (γ : RpcConnNames) (s : w64) (pc : Loc) : IProp GF :=
     ticket γt (some (uint.nat s)) ∗ callDone γ γt sm args reply ch γf K Φ Θ D ∗
     savedPredOwn post .discard (fun p : List w8 × GoString => Φ p.1 p.2) ∗ token col ∗
     ghostMapElem γ.nm (uint.nat s) .discard (post, col, ap) ∗
-    D ∗ bodyDec C reply D Θ ∗ ⌜reply ≠ interface.nil⌝)
+    D ∗ bodyDec C reply D Θ ∗ ⌜reply ≠ interface.nil ∧ pc ≠ null⌝)
 
 /-! ## The client's invariants -/
 
