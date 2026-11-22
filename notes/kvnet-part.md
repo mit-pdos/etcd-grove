@@ -782,3 +782,32 @@ order follows the Go code):
 7. the post: `isNodeS` (the `Node` struct's fields, `rep r id` = `isRep` from `newReplica`'s `isReplicaR`,
    `isTransportCore`) and `kv_confLaw`.
 Then `Run`/`RunNode` need no change (they are generic in `S`); the top level instantiates `S := kvNodeStart γ vs`.
+
+## `StartNode` proved (2026-11-22, fourth session on `kvnet-proof`)
+
+`StartNode.wp_proof γ vs dir` (`StartNode.lean`): `StartNode.spec (kvFacts γ (fun _ => True)) (kvRep γ vs dir)
+kvConfRead (kvNodeStart γ vs dir)`, kvdurable's `Cluster.start` over the network, in the handoff's seven steps.
+No axiom or `sorry`. What changed on the way (each with a ledger entry of 2026-11-22):
+
+- **`ValidCluster` checks `MaxInflightMsgs < 2^62`** (the coordinator's decision: raft's `RestartNode` needs it,
+  `kvOptsOk`): Go (`addrs.go`), `validCluster`, the statement draft's `ClusterConfig.Ok`
+  (`notes/kvnet-robust-goal.md`); retranslated, `go test` passes.
+- **The transport takes no frame-length bound with a message** (`sendElem`, `qElem`): `run`'s messages carry no
+  size bound (`MaxSizePerMsg` is any `uint64`); `runPeer` gets `(encMsg st).length < 2^63` from `putMsg`'s slice.
+- **The wire reads a message's entries of any type** (new Go `getMsgEntry`, `MsgEntWf`; `MsgWf` weakened): raft's
+  API says nothing of a sent message's entries' types (a forwarded `MsgProp`'s are whatever `Propose` got), so
+  `MsgWf`'s `EntWf` was not derivable for `t.Send`'s messages. `getEntry` (the file's) keeps its check.
+- **`newReplica`'s post names its node** (`isNodeS` needs the replica's node to be the transport's).
+- `kvNodeStart γ vs dir0` takes the directory `kvRep` names (`⌜dir = dir0⌝`), and `kvStartGlobals` has
+  `γ.max < 2^32` (raft's ids `2^64-1`, `2^64-2` excluded); `kvPeerAddrs_persistent`.
+- New: `SendLemmas.lean` (`msgPtsC_lens`, `ownSnapM_wf`, `sentShape_known`, `sendElem_of_sent`, `kv_sendSpec`:
+  `t.Send` is `run`'s `sendSpec` from `Transport.Send.spec`), and in `StartLemmas.lean` kvdurable's storage
+  helpers (`startStor`, `kdImgOf`, `memLog_take_le`, ...), `kvCfgOk`, `qLogger_isLogger`, `tick_pos`. The KvNet
+  copies of `durable.Read`'s spec and kvreconf's `ClusterLemmas` (`etc/copy-part.py --part KvNet`).
+
+**Next** (the session's tasks 3-4, unchanged): kvcheck's `checker.conf` (a `GetStatus` spec on any bytes, as
+`GetConfChange`'s: the protocol puts no obligation on a status answer, so it needs any-bytes variants of
+`getConfState`/`getIDs` and `getMap`/`getBytes`, as `getUint64.specAny`; `conf`'s caller only stores `s.Conf`), `reconfigure` (`PutConfChange`: the payload bound, `randomChange`'s post), `Check` over lintest
+(kvdurable's `DriverLemmas`/`Run` are the template: the porcupine result from the lintest theory); then kvnet's
+`Link.lean`, the crash frame (the obligation's lemma: open `kdFileInvK` with `tk`, `durInv_crash`,
+`kd_boot_choose`, `kd_file_alloc`), `TopLevelRobustness`, the corollary, non-vacuity, a tcb collection.
