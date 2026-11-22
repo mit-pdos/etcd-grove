@@ -4,7 +4,8 @@
 
 `logkvrw_robust`, stated in
 `Spec/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvrw/TopLevelRobustness.lean`,
-from the example's closed theorem (`Adequacy.lean`).
+from the example's closed theorem along the execution's thread bound (`logkvrw_adequate_below`,
+`Adequacy.lean`).
 -/
 module
 
@@ -38,9 +39,9 @@ variable [go_gctx : GoGlobalContext]
 theorem logkvrw_robust : logkvrw_robust.spec := by
   intro lctx sem package_sem σ g
   exact
-    Robustness.Robust.of_single fun hf n κs t2 σ2 hn Hsteps =>
-      (logkvrw_adequate
-        σ g hf.1 hf.2.1 hf.2.2 n (by omega) κs t2 σ2 Hsteps).2
+    Robustness.Robust.of_single_below fun hf n κs t2 σ2 hn Hsteps =>
+      (logkvrw_adequate_below
+        σ g hf.1 hf.2.1 hf.2.2 (2 ^ 30) (Nat.le_refl _) n hn κs t2 σ2 Hsteps).2
 
 end adequacy
 end logkvrw

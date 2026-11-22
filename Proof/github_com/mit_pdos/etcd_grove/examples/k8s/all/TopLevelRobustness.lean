@@ -41,9 +41,9 @@ theorem k8s_robust : k8s_robust.spec := by
     Hlen Hbf k₂ hk₂1 hk₂ ids' ps' ctxs' boot' Hlen' Hbf' Hlow Haf Hbuq Hrf Hdbo clients ops watchers wops Hc0 Hw0
     Hc31 Hops Hwops Hmul steps₁ steps₂ Hsteps₁ Hsteps₂ HNs HAs HDs HEnv Hprem₁ Hprem₂ σ g Hfs HWal
   exact
-    Robustness.Robust.of_single fun hf n κs t2 σ2 hn hexec =>
-      (k8s_safe Hctx Hcec Hafter k₁ hk₁1 hk₁ ids ps ctxs boot Hlen Hbf k₂ hk₂1 hk₂ ids' ps' ctxs'
-        boot' Hlen' Hbf' Hlow Haf Hbuq Hrf Hdbo clients ops watchers wops Hc0 Hw0 Hc31 Hops Hwops Hmul steps₁ steps₂
+    Robustness.Robust.of_single_below fun hf n κs t2 σ2 hn hexec =>
+      (k8s_adequate_below Hctx Hcec Hafter k₁ hk₁1 hk₁ ids ps ctxs boot Hlen Hbf k₂ hk₂1 (by omega) ids'
+        ps' ctxs' boot' Hlen' Hbf' Haf Hbuq Hrf Hdbo clients ops watchers wops Hc0 Hw0 Hc31 Hops Hwops Hmul steps₁ steps₂
         Hsteps₁ Hsteps₂ HNs HAs HDs HEnv n (Hprem₁ n (by omega)) (Hprem₂ n (by omega)) σ g Hfs HWal
         hf.1 hf.2.1 hf.2.2 κs t2 σ2 hexec (by omega)).2
 
