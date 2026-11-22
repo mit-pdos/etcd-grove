@@ -2,7 +2,10 @@
 `lease.NewLessor(lg, b, cluster, cfg)` (`lessor.go`): names-only (it recovers the lessor from the
 backend and starts the lessor's loop). Lean-first (no Rocq counterpart); the server-construction
 unit, stage N0 (2026-10-16, D13: `notes/decisions.md`), for `NewServer`; an axiom at the trust
-boundary since unit N4 (2026-10-17, D14d/D14f/D14g), why it is true of the Go code below.
+boundary from unit N4 (2026-10-17, D14d/D14f/D14g) to prove-ps2-newlessor5 (2026-11-21), why it is true
+of the Go code below; now proved over the real code (`Proof/.../lease/NewLessor.lean` over `newLessor`),
+the expiry loop's payload `¬ leasesNoExpiry` resting on `Lease.expired`'s axiom
+(`notes/axiom-review/lease-expired-payload.md`).
 
 (mvccfull's Freeze, 2026-11-10) Over a `Lease` bucket holding records (a restart: a member's backend
 reopened on its file), for etcd's server restart (`notes/restart-plan.md`, R2d'b) and the tester
