@@ -115,7 +115,13 @@ their tests are unchanged. What sharing the cluster changes, and how the checks 
   mode's landings left out every revision a successful write had answered with, a no-op update's
   included. The eager mode now leaves out only those of Creates, Deletes and updates not asked to be
   no-ops (a write's own), and always tries the answer's own revision for the key; the history checks
-  in 0.6 s. A bug of this test's check, not of etcd or Kubernetes.
+  in 0.6 s. A bug of this test's check, not of etcd or Kubernetes. **Still open:** at 4 x 1500 ops
+  under 133 kills the lazy mode answered Illegal and the eager one ran out of its 5 minutes (no
+  verdict): a failed write that took effect, seen by its content and not its revision, may have
+  landed at any revision of the foreign gaps around it, every placement a configuration of its own
+  until a read tells them apart (17046 in one state of an earlier such history, at most four pending
+  writes). A canonical placement (as late as possible, unless a read inside the gap needs it
+  earlier) would close it; the dump replays it.
 - **Compacted errors.** The API server reads them off the store's own answer (`StoreOut.Compacted`:
   `apierrors.IsResourceExpired`, or a watch Error event with reason Expired; Kubernetes' etcd3 store
   maps etcd's `ErrCompacted` to those, `interpretListError`, `interpretWatchError`), whether or not
@@ -215,6 +221,31 @@ compactor API server answered every round (a 2-second network fault does not out
 minute). No Raw was flagged lost (`RawOK`) in the runs that reached Kubernetes' checker.
 Not exercised here: power losses (no device mapper), resets.
 
+**2026-11-22, one cluster** (branch `k8s-one-cluster`; this machine, the bridge variant, kills with
+sync, no power losses, no resets; three members). No machine panicked and no member exited on its
+own in any run; no compacted error came from an operation `PastRead`/`PinnedRead` does not cover
+after `PinnedRead` was added (one watch from the most recent revision before, above); no check
+answered Illegal. Kubernetes' checker ran in one `-short` deployment (the store finished between the
+compactor's writes) and was skipped in every other, saying why (a compacted error or a foreign
+revision).
+
+| Runs (the check's version) | Deployments | Store | Compactor | Faults | Compacted errors accepted |
+|---|---|---|---|---|---|
+| `-short` (3 x 30 ops; 2 rounds), all versions | 16 | 14 checked (1 by the model and Kubernetes' checker), 2 the watch panic above (before `PinnedRead`) | all checked | 1-3 kills each | 0-3 each |
+| 3 x (4 x 200 ops, 20 rounds), first version | 3 | 3/3 | 3/3 (100 logs each) | 31 kills, 18 partitions, 9 link faults | 13, 26, 21 |
+| 4 x 800 ops, 150-200 rounds, versions 1-2 | 9 | 6 checked, 3 timed out (118-132 kills) | 9/9 | 31-132 kills each | 43-82 each |
+| 4 x 1500 ops, 200 rounds, version 2 | 3 | 1 checked, 2 timed out (126, 130 kills) | 3/3 | 57-130 kills | 118-132 each |
+| 3 x (4 x 200), 3 x (4 x 800, 150 rounds), version 3 before the landing fix | 6 | 4 checked, 2 timed out (125 kills each; the eager mode's wrong Illegal, above) | 6/6 | 6-125 kills | 10-73 each |
+| 3 x (4 x 1500, 200 rounds), final | 3 | 2 checked, 1 timed out (133 kills) | 3/3 (1000 logs each) | 44, 59, 133 kills; 143 partitions, 60 link faults | 100, 107, 114 |
+
+Versions: 1 the first `SharedModel` (`ddffd7f60b`), 2 its first speed-ups (`a08213aa95`), 3 the
+three modes and the indexed watch check (never committed alone), final with the landing fix
+(`ef5b83bec3`). Replays of the dumped histories with the final check: the three 4 x 800 histories of the run before
+the fix (one of them a timeout) check in 0.03-0.6 s, each with a corrupted Get rejected in every mode
+and every watch step cross-checked (`DIST_CROSS`). Across the runs, 10 to 132 compacted errors per
+long deployment, all on Lists at an explicit old revision but 0-2 on watches (`PinnedRead`).
+Nothing for `issues/` or `nonissues/`: the one failure found was this test's own check.
+
 ## Open decisions
 
 1. **The DaemonSet controller** runs over the model API server, not etcd: left out (above). Putting
@@ -224,7 +255,16 @@ Not exercised here: power losses (no device mapper), resets.
 3. **Compactor rounds** repeat the driver's run (fresh compactors) so that faults meet it; the
    driver's statement has one. A Lean statement over this deployment would take `Rounds` or fix 1.
 4. **Kubernetes' checker under faults** runs only on failure-free histories (upstream's), so the long
-   runs are checked by the driver's model only.
+   runs are checked by the driver's model only. On one cluster it also needs no foreign revision and
+   no compacted error, so it does not run once the compactor writes during the store's run: a model
+   of its own with foreign revisions would be a change to the maintainers' code.
+6. **One cluster or two.** The test has one cluster (the user's decision); `k8s_all`'s program and
+   `k8s_safe` keep two. A Lean statement over this deployment would state the store's correctness
+   against `SharedModel` (foreign revisions, compacted errors on old-revision reads), not `Model`.
+7. **Where a compacted error is accepted**: at an explicit old revision (`PastRead`) and at one the
+   store fixed itself (`PinnedRead`: paged Lists, every watch). The second goes past "explicit old
+   revision" because a watch from the most recent revision was compacted in an early `-short` run
+   (the store's own read of the current revision, then a kill delaying the watch).
 5. Lean: none started. A statement over this deployment (as `etcd_dist_safe`'s) would need D2
    (`net` for clientv3 in `Net/`) and a `Report`/`Do` instance per workload (the codecs' `wireOk`,
    the store's `opMaybe` from the driver's call spec), as D8's kv.
