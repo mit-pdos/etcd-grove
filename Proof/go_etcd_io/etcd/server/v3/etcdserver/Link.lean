@@ -384,6 +384,7 @@ public import Proof.github_com.prometheus.client_golang.prometheus.CounterVec__W
 public import Proof.github_com.prometheus.client_golang.prometheus.GaugeVec__With
 public import Proof.github_com.prometheus.client_golang.prometheus.GaugeVec__WithLabelValues
 public import Proof.github_com.prometheus.client_golang.prometheus.HistogramVec__WithLabelValues
+public import Proof.github_com.prometheus.client_golang.prometheus.gauge__Set
 public import Proof.google_golang_org.protobuf.proto.MarshalAppendPb
 public import Proof.google_golang_org.protobuf.proto.MarshalIRR
 public import Proof.google_golang_org.protobuf.proto.MarshalPb
@@ -1302,9 +1303,13 @@ theorem membership.RaftCluster.wp_ValidateConfigurationChange :
     membership.RaftCluster.ValidateConfigurationChange.spec (GF := GF) (hG := hG) :=
   membership.RaftCluster.ValidateConfigurationChange.wp_proof encoding.json.wp_Unmarshal raftpb.ConfChange.wp_GetNodeId raftpb.ConfChange.wp_GetType
 
+theorem prometheus.gauge.wp_Set :
+    prometheus.gauge.Set.spec (GF := GF) (hG := hG) :=
+  prometheus.gauge.Set.wp_proof
+
 theorem membership.RaftCluster.wp_updateMembershipMetric :
     membership.RaftCluster.updateMembershipMetric.spec (GF := GF) (hG := hG) :=
-  membership.RaftCluster.updateMembershipMetric.wp_proof
+  membership.RaftCluster.updateMembershipMetric.wp_proof types.ID.wp_String_ptr prometheus.GaugeVec.wp_WithLabelValues prometheus.gauge.wp_Set
 
 theorem membership.wp_setIsLearnerMetric :
     membership.setIsLearnerMetric.spec (GF := GF) (hG := hG) :=

@@ -941,6 +941,44 @@ noncomputable def RaftCluster.IsMemberExist.impl [GooseExts] [GoGlobalContext] :
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType RaftCluster.ty) go!"Lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))) (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
+/-- updateMembershipMetric updates the knownPeers metric to indicate that
+    the given peer is now (un)known.
+
+    go: cluster.go:861:23 -/
+noncomputable def RaftCluster.updateMembershipMetric.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam "peer"
+  (Lam "known"
+  (Seq (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))
+  (Let "known" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "known"))
+  (Let "peer" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Var "peer"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 0))
+  (Let "v" (App (Val (GoInstruction (GoAlloc go.float64))) (App (Val (GoInstruction (GoZeroVal go.float64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.float64))) (Var "v"))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty go!"Set"))) (Let "$a0" (Let "$sl0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty) go!"String"))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"localID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c")))) (Val #()))
+  (Let "$sl1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty) go!"String"))) (Var "peer")) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$sl0"))), (KeyedElement none (ElementExpression go.string (Var "$sl1")))]))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeVec.ty) go!"WithLabelValues"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeVec.ty)))) (App (Val (GoInstruction (GlobalVarAddr knownPeers))) (Val #())))) (Var "$a0")))) (Var "$a0"))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "known"))
+  (Let "$r0" (Val #(W64 4607182418800017408))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.float64))) (Pair (Var "v") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.float64))) (Pair (Var "v") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"localID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c")))) (Val #(W64 0)))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))))
+  (Val #())))))
+
 /-- go: member.go:90:18 -/
 noncomputable def Member.Clone.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
@@ -1055,6 +1093,20 @@ noncomputable def MembersByID.Swap.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Member.ty)))) (Pair (Var "$l0") (Var "$r0")))))))))))))
   (Val #())))))
+
+/-- go: metrics.go:46:6 -/
+noncomputable def setIsLearnerMetric.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Seq (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Member.ty)))) (Var "m"))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef RaftAttributes.ty go!"IsLearner"))) (App (Val (GoInstruction (StructFieldRef Member.ty go!"RaftAttributes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Member.ty)))) (Var "m")))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(W64 4607182418800017408))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty go!"Set"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty))) (App (Val (GoInstruction (GlobalVarAddr isLearner))) (Val #())))) (Var "$a0"))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(W64 0))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty go!"Set"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty))) (App (Val (GoInstruction (GlobalVarAddr isLearner))) (Val #())))) (Var "$a0")))))))
+  (Val #())))
 
 /-- go: metrics.go:54:6 -/
 noncomputable def init.«0».impl [GooseExts] [GoGlobalContext] : val :=
@@ -1328,6 +1380,7 @@ class RaftCluster.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   ptr_Unlock_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"Unlock" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"Mutex"))) (Var "$r"))))
   ptr_ValidateConfigurationChange_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"ValidateConfigurationChange" RaftCluster.ValidateConfigurationChange.impl
+  ptr_updateMembershipMetric_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"updateMembershipMetric" RaftCluster.updateMembershipMetric.impl
 
 attribute [instance] RaftCluster.TypeAssumptions.type_repr
   RaftCluster.TypeAssumptions.underlying
@@ -1367,6 +1420,7 @@ attribute [instance] RaftCluster.TypeAssumptions.type_repr
   RaftCluster.TypeAssumptions.ptr_SetVersionChangedNotifier_unfold
   RaftCluster.TypeAssumptions.ptr_Unlock_unfold
   RaftCluster.TypeAssumptions.ptr_ValidateConfigurationChange_unfold
+  RaftCluster.TypeAssumptions.ptr_updateMembershipMetric_unfold
 
 structure RaftAttributes [GooseExts] where
   mk ::
@@ -1703,6 +1757,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   ClusterVersionBackend_instance : ClusterVersionBackend.TypeAssumptions
   MemberBackend_instance : MemberBackend.TypeAssumptions
   DowngradeInfoBackend_instance : DowngradeInfoBackend.TypeAssumptions
+  setIsLearnerMetric_unfold : FuncUnfold setIsLearnerMetric [] setIsLearnerMetric.impl
   «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   import_json_Assumption : _root_.Perennial.encoding.json.Assumptions
   import_sort_Assumption : _root_.Perennial.sort.Assumptions
@@ -1731,6 +1786,7 @@ attribute [instance] Assumptions.RaftCluster_instance
   Assumptions.ClusterVersionBackend_instance
   Assumptions.MemberBackend_instance
   Assumptions.DowngradeInfoBackend_instance
+  Assumptions.setIsLearnerMetric_unfold
   Assumptions.«init.0_unfold»
   Assumptions.import_json_Assumption
   Assumptions.import_sort_Assumption

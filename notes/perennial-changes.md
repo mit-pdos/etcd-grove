@@ -17,6 +17,18 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `float64(c)` of an untyped integer constant did not step; prometheus's metric methods need `math.Float64bits` (2026-11-22, prove-ps2-metrics, claim #18)
+
+- **Limitation.** goose emits `Convert go.untypedInt go.float64` for a unary untyped-integer constant in a
+  float context (`g.Add(-1)` in `gauge.Dec`, `val * -1` in `gauge.Sub`), and `Float64Semantics` had no rule
+  for it: the translation was stuck. `gauge.Set`/`Add`/`Sub` and `counter.Add` call `math.Float64bits`/
+  `Float64frombits`, names-only at the pin.
+- **Work-around here.** None: the branch `prove-ps2-metrics/2026-11-22` is built against the pin's base plus
+  #675 plus the rule (`/shared/tmp/ps2/metrics/perennial`, branch `metrics-combo`), and waits for both.
+- **Proposed (general).** mit-pdos/perennial#682 (`convert_untyped_int_to_float64`, a sibling of the integer
+  conversions; fix-semantics Case 40's shape) and mit-pdos/perennial#675 (the bit casts). **Status.** In review;
+  then a pin bump.
+
 ### The robustness theorems' standard-library leaf axioms: what the pinned Perennial lacks (2026-11-21, claim #26, branch `prove-stdlib-leaves/2026-11-21`)
 
 - **Done here, no Perennial change.** `bufferM.ownBuffer_new` is a theorem, `ownBuffer` a definition

@@ -1,0 +1,3 @@
+# Names only (prove-ps2-metrics, 2026-11-22): the type of prometheus's metrics' `labelPairs`.
+translate = ["!*"]
+imports = ["!*"]

@@ -4555,3 +4555,25 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Evidence.** `checker__randomChange.lean` (the loop's invariant), `ConfCodec.lean`.
 - **Proposed change.** As above (a stronger post).
 - **Decision.** Applied.
+
+## 2026-11-22: prometheus's `NewGauge` returns a representation, not method triples (prove-ps2-metrics)
+
+- **Spec.** `prometheus.NewGauge.spec`'s post: `metric.gaugeSpec g ∗ metric.gaugeSetSpec g` becomes
+  `metric.isGauge g` (a `*gauge` whose `valBits` is in an invariant, `MetricRep.lean`). `GaugeVec.WithLabelValues.spec`'s
+  post gains `metric.isGauge gi` (additive, before the slice's points-to: every caller's pattern ends in `-`).
+  `mvccInit` gains `totalEventsCounter`'s `counterSpec` and `pendingEventsGauge`'s `isGauge` (in its last
+  conjunct); `membershipInit` gains `isLearner`'s `gaugeSetSpec` and `knownPeers`' label names (two conjuncts
+  at the end: `PromoteMember`'s and `ValidateConfigurationChange`'s patterns gain a `-`).
+- **Defect.** None false: the posts claimed the methods' behaviour (trusted), and lacked what `Sub` (on
+  `pendingEventsGauge`) and the vector gauge's `Set` (`knownPeers`) need, so `ReportEventReceived`,
+  `setIsLearnerMetric` and `updateMembershipMetric` stayed axioms.
+- **Evidence.** client_golang v1.24.1: `NewGauge` and `GaugeVec`'s `newMetric` return `&gauge{...}`,
+  and `valBits` is only accessed through `sync/atomic`. The methods (`gauge.{Set,Add,Sub,Inc,Dec}`) are
+  translated and proved over their bodies; `metric.gaugeSpec_of_isGauge`, `gaugeSetSpec_of_isGauge`
+  (`MetricLaws.lean`) recover the old claims, applied by `etc/gen-init.py`'s `metric_steps`. (`NewCounter`
+  unchanged: `counter`'s struct needs `timestamppb` translated, whose names-only initializer would add two
+  trust-boundary axioms, more than `counter.Add`/`Inc`'s proofs would remove.)
+- **Proposed change.** As above; agreed with kaashoek's prom-registry on #15 (2026-11-22).
+- **Decision.** Applied. Trust: the constructors' axioms claim less (a representation instead of method
+  triples); three etcd axioms retired, two added (`client_model/go`'s `opaqueInitsOk`/`initFuncsOk`: the
+  package now imported for `gauge`'s `labelPairs`): net -1.

@@ -202,7 +202,7 @@ def register(cfg, p, regs):
         if x not in b:
             continue
         for i, l in enumerate(b[x]):
-            for a, z in [(f'⟨#C{x}, -⟩', f'⟨#C{x}, %{n}⟩'), (f'⟨#C{x}, #D{x}, -⟩', f'⟨#C{x}, #D{x}, %{n}⟩'),
+            for a, z in [(f'⟨#C{x}, -⟩', f'⟨#C{x}, %{n}⟩'), (f'⟨#R{x}, -⟩', f'⟨#R{x}, %{n}⟩'),
                          (f'⟨#L{x}, -⟩', f'⟨#L{x}, %{n}⟩')]:
                 l = l.replace(a, z)
             b[x][i] = l
@@ -889,7 +889,22 @@ def _walErrVar(x, tag):
 # options literal (a histogram's buckets `ExponentialBuckets(start, 2, n)`), over prometheus's
 # constructor specs; the steps before its store (`before`, keyed by the variable)
 PROM_CTORS = [f'Proof.github_com.prometheus.client_golang.prometheus.{f}'
-              for f in ['NewCounter', 'NewGauge', 'NewHistogram', 'ExponentialBuckets']]
+              for f in ['NewCounter', 'NewGauge', 'NewHistogram', 'ExponentialBuckets',
+                        # (prove-ps2-metrics, 2026-11-22) `NewGauge` returns `isGauge`; the methods'
+                        # triples come from their proofs, through these laws
+                        'MetricLaws', 'gauge__Set', 'gauge__Add', 'gauge__Inc', 'gauge__Dec']]
+
+_PM = 'EtcdGrove.prometheus'
+def gauge_rep(c, h):
+    """After `NewGauge` (`#R<h> : isGauge <c>`): `#C<h> : metric.gaugeSpec <c>` and
+    `#D<h> : metric.gaugeSetSpec <c>`, from the methods' proofs (prove-ps2-metrics, 2026-11-22)."""
+    a = f'{_PM}.gauge.Add.wp_proof'
+    return [f'ihave #C{h} : ({_PM}.metric.gaugeSpec {c} : IProp GF) $$ []',
+            f'· iapply {_PM}.metric.gaugeSpec_of_isGauge ({_PM}.gauge.Inc.wp_proof {a}) ({_PM}.gauge.Dec.wp_proof {a}) {a}',
+            '  all_goals iassumption',
+            f'ihave #D{h} : ({_PM}.metric.gaugeSetSpec {c} : IProp GF) $$ []',
+            f'· iapply {_PM}.metric.gaugeSetSpec_of_isGauge {_PM}.gauge.Set.wp_proof',
+            '  all_goals iassumption']
 
 def metric_steps(x, kind):
     P = 'EtcdGrove.prometheus'
@@ -897,8 +912,8 @@ def metric_steps(x, kind):
         return [f'wp_apply {P}.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %c{x} ⟨#C{x}, -⟩',
                 'try wp_auto']
     if kind == 'gauge':
-        return [f'wp_apply {P}.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %c{x} ⟨#C{x}, #D{x}, -⟩',
-                'try wp_auto']
+        return ([f'wp_apply {P}.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %c{x} ⟨#R{x}, -⟩'] +
+                gauge_rep(f'c{x}', x) + ['try wp_auto'])
     assert kind == 'hist'
     return [f'wp_apply {P}.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %b{x} B{x}',
             'try wp_auto',
@@ -1706,7 +1721,9 @@ trust-boundary axiom `ClusterVersionMetrics_init`).''',
     before={x: ['try wp_auto', f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{x} #M{x}']
             for x in _MEMBERSHIP_ERRS},
     finish=['ipersist HClusterVersionMetrics'] +
-        [f'ipersist H{x}' for x in _MEMBERSHIP_ERRS] + FIN_PRE[:6] +
+        [f'ipersist H{x}' for x in _MEMBERSHIP_ERRS] +
+        # (prove-ps2-metrics, 2026-11-22) the membership writers' metrics, in the fact
+        ['ipersist HisLearner', 'ipersist HknownPeers'] + FIN_PRE[:6] +
         ['try (isplitl []; · (imodintro; itrivial))', 'imodintro',
          'unfold membershipInit membershipErrMsgs',
          'simp only [EtcdGrove.errorsNewVars, EtcdGrove.errorsNewVar]',
@@ -2691,6 +2708,8 @@ WatchableKV = (*watchableStore)(nil)`) are translated too (until then the trust-
             **{x: gaugefunc_steps(x) for x in _MV_GFUNC}},
     finish=([f'ipersist H{x}' for x in _MV_ERR] +
             [f'ipersist H{x}' for x in list(_mv_custom)] + [f'ipersist H{x}' for x, _ in _MV_METRICS] +
+            # (prove-ps2-metrics, 2026-11-22) `ReportEventReceived`'s counter, in the fact's last conjunct
+            ['ipersist HtotalEventsCounter'] +
             ['ipersist HdefaultCompactionBatchLimit', 'ipersist HdefaultCompactionSleepInterval'] +
             ['ipersist HchanBufLen', 'ipersist HmaxWatchersPerSync', 'ipersist HwatchResyncPeriod',
              'ipersist HwatchBatchMaxRevs', 'ipersist HrestoreChunkKeys',
