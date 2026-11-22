@@ -1,7 +1,11 @@
 /-
 The trust boundary: `(*rate.Limiter).Wait` (`golang.org/x/time/rate` is names-only).
-(prove-metrics3, 2026-11-21) Not provable over the real code yet: the token bucket (`reserveN`) negates a
-`float64` (`-tokens`), which Perennial's semantics does not step (`notes/perennial-changes.md`).
+(prove-metrics3, 2026-11-21) Not provable over the real code then: the token bucket (`reserveN`) negates a
+`float64` (`-tokens`), which Perennial's semantics did not step. (prove-metrics-float, 2026-11-22) The
+bucket is now proved (`rate.Limiter.reserveN.wp_proof`, over Perennial's IEEE 754 floats); what keeps
+`Wait` an axiom is the rest of `wait` (`rate.go:262-316`), none of it float-dependent but `CancelAt`:
+`fmt.Errorf` (rate would import `fmt`), the non-blocking and blocking `select`s on `ctx.Done()`, the
+timer closure, and `Reservation.CancelAt` (the limiter's mutex through the reservation's `lim`).
 -/
 module
 
