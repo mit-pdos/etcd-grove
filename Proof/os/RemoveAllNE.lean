@@ -46,6 +46,23 @@ theorem rmdir_isVal {k : Nat} {p : GoString}
   obtain ⟨p', k', s0, hv, htn, hcall, hr⟩ := hst
   rcases hr with ⟨-, -, -, -, -, ⟨-, rfl⟩ | ⟨-, -, rfl, -⟩⟩ | ⟨-, -, rfl, -⟩ <;> exact ⟨_, rfl⟩
 
+/-- A step of `open(2)` returns a value. -/
+theorem open_isVal {k : Nat} {p : GoString} {fl : w64}
+    {h : GMap Loc (NonAtomic val)} {st : OsState} {g : Unit} {e' : Expr}
+    {h' : GMap Loc (NonAtomic val)} {st' : OsState} {g' : Unit}
+    (hs : S.step "Open" (PairV (osTokV k) (PairV (#p) (#fl))) h st g e' h' st' g') :
+    ∃ fd e : w64, e' = osRes (#fd) e := by
+  have hst := (fsStepV_of_ne (by decide) (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ hs)).1
+  simp only [IsFsStep] at hst
+  rcases hst with ⟨p1, fl1, t1, s1, hv1, htp1, hfl1, hc1, htr1, hr⟩ |
+    ⟨p1, fl1, t1, s1, hv1, hn1, ha1, hro1, hc1, hr⟩
+  · rcases hr with ⟨-, -, fd, -, -, -, rfl⟩ | ⟨e, -, -, rfl, -⟩
+    · exact ⟨_, _, rfl⟩
+    · exact ⟨_, _, rfl⟩
+  · rcases hr with ⟨fd, -, -, rfl⟩ | ⟨e, -, -, rfl⟩
+    · exact ⟨_, _, rfl⟩
+    · exact ⟨_, _, rfl⟩
+
 end step
 
 section specs
@@ -206,6 +223,40 @@ theorem wp_osRmdirSGW (R : Roots) (d b : GoString) (j J : Ino) (dq : DFrac) (h h
   iintro %e Hperm Hg Hp HJ Hres %hw
   iapply HΦ $$ %e [] Hperm Hg Hp HJ Hres
   ipureintro; intro hne; exact go.intoVal_inj (hw hne)
+
+/-- **`open(2)` read-only of the directory `p`** (a spine to it), `wp_osOpenDirS` with its errno
+witnessed: 0 or `EINTR` when the file system does not fail on `p`. -/
+theorem wp_osOpenDirSW (R : Roots) (p : GoString) (j : Ino) (dq : DFrac) (k s0 : Nat) (q : Qp)
+    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R p dq j -∗
+      osCallS (L := L) k s0 p q -∗
+      (∀ fd : w64, ∀ e : w64, ⌜(e = 0 ∧ 0 ≤ fd.toInt) ∨ (e ≠ 0 ∧ e ≠ ENOENT ∧ fd = -1)⌝ -∗
+        ⌜FsNoErrAt p → e = 0 ∨ e = EINTR⌝ -∗
+        osCallPerm (L := L) (callKey R p) q -∗
+        osPathS (L := L) R p dq j -∗ (⌜e = 0⌝ -∗ osDirFdS (L := L) fd j .idle) -∗
+        Φ (PairV (#fd) (#e))) -∗
+      WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#p) (#flRO))))) @ s; E
+        {{ Φ }} := by
+  iintro #Hinv #Hsi Hp Hk HΦ
+  iapply wp_fs_postSh "Open" _ (by simp [val.isPanic]) R (osPathS (L := L) R p dq j)
+    (fun st => st.lookup p = some (.dir j))
+    (fun st Γn hR hcoh => by
+      iintro HA Hp
+      icases osPathS_lookup hR hcoh p dq j $$ HA Hp with %h1
+      ipureintro; exact h1)
+    (fun w => FsNoErrAt p → ∀ fd e : w64, w = PairV (#fd) (#e) → e = 0 ∨ e = EINTR)
+    (fun _ st _ e' _ _ _ hP _ _ hst => by
+      obtain ⟨fd, e, he⟩ := open_isVal hst
+      refine ⟨_, he, fun hne fd' e2 hw => ?_⟩
+      have := openDir_noErrAt hne hP hst fd e he
+      have h2 : e2 = e := by injection hw with _ hw; exact (go.intoVal_inj hw).symm
+      rw [h2]; exact this)
+    hE' Φ $$ Hsi Hp
+  iintro Hp
+  iapply wp_osOpenDirS R p j dq k s0 q hE hE' _ $$ Hinv Hsi Hp Hk
+  iintro %fd %e %hres Hperm Hp Hfd %hw
+  iapply HΦ $$ %fd %e %hres [] Hperm Hp Hfd
+  ipureintro; exact fun hne => hw hne fd e rfl
 
 end specs
 
