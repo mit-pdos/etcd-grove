@@ -250,6 +250,9 @@ SEM_PREMISES = [
     # (client-go's work queue) `float64(n)` of an untyped integer constant
     # (`Proof/k8s_io/client_go/util/workqueue/UntypedIntToFloat.lean`)
     "EtcdGrove.UntypedIntToFloat64Semantics",
+    # (net-swap, 2026-11-22) the net extension's `net`'s hand-stated field facts (`Net/TrustedCode/net.lean`),
+    # which Net's `Listen` spec takes (`Proof/net/Listen.lean`)
+    "_root_.Perennial.net.FieldAssumptions",
 ]
 
 # The Lean-first links: (callee list, what the links open, the package assumptions they

@@ -25,7 +25,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : _root_.Perennial.net.Assumptions]
-variable [field_sem : _root_.Perennial.net.FieldAssumptions]
+variable [_root_.Perennial.net.FieldAssumptions]
 
 theorem net.Listen.wp_proof
     (wp_Listen : ∀ [HasExt netExt], _root_.Perennial.net.Listen.spec (GF := GF) (hG := hG)) :
