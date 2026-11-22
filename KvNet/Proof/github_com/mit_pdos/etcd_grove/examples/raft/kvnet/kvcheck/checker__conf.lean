@@ -25,7 +25,7 @@ open Iris Iris.BI Iris.ProofMode Net raft_kvnet go_etcd_io.raft.v3
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF] [NetProtoGS]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [NetProtoGS]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.Assumptions]
 variable [field_sem : net.FieldAssumptions]
@@ -76,16 +76,14 @@ theorem checker.conf.wp_proof (wp_randomID : checker.randomID.spec (GF := GF) (h
   try wp_auto
   wp_apply sync.Mutex.wp_Lock _ _ $$ [$Hmu] as ⟨Hlocked, HL⟩
   iunfold checkerInv at HL
-  icases HL with ⟨%a, %b, %Ma, %Mb, %lc, %cs0, Hop, Hrd, Hlc, -, HMa, HMb, %HLe⟩
+  icases HL with ⟨%a, %b, %lc, %cs0, Hop, Hrd, Hlc, -, HMa, HMb⟩
   try wp_auto
   wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked Hop Hrd Hlc HMa HMb]
   · inext
     iunfold checkerInv
-    iexists a, b, Ma, Mb, st.Conf', cs
+    iexists a, b, st.Conf', cs
     iframe
-    isplitr
-    · unfold csOpt; iright; iexact Hcs'
-    ipureintro; exact HLe
+    unfold csOpt; iright; iexact Hcs'
   try wp_auto
   iapply HΦ
   iexists cs
