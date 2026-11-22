@@ -150,7 +150,7 @@ instance isPeers_persistent F t : Persistent (isPeers (GF := GF) F t) := by
 
 /-- A nonblocking send of `v` on a bag channel, with `P v` (the select's send case: it fires only
 when the value fits in the buffer or a receiver waits). -/
-theorem bag_nb_send_au {V : Type} [Pos.Countable V] [ZeroVal V] [TypedPointsto (GF := GF) V]
+theorem queue_nb_send_au {V : Type} [Pos.Countable V] [ZeroVal V] [TypedPointsto (GF := GF) V]
     (γ : ChanNames) (ch : Loc) (P : V → IProp GF) (v : V) (Φ : IProp GF) :
     ⊢ isChanBag γ ch P -∗ P v -∗ Φ -∗ nonblockingSendAuInner γ v Φ := by
   rw [isChanBag_unseal]; unfold isChanBagDef nonblockingSendAuInner
