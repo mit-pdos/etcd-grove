@@ -94,6 +94,10 @@ theorem Codec.wp_proof : Codec.spec (GF := GF) (hG := hG) := by
 theorem Gen.wp_proof : Gen.spec (GF := GF) (hG := hG) := by
   sorry
 
+/-- **porcupine's model is the pending-writes model** of the far side's store `woR Γ`. -/
+theorem woS_pendDec (Γ : Names) : PendDec (woR (Gg := hG.goose_globalGS) Γ) (woS (GF := GF)) := by
+  sorry
+
 theorem Server.wp_proof (wp_RunServer : RunServer.spec (GF := GF) (hG := hG)) :
     Server.spec (GF := GF) (hG := hG) := by
   intro Γ id hid
@@ -111,6 +115,14 @@ theorem Server.wp_proof (wp_RunServer : RunServer.spec (GF := GF) (hG := hG)) :
   · iframe Hpx Hsl Hprotos Hst
   exact hf.elim
 
+theorem pendCtx_woS (Γ : Names) (γp : PendNames) :
+    pendCtx (Gg := hG.goose_globalGS) (woR Γ) (woS0 (GF := GF)) γp =
+      pendCtx (Gg := hG.goose_globalGS) (woR Γ) (woS (GF := GF)) γp := rfl
+
+theorem pendLib_woS (γp : PendNames) :
+    pendLib (Gg := hG.goose_globalGS) (woS0 (GF := GF)) γp (woS0 (GF := GF)).M.init =
+      pendLib (Gg := hG.goose_globalGS) (woS (GF := GF)) γp (woS (GF := GF)).M.init := rfl
+
 theorem Orch.wp_proof (wp_Model : Model.spec (GF := GF) (hG := hG))
     (wp_Codec : Codec.spec (GF := GF) (hG := hG))
     (wp_Gen : Gen.spec (GF := GF) (hG := hG))
@@ -119,6 +131,7 @@ theorem Orch.wp_proof (wp_Model : Model.spec (GF := GF) (hG := hG))
       (St := Option GoString) (I := BStr) (O := BStr)) :
     Orch.spec (GF := GF) (hG := hG) := by
   intro Γ γp hrb
+  rw [pendCtx_woS, pendLib_woS]
   wp_start as ⟨#Hra, #Hmap, #Hpend, Hlib⟩
   ihave #Hcc : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init

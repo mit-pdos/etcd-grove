@@ -148,6 +148,15 @@ def woDec (io : OpV) : Option (BStr × linkv.Ans BStr) :=
     some (i, if u then .err else .ok w)
   else none
 
+/-- **The register's porcupine model**, as the pending library's invariant sees it (its sequential
+model only: `pendCtx` and `pendLib` name nothing else, and they are made at the start, before any
+machine's heap): `pSeq woB` through `woDec`. -/
+def woS0 {GF : BundledGFunctors} : ModelSpec GF (linkv.PSet (Option GoString) BStr) where
+  M := linkv.pM woB woDec
+  rep _ _ _ := iprop(True)
+  ioOk i o := iprop(⌜(∃ x : BStr, i = strV x.1) ∧ ∃ (u : Bool) (w : BStr), o = outV u w.1⌝)
+  ioOk_pers _ _ := by infer_instance
+
 end model
 
 section spec
@@ -164,10 +173,10 @@ def woRep (k : Nat) (v : GoInterface) (s : linkv.PSet (Option GoString) BStr) : 
 
 /-- **The register's porcupine model** (pending proposals): `pSeq woB` through `woDec`. -/
 def woS : ModelSpec GF (linkv.PSet (Option GoString) BStr) where
-  M := linkv.pM woB woDec
+  M := (woS0 (GF := GF)).M
   rep k v s := woRep k v s
-  ioOk i o := iprop(⌜(∃ x : BStr, i = strV x.1) ∧ ∃ (u : Bool) (w : BStr), o = outV u w.1⌝)
-  ioOk_pers _ _ := by infer_instance
+  ioOk := (woS0 (GF := GF)).ioOk
+  ioOk_pers := (woS0 (GF := GF)).ioOk_pers
 
 end spec
 
@@ -214,8 +223,8 @@ abbrev Orch.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) kpkg ∗
       ([∗list] a ∈ clientAddrs, remoteAddr (Gg := hG.goose_globalGS) (woR Γ) a) ∗
       mapCtx (Gg := hG.goose_globalGS) (I := BStr) ∗
-      pendCtx (Gg := hG.goose_globalGS) (woR Γ) (woS (GF := GF)) γp ∗
-      pendLib (Gg := hG.goose_globalGS) (woS (GF := GF)) γp (woS (GF := GF)).M.init }}
+      pendCtx (Gg := hG.goose_globalGS) (woR Γ) (woS0 (GF := GF)) γp ∗
+      pendLib (Gg := hG.goose_globalGS) (woS0 (GF := GF)) γp (woS0 (GF := GF)).M.init }}
     (App (Val (@! github_com.xiang90.paxos.examples.paxosnet.Orch)) (Val #()))
   {{ RET #(); True }}
 
