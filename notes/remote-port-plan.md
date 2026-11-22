@@ -483,7 +483,15 @@ whose write fired at the server).
   instance address of its own protocol is future work. No generic boot lemmas: each node's WP is the
   instance's (`Check.spec`, `ServeClient.spec`, `Serve.spec` at its `main`).
 
-No axiom, no `sorry`, no change to the net extension or Perennial.
+- `Link.lean`: every function linked (`wp_Check`, `wp_ServeClient`, `wp_Serve`, `wp_Do`, ...);
+  `#print axioms` of each, and of `remote_robust` and `pend_choice`: `propext`, `Classical.choice`,
+  `Quot.sound` only. Its section takes `[NaInvG GF]` (porcupine's, through perclient).
+- `Run.spec`/`Check.spec` take `∀ st, Timeless (R.sysState st)`: node 0's invariant is opened inside
+  `lin` and in `readNoop` (persistent), where no later credit is at hand. The counter's state (a ghost
+  variable) and etcd's KV are timeless.
+
+No axiom, no `sorry`, no change to the net extension or Perennial. (A Perennial tactic gap found on the
+way: `notes/perennial-changes.md`, 2026-11-22, `wp_apply`'s silent `sorry`.)
 
 ## R4: the proposed statement (waiting for the coordinator)
 
