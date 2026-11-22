@@ -309,7 +309,6 @@ axiom v3rpc.codec_proto
 axiom v3rpc.ctxCauseOk_cancellable
 axiom v3rpc.logUnaryRequestStats.wp_proof
 axiom verifyEnvOff
-axiom waitRetryBackoff.wp_proof
 axiom withVersion.wp_proof
 axiom zap.Logger.Fatal.wp_proof
 axiom zap.Logger.Panic.wp_proof

@@ -25,6 +25,7 @@ axiom encoding.json.Marshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom envVerifyOffTok
 axiom errors.AsNoMatch.wp_proof
+axiom errors.IsDeadlineExceeded.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
@@ -100,7 +101,6 @@ axiom tracing.Start.wp_proof
 axiom v3rpc.pbWatchRequestT_reg
 axiom v3rpc.pbWatchResponseT_reg
 axiom wait.Jitter.wp_proof
-axiom waitRetryBackoff.wp_proof
 axiom withVersion.wp_proof
 axiom zap.Logger.check.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof

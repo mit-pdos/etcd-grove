@@ -188,8 +188,10 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   RetryKVClient_unfold : FuncUnfold RetryKVClient [] RetryKVClient.impl
   RetryLeaseClient_unfold : FuncUnfold RetryLeaseClient [] RetryLeaseClient.impl
   RetryAuthClient_unfold : FuncUnfold RetryAuthClient [] RetryAuthClient.impl
+  waitRetryBackoff_unfold : FuncUnfold waitRetryBackoff [] waitRetryBackoff.impl
   isSafeRetry_unfold : FuncUnfold isSafeRetry [] isSafeRetry.impl
   isContextError_unfold : FuncUnfold isContextError [] isContextError.impl
+  contextErrToGRPCErr_unfold : FuncUnfold contextErrToGRPCErr [] contextErrToGRPCErr.impl
   withRepeatablePolicy_unfold : FuncUnfold withRepeatablePolicy [] withRepeatablePolicy.impl
   withMax_unfold : FuncUnfold withMax [] withMax.impl
   withBackoff_unfold : FuncUnfold withBackoff [] withBackoff.impl
@@ -395,8 +397,10 @@ attribute [instance] Assumptions.AuthEnableResponse_instance
   Assumptions.RetryKVClient_unfold
   Assumptions.RetryLeaseClient_unfold
   Assumptions.RetryAuthClient_unfold
+  Assumptions.waitRetryBackoff_unfold
   Assumptions.isSafeRetry_unfold
   Assumptions.isContextError_unfold
+  Assumptions.contextErrToGRPCErr_unfold
   Assumptions.withRepeatablePolicy_unfold
   Assumptions.withMax_unfold
   Assumptions.withBackoff_unfold
