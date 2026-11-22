@@ -3673,8 +3673,8 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
   stays a trust-boundary axiom (its other callees, `Endpoints`, `GetLogger`, `zap.Uint`/`Duration`,
   `Debug`, `jitterUp`'s `rand.Float64` and float operations, have specs).
 - **Worked around locally.** Not: the axiom stays (prove-ps2-client, 2026-11-22).
-- **Proposed (general).** A model of `Float64bits` over the float semantics' bytes (floats are stored as
-  little-endian IEEE 754 bytes), or a proved translation of its `unsafe` cast. **Status.** Recorded only.
+- **Proposed (general).** mit-pdos/perennial#675 (prove-ps2-succ's, in review) translates `Float64bits` and
+  `Float64frombits` with specs. **Status.** Waits for #675 and a pin bump.
 
 ## 2026-11-22: `%+v` of a map is arbitrary in the `fmt` model (`clientv3.streamKeyFromCtx`)
 
