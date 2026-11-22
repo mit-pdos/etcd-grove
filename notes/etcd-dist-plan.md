@@ -9,7 +9,7 @@ statement and its definitions, no proofs. Files:
   (`Deployment`, `WellFormed`, `Workload`, `Compatible`, `ServerCfg.Supported`, the start states,
   `EtcdEnv`; placeholders marked `PLACEHOLDER`);
 - the Go programs: `examples/etcd/dist/{server,client,env}/` and `cmd/{server,client}/`, and the
-  deployment harness `examples/etcd/dist/harness/` (stage D1, done: §2, "Stage D1").
+  deployment test in `examples/etcd/dist` (`dist_test.go`) (stage D1, done: §2, "Stage D1").
 
 Neither Lean file is built (they import the server's proof cone, and the draft has placeholders for
 what is not translated yet).
@@ -133,7 +133,7 @@ builds, vets and tests (`go vet ./etcd/dist/...`, `go test ./etcd/dist/...`, go1
   writer (kv) or alone (auth), and no other prefix starts with `k`, `a`, `c/` or `z`.
 - **`cmd/server`, `cmd/client`**: JSON config in, `server.Main`/`client.Main` (the client prints its
   result). `DIST_LOG` makes the server log to standard error.
-- **`examples/etcd/dist/harness`**: the deployment harness (`TestDist`, `TestWellFormed`; see "The
+- **`examples/etcd/dist`** (`deploy.go`, `run.go`, `dist_test.go`): the deployment test (`TestDist`, `TestWellFormed`; see "The
   harness" below).
 - **`examples/lib/robust`** (shared with kvnet's driver, additive): the **bridge variant** of the
   namespace mode and `RerunInUserns`. This machine's root has no `CAP_NET_ADMIN`, a read-only
@@ -142,6 +142,30 @@ builds, vets and tests (`go vet ./etcd/dist/...`, `go test ./etcd/dist/...`, go1
   bridge instead of a router (machines on one /16; a block is a tc flower drop on the sender's port;
   link faults netem as before); a `Reset` block drops (tc cannot send a reset: `CanReset`, and the
   nemesis then never picks one). `TestNetworkFaults` passes in it.
+- **What is generic lives in `examples/lib/robust`** (moved there 2026-11-22, the user's decision;
+  before, `dist/run.go` held it and `examples/k8s/dist` copied parts): `robust.Run` (`run.go`)
+  starts each machine's process with its log (`logs/<name>.log`); the members are `Restartable`s of
+  a `Group` (`NewGroup`, `Group.Add`: a directory of its own, or a disk's mount in the power modes;
+  `Group.Start`), crashed one at a time by the group's crasher and restarted on the same directory;
+  `RunClients(nodes, orchs, machines)` starts the client machines' processes and the orchestrators
+  (`robust.Client`, each orchestrator's set-up marked by its `Ready` file), starts the faults
+  (`RunFaults`: a crasher per group, one network nemesis over `machines`) once every set-up is done
+  or `SetupWait` passed, and waits for the orchestrators, the deadline or a failure; `Fail`, `Err`,
+  `Failed`, `Stats`, `NetStats`, `Stop`. `Config`, `Command` and the crash modes (`CrashKill`,
+  `CrashPower`, `CrashMixed`) are `robust`'s. `util.go`: `NewNetworkOrLocal` (was `dist.NewNet`),
+  `Symlink` (was `link`), `RerunTest` (`TestDist`'s re-run in a user namespace or by sudo), `Tail`.
+  `robust` is the test side only: no machine's program (`dist/{server,client,cmd,kvremote,enc,env}`,
+  `examples/k8s/dist`'s non-test files) imports it, since D2 translates those programs. The helpers
+  the programs share are `dist/client`'s (`await.go`): `AwaitAccept` (was `awaitNodes`), `Rotate`
+  (was `rotate`), `CallAll` (the body of `reportAll`, now a one-line wrapper over it). What stays in
+  `examples/etcd/dist`: the member program and the workloads (`server`, `client`, `RunProcess`),
+  `Deployment`, `RandomDeployment`, `WellFormed`, the member configurations, ids and addresses
+  (`MemberAddrs`, `MemberMachines`), and `Cluster`: a deployment's members in a run (`Start(d, run,
+  net, ms)`: their directories, the links from the data directory and WAL area, their
+  configurations) and its workloads' machines (`Cluster.Run`, over `RunClients`); `Cluster.Stop`
+  removes the links, the run's `Stop` kills the members and removes their disks. `client.AwaitCluster`,
+  `client.ConnectRetry`, `AwaitAccept`, `Rotate` and `CallAll` are exported, for `examples/k8s/dist`'s
+  machine programs.
 
 **Copies** (driver code that could not be reused unchanged, and why):
 
@@ -208,7 +232,7 @@ each over its own `*clientv3.Client`, from the orchestration:
   authLease's principals are sequential steps of one orchestration, kept in one function.
 - compact, putget, durable: one client each, one machine.
 
-**The harness** (`examples/etcd/dist/harness`, `TestDist`, `DIST_RUN=1`): random well-formed
+**The test** (`examples/etcd/dist`, `TestDist`, `DIST_RUN=1`): random well-formed
 deployments of three members (`RandomDeployment`; `WellFormed` is the Lean predicate's Go mirror,
 member ids from etcd's own `membership.NewClusterFromURLsMap`, the token searched until the low 16
 (15) bits are apart): a random `ServerCfg` (compactor off/revision 1, 10, 1000/periodic 10 ms, 1 s,
@@ -359,7 +383,8 @@ in D1. No check failed; no bug found.
    `Proof/.../txnlin/PendModel.lean`), `codecOk` of the codec, `opMaybe` of `Call` (from `Call.spec`:
    a write's update fired at most once, a read's persistent read update: `opMaybe`'s read form, done
    2026-11-22, below), the nodes' WPs.
-   `Report` needs a spec (a report's postcondition, no model) for watch, cache and auth.
+   `Report` needs a spec (a report's postcondition, no model) for watch, cache and auth: **done
+   2026-11-22**, below ("`Report`, proved").
 
 **Handoff (2026-11-22, end of the D8 Go session).** Branch `etcd-dist` (pushed), worktree
 `/shared/etcd-grove-etcddist`; `lean` merged at `c89f800b38`. Built here (`manifest-d64.json`): the
@@ -385,6 +410,52 @@ meets the read form in shape (its read update is `callUpd`'s persistent read upd
 and D7 (one store state). Other open decisions: (b) whether a
 writer without an answer should rather be retried as reads are (it is a write: no, by the user's
 rule; kept as "all tried, none succeeded").
+
+**`Report`, proved (2026-11-22, branch `remote-report`).** `remote`'s slot library is generic over a
+**service** `RSvc GF I O` (`Net/Proof/.../lib/remote/Defs.lean`): the wire (`RWire`: `iv`, `ov`,
+`encIn`, `encOut`), the answers that are not outputs (`unkAns i v`) and the update a slot hands to
+the far side (`upd i Φ`). A store is one (`RBase.svc`: `unkAns i v := v = unk i`, `upd := slotUpd R`;
+`remoteAddr R a` is `svcAddr R.svc a`), and so is **a report** (`reportSvc W P Q`: the far side's loop
+on `i`, given `P i` by the dialer (what the orchestrator established before the call: auth's set-up,
+a writer's Puts being in `tried`), answers an output `o` with `Q i o`, its postcondition, persistent
+or transferable; `upd i Φ := P i ∗ ∀ o, Q i o -∗ Φ o`; `unkAns := False`). The codec splits: `wireOk S cd` (`EncIn`,
+`DecIn`, `EncOut`, `DecOut`: all `Report` and the serving side use; a report's codec leaves
+`IsRead`/`Unknown`/`IsUnknown` nil) under a store's `codecOk` (`codecOk_wireOk`). The serving side's
+counterpart: `svcOp S tok op` (given `S.upd i Φ`, `op` answers an output with `Φ` of it or an
+answer `unkAns i v`), met by a store's `opMaybe` (`opMaybe_svcOp`) and by a report's loop
+`reportOp W P Q tok op` (`{tok sys ∗ P i} op(sys, iv i) {v. tok sys ∗ ∃ o, v = ov o ∗ Q i o}`,
+`reportOp_svcOp`). `attempt`, `serveConn`, `Serve`, `ServeClient` and `listen` are now stated over
+`S : RSvc` (wire and update generic, same proofs); `Do`, `Run`, `Check` over a store, unchanged.
+`Report.spec`:
+
+    ∀ (S : RSvc GF I O) a i Φ cd d,
+    {{ isPkgInit remote ∗ mapCtx (I := I) ∗ svcAddr S a ∗ wireOk S cd ∗ S.upd i Φ }}
+      Report a (S.iv i) cd d
+    {{ (v : GoInterface) (ok : Bool), RET (v, ok);
+        ⌜ok = false⌝ ∨ (⌜ok = true⌝ ∗ ((∃ o, ⌜v = S.ov o⌝ ∗ Φ o) ∨ ⌜S.unkAns i v⌝)) }}
+
+For a report, `Φ := Q i` and the caller hands `P i ∗ ∀ o, Q i o -∗ Q i o`: `true` comes only with an
+output `o` and `Q i o` (the last disjunct is `False`); `false` carries nothing, as the orchestrator
+treats it ("all tried, none succeeded"), and the update stays in the slot (the far side may still
+run). Linked in `remote`'s `Link` (`wp_Report`); `counter_remote_robust`'s statement unchanged,
+building with Lean's three axioms. `remote_start` now sets the addresses' protocols for any service;
+`remote_robust` keeps a store's. **Left for the watch, cache and auth instances**: their `Q` (a
+writer's log: each logged Put returned, as a persistent fact of the cluster's KV state; auth: that
+`Work` ran), their codecs' `wireOk`, the far side's `reportOp` from `etcdstart.Writer`/`auth.Work`'s
+specs, a `remote_robust` over a report service (one slot map per deployment holds one input type
+`I`: a deployment that mixes `Do` and `Report` calls of different input types needs one
+`RemoteGS` per type, or a sum type), all behind D2 (`net`) as kv's instance is.
+**Open, from the spec review (2026-11-22)**: (A) the wire is pure values (`iv`/`ov : _ → GoInterface`,
+`wireOk`'s decoders return `x = iv i`/`x = v`, encoders take `{{ True }}`), which fits the counter,
+txnlin and auth (string in, bool out) but not the writers' `[]KV`/`[]PutRec` slices: a decoded slice
+is fresh (and `DecOut` of an empty log gives `nil` where `writerOp` returned `[]PutRec{}`), and the
+orchestrator must own the reply's elements. The fix is ownership-carrying representations
+(`inRep i x`, `outRep o v`) through `RWire`, `wireOk`, `svcOp`, `attempt`, `Report`, and `Do`/`Pend`
+(`⌜x = iv i⌝` for the pure instances): a redesign of the slot library, needed before the watch and
+cache instances. (C) `mapCtx (I := I)` in `Report`'s/`Do`'s/`attempt`'s precondition is the slot
+library's bookkeeping, one type per `RemoteGS`: fold it into `svcAddr`, or key the map by
+`GoInterface`. (Minor) `RWire.encIn_len`/`encOut_len` bound every encoding below `2^63`, which an
+unbounded `I` meets only by a subtype; frames are already at most `MaxLen` where the bound is used.
 
 ## 3. The configuration set
 
@@ -479,12 +550,12 @@ reads them (`clearProxyEnv`), which puts the fact in the program, where it is ve
    facts list), with the extra errors the model gives (REFUSED_STREAM, any code on a cut, idleness).
 4. **The cluster's invariants across machines**: today `etcd_adequate_members_below` allocates the
    cluster's ghost state in one process. Distributed: allocated once in the global ghost state (as
-   `KitBridge`'s `Hstart`), each member's local state rebuilt after a crash from its files and the
+   `DistBridge`'s `Hstart`), each member's local state rebuilt after a crash from its files and the
    global invariants (the raft log's durability invariant, the restart plan's `InvRestart`); the
    clients' specs over the cluster's API (`srvApi`) unchanged.
 5. **The workloads**: the drivers' workload triples (`partition.Check`, `auth.Work`, ...) carry over;
    each driver's `Run` half is its `Main` triple minus the start's resources.
-6. **Assembly**: a bridge as `KitBridge` for crashing and stable machines; `Link`s of the two programs;
+6. **Assembly**: a bridge as `DistBridge` for crashing and stable machines; `Link`s of the two programs;
    `etc/gen-init.py` entries; a TCB collection.
 
 ## 8. Open questions
@@ -538,12 +609,12 @@ For upamanyus:
 **upamanyus's answers (etcd-grove#24, 2026-11-21 22:19Z):**
 - **U1:** yes, S4's shape.
   - Keep the exact address spellings: clients dial exactly the `a.b.c.d:p` their member listens on.
-  - Reuse `Net/Statement/KitDeploy.lean`'s `NetStart`/`ServerStart` definitions rather than restating them, so `KitBridge` applies.
+  - Reuse `Net/Statement/DistDeploy.lean`'s `NetStart`/`ServerStart` definitions rather than restating them, so `DistBridge` applies.
   - A restarted member's `Listen` on the same address is allowed: net v3.4's `crash_init` drops listeners and cuts connections.
 - **U2:** S1 makes the gRPC model call the stats handler, with differential tests. `grpcStatsHandlerOk` becomes proved of otelgrpc's handler.
 - **U3:** no cmux; keep plain `grpc.Server.Serve`.
 - **U4:** the mixed adequacy already exists in Perennial at `d648cfe22`: `goose_dist_mixed_crash_adequacy` (`GooseLang/DistAdequacy.lean:852`) and `_init` (`InitAdequacy.lean:196`).
-  - Missing: our bridge to `Robust crashing stable`. `robust_of_kitBoot` covers the all-stable case only.
+  - Missing: our bridge to `Robust crashing stable`. `robust_of_distBoot` covers the all-stable case only.
   - kvnet's claim #22 is building the crashing bridge for `[netExt, fsExt]` (`GooseLang/Ext/NetFs/Adequacy.lean`). **D3 extends that; coordinate on #22.**
 - **U5:** nothing from the transport side; the extensions need only commute with the net extension's per-machine crash semantics.
 - **Extra:** rafthttp's client uses `http.ProxyFromEnvironment`, and S5 treats a non-nil proxy as `NotModelled`, so Q10's `clearProxyEnv` is what it needs. The environment as machine-local state is an `os` model question: entry for `notes/perennial-changes.md`.
@@ -561,7 +632,7 @@ For upamanyus:
 | D5 transport | phase 7 S1-S5 | 60-110k lines (option B's estimate) | upamanyus |
 | D6 server | one `NewServer` spec for both starts; `walFoRes`; C6; the backend after a crash; `TrustBoundary` discharged | weeks | D4 |
 | D7 cluster | global/local ghost split, the restart invariant | weeks | D6 |
-| D8 clients (**Go done** 2026-11-22, §2 "Stage D8"; `remote` ported: `counter_remote_robust`) | (seams: §2, "Stage D1") port dsverify's `Remote` orchestration (`RunRemote`, `ServeClient`, `remoteDistSafe`) onto the net extension in `examples/lib/remote`, over `lintest`/`kvcheck` and the verified porcupine; each workload's client operations as `Remote` calls. Left: the Lean kv instance (blocked on D2's `net` and D7's one KV state; `opMaybe`'s read form done 2026-11-22), `Report`'s spec, watch/cache/auth instances | ~2k lines + the port | D1; Lean: D2, D7 |
+| D8 clients (**Go done** 2026-11-22, §2 "Stage D8"; `remote` ported: `counter_remote_robust`) | (seams: §2, "Stage D1") port dsverify's `Remote` orchestration (`RunRemote`, `ServeClient`, `remoteDistSafe`) onto the net extension in `examples/lib/remote`, over `lintest`/`kvcheck` and the verified porcupine; each workload's client operations as `Remote` calls. Left: the Lean kv instance (blocked on D2's `net` and D7's one KV state; `opMaybe`'s read form done 2026-11-22), watch/cache/auth instances (over `Report`, proved 2026-11-22: §2, "`Report`, proved") | ~2k lines + the port | D1; Lean: D2, D7 |
 | D9 assembly | the theorem; `WellFormed` consumed; retire `etcd_safe`, leaseexpiryN's | ~2k lines | all |
 
 **Interim milestone (Q7)**: D1, D2, D5 (S1-S5), D7 without crashes, D8, D9 over `goose_dist_adequacy`:

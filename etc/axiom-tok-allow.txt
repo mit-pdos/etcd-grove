@@ -90,7 +90,6 @@ trunc Perennial.EtcdGrove.grpc_prometheus.ServerMetrics.StreamServerInterceptor.
 trunc Perennial.EtcdGrove.metadata.AppendToOutgoingContext.wp_proof
 trunc Perennial.EtcdGrove.proto.MarshalAppendPb.wp_proof
 trunc Perennial.EtcdGrove.proto.MarshalPb.wp_proof
-trunc Perennial.EtcdGrove.rafthttp.Transport.ActiveSince.wp_proof
 trunc Perennial.EtcdGrove.snap.NewMessage.wp_proof
 trunc Perennial.EtcdGrove.storage.OpenBackend.wp_proof
 trunc Perennial.EtcdGrove.traceutil.Tracer.Start.wp_proof

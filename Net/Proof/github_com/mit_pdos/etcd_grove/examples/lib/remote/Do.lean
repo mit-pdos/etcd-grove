@@ -74,7 +74,7 @@ theorem byteLoop_len {L : Nat} {n : w64} (hL : L < 2 ^ 63)
   obtain ⟨rfl, h2⟩ := hn
   word
 
-theorem Do.wp_proof (wp_attempt : attempt.spec (GF := GF) (hG := hG) (St := St) (I := I) (O := O))
+theorem Do.wp_proof (wp_attempt : attempt.spec (GF := GF) (hG := hG) (I := I) (O := O))
     (wp_hang : hang.spec (GF := GF) (hG := hG))
     (wp_NewProph : github_com.goose_lang.primitive.NewProph.spec (GF := GF) (hG := hG))
     (wp_ResolveU64 : github_com.goose_lang.primitive.ProphId.ResolveU64.spec (GF := GF) (hG := hG)) :
@@ -205,7 +205,8 @@ theorem Do.wp_proof (wp_attempt : attempt.spec (GF := GF) (hG := hG) (St := St) 
         icases HL with (⟨%h, HL⟩ | %h)
         · ileft; iframe HL; ipureintro; word
         · iright; ipureintro; word
-    wp_apply wp_attempt R a i Φa req (DFrac.own 1) d Hlen $$ [Hreq HLa] as %rep %ok ⟨Hreq, Hres⟩
+    wp_apply wp_attempt (RBase.svc (Gg := hG.goose_globalGS) R) a i Φa req (DFrac.own 1) d Hlen
+      $$ [Hreq HLa] as %rep %ok ⟨Hreq, Hres⟩
     · iframe Hm Ha Hreq HLa
     icases Hres with (%Hf | ⟨%v, %Hok, Hrep, Hv⟩)
     · subst Hf
@@ -301,7 +302,8 @@ theorem Do.wp_proof (wp_attempt : attempt.spec (GF := GF) (hG := hG) (St := St) 
           iexists o
           iframe HΦo
           ipureintro; rfl
-    · subst Hu
+    · have Hu : v = R.unk i := Hu
+      subst Hu
       wp_apply HDecOut $$ %(R.unk i) %rep %DFrac.discard %(Or.inr ⟨i, rfl⟩) [Hrep] as %x %good %Hx
       · iexact Hrep
       cases good

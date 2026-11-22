@@ -31,7 +31,7 @@ func RunWatch(eps []string, nodes []string, nops int, ready func()) Result {
 	if err != nil {
 		return ended("watch: the watcher failed to connect")
 	}
-	if !awaitNodes(nodes) {
+	if !AwaitAccept(nodes) {
 		return ended("watch: a writer's machine never answered")
 	}
 	wctx, cancel := context.WithCancel(context.Background())
@@ -67,7 +67,7 @@ func RunCache(eps []string, nodes []string, nops int, ready func()) Result {
 	if err != nil {
 		return ended("cache: the cache's client failed to connect")
 	}
-	if !awaitNodes(nodes) {
+	if !AwaitAccept(nodes) {
 		return ended("cache: a writer's machine never answered")
 	}
 	c, err := cache.New(ccli, cachePrefix)

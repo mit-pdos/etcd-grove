@@ -4544,6 +4544,68 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   track forwarded proposals' entries: not taken.)
 - **Decision.** Applied.
 
+## 2026-11-22: reader slots for the transport's persistent callers; `ActiveSince` proved, `adjustTicks` for both flags (rdslot)
+
+- **Spec.**
+  - `rafthttp.Transport.ActiveSince.spec`: its premise is `transportTok γn t c` (given back), where it was
+    `trState γn t c`.
+  - New `Transport.ActivePeers.spec`, `peer.activeSince.spec` and `peerStatus.activeSince.spec`.
+  - `rafthttp.isTransporter tr Rd`: a new reader-resource parameter `Rd`. `ActiveSince` takes and returns `Rd`
+    (it took `True`), and `ActivePeers` is new.
+  - `isConnectedSince`, `numConnectedSince` and `isConnectedToQuorumSince` take `isTransporter tr Rd ∗ Rd` and
+    return `Rd`. `srvPeersOk`'s conjunct becomes `∃ Rd, isTransporter tr Rd`.
+  - `srvLeadTimeReader s` is redefined as `leadTimeMu`'s slot `∗ srvTrReader s`. The new
+    `srvTrReader s := ∃ tr Rd, s.r.transport ↦□ tr ∗ isTransporter tr Rd ∗ Rd` is one transport reader slot.
+    No spec text changes. Pool `I`'s items and the compactor's `srvCompactR` hold it, built by `NewServer`
+    and `NewServerR` from the transport's reader tokens, which they used to drop.
+  - `srvMonitorsOff` loses `InitialElectionTickAdvance ↦□ false`.
+  - The new `srvMonitorRes s := srvLgReader s ∗ srvTrReader s ∗ ∃ b, InitialElectionTickAdvance ↦□ b`
+    replaces `srvMonitorCfg`'s `srvLgReader s` and the switch's field. It also replaces `Start.spec`'s third
+    `srvLgReader s` (monitorDowngrade's) and `memberBuilt`'s/`memberBuiltR`'s `srvLgReader s`.
+  - `adjustTicks.spec` takes `srvGoAttachOk s γg`, `srvTrReader s` (given back) and the switch's field at any
+    value, in place of `srvMonitorsOff s`.
+- **Defect.**
+  - `ActiveSince`'s axiom read-locked `t.mu` without a reader token. Its callers are on the request path
+    (`parseProposeCtxErr`), any number at once, and the axiom's docstring rested on "physically at most
+    `2^30 - 1`". The same blocked `ActivePeers`.
+  - `adjustTicks` was therefore proved only under `InitialElectionTickAdvance = false` (ledger, the
+    entry above). etcd's own default (`embed`) is true.
+- **Evidence.**
+  - The design: `/shared/tmp/ps2/rdslot/design.md`. It follows the bounds plan's rule 2: the server's pool
+    `I` (level 2), which every gRPC run and revocation goroutine already borrows `leadTimeMu`'s slot from,
+    now holds the transport's slot beside it. `parseProposeCtxErr` read-locks `leadTimeMu`, then, not
+    nested, the transport.
+  - `adjustTicks` and the compactor are one-off goroutines with counted slots (D2 (a)).
+  - The count: `2^30 - 1` tokens hold 2 (Send key, `CutPeer`/`MendPeer`), `2^29` (the peer handler),
+    `2^28 - 1` (`I`), 1 (the compactor) and 1 (`adjustTicks`).
+  - No top-level statement changes. No new axiom, `threadBound` or `List.replicate` in a Spec file.
+- **Proposed change.** As above.
+- **Decision.** Applied. Every caller discharges the new resources: `Start.spec`'s `srvMonitorRes` (one more
+  transport slot than the `lgMu` slot it replaces) comes from `NewServer`'s `srvMonitorCfg`, through the
+  examples' `memberBuilt`. `Start.spec` no longer needs the switch to be false.
+## 2026-11-22: `semver.Version.LessThan` takes its receivers' points-tos and returns `Compare(o) < 0`; the cluster's `Version()` returns a read-only version (prove-ps2-semver)
+
+- **Spec.** `semver.Version.LessThan.spec` (`Spec/github_com/Masterminds/semver/v3/Version__LessThan.lean`): the
+  premise `v ≠ null ∧ o ≠ null` becomes `v ↦{dv} x ∗ o ↦{dw} y` (any fractions, given back); the post, some
+  boolean, becomes `decide (semver.lessThan x y)` (`CompareModel.lean`: semver v3.5.0's `Compare`, line for
+  line). `apply.isCluster`'s `Version` law (`apply/Contracts.lean`, the names-only membership's trust
+  boundary): the post `True` becomes `⌜v = null⌝ ∨ ∃ x, v ↦□ x`.
+- **Defect.** The axiom was unprovable over the real code: `Compare` reads both structs, and a `≠ null` premise
+  gives no points-to (a concurrent writer races). The ownership-premise rule (the user's, 2026-11-21) applies:
+  `version.LessThan` passes its by-value copies (owned), `compareMajorMinorVersion` `New`'s results (`↦□`),
+  `ClusterVersionSet` `MustParse`'s result (`↦□`) and the cluster's `Version()`, for which the contract now says
+  what `cluster.go:580-587` does (nil, or `semver.MustParse(c.version.String())`: a fresh `NewVersion`
+  allocation nothing else holds). That law is a premise of the top-level results (through `clusterApplyOk`,
+  `bootOk`, `bootstrapContract`), so this is a stronger trusted premise, true of the Go code, in exchange for
+  the retired axiom.
+- **Evidence.** `Proof/github_com/Masterminds/semver/v3/{Version__LessThan,Version__Compare,comparePrerelease,
+  comparePrePart,compareSegment,Version__Patch,Version__Prerelease}.lean`, over `strings.Split` and
+  `strconv.ParseUint`; the callers' proofs (`version/LessThan`, `rafthttp/compareMajorMinorVersion`,
+  `apply/applierV3backend__ClusterVersionSet`).
+- **Proposed change.** As above. `SpecPlan`'s `Version.LessThan.spec` (`verAt`, `SemVer.ltb` with an opaque
+  `preLtb`) is the same shape; its `preLtb` could now be defined as `CompareModel`'s `cmpPre … = -1`.
+- **Decision.** Applied (the approved ownership-premise rule; the cluster contract's strengthening recorded
+  here and in the report to #18).
 ## 2026-11-22: kvcheck's `randomChange` bounds its changes (KvNet)
 
 - **Spec.** `checker.randomChange.spec`'s post (`kvcheck/checker__randomChange.lean`): `⌜ccTransOk o⌝` becomes
@@ -4577,3 +4639,43 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Decision.** Applied. Trust: the constructors' axioms claim less (a representation instead of method
   triples); three etcd axioms retired, two added (`client_model/go`'s `opaqueInitsOk`/`initFuncsOk`: the
   package now imported for `gauge`'s `labelPairs`): net -1.
+## 2026-11-22: bbolt's `(*Options).String` takes the package's `isPkgInit` (ps2 misc2)
+
+- **Spec.** `Options.String.spec` (`Spec/go_etcd_io/bbolt/Options__String.lean`): the pre gains
+  `isPkgInit pkg_id.go_etcd_io.bbolt`.
+- **Defect.** The axiom is now proved over the real code, and its body calls `fmt.Sprintf`, whose
+  spec takes `isPkgInit pkg_id.fmt`; the old pre (`optsAt` and `loggerPtrOk` only) had no package
+  initialization to get it from.
+- **Evidence.** `Proof/go_etcd_io/bbolt/Options__String.lean`. The only caller, `Open` (through
+  `options_logArgOk`, `Open/LogFmt.lean`), holds the package's `isPkgInit` (its own pre's).
+- **Proposed change.** As above (a premise every caller discharges). `SpecPlan`'s
+  `Options.String.spec` should take it too (not edited here).
+- **Decision.** Applied.
+## 2026-11-22: kvcheck's `fresh`/`do`/`read` at the store; `read` gets a prophecy (KvNet, Go and Lean)
+
+- **Spec.** kvcheck's checker (`kvcheck/Defs.lean`): `CheckerNames` (the ghost maps of issued numbers) and
+  `issued` go; the lock's invariant `checkerInv c γ` holds, with the two counters `a`, `b`, a counter
+  predicate `γ false a ∗ γ true b` (`γ : CheckerCnt GF := Bool → w64 → IProp GF`, the caller's: at the
+  top, the store's op counter half and the read sequence numbers of every replica id, `kvCnt`).
+  `checker.fresh.spec` takes a minting law `∀ a, ⌜uint.Z a + 1 < 2^64⌝ -∗ γ w a ={⊤}=∗ γ w (a + 1) ∗ L (a + 1)`
+  and returns `L n` (no more `issued γ w n`). `checker.do.spec`/`checker.read.spec`: stated at the store
+  (`kvFacts γ cf`, the checker's counters `kvCnt γ ls`, `rkvInv γ`), logically atomic as kvdurable's
+  `Cluster.do`/`Read` (an `AU` over `rkvVal γ` in, `Φ` of the answer out), in place of the caller's minting
+  laws and the answer's fact. The other kvcheck specs: `CheckerNames` becomes `CheckerCnt GF` (no other change).
+  Raft: a new API module `ReadCtxLaws` (`readCtxAfter_agree`: a read context's log is unique).
+- **Defect.** The old specs cannot be linked to the store (found writing `Check`): `do` fired its minting
+  law outside the checker's lock on an `issued` token, but `kd_mint` mints at the store's op counter, in
+  order (`ghostVar γ.r.opn ½ nop`, mints `nop + 1`); `do`'s post dropped the ticket `kd_collect` needs; and
+  a linearizable read needs its answer prophesied (the linearization point is the first change after
+  which the key has the answer: kvdurable's `Cluster.Read`), which kvcheck's `read` did not have. The
+  replica's read answer names the context's committed log existentially (`ansReadK`), so the client needs
+  the log it minted the context after to be that one: agreement on raft's `ctxs` map (`readCtxAfter`,
+  sealed).
+- **Evidence.** `notes/kvnet-part.md`, "kvcheck's decoders, `conf`, `reconfigure`; the plan for `Check`";
+  kvdurable's `Cluster__do.lean`/`Cluster__Read.lean`.
+- **Proposed change.** As above. Go: `checker.read` creates `primitive.NewProph()` and resolves it with the
+  answer (`trusted_proph.ResolveBytes(p, v)`, gokv's, as kvdurable's `Cluster.Read`; no effect in Go),
+  `examples/raft/kvnet/go.mod` requires gokv, project kvnet maps gokv to the main tree. Minting under the
+  lock: `do`'s law is `kd_mint` (the counter is the op counter half); `read`'s mints, at every replica id
+  at once, the context of the fresh number after the log of the read's start (`kd_mint_next`).
+- **Decision.** Applied (the prophecy: the coordinator's decision, 2026-11-22).

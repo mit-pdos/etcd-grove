@@ -407,6 +407,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__start
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__stop
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__tick
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.NewRoundTripper
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__ActivePeers
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__ActiveSince
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__AddPeer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__AddRemote
@@ -450,10 +451,12 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.newStreamH
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.newStreamRoundTripper
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.newURLPicker
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus__activate
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus__activeSince
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus__deactivate
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus__isActive
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer__Pause
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer__Resume
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer__activeSince
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer__attachOutgoingConn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer__pick
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer__send
@@ -613,9 +616,15 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats__SendAppendReq
 public import Proof.github_com.Masterminds.semver.v3.MustParse
 public import Proof.github_com.Masterminds.semver.v3.NewVersion
+public import Proof.github_com.Masterminds.semver.v3.Version__Compare
 public import Proof.github_com.Masterminds.semver.v3.Version__LessThan
 public import Proof.github_com.Masterminds.semver.v3.Version__Major
 public import Proof.github_com.Masterminds.semver.v3.Version__Minor
+public import Proof.github_com.Masterminds.semver.v3.Version__Patch
+public import Proof.github_com.Masterminds.semver.v3.Version__Prerelease
+public import Proof.github_com.Masterminds.semver.v3.comparePrePart
+public import Proof.github_com.Masterminds.semver.v3.comparePrerelease
+public import Proof.github_com.Masterminds.semver.v3.compareSegment
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.NewAlarmStore
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.New
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic__Pause
@@ -1023,9 +1032,33 @@ theorem semver.Version.wp_Minor :
     semver.Version.Minor.spec (GF := GF) (hG := hG) :=
   semver.Version.Minor.wp_proof
 
+theorem semver.Version.wp_Patch :
+    semver.Version.Patch.spec (GF := GF) (hG := hG) :=
+  semver.Version.Patch.wp_proof
+
+theorem semver.Version.wp_Prerelease :
+    semver.Version.Prerelease.spec (GF := GF) (hG := hG) :=
+  semver.Version.Prerelease.wp_proof
+
+theorem semver.wp_compareSegment :
+    semver.compareSegment.spec (GF := GF) (hG := hG) :=
+  semver.compareSegment.wp_proof
+
+theorem semver.wp_comparePrePart :
+    semver.comparePrePart.spec (GF := GF) (hG := hG) :=
+  semver.comparePrePart.wp_proof _root_.Perennial.strconv.wp_ParseUint
+
+theorem semver.wp_comparePrerelease :
+    semver.comparePrerelease.spec (GF := GF) (hG := hG) :=
+  semver.comparePrerelease.wp_proof _root_.Perennial.strings.wp_Split semver.wp_comparePrePart
+
+theorem semver.Version.wp_Compare :
+    semver.Version.Compare.spec (GF := GF) (hG := hG) :=
+  semver.Version.Compare.wp_proof semver.Version.wp_Major semver.Version.wp_Minor semver.Version.wp_Patch semver.Version.wp_Prerelease semver.wp_compareSegment semver.wp_comparePrerelease
+
 theorem semver.Version.wp_LessThan :
     semver.Version.LessThan.spec (GF := GF) (hG := hG) :=
-  semver.Version.LessThan.wp_proof
+  semver.Version.LessThan.wp_proof semver.Version.wp_Compare
 
 theorem types.ID.wp_String_ptr :
     types.ID.String_ptr.spec (GF := GF) (hG := hG) :=
@@ -2808,7 +2841,7 @@ theorem raftNode.wp_advanceTicks :
 
 theorem EtcdServer.wp_adjustTicks :
     EtcdServer.adjustTicks.spec (GF := GF) (hG := hG) :=
-  EtcdServer.adjustTicks.wp_proof EtcdServer.wp_Logger membership.RaftCluster.wp_Members EtcdServer.wp_MemberID types.ID.wp_String zap.wp_String zap.wp_Int' wp_tickToDur zap.Logger.wp_Info raftNode.wp_advanceTicks
+  EtcdServer.adjustTicks.wp_proof EtcdServer.wp_Logger membership.RaftCluster.wp_Members EtcdServer.wp_MemberID types.ID.wp_String zap.wp_String zap.wp_Int' wp_tickToDur zap.Logger.wp_Info raftNode.wp_advanceTicks _root_.Perennial.time.wp_After
 
 theorem EtcdServer.wp_publishV3 :
     EtcdServer.publishV3.spec (GF := GF) (hG := hG) :=
@@ -3238,13 +3271,25 @@ theorem rafthttp.Transport.wp_SendSnapshot :
     rafthttp.Transport.SendSnapshot.spec (GF := GF) (hG := hG) :=
   rafthttp.Transport.SendSnapshot.wp_proof rafthttp.peer.wp_sendSnap snap.Message.wp_CloseWithError snap.Message.wp_fields raftpb.Message.wp_GetTo
 
+theorem rafthttp.peerStatus.wp_activeSince :
+    rafthttp.peerStatus.activeSince.spec (GF := GF) (hG := hG) :=
+  rafthttp.peerStatus.activeSince.wp_proof
+
+theorem rafthttp.peer.wp_activeSince :
+    rafthttp.peer.activeSince.spec (GF := GF) (hG := hG) :=
+  rafthttp.peer.activeSince.wp_proof rafthttp.peerStatus.wp_activeSince
+
 theorem rafthttp.Transport.wp_ActiveSince :
     rafthttp.Transport.ActiveSince.spec (GF := GF) (hG := hG) :=
-  rafthttp.Transport.ActiveSince.wp_proof
+  rafthttp.Transport.ActiveSince.wp_proof rafthttp.peer.wp_activeSince
+
+theorem rafthttp.Transport.wp_ActivePeers :
+    rafthttp.Transport.ActivePeers.spec (GF := GF) (hG := hG) :=
+  rafthttp.Transport.ActivePeers.wp_proof rafthttp.peer.wp_activeSince
 
 theorem rafthttp.Transport.wp_Start :
     rafthttp.Transport.Start.spec (GF := GF) (hG := hG) :=
-  rafthttp.Transport.Start.wp_proof rafthttp.wp_newStreamRoundTripper rafthttp.wp_NewRoundTripper probing.wp_NewProber rate.wp_Every rafthttp.Transport.wp_Send rafthttp.peer.wp_stop rafthttp.remote.wp_stop rafthttp.Transport.wp_SendSnapshot rafthttp.Transport.wp_ActiveSince
+  rafthttp.Transport.Start.wp_proof rafthttp.wp_newStreamRoundTripper rafthttp.wp_NewRoundTripper probing.wp_NewProber rate.wp_Every rafthttp.Transport.wp_Send rafthttp.peer.wp_stop rafthttp.remote.wp_stop rafthttp.Transport.wp_SendSnapshot rafthttp.Transport.wp_ActiveSince rafthttp.Transport.wp_ActivePeers
 
 theorem rafthttp.Transport.wp_AddRemote :
     rafthttp.Transport.AddRemote.spec (GF := GF) (hG := hG) :=

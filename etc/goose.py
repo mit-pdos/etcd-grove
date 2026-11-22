@@ -1964,7 +1964,8 @@ PROJECTS = [
         # kvcheck its linearizability checker over lintest. A Go module of its own, whose go.mod
         # replaces raft by `RAFT_NOAX_REV` (GO_MOD_PINS). Translated into the part KvNet
         # (notes/kvnet-part.md), whose raft, `net` and `durable` are the parts of projects
-        # raft-noax, net and durable translated into it; lintest and porcupine the main tree's.
+        # raft-noax, net and durable translated into it; lintest, porcupine and gokv's trusted_proph
+        # (kvcheck's `read` resolves its prophecy with `ResolveBytes`) the main tree's.
         repo=None,
         rev=None,
         local=os.path.join("examples", "raft", "kvnet"),
@@ -1972,7 +1973,8 @@ PROJECTS = [
         lean_roots=["github.com/mit-pdos/etcd-grove/examples/raft/kvnet=KvNet",
                     "github.com/mit-pdos/etcd-grove/examples/lib/durable=KvNet",
                     "github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=KvNet", "net=KvNet",
-                    "google.golang.org=", "github.com/anishathalye/porcupine=", "os=", "syscall=",
+                    "google.golang.org=", "github.com/anishathalye/porcupine=",
+                    "github.com/mit-pdos/gokv=", "os=", "syscall=",
                     "io/fs=", "internal/poll=", "internal/syscall=", "path/filepath=",
                     "internal/filepathlite="],
         # the store and its checker; not the commands (cmd/, driver/), which only run them
@@ -2097,6 +2099,10 @@ GO_MOD_PINS = {
     os.path.join("examples", "k8s", "authz", "go.mod"): {"k8s.io/": "k8s-authz"},
     # the one closed Kubernetes theorem's program, a module of its own (it requires both drivers')
     os.path.join("examples", "k8s", "all", "go.mod"): {"go.etcd.io/etcd/": "etcd", "go.etcd.io/raft/v3": "raft"},
+    # k8s_safe's program as a distributed deployment (notes/k8s-dist.md), a module of its own (it
+    # requires the drivers' modules and etcd-dist's members, with examples/go.mod's bbolt)
+    os.path.join("examples", "k8s", "dist", "go.mod"): {"go.etcd.io/etcd/": "etcd", "go.etcd.io/raft/v3": "raft",
+                                                         "go.etcd.io/bbolt": "bbolt"},
 }
 
 
@@ -2115,6 +2121,9 @@ CLIENT_GO_PINS = {
         ["k8s.io/api", "k8s.io/apimachinery", "k8s.io/client-go", "k8s.io/apiserver",
          "k8s.io/component-base", "k8s.io/klog/v2", "k8s.io/utils", "k8s.io/kube-openapi"]),
     os.path.join("examples", "k8s", "all", "go.mod"): (
+        os.path.join("examples", "k8s", "etcd3", "go.mod"),
+        ["k8s.io/api", "k8s.io/apimachinery", "k8s.io/client-go", "k8s.io/apiserver",
+         "k8s.io/component-base", "k8s.io/klog/v2", "k8s.io/utils", "k8s.io/kube-openapi"]),    os.path.join("examples", "k8s", "dist", "go.mod"): (
         os.path.join("examples", "k8s", "etcd3", "go.mod"),
         ["k8s.io/api", "k8s.io/apimachinery", "k8s.io/client-go", "k8s.io/apiserver",
          "k8s.io/component-base", "k8s.io/klog/v2", "k8s.io/utils", "k8s.io/kube-openapi"]),

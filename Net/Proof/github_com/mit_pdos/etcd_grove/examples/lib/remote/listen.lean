@@ -1,6 +1,6 @@
 /-
 The proof of `listen` (`Net/Spec/.../lib/remote/listen.lean`): `net.Listen` at `a` (its update
-`listen_au`, and `a`'s validity `addrTok_ok`, from `a`'s protocols `remoteAddr`), retried after a
+`listen_au`, and `a`'s validity `addrTok_ok`, from `a`'s protocols `svcAddr`), retried after a
 `time.Sleep` while it fails; the loop's invariant: the last `Listen`'s results, a listener or an
 error (non-nil, `net.resErr_netErr`).
 -/
@@ -29,15 +29,15 @@ variable [sem : go.Semantics]
 variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.lib.remote.Assumptions]
 variable [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
-variable {St I O : Type} [Pos.Countable I] [Pos.Countable O]
+variable {I O : Type} [Pos.Countable I] [Pos.Countable O]
 
 theorem listen.wp_proof
     (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
     (wp_Sleep : time.Sleep.spec (GF := GF) (hG := hG)) :
-    listen.spec (GF := GF) (hG := hG) (St := St) (I := I) (O := O) := by
-  intro R a
+    listen.spec (GF := GF) (hG := hG) (I := I) (O := O) := by
+  intro S a
   wp_start as #Haddr
-  iunfold remoteAddr at Haddr
+  iunfold svcAddr at Haddr
   ihave %Hok := addrTok_ok a $$ [Haddr]
   · iapply addrProto_tok $$ Haddr
   wp_auto

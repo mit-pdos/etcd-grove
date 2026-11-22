@@ -290,6 +290,7 @@ public import Proof.go_etcd_io.bbolt.node__size
 public import Proof.go_etcd_io.bbolt.node__spill
 public import Proof.go_etcd_io.bbolt.node__write
 public import Perennial.Proof.bytes.Link
+public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.sort.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
@@ -1417,7 +1418,7 @@ theorem Tx.wp_Commit_err :
 
 theorem Options.wp_String :
     _root_.Perennial.EtcdGrove.bbolt.Options.String.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.Options.String.wp_proof
+  _root_.Perennial.EtcdGrove.bbolt.Options.String.wp_proof _root_.Perennial.fmt.wp_Sprintf _root_.Perennial.time.Duration.wp_String
 
 theorem fs.FileMode.wp_String :
     _root_.Perennial.EtcdGrove.fs.FileMode.String.spec (GF := GF) (hG := hG) :=

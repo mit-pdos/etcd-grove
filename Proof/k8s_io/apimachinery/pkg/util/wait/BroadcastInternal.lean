@@ -102,6 +102,70 @@ theorem bcastInternal_nb_recv (ch : GoChan) (γ : ChanNames) (γi : BroadcastInt
     iapply HΦ $$ Hs
   all_goals (iexfalso; iexact Hs)
 
+/-- **A blocking receive at the internal names `γi`** (prove-ps2-wrb, 2026-11-22: the client's
+`waitRetryBackoff`, a `select` on a context's Done channel): it returns only once the channel is
+closed, with the done flag (`broadcast_chan_receive`'s proof, at fixed names). -/
+theorem bcastInternal_recv (ch : GoChan) (γ : ChanNames) (γi : BroadcastInternalNames)
+    (Q : IProp GF) (Φ : Unit → Bool → IProp GF) :
+    ⊢ isBroadcastChanInternal ch γ γi Q -∗
+      (dghostVar γi.doneGn .discard true -∗ Φ () false) -∗
+      recvAu γ Unit Φ := by
+  iintro #Hint HΦ
+  ihave #Hinv := isBroadcastChanInternal_inv _ _ _ _ $$ Hint
+  unfold recvAu
+  iapply ncfupd_of_fupd
+  iinv Hinv with Hi Hclose
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  inext
+  unfold broadcastInv
+  icases Hi with ⟨%st, Hch, Hs⟩
+  iexists st
+  iframe Hch
+  rcases st with (_ | ⟨_, _⟩) | _ | _ | _ | _ | _ | (_ | ⟨_, _⟩)
+  all_goals dsimp only
+  case Idle =>
+    iintro Hch
+    imod Hmask with -
+    imod Hclose $$ [Hch Hs] with -
+    · inext; iexists .RcvPending; dsimp only; iframe
+    imodintro
+    unfold recvNestedAu
+    iapply ncfupd_of_fupd
+    iinv Hinv with Hi Hclose
+    iapply fupd_mask_intro Std.LawfulSet.empty_subset
+    iintro Hmask
+    inext
+    icases Hi with ⟨%st, Hch, Hs⟩
+    iexists st
+    iframe Hch
+    rcases st with _ | _ | _ | _ | _ | _ | (_ | ⟨_, _⟩)
+    all_goals dsimp only
+    case Closed.nil =>
+      iintro Hch
+      icases Hs with ⟨#HQ, #Hs⟩
+      imod Hmask with -
+      imod Hclose $$ [Hch] with -
+      · inext; iexists .Closed []; dsimp only; iframe Hch
+        isplitl []
+        · imodintro; iexact HQ
+        · iexact Hs
+      imodintro
+      iapply HΦ $$ Hs
+    all_goals first | itrivial | (iexfalso; iexact Hs)
+  case Closed.nil =>
+    iintro Hch
+    icases Hs with ⟨#HQ, #Hs⟩
+    imod Hmask with -
+    imod Hclose $$ [Hch] with -
+    · inext; iexists .Closed []; dsimp only; iframe Hch
+      isplitl []
+      · imodintro; iexact HQ
+      · iexact Hs
+    imodintro
+    iapply HΦ $$ Hs
+  all_goals first | itrivial | (iexfalso; iexact Hs)
+
 /-- **A non-blocking `select` on the channel at its internal names** (`select { case <-ch: ...;
 default: ... }`): its case runs once the channel is closed, with the done flag, or its default
 (never once the flag is known, `cl = .Done`). -/
