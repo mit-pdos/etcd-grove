@@ -25,6 +25,34 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-22: kvnet's `StartNode`/`Run`/`RunNode` -- the start resource `S` cannot name the node's configuration, and the file invariant cannot be allocated where the crash obligation needs it
+
+- **Spec.** `KvNet/Spec/.../kvnet/StartNode.lean` (`StartNode.spec F rep cf S`, `S : IProp GF`), `Run.lean`,
+  `RunNode.lean` (the same `S`); kvnet's `Defs.lean` (`kdFileInvK γ id n γd`, `kdWriter` over `γ.wr id`).
+- **Defect.** (1) Not provable: `StartNode`'s start resource is one proposition for every `cfg`, but
+  what the start needs names the configuration: the file of `cfg.Dir`/`cfg.ID`, raft's vacancy of
+  `cfg.ID`, the bootstrap voters `1..cfg.Opts.Voters` (`kdCluster γ vs`), every other address's protocol
+  (`newTransport`), raft's `Config` premises on `cfg.Opts`; and `newTransport` reads `cfg.Addrs`, which the
+  precondition does not own. (2) Not provable: the file invariant (which holds `raftState`) is allocated
+  after `RestartNode`, parameterized by its node; with a real crash (decision C) it must exist from the
+  generation's start, carrying a crashed side the crash obligation can take (`inv (… ∨ crashed ∗ tok)`),
+  so it cannot name the node; the writer's ghost variable `γ.wr id` is the store's, so the dead
+  generation's `dmu` and the next generation's writer would share it.
+- **Evidence.** `notes/kvnet-part.md`, "`StartNode` and the crash frame"; Perennial's crash adequacy
+  (`DistAdequacy.lean:555`: the obligation `crashed -∗ extsCrashStart L L' ={⊤}=∗ P i L'` is fixed at the
+  generation's start).
+- **Proposed change.** (1) `S : w64 → GoString → Options → GMap w64 GoString → IProp GF` (id, dir, options,
+  the address map), and `StartNode`'s precondition `cfg.Addrs' ↦$□ M ∗ S cfg.ID' cfg.Dir' cfg.Opts' M`;
+  `Run.spec`/`RunNode.spec` pass the same indexed `S` (RunNode at the options and map it builds). (2) The file
+  invariant `kdFileInvK γ id ph` over the incarnation's file names (`KdDmuNames` gains the writer variable
+  `wr`, the invariant's crash token `tk`, the arm `x`): `∃ S s pb, durSt ∗ ghostVar ph.wr ½ (S,s,pb) ∗
+  ((raftState S ∗ kdFileState γ id ph.x S s pb) ∨ crashed ∗ token ph.tk)`, the pending batch's record
+  holding its node existentially (`∃ n, nodeArm n γ x ∗ readyEnter n … ∗ nodeRunning n q ∗ …`), the share
+  `q` coming back to the writer through a saved proposition (`pb` gains its name); `kdWriter ph …`.
+  Internal to kvnet's part (no client outside it); the top level allocates the file invariant at each
+  generation's boot.
+- **Decision.** Accepted (the kvnet-proof session, 2026-11-22; kvnet's own seam, decision C's plan).
+
 ## 2026-11-22: raft's `RestartNode` -- its client update cannot open a crash invariant (no crash token), so a client cannot keep `raftState` where a crash obligation can take it
 
 - **Spec.** `Spec/go_etcd_io/raft/v3/RestartNode.lean`, `RestartNode.spec`: the update
@@ -48,7 +76,22 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   it before any step of `RestartNode`, where `wp_ncfupd` gives the token. Existing clients (kvdurable,
   kvreconf, the server's start paths) pass a plain update through a lemma like `durWriteSync_of_au` (the token
   unused). Raft's change, not kvnet's.
-- **Decision.** Pending (raft's agent / the coordinator). kvnet's `StartNode` waits for it.
+- **Decision.** Accepted as proposed (the kvnet-proof session, 2026-11-22, on the coordinator's brief), after
+  checking the shape:
+  - *Sound, nothing trusted moves.* The token is the state interpretation's (`HeapGS`'s
+    `goose_crashGS`); raft's proof already ran the restart's ghost step under `wp_ncfupd` (the
+    vacancy's arm needs it, `armed_read`), so it only lends the token to the client's update and takes it
+    back (`raft_restart`'s accessor now `notCrashed -∗ |={…}=> … (… ={∅,…}=∗ notCrashed ∗ R S)`). No axiom,
+    no `Assumptions` field, no Perennial change.
+  - *Minimal.* The token appears once in the precondition's update and once in its `COMM`, nothing else in
+    the triple changes; the same shape as durable's `durWriteSync` and raft's own trace updates (`TraceFire`,
+    `TracedCap.lean`). A weaker alternative (the client update as an `ncfupd` around a plain AU) gives the
+    client nothing more and needs an atomic-update rule Perennial lacks.
+  - *Clients.* `restartAu_nc` (`InvNodeRule.lean`) makes a plain update one; kv, kvreconf (two), kvdurable
+    (and its RaftNoAx copy) and the server's `newRaftNode` wrap theirs before the call. RaftWitness keeps its
+    own (older) spec, untouched; RaftTla/RaftNoAx/KvNet copies regenerated.
+  - SpecPlan's `RestartNode` (and its `newRaft`/`NewRawNode` updates) not changed: its crash story is the
+    vacancy's `raftState_crash` law, to be reconciled when kvnet's form is ported back (open).
 
 ## 2026-11-21: raft's node API -- `isCluster` holds one machine's heap (the node table), and the node predicates agree on a node's names only through it
 

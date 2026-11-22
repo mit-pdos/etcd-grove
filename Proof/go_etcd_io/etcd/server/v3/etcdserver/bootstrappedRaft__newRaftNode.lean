@@ -175,6 +175,8 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
           imodintro
           iframe H
           ipureintro; rfl
+      -- (2026-11-22) the update with the crash token (`restartAu_nc`)
+      ihave Hau := restartAu_nc _ _ _ _ _ $$ Hau
       wp_apply (wp_RestartNode γr γr.cl srvClusterN bv.config' cv lok
           ⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩ σ cs a m
           (fun S'' => iprop(raftState γr.cl cv.ID' S'' ∗ ⌜S'' = S⌝)) Q
