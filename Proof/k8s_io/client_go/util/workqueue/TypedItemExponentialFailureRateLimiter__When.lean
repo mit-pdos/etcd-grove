@@ -53,7 +53,8 @@ theorem TypedItemExponentialFailureRateLimiter.When.wp_proof [EtcdGrove.UntypedI
   wp_apply wp_mapInsert $$ Hm as Hm
   wp_apply wp_Nanoseconds $$ [$Hbase] as -
   wp_apply wp_Pow as %p -
-  generalize (float64Mul (int64ToFloat64 base) p) = bf
+  (try wp_auto)
+  wp_apply wp_float64_mul as %bf -
   generalize (W64 4890909195324358656) = mf
   cases hb : (float64Leb mf bf && !float64Eq bf mf)
   · -- not above `MaxInt64`: the conversion, an arbitrary `int64` (Perennial's
