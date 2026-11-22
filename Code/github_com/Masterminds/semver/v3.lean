@@ -4,6 +4,7 @@ module
 public import Perennial.Code.strings
 public import Perennial.Code.strconv
 public import Perennial.Golang.Defn
+public import TrustedCode.github_com.Masterminds.semver.v3
 
 @[expose] public section
 
@@ -1041,6 +1042,8 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   constraint_instance : constraint.TypeAssumptions
   cfunc_instance : cfunc.TypeAssumptions
   Version_instance : Version.TypeAssumptions
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
+  «init.1_unfold» : FuncUnfold init.«1» [] init.«1».impl
   New_unfold : FuncUnfold New [] New.impl
   MustParse_unfold : FuncUnfold MustParse [] MustParse.impl
   compareSegment_unfold : FuncUnfold compareSegment [] compareSegment.impl
@@ -1054,6 +1057,8 @@ attribute [instance] Assumptions.Collection_instance
   Assumptions.constraint_instance
   Assumptions.cfunc_instance
   Assumptions.Version_instance
+  Assumptions.«init.0_unfold»
+  Assumptions.«init.1_unfold»
   Assumptions.New_unfold
   Assumptions.MustParse_unfold
   Assumptions.compareSegment_unfold
