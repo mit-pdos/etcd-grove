@@ -29,7 +29,10 @@ still stop.
 
 `storage.OpenBackend.wp_proof` gives `backend.New`'s post without `New`'s receipt-bound premise, so it
 is false at a receipt bound above `2 ^ 62` (since 2026-11-17) and, after step 2, above `2 ^ 60`
-(ledger 2026-11-22). Applied: its spec takes `[ReceiptBoundLe GF (2 ^ 60)]` (and so does
-`OpenSnapshotBackend`'s use of it). This only weakens the axiom; no closed theorem changes (they fix
-`receiptBound ≤ 2 ^ 48`). The alternative (leave it false where no closed theorem reaches) was
-rejected: step 2 is what makes the gap easy to reach. Veto by reverting the commit that applies it.
+(ledger 2026-11-22). The fix: its spec takes `[ReceiptBoundLe GF (2 ^ 60)]` (and so does
+`OpenSnapshotBackend`'s). This only weakens the axiom; no closed theorem changes (they fix
+`receiptBound ≤ 2 ^ 48`). **Deferred, not in step 2**: its caller, the server's `applySnapshot` walk
+(`SnapApplyWalk.lean:338`), has no receipt bound in scope, so the fix threads one into the server's
+proof (from `isServerM`, beside its thread bound, or a premise of `applySnapshot`'s spec), outside
+step 2's backend-internal scope. Proposed as a follow-up of #30. Until then the axiom stays false
+above `2 ^ 60` (it was above `2 ^ 62` before step 2), where no closed theorem reaches.

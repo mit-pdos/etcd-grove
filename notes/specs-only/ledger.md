@@ -4652,6 +4652,10 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Evidence.** The step-2 review (fresh `spec-reviewer`, 2026-11-22), item 1.
 - **Proposed change.** Add `[ReceiptBoundLe GF (2 ^ 60)]` to `storage.OpenBackend.spec` and to
   `OpenSnapshotBackend`'s use of it (only weakens the axiom: it now claims `New`'s post under `New`'s
-  premises); callers have `ReceiptBoundLe GF (2 ^ 48)` in scope and get `2 ^ 60` by monotonicity.
-- **Decision.** Applied on branch `step-bounds-backend`: decided by the agent, pending the user
-  (`notes/step-bounds-questions.md`, Q2).
+  premises). Its one caller, `OpenSnapshotBackend` from the server's `applySnapshot` walk
+  (`SnapApplyWalk.lean:338`), has no receipt bound in scope (`isServerM` holds only the thread
+  bound), so the change threads a receipt-bound fact into the walk (from `isServerM`, as its thread
+  bound, or a premise of `applySnapshot`'s spec).
+- **Decision.** Deferred to a follow-up of #30 (the server's proof, beyond step 2's backend-internal
+  scope): decided by the agent, pending the user (`notes/step-bounds-questions.md`, Q2). The axiom
+  stays false above `2 ^ 60` until then; no closed theorem reaches that.

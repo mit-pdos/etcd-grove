@@ -122,4 +122,6 @@ session 2) are in this chain.
   `ReceiptBoundLe` premise, though the `backend.New` its post stands for requires one (`2 ^ 62`
   before this change, `2 ^ 60` now). Harmless in every closed theorem (`receiptBound ≤ 2 ^ 48`), but
   the axiom claims `New`'s post for any receipt bound. Fix: add `[ReceiptBoundLe GF (2 ^ 60)]` to its
-  spec (only weakens the axiom). Not done in this step (it touches the server's callers).
+  spec (only weakens the axiom). Not done in this step: its caller, the server's `applySnapshot`
+  walk, has no receipt bound in scope (follow-up; Q2).
+- **Build fix**: `mvcc/BackendBridge.lean`'s `batchLocked_dls` names the new `bufRc` conjunct.
