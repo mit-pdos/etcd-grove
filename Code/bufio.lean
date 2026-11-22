@@ -92,11 +92,6 @@ noncomputable def ErrBadReadCount [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def ErrFinalToken [GooseExts] [GoGlobalContext] : GoString :=
   go!"bufio.ErrFinalToken"
 
-noncomputable def errorRune [GooseExts] [GoGlobalContext] : GoString :=
-  go!"bufio.errorRune"
-
-opaque errorRune.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def NewReaderSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"bufio.NewReaderSize"
 
@@ -457,6 +452,19 @@ noncomputable def Reader.Buffered.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `errorRune` (`var errorRune = []byte(string(utf8.RuneError))`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"bufio.errorRune", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var errorRune = []byte(string(utf8.RuneError))"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.bufio where
   pkgImportedPkgs := [pkg_id.errors, pkg_id.io]
 
@@ -511,11 +519,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val #(go!"final token"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val errorRune.init) (Val #())))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrFinalToken))) (Val #())) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrFinalToken))) (Val #())) (Var "$r0")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrBadReadCount))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)

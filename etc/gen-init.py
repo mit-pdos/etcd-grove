@@ -784,11 +784,33 @@ _BUFIO_ERRS = ['ErrInvalidUnreadByte', 'ErrInvalidUnreadRune', 'ErrBufferFull', 
 SPECIAL['bufio'] = dict(
     imports=['Perennial.Proof.errors.NewVar'],
     alloc_types=_ALLOC_ANY,
-    before={'errorRune': ['try wp_auto'] + [f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{i} #E{i}'
+    # (#23, 2026-11-22: keyed `errorRune` until it was skipped, goose `[[skip]]`; it ran last)
+    before={'$end': ['try wp_auto'] + [f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{i} #E{i}'
                      for i in range(len(_BUFIO_ERRS))]},
     finish=['iframe Hown', 'is_pkg_init_finish'],
 )
-for _p, _k in [('internal.filepathlite', '$end'), ('path.filepath', 'SkipDir')]:
+# (#23, 2026-11-22: path.filepath's keyed `SkipDir` until it, `SkipAll` and `lstat`, which ran after
+# `ErrBadPattern`, were skipped, goose `[[skip]]`)
+# (#23, 2026-11-22) k8s api/meta's `errNotList`, `errNotObject` (`fmt.Errorf` without a verb, read by the
+# proved `Accessor`/`ListAccessor`, so goose cannot skip them) translated, until then `opaqueInitsOk`
+newvars_cfg(SPECIAL.setdefault('k8s_io.apimachinery.pkg.api.«meta»', {}), ['errNotList', 'errNotObject'],
+            errorf=dict(errNotList="object does not implement the List interfaces",
+                        errNotObject="object does not implement the Object interfaces"))
+# (#23, 2026-11-22) the cacher's `consistency.PanicOnCacheInconsistency = false` (read by the proved
+# snapshotter, so goose cannot skip it) translated, until then `opaqueInitsOk`
+SPECIAL['k8s_io.apiserver.pkg.storage.cacher.consistency'] = dict(
+    alloc_types=_ALLOC_ANY,
+    before={'$inits': ['try wp_auto']},
+)
+# (#23, 2026-11-22) k8s util/validation's `IsQualifiedName = content.IsLabelKey` (read by the translated
+# `v1helper.IsExtendedResourceName`, so goose cannot skip it) translated, until then `opaqueInitsOk`
+SPECIAL['k8s_io.apimachinery.pkg.util.validation'] = dict(
+    alloc_types=_ALLOC_ANY,
+    before={'$end': ['try wp_auto']},
+)
+# (#23, 2026-11-22) k8s utils/buffer's `ErrInvalidSize` (`errors.New`, read by the translated
+# `NewTypedRingFixed`, so goose cannot skip it) translated, until then `opaqueInitsOk`
+for _p, _k in [('internal.filepathlite', '$end'), ('path.filepath', '$end'), ('k8s_io.utils.buffer', '$end')]:
     SPECIAL[_p] = dict(
         imports=['Perennial.Proof.errors.NewVar'],
         alloc_types=_ALLOC_ANY,
@@ -1415,18 +1437,9 @@ are now `features`' registration's, `features.init_0_ok`.)''',
             'imodintro', 'iexists _', 'iframe #'],
 )
 
-# (k8s 7e Freeze review, etcd-grove-81, 2026-11-10) pflag's opaque initializers: what they assume
-SPECIAL['github_com.spf13.pflag'] = dict(
-    opaque_doc_extra=[
-        'Reached through the Kubernetes packages: `featuregate` (whose `MutableFeatureGate.AddFlag`',
-        'names `*pflag.FlagSet`) imports pflag since stage 7e-4, so that the k8s etcd3 driver\'s',
-        '`noStreaming` can call `MutableVersionedFeatureGate.Set`. The assumption:',
-        '`CommandLine = NewFlagSet(os.Args[0], ExitOnError)` (`flag.go:1262`, pflag v1.0.10) indexes',
-        '`os.Args`, so it holds only of a process started with a non-empty argument vector (every',
-        'program run from a shell or `exec` with its name; a process exec\'d with an empty `argv`',
-        'panics here). `ErrHelp` (`errors.New`) and `Usage` (a function literal) cannot panic.',
-    ],
-)
+# (k8s 7e Freeze review, etcd-grove-81, 2026-11-10) pflag's opaque initializers: what they assumed
+# (`CommandLine = NewFlagSet(os.Args[0], ExitOnError)` indexes `os.Args`) is now the reason of their
+# goose `[[skip]]` entry (`Code/github_com/spf13/pflag.toml`; #23, 2026-11-22), not `opaqueInitsOk`'s.
 
 # (k8s 7e-1, 2026-11-10, decided by etcd-grove-81) grpc's fact: `EnableTracing` holds `false`
 SPECIAL['google_golang_org.grpc'] = dict(
@@ -4547,7 +4560,7 @@ def gen(p, cfg=None):
                 A('  ' + hdsub(l))
     for l in before.pop('$inits', []) + before.pop('$end', []):
         A('  ' + hdsub(l))
-    assert not before, before
+    assert not before, (p, 'steps keyed by no initializer of the package (re-key them to the next item)', before)
     for l in cfg.get('finish', ['iframe Hown', 'is_pkg_init_finish']):
         A('  ' + hdsub(l))
     A('')

@@ -70,16 +70,6 @@ opaque GA [GooseExts] [GoGlobalContext] : val
 
 opaque Deprecated [GooseExts] [GoGlobalContext] : val
 
-noncomputable def defaultFeatures [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/pkg/v3/featuregate.defaultFeatures"
-
-opaque defaultFeatures.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def specialFeatures [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/pkg/v3/featuregate.specialFeatures"
-
-opaque specialFeatures.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def setUnsetAlphaGates [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/featuregate.setUnsetAlphaGates"
 
@@ -89,23 +79,35 @@ noncomputable def setUnsetBetaGates [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/featuregate.New"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `defaultFeatures` (`var // The generic features. defaultFeatures = map[Feature]FeatureSpec{ allAlphaGate: {Default: false, PreRelease: Alpha … [sha256:feea909ab3e44b6b]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `specialFeatures` (`var // Special handling for a few gates. specialFeatures = map[Feature]func(known map[Feature]FeatureSpec, enabled map[F … [sha256:db653a948ac12c0f]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `_@feature_gate.go:167` (`var _ pflag.Value = &featureGate{}`): An interface check: `&featureGate{}` converted to `pflag.Value`. No call, no panic, no effect.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"go.etcd.io/etcd/pkg/v3/featuregate.defaultFeatures", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var // The generic features. defaultFeatures = map[Feature]FeatureSpec{ allAlphaGate: {Default: false, PreRelease: Alpha … [sha256:feea909ab3e44b6b]"⟩,
+  ⟨"go.etcd.io/etcd/pkg/v3/featuregate.specialFeatures", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var // Special handling for a few gates. specialFeatures = map[Feature]func(known map[Feature]FeatureSpec, enabled map[F … [sha256:db653a948ac12c0f]"⟩,
+  ⟨"go.etcd.io/etcd/pkg/v3/featuregate._@feature_gate.go:167", "An interface check: `&featureGate{}` converted to `pflag.Value`. No call, no panic, no effect.", "var _ pflag.Value = &featureGate{}"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.featuregate where
   pkgImportedPkgs := []
-
-opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.pkg.v3.featuregate)) (Lam BAnon
   (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val «_».init) (Val #())))))
-  (App (Val doExecute)
-  (App (Val specialFeatures.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val defaultFeatures.init) (Val #()))))))))
+  (Val #()))))))
 
 abbrev Feature [GooseExts] : Type := GoString
 

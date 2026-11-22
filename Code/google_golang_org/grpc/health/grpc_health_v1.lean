@@ -103,16 +103,6 @@ opaque Health_List_FullMethodName [GooseExts] [GoGlobalContext] : val
 
 opaque Health_Watch_FullMethodName [GooseExts] [GoGlobalContext] : val
 
-noncomputable def HealthCheckResponse_ServingStatus_name [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc/health/grpc_health_v1.HealthCheckResponse_ServingStatus_name"
-
-opaque HealthCheckResponse_ServingStatus_name.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def HealthCheckResponse_ServingStatus_value [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc/health/grpc_health_v1.HealthCheckResponse_ServingStatus_value"
-
-opaque HealthCheckResponse_ServingStatus_value.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def File_grpc_health_v1_health_proto [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health/grpc_health_v1.File_grpc_health_v1_health_proto"
 
@@ -121,31 +111,6 @@ noncomputable def file_grpc_health_v1_health_proto_rawDescOnce [GooseExts] [GoGl
 
 noncomputable def file_grpc_health_v1_health_proto_rawDescData [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health/grpc_health_v1.file_grpc_health_v1_health_proto_rawDescData"
-
-noncomputable def file_grpc_health_v1_health_proto_enumTypes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc/health/grpc_health_v1.file_grpc_health_v1_health_proto_enumTypes"
-
-opaque file_grpc_health_v1_health_proto_enumTypes.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def file_grpc_health_v1_health_proto_msgTypes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc/health/grpc_health_v1.file_grpc_health_v1_health_proto_msgTypes"
-
-opaque file_grpc_health_v1_health_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def file_grpc_health_v1_health_proto_goTypes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc/health/grpc_health_v1.file_grpc_health_v1_health_proto_goTypes"
-
-opaque file_grpc_health_v1_health_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def file_grpc_health_v1_health_proto_depIdxs [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc/health/grpc_health_v1.file_grpc_health_v1_health_proto_depIdxs"
-
-opaque file_grpc_health_v1_health_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def Health_ServiceDesc [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc/health/grpc_health_v1.Health_ServiceDesc"
-
-opaque Health_ServiceDesc.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def file_grpc_health_v1_health_proto_rawDescGZIP [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health/grpc_health_v1.file_grpc_health_v1_health_proto_rawDescGZIP"
@@ -171,6 +136,49 @@ noncomputable def _Health_List_Handler [GooseExts] [GoGlobalContext] : GoString 
 noncomputable def _Health_Watch_Handler [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health/grpc_health_v1._Health_Watch_Handler"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `HealthCheckResponse_ServingStatus_name` (`var HealthCheckResponse_ServingStatus_name = map[int32]string{ 0: "UNKNOWN", 1: "SERVING", 2: "NOT_SERVING", 3: "SERVICE … [sha256:15b3107d20667d58]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `HealthCheckResponse_ServingStatus_value` (`var HealthCheckResponse_ServingStatus_value = map[string]int32{ "UNKNOWN": 0, "SERVING": 1, "NOT_SERVING": 2, "SERVICE_U … [sha256:437a8ca432085b2d]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `file_grpc_health_v1_health_proto_enumTypes` (`var file_grpc_health_v1_health_proto_enumTypes = make([]protoimpl.EnumInfo, 1)`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `file_grpc_health_v1_health_proto_msgTypes` (`var file_grpc_health_v1_health_proto_msgTypes = make([]protoimpl.MessageInfo, 5)`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `file_grpc_health_v1_health_proto_goTypes` (`var file_grpc_health_v1_health_proto_goTypes = []any{ (HealthCheckResponse_ServingStatus)(0), (*HealthCheckRequest)(nil) … [sha256:2240068ad22f2d1e]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `file_grpc_health_v1_health_proto_depIdxs` (`var file_grpc_health_v1_health_proto_depIdxs = []int32{ 0, 5, 2, 1, 3, 1, 2, 4, 2, 6, 3, 3, 3, 0, }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `Health_ServiceDesc` (`var Health_ServiceDesc = grpc.ServiceDesc{ ServiceName: "grpc.health.v1.Health", HandlerType: (*HealthServer)(nil), Meth … [sha256:ef8bdb981cc6503a]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"google.golang.org/grpc/health/grpc_health_v1.HealthCheckResponse_ServingStatus_name", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var HealthCheckResponse_ServingStatus_name = map[int32]string{ 0: \"UNKNOWN\", 1: \"SERVING\", 2: \"NOT_SERVING\", 3: \"SERVICE … [sha256:15b3107d20667d58]"⟩,
+  ⟨"google.golang.org/grpc/health/grpc_health_v1.HealthCheckResponse_ServingStatus_value", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var HealthCheckResponse_ServingStatus_value = map[string]int32{ \"UNKNOWN\": 0, \"SERVING\": 1, \"NOT_SERVING\": 2, \"SERVICE_U … [sha256:437a8ca432085b2d]"⟩,
+  ⟨"google.golang.org/grpc/health/grpc_health_v1.file_grpc_health_v1_health_proto_enumTypes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_grpc_health_v1_health_proto_enumTypes = make([]protoimpl.EnumInfo, 1)"⟩,
+  ⟨"google.golang.org/grpc/health/grpc_health_v1.file_grpc_health_v1_health_proto_msgTypes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_grpc_health_v1_health_proto_msgTypes = make([]protoimpl.MessageInfo, 5)"⟩,
+  ⟨"google.golang.org/grpc/health/grpc_health_v1.file_grpc_health_v1_health_proto_goTypes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_grpc_health_v1_health_proto_goTypes = []any{ (HealthCheckResponse_ServingStatus)(0), (*HealthCheckRequest)(nil) … [sha256:2240068ad22f2d1e]"⟩,
+  ⟨"google.golang.org/grpc/health/grpc_health_v1.file_grpc_health_v1_health_proto_depIdxs", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_grpc_health_v1_health_proto_depIdxs = []int32{ 0, 5, 2, 1, 3, 1, 2, 4, 2, 6, 3, 3, 3, 0, }"⟩,
+  ⟨"google.golang.org/grpc/health/grpc_health_v1.Health_ServiceDesc", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var Health_ServiceDesc = grpc.ServiceDesc{ ServiceName: \"grpc.health.v1.Health\", HandlerType: (*HealthServer)(nil), Meth … [sha256:ef8bdb981cc6503a]"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.health.grpc_health_v1 where
   pkgImportedPkgs := [pkg_id.context, pkg_id.google_golang_org.grpc]
 
@@ -182,29 +190,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
-  (App (Val doExecute)
-  (App (Val Health_ServiceDesc.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val file_grpc_health_v1_health_proto_depIdxs.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val file_grpc_health_v1_health_proto_goTypes.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val file_grpc_health_v1_health_proto_msgTypes.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val file_grpc_health_v1_health_proto_enumTypes.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val HealthCheckResponse_ServingStatus_value.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val HealthCheckResponse_ServingStatus_name.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.context.initialize') (Val #()))))))
   (App (Val doExecute)

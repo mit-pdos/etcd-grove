@@ -39,21 +39,6 @@ opaque GroupName [GooseExts] [GoGlobalContext] : val
 noncomputable def SchemeBuilder [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/internalversion.SchemeBuilder"
 
-noncomputable def localSchemeBuilder [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/internalversion.localSchemeBuilder"
-
-opaque localSchemeBuilder.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def AddToScheme [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/internalversion.AddToScheme"
-
-opaque AddToScheme.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def SchemeGroupVersion [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/internalversion.SchemeGroupVersion"
-
-opaque SchemeGroupVersion.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def Convert_v1_ListOptions_To_internalversion_ListOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/internalversion.Convert_v1_ListOptions_To_internalversion_ListOptions"
 
@@ -96,6 +81,29 @@ noncomputable def autoConvert_internalversion_ListOptions_To_v1_ListOptions [Goo
 noncomputable def autoConvert_v1_ListOptions_To_internalversion_ListOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/internalversion.autoConvert_v1_ListOptions_To_internalversion_ListOptions"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `localSchemeBuilder` (`var localSchemeBuilder = &SchemeBuilder`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `AddToScheme` (`var AddToScheme = localSchemeBuilder.AddToScheme`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `SchemeGroupVersion` (`var SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: runtime.APIVersionInternal}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/internalversion.localSchemeBuilder", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var localSchemeBuilder = &SchemeBuilder"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/internalversion.AddToScheme", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var AddToScheme = localSchemeBuilder.AddToScheme"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/internalversion.SchemeGroupVersion", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: runtime.APIVersionInternal}"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.apis.«meta».internalversion where
   pkgImportedPkgs := []
 
@@ -106,19 +114,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (package.init pkg_id.k8s_io.apimachinery.pkg.apis.«meta».internalversion)) (Lam BAnon
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«1» []))) (Val #())) (Val #())))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val SchemeGroupVersion.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val AddToScheme.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val localSchemeBuilder.init) (Val #()))))))))
+  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #()))))))))
 
 opaque ListOptions.nonempty_type : NonemptyType.{0}
 def ListOptions : Type := ListOptions.nonempty_type.type

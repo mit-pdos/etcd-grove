@@ -42,21 +42,6 @@ opaque defaultFeatureSupportChecker.underlying [GooseExts] [GoGlobalContext] : g
 
 opaque rangeStreamRecheckInterval [GooseExts] [GoGlobalContext] : val
 
-noncomputable def v3_4_31 [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/feature.v3_4_31"
-
-opaque v3_4_31.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def v3_5_0 [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/feature.v3_5_0"
-
-opaque v3_5_0.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def v3_5_13 [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/feature.v3_5_13"
-
-opaque v3_5_13.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def DefaultFeatureSupportChecker [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/feature.DefaultFeatureSupportChecker"
 
@@ -71,6 +56,29 @@ noncomputable def NewDefaultFeatureSupportChecker [GooseExts] [GoGlobalContext] 
 noncomputable def endpointSupportsRequestWatchProgress [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/feature.endpointSupportsRequestWatchProgress"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `v3_4_31` (`var // Define these static versions to use for checking version of etcd, issue on kubernetes #123192 v3_4_31 = version.M … [sha256:498b5fc3eb915d9c]`): Their initializers call, besides literals of constants and other variables' values:
+`version.MustParse*`/`MajorMinor` of constants allocate a version (`MustParse*` panics only on an
+invalid constant, and these parse: Go runs the initializer at every start). So each terminates,
+cannot panic and has no effect beyond its variable.
+- `v3_5_0` (`var v3_5_0 = version.MustParseSemantic("3.5.0")`): Their initializers call, besides literals of constants and other variables' values:
+`version.MustParse*`/`MajorMinor` of constants allocate a version (`MustParse*` panics only on an
+invalid constant, and these parse: Go runs the initializer at every start). So each terminates,
+cannot panic and has no effect beyond its variable.
+- `v3_5_13` (`var v3_5_13 = version.MustParseSemantic("3.5.13")`): Their initializers call, besides literals of constants and other variables' values:
+`version.MustParse*`/`MajorMinor` of constants allocate a version (`MustParse*` panics only on an
+invalid constant, and these parse: Go runs the initializer at every start). So each terminates,
+cannot panic and has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"k8s.io/apiserver/pkg/storage/feature.v3_4_31", "Their initializers call, besides literals of constants and other variables' values:\n`version.MustParse*`/`MajorMinor` of constants allocate a version (`MustParse*` panics only on an\ninvalid constant, and these parse: Go runs the initializer at every start). So each terminates,\ncannot panic and has no effect beyond its variable.", "var // Define these static versions to use for checking version of etcd, issue on kubernetes #123192 v3_4_31 = version.M … [sha256:498b5fc3eb915d9c]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/feature.v3_5_0", "Their initializers call, besides literals of constants and other variables' values:\n`version.MustParse*`/`MajorMinor` of constants allocate a version (`MustParse*` panics only on an\ninvalid constant, and these parse: Go runs the initializer at every start). So each terminates,\ncannot panic and has no effect beyond its variable.", "var v3_5_0 = version.MustParseSemantic(\"3.5.0\")"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/feature.v3_5_13", "Their initializers call, besides literals of constants and other variables' values:\n`version.MustParse*`/`MajorMinor` of constants allocate a version (`MustParse*` panics only on an\ninvalid constant, and these parse: Go runs the initializer at every start). So each terminates,\ncannot panic and has no effect beyond its variable.", "var v3_5_13 = version.MustParseSemantic(\"3.5.13\")"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.storage.feature where
   pkgImportedPkgs := [pkg_id.context, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.k8s_io.apiserver.pkg.storage]
 
@@ -83,17 +91,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (Val DefaultFeatureSupportChecker.init) (Val #())))))
-  (App (Val doExecute)
-  (App (Val v3_5_13.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val v3_5_0.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val v3_4_31.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.context.initialize') (Val #()))))))
   (App (Val doExecute)

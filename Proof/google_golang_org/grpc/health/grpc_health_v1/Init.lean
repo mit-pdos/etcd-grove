@@ -2,10 +2,9 @@
 Package initialization of `google_golang_org.grpc.health.grpc_health_v1`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports, runs the untranslated
-initializers of its variables (`X.init`, axioms of the translation), which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untranslated
-`init` functions, which the trust-boundary axiom `initFuncsOk` says return.
+Its fact is `True`. Its initializer initializes its imports and runs its untranslated
+`init` functions, which the trust-boundary axiom `initFuncsOk` says return (it has no
+initialized variable).
 -/
 module
 
@@ -36,20 +35,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-
-/-- **The trust boundary: `google_golang_org.grpc.health.grpc_health_v1`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([HealthCheckResponse_ServingStatus_name.init,
-        HealthCheckResponse_ServingStatus_value.init,
-        file_grpc_health_v1_health_proto_enumTypes.init,
-        file_grpc_health_v1_health_proto_msgTypes.init,
-        file_grpc_health_v1_health_proto_goTypes.init,
-        file_grpc_health_v1_health_proto_depIdxs.init,
-        Health_ServiceDesc.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
 /-- **The trust boundary: `google_golang_org.grpc.health.grpc_health_v1`'s untranslated `init` functions return.** Goose
 names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
@@ -87,13 +72,6 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (_root_.Perennial.google_golang_org.grpc.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.context _root_.Perennial.context.initialize'
       EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (opaqueInitsOk HealthCheckResponse_ServingStatus_name.init (by mem_tac))
-  wp_apply (opaqueInitsOk HealthCheckResponse_ServingStatus_value.init (by mem_tac))
-  wp_apply (opaqueInitsOk file_grpc_health_v1_health_proto_enumTypes.init (by mem_tac))
-  wp_apply (opaqueInitsOk file_grpc_health_v1_health_proto_msgTypes.init (by mem_tac))
-  wp_apply (opaqueInitsOk file_grpc_health_v1_health_proto_goTypes.init (by mem_tac))
-  wp_apply (opaqueInitsOk file_grpc_health_v1_health_proto_depIdxs.init (by mem_tac))
-  wp_apply (opaqueInitsOk Health_ServiceDesc.init (by mem_tac))
   wp_apply (initFuncsOk init.«0» (by mem_tac))
   iframe Hown
   is_pkg_init_finish

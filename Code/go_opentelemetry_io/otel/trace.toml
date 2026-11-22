@@ -19,3 +19,69 @@ imports = ["!*", "go.opentelemetry.io/otel/trace/embedded", "go.opentelemetry.io
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`; until 2026-11-22
+# their initializers were untranslated, `opaqueInitsOk`). goose refuses a reference to one from
+# translated code, so no verified code reads them; each reason says why not running the
+# initializer is unobservable.
+[[skip]]
+names = ["maxSpan"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values: `newSpanLimits`
+returns a struct of constants. So it terminates, cannot panic and has no effect beyond its variable."""
+
+[[skip]]
+names = ["_@auto.go:40"]
+reason = """
+An interface check: `autoTracerProvider{}` converted to `TracerProvider`. No call, no panic, no
+effect."""
+
+[[skip]]
+names = ["_@auto.go:57"]
+reason = """
+An interface check: `autoTracer{}` converted to `Tracer`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@config.go:229"]
+reason = """
+An interface check: `attributeOption{}` converted to `SpanStartEventOption`. No call, no panic, no
+effect."""
+
+[[skip]]
+names = ["_@config.go:263"]
+reason = """
+An interface check: `timestampOption{}` converted to `SpanEventOption`. No call, no panic, no
+effect."""
+
+[[skip]]
+names = ["_@noop.go:26"]
+reason = """
+An interface check: `noopTracerProvider{}` converted to `TracerProvider`. No call, no panic, no
+effect."""
+
+[[skip]]
+names = ["_@noop.go:36"]
+reason = """
+An interface check: `noopTracer{}` converted to `Tracer`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@trace.go:41"]
+reason = """
+An interface check: `nilTraceID` converted to `json.Marshaler`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@trace.go:92"]
+reason = """
+An interface check: `nilSpanID` converted to `json.Marshaler`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@trace.go:317"]
+reason = """
+An interface check: `SpanContext{}` converted to `json.Marshaler`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@tracestate.go:178"]
+reason = """
+An interface check: `TraceState{}` converted to `json.Marshaler`. No call, no panic, no effect."""
+# --- end of skipped package variables ---
