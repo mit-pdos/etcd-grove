@@ -692,7 +692,7 @@ any backend, `lessorApplyOk`; review round 2's S5): at `bk`, from its contract (
 hook frozen at `f` (`hookIs`, `memCore`'s; not `nil`, `hookOk`'s). (Proved: `lessorApplyOk_at`,
 `rwLens_refl`.) -/
 theorem lessorW_backend (γk : MvccName) (bk : mvcc.KBReal) (f : GoFunc) (lp : Loc) (L U : List w64)
-    (σ : MvccState) (hf : f ≠ func.nil) :
+    (σ : MvccState) (hf : f ≠ func.nil) (hlp : leaseParams bk.P) :
     lessorW (GF := GF) γk bk f lp L U σ ∗ backend.isBackend bk.γB bk.P (mvccW bk.gx) iprop(True) bk.be ∗
       hookIs (etcdStorage bk) f ⊢
     lessorW γk bk f lp L U σ ∗
@@ -705,7 +705,7 @@ theorem lessorW_backend (γk : MvccName) (bk : mvcc.KBReal) (f : GoFunc) (lp : L
   · iunfold lessorW; iexists rd, r; iframe #; iframe
   have hln : leaseName = go!"lease" := rfl
   rw [hln]
-  iapply lessorApplyOk_at lp bk (mvccW bk.gx) iprop(True) f (lease.lessorBeOn lp bk.be)
+  iapply lessorApplyOk_at lp bk (mvccW bk.gx) iprop(True) f (lease.lessorBeOn lp bk.be) hlp
   isplitr; iexact Hok
   isplitr; iexact Hb
   isplitr

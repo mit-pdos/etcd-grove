@@ -1916,6 +1916,9 @@ other untranslated initializers run.''',
         'leaseTotalTTLs': metric_steps_to('leaseTotalTTLs', 'hist', 'go_etcd_io.etcd.server.v3.storage.backend.histSpec')},
     finish=['ipersist HErrNotPrimary', 'ipersist HErrLeaseNotFound', 'ipersist HErrLeaseExists', 'ipersist HErrLeaseTTLTooLarge',
             'ipersist Hforever', 'ipersist HleaseGranted', 'ipersist HleaseRevoked', 'ipersist HleaseRenewed',
+            # (prove-ps2-newlessor3, 2026-11-21) `leaseConsts`, what `newLessor` and the expiry loop read
+            'ipersist HdefaultLeaseRevokeRate', 'ipersist HleaseCheckpointRate', 'ipersist HmaxLeaseCheckpointBatchSize',
+            'ipersist HdefaultLeaseCheckpointInterval', 'ipersist HdefaultExpiredleaseRetryInterval',
             'ipersist HleaseTotalTTLs',
             'ihave #TNP := EtcdGrove.errorMsg_triple _ _ _ $$ MNP',
             'ihave #TNF := EtcdGrove.errorMsg_triple _ _ _ $$ MNF',
@@ -1927,7 +1930,12 @@ other untranslated initializers run.''',
             'ihave #VEx : (EtcdGrove.errVarCell ErrLeaseExists go!"lease already exists" : IProp GF) $$ []',
             '· unfold EtcdGrove.errVarCell; iexists _; iframe HErrLeaseExists CEx',
             'ihave #VTL : (EtcdGrove.errVarCell ErrLeaseTTLTooLarge go!"too large lease TTL" : IProp GF) $$ []',
-            '· unfold EtcdGrove.errVarCell; iexists _; iframe HErrLeaseTTLTooLarge CTL'] + FIN_PRE[:6] + [
+            '· unfold EtcdGrove.errVarCell; iexists _; iframe HErrLeaseTTLTooLarge CTL',
+            # (prove-ps2-newlessor3, 2026-11-21) the rates and intervals
+            'ihave #HlC : (leaseConsts : IProp GF) $$ []',
+            '· unfold leaseConsts; iframe HdefaultLeaseRevokeRate HleaseCheckpointRate HmaxLeaseCheckpointBatchSize',
+            '  isplitr; · iexists _; iexact HdefaultLeaseCheckpointInterval',
+            '  iexists _; iexact HdefaultExpiredleaseRetryInterval'] + FIN_PRE[:6] + [
             'imodintro', 'unfold leaseInit leaseErrVar', 'iframe #', 'dsimp only', 'iframe #',
             'repeat (first | (isplitl []; · (ipureintro; first | exact EtcdGrove.errorString_errLeaf _ | exact EtcdGrove.errorString_leaf _)) | (ipureintro; first | exact EtcdGrove.errorString_errLeaf _ | exact EtcdGrove.errorString_leaf _))'],
 )
@@ -5082,6 +5090,71 @@ def net_inits(ext_txt):
     return outs
 
 
+# The part `KvNet/` (kvnet's proof, notes/kvnet-part.md): raft-noax's raft, the net extension's `net`
+# (`Net/`'s) and the bodied `durable` over fsExt (`WalTester/`'s), in one closure. Each of its source
+# parts has its own `PkgInitExt` and its own copies of `os`'s initializers over it (`Net/`: without
+# raft; `RaftNoAx/`: with its raft), and `RaftNoAx/` and `WalTester/` both have a `durable`
+# initializer (the trusted one's, the bodied one's): the part's are generated here, as the main
+# tree's, from the part's translation (`KvNet/Code` over the main tree's) and instances
+# (`KvNet/Proof/`, etc/copy-part.py's copies, over the main tree's), with `net`'s and `durable`'s
+# configurations those of `Net/` and `WalTester/`, the imports of the part's modules prefixed, and a
+# `PkgInitExt` that is the main tree's with the part's raft. (kvnet's and kvcheck's own, and their
+# program's `PkgTable`, wait for kvnet's proof to give their `IsPkgInit` instances.)
+# etc/copy-part.py does not copy these (`kvnet_paths`).
+KVNET_ROOT = 'KvNet'
+KVNET_INITS = PART_INITS + ['net', 'github_com.mit_pdos.etcd_grove.examples.lib.durable',
+                            # (`durable`'s imports that `os` does not import)
+                            'internal.filepathlite', 'path.filepath']
+KVNET_SPECIAL = {**NET_SPECIAL, **WT_SPECIAL}
+_KVNET_RAW = []
+
+
+def kvnet_raw():
+    """The part's `Init.lean` files, unprefixed: (path under the part, text)."""
+    global inv, inst, CFG_OVERRIDE
+    if _KVNET_RAW:
+        return _KVNET_RAW[0]
+    saved = inv, inst, CFG_OVERRIDE
+    try:
+        inv = dict(inv)
+        for q, d in inventory(f'{KVNET_ROOT}/Code').items():
+            if not d['perennial']:
+                inv[q] = d
+        inst = {**inst, **instances(f'{KVNET_ROOT}/Proof/')}
+        CFG_OVERRIDE = KVNET_SPECIAL
+        raw = [o for p in KVNET_INITS
+               for o in gen(p, KVNET_SPECIAL.get(p, SPECIAL.get(p)))]
+    finally:
+        inv, inst, CFG_OVERRIDE = saved
+    _KVNET_RAW.append(raw)
+    return raw
+
+
+def kvnet_paths():
+    """The paths (relative to the part) this script writes for the part."""
+    return {path for path, _ in kvnet_raw()} | {'Proof/runtime/PkgInitExt.lean'}
+
+
+def kvnet_inits(ext_txt):
+    """The part's `Init.lean` files and `PkgInitExt.lean` (from the main tree's, `ext_txt`)."""
+    raw = kvnet_raw()
+    made = {f'{KVNET_ROOT}/{path}' for path, _ in raw}
+
+    def imp(m):
+        x = m.group(2)
+        f = f'{KVNET_ROOT}/{x.replace(".", "/")}.lean'
+        if os.path.exists(f) or f in made or x == 'Proof.runtime.PkgInitExt':
+            x = f'{KVNET_ROOT}.{x}'
+        return m.group(1) + x
+    outs = [(f'{KVNET_ROOT}/{path}', re.sub(r'(?m)^(public import )(\S+)', imp, txt)) for path, txt in raw]
+    ext = re.sub(r'(?m)^(public import )(Code\.go_etcd_io\.raft\S*)', rf'\1{KVNET_ROOT}.\2', ext_txt)
+    i = ext.index('\nmodule\n') + 1
+    note = (f'-- The copy for the part `{KVNET_ROOT}/` of `Proof/runtime/PkgInitExt.lean` (`etc/gen-init.py`):\n'
+            f'-- the same, but its raft is the part\'s (raft-noax\'s).\n')
+    outs.append((f'{KVNET_ROOT}/Proof/runtime/PkgInitExt.lean', ext[:i] + note + ext[i:]))
+    return outs
+
+
 def main(argv):
     check = '--check' in argv
     pkgs = [a for a in argv if not a.startswith('--')] or packages()
@@ -5099,6 +5172,7 @@ def main(argv):
         outs += wt_inits()
         outs += noax_inits()
         outs += net_inits(next(t for p, t in outs if p == 'Proof/runtime/PkgInitExt.lean'))
+        outs += kvnet_inits(next(t for p, t in outs if p == 'Proof/runtime/PkgInitExt.lean'))
     for path, txt in outs:
         old = open(path).read() if os.path.exists(path) else None
         if old == txt:

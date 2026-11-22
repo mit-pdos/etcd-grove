@@ -706,16 +706,8 @@ end go_etcd_io.etcd.server.v3.etcdserver.api
 -- `snap`, which `storage` imports since `OpenSnapshotBackend` is translated, and the packages
 -- `config` imports (`otelgrpc`, `transport` and its `crypto/tls`, `featuregate`, `v3discovery`)
 
--- grpc's `stats` (types and names only: `stats.Handler`, the type of otelgrpc's
--- `NewServerHandler`'s result; otelgrpc imports it, 2026-11-19)
-namespace google_golang_org.grpc.stats
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.stats :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.stats :=
-  build_get_is_pkg_init_wf
-
-end google_golang_org.grpc.stats
+-- grpc's `stats`: its instance is in the cache's `Base.lean` since phase 7 S1 (2026-11-21:
+-- grpc imports it, for the model's `serverOptions`)
 
 -- `net/http`'s instance: `Proof/net/http/Base.lean` (prove-http3, 2026-11-21)
 
