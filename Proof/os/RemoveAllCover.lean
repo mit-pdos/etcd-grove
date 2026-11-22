@@ -163,6 +163,68 @@ theorem ClRanked.pool {l1 l2 pool : List Claim} {x : Claim} (hrk : ClRanked (l1 
   · exact List.mem_append_left _ hc
   · exact List.mem_append_right _ (List.mem_cons_of_mem _ hc)
 
+/-! ## A well-formed tree's directories are ranked (their depth) -/
+
+/-- The directory `j` is reachable from a root of `roots` in `m` in `n` steps. -/
+inductive ReachN (roots : List (GoString × Ino)) (m : Tree) : Ino → Nat → Prop where
+  | root (r : GoString) (j : Ino) : (r, j) ∈ roots → ReachN roots m j 0
+  | child (j : Ino) (n : Nat) (b : GoString) (j' : Ino) :
+      ReachN roots m j n → m.entry j b = some (.dir j') → ReachN roots m j' (n + 1)
+
+theorem ReachN.of_reach {roots : List (GoString × Ino)} {m : Tree} {j : Ino}
+    (h : Reach roots m j) : ∃ n, ReachN roots m j n := by
+  induction h with
+  | root r j hr => exact ⟨0, .root r j hr⟩
+  | child j b j' _ he ih => obtain ⟨n, hn⟩ := ih; exact ⟨n + 1, .child j n b j' hn he⟩
+
+/-- In a well-formed tree a directory's depth is unique (it is named by one entry or one root). -/
+theorem ReachN.unique {roots : List (GoString × Ino)} {m : Tree} (hwf : TreeWf roots m) {j : Ino}
+    {n : Nat} (h : ReachN roots m j n) : ∀ {n'}, ReachN roots m j n' → n = n' := by
+  induction h with
+  | root r j hr =>
+    intro n' h'
+    cases h' with
+    | root => rfl
+    | child j0 n0 b0 _ _ he => exact absurd hr (hwf.2.2.2.1 j0 b0 j he r)
+  | child j n b j' _ he ih =>
+    intro n' h'
+    cases h' with
+    | root r _ hr => exact absurd hr (hwf.2.2.2.1 j b j' he r)
+    | child j1 n1 b1 _ h1 he1 =>
+      obtain ⟨rfl, -⟩ := hwf.2.2.2.2 j b j1 b1 _ he he1
+      rw [ih h1]
+
+/-- **A well-formed tree's directories have a rank growing along every entry naming a directory**
+(their depth: a directory with an entry is reachable, `TreeWf`'s second conjunct). -/
+theorem TreeWf.rank {roots : List (GoString × Ino)} {m : Tree} (hwf : TreeWf roots m) :
+    ∃ rk : Ino → Nat, ∀ J c K, m.entry J c = some (.dir K) → rk J < rk K := by
+  classical
+  refine ⟨fun j => if h : ∃ n, ReachN roots m j n then h.choose else 0, fun J c K he => ?_⟩
+  have hJm : J ∈ m := by
+    simp only [Tree.entry] at he
+    cases hJ : m !! J with
+    | none => rw [hJ] at he; cases he
+    | some _ => exact (GMap.mem_iff m J).2 (by rw [hJ]; rfl)
+  have hJr : Reach roots m J := by
+    rcases hwf.2.1 J hJm with h | ⟨hno, -⟩
+    · exact h
+    · rw [hno c] at he; cases he
+  obtain ⟨n, hn⟩ := ReachN.of_reach hJr
+  have hK : ReachN roots m K (n + 1) := .child J n c K hn he
+  have e1 : ∃ n, ReachN roots m J n := ⟨n, hn⟩
+  have e2 : ∃ n, ReachN roots m K n := ⟨n + 1, hK⟩
+  simp only [dif_pos e1, dif_pos e2]
+  rw [← hn.unique hwf e1.choose_spec, ← hK.unique hwf e2.choose_spec]
+  omega
+
+/-- **Claims whose entries are a well-formed tree's are ranked** (`os.RemoveAll.specSubS`'s premise,
+for claims read off a tree: a boot's). -/
+theorem ClRanked.of_tree {roots : List (GoString × Ino)} {m : Tree} (hwf : TreeWf roots m)
+    {cl : List Claim} (hcl : ∀ c ∈ cl, ∀ x n, c.2.2.cur !! x = some n → m.entry c.1 x = some n) :
+    ClRanked cl := by
+  obtain ⟨rk, hrk⟩ := TreeWf.rank hwf
+  exact ⟨rk, fun c hc x K he => hrk c.1 x K (hcl c hc x _ he)⟩
+
 end EtcdGrove
 end Perennial
 
