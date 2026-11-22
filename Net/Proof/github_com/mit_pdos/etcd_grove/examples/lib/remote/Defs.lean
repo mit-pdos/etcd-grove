@@ -14,9 +14,9 @@ What crosses a connection of `examples/lib/remote`, over the net extension's pro
     `sysState st` over the global ghost state (the same proposition at every node), the mask `Eop` of
     the invariants the far side's operation may have open at its linearization point, and the unknown
     output `unk i` of each input; the update is `slotUpd R i Φ` (below). `Do` calls one.
-  - **a report** (`reportSvc W Q`): the far side runs a loop on the input `i` and answers an output
-    `o` with `Q i o`, the loop's postcondition, persistent or not; the update is `∀ o, Q i o -∗ Φ o`,
-    and there are no unknown answers. `Report` calls one.
+  - **a report** (`reportSvc W P Q`): the far side runs a loop on the input `i`, given `P i` by the
+    dialer, and answers an output `o` with `Q i o`, the loop's postcondition, persistent or not; the
+    update is `P i ∗ ∀ o, Q i o -∗ Φ o`, and there are no unknown answers. `Report` calls one.
 * **The update of a store** `lin R i Φ`: the linearization point of the base operation `i`, a fancy
   update from `⊤ ∖ Eop` (as lintest's atomic triples' updates, without the `▷`) that takes
   `sysState st` to `sysState (step i st).1` and gives `Φ` of the step's output.
@@ -44,8 +44,8 @@ What crosses a connection of `examples/lib/remote`, over the net extension's pro
   `slotUpd R i Φ` (a write's one-shot `lin R i Φ`; a read's `□ lin R i Φ`, which it may fire zero or
   more times, each firing giving `Φ` of its output: the read form), `op(sys, iv i)` either returns
   `ov o` with `Φ o`, or returns `unk i` (a write's update may have fired, may fire later, or never:
-  the lab's `opAwpMaybe`); `opMaybe_svcOp`. A report's `reportOp W Q tok op`: `op(sys, iv i)` returns
-  an output `ov o` with `Q i o`; `reportOp_svcOp`.
+  the lab's `opAwpMaybe`); `opMaybe_svcOp`. A report's `reportOp W P Q tok op`: `op(sys, iv i)`, given
+  `P i`, returns an output `ov o` with `Q i o`; `reportOp_svcOp`.
 -/
 module
 
@@ -599,36 +599,37 @@ theorem opMaybe_svcOp (tok : GoInterface → IProp GF) (op : GoFunc) :
 
 /-! ### Reports -/
 
-/-- **A report** (see the file header): the far side's loop, run on the input `i`, answers an output
-`o` with `Q i o`, its postcondition (persistent or not); the slot hands it `∀ o, Q i o -∗ Φ o`, and
-there is no answer but an output. -/
-abbrev reportSvc (W : RWire I O) (Q : I → O → IProp GF) : RSvc GF I O where
+/-- **A report** (see the file header): the far side's loop, run on the input `i` with `P i` from
+the dialer (what the orchestrator established before the call: a permission, a witness), answers an
+output `o` with `Q i o`, its postcondition (persistent or not); the slot hands it
+`P i ∗ ∀ o, Q i o -∗ Φ o`, and there is no answer but an output. -/
+abbrev reportSvc (W : RWire I O) (P : I → IProp GF) (Q : I → O → IProp GF) : RSvc GF I O where
   toRWire := W
   unkAns _ _ := False
-  upd i Φ := iprop(∀ o, Q i o -∗ Φ o)
+  upd i Φ := iprop(P i ∗ ∀ o, Q i o -∗ Φ o)
 
 /-- **The far side's loop** `op` over the system `sys` (its resource `tok sys`) meets the report
-`Q`: run on `i`, it returns an output `o` with `Q i o`. -/
-def reportOp (W : RWire I O) (Q : I → O → IProp GF) (tok : GoInterface → IProp GF) (op : GoFunc) :
-    IProp GF :=
+`P`, `Q`: run on `i` with `P i`, it returns an output `o` with `Q i o`. -/
+def reportOp (W : RWire I O) (P : I → IProp GF) (Q : I → O → IProp GF)
+    (tok : GoInterface → IProp GF) (op : GoFunc) : IProp GF :=
   iprop(∀ (sys : GoInterface) (i : I),
-    {{ tok sys }} (App (App (Val #op) (Val #sys)) (Val #(W.iv i)))
+    {{ tok sys ∗ P i }} (App (App (Val #op) (Val #sys)) (Val #(W.iv i)))
     {{ (v : GoInterface), RET #v; tok sys ∗ ∃ o, ⌜v = W.ov o⌝ ∗ Q i o }})
 
-instance reportOp_persistent (W : RWire I O) (Q : I → O → IProp GF)
+instance reportOp_persistent (W : RWire I O) (P : I → IProp GF) (Q : I → O → IProp GF)
     (tok : GoInterface → IProp GF) (op : GoFunc) :
-    Persistent (reportOp (hG := hG) W Q tok op) := by
+    Persistent (reportOp (hG := hG) W P Q tok op) := by
   unfold reportOp; infer_instance
 
 /-- A report's loop is its service's operation. -/
-theorem reportOp_svcOp (W : RWire I O) (Q : I → O → IProp GF) (tok : GoInterface → IProp GF)
-    (op : GoFunc) :
-    reportOp (hG := hG) W Q tok op ⊢ svcOp (reportSvc W Q) tok op := by
+theorem reportOp_svcOp (W : RWire I O) (P : I → IProp GF) (Q : I → O → IProp GF)
+    (tok : GoInterface → IProp GF) (op : GoFunc) :
+    reportOp (hG := hG) W P Q tok op ⊢ svcOp (reportSvc W P Q) tok op := by
   unfold reportOp svcOp
   iintro #H %sys %i %Φ
-  iintro !> %Φr ⟨Htok, HQ⟩ HΦr
-  wp_apply H $$ %sys %i [Htok] as %v ⟨Htok, ⟨%o, %Ho, Hq⟩⟩
-  · iexact Htok
+  iintro !> %Φr ⟨Htok, HP, HQ⟩ HΦr
+  wp_apply H $$ %sys %i [Htok HP] as %v ⟨Htok, ⟨%o, %Ho, Hq⟩⟩
+  · iframe Htok HP
   iapply HΦr
   iframe Htok
   ileft

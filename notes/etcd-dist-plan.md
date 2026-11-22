@@ -391,14 +391,14 @@ rule; kept as "all tried, none succeeded").
 **service** `RSvc GF I O` (`Net/Proof/.../lib/remote/Defs.lean`): the wire (`RWire`: `iv`, `ov`,
 `encIn`, `encOut`), the answers that are not outputs (`unkAns i v`) and the update a slot hands to
 the far side (`upd i Φ`). A store is one (`RBase.svc`: `unkAns i v := v = unk i`, `upd := slotUpd R`;
-`remoteAddr R a` is `svcAddr R.svc a`), and so is **a report** (`reportSvc W Q`: the far side's loop
+`remoteAddr R a` is `svcAddr R.svc a`), and so is **a report** (`reportSvc W P Q`: the far side's loop
 on `i` answers an output `o` with `Q i o`, its postcondition, persistent or transferable;
 `upd i Φ := ∀ o, Q i o -∗ Φ o`; `unkAns := False`). The codec splits: `wireOk S cd` (`EncIn`,
 `DecIn`, `EncOut`, `DecOut`: all `Report` and the serving side use; a report's codec leaves
 `IsRead`/`Unknown`/`IsUnknown` nil) under a store's `codecOk` (`codecOk_wireOk`). The serving side's
 counterpart: `svcOp S tok op` (given `S.upd i Φ`, `op` answers an output with `Φ` of it or an
 answer `unkAns i v`), met by a store's `opMaybe` (`opMaybe_svcOp`) and by a report's loop
-`reportOp W Q tok op` (`{tok sys} op(sys, iv i) {v. tok sys ∗ ∃ o, v = ov o ∗ Q i o}`,
+`reportOp W P Q tok op` (`{tok sys} op(sys, iv i) {v. tok sys ∗ ∃ o, v = ov o ∗ Q i o}`,
 `reportOp_svcOp`). `attempt`, `serveConn`, `Serve`, `ServeClient` and `listen` are now stated over
 `S : RSvc` (wire and update generic, same proofs); `Do`, `Run`, `Check` over a store, unchanged.
 `Report.spec`:

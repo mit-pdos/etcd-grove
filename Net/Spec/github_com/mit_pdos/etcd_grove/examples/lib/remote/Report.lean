@@ -6,8 +6,8 @@ answer that decoded: an output `ov o` with `Φ o`, or an answer to `i` that is n
 (`S.unkAns i v`). With `false` (no answer that decodes) the update stays in the slot: the far side
 may claim it later, or never. A request longer than `maxLen` is never sent (`Report` never returns).
 
-For a report (`reportSvc W Q`: the far side's loop answers an output `o` with `Q i o`,
-`reportOp_svcOp`) the caller hands `∀ o, Q i o -∗ Φ o` and there is no other answer
+For a report (`reportSvc W P Q`: the far side's loop, given `P i`, answers an output `o` with
+`Q i o`, `reportOp_svcOp`) the caller hands `P i ∗ ∀ o, Q i o -∗ Φ o` and there is no other answer
 (`unkAns` is `False`): with `Φ := Q i`, `Report` returns `true` only with an output `o` and
 `Q i o`. Proved in `Net/Proof/.../lib/remote/Report.lean`.
 -/

@@ -41866,8 +41866,8 @@ the functions that only move bytes and the update (`attempt`, `serveConn`, `Serv
 `listen`, `Report`) are stated over any service, with the codec's wire part `wireOk` and the far
 side's `svcOp`; `Do`/`Run`/`Check`, which need the model, over a store, through `RBase.svc`
 (`remoteAddr R a` is `svcAddr R.svc a`; `codecOk_wireOk`, `opMaybe_svcOp`). A report is
-`reportSvc W Q`: the update is `∀ o, Q i o -∗ Φ o` (so `Q` may be persistent or transferable: the
-slot hands `Φ o` back once), with no unknown answers; its far side meets `reportOp W Q tok op`
+`reportSvc W P Q`: the update is `∀ o, Q i o -∗ Φ o` (so `Q` may be persistent or transferable: the
+slot hands `Φ o` back once), with no unknown answers; its far side meets `reportOp W P Q tok op`
 (`reportOp_svcOp`). One spec per function: `Report.spec` is stated over any service, a report an
 instance (`unkAns = False` empties its last disjunct).
 
