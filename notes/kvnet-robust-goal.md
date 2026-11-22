@@ -164,7 +164,7 @@ extension's notes).
      moves into each proof (a ghost token per address, allocated at initialization). The soundness
      argument against Linux (EADDRNOTAVAIL is a failure; a real connection reaches the owner, one of
      the listeners the model allows) and the closed world are written in the extension's notes;
-   - update: the seven TCP examples (drop their plan-at-host premises), the kits and `KitDeploy`,
+   - update: the seven TCP examples (drop their plan-at-host premises), the kits and `DistDeploy`,
      `Tests.lean:500-510`, `Replay.lean:346`, `Decide.lean:283-296` (`listenAtB`),
      `Proto.lean:519-529` (`addrTok_listenAt`), the D6/D13/D20/D21 notes, `Net/TrustedCode/net.lean`.
 4. Fs extension: `init := FsInit`, `globalInit := True`.

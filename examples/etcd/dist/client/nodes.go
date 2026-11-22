@@ -1,8 +1,6 @@
 package client
 
 import (
-	"net"
-	"sync"
 	"time"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -57,33 +55,6 @@ func writerAttempt(nops int) time.Duration {
 }
 
 const principalAttempt = 3 * time.Minute
-
-// How many times, and how far apart, awaitNodes tries to reach a client machine.
-const (
-	nodeTries = 300
-	nodePause = 100 * time.Millisecond
-)
-
-// awaitNodes waits until every client machine accepts a connection (a liveness wait, as
-// awaitCluster's: a connection that carries no request runs nothing), and reports whether all did.
-func awaitNodes(nodes []string) bool {
-	for _, a := range nodes {
-		up := false
-		for t := 0; t < nodeTries && !up; t++ {
-			c, err := net.DialTimeout("tcp", a, time.Second)
-			if err == nil {
-				c.Close()
-				up = true
-			} else {
-				time.Sleep(nodePause)
-			}
-		}
-		if !up {
-			return false
-		}
-	}
-	return true
-}
 
 // writerCodec is a writer's call: its Puts in, its log of those that returned out.
 func writerCodec() remote.Codec {
@@ -237,15 +208,15 @@ func remotePrincipals(nodes []string) int {
 	return n
 }
 
-// connectRetry makes a client of eps, trying until it succeeds (a client machine has nothing else
-// to do).
-func connectRetry(eps []string) *clientv3.Client {
+// ConnectRetry makes a client of eps, trying every 100ms until it succeeds (a client machine has
+// nothing else to do).
+func ConnectRetry(eps []string) *clientv3.Client {
 	for {
 		cli, err := newClient(eps)
 		if err == nil {
 			return cli
 		}
-		time.Sleep(nodePause)
+		time.Sleep(100 * time.Millisecond)
 	}
 }
 
@@ -260,9 +231,9 @@ func NodeMain(w Workload, c int, addr string, eps []string) {
 	}
 	switch w.Kind {
 	case KV:
-		kvremote.Node(c, addr, rotate(eps, c))
+		kvremote.Node(c, addr, Rotate(eps, c))
 	case Watch, Cache:
-		newClient := func(c int) any { return connectRetry(rotate(eps, c)) }
+		newClient := func(c int) any { return ConnectRetry(Rotate(eps, c)) }
 		remote.ServeClient(c, addr, newClient, writerOp, writerCodec(), writerAttempt(w.Ops))
 	case Auth:
 		newClient := func(int) any { return eps }
@@ -270,19 +241,8 @@ func NodeMain(w Workload, c int, addr string, eps []string) {
 	}
 }
 
-// reportAll runs remote.Report at every client machine nodes[c] with input ins[c], all at once,
-// and returns their outputs and whether each answered.
+// reportAll runs remote.Report at every client machine nodes[c] with input ins[c], all at once
+// (CallAll), and returns their outputs and whether each answered.
 func reportAll(nodes []string, ins []any, codec remote.Codec, d time.Duration) ([]any, []bool) {
-	outs := make([]any, len(nodes))
-	oks := make([]bool, len(nodes))
-	var wg sync.WaitGroup
-	for c := range nodes {
-		wg.Add(1)
-		go func() {
-			outs[c], oks[c] = remote.Report(nodes[c], ins[c], codec, d)
-			wg.Done()
-		}()
-	}
-	wg.Wait()
-	return outs, oks
+	return CallAll(nodes, ins, func(a string, in any) (any, bool) { return remote.Report(a, in, codec, d) })
 }

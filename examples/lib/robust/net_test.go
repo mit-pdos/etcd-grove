@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// TestMain runs an echo server instead of the tests when the harness started this binary as one
+// TestMain runs an echo server instead of the tests when the test started this binary as one
 // (ROBUST_ECHO set to the address to listen at).
 func TestMain(m *testing.M) {
 	if addr := os.Getenv("ROBUST_ECHO"); addr != "" {

@@ -2,6 +2,8 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.strconv
+public import Perennial.GeneratedProof.strings
 public import Perennial.Golang.Theory
 public import Code.github_com.Masterminds.semver.v3
 

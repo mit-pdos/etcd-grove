@@ -8,6 +8,7 @@ public import Spec.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Error
 public import Spec.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError__Error
 public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Error
 public import Spec.google_golang_org.grpc.status.Error
+public import Proof.go_etcd_io.etcd.client.v3.CtxErrLeaf
 public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings
 
 @[expose] public section
@@ -35,23 +36,6 @@ attribute [-instance] go_etcd_io.etcd.client.v3.WatchResponse.WatchResponse_acce
   go_etcd_io.etcd.client.v3.WatchResponse.WatchResponse_access_store_Created
   go_etcd_io.etcd.client.v3.WatchResponse.WatchResponse_access_store_closeErr
   go_etcd_io.etcd.client.v3.WatchResponse.WatchResponse_access_store_CancelReason
-
-/-- A `*status.Error` leaf is a client error (given `EtcdError` is an `errors.As` target). -/
-theorem clientErr_statusError (e : GoInterfaceOk) (hl : errors.isLeafError e)
-    (hty : e.ty = go.GoType.PointerType google_golang_org.grpc.internal.status.Error.ty)
-    (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
-    clientErr (GoInterface.ok e) := by
-  refine ⟨hAs, fun ii h => ?_⟩
-  cases h
-  refine ⟨hl, ?_, by simp [clientErrTys, hty]⟩
-  unfold errors.AsTypeTyped
-  have hu : underlying go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty =
-      go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.underlying := go.is_underlying
-  rw [hu]
-  simp only [go.isInterfaceType]
-  intro h
-  rw [hty] at h
-  simp [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty] at h
 
 /-- An `EtcdError` value's `Error` is `Error() string`, from `rpctypesEtcdErrorTy` (fmt soundness 2). -/
 theorem rpctypesEtcdErrorTy_errorSig (hty : rpctypesEtcdErrorTy (GF := GF) (hG := hG)) (e : GoInterfaceOk)
