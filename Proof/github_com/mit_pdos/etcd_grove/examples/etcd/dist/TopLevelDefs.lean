@@ -212,9 +212,9 @@ def Deployment.addrs (d : Deployment) : List GoString :=
 /-- A member name the data directory can carry: nonempty, of ASCII letters, digits and `-` (so
 no `/`, `.` or `..`: one directory per member, `etcdWalAreasInit`'s `memberDataDir`). -/
 def nameOk (n : GoString) : Bool :=
-  !n.isEmpty && n.all (fun b =>
-    (48 ≤ b.toNat && b.toNat ≤ 57) || (65 ≤ b.toNat && b.toNat ≤ 90) ||
-    (97 ≤ b.toNat && b.toNat ≤ 122) || b.toNat = 45)
+  !n.isEmpty && n.all (fun b => decide
+    ((48 ≤ b.toNat ∧ b.toNat ≤ 57) ∨ (65 ≤ b.toNat ∧ b.toNat ≤ 90) ∨
+    (97 ≤ b.toNat ∧ b.toNat ≤ 122) ∨ b.toNat = 45))
 
 /-- **The deployment is well formed** (decidable; the theorem's one premise about the deployment):
 
@@ -246,6 +246,9 @@ instance (d : Deployment) : Decidable d.WellFormed := by
 
 /-! ## Bootstrap's results and the trust-boundary premises (PLACEHOLDER) -/
 
+section boot
+variable [GooseExts]
+
 /-- **`bootstrap`'s results, as Go computes them** (every example's `BootFacts`, for the one
 cluster): the peers `ps` in `bootstrap`'s order, a permutation of the members' ids, their contexts
 `ctxs` and the bootstrap log `boot` (`BootCore`). Not decidable as stated (the log's encoding is
@@ -263,6 +266,8 @@ place in a deployment statement: each becomes an axiom of the trust boundary (re
 theorem (bootstrap over the real code; context's facts in Perennial, item 8), and this goes. -/
 opaque TrustBoundary (d : Deployment) (ps : List w64) (ctxs : List (List w8))
     (boot : List LogEntry) : Prop
+
+end boot
 
 /-! ## The programs (PLACEHOLDER: stage D2, the translations) -/
 
