@@ -1004,3 +1004,52 @@ top-level's ghost state is `kvnetGF` plus a `NaInvG` slot (kvdurable's `durableG
    example by computation (`addrOk` of the five addresses, `splitAddrs` of the joined string), a
    non-vacuity lemma, `#print axioms`, `etc/tcb-collections/kvnet.txt`; then remove
    `Proof/.../raft/kvnet/Robust.lean` and CLAUDE.md's mention of it.
+
+## The extensions' initial states; a crash frame cannot see what a generation's switch allocates (2026-11-22, eighth session on `kvnet-proof`)
+
+**Done** (the coordinator's decisions on #22; landing requested at `792cb1f6c8`):
+- Decision 1, option (a). `Net.net_semantics` has `initLocal L _ := L.init` and `initGlobal g := g.init` (D26, `TestFreshProcessNoSocket`). `Fs.fs_semantics` has `initLocal st _ := FsInit st` (`env_fresh_process.go`). Also `net_init_compat`, `fs_init_compat`, `NetFs.kvnetInitCompat`, and `Net.robust_of_netFsBoot_addrs`, which needs only `addrs.Nodup` and `addrOk`.
+- Decision 3. Both statements take `[os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]` (ledger entry).
+- Decision 2 (`errors.IsPathErrnoNotExist.spec` as a hypothesis of `raft_kvnet_robust_of_errors`): not started.
+
+**Two more statement gaps**, reported on #22 with exact texts, awaiting decision:
+- `[log.NewModel]`: raft's initializer calls `log.New`. Raft's `wp_initialize'` takes this class, and so does kvdurable's closed theorem.
+- `dir.length < 2 ^ 39`: `durable`'s `DFile.Ok` needs `f.d.length + f.tb.length < 2^40`, and nothing in `FsInit`/`RootsOk` bounds a root's length.
+
+**Unlanded, on the branch:**
+- `Fs.osShare_ctx`: `wp_osShareE`'s core, as an update at the extension's interpretation. `wp_osShareE` is now proved from it, with an unchanged statement.
+- `Fs.wp_ext_nc_acc`: Perennial's `wp_notCrashed_acc` and `wp_ext_acc` at once.
+- `Fs.wp_osShareE_upd`: the switch with the history from a crash-token update, for a history kept in an invariant `inv N (P ∨ crashed ∗ Q)`.
+- `KvNet/.../kvnet/TopCrash.lean`, `durFound_crash_legacy`: a replica's file across a crash before its generation switched. It takes half of `osTree` and `durFound`/`durFoundTmp`, plus the crash's `crashRest` in the legacy mode, and gives the same history and contents in the next generation. It is built from `durable`'s `durCrash_name`/`durCrash_tmp`.
+
+All of these are `lean-check`ed. They are only needed by the design below, which is blocked.
+
+**The blocker** (to be decided before going on). Kvnet's generation boots inside its WP:
+1. the switch to the shared mode (`wp_osShareE`, at the first step);
+2. `durable`'s boot (`durBoot`);
+3. `kd_file_alloc`, `nodeVacant_arm`, and a fresh `KdStor` registry.
+
+That is because Perennial's distributed adequacy gives a generation only `P i L -∗ threadTok ={⊤}=∗ WP ∗ crashFrame`, with no access to the extension's interpretation before the WP. This is the known gap "extension state access at generation start, distributed" (`notes/perennial-changes.md`, 2026-11-22; `notes/dist-crash-bridge.md`).
+
+So the crash frame, proved outside the WP, gets what the boot allocated only through an invariant made before the WP. Those resources are `osSharedInv`, `durInv`, `kdFileInvK` and the crash tokens. The design tried here was `inv genN ((genA ∨ genB ∗ token) ∨ crashed ∗ True)`:
+- genA: half of `osTree`, `durFound`, `durFoundTmp`, `raftState`, `nodeVacant`, `fileHolds`;
+- genB: the switched generation's persistent facts and crash tokens;
+- the switch opens it with `notCrashed` (`wp_osShareE_upd`);
+- the crash frame opens it, takes genA (`durFound_crash_legacy`) or genB (`durInv_crash`, `crashRest_treeS`, `kd_boot_choose`), and closes it with `crashed`.
+
+**Why it fails:** what comes out of an opened invariant is under a later, and the crash frame has no later credit. `▷ inv …` (`durInv`, `osSharedInv`, `kdFileInvK`) cannot be stripped, and neither can raft's sealed `raftState` (it holds `inv budgetN …`), `nodeVacant` or `kdFileState`'s `kdBatchRec`. A credit deposited by the WP's next step races with a crash before it.
+
+The same later problem exists even with the Perennial change. The crash frame must open `kdFileInvK` (decision C's file invariant) and get `▷ (raftState ∗ kdFileState)`, but `kd_boot_choose` and raft's `nodeCrash`/`readyCrashEnter` take them without the later. The earlier handoff's step 3 ("under a later") left this open.
+
+**Options:**
+- (a) Perennial: give the generation the extension's interpretation before its WP (the recorded proposal). Then the boot happens in the frame's context and only `kdFileInvK`'s later is left. For that later, either (a1) Perennial also gives the crash frame a later credit (`£ 1` with `crashed`), or (a2) raft's API gets laws that strip a later given `isCluster` (`▷ raftState γ id S ⊢ ◇ raftState γ id S` from the global budget invariant, and the same for `nodeVacant` and the `kdBatchRec` pieces `readyCrashEnter` takes). (a2) holds only if every invariant inside those predicates is a global one that `isCluster` (or the frame) holds.
+- (b) A local copy of the distributed mixed adequacy with both of (a), as `wal-safe` did for one node (`CrashAdequacyAcc.lean`). Several hundred lines of `DistAdequacy.lean`.
+
+Both need a Perennial change or a copy of Perennial's adequacy. Per the task rules, I stopped here and reported on #22.
+
+**Still to do after the decision:** the original handoff's items 1-6 above. Most of the start allocation is straightforward:
+- `cluster_alloc_nb`, `confPolicy_alloc`, `joinAuth_join` for replicas past the voters;
+- the store, after kvdurable's `kd_alloc`, with `kvCnt … 0` from `rseq` over `bootVoters n`;
+- `netProto_alloc` then `addrs_set_proto`.
+
+Also still to do: the package initializers (gen-init's `KVNET_INITS` plus kvnet's and kvcheck's `PkgTable`), the client's `Check` WP, the example (`splitAddrs` of the literal, `addrOk`, `validCluster`), and the non-vacuity lemma (dir an empty root, `FsInit`).
