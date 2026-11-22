@@ -68,6 +68,8 @@ public import Proof.net.InvNet
 public import Proof.context.BgCancel
 public import GeneratedProof.net.http
 public import Proof.net.http.Base
+public import Proof.errors.NewVar
+public import Perennial.Proof.io.Reader
 public import GeneratedProof.net.url
 public import Perennial.Code.io
 public import Perennial.Code.bytes
@@ -616,19 +618,58 @@ def errStrOk (e : GoInterface) : IProp GF :=
 instance errStrOk_persistent (e : GoInterface) : Persistent (errStrOk (GF := GF) e) := by
   unfold errStrOk; infer_instance
 
+/-- An `errors.New` error's `Error()` returns (`errorsNewVar`'s method fact), and it is a leaf of
+an error tree (`ErrorStringLeaf`). (prove-http3, 2026-11-21: moved from rafthttp's `Codec.lean`.) -/
+theorem errorString_errStrOk [_root_.Perennial.errors.Assumptions] (x : Loc) (msg : GoString) :
+    ⊢ (□ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
+        WP (App (Val #(methods (go.GoType.PointerType _root_.Perennial.errors.errorString.ty)
+          go!"Error" #x)) (Val #())) {{ Φ }}) -∗
+      errStrOk (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) := by
+  iintro #HM
+  unfold errStrOk
+  iright
+  iexists ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩
+  isplitr
+  · ipureintro; rfl
+  isplitr
+  · iintro !> %Φ HΦ
+    iapply HM
+    inext
+    iapply HΦ
+  have hl := errorString_leaf x
+  isplitl
+  rotate_left
+  · ipureintro; exact ⟨ErrorStringLeaf.noFormat, EtcdGrove.errorString_errorSig⟩
+  unfold errTreeOk
+  iintro !> %target %Ht
+  iexists (· = interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x),
+    (fun _ => False)
+  isplitr
+  · ipureintro
+    exact ⟨rfl, _root_.Perennial.errors.treeTyped_pointer _ _ hl.1⟩
+  iapply _root_.Perennial.errors.errorIsTree_leaf _ _ _ hl.2.1 hl.2.2
+
 /-- `nil` is an error whose `Error()` returns (vacuously). -/
 theorem errStrOk_nil : ⊢ errStrOk (GF := GF) GoInterface.nil := by
   unfold errStrOk
   ileft; ipureintro; rfl
 
+/-- **The `*bytes.Buffer` at `l` holds the unread bytes `bs`, for reading** (exclusive): its slice
+`buf` holds `all`, its read offset `off` is within it, and `bs = all[off:]`. It does not own `buf`'s
+spare capacity, which only a write grows into: `NewRequest` only reads a body. (Perennial's
+`bytes.ownBuffer` until mit-pdos/perennial#670, which added the spare capacity for `Write`.) -/
+def bufferHas (l : Loc) (bs : List w8) : IProp GF :=
+  iprop(∃ (b : _root_.Perennial.bytes.Buffer) (all : List w8), l ↦ b ∗ b.buf' ↦* all ∗
+    ⌜0 ≤ sint.Z b.off' ∧ sint.nat b.off' ≤ all.length ∧ bs = all.drop (sint.nat b.off')⌝)
+
 /-- **A reader holding exactly `bs`** (exclusive): what `NewRequest` takes as a fixed body, `nil`
-for an empty body or a `*bytes.Buffer` holding `bs` (Perennial's `bytes.ownBuffer`, what
-`bytes.NewBuffer(bs)` returns). (stdlib2, 2026-11-21: defined; until then opaque, with the axioms
-`NewBuffer_ok` and `readerHas_nil` producing it, now theorems.) -/
+for an empty body or a `*bytes.Buffer` holding `bs` (`bufferHas`, what `bytes.NewBuffer(bs)`
+returns). (stdlib2, 2026-11-21: defined; until then opaque, with the axioms `NewBuffer_ok` and
+`readerHas_nil` producing it, now theorems.) -/
 def readerHas (rd : GoInterface) (bs : List w8) : IProp GF :=
   iprop(⌜rd = GoInterface.nil ∧ bs = []⌝ ∨
     ∃ l : Loc, ⌜rd = interface.mkOk (go.GoType.PointerType _root_.Perennial.bytes.Buffer.ty) #l⌝ ∗
-      _root_.Perennial.bytes.ownBuffer l bs)
+      bufferHas l bs)
 
 /-- **A stream's prefixes** (D42): `Pre` holds of `[]` and of every prefix of what it holds of. -/
 def prefixClosed (Pre : List w8 → Prop) : Prop := Pre [] ∧ ∀ a b, Pre (a ++ b) → Pre a
@@ -801,9 +842,17 @@ instance reqAt_persistent (r : Loc) (R : HReq) (rd : GoInterface) :
 `R.body`; `EOF` only once all of it is read. -/
 opaque bodyReader (rd : GoInterface) (R : HReq) (r : List w8) : IProp GF
 
+/-- `bodyStream`'s fact, raw (opaque). -/
+opaque bodyStreamRaw (rd : GoInterface) (Pre Φ : List w8 → Prop) (r : List w8) : IProp GF
+
 /-- **A streamed request body's reader**, in `Pre` and `Φ`, having read `r` (exclusive, D42): its
-reads stay in `Pre`; `EOF` only at a complete stream, in `Φ` (`bodyStreamRead_spec`). -/
-opaque bodyStream (rd : GoInterface) (Pre Φ : List w8 → Prop) (r : List w8) : IProp GF
+reads stay in `Pre`; `EOF` only at a complete stream, in `Φ` (`bodyStreamRead_spec`). (prove-http3,
+2026-11-21) What it has read is in `Pre`, and the reader is not `nil` (Go's server gives a handler a
+request whose `Body` is never `nil`, go1.27.3 `net/http/request.go:181`: "For server requests, the
+Request Body is always non-nil"): until then opaque, now
+the raw fact with those two, what `io.ReadFull` of it needs (`ReadFull_stream_ok`, proved). -/
+def bodyStream (rd : GoInterface) (Pre Φ : List w8 → Prop) (r : List w8) : IProp GF :=
+  iprop(bodyStreamRaw rd Pre Φ r ∗ ⌜Pre r ∧ rd ≠ GoInterface.nil⌝)
 
 /-- **A received request's body** (D42): the request's bytes for a request its protocol does not
 stream (`bodyReader`); for one it does, a stream in `Pre` and `Φ` of the protocol's contract
@@ -893,7 +942,11 @@ def bodyRead_spec : Prop :=
 /-- (D42) A streamed request body's `Read(p)`: some `n` bytes `ys` (into `p`'s first `n`), with
 what has been read in `Pre`; `EOF` only at a complete stream, in `Φ`. The physical assumption of
 the file header: a chunked body's bytes the server reads are a prefix of what the client's reader
-yielded, and end with `EOF` only where the reader's stream did. -/
+yielded, and end with `EOF` only where the reader's stream did. (prove-http3, 2026-11-21) `n` is
+`ys`'s length as an integer, not negative (`io.Reader`'s contract, `0 ≤ n ≤ len(p)`; until then
+`ys.length = sint.nat n`, which `n = -1` met), and the error is one whose `Error()` returns
+(`errStrOk`) of Go's typing (`io.ptrTyped`): what `io.ReadFull` of the body needs, and what
+`ReadFull_stream_ok`, an axiom until then, claimed of the errors it returns. -/
 def bodyStreamRead_spec : Prop :=
   ∀ (rd : GoInterface) (ri : GoInterfaceOk) (Pre Φ : List w8 → Prop) (r : List w8) (p : GoSlice)
     (xs : List w8) (e : GoInterface),
@@ -901,15 +954,18 @@ def bodyStreamRead_spec : Prop :=
     ⊢ {{ bodyStream (GF := GF) rd Pre Φ r ∗ p ↦* xs ∗ ioEOF e }}
         (App (Val #(methods ri.ty go!"Read" ri.v)) (Val #p))
       {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
-          ∃ ys : List w8, ⌜ys.length = sint.nat n ∧ Pre (r ++ ys) ∧ (err = e → Φ (r ++ ys))⌝ ∗
-          p ↦* (ys ++ xs.drop ys.length) ∗ bodyStream rd Pre Φ (r ++ ys) }}
+          ∃ ys : List w8, ⌜sint.Z n = ys.length ∧ Pre (r ++ ys) ∧ (err = e → Φ (r ++ ys))⌝ ∗
+          p ↦* (ys ++ xs.drop ys.length) ∗ bodyStream rd Pre Φ (r ++ ys) ∗ errStrOk err ∗
+          ⌜_root_.Perennial.io.ptrTyped err⌝ }}
 
 /-- (D42) `io.ReadFull(rd, p)` of a streamed request body: `len(p)` bytes, with what has been read
 in `Pre`, or fewer and an error whose `Error()` returns (net/http's or `io.ErrUnexpectedEOF`): the
-envelope decoder's read (`messageDecoder.decodeLimit`, over `readFullAt`). -/
+envelope decoder's read (`messageDecoder.decodeLimit`, over `readFullAt`). (prove-http3,
+2026-11-21: with `io`'s package initialization, its `EOF` and `ErrUnexpectedEOF`; proved over
+Perennial's `io.ReadFull`, `ReadFull_stream_ok`.) -/
 def ReadFull_stream_spec : Prop :=
   ∀ (rd : GoInterface) (Pre Φ : List w8 → Prop) (r : List w8) (p : GoSlice) (xs : List w8),
-    ⊢ {{ bodyStream (GF := GF) rd Pre Φ r ∗ p ↦* xs }}
+    ⊢ {{ isPkgInit (PROP := IProp GF) pkg_id.io ∗ bodyStream (GF := GF) rd Pre Φ r ∗ p ↦* xs }}
         (App (App (Val (@! _root_.Perennial.io.ReadFull)) (Val #rd)) (Val #p))
       {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
           ∃ ys : List w8, ⌜sint.Z n = ys.length ∧ ys.length ≤ xs.length ∧
@@ -1402,12 +1458,12 @@ theorem bodyStream_streamReaderOk (hR : bodyStreamRead_spec (GF := GF)) (rd : Go
     iintro !> %r %p %xs %Ψ !> ⟨Hs, Hp, #He⟩ HΨ
     iapply (hR _ ri Pre Φ r p xs e rfl) $$ [$Hs $Hp $He]
     -- (sweep repairs 1, S3) the strong post (the tail unchanged) gives the weaker one
-    iintro !> %n %err ⟨%ys, %Hy, Hp, Hs⟩
+    iintro !> %n %err ⟨%ys, %Hy, Hp, Hs, -, -⟩
     iapply HΨ
     iexists ys, xs.drop ys.length
     iframe
     ipureintro
-    exact ⟨Hy.1, List.length_drop .., Hy.2⟩
+    exact ⟨by rw [show sint.nat n = (sint.Z n).toNat from rfl, Hy.1]; simp, List.length_drop .., Hy.2⟩
 
 end defs
 

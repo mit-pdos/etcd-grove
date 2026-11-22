@@ -2,12 +2,6 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem etcdstart.memberUpOn.congr_simp (s s✝ : Loc) (e_s : s = s✝) (ρ ρ✝ : ReqNames) (e_ρ : ρ = ρ✝)
-    (E₀ E₀✝ : apply.AEnv GF) (e_E₀ : E₀ = E₀✝) (lg lg✝ : Loc) (e_lg : lg = lg✝) (γn γn✝ : NetNames
-    GF) (e_γn : γn = γn✝) (id id✝ : w64) (e_id : id = id✝) (γa γa✝ : auth.AuthNames) (e_γa : γa =
-    γa✝) (m m✝ : lease.Mode) (e_m : m = m✝) : etcdstart.memberUpOn s ρ E₀ lg γn id γa m =
-    etcdstart.memberUpOn s✝ ρ✝ E₀✝ lg✝ γn✝ id✝ γa✝ m✝
-
 theorem NewServer.specM.congr_simp (on on✝ : Bool) (e_on : on = on✝) : NewServer.specM on =
     NewServer.specM on✝
 
@@ -20,15 +14,8 @@ theorem isServerBuiltC.congr_simp (C C✝ : AuthC) (e_C : C = C✝) (s s✝ : Lo
     x₀✝) (N N✝ : Nat) (e_N : N = N✝) : isServerBuiltC C s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N =
     isServerBuiltC C✝ s✝ γ✝ ci✝ TM✝ E✝ ρ✝ γr✝ Er✝ γn✝ b✝ ai₀✝ at₀✝ c₀✝ x₀✝ N✝
 
-theorem srvNetMember.congr_simp (γn γn✝ : NetNames GF) (e_γn : γn = γn✝) (s s✝ : Loc) (e_s : s = s✝)
-    (id id✝ : w64) (e_id : id = id✝) (τ τ✝ : SrvTr GF) (e_τ : τ = τ✝) : srvNetMember γn s id τ =
-    srvNetMember γn✝ s✝ id✝ τ✝
-
 theorem leaseTTLRowR.congr_simp (s s✝ : Loc) (e_s : s = s✝) (vs vs✝ : List w64) (e_vs : vs = vs✝) :
     leaseTTLRowR s vs = leaseTTLRowR s✝ vs✝
-
-theorem EtcdServer.RaftHandler.spec.congr_simp : EtcdServer.RaftHandler.spec =
-    EtcdServer.RaftHandler.spec
 
 theorem srvBuiltG.congr_simp (on on✝ : Bool) (e_on : on = on✝) (s s✝ : Loc) (e_s : s = s✝) (γ γ✝ :
     ApplyNames) (e_γ : γ = γ✝) (ci ci✝ : Loc) (e_ci : ci = ci✝) (TM TM✝ : MetaCI → IProp GF) (e_TM :

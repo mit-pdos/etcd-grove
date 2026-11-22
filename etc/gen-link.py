@@ -45,6 +45,7 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --porcupine > Proof/github_com/anishathalye/porcupine/Link.lean
        etc/gen-link.py --porcupine-dag > PorcupineDag/Proof/github_com/anishathalye/porcupine/Link.lean
        etc/gen-link.py --lintest > Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/Link.lean
+       etc/gen-link.py --perclient > Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/perclient/Link.lean
        etc/gen-link.py --lintest-counter > Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/counter/Link.lean
        etc/gen-link.py --lintest-logkv > Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkv/Link.lean
        etc/gen-link.py --lintest-logkvcompact > Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvcompact/Link.lean
@@ -72,6 +73,7 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --tracecheck > Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/etcdraft/Link.lean
        etc/gen-link.py --walfs > Proof/go_etcd_io/etcd/server/v3/storage/wal/Link.lean
        etc/gen-link.py --durable > WalTester/Proof/github_com/mit_pdos/etcd_grove/examples/lib/durable/Link.lean
+       etc/gen-link.py --kvnet > KvNet/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvnet/Link.lean
        etc/gen-link.py --mvccrand > Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/Link.lean
        etc/gen-link.py --mvccfull > Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/Link.lean
        etc/gen-link.py --k8s-authz > Proof/github_com/mit_pdos/etcd_grove/examples/k8s/authz/Link.lean
@@ -407,6 +409,14 @@ LEAN_FIRST = {
                   "github_com.mit_pdos.etcd_grove.examples.lib.lintest github_com.anishathalye.porcupine",
                   "github_com.mit_pdos.etcd_grove.examples.lib.lintest.Assumptions",
                   "The porcupine driver's proofs (`examples/lib/lintest`)", [""]),
+    # the driver with an apply told the client's id (examples/lib/lintest/perclient), over
+    # porcupine's (`@`)
+    "--perclient": ("link-lean-first-perclient.txt",
+                    "github_com.mit_pdos.etcd_grove.examples.lib.lintest.perclient "
+                    "github_com.anishathalye.porcupine",
+                    "github_com.mit_pdos.etcd_grove.examples.lib.lintest.perclient.Assumptions",
+                    "The porcupine driver's per-client variant's proofs "
+                    "(`examples/lib/lintest/perclient`)", [""]),
     # its instance, a counter under a mutex (examples/lib/lintest/counter), over the driver's (`@`)
     "--lintest-counter": ("link-lean-first-lintest-counter.txt",
                           "github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter "
@@ -538,7 +548,7 @@ LEAN_FIRST = {
                     "client-go's work queue's proofs (`k8s.io/client-go/util/workqueue`)", [""]),
     # client-go's consistency store (k8s.io/client-go/util/consistency, notes/k8s-daemonset-plan.md
     # phase 2) and apimachinery's resource versions, over the trust boundary of
-    # `resourceversion.isWellFormed` (gap C1) and `schema.GroupResource.String`
+    # `schema.GroupResource.String`
     "--consistency": ("link-lean-first-consistency.txt",
                       "k8s_io.client_go.util.consistency k8s_io.apimachinery.pkg.util.resourceversion",
                       "k8s_io.client_go.util.consistency.Assumptions",
@@ -610,7 +620,7 @@ for _m in ["--server", "--v3rpc", "--common", "--cluster3", "--linkv3p", "--link
     EXTS[_m] = "[HasExt idIssueExt]"
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes", "--v3lock": "v3lock", "--v3election": "v3election",
-              "--txn": "txn", "--porcupine": "porcupine", "--porcupine-dag": "porcupine", "--lintest": "lintest",
+              "--txn": "txn", "--porcupine": "porcupine", "--porcupine-dag": "porcupine", "--lintest": "lintest", "--perclient": "perclient",
               "--lintest-counter": "lintest", "--lintest-logkv": "lintest", "--lintest-logkvcompact": "lintest", "--lintest-logkvsnap": "lintest", "--lintest-logkvrw": "lintest", "--lintest-logkvappend": "lintest", "--linkv3p": "etcd_partition", "--linkvtxn": "etcd_txnlin", "--watchkv": "etcd_watch", "--prophkv": "goose_prophkv", "--authkv": "etcd_auth", "--cachekv": "etcd_cache", "--kvdurable": "raft_kvdurable", "--common": "etcdstart", "--cluster3": "cluster3", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--cacher": "cacher", "--k8setcd3": "k8s_etcd3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read",
               "--workqueue": "workqueue", "--consistency": "consistency", "--k8scache": "k8scache", "--k8sinformers": "k8sinformers",
               "--apimodel": "apimodel", "--bboltfs": "osfs_bboltfs"}
@@ -626,6 +636,8 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                            "Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.CallsLinked"],
                  # (Q8 stage 1, slice 4) Perennial's `time.Sleep` (`traceReceiveMessage`, `=` callee)
                  "--raft": ["Perennial.Proof.time.Link"],
+                 # (prove-ps2-rqb, 2026-11-22) Perennial's `math.Float64bits` (zap's `Float64`, `=` callee)
+                 "--client": ["Perennial.Proof.math.Link"],
                  # Perennial's `time.After` (the compactor's watch loop, `=` callee)
                  "--k8s-etcd3": ["Perennial.Proof.time.Link"],
                  # Perennial's linked results `sets.List`'s proof takes as terms (`=` callees)
@@ -669,6 +681,8 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                               # (prove-authcrypto, 2026-11-21) the simple token provider's
                               # `genTokenPrefix`'s callees (`=` terms)
                               "Perennial.Proof.crypto.rand.Link", "Perennial.Proof.math.big.Link",
+                              # (prove-ps2-succ, 2026-11-22) `v2stats.FollowerStats.Succ`'s `math.Sqrt`
+                              "Perennial.Proof.math.Link",
                               "Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Lemmas",
                               # (rafthttp stage 7d) the snapshot sender's: `bytes.Buffer.Write`'s
                               # axiom, net/http's errors not `errMemberRemoved`
@@ -729,6 +743,16 @@ if sys.argv[1:2] in (["--walfs"], ["--durable"], ["--wal-tester"]):
                     proof_roots.PERENNIAL, sys.argv[0], check="--check" in sys.argv[2:],
                     cfg={"--durable": link_walfs.DURABLE, "--wal-tester": link_walfs.TESTER}.get(sys.argv[1]))
     sys.exit(0)
+if sys.argv[1:2] == ["--kvnet"]:
+    # kvnet's Link (the part KvNet/): the callees read off the proofs' binders, the generic proofs
+    # linked at the store's model parameters (`etc/link_kvnet.py`); `--check` compares
+    sys.dont_write_bytecode = True  # no etc/__pycache__
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import link_kvnet  # noqa: E402
+    import proof_roots  # noqa: E402
+    link_kvnet.main(os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")),
+                    proof_roots.PERENNIAL, sys.argv[0], check="--check" in sys.argv[2:])
+    sys.exit(0)
 if sys.argv[1:2] == ["--bbolt"]:
     # bbolt's Link: the callees read off the proofs' binders (`etc/link_bbolt.py`)
     sys.dont_write_bytecode = True  # no etc/__pycache__
@@ -783,7 +807,7 @@ if ALIAS:
 # The modes whose results rest on porcupine's `checkSingle`, which shares the model's state values
 # in non-atomic invariants (`Shared.lean`) of iris-lean's camera `NaInvG GF`, not yet in
 # Perennial's `allG`: their sections assume the instance (`notes/STATUS.md`, "Porcupine").
-NA_MODES = {"--porcupine", "--porcupine-dag", "--lintest", "--lintest-counter", "--lintest-logkv", "--lintest-logkvcompact", "--lintest-logkvsnap", "--lintest-logkvrw", "--lintest-logkvappend", "--kv", "--kvreconf", "--kvdurable", "--linkv3p",
+NA_MODES = {"--porcupine", "--porcupine-dag", "--lintest", "--perclient", "--lintest-counter", "--lintest-logkv", "--lintest-logkvcompact", "--lintest-logkvsnap", "--lintest-logkvrw", "--lintest-logkvappend", "--kv", "--kvreconf", "--kvdurable", "--linkv3p",
             "--linkvtxn", "--kvwitness", "--k8setcd3"}
 # The modes whose store's storage model is a `def` made a local instance of the Link (kvreconf's
 # `kvrStorageModel`, `KvrStorage.lean`): its specs are stated at it, and raft's results over any

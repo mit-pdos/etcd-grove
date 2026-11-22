@@ -222,6 +222,8 @@ Proof.os.WriteLongStep Proof.os.File__WriteAt  # defs->proof
 RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.MainN RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Main  # proof->proof
 RaftNoAx.Proof.go_etcd_io.raft.v3.raftpb.UnmarshalConfChangeV1 RaftNoAx.Proof.go_etcd_io.raft.v3.raftpb.unmarshalConfChangeSingle  # proof->proof
 RaftNoAx.Proof.go_etcd_io.raft.v3.raftpb.UnmarshalConfChangeV2 RaftNoAx.Proof.go_etcd_io.raft.v3.raftpb.UnmarshalConfChangeV1  # proof->proof
+KvNet.Proof.go_etcd_io.raft.v3.raftpb.UnmarshalConfChangeV1 KvNet.Proof.go_etcd_io.raft.v3.raftpb.unmarshalConfChangeSingle  # proof->proof
+KvNet.Proof.go_etcd_io.raft.v3.raftpb.UnmarshalConfChangeV2 KvNet.Proof.go_etcd_io.raft.v3.raftpb.UnmarshalConfChangeV1  # proof->proof
 RaftWitness.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvwitness.Base RaftWitness.Proof.go_etcd_io.raft.v3.Link  # defs->linking
 WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.decodeOracle WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.decoder__ops  # proof->proof
 WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.loadOracle WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.storeOracle  # proof->proof

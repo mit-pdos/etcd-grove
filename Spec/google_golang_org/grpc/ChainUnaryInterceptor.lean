@@ -28,7 +28,7 @@ abbrev grpc.ChainUnaryInterceptor.spec : Prop :=
   ∀ (sl : GoSlice) (ics : List GoFunc),
   {{ (sl ↦*□ ics : IProp GF) }}
     (App (Val (@! google_golang_org.grpc.ChainUnaryInterceptor)) (Val #sl))
-  {{ (v : GoInterface), RET #v; ⌜grpcSrvOpt v (.chainUnary ics)⌝ }}
+  {{ (v : GoInterface), RET #v; grpcSrvOpt v (.chainUnary ics) }}
 
 end spec
 

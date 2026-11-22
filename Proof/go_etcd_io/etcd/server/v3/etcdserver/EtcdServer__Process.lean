@@ -122,7 +122,7 @@ theorem EtcdServer.Process.wp_proof
     · iframe Hcok Hrecv
     iunfold rnStepIfc at Hsi
     icases Hsi with ⟨%ni, %Hni, #HStep, -, -⟩
-    have Hni' : ni = ⟨go.GoType.PointerType node.ty, #γ.nl⟩ :=
+    have Hni' : ni = ⟨go.GoType.PointerType node.ty, #γ.nl.loc⟩ :=
       (GoInterface.ok.inj Hni).symm
     subst Hni'
     rw [method_unfold (t := go.GoType.PointerType raftNode.ty) (m := go!"Step")]
@@ -148,7 +148,7 @@ theorem EtcdServer.Process.wp_proof
     · iframe Hcok Hrecv
     iunfold rnStepIfc at Hsi
     icases Hsi with ⟨%ni, %Hni, #HStep, -, -⟩
-    have Hni' : ni = ⟨go.GoType.PointerType node.ty, #γ.nl⟩ :=
+    have Hni' : ni = ⟨go.GoType.PointerType node.ty, #γ.nl.loc⟩ :=
       (GoInterface.ok.inj Hni).symm
     subst Hni'
     rw [method_unfold (t := go.GoType.PointerType raftNode.ty) (m := go!"Step")]

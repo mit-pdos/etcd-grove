@@ -56,7 +56,7 @@ abbrev v3rpc.Server.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       v3rpc.grpcCfgOk s C ∗ srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
       srvCfgFieldAddr s go!"WatchProgressNotifyInterval" ↦□ d ∗ ⌜sint.Z d ≤ 2 ^ 62⌝ ∗
-      gsl ↦*□ gvs ∗ ⌜∀ v ∈ gvs, grpcSrvOpt v .neutral⌝ }}
+      gsl ↦*□ gvs ∗ ([∗list] v ∈ gvs, grpcSrvOpt v .neutral) }}
     (App (App (App (App (Val (@! v3rpc.Server)) (Val #s)) (Val #(null : Loc)))
       (Val #(func.nil : GoFunc))) (Val #gsl))
   {{ (gs : Loc), RET #gs; ∃ (q p pw pa ql pl pc pm : Loc) (il im iu ims is : GoFunc) (svcs : List GoString)

@@ -27,7 +27,7 @@ spec-thread github_com/mit_pdos/etcd_grove/examples/lib/etcdstart 12
 spec-thread github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvrw 3
 spec-thread go_etcd_io/etcd/server/v3/etcdserver 9
 spec-thread go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc 1
-spec-thread go_etcd_io/etcd/server/v3/lease 3
+spec-thread go_etcd_io/etcd/server/v3/lease 5
 spec-receipt RaftWitness/github_com/mit_pdos/etcd_grove/examples/raft/kvwitness 4
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/auth 5
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/auth3 5
@@ -65,6 +65,7 @@ spec-receipt github_com/mit_pdos/etcd_grove/examples/raft/kv 3
 spec-receipt github_com/mit_pdos/etcd_grove/examples/raft/kvdurable 3
 spec-receipt github_com/mit_pdos/etcd_grove/examples/raft/kvreconf 4
 spec-receipt go_etcd_io/etcd/server/v3/etcdserver 15
+spec-receipt go_etcd_io/etcd/server/v3/lease 2
 spec-readers go_etcd_io/etcd/cache/v3 6
 spec-readers go_etcd_io/etcd/pkg/v3/notify 1
 spec-readers go_etcd_io/etcd/server/v3/auth 1

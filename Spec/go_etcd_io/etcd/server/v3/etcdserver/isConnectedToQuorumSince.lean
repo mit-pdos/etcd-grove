@@ -25,15 +25,15 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- `isConnectedToQuorumSince(transport, since, self, members)`, the transport a
-`rafthttp.isTransporter`, the members owned: some boolean (`parseProposeCtxErr` only classifies
+`rafthttp.isTransporter` read with `Rd` (given back; rdslot), the members owned: some boolean (`parseProposeCtxErr` only classifies
 its error by it); the members kept. -/
 abbrev isConnectedToQuorumSince.spec : Prop :=
-  ∀ (tr : GoInterface) (since : time.Time) (self : w64) (members : GoSlice) (ms : List Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ rafthttp.isTransporter tr ∗
-      membership.membersAt members ms }}
+  ∀ (tr : GoInterface) (Rd : IProp GF) (since : time.Time) (self : w64) (members : GoSlice) (ms : List Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ rafthttp.isTransporter tr Rd ∗
+      Rd ∗ membership.membersAt members ms }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.isConnectedToQuorumSince)) (Val #tr)) (Val #since)) (Val #self))
       (Val #members))
-  {{ (b : Bool), RET #b; membership.membersAt members ms }}
+  {{ (b : Bool), RET #b; Rd ∗ membership.membersAt members ms }}
 
 end spec
 

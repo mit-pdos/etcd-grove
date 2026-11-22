@@ -21,6 +21,7 @@ public import Spec.go_etcd_io.etcd.server.v3.lease.Lease__Remaining
 public import Spec.go_etcd_io.etcd.server.v3.lease.Lease__refresh
 public import Spec.go_etcd_io.etcd.server.v3.lease.LeaseExpiredNotifier__RegisterOrUpdate
 public import Proof.go_etcd_io.etcd.server.v3.lease.SortByExpiry
+public import Proof.go_etcd_io.etcd.server.v3.lease.NotifCell
 
 @[expose] public section
 
@@ -83,6 +84,7 @@ theorem lease.lessor.Promote.wp_proof
   icases HR with ⟨%lm, %im, %M, %I, %rd0, %L, Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL, #Hsz, #Hls, Hx, Hhist⟩
   iunfold lessorExtra at Hx
   icases Hx with ⟨%dc, %np, %h, %hx, %bl, Hdc, Hnp, Hnot, Hh, Hhq, Hcp, Hmeta, Hbl, Hdt, #Hstr⟩
+  imod (notif_wopen lp γl np ⊤ (fun _ _ => CoPset.mem_full)) $$ [$Hnp $Hnot] with ⟨Hnp, Hnot, Hntk⟩
   (try wp_auto)
   -- the fresh `demotec`: a close-once channel, swapped into the lessor's invariant
   wp_apply +noauto chan.wp_make1 (V := Unit) as %c %γc ⟨#Hch, -, Hown⟩
@@ -95,7 +97,7 @@ theorem lease.lessor.Promote.wp_proof
   icases Hdt with ⟨%γr, #Hpr, Hgv, #Hout⟩
   wp_auto_lc 1
   iapply fupd_wp
-  imod promote_swap γr.2.2.2.2.2.2 γt dc c $$ [$Hlc1 $Hgv $Hout $Hrecv $Htok] with Hgv
+  imod promote_swap γr.2.2.2.2.2.2.1 γt dc c $$ [$Hlc1 $Hgv $Hout $Hrecv $Htok] with Hgv
   imodintro
   (try wp_auto)
   ipersist le
@@ -128,8 +130,10 @@ theorem lease.lessor.Promote.wp_proof
     (try wp_auto)
     iStructNamed «$r0»
     ipersist id
-    wp_apply (hReg np «$r0_ptr» _ (W64 0)) $$ [$Hpkg $Hnot id time index] as Hnot
-    · iunfold lwtAt; iframe; iframe #
+    iunfold notifierAt at Hnot
+    icases Hnot with ⟨%Mn, Hnot⟩
+    wp_apply (hReg np «$r0_ptr» _ (W64 0) Mn) $$ [$Hpkg $Hnot id time index] as Hnot
+    · ileft; iunfold lwtAt; iframe; iframe #
     (try wp_auto)
     wp_apply (hSched lp o func.nil h1 hx1 k r t (DFrac.own 1) (DFrac.own 1) DFrac.discard) $$
       [$Hpkg $Hcfg $Hcp $Hh $Hhq $HID $Hrem $Httl] as ⟨Hcp, Hh, Hrem, -⟩
@@ -161,6 +165,7 @@ theorem lease.lessor.Promote.wp_proof
   · -- fewer leases than the revoke rate: no pile-up, return
     simp only [hlt, decide_true]
     (try wp_auto)
+    imod (notif_wclose lp γl np ⊤ (fun _ _ => CoPset.mem_full)) $$ [$Hnp $Hnot $Hntk] with ⟨Hnp, Hnot⟩
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hdc Hnp Hnot Hh Hhq Hcp
         Hmeta Hbl Hgv Hhist]
     · iframe #
@@ -280,7 +285,14 @@ theorem lease.lessor.Promote.wp_proof
       iframe
       ipureintro; word
     (try wp_auto)
-    -- piled up: `delay`, a float converted to a `Duration` (any value), then the same refresh
+    -- piled up: `delay` (IEEE 754 float steps), a float converted to a `Duration` (any value),
+    -- then the same refresh
+    wp_apply wp_float64_div as %_ -
+    (try wp_auto)
+    wp_apply wp_float64_mul as %_ -
+    (try wp_auto)
+    wp_apply wp_float64_sub as %_ -
+    (try wp_auto)
     wp_apply wp_ArbitraryInt as %x -
     (try wp_auto)
     have hM : M.lookup a.2 = some a.1 := (Hpairs' a.2 a.1).1 (List.mem_of_getElem? Ha)
@@ -294,8 +306,10 @@ theorem lease.lessor.Promote.wp_proof
     (try wp_auto)
     iStructNamed «$r0»
     ipersist id
-    wp_apply (hReg np «$r0_ptr» _ (W64 0)) $$ [$Hpkg $Hnot id time index] as Hnot
-    · iunfold lwtAt; iframe; iframe #
+    iunfold notifierAt at Hnot
+    icases Hnot with ⟨%Mn, Hnot⟩
+    wp_apply (hReg np «$r0_ptr» _ (W64 0) Mn) $$ [$Hpkg $Hnot id time index] as Hnot
+    · ileft; iunfold lwtAt; iframe; iframe #
     (try wp_auto)
     wp_apply (hSched lp a.1 func.nil h2 hx2 a.2 r t (DFrac.own 1) (DFrac.own 1) DFrac.discard) $$
       [$Hpkg $Hcfg $Hcp $Hh $Hhq $HID $Hrem $Httl] as ⟨Hcp, Hh, Hrem, -⟩
@@ -316,6 +330,7 @@ theorem lease.lessor.Promote.wp_proof
   · -- the pass done: unlock (deferred) and return
     (try wp_auto)
     icases Hh with ⟨%h2, %hx2, Hh, Hhq⟩
+    imod (notif_wclose lp γl np ⊤ (fun _ _ => CoPset.mem_full)) $$ [$Hnp $Hnot $Hntk] with ⟨Hnp, Hnot⟩
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hdc Hnp Hnot Hh Hhq Hcp
         Hmeta Hbl Hgv Hhist]
     · iframe #

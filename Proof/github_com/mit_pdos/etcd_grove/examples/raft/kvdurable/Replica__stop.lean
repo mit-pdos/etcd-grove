@@ -27,7 +27,7 @@ variable [go_gctx : GoGlobalContext] [go.IntoValInj GoString]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
 
 attribute [local instance] kdStorageModel
 
@@ -81,9 +81,10 @@ theorem Replica.stop.wp_proof (wp_Stop : node.Stop.spec (GF := GF) (hG := hG)) :
     iframe Hrun1 Hrun2
   rw [Qp.half_add_half]
   try wp_auto
-  wp_apply wp_Stop n γ.r.cluster kdRaftN id $$ [$Hraft $HisNode $Hrun] as ⟨-, Hvac⟩
+  wp_apply wp_Stop n γ.r.cluster kdRaftN id $$ [$Hraft $HisNode $Hrun] as ⟨-, %x, Hvac, -⟩
   iapply HΦ
-  iframe Hvac
+  isplitl [Hvac]
+  · iexists x; iexact Hvac
   iexists n, st, sts, sq, ρ
   iframe HR Hclaim
 

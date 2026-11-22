@@ -55,7 +55,8 @@ theorem storeOracle.wp_proof
   icases Hdeps with ⟨#Hdpkg, -⟩
   rw [show tOrPath e.orDir = e.orFile.name from (tOrPath_child e.orDir).symm]
   ihave Hperm := osCallPerm_congr qc (show callKey e.R e.orDir = callKey e.R e.orFile.d from rfl) $$ Hperm
-  wp_apply (wp_Write γ.γd e.orFile e.R qc (tEncodeOracle o') hf hs) $$ Hdpkg Hos Hsi Hdi Hh Hperm
+  wp_apply (wp_Write γ.γd e.orFile e.R qc (tEncodeOracle o') hf
+    (by unfold tOrSmall at hs; omega)) $$ Hdpkg Hos Hsi Hdi Hh Hperm
     [Ho Hw Hrep HΦ]
   · iauintro
     unfold atomic_acc
@@ -94,7 +95,7 @@ theorem storeOracle.wp_proof
         · iunfold tRelA; iexact Hr1
       imodintro
       -- the directory's sync: nothing pending
-      unfold DurFs.durWriteSync
+      iapply DurFs.durWriteSync_of_au
       iauintro
       unfold atomic_acc
       imod inv_acc (E := DurFs.durAuMask) tN_sub_durAu $$ Hinv with ⟨Hi, Hclose⟩

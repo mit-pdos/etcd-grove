@@ -105,7 +105,7 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
     (App (App (App (Val (b @!! go.GoType.PointerType bootstrappedRaft.ty @!! go!"newRaftNode"))
       (Val #ss)) (Val #wal)) (Val #cl))
   {{ (r : Loc), RET #r;
-      ∃ (n : Loc) (γw : RNNames GF) (f : GoFunc) (st : GoInterface) (terms : GoSlice),
+      ∃ (n : NodeH) (γw : RNNames GF) (f : GoFunc) (st : GoInterface) (terms : GoSlice),
         ⌜γw.node = γr ∧ γw.id = cv.ID' ∧ γw.nl = n ∧ γw.pre = pre ∧ γw.ms = bv.storage' ∧
           γw.γs = γs ∧ γw.wal = ν ∧ γw.ss = ss ∧ γw.a0 = bt.a0 ∧ γw.t0 = bt.t0 ∧ γw.commit0 = bt.commit0 ∧
           γw.snap0 = bt.snap0⌝ ∗
@@ -125,7 +125,7 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
         isRNIDRemoved f ∗ isWalStorage st γw.wal.h γw.ss ∗ walStorRd st γw.wal.h ∗ walStorRd st γw.wal.h ∗
         -- (restart S3 items 5-6) its `cum` at the boot's start log `bt.P` (`[]` fresh)
         terms ↦*□ bt.seedRuns ∗ rnBuilt E γw r
-          (raftNodeConfig.mk terms bv.lg' f (interface.mkOk (go.GoType.PointerType node.ty) #n)
+          (raftNodeConfig.mk terms bv.lg' f (interface.mkOk (go.GoType.PointerType node.ty) #n.loc)
             bv.storage' st bv.heartbeat' GoInterface.nil) bt.P ∗
         -- the receiver and (2026-11-05: until then kept, as the node API's `StartNode` did until
         -- it gave it back) the peers' slice

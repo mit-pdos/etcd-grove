@@ -57,7 +57,7 @@ theorem lease.lessor.initAndRecover.wp_proof
   wp_start as ⟨Hb, Hlm, HM, #Hmt, Hnp, Hnot, Hh, Hhq, #HB, Ho, Htoks, Hrb⟩
   ihave Hli : (leaseInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hli with ⟨-, -, -, #Hfor, -⟩
+  icases Hli with ⟨-, -, -, ⟨#Hfor, -⟩, -⟩
   ihave #Hbpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend $$ []
   · iPkgInit
   ihave #Hspkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema $$ []

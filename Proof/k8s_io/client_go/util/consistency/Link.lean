@@ -85,9 +85,13 @@ theorem consistencyStore.wp_getWrittenRecord :
     EtcdGrove.consistency.consistencyStore.getWrittenRecord.spec (GF := GF) (hG := hG) :=
   EtcdGrove.consistency.consistencyStore.getWrittenRecord.wp_proof
 
+theorem resourceversion.wp_isDigit :
+    EtcdGrove.resourceversion.isDigit.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.resourceversion.isDigit.wp_proof
+
 theorem resourceversion.wp_isWellFormed :
     EtcdGrove.resourceversion.isWellFormed.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.resourceversion.isWellFormed.wp_proof
+  EtcdGrove.resourceversion.isWellFormed.wp_proof resourceversion.wp_isDigit
 
 theorem resourceversion.wp_CompareResourceVersion :
     EtcdGrove.resourceversion.CompareResourceVersion.spec (GF := GF) (hG := hG) :=
@@ -128,10 +132,6 @@ theorem noopConsistencyStore.wp_EnsureReady :
 theorem noopConsistencyStore.wp_WroteAt :
     EtcdGrove.consistency.noopConsistencyStore.WroteAt.spec (GF := GF) (hG := hG) :=
   EtcdGrove.consistency.noopConsistencyStore.WroteAt.wp_proof
-
-theorem resourceversion.wp_isDigit :
-    EtcdGrove.resourceversion.isDigit.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.resourceversion.isDigit.wp_proof
 
 end links_hasLC
 

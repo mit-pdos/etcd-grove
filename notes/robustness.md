@@ -28,11 +28,18 @@ in the top-level theorem, no reading bytes off the network):
 
     Robust crashing stable g threads bound :=
       (∀ m ∈ crashing ++ stable, Fresh lctx m.2) →
+      extsInitGlobal g → (∀ m ∈ crashing ++ stable, extsInitLocal m.2 g) →
       ∀ n κs c, DistCrashNstepsBelow (crashing.map Prod.fst) threads n
                   (distInit (crashing ++ stable) g) κs c →
         n < bound → ∀ i tp σ, c.nodes[i]? = some (tp, σ) →
           ∀ e ∈ tp, RealNotStuck e (σ, c.global) ∧ ¬ UnrecoveredPanic e
 
+- **Every machine and the network start in their extensions' initial states** (2026-11-21, for
+  kvnet's statement): Perennial's trusted `ExtSemantics.initLocal`/`initGlobal` (Perennial
+  `c0ec40070`, `extsInitLocal`/`extsInitGlobal`), premises inside `Robust` as `Fresh` is, so that no
+  instance states an extension's start conditions itself. The bridges (`of_single`,
+  `of_single_crashing`, `of_all`, `of_all_crashing`, the kits') take the same hypotheses as before
+  and drop the new premises; no example's proof changed.
 - **The thread bound** (2026-11-20, the user's: "we need to have the thread bounds NOT be imposing
   the step bounds (2^28 is a joke)"; branch `robust-threads`): the executions are those along which
   every machine keeps fewer than `threads` live threads (Perennial's `DistCrashNstepsBelow`), a premise
@@ -93,15 +100,22 @@ them. `find . -name TopLevelRobustness.lean` lists them all.)
 | one process, `RealNsteps` | `Robust.of_single` (`distCrashNsteps_single`) | `Robust [] [(prog, σ)] g bound` | the etcd-server examples (`etcd/*`, `k8s/*`, `mvccfull`, `mvccrand`), raft's (`kv`, `kvdurable`, `kvreconf` and their `N` forms; `RaftNoAx/`'s copy of kvdurable; `RaftWitness/`'s kvwitness; `RaftTla/`'s tracecheck), lintest's six, `goose/prophkv` |
 | one process with crashes, `RealCrashNsteps` | `Robust.of_single_crashing` (`distCrashNsteps_single_crashing`) | `Robust [(boot, σ)] [] g bound` | `osfs/crashlog`, `osfs/walfs` (three), `osfs/bboltfs` |
 | several machines, `DistCrashNsteps` | `Robust.of_all` | `Robust (system …) [] g bound` | the seven TCP examples (`Net/…/net/*`) |
-| several machines that never crash, `DistNsteps` (2026-11-19) | `robust_of_kitBoot`, `robust_of_kitProto` (`Net/Statement/KitBridge.lean`: `distNsteps_of_crash_nil`, then `goose_dist_adequacy`), under the kit deployment premise `KitDeploy plan hosts nodes g` (`Net/Statement/KitDeploy.lean`) | `KitDeploy … → Robust [] nodes g bound` | the network kits (`notes/dsverify-net-port-plan.md`, phases 4 and 6); `echo_kit_robust` (`Net/…/net/echo/RobustLinked.lean`), the non-vacuity check |
+| several machines that never crash, `DistNsteps` (2026-11-19) | `robust_of_distBoot`, `robust_of_distProto` (`Net/Statement/DistBridge.lean`: `distNsteps_of_crash_nil`, then `goose_dist_adequacy`), under the deployment premise `DistDeploy plan hosts nodes g` (`Net/Statement/DistDeploy.lean`) | `DistDeploy … → Robust [] nodes g bound` | the network kits (`notes/dsverify-net-port-plan.md`, phases 4 and 6); `echo_dist_robust` (`Net/…/net/echo/RobustLinked.lean`), the non-vacuity check |
 
-- **The bound** is the example's own: `2^61` or `2^63` (raft's, lintest's), `2^40 - 11` at `2^28` threads
-  (the 22 `etcd/*` examples, since 2026-11-20: the backend's write-back budget; until then `2^28 - 1`,
-  their proofs' thread bound `n + 2`), `2^61 - 3` at `2^31` threads (tracecheck), `2^28 - 1` (`k8s/all`,
-  `mvccfull`, `mvccrand`, still at `threads := 2^28`), `2^30 - 1`
-  (`logkvrw`, `bboltfs`), and any `bound` (a parameter) where the theorem had none (the TCP and
+- **The bound** is the example's own: `2^61` or `2^63` (raft's, lintest's; `logkvrw` `2^63` at `2^30`
+  threads since 2026-11-22), `2^48` at `2^28` threads (the 22 `etcd/*` examples and `k8s/all`,
+  since 2026-11-22, #30 step 2: the request ids' receipt bound, `idutil`'s; the backend's buffered
+  entries are paid by time receipts, so its write-back budget, `2^62`, no longer binds; from
+  2026-11-20 `2^40 - 11`, that budget; before, `2^28 - 1`, their proofs' thread bound `n + 2`),
+  `2^38` at `2^28` threads (`mvccfull`, `mvccrand`, since 2026-11-22: their receipt bound, tied to
+  `Ops < 2^38` across mvcc's specs; a follow-up of #30), `2^61 - 3` at `2^31` threads (tracecheck),
+  `2^30 - 1` (`bboltfs`), and any `bound` (a parameter) where the theorem had none (the TCP and
   `osfs` examples, `prophkv`). `bboltfs`'s statement took a thread-bound hypothesis
-  (`RealCrashThreadsBelow … (2^30)`); its `Robust` form derives it from the step bound.
+  (`RealCrashThreadsBelow … (2^30)`); its `Robust` form derives it from the step bound, and stays
+  so until crash adequacy along the execution exists (`notes/perennial-changes.md`, "The
+  distributed form": open). The plan to raise the etcd bounds further (`K` receipts per request id,
+  toward `K · 2^48`; the id suffix's wrap, `nonissues/etcd-request-id-suffix-wrap-dup-panic.md`, is
+  the real ceiling): claim issue mit-pdos/etcd-grove#30.
 - **A hypothesis that mentioned the execution's length** (`Hprem`: the etcd examples' boot
   premises at `n`) is assumed at every `n` within the bound.
 - **`RealCrashNsteps` does not count a crash as a step**, `DistCrashNsteps` does: a run of `n`
@@ -182,9 +196,12 @@ machine, 27 by resets) and 47 link-fault episodes.
   through `Robust.of_all_crashing` the client's proof would have to survive its own crash, losing
   its history. A version with a boot list for some nodes only (no crash obligation for the others)
   is a general Perennial change, to propose there on its own (`notes/perennial-changes.md`).
-  The kits' bridge (`Net/Statement/KitBridge.lean`, 2026-11-19) covers only the case where **every**
+  The no-crash bridge (`Net/Statement/DistBridge.lean`, 2026-11-19) covers only the case where **every**
   machine is stable (`Robust [] nodes`: no boot program, so the executions are `DistNsteps` and
   `goose_dist_adequacy` applies); a deployment with both kinds (kvnet's) still needs that change.
+  (2026-11-22: Perennial has it, `goose_dist_mixed_crash_adequacy`; its bridge for `[netExt, fsExt]`,
+  `robust_of_netFsBoot` (`Net/Statement/NetFsBridge.lean`, etcd-dist D3, `notes/dist-crash-bridge.md`),
+  with echo's server crashing and its client stable as the instance, branch `dist-crash-bridge`.)
 - A mutation check that only the network finds (e.g. a `Read` served without a read index: a stale
   read from a partitioned old leader).
 - Other programs: the harness takes any binary; their statements are `Robust` of their machines.

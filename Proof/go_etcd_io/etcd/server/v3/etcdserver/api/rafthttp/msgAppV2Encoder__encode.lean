@@ -208,7 +208,7 @@ local macro "enc_full" : tactic => `(tactic| (
   wp_apply wp_Since as %d -
   (try wp_auto)
   wp_apply wp_Succ fs d $$ []
-  · ipureintro; exact Hfsnn
+  · iexact Hfsi
   (try wp_auto)
   subst Hix
   iapply HΦ
@@ -733,7 +733,7 @@ theorem rafthttp.msgAppV2Encoder.encode.wp_proof
             wp_apply wp_Since as %d -
             (try wp_auto)
             wp_apply wp_Succ fs d $$ []
-            · ipureintro; exact Hfsnn
+            · iexact Hfsi
             (try wp_auto)
             iapply HΦ
             isplitr

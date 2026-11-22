@@ -39,7 +39,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [StorageModel GF] [AllG GF]
+variable [StorageModel GF]
 
 /-- Past a normal committed entry, the configuration stays. -/
 theorem kvr_confAt_normal (γ : Cluster) (l : List LogEntry) (k : Nat) (e : LogEntry)

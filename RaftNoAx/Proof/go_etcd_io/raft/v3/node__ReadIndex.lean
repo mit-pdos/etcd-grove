@@ -212,7 +212,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 private theorem node.wp_ReadIndex_impl
     (hR : EtcdGrove.node.ReadIndex.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.ReadIndex.spec (GF := GF) (hG := hG) := by
-  unfold EtcdGrove.node.ReadIndex.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.isReadCtx
+  unfold EtcdGrove.node.ReadIndex.spec EtcdGrove.Cluster EtcdGrove.NodeH EtcdGrove.NodeH.loc EtcdGrove.isNode EtcdGrove.isReadCtx
   intro n γ N id rctx c Q ctx cd Htr
   iintro %Φ ⟨#Hinit, #Hnode, #Hctx, #Hrctx, #Hrc, %Hmd⟩ HΦ
   iunfold isNode at Hnode
@@ -228,7 +228,7 @@ private theorem node.wp_ReadIndex_impl
     have := Hmd b hb; have := (Hmb b hb).1
     simp only [entBytesMax]; omega
   imod api_read_ensure γ N c Q $$ Hci Hrc with ⟨%Lc, #Hrq⟩
-  iapply (hR γn id n rctx c Lc ctx cd (by rw [Hγr]; exact Htr)) $$ []
+  iapply (hR γn id n.loc rctx c Lc ctx cd (by rw [Hγr]; exact Htr)) $$ []
   · iframe Hinit Hrn Hctx Hrctx
     rw [Hγr]
     iframe Hrq

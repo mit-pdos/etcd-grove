@@ -251,7 +251,10 @@ theorem ConditionsAwareDecisionUnion.Add.wp_proof
     rw [h1, h2]
     iframe
     isplitr
-    · ipureintro; exact Dec.WFL_append ks m Hwfl Hwf
+    · ipureintro
+      obtain ⟨Hwfl1, Hwfl2⟩ := Hwfl
+      obtain ⟨Hwf1, Hwf2⟩ := Hwf
+      exact ⟨Dec.WFL_append ks m Hwfl1 Hwf1, by rw [Dec.depthL_append]; omega⟩
     isplitr
     · rw [List.map_append, List.map_singleton]; iexact HL'
     isplitr

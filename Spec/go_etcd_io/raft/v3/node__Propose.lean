@@ -36,7 +36,7 @@ false`, `□?false U = U`), a persistent one in a cluster whose network may (`ms
 fires at every committed copy of the proposal. (raft-final, 2026-10-29, K5: the error is `propErrS`, whose stopped answer carries `nodeStopped`;
 until then `propErr`, which `propErrS_propErr` gives back.) -/
 abbrev node.Propose.spec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (data_sl : GoSlice) (data : List w8)
+  ∀ (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (data_sl : GoSlice) (data : List w8)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd ∗
       data_sl ↦*□ data ∗
@@ -44,7 +44,7 @@ abbrev node.Propose.spec : Prop :=
       ⌜∀ b, γ.maxData = some b → data.length ≤ b⌝ ∗
       □?γ.dup (AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅
          <{ ∀∀ (t : w64), ownCommittedOps γ (ops ++ [⟨t, W32 0, data⟩]), COMM True }>) }}
-    (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Propose"))
+    (App (App (Val (n.loc @!! go.GoType.PointerType node.ty @!! go!"Propose"))
       (Val #(interface.ok ctx))) (Val #data_sl))
   {{ (err : GoInterface), RET #err; propErrS n γ N cd err }}
 

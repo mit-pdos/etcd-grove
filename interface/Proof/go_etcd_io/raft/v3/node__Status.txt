@@ -4,10 +4,12 @@
 
 theorem node.Status.wp_proof [package_sem : Assumptions] : node.Status.spec
   -- `Perennial.EtcdGrove.node.Status.spec`, unfolded:
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64),
+  ∀ (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id -∗
           (▷ ∀ st, statusOwn st -∗ Φ (intoVal st)) -∗
-            WP ((intoVal (methods node.ty.PointerType go!"Status" (intoVal n))) (intoVal ()))
+            WP
+              ((intoVal (methods node.ty.PointerType go!"Status" (intoVal n.loc)))
+                (intoVal ()))
               {{ Φ }}

@@ -59,9 +59,9 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   ihave %Hlen := ownSlice_len _ _ _ $$ Hpeers
   -- (restart S3 item 5) `len(b.peers) == 0`: `RestartNode` at a restart, `StartNode` fresh; joined
   -- at the node `nn`, its key `K` and what the start gives of the boot
-  wp_join iprop(∃ (nn : Loc) (K : GName) (view : GoSlice),
+  wp_join iprop(∃ (nn : NodeH) (K : GName) (view : GoSlice),
       terms_ptr ↦ view ∗ view ↦*□ bt.seedRuns ∗
-      n_ptr ↦ interface.mkOk (go.GoType.PointerType node.ty) #nn ∗ b_ptr ↦ b ∗
+      n_ptr ↦ interface.mkOk (go.GoType.PointerType node.ty) #nn.loc ∗ b_ptr ↦ b ∗
       b.[bootstrappedRaft, go!"config"] ↦{dq} bv.config' ∗ b.[bootstrappedRaft, go!"storage"] ↦{dq} bv.storage' ∗
       b.[bootstrappedRaft, go!"peers"] ↦{dq} bv.peers' ∗ bv.peers' ↦*{dq} pv ∗
       isNode nn γr.cl srvClusterN cv.ID' ∗ nodeRunning nn γr.cl srvClusterN 1 ∗ nodeTagPin γr.cl nn SV ∗
@@ -72,6 +72,9 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
     | fresh =>
       iunfold rnBootPre at Hboot
       icases Hboot with ⟨%Hcfg, Hbs, Hboot, Hvac, Hrst⟩
+      -- (2026-11-21, the crash invariant) the vacancy armed (the server keeps no crash token: its
+      -- restart follows `node.Stop`)
+      imod nodeVacant_armD γr.cl cv.ID' ⊤ $$ Hvac with ⟨%x, Hvac⟩
       have Hpvne : pv ≠ [] := by
         intro h; have := Hcfg.peers; subst h; simp at this; exact Hcfg.peersNe this
       have Hlen0 : decide (bv.peers'.len = W64 0) = false := by
@@ -111,8 +114,8 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
           memSnapEmpty.Metadata'.ConfState' (raftState γr.cl cv.ID' RaftState.init) Q
           bv.peers' dq pv SV hValid Hcfg.valid Hcfg.logger Hcfg.storage Hcfg.inflight Hcfg.noForwarding
           Hcfg.readOnly Hcfg.ccValidation Hcfg.sizes Hcfg.noAsync (fun _ => Hcfg.maxMsg) Hcfg.applied
-          rfl rfl rfl rfl rfl Hcfg.peers Hcfg.traceLogger HtrC) $$ [Hc Hbs Hboot Hvac Hau Hpeers]
-        as %nd ⟨%n', %K, %Hnd, #Hfresh, #Hnode, Hdrv, Hncfg, Hrun, #Hpin, Hrst, HQ, Hpeers⟩
+          rfl rfl rfl rfl rfl Hcfg.peers Hcfg.traceLogger HtrC x) $$ [Hc Hbs Hboot Hvac Hau Hpeers]
+        as %nd ⟨%n', %K, %Hnd, #Hfresh, #Hnode, Hdrv, Hncfg, Hrun, #Hpin, -, Hrst, HQ, Hpeers⟩
       · iframe #; iframe Hc Hpeers Hboot Hvac Hau
         iExactEq Hbs; rfl
       subst Hnd
@@ -128,7 +131,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
       iExactEq Hdrv; rfl
     | restart σ cs S a m A₀ =>
       iunfold rnBootPre at Hboot
-      icases Hboot with ⟨%Hpure, Hbs, #Hclu, #Hfits, Hvac, Hrst, #Hconf⟩
+      icases Hboot with ⟨%Hpure, Hbs, #Hclu, #Hfits, ⟨%x, Hvac⟩, Hrst, #Hconf⟩
       obtain ⟨Hcfg, Hba, Hac, Hboot, Hcs, Hhold, Hnsm⟩ := Hpure
       have Hlen0 : decide (bv.peers'.len = W64 0) = true := by
         apply decide_eq_true
@@ -172,15 +175,17 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
           imodintro
           iframe H
           ipureintro; rfl
+      -- (2026-11-22) the update with the crash token (`restartAu_nc`)
+      ihave Hau := restartAu_nc _ _ _ _ _ $$ Hau
       wp_apply (wp_RestartNode γr γr.cl srvClusterN bv.config' cv lok
           ⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩ σ cs a m
           (fun S'' => iprop(raftState γr.cl cv.ID' S'' ∗ ⌜S'' = S⌝)) Q
           SV hValid Hcfg.valid Hcfg.logger Hcfg.storage Hcfg.inflight Hcfg.noForwarding
           Hcfg.readOnly Hcfg.ccValidation Hcfg.sizes Hcfg.noAsync (fun _ => Hcfg.maxMsg)
           (Or.inl (by rw [Hcfg.applied]; rfl)) (by rw [Hcfg.applied]; simpa using Hba) Hac Hboot Hcs Hnsm
-          Hcfg.traceLogger HtrC)
+          Hcfg.traceLogger HtrC x)
         $$ [Hc Hbs Hvac Hau]
-        as %nd ⟨%n', %S', %l, %K, %Hnd, #Hnode, #Hl, %Hll, %-, Hdrv, Hncfg, Hrun, #Hpin, Hrst, HQ⟩
+        as %nd ⟨%n', %S', %l, %K, %Hnd, #Hnode, #Hl, %Hll, %-, Hdrv, Hncfg, Hrun, #Hpin, -, Hrst, HQ⟩
       · iframe #; iframe Hc Hvac Hau
         rw [Hcfg.applied]
         iExactEq Hbs; rfl
@@ -223,7 +228,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   (try wp_auto)
   -- `newRaftNode(cfg)`
   wp_apply (wp_newRaftNode E γr cv.ID' nn pre bv.storage' γs K ν ss
-    (raftNodeConfig.mk view bv.lg' _ (interface.mkOk (go.GoType.PointerType node.ty) #nn) bv.storage' st
+    (raftNodeConfig.mk view bv.lg' _ (interface.mkOk (go.GoType.PointerType node.ty) #nn.loc) bv.storage' st
       bv.heartbeat' GoInterface.nil) bt.a0 bt.t0 bt.P bt.commit0 bt.snap0) $$ []
     as %r ⟨%γw, %Hγw, Hbuilt⟩
   · iframe #

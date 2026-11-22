@@ -33,9 +33,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 section policy
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 private theorem take_eq_of_cmp' {α : Type} (l1 l2 : List α) (k : Nat) (h : l1 <+: l2 ∨ l2 <+: l1)
     (h1 : k ≤ l1.length) (h2 : k ≤ l2.length) : l1.take k = l2.take k := by

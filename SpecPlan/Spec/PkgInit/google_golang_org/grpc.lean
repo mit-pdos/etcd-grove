@@ -3,7 +3,14 @@ module
 
 public import GeneratedProof.google_golang_org.grpc
 public import SpecPlan.Spec.PkgInit.Base
+public import Perennial.Proof.time.Base
 public import Perennial.Proof.context.Base
+public import Perennial.Proof.io.Base
+public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.keepalive
+public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.resolver
+public import SpecPlan.Spec.PkgInit.net
+public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.credentials
+public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.stats
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.metadata
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.peer
 

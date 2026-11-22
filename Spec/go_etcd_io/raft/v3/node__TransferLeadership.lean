@@ -30,13 +30,13 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 (U9, 2026-10-29: in every cluster, a re-forwarded transfer request being refuted by its receiver,
 `leadW`; until then in a cluster with leader transfer on, `leaderTransferOn γ N`.) -/
 abbrev node.TransferLeadership.spec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (lead transferee : w64)
+  ∀ (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (lead transferee : w64)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   -- (2026-11-12, trace-check implementation step 1: the design's §3.5) refused at a traced
   -- cluster: `run` steps no message of this kind there
   Cluster.trace γ = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd }}
-    (App (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"TransferLeadership"))
+    (App (App (App (Val (n.loc @!! go.GoType.PointerType node.ty @!! go!"TransferLeadership"))
       (Val #(interface.ok ctx))) (Val #lead)) (Val #transferee))
   {{ RET #(); True }}
 

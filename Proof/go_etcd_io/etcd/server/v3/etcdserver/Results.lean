@@ -1227,7 +1227,11 @@ at `lp` (`lease.lessorInv`, its configuration, its backend's contract for the `L
 (the lease-revoke plan, 2026-10-31) `Revoke` clauses, from their proofs: the store watchable, its
 hook's facts, and the rest resource `RO` lending the store's right to the tracked buckets and the
 lessor's half of `le.b` (given back at buckets agreeing with `rs.bk` off `lease`: 2026-11-02, the
-backend-auth-split stage); its `Lookup` clause is the premise (`apply.isApplyLessor_of_lessorInv`). -/
+backend-auth-split stage). (prove-ps2-newlessor5, 2026-11-21) The last premise, the token-free `Lookup`
+triple, was `isApplyLessor`'s `Lookup` clause, which no proof used and none over the real code can give (the
+code read-locks the lessor's `mu`, which the model bounds by reader slots); the clause is deleted, and the
+premise kept unused so that this statement stays as it was (its conclusion loses exactly the conjunct the
+premise restates). -/
 theorem lessor_apply_contract (lp : Loc) (γ : mvcc.api.MvccName) (Pk : mvcc.KBReal → IProp GF)
     (f : GoFunc) (BT : mvcc.KBReal → IProp GF) (RO : EtcdGrove.apply.RestM → IProp GF)
     (RW : IProp GF) :
@@ -1246,11 +1250,12 @@ theorem lessor_apply_contract (lp : Loc) (γ : mvcc.api.MvccName) (Pk : mvcc.KBR
         {{ True }} (App (Val (lp @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty
           @!! go!"Lookup")) (Val #id))
         {{ (l : Loc), RET #l; ⌜l = null⌝ ∨ EtcdGrove.apply.leaseIs l id }}) ⊢
-      EtcdGrove.apply.isApplyLessor (lease.lessorIface lp) γ Pk f BT RO RW :=
-  EtcdGrove.apply.isApplyLessor_of_lessorInv lease.lessor.wp_GetLease lease.lessor.wp_Attach
+      EtcdGrove.apply.isApplyLessor (lease.lessorIface lp) γ Pk f BT RO RW := by
+  iintro ⟨H1, H2, H3, H4, H5, H6, H7, -⟩
+  iapply (EtcdGrove.apply.isApplyLessor_of_lessorInv lease.lessor.wp_GetLease lease.lessor.wp_Attach
     lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter lease.lessor.wp_Lookup
     lease.lessor.wp_Grant lease.lessor.wp_Checkpoint lease.Lease.wp_TTL lease.lessor.wp_Revoke
-    lp γ Pk f BT RO RW
+    lp γ Pk f BT RO RW) $$ [$H1 $H2 $H3 $H4 $H5 $H6 $H7]
 
 /-- **The auth store's admin side as model steps, of the real store** (the auth plan's S4, its
 apply part, 2026-10-24; `apply/AuthSteps.lean`): the store at `st` (`auth.authInv st R M`) has

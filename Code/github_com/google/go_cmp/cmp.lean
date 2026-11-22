@@ -439,46 +439,6 @@ opaque pointerDelimSuffix [GooseExts] [GoGlobalContext] : val
 
 opaque maxColumnLength [GooseExts] [GoGlobalContext] : val
 
-noncomputable def identsRx [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/google/go-cmp/cmp.identsRx"
-
-opaque identsRx.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def anyType [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/google/go-cmp/cmp.anyType"
-
-opaque anyType.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def stringType [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/google/go-cmp/cmp.stringType"
-
-opaque stringType.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def bytesType [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/google/go-cmp/cmp.bytesType"
-
-opaque bytesType.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def byteType [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/google/go-cmp/cmp.byteType"
-
-opaque byteType.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def randBool [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/google/go-cmp/cmp.randBool"
-
-opaque randBool.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def textNil [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/google/go-cmp/cmp.textNil"
-
-opaque textNil.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def textEllipsis [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/google/go-cmp/cmp.textEllipsis"
-
-opaque textEllipsis.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def Equal [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/google/go-cmp/cmp.Equal"
 
@@ -587,56 +547,66 @@ noncomputable def coalesceInterveningIdentical [GooseExts] [GoGlobalContext] : G
 noncomputable def cleanupSurroundingIdentical [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/google/go-cmp/cmp.cleanupSurroundingIdentical"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `identsRx` (`var identsRx = regexp.MustCompile('^' + identRx + '(\.' + identRx + ')*$')`): Its initializer calls, besides literals of constants and other variables' values:
+`regexp.MustCompile` of a constant pattern compiles it (it panics only on an invalid pattern, and
+these compile: Go runs the initializer at every start of every program importing the package);
+compilation terminates. So it terminates, cannot panic and has no effect beyond its variable.
+- `_@path.go:62` (`var _ PathStep = StructField{}`): An interface check: `StructField{}` converted to `PathStep`. No call, no panic, no effect.
+- `_@path.go:63` (`var _ PathStep = SliceIndex{}`): An interface check: `SliceIndex{}` converted to `PathStep`. No call, no panic, no effect.
+- `_@path.go:64` (`var _ PathStep = MapIndex{}`): An interface check: `MapIndex{}` converted to `PathStep`. No call, no panic, no effect.
+- `_@path.go:65` (`var _ PathStep = Indirect{}`): An interface check: `Indirect{}` converted to `PathStep`. No call, no panic, no effect.
+- `_@path.go:66` (`var _ PathStep = TypeAssertion{}`): An interface check: `TypeAssertion{}` converted to `PathStep`. No call, no panic, no effect.
+- `_@path.go:67` (`var _ PathStep = Transform{}`): An interface check: `Transform{}` converted to `PathStep`. No call, no panic, no effect.
+- `anyType` (`var anyType = reflect.TypeOf((*interface{})(nil)).Elem()`): Their initializers call, besides literals of constants and other variables' values:
+`reflect.TypeOf`/`TypeFor` (and `Elem`) read the static type descriptor of a type. So each
+terminates, cannot panic and has no effect beyond its variable.
+- `stringType` (`var stringType = reflect.TypeOf((*string)(nil)).Elem()`): Their initializers call, besides literals of constants and other variables' values:
+`reflect.TypeOf`/`TypeFor` (and `Elem`) read the static type descriptor of a type. So each
+terminates, cannot panic and has no effect beyond its variable.
+- `bytesType` (`var bytesType = reflect.TypeOf((*[]byte)(nil)).Elem()`): Their initializers call, besides literals of constants and other variables' values:
+`reflect.TypeOf`/`TypeFor` (and `Elem`) read the static type descriptor of a type. So each
+terminates, cannot panic and has no effect beyond its variable.
+- `byteType` (`var byteType = reflect.TypeOf((*byte)(nil)).Elem()`): Their initializers call, besides literals of constants and other variables' values:
+`reflect.TypeOf`/`TypeFor` (and `Elem`) read the static type descriptor of a type. So each
+terminates, cannot panic and has no effect beyond its variable.
+- `randBool` (`var randBool = rand.New(rand.NewSource(time.Now().Unix())).Intn(2) == 0`): Its initializer calls, besides literals of constants and other variables' values:
+`rand.New(rand.NewSource(time.Now().Unix())).Intn(2)` reads the clock and draws from a new private
+source. So it terminates, cannot panic and has no effect beyond its variable.
+- `textNil` (`var textNil = textLine("nil")`): Their initializers call, besides literals of constants and other variables' values: `textLine` is a
+conversion of a constant. So each terminates, cannot panic and has no effect beyond its variable.
+- `textEllipsis` (`var textEllipsis = textLine("...")`): Their initializers call, besides literals of constants and other variables' values: `textLine` is a
+conversion of a constant. So each terminates, cannot panic and has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"github.com/google/go-cmp/cmp.identsRx", "Its initializer calls, besides literals of constants and other variables' values:\n`regexp.MustCompile` of a constant pattern compiles it (it panics only on an invalid pattern, and\nthese compile: Go runs the initializer at every start of every program importing the package);\ncompilation terminates. So it terminates, cannot panic and has no effect beyond its variable.", "var identsRx = regexp.MustCompile(`^` + identRx + `(\\.` + identRx + `)*$`)"⟩,
+  ⟨"github.com/google/go-cmp/cmp._@path.go:62", "An interface check: `StructField{}` converted to `PathStep`. No call, no panic, no effect.", "var _ PathStep = StructField{}"⟩,
+  ⟨"github.com/google/go-cmp/cmp._@path.go:63", "An interface check: `SliceIndex{}` converted to `PathStep`. No call, no panic, no effect.", "var _ PathStep = SliceIndex{}"⟩,
+  ⟨"github.com/google/go-cmp/cmp._@path.go:64", "An interface check: `MapIndex{}` converted to `PathStep`. No call, no panic, no effect.", "var _ PathStep = MapIndex{}"⟩,
+  ⟨"github.com/google/go-cmp/cmp._@path.go:65", "An interface check: `Indirect{}` converted to `PathStep`. No call, no panic, no effect.", "var _ PathStep = Indirect{}"⟩,
+  ⟨"github.com/google/go-cmp/cmp._@path.go:66", "An interface check: `TypeAssertion{}` converted to `PathStep`. No call, no panic, no effect.", "var _ PathStep = TypeAssertion{}"⟩,
+  ⟨"github.com/google/go-cmp/cmp._@path.go:67", "An interface check: `Transform{}` converted to `PathStep`. No call, no panic, no effect.", "var _ PathStep = Transform{}"⟩,
+  ⟨"github.com/google/go-cmp/cmp.anyType", "Their initializers call, besides literals of constants and other variables' values:\n`reflect.TypeOf`/`TypeFor` (and `Elem`) read the static type descriptor of a type. So each\nterminates, cannot panic and has no effect beyond its variable.", "var anyType = reflect.TypeOf((*interface{})(nil)).Elem()"⟩,
+  ⟨"github.com/google/go-cmp/cmp.stringType", "Their initializers call, besides literals of constants and other variables' values:\n`reflect.TypeOf`/`TypeFor` (and `Elem`) read the static type descriptor of a type. So each\nterminates, cannot panic and has no effect beyond its variable.", "var stringType = reflect.TypeOf((*string)(nil)).Elem()"⟩,
+  ⟨"github.com/google/go-cmp/cmp.bytesType", "Their initializers call, besides literals of constants and other variables' values:\n`reflect.TypeOf`/`TypeFor` (and `Elem`) read the static type descriptor of a type. So each\nterminates, cannot panic and has no effect beyond its variable.", "var bytesType = reflect.TypeOf((*[]byte)(nil)).Elem()"⟩,
+  ⟨"github.com/google/go-cmp/cmp.byteType", "Their initializers call, besides literals of constants and other variables' values:\n`reflect.TypeOf`/`TypeFor` (and `Elem`) read the static type descriptor of a type. So each\nterminates, cannot panic and has no effect beyond its variable.", "var byteType = reflect.TypeOf((*byte)(nil)).Elem()"⟩,
+  ⟨"github.com/google/go-cmp/cmp.randBool", "Its initializer calls, besides literals of constants and other variables' values:\n`rand.New(rand.NewSource(time.Now().Unix())).Intn(2)` reads the clock and draws from a new private\nsource. So it terminates, cannot panic and has no effect beyond its variable.", "var randBool = rand.New(rand.NewSource(time.Now().Unix())).Intn(2) == 0"⟩,
+  ⟨"github.com/google/go-cmp/cmp.textNil", "Their initializers call, besides literals of constants and other variables' values: `textLine` is a\nconversion of a constant. So each terminates, cannot panic and has no effect beyond its variable.", "var textNil = textLine(\"nil\")"⟩,
+  ⟨"github.com/google/go-cmp/cmp.textEllipsis", "Their initializers call, besides literals of constants and other variables' values: `textLine` is a\nconversion of a constant. So each terminates, cannot panic and has no effect beyond its variable.", "var textEllipsis = textLine(\"...\")"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.github_com.google.go_cmp.cmp where
   pkgImportedPkgs := []
-
-opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.google.go_cmp.cmp)) (Lam BAnon
   (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val textEllipsis.init) (Val #())))))
-  (App (Val doExecute)
-  (App (Val textNil.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val randBool.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val byteType.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val bytesType.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val stringType.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val anyType.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val identsRx.init) (Val #()))))))))
+  (Val #()))))))
 
 opaque state.nonempty_type : NonemptyType.{0}
 def state : Type := state.nonempty_type.type

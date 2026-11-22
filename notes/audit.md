@@ -654,3 +654,9 @@ The [snapshot release finding](release-snapdb-held-file.md) led to a sealed snap
 `storage.storage.Release.wp_proof`. The [incoming metadata finding](incomingof-crossworld.md)
 led to the removal of `incomingOf_cancelCtx` and `v3rpc.incomingOf_cancellableContext`.
 The remaining baseline and the two generated admissions have not been discharged in this review.
+
+### Claim #26 (2026-11-22; Go: go1.27.3 `slices/slices.go:491-507`; Perennial PR #670's `Spec/slices/Concat.lean`)
+
+| axiom | verdict | reason |
+|---|---|---|
+| `slices.Concat.wp_proof` (`Proof/slices/Concat.lean`) | **false**; **fixed** (`fix-slices-concat/2026-11-22`) | No premise, but Go sums the lengths and panics ("len out of range") once the sum overflows `int`, before `Grow`; aliased inputs reach it (`examples/premisefix/concatlen`). Now takes `(xss.map List.length).sum < 2 ^ 63` (exact: Go's check fires iff the total is `≥ 2 ^ 63`), the string instance of PR #670's theorem. `collectReasonsAndErrors` discharges it through `Dec.depth` (ledger 2026-11-22). |

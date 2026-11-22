@@ -75,7 +75,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of ErrWaitTimeout))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xW ⟨#MWc, #MW⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xW ⟨#_, #MW⟩
   try wp_auto
   wp_func_call
   wp_call

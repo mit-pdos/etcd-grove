@@ -1,8 +1,11 @@
 # Types and names only: the type of `clientv3.Client`'s field `resolver`
 # (`*EtcdManualResolver`); (item 5, client construction) the scheme `Schema`, which
 # `clientv3`'s `dial` puts in the target.
-translate = ["!*", "Schema"]
-imports = ["!*"]
+translate = ["!*", "Schema", "New", "EtcdManualResolver.SetEndpoints",
+             "EtcdManualResolver.updateState", "getCC", "EtcdManualResolver.CC",
+             "EtcdManualResolver.Close"]
+imports = ["!*", "google.golang.org/grpc/resolver", "google.golang.org/grpc/resolver/manual",
+           "google.golang.org/grpc/serviceconfig"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

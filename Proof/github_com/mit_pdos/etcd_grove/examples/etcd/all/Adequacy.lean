@@ -7,7 +7,7 @@
 `etcdProgram k₁ clients ops steps₁ nw nops steps₂ cnw cnops k₂ k₃ k₄ k₅` (`TopLevelDefs.lean`: the
 package's initialization, then `Main` with the five member counts, the three workloads and the two
 schedules built as slice literals) from a fresh state with one thread, of `n` steps along which fewer
-than `2 ^ 28` threads are live, with `n + 12 ≤ 2 ^ 40`: if the main thread has finished, its result is
+than `2 ^ 28` threads are live, with `n + 1 ≤ 2 ^ 48`: if the main thread has finished, its result is
 `#()`; no thread is stuck; no thread has ended in a panic.
 
 It follows from `etcd_adequate_members_below` with the eleven clusters' members (`etcdStarts`), their
@@ -222,7 +222,7 @@ theorem etcd_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     (Hsteps' : RealNstepsBelow (2 ^ 28) n
       ([etcdProgram k₁ clients ops steps₁ nw nops steps₂ cnw cnops k₂ k₃ k₄ k₅], ((σ, g) : CfgState))
       κs (t2, σ2))
-    (Hn : n + 12 ≤ 2 ^ 40) :
+    (Hn : n + 1 ≤ 2 ^ 48) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by

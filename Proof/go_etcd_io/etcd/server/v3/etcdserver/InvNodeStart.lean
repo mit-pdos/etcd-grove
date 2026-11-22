@@ -335,7 +335,7 @@ def rnBootPre (γr : SrvRaft) (bv : bootstrappedRaft) (cv : Config) (lok : GoInt
           out ↦*□ (σ.ents.map EntryModel.ofM).foldl replayAddEntry [] ∗
             restartStorage γr.cl (memStorIface bv.storage') σ cs 0 Q SV -∗ Φ #out) -∗
         WP (App (Val (@! replayTermsFromStorage)) (Val #bv.storage')) {{ Φ }}) ∗
-      isCluster γr.cl srvClusterN ∗ readyFits γr.cl srvClusterN ∗ nodeVacant γr.cl cv.ID' ∗
+      isCluster γr.cl srvClusterN ∗ readyFits γr.cl srvClusterN ∗ (∃ x, nodeVacantA γr.cl cv.ID' x) ∗
       raftState γr.cl cv.ID' S ∗ confAt γr.cl a m)
 
 /-- (restart S3 item 5, Q35 (a), r2db §4.3, 2026-11-11) **What the node's start gives of the boot
@@ -344,7 +344,7 @@ def rnBootPre (γr : SrvRaft) (bv : bootstrappedRaft) (cv : Config) (lok : GoInt
 peers' membership: until then the spec's own conjuncts); at `restart σ cs S a m A₀`, `RestartNode`'s
 (the committed log `l` of the restored base, the driver at it with the restored hard state, the
 durable state `S` and the follower's role; the view at `(a, m)`). -/
-def rnBootPost (γr : SrvRaft) (n : Loc) (K : GName) (bv : bootstrappedRaft) (cv : Config)
+def rnBootPost (γr : SrvRaft) (n : NodeH) (K : GName) (bv : bootstrappedRaft) (cv : Config)
     (ps : List w64) (ctxs : List (List w8)) : RNBoot → IProp GF
   | .fresh =>
     letI := srvStor (GF := GF) γr

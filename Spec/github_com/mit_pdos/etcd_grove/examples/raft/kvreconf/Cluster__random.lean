@@ -22,7 +22,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KvrStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KvrStor GF]
 
 attribute [local instance] kvrStorageModel
 
@@ -31,7 +31,7 @@ abbrev Cluster.random.spec : Prop :=
   ∀ (γr : RNames) (vs : List w64) (c : Loc),
   {{ isClusterC γr vs c }}
     (App (Val (c @!! go.GoType.PointerType rClusterTy @!! go!"random")) (Val #()))
-  {{ (r : Loc), RET #r; ∃ id, isRep γr vs id r }}
+  {{ (r : Loc), RET #r; ∃ id, isRep (GF := GF) γr vs id r }}
 
 end spec
 

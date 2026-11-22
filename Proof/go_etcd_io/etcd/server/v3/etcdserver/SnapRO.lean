@@ -135,9 +135,15 @@ until then the write right lent the half, `srvRestRW`, and the put's effect was 
 real backend's `LockInsideApply` does not need it, its `UnsafePut` does). (The lease-grant stage,
 2.12, 2026-11-02, the user's freeze) The counted write-back token is spent and the lent part `RW`
 given back (until then spent with it): true of Go, `persistTo(le.b)` reads the field before
-`BatchTx()`, and `LockInsideApply`/`Unlock` do not write it (`lease.go:55-61`). -/
+`BatchTx()`, and `LockInsideApply`/`Unlock` do not write it (`lease.go:55-61`). (prove-ps2-newlessor5, 2026-11-21, the
+main session's decision under the user's rule) At a backend whose parameters let the lessor write
+`Lease` (`mvcc.leaseParams d.P`: the bucket in the table, tracked, none of its keys a hook's; the
+real backend's `UnsafePut` needs the bucket in its table, `batchTxBuffered.UnsafePut.spec`'s
+`P.has bi`, a `Fatal` otherwise): until then at any `d`, which the real backend does not meet.
+Every applier has it (`snap_isApplyLessor`'s `hlp`, the boot's facts, mvccrand's `rcP_lease`). -/
 def lessorApplyOk (lp : Loc) : IProp GF :=
   iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (f : GoFunc) (RW : IProp GF),
+    ⌜mvcc.leaseParams d.P⌝ -∗
     backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗
     rwLens RW (lease.lessorBeOn lp d.be) -∗
     lease.lessorBackend lp Pk #f (backend.wbTok d.γB) RW (apply.bkRT d)
@@ -331,16 +337,7 @@ def authCloseOk (ast : Loc) : IProp GF := authCloser ast iprop(True)
 instance authCloseOk_persistent (ast : Loc) : Persistent (authCloseOk (GF := GF) ast) := by
   unfold authCloseOk; infer_instance
 
-/-- The lessor `lp`'s `Lookup` (`lease.NewLessor.spec`'s, the trust boundary; S8d's named premise,
-threaded from `NewServer`): what `isApplyLessor_of_lessorInv` takes. -/
-def lessorLookupOk (lp : Loc) : IProp GF :=
-  iprop(□ (∀ id : w64,
-    {{ True }} (App (Val (lp @!! go.GoType.PointerType
-      go_etcd_io.etcd.server.v3.lease.lessor.ty @!! go!"Lookup")) (Val #id))
-    {{ (l : Loc), RET #l; ⌜l = null⌝ ∨ apply.leaseIs l id }}))
-
-instance lessorLookupOk_persistent (lp : Loc) : Persistent (lessorLookupOk (GF := GF) lp) := by
-  unfold lessorLookupOk; infer_instance
+-- `lessorLookupOk` deleted (prove-ps2-newlessor5, 2026-11-21): `isApplyLessor`'s `Lookup` clause is gone.
 
 /-- **The removal fact of the member's snapshot directory** (restart S6a, 2026-11-13, decided by
 etcd-grove-81 (b′); `snapDirInv`'s `Rm`): a `.snap.db` file of index `j` may be gone once the
@@ -414,8 +411,15 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γm : GName) :
       -- the auth buckets, which the auth store's `Recover` takes (`authRecoverOk`)
       (d.P.has mvcc.alarmBI ∧
         d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧ d.P.has mvcc.authRolesBI) ∧
+      -- (prove-ps2-members, 2026-11-22) and the membership's buckets, which the cluster's `SetBackend`
+      -- takes (`bootOk`'s, the user's approval of 2026-11-22)
+      (d.P.has mvcc.membersBI ∧ d.P.has mvcc.membersRemovedBI ∧ d.P.has mvcc.clusterBI) ∧
       E.RO = srvRestOwnH E.authMode d.γB cl (srvObjsOn al ast lp cl d.be) ∧
-      receiptBound GF ≤ backend.wbInit - 6⌝ ∗
+      receiptBound GF ≤ backend.wbInit - 6 ∧
+      -- (bkarea, 2026-11-22) the data directory shorter than `2^60` bytes, which
+      -- `OpenSnapshotBackend`'s `BackendPath()` needs (`filepath.Join`'s premise): at a first start
+      -- from `bootCfgFresh`'s `DirFits`, at a restart from the image's WAL area (`srvFiles_dataDir_len`)
+      cfg.DataDir'.length < 2 ^ 60⌝ ∗
     -- the configuration's fields the snapshot path reads, its feature gate
     -- (premise-fixes-6: until then `cfg.Logger' ≠ null` in the pure part) a zap logger
     srvCfgFieldAddr s go!"Logger" ↦□ cfg.Logger' ∗ zapLoggerOk cfg.Logger' ∗
@@ -451,7 +455,7 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γm : GName) :
     -- (the auth-on snapshot plan's decision 8) with auth on, the store's invariant and snapshot
     -- clause at the server's `E.RD` (`authSnapKitM`)
     authSnapKitM E.authMode ast E.RD ∗
-    lessorApplyOk lp ∗ lease.lessorCfg lp ∗ lessorLookupOk lp ∗
+    lessorApplyOk lp ∗ lease.lessorCfg lp ∗
     membership.isRaftCluster cl ∗ clusterApplyOk cl ∗
     (∃ n : Loc, membership.rcVersionChangedAddr cl ↦□ n) ∗ srvMembersDir cl ps dir ∗
     -- the Key bucket's size bound of every backend at the boot parameters
@@ -510,14 +514,14 @@ theorem srvSnapRO_succ {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (s ci : Loc)
   iunfold srvSnapRO at H
   icases H with ⟨%cfg, %ss, %hk, %lgh, %stp, %γd, %idm, %al0, %ast0, %lp0, %cl0, %ps, %dir, %d0,
     %Hp, #H1, #Hzl, #H2, #H3, #H4, #Hvo, #H5, #H6, #H7, #H8, #H9, #H10, #H11, #H12, #H13, #H14, #H15, #H16, #H17,
-    #H18, #H19, #H20, #H21, #H22, #H23, #H24, #H25, #H26, #H27, #H28, #H29, #H30, #H31, #H32, #H33, #H34⟩
+    #H18, #H19, #H20, #H21, #H22, #H23, #H24, #H26, #H27, #H28, #H29, #H30, #H31, #H32, #H33, #H34⟩
   icombine Hal H14 gives %e1
   icombine Hau H15 gives %e2
   icombine Hle H16 gives %e3
   icombine Hcl H17 gives %e4
   simp only [auth.authIface, lease.lessorIface, interface_mkOk_inj] at e2 e3
-  obtain ⟨hkb0, hdbo, hmm, hbuq, hsl, hdir, hsop, hbr, hci, hhk, hwf, hlim, hlp, halbi,
-    -, hrb⟩ := Hp
+  obtain ⟨hkb0, hdbo, hmm, hbuq, hsl, hdir, hsop, hbr, hci, hhk, hwf, hlim, hlp, halbi, hmbP,
+    -, hrb, hdd⟩ := Hp
   rw [hkb] at hkb0
   obtain rfl := srvBkTie_inj d d0 hkb0
   have e2' : ast = ast0 := by
@@ -530,8 +534,8 @@ theorem srvSnapRO_succ {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (s ci : Loc)
   iexists cfg, ss, hk, lgh, stp, γd, idm, al, ast, lp, cl, ps, dir, d'
   isplitr
   · ipureintro
-    refine ⟨hkb', hdbo, hmm, hbuq, hsl, hdir, hsop, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
-      hRO, hrb⟩ <;> rw [hP] <;> assumption
+    refine ⟨hkb', hdbo, hmm, hbuq, hsl, hdir, hsop, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
+      hRO, hrb, hdd⟩ <;> rw [hP] <;> assumption
   have e5 : (E.onBe b P f c RO RW).authMode = E.authMode := rfl
   have e6 : (E.onBe b P f c RO RW).RD = E.RD := rfl
   have e7 : (E.onBe b P f c RO RW).γ = E.γ := rfl

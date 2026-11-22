@@ -25,11 +25,6 @@ noncomputable def unSupportedWatchListSemantics.ty [GooseExts] [GoGlobalContext]
 
 attribute [irreducible] unSupportedWatchListSemantics.ty
 
-noncomputable def scheme [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/client-go/util/watchlist.scheme"
-
-opaque scheme.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/watchlist.init.0"
 
@@ -38,6 +33,19 @@ noncomputable def PrepareWatchListOptionsFromListOptions [GooseExts] [GoGlobalCo
 
 noncomputable def DoesClientNotSupportWatchListSemantics [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/watchlist.DoesClientNotSupportWatchListSemantics"
+
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `scheme` (`var scheme = runtime.NewScheme()`): Its initializer calls, besides literals of constants and other variables' values:
+`runtime.NewScheme` allocates an empty `*Scheme` and registers the default conversions into it
+(`utilruntime.Must` panics only if those fixed registrations fail, which Go would do at every
+start). So it terminates, cannot panic and has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"k8s.io/client-go/util/watchlist.scheme", "Its initializer calls, besides literals of constants and other variables' values:\n`runtime.NewScheme` allocates an empty `*Scheme` and registers the default conversions into it\n(`utilruntime.Must` panics only if those fixed registrations fail, which Go would do at every\nstart). So it terminates, cannot panic and has no effect beyond its variable.", "var scheme = runtime.NewScheme()"⟩]
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.util.watchlist where
   pkgImportedPkgs := []
@@ -48,11 +56,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.client_go.util.watchlist)) (Lam BAnon
   (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
-  (App (Val doExecute)
-  (App (Val scheme.init) (Val #()))))))))
+  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))))
 
 abbrev unSupportedWatchListSemantics [GooseExts] : Type := GoInterface
 

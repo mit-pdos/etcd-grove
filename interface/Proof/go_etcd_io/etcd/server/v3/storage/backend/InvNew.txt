@@ -55,6 +55,6 @@ def backend.hooksAt (b : Loc) (h : GoInterface) : IProp GF :=
   typedPointsto (backend.bF go!"hooks" b) h DFrac.discard
 
 def backend.wbInit : Nat :=
-  2 ^ 40 - 1
+  2 ^ 62 - 1
 
 theorem backend.hooksAt_persistent (b : Loc) (h : GoInterface) : Persistent (backend.hooksAt b h)

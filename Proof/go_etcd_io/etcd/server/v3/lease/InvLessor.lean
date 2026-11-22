@@ -185,8 +185,11 @@ had (`γr.2.2.2.1`, a ghost variable `U` in halves: `lessorRdBody`'s and the own
 (`γr.2.2.2.2.1`, a ghost map of discarded elements, id to requested TTL: `leaseReqIs`, `reqOk`);
 (auth-lease S4 item 7b, 2026-11-17) and the windows' mono-list (`γr.2.2.2.2.2.1`: `winsOk`, `lastWin`,
 `lessorWinTie`); (prove-ps2-lease, 2026-11-21) and the ghost variable of `demotec`'s value
-(`γr.2.2.2.2.2.2`: `demoteTie`, `demoteOuter`). The mode is `γr.2.2.1`. -/
-abbrev LessorRdNames := GName × GName × Bool × GName × GName × GName × GName
+(`γr.2.2.2.2.2.2.1`: `demoteTie`, `demoteOuter`); (prove-ps2-newlessor3, 2026-11-21) and the expiry
+notifier's cell (`notifCell`: `γr.2.2.2.2.2.2.2.1`, a fractional ghost variable whose shares `le.mu`
+holds, `notifShare`; `γr.2.2.2.2.2.2.2.2.1`, the expiry loop's token, `notifRTok`;
+`γr.2.2.2.2.2.2.2.2.2`, who took the cell). The mode is `γr.2.2.1`. -/
+abbrev LessorRdNames := GName × GName × Bool × GName × GName × GName × GName × GName × GName × GName
 
 /-- **A snapshot of the lessor**: its lease map (id to `*Lease`), its item map (item to id) and
 (the lease-expiry plan's R5, 2026-11-04) its TTLs (id to the lease's `ttl` field, which `Grant` and
@@ -1101,13 +1104,19 @@ def queueAt (s : GoSlice) (xs : List (Loc × w64)) (q : Qp) : IProp GF :=
   iprop(s ↦*{DFrac.own q} (xs.map Prod.fst) ∗ ownSliceCap Loc s (DFrac.own q) ∗
     [∗list] k ↦ x ∈ xs, lwtAt x.1 x.2 (W64 k) q)
 
-/-- **The expiry notifier** at `np` (`LeaseExpiredNotifier`), at share `q`: its map `m` (lease id
-to item) holds exactly the items of its queue, each under its own id, no item twice. -/
-def notifierAt (np : Loc) (q : Qp) : IProp GF :=
-  iprop(∃ (mp : Loc) (s : GoSlice) (M : GMap w64 Loc) (xs : List (Loc × w64)),
+/-- **The expiry notifier** at `np` (`LeaseExpiredNotifier`), at share `q`, with the map `M`: its map
+`m` (lease id to item) is `M` and holds exactly the items of its queue, each under its own id, no item
+twice (prove-ps2-newlessor3, 2026-11-21: indexed by `M`, for `Len`, `Peek`, `Unregister` and the
+expiry loop's re-registration of an item already queued; `notifierAt` hides it). -/
+def notifierAtM (np : Loc) (q : Qp) (M : GMap w64 Loc) : IProp GF :=
+  iprop(∃ (mp : Loc) (s : GoSlice) (xs : List (Loc × w64)),
     nF go!"m" np ↦{DFrac.own q} mp ∗ mp ↦${DFrac.own q} M ∗ nF go!"queue" np ↦{DFrac.own q} s ∗
     queueAt s xs q ∗
     ⌜(xs.map Prod.fst).Nodup ∧ ∀ (id : w64) (p : Loc), M.lookup id = some p ↔ (p, id) ∈ xs⌝)
+
+/-- **The expiry notifier** at `np` (`LeaseExpiredNotifier`), at share `q`, at some map. -/
+def notifierAt (np : Loc) (q : Qp) : IProp GF :=
+  iprop(∃ M : GMap w64 Loc, notifierAtM np q M)
 
 /-- **A granted lease's state** (`l`, of id `id`) under `le.mu`, at `q`: its `ID` and `ttl`
 (read-only once granted), its `revokec` (read-only), its `remainingTTL` and the lessor's half
@@ -1128,7 +1137,7 @@ it to `nil` (under the write lock), `Renew` receives on the value it read under 
 own (`onceChanInv`: its state in an invariant, so that any receiver can step it; closed at most
 once, by the holder of its token, `token γt`, which the invariant takes at the close). The token of
 the current channel is in an invariant of the lessor (`demoteOuter`), tied to the field's value by
-a ghost variable (`γr.2.2.2.2.2.2`) of which `le.mu` holds half (`demoteTie`): `Demote`, holding the
+a ghost variable (`γr.2.2.2.2.2.2.1`) of which `le.mu` holds half (`demoteTie`): `Demote`, holding the
 whole of it under the write lock, takes the token out, closes, and sets the variable to `nil`
 before storing `nil`. (Not Perennial's `ownBroadcastChan`, which is stated at `HasLC.hasLC` only,
 where the lessor's invariant is at any `hlc`.) -/
@@ -1142,8 +1151,8 @@ def demoteOuter (γd : GName) : IProp GF :=
 /-- **`le.mu`'s share `q` of the `demotec` variable** of the lessor `γl`, at the field's value `dc`,
 and the invariant that holds its other half. -/
 def demoteTie (γl : GName) (q : Qp) (dc : GoChan) : IProp GF :=
-  iprop(∃ γr : LessorRdNames, lessorPinR γl γr ∗ ghostVar γr.2.2.2.2.2.2 q.half dc ∗
-    inv demoteOuterN (demoteOuter γr.2.2.2.2.2.2))
+  iprop(∃ γr : LessorRdNames, lessorPinR γl γr ∗ ghostVar γr.2.2.2.2.2.2.1 q.half dc ∗
+    inv demoteOuterN (demoteOuter γr.2.2.2.2.2.2.1))
 
 /-- **The lessor's `stopC`** (persistent; prove-ps2-renew, 2026-11-21): read-only (`newLessor` sets
 it, `lessor.go:238`), a close-once channel (`Stop` closes it with `lessorStopTok`'s token; `Renew` and
@@ -1154,17 +1163,65 @@ def lessorStopRecv (lp : Loc) : IProp GF :=
 instance lessorStopRecv_persistent (lp : Loc) : Persistent (lessorStopRecv (GF := GF) lp) := by
   unfold lessorStopRecv; infer_instance
 
+/-! ### The expiry notifier's cell (prove-ps2-newlessor3, 2026-11-21)
+
+The expiry loop (`expireExists`, `lessor.go:681-711`) writes the notifier (`Unregister`,
+`RegisterOrUpdate`, an item's `time`) holding only `le.mu`'s read lock; every other reader leaves it
+alone, and the writers (`Grant`, `Renew`, `Promote`, `Demote`, `Recover`) write it under the write
+lock. So the notifier is not in `le.mu`'s fractional resource but in a cell (`notifCell`). Idle, the
+cell holds half of the field `leaseExpiredNotifier` (the other half is `le.mu`'s, `lessorExtra`), the
+whole notifier the field points to, and the whole ghost variable `γk`. Its taker takes all three and
+leaves half of `γk` at its kind (`false` a writer, `true` the loop) with a deposit: a writer the
+whole ghost variable `γx` (its `notifShare` at `1`), the loop its reader's share of `γx` (`rfrac`,
+every reader's) and its token `γy` (`notifRTok`, exclusive). A writer cannot take the cell from the
+loop, nor the loop from a writer (`1 + rfrac > 1`), nor the loop from itself (its token), nor a writer
+from a writer (`1 + 1 > 1`); the taker gives it back with its half of `γk`, which names its deposit. -/
+
+def notifN : Namespace := nroot .@ "lessor_notifier"
+
+/-- **The expiry notifier's cell** of the lessor at `lp` (`γx` the shares' ghost variable, `γy` the
+loop's token, `γk` the taker's kind): idle (half the field at `np`, the notifier at `np` whole, `γk`
+whole), taken by a writer, or by the loop. -/
+def notifCell (lp : Loc) (γx γy γk : GName) : IProp GF :=
+  iprop((∃ (np : Loc) (k : Bool), lF go!"leaseExpiredNotifier" lp ↦{DFrac.own (1 : Qp).half} np ∗
+      notifierAt np 1 ∗ ghostVar γk 1 k) ∨
+    (ghostVar γk (1 : Qp).half false ∗ ghostVar γx 1 ()) ∨
+    (ghostVar γk (1 : Qp).half true ∗ token γy ∗ ghostVar γx sync.rfrac ()))
+
+/-- The cell's invariant, at the reader-side names `γr`. -/
+abbrev notifInv (lp : Loc) (γr : LessorRdNames) : IProp GF :=
+  inv notifN (notifCell lp γr.2.2.2.2.2.2.2.1 γr.2.2.2.2.2.2.2.2.1 γr.2.2.2.2.2.2.2.2.2)
+
+/-- **`le.mu`'s share `q` of the expiry notifier** of the lessor `γl` at `lp`: the share `q` of the
+cell's ghost variable `γx`, and the cell. -/
+def notifShare (lp : Loc) (γl : GName) (q : Qp) : IProp GF :=
+  iprop(∃ γr : LessorRdNames, lessorPinR γl γr ∗ ghostVar γr.2.2.2.2.2.2.2.1 q () ∗ notifInv lp γr)
+
+/-- **The expiry loop's token** (exclusive): `NewLessor` gives it to `runLoop`, which takes the
+notifier's cell with it under the read lock. -/
+def notifRTok (γl : GName) : IProp GF :=
+  iprop(∃ γr : LessorRdNames, lessorPinR γl γr ∗ token γr.2.2.2.2.2.2.2.2.1)
+
+/-- **The cell taken** by a taker of kind `k` (`false` a writer, `true` the loop): its half of `γk`,
+which names its deposit, and the cell. -/
+def notifTaken (lp : Loc) (γl : GName) (k : Bool) : IProp GF :=
+  iprop(∃ γr : LessorRdNames, lessorPinR γl γr ∗ ghostVar γr.2.2.2.2.2.2.2.2.2 (1 : Qp).half k ∗
+    notifInv lp γr)
+
 /-- **The lessor's apply-side fields** under `le.mu` at `q`, for its lease map `M`: `demotec`,
 the expiry notifier, the checkpoint heap (a queue of fresh items, any ids), the checkpointer
 `cp`, `nil` (no checkpointer is installed: `NewLessor.spec`; stage B3, 2026-11-12), and every granted lease's `leaseMeta`; (D22 receiver epochs, S7c, 2026-10-23) half the
 fraction of the backend `b` (the other half its user's, `lessorBeOn`: `Recover` replaces it);
 (prove-ps2-lease, 2026-11-21) and the share `q` of `demotec`'s ghost variable at its value (`demoteTie`);
 (prove-ps2-renew, 2026-11-21) and `stopC`'s receive side (`lessorStopRecv`, read-only: here so that
-`Renew`, which holds only the lessor's invariant, reaches it). -/
+`Renew`, which holds only the lessor's invariant, reaches it); (prove-ps2-newlessor3, 2026-11-21)
+the expiry notifier through its cell: half the field's share (`q/2`) and the cell's share
+(`notifShare`), the notifier itself in the cell (until then `↦{q} np ∗ notifierAt np q`, which the
+expiry loop, a reader that writes the notifier, cannot use). -/
 def lessorExtra (lp : Loc) (γl : GName) (M : GMap w64 Loc) (q : Qp) : IProp GF :=
   iprop(∃ (dc : GoChan) (np : Loc) (h : GoSlice) (hx : List (Loc × w64)) (b : GoInterface),
     lF go!"demotec" lp ↦{DFrac.own q} dc ∗
-    lF go!"leaseExpiredNotifier" lp ↦{DFrac.own q} np ∗ notifierAt np q ∗
+    lF go!"leaseExpiredNotifier" lp ↦{DFrac.own q.half} np ∗ notifShare lp γl q ∗
     lF go!"leaseCheckpointHeap" lp ↦{DFrac.own q} h ∗ queueAt h hx q ∗
     lF go!"cp" lp ↦{DFrac.own q} func.nil ∗
     ([∗map] id ↦ l ∈ M, leaseMeta id l q) ∗

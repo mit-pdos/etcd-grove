@@ -17,6 +17,63 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `math.Sqrt` names-only: translated over a trusted `sqrt` in mit-pdos/perennial#675 (2026-11-22, prove-ps2-succ)
+
+- **Limitation.** `math.Sqrt` had no body at the pin, so `v2stats.FollowerStats.Succ` (its standard deviation) stayed a
+  trust-boundary axiom after the IEEE 754 floats (perennial#654).
+- **Who needs it.** `v2stats.FollowerStats.Succ.wp_proof` (branch `prove-ps2-succ/2026-11-22`: proved, landed with
+  the pin).
+- **Proposed change.** perennial#675 (merged, branch `math-sqrt`): `Sqrt`, `Float64bits`/`Float64frombits` (the
+  `unsafe.Pointer` views, under the plain-memory rules), `IsNaN`, `IsInf`, `Abs`, `NaN` translated with specs and
+  proofs; `sqrt` trusted as an arbitrary float, because gc compiles it to `SQRTSD` (a compiler intrinsic), whose NaNs
+  differ from the Go body's (measured: `Sqrt(-1)` is `0xfff8000000000000`, the body's `0x7ff8000000000001`), so
+  translating the body would be unfaithful.
+- **Status.** Done: merged, pinned at Perennial `74471ecd8` (2026-11-22).
+
+### The robustness theorems' standard-library leaf axioms: what the pinned Perennial lacks (2026-11-21, claim #26, branch `prove-stdlib-leaves/2026-11-21`)
+
+- **Done here, no Perennial change.** `bufferM.ownBuffer_new` is a theorem, `ownBuffer` a definition
+  (`Proof/bytes/Buffer.lean`: Perennial's `bytes.ownBuffer` plus `buf`'s capacity).
+- **Limitation (`context.WithCancelTodo`).** `WithCancel(TODO())` is translated, and most of it
+  proves from the code here (`TODO()`'s `Done`/`Deadline` from `emptyCtx`, `propagateCancel(TODO(), c)`
+  returning at once on its `nil` `Done()`, `wp_WithCancel_gen_of` whose own `isParentCtx` premise is
+  unused), but its cancel function runs `c.cancel(true, Canceled, nil)`, and Perennial's
+  `cancelCtx.cancel.spec` (through `removeChild.spec`) takes `isParentCtx` of the parent, which is
+  `Background()` or an `isContext`; `TODO()` is neither (its `Done()` is `nil`). A local proof would
+  copy `cancelCtx.cancel`'s 190-line proof to change one premise. Proposed: `isParentCtx` admits
+  `todoCtxVal` (Go treats both empty contexts alike: `parentCancelCtx` returns `false` on a `nil`
+  `Done()`, `removeChild` returns), with `removeChild`'s and `propagateCancel`'s cases for it; then
+  the local axiom is a theorem as above.
+- **Limitation (the rest).** At the pin `d648cfe22` (and Perennial `lean` head `04ed1c622`) none of
+  these has a body or a spec in Perennial, so each stays a local axiom:
+  - `bytes.Buffer.Write`, `bytes.Buffer.Bytes`: `bytes.toml` translates `Buffer.Read`/`empty`/`Reset`
+    only (needs `Write`, `Bytes`, `grow`, `tryGrowByReslice`, `growSlice`; `growSlice`'s `recover`);
+  - `io.Pipe`, `io.PipeWriter.CloseWithError`, `io.MultiReader`: not in `io.toml` (`pipe`'s mutex and
+    channels; `multiReader` is translated as a type only);
+  - `slices.Clone`, `slices.Concat`, `slices.ContainsFunc`: not in `slices.toml` (generic, plain Go);
+  - `strings.Contains`, `strings.SplitN`, `strings.ToLower`: not in `strings.toml` (`Contains` over
+    `stringslite.Index` and `bytealg` (assembly: a trusted model), `SplitN` over `genSplit`,
+    `ToLower` over `unicode` and `Builder`);
+  - `fmt.ErrorfSlice`, `fmt.SprintfSlice`: Perennial's trusted `Sprintf`/`Errorf` model is stuck on a
+    slice argument under `%v`/`%s` (reflection into a slice);
+  - `os.Getenv`, `os.Getpagesize`: `os` is names-only (a model of the process environment, and
+    `syscall.Getpagesize` = 4096 on linux/amd64);
+  - `math.Ceil`: `math` translates only its tables (and `FloatOps` has no laws);
+  - `rand.Int63n`: `math/rand` is names-only (`globalRand`, its lock and source);
+  - (2026-11-22, prove-ps2-rqb) `rand.Float64`, likewise (client/v3's `jitterUp`: the trust-boundary
+    axiom `rand.Float64.wp_proof`, `Proof/math/rand/Float64.lean`);
+  - `sort.SliceIsSorted`: names-only, through `reflectlite.ValueOf(x).Len()` (the entry below);
+  - `context.WithValue`: `context.toml` excludes it (`reflectlite.TypeOf(key).Comparable()`);
+  - `context.WithCancelValCtx`: `WithCancel` of etcd's `valCtx` takes `propagateCancel`'s last
+    branches (the `afterFuncer` assertion and the goroutine selecting on `parent.Done()` and
+    `child.Done()`), which Perennial's `cancelCtx.propagateCancel.spec` does not cover (its parents:
+    `Background()` or an `isContext`, whose `"#HParentCC"` finds a `*cancelCtx`); a proof also needs
+    a channel invariant for `client/v3`'s never-closed `valCtxCh` from its package initializer.
+- **Proposed.** Translate (or model, where assembly or reflection is reached) and specify each in
+  Perennial, then restate the local specs as theorems over Perennial's; for `WithCancelValCtx`, a
+  `propagateCancel` spec for a parent whose `Done()` is a channel that is never closed.
+- **Status.** Not started in Perennial (to be filed by the claim's coordinator).
+
 ### otel trace's `maxSpan` and `var _` assertions: two goose limits (2026-11-21, prove-otel4)
 
 - **Limitation 1 (the guard).** `var maxSpan = newSpanLimits()` (`go.opentelemetry.io/otel/trace` v1.47.0,
@@ -82,7 +139,31 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 - **Proposed (general).** `neg_float64 (v : w64) : ⟦GoUnOp GoNeg go.float64, #v⟧ ⤳[under] #(float64Neg v)` and its
   `float32` twin, completing the existing scheme (a trusted-semantics change: Perennial's `fix-semantics` workflow,
   with the user's sign-off).
-- **Status.** Not started.
+- **Status.** Landed: Perennial `c14cca87a` (#654, IEEE 754 floats: `neg_float64`/`neg_float32`, relational,
+  `wp_float64_neg`), in the pin since `d845edaf90`. `Limiter.Reserve` is proved over the real code
+  (prove-metrics-float, 2026-11-22: `reserveN`, `advance`, `durationFromTokens`, `tokensFromDuration` translated).
+
+### `ExponentialBuckets` and `math.Ceil` after the IEEE 754 floats: what is still missing (2026-11-22, prove-metrics-float, claim #27)
+
+- **`ExponentialBuckets`.** Its translation needs nothing new (`histogram.go:315`, `panic`, `make`, a loop of
+  `start *= factor`), and Perennial `c14cca87a` steps every operation. What its spec (exact buckets, `expBuckets`:
+  `start`'s bits plus `i * 2^52`) needs is the doubling law, now a theorem of Perennial's model rather than an
+  assumption: for a positive normal `x` (`2^52 ≤ x.toNat < 0x7FE0000000000000`, sign clear),
+  `float64Encodes (float64Mul x 0x4000000000000000) f ↔ f = x + 2^52` (`mulDef`'s `round false (m * 2)` of a
+  significand on the grid: `floorLog2 ((2^52 + T) * pow2 k) = 52 + k`, `roundHalfEven` of an integer, `encode` of a
+  normal). It is a fact about Perennial's own definitions that belongs to no Go package, so it goes to Perennial's
+  `Perennial/Golang/Theory/Float.lean` (CLAUDE.md, "There is no `Proof/Lib/`"), with the general `floorLog2`
+  characterization (`pow2 (floorLog2 a) ≤ a < pow2 (floorLog2 a + 1)` for `a > 0`) it rests on. Until then
+  `prometheus.ExponentialBuckets.wp_proof` stays an axiom (its spec re-read against v1.24.1: true, no float edge case
+  reached: `start` normal and positive, `factor = 2`, every bucket normal; the product after the last may overflow
+  to `+Inf`, unused).
+- **`math.Ceil`.** Perennial's `math.toml` translates only constants and tables: `Ceil` has no body, and on amd64
+  (and arm64, 386, ...) it is `archCeil`, assembly (`floor_amd64.s`: `ROUNDSD` with SSE4.1, else a bit-level
+  fallback), behind `haveArchCeil`, an opaque constant of the translation. Proposed: translate `Ceil`/`ceil`/`floor`/
+  `Modf` and model `archCeil` (or `haveArchCeil = false` with a trusted equivalence: `ceil`'s Go body is exact),
+  with a spec (the least integral float `≥ x`; NaN, `±Inf`, `±0` unchanged). Until then `math.Ceil.wp_proof` stays
+  an axiom (its spec, some `float64`, is true: `Ceil` never panics).
+- **Status.** Not started (to be filed by the claim's coordinator).
 
 ### Float facts: `FloatOps` has no laws, so no float-dependent panic can be excluded (2026-11-20, prove-promdeep)
 
@@ -460,6 +541,14 @@ log, third session; pending the user's review). General fix: `append` (and `make
   `wp_atomic_nc`'s update written `|NC={E1,E2}=> ...` (`ncfupd`, a reducible abbreviation of the same
   wand); the local copies were deleted at the pin bump of 2026-11-21 (branch
   `pinbump/perennial-ncfupd-2026-11-21`).
+- **Addition (2026-11-21, raft's crash law, `notes/raft-crash-law-design.md` (i)).** The crash-token
+  update `ncfupd E P := notCrashed -∗ |={E}=> notCrashed ∗ P` (Rocq Perennial's `ncfupd`) with
+  `wp_ncfupd` (before a step: `wp_notCrashed_acc`) and **`wp_ncfupd_post`**: for a non-value `e`,
+  `WP e @ s; E {{ v, ncfupd E (Φ v) }} ⊢ WP e @ s; E {{ Φ }}` (the postcondition's update run after
+  `e`'s last step, by the state interpretation it holds; Löb over `wp_unfold`, as iris's
+  `wp_strong_mono`). Proved locally first (`GooseLang/NotCrashed.lean`); Perennial `7ad4f91b1` has it, and the local module went at the merge of `lean` (2026-11-21). Raft's ghost steps take the token,
+  and `raft.Step`'s arms, whose ghost step runs at the return, get it by `wp_ncfupd_post`. Proposed for
+  `GooseLang/Lifting.lean` with the two above.
 
 ### No translation of `hash/crc32`, `bufio`, `path/filepath`; no models of `io.ReadFull`/`io.Copy`, `fmt.Sscanf`, `strings.HasSuffix` (2026-11-13, branch `wal-fsext-translate`)
 
@@ -1389,7 +1478,7 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Proposed.** Range over a string, stepping by `utf8` decoding (needs a model of
   `utf8.DecodeRuneInString`).
 - **Status.** Fixed on Perennial's `lean` (`474911152`, with `wp_string_for_range`; in the pin since
-  `edcadb1e5`); `isWellFormed` is still names only here.
+  `edcadb1e5`); `isWellFormed` is translated and proved here since 2026-11-21 (#25).
 
 ### Tactics: `wp_apply` after an atomic spec applied with `iapply` (2026-10-27, client-go consistency)
 
@@ -3257,6 +3346,14 @@ name in the macro (`_root_.decide_true`), and consider failing loudly instead of
   `errors.wp_As_first (hT : AsTarget T) (h : AsFirst T err #x) : {{ isPkgInit errors ∗ l ↦ v }} As err &l
   {{ RET #true; l ↦ x }}` is `errors.AsLinkError.spec`'s case. The three `wp_As` callers here gain `x` and an
   `iright`. (c) `Errno.Is`'s comparisons: `601b7fb5d` (the 2026-11-13 entry's status).
+- **Status (2026-11-22, errors-astype, etcd-grove#29).** (1) is superseded for `renameWAL`: the fork's
+  `wal.go` now calls `errors.AsType[*os.LinkError](err)` (upamanyus/etcd@edc800c6f), which Perennial translates, and
+  the first-match case is proved here from that translation (`errors.AsTypeMatch.spec`/`wp_proof`,
+  `Spec/errors/AsTypeMatch.lean`, `Proof/errors/AsTypeMatch.lean`: a non-interface `T` equal to `err`'s dynamic type,
+  `(x, true)`, no tree premise); `errors.AsLinkError.spec` is gone. **Proposed (general, replacing (1) and (b)):**
+  `AsTypeMatch` as a lemma of Perennial's `Proof/errors/` beside `wp_AsType` (and an interface-`T` case), since it
+  is about Perennial's own `AsType`; then this repository's copy goes. `errors.As` (reflection, the axiom) stays
+  only for the code that still calls it (rafthttp's non-error target, k8s).
 
 ## 2026-11-14: `io.Copy`/`copyBuffer` without bodies (the WAL's `Repair`, branch `wal-copy1`)
 
@@ -3570,9 +3667,28 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
   provable spec, and `EtcdServer.ensureLeadership` (which logs `zap.Time` twice) stayed an axiom.
 - **Change (general).** `Time.Location` translated, `time.Time.Location.spec` (some `*Location`, `t.loc` when not
   nil) proved over `UTC`'s global, held by time's `isInit`. **Status.** Landed on Perennial `lean` as
-  `7103946b3` (2026-11-21, srvloops2); the pin bump is pending (the coordinator's queue). With it,
+  `7103946b3` (2026-11-21, srvloops2), in the pin since `5dab16ec2`: with it
   `zap.Time.wp_proof` and `EtcdServer.ensureLeadership.wp_proof` (written and checked against it but the
-  `Location` call, branch `prove-srvloops2`'s follow-up) retire `EtcdServer.ensureLeadership.wp_proof`.
+  `Location` call) retired `EtcdServer.ensureLeadership.wp_proof` (2026-11-22, `prove-srvloops2b`).
+
+## 2026-11-21: Goose refuses unnamed struct types with field tags (v2stats' `ServerStats`)
+
+- **The gap.** Goose refused an unnamed struct type whose fields have tags (`glangType`, `anonStructOf`,
+  `translate_types`' `util/autotypes.go`): tags are part of such a type's identity in Go and `go.field_decl`
+  had no tag, so dropping them would identify types Go distinguishes. etcd's `v2stats.serverStats.LeaderInfo`
+  is one, so `NewServerStats` and `ServerStats`' `RecvAppendReq`, `SendAppendReq`, `BecomeLeader` were
+  trust-boundary axioms (and `serverStats` an opaque type).
+- **Proposed (general).** mit-pdos/perennial#651 (the design), PR mit-pdos/perennial#655, revised after
+  upamanyus' review (2026-11-22): a tag on every field declaration, as Go's `FieldDecl = (IdentifierList Type |
+  EmbeddedField) [Tag]`: `go.field_decl.Field`/`Embedded name type tag` (the empty tag when there is none, which
+  Go does not tell from an absent one), with `FieldDecl`/`EmbeddedField name type` the `match_pattern`
+  shorthands for the untagged field, which goose writes as before; tagged fields of unnamed struct types are
+  written `Field name type "tag"`. The semantics, `Countable`, the type fingerprint and the struct tactics ignore
+  the tag. A defined struct type's underlying type stays untagged, and no tag-ignoring conversion rule: such
+  conversions are stuck (Perennial's `docs/KNOWN_LIMITATIONS.md`). Only v2stats has tagged fields in this
+  repository's translations. **Status.** PR open (head `fdce65a04`); etcd-grove's side on
+  `prove-ps2-v2stats/2026-11-21`, regenerated with it (`etc/goose.py --perennial`) and its v2stats and rafthttp
+  modules built against it (`--packages`); waits for the pin bump.
 
 ## 2026-11-20: goose imports a vendored package by its import path (the net/http model, phase 5.2 of `notes/dsverify-net-port-plan.md`, branch `models-rpc-http-lean`)
 
@@ -3637,3 +3753,89 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
   Fixed on the local branch `wal-safe-errors`; the pin move must do the same across the tree (every `newVar`
   destructuring and every `as %x #M` of `wp_New_errorString` that uses `#M` as the `Error()` WP).
 - **Status.** Branch ready for the user's push and Perennial's landing workflow; the pin move then goes through #9.
+## 2026-11-21: no `Timeless` instance of `ownSliceCap` (the lessor's expiry notifier cell)
+
+- **The gap.** `Perennial/Golang/Theory/Slice.lean` has `ownSlice_timeless` but no instance for
+  `ownSliceCap`, so a queue (`queueAt`: a slice, its capacity, its items) in an invariant cannot be
+  taken out from under `▷` by timelessness.
+- **Worked around locally.** `lease.ownSliceCap_timeless'` (`Proof/go_etcd_io/etcd/server/v3/lease/NotifCell.lean`),
+  by unsealing (`ownSliceCap_unseal`).
+- **Proposed (general).** `instance ownSliceCap_timeless` beside `ownSlice_timeless`. **Status.** Recorded only.
+
+## 2026-11-22: `wp_apply` turns a failed post-processing into a silent `sorry` (remote's `Serve`)
+
+- **The gap.** Inside a `wp_for` body, `wp_apply wp_serveConn R c cn a sys op cd d tok $$ […]` fails in
+  its post-processing (`wp_apply_post`) with "unknown free variable" (`tok`, a variable of the goal's
+  context). `wp_apply +noauto` and `wp_apply_core` report the error; plain `wp_apply` reports none: the
+  branch becomes a `sorry`, visible only as "declaration uses `sorry`" (and "this tactic is never
+  executed"). A proof can thus look finished in an editor that hides warnings; `lake build` and
+  `#print axioms` (`sorryAx`) still show it.
+- **Worked around locally.** `wp_apply_raw`, then the steps by hand
+  (`Net/Proof/.../lib/remote/Serve.lean`, with a comment).
+- **Proposed (general).** `wp_apply` re-raises its post-processing's error instead of admitting the
+  goal. **Status.** Recorded only.
+
+## 2026-11-22: `math.Float64bits` is names-only (`zap.Float64`, `Client.roundRobinQuorumBackoff`)
+
+- **The gap.** Perennial's `math` translation has `Float64bits` (and presumably `Float64frombits`) as names
+  only, so zap's `Float64(key, val)` (`Field{..., Integer: int64(math.Float64bits(val))}`) has no spec, and
+  `clientv3.Client.roundRobinQuorumBackoff`'s closure, which logs `zap.Float64("jitterFraction", ...)`,
+  stays a trust-boundary axiom (its other callees, `Endpoints`, `GetLogger`, `zap.Uint`/`Duration`,
+  `Debug`, `jitterUp`'s `rand.Float64` and float operations, have specs).
+- **Worked around locally.** Not: the axiom stays (prove-ps2-client, 2026-11-22).
+- **Proposed (general).** mit-pdos/perennial#675 (prove-ps2-succ's, in review) translates `Float64bits` and
+  `Float64frombits` with specs. **Status.** #675 merged and pinned (`74471ecd8`, 2026-11-22); the axiom can now be proved.
+
+## 2026-11-22: `%+v` of a map is arbitrary in the `fmt` model (`clientv3.streamKeyFromCtx`)
+
+- **The gap.** `SprintfOut` formats `%s`/`%v` of strings and the integer verbs; any other directive's
+  output is arbitrary (`SprintfOut.other`), so `fmt.Sprintf("%+v", map[string][]string(md))` (the watch's
+  stream key) has no determined result, and `streamKeyFromCtx`'s spec (the key is a function of the
+  outgoing metadata, `streamKeyOf`) is unprovable over it.
+- **Proposed (general).** `%v`/`%+v` of a map: Go prints `map[` then the entries sorted by key (`fmt`'s
+  `internal/fmtsort`), `k:v` separated by spaces, then `]`. **Status.** Recorded only.
+
+## 2026-11-22: extension state access at generation start, distributed (`goose_dist_mixed_crash_adequacy`; etcd-dist D3, branch `dist-crash-bridge`)
+
+- **Missing.** The distributed counterpart of the 2026-11-21 entry "extension state access at generation
+  start" (branch `wal-safe`, `goose_crash_adequacy`). In `Perennial/GooseLang/DistAdequacy.lean`, a
+  crashing node's generation is made by `BootWp` (`Hwp`: `P i L -∗ threadTok ={⊤}=∗ WP ∗ crashFrame`),
+  its first one through `nodeStart` and `goose_nodes_init_gen`, and a stable node's by `nodeWpBody`;
+  none of them can touch the node's extensions' local interpretation, though the proof holds the node's
+  state interpretation at each point (`goose_nodes_init_gen` after allocating `L`; `dist_crash_node`
+  after `goose_crash_step`, its `Hσ`). So a crashing machine over the Linux file extension cannot switch
+  to the shared mode (`treeCtx_switchG`) before its WP, and its crash frame cannot take what the shared
+  mode allocates. The bridge `robust_of_netFsBoot` (`Net/Statement/NetFsBridge.lean`) is therefore in
+  the legacy mode only; D4 (etcd's bundle, shared-mode generations) needs the change.
+- **Proposed (general), with the single-node one.** `BootWp`'s conclusion becomes
+  `P i L -∗ threadTok ={⊤}=∗ ∀ w, extsLocalCtx (L := L) w ={⊤}=∗ extsLocalCtx (L := L) w ∗
+  (gooseWptp [e] … ∗ crashFrame T es P i L)`, and so does `goose_dist_mixed_crash_adequacy`'s `Hwp`
+  (and `goose_dist_crash_adequacy`'s); `nodeWpBody` likewise for stable nodes. In `dist_crash_node`, apply
+  it to the node's part of `Hσ` before `bstateInterp_split` (with `wal-safe`'s `bstate_extsLocal_acc`); in
+  `goose_nodes_init_gen`, where the node's `nodeInterp` is made. Callers adapt by ignoring it
+  (`iintro %w Hext; iframe Hext`). No statement of an adequacy theorem's conclusion changes.
+- **Not worked around** (D3's scope: record and stop): a local copy would duplicate `dist_soundness`,
+  `goose_nodes_init_gen`, `dist_crash_node` and the mixed theorem (several hundred lines of
+  `DistAdequacy.lean`); D4 decides between the copy and waiting for the Perennial change.
+- **Status.** Proposed only (2026-11-22). To be designed with the single-node change as one Perennial
+  branch.
+
+## 2026-11-22: goose `[[skip]]` cannot name a blank variable of a cgo-generated file (`net`; #23, branch `prove-ps2-skip/2026-11-22`)
+
+- **Limitation.** perennial#669 names a blank package variable by `"_@file.go:L"`
+  (`declfilter.BlankName`, `blankNameRx = ^_@[^/:@]+\.go:L$`), and a package that skips one must
+  list all of them. `net` (translated with cgo) has a blank in a cgo-generated file, which the build
+  cache names by a hash without `.go` (`var _ syscall.Errno`, reported as
+  `_@1c315fb5…d355-d:15`): goose demands that name be listed, and the config parser refuses it.
+- **Workaround here.** `net`'s blank variables are not skipped (its other variables are): its four
+  `«_».init`s stay in `net.opaqueInitsOk`.
+- **Proposed.** Name a blank of a generated file by the position its `//line` directive gives (the
+  cgo source, `cgo_unix_cgo.go`), or accept the build-cache name (any base name) in `blankNameRx`.
+- **Status.** Not filed yet.
+**Update (2026-11-22, kvnet's top level, branch `kvnet-proof`):** kvnet needs, besides the extensions' local
+interpretation before each generation's WP, **one later credit in the crash obligation** (`£ 1`, or a step): the
+crash opens the generation's file invariant (allocated at the boot) and must take its contents (raft's sealed
+`raftState`, `kdFileState`) without the later. The coordinator routed both to a Perennial session (branch
+`crash-genstart`: PR mit-pdos/perennial#683, awaiting review; its exact shapes are in `TopBridge.lean`'s header). kvnet's proof states the bridge it expects as `RobustOfNetFsBootG`
+(`KvNet/Proof/.../kvnet/TopBridge.lean`) and uses it as a hypothesis until then; its boot and crash lemmas
+(`TopBoot.lean`: `kvGen_boot`, `kvGen_crash`) are proved against those shapes.

@@ -32,7 +32,7 @@ its post, unless the node stopped, also the messages' tokens. **The one proof**
 (`node.Advance.tracedSpec_proof`, `NodeAdvanceTraced.lean`, linked in `TracedLinked.lean`):
 `node.Advance.spec` is its instance at `ms = []` (`node.Advance.spec_of_traced`). -/
 abbrev node.Advance.tracedSpec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState) (es : List EntryM)
+  ∀ (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState) (es : List EntryM)
     (L : Option SnapLoan) (v : ConfigView) (ms : List QMsg),
   st.handling = some (es, L) →
   (∀ l, L = some l → l.dlv.length = uint.nat l.snap.Metadata'.Index') →
@@ -42,7 +42,7 @@ abbrev node.Advance.tracedSpec : Prop :=
        | none => skippedIn γ st.delivered v.applied st.delivered.length
        | some l => snapshotCert γ N (snapTrip l.snap l.snap.Metadata'.ConfState'.lists)) ∗
       readyToksClaim n γ N ms }}
-    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
+    (App (Val (n.loc @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
   {{ RET #(); (nodeDriver n γ N { st with handling := none } ∗
       nodeAppliedLb γ st.key st.delivered.length ∗
       (match L with

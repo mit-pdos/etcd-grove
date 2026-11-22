@@ -219,8 +219,20 @@ theorem hookGateN_fupd (tr : Option GName) (r : Loc) (E : TraceEv → Prop) (n :
   iintro H
   iunfold HookGateN at H
   iunfold HookGateN
+  iintro Hnc
   imod H with H
-  iexact H
+  iapply H $$ Hnc
+
+/-- (2026-11-21, the crash invariant) The gate after an update at `⊤` that needs the token (a ghost
+step over raft's ghost state): the gate's own `notCrashed`, lent and given back. -/
+theorem hookGateN_nc (tr : Option GName) (r : Loc) (E : TraceEv → Prop) (n : Nat) (Q : IProp GF) :
+    iprop(notCrashed -∗ |={⊤}=> notCrashed ∗ HookGateN tr r E n Q) ⊢ HookGateN tr r E n Q := by
+  iintro H
+  iunfold HookGateN
+  iintro Hnc
+  imod H $$ Hnc with ⟨Hnc, H⟩
+  iunfold HookGateN at H
+  iapply H $$ Hnc
 
 /-- The `Replicate` lines' chained facts (`fxPres_replicate`, no resource). -/
 theorem repChain (γd : GName) (γ : RaftNames) (id : w64) (E : TraceEv → Prop) (s : NState) (ents : List EntryM)

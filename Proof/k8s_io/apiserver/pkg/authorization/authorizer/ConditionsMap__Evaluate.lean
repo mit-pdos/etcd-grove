@@ -73,7 +73,7 @@ theorem ConditionsMap.Evaluate.wp_proof
       isplitr
       · ipureintro; split <;> word
       · iapply utilerrors.errTreeOrNil_nil
-  unfold isWFDecision
+  unfold isWFDecisionLe
   icases Hd with ⟨%m, #Hdm, -⟩
   wp_apply (wp_ConditionsAwareDecision_UnconditionalPartsOrError d m) as %dec %r %e -
   · iframe #

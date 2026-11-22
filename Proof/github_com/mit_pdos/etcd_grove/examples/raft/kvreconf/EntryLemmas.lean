@@ -34,10 +34,10 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions]
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
-variable [StorageModel GF] [AllG GF]
+variable [StorageModel GF]
 
 /-- Past an entry that is no conf change, the view of the node moves. -/
-theorem appNode_noConf (γr : RNames) (n : Loc) (l : List LogEntry)
+theorem appNode_noConf (γr : RNames) (n : NodeH) (l : List LogEntry)
     (k : Nat) (e : LogEntry) (m : Membership) (hk : l[k]? = some e) (hc : ¬ e.isConfChange) :
     appNode (GF := GF) γr n l k m ⊢ appNode γr n l (k + 1) m := by
   iintro Hn

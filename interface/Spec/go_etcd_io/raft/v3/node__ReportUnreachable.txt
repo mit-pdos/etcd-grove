@@ -3,7 +3,7 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def node.ReportUnreachable.spec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id to : w64),
+  ∀ (n : NodeH) (γ : Cluster) (N : Namespace) (id to : w64),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id -∗
@@ -12,6 +12,6 @@ def node.ReportUnreachable.spec : Prop :=
               ((intoVal
                   (methods node.ty.PointerType
                     go!"ReportUnreachable"
-                    (intoVal n)))
+                    (intoVal n.loc)))
                 (intoVal to))
               {{ Φ }}

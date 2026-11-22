@@ -116,12 +116,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 private theorem node.wp_Campaign_impl
     (hS : EtcdGrove.node.Campaign.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.Campaign.spec (GF := GF) (hG := hG) := by
-  unfold EtcdGrove.node.Campaign.spec EtcdGrove.Cluster EtcdGrove.isNode
+  unfold EtcdGrove.node.Campaign.spec EtcdGrove.Cluster EtcdGrove.NodeH EtcdGrove.NodeH.loc EtcdGrove.isNode
   intro n γ N id ctx cd
   iintro %Φ ⟨#Hinit, #Hnode, #Hctx⟩ HΦ
   iunfold isNode at Hnode
   icases Hnode with ⟨%γn, %Hf, #Hrn, #Htab, -⟩
-  iapply (hS γn id n ctx cd) $$ []
+  iapply (hS γn id n.loc ctx cd) $$ []
   · iframe Hinit Hrn Hctx
   iintro !> %err #Herr
   iapply HΦ

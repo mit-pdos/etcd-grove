@@ -26,11 +26,11 @@ variable [StorageModel GF]
 
 /-- See the file header. -/
 abbrev tick.spec : Prop :=
-  ∀ (γ : Cluster) (id : w64) (n : Loc),
+  ∀ (γ : Cluster) (id : w64) (n : NodeH),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kv ∗
       isNode n γ kvRaftN id }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.kv.tick))
-      (Val #(interface.mkOk (go.GoType.PointerType node.ty) #n)))
+      (Val #(interface.mkOk (go.GoType.PointerType node.ty) #n.loc)))
   {{ RET #(); True }}
 
 end spec

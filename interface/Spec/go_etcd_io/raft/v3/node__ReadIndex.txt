@@ -3,7 +3,7 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def node.ReadIndex.spec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (rctx : GoSlice) (c : List w8) (Q : List LogEntry → IProp GF)
+  ∀ (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (rctx : GoSlice) (c : List w8) (Q : List LogEntry → IProp GF)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
     γ.trace = none →
       ⊢
@@ -16,7 +16,7 @@ def node.ReadIndex.spec : Prop :=
               WP
                 (((intoVal
                       (methods node.ty.PointerType go!"ReadIndex"
-                        (intoVal n)))
+                        (intoVal n.loc)))
                     (intoVal (GoInterface.ok ctx)))
                   (intoVal rctx))
                 {{ Φ }}

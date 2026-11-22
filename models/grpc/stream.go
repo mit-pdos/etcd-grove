@@ -20,11 +20,13 @@ package grpc
 
 import (
 	"context"
+	"google.golang.org/grpc/stats"
 	"io"
 	"net"
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -497,7 +499,7 @@ func (a *csAttempt) newStream() error {
 	}
 	a.transportStream = s
 	a.ctx = s.Context()
-	a.parser = parser{r: s, bufferPool: a.cs.cc.dopts.copts.BufferPool}
+	a.parser = parser{r: s, bufferPool: mem.DefaultBufferPool()} // MODEL: the default pool (connectOptions)
 	return nil
 }
 
@@ -779,7 +781,7 @@ func (cs *clientStream) SendMsg(m any) (err error) {
 	}
 
 	// load hdr, payload, data
-	hdr, data, payload, pf, err := prepareMsg(m, cs.codec, cs.compressorV0, cs.compressorV1, cs.cc.dopts.copts.BufferPool)
+	hdr, data, payload, pf, err := prepareMsg(m, cs.codec, cs.compressorV0, cs.compressorV1, mem.DefaultBufferPool()) // MODEL: the default pool
 	if err != nil {
 		return err
 	}
@@ -1032,6 +1034,7 @@ type serverStream struct {
 
 	maxReceiveMessageSize int
 	maxSendMessageSize    int
+	statsHandler          stats.Handler
 
 	statusWritten atomic.Bool // True if status has been written to the transport.
 
@@ -1128,7 +1131,9 @@ func (ss *serverStream) SendMsg(m any) (err error) {
 	if err := ss.s.Write(hdr, payload, &writeOptions{Last: false}); err != nil {
 		return toRPCErr(err)
 	}
-	_ = dataLen
+	if ss.statsHandler != nil {
+		ss.statsHandler.HandleRPC(ss.s.Context(), outPayload(false, m, dataLen, payloadLen, time.Now()))
+	}
 	return nil
 }
 
@@ -1146,6 +1151,10 @@ func (ss *serverStream) RecvMsg(m any) (err error) {
 		}
 	}()
 	var payInfo *payloadInfo
+	if ss.statsHandler != nil {
+		payInfo = &payloadInfo{}
+		defer payInfo.free()
+	}
 	if err := recv(&ss.p, ss.codec, ss.s, ss.decompressorV0, m, ss.maxReceiveMessageSize, payInfo, ss.decompressorV1, true); err != nil {
 		if err == io.EOF {
 			// Received no request msg for non-client streaming rpcs.
@@ -1160,6 +1169,15 @@ func (ss *serverStream) RecvMsg(m any) (err error) {
 		return toRPCErr(err)
 	}
 	ss.recvFirstMsg = true
+	if ss.statsHandler != nil {
+		ss.statsHandler.HandleRPC(ss.s.Context(), &stats.InPayload{
+			RecvTime:         time.Now(),
+			Payload:          m,
+			Length:           payInfo.uncompressedBytes.Len(),
+			WireLength:       payInfo.compressedLength + headerLen,
+			CompressedLength: payInfo.compressedLength,
+		})
+	}
 
 	if ss.desc.ClientStreams {
 		// Subsequent messages should be received by subsequent RecvMsg calls.

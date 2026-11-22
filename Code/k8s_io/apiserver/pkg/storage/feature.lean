@@ -38,26 +38,9 @@ noncomputable def client.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] client.ty
 
-opaque FeatureSupportChecker.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
 opaque defaultFeatureSupportChecker.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque rangeStreamRecheckInterval [GooseExts] [GoGlobalContext] : val
-
-noncomputable def v3_4_31 [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/feature.v3_4_31"
-
-opaque v3_4_31.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def v3_5_0 [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/feature.v3_5_0"
-
-opaque v3_5_0.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def v3_5_13 [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/feature.v3_5_13"
-
-opaque v3_5_13.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def DefaultFeatureSupportChecker [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/feature.DefaultFeatureSupportChecker"
@@ -73,6 +56,29 @@ noncomputable def NewDefaultFeatureSupportChecker [GooseExts] [GoGlobalContext] 
 noncomputable def endpointSupportsRequestWatchProgress [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/feature.endpointSupportsRequestWatchProgress"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `v3_4_31` (`var // Define these static versions to use for checking version of etcd, issue on kubernetes #123192 v3_4_31 = version.M … [sha256:498b5fc3eb915d9c]`): Their initializers call, besides literals of constants and other variables' values:
+`version.MustParse*`/`MajorMinor` of constants allocate a version (`MustParse*` panics only on an
+invalid constant, and these parse: Go runs the initializer at every start). So each terminates,
+cannot panic and has no effect beyond its variable.
+- `v3_5_0` (`var v3_5_0 = version.MustParseSemantic("3.5.0")`): Their initializers call, besides literals of constants and other variables' values:
+`version.MustParse*`/`MajorMinor` of constants allocate a version (`MustParse*` panics only on an
+invalid constant, and these parse: Go runs the initializer at every start). So each terminates,
+cannot panic and has no effect beyond its variable.
+- `v3_5_13` (`var v3_5_13 = version.MustParseSemantic("3.5.13")`): Their initializers call, besides literals of constants and other variables' values:
+`version.MustParse*`/`MajorMinor` of constants allocate a version (`MustParse*` panics only on an
+invalid constant, and these parse: Go runs the initializer at every start). So each terminates,
+cannot panic and has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"k8s.io/apiserver/pkg/storage/feature.v3_4_31", "Their initializers call, besides literals of constants and other variables' values:\n`version.MustParse*`/`MajorMinor` of constants allocate a version (`MustParse*` panics only on an\ninvalid constant, and these parse: Go runs the initializer at every start). So each terminates,\ncannot panic and has no effect beyond its variable.", "var // Define these static versions to use for checking version of etcd, issue on kubernetes #123192 v3_4_31 = version.M … [sha256:498b5fc3eb915d9c]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/feature.v3_5_0", "Their initializers call, besides literals of constants and other variables' values:\n`version.MustParse*`/`MajorMinor` of constants allocate a version (`MustParse*` panics only on an\ninvalid constant, and these parse: Go runs the initializer at every start). So each terminates,\ncannot panic and has no effect beyond its variable.", "var v3_5_0 = version.MustParseSemantic(\"3.5.0\")"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/feature.v3_5_13", "Their initializers call, besides literals of constants and other variables' values:\n`version.MustParse*`/`MajorMinor` of constants allocate a version (`MustParse*` panics only on an\ninvalid constant, and these parse: Go runs the initializer at every start). So each terminates,\ncannot panic and has no effect beyond its variable.", "var v3_5_13 = version.MustParseSemantic(\"3.5.13\")"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.storage.feature where
   pkgImportedPkgs := [pkg_id.context, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.k8s_io.apiserver.pkg.storage]
 
@@ -85,17 +91,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (Val DefaultFeatureSupportChecker.init) (Val #())))))
-  (App (Val doExecute)
-  (App (Val v3_5_13.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val v3_5_0.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val v3_4_31.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.context.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -103,22 +100,17 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.k8s_io.apiserver.pkg.storage.initialize') (Val #()))))))))
 
-opaque FeatureSupportChecker.nonempty_type : NonemptyType.{0}
-def FeatureSupportChecker : Type := FeatureSupportChecker.nonempty_type.type
-instance FeatureSupportChecker.nonempty : Nonempty FeatureSupportChecker := FeatureSupportChecker.nonempty_type.property
-opaque FeatureSupportChecker.zero_val : ZeroVal FeatureSupportChecker := ⟨Classical.ofNonempty⟩
-attribute [instance] FeatureSupportChecker.zero_val
+abbrev FeatureSupportChecker [GooseExts] : Type := GoInterface
+
+@[reducible] noncomputable def FeatureSupportChecker.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"CheckClient" (go.signature.Signature [_root_.Perennial.context.Context.ty, client.ty, _root_.Perennial.k8s_io.apiserver.pkg.storage.Feature.ty] false [])), (go.InterfaceElem.MethodElem go!"MarkUnsupported" (go.signature.Signature [_root_.Perennial.k8s_io.apiserver.pkg.storage.Feature.ty] false [])), (go.InterfaceElem.MethodElem go!"Supports" (go.signature.Signature [_root_.Perennial.k8s_io.apiserver.pkg.storage.Feature.ty] false [go.bool]))])
 
 class FeatureSupportChecker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying FeatureSupportChecker.underlying FeatureSupportChecker
   underlying : go.UnderlyingDirectedEq FeatureSupportChecker.ty FeatureSupportChecker.underlying
-  isUnderlying : go.IsUnderlying FeatureSupportChecker.underlying FeatureSupportChecker.underlying
-  method_set : go.MethodSetIs FeatureSupportChecker.ty [(go!"CheckClient", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, client.ty, go.string] false []))), (go!"MarkUnsupported", (some (go.signature.Signature [go.string] false []))), (go!"Supports", (some (go.signature.Signature [go.string] false [go.bool])))]
+  method_set : go.MethodSetIs FeatureSupportChecker.ty [(go!"CheckClient", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, client.ty, _root_.Perennial.k8s_io.apiserver.pkg.storage.Feature.ty] false []))), (go!"MarkUnsupported", (some (go.signature.Signature [_root_.Perennial.k8s_io.apiserver.pkg.storage.Feature.ty] false []))), (go!"Supports", (some (go.signature.Signature [_root_.Perennial.k8s_io.apiserver.pkg.storage.Feature.ty] false [go.bool])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType FeatureSupportChecker.ty) []
 
-attribute [instance] FeatureSupportChecker.TypeAssumptions.type_repr
-  FeatureSupportChecker.TypeAssumptions.underlying
-  FeatureSupportChecker.TypeAssumptions.isUnderlying
+attribute [instance] FeatureSupportChecker.TypeAssumptions.underlying
   FeatureSupportChecker.TypeAssumptions.method_set
   FeatureSupportChecker.TypeAssumptions.ptr_method_set
 
@@ -133,7 +125,7 @@ class defaultFeatureSupportChecker.TypeAssumptions [GooseExts] [GoGlobalContext]
   underlying : go.UnderlyingDirectedEq defaultFeatureSupportChecker.ty defaultFeatureSupportChecker.underlying
   isUnderlying : go.IsUnderlying defaultFeatureSupportChecker.underlying defaultFeatureSupportChecker.underlying
   method_set : go.MethodSetIs defaultFeatureSupportChecker.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType defaultFeatureSupportChecker.ty) [(go!"CheckClient", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, client.ty, go.string] false []))), (go!"MarkUnsupported", (some (go.signature.Signature [go.string] false []))), (go!"Supports", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"k8s.io/apiserver/pkg/storage/feature.checkClient", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, client.ty] false []))), (go!"k8s.io/apiserver/pkg/storage/feature.clientSupportsRequestWatchProgress", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, client.ty, go.string] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType defaultFeatureSupportChecker.ty) [(go!"CheckClient", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, client.ty, _root_.Perennial.k8s_io.apiserver.pkg.storage.Feature.ty] false []))), (go!"MarkUnsupported", (some (go.signature.Signature [_root_.Perennial.k8s_io.apiserver.pkg.storage.Feature.ty] false []))), (go!"Supports", (some (go.signature.Signature [_root_.Perennial.k8s_io.apiserver.pkg.storage.Feature.ty] false [go.bool]))), (go!"k8s.io/apiserver/pkg/storage/feature.checkClient", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, client.ty] false []))), (go!"k8s.io/apiserver/pkg/storage/feature.clientSupportsRequestWatchProgress", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, client.ty, go.string] false [go.error])))]
 
 attribute [instance] defaultFeatureSupportChecker.TypeAssumptions.type_repr
   defaultFeatureSupportChecker.TypeAssumptions.underlying

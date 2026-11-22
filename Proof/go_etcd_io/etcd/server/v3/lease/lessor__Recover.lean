@@ -7,6 +7,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__Recover
 public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__initAndRecover
 public import Proof.go_etcd_io.etcd.server.v3.lease.LessorRecoverLemmas
+public import Proof.go_etcd_io.etcd.server.v3.lease.NotifCell
 
 @[expose] public section
 
@@ -52,6 +53,7 @@ theorem lease.lessor.Recover.wp_proof
   subst Hag
   iunfold lessorExtra at Hx
   icases Hx with ⟨%dc, %np, %h, %hx, %bl, Hdc, Hnp, Hnot, Hh, Hhq, Hcp, -, Hbl, Hdt⟩
+  imod (notif_wopen lp γl np ⊤ (fun _ _ => CoPset.mem_full)) $$ [$Hnp $Hnot] with ⟨Hnp, Hnot, Hntk⟩
   iunfold leaseClosers at Hcls
   icases Hcls with ⟨%lp', %γga, %γcl, %C, %im0, #Hp, %HC, Him0, HI0, -, -, Hcs, Hch⟩
   -- `le.b`, `le.rd`, `le.itemMap`: the two halves made whole
@@ -135,6 +137,7 @@ theorem lease.lessor.Recover.wp_proof
     omega
   icases ptsto_halves_split _ _ $$ Hb with ⟨Hb, Hbl⟩
   icases ptsto_halves_split _ _ $$ Hrdw with ⟨Hrdw, Hrdf⟩
+  imod (notif_wclose lp γl np ⊤ (fun _ _ => CoPset.mem_full)) $$ [$Hnp $Hnot $Hntk] with ⟨Hnp, Hnot⟩
   ihave Hx : lessorExtra lp γl (recMap (recs.zip ls)) 1 $$ [Hdc Hnp Hnot Hh Hhq Hcp Hmetas Hbl Hdt]
   · iunfold lessorExtra; iexists dc, np, h', hx', _; iframe
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM' Himw HI' Hrdf Ha Hg Hx Hhist]

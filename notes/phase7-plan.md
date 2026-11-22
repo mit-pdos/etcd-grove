@@ -83,15 +83,70 @@ collections' baselines saying what it removes.
   model removed stats handlers (a `NotModelled` panic), but etcd installs one
   (`v3rpc` `Link.lean`), so either the model keeps the stats-handler calls (decided in S1; the
   handler's methods are then the program's code) or the theorem would be vacuous there. No network.
-- **S2, the unary pair** (`grpc.model.*`, the trusted `Serve` body, `grpcReplyTo`, `Invoke`'s
-  attempt, `grpc.start`): over `model_transport.go`/`model_wire.go` and the net extension's `Conn`,
+  **S0 landed** (`715d5e6753`, 2026-11-21). **S1, server side (branch `phase7-s1`, 2026-11-21).**
+  `grpcSrvOpt v k` is a definition (`Proof/google_golang_org/grpc/InvGrpcServer.lean`): `v` is a
+  `*funcServerOption`, read-only, whose closure's persistent WP over a `p ↦ so` does `k`
+  (`srvOptFnOk`): `.neutral` keeps the chains and the stats handlers; `.chainUnary`/`.chainStream`
+  own the chain they append to; the new kind `.stats h` owns `statsHandlers`. A kind owns what its
+  closure reads, so `StatsHandler`'s restated axiom stays true: stated as `.neutral` it would assert a
+  WP of an `append` reading a slice the closure does not own, false for an arbitrary `so`. Proved
+  over the model's bodies (`etc/goose.py`'s grpc translate list): `MaxRecvMsgSize`, `MaxSendMsgSize`,
+  `MaxConcurrentStreams`, `KeepaliveEnforcementPolicy`, `ChainUnaryInterceptor`,
+  `ChainStreamInterceptor` (one recipe: `wp_fupd`, `ipersist` of the captured cells,
+  `wp_func_lits`, step into `newFuncServerOption`, then the closure; the chains through
+  `wp_slice_append`). Still axioms, restated: `NewServer` (`[∗ list]` premise), `CustomCodec`,
+  `StatsHandler` (`.stats h`). For `serverOptions` to be a translated struct, grpc's imports gained
+  `time`, `io` (the `Compressor`/`Decompressor` interfaces of its `cp`/`dc` fields), `credentials`,
+  `keepalive` and `stats`, and the model's `serverOptions` lost three fields whose types are other
+  packages': `binaryLogger` and `inTapHandle` (their options panic when `NewServer` applies them,
+  where the model's `NewServer` panicked on them before) and `bufferPool` (the server reads
+  `mem.DefaultBufferPool()`, grpc-go's default; the option setting another pool panics), so that
+  `tap`, `internal/binarylog` and `mem` stay untranslated, with no init axiom of theirs (a first
+  attempt translating `mem` types-only added its two init axioms, which the land queue's tcb gate
+  rightly refused; S2 translates `mem` with its pools). Trust base: −7 (the six, `grpcSrvOpt`).
+  Users adjusted: v3rpc's `Server` spec (`[∗ list] v ∈ gvs, grpcSrvOpt v .neutral`) and proof, the
+  `etcdstart`/`cluster3` callers. **Server stats handlers in the model (2026-11-22, branch `phase7-stats`).** The model's server
+  calls a stats handler as grpc-go does, which kaashoek's `etcd_dist_safe` server needs with tracing on:
+  per connection `TagConn`/`ConnBegin`/`ConnEnd`, and per call `TagRPC`, `InHeader`, `Begin`,
+  `InPayload`, `OutHeader`, `OutPayload`, `OutTrailer` and `End`, in grpc-go's order, with grpc-go's
+  fields except `InHeader.WireLength`. That one is an HPACK size, given by a new choice point,
+  `modelChooseLength`. `internal/grpcdifftest/stats_test.go` checks the sequences of a unary call, a
+  failed call and the stream kinds against grpc-go's. One visible difference: a connection per stream
+  means one `ConnBegin`/`ConnEnd` pair per call. The trusted claim is narrowed in `models/README.md` to
+  programs whose behavior does not depend on how many connections carry their calls; otelgrpc's
+  `TagConn`/`HandleConn` do nothing. Client stats handlers still panic `NotModelled`. **The dial side (2026-11-22,
+  branch `phase7-dial`).** `grpcDialOptIs o d` is a definition (`InvDial.lean`): a read-only
+  `*funcDialOption` whose closure's persistent WP over `p ↦ dopt` sets what `d` sets
+  (`dialOptSets`) and keeps the other descriptor fields (`dialOptsKeep`); `.resolvers` and
+  `.perRPCCreds` own the slice they append to. `dialOptsAt`'s fact is a `[∗list]`. Proved over the
+  model's bodies: `WithTransportCredentials`, `WithPerRPCCredentials`, `WithUnaryInterceptor`,
+  `WithStreamInterceptor`, `WithResolvers`. `WithKeepaliveParams` stays an axiom (it calls grpc's
+  logger), restated. For `dialOptions`/`connectOptions` to be translated structs: grpc imports `net`
+  and `resolver` too (their instances moved before grpc's in the cache's `Base.lean`), and the model's
+  dial structs name no type of `internal/backoff`, `internal/binarylog`, `channelz` or `mem`
+  (`withBinaryLogger`, `WithChannelzParentID`, `withBufferPool` panic `NotModelled`; the reconnect
+  backoff is `DefaultExponential`, a timing). Trust base −6 (the five, `grpcDialOptIs`). client/v3's
+  `Client__dial*` proofs adjusted. Landed `bbc60799b2`. S1 ends here: `NewServer` and
+  `RegisterService` move to S2 (2026-11-22). Proving them means defining `grpcSrvNew` over the model's
+  `Server` (its services map, the chained interceptor), the predicate the stage-B `Serve` axioms
+  (`acceptRun`, ...) read, so its definition is S2's server invariant; the `Server` struct is also
+  opaque until grpc imports `internal/grpcsync` and the model's `traceEventLog` is dropped.
+- **S2, the unary pair** (`NewServer`, `RegisterService`, `grpc.model.*`, the trusted `Serve` body,
+  `grpcReplyTo`, `Invoke`'s attempt, `grpc.start`). **A resource for the callees (2026-11-22, proving
+  session 2's request on #24):** the contracts S2 restates, the client interceptor chain and the attempt
+  (`grpcInvokerOk`, as `ClientConn.Invoke`/`NewStream` use it), per-RPC credentials'
+  `GetRequestMetadata` and the server interceptor chain (`grpcSrvChain`/`srvChainWP`), take a resource
+  parameter the caller passes in and gets back (as `isTransporter tr Rd`), so that etcd's
+  `Client.Endpoints`, `perRPCCredential.GetRequestMetadata` and `api.IsCapabilityEnabled` can trade it
+  for an `RWMutex` reader slot (`/shared/tmp/ps2/rdslot/design.md`, rafthttp's `8f442de83b`); draft
+  signatures go to #24 before the proofs. over `model_transport.go`/`model_wire.go` and the net extension's `Conn`,
   from dsverify's unary proofs (Q2). Needs S4's deployment, or an interim single-machine statement
   over `goose_dist_adequacy` with one machine, which keeps `etcd_safe`'s single process but adds the
   net extension.
 - **S3, streams** (`NewStream`, the stream ends, `InvGrpcStream.lean`'s two queues as a fact about the
   connection's two byte streams through the model's framing).
 - **S4, the deployment statement.** Each member a machine (one node per member), the client drivers
-  machines or co-located; addresses from the plan (`KitDeploy`-like); `netAddrFree`, `netListenerAt`,
+  machines or co-located; addresses from the plan (`DistDeploy`-like); `netAddrFree`, `netListenerAt`,
   `httpProtoFree`, `addrsUnclaimed` gone; restart examples over the crash adequacy.
 - **S5, net/http.** The server first (`Serve_ok`, the response writer, `Flush`, the body reader, the
   mux) over the model's real server (the largest proof); `reserve`/`register` as a per-address
@@ -103,12 +158,11 @@ collections' baselines saying what it removes.
 
 ## For the user
 
-1. **The deployment statement (S2/S4).** May `etcd_safe` (and each etcd example's theorem) change from
-   one process over `addrsUnclaimed` to one machine per member under a deployment plan, with the net
-   extension? The interim alternative keeps one machine but adds the net extension. Until decided, S0
-   and S1 go ahead (they change no statement).
-2. **Stats handlers in the grpc model (S1):** keep them (the model calls the program's handler, as
-   grpc-go does) or a premise that none is installed. Recommended: keep them, since etcd installs one.
+1. **The deployment statement (S2/S4).** Decided 2026-11-22 (the user's answer, relayed by kaashoek on
+   #24): one machine per member, over the net extension. The `net` half of the names-only swap goes to
+   kaashoek's sessions once `phase7-dial` landed (it has, `bbc60799b2`); `net/http` stays here (S5).
+2. **Stats handlers in the grpc model (S1):** kept (landed, `phase7-stats`). Open: the user's approval
+   of the narrowed trusted claim (a handler sees a connection begin/end per stream; #24).
 
 ## Risks
 

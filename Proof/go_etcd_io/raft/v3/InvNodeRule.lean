@@ -57,9 +57,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 section api
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-! ## The cluster -/
 
@@ -86,22 +84,36 @@ instance confAt_timeless (γ : Cluster) (k : Nat) (m : Membership) :
     Timeless (confAt (GF := GF) γ k m) := by
   unfold confAt; exact ApiImpl.confAtU_timeless γ k m
 
+end api
+
+section apiHeap
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- (open) **A node's configuration view** (exclusive, one per node): what `node.ApplyConfChange`
 moves and `node.Advance` checks. Separate from the `Ready` loop's token (`nodeDriver`): an application
 may apply the conf changes on another goroutine than its `Ready` loop (etcd's server applies them on
 its apply goroutine, and hands the view back before `Advance`). (2026-10-30, stage R3: moved here
 from `InvNode.lean`, with the configuration it names, `confAt`, `nodeConfig_confAt`.) -/
-@[no_expose] def nodeConfig (n : Loc) (γ : Cluster) (N : Namespace) (v : ConfigView) : IProp GF :=
+@[no_expose] def nodeConfig (n : NodeH) (γ : Cluster) (N : Namespace) (v : ConfigView) : IProp GF :=
   iprop(ApiImpl.nodeConfig n γ N v ∗ ApiImpl.confAtU γ v.applied v.membership)
 
 /-- (2026-10-30, stage R3) **A node's view is the cluster's configuration** at its applied index. -/
-theorem nodeConfig_confAt (n : Loc) (γ : Cluster) (N : Namespace) (v : ConfigView) :
+theorem nodeConfig_confAt (n : NodeH) (γ : Cluster) (N : Namespace) (v : ConfigView) :
     nodeConfig (GF := GF) n γ N v ⊢ nodeConfig n γ N v ∗ confAt γ v.applied v.membership := by
   haveI := ApiImpl.confAtU_persistent (GF := GF) γ v.applied v.membership
   unfold nodeConfig confAt
   iintro ⟨H, #Hc⟩
   iframe H Hc
 
+end apiHeap
+
+section api
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 /-- **The conf entry at position `k` (index `k + 1`) of the committed log was decided `d`**
 (persistent). -/
 @[no_expose] def confDecided (γ : Cluster) (k : Nat) (d : ConfDecision) : IProp GF :=
@@ -153,6 +165,14 @@ instance snapMade_timeless (γ : Cluster) (s : SnapRec) :
 slot taken (a founder's or a joiner's); the others' are here. -/
 @[no_expose] def joinAuth (γ : Cluster) (U : GSet w64) : IProp GF := ApiImpl.joinAuthU γ U
 
+end api
+
+section apiHeap
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- **A founder of a cluster with a bootstrap log** (persistent; 2026-10-30, stage R5; until
 2026-11-01, durability stage I-7, an exclusive start token, whose ghost state moved to `raftState`
 and `nodeVacant`): node `id`, one of the voters `vs`, of a cluster whose committed log starts with
@@ -171,12 +191,12 @@ by `StartNode`** (persistent): `n` is the node of `id` in `γ` (`isNode`), `γ` 
 the voters `vs` (`nodeBoot`), and `StartNode` made `n` (its start tag `true`, `nodeStartTag`): `StartNode.spec`'s
 precondition is an empty storage, so its log began as the bootstrap log. `RestartNode` tags its node
 `false`, so gives no such fact, even on an empty storage (etcd's join without a WAL). -/
-@[no_expose] def nodeStartedFresh (n : Loc) (γ : Cluster) (N : Namespace) (vs : List w64)
+@[no_expose] def nodeStartedFresh (n : NodeH) (γ : Cluster) (N : Namespace) (vs : List w64)
     (ctxs : List (List w8)) (id : w64) : IProp GF :=
   iprop(isNode n γ N id ∗ nodeBoot γ N vs ctxs id ∗ ⌜id ∈ vs⌝ ∗
     ApiImpl.nodeStartTag n γ true)
 
-instance nodeStartedFresh_persistent (n : Loc) (γ : Cluster) (N : Namespace) (vs : List w64)
+instance nodeStartedFresh_persistent (n : NodeH) (γ : Cluster) (N : Namespace) (vs : List w64)
     (ctxs : List (List w8)) (id : w64) :
     Persistent (nodeStartedFresh (GF := GF) n γ N vs ctxs id) := by
   unfold nodeStartedFresh
@@ -337,6 +357,12 @@ theorem cluster_alloc_traced (N : Namespace) (vs : List w64) (ctxs : List (List 
   · ipureintro; exact ⟨Hd.1, Hd.2.1, Hd.2.2.1, Hd.2.2.2.2.1⟩
   ipureintro; exact Hd.2.2.2.1
 
+end apiHeap
+
+section api
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 /-! ## Joining -/
 
 /-- **Reserving a new id**: its durable state at `RaftState.init` and its vacant slot, out of the
@@ -349,16 +375,60 @@ theorem joinAuth_join (γ : Cluster) (N : Namespace) (U : GSet w64) (id : w64) :
   unfold isCluster joinAuth raftState nodeVacant
   exact ApiImpl.joinAuth_join_impl γ N U id hU hz
 
+/-- (2026-11-22, kvnet decision B) **A new cluster of the voters `vs` without a bootstrap log, at a
+global ghost state**: `cluster_alloc`'s post at `boot = []`, stated over `[AllG] [ReceiptGS] [InvGS]`
+only (no heap, no Go semantics: `cluster_alloc`'s premise `bootMarshal` is a WP, so its statement
+needs them), for an allocation before any machine runs (kvnet's adequacy `Hstart`). -/
+theorem cluster_alloc_nb (N : Namespace) (vs : List w64) (dup : Bool) (sl : w64 → Option GName)
+    (md : Option Nat) (E : CoPset) :
+    receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) < 2 ^ 62 →
+    (∀ b, md = some b → b ≤ 2 ^ 31) →
+    ⊢ |={E}=> ∃ γ, ⌜γ.dup = dup ∧ γ.snapLoc = sl ∧ γ.bootLen = 0 ∧ γ.maxData = md⌝ ∗
+        ⌜¬ clusterNoSnap γ⌝ ∗ ⌜Cluster.trace γ = none⌝ ∗ ownCommittedOps (GF := GF) γ [] ∗
+        ownReadCtxs γ ∅ ∗ isCluster γ N ∗ ownConfDecisions γ ∅ ∗
+        confAt γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ownSnapsMade γ [] ∗
+        ([∗list] id ∈ vs, raftState γ id RaftState.init ∗ nodeVacant γ id) ∗
+        joinAuth γ (GMap.listToSet vs) := by
+  intro Hrb Hne Hnd Hnz Hlen Hmd
+  unfold ownCommittedOps ownReadCtxs isCluster ownConfDecisions confAt ownSnapsMade
+    joinAuth Cluster.dup Cluster.snapLoc Cluster.bootLen Cluster.trace Cluster.maxData
+    raftState nodeVacant clusterNoSnap
+  imod ApiImpl.cluster_alloc_dec_impl (GF := GF) N vs dup sl E md Hmd Hrb Hne Hnd Hnz Hlen
+    with ⟨%γ, %Hd, Hops, Hctx, #Hcl, Hdec, #Hca, Hsm, Hja, Hfs⟩
+  imodintro
+  iexists γ
+  iframe Hops Hctx Hcl Hdec Hca Hsm Hja Hfs
+  obtain ⟨h1, h2, h3, h4, h5, h6⟩ := Hd
+  isplitr
+  · ipureintro; exact ⟨h1, h2, h3, h5⟩
+  isplitr
+  · ipureintro; rw [h6]; decide
+  ipureintro; exact h4
+
+end api
+
+section apiHeap
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-! ## Stopped nodes (2026-10-29, stage U9a) -/
 
 /-- **A running node has not stopped**: a holder of a share of `nodeRunning` refutes the stopped
 answers (`node.Advance`'s and `node.ApplyConfChange`'s stopped cases). -/
-theorem nodeRunning_stopped (n : Loc) (γ : Cluster) (N : Namespace) (q : Qp) :
+theorem nodeRunning_stopped (n : NodeH) (γ : Cluster) (N : Namespace) (q : Qp) :
     nodeRunning (GF := GF) n γ N q ∗ nodeStopped n γ N ⊢ False := by
   unfold nodeRunning nodeStopped
   iintro H
   iapply ApiImpl.nodeRunning_stopped_impl n γ N q $$ H
 
+end apiHeap
+
+section api
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 /-! ## Decisions -/
 
 theorem ownConfDecisions_excl (γ : Cluster) (D1 D2 : GMap Nat ConfDecision) :
@@ -534,6 +604,14 @@ theorem snapshotCert_make (γ : Cluster) (N : Namespace) (E : CoPset) (l : List 
   unfold isCluster isCommittedLogLb confAt ownSnapsMade snapshotCert
   exact ApiImpl.snapshotCert_make_impl γ N E HE l i t d m cs S Hlen Hlast Hok Hcs
 
+end api
+
+section apiHeap
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- (restart S7.3, 2026-11-14; `notes/restart-s7-p2a.md`) **A `MsgSnap`'s destination, in the
 cluster's configurations**: a message with `snapTo` (a `Ready`'s, `readyRest_snapTo`; a sent one's,
 `sentMsg_snapTo`), if a `MsgSnap`, is not to its sender `id` and is to an id of a membership after a
@@ -553,7 +631,48 @@ theorem snapTo_confAt (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆
   iintro ⟨-, #Hci, -⟩ #Hc0 #Hs
   iapply ApiImpl.snapTo_confAt_impl γ N E HE id st k0 m0 Hty $$ Hci Hc0 Hs
 
+end apiHeap
+
+section api
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+variable [CrashGS GF] in
+/-- (2026-11-21, the crash invariant: `notes/raft-crash-law-design.md` (i)) **Arming a vacancy**:
+an arm of `id`'s crash invariant, the vacancy for the node to start from (`nodeVacantA`) and the
+arm's crash token for the crash (`nodeCrashTok`). -/
+theorem nodeVacant_arm (γ : Cluster) (id : w64) (E : CoPset) :
+    ⊢ nodeVacant (GF := GF) γ id ={E}=∗ ∃ x, nodeVacantA γ id x ∗ nodeCrashTok γ id x := by
+  unfold nodeVacant nodeVacantA nodeCrashTok
+  exact ApiImpl.nodeVacant_arm_impl γ id E
+
+variable [CrashGS GF] in
+/-- (2026-11-21) **Arming a vacancy, the crash token dropped**: for a client whose crash is
+`node.Stop`'s (kvdurable, kvreconf, the server), which never needs the vacancy back after a real
+crash. -/
+theorem nodeVacant_armD (γ : Cluster) (id : w64) (E : CoPset) :
+    ⊢ nodeVacant (GF := GF) γ id ={E}=∗ ∃ x, nodeVacantA γ id x := by
+  iintro Hv
+  imod nodeVacant_arm γ id E $$ Hv with ⟨%x, Hv, -⟩
+  imodintro
+  iexists x
+  iexact Hv
+
+variable [CrashGS GF] in
+/-- (2026-11-21) **A crash gives the vacancy back**: whether a node of `id` ran from the arm or
+not (and whatever it held), the arm's crash token and the crash's `crashed` give `nodeVacant`. -/
+theorem nodeCrash (γ : Cluster) (N : Namespace) (id : w64) (x : CrashNames) (E : CoPset)
+    (HE : ↑N ⊆ E) :
+    ⊢ isCluster (GF := GF) γ N -∗ crashed -∗ nodeCrashTok γ id x ={E}=∗ nodeVacant γ id := by
+  unfold isCluster nodeCrashTok nodeVacant ApiImpl.isClusterU
+  haveI := ApiImpl.clusterInv_persistent (GF := GF) γ N
+  iintro ⟨-, #Hci, -⟩ Hc Htok
+  unfold ApiImpl.clusterInv
+  icases Hci with ⟨%HNs, -⟩
+  iapply ApiImpl.nodeCrash_impl γ N id x E HE HNs $$ Hc Htok
+
 end api
+
 
 section validLists
 variable [GooseExts]
@@ -656,9 +775,7 @@ end validLists
 section api
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-- **What a certificate says**: the snapshot is of a committed prefix of its length and last term,
 at the membership after it (which its lists and auto-leave flag report), and was made. -/
@@ -766,6 +883,14 @@ theorem storBnd_cap (γ : Cluster) (K : GName) (c : Nat) :
 -- delivered to some node `id`") is now the sealed `nodeCommitLb γ K i` (`InvNode.lean`): it is
 -- given at the attach, before anything is delivered.
 
+end api
+
+section apiHeap
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- **The storage contract of the storage `st` of key `K`** (persistent; the frozen design's §2,
 `isStorageP` at the cluster's pieces). (2026-11-01, durability stage I-4: keyed by `K`.)
 (out_size C2) **Sized when the cluster bounds proposed data** (`γ.maxData ≠ none`): `Entries`
@@ -776,31 +901,45 @@ def isStorage (γ : Cluster) (K : GName) (st : Storage)
     (SV : SnapshotM → IProp GF := snapshotValid γ) : IProp GF :=
   isStorageP γ.maxData.isSome SV (storBnd γ K) (nodeCommitLb γ K) st
 
+end apiHeap
+
+section api
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 /-- The node pinned this certificate for snapshots returned by its storage at attach. -/
-@[no_expose] def nodeTagPin (γ : Cluster) (n : Loc) (SV : SnapshotM → IProp GF) : IProp GF :=
+@[no_expose] def nodeTagPin (γ : Cluster) (n : NodeH) (SV : SnapshotM → IProp GF) : IProp GF :=
   iprop(∃ γn : NodeNames, ApiImpl.nodeTabOk γ n γn ∗ savedPredOwn γn.sn.gsv DFrac.discard SV)
 
-instance nodeTagPin_persistent (γ : Cluster) (n : Loc) (SV : SnapshotM → IProp GF) :
+instance nodeTagPin_persistent (γ : Cluster) (n : NodeH) (SV : SnapshotM → IProp GF) :
     Persistent (nodeTagPin γ n SV) := by
   unfold nodeTagPin
   haveI (γn : NodeNames) := ApiImpl.nodeTabOk_persistent (GF := GF) γ n γn
   infer_instance
 
 /-- The certificate carried by the received-snapshot path of this node. -/
-@[no_expose] def nodeRestoreCert (γ : Cluster) (n : Loc) (sv : SnapshotM) : IProp GF :=
+@[no_expose] def nodeRestoreCert (γ : Cluster) (n : NodeH) (sv : SnapshotM) : IProp GF :=
   iprop(∃ γn : NodeNames, ApiImpl.nodeTabOk γ n γn ∗
     ksnCert γn.sn (snapTrip sv sv.Metadata'.ConfState'.lists))
 
-instance nodeRestoreCert_persistent (γ : Cluster) (n : Loc) (sv : SnapshotM) :
+instance nodeRestoreCert_persistent (γ : Cluster) (n : NodeH) (sv : SnapshotM) :
     Persistent (nodeRestoreCert (GF := GF) γ n sv) := by
   unfold nodeRestoreCert
   haveI (γn : NodeNames) := ApiImpl.nodeTabOk_persistent (GF := GF) γ n γn
   infer_instance
 
+end api
+
+section apiHeap
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- For an outgoing MsgSnap, the storage supplied its pinned certificate or raft
 carried the certificate for a received snapshot. The later comes from saved
 predicate agreement and applies only to the client-selected certificate. -/
-theorem readySnapSources_msgSnap (γ : Cluster) (n : Loc) (id : w64) {term : w64} {bound : Nat} {installed : Option w64} (ms : List QMsg)
+theorem readySnapSources_msgSnap (γ : Cluster) (n : NodeH) (id : w64) {term : w64} {bound : Nat} {installed : Option w64} (ms : List QMsg)
     (q : QMsg) (SV : SnapshotM → IProp GF) (hq : q ∈ ms) (ht : q.st.msg.Type' = MsgSnap) :
     ⊢ readySnapSources (GF := GF) γ n id term ms bound installed -∗ nodeTagPin γ n SV -∗
       ∃ sv : SnapshotM, ⌜q.st.snap = some sv⌝ ∗ (▷ SV sv ∨ nodeRestoreCert γ n sv ∗ nodeRestoreSource γ id (snapId sv)) := by
@@ -846,7 +985,7 @@ theorem readySnapSources_msgSnap (γ : Cluster) (n : Loc) (id : w64) {term : w64
 /-- Storage snapshots carry their client's tag. A restored snapshot is bounded by
 the log delivered in any Ready from this incarnation at the original send term,
 including when a later Ready finally drains the message. -/
-theorem readySnapSources_le (γ : Cluster) (n : Loc) (id term handoutTerm : w64)
+theorem readySnapSources_le (γ : Cluster) (n : NodeH) (id term handoutTerm : w64)
     (ms observed : List QMsg) (bound observedBound : Nat) (q : QMsg) (SV : SnapshotM → IProp GF)
     (hq : q ∈ ms) (ht : q.st.msg.Type' = MsgSnap) (he : term = handoutTerm ∨ term = q.st.msg.Term')
     (sourceInstall observedInstall : Option w64 := none) :
@@ -898,7 +1037,7 @@ theorem readySnapSources_le (γ : Cluster) (n : Loc) (id term handoutTerm : w64)
     ipureintro; exact Nat.le_trans hindex hbound
 
 
-theorem readySnapSources_sameTerm_le (γ : Cluster) (n : Loc) (id term : w64)
+theorem readySnapSources_sameTerm_le (γ : Cluster) (n : NodeH) (id term : w64)
     (ms observed : List QMsg) (bound observedBound : Nat) (q : QMsg) (SV : SnapshotM → IProp GF)
     (hq : q ∈ ms) (ht : q.st.msg.Type' = MsgSnap) :
     ⊢ readySnapSources (GF := GF) γ n id term ms bound -∗
@@ -907,16 +1046,30 @@ theorem readySnapSources_sameTerm_le (γ : Cluster) (n : Loc) (id term : w64)
         (▷ SV sv ∨ ⌜uint.nat sv.Metadata'.Index' ≤ observedBound⌝) :=
   readySnapSources_le γ n id term term ms observed bound observedBound q SV hq ht (.inl rfl)
 
+end apiHeap
+
+section api
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 /-- A snapshot actually handed out for installation on this node incarnation. -/
-@[no_expose] def nodeInstalledIndex (γ : Cluster) (n : Loc) (i : w64) : IProp GF :=
+@[no_expose] def nodeInstalledIndex (γ : Cluster) (n : NodeH) (i : w64) : IProp GF :=
   iprop(∃ γn : NodeNames, ApiImpl.nodeTabOk γ n γn ∗ installSeen γn.sn.installs (uint.nat i))
 
-instance (γ : Cluster) (n : Loc) (i : w64) : Persistent (nodeInstalledIndex (GF := GF) γ n i) := by
+instance (γ : Cluster) (n : NodeH) (i : w64) : Persistent (nodeInstalledIndex (GF := GF) γ n i) := by
   unfold nodeInstalledIndex
   haveI (γn : NodeNames) := ApiImpl.nodeTabOk_persistent (GF := GF) γ n γn
   infer_instance
 
-theorem readySnapSources_installed (γ : Cluster) (n : Loc) (id term i : w64) (ms : List QMsg)
+end api
+
+section apiHeap
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+theorem readySnapSources_installed (γ : Cluster) (n : NodeH) (id term i : w64) (ms : List QMsg)
     (bound : Nat) : readySnapSources (GF := GF) γ n id term ms bound (some i) ⊢ nodeInstalledIndex γ n i := by
   unfold readySnapSources ApiImpl.snapSources nodeInstalledIndex
   iintro ⟨%gn, Htab, -, Hobs⟩
@@ -928,7 +1081,7 @@ theorem readySnapSources_installed (γ : Cluster) (n : Loc) (id term i : w64) (m
 /-- A snapshot read back from storage can use the restore certificate issued
 when the driver installed it. The outbox's original send term suffices even
 when storage and apply are processing different Ready batches. -/
-theorem readySnapSources_installed_le (γ : Cluster) (n : Loc) (id handoutTerm : w64)
+theorem readySnapSources_installed_le (γ : Cluster) (n : NodeH) (id handoutTerm : w64)
     (ms observed : List QMsg) (bound observedBound : Nat) (sourceInstall observedInstall : Option w64)
     (q : QMsg) (sv : SnapshotM) (hq : q ∈ ms) (ht : q.st.msg.Type' = MsgSnap) (hsv : q.st.snap = some sv) :
     ⊢ readySnapSources (GF := GF) γ n id handoutTerm ms bound sourceInstall -∗
@@ -943,7 +1096,7 @@ theorem readySnapSources_installed_le (γ : Cluster) (n : Loc) (id handoutTerm :
   icases Ho with ⟨%obs, %hbound, #Hmark, -⟩
   ihave %Hei := ApiImpl.nodeTabOk_agree γ n gn gi $$ Htab Htabi
   have iki : gn.sn.installs = gi.sn.installs :=
-    congrArg (fun k : ApiImpl.CfgNames => k.2.2.2.2.2.2.2.2.2.2.2.2.2.2) Hei
+    congrArg (fun k : ApiImpl.CfgNames => k.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) Hei
   ihave #Hi' : installSeen gn.sn.installs (uint.nat sv.Metadata'.Index') $$ []
   · rw [iki]; iexact Hi
   icases Hknown $$ %q %hq %sv %(And.intro ht hsv) Hi' with ⟨%k, %hk⟩
@@ -1021,6 +1174,12 @@ def restartStorage (γ : Cluster) (st : Storage) (σ : StorContents) (csm : Conf
           ∀ K : GName, nodeAppliedLb γ K (max σ.b A) -∗ nodeCommitLb γ K σ.commit -∗
             |={⊤}=> isStorage γ K st SV ∗ storHolds st σ f ∗ F K }}))
 
+end apiHeap
+
+section api
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 /-- (raft-final, 2026-10-29, U8: the WIP's `snapshotCert_valid`) **A certified snapshot is valid**:
 a `Ready`'s snapshot (`readySnap`'s certificate, its index past `0` and below `2^61`) is what
 `MemoryStorage.ApplySnapshot` and the storage contract take (`snapshotValid`). -/
@@ -1061,6 +1220,32 @@ theorem snapshotCert_valid (γ : Cluster) (N : Namespace) (sv : SnapshotM) :
   exact Hsl.2.2.2.2.2.1
 
 end api
+
+section api
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- (2026-11-22, ledger `RestartNode`) **A plain restart update is one with the crash token**:
+`RestartNode`'s update is given the generation's `notCrashed` and gives it back; a client that
+does not need it passes it through. -/
+theorem restartAu_nc (γ : Cluster) (N : Namespace) (id : w64) (σ : StorContents)
+    (Q : RaftState → IProp GF) :
+    iprop(AU <{ ∃∃ (S : RaftState), ▷ raftState γ id S ∗ ⌜StorageHolds S σ⌝ }> @ ⊤ \ ↑N, ∅
+      <{ raftState γ id S, COMM Q S }>) ⊢
+    iprop(notCrashed -∗
+      AU <{ ∃∃ (S : RaftState), ▷ raftState γ id S ∗ ⌜StorageHolds S σ⌝ }> @ ⊤ \ ↑N, ∅
+        <{ raftState γ id S, COMM notCrashed ∗ Q S }>) := by
+  iintro HAU Hnc
+  iapply aupd_wand_post
+  iframe HAU
+  isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iintro %_ HQ
+  iframe
+
+end api
+
 
 end EtcdGrove
 end Perennial

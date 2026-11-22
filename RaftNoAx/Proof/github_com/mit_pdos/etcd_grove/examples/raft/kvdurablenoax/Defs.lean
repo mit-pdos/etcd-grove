@@ -51,6 +51,7 @@ firing over the file's invariant).
 -/
 module
 
+public import RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Store
 public import RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.KdStorage
 public import RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Codec
 public import RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Image
@@ -88,37 +89,6 @@ abbrev kReadSeqsTy [GooseExts] [GoGlobalContext] : go.GoType :=
 instance KSnapReq.countable [GooseExts] : Pos.Countable KSnapReq :=
   countableOfLeftInverse (fun q : KSnapReq => (q.index', q.cs', q.data', q.compact'))
     (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2⟩) (fun _ => rfl)
-
-/-- The namespaces: raft's cluster, the store's invariant, the snapshots' registry, the conf
-decisions, the files, the replicas' file invariants, the statistics. -/
-def kdRaftN : Namespace := nroot.@"kvdurable_raft"
-def kdRkvN : Namespace := nroot.@"kvdurable_rkv"
-def kdSnapN : Namespace := nroot.@"kvdurable_snaps"
-def kdConfN : Namespace := nroot.@"kvdurable_conf"
-def kdFilesN : Namespace := nroot.@"kvdurable_files"
-def kdRepN : Namespace := nroot.@"kvdurable_rep"
-def kdStatsN : Namespace := nroot.@"kvdurable_stats"
-
-/-- What an operation's atomic update may open (kvreconf's `kvrMask`, and the files'). -/
-def kdMask : CoPset :=
-  (((((⊤ \ ↑kdRaftN) \ ↑kdRkvN) \ ↑kdSnapN) \ ↑kdConfN) \ ↑kdFilesN) \ ↑kdRepN
-
-/-- **The durable store's ghost names**: kvreconf's (raft's cluster, the store's history, the
-minted operations and reads, ...), the files' (`durableFilesInv`), and per replica id the file's
-writer variable (`kdWriter`); the map of the current incarnations and the crasher's token
-(`curRep`, `crasher`: 2026-11-01, the crasher); the cluster's replica bound `max` (`opts.MaxReplicas`;
-2026-11-16, kvraftN: until then the constant `9`). -/
-structure KdNames where
-  r : raft_kvreconf.RNames
-  files : GName
-  wr : w64 → GName
-  /-- the current incarnation of each started replica (a `ghostMap` from ids to `Loc`s: its
-  authority in `clusterLockInv`, at `c.replicas`; its fragments `curRep`) -/
-  cur : GName
-  /-- the crasher's token (`token`: `crasher`) -/
-  crt : GName
-  /-- the replicas the cluster may start (`opts.MaxReplicas`): their ids are `1 … max` -/
-  max : Nat
 
 /-- **An incarnation's `dmu` names** (2026-11-01, stage II (h)): the pending batch's claim, and the
 monotone lower bounds of the image's frozen bound (`fz`: the image's entries up to it are frozen in
@@ -227,76 +197,9 @@ variable [go_gctx : GoGlobalContext] [go.IntoValInj GoString]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
 
 attribute [local instance] kdStorageModel
-
-/-! ## The store's model (kvreconf's, at kvdurable's namespaces) -/
-
-/-- The client's half of the store's state `m` (kvreconf's `rkvVal`). -/
-def rkvVal (γ : KdNames) (m : raft_kvreconf.KVMap) : IProp GF :=
-  iprop(∃ H : List (List w8), ghostVar γ.r.val (1 : Qp).half H ∗ ⌜raft_kvreconf.kvFold H = m⌝)
-
-/-- An operation's atomic update over the store's state. -/
-def opAu (γ : KdNames) (f : raft_kvreconf.KVMap → raft_kvreconf.KVMap) (k : List w8)
-    (Φ : List w8 → IProp GF) : IProp GF :=
-  iprop(AU <{ ∃∃ (x : raft_kvreconf.KVMap), rkvVal γ x }> @ kdMask, ∅
-    <{ rkvVal γ (f x), COMM Φ (f x k) }>)
-
-/-- An operation's slot. -/
-def opSlot (γ : KdNames) (d : List w8) (γp : GName × GName) (H : List (List w8)) : IProp GF :=
-  iprop(∃ Φ : List w8 → IProp GF, savedPredOwn γp.1 DFrac.discard Φ ∗
-    ( (⌜d ∉ H⌝ ∗ £ 1 ∗ opAu γ (fun x => raft_kvreconf.kvApply x d) (raft_kvreconf.dkey d) Φ)
-    ∨ (∃ H0, ⌜H0 ++ [d] <+: H ∧ d ∉ H0⌝ ∗
-        (Φ (raft_kvreconf.kvFold (H0 ++ [d]) (raft_kvreconf.dkey d)) ∨ token γp.2)) ))
-
-/-- The timeless part of the store's invariant. -/
-def kvCore (γ : KdNames) (ops : List LogEntry) (n : w64) (Mi : GMap w64 (List w8))
-    (RS : GMap w64 w64) (RMi : GMap (w64 × w64) (List w8)) (O : GMap (List w8) (GName × GName))
-    (U : GSet (List w8)) : IProp GF :=
-  iprop(ownCommittedOps γ.r.cluster ops ∗ ghostVar γ.r.val (1 : Qp).half (raft_kvreconf.logHist ops) ∗
-    ownReadCtxs γ.r.cluster U ∗ ghostVar γ.r.opn (1 : Qp).half n ∗
-    ghostMapAuth γ.r.mint 1 Mi ∗ ghostMapAuth γ.r.rseq 1 RS ∗ ghostMapAuth γ.r.rmint 1 RMi ∗
-    ghostMapAuth γ.r.ops 1 O ∗ ⌜raft_kvreconf.MintOk n Mi RS RMi O U⌝ ∗
-    ⌜∀ d, some d ∈ ops.map raft_kvreconf.odOf → raft_kvreconf.MintedOp Mi d⌝ ∗
-    ⌜∀ e ∈ ops, e.isConfChange → raft_kvreconf.ConfShaped e⌝)
-
-/-- A read's slot. -/
-def readSlot (γ : KdNames) (γΦ : GName) (s : raft_kvreconf.ReadRec) (H : List (List w8)) : IProp GF :=
-  iprop(∃ Φ : List w8 → IProp GF, savedPredOwn γΦ DFrac.discard Φ ∗
-    ( (⌜∀ H', s.start <+: H' → H' <+: H → s.ans ≠ some (raft_kvreconf.kvFold H' s.key)⌝ ∗ £ 1 ∗
-        AU <{ ∃∃ (x : raft_kvreconf.KVMap), rkvVal γ x }> @ kdMask, ∅
-          <{ rkvVal γ x, COMM Φ (x s.key) }>)
-    ∨ (∃ v, ⌜s.ans = some v⌝ ∗ Φ v) ))
-
-/-- The registry of the reads in flight. -/
-def readReg (γ : KdNames) (H : List (List w8)) : IProp GF :=
-  iprop(∃ RD : GMap GName raft_kvreconf.ReadRec, ghostMapAuth γ.r.rds 1 RD ∗
-    [∗map] γΦ ↦ s ∈ RD, readSlot γ γΦ s H)
-
-def rkvInvBody (γ : KdNames) : IProp GF :=
-  iprop(∃ (ops : List LogEntry) (n : w64) (Mi : GMap w64 (List w8)) (RS : GMap w64 w64)
-      (RMi : GMap (w64 × w64) (List w8)) (O : GMap (List w8) (GName × GName)) (U : GSet (List w8)),
-    kvCore γ ops n Mi RS RMi O U ∗
-    ([∗map] d ↦ γp ∈ O, opSlot γ d γp (raft_kvreconf.logHist ops)) ∗ readReg γ (raft_kvreconf.logHist ops))
-
-/-- The store's invariant (kvreconf's `rkvInv`). -/
-def rkvInv (γ : KdNames) : IProp GF := inv kdRkvN (rkvInvBody γ)
-
-/-- What a waiter learns with the value `v`. -/
-def waitP (γ : KdNames) (d : List w8) (v : List w8) : IProp GF :=
-  iprop(∃ (l : List LogEntry), isCommittedLogLb γ.r.cluster l ∗ ⌜raft_kvreconf.AnsOk (raft_kvreconf.logHist l) d v⌝)
-
-/-- A lower bound on the store's history (persistent). -/
-def kvLb (γ : KdNames) (L : List (List w8)) : IProp GF :=
-  iprop(∃ (l : List LogEntry), isCommittedLogLb γ.r.cluster l ∗ ⌜L = raft_kvreconf.logHist l⌝)
-
-/-- What the applier answers a read of the context `c` with. -/
-def readAns (γ : KdNames) (c : List w8) (v : List w8) : IProp GF :=
-  iprop(∃ (i : w64) (ap : List LogEntry) (key : List w8),
-    readStateOk γ.r.cluster kdRaftN c i ∗ isCommittedLogLb γ.r.cluster ap ∗
-    ⌜uint.Z i ≤ (ap.length : Int) ∧ (∃ rp s, raft_kvreconf.decodeReadCtxB c = some (rp, s, key)) ∧
-      v = raft_kvreconf.kvFold (raft_kvreconf.logHist ap) key⌝)
 
 /-- A `ReadState` as `Ready` hands it out (persistent). -/
 def rsOk (γ : Cluster) (v : ReadState) : IProp GF :=
@@ -360,20 +263,10 @@ def lockInv (γ : KdNames) (id : w64) (r : Loc) : IProp GF :=
     "Hreads" ∷ [∗map] s ↦ ch ∈ Rd, readWaiterOk γ id s ch)
 
 /-- The applier's view of its node (kvreconf's `appNode`). -/
-def appNode (γ : KdNames) (n : Loc) (l : List LogEntry) (k : Nat) (m : Membership) : IProp GF :=
+def appNode (γ : KdNames) (n : NodeH) (l : List LogEntry) (k : Nat) (m : Membership) : IProp GF :=
   iprop(∃ v : ConfigView, nodeConfig n γ.r.cluster kdRaftN v ∗
       deliveredLogLb n γ.r.cluster kdRaftN l ∗ skippedIn γ.r.cluster l v.applied k ∗
       ⌜v.membership = m ∧ v.applied ≤ k⌝)
-
-/-- What a snapshot the store made promises (kvreconf's `kvrSnapRecOk`). -/
-def kdSnapRecOk (γ : KdNames) (s : SnapRec) : IProp GF :=
-  iprop(∃ L : List LogEntry, isCommittedLogLb γ.r.cluster L ∗ confAt γ.r.cluster L.length s.conf ∗
-    ⌜L.length = s.index ∧ raft_kvreconf.kvSnapOk L s.data ∧ GMap.size s.conf.ids < 2 ^ 61⌝)
-
-/-- The store's registry of the snapshots made (an invariant). -/
-def kdSnapInv (γ : KdNames) : IProp GF :=
-  inv kdSnapN iprop(∃ S : List SnapRec, ownSnapsMade γ.r.cluster S ∗
-    [∗list] s ∈ S, kdSnapRecOk γ s)
 
 /-- The statistics' counters (kvreconf's, with kvdurable's seven more). -/
 def statsFields : List GoString :=
@@ -447,13 +340,13 @@ def kdFileInv (γ : KdNames) (dir : GoString) (id : w64) : IProp GF :=
 
 /-- **A batch's results** (`readyEnter`'s post but the durable state and the running token): the
 loop's token after the `Ready` and its messages sent. -/
-def kdBatchRes (γ : KdNames) (id : w64) (n : Loc) (st' : NodeDriverState) (ms : List QMsg) :
+def kdBatchRes (γ : KdNames) (id : w64) (n : NodeH) (st' : NodeDriverState) (ms : List QMsg) :
     IProp GF :=
   iprop(nodeDriver n γ.r.cluster kdRaftN st' ∗ readyMsgs γ.r.cluster kdRaftN id ms)
 
 /-- **The pending batch's resources** (see the file header), at the file's durable state `S` and
 the storage's contents `M`, for the node `n` of replica `id`, `ph` the claim's variable. -/
-def kdPhaseInv (γ : KdNames) (id : w64) (n : Loc) (ph : GName) (S : RaftState) (M : StorFile) :
+def kdPhaseInv (γ : KdNames) (id : w64) (n : NodeH) (ph : GName) (S : RaftState) (M : StorFile) :
     KdPhase → IProp GF
   | .idle => iprop(ghostVar ph (1 : Qp).half ((none : Option GName), S) ∗
       ⌜StorageHolds S (kdContents (some M))⌝)
@@ -468,7 +361,7 @@ def kdPhaseInv (γ : KdNames) (id : w64) (n : Loc) (ph : GName) (S : RaftState) 
 /-- **An incarnation's `dmu` lock invariant** (see the file header): replica `id`'s incarnation at
 `r`, its node `n`, its storage `st` (the `MemoryStorage` `ms`, names `γs`), whose image holds `M`
 (also after a crash: `run` goes on changing the storage until it stops). -/
-def kdDmuInv (γ : KdNames) (id : w64) (r n st ms : Loc) (γs : MemStorNames) (ph : KdDmuNames) :
+def kdDmuInv (γ : KdNames) (id : w64) (r : Loc) (n : NodeH) (st ms : Loc) (γs : MemStorNames) (ph : KdDmuNames) :
     IProp GF :=
   iprop(∃ (crashed : Bool) (ip : Loc) (M : StorFile) (fz : Nat),
     -- half of `crashed`: the other half, at `false`, is the crasher's token (`repStop`) until
@@ -514,14 +407,14 @@ def isReadSeqs (γ : KdNames) (s : Loc) : IProp GF :=
 cluster's (`1 ≤ id ≤ γ.max`: at most `opts.MaxReplicas` replicas are started, ids from `1`; what
 `readSeqs.next` takes), its fields read-only (with its file and the cluster's `readSeqs`), its node,
 the cluster, its `mu` and `dmu` locks, and its file's invariant. -/
-def isReplica (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r n st sts sq : Loc)
+def isReplica (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r : Loc) (n : NodeH) (st sts sq : Loc)
     (ms : Loc) (γs : MemStorNames) (ph : KdDmuNames) : IProp GF :=
   iprop(
     "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax ∗
     "%Hidr" ∷ ⌜1 ≤ uint.nat id ∧ uint.nat id ≤ γ.max⌝ ∗
     "#Hid" ∷ r.[KReplica, go!"id"] ↦□ id ∗
     "#Hfile" ∷ r.[KReplica, go!"file"] ↦□ kdFileName dir id ∗
-    "#Hnode" ∷ r.[KReplica, go!"node"] ↦□ interface.mkOk (go.GoType.PointerType node.ty) #n ∗
+    "#Hnode" ∷ r.[KReplica, go!"node"] ↦□ interface.mkOk (go.GoType.PointerType node.ty) #n.loc ∗
     "#Hst" ∷ r.[KReplica, go!"storage"] ↦□ st ∗
     "#Hsts" ∷ r.[KReplica, go!"stats"] ↦□ sts ∗
     "#Hsq" ∷ r.[KReplica, go!"seqs"] ↦□ sq ∗
@@ -564,7 +457,7 @@ def snapReqOk (γ : KdNames) (K : GName) (γs : MemStorNames) (dn : KdDmuNames) 
 `run`'s and the snapshotter's halves of `nodeRunning` back to `stop`, and `runDone` `run`'s claim
 `ρ.ph.ph`, which `crash` leaves in `dmu` when it takes the writer out), the storage's `MemoryStorage`
 attached at the key `ρ.key` (`memStorInvP … (kdJ γ ρ.key)`). -/
-def isReplicaR (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r n st sts sq : Loc)
+def isReplicaR (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r : Loc) (n : NodeH) (st sts sq : Loc)
     (ρ : KdRepNames) : IProp GF :=
   iprop(
     "#Hrep" ∷ isReplica γ vs dir id r n st sts sq ρ.ms ρ.γs ρ.ph ∗
@@ -591,7 +484,7 @@ def isReplicaR (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r n s
 /-- **The stopper's share of incarnation `r`** (exclusive): `isReplicaR` with the stopper's tokens
 (what `stop` takes). -/
 def repStopper (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r : Loc) : IProp GF :=
-  iprop(∃ (n st sts sq : Loc) (ρ : KdRepNames),
+  iprop(∃ (n : NodeH) (st sts sq : Loc) (ρ : KdRepNames),
     isReplicaR γ vs dir id r n st sts sq ρ ∗
     ownBroadcastChan ρ.stopc ρ.sc iprop(True) .Pending ∗
     handoffConsumer ρ.rd false ∗ handoffConsumer ρ.td false ∗ handoffConsumer ρ.sd false)
@@ -610,7 +503,7 @@ of the running token, the replicated state at the stored snapshot's prefix (of l
 `runDone`'s producer, `run`'s half of the image's hard state (the stored one: the term and vote
 of `S`), the delivered log `l` at most `ap`, frozen above a known compaction point and at most the
 image's frozen bound. -/
-def runStart (γ : KdNames) (id : w64) (r n st : Loc) (ρ : KdRepNames) (l : List LogEntry)
+def runStart (γ : KdNames) (id : w64) (r : Loc) (n : NodeH) (st : Loc) (ρ : KdRepNames) (l : List LogEntry)
     (hs : HardStateM) (S : RaftState) (ap : List LogEntry) (m : Membership) : IProp GF :=
   iprop(∃ (csp mA : Loc) (A : GMap (List w8) (List w8)),
     nodeDriver n γ.r.cluster kdRaftN ⟨kdStorIface st, l, hs, none, ρ.key, S, StateFollower⟩ ∗
@@ -641,7 +534,7 @@ def sendSpec (γ : KdNames) (id : w64) (f : GoFunc) : IProp GF :=
 /-- **Some incarnation `r` of replica `id`, running** (persistent; kvreconf's `isRep`): what
 `c.replicas[id]` holds. -/
 def isRep (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r : Loc) : IProp GF :=
-  iprop(∃ (n st sts sq : Loc) (ρ : KdRepNames), isReplicaR γ vs dir id r n st sts sq ρ)
+  iprop(∃ (n : NodeH) (st sts sq : Loc) (ρ : KdRepNames), isReplicaR γ vs dir id r n st sts sq ρ)
 
 /-- Replica `id` was started: it is below the cluster's next id (persistent). -/
 def repKnown (γ : KdNames) (id : w64) : IProp GF :=

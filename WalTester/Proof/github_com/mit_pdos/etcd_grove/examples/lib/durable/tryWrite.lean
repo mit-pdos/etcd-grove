@@ -15,7 +15,7 @@ public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.lib.durabl
 public import Spec.path.filepath.Dir
 public import Spec.path.filepath.Base
 public import Spec.path.filepath.Join
-public import Spec.os.File__WriteAt
+public import Spec.os.WriteLong
 public import Spec.os.File__Sync
 public import Spec.os.File__SyncS
 public import Spec.os.File__Close
@@ -46,7 +46,7 @@ theorem github_com.mit_pdos.etcd_grove.examples.lib.durable.tryWrite.wp_proof
     (wp_Base : filepath.Base.spec (GF := GF) (hG := hG))
     (wp_Join : filepath.Join.spec (GF := GF) (hG := hG))
     (wp_OpenCT : os.OpenFile.specCreateTruncSnc (GF := GF) (hG := hG))
-    (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG := hG))
+    (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) (hG := hG))
     (wp_Sync : os.File.Sync.spec (GF := GF) (hG := hG))
     (wp_SyncDir : os.File.Sync.specDirS (GF := GF) (hG := hG))
     (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
@@ -123,16 +123,18 @@ theorem github_com.mit_pdos.etcd_grove.examples.lib.durable.tryWrite.wp_proof
       wp_apply wp_WriteAt fl fd f.tmp (DFrac.own 1) sl data (DFrac.own 1) (W64 0) (DFrac.own 1)
           (openFd i (W64 2 ||| W64 64 ||| W64 512 ||| W64 524288)) m [] (durOpenFlag_writable i)
           (by decide) (by rw [hsz]; decide) (by simp only [show (W64 0).toNat = 0 from rfl]; omega)
-          hd0 hdata (by simp [hsz])
-          $$ [Hinv Hf Hsl Hfd Hm Hby Hmc'] as %n %err1 ⟨Hf, Hsl, Hfd, %j, %ys, %hw, Hm, Hby, -, -⟩
+          hd0 (by omega) (by simp [hsz])
+          $$ [Hinv Hf Hsl Hfd Hm Hby Hmc'] as %n %err1 ⟨Hf, Hsl, Hfd, %j, %A, %E, %ys, %hw, Hm, Hby, -, -⟩
       · iframe; iframe #
-      obtain ⟨hj, hpw, -, hres⟩ := hw
+      obtain ⟨hjA, hA, -, -, -, hpw, -, hres⟩ := hw
+      have hj : j ≤ data.length := Nat.le_trans hjA hA
       (try wp_auto)
       iframe
       ipureintro
-      refine ⟨rfl, htr0.pw hsz data hd0 j hj hpw, fun he => ?_⟩
+      refine ⟨rfl, htr0.pwA hsz data A j E hjA hj hpw, fun he => ?_⟩
       rcases hres with ⟨rfl, -, -⟩ | ⟨-, hne⟩
-      · exact pw_whole hsz data hd0 hpw
+      · obtain rfl : A = data.length := by omega
+        exact pw_wholeA hsz data hd0 _ E hpw
       · exact absurd he hne.1
     · -- `data` empty: nothing written
       have hd0 : data = [] := List.eq_nil_of_length_eq_zero (by word)

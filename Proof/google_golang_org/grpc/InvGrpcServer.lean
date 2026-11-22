@@ -7,18 +7,21 @@ server (`grpcSrvCfg γ c`, `InvGrpc.lean`), from which `grpc.start'` makes the f
 `Server.RegisterService` and `Server.Serve`, and of `net.Listen`, are trust-boundary axioms
 (`Spec/google_golang_org/grpc/`, `Spec/net/Listen.lean`); this file is their vocabulary.
 
-**Options** (`grpcSrvOpt v k`, an axiomatized property of a `grpc.ServerOption` `v`, introduced
-only by the option constructors' specs): what `NewServer` does with it, `k`:
+**Options** (`grpcSrvOpt v k`, persistent, a definition since phase 7 S1, 2026-11-21: `v` is grpc's
+`*funcServerOption` whose closure does `k` to the `serverOptions`, `srvOptFnOk`; introduced by the
+option constructors' specs, six of them proved over the model's bodies): what `NewServer` does with
+it, `k`:
 * `.chainUnary ics` (`ChainUnaryInterceptor(ics...)`): the unary interceptors `ics`, appended to
   the server's chain in order (grpc's `chainUnaryServerInterceptors`; no `UnaryInterceptor`
   option is specified, so the chain is these lists, concatenated);
 * `.chainStream ics` (`ChainStreamInterceptor(ics...)`): likewise for streams;
+* `.stats h` (`StatsHandler(h)`, of a handler with `grpcStatsHandlerOk`: otelgrpc's): `h` added to
+  the server's stats handlers; it adds no value under etcd's context keys (`grpcRunCtx`);
 * `.neutral`: an option that does not change which handler runs for a method, nor what a run is
   given (the run's context, `grpcRunCtx`; the decoded request, `grpcDecOk`): message size limits
   (a call over the limit fails before its handler runs, or its response is not delivered: an error
   for the client), `MaxConcurrentStreams` (calls wait), a protobuf codec (`CustomCodec` of a codec with `grpcProtoCodec`: the wire models `ProtoMsg` are protobuf's),
-  a stats handler that adds no value under etcd's context keys (`StatsHandler` of a handler with
-  `grpcStatsHandlerOk`: otelgrpc's, `grpcRunCtx`).
+  the keepalive enforcement policy.
 
 **The server being built** (`grpcSrvNew gs ics sics svcs regs sregs`, exclusive, axiomatized):
 `NewServer`'s `*grpc.Server` `gs`, not serving yet, with the unary and stream chains `ics`,
@@ -79,6 +82,7 @@ open Iris Iris.BI
 inductive SrvOptKind [GooseExts] : Type where
   | chainUnary (ics : List GoFunc)
   | chainStream (ics : List GoFunc)
+  | stats (h : GoInterface)
   | neutral
 
 /-- The unary interceptors an option adds to the chain. -/
@@ -96,10 +100,6 @@ def srvOptsUnary [GooseExts] (ks : List SrvOptKind) : List GoFunc := ks.flatMap 
 
 /-- The stream chain of a server built with options of the kinds `ks`. -/
 def srvOptsStream [GooseExts] (ks : List SrvOptKind) : List GoFunc := ks.flatMap SrvOptKind.stream
-
-/-- **The `grpc.ServerOption` `v` is one of the kind `k`** (an axiomatized property; see the file
-header). -/
-axiom grpcSrvOpt [GooseExts] (v : GoInterface) (k : SrvOptKind) : Prop
 
 /-- **The `grpc.Codec` `c` is a protobuf codec** (an axiomatized property): its `Marshal` and
 `Unmarshal` are protobuf's (`proto.Marshal`/`proto.Unmarshal` of the message), as the default
@@ -268,6 +268,67 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+
+/-- **What the closure `f` of a server option of the kind `k` does to `*serverOptions`**
+(persistent; phase 7 S1, `notes/phase7-plan.md`: grpc is the model's, `models/grpc`): applied to a
+`p ↦ so`, it returns with `p ↦ so'`, where
+* `.neutral`: the unary and stream chains and the stats handlers are `so`'s (any other field may
+  change: a size limit, the stream limit, the codec, the keepalive policy);
+* `.chainUnary ics` (`.chainStream ics`): the chain, whose elements `us` and capacity it is given,
+  is `us ++ ics` (`append(o.chainUnaryInts, interceptors...)`), the other chain and the stats
+  handlers are `so`'s;
+* `.stats h`: the stats handlers, whose elements `hs` and capacity it is given, are `hs ++ [h]` if
+  `h` is not nil, `hs` if it is (grpc logs and ignores a nil handler), the chains are `so`'s.
+The ownership each kind is given is what its closure reads and writes, so that `NewServer`, which
+applies the options in order to one `serverOptions`, can hold it. -/
+def srvOptFnOk (f : GoFunc) : SrvOptKind → IProp GF
+  | .neutral => iprop(□ ∀ (p : Loc) (so : google_golang_org.grpc.serverOptions)
+      (Φ : val → IProp GF),
+      p ↦ so -∗ ▷ (∀ so' : google_golang_org.grpc.serverOptions, p ↦ so' -∗
+        ⌜so'.chainUnaryInts' = so.chainUnaryInts' ∧ so'.chainStreamInts' = so.chainStreamInts' ∧
+          so'.statsHandlers' = so.statsHandlers'⌝ -∗ Φ #()) -∗
+      WP (App (Val #f) (Val #p)) {{ Φ }})
+  | .chainUnary ics => iprop(□ ∀ (p : Loc) (so : google_golang_org.grpc.serverOptions)
+      (us : List GoFunc) (Φ : val → IProp GF),
+      p ↦ so -∗ so.chainUnaryInts' ↦* us -∗ ownSliceCap GoFunc so.chainUnaryInts' (DFrac.own 1) -∗
+      ▷ (∀ so' : google_golang_org.grpc.serverOptions, p ↦ so' -∗
+        so'.chainUnaryInts' ↦* (us ++ ics) -∗ ownSliceCap GoFunc so'.chainUnaryInts' (DFrac.own 1) -∗
+        ⌜so'.chainStreamInts' = so.chainStreamInts' ∧ so'.statsHandlers' = so.statsHandlers'⌝ -∗
+        Φ #()) -∗
+      WP (App (Val #f) (Val #p)) {{ Φ }})
+  | .chainStream ics => iprop(□ ∀ (p : Loc) (so : google_golang_org.grpc.serverOptions)
+      (us : List GoFunc) (Φ : val → IProp GF),
+      p ↦ so -∗ so.chainStreamInts' ↦* us -∗ ownSliceCap GoFunc so.chainStreamInts' (DFrac.own 1) -∗
+      ▷ (∀ so' : google_golang_org.grpc.serverOptions, p ↦ so' -∗
+        so'.chainStreamInts' ↦* (us ++ ics) -∗ ownSliceCap GoFunc so'.chainStreamInts' (DFrac.own 1) -∗
+        ⌜so'.chainUnaryInts' = so.chainUnaryInts' ∧ so'.statsHandlers' = so.statsHandlers'⌝ -∗
+        Φ #()) -∗
+      WP (App (Val #f) (Val #p)) {{ Φ }})
+  | .stats h => iprop(□ ∀ (p : Loc) (so : google_golang_org.grpc.serverOptions)
+      (hs : List GoInterface) (Φ : val → IProp GF),
+      p ↦ so -∗ so.statsHandlers' ↦* hs -∗ ownSliceCap GoInterface so.statsHandlers' (DFrac.own 1) -∗
+      ▷ (∀ so' : google_golang_org.grpc.serverOptions, p ↦ so' -∗
+        so'.statsHandlers' ↦* (hs ++ (if h = interface.nil then [] else [h])) -∗
+        ownSliceCap GoInterface so'.statsHandlers' (DFrac.own 1) -∗
+        ⌜so'.chainUnaryInts' = so.chainUnaryInts' ∧ so'.chainStreamInts' = so.chainStreamInts'⌝ -∗
+        Φ #()) -∗
+      WP (App (Val #f) (Val #p)) {{ Φ }})
+
+instance srvOptFnOk_persistent (f : GoFunc) (k : SrvOptKind) :
+    Persistent (srvOptFnOk (GF := GF) f k) := by
+  cases k <;> unfold srvOptFnOk <;> infer_instance
+
+/-- **The `grpc.ServerOption` `v` is an option of the kind `k`** (persistent; see the file header):
+grpc's `*funcServerOption` (the only `ServerOption` the specified constructors return), read-only,
+whose closure does `k` (`srvOptFnOk`). -/
+def grpcSrvOpt (v : GoInterface) (k : SrvOptKind) : IProp GF :=
+  iprop(∃ (l : Loc) (f : GoFunc),
+    ⌜v = interface.mkOk (go.GoType.PointerType google_golang_org.grpc.funcServerOption.ty) #l⌝ ∗
+    l ↦□ google_golang_org.grpc.funcServerOption.mk f ∗ srvOptFnOk f k)
+
+instance grpcSrvOpt_persistent (v : GoInterface) (k : SrvOptKind) :
+    Persistent (grpcSrvOpt (GF := GF) v k) := by
+  unfold grpcSrvOpt; infer_instance
 
 /-- **The `*grpc.ServiceDesc` `sd`** (persistent, read-only): its service name `sn`, its handler
 type `ht`, its methods `mds` and its streams `sds`. -/

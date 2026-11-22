@@ -27,17 +27,17 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 theorem numConnectedSince.wp_proof
     (hC : isConnectedSince.spec (GF := GF) (hG := hG)) :
     numConnectedSince.spec (GF := GF) (hG := hG) := by
-  intro tr since self members ms
-  wp_start as ⟨#Htr, Hms⟩
+  intro tr Rd since self members ms
+  wp_start as ⟨#Htr, HRd, Hms⟩
   iunfold membership.membersAt at Hms
   icases Hms with ⟨Hsl, Hown⟩
   ihave %Hsll := ownSlice_len $$ Hsl
   wp_auto
   ihave IH : iprop(∃ (n cnt : w64) (x : Loc),
       "i" ∷ i_ptr ↦ n ∗ "connectedNum" ∷ connectedNum_ptr ↦ cnt ∗ "m" ∷ m_ptr ↦ x ∗
-      "Hsl" ∷ members ↦* ms ∗ "Hown" ∷ ([∗list] m ∈ ms, membership.ownMember m) ∗
+      "Hsl" ∷ members ↦* ms ∗ "Hown" ∷ ([∗list] m ∈ ms, membership.ownMember m) ∗ "HRd" ∷ Rd ∗
       "self" ∷ self_ptr ↦ self ∗ "since" ∷ since_ptr ↦ since ∗ "transport" ∷ transport_ptr ↦ tr ∗
-      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (ms.length : Int)⌝) $$ [i connectedNum m Hsl Hown self since transport]
+      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (ms.length : Int)⌝) $$ [i connectedNum m Hsl Hown HRd self since transport]
   · iexists W64 0, W64 0, zero_val Loc
     simp only [named]
     iframe
@@ -81,8 +81,8 @@ theorem numConnectedSince.wp_proof
       ihave Hown := Hclose $$ [Hm]
       · iunfold membership.ownMember; iexists id; iexact Hm
       rw [hs]
-      wp_apply hC tr since id $$ [] as %b -
-      · iframe #
+      wp_apply hC tr Rd since id $$ [HRd] as %b HRd
+      · iframe #; iframe
       cases b
       · (try wp_auto)
         wp_for_post
@@ -99,6 +99,7 @@ theorem numConnectedSince.wp_proof
         iframe
         ipureintro; constructor <;> word
   · iapply HΦ
+    iframe HRd
     iunfold membership.membersAt
     iframe
 

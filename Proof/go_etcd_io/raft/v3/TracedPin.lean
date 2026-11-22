@@ -217,8 +217,10 @@ theorem hookGateOpt_mono (tr : Option GName) (r : Loc) (oE : Option (TraceEv →
   iintro ⟨HW, H⟩
   iunfold HookGateOpt at H
   iunfold HookGateOpt
-  imod H with ⟨%tl, #Htl, %Hok, H⟩
+  iintro Hnc
+  imod H $$ Hnc with ⟨Hnc, %tl, #Htl, %Hok, H⟩
   imodintro
+  iframe Hnc
   iexists tl
   iframe Htl
   isplitr

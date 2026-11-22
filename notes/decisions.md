@@ -41708,3 +41708,231 @@ uses a static cluster. [Regression and fix](../issues/raft-witness-joint-progres
   field) returned a type error for a string with an escape sequence, which the real Unmarshal
   unescapes and decodes; it now panics (NotModelled) on any escape there, as `Str` does elsewhere.
   Found by the mutation tests of the reworked generator; the old per-type tests had no escapes.
+
+## Raft's crash law: the crash invariant, the token through every ghost step (2026-11-21 · the coordinating session · branch `worktree-agent-aa878c2e224f33d0c`)
+
+`notes/raft-crash-law-design.md`, sections (b1), (f), (g), (h), (i); `notes/kvnet-proof-plan.md`
+decision A. A replica killed at any instruction must leave its id restartable.
+
+**Ghost state.**
+- Per arm of an id, the crash invariant
+  `nodeCrashInv γ id x := inv (crashN γ id x) ((∃ X, views ½ X ∗ slotX X) ∨ crashed ∗ tok)` holds the
+  six timeless pieces of `raftIdSlot`: `V`'s half, `slotLive 1 g`, and the authorities of
+  terms, wins, lcm and rqm. `x : CrashNames` names the views and the token.
+- `ownRaftGhost`/`ownLogGhost`/`lcmOwn`/`rdOwn` and the client's and run's generation shares hold view
+  halves in their place.
+- The arm's names are carried in `NodeNames`. A stop agrees the run's names with the client's (two
+  armed invariants of one id would both hold the full `terms` authority; the namespace includes the
+  names).
+
+**API.**
+- `nodeVacant_arm`, `nodeCrash`.
+- `StartNode`/`RestartNode` take the armed vacancy `nodeVacantA`, and `node.Stop` gives it back.
+- `readyEnter` and `Ready`'s enter wand are crash-token updates (`ncfupd`).
+
+**Why the token everywhere** (the two gaps found in implementation):
+- The traced win lends the term map's authority across the trace line (f).
+- Ordinary steps (votes, heartbeats, appends, snapshots, read index) read the slot's half of `V`
+  against the entered maps (`slot_open`) (g).
+
+A thread needs `notCrashed` not only to update state a crash may change but also to read state a
+later generation changes (h). So every ghost step takes the token: `ncfupd`,
+`wp_ncfupd`/`wp_ncfupd_post` (`GooseLang/NotCrashed.lean`, proved).
+
+**Rejected.**
+- Fresh names per incarnation (b2): new cross-generation protocol reasoning.
+- A per-generation slot name for `V` (h): it does not remove the token.
+- (b3) deferred.
+
+**Applying it** (2026-11-21, the implementing session):
+- The cut runs inside the `readyc` send's atomic update, where no client step supplies the token
+  (design note (j)). Option 1 was chosen: channel updates that carry `notCrashed`, a Perennial
+  change (branch `nc-chan`). `node.run`'s proof waits for it.
+- "Same `x`" across a stop: `StartNode`/`RestartNode` give a persistent `nodeArm n γ x`, and
+  `node.Stop` gives `∃ x, nodeVacantA γ id x ∗ nodeArm n γ x`. `nodeArm_agree` ties the result to the
+  start, so `node.Stop`'s precondition did not change.
+- A client whose crash is `node.Stop`'s arms with `nodeVacant_armD`, which drops the crash token, and
+  keeps `∃ x, nodeVacantA …`. This covers kv, kvreconf, kvdurable and the server.
+- kvdurable enters inside the durable write's update. So the durable `Write.spec` lends the token when
+  the update opens (`wp_atomic_nc` at the extension's atomic step: a new `Language.Atomic` instance
+  for its `"Write"`).
+- A client with its own `[AllG GF]` (kvdurable) names the token by the notation `notCrashedG`,
+  which is the state interpretation's `gooseAllG` instance. A bare `notCrashed` would resolve to the
+  client's own instance and not match raft's.
+
+## Raft's cluster vocabulary independent of machine and generation (2026-11-21 · the coordinating session · branch `raft-cluster-global`)
+
+**Decision.** kvnet's decision B, option 3 of `notes/raft-cluster-global.md`:
+- The node-level predicates take an opaque node handle `nh : NodeH` (location and names), which
+  `StartNode`/`RestartNode` return.
+- The node table (`nodeTabInv`: a ghost map from node locations to names, with `n ↦□` for each)
+  leaves `isCluster` and goes away: the handle carries the names, so the descriptions of one node
+  agree by construction.
+- The shared predicates (`isCluster`, `sentMsg`, `msgCredits`, `raftState`, `nodeVacant`, `confAt`,
+  `isCommittedLogLb`, `snapshotCert`, `confPolicy`, the stores' invariants) and the allocation lemmas
+  are defined in sections with only `{GF} [AllG GF] [ReceiptGS GF] [InvGS GF]`, as the protocol
+  layer's. (First `[G : GooseGlobalGS]` with `gooseInvGS` a local instance; superseded 2026-11-22: a
+  fancy update concluded under `G.gooseInvGS` could not be eliminated by a caller under `HeapGS`,
+  `notes/raft-cluster-global.md` (d).) A client section must not declare its own `[AllG GF]` beside
+  `HeapGS` ("One `AllG`"): the global laws would take that instance and its hypotheses the heap's.
+- The etcd server's pin of its node (a `dghostVar` set after `StartNode`) holds `NodeH.installs`
+  (a `GName`), not the handle, which is not `Pos.Countable`; `nodeInstalledIndex_installs` transfers
+  the server's facts. *Rejected:* a saved predicate per node (another later at the use), and
+  `nodeInstalledIndex` keyed by the storage key (changes raft's snapshot-source laws).
+- `[CrashGS GF]` (per generation) is taken per declaration (`variable [CrashGS GF] in`), not per
+  section. A section variable made every lemma of its file take it.
+
+**Why.**
+- `isCluster` must be allocated in `goose_dist_mixed_crash_adequacy`'s `Hstart` and held by
+  kvnet's checking client on another machine.
+- A global node table cannot keep the heap facts its freshness needs: they are each generation's.
+  Keyed by address, it also breaks when a restarted heap reuses one.
+
+**Rejected.**
+- A registry keyed by a per-generation ghost name: freshness would need heap-name-parametric
+  points-to, a Perennial change.
+- A per-generation table: agreement would need a unique per-generation anchor, which is not
+  available.
+
+## Protobuf stage 0': the schemas generated from `models/pbdesc`, a candidate wire semantics (2026-11-21 · proving session 2, #18 · branch `prove-ps2-pbwire/2026-11-21`; scoped by kaashoek's review, #20 item 2 (b))
+
+**Partly superseded (2026-11-22, proving session 2):** the candidate wire semantics (`PbWire.lean`, `PbWireVectors.lean`, `examples/pbwire`) is deleted. Upamanyu's plan is pbgen with no `reflect` semantics (#20, 2026-11-22), and phase 7 (#24) has no consumer for a descriptor-generic Lean semantics. The schema generation (`etc/gen-pbschema.py`, `PbSchema.lean`) stays: it ties the trusted schemas raft's and the WAL's specs use to the registered descriptors.
+
+- **The schemas** (`PbSchema.lean`: the `FieldSchema` constants and `pbSchemaOf`, trusted) are
+  generated from the registered descriptors by `etc/gen-pbschema.py` (it runs `models/pbdesc` in
+  `examples/`, the one descriptor source pbgen reads), between marker lines of the file, with
+  `--check` in `etc/gates.sh` (`goose` section). The header, the `pbSchemaOf_*` lemmas and the
+  `PbGoType` instances stay hand-written: they are proved, not trusted. Why a region, not a
+  generated module: the file's importers, its RaftNoAx copy (`etc/copy-part.py`) and
+  `etc/PbSchemaDump.lean` (which reads `pbSchemaOf`'s `if ty = X.ty` chain) are unchanged. The
+  generated schemas and `pbSchemaOf` are exactly the hand-written ones (definitions unchanged);
+  only the docstrings changed, from hand-written `raft.proto:LINES` citations to the descriptor's
+  facts (file, syntax, each field's number, name, cardinality and kind), since the dump has no
+  source lines. `etc/pbschema-check.py` stays: it checks the registrations' reach and D1's size
+  bound, which the generator does not.
+- **The candidate wire semantics** `Proof/google_golang_org/protobuf/proto/PbWire.lean`: total,
+  computable `encode`/`decode` of a message value against a descriptor (protobuf-go v1.36.12's
+  `proto.Marshal`/`Unmarshal`, cited per rule), structural recursion (small cases reduce by
+  `rfl`). **Nothing trusts it**: no axiom, spec or proof imports it; pbgen stays the trusted
+  protobuf implementation (2026-11-19) until upamanyus and kaashoek settle #20 item 2 (a). Two
+  protobuf-go facts the plan had not stated: a message's oneofs are written after all its other
+  fields, in the oneofs' declaration order, not by number (`codec_message.go:177-184`, "marshal
+  oneofs last"; found by the vectors: the first draft wrote a oneof at its first member's number);
+  the fast path does not check closed (proto2) enums' values on decode.
+- **Its evidence**: `examples/pbwire` (Go) builds random messages of 24 root types (raftpb,
+  walpb, etcdserverpb with its oneofs, mvccpb, authpb, leasepb, and `xpb`, a copy of
+  `models/internal/pbdifftest/xpb` for the kinds etcd lacks) on the real generated structs,
+  marshals them with protobuf-go and, for the types in pbgen's subset (its own
+  `protobuf.toml`), with pbgen's codec, which must agree; unmarshals the encodings, their
+  concatenations (merges), mutations and crafted records (every wire type at known and unknown
+  numbers, non-minimal tags and varints, overflow, groups, cut values, bad UTF-8); and writes
+  descriptors (from `models/pbdesc`), inputs and outcomes as `PbWireVectors.lean`, whose `#guard`s
+  compare the Lean semantics with every vector at each build, with the recursion limits (10000
+  messages, 10001 groups) as Lean-side constructions. The Go test fails if the committed module is
+  not what it writes (`PBWIRE_UPDATE=1` rewrites it); it runs in `etc/gates.sh`'s `models` section.
+
+## A crash may enter a pending batch: `readyEnter` as live ∧ crash (2026-11-22 · branch `raft-crash-enter`)
+
+**Need.** kvnet's write has two durability points, so after a crash in its window the restarted node may find
+the batch's state on disk. Raft must then let the crash enter the batch as well as discard it (`nodeCrash`).
+
+**Choice.** `readyEnter := readyEnterLive ∧ readyEnterCrash`, an additive conjunction over the hand-out's
+resources, and a law `readyCrashEnter` (`InvNode.lean`). Two alternatives were rejected:
+- a separate crash resource beside `readyEnter`: both halves need the batch's `pendBatch`, which is exclusive,
+  and splitting it would give the live *enter* a fraction it cannot update;
+- a sealed `readyEnter` with the law proved from the hand-out: it hides from the interface which half a client
+  fires, for no gain.
+
+The live half is the old wand, so live clients change by one `icases` and the old guarantees stay as they were.
+The law needs two premises beyond the requested statement: `nodeRunning n γ N q` (the node was not stopped, so the
+batch is of the current generation) and `nodeArm n γ x` (the token is the node's arm's). Without them it is
+false of the ghost model (`notes/raft-crash-law-design.md` (k)). At the protocol level, `raft_enter`'s proof is
+now `raft_enter_core`, generic in how the generation is checked. `raft_crash_enter` checks it against the slot's
+share kept in the arm's crash invariant, which the crash token keeps live, then runs `raft_crash`. No ghost state,
+invariant or fragment meaning changed.
+
+**Also:** `statusOwn_hardState`, read access to `node.Status`'s hard state (`hsOpt`), without promising anything of
+the values, as `node.Status.spec` already says.
+
+## remote's slot library over a service; `Report`'s spec (2026-11-22 · branch `remote-report`)
+
+**Was:** every spec of `examples/lib/remote` (`attempt`, `serveConn`, `Serve`, `ServeClient`,
+`listen`, `Do`, `Run`, `Check`) took a far-side store `R : RBase` (a linearizable base store with
+`sysState`, `Eop`, `lin`, unknown outputs), and the slot handed the far side `slotUpd R i Φ`. `Report`
+(one attempt, no model: a client machine's loop answers its report) had no spec, and could not be an
+instance: a report's output is not a function of the input and a state (`B.step`), and its codec has
+no `IsRead`/`Unknown`/`IsUnknown` (`codecOk` needs them).
+
+**Now:** the wire and the slot's update are a **service** `RSvc GF I O` (`RWire` and `unkAns`, `upd`):
+the functions that only move bytes and the update (`attempt`, `serveConn`, `Serve`, `ServeClient`,
+`listen`, `Report`) are stated over any service, with the codec's wire part `wireOk` and the far
+side's `svcOp`; `Do`/`Run`/`Check`, which need the model, over a store, through `RBase.svc`
+(`remoteAddr R a` is `svcAddr R.svc a`; `codecOk_wireOk`, `opMaybe_svcOp`). A report is
+`reportSvc W P Q`: the update is `P i ∗ ∀ o, Q i o -∗ Φ o` (`P i` what the dialer established for the
+loop; `Q` may be persistent or transferable: the slot hands `Φ o` back once), with no unknown answers; its far side meets `reportOp W P Q tok op`
+(`reportOp_svcOp`). One spec per function: `Report.spec` is stated over any service, a report an
+instance (`unkAns = False` empties its last disjunct).
+
+**Why not** an `unk : I → Option GoInterface` or an output type `O ⊕ I` for the unknown answer: both
+touch `Do`'s proof and `Pend` (the read form's commit), where `unkAns i v := v = unk i` leaves them
+unchanged. **Departure** (TaDa, not HoCAP): `reportSvc`'s `Q` is a caller-provided predicate fixed in
+the address's protocol, as a store's `sysState` already is; the far side must know what it proves
+before any call, and the deployment fixes it once (`remote_start`, now for any service).
+
+## The crash bridge for `[netExt, fsExt]`: obligations per local ghost state, the precondition chosen at start, the legacy file mode (2026-11-22 · etcd-dist D3 · branch `dist-crash-bridge`)
+
+**Context.** D3 of `notes/etcd-dist-plan.md` (branch `etcd-dist`): `Robust crashing stable` for machines
+over the network and Linux files, some crashing and restarting, from per-machine boot WPs, through
+Perennial's `goose_dist_mixed_crash_adequacy`. Kits had only the no-crash bridge (`robust_of_kitBoot`).
+
+**Decisions** (`notes/dist-crash-bridge.md`):
+
+- `robust_of_netFsBoot` and the deployment premise `NetFsDeploy` (trusted: `KitDeploy` of every machine and
+  `Fs.FsInit` of every machine's files) live in the `Net` part (`Net/Statement/`), beside the kits' bridge,
+  since they use `KitDeploy` and the net protocol library; #22's `GooseLang/Ext/NetFs/` is used, unchanged.
+- A crashing machine's obligation `CrashBootWp e Q` is per generation: from `Q L` and its thread token, the WP
+  and a frame giving `Q L'` from `crashed`, `osInv L'`, `crashRest` and the empty package state. Perennial's
+  precondition parameter is fixed before the start update allocates anything, so the bridge's is
+  `∃ Q, ⌜CrashBootWp e Q⌝ ∗ Q L`, the client choosing `Q` in its start update.
+- The obligations quantify over the local ghost state `L` (the WP at `⟨G, L⟩`), not over a `HeapGS` with an
+  equation on its global part as `KitBootWp` does; a proof substitutes `lctx` by `L`'s context and never
+  destructures `GooseLocalGS` positionally (Perennial's `local-names` adds a field).
+- The file system in its legacy mode at the plain semantics (`kvnetExts`): the shared mode needs each
+  generation's start to reach the extension's local interpretation, which Perennial's distributed theorem
+  does not give (`notes/perennial-changes.md`, 2026-11-22). Recorded, not worked around: D4's call.
+- The minimal instance is echo (server crashing, client stable, over `kvnetExts`), since echo's proofs are
+  over any extensions with the net extension: only the boot programs (a program's syntax is over its
+  extension list) and `wp_boot` are restated.
+
+## The distributed deployment's start and bridge: `Kit*` renamed `Dist*` (2026-11-22 · branch `dist-rename`)
+
+**Decision (the user's, kaashoek):** "kit" is dsverify-lab's word for its examples; the predicates
+`Net/Statement/` states are a distributed deployment's start and its bridge, whatever the program. So
+`KitDeploy.lean`/`KitBridge.lean` are `DistDeploy.lean`/`DistBridge.lean` (`Net.Statement.DistDeploy`,
+`Net.Statement.DistBridge`), and `KitDeploy` → `DistDeploy`, `KitBootWp`/`KitBootWpG` →
+`DistBootWp`/`DistBootWpG`, `nodeWp_of_kitBoot`/`nodeWp_of_kitBootG` → `nodeWp_of_distBoot`/
+`nodeWp_of_distBootG`, `robust_of_kitBoot`/`robust_of_kitProto` (and their `RB` variants) →
+`robust_of_distBoot`/`robust_of_distProto` (`…RB`), and echo's instance `echo_kit_robust` →
+`echo_dist_robust`. Statements, definitions and axioms unchanged. Older entries keep the old names;
+prose about the lab's own kits (its examples, "phase 6's kits") keeps the word.
+
+## The bootstrap contracts give the membership buckets in the table (2026-11-22 · proving session 2, #18 · branch `prove-ps2-members/2026-11-22`)
+
+**The user's decision (2026-11-22):** extend the trusted bootstrap contracts' backend clause (`bootOk`'s and
+`bootOkR`'s `%Hbe`, the posts of `bootstrapContract`/`bootstrapRestartContract`) with
+`d.P.has mvcc.membersBI ∧ d.P.has mvcc.membersRemovedBI ∧ d.P.has mvcc.clusterBI`, as item E of the 2026-11-02
+approved restatements did for the alarm and auth buckets.
+
+**What changed:** `membership.RaftCluster.SetBackend` and `schema.membershipBackend.MustDeleteMemberFromBackend`
+(trust-boundary axioms until now, names-only) are translated with their bodies (with `MustCreateBackendBuckets`
+and `BackendMemberKey`) and proved over the backend's specs. Their bucket operations need the buckets in the
+backend's ghost table; the fact travels `bootOk` → `srvSnapRO` → `applySnapshot` → `SetBackend` at the received
+backend (ledger 2026-11-22, "members").
+
+**Why it is true of the code:** the table names the backend's buckets; `bootstrap`'s `cl.SetBackend(be)` creates the
+three (`MustCreateBackendBuckets`), and the contract already says they are present in the boot data (`%HDr`). The
+contract chooses the ghost table, so naming three more buckets in it constrains nothing Go does.
+
+**Why not** derive `P.has` from the data (`D.lookup n = some _`): the table is a free parameter of `KBReal`, and
+the backend's invariants do not tie it to the data's buckets; adding that tie is a backend-internal change (claimed
+by #30 at the time).

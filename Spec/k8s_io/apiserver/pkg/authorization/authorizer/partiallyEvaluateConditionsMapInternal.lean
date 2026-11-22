@@ -1,6 +1,6 @@
 /-
 `partiallyEvaluateConditionsMapInternal(ctx, c, data, fn)` (`evaluate.go`): a well-formed
-decision, for conditions and a partial evaluation function that can be called. Lean-first (no Rocq
+leaf decision (depth `0`), for conditions and a partial evaluation function that can be called. Lean-first (no Rocq
 counterpart).
 -/
 module
@@ -33,7 +33,7 @@ abbrev partiallyEvaluateConditionsMapInternal.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.authorization.authorizer ∗ isConditionsMap c dn no al ∗ maybeEvalFnOk f }}
     (App (App (App (App (Val (@! partiallyEvaluateConditionsMapInternal)) (Val #ctx)) (Val #c))
       (Val #data)) (Val #f))
-  {{ (d : ConditionsAwareDecision), RET #d; isWFDecision d }}
+  {{ (d : ConditionsAwareDecision), RET #d; isWFDecisionLe 0 d }}
 
 end spec
 

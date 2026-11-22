@@ -40,6 +40,8 @@ theorem backend.batchTxBuffered.UnsafeDeleteBucket.wp_proof
   icombine Ht Ht' gives %Heq
   subst Heq
   wp_auto
+  icases batchGhostAt_bufRc γ P st false c $$ Hg with ⟨Hg, #Hbr⟩
+  ihave #Hbr' := bufRc_congr (st := st) (st' := (st.delBucket bi k)) rfl rfl $$ Hbr
   imod batchGhost_step_rb γ P (st := st) (st' := (st.delBucket bi k)) rfl rfl rfl
     (pend_succ_nat Hwf Hp) (fun i => by simp [BSess.del, BSess.create, BSess.delBucket])
     bi.name (hkData_delBucket st bi Hhk)
@@ -47,7 +49,7 @@ theorem backend.batchTxBuffered.UnsafeDeleteBucket.wp_proof
     (BSess.delBucket_S_other st bi) rfl (trkOk_delBucketS Hwf bi) (fun L _ hd => dlsW_step (dlsS_delBucket Hsb) (dlsOk_delBucket Hsb) rfl rfl hd)
     (fun m hm => tkSet_ne _ _ hm)
     k c (fun m hm => by cases k <;> simp [BSess.delBucket, cwAdd, hm]) (fun h => by subst h; rfl)
-    (fun h _ => by subst h; right; simp [BSess.delBucket, cwAdd]) (fun h => by subst h; revert Hkc; cases c <;> decide) $$ Hg Hrbp
+    (fun h _ => by subst h; right; simp [BSess.delBucket, cwAdd]) (fun h => by subst h; revert Hkc; cases c <;> decide) $$ Hbr' Hg Hrbp
     with ⟨Hg, Hrbp⟩
   wp_apply (hBT γ P W Pk b t st bk bi Hne) $$ [Htxf Hpend Hwtx] as Hw
   · iframe #

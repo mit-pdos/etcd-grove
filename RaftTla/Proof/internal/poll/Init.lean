@@ -4,8 +4,7 @@ Package initialization of `internal.poll`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
 Its fact (`PkgInit.lean`): `ErrNoDeadline` and `ErrDeadlineExceeded`, which `os`'s
-initializer copies, hold some error for good, and `ErrFileClosing`, which `(*os.File).wrapErr`
-compares with, an `*errorString` (`errors.New`). Its initializer runs its variables' translated
+initializer copies, hold some error for good. Its initializer runs its variables' translated
 initializers (`sync.OnceValue(...)`, `errors.New` errors, function values, a `sync.Pool`
 literal).
 -/
@@ -95,14 +94,13 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of splicePipePool))
   set_option maxRecDepth 20000 in
   wp_apply _root_.Perennial.sync.wp_OnceValue as %cfr -
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xFC ⟨#EFCc, #EFC⟩
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xND ⟨#ENDc, #END⟩
-  ipersist HErrFileClosing
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xFC ⟨#_, #EFC⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xND ⟨#_, #END⟩
   ipersist HErrNoDeadline
   wp_alloc_anon
   wp_auto
   ipersist HErrDeadlineExceeded
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xNP ⟨#ENPc, #ENP⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xNP ⟨#_, #ENP⟩
   iframe Hown
   is_pkg_init_finish
 

@@ -190,7 +190,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.closeAll.wp_proof
     · try wp_auto
       wp_apply wp_Join $$ [Hw] as Hw
       · iframe
-      wp_apply _root_.Perennial.errors.wp_New_errorString as %x ⟨-, #He⟩
+      wp_apply _root_.Perennial.errors.wp_New_errorString as %x ⟨#_, #He⟩
       try wp_auto
       iapply HΦ
       iframe

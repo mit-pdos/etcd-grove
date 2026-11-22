@@ -603,14 +603,16 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   icases Hfg' with ⟨%fgi, %Hfgi, #Hen⟩
   rw [Hfgi]
   (try wp_auto)
-  wp_apply Hen $$ [] as %ckpp -
+  wp_apply +noauto Hen $$ [] as %ckpp -
   · ipureintro; simp [serverFeatures]
-  (try wp_auto)
+  -- (prove-ps2-newlessor3) a time receipt, at the resolution of `srv.Cfg.ReqTimeout()`, for
+  -- `NewLessor`'s second write-back token, of the write budget's stock (`wbSupply_of_stock`)
+  wp_take_receipt as Hrk0
   wp_apply h20 $$ [] as %reqto -
   · iframe TickMsS ElectionTicksS
   (try wp_auto)
   -- the backend, from `backend.New`'s postcondition (`bootBackend_of_newPost`)
-  obtain ⟨Hbe0, HbP, Hci0, HhP, HPwf, HPlim, HlP, HalB, HauB, HauUB, HauRB⟩ := Hbe
+  obtain ⟨Hbe0, HbP, Hci0, HhP, HPwf, HPlim, HlP, HalB, HauB, HauUB, HauRB, HmB, HmrB, HcB⟩ := Hbe
   ihave #Hstpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage $$ []
   · iPkgInit
   ihave #Hbkpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend $$ []
@@ -669,6 +671,15 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · iExactEq Hwb; rfl
   rw [show (5 : Nat) = 1 + 4 from rfl]
   icases (ownToks_add 4 1 d.γB.wb).1 $$ Hwb with ⟨Hwl, Hwb⟩
+  -- (prove-ps2-newlessor3) `NewLessor`'s second write-back token, from the write budget's stock
+  ihave #HpoolA := HWBp $$ %({ E₀ with γbe := γbe } : apply.AEnv GF) []
+  · ipureintro; rfl
+  ihave #Hsup := wbSupply_of_stock ({ E₀ with γbe := γbe } : apply.AEnv GF) γp
+    ({ d with cm := true } : mvcc.KBReal) $$ [$HpoolA $Hstock]
+  imod Hsup $$ Hrk0 with Hwk0
+  ihave Hwl : ownToks d.γB.wb 2 $$ [Hwl Hwk0]
+  · iunfold backend.wbTok at Hwk0
+    iapply (ownToks_add 1 1 d.γB.wb).2; iframe Hwl Hwk0
   -- `lease.NewLessor`
   rw [Hbe0]
   -- the grant guard `srvGrantGuard` at the cluster's lease mode and the auth mode (D19n; the
@@ -687,16 +698,17 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       (srvGrantGuard ρ.rd.kv.lg on) (fun _ => True) (backend.rbData d.P D) (decide (m = .mono))
       [] (fun _ => W64 0) [] trivial HlP hrecs (by simp) (List.Perm.refl _))
     $$ [Hopen Hwl Hrbo]
-    as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlmode, #Hlcfg, -, #Hlexp, #Hlgd, Hlrd, Hlown, HlWt, HlEv, Hlrvk, Hro, HleOn, #Hlbe, Hlstop, -, -, #Hllk'⟩
+    as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlmode, #Hlcfg, -, #Hlexp, #Hlgd, Hlrd, Hlown, HlWt, HlEv, Hlrvk, Hro, HleOn, #Hlbe, Hlstop, -, -⟩
   · iframe HB Hclok
-    unfold backend.wbTok
     -- (2026-11-02, the backend-auth-split stage) at every bucket: `rbOwn` is `rbPart ⊤`, and the
     -- lessor gives the boot its tracked buckets idle (`rbOwnIn ⊤`)
     iunfold backend.rbOwn at Hrbo
     iframe Hopen Hwl Hrbo
     isplitr; · iright; iexact Hzlg
     isplitr; · ipureintro; simp
-    imodintro; rw [List.map_nil]; iapply BigSepL.bigSepL_nil.2; itrivial
+    isplitr
+    · imodintro; rw [List.map_nil]; iapply BigSepL.bigSepL_nil.2; itrivial
+    ipureintro; exact Nat.le_trans Hbnd (by decide)
   rw [List.map_nil]
   ihave Hrbo : backend.rbOwnIn d.γB (fun _ => True) ((backend.rbData d.P D).insert go!"lease" ∅)
     $$ [Hrbo]
@@ -718,8 +730,6 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   imod (lease.lessorAt_empty γl ⊤ (fun _ _ => CoPset.mem_full)) $$ [$Hlrdinv $HlEv]
     with ⟨#Hl0, HlEv⟩
   ihave ⟨Hlt1, HltS⟩ := (ghostVar_split_half (GF := GF) γlt 1 ([] : List w64)).1 $$ Hlt
-  -- (the auth plan's E3zb) its `Lookup`'s weaker clause
-  ihave #Hllk := lookupOk_of_guard lp (srvGrantGuard ρ.rd.kv.lg on) $$ Hllk'
   (try wp_auto)
   -- `auth.NewTokenProvider`
   ihave #Hapkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []
@@ -905,10 +915,6 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   wp_take_receipt as Hrk1
   wp_apply +noauto h29 as %ab ⟨%abl, %Hab, #Hablg, #Habbe⟩
   wp_take_receipt as Hrk2
-  ihave #HpoolA := HWBp $$ %({ E₀ with γbe := γbe } : apply.AEnv GF) []
-  · ipureintro; rfl
-  ihave #Hsup := wbSupply_of_stock ({ E₀ with γbe := γbe } : apply.AEnv GF) γp
-    ({ d with cm := true } : mvcc.KBReal) $$ [$HpoolA $Hstock]
   imod Hsup $$ Hrk1 with Hwk1
   imod Hsup $$ Hrk2 with Hwk2
   ihave Hwk1 : backend.wbTok d.γB $$ [Hwk1]
@@ -1449,7 +1455,11 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- requests' its handler serves
   icases replicate_take1 _ _ (by omega) $$ Htoks with ⟨HtokS, Htoks⟩
   icases replicate_take1 _ _ (by omega) $$ Htoks with ⟨HtokP, Htoks⟩
-  icases replicate_takeN _ http.httpProcSlots _ (by omega) $$ Htoks with ⟨HtokServe, -⟩
+  icases replicate_takeN _ http.httpProcSlots _ (by omega) $$ Htoks with ⟨HtokServe, HtokRest⟩
+  -- (rdslot, 2026-11-22) two more for the server's transport slots (`srvTrReader`): the
+  -- compactor's (`srvCompactR`) and `adjustTicks`'s (`srvMonitorRes`); the rest for the inner pool
+  icases replicate_take1 _ _ (by have := hMR; have := hHP; omega) $$ HtokRest with ⟨HtokC, HtokRest⟩
+  icases replicate_take1 _ _ (by have := hMR; have := hHP; omega) $$ HtokRest with ⟨HtokA, HtokRest⟩
   ihave Hsend : srvTrKey γn γk $$ [HtokS]
   · iapply srvTrKey_of_trTok γn γk s t c HcR $$ [HtokS]
     iframe #
@@ -1635,12 +1645,10 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- hook (`snap_isApplyLessor`, `snap_isAuthStore`, as the snapshot walk's)
   ihave #HlinvM : lease.lessorInv lp (mvcc.api.mvccLeases γm) $$ []
   · rw [Hγl]; iexact Hlinv
-  ihave #HllkO : lessorLookupOk lp $$ []
-  · iunfold lessorLookupOk; iexact Hllk
   ihave #Hapl := snap_isApplyLessor h49 h50 h51 h52 h53 h54 h55 h56 h95 M alst astl lp bc.cl'
       ({ d with cm := true } : mvcc.KBReal) γm (mvcc.api.mvccW d.gx)
       (batchLockInv γA (metaTM d.γB d.P)) hook Hhknn HlP
-    $$ [$Hpkg $Hlbe $Hlcfg $HllkO $HlinvM $HBs $Hhooks]
+    $$ [$Hpkg $Hlbe $Hlcfg $HlinvM $HBs $Hhooks]
   ihave #Hast0 := snap_isAuthStore M alst astl lp bc.cl' RD ({ d with cm := true } : mvcc.KBReal)
       (mvcc.api.mvccW d.gx) (batchLockInv γA (metaTM d.γB d.P)) hook Hhknn $$ [$HisAuth $HBs $Hhooks]
   ihave #Hast : apply.isAuthStore ast (fun _ => batchLockInv γA (metaTM d.γB d.P)) hook
@@ -1681,8 +1689,18 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   ipersist CorruptCheckTimeS
   ipersist DowngradeCheckTimeS
   ipersist MaxWALFilesS
-  ihave HMon : srvMonitorCfg s cfg $$ [HlgMon]
-  · iunfold srvMonitorCfg; rw [Hfgi]; iframe DowngradeCheckTimeS CorruptCheckTimeS ServerFeatureGateS MaxWALFilesS; iframe HlgMon
+  ipersist InitialElectionTickAdvanceS
+  ihave HMon : srvMonitorCfg s cfg $$ [HlgMon HtokA]
+  · iunfold srvMonitorCfg; rw [Hfgi]; iframe DowngradeCheckTimeS CorruptCheckTimeS ServerFeatureGateS MaxWALFilesS
+    -- (rdslot) `monitorDowngrade`'s `lgMu` slot, `adjustTicks`'s transport slot and switch
+    iunfold srvMonitorRes
+    iframe HlgMon
+    isplitl [HtokA]
+    · iapply srvTrReader_of s (interface.mkOk (go.GoType.PointerType api.rafthttp.Transport.ty) #t)
+        (transportTok γn t c) $$ [HtokA]
+      isplitr; · iExactEq Htrf; rfl
+      iframe Htrr HtokA
+    iexists _; iexact InitialElectionTickAdvanceS
   ipersist LoggerS
   ipersist MaxTxnOpsS
   ipersist WarningUnaryRequestDurationS
@@ -1708,7 +1726,6 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   ipersist PeerTLSInfoS
   ipersist CORSS
   ipersist HostWhitelistS
-  ipersist InitialElectionTickAdvanceS
   ipersist BootstrapTimeoutS
   ipersist AutoCompactionRetentionS
   ipersist AutoCompactionModeS
@@ -1775,13 +1792,12 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       isplitr
       · ipureintro
         refine ⟨trivial, Hdisk.1, Hmmap, Hbuq, ?_, Hdirps.1, Hdisk.2, HbP,
-          Hci0, HhP, HPwf, HPlim, HlP, ⟨HalB, HauB, HauUB, HauRB⟩, trivial, by omega⟩
+          Hci0, HhP, HPwf, HPlim, HlP, ⟨HalB, HauB, HauUB, HauRB⟩, ⟨HmB, HmrB, HcB⟩, trivial, by omega,
+          by have := Hbcf.2.2.2.1; omega⟩
         rw [HρRaft, Hid]; exact Hsloc
       isplitr
       · iExactEq Hsdir
         rw [Hγn.1, HρRaft]; rfl
-      isplitr
-      · iunfold lessorLookupOk; iexact Hllk
       isplitr
       · iexists _; iexact Hvcn
       isplitr
@@ -2033,16 +2049,33 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     $$ HltRest with ⟨HltI, -⟩
   icases replicate_takeN _ srvRevokePoolN _ (by unfold srvRevokePoolN backend.rdPoolN; omega)
     $$ HRDstock with ⟨HRDI, -⟩
+  -- (rdslot, 2026-11-22) and of the transport's reader tokens, as the server's transport slots
+  -- (`srvTrReader`, which `srvLeadTimeReader` now holds with `leadTimeMu`'s)
+  ihave HtrRs := (BigSepL.bigSepL_impl (Ψ := fun _ _ => srvTrReader (GF := GF) s)) $$ HtokRest
+  ihave HtrRs := HtrRs $$ []
+  · imodintro
+    iintro %_ %_ %_ Htk
+    iapply srvTrReader_of s (interface.mkOk (go.GoType.PointerType api.rafthttp.Transport.ty) #t)
+      (transportTok γn t c) $$ [Htk]
+    isplitr; · iExactEq Htrf; rfl
+    iframe Htrr Htk
+  icases replicate_takeN _ srvRevokePoolN _ (by unfold srvRevokePoolN backend.rdPoolN; have := hMR; have := hHP; omega)
+    $$ HtrRs with ⟨HtrI, -⟩
   -- (2026-11-06) the lists are paired at their elements' own forms (`leadTimeMu`'s slot, not
   -- `srvLeadTimeReader`): no tactic rewrites the goal, no bare `iframe` compares the lists (a
   -- mismatched `[∗list]` unfolds the `List.replicate`; this step reached 80 GB before)
-  ihave HIp := replicate_sep (sync.ownRWMutex (srvLeadTimeMuAddr s) (leadTimeP s)) RD
-    srvRevokePoolN $$ [HltI HRDI]
+  ihave HIt := replicate_sep (sync.ownRWMutex (srvLeadTimeMuAddr s) (leadTimeP s)) (srvTrReader s)
+    srvRevokePoolN $$ [HltI HtrI]
   · isplitl [HltI]
     · iexact HltI
+    · iexact HtrI
+  ihave HIp := replicate_sep iprop(sync.ownRWMutex (srvLeadTimeMuAddr s) (leadTimeP s) ∗ srvTrReader s) RD
+    srvRevokePoolN $$ [HIt HRDI]
+  · isplitl [HIt]
+    · iexact HIt
     · iexact HRDI
   imod threadPool.initL srvRevokeInnerN 2
-      iprop(sync.ownRWMutex (srvLeadTimeMuAddr s) (leadTimeP s) ∗ RD) _ srvRevokePoolN
+      iprop((sync.ownRWMutex (srvLeadTimeMuAddr s) (leadTimeP s) ∗ srvTrReader s) ∗ RD) _ srvRevokePoolN
       (by unfold srvRevokePoolN backend.rdPoolN; omega) $$ HIp with ⟨%γI, #HIp⟩
   -- (revoke-open, 2026-11-06) the revocation's built part: the inner pool from `leadTimeMu`'s rest
   -- and the auth store's stock of tickets (`authRdN`'s `2 ^ 28`), `raftPool`, the store's pointer
@@ -2119,10 +2152,14 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iexists ⟨gen, GoInterface.nil, cfg.MaxRequestBytes', cfg.ServerFeatureGate',
       cfg.ClientCertAuthEnabled', cfg.ElectionTicks', cfg.TickMs', ast, null, bc.nodeID', bc.cl',
       interface.mkOk (go.GoType.PointerType api.rafthttp.Transport.ty) #t, cid⟩
+    -- (rdslot) the transport's contract at some reader's resource (its lock's tokens)
+    ihave #HtrrE : iprop(∃ Rd : IProp GF, rafthttp.isTransporter
+        (interface.mkOk (go.GoType.PointerType api.rafthttp.Transport.ty) #t) Rd) $$ []
+    · iexists _; iexact Htrr
     unfold srvReqBuiltM srvAtomicU64 srvPeersOk
     dsimp only
     rw [Hfgi]
-    iframe ClientCertAuthEnabledS MaxRequestBytesS reqIDGen Htrf Hlead Hmint Htrr memberID cluster authStore HisReq ServerFeatureGateS TickMsS ElectionTicksS Hcid Hrc Hkvinv Hfg
+    iframe ClientCertAuthEnabledS MaxRequestBytesS reqIDGen Htrf Hlead Hmint HtrrE memberID cluster authStore HisReq ServerFeatureGateS TickMsS ElectionTicksS Hcid Hrc Hkvinv Hfg
     isplitr
     · have hff : srvFloorFact (GF := GF)
           ({ kv := interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #ws, γ := γm, γs := E₀.γs, Nx := srvApi.kvNx ρ.rd on, Pk := fun _ => batchLockInv γA (metaTM d.γB d.P), f := hook, RD := RD, γrev := E₀.γrev, authMode := M, FS := srvFS s, ciC := srvCiC γA cil, RO := srvRestOwnH M d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), RW := srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe := γbe, Cp := kvCpOk ρ.rd.kv, BkTie := srvBkTie ({ d with cm := true } : mvcc.KBReal), cmp := E₀.cmp, cret := ρ.rd.kv.cret, lm := ρ.rd.kv.lm, γlt := γlt, Wt := srvApi.winTok γwt, stq := (1 : Qp).half.half } : apply.AEnv GF) =
@@ -2149,8 +2186,8 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · -- `#Hrunb`
     iexists ⟨errc, null, null, func.nil, cpv, sstats, null⟩
     unfold srvRunBuilt
-    iframe compactor errorc Hltg stats Herrb Hcpok
-  isplitl [Hcpt HltC HlgC HRDC HwrC]
+    iframe compactor errorc Hltg stats HssI Herrb Hcpok
+  isplitl [Hcpt HltC HtokC HlgC HRDC HwrC]
   · -- `Hcrun` (M2, S4): the compactor off, nothing to run; on, its run token and the run's
     -- precondition from the views `start` builds (`compactorRun`)
     iexists cpv
@@ -2184,9 +2221,14 @@ theorem NewServer.wp_proofG (on cmp : Bool)
           (sint.Z cfg.AutoCompactionRetention') γf Hcmp0 Hcrm
         $$ [$Hpk' $Hreq' $Hrd' $Hcred']
       iExactEq Hcb; rfl
-    isplitl [HltC HlgC HRDC HwrC]
+    isplitl [HltC HtokC HlgC HRDC HwrC]
     · unfold srvCompactR srvLeadTimeReader
       iframe HltC HlgC HRDC HwrC
+      -- (rdslot) the compactor's transport slot
+      iapply srvTrReader_of s (interface.mkOk (go.GoType.PointerType api.rafthttp.Transport.ty) #t)
+        (transportTok γn t c) $$ [HtokC]
+      isplitr; · iExactEq Htrf; rfl
+      iframe Htrr HtokC
     imodintro
     iunfold srvRevLb
     iexists [[], []]

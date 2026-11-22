@@ -21,7 +21,7 @@ log). `fileutil.ReadDir.specAbsentIs` and `specChildIs` are proved (2026-11-14,
   the extension's `wp_osOpenDirChildS`/`wp_osDirReadNextChildS`; errors `os.errnoPathErr err e`,
   `e ≠ ENOENT`), `ReadDir`'s loops (`ReadDir.wp_core`) and the names' bound (`Readdirnames`' model
   assumes Go's `growslice` limit, under `2^44` names, pending the user's review) are proved; left:
-  `errors.IsPathErrnoNotExist.spec` below.
+  `errors.IsPathErrnoNotExist.spec` (`Spec/errors/IsPathErrnoNotExist.lean`).
 * **`errors.IsPathErrnoNotExist.spec`**: `errors.Is(err, os.ErrNotExist)` of a `*PathError` of a nonzero
   errno `e` answers `e = ENOENT`. True in Go (`errors.Is` unwraps the `*PathError` to the `Errno`, whose
   `Is` compares the target with `oserror.ErrNotExist`); its proof needs the error tree of the part's `os`
@@ -35,6 +35,7 @@ module
 public import Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir
 public import Proof.os.NsChildS
 public import Proof.os.PkgInit
+public import Spec.errors.IsPathErrnoNotExist
 
 @[expose] public section
 
@@ -45,30 +46,6 @@ namespace EtcdGrove
 
 open Iris Iris.BI
 open Fs
-
-section defs
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- **`errors.Is(err, os.ErrNotExist)` returns `b`** (persistent). -/
-def errIsNotExist (err : GoInterface) (b : Bool) : IProp GF :=
-  iprop(□ ∀ (t : GoInterface) (Φ : val → IProp GF),
-    typedPointsto (globalAddr os.ErrNotExist) t DFrac.discard -∗ ▷ Φ #b -∗
-      WP (App (App (Val (@! _root_.Perennial.errors.Is)) (Val #err)) (Val #t)) {{ Φ }})
-
-instance errIsNotExist_persistent (err : GoInterface) (b : Bool) :
-    Persistent (errIsNotExist (GF := GF) err b) := by
-  unfold errIsNotExist; infer_instance
-
-/-- See the file header. -/
-abbrev errors.IsPathErrnoNotExist.spec : Prop :=
-  ∀ (err : GoInterface) (e : w64), e ≠ 0 →
-    ⊢ isPkgInit (PROP := IProp GF) pkg_id.os -∗ os.errnoPathErr (GF := GF) err e -∗
-      errIsNotExist (GF := GF) err (decide (e = Fs.ENOENT))
-
-end defs
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]

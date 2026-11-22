@@ -100,9 +100,10 @@ jobs:
       - name: Check RaftTla's generated copies
         run: ./etc/gen-raft-tla.py --check
       # `RaftNoAx/` (raft without hand-written axioms, notes/raft-noax-part.md) copies the main
-      # tree's modules its closed theorem reaches raft through: its copies must be what
-      # `etc/copy-part.py` writes from them. Reads the sources only.
-      - name: Check RaftNoAx's copies
+      # tree's modules its closed theorem reaches raft through, and `KvNet/` (notes/kvnet-part.md)
+      # RaftNoAx's, Net's, WalTester's and the main tree's modules kvnet's closure needs: their
+      # copies must be what `etc/copy-part.py` writes from them. Reads the sources only.
+      - name: Check RaftNoAx's and KvNet's copies
         run: ./etc/copy-part.py --check
       # Each package's clients import only its importable modules (`etc/api/<pkg>.txt`;
       # CLAUDE.md, "Package APIs"). Reads the sources only.

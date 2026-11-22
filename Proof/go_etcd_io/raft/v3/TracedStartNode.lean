@@ -309,34 +309,6 @@ private theorem node_pts_excl (n : Loc) (nv nv' : node) :
   icases H2 with ⟨-, -, -, -, -, -, -, -, -, -, ⟨H2, -⟩⟩
   iapply loc_pts_excl _ nv.rn' nv'.rn' $$ rn H2
 
-/-- (2026-11-02, stage II (o)) **Registering a node in the cluster's table**, while its struct is
-owned whole (so it is not in the table yet): its entry, and the struct read-only from then on. -/
-private theorem nodeTab_insert (γ : Cluster) (N : Namespace) (n : Loc) (nv : node) (x : CfgNames) :
-    ⊢ nodeTabInv (GF := GF) γ N -∗ n ↦ nv ={⊤}=∗ n ↦□ nv ∗ n ↪[γ.nodeTab]□ x := by
-  iintro #Hinv Hn
-  unfold nodeTabInv
-  iinv Hinv with ⟨%M, >Hauth, >Hm⟩ Hclose
-  cases hM : M !! n with
-  | some y =>
-    ihave Hy := (BigSepM.bigSepM_lookup (Φ := fun (k : Loc) (_ : CfgNames) =>
-      iprop(∃ nv : node, k ↦□ nv : IProp GF)) hM) $$ Hm
-    icases Hy with ⟨%nv', Hy⟩
-    iexfalso
-    iapply node_pts_excl n nv nv' $$ Hn Hy
-  | none =>
-    imod ghost_map_insert_persist n x hM $$ Hauth with ⟨Hauth, #He⟩
-    ipersist Hn
-    imod Hclose $$ [Hauth Hm] with -
-    · inext
-      iexists (<[n := x]> M)
-      iframe Hauth
-      iapply (BigSepM.bigSepM_insert (Φ := fun (k : Loc) (_ : CfgNames) =>
-        iprop(∃ nv : node, k ↦□ nv : IProp GF)) hM).2
-      iframe Hm
-      iexists nv; iexact Hn
-    imodintro
-    iframe Hn He
-
 /-- **`StartNode`** (2026-11-02, stage II (o); until then a raw triple over raft's internals, the
 wrapper `sorry`): the client's update fires at the call's start (a ghost step: nothing physical is
 read before `setupNode`), inside the id's slot (`raft_start_boot`, through its accessor), which
@@ -351,7 +323,7 @@ private theorem wp_StartNode_impl
     EtcdGrove.StartNode.gatedSpec (GF := GF) (hG := hG) := by
   unfold EtcdGrove.StartNode.gatedSpec
   intro γ N vs ctxs c cv lok si csm Q F peers dq pv Cert hpCert hCert H1 H2 H3 H4 H5 H6 H7 H8 H9 Hmx Happ Hv Hvo Hl Hln
-    Hal Hvs
+    Hal Hvs x
   wp_start as ⟨Hc, #Hlg, #Hboot, Hvac, HAU, Hrs, Hpeers, #Hctx, Hstt⟩
   ihave #Hboot0 := Hboot
   -- (step 5) the capability's start, the traced scope and `run`'s fit (`startTrace_trCapStart`)
@@ -367,7 +339,7 @@ private theorem wp_StartNode_impl
   obtain ⟨Hid, Hnd, Hnz, Hlen, Hcfg, ⟨gd, Hmr⟩, Hbl⟩ := Hbp
   ihave #Hcl' := Hcl
   iunfold isClusterU at Hcl'
-  icases Hcl' with ⟨%HU, #Hci, #Hpool, #Htab⟩
+  icases Hcl' with ⟨%HU, #Hci, #Hpool⟩
   ihave #Hci' := Hci
   iunfold clusterInv at Hci'
   icases Hci' with ⟨%HNs, #Hcinv, -, -⟩
@@ -387,10 +359,14 @@ private theorem wp_StartNode_impl
     have := slotN_raftN γ.raft cv.ID' p hp
     unfold raftN at this; rw [HNs] at this
     exact nclose_subseteq N "raft" p this
-  iunfold EtcdGrove.nodeVacant at Hvac
-  iunfold nodeVacantU at Hvac
-  imod raft_start_boot ⊤ γ.raft cv.ID' (md := true) Q CoPset.subseteq_top Hmdb $$ Hvac [HAU]
-    with ⟨HQ, Hg, %gen, Hgen, Hfree⟩
+  iunfold EtcdGrove.nodeVacantA at Hvac
+  iunfold nodeVacantAU at Hvac
+  -- (2026-11-21, the crash invariant) the start is a ghost step: at a step, with the token
+  iapply (wp_ncfupd _ _ (by rfl))
+  unfold ncfupd
+  iintro Hnc
+  imod raft_start_boot ⊤ γ.raft cv.ID' (md := true) x Q CoPset.subseteq_top Hmdb $$ Hnc Hvac [HAU]
+    with ⟨Hnc, HQ, Hg, %gen, Hgen, Hfree⟩
   · have HEo : (⊤ \ ↑N : CoPset) ⊆ ⊤ \ ↑(slotN γ.raft cv.ID') := by
       intro p hp
       rw [Iris.Std.LawfulSet.mem_diff] at hp ⊢
@@ -417,6 +393,8 @@ private theorem wp_StartNode_impl
     iunfold EtcdGrove.raftState
     unfold raftStateU
     iframe Hdur Htlb0 Hbi0
+  imodintro
+  iframe Hnc
   -- the storage's frame and reads (`restartStorage` of the empty contents, freeze point `0`)
   iunfold restartStorage at Hrs
   icases Hrs with ⟨%i, %Rb, %f, %Hi, %Hf, HRb, #HFI, #HLI, #HIS⟩
@@ -595,9 +573,9 @@ private theorem wp_StartNode_impl
   imod dghostVar_alloc (GF := GF) true
     with ⟨%gstart, Hstart⟩
   imod dghostVar_persist gstart 1 _ $$ Hstart with #Hstart
-  ihave Hgen : slotLive (GF := GF) γ.raft cv.ID' ((1 : Qp).half + (1 : Qp).half) gen $$ [Hgen]
+  ihave Hgen : genView (GF := GF) γ.raft cv.ID' x ((1 : Qp).half + (1 : Qp).half) gen $$ [Hgen]
   · rw [Qp.half_add_half]; iexact Hgen
-  icases ((slotLive_fractional (GF := GF) γ.raft cv.ID' gen).fractional (1 : Qp).half
+  icases ((genView_fractional (GF := GF) γ.raft cv.ID' x gen).fractional (1 : Qp).half
     (1 : Qp).half).1 $$ Hgen with ⟨Hgen1, Hgen2⟩
   unfold newNodeChans
   icases Hchans with ⟨%γp, %γr, %γc, %γcs, %γrd, %γa, %γt, %γd, %γs, %γst, #Hcp, Hop, #Hcr, Hor,
@@ -630,6 +608,7 @@ private theorem wp_StartNode_impl
                           sn := sn
                           live := glive
                           gen := gen
+                          cx := x
                           dur := gdur
                           bw := gbw
                           start := gstart
@@ -637,15 +616,27 @@ private theorem wp_StartNode_impl
   have Hnok : NodeOk γ γn := ⟨rfl, rfl, rfl⟩
   have Hdy : γn.mode.isDyn = true := HdynOk γn Hnok
   -- the node's table entry, while its struct is owned whole
-  imod nodeTab_insert γ N np nv (cfgNamesOf γn) $$ Htab Hnp with ⟨#Hnp, #Hte⟩
-  haveI := nodeTabOk_persistent (GF := GF) γ np γn
-  ihave #Htb : nodeTabOk (GF := GF) γ np γn $$ []
-  · unfold nodeTabOk; iexact Hte
-  ihave #Htag : EtcdGrove.nodeTagPin γ np Cert $$ []
+  -- (2026-11-22, kvnet decision B) no node table: the node's handle carries its names
+  ipersist Hnp
+  ihave #Hnp := Hnp
+  haveI := nodeTabOk_persistent (GF := GF) γ (⟨np, γn⟩ : ApiImpl.NodeH) γn
+  ihave #Htb : nodeTabOk (GF := GF) γ (⟨np, γn⟩ : ApiImpl.NodeH) γn $$ []
+  · unfold nodeTabOk; ipureintro; rfl
+  ihave #Htag : EtcdGrove.nodeTagPin γ (show EtcdGrove.NodeH from (⟨np, γn⟩ : ApiImpl.NodeH)) Cert $$ []
   · iunfold EtcdGrove.nodeTagPin
+    try dsimp only
     iexists γn
     iframe Htb
     iExactEq Hsv; rfl
+  ihave #Harm : EtcdGrove.nodeArm (GF := GF) (show EtcdGrove.NodeH from (⟨np, γn⟩ : ApiImpl.NodeH)) γ x $$ []
+  · iunfold EtcdGrove.nodeArm
+    try dsimp only
+    unfold nodeArmU
+    try dsimp only
+    iexists γn
+    isplit
+    · iexact Htb
+    · ipureintro; rfl
   ihave Hlive1 : nodeLiveRaw (GF := GF) γn 1 $$ [Hlive1 Hgen1]
   · unfold nodeLiveRaw; iframe Hlive1 Hgen1
   ihave Hlive2 : nodeLiveRaw (GF := GF) γn 1 $$ [Hlive2 Hgen2]
@@ -710,16 +701,17 @@ private theorem wp_StartNode_impl
       iexists _; iexact Hbw
     itrivial
   iapply HΦ
-  iexists np, K
+  iexists (show EtcdGrove.NodeH from (⟨np, γn⟩ : ApiImpl.NodeH)), K
   isplitr
   · ipureintro; rfl
   -- (step 5, A8.3) the completion witness, `setupNode`'s
   ihave HsD : startDoneB (GF := GF) γ cv.ID' $$ []
   · unfold startDoneB Cluster.trace; iExactEq HbD; rfl
-  iframe HQ HF Hpeers HsD Htag
-  ihave #HisN : EtcdGrove.isNode (GF := GF) np γ N cv.ID' $$ []
+  iframe HQ HF Hpeers HsD Htag Harm
+  ihave #HisN : EtcdGrove.isNode (GF := GF) (show EtcdGrove.NodeH from (⟨np, γn⟩ : ApiImpl.NodeH)) γ N cv.ID' $$ []
   · iunfold EtcdGrove.isNode
     unfold isNode
+    try dsimp only
     iexists γn
     iframe Hnode Htb Hci Hpool
     ipureintro; exact ⟨Hnok, HU⟩
@@ -737,6 +729,7 @@ private theorem wp_StartNode_impl
   isplitl [Hdlv2 Hreq1 Hreq2 Hdur2 Hq1 Hq2]
   · iunfold EtcdGrove.nodeDriver
     unfold nodeDriver NodeDriverState.init
+    try dsimp only
     iexists γn, cv.ID', []
     isplitr
     · ipureintro; exact ⟨Hnok, rfl, rfl⟩
@@ -763,6 +756,7 @@ private theorem wp_StartNode_impl
   · iunfold EtcdGrove.nodeConfig
     isplitl [Hcap2 Hccq1 Hccq2]
     · unfold nodeConfig
+      try dsimp only
       iexists γn, cv.ID'
       iframe Hnode Htb
       isplitr
@@ -783,6 +777,7 @@ private theorem wp_StartNode_impl
     exact ⟨Nat.le_refl _, _, gd, Hmr, rfl⟩
   iunfold EtcdGrove.nodeRunning
   unfold nodeRunning
+  try dsimp only
   iexists γn, cv.ID'
   iframe Hnode Htb Hlive2
   ipureintro; exact ⟨Hnok, Hdy⟩
@@ -811,18 +806,18 @@ witness `True`). -/
 theorem StartNode.spec_of_gatedSpec (h : StartNode.gatedSpec (GF := GF) (hG := hG)) :
     StartNode.spec (GF := GF) (hG := hG) := by
   intro γ N vs ctxs c cv lok si csm Q F peers dq pv Cert hpCert hCert H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14
-    H15 H16 H17 Htlk HtrC
+    H15 H16 H17 Htlk HtrC x
   iintro %Φ ⟨#Hpkg, Hc, #Hlg, #Hb, Hvac, HAU, Hrs, Hpeers, #Hctx⟩ HΦ
   iapply h γ N vs ctxs c cv lok si csm Q F peers dq pv Cert hCert H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14
-    H15 H16 H17 $$ [Hc Hvac HAU Hrs Hpeers]
+    H15 H16 H17 x $$ [Hc Hvac HAU Hrs Hpeers]
   · iframe Hpkg Hc Hlg Hb Hvac HAU Hrs Hpeers Hctx
     iapply (startTrace_untraced γ N vs cv HtrC).2
     ipureintro; exact Htlk
   inext
-  iintro %nd ⟨%n, %K, %Hnd, H1, H2, H3, H4, H5, Htag, HQ, HF, Hp, -⟩
+  iintro %nd ⟨%n, %K, %Hnd, H1, H2, H3, H4, H5, Htag, Harm, HQ, HF, Hp, -⟩
   iapply HΦ
   iexists n, K
-  iframe H1 H2 H3 H4 H5 Htag HQ HF Hp
+  iframe H1 H2 H3 H4 H5 Htag Harm HQ HF Hp
   ipureintro; exact Hnd
 
 end proof

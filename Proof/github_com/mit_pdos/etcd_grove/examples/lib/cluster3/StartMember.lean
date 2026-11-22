@@ -180,7 +180,7 @@ theorem StartMember.wp_proof
     iapply ownSlice_nil
   -- (2026-10-21, D28) the server option: the keepalive policy, neutral
   (try wp_auto)
-  wp_apply wp_KEP as %kv %Hkv
+  wp_apply wp_KEP as %kv #Hkv
   wp_apply wp_slice_literal (V := GoInterface) [kv]
   try (isplitr; (ipureintro; rfl))
   iintro %gslp ⟨Hgsl, -⟩
@@ -196,9 +196,7 @@ theorem StartMember.wp_proof
   · iframe; iframe #
     isplitr
     · ipureintro; rw [HEw]; simp
-    ipureintro; intro v hv
-    simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hv
-    subst hv; exact Hkv
+    iapply BigSepL.bigSepL_nil.2; iempintro
   -- the registrations' old form (`serverRegsOk`, exact since auth-mediation M1)
   replace Hregs := v3rpc.serverRegsOk_sub Hregs
   haveI := Hms

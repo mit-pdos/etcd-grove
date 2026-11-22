@@ -57,6 +57,17 @@ func modelChooseN(n int) int {
 	return 0
 }
 
+// modelChooseLength is an arbitrary non-negative length (trusted, as modelChooseN: its GooseLang
+// body is any non-negative int): what the model reports where grpc-go reports a length of its
+// HTTP/2 encoding the model does not have (a header block's HPACK-encoded size, stats.InHeader's
+// WireLength). Its Go body is n (the model's own estimate), or random with GRPC_MODEL_CHOOSE=random.
+func modelChooseLength(n int) int {
+	if modelChooseRandom {
+		return rand.IntN(1 << 16)
+	}
+	return n
+}
+
 // modelChooseAddr is the index of the address an attempt dials: an arbitrary index below
 // len(addrs) (trusted, as modelChooseN: its GooseLang body is any index). Its Go body plays
 // grpc-go's round_robin, so that a real run spreads its attempts as grpc-go does: in turn, over

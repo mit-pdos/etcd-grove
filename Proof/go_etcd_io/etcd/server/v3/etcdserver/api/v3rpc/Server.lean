@@ -69,12 +69,15 @@ theorem v3rpc.srvOpts_forall2_app {α β : Type} {R : α → β → Prop} :
   | _, _, _, _, .cons a h1, h => .cons a (v3rpc.srvOpts_forall2_app h1 h)
 
 /-- Neutral options, each of the kind `.neutral`. -/
-theorem v3rpc.srvOpts_neutral (vs : List GoInterface) (h : ∀ v ∈ vs, grpcSrvOpt v .neutral) :
-    List.Forall₂ grpcSrvOpt vs (vs.map fun _ => SrvOptKind.neutral) := by
-  induction vs with
-  | nil => exact .nil
-  | cons v vs ih =>
-    exact .cons (h v (List.mem_cons_self ..)) (ih (fun w hw => h w (List.mem_cons_of_mem _ hw)))
+theorem v3rpc.srvOpts_neutral (vs : List GoInterface) :
+    ([∗list] v ∈ vs, grpcSrvOpt (GF := GF) v .neutral) ⊢
+      [∗list] v;k ∈ vs;vs.map (fun _ => SrvOptKind.neutral), grpcSrvOpt v k := by
+  iintro H
+  iapply (BigSepL2.bigSepL2_map_right (fun _ => SrvOptKind.neutral)).2
+  iapply BigSepL2.bigSepL2_const_sepL_left.2
+  isplit
+  · ipureintro; rfl
+  · iexact H
 
 theorem v3rpc.srvOpts_neutral_unary (vs : List GoInterface) :
     srvOptsUnary (vs.map fun _ => SrvOptKind.neutral) = [] := by
@@ -144,7 +147,7 @@ theorem v3rpc.Server.wp_proof
     v3rpc.Server.spec (GF := GF) (hG := hG) := by
   intro _
   intro s C d gsl gvs Hbuq Htb30
-  wp_start as ⟨#Hc, Hlr, Hbr, Hgo, #Hd, %Hdb, #Hgvs, %Hgn⟩
+  wp_start as ⟨#Hc, Hlr, Hbr, Hgo, #Hd, %Hdb, #Hgvs, #Hgn⟩
   iunfold v3rpc.grpcCfgOk at Hc
   icases Hc with ⟨#HKV, #Hws, #Hkv, #Hids, #Hlg0, #Hlg0n, #Hlg, #Hlgn, #Hqb, #Hmid, #Hn, %Hmx, #Hwd,
     #Hlead, #Hcl, #Hrc, #Hlk, #Hch, #Hstop, #Htm, #Het, #Hm, #Hfg, #Hgate, #Hmt, #Htr, #Htsl,
@@ -167,7 +170,7 @@ theorem v3rpc.Server.wp_proof
   wp_auto
   wp_alloc cp as Hcp
   (try wp_auto)
-  wp_apply (hCodec _) as %o1 %Ho1
+  wp_apply (hCodec _) as %o1 #Ho1
   · ipureintro; exact v3rpc.codec_proto cp
   (try wp_auto)
   wp_apply wp_slice_literal (V := GoInterface) (l := [o1])
@@ -213,22 +216,23 @@ theorem v3rpc.Server.wp_proof
   ipersist Hls
   (try wp_auto)
   generalize C.tr = tr
-  wp_join iprop(s_ptr ↦ s ∗ ∃ (o2 : GoSlice) (vs2 : List GoInterface), opts_ptr ↦ o2 ∗
-      o2 ↦*□ vs2 ∗ ownSliceCap GoInterface o2 (DFrac.own 1) ∗ ⌜∀ v ∈ vs2, grpcSrvOpt v .neutral⌝)
-      with [s opts Hcap1] as ⟨s, %o2, %vs2, opts, #Ho2, Hcap2, %Hvs2⟩
+  wp_join iprop(s_ptr ↦ s ∗ ∃ (o2 : GoSlice) (vs2 : List GoInterface) (ks2 : List SrvOptKind),
+      opts_ptr ↦ o2 ∗ o2 ↦*□ vs2 ∗ ownSliceCap GoInterface o2 (DFrac.own 1) ∗
+      ([∗list] v;k ∈ vs2;ks2, grpcSrvOpt v k) ∗ ⌜srvOptsUnary ks2 = [] ∧ srvOptsStream ks2 = []⌝)
+      with [s opts Hcap1] as ⟨s, %o2, %vs2, %ks2, opts, #Ho2, Hcap2, #Hvs2, %Hks2⟩
   · (try wp_auto)
     iframe s
-    iexists o_1, ([] ++ [o1])
+    iexists o_1, ([] ++ [o1]), [SrvOptKind.neutral]
     iframe; iframe #
-    ipureintro
-    intro v hv
-    simp only [List.nil_append, List.mem_singleton] at hv
-    subst hv; exact Ho1
+    isplitl []
+    · simp only [List.nil_append]
+      iapply BigSepL2.bigSepL2_singleton.2; iexact Ho1
+    · ipureintro; exact ⟨rfl, rfl⟩
   · (try wp_auto)
     wp_apply (hOtel C.tsl C.tos) as %h %Hh
     · iframe #
     (try wp_auto)
-    wp_apply (hStats h) as %o3 %Ho3
+    wp_apply (hStats h) as %o3 #Ho3
     · ipureintro; exact Hh
     (try wp_auto)
     wp_apply wp_slice_literal (V := GoInterface) (l := [o3])
@@ -243,16 +247,17 @@ theorem v3rpc.Server.wp_proof
     isplitl []
     · ipureintro; rfl
     iframe s
-    iexists o_3, (([] ++ [o1]) ++ [o3])
+    iexists o_3, (([] ++ [o1]) ++ [o3]), [SrvOptKind.neutral, SrvOptKind.stats h]
     iframe; iframe #
-    ipureintro
-    intro v hv
-    simp only [List.nil_append, List.mem_append, List.mem_singleton] at hv
-    rcases hv with rfl | rfl
-    · exact Ho1
-    · exact Ho3
+    isplitl []
+    · simp only [List.nil_append, List.singleton_append]
+      iapply BigSepL2.bigSepL2_cons.2
+      isplitl []
+      · iexact Ho1
+      · iapply BigSepL2.bigSepL2_singleton.2; iexact Ho3
+    · ipureintro; exact ⟨rfl, rfl⟩
   (try wp_auto)
-  wp_apply (hChainU _ [il, im, iu]) as %o4 %Ho4
+  wp_apply (hChainU _ [il, im, iu]) as %o4 #Ho4
   · iframe #
   (try wp_auto)
   wp_apply wp_slice_literal (V := GoInterface) (l := [o4])
@@ -264,7 +269,7 @@ theorem v3rpc.Server.wp_proof
     $$ [Hcap2 Hl4] as %o_4 ⟨#Ho_4, Hcap4, -⟩
   · iframe; iframe #
   (try wp_auto)
-  wp_apply (hChainS _ [ims, is]) as %o5 %Ho5
+  wp_apply (hChainS _ [ims, is]) as %o5 #Ho5
   · iframe #
   (try wp_auto)
   wp_apply wp_slice_literal (V := GoInterface) (l := [o5])
@@ -279,7 +284,7 @@ theorem v3rpc.Server.wp_proof
   wp_apply (hMRB (srvCfgAddr s) C.m)
   · iframe #
   (try wp_auto)
-  wp_apply (hRecv _) as %o6 %Ho6
+  wp_apply (hRecv _) as %o6 #Ho6
   (try wp_auto)
   wp_apply wp_slice_literal (V := GoInterface) (l := [o6])
   isplitr
@@ -292,7 +297,7 @@ theorem v3rpc.Server.wp_proof
   (try wp_auto)
   (try simp only [v3rpc.maxSendBytes])
   (try wp_auto)
-  wp_apply (hSend _) as %o7 %Ho7
+  wp_apply (hSend _) as %o7 #Ho7
   (try wp_auto)
   wp_apply wp_slice_literal (V := GoInterface) (l := [o7])
   isplitr
@@ -303,7 +308,7 @@ theorem v3rpc.Server.wp_proof
     $$ [Hcap6 Hl7] as %o_7 ⟨#Ho_7, Hcap7, -⟩
   · iframe; iframe #
   (try wp_auto)
-  wp_apply (hStreams _) as %o8 %Ho8
+  wp_apply (hStreams _) as %o8 #Ho8
   (try wp_auto)
   wp_apply wp_slice_literal (V := GoInterface) (l := [o8])
   isplitr
@@ -318,15 +323,17 @@ theorem v3rpc.Server.wp_proof
     $$ [Hcap8] as %oF ⟨#HoF, -, -⟩
   · iframe; iframe #
   (try wp_auto)
-  have Hks := v3rpc.srvOpts_forall2_app (v3rpc.srvOpts_forall2_app (v3rpc.srvOpts_forall2_app
-    (v3rpc.srvOpts_forall2_app (v3rpc.srvOpts_forall2_app (v3rpc.srvOpts_forall2_app
-      (v3rpc.srvOpts_neutral vs2 Hvs2) (.cons Ho4 .nil)) (.cons Ho5 .nil)) (.cons Ho6 .nil))
-      (.cons Ho7 .nil)) (.cons Ho8 .nil)) (v3rpc.srvOpts_neutral gvs Hgn)
-  wp_apply (hNewSrv _ _ _) as %gs Hgs
-  · iframe #; ipureintro; exact Hks
+  ihave #Hgn' := v3rpc.srvOpts_neutral gvs $$ Hgn
+  wp_apply (hNewSrv _ _ ((((((ks2 ++ [SrvOptKind.chainUnary [il, im, iu]]) ++
+      [SrvOptKind.chainStream [ims, is]]) ++ [SrvOptKind.neutral]) ++ [SrvOptKind.neutral]) ++
+      [SrvOptKind.neutral]) ++ gvs.map (fun _ => SrvOptKind.neutral))) as %gs Hgs
+  · iframe #
+    iframe Hgn'
+    repeat isplitl []
+    all_goals (iapply BigSepL2.bigSepL2_nil.2; iempintro)
   simp only [v3rpc.srvOptsUnary_append, v3rpc.srvOptsStream_append, v3rpc.srvOptsUnary_single,
     v3rpc.srvOptsStream_single, v3rpc.srvOpts_neutral_unary, v3rpc.srvOpts_neutral_stream,
-    SrvOptKind.unary, SrvOptKind.stream, List.nil_append, List.append_nil]
+    SrvOptKind.unary, SrvOptKind.stream, List.nil_append, List.append_nil, Hks2.1, Hks2.2]
   (try wp_auto)
   iunfold v3rpc.svcDescsOk at Hdescs
   icases Hdescs with ⟨⟨%kmds, %ksds, #HdKV, %HkvD⟩, ⟨%wsds, #HdW, %HwD⟩, ⟨%lmds, %lsds, #HdL, %HlD⟩,

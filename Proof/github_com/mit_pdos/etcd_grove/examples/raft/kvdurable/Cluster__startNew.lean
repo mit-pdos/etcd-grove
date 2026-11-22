@@ -34,7 +34,7 @@ variable [go_gctx : GoGlobalContext] [go.IntoValInj GoString]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
 
 attribute [local instance] kdStorageModel
 
@@ -86,6 +86,7 @@ theorem Cluster.startNew.wp_proof
   icases Hcl' with ⟨#Hic, -, -, -, -, -⟩
   have HnU : nid ∉ U := by rw [HdomU]; omega
   imod joinAuth_join γ.r.cluster kdRaftN U nid HnU Hnid0 $$ [$Hic $Hjoin] with ⟨Hjoin, HrS, Hvac⟩
+  imod nodeVacant_armD γ.r.cluster nid ⊤ $$ Hvac with Hvac
   -- the id's file: its invariant at no contents, the writer's half for `start`
   have e2 : uint.nat (nid + W64 1) = uint.nat nid + 1 := by word
   have Hfr : raft_kvreconf.freshIdsM γ.max (uint.nat nid) =

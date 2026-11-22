@@ -22,8 +22,9 @@ definition is mvcc's (`InvStore.lean`), shared by both.
 * `isApplyLessor le γ P f` (`lease.Lessor`): the txn package's `isTxnLessor`, and `Grant`
   (`csContract`; a lease the lessor knows, `leaseIs`), `Revoke` (`csContract`; at the sole
   writer of `log`, it deletes keys through the store: the sole writer of `log` with deletions
-  committed), `Checkpoint` (`csContract`), `Lookup` (nil or a lease, `leaseIs`: its `ID`, and its
-  `TTL()` and `Keys()` return).
+  committed), `Checkpoint` (`csContract`). (Its token-free `Lookup` clause, nil or a lease `leaseIs`,
+  deleted by prove-ps2-newlessor5, 2026-11-21: no proof used it, none over the real code gives it; a
+  `Lookup` goes through `isTxnLessor`'s, with its reader slot.)
 * `isAlarmStore st P f` (`*v3alarm.AlarmStore`): `Get` returns a slice, `Activate`/`Deactivate`
   are `csContract`s returning nil or an alarm member (`alarmMemberIs`).
 * `isCluster c P f` (`*membership.RaftCluster`): `Version` (a pointer, maybe nil), `ID`;
@@ -369,7 +370,7 @@ names-only; strict M1, 2026-11-05: over mvcc's API, the store `γ`, the batch lo
 current backend `B` (tied by `BT`), its hook `f`, the backend's write-back and reader tokens
 `bkWT B`/`bkRT B` in place of mvcc's `storeWT`/`storeRT`, decided by the coordinator): the txn
 package's `isTxnLessor`; `Grant` (below), `Revoke` (`revokeClause`), `Checkpoint` under the batch
-lock, `Lookup` (nil or a lease, `leaseIs`). `Checkpoint` takes the write right `RW` of the lease
+lock (its `Lookup` clause deleted, 2026-11-21: `isTxnLessor` has one). `Checkpoint` takes the write right `RW` of the lease
 bucket and gives it back (the coordinator's decision, 2026-11-06: the lessor's backend lends `le.b`
 from the resource its writes give back). (From `lean`: the lease-grant plan's D3, 2026-11-02)
 `Grant`'s clause exact, as `lease.lessor.Grant.spec`: an error exactly when the id is `0`, the TTL
@@ -412,10 +413,7 @@ def isApplyLessor (le : GoInterface) (γ : MvccName) (Pk : mvcc.KBReal → IProp
     □ (∀ (id rem : w64) (B : mvcc.KBReal) (Pre Q Post : IProp GF),
       {{ csContractA (Pk B) f Pre Q Post ∗ bkWT B ∗ bkRT B ∗ BT B ∗ RW }}
         (App (App (Val #(methods li.ty go!"Checkpoint" li.v)) (Val #id)) (Val #rem))
-      {{ (err : GoInterface), RET #err; (Post ∨ Pre) ∗ bkRT B ∗ BT B ∗ RW ∗ applyErrIs err }}) ∗
-    □ (∀ id : w64,
-      {{ True }} (App (Val #(methods li.ty go!"Lookup" li.v)) (Val #id))
-      {{ (l : Loc), RET #l; ⌜l = null⌝ ∨ leaseIs l id }}))
+      {{ (err : GoInterface), RET #err; (Post ∨ Pre) ∗ bkRT B ∗ BT B ∗ RW ∗ applyErrIs err }}))
 
 instance revokeClause_persistent (le : GoInterfaceOk) (γ : MvccName) (Pk : mvcc.KBReal → IProp GF)
     (f : GoFunc) (BT : mvcc.KBReal → IProp GF) (RO : RestM → IProp GF) :
@@ -428,7 +426,7 @@ instance isApplyLessor_persistent (le : GoInterface) (γ : MvccName) (Pk : mvcc.
   unfold isApplyLessor; infer_instance
 
 /-- The lessor's contract at some rest resource (what the permission checks take: they call only
-`Lookup`). -/
+`Lookup`, through `isTxnLessor`'s clause). -/
 def isApplyLessorAny (le : GoInterface) (γ : MvccName) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc)
     (BT : mvcc.KBReal → IProp GF) (RW : IProp GF) : IProp GF :=
   iprop(∃ RO : RestM → IProp GF, isApplyLessor le γ Pk f BT RO RW)
@@ -553,7 +551,9 @@ theorem alarmGetOk_of (st : Loc) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc) (B
   iexact HG
 
 /-- **The `*membership.RaftCluster` `c`** (trust boundary: `membership` is names-only):
-`Version` (a `*semver.Version`, maybe nil) and `ID` return; `SetVersion` (with a version not
+`Version` (a `*semver.Version`, nil or read-only: `cluster.go:580-587` returns
+`semver.MustParse(c.version.String())`, a fresh version nothing else holds; 2026-11-22,
+prove-ps2-semver: until then some pointer, `notes/specs-only/ledger.md`) and `ID` return; `SetVersion` (with a version not
 nil), `UpdateAttributes` and `SetDowngradeInfo` (which keeps the `DowngradeInfo` pointer) write
 the cluster's bucket under the batch lock only with `shouldApplyV3` (`cPre b`: the
 critical-section contract; without it, no write: `ApplyV2storeOnly`; unit 2). (D22, 2026-10-23:
@@ -583,7 +583,7 @@ def isCluster (c : Loc) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc) (BT : mvcc.
     □ ({{ True }}
         (App (Val (c @!! go.GoType.PointerType etcdserver.api.membership.RaftCluster.ty @!!
           go!"Version")) (Val #()))
-      {{ (v : Loc), RET #v; True }}) ∗
+      {{ (v : Loc), RET #v; ⌜v = null⌝ ∨ ∃ x : github_com.Masterminds.semver.v3.Version, v ↦□ x }}) ∗
     □ ({{ True }}
         (App (Val (c @!! go.GoType.PointerType etcdserver.api.membership.RaftCluster.ty @!!
           go!"ID")) (Val #()))

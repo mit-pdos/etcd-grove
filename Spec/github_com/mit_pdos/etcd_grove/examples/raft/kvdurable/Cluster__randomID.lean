@@ -24,14 +24,14 @@ variable [go_gctx : GoGlobalContext] [go.IntoValInj GoString]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
 
 attribute [local instance] kdStorageModel
 
 /-- See the file header. -/
 abbrev Cluster.randomID.spec : Prop :=
   ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (c csp : Loc) (cs : ConfStateM) (add : Bool),
-  {{ isClusterC γ vs dir c ∗ csOpt csp DFrac.discard cs }}
+  {{ isClusterC (GF := GF) γ vs dir c ∗ csOpt csp DFrac.discard cs }}
     (App (App (Val (c @!! go.GoType.PointerType kClusterTy @!! go!"randomID")) (Val #csp))
       (Val #add))
   {{ (id : w64), RET #id; True }}

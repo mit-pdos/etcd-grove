@@ -360,7 +360,9 @@ theorem trCapB_hookGate_boot (tr : Option GName) (γ : RaftNames) (r : Loc) (id 
     simp only [trCapB]
     iintro ⟨#Hl, -⟩
     iunfold HookGate
+    iintro Hnc
     imodintro
+    iframe Hnc
     iexists tl0
     isplitr
     · iexact Hl
@@ -372,7 +374,9 @@ theorem trCapB_hookGate_boot (tr : Option GName) (γ : RaftNames) (r : Loc) (id 
     iintro ⟨-, Hcap⟩
     icases trCapB_logger γd γ r id cC false Φ Λ $$ Hcap with ⟨%tl, #Htl, Hcap⟩
     iunfold HookGate
+    iintro Hnc
     imodintro
+    iframe Hnc
     iexists tl
     isplitr
     · iexact Htl

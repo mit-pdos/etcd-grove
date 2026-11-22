@@ -1,6 +1,8 @@
 /-
 `collectReasonsAndErrors(prefix, d, dec)` (`conditionsunion.go`): new slices of reasons and errors
-(recursively through `d`'s unions). Lean-first (no Rocq counterpart).
+(recursively through `d`'s unions). The premise bounds the prefix's length plus `d`'s depth by
+`2 ^ 63`: at each union the function extends the prefix by one name with `slices.Concat`, which
+panics when the length overflows `int`. Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -28,6 +30,7 @@ variable [package_sem : k8s_io.apiserver.pkg.authorization.authorizer.Assumption
 /-- See the file header. -/
 abbrev collectReasonsAndErrors.spec : Prop :=
   ∀ (s : GoSlice) (dq : DFrac) (pre : List GoString) (d : ConditionsAwareDecision) (m : Dec) (k : w64),
+  pre.length + m.depth < 2 ^ 63 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.authorization.authorizer ∗ s ↦*{dq} pre ∗ isDecision d m }}
     (App (App (App (Val (@! collectReasonsAndErrors)) (Val #s)) (Val #d)) (Val #k))
   {{ (rs es : GoSlice), RET (PairV #rs #es); s ↦*{dq} pre ∗

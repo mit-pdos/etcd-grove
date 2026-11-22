@@ -35,13 +35,16 @@ REVIEWED = {
         'status.statusAt a premise only: the read-only status the producer built (its code returned)',
     'Spec/k8s_io/apiserver/pkg/storage/etcd3/metrics/RecordEtcdRequest.lean':
         'statusErrOk a premise only (no description or code in its post)',
+    'Spec/k8s_io/apiserver/pkg/storage/etcd3/metrics/OperationLatencyTracker__Record.lean':
+        'statusErrOk a premise only (no description or code in its post; as RecordEtcdRequest, whose '
+        'errorReason Record shares): the caller proves it, store.Get from Client.Get\'s post '
+        '(statusErrOk_split); prove-metrics 2026-11-21, examples/premisefix/latencytracker',
     'Spec/errors/IsStatusErr.lean':
         'a leaf: == compares values, Is answers true only for an equal description (grpcErrMethodsOk)',
     'Spec/fmt/ErrorfWrap.lean':
         "the model's errorString cell and Go's wrapError msg are written once; the errDesc prefix "
         "only given an Unwrap method (Go's wrapError; H0, 2026-11-18: vacuous of the model's error)",
     'Spec/go_etcd_io/etcd/client/v3/Client__Endpoints.lean': 'statusErrOk opened, not used',
-    'Spec/go_etcd_io/etcd/client/v3/waitRetryBackoff.lean': 'statusErrOk opened, not used',
     'Spec/google_golang_org/grpc/model/respond.lean':
         'srvErrOk err a premise of the pre (stable Error()/GRPCStatus(): status.FromError, server.go:1461): '
         'the carrier (Proof/google_golang_org/grpc/model/Serve.lean:71-72) gets it from the deposited run '

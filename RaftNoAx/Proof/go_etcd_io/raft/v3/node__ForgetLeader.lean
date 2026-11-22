@@ -119,12 +119,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 private theorem node.wp_ForgetLeader_impl
     (hS : EtcdGrove.node.ForgetLeader.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.ForgetLeader.spec (GF := GF) (hG := hG) := by
-  unfold EtcdGrove.node.ForgetLeader.spec EtcdGrove.Cluster EtcdGrove.isNode
+  unfold EtcdGrove.node.ForgetLeader.spec EtcdGrove.Cluster EtcdGrove.NodeH EtcdGrove.NodeH.loc EtcdGrove.isNode
   intro n γ N id ctx cd Htr
   iintro %Φ ⟨#Hinit, #Hnode, #Hctx⟩ HΦ
   iunfold isNode at Hnode
   icases Hnode with ⟨%γn, %Hf, #Hrn, #Htab, -⟩
-  iapply (hS γn id n ctx cd (by rw [Hf.1]; exact Htr)) $$ []
+  iapply (hS γn id n.loc ctx cd (by rw [Hf.1]; exact Htr)) $$ []
   · iframe Hinit Hrn Hctx
   iintro !> %err #Herr
   iapply HΦ

@@ -46,6 +46,8 @@ theorem txn.ApplySecObserve.wp_proof
   wp_method_call
   wp_call
   (try wp_auto)
+  wp_apply wp_float64_div as %_ -
+  (try wp_auto)
   wp_apply hFB as %fb %Hfb
   wp_apply wp_slice_literal
   isplitr

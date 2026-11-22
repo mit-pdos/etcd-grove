@@ -138,6 +138,9 @@ translate = ["!*", "RangeRequest_SortOrder_name", "RangeRequest_SortTarget_name"
   "authClient.Authenticate", "Auth_Authenticate_FullMethodName",
   # C1's A5 (2026-10-31): the generated server-side handler of `Authenticate`
   "_Auth_Authenticate_Handler",
+  # (prove-ps2-client2, 2026-11-22) the generated Cluster and Maintenance stubs' constructors
+  # (`clientv3.RetryClusterClient`/`RetryMaintenanceClient` call them)
+  "NewClusterClient", "NewMaintenanceClient",
   # the closed lease example (2026-11-02): the Lease stub's two reads, their method names and
   # handlers, the request of `Leases` and the getters the client reads
   "leaseClient.LeaseTimeToLive", "leaseClient.LeaseLeases", "Lease_LeaseTimeToLive_FullMethodName",
@@ -154,3 +157,26 @@ imports = ["!*", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/member
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`; until 2026-11-22
+# their initializers were untranslated, `opaqueInitsOk`). goose refuses a reference to one from
+# translated code, so no verified code reads them; each reason says why not running the
+# initializer is unobservable.
+[[skip]]
+names = ["file_etcdserver_proto_msgTypes", "file_etcdserver_proto_goTypes",
+  "file_etcdserver_proto_depIdxs", "file_raft_internal_proto_msgTypes",
+  "file_raft_internal_proto_goTypes", "file_raft_internal_proto_depIdxs", "AlarmType_name",
+  "AlarmType_value", "RangeRequest_SortOrder_value", "RangeRequest_SortTarget_value",
+  "Compare_CompareResult_name", "Compare_CompareResult_value", "Compare_CompareTarget_name",
+  "Compare_CompareTarget_value", "WatchCreateRequest_FilterType_name",
+  "WatchCreateRequest_FilterType_value", "AlarmRequest_AlarmAction_name",
+  "AlarmRequest_AlarmAction_value", "DowngradeRequest_DowngradeAction_name",
+  "DowngradeRequest_DowngradeAction_value", "file_rpc_proto_enumTypes", "file_rpc_proto_msgTypes",
+  "file_rpc_proto_goTypes", "file_rpc_proto_depIdxs"]
+reason = """
+Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable."""
+# --- end of skipped package variables ---

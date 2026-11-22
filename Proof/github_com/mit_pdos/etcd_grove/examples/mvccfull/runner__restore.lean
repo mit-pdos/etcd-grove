@@ -318,11 +318,11 @@ theorem runner.restore.wp_proof
     (try wp_auto)
     -- the snapshot's backend opened for the store, at the image (`inc_open_backend`)
     have hRB : receiptBound GF ≤ 2 ^ 38 := ReceiptBoundLe.receiptBound_le
-    have hk : receiptBound GF + ((sint.Z cfg.Ops').toNat + 1) + 4 ≤ backend.wbInit := by
+    have hk : receiptBound GF + ((sint.Z cfg.Ops').toNat + 1) + 5 ≤ backend.wbInit := by
       rw [backend.wbInit_val]; omega
     imod inc_open_backend hopen hrest hCR γB bnb gx (limOf cfg) vb'.path D
         (σOf ks ops vb'.ops).log (σOf ks ops vb'.ops).crev u ((sint.Z cfg.Ops').toNat + 1) hk
-      $$ [Hreg Himg Hbfn Hbpn Hnew] with ⟨Hsf, Hbkn, Hplh, Hrbn, Hwb1, Hwb2⟩
+      $$ [Hreg Himg Hbfn Hbpn Hnew] with ⟨Hsf, Hbkn, Hplh, Hrbn, Hwb2', -⟩
     · iframe #; iframe
     -- `f.le.Recover(newbe, func() lease.TxnDelete { return kv.Write(traceutil.TODO()) })`
     obtain ⟨recs, hrecs1, hrecs2, hrecs3⟩ := HrecD
@@ -332,10 +332,6 @@ theorem runner.restore.wp_proof
     iunfold bkKeep at Hbkn
     icases Hbkn with ⟨%HnP, #Hnisb, #Hnsc, Hnbf, Hnbp, Hnoh, HnRT, Hntoks, Hncen⟩
     simp only [mvccrand.rcKB_P]
-    ihave Hwb2' : ownToks γB.wb 2 $$ [Hwb1 Hwb2]
-    · ihave Hwb1 := (backend.wbTok_toks γB).1 $$ Hwb1
-      ihave Hwb2 := (backend.wbTok_toks γB).1 $$ Hwb2
-      iapply (ownToks_add 1 1 γB.wb).2; iframe
     ihave HEv : (if recs = [] then iprop(True) else lease.leaseEver (mvccLeases v1.ι.kv) v1.U) ∗
         (if recs = [] then lease.leaseEver (mvccLeases v1.ι.kv) v1.U else iprop(True)) $$ [HlEver]
     · split <;> iframe

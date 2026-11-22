@@ -70,14 +70,14 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- See the file header. -/
 private abbrev node.ProposeConfChange.specRaw : Prop :=
-  ∀ (γ : NodeNames) (id : w64) (n : Loc) (c : GoInterface) (o : ConfChangeIM) (cc : ConfChangeIC)
+  ∀ (γ : NodeNames) (id : w64) (n : ApiImpl.NodeH) (c : GoInterface) (o : ConfChangeIM) (cc : ConfChangeIC)
     (dq : DFrac) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     -- (2026-10-28) the node in the API's cluster `γc`: what the clean `node.Step` takes
     (γc : ApiImpl.Cluster) (N : Namespace),
   ApiImpl.NodeOk γc γ →
   -- (2026-11-12, trace-check implementation step 1) refused at a traced node
   γ.raft.reTrace = none →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n.loc ∗
       ApiImpl.isNode n γc N id ∗ nodeCtx ctx cd ∗
       -- (out_size C3, P5) the change at its content, of model `o`, its encoding within the bound on
       -- an entry's bytes when the cluster bounds proposed data
@@ -86,7 +86,7 @@ private abbrev node.ProposeConfChange.specRaw : Prop :=
       -- (2026-10-27) the proposal tracked under its key (`ccPropArg`; until then
       -- `CCAllowed γ.raft o`, a change the cluster's policy admits)
       ccPropArg γ.raft o }}
-    (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ProposeConfChange"))
+    (App (App (Val (n.loc @!! go.GoType.PointerType node.ty @!! go!"ProposeConfChange"))
       (Val #(interface.ok ctx))) (Val #c))
   -- (raft-final, K5) `node.Step`'s answer, at the API's cluster
   {{ (err : GoInterface), RET #err; ownConfChangeI c dq (some o) ∗ nodeErrS n γc N cd err }}
@@ -122,12 +122,13 @@ private theorem node.ProposeConfChange.wp_raw
   ihave Hc := ccPtsCCo_own c dq (some cc) $$ Hc
   simp only [Option.map_some, Ho] at Hbs ⊢
   -- (2026-10-27) the proposal's ghost work: tracked under its key, its ticket on the entry
-  ihave #Hcinv := isNode_commitInv γ id n $$ Hnode
+  ihave #Hcinv := isNode_commitInv γ id n.loc $$ Hnode
   imod cc_propose_ghost γ.raft o bs Hbs $$ Hcinv Harg with ⟨#Hent, Htk⟩
   -- (2026-10-28) the clean `node.Step`: the forwarded proposal is a `stepIn` at every node names of
   -- the cluster, whose `raft` is `γ`'s (`fwdP` reads only it)
   have wpS := wp_node_Step
   unfold EtcdGrove.node.Step.spec EtcdGrove.isNode EtcdGrove.stepIn EtcdGrove.Cluster at wpS
+  unfold EtcdGrove.NodeH.loc at wpS
   icases msgInC_nn _ ml _ _ $$ Hm with ⟨%Hnn, Hm⟩
   wp_apply wpS n γc N id ml ctx cd $$ [$HnodeA $Hctx Hm Htk]
   · unfold ApiImpl.stepIn
@@ -177,7 +178,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 private theorem node.wp_ProposeConfChange_impl
     (hP : EtcdGrove.node.ProposeConfChange.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.ProposeConfChange.spec (GF := GF) (hG := hG) := by
-  unfold EtcdGrove.node.ProposeConfChange.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.ownCommittedOps
+  unfold EtcdGrove.node.ProposeConfChange.spec EtcdGrove.Cluster EtcdGrove.NodeH EtcdGrove.NodeH.loc EtcdGrove.isNode EtcdGrove.ownCommittedOps
     EtcdGrove.Cluster.dup
   intro n γ N id c o cc dq ctx cd Htr
   iintro %Φ ⟨#Hinit, #Hnode, #Hctx, Hcc, %Hmd, Hau⟩ HΦ

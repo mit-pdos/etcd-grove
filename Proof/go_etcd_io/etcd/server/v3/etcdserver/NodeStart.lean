@@ -124,7 +124,7 @@ A fancy update: `tickMu`'s guard over `latestTickTs` is made here (`sync.init_RW
 pools at levels 3 and 4, half of the lock's `2 ^ 30 - 1` slots each, under `threadBound GF ≤ 2 ^ 29`);
 the node is raft's (`Hnode`, recorded in `isRaftNode`). -/
 theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames GF) (a : Loc) (rv : raftNode)
-    (Hnode : rv.raftNodeConfig'.Node' = interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.node.ty) #γ.nl)
+    (Hnode : rv.raftNodeConfig'.Node' = interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.node.ty) #γ.nl.loc)
     (Hbnd : threadBound GF ≤ 2 ^ 29) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       rnEnvOk E γ ∗ rnLogFits γ ∗ rnReadStateBridge E γ ∗
@@ -881,7 +881,7 @@ abbrev NodeStartSpecR : Prop :=
         -- the configuration at the backend's index, the server's raft-log invariant, the backend's
         -- log committed, the records' snapshot certificate
         "#Hclu" ∷ isCluster γr.cl srvClusterN ∗ "#Hrf" ∷ readyFits γr.cl srvClusterN ∗
-        "Hvac" ∷ nodeVacant γr.cl cv.ID' ∗ "HrS" ∷ raftState γr.cl cv.ID' S ∗
+        "Hvac" ∷ (∃ x, nodeVacantA γr.cl cv.ID' x) ∗ "HrS" ∷ raftState γr.cl cv.ID' S ∗
         "#Hconf" ∷ confAt γr.cl A₀.length m ∗
         "#Hlinv" ∷ srvRaftLogInv ⟨γr, [], W64 0⟩ ∗ "#HA0" ∷ srvRLogLb ⟨γr, [], W64 0⟩ A₀ ∗
         "#Hcert" ∷ walSnapCert γr.cl σ ∗

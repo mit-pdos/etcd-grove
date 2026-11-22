@@ -22,6 +22,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"net"
 	"net/http"
@@ -149,16 +150,19 @@ type Server struct {
 }
 
 type serverOptions struct {
-	creds                 credentials.TransportCredentials
-	codec                 baseCodec
-	cp                    Compressor
-	dc                    Decompressor
-	unaryInt              UnaryServerInterceptor
-	streamInt             StreamServerInterceptor
-	chainUnaryInts        []UnaryServerInterceptor
-	chainStreamInts       []StreamServerInterceptor
-	binaryLogger          binarylog.Logger
-	inTapHandle           tap.ServerInHandle
+	creds credentials.TransportCredentials
+	// MODEL: codec holds a baseCodec (or nil), stored as any: baseCodec's methods name
+	// mem.BufferSlice, and the struct names no type of package mem (see bufferPool below), until
+	// mem is translated with its pools. getCodec asserts it back.
+	codec           any
+	cp              Compressor
+	dc              Decompressor
+	unaryInt        UnaryServerInterceptor
+	streamInt       StreamServerInterceptor
+	chainUnaryInts  []UnaryServerInterceptor
+	chainStreamInts []StreamServerInterceptor
+	// MODEL: no binaryLogger and inTapHandle fields (binary logging and tap handles are not
+	// modelled: their options panic when NewServer applies them, below).
 	statsHandlers         []stats.Handler
 	maxConcurrentStreams  uint32
 	maxReceiveMessageSize int
@@ -175,10 +179,12 @@ type serverOptions struct {
 	maxHeaderListSize     *uint32
 	headerTableSize       *uint32
 	numServerWorkers      uint32
-	bufferPool            mem.BufferPool
-	waitForHandlers       bool
-	staticWindowSize      bool
-	streamWrapper         func(ServerStream) (ServerStream, error)
+	// MODEL: no bufferPool field: the server's receive buffers come from mem.DefaultBufferPool()
+	// (grpc-go's default), and the option setting another pool is not modelled (bufferPool,
+	// below), so that the struct names no type of package mem.
+	waitForHandlers  bool
+	staticWindowSize bool
+	streamWrapper    func(ServerStream) (ServerStream, error)
 }
 
 var defaultServerOptions = serverOptions{
@@ -189,7 +195,6 @@ var defaultServerOptions = serverOptions{
 	writeBufferSize:       defaultWriteBufSize,
 	sharedWriteBuffer:     true,
 	readBufferSize:        defaultReadBufSize,
-	bufferPool:            mem.DefaultBufferPool(),
 }
 var globalServerOptions []ServerOption
 
@@ -526,11 +531,10 @@ func ChainStreamInterceptor(interceptors ...StreamServerInterceptor) ServerOptio
 // Notice: This API is EXPERIMENTAL and may be changed or removed in a
 // later release.
 func InTapHandle(h tap.ServerInHandle) ServerOption {
+	// MODEL: tap handles are not modelled: the option panics when NewServer applies it (where the
+	// model's NewServer panicked on a set inTapHandle before), and the field is gone.
 	return newFuncServerOption(func(o *serverOptions) {
-		if o.inTapHandle != nil {
-			panic("The tap handle was already set and may not be reset.")
-		}
-		o.inTapHandle = h
+		panic(notModelled("grpc: InTapHandle"))
 	})
 }
 
@@ -550,8 +554,10 @@ func StatsHandler(h stats.Handler) ServerOption {
 // binaryLogger returns a ServerOption that can set the binary logger for the
 // server.
 func binaryLogger(bl binarylog.Logger) ServerOption {
+	// MODEL: binary logging is not modelled: the option panics when NewServer applies it (where
+	// the model's NewServer panicked on a set binaryLogger before), and the field is gone.
 	return newFuncServerOption(func(o *serverOptions) {
-		o.binaryLogger = bl
+		panic(notModelled("grpc: binary logging"))
 	})
 }
 
@@ -654,8 +660,10 @@ func WaitForHandlers(w bool) ServerOption {
 }
 
 func bufferPool(bufferPool mem.BufferPool) ServerOption {
+	// MODEL: a server buffer pool other than the default is not modelled: the option panics when
+	// NewServer applies it (the field is gone; see serverOptions).
 	return newFuncServerOption(func(o *serverOptions) {
-		o.bufferPool = bufferPool
+		panic(notModelled("grpc: a server buffer pool"))
 	})
 }
 
@@ -693,15 +701,6 @@ func NewServer(opt ...ServerOption) *Server {
 		services:     make(map[string]*serviceInfo),
 		quit:         grpcsync.NewEvent(),
 		done:         grpcsync.NewEvent(),
-	}
-	if len(opts.statsHandlers) != 0 {
-		panic(notModelled("grpc: stats handlers"))
-	}
-	if opts.binaryLogger != nil {
-		panic(notModelled("grpc: binary logging"))
-	}
-	if opts.inTapHandle != nil {
-		panic(notModelled("grpc: InTapHandle"))
 	}
 	if opts.cp != nil || opts.dc != nil {
 		panic(notModelled("grpc: compression"))
@@ -972,7 +971,7 @@ func (s *Server) handleRawConn(lisAddr string, rawConn net.Conn) {
 		return
 	}
 	rawConn.SetDeadline(time.Time{})
-	st := newServerTransport(rawConn, s.opts.maxReceiveMessageSize)
+	st := newServerTransport(rawConn, s.opts.maxReceiveMessageSize, s.statsHandler)
 	st.peer.AuthInfo = authInfo
 
 	if !s.addConn(lisAddr, st) {
@@ -988,9 +987,19 @@ func (s *Server) handleRawConn(lisAddr string, rawConn net.Conn) {
 // workers.
 func (s *Server) serveStreams(ctx context.Context, st *serverTransport, rawConn net.Conn) {
 	ctx = peer.NewContext(ctx, st.Peer())
+	if s.statsHandler != nil {
+		ctx = s.statsHandler.TagConn(ctx, &stats.ConnTagInfo{
+			RemoteAddr: st.Peer().Addr,
+			LocalAddr:  st.Peer().LocalAddr,
+		})
+		s.statsHandler.HandleConn(ctx, &stats.ConnBegin{})
+	}
 
 	defer func() {
 		st.Close(errors.New("finished serving streams for the server transport"))
+		if s.statsHandler != nil {
+			s.statsHandler.HandleConn(ctx, &stats.ConnEnd{})
+		}
 	}()
 
 	st.HandleStreams(ctx, func(stream *serverTransportStream) {
@@ -1163,15 +1172,41 @@ func (s *Server) wrapUnaryHandler(md *MethodDesc) StreamHandler {
 }
 
 func (s *Server) processRPC(ctx context.Context, stream *serverTransportStream, info *serviceInfo, sd *StreamDesc) (err error) {
+	sh := s.statsHandler
+	var statsBegin *stats.Begin
+	if sh != nil {
+		statsBegin = &stats.Begin{
+			BeginTime:      time.Now(),
+			IsClientStream: sd.ClientStreams,
+			IsServerStream: sd.ServerStreams,
+		}
+		sh.HandleRPC(ctx, statsBegin)
+	}
 	ctx = NewContextWithServerTransportStream(ctx, stream)
 	ss := &serverStream{
 		ctx:                   ctx,
 		s:                     stream,
-		p:                     parser{r: stream, bufferPool: s.opts.bufferPool},
+		p:                     parser{r: stream, bufferPool: mem.DefaultBufferPool()}, // MODEL: the default pool (serverOptions)
 		codec:                 s.getCodec(stream.ContentSubtype()),
 		desc:                  sd,
 		maxReceiveMessageSize: s.opts.maxReceiveMessageSize,
 		maxSendMessageSize:    s.opts.maxSendMessageSize,
+		statsHandler:          sh,
+	}
+
+	if sh != nil {
+		// (grpc-go's deferred function for tracing, the stats handler and channelz; the model has
+		// the stats handler's part)
+		defer func() {
+			end := &stats.End{
+				BeginTime: statsBegin.BeginTime,
+				EndTime:   time.Now(),
+			}
+			if err != nil && err != io.EOF {
+				end.Error = toRPCErr(err)
+			}
+			sh.HandleRPC(ctx, end)
+		}()
 	}
 
 	// If dc is set and matches the stream's compression, use it.  Otherwise, try
@@ -1273,6 +1308,19 @@ func (s *Server) handleStream(t *serverTransport, stream *serverTransportStream)
 	service := sm[:pos]
 	method := sm[pos+1:]
 
+	// FromIncomingContext is expensive: skip if there are no statsHandlers
+	if s.statsHandler != nil {
+		md, _ := metadata.FromIncomingContext(ctx)
+		ctx = s.statsHandler.TagRPC(ctx, &stats.RPCTagInfo{FullMethodName: stream.Method()})
+		s.statsHandler.HandleRPC(ctx, &stats.InHeader{
+			FullMethod:  stream.Method(),
+			RemoteAddr:  t.Peer().Addr,
+			LocalAddr:   t.Peer().LocalAddr,
+			Compression: stream.RecvCompress(),
+			WireLength:  stream.HeaderWireLength(),
+			Header:      md,
+		})
+	}
 	// To have calls in stream callouts work. Will delete once all stats handler
 	// calls come from the gRPC layer.
 	stream.SetContext(ctx)
@@ -1427,7 +1475,7 @@ func (s *Server) closeListenersLocked() {
 // cannot return nil
 func (s *Server) getCodec(contentSubtype string) baseCodec {
 	if s.opts.codec != nil {
-		return s.opts.codec
+		return s.opts.codec.(baseCodec) // MODEL: a baseCodec (serverOptions.codec)
 	}
 	if contentSubtype == "" {
 		return getCodec(proto.Name)

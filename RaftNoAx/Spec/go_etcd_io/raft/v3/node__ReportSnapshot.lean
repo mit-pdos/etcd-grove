@@ -30,12 +30,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- **`node.ReportSnapshot(id, status)`**, from any goroutine (the transport's); nothing is
 promised. -/
 abbrev node.ReportSnapshot.spec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (to : w64) (status : SnapshotStatus),
+  ∀ (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (to : w64) (status : SnapshotStatus),
   -- (2026-11-12, trace-check implementation step 1: the design's §3.5) refused at a traced
   -- cluster: `run` steps no message of this kind there
   Cluster.trace γ = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id }}
-    (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ReportSnapshot")) (Val #to))
+    (App (App (Val (n.loc @!! go.GoType.PointerType node.ty @!! go!"ReportSnapshot")) (Val #to))
       (Val #status))
   {{ RET #(); True }}
 

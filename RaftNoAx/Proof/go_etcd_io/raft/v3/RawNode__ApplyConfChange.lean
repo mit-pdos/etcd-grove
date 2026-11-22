@@ -129,10 +129,15 @@ theorem RawNode.ApplyConfChange.wp_proof
       wp_apply +noauto (raft.applyConfChange.spec_simple (raft.applyConfChange.untraced wp_raft_applyConfChange)) γ.reCfg rnv.raft'
           id s v2 m.asV2 (DFrac.own 1) lrn' Hd' Hsz' Hn Hltz Hli2 Hin (by tr_none)
         $$ [$Hphys $Hch] as %cs %xs %ls %s' ⟨Hphys, -, Hcs, %Hcs0, %Hok, %Hdom'⟩
+      iapply (wp_ncfupd _ _ (by rfl))
+      unfold ncfupd
+      iintro Hnc
       imod rawNode_applyCC_reseal γ rn id rs s s' _ rnv sv hprev steps Hm Hrel Hin Hasync Hdlen Hunp
         Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt Hrole Hphs (Hdom' ▸ Hok)
         (trackedOk_shrink Htrk Hlp Hdom') Hnl Hgtr HtrG
-        $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hcl Hsloc Hhist Hledger Hlw Hxw Hdur Hlc1 with Hrn
+        $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hcl Hsloc Hhist Hledger Hlw Hxw Hdur Hnc Hlc1 with ⟨Hnc, Hrn⟩
+      imodintro
+      iframe Hnc
       try wp_auto
       iapply HΦ $$ %cs %(ConfStateM.mk xs ls [] [] false)
       simp only [named]
@@ -218,10 +223,15 @@ theorem RawNode.ApplyConfChange.wp_proof
       wp_apply +noauto (raft.applyConfChange.spec_simple (raft.applyConfChange.untraced wp_raft_applyConfChange)) γ.reCfg rnv.raft'
           id s p m dq lrn' Hd' Hsz' Hn Hltz Hli2 Hin (by tr_none)
         $$ [$Hphys $Hch] as %cs %xs %ls %s' ⟨Hphys, Hch, Hcs, %Hcs0, %Hok, %Hdom'⟩
+      iapply (wp_ncfupd _ _ (by rfl))
+      unfold ncfupd
+      iintro Hnc
       imod rawNode_applyCC_reseal γ rn id rs s s' _ rnv sv hprev steps Hm Hrel Hin Hasync Hdlen Hunp
         Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt Hrole Hphs (Hdom' ▸ Hok)
         (trackedOk_shrink Htrk Hlp Hdom') Hnl Hgtr HtrG
-        $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hcl Hsloc Hhist Hledger Hlw Hxw Hdur Hlc1 with Hrn
+        $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hcl Hsloc Hhist Hledger Hlw Hxw Hdur Hnc Hlc1 with ⟨Hnc, Hrn⟩
+      imodintro
+      iframe Hnc
       try wp_auto
       iapply HΦ $$ %cs %(ConfStateM.mk xs ls [] [] false)
       simp only [named]

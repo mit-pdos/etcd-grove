@@ -1,0 +1,50 @@
+/-
+`Check(model, addrs, codec, gen, ops, d)`: `Run` with no timeout, panicking unless porcupine
+answers `Ok`: under `Run`'s premises it returns (it never panics). Proved in
+`Net/Proof/.../lib/remote/Check.lean`.
+-/
+module
+
+public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Pend
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Defs
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+
+open Iris Iris.BI Net github_com.anishathalye.porcupine EtcdGrove.lintest
+
+namespace github_com.mit_pdos.etcd_grove.examples.lib.remote
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.lib.remote.Assumptions]
+variable [field_sem : net.FieldAssumptions]
+variable [π : NetProtoGS] [ρ : RemoteGS]
+variable {St I O : Type} [DecidableEq I] [Pos.Countable I] [Pos.Countable O]
+
+/-- See the file header. -/
+abbrev Check.spec : Prop :=
+  ∀ (R : RBase GF St I O) (S : ModelSpec GF (EtcdGrove.linkv.PSet St I)) (γ : PendNames)
+    (m : Model) (addrs : GoSlice) (addrL : List GoString) (cd : remote.Codec) (gen : GoFunc)
+    (ops d : w64),
+  (↑pendN : CoPset) ⊆ ⊤ \ R.Eop → (↑lintestN : CoPset) ⊆ ⊤ \ (R.Eop ∪ ↑pendN) →
+  PendDec R S → (∀ o o', R.encOut (R.ov o) = R.encOut (R.ov o') → o = o') →
+  (∀ st, Timeless (R.sysState st)) → receiptBound GF ≤ 2 ^ 63 →
+  sint.Z addrs.len < 2 ^ 31 → 0 ≤ sint.Z ops → sint.Z addrs.len * sint.Z ops < 2 ^ 60 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote ∗ context.isClosedchanInit ∗ isModel S m ∗
+      genSpec gen (fun x => iprop(∃ i, ⌜x = R.iv i⌝)) ∗ addrs ↦*□ addrL ∗
+      ([∗list] a ∈ addrL, remoteAddr (Gg := hG.goose_globalGS) R a) ∗ mapCtx (Gg := hG.goose_globalGS) (I := I) ∗ codecOk R cd ∗
+      pendCtx (Gg := hG.goose_globalGS) R S γ ∗ pendLib (Gg := hG.goose_globalGS) S γ S.M.init }}
+    (App (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.remote.Check)) (Val #m)) (Val #addrs)) (Val #cd))
+      (Val #gen)) (Val #ops)) (Val #d))
+  {{ RET #(); True }}
+
+end spec
+
+end github_com.mit_pdos.etcd_grove.examples.lib.remote
+end Perennial

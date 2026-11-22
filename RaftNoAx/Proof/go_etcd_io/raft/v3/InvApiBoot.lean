@@ -38,6 +38,13 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 section boot
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+
+end boot
+
+section bootHeap41
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
@@ -57,10 +64,33 @@ def nodeBootU (γ : Cluster) (N : Namespace) (ps : List w64) (ctxs : List (List 
     bootMarshal ps ctxs γ.raft.reBoot ∗ isCommitted γ.raft γ.raft.reBoot ∗
     inv budgetN (budgetInv γ.bud) ∗ termLB γ.bud (W64 1))
 
+
+end bootHeap41
+
+section boot
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end boot
+
+section bootHeap72
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 instance nodeBootU_persistent (γ : Cluster) (N : Namespace) (ps : List w64) (ctxs : List (List w8))
     (id : w64) : Persistent (nodeBootU (GF := GF) γ N ps ctxs id) := by
   unfold nodeBootU; infer_instance
 
+
+end bootHeap72
+
+section boot
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 /-- No entry of a bootstrap log is an empty `ConfChangeV2` (each is a `ConfChange`, type `1`). -/
 theorem bootLogOk_noEmptyV2 {ps : List w64} {L : List EntryM} (H : BootLogOk ps L) :
     ∀ x ∈ L, ¬ IsEmptyV2 x := by
@@ -79,6 +109,15 @@ theorem toEntries_data_mem {boot : List LogEntry} {base : Nat} {e : EntryM}
   rw [List.length_mapIdx] at hi
   refine ⟨boot[i], List.getElem_mem hi, ?_⟩
   simp [List.getElem_mapIdx, LogEntry.toEntryM]
+
+end boot
+
+section bootHeap79
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- **A new cluster of client decisions with a bootstrap log**, of the voters `vs` (`InvNodeRule`'s
 `cluster_alloc` at a non-empty `boot`), (2026-11-11, trace-check S7 part 2) of the trace mode `tr`
@@ -163,17 +202,8 @@ theorem cluster_alloc_boot_impl_tr (N : Namespace) (vs : List w64) (ctxs : List 
     iexists 0, 2 ^ 64 - 2
     iframe H0 Hcr
     ipureintro; omega
-  -- (durability stage I-2) the node table's invariant, empty
-  imod inv_alloc (N .@ "nodetab") E iprop(∃ M : GMap Loc CfgNames, ghostMapAuth γ.nodeTab 1 M ∗
-      [∗map] n ↦ _x ∈ M, ∃ nv : node, n ↦□ nv) $$ [Htab] with #Htabinv
-  · inext
-    iexists ∅
-    rw [Hγt]
-    iframe Htab
-    iapply (BigSepM.bigSepM_empty).2; iempintro
   ihave #Hdc : isClusterU (GF := GF) γ N $$ []
-  · unfold isClusterU rdPool nodeTabInv
-    iframe Htabinv
+  · unfold isClusterU rdPool
     isplitr
     · ipureintro
       refine ⟨⟨c0, gd, Hmr⟩, Hcert, ?_⟩
@@ -235,6 +265,22 @@ theorem cluster_alloc_boot_impl_tr (N : Namespace) (vs : List w64) (ctxs : List 
   exact ⟨Hin, Hnd, Hnz, Hlen, Hcfg, ⟨gd, Hmr⟩, Hok⟩
 
 
+
+end bootHeap79
+
+section boot
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end boot
+
+section bootHeap225
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 /-- **A new cluster of client decisions with a bootstrap log**, untraced (`cluster_alloc_boot_impl_tr`
 at `none`). -/
 theorem cluster_alloc_boot_impl (N : Namespace) (vs : List w64) (ctxs : List (List w8))
@@ -258,6 +304,13 @@ theorem cluster_alloc_boot_impl (N : Namespace) (vs : List w64) (ctxs : List (Li
   cluster_alloc_boot_impl_tr N vs ctxs boot dup sl none E mxd Hmxd HmxdB ns Hns0
 
 
+
+end bootHeap225
+
+section boot
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 end boot
 
 end ApiImpl

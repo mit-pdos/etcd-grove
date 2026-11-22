@@ -70,12 +70,12 @@ theorem unionAuthzHandler.ConditionsAwareAuthorize.wp_proof
     iapply Hcaa
     · itrivial
     iintro !> %d Hwfd
-    iunfold isWFDecision at Hwfd
+    iunfold isWFDecisionLe at Hwfd
     icases Hwfd with ⟨%md, #Hd, %Hmd⟩
     wp_auto
     wp_apply (wp_ConditionsAwareDecisionUnion_Add decisions_ptr ks na'.AuthorizerName' d md) $$ [$Hb] as Hb
     · iframe #
-      ipureintro; exact Hmd
+      ipureintro; exact ⟨Hmd.1, by have := Hmd.2; omega⟩
     (try wp_auto)
     wp_apply (wp_ptr_ContainsUnconditionalAllowOrDeny_of wp_ConditionsAwareDecision_ContainsUnconditionalAllowOrDeny)
       $$ [$decision] as decision
@@ -92,12 +92,14 @@ theorem unionAuthzHandler.ConditionsAwareAuthorize.wp_proof
       (try wp_auto)
       wp_for_post
       iapply HΦ
+      iapply isWFDecisionLe_isWFDecision
       iexact Hd'
   · simp only [hlt, _root_.decide_false, Bool.false_eq_true, ↓reduceIte]
     wp_auto
     wp_apply (wp_ConditionsAwareDecisionUnion_ToDecision decisions_ptr ks) $$ [$Hb] as %d ⟨#Hd, Hb⟩
     (try wp_auto)
     iapply HΦ
+    iapply isWFDecisionLe_isWFDecision
     iexact Hd
 
 end proof

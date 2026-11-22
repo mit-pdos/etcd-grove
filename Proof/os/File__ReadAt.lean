@@ -52,127 +52,9 @@ private theorem wp_call3_gen (F : val) (b0 : GoSlice) (o0 n0 : w64) (Φ : val �
   iapply H
   ipureintro; exact ⟨rfl, rfl, rfl⟩
 
-theorem os.File.ReadAt.wp_proof : os.File.ReadAt.spec (GF := GF) (hG := hG) := by
-  intro f fd name dqf sl vs off dq dqm dqb d m xs hrd hoff hn2 hend hin hxl
-  unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hsl, Hosfd, Hm, Hbs⟩
-  unfold os.model.inner
-  rw [os.file_ty_eq, os.File_ty_eq]
-  ihave #Hf2 := Hf
-  iStructNamed Hf2
-  icases ownSlice_len sl _ vs $$ Hsl with %Hlen
-  wp_auto
-  have h0 : ¬ (sint.Z off < sint.Z (W64 0)) := by
-    rw [show sint.Z (W64 0) = 0 from rfl]; exact Int.not_lt.2 hoff
-  rw [decide_eq_false h0]
-  wp_pure
-  wp_pure
-  wp_load
-  wp_pure
-  wp_pure
-  wp_pure
-  iapply wp_call3_gen
-  iintro %b %o %n %hbon
-  obtain ⟨hb, ho, hn⟩ := hbon
-  icases ownSlice_wf sl _ vs $$ Hsl with %Hwf
-  have hslz : sint.Z sl.len = vs.length := by
-    have h1 := Hlen.1; have h2 := Hlen.2
-    simp only [sint.nat, sint.Z] at h1 h2 ⊢; omega
-  clear Hlen
-  icases (ownSlice_split_all (W64 0) sl (DFrac.own 1) vs
-    ⟨by decide, by rw [show sint.Z (W64 0) = 0 from rfl]; omega⟩).1 $$ Hsl with ⟨Hpre, Hcur⟩
-  obtain ⟨pre, hpre0⟩ : ∃ pre : List w8, pre = [] := ⟨_, rfl⟩
-  obtain ⟨cur, hcur0⟩ : ∃ cur : List w8, cur = vs := ⟨_, rfl⟩
-  ihave Hpre := (show slice.slice sl w8 (W64 0) (W64 0) ↦* vs.take (sint.nat (W64 0)) ⊢
-    slice.slice sl w8 (W64 0) n ↦* pre by
-      rw [hn, hpre0, show sint.nat (W64 0) = 0 from rfl, List.take_zero]) $$ Hpre
-  ihave Hcur := (show slice.slice sl w8 (W64 0) sl.len ↦* vs.drop (sint.nat (W64 0)) ⊢
-    b ↦* cur by
-      rw [hb, hcur0, show sint.nat (W64 0) = 0 from rfl, List.drop_zero, ← slice_slice_trivial]) $$ Hcur
-  -- the bytes, split at what has been read
-  ihave ⟨Hbs1, Hbs2⟩ := (show osBytes (GF := GF) d.ino off.toNat dqb xs ⊢
-      osBytes d.ino off.toNat dqb (xs.take n.toNat) ∗
-      osBytes d.ino (off.toNat + n.toNat) dqb (xs.drop n.toNat) by
-    rw [hn, show (W64 0).toNat = 0 from rfl, List.take_zero, List.drop_zero, Nat.add_zero]
-    unfold osBytes
-    iintro H; isplitr
-    · unfold bytesG; iapply BigSepL.bigSepL_nil.2; iempintro
-    · iexact H) $$ Hbs
-  have hk : n.toNat ≤ vs.length := by rw [hn]; simp
-  have hb' : b = slice.slice sl w8 n sl.len := by rw [hb, hn]; exact slice_slice_trivial sl
-  have ho' : o = off + n := by rw [ho, hn]; exact (BitVec.add_zero off).symm
-  have hpre : pre = (xs.map Prod.fst).take n.toNat := by rw [hpre0, hn]; rfl
-  have hcl : cur.length = vs.length - n.toNat := by rw [hcur0, hn]; simp
-  clear hb ho hn hpre0 hcur0
-  have hoffN : off.toNat < 2 ^ 63 := by
-    have := BitVec.toInt_eq_toNat_cond off; split at this <;> omega
-  wp_auto
-  iloeb as IH generalizing %b %o %n %pre %cur %hk %hb' %ho' %hpre %hcl Hpre Hcur Hosfd Hm Hbs1 Hbs2
-    Hfd HΦ
-  have hnN : n.toNat < 2 ^ 63 := by omega
-  have hoN : o.toNat = off.toNat + n.toNat := by rw [ho']; exact w64_add_toNat _ _ (by omega)
-  have hoI : 0 ≤ o.toInt := by
-    have := BitVec.toInt_eq_toNat_cond o; split at this <;> omega
-  have hpl : pre.length = n.toNat := by rw [hpre]; simp [hxl]; omega
-  icases ownSlice_len b _ cur $$ Hcur with %Hblen
-  icases ownSlice_wf b _ cur $$ Hcur with %Hbwf
-  have hblN : b.len.toNat = cur.length := by
-    have h := w64_toNat_of_sintZ _ Hblen.2; rw [Hblen.1, w64_sintNat _ h]
-  have hblZ : sint.Z b.len = cur.length := by rw [w64_sintZ _ (by omega), hblN]
-  have hz0 : sint.Z (W64 0) = 0 := rfl
-  have hzn0 : sint.nat (W64 0) = 0 := rfl
-  have hcomb : ∀ cur' : List w8,
-      (slice.slice sl w8 (W64 0) n ↦* pre ∗ b ↦* cur' : IProp GF) ⊢ sl ↦* (pre ++ cur') := by
-    intro cur'
-    refine BIBase.Entails.trans ?_ (ownSlice_trivial_slice sl _ _).2
-    rw [hb']
-    iintro ⟨H1, H2⟩
-    iapply (ownSlice_combine n sl (DFrac.own 1) pre cur' (W64 0) sl.len
-      ⟨by rw [w64_sintNat n hnN, hpl, hzn0]; rfl, by decide, by rw [w64_sintZ n hnN, hz0]; omega,
-        by rw [w64_sintZ n hnN]; omega⟩) $$ H1 H2
-  have hbsj : (osBytes (GF := GF) d.ino off.toNat dqb (xs.take n.toNat) ∗
-      osBytes d.ino (off.toNat + n.toNat) dqb (xs.drop n.toNat)) ⊢ osBytes d.ino off.toNat dqb xs := by
-    conv => rhs; rw [← List.take_append_drop n.toNat xs]
-    unfold osBytes
-    refine BIBase.Entails.trans ?_ (bytesG_append _ _ _ _ _ _).2
-    rw [List.length_take, Nat.min_eq_left (by omega)]
-  by_cases hl0 : b.len = W64 0
-  · rw [decide_eq_true hl0]
-    wp_auto
-    have hc0 : cur.length = 0 := by rw [← hblN, hl0]; rfl
-    ihave Hsl := hcomb cur $$ [Hpre Hcur]
-    · iframe
-    ihave Hbs := hbsj $$ [Hbs1 Hbs2]
-    · iframe
-    ihave #Hokn := (EtcdGrove.fmtErrorOkOrNil_nil (GF := GF))
-    iapply HΦ
-    iframe Hokn
-    iframe
-    isplitl []
-    · isplitl [] <;> iassumption
-    ipureintro
-    have hnl : n.toNat = vs.length := by omega
-    have hc' : cur = [] := List.length_eq_zero_iff.1 hc0
-    refine ⟨by simp [hpl, hc0]; omega, .inl ⟨?_, rfl, ?_⟩⟩
-    · apply BitVec.eq_of_toNat_eq; rw [hnl]; simp only [W64]; rw [BitVec.toNat_ofInt]; omega
-    · rw [hc', List.append_nil, hpre, hnl]; exact List.take_of_length_le (by simp [hxl])
-  · rw [decide_eq_false hl0]
-    wp_auto
-    have hcpos : 0 < cur.length := by
-      apply Nat.pos_of_ne_zero; intro h0; apply hl0
-      apply BitVec.eq_of_toNat_eq; rw [hblN, h0]; rfl
-    have hmx : ¬ (sint.Z (W64 1073741824) < sint.Z b.len) := by
-      rw [hblZ, show sint.Z (W64 1073741824) = 1073741824 from rfl]; omega
-    rw [decide_eq_false hmx]
-    wp_auto
-    have hdl : (xs.drop n.toNat).length = min b.len.toNat (m.size - o.toNat) := by
-      rw [List.length_drop, hblN, hcl, hoN]; omega
-    ihave Hbs2 := (show osBytes (GF := GF) d.ino (off.toNat + n.toNat) dqb (xs.drop n.toNat) ⊢
-      osBytes d.ino o.toNat dqb (xs.drop n.toNat) by rw [hoN]) $$ Hbs2
-    wp_apply wp_osPRead fd o b.len dq dqm dqb d m (xs.drop n.toNat) CoPset.subseteq_top hrd hoI hdl
-      $$ Hinv Hosfd Hm Hbs2 as %r %e %hre Hosfd Hm Hbs2
-    ihave Hbs2 := (show osBytes (GF := GF) d.ino o.toNat dqb (xs.drop n.toNat) ⊢
-      osBytes d.ino (off.toNat + n.toNat) dqb (xs.drop n.toNat) by rw [hoN]) $$ Hbs2
+set_option hygiene false in
+/-- `ReadAt`'s loop after an iteration's `pread`, its result `hre` over the bytes left. -/
+local macro "readat_tail" : tactic => `(tactic| (
     obtain ⟨k, hkl, rfl, hke0⟩ := hre
     have hdrop : (xs.drop n.toNat).length = cur.length := by rw [List.length_drop, hcl]; omega
     wp_apply wp_string_to_bytes (((xs.drop n.toNat).map Prod.fst).take k) as %tmp ⟨Htmp, -⟩
@@ -305,6 +187,174 @@ theorem os.File.ReadAt.wp_proof : os.File.ReadAt.spec (GF := GF) (hG := hG) := b
           ipureintro
           refine ⟨?_, .inr (by intro h; cases h)⟩
           rw [List.length_append, hpl, hc2l, hcl]; omega
+  ))
+
+-- (two copies of the loop's tail, `readat_tail`: one per `pread` count)
+set_option maxHeartbeats 600000 in
+theorem os.File.ReadAt.wp_proof_long : os.File.ReadAt.specLong (GF := GF) (hG := hG) := by
+  intro f fd name dqf sl vs off dq dqm dqb d m xs hrd hoff hend hin hxl
+  unfold os.ownFile
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hsl, Hosfd, Hm, Hbs⟩
+  unfold os.model.inner
+  rw [os.file_ty_eq, os.File_ty_eq]
+  ihave #Hf2 := Hf
+  iStructNamed Hf2
+  icases ownSlice_len sl _ vs $$ Hsl with %Hlen
+  wp_auto
+  have h0 : ¬ (sint.Z off < sint.Z (W64 0)) := by
+    rw [show sint.Z (W64 0) = 0 from rfl]; exact Int.not_lt.2 hoff
+  rw [decide_eq_false h0]
+  wp_pure
+  wp_pure
+  wp_load
+  wp_pure
+  wp_pure
+  wp_pure
+  iapply wp_call3_gen
+  iintro %b %o %n %hbon
+  obtain ⟨hb, ho, hn⟩ := hbon
+  icases ownSlice_wf sl _ vs $$ Hsl with %Hwf
+  have hslz : sint.Z sl.len = vs.length := by
+    have h1 := Hlen.1; have h2 := Hlen.2
+    simp only [sint.nat, sint.Z] at h1 h2 ⊢; omega
+  clear Hlen
+  icases (ownSlice_split_all (W64 0) sl (DFrac.own 1) vs
+    ⟨by decide, by rw [show sint.Z (W64 0) = 0 from rfl]; omega⟩).1 $$ Hsl with ⟨Hpre, Hcur⟩
+  obtain ⟨pre, hpre0⟩ : ∃ pre : List w8, pre = [] := ⟨_, rfl⟩
+  obtain ⟨cur, hcur0⟩ : ∃ cur : List w8, cur = vs := ⟨_, rfl⟩
+  ihave Hpre := (show slice.slice sl w8 (W64 0) (W64 0) ↦* vs.take (sint.nat (W64 0)) ⊢
+    slice.slice sl w8 (W64 0) n ↦* pre by
+      rw [hn, hpre0, show sint.nat (W64 0) = 0 from rfl, List.take_zero]) $$ Hpre
+  ihave Hcur := (show slice.slice sl w8 (W64 0) sl.len ↦* vs.drop (sint.nat (W64 0)) ⊢
+    b ↦* cur by
+      rw [hb, hcur0, show sint.nat (W64 0) = 0 from rfl, List.drop_zero, ← slice_slice_trivial]) $$ Hcur
+  -- the bytes, split at what has been read
+  ihave ⟨Hbs1, Hbs2⟩ := (show osBytes (GF := GF) d.ino off.toNat dqb xs ⊢
+      osBytes d.ino off.toNat dqb (xs.take n.toNat) ∗
+      osBytes d.ino (off.toNat + n.toNat) dqb (xs.drop n.toNat) by
+    rw [hn, show (W64 0).toNat = 0 from rfl, List.take_zero, List.drop_zero, Nat.add_zero]
+    unfold osBytes
+    iintro H; isplitr
+    · unfold bytesG; iapply BigSepL.bigSepL_nil.2; iempintro
+    · iexact H) $$ Hbs
+  have hk : n.toNat ≤ vs.length := by rw [hn]; simp
+  have hb' : b = slice.slice sl w8 n sl.len := by rw [hb, hn]; exact slice_slice_trivial sl
+  have ho' : o = off + n := by rw [ho, hn]; exact (BitVec.add_zero off).symm
+  have hpre : pre = (xs.map Prod.fst).take n.toNat := by rw [hpre0, hn]; rfl
+  have hcl : cur.length = vs.length - n.toNat := by rw [hcur0, hn]; simp
+  clear hb ho hn hpre0 hcur0
+  have hoffN : off.toNat < 2 ^ 63 := by
+    have := BitVec.toInt_eq_toNat_cond off; split at this <;> omega
+  wp_auto
+  iloeb as IH generalizing %b %o %n %pre %cur %hk %hb' %ho' %hpre %hcl Hpre Hcur Hosfd Hm Hbs1 Hbs2
+    Hfd HΦ
+  have hnN : n.toNat < 2 ^ 63 := by omega
+  have hoN : o.toNat = off.toNat + n.toNat := by rw [ho']; exact w64_add_toNat _ _ (by omega)
+  have hoI : 0 ≤ o.toInt := by
+    have := BitVec.toInt_eq_toNat_cond o; split at this <;> omega
+  have hpl : pre.length = n.toNat := by rw [hpre]; simp [hxl]; omega
+  icases ownSlice_len b _ cur $$ Hcur with %Hblen
+  icases ownSlice_wf b _ cur $$ Hcur with %Hbwf
+  have hblN : b.len.toNat = cur.length := by
+    have h := w64_toNat_of_sintZ _ Hblen.2; rw [Hblen.1, w64_sintNat _ h]
+  have hblZ : sint.Z b.len = cur.length := by rw [w64_sintZ _ (by omega), hblN]
+  have hz0 : sint.Z (W64 0) = 0 := rfl
+  have hzn0 : sint.nat (W64 0) = 0 := rfl
+  have hcomb : ∀ cur' : List w8,
+      (slice.slice sl w8 (W64 0) n ↦* pre ∗ b ↦* cur' : IProp GF) ⊢ sl ↦* (pre ++ cur') := by
+    intro cur'
+    refine BIBase.Entails.trans ?_ (ownSlice_trivial_slice sl _ _).2
+    rw [hb']
+    iintro ⟨H1, H2⟩
+    iapply (ownSlice_combine n sl (DFrac.own 1) pre cur' (W64 0) sl.len
+      ⟨by rw [w64_sintNat n hnN, hpl, hzn0]; rfl, by decide, by rw [w64_sintZ n hnN, hz0]; omega,
+        by rw [w64_sintZ n hnN]; omega⟩) $$ H1 H2
+  have hbsj : (osBytes (GF := GF) d.ino off.toNat dqb (xs.take n.toNat) ∗
+      osBytes d.ino (off.toNat + n.toNat) dqb (xs.drop n.toNat)) ⊢ osBytes d.ino off.toNat dqb xs := by
+    conv => rhs; rw [← List.take_append_drop n.toNat xs]
+    unfold osBytes
+    refine BIBase.Entails.trans ?_ (bytesG_append _ _ _ _ _ _).2
+    rw [List.length_take, Nat.min_eq_left (by omega)]
+  by_cases hl0 : b.len = W64 0
+  · rw [decide_eq_true hl0]
+    wp_auto
+    have hc0 : cur.length = 0 := by rw [← hblN, hl0]; rfl
+    ihave Hsl := hcomb cur $$ [Hpre Hcur]
+    · iframe
+    ihave Hbs := hbsj $$ [Hbs1 Hbs2]
+    · iframe
+    ihave #Hokn := (EtcdGrove.fmtErrorOkOrNil_nil (GF := GF))
+    iapply HΦ
+    iframe Hokn
+    iframe
+    isplitl []
+    · isplitl [] <;> iassumption
+    ipureintro
+    have hnl : n.toNat = vs.length := by omega
+    have hc' : cur = [] := List.length_eq_zero_iff.1 hc0
+    refine ⟨by simp [hpl, hc0]; omega, .inl ⟨?_, rfl, ?_⟩⟩
+    · apply BitVec.eq_of_toNat_eq; rw [hnl]; simp only [W64]; rw [BitVec.toNat_ofInt]; omega
+    · rw [hc', List.append_nil, hpre, hnl]; exact List.take_of_length_le (by simp [hxl])
+  · rw [decide_eq_false hl0]
+    wp_auto
+    have hcpos : 0 < cur.length := by
+      apply Nat.pos_of_ne_zero; intro h0; apply hl0
+      apply BitVec.eq_of_toNat_eq; rw [hblN, h0]; rfl
+    by_cases hmx : sint.Z (W64 1073741824) < sint.Z b.len
+    · -- a buffer past `maxRW`: one `pread` of its first `maxRW` bytes
+      rw [decide_eq_true hmx]
+      wp_auto
+      have hcbig : 1073741824 < cur.length := by
+        rw [hblZ, show sint.Z (W64 1073741824) = 1073741824 from rfl] at hmx; omega
+      have hdl : ((xs.drop n.toNat).take 1073741824).length =
+          min (W64 1073741824).toNat (m.size - o.toNat) := by
+        rw [List.length_take, List.length_drop, show (W64 1073741824).toNat = 1073741824 from rfl, hoN]
+        omega
+      ihave ⟨Hbsa, Hbsb⟩ := (show osBytes (GF := GF) d.ino (off.toNat + n.toNat) dqb (xs.drop n.toNat) ⊢
+          osBytes d.ino o.toNat dqb ((xs.drop n.toNat).take 1073741824) ∗
+          osBytes d.ino (o.toNat + ((xs.drop n.toNat).take 1073741824).length) dqb
+            ((xs.drop n.toNat).drop 1073741824) by
+        rw [hoN]
+        conv => lhs; rw [← List.take_append_drop 1073741824 (xs.drop n.toNat)]
+        unfold osBytes; exact (bytesG_append _ _ _ _ _ _).1) $$ Hbs2
+      wp_apply wp_osPRead fd o (W64 1073741824) dq dqm dqb d m ((xs.drop n.toNat).take 1073741824)
+        CoPset.subseteq_top hrd hoI hdl $$ Hinv Hosfd Hm Hbsa as %r %e %hre0 Hosfd Hm Hbsa
+      ihave Hbs2 := (show osBytes (GF := GF) d.ino o.toNat dqb ((xs.drop n.toNat).take 1073741824) ∗
+          osBytes d.ino (o.toNat + ((xs.drop n.toNat).take 1073741824).length) dqb
+            ((xs.drop n.toNat).drop 1073741824) ⊢
+          osBytes d.ino (off.toNat + n.toNat) dqb (xs.drop n.toNat) by
+        rw [hoN]
+        conv => rhs; rw [← List.take_append_drop 1073741824 (xs.drop n.toNat)]
+        unfold osBytes; exact (bytesG_append _ _ _ _ _ _).2) $$ [Hbsa Hbsb]
+      · iframe
+      have hre : ∃ k ≤ (xs.drop n.toNat).length, r = ((xs.drop n.toNat).map Prod.fst).take k ∧
+          (e = 0 → 0 < k ∨ xs.drop n.toNat = []) := by
+        obtain ⟨k, hkl, hr, hke⟩ := hre0
+        simp only [List.length_take, List.length_drop] at hkl
+        refine ⟨k, by simp only [List.length_drop]; omega, ?_, ?_⟩
+        · rw [hr]; simp only [List.map_take, List.take_take]; congr 1; omega
+        · intro he; rcases hke he with h | h
+          · exact .inl h
+          · exfalso
+            have h' := congrArg List.length h
+            simp only [List.length_take, List.length_drop, List.length_nil] at h'
+            omega
+      readat_tail
+    · rw [decide_eq_false hmx]
+      wp_auto
+      have hdl : (xs.drop n.toNat).length = min b.len.toNat (m.size - o.toNat) := by
+        rw [List.length_drop, hblN, hcl, hoN]; omega
+      ihave Hbs2 := (show osBytes (GF := GF) d.ino (off.toNat + n.toNat) dqb (xs.drop n.toNat) ⊢
+        osBytes d.ino o.toNat dqb (xs.drop n.toNat) by rw [hoN]) $$ Hbs2
+      wp_apply wp_osPRead fd o b.len dq dqm dqb d m (xs.drop n.toNat) CoPset.subseteq_top hrd hoI hdl
+        $$ Hinv Hosfd Hm Hbs2 as %r %e %hre Hosfd Hm Hbs2
+      ihave Hbs2 := (show osBytes (GF := GF) d.ino o.toNat dqb (xs.drop n.toNat) ⊢
+        osBytes d.ino (off.toNat + n.toNat) dqb (xs.drop n.toNat) by rw [hoN]) $$ Hbs2
+      readat_tail
+
+theorem os.File.ReadAt.wp_proof : os.File.ReadAt.spec (GF := GF) (hG := hG) := by
+  intro f fd name dqf sl vs off dq dqm dqb d m xs hrd hoff _ hend hin hxl
+  exact os.File.ReadAt.wp_proof_long f fd name dqf sl vs off dq dqm dqb d m xs hrd hoff hend hin hxl
 
 /-- A `pread` exact at every byte of the ranges `rs'` it saw is exact at every byte `rs` says, if
 `rs'` says at least as much. -/

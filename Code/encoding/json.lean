@@ -85,7 +85,8 @@ noncomputable def Delim.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Delim.ty
 
-opaque Unmarshaler [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def Unmarshaler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"encoding/json/v2.Unmarshaler" [])
 
 opaque UnmarshalTypeError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
@@ -93,7 +94,8 @@ opaque UnmarshalFieldError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque InvalidUnmarshalError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque Marshaler [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def Marshaler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"encoding/json/v2.Marshaler" [])
 
 opaque UnsupportedTypeError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
@@ -101,35 +103,17 @@ opaque UnsupportedValueError.underlying [GooseExts] [GoGlobalContext] : go.GoTyp
 
 opaque MarshalerError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque Options [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def Options.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"encoding/json/internal/jsonopts.Options" [])
 
 opaque Decoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque Encoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque RawMessage [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def RawMessage.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"encoding/json/jsontext.Value" [])
 
 opaque indentGrowthFactor [GooseExts] [GoGlobalContext] : val
-
-noncomputable def numberType [GooseExts] [GoGlobalContext] : GoString :=
-  go!"encoding/json.numberType"
-
-opaque numberType.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def «export» [GooseExts] [GoGlobalContext] : GoString :=
-  go!"encoding/json.export"
-
-opaque «export».init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errUnexpectedEnd [GooseExts] [GoGlobalContext] : GoString :=
-  go!"encoding/json.errUnexpectedEnd"
-
-opaque errUnexpectedEnd.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def syntaxErrorReplacer [GooseExts] [GoGlobalContext] : GoString :=
-  go!"encoding/json.syntaxErrorReplacer"
-
-opaque syntaxErrorReplacer.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Unmarshal [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.Unmarshal"
@@ -221,6 +205,30 @@ noncomputable def NewDecoder [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def NewEncoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.NewEncoder"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `numberType` (`var numberType = reflect.TypeFor[Number]()`): Its initializer calls, besides literals of constants and other variables' values:
+`reflect.TypeOf`/`TypeFor` (and `Elem`) read the static type descriptor of a type. So it terminates,
+cannot panic and has no effect beyond its variable.
+- `export` (`var export = jsontext.Internal.Export(&internal.AllowInternalUse)`): Its initializer calls, besides literals of constants and other variables' values:
+`jsontext.Internal.Export` returns a constant (the exporter value). So it terminates, cannot panic
+and has no effect beyond its variable.
+- `errUnexpectedEnd` (`var errUnexpectedEnd = errors.New("unexpected end of JSON input")`): Its initializer calls, besides literals of constants and other variables' values: `errors.New` of a
+constant allocates an `*errorString`. So it terminates, cannot panic and has no effect beyond its
+variable.
+- `syntaxErrorReplacer` (`var syntaxErrorReplacer = strings.NewReplacer( "object name", "object key", "at start of value", "looking for beginning  … [sha256:046a0fff7294657d]`): Its initializer calls, besides literals of constants and other variables' values:
+`strings.NewReplacer` of an even number of constants allocates a replacer. So it terminates, cannot
+panic and has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"encoding/json.numberType", "Its initializer calls, besides literals of constants and other variables' values:\n`reflect.TypeOf`/`TypeFor` (and `Elem`) read the static type descriptor of a type. So it terminates,\ncannot panic and has no effect beyond its variable.", "var numberType = reflect.TypeFor[Number]()"⟩,
+  ⟨"encoding/json.export", "Its initializer calls, besides literals of constants and other variables' values:\n`jsontext.Internal.Export` returns a constant (the exporter value). So it terminates, cannot panic\nand has no effect beyond its variable.", "var export = jsontext.Internal.Export(&internal.AllowInternalUse)"⟩,
+  ⟨"encoding/json.errUnexpectedEnd", "Its initializer calls, besides literals of constants and other variables' values: `errors.New` of a\nconstant allocates an `*errorString`. So it terminates, cannot panic and has no effect beyond its\nvariable.", "var errUnexpectedEnd = errors.New(\"unexpected end of JSON input\")"⟩,
+  ⟨"encoding/json.syntaxErrorReplacer", "Its initializer calls, besides literals of constants and other variables' values:\n`strings.NewReplacer` of an even number of constants allocates a replacer. So it terminates, cannot\npanic and has no effect beyond its variable.", "var syntaxErrorReplacer = strings.NewReplacer( \"object name\", \"object key\", \"at start of value\", \"looking for beginning  … [sha256:046a0fff7294657d]"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.encoding.json where
   pkgImportedPkgs := []
 
@@ -230,20 +238,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.encoding.json)) (Lam BAnon
   (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
-  (App (Val doExecute)
-  (App (Val syntaxErrorReplacer.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errUnexpectedEnd.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «export».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val numberType.init) (Val #()))))))))
+  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))))
 
 opaque UnmarshalTypeError.nonempty_type : NonemptyType.{0}
 def UnmarshalTypeError : Type := UnmarshalTypeError.nonempty_type.type

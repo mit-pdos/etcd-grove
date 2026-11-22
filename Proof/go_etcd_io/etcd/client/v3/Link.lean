@@ -37,9 +37,11 @@ public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesResponse__Get
 public import Proof.go_etcd_io.etcd.client.v3.LeaseOp__applyOpts
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse__GetHeader
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.NewAuthClient
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.NewClusterClient
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.NewKVClient
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.NewLeaseClient
 public import Proof.go_etcd_io.etcd.client.v3.NewLeaseFromLeaseClient
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.NewMaintenanceClient
 public import Proof.go_etcd_io.etcd.client.v3.NewOp
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.NewWatchClient
 public import Proof.go_etcd_io.etcd.client.v3.NewWatchFromWatchClient
@@ -57,16 +59,20 @@ public import Proof.go_etcd_io.etcd.client.v3.Op__toRequestOp
 public import Proof.go_etcd_io.etcd.client.v3.Op__toTxnRequest
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader__GetRevision
 public import Proof.go_etcd_io.etcd.client.v3.RetryAuthClient
+public import Proof.go_etcd_io.etcd.client.v3.RetryClusterClient
 public import Proof.go_etcd_io.etcd.client.v3.RetryKVClient
 public import Proof.go_etcd_io.etcd.client.v3.RetryLeaseClient
+public import Proof.go_etcd_io.etcd.client.v3.RetryMaintenanceClient
 public import Proof.go_etcd_io.etcd.client.v3.WatchResponse__Err
 public import Proof.go_etcd_io.etcd.client.v3.WatchResponse__IsProgressNotify
 public import Proof.go_etcd_io.etcd.client.v3.WithRequireLeader
 public import Proof.go_etcd_io.etcd.client.v3.authority
+public import Proof.go_etcd_io.etcd.client.v3.backoffLinearWithJitter
 public import Proof.go_etcd_io.etcd.client.v3.blockLogger__recordWait
 public import Proof.go_etcd_io.etcd.client.v3.canceledByCaller
 public import Proof.go_etcd_io.etcd.client.v3.New
 public import Proof.go_etcd_io.etcd.client.v3.cloneCompare
+public import Proof.go_etcd_io.etcd.client.v3.contextErrToGRPCErr
 public import Proof.context.TODO
 public import Proof.context.ValueKeepAlive
 public import Proof.context.WithCancelTodo
@@ -81,6 +87,7 @@ public import Proof.go_etcd_io.etcd.client.v3.credentials.perRPCCredential__Upda
 public import Proof.go_etcd_io.etcd.client.v3.internal.endpoint.RequiresCredentials
 public import Proof.go_etcd_io.etcd.client.v3.ensureWatchHeader
 public import Proof.errors.Is
+public import Proof.errors.IsDeadlineExceeded
 public import Proof.errors.IsStatusErr
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.authClient__AuthEnable
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.authClient__Authenticate
@@ -113,6 +120,7 @@ public import Proof.go_etcd_io.etcd.client.v3.isSafeRetry
 public import Proof.go_etcd_io.etcd.client.v3.isSafeRetryImmutableRPC
 public import Proof.go_etcd_io.etcd.client.v3.isSafeRetryMutableRPC
 public import Proof.go_etcd_io.etcd.client.v3.isUnavailableErr
+public import Proof.go_etcd_io.etcd.client.v3.jitterUp
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.kVClient__Compact
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.kVClient__DeleteRange
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.kVClient__Put
@@ -136,6 +144,7 @@ public import Proof.go_etcd_io.etcd.client.v3.newClient
 public import Proof.google_golang_org.grpc.peer.Peer__String
 public import Proof.go_etcd_io.etcd.client.v3.progressRequest__toPB
 public import Proof.google_golang_org.protobuf.proto.Clone
+public import Proof.math.rand.Float64
 public import Proof.go_etcd_io.etcd.client.v3.internal.resolver.EtcdManualResolver__Close
 public import Proof.go_etcd_io.etcd.client.v3.internal.resolver.EtcdManualResolver__SetEndpoints
 public import Proof.go_etcd_io.etcd.client.v3.internal.resolver.New
@@ -232,6 +241,7 @@ public import Proof.go_etcd_io.etcd.client.v3.withRepeatablePolicy
 public import Proof.go_etcd_io.etcd.client.v3.withVersion
 public import Proof.go_uber_org.zap.Duration
 public import Proof.go_uber_org.zap.Error
+public import Proof.go_uber_org.zap.Float64
 public import Proof.go_uber_org.zap.Int
 public import Proof.go_uber_org.zap.Int64
 public import Proof.go_uber_org.zap.Logger__Debug
@@ -241,6 +251,7 @@ public import Proof.go_uber_org.zap.Logger__check
 public import Proof.go_uber_org.zap.String
 public import Proof.go_uber_org.zap.Uint
 public import Proof.go_uber_org.zap.zapcore.CheckedEntry__Write
+public import Perennial.Proof.math.Link
 
 @[expose] public section
 
@@ -259,21 +270,21 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-theorem grpc.wp_Peer :
-    EtcdGrove.grpc.Peer.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.grpc.Peer.wp_proof
-
-theorem grpc.ClientConn.wp_Target :
-    EtcdGrove.grpc.ClientConn.Target.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.grpc.ClientConn.Target.wp_proof
-
-theorem zap.wp_String :
-    EtcdGrove.zap.String.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zap.String.wp_proof
+theorem rand.wp_Float64 :
+    EtcdGrove.rand.Float64.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.rand.Float64.wp_proof
 
 theorem zap.wp_Uint :
     EtcdGrove.zap.Uint.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Uint.wp_proof
+
+theorem zap.wp_Duration :
+    EtcdGrove.zap.Duration.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Duration.wp_proof
+
+theorem zap.wp_Float64 :
+    EtcdGrove.zap.Float64.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Float64.wp_proof _root_.Perennial.math.wp_Float64bits
 
 theorem zap.Logger.wp_check :
     EtcdGrove.zap.Logger.check.spec (GF := GF) (hG := hG) :=
@@ -286,6 +297,30 @@ theorem zapcore.CheckedEntry.wp_Write :
 theorem zap.Logger.wp_Debug :
     EtcdGrove.zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Logger.Debug.wp_proof zap.Logger.wp_check zapcore.CheckedEntry.wp_Write
+
+theorem grpc.wp_Peer :
+    EtcdGrove.grpc.Peer.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.Peer.wp_proof
+
+theorem errors.wp_IsDeadlineExceeded :
+    EtcdGrove.errors.IsDeadlineExceeded.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.errors.IsDeadlineExceeded.wp_proof
+
+theorem errors.wp_Is :
+    EtcdGrove.errors.Is.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.errors.Is.wp_proof
+
+theorem status.wp_Error :
+    EtcdGrove.status.Error.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.status.Error.wp_proof
+
+theorem grpc.ClientConn.wp_Target :
+    EtcdGrove.grpc.ClientConn.Target.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.ClientConn.Target.wp_proof
+
+theorem zap.wp_String :
+    EtcdGrove.zap.String.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.String.wp_proof
 
 theorem zap.wp_Error :
     EtcdGrove.zap.Error.spec (GF := GF) (hG := hG) :=
@@ -379,10 +414,6 @@ theorem ResponseHeader.wp_GetRevision :
     EtcdGrove.ResponseHeader.GetRevision.spec (GF := GF) (hG := hG) :=
   EtcdGrove.ResponseHeader.GetRevision.wp_proof
 
-theorem status.wp_Error :
-    EtcdGrove.status.Error.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.status.Error.wp_proof
-
 theorem v3.WatchResponse.wp_Err :
     EtcdGrove.WatchResponse.Err.spec (GF := GF) (hG := hG) :=
   EtcdGrove.WatchResponse.Err.wp_proof rpctypes.wp_Error status.wp_Error rpctypes.EtcdError.wp_Error
@@ -395,10 +426,6 @@ theorem context.wp_TODO :
     EtcdGrove.context.TODO.spec (GF := GF) (hG := hG) :=
   EtcdGrove.context.TODO.wp_proof
 
-theorem errors.wp_Is :
-    EtcdGrove.errors.Is.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.errors.Is.wp_proof
-
 theorem time.Time.wp_IsZero :
     EtcdGrove.time.Time.IsZero.spec (GF := GF) (hG := hG) :=
   EtcdGrove.time.Time.IsZero.wp_proof
@@ -410,10 +437,6 @@ theorem zap.wp_Int' :
 theorem zap.wp_Int64 :
     EtcdGrove.zap.Int64.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Int64.wp_proof
-
-theorem zap.wp_Duration :
-    EtcdGrove.zap.Duration.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zap.Duration.wp_proof
 
 theorem zap.Logger.wp_Info :
     EtcdGrove.zap.Logger.Info.spec (GF := GF) (hG := hG) :=
@@ -462,9 +485,13 @@ theorem v3.Client.wp_credentialsForEndpoint :
     EtcdGrove.Client.credentialsForEndpoint.spec (GF := GF) (hG := hG) :=
   EtcdGrove.Client.credentialsForEndpoint.wp_proof endpoint.wp_RequiresCredentials
 
+theorem v3.wp_jitterUp :
+    EtcdGrove.jitterUp.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.jitterUp.wp_proof rand.wp_Float64
+
 theorem v3.Client.wp_roundRobinQuorumBackoff :
     EtcdGrove.Client.roundRobinQuorumBackoff.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.Client.roundRobinQuorumBackoff.wp_proof
+  EtcdGrove.Client.roundRobinQuorumBackoff.wp_proof v3.Client.wp_Endpoints v3.Client.wp_GetLogger v3.wp_jitterUp zap.wp_Uint zap.wp_Duration zap.wp_Float64 zap.Logger.wp_Debug
 
 theorem v3.wp_withBackoff :
     EtcdGrove.withBackoff.spec (GF := GF) (hG := hG) :=
@@ -490,9 +517,13 @@ theorem v3.wp_filterCallOptions :
     EtcdGrove.filterCallOptions.spec (GF := GF) (hG := hG) :=
   EtcdGrove.filterCallOptions.wp_proof
 
+theorem v3.wp_contextErrToGRPCErr :
+    EtcdGrove.contextErrToGRPCErr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.contextErrToGRPCErr.wp_proof errors.wp_IsDeadlineExceeded errors.wp_Is status.wp_Error
+
 theorem v3.wp_waitRetryBackoff :
     EtcdGrove.waitRetryBackoff.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.waitRetryBackoff.wp_proof
+  EtcdGrove.waitRetryBackoff.wp_proof v3.wp_contextErrToGRPCErr
 
 theorem peer.Peer.wp_String :
     EtcdGrove.peer.Peer.String.spec (GF := GF) (hG := hG) :=
@@ -666,6 +697,10 @@ theorem wp_NewAuthClient :
     EtcdGrove.NewAuthClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.NewAuthClient.wp_proof
 
+theorem wp_NewClusterClient :
+    EtcdGrove.NewClusterClient.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.NewClusterClient.wp_proof
+
 theorem wp_NewKVClient :
     EtcdGrove.NewKVClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.NewKVClient.wp_proof
@@ -681,6 +716,10 @@ theorem v3.wp_WithRequireLeader :
 theorem v3.wp_NewLeaseFromLeaseClient :
     EtcdGrove.NewLeaseFromLeaseClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.NewLeaseFromLeaseClient.wp_proof v3.wp_WithRequireLeader v3.Client.wp_GetLogger
+
+theorem wp_NewMaintenanceClient :
+    EtcdGrove.NewMaintenanceClient.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.NewMaintenanceClient.wp_proof
 
 theorem wp_NewWatchClient :
     EtcdGrove.NewWatchClient.spec (GF := GF) (hG := hG) :=
@@ -722,6 +761,10 @@ theorem v3.wp_RetryAuthClient :
     EtcdGrove.RetryAuthClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.RetryAuthClient.wp_proof wp_NewAuthClient
 
+theorem v3.wp_RetryClusterClient :
+    EtcdGrove.RetryClusterClient.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.RetryClusterClient.wp_proof wp_NewClusterClient
+
 theorem v3.wp_RetryKVClient :
     EtcdGrove.RetryKVClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.RetryKVClient.wp_proof wp_NewKVClient
@@ -729,6 +772,14 @@ theorem v3.wp_RetryKVClient :
 theorem v3.wp_RetryLeaseClient :
     EtcdGrove.RetryLeaseClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.RetryLeaseClient.wp_proof wp_NewLeaseClient
+
+theorem v3.wp_RetryMaintenanceClient :
+    EtcdGrove.RetryMaintenanceClient.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.RetryMaintenanceClient.wp_proof wp_NewMaintenanceClient
+
+theorem v3.wp_backoffLinearWithJitter :
+    EtcdGrove.backoffLinearWithJitter.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backoffLinearWithJitter.wp_proof v3.wp_jitterUp
 
 theorem v3.blockLogger.wp_recordWait [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
     EtcdGrove.blockLogger.recordWait.spec (GF := GF) (hG := hG) :=
@@ -752,7 +803,7 @@ theorem resolver.EtcdManualResolver.wp_Close :
 
 theorem v3.wp_NewCluster :
     EtcdGrove.NewCluster.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.NewCluster.wp_proof
+  EtcdGrove.NewCluster.wp_proof v3.wp_RetryClusterClient
 
 theorem v3.wp_NewKV :
     EtcdGrove.NewKV.spec (GF := GF) (hG := hG) :=
@@ -768,7 +819,7 @@ theorem v3.wp_NewAuth :
 
 theorem v3.wp_NewMaintenance :
     EtcdGrove.NewMaintenance.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.NewMaintenance.wp_proof
+  EtcdGrove.NewMaintenance.wp_proof v3.Client.wp_GetLogger v3.wp_RetryMaintenanceClient
 
 theorem credentials.wp_NewPerRPCCredentialBundle :
     EtcdGrove.credentials.NewPerRPCCredentialBundle.spec (GF := GF) (hG := hG) :=

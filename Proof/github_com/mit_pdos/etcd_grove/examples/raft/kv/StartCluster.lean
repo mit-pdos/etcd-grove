@@ -235,7 +235,7 @@ layer 4), its durable state (`raftState`, at `RaftState.init`), its configuratio
 `run` holds of the storage (`runStor`, persistent, at the same key; until 2026-10-30 the storage's
 snapshot token). -/
 def drvRes (γr : RKVNames) (id : w64) (nd : GoInterface) (st : Loc) : IProp GF :=
-  iprop(∃ (n : Loc) (K : GName), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
+  iprop(∃ (n : NodeH) (K : GName), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n.loc⌝ ∗
     isNode n γr.cluster kvRaftN id ∗
     nodeDriver n γr.cluster kvRaftN (NodeDriverState.init (kvStorIface st) K) ∗
     raftState γr.cluster id RaftState.init ∗
@@ -326,6 +326,7 @@ theorem StartCluster.wp_proof
     have Hid0m : id0 ∈ vs := List.mem_of_getElem? Hid0
     rw [drop_cons_of_getElem? _ _ _ Hid0]
     icases Htodo with ⟨⟨⟨HrS, Hvac⟩, Hseq⟩, Htodo⟩
+    imod nodeVacant_armD γr.cluster id0 ⊤ $$ Hvac with ⟨%x, Hvac⟩
     ihave #Hlogger := qLogger_isLogger wp_Debugf wp_Errorf wp_Infof wp_Warningf
     ihave Hboot := kvStorage_bootStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex
       wp_Term wp_Entries st ms γs vsl vs γr.cluster
@@ -340,6 +341,8 @@ theorem StartCluster.wp_proof
     ihave #Hkc' := Hkc
     iunfold kvCluster at Hkc'
     icases Hkc' with ⟨#Hiscl, -, #Hca0, -⟩
+    -- (2026-11-22) the update with the crash token (`restartAu_nc`)
+    ihave Hau := restartAu_nc _ _ _ _ _ $$ Hau
     wp_apply (wp_RestartNode γr.cluster kvRaftN _ (nodeConfig id0 st) qLogger
       ⟨go.GoType.PointerType rStorageTy, #st⟩ kvBootContents (raft_kv.kvConfState vs) 0
       (kvMembership γr)
@@ -351,9 +354,9 @@ theorem StartCluster.wp_proof
       (by right; show W64 1048576 ≠ W64 0; decide)
       rfl (fun h => absurd Hmd0 h) (Or.inl rfl) (by simp [StorContents.b]) (by simp [StorContents.commit])
       (by rw [Hbl0]; simp [StorContents.commit]) (by rw [← Hγv]; exact kvConfState_is γr)
-      (fun h => by have := clusterNoSnap_boot _ h; omega) rfl Htr0)
+      (fun h => by have := clusterNoSnap_boot _ h; omega) rfl Htr0 x)
       $$ [$Hraftinit $«$a0» $Hlogger Hboot Hvac Hau]
-      as %nd ⟨%n, %S, %l, %K, %Hnd, #HisNode, #Hl, %Hlen, %-, Hdrv, Hcfg, Hrun, -, ⟨HrS, %HS⟩, #HmsInv⟩
+      as %nd ⟨%n, %S, %l, %K, %Hnd, #HisNode, #Hl, %Hlen, %-, Hdrv, Hcfg, Hrun, -, -, ⟨HrS, %HS⟩, #HmsInv⟩
     · have hA : uint.nat (nodeConfig id0 st).Applied' = 0 := rfl
       have hI : (nodeConfig id0 st).ID' = id0 := rfl
       rw [← Hiface, hA, hI]
@@ -372,7 +375,7 @@ theorem StartCluster.wp_proof
     wp_apply wp_mapInsert go.uint64 mS S id0 st $$ [$HmS] as HmS
     wp_for_post
     iframe
-    iexists k + W64 1, id0, <[id0 := interface.mkOk (go.GoType.PointerType node.ty) #n]> M,
+    iexists k + W64 1, id0, <[id0 := interface.mkOk (go.GoType.PointerType node.ty) #n.loc]> M,
       <[id0 := st]> S
     have Hk1 : sint.nat (k + W64 1) = sint.nat k + 1 := by word
     rw [Hk1, take_succ_of_getElem? _ _ _ Hid0]
@@ -395,7 +398,7 @@ theorem StartCluster.wp_proof
       ipureintro; rfl
     isplitl
     · iapply (BigSepL.bigSepL_append (Φ := fun _ id => iprop(∃ (nd : GoInterface) (st' : Loc),
-          ⌜(<[id0 := interface.mkOk (go.GoType.PointerType node.ty) #n]> M) !! id = some nd ∧
+          ⌜(<[id0 := interface.mkOk (go.GoType.PointerType node.ty) #n.loc]> M) !! id = some nd ∧
             (<[id0 := st]> S) !! id = some st'⌝ ∗ drvRes (GF := GF) γr id nd st'))).2
       isplitl [Hdone]
       · iapply (BigSepL.bigSepL_mono (Φ := fun _ id => iprop(∃ (nd : GoInterface) (st' : Loc),
@@ -412,7 +415,7 @@ theorem StartCluster.wp_proof
         rw [GMap.lookup_insert_ne _ _ (Ne.symm Hne), GMap.lookup_insert_ne _ _ (Ne.symm Hne)]
         exact Hl
       · iapply (BigSepL.bigSepL_singleton (Φ := fun _ id => iprop(∃ (nd : GoInterface) (st' : Loc),
-          ⌜(<[id0 := interface.mkOk (go.GoType.PointerType node.ty) #n]> M) !! id = some nd ∧
+          ⌜(<[id0 := interface.mkOk (go.GoType.PointerType node.ty) #n.loc]> M) !! id = some nd ∧
             (<[id0 := st]> S) !! id = some st'⌝ ∗ drvRes (GF := GF) γr id nd st'))).2
         iexists _, st
         isplitr

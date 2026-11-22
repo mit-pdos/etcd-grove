@@ -21,11 +21,11 @@ def hsWit [ReceiptGS GF] (γ : RaftNames) (h : HardStateM) (n : Nat) : IProp GF 
   iprop(⌜h = { Term' := W64 0, Vote' := W64 0, Commit' := W64 0 }⌝ ∨
       commitWit γ h.Term' h.Commit' ∗ ⌜↑n ≤ uint.Z h.Commit'⌝)
 
-theorem ownRaftGhost_commitWit [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) {md
-    : Bool} : ⊢ ownRaftGhost γ id s md -∗ commitWit γ s.term s.commit
+theorem ownRaftGhost_commitWit [ReceiptGS GF] [InvGS GF] [CrashGS GF] (γ : RaftNames) (id : w64) (s
+    : PState) {md : Bool} : ⊢ ownRaftGhost γ id s md -∗ commitWit γ s.term s.commit
 
-theorem hsWit_mono [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (h : HardStateM) (n m : Nat) (H : m ≤
-    n) : hsWit γ h n ⊢ hsWit γ h m
+theorem hsWit_mono [ReceiptGS GF] [InvGS GF] [CrashGS GF] (γ : RaftNames) (h : HardStateM) (n m :
+    Nat) (H : m ≤ n) : hsWit γ h n ⊢ hsWit γ h m
 
 theorem hsWit_persistent [ReceiptGS GF] (γ : RaftNames) (h : HardStateM) (n : Nat) : Persistent
     (hsWit γ h n)

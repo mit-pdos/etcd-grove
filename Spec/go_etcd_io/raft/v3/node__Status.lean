@@ -29,9 +29,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 channel with `getStatus`), or `Status{}` once the node stopped; its memory the caller's
 (`statusOwn`). Nothing is promised of the values. -/
 abbrev node.Status.spec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64),
+  ∀ (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id }}
-    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Status")) (Val #()))
+    (App (Val (n.loc @!! go.GoType.PointerType node.ty @!! go!"Status")) (Val #()))
   {{ (st : Status), RET #st; statusOwn st }}
 
 end spec

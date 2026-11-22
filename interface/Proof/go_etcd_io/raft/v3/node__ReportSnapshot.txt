@@ -5,7 +5,7 @@
 theorem node.ReportSnapshot.wp_proof [package_sem : Assumptions] (wp_MessageType_Enum :
     raftpb.MessageType.Enum.spec) : node.ReportSnapshot.spec
   -- `Perennial.EtcdGrove.node.ReportSnapshot.spec`, unfolded:
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id to : w64) (status : SnapshotStatus),
+  ∀ (n : NodeH) (γ : Cluster) (N : Namespace) (id to : w64) (status : SnapshotStatus),
     γ.trace = none →
       ⊢
         ∀ Φ,
@@ -15,7 +15,7 @@ theorem node.ReportSnapshot.wp_proof [package_sem : Assumptions] (wp_MessageType
                 (((intoVal
                       (methods node.ty.PointerType
                         go!"ReportSnapshot"
-                        (intoVal n)))
+                        (intoVal n.loc)))
                     (intoVal to))
                   (intoVal status))
                 {{ Φ }}

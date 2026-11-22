@@ -27,9 +27,11 @@ variable [sem : go.Semantics]
 
 /-- **The trust boundary.** Go's `slices.Concat(slices...)` returns a new slice holding the elements of each slice in
 turn, reading the slices only. Go panics (`len out of range`) when the total length overflows
-`int`; for strings (16 bytes each) the slices' total length is bounded by the address space, far
-below `2^63`, so no premise is needed (as for the model's `append`, README, "Model assumptions
-(overflow)"). -/
+`int` (`slices.go:491-498`, before `Grow`), so the spec takes the total `< 2 ^ 63`. Until
+2026-11-22 it took no premise, arguing that the address space bounds the total; it does not, since
+the inputs may alias (claim #26; `examples/premisefix/concatlen`). The statement is the string
+instance of Perennial's proved `slices.Concat.spec` (mit-pdos/perennial#670), so the axiom becomes a
+theorem after the pin bump. -/
 axiom Concat.wp_proof : Concat.spec (GF := GF) (hG := hG)
 
 end proof

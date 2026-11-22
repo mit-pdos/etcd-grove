@@ -2232,11 +2232,12 @@ it and its free queue), the batch is queued, entering the recorded durable state
 applied (`readyDurable`), and the messages' facts are behind its maps' fragments (`W`, recorded
 in `RNState.bw` for the self-addressed responses `acceptReady` queues), at role leader at once. -/
 theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
-    (rd : Ready) (ce es : List EntryM) (ms : List QMsg) (L : Option SnapLoan) (qf : Qp) (g : Nat)
-    (hrd : HardStateM) (HE : ↑(slotN γ id) ⊆ E) :
-    ⊢ hsOpt rd.HardState' hrd -∗ slotLive γ id qf g -∗ slotFree γ id g -∗
+    (rd : Ready) (ce es : List EntryM) (ms : List QMsg) (L : Option SnapLoan) (x : CrashNames)
+    (qf : Qp) (g : Nat)
+    (hrd : HardStateM) (HE : ↑(slotN γ id) ⊆ E) (HC : ↑(crashNs γ id) ⊆ E) :
+    ⊢ hsOpt rd.HardState' hrd -∗ notCrashed -∗ genView γ id x qf g -∗ slotFree γ id g -∗
       ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms false L ={E}=∗
-      ∃ (W : DurMaps) (ss : Option (w64 × StateType)),
+      notCrashed ∗ ∃ (W : DurMaps) (ss : Option (w64 × StateType)),
       ownRawNodeReady γ rn id { rs with bw := W } rd ce es ms true L ∗
       readyOut rs.storage rs.sn es L ∗
       -- (U8 v2) the committed entries below the batch, frozen; raft's certified terms of the
@@ -2252,7 +2253,7 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
       -- entering the recorded durable state with the batch applied, its maps `W`; the messages'
       -- facts behind `W`'s fragments, and at role leader (after the `Ready`'s soft state `ss`) at
       -- once (R9)
-      slotLive γ id qf g ∗ pendBatch γ id g (readyDurable rs.dur (phsNext rs.phs hrd) L es) W ∗
+      genView γ id x qf g ∗ pendBatch γ id g (readyDurable rs.dur (phsNext rs.phs hrd) L es) W ∗
       softStateIs rd.SoftState' ss ∗ ⌜rd.SoftState' = null → ss = none⌝ ∗
       ([∗list] q ∈ ms, □ (durFrags γ id W -∗ isRaftMsg γ id q.st)) ∗
       □ (⌜roleAfter rs.role ss = StateLeader⌝ -∗ [∗list] q ∈ ms, isRaftMsg γ id q.st) ∗
@@ -2262,7 +2263,7 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
       readyMsgOrigins γ id rs.sn ms ∗ handoutOrigins γ id rs.sn (phsNext rs.phs hrd).Term' ms (dlvAfter rs.delivered ce L).length (L.map (fun l => l.snap.Metadata'.Index')) ∗
       -- (2026-11-01, durability stage II (m)) what the `Ready` is past, and within (`ReadyFacts`)
       ⌜ReadyFacts rs.dur rs.phs (phsNext rs.phs hrd) rs.delivered ce es L⌝ := by
-  iintro #Hh Hlive Hfree H
+  iintro #Hh Hnc Hlive Hfree H
   -- (U8 v2) a lent snapshot's committed log ends at it
   ihave %Hllast : ⌜∀ l, L = some l → plogLast base0 l.dlv = snapId l.snap⌝ $$ [H]
   · cases L with
@@ -2645,9 +2646,9 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
     ihave %Hi1 := HI1n $$ %fp0 %Hfp0 Hfr0
     ihave #HrF := logRecs_full γ (toPState s).base fp0 (toPState s).log Hfp0 $$ Hfr0 Hlrs
     iapply durI1_of_full γ _ _ _ Hdf0 (by rw [HcS]; exact Hi1) $$ HrF
-  imod ownRaftGhost_cut E γ id (toPState s) qf g (readyDurable rs.dur (phsNext rs.phs hrd0) L es)
-    [] (toPState s).outbox HE (by simp) Hp' Hv' Hc' Hbc (by simp) $$ Hdf HI1b Hlive Hfree Hghost
-    with ⟨Hlive, %W, Hpb, Hghost, #Hout', Hcr, Htk⟩
+  imod ownRaftGhost_cut E γ id (toPState s) x qf g (readyDurable rs.dur (phsNext rs.phs hrd0) L es)
+    [] (toPState s).outbox HE HC (by simp) Hp' Hv' Hc' Hbc (by simp) $$ Hdf HI1b Hnc Hlive Hfree Hghost
+    with ⟨Hnc, Hlive, %W, Hpb, Hghost, #Hout', Hcr, Htk⟩
   -- the messages handed out: behind the batch's fragments, and at role leader at once
   ihave #Hmw : iprop([∗list] q ∈ ms, □ (durFrags γ id W -∗ isRaftMsg γ id q.st)) $$ []
   · iapply bigSepL_wand_distrib
@@ -2704,6 +2705,7 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
         (roleAfter rs.role ss' = StateLeader → ms = [] ∨ s.role = .leader)⌝) $$ []
   · iexists ss; iframe Hss; ipureintro; exact Hssl
   imodintro
+  iframe Hnc
   iexists W, ss
   isplitr [Hout Hcr Htk Hlive Hpb]
   · iunfold ownRawNodeReady

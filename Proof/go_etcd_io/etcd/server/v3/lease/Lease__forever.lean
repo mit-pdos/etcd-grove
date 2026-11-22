@@ -32,7 +32,7 @@ theorem lease.Lease.forever.wp_proof : lease.Lease.forever.spec (GF := GF) (hG :
   · iPkgInit
   ihave Hli : (leaseInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hli with ⟨-, -, -, #Hforever, -⟩
+  icases Hli with ⟨-, -, -, ⟨#Hforever, -⟩, -⟩
   wp_apply wp_with_defer as %defer defer
   wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hmu] as ⟨Hlk, HR⟩
   iunfold leaseExpiry at HR

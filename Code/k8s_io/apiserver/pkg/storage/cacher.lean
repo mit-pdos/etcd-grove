@@ -293,21 +293,6 @@ opaque maxWatchChanSizeWithoutIndex [GooseExts] [GoGlobalContext] : val
 
 opaque bufferSize [GooseExts] [GoGlobalContext] : val
 
-noncomputable def emptyFunc [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/cacher.emptyFunc"
-
-opaque emptyFunc.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def coreNamespaceResource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/cacher.coreNamespaceResource"
-
-opaque coreNamespaceResource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def DefaultEventFreshDuration [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/cacher.DefaultEventFreshDuration"
-
-opaque DefaultEventFreshDuration.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def invalidationCacheTimestampLock [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.invalidationCacheTimestampLock"
 
@@ -1781,10 +1766,36 @@ noncomputable def watchCache.WaitUntilFreshAndGet.impl [GooseExts] [GoGlobalCont
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.k8s_io.component_base.tracing.Span.ty)))) (Pair (Var "span") (Var "$r0"))))))))))))
   (Pair (Pair (Pair (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res2"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res3"))))))))))))
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `emptyFunc` (`var emptyFunc = func(bool) {}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `coreNamespaceResource` (`var coreNamespaceResource = schema.GroupResource{Group: "", Resource: "namespaces"}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `DefaultEventFreshDuration` (`var // DefaultEventFreshDuration is the default time duration of events // we want to keep. // We set it to defaultBookm … [sha256:2d5b481c92806da6]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `_@caching_object.go:36` (`var _ runtime.CacheableObject = &cachingObject{}`): An interface check: `&cachingObject{}` converted to `runtime.CacheableObject`. No call, no panic, no
+effect.
+- `_@delegator.go:62` (`var _ storage.Interface = (*CacheDelegator)(nil)`): An interface check: a nil pointer converted to `storage.Interface`. No call, no panic, no effect.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"k8s.io/apiserver/pkg/storage/cacher.emptyFunc", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var emptyFunc = func(bool) {}"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/cacher.coreNamespaceResource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var coreNamespaceResource = schema.GroupResource{Group: \"\", Resource: \"namespaces\"}"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/cacher.DefaultEventFreshDuration", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var // DefaultEventFreshDuration is the default time duration of events // we want to keep. // We set it to defaultBookm … [sha256:2d5b481c92806da6]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/cacher._@caching_object.go:36", "An interface check: `&cachingObject{}` converted to `runtime.CacheableObject`. No call, no panic, no\neffect.", "var _ runtime.CacheableObject = &cachingObject{}"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/cacher._@delegator.go:62", "An interface check: a nil pointer converted to `storage.Interface`. No call, no panic, no effect.", "var _ storage.Interface = (*CacheDelegator)(nil)"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.storage.cacher where
   pkgImportedPkgs := [pkg_id.context, pkg_id.fmt, pkg_id.sync, pkg_id.time, pkg_id.k8s_io.utils.clock, pkg_id.k8s_io.apimachinery.pkg.runtime, pkg_id.k8s_io.apimachinery.pkg.runtime.schema, pkg_id.k8s_io.apimachinery.pkg.util.runtime, pkg_id.k8s_io.apimachinery.pkg.watch, pkg_id.k8s_io.apiserver.pkg.storage, pkg_id.k8s_io.apiserver.pkg.util.flowcontrol, pkg_id.k8s_io.klog.v2, pkg_id.net.http, pkg_id.reflect, pkg_id.strings, pkg_id.go_opentelemetry_io.otel.«attribute», pkg_id.google_golang_org.grpc.metadata, pkg_id.k8s_io.apimachinery.pkg.api.errors, pkg_id.k8s_io.apimachinery.pkg.api.«meta», pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1, pkg_id.k8s_io.apimachinery.pkg.conversion, pkg_id.k8s_io.apimachinery.pkg.fields, pkg_id.k8s_io.apimachinery.pkg.labels, pkg_id.k8s_io.apimachinery.pkg.util.wait, pkg_id.k8s_io.apiserver.pkg.audit, pkg_id.k8s_io.apiserver.pkg.endpoints.request, pkg_id.k8s_io.apiserver.pkg.features, pkg_id.k8s_io.apiserver.pkg.storage.cacher.delegator, pkg_id.k8s_io.apiserver.pkg.storage.cacher.key, pkg_id.k8s_io.apiserver.pkg.storage.cacher.progress, pkg_id.k8s_io.apiserver.pkg.storage.cacher.store, pkg_id.k8s_io.apiserver.pkg.storage.feature, pkg_id.k8s_io.apiserver.pkg.util.feature, pkg_id.k8s_io.client_go.tools.cache, pkg_id.k8s_io.component_base.tracing, pkg_id.bytes, pkg_id.io, pkg_id.sync.atomic, pkg_id.k8s_io.apimachinery.pkg.types, pkg_id.k8s_io.apiserver.pkg.storage.cacher.consistency, pkg_id.k8s_io.client_go.util.consistencydetector, pkg_id.k8s_io.client_go.util.watchlist, pkg_id.math, pkg_id.sort, pkg_id.iter]
-
-opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -1834,23 +1845,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val «_».init) (Val #())))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val DefaultEventFreshDuration.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val coreNamespaceResource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val emptyFunc.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.context.initialize') (Val #()))))))
+  (App (Val _root_.Perennial.context.initialize') (Val #())))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.fmt.initialize') (Val #()))))))
   (App (Val doExecute)

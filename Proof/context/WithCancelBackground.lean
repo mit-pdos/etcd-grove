@@ -40,7 +40,7 @@ theorem context.WithCancelBackground.wp_proof : context.WithCancelBackground.spe
   · iframe #
     isplitl []
     · itrivial
-    unfold _root_.Perennial.context.isParentCtx; ileft; ipureintro; rfl
+    unfold _root_.Perennial.context.isParentCtx; ileft; ipureintro; exact Or.inl rfl
   inext
   iintro %c %γ %cancel ⟨#Hcancel, #Hc, #Hf⟩
   ihave #Hdl := _root_.Perennial.context.deadlineSpec_background (GF := GF)

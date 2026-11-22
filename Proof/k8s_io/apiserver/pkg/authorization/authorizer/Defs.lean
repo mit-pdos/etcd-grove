@@ -27,7 +27,10 @@ Allow/Deny, and NoOpinion unless some child contains an unconditional Allow or D
 satisfies, and what makes C2 and C3 provable: a map has a Deny or an Allow condition (the
 constructor folds the other cases to unconditional decisions), and a union's children are `WF` and
 it has at least two possible decisions (`ToDecision` folds a union with one possible outcome to an
-unconditional decision). Then:
+unconditional decision), and unions nest less than `2 ^ 63` deep (`Dec.depth`;
+`collectReasonsAndErrors`'s `slices.Concat` panics on a longer path of names: the builder keeps its
+children less than `2 ^ 63 - 1` deep, `ownBuilder`, so an authorizer's decision is one level
+shallower than the invariant, `caaOk`). Then:
 
 - **C3** (`Dec.failure_mem`): a `WF` decision other than an unconditional Allow has its failure
   decision among its possible decisions (a conditional decision has two possible decisions out of
@@ -160,6 +163,59 @@ def Dec.subL : List Dec → PD
 end
 
 mutual
+/-- The nesting depth of unions: `0` for a leaf, one more than its deepest child for a union
+(`collectReasonsAndErrors` builds, for each decision it visits, the path of names down to it in a
+`[]string` of that length with `slices.Concat`, which panics when the length reaches `2 ^ 63`). -/
+def Dec.depth : Dec → Nat
+  | .deny => 0
+  | .allow => 0
+  | .noOpinion => 0
+  | .cmap _ _ _ => 0
+  | .union ks => Dec.depthL ks + 1
+/-- The depth of the deepest decision of the list (`0` for none). -/
+def Dec.depthL : List Dec → Nat
+  | [] => 0
+  | k :: ks => max (Dec.depth k) (Dec.depthL ks)
+end
+
+/-- A child is less deep than its union. -/
+theorem Dec.depth_le_depthL : ∀ (ks : List Dec) (i : Nat) (k : Dec), ks[i]? = some k →
+    k.depth ≤ Dec.depthL ks
+  | [], _, _, h => by simp at h
+  | k' :: ks, 0, k, h => by
+    simp only [List.getElem?_cons_zero, Option.some.injEq] at h; subst h
+    simp only [Dec.depthL]; omega
+  | k' :: ks, i + 1, k, h => by
+    simp only [List.getElem?_cons_succ] at h
+    have := Dec.depth_le_depthL ks i k h
+    simp only [Dec.depthL]; omega
+
+/-- A list's depth bounded by each element's. -/
+theorem Dec.depthL_le_of : ∀ (ks : List Dec) (n : Nat),
+    (∀ (i : Nat) (k : Dec), ks[i]? = some k → k.depth ≤ n) → Dec.depthL ks ≤ n
+  | [], _, _ => Nat.zero_le _
+  | k :: ks, n, h => by
+    simp only [Dec.depthL]
+    have h1 := h 0 k rfl
+    have h2 := Dec.depthL_le_of ks n (fun i k' hk => h (i + 1) k' (by simpa using hk))
+    omega
+
+/-- The depth of a list with one more decision. -/
+theorem Dec.depthL_append : ∀ (ks : List Dec) (m : Dec),
+    Dec.depthL (ks ++ [m]) = max (Dec.depthL ks) m.depth
+  | [], m => by simp [Dec.depthL]
+  | k :: ks, m => by
+    simp only [List.cons_append, Dec.depthL, Dec.depthL_append ks m]; omega
+
+/-- The depth of a builder's children after `Add` (which keeps them when they already contain an
+unconditional Allow or Deny). -/
+theorem Dec.depthL_add_le (c : Bool) (ks : List Dec) (m : Dec) (n : Nat) (h1 : Dec.depthL ks ≤ n)
+    (h2 : m.depth ≤ n) : Dec.depthL (if c then ks else ks ++ [m]) ≤ n := by
+  cases c
+  · simp only [Bool.false_eq_true, ↓reduceIte, Dec.depthL_append]; omega
+  · simpa using h1
+
+mutual
 /-- **The invariant** of the decisions the constructors and the builder produce (see the file
 header). -/
 def Dec.WF : Dec → Prop
@@ -167,7 +223,7 @@ def Dec.WF : Dec → Prop
   | .allow => True
   | .noOpinion => True
   | .cmap dn _ al => dn ≠ [] ∨ al ≠ []
-  | .union ks => Dec.WFL ks ∧ 2 ≤ (Dec.pd (.union ks)).card
+  | .union ks => Dec.WFL ks ∧ 2 ≤ (Dec.pd (.union ks)).card ∧ Dec.depthL ks + 1 < 2 ^ 63
 /-- Every decision of the list is `WF`. -/
 def Dec.WFL : List Dec → Prop
   | [] => True
@@ -219,7 +275,7 @@ theorem Dec.failure_mem (m : Dec) (hwf : m.WF) (hna : m.isAllow = false) :
     cases dn <;> rfl
   | union ks =>
     simp only [Dec.WF] at hwf
-    obtain ⟨-, hc⟩ := hwf
+    obtain ⟨-, hc, -⟩ := hwf
     have key : ∀ sd sa sn : Bool, 2 ≤ (PD.mk sd sa sn).card →
         (PD.mk sd sa sn).has (PD.mk sd sa sn).failure = true := by decide
     exact key _ _ _ hc
@@ -294,6 +350,11 @@ theorem Dec.ofWord_WF (k : w64) : (Dec.ofWord k).WF := by
   unfold Dec.ofWord; split
   · trivial
   · split <;> trivial
+
+theorem Dec.ofWord_depth (k : w64) : (Dec.ofWord k).depth = 0 := by
+  unfold Dec.ofWord; split
+  · rfl
+  · split <;> rfl
 
 /-! The type tests of a decision value read its tag (`decisionType`), its model's `Dec.tag`. -/
 
@@ -467,14 +528,37 @@ instance isDecisionL_persistent (ds : List ConditionsAwareDecision) (ks : List D
     Persistent (isDecisionL (GF := GF) ds ks) := by
   unfold isDecisionL; infer_instance
 
-/-- **A well-formed decision**: some model, `WF`. What an authorizer's `ConditionsAwareAuthorize`
-returns. -/
+/-- **A well-formed decision**: some model, `WF`. -/
 def isWFDecision (d : ConditionsAwareDecision) : IProp GF :=
   iprop(∃ m : Dec, isDecision d m ∗ ⌜m.WF⌝)
 
 instance isWFDecision_persistent (d : ConditionsAwareDecision) :
     Persistent (isWFDecision (GF := GF) d) := by
   unfold isWFDecision; infer_instance
+
+/-- A well-formed decision at most `n` deep (`Dec.depth`). -/
+def isWFDecisionLe (n : Nat) (d : ConditionsAwareDecision) : IProp GF :=
+  iprop(∃ m : Dec, isDecision d m ∗ ⌜m.WF ∧ m.depth ≤ n⌝)
+
+instance isWFDecisionLe_persistent (n : Nat) (d : ConditionsAwareDecision) :
+    Persistent (isWFDecisionLe (GF := GF) n d) := by
+  unfold isWFDecisionLe; infer_instance
+
+theorem isWFDecisionLe_isWFDecision (n : Nat) (d : ConditionsAwareDecision) :
+    isWFDecisionLe (GF := GF) n d ⊢ isWFDecision d := by
+  unfold isWFDecisionLe isWFDecision
+  iintro ⟨%m, Hd, %Hm⟩
+  iexists m
+  iframe Hd
+  ipureintro; exact Hm.1
+
+theorem isWFDecisionLe_weaken (n n' : Nat) (d : ConditionsAwareDecision) :
+    isWFDecisionLe (GF := GF) n d ∗ ⌜n ≤ n'⌝ ⊢ isWFDecisionLe n' d := by
+  unfold isWFDecisionLe
+  iintro ⟨⟨%m, Hd, %Hm⟩, %h⟩
+  iexists m
+  iframe Hd
+  ipureintro; exact ⟨Hm.1, by omega⟩
 
 /-- A decision's error is `nil` or an error tree (2026-11-20). -/
 theorem isDecision_err (d : ConditionsAwareDecision) (m : Dec) :
@@ -497,11 +581,11 @@ theorem isDecision_tag (d : ConditionsAwareDecision) (m : Dec) :
     | (iintro #⟨%H, -⟩; ipureintro; exact H)
 
 /-- `ConditionsAwareAuthorize(ctx, attrs)` of the authorizer `ai` returns a well-formed
-decision. -/
+decision, less than `2 ^ 63 - 1` deep (the union authorizer adds it to a builder, `ownBuilder`). -/
 def caaOk (ai : GoInterfaceOk) (ctx attrs : GoInterface) : IProp GF :=
   iprop({{ (True : IProp GF) }}
     (App (App (Val #(methods ai.ty go!"ConditionsAwareAuthorize" ai.v)) (Val #ctx)) (Val #attrs))
-    {{ (d : ConditionsAwareDecision), RET #d; isWFDecision (GF := GF) d }})
+    {{ (d : ConditionsAwareDecision), RET #d; isWFDecisionLe (GF := GF) (2 ^ 63 - 2) d }})
 
 instance caaOk_persistent (ai : GoInterfaceOk) (ctx attrs : GoInterface) :
     Persistent (caaOk (GF := GF) ai ctx attrs) := by
@@ -675,11 +759,13 @@ theorem isDecisionL_lookup (ds : List ConditionsAwareDecision) (ks : List Dec) (
 /-- **The union builder** (`*ConditionsAwareDecisionUnion` at `p`, owned) holding the children
 `ks` (in order): its children's slice (owned, as `Add` appends to it) holds decisions described by
 `ks`; its errors' slice is owned; its memoized fields agree with `ks` (the set is `nil` until the
-first child, then owned). The children are `WF` (`Add` takes only `WF` decisions). -/
+first child, then owned). The children are `WF` and less than `2 ^ 63 - 1` deep (`Add` takes
+only such decisions): `ToDecision`'s `collectReasonsAndErrors` starts each child's path of names
+at length one. -/
 def ownBuilder (p : Loc) (ks : List Dec) : IProp GF :=
   iprop(∃ (u : ConditionsAwareDecisionUnion) (nds : List namedConditionsAwareDecision)
       (es : List GoInterface),
-    ⌜Dec.WFL ks⌝ ∗ p ↦ u ∗
+    ⌜Dec.WFL ks ∧ Dec.depthL ks + 1 < 2 ^ 63⌝ ∗ p ↦ u ∗
     u.inner' ↦* nds ∗ ownSliceCap namedConditionsAwareDecision u.inner' (DFrac.own 1) ∗
     isDecisionL (nds.map (·.d')) ks ∗
     u.errs' ↦* es ∗ ownSliceCap GoInterface u.errs' (DFrac.own 1) ∗
@@ -693,7 +779,7 @@ theorem ownBuilder_zero (p : Loc) :
   iintro Hp
   iexists (zero_val ConditionsAwareDecisionUnion), [], []
   isplitr
-  · ipureintro; trivial
+  · ipureintro; exact ⟨trivial, by simp [Dec.depthL]⟩
   iframe Hp
   isplitr
   · iapply ownSlice_nil

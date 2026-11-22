@@ -63,8 +63,13 @@ theorem raft.becomeCandidate.wp_proof
   have Hgh : ({ becomeCandidate id s with prvals := pvs } : NState).gh.tr = s.gh.tr := by
     first | rfl | (simp [becomeCandidate, resetTo, resetTo0]) | (cases s; rfl)
   icases trOwn_split s.gh.tr _ $$ Hphys with ⟨Hown, Hback⟩
+  iapply (wp_ncfupd _ _ rfl)
   iunfold HookGate at Hgate
-  imod Hgate with ⟨%tl, #Htl, Hfire⟩
+  unfold ncfupd
+  iintro Hnc
+  imod Hgate $$ Hnc with ⟨Hnc, %tl, #Htl, Hfire⟩
+  imodintro
+  iframe Hnc
   wp_apply wp_traceBecomeCandidate c r id { becomeCandidate id s with prvals := pvs } tl Q
     $$ [Htl Hown Hfire] as ⟨Hown, HQ⟩
   · rw [Hgh]

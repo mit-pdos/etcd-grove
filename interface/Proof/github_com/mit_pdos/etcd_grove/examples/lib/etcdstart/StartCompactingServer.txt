@@ -71,9 +71,4 @@ theorem etcdstart.StartCompactingServer.wp_proof (wp_newServerMode : etcdstart.n
                                                         (intoVal lg))
                                                       {{ Φ }}
 
-theorem etcdstart.memberUp.congr_simp (s s✝ : Loc) (e_s : s = s✝) (ρ ρ✝ : ReqNames) (e_ρ : ρ = ρ✝)
-    (E₀ E₀✝ : apply.AEnv GF) (e_E₀ : E₀ = E₀✝) (lg lg✝ : Loc) (e_lg : lg = lg✝) (γn γn✝ : NetNames
-    GF) (e_γn : γn = γn✝) (id id✝ : w64) (e_id : id = id✝) (m m✝ : lease.Mode) (e_m : m = m✝) :
-    etcdstart.memberUp s ρ E₀ lg γn id m = etcdstart.memberUp s✝ ρ✝ E₀✝ lg✝ γn✝ id✝ m✝
-
 theorem EtcdServer.Start.spec.congr_simp : EtcdServer.Start.spec = EtcdServer.Start.spec

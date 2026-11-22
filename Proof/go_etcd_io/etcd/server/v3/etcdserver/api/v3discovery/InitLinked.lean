@@ -62,19 +62,19 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of ErrInvalidURL))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrInvalidURL ⟨#MErrInvalidURLc, #MErrInvalidURL⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrInvalidURL ⟨#_, #MErrInvalidURL⟩
   -- translated initializer of ErrBadSizeKey))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrBadSizeKey ⟨#MErrBadSizeKeyc, #MErrBadSizeKey⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrBadSizeKey ⟨#_, #MErrBadSizeKey⟩
   -- translated initializer of ErrSizeNotFound))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrSizeNotFound ⟨#MErrSizeNotFoundc, #MErrSizeNotFound⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrSizeNotFound ⟨#_, #MErrSizeNotFound⟩
   -- translated initializer of ErrFullCluster))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrFullCluster ⟨#MErrFullClusterc, #MErrFullCluster⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrFullCluster ⟨#_, #MErrFullCluster⟩
   -- translated initializer of ErrTooManyRetries))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrTooManyRetries ⟨#MErrTooManyRetriesc, #MErrTooManyRetries⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrTooManyRetries ⟨#_, #MErrTooManyRetries⟩
   -- translated initializer of nRetries))
   -- translated initializer of maxExponentialRetries))
   iframe Hown

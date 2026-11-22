@@ -89,8 +89,8 @@ type connectOptions struct {
 	ReadBufferSize         int
 	SharedWriteBuffer      bool
 	MaxHeaderListSize      *uint32
-	BufferPool             mem.BufferPool
-	StaticWindowSize       bool
+	// MODEL: no BufferPool field (the default pool; withBufferPool panics)
+	StaticWindowSize bool
 }
 
 // callHdr is transport.CallHdr: what a client stream's header fields are made from.
@@ -771,6 +771,7 @@ func (s *clientTransportStream) Read(n int) (mem.BufferSlice, error) {
 
 // serverTransport is a served connection (transport.ServerTransport, http2Server): one stream.
 type serverTransport struct {
+	stats    stats.Handler // the server's stats handler (http2Server.stats), or nil
 	conn     net.Conn
 	peer     *peer.Peer
 	maxRecv  int
@@ -782,11 +783,12 @@ type serverTransport struct {
 	stream   *serverTransportStream // the dispatched stream, if any
 }
 
-func newServerTransport(conn net.Conn, maxRecv int) *serverTransport {
+func newServerTransport(conn net.Conn, maxRecv int, sh stats.Handler) *serverTransport {
 	return &serverTransport{
 		conn:    conn,
 		peer:    &peer.Peer{Addr: conn.RemoteAddr(), LocalAddr: conn.LocalAddr()},
 		maxRecv: maxRecv,
+		stats:   sh,
 		done:    make(chan struct{}),
 	}
 }
@@ -909,9 +911,14 @@ func (t *serverTransport) HandleStreams(ctx context.Context, handle func(*server
 // operateHeaders is http2Server.operateHeaders on the stream's head: the stream, dispatched (true),
 // or refused or answered at once (false: an early abort, written here).
 func (t *serverTransport) operateHeaders(ctx context.Context, fields []headerField) (*serverTransportStream, bool) {
+	wireLen := 0
+	for _, hf := range fields {
+		wireLen += len(hf.Name) + len(hf.Value)
+	}
 	s := &serverTransportStream{
-		st:   t,
-		recv: newRecvQueue(),
+		st:               t,
+		recv:             newRecvQueue(),
+		headerWireLength: modelChooseLength(wireLen),
 	}
 	var (
 		// if false, content-type was missing or invalid
@@ -1107,6 +1114,10 @@ type serverTransportStream struct {
 	trailer    metadata.MD
 	headerSent bool
 
+	// headerWireLength is the header block's wire length as stats.InHeader reports it (grpc-go's
+	// HEADERS frame length; the model's choice, modelChooseLength).
+	headerWireLength int
+
 	mu    sync.Mutex
 	state streamState
 }
@@ -1154,6 +1165,12 @@ func (s *serverTransportStream) Context() context.Context {
 // SetContext is ServerStream.SetContext.
 func (s *serverTransportStream) SetContext(ctx context.Context) {
 	s.ctx = ctx
+}
+
+// HeaderWireLength is ServerStream.HeaderWireLength: the header block's wire length, the model's
+// choice (headerWireLength).
+func (s *serverTransportStream) HeaderWireLength() int {
+	return s.headerWireLength
 }
 
 // RecvCompress is ServerStream.RecvCompress.
@@ -1269,6 +1286,14 @@ func (s *serverTransportStream) writeHeaderLocked() error {
 		s.closeStream(err)
 		return err
 	}
+	if s.st.stats != nil {
+		// Note: Headers are compressed with hpack after this call returns.
+		// No WireLength field is set here.
+		s.st.stats.HandleRPC(s.Context(), &stats.OutHeader{
+			Header:      s.header.Copy(),
+			Compression: s.sendCompress,
+		})
+	}
 	return nil
 }
 
@@ -1311,6 +1336,13 @@ func (s *serverTransportStream) WriteStatus(st *status.Status) error {
 	headerFields = appendHeaderFieldsFromMD(headerFields, s.trailer)
 	err := s.st.write(appendHeaderBlock(nil, frameTrailer, headerFields))
 	s.closeStream(contextErr(context.Canceled))
+	if err == nil && s.st.stats != nil {
+		// Note: The trailer fields are compressed with hpack after this call returns.
+		// No WireLength field is set here.
+		s.st.stats.HandleRPC(s.Context(), &stats.OutTrailer{
+			Trailer: s.trailer.Copy(),
+		})
+	}
 	return err
 }
 

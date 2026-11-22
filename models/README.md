@@ -13,7 +13,7 @@ neutral module path"). Translated by goose project `models` (`etc/goose.py`, lea
 | model | verified | trusted | evidence |
 |---|---|---|---|
 | `pbcodec/`: protobuf's wire format (varints, tags, length-delimited and fixed values, skipping a field, UTF-8) | translated with its bodies (no trusted function); `(*Error).Error` and the package initialization proved (`Net/Proof/models_lab/pbcodec/`); the helpers' own specs not yet (a kit port proves them) | that each function is protowire's of the same name (protobuf-go v1.36.12), `ConsumeFieldTag` the real Unmarshal's tag check, `ValidUTF8` Go's `unicode/utf8.Valid` | `pbcodec/protowire_test.go`, `pbcodec_test.go` against protowire and `unicode/utf8`; through every generated codec's tests |
-| `protobuf/`: the protobuf codec generator `pbgen.py`, a per-type replacement of `proto.Marshal`/`Unmarshal` | the code it emits is plain Go over `pbcodec` (a program's proof proves it meets the `PbCodec` it uses; the statement does not mention it) | **the generator** (not each output; `notes/decisions.md`, "Trusted generated code: the generator is the trusted artifact"): for every schema it accepts, the emitted code behaves as protobuf-go v1.36.12's Marshal/Unmarshal. The trusted core is `protobuf/pbgen_core.py` (its doc: the subset, the refusals, the encoding per field kind with citations, the documented deviations: unknown fields dropped, error values and what comes with an error not modeled, slice capacities). Its inputs are not hand-written: `pbdesc/` dumps the descriptors protoc-gen-go registered (the ones protobuf-go runs on) and the Go structs | `internal/pbgenrand` (random proto3 schemas compiled by the real protoc-gen-go, each codec against protobuf-go on random values, real encodings and their mutations; and one refused schema per unsupported construct); the regression tests generated beside each codec (`internal/pbdifftest`, `../examples/models/pbetcd`, etcd's messages); the review `../notes/axiom-review/pbgen.md`; `--check` of every input in the gates |
+| `protobuf/`: the protobuf codec generator `pbgen.py`, a per-type replacement of `proto.Marshal`/`Unmarshal` | the code it emits is plain Go over `pbcodec` (a program's proof proves it meets the `PbCodec` it uses; the statement does not mention it) | **the generator** (not each output; `notes/decisions.md`, "Trusted generated code: the generator is the trusted artifact"): for every schema it accepts, the emitted code behaves as protobuf-go v1.36.12's Marshal/Unmarshal. The trusted core is `protobuf/pbgen_core.py` (its doc: the subset, the refusals, the encoding per field kind with citations, the documented deviations: unknown fields dropped, error values and what comes with an error not modeled, slice capacities). Its inputs are not hand-written: `pbdesc/` dumps the descriptors protoc-gen-go registered (the ones protobuf-go runs on) and the Go structs (the one descriptor source: the same dump gives the Lean proofs' trusted schemas, `etc/gen-pbschema.py`) | `internal/pbgenrand` (random proto3 schemas compiled by the real protoc-gen-go, each codec against protobuf-go on random values, real encodings and their mutations; and one refused schema per unsupported construct); the regression tests generated beside each codec (`internal/pbdifftest`, `../examples/models/pbetcd`, etcd's messages); the review `../notes/axiom-review/pbgen.md`; `--check` of every input in the gates |
 | `jsoncodec/`: JSON's syntax (the scanner, value appenders, the scalar decoders, `Nesting`, the `NotModelled` panic value) | translated with its bodies; `IsSpace`, `AppendRaw`, `AppendBool`, `(*Error).Error`, initialization proved (`Net/Proof/models_lab/jsoncodec/`) | that the scanner accepts what `encoding/json` accepts, and the appenders and decoders are its, within the plain-string subset (a panic outside it) | `jsoncodec/*_test.go` against `encoding/json` (Go 1.27.3's default build) |
 | `net/rpc/`: Go 1.27.3's `net/rpc` as a model (a standard-library model: `goroot.py`) | Go's code but for gob and reflection (the Client, the Server's loop, Dial/DialHTTP, ServeHTTP, Register's checks); goose project `models-net` (`Net/Code/net/rpc.lean`, with its bodies); proved (`Net/Proof/net/rpc/`, `Results.lean`, axiom-free): the wire's helpers, `readFull`, `readFrame`, the codec registry (`SetCodec`, `getCodec`), the client codec's `ReadResponseHeader`; the Client, the Server and the other codec methods not yet (the plan note's phase 5.2 lists what remains). Its `go/token.IsExported` is a trusted model with a **choice point** (`Net/TrustedCode/go/token.lean`: exact on an ASCII first byte, an arbitrary result on a non-ASCII one; `internal/rpcdifftest/isexported_test.go`) | that every behavior of Go's net/rpc is one of the model's (its doc, `codec.go`): the frame codec in place of gob's (`io.EOF`/`io.ErrUnexpectedEOF` as gob's), the generated Codec in place of reflection; out of scope, a panic (decoding across types, the debug page) | `internal/rpcdifftest` (`run.sh`: the same tests against the real net/rpc and the model, faults included: cut streams at every byte, resets, a server closing mid-call) |
 | `net/rpc/rpcgen.py`: the net/rpc codec generator (gob's encoding and merging decode, reflection's receivers) | as pbgen: plain Go a program's proof uses | **the generator** (`rpcgen_core.py`: the claim, the subset, the refusals, gob's decode rules cited); its input derived by reflection (`rpcdesc/`, net/rpc's `suitableMethods` copied) | `internal/rpcgenrand` (random Go types against real gob; one refused input per construct); the generated test beside each codec |
@@ -68,18 +68,29 @@ marked `MODEL:`, and its difference from grpc-go is computed, never stored: `dif
 (what handlers run with which requests, metadata, deadlines and contexts; what calls and streams
 return; which program callbacks run: dialers, resolvers, credentials, interceptors, codecs), is a
 behavior of the model. Not wire compatibility: both ends run the model. Its choice points are
-`modelChoose`/`modelChooseN` (`model_choose.go`, the only declarations with a hand-written GooseLang
-body: any value; in Go the common side, or random with `GRPC_MODEL_CHOOSE=random`).
+`modelChoose`/`modelChooseN`/`modelChooseLength` (`model_choose.go`, the only declarations with a
+hand-written GooseLang body: any value; in Go the common side, or random with `GRPC_MODEL_CHOOSE=random`;
+`modelChooseLength` is the wire length the model reports where grpc-go reports an HPACK size, a
+server stats handler's `InHeader.WireLength`).
 *Over-approximations* (more behaviors than grpc-go): a stream not yet dispatched may be refused
 (REFUSED_STREAM; grpc-go's MaxConcurrentStreams and GOAWAY), and a refused first attempt is retried
 transparently, as grpc-go does; a connection failure before a stream's status ends it with any
 non-OK code; any address reported since the resolver's build may be dialed; a fail-fast RPC may fail
 with Unavailable at its pick; the ClientConn may enter idleness whenever no RPC is active. *Outside
 the model* (a panic with a `NotModelled` method): transport credentials other than insecure, a
-service config other than `{"loadBalancingPolicy": "round_robin"}`, compression, stats handlers,
-binary logging, `InTapHandle`, `Server.ServeHTTP`, a unix address with a custom dialer.
-*Invisible simplifications*: one stream per connection (only a connection's addresses could tell,
-and they are any address), no HTTP/2 framing, no server workers. `RegisterService` does not make
+service config other than `{"loadBalancingPolicy": "round_robin"}`, compression, client stats
+handlers, binary logging, `InTapHandle`, a server buffer pool other than the default,
+`Server.ServeHTTP`, a unix address with a custom dialer. *Server stats handlers* (2026-11-22, for
+etcd's otelgrpc handler) get grpc-go's events in grpc-go's order (`TagConn`/`ConnBegin`/`ConnEnd` per
+connection; per call `TagRPC`, `InHeader`, `Begin`, `InPayload`, `OutHeader`, `OutPayload`,
+`OutTrailer`, `End`, with grpc-go's fields but `InHeader.WireLength`, the model's choice:
+`internal/grpcdifftest/stats_test.go`).
+*Simplifications*: one stream per connection, visible only to a connection's addresses (any
+address) and to a server stats handler's connection events (`TagConn`/`HandleConn`: one
+`ConnBegin`/`ConnEnd` pair per call, where grpc-go has one per connection, which carries many): a
+program whose behavior depends on how many connections carry its calls is outside the claim
+(otelgrpc's `TagConn` returns its context and its `HandleConn` does nothing, v0.71.0
+`stats_handler.go:95-101`, so etcd's is not); no HTTP/2 framing, no server workers. `RegisterService` does not make
 grpc-go's reflection check of the handler's type (grpc-go exits when it fails; generated code cannot
 fail it).
 

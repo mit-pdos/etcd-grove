@@ -1,5 +1,5 @@
 name = "etcdGrove"
-defaultTargets = ["EtcdGrove", "RaftTla", "RaftWitness", "RaftNoAx", "PorcupineDag", "Bbolt", "WalTester", "SpecPlan", "Robustness", "Net"]
+defaultTargets = ["EtcdGrove", "RaftTla", "RaftWitness", "RaftNoAx", "PorcupineDag", "Bbolt", "WalTester", "SpecPlan", "Robustness", "Net", "KvNet"]
 
 # The Perennial framework, including the Goose translator that produced `Code/` and
 # `GeneratedProof/` (checked by `etc/goose.py --check`). The pin follows branch `lean` of
@@ -7,7 +7,7 @@ defaultTargets = ["EtcdGrove", "RaftTla", "RaftWitness", "RaftNoAx", "PorcupineD
 [[require]]
 name = "perennial"
 git = "https://github.com/mit-pdos/perennial"
-rev = "5dab16ec22dd9f2974dd2df3216cd0f28d48c344"
+rev = "9c3b81f3042c66ec0459dd7330ef273fd578a756"
 
 # Everything here, laid out by kind and then by Go package path:
 #   Code/<pkg>, GeneratedProof/<pkg>  the Goose translations of raft and of etcd's
@@ -116,6 +116,17 @@ globs = ["Robustness.+"]
 [[lean_lib]]
 name = "Net"
 globs = ["Net.+"]
+
+# kvnet's proof (notes/kvnet-part.md): the networked key-value store (examples/raft/kvnet, etc/goose.py's
+# project kvnet) over raft-noax's raft, the net extension's `net` and the bodied `durable` over fsExt,
+# which the parts RaftNoAx, Net and WalTester each declare under main-tree names, so no other tree can
+# import them together. KvNet/{Code,GeneratedProof}/ are the parts of projects raft-noax, net, durable
+# and etcd (walpb) translated into it and kvnet's own; its copies of those parts' (and the main tree's)
+# modules that its closure needs are written by etc/copy-part.py, its initializers by etc/gen-init.py.
+# Nothing outside KvNet imports it.
+[[lean_lib]]
+name = "KvNet"
+globs = ["KvNet.+"]
 
 # The Lean certification of the TCP conformance checker's witnesses
 # (examples/net/conform/check/README.md, "Certification in Lean"): replays a witness and the run's

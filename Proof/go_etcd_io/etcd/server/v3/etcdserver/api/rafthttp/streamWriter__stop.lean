@@ -30,7 +30,7 @@ theorem rafthttp.streamWriter.stop.wp_proof :
   wp_start as ⟨#Hf, Hstop⟩
   iunfold swFixed at Hf
   icases Hf with ⟨%lg, %ps, %fs, %r, %γd, %cc, %sc, %dc, %γc, %γs, %γdn, -, -, -, -, -, -, -, -,
-    -, -, -, -, -, -, -, #Hdc, #Hdone⟩
+    -, -, -, -, -, -, -, -, #Hdc, #Hdone⟩
   iunfold swStopRight at Hstop
   icases Hstop with ⟨%sc', %γs', #Hsc', Hbc⟩
   wp_auto

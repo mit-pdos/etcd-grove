@@ -46,16 +46,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- **The trust boundary: `go_etcd_io.etcd.server.v3.storage.wal.walpb`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([file_record_proto_msgTypes.init,
-        file_record_proto_goTypes.init,
-        file_record_proto_depIdxs.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
 /-- **The trust boundary: `go_etcd_io.etcd.server.v3.storage.wal.walpb`'s untranslated `init` functions return.** Goose
 names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
 here, so the model does not unfold them (`@! init.<k>`: the semantics' `functions`, which
@@ -105,9 +95,6 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   wp_apply _root_.Perennial.errors.wp_New_errorString as %xC ⟨#ECc, #EC⟩
   try wp_auto
-  wp_apply (opaqueInitsOk file_record_proto_msgTypes.init (by mem_tac))
-  wp_apply (opaqueInitsOk file_record_proto_goTypes.init (by mem_tac))
-  wp_apply (opaqueInitsOk file_record_proto_depIdxs.init (by mem_tac))
   wp_apply (initFuncsOk init.«0» (by mem_tac))
   ipersist HErrCRCMismatch
   ihave #TC := EtcdGrove.errIsTerm_errorString xC $$ Hd1

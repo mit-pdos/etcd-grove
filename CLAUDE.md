@@ -156,6 +156,11 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   line naming it; `--check` in CI; a file without that line is the part's own); its initializers
   from `etc/gen-init.py`'s `PARTS`, its Links from `etc/gen-link.py --raft-noax`/`--kvdurable-noax`.
   Nothing outside it imports it; trust base: `etc/tcb-collections/raft-noax.txt`.
+- `KvNet/` is another: kvnet's proof (`notes/kvnet-part.md`), over raft-noax's raft, `Net/`'s `net` and
+  `WalTester/`'s bodied `durable` in one closure: project `kvnet` and parts of projects raft-noax, net,
+  durable and etcd translated into it, copies of those parts' (and the main tree's) modules its own
+  modules reach written by `etc/copy-part.py --part KvNet` (sources `Net/`, `WalTester/`, `RaftNoAx/`,
+  main), its initializers by `etc/gen-init.py` (`KVNET_INITS`). Nothing outside it imports it.
 - `PorcupineDag/` is another: porcupine's unmerged PR #46 (the DAG search; `third_party/porcupine-dag`,
   project `porcupine-dag`), with v1.3.1's Go path, so its modules declare the main porcupine's names
   and nothing outside it imports it (`notes/porcupine-dag-plan.md`). Links: `etc/gen-link.py

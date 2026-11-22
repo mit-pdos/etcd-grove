@@ -2,7 +2,9 @@
 Package initialization of `k8s_io.apimachinery.pkg.labels`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+Its fact (`labelsInit`, `storage/etcd3/Base.lean`; #25, 2026-11-21): its shared selectors,
+read-only for good, `sharedEverythingSelector` an empty `internalSelector` and `sharedNothingSelector`
+a `nothingSelector` (`Everything`, `MatchesNothing`). Its initializer initializes its imports, allocates its variables and runs
 their translated initializers (prove-k8s, 2026-11-20; until then the trust-boundary axiom
 `opaqueInitsOk`): the operator slices `unaryOperators`, `binaryOperators` (literals) and
 `validRequirementOperators` (their `append`), the shared selectors `sharedEverythingSelector` (an
@@ -51,6 +53,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := _) string2token _ as Hstring2token
   wp_apply wp_GlobalAlloc (V := _) sharedNothingSelector _ as HsharedNothingSelector
   wp_apply wp_GlobalAlloc (V := _) sharedEverythingSelector _ as HsharedEverythingSelector
@@ -107,8 +110,19 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   wp_apply (wp_map_make1 (K := GoString) (V := GoString) go.string go.string) as %mvs Hvs
   try wp_auto
+  ipersist HsharedEverythingSelector
+  ipersist HsharedNothingSelector
   iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
   is_pkg_init_finish
+  imodintro
+  unfold k8s_io.apiserver.pkg.storage.etcd3.labelsInit
+  isplitl []
+  · iexists se; rw [show (W64 0 : w64) = W64 (go.arrayLiteralSize []) by rfl]; iexact HsharedEverythingSelector
+  · iexists _; iexact HsharedNothingSelector
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

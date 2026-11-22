@@ -104,6 +104,14 @@ end pure
 
 /-! ## The cluster's ghost names -/
 
+/-- (2026-11-22, kvnet decision B: `notes/raft-cluster-global.md`) **A node handle**: the node
+struct's location and its ghost names. The node-level predicates are over it; `StartNode`/
+`RestartNode` return it. Until then a node table in `isCluster` mapped each node location to its
+names, which tied the cluster to one heap. -/
+structure NodeH [GooseExts] where
+  loc : Loc
+  names : NodeNames
+
 /-- A cluster's ghost names (see the file header). -/
 structure Cluster where
   raft : RaftNames
@@ -215,9 +223,7 @@ end uninames
 section api
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-! ## The client's views of the committed log, and their laws -/
 
@@ -248,13 +254,11 @@ instance cmtFactsS_timeless (γ : Cluster) (l : List LogEntry) :
     Timeless (cmtFactsS (GF := GF) γ l) := by
   unfold cmtFactsS; infer_instance
 
-omit [StorageModel GF] sem package_sem in
 theorem cmtFacts_nil (γ : Cluster) : ⊢ cmtFacts (GF := GF) γ [] := by
   unfold cmtFacts
   isplitr; · ipureintro; intro e he; simp at he
   imodintro; iintro %k %e %h; simp at h
 
-omit [StorageModel GF] sem package_sem in
 theorem cmtFacts_take (γ : Cluster) (L : List EntryM) (n : Nat) :
     cmtFacts (GF := GF) γ L ⊢ cmtFacts γ (L.take n) := by
   unfold cmtFacts
@@ -269,7 +273,6 @@ theorem cmtFacts_take (γ : Cluster) (L : List EntryM) (n : Nat) :
     iapply H2 $$ %k %e %h
   · cases h
 
-omit [StorageModel GF] sem package_sem in
 theorem cmtFacts_snoc (γ : Cluster) (L : List EntryM) (e : EntryM) :
     CCDecodes e.Type' e.Data' →
     ⊢ cmtFacts (GF := GF) γ L -∗ ev2At γ.raft L e -∗ cmtFacts γ (L ++ [e]) := by
@@ -296,7 +299,6 @@ theorem cmtFacts_snoc (γ : Cluster) (L : List EntryM) (e : EntryM) :
     rw [List.take_left]
     iexact He
 
-omit [StorageModel GF] sem package_sem in
 theorem cmtFactsS_prefix (γ : Cluster) (L : List EntryM) (l : List LogEntry) (H : l <+: strip L) :
     cmtFacts (GF := GF) γ L ⊢ cmtFactsS γ l := by
   iintro #H
@@ -311,7 +313,6 @@ theorem cmtFactsS_prefix (γ : Cluster) (L : List EntryM) (l : List LogEntry) (H
     rw [← ht, List.take_left]
   iapply cmtFacts_take γ L l.length $$ H
 
-omit [StorageModel GF] sem package_sem in
 /-- (2026-10-29, stage U5) A bootstrap log's facts: `ConfChange`s that decode. -/
 theorem cmtFacts_bootOk (γ : Cluster) {ps : List w64} {L : List EntryM} (H : BootLogOk ps L) :
     ⊢ cmtFacts (GF := GF) γ L := by
@@ -355,7 +356,6 @@ instance ownCommittedOps_timeless (γ : Cluster) (ops : List LogEntry) :
     Timeless (ownCommittedOps (GF := GF) γ ops) := by
   unfold ownCommittedOps; infer_instance
 
-omit [StorageModel GF] sem package_sem in
 theorem ownCommittedOps_get_lb_impl (γ : Cluster) (ops : List LogEntry) :
     ownCommittedOps (GF := GF) γ ops ⊢
       ownCommittedOps γ ops ∗ ∃ l, isCommittedLogLb γ l ∗ ⌜opsOf l = ops⌝ := by
@@ -366,7 +366,6 @@ theorem ownCommittedOps_get_lb_impl (γ : Cluster) (ops : List LogEntry) :
   · iexists l; iframe Hl; ipureintro; exact Hops
   · iexists l; iframe Hl; ipureintro; exact Hops
 
-omit [StorageModel GF] sem package_sem in
 theorem ownCommittedOps_lb_prefix_impl (γ : Cluster) (ops l : List LogEntry) :
     ownCommittedOps (GF := GF) γ ops ∗ isCommittedLogLb γ l ⊢ ⌜opsOf l <+: ops⌝ := by
   unfold ownCommittedOps isCommittedLogLb
@@ -375,12 +374,10 @@ theorem ownCommittedOps_lb_prefix_impl (γ : Cluster) (ops l : List LogEntry) :
   icases mono_list_auth_lb_valid $$ Ha Hlb with %H
   ipureintro; exact H.2
 
-omit [StorageModel GF] sem package_sem in
 theorem isCommittedLogLb_nil_impl (γ : Cluster) : ⊢ isCommittedLogLb (GF := GF) γ [] := by
   unfold isCommittedLogLb
   ileft; ipureintro; rfl
 
-omit [StorageModel GF] sem package_sem in
 theorem isCommittedLogLb_mono_impl (γ : Cluster) (l1 l2 : List LogEntry) :
     l1 <+: l2 → isCommittedLogLb (GF := GF) γ l2 ⊢ isCommittedLogLb γ l1 := by
   intro Hp
@@ -398,7 +395,6 @@ theorem isCommittedLogLb_mono_impl (γ : Cluster) (l1 l2 : List LogEntry) :
   icases Hcf with ⟨%L, %HL, #Hc⟩
   iapply cmtFactsS_prefix γ L l1 (by rw [HL]; exact Hp) $$ Hc
 
-omit [StorageModel GF] sem package_sem in
 theorem isCommittedLogLb_agree_impl (γ : Cluster) (l1 l2 : List LogEntry) :
     isCommittedLogLb (GF := GF) γ l1 ∗ isCommittedLogLb γ l2 ⊢ ⌜l1 <+: l2 ∨ l2 <+: l1⌝ := by
   unfold isCommittedLogLb
@@ -415,9 +411,7 @@ end api
 section inv
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-- The adapter's invariant's namespace, beside raft's (`N .@ "raft"`). -/
 def apiN (N : Namespace) : Namespace := N .@ "api"
@@ -552,7 +546,6 @@ instance rdPool_persistent (γ : Cluster) (N : Namespace) :
     Persistent (rdPool (GF := GF) γ N) := by
   unfold rdPool; infer_instance
 
-omit [StorageModel GF] sem package_sem in
 private instance rdCred_timeless' (γ : RaftNames) (n : Nat) : Timeless (rdCred (GF := GF) γ n) := by
   unfold rdCred; infer_instance
 
@@ -638,9 +631,7 @@ end inv
 section ctx
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-- **The read contexts, the client's**: the authority of `ctxs`, whose domain is `U`. -/
 def ownReadCtxs (γ : Cluster) (U : GSet (List w8)) : IProp GF :=
@@ -679,7 +670,6 @@ instance isReadCtx_persistent (γ : Cluster) (N : Namespace) (c : List w8)
     (Q : List LogEntry → IProp GF) : Persistent (isReadCtx (GF := GF) γ N c Q) := by
   unfold isReadCtx; infer_instance
 
-omit [StorageModel GF] sem package_sem in
 theorem readCtx_commit_after_impl (γ : Cluster) (N : Namespace) (U : GSet (List w8))
     (c : List w8) (Q : List LogEntry → IProp GF) (l0 : List LogEntry) :
     c ∉ U →
@@ -722,7 +712,6 @@ theorem readCtx_commit_after_impl (γ : Cluster) (N : Namespace) (U : GSet (List
   · iexists γq
     iframe Hel
 
-omit [StorageModel GF] sem package_sem in
 theorem readCtx_commit_impl (γ : Cluster) (N : Namespace) (U : GSet (List w8)) (c : List w8)
     (Q : List LogEntry → IProp GF) :
     c ∉ U →
@@ -851,9 +840,7 @@ end boot
 section alloc
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-- A set of distinct elements, as a list. -/
 theorem bigSepM_listToSet (Φ : w64 → IProp GF) (ps : List w64) (Hnd : ps.Nodup) :
@@ -1010,9 +997,7 @@ end alloc
 section facts
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 theorem raftN_api (N : Namespace) {E : CoPset} (HE : ↑N ⊆ E) (x : String) :
     (↑((N .@ "raft") .@ x) : CoPset) ⊆ E \ ↑(apiN N) := by
@@ -1285,7 +1270,6 @@ theorem api_readStates (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N �
       readStateOk (GF := GF) γ N st.RequestCtx' st.Index')).2
     iframe H1 H
 
-omit [StorageModel GF] sem package_sem in
 theorem readStateOk_used_impl (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64)
     (U : GSet (List w8)) :
     readStateOk (GF := GF) γ N c idx ∗ ownReadCtxs γ U ⊢ ⌜c ∈ U⌝ := by
@@ -1481,9 +1465,7 @@ certificate namespace `N` (`RaftNames.reCertNs`: the conversion opens the adapte
 section cert
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-- (2026-10-28, stage U2) What raft's `snapAtOk` says of the committed prefix `L` of the
 snapshot `k`'s length, in a cluster that keeps a registry of the snapshots made: its last term is
@@ -1600,7 +1582,18 @@ end cert
 section recvFupd
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+variable (γc : ChanNames) (V : Type) [Pos.Countable V] [ZeroVal V]
+
+
+end recvFupd
+
+section recvFupdHeap1588
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 variable (γc : ChanNames) (V : Type) [Pos.Countable V] [ZeroVal V]
 
 theorem recvNestedAu_wand_fupd (Φ1 Φ2 : V → Bool → IProp GF) :
@@ -1619,6 +1612,26 @@ theorem recvNestedAu_wand_fupd (Φ1 Φ2 : V → Bool → IProp GF) :
     | (iintro H; imod Hcont $$ H with H; iapply Hw $$ H)
     | iexact Hcont
     | itrivial
+
+
+
+
+end recvFupdHeap1588
+
+section recvFupd
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+variable (γc : ChanNames) (V : Type) [Pos.Countable V] [ZeroVal V]
+end recvFupd
+
+section recvFupdHeap1607
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+variable (γc : ChanNames) (V : Type) [Pos.Countable V] [ZeroVal V]
 
 theorem recvAu_wand_fupd (Φ1 Φ2 : V → Bool → IProp GF) :
     ⊢ recvAu γc V Φ1 -∗ (∀ v ok, Φ1 v ok ={⊤}=∗ Φ2 v ok) -∗ recvAu γc V Φ2 := by
@@ -1642,14 +1655,21 @@ theorem recvAu_wand_fupd (Φ1 Φ2 : V → Bool → IProp GF) :
     | iexact Hcont
     | itrivial
 
+
+
+end recvFupdHeap1607
+
+section recvFupd
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+variable (γc : ChanNames) (V : Type) [Pos.Countable V] [ZeroVal V]
 end recvFupd
 
 section node
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-- What a node's names say of it: of the cluster's names and budget, in the cluster's mode (`Cluster.mode`). (2026-10-27: until then in the static mode, taking
 snapshots; raft-final, 2026-10-29, U9: until then also taking snapshots from the network unless the
@@ -1660,7 +1680,7 @@ def NodeOk (γ : Cluster) (γn : NodeNames) : Prop :=
 /-- The configuration names of a node's `NodeNames` (`Cluster.nodeTab`); (2026-10-29, stage U9a) and its
 `live` name, by which `nodeLive` and `nodeStopped` agree. -/
 abbrev CfgNames := GName × GName × GName × GName × GName × Nat × Nat × Nat × Nat × Nat × Nat × GName ×
-  (GName × GName × GName × GName × GName) × GName × GName
+  (GName × GName × GName × GName × GName) × GName × GName × List GName
 
 /-- (U8 v2, 2026-10-29) with the node's storage names (`NodeNames.sn`), by which the API's
 `nodeAppliedLb`/`snapGiven` (of the node's id) are the floor's and the snapshot hand-out's lower
@@ -1675,33 +1695,26 @@ def cfgNamesOf (γn : NodeNames) : CfgNames :=
     γn.start,
     -- (2026-11-12, trace-check implementation step 1) the token escrow's names, so that a driver's
     -- claim (`readyToksClaim`) names the escrow of the node it advances
-    γn.esc.tup, γn.sn.history, γn.sn.installs)
+    γn.esc.tup, γn.sn.history, γn.sn.installs,
+    -- (2026-11-21, the crash invariant) the names of the arm the node was started from, so that
+    -- a `nodeRunning` share is a view of the driver's arm
+    γn.cx.toList)
 
-/-- **Node `n`'s configuration names are `γn`'s** (persistent): its entry of the cluster's table.
-(2026-11-01, durability stage I-2: keyed by the node object, not its id.) -/
-def nodeTabOk (γ : Cluster) (n : Loc) (γn : NodeNames) : IProp GF :=
-  iprop(n ↪[γ.nodeTab]□ (cfgNamesOf γn))
+/-- **Node `n`'s configuration names are `γn`'s** (persistent).
+(2026-11-22, kvnet decision B) The handle's own names: the node table, which held the entry, is
+gone (`NodeH`). -/
+def nodeTabOk (_γ : Cluster) (n : NodeH) (γn : NodeNames) : IProp GF :=
+  iprop(⌜γn = n.names⌝)
 
-instance nodeTabOk_persistent (γ : Cluster) (n : Loc) (γn : NodeNames) :
+instance nodeTabOk_persistent (γ : Cluster) (n : NodeH) (γn : NodeNames) :
     Persistent (nodeTabOk (GF := GF) γ n γn) := by
   unfold nodeTabOk; infer_instance
 
-theorem nodeTabOk_agree (γ : Cluster) (n : Loc) (γ1 γ2 : NodeNames) :
+theorem nodeTabOk_agree (γ : Cluster) (n : NodeH) (γ1 γ2 : NodeNames) :
     ⊢ nodeTabOk (GF := GF) γ n γ1 -∗ nodeTabOk γ n γ2 -∗ ⌜(cfgNamesOf γ1) = (cfgNamesOf γ2)⌝ := by
   unfold nodeTabOk
-  iintro #E1 #E2
-  iapply ghostMapElem_agree $$ E1 E2
-
-/-- (2026-11-01, durability stage I-2) **The node table's invariant** (in `N .@ "nodetab"`): its
-authority, every key a node struct (`n ↦□`), so that a node whose struct is still owned whole is
-not in it (`RestartNode`'s insert). -/
-def nodeTabInv (γ : Cluster) (N : Namespace) : IProp GF :=
-  inv (N .@ "nodetab") iprop(∃ M : GMap Loc CfgNames, ghostMapAuth γ.nodeTab 1 M ∗
-    [∗map] n ↦ _x ∈ M, ∃ nv : node, n ↦□ nv)
-
-instance nodeTabInv_persistent (γ : Cluster) (N : Namespace) :
-    Persistent (nodeTabInv (GF := GF) γ N) := by
-  unfold nodeTabInv; infer_instance
+  iintro %E1 %E2
+  ipureintro; rw [E1, E2]
 
 /-- (2026-11-01, durability stage I-4; until then `nodeStorNames γ id sn`, through the id's table
 entry) **The storage of key `K` is named by raft's storage names `sn`** (persistent): set once, at
@@ -1739,6 +1752,16 @@ def nodeAppliedLbU (γ : Cluster) (K : GName) (k : Nat) : IProp GF :=
   iprop(⌜k = 0⌝ ∨ ∃ sn : StorNames, storKeyNames K sn ∗
     (monoNatLbOwn sn.ga k ∨ monoNatLbOwn sn.gg k ∨ ⌜k ≤ sn.a0⌝))
 
+
+end node
+
+section nodeHeap1719
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 /-- (2026-11-01, durability stage I-4; until then the open `storDL γ id i`) **The node on the
 storage of key `K` has committed at least `i`** (the API's `nodeCommitLb`): a committed log `l` at
 least `i` long whose every term raft certified for the storage, or which is below a snapshot it
@@ -1749,6 +1772,14 @@ def nodeCommitLbU (γ : Cluster) (K : GName) (i : Nat) : IProp GF :=
     isCommittedLogLb γ l ∗ ⌜i ≤ l.length⌝ ∗
     [∗list] j ↦ e ∈ LogEntry.toEntries l 0, raftDL sn (j + 1) e.Term')
 
+
+
+end nodeHeap1719
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 instance nodeAppliedLbU_persistent (γ : Cluster) (K : GName) (k : Nat) :
     Persistent (nodeAppliedLbU (GF := GF) γ K k) := by
   unfold nodeAppliedLbU; infer_instance
@@ -1757,14 +1788,50 @@ instance nodeAppliedLbU_timeless (γ : Cluster) (K : GName) (k : Nat) :
     Timeless (nodeAppliedLbU (GF := GF) γ K k) := by
   unfold nodeAppliedLbU; infer_instance
 
+
+end node
+
+section nodeHeap1791
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 instance nodeCommitLbU_persistent (γ : Cluster) (K : GName) (i : Nat) :
     Persistent (nodeCommitLbU (GF := GF) γ K i) := by
   unfold nodeCommitLbU; infer_instance
+
+
+
+
+end nodeHeap1791
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap1797
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 instance nodeCommitLbU_timeless (γ : Cluster) (K : GName) (i : Nat) :
     Timeless (nodeCommitLbU (GF := GF) γ K i) := by
   unfold nodeCommitLbU raftDL; infer_instance
 
+
+
+end nodeHeap1797
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 theorem nodeAppliedLbU_zero (γ : Cluster) (K : GName) : ⊢ nodeAppliedLbU (GF := GF) γ K 0 := by
   unfold nodeAppliedLbU; iintro; ileft; ipureintro; rfl
 
@@ -1777,8 +1844,36 @@ theorem nodeAppliedLbU_mono (γ : Cluster) (K : GName) (k k' : Nat) (h : k' ≤ 
   · iright; iexists sn; iframe Hs; iright; ileft; iapply monoNatLbOwn_le k' h $$ Hl
   · iright; iexists sn; iframe Hs; iright; iright; ipureintro; omega
 
+
+end node
+
+section nodeHeap1815
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 theorem nodeCommitLbU_zero (γ : Cluster) (K : GName) : ⊢ nodeCommitLbU (GF := GF) γ K 0 := by
   unfold nodeCommitLbU; iintro; ileft; ipureintro; rfl
+
+
+
+
+end nodeHeap1815
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap1820
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem nodeCommitLbU_mono (γ : Cluster) (K : GName) (i i' : Nat) (h : i' ≤ i) :
     nodeCommitLbU (GF := GF) γ K i ⊢ nodeCommitLbU γ K i' := by
@@ -1787,6 +1882,15 @@ theorem nodeCommitLbU_mono (γ : Cluster) (K : GName) (i i' : Nat) (h : i' ≤ i
   · ileft; ipureintro; omega
   · iright; iexists sn, l; iframe Hs Hc Hd; ipureintro; omega
 
+
+
+
+end nodeHeap1820
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 /-- (2026-11-01, durability stage I-2; candidate 12 §1) **Node `id`'s durable state is `S`** (the
 API's `raftState`): the protocol's durable half at `S` (`ownDurGhost`: its share of the promise
 authorities at the entered maps, `S`'s durable invariants), and the term budget's lower bound at
@@ -1795,6 +1899,7 @@ stage II (p)) and the budget's invariant, which a restarted node's channels need
 `StartNode` has it from `nodeBoot`). -/
 def raftStateU (γ : Cluster) (id : w64) (S : RaftState) : IProp GF :=
   iprop(ownDurGhost γ.raft id S ∗ termLB γ.bud S.term ∗ inv budgetN (budgetInv γ.bud))
+
 
 /-- (2026-11-01, durability stage I-2; candidate 12 §1) **No node of `id` runs** (the API's
 `nodeVacant`): the id's protocol slot (`raftIdSlot`: the other half of its virtual maps, its
@@ -1805,6 +1910,65 @@ its first start.) -/
 def nodeVacantU (γ : Cluster) (id : w64) : IProp GF :=
   raftIdSlot γ.raft id
 
+variable [CrashGS GF] in
+/-- (2026-11-21, the crash invariant: `notes/raft-crash-law-design.md` (i)) **No node of `id` runs,
+armed for a crash** (the API's `nodeVacantA`): the id's slot split by `raft_arm` into the node's
+views of arm `x` of its crash invariant (`raftArmed`). -/
+def nodeVacantAU (γ : Cluster) (id : w64) (x : CrashNames) : IProp GF :=
+  raftArmed γ.raft id x
+
+variable [CrashGS GF] in
+/-- (2026-11-21) **Arm `x` of `id`'s crash invariant** (the API's `nodeCrashTok`): the token that
+gives the slot back after a crash (`raftCrashTok`, `raft_crash`). -/
+def nodeCrashTokU (γ : Cluster) (id : w64) (x : CrashNames) : IProp GF :=
+  raftCrashTok γ.raft id x
+
+/-- (2026-11-21) **The node at `n` was started from arm `x`** (the API's `nodeArm`, persistent): its
+node table's entry records the arm's names (`cfgNamesOf`). -/
+def nodeArmU (n : NodeH) (γ : Cluster) (x : CrashNames) : IProp GF :=
+  iprop(∃ γn, nodeTabOk γ n γn ∗ ⌜γn.cx = x⌝)
+
+instance nodeArmU_persistent (n : NodeH) (γ : Cluster) (x : CrashNames) :
+    Persistent (nodeArmU (GF := GF) n γ x) := by
+  unfold nodeArmU; infer_instance
+
+theorem nodeArmU_agree (n : NodeH) (γ : Cluster) (x x' : CrashNames) :
+    ⊢ nodeArmU (GF := GF) n γ x -∗ nodeArmU n γ x' -∗ ⌜x = x'⌝ := by
+  unfold nodeArmU
+  iintro ⟨%γ1, #T1, %H1⟩ ⟨%γ2, #T2, %H2⟩
+  ihave %Hcn := nodeTabOk_agree γ n γ1 γ2 $$ T1 T2
+  ipureintro
+  simp only [cfgNamesOf, Prod.mk.injEq] at Hcn
+  rw [← H1, ← H2]
+  exact CrashNames.toList_inj Hcn.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2
+
+variable [CrashGS GF] in
+theorem nodeVacant_arm_impl (γ : Cluster) (id : w64) (E : CoPset) :
+    ⊢ nodeVacantU (GF := GF) γ id ={E}=∗ ∃ x, nodeVacantAU γ id x ∗ nodeCrashTokU γ id x := by
+  unfold nodeVacantU nodeVacantAU nodeCrashTokU
+  exact raft_arm E γ.raft id
+
+variable [CrashGS GF] in
+theorem nodeCrash_impl (γ : Cluster) (N : Namespace) (id : w64) (x : CrashNames) (E : CoPset)
+    (HE : ↑N ⊆ E) (HNs : γ.raft.reNs = N .@ "raft") :
+    ⊢ crashed -∗ nodeCrashTokU (GF := GF) γ id x ={E}=∗ nodeVacantU γ id := by
+  unfold nodeCrashTokU nodeVacantU
+  have HrE : (↑(raftN γ.raft) : CoPset) ⊆ E := by
+    intro p hp
+    unfold raftN at hp; rw [HNs] at hp
+    exact HE p (nclose_subseteq N "raft" p hp)
+  exact raft_crash E γ.raft id x HrE
+
+
+end node
+
+section nodeHeap1846
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 /-- The driver's view of the configuration depends on the configuration names only. -/
 theorem nodeCfg_names (γ1 γ2 : NodeNames) (H : (cfgNamesOf γ1) = (cfgNamesOf γ2)) (ca : Nat)
     (cfg : CCState) : nodeCfg (GF := GF) γ1 ca cfg ⊢ nodeCfg γ2 ca cfg := by
@@ -1812,10 +1976,46 @@ theorem nodeCfg_names (γ1 γ2 : NodeNames) (H : (cfgNamesOf γ1) = (cfgNamesOf 
   obtain ⟨-, h2, h3, h4, -⟩ := H
   unfold nodeCfg; rw [h2, h3, h4]
 
+
+
+
+end nodeHeap1846
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap1855
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 theorem dlvLb_names (γ1 γ2 : NodeNames) (H : (cfgNamesOf γ1) = (cfgNamesOf γ2)) (ds : List EntryM) :
     dlvLb (GF := GF) γ1 ds ⊢ dlvLb γ2 ds := by
   simp only [cfgNamesOf, Prod.mk.injEq] at H
   unfold dlvLb dlvKeys dlvKeysAt; rw [H.1, H.2.2.2.2.2.2.2.2.1]
+
+
+
+
+end nodeHeap1855
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap1862
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- Raft's nodes at one location have one id (`isNode`'s persistent points-to's). -/
 theorem isNode_id_agree (γ1 γ2 : NodeNames) (id1 id2 : w64) (n : Loc) :
@@ -1833,53 +2033,161 @@ theorem isNode_id_agree (γ1 γ2 : NodeNames) (id1 id2 : w64) (n : Loc) :
   icombine Hi1 Hi2 gives %Hi
   ipureintro; exact Hi
 
+
+
+
+end nodeHeap1862
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap1880
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 /-- **A running node** `n` of id `id` in the cluster `γ` (persistent): raft's node, of the
 cluster's names and budget (`NodeOk`), the names its table names (`nodeTabOk`: so that `nodeStopped`,
 `nodeRunning` and the storage's names agree on them), and the cluster's invariants with the read
 credits' exchange (`rdPool`) and the cluster's names (`UniNames`). (raft-final, 2026-10-29, U7/K5/U8:
 the design's §2.8; until then without the table's entry, the exchange and the names.) -/
-def isNode (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) : IProp GF :=
-  iprop(∃ γn : NodeNames, ⌜NodeOk γ γn⌝ ∗ EtcdGrove.isNodeChan γn id n ∗ nodeTabOk γ n γn ∗
+def isNode (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) : IProp GF :=
+  iprop(∃ γn : NodeNames, ⌜NodeOk γ γn⌝ ∗ EtcdGrove.isNodeChan γn id n.loc ∗ nodeTabOk γ n γn ∗
     clusterInv γ N ∗ rdPool γ N ∗
     -- (raft-final, 2026-10-29, F1 of the statements' review) the cluster's names, for the
     -- `sentMsg` the node's `Ready`s hand out
     ⌜UniNames γ N⌝)
 
-instance isNode_persistent (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) :
+
+
+
+end nodeHeap1880
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap2010
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+instance isNode_persistent (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) :
     Persistent (isNode (GF := GF) n γ N id) := by
   unfold isNode; infer_instance
+
+
+
+
+end nodeHeap2010
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap1900
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (2026-10-29, stage U9a) **The node runs**, a share `q` of the client's token (`q = 1`: the
 whole, which `node.Stop` takes): raft's node `n` with the client's half of `live` (`nodeLiveRaw`).
 Only a node of a dynamic cluster, whose table (`nodeTabOk`) names its `live` name, so that this and
 `nodeStopped` agree on the node's names (`nodeRunning_stopped_impl`, `nodeRunning_split_impl`):
 nothing else makes two `isNodeChan`s of one location name the same ghost state. -/
-def nodeRunning (n : Loc) (γ : Cluster) (_N : Namespace) (q : Qp) : IProp GF :=
+def nodeRunning (n : NodeH) (γ : Cluster) (_N : Namespace) (q : Qp) : IProp GF :=
   iprop(∃ (γn : NodeNames) (id : w64), ⌜NodeOk γ γn ∧ γn.mode.isDyn = true⌝ ∗
-    EtcdGrove.isNodeChan γn id n ∗ nodeTabOk γ n γn ∗ EtcdGrove.nodeLiveRaw γn q)
+    EtcdGrove.isNodeChan γn id n.loc ∗ nodeTabOk γ n γn ∗ EtcdGrove.nodeLiveRaw γn q)
+
+
+
+
+end nodeHeap1900
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap1911
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (2026-10-29, stage U9a) **The node stopped** (persistent): `run` closed `done`
 (`nodeStoppedRaw`). For a dynamic cluster's node, of the names its table names (`nodeTabOk`), so that
 it excludes the node's running (`nodeRunning_stopped_impl`). (raft-final, 2026-10-29, U9: until then
 also, for a static cluster's node, of some names of the node.) -/
-def nodeStopped (n : Loc) (γ : Cluster) (_N : Namespace) : IProp GF :=
-  iprop(∃ (γn : NodeNames) (id : w64), ⌜NodeOk γ γn⌝ ∗ EtcdGrove.isNodeChan γn id n ∗
+def nodeStopped (n : NodeH) (γ : Cluster) (_N : Namespace) : IProp GF :=
+  iprop(∃ (γn : NodeNames) (id : w64), ⌜NodeOk γ γn⌝ ∗ EtcdGrove.isNodeChan γn id n.loc ∗
     nodeTabOk γ n γn ∗ EtcdGrove.nodeStoppedRaw γn)
 
-instance nodeStopped_persistent (n : Loc) (γ : Cluster) (N : Namespace) :
+
+
+
+end nodeHeap1911
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap2069
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+instance nodeStopped_persistent (n : NodeH) (γ : Cluster) (N : Namespace) :
     Persistent (nodeStopped (GF := GF) n γ N) := by
   unfold nodeStopped; infer_instance
 
+
+
+end nodeHeap2069
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 /-- Two dynamic nodes' names at one location, of one cluster's table, have one `live` name.
 (2026-11-01, durability stage I-2: the table keyed by the location, so no id agreement needed.) -/
-theorem nodeNames_live_agree (γ : Cluster) (γ1 γ2 : NodeNames) (n : Loc) :
+theorem nodeNames_live_agree (γ : Cluster) (γ1 γ2 : NodeNames) (n : NodeH) :
     ⊢ nodeTabOk (GF := GF) γ n γ1 -∗ nodeTabOk γ n γ2 -∗ ⌜γ1.live = γ2.live⌝ := by
   iintro #T1 #T2
   ihave %Hn := nodeTabOk_agree γ n γ1 γ2 $$ T1 T2
   simp only [cfgNamesOf, Prod.mk.injEq] at Hn
   ipureintro; exact Hn.2.2.2.2.1
 
-theorem nodeRunning_stopped_impl (n : Loc) (γ : Cluster) (N : Namespace) (q : Qp) :
+
+end node
+
+section nodeHeap2084
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+theorem nodeRunning_stopped_impl (n : NodeH) (γ : Cluster) (N : Namespace) (q : Qp) :
     nodeRunning (GF := GF) n γ N q ∗ nodeStopped n γ N ⊢ False := by
   unfold nodeRunning nodeStopped
   iintro ⟨⟨%γ1, %id1, %Hok1, #H1, #T1, Hl⟩, ⟨%γ2, %id2, %Hok2, #H2, #T2, #Hs⟩⟩
@@ -1890,7 +2198,25 @@ theorem nodeRunning_stopped_impl (n : Loc) (γ : Cluster) (N : Namespace) (q : Q
   ihave %H := dghostVar_agree _ _ _ _ _ $$ Hl Hs
   cases H
 
-theorem nodeRunning_split_impl (n : Loc) (γ : Cluster) (N : Namespace) (p q : Qp) :
+
+
+
+end nodeHeap2084
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap2097
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+theorem nodeRunning_split_impl (n : NodeH) (γ : Cluster) (N : Namespace) (p q : Qp) :
     nodeRunning (GF := GF) n γ N (p + q) ⊣⊢ nodeRunning n γ N p ∗ nodeRunning n γ N q := by
   unfold nodeRunning
   constructor
@@ -1901,10 +2227,10 @@ theorem nodeRunning_split_impl (n : Loc) (γ : Cluster) (N : Namespace) (p q : Q
     · iexists γ1, id1; iframe Hl2 H1 T1; ipureintro; exact Hok1
   · iintro ⟨⟨%γ1, %id1, %Hok1, #H1, #T1, Hl1⟩, ⟨%γ2, %id2, %Hok2, #H2, #T2, Hl2⟩⟩
     ihave %Hlv := nodeNames_live_agree γ γ1 γ2 n $$ T1 T2
-    ihave %Hid := isNode_id_agree γ1 γ2 id1 id2 n $$ H1 H2
+    ihave %Hid := isNode_id_agree γ1 γ2 id1 id2 n.loc $$ H1 H2
     subst Hid
-    ihave %Hg1 := EtcdGrove.isNode_id γ1 id1 n $$ H1
-    ihave %Hg2 := EtcdGrove.isNode_id γ2 id1 n $$ H2
+    ihave %Hg1 := EtcdGrove.isNode_id γ1 id1 n.loc $$ H1
+    ihave %Hg2 := EtcdGrove.isNode_id γ2 id1 n.loc $$ H2
     have Hr : γ2.raft = γ1.raft := Hok2.1.1.trans Hok1.1.1.symm
     have Hi : γ2.id = γ1.id := Hg2.trans Hg1.symm
     iexists γ1, id1
@@ -1914,28 +2240,88 @@ theorem nodeRunning_split_impl (n : Loc) (γ : Cluster) (N : Namespace) (p q : Q
     iunfold EtcdGrove.nodeLiveRaw at Hl1 Hl2
     icases Hl1 with ⟨Hl1, Hs1⟩
     icases Hl2 with ⟨Hl2, Hs2⟩
-    iunfold slotLive at Hs1 Hs2
-    icases Hs1 with ⟨%γs, %Hγs, Hs1⟩
-    icases Hs2 with ⟨%γs', %Hγs', Hs2⟩
-    rw [Hr, Hi, Hγs] at Hγs'; cases Hγs'
+    -- (2026-11-21) the arms agree through the node table (`cfgNamesOf` records them)
+    ihave %Hcn := nodeTabOk_agree γ n γ1 γ2 $$ T1 T2
+    have Hcx : γ2.cx = γ1.cx := by
+      simp only [cfgNamesOf, Prod.mk.injEq] at Hcn
+      exact (CrashNames.toList_inj Hcn.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2).symm
+    ihave Hs2 : genView γ1.raft γ1.id γ1.cx q.half γ2.gen $$ [Hs2]
+    · rw [← Hr, ← Hi, ← Hcx]; iexact Hs2
+    iunfold genView at Hs1 Hs2
+    icases Hs1 with ⟨#Hi1, Hs1⟩
+    icases Hs2 with ⟨-, Hs2⟩
     ihave %Hgen := ghostVar_agree _ _ _ _ _ $$ Hs1 Hs2
     iapply ((EtcdGrove.nodeLiveRaw_fractional (GF := GF) γ1).fractional p q).2
-    unfold EtcdGrove.nodeLiveRaw slotLive
+    unfold EtcdGrove.nodeLiveRaw genView
     isplitl [Hl1 Hs1]
-    · iframe Hl1; iexists γs; iframe Hs1; ipureintro; exact Hγs
+    · iframe Hl1 Hi1 Hs1
     isplitl [Hl2]
     · rw [Hlv]; iexact Hl2
-    iexists γs
+    iframe Hi1
     rw [Hgen]
-    iframe Hs2; ipureintro; exact Hγs
+    iexact Hs2
+
+
+
+
+end nodeHeap2097
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap1996
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- The node's `Ready` channel `ch` (persistent): the node struct's `readyc`. -/
-def isReadyChan (n : Loc) (_γ : Cluster) (_N : Namespace) (ch : Loc) : IProp GF :=
-  iprop(∃ nv : node, n ↦□ nv ∗ ⌜ch = nv.readyc'⌝)
+def isReadyChan (n : NodeH) (_γ : Cluster) (_N : Namespace) (ch : Loc) : IProp GF :=
+  iprop(∃ nv : node, n.loc ↦□ nv ∗ ⌜ch = nv.readyc'⌝)
 
-instance isReadyChan_persistent (n : Loc) (γ : Cluster) (N : Namespace) (ch : Loc) :
+
+
+
+end nodeHeap1996
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap2166
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+instance isReadyChan_persistent (n : NodeH) (γ : Cluster) (N : Namespace) (ch : Loc) :
     Persistent (isReadyChan (GF := GF) n γ N ch) := by
   unfold isReadyChan; infer_instance
+
+
+
+
+end nodeHeap2166
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap2008
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The `Ready` loop's token**: raft's driver token (idle, or busy with a `Ready`) at the raft
 log `ds` the client sees as `st.delivered`, which is committed. A static node's also holds the
@@ -1949,7 +2335,7 @@ link. (2026-10-31) The witness also after a snapshot `Ready`, bounding the log u
 the one `run` gets back at `Advance`, `advanceP`); busy, the batch's maps `W` (`bw`'s half, the one
 `run` gets back) with their fragments, which *enter* minted (`raft_enter`) and `run`'s `Advance`
 needs for the batch's self-addressed messages (review 1's R7). -/
-def nodeDriver (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) : IProp GF :=
+def nodeDriver (n : NodeH) (γ : Cluster) (N : Namespace) (st : NodeDriverState) : IProp GF :=
   iprop(∃ (γn : NodeNames) (id : w64) (ds : List EntryM),
     ⌜NodeOk γ γn ∧ γn.stor = st.storage ∧ strip ds = st.delivered⌝ ∗ clusterInv γ N ∗
     isCommittedLogLb γ st.delivered ∗
@@ -1958,10 +2344,10 @@ def nodeDriver (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) :
     ⌜γn.mode.isDyn = true⌝ ∗ nodeTabOk γ n γn ∗ hsCommitted γ N st.hardState st.delivered.length ∗
     -- (2026-11-01, durability stage I-8) the storage's key, the durable state and the role
     storKeyNames st.key γn.sn ∗
-    ((⌜st.handling = none⌝ ∗ EtcdGrove.nodeDriverChan γn id n ds st.hardState ∗
+    ((⌜st.handling = none⌝ ∗ EtcdGrove.nodeDriverChan γn id n.loc ds st.hardState ∗
        dghostVar γn.dur (DFrac.own (1 : Qp).half) (st.durable, st.role)) ∨
      (∃ (es : List EntryM) (L : Option SnapLoan) (W : DurMaps), ⌜st.handling = some (es, L)⌝ ∗
-       nodeDriverBusy γn id n ds es st.hardState L ∗
+       nodeDriverBusy γn id n.loc ds es st.hardState L ∗
        dghostVar γn.dur (DFrac.own 1) (st.durable, st.role) ∗
        dghostVar γn.bw (DFrac.own (1 : Qp).half) (W, (st.durable, st.role)) ∗ durFrags γ.raft id W ∗
        -- (2026-11-01, stage II(g), approved fix D) the generation's queue, freed by *enter*
@@ -1972,16 +2358,24 @@ def nodeDriver (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) :
         | none => iprop(True)
         | some l => storGiven γn.sn (uint.nat l.snap.Metadata'.Index')))))
 
+
+
+end nodeHeap2008
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 /-- (2026-11-05, the lease-expiry plan's E2 revision 5; the tag after the review of 2026-11-05, N1)
 **How the node `n` was started** (persistent): `n`'s entry of the cluster's table names its start
 tag (`NodeNames.start`), which holds `boot`, discarded: `true` if `StartNode` made it (a new cluster's
 bootstrap), `false` if `RestartNode` did. Each start allocates a fresh tag and writes it once; the
 table pins the name per node object (`cfgNamesOf`), so a node has one tag. A write-once record of the
 start, not a fact about the loop's later states. -/
-def nodeStartTag (n : Loc) (γ : Cluster) (boot : Bool) : IProp GF :=
+def nodeStartTag (n : NodeH) (γ : Cluster) (boot : Bool) : IProp GF :=
   iprop(∃ γn : NodeNames, nodeTabOk γ n γn ∗ dghostVar γn.start DFrac.discard boot)
 
-instance nodeStartTag_persistent (n : Loc) (γ : Cluster) (boot : Bool) :
+instance nodeStartTag_persistent (n : NodeH) (γ : Cluster) (boot : Bool) :
     Persistent (nodeStartTag (GF := GF) n γ boot) := by
   unfold nodeStartTag; infer_instance
 
@@ -1993,6 +2387,7 @@ def sentSnapCert (γ : Cluster) (N : Namespace) (st : MsgSt) : IProp GF :=
 instance sentSnapCert_persistent (γ : Cluster) (N : Namespace) (st : MsgSt) :
     Persistent (sentSnapCert (GF := GF) γ N st) := by
   unfold sentSnapCert; infer_instance
+
 
 /-- (open) **A message node `src`'s `Ready` handed out**: sent by that node of the cluster, of a
 term within the cluster's budget; (2026-10-27) a `MsgSnap`'s snapshot certified for the client
@@ -2006,11 +2401,14 @@ def sentMsg (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) : IProp GF :
     -- certificate then bounds its index (`snapAtOk`'s `SnapListsOk`, the registry being on)
     ⌜UniNames γ N⌝)
 
+
+
 instance sentMsg_persistent (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) :
     Persistent (sentMsg (GF := GF) γ N src st) := by
   unfold sentMsg; infer_instance
 
-omit [StorageModel GF] sem package_sem in
+
+
 /-- A sent `MsgSnap` carries a certified snapshot (the draft's `sentMsg_snapshot`). -/
 theorem sentMsg_snapshot_impl (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) :
     st.msg.Type' = MsgSnap →
@@ -2021,6 +2419,8 @@ theorem sentMsg_snapshot_impl (γ : Cluster) (N : Namespace) (src : w64) (st : M
   iintro ⟨-, -, -, (%Hn | H), -, -⟩
   · exact absurd Hty Hn
   · iexact H
+
+
 
 /-- A message's snapshot certificate, from raft's (`isRaftMsg`'s abstraction and data
 certificate). -/
@@ -2061,6 +2461,17 @@ theorem api_sentSnapCert (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N 
 -- (auth-lease S4, 2026-11-16) `UniNames.noSnap` (the cluster's names keep snapshots on) deleted: the
 -- no-snapshot mode is the cluster's choice (L-r1); a sent `MsgSnap` is outside it (`isRaftMsg`).
 
+
+
+end node
+
+section nodeHeap2142
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 /-- A `MsgApp` is from the node that sent it (`AppFrom`). -/
 theorem sentMsg_appFrom_impl (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) :
     sentMsg (GF := GF) γ N src st ⊢ ⌜AppFrom src st⌝ := by
@@ -2068,7 +2479,15 @@ theorem sentMsg_appFrom_impl (γ : Cluster) (N : Namespace) (src : w64) (st : Ms
   iintro ⟨-, ⟨-, -, -, %H, -⟩, -⟩
   ipureintro; exact fun ht => H (Or.inl ht)
 
-omit [StorageModel GF] sem package_sem in
+
+
+
+end nodeHeap2142
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 /-- (raft-final, phase 2) **A sent snapshot's index is below `2^61`**: its certificate's
 `snapAtOk`, with the cluster's registry on (`UniNames`), gives `SnapListsOk`. -/
 theorem sentMsg_snap_bound (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) :
@@ -2092,11 +2511,14 @@ theorem sentMsg_snap_bound (γ : Cluster) (N : Namespace) (src : w64) (st : MsgS
   have Hl := Hp.2.2.1
   exact ⟨sv, Hsv, Hl.2.2.2.2.2.2.2⟩
 
+
+
 /-- (open) **What a sent message carries for its receiver's `Step`**: a forwarded proposal's tickets
 (`stTks`). (raft-final, 2026-10-29, U7: the design's §2.9; until then also a `MsgReadIndex`'s read
 credit, which the receiver now mints from its own receipt, `rdPool`.) -/
 def msgCredits (γ : Cluster) (_N : Namespace) (st : MsgSt) : IProp GF :=
   stTks γ.raft st
+
 
 /-- (open) **A message's snapshot local to the node `id`** (2026-11-01, J8a; raft's `snapLocal`, at
 the directory the client chose for `id`, `Cluster.snapLoc`): what `node.Step` takes of a message with
@@ -2108,6 +2530,16 @@ def snapLocalMsg (γ : Cluster) (id : w64) (st : MsgSt) : IProp GF :=
 instance snapLocalMsg_persistent (γ : Cluster) (id : w64) (st : MsgSt) :
     Persistent (snapLocalMsg (GF := GF) γ id st) := by
   unfold snapLocalMsg; infer_instance
+
+
+end node
+
+section nodeHeap2196
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (open) A `Ready`'s storage part (the draft's `readySnap`). -/
 def readySnap (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState)
@@ -2141,9 +2573,45 @@ def readySnap (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeD
       -- (auth-lease S4, 2026-11-16, L-r3) outside the cluster's no-snapshot mode (`clusterNoSnap`)
       ⌜¬ γ.raft.reNoSnap = true⌝)
 
+
+
+
+end nodeHeap2196
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap2230
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 /-- (raft-entsize §2, 2026-11-09) **A message a `Ready` hands out** (the draft's `msgOut`): owned at
 `dq` holding `st`, at a content raft pinned, in the handed-out set (`msgOutR`). -/
 def msgOutU (γ : Cluster) (l : Loc) (dq : DFrac) (st : MsgSt) : IProp GF := msgOutR γ.raft l dq st
+
+
+
+
+end nodeHeap2230
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap2236
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (raft-entsize §2, 2026-11-09) **A `Ready`'s entries** (the draft's `readyEnts`, persistent): the
 read-only slice `s` of entry objects, each at a content in the handed-out set, holding `es`. -/
@@ -2152,9 +2620,45 @@ def readyEntsU (γ : Cluster) (s : GoSlice) (es : List EntryM) : IProp GF :=
     ([∗list] p;c ∈ els;cs, entPtsCC p DFrac.discard c ∗ outEntR γ.raft p c) ∗
     ⌜cs.map EntryC.model = es⌝)
 
+
+
+
+end nodeHeap2236
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap2489
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 instance readyEntsU_persistent (γ : Cluster) (s : GoSlice) (es : List EntryM) :
     Persistent (readyEntsU (GF := GF) γ s es) := by
   unfold readyEntsU; infer_instance
+
+
+
+
+end nodeHeap2489
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap2251
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (open) **The rest of a `Ready`** (the draft's `readyRest`). -/
 def readyRest (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState)
@@ -2175,29 +2679,123 @@ def readyRest (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeD
     -- (2026-11-01, durability stage II (m)) what it is past, and within
     ⌜ReadyRestFacts st ce es h L⌝)
 
+
+
+
+end nodeHeap2251
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 /-- (2026-11-01, durability stage I-3) The messages sent (the draft's `readyMsgs`). -/
 def readyMsgs (γ : Cluster) (N : Namespace) (id : w64) (ms : List QMsg) : IProp GF :=
   iprop([∗list] q ∈ ms, sentMsg γ N id q.st)
 
-/-- (2026-11-01, durability stage I-3) *Enter* (the draft's `readyEnter`). -/
-def readyEnter (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st st' : NodeDriverState)
+
+
+end node
+
+section nodeHeap2538
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+variable [CrashGS GF] in
+/-- (2026-11-01, durability stage I-3) *Enter* while the generation runs (the API's
+`readyEnterLive`; until 2026-11-22 the whole of `readyEnter`). -/
+def readyEnterLive (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (st st' : NodeDriverState)
     (ms : List QMsg) : IProp GF :=
-  iprop(∀ (E : CoPset) (q : Qp), ⌜↑N ⊆ E⌝ -∗
+  iprop(∀ (E : CoPset) (q : Qp), ⌜↑N ⊆ E⌝ -∗ notCrashed -∗
     raftStateU γ id st.durable ∗ nodeRunning n γ N q ={E}=∗
-      raftStateU γ id st'.durable ∗ nodeRunning n γ N q ∗ nodeDriver n γ N st' ∗
+      notCrashed ∗ raftStateU γ id st'.durable ∗ nodeRunning n γ N q ∗ nodeDriver n γ N st' ∗
       readyMsgs γ N id ms)
 
+variable [CrashGS GF] in
+/-- (2026-11-22, `notes/raft-crash-law-design.md` (k)) *Enter* at a crash (the API's
+`readyEnterCrash`): after the crash of the generation that ran node `n` (still running: a share of
+its liveness, so the batch is its current generation's), the arm's crash token enters the batch and
+gives the vacancy back (`raft_crash_enter`). -/
+def readyEnterCrash (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (st st' : NodeDriverState) :
+    IProp GF :=
+  iprop(∀ (E : CoPset) (x : CrashNames) (q : Qp), ⌜↑N ⊆ E⌝ -∗ crashed -∗ nodeCrashTokU γ id x -∗
+    nodeArmU n γ x -∗ nodeRunning n γ N q -∗ raftStateU γ id st.durable ={E}=∗
+      raftStateU γ id st'.durable ∗ nodeVacantU γ id)
+
+variable [CrashGS GF] in
+/-- (2026-11-01, durability stage I-3) *Enter* (the draft's `readyEnter`); (2026-11-22) live, or at a
+crash (`readyEnterLive ∧ readyEnterCrash`). -/
+def readyEnter (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (st st' : NodeDriverState)
+    (ms : List QMsg) : IProp GF :=
+  iprop(readyEnterLive n γ N id st st' ms ∧ readyEnterCrash n γ N id st st')
+
 -- (2026-11-03, R2b-1 stage 1: moved here from `InvApiView`, for `readyPost`)
+
+
+
+end nodeHeap2538
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap2289
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 /-- **The committed log delivered to node `n` extends `l`** (the draft's `deliveredLogLb`):
 raft's lower bound (`dlvLb`) of the node's names (its table's, if dynamic), and committed. -/
-def deliveredLogLb (n : Loc) (γ : Cluster) (_N : Namespace) (l : List LogEntry) : IProp GF :=
+def deliveredLogLb (n : NodeH) (γ : Cluster) (_N : Namespace) (l : List LogEntry) : IProp GF :=
   iprop((∃ (γn : NodeNames) (id : w64) (ds : List EntryM), ⌜NodeOk γ γn ∧ strip ds = l⌝ ∗
-    EtcdGrove.isNodeChan γn id n ∗ (⌜γn.mode.isDyn = false⌝ ∨ nodeTabOk γ n γn) ∗ dlvLb γn ds) ∗
+    EtcdGrove.isNodeChan γn id n.loc ∗ (⌜γn.mode.isDyn = false⌝ ∨ nodeTabOk γ n γn) ∗ dlvLb γn ds) ∗
     isCommittedLogLb γ l)
 
-instance deliveredLogLb_persistent (n : Loc) (γ : Cluster) (N : Namespace) (l : List LogEntry) :
+
+
+
+end nodeHeap2289
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap2575
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+instance deliveredLogLb_persistent (n : NodeH) (γ : Cluster) (N : Namespace) (l : List LogEntry) :
     Persistent (deliveredLogLb (GF := GF) n γ N l) := by
   unfold deliveredLogLb; infer_instance
+
+
+
+
+end nodeHeap2575
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap2304
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem busy_isNode_lb (γn : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM)
     (p : HardStateM) (L : Option SnapLoan) :
@@ -2207,19 +2805,73 @@ theorem busy_isNode_lb (γn : NodeNames) (id : w64) (n : Loc) (ds es : List Entr
   iintro ⟨#Hn, #Hlb, Hr⟩
   iframe Hn Hlb Hr
 
+
+
+
+end nodeHeap2304
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap2314
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 /-- Snapshot sources for the messages handed out by one node instance. -/
-def snapSources (γ : Cluster) (n : Loc) (id term : w64) (ms : List QMsg) (bound : Nat) (installed : Option w64 := none) : IProp GF :=
+def snapSources (γ : Cluster) (n : NodeH) (id term : w64) (ms : List QMsg) (bound : Nat) (installed : Option w64 := none) : IProp GF :=
   iprop(∃ γn : NodeNames, nodeTabOk γ n γn ∗ readyMsgOrigins γ.raft id γn.sn ms ∗ handoutOrigins γ.raft id γn.sn term ms bound installed)
 
-instance snapSources_persistent (γ : Cluster) (n : Loc) (id term : w64) (ms : List QMsg) (bound : Nat) (installed : Option w64) :
+
+
+
+end nodeHeap2314
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap2629
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+instance snapSources_persistent (γ : Cluster) (n : NodeH) (id term : w64) (ms : List QMsg) (bound : Nat) (installed : Option w64) :
     Persistent (snapSources (GF := GF) γ n id term ms bound installed) := by
   unfold snapSources
   haveI (γn : NodeNames) := nodeTabOk_persistent (GF := GF) γ n γn
   infer_instance
 
+
+
+
+end nodeHeap2629
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap2328
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 /-- What receiving a `Ready` gives (the draft's `readyGot`, `node.readyRecv.spec`'s
 postcondition). -/
-abbrev readyPost (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState)
+abbrev readyPost (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState)
     (rd : Ready) : IProp GF :=
   iprop(∃ (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan)
       (ms : List QMsg) (ss : Option (w64 × StateType)),
@@ -2236,24 +2888,78 @@ abbrev readyPost (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeD
     deliveredLogLb n γ N (st.afterReady ce es h L ss).delivered ∗
     hsCommitted γ N (phsNext st.hardState h) (st.afterReady ce es h L ss).delivered.length)
 
+
+
+
+end nodeHeap2328
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap2349
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 /-- (2026-11-12, trace-check implementation step 1; the design's §3.1) **The driver's claim on the
 tokens of a received `Ready`'s messages `ms`**: untraced nothing; traced, nothing claimed (`ms = []`)
 or the element of node `n`'s escrow (`rtkElem`, at the names the node table records for `n`) of the
 key recording `ms`. -/
-def readyToksClaim (n : Loc) (γ : Cluster) (_N : Namespace) (ms : List QMsg) : IProp GF :=
+def readyToksClaim (n : NodeH) (γ : Cluster) (_N : Namespace) (ms : List QMsg) : IProp GF :=
   match γ.raft.reTrace with
   | none => iprop(True)
   | some _ => iprop(⌜ms = []⌝ ∨ ∃ γn : NodeNames, ⌜NodeOk γ γn⌝ ∗ nodeTabOk γ n γn ∗ rtkElem γn.esc ms)
 
-theorem readyToksClaim_nil_impl (n : Loc) (γ : Cluster) (N : Namespace) :
+
+
+
+end nodeHeap2349
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap2701
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+theorem readyToksClaim_nil_impl (n : NodeH) (γ : Cluster) (N : Namespace) :
     ⊢ readyToksClaim (GF := GF) n γ N [] := by
   unfold readyToksClaim
   cases γ.raft.reTrace with
   | none => iintro; ipureintro; trivial
   | some _ => iintro; ileft; ipureintro; rfl
 
+
+
+
+end nodeHeap2701
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap2369
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 /-- A `Ready`'s claim, from `readyP`'s gated element at the node's names. -/
-theorem readyToksClaim_of_elem (n : Loc) (γ : Cluster) (N : Namespace) (γn : NodeNames)
+theorem readyToksClaim_of_elem (n : NodeH) (γ : Cluster) (N : Namespace) (γn : NodeNames)
     (ms : List QMsg) (Hok : NodeOk γ γn) :
     ⊢ nodeTabOk (GF := GF) γ n γn -∗ gateTr γn.raft.reTrace (rtkElem γn.esc ms) -∗
       readyToksClaim n γ N ms := by
@@ -2268,8 +2974,26 @@ theorem readyToksClaim_of_elem (n : Loc) (γ : Cluster) (N : Namespace) (γn : N
     iframe Htab Hel
     ipureintro; exact Hok
 
+
+
+
+end nodeHeap2369
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap2387
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 /-- The claim at `Advance`, at the names of the node the driver holds (its table entry). -/
-theorem readyToksClaim_at (n : Loc) (γ : Cluster) (N : Namespace) (γn : NodeNames)
+theorem readyToksClaim_at (n : NodeH) (γ : Cluster) (N : Namespace) (γn : NodeNames)
     (ms : List QMsg) (Hok : NodeOk γ γn) :
     ⊢ nodeTabOk (GF := GF) γ n γn -∗ readyToksClaim n γ N ms -∗
       gateTr γn.raft.reTrace (rtkClaim γn.esc ms) := by
@@ -2287,10 +3011,28 @@ theorem readyToksClaim_at (n : Loc) (γ : Cluster) (N : Namespace) (γn : NodeNa
       have He : γn.esc = γn'.esc := RtkNames.tup_inj Hcn.2.2.2.2.2.2.2.2.2.2.2.2.1
       rw [He]; iexact Hel
 
+
+
+
+end nodeHeap2387
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap2408
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 /-- (2026-11-12, trace-check implementation step 1) What receiving a `Ready` gives, traced: `readyPost`
 with the driver's claim on its messages (`readyToksClaim`) as its last conjunct, at `readyRest`'s
 `ms` (the design's §3.1, Probe A's P2). -/
-abbrev readyPostT (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState)
+abbrev readyPostT (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState)
     (rd : Ready) : IProp GF :=
   iprop(∃ (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan)
       (ms : List QMsg) (ss : Option (w64 × StateType)),
@@ -2306,20 +3048,74 @@ abbrev readyPostT (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : Node
     hsCommitted γ N (phsNext st.hardState h) (st.afterReady ce es h L ss).delivered.length ∗
     readyToksClaim n γ N ms)
 
+
+
+
+end nodeHeap2408
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap2818
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 /-- The untraced post: the claim dropped. -/
-theorem readyPostT_post (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState)
+theorem readyPostT_post (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState)
     (rd : Ready) : readyPostT (GF := GF) n γ N id st rd ⊢ readyPost n γ N id st rd := by
   iintro ⟨%ce, %es, %h, %L, %ms, %ss, #Hsrcs, H1, H2, H3, H4, H5, H6, H7, H8, -⟩
   iexists ce, es, h, L, ms, ss
   iframe Hsrcs H1 H2 H3 H4 H5 H6 H7 H8
 
+
+
+
+end nodeHeap2818
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap2827
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 /-- **Receiving a `Ready`** (the draft's `node.readyRecv`). -/
 abbrev node.readyRecv.spec : Prop :=
-  ∀ (n ch : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState),
+  ∀ (n : NodeH) (ch : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState),
   st.handling = none →
   {{ isReadyChan (GF := GF) n γ N ch ∗ isNode n γ N id ∗ nodeDriver n γ N st }}
     (App (Val (chan.receive Ready.ty)) (Val #ch))
   {{ (rd : Ready), RET (PairV #rd #true); readyPost n γ N id st rd }}
+
+
+
+
+end nodeHeap2827
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap2448
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- A message a `Ready` hands out, as the client sees it. (raft-final, phase 2: with the read
 credits' exchange and the cluster's names, which `sentMsg` carries; the message's read credit, which
@@ -2341,6 +3137,24 @@ theorem api_msg (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ E) (�
   rw [← Hγr, ← Hγb]
   iframe Hci Htlb Htk Hraft Hsc Hpool
   ipureintro; exact HU
+
+
+
+
+end nodeHeap2448
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap2471
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- The messages a `Ready` hands out, as the client sees them. -/
 theorem api_msgs (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ E) (γn : NodeNames)
@@ -2369,11 +3183,47 @@ theorem api_msgs (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ E) (
     iframe H1 H
 
 -- (stage II(g): moved here from `InvApiView.lean`, for `readyRecv_open`)
+
+
+
+end nodeHeap2471
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap2500
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 /-- (stage II helper) A certified term is raft's reading of the contract's `DL` (`raftDL`'s first
 disjunct). -/
 theorem raftDL_of_key (sn : StorNames) (i : Nat) (t : w64) :
     (i ↪[sn.gd]□ t : IProp GF) ⊢ raftDL sn i t := by
   unfold raftDL; iintro #H; ileft; iexact H
+
+
+
+
+end nodeHeap2500
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap2508
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (stage II helper) The certified terms of a committed log `ds` give `raftDL` of each entry of
 what the client sees of it. -/
@@ -2399,6 +3249,24 @@ theorem dlvKeys_raftDL (sn : StorNames) (ds : List EntryM) :
   rw [show 0 + k + 1 = k + 1 by omega]
   exact raftDL_of_key sn (k + 1) x.Term'
 
+
+
+
+end nodeHeap2508
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap2534
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 /-- (stage II helper) A committed log with raft's certified terms under the key's names is
 committed for the key's storage. -/
 theorem nodeCommitLbU_of_dlvLb (γ : Cluster) (K : GName) (γn : NodeNames) (ds : List EntryM) :
@@ -2411,6 +3279,15 @@ theorem nodeCommitLbU_of_dlvLb (γ : Cluster) (K : GName) (γn : NodeNames) (ds 
   isplitr; · ipureintro; exact Nat.le_refl _
   iapply dlvKeys_raftDL $$ Hd
 
+
+
+
+end nodeHeap2534
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 /-- (2026-11-01, durability stage II(g) helper) A `Ready`'s messages, each `sentMsg`, from their raft
 facts and their terms' bounds. -/
 theorem api_sentMsgs (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ E) (γn : NodeNames)
@@ -2440,6 +3317,17 @@ theorem api_sentMsgs (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ 
     rw [← Hγb]
     iframe Hci Ht1 Hraft' Hsc Hpool
     ipureintro; exact HU
+
+
+
+end node
+
+section nodeHeap2580
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (stage II(g) helper) A `Ready`'s messages' ownership with their credits, and their terms'
 bounds apart. -/
@@ -2472,6 +3360,24 @@ theorem readyMsgs_own_split (γ : Cluster) (N : Namespace) (γn : NodeNames)
       unfold msgCredits; rw [← Hγr]; iexact Ht1
     · iapply BigSepL.bigSepL_cons.2
       iframe Hl Hls
+
+
+
+
+end nodeHeap2580
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap2614
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (raft-entsize §2) **A `Ready`'s entry objects into the handed-out set**, each at its content
 (out_size C3: sized under the cluster's flag, `entRZ`, which the set's size fact takes). -/
@@ -2509,6 +3415,24 @@ theorem entsOut_insert (γ : Cluster) (E : CoPset) (HE : ↑(raftOutN γ.raft) �
       iframe Hc Ho
     · ipureintro; simp only [List.map_cons, Hcs, Hm]
 
+
+
+
+end nodeHeap2614
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap2652
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 /-- (raft-entsize §2) **A `Ready`'s entries handed out** (`readyEntsU`), from the sized form (out_size
 C3). -/
 theorem readyEntsU_intro (γ : Cluster) (E : CoPset) (HE : ↑(raftOutN γ.raft) ⊆ E) (s : GoSlice)
@@ -2523,6 +3447,24 @@ theorem readyEntsU_intro (γ : Cluster) (E : CoPset) (HE : ↑(raftOutN γ.raft)
   iexists ls, cs
   iframe Hs H
   ipureintro; exact Hcs
+
+
+
+
+end nodeHeap2652
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap2669
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (raft-entsize §2) Entry objects at their contents are today's read-only entries. -/
 theorem entsCC_entRO (γ : Cluster) :
@@ -2549,6 +3491,24 @@ theorem entsCC_entRO (γ : Cluster) :
       ipureintro; rfl
     · iapply entsCC_entRO γ ls cs' $$ H
 
+
+
+
+end nodeHeap2669
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap2696
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 /-- (raft-entsize §2) A `Ready`'s entries handed out are today's read-only entries. -/
 theorem readyEntsU_entsRO (γ : Cluster) (s : GoSlice) (es : List EntryM) :
     readyEntsU (GF := GF) γ s es ⊢ entsRO s es := by
@@ -2559,10 +3519,46 @@ theorem readyEntsU_entsRO (γ : Cluster) (s : GoSlice) (es : List EntryM) :
   subst Hcs
   iapply entsCC_entRO γ ls cs $$ H
 
+
+
+
+end nodeHeap2696
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap2708
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 /-- A read-only entry object at a content is frozen at it (the same predicate). -/
 theorem entPtsCC_discard_entRoC (l : Loc) (c : EntryC) :
     entPtsCC (GF := GF) l DFrac.discard c ⊢ entRoC l c := by
   unfold entPtsCC entRoC; exact .rfl
+
+
+
+
+end nodeHeap2708
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap2715
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (out_size C3) Handed-out entry objects are frozen at their contents, each of bounded size in a
 cluster with a bound on proposed data (`outEntR_size`). -/
@@ -2593,6 +3589,24 @@ theorem entsCC_sized (γ : Cluster) (b : Nat) (hmd : γ.raft.maxData = some b) :
       · subst h; exact Hsz hmd
       · exact Hs c' h
 
+
+
+
+end nodeHeap2715
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap2746
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 /-- (out_size C3) **A `Ready`'s entries, sized** in a cluster with a bound on proposed data: the slice
 of objects frozen at contents of bounded size holding `es`. -/
 theorem readyEntsU_sized (γ : Cluster) (s : GoSlice) (es : List EntryM) (b : Nat)
@@ -2606,6 +3620,24 @@ theorem readyEntsU_sized (γ : Cluster) (s : GoSlice) (es : List EntryM) (b : Na
   iexists ls, cs
   iframe Hs H
   ipureintro; exact ⟨Hcs, Hsz⟩
+
+
+
+
+end nodeHeap2746
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap2762
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (raft-entsize §2) **A `Ready`'s messages into the handed-out set**, each at a content raft pins
 (out_size C3: held at it, `msgOwnZ`; until then owned with its `snapUf`). -/
@@ -2631,12 +3663,21 @@ theorem msgOuts_insert (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑(raf
     iframe H Hc
     unfold msgOutU; iexact Ho
 
+
+
+end nodeHeap2762
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 /-- (raft-entsize §2) The cluster's invariant holds the handed-out set's. -/
 theorem clusterInv_out (γ : Cluster) (N : Namespace) :
     clusterInv (GF := GF) γ N ⊢ raftOutInv γ.raft := by
   unfold clusterInv
   iintro ⟨-, #Hc, -⟩
   iapply raftCommitInv_out $$ Hc
+
 
 /-- (stage II(g) helper) The batch's fragments release its messages' raft facts. -/
 theorem msgs_of_frags (γ : RaftNames) (id : w64) (W : DurMaps) (ms : List QMsg) :
@@ -2655,6 +3696,8 @@ theorem msgs_of_frags (γ : RaftNames) (id : w64) (W : DurMaps) (ms : List QMsg)
     isplitr [Hw]
     · iapply Hw1 $$ Hf
     · iapply ih $$ Hf Hw
+
+
 
 /-- (stage II(g) helper) **The leader's law** at the receive: at role leader the cut's messages are
 the raft node's outright (R9), so they are sent at once; otherwise the law is vacuous. -/
@@ -2678,10 +3721,21 @@ theorem api_leaderMsgs (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N �
     iintro %h
     exact absurd h hb
 
+
+
+end node
+
+section nodeHeap2839
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 /-- (stage II(g) helper) ***Enter*, built at the receive** from the busy token's pieces, both halves
 of the recorded durable state, `run`'s half of the batch's maps, the queued batch and the messages'
 facts behind its fragments. -/
-theorem api_enter (n : Loc) (γ : Cluster) (N : Namespace) (γn : NodeNames)
+theorem api_enter (n : NodeH) (γ : Cluster) (N : Namespace) (γn : NodeNames)
     (st st' : NodeDriverState) (ds' es : List EntryM) (L : Option SnapLoan) (ms : List QMsg)
     (S' : RaftState) (W : DurMaps)
     (Hnok : NodeOk γ γn) (HU : UniNames γ N) (HNs : γ.raft.reNs = N .@ "raft")
@@ -2692,8 +3746,8 @@ theorem api_enter (n : Loc) (γ : Cluster) (N : Namespace) (γn : NodeNames)
       (S'.wcommit = st.durable.wcommit ∧ S'.base = st.durable.base ∧ S'.ents = st.durable.ents)) :
     ⊢ clusterInv (GF := GF) γ N -∗ rdPool γ N -∗ isCommittedLogLb γ st'.delivered -∗
       hsCommitted γ N st'.hardState st'.delivered.length -∗
-      nodeTabOk γ n γn -∗ storKeyNames st'.key γn.sn -∗ EtcdGrove.isNodeChan γn γn.id n -∗
-      nodeDriverBusy γn γn.id n ds' es st'.hardState L -∗
+      nodeTabOk γ n γn -∗ storKeyNames st'.key γn.sn -∗ EtcdGrove.isNodeChan γn γn.id n.loc -∗
+      nodeDriverBusy γn γn.id n.loc ds' es st'.hardState L -∗
       (match (generalizing := false) L with
         | none => iprop(True)
         | some l => storGiven γn.sn (uint.nat l.snap.Metadata'.Index')) -∗
@@ -2707,14 +3761,57 @@ theorem api_enter (n : Loc) (γ : Cluster) (N : Namespace) (γn : NodeNames)
       readyEnter n γ N γn.id st st' ms := by
   iintro #Hci #Hpool #Hlb #Hhc #Htab #Hkey #Hnode Hbusy Hgv Hd1 Hd2 Hbw Hpend #HtS'0 #Hmw #Htl
   unfold readyEnter
-  iintro %E %q %HE ⟨Hrs, Hrun⟩
+  isplit
+  rotate_left
+  · -- (2026-11-22) at a crash: the batch entered by the arm's token (`raft_crash_enter`)
+    unfold readyEnterCrash
+    iintro %E %x %q %HE #Hc Htok #Harm Hrun Hrs
+    iunfold raftStateU at Hrs
+    icases Hrs with ⟨Hdg, #HtS, #Hbi⟩
+    iunfold nodeRunning at Hrun
+    icases Hrun with ⟨%γ1, %id1, %Hok1, #H1, #T1, Hl⟩
+    icases isNode_id_agree γ1 γn id1 γn.id n.loc $$ H1 Hnode with %Hid1
+    subst Hid1
+    ihave %Hg1 := EtcdGrove.isNode_id γ1 γn.id n.loc $$ H1
+    have Hr1 : γ1.raft = γ.raft := Hok1.1.1
+    ihave %Hcn := nodeTabOk_agree γ n γ1 γn $$ T1 Htab
+    have Hgen : γ1.gen = γn.gen := by
+      simp only [cfgNamesOf, Prod.mk.injEq] at Hcn
+      exact Hcn.2.2.2.2.2.2.2.2.2.2.1
+    -- the token's arm is the node's
+    ihave %Hx := nodeArmU_agree n γ x γ1.cx $$ Harm []
+    · unfold nodeArmU; iexists γ1; iframe T1; ipureintro; rfl
+    subst Hx
+    iunfold EtcdGrove.nodeLiveRaw at Hl
+    icases Hl with ⟨-, Hsl⟩
+    ihave Hsl : genView γ.raft γn.id γ1.cx q.half γn.gen $$ [Hsl]
+    · rw [← Hr1, ← Hg1, ← Hgen]; iexact Hsl
+    have HrE : (↑(raftN γ.raft) : CoPset) ⊆ E := by
+      intro p hp
+      unfold raftN at hp; rw [HNs] at hp
+      exact HE p (nclose_subseteq N "raft" p hp)
+    ihave Hpend : pendBatch γ.raft γn.id γn.gen S' W $$ [Hpend]
+    · rw [← Hnok.1]; iexact Hpend
+    iunfold nodeCrashTokU at Htok
+    imod raft_crash_enter E γ.raft γn.id st.durable γ1.cx q.half γn.gen S' W HrE HwS
+      $$ Hc Htok Hdg Hsl Hpend with ⟨Hdg, Hslot⟩
+    ihave #HtS' : termLB γ.bud S'.term $$ []
+    · rw [← Hnok.2.1]; iexact HtS'0
+    imodintro
+    isplitl [Hdg]
+    · unfold raftStateU
+      rw [HS]
+      iframe Hdg HtS' Hbi
+    unfold nodeVacantU; iexact Hslot
+  unfold readyEnterLive
+  iintro %E %q %HE Hnc ⟨Hrs, Hrun⟩
   iunfold raftStateU at Hrs
   icases Hrs with ⟨Hdg, #HtS, #Hbi⟩
   iunfold nodeRunning at Hrun
   icases Hrun with ⟨%γ1, %id1, %Hok1, #H1, #T1, Hl⟩
-  icases isNode_id_agree γ1 γn id1 γn.id n $$ H1 Hnode with %Hid1
+  icases isNode_id_agree γ1 γn id1 γn.id n.loc $$ H1 Hnode with %Hid1
   subst Hid1
-  ihave %Hg1 := EtcdGrove.isNode_id γ1 γn.id n $$ H1
+  ihave %Hg1 := EtcdGrove.isNode_id γ1 γn.id n.loc $$ H1
   have Hr1 : γ1.raft = γ.raft := Hok1.1.1
   -- the generations agree through the node table (`cfgNamesOf` records it)
   ihave %Hcn := nodeTabOk_agree γ n γ1 γn $$ T1 Htab
@@ -2723,7 +3820,7 @@ theorem api_enter (n : Loc) (γ : Cluster) (N : Namespace) (γn : NodeNames)
     exact Hcn.2.2.2.2.2.2.2.2.2.2.1
   iunfold EtcdGrove.nodeLiveRaw at Hl
   icases Hl with ⟨Hlv, Hsl⟩
-  ihave Hsl : slotLive γ.raft γn.id q.half γn.gen $$ [Hsl]
+  ihave Hsl : genView γ.raft γn.id γ1.cx q.half γn.gen $$ [Hsl]
   · rw [← Hr1, ← Hg1, ← Hgen]; iexact Hsl
   have HrE : (↑(raftN γ.raft) : CoPset) ⊆ E := by
     intro p hp
@@ -2731,8 +3828,8 @@ theorem api_enter (n : Loc) (γ : Cluster) (N : Namespace) (γn : NodeNames)
     exact HE p (nclose_subseteq N "raft" p hp)
   ihave Hpend : pendBatch γ.raft γn.id γn.gen S' W $$ [Hpend]
   · rw [← Hnok.1]; iexact Hpend
-  imod raft_enter E γ.raft γn.id st.durable q.half γn.gen S' W HrE HwS $$ Hdg Hsl Hpend
-    with ⟨Hdg, Hsl, Hfree, #Hfr⟩
+  imod raft_enter E γ.raft γn.id st.durable γ1.cx q.half γn.gen S' W HrE HwS $$ Hnc Hdg Hsl Hpend
+    with ⟨Hnc, Hdg, Hsl, Hfree, #Hfr⟩
   ihave #HtS' : termLB γ.bud S'.term $$ []
   · rw [← Hnok.2.1]; iexact HtS'0
   imod dghostVar_update_halves (st'.durable, st'.role) γn.dur _ _ $$ Hd1 Hd2 with ⟨Hd1, Hd2⟩
@@ -2747,6 +3844,7 @@ theorem api_enter (n : Loc) (γ : Cluster) (N : Namespace) (γn : NodeNames)
     rw [Hnok.1]; iexact Hfr
   imod api_sentMsgs γ N E HE γn Hnok.1 Hnok.2.1 HU ms $$ Hci Hpool Hrm Htl with #Hsm
   imodintro
+  iframe Hnc
   isplitl [Hdg]
   · unfold raftStateU
     rw [HS]
@@ -2778,6 +3876,14 @@ theorem api_enter (n : Loc) (γ : Cluster) (N : Namespace) (γn : NodeNames)
   unfold readyMsgs
   iexact Hsm
 
+
+
+end nodeHeap2839
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 /-- (2026-11-01, durability stage II (m)) `ReadyRestFacts` of a `Ready` without a snapshot, from
 raft's `ReadyFacts` at the cut. -/
 theorem readyRestFacts_of_none (st : NodeDriverState) (ds ce es : List EntryM) (h p' : HardStateM)
@@ -2813,16 +3919,26 @@ theorem readyRestFacts_of_some (st : NodeDriverState) (ds es : List EntryM) (h p
   have u3 := uint_nat_eq l.snap.Metadata'.Index'
   exact ⟨by omega, g8, by omega, by omega, g20⟩
 
+
+end node
+
+section nodeHeap2977
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 /-- **Receiving a `Ready`, opened**: the node's raft channel and driver token, and the update
 from what raft's receive gives to `readyPost`. -/
-theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
+theorem readyRecv_open (n : NodeH) (ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
     (st : NodeDriverState) (Hh : st.handling = none) :
     ⊢ isReadyChan (GF := GF) n γ N ch -∗ isNode n γ N id0 -∗ nodeDriver n γ N st -∗
       ∃ (γn : NodeNames) (id : w64) (ds : List EntryM),
-        EtcdGrove.isReadyChanRaw γn ch ∗ EtcdGrove.nodeDriverChan γn id n ds st.hardState ∗
+        EtcdGrove.isReadyChanRaw γn ch ∗ EtcdGrove.nodeDriverChan γn id n.loc ds st.hardState ∗
         (∀ rd : Ready, (∃ (ce es : List EntryM) (ms : List QMsg) (p' : HardStateM)
             (L : Option SnapLoan), readyDataL γn rd ds ce es ms st.hardState p' L ∗
-            nodeDriverBusy γn id n (dlvAfter ds ce L) es p' L ∗
+            nodeDriverBusy γn id n.loc (dlvAfter ds ce L) es p' L ∗
             readyCut γn rd ds ce es ms st.hardState p' L ∗
             gateTr γn.raft.reTrace (rtkElem γn.esc ms)) ={⊤}=∗
           readyPostT n γ N id0 st rd) := by
@@ -2843,12 +3959,12 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
   icases Htok with (⟨-, Htok, Hdur⟩ | ⟨%es0, %L0, %W0, %Hh', -⟩)
   rotate_left
   · rw [Hh] at Hh'; cases Hh'
-  ihave ⟨Htok, #Hnode⟩ := nodeDriver_isNode γn id n ds st.hardState $$ Htok
-  ihave %Hgid := EtcdGrove.isNode_id γn id n $$ Hnode
+  ihave ⟨Htok, #Hnode⟩ := nodeDriver_isNode γn id n.loc ds st.hardState $$ Htok
+  ihave %Hgid := EtcdGrove.isNode_id γn id n.loc $$ Hnode
   ihave %Hid0 : ⌜γn.id = id0⌝ $$ []
   · iunfold isNode at Hnode0
     icases Hnode0 with ⟨%γn0, -, #Hn0', -⟩
-    icases isNode_id_agree γn γn0 id id0 n $$ Hnode Hn0' with %He
+    icases isNode_id_agree γn γn0 id id0 n.loc $$ Hnode Hn0' with %He
     ipureintro; rw [Hgid]; exact He
   subst Hid0
   subst Hgid
@@ -2911,7 +4027,7 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
     ihave #Hlb' : isCommittedLogLb γ (st.delivered ++ strip ce) $$ []
     · rw [← Hds, ← strip_append]; iexact Hlb
     -- (2026-11-03, R2b-1 stage 1) the delivered log's lower bound, before *enter* takes the token
-    ihave ⟨Hbusy, #Hdlbn⟩ : nodeDriverBusy γn γn.id n (dlvAfter ds ce none) es p' none ∗
+    ihave ⟨Hbusy, #Hdlbn⟩ : nodeDriverBusy γn γn.id n.loc (dlvAfter ds ce none) es p' none ∗
         dlvLb γn (dlvAfter ds ce none) $$ [Hbusy]
     · iunfold nodeDriverBusy at Hbusy
       icases Hbusy with ⟨#Hbn, #Hdlb, Hbr⟩
@@ -3035,7 +4151,7 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
     imod lastRec_receipt γn.raft Lx $$ Hlr with #Hrcp
     ihave %Hrl := preceipt_lt _ $$ Hrcp
     -- the committed log handed out, certified for the storage
-    ihave ⟨Hbusy, #Hdlb0⟩ : nodeDriverBusy γn γn.id n (dlvAfter ds [] (some l)) es p' (some l) ∗
+    ihave ⟨Hbusy, #Hdlb0⟩ : nodeDriverBusy γn γn.id n.loc (dlvAfter ds [] (some l)) es p' (some l) ∗
         dlvLb γn (dlvAfter ds [] (some l)) $$ [Hbusy]
     · iunfold nodeDriverBusy at Hbusy
       icases Hbusy with ⟨#Hbn, #Hdlb, Hbr⟩
@@ -3129,13 +4245,31 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
         simp only [NodeDriverState.afterReady, strip_length]
       iexact Hcl
 
+
+
+
+end nodeHeap2977
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap4196
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 theorem node.wp_readyRecv_impl : node.readyRecv.spec (GF := GF) (hG := hG) := by
   intro n ch γ N id0 st Hh
   iintro %Φ ⟨#Hrc, #Hnode0, Hdrv⟩ HΦ
   icases readyRecv_open n ch γ N id0 st Hh $$ Hrc Hnode0 Hdrv
     with ⟨%γn, %id, %ds, #Hrc', Htok, Hk⟩
   iapply wp_fupd
-  iapply node_ready_receive γn id n ch ds st.hardState $$ [Htok]
+  iapply node_ready_receive γn id n.loc ch ds st.hardState $$ [Htok]
   · iframe Hrc' Htok
   iintro !> %rd Hraw
   imod Hk $$ %rd Hraw with Hpost
@@ -3143,13 +4277,31 @@ theorem node.wp_readyRecv_impl : node.readyRecv.spec (GF := GF) (hG := hG) := by
   iapply HΦ
   iapply readyPostT_post $$ Hpost
 
+
+
+
+end nodeHeap4196
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap3311
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 /-- Raft's `Ready` receive as a channel receive's update (`node_ready_receive`'s). -/
-theorem node_ready_recvAu (γn : NodeNames) (id : w64) (n ch : Loc) (ds : List EntryM)
+theorem node_ready_recvAu (γn : NodeNames) (id : w64) (n : NodeH) (ch : Loc) (ds : List EntryM)
     (p : HardStateM) (Φ : Ready → Bool → IProp GF) :
-    ⊢ £ 1 ∗ £ 1 -∗ EtcdGrove.isReadyChanRaw γn ch -∗ EtcdGrove.nodeDriverChan γn id n ds p -∗
+    ⊢ £ 1 ∗ £ 1 -∗ EtcdGrove.isReadyChanRaw γn ch -∗ EtcdGrove.nodeDriverChan γn id n.loc ds p -∗
       ▷ (∀ rd : Ready, (∃ (ce es : List EntryM) (ms : List QMsg) (p' : HardStateM)
           (L : Option SnapLoan), readyDataL γn rd ds ce es ms p p' L ∗
-          nodeDriverBusy γn id n (dlvAfter ds ce L) es p' L ∗ readyCut γn rd ds ce es ms p p' L ∗
+          nodeDriverBusy γn id n.loc (dlvAfter ds ce L) es p' L ∗ readyCut γn rd ds ce es ms p p' L ∗
           gateTr γn.raft.reTrace (rtkElem γn.esc ms)) -∗
           Φ rd true) -∗
       recvAu γn.readyc Ready Φ := by
@@ -3177,9 +4329,27 @@ theorem node_ready_recvAu (γn : NodeNames) (id : w64) (n ch : Loc) (ds : List E
   iframe Hd Hds Hrof Hreq
   ipureintro; rfl
 
+
+
+
+end nodeHeap3311
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap4008
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 /-- **Receiving a `Ready` as a channel's receive, traced** (2026-11-12, trace-check implementation
 step 1: the draft's `isReadyChan_recvAu` with the driver's claim, `readyPostT`). -/
-theorem isReadyChan_recvAuT_impl (n ch : Loc) (γ : Cluster) (N : Namespace) (id : w64)
+theorem isReadyChan_recvAuT_impl (n : NodeH) (ch : Loc) (γ : Cluster) (N : Namespace) (id : w64)
     (st : NodeDriverState) (Φ : Ready → Bool → IProp GF) (Hh : st.handling = none) :
     ⊢ isReadyChan (GF := GF) n γ N ch -∗ isNode n γ N id -∗ nodeDriver n γ N st -∗
       ∃ γc : ChanNames, isChan ch γc Ready ∗
@@ -3198,7 +4368,7 @@ theorem isReadyChan_recvAuT_impl (n ch : Loc) (γ : Cluster) (N : Namespace) (id
   iapply recvAu_wand_fupd γn.readyc Ready
     (fun rd ok => iprop(⌜ok = true⌝ ∗ (∃ (ce es : List EntryM) (ms : List QMsg) (p' : HardStateM)
           (L : Option SnapLoan), readyDataL γn rd ds ce es ms st.hardState p' L ∗
-          nodeDriverBusy γn id' n (dlvAfter ds ce L) es p' L ∗
+          nodeDriverBusy γn id' n.loc (dlvAfter ds ce L) es p' L ∗
           readyCut γn rd ds ce es ms st.hardState p' L ∗
           gateTr γn.raft.reTrace (rtkElem γn.esc ms)) ∗
         (∀ rd : Ready, readyPostT n γ N id st rd -∗ Φ rd true))) Φ
@@ -3213,9 +4383,27 @@ theorem isReadyChan_recvAuT_impl (n ch : Loc) (γ : Cluster) (N : Namespace) (id
   imod Hk $$ %rd Hraw with Hpost
   iapply HΦ $$ Hpost
 
+
+
+
+end nodeHeap4008
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end node
+
+section nodeHeap4046
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 /-- **Receiving a `Ready` as a channel's receive** (the draft's `isReadyChan_recvAu`): the traced
 law's instance, the claim dropped. -/
-theorem isReadyChan_recvAu_impl (n ch : Loc) (γ : Cluster) (N : Namespace) (id : w64)
+theorem isReadyChan_recvAu_impl (n : NodeH) (ch : Loc) (γ : Cluster) (N : Namespace) (id : w64)
     (st : NodeDriverState) (Φ : Ready → Bool → IProp GF) (Hh : st.handling = none) :
     ⊢ isReadyChan (GF := GF) n γ N ch -∗ isNode n γ N id -∗ nodeDriver n γ N st -∗
       ∃ γc : ChanNames, isChan ch γc Ready ∗
@@ -3232,6 +4420,14 @@ theorem isReadyChan_recvAu_impl (n ch : Loc) (γ : Cluster) (N : Namespace) (id 
   iapply HΦ
   iapply readyPostT_post $$ Hpost
 
+
+
+end nodeHeap4046
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 end node
 
 /-! ## Proposals -/
@@ -3239,9 +4435,7 @@ end node
 section propose
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-- **A key registered** with the trivial predicate: the adapter registers it the first time
 (`prop_register_at`, with the client's fresh token, which the adapter holds). -/
@@ -3414,6 +4608,16 @@ theorem api_propAu1_if (γ : Cluster) (N : Namespace) (ty : w32) (data : List w8
     imodintro
     iapply api_propAu1 γ N ty data Hnf HNs $$ Hinv Hau
 
+
+end propose
+
+section proposeHeap4247
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 /-- The errors of a proposal. -/
 theorem propErr_api (cd : context.ContextDesc (IProp GF)) (err : GoInterface) :
     propErr cd err ⊢
@@ -3426,6 +4630,14 @@ theorem propErr_api (cd : context.ContextDesc (IProp GF)) (err : GoInterface) :
   · ileft; ipureintro; exact H
   · iright; iright; ileft; iexact H
 
+
+
+end proposeHeap4247
+
+section propose
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 end propose
 
 /-! ## Reads -/
@@ -3433,9 +4645,7 @@ end propose
 section read
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-- **Depositing a read** (raft's `read_deposit`, at a mask `E` around raft's namespace), its update
 fired the first time by the caller's own means `Hfire` (which may borrow `R`) rather than by the
@@ -3705,11 +4915,9 @@ end read
 section cc
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
-omit [GooseInterp] [GooseSemantics] go_gctx hG [StorageModel GF] sem package_sem in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 /-- An entry that is no filler to raft is a requested entry (2026-10-29, stage U5). -/
 theorem opsOf_single_nonFiller (t : w64) (ty : w32) (bs : List w8) (Hnf : ¬ Filler ty bs) :
     opsOf [(⟨t, ty, bs⟩ : LogEntry)] = [⟨t, ty, bs⟩] :=
@@ -3755,6 +4963,14 @@ end cc
 section misc
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+
+
+end misc
+
+section miscHeap4588
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
@@ -3768,11 +4984,29 @@ then a wand.) -/
 def stepIn (γ : Cluster) (_N : Namespace) (id : w64) (ml : Loc) : IProp GF :=
   iprop(⌜ml ≠ null⌝ ∗ ∀ γn : NodeNames, ⌜NodeOk γ γn⌝ -∗ ⧗ 1 ={⊤}=∗ stepP γn id ml)
 
+
+
+end miscHeap4588
+
+section misc
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 /-- A list without repeats is a permutation of the elements of its set. -/
 theorem perm_elements_listToSet' (l : List w64) (h : l.Nodup) :
     l ≡ₚ GMap.elements (GMap.listToSet l) := by
   refine (List.perm_ext_iff_of_nodup h (GMap.NoDup_elements _)).2 ?_
   intro k; rw [GMap.elem_of_elements, GMap.elem_of_list_to_set]
+
+
+end misc
+
+section miscHeap4605
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- **Stepping a sent message** (the draft's `stepIn_intro`). -/
 theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (src : w64)
@@ -3937,6 +5171,14 @@ theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (
     rw [Hγr]
     iapply trTokR_net γ.raft src st Hp $$ Hraft0 Htr
 
+
+
+end miscHeap4605
+
+section misc
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 end misc
 
 end ApiImpl

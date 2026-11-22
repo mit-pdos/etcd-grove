@@ -207,7 +207,13 @@ theorem Reflector.watch.wp_proof
     wp_apply (wp_Seconds_ptr _ mn) $$ [$Htime $Hmn] as %f4 Hmn
     (try wp_auto)
     -- the timeout's `int64(...)` of a `float64`: an arbitrary `int64` (Perennial's
-    -- `Float64Semantics.convert_float64_to_integer`)
+    -- `Float64Semantics.convert_float64_to_integer`), after the float steps
+    wp_apply wp_float64_sub as %_ -
+    (try wp_auto)
+    wp_apply wp_float64_mul as %_ -
+    (try wp_auto)
+    wp_apply wp_float64_add as %_ -
+    (try wp_auto)
     wp_apply wp_ArbitraryInt as %tos -
     (try wp_auto)
     wp_apply (wp_LastSyncResourceVersion r (rvStr w0) u) $$ [$Hpkg $Hown] as Hown

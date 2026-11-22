@@ -61,7 +61,7 @@ theorem collectReasonsAndErrors.wp_proof
   have H : ⊢ (∀ (s : GoSlice) (dq : DFrac) (pre : List GoString) (d : ConditionsAwareDecision)
       (m : Dec) (k : w64),
     {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.authorization.authorizer ∗
-        s ↦*{dq} pre ∗ isDecision d m }}
+        s ↦*{dq} pre ∗ isDecision d m ∗ ⌜pre.length + m.depth < 2 ^ 63⌝ }}
       (App (App (App (Val (@! collectReasonsAndErrors)) (Val #s)) (Val #d)) (Val #k))
     {{ (rs es : GoSlice), RET (PairV #rs #es); s ↦*{dq} pre ∗
         (∃ xs : List GoString, rs ↦* xs ∗ ownSliceCap GoString rs (DFrac.own 1)) ∗
@@ -70,7 +70,7 @@ theorem collectReasonsAndErrors.wp_proof
       : IProp GF) := by
     iloeb as IH
     iintro %s %dq %pre %d %m %k
-    wp_start as ⟨Hs, #Hd⟩
+    wp_start as ⟨Hs, #Hd, %Hdep⟩
     wp_auto
     icases isDecision_tag d m $$ Hd with %Htag
     wp_join (Q := fun v => iprop(∃ b : Bool, ⌜v = #b⌝ ∗ condAwareDecision_ptr ↦ d ∗
@@ -142,7 +142,12 @@ theorem collectReasonsAndErrors.wp_proof
           iintro %ss ⟨Hss, -⟩
           imod ownSlice_string_common s _ dq pre [kk] $$ [Hs Ht] with ⟨%dq', Hs, Ht, Hback⟩
           · iframe
-          wp_apply (wp_Concat _ (DFrac.own 1) [s, _] [pre, [kk]] dq' rfl) $$ [$Hss Hs Ht]
+          have Hsum : ([pre, [kk]].map List.length).sum < 2 ^ 63 := by
+            simp only [Dec.depth] at Hdep
+            simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil,
+              List.length_singleton]
+            omega
+          wp_apply (wp_Concat _ (DFrac.own 1) [s, _] [pre, [kk]] dq' rfl Hsum) $$ [$Hss Hs Ht]
             as %s' ⟨-, HL2, Hs', Hcap'⟩
           · simp only [List.zip_cons_cons, List.zip_nil_left]
             iapply BigSepL.bigSepL_cons.2
@@ -162,7 +167,14 @@ theorem collectReasonsAndErrors.wp_proof
           wp_apply IH $$ %s' %(DFrac.own 1) %([pre, [kk]].flatten) %vv %mi %k [Hs']
             as %rs %es ⟨Hs', ⟨%xs2, Hrs, Hrsc⟩, ⟨%ys2, Hes, Hesc, #Hest2⟩⟩
           · iframe
-            iexact Hdi
+            isplitr
+            · iexact Hdi
+            ipureintro
+            have := Dec.depth_le_depthL ks i mi Hmi
+            simp only [Dec.depth] at Hdep
+            simp only [List.flatten_cons, List.flatten_nil, List.append_nil, List.length_append,
+              List.length_singleton]
+            omega
           wp_apply wp_slice_append $$ [$Hrn $Hrc $Hrs] as %rsl' ⟨Hrn, Hrc, -⟩
           wp_apply wp_slice_append $$ [$Hen $Hec $Hes] as %esl' ⟨Hen, Hec, -⟩
           iunfold k8s.forRangePost
@@ -283,10 +295,13 @@ theorem collectReasonsAndErrors.wp_proof
       iapply HΦ
       iframe
       iexact Hest'
-  intro s dq pre d m k
-  iintro %Φ Hpre HΦ
+  intro s dq pre d m k hdep
+  iintro %Φ ⟨#Hpkg, Hs, #Hd⟩ HΦ
   ihave #H := H
-  iapply H $$ %s %dq %pre %d %m %k Hpre HΦ
+  iapply H $$ %s %dq %pre %d %m %k [Hs] HΦ
+  iframe Hs
+  iframe #
+  ipureintro; exact hdep
 
 end proof
 

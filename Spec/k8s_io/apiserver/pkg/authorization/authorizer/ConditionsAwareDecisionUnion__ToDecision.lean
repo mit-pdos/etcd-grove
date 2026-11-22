@@ -1,7 +1,7 @@
 /-
 `u.ToDecision()` (`conditionsunion.go`): a well-formed decision (a union of copies of the
 children, or an unconditional decision when the builder recorded errors or the union has one
-possible outcome); the builder is unchanged. Lean-first (no Rocq counterpart).
+possible outcome), no deeper than the union of the children; the builder is unchanged. Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -31,7 +31,7 @@ abbrev ConditionsAwareDecisionUnion.ToDecision.spec : Prop :=
   ∀ (p : Loc) (ks : List Dec),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.authorization.authorizer ∗ ownBuilder p ks }}
     (App (Val (p @!! go.GoType.PointerType ConditionsAwareDecisionUnion.ty @!! go!"ToDecision")) (Val #()))
-  {{ (d : ConditionsAwareDecision), RET #d; isWFDecision d ∗ ownBuilder p ks }}
+  {{ (d : ConditionsAwareDecision), RET #d; isWFDecisionLe (Dec.depthL ks + 1) d ∗ ownBuilder p ks }}
 
 end spec
 

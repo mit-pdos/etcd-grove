@@ -22,13 +22,15 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 
-/-- `mq.RegisterOrUpdate(item)`, `item` a fresh item of id `id` the caller owns: the notifier
-stays a notifier (an item already registered under `id` takes `item`'s time and moves in the
-heap; otherwise `item` is pushed and registered). -/
+/-- `mq.RegisterOrUpdate(item)`, `item` a fresh item of id `id` the caller owns, or
+(prove-ps2-newlessor3, 2026-11-21: the expiry loop's `expireExists` re-registers the queue's first
+item after setting its time) the item the notifier already has under `id`: the notifier stays a
+notifier (an item already registered under `id` takes `item`'s time and moves in the heap;
+otherwise `item` is pushed and registered). -/
 abbrev lease.LeaseExpiredNotifier.RegisterOrUpdate.spec : Prop :=
-  ∀ (np item : Loc) (id k : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ notifierAt np 1 ∗
-      lwtAt item id k 1 }}
+  ∀ (np item : Loc) (id k : w64) (M : GMap w64 Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ notifierAtM np 1 M ∗
+      (lwtAt item id k 1 ∨ ⌜M.lookup id = some item⌝) }}
     (App (Val (np @!! go.GoType.PointerType LeaseExpiredNotifier.ty @!! go!"RegisterOrUpdate"))
       (Val #item))
   {{ RET #(); notifierAt np 1 }}

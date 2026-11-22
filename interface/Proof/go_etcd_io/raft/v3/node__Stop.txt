@@ -4,9 +4,9 @@
 
 theorem node.Stop.wp_proof [package_sem : Assumptions] : node.Stop.spec
   -- `Perennial.EtcdGrove.node.Stop.spec`, unfolded:
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64),
+  ∀ (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeRunning n γ N 1 -∗
-          ▷ (nodeStopped n γ N ∗ nodeVacant γ id -∗ Φ (intoVal ())) -∗
-            WP ((intoVal (methods node.ty.PointerType go!"Stop" (intoVal n))) (intoVal ())) {{ Φ }}
+          ▷ ((nodeStopped n γ N ∗ ∃ x, nodeVacantA γ id x ∗ nodeArm n γ x) -∗ Φ (intoVal ())) -∗
+            WP ((intoVal (methods node.ty.PointerType go!"Stop" (intoVal n.loc))) (intoVal ())) {{ Φ }}

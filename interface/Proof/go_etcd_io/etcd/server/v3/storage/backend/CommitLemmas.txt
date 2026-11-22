@@ -36,7 +36,7 @@ theorem backend.commit_bgOk {P : backend.BParams} {st st' : backend.BSess} {C' :
     : Loc} {n w u k' : Nat} (hW : ∀ (n : GoString) (i : w64), P.BT !! n = some i → P.HB n = false →
     backend.bkOf st.W.bks i = []) (hp0 : st.cnt.p0 = sint.nat st.pend) (hs : backend.hookStep P st
     st') (hst : backend.sessWf P st) (hb' : backend.bgOk P st' false n w u) (n' w' u' : Nat) (hbud :
-    uint.Z st.R.ver + ↑n' + ↑k' < 2 ^ 40) (huw : u' ≤ w') (hc : st.cnt.c + 1 ≤ k' + 1 + if u' = w'
+    uint.Z st.R.ver + ↑n' + ↑k' < 2 ^ 62) (huw : u' ≤ w') (hc : st.cnt.c + 1 ≤ k' + 1 + if u' = w'
     then 1 else 0) (hwv : ↑w' ≤ uint.Z st.R.ver) (ht : backend.trkOk P (backend.commitSt st' C' tx'
     { k := k', c := st.cnt.c + 1, p0 := 0, e := 0, hw := false }) backend.tkIdle) : backend.bgOk P
     (backend.commitSt st' C' tx' { k := k', c := st.cnt.c + 1, p0 := 0, e := 0, hw := false }) true

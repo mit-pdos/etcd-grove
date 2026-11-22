@@ -1326,8 +1326,13 @@ theorem newRaft.wp_proof
           (by rw [Hcm0]; decide) (by rw [Hli0]; decide) Hn0)
       (fun h => by cases h)
       $$ [$Htlf' $Hcap]
+    iapply (wp_ncfupd _ _ rfl)
     iunfold HookGate at Hgate
-    imod Hgate with ⟨%tl0, #Htl0, Hfire⟩
+    unfold ncfupd
+    iintro Hnc
+    imod Hgate $$ Hnc with ⟨Hnc, %tl0, #Htl0, Hfire⟩
+    imodintro
+    iframe Hnc
     wp_apply wp_traceInitState «$r0_ptr» tl0 (some γd) (NodeEvOf (W64 0) cv.ID' s0 (cfgM ∅ ∅)) _
         (ownRaftReadT (cfgM ∅ ∅) «$r0_ptr» cv.ID' s0 tv0) $$ [Hcore H_trk Hcfg0 Hfire]
       as ⟨HR0, Hcap⟩
@@ -1416,8 +1421,13 @@ theorem newRaft.wp_proof
           (by rw [Hcm0]; decide) (by rw [Hli0]; decide) Hn0 Hn0)
       (fun h => by cases h)
       $$ [$Htlf' $Hcap]
+    iapply (wp_ncfupd _ _ rfl)
     iunfold HookGate at Hgate
-    imod Hgate with ⟨%tl1, #Htl1, Hfire⟩
+    unfold ncfupd
+    iintro Hnc
+    imod Hgate $$ Hnc with ⟨Hnc, %tl1, #Htl1, Hfire⟩
+    imodintro
+    iframe Hnc
     wp_apply wp_switchToConfig_wT wp_traceConfChangeEvent wp_ProgressTracker_ConfState (cfgState ∅ ∅).cfg
         «$r0_ptr» cv.ID' s0 lok false tv0 ∅ tv0.Config' tv0.Progress' ∅ pvs Hmi tl1 γd _ rfl rfl
       $$ [$H_trk $Htl1 $Hlgf $Hlg0 $H_isLearner $Hcore $Hvotes $Hnew $Hfire]

@@ -10,7 +10,7 @@
 # The constructor (2026-10-17, branch `construct`): `New`, `newBackend`, `newBatchTxBuffered`,
 # `BackendConfig.mmapSize`; bbolt's `Open` and the backend's names-only `newBoltLoggerZap` are the
 # trust boundary, as are zap's `NewNop`, `String` and `Logger.Panic` (bbolt's `Options` through
-# `BboltOptions.lean`'s axioms, `sync.Mutex{}` through `MutexLit.lean`'s: lemmas, not linked).
+# `BboltOptions.lean`'s axioms, lemmas, not linked).
 # `NewDefaultBackend` and `DefaultBackendConfig` are not proved (the server builds its
 # configuration itself).
 verify_IsVerificationEnabled: os_Getenv strings_ToLower

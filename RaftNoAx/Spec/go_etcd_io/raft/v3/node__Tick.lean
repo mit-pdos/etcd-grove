@@ -30,9 +30,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- **`node.Tick()`**: a tick, from any goroutine. (Until 2026-10-29, stage U7, for one tick credit
 of the caller's, `tickCredit γ 1`; raft now takes the time receipt from a step of its own.) -/
 abbrev node.Tick.spec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64),
+  ∀ (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id }}
-    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Tick")) (Val #()))
+    (App (Val (n.loc @!! go.GoType.PointerType node.ty @!! go!"Tick")) (Val #()))
   {{ RET #(); True }}
 
 end spec

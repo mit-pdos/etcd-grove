@@ -30,7 +30,7 @@ variable [KVStor GF]
 
 /-- See the file header. -/
 abbrev KV.install.spec : Prop :=
-  ∀ (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc)
+  ∀ (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n : NodeH) (st : Loc)
     (ap D : List LogEntry) (ods : List (Option (List w8))) (mK mA : Loc)
     (K A : GMap (List w8) (List w8)),
   ods = D.map odOf →

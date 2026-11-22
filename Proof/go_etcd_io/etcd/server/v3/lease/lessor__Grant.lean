@@ -14,6 +14,7 @@ public import Spec.go_etcd_io.etcd.server.v3.lease.LeaseExpiredNotifier__Registe
 public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__scheduleCheckpointIfNeeded
 public import Proof.go_etcd_io.etcd.server.v3.lease.LessorLemmas
 public import Proof.ReceiptTactics
+public import Proof.go_etcd_io.etcd.server.v3.lease.NotifCell
 
 @[expose] public section
 
@@ -132,12 +133,14 @@ theorem lease.lessor.Grant.wp_proof
   subst Hag
   iunfold lessorExtra at Hx
   icases Hx with ⟨%dc, %np, %h, %hx, %bl, Hdc, Hnp, Hnot, Hh, Hhq, Hcp, Hmeta, Hbl, Hdt⟩
+  imod (notif_wopen lp γl np ⊤ (fun _ _ => CoPset.mem_full)) $$ [$Hnp $Hnot] with ⟨Hnp, Hnot, Hntk⟩
   (try wp_auto)
   wp_apply (wp_map_lookup2 LeaseID.ty (go.GoType.PointerType Lease.ty) lm M id) $$ HM as HM
   cases hM : M !! id with
   | some l0 =>
     simp only [Option.getD_some, Option.isSome_some, _root_.decide_true]
     (try wp_auto)
+    imod (notif_wclose lp γl np ⊤ (fun _ _ => CoPset.mem_full)) $$ [$Hnp $Hnot $Hntk] with ⟨Hnp, Hnot⟩
     ihave Hx : lessorExtra lp γl M 1 $$ [Hdc Hnp Hnot Hh Hhq Hcp Hmeta Hbl Hdt]
     · iunfold lessorExtra; iexists dc, np, h, hx, bl; iframe
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hx Hhist]
@@ -228,8 +231,10 @@ theorem lease.lessor.Grant.wp_proof
     · (try wp_auto)
       iStructNamed «$r0»
       ipersist id
-      wp_apply (hReg np «$r0_ptr» id (W64 0)) $$ [$Hpkg $Hnot id time index] as Hnot
-      · iunfold lwtAt; iframe; iframe #
+      iunfold notifierAt at Hnot
+      icases Hnot with ⟨%Mn, Hnot⟩
+      wp_apply (hReg np «$r0_ptr» id (W64 0) Mn) $$ [$Hpkg $Hnot id time index] as Hnot
+      · ileft; iunfold lwtAt; iframe; iframe #
       (try wp_auto)
       wp_apply (hSched lp l func.nil h hx id (W64 0) (grantTTL mt ttl) (DFrac.own 1) (DFrac.own 1) DFrac.discard)
         $$ [$Hpkg $Hcfg $Hcp $Hh $Hhq $HID $Hrem $Httl] as ⟨Hcp, ⟨%h', %hx', Hh, Hhq⟩, Hrem, -⟩
@@ -249,6 +254,7 @@ theorem lease.lessor.Grant.wp_proof
       $$ [$Hml $Hmeta]
     ihave #Hls' := (BigSepM.bigSepM_insert (Φ := fun _ x => isLeaseObj (GF := GF) γl x) hM).2
       $$ [$Hlo $Hls]
+    imod (notif_wclose lp γl np ⊤ (fun _ _ => CoPset.mem_full)) $$ [$Hnp $Hnot $Hntk] with ⟨Hnp, Hnot⟩
     ihave Hx : lessorExtra lp γl (<[id := l]> M) 1 $$ [Hdc Hnp Hnot Hh Hhq Hcp Hmeta Hbl Hdt]
     · iunfold lessorExtra; iexists dc, np, h', hx', b; iframe
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hx Hhist]

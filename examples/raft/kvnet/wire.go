@@ -36,8 +36,12 @@ func readFull(c net.Conn, b []byte) bool {
 	return true
 }
 
-// writeFrame writes body to c as one frame: its length (8 bytes, little-endian), then body.
+// writeFrame writes body to c as one frame: its length (8 bytes, little-endian), then body. A body
+// longer than maxFrame, which readFrame would refuse, is not written: false, nothing written.
 func writeFrame(c net.Conn, body []byte) bool {
+	if len(body) > maxFrame {
+		return false
+	}
 	return writeAll(c, putBytes(make([]byte, 0, 8+len(body)), body))
 }
 
@@ -148,7 +152,7 @@ func getMsg(b []byte) (*pb.Message, bool) {
 	rest = r3
 	ents := make([]*pb.Entry, 0, n)
 	for i := uint64(0); i < n; i++ {
-		e, r, ok := getEntry(rest)
+		e, r, ok := getMsgEntry(rest)
 		if !ok {
 			return nil, false
 		}
@@ -172,4 +176,22 @@ func getMsg(b []byte) (*pb.Message, bool) {
 		rest = rest[1:]
 	}
 	return m, len(rest) == 0
+}
+
+// getMsgEntry reads back what putEntry wrote at the start of b, an entry of a message, of any type
+// (an EntryType is an int32, which putEntry wrote sign-extended and the conversion truncates back):
+// getEntry, which reads a file, refuses a type raft does not have; a message's entries are whatever
+// raft sent.
+func getMsgEntry(b []byte) (e *pb.Entry, rest []byte, ok bool) {
+	term, r1, ok1 := getUint64(b)
+	index, r2, ok2 := getUint64(r1)
+	typ, r3, ok3 := getUint64(r2)
+	if !ok1 || !ok2 || !ok3 {
+		return nil, nil, false
+	}
+	data, r4, ok4 := getBytes(r3)
+	if !ok4 {
+		return nil, nil, false
+	}
+	return &pb.Entry{Term: new(term), Index: new(index), Type: pb.EntryType(typ).Enum(), Data: data}, r4, true
 }

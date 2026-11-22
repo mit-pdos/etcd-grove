@@ -581,14 +581,14 @@ open share and token `NewLessor` and `SetTxPostLockInsideApplyHook` take. (Proof
 theorem inc_open_backend [ThreadBoundLe GF (2 ^ 28)] (hopen : etcdStorage_open.law (GF := GF))
     (hrest : backendRest_open.law (GF := GF)) (hCR : mvcc.api.mvccClosed_rest.law (GF := GF))
     (γB : backend.BNames) (be : Loc) (gx : GName) (lim : w64) (path : GoString) (D : backend.Data)
-    (L : Log) (c : Int) (u : Bool) (k : Nat) (hk : receiptBound GF + k + 4 ≤ backend.wbInit) :
+    (L : Log) (c : Int) (u : Bool) (k : Nat) (hk : receiptBound GF + k + 5 ≤ backend.wbInit) :
     let bk := mvccrand.rcKB γB be gx lim
     mvccWReg gx ∗ mvccImage D L c u ∗ backend.bFile γB path ∗ backend.bPath γB.db path ∗
       backend.newPostK γB (mvccrand.rcP lim) (fun _ => mvccW gx) (fun _ => iprop(True))
         (backend.bFresh (GF := GF)) be D ={⊤}=∗
     mvccStorageFor (etcdStorage bk) iprop(True) L c u ∗ bkKeep bk path k ∗
       backend.plHook γB func.nil ∗ backend.rbPart γB (· = leaseName) (backend.rbData bk.P D) ∗
-      backend.wbTok γB ∗ backend.wbTok γB := by
+      ownToks γB.wb 2 ∗ backend.wbTok γB := by
   intro bk
   have hT : threadBound GF ≤ backend.rdPoolN :=
     ThreadBoundLe.le_of (2 ^ 28) (Nat.le_of_eq backend.rdPoolN_val.symm)
@@ -608,14 +608,15 @@ theorem inc_open_backend [ThreadBoundLe GF (2 ^ 28)] (hopen : etcdStorage_open.l
   icases BigSepL.bigSepL_cons.1 $$ Ho2 with ⟨Hor, Ho2⟩
   rw [List.replicate_one]
   ihave Ho2 := (BigSepL.bigSepL_singleton (PROP := IProp GF)).1 $$ Ho2
-  -- the write-back tokens: two for the open, two given back, `k` kept, the stock
-  obtain ⟨N, hN⟩ : ∃ N, backend.wbInit = N + (4 + k) := ⟨backend.wbInit - (4 + k), by omega⟩
+  -- the write-back tokens: two for the open, three given back (prove-ps2-newlessor3: two for
+  -- `NewLessor`), `k` kept, the stock
+  obtain ⟨N, hN⟩ : ∃ N, backend.wbInit = N + (5 + k) := ⟨backend.wbInit - (5 + k), by omega⟩
   rw [hN]
-  icases ownToks_add_1 (4 + k) N γB.wb $$ Hwb with ⟨HwN, Hw⟩
-  icases ownToks_add_1 k 4 γB.wb $$ Hw with ⟨Hw4, Hwk⟩
-  icases ownToks_add_1 2 2 γB.wb $$ Hw4 with ⟨Hw2, Hw2'⟩
+  icases ownToks_add_1 (5 + k) N γB.wb $$ Hwb with ⟨HwN, Hw⟩
+  icases ownToks_add_1 k 5 γB.wb $$ Hw with ⟨Hw4, Hwk⟩
+  icases ownToks_add_1 3 2 γB.wb $$ Hw4 with ⟨Hw2, Hw2'⟩
   icases ownToks_add_1 1 1 γB.wb $$ Hw2 with ⟨Hw1, Hw1'⟩
-  icases ownToks_add_1 1 1 γB.wb $$ Hw2' with ⟨Hw3, Hw3'⟩
+  icases ownToks_add_1 1 2 γB.wb $$ Hw2' with ⟨Hw3, Hw3'⟩
   haveI : Persistent (wbStock (GF := GF) γB) := by unfold wbStock; infer_instance
   imod wbStock_alloc γB N (by omega) ⊤ $$ HwN with #Hstock
   ihave #Hsup := wbStock_supply γB $$ Hstock
@@ -683,7 +684,7 @@ theorem inc_open_backend [ThreadBoundLe GF (2 ^ 28)] (hopen : etcdStorage_open.l
     iapply (BigSepL.bigSepL_singleton (PROP := IProp GF)).2
     iexact Ho2
   isplitl [Hw3]
-  · iapply (backend.wbTok_toks γB).2; iexact Hw3
+  · iexact Hw3
   · iapply (backend.wbTok_toks γB).2; iexact Hw3'
 
 /-- **The lessor's write contract at the member's backend** (`lessorW` keeps only `NewLessor`'s on
@@ -691,7 +692,7 @@ any backend, `lessorApplyOk`; review round 2's S5): at `bk`, from its contract (
 hook frozen at `f` (`hookIs`, `memCore`'s; not `nil`, `hookOk`'s). (Proved: `lessorApplyOk_at`,
 `rwLens_refl`.) -/
 theorem lessorW_backend (γk : MvccName) (bk : mvcc.KBReal) (f : GoFunc) (lp : Loc) (L U : List w64)
-    (σ : MvccState) (hf : f ≠ func.nil) :
+    (σ : MvccState) (hf : f ≠ func.nil) (hlp : leaseParams bk.P) :
     lessorW (GF := GF) γk bk f lp L U σ ∗ backend.isBackend bk.γB bk.P (mvccW bk.gx) iprop(True) bk.be ∗
       hookIs (etcdStorage bk) f ⊢
     lessorW γk bk f lp L U σ ∗
@@ -704,7 +705,7 @@ theorem lessorW_backend (γk : MvccName) (bk : mvcc.KBReal) (f : GoFunc) (lp : L
   · iunfold lessorW; iexists rd, r; iframe #; iframe
   have hln : leaseName = go!"lease" := rfl
   rw [hln]
-  iapply lessorApplyOk_at lp bk (mvccW bk.gx) iprop(True) f (lease.lessorBeOn lp bk.be)
+  iapply lessorApplyOk_at lp bk (mvccW bk.gx) iprop(True) f (lease.lessorBeOn lp bk.be) hlp
   isplitr; iexact Hok
   isplitr; iexact Hb
   isplitr

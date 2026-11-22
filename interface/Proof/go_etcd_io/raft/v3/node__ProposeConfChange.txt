@@ -5,7 +5,7 @@
 theorem node.ProposeConfChange.wp_proof [package_sem : Assumptions] (wp_confChangeToMsg :
     confChangeToMsg.spec) (wp_node_Step : node.Step.spec) : node.ProposeConfChange.spec
   -- `Perennial.EtcdGrove.node.ProposeConfChange.spec`, unfolded:
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (c : GoInterface) (o : ConfChangeIM) (cc : ConfChangeIC)
+  ∀ (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (c : GoInterface) (o : ConfChangeIM) (cc : ConfChangeIC)
     (dq : DFrac) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
     γ.trace = none →
       ⊢
@@ -25,7 +25,7 @@ theorem node.ProposeConfChange.wp_proof [package_sem : Assumptions] (wp_confChan
                 (((intoVal
                       (methods node.ty.PointerType
                         go!"ProposeConfChange"
-                        (intoVal n)))
+                        (intoVal n.loc)))
                     (intoVal (GoInterface.ok ctx)))
                   (intoVal c))
                 {{ Φ }}

@@ -2,9 +2,8 @@
 Package initialization of `bufio`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports and runs the untranslated
-initializers of its variables (`X.init`, axioms of the translation), which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking.
+Its fact is `True`. Its initializer initializes its imports (it has no initialized
+variable).
 -/
 module
 
@@ -29,24 +28,6 @@ local macro "mem_tac" : tactic =>
   `(tactic| repeat (first | exact List.Mem.head _ | apply List.Mem.tail))
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-
-section opaqueInits
-namespace bufio
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- **The trust boundary: `bufio`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([errorRune.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
-end bufio
-end opaqueInits
 
 section init
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -96,18 +77,17 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of ErrBadReadCount))
   -- translated initializer of ErrFinalToken))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %x0 ⟨#E0c, #E0⟩
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %x1 ⟨#E1c, #E1⟩
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %x2 ⟨#E2c, #E2⟩
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %x3 ⟨#E3c, #E3⟩
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %x4 ⟨#E4c, #E4⟩
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %x5 ⟨#E5c, #E5⟩
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %x6 ⟨#E6c, #E6⟩
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %x7 ⟨#E7c, #E7⟩
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %x8 ⟨#E8c, #E8⟩
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %x9 ⟨#E9c, #E9⟩
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %x10 ⟨#E10c, #E10⟩
-  wp_apply (opaqueInitsOk errorRune.init (by mem_tac))
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %x0 ⟨#_, #E0⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %x1 ⟨#_, #E1⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %x2 ⟨#_, #E2⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %x3 ⟨#_, #E3⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %x4 ⟨#_, #E4⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %x5 ⟨#_, #E5⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %x6 ⟨#_, #E6⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %x7 ⟨#_, #E7⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %x8 ⟨#_, #E8⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %x9 ⟨#_, #E9⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %x10 ⟨#_, #E10⟩
   iframe Hown
   is_pkg_init_finish
 

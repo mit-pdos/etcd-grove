@@ -108,11 +108,11 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
         · first | iassumption | iapply utilerrors.errTreeOrNil_nil
         (try wp_auto)
         iapply HΦ
-        unfold isWFDecision
+        unfold isWFDecisionLe
         iexists .noOpinion
         isplitr
         · iexact Hd
-        · ipureintro; trivial
+        · ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
       simp only [h20, _root_.decide_false, Bool.not_false]
       wp_auto
       wp_apply (ConditionsMap.wp_ptr_AllowConditions_of_b2 wp_ConditionsMap_AllowConditions c_ptr
@@ -136,11 +136,11 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
             · first | iassumption | iapply utilerrors.errTreeOrNil_nil
             (try wp_auto)
             iapply HΦ
-            unfold isWFDecision
+            unfold isWFDecisionLe
             iexists .noOpinion
             isplitr
             · iexact Hd
-            · ipureintro; trivial
+            · ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
           · simp only [hu, _root_.decide_false, Bool.not_false]
             wp_auto
             wp_apply (wp_ConditionsAwareDecisionConditionsMap slice.nil slice.nil us (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) [] [] ul) $$ [$Hus] as %d ⟨#Hd, -⟩
@@ -165,22 +165,22 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
           · first | iassumption | iapply utilerrors.errTreeOrNil_nil
           (try wp_auto)
           iapply HΦ
-          unfold isWFDecision
+          unfold isWFDecisionLe
           iexists .noOpinion
           isplitr
           · iexact Hd
-          · ipureintro; trivial
+          · ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
       · simp only [hr, _root_.decide_false, Bool.not_false]
         wp_auto
         wp_apply (wp_ConditionsAwareDecisionAllow) $$ [] as %d #Hd
         · first | iassumption | iapply utilerrors.errTreeOrNil_nil
         (try wp_auto)
         iapply HΦ
-        unfold isWFDecision
+        unfold isWFDecisionLe
         iexists .allow
         isplitr
         · iexact Hd
-        · ipureintro; trivial
+        · ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
     simp only [h10, _root_.decide_false, Bool.not_false]
     wp_auto
     wp_apply (ConditionsMap.wp_ptr_NoOpinionConditions_of_b2 wp_ConditionsMap_NoOpinionConditions c_ptr
@@ -207,11 +207,11 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
             · first | iassumption | iapply utilerrors.errTreeOrNil_nil
             (try wp_auto)
             iapply HΦ
-            unfold isWFDecision
+            unfold isWFDecisionLe
             iexists .noOpinion
             isplitr
             · iexact Hd
-            · ipureintro; trivial
+            · ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
           simp only [h20, _root_.decide_false, Bool.not_false]
           wp_auto
           wp_apply (ConditionsMap.wp_ptr_AllowConditions_of_b2 wp_ConditionsMap_AllowConditions c_ptr
@@ -235,11 +235,11 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
                 · first | iassumption | iapply utilerrors.errTreeOrNil_nil
                 (try wp_auto)
                 iapply HΦ
-                unfold isWFDecision
+                unfold isWFDecisionLe
                 iexists .noOpinion
                 isplitr
                 · iexact Hd
-                · ipureintro; trivial
+                · ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
               · simp only [hu, _root_.decide_false, Bool.not_false]
                 wp_auto
                 wp_apply (wp_ConditionsAwareDecisionConditionsMap slice.nil slice.nil us (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) [] [] ul) $$ [$Hus] as %d ⟨#Hd, -⟩
@@ -264,22 +264,22 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
               · first | iassumption | iapply utilerrors.errTreeOrNil_nil
               (try wp_auto)
               iapply HΦ
-              unfold isWFDecision
+              unfold isWFDecisionLe
               iexists .noOpinion
               isplitr
               · iexact Hd
-              · ipureintro; trivial
+              · ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
           · simp only [hr, _root_.decide_false, Bool.not_false]
             wp_auto
             wp_apply (wp_ConditionsAwareDecisionAllow) $$ [] as %d #Hd
             · first | iassumption | iapply utilerrors.errTreeOrNil_nil
             (try wp_auto)
             iapply HΦ
-            unfold isWFDecision
+            unfold isWFDecisionLe
             iexists .allow
             isplitr
             · iexact Hd
-            · ipureintro; trivial
+            · ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
         · simp only [hu, _root_.decide_false, Bool.not_false]
           wp_auto
           wp_apply (wp_ConditionsAwareDecisionConditionsMap slice.nil us c.allowConditions' (DFrac.own 1) (DFrac.own 1) DFrac.discard [] ul al) $$ [$Hus] as %d ⟨#Hd, -⟩
@@ -302,22 +302,22 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
         · first | iassumption | iapply utilerrors.errTreeOrNil_nil
         (try wp_auto)
         iapply HΦ
-        unfold isWFDecision
+        unfold isWFDecisionLe
         iexists .noOpinion
         isplitr
         · iexact Hd
-        · ipureintro; trivial
+        · ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
     · simp only [hr, _root_.decide_false, Bool.not_false]
       wp_auto
       wp_apply (wp_ConditionsAwareDecisionNoOpinion) $$ [] as %d #Hd
       · first | iassumption | iapply utilerrors.errTreeOrNil_nil
       (try wp_auto)
       iapply HΦ
-      unfold isWFDecision
+      unfold isWFDecisionLe
       iexists .noOpinion
       isplitr
       · iexact Hd
-      · ipureintro; trivial
+      · ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
   simp only [h00, _root_.decide_false, Bool.not_false]
   wp_auto
   wp_apply (ConditionsMap.wp_ptr_DenyConditions_of_b2 wp_ConditionsMap_DenyConditions c_ptr
@@ -347,11 +347,11 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
             · first | iassumption | iapply utilerrors.errTreeOrNil_nil
             (try wp_auto)
             iapply HΦ
-            unfold isWFDecision
+            unfold isWFDecisionLe
             iexists .noOpinion
             isplitr
             · iexact Hd
-            · ipureintro; trivial
+            · ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
           simp only [h20, _root_.decide_false, Bool.not_false]
           wp_auto
           wp_apply (ConditionsMap.wp_ptr_AllowConditions_of_b2 wp_ConditionsMap_AllowConditions c_ptr
@@ -375,11 +375,11 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
                 · first | iassumption | iapply utilerrors.errTreeOrNil_nil
                 (try wp_auto)
                 iapply HΦ
-                unfold isWFDecision
+                unfold isWFDecisionLe
                 iexists .noOpinion
                 isplitr
                 · iexact Hd
-                · ipureintro; trivial
+                · ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
               · simp only [hu, _root_.decide_false, Bool.not_false]
                 wp_auto
                 wp_apply (wp_ConditionsAwareDecisionConditionsMap slice.nil slice.nil us (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) [] [] ul) $$ [$Hus] as %d ⟨#Hd, -⟩
@@ -404,22 +404,22 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
               · first | iassumption | iapply utilerrors.errTreeOrNil_nil
               (try wp_auto)
               iapply HΦ
-              unfold isWFDecision
+              unfold isWFDecisionLe
               iexists .noOpinion
               isplitr
               · iexact Hd
-              · ipureintro; trivial
+              · ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
           · simp only [hr, _root_.decide_false, Bool.not_false]
             wp_auto
             wp_apply (wp_ConditionsAwareDecisionAllow) $$ [] as %d #Hd
             · first | iassumption | iapply utilerrors.errTreeOrNil_nil
             (try wp_auto)
             iapply HΦ
-            unfold isWFDecision
+            unfold isWFDecisionLe
             iexists .allow
             isplitr
             · iexact Hd
-            · ipureintro; trivial
+            · ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
         simp only [h10, _root_.decide_false, Bool.not_false]
         wp_auto
         wp_apply (ConditionsMap.wp_ptr_NoOpinionConditions_of_b2 wp_ConditionsMap_NoOpinionConditions c_ptr
@@ -446,11 +446,11 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
                 · first | iassumption | iapply utilerrors.errTreeOrNil_nil
                 (try wp_auto)
                 iapply HΦ
-                unfold isWFDecision
+                unfold isWFDecisionLe
                 iexists .noOpinion
                 isplitr
                 · iexact Hd
-                · ipureintro; trivial
+                · ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
               simp only [h20, _root_.decide_false, Bool.not_false]
               wp_auto
               wp_apply (ConditionsMap.wp_ptr_AllowConditions_of_b2 wp_ConditionsMap_AllowConditions c_ptr
@@ -474,11 +474,11 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
                     · first | iassumption | iapply utilerrors.errTreeOrNil_nil
                     (try wp_auto)
                     iapply HΦ
-                    unfold isWFDecision
+                    unfold isWFDecisionLe
                     iexists .noOpinion
                     isplitr
                     · iexact Hd
-                    · ipureintro; trivial
+                    · ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
                   · simp only [hu, _root_.decide_false, Bool.not_false]
                     wp_auto
                     wp_apply (wp_ConditionsAwareDecisionConditionsMap slice.nil slice.nil us (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) [] [] ul) $$ [$Hus] as %d ⟨#Hd, -⟩
@@ -503,22 +503,22 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
                   · first | iassumption | iapply utilerrors.errTreeOrNil_nil
                   (try wp_auto)
                   iapply HΦ
-                  unfold isWFDecision
+                  unfold isWFDecisionLe
                   iexists .noOpinion
                   isplitr
                   · iexact Hd
-                  · ipureintro; trivial
+                  · ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
               · simp only [hr, _root_.decide_false, Bool.not_false]
                 wp_auto
                 wp_apply (wp_ConditionsAwareDecisionAllow) $$ [] as %d #Hd
                 · first | iassumption | iapply utilerrors.errTreeOrNil_nil
                 (try wp_auto)
                 iapply HΦ
-                unfold isWFDecision
+                unfold isWFDecisionLe
                 iexists .allow
                 isplitr
                 · iexact Hd
-                · ipureintro; trivial
+                · ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
             · simp only [hu, _root_.decide_false, Bool.not_false]
               wp_auto
               wp_apply (wp_ConditionsAwareDecisionConditionsMap slice.nil us c.allowConditions' (DFrac.own 1) (DFrac.own 1) DFrac.discard [] ul al) $$ [$Hus] as %d ⟨#Hd, -⟩
@@ -541,22 +541,22 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
             · first | iassumption | iapply utilerrors.errTreeOrNil_nil
             (try wp_auto)
             iapply HΦ
-            unfold isWFDecision
+            unfold isWFDecisionLe
             iexists .noOpinion
             isplitr
             · iexact Hd
-            · ipureintro; trivial
+            · ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
         · simp only [hr, _root_.decide_false, Bool.not_false]
           wp_auto
           wp_apply (wp_ConditionsAwareDecisionNoOpinion) $$ [] as %d #Hd
           · first | iassumption | iapply utilerrors.errTreeOrNil_nil
           (try wp_auto)
           iapply HΦ
-          unfold isWFDecision
+          unfold isWFDecisionLe
           iexists .noOpinion
           isplitr
           · iexact Hd
-          · ipureintro; trivial
+          · ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
       · simp only [hu, _root_.decide_false, Bool.not_false]
         wp_auto
         wp_apply (wp_ConditionsAwareDecisionConditionsMap us c.noOpinionConditions' c.allowConditions' (DFrac.own 1) DFrac.discard DFrac.discard ul no al) $$ [$Hus] as %d ⟨#Hd, -⟩
@@ -577,22 +577,22 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
       · first | iassumption | iapply utilerrors.errTreeOrNil_nil
       (try wp_auto)
       iapply HΦ
-      unfold isWFDecision
+      unfold isWFDecisionLe
       iexists .deny
       isplitr
       · iexact Hd
-      · ipureintro; trivial
+      · ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
   · simp only [hr, _root_.decide_false, Bool.not_false]
     wp_auto
     wp_apply (wp_ConditionsAwareDecisionDeny) $$ [] as %d #Hd
     · first | iassumption | iapply utilerrors.errTreeOrNil_nil
     (try wp_auto)
     iapply HΦ
-    unfold isWFDecision
+    unfold isWFDecisionLe
     iexists .deny
     isplitr
     · iexact Hd
-    · ipureintro; trivial
+    · ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
 
 end proof
 

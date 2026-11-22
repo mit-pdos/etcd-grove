@@ -12,12 +12,15 @@ stock ^Proof/go_etcd_io/etcd/server/v3/storage/backend/BmStock\.lean$  # (backen
 # The lessor's reader pool, made of its lock's spare slots by the lock's owner, the lease package
 # (the lease-src plan, 2026-11-02).
 stock ^Proof/go_etcd_io/etcd/server/v3/lease/RdPool\.lean$
-# (prove-ps2-promote, 2026-11-21) The lessor's own methods that sort its leases (`Leases`, `Promote`: `sort.Sort`
-# of `leasesByExpiry`, whose `Less` calls `Remaining()`), by the owner of the leases' `expiryMu` reader pools
-# (`isLeaseObj`'s leveled pool, which exists under `threadBound GF ≤ 2^30 - 1`) and of the lease map's time
-# receipt (`lessorMu`'s `⧖ |M|`, which bounds the sort's length under `receiptBound GF ≤ 2^62`).
-spec-thread ^Spec/go_etcd_io/etcd/server/v3/lease/lessor__(Leases|Promote)\.lean$
-spec-receipt ^Spec/go_etcd_io/etcd/server/v3/lease/lessor__(Leases|Promote)\.lean$
+# (prove-ps2-newlessor3, 2026-11-21) The lessor's constructor and its expiry loop (`runLoop`,
+# `revokeExpiredLeases`, `findExpiredLeases`, `Lease.expired`): the constructor's forked loop (`runLoop`'s
+# `findExpiredLeases`) calls `l.expired()` → `Remaining()`, borrowing from the leases' `expiryMu` pools
+# (`isLeaseObj`'s, which exist under `threadBound GF ≤ 2^30 - 1`): the pools' owner's own use.
+spec-thread ^Spec/go_etcd_io/etcd/server/v3/lease/(NewLessor|newLessor|Lease__expired|lessor__(findExpiredLeases|revokeExpiredLeases|runLoop))\.lean$
+# (prove-ps2-newlessor5, 2026-11-21) The lessor's constructor, `le.mu`'s owner: `newLessor` makes the lock
+# (`init_RWMutex`, `NewLessorAlloc`) and hands out its reader slots (one to the expiry loop, the rest to the caller).
+stock ^(Spec|Proof)/go_etcd_io/etcd/server/v3/lease/(newLessor|NewLessorAlloc)\.lean$
+spec-readers ^Spec/go_etcd_io/etcd/server/v3/lease/newLessor\.lean$
 
 # The store's readers, by their owner, mvcc (R-D1, 2026-11-04): the wait group's invariant holds the
 # readers its two loops leave at `Done` (`wsLoopN`), `watchableStore.Close` returns them, and the

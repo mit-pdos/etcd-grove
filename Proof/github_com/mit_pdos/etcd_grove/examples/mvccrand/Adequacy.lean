@@ -42,7 +42,9 @@ the backend's `Open_kv`/`DB.Close_kv` are theorems with no error case; the two a
   of the run registers the metric names mvcc's, the lessor's, the backend's and auth's `init()`
   register: the etcd examples' premise, now that those `init()`s are translated), and the
   execution's length
-  (`n + 2 ≤ 2 ^ 28`: the thread bound, and with `N = n + 1` the receipt bound `2 ^ 38`);
+  (`n + 2 ≤ 2 ^ 28`: the thread bound, and with `N = n + 1` the receipt bound `2 ^ 38`;
+  `mvccrand_adequate_below` takes the thread bound `T ≤ 2 ^ 28` along the execution instead, and
+  only `n + 1 ≤ 2 ^ 38`);
 * the semantics: `go.Semantics`, the package assumptions (`mvccrand`'s, mvcc's, the server's,
   the cache's) and (S3e) the `os` structs' field facts (`TrustedCode/os.lean`); the file extension's
   steps restricted by `etcdSQ` (no I/O error, no `flock`/`mmap`/`munmap` error, on any file);
@@ -100,11 +102,12 @@ instance mvccrandGF_gooseGpreS : GooseGpreS mvccrandGF where
 section adequacy
 variable [go_gctx : GoGlobalContext]
 
-/-- **mvcc's randomized tester passes** (see the file header): every real execution of
-`mvccrandProgram r` from a fresh state with one thread, whose file system's root `r` has no entry
-`mvccrand.db` and fits (`Fs.DirFits r`: under 3800 bytes, no component over 255; wal-fsfix 2026-11-20), of `n` steps: if the main thread has finished, its result is `#()` (`Run` returned:
-every check of mvcc passed); no thread is stuck; no thread has ended in a panic. -/
-theorem mvccrand_adequate [lctx : GoLocalContext] [sem : go.Semantics]
+/-- **`mvccrand_adequate` along executions with fewer than `T ≤ 2 ^ 28` live threads**: the
+same conclusion for every execution of `n` steps, `n + 1 ≤ 2 ^ 38` (the receipt bound the
+proof needs), along which fewer than `T` threads are ever live at once (`RealNstepsBelow`): the
+thread bound is a premise on the execution, not a consequence of its length
+(`goose_adequacy_start`). -/
+theorem mvccrand_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccrand.Assumptions]
     [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
     [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
@@ -121,19 +124,20 @@ theorem mvccrand_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Habs : (extLocal Fs.fsExt σ.world).fs.treeDur.entry j0 go!"mvccrand.db" = none)
     (Hrfit : Fs.DirFits r)
     (Hthreads : σ.threads = 1)
+    (T : Nat) (HT28 : T ≤ 2 ^ 28)
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
-    (Hsteps : RealNsteps n ([mvccrandProgram r], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 2 ≤ 2 ^ 28) :
+    (Hsteps : RealNstepsBelow T n ([mvccrandProgram r], ((σ, g) : CfgState)) κs (t2, σ2))
+    (Hn : n + 1 ≤ 2 ^ 38) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine goose_adequacy_start_all (GF := mvccrandGF) (n + 1) (n + 2) (mvccrandProgram r) σ g
+  refine goose_adequacy_start (GF := mvccrandGF) (n + 1) T (mvccrandProgram r) σ g
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) ⟨trivial, trivial, trivial⟩
     ⟨trivial, Hfs, trivial⟩ github_com.mit_pdos.etcd_grove.examples.mvccrand.initNames [] []
     (by decide +kernel) List.nodup_nil List.nodup_nil
     (fun _ h => absurd h List.not_mem_nil) HNs
     (fun _ h => absurd h List.not_mem_nil) ⟨fun _ h => absurd h List.not_mem_nil, List.Pairwise.nil⟩
-    HEnv ?_ n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads (realThreadsBelow_of_one Hthreads)
+    HEnv ?_ n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads
   intro hG HN HT HL
   obtain ⟨G, ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
   subst Hlctx
@@ -174,9 +178,40 @@ theorem mvccrand_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   ipureintro
   rfl
 
+/-- **mvcc's randomized tester passes** (see the file header): every real execution of
+`mvccrandProgram r` from a fresh state with one thread, whose file system's root `r` has no entry
+`mvccrand.db` and fits (`Fs.DirFits r`: under 3800 bytes, no component over 255; wal-fsfix 2026-11-20), of `n` steps: if the main thread has finished, its result is `#()` (`Run` returned:
+every check of mvcc passed); no thread is stuck; no thread has ended in a panic. -/
+theorem mvccrand_adequate [lctx : GoLocalContext] [sem : go.Semantics]
+    [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccrand.Assumptions]
+    [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
+    (Hsort : ∀ hG : HeapGS .hasLC mvccrandGF,
+      sort.Slice.spec (GF := mvccrandGF) (hG := heapWith hG lctx))
+    (r : GoString)
+    (HNs : prometheus.namesUnclaimed (mvccrandProgram r) mvccrandNames)
+    (HEnv : verifyEnvOff (mvccrandProgram r))
+    (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
+    (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (j0 : Fs.Ino)
+    (Hr : (r, j0) ∈ (extLocal Fs.fsExt σ.world).fs.roots)
+    (Habs : (extLocal Fs.fsExt σ.world).fs.treeDur.entry j0 go!"mvccrand.db" = none)
+    (Hrfit : Fs.DirFits r)
+    (Hthreads : σ.threads = 1)
+    (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNsteps n ([mvccrandProgram r], ((σ, g) : CfgState)) κs (t2, σ2))
+    (Hn : n + 2 ≤ 2 ^ 28) :
+    (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
+    (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
+    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
+  mvccrand_adequate_below Hsort r HNs HEnv σ g Hlctx Hinit Hfs j0 Hr Habs Hrfit Hthreads (n + 2)
+    (by omega) n κs t2 σ2 (RealNstepsBelow.of_one Hsteps Hthreads) (by omega)
+
 end adequacy
 
 #print axioms mvccrand_adequate
+#print axioms mvccrand_adequate_below
 
 end EtcdGrove
 end Perennial

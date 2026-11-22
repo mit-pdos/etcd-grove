@@ -1,0 +1,62 @@
+# The copy for the part `KvNet/` of `Net/Code/net.toml` (etc/copy-part.py; rerun it, do not edit).
+# Project net's `net` (etc/goose.py), in the part `Net/`, modeled by the net extension
+# `netExt` (GooseLang/Ext/Net/Impl.lean; notes/net-tcp.md, notes/net-tcp-v3-plan.md). Not the main
+# tree's `net` (Code/net.toml, names only), whose axioms etcd's server proofs use: the two are never
+# in one import closure.
+#
+# `net`'s package variables are trusted too, each with an initializer that does nothing (as
+# LinuxFs's `os.Stdin`, `Stdout`): the variables are not allocated, so code that reads one is stuck;
+# but for `errTimeout` (translated: `&timeoutError{}`, which DialTimeout's model returns), `ErrClosed`
+# (translated: `errClosed`) and `errClosed` (trusted: it holds `poll.ErrNetClosing`'s value,
+# Net/TrustedCode/net.lean).
+#
+# Translated: the interfaces (`Conn`, `Listener`, `Addr`, `Error`); the error types `OpError` (with
+# `Unwrap`, so that `errors.Is` walks into its `Err`) and `timeoutError` (with its methods); the
+# address types `TCPAddr` (with `Network`) and `IP`. Trusted (Net/TrustedCode/net.lean): `conn`,
+# `TCPConn` (Go's `struct{ conn }`, so `*TCPConn`'s method set is Go's, with `conn`'s methods
+# promoted) and `TCPListener` with the layouts the models need (their instances in
+# Net/ManualProof/net.lean), and the functions and methods the examples (examples/net/) call.
+# (`TCPConn.Read`, ...: `conn`'s methods promoted to `*TCPConn`, so that goose emits their
+# `MethodUnfold` facts, Go's promotion through the embedded field: a `Conn` holding a `*TCPConn`.)
+translate = ["!*", "Conn", "Listener", "Addr", "Error",
+  "OpError", "OpError.Unwrap",
+  "timeoutError", "timeoutError.Error", "timeoutError.Timeout", "timeoutError.Temporary",
+  "timeoutError.Is", "errTimeout", "ErrClosed",
+  "TCPAddr", "IP", "TCPAddr.Network",
+  "TCPConn.Read", "TCPConn.Write", "TCPConn.Close",
+  "TCPConn.SetDeadline", "TCPConn.SetReadDeadline", "TCPConn.SetWriteDeadline",
+  "TCPConn.LocalAddr", "TCPConn.RemoteAddr",
+  "TCPConn.SetReadBuffer", "TCPConn.SetWriteBuffer",
+  "IP.To4", "isZeros"]
+imports = ["!*", "io", "time", "errors", "context", "os", "syscall", "internal/poll"]
+trusted = ["conn", "TCPConn", "TCPListener",
+  "Listen", "Dial", "DialTimeout",
+  "conn.Read", "conn.Write", "conn.Close",
+  "conn.SetDeadline", "conn.SetReadDeadline", "conn.SetWriteDeadline",
+  "conn.LocalAddr", "conn.RemoteAddr",
+  "conn.SetReadBuffer", "conn.SetWriteBuffer",
+  "TCPConn.CloseWrite",
+  "TCPConn.SetKeepAlive", "TCPConn.SetKeepAlivePeriod", "TCPConn.SetNoDelay", "TCPConn.SetLinger",
+  "TCPListener.Accept", "TCPListener.Close", "TCPListener.Addr",
+  "OpError.Error", "OpError.Timeout", "OpError.Temporary",
+  "TCPAddr.String",
+  # (the package variables: their initializers do nothing, below, but `errClosed`, `ErrClosed`)
+  "rfc6724policyTable", "confVal", "netdns", "multipathtcp", "errLameReferral",
+  "errCannotUnmarshalDNSMessage", "errCannotMarshalDNSMessage", "errServerMisbehaving",
+  "errInvalidDNSResponse", "errNoAnswerFromDNSServer", "errServerTemporarilyMisbehaving",
+  "netedns0", "distantFuture", "lookupOrderName", "defaultNS", "getHostname", "testHookLookupIP",
+  "testPreHookSetKeepAlive", "testHookSetKeepAlive", "testHookStepTime", "testHookCanceledDial",
+  "hostsFilePath", "socketFunc", "connectFunc", "listenFunc", "getsockoptIntFunc",
+  "errInvalidInterface", "errInvalidInterfaceIndex", "errInvalidInterfaceName",
+  "errNoSuchInterface", "errNoSuchMulticastInterface", "flagNames", "zoneCache", "v4InV6Prefix",
+  "IPv4bcast", "IPv4allsys", "IPv4allrouter", "IPv4zero", "IPv6zero", "IPv6unspecified",
+  "IPv6loopback", "IPv6interfacelocalallnodes", "IPv6linklocalallnodes",
+  "IPv6linklocalallrouters", "classAMask", "classBMask", "classCMask", "protocols", "services",
+  "DefaultResolver", "_", "errMalformedDNSRecordsDetail", "readProtocolsOnce",
+  "errNoSuitableAddress", "errMissingAddress", "errCanceled", "ErrWriteToConnected",
+  "aLongTimeAgo", "noDeadline", "noCancel", "errNoSuchHost", "errUnknownPort",
+  "errClosed", "pollSplice", "_cgo_77133bf98b3a_C2func_getaddrinfo",
+  "_cgo_77133bf98b3a_C2func_getnameinfo", "_cgo_77133bf98b3a_Cfunc_free",
+  "_cgo_77133bf98b3a_Cfunc_freeaddrinfo", "_cgo_77133bf98b3a_Cfunc_gai_strerror",
+  "_cgo_77133bf98b3a_Cfunc_getaddrinfo", "_cgo_77133bf98b3a_Cfunc_getnameinfo",
+  "_cgo_77133bf98b3a_Cfunc_res_search", "_cgo_77133bf98b3a_Cfunc__Cmalloc"]

@@ -404,11 +404,11 @@ pending operation means a write-back since `run`'s last unpaid commit). (D22 rec
 S8a, 2026-10-24) The write-backs are at most the read buffer's version (each increments both), so
 a write-back since the backend was made means a write-back token spent (`hook_fresh_false`). -/
 def bgOk (P : BParams) (st : BSess) (free : Bool) (n w u : Nat) : Prop :=
-  uint.Z st.R.ver + n + st.cnt.k < 2 ^ 40 ∧ u ≤ w ∧
+  uint.Z st.R.ver + n + st.cnt.k < 2 ^ 62 ∧ u ≤ w ∧
   st.cnt.c ≤ st.cnt.k + 1 + (if u = w then 1 else 0) ∧
   st.cnt.p0 ≤ sint.nat st.pend ∧
   ((st.cnt.e = 0 ∨ st.cnt.c = 0) ∧ (st.cnt.c = 0 ∨ ∀ i, bkOf st.R.bks i = [])) ∧
-  st.cnt.e ≤ P.hookMax * (2 ^ 40 + 2) ∧
+  st.cnt.e ≤ P.hookMax * (2 ^ 62 + 2) ∧
   (∀ i, (bkOf st.W.bks i).length ≤ sint.nat st.pend - st.cnt.p0 + P.hookMax * st.cnt.c ∧
     (bkOf st.R.bks i).length ≤ st.cnt.p0 + st.cnt.e) ∧
   (∀ nm i, P.BT.lookup nm = some i → P.HB nm = false →

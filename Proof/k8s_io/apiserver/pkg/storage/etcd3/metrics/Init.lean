@@ -33,41 +33,6 @@ local macro "mem_tac" : tactic =>
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
-section opaqueInits
-namespace k8s_io.apiserver.pkg.storage.etcd3.metrics
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- **The trust boundary: `k8s_io.apiserver.pkg.storage.etcd3.metrics`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([etcdRequestLatency.init,
-        etcdRequestCounts.init,
-        etcdRequestErrorCounts.init,
-        objectCounts.init,
-        resourceSizeEstimateDesc.init,
-        resourceSizeEstimate.init,
-        resourceObjectsDesc.init,
-        newObjectCounts.init,
-        storageSizeDescription.init,
-        storageMonitor.init,
-        etcdEventsReceivedCounts.init,
-        etcdBookmarkCounts.init,
-        etcdBookmarkTotal.init,
-        etcdLeaseObjectCounts.init,
-        decodeErrorCounts.init,
-        listLatency.init,
-        sinceInSeconds.init,
-        «_».init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
-end k8s_io.apiserver.pkg.storage.etcd3.metrics
-end opaqueInits
-
 section init
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -96,25 +61,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of ErrTransactionConflict))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrTransactionConflict ⟨#MErrTransactionConflictc, #MErrTransactionConflict⟩
-  wp_apply (opaqueInitsOk etcdRequestLatency.init (by mem_tac))
-  wp_apply (opaqueInitsOk etcdRequestCounts.init (by mem_tac))
-  wp_apply (opaqueInitsOk etcdRequestErrorCounts.init (by mem_tac))
-  wp_apply (opaqueInitsOk objectCounts.init (by mem_tac))
-  wp_apply (opaqueInitsOk resourceSizeEstimateDesc.init (by mem_tac))
-  wp_apply (opaqueInitsOk resourceSizeEstimate.init (by mem_tac))
-  wp_apply (opaqueInitsOk resourceObjectsDesc.init (by mem_tac))
-  wp_apply (opaqueInitsOk newObjectCounts.init (by mem_tac))
-  wp_apply (opaqueInitsOk storageSizeDescription.init (by mem_tac))
-  wp_apply (opaqueInitsOk storageMonitor.init (by mem_tac))
-  wp_apply (opaqueInitsOk etcdEventsReceivedCounts.init (by mem_tac))
-  wp_apply (opaqueInitsOk etcdBookmarkCounts.init (by mem_tac))
-  wp_apply (opaqueInitsOk etcdBookmarkTotal.init (by mem_tac))
-  wp_apply (opaqueInitsOk etcdLeaseObjectCounts.init (by mem_tac))
-  wp_apply (opaqueInitsOk decodeErrorCounts.init (by mem_tac))
-  wp_apply (opaqueInitsOk listLatency.init (by mem_tac))
-  wp_apply (opaqueInitsOk sinceInSeconds.init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrTransactionConflict ⟨#_, #MErrTransactionConflict⟩
   ipersist HErrTransactionConflict
   iframe Hown
   imodintro

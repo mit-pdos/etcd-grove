@@ -60,7 +60,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Assumptions]
 variable [durable_sem : github_com.mit_pdos.etcd_grove.examples.lib.durable.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
 
 attribute [local instance] kdStorageModel
 
@@ -127,7 +127,7 @@ theorem Cluster.start.wp_proof
     (wp_Warningf : quietLogger.Warningf.spec (GF := GF) (hG := hG)) :
     Cluster.start.spec (GF := GF) (hG := hG) := by
   intro γ vs dir c id S fo Hid1 Hid9
-  wp_start as ⟨#Hc, #HfInv, Hvac, Hwr, #Hknown⟩
+  wp_start as ⟨#Hc, #HfInv, ⟨%x, Hvac⟩, Hwr, #Hknown⟩
   ihave #Hc' := Hc
   iunfold isClusterC at Hc'
   iNamed Hc'
@@ -444,6 +444,8 @@ theorem Cluster.start.wp_proof
   have HA : uint.nat cv.Applied' = uint.nat ap0 := by rw [HcAp]
   -- (2026-11-02, stage II (u)) `RestartNode` at the stored snapshot's configuration point (until
   -- then `kd_RestartNode_at`, `sorry` above the applied index, and `kd_confAt_lists_le`, `sorry`)
+  -- (2026-11-22) the update with the crash token (`restartAu_nc`)
+  ihave Hau := restartAu_nc _ _ _ _ _ $$ Hau
   wp_apply (wp_RestartNode γ.r.cluster kdRaftN cp cv qLogger
       ⟨go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Storage.ty, #s⟩
       (kdContents (some F)) (kdInitCS (raft_kvreconf.bootCS vs) F) (uint.nat F.snap.Metadata'.Index') m
@@ -460,9 +462,9 @@ theorem Cluster.start.wp_proof
           · rw [h1]; simp; word
           · omega)
       (by simp only [kdContents_some_commit]; exact Hsc)
-      (by rw [Hbl0]; omega) Hinit Hns HcTL Htr0)
+      (by rw [Hbl0]; omega) Hinit Hns HcTL Htr0 x)
     $$ [$Hraft $Hcv $Hlogger $HisC $Hfits Hvac Hau Hrs]
-    as %nd ⟨%n, %S', %l, %K, %Hnd, #HisNode, #Hl', %Hllen, %HS1b, Hdrv, Hncfg, Hrun, -, ⟨Hwr, %HS'⟩,
+    as %nd ⟨%n, %S', %l, %K, %Hnd, #HisNode, #Hl', %Hllen, %HS1b, Hdrv, Hncfg, Hrun, -, -, ⟨Hwr, %HS'⟩,
       ⟨Hmeta, #HmsInv⟩⟩
   · rw [HcID, ← Hiface, HA]
     iframe Hvac Hrs

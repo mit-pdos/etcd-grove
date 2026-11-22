@@ -12,7 +12,7 @@ module
 public import WalTester.Spec.github_com.mit_pdos.etcd_grove.examples.lib.durable.tryRead
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.lib.durable.Inv
 public import Proof.os.NsFileS
-public import Spec.go_etcd_io.etcd.server.v3.storage.wal.ExistCallees
+public import Spec.errors.IsPathErrnoNotExist
 public import Spec.os.File__Stat
 public import Spec.os.fileStat__Size
 public import Spec.os.File__ReadAt
@@ -39,18 +39,18 @@ variable [os.file.FieldAssumptions]
 theorem openFd_flRO_readable (i : Ino) : (openFd i flRO).readable = true := by
   show decide (flRO.toNat % 4 ≠ O_WRONLY) = true; decide
 
-theorem durSize_nat {c : DCand} (hsz : c.m.size = c.v.length) (hbd : c.v.length ≤ 0x40000000) :
+theorem durSize_nat {c : DCand} (hsz : c.m.size = c.v.length) (hbd : c.v.length < 2 ^ 63) :
     sint.nat (W64 (c.m.size : Int)) = c.v.length := by
   rw [hsz]; word
 
-theorem durSize_nonneg {c : DCand} (hsz : c.m.size = c.v.length) (hbd : c.v.length ≤ 0x40000000) :
+theorem durSize_nonneg {c : DCand} (hsz : c.m.size = c.v.length) (hbd : c.v.length < 2 ^ 63) :
     0 ≤ sint.Z (W64 (c.m.size : Int)) := by
   rw [hsz]; word
 theorem github_com.mit_pdos.etcd_grove.examples.lib.durable.tryRead.wp_proof
     (wp_IsNE : errors.IsPathErrnoNotExist.spec (GF := GF) (hG := hG))
     (wp_Stat : os.File.Stat.spec (GF := GF) (hG := hG))
     (wp_Size : os.fileStat.Size.spec (GF := GF) (hG := hG))
-    (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
+    (wp_ReadAt : os.File.ReadAt.specLong (GF := GF) (hG := hG))
     (wp_Close : os.File.Close.spec (GF := GF) (hG := hG)) :
     github_com.mit_pdos.etcd_grove.examples.lib.durable.tryRead.spec (GF := GF) (hG := hG) := by
   intro γ f R qc p hf hok
@@ -144,7 +144,7 @@ theorem github_com.mit_pdos.etcd_grove.examples.lib.durable.tryRead.wp_proof
         wp_apply wp_ReadAt fl fd (child f.d f.b) (DFrac.own 1) buf
             (List.replicate (sint.nat (W64 c.m.size)) (zero_val w8)) (W64 0) (DFrac.own 1)
             (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half) (openFd c.i flRO) c.m (c.v.map durB) hrd
-            (by decide) (by rw [List.length_replicate, hsz']; exact hbd)
+            (by decide)
             (by rw [List.length_replicate, hsz']; show 0 + c.v.length < 2 ^ 63; omega)
             (by rw [List.length_replicate, hsz']; show 0 + c.v.length ≤ c.m.size; omega)
             (by rw [List.length_replicate, hsz', List.length_map])

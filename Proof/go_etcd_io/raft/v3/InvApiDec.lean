@@ -42,9 +42,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 section names
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 theorem ModeDec.valid {γ : Cluster} {c0 : Membership} {g : GName} (h : ModeDec γ c0 g) :
     c0.Valid := by
@@ -66,7 +64,7 @@ theorem ModeDec.fold {γ : Cluster} {c0 : Membership} {g : GName} (h : ModeDec �
 durability stage I-2) and the node table's invariant (`nodeTabInv`), where `RestartNode` registers
 a node's names. -/
 def isClusterU (γ : Cluster) (N : Namespace) : IProp GF :=
-  iprop(⌜UniNames γ N⌝ ∗ clusterInv γ N ∗ rdPool γ N ∗ nodeTabInv γ N)
+  iprop(⌜UniNames γ N⌝ ∗ clusterInv γ N ∗ rdPool γ N)
 
 instance isClusterU_persistent (γ : Cluster) (N : Namespace) :
     Persistent (isClusterU (GF := GF) γ N) := by
@@ -179,6 +177,7 @@ instance snapMadeU_timeless (γ : Cluster) (s : SnapRec) :
     Timeless (snapMadeU (GF := GF) γ s) := by
   unfold snapMadeU; infer_instance
 
+variable [CrashGS GF] in
 /-- A fresh node's dynamic ghost state, from the allocation's (as `raft_dyn_alloc`'s). -/
 theorem ownRaftGhostR_rinit (γr : RaftNames) (dec : CCDec) (c0 : CCState) (id : w64) :
     ownRaftGhost (GF := GF) γr id initPState true ⊢ ownRaftGhostR γr dec c0 id (rinit c0) := by
@@ -686,6 +685,15 @@ theorem snapshotCert_made_impl (γ : Cluster) (N : Namespace) (k : SnapTrip) :
       refine ⟨Hsl, ?_, Hcl, Hal⟩
       rw [← Hlast]; unfold strip; rw [List.getLast?_map, Option.map_map]; rfl
 
+end names
+
+section namesHeap
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 /-- (restart S7.3, 2026-11-14; `notes/restart-s7-p2a.md`) **A `MsgSnap`'s destination, in the
 cluster's configurations**: from its `snapToOk` (raft's destination fact), not the sender, and an id
 of a membership after a committed prefix (`confAtU`). In the client's decision mode (`ModeDec`,
@@ -740,7 +748,7 @@ theorem snapTo_confAt_impl (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑
   iframe Hlb
   ipureintro; exact ⟨Nat.le_refl _, Hid⟩
 
-end names
+end namesHeap
 
 end ApiImpl
 end EtcdGrove

@@ -55,3 +55,143 @@ translate = ["*", "!Object",
 imports = ["*", "!runtime"]
 # Not `translate_types`: `Object` (an interface embedding `comparable`, gap C6) stays axiomatized,
 # so the types are translated by `translate`'s "*" and `Object` excluded.
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`; until 2026-11-22
+# their initializers were untranslated, `opaqueInitsOk`). goose refuses a reference to one from
+# translated code, so no verified code reads them; each reason says why not running the
+# initializer is unobservable.
+[[skip]]
+names = ["informerNameRegistry", "metricsFactory", "batchable"]
+reason = """
+Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable."""
+
+[[skip]]
+names = ["_@controller.go:447"]
+reason = """
+An interface check: `TypedResourceEventHandlerFuncs[*metav1.ObjectMeta]{}` converted to
+`TypedResourceEventHandler[*metav1.ObjectMeta]`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@controller.go:503"]
+reason = """
+An interface check: `TypedResourceEventHandlerDetailedFuncs[*metav1.ObjectMeta]{}` converted to
+`TypedResourceEventHandler[*metav1.ObjectMeta]`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@delta_fifo.go:304"]
+reason = """
+A conversion check: `&DeltaFIFO{}` converted to `Queue`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@delta_fifo.go:305"]
+reason = """
+A conversion check: `&DeltaFIFO{}` converted to `TransformingStore`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@delta_fifo.go:306"]
+reason = """
+A conversion check: `&DeltaFIFO{}` converted to `DoneChecker`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@fake_custom_store.go:34"]
+reason = """
+An interface check: `&FakeCustomStore{}` converted to `Store`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@fifo.go:141"]
+reason = """
+A conversion check: `&FIFO{}` converted to `Queue`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@fifo.go:142"]
+reason = """
+A conversion check: `&FIFO{}` converted to `DoneChecker`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@heap.go:63"]
+reason = """
+A conversion check: `&heapData{}` converted to `heap.Interface`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@listwatch.go:213"]
+reason = """
+An interface check: `&ListWatch{}` converted to `ListerWatcher`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@listwatch.go:214"]
+reason = """
+An interface check: `&ListWatch{}` converted to `ListerWatcherWithContext`. No call, no panic, no
+effect."""
+
+[[skip]]
+names = ["_@listwatch.go:328"]
+reason = """
+An interface check: `&shardedListWatch{}` converted to `ListerWatcher`. No call, no panic, no
+effect."""
+
+[[skip]]
+names = ["_@listwatch.go:329"]
+reason = """
+An interface check: `&shardedListWatch{}` converted to `ListerWatcherWithContext`. No call, no
+panic, no effect."""
+
+[[skip]]
+names = ["_@mutation_cache.go:464"]
+reason = """
+An interface check: `&tombstone{}` converted to `metav1.Object`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@mutation_cache.go:465"]
+reason = """
+An interface check: `&tombstone{}` converted to `runtime.Object`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@reflector.go:1285"]
+reason = """
+An interface check: `&noopTicker{}` converted to `clock.Ticker`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@shared_informer.go:359"]
+reason = """
+An interface check: `&typedResourceEventHandler[*metav1.ObjectMeta]{}` converted to
+`ResourceEventHandler`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@store.go:107"]
+reason = """
+An interface check: `&TransactionError{}` converted to `error`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@store.go:218"]
+reason = """
+An interface check: `&cache{}` converted to `Store`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@the_real_fifo.go:86"]
+reason = """
+An interface check: `&RealFIFO{}` converted to `QueueWithBatch`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@the_real_fifo.go:182"]
+reason = """
+A conversion check: `&RealFIFO{}` converted to `Queue`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@the_real_fifo.go:183"]
+reason = """
+A conversion check: `&RealFIFO{}` converted to `TransformingStore`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@the_real_fifo.go:184"]
+reason = """
+A conversion check: `&RealFIFO{}` converted to `DoneChecker`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@undelta_store.go:32"]
+reason = """
+An interface check: `&UndeltaStore{}` converted to `Store`. No call, no panic, no effect."""
+# --- end of skipped package variables ---

@@ -40,7 +40,7 @@ variable [go_gctx : GoGlobalContext] [go.IntoValInj GoString]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
 
 attribute [local instance] kdStorageModel
 
@@ -254,6 +254,7 @@ theorem StartCluster.wp_proof
       rw [raft_kvreconf.bootVoters_getElem _ _ (by omega)]; congr 1; word
     rw [raft_kvreconf.life_drop_cons _ _ _ Hget, show uint.nat k - 1 + 1 = uint.nat k from by omega]
     icases Htodo with ⟨⟨HrS, Hvac, Hdf, %g, Hg⟩, Htodo⟩
+    imod nodeVacant_armD γ.r.cluster k ⊤ $$ Hvac with Hvac
     imod kdFile_alloc γ dir k ⊤ g $$ Hdf Hg HrS with ⟨#HfInv, Hwr⟩
     ihave #Hknown : repKnown γ k $$ []
     · unfold repKnown

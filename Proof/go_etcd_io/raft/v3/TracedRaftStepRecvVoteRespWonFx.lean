@@ -87,13 +87,15 @@ theorem simFx_becomeLeaderW (γ : RaftNames) (C : List w64) (σ : Etcdraft.State
     (ht0 : 0 ≤ a.currentTerm) (ht63 : a.currentTerm < 2 ^ 63)
     (hboot : γ.reBoot ≠ []) (γm : GName) (terms : GMap w64 TermRec)
     (hγm : γ.reTerms !! id = some γm) (hfree : terms !! W64 a.currentTerm = none) (R : IProp GF) :
-    (votesTbl γ ∗ simFx γ C σ ∗ isLeader γ id (W64 a.currentTerm) ∗ isCamp γ id (W64 a.currentTerm) L ∗
+    (notCrashed ∗ votesTbl γ ∗ simFx γ C σ ∗ isLeader γ id (W64 a.currentTerm) ∗
+      isCamp γ id (W64 a.currentTerm) L ∗
       logRecs γ base0 L ∗ isCommitted γ (L.take a.commitIndex.toNat) ∗
-      commitIn γ L (W64 a.commitIndex) (W64 a.currentTerm) ∗ ghostMapAuth γm 1 terms ∗
-      (ghostMapAuth γm 1 terms ==∗ leadFull γ (W64 a.currentTerm) L ∗ R) : IProp GF) ⊢
-      |==> (votesTbl γ ∗ simFx γ C (σ.upd (idAbs id) (leaderOf (idAbs id))) ∗
-        leadFull γ (W64 a.currentTerm) L ∗ R) := by
-  iintro ⟨Htbl, #Hfx, #Hl, #Hcp, #Hr, #Hcm, #Hci, Ha, Hw⟩
+      commitIn γ L (W64 a.commitIndex) (W64 a.currentTerm) ∗ cview γ id CrashNames.t (1 : Qp).half terms ∗
+      (∀ E, ⌜↑(crashNs γ id) ⊆ E⌝ -∗ notCrashed -∗ cview γ id CrashNames.t (1 : Qp).half terms ={E}=∗
+        notCrashed ∗ leadFull γ (W64 a.currentTerm) L ∗ R) : IProp GF) ⊢
+      |={(⊤ \ ↑(simNS γ)) \ ↑(raftLogN γ)}=> (notCrashed ∗ votesTbl γ ∗
+        simFx γ C (σ.upd (idAbs id) (leaderOf (idAbs id))) ∗ leadFull γ (W64 a.currentTerm) L ∗ R) := by
+  iintro ⟨Hnc, Htbl, #Hfx, #Hl, #Hcp, #Hr, #Hcm, #Hci, Ha, Hw⟩
   ihave #Hfx0 := Hfx
   iunfold simFx at Hfx0
   icases Hfx0 with ⟨#Hal, #Hmf, #Hq, %Hp⟩
@@ -117,13 +119,18 @@ theorem simFx_becomeLeaderW (γ : RaftNames) (C : List w64) (σ : Etcdraft.State
     iintro ⟨Ht, Ha, #Hal, #Hmf, #Hl, #Hc, #Hr⟩
     iapply HH $$ Ht Hal Hmf Hl Hc Hr Ha
   rw [hσa] at HH'
-  ihave H := persistent_entails_right HH' $$ [Htbl Ha]
-  · iframe Htbl Ha Hal Hmf Hl Hcp Hr
-  icases H with ⟨%Hh, Htbl, Ha, -⟩
+  -- (2026-11-21) the term map's authority read in the crash invariant (its view lent)
+  imod cview_auth_pure ((⊤ \ ↑(simNS γ)) \ ↑(raftLogN γ)) γ id CrashNames.t γ.reTerms (crashLens_t γ id)
+      terms γm iprop(votesTbl γ ∗ (allFacts γ C σ ∗
+        (□ ∀ m, ⌜m ∈ σ.messages.domain ++ σ.pendingMessages.domain⌝ → msgFacts γ C m) ∗
+        isLeader γ id (W64 a.currentTerm) ∗ isCamp γ id (W64 a.currentTerm) L ∗ logRecs γ base0 L)) _
+      (sep_left_comm.1.trans HH') (crashNs_sub_sim γ id) hγm $$ Hnc Ha [Htbl]
+    with ⟨Hnc, Ha, ⟨Htbl, -⟩, %Hh⟩
+  · iframe Htbl Hal Hmf Hl Hcp Hr
   rw [← hσa] at Hh
   obtain ⟨h1, h2, h3, h4⟩ := Hh
   -- the term log
-  imod Hw $$ Ha with ⟨#Hf, HR⟩
+  imod Hw $$ %((⊤ \ ↑(simNS γ)) \ ↑(raftLogN γ)) %(crashNs_sub_sim γ id) Hnc Ha with ⟨Hnc, #Hf, HR⟩
   -- the specification's step
   have hstep : σ.becomeLeader (idAbs id) = some (σ.upd (idAbs id) (leaderOf (idAbs id))) := by
     unfold Etcdraft.State.becomeLeader Etcdraft.State.getConfig
@@ -148,7 +155,7 @@ theorem simFx_becomeLeaderW (γ : RaftNames) (C : List w64) (σ : Etcdraft.State
     · rename_i h; subst h; rw [hσa]; rfl
     · rfl
   imodintro
-  iframe Htbl HR Hf
+  iframe Hnc Htbl HR Hf
   iunfold simFx
   isplitl
   · -- every voter's facts: the new leader's from raft's
@@ -213,14 +220,15 @@ theorem fxPresU_becomeLeader (γ : RaftNames) (id : w64) (E : TraceEv → Prop) 
     (hγm : γ.reTerms !! id = some γm) (hfree : terms !! s.term = none) (R : IProp GF) :
     (isLeader γ id s.term ∗ isCamp γ id s.term (toPState s).log ∗ logRecs γ base0 (toPState s).log ∗
       isCommitted γ ((toPState s).log.take (uint.Z s.logst.committed).toNat) ∗
-      commitIn γ (toPState s).log s.logst.committed s.term ∗ ghostMapAuth γm 1 terms ∗
-      (ghostMapAuth γm 1 terms ==∗ leadFull γ s.term (toPState s).log ∗ R) : IProp GF) ⊢
+      commitIn γ (toPState s).log s.logst.committed s.term ∗ cview γ id CrashNames.t (1 : Qp).half terms ∗
+      (∀ E, ⌜↑(crashNs γ id) ⊆ E⌝ -∗ notCrashed -∗ cview γ id CrashNames.t (1 : Qp).half terms ={E}=∗
+        notCrashed ∗ leadFull γ s.term (toPState s).log ∗ R) : IProp GF) ⊢
       FxPresU γ id E (WonRecvPin (votedState s m) C0 cs1 P0)
         (PinAt (wonL id s m) C0 (leaderC (confAbs C0) (idAbs id) cs1) P0 s.outbox)
         iprop(leadFull γ s.term (toPState s).log ∗ R) := by
   iintro ⟨#Hl, #Hcp, #Hr, #Hcm, #Hci, Ha, Hw⟩
   iunfold FxPresU
-  iintro %C %cs %P %e %a %a' %P' %σ %hpre Htbl #Hfx
+  iintro %C %cs %P %e %a %a' %P' %σ %hpre Hnc Htbl #Hfx
   obtain ⟨⟨⟨rfl, rfl, rfl, hI⟩, hq⟩, -, hcs, ⟨-, hcs', hP', -⟩, -, hsrv, hσa, -, -, -⟩ := hpre
   have hP0 : P' = [] := by
     have := congrArg List.length hP'; rw [List.length_append] at this
@@ -255,10 +263,10 @@ theorem fxPresU_becomeLeader (γ : RaftNames) (id : w64) (E : TraceEv → Prop) 
   have ht0 : 0 ≤ a.currentTerm := by rw [hT]; exact uint_Z_nonneg _
   have ht63 : a.currentTerm < 2 ^ 63 := by rw [hT]; exact bt
   ihave Hu := simFx_becomeLeaderW γ C σ id a (toPState s).log hsrv hidC hσa hcand hcfg hq' hlog hbt hwf hlen
-    hc0 (by rw [hCm]; exact hcl) ht0 ht63 hboot γm terms hγm (by rw [hWT]; exact hfree) R $$ [Htbl Ha Hw]
+    hc0 (by rw [hCm]; exact hcl) ht0 ht63 hboot γm terms hγm (by rw [hWT]; exact hfree) R $$ [Hnc Htbl Ha Hw]
   · rw [hWT, hWC, hCm]
-    iframe Htbl Hfx Hl Hcp Hr Hcm Hci Ha Hw
-  imod Hu with ⟨Htbl, #H1, Hf, HR⟩
+    iframe Hnc Htbl Hfx Hl Hcp Hr Hcm Hci Ha Hw
+  imod Hu with ⟨Hnc, Htbl, #H1, Hf, HR⟩
   rw [hWT]
   have hs : ∀ j, toC (σ.upd (idAbs id) (leaderOf (idAbs id))).server
       ((withNode σ (idAbs id) a' _root_.id (fun b => ([] : List Etcdraft.Msg).foldl Etcdraft.Bag.with b)).s j) =
@@ -273,7 +281,7 @@ theorem fxPresU_becomeLeader (γ : RaftNames) (id : w64) (E : TraceEv → Prop) 
     (withNode σ (idAbs id) a' _root_.id (fun b => ([] : List Etcdraft.Msg).foldl Etcdraft.Bag.with b))
     rfl rfl rfl hs $$ H1
   imodintro
-  iframe Htbl H3 Hf HR
+  iframe Hnc Htbl H3 Hf HR
 
 /-- **A `Replicate` line's facts, the leader's server facts given** (`simFx_replicate` with the
 leader's `srvFacts` after the line a premise instead of derived from its last entry's term). -/

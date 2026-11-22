@@ -31,6 +31,7 @@ public import Proof.k8s_io.apiserver.pkg.storage.Defs
 public import Proof.k8s_io.apimachinery.pkg.api.errors.View
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.AggrDefs
 public import Proof.unicode.utf8.Valid
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.metrics.Tracker
 public import Perennial.Proof.sync.RWMutexThreads
 
 @[expose] public section
@@ -140,7 +141,7 @@ def isStore (sp : Loc) (c : StoreCfg GF Obj) : IProp GF :=
     structFieldRef k8s_io.apiserver.pkg.storage.etcd3.store go!"groupResource" sp ↦□ c.gr ∗
     structFieldRef k8s_io.apiserver.pkg.storage.etcd3.store go!"metricsTracker" sp ↦□ c.mt ∗
     structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.EtcdMetricsTracker go!"Get" c.mt ↦□
-      c.lt ∗ ⌜c.lt ≠ null⌝ ∗
+      c.lt ∗ ⌜EtcdGrove.metrics.latencyTrackerOk c.lt⌝ ∗
     c.kc ↦□ (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty)
         #c.kc)) ∗

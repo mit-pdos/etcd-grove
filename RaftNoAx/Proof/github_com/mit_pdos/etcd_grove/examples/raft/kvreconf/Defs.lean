@@ -168,7 +168,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions]
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
-variable [StorageModel GF] [AllG GF]
+variable [StorageModel GF]
 
 /-- The client's half of the store's state `m`. -/
 def rkvVal (γr : RNames) (m : KVMap) : IProp GF :=
@@ -332,7 +332,7 @@ def lockInv (γr : RNames) (id : w64) (r : Loc) : IProp GF :=
 /-- **The applier's view of its node** (see the file header), the committed log delivered `l`
 applied up to `k` at the membership `m`: the node's configuration view at `m`, every conf entry from
 the view's index to `k` rejected (`skippedIn`). -/
-def appNode (γr : RNames) (n : Loc) (l : List LogEntry) (k : Nat) (m : Membership) : IProp GF :=
+def appNode (γr : RNames) (n : NodeH) (l : List LogEntry) (k : Nat) (m : Membership) : IProp GF :=
   iprop(∃ v : ConfigView, nodeConfig n γr.cluster kvrRaftN v ∗
       deliveredLogLb n γr.cluster kvrRaftN l ∗ skippedIn γr.cluster l v.applied k ∗
       ⌜v.membership = m ∧ v.applied ≤ k⌝)
@@ -378,11 +378,11 @@ theorem kvrCluster_untraced (γr : RNames) (vs : List w64) :
 
 /-- **Replica `id` at `r`** (persistent), on node `n` of the store's cluster, with the storage `st`
 and the statistics `sts`: its fields read-only, its lock. -/
-def isReplica (γr : RNames) (vs : List w64) (id : w64) (r n st sts : Loc) : IProp GF :=
+def isReplica (γr : RNames) (vs : List w64) (id : w64) (r : Loc) (n : NodeH) (st sts : Loc) : IProp GF :=
   iprop(
     "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf ∗
     "#Hid" ∷ r.[RReplica, go!"id"] ↦□ id ∗
-    "#Hnode" ∷ r.[RReplica, go!"node"] ↦□ interface.mkOk (go.GoType.PointerType node.ty) #n ∗
+    "#Hnode" ∷ r.[RReplica, go!"node"] ↦□ interface.mkOk (go.GoType.PointerType node.ty) #n.loc ∗
     "#Hst" ∷ r.[RReplica, go!"storage"] ↦□ st ∗
     "#Hsts" ∷ r.[RReplica, go!"stats"] ↦□ sts ∗
     "#Hstats" ∷ isStats sts ∗
@@ -398,7 +398,7 @@ def isReplica (γr : RNames) (vs : List w64) (id : w64) (r n st sts : Loc) : IPr
 
 set_option synthInstance.maxHeartbeats 400000 in
 set_option synthInstance.maxSize 4096 in
-instance isReplica_persistent (γr : RNames) (vs : List w64) (id : w64) (r n st sts : Loc) :
+instance isReplica_persistent (γr : RNames) (vs : List w64) (id : w64) (r : Loc) (n : NodeH) (st sts : Loc) :
     Persistent (isReplica (GF := GF) γr vs id r n st sts) := by
   unfold isReplica; infer_instance
 

@@ -80,7 +80,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
     $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of ErrNoDBSnapshot))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrNoDBSnapshot ⟨#MErrNoDBSnapshotc, #MErrNoDBSnapshot⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrNoDBSnapshot ⟨#_, #MErrNoDBSnapshot⟩
   -- translated initializer of snapMarshallingSec))
   wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bsnapMarshallingSec BsnapMarshallingSec
   try wp_auto

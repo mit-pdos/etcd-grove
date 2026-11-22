@@ -1,0 +1,232 @@
+/-
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvnet/newReplica.lean`. Lean-first
+(no Rocq counterpart).
+
+kvreconf's `newReplica.lean`, with kvdurable's additions: the `dmu` names allocated first (the
+pending batch's claim at `(none, S)` and the image's hard state at `hs`, both halved between `dmu`
+and `run`; the image's frozen bound at `len l` and its snapshot index), which the snapshot requests'
+bag cites; the stored hard state read from the image (`run`'s argument); the configuration's clone
+(`nil` cloned to `nil`); `dmu`'s invariant idle at the image `M` (the file's commit at most the
+image's: the file is the image); `run`'s start (`runStart`) from the premises; the running token
+halved between `run` and the snapshotter.
+-/
+module
+
+public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.newReplica
+public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Replica__run
+public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Replica__ticker
+public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Replica__snapshotter
+public import KvNet.Spec.go_etcd_io.raft.v3.raftpb.CloneConfState
+public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Halves
+public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.DefsLaws
+
+@[expose] public section
+
+set_option linter.iris.style.nameCheck false
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace raft_kvnet
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext] [go.IntoValInj GoString]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Assumptions]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+
+attribute [local instance] kdStorageModel
+
+/-- `pb.CloneConfState` of a read-only conf state that may be `nil`. -/
+theorem wp_cloneOpt (wp_Clone : raftpb.CloneConfState.spec (GF := GF) (hG := hG))
+    (p : Loc) (c : ConfStateM) :
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ csOpt p DFrac.discard c }}
+    (App (Val #(functions raftpb.CloneConfState [])) (Val #p))
+  {{ (p' : Loc), RET #p'; csOpt p' DFrac.discard c }} := by
+  unfold csOpt
+  iintro %Φ ⟨#Hpkg, Hc⟩ HΦ
+  icases Hc with (⟨%Hnull, %Hc⟩ | #Hc)
+  · subst Hnull
+    wp_apply wp_Clone.2 $$ [$Hpkg]
+    iapply HΦ
+    ileft; ipureintro; exact ⟨rfl, Hc⟩
+  · iapply wp_fupd
+    wp_apply wp_Clone.1 p DFrac.discard c $$ [$Hpkg $Hc] as %p' ⟨-, Hp'⟩
+    imod csPts_persist p' (DFrac.own 1) c false $$ Hp' with #Hp'
+    imodintro
+    iapply HΦ
+    iright; iexact Hp'
+
+theorem newReplica.wp_proof (wp_run : Replica.run.spec (GF := GF) (hG := hG))
+    (wp_ticker : Replica.ticker.spec (GF := GF) (hG := hG))
+    (wp_snapshotter : Replica.snapshotter.spec (GF := GF) (hG := hG))
+    (wp_Clone : raftpb.CloneConfState.spec (GF := GF) (hG := hG)) :
+    newReplica.spec (GF := GF) (hG := hG) := by
+  intro γ vs dir id n st sts ms γs K mK mA csp Kv A ap l m cfg ip hs S o M rafted tick f fl qc
+    Htick HMhs Hok Hholds Hap61 Hrafted Ho Hlap Hpl Hlc Hid1 Hid9 Hsz Hapsi HKfit HAfit Hdfok Hdfn
+  wp_start as ⟨#Hcci, #Hcl, #Hstats, #Hos, #HosS, #Hdi, #HfInv, Hdh, Hcpm, #Harm, #HisNode, Hdrv, Hcfg, Hrun,
+    #Hrec, #HmsInv, Hmeta, #Himg, Himage, #Hcert, Hwr, #Hcomp, #Hfz, #Hfro, #HsnLbM, HK, HA, #Hcs0,
+    %Hcsm, #Hap, #Hca, %Hval, %HAok, #Hsend, %Hmd⟩
+  ihave #Hproto : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
+  · iPkgInit
+  -- the `dmu` names
+  imod ghostVar_alloc (GF := GF) ((none : Option GName), S) with ⟨%γph, Hph⟩
+  icases (ghostVar_split_half (GF := GF) γph 1 ((none : Option GName), S)).1 $$ Hph with ⟨Hph1, Hph2⟩
+  imod ghostVar_alloc (GF := GF) hs with ⟨%γcm, Hcm⟩
+  icases (ghostVar_split_half (GF := GF) γcm 1 hs).1 $$ Hcm with ⟨Hcm1, Hcm2⟩
+  imod mono_nat_own_alloc (GF := GF) l.length with ⟨%γic, Hic, #HicLb⟩
+  imod mono_nat_own_alloc (GF := GF) (uint.nat M.snap.Metadata'.Index') with ⟨%γis, His, #HisLb⟩
+  -- the image's hard state, `run`'s argument
+  iunfold ownImage at Himage
+  icases Himage with ⟨%hsp, %sp, %es, Hhs, #HhsO, Hsnap, #HsnapO, Hprev, HprevTerm, Hents, #HentsO,
+    %Hwf⟩
+  try wp_auto
+  -- the snapshot requests' channel
+  wp_apply chan.wp_make2 (V := KSnapReq) (W64 1) as %snc %γsn ⟨#Hsnc, %_, Hsnoc⟩
+  · ipureintro; decide
+  ihave Hsnoc : ownChan γsn KSnapReq (.Buffered []) $$ Hsnoc
+  imod start_bag (snapReqOk γ K γs ⟨γph, γic, γis, γcm, fl⟩) (.Buffered []) snc γsn trivial
+    $$ Hsnc Hsnoc with #HsnB
+  try wp_auto
+  wp_apply wp_cloneOpt wp_Clone csp cfg $$ [$Hproto $Hcs0] as %csp' #HcsO
+  try wp_auto
+  wp_apply wp_map_make1 (K := List w8) (V := Loc) as %mW HW
+  wp_apply wp_map_make1 (K := w64) (V := Loc) as %mRd HRd
+  iStructNamed «$r0»
+  ipersist id
+  ipersist file
+  ipersist node
+  ipersist storage
+  ipersist stats
+  ipersist tick
+  ipersist snapc
+  icases (typedPointsto_half_split _ _ 1).1 $$ applied with ⟨applied1, applied2⟩
+  icases (typedPointsto_half_split _ _ 1).1 $$ kv with ⟨kv1, kv2⟩
+  icases (typedPointsto_half_split _ _ 1).1 $$ cs with ⟨cs1, cs2⟩
+  icases (typedPointsto_half_split _ _ 1).1 $$ index with ⟨index1, index2⟩
+  icases raft_kvreconf.ownMap_halves_split mA A $$ HA with ⟨HA1, HA2⟩
+  icases raft_kvreconf.ownMap_halves_split mK Kv $$ HK with ⟨HK1, HK2⟩
+  have hrun := (nodeRunning_fractional (GF := GF) n γ.r.cluster kdRaftN).fractional
+    (1 : Qp).half (1 : Qp).half
+  rw [Qp.half_add_half] at hrun
+  icases hrun.1 $$ Hrun with ⟨Hrun1, Hrun2⟩
+  -- the replica's `mu`
+  imod sync.init_Mutex (lockInv γ id «$r0_ptr») ⊤ («$r0_ptr».[KReplica, go!"mu"])
+    $$ mu [waiters HW reads HRd applied2 HA2 cs2 index2 kv2 HK2] with #Hmu
+  · inext
+    unfold lockInv
+    iexists mW, ∅, mRd, ∅
+    simp only [named]
+    iframe waiters HW reads HRd
+    isplitl [applied2 HA2 cs2 index2 kv2 HK2]
+    · unfold repShared
+      iexists mA, A, csp', cfg, _, ap, mK, Kv
+      simp only [named]
+      iframe applied2 HA2 cs2 index2 kv2 HK2 HcsO Hap
+      ipureintro; exact ⟨HAok, HAfit, HKfit⟩
+    isplitr
+    · iapply BigSepM.bigSepM_empty.2; itrivial
+    iapply BigSepM.bigSepM_empty.2; itrivial
+  -- the replica's `dmu`, idle at the image
+  imod sync.init_Mutex (kdDmuInv γ id «$r0_ptr» n st ms γs ⟨γph, γic, γis, γcm, fl⟩) ⊤
+    («$r0_ptr».[KReplica, go!"dmu"])
+    $$ dmu [Hhs Hsnap Hprev HprevTerm Hents Hmeta Hic His Hcm1 Hdh Hcpm Hwr Hph1] with #Hdmu
+  · inext
+    unfold kdDmuInv
+    iexists ip, M, l.length
+    simp only [named]
+    iframe Himg Hic His Hdh
+    isplitl [Hhs Hsnap Hprev HprevTerm Hents]
+    · unfold ownImage
+      iexists hsp, sp, es
+      simp only [named]
+      iframe
+      iframe HhsO HsnapO HentsO
+      ipureintro; exact Hwf
+    isplitl [Hmeta]
+    · rw [HMhs]; iexact Hmeta
+    isplitr
+    · iexact Hfz
+    isplitr
+    · ipureintro; left; exact Hlc
+    isplitl [Hcm1]
+    · rw [HMhs]; iexact Hcm1
+    isplitl [Hcpm]
+    · iexists qc; iexact Hcpm
+    iexists S, o, KdPhase.idle
+    iframe Hwr Hcert
+    isplitr
+    · ipureintro; exact Hok
+    isplitr
+    · ipureintro; intro f' hf; rw [Ho f' hf]; exact Nat.le_refl _
+    simp only [kdPhaseInv]
+    iframe Hph1
+    ipureintro; exact Hholds
+  ihave #HsnLb0 := memSnapLb_mono γs _ 0 (Nat.zero_le _) $$ HsnLbM
+  ihave #Hrep : isReplica γ vs dir id «$r0_ptr» n st sts sts ms γs ⟨γph, γic, γis, γcm, fl⟩ $$ []
+  · unfold isReplica
+    simp only [named]
+    iframe #
+    ipureintro; exact ⟨⟨Hid1, Hid9⟩, ⟨Hdfok, Hdfn⟩, Hmd⟩
+  ihave #HR : isReplicaR γ vs dir id «$r0_ptr» n st sts sts ⟨ms, γs, snc, γsn, K, ⟨γph, γic, γis, γcm, fl⟩⟩ $$ []
+  · unfold isReplicaR
+    simp only [named]
+    iframe #
+    ipureintro; exact Htick
+  have Hterm : S.term = hs.Term' ∧ S.vote = hs.Vote' := by
+    obtain ⟨-, -, -, Ht, Hv, -⟩ := Hholds
+    rw [← HMhs]; exact ⟨Ht.symm, Hv.symm⟩
+  ihave #HhsO' : hsOpt hsp hs $$ []
+  · rw [← HMhs]; iexact HhsO
+  try wp_auto
+  wp_apply wp_fork $$ [Hdrv Hcfg Hrun1 kv1 HK1 applied1 HA1 cs1 index1 Hph2 Hcm2]
+  · wp_apply wp_run γ vs dir id «$r0_ptr» n st sts sts ⟨ms, γs, snc, γsn, K, ⟨γph, γic, γis, γcm, fl⟩⟩ f l ap hs
+      hsp S m (W64 ap.length) rafted Hrafted (Or.inr rfl)
+      $$ [$HR $Hsend $HhsO' Hdrv Hcfg Hrun1 kv1 HK1 applied1 HA1 cs1 index1 Hph2 Hcm2]
+    · unfold runStart
+      iexists csp', mA, A
+      iframe Hdrv Hcfg Hrun1 Hph2 Hcm2 HicLb
+      isplitl [kv1 HK1 applied1 HA1 cs1 index1]
+      · unfold repOwn
+        iexists mK, Kv, cfg
+        simp only [named]
+        iframe kv1 HK1 applied1 HA1 cs1 index1 Hap HcsO Hca
+        ipureintro
+        exact ⟨Hap61, Hval, HKfit, HAok, Hcsm, Hsz⟩
+      isplitr
+      · ipureintro; exact Hterm
+      isplitr
+      · ipureintro; exact Hlap
+      iexists uint.nat M.prev
+      iframe Hcomp Hfro
+      ipureintro; exact Hpl
+    itrivial
+  try wp_auto
+  wp_apply wp_fork $$ []
+  · wp_apply wp_ticker γ vs dir id «$r0_ptr» n st sts sts ⟨ms, γs, snc, γsn, K, ⟨γph, γic, γis, γcm, fl⟩⟩ $$ [$HR]
+    itrivial
+  try wp_auto
+  wp_apply wp_fork $$ [Hrun2]
+  · wp_apply wp_snapshotter γ vs dir id «$r0_ptr» n st sts sts ⟨ms, γs, snc, γsn, K, ⟨γph, γic, γis, γcm, fl⟩⟩
+      (W64 ap.length) $$ [$HR $Hrun2]
+    · have Hk : uint.nat (W64 ap.length) = uint.nat M.snap.Metadata'.Index' := by
+        rw [← Hapsi]; word
+      rw [Hk]
+      iframe HsnLbM HisLb
+    itrivial
+  try wp_auto
+  iapply HΦ
+  iexists st, sts, sts, ⟨ms, γs, snc, γsn, K, ⟨γph, γic, γis, γcm, fl⟩⟩
+  iexact HR
+
+end proof
+
+end raft_kvnet
+end EtcdGrove
+end Perennial

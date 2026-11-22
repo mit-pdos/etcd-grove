@@ -27,7 +27,7 @@ abbrev grpc.MaxConcurrentStreams.spec : Prop :=
   ∀ (n : w32),
   {{ (True : IProp GF) }}
     (App (Val (@! google_golang_org.grpc.MaxConcurrentStreams)) (Val #n))
-  {{ (v : GoInterface), RET #v; ⌜grpcSrvOpt v .neutral⌝ }}
+  {{ (v : GoInterface), RET #v; grpcSrvOpt v .neutral }}
 
 end spec
 

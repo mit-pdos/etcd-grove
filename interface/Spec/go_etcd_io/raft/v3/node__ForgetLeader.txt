@@ -3,7 +3,7 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def node.ForgetLeader.spec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+  ∀ (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
     γ.trace = none →
       ⊢
         ∀ Φ,
@@ -12,6 +12,6 @@ def node.ForgetLeader.spec : Prop :=
               WP
                 ((intoVal
                     (methods node.ty.PointerType
-                      go!"ForgetLeader" (intoVal n)))
+                      go!"ForgetLeader" (intoVal n.loc)))
                   (intoVal (GoInterface.ok ctx)))
                 {{ Φ }}

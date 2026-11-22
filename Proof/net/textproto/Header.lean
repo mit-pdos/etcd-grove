@@ -353,8 +353,8 @@ theorem wp_canonicalMIMEHeaderKey (a : GoSlice) (s : List w8) :
             rw [← canon_set s _ y Hy_lookup, hu, hcv]
           rw [hn, hset, take_succ_of_lt s _ y Hy_lookup, upAfter_snoc, beq_w8]
           have hdash : decide ((y + W8 32) = W8 45) = decide (y = W8 45) := by
-            first | rfl | (have h := canonStep_dash false y; rw [hcv] at h; simpa only [beq_w8] using h)
-          try rw [hdash]
+            have h := canonStep_dash false y; rw [hcv] at h; simpa only [beq_w8] using h
+          rw [hdash]
           iframe
           ipureintro; constructor <;> word
         · try wp_auto
@@ -371,9 +371,6 @@ theorem wp_canonicalMIMEHeaderKey (a : GoSlice) (s : List w8) :
               http.canonLoop true (s.take (sint.nat j + 1)) ++ s.drop (sint.nat j + 1) := by
             rw [← canon_set s _ y Hy_lookup, hu, hcv]
           rw [hn, hset, take_succ_of_lt s _ y Hy_lookup, upAfter_snoc, beq_w8]
-          have hdash : decide ((y) = W8 45) = decide (y = W8 45) := by
-            first | rfl | (have h := canonStep_dash false y; rw [hcv] at h; simpa only [beq_w8] using h)
-          try rw [hdash]
           iframe
           ipureintro; constructor <;> word
       · try wp_auto
@@ -390,9 +387,6 @@ theorem wp_canonicalMIMEHeaderKey (a : GoSlice) (s : List w8) :
             http.canonLoop true (s.take (sint.nat j + 1)) ++ s.drop (sint.nat j + 1) := by
           rw [← canon_set s _ y Hy_lookup, hu, hcv]
         rw [hn, hset, take_succ_of_lt s _ y Hy_lookup, upAfter_snoc, beq_w8]
-        have hdash : decide ((y) = W8 45) = decide (y = W8 45) := by
-          first | rfl | (have h := canonStep_dash false y; rw [hcv] at h; simpa only [beq_w8] using h)
-        try rw [hdash]
         iframe
         ipureintro; constructor <;> word
     · try wp_auto
@@ -414,8 +408,8 @@ theorem wp_canonicalMIMEHeaderKey (a : GoSlice) (s : List w8) :
             rw [← canon_set s _ y Hy_lookup, hu, hcv]
           rw [hn, hset, take_succ_of_lt s _ y Hy_lookup, upAfter_snoc, beq_w8]
           have hdash : decide ((y - W8 32) = W8 45) = decide (y = W8 45) := by
-            first | rfl | (have h := canonStep_dash true y; rw [hcv] at h; simpa only [beq_w8] using h)
-          try rw [hdash]
+            have h := canonStep_dash true y; rw [hcv] at h; simpa only [beq_w8] using h
+          rw [hdash]
           iframe
           ipureintro; constructor <;> word
         · try wp_auto
@@ -432,9 +426,6 @@ theorem wp_canonicalMIMEHeaderKey (a : GoSlice) (s : List w8) :
               http.canonLoop true (s.take (sint.nat j + 1)) ++ s.drop (sint.nat j + 1) := by
             rw [← canon_set s _ y Hy_lookup, hu, hcv]
           rw [hn, hset, take_succ_of_lt s _ y Hy_lookup, upAfter_snoc, beq_w8]
-          have hdash : decide ((y) = W8 45) = decide (y = W8 45) := by
-            first | rfl | (have h := canonStep_dash true y; rw [hcv] at h; simpa only [beq_w8] using h)
-          try rw [hdash]
           iframe
           ipureintro; constructor <;> word
       · try wp_auto
@@ -451,9 +442,6 @@ theorem wp_canonicalMIMEHeaderKey (a : GoSlice) (s : List w8) :
             http.canonLoop true (s.take (sint.nat j + 1)) ++ s.drop (sint.nat j + 1) := by
           rw [← canon_set s _ y Hy_lookup, hu, hcv]
         rw [hn, hset, take_succ_of_lt s _ y Hy_lookup, upAfter_snoc, beq_w8]
-        have hdash : decide ((y) = W8 45) = decide (y = W8 45) := by
-          first | rfl | (have h := canonStep_dash true y; rw [hcv] at h; simpa only [beq_w8] using h)
-        try rw [hdash]
         iframe
         ipureintro; constructor <;> word
   -- the loop done: `a` holds `canonLoop true s`

@@ -26,18 +26,18 @@ variable [go_gctx : GoGlobalContext] [go.IntoValInj GoString]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
 
 attribute [local instance] kdStorageModel
 
 /-- See the file header. -/
 abbrev Replica.answer.spec : Prop :=
-  ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r n st sts sq ms : Loc)
+  ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r : Loc) (n : NodeH) (st sts sq ms : Loc)
     (γs : MemStorNames) (ph : KdDmuNames)
     (ap : List LogEntry) (idx : w64) (csp : Loc) (m : Membership) (mA : Loc)
     (A : GMap (List w8) (List w8)) (psl : GoSlice) (ps : List ReadState) (dq : DFrac),
   uint.Z idx = (ap.length : Int) →
-  {{ isReplica γ vs dir id r n st sts sq ms γs ph ∗ repOwn γ r ap idx csp m mA A ∗
+  {{ isReplica (GF := GF) γ vs dir id r n st sts sq ms γs ph ∗ repOwn γ r ap idx csp m mA A ∗
       psl ↦*{dq} ps ∗ [∗list] v ∈ ps, rsOk γ.r.cluster v }}
     (App (Val (r @!! go.GoType.PointerType kReplicaTy @!! go!"answer")) (Val #psl))
   {{ (rest : GoSlice), RET #rest; repOwn γ r ap idx csp m mA A ∗

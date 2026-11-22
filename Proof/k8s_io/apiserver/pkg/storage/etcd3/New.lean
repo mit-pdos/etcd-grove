@@ -140,7 +140,7 @@ theorem New.wp_proof
       (try wp_auto)
       ihave #Pm : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3.metrics $$ []
       · iPkgInit
-      wp_apply wp_mt as %mt %lt ⟨#Hmt, %Hlt⟩
+      wp_apply wp_mt gr hu1 hu2 as %mt %lt ⟨#Hmt, %Hlt⟩
       (try wp_auto)
       rw [method_unfold (t := go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty)
         (m := go!"Ctx")]

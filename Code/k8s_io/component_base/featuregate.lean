@@ -100,21 +100,6 @@ opaque GA [GooseExts] [GoGlobalContext] : val
 
 opaque Deprecated [GooseExts] [GoGlobalContext] : val
 
-noncomputable def defaultFeatures [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/component-base/featuregate.defaultFeatures"
-
-opaque defaultFeatures.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def specialFeatures [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/component-base/featuregate.specialFeatures"
-
-opaque specialFeatures.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def internalPackages [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/component-base/featuregate.internalPackages"
-
-opaque internalPackages.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def setUnsetAlphaGates [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/featuregate.setUnsetAlphaGates"
 
@@ -139,10 +124,39 @@ noncomputable def featureEnabled [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def featureSpecAtEmulationAndMinCompatVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/featuregate.featureSpecAtEmulationAndMinCompatVersion"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `defaultFeatures` (`var // The generic features. defaultFeatures = map[Feature]VersionedSpecs{ allAlphaGate: {{Default: false, PreRelease: A … [sha256:b8f7569c763cf65d]`): Its initializer calls, besides literals of constants and other variables' values:
+`version.MustParse*`/`MajorMinor` of constants allocate a version (`MustParse*` panics only on an
+invalid constant, and these parse: Go runs the initializer at every start). So it terminates, cannot
+panic and has no effect beyond its variable.
+- `specialFeatures` (`var // Special handling for a few gates. specialFeatures = map[Feature]func(known map[Feature]VersionedSpecs, enabled ma … [sha256:3be1d8e827b044f5]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `_@feature_gate.go:286` (`var _ MutableVersionedFeatureGateWithLogger = &featureGate{}`): An interface check: `&featureGate{}` converted to `MutableVersionedFeatureGateWithLogger`. No call,
+no panic, no effect.
+- `_@feature_gate.go:287` (`var _ MutableFeatureGateWithLogger = &featureGate{}`): An interface check: `&featureGate{}` converted to `MutableFeatureGateWithLogger`. No call, no panic,
+no effect.
+- `_@feature_gate.go:318` (`var _ pflag.Value = &featureGate{}`): An interface check: `&featureGate{}` converted to `pflag.Value`. No call, no panic, no effect.
+- `internalPackages` (`var internalPackages = []string{"k8s.io/component-base/featuregate/feature_gate.go"}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"k8s.io/component-base/featuregate.defaultFeatures", "Its initializer calls, besides literals of constants and other variables' values:\n`version.MustParse*`/`MajorMinor` of constants allocate a version (`MustParse*` panics only on an\ninvalid constant, and these parse: Go runs the initializer at every start). So it terminates, cannot\npanic and has no effect beyond its variable.", "var // The generic features. defaultFeatures = map[Feature]VersionedSpecs{ allAlphaGate: {{Default: false, PreRelease: A … [sha256:b8f7569c763cf65d]"⟩,
+  ⟨"k8s.io/component-base/featuregate.specialFeatures", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var // Special handling for a few gates. specialFeatures = map[Feature]func(known map[Feature]VersionedSpecs, enabled ma … [sha256:3be1d8e827b044f5]"⟩,
+  ⟨"k8s.io/component-base/featuregate._@feature_gate.go:286", "An interface check: `&featureGate{}` converted to `MutableVersionedFeatureGateWithLogger`. No call,\nno panic, no effect.", "var _ MutableVersionedFeatureGateWithLogger = &featureGate{}"⟩,
+  ⟨"k8s.io/component-base/featuregate._@feature_gate.go:287", "An interface check: `&featureGate{}` converted to `MutableFeatureGateWithLogger`. No call, no panic,\nno effect.", "var _ MutableFeatureGateWithLogger = &featureGate{}"⟩,
+  ⟨"k8s.io/component-base/featuregate._@feature_gate.go:318", "An interface check: `&featureGate{}` converted to `pflag.Value`. No call, no panic, no effect.", "var _ pflag.Value = &featureGate{}"⟩,
+  ⟨"k8s.io/component-base/featuregate.internalPackages", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var internalPackages = []string{\"k8s.io/component-base/featuregate/feature_gate.go\"}"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.component_base.featuregate where
   pkgImportedPkgs := [pkg_id.context, pkg_id.github_com.spf13.pflag, pkg_id.k8s_io.apimachinery.pkg.util.version]
-
-opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -150,26 +164,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val internalPackages.init) (Val #())))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val specialFeatures.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val defaultFeatures.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.context.initialize') (Val #()))))))
+  (App (Val _root_.Perennial.context.initialize') (Val #())))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.spf13.pflag.initialize') (Val #()))))))
   (App (Val doExecute)
