@@ -59,7 +59,7 @@ local macro "cfr_unhandled" hΦ:pmTerm : tactic => `(tactic| (
   iapply $hΦ
   iframe
   ipureintro
-  intro h; cases h))
+  exact ⟨fun h => (by cases h), Or.inl rfl⟩))
 
 theorem os.wp_pollCFR (ind ins : Loc) (fdd fds : w64) (dqd dqs dqfd dqfs : DFrac)
     (dd ds : OsFd) (m : OsMeta) (qm qb : DFrac) (bs : List ByteG) (o j : Nat)
@@ -74,7 +74,8 @@ theorem os.wp_pollCFR (ind ins : Loc) (fdd fds : w64) (dqd dqs dqfd dqfs : DFrac
     {{ (wr : w64) (h : Bool) (err : GoInterface), RET (PairV (PairV #wr #h) #err);
         structFieldRef os.file go!"fd" ind ↦{dqd} fdd ∗ structFieldRef os.file go!"fd" ins ↦{dqs} fds ∗
         osFd fdd dqfd dd ∗ osFd fds dqfs ds ∗ osMeta ds.ino qm m ∗ osBytes ds.ino 0 qb bs ∗
-        ∃ j' : Nat, io.cpG ind ins dd.ino o bs j' ∗ ⌜h = true → err = interface.nil → o + j' = bs.length⌝ }} := by
+        ∃ j' : Nat, io.cpG ind ins dd.ino o bs j' ∗ ⌜(h = true → err = interface.nil → o + j' = bs.length) ∧
+          (err = interface.nil ∨ ∃ l : Loc, err = interface.mkOk (go.GoType.PointerType os.SyscallError.ty) #l)⌝ }} := by
   iintro %Φ ⟨#Hinv, Hdfd, Hsfd, Hfdd, Hfds, Hm, Hbs, HG⟩ HΦ
   unfold os.model.pollCopyFileRange
   wp_pure
@@ -193,7 +194,7 @@ theorem os.wp_pollCFR (ind ins : Loc) (fdd fds : w64) (dqd dqs dqfd dqfs : DFrac
         iapply HΦ
         iframe
         ipureintro
-        intro h; cases h
+        exact ⟨fun h => (by cases h), Or.inl rfl⟩
       · rw [decide_eq_false hw]
         wp_auto
         rw [show (go!"os.wrapSyscallError" : GoString) = _root_.Perennial.os.wrapSyscallError from rfl]
@@ -203,7 +204,7 @@ theorem os.wp_pollCFR (ind ins : Loc) (fdd fds : w64) (dqd dqs dqfd dqfs : DFrac
         iapply HΦ
         iframe
         ipureintro
-        intro _ _
+        refine ⟨fun _ _ => ?_, Or.inl rfl⟩
         have := hk2 rfl rfl
         omega
     · rw [decide_eq_false he0, errno_ty_eq]
@@ -255,7 +256,7 @@ theorem os.wp_pollCFR (ind ins : Loc) (fdd fds : w64) (dqd dqs dqfd dqfs : DFrac
       iapply HΦ
       iframe
       ipureintro
-      intro _ h; cases h
+      exact ⟨fun _ h => (by cases h), Or.inr ⟨l, rfl⟩⟩
 
 end proof
 
