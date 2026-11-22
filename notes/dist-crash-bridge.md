@@ -85,3 +85,20 @@ distributed adequacy proof). D4 (shared-mode generations for etcd's bundle) need
   (e.g. crashlog's log behind a network server) would exercise `crashRest`. Not needed for D3.
 - `etc/tcb-report.py` does not see `echo_netfs_mixed_robust` as a root (`*Linked.lean` files are not
   roots, as `RobustLinked.lean`'s `echo_kit_robust`); its `#print axioms` is the check.
+
+## Independent review of `NetFsDeploy` (2026-11-22)
+
+Verdict: sound, not vacuous, the right strength; documentation fixes (report:
+`/shared/tmp/coord-03/review-netfsdeploy.md`).
+- F1 (fixed in the docstring): the start conditions are stated by `NetFsDeploy`, not by `Robust`; the
+  extensions' `initLocal`/`initGlobal` are `True` at this pin. **Open:** `Robustness/Statement.lean`'s
+  header (lines 26-30) claims `Robust`'s premises already give "no listener, no connection, files as on
+  disk", which is false at this pin; to be corrected with the owner of `Robustness/` (#22). The proper fix is
+  kvnet-robust-goal.md items 3-4 (the extensions' `initLocal`), after which `NetFsDeploy` is the address
+  facts only.
+- F2 (fixed in the docstring): each machine's roots are its own.
+- F3 (reworded): the echo example proves the implication only. Satisfiability: `NetLocal.init ⟨∅⟩`,
+  `NetGlobal.init ⟨∅⟩` (`Net/Impl.lean`), `fsInit0` (an empty root), `addrOk srvAddr` by `decide`; a Lean
+  witness is not written.
+- F4 (note): `KitDeploy`'s "no listener" conjunct is unused by every bridge; drop it with F1's plan.
+- F5 (note): `FsInit` asks a stable machine's files to be durable, which no step reads.

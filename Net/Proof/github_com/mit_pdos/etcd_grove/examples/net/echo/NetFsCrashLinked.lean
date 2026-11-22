@@ -2,8 +2,8 @@
 `examples/net/echo` with its server on a machine that crashes and restarts and its client on one that
 never crashes, over the network and Linux files together (`[netExt, fsExt]`, `kvnetExts`): the
 minimal instance of the bridge `robust_of_netFsBoot` (`Net/Statement/NetFsBridge.lean`, etcd-dist
-stage D3), the check that it applies to a real system and that its premise (`NetFsDeploy`) is not
-vacuous.
+stage D3), the check that it applies to a real system. (It proves the implication only; that its
+premise `NetFsDeploy` is satisfiable is argued in `notes/dist-crash-bridge.md`, not proved here.)
 
 Two machines: the crashing `[(boot_serverNF, σs)]` and the stable `[(boot_clientNF, σc)]` (echo's
 commands `cmd/server` and `cmd/client`, `TopLevelDefs.lean`), the address `[SrvAddr]` (valid:
