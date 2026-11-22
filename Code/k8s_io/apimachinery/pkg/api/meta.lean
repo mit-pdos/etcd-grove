@@ -2,6 +2,7 @@
 module
 
 public import Code.k8s_io.apimachinery.pkg.apis.«meta».v1
+public import Perennial.Code.fmt
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -220,12 +221,8 @@ opaque AnyKind [GooseExts] [GoGlobalContext] : val
 noncomputable def errNotList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/meta.errNotList"
 
-opaque errNotList.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def errNotObject [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/meta.errNotObject"
-
-opaque errNotObject.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def SetStatusCondition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/meta.SetStatusCondition"
@@ -626,7 +623,7 @@ noncomputable def skipped' : List go.SkippedVar := [
   ⟨"k8s.io/apimachinery/pkg/api/meta.unpluralizedSuffixes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var unpluralizedSuffixes = []string{ \"endpoints\", }"⟩]
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.api.«meta» where
-  pkgImportedPkgs := [pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1]
+  pkgImportedPkgs := [pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1, pkg_id.fmt]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -634,12 +631,27 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(go!"object does not implement the List interfaces"))
+  (Let "$a1" (Val #slice.nil)
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(go!"object does not implement the Object interfaces"))
+  (Let "$a1" (Val #slice.nil)
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val doExecute)
-  (App (Val errNotObject.init) (Val #())))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr errNotObject))) (Val #())) (Var "$r0")))))))
   (App (Val doExecute)
-  (App (Val errNotList.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr errNotList))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.fmt.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc errNotList go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc errNotObject go.error)) (Val #()))))))))
 
 opaque AmbiguousResourceError.nonempty_type : NonemptyType.{0}
 def AmbiguousResourceError : Type := AmbiguousResourceError.nonempty_type.type
@@ -1286,6 +1298,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   ListAccessor_unfold : FuncUnfold ListAccessor [] ListAccessor.impl
   Accessor_unfold : FuncUnfold Accessor [] Accessor.impl
   import_v1_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
+  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
 
 attribute [instance] Assumptions.AmbiguousResourceError_instance
   Assumptions.AmbiguousKindError_instance
@@ -1320,6 +1333,7 @@ attribute [instance] Assumptions.AmbiguousResourceError_instance
   Assumptions.ListAccessor_unfold
   Assumptions.Accessor_unfold
   Assumptions.import_v1_Assumption
+  Assumptions.import_fmt_Assumption
 
 end k8s_io.apimachinery.pkg.api.«meta»
 

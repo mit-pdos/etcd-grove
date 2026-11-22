@@ -791,6 +791,17 @@ SPECIAL['bufio'] = dict(
 )
 # (#23, 2026-11-22: path.filepath's keyed `SkipDir` until it, `SkipAll` and `lstat`, which ran after
 # `ErrBadPattern`, were skipped, goose `[[skip]]`)
+# (#23, 2026-11-22) k8s api/meta's `errNotList`, `errNotObject` (`fmt.Errorf` without a verb, read by the
+# proved `Accessor`/`ListAccessor`, so goose cannot skip them) translated, until then `opaqueInitsOk`
+newvars_cfg(SPECIAL.setdefault('k8s_io.apimachinery.pkg.api.«meta»', {}), ['errNotList', 'errNotObject'],
+            errorf=dict(errNotList="object does not implement the List interfaces",
+                        errNotObject="object does not implement the Object interfaces"))
+# (#23, 2026-11-22) the cacher's `consistency.PanicOnCacheInconsistency = false` (read by the proved
+# snapshotter, so goose cannot skip it) translated, until then `opaqueInitsOk`
+SPECIAL['k8s_io.apiserver.pkg.storage.cacher.consistency'] = dict(
+    alloc_types=_ALLOC_ANY,
+    before={'$inits': ['try wp_auto']},
+)
 # (#23, 2026-11-22) k8s util/validation's `IsQualifiedName = content.IsLabelKey` (read by the translated
 # `v1helper.IsExtendedResourceName`, so goose cannot skip it) translated, until then `opaqueInitsOk`
 SPECIAL['k8s_io.apimachinery.pkg.util.validation'] = dict(
@@ -1292,18 +1303,9 @@ are now `features`' registration's, `features.init_0_ok`.)''',
             'imodintro', 'iexists _', 'iframe #'],
 )
 
-# (k8s 7e Freeze review, etcd-grove-81, 2026-11-10) pflag's opaque initializers: what they assume
-SPECIAL['github_com.spf13.pflag'] = dict(
-    opaque_doc_extra=[
-        'Reached through the Kubernetes packages: `featuregate` (whose `MutableFeatureGate.AddFlag`',
-        'names `*pflag.FlagSet`) imports pflag since stage 7e-4, so that the k8s etcd3 driver\'s',
-        '`noStreaming` can call `MutableVersionedFeatureGate.Set`. The assumption:',
-        '`CommandLine = NewFlagSet(os.Args[0], ExitOnError)` (`flag.go:1262`, pflag v1.0.10) indexes',
-        '`os.Args`, so it holds only of a process started with a non-empty argument vector (every',
-        'program run from a shell or `exec` with its name; a process exec\'d with an empty `argv`',
-        'panics here). `ErrHelp` (`errors.New`) and `Usage` (a function literal) cannot panic.',
-    ],
-)
+# (k8s 7e Freeze review, etcd-grove-81, 2026-11-10) pflag's opaque initializers: what they assumed
+# (`CommandLine = NewFlagSet(os.Args[0], ExitOnError)` indexes `os.Args`) is now the reason of their
+# goose `[[skip]]` entry (`Code/github_com/spf13/pflag.toml`; #23, 2026-11-22), not `opaqueInitsOk`'s.
 
 # (k8s 7e-1, 2026-11-10, decided by etcd-grove-81) grpc's fact: `EnableTracing` holds `false`
 SPECIAL['google_golang_org.grpc'] = dict(

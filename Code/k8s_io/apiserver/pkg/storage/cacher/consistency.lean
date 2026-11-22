@@ -58,8 +58,6 @@ opaque getLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 noncomputable def PanicOnCacheInconsistency [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/consistency.PanicOnCacheInconsistency"
 
-opaque PanicOnCacheInconsistency.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/consistency.init.0"
 
@@ -101,12 +99,16 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
   (App (Val doExecute)
-  (App (Val PanicOnCacheInconsistency.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (GlobalVarAddr PanicOnCacheInconsistency))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.metrics.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.metrics.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc PanicOnCacheInconsistency go.bool)) (Val #()))))))))
 
 opaque Checker.nonempty_type : NonemptyType.{0}
 def Checker : Type := Checker.nonempty_type.type

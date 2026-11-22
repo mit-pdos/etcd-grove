@@ -4,8 +4,11 @@
 # notes/k8s-etcd3-goose.md).
 # (k8s 7g, decided by etcd-grove-03 2026-11-19: proof over axiom) `ListAccessor`, with its body (a
 # type switch on the list interfaces), which the reflector's pager and the driver's checker call.
-translate = ["!*", "Accessor", "ListAccessor"]
-imports = ["!*", "k8s.io/apimachinery/pkg/apis/meta/v1"]
+# (#23, 2026-11-22) `errNotList`, `errNotObject` (`fmt.Errorf` of a constant without a verb), which
+# `Accessor` and `ListAccessor` return, translated (goose cannot skip a variable translated code reads;
+# until then untranslated, `opaqueInitsOk`), with their import `fmt`
+translate = ["!*", "Accessor", "ListAccessor", "errNotList", "errNotObject"]
+imports = ["!*", "k8s.io/apimachinery/pkg/apis/meta/v1", "fmt"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
