@@ -1476,7 +1476,9 @@ variable [CrashGS GF] in
 unchanged): the vacant slot and the durable half at `S` give the volatile half of a follower of
 `S.term` restarted from a storage holding `S` from the base `b` with the commit `c`
 (`restartP`: `kl` forgotten, the durable `kd` taken; an empty outbox and tally), with the whole
-generation and its free queue slot. Amendment 1: the bootstrap log within the stored commit. -/
+generation and its free queue slot. Amendment 1: the bootstrap log within the stored commit.
+(2026-11-22, ledger `RestartNode`) The accessor (the client's update) is given the generation's
+`notCrashed` and gives it back, so that it may open a crash invariant. -/
 theorem raft_restart (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool} (x : CrashNames)
     (b : entryID) (c : w64) (Φ : RaftState → Prop) (R : RaftState → IProp GF) :
     ↑(raftN γ) ⊆ E →
@@ -1487,8 +1489,8 @@ theorem raft_restart (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool} (x : C
       uint.nat S.wcommit ≤ uint.nat c) →
     (γ.reBoot.length : Int) ≤ uint.Z c →
     ⊢ notCrashed -∗ raftArmed (GF := GF) γ id x -∗
-      (|={E \ ↑(slotN γ id), ∅}=> ∃ S, ownDurGhost γ id S ∗ ⌜Φ S⌝ ∗
-        (ownDurGhost γ id S ={∅, E \ ↑(slotN γ id)}=∗ R S)) ={E}=∗
+      (notCrashed -∗ |={E \ ↑(slotN γ id), ∅}=> ∃ S, ownDurGhost γ id S ∗ ⌜Φ S⌝ ∗
+        (ownDurGhost γ id S ={∅, E \ ↑(slotN γ id)}=∗ notCrashed ∗ R S)) ={E}=∗
       notCrashed ∗ ∃ S, ⌜Φ S⌝ ∗ R S ∗ ownRaftGhost γ id (restartP S b c) md ∗
         ∃ g, genView γ id x 1 g ∗ slotFree γ id g ∗
         -- (2026-11-02, stage II (p)) the restarted log is `S`'s full log, with I1 at the commit
@@ -1536,7 +1538,7 @@ theorem raft_restart (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool} (x : C
   · unfold cview; iexists x; iframe Hinv Hxq
   -- the durable half, through the accessor (the client's update: `RestartNode`'s), while the slot
   -- is open
-  imod Hacc with ⟨%S, Hdur, %HS, Hcl⟩
+  imod Hacc $$ Hnc with ⟨%S, Hdur, %HS, Hcl⟩
   obtain ⟨Hb1, Hb2, Hb3, Hbt, Hwc⟩ := HΦ S HS
   unfold ownDurGhost
   icases Hdur with ⟨%E1, Hsh1, #Hdp, #Hsinv1, #HI1⟩
@@ -1552,7 +1554,7 @@ theorem raft_restart (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool} (x : C
   icases keys_camps γ id _ V (fun t (x : GName) => iprop(t ↪[γq]□ x)) rqm $$ [$Hsh1 $Hqf]
     with ⟨Hsh1, %Kqn⟩
   ihave #HI1r := durI1_rebase γ id S V b c Hb1 Hbt Hwc $$ Hdp HI1
-  imod Hcl $$ [Hsh1] with HR
+  imod Hcl $$ [Hsh1] with ⟨Hnc, HR⟩
   · iexists V; iframe Hsh1 Hdp Hsinv1 HI1
   imod Hclose $$ [Hsh0 Hv0 Hg0 Hq] with -
   · inext

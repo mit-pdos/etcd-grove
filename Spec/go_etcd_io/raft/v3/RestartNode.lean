@@ -38,6 +38,10 @@ within the stored log's committed part.
 The client's update (`AU`) fires inside `RestartNode`, when it reads the storage (its
 `InitialState`, before any step), and leaves the client's durable state `S` (`raftState`)
 unchanged: it checks that the storage holds `S` (`StorageHolds`), so that a stale storage fails it.
+(2026-11-22) It is given the generation's crash token `notCrashed` and gives it back (as durable's
+sync update and raft's trace updates), so that a client whose process crashes can keep `raftState`
+in an invariant that the generation's crash obligation empties (`notes/kvnet-part.md`, "`StartNode`
+and the crash frame"); a client that needs no token passes a plain update (`restartAu_nc`).
 
 Raft names the storage by a fresh key `K` at the attach (`restartStorage`'s continuation). The post:
 the node, its `Ready` loop's token at the committed log of the applied index it starts at
@@ -110,8 +114,12 @@ abbrev RestartNode.spec : Prop :=
       -- read, before any step): the storage holds it
       -- ((2026-11-01, durability stage II (k)) under a later: `raftState` holds an invariant, so
       -- it is not timeless, and a client keeping it in an invariant opens it later-ed)
-      AU <{ ∃∃ (S : RaftState), ▷ raftState γ cv.ID' S ∗ ⌜StorageHolds S σ⌝ }> @ ⊤ \ ↑N, ∅
-         <{ raftState γ cv.ID' S, COMM Q S }> ∗
+      -- ((2026-11-22, ledger `RestartNode`) given the generation's `notCrashed`, which it gives
+      -- back: a client keeping `raftState` in a crash invariant `inv (… ∨ crashed ∗ tok)` refutes
+      -- the crashed side with it; a plain update is one, `restartAu_nc`)
+      (notCrashed -∗
+        AU <{ ∃∃ (S : RaftState), ▷ raftState γ cv.ID' S ∗ ⌜StorageHolds S σ⌝ }> @ ⊤ \ ↑N, ∅
+           <{ raftState γ cv.ID' S, COMM notCrashed ∗ Q S }>) ∗
       confAt γ a m ∗
       restartStorage γ (interface.ok si) σ csm (uint.nat cv.Applied') F SV }}
     (App (Val #(functions RestartNode [])) (Val #c))
