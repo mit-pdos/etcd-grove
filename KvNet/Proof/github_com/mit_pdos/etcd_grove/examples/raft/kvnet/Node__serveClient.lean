@@ -150,16 +150,14 @@ theorem Node.serveClient.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp 
       subst Hg
       try wp_auto
       ihave Hresp : (∃ (rs : GoSlice) (xs : List w8), "resp" ∷ resp_ptr ↦ rs ∗ "Hrs" ∷ rs ↦* xs ∗
-          "%Hxs" ∷ ⌜(xs.length : Int) + 8 < 2 ^ 63⌝ ∗ "#Hq" ∷ □ kvQ F id cn ([] ++ putB xs) : IProp GF)
+          "#Hq" ∷ □ kvQ F id cn ([] ++ putB xs) : IProp GF)
         $$ [resp Hr0]
       · iexists _, [W8 0]
         iframe resp Hr0
-        isplitr
-        · ipureintro; simp
         imodintro
         rw [List.nil_append]
         iapply server_noans
-      icases Hresp with ⟨%rs, %xs, resp, Hrs, %Hxs, #Hq⟩
+      icases Hresp with ⟨%rs, %xs, resp, Hrs, #Hq⟩
       try wp_auto
       wp_apply wp_closeAfter _ cn true a _ iprop(True) $$ [] as %disarmW #HdisW
       · iframe Hc
@@ -173,7 +171,7 @@ theorem Node.serveClient.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp 
       ihave HW := writeP_init cn true (kvQ F id) [] $$ HW
       ihave #Hwacc := write_acc cn true (kvQ F id) [] (putB xs) $$ Hq
       wp_apply wp_writeFrame _ cn true a rs xs (DFrac.own 1) ed
-          (fun w res => writeP cn true (kvQ F id) [] w res) Hxs $$ [Hrs HW]
+          (fun w res => writeP cn true (kvQ F id) [] w res) $$ [Hrs HW]
         as %okw ⟨%w, %res, -, -, -⟩
       · iframe Hc Hed Hrs HW
         iexact Hwacc
@@ -190,7 +188,9 @@ theorem Node.serveClient.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp 
       iapply HΦ
       itrivial
     · -- the answer `v`: `putB (1 :: v)`
-      obtain ⟨rfl, Hvl⟩ := Hv
+      subst Hv
+      ihave %Hvl0 := ownSlice_len $$ Hv
+      have Hvl : (v.length : Int) < 2 ^ 63 := by obtain ⟨h1, -⟩ := Hvl0; rw [h1]; word
       try wp_auto
       wp_apply wp_slice_literal (V := w8) [W8 1]
       isplitr
@@ -201,18 +201,16 @@ theorem Node.serveClient.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp 
       wp_apply wp_slice_append _ [W8 1] _ v (DFrac.own 1) $$ [$Hr1 $Hr1c $Hv] as %r2 ⟨Hr2, -, -⟩
       try wp_auto
       ihave Hresp : (∃ (rs : GoSlice) (xs : List w8), "resp" ∷ resp_ptr ↦ rs ∗ "Hrs" ∷ rs ↦* xs ∗
-          "%Hxs" ∷ ⌜(xs.length : Int) + 8 < 2 ^ 63⌝ ∗ "#Hq" ∷ □ kvQ F id cn ([] ++ putB xs) : IProp GF)
+          "#Hq" ∷ □ kvQ F id cn ([] ++ putB xs) : IProp GF)
         $$ [resp Hr2]
       · iexists _, [W8 1] ++ v
         iframe resp Hr2
-        isplitr
-        · ipureintro; simp; omega
         imodintro
         rw [List.nil_append, List.singleton_append]
         ihave H := server_reply F id cn kind tmo pl v Hrl (by omega)
         iunfold reqBytes at H
         iapply H $$ Hlb Ha
-      icases Hresp with ⟨%rs, %xs, resp, Hrs, %Hxs, #Hq⟩
+      icases Hresp with ⟨%rs, %xs, resp, Hrs, #Hq⟩
       try wp_auto
       wp_apply wp_closeAfter _ cn true a _ iprop(True) $$ [] as %disarmW #HdisW
       · iframe Hc
@@ -226,7 +224,7 @@ theorem Node.serveClient.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp 
       ihave HW := writeP_init cn true (kvQ F id) [] $$ HW
       ihave #Hwacc := write_acc cn true (kvQ F id) [] (putB xs) $$ Hq
       wp_apply wp_writeFrame _ cn true a rs xs (DFrac.own 1) ed
-          (fun w res => writeP cn true (kvQ F id) [] w res) Hxs $$ [Hrs HW]
+          (fun w res => writeP cn true (kvQ F id) [] w res) $$ [Hrs HW]
         as %okw ⟨%w, %res, -, -, -⟩
       · iframe Hc Hed Hrs HW
         iexact Hwacc

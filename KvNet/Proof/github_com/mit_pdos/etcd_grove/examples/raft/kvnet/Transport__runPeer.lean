@@ -127,7 +127,7 @@ theorem Transport.runPeer.wp_proof (wp_dial : Transport.dial.spec (GF := GF) (hG
       iapply peer_send F pid cn sts src st Hstsl (by omega) $$ Hsts Hok
     ihave #Hacc := write_acc cn false (kvP F pid) (helloPeerB :: framesBytes sts) (putB (encMsg st)) $$ Hpr
     wp_apply wp_writeFrame _ cn false a s1 (encMsg st) (DFrac.own 1) ed
-        (fun w res => writeP cn false (kvP F pid) (helloPeerB :: framesBytes sts) w res) (by omega)
+        (fun w res => writeP cn false (kvP F pid) (helloPeerB :: framesBytes sts) w res)
         $$ [Hs1 HW] as %ok1 ⟨%w1, %res1, HW, -, %Hw1⟩
     · iframe Hconn Hs1 Hed HW
       iexact Hacc
@@ -152,7 +152,7 @@ theorem Transport.runPeer.wp_proof (wp_dial : Transport.dial.spec (GF := GF) (hG
       iexists _, _
       iframe
       ileft; ipureintro; rfl
-    obtain ⟨-, Hw⟩ := Hw1
+    obtain ⟨-, Hw, -⟩ := Hw1
     have Hw := Hw rfl
     subst Hw
     wp_apply wp_add sp (W64 17) (by decide) (by decide) $$ [$Hpkg $Hs]
@@ -226,7 +226,7 @@ theorem Transport.runPeer.wp_proof (wp_dial : Transport.dial.spec (GF := GF) (hG
       iapply peer_send F pid cn sts src st Hstsl (by omega) $$ Hsts Hok
     ihave #Hacc := write_acc cn false (kvP F pid) (helloPeerB :: framesBytes sts) (putB (encMsg st)) $$ Hpr
     wp_apply wp_writeFrame _ cn false a s1 (encMsg st) (DFrac.own 1) ed
-        (fun w res => writeP cn false (kvP F pid) (helloPeerB :: framesBytes sts) w res) (by omega)
+        (fun w res => writeP cn false (kvP F pid) (helloPeerB :: framesBytes sts) w res)
         $$ [Hs1 HW] as %ok1 ⟨%w1, %res1, HW, -, %Hw1⟩
     · iframe Hconn Hs1 Hed HW
       iexact Hacc
@@ -251,7 +251,7 @@ theorem Transport.runPeer.wp_proof (wp_dial : Transport.dial.spec (GF := GF) (hG
       iexists _, _
       iframe
       ileft; ipureintro; rfl
-    obtain ⟨-, Hw⟩ := Hw1
+    obtain ⟨-, Hw, -⟩ := Hw1
     have Hw := Hw rfl
     subst Hw
     wp_apply wp_add sp (W64 17) (by decide) (by decide) $$ [$Hpkg $Hs]

@@ -450,3 +450,77 @@ Notes for its proof:
   (allocates the file invariant: the writer at `(S, ⟨cur, none⟩, none)`), and `StartNode` (reads the file:
   `fileHolds` of `cur` or of `alt` per durable's crash lemma; `RestartNode` at `nodeVacantA`; after a crash
   in a window, `readyCrashEnter.law` or `nodeCrash`).
+
+### Drafts written with no `.lake` (2026-11-22, unchecked)
+
+The worktree's `.lake` was lent to raft's agent. These files are drafts, to check once it returns. The
+**first step** then is `python3 etc/copy-part.py --part KvNet && python3 etc/gen-init.py` (both need
+Perennial's checkout under `.lake`): `RunLemmas` imports `kvreconf.RunBatch`, whose copy does not
+exist yet.
+
+- **`Replica.run`** (`Replica__run.lean`, from kvdurablenoax's, with `RunDmu`, `RunImage`, `RunInv`,
+  `RunLemmas`; `sendSpec` added to `Defs.lean`). Changes:
+  - the `Ready` is a plain receive (`chan.wp_receive` over `isReadyChan_recvAu`'s update), the `select`'s
+    clause body dedented and the `stopc` clause gone;
+  - `run_exit` just returns;
+  - no `runDone` producer (`runInv`, the write's `wp_join`);
+  - `persist` returns nothing (the crashed branches gone);
+  - `Stats.add` by index;
+  - `kdDmuRest` carries the file's handle and call permission (no crashed flag). `dmu_close_enter`
+    enters a commit-only batch through `kdFileInvK`: the file keeps its contents, now holding the new
+    state (`fileVal_commit`, `holds_commit_only`);
+  - `kdDmuInv`'s call-permission field is renamed `Hcpm` (it clashed with `runInv`'s `Hcp`).
+
+  Expected failures:
+  - the receive's shape: `chan.wp_receive`'s continuation, and whether `<-ch` is `Fst (chan.receive …)`;
+  - the clause body's `wp_*` steps after the receive (which ran inside a `select` before);
+  - `notCrashed`'s instance in `dmu_close_enter` and `wp_ncfupd`;
+  - the iframe/iNamed patterns over `kdDmuInv`'s new fields (`Hdh`, `Hcpm`);
+  - heartbeats (the proof is 1600 lines).
+- **`newReplica`** (`newReplica.lean`, spec and proof). As kvdurable's, without the stop channels, the
+  crashed flag and `seqs` (12 arguments). It takes the file's names, handle and call permission, and the
+  generation's `kdFileInvK γ id n γd` (now over `γd`, not `KdDmuNames`). New premises `MapFits Kv`,
+  `MapFits A`. Half of `kv` goes to `mu`. Post: `isReplicaR`.
+
+  Expected failures: `iStructNamed`'s field names for kvnet's `Replica`, the order of `isReplica`'s
+  pure conjuncts, and `sq` (passed as `sts`; unused).
+- **`BootLemmas.lean`**:
+  - `readyCrashEnter.law` (the hypothesis);
+  - `kd_boot_choose`: from the crashed generation's `kdFileState` and the contents `v` that durable's
+    crash lemma reports (`v = s.cur ∨ s.alt = some v`), either the law (the new contents survived
+    with a pending batch) or raft's `nodeCrash`. It gives `raftState S' ∗ nodeVacant ∗ fileHolds S' v`;
+  - `kvStart`: the concrete start resource `StartNode` takes (`StartNode.spec`'s `S`).
+
+  The branch is at the boot (the crash obligation), not in `StartNode`'s code: durable's crash lemma
+  decides at the crash which file the next generation finds.
+- **`StartNode`'s proof: not drafted.** kvdurable's `Cluster.start` (524 lines) is the model, but it
+  goes through kvdurable's cluster helpers (`fileOf`, `config`, `tick`, `sender`), which kvnet inlines
+  (`FileOf`, the `raft.Config` literal, `newTransport`/`t.start`, `t.Send`). The plan:
+  - `durable.Read`'s atomic update over `kvStart`'s `durSt`;
+  - `openStorage` of `encStor f` (`fileHolds S cur` gives `cur = kdFileVal o` with `KdFileOk`);
+  - `MemoryStorage.Snapshot`, `decodeState` and `Applied` as in kvdurable;
+  - `RestartNode` at `nodeVacantA γ id x`, its update over `raftState S` (`StorageHolds S`);
+  - after `RestartNode` (the node `n` exists), allocate `kdFileInvK γ id n γd` from `raftState`,
+    `durSt` and one writer half (`kdFileState` at `alt = none`: `fileHolds S cur`);
+  - `newTransport`, `t.start(node)` (the step law: `kv_stepLaw`), and `t.Send` for `sendSpec`
+    (`Transport.Send.spec`: `msgPtsC`, `F.msgOk` from `sentMsg`/`msgCredits`/`MsgWf`, and the frame
+    bound, which `writeFrame`'s change may make unnecessary);
+  - `newReplica`.
+
+### The drafts checked, raft's real crash law, `Node.status` (2026-11-22)
+
+- **Raft's `readyCrashEnter`** (landed on lean) replaces the hypothesis. It also takes `nodeArm n γ x` and a share
+  of `nodeRunning`. In a write's window the file invariant now keeps that share with the batch's *enter*
+  (`KdWv`'s batch records the share `q`). `kd_writeAU` takes `kdRunKeep` (the writer's share, if no batch) and
+  gives back `pbQ q pb`. `persist` puts its share into the batch at the rename and takes it back at the sync.
+  `kd_boot_choose` (`BootLemmas.lean`) takes `nodeArm` and uses the share that waited. `readyEnter` is
+  `readyEnterLive ∧ readyEnterCrash`: the live uses take the left half.
+- **The drafts, checked and fixed**: `writeFrame`, `Node.handle`, `RunDmu`, `newReplica` (`sendSpec` persistent),
+  `Replica.run`. In `run`, the receive's credits come from `chan.wp_receive` (`wp_Ready` without `lc`), and a
+  snapshot's maps get their `MapFits` from their encoding (`MapFits_of_lookup`, `RunLemmas.lean`).
+- **Proved**: `Node.status` (at `kvRep`, through `statusOwn_hardState`), `Stats.Snapshot` (it gives the array's
+  length, 23), `PutStatus` (it takes that length: the stats loop indexes the array value).
+- **`StartNode`: next.** Its callees still without specs: `newTransport`, `Transport.start`, `FileOf` (with
+  `itoa`), `quietLogger`'s methods. Its post also has `confLaw` (not discharged: the real `confOk`).
+  The plan is as above ("Drafts written with no `.lake`"), from `kvStart` (`BootLemmas.lean`), allocating
+  `kdFileInvK` after `RestartNode` gives the node (and `nodeArm`).

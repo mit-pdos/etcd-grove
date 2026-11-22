@@ -1,7 +1,8 @@
 /-
 `writeFrame(c, body)` (wire.go): `writeAll` of the frame of `body`, its length (8 bytes,
 little-endian) then `body` (`putB xs`, what `putBytes` writes), on a `Conn` `c` that is the end
-`s` of the TCP connection `cn` (`8 + len(body)` a Go `int`: the premise on `xs`'s length).
+`s` of the TCP connection `cn`. A body longer than `maxFrame` (`2^26`, which `readFrame` refuses) is
+not written: `false`, nothing written (2026-11-22, the coordinator's option (a): no length premise).
 Byte-level, as `writeAll.spec` at the frame's bytes: the caller's
 writer predicate `P` and accessor are over `putB xs`. `body` is read only, and given back.
 
@@ -34,7 +35,6 @@ variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 abbrev writeFrame.spec : Prop :=
   ∀ (c : GoInterface) (cn : Nat) (s : Bool) (a : GoString) (body : GoSlice) (xs : List w8)
     (dq : DFrac) (ed : GoInterface) (P : List w8 → Option NetErr → IProp GF),
-  (xs.length : Int) + 8 < 2 ^ 63 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet ∗
       net.isConn (GF := GF) c cn s a ∗ body ↦*{dq} xs ∗
       globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed ∗ P [] none ∗
@@ -48,7 +48,7 @@ abbrev writeFrame.spec : Prop :=
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.kvnet.writeFrame)) (Val #c))
       (Val #body))
   {{ (ok : Bool), RET #ok; ∃ (w : List w8) (res : Option NetErr), P w res ∗ body ↦*{dq} xs ∗
-      ⌜w <+: putB xs ∧ (ok = true → w = putB xs)⌝ }}
+      ⌜w <+: putB xs ∧ (ok = true → w = putB xs) ∧ (67108864 < xs.length → w = [])⌝ }}
 
 end spec
 

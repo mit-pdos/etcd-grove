@@ -35,7 +35,7 @@ abbrev Replica.propose.spec (F : KvFacts GF) (rep : Loc → w64 → IProp GF) : 
     (App (App (Val (r @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Replica.ty @!! go!"propose")) (Val #opsl))
       (Val #tmo))
   {{ (v : GoString) (ok : Bool), RET (PairV #v #ok);
-      ⌜(v.length : Int) + 9 < 2 ^ 63⌝ ∗ if ok then F.ansOp d v else iprop(True) }}
+      if ok then F.ansOp d v else iprop(True) }}
 
 end spec
 

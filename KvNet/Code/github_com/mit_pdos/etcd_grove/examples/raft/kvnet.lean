@@ -8561,9 +8561,10 @@ noncomputable def readFull.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
-/-- writeFrame writes body to c as one frame: its length (8 bytes, little-endian), then body.
+/-- writeFrame writes body to c as one frame: its length (8 bytes, little-endian), then body. A body
+    longer than maxFrame, which readFrame would refuse, is not written: false, nothing written.
 
-    go: wire.go:40:6 -/
+    go: wire.go:41:6 -/
 noncomputable def writeFrame.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "body"
@@ -8571,6 +8572,7 @@ noncomputable def writeFrame.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Val exceptionDo)
   (Let "body" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "body"))
   (Let "c" (App (Val (GoInstruction (GoAlloc _root_.Perennial.net.Conn.ty))) (Var "c"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Conn.ty))) (Var "c"))
   (Let "$a1" (Let "$a0" (App (App (App (Val (GoInstruction (FuncResolve go.make3 [(go.GoType.SliceType go.byte)]))) (Val #())) (Val #(W64 0))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (Val #(W64 8)) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "body"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))))))
@@ -8581,13 +8583,23 @@ noncomputable def writeFrame.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "body"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val maxFrame)))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
 /-- readFrame reads one frame from c and returns its body, a fresh slice; false on an error, the
     connection's end, or a length past maxFrame.
 
-    go: wire.go:46:6 -/
+    go: wire.go:50:6 -/
 noncomputable def readFrame.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
@@ -8669,7 +8681,7 @@ noncomputable def readFrame.impl [GooseExts] [GoGlobalContext] : val :=
 /-- putConfState appends cs to buf: the voters, learners, outgoing voters and next learners (each
     as putIDs writes them), then auto-leave (1 byte).
 
-    go: wire.go:70:6 -/
+    go: wire.go:74:6 -/
 noncomputable def putConfState.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "buf"
   (Lam "cs"
@@ -8727,7 +8739,7 @@ noncomputable def putConfState.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- getConfState reads back what putConfState wrote at the start of b.
 
-    go: wire.go:82:6 -/
+    go: wire.go:86:6 -/
 noncomputable def getConfState.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Let "cs" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Val #())))
@@ -8865,7 +8877,7 @@ noncomputable def getConfState.impl [GooseExts] [GoGlobalContext] : val :=
     leaves out m's Responses, which only a message a node sends itself has (never one in a Ready's
     Messages, with synchronous storage writes). The wire's copy, as kvdurable's copyMsg.
 
-    go: wire.go:99:6 -/
+    go: wire.go:103:6 -/
 noncomputable def putMsg.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "buf"
   (Lam "m"
@@ -9000,7 +9012,7 @@ noncomputable def putMsg.impl [GooseExts] [GoGlobalContext] : val :=
 /-- getMsg reads back what putMsg wrote, all of b; ok is false for bytes it did not write, or a
     message type raft does not have.
 
-    go: wire.go:127:6 -/
+    go: wire.go:131:6 -/
 noncomputable def getMsg.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Val #())))

@@ -98,8 +98,7 @@ theorem Replica.read.wp_proof
     try wp_auto
     iapply HΦ
     simp only [Bool.false_eq_true, ↓reduceIte]
-    iframe
-    ipureintro; decide
+    itrivial
   | none =>
   simp only [Option.isSome_none]
   try wp_auto
@@ -164,8 +163,6 @@ theorem Replica.read.wp_proof
     iapply HΦ
     simp only [↓reduceIte]
     icases kd_readAns_ok γ id seq key l0 v Hk64 $$ Hra Hl0 Hw with ⟨%L, #HL, %HLf⟩
-    isplitr
-    · ipureintro; exact Hvl
     unfold ansReadK
     iexists l0, L
     iframe Hra HL
@@ -234,8 +231,6 @@ theorem Replica.read.wp_proof
             iapply HΦ
             simp only [↓reduceIte]
             icases kd_readAns_ok γ id seq key l0 v Hk64 $$ Hra Hl0 Hw with ⟨%L, #HL, %HLf⟩
-            isplitr
-            · ipureintro; exact Hvl
             unfold ansReadK
             iexists l0, L
             iframe Hra HL
@@ -246,8 +241,7 @@ theorem Replica.read.wp_proof
       · try wp_auto
         iapply HΦ
         simp only [Bool.false_eq_true, ↓reduceIte]
-        iframe
-        ipureintro; decide
+        itrivial
     · try wp_auto
       wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked Hrep HmW HW Hwaiters HmR HRd Hreads]
       · inext
@@ -286,8 +280,6 @@ theorem Replica.read.wp_proof
             iapply HΦ
             simp only [↓reduceIte]
             icases kd_readAns_ok γ id seq key l0 v Hk64 $$ Hra Hl0 Hw with ⟨%L, #HL, %HLf⟩
-            isplitr
-            · ipureintro; exact Hvl
             unfold ansReadK
             iexists l0, L
             iframe Hra HL
@@ -298,8 +290,7 @@ theorem Replica.read.wp_proof
       · try wp_auto
         iapply HΦ
         simp only [Bool.false_eq_true, ↓reduceIte]
-        iframe
-        ipureintro; decide
+        itrivial
   iapply BigAndL.bigAndL_nil.2
   itrivial
 

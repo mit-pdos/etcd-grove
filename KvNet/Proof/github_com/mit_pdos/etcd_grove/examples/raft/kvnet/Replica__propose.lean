@@ -108,11 +108,9 @@ theorem Replica.propose.wp_proof
       iexists ap
       iframe Hap
       ipureintro; exact HA.2 d v HAd
-    have Hvl := HAfit d v HAd
     iapply HΦ
     simp only [↓reduceIte]
-    iframe Hw
-    ipureintro; exact Hvl
+    iexact Hw
   | none =>
     simp only [Option.isSome_none, decide_false, Bool.false_eq_true]
     try wp_auto
@@ -197,8 +195,7 @@ theorem Replica.propose.wp_proof
         icases Hgot with ⟨⟨#Hw, %Hvl⟩, -⟩
         iapply HΦ
         simp only [↓reduceIte]
-        iframe Hw
-        ipureintro; exact Hvl
+        iexact Hw
       iapply BigAndL.bigAndL_cons.2
       isplit
       · -- the timeout
@@ -265,16 +262,14 @@ theorem Replica.propose.wp_proof
                 icases Hgot with ⟨⟨#Hw, %Hvl⟩, -⟩
                 iapply HΦ
                 simp only [↓reduceIte]
-                iframe Hw
-                ipureintro; exact Hvl
+                iexact Hw
               · itrivial
             · iapply BigAndL.bigAndL_nil.2
               itrivial
           · try wp_auto
             iapply HΦ
             simp only [Bool.false_eq_true, ↓reduceIte]
-            iframe
-            ipureintro; decide
+            itrivial
       iapply BigAndL.bigAndL_nil.2
       itrivial
 
