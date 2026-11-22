@@ -165,6 +165,12 @@ def repP : Proto GF := fun cn W =>
   iprop(∃ (γ : SlotNames) (i : I) (v : GoInterface), ⌜W = frame (R.encOut v)⌝ ∗ slotOf cn γ i ∗
     (⌜v = R.unk i⌝ ∨ ∃ o, ⌜v = R.ov o⌝ ∗ doneLb (O := O) γ o))
 
+/-- The node at `a` serves calls: its address's protocols are `reqP` and `repP` (persistent). -/
+def remoteAddr (a : GoString) : IProp GF := addrProto (Gg := Gg) a (reqP R) (repP R)
+
+instance remoteAddr_persistent a : Persistent (remoteAddr R a) := by
+  unfold remoteAddr; infer_instance
+
 instance slotOf_persistent cn γ i : Persistent (slotOf (Gg := Gg) (I := I) cn γ i) := by
   unfold slotOf; infer_instance
 instance doneLb_persistent γ o : Persistent (doneLb (Gg := Gg) γ (O := O) o) := by
