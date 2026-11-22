@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Golang.Defn
+public import TrustedCode.github_com.dustin.go_humanize
 
 @[expose] public section
 
@@ -373,8 +374,10 @@ attribute [instance] RelTimeMagnitude.TypeAssumptions.type_repr
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   RelTimeMagnitude_instance : RelTimeMagnitude.TypeAssumptions
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
 
 attribute [instance] Assumptions.RelTimeMagnitude_instance
+  Assumptions.«init.0_unfold»
 
 end github_com.dustin.go_humanize
 
