@@ -11,7 +11,7 @@ token left:
   `netAddrFree`). The grpc and net/http transport axioms (`grpc.start`, `http.register`) rest on it
   until phase 7 (S2, S5) proves the transport over the net extension. Nothing produces it now: program
   start no longer hands out addresses (the retired single-process closed theorems were its only users);
-  `etcd_dist_safe`'s deployment premise is to give it. Consumed by `net.Listen` (into `netListenerAt`),
+  `etcd_safe`'s deployment premise is to give it. Consumed by `net.Listen` (into `netListenerAt`),
   so an address is listened on at most once in a run (`grpcAddrIs_agree`).
 * `netAddrFree addr` := `addrClaim addr ∗ netLisTok addr ∗ ⌜addrOk addr⌝`: the claim, the net
   extension's right to listen at `addr` (`netLisTok`, from its start resources) and `addr` a valid
@@ -35,6 +35,13 @@ open Iris Iris.BI Net
 
 /-- **The program's closed-world claim on the address `addr`** (exclusive; see the file header). -/
 axiom addrClaim {GF : BundledGFunctors} [GooseExts] (addr : GoString) : IProp GF
+
+/-- **The right to fix the HTTP protocol of the address `addr`** (exclusive; D39a, 2026-10-23,
+rafthttp stage 6a): `http.reserve` (`Proof/net/http/Axioms.lean`) consumes it, fixing the address's
+protocol before its listener exists (a raft member sends to its peers before they listen). Purely ghost:
+no Go operation consumes or needs it. Until the net swap (2026-11-22) program start gave it once per
+address, with `netAddrFree`; now nothing does (net/http's S5, or `etcd_safe`'s deployment, is to). -/
+axiom httpProtoFree {GF : BundledGFunctors} [GooseExts] (addr : GoString) : IProp GF
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]

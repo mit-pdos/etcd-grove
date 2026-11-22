@@ -1,4 +1,4 @@
-// Package dist runs etcd_dist_safe's deployments for real (notes/etcd-dist-plan.md, stage D1)
+// Package dist runs etcd_safe's deployments for real (notes/etcd-dist-plan.md, stage D1)
 // over examples/lib/robust: every member a process of server.Main on a
 // machine of its own, every workload a process of client.Main on a client machine of its own, all
 // started at once and connected by TCP through examples/lib/robust's network; meanwhile the environment
