@@ -1029,3 +1029,93 @@ stdlib translation: run goose with the toolchain the committed output came from 
 `PATH=/root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.26.3.linux-amd64/bin`, `GOTOOLCHAIN=local`), and build goose
 into a private `GOBIN` (not `/root/go/bin`, which other sessions use). A Perennial worktree builds standalone with the
 d648 worktree's `.lake/build` copied in and `.lake/packages/{iris,batteries,Qq}` symlinked to this worktree's.
+
+# Handoff (branch `wal-safe`, 2026-11-22, session 9 of etcd-grove-03's delegates): the hard-state laws proved; `io.CopyFiles` begun
+
+**State** (head after this note's commit): no axiom and no `sorry` added. Built green through the build slot:
+the WAL `Link` and the tester's `Adequacy` (3622 jobs, after every change below), plus `Proof.io.CopyRound`.
+`etc/tier-check.py --check`, `gen-init --check`, `gen-raft-tla --check` and `copy-part --check` pass.
+
+**Gone from `TOpen`:** `cloneHs` and `unmarshalHs` (`3d9c18c0b6`). The new module is
+`Proof/.../wal/RaftModel/LawsHsPb.lean`:
+- `walRaftP_cloneHs` proves `WalPbIn.CloneHsLaw walRaftP` from the trusted `proto.ClonePb.spec` at `pbHsC`.
+  `c' = c` holds because every hard state marshals. `hsOwnC_freeze` is the general-content form of
+  `walRaftHsO_freeze`.
+- The law is **narrowed to a non-nil source**, as the reviewer suggested (ledger 2026-11-22): `CloneHsLaw`
+  takes `p ≠ null`, and `WalHsOwn` gains `notNull`. `ReadAll` reads it before freezing `state`, which is never nil.
+- `walRaftHsO_unmarshal` proves `WalHsOwn.unmarshal` from `MustUnmarshalState`'s body and the trusted
+  `proto.UnmarshalPb.spec` at `pbHsC`. **Deviation from the brief:** it does not go through
+  `pbutil.MustUnmarshalMessagePb.spec`, because that spec module imports `etcdserver/apply` (about 390 more
+  modules in the WAL's cone). It mirrors the entries' `wp_MustUnmarshalMessage_ent`. The trust is the same,
+  since `MustUnmarshalMessagePb.wp_proof` is itself proved from `UnmarshalPb`.
+- `walRaftHsO_own` now takes `proto.UnmarshalPb.spec` and the `reset` law. `Adequacy` passes
+  `proto.ClonePb.wp_proof` and `proto.UnmarshalPb.wp_proof`, axioms the theorem already reached.
+
+**`io.CopyFiles.spec`: still a hypothesis.** No Perennial change was needed. Four prerequisites are landed on
+`wal-safe`:
+1. `5ecf7c90c6`: `Code/os.toml` translates the promoted `fileWithoutWriteTo.Read`/`SyscallConn` and
+   `fileWithoutReadFrom.Write`. Without their `MethodUnfold`s, `genericReadFrom`'s loop and `spliceToFile`'s
+   `getPollFDAndNetwork(fileWithoutWriteTo{f})` could not step. `Code/os.lean` was regenerated
+   (18 lines added; this touches the `Code.os` cone).
+2. `b3cd28644c`: package facts. `os` records `checkWrapErr ↦□ false`, read by `(*File).wrapErr` of a non-nil,
+   non-EOF error (`os.checkWrapErr_of_pkgInit`). `internal/poll` records `ErrFileClosing ↦□ e`, which
+   `wrapErr` compares with (`internal.poll.errFileClosing_of_pkgInit`). These live in `etc/gen-init.py`'s
+   SPECIAL, and every part's `Init` was regenerated.
+3. `bb99dff6fc`/`0ac4a5fde7`: **spec fix (ledger 2026-11-22).** `m.size < 2^62` became `< 2^61`. A source in
+   `[2^62 - 2^31, 2^62)` makes `model.copyFileRangeRound` panic, since `offMax ≤ soff + max` with
+   `max = 0x7ffff000`. `Repair` supplies the new bound from `Fs.maxBytes`.
+4. `a8387c413c`/`9c2bc0ad91`: proved lemmas:
+   - `Proof/io/CopyDefs.lean`: `io.cpOk` (the destination's `OsMeta` shape), `cpOk_pwPost` (a pwrite at the
+     end), `pwBytes_end_vals/len`, and `copyDst_intro/elim/mono/after`.
+   - `Proof/io/CopyRound.lean`: **`os.wp_cfrRound`**. One round over a destination `io.copyDst … (· = vs)`
+     at offset `|vs|` writes the source's next `k` bytes. It gives `k > 0` only with errno 0,
+     `k = 0 ∧ errno 0` only at the source's end, and `soff + k ≤ |bs|`.
+
+**In progress, outside the tree:** `/shared/tmp/coord-03/walsafe-wip/CopyPoll.lean` holds
+`os.wp_pollCFR`, the `model.pollCopyFileRange` loop. It ends in `io.cpG` (the copy's state at some `j'`),
+handled-with-nil only at the end. Proved so far:
+- the outer Löb (`iloeb` after 7 `wp_pure`; the written value is generalized with
+  `conv in (occs := 9)`, which is fragile);
+- the EINTR inner Löb (`IH2`, after the first `wp_auto` into the round);
+- the `k > 0` branch: `handleCopyFileRangeErr` stepped with `wp_func_call; wp_call` once its name is
+  rewritten to `internal.poll.handleCopyFileRangeErr` and `[internal.poll.Assumptions]` is in scope, then `IH`.
+
+Remaining there, the `k = 0` exit:
+- errno 0: `handle` gives `(written ≠ 0, nil)`, and the source is at its end (`hk2`).
+- errno ≠ 0: `handle` gives `(false, nil)` for ENOSYS/EXDEV/EINVAL/EIO/EOPNOTSUPP/EPERM, else `(true, Errno e)`.
+- Then the `lr` test (`null`) and `os.wrapSyscallError` (translated: a type assertion to `syscall.Errno`, then
+  `NewSyscallError`), which is nil exactly for a nil error.
+
+**Then, in order** (≈ 1–2 sessions; `notes/wal-fsext-plan.md`, "io.Copy log", has the Go path):
+1. `File.copyFileRange` on `fileWithoutWriteTo{f}`: `tryLimitedReader` (`*LimitedReader` fails, remain `2^63-1`),
+   the two assertions, `checkValid`, then `wp_pollCFR`.
+2. `spliceToFile`: `getPollFDAndNetwork` reaches the promoted `SyscallConn`, `File.SyscallConn`, `newRawConn`,
+   then the assertion to the `{Network, PollFD}` interface, which fails. Result: `(0, false, nil)`.
+3. `readFrom`.
+4. `File.wrapErr`: nil/EOF are returned as is; otherwise the `ErrFileClosing` comparison, `checkWrapErr = false`,
+   and a `&PathError`.
+5. The fallback, `genericReadFrom`, which is `copyBuffer`'s 32 KiB loop. It reads with `os.File.Read.wp_eof` (the
+   source's bytes from 0, any fraction) and writes with `os.File.Write.wp_long`/`wp_empty` (so the proof takes
+   `os.File.WriteAt.specLong`). It needs a lemma turning `Write`'s success post (`pwPost`, `PwOut` with `xs = []`)
+   into `io.copyDst_after`'s shape, and its error post (`pwPostE`/`PwOutA`) into `io.copyDst … (fun _ => True)`.
+6. `File.ReadFrom`, `File.writeTo` (the `*File` destination's `SyscallConn`; `rawConn` is no `PollFD`, so not
+   handled), `File.WriteTo`, `genericWriteTo`.
+7. `io.Copy`/`copyBuffer` twice: the `*LockedFile` source's `WriterTo` (promoted, `ptr_WriteTo_unfold`), then
+   `fileWithoutWriteTo`'s missing `WriterTo` and the `*File` destination's `ReaderFrom`.
+8. `theorem io.CopyFiles.wp_proof (wp_WriteAt : os.File.WriteAt.specLong) : io.CopyFiles.spec` in
+   `Proof/io/CopyFiles.lean`. Then regenerate the Links (`etc/gen-link.py --walfs`/`--wal-tester`, output
+   redirected) and drop `copyFiles` from `TOpen`.
+
+**`TOpen` now holds:** `decEnv`, `resetHs`, `isErrno`, `isPathErrnoEof`, `isPathErrnoNotExist`,
+`isPathErrnoTerm`, `hasPrefix`, `errorfErrsNot`, `errorfErrsTerm`, `copyFiles`, `unmarshalWalRecordE`,
+`formatBroken`. `Hinit_wp` is unchanged (B-4's decision).
+
+**Pitfalls (new).**
+- `etc/lean-check.py` needs `LAKE_OPTS=--packages=/shared/tmp/manifest-d64.json` once an imported file has
+  changed. Otherwise `lake setup-file` fails with "manifest out of date".
+- `wp_start` unrolls a model's first `rec:` iteration, which breaks a Löb setup. Instead, `iintro` the triple,
+  `unfold` the model, `wp_pure` up to the loop, and generalize its arguments (see `CopyPoll.lean`).
+- The `W64 (o + j)` casts elaborate as `W64 (↑o + ↑j)`. Use `push_cast` on the helper facts
+  (`os.cfr_natZ`, `os.cfr_W64_addI`), not `rw` with `W64 ↑(o + j)`.
+- `word` inside a proof whose context has many `sint.Z` facts gave a kernel "application type mismatch". The
+  arithmetic goes in standalone lemmas (`os.cfr_sumZ`, …).
