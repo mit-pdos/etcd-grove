@@ -33,7 +33,7 @@ theorem EtcdServer.ReportUnreachable.wp_proof :
     #Hsi, #Hcok, %HN, -⟩
   iunfold rnStepIfc at Hsi
   icases Hsi with ⟨%ni, %Hni, -, #HRU, -⟩
-  have Hni' : ni = ⟨go.GoType.PointerType node.ty, #γ.nl⟩ :=
+  have Hni' : ni = ⟨go.GoType.PointerType node.ty, #γ.nl.loc⟩ :=
     (GoInterface.ok.inj Hni).symm
   subst Hni'
   wp_auto

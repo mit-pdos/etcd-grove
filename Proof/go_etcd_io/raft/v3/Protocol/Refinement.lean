@@ -94,7 +94,7 @@ local macro "rd_mono" : tactic => `(tactic| (
 
 section ghost
 variable [GooseExts]
-variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [CrashGS GF]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 variable {md : Bool}
 
 theorem rdCount_replOk (id : w64) (s : PState) (ms : List Msg) (h : ∀ m ∈ ms, ReplOk id s m) :
@@ -103,6 +103,7 @@ theorem rdCount_replOk (id : w64) (s : PState) (ms : List Msg) (h : ∀ m ∈ ms
   intro m hm
   rcases h m hm with h' | h' <;> simp [h'.1]
 
+variable [CrashGS GF] in
 theorem propsOf_replOk (id : w64) (s : PState) (ms : List Msg) (h : ∀ m ∈ ms, ReplOk id s m) :
     propsOf ms = [] :=
   propsOf_eq_nil ms (fun m hm => by rcases h m hm with h' | h' <;> simp [h'.1])
@@ -172,8 +173,10 @@ private theorem outbox_snoc (γ : RaftNames) (id : w64) (s : PState) (πc : List
 /-- (stage II helpers) Projections of the protocol's state transformers, for `simp only ... at`. -/
 theorem padoptLeader_term (s : PState) (src : w64) : (padoptLeader s src).term = s.term := rfl
 theorem padoptLeader_outbox (s : PState) (src : w64) : (padoptLeader s src).outbox = s.outbox := rfl
+variable [CrashGS GF] in
 theorem padoptLeader_role (s : PState) (src : w64) : (padoptLeader s src).role = .follower := rfl
 
+variable [CrashGS GF] in
 /-- (stage II helper) `ownLogGhost_ack` with its outputs at a term `T` the state's term is equal to
 (for a state given as a record update, whose term is not syntactically `T`). -/
 theorem ownLogGhost_ack_at (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : DurMaps)
@@ -563,6 +566,7 @@ theorem commitIn_ackIn (γ : RaftNames) (ldr t : w64) (bL : entryID) (l fp F : L
     unfold ackIn; iright
     iexists ldr, bL, l; iframe Hp; ipureintro; omega
 
+variable [CrashGS GF] in
 /-- (2026-11-01, durability stage II(d), approved repair 1) `commitIn_ackIn` with the leader's full
 log (`ackInF`). -/
 theorem commitIn_ackInF (γ : RaftNames) (ldr t : w64) (bL : entryID) (l fp F : List EntryM)
@@ -609,6 +613,7 @@ theorem commitIn_ackInF (γ : RaftNames) (ldr t : w64) (bL : entryID) (l fp F : 
     unfold ackInF; iright
     iexists fp ++ l; iframe HLf; ipureintro; omega
 
+variable [CrashGS GF] in
 /-- `Step.appStale` and `Step.snapStale`: learn the leader, adopt it, and acknowledge the
 commit index -- with the witness that it is within the leader's log (`commitIn_ackIn`, which
 reads the vote table out of the commit invariant: hence the fancy update, 2026-10-16). -/
@@ -858,6 +863,7 @@ private theorem campOwn_leader (γ : RaftNames) (id : w64) (camps : GMap w64 (Li
 private theorem acksOk_leader (γ : RaftNames) (s : PState) (acks : GMap (w64 × w64) Unit) :
     s.role = .leader → ⊢ acksOk (GF := GF) γ s acks := by
   intro H; unfold acksOk; rw [H]; exact true_intro
+variable [CrashGS GF] in
 private theorem campOwn_cand (γ : RaftNames) (id : w64) (camps : GMap w64 (List EntryM × w64))
     (s : PState) (F : List EntryM) :
     s.role = .candidate → campOwn (GF := GF) γ id camps s F = iprop(⌜camps !! s.term = some (F, s.commit)⌝) := by
@@ -865,6 +871,8 @@ private theorem campOwn_cand (γ : RaftNames) (id : w64) (camps : GMap w64 (List
 
 -- END HELPERS (Lean addition)
 
+variable [CrashGS GF] in
+variable [CrashGS GF] in
 /-- (2026-11-11, trace-check Q8 stage 1 slice 25b) **A won election's last phase, pending**: from the
 candidate `s` whose win is registered and whose term log is allocated (`ownRaftGhost_step_win_reg`,
 then its wand), given `Step.win`'s remaining premises (the matched map, the broadcast `ms`) and the
@@ -884,6 +892,8 @@ def winPend (γ : RaftNames) (c : CfgM) (id : w64) (s : PState) (md : Bool) : IP
     ∀ E, ⌜↑(crashNs γ id) ⊆ E⌝ -∗ notCrashed -∗ ⧖ n ={E}=∗ notCrashed ∗
       ownRaftGhost γ id (psendMsgs (pwinState id s mt) ([pselfAck id (pwinState id s mt)] ++ ms)) md)
 
+variable [CrashGS GF] in
+variable [CrashGS GF] in
 /-- (2026-11-11, trace-check Q8 stage 1 slice 25b) **`Step.win` in three phases, the first**: the
 win's registration (`win_register`, election safety: the commit invariant's registry half open), the
 winners' table and the campaign record; it gives the new leader's `isLeader`, its campaign log
@@ -1494,6 +1504,7 @@ theorem ownRaftGhost_step_win_reg (γ : RaftNames) (c : CfgM) (id : w64) (s : PS
   · lcm_mono
   · iexact Hrd
 
+variable [CrashGS GF] in
 /-- (2026-11-11, trace-check Q8 stage 1 slice 25b) **The last phase of a win, taken**: `winPend`'s
 elimination, at the matched map `mt`, the broadcast `ms` and the receipt `⧖ n` covering the empty
 entry's index (a traced caller's, at the empty entry's `Replicate` line, with `appendEntry`'s receipt). -/
@@ -1517,6 +1528,8 @@ theorem ownRaftGhost_step_win_entry (E : CoPset) (γ : RaftNames) (c : CfgM) (id
   iunfold winPend at Hp
   iapply Hp $$ %mt %ms %n %Hpre %E %HE Hnc Hrcpt
 
+variable [CrashGS GF] in
+variable [CrashGS GF] in
 /-- `Step.win`: allocate the term log -- recording the candidate's base and log, and
 holding the leader's entry -- and acknowledge the old and the new last index. (2026-11-11, trace-check
 Q8 stage 1 slice 25b) The composition of its three phases: the registration
@@ -1548,6 +1561,7 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (id : w64)
   iapply ownRaftGhost_step_win_entry (⊤ \ ↑(raftRegN γ)) γ c id s mt ms n Hnw Hmt Hms Hce Htr Hdc Hrb
     crashNs_sub_reg $$ Hnc Hrcpt Hp
 
+variable [CrashGS GF] in
 /-- `Step.beat`: a heartbeat carries the leadership, a commit index the leader has, and
 the `Match` it is bounded by. -/
 theorem ownRaftGhost_step_beat (γ : RaftNames) (id : w64) (s : PState) (ms : List Msg) :
@@ -1624,6 +1638,7 @@ theorem ownRaftGhost_step_beat (γ : RaftNames) (id : w64) (s : PState) (ms : Li
   · lcm_mono
   · rd_mono
 
+variable [CrashGS GF] in
 /-- `Step.sendApps`: as `Step.win`'s broadcast. -/
 theorem ownRaftGhost_step_send_apps (γ : RaftNames) (c : CfgM) (id : w64) (s : PState)
     (ms : List Msg) :
@@ -1683,6 +1698,7 @@ theorem ownRaftGhost_step_send_apps (γ : RaftNames) (c : CfgM) (id : w64) (s : 
   · lcm_mono
   · rd_mono
 
+variable [CrashGS GF] in
 /-- `Step.propForward`: the forwarded proposal carries the received one's entries, and
 what it says of them (2026-10-10). -/
 theorem ownRaftGhost_step_prop_forward (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
@@ -1725,6 +1741,7 @@ theorem ownRaftGhost_step_prop_forward (γ : RaftNames) (id : w64) (s : PState) 
     simp only [Msg.mkV, Hty, ↓reduceIte]
     iexact Htk
 
+variable [CrashGS GF] in
 /-- `Step.appResp`: the new `Match` is the old one or the acknowledgement the message
 carries. -/
 theorem ownRaftGhost_step_app_resp (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
@@ -1773,6 +1790,7 @@ theorem ownRaftGhost_step_app_resp (γ : RaftNames) (id : w64) (s : PState) (m :
   · lcm_mono
   · rd_mono
 
+variable [CrashGS GF] in
 /-- `Step.reMatch` (2026-10-13): each new `Match` is `0` (acknowledged for free) or the
 peer's old one (acknowledged already). -/
 theorem ownRaftGhost_step_rematch (γ : RaftNames) (id : w64) (s : PState) (mt : GMap w64 w64) :
@@ -1811,6 +1829,7 @@ theorem ownRaftGhost_step_rematch (γ : RaftNames) (id : w64) (s : PState) (mt :
   · lcm_mono
   · rd_mono
 
+variable [CrashGS GF] in
 /-- `Step.commit`: a quorum of `Match`es at least `n` is a commit fact `cq`, which extends
 the global committed log (`commit_extend`, inside the invariant) -- the node's committed
 prefix is then `isCommitted`. -/
@@ -1978,6 +1997,7 @@ theorem ownRaftGhost_step_commit (γ : RaftNames) (c : CfgM) (id : w64)
   · iexact Hlcm
   · rd_mono
 
+variable [CrashGS GF] in
 /-- `Step.appStale`: back to follower of `m.src` in the same term, and acknowledge the
 commit index (within the leader's log by leader completeness: `ownRaftGhost_step_stale`). -/
 theorem ownRaftGhost_step_app_stale (γ : RaftNames) (id : w64) (s : PState) (m : Msg) :
@@ -1994,6 +2014,8 @@ theorem ownRaftGhost_step_app_stale (γ : RaftNames) (id : w64) (s : PState) (m 
   intro Hty Hfid Hterm Hrole
   exact ownRaftGhost_step_stale γ id s m (Or.inl Hty) Hfid Hterm Hrole
 
+variable [CrashGS GF] in
+variable [CrashGS GF] in
 /-- (2026-10-19, D21 M3) A follower's rejection of a leader's append, in a cluster with a non-empty
 bootstrap log, is of an index past the bootstrap log (both logs hold it, and the follower's commit
 index is at least its length), with a hint at least `1` (the walk stops at the bootstrap log's
@@ -2084,6 +2106,7 @@ theorem ownLogGhost_reject_ok (γ : RaftNames) (id : w64) (s : PState) (kl : Opt
   iexists γm, terms, fp, γw, wins
   iframe % # ∗
 
+variable [CrashGS GF] in
 /-- `Step.appReject`: back to follower of `m.src`; (2026-10-19, D21 M3) the rejection carries
 `ownLogGhost_reject_ok`'s facts. -/
 theorem ownRaftGhost_step_app_reject (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
@@ -2127,6 +2150,8 @@ theorem ownRaftGhost_step_app_reject (γ : RaftNames) (id : w64) (s : PState) (m
 
 /-! ### An acknowledged index is within a leader's log (2026-10-16, stage R8a) -/
 
+variable [CrashGS GF] in
+variable [CrashGS GF] in
 /-- At a leader, an `ackIn` of its term is at most its last index: the prefix the witness names is
 of its own term log (`leadLogOwn`: every index in the term log is at most the last index, and the
 campaign log `l0` is a prefix of the log: `ownLogGhost_prefix_within`). What the physical
@@ -2159,6 +2184,7 @@ theorem ownRaftGhost_ackIn_le (γ : RaftNames) (id : w64) (s : PState) (i : w64)
   · ipureintro; exact Hfollower_votes
   · ipureintro; exact Hrole_ok
 
+variable [CrashGS GF] in
 /-- (2026-10-19, D21 M3) A node's term at index `1`, if its log has one, is the bootstrap log's
 first entry's, `1`, once the bootstrap log is non-empty. -/
 theorem ownLogGhost_term1 (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : DurMaps) :
@@ -2195,6 +2221,7 @@ theorem ownLogGhost_term1 (γ : RaftNames) (id : w64) (s : PState) (kl : Option 
   iexists γm, terms, fp, γw, wins
   iframe % # ∗
 
+variable [CrashGS GF] in
 theorem ownRaftGhost_term1 (γ : RaftNames) (id : w64) (s : PState) :
     ⊢ ownRaftGhost (GF := GF) γ id s md -∗
       ⌜γ.reBoot ≠ [] → ∀ t0, plogTermAt s.base s.log (W64 1) = some t0 → uint.Z t0 ≤ 1⌝ ∗
@@ -2212,6 +2239,7 @@ theorem ownRaftGhost_term1 (γ : RaftNames) (id : w64) (s : PState) :
   · ipureintro; exact Hfollower_votes
   · ipureintro; exact Hrole_ok
 
+variable [CrashGS GF] in
 /-- (2026-10-19, D21 M3) With a non-empty bootstrap log a leader's last index is at least `2`:
 its campaign log holds the bootstrap log (`isCamp_boot`) and is a strict prefix of its full log
 (`campOwn`). -/
@@ -2247,6 +2275,7 @@ theorem ownLogGhost_leader_last (γ : RaftNames) (id : w64) (s : PState) (kl : O
   iexists γm, terms, fp, γw, wins
   iframe % # ∗
 
+variable [CrashGS GF] in
 theorem ownRaftGhost_leader_last (γ : RaftNames) (id : w64) (s : PState) :
     ⊢ ownRaftGhost (GF := GF) γ id s md -∗
       ⌜s.role = .leader → γ.reBoot ≠ [] → 2 ≤ plogLastIndexZ s.base s.log⌝ ∗
@@ -2264,6 +2293,7 @@ theorem ownRaftGhost_leader_last (γ : RaftNames) (id : w64) (s : PState) :
   · ipureintro; exact Hfollower_votes
   · ipureintro; exact Hrole_ok
 
+variable [CrashGS GF] in
 /-- (stage II helper) The event history only grows with the pending list. -/
 theorem virt_evs_prefix (W : DurMaps) (π : List Prom) : W.evs <+: (virt W π).evs := by
   induction π generalizing W with
@@ -2276,6 +2306,7 @@ theorem virt_evs_prefix (W : DurMaps) (π : List Prom) : W.evs <+: (virt W π).e
     | ack _ _ => exact List.prefix_append _ _
     | camp _ _ _ => exact List.prefix_refl _
 
+variable [CrashGS GF] in
 /-- (stage II helper) The event history's invariants, from the log ghost state. -/
 theorem ownLogGhost_evs (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : DurMaps) :
     ⊢ ownLogGhost (GF := GF) γ id s kl W -∗ ⌜EvsOk s.term W⌝ := by
@@ -2286,6 +2317,7 @@ theorem ownLogGhost_evs (γ : RaftNames) (id : w64) (s : PState) (kl : Option w6
 
 /-! ### Read-index: a node of term `T` dooms no record of `T` (2026-10-13) -/
 
+variable [CrashGS GF] in
 theorem ownLogGhost_ack_le (E : CoPset) (γ : RaftNames) (v : w64) (s : PState) (kl : Option w64)
     (γs : SlotNames) (V : DurMaps) (πc : List Prom) (t i : w64) :
     γ.reSlot !! v = some γs → ↑(slotN γ v) ⊆ E → ↑(crashNs γ v) ⊆ E →
@@ -2309,6 +2341,7 @@ theorem ownLogGhost_ack_le (E : CoPset) (γ : RaftNames) (v : w64) (s : PState) 
   have := Hevs.2.1 _ (Hp'.subset Hin)
   simpa [aevTerm] using this
 
+variable [CrashGS GF] in
 theorem ownLogGhost_not_doomed (E : CoPset) (γ : RaftNames) (v : w64) (s : PState) (kl : Option w64)
     (γs : SlotNames) (V : DurMaps) (πc : List Prom) (r : RqRec) :
     γ.reSlot !! v = some γs → ↑(slotN γ v) ⊆ E → ↑(crashNs γ v) ⊆ E →
@@ -2336,6 +2369,7 @@ theorem ownLogGhost_not_doomed (E : CoPset) (γ : RaftNames) (v : w64) (s : PSta
       cases hh
       exact hv
 
+variable [CrashGS GF] in
 theorem ownLogGhost_not_doomed_list (E : CoPset) (γ : RaftNames) (v : w64) (s : PState)
     (kl : Option w64) (γs : SlotNames) (V : DurMaps) (πc : List Prom) (recs : List RqRec) :
     γ.reSlot !! v = some γs → ↑(slotN γ v) ⊆ E → ↑(crashNs γ v) ⊆ E →
@@ -2358,6 +2392,7 @@ theorem ownLogGhost_not_doomed_list (E : CoPset) (γ : RaftNames) (v : w64) (s :
     · exact H1
     · exact H2 r' h
 
+variable [CrashGS GF] in
 /-- A heartbeat's position, acknowledged by a node of the heartbeat's term. -/
 theorem ownLogGhost_hbAck (E : CoPset) (γ : RaftNames) (v : w64) (s : PState) (kl : Option w64)
     (γs : SlotNames) (V : DurMaps) (πc : List Prom)
@@ -2375,6 +2410,7 @@ theorem ownLogGhost_hbAck (E : CoPset) (γ : RaftNames) (v : w64) (s : PState) (
   ipureintro
   exact ⟨hq, fun r hr => H r (List.mem_of_mem_take hr)⟩
 
+variable [CrashGS GF] in
 /-- A heartbeat's read-index part, at a node of its term, gives its response's. -/
 theorem ownLogGhost_hbResp (E : CoPset) (γ : RaftNames) (v : w64) (s : PState) (kl : Option w64)
     (γs : SlotNames) (V : DurMaps) (πc : List Prom)
@@ -2399,6 +2435,7 @@ theorem ownLogGhost_hbResp (E : CoPset) (γ : RaftNames) (v : w64) (s : PState) 
     iframe Hlb
     ipureintro; exact ⟨Hq.1, Hack⟩
 
+variable [CrashGS GF] in
 /-- `Step.heartbeat`: back to follower of `m.src`; the new commit index is the old one or
 the heartbeat's, which carries `isCommittedIdx` and which the rule's premise puts within
 the log. -/
@@ -2548,6 +2585,8 @@ theorem ownRaftGhost_step_heartbeat (γ : RaftNames) (id : w64) (s : PState) (m 
   · lcm_mono
   · rd_mono
 
+variable [CrashGS GF] in
+variable [CrashGS GF] in
 /-- `Step.appAccept`. The new log is the old one cut at the first conflict, if any, and
 the batch appended (`plogMaybeAppend_inv`); the batch is the leader's (`isMessage`'s
 `leadPrefix`). So the new log has records (the old ones below the cut; the leader's
@@ -3036,11 +3075,14 @@ private theorem entData_mapIdx_stampF (γ : RaftNames) (ents : List EntryM)
     iapply (BigSepL.bigSepL_cons (Φ := fun _ (e : EntryM) => entData (GF := GF) γ e)).2
     iframe He' Hes'
 
+variable [CrashGS GF] in
 private theorem entData_mapIdx_stamp (γ : RaftNames) (t L : w64) (ents : List EntryM) :
     ⊢ ([∗list] e ∈ ents, propData (GF := GF) γ e) -∗ ([∗list] e ∈ ents, entTk γ e) ==∗
       [∗list] x ∈ ents.mapIdx (stamp t L), entData γ x :=
   entData_mapIdx_stampF γ ents (stamp t L) (fun k e => ⟨t, L + W64 1 + W64 k, rfl⟩)
 
+variable [CrashGS GF] in
+variable [CrashGS GF] in
 /-- `Step.propose`: the stamped entries go into the leader's term log
 (`term_log_insert_stamped`), which gives each its `isEntryR` (the first after the old
 last entry, the rest after each other); the self-acknowledgement is the node's own to
@@ -3471,6 +3513,7 @@ theorem ownRaftGhost_step_propose (γ : RaftNames) (id : w64) (s : PState)
   · lcm_mono
   · rd_mono
 
+variable [CrashGS GF] in
 /-- `Step.snapStale`: back to follower of `m.src`, acknowledging the commit index --
 `Step.appStale`'s update. -/
 theorem ownRaftGhost_step_snap_stale (γ : RaftNames) (id : w64) (s : PState) (m : Msg) :
@@ -3487,6 +3530,7 @@ theorem ownRaftGhost_step_snap_stale (γ : RaftNames) (id : w64) (s : PState) (m
   intro Hty Hfid Hterm Hrole
   exact ownRaftGhost_step_stale γ id s m (Or.inr Hty) Hfid Hterm Hrole
 
+variable [CrashGS GF] in
 /-- `Step.snapFastfwd`: the new commit index is the snapshot's, which the message carries
 the commit fact for and the log reaches (it has the snapshot's last entry, which the
 leader's log has too). -/
@@ -3602,6 +3646,7 @@ theorem ownRaftGhost_step_snap_fastfwd (γ : RaftNames) (id : w64) (s : PState) 
   · lcm_mono
   · rd_mono
 
+variable [CrashGS GF] in
 /-- A snapshot message shows its prefix (2026-10-14, reconfiguration stage B8): some prefix of
 the full log, recorded (`logRecs`), ends at the snapshot's entry id -- the sender's committed
 prefix up to it (its leader prefix, `isMessage_snap_inv`, taken to the index), committed
@@ -3624,6 +3669,8 @@ theorem isMessage_snap_prefix (γ : RaftNames) (m : Msg) (Hty : m.ty = .snap) :
   iframe Hcm
   iapply logRecs_take $$ HrLf
 
+variable [CrashGS GF] in
+variable [CrashGS GF] in
 /-- `Step.snapRestore`: the log is replaced by the snapshot -- no entries after the new
 base, so no records to keep; the compacted prefix is the leader's full log up to the
 snapshot -- and the commit index becomes the snapshot's, which the message carries the
@@ -3805,6 +3852,7 @@ theorem ownRaftGhost_step_snap_restore (γ : RaftNames) (id : w64) (s : PState) 
 
 /-! ### Read-index rules (2026-10-13) -/
 
+variable [CrashGS GF] in
 /-- `Step.drain` with the drained messages' read credits handed out (2026-10-13): what
 `Ready` gives the transport with each `MsgReadIndex`. -/
 theorem ownRaftGhost_drain (γ : RaftNames) (id : w64) (s : PState) (o' out : List Msg)
@@ -3840,6 +3888,7 @@ theorem ownRaftGhost_drain (γ : RaftNames) (id : w64) (s : PState) (o' out : Li
   · lcm_mono
   · iexact Hrd
 
+variable [CrashGS GF] in
 /-- A step that changes only the outbox (growing by `ms`) and the read state: the read
 ghost state is updated by `Hupd`, which may consult the log ghost state. -/
 theorem ownRaftGhost_rd (γ : RaftNames) (id : w64) (s s' : PState) (ms : List Msg)
@@ -3875,6 +3924,7 @@ theorem ownRaftGhost_rd (γ : RaftNames) (id : w64) (s s' : PState) (ms : List M
   · lcm_mono
   · iexact Hrd
 
+variable [CrashGS GF] in
 /-- (2026-11-21) With the generation running (`notCrashed`, for an update that reads
 the slot against the view of the virtual maps).  A step that changes only the outbox (growing by `ms`) and the read state: the read
 ghost state is updated by `Hupd`, which may consult the log ghost state. -/
@@ -3912,12 +3962,14 @@ theorem ownRaftGhost_rdN (γ : RaftNames) (id : w64) (s s' : PState) (ms : List 
   · lcm_mono
   · iexact Hrd
 
+variable [CrashGS GF] in
 theorem isMessage_readIndex_tr (γ : RaftNames) (m m' : Msg) :
     m.ty = .readIndex → m'.ty = .readIndex → m'.entries = m.entries →
     ⊢ isMessage (GF := GF) γ m -∗ isMessage γ m' := by
   intro H H' He
   unfold isMessage; rw [H, H', He]; iintro H; iexact H
 
+variable [CrashGS GF] in
 theorem ownRaftGhost_step_read_fwd (γ : RaftNames) (id : w64) (s : PState) (m : Msg) :
     m.ty = .readIndex → s.role ≠ .leader → s.lead ≠ W64 0 →
     ⊢ isMessage (GF := GF) γ m -∗ rdCred γ 1 -∗ ownRaftGhost γ id s md ={⊤ \ ↑(raftRegN γ)}=∗
@@ -3943,6 +3995,7 @@ theorem ownRaftGhost_step_read_fwd (γ : RaftNames) (id : w64) (s : PState) (m :
   · iapply (BigSepL.bigSepL_nil).2; iempintro
   · rw [List.length_nil, rdCount_singleton, ite_eq_left Hty]; iexact Hcr
 
+variable [CrashGS GF] in
 theorem ownRaftGhost_step_read_pend (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
     (pm : MessageM) :
     m.ty = .readIndex → s.role = .leader →
@@ -3966,6 +4019,8 @@ theorem ownRaftGhost_step_read_pend (γ : RaftNames) (id : w64) (s : PState) (m 
   · rw [show [(pm, m.entries)].length + rdCount ([] : List Msg) = 1 from rfl]
     iexact Hcr
 
+variable [CrashGS GF] in
+variable [CrashGS GF] in
 /-- A request arriving at the leader, read at its commit index (its record `((c, commit),
 d)`, `rqRecOk`): appended to the term's registry with its credit (which bounds the new
 position), queued, and acknowledged by the leader itself, which is in no doom quorum of
@@ -4089,6 +4144,7 @@ theorem rdOwn_arrive (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64)
   iframe Hinv
   iexact Htk
 
+variable [CrashGS GF] in
 /-- `ownRaftGhost_rd`, with a resource `R` taken out of the update. -/
 theorem ownRaftGhost_rdR (γ : RaftNames) (id : w64) (s s' : PState) (ms : List Msg)
     (R : IProp GF) (Hs' : s' = { s with outbox := s.outbox ++ ms, rd := s'.rd }) :
@@ -4124,6 +4180,7 @@ theorem ownRaftGhost_rdR (γ : RaftNames) (id : w64) (s s' : PState) (ms : List 
   · lcm_mono
   · iexact Hrd
 
+variable [CrashGS GF] in
 /-- (2026-11-21) With the generation running (`notCrashed`, for an update that reads
 the slot against the view of the virtual maps).  `ownRaftGhost_rd`, with a resource `R` taken out of the update. -/
 theorem ownRaftGhost_rdRN (γ : RaftNames) (id : w64) (s s' : PState) (ms : List Msg)
@@ -4161,6 +4218,7 @@ theorem ownRaftGhost_rdRN (γ : RaftNames) (id : w64) (s s' : PState) (ms : List
   · lcm_mono
   · iexact Hrd
 
+variable [CrashGS GF] in
 /-- A request with its facts and credit arriving at the leader whose commit index is at an
 entry of its term. -/
 theorem ownRaftGhost_arrive (γ : RaftNames) (id : w64) (t : PState) (src : w64)
@@ -4179,6 +4237,7 @@ theorem ownRaftGhost_arrive (γ : RaftNames) (id : w64) (t : PState) (src : w64)
   iintro %kl %γs %V %πc %Hsn Hnc #Hslot Hvirt Hlg Hrd
   iapply rdOwn_arrive γ id t kl γs V πc ⟨t.commit, src, ents⟩ e c d Hsn Hr rfl He $$ Hnc Hslot Hvirt Hlg Hrd Hpd Hrec Hc1
 
+variable [CrashGS GF] in
 theorem ownRaftGhost_step_read_arrive (γ : RaftNames) (id : w64) (s : PState) (m : Msg) :
     m.ty = .readIndex → s.role = .leader →
     plogTermAt s.base s.log s.commit = some s.term →
@@ -4191,6 +4250,7 @@ theorem ownRaftGhost_step_read_arrive (γ : RaftNames) (id : w64) (s : PState) (
   rw [Hty]
   iapply ownRaftGhost_arrive γ id s m.src m.entries _ Hrole Hct (by rfl) $$ Hnc Hown Hm Hcr
 
+variable [CrashGS GF] in
 theorem ownRaftGhost_step_read_release (γ : RaftNames) (id : w64) (s : PState) :
     s.role = .leader → plogTermAt s.base s.log s.commit = some s.term →
     ⊢ notCrashed -∗ ownRaftGhost (GF := GF) γ id s md ={⊤ \ ↑(raftRegN γ)}=∗
@@ -4246,6 +4306,7 @@ theorem HbAckOk_prefix (v : w64) (k : Nat) (recs0 recs : List RqRec) :
   subst h
   exact HbAckOk_app v k recs0 more hk
 
+variable [CrashGS GF] in
 /-- Confirming every record of a list at once, given a confirmation of one from a resource `X`
 that the confirmations keep (2026-10-14, stage B5: in the dynamic mode `X` holds the vote table,
 which `lc_core` reads). -/
@@ -4268,6 +4329,8 @@ theorem confirm_all (γ : RaftNames) (T : w64) (Q : GSet w64) (X : IProp GF)
     iapply (BigSepL.bigSepL_cons).2
     iframe Hok1 Hoks
 
+variable [CrashGS GF] in
+variable [CrashGS GF] in
 /-- An acknowledgement of position `q` by `src` (a heartbeat response's, `HbAckOk` of a
 prefix of the term's registry), then the requests up to a position `N` a quorum
 acknowledged confirmed: each of their records is not doomed (`Hconf`: static,
@@ -4449,6 +4512,7 @@ theorem rdOwn_ack (γ : RaftNames) (id : w64) (s : PState) (src q N : w64)
       rw [Hx.2.1]
       iexact Hok
 
+variable [CrashGS GF] in
 /-- An answer, given its facts. -/
 theorem ownRaftGhost_respond (γ : RaftNames) (id : w64) (t : PState) (q : ReadReq) :
     ⊢ ownRaftGhost (GF := GF) γ id t md -∗ respFacts γ q ={⊤ \ ↑(raftRegN γ)}=∗
@@ -4495,6 +4559,7 @@ theorem ownRaftGhost_respond (γ : RaftNames) (id : w64) (t : PState) (q : ReadR
       simp only [reduceCtorEq, ↓reduceIte, Nat.zero_add]
       iexact Hz
 
+variable [CrashGS GF] in
 theorem ownRaftGhost_respondAll (γ : RaftNames) (id : w64) (qs : List ReadReq) :
     ∀ t, ⊢ ownRaftGhost (GF := GF) γ id t md -∗ ([∗list] q ∈ qs, respFacts γ q) ={⊤ \ ↑(raftRegN γ)}=∗
       ownRaftGhost γ id (preadRespondAll id t qs) md := by
@@ -4512,6 +4577,7 @@ theorem ownRaftGhost_respondAll (γ : RaftNames) (id : w64) (qs : List ReadReq) 
     imod ownRaftGhost_respond γ id t q $$ Hown Hq with Hown
     iapply ih $$ Hown Hqs
 
+variable [CrashGS GF] in
 theorem ownRaftGhost_step_read_ack (γ : RaftNames) (c : CfgM) (id : w64)
     (s : PState) (m : Msg) (N : w64) :
     m.ty = .heartbeatResp → m.dst = id → m.term = s.term → s.role = .leader → m.ctx ≠ [] →
@@ -4607,6 +4673,8 @@ theorem ownRaftGhost_step_read_ack (γ : RaftNames) (c : CfgM) (id : w64)
       iframe Hvirt Hlg Hrd' Hresp
   iapply ownRaftGhost_respondAll γ id _ _ $$ Hown Hresp
 
+variable [CrashGS GF] in
+variable [CrashGS GF] in
 /-- A request at a leader whose commit index is at an entry of its term, at a configuration whose
 only voter is the leader itself (2026-10-14, the single-voter read-index fix,
 `issues/raft-readindex-singleton-stale.md`): read at the commit index, confirmed by the leader's
@@ -4693,6 +4761,7 @@ theorem ownRaftGhost_single_confirm (γ : RaftNames) (c : CfgM) (id : w64) (s : 
     imodintro
     iframe Hnc Hvirt Hlg Hrd Hok
 
+variable [CrashGS GF] in
 /-- `StepC.readSingle`: the request confirmed at once (`ownRaftGhost_single_confirm`) and
 answered; its read credit is dropped. -/
 theorem ownRaftGhost_step_read_single (γ : RaftNames) (c : CfgM) (id : w64) (s : PState)
@@ -4715,6 +4784,7 @@ theorem ownRaftGhost_step_read_single (γ : RaftNames) (c : CfgM) (id : w64) (s 
   iframe Hpd Hok
   ipureintro; exact He
 
+variable [CrashGS GF] in
 /-- `StepC.readReleaseSingle`: the pending requests taken out with their facts, each confirmed
 at once (`ownRaftGhost_single_confirm`), then all answered; their credits are dropped. -/
 theorem ownRaftGhost_step_read_release_single (γ : RaftNames) (c : CfgM) (id : w64)
@@ -4771,6 +4841,7 @@ theorem ownRaftGhost_step_read_release_single (γ : RaftNames) (c : CfgM) (id : 
   iframe Hnc
   iapply ownRaftGhost_respondAll γ id _ _ $$ Hown Hrs
 
+variable [CrashGS GF] in
 theorem ownRaftGhost_step_read_state (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
     (e : EntryM) :
     m.ty = .readIndexResp → m.entries = [e] →
@@ -4801,6 +4872,7 @@ theorem ownRaftGhost_step_read_state (γ : RaftNames) (id : w64) (s : PState) (m
       from rfl]
     iexact Hz
 
+variable [CrashGS GF] in
 theorem ownRaftGhost_step_higherTerm (γ : RaftNames) (id : w64) (m : Msg) (s : PState)
     (Hlt : uint.Z s.term < uint.Z m.term) (Hto : m.dst = id)
     (Hfl : fromLeader m.ty = true → m.src ≠ id) :
@@ -4833,6 +4905,7 @@ theorem ownRaftGhost_step_higherTerm (γ : RaftNames) (id : w64) (m : Msg) (s : 
   · lcm_mono
   · rd_mono
 
+variable [CrashGS GF] in
 theorem ownRaftGhost_step_grantVote (γ : RaftNames) (id : w64) (m : Msg) (s : PState)
     (Hty : m.ty = .vote) (Hto : m.dst = id) (Hfrom : m.src ≠ W64 0) (Hterm : m.term = s.term)
     (Hcan : PCanVote s m.src)
@@ -4965,6 +5038,7 @@ theorem ownRaftGhost_step_grantVote (γ : RaftNames) (id : w64) (m : Msg) (s : P
     · lcm_mono
     · rd_mono
 
+variable [CrashGS GF] in
 theorem ownRaftGhost_step_rejectVote (γ : RaftNames) (id : w64) (m : Msg) (s : PState) (Hty : m.ty = .vote) (Hto : m.dst = id) :
     ⊢ ([∗list] m ∈ ([m] : List Msg), isMessage (GF := GF) γ m) -∗ rdCred γ (rdCount ([m] : List Msg)) -∗
       ownRaftGhost γ id s md ={⊤ \ ↑(raftRegN γ)}=∗ ownRaftGhost γ id (psendMsgs s [Msg.plain .voteResp id m.src s.term true]) md := by
@@ -4989,6 +5063,7 @@ theorem ownRaftGhost_step_rejectVote (γ : RaftNames) (id : w64) (m : Msg) (s : 
   · lcm_mono
   · rd_mono
 
+variable [CrashGS GF] in
 theorem ownRaftGhost_step_recordVote (γ : RaftNames) (id : w64) (m : Msg) (s : PState)
     (Hty : m.ty = .voteResp) (Hto : m.dst = id) (Hterm : m.term = s.term)
     (Hrole : s.role = .candidate) :
@@ -5024,6 +5099,7 @@ theorem ownRaftGhost_step_recordVote (γ : RaftNames) (id : w64) (m : Msg) (s : 
   · lcm_mono
   · rd_mono
 
+variable [CrashGS GF] in
 theorem ownRaftGhost_step_lose (γ : RaftNames) (c : CfgM) (id : w64) (s : PState) (Hrole : s.role = .candidate) (Hnq : JLost c s.votes) :
     ⊢ ([∗list] m ∈ ([] : List Msg), isMessage (GF := GF) γ m) -∗ rdCred γ (rdCount ([] : List Msg)) -∗
       ownRaftGhost γ id s md ={⊤ \ ↑(raftRegN γ)}=∗ ownRaftGhost γ id (pbecomeFollower s s.term (W64 0)) md := by
@@ -5048,6 +5124,7 @@ theorem ownRaftGhost_step_lose (γ : RaftNames) (c : CfgM) (id : w64) (s : PStat
   · lcm_mono
   · rd_mono
 
+variable [CrashGS GF] in
 /-- `StepR.stepDown` (2026-10-14, stage B5): a leader becomes a follower at its term. Its
 term log, commit lower bound and read registry are dropped (`ownLogGhost_stepDown`,
 `lcmOwn_mono'`, `rdOwn_mono'`); its known leader (itself) stays known. -/
@@ -5078,6 +5155,7 @@ theorem ownRaftGhost_step_stepDown (γ : RaftNames) (id : w64) (s : PState)
   · iapply rdOwn_mono' γ id s (pbecomeFollower s s.term (W64 0)) (fun h => by cases h) (fun _ => Or.inl rfl) (Int.le_refl _) rfl rfl
       (Nat.le_refl _) (List.Subperm.refl _) (fun h => by cases h) $$ Hrd
 
+variable [CrashGS GF] in
 theorem ownRaftGhost_step_drain (γ : RaftNames) (id : w64) (s : PState) (o' : List Msg) (Hsub : o'.Subperm s.outbox) :
     ⊢ ([∗list] m ∈ ([] : List Msg), isMessage (GF := GF) γ m) -∗ rdCred γ (rdCount ([] : List Msg)) -∗
       ownRaftGhost γ id s md ={⊤ \ ↑(raftRegN γ)}=∗ ownRaftGhost γ id ({ s with outbox := o' }) md := by
@@ -5106,6 +5184,7 @@ theorem ownRaftGhost_step_drain (γ : RaftNames) (id : w64) (s : PState) (o' : L
   · lcm_mono
   · rd_mono
 
+variable [CrashGS GF] in
 theorem ownRaftGhost_step_takeReads {E : CoPset} (γ : RaftNames) (id : w64) (s : PState) :
     ⊢ ([∗list] m ∈ ([] : List Msg), isMessage (GF := GF) γ m) -∗ rdCred γ (rdCount ([] : List Msg)) -∗
       ownRaftGhost γ id s md ={E}=∗ ownRaftGhost γ id ({ s with rd := { s.rd with states := [] } }) md := by
@@ -5128,6 +5207,7 @@ theorem ownRaftGhost_step_takeReads {E : CoPset} (γ : RaftNames) (id : w64) (s 
   · lcm_mono
   · iexact Hrd
 
+variable [CrashGS GF] in
 theorem ownRaftGhost_step_sendFree (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
     (Hfree : m.ty = .preVote ∨ m.ty = .preVoteResp) (Hfrom : m.src = id) :
     ⊢ ([∗list] m ∈ ([] : List Msg), isMessage (GF := GF) γ m) -∗ rdCred γ (rdCount ([] : List Msg)) -∗
@@ -5158,6 +5238,7 @@ theorem ownRaftGhost_step_sendFree (γ : RaftNames) (id : w64) (s : PState) (m :
   · lcm_mono
   · rd_mono
 
+variable [CrashGS GF] in
 theorem ownRaftGhost_step_abandon (γ : RaftNames) (id : w64) (s : PState) (Hrole : s.role ≠ .leader) :
     ⊢ ([∗list] m ∈ ([] : List Msg), isMessage (GF := GF) γ m) -∗ rdCred γ (rdCount ([] : List Msg)) -∗
       ownRaftGhost γ id s md ={⊤ \ ↑(raftRegN γ)}=∗ ownRaftGhost γ id (pbecomeFollower s s.term (W64 0)) md := by
@@ -5181,6 +5262,7 @@ theorem ownRaftGhost_step_abandon (γ : RaftNames) (id : w64) (s : PState) (Hrol
   · lcm_mono
   · rd_mono
 
+variable [CrashGS GF] in
 theorem ownRaftGhost_step_zeroAck (γ : RaftNames) (id : w64) (s : PState) (dst : w64) :
     ⊢ ([∗list] m ∈ ([] : List Msg), isMessage (GF := GF) γ m) -∗ rdCred γ (rdCount ([] : List Msg)) -∗
       ownRaftGhost γ id s md ={⊤ \ ↑(raftRegN γ)}=∗ ownRaftGhost γ id (psendMsgs s [Msg.mk .appResp id dst s.term false
@@ -5208,6 +5290,7 @@ theorem ownRaftGhost_step_zeroAck (γ : RaftNames) (id : w64) (s : PState) (dst 
   · lcm_mono
   · rd_mono
 
+variable [CrashGS GF] in
 /-- `Step.campaign` (extracted from `ownRaftGhost_stepC` on 2026-10-14, stage B5, with the step's
 environment `dynEnv`, whose dynamic part gives the campaign's I1; it also returns the campaign
 record of the full log at the commit index, which the dynamic refinement keeps for a candidate). -/
@@ -5383,6 +5466,7 @@ theorem regs_frame {A B C D : IProp GF} (γ : RaftNames)
   imodintro
   iframe Hregs Hd
 
+variable [CrashGS GF] in
 /-- Opening the commit invariant's registry half around a ghost step, with one later credit
 (2026-10-14, stage R): the step may commit several times (a derivation of the transitive
 closure), each commit firing updates that live under the invariant's later, so the half stays
@@ -5400,6 +5484,7 @@ theorem regs_open (γ : RaftNames) (P Q : IProp GF) :
   imodintro
   iexact HQ
 
+variable [CrashGS GF] in
 theorem ownRaftGhost_inv_md (γ : RaftNames) (id : w64) (s : PState) :
     ⊢ ownRaftGhost (GF := GF) γ id s md -∗ raftCommitInv γ := by
   unfold ownRaftGhost
@@ -5420,6 +5505,7 @@ def lastRec (γ : RaftNames) (L : Int) : IProp GF :=
 instance lastRec_persistent (γ : RaftNames) (L : Int) : Persistent (lastRec (GF := GF) γ L) := by
   unfold lastRec; infer_instance
 
+variable [CrashGS GF] in
 /-- The time receipt of a last index past the bootstrap log (`isEntry_receipt`). -/
 theorem lastRec_receipt (γ : RaftNames) (L : Int) :
     ⊢ lastRec (GF := GF) γ L ==∗ ⧖ (L.toNat - γ.reBoot.length) := by
@@ -5429,6 +5515,7 @@ theorem lastRec_receipt (γ : RaftNames) (L : Int) :
     iapply (preceipt_zero (GF := GF))
   · rw [← Hi]; iapply isEntry_receipt γ e $$ He
 
+variable [CrashGS GF] in
 /-- The node's last index is `0` or has a record (2026-10-18, D19b stage 5): the last entry's
 (`logRecs`), or the base's, a snapshot's entry (`isSnapMeta`); and it fits a word. What
 `raft.Step` starts a step's receipt from (`lastRec_receipt`). -/
@@ -5473,12 +5560,14 @@ theorem rcpt_frame {P : IProp GF} {k : Nat} (h : ⊢ P) : ⊢ ⧖ k -∗ P := by
   iintro -
   iapply h
 
+variable [CrashGS GF] in
 /-- A step that consumes no proposal drops the received messages' tickets (D21 M6). -/
 theorem tks_drop {k : Nat} {R A B T C D : IProp GF} {E : CoPset}
     (h : ⊢ ⧖ k -∗ R -∗ A -∗ B -∗ C ={E}=∗ D) : ⊢ ⧖ k -∗ R -∗ A -∗ B -∗ T -∗ C ={E}=∗ D := by
   iintro Hk Hr Ha Hb - Hc
   iapply h $$ Hk Hr Ha Hb Hc
 
+variable [CrashGS GF] in
 /-- A step that needs no crash token keeps it. -/
 theorem nc_frame {k : Nat} {R A B T C D : IProp GF} {E : CoPset}
     (h : ⊢ ⧖ k -∗ R -∗ A -∗ B -∗ T -∗ C ={E}=∗ D) :
@@ -5488,6 +5577,8 @@ theorem nc_frame {k : Nat} {R A B T C D : IProp GF} {E : CoPset}
   imodintro
   iframe
 
+variable [CrashGS GF] in
+variable [CrashGS GF] in
 /-- The refinement (2026-10-14, reconfiguration stage B2: at a configuration `c`, the
 relation `StepC`), with the commit invariant's registry half open (2026-10-14, stage R): a
 protocol step updates the node's ghost state, given the messages it consumed and their read
@@ -5685,6 +5776,7 @@ theorem ownRaftGhost_stepC_in (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) 
     · iapply dynEnv_static γ id c s HC
     imodintro; iframe Hnc Hregs Hown
 
+variable [CrashGS GF] in
 /-- The refinement (see `ownRaftGhost_stepC_in`), at `⊤`, given one later credit (2026-10-14,
 stage R): the commit invariant's registry half opened around the step (`regs_open`). -/
 theorem ownRaftGhost_stepC (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (id : w64)

@@ -5,7 +5,7 @@
 theorem node.ReadIndex.wp_proof [package_sem : Assumptions] (wp_node_step : node.step.spec)
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec) : node.ReadIndex.spec
   -- `Perennial.EtcdGrove.node.ReadIndex.spec`, unfolded:
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (rctx : GoSlice) (c : List w8) (Q : List LogEntry → IProp GF)
+  ∀ (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (rctx : GoSlice) (c : List w8) (Q : List LogEntry → IProp GF)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
     γ.trace = none →
       ⊢
@@ -18,7 +18,7 @@ theorem node.ReadIndex.wp_proof [package_sem : Assumptions] (wp_node_step : node
               WP
                 (((intoVal
                       (methods node.ty.PointerType go!"ReadIndex"
-                        (intoVal n)))
+                        (intoVal n.loc)))
                     (intoVal (GoInterface.ok ctx)))
                   (intoVal rctx))
                 {{ Φ }}

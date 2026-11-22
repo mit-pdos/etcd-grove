@@ -138,7 +138,7 @@ at a restart the WAL snapshot's `ConfState`, `bootstrap.go:449-478`; nothing at 
 lower bound of the storage's snapshot (`memSnapLb γs 0`, the writers' handle; a first start's from
 `memSnapNone`) and the storage's invariant. -/
 def rnSnapOnceR (rg : GName) (cl : Cluster) (nk : GName) (ms : Loc) (γs : MemStorNames) (i t : w64)
-    (γ : ServerRaftNames) (A₀ : List EntryModel) (applied : GName) (n : Loc) (boot : Nat) : IProp GF :=
+    (γ : ServerRaftNames) (A₀ : List EntryModel) (applied : GName) (n : NodeH) (boot : Nat) : IProp GF :=
   iprop(∀ Φ : val → IProp GF,
     ▷ (∀ (sn pm cs : Loc) (sv : SnapshotM),
       ⌜sv.Metadata'.Index' = i ∧ sv.Metadata'.Term' = t ∧ pm ≠ null ∧ cs ≠ null ∧ boot ≤ uint.nat i⌝ -∗
@@ -604,7 +604,7 @@ theorem applyBuiltOn_C (γa : auth.AuthNames) (s : Loc) (γ : ApplyNames) (ci : 
 
 /-- **A first start's `Hsnap` gives the restart form at `A₀ = []`**. -/
 theorem rnSnapOnceR_first (rg : GName) (cl : Cluster) (nk : GName) (ms : Loc) (γs : MemStorNames)
-    (i t : w64) (γ : ServerRaftNames) (applied : GName) (n : Loc) (boot : Nat) :
+    (i t : w64) (γ : ServerRaftNames) (applied : GName) (n : NodeH) (boot : Nat) :
     rnSnapOnce (GF := GF) rg cl nk ms γs i t applied n boot ⊢ rnSnapOnceR rg cl nk ms γs i t γ [] applied n boot := by
   iintro H
   iunfold rnSnapOnceR

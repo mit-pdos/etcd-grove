@@ -150,12 +150,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 private theorem node.wp_ReportSnapshot_impl
     (hR : EtcdGrove.node.ReportSnapshot.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.ReportSnapshot.spec (GF := GF) (hG := hG) := by
-  unfold EtcdGrove.node.ReportSnapshot.spec EtcdGrove.Cluster EtcdGrove.isNode
+  unfold EtcdGrove.node.ReportSnapshot.spec EtcdGrove.Cluster EtcdGrove.NodeH EtcdGrove.NodeH.loc EtcdGrove.isNode
   intro n γ N id to status Htr
   iintro %Φ ⟨#Hinit, #Hnode⟩ HΦ
   iunfold isNode at Hnode
   icases Hnode with ⟨%γn, %Hf, #Hrn, -⟩
-  iapply (hR γn id n to status (by rw [Hf.1]; exact Htr)) $$ []
+  iapply (hR γn id n.loc to status (by rw [Hf.1]; exact Htr)) $$ []
   · iframe Hinit Hrn
   iexact HΦ
 

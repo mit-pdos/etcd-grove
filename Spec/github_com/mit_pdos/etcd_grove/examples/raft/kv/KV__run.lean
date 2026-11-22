@@ -39,7 +39,7 @@ variable [KVStor GF]
 
 /-- See the file header. -/
 abbrev KV.run.spec : Prop :=
-  ∀ (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc) (send : GoFunc) (K : GName),
+  ∀ (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n : NodeH) (st : Loc) (send : GoFunc) (K : GName),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kv ∗
       isReplica γr γp r id n st ∗
       -- the node's driver token, idle at its start, on the store's storage, and its view of its

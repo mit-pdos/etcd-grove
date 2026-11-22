@@ -36,13 +36,13 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- The node `nd` (see the file header). -/
 def isNodeS (F : KvFacts GF) (rep : Loc → w64 → IProp GF) (nd : Loc) (γ : Cluster) (N : Namespace)
-    (id : w64) (n : Loc) : IProp GF :=
+    (id : w64) (n : NodeH) : IProp GF :=
   iprop(∃ (r t sp : Loc),
     nd.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Node, go!"r"] ↦□ r ∗
     nd.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Node, go!"t"] ↦□ t ∗
     nd.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Node, go!"stats"] ↦□ sp ∗ isStats sp ∗
     r.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Replica, go!"node"] ↦□
-      interface.mkOk (go.GoType.PointerType node.ty) #n ∗
+      interface.mkOk (go.GoType.PointerType node.ty) #n.loc ∗
     □ rep r id ∗ isTransportCore F t γ N id n)
 
 instance isNodeS_persistent F rep nd γ N id n : Persistent (isNodeS (GF := GF) F rep nd γ N id n) := by

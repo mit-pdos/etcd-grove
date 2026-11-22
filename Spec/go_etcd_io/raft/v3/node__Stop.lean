@@ -31,10 +31,10 @@ stage II (n): `Stop` gives it back itself, from `run`'s answer on `stop`), for a
 (2026-11-21, the crash invariant) The vacancy comes back armed (`nodeVacantA`), at the arm the node
 was started from (`nodeArm`, which `StartNode`/`RestartNode` gave: `nodeArm_agree`). -/
 abbrev node.Stop.spec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64),
+  ∀ (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗
       nodeRunning n γ N 1 }}
-    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Stop")) (Val #()))
+    (App (Val (n.loc @!! go.GoType.PointerType node.ty @!! go!"Stop")) (Val #()))
   {{ RET #(); nodeStopped n γ N ∗ ∃ x, nodeVacantA γ id x ∗ nodeArm n γ x }}
 
 end spec

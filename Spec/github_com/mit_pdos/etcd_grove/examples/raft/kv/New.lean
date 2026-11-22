@@ -35,7 +35,7 @@ variable [KVStor GF]
 
 /-- See the file header. -/
 abbrev New.spec : Prop :=
-  ∀ (γr : RKVNames) (id : w64) (n st : Loc) (send : GoFunc) (K : GName),
+  ∀ (γr : RKVNames) (id : w64) (n : NodeH) (st : Loc) (send : GoFunc) (K : GName),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kv ∗ rkvInv γr ∗
       -- node `id` of the store's cluster, its driver token idle at its start on the store's
       -- storage, its view of its configuration at the voters' membership, nothing applied
@@ -54,7 +54,7 @@ abbrev New.spec : Prop :=
       -- (raft-entsize §2, 2026-11-09) no bound on proposed data (the replica's `%Hmd`)
       ⌜γr.cluster.maxData = none⌝ }}
     (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.kv.New))
-      (Val #id)) (Val #(interface.mkOk (go.GoType.PointerType node.ty) #n))) (Val #st))
+      (Val #id)) (Val #(interface.mkOk (go.GoType.PointerType node.ty) #n.loc))) (Val #st))
       (Val #send))
   {{ (r : Loc), RET #r; ∃ γp : RepNames, isKV γr γp r }}
 

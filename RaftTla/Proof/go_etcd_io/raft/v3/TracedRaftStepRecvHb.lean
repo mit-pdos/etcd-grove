@@ -28,12 +28,13 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 TraceSim
 
 section ghost
 variable [GooseExts]
-variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [CrashGS GF]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-- An empty full prefix at the zero base. -/
 theorem fullOk_base0_nil : FullOk base0 ([] : List EntryM) :=
   ⟨by simp [base0_index], by intro k e h; simp at h, rfl⟩
 
+variable [CrashGS GF] in
 /-- A heartbeat's raft facts (`Refinement.lean`'s private `isMessage_heartbeat_inv`). -/
 theorem isMessage_hb_inv (γ : RaftNames) (m : Msg) :
     m.ty = .heartbeat →
@@ -50,6 +51,7 @@ theorem isMessage_hb_inv (γ : RaftNames) (m : Msg) :
   unfold isMessage; rw [Hty]
   iintro H; iexact H
 
+variable [CrashGS GF] in
 /-- **A heartbeat's commit certificates, moved to the receiver's log** (raft's
 `ownRaftGhost_step_heartbeat`'s commit bullets, without the step): at a non-leader of the heartbeat's
 term with an uncompacted log, raft's ghost state and the heartbeat's facts give, persistently, the
@@ -199,6 +201,7 @@ theorem hbRecvSt_eq (σ : Etcdraft.State) (ma : Etcdraft.Msg) :
   exact withLead_reply_upd σ ma.dest ma.source
     (fun v => { v with commitIndex := max v.commitIndex ma.commitIndex }) (hbResp (σ.s ma.dest) ma.dest ma.source) ma
 
+variable [CrashGS GF] in
 /-- The specification's handling of a heartbeat at a follower of its term (`receive_heartbeat`'s). -/
 theorem handleAER_hb (σ : Etcdraft.State) (ma : Etcdraft.Msg) (hf : (σ.s ma.dest).state = Etcdraft.follower)
     (hterm : ma.term = (σ.s ma.dest).currentTerm) (hsub : ma.subtype = "heartbeat")

@@ -121,12 +121,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 private theorem node.wp_Status_impl
     (hS : EtcdGrove.node.Status.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.Status.spec (GF := GF) (hG := hG) := by
-  unfold EtcdGrove.node.Status.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.statusOwn
+  unfold EtcdGrove.node.Status.spec EtcdGrove.Cluster EtcdGrove.NodeH EtcdGrove.NodeH.loc EtcdGrove.isNode EtcdGrove.statusOwn
   intro n γ N id
   iintro %Φ ⟨#Hinit, #Hnode⟩ HΦ
   iunfold isNode at Hnode
   icases Hnode with ⟨%γn, -, #Hrn, -⟩
-  iapply (hS γn id n) $$ []
+  iapply (hS γn id n.loc) $$ []
   · iframe Hinit Hrn
   iexact HΦ
 

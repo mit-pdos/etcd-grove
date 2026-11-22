@@ -25,14 +25,14 @@ variable [go_gctx : GoGlobalContext] [go.IntoValInj GoString]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
 
 attribute [local instance] kdStorageModel
 
 /-- See the file header. -/
 abbrev Replica.ticker.spec : Prop :=
-  ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r n st sts sq : Loc) (ρ : KdRepNames),
-  {{ isReplicaR γ vs dir id r n st sts sq ρ ∗ handoffProducer ρ.td false }}
+  ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r : Loc) (n : NodeH) (st sts sq : Loc) (ρ : KdRepNames),
+  {{ isReplicaR γ vs dir id r n st sts sq ρ ∗ handoffProducer (GF := GF) ρ.td false }}
     (App (Val (r @!! go.GoType.PointerType kReplicaTy @!! go!"ticker")) (Val #()))
   {{ RET #(); True }}
 

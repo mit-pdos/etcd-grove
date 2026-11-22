@@ -36,13 +36,13 @@ variable [go_gctx : GoGlobalContext] [go.IntoValInj GoString]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
 
 attribute [local instance] kdStorageModel
 
 /-- **`run`'s loop invariant** (see the file header); `pp`, `lp`, `sp`, `hp`, `rp` its `pending`,
 `lead`, `snapIndex`, `hs` and `rafted`. -/
-def runInv (γ : KdNames) (r n st : Loc) (ρ : KdRepNames) (pp lp sp hp rp : Loc) : IProp GF :=
+def runInv (γ : KdNames) (r : Loc) (n : NodeH) (st : Loc) (ρ : KdRepNames) (pp lp sp hp rp : Loc) : IProp GF :=
   iprop(∃ (D : List LogEntry) (hd : HardStateM) (S : RaftState) (role : StateType)
       (ap : List LogEntry) (csp mA : Loc) (m : Membership) (A : GMap (List w8) (List w8))
       (snapIndex rafted : w64) (c : Nat) (pv : GoSlice) (ps : List ReadState) (lead : Bool) (hsp : Loc),
@@ -89,7 +89,7 @@ theorem skippedIn_shrink (γc : Cluster) (l : List LogEntry) (a b b' : Nat) (h :
 
 /-- The invariant at the start (`runStart`: the node as `RestartNode` left it, `pending` nil, `lead`
 false). -/
-theorem runInv_init (γ : KdNames) (id : w64) (r n st : Loc) (ρ : KdRepNames) (l ap : List LogEntry)
+theorem runInv_init (γ : KdNames) (id : w64) (r : Loc) (n : NodeH) (st : Loc) (ρ : KdRepNames) (l ap : List LogEntry)
     (hs : HardStateM) (S : RaftState) (m : Membership) (pp lp sp hp rp hsp : Loc)
     (snapIndex rafted : w64) (Hraf : uint.nat rafted = l.length)
     (Hsi : ap.length ≤ uint.nat snapIndex ∨ snapIndex = W64 ap.length) :

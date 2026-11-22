@@ -30,13 +30,13 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KvrStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KvrStor GF]
 
 attribute [local instance] kvrStorageModel
 
 /-- See the file header. -/
 abbrev newReplica.spec : Prop :=
-  ∀ (γr : RNames) (vs : List w64) (id : w64) (n st sts cs0 : Loc) (tick : time.Duration)
+  ∀ (γr : RNames) (vs : List w64) (id : w64) (n : NodeH) (st sts cs0 : Loc) (tick : time.Duration)
     (f : GoFunc) (ms : Loc) (γs : MemStorNames) (hs : HardStateM) (K : GName),
   0 < sint.Z tick → vs.Nodup → (vs.length : Int) < 2 ^ 61 →
   confStateIs (bootCS vs) (Membership.simple (GMap.listToSet vs)) →
@@ -54,7 +54,7 @@ abbrev newReplica.spec : Prop :=
       -- (auth-lease S4, 2026-11-16) outside raft's no-snapshot mode (`isReplica`'s)
       ⌜¬ clusterNoSnap γr.cluster⌝ }}
     (App (App (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.newReplica))
-      (Val #id)) (Val #(interface.mkOk (go.GoType.PointerType node.ty) #n))) (Val #st)) (Val #cs0))
+      (Val #id)) (Val #(interface.mkOk (go.GoType.PointerType node.ty) #n.loc))) (Val #st)) (Val #cs0))
       (Val #tick)) (Val #sts)) (Val #f))
   {{ (r : Loc), RET #r; isRep γr vs id r ∗ repStop γr vs r }}
 

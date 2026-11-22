@@ -34,7 +34,7 @@ request's read credit from a time receipt of its own, `rdPool`; until then the c
 `readCredit γ`.) (raft-final, 2026-10-29, K5: the stopped answer carries `nodeStopped`, `nodeErrS`; until then
 `nodeErr`, which `nodeErrS_nodeErr` gives back.) -/
 abbrev node.ReadIndex.spec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (rctx : GoSlice) (c : List w8)
+  ∀ (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (rctx : GoSlice) (c : List w8)
     (Q : List LogEntry → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   -- (2026-11-12, trace-check implementation step 1: the design's §3.5) refused at a traced
   -- cluster: `run` steps no message of this kind there
@@ -43,7 +43,7 @@ abbrev node.ReadIndex.spec : Prop :=
       rctx ↦*□ c ∗ isReadCtx γ N c Q ∗
       -- (raft-entsize §3, 2026-11-09) the context within the cluster's bound, if any
       ⌜∀ b, γ.maxData = some b → c.length ≤ b⌝ }}
-    (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ReadIndex"))
+    (App (App (Val (n.loc @!! go.GoType.PointerType node.ty @!! go!"ReadIndex"))
       (Val #(interface.ok ctx))) (Val #rctx))
   {{ (err : GoInterface), RET #err; nodeErrS n γ N cd err }}
 

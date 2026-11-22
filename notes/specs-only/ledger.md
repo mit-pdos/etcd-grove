@@ -25,6 +25,42 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-21: raft's node API -- `isCluster` holds one machine's heap (the node table), and the node predicates agree on a node's names only through it
+
+- **Spec.** `Spec/go_etcd_io/raft/v3/StartNode.lean`, `RestartNode.lean` and the `node.*` method specs;
+  `InvNode.lean`'s `isNode`, `nodeRunning`, `nodeDriver`, `nodeStopped`, `nodeConfig`, `nodeTagPin`,
+  `nodeArm`, the snapshot-source and ready-token facts; `InvNodeRule.lean`'s `isCluster`. SpecPlan's
+  raft node specs, likewise.
+- **Defect.** Not local enough for a distributed client. `isCluster` contains `nodeTabInv`, which keeps
+  `n ↦□` for every node, so it can be neither allocated in a distributed adequacy theorem's `Hstart`
+  (only `[GooseGlobalGS]`) nor held by another machine. Keyed by `Loc`, the table also breaks across
+  generations: a new heap can reuse a dead node's address.
+- **Evidence.** `notes/kvnet-proof-plan.md` gap 2 and decision B; `notes/raft-cluster-global.md` (a),
+  (b).
+- **Proposed change.** An opaque node handle `nh : NodeH` (location and names; `nh.loc` for code
+  values):
+  - the node predicates take `nh` in place of `n : Loc`;
+  - `StartNode`/`RestartNode` return `∃ nh, ⌜nd = … #nh.loc⌝ ∗ …`;
+  - the node table goes, and `isCluster` is global.
+  The shared predicates and the allocation lemmas are stated at `[GooseGlobalGS]` (their statements
+  unchanged). Clients: kv, kvreconf, kvdurable, the etcd server, etcdstart, the trace check.
+- **Decision.** Accepted (the coordinating session, 2026-11-21, option 3 of
+  `notes/raft-cluster-global.md`); applied on branches `raft-cluster-global` and
+  `raft-cluster-global-2` (2026-11-22). As applied:
+  - the shared predicates and laws are stated over `{GF} [AllG GF] [ReceiptGS GF] [InvGS GF]` (not
+    `[GooseGlobalGS]`: a fancy update's instance must be the caller's, `notes/raft-cluster-global.md`
+    (d)); the node-level predicates, `nodeBoot` and `cluster_alloc(_ns,_traced)` stay under `HeapGS`
+    (`bootMarshal` is a WP); the new `cluster_alloc_nb` is the global allocation without a bootstrap
+    log;
+  - `NodeH.installs` and `nodeInstalledIndex_installs` (`NodeInstalls.lean`): the etcd server pinned
+    its node's location in a ghost variable before `StartNode` returns it, and `NodeH` is not
+    `Pos.Countable` (it holds the cluster's names, functions among them); it pins the handle's
+    install record's name instead;
+  - kvdurable's store vocabulary (`rkvInv`, `opSlot`, `readSlot`, `kvCore`, `waitP`, `kvLb`,
+    `readAns`, `kdSnapInv`, `KdNames`) moved to `kvdurable/Store.lean`, global, statements unchanged;
+  - kvreconf's and kvdurable's sections lose their second `[AllG GF]` (`notes/decisions.md`, "One
+    `AllG`"), which made a client's terms differ from raft's global laws.
+
 ## 2026-11-21: `kvdurable.getEntry` -- reads only persistent bytes, so a caller holding owned bytes cannot use it
 
 - **Spec.** `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/getEntry.lean`, `getEntry.spec`
@@ -4209,3 +4245,27 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   one level deeper, so the authorizers' decisions (`caaOk`) carry the tighter one.
 - **Decision.** Applied (fix-slices-concat/2026-11-22). `k8s_authz_robust`'s statement unchanged; no axiom added or
   removed.
+## 2026-11-22: kvnet's answers' length bound weakened to what the reply frame needs (KvNet)
+
+- **Spec.** `Replica.read.spec`, `Replica.propose.spec`, `Node.handle.spec` (KvNet, Lean-first; no SpecPlan
+  counterpart): post `len(v) < 2^61` to `(len(v) : Int) + 9 < 2^63`. `Replica.install.spec`: new premises
+  `MapFits K'`, `MapFits A'`.
+- **Defect.** The `2^61` bound was not derivable (the store's `waitP`/`readAns` say nothing of lengths): the
+  proofs took it as two seams (`ansLen.law`, `waitLen.law`). The only consumer (`serveClient`, its `writeFrame`)
+  needs `len(v) + 9 < 2^63`.
+- **Evidence.** `notes/kvnet-part.md`, "The answers' lengths"; `Node__serveClient.lean` unchanged.
+- **Proposed change.** Weaken the posts; carry the bound in the replica's maps (`MapFits`, `Defs.lean`) and
+  waiters; drop the seams.
+- **Decision.** Applied (the coordinator's item 1: weaken locally before strengthening the store).
+
+## 2026-11-22: `durable.Write`'s sync update may use the crash token (WalTester, copied into KvNet)
+
+- **Spec.** `github_com.mit_pdos.etcd_grove.examples.lib.durable.Write.spec` (WalTester, Lean-first; no SpecPlan
+  counterpart): the second update `durWriteSync γ Ψ` is now `notCrashed -∗ AU <{∃∃ s, durSt γ s}> <{ durSt γ
+  ⟨s.cur, none⟩, COMM notCrashed ∗ Ψ }>`. This is weaker as the client's obligation: a plain update is one
+  (`durWriteSync_of_au`).
+- **Defect.** A client could not fire raft's *enter* (`readyEnter`, which takes `notCrashed`) at the sync, where
+  decision C (`notes/kvnet-proof-plan.md`) places it. Yet the proof holds the token there (`durInv_commit`).
+- **Evidence.** `notes/kvnet-part.md`, "`persist`" item 1; `WriteInv.lean`'s `durInv_commit`.
+- **Proposed change.** As above. `durInv_commit` passes the token; the tester's `storeOracle` gives a plain update.
+- **Decision.** Applied (needed for kvnet's `persist`, item 2 of the coordinator's 2026-11-22 decisions).

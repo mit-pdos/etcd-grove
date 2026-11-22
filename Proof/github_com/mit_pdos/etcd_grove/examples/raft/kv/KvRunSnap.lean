@@ -59,7 +59,7 @@ theorem skippedIn_prefix (γ : Cluster) (l l' : List LogEntry) (a b : Nat) (hp :
   rw [← hget]; exact he
 
 /-- The applier's view carried to a longer delivered log. -/
-theorem appNode_extend (γr : RKVNames) (n : Loc) (l l' : List LogEntry) (k : Nat) (m : Membership)
+theorem appNode_extend (γr : RKVNames) (n : NodeH) (l l' : List LogEntry) (k : Nat) (m : Membership)
     (hp : l <+: l') (hk : k ≤ l.length) :
     appNode (GF := GF) γr n l k m ∗ deliveredLogLb n γr.cluster kvRaftN l' ⊢ appNode γr n l' k m := by
   unfold appNode
@@ -72,7 +72,7 @@ theorem appNode_extend (γr : RKVNames) (n : Loc) (l l' : List LogEntry) (k : Na
 
 /-- The applier's view opened for `Advance`: the node's configuration view, every conf entry
 from its index skipped. -/
-theorem appNode_open (γr : RKVNames) (n : Loc) (l : List LogEntry) (k : Nat) (m : Membership) :
+theorem appNode_open (γr : RKVNames) (n : NodeH) (l : List LogEntry) (k : Nat) (m : Membership) :
     appNode (GF := GF) γr n l k m ⊢ ∃ v : ConfigView, nodeConfig n γr.cluster kvRaftN v ∗
       skippedIn γr.cluster l v.applied k ∗
       (nodeConfig n γr.cluster kvRaftN v -∗ appNode γr n l k m) := by
@@ -177,7 +177,7 @@ theorem kv_snapReceipt (st ms : Loc) (γs : MemStorNames) (l : SnapLoan) (es : L
 
 /-- The applier's view after a snapshot `Ready`'s `Advance`: at the snapshot's index, the end of
 the delivered log. -/
-theorem appNode_snap (γr : RKVNames) (n : Loc) (L : List LogEntry) (i : Nat) (m : Membership)
+theorem appNode_snap (γr : RKVNames) (n : NodeH) (L : List LogEntry) (i : Nat) (m : Membership)
     (h : L.length = i) :
     nodeConfig (GF := GF) n γr.cluster kvRaftN ⟨i, m⟩ ∗ deliveredLogLb n γr.cluster kvRaftN L ⊢
       appNode γr n L L.length m := by

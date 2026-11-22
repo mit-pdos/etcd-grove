@@ -150,12 +150,12 @@ variable [go_gctx : GoGlobalContext] [go.IntoValInj GoString]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
 
 attribute [local instance] kdStorageModel
 
 /-- **The phase over a change of the image** that keeps every durable state it holds. -/
-theorem kdPhaseInv_transport (γ : KdNames) (id : w64) (n : Loc) (ph : GName) (S : RaftState)
+theorem kdPhaseInv_transport (γ : KdNames) (id : w64) (n : NodeH) (ph : GName) (S : RaftState)
     (M M' : StorFile) (pz : KdPhase)
     (H : ∀ S, StorageHolds S (kdContents (some M)) → StorageHolds S (kdContents (some M'))) :
     kdPhaseInv (GF := GF) γ id n ph S M pz ⊢ kdPhaseInv γ id n ph S M' pz := by
@@ -179,7 +179,7 @@ theorem kdPhaseInv_transport (γ : KdNames) (id : w64) (n : Loc) (ph : GName) (S
     ipureintro; exact H _ Hh
 
 /-- **The phase holds some durable state** in the image. -/
-theorem kdPhaseInv_holds (γ : KdNames) (id : w64) (n : Loc) (ph : GName) (S : RaftState)
+theorem kdPhaseInv_holds (γ : KdNames) (id : w64) (n : NodeH) (ph : GName) (S : RaftState)
     (M : StorFile) (pz : KdPhase) :
     kdPhaseInv (GF := GF) γ id n ph S M pz ⊢
       ⌜∃ S', StorageHolds S' (kdContents (some M))⌝ ∗ kdPhaseInv γ id n ph S M pz := by

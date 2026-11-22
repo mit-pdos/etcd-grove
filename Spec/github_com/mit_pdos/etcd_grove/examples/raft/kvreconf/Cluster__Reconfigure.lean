@@ -25,14 +25,14 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KvrStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KvrStor GF]
 
 attribute [local instance] kvrStorageModel
 
 /-- See the file header. -/
 abbrev Cluster.Reconfigure.spec : Prop :=
   ∀ (γr : RNames) (vs : List w64) (c : Loc) (pause : time.Duration) (stop : Loc) (γc : ChanNames),
-  {{ isClusterC γr vs c ∗ ownBroadcastChan stop γc iprop(True) .Unknown }}
+  {{ isClusterC (GF := GF) γr vs c ∗ ownBroadcastChan stop γc iprop(True) .Unknown }}
     (App (App (Val (c @!! go.GoType.PointerType rClusterTy @!! go!"Reconfigure")) (Val #pause)) (Val #stop))
   {{ RET #(); True }}
 

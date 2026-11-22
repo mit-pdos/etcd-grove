@@ -46,7 +46,7 @@ v2 the old contract's receipts and `storFloor`/`storTermsAt`; until then also th
 `node.Advance.spec` and the dynamic one's `node.Advance.dynamicSpec`, dropped in U8 v2 ahead of U9.)
 (2026-11-01, durability stage I-4: `nodeAppliedLb` of the storage's key, `st.key`.) -/
 abbrev node.Advance.spec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState) (es : List EntryM)
+  ∀ (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState) (es : List EntryM)
     (L : Option SnapLoan) (v : ConfigView),
   st.handling = some (es, L) →
   (∀ l, L = some l → l.dlv.length = uint.nat l.snap.Metadata'.Index') →
@@ -58,7 +58,7 @@ abbrev node.Advance.spec : Prop :=
       (match L with
        | none => skippedIn γ st.delivered v.applied st.delivered.length
        | some l => snapshotCert γ N (snapTrip l.snap l.snap.Metadata'.ConfState'.lists)) }}
-    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
+    (App (Val (n.loc @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
   {{ RET #(); (nodeDriver n γ N { st with handling := none } ∗
       nodeAppliedLb γ st.key st.delivered.length ∗
       match L with
