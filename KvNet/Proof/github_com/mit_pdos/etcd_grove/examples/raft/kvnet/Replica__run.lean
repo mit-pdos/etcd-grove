@@ -161,7 +161,7 @@ private theorem repOwn_facts (γ : KdNames) (r : Loc) (ap : List LogEntry) (idx 
     iexists mK, K, c
     iframe
     iframe Hap HcsO Hcfg
-    ipureintro; exact ⟨Hlen, Hval, HA, Hcsm, Hsz⟩
+    ipureintro; exact ⟨Hlen, Hval, HKfit, HA, Hcsm, Hsz⟩
   · ipureintro; exact Hlen
 
 /-- A snapshot raft hands out reads back from the file (`SnapWf`: its conf state's and data's
@@ -240,14 +240,13 @@ theorem Replica.run.wp_proof
     rafted_ptr hsp0 snapIndex0 rafted0 Hraf Hsi0 $$ [Hstart pending lead snapIndex hs rafted]
   · iframe Hstart pending lead snapIndex hs rafted HhsO0
   wp_for Hinv
-  wp_apply (lc := 3) wp_Ready γ.r.cluster kdRaftN id n $$ [$HrP $HisNode] as %ch #Hch
-  try wp_auto
+  wp_apply wp_Ready γ.r.cluster kdRaftN id n $$ [$HrP $HisNode] as %ch #Hch
   -- the `Ready`, a plain receive (kvnet: no stop channel)
   icases isReadyChan_recvAu n ch γ.r.cluster kdRaftN id _ _ rfl $$ Hch HisNode Hdrv
     with ⟨%γc, #Hchan, Hau⟩
   wp_bind (App (Val (chan.receive _)) _)
   iapply chan.wp_receive ch γc $$ Hchan
-  iintro -
+  iintro ⟨Hlc1, Hlc2, -, -⟩
   iapply Hau $$ [$Hlc1 $Hlc2]
   inext
   iintro %rdv Hgot
@@ -1102,7 +1101,15 @@ theorem Replica.run.wp_proof
     rw [← Hptr]
     wp_apply wp_GetData.1 lo.ptr _ lo.snap $$ [$Hpb $Hs1] as %ds ⟨Hds, Hs1back⟩
     rw [Hdat, ← encState_eq]
+    ihave %Hdsl := ownSlice_len $$ Hds
     wp_apply wp_decodeState ds _ kvs ops Hwk Hwo $$ [$Hpkg $Hds] as %mK %mA2 ⟨Hds, %K', %A', HK', HA', %HKA⟩
+    have Hel : ((encMap kvs).length : Int) < 2 ^ 63 ∧ ((encMap ops).length : Int) < 2 ^ 63 := by
+      obtain ⟨h1, -⟩ := Hdsl
+      have h2 : ((encState kvs ops).length : Int) < 2 ^ 63 := by rw [h1]; word
+      simp only [encState, List.length_append] at h2
+      omega
+    have HKfit' := MapFits_of_lookup kvs K' HKA.1 Hel.1
+    have HAfit' := MapFits_of_lookup ops A' HKA.2 Hel.2
     ihave Hs1 := Hs1back $$ Hds
     try wp_auto
     wp_apply wp_IsEmptyHardState rdv.HardState' h $$ [$HrP $Hhs]
@@ -1324,7 +1331,7 @@ theorem Replica.run.wp_proof
     rw [← Hptr]
     wp_apply wp_GetMetadata.1 lo.ptr _ lo.snap $$ [$Hpb $Hs1] as %pm ⟨Hpm, Hs1back⟩
     wp_apply wp_install γ vs dir id r n st sts sq ρ.ms ρ.γs ρ.ph ap _ csp m mA A pm _ lo.snap.Metadata'
-        mK mA2 K' A' (strip lo.dlv) mL Hslen (by rw [Hslen]; word) Hkv' Hans' HcsL HszL
+        mK mA2 K' A' (strip lo.dlv) mL Hslen (by rw [Hslen]; word) Hkv' Hans' HKfit' HAfit' HcsL HszL
       $$ [$Hrep $Hown $Hpm $HK' $HA' $HcL $HcaL] as ⟨Hpm, %csp2, Hown⟩
     ihave Hs1 := Hs1back $$ Hpm
     -- `snapIndex = rd.Snapshot.GetMetadata().GetIndex()`, `rafted = snapIndex`

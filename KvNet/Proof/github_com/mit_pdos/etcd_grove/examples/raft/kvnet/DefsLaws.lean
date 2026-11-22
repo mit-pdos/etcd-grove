@@ -73,6 +73,10 @@ instance kdSnapCert_persistent (γ : KdNames) (sv : SnapshotM) :
     Persistent (kdSnapCert (GF := GF) γ sv) := by
   unfold kdSnapCert; infer_instance
 
+instance sendSpec_persistent (γ : KdNames) (id : w64) (f : GoFunc) :
+    Persistent (sendSpec (GF := GF) γ id f) := by
+  unfold sendSpec; infer_instance
+
 instance kdFileInvK_persistent (γ : KdNames) (id : w64) (n : NodeH) (γd : DurFs.DurGS) :
     Persistent (kdFileInvK (GF := GF) γ id n γd) := by
   unfold kdFileInvK; infer_instance

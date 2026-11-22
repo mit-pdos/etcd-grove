@@ -96,7 +96,6 @@ theorem Node.handle.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
     rw [ansOk_propose]
     simp only [if_true]
     iframe Hvb Hans
-    ipureintro; trivial
   wp_if_destruct
   · -- ReqRead
     rw [reqOk_read]
@@ -124,8 +123,6 @@ theorem Node.handle.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
     rw [ansOk_read]
     simp only [if_true]
     iframe Hvb
-    isplitr
-    · ipureintro; trivial
     iexists seq, key
     iframe Hans
     ipureintro; simp

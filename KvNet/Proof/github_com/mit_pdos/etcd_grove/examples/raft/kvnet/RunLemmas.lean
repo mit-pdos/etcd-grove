@@ -350,6 +350,45 @@ theorem kd_readyMsgs_sent (γ : Cluster) (N : Namespace) (id : w64) (ms : List Q
     [∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ sentMsg γ N id q.st ∗ msgCredits γ N q.st :=
   readyMsgs_sent γ N id ms
 
+
+/-- (2026-11-22) A binding a lookup finds is in the list. -/
+theorem lookup_mem' {kvs : List (List w8 × List w8)} {k v : List w8} (h : kvs.lookup k = some v) :
+    (k, v) ∈ kvs := by
+  induction kvs with
+  | nil => simp at h
+  | cons p r ih =>
+    obtain ⟨a, b⟩ := p
+    by_cases hk : k = a
+    · subst hk
+      simp only [List.lookup, beq_self_eq_true] at h
+      cases h
+      exact List.mem_cons_self
+    · have hb : (k == a) = false := by simpa using hk
+      simp only [List.lookup, hb] at h
+      exact List.mem_cons_of_mem _ (ih h)
+
+/-- (2026-11-22) Each value of the bindings sits in their encoding after two 8-byte lengths. -/
+theorem encKVs_val_le {kvs : List (List w8 × List w8)} {p : List w8 × List w8} (h : p ∈ kvs) :
+    p.2.length + 16 ≤ (encKVs kvs).length := by
+  induction kvs with
+  | nil => cases h
+  | cons q r ih =>
+    simp only [encKVs, List.length_append, putB, u64Le_length]
+    rcases List.mem_cons.1 h with rfl | h'
+    · omega
+    · have := ih h'; omega
+
+/-- (2026-11-22) **The values of a decoded map fit a reply frame** (`MapFits`), its encoding a Go
+slice's (`install`'s premises, for a snapshot's maps). -/
+theorem MapFits_of_lookup (kvs : List (List w8 × List w8)) (K : GMap (List w8) (List w8))
+    (hK : ∀ k, K !! k = kvs.lookup k) (hl : ((encMap kvs).length : Int) < 2 ^ 63) : MapFits K := by
+  intro k v hkv
+  rw [hK k] at hkv
+  have := encKVs_val_le (lookup_mem' hkv)
+  simp only [encMap, List.length_append, u64Le_length] at hl
+  simp only at this
+  omega
+
 end run
 
 end raft_kvnet

@@ -42,23 +42,35 @@ variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
 attribute [local instance] kdStorageModel
 
 /-- The durable state after a write with the pending batch `pb`. -/
-def pbTarget (S : RaftState) : Option (GName × RaftState) → RaftState
+def pbTarget (S : RaftState) : Option (GName × RaftState × Qp) → RaftState
   | none => S
-  | some (_, S2) => S2
+  | some (_, S2, _) => S2
 
-/-- **The pending batch a write takes**: nothing, or a batch from `S` to `S2`, its *enter* and its
-results' saved proposition at `γb`. -/
+/-- The share of `nodeRunning` the writer gets back after a write with the pending batch `pb`: its
+own `q`, or the batch's (which waited in the file's invariant). -/
+def pbQ (q : Qp) : Option (GName × RaftState × Qp) → Qp
+  | none => q
+  | some (_, _, q') => q'
+
+/-- **The pending batch a write takes**: nothing, or a batch from `S` to `S2`, its *enter*, the share
+`q'` of `nodeRunning` that waits with it (raft's `readyCrashEnter` needs it), and its results' saved
+proposition at `γb`. -/
 def kdPendIn (γ : KdNames) (id : w64) (n : NodeH) (S : RaftState) :
-    Option (GName × RaftState) → IProp GF
+    Option (GName × RaftState × Qp) → IProp GF
   | none => iprop(emp)
-  | some (γb, S2) => iprop(∃ (st st' : NodeDriverState) (ms : List QMsg),
-      readyEnter n γ.r.cluster kdRaftN id st st' ms ∗
+  | some (γb, S2, q') => iprop(∃ (st st' : NodeDriverState) (ms : List QMsg),
+      readyEnter n γ.r.cluster kdRaftN id st st' ms ∗ nodeRunning n γ.r.cluster kdRaftN q' ∗
       savedPropOwn γb DFrac.discard (kdBatchRes γ id n st' ms) ∗ ⌜st.durable = S ∧ st'.durable = S2⌝)
 
+/-- The writer's `nodeRunning` kept through a write with no pending batch. -/
+def kdRunKeep (γ : KdNames) (n : NodeH) (q : Qp) : Option (GName × RaftState × Qp) → IProp GF
+  | none => nodeRunning n γ.r.cluster kdRaftN q
+  | some _ => iprop(emp)
+
 /-- **What a write leaves of the pending batch**: its results, saved at `γb` (`dmu`'s `fired`). -/
-def kdPendOut : Option (GName × RaftState) → IProp GF
+def kdPendOut : Option (GName × RaftState × Qp) → IProp GF
   | none => iprop(emp)
-  | some (γb, _) => iprop(∃ R : IProp GF, savedPropOwn γb DFrac.discard R ∗ R)
+  | some (γb, _, _) => iprop(∃ R : IProp GF, savedPropOwn γb DFrac.discard R ∗ R)
 
 instance fileHolds_persistent (γ : KdNames) (S : RaftState) (v : Option GoString) :
     Persistent (fileHolds (GF := GF) γ S v) := by
@@ -79,11 +91,11 @@ theorem fileHolds_some (γ : KdNames) (S : RaftState) (M : StorFile) (hM : KdFil
 
 /-- **`durable.Write`'s first atomic update for `persist`** (see the file header). -/
 theorem kd_writeAU (γ : KdNames) (id : w64) (n : NodeH) (ph : KdDmuNames) (q : Qp) (S : RaftState)
-    (o : Option StorFile) (M : StorFile) (pb : Option (GName × RaftState)) (Ψ0 : IProp GF)
+    (o : Option StorFile) (M : StorFile) (pb : Option (GName × RaftState × Qp)) (Ψ0 : IProp GF)
     (hM : KdFileOk M) (hS : StorageHolds (pbTarget S pb) (kdContents (some M))) :
     ⊢ kdFileInvK γ id n ph.γd -∗ kdWriter γ id S o -∗ £ 1 -∗
-      nodeRunning n γ.r.cluster kdRaftN q -∗ kdSnapCert γ M.snap -∗ kdPendIn γ id n S pb -∗
-      (kdWriter γ id (pbTarget S pb) (some M) -∗ nodeRunning n γ.r.cluster kdRaftN q -∗
+      kdRunKeep γ n q pb -∗ kdSnapCert γ M.snap -∗ kdPendIn γ id n S pb -∗
+      (kdWriter γ id (pbTarget S pb) (some M) -∗ nodeRunning n γ.r.cluster kdRaftN (pbQ q pb) -∗
         kdPendOut pb -∗ Ψ0) -∗
       AU <{ ∃∃ s : DurFs.DurSt, DurFs.durSt (GF := GF) ph.γd s }> @ DurFs.durAuMask, ∅
         <{ DurFs.durSt (GF := GF) ph.γd ⟨some (encStor M), some s.cur⟩,
@@ -146,12 +158,12 @@ theorem kd_writeAU (γ : KdNames) (id : w64) (n : NodeH) (ph : KdDmuNames) (q : 
       rw [show pbTarget S none = S from rfl] at hS
       iapply fileHolds_some γ S M hM hS $$ Hcert
     | some p =>
-      obtain ⟨γb, S2⟩ := p
-      rw [show pbTarget S (some (γb, S2)) = S2 from rfl] at hS
+      obtain ⟨γb, S2, q'⟩ := p
+      rw [show pbTarget S (some (γb, S2, q')) = S2 from rfl] at hS
       iunfold kdPendIn at Hpend
-      icases Hpend with ⟨%st, %st', %ms, Henter, #Hsv, %Hst⟩
+      icases Hpend with ⟨%st, %st', %ms, Henter, Hrun', #Hsv, %Hst⟩
       iexists st, st', ms
-      iframe Henter Hsv
+      iframe Henter Hrun' Hsv
       isplitr
       · ipureintro; exact Hst
       iapply fileHolds_some γ S2 M hM hS $$ Hcert
@@ -211,22 +223,24 @@ theorem kd_writeAU (γ : KdNames) (id : w64) (n : NodeH) (ph : KdDmuNames) (q : 
       ipureintro; rfl
     imodintro
     iframe Hnc
+    iunfold kdRunKeep at Hrun
+    rw [show pbQ q none = q from rfl]
     iapply HK $$ [Hwr] Hrun []
     · iunfold kdWriter
       rw [show kdFileVal (some M) = some (encStor M) from rfl, show pbTarget S none = S from rfl]
       iexact Hwr
     · iunfold kdPendOut; iempintro
   | some p =>
-    obtain ⟨γb, S2⟩ := p
-    icases Hfs with ⟨-, %st, %st', %ms, Henter, #Hsv, %Hst, Hfh⟩
+    obtain ⟨γb, S2, q'⟩ := p
+    icases Hfs with ⟨-, %st, %st', %ms, Henter, Hrun', #Hsv, %Hst, Hfh⟩
     obtain ⟨Hst1, Hst2⟩ := Hst
     ihave HrS : raftState γ.r.cluster id st.durable $$ [HrS]
     · rw [Hst1]; iexact HrS
     iunfold readyEnter at Henter
     icases Henter with ⟨Henter, -⟩
     iunfold readyEnterLive at Henter
-    imod Henter $$ %(DurFs.durAuMask \ ↑(kdRepN .@ uint.nat id)) %q %(kdRaftN_sub_durAu id) Hnc
-      [$HrS $Hrun] with ⟨Hnc, HrS, Hrun, Hdrv, Hmsgs⟩
+    imod Henter $$ %(DurFs.durAuMask \ ↑(kdRepN .@ uint.nat id)) %q' %(kdRaftN_sub_durAu id) Hnc
+      [$HrS $Hrun'] with ⟨Hnc, HrS, Hrun', Hdrv, Hmsgs⟩
     imod ghostVar_update_halves ((S2, ⟨some (encStor M), none⟩, none) : KdWv) (γ.wr id) _ _
       $$ Hwr Hwv with ⟨Hwr, Hwv⟩
     imod Hclose $$ [HrS Hds Hwv Hfh] with -
@@ -241,10 +255,11 @@ theorem kd_writeAU (γ : KdNames) (id : w64) (n : NodeH) (ph : KdDmuNames) (q : 
       ipureintro; rfl
     imodintro
     iframe Hnc
-    iapply HK $$ [Hwr] Hrun [Hdrv Hmsgs]
+    rw [show pbQ q (some (γb, S2, q')) = q' from rfl]
+    iapply HK $$ [Hwr] Hrun' [Hdrv Hmsgs]
     · iunfold kdWriter
       rw [show kdFileVal (some M) = some (encStor M) from rfl,
-        show pbTarget S (some (γb, S2)) = S2 from rfl]
+        show pbTarget S (some (γb, S2, q')) = S2 from rfl]
       iexact Hwr
     · iunfold kdPendOut
       iexists kdBatchRes γ id n st' ms

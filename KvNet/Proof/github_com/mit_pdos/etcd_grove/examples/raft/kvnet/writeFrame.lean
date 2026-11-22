@@ -44,7 +44,7 @@ theorem writeFrame.wp_proof (wp_putBytes : putBytes.spec (GF := GF) (hG := hG))
     iexists [], none
     iframe HP Hb
     ipureintro
-    exact ⟨List.nil_prefix, fun h => by cases h, fun _ => rfl⟩
+    exact ⟨List.nil_prefix, fun h => absurd h (by decide), fun _ => rfl⟩
   -- the frame
   have hlen : (xs.length : Int) ≤ 67108864 := by rw [← hbz]; word
   have h8 : sint.Z (W64 8 + body.len) = 8 + sint.Z body.len := by word

@@ -222,6 +222,8 @@ theorem dmu_close_enter (γ : KdNames) (id : w64) (r : Loc) (n : NodeH) (st ms :
   iunfold kdFileState at Hfs
   icases Hfs with ⟨Hfh, -⟩
   iunfold readyEnter at Henter
+  icases Henter with ⟨Henter, -⟩
+  iunfold readyEnterLive at Henter
   ihave HrS : raftState γ.r.cluster id stI.durable $$ [HrS]
   · rw [HS]; iexact HrS
   imod Henter $$ %(⊤ \ ↑(kdRepN .@ uint.nat id)) %((1 : Qp).half) %(kdRaftN_rep id) Hnc [$HrS $Hrun]
