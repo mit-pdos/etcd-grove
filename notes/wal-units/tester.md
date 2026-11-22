@@ -952,3 +952,80 @@ mention the result's other components (`fi`): wrap the spec first. A closed theo
 program's Go local context (`tHeapAt hG lctx`, as bboltfs's `heapAt`), or `go.Semantics` is not found under `∀ [hG]`.
 `iframe` against a goal whose resource differs only by a rewritable index (`tmpCls none` vs `tmpCls (h.cur !! b)`) times
 out: `rw` first.
+
+# Handoff (branch `wal-safe`, 2026-11-22, session 8 of etcd-grove-03's delegates): (i) two gaps closed; (a) needs a decision
+
+**State** (`0e40aff935`, `28815a48a1`, this note): no axiom, no `sorry` added. Built green through the build slot: `Adequacy`,
+`RnNewStorageLinked`, `WalAreaFresh`, `WalAreasInit` (4381 jobs); `etc/tier-check.py --check` ok.
+
+**(i) The library gaps of `TOpen`, one by one.**
+- `fmt.SprintfBroken.spec`: **proved** (`Proof/fmt/SprintfBroken.lean`, over Perennial's `SprintfOut.strV`, fmtmodel
+  `79517dbdf`, already at the pin). Gone from `TOpen` and the Links.
+- `filepathlite.IsAbs.spec`: **proved** (`Proof/internal/filepathlite/IsAbs.lean`) over its callee
+  `stringslite.HasPrefix.spec` (`Spec/internal/stringslite/HasPrefix.lean`, Perennial's statement), which replaces it in
+  `TOpen` (`hasPrefix`). Perennial change: branch `stringslite-hasprefix` (`d508df6ff`, off `lean` `04ed1c622`, worktree
+  `/shared/perennial-stringslite-hasprefix`, NOT pushed): `HasPrefix` translated with its body (go1.26.3's source, as the
+  committed `HasSuffix`; go1.27's moves `TrimSuffix`'s line comment), `internal.stringslite.HasPrefix.{spec,wp_proof}`,
+  linked; builds. Once the pin reaches it: delete the local spec file, import Perennial's spec (the statement is the
+  same, `EtcdGrove.stringslite.HasPrefix.spec` → `internal.stringslite.HasPrefix.spec`), regenerate the Links.
+- `errors.{IsErrno, IsPathErrnoEof, IsPathErrnoNotExist, IsPathErrnoTerm}.spec` and `WalDecEnvSupply`: **blocked on
+  Perennial**: all five need Perennial branch `errors-facts` (drafted 2026-11-14 off `ddc0f0acc`, pushed, pending the
+  user's review, not landed): `58e04c5c0` (`newVar` keeps the `errorString`'s field, so `io.EOF`, `io.ErrUnexpectedEOF`,
+  `walpb.ErrCRCMismatch`, `oserror`'s errors are provably distinct; `errors`' fact records `ErrUnsupported`, which
+  `Errno.Is`'s `switch` loads) and, for `IsErrno`, `601b7fb5d` (`errors.Is.spec` at a comparable non-pointer target). Its
+  third commit `7533cf64a` (`errors.As`) is #26's (upamanyus) territory: leave it out of any rebase. Here, after that:
+  translate `syscall.Errno.Is` and `io/fs.(*PathError).Unwrap` (this repository's `Code/syscall.toml`, `Code/io/fs.toml`)
+  and prove the four over `errors.Is.spec`'s two-error tree. Not started (a rebase of `errors-facts` onto `lean` and a
+  full Perennial rebuild: errors is imported by almost everything).
+- `fmt.ErrorfErrsNot.spec`, `fmt.ErrorfErrsTerm.spec`: **a spec decision**. Perennial's `Errorf` now wraps (`errorfErr`:
+  a fresh `*wrapError`/`*wrapErrors`/`*errorString`), but (1) the arguments' facts `errIsNot e t`/`errIsTerm e` are opaque
+  triples of `errors.Is(e, _)`, and `errors.Is` of the wrapper walks the child inside its own loop (`is`'s `for`, or a
+  call of `is`, never of `Is`), so a triple of `Is(child, _)` cannot be used: the premises would have to be error trees
+  (`errorWalkTree`) instead; (2) `errIsNot`'s `err ≠ t` in the no-`%w` case (`*errorString` result, `t` = `io.EOF` of the
+  same type) needs freshness, and `errorfErr` gives only `l.[…] ↦□ s` (persistent, no disjointness from `t`'s pointer).
+  So: restate `errIsNot`/`errIsTerm` (and the WAL decoder's 25 uses) over trees, and get freshness (an owned points-to or
+  the `newVar` field of `t` with a distinct message) — ledger first; not done.
+- `time.Time.Format.specBroken`: **a model or an axiom decision**. Perennial's `time` has no `Format` (names-only), and
+  this repository's trust-boundary `time.Time.Format.spec` says nothing of the result. A proof needs `appendFormat`
+  translated (with `Time`'s date arithmetic) or a Perennial model of `Format` for numeric layouts; otherwise a
+  strengthened trust-boundary axiom, which needs the user. Hypothesis kept.
+- `io.CopyFiles.spec`: **provable now, not started** (no Perennial change: `io.Copy`/`copyBuffer` have bodies at the pin
+  `d648cfe22`; this repository's `os` translates `File.ReadFrom`/`WriteTo`, `genericReadFrom`/`genericWriteTo`, and
+  `copy_file_range` is modelled). The proof is the "io.Copy log" path (`notes/wal-fsext-plan.md`): `copyBuffer`'s
+  `WriterTo` assertion on the `*LockedFile` → `File.WriteTo` → `genericWriteTo` → `io.Copy` again → the `*os.File`
+  destination's `ReadFrom` → `copy_file_range` rounds, then `genericReadFrom`'s 32 KiB loop; each needs a spec over
+  `trFile`/the source's stream. One to two sessions. Touches no Perennial file (so no overlap with `stdlib-leaves`).
+
+**(a) B-4: the crash variant of `goose_adequacy_start`, NOT added: unsound as asked.** The plan was: each generation's WP
+(`goose_crash_adequacy_acc`'s `Hstart` and every crash frame's next generation) also receives `prometheus.namesFree Ns`.
+But `prometheus.nameFree n : IProp GF` (`Registry.lean`) is not indexed by the generation, and a generation's crash frame
+`∀ L', crashed -∗ … ={⊤}=∗ P L'` is a wand that can capture any resource of the generation (or `▷` of one, out of an
+invariant). So a proof can keep generation 1's unused `nameFree n` in `P`, and generation 2 then holds it **and** the
+fresh copy: two `MustRegister(n)` in generation 2 are provable, the second panics in Go. A concrete shape: a program that
+on first boot writes a marker and registers nothing, and on a later boot (the marker present) registers `n` twice; the
+proof gives generation 1's right to its crash frame. This is D19a's double-use hazard, across a crash. No axiom that
+hands out the unindexed `nameFree` per generation avoids it (restricting the crash frame does not help: an invariant
+allocated before the rights are given can carry them). Sound options, for the user:
+1. **Index the rights by the generation**: `nameFree` (and `namesFree`, `startRights`) take the generation's
+   `[CrashGS GF]` (an instance under every `[HeapGS]`, so most of the ~115 files using it are unchanged in source;
+   `MustRegister.spec` consumes the current generation's right). Then the crash axiom gives `namesFree (hC := L'.crashGS)
+   Ns` to each generation, and a leftover from generation `k` is a different predicate in generation `k+1` (the crash
+   names are fresh per generation in Perennial's crash adequacy, as `ownGoState`'s are). Smallest sound change;
+   rebuilds ~1150 modules (everything above `Registry.lean`), and touches the shared trust-boundary predicate.
+2. **Receipts**: `MustRegister.spec`'s post gives a generation-indexed `registered n`, and the crash axiom turns
+   `registered n ∗ crashed` of the dead generation back into `nameFree n`. Conservation holds per name, but it changes
+   `MustRegister`'s axiom and the tester must thread the receipts from the initializer to its crash frame.
+3. Keep `Hinit_wp` as a premise of the closed theorem (option (b), as `seglog_crash_safety`): rejected by the user, listed
+   for completeness. `Hinit_wp` stays a hypothesis of `etcd_wal_crash_safety_bounded` until the decision.
+No `notes/axiom-review/` entry was written (no axiom added); the analysis above is what it would start from.
+
+**What `TOpen` holds now**: `decEnv` (`WalDecEnvSupply`), `cloneHs`/`unmarshalHs`/`resetHs` (under review, untouched),
+`isErrno`, `isPathErrnoEof`, `isPathErrnoNotExist`, `isPathErrnoTerm`, `hasPrefix` (new leaf, was `isAbs`),
+`errorfErrsNot`, `errorfErrsTerm`, `copyFiles`, `unmarshalWalRecordE` (under review, untouched), `formatBroken`.
+
+**Pitfalls (new).** A proof file's section `variable [GoSemanticsFunctions]` (for a pure lemma) is copied by
+`gen-link.py --walfs` into the Link's sections: put such instances in the lemma's own binders. Regenerating a Perennial
+stdlib translation: run goose with the toolchain the committed output came from (go1.26.x for `internal/stringslite`;
+`PATH=/root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.26.3.linux-amd64/bin`, `GOTOOLCHAIN=local`), and build goose
+into a private `GOBIN` (not `/root/go/bin`, which other sessions use). A Perennial worktree builds standalone with the
+d648 worktree's `.lake/build` copied in and `.lake/packages/{iris,batteries,Qq}` symlinked to this worktree's.
