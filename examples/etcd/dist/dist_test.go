@@ -1,4 +1,4 @@
-package harness
+package dist
 
 import (
 	"bytes"
@@ -14,7 +14,7 @@ import (
 	"github.com/mit-pdos/etcd-grove/examples/lib/robust"
 )
 
-// TestMain runs a member or a client instead of the tests when the harness started this binary as
+// TestMain runs a member or a client instead of the tests when the test started this binary as
 // one (DIST_PROC set: its role and file are the arguments, RunProcess).
 func TestMain(m *testing.M) {
 	if os.Getenv("DIST_PROC") != "" {

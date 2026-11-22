@@ -1,7 +1,7 @@
-// Package harness runs etcd_dist_safe's deployments for real (notes/etcd-dist-plan.md, stage D1)
-// over the robustness harness (examples/lib/robust): every member a process of server.Main on a
+// Package dist runs etcd_dist_safe's deployments for real (notes/etcd-dist-plan.md, stage D1)
+// over examples/lib/robust: every member a process of server.Main on a
 // machine of its own, every workload a process of client.Main on a client machine of its own, all
-// started at once and connected by TCP through the harness's network; meanwhile the environment
+// started at once and connected by TCP through examples/lib/robust's network; meanwhile the environment
 // makes the faults the theorem's executions allow: members crash for real (SIGKILL, then their
 // files synced, or their disk losing power where the device mapper is available) and restart with
 // the same program and configuration, and the network partitions (both ways or one way) and
@@ -11,12 +11,12 @@
 // A run passes if no process panics (a client's failed check, or a member's panic) and no member
 // exits on its own, and every client is done by the deadline. A client that ends without a check
 // (its start failed, a watch ended, a lease was never seen gone) is not a failure: the theorem
-// says nothing more; the harness reports how many checks ran.
+// says nothing more; the test reports how many checks ran.
 //
 // The deployments are random among the well-formed ones (WellFormed, the Lean predicate's Go
 // mirror) of a fixed member count: a random server configuration and a random compatible mix of
 // workloads.
-package harness
+package dist
 
 import (
 	"fmt"
