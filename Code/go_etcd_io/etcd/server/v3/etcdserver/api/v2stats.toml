@@ -1,13 +1,20 @@
 # `NewLeaderStats` with its body (2026-10-22; the server's constructor calls it). The rest is names
-# only: `ServerStats`'s type has an anonymous struct field (`serverStats.LeaderInfo`), which Goose
-# does not translate, so its methods (`BecomeLeader`, `RecvAppendReq`) and `NewServerStats` stay
-# trust-boundary axioms.
+# only, but for the functions listed below. (Until 2026-11-21 `ServerStats`'s methods and
+# `NewServerStats` were trust-boundary axioms: `serverStats.LeaderInfo` is an unnamed struct type with
+# field tags, which Goose refused.)
 # (D43 M5a, 2026-10-26) `LeaderStats.Follower` with its body (and the mutex's promoted methods): the
 # transport's `AddPeer` calls it; its map is the transport's (`removePeer` deletes from it).
+# (prove-ps2-v2stats, 2026-11-21) `NewServerStats`, `ServerStats`'s `RecvAppendReq`, `SendAppendReq`,
+# `BecomeLeader`, `becomeLeader` (and the mutex's promoted methods), `statsQueue.Insert` with their
+# bodies: Goose translates unnamed struct types with field tags since Perennial's struct-tags change
+# (mit-pdos/perennial#655), which `serverStats.LeaderInfo` is.
 # (prove-ps2, 2026-11-21) `FollowerStats.Fail` with its body (and the mutex's promoted methods): the
 # pipeline calls it; until then a trust-boundary axiom.
 translate = ["!*", "NewLeaderStats", "LeaderStats.Follower", "LeaderStats.Lock", "LeaderStats.Unlock",
-  "FollowerStats.Fail", "FollowerStats.Lock", "FollowerStats.Unlock"]
+  "FollowerStats.Fail", "FollowerStats.Lock", "FollowerStats.Unlock",
+  "NewServerStats", "ServerStats.RecvAppendReq", "ServerStats.SendAppendReq", "ServerStats.BecomeLeader",
+  "ServerStats.becomeLeader", "ServerStats.Lock", "ServerStats.Unlock", "queueCapacity",
+  "statsQueue.Insert"]
 imports = ["!*", "sync", "time", "go.uber.org/zap", "go.etcd.io/raft/v3"]
 
 # translate the definitions of all type declarations goose supports
