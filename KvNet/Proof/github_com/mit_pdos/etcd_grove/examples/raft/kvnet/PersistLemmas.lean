@@ -223,6 +223,8 @@ theorem kd_writeAU (γ : KdNames) (id : w64) (n : NodeH) (ph : KdDmuNames) (q : 
     ihave HrS : raftState γ.r.cluster id st.durable $$ [HrS]
     · rw [Hst1]; iexact HrS
     iunfold readyEnter at Henter
+    icases Henter with ⟨Henter, -⟩
+    iunfold readyEnterLive at Henter
     imod Henter $$ %(DurFs.durAuMask \ ↑(kdRepN .@ uint.nat id)) %q %(kdRaftN_sub_durAu id) Hnc
       [$HrS $Hrun] with ⟨Hnc, HrS, Hrun, Hdrv, Hmsgs⟩
     imod ghostVar_update_halves ((S2, ⟨some (encStor M), none⟩, none) : KdWv) (γ.wr id) _ _
