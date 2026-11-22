@@ -87,6 +87,11 @@ func deployRound(t *testing.T, round int, netns bool, crash string, sz Sizes, de
 	if err != nil {
 		t.Fatal(err)
 	}
+	if s := os.Getenv("DIST_OPS"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 {
+			sz.KVOps, sz.WriterOps = n, n
+		}
+	}
 	tag := fmt.Sprintf("d%d-%d", os.Getpid(), round)
 	d, err := RandomDeployment(tag, 3, addr, sz)
 	for tries := 0; err == nil && !wanted(d) && tries < 1000; tries++ {
@@ -125,8 +130,8 @@ func deployRound(t *testing.T, round int, netns bool, crash string, sz Sizes, de
 // set (minutes per deployment); -short runs one small deployment, otherwise DIST_ROUNDS (default
 // 4) larger ones. The faults start once every workload's set-up is done (client.MainReady), or,
 // with DIST_FAULTS=start, from the start; DIST_WANT=kind,... keeps only random deployments with a
-// workload of those kinds. Network namespaces need root with CAP_NET_ADMIN: a root without it (a container)
-// runs the test again in a user namespace of its own (robust.RerunInUserns: the bridge variant);
+// workload of those kinds; DIST_OPS=n sets the kv clients' and the writers' operations to n each.
+// Network namespaces need root with CAP_NET_ADMIN: a root without it (a container) runs the test again in a user namespace of its own (robust.RerunInUserns: the bridge variant);
 // a non-root runs it again by sudo -n if it can, and in the local mode (one loopback address, no
 // network faults) otherwise.
 func TestDist(t *testing.T) {
@@ -148,7 +153,7 @@ func TestDist(t *testing.T) {
 		if rerun != nil {
 			var out bytes.Buffer
 			err := rerun(args, []string{"DIST_RUN=1", "DIST_CHILD=1", "DIST_ROUNDS=" + os.Getenv("DIST_ROUNDS"),
-				"DIST_FAULTS=" + os.Getenv("DIST_FAULTS"), "DIST_WANT=" + os.Getenv("DIST_WANT")}, &out)
+				"DIST_FAULTS=" + os.Getenv("DIST_FAULTS"), "DIST_WANT=" + os.Getenv("DIST_WANT"), "DIST_OPS=" + os.Getenv("DIST_OPS")}, &out)
 			for _, l := range strings.Split(out.String(), "\n") {
 				if strings.TrimSpace(l) != "" {
 					t.Log(l)

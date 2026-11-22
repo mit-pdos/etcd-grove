@@ -182,6 +182,25 @@ func Do(addr string, in any, codec Codec, d time.Duration) any {
 	return codec.Unknown(in)
 }
 
+// Report runs one operation with input in at the node listening at addr (Serve), in one attempt
+// within d, and returns the output the node answered and true; false if the attempt got no answer
+// that decodes (the operation may then have run, may still be running, or never run). It is for
+// an operation whose output is a report the caller checks itself, not a model's output: a client's
+// loop run on its own machine and what it saw (a writer's log of its successful Puts). No model, no
+// prophecy, no retry (the loop writes). codec.IsRead, Unknown and IsUnknown are not used. A request
+// longer than MaxLen is never sent: Report then never returns.
+func Report(addr string, in any, codec Codec, d time.Duration) (any, bool) {
+	req := codec.EncIn(in)
+	if uint64(len(req)) > MaxLen {
+		hang()
+	}
+	rep, ok := attempt(addr, req, d)
+	if !ok {
+		return nil, false
+	}
+	return codec.DecOut(rep)
+}
+
 // listen listens at addr, retrying a failed Listen.
 func listen(addr string) net.Listener {
 	l, err := net.Listen("tcp", addr)

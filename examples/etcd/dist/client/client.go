@@ -25,11 +25,10 @@
 // with none of a, c/, k, z. A workload whose check reads the store's revisions as its own (kv,
 // watch, cache, auth, authLease) runs beside none that writes keys (Lean: Compatible).
 //
-// Clients on separate machines (the plan's §2, the user's decision): a workload with several
-// clients is written as one function per client, over its own clientv3 client (kvApply, the
-// writers, auth's principals), and the orchestrating part (generating the operations, recording
-// the history, the check) apart, so that dsverify's Remote (examples/lib/remote) can put each
-// client on a machine of its own; until then they are goroutines of this process.
+// Clients on separate machines (the plan's §2, the user's decision; stage D8): a workload with
+// several clients (kv, watch, cache, auth) runs each client on a machine of its own, which serves
+// the orchestrator's calls through examples/lib/remote (NodeMain, nodes.go), and the orchestrating
+// part (generating the operations, recording the history, the check) on this machine.
 package client
 
 import (
@@ -152,29 +151,34 @@ func awaitCluster(eps []string) bool {
 }
 
 // Main runs w with no observer of its set-up (MainReady).
-func Main(w Workload, eps []string) Result {
-	return MainReady(w, eps, func() {})
+func Main(w Workload, eps []string, nodes []string) Result {
+	return MainReady(w, eps, nodes, func() {})
 }
 
 // hasSetUp says whether a workload of kind k has a set-up: steps before its checks whose unknown
 // outcome cannot be redone (auth's users and AuthEnable, authLease's leases, leaseCatchup's first
-// lease) or that must precede the writes (the watch and the cache opened before any write).
+// lease) or that must precede the writes (the watch and the cache opened before any write), or that
+// wait for its client machines (kv, watch, cache, auth).
 func hasSetUp(k Kind) bool {
-	return k == Watch || k == Cache || k == Auth || k == AuthLease || k == LeaseCatchup
+	return k == KV || k == Watch || k == Cache || k == Auth || k == AuthLease || k == LeaseCatchup
 }
 
 // MainReady runs w against the members' client endpoints eps (in the members' order: the workloads
-// that pick a member use eps[i mod len(eps)]), after clearing the proxy variables as the server
+// that pick a member use eps[i mod len(eps)]), with its client machines nodes (NodeCount(w) of
+// them: nodes.go), after clearing the proxy variables as the server
 // does (review F8). A failed check is a panic inside the workload.
 //
 // ready is called once the workload's set-up is done (at once, after the cluster's first read, for
 // a workload with none), or not at all if the workload ends before: a harness may hold its faults
 // until then (examples/etcd/dist/harness). It is an observer only: nothing the workload does
 // depends on it.
-func MainReady(w Workload, eps []string, ready func()) Result {
+func MainReady(w Workload, eps []string, nodes []string, ready func()) Result {
 	env.ClearProxy()
 	if len(eps) == 0 {
 		return ended("no endpoint")
+	}
+	if len(nodes) != NodeCount(w) {
+		return ended("not one client machine per client")
 	}
 	if !awaitCluster(eps) {
 		return ended("the cluster never answered a read")
@@ -184,17 +188,17 @@ func MainReady(w Workload, eps []string, ready func()) Result {
 	}
 	switch w.Kind {
 	case KV:
-		return RunKV(eps, w.Clients, w.Ops)
+		return RunKV(nodes, w.Ops, ready)
 	case Watch:
-		return RunWatch(eps, w.Clients, w.Ops, ready)
+		return RunWatch(eps, nodes, w.Ops, ready)
 	case Cache:
-		return RunCache(eps, w.Clients, w.Ops, ready)
+		return RunCache(eps, nodes, w.Ops, ready)
 	case Compact:
 		return RunCompact(eps)
 	case PutGet:
 		return RunPutGet(eps)
 	case Auth:
-		return RunAuth(eps, ready)
+		return RunAuth(eps, nodes, ready)
 	case AuthLease:
 		return RunAuthLease(eps, ready)
 	case LeaseRead:
@@ -209,9 +213,15 @@ func MainReady(w Workload, eps []string, ready func()) Result {
 	return ended("unknown workload")
 }
 
-// Args is a client machine's configuration, as cmd/client reads it: its workload and the members'
-// client endpoints, in the members' order.
+// Args is a client machine's configuration, as cmd/client reads it: its workload, the members'
+// client endpoints, in the members' order, and the workload's client machines' addresses
+// (NodeCount(W) of them, client c's at Nodes[c]). On the workload's orchestrator machine
+// (MainReady) IsNode is false; on its client machine c (NodeMain, at Nodes[c]) IsNode is true and
+// Node is c.
 type Args struct {
-	W   Workload
-	Eps []string
+	W      Workload
+	Eps    []string
+	Nodes  []string
+	IsNode bool
+	Node   int
 }

@@ -6,6 +6,7 @@ import (
 	"math/rand/v2"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -28,7 +29,8 @@ const (
 // RunProcess runs a harness process: role RoleServer with a server.Config's JSON file (server.Main;
 // with DIST_LOG set, MainLogger to standard error), or RoleClient with a client.Args JSON file
 // (client.MainReady, its result printed; its set-up done marked by the file FILE.json.ready, for
-// the harness to hold its faults until then). What cmd/server and cmd/client do, for a binary that is both
+// the harness to hold its faults until then; or, on a workload's client machine, client.NodeMain,
+// which never returns). What cmd/server and cmd/client do, for a binary that is both
 // (the test binary).
 func RunProcess(args []string) error {
 	if len(args) != 2 {
@@ -57,12 +59,23 @@ func RunProcess(args []string) error {
 		if err := json.Unmarshal(b, &a); err != nil {
 			return err
 		}
+		if a.IsNode {
+			if a.Node < 0 || a.Node >= len(a.Nodes) {
+				return fmt.Errorf("no client machine %d", a.Node)
+			}
+			client.NodeMain(a.W, a.Node, a.Nodes[a.Node], a.Eps)
+			return fmt.Errorf("client.NodeMain returned")
+		}
 		ready := func() { os.WriteFile(args[1]+".ready", nil, 0o644) }
-		fmt.Printf("%s: %v\n", a.W.Kind, client.MainReady(a.W, a.Eps, ready))
+		fmt.Printf("%s: %v\n", a.W.Kind, client.MainReady(a.W, a.Eps, a.Nodes, ready))
 		return nil
 	}
 	return fmt.Errorf("unknown role %q", args[0])
 }
+
+// NodePort is the port a workload's client machine serves the orchestrator's calls at, in the
+// namespace mode (in the local mode, ports of the one loopback address from 31000).
+const NodePort = 2390
 
 // Crash modes (kvnet's driver's).
 const (
@@ -149,8 +162,11 @@ type Cluster struct {
 	net     *robust.Network
 	members []*member
 	clients []*robust.Machine
-	nemesis *robust.NetNemesis
-	Stats   Stats
+	// nodes[i] are workload i's client machines (client.NodeCount), at nodeAddrs[i]
+	nodes     [][]*robust.Machine
+	nodeAddrs [][]string
+	nemesis   *robust.NetNemesis
+	Stats     Stats
 
 	mu      sync.Mutex
 	crashMu sync.Mutex
@@ -279,6 +295,9 @@ func Start(d Deployment, cfg Config, cmd Command, work string, n *robust.Network
 			return nil, err
 		}
 	}
+	localPort := 31000 + 20*rand.IntN(80)
+	var all []*robust.Machine
+	all = append(all, ms...)
 	for i, w := range d.Workloads {
 		m, err := n.AddMachine(fmt.Sprintf("client-%d-%s", i, w.Kind))
 		if err != nil {
@@ -286,10 +305,29 @@ func Start(d Deployment, cfg Config, cmd Command, work string, n *robust.Network
 			return nil, err
 		}
 		c.clients = append(c.clients, m)
+		all = append(all, m)
+		var nms []*robust.Machine
+		var addrs []string
+		for j := 0; j < client.NodeCount(w); j++ {
+			nm, err := n.AddMachine(fmt.Sprintf("client-%d-%s-node-%d", i, w.Kind, j))
+			if err != nil {
+				c.Stop()
+				return nil, err
+			}
+			nms = append(nms, nm)
+			all = append(all, nm)
+			if n.Namespaces() {
+				addrs = append(addrs, nm.IP+":"+strconv.Itoa(NodePort))
+			} else {
+				addrs = append(addrs, fmt.Sprintf("%s:%d", nm.IP, localPort))
+				localPort++
+			}
+		}
+		c.nodes = append(c.nodes, nms)
+		c.nodeAddrs = append(c.nodeAddrs, addrs)
 	}
 	if cfg.Netns && cfg.NetPause != 0 {
-		c.nemesis = &robust.NetNemesis{Net: n, Machines: append(append([]*robust.Machine(nil), ms...), c.clients...),
-			Pause: cfg.NetPause, Hold: cfg.NetHold}
+		c.nemesis = &robust.NetNemesis{Net: n, Machines: all, Pause: cfg.NetPause, Hold: cfg.NetHold}
 	}
 	return c, nil
 }
@@ -368,17 +406,65 @@ func (c *Cluster) crasher(stop <-chan struct{}) {
 	}
 }
 
-// runClients starts every workload's process on its machine and waits for all of them to end,
-// or for the deadline, or for the run to fail; it returns their result lines.
+// startNodes starts workload i's client machines' processes (client.NodeMain): one that ends
+// before the harness kills it (a panic: a principal's failed check) fails the run.
+func (c *Cluster) startNodes(i int, eps []string) ([]*robust.Proc, error) {
+	w := c.d.Workloads[i]
+	var procs []*robust.Proc
+	for j, nm := range c.nodes[i] {
+		b, _ := json.Marshal(client.Args{W: w, Eps: eps, Nodes: c.nodeAddrs[i], IsNode: true, Node: j})
+		argPath := filepath.Join(c.work, fmt.Sprintf("client-%d-node-%d.json", i, j))
+		logPath := filepath.Join(c.work, "logs", fmt.Sprintf("client-%d-%s-node-%d.log", i, w.Kind, j))
+		if err := os.WriteFile(argPath, b, 0o644); err != nil {
+			return procs, err
+		}
+		lf, err := os.Create(logPath)
+		if err != nil {
+			return procs, err
+		}
+		p, err := nm.Start(c.cmd.Path, []string{RoleClient, argPath}, c.cmd.Env, lf, func(err error) {
+			c.fail(fmt.Errorf("client %d (%s)'s machine %d exited (%v); its log:\n%s", i, w.Kind, j, err,
+				tail(logPath, 30)))
+		})
+		if err != nil {
+			lf.Close()
+			return procs, err
+		}
+		go func() {
+			<-p.Exited()
+			lf.Close()
+		}()
+		procs = append(procs, p)
+	}
+	return procs, nil
+}
+
+// runClients starts every workload's processes on their machines (its client machines', then its
+// orchestrator's) and waits for every orchestrator to end, or for the deadline, or for the run to
+// fail; then it kills the client machines' processes (which never end) and returns the
+// orchestrators' result lines.
 func (c *Cluster) runClients(started chan<- []string, exited []atomic.Bool) []string {
 	eps := c.d.Endpoints()
 	lines := make([]string, len(c.d.Workloads))
 	done := make(chan int, len(c.d.Workloads))
-	var procs []*robust.Proc
+	var procs, nodeProcs []*robust.Proc
 	var argPaths []string
 	defer func() { close(started) }()
+	defer func() {
+		for _, p := range nodeProcs {
+			p.Kill()
+		}
+	}()
+	for i := range c.d.Workloads {
+		ps, err := c.startNodes(i, eps)
+		nodeProcs = append(nodeProcs, ps...)
+		if err != nil {
+			c.fail(err)
+			return lines
+		}
+	}
 	for i, w := range c.d.Workloads {
-		b, _ := json.Marshal(client.Args{W: w, Eps: eps})
+		b, _ := json.Marshal(client.Args{W: w, Eps: eps, Nodes: c.nodeAddrs[i]})
 		argPath := filepath.Join(c.work, fmt.Sprintf("client-%d.json", i))
 		argPaths = append(argPaths, argPath)
 		logPath := filepath.Join(c.work, "logs", fmt.Sprintf("client-%d-%s.log", i, w.Kind))

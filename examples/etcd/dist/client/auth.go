@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"go.uber.org/zap"
@@ -74,16 +73,17 @@ func collectFor(wch clientv3.WatchChan, cancel context.CancelFunc, upTo int64) (
 // RunAuth is the auth workload (authN's run minus its members' gRPC serving, copied; Lean:
 // Workload.auth; alone in its deployment, which has the token provider): through a client of
 // eps[0], authkv's set-up (auth.SetUp: the auth state set up and auth enabled); root's barrier at
-// every member; then the four principals' workloads at once (auth.Work, each over its own client:
-// a Remote client node each): the client with no token through eps[0], u and the client with an
-// invalid token through eps[1 mod k], v through eps[2 mod k]; then root's Put of z/end, root's
+// every member; then the four principals' workloads at once, each at its own machine (nodes[c] is
+// auth.Principals()[c]'s: remotePrincipals, NodeMain) through its own client (auth.Work): the
+// client with no token through eps[0], u and the client with an invalid token through eps[1 mod k],
+// v through eps[2 mod k] (principalClient); then root's Put of z/end, root's
 // watch of everything from revision 1 up to it, checked by auth.CheckHistory (every write one its
 // principal was permitted), and u's watch of [a, b), whose events must all be keys u may read.
 // Every refusal the checks expect is any error (auth.Work's refused): an error never counts as a
 // write not applied, since the history check reads what was applied.
-func RunAuth(eps []string, ready func()) Result {
+func RunAuth(eps []string, nodes []string, ready func()) Result {
 	k := len(eps)
-	a0, au, av := eps[0], eps[1%k], eps[2%k]
+	a0, au := eps[0], eps[1%k]
 	cli, err := newClient([]string{a0})
 	if err != nil {
 		return ended("auth: a client failed to connect")
@@ -102,32 +102,11 @@ func RunAuth(eps []string, ready func()) Result {
 	if err != nil {
 		return ended("auth: u's client failed to connect")
 	}
-	vcli, err := newUserClient(av, "v", vPw)
-	if err != nil {
-		return ended("auth: v's client failed to connect")
-	}
-	bcli, err := newClient([]string{au})
-	if err != nil {
-		return ended("auth: bad's client failed to connect")
+	if !awaitNodes(nodes) {
+		return ended("auth: a principal's machine never answered")
 	}
 	ready()
-	var wg sync.WaitGroup
-	for _, who := range auth.Principals() {
-		c := cli
-		if who == "u" {
-			c = ucli
-		} else if who == "v" {
-			c = vcli
-		} else if who == "bad" {
-			c = bcli
-		}
-		wg.Add(1)
-		go func() {
-			auth.Work(c, who)
-			wg.Done()
-		}()
-	}
-	wg.Wait()
+	remotePrincipals(nodes)
 	ctx, cancel := context.WithTimeout(context.Background(), etcdstart.RequestTimeout)
 	end, err := root.Put(ctx, "z/end", "end")
 	cancel()
