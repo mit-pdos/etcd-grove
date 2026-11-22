@@ -84,10 +84,6 @@ def kdPendOut : Option (GName × RaftState × Qp) → IProp GF
   | none => iprop(emp)
   | some (γb, _, _) => iprop(∃ R : IProp GF, savedPropOwn γb DFrac.discard R ∗ R)
 
-instance fileHolds_persistent (γ : KdNames) (S : RaftState) (v : Option GoString) :
-    Persistent (fileHolds (GF := GF) γ S v) := by
-  unfold fileHolds; infer_instance
-
 /-- The encoding of a file `openStorage` accepts, which holds `S`, holds `S`. -/
 theorem fileHolds_some (γ : KdNames) (S : RaftState) (M : StorFile) (hM : KdFileOk M)
     (hS : StorageHolds S (kdContents (some M))) :
@@ -109,14 +105,14 @@ at the rename (`γr`), which costs the sync a second later credit. -/
 theorem kd_writeAU (γ : KdNames) (id : w64) (n : NodeH) (ph : KdDmuNames) (q : Qp) (S : RaftState)
     (o : Option StorFile) (M : StorFile) (pb : Option (GName × RaftState × Qp)) (Ψ0 : IProp GF)
     (hM : KdFileOk M) (hS : StorageHolds (pbTarget S pb) (kdContents (some M))) :
-    ⊢ kdFileInvK γ id ph.fl -∗ nodeArm n γ.r.cluster ph.fl.x -∗ kdWriter ph.fl S o -∗ £ 2 -∗
+    ⊢ kdFileInvK γ id ph.fl -∗ nodeArm n γ.r.cluster ph.fl.x -∗ kdWriter ph.fl S o -∗ £ 1 -∗ £ 1 -∗
       kdRunKeep γ n q pb -∗ kdSnapCert γ M.snap -∗ kdPendIn γ id n S pb -∗
       (kdWriter ph.fl (pbTarget S pb) (some M) -∗ nodeRunning n γ.r.cluster kdRaftN (pbQ q pb) -∗
         kdPendOut pb -∗ Ψ0) -∗
       AU <{ ∃∃ s : DurFs.DurSt, DurFs.durSt (GF := GF) ph.fl.γd s }> @ DurFs.durAuMask, ∅
         <{ DurFs.durSt (GF := GF) ph.fl.γd ⟨some (encStor M), some s.cur⟩,
            COMM DurFs.durWriteSync (GF := GF) ph.fl.γd Ψ0 }> := by
-  iintro #Hinv #Harm Hwr ⟨Hlc, Hlc'⟩ Hrun #Hcert Hpend HK
+  iintro #Hinv #Harm Hwr Hlc Hlc' Hrun #Hcert Hpend HK
   iauintro
   unfold atomic_acc
   iunfold kdFileInvK at Hinv

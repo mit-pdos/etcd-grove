@@ -48,7 +48,7 @@ attribute [local instance] kdStorageModel
 pb)` and the contents `v` the crash left, the next generation's durable state `S'`, raft's vacancy,
 and `v` holding `S'`. -/
 theorem kd_boot_choose (γ : KdNames) (id : w64)
-    (S : RaftState) (s : DurFs.DurSt) (pb : Option (GName × RaftState × Qp × NodeH)) (x : CrashNames)
+    (S : RaftState) (s : DurFs.DurSt) (pb : Option (GName × RaftState × Qp × GName)) (x : CrashNames)
     (v : Option GoString) (E : CoPset) (hE : ↑kdRaftN ⊆ E) (hv : v = s.cur ∨ s.alt = some v) :
     ⊢ isCluster (GF := GF) γ.r.cluster kdRaftN -∗ crashed -∗ nodeCrashTok γ.r.cluster id x -∗
       raftState γ.r.cluster id S -∗ kdFileState γ id x S s pb ={E}=∗
@@ -82,9 +82,11 @@ theorem kd_boot_choose (γ : KdNames) (id : w64)
         iexists S
         iframe HrS Hvac Hnew
       | some p =>
-        obtain ⟨γb, S2, q', n⟩ := p
+        obtain ⟨γb, S2, q', γr⟩ := p
         simp only
-        icases Hnew with ⟨%st, %st', %ms, #Harm, Henter, Hrun, -, %Hst, Hfh⟩
+        icases Hnew with ⟨%n, Hrec, -, Hfh⟩
+        iunfold kdBatchRec at Hrec
+        icases Hrec with ⟨%st, %st', %ms, #Harm, Henter, Hrun, -, %Hst⟩
         obtain ⟨Hst1, Hst2⟩ := Hst
         ihave HrS : raftState γ.r.cluster id st.durable $$ [HrS]
         · rw [Hst1]; iexact HrS
@@ -141,7 +143,8 @@ theorem kd_file_alloc (γ : KdNames) (id : w64) (γd : DurFs.DurGS) (df : DurFs.
     ileft
     iframe HrS
     iunfold kdFileState
-    iframe Hfh
+    isplitr
+    · iexact Hfh
     ipureintro; rfl
   imodintro
   iexists wr, tk
