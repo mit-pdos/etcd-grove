@@ -744,9 +744,11 @@ opaque stringWriter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque HTTP2Config.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque http2Server [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def http2Server.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"net/http/internal/http2.Server" [])
 
-opaque http2Transport [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def http2Transport.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"net/http/internal/http2.Transport" [])
 
 opaque http2ResponseWriter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
