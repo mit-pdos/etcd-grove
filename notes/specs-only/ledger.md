@@ -25,6 +25,23 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-21: `kvdurable.getEntry` -- reads only persistent bytes, so a caller holding owned bytes cannot use it
+
+- **Spec.** `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/getEntry.lean`, `getEntry.spec`
+  (and its copies, RaftNoAx's kvdurablenoax and KvNet's kvnet, `etc/copy-part.py`). No SpecPlan counterpart.
+- **Defect.** Too strong a premise: the bytes must be persistent (`b ↦*□ (encEntry e ++ r)`, the rest given
+  back persistent). kvnet's `getMsg` (KvNet, issue #22) decodes the entries of a message and then its snapshot
+  from the same owned bytes, and `getSnapshot` needs the snapshot's bytes owned; with `getEntry` persisting them,
+  a message with both entries and a snapshot could not be decoded (`getMsg` took the premise
+  `st.ents = [] ∨ st.snap = none`).
+- **Evidence.** `KvNet/Proof/.../kvnet/getMsg.lean` (fork C's report, 2026-11-21). The Go only reads `b`
+  (`getUint64`, `getBytes`: subslices), so any fraction suffices; the entry's data, a subslice of `b`, must be
+  read-only for `entOwn`, which the proof gets by persisting that subslice alone.
+- **Proposed change.** `∀ b (dq : DFrac) e r, EntWf e → {{ … b ↦*{dq} (encEntry e ++ r) }} getEntry b
+  {{ l rest; entOwn l e ∗ rest ↦*{dq} r }}` (the data slice persisted inside the proof). The one main-tree caller,
+  `openStorage`, passes `dq := DFrac.discard` (its statement unchanged); kvnet's `getMsg` passes its own fraction
+  and drops its premise.
+- **Decision.** Accepted (the coordinator, issue #22, 2026-11-21).
 ## 2026-11-21: raft's node API -- no node of an id is restartable after a real crash (`nodeVacant` returns only from `node.Stop`)
 
 - **Spec.** `Spec/go_etcd_io/raft/v3/StartNode.lean`, `RestartNode.lean`, `node__Stop.lean`,
@@ -4099,3 +4116,69 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   with `⌜Pre r ∧ rd ≠ nil⌝` (Go's server request bodies are never nil); `ReadFull_stream_spec` takes `isPkgInit io`,
   and `bodyStream_readFullAt` takes it (the snapshot handler has it).
 - **Decision.** Applied (prove-http3, 2026-11-21): `ReadFull_stream_ok` is a theorem over Perennial's `io.ReadFull`.
+
+## 2026-11-21: `labels.Everything` needs `labels`' initialization (#25)
+
+- **Spec.** `Spec/k8s_io/apimachinery/pkg/labels/Everything.lean`, `labels.Everything.spec` (the trust-boundary
+  axiom `labels.Everything.wp_proof` until now).
+- **Defect.** The pre is `True`, but `Everything` returns the package variable `sharedEverythingSelector`
+  (`selector.go:93-98`), and its post's `MatchesNothing` triple reads `sharedNothingSelector`: no proof over the
+  code can load them without `labels`' initialization, whose fact said nothing of them.
+- **Evidence.** `Everything.impl` (`Code/k8s_io/apimachinery/pkg/labels.lean`, translated since #25): a `GoLoad` of
+  `GlobalVarAddr sharedEverythingSelector`.
+- **Proposed change.** The pre takes `isPkgInit pkg_id.k8s_io.apimachinery.pkg.labels`; `labels`' fact becomes
+  `labelsInit` (`storage/etcd3/Base.lean`: both shared selectors read-only, the everything selector an empty
+  `internalSelector`), established by its generated `Init.lean`. The post is unchanged. Callers
+  (`daemonSetLister.GetPodDaemonSets`/`GetHistoryDaemonSets`, `storage`'s initializer) hold `labels`' `isPkgInit`
+  through their own package's.
+- **Decision.** Applied (#25, 2026-11-21): an initialization premise every caller holds; no client-visible change.
+## 2026-11-21: `lessorApplyOk` at a backend that has `Lease`; one put per batch lock (prove-ps2-newlessor5)
+
+- **Spec.** `lessorApplyOk` (`Proof/.../etcdserver/SnapRO.lean`, `lease.NewLessor.spec`'s post) and
+  `lessorApplyOk_at` (`LessorApplyLaws.lean`); `lease.leaseBatchTx` (`Proof/.../lease/LessorBackend.lean`).
+- **Defect.** Not provable of the real backend: `lessorApplyOk` quantified over every backend `d`, but the real
+  backend's `UnsafePut` needs the bucket in its table (`batchTxBuffered.UnsafePut.spec`'s `P.has bi`; Go: a missing
+  bucket is a `Fatal`), which nothing in its premises gives (`isBackend` pins only the batch limit of `d.P`); and
+  `leaseBatchTx` allowed any number of puts under one lock at no cost, while each real `UnsafePut` counts a pending
+  operation (`pend + 1 < 2 ^ 58`, `Unlock`'s `pend + hookMax < 2 ^ 58`).
+- **Evidence.** `Spec/.../storage/backend/batchTxBuffered__UnsafePut.lean`, `batchTxBuffered__Unlock.lean`;
+  `/shared/tmp/ps2/newlessor/plan.md` ("Fifth session", Q1).
+- **Proposed change.** `lessorApplyOk` takes `⌜mvcc.leaseParams d.P⌝` (the bucket in the table, tracked, none of its
+  keys a hook's); `leaseBatchTx`'s lock token is indexed by whether the session's one put is done (`Lk false` from
+  `LockInsideApply`, `UnsafePut` from `Lk false` to `Lk true`, `Unlock` from either): all the lessor does
+  (`persistTo`'s one `MustUnsafePutLease`). Alternative (a receipt per put, as auth's) rejected: more churn
+  (`persistTo`, `Grant`, `Checkpoint` would take receipts).
+- **Decision.** Main session's decision under the user's rule (everything still proves), applied: every use already
+  has the fact (`snap_isApplyLessor`'s `hlp`, mvccrand's `rcP_lease`, mvccfull's `bkKeep` at `rcP`); the contract is
+  proved of the real backend (`lessorApplyOk_real`, `LessorApplyReal.lean`).
+
+## 2026-11-21: the token-free `Lookup` clause deleted (prove-ps2-newlessor5)
+
+- **Spec.** `lease.NewLessor.spec`'s post (its last clause), `lessorLookupOk` (`SnapRO.lean`, in `srvSnapRO` and
+  `EtcdServer.applySnapshot.spec`), `apply.isApplyLessor`'s last clause (`apply/Contracts.lean`), the last premise of
+  `apply.isApplyLessor_of_lessorInv`.
+- **Defect.** `{{ True }} lp.Lookup(id) {{ … }}` takes no reader slot and no token: `lessor.Lookup` read-locks `le.mu`,
+  which the model's `RWMutex` bounds by reader slots, so no proof over the real code gives it (true of Go only because no
+  process has `2 ^ 30` concurrent readers). Its `apply.leaseIs`'s `Keys()` likewise read-locks the lease's `mu`.
+- **Evidence.** `lessor.go` `Lookup`; `lessor.Lookup.spec` (takes `lessorRd`); every destructuring of
+  `isApplyLessor` dropped the clause (`-`): no proof used it; `/shared/tmp/ps2/newlessor/plan.md` ("Fifth session", Q2).
+- **Proposed change.** Delete the clause (alternative: give it a reader slot `lessorRdOf γl` in and out).
+- **Decision.** Main session's decision, applied: deleted from `NewLessor`'s post, `isApplyLessor`,
+  `isApplyLessor_of_lessorInv`, `srvSnapRO`, `applySnapshot`'s spec; `lessorLookupOk` and `UberOn.lookupOk_of_guard`
+  deleted. The exported `lessor_apply_contract` (`etcdserver/Results.lean`) keeps its statement text: its last premise
+  (the triple) is kept, now unused, and its conclusion loses exactly the conjunct that premise restates. `apply.leaseIs`
+  stays (that premise names it).
+
+## 2026-11-21: `lease.NewLessor` proved; `Lease.expired` the expiry payload's trust boundary (prove-ps2-newlessor5)
+
+- **Spec.** `lease.NewLessor.spec` (statement unchanged, now a theorem over `lease.newLessor.spec`, new);
+  `lease.Lease.expired.spec` (now an axiom, `Proof/.../lease/Lease__expired.lean`); `lease.lessor.runLoop.spec`
+  (post `True` to `levelTok leaseLvl`: the forked goroutine ends with its thread token).
+- **Defect.** None in the statements; the constructor's axiom covered code that is now proved, except the
+  expiry loop's payload `¬ leasesNoExpiry` (an opaque premise about the real clock; the model's `time.Now` is
+  arbitrary).
+- **Evidence.** `newLessor.lean`, `NewLessorAlloc.lean`, `NewLessorGhost.lean`, `etcdserver/LessorApplyReal.lean`;
+  `notes/axiom-review/lease-expired-payload.md`.
+- **Proposed change.** Replace `NewLessor`'s axiom by the narrower `Lease.expired` one (the user's choice (a),
+  prove-ps2-newlessor).
+- **Decision.** Approved (the user's (a); net 0 axioms), applied.

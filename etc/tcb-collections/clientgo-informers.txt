@@ -14,7 +14,6 @@ axiom appslisters.wp_Errorf_labelArgs
 axiom appsv1.Resource.wp_proof
 axiom cache.wp_Errorf_setArgs
 axiom corev1.Resource.wp_proof
-axiom labels.Everything.wp_proof
 axiom labels.LabelSelectorAsSelector.wp_proof
 axiom labels.reqsValid
 axiom trace.Trace.LogIfLong.wp_proof

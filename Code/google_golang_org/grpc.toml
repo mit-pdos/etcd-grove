@@ -15,8 +15,16 @@ translate = ["!*", "EnableTracing", "WaitForReady", "MaxCallSendMsgSize", "MaxCa
   "StaticMethod", "Peer",
   "GenericClientStream.Send", "GenericClientStream.Recv", "GenericServerStream.Send",
   "GenericServerStream.Recv", "GenericClientStream.CloseSend", "GenericClientStream.Context",
-  "GenericServerStream.Context"]
-imports = ["!*", "context", "google.golang.org/grpc/metadata", "google.golang.org/grpc/peer"]
+  "GenericServerStream.Context",
+  # (phase 7 S1, 2026-11-21, notes/phase7-plan.md; grpc is the model's since S0) the server
+  # option constructors that only store a closure, with their bodies, and the closures' holder (the
+  # dial options' come with `dialOptions`, whose fields need more of grpc's packages)
+  "newFuncServerOption", "funcServerOption.apply", "KeepaliveEnforcementPolicy", "MaxRecvMsgSize",
+  "MaxSendMsgSize", "MaxConcurrentStreams", "ChainUnaryInterceptor", "ChainStreamInterceptor"]
+imports = ["!*", "context", "google.golang.org/grpc/metadata", "google.golang.org/grpc/peer",
+  # (phase 7 S1) the types of `serverOptions`' fields, so that the struct is translated
+  "time", "io", "google.golang.org/grpc/credentials", "google.golang.org/grpc/keepalive",
+  "google.golang.org/grpc/stats"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

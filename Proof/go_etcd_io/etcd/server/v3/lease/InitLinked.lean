@@ -220,6 +220,11 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   ipersist HleaseGranted
   ipersist HleaseRevoked
   ipersist HleaseRenewed
+  ipersist HdefaultLeaseRevokeRate
+  ipersist HleaseCheckpointRate
+  ipersist HmaxLeaseCheckpointBatchSize
+  ipersist HdefaultLeaseCheckpointInterval
+  ipersist HdefaultExpiredleaseRetryInterval
   ipersist HleaseTotalTTLs
   ihave #TNP := EtcdGrove.errorMsg_triple _ _ _ $$ MNP
   ihave #TNF := EtcdGrove.errorMsg_triple _ _ _ $$ MNF
@@ -231,6 +236,10 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   · unfold EtcdGrove.errVarCell; iexists _; iframe HErrLeaseExists CEx
   ihave #VTL : (EtcdGrove.errVarCell ErrLeaseTTLTooLarge go!"too large lease TTL" : IProp GF) $$ []
   · unfold EtcdGrove.errVarCell; iexists _; iframe HErrLeaseTTLTooLarge CTL
+  ihave #HlC : (leaseConsts : IProp GF) $$ []
+  · unfold leaseConsts; iframe HdefaultLeaseRevokeRate HleaseCheckpointRate HmaxLeaseCheckpointBatchSize
+    isplitr; · iexists _; iexact HdefaultLeaseCheckpointInterval
+    iexists _; iexact HdefaultExpiredleaseRetryInterval
   iframe Hown
   imodintro
   isplitr

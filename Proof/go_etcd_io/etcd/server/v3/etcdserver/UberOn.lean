@@ -53,25 +53,7 @@ instance srvStoreLatest_persistent (s : Loc) (E : apply.AEnv GF)
     (L : List auth.AuthState → IProp GF) : Persistent (srvStoreLatest s E L) := by
   unfold srvStoreLatest; infer_instance
 
-/-- **The weaker `Lookup` clause** (`isApplyLessor`'s, `lessorLookupOk`'s): a non-nil result is the
-lease of its id. -/
-theorem lookupOk_of_guard (lp : Loc) (GA : w64 → IProp GF) :
-    □ (∀ id : w64,
-        {{ True }} (App (Val (lp @!! go.GoType.PointerType
-          go_etcd_io.etcd.server.v3.lease.lessor.ty @!! go!"Lookup")) (Val #id))
-        {{ (l : Loc), RET #l; ⌜l = null⌝ ∨ (apply.leaseIs l id ∗ □ GA id) }}) ⊢
-    □ (∀ id : w64,
-        {{ True }} (App (Val (lp @!! go.GoType.PointerType
-          go_etcd_io.etcd.server.v3.lease.lessor.ty @!! go!"Lookup")) (Val #id))
-        {{ (l : Loc), RET #l; ⌜l = null⌝ ∨ apply.leaseIs l id }}) := by
-  iintro #HL
-  iintro !> %id %Φ !> - HΦ
-  ispecialize HL $$ %id
-  iapply HL
-  · itrivial
-  iintro !> %l (%Hn | ⟨Hl, -⟩)
-  · iapply HΦ; ileft; ipureintro; exact Hn
-  · iapply HΦ; iright; iexact Hl
+-- `lookupOk_of_guard` deleted (prove-ps2-newlessor5, 2026-11-21): no `Lookup` clause any more.
 
 end defs
 

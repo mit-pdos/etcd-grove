@@ -268,6 +268,69 @@ noncomputable def Set.Get.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
 
+/-- Everything returns a selector that matches all labels.
+
+    go: selector.go:96:6 -/
+noncomputable def Everything.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Selector.ty))) (App (Val (GoInstruction (GoZeroVal Selector.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Selector.ty))) (App (Val (GoInstruction (GlobalVarAddr sharedEverythingSelector))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Selector.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad Selector.ty))) (Var "$res0")))))
+
+/-- MatchesNothing only returns true for selectors which are definitively determined to match no objects.
+    This currently only detects the `labels.Nothing()` selector, but may change over time to detect more selectors that match no objects.
+
+    Note: The current implementation does not check for selector conflict scenarios (e.g., a=a,a!=a).
+    Support for detecting such cases can be added in the future.
+
+    go: selector.go:125:6 -/
+noncomputable def MatchesNothing.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "selector"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "selector" (App (Val (GoInstruction (GoAlloc Selector.ty))) (Var "selector"))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoEquals Selector.ty))) (Pair (App (Val (GoInstruction (GoLoad Selector.ty))) (Var "selector")) (App (Val (GoInstruction (GoLoad Selector.ty))) (App (Val (GoInstruction (GlobalVarAddr sharedNothingSelector))) (Val #())))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
+
+/-- Empty returns true if the internalSelector doesn't restrict selection space
+
+    go: selector.go:337:27 -/
+noncomputable def internalSelector.Empty.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc internalSelector.ty))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad internalSelector.ty))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [internalSelector.ty]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals internalSelector.ty))) (Pair (App (Val (GoInstruction (GoLoad internalSelector.ty))) (Var "s")) (App (Val (GoInstruction (Convert go.untypedNil internalSelector.ty))) (Val UntypedNil)))))
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.labels where
   pkgImportedPkgs := [pkg_id.k8s_io.apimachinery.pkg.selection]
 
@@ -462,10 +525,15 @@ class internalSelector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   underlying : go.UnderlyingDirectedEq internalSelector.ty internalSelector.underlying
   method_set : go.MethodSetIs internalSelector.ty [(go!"Add", (some (go.signature.Signature [(go.GoType.SliceType Requirement.ty)] true [Selector.ty]))), (go!"DeepCopy", (some (go.signature.Signature [] false [internalSelector.ty]))), (go!"DeepCopySelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Matches", (some (go.signature.Signature [Labels.ty] false [go.bool]))), (go!"Requirements", (some (go.signature.Signature [] false [Requirements.ty, go.bool]))), (go!"RequiresExactMatch", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType internalSelector.ty) [(go!"Add", (some (go.signature.Signature [(go.GoType.SliceType Requirement.ty)] true [Selector.ty]))), (go!"DeepCopy", (some (go.signature.Signature [] false [internalSelector.ty]))), (go!"DeepCopySelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Matches", (some (go.signature.Signature [Labels.ty] false [go.bool]))), (go!"Requirements", (some (go.signature.Signature [] false [Requirements.ty, go.bool]))), (go!"RequiresExactMatch", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  Empty_unfold : MethodUnfold internalSelector.ty go!"Empty" internalSelector.Empty.impl
+  ptr_Empty_unfold : MethodUnfold (go.GoType.PointerType internalSelector.ty) go!"Empty" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve internalSelector.ty go!"Empty"))) (App (Val (GoInstruction (GoLoad internalSelector.ty))) (Var "$r"))))
 
 attribute [instance] internalSelector.TypeAssumptions.underlying
   internalSelector.TypeAssumptions.method_set
   internalSelector.TypeAssumptions.ptr_method_set
+  internalSelector.TypeAssumptions.Empty_unfold
+  internalSelector.TypeAssumptions.ptr_Empty_unfold
 
 abbrev ByKey [GooseExts] : Type := GoSlice
 
@@ -686,6 +754,8 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Parser_instance : Parser.TypeAssumptions
   ParserContext_instance : ParserContext.TypeAssumptions
   ValidatedSetSelector_instance : ValidatedSetSelector.TypeAssumptions
+  Everything_unfold : FuncUnfold Everything [] Everything.impl
+  MatchesNothing_unfold : FuncUnfold MatchesNothing [] MatchesNothing.impl
   import_selection_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.selection.Assumptions
 
 attribute [instance] Assumptions.Labels_instance
@@ -702,6 +772,8 @@ attribute [instance] Assumptions.Labels_instance
   Assumptions.Parser_instance
   Assumptions.ParserContext_instance
   Assumptions.ValidatedSetSelector_instance
+  Assumptions.Everything_unfold
+  Assumptions.MatchesNothing_unfold
   Assumptions.import_selection_Assumption
 
 end k8s_io.apimachinery.pkg.labels

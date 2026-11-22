@@ -3,6 +3,7 @@ module
 
 public import GeneratedProof.go_etcd_io.etcd.server.v3.lease
 public import SpecPlan.Spec.PkgInit.Base
+public import Perennial.Proof.math.Base
 public import Perennial.Proof.sync.Base
 public import Perennial.Proof.time.Base
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.lease.leasepb
