@@ -1481,11 +1481,14 @@ opaque CPUSet.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque CPUSetDynamic.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque Signal [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def Signal.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  _root_.Perennial.syscall.Signal.ty
 
-opaque Errno [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def Errno.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  _root_.Perennial.syscall.Errno.ty
 
-opaque SysProcAttr [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def SysProcAttr.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  _root_.Perennial.syscall.SysProcAttr.ty
 
 opaque Ifreq.underlying [GooseExts] [GoGlobalContext] : go.GoType
 

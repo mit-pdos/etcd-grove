@@ -98,10 +98,11 @@ opaque ElectionClient.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque electionClient.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque Election_ObserveClient [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def Election_ObserveClient.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/grpc.ServerStreamingClient" [LeaderResponse.ty])
 
 @[reducible] noncomputable def Election_ObserveServer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
-  (_root_.Perennial.google_golang_org.grpc.ServerStreamingServer.ty LeaderResponse.ty)
+  (go.GoType.Named go!"google.golang.org/grpc.ServerStreamingServer" [LeaderResponse.ty])
 
 opaque file_v3election_proto_rawDesc [GooseExts] [GoGlobalContext] : val
 
