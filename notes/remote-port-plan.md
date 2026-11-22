@@ -12,7 +12,7 @@ This plan ports that design onto etcd-grove's net extension as a neutral library
 dsverify's kits (phase 6 of `notes/dsverify-net-port-plan.md`) can reuse it, and so can etcd-dist's
 workloads (`notes/etcd-dist-plan.md` §2, D8).
 
-**Status:** R0 reviewed 2026-11-22; this is revision 2, after the coordinator's decisions (§8). **R1 done** (2026-11-22, §5). **R2, R3: see "R2 and R3" at the end** (2026-11-22). R4: the proposed statement is there, waiting for the coordinator.
+**Status:** R0 reviewed 2026-11-22; this is revision 2, after the coordinator's decisions (§8). **R1 done** (2026-11-22, §5). **R2, R3: see "R2 and R3"** (2026-11-22). **R4 done** (2026-11-22, "R4, done" at the end): `counter_remote_robust`, closed.
 
 ## 1. The lab's pieces, mapped to ours
 
@@ -106,8 +106,19 @@ There are no sequence numbers. An attempt is identified by its connection.
 On any failure, a read tries again
 (at most `ReadTries` attempts, 3), and a write stops after its one attempt. Either way, when no
 attempt gets an answer, `Do` returns `Unknown(in)`. A prophecy (`NewProph` at the start of `Do`,
-`ResolveU64` at its end) records which attempt answered (or none). It does nothing in Go; node 0's
-proof needs it (§4).
+`ResolveU64` at its end) records which attempt answered **with a known output** (or none). It does
+nothing in Go; node 0's proof needs it (§4).
+
+**Why the far side may answer "unknown", and `Codec.IsUnknown`.** The far side's `op` may itself fail
+to learn its operation's outcome, and then returns `Unknown(in)`, which `Serve` encodes and sends like
+any output. This happens in R4: a client node's `op` is a `Do` to the server, whose reply may be cut
+after the server applied the increment. The far side's update may then have fired (its `Φ` dropped
+there), may fire later, or never: for node 0 the call's outcome is unknown, as when no reply arrives.
+Node 0 commits lintest's operation *before* the call for an outcome that will be unknown (as pending),
+and *at the far side's step* for one that will be known, so it must know which before the first
+attempt: the prophecy names the attempt answered with a known output, and `Do` tells the two apart
+with `Codec.IsUnknown` (true of `Unknown(i)`'s values, false of the model's outputs). An attempt
+answered with the unknown output resolves the prophecy as "none".
 
 **`Serve`** handles one connection at a time:
 
@@ -488,12 +499,13 @@ whose write fired at the server).
   `Quot.sound` only. Its section takes `[NaInvG GF]` (porcupine's, through perclient).
 - `Run.spec`/`Check.spec` take `∀ st, Timeless (R.sysState st)`: node 0's invariant is opened inside
   `lin` and in `readNoop` (persistent), where no later credit is at hand. The counter's state (a ghost
-  variable) and etcd's KV are timeless.
+  variable) is timeless (`cR_timeless`, R4). **When kv (txnlin, etcd-dist) moves onto `remote`, etcd's
+  KV state (its `sysState`, `etcdKV`) must be shown timeless** (coordinator, 2026-11-22).
 
 No axiom, no `sorry`, no change to the net extension or Perennial. (A Perennial tactic gap found on the
 way: `notes/perennial-changes.md`, 2026-11-22, `wp_apply`'s silent `sorry`.)
 
-## R4: the proposed statement (waiting for the coordinator)
+## R4: the statement (approved by the coordinator, 2026-11-22)
 
 `Net/Spec/github_com/mit_pdos/etcd_grove/examples/lib/remote/counter/TopLevelRobustness.lean`:
 
@@ -538,3 +550,29 @@ Both are proved code (no trust added). R4's remaining work after them: the count
 (`codecOk`), `opMaybe` of the server's op (from `Counter.Apply`'s logically atomic spec) and of the
 client nodes' op (from `Do.spec`), the four `main`s' WPs, the start (`pend_alloc` over the counter's
 ghost state), `#print axioms`, `etc/tcb-collections/remote.txt`.
+
+## R4, done (2026-11-22)
+
+The coordinator approved the statement and both bridge changes (2026-11-22). Done:
+
+- **`Net/Statement/KitBridge.lean`** (additive; upamanyus's dsverify-net port, told on #24 by the
+  coordinator): `KitBootWpG`, `nodeWp_of_kitBootG`, `robust_of_kitBootRB`, `robust_of_kitProtoRB`: the
+  bridge over any bundle `GF` with `GooseGpreS GF`, the obligation given `receiptBound GF ≤ bound`. The
+  existing theorems and every Net example are unchanged (`lake build Net` passes: echo, framed,
+  acceptloop, duplex, halfclose, preface, shutdown, their `RobustLinked`/`TopLevelRobustness`).
+  `remote_start` is now over any bundle; `remote_robustRB` is `remote_robust` over the new bridge.
+- **The counter instance** (`Net/Proof|Spec/.../lib/remote/counter/`): `Defs` (`cB`, `cR γs`, `cDec`),
+  `Shared` (masks, `syncInv`/`srvTok`, `lin_mono`, `remoteGF`: `netGF` with `NaInvF` at slot 8),
+  `ModelDefs` (the pending model: `cSet lo K`, the configurations `(lo + j, K - j pending)`,
+  `stepG_pSeq`, `cS`, `cS_pendDec`), proofs of `step`, `Model`, `Codec`, `Gen`, `attempt`,
+  `CounterApply` (lintest/counter's `Apply` without the thread token, which the server's `main` has
+  none of), `Server`, `Client`, `Orch`, the four `cmd/*/Main.lean`, `Linked.lean`, `TopLevelDefs`,
+  `TopLevelRobustness`.
+- **The server and the store's state.** `R.sysState` must be fixed at the start (the addresses'
+  protocols name it), but the counter's ghost state is made by `New` at run time on the server. So the
+  store's state is half of a ghost variable `γs` made at the start, and the server keeps it equal to the
+  counter's in an invariant (`syncInv`, at `syncN`, the store's `Eop`).
+- **`counter_remote_robust`**: `#print axioms` lists `propext`, `Classical.choice`, `Quot.sound` only.
+- `etc/tcb-collections/remote-counter.txt` (roots `^Net/Proof/.../lib/remote/`), baseline empty (as
+  `#print axioms` shows). `etc/tcb-report.py --check --update` needs the whole repository built
+  (`check_built` checks every root module, ~20k modules), which this worktree is not; to run at landing.
