@@ -1380,7 +1380,8 @@ here so that no session needs it). Every entry a session puts in the write buffe
 step of the put itself (`wp_raise_receipt`: `⧖ m` to `⧖ (m + 1)`); a write-back moves entries to
 the read buffer, a commit drops the read buffer: neither adds. So the buffers stay below the step
 bound (`preceipt_lt`), whatever the commits since the last write-back (until then bounded through
-the write-back budget times `hookMax`, which capped the budget at `2 ^ 40`). -/
+the write-back budget times `hookMax`, which capped the budget at `2 ^ 40`; since, the budget
+`2 ^ 62`). -/
 def bufRc (st : BSess) : IProp GF :=
   iprop(∃ m, ⧖ m ∗ ⌜bufFit st m ∧ receiptBound GF ≤ 2 ^ 60⌝)
 

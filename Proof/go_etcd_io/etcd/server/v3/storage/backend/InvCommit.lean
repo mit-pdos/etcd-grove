@@ -7,6 +7,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBatch
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.CommitLemmas
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.WritebackLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ClaimedLemmas
 
 @[expose] public section
@@ -28,6 +29,27 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
+/-- **A commit keeps the buffers' receipt** (2026-11-22, step 2): it drops the read buffer and keeps
+the write buffer. -/
+theorem bufRc_commitSt (st : BSess) (C' : Data) (tx' : Loc) (cnt' : BCnt) :
+    bufRc (GF := GF) st ⊢ bufRc (commitSt st C' tx' cnt') :=
+  bufRc_mono (fun i => by
+    rw [commitSt_R, commitSt_W]
+    show (bkOf (bksReset st.R.bks) i).length + _ ≤ _
+    rw [bkOf_bksResetC]
+    simp)
+
+/-- **A write-back keeps the buffers' receipt** (2026-11-22, step 2): it moves the write buffer's
+entries into the read buffer (`wbMerge`, no longer than both) and empties the write buffer. -/
+theorem bufRc_wbSt (P : BParams) (st : BSess) :
+    bufRc (GF := GF) st ⊢ bufRc (wbSt P st) :=
+  bufRc_mono (fun i => by
+    show (bkOf (wbMerge st.W.bks st.R.bks) i).length + (bkOf (writebackW st.W st.R).bks i).length ≤ _
+    rw [bkOf_writebackW]
+    have := length_bkOf_wbMerge st.W.bks st.R.bks i
+    simp only [List.length_nil, Nat.add_zero]
+    omega)
+
 /-- The batch lock's share of the free state after a commit from `st` (the hook ran into
 `st'`), paid by `payIn`: the new committed data `C'`, write transaction `tx'`. -/
 theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (tx' : Loc)
@@ -41,10 +63,10 @@ theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (t
       ghostVar γ.used (1 : Qp).half u0 ∗ dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗
       viewQ γ (1 : Qp).half.half (vData P (C', st'.R.reset)) L ∗
       ghostVar γ.rvs (1 : Qp).half (((C', st'.R.reset) : RView), false) ∗
-      trkSide γ P (commitSt st' C' tx' cnt0) ∗ fkHalf γ P st' ⊢
+      trkSide γ P (commitSt st' C' tx' cnt0) ∗ fkHalf γ P st' ∗ bufRc st' ⊢
     |==> ∃ cnt' : BCnt, ⌜cnt'.hw = false⌝ ∗ batchGhostAt γ P (commitSt st' C' tx' cnt') true ∗
       payOut γ false m := by
-  iintro ⟨Hpay, Ha, Hm, Hu, Ho, Hv, Hr, Hk, Hfk⟩
+  iintro ⟨Hpay, Ha, Hm, Hu, Ho, Hv, Hr, Hk, Hfk, #Hbr⟩
   have hC0 : C' = st'.S ∨ C' = st'.C := hC'.imp id (fun h => h.2)
   have hT := fun (cnt' : BCnt) =>
     (trkOk_commitG (tx' := tx') (cnt' := cnt') hs htk hb'.2.2.2.2.2.2.2.2.2.2.1 hst' hC').1
@@ -78,8 +100,10 @@ theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (t
       · iexists L; iframe Hv; ipureintro; exact ⟨hdl.1, fun _ => hdl.2, fun _ => rfl⟩
       iexists n - 1, w, u0
       iframe Hr Ha Hm Hu Ho
+      ihave #Hbrc := bufRc_commitSt st' C' tx' ⟨st.cnt.k + 1, st.cnt.c + 1, 0, 0, false⟩ $$ Hbr
+      iframe Hbrc
       ipureintro
-      have hb4 : uint.Z st.R.ver + ((n - 1 : Nat) : Int) + ((st.cnt.k + 1 : Nat) : Int) < 2 ^ 40 := by
+      have hb4 : uint.Z st.R.ver + ((n - 1 : Nat) : Int) + ((st.cnt.k + 1 : Nat) : Int) < 2 ^ 62 := by
         omega
       refine (commit_bgOk (k' := st.cnt.k + 1) hW hp0 hs hst hb' (n - 1) w u0
         hb4 hb2 ?_ hwv (hT _))
@@ -107,6 +131,8 @@ theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (t
       · iexists L; iframe Hv; ipureintro; exact ⟨hdl.1, fun _ => hdl.2, fun _ => rfl⟩
       iexists n, w, w
       iframe Hr Ha Hm Hu Ho
+      ihave #Hbrc := bufRc_commitSt st' C' tx' ⟨st.cnt.k, st.cnt.c + 1, 0, 0, false⟩ $$ Hbr
+      iframe Hbrc
       ipureintro
       refine (commit_bgOk (k' := st.cnt.k) hW hp0 hs hst hb' n w w
         hb1 (Nat.le_refl _) ?_ hwv (hT _))
@@ -133,6 +159,8 @@ theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (t
       · iexists L; iframe Hv; ipureintro; exact ⟨hdl.1, fun _ => hdl.2, fun _ => rfl⟩
       iexists n, w, u0
       iframe Hr Ha Hm Hu Ho
+      ihave #Hbrc := bufRc_commitSt st' C' tx' ⟨st.cnt.k, st.cnt.c + 1, 0, 0, false⟩ $$ Hbr
+      iframe Hbrc
       ipureintro
       refine (commit_bgOk (k' := st.cnt.k) hW hp0 hs hst hb' n w u0
         hb1 hb2 ?_ hwv (hT _))
@@ -192,10 +220,11 @@ theorem batchLocked_setHw_mk (γ : BNames) (P : BParams) (b t db : Loc) (st : BS
       (∃ (n w u : Nat), ghostVar γ.rvs (1 : Qp).half (((st.C, st.R) : RView), false) ∗
         ownTokAuth γ.wb n ∗ monoNatAuthOwn γ.wbc 1 w ∗ ghostVar γ.used (1 : Qp).half u ∗
         dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗
-        trkSide γ P st c ∗ fkHalf γ P st ∗ ⌜bgOk P st false n w u⌝) ∗ ⌜sessWf P st⌝ ⊢
+        trkSide γ P st c ∗ fkHalf γ P st ∗ bufRc st ∗ ⌜bgOk P st false n w u⌝) ∗ ⌜sessWf P st⌝ ⊢
     batchLocked γ P b (st.setHw true) := by
   unfold batchLocked batchLockedAt batchGhost batchGhostAt
-  iintro ⟨#Ht, Hown, Hph, Hv, ⟨%n, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, Hfk, %Hok⟩, %Hwf⟩
+  iintro ⟨#Ht, Hown, Hph, Hv, ⟨%n, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, Hfk, #Hbr, %Hok⟩, %Hwf⟩
+  ihave #Hbr2 := bufRc_congr (st := st) (st' := st.setHw true) rfl rfl $$ Hbr
   -- (A1.5) in the hook's window the client-facing mode allows claimed writes
   ihave Hk := trkSide_congr γ P st (st.setHw true) rfl rfl rfl (fun _ _ => rfl) rfl c
     (fun _ _ h => by simp [BSess.setHw] at h) $$ Hk
@@ -208,6 +237,7 @@ theorem batchLocked_setHw_mk (γ : BNames) (P : BParams) (b t db : Loc) (st : BS
   · iexists n, w, u
     ihave Hfk := fkHalf_mono γ P (st' := st.setHw true) (fkOkG_setHw true) rfl rfl $$ Hfk
     iframe
+    iframe Hbr2
     ipureintro
     exact bgOk_setHw true Hok
   · ipureintro

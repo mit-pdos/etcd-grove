@@ -319,7 +319,7 @@ theorem commit_bgOk {P : BParams} {st st' : BSess} {C' : Data} {tx' : Loc} {n w 
     (hW : ∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st.W.bks i = [])
     (hp0 : st.cnt.p0 = sint.nat st.pend) (hs : hookStep P st st') (hst : sessWf P st)
     (hb' : bgOk P st' false n w u) (n' w' u' : Nat)
-    (hbud : uint.Z st.R.ver + n' + k' < 2 ^ 40) (huw : u' ≤ w')
+    (hbud : uint.Z st.R.ver + n' + k' < 2 ^ 62) (huw : u' ≤ w')
     (hc : st.cnt.c + 1 ≤ k' + 1 + (if u' = w' then 1 else 0)) (hwv : (w' : Int) ≤ uint.Z st.R.ver)
     (ht : trkOk P (commitSt st' C' tx' ⟨k', st.cnt.c + 1, 0, 0, false⟩) tkIdle) :
     bgOk P (commitSt st' C' tx' ⟨k', st.cnt.c + 1, 0, 0, false⟩) true n' w' u' := by
@@ -328,7 +328,7 @@ theorem commit_bgOk {P : BParams} {st st' : BSess} {C' : Data} {tx' : Loc} {n w 
   have hp := hst.2.2.2.2.1
   refine ⟨?_, huw, hc, by simp [commitSt],
     ⟨Or.inl rfl, Or.inr (fun i => bkOf_bksResetC _ i)⟩, Nat.zero_le _, ?_, ?_, ?_, ?_⟩
-  · show uint.Z (bksReset st'.R.bks, st'.R.ver).2 + n' + k' < 2 ^ 40
+  · show uint.Z (bksReset st'.R.bks, st'.R.ver).2 + n' + k' < 2 ^ 62
     rw [hsR]; exact hbud
   · intro i
     refine ⟨?_, by show (bkOf (bksReset st'.R.bks) i).length ≤ _; rw [bkOf_bksResetC]; simp⟩

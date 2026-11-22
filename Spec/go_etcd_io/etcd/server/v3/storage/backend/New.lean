@@ -31,10 +31,10 @@ S8a, 2026-10-24) The creator's batch-lock step takes the fresh backend's payment
 and gives `K` in their place (`newPostK`). (2026-11-06, `notes/begin-tok-plan.md`) Under
 `[ThreadBoundLe GF (2 ^ 29)]` (`bbolt.Open_kv`'s); the caller's `threadTok` pays for the first read
 transaction, and the `run` goroutine's fork token comes back to it on success. (S3e, 2026-11-17)
-Under `[ReceiptBoundLe GF (2 ^ 62)]` too, and with `cfg.Mlock` false (bbolt's proved `Open`'s); the
+Under `[ReceiptBoundLe GF (2 ^ 60)]` too (bbolt's `2 ^ 62`, and the buffers' receipt, `bufRc`, 2026-11-22), and with `cfg.Mlock` false (bbolt's proved `Open`'s); the
 panic case no longer happens (`Open_kv` has no error), but is kept in the statement. -/
 abbrev backend.New.spec : Prop :=
-  ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (cfg : BackendConfig) (P : BParams)
+  ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 60)] (cfg : BackendConfig) (P : BParams)
     (D : Data) (W Pk K : BNames → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       -- (premise fixes 6, D2a) the logger nil (replaced by `zap.NewNop()`) or a zap logger

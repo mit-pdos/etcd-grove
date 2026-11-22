@@ -279,9 +279,9 @@ theorem batchGhost_step (γ : BNames) (P : BParams) {st st' : BSess} (hC : st'.C
     (hO : ∀ L : VData, (∀ nk v, (vData P (st.C, st.R)).lookup nk = some v → L.lookup nk = some v) →
       dlsW P st L → dlsW P st' L)
     (hK : ∀ m, P.RB m = true → st'.tk m = st.tk m) (hcw : st'.cw = st.cw) (c : Bool := false) :
-    bufRc st' ∗ batchGhost (GF := GF) γ P st c ⊢ batchGhost γ P st' c := by
+    ⊢ bufRc (GF := GF) st' -∗ batchGhost γ P st c -∗ batchGhost γ P st' c := by
   unfold batchGhost batchGhostAt trkSide
-  iintro ⟨#Hbr', Hv, Hrest⟩
+  iintro #Hbr' ⟨Hv, Hrest⟩
   ihave Hv := batchViewQ_mono γ P hC hR hO $$ Hv
   iframe Hv
   icases Hrest with ⟨%n, %w, %u, Hr, Ha, Hm, Hu, Ho, ⟨Hk, Hrr⟩, Hfk, -, %Hok⟩
@@ -640,6 +640,31 @@ theorem bufRc_congr {st st' : BSess} (hR : st'.R = st.R) (hW : st'.W = st.W) :
     bufRc (GF := GF) st ⊢ bufRc st' := by
   unfold bufRc bufFit
   rw [hR, hW]
+
+/-- **The buffers' receipt bounds every bucket** below `bufBound` (2026-11-22, step 2). -/
+theorem bufRc_bufBound (st : BSess) :
+    bufRc (GF := GF) st ⊢ ⌜∀ i, (bkOf st.R.bks i).length + (bkOf st.W.bks i).length < bufBound⌝ := by
+  unfold bufRc
+  iintro ⟨%m, #Hm, %Hfit, %Hrb⟩
+  ihave %Hlt := preceipt_lt m $$ Hm
+  ipureintro
+  intro i
+  have := Hfit i
+  unfold bufBound
+  omega
+
+/-- **A step that grows no bucket** (a commit drops the read buffer; a write-back moves entries from
+the write buffer to the read buffer) keeps the buffers' receipt. -/
+theorem bufRc_mono {st st' : BSess}
+    (h : ∀ i, (bkOf st'.R.bks i).length + (bkOf st'.W.bks i).length ≤
+      (bkOf st.R.bks i).length + (bkOf st.W.bks i).length) :
+    bufRc (GF := GF) st ⊢ bufRc st' := by
+  unfold bufRc
+  iintro ⟨%m, #Hm, %Hfit, %Hrb⟩
+  iexists m
+  iframe Hm
+  ipureintro
+  exact ⟨fun i => Nat.le_trans (h i) (Hfit i), Hrb⟩
 
 /-- **A put's receipt** (2026-11-22, step 2): the buffers fit `m`, the read buffer unchanged and each
 bucket of the write buffer at most one longer: they fit `m + 1`, paid by the put's own Go step
