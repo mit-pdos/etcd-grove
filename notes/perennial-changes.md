@@ -3749,3 +3749,17 @@ crash opens the generation's file invariant (allocated at the boot) and must tak
 `crash-genstart`, PR pending). kvnet's proof states the bridge it expects as `RobustOfNetFsBootG`
 (`KvNet/Proof/.../kvnet/TopBridge.lean`) and uses it as a hypothesis until then; its boot and crash lemmas
 (`TopBoot.lean`: `kvGen_boot`, `kvGen_crash`) are proved against those shapes.
+
+## SPSC receive that keeps the consumer after the close; `go.IntoValInj Unit` (prom-registry, 2026-11-22)
+
+- **Limitation.** `wp_spsc_receive` (`Chan/Idioms/Spsc.lean`) hands the consumer token to the invariant on
+  the receive that sees the channel closed and drained (taking `R`), so no later receive can be proved.
+  client_golang's `(*Registry).Register` receives again after its loop saw the close (its deferred
+  `for range descChan {}`).
+- **Workaround here.** `Proof/github_com/prometheus/client_golang/prometheus/SpscPeek.lean`:
+  `EtcdGrove.spsc_rcv_au_peek`/`wp_spsc_receive_peek`, a copy for a persistent `R` whose closed case
+  returns `R received ∗ spscConsumer γ received` (R duplicated, put back).
+- **Proposed general fix.** The same lemma in Perennial's `Spsc.lean` (for `[∀ l, Persistent (R l)]`).
+- **Also:** Perennial has no `go.IntoValInj Unit` instance (maps of `struct{}` values need it for
+  `ownMap_agree`); a local instance is in `RegInv.lean` (`unit_intoValInj`). Proposed for Perennial's
+  `IntoValInj` instances. Status: proposed only.
