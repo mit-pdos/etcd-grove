@@ -911,6 +911,27 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lib", "remote")],
     ),
     Project(
+        name="dsv-paxos",
+        # dsverify-lab's paxos kit (notes/dsv-paxos.md; notes/dsverify-net-port-plan.md, phase 6):
+        # the lab's fork of xiang90/paxos (examples/paxos/fork/paxos at lab master 7a84fb35) with
+        # its kit ported onto examples/lib/remote, `examples/dsverify/paxos` (a Go module of its
+        # own, module path the fork's). Into the part `Dsverify/` (modules `Dsverify.*`), with
+        # remote and `net` the part `Net/`'s, lintest and porcupine the main tree's, marshal
+        # Perennial's.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "dsverify", "paxos"),
+        root="Dsverify",
+        lean_roots=["github.com/xiang90/paxos=Dsverify",
+                    "github.com/mit-pdos/etcd-grove/examples/lib/remote=Net",
+                    "github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
+                    "net=Net", "os=", "syscall=", "io/fs=", "internal/poll=", "internal/syscall="],
+        packages=[".", "./examples/paxosnet", "./examples/paxosnet/cmd/orch"]
+                 + ["./examples/paxosnet/cmd/client%d" % c for c in range(4)]
+                 + ["./examples/paxosnet/cmd/server%d" % s for s in range(1, 6)],
+        owned=[os.path.join("github_com", "xiang90")],
+    ),
+    Project(
         name="models-net",
         # Our models of standard-library packages (models/README.md; notes/dsverify-net-port-plan.md,
         # phase 5.2): `net/rpc` and `net/http`, Go 1.27.3's source with the parts goose cannot take
