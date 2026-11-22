@@ -183,11 +183,11 @@ variable [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions
   [go_etcd_io.raft.v3.Assumptions]
 
 /-- **The specs the tester's proof takes that no proof discharges yet** (the tester Link's hypotheses
-but the model's laws and `WalDecEnvSupply`, which are proved): the Perennial-gap spec `stringslite.HasPrefix`,
-the trust-boundary spec of `proto.Unmarshal` on a WAL record. (`errors.{IsErrno, IsPathErrnoEof,
-IsPathErrnoNotExist, IsPathErrnoTerm}` and `WalDecEnvSupply` proved 2026-11-22, `wal-safe-errors`.) -/
+but the model's laws and `WalDecEnvSupply`, which are proved): the trust-boundary spec of `proto.Unmarshal`
+on a WAL record. (`errors.{IsErrno, IsPathErrnoEof, IsPathErrnoNotExist, IsPathErrnoTerm}` and
+`WalDecEnvSupply` proved 2026-11-22, `wal-safe-errors`; `stringslite.HasPrefix` Perennial's, proved there,
+since the pin 9c3b81f30.) -/
 structure TOpen : Prop where
-  hasPrefix : stringslite.HasPrefix.spec (GF := GF) (hG := hG)
   unmarshalWalRecordE : proto.UnmarshalWalRecordE.spec (GF := GF) (hG := hG)
 
 end open_
@@ -209,6 +209,7 @@ variable [_root_.Perennial.go_uber_org.zap.Assumptions]
     [_root_.Perennial.bufio.Assumptions] [go_etcd_io.etcd.pkg.v3.crc.Assumptions]
     [hash.crc32.Assumptions] [go_etcd_io.etcd.pkg.v3.pbutil.Assumptions] [go_uber_org.zap.Assumptions]
     [_root_.Perennial.time.Assumptions] [_root_.Perennial.io.Assumptions]
+    [_root_.Perennial.internal.stringslite.Assumptions]
 
 /-- **`Main.spec`, linked**: the tester Link's `wp_Main` at the raftpb model (`walRaftP`, `walRaftU`,
 `walRaftHsO`), its laws proved, the rest from `TOpen`. -/
@@ -219,7 +220,7 @@ theorem tMain_linked (h : TOpen (GF := GF) (hG := hG)) : Main.spec (GF := GF) (h
     (walRaftP_cloneHs proto.ClonePb.wp_proof) walPb_laws.getIndex walPb_laws.getTerm walPb_laws.isEmpty walPb_laws.marshalEnt
     (walRaftP_marshalHs proto.MarshalPb.wp_proof) walPb_laws.mustSync walPb_laws.nil walPb_laws.size
     walPb_laws.unmarshalEnt walPb_laws.zero
-    h.unmarshalWalRecordE h.hasPrefix
+    h.unmarshalWalRecordE
 
 end linked
 
@@ -250,7 +251,8 @@ theorem etcd_wal_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantic
     [go_etcd_io.etcd.pkg.v3.ioutil.Assumptions] [_root_.Perennial.encoding.binary.Assumptions]
     [_root_.Perennial.bufio.Assumptions] [go_etcd_io.etcd.pkg.v3.crc.Assumptions]
     [hash.crc32.Assumptions] [go_etcd_io.etcd.pkg.v3.pbutil.Assumptions] [go_uber_org.zap.Assumptions]
-    [_root_.Perennial.time.Assumptions] [_root_.Perennial.io.Assumptions] [hPre : GooseGpreS GF] (hAbs : AbsDiskGpreS GF)
+    [_root_.Perennial.time.Assumptions] [_root_.Perennial.io.Assumptions]
+    [_root_.Perennial.internal.stringslite.Assumptions] [hPre : GooseGpreS GF] (hAbs : AbsDiskGpreS GF)
     (Hinit_wp : ∀ hG : HeapGS .hasLC GF,
       letI := tHeapAt hG lctx
       {{ ownGoState (hG := (tHeapAt hG lctx).goose_localGS.goose_go_stateGS) ∅ }}

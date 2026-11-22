@@ -1,12 +1,12 @@
 /-
-`filepathlite.IsAbs(p)` (`path_unix.go`: `stringslite.HasPrefix(path, "/")`), over its callee's spec
-`stringslite.HasPrefix.spec` (a hypothesis until the Perennial pin translates `HasPrefix`:
-`Spec/internal/stringslite/HasPrefix.lean`). Lean-first.
+`filepathlite.IsAbs(p)` (`path_unix.go`: `stringslite.HasPrefix(path, "/")`), over its callee's spec,
+Perennial's `internal.stringslite.HasPrefix.spec` (proved there, perennial#685; until the pin reached it a
+hypothesis of this repository's own statement). Lean-first.
 -/
 module
 
 public import Spec.internal.filepathlite.IsAbs
-public import Spec.internal.stringslite.HasPrefix
+public import Perennial.Spec.internal.stringslite.HasPrefix
 
 @[expose] public section
 
@@ -35,9 +35,10 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.internal.filepathlite.Assumptions]
+variable [_root_.Perennial.internal.stringslite.Assumptions]
 
 theorem filepathlite.IsAbs.wp_proof
-    (hHP : stringslite.HasPrefix.spec (GF := GF) (hG := hG)) :
+    (hHP : _root_.Perennial.internal.stringslite.HasPrefix.spec (GF := GF) (hG := hG)) :
     filepathlite.IsAbs.spec (GF := GF) (hG := hG) := by
   intro p
   wp_start

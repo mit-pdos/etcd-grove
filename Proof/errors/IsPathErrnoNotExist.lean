@@ -1,13 +1,13 @@
 /- Lean-first (no Rocq counterpart).
 
-`errors.IsPathErrnoNotExist.spec` (`Spec/go_etcd_io/etcd/server/v3/storage/wal/ExistCallees.lean`) proved
+`errors.IsPathErrnoNotExist.spec` (`Spec/errors/IsPathErrnoNotExist.lean`) proved
 (2026-11-22): `os.ErrNotExist` holds internal/oserror's `ErrNotExist` (`os`'s package fact,
 `os.errNotExist_oserror_of_pkgInit`), at which `Errno.Is` answers `e == ENOENT` (`ErrnoIsPost`); the walk of the
 two-error tree (`pathErrno_walkTree`, exact relations) answers what the `Errno`'s `Is` does (`isWalk_det`).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.wal.ExistCallees
+public import Spec.errors.IsPathErrnoNotExist
 public import Proof.errors.PathErrnoTree
 public import Perennial.Proof.errors.Link
 
