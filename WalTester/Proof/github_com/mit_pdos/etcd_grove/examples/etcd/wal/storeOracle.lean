@@ -94,7 +94,7 @@ theorem storeOracle.wp_proof
         · iunfold tRelA; iexact Hr1
       imodintro
       -- the directory's sync: nothing pending
-      unfold DurFs.durWriteSync
+      iapply DurFs.durWriteSync_of_au
       iauintro
       unfold atomic_acc
       imod inv_acc (E := DurFs.durAuMask) tN_sub_durAu $$ Hinv with ⟨Hi, Hclose⟩

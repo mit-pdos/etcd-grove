@@ -270,6 +270,7 @@ theorem durInv_commit (γ : DurGS) (f : DFile) (p : DurPhys) (n : Nat) (Ψ : IPr
   icases Hb with ⟨%s, %p', Hs, Hp', Hnb, Hnt, -, Hc, %hok⟩
   icases durPhys_agree γ p p' $$ Hp Hp' with %he
   subst he
+  ihave Hau := Hau $$ Hnc
   ihave Hau := atomic_update_mask_weaken durAuMask_sub $$ Hau
   ihave Hacc := aupd_aacc $$ Hau
   unfold atomic_acc
@@ -281,7 +282,7 @@ theorem durInv_commit (γ : DurGS) (f : DFile) (p : DurPhys) (n : Nat) (Ψ : IPr
   icases Hucl with ⟨-, Hcommit⟩
   isimp only [tforall_nil, Std.Tele.app] at Hcommit
   imod durSt_update γ s' s' ⟨s'.cur, none⟩ $$ Hs' Hs with ⟨Hs', Hs⟩
-  imod Hcommit $$ Hs' with HΨ
+  imod Hcommit $$ Hs' with ⟨Hnc, HΨ⟩
   imod durPhys_update γ p p { p with nc := n, alt := none } $$ Hp Hp' with ⟨Hp, Hp'⟩
   imod Hcl $$ [Hs Hp' Hnb Hnt Hc] with -
   · iexists ⟨s'.cur, none⟩, { p with nc := n, alt := none }

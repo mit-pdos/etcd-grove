@@ -326,3 +326,38 @@ fires at `durWriteSync`, when `alt := none`); `dmu` holds the call's `durHandle 
 (kvdurable's 1615-line proof and its `Run*` lemmas, over `persist.specRun`), `newReplica`, `StartNode`
 (`durable.Read` under the crash invariant's `crashed` side, `openStorage`, `RestartNode` at
 `nodeVacantA`).
+
+### `persist`: what decision C's design needs, and the gap found (2026-11-22)
+
+Read against the bodied `durable`'s `Write.spec` (`WalTester/Spec/.../lib/durable/Write.lean`), three findings.
+
+1. **The sync update needs the crash token (done).** Raft's batch *enter* (`readyEnter`) takes `notCrashed`, and
+   decision C fires it at `durWriteSync`. That update was a plain atomic update, so a client could not get the token
+   there. But `Write`'s proof fires it at a ghost step after `Sync` returns, where it holds the token
+   (`durInv_commit`, after `wp_notCrashed_acc`). Now `durWriteSync γ Ψ` is `notCrashed -∗ AU <{…}> <{ durSt γ
+   ⟨s.cur, none⟩, COMM notCrashed ∗ Ψ }>` (WalTester's `durable/Defs.lean`). `durInv_commit` passes the token,
+   and `durWriteSync_of_au` turns a plain update into one (the tester's `storeOracle` uses it). The rename's update
+   is unchanged: it fires inside the os rename's update, which gives no token. Ledger, 2026-11-22.
+2. **The 1 GiB bound (open).** `Write.spec` takes `len(data) <= 2^30` (`DCand.Ok`: one `WriteAt`, one `ReadAt` of
+   at most `maxRW`). kvnet writes `string(storage.encode())`, and its image has no size bound (the Go code checks
+   none). `WriteLong` (`Spec/os/WriteLong.lean`) already covers `WriteAt` of any length. Lifting the bound needs the
+   same for `ReadAt` (`durable.tryRead` reads the whole file), then `tryWrite`/`tryRead` over them. Until then
+   `persist` can only take a `Write` spec without the bound as a callee (unproved), or the closed theorem bounds
+   the store's size. Either way it is a decision.
+3. **The rename/sync window (the gap, open).** Between `Write`'s rename and its sync, a crash may keep **either**
+   file (`durInv_crash`: `cur` or `alt`). Decision C fires the *enter* at the sync. But if the crash keeps the
+   new file (`cur`, the batch's durable state `S'`), raft's durable state is still `S` (`nodeCrash` keeps it),
+   and `RestartNode` needs `StorageHolds S σ` of the storage it reads: the restart is not provable. Firing the
+   *enter* at the rename fails the other way (the old file may survive). Every choice of a single ghost point
+   fails, because the kernel decides at crash time which file survives. Ways out:
+   - (a) raft: a crash law for a batch cut and not entered, `crashed ∗ <the cut's crash-side resource> ∗ raftState
+     S ={E}=∗ raftState S'`, handed out with `readyEnter` and used by the next boot when the file it reads holds
+     `S'`. The cut already moves the durable maps forward (`notes/raft-crash-law-design.md` (j)), so it may be
+     provable;
+   - (b) kvnet: a boot that picks the surviving file's state, which needs (a) or an equivalent;
+   - (c) `durable`: a write with one durability point. The rename-then-sync protocol does not have one.
+
+   (a) is the only option I see. `persist`'s proof does not depend on the crash story beyond the file
+   invariant's shape. That shape would record, while `alt = some old`, that `old` holds `S` and `cur` holds the
+   pending batch's `S'`, plus the crash-side resource of (a). So `persist`, `run` and `StartNode` wait for this
+   decision.
