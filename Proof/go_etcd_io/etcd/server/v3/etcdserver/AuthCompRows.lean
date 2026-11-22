@@ -785,6 +785,25 @@ theorem isServerBuiltC_mid (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc)
     iframe % # ∗
   ipureintro; exact hm
 
+/-- (prove-ps2-srv, 2026-11-22) The raft wrapper's contract (persistent), from the construction
+premise (`adjustTicks`'s `advanceTicks`). -/
+theorem isServerBuiltC_rn (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc)
+    (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF)
+    (γn : RNNames GF) (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
+    isServerBuiltC (GF := GF) C s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ⊢
+      isServerBuiltC C s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ∗
+        isRaftNode Er γn (srvRAddr s) := by
+  iintro H
+  iunfold isServerBuiltC at H
+  icases H with ⟨H, Hskeep⟩
+  iunfold srvBuiltRC at H
+  iNamed H
+  iframe Hrn
+  iunfold isServerBuiltC
+  iframe Hskeep
+  iunfold srvBuiltRC
+  iframe % # ∗
+
 /-- **`start`'s construction premise from `NewServer`'s built part**, the component's
 (`isServerBuilt_of_gapM` and the bridge). -/
 theorem isServerBuiltC_of_gap (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc)

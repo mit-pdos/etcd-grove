@@ -1675,8 +1675,9 @@ theorem NewServer.wp_proofRG
   ipersist CorruptCheckTimeS
   ipersist DowngradeCheckTimeS
   ipersist MaxWALFilesS
+  ipersist InitialElectionTickAdvanceS
   ihave HMon : srvMonitorCfg s cfg $$ [HlgMon]
-  · iunfold srvMonitorCfg; rw [Hfgi]; iframe DowngradeCheckTimeS CorruptCheckTimeS ServerFeatureGateS MaxWALFilesS; iframe HlgMon
+  · iunfold srvMonitorCfg; rw [Hfgi]; iframe DowngradeCheckTimeS CorruptCheckTimeS ServerFeatureGateS MaxWALFilesS InitialElectionTickAdvanceS; iframe HlgMon
   ipersist LoggerS
   ipersist MaxTxnOpsS
   ipersist WarningUnaryRequestDurationS
@@ -1702,7 +1703,6 @@ theorem NewServer.wp_proofRG
   ipersist PeerTLSInfoS
   ipersist CORSS
   ipersist HostWhitelistS
-  ipersist InitialElectionTickAdvanceS
   ipersist BootstrapTimeoutS
   ipersist AutoCompactionRetentionS
   ipersist AutoCompactionModeS

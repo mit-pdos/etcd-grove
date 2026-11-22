@@ -557,7 +557,8 @@ types_ID__String_ptr: types_ID__String
 Version__String:
 version_Cluster:
 prometheus_GaugeVec__With:
-EtcdServer__adjustTicks:
+etcdserver_tickToDur:
+EtcdServer__adjustTicks: EtcdServer__Logger RaftCluster__Members EtcdServer__MemberID types_ID__String zap_String zap_Int etcdserver_tickToDur zap_Logger__Info raftNode__advanceTicks
 EtcdServer__publishV3:
 EtcdServer__purgeFile: EtcdServer__Logger
 monitorFileDescriptor:

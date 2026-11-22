@@ -69,6 +69,8 @@ theorem EtcdServer.Start.wp_proof
   obtain ⟨hm, hRB, Hrb, Hai0⟩ := hC
   -- (2026-11-02, the cluster-rows stage) the member id field, a voter: the monitors' permission
   icases isServerBuiltC_mid C s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N $$ Hb with ⟨Hb, #HmidS, %HmidcS⟩
+  -- (prove-ps2-srv) the raft wrapper's contract, for `adjustTicks`
+  icases isServerBuiltC_rn C s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N $$ Hb with ⟨Hb, #HrnS⟩
   wp_auto
   wp_apply hStart s γ ci TM C E ρ γr Er γn b ai₀ at₀ c₀ x₀ N $$ [Hb]
     as ⟨%γw, #Hreq, #Hrd, #Hlb, Hst, %γp, %γg, #Hwp, #Hreg, Hgo, Hright⟩
@@ -111,7 +113,7 @@ theorem EtcdServer.Start.wp_proof
     iintro !> %Φ' ⟨-, Hrun, Htf⟩ HΦ'
     icases (threadTokFrom_succ (GF := GF) 1 (threadBound_gt (GF := GF))).1 $$ Htf with ⟨G1, Gt2⟩
     (try wp_auto)
-    wp_apply hAdj C.isOn s E { wait := γw, rd := ρ.rd } $$ [G1] as G1
+    wp_apply hAdj C.isOn s E { wait := γw, rd := ρ.rd } Er γn $$ [G1] as G1
     · iframe #; iframe G1
     iapply HΦ'
     iframe Hrun
@@ -136,7 +138,7 @@ theorem EtcdServer.Start.wp_proof
   -- purge (`srvMonitorsOff`'s `MaxWALFiles`)
   ihave #Hoff' := Hoff
   iunfold srvMonitorsOff at Hoff'
-  icases Hoff' with ⟨-, -, -, #Hmwf⟩
+  icases Hoff' with ⟨-, -, -, #Hmwf, -⟩
   wp_apply wp_GoAttach_tokT hGA s γg _ iprop(True) $$ [Hgr] as Hgr
   · iframe Hgr
     isplitr
@@ -205,7 +207,7 @@ theorem EtcdServer.Start.wp_proof
   -- `s.monitorKVHash`, `s.monitorCompactHash`, `s.monitorDowngrade`
   -- (audit B4a) off: `srvMonitorsOff`
   iunfold srvMonitorsOff at Hoff
-  icases Hoff with ⟨#Hcct, #Hdct, ⟨%fg, #Hfgf, #Hfgo⟩, -⟩
+  icases Hoff with ⟨#Hcct, #Hdct, ⟨%fg, #Hfgf, #Hfgo⟩, -, -⟩
   wp_apply wp_GoAttach_tok hGA s γg _ iprop(True) $$ [Hgr] as Hgr
   · iframe Hgr
     isplitr
