@@ -861,8 +861,8 @@ ported onto it.)*
 kit moved onto `examples/lib/remote` (ten machines: orchestrator, four client machines, five
 servers; a write-once register with pending proposals as porcupine's model). The protocol's proof
 (invariant, agents, transport over `Net/Spec/net` and `Proto.lean`, deployment) compiles; the
-statement `paxos_remote_robust` (`DistDeploy … → Robust [] …`) is proved over one `sorry`, the kit's
-porcupine model (`Model.wp_proof`); no axiom added. Found: remote's
+statement `paxos_remote_robust` (`DistDeploy … → Robust [] …`) is proved, `#print axioms` Lean's three
+(no axiom, no `sorry`). Found: remote's
 `ServeClient.spec` takes `newClient` as a persistent triple, so a client that needs exclusive
 resources (paxos's one-shot proposer tokens) must be made before `ServeClient` (the kit does).
 

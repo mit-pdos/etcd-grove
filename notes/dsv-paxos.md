@@ -53,15 +53,23 @@ bumped there to Perennial `3afd77e35`; read only, nothing in the lab changed).
 
 ## State
 
-Compiles: the translation, the whole paxos package's proof and Link, the kit's proofs, mains and
-links, and `paxos_remote_robust` (`#print axioms`: `propext`, `sorryAx`, `Classical.choice`,
-`Quot.sound`). The one `sorry` (in `Dsverify/Proof/.../paxosnet/KitProof.lean`):
+Done (2026-11-22, merged with `lean` at Perennial `9c3b81f3`): the translation, the whole paxos
+package's proof and Link, the kit's proofs, mains and links, and `paxos_remote_robust`, whose
+`#print axioms` is `propext`, `Classical.choice`, `Quot.sound`. No axiom or `sorry` in the part;
+`etc/tcb-collections/dsv-paxos.txt`'s baseline (written by hand from `#print axioms`) is empty and
+`etc/tcb-baseline.txt` is unchanged. The porcupine model's proof is `ModelSet.lean` (pure:
+`stepG_pSeq`, the Go `step` on `(Known, Val, Pend)` is the pending-writes model's step on the set
+`woSet` the state stands for; the sets are closed under late effects; each kind of step's next set
+by extensionality) and `ModelProof.lean` (`Model`, `step`, `push`, `has`, `erase`, `equal` over
+read-only slices of strings). The model's spec is split in two (`woS0`, its sequential model only,
+for remote's pending library, which is made at the start, before any machine's heap; `woS`, with the
+state's representation over the orchestrator's heap; equal sequential models, `pendCtx_woS`).
 
-- `Model.wp_proof`: `Model()` meets `woS` (`isModel`): `step`, `push`, `has`, `erase`, `equal` on
-  the Go `State{Known, Val, Pend []string}`, and `woSet`'s laws (the configurations a state stands
-  for, closed under late effects, and the four kinds of step). The counter's `ModelDefs.lean` is the
-  template (its state is two integers; here a read-only slice).
+## Follow-ups
 
-No axiom of this repository is added. Not done: the per-function spec/proof file layout (the
-lab's hub files are kept, as for its Link); `etc/gen-link.py` does not generate these Links
-(hand-written, like the lab's); the TCB collection's baseline (needs a full build).
+- The per-function spec/proof file layout (`Spec/<pkg>/<fn>.lean`, `Proof/<pkg>/<fn>.lean`): the
+  lab's hub files are kept (`Net`, `Agents`, `Deploy`, `Kit` hold the specs; the `*Proof` files
+  several proofs each).
+- The Links (`paxos/Link.lean`, `paxosnet/Linked.lean`) are hand-written, like the lab's;
+  `etc/gen-link.py` does not generate them.
+- remote's `ServeClient.spec` with a `newClient` that may consume exclusive resources (above).
