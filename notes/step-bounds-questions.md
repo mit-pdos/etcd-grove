@@ -24,3 +24,12 @@ stays `2^16`; no top-level premise strengthened.
 draft works, please proceed, do not wait for me." The first put proved with its receipt is the check;
 if it works, Draft, Review and Prove go on without a stop. A trust-base growth (a new axiom) would
 still stop.
+
+## Q2 (trusted text: a false axiom weakened) — 2026-11-22, decided by the agent, pending the user
+
+`storage.OpenBackend.wp_proof` gives `backend.New`'s post without `New`'s receipt-bound premise, so it
+is false at a receipt bound above `2 ^ 62` (since 2026-11-17) and, after step 2, above `2 ^ 60`
+(ledger 2026-11-22). Applied: its spec takes `[ReceiptBoundLe GF (2 ^ 60)]` (and so does
+`OpenSnapshotBackend`'s use of it). This only weakens the axiom; no closed theorem changes (they fix
+`receiptBound ≤ 2 ^ 48`). The alternative (leave it false where no closed theorem reaches) was
+rejected: step 2 is what makes the gap easy to reach. Veto by reverting the commit that applies it.
