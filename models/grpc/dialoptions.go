@@ -72,17 +72,22 @@ type dialOptions struct {
 	chainUnaryInts  []UnaryClientInterceptor
 	chainStreamInts []StreamClientInterceptor
 
-	compressorV0                Compressor
-	dc                          Decompressor
-	bs                          internalbackoff.Strategy
-	block                       bool
-	returnLastError             bool
-	timeout                     time.Duration
-	authority                   string
-	binaryLogger                binarylog.Logger
-	copts                       connectOptions // MODEL: transport.ConnectOptions (model_transport.go)
-	callOptions                 []CallOption
-	channelzParent              channelz.Identifier
+	compressorV0 Compressor
+	dc           Decompressor
+	// MODEL: no bs field: the reconnection backoff is internalbackoff.DefaultExponential (a
+	// timing; only grpc's own Exponential strategies can be set, through WithConnectParams and
+	// WithBackoffConfig, which the model accepts and ignores), so that the struct names no type
+	// of package internal/backoff.
+	block           bool
+	returnLastError bool
+	timeout         time.Duration
+	authority       string
+	// MODEL: no binaryLogger field (binary logging is not modelled: withBinaryLogger panics when
+	// NewClient applies it, where the model's NewClient panicked on it before).
+	copts       connectOptions // MODEL: transport.ConnectOptions (model_transport.go)
+	callOptions []CallOption
+	// MODEL: no channelzParent field (channelz is not modelled: WithChannelzParentID panics when
+	// NewClient applies it).
 	disableServiceConfig        bool
 	disableRetry                bool
 	disableHealthCheck          bool
@@ -322,7 +327,7 @@ func WithDecompressor(dc Decompressor) DialOption {
 // override only a subset of the backoff configuration.
 func WithConnectParams(p ConnectParams) DialOption {
 	return newFuncDialOption(func(o *dialOptions) {
-		o.bs = internalbackoff.Exponential{Config: p.Backoff}
+		// MODEL: the backoff configuration is a timing, not stored (dialOptions)
 		o.minConnectTimeout = func() time.Duration {
 			return p.MinConnectTimeout
 		}
@@ -352,9 +357,9 @@ func WithBackoffConfig(b BackoffConfig) DialOption {
 //
 // This can be exported if arbitrary backoff strategies are allowed by gRPC.
 func withBackoff(bs internalbackoff.Strategy) DialOption {
-	return newFuncDialOption(func(o *dialOptions) {
-		o.bs = bs
-	})
+	// MODEL: grpc's own Exponential strategies only (the parameter's type is internal): a timing,
+	// not stored (dialOptions)
+	return newFuncDialOption(func(o *dialOptions) {})
 }
 
 // WithBlock returns a DialOption which makes callers of Dial block until the
@@ -535,7 +540,7 @@ func WithStatsHandler(h stats.Handler) DialOption {
 // this ClientConn.
 func withBinaryLogger(bl binarylog.Logger) DialOption {
 	return newFuncDialOption(func(o *dialOptions) {
-		o.binaryLogger = bl
+		panic(notModelled("grpc: binary logging"))
 	})
 }
 
@@ -639,7 +644,7 @@ func WithAuthority(a string) DialOption {
 // later release.
 func WithChannelzParentID(c channelz.Identifier) DialOption {
 	return newFuncDialOption(func(o *dialOptions) {
-		o.channelzParent = c
+		panic(notModelled("grpc: channelz"))
 	})
 }
 
@@ -722,9 +727,7 @@ func defaultDialOptions() dialOptions {
 			WriteBufferSize:   defaultWriteBufSize,
 			SharedWriteBuffer: true,
 			UserAgent:         grpcUA,
-			BufferPool:        mem.DefaultBufferPool(),
 		},
-		bs:                       internalbackoff.DefaultExponential,
 		idleTimeout:              30 * time.Minute,
 		defaultScheme:            "dns",
 		maxCallAttempts:          defaultMaxCallAttempts,
@@ -805,7 +808,9 @@ func WithMaxCallAttempts(n int) DialOption {
 }
 
 func withBufferPool(bufferPool mem.BufferPool) DialOption {
+	// MODEL: a client buffer pool other than the default is not modelled: the option panics when
+	// NewClient applies it (connectOptions has no BufferPool field).
 	return newFuncDialOption(func(o *dialOptions) {
-		o.copts.BufferPool = bufferPool
+		panic(notModelled("grpc: a client buffer pool"))
 	})
 }

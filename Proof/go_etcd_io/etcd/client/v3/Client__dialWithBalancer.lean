@@ -63,7 +63,7 @@ theorem Client.dialWithBalancer.wp_proof
   iintro %bl ⟨Hbl, -⟩
   ipersist Hbl
   (try wp_auto)
-  wp_apply wp_WithResolvers _ [resolverIface r] $$ [$Hgrpc $Hbl] as %o %Ho
+  wp_apply wp_WithResolvers _ [resolverIface r] $$ [$Hgrpc $Hbl] as %o #Ho
   wp_apply wp_slice_literal (V := GoInterface) [o]
   isplitr
   · ipureintro; rfl
@@ -85,8 +85,7 @@ theorem Client.dialWithBalancer.wp_proof
     iexists [o]
     rw [List.nil_append]
     iframe Ho2
-    ipureintro
-    exact .cons Ho .nil
+    iapply BigSepL2.bigSepL2_singleton.2; iexact Ho
   iapply HΦ
   iexact Hres
 
