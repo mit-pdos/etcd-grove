@@ -32,6 +32,7 @@ variable [field_sem : net.FieldAssumptions]
 variable [NaInvG GF]
 variable [π : NetProtoGS] [ρ : RemoteGS]
 variable [package_sem : github_com.xiang90.paxos.examples.paxosnet.Assumptions]
+variable [bvi : go.BasicIntoValInj]
 
 theorem wp_Server : Server.spec (GF := GF) (hG := hG) :=
   Server.wp_proof github_com.xiang90.paxos.wp_RunServer
@@ -39,7 +40,7 @@ theorem wp_Client : Client.spec (GF := GF) (hG := hG) :=
   Client.wp_proof github_com.xiang90.paxos.wp_NewNetCluster github_com.xiang90.paxos.wp_Propose Codec.wp_proof
     EtcdGrove.remote.wp_ServeClient
 theorem wp_Orch : Orch.spec (GF := GF) (hG := hG) :=
-  Orch.wp_proof Model.wp_proof Codec.wp_proof Gen.wp_proof woS_pendDec EtcdGrove.remote.wp_Check
+  Orch.wp_proof Model.wp_proof Codec.wp_proof Gen.wp_proof EtcdGrove.remote.wp_Check
 
 end linked
 
