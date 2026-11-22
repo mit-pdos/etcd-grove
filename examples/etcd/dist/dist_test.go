@@ -1,11 +1,9 @@
 package dist
 
 import (
-	"bytes"
 	"fmt"
 	"math/rand/v2"
 	"os"
-	"os/exec"
 	"strconv"
 	"strings"
 	"testing"
@@ -78,7 +76,7 @@ func deployRound(t *testing.T, round int, netns bool, crash string, sz Sizes, de
 	if err != nil {
 		t.Fatal(err)
 	}
-	n, err := NewNet(netns)
+	n, err := robust.NewNetworkOrLocal(netns, "ed")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -100,7 +98,7 @@ func deployRound(t *testing.T, round int, netns bool, crash string, sz Sizes, de
 	if err != nil {
 		t.Fatalf("%v: %v", d, err)
 	}
-	cfg := Config{Crash: crash, CrashPause: 2 * time.Second, Downtime: time.Second, Netns: netns,
+	cfg := robust.Config{Crash: crash, CrashPause: 2 * time.Second, Downtime: time.Second, Netns: netns,
 		NetPause: time.Second, NetHold: 2 * time.Second, Deadline: deadline,
 		FaultsAtStart: os.Getenv("DIST_FAULTS") == "start", SetupWait: 3 * time.Minute}
 	work, err := os.MkdirTemp("", "etcddist-")
@@ -108,15 +106,21 @@ func deployRound(t *testing.T, round int, netns bool, crash string, sz Sizes, de
 		t.Fatal(err)
 	}
 	start := time.Now()
-	c, err := Start(d, cfg, Command{Path: exe, Env: []string{"DIST_PROC=1"}}, work, n, ms)
+	r, err := robust.NewRun(cfg, robust.Command{Path: exe, Env: []string{"DIST_PROC=1"}}, n, work)
 	if err != nil {
+		t.Fatal(err)
+	}
+	c, err := Start(d, r, n, ms)
+	if err != nil {
+		r.Stop()
 		os.RemoveAll(work)
 		t.Fatalf("%v: %v", d, err)
 	}
 	res := c.Run()
+	r.Stop()
 	c.Stop()
 	t.Logf("round %d: %v (%v)\n  %s; network: %s\n  %s", round, d, time.Since(start).Round(time.Second),
-		&c.Stats, c.NetStats(), strings.Join(res.Lines, "\n  "))
+		&r.Stats, r.NetStats(), strings.Join(res.Lines, "\n  "))
 	if res.Err != nil {
 		t.Errorf("round %d: %v (work directory kept: %s)", round, res.Err, work)
 		return
@@ -131,43 +135,21 @@ func deployRound(t *testing.T, round int, netns bool, crash string, sz Sizes, de
 // 4) larger ones. The faults start once every workload's set-up is done (client.MainReady), or,
 // with DIST_FAULTS=start, from the start; DIST_WANT=kind,... keeps only random deployments with a
 // workload of those kinds; DIST_OPS=n sets the kv clients' and the writers' operations to n each.
-// Network namespaces need root with CAP_NET_ADMIN: a root without it (a container) runs the test again in a user namespace of its own (robust.RerunInUserns: the bridge variant);
-// a non-root runs it again by sudo -n if it can, and in the local mode (one loopback address, no
-// network faults) otherwise.
+// Network namespaces need root with CAP_NET_ADMIN: without them, the test runs again where it
+// can make them (robust.RerunTest: a container's root in a user namespace of its own, a non-root by
+// sudo -n), and in the local mode (one loopback address, no network faults) if it cannot.
 func TestDist(t *testing.T) {
 	if os.Getenv("DIST_RUN") == "" {
 		t.Skip("set DIST_RUN=1 to run (minutes per deployment; namespaces need root)")
 	}
-	netns := robust.NetnsAvailable() == nil
-	if !netns && os.Getenv("DIST_CHILD") == "" {
-		args := []string{"-test.run=^TestDist$", "-test.v", "-test.count=1", "-test.timeout=2h"}
-		if testing.Short() {
-			args = append(args, "-test.short")
-		}
-		var rerun func([]string, []string, *bytes.Buffer) error
-		if robust.IsRoot() {
-			rerun = func(a, e []string, out *bytes.Buffer) error { return robust.RerunInUserns(a, e, out) }
-		} else if exec.Command("sudo", "-n", "true").Run() == nil {
-			rerun = func(a, e []string, out *bytes.Buffer) error { return robust.RerunAsRoot(a, e, out) }
-		}
-		if rerun != nil {
-			var out bytes.Buffer
-			err := rerun(args, []string{"DIST_RUN=1", "DIST_CHILD=1", "DIST_ROUNDS=" + os.Getenv("DIST_ROUNDS"),
-				"DIST_FAULTS=" + os.Getenv("DIST_FAULTS"), "DIST_WANT=" + os.Getenv("DIST_WANT"), "DIST_OPS=" + os.Getenv("DIST_OPS")}, &out)
-			for _, l := range strings.Split(out.String(), "\n") {
-				if strings.TrimSpace(l) != "" {
-					t.Log(l)
-				}
-			}
-			if err != nil {
-				t.Fatalf("in the namespaces' child: %v", err)
-			}
-			return
-		}
+	if robust.RerunTest(t, "TestDist", "2h", testing.Short(), []string{"DIST_RUN=1", "DIST_ROUNDS=" + os.Getenv("DIST_ROUNDS"),
+		"DIST_FAULTS=" + os.Getenv("DIST_FAULTS"), "DIST_WANT=" + os.Getenv("DIST_WANT"), "DIST_OPS=" + os.Getenv("DIST_OPS")}) {
+		return
 	}
-	crash := CrashKill
+	netns := robust.NetnsAvailable() == nil
+	crash := robust.CrashKill
 	if robust.PowerAvailable() == nil {
-		crash = CrashMixed
+		crash = robust.CrashMixed
 	}
 	if testing.Short() {
 		deployRound(t, 1, netns, crash, ShortSizes, 5*time.Minute)

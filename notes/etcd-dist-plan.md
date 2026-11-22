@@ -142,6 +142,30 @@ builds, vets and tests (`go vet ./etcd/dist/...`, `go test ./etcd/dist/...`, go1
   bridge instead of a router (machines on one /16; a block is a tc flower drop on the sender's port;
   link faults netem as before); a `Reset` block drops (tc cannot send a reset: `CanReset`, and the
   nemesis then never picks one). `TestNetworkFaults` passes in it.
+- **What is generic lives in `examples/lib/robust`** (moved there 2026-11-22, the user's decision;
+  before, `dist/run.go` held it and `examples/k8s/dist` copied parts): `robust.Run` (`run.go`)
+  starts each machine's process with its log (`logs/<name>.log`); the members are `Restartable`s of
+  a `Group` (`NewGroup`, `Group.Add`: a directory of its own, or a disk's mount in the power modes;
+  `Group.Start`), crashed one at a time by the group's crasher and restarted on the same directory;
+  `RunClients(nodes, orchs, machines)` starts the client machines' processes and the orchestrators
+  (`robust.Client`, each orchestrator's set-up marked by its `Ready` file), starts the faults
+  (`RunFaults`: a crasher per group, one network nemesis over `machines`) once every set-up is done
+  or `SetupWait` passed, and waits for the orchestrators, the deadline or a failure; `Fail`, `Err`,
+  `Failed`, `Stats`, `NetStats`, `Stop`. `Config`, `Command` and the crash modes (`CrashKill`,
+  `CrashPower`, `CrashMixed`) are `robust`'s. `util.go`: `NewNetworkOrLocal` (was `dist.NewNet`),
+  `Symlink` (was `link`), `RerunTest` (`TestDist`'s re-run in a user namespace or by sudo), `Tail`.
+  `robust` is the test side only: no machine's program (`dist/{server,client,cmd,kvremote,enc,env}`,
+  `examples/k8s/dist`'s non-test files) imports it, since D2 translates those programs. The helpers
+  the programs share are `dist/client`'s (`await.go`): `AwaitAccept` (was `awaitNodes`), `Rotate`
+  (was `rotate`), `CallAll` (the body of `reportAll`, now a one-line wrapper over it). What stays in
+  `examples/etcd/dist`: the member program and the workloads (`server`, `client`, `RunProcess`),
+  `Deployment`, `RandomDeployment`, `WellFormed`, the member configurations, ids and addresses
+  (`MemberAddrs`, `MemberMachines`), and `Cluster`: a deployment's members in a run (`Start(d, run,
+  net, ms)`: their directories, the links from the data directory and WAL area, their
+  configurations) and its workloads' machines (`Cluster.Run`, over `RunClients`); `Cluster.Stop`
+  removes the links, the run's `Stop` kills the members and removes their disks. `client.AwaitCluster`,
+  `client.ConnectRetry`, `AwaitAccept`, `Rotate` and `CallAll` are exported, for `examples/k8s/dist`'s
+  machine programs.
 
 **Copies** (driver code that could not be reused unchanged, and why):
 
