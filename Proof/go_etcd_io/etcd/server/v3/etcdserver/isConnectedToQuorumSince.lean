@@ -29,16 +29,16 @@ theorem isConnectedToQuorumSince.wp_proof
     (hN : numConnectedSince.spec (GF := GF) (hG := hG))
     (hQ : quorum.spec (GF := GF) (hG := hG)) :
     isConnectedToQuorumSince.spec (GF := GF) (hG := hG) := by
-  intro tr since self members ms
-  wp_start as ⟨#Htr, Hms⟩
+  intro tr Rd since self members ms
+  wp_start as ⟨#Htr, HRd, Hms⟩
   wp_auto
-  wp_apply hN tr since self members ms $$ [Hms] as %n Hms
-  · iframe #; iframe Hms
+  wp_apply hN tr Rd since self members ms $$ [HRd Hms] as %n ⟨HRd, Hms⟩
+  · iframe #; iframe HRd Hms
   (try wp_auto)
   wp_apply hQ as %q -
   (try wp_auto)
   iapply HΦ
-  iframe Hms
+  iframe HRd Hms
 
 end proof
 

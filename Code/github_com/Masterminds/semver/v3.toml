@@ -1,9 +1,18 @@
 # Types and names only, but for `New`, `Version.Major` and `Version.Minor` (prove-smalllibs,
-# 2026-11-20: proved over the real code). The parser (`NewVersion`, a regular expression), `String`
-# (`fmt.Fprintf`) and `LessThan` stay the trust boundary. (The apply package's ClusterVersionSet
+# 2026-11-20: proved over the real code). The parser (`NewVersion`, a regular expression) and `String`
+# (`fmt.Fprintf`) stay the trust boundary. (The apply package's ClusterVersionSet
 # calls MustParse, Version.LessThan and Version.String.)
-translate = ["!*", "New", "Version.Major", "Version.Minor"]
-imports = ["!*"]
+# (prove-ps2-client, 2026-11-22) `MustParse` with its body, over `NewVersion`'s spec (the trust
+# boundary in its place: `Spec/github_com/Masterminds/semver/v3/NewVersion.lean`).
+# (prove-ps2-semver, 2026-11-22) `Version.LessThan` with its body and its callees' (`Compare`,
+# `Patch`, `Prerelease`, `compareSegment`, `comparePrerelease`, `comparePrePart`), over the specs
+# of `strings.Split` and `strconv.ParseUint`. `String` stays the trust boundary: its
+# `fmt.Fprintf` into a `bytes.Buffer` has no model in Perennial.
+translate = ["!*", "New", "Version.Major", "Version.Minor", "MustParse", "Version.LessThan",
+  "Version.Compare", "Version.Patch", "Version.Prerelease", "compareSegment", "comparePrerelease",
+  "comparePrePart"]
+# (prove-ps2-semver) the packages `comparePrerelease` and `comparePrePart` call.
+imports = ["!*", "strings", "strconv"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

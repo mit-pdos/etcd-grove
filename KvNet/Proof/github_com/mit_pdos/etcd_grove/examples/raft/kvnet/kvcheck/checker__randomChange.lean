@@ -300,7 +300,7 @@ theorem checker.randomChange.wp_proof (wp_changeID : checker.changeID.spec (GF :
           iframe Hv1
           ipureintro; rfl
         ipureintro
-        exact ccTransOk_v1 _
+        exact ⟨ccTransOk_v1 _, by simp [ccToV2, ConfChangeM.asV2]⟩
       -- the `ConfChangeV2` of the changes
       all_goals
         wp_apply ConfChangeTransition.wp_ptr_Enum_of wp_TransEnum transition_ptr _ $$ [$Hpb $transition]
@@ -329,7 +329,9 @@ theorem checker.randomChange.wp_proof (wp_changeID : checker.changeID.spec (GF :
           iframe Hv2
           ipureintro; rfl
         ipureintro
-        exact ccTransOk_v2 _ ms [] Htr3
+        refine ⟨ccTransOk_v2 _ ms [] Htr3, ?_⟩
+        show ms.length ≤ 3
+        rw [← Hlens, Hi.1]; have := Hi.2.2; have := Hc.2; word
 
 end proof
 

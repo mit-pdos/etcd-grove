@@ -6,23 +6,25 @@ go 1.27
 // `etc/goose.py --check` fails if they differ). tests/v3 is linkvtxn's differential test's
 // (robustness's model), test-only.
 replace (
-	go.etcd.io/etcd/api/v3 => github.com/upamanyus/etcd/api/v3 v3.0.0-20261121171209-d7c7f6434abc
-	go.etcd.io/etcd/cache/v3 => github.com/upamanyus/etcd/cache/v3 v3.0.0-20261121171209-d7c7f6434abc
-	go.etcd.io/etcd/client/pkg/v3 => github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261121171209-d7c7f6434abc
-	go.etcd.io/etcd/client/v3 => github.com/upamanyus/etcd/client/v3 v3.0.0-20261121171209-d7c7f6434abc
-	go.etcd.io/etcd/pkg/v3 => github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261121171209-d7c7f6434abc
-	go.etcd.io/etcd/server/v3 => github.com/upamanyus/etcd/server/v3 v3.0.0-20261121171209-d7c7f6434abc
-	go.etcd.io/etcd/tests/v3 => github.com/upamanyus/etcd/tests/v3 v3.0.0-20261121171209-d7c7f6434abc
+	go.etcd.io/etcd/api/v3 => github.com/upamanyus/etcd/api/v3 v3.0.0-20261122075727-edc800c6f262
+	go.etcd.io/etcd/cache/v3 => github.com/upamanyus/etcd/cache/v3 v3.0.0-20261122075727-edc800c6f262
+	go.etcd.io/etcd/client/pkg/v3 => github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261122075727-edc800c6f262
+	go.etcd.io/etcd/client/v3 => github.com/upamanyus/etcd/client/v3 v3.0.0-20261122075727-edc800c6f262
+	go.etcd.io/etcd/pkg/v3 => github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261122075727-edc800c6f262
+	go.etcd.io/etcd/server/v3 => github.com/upamanyus/etcd/server/v3 v3.0.0-20261122075727-edc800c6f262
+	go.etcd.io/etcd/tests/v3 => github.com/upamanyus/etcd/tests/v3 v3.0.0-20261122075727-edc800c6f262
 	go.etcd.io/raft/v3 => github.com/upamanyus/etcd/v3 v3.0.0-20261110053807-d2c16c558247
 )
 
-// The driver (a module of its own, which kvwitness shares), the library models (models/:
+// The driver (a module of its own, which kvwitness shares), Remote (examples/lib/remote, a module
+// of its own: etcd-dist's clients on machines of their own), the library models (models/:
 // examples/models tests models/protobuf/pbgen.py on etcd's messages), the vendored porcupine
 // (third_party/porcupine/UPSTREAM.md) and etcd's test bridge (third_party/bridge/UPSTREAM.md),
 // as translated.
 replace (
 	github.com/anishathalye/porcupine => ../third_party/porcupine
 	github.com/mit-pdos/etcd-grove/examples/lib/lintest => ./lib/lintest
+	github.com/mit-pdos/etcd-grove/examples/lib/remote => ./lib/remote
 	github.com/mit-pdos/etcd-grove/third_party/bridge => ../third_party/bridge
 	models.lab => ../models
 )
@@ -33,6 +35,7 @@ require (
 	github.com/goose-lang/primitive v0.2.2-0.20260212023729-cb7f52217e65
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.1.0
 	github.com/mit-pdos/etcd-grove/examples/lib/lintest v0.0.0-00010101000000-000000000000
+	github.com/mit-pdos/etcd-grove/examples/lib/remote v0.0.0-00010101000000-000000000000
 	github.com/mit-pdos/etcd-grove/third_party/bridge v0.0.0-00010101000000-000000000000
 	github.com/mit-pdos/gokv v0.1.1
 	github.com/xiang90/probing v0.0.0-20221125231312-a49e3df8f510

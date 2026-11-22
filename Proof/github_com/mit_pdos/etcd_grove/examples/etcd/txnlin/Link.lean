@@ -73,8 +73,10 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.storeEqu
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.thenOf
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.txnRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Apply
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Call
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Gen
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.IsWrite
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Model
 public import Proof.go_etcd_io.etcd.client.v3.Compare
@@ -358,6 +360,10 @@ theorem wp_Model :
     EtcdGrove.etcd_txnlin.Model.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcd_txnlin.Model.wp_proof wp_step wp_addConfig wp_closure wp_configEqual
 
+theorem wp_IsWrite :
+    EtcdGrove.etcd_txnlin.IsWrite.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcd_txnlin.IsWrite.wp_proof wp_isWrite
+
 theorem zap.wp_NewNop :
     EtcdGrove.zap.NewNop.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.NewNop.wp_proof
@@ -413,6 +419,10 @@ theorem wp_call :
 theorem wp_Apply :
     EtcdGrove.etcd_txnlin.Apply.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcd_txnlin.Apply.wp_proof wp_call wp_isWrite
+
+theorem wp_Call :
+    EtcdGrove.etcd_txnlin.Call.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcd_txnlin.Call.wp_proof wp_call
 
 theorem wp_Gen :
     EtcdGrove.etcd_txnlin.Gen.spec (GF := GF) (hG := hG) :=

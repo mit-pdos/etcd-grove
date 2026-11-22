@@ -12,7 +12,13 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Apply
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.CheckTxnAuth
 public import Proof.github_com.Masterminds.semver.v3.MustParse
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.NewUberApplier
+public import Proof.github_com.Masterminds.semver.v3.NewVersion
+public import Proof.github_com.Masterminds.semver.v3.Version__Compare
 public import Proof.github_com.Masterminds.semver.v3.Version__LessThan
+public import Proof.github_com.Masterminds.semver.v3.Version__Major
+public import Proof.github_com.Masterminds.semver.v3.Version__Minor
+public import Proof.github_com.Masterminds.semver.v3.Version__Patch
+public import Proof.github_com.Masterminds.semver.v3.Version__Prerelease
 public import Proof.github_com.Masterminds.semver.v3.Version__String
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped__LeaseGrant
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped__Put
@@ -68,6 +74,9 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.checkLeasePutsKey
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.checkPutAuth
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.checkTxnPermission
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.checkTxnReqsPermission
+public import Proof.github_com.Masterminds.semver.v3.comparePrePart
+public import Proof.github_com.Masterminds.semver.v3.comparePrerelease
+public import Proof.github_com.Masterminds.semver.v3.compareSegment
 public import Proof.context.TODO
 public import Proof.context.WithValue
 public import Proof.errors.Is
@@ -154,9 +163,13 @@ theorem lease.Lease.wp_Keys :
     EtcdGrove.lease.Lease.Keys.spec (GF := GF) (hG := hG) :=
   EtcdGrove.lease.Lease.Keys.wp_proof
 
+theorem semver.wp_NewVersion :
+    EtcdGrove.semver.NewVersion.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.semver.NewVersion.wp_proof
+
 theorem semver.wp_MustParse :
     EtcdGrove.semver.MustParse.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.semver.MustParse.wp_proof
+  EtcdGrove.semver.MustParse.wp_proof semver.wp_NewVersion
 
 theorem context.wp_TODO :
     EtcdGrove.context.TODO.spec (GF := GF) (hG := hG) :=
@@ -178,9 +191,41 @@ theorem prometheus.GaugeVec.wp_WithLabelValues :
     EtcdGrove.prometheus.GaugeVec.WithLabelValues.spec (GF := GF) (hG := hG) :=
   EtcdGrove.prometheus.GaugeVec.WithLabelValues.wp_proof
 
+theorem semver.Version.wp_Major :
+    EtcdGrove.semver.Version.Major.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.semver.Version.Major.wp_proof
+
+theorem semver.Version.wp_Minor :
+    EtcdGrove.semver.Version.Minor.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.semver.Version.Minor.wp_proof
+
+theorem semver.Version.wp_Patch :
+    EtcdGrove.semver.Version.Patch.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.semver.Version.Patch.wp_proof
+
+theorem semver.Version.wp_Prerelease :
+    EtcdGrove.semver.Version.Prerelease.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.semver.Version.Prerelease.wp_proof
+
+theorem semver.wp_compareSegment :
+    EtcdGrove.semver.compareSegment.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.semver.compareSegment.wp_proof
+
+theorem semver.wp_comparePrePart :
+    EtcdGrove.semver.comparePrePart.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.semver.comparePrePart.wp_proof _root_.Perennial.strconv.wp_ParseUint
+
+theorem semver.wp_comparePrerelease :
+    EtcdGrove.semver.comparePrerelease.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.semver.comparePrerelease.wp_proof _root_.Perennial.strings.wp_Split semver.wp_comparePrePart
+
+theorem semver.Version.wp_Compare :
+    EtcdGrove.semver.Version.Compare.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.semver.Version.Compare.wp_proof semver.Version.wp_Major semver.Version.wp_Minor semver.Version.wp_Patch semver.Version.wp_Prerelease semver.wp_compareSegment semver.wp_comparePrerelease
+
 theorem semver.Version.wp_LessThan :
     EtcdGrove.semver.Version.LessThan.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.semver.Version.LessThan.wp_proof
+  EtcdGrove.semver.Version.LessThan.wp_proof semver.Version.wp_Compare
 
 theorem semver.Version.wp_String :
     EtcdGrove.semver.Version.String.spec (GF := GF) (hG := hG) :=

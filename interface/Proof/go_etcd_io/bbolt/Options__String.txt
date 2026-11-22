@@ -2,12 +2,13 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-axiom bbolt.Options.String.wp_proof : bbolt.Options.String.spec
+theorem bbolt.Options.String.wp_proof (hSprintf : fmt.Sprintf.spec) (hDur :
+    time.Duration.String.spec) : bbolt.Options.String.spec
   -- `Perennial.EtcdGrove.bbolt.Options.String.spec`, unfolded:
   ∀ (l : Loc) (dq : DFrac) (o : bbolt.OptsM),
     ⊢
       ∀ Φ,
-        bbolt.optsAt l dq o ∗ ⌜bbolt.loggerPtrOk o.logger⌝ -∗
+        isPkgInit pkg_id.go_etcd_io.bbolt ∗ bbolt.optsAt l dq o ∗ ⌜bbolt.loggerPtrOk o.logger⌝ -∗
           (▷ ∀ s, bbolt.optsAt l dq o -∗ Φ (intoVal s)) -∗
             WP
               ((intoVal

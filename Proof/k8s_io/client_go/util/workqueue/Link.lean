@@ -94,10 +94,12 @@ public import Proof.k8s_io.client_go.util.workqueue.rateLimitingType__ShutDown
 public import Proof.k8s_io.client_go.util.workqueue.rateLimitingType__ShutDownWithDrain
 public import Proof.k8s_io.client_go.util.workqueue.rateLimitingType__ShuttingDown
 public import Proof.golang_org.x.time.rate.Limiter__Reserve
+public import Proof.golang_org.x.time.rate.Limiter__reserveN
 public import Proof.golang_org.x.time.rate.NewLimiter
 public import Proof.golang_org.x.time.rate.Reservation__Delay
 public import Proof.k8s_io.apimachinery.pkg.util.runtime.HandleCrashWithLogger
 public import Proof.time.Duration__Nanoseconds_ptr
+public import Proof.time.Duration__Seconds_ptr
 public import Proof.k8s_io.client_go.util.workqueue.waitForPriorityQueue__Len
 public import Proof.k8s_io.client_go.util.workqueue.waitForPriorityQueue__Less
 public import Proof.k8s_io.client_go.util.workqueue.waitForPriorityQueue__Peek
@@ -129,6 +131,10 @@ theorem time.Duration.wp_Nanoseconds_ptr :
 theorem math.wp_Pow :
     EtcdGrove.math.Pow.spec (GF := GF) (hG := hG) :=
   EtcdGrove.math.Pow.wp_proof
+
+theorem time.Duration.wp_Seconds_ptr :
+    EtcdGrove.time.Duration.Seconds_ptr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.time.Duration.Seconds_ptr.wp_proof
 
 theorem heap.wp_down :
     EtcdGrove.heap.down.spec (GF := GF) (hG := hG) :=
@@ -201,9 +207,13 @@ theorem wp_NewTypedMaxOfRateLimiter :
     EtcdGrove.workqueue.NewTypedMaxOfRateLimiter.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.NewTypedMaxOfRateLimiter.wp_proof TypedMaxOfRateLimiter.wp_When TypedMaxOfRateLimiter.wp_Forget TypedMaxOfRateLimiter.wp_NumRequeues
 
+theorem rate.Limiter.wp_reserveN :
+    EtcdGrove.rate.Limiter.reserveN.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.rate.Limiter.reserveN.wp_proof _root_.Perennial.time.Time.wp_Before _root_.Perennial.time.Time.wp_Sub _root_.Perennial.time.Time.wp_Add time.Duration.wp_Seconds_ptr
+
 theorem rate.Limiter.wp_Reserve :
     EtcdGrove.rate.Limiter.Reserve.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.rate.Limiter.Reserve.wp_proof
+  EtcdGrove.rate.Limiter.Reserve.wp_proof _root_.Perennial.time.wp_Now rate.Limiter.wp_reserveN
 
 theorem rate.Reservation.wp_Delay :
     EtcdGrove.rate.Reservation.Delay.spec (GF := GF) (hG := hG) :=

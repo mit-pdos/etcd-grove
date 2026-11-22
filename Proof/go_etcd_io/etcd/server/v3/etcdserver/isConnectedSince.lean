@@ -27,25 +27,28 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 theorem isConnectedSince.wp_proof
     (hZ : time.Time.IsZero.spec (GF := GF) (hG := hG)) :
     isConnectedSince.spec (GF := GF) (hG := hG) := by
-  intro tr since remote
-  wp_start as #Htr
+  intro tr Rd since remote
+  wp_start as ⟨#Htr, HRd⟩
   iunfold rafthttp.isTransporter at Htr
-  icases Htr with ⟨%ti, %Hti, #HAS⟩
+  icases Htr with ⟨%ti, %Hti, #HAS, -⟩
   subst Hti
   ihave #Ptime : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
   · iPkgInit
   wp_auto
-  wp_apply HAS $$ %remote as %t -
+  ihave #HAS1 := HAS $$ %remote
+  wp_bind (App (Val #(methods ti.ty go!"ActiveSince" ti.v)) (Val #remote))
+  iapply HAS1 $$ HRd
+  iintro !> %tm HRd
   (try wp_auto)
   wp_apply hZ $$ [$t] as %bz t
   cases bz
   · (try wp_auto)
     wp_apply time.Time.wp_ptr_Before $$ [$t] as %bb t
     iapply HΦ
-    itrivial
+    iexact HRd
   · (try wp_auto)
     iapply HΦ
-    itrivial
+    iexact HRd
 
 end proof
 

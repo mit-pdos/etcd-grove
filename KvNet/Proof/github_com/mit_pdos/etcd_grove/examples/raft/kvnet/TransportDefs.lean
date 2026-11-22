@@ -128,7 +128,7 @@ theorem rAcc_of_recvTokL (cn : Nat) (s : Bool) (P : Net.Proto GF) (R0 : List w8)
 def qElem (F : KvFacts GF) (pid : w64) (m : Loc) : IProp GF :=
   iprop(∃ (dq dqe : DFrac) (cap : Bool) (st : MsgSt) (src : w64),
     msgPtsC m dq dqe cap st ∗ F.msgOk src st ∗
-    ⌜st.msg.To' = pid ∧ ((encMsg st).length : Int) + 8 < 2 ^ 63⌝)
+    ⌜st.msg.To' = pid⌝)
 
 /-- A peer's sender with its queue (see the file header). -/
 def isPeer (F : KvFacts GF) (p : Loc) (pid : w64) (a : GoString) : IProp GF :=

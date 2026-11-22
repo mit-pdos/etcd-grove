@@ -559,9 +559,11 @@ strconv_FormatUint:
 types_ID__String: strconv_FormatUint
 types_ID__String_ptr: types_ID__String
 Version__String:
-version_Cluster:
+# (prove-ps2-client, 2026-11-22) `version.Cluster` proved over semver's `NewVersion`
+version_Cluster: v3_NewVersion v3_Version__Major v3_Version__Minor =_root_.Perennial.fmt.wp_Sprintf =_root_.Perennial.strings.wp_Split
 prometheus_GaugeVec__With:
-EtcdServer__adjustTicks:
+etcdserver_tickToDur:
+EtcdServer__adjustTicks: EtcdServer__Logger RaftCluster__Members EtcdServer__MemberID types_ID__String zap_String zap_Int etcdserver_tickToDur zap_Logger__Info raftNode__advanceTicks =_root_.Perennial.time.wp_After
 EtcdServer__publishV3:
 EtcdServer__purgeFile: EtcdServer__Logger
 monitorFileDescriptor:
@@ -903,7 +905,10 @@ EtcdServer__sendMergedSnap: EtcdServer__Logger EtcdServer__MemberID types_ID__St
 # `=` callees are terms (the HTTP boundary's axioms, `Proof/net/http/Axioms.lean`, Perennial's
 # linked results of `time`, `sync`, `context`, `strings`, and `Lemmas.lean`'s facts)
 rafthttp_NewRoundTripper: transport_NewTimeoutTransport
-rafthttp_Transport__ActiveSince:
+rafthttp_Transport__ActiveSince: rafthttp_peer__activeSince
+rafthttp_Transport__ActivePeers: rafthttp_peer__activeSince
+rafthttp_peer__activeSince: rafthttp_peerStatus__activeSince
+rafthttp_peerStatus__activeSince:
 rafthttp_Transport__AddPeer: types_NewURLs v2stats_LeaderStats__Follower rafthttp_startPeer rafthttp_addPeerToProber types_ID__String types_ID__String_ptr zap_Logger__Info zap_String zap_Strings
 # (D22 receiver epochs, S8d, 2026-10-25) `applySnapshot`'s transport reset over `trLive`; proved in
 # the membership track's M5a (2026-10-26, a `sorry` on purpose until then), with `RemovePeer`
@@ -917,7 +922,7 @@ rafthttp_Transport__Handler: rafthttp_newPipelineHandler rafthttp_newStreamHandl
 rafthttp_Transport__MendPeer: rafthttp_peer__Resume rafthttp_remote__Resume
 rafthttp_Transport__Send: rafthttp_peer__send rafthttp_remote__send rafthttp_isMsgApp v2stats_ServerStats__SendAppendReq proto_SizeMessage raftpb_Message__GetTo Message__GetType raftpb_MessageType__String types_ID__String types_ID__String_ptr zap_Logger__Debug zap_String
 rafthttp_Transport__SendSnapshot: rafthttp_peer__sendSnap snap_Message__CloseWithError snap_Message__fields raftpb_Message__GetTo
-rafthttp_Transport__Start: rafthttp_newStreamRoundTripper rafthttp_NewRoundTripper probing_NewProber rate_Every rafthttp_Transport__Send rafthttp_peer__stop rafthttp_remote__stop rafthttp_Transport__SendSnapshot rafthttp_Transport__ActiveSince
+rafthttp_Transport__Start: rafthttp_newStreamRoundTripper rafthttp_NewRoundTripper probing_NewProber rate_Every rafthttp_Transport__Send rafthttp_peer__stop rafthttp_remote__stop rafthttp_Transport__SendSnapshot rafthttp_Transport__ActiveSince rafthttp_Transport__ActivePeers
 rafthttp_addPeerToProber:
 rafthttp_addRemoteFromRequest: =http.HeaderGetPtr_ok types_IDFromString =_root_.Perennial.strings.wp_Split
 rafthttp_checkClusterCompatibilityFromHeader: =http.HeaderGetPtr_ok rafthttp_serverVersion rafthttp_minClusterVersion rafthttp_checkVersionCompatibility Version__String types_ID__String_ptr zap_Logger__Warn zap_String zap_Error
@@ -1020,8 +1025,17 @@ fmt_ErrorfPlain:
 semver_v3_New: Version__String
 v3_Version__Major:
 v3_Version__Minor:
-v3_MustParse:
-v3_Version__LessThan:
+# (prove-ps2-client, 2026-11-22) `MustParse` proved over `NewVersion` (the trust boundary)
+v3_MustParse: v3_NewVersion
+v3_NewVersion:
+# (prove-ps2-semver, 2026-11-22) `LessThan` proved over the real code
+v3_Version__Patch:
+v3_Version__Prerelease:
+v3_compareSegment:
+v3_comparePrePart: =_root_.Perennial.strconv.wp_ParseUint
+v3_comparePrerelease: =_root_.Perennial.strings.wp_Split v3_comparePrePart
+v3_Version__Compare: v3_Version__Major v3_Version__Minor v3_Version__Patch v3_Version__Prerelease v3_compareSegment v3_comparePrerelease
+v3_Version__LessThan: v3_Version__Compare
 binary_ReadUint64: =_root_.Perennial.encoding.binary.bigEndian.wp_Uint64
 proto_UnmarshalPb:
 proto_SizePb: @

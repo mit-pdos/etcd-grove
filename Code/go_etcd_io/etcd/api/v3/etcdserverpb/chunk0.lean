@@ -4488,6 +4488,21 @@ noncomputable def _Lease_LeaseLeases_Handler.impl [GooseExts] [GoGlobalContext] 
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType LeaseLeasesRequest.ty)))) (Pair (Var "in") (Var "$r0"))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
 
+/-- go: rpc_grpc.pb.go:755:6 -/
+noncomputable def NewClusterClient.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "cc"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc ClusterClient.ty))) (App (Val (GoInstruction (GoZeroVal ClusterClient.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "cc" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty))) (Var "cc"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType clusterClient.ty) ClusterClient.ty))) (App (Val (GoInstruction (GoAlloc clusterClient.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty))) (Var "cc"))
+  (App (Val (GoInstruction (CompositeLiteral clusterClient.ty))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty (Var "$v0")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore ClusterClient.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad ClusterClient.ty))) (Var "$res0")))))
+
 /-- go: rpc_grpc.pb.go:858:6 -/
 noncomputable def RegisterClusterServer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
@@ -4519,6 +4534,21 @@ noncomputable def RegisterClusterServer.impl [GooseExts] [GoGlobalContext] : val
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/api/v3/etcdserverpb.testEmbeddedByValue" (go.signature.Signature [] false []))])))) (Pair (Var "t") (Var "$r0"))))))))))))))))
   (Val #()))))
+
+/-- go: rpc_grpc.pb.go:1036:6 -/
+noncomputable def NewMaintenanceClient.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "cc"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc MaintenanceClient.ty))) (App (Val (GoInstruction (GoZeroVal MaintenanceClient.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "cc" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty))) (Var "cc"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType maintenanceClient.ty) MaintenanceClient.ty))) (App (Val (GoInstruction (GoAlloc maintenanceClient.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty))) (Var "cc"))
+  (App (Val (GoInstruction (CompositeLiteral maintenanceClient.ty))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty (Var "$v0")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore MaintenanceClient.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad MaintenanceClient.ty))) (Var "$res0")))))
 
 /-- go: rpc_grpc.pb.go:1201:6 -/
 noncomputable def RegisterMaintenanceServer.impl [GooseExts] [GoGlobalContext] : val :=

@@ -5,11 +5,14 @@
 # results are in the namespace `workqueue`.
 #
 # the trust boundary: names-only functions (axioms)
-# (rate_NewLimiter and rate_Reservation__Delay: proved over the real code, prove-smalllibs 2026-11-20)
+# (rate_NewLimiter and rate_Reservation__Delay: proved over the real code, prove-smalllibs 2026-11-20;
+# rate_Limiter__Reserve and its token bucket rate_Limiter__reserveN: prove-metrics-float 2026-11-22)
 math_Pow:
 time_Duration__Nanoseconds_ptr:
+time_Duration__Seconds_ptr:
 rate_NewLimiter:
-rate_Limiter__Reserve:
+rate_Limiter__reserveN: =_root_.Perennial.time.Time.wp_Before =_root_.Perennial.time.Time.wp_Sub =_root_.Perennial.time.Time.wp_Add time_Duration__Seconds_ptr
+rate_Limiter__Reserve: =_root_.Perennial.time.wp_Now rate_Limiter__reserveN
 rate_Reservation__Delay: =_root_.Perennial.time.wp_Now =_root_.Perennial.time.Time.wp_Sub
 clock_RealClock__Now:
 clock_RealClock__NewTimer:

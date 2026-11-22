@@ -22,11 +22,11 @@ structure ClusterConfig where
   maxSizePerMsg maxCommittedSizePerReady maxInflightMsgs : w64
 
 /-- Options raft and kvnet accept, for a cluster of `n` replicas (`raft.Config.validate`;
-`newRaft` refuses both size limits 0; `MaxInflightMsgs` is a Go `int`). -/
+`newRaft` refuses both size limits 0; `MaxInflightMsgs` below raft's `RestartNode`'s `2^62`). -/
 def ClusterConfig.Ok (cl : ClusterConfig) (n : Nat) : Prop :=
   1 ≤ cl.voters.toNat ∧ cl.voters.toNat ≤ n ∧
   ¬ (cl.maxSizePerMsg = 0 ∧ cl.maxCommittedSizePerReady = 0) ∧
-  0 < cl.maxInflightMsgs.toNat ∧ cl.maxInflightMsgs.toNat < 2 ^ 63
+  0 < cl.maxInflightMsgs.toNat ∧ cl.maxInflightMsgs.toNat < 2 ^ 62
 
 /-- Replica `id`'s process: kvnet's package initialization, then `RunNode`; `addrs` the replicas'
 addresses joined by commas (replica `i` at the `i`-th), `dir` the directory of its durable state. -/
@@ -164,7 +164,7 @@ extension's notes).
      moves into each proof (a ghost token per address, allocated at initialization). The soundness
      argument against Linux (EADDRNOTAVAIL is a failure; a real connection reaches the owner, one of
      the listeners the model allows) and the closed world are written in the extension's notes;
-   - update: the seven TCP examples (drop their plan-at-host premises), the kits and `KitDeploy`,
+   - update: the seven TCP examples (drop their plan-at-host premises), the kits and `DistDeploy`,
      `Tests.lean:500-510`, `Replay.lean:346`, `Decide.lean:283-296` (`listenAtB`),
      `Proto.lean:519-529` (`addrTok_listenAt`), the D6/D13/D20/D21 notes, `Net/TrustedCode/net.lean`.
 4. Fs extension: `init := FsInit`, `globalInit := True`.

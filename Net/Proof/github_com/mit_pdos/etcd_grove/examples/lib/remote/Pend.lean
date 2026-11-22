@@ -6,7 +6,7 @@ instance's decoding of porcupine's operations: `S.M`, `PendDec`), as txnlin does
 (`Proof/.../etcd/txnlin/Inv.lean`, without revisions): a write whose outcome is unknown is
 committed as pending, and may take effect later, at most once, or never.
 
-- **The invariant** `pendCtx R γ` (at `pendN`, global: allocated at the deployment's start, so that
+- **The invariant** `pendCtx R γ` (at `pendCtxN`, in `pendN`, global: allocated at the deployment's start, so that
   every node may use it): lintest's `libState` is half of a ghost variable `γ.s` holding the model
   state `S` (`pendLib`); the invariant holds the other half, the far side's base state
   `R.sysState st`, and the authority of the **pending writes** `M` (a ghost map at `γ.p` of model
@@ -15,10 +15,15 @@ committed as pending, and may take effect later, at most once, or never.
   and `M`'s keys are below `nx`.
 - **The updates** (`pend_choice`): given lintest's linearization point for the input `iv i`
   (`linAU`, the atomic triple's update) and a later credit, node 0's `apply` makes `Do`'s choice:
-  * an answer will come (`known`): the update `lin R i Φ` with `Φ o` lintest's continuation at
-    `ov o`. At its firing (at the far side, at its linearization point), it opens the invariant,
-    hands over `sysState st`, and commits lintest's update with `(i, ok o)` at the step
-    (`pendOk_ok`);
+  * an answer will come (`known`), with bytes `bs` (`Do`'s second prophecy): for a write, the
+    update `lin R i Φ` with `Φ o` lintest's continuation at `ov o`; at its firing (at the far side,
+    at its linearization point), it opens the invariant, hands over `sysState st`, and commits
+    lintest's update with `(i, ok o)` at the step (`pendOk_ok`, `pend_commit_core`). For a read, a
+    persistent update (the far side may fire it several times): a read commit invariant at `readN`
+    holds lintest's update and a credit until the first firing whose output's bytes are `bs`, which
+    commits there and records the output (persistently, `dghostVar`) with the continuation; every
+    firing gives `Φb o := (encOut (ov o) = bs → recorded o)` (the same output: `hinj`), and at
+    `Do`'s return the answered output, whose bytes are `bs`, takes the continuation out (a token);
   * no answer will: lintest's update commits at once with `unk i`: as pending for a write
     (`pendOk_errW`, minting the write's token), as nothing for a read (`pendOk_errR`); the
     continuation is `Ψ`, and the update with no result fires the pending write (`pend_fire`,
@@ -30,6 +35,7 @@ module
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Defs
 public import Proof.github_com.anishathalye.porcupine.Defs
 public import Perennial.Ghost.GhostVar
+public import Perennial.Ghost.DGhostVar
 
 @[expose] public section
 
@@ -172,6 +178,20 @@ structure PendNames where
   p : GName
 
 def pendN : Namespace := remoteN.@"pend"
+/-- The invariant `pendCtx`'s namespace, and the read commits' (`pend_choice`), both in `pendN`:
+lintest's update is over the mask `R.Eop ∪ pendN`, so it may be fired with both open. -/
+def pendCtxN : Namespace := pendN.@"ctx"
+def readN : Namespace := pendN.@"read"
+
+theorem pendCtxN_sub (E : CoPset) (h : (↑pendN : CoPset) ⊆ E) : (↑pendCtxN : CoPset) ⊆ E :=
+  fun p hp => h p (nclose_subseteq pendN "ctx" p hp)
+
+theorem readN_sub (E : CoPset) (h : (↑pendN : CoPset) ⊆ E) :
+    (↑readN : CoPset) ⊆ E \ ↑pendCtxN := by
+  intro p hp
+  rw [Std.LawfulSet.mem_diff]
+  exact ⟨h p (nclose_subseteq pendN "read" p hp), fun h' =>
+    (mask_ndot_ne' pendN "read" "ctx" (by decide) p hp |> (Std.LawfulSet.mem_diff).1).2 h'⟩
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
@@ -200,7 +220,7 @@ def pendBody (S : ModelSpec GF (linkv.PSet St I)) (γ : PendNames) : IProp GF :=
 
 /-- The invariant (persistent). -/
 def pendCtx (S : ModelSpec GF (linkv.PSet St I)) (γ : PendNames) : IProp GF :=
-  inv pendN (pendBody R S γ)
+  inv pendCtxN (pendBody R S γ)
 
 instance pendCtx_persistent S γ : Persistent (pendCtx R S γ) := by unfold pendCtx; infer_instance
 
@@ -238,7 +258,7 @@ theorem pend_alloc (E : CoPset) (S : ModelSpec GF (linkv.PSet St I))
   imod ghostVar_alloc (GF := GF) ([] : List OpV) with ⟨%γs, Hv⟩
   icases (ghostVar_split_half γs 1 ([] : List OpV)).mp $$ Hv with ⟨Hv1, Hv2⟩
   imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := I) with ⟨%γp, Hm⟩
-  imod inv_alloc pendN E (pendBody (Gg := Gg) R S ⟨γs, γp⟩) $$ [Hv1 Hs Hm] with #Hinv
+  imod inv_alloc pendCtxN E (pendBody (Gg := Gg) R S ⟨γs, γp⟩) $$ [Hv1 Hs Hm] with #Hinv
   · inext
     unfold pendBody
     iexists [], linkv.pInit R.B, R.B.init, ∅, 0
@@ -259,6 +279,7 @@ theorem readNoop (hE : (↑pendN : CoPset) ⊆ ⊤ \ R.Eop) (S : ModelSpec GF (l
   iintro #Hinv
   imodintro
   unfold lin pendCtx
+  have hc := pendCtxN_sub _ hE
   iinv Hinv with >Hi Hclose
   iunfold pendBody at Hi
   icases Hi with ⟨%h, %s, %st, %M, %nx, Hv, Hs, Hm, %Hok⟩
@@ -285,6 +306,7 @@ theorem pend_fire (hE : (↑pendN : CoPset) ⊆ ⊤ \ R.Eop) (S : ModelSpec GF (
       lin (Gg := Gg) R i (fun _ => iprop(True)) := by
   iintro #Hinv Htok
   unfold lin pendCtx
+  have hc := pendCtxN_sub _ hE
   iinv Hinv with >Hi Hclose
   iunfold pendBody at Hi
   icases Hi with ⟨%h, %s, %st, %M, %nx, Hv, Hs, Hm, %Hok⟩
@@ -306,75 +328,257 @@ theorem pend_fire (hE : (↑pendN : CoPset) ⊆ ⊤ \ R.Eop) (S : ModelSpec GF (
   imodintro
   itrivial
 
+/-- lintest's update committed at the step of `i` from the invariant's state: the update `lin`
+with lintest's continuation at the step's output. The core of `pend_choice`'s answered cases. -/
+theorem pend_commit_core (hE : (↑pendN : CoPset) ⊆ ⊤ \ R.Eop) (S : ModelSpec GF (linkv.PSet St I))
+    (hS : PendDec R S) (γ : PendNames) (i : I) (K : GoInterface → IProp GF) (E : CoPset)
+    (hsub : ⊤ \ (R.Eop ∪ ↑pendN) ⊆ E) (st : St) (h : List OpV) (s0 : linkv.PSet St I)
+    (M : GMap Nat I) (nx : Nat) (Hok : run S.M S.M.init h = some s0 ∧ PendOk R.B s0 st M nx) :
+    ⊢ linAU (Gg := Gg) S γ (R.Eop ∪ ↑pendN) (R.iv i) K -∗ ghostVar γ.s (1 : Qp).half h -∗
+      |={E, ∅}=> ∃ h' s', ghostVar γ.s (1 : Qp).half h' ∗
+        ⌜run S.M S.M.init h' = some s' ∧ PendOk R.B s' (R.B.step i st).1 M nx⌝ ∗
+        |={∅, E}=> K (R.ov (R.B.step i st).2) := by
+  iintro HU Hv
+  imod (fupd_mask_subseteq hsub) with Hclose3
+  unfold linAU
+  imod HU with ⟨%s, Hl, HU⟩
+  unfold pendLib
+  icases Hl with ⟨%h0, Hl, %Hr0⟩
+  ihave %Heq := ghostVar_agree γ.s h (1 : Qp).half h0 (1 : Qp).half $$ Hv Hl
+  subst Heq
+  have Hs0 : s = s0 := Option.some.inj (Hr0.symm.trans Hok.1)
+  subst Hs0
+  obtain ⟨S', HS', Hok'⟩ := pendOk_ok Hok.2 i (hS.noObs i)
+  have Hst : S.M.step s (R.iv i, R.ov (R.B.step i st).2) = some S' := by rw [hS.ok]; exact HS'
+  have Hr' := run_snoc S.M S.M.init h s S' _ Hok.1 Hst
+  imod ghostVar_update_halves (h ++ [(R.iv i, R.ov (R.B.step i st).2)]) γ.s h h $$ Hv Hl
+    with ⟨Hv, Hl⟩
+  imodintro
+  iexists _, S'
+  iframe Hv
+  isplitr
+  · ipureintro; exact ⟨Hr', Hok'⟩
+  imod HU $$ %S' %(R.ov (R.B.step i st).2) [Hl] with HK
+  · isplitl [Hl]
+    · iexists _
+      iframe Hl
+      ipureintro; exact Hr'
+    · ipureintro; exact Hst
+  imod Hclose3 with -
+  imodintro
+  iexact HK
+
 /-- **Node 0's choice** for `Do` (see the file header): from lintest's update for `iv i` (with a
-later credit), an update `lin` committing it at the far side's step if an answer will come, or a
-commit now and an update with no result if none will. -/
+later credit), and the bytes `bs` `Do`'s prophecy says the answer will have, a slot update
+committing it at the far side's step if an answer will come (a write's at its one firing; a read's,
+which may fire several times, at the first firing whose output's bytes are `bs`: the read commit
+invariant at `readN`, with the continuation kept until `Do` returns), or a commit now and an update
+with no result if none will. -/
 theorem pend_choice (hE : (↑pendN : CoPset) ⊆ ⊤ \ R.Eop) (S : ModelSpec GF (linkv.PSet St I))
-    (hS : PendDec R S) (γ : PendNames) (i : I) (K : GoInterface → IProp GF) :
+    (hS : PendDec R S) (hinj : ∀ o o', R.encOut (R.ov o) = R.encOut (R.ov o') → o = o')
+    (γ : PendNames) (i : I) (K : GoInterface → IProp GF) :
     ⊢ pendCtx (Gg := Gg) R S γ -∗ £ 1 -∗ ▷ linAU (Gg := Gg) S γ (R.Eop ∪ ↑pendN) (R.iv i) K -∗
-      ∀ known : Bool, |={⊤}=> if known then lin (Gg := Gg) R i (fun o => K (R.ov o))
+      ∀ (known : Bool) (bs : List w8), |={⊤}=> if known then
+        (∃ Φb : O → IProp GF, slotUpd (Gg := Gg) R i Φb ∗
+          (∀ o, ⌜R.encOut (R.ov o) = bs⌝ -∗ Φb o -∗ £ 1 ={⊤}=∗ K (R.ov o)))
         else (K (R.unk i) ∗ lin (Gg := Gg) R i (fun _ => iprop(True))) := by
-  have hsub : ⊤ \ (R.Eop ∪ ↑pendN) ⊆ (⊤ \ R.Eop) \ ↑pendN := by
+  have hctx := pendCtxN_sub _ hE
+  have hsub : ⊤ \ (R.Eop ∪ ↑pendN) ⊆ (⊤ \ R.Eop) \ ↑pendCtxN := by
     intro p hp
     rw [Std.LawfulSet.mem_diff] at hp ⊢
     rw [Std.LawfulSet.mem_union, not_or] at hp
-    exact ⟨(Std.LawfulSet.mem_diff).2 ⟨hp.1, hp.2.1⟩, hp.2.2⟩
-  have hsub' : ⊤ \ (R.Eop ∪ ↑pendN) ⊆ ⊤ \ ↑pendN := by
+    exact ⟨(Std.LawfulSet.mem_diff).2 ⟨hp.1, hp.2.1⟩,
+      fun h => hp.2.2 (nclose_subseteq pendN "ctx" p h)⟩
+  have hsub' : ⊤ \ (R.Eop ∪ ↑pendN) ⊆ ⊤ \ ↑pendCtxN := by
     intro p hp
     have := hsub p hp
     rw [Std.LawfulSet.mem_diff] at this ⊢
     exact ⟨CoPset.mem_full, this.2⟩
-  iintro #Hinv Hlc HU %known
-  imod (lc_fupd_elim_later (GF := GF) (E := ⊤)
-    (P := linAU (Gg := Gg) S γ (R.Eop ∪ ↑pendN) (R.iv i) K)) $$ Hlc HU with HU
+  have hsubR : ⊤ \ (R.Eop ∪ ↑pendN) ⊆ ((⊤ \ R.Eop) \ ↑pendCtxN) \ ↑readN := by
+    intro p hp
+    have h1 := hsub p hp
+    rw [Std.LawfulSet.mem_diff] at hp ⊢
+    rw [Std.LawfulSet.mem_union, not_or] at hp
+    exact ⟨h1, fun h => hp.2.2 (nclose_subseteq pendN "read" p h)⟩
+  have hreadN : (↑readN : CoPset) ⊆ (⊤ \ R.Eop) \ ↑pendCtxN := readN_sub _ hE
+  have hreadT : (↑readN : CoPset) ⊆ ⊤ := fun p _ => CoPset.mem_full
+  iintro #Hinv Hlc HU %known %bs
   cases known with
   | true =>
-    -- the far side's step commits lintest's update with its answer
     simp only [↓reduceIte]
-    imodintro
-    unfold lin pendCtx
-    iinv Hinv with >Hi Hclose
-    iunfold pendBody at Hi
-    icases Hi with ⟨%h, %s0, %st, %M, %nx, Hv, Hs, Hm, %Hok⟩
-    imod (fupd_mask_subseteq hsub) with Hclose3
-    unfold linAU
-    imod HU with ⟨%s, Hl, HU⟩
-    unfold pendLib
-    icases Hl with ⟨%h0, Hl, %Hr0⟩
-    ihave %Heq := ghostVar_agree γ.s h (1 : Qp).half h0 (1 : Qp).half $$ Hv Hl
-    subst Heq
-    have Hs0 : s = s0 := Option.some.inj (Hr0.symm.trans Hok.1)
-    subst Hs0
-    imodintro
-    iexists st
-    iframe Hs
-    iintro Hs
-    obtain ⟨S', HS', Hok'⟩ := pendOk_ok Hok.2 i (hS.noObs i)
-    have Hst : S.M.step s (R.iv i, R.ov (R.B.step i st).2) = some S' := by rw [hS.ok]; exact HS'
-    have Hr' := run_snoc S.M S.M.init h s S' _ Hok.1 Hst
-    imod ghostVar_update_halves (h ++ [(R.iv i, R.ov (R.B.step i st).2)]) γ.s h h $$ Hv Hl
-      with ⟨Hv, Hl⟩
-    imod HU $$ %S' %(R.ov (R.B.step i st).2) [Hl] with HK
-    · isplitl [Hl]
-      · iexists _
-        iframe Hl
-        ipureintro; exact Hr'
-      · ipureintro; exact Hst
-    imod Hclose3 with -
-    imod Hclose $$ [Hv Hs Hm] with -
-    · inext
-      unfold pendBody
-      iexists _, S', (R.B.step i st).1, M, nx
-      iframe Hv Hs Hm
-      ipureintro; exact ⟨Hr', Hok'⟩
-    imodintro
-    iexact HK
+    cases hw : R.B.isWrite i with
+    | true =>
+      -- a write: its one firing commits lintest's update with its answer
+      imod (lc_fupd_elim_later (GF := GF) (E := ⊤)
+        (P := linAU (Gg := Gg) S γ (R.Eop ∪ ↑pendN) (R.iv i) K)) $$ Hlc HU with HU
+      imodintro
+      iexists (fun o => K (R.ov o))
+      isplitl [HU]
+      · rw [slotUpd_write R hw]
+        unfold lin pendCtx
+        iinv Hinv with >Hi Hclose
+        try (exact hctx)
+        iunfold pendBody at Hi
+        icases Hi with ⟨%h, %s0, %st, %M, %nx, Hv, Hs, Hm, %Hok⟩
+        imod pend_commit_core R hE S hS γ i K _ hsub st h s0 M nx Hok $$ HU Hv
+          with ⟨%h', %s', Hv, %Hok', HK⟩
+        imodintro
+        iexists st
+        iframe Hs
+        iintro Hs
+        imod HK with HK
+        imod Hclose $$ [Hv Hs Hm] with -
+        · inext
+          unfold pendBody
+          iexists h', s', (R.B.step i st).1, M, nx
+          iframe Hv Hs Hm
+          ipureintro; exact Hok'
+        imodintro
+        iexact HK
+      · iintro %o - HK -
+        imodintro
+        iexact HK
+    | false =>
+      -- a read: it commits at the first firing whose output's bytes are `bs`
+      imod dghostVar_alloc (GF := GF) (none : Option O) with ⟨%γc, Hγc⟩
+      imod token_alloc (GF := GF) with ⟨%γt, Htok⟩
+      imod inv_alloc readN ⊤ (iprop(
+          (linAU (Gg := Gg) S γ (R.Eop ∪ ↑pendN) (R.iv i) K ∗ £ 1 ∗
+            dghostVar γc (DFrac.own 1) (none : Option O)) ∨
+          (∃ o : O, ⌜R.encOut (R.ov o) = bs⌝ ∗ dghostVar γc DFrac.discard (some o) ∗
+            (K (R.ov o) ∨ token γt)))) $$ [HU Hlc Hγc]
+        with #Hci
+      · iintro !>
+        ileft
+        iframe HU Hlc Hγc
+      imodintro
+      iexists (fun o => iprop(⌜R.encOut (R.ov o) = bs⌝ → dghostVar γc DFrac.discard (some o)))
+      isplitr [Htok]
+      · rw [slotUpd_read R hw]
+        imodintro
+        unfold lin pendCtx
+        iinv Hinv with >Hi Hclose
+        try (exact hctx)
+        iunfold pendBody at Hi
+        icases Hi with ⟨%h, %s0, %st, %M, %nx, Hv, Hs, Hm, %Hok⟩
+        iinv Hci with Hc Hclosec
+        try (exact hreadN)
+        have hst := R.reads_stay i st hw
+        by_cases hb : R.encOut (R.ov (R.B.step i st).2) = bs
+        · icases Hc with (⟨HU, >Hlc, >Hγc⟩ | Hc)
+          · -- the first firing with the answer's bytes: commit here
+            imod (lc_fupd_elim_later (GF := GF) (E := ((⊤ \ R.Eop) \ ↑pendCtxN) \ ↑readN)
+              (P := linAU (Gg := Gg) S γ (R.Eop ∪ ↑pendN) (R.iv i) K)) $$ Hlc HU with HU
+            imod pend_commit_core R hE S hS γ i K _ hsubR st h s0 M nx Hok $$ HU Hv
+              with ⟨%h', %s', Hv, %Hok', HK⟩
+            imodintro
+            iexists st
+            iframe Hs
+            iintro Hs
+            imod HK with HK
+            imod dghostVar_update (some (R.B.step i st).2) γc none $$ Hγc with Hγc
+            imod dghostVar_persist γc 1 (some (R.B.step i st).2) $$ Hγc with #Hγc
+            imod Hclosec $$ [HK] with -
+            · inext
+              iright
+              iexists (R.B.step i st).2
+              iframe Hγc
+              isplit
+              · ipureintro; exact hb
+              ileft; iexact HK
+            imod Hclose $$ [Hv Hs Hm] with -
+            · inext
+              unfold pendBody
+              iexists h', s', (R.B.step i st).1, M, nx
+              iframe Hv Hs Hm
+              ipureintro; exact Hok'
+            imodintro
+            iintro -
+            iexact Hγc
+          · -- committed before, with the same bytes: the same output
+            imod (later_exists_except0 (PROP := IProp GF)) $$ Hc with ⟨%o', Hc⟩
+            icases Hc with ⟨>%hbo', >#Hγo, HK⟩
+            have ho : (R.B.step i st).2 = o' := hinj _ _ (hb.trans hbo'.symm)
+            iapply fupd_mask_intro Std.LawfulSet.empty_subset
+            iintro Hclose2
+            iexists st
+            iframe Hs
+            iintro Hs
+            imod Hclose2 with -
+            imod Hclosec $$ [HK] with -
+            · inext
+              iright
+              iexists o'
+              iframe Hγo HK
+              ipureintro; exact hbo'
+            rw [hst]
+            imod Hclose $$ [Hv Hs Hm] with -
+            · inext
+              unfold pendBody
+              iexists h, s0, st, M, nx
+              iframe Hv Hs Hm
+              ipureintro; exact Hok
+            imodintro
+            iintro %hb'
+            rw [ho]
+            iexact Hγo
+        · -- another output: nothing to commit
+          iapply fupd_mask_intro Std.LawfulSet.empty_subset
+          iintro Hclose2
+          iexists st
+          iframe Hs
+          iintro Hs
+          imod Hclose2 with -
+          imod Hclosec $$ [Hc] with -
+          · inext; iexact Hc
+          rw [hst]
+          imod Hclose $$ [Hv Hs Hm] with -
+          · inext
+            unfold pendBody
+            iexists h, s0, st, M, nx
+            iframe Hv Hs Hm
+            ipureintro; exact Hok
+          imodintro
+          iintro %hb'
+          exfalso; exact hb hb'
+      · -- `Do`'s return: the answer's bytes are `bs`, so it is the committed output
+        iintro %o %hbo HΦ Hlc
+        ihave #Hγo := HΦ $$ %hbo
+        iinv Hci with Hc Hclosec
+        try (exact hreadT)
+        icases Hc with (⟨-, -, >Hγc⟩ | Hc)
+        · icases dghostVar_agree γc (none : Option O) (DFrac.own 1) (some o) DFrac.discard
+            $$ Hγc Hγo with %h
+          cases h
+        · imod (later_exists_except0 (PROP := IProp GF)) $$ Hc with ⟨%o', Hc⟩
+          icases Hc with ⟨>%hbo', >#Hγo', HK⟩
+          icases dghostVar_agree γc (some o') DFrac.discard (some o) DFrac.discard
+            $$ Hγo' Hγo with %h
+          cases h
+          icases HK with (HK | >Htok')
+          · imod (lc_fupd_elim_later (GF := GF) (E := ⊤ \ ↑readN) (P := K (R.ov o))) $$ Hlc HK
+              with HK
+            imod Hclosec $$ [Htok] with -
+            · inext
+              iright
+              iexists o
+              iframe Hγo'
+              isplit
+              · ipureintro; exact hbo'
+              iright; iexact Htok
+            imodintro
+            iexact HK
+          · iexfalso
+            iapply token_exclusive γt $$ Htok Htok'
   | false =>
     -- no answer will come: commit now, with the unknown output
     simp only [Bool.false_eq_true, ↓reduceIte]
-    have htop : (↑pendN : CoPset) ⊆ ⊤ := fun p _ => CoPset.mem_full
+    imod (lc_fupd_elim_later (GF := GF) (E := ⊤)
+      (P := linAU (Gg := Gg) S γ (R.Eop ∪ ↑pendN) (R.iv i) K)) $$ Hlc HU with HU
+    have htop : (↑pendCtxN : CoPset) ⊆ ⊤ := fun p _ => CoPset.mem_full
     unfold pendCtx
     iinv Hinv with >Hi Hclose
+    try (exact htop)
     iunfold pendBody at Hi
     icases Hi with ⟨%h, %s0, %st, %M, %nx, Hv, Hs, Hm, %Hok⟩
     imod (fupd_mask_subseteq hsub') with Hclose3

@@ -30,7 +30,8 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 
 theorem RunNode.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
-    (cf : GoInterface → List w8 → IProp GF) (S : IProp GF)
+    (cf : GoInterface → List w8 → IProp GF)
+    (S : w64 → GoString → github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Options → GMap w64 GoString → IProp GF)
     (wp_SplitAddrs : SplitAddrs.spec (GF := GF) (hG := hG))
     (wp_ValidCluster : ValidCluster.spec (GF := GF) (hG := hG))
     (wp_Run : Run.spec (GF := GF) (hG := hG) F rep cf S) :
@@ -62,12 +63,14 @@ theorem RunNode.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
       "i" ∷ i_ptr ↦ k ∗ "Hiu" ∷ iu_ptr ↦ iv ∗ "a" ∷ a_ptr ↦ av ∗ "Hm" ∷ mref ↦$ M ∗
       "Hsl" ∷ sl ↦* splitAddrs addrs ∗
       "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ ((splitAddrs addrs).length : Int) ∧
-        ∀ j : Nat, j < sint.nat k → M !! W64 (j + 1) = (splitAddrs addrs)[j]?⌝) $$ [i Hiu a Hm Hsl]
+        ∀ i : w64, M !! i = if 1 ≤ uint.nat i ∧ uint.nat i ≤ sint.nat k then
+          (splitAddrs addrs)[uint.nat i - 1]? else none⌝) $$ [i Hiu a Hm Hsl]
   · iexists W64 0, W64 0, _, ∅
     iframe
     ipureintro
     refine ⟨by decide, by word, ?_⟩
-    intro j hj; rw [show sint.nat (W64 0) = 0 from rfl] at hj; omega
+    intro i
+    rw [GMap.lookup_empty, show sint.nat (W64 0) = 0 from rfl, if_neg (by omega)]
   wp_for IH
   wp_if_destruct
   · have Hlt : sint.nat k < (splitAddrs addrs).length := by word
@@ -87,22 +90,33 @@ theorem RunNode.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
     ipureintro
     have Hk1 : sint.nat (k + W64 1) = sint.nat k + 1 := by word
     refine ⟨by word, by word, ?_⟩
-    intro j hj
-    rw [Hk1] at hj
-    rcases Nat.lt_succ_iff_lt_or_eq.1 hj with hj | hj
-    · rw [GMap.lookup_insert_ne _ _ (by intro h; have := congrArg uint.nat h; word)]
-      exact Hk.2.2 j hj
-    · subst hj
-      rw [show W64 (↑(sint.nat k) + 1) = k + W64 1 by word, GMap.lookup_insert, Hx]
+    intro i
+    rw [Hk1]
+    by_cases hi : i = k + W64 1
+    · subst hi
+      have h1 : uint.nat (k + W64 1) = sint.nat k + 1 := by word
+      rw [GMap.lookup_insert, if_pos (by omega), h1, show sint.nat k + 1 - 1 = sint.nat k by omega, Hx]
+    · have hne : uint.nat i ≠ sint.nat k + 1 := by intro h; apply hi; word
+      rw [GMap.lookup_insert_ne _ _ (fun h => hi h.symm), Hk.2.2 i]
+      by_cases h : 1 ≤ uint.nat i ∧ uint.nat i ≤ sint.nat k
+      · rw [if_pos h, if_pos ⟨h.1, by omega⟩]
+      · rw [if_neg h, if_neg (by omega)]
   · have Hkl : sint.nat k = (splitAddrs addrs).length := by
       have := Hk.2.1; have := Hsll.1; have := Hsll.2; word
     imod ownMap_persist mref _ _ $$ Hm with #Hm
     obtain ⟨a, Ha⟩ : ∃ a, (splitAddrs addrs)[uint.nat id - 1]? = some a :=
       ⟨_, List.getElem?_eq_getElem (by omega)⟩
     have HMa : M !! id = some a := by
-      have H := Hk.2.2 (uint.nat id - 1) (by omega)
-      rw [show W64 (↑(uint.nat id - 1) + 1) = id by word] at H
-      rw [H, Ha]
+      rw [Hk.2.2 id, if_pos (by omega), Ha]
+    have HMok : addrMapOk (splitAddrs addrs) M := by
+      intro i
+      rw [Hk.2.2 i]
+      by_cases h1 : 1 ≤ uint.nat i
+      · by_cases h2 : uint.nat i ≤ sint.nat k
+        · rw [if_pos ⟨h1, h2⟩, if_pos h1]
+        · rw [if_neg (fun h => h2 h.2), if_pos h1, List.getElem?_eq_none (by omega)]
+      · rw [if_neg (fun h => h1 h.1), if_neg h1]
+    ihave HS := HS $$ %M %HMok
     ihave #Hap := Hpr $$ %a %Ha
     try wp_auto
     wp_apply wp_Run (⟨id, dir, mref, ⟨voters, pv, cq, sd, msz, mcs, mif⟩⟩ :

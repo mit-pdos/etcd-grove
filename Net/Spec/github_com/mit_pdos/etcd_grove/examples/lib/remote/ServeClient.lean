@@ -24,13 +24,13 @@ variable [sem : go.Semantics]
 variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.lib.remote.Assumptions]
 variable [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
-variable {St I O : Type} [Pos.Countable I] [Pos.Countable O]
+variable {I O : Type} [Pos.Countable I] [Pos.Countable O]
 
 /-- See the file header. -/
 abbrev ServeClient.spec : Prop :=
-  ∀ (R : RBase GF St I O) (c : w64) (a : GoString) (newClient op : GoFunc) (cd : remote.Codec)
+  ∀ (S : RSvc GF I O) (c : w64) (a : GoString) (newClient op : GoFunc) (cd : remote.Codec)
     (d : w64) (tok : GoInterface → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote ∗ remoteAddr (Gg := hG.goose_globalGS) R a ∗ codecOk R cd ∗ opMaybe R tok op ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote ∗ svcAddr (Gg := hG.goose_globalGS) S a ∗ wireOk S cd ∗ svcOp S tok op ∗
       {{ True }} (App (Val #newClient) (Val #c)) {{ (sys : GoInterface), RET #sys; tok sys }} }}
     (App (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.remote.ServeClient)) (Val #c)) (Val #a)) (Val #newClient))
       (Val #op)) (Val #cd)) (Val #d))

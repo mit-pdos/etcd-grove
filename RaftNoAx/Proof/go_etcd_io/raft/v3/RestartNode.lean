@@ -442,6 +442,8 @@ private theorem wp_RestartNode_impl
       intro p hp
       rw [Iris.Std.LawfulSet.mem_diff] at hp ⊢
       exact ⟨hp.1, fun h => hp.2 (HsN p h)⟩
+    iintro Hnc1
+    ihave HAU := HAU $$ Hnc1
     ihave HAU := atomic_update_mask_weaken HEo $$ HAU
     ihave HAU := aupd_aacc $$ HAU
     iunfold atomic_acc at HAU
@@ -462,12 +464,12 @@ private theorem wp_RestartNode_impl
     iframe Hdur
     isplitr; · ipureintro; exact HSh
     iintro Hdur
-    imod Hcomm $$ [Hdur] with HQ
+    imod Hcomm $$ [Hdur] with ⟨Hnc1, HQ⟩
     · iunfold EtcdGrove.raftState
       unfold raftStateU
       iframe Hdur Htlb0 Hbi0
     imodintro
-    iframe HQ Htlb0 Hbi0
+    iframe Hnc1 HQ Htlb0 Hbi0
   imodintro
   iframe Hnc
   -- the restarted log: its full prefix with records, its committed prefix, its commit's witness,
