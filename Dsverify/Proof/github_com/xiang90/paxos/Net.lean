@@ -78,6 +78,10 @@ def own_net (nt : Loc) (Φ : message → IProp GF) (nd : Loc) (me : w64) : IProp
     nt.[tcpNetwork, go!"conns"] ↦□ cm ∗ cm ↦$ conns ∗
     [∗map] _to ↦ cv ∈ conns, connOK Φ cv)
 
+instance wireProto_persistent (Φ : message → IProp GF) [∀ m, Persistent (Φ m)] (cn : Nat)
+    (bs : List w8) : Persistent (wireProto Φ cn bs) := by
+  unfold wireProto; infer_instance
+
 instance is_node_persistent (nd : Loc) (Φ : message → IProp GF) (amap : GMap w64 GoString)
     (ids : List w64) : Persistent (is_node nd Φ amap ids) := by
   unfold is_node; infer_instance
