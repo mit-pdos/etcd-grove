@@ -1,7 +1,7 @@
 /-
 The proof of `Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__cleanupWAL.lean` (W4 of
 `notes/wal-fsext-plan.md`, `notes/wal-units/create.md`): `w.Close()` (`WAL.Close.spec` at the state `unnamed`), then the
-broken name (`time.Now`, `time.Time.Format.specBroken`, `fmt.SprintfBroken.spec`) and the rename
+broken name (`time.Now.specLoc`, `time.Time.Format.specBroken`, `fmt.SprintfBroken.spec`) and the rename
 (`os.Rename.specDirAnySnc`) over the caller's law. Lean-first.
 -/
 module
@@ -13,7 +13,7 @@ public import Spec.fmt.SprintfBroken
 public import Spec.go_uber_org.zap.String
 public import Spec.go_uber_org.zap.Error
 public import Spec.go_uber_org.zap.Logger__Warn
-public import Perennial.Spec.time.Now
+public import Spec.time.NowLoc
 public import Proof.os.NsS
 
 @[expose] public section
@@ -37,7 +37,7 @@ variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.A
 /-- See the file header. -/
 theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
     (wp_CloseU : go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.spec (W := W) (Sio := WalFs.ioNone) P Mr)
-    (wp_Now : time.Now.spec (GF := GF) (hG := hG))
+    (wp_Now : time.Now.specLoc (GF := GF) (hG := hG))
     (wp_Format : time.Time.Format.specBroken (GF := GF) (hG := hG))
     (wp_Sprintf : fmt.SprintfBroken.spec (GF := GF) (hG := hG))
     (wp_Rename : os.Rename.specDirAnySnc (GF := GF) (hG := hG))
@@ -103,8 +103,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.wp_proof (P : WalPb
     iapply fmtErrorOkOrNil_ne _ hce; iexact Hek
   subst hce
   try wp_auto
-  wp_apply wp_Now as %t -
-  wp_apply wp_Format t as %ts %hts
+  wp_apply wp_Now as %t ⟨%l, #Hl, %htl⟩
+  wp_apply wp_Format t l $$ [] as %ts %hts
+  · iframe #; ipureintro; exact Or.inr htl
   try wp_auto
   wp_apply wp_slice_literal (V := GoInterface)
     [interface.mkOk go.string #(child r nm), interface.mkOk go.string #ts]

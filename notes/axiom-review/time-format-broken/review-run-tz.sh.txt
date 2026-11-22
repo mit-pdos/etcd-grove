@@ -1,0 +1,14 @@
+#!/bin/sh
+# Runs TestTZ under assorted TZ settings.
+cd "$(dirname "$0")"
+export GOTOOLCHAIN=go1.27.3 PATH=/usr/local/go/bin:$PATH
+go test -c -o tz.test . || exit 1
+printf 'TZif2garbage' > /shared/tmp/coord-03/review-timefmt/bad.tz
+for tz in UNSET "" UTC ":America/New_York" "Asia/Kolkata" "Pacific/Chatham" "/etc/localtime" "/nonexistent" "../../../etc/passwd" "/shared/tmp/coord-03/review-timefmt/bad.tz" "EST5EDT,M3.2.0,M11.1.0" "a/b"; do
+  if [ "$tz" = UNSET ]; then (unset TZ; SUBTZ=1 ./tz.test -test.run TestTZ >/dev/null) ; else SUBTZ=1 TZ="$tz" ./tz.test -test.run TestTZ >/dev/null; fi
+  echo "TZ=[$tz] exit=$?"
+done
+for z in $(cd /usr/share/zoneinfo 2>/dev/null && find . -type f | sed 's|^\./||' | head -2000); do
+  SUBTZ=1 TZ="$z" ./tz.test -test.run TestTZ >/dev/null || echo "FAIL $z"
+done
+echo zones done

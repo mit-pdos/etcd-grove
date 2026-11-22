@@ -1,0 +1,28 @@
+package reviewtimefmt
+
+import (
+	"os"
+	"testing"
+	"time"
+)
+
+// The author's "not tried" case: overwrite *time.Local while Format reads it, on a Time from Unix
+// (loc = Local), an instant before New York's first transition cache window.
+func TestRacyLocal(t *testing.T) {
+	if os.Getenv("RACY") == "" {
+		t.Skip("set RACY=1")
+	}
+	ny, _ := time.LoadLocation("America/New_York")
+	fz := time.FixedZone("X", 0)
+	tm := time.Unix(-600000000, 0)
+	go func() {
+		for {
+			*time.Local = *ny
+			*time.Local = *fz
+		}
+	}()
+	for i := 0; i < 100000000; i++ {
+		check(t, tm.Format(layout))
+	}
+	t.Log("no panic")
+}
