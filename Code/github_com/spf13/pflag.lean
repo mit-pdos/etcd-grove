@@ -431,21 +431,6 @@ opaque ExitOnError [GooseExts] [GoGlobalContext] : val
 
 opaque PanicOnError [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrHelp [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/spf13/pflag.ErrHelp"
-
-opaque ErrHelp.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def Usage [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/spf13/pflag.Usage"
-
-opaque Usage.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def CommandLine [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/spf13/pflag.CommandLine"
-
-opaque CommandLine.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def newBoolValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/spf13/pflag.newBoolValue"
 
@@ -1223,6 +1208,28 @@ noncomputable def UintSlice [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def UintSliceP [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/spf13/pflag.UintSliceP"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `ErrHelp` (`var ErrHelp = errors.New("pflag: help requested")`): Its initializer calls, besides literals of constants and other variables' values: `errors.New` of a
+constant allocates an `*errorString`. So it terminates, cannot panic and has no effect beyond its
+variable.
+- `Usage` (`var Usage = func() { fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0]) PrintDefaults() }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `CommandLine` (`var CommandLine = NewFlagSet(os.Args[0], ExitOnError)`): Its initializer calls, besides literals of constants and other variables' values:
+`NewFlagSet(os.Args[0], ExitOnError)` allocates an empty `*FlagSet` (`os.Args[0]` exists: Linux
+gives every process a non-empty argv since 5.18). So it terminates, cannot panic and has no effect
+beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"github.com/spf13/pflag.ErrHelp", "Its initializer calls, besides literals of constants and other variables' values: `errors.New` of a\nconstant allocates an `*errorString`. So it terminates, cannot panic and has no effect beyond its\nvariable.", "var ErrHelp = errors.New(\"pflag: help requested\")"⟩,
+  ⟨"github.com/spf13/pflag.Usage", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var Usage = func() { fmt.Fprintf(os.Stderr, \"Usage of %s:\\n\", os.Args[0]) PrintDefaults() }"⟩,
+  ⟨"github.com/spf13/pflag.CommandLine", "Its initializer calls, besides literals of constants and other variables' values:\n`NewFlagSet(os.Args[0], ExitOnError)` allocates an empty `*FlagSet` (`os.Args[0]` exists: Linux\ngives every process a non-empty argv since 5.18). So it terminates, cannot panic and has no effect\nbeyond its variable.", "var CommandLine = NewFlagSet(os.Args[0], ExitOnError)"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.github_com.spf13.pflag where
   pkgImportedPkgs := []
 
@@ -1232,14 +1239,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.spf13.pflag)) (Lam BAnon
   (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val Usage.init) (Val #())))))
-  (App (Val doExecute)
-  (App (Val CommandLine.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrHelp.init) (Val #()))))))))
+  (Val #()))))))
 
 opaque boolFlag.nonempty_type : NonemptyType.{0}
 def boolFlag : Type := boolFlag.nonempty_type.type

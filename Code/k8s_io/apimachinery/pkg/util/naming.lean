@@ -20,11 +20,6 @@ end pkg_id
 
 namespace k8s_io.apimachinery.pkg.util.naming
 
-noncomputable def stackCreator [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/util/naming.stackCreator"
-
-opaque stackCreator.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def GetNameFromCallsite [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/naming.GetNameFromCallsite"
 
@@ -37,6 +32,19 @@ noncomputable def trimPackagePrefix [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def extractStackCreator [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/naming.extractStackCreator"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `stackCreator` (`var stackCreator = regexp.MustCompile('(?m)^created by (.*)\n\s+(.*):(\d+) \+0x[[:xdigit:]]+$')`): Its initializer calls, besides literals of constants and other variables' values:
+`regexp.MustCompile` of a constant pattern compiles it (it panics only on an invalid pattern, and
+these compile: Go runs the initializer at every start of every program importing the package);
+compilation terminates. So it terminates, cannot panic and has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"k8s.io/apimachinery/pkg/util/naming.stackCreator", "Its initializer calls, besides literals of constants and other variables' values:\n`regexp.MustCompile` of a constant pattern compiles it (it panics only on an invalid pattern, and\nthese compile: Go runs the initializer at every start of every program importing the package);\ncompilation terminates. So it terminates, cannot panic and has no effect beyond its variable.", "var stackCreator = regexp.MustCompile(`(?m)^created by (.*)\\n\\s+(.*):(\\d+) \\+0x[[:xdigit:]]+$`)"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.naming where
   pkgImportedPkgs := []
 
@@ -47,7 +55,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (package.init pkg_id.k8s_io.apimachinery.pkg.util.naming)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
-  (App (Val stackCreator.init) (Val #())))))))
+  (Val #()))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
 

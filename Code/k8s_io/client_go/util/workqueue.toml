@@ -11,3 +11,26 @@ translate = ["*", "!_",
 imports = ["*"]
 
 translate_types = true
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`; until 2026-11-22
+# their initializers were untranslated, `opaqueInitsOk`). goose refuses a reference to one from
+# translated code, so no verified code reads them; each reason says why not running the
+# initializer is unobservable.
+[[skip]]
+names = ["_@default_rate_limiters.go:66"]
+reason = """
+An interface check: `&BucketRateLimiter{}` converted to `RateLimiter`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@default_rate_limiters.go:92"]
+reason = """
+An interface check: `&ItemExponentialFailureRateLimiter{}` converted to `RateLimiter`. No call, no
+panic, no effect."""
+
+[[skip]]
+names = ["_@default_rate_limiters.go:166"]
+reason = """
+An interface check: `&ItemFastSlowRateLimiter{}` converted to `RateLimiter`. No call, no panic, no
+effect."""
+# --- end of skipped package variables ---

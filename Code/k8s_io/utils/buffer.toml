@@ -1,7 +1,8 @@
 # With bodies (project k8s-apiserver; notes/k8s-daemonset-goose.md, "The informers"): the ring buffer of the shared informer's
 # listeners.
-# (names only: `ErrInvalidSize`, an `errors.New` package variable: C7)
-translate = ["*", "!ErrInvalidSize"]
+# (`ErrInvalidSize`, an `errors.New` package variable, translated too since 2026-11-22: names only
+# until then, C7; the translated `NewTypedRingFixed` reads it, so it cannot be skipped)
+translate = ["*"]
 imports = ["*"]
 
 translate_types = true

@@ -898,16 +898,23 @@ noncomputable def unversionedFeatureGates.impl [GooseExts] [GoGlobalContext] : v
   (App (Val (GoInstruction (GoStore (go.GoType.MapType Feature.ty FeatureSpec.ty)))) (Pair (Var "unversioned") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.MapType Feature.ty FeatureSpec.ty)))) (Var "$res0")))))
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `_@envvar.go:35` (`var _ Gates = &envVarFeatureGates{}`): An interface check: `&envVarFeatureGates{}` converted to `Gates`. No call, no panic, no effect.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"k8s.io/client-go/features._@envvar.go:35", "An interface check: `&envVarFeatureGates{}` converted to `Gates`. No call, no panic, no effect.", "var _ Gates = &envVarFeatureGates{}"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.features where
   pkgImportedPkgs := [pkg_id.fmt, pkg_id.os, pkg_id.strconv, pkg_id.sync, pkg_id.sync.atomic, pkg_id.k8s_io.apimachinery.pkg.util.naming, pkg_id.k8s_io.apimachinery.pkg.util.runtime, pkg_id.k8s_io.klog.v2, pkg_id.context, pkg_id.k8s_io.apimachinery.pkg.util.version]
-
-opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.client_go.features)) (Lam BAnon
   (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -927,8 +934,6 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val defaultVersionedKubernetesFeatureGates.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val featureGates.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
   (App (Val doExecute)
   (App (Val internalPackages.init) (Val #()))))))
   (App (Val doExecute)
