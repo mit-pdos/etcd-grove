@@ -791,4 +791,8 @@ deletion of `nameFree`/`namesUnclaimed`/`descIdsDistinct`/`readRegPerm`, §5's r
 `lean` (merged here) pins Perennial `101637598`; Lean's translations of `101637598`'s goose do not build on
 `c14cca87a` (326 files differ). The branch needs `pkg-init-param` on `101637598` (or on Perennial's `lean`, with a
 pin bump), as a manifest like `manifest-1016.json`. (`/shared/perennial-pkg-init-param` itself is on Perennial
-`lean`'s `74471ecd8`, a descendant of `101637598`.)
+`lean`'s `74471ecd8`, a descendant of `101637598`.) **Resolved** (the coordinator, 2026-11-22): Option 4 is being
+cherry-picked onto `101637598`; step 2 builds against `/shared/tmp/manifest-pip1016.json` once it exists.
+
+**Sign-off points** (`notes/prom-registry-start-change.md`, the draft of the final trusted diff, part 1): the `dto`
+initializer axioms that come with `Desc` as a struct, and `NewDesc` left untranslated.
