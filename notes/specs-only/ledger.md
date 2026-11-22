@@ -4489,3 +4489,15 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   (Alternatively a raft API lemma `sentMsg ⊢ ∀ e ∈ st.ents, Type ≤ 2`, which needs raft's message invariant to
   track forwarded proposals' entries: not taken.)
 - **Decision.** Applied.
+
+## 2026-11-22: kvcheck's `randomChange` bounds its changes (KvNet)
+
+- **Spec.** `checker.randomChange.spec`'s post (`kvcheck/checker__randomChange.lean`): `⌜ccTransOk o⌝` becomes
+  `⌜ccTransOk o ∧ (ccToV2 o).changes.length ≤ 3⌝`.
+- **Defect.** `reconfigure` sends `PutConfChange(nil, cc)` through `checker.request`, whose premise bounds the
+  payload (`len + 17 < 2^63`, the frame's header); `encCC o` has at most `17 + 16 n` bytes (`encCC_length`),
+  so the bound needs `n` bounded, and the post said nothing of it. The code makes at most three changes
+  (`count` is `1` or `1 + below(3)`); the proof already tracked `cnt ≤ 3`.
+- **Evidence.** `checker__randomChange.lean` (the loop's invariant), `ConfCodec.lean`.
+- **Proposed change.** As above (a stronger post).
+- **Decision.** Applied.
