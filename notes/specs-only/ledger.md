@@ -4075,3 +4075,18 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   half (session 7, `57d9a044f0`): the premise widened on `wal.Create.spec`/`specFresh` and `tWalFsOk`;
   `CreateDirAll.specTmp` (and its proof, with `TouchDirAll.specDir`) deleted; `walAreaRes`'s `TmpOk` replaced by
   `ClRanked` of each `nm.tmp`'s claims, `tmpClTouch` gone; the tester's `BootFoNmTmp` gone.
+
+## 2026-11-22: `WalPbIn.CloneHsLaw` narrowed to a non-nil source; `WalHsOwn.notNull` (wal-safe, session 9)
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/storage/wal/ReadAllCallees.lean`: `WalPbIn.CloneHsLaw` (a hypothesis of
+  `WAL.ReadAll.wp_proof`) and `structure WalHsOwn`.
+- **Defect.** The law covered `proto.Clone` of a nil `*raftpb.HardState` (`P.hsIn` allows nil), which no trusted
+  spec covers (`proto.ClonePb.spec` takes a frozen message, non-nil), so the law could not be derived for the raftpb
+  instance without new trust.
+- **Evidence.** In `ReadAll` (fork `d7c7f6434`, wal.go:717) `state` is `&raftpb.HardState{}` or
+  `MustUnmarshalState`'s `&s`, never nil; the reviewer's `clone-hs-law.md` (`/shared/tmp/coord-03/review-wal4/`)
+  suggested dropping the nil case.
+- **Proposed change.** `CloneHsLaw` takes `p ≠ null`; `WalHsOwn` gains `notNull : HsO p h ⊢ ⌜p ≠ null⌝`, which
+  `ReadAll` uses before freezing its `state` (`walRaftHsO_notNull`: `hsOwnC` holds it).
+- **Decision.** Made (coordinator's task 2, "narrow the law that way if needed"). `walRaftP_cloneHs` and
+  `walRaftHsO_unmarshal` (`RaftModel/LawsHsPb.lean`) discharge `CloneHsLaw walRaftP` and `WalHsOwn.unmarshal` over
+  `proto.ClonePb.wp_proof`/`proto.UnmarshalPb.wp_proof` (axioms already reached); both leave `TOpen`.

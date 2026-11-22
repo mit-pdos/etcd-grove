@@ -16,9 +16,10 @@ part `TRun` (`Main.spec`'s precondition) and the crash tokens; the crash frame i
 `etcd_wal_crash_safety_bounded` is not the closed theorem (the user's hard stop): it takes, as
 hypotheses, the package initializer's spec (`Hinit_wp`: the initializer registers the WAL's metrics,
 whose rights `prometheus.namesFree` only `goose_adequacy_start`, a crash-free adequacy, hands out) and the
-specs no proof discharges yet (the Perennial-gap specs, `proto.UnmarshalWalRecordE`, the hard-state laws
-pending the user: `CloneHsLaw`, `WalHsOwn`'s `unmarshal` and `reset`). The model's other laws are
-discharged (`walPb_laws`, `LawsHsMarshal`).
+specs no proof discharges yet (the Perennial-gap specs, `proto.UnmarshalWalRecordE`, the hard-state law
+pending the user: `WalHsOwn`'s `reset`). The model's other laws are discharged (`walPb_laws`,
+`LawsHsMarshal`, `LawsHsPb`: `CloneHsLaw` and `WalHsOwn.unmarshal` over `proto.Clone`'s and
+`proto.Unmarshal`'s trust-boundary specs).
 -/
 module
 
@@ -30,6 +31,7 @@ public import GooseLang.Ext.Fs.NoIoErr
 public import GooseLang.Ext.Fs.NoMapLockErr
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RaftModel.Laws
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RaftModel.LawsHsMarshal
+public import Proof.google_golang_org.protobuf.proto.ClonePb
 
 @[expose] public section
 
@@ -181,16 +183,10 @@ variable [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions
 
 /-- **The specs the tester's proof takes that no proof discharges yet** (the tester Link's hypotheses
 but the model's laws, which are proved): the Perennial-gap specs, `WalDecEnvSupply`, the trust-boundary
-spec of `proto.Unmarshal` on a WAL record, and the raftpb hard-state laws pending the user
-(`CloneHsLaw`, `WalHsOwn`'s `unmarshal` and `reset`: `RaftModel/Laws.lean`). -/
+spec of `proto.Unmarshal` on a WAL record, and the raftpb hard-state law pending the user
+(`WalHsOwn`'s `reset`: `RaftModel/Laws.lean`). -/
 structure TOpen : Prop where
   decEnv : WalDecEnvSupply (GF := GF)
-  cloneHs : WalPbIn.CloneHsLaw (walRaftP (GF := GF))
-  unmarshalHs : ∀ (d : GoSlice) (dq : DFrac) (bs : List w8) (h : HardStateM),
-      walRaftU.decState bs = some h →
-      {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ d ↦*{dq} bs }}
-        (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.MustUnmarshalState)) (Val #d))
-      {{ (p : Loc), RET #p; d ↦*{dq} bs ∗ walRaftHsO p h }}
   resetHs : ∀ (p : Loc) (h : HardStateM),
       {{ walRaftHsO (GF := GF) p h }}
         (App (Val (p @!! go.GoType.PointerType go_etcd_io.raft.v3.raftpb.HardState.ty @!! go!"Reset"))
@@ -231,8 +227,9 @@ variable [_root_.Perennial.go_uber_org.zap.Assumptions]
 `walRaftHsO`), its laws proved, the rest from `TOpen`. -/
 theorem tMain_linked (h : TOpen (GF := GF) (hG := hG)) : Main.spec (GF := GF) (hG := hG) :=
   walTester.etcd_wal.wp_Main walRaftP walRaftU walRaftHsO walRaftU_ok walRaftU_snapCoh
-    h.decEnv (walRaftHsO_own h.unmarshalHs h.resetHs) (walRaftHsO_own h.unmarshalHs h.resetHs)
-    h.cloneHs walPb_laws.getIndex walPb_laws.getTerm walPb_laws.isEmpty walPb_laws.marshalEnt
+    h.decEnv (walRaftHsO_own proto.UnmarshalPb.wp_proof h.resetHs)
+    (walRaftHsO_own proto.UnmarshalPb.wp_proof h.resetHs)
+    (walRaftP_cloneHs proto.ClonePb.wp_proof) walPb_laws.getIndex walPb_laws.getTerm walPb_laws.isEmpty walPb_laws.marshalEnt
     (walRaftP_marshalHs proto.MarshalPb.wp_proof) walPb_laws.mustSync walPb_laws.nil walPb_laws.size
     walPb_laws.unmarshalEnt walPb_laws.zero h.isErrno h.isPathErrnoEof h.isPathErrnoNotExist
     h.isPathErrnoTerm h.errorfErrsNot h.errorfErrsTerm h.copyFiles

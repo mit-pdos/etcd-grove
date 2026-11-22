@@ -829,8 +829,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             icases HeX with ⟨%eX, #HeX, -⟩
             (try wp_auto)
             -- `w.state = proto.Clone(state)`
+            ihave %Hstpn := hHs.notNull stp st.hs $$ Hhs
             imod hHs.freeze stp st.hs ⊤ $$ Hhs with Hhs
-            wp_apply wp_CloneHs stp st.hs $$ [Hhs] as %m ⟨%p', %hm', Hhs⟩
+            wp_apply wp_CloneHs stp st.hs Hstpn $$ [Hhs] as %m ⟨%p', %hm', Hhs⟩
             · iexact Hhs
             subst hm'
             (try wp_auto)
@@ -900,8 +901,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             obtain ⟨hmdσ, hhsσ, hentsσ⟩ := hrσ
             (try wp_auto)
             -- `w.state = proto.Clone(state)`
+            ihave %Hstpn := hHs.notNull stp st.hs $$ Hhs
             imod hHs.freeze stp st.hs ⊤ $$ Hhs with #Hhs
-            wp_apply wp_CloneHs stp st.hs $$ [Hhs] as %m ⟨%p', %hm', #Hhs'⟩
+            wp_apply wp_CloneHs stp st.hs Hstpn $$ [Hhs] as %m ⟨%p', %hm', #Hhs'⟩
             · iexact Hhs
             subst hm'
             (try wp_auto)
