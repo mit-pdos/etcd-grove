@@ -3664,3 +3664,41 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
   (`Net/Proof/.../lib/remote/Serve.lean`, with a comment).
 - **Proposed (general).** `wp_apply` re-raises its post-processing's error instead of admitting the
   goal. **Status.** Recorded only.
+
+## 2026-11-22: `sync.OnceFunc`'s spec says nothing of calling the function it returns (`hash/crc32`'s arch hooks, etcd-grove#14)
+
+- **The gap.** `Perennial/Spec/sync/OnceFunc.lean` (the pin `d648cfe22`, and Perennial `lean`'s head on
+  2026-11-22): `OnceFunc(f)` returns some `g` with postcondition `True`, and no spec says what calling `g`
+  does (nor for `OnceValue`/`OnceValues`). `Once.Do` (`isOnce o P Q`) and `atomic.Bool.Load`/`Store`
+  (`ownBool`) have specs; `OnceFunc` is translated with its body (`Once`, `wrapDeferRecover`).
+- **Who needs it.** The fix of etcd-grove#14 that upamanyus approved: translate crc32's `MakeTable`,
+  `update`, `castagnoliInitOnce`, `slicingMakeTable`, `slicingUpdate` and the package state, and trust
+  only `archAvailableCastagnoli`/`archInitCastagnoli`/`archUpdateCastagnoli`. At go1.27.3,
+  `castagnoliInitOnce` is `sync.OnceFunc(func() {...})` (`crc32.go:83`) and `MakeTable(Castagnoli)`
+  calls it (`crc32.go:122`), so `MakeTable`'s proof needs what that call does.
+- **Workaround here.** None: the work stopped on this gap (branch `crc32-arch-hooks/2026-11-22`, notes
+  only). The trusted `MakeTable`/`update` of `0c72a382a7` stay, with the deviation their file header
+  documents (a fresh table per `MakeTable`).
+- **Proposed (general).** A spec of the returned function in `Once.Do`'s style: given `P` and
+  `{P} f() {Q}` with `Q` persistent, `OnceFunc(f)` returns `g` with a persistent `isOnceFunc g Q`, and
+  `{isOnceFunc g Q} g() {Q}` (a panicking `f` is excluded by `f`'s triple); proved over the translated
+  `OnceFunc`. The same for `OnceValue(s)`, with the value.
+- **The crc32 plan once it lands** (worked out statically, 2026-11-22):
+  (a) The real code reads package globals (`castagnoliInitOnce`, `haveCastagnoli`, `castagnoliTable`,
+  `IEEETable`), so the specs of `MakeTable`, `update`, `Update` and `digest.Write` gain the premise
+  `isPkgInit pkg_id.hash.crc32`; their callers (the WAL's initializer, `pkg/v3/crc`'s `digest.Write`, mvcc's
+  `newKVHasher` and `kvHasher.WriteKeyValue`) have to supply it. Otherwise the statements stay unchanged.
+  (b) crc32's fact gains an invariant: `haveCastagnoli`'s `ownBool`, and, once it is true,
+  `castagnoliTable ↦□ t ∗ t ↦□ castagnoliTableArr` plus `updateCastagnoli ↦□ u` with `u`'s WP computing
+  `crc32c`. The once's `P` is the cells of `castagnoliTable`, `castagnoliTable8` and `updateCastagnoli`.
+  `update` reads `castagnoliTable` only after `haveCastagnoli.Load()` is true (Go's `&&`).
+  (c) The `tab == IEEETable` branch is impossible: `tab ↦□ castagnoliTableArr` agrees with `IEEETable`'s
+  `↦□ ieeeTableArr`, which differs (`ieeeTableArr_ne`). The default branch is `simpleUpdate`, which has
+  to be translated as well.
+  (d) `slicingUpdate` equals `crcUpdate` of `t[0]` only by the slicing-by-8 identity, which follows from
+  the table's linearity (`crcBit (a ^^^ b) = crcBit a ^^^ crcBit b`, for `bv_decide`).
+  (e) Goose translates the hooks from `crc32_amd64.go` (`trusted` in `Code/hash/crc32.toml`). In Go,
+  `archInitCastagnoli` is not a no-op: it fills `castagnoliSSE42TableK1/K2`, which only
+  `archUpdateCastagnoli` reads. That is harmless because the model's `archUpdateCastagnoli` reads no
+  table.
+- **Status.** Recorded only (not yet proposed to Perennial).
