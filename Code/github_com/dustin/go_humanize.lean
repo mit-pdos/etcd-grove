@@ -403,6 +403,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
   (App (Val doExecute)
@@ -413,6 +414,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val revSIPrefixTable.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val siParseAliases.init) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val maxSIExponent.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val minSIExponent.init) (Val #()))))))
   (App (Val doExecute)

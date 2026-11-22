@@ -71,6 +71,7 @@ axiom opaqueInitsOk :
         renderFloatPrecisionRounders.init,
         siPrefixTable.init,
         minSIExponent.init,
+        maxSIExponent.init,
         siParseAliases.init,
         revSIPrefixTable.init,
         errInvalid.init,
@@ -141,6 +142,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk renderFloatPrecisionRounders.init (by mem_tac))
   wp_apply (opaqueInitsOk siPrefixTable.init (by mem_tac))
   wp_apply (opaqueInitsOk minSIExponent.init (by mem_tac))
+  wp_apply (opaqueInitsOk maxSIExponent.init (by mem_tac))
   wp_apply (opaqueInitsOk siParseAliases.init (by mem_tac))
   wp_apply (opaqueInitsOk revSIPrefixTable.init (by mem_tac))
   wp_apply (opaqueInitsOk errInvalid.init (by mem_tac))
