@@ -24,6 +24,14 @@ open Iris Iris.BI Iris.ProofMode Fs
 theorem dir_child {r dir nm : GoString} (hin : InArea r dir nm) : dir = child r nm := by
   rw [hin.2]; simp [child]; rfl
 
+/-- A prefix of a path that fits fits (`wal.Create`'s area, from its directory). -/
+theorem pathFits_prefix {p q : GoString} (h : Fs.PathFits q) (hp : p <+: q) : Fs.PathFits p :=
+  ⟨Nat.lt_of_le_of_lt hp.length_le h.1, fun s hs hl => h.2 s (hs.trans hp.isInfix) hl⟩
+
+/-- The area fits if a directory of it does. -/
+theorem pathFits_area {r nm : GoString} (h : Fs.PathFits (child r nm)) : Fs.PathFits r :=
+  pathFits_prefix h ⟨_ :: nm, rfl⟩
+
 theorem tmp_path (r nm : GoString) : child r nm ++ go!".tmp" = child r (tmpName nm) := by
   simp [child, tmpName]
 

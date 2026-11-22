@@ -41,7 +41,7 @@ def walAreaResFree (jr : Ino) (nm : GoString) : IProp GF :=
     ⌜∀ nm sfx, walNameOk nm → N.Mem (nm ++ go!"." ++ sfx)⌝ ∗
     areaCls (L := L) cl ∗
     ⌜∀ b, N.Mem b → ¬ walNameOk b → ¬ BrokenSlot b → SubCover (clOf cl b) (h.cur !! b)⌝ ∗
-    ⌜∀ nm, walNameOk nm → TmpOk (clOf cl (tmpName nm)) (h.cur !! tmpName nm)⌝ ∗
+    ⌜∀ nm, walNameOk nm → ClRanked (clOf cl (tmpName nm))⌝ ∗
     ⌜N.Mem nm ∧ h.cur !! nm = none ∧ nm ∉ Wn⌝)
 
 /-- `walAreaResFree` forgets the free name. -/

@@ -279,8 +279,7 @@ theorem create_cleanBack (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         rw [restrictN_lookup_not _ _ _ hbN, restrictN_lookup_not _ _ _ hbN])
   iframe HN Hcl Hsf
   rw [htc]
-  simp only [tmpSub]
-  iempintro
+  iapply tmpCls_none
 
 end iris
 

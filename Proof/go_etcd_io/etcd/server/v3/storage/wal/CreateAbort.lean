@@ -3,7 +3,7 @@
 # `Create`'s abort before the minting (W4, eleventh session)
 
 After the drop of `nm.tmp` off the area claim and before the minting, an error gives `walAreaRes` back:
-the claim on `nm.tmp` (whatever it holds now, a `tmpDirH`) merged back into the program's half of the
+the claim on `nm.tmp` (whatever it holds now, a `tmpAny`) merged back into the program's half of the
 area claim (`walInv_mergeIn`, the free lock token excluding a creating entry), and `walAreaRes` rebuilt
 with the claims under every other name (`area_give`).
 -/
@@ -59,13 +59,13 @@ theorem create_abortTmp (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
       notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗ walUnlockedTok (W := W) -∗
       osNames (L := hG.goose_localGS) jr (N.diff [tmpName nm]) (DFrac.own (1 : Qp).half)
         (h.restrict jr (N.diff [tmpName nm])) -∗
-      tmpDirH jr (tmpName nm) hT -∗
+      tmpAny jr (tmpName nm) hT -∗
       areaCls (L := hG.goose_localGS) (cl.filter (fun c => decide (c.1 ≠ tmpName nm))) -∗
       walSplitFrag (W := W) Wn ={⊤}=∗
       notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ walUnlockedTok (W := W) ∗
         walAreaRes (L := hG.goose_localGS) jr := by
   iintro #Hinv #Hsi Hnc Hu HN Ht Hcl Hsf
-  unfold tmpDirH
+  unfold tmpAny
   icases Ht with ⟨HT, Hs⟩
   have hNnm : (N.diff [tmpName nm]).Mem nm :=
     (NameSet.mem_diff _ _ _).2 ⟨hNm, by simpa using (tmpName_ne nm).symm⟩
