@@ -110,6 +110,20 @@ names-only functions' axioms must not hide a registration. The list (from the pi
 `init`) is the next stage's first task; each found goes into that spec's docstring (or its
 precondition takes the rights).
 
+First pass (2026-11-22, etcd `d7c7f64`): the etcd packages that register with the default registry
+are `auth`, `etcdmain`, `etcdserver`, `api/{etcdhttp,membership,rafthttp,snap,v2store,v3rpc}`,
+`apply`, `read`, `txn`, `lease`, `proxy/grpcproxy`, `storage`, `storage/{backend,mvcc,wal}`. Those
+with a generated `Init` take their rights (`regNames`); `etcdhttp`, `v2store`, `etcdmain` and
+`grpcproxy` have none (outside every verified closure, to confirm per program). Runtime
+registrations: `v3rpc.getServerMetrics` (translated: `Register.spec`, decision 3),
+`etcdserver.EnableAllRuntimeMetrics` and `v2store`'s `Register(readCounter)` (names only, called
+from `embed`/`v2store`, to confirm unreached). k8s component-base's `legacyregistry` (the k8s
+examples): its `init` registers the process and Go collectors in its **own** `KubeRegistry`, not
+the default registry; `Handler`/`HandlerWithReset` (promhttp's `InstrumentMetricHandler` registers
+`promhttp_metric_handler_requests_*` with `prometheus.DefaultRegisterer`), `CustomRegister` and
+`CustomMustRegister` do register with it, but no translated code calls them (`Code/`: only their
+names); their names-only specs, if any is ever given, must take the rights.
+
 ### 6. Threading through package initialization (`etc/gen-init.py`)
 
 Today every registering package's `wp_initialize'` takes `namesFree regNames` through
