@@ -566,7 +566,7 @@ theorem NewServer.wp_proofRG
   · iframe TickMsS ElectionTicksS
   (try wp_auto)
   -- the backend, from `backend.New`'s postcondition (`bootBackend_of_newPost`)
-  obtain ⟨Hbe0, HbP, Hci0, HhP, HPwf, HPlim, HlP, HalB, HauB, HauUB, HauRB⟩ := Hbe
+  obtain ⟨Hbe0, HbP, Hci0, HhP, HPwf, HPlim, HlP, HalB, HauB, HauUB, HauRB, HmB, HmrB, HcB⟩ := Hbe
   ihave #Hstpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage $$ []
   · iPkgInit
   ihave #Hbkpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend $$ []
@@ -1784,7 +1784,7 @@ theorem NewServer.wp_proofRG
       isplitr
       · ipureintro
         refine ⟨trivial, Hdisk.1, Hmmap, Hbuq, ?_, Hdirps.1, Hdisk.2, HbP,
-          Hci0, HhP, HPwf, HPlim, HlP, ⟨HalB, HauB, HauUB, HauRB⟩, trivial, by omega, Hddl⟩
+          Hci0, HhP, HPwf, HPlim, HlP, ⟨HalB, HauB, HauUB, HauRB⟩, ⟨HmB, HmrB, HcB⟩, trivial, by omega, Hddl⟩
         rw [HρRaft, Hid]; exact Hsloc
       isplitr
       · iExactEq Hsdir
