@@ -14,9 +14,13 @@ reached by these).
   `sendTok`) and `Close`;
 * the codec registry: `SetCodec`, `getCodec` (`Codec.lean`: `CodecSpec`, `codecIs`, `codecSet`).
 
-Not yet stated (the plan note, phase 5.2, lists what remains): the server codec's methods, the
-Client (`Call`, `Go`, `Close`, `NewClient`, `Dial`, `DialHTTP(Path)`), the Server (`Register(Name)`,
-`ServeConn`/`ServeCodec`, `ServeHTTP`, `HandleHTTP`) and the generated `Codec`'s `Receiver`.
+* the client (`ClientDefs.lean`, over the protocol `Proto.lean`): `newClientCodec`, `Call.done`,
+  `Client.Close`, `Client.send`, `Client.Go`, `Client.Call` (dsverify-lab's statement).
+
+Proved but not linked: `NewClientWithCodec`, `NewClient`, `Dial`, over `Client.input.spec`, whose
+proof is not written yet. Not yet stated (the plan note, phase 5.2, lists what remains): the server
+codec's methods, `DialHTTP(Path)`, the Server (`Register(Name)`, `ServeConn`/`ServeCodec`,
+`ServeHTTP`, `HandleHTTP`) and the generated `Codec`'s `Receiver`.
 -/
 module
 
