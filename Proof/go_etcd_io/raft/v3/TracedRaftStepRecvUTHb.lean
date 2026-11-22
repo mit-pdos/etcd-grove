@@ -72,7 +72,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-variable [CrashGS GF] in
 /-- **A higher-term heartbeat's receive line's phase step**: `UpdateTerm` (the intermediate shape,
 `utSrv`, up to `toC`), then the follower's heartbeat handling at the new term (`hbSrv`, `hbResp`). -/
 theorem phaseStepR_utHb (id : w64) (c : CfgM) (s : NState) (m : MessageM) (ents : List EntryM) (evt : w64)
@@ -125,7 +124,6 @@ theorem phaseStepR_utHb (id : w64) (c : CfgM) (s : NState) (m : MessageM) (ents 
   rw [hmterm, hmsrc] at this
   exact lineEffect_mid_mono this (fun v hv => by rw [hv]; exact hux)
 
-variable [CrashGS GF] in
 /-- **The facts of a higher-term heartbeat's receive line**: at the intermediate state `simFx_ut` (from
 raft's facts of the receiver's log `L`), at the result `simFx_hb` from it, the commit index not
 raised (the heartbeat's commit `0`). -/
@@ -218,7 +216,6 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 def UTHb (s : NState) (m : MessageM) : Prop :=
   m.Type' = MsgHeartbeat ∧ uint.Z s.term < uint.Z m.Term'
 
-variable [CrashGS GF] in
 /-- **`raft.Step`'s traced bundle on a heartbeat of a higher term**: the receive line (`UpdateTerm`,
 then the follower's heartbeat handling, the commit index unchanged), the preamble's `BecomeFollower`
 line (skipped), then the response's send line (skipped). The end state is `heartbeatResult`'s at the

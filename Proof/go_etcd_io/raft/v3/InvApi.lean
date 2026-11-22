@@ -215,8 +215,7 @@ end uninames
 section api
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [G : GooseGlobalGS HasLC.hasLC GF]
-attribute [local instance] GooseGlobalGS.gooseInvGS
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-! ## The client's views of the committed log, and their laws -/
 
@@ -404,8 +403,7 @@ end api
 section inv
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [G : GooseGlobalGS HasLC.hasLC GF]
-attribute [local instance] GooseGlobalGS.gooseInvGS
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-- The adapter's invariant's namespace, beside raft's (`N .@ "raft"`). -/
 def apiN (N : Namespace) : Namespace := N .@ "api"
@@ -625,8 +623,7 @@ end inv
 section ctx
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [G : GooseGlobalGS HasLC.hasLC GF]
-attribute [local instance] GooseGlobalGS.gooseInvGS
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-- **The read contexts, the client's**: the authority of `ctxs`, whose domain is `U`. -/
 def ownReadCtxs (γ : Cluster) (U : GSet (List w8)) : IProp GF :=
@@ -835,8 +832,7 @@ end boot
 section alloc
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [G : GooseGlobalGS HasLC.hasLC GF]
-attribute [local instance] GooseGlobalGS.gooseInvGS
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-- A set of distinct elements, as a list. -/
 theorem bigSepM_listToSet (Φ : w64 → IProp GF) (ps : List w64) (Hnd : ps.Nodup) :
@@ -993,8 +989,7 @@ end alloc
 section facts
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [G : GooseGlobalGS HasLC.hasLC GF]
-attribute [local instance] GooseGlobalGS.gooseInvGS
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 theorem raftN_api (N : Namespace) {E : CoPset} (HE : ↑N ⊆ E) (x : String) :
     (↑((N .@ "raft") .@ x) : CoPset) ⊆ E \ ↑(apiN N) := by
@@ -1462,8 +1457,7 @@ certificate namespace `N` (`RaftNames.reCertNs`: the conversion opens the adapte
 section cert
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [G : GooseGlobalGS HasLC.hasLC GF]
-attribute [local instance] GooseGlobalGS.gooseInvGS
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-- (2026-10-28, stage U2) What raft's `snapAtOk` says of the committed prefix `L` of the
 snapshot `k`'s length, in a cluster that keeps a registry of the snapshots made: its last term is

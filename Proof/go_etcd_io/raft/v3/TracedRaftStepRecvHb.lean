@@ -222,7 +222,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-variable [CrashGS GF] in
 /-- **The facts after a follower's heartbeat of its term** (`hbRecvSt`): the commit index raised to
 the heartbeat's, the leader adopted, the response pending. The receiver's raised commit needs its
 certificate and committed prefix (the last premise, from the heartbeat's raft facts moved to raft's log
@@ -380,7 +379,6 @@ theorem simFx_hb (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (ma : Etc
     exact has m hm hty' k hk' hlk htk hs k' e he
   · exact absurd hty' hxq
 
-variable [CrashGS GF] in
 /-- **A heartbeat's receive line's phase step, at a follower of its term**: the server to `hbSrv`
 (the commit raised, the leader adopted), its response `hbResp` added (both read the server through
 `toC`, so they are pinned at the pinned server's `a0`). -/
@@ -436,7 +434,6 @@ theorem phaseStepR_hb (id : w64) (c : CfgM) (s : NState) (m : MessageM) (ents : 
   rw [hsrc] at this
   exact this
 
-variable [CrashGS GF] in
 /-- **The facts of a heartbeat's receive line, at a follower of its term** (`FxPresR` at
 `recvPhantoms m`, none): `simFx_hb` at the pinned phases, given raft's log `L` with its records and the
 moved certificates (`ownRaftGhost_hbFacts`). -/
@@ -591,12 +588,10 @@ theorem hb_ne {t : w32} (h : t = MsgHeartbeat) :
     MsgTransferLeader, MsgTimeoutNow, MsgBeat, MsgCheckQuorum, MsgPreVoteResp, MsgVote, MsgPreVote, MsgHup,
     MsgSnap]
 
-variable [CrashGS GF] in
 /-- **A heartbeat of the node's term at a follower.** -/
 def FolHb (s : NState) (m : MessageM) : Prop :=
   m.Type' = MsgHeartbeat ∧ m.Term' = s.term ∧ s.role = .follower
 
-variable [CrashGS GF] in
 /-- **`raft.Step`'s traced bundle on a heartbeat of the node's term at a follower**: the receive line
 (the specification's heartbeat handling, the commit raised with the certificates the heartbeat's raft
 facts give, `ownRaftGhost_hbFacts`), then the response's send line, which the specification skips; the

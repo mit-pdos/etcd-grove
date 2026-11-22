@@ -427,12 +427,10 @@ theorem app_ne {t : w32} (h : t = MsgApp) :
     MsgTransferLeader, MsgTimeoutNow, MsgBeat, MsgCheckQuorum, MsgPreVoteResp, MsgVote, MsgPreVote, MsgHup,
     MsgSnap]
 
-variable [CrashGS GF] in
 /-- **A stale append request of the node's term at a follower** (its index below the commit index). -/
 def FolAppStale (s : NState) (m : MessageM) : Prop :=
   m.Type' = MsgApp ∧ m.Term' = s.term ∧ s.role = .follower ∧ uint.Z m.Index' < uint.Z s.logst.committed
 
-variable [CrashGS GF] in
 /-- **`raft.Step`'s traced bundle on a stale append request of the node's term at a follower**: the
 receive line (the specification's `AppendEntriesAlreadyDone`, the log matching below the commit index,
 `ownRaftGhost_appStaleMatch`), then the response's send line, which the specification skips. The

@@ -122,3 +122,12 @@ files, from A) made all its lemmas take the instance, because Lean includes inst
 variables whose dependencies are included. `CrashGS` is local (per generation), so those lemmas could
 not be used at `GooseGlobalGS`. The fix: the variable lines no longer declare it, and the
 declarations that use the crash token take it with `variable [CrashGS GF] in`.
+
+Correction (2026-11-22): the global sections use `{GF} [AllG GF] [ReceiptGS GF] [InvGS GF]`, as the
+protocol layer does, not `[G : GooseGlobalGS]` with `gooseInvGS` as a local instance. With the
+latter, a lemma whose conclusion is a fancy update, used under `HeapGS`, could not be eliminated:
+`imod` reported "not a modality" (`RestartNode.lean:770`), because the update's instance came from
+`G.gooseInvGS` while the caller's comes from `goose_irisGS`. With `[InvGS GF]` as a parameter, a
+caller under `HeapGS` synthesizes its own instance, and kvnet's `Hstart` (only `GooseGlobalGS`)
+supplies `G.gooseAllG`/`G.goose_receiptGS`/`G.gooseInvGS`. At that boundary the two instance paths
+are equal by unfolding.

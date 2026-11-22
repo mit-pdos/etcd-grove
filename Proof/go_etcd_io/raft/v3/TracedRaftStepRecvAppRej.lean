@@ -164,7 +164,6 @@ def FolAppRej (s : NState) (m : MessageM) : Prop :=
   m.Type' = MsgApp ∧ m.Term' = s.term ∧ s.role = .follower ∧ uint.Z s.logst.committed ≤ uint.Z m.Index' ∧
   ¬ PlogMatches s.logst.prev (s.logst.sents ++ s.logst.uents) (entryID.mk m.LogTerm' m.Index')
 
-variable [CrashGS GF] in
 /-- **`raft.Step`'s traced bundle on a rejected append request of the node's term at a follower**: the
 receive line (the specification's `RejectAppendEntriesRequest`), then the rejection's send line, which
 the specification skips. The resources are `voteR`'s. -/

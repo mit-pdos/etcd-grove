@@ -169,7 +169,6 @@ theorem noApp1 {dec : CCDec} {c0 : CCState} {m : Msg} (h : m.ty ≠ .app) :
   intro r1 m' hm hty _
   rw [List.mem_singleton] at hm; subst hm; exact absurd hty h
 
-variable [CrashGS GF] in
 theorem noApp0 {dec : CCDec} {c0 : CCState} :
     ∀ (r1 : RState) (m' : Msg), m' ∈ ([] : List Msg) → m'.ty = .app → RInv dec c0 r1 →
       AppKnow r1 m' := by
