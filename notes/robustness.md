@@ -103,16 +103,19 @@ them. `find . -name TopLevelRobustness.lean` lists them all.)
 | several machines that never crash, `DistNsteps` (2026-11-19) | `robust_of_distBoot`, `robust_of_distProto` (`Net/Statement/DistBridge.lean`: `distNsteps_of_crash_nil`, then `goose_dist_adequacy`), under the deployment premise `DistDeploy plan hosts nodes g` (`Net/Statement/DistDeploy.lean`) | `DistDeploy … → Robust [] nodes g bound` | the network kits (`notes/dsverify-net-port-plan.md`, phases 4 and 6); `echo_dist_robust` (`Net/…/net/echo/RobustLinked.lean`), the non-vacuity check |
 
 - **The bound** is the example's own: `2^61` or `2^63` (raft's, lintest's; `logkvrw` `2^63` at `2^30`
-  threads since 2026-11-22), `2^40 - 11` at `2^28` threads (the 22 `etcd/*` examples, since
-  2026-11-20, and `k8s/all`, since 2026-11-22: the backend's write-back budget; until then `2^28 - 1`,
-  their proofs' thread bound `n + 2`), `2^38` at `2^28` threads (`mvccfull`, `mvccrand`, since
-  2026-11-22: their receipt bound, from the same budget), `2^61 - 3` at `2^31` threads (tracecheck),
+  threads since 2026-11-22), `2^48` at `2^28` threads (the 22 `etcd/*` examples and `k8s/all`,
+  since 2026-11-22, #30 step 2: the request ids' receipt bound, `idutil`'s; the backend's buffered
+  entries are paid by time receipts, so its write-back budget, `2^62`, no longer binds; from
+  2026-11-20 `2^40 - 11`, that budget; before, `2^28 - 1`, their proofs' thread bound `n + 2`),
+  `2^38` at `2^28` threads (`mvccfull`, `mvccrand`, since 2026-11-22: their receipt bound, tied to
+  `Ops < 2^38` across mvcc's specs; a follow-up of #30), `2^61 - 3` at `2^31` threads (tracecheck),
   `2^30 - 1` (`bboltfs`), and any `bound` (a parameter) where the theorem had none (the TCP and
   `osfs` examples, `prophkv`). `bboltfs`'s statement took a thread-bound hypothesis
   (`RealCrashThreadsBelow … (2^30)`); its `Robust` form derives it from the step bound, and stays
   so until crash adequacy along the execution exists (`notes/perennial-changes.md`, "The
-  distributed form": open). The plan to raise the etcd bounds further (the backend's budget, then
-  the request ids' `2^48` ceiling): claim issue mit-pdos/etcd-grove#30.
+  distributed form": open). The plan to raise the etcd bounds further (`K` receipts per request id,
+  toward `K · 2^48`; the id suffix's wrap, `nonissues/etcd-request-id-suffix-wrap-dup-panic.md`, is
+  the real ceiling): claim issue mit-pdos/etcd-grove#30.
 - **A hypothesis that mentioned the execution's length** (`Hprem`: the etcd examples' boot
   premises at `n`) is assumed at every `n` within the bound.
 - **`RealCrashNsteps` does not count a crash as a step**, `DistCrashNsteps` does: a run of `n`

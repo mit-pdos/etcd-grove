@@ -1,7 +1,7 @@
 /- Lean-first (no Rocq counterpart).
 
 The proof of `etcd_robust.spec` (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/all/TopLevelRobustness.lean`):
-`etcd_safe` (`Results.lean`) for every execution of fewer than `2 ^ 40 - 11` steps, by
+`etcd_safe` (`Results.lean`) for every execution of fewer than `2 ^ 48` steps, by
 `Robustness.Robust.of_single_below`.
 -/
 module

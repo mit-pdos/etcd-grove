@@ -4698,6 +4698,30 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   lock: `do`'s law is `kd_mint` (the counter is the op counter half); `read`'s mints, at every replica id
   at once, the context of the fresh number after the log of the read's start (`kd_mint_next`).
 - **Decision.** Applied (the prophecy: the coordinator's decision, 2026-11-22).
+
+## 2026-11-22: `storage.OpenBackend`'s axiom takes `New`'s receipt bound (step bounds, #30, step 2)
+
+- **Spec.** `storage.OpenBackend.spec` (`Spec/go_etcd_io/etcd/server/v3/storage/OpenBackend.lean`), a
+  trust-boundary axiom (`storage.OpenBackend.wp_proof`), and `OpenSnapshotBackend`'s, which takes it.
+- **Defect.** The axiom gives `backend.New`'s post (`newPostK`) under `[ThreadBoundLe GF (2 ^ 29)]`
+  alone, but `New` requires a receipt bound: `[ReceiptBoundLe GF (2 ^ 62)]` since S3e (2026-11-17;
+  bbolt's core invariant keeps `receiptBound GF ≤ 2 ^ 62`, `Proof/go_etcd_io/bbolt/Inv/Bolt.lean:111`),
+  `2 ^ 60` since step 2 (the buffers' receipt `bufRc` keeps `receiptBound GF ≤ 2 ^ 60` in the batch
+  lock's ghost share). So the axiom is false at a larger receipt bound: from its post, lock the batch
+  transaction and read `receiptBound ≤ 2 ^ 60` off the share (`batchGhostAt_bufRc`), refuting
+  `receiptBound = 2 ^ 61`, and `WP (OpenBackend; Lock; panic) {True}` follows. Its docstring's "its
+  post exactly what `New` gives" stopped being true at S3e. No closed theorem is affected: they fix
+  `receiptBound ≤ 2 ^ 48`.
+- **Evidence.** The step-2 review (fresh `spec-reviewer`, 2026-11-22), item 1.
+- **Proposed change.** Add `[ReceiptBoundLe GF (2 ^ 60)]` to `storage.OpenBackend.spec` and to
+  `OpenSnapshotBackend`'s use of it (only weakens the axiom: it now claims `New`'s post under `New`'s
+  premises). Its one caller, `OpenSnapshotBackend` from the server's `applySnapshot` walk
+  (`SnapApplyWalk.lean:338`), has no receipt bound in scope (`isServerM` holds only the thread
+  bound), so the change threads a receipt-bound fact into the walk (from `isServerM`, as its thread
+  bound, or a premise of `applySnapshot`'s spec).
+- **Decision.** Deferred to a follow-up of #30 (the server's proof, beyond step 2's backend-internal
+  scope): decided by the agent, pending the user (`notes/step-bounds-questions.md`, Q2). The axiom
+  stays false above `2 ^ 60` until then; no closed theorem reaches that.
 ## 2026-11-22: kvnet's top-level statement takes `os`'s two field-assumption instances (KvNet)
 
 - **Spec.** `raft_kvnet_robust.spec` and `raft_kvnet_robust_example.spec`

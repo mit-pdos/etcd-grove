@@ -2454,7 +2454,7 @@ theorem batchLocked_dls (γ : BNames) (P : BParams) (b : Loc) (st : BSess) (X : 
     batchLocked (GF := GF) γ P b st ∗ dlsOwn γ X ⊢
       batchLocked γ P b st ∗ dlsOwn γ X ∗ ⌜X = dlR P st.dl⌝ := by
   unfold batchLocked batchLockedAt batchGhost batchGhostAt fkHalf dlsOwn
-  iintro ⟨⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, %n0, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, ⟨Hfk, Hd, Hx⟩, %Hok⟩,
+  iintro ⟨⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, %n0, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, ⟨Hfk, Hd, Hx⟩, #Hbr, %Hok⟩,
     %Hwf⟩, Hc⟩
   icombine Hc Hx gives %Heq
   iframe Hc

@@ -32,8 +32,8 @@ namespace backend
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.backend
 
 /-- The write-back tokens a new backend provides: the batch lock's budget bounds the read
-buffer's version plus the tokens out below `2 ^ 40` (`bgOk`; the version starts at 0). -/
-def wbInit : Nat := 2 ^ 40 - 1
+buffer's version plus the tokens out below `2 ^ 62` (`bgOk`; the version starts at 0). -/
+def wbInit : Nat := 2 ^ 62 - 1
 
 section preds
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -88,7 +88,7 @@ def bFresh (γ : BNames) : IProp GF := iprop(ownToks γ.wb wbInit ∗ bOpen γ 1
 /-- **No hook runs on a fresh backend** (D22 receiver epochs, S8a, 2026-10-24): a commit's payment
 (`payIn`) under the batch lock refutes the fresh backend's payment rights. A write-back token is
 one too many (`bgOk`: the read buffer's version, the tokens out and the paid commits stay below
-`2 ^ 40 = wbInit + 1`); a write-back since the backend was made (the `run` goroutine's commit,
+`2 ^ 62 = wbInit + 1`); a write-back since the backend was made (the `run` goroutine's commit,
 `Unlock`'s) raised the version past 0 (`w ≤ ver`); a stop holds the clients' half of the open
 token. -/
 theorem hook_fresh_false (γ : BNames) (P : BParams) (b : Loc) (st : BSess) (stop : Bool)
@@ -97,12 +97,12 @@ theorem hook_fresh_false (γ : BNames) (P : BParams) (b : Loc) (st : BSess) (sto
       dghostVar γ.opn (DFrac.own (1 : Qp).half) false ⊢ False := by
   unfold batchLocked batchLockedAt batchGhost batchGhostAt
   iintro ⟨Hl, Hpay, Htoks, Hop⟩
-  icases Hl with ⟨%t, %db, -, -, -, ⟨-, %n, %w, %u0, -, Ha, Hmo, -, -, -, -, %Hbg⟩, -⟩
+  icases Hl with ⟨%t, %db, -, -, -, ⟨-, %n, %w, %u0, -, Ha, Hmo, -, -, -, -, -, %Hbg⟩, -⟩
   icombine Ha Htoks gives %Hle
   have h1 := Hbg.1
   have hwv := Hbg.2.2.2.2.2.2.2.2.2
   have hv0 : 0 ≤ uint.Z st.R.ver := by word
-  have hwi : wbInit = 2 ^ 40 - 1 := rfl
+  have hwi : wbInit = 2 ^ 62 - 1 := rfl
   iunfold payIn at Hpay
   cases stop
   · simp only [Bool.false_eq_true, ↓reduceIte]

@@ -603,7 +603,7 @@ private theorem rbPartR_idle (γ : BNames) (P : BParams) (st : BSess) (c : Bool)
 theorem batchLocked_claimed (γ : BNames) (P : BParams) (b : Loc) (st : BSess) :
     batchLocked (GF := GF) γ P b st ⊢ batchLocked γ P b st true := by
   unfold batchLocked batchLockedAt batchGhost batchGhostAt
-  iintro ⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, %n, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, Hfk, %Hok⟩, %Hwf⟩
+  iintro ⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, %n, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, Hfk, #Hbr, %Hok⟩, %Hwf⟩
   ihave Hk := trkSide_mode_up γ P st $$ Hk
   iexists t, db
   iframe
@@ -614,7 +614,7 @@ theorem batchLocked_claimed (γ : BNames) (P : BParams) (b : Loc) (st : BSess) :
 theorem batchLocked_cwOk (γ : BNames) (P : BParams) (b : Loc) (st : BSess) (c : Bool) :
     batchLocked (GF := GF) γ P b st c ⊢ batchLocked γ P b st c ∗ ⌜cwOk c st⌝ := by
   unfold batchLocked batchLockedAt batchGhost batchGhostAt
-  iintro ⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, %n, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, Hfk, %Hok⟩, %Hwf⟩
+  iintro ⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, %n, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, Hfk, #Hbr, %Hok⟩, %Hwf⟩
   icases trkSide_cw γ P st c $$ Hk with ⟨Hk, %Hcw⟩
   isplitl
   · iexists t, db
@@ -629,7 +629,7 @@ theorem batchLocked_rbPartR_RB (γ : BNames) (P : BParams) (b : Loc) (st : BSess
     batchLocked (GF := GF) γ P b st c ∗ rbPartR γ S r ⊢
       batchLocked γ P b st c ∗ rbPartR γ S r ∗ ⌜∀ n, S n → P.RB n = true⌝ := by
   unfold batchLocked batchLockedAt batchGhost batchGhostAt
-  iintro ⟨⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, %n, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, Hfk, %Hok⟩, %Hwf⟩, Hp⟩
+  iintro ⟨⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, %n, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, Hfk, #Hbr, %Hok⟩, %Hwf⟩, Hp⟩
   icases rbPartR_RB γ P st c S r $$ [$Hk $Hp] with ⟨Hk, Hp, %HRB⟩
   iframe Hp
   isplitl
@@ -645,21 +645,22 @@ theorem batchGhostAt_clr (γ : BNames) (P : BParams) (st : BSess) (fr c : Bool)
     (hT : ∀ n, P.RB n = true → st.tk n = .idle) :
     batchGhostAt (GF := GF) γ P st fr c ⊢ batchGhostAt γ P st.clrCw fr := by
   unfold batchGhostAt
-  iintro ⟨Hv, %n, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, Hfk, %Hok⟩
+  iintro ⟨Hv, %n, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, Hfk, #Hbr, %Hok⟩
   ihave Hk := trkSide_clr γ P st c hT $$ Hk
   iapply (show iprop(batchViewQ (GF := GF) γ P st ∗
       ∃ (n w u : Nat), ghostVar γ.rvs (1 : Qp).half (((st.C, st.R) : RView), false) ∗
         ownTokAuth γ.wb n ∗ monoNatAuthOwn γ.wbc 1 w ∗ ghostVar γ.used (1 : Qp).half u ∗
         dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗
-        trkSide γ P st.clrCw ∗ fkHalf γ P st ∗ ⌜bgOk P st fr n w u⌝) ⊢
+        trkSide γ P st.clrCw ∗ fkHalf γ P st ∗ bufRc st ∗ ⌜bgOk P st fr n w u⌝) ⊢
     iprop(batchViewQ (GF := GF) γ P st.clrCw ∗
       ∃ (n w u : Nat), ghostVar γ.rvs (1 : Qp).half (((st.clrCw.C, st.clrCw.R) : RView), false) ∗
         ownTokAuth γ.wb n ∗ monoNatAuthOwn γ.wbc 1 w ∗ ghostVar γ.used (1 : Qp).half u ∗
         dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗
-        trkSide γ P st.clrCw ∗ fkHalf γ P st.clrCw ∗ ⌜bgOk P st.clrCw fr n w u⌝) from .rfl)
+        trkSide γ P st.clrCw ∗ fkHalf γ P st.clrCw ∗ bufRc st.clrCw ∗ ⌜bgOk P st.clrCw fr n w u⌝) from .rfl)
   iframe Hv
   iexists n, w, u
   iframe
+  iframe #
   ipureintro; exact Hok
 
 /-! ### Claimed parts: split laws (A1.7) -/
@@ -992,7 +993,7 @@ private theorem batchGhostAt_idle (γ : BNames) (P : BParams) (st : BSess) (c : 
     iprop(batchGhostAt (GF := GF) γ P st true c ∗ rbPart γ S r ∗ rbPartR γ Sr rc) ⊢
       |={E}=> iprop(batchGhostAt γ P st true c ∗ rbOwnIn γ S r ∗ rbOwnInR γ Sr rc) := by
   unfold batchGhostAt
-  iintro ⟨⟨Hv, %n, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, Hfk, %Hok⟩, Hp, Hpr⟩
+  iintro ⟨⟨Hv, %n, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, Hfk, #Hbr, %Hok⟩, Hp, Hpr⟩
   imod trkSide_idle γ P st c S r (fun n _ hRB => hT n hRB) Hok.2.2.2.2.2.2.2.2.2.2.1 E hE $$ [$Hk $Hp]
     with ⟨Hk, Hp⟩
   imod rbPartR_idle γ P st c Sr rc (fun n _ hRB => hT n hRB) E hE $$ [$Hk $Hpr] with ⟨Hk, Hpr⟩
@@ -1000,6 +1001,7 @@ private theorem batchGhostAt_idle (γ : BNames) (P : BParams) (st : BSess) (c : 
   iframe Hv Hp Hpr
   iexists n, w, u
   iframe
+  iframe #
   ipureintro; exact Hok
 
 /-! ### A claimed part agrees with the batch lock (auth-schema-srv A6 (c), 2026-11-18) -/
@@ -1086,7 +1088,7 @@ theorem batchLocked_rbPartR_agree (γ : BNames) (P : BParams) (b : Loc) (st : BS
     batchLocked (GF := GF) γ P b st c ∗ rbPartR γ S r ⊢
       |={E}=> batchLocked γ P b st c ∗ rbPartR γ S r ∗ ⌜r.lookup n = (rbData P st.S).lookup n⌝ := by
   unfold batchLocked batchLockedAt batchGhost batchGhostAt
-  iintro ⟨⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, %n0, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, Hfk, %Hok⟩, %Hwf⟩, Hp⟩
+  iintro ⟨⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, %n0, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, Hfk, #Hbr, %Hok⟩, %Hwf⟩, Hp⟩
   imod trkSide_rbPartR_agree γ P st c S r n hS E hE $$ [$Hk $Hp] with ⟨Hk, Hp, %Hag⟩
   imodintro
   iframe Hp
@@ -1245,7 +1247,7 @@ private theorem batchGhostAt_conf (γ : BNames) (P : BParams) (st : BSess) (fr c
     iprop(batchGhostAt (GF := GF) γ P st fr c ∗ Rr ∗ rbConf γ Sc f Rr Rr' E) ⊢
       |={⊤}=> iprop(batchGhostAt γ P st fr c ∗ Rr') := by
   unfold batchGhostAt
-  iintro ⟨⟨Hv, %n, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, Hfk, %Hok⟩, HR, Hc⟩
+  iintro ⟨⟨Hv, %n, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, Hfk, #Hbr, %Hok⟩, HR, Hc⟩
   imod trkSide_conf γ P st c Sc f Rr Rr' E (fun m hm => by
       obtain ⟨h1, h2, h3⟩ := hf m hm
       rw [rvBkt_idle Hok.2.2.2.2.2.2.2.2.2.2.1 h1 h2, h3]) $$ [$Hk $HR $Hc] with ⟨Hk, HR⟩
@@ -1253,6 +1255,7 @@ private theorem batchGhostAt_conf (γ : BNames) (P : BParams) (st : BSess) (fr c
   iframe Hv HR
   iexists n, w, u
   iframe
+  iframe #
   ipureintro; exact Hok
 
 end claimed
