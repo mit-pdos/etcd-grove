@@ -43,6 +43,7 @@ public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Sen
 public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.ConfLaw
 public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.QLogger
 public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.SnapMake
+public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.RunLemmas
 public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.ClusterLemmas
 
 @[expose] public section
@@ -358,6 +359,180 @@ theorem StartNode.wp_proof
       simp only [Option.getD_some]
       iapply HcF $$ %f %rfl
   generalize HF : kdImgOf o' = F at HFok HFSH HFof ⊢
+  iunfold startStor at Hstor
+  icases Hstor with ⟨%s, %ms, %ip, %γs, %e0, st, #Hrec, #Hsb, #Hl, Hfresh, Hmeta, #Himg, Himage,
+    %He0, #Hd0, #Hfro, Hents, Hend, #Hcmp, #Hslb⟩
+  ihave #Hrec' := Hrec
+  iunfold kdStorRec at Hrec'
+  icases Hrec' with ⟨#Hmsf, -⟩
+  try wp_auto
+  wp_apply wp_MSnapshot ms γs (kdJ γ.r.cluster γ.files) (some (uint.nat F.prev, kdFreshSnap F))
+    (uint.nat F.prev) none _ $$ [$Hraft Hfresh $Hcmp $ErrSnapUnavail]
+    as %snap %err ⟨-, %Herr, %sv, Hsn, %Hsv, Hfr⟩
+  · rw [memStorAt_some]; iframe Hl Hfresh
+  icases Hfr with ⟨%Hsveq, Hfresh⟩
+  subst Hsveq
+  obtain ⟨HWf, Hp61, Hlen, Hidx, Hpsi, Hsil, Hpc, Hcl, Hterm⟩ := _root_.id HFok
+  imod ownSnapW_persist snap _ _ $$ Hsn with ⟨%pm, %pc, %Hpmc, #Hsn, #Hpm, #Hpc, #Hcs⟩
+  try wp_auto
+  wp_apply wp_GetMetadata.1 snap DFrac.discard (kdFreshSnap F) $$ [$Hpbi $Hsn] as %pm' ⟨#Hsm, -⟩
+  wp_apply wp_GetIndex pm' _ _ $$ [$Hpbi $Hsm] as -
+  rw [kdFreshSnap_index]
+  try wp_auto
+  wp_apply wp_map_make1 (K := GoString) (V := GoString) as %mK0 HK0
+  wp_apply wp_map_make1 (K := GoString) (V := GoString) as %mA0 HA0
+  try wp_auto
+  -- the replicated state: the snapshot's, or the empty one at the bootstrap configuration
+  wp_bind (If _ _ _)
+  iapply (wp_wand_r (Φ := fun v => iprop(⌜v = executeVal⌝ ∗
+    ∃ (mK mA csp : Loc) (Kv A : GMap (List w8) (List w8)) (cfg : ConfStateM) (ap : List LogEntry)
+      (m : Membership),
+      stats_ptr ↦ sp ∗ kv_ptr ↦ mK ∗ ops_ptr ↦ mA ∗ cs_ptr ↦ csp ∗ mK ↦$ Kv ∗ mA ↦$ A ∗
+      csOpt csp DFrac.discard cfg ∗ isCommittedLogLb γ.r.cluster ap ∗ confAt γ.r.cluster ap.length m ∗
+      ⌜confStateIs cfg m ∧ ap.length = uint.nat F.snap.Metadata'.Index' ∧
+        (∀ k, (Kv !! k).getD [] = raft_kvreconf.kvFold (raft_kvreconf.logHist ap) k) ∧
+        raft_kvreconf.AppliedOk A (raft_kvreconf.logHist ap) ∧ GMap.size m.ids < 2 ^ 61 ∧
+        confStateIs (kdInitCS (raft_kvreconf.bootCS vs) F) m ∧ (ap.length : Int) < 2 ^ 61 ∧
+        MapFits Kv ∧ MapFits A⌝ ∗
+      (⌜F.snap.Metadata'.Index' = W64 0⌝ ∨ snapshotValid γ.r.cluster F.snap))))
+  isplitl [stats kv ops cs HK0 HA0 snap]
+  · wp_if_destruct
+    · -- no snapshot
+      try wp_auto
+      isplitr
+      · ipureintro; first | rfl | trivial
+      iexists mK0, mA0, bp, ∅, ∅, raft_kvreconf.bootCS vs, [], Membership.simple (GMap.listToSet vs)
+      iframe stats kv ops cs HK0 HA0
+      isplitr
+      · iunfold csOpt; iright; iexact HbootO
+      isplitr
+      · iapply isCommittedLogLb_nil
+      isplitr
+      · iunfold kdCluster at Hcl
+        icases Hcl with ⟨-, -, #Hca0, -⟩
+        iexact Hca0
+      isplitr
+      · ipureintro
+        refine ⟨raft_kvreconf.bootCS_is vs Hvnd, by simp; word, ?_, ?_, ?_, ?_, by simp, ?_, ?_⟩
+        · intro k; simp [raft_kvreconf.logHist, raft_kvreconf.histOf, raft_kvreconf.kvFold, raft_kvreconf.kvEmpty]
+        · refine ⟨fun d => ?_, fun d v h => ?_⟩
+          · simp [raft_kvreconf.logHist, raft_kvreconf.histOf]
+          · simp at h
+        · simp only [Membership.ids, Membership.simple, GMap.union_empty_r_L]
+          rw [GMap.size_list_to_set vs Hvnd, Hvs, raft_kvreconf.bootVoters_length]
+          word
+        · unfold kdInitCS; rw [if_pos (by word)]; exact raft_kvreconf.bootCS_is vs Hvnd
+        · intro k v h; simp at h
+        · intro k v h; simp at h
+      ileft; ipureintro; word
+    · -- a snapshot
+      have hfs : kdFreshSnap F = F.snap := by unfold kdFreshSnap; rw [if_neg Hif]
+      rw [hfs]
+      iunfold kdSnapCert at Hcert
+      icases Hcert with (%H0 | ⟨#Hsv, %L, %m, #HL, #HcaL, %HLf⟩)
+      · exact absurd H0 Hif
+      obtain ⟨HLlen, HLdat, HLcs, HLsz⟩ := HLf
+      obtain ⟨kvs, ops, Hdat, Hwk, Hwo, Hkv, Hans⟩ := HLdat
+      ihave %HL61 : ⌜(L.length : Int) < 2 ^ 61⌝ $$ []
+      · iunfold snapshotValid at Hsv
+        icases Hsv with ⟨%l', %m', -, -, -, %Hl'⟩
+        ipureintro; omega
+      try wp_auto
+      wp_apply wp_GetData.1 snap _ F.snap $$ [$Hpbi $Hsn] as %ds ⟨Hds, -⟩
+      rw [Hdat, ← encState_eq]
+      wp_apply wp_decodeState ds _ kvs ops Hwk Hwo $$ [$Hpkg $Hds]
+        as %mK %mA ⟨Hds, %K', %A', HK', HA', %HKA⟩
+      ihave %Hdsl := ownSlice_len $$ Hds
+      have Hel : ((encMap kvs).length : Int) < 2 ^ 63 ∧ ((encMap ops).length : Int) < 2 ^ 63 := by
+        obtain ⟨h1, -⟩ := Hdsl
+        have h2 : ((encState kvs ops).length : Int) < 2 ^ 63 := by rw [h1]; word
+        simp only [encState, List.length_append] at h2
+        omega
+      try wp_auto
+      wp_apply wp_GetMetadata.1 snap DFrac.discard F.snap $$ [$Hpbi $Hsn] as %pm2 ⟨#Hsm2, -⟩
+      wp_apply wp_GetConfState pm2 _ _ $$ [$Hpbi $Hsm2] as %pc2 ⟨#Hpc2, -⟩
+      ihave #Hcso : csOpt pc2 DFrac.discard F.snap.Metadata'.ConfState' $$ []
+      · iunfold csOptA at Hpc2
+        iunfold csOpt
+        icases Hpc2 with (%H | #H | #H)
+        · ileft; ipureintro; exact H
+        · iright; iexact H
+        · iright; iapply csPts_weaken $$ H
+      try wp_auto
+      wp_apply wp_add sp (W64 11) (by decide) (by decide) $$ [$Hpkg $Hstats']
+      try wp_auto
+      isplitr
+      · ipureintro; first | rfl | trivial
+      iexists mK, mA, pc2, K', A', F.snap.Metadata'.ConfState', L, m
+      iframe stats kv ops cs HK' HA' Hcso HL HcaL
+      isplitr
+      · ipureintro
+        refine ⟨HLcs, HLlen, ?_, ?_, HLsz, ?_, HL61, ?_, ?_⟩
+        · intro k; rw [HKA.1 k]; exact Hkv k
+        · unfold raft_kvreconf.AppliedOk
+          have : (fun d => A' !! d) = (fun o => List.lookup o ops) := funext HKA.2
+          rw [this]; exact Hans
+        · unfold kdInitCS; rw [if_neg Hif]; exact HLcs
+        · exact MapFits_of_lookup kvs K' HKA.1 Hel.1
+        · exact MapFits_of_lookup ops A' HKA.2 Hel.2
+      iright; iexact Hsv
+  iintro %v ⟨%Hv, %mK, %mA, %csp, %Kv, %A, %cfg, %ap, %m, stats, kv, ops, cs, HK, HA, #Hcso, #Hap, #Hcap,
+    %Hrs, Hval⟩
+  subst Hv
+  obtain ⟨Hcfgm, Haplen, HKv, HAok, Hmsz, Hinit, Hap61, HKfit, HAfit⟩ := Hrs
+  try wp_auto
+  -- `FirstIndex`: the log's start plus one (detached: compacted at most there)
+  wp_apply Storage.wp_FirstIndex wp_FirstIndex s ms γs (uint.nat F.prev)
+    $$ [$Hrec $Hraft $Hl $Hcmp] as %fi ⟨%Hfi, #Hcmp'⟩
+  ihave ⟨%Hfi', Hfresh⟩ := memStorFresh_compacted ms γs _ _ _ $$ [$Hfresh $Hcmp']
+  have Hfi1 : fi = F.prev + W64 1 := by word
+  subst Hfi1
+  have Hsi61 : uint.Z F.snap.Metadata'.Index' < 2 ^ 61 := by word
+  try wp_auto
+  -- `Applied`: `0`, or from the log's start to the snapshot's index
+  wp_bind (If _ _ _)
+  iapply (wp_wand_r (Φ := fun v => iprop(⌜v = executeVal⌝ ∗
+    ∃ (ap0 rf : w64), applied_ptr ↦ ap0 ∗ rafted_ptr ↦ rf ∗ index_ptr ↦ F.snap.Metadata'.Index' ∗
+      ⌜(ap0 = W64 0 ∧ rf = F.prev) ∨
+        (uint.nat F.prev ≤ uint.nat ap0 ∧ uint.nat ap0 ≤ uint.nat F.snap.Metadata'.Index' ∧
+          rf = ap0)⌝)))
+  isplitl [applied rafted first index]
+  · wp_apply wp_oneIn (W64 3) (by decide) $$ [$Hpkg] as %b -
+    cases b with
+    | true =>
+      try wp_auto
+      isplitr
+      · ipureintro; first | rfl | trivial
+      iexists _, _
+      iframe applied rafted index
+      ipureintro; left; constructor <;> word
+    | false =>
+      try wp_auto
+      wp_apply wp_below _ $$ [$Hpkg] as %r %Hr
+      try wp_auto
+      isplitr
+      · ipureintro; first | rfl | trivial
+      iexists _, _
+      iframe applied rafted index
+      ipureintro; right
+      have Hr' := Hr.2 (by intro h; word)
+      refine ⟨by word, by word, rfl⟩
+  iintro %v ⟨%Hv, %ap0, %rf, applied, rafted, index, %Hap0⟩
+  subst Hv
+  try wp_auto
+  wp_bind (If _ _ _)
+  iapply (wp_wand_r (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ stats_ptr ↦ sp)))
+  isplitl [stats]
+  · wp_if_destruct
+    · try wp_auto
+      wp_apply wp_add sp (W64 12) (by decide) (by decide) $$ [$Hpkg $Hstats']
+      try wp_auto
+      iframe stats; try (ipureintro; first | rfl | trivial)
+    · try wp_auto
+      iframe stats; try (ipureintro; first | rfl | trivial)
+  iintro %v ⟨%Hv, stats⟩
+  subst Hv
+  try wp_auto
   done
 
 end proof
