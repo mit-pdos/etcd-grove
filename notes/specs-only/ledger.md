@@ -4409,6 +4409,25 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `MapFits` stays for now (the waiters' handoffs still carry it); it is removable.
 - **Decision.** Applied (the coordinator's option (a), 2026-11-22). Unchecked: no `.lake` at the time.
 
+## 2026-11-22: `EtcdServer.adjustTicks` proved with the tick advance off (prove-ps2-srv)
+
+- **Spec.** `EtcdServer.adjustTicks.spec` (`Spec/.../etcdserver/EtcdServer__adjustTicks.lean`): two new premises,
+  `srvMonitorsOff s` and `isRaftNode Er γn (srvRAddr s)` (for any `Er`, `γn`). `srvMonitorsOff` (`InvMonitors.lean`)
+  gets one more conjunct, `Cfg.InitialElectionTickAdvance ↦□ false`, and `srvMonitorCfg` the field at the
+  configuration's value (`NewServer`, `NewServerR` give it from the copied `Cfg`).
+- **Defect.** The axiom held for any configuration; a proof over the real code with
+  `InitialElectionTickAdvance` true needs the multi-member branch's wait loop, whose `transport.ActivePeers()` is
+  not in `rafthttp.isTransporter` (rafthttp's `ActivePeers` read-locks `t.mu` with no reader token, the reason
+  `Transport.ActiveSince` is itself an axiom: a narrower axiom on it would be 1-for-1). `advanceTicks` needs the
+  raft wrapper's contract, which the premise did not give.
+- **Evidence.** `server.go:468-530` (fork `goose-lean`): a single member fast-forwards (`advanceTicks(ElectionTicks
+  - 1)`, proved); with several members and the advance off, `lg.Info` and return. No example sets
+  `InitialElectionTickAdvance` (grep of `examples/`: the zero value, false); `Start`'s callers discharge it as they
+  discharge the other monitors-off fields (`iExactEq …; rfl` on the literal). `Start` has `isRaftNode` in its
+  construction premise (`isServerBuiltC_rn`, `AuthCompRows.lean`).
+- **Proposed change.** As above; `Start.spec` unchanged in statement (its `srvMonitorsOff` premise widened).
+- **Decision.** Applied (the user's standing rule: a trust-boundary spec may change when every caller still proves,
+  memory `ownership-premise-ok`; same pattern as audit B4a's monitors-off premises).
 ## 2026-11-22: `credentials.NewPerRPCCredentialBundle` takes its package's initialization; `credTokInv` over the lock (prove-ps2-client)
 
 - **Spec.** `credentials.NewPerRPCCredentialBundle.spec`: pre `True` to `isPkgInit
@@ -4460,3 +4479,67 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   the answered reply's bytes; a read commits lintest's update at the first firing whose output encodes to them.
   Applied on `etcd-dist` (`Defs.slotUpd`, `Do.spec`'s choice over the bytes, `pend_choice`'s read commit
   invariant; `Run.spec`/`Check.spec` gain the premise that distinct outputs have distinct bytes).
+## 2026-11-22: kvnet's `StartNode`: the start resource indexed by the configuration; the file invariant from the generation's boot (KvNet)
+
+- **Spec.** `StartNode.spec`/`Run.spec`/`RunNode.spec` (KvNet): the start resource `S : IProp` becomes
+  `S : w64 → GoString → Options → GMap w64 GoString → IProp` (id, directory, options, address map); `StartNode`
+  takes `cfg.Addrs ↦$□ M ∗ S cfg.ID cfg.Dir cfg.Opts M`; `RunNode` gives `S id dir opts M` at every `M` with
+  `addrMapOk (splitAddrs addrs) M`. `newReplica.spec`: the file's names are one record `fl : KdFileNames`
+  (`durable`'s, the file, its roots, the writer's variable, the invariant's crash token, raft's arm), the file
+  invariant `kdFileInvK γ id fl` (no node) and `nodeArm n γ fl.x` in its precondition. `Replica.persist`'s specs
+  unchanged (the invariant's change is inside `isReplica`).
+- **Defect.** A constant `S` cannot name what `StartNode` needs from the configuration: the directory and id
+  (the file), the voters (`kdCluster γ vs`), every other address's protocol (`newTransport`). And the file
+  invariant, allocated after `RestartNode` in the old design, cannot be emptied by the generation's crash
+  obligation, which Perennial's crash adequacy takes at the generation's start (ledger 2026-11-22, raft's
+  `RestartNode`).
+- **Evidence.** `notes/kvnet-part.md`, "`StartNode` and the crash frame" and "The file invariant from the
+  generation's boot". The pending batch's record names its node existentially (a `NodeH` is in `Type 1`, so it
+  cannot be in the writer's ghost variable), recognized by the writer through a saved proposition; `persist`'s
+  write lemma takes two later credits.
+- **Proposed change.** As above.
+- **Decision.** Applied (checked: `etc/lean-check.py` of every changed module, then `lake build KvNet`).
+
+## 2026-11-22: kvnet's `ValidCluster` checks `MaxInflightMsgs < 2^62` (KvNet, Go and Lean)
+
+- **Spec.** `ValidCluster.spec` (KvNet) through `validCluster` (`Addrs.lean`), and so `RunNode.spec`'s premise:
+  `mif < 2^63` becomes `mif < 2^62`. The Go `ValidCluster` (`examples/raft/kvnet/addrs.go`) the same.
+- **Defect.** Raft's `RestartNode` (and kvnet's `kvOptsOk`, `StartDefs.lean`) needs `MaxInflightMsgs < 2^62`;
+  `ValidCluster` allowed up to `2^63`, so `RunNode`'s premise did not give what `StartNode` needs.
+- **Evidence.** `notes/kvnet-part.md`, "The WIP checked and built", the gap noted with `kvOptsOk`.
+- **Proposed change.** Tighten the Go check (the design: validity is a Lean premise, mirrored by Go panicking on
+  an invalid configuration), retranslate, and the statement draft's `ClusterConfig.Ok` the same.
+- **Decision.** Applied (the coordinator's decision, 2026-11-22).
+
+## 2026-11-22: kvnet's transport takes no frame-length bound with a message; `newReplica` names its node (KvNet)
+
+- **Spec.** `Transport.Send.spec`'s `sendElem F m` and the queue's `qElem F pid m` (`TransportDefs.lean`, so
+  `Transport.enqueue.spec`, `isPeer`) lose the conjunct `(encMsg st).length + 8 < 2^63`. `newReplica.spec`'s
+  post names the node it was given: `∃ st' sts' sq' ρ, isReplicaR γ vs dir id r n st' sts' sq' ρ` (was `∃ n' …`).
+- **Defect.** The bound is not derivable where the messages come from (`run`'s send callback gets raft's
+  `Ready` messages, with no size bound: `MaxSizePerMsg` is any `uint64`), so `StartNode` could not give
+  `t.Send` as `run`'s callback. It is not needed either: `runPeer` encodes the message first (`putMsg`), and
+  the encoding's slice gives `(encMsg st).length < 2^63` (`ownSlice_len`), all the protocol needs. And
+  `StartNode`'s post (`isNodeS`) needs the replica's node to be the transport's: the old post forgot it.
+- **Evidence.** `Transport__runPeer.lean` (the bound's two uses, `peer_send` and the frames' bound, now from
+  the slice); `newReplica.lean`'s last step already named `n`.
+- **Proposed change.** As above.
+- **Decision.** Applied (weaker premises; a stronger post).
+
+## 2026-11-22: kvnet's wire reads a message's entries of any type (`getMsgEntry`; `MsgWf` weakened) (KvNet, Go and Lean)
+
+- **Spec.** `MsgWf` (`Wire.lean`, so `getMsg.spec`'s premise and `kvFacts`' `msgOkK`): a message's entries need
+  only `MsgEntWf` (data of a Go slice's length), no longer `EntWf` (also a type `≤ 2`). New `getMsgEntry.spec`
+  (wire.go's `getMsgEntry`, new): `getEntry.spec` with `MsgEntWf`.
+- **Defect.** `StartNode` must give `run`'s send callback (raft's `Ready` messages, `sentMsg`) to the transport,
+  whose protocol carries `MsgWf`. Nothing in raft's API says a sent message's entries are of raft's types (a
+  forwarded `MsgProp`'s are whatever `Propose` was given; `readyRest_ents_type` covers only the `Ready`'s
+  entries), so the type bound was not derivable. The Go decoder refused other types (`getEntry`'s `typ > 2`,
+  right for the storage file, not needed on the wire: an `EntryType` is an `int32`, written sign-extended,
+  truncated back).
+- **Evidence.** `examples/raft/kvnet/wire_test.go` (entries of types `-5` and `2^30` round-trip); the proofs
+  of `getMsgEntry` and `getMsg`.
+- **Proposed change.** `getMsg` decodes entries with `getMsgEntry` (no type check); `MsgWf` as above.
+  (Alternatively a raft API lemma `sentMsg ⊢ ∀ e ∈ st.ents, Type ≤ 2`, which needs raft's message invariant to
+  track forwarded proposals' entries: not taken.)
+- **Decision.** Applied.

@@ -73,12 +73,16 @@ instance kdSnapCert_persistent (γ : KdNames) (sv : SnapshotM) :
     Persistent (kdSnapCert (GF := GF) γ sv) := by
   unfold kdSnapCert; infer_instance
 
+instance fileHolds_persistent (γ : KdNames) (S : RaftState) (v : Option GoString) :
+    Persistent (fileHolds (GF := GF) γ S v) := by
+  unfold fileHolds; infer_instance
+
 instance sendSpec_persistent (γ : KdNames) (id : w64) (f : GoFunc) :
     Persistent (sendSpec (GF := GF) γ id f) := by
   unfold sendSpec; infer_instance
 
-instance kdFileInvK_persistent (γ : KdNames) (id : w64) (n : NodeH) (γd : DurFs.DurGS) :
-    Persistent (kdFileInvK (GF := GF) γ id n γd) := by
+instance kdFileInvK_persistent (γ : KdNames) (id : w64) (fl : KdFileNames) :
+    Persistent (kdFileInvK (GF := GF) γ id fl) := by
   unfold kdFileInvK; infer_instance
 
 set_option synthInstance.maxHeartbeats 400000 in
