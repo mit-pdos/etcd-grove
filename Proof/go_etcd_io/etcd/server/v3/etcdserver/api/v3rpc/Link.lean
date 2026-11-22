@@ -192,7 +192,6 @@ public import Proof.go_uber_org.zap.zapcore.CheckedEntry__Write
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base
 public import Perennial.Proof.errors.Link
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Registry__Register
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Link
@@ -214,7 +213,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-variable [promreg_sem : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Assumptions]
 
 theorem errors.wp_Is :
     EtcdGrove.errors.Is.spec (GF := GF) (hG := hG) :=
@@ -418,7 +416,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-variable [promreg_sem : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Assumptions]
 
 theorem AuthAdmin.wp_isPermitted :
     EtcdGrove.v3rpc.AuthAdmin.isPermitted.spec (GF := GF) (hG := hG) :=
@@ -674,7 +671,7 @@ theorem grpc_prometheus.wp_WithServerHandlingTimeHistogram :
 
 theorem prometheus.wp_Register :
     EtcdGrove.prometheus.Register.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.prometheus.Register.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof
+  EtcdGrove.prometheus.Register.wp_proof
 
 theorem wp_getServerMetrics :
     EtcdGrove.v3rpc.getServerMetrics.spec (GF := GF) (hG := hG) :=

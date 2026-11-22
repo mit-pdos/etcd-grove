@@ -12,7 +12,7 @@ public import Perennial.Proof.sort.Link
 public import Perennial.Proof.sync.Link
 public import Proof.encoding.json.Init
 public import Proof.github_com.Masterminds.semver.v3.Init
-public import Proof.github_com.prometheus.client_golang.prometheus.InitLinked
+public import Proof.github_com.prometheus.client_golang.prometheus.Init
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.notify.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.version.InitLinked
@@ -32,7 +32,6 @@ public import Proof.path.lazybuf__index
 public import Proof.path.lazybuf__append
 public import Proof.path.lazybuf__string
 public import Proof.github_com.prometheus.client_golang.prometheus.MustRegister
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Registry__Register
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -57,7 +56,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions]
-variable [promreg_sem : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Assumptions]
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.membership
 
@@ -71,12 +69,10 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   iapply EtcdGrove.wp_package_init_resL_self (heq := Hinit.1) (L := EtcdGrove.regResL (GF := GF) regQs)
     (L1 := EtcdGrove.regResL (GF := GF) [])
     (L2 := EtcdGrove.regResL (GF := GF) [])
-    (L' := EtcdGrove.regResL (GF := GF) [])
-    (R := iprop(EtcdGrove.prometheus.namesFree (GF := GF) regNames ∗ EtcdGrove.promreg.idToks (GF := GF) regKeys))
+    (L' := EtcdGrove.regResL (GF := GF) []) (R := EtcdGrove.prometheus.namesFree (GF := GF) regNames)
     (hL := rfl) (hL' := rfl) $$ [Hown] HΦ
   iframe Hown
   iintro ⟨Hown, HR⟩
-  icases HR with ⟨HR, -⟩
   wp_auto
   iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := GoString) storeRemovedMembersPrefix _ as HstoreRemovedMembersPrefix
@@ -179,28 +175,22 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   · ipureintro; rfl
   iintro %s1 ⟨S1, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ NClusterVersionMetrics $$ [S1 HR1] as S1
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NClusterVersionMetrics $$ [S1 HR1] as S1
   · iframe S1 HR1
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok (interface.mk (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeVec.ty) #vknownPeers)])
   isplitr
   · ipureintro; rfl
   iintro %s2 ⟨S2, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ NknownPeers $$ [S2 HR2] as S2
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NknownPeers $$ [S2 HR2] as S2
   · iframe S2 HR2
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok cisLearner])
   isplitr
   · ipureintro; rfl
   iintro %s3 ⟨S3, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ NisLearner $$ [S3 HR3] as S3
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NisLearner $$ [S3 HR3] as S3
   · iframe S3 HR3
-    try iPkgInit
   ipersist HClusterVersionMetrics
   ipersist HErrIDRemoved
   ipersist HErrIDExists
@@ -224,7 +214,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
 from `wp_initialize'_res`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init ∗ EtcdGrove.prometheus.regsFree (GF := GF) regQs }}
+    {{ ownInitializing get_is_pkg_init ∗ EtcdGrove.prometheus.namesFree (GF := GF) initNames }}
       (App (Val initialize') (Val #()))
     {{ RET #(); ownInitializing get_is_pkg_init ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership }} :=

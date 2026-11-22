@@ -13,14 +13,13 @@ public import Perennial.Proof.errors.Link
 public import Perennial.Proof.strconv.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
-public import Proof.github_com.prometheus.client_golang.prometheus.InitLinked
+public import Proof.github_com.prometheus.client_golang.prometheus.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.errors.Init
 public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.go_uber_org.zap.InitLinked
 public import Proof.github_com.prometheus.client_golang.prometheus.NewCounter
 public import Proof.github_com.prometheus.client_golang.prometheus.MustRegister
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Registry__Register
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -45,7 +44,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.read.Assumptions]
-variable [promreg_sem : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Assumptions]
 variable [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
 variable [_root_.Perennial.log.NewModel]
 
@@ -61,12 +59,10 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   iapply EtcdGrove.wp_package_init_resL_self (heq := Hinit.1) (L := EtcdGrove.regResL (GF := GF) regQs)
     (L1 := EtcdGrove.regResL (GF := GF) [])
     (L2 := EtcdGrove.regResL (GF := GF) [])
-    (L' := EtcdGrove.regResL (GF := GF) [])
-    (R := iprop(EtcdGrove.prometheus.namesFree (GF := GF) regNames ∗ EtcdGrove.promreg.idToks (GF := GF) regKeys))
+    (L' := EtcdGrove.regResL (GF := GF) []) (R := EtcdGrove.prometheus.namesFree (GF := GF) regNames)
     (hL := rfl) (hL' := rfl) $$ [Hown] HΦ
   iframe Hown
   iintro ⟨Hown, HR⟩
-  icases HR with ⟨HR, -⟩
   wp_auto
   iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := _root_.Perennial.time.Duration) readIndexRetryTime _ as HreadIndexRetryTime
@@ -120,19 +116,15 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   · ipureintro; rfl
   iintro %s1 ⟨S1, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ N1 $$ [S1 HR1] as S1
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ N1 $$ [S1 HR1] as S1
   · iframe S1 HR1
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok c2])
   isplitr
   · ipureintro; rfl
   iintro %s2 ⟨S2, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ N2 $$ [S2 HR2] as S2
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ N2 $$ [S2 HR2] as S2
   · iframe S2 HR2
-    try iPkgInit
   ipersist HslowReadIndex
   ipersist HreadIndexFailed
   ipersist HreadIndexRetryTime
@@ -178,7 +170,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
 from `wp_initialize'_res`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init ∗ EtcdGrove.prometheus.regsFree (GF := GF) regQs }}
+    {{ ownInitializing get_is_pkg_init ∗ EtcdGrove.prometheus.namesFree (GF := GF) initNames }}
       (App (Val initialize') (Val #()))
     {{ RET #(); ownInitializing get_is_pkg_init ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read }} :=

@@ -16,7 +16,7 @@ public import Perennial.Proof.math.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
 public import Proof.github_com.dustin.go_humanize.Init
-public import Proof.github_com.prometheus.client_golang.prometheus.InitLinked
+public import Proof.github_com.prometheus.client_golang.prometheus.Init
 public import Proof.go_etcd_io.etcd.api.v3.mvccpb.Init
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Init
 public import Proof.go_etcd_io.etcd.client.v3.InitLinked
@@ -38,7 +38,6 @@ public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogram
 public import Proof.github_com.prometheus.client_golang.prometheus.ExponentialBuckets
 public import Proof.github_com.prometheus.client_golang.prometheus.NewGaugeFunc
 public import Proof.github_com.prometheus.client_golang.prometheus.MustRegister
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Registry__Register
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -63,7 +62,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
-variable [promreg_sem : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Assumptions]
 variable [_root_.Perennial.errors.Assumptions]
 
 namespace go_etcd_io.etcd.server.v3.storage.mvcc
@@ -77,14 +75,12 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc }} := by
   wp_start as Hown
   iapply EtcdGrove.wp_package_init_resL_self (heq := Hinit.1) (L := EtcdGrove.regResL (GF := GF) regQs)
-    (L1 := EtcdGrove.regResL (GF := GF) [(pkg_id.go_etcd_io.etcd.server.v3.auth, _root_.Perennial.go_etcd_io.etcd.server.v3.auth.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.auth.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.lease, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.storage.backend, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.regKeys)])
+    (L1 := EtcdGrove.regResL (GF := GF) [(pkg_id.go_etcd_io.etcd.server.v3.auth, _root_.Perennial.go_etcd_io.etcd.server.v3.auth.regNames), (pkg_id.go_etcd_io.etcd.server.v3.lease, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.regNames), (pkg_id.go_etcd_io.etcd.server.v3.storage.backend, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.regNames)])
     (L2 := EtcdGrove.regResL (GF := GF) [])
-    (L' := EtcdGrove.regResL (GF := GF) [(pkg_id.go_etcd_io.etcd.server.v3.auth, _root_.Perennial.go_etcd_io.etcd.server.v3.auth.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.auth.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.lease, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.storage.backend, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.regKeys)])
-    (R := iprop(EtcdGrove.prometheus.namesFree (GF := GF) regNames ∗ EtcdGrove.promreg.idToks (GF := GF) regKeys))
+    (L' := EtcdGrove.regResL (GF := GF) [(pkg_id.go_etcd_io.etcd.server.v3.auth, _root_.Perennial.go_etcd_io.etcd.server.v3.auth.regNames), (pkg_id.go_etcd_io.etcd.server.v3.lease, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.regNames), (pkg_id.go_etcd_io.etcd.server.v3.storage.backend, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.regNames)]) (R := EtcdGrove.prometheus.namesFree (GF := GF) regNames)
     (hL := rfl) (hL' := rfl) $$ [Hown] HΦ
   iframe Hown
   iintro ⟨Hown, HR⟩
-  icases HR with ⟨HR, -⟩
   wp_auto
   iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := w64) watchBatchMaxRevs _ as HwatchBatchMaxRevs
@@ -159,7 +155,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.math _root_.Perennial.math.initialize'
       EtcdGrove.ExternalInit.math _root_.Perennial.math.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd15⟩
-  wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) [(pkg_id.go_etcd_io.etcd.server.v3.auth, _root_.Perennial.go_etcd_io.etcd.server.v3.auth.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.auth.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.lease, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.storage.backend, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.regKeys)])
+  wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) [(pkg_id.go_etcd_io.etcd.server.v3.auth, _root_.Perennial.go_etcd_io.etcd.server.v3.auth.regNames), (pkg_id.go_etcd_io.etcd.server.v3.lease, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.regNames), (pkg_id.go_etcd_io.etcd.server.v3.storage.backend, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.regNames)])
       (EtcdGrove.regResL (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.lease.regQs)
       (List.Sublist.map _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.slnil)))))
       _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.lease.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
@@ -183,12 +179,12 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.k8s_io.utils.third_party.forked.golang.btree _root_.Perennial.k8s_io.utils.third_party.forked.golang.btree.initialize'
       EtcdGrove.ExternalInit.k8s_io_utils_third_party_forked_golang_btree _root_.Perennial.EtcdGrove.btree.initialize.wp_proof _ Hinit.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd7⟩
-  wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) [(pkg_id.go_etcd_io.etcd.server.v3.auth, _root_.Perennial.go_etcd_io.etcd.server.v3.auth.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.auth.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.lease, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.storage.backend, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.regKeys)])
+  wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) [(pkg_id.go_etcd_io.etcd.server.v3.auth, _root_.Perennial.go_etcd_io.etcd.server.v3.auth.regNames), (pkg_id.go_etcd_io.etcd.server.v3.lease, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.regNames), (pkg_id.go_etcd_io.etcd.server.v3.storage.backend, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.regNames)])
       (EtcdGrove.regResL (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.regQs)
       (List.Sublist.map _ (List.Sublist.cons₂ _ (List.Sublist.cons _ (List.Sublist.cons₂ _ (List.Sublist.slnil)))))
       _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.wp_initialize'_res _ Hinit.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd6⟩
-  wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) [(pkg_id.go_etcd_io.etcd.server.v3.auth, _root_.Perennial.go_etcd_io.etcd.server.v3.auth.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.auth.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.lease, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.storage.backend, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.regKeys)])
+  wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) [(pkg_id.go_etcd_io.etcd.server.v3.auth, _root_.Perennial.go_etcd_io.etcd.server.v3.auth.regNames), (pkg_id.go_etcd_io.etcd.server.v3.lease, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.regNames), (pkg_id.go_etcd_io.etcd.server.v3.storage.backend, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.regNames)])
       (EtcdGrove.regResL (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.regQs)
       (List.Sublist.map _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons₂ _ (List.Sublist.slnil)))))
       _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.wp_initialize'_res _ Hinit.2.2.2.2.2.1))
@@ -337,208 +333,162 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   · ipureintro; rfl
   iintro %s1 ⟨S1, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ NrangeCounter $$ [S1 HR1] as S1
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NrangeCounter $$ [S1 HR1] as S1
   · iframe S1 HR1
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok cputCounter])
   isplitr
   · ipureintro; rfl
   iintro %s2 ⟨S2, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ NputCounter $$ [S2 HR2] as S2
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NputCounter $$ [S2 HR2] as S2
   · iframe S2 HR2
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok cdeleteCounter])
   isplitr
   · ipureintro; rfl
   iintro %s3 ⟨S3, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ NdeleteCounter $$ [S3 HR3] as S3
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NdeleteCounter $$ [S3 HR3] as S3
   · iframe S3 HR3
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok ctxnCounter])
   isplitr
   · ipureintro; rfl
   iintro %s4 ⟨S4, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ NtxnCounter $$ [S4 HR4] as S4
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NtxnCounter $$ [S4 HR4] as S4
   · iframe S4 HR4
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok ckeysGauge])
   isplitr
   · ipureintro; rfl
   iintro %s5 ⟨S5, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ NkeysGauge $$ [S5 HR5] as S5
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NkeysGauge $$ [S5 HR5] as S5
   · iframe S5 HR5
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok cwatchStreamGauge])
   isplitr
   · ipureintro; rfl
   iintro %s6 ⟨S6, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ NwatchStreamGauge $$ [S6 HR6] as S6
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NwatchStreamGauge $$ [S6 HR6] as S6
   · iframe S6 HR6
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok cwatcherGauge])
   isplitr
   · ipureintro; rfl
   iintro %s7 ⟨S7, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ NwatcherGauge $$ [S7 HR7] as S7
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NwatcherGauge $$ [S7 HR7] as S7
   · iframe S7 HR7
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok cslowWatcherGauge])
   isplitr
   · ipureintro; rfl
   iintro %s8 ⟨S8, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ NslowWatcherGauge $$ [S8 HR8] as S8
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NslowWatcherGauge $$ [S8 HR8] as S8
   · iframe S8 HR8
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok ctotalEventsCounter])
   isplitr
   · ipureintro; rfl
   iintro %s9 ⟨S9, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ NtotalEventsCounter $$ [S9 HR9] as S9
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NtotalEventsCounter $$ [S9 HR9] as S9
   · iframe S9 HR9
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok cpendingEventsGauge])
   isplitr
   · ipureintro; rfl
   iintro %s10 ⟨S10, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ NpendingEventsGauge $$ [S10 HR10] as S10
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NpendingEventsGauge $$ [S10 HR10] as S10
   · iframe S10 HR10
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok cindexCompactionPauseMs])
   isplitr
   · ipureintro; rfl
   iintro %s11 ⟨S11, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ NindexCompactionPauseMs $$ [S11 HR11] as S11
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NindexCompactionPauseMs $$ [S11 HR11] as S11
   · iframe S11 HR11
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok cdbCompactionPauseMs])
   isplitr
   · ipureintro; rfl
   iintro %s12 ⟨S12, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ NdbCompactionPauseMs $$ [S12 HR12] as S12
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NdbCompactionPauseMs $$ [S12 HR12] as S12
   · iframe S12 HR12
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok cdbCompactionTotalMs])
   isplitr
   · ipureintro; rfl
   iintro %s13 ⟨S13, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ NdbCompactionTotalMs $$ [S13 HR13] as S13
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NdbCompactionTotalMs $$ [S13 HR13] as S13
   · iframe S13 HR13
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok cdbCompactionLast])
   isplitr
   · ipureintro; rfl
   iintro %s14 ⟨S14, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ NdbCompactionLast $$ [S14 HR14] as S14
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NdbCompactionLast $$ [S14 HR14] as S14
   · iframe S14 HR14
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok cdbCompactionKeysCounter])
   isplitr
   · ipureintro; rfl
   iintro %s15 ⟨S15, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ NdbCompactionKeysCounter $$ [S15 HR15] as S15
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NdbCompactionKeysCounter $$ [S15 HR15] as S15
   · iframe S15 HR15
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok cdbTotalSize])
   isplitr
   · ipureintro; rfl
   iintro %s16 ⟨S16, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ (NdbTotalSize (by decide)) $$ [S16 HR16] as S16
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ (NdbTotalSize (by decide)) $$ [S16 HR16] as S16
   · iframe S16 HR16
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok cdbTotalSizeInUse])
   isplitr
   · ipureintro; rfl
   iintro %s17 ⟨S17, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ (NdbTotalSizeInUse (by decide)) $$ [S17 HR17] as S17
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ (NdbTotalSizeInUse (by decide)) $$ [S17 HR17] as S17
   · iframe S17 HR17
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok cdbOpenReadTxN])
   isplitr
   · ipureintro; rfl
   iintro %s18 ⟨S18, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ (NdbOpenReadTxN (by decide)) $$ [S18 HR18] as S18
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ (NdbOpenReadTxN (by decide)) $$ [S18 HR18] as S18
   · iframe S18 HR18
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok chashSec])
   isplitr
   · ipureintro; rfl
   iintro %s19 ⟨S19, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ NhashSec $$ [S19 HR19] as S19
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NhashSec $$ [S19 HR19] as S19
   · iframe S19 HR19
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok chashRevSec])
   isplitr
   · ipureintro; rfl
   iintro %s20 ⟨S20, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ NhashRevSec $$ [S20 HR20] as S20
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NhashRevSec $$ [S20 HR20] as S20
   · iframe S20 HR20
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok ccurrentRev])
   isplitr
   · ipureintro; rfl
   iintro %s21 ⟨S21, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ (NcurrentRev (by decide)) $$ [S21 HR21] as S21
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ (NcurrentRev (by decide)) $$ [S21 HR21] as S21
   · iframe S21 HR21
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok ccompactRev])
   isplitr
   · ipureintro; rfl
   iintro %s22 ⟨S22, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ (NcompactRev (by decide)) $$ [S22 HR22] as S22
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ (NcompactRev (by decide)) $$ [S22 HR22] as S22
   · iframe S22 HR22
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok ctotalPutSizeGauge])
   isplitr
   · ipureintro; rfl
   iintro %s23 ⟨S23, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ NtotalPutSizeGauge $$ [S23 HR23] as S23
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NtotalPutSizeGauge $$ [S23 HR23] as S23
   · iframe S23 HR23
-    try iPkgInit
   ipersist HErrRevisionNotFound
   ipersist HErrCompacted
   ipersist HErrFutureRev
@@ -620,7 +570,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
 from `wp_initialize'_res`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init ∗ EtcdGrove.prometheus.regsFree (GF := GF) regQs }}
+    {{ ownInitializing get_is_pkg_init ∗ EtcdGrove.prometheus.namesFree (GF := GF) initNames }}
       (App (Val initialize') (Val #()))
     {{ RET #(); ownInitializing get_is_pkg_init ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc }} :=

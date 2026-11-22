@@ -109,16 +109,15 @@ def regNames : List GoString :=
    EtcdGrove.prometheus.fqName go!"etcd" go!"network" go!"snapshot_receive_total_duration_seconds",
    EtcdGrove.prometheus.fqName go!"etcd" go!"network" go!"peer_round_trip_time_seconds"]
 
-/-- The IDs besides its names' this package's initializer takes the rights to (prom-registry:
-a later registration's, `REG_KEYS`). -/
-def regKeys : List w64 := []
-
 /-- The packages of this package's import closure (itself included) whose initializers
-register metrics, with their names and other IDs: their registration rights are its
-initializer's resources (`ownInitResL`, `Proof/runtime/PkgInitRes.lean`; its `wp_initialize'`'s
-precondition: `regsFree regQs`). -/
-def regQs : List (GoString × List GoString × List w64) :=
-  [(pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regKeys)]
+register metrics, with their names: their registration rights are its initializer's
+resources (`ownInitResL`, `Proof/runtime/PkgInitRes.lean`). -/
+def regQs : List (GoString × List GoString) :=
+  [(pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.regNames), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regNames)]
+
+/-- The metric names its initializer registers, with those of its import closure: its
+`wp_initialize'`'s precondition has the rights to register them (`namesFree`). -/
+def initNames : List GoString := regQs.flatMap (·.2)
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
 

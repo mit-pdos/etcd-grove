@@ -5,11 +5,5 @@ translate = ["!*"]
 # composite literal of it can be stepped: etcd-refimpl's reference implementation).
 imports = ["!*", "time"]
 
-# (prom-registry, 2026-11-22: notes/prom-registry.md) the default registry is a trusted model
-# (TrustedCode/github_com/prometheus/client_golang/prometheus.lean, over the verified Go model
-# examples/lib/promreg): `Register`, `MustRegister`, the variable `defaultRegistry`'s initializer and
-# the package's `init()` (`init.0`, which registers the process and Go collectors).
-trusted = ["Register", "MustRegister", "defaultRegistry", "init.0"]
-
 # translate the definitions of all type declarations goose supports
 translate_types = true

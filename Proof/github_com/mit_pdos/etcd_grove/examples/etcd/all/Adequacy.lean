@@ -124,7 +124,6 @@ variable [go_gctx : GoGlobalContext]
 file header). -/
 theorem etcd_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.all.Assumptions]
-    [promreg_sem : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
     [log.NewModel]
@@ -183,7 +182,9 @@ theorem etcd_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     -- cache's workload
     (cnw cnops : w64) (Hcnw0 : 0 ≤ sint.Z cnw) (Hcnw31 : sint.Z cnw < 2 ^ 31)
     (Hcnops : 0 ≤ sint.Z cnops) (Hcmul : sint.Z cnw * sint.Z cnops < 2 ^ 62)
-    -- the program's addresses, data directories and environment
+    -- the program's metric names, addresses, data directories and environment
+    (HNs : prometheus.namesUnclaimed
+      (etcdProgram k₁ clients ops steps₁ nw nops steps₂ cnw cnops k₂ k₃ k₄ k₅) etcdNames)
     (HAs : addrsUnclaimed (etcdProgram k₁ clients ops steps₁ nw nops steps₂ cnw cnops k₂ k₃ k₄ k₅)
       (etcdAddrs k₁ k₂ k₃ k₄ k₅))
     (HDs : dataDirsAbsent (etcdProgram k₁ clients ops steps₁ nw nops steps₂ cnw cnops k₂ k₃ k₄ k₅)
@@ -242,15 +243,14 @@ theorem etcd_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     (etcd_all.etcdDirs_nodup k₁ k₂ k₃ k₄ k₅ hk₁ (by omega) (by omega) (by omega) (by omega))
     (etcd_all.etcdStarts k₁ k₂ k₃ k₄ k₅) (etcd_all.etcdBridges k₁)
     (etcd_all.etcdAddrs_perm k₁ k₂ k₃ k₄ k₅) (etcd_all.etcdDirs_perm k₁ k₂ k₃ k₄ k₅)
-    σ g ⟨trivial, trivial, trivial⟩ ⟨trivial, Hfs, trivial⟩ Hlctx Hinit Hthreads HAs HDs
+    σ g ⟨trivial, trivial, trivial⟩ ⟨trivial, Hfs, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
     (2 ^ 28) n κs t2 σ2 Hsteps' fun hG HN HT => ?_
   letI : HeapGS .hasLC etcdGF := etcdHeapAt hG lctx
   haveI := Hctx hG
   haveI := Hcec hG
   unfold progOk
-  -- (prom-registry, 2026-11-22) the run's registration rights from the generation's supply of names
-  refine ⟨_, _, EtcdGrove.wp_init_of_localNames _ github_com.mit_pdos.etcd_grove.examples.etcd.all.regQs (by decide +kernel) _ _
-    (github_com.mit_pdos.etcd_grove.examples.etcd.all.wp_initialize' _ github_com.mit_pdos.etcd_grove.examples.etcd.all.getIsPkgInit_wf), ?_⟩
+  refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.etcd.all.wp_initialize' _
+    github_com.mit_pdos.etcd_grove.examples.etcd.all.getIsPkgInit_wf, ?_⟩
   ihave #Hp1 := Hprem₁ hG
   ihave #HpP := HpremP hG
   ihave #HpCW := HpremCW hG

@@ -1,22 +1,17 @@
 /-
 Package initialization of `github_com.prometheus.client_golang.prometheus`
-(item 8, 2026-10-17): its facts and trust-boundary axioms; its `wp_initialize'` is in
-`InitLinked.lean` (2026-11-19: the proof applies other packages' `wp_initialize'` and
-functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
+(item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact (`PkgInit.lean`, `promInit`): the variable `defaultRegistry` holds the default registry, the
-model's (`promreg`), naming IDs by `descId`. Its initializer initializes its imports, runs the untranslated
-initializers of its other variables (`X.init`, axioms of the translation), which the trust-boundary axiom
-`opaqueInitsOk` says run without panicking, and the trusted glue's (`TrustedCode/`, notes/prom-registry.md):
-`defaultRegistry.init` initializes the model's package and stores `promreg.NewRegistry()`, and `init.«0»`
-runs `SeedBuiltins` (both proved over the model's specs). (Until 2026-11-22 its fact was `True`,
-`defaultRegistry.init` among `opaqueInitsOk` and `init.«0»` the trust-boundary axiom `initFuncsOk`.)
+Its fact is `True`. Its initializer initializes its imports, runs the untranslated
+initializers of its variables (`X.init`, axioms of the translation), which the
+trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untranslated
+`init` functions, which the trust-boundary axiom `initFuncsOk` says return.
 -/
 module
 
 public import Proof.github_com.prometheus.client_golang.prometheus.PkgInit
 public import Perennial.Proof.time.Link
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Init
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 
@@ -52,6 +47,7 @@ axiom opaqueInitsOk :
         errBucketLabelNotAllowed.init,
         errInconsistentCardinality.init,
         separatorByteSlice.init,
+        defaultRegistry.init,
         DefaultRegisterer.init,
         DefaultGatherer.init,
         «_».init,
@@ -63,7 +59,73 @@ axiom opaqueInitsOk :
         V2.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
+/-- **The trust boundary: `github_com.prometheus.client_golang.prometheus`'s untranslated `init` functions return.** Goose
+names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
+here, so the model does not unfold them (`@! init.<k>`: the semantics' `functions`, which
+the package's `Assumptions` do not constrain for them). Go runs them at program start, and
+etcd starts, so each returns without panicking. A fact about the Go code, as the axioms of
+other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
+axiom initFuncsOk :
+    ∀ f ∈ ([init.«0»] : List GoString),
+    {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
+
 end github_com.prometheus.client_golang.prometheus
 end opaqueInits
+
+section init
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions]
+
+namespace github_com.prometheus.client_golang.prometheus
+
+theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
+    (Hinit : GetIsPkgInitProp pkg_id.github_com.prometheus.client_golang.prometheus get_is_pkg_init) (σ0 : GMap GoString Bool) :
+    {{ EtcdGrove.ownInitLb get_is_pkg_init σ0 }}
+      (App (Val initialize') (Val #()))
+    {{ RET #(); EtcdGrove.ownInitLb get_is_pkg_init σ0 ∗
+        isPkgInit (PROP := IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus }} := by
+  wp_start as Hown
+  iapply EtcdGrove.wp_package_init_lb (heq := Hinit.1) $$ [Hown] HΦ
+  iframe Hown
+  iintro Hown
+  wp_auto
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
+      EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
+  wp_apply (opaqueInitsOk rmNamesForMemStatsMetrics.init (by mem_tac))
+  wp_apply (opaqueInitsOk nativeHistogramBounds.init (by mem_tac))
+  wp_apply (opaqueInitsOk DefBuckets.init (by mem_tac))
+  wp_apply (opaqueInitsOk errBucketLabelNotAllowed.init (by mem_tac))
+  wp_apply (opaqueInitsOk errInconsistentCardinality.init (by mem_tac))
+  wp_apply (opaqueInitsOk separatorByteSlice.init (by mem_tac))
+  wp_apply (opaqueInitsOk defaultRegistry.init (by mem_tac))
+  wp_apply (opaqueInitsOk DefaultRegisterer.init (by mem_tac))
+  wp_apply (opaqueInitsOk DefaultGatherer.init (by mem_tac))
+  wp_apply (opaqueInitsOk «_».init (by mem_tac))
+  wp_apply (opaqueInitsOk errQuantileLabelNotAllowed.init (by mem_tac))
+  wp_apply (opaqueInitsOk CounterMetricTypePtr.init (by mem_tac))
+  wp_apply (opaqueInitsOk GaugeMetricTypePtr.init (by mem_tac))
+  wp_apply (opaqueInitsOk UntypedMetricTypePtr.init (by mem_tac))
+  wp_apply (opaqueInitsOk labelsPool.init (by mem_tac))
+  wp_apply (opaqueInitsOk V2.init (by mem_tac))
+  wp_apply (initFuncsOk init.«0» (by mem_tac))
+  iframe Hown
+  is_pkg_init_finish
+
+/-- Perennial's form, from `wp_initialize'_lb`. -/
+theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
+    (Hinit : GetIsPkgInitProp pkg_id.github_com.prometheus.client_golang.prometheus get_is_pkg_init) :
+    {{ ownInitializing get_is_pkg_init }}
+      (App (Val initialize') (Val #()))
+    {{ RET #(); ownInitializing get_is_pkg_init ∗
+        isPkgInit (PROP := IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus }} :=
+  EtcdGrove.wp_init_of_lb _ _ _ (wp_initialize'_lb get_is_pkg_init Hinit)
+
+
+end github_com.prometheus.client_golang.prometheus
+
+end init
 
 end Perennial

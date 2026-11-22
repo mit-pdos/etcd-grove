@@ -215,7 +215,7 @@ prometheus_WithServerHandlingTimeHistogram:
 prometheus_ServerMetrics__UnaryServerInterceptor:
 prometheus_ServerMetrics__StreamServerInterceptor:
 prometheus_ServerMetrics__InitializeMetrics:
-prometheus_Register: =EtcdGrove.promreg.Registry.Register.wp_proof
+prometheus_Register:
 zap_String:
 zap_Logger__Info: zap_Logger__check zapcore_CheckedEntry__Write
 RegisterKVServer: grpc_Server__RegisterService

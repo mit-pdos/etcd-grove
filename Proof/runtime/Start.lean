@@ -1,29 +1,30 @@
 /-
-Program start's rights (decision D19d, 2026-10-18): the right to listen on each of some network
-addresses (`netAddrFree`, item 4), an abstract exclusive resource the program's specs consume
-(`Listen.spec`) and that nothing in the logic produces: in Go it holds because the program owns its
-addresses, a fact of the initial world. Perennial's adequacy theorem gives a proof only the
-extensions' start resources, the package-state map, the generation's supply of ghost names and the
-main thread's token, and no extension here models the network, so the rights cannot be allocated in
-the logic. A hypothesis `⊢ |==> netAddrFree a` of a closed theorem could be used twice (D19a).
+Program start's rights (decision D19d, 2026-10-18): the right to register each of some metric
+names with prometheus's default registry (`prometheus.nameFree`, D16) and to listen on each of
+some network addresses (`netAddrFree`, item 4). Both are abstract exclusive resources the
+program's specs consume (`MustRegister.spec`, `Listen.spec`) and that nothing in the logic
+produces: in Go they hold because the program starts with an empty registry (but for what its
+unverified code registers) and owns its addresses, a fact of the initial world. Perennial's
+adequacy theorem gives a proof only the extensions' start resources, the package-state map and the main
+thread's token, and no extension here models the registry or the network, so the rights cannot be
+allocated in the logic. A hypothesis `⊢ |==> nameFree n` of a closed theorem could be used twice
+(and two registrations of one name would then not panic: false of Go, the theorem vacuous,
+D19a).
 
-**The trust boundary: `goose_adequacy_start`.** Perennial's `goose_adequacy_below_localNames`, whose
-WP proof also receives, once, `netAddrFree a` for each address of `As` (distinct), for a program `e`
-of which `addrsUnclaimed e As` holds. Why it is true of Go: in a run of `e`, every listen on an
-address of `As` is made by code whose spec consumes the right (`addrsUnclaimed`: nothing else binds
-them), each right exists once in the proof (the premise receives one of each), and each consumption
-is one listen; so no address of `As` is bound twice, which is what `Listen`'s spec needs. The rest is
-`goose_adequacy_below_localNames`.
-
-(prom-registry, 2026-11-22, mit-pdos/etcd-grove#15, `notes/prom-registry-start-change.md`) Until then
-it also handed out the right to register each of some metric names with prometheus's default
-registry (`prometheus.nameFree`, D16), under the premises `namesUnclaimed e Ns` and
-`descIdsDistinct Ns`. The default registry is now a model on the Go heap (`examples/lib/promreg`,
-with the trusted glue of `TrustedCode/github_com/prometheus/client_golang/prometheus.lean`), and the
-rights are ghost state each run's proof allocates from the generation's supply of ghost names
-(`ownLocalNames ∅`, which Perennial's `goose_adequacy_below_localNames` gives the WP proof, and this
-axiom passes on: `promreg.promReg_alloc`), so a crash's next run makes new ones and the start model
-hands out nothing for prometheus.
+**The trust boundary: `goose_adequacy_start`.** Perennial's `goose_adequacy`, whose WP proof
+also receives, once, `nameFree n` for each name of `Ns` and `netAddrFree a` for each address of
+`As` (distinct), for a program `e` of which `namesUnclaimed e Ns` and `addrsUnclaimed e As` hold.
+Why it is true of Go: in a run of `e`, every registration of a name of `Ns` and every listen on
+an address of `As` is made by code whose spec consumes the right (`namesUnclaimed`,
+`addrsUnclaimed`: nothing else registers or binds them), each right exists once in the proof (the
+premise receives one of each), and each consumption is one registration (one listen); so no name
+of `Ns` is registered twice and no address of `As` bound twice, and (prometheus-id-collision,
+2026-11-20) since the label-free descriptor IDs of the names of `Ns` are pairwise distinct
+(`hNsIds`: `prometheus.descIdsDistinct Ns`, decided by the kernel for each program's names),
+registering one name of `Ns` registers no other's ID, which is what `MustRegister`'s and
+`Listen`'s specs need. The rest is `goose_adequacy`. (Until then the axiom took any distinct names,
+and was false: two names can share an ID, and the registry refuses the second,
+`notes/axiom-review/prometheus-id-collision.md`.)
 
 (D39a, 2026-10-23) It also receives `httpProtoFree a` for each address of `As`: a purely ghost
 right, the only source of an address's HTTP protocol (`http.reserve`), so each address's protocol
@@ -40,17 +41,17 @@ contract needs (`wal.Exist(dir)` false: `bootstrapNewWAL`; no backend file: `HD`
 names one socket and the per-string rights are per-socket. (Sweep repairs 1, B4) For a program of
 which `verifyEnvOff e` holds (`ETCD_VERIFY` off for the run), it also receives `envVerifyOff`,
 which the backend's lock checks and `VerifyBackendConsistency` take.
-Why it is once only: nothing else produces `netAddrFree` or `httpProtoFree` (axiomatized
-predicates, `InvNet.lean`; no axiom or definition gives one), so the rights exist
+Why it is once only: nothing else produces `nameFree`, `netAddrFree` or `httpProtoFree` (axiomatized
+predicates, `Registry.lean`, `InvNet.lean`; no axiom or definition gives one), so the rights exist
 only where this axiom's premise hands them out: once, to the one WP proof of one execution, under
 the ghost state `goose_init` allocates for it. The axiom is about executions (its conclusion is
 `goose_adequacy`'s), not an entailment: it cannot be applied inside a proof to obtain rights.
 
-Satisfiable whatever the semantics: with `netAddrFree` and `httpProtoFree` read as `True` (no axiom
-says either is exclusive) and the names-only `Listen` as a diverging function, the premise is
-`goose_adequacy_below_localNames`'s premise and the conclusion its conclusion.
+Satisfiable whatever the semantics: with `nameFree`, `netAddrFree` and `httpProtoFree` read as `True` (no axiom
+says either is exclusive) and the names-only `MustRegister` and `Listen` as diverging functions,
+the premise is `goose_adequacy`'s premise and the conclusion its conclusion.
 
-`addrsUnclaimed` is an axiomatized proposition (facts of the Go program and of
+`namesUnclaimed` and `addrsUnclaimed` are axiomatized propositions (facts of the Go program and of
 its environment that the model cannot state, hypotheses of a closed theorem: pure, D19a); the
 adequacy example's are checked from the Go source (`notes/decisions.md`, D19d).
 
@@ -61,15 +62,15 @@ shared mode), which an axiom must not hand out beside the tree `extsLocalStart` 
 are derived from the tree (`Proof/runtime/StartFiles.lean`, `goose_adequacy_start_files`, a theorem).
 
 A design choice D19d leaves to the user: the alternative is an extension whose initial world holds
-the free addresses (`extsGlobalStart` the rights, `netAddrFree` its ghost state, `Listen` its
-operation), a Perennial change proposed in
+the free addresses and the empty registry (`extsGlobalStart` the rights, `nameFree`/`netAddrFree` its
+ghost state, `MustRegister`/`Listen` its operations), a Perennial change proposed in
 `notes/decisions.md`, D19d; with it this axiom goes.
 -/
 module
 
 public import Perennial.GooseLang.Adequacy
 public import Perennial.GooseLang.AdequacyAlong
-public import Perennial.GooseLang.LocalNames
+public import Proof.github_com.prometheus.client_golang.prometheus.Registry
 public import Proof.net.InvNet
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalDir
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Env
@@ -83,6 +84,21 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Language.Notation
+
+/-- **The name `n` is the verified code's to register** (`prometheus.namesUnclaimed`'s claim of one
+name). -/
+axiom prometheus.nameUnclaimed [GooseExts] (e : Expr) (n : GoString) : Prop
+
+/-- **The names `Ns` are the verified code's to register** (a fact of the Go program `e`
+translates, checked from its source): no collector the default registry holds at start
+(client_golang's `go_*` and `process_*`), and no code of the program whose behaviour this
+repository does not verify (an untranslated initializer, a names-only function, the runtime),
+registers with prometheus's default registry a collector with a descriptor named `n ∈ Ns`, or
+with `n`'s label-free descriptor's ID, or with that collector ID. (2026-11-08: stated name by name,
+`prometheus.nameUnclaimed`, the same claim, so that a program with no names has it; until then an
+axiomatized proposition of the list.) -/
+def prometheus.namesUnclaimed [GooseExts] (e : Expr) (Ns : List GoString) : Prop :=
+  ∀ n ∈ Ns, prometheus.nameUnclaimed e n
 
 /-- **The address `a` is the program's** (`addrsUnclaimed`'s claim of one address: no other
 process binds it or connects to it, and the program's own connections to it are the ones
@@ -162,13 +178,13 @@ evidence: `examples/sweeprepairs/wal` (`TestW3Counterexample`, `TestW4StaleBacke
 def dataDirsAbsent [GooseExts] (e : Expr) (Ds : List GoString) : Prop :=
   (∀ d ∈ Ds, dataDirAbsent e d) ∧ Ds.Pairwise dataDirsApart
 
-/-- The rights program start gives: the right to listen on each address of `As` (prom-registry,
-2026-11-22: until then also to register each metric name of `Ns`), and (D39a, 2026-10-23) to fix each address's HTTP protocol
+/-- The rights program start gives: the right to register each name of `Ns` and to listen on
+each address of `As`, and (D39a, 2026-10-23) to fix each address's HTTP protocol
 (`httpProtoFree`); and (2026-11-03; sweep repairs 1, W3/W4) each data directory of `Ds` fresh
 (`dataDirFresh`), which a member's first start consumes; and (sweep repairs 1, B4) `ETCD_VERIFY` off
 for the run (`envVerifyOff`, persistent). -/
-def startRights {GF : BundledGFunctors} [GooseExts] (As Ds : List GoString) : IProp GF :=
-  iprop(([∗list] a ∈ As, netAddrFree a) ∗
+def startRights {GF : BundledGFunctors} [GooseExts] (Ns As Ds : List GoString) : IProp GF :=
+  iprop(([∗list] n ∈ Ns, prometheus.nameFree n) ∗ ([∗list] a ∈ As, netAddrFree a) ∗
     ([∗list] a ∈ As, httpProtoFree a) ∗ ([∗list] d ∈ Ds, dataDirFresh d) ∗
     -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
     envVerifyOff)
@@ -179,10 +195,7 @@ variable [GooseSemantics] [GoGlobalContext]
 variable {GF : BundledGFunctors}
 
 /-- **The trust boundary: program start owns the free names and addresses, once** (see the file
-header). `goose_adequacy`, with the WP proof also given `startRights As Ds` (prom-registry,
-2026-11-22: and the generation's supply of ghost names, `ownLocalNames ∅`, as Perennial's
-`goose_adequacy_below_localNames` gives it; until then `startRights Ns As Ds`, with the metric names'
-rights, under `namesUnclaimed e Ns`). (S3e, 2026-11-17:
+header). `goose_adequacy`, with the WP proof also given `startRights Ns As Ds`. (S3e, 2026-11-17:
 the axiom again; from 2026-11-08 a corollary of `goose_adequacy_start_files`, which also handed out
 `fileHolds f ∅` for fresh database files: since `fileHolds` is the concrete claim on a name in the
 tree's shared mode, an axiom handing it out beside `extsLocalStart`'s tree could contradict the
@@ -196,9 +209,9 @@ execution; the satisfiability argument of the file header carries over (rights r
 axiom goose_adequacy_start [hPre : GooseGpreS GF] (N T : Nat)
     (e : Expr) (σ : state) (g : GlobalState) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
     (Hinitg : extsInitgP g.globalWorld) (Hinit : extsInitP σ.world g.globalWorld)
-    (As Ds : List GoString) (hAs : As.Nodup) (hDs : Ds.Nodup)
+    (Ns As Ds : List GoString) (hNs : Ns.Nodup) (hAs : As.Nodup) (hDs : Ds.Nodup)
     (hAsLit : ∀ a ∈ As, netAddrLit a = true)
-    (hAsFree : addrsUnclaimed e As)
+    (hNsFree : prometheus.namesUnclaimed e Ns) (hAsFree : addrsUnclaimed e As)
     (hDsFree : dataDirsAbsent e Ds) (hEnv : verifyEnvOff e)
     (Hwp : ∀ [hG : HeapGS .hasLC GF],
       receiptBound GF = N →
@@ -206,8 +219,7 @@ axiom goose_adequacy_start [hPre : GooseGpreS GF] (N T : Nat)
       hG.goose_localGS.goose_go_local_context = σ.goState.goLctx →
       ⊢ extsGlobalStart (GF := GF) g.globalWorld -∗
         extsLocalStart (GF := GF) σ.world -∗
-        ownGoState σ.goState.packageState -∗ ownLocalNames (GF := GF) ∅ -∗ threadTok -∗
-        startRights (GF := GF) As Ds ={⊤}=∗
+        ownGoState σ.goState.packageState -∗ threadTok -∗ startRights (GF := GF) Ns As Ds ={⊤}=∗
         WP e @ Stuckness.NotStuck; ⊤ {{ v, ⌜φ v⌝ }})
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNstepsBelow T n ([e], ((σ, g) : CfgState)) κs (t2, σ2))
@@ -220,9 +232,9 @@ axiom goose_adequacy_start [hPre : GooseGpreS GF] (N T : Nat)
 theorem goose_adequacy_start_all [hPre : GooseGpreS GF] (N T : Nat)
     (e : Expr) (σ : state) (g : GlobalState) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
     (Hinitg : extsInitgP g.globalWorld) (Hinit : extsInitP σ.world g.globalWorld)
-    (As Ds : List GoString) (hAs : As.Nodup) (hDs : Ds.Nodup)
+    (Ns As Ds : List GoString) (hNs : Ns.Nodup) (hAs : As.Nodup) (hDs : Ds.Nodup)
     (hAsLit : ∀ a ∈ As, netAddrLit a = true)
-    (hAsFree : addrsUnclaimed e As)
+    (hNsFree : prometheus.namesUnclaimed e Ns) (hAsFree : addrsUnclaimed e As)
     (hDsFree : dataDirsAbsent e Ds) (hEnv : verifyEnvOff e)
     (Hwp : ∀ [hG : HeapGS .hasLC GF],
       receiptBound GF = N →
@@ -230,16 +242,16 @@ theorem goose_adequacy_start_all [hPre : GooseGpreS GF] (N T : Nat)
       hG.goose_localGS.goose_go_local_context = σ.goState.goLctx →
       ⊢ extsGlobalStart (GF := GF) g.globalWorld -∗
         extsLocalStart (GF := GF) σ.world -∗
-        ownGoState σ.goState.packageState -∗ ownLocalNames (GF := GF) ∅ -∗ threadTok -∗
-        startRights (GF := GF) As Ds ={⊤}=∗
+        ownGoState σ.goState.packageState -∗ threadTok -∗ startRights (GF := GF) Ns As Ds ={⊤}=∗
         WP e @ Stuckness.NotStuck; ⊤ {{ v, ⌜φ v⌝ }})
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([e], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hbound : n < N) (Hthreads : σ.threads = 1)
-    (Hlive : RealThreadsBelow T n ([e], ((σ, g) : CfgState))) :
+    (Hlive : RealThreadsBelow T n ([e], ((σ, g) : CfgState)))
+    (hNsIds : prometheus.descIdsDistinct Ns := by decide +kernel) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  goose_adequacy_start N T e σ g φ hφ Hinitg Hinit As Ds hAs hDs hAsLit hAsFree
+  goose_adequacy_start N T e σ g φ hφ Hinitg Hinit Ns As Ds hNs hAs hDs hAsLit hNsFree hAsFree
     hDsFree hEnv Hwp n κs t2 σ2 (RealNstepsBelow.of_threadsBelow Hsteps Hlive) Hbound Hthreads
 
 end adequacy

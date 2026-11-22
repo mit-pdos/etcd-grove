@@ -259,7 +259,6 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 variable [NaInvG GF]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
-variable [promreg_sem : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Assumptions]
 
 theorem bytes.Buffer.wp_Bytes :
     EtcdGrove.bytes.Buffer.Bytes.spec (GF := GF) (hG := hG) :=
@@ -429,7 +428,6 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 variable [NaInvG GF]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
-variable [promreg_sem : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Assumptions]
 variable [ctxDescs : EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
 
 theorem apimeta.wp_Accessor :

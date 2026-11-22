@@ -18,7 +18,7 @@ public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
 public import Proof.github_com.Masterminds.semver.v3.Init
 public import Proof.github_com.dustin.go_humanize.Init
-public import Proof.github_com.prometheus.client_golang.prometheus.InitLinked
+public import Proof.github_com.prometheus.client_golang.prometheus.Init
 public import Proof.github_com.xiang90.probing.Init
 public import Proof.go_etcd_io.etcd.api.v3.version.InitLinked
 public import Proof.go_etcd_io.etcd.client.pkg.v3.transport.InitLinked
@@ -47,7 +47,6 @@ public import Proof.github_com.prometheus.client_golang.prometheus.NewGaugeVec
 public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogramVec
 public import Proof.github_com.prometheus.client_golang.prometheus.ExponentialBuckets
 public import Proof.github_com.prometheus.client_golang.prometheus.MustRegister
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Registry__Register
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -72,7 +71,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
-variable [promreg_sem : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Assumptions]
 variable [_root_.Perennial.log.NewModel]
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
@@ -87,13 +85,11 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_start as Hown
   iapply EtcdGrove.wp_package_init_resL_self (heq := Hinit.1) (L := EtcdGrove.regResL (GF := GF) regQs)
     (L1 := EtcdGrove.regResL (GF := GF) [])
-    (L2 := EtcdGrove.regResL (GF := GF) [(pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regKeys)])
-    (L' := EtcdGrove.regResL (GF := GF) [(pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regKeys)])
-    (R := iprop(EtcdGrove.prometheus.namesFree (GF := GF) regNames ∗ EtcdGrove.promreg.idToks (GF := GF) regKeys))
+    (L2 := EtcdGrove.regResL (GF := GF) [(pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regNames)])
+    (L' := EtcdGrove.regResL (GF := GF) [(pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regNames)]) (R := EtcdGrove.prometheus.namesFree (GF := GF) regNames)
     (hL := rfl) (hL' := rfl) $$ [Hown] HΦ
   iframe Hown
   iintro ⟨Hown, HR⟩
-  icases HR with ⟨HR, -⟩
   wp_auto
   iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := GoInterface) errMemberNotFound _ as HerrMemberNotFound
@@ -166,7 +162,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
     $$ Hown as ⟨Hown, #Hd18⟩
   wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.github_com.prometheus.client_golang.prometheus.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd17⟩
-  wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) [(pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regKeys)])
+  wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) [(pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regNames)])
       (EtcdGrove.regResL (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regQs)
       (List.Sublist.map _ (List.Sublist.cons₂ _ (List.Sublist.slnil)))
       _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
@@ -459,136 +455,106 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   · ipureintro; rfl
   iintro %s1 ⟨S1, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ NactivePeers $$ [S1 HR1] as S1
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NactivePeers $$ [S1 HR1] as S1
   · iframe S1 HR1
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok (interface.mk (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterVec.ty) #vdisconnectedPeers)])
   isplitr
   · ipureintro; rfl
   iintro %s2 ⟨S2, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ NdisconnectedPeers $$ [S2 HR2] as S2
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NdisconnectedPeers $$ [S2 HR2] as S2
   · iframe S2 HR2
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok (interface.mk (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterVec.ty) #vsentBytes)])
   isplitr
   · ipureintro; rfl
   iintro %s3 ⟨S3, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ NsentBytes $$ [S3 HR3] as S3
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NsentBytes $$ [S3 HR3] as S3
   · iframe S3 HR3
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok (interface.mk (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterVec.ty) #vreceivedBytes)])
   isplitr
   · ipureintro; rfl
   iintro %s4 ⟨S4, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ NreceivedBytes $$ [S4 HR4] as S4
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NreceivedBytes $$ [S4 HR4] as S4
   · iframe S4 HR4
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok (interface.mk (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterVec.ty) #vsentFailures)])
   isplitr
   · ipureintro; rfl
   iintro %s5 ⟨S5, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ NsentFailures $$ [S5 HR5] as S5
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NsentFailures $$ [S5 HR5] as S5
   · iframe S5 HR5
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok (interface.mk (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterVec.ty) #vrecvFailures)])
   isplitr
   · ipureintro; rfl
   iintro %s6 ⟨S6, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ NrecvFailures $$ [S6 HR6] as S6
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NrecvFailures $$ [S6 HR6] as S6
   · iframe S6 HR6
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok (interface.mk (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterVec.ty) #vsnapshotSend)])
   isplitr
   · ipureintro; rfl
   iintro %s7 ⟨S7, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ NsnapshotSend $$ [S7 HR7] as S7
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NsnapshotSend $$ [S7 HR7] as S7
   · iframe S7 HR7
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok (interface.mk (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeVec.ty) #vsnapshotSendInflights)])
   isplitr
   · ipureintro; rfl
   iintro %s8 ⟨S8, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ NsnapshotSendInflights $$ [S8 HR8] as S8
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NsnapshotSendInflights $$ [S8 HR8] as S8
   · iframe S8 HR8
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok (interface.mk (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterVec.ty) #vsnapshotSendFailures)])
   isplitr
   · ipureintro; rfl
   iintro %s9 ⟨S9, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ NsnapshotSendFailures $$ [S9 HR9] as S9
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NsnapshotSendFailures $$ [S9 HR9] as S9
   · iframe S9 HR9
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok (interface.mk (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.HistogramVec.ty) #vsnapshotSendSeconds)])
   isplitr
   · ipureintro; rfl
   iintro %s10 ⟨S10, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ NsnapshotSendSeconds $$ [S10 HR10] as S10
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NsnapshotSendSeconds $$ [S10 HR10] as S10
   · iframe S10 HR10
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok (interface.mk (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterVec.ty) #vsnapshotReceive)])
   isplitr
   · ipureintro; rfl
   iintro %s11 ⟨S11, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ NsnapshotReceive $$ [S11 HR11] as S11
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NsnapshotReceive $$ [S11 HR11] as S11
   · iframe S11 HR11
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok (interface.mk (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeVec.ty) #vsnapshotReceiveInflights)])
   isplitr
   · ipureintro; rfl
   iintro %s12 ⟨S12, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ NsnapshotReceiveInflights $$ [S12 HR12] as S12
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NsnapshotReceiveInflights $$ [S12 HR12] as S12
   · iframe S12 HR12
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok (interface.mk (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterVec.ty) #vsnapshotReceiveFailures)])
   isplitr
   · ipureintro; rfl
   iintro %s13 ⟨S13, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ NsnapshotReceiveFailures $$ [S13 HR13] as S13
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NsnapshotReceiveFailures $$ [S13 HR13] as S13
   · iframe S13 HR13
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok (interface.mk (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.HistogramVec.ty) #vsnapshotReceiveSeconds)])
   isplitr
   · ipureintro; rfl
   iintro %s14 ⟨S14, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ NsnapshotReceiveSeconds $$ [S14 HR14] as S14
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NsnapshotReceiveSeconds $$ [S14 HR14] as S14
   · iframe S14 HR14
-    try iPkgInit
   wp_apply wp_slice_literal (l := [GoInterface.ok (interface.mk (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.HistogramVec.ty) #vrttSec)])
   isplitr
   · ipureintro; rfl
   iintro %s15 ⟨S15, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)
-      _ _ _ _ NrttSec $$ [S15 HR15] as S15
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NrttSec $$ [S15 HR15] as S15
   · iframe S15 HR15
-    try iPkgInit
   ipersist HsnapshotSend
   ipersist HsnapshotSendInflights
   ipersist HsnapshotSendFailures
@@ -668,7 +634,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
 from `wp_initialize'_res`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init ∗ EtcdGrove.prometheus.regsFree (GF := GF) regQs }}
+    {{ ownInitializing get_is_pkg_init ∗ EtcdGrove.prometheus.namesFree (GF := GF) initNames }}
       (App (Val initialize') (Val #()))
     {{ RET #(); ownInitializing get_is_pkg_init ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp }} :=

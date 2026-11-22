@@ -3717,40 +3717,6 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
 - **Proposed (general).** `%v`/`%+v` of a map: Go prints `map[` then the entries sorted by key (`fmt`'s
   `internal/fmtsort`), `k:v` separated by spaces, then `]`. **Status.** Recorded only.
 
-## 2026-11-22: no per-generation ghost name a package fact can name (prometheus's default registry, branch `prom-registry`)
-
-- **The gap.** A package fact (`isPkgInit`) is a fixed proposition of a global instance, and the ghost names
-  a generation hands its program (`GooseLocalGS`: the heap, the package state, the thread and crash tokens,
-  the extensions') are all tied to their own contents: none has a free slot where a proof can record a ghost
-  name of the run that every later reader agrees on (`notes/prom-registry.md`, "Step A", with the
-  definitions cited). So a fact naming per-run ghost state needs a typeclass instance threaded through every
-  importer (`define_is_pkg_init` synthesizes the dependencies' instances: for prometheus, 52 packages and
-  2073 modules) or a trusted extension. Hit by prometheus's default registry on the Go heap (#15): its
-  fact `isRegistry γ l` and the rights `regFree n` (allocated before prometheus initializes) must agree
-  on `γ`.
-- **Worked around locally.** Not yet: stages 4–5 of `notes/prom-registry.md` wait; the opaque
-  `prometheus.nameFree` axiom stays.
-- **Proposed (general).** A per-generation name supply: `GoStateGS.localNamesName : GName` (first designed as a
-  `GooseLocalGS` field, which broke the clients that rebuild it with its six-field anonymous constructor), a
-  ghost map `GoString ⇀ GName` allocated by the three constructors of a generation (`goose_init`,
-  `goose_local_init`, `goose_crash_step`), its authority `ownLocalNames ∅` handed to the generation's program
-  by new variants of the adequacy theorems (the current statements kept as corollaries, so the change is
-  additive), with `localName k γ` (persistent), `localName_agree` and `localName_set`. Exact shape, the
-  theorems that change and the rejected variants: `notes/prom-registry.md`, "Option 2". **Status.** Proposed as
-  mit-pdos/perennial#681 (branch `local-names`; on this repository's pin as `local-names-c14`, `8dd458684`);
-  branch `prom-registry` builds against it.
-
-## 2026-11-22: trusted code cannot call another translated package's functions (prometheus's registry model, branch `prom-registry`)
-
-- **The gap.** A trusted body (`TrustedCode/`) may call any translated function by name (`FuncResolve`), but
-  stepping the call needs that package's `FuncUnfold`/`MethodUnfold`, which only its `Assumptions` give, and a
-  package's `Assumptions` include only its Go imports' (`import_<q>_Assumption`; `pkgImportedPkgs` likewise).
-  prometheus's glue runs the Go model `examples/lib/promreg`, which client_golang does not import, so neither
-  its proofs nor any closed theorem has `promreg.Assumptions` (`notes/prom-registry.md`, "Stage 4 started").
-- **Worked around locally.** Not yet (options there).
-- **Proposed (general).** A goose configuration key (`extra_imports = ["<pkg>"]`) that adds import edges for
-  trusted code: the package's `Assumptions` get `import_<pkg>_Assumption`, its `pkgImportedPkgs` the package,
-  and its `initialize'` the package's initializer (or the trusted initializer calls it). **Status.** Recorded only.
 ## 2026-11-22: extension state access at generation start, distributed (`goose_dist_mixed_crash_adequacy`; etcd-dist D3, branch `dist-crash-bridge`)
 
 - **Missing.** The distributed counterpart of the 2026-11-21 entry "extension state access at generation

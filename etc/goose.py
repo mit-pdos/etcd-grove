@@ -762,22 +762,6 @@ PROJECTS = [
             owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lib", "durable")])],
     ),
     Project(
-        name="promreg",
-        # The model of prometheus's default registry (`examples/lib/promreg`, notes/prom-registry.md):
-        # client_golang v1.24.1's `Registry.Register` over descriptor values, translated with its
-        # bodies and verified; the trusted glue that runs it in place of `prometheus.Register`,
-        # `MustRegister` and the registry's initialization is
-        # TrustedCode/github_com/prometheus/client_golang/prometheus.lean. Its evidence is
-        # `examples/lib/promreg/model_test.go`, against the real registry. A package of the examples'
-        # Go module (examples/go.mod).
-        repo=None,
-        rev=None,
-        local=os.path.join("examples", "lib", "promreg"),
-        lean_roots=["github.com/mit-pdos/etcd-grove="],
-        packages=["."],
-        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lib", "promreg")],
-    ),
-    Project(
         name="prophkv",
         # GetAny's logically atomic spec over a prophecy of its random choice (`examples/goose/prophkv`,
         # a port of Perennial's goose/testdata/examples/prophkv): the prophecy is a prophecy patch

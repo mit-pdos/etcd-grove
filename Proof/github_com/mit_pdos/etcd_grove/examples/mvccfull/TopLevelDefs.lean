@@ -76,6 +76,12 @@ def mvccfullProgram [GoSemanticsFunctions] (r : GoString) : Expr :=
   ((@! github_com.mit_pdos.etcd_grove.examples.mvccfull.Run)
     ((@! github_com.mit_pdos.etcd_grove.examples.mvccfull.MainConfig) #(Fs.child r go!"mvccfull")) ;; #())
 
+/-- The metric names the program's initialization registers (mvcc's, the lessor's, the backend's and
+auth's `init()`, `prometheus.MustRegister`; etcdstorage, 2026-11-20, the user's decision): its
+`initNames`. (Not `mvccfull.mvccfullNames`, the file names.) -/
+def mvccfullMetricNames : List GoString :=
+  _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.mvccfull.initNames
+
 end adequacy
 end EtcdGrove
 end Perennial

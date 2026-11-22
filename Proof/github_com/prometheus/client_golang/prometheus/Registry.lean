@@ -1,27 +1,29 @@
 /-
-prometheus's default registry as the registering packages' initializers and `getServerMetrics` use
-it (item 8, 2026-10-17; prom-registry, 2026-11-22). `notes/decisions.md`, "D16: prometheus's default
-registry", and the prom-registry entries; `notes/prom-registry.md`.
+prometheus's default registry as the read package's initializer uses it (item 8, 2026-10-17):
+the trust boundary of `prometheus.NewCounter` and `prometheus.MustRegister` (names only in the
+translation). `notes/decisions.md`, "D16: prometheus's default registry".
 
 **The model.** `MustRegister(c)` (`registry.go`) calls `DefaultRegisterer.MustRegister`, which
 panics if `Registry.Register(c)` fails: a descriptor of `c` invalid, or one with the
 fully-qualified name of a registered descriptor but other labels or help, or `c`'s descriptor
 IDs (hashes of the name and const label values) already registered, or its collector ID (their
 XOR) already a registered collector's. So whether it panics depends on what was registered
-before, by any package of the program: a resource. (prom-registry) The default registry is a model on
-the Go heap (`examples/lib/promreg`, translated and verified; the trusted glue
-`TrustedCode/github_com/prometheus/client_golang/prometheus.lean` runs it for `Register`,
-`MustRegister` and the initializer), and `regFree n` (below) is the exclusive right to register `n`:
-ghost state of the run (`promreg.idTok`), allocated by each run's proof (`promreg.promReg_alloc`), so a
-crash's next run has new ones. Until then `nameFree n` was an axiomatized resource handed out by the
-start model (`goose_adequacy_start`).
+before, by any package of the program: a resource. `nameFree n` is the exclusive right to
+register `n`; the Hoare triple of `MustRegister` of a counter named `n` takes it. Program start
+(the adequacy theorem, item 9) owns the rights of the names no default collector has, and gives
+each to the one package that registers it (`namesFree regNames`, a registering package's; `ownInitResL`, mustreg 2026-11-20); since every right
+exists once, two packages registering one name would show up there, as two packages needing
+one right.
 
-**What is trusted** (each true of prometheus's Go code, client_golang v1.24.1, the version etcd's
-`server/go.mod` pins): the constructor axioms' claims of what their collectors describe
-(`collectorName c n`, a definition over the glue's `collectorDescs`: the collector describes exactly
-one descriptor, valid, named `n`, without const labels, what `NewCounter` makes; mustreg,
-2026-11-20: also a vector `New<Kind>Vec` makes, its variable labels outside the descriptor's ID), and
-the glue (`TrustedCode/`, evidence `examples/lib/promreg/model_test.go`).
+**What is axiomatized** (each true of prometheus's Go code, client_golang v1.24.1, the version
+etcd's `server/go.mod` pins):
+- `collectorName c n`: the collector `c` describes exactly one descriptor, valid, named `n`,
+  without const labels (what `NewCounter` makes; mustreg, 2026-11-20: also a vector
+  `New<Kind>Vec` makes, its variable labels outside the descriptor's ID);
+- `nameFree n` (abstract resource): the right to register a collector whose one descriptor is
+  `n`'s, without const labels, in the default registry: no collector registered there (now, or
+  later by anyone but the holder) has a descriptor named `n`, nor one whose ID is that
+  descriptor's ID (`descId n`, `xxhash(n + "\xff")`), nor a collector ID equal to it;
 
 `counterOpts o ns sub name help` (`o` is the `CounterOpts` literal with those four fields, the
 others zero) is a definition: `Opts` is translated (until 2026-11-18 it was an axiomatized type,
@@ -35,19 +37,20 @@ float64 bits; `expBuckets_ok` proves them accepted), so that the packages' metri
 translated initializers rather than one trust-boundary axiom `<X>_init` each.
 
 (prometheus-id-collision, 2026-11-20) Distinct names can have one descriptor ID (`descId`, the
-xxhash of `n ++ [0xff]`; `descId_collision`), and the registry refuses the second
-(`notes/axiom-review/prometheus-id-collision.md`). The rights are now per ID (`promreg.idTok`), so two
-names of one ID cannot both have them (`prometheus.regQsOk`, decided for each program's names).
+xxhash of `n ++ [0xff]`; `descId_collision`), and the registry refuses the second: until then
+program start handed out the rights of any distinct names (`goose_adequacy_start`), so a program
+registering counters of two colliding names was proved not to panic, and panics
+(`notes/axiom-review/prometheus-id-collision.md`). Program start now hands out rights only for
+names whose IDs are pairwise distinct (`descIdsDistinct`, decided for each program's names).
 
-The specs of `NewCounter`, `MustRegister` and `Register` are in
-`Spec/github_com/prometheus/client_golang/prometheus/`.
+Each axiom is about uninterpreted constants (the names-only functions), so a model in which they
+diverge satisfies them: they cannot make the logic inconsistent. The specs of `NewCounter` and
+`MustRegister` are in `Spec/github_com/prometheus/client_golang/prometheus/`.
 -/
 module
 
 public import GeneratedProof.github_com.prometheus.client_golang.prometheus
 public import Proof.github_com.cespare.xxhash.v2.Model
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Defs
-public import Perennial.GooseLang.LocalNames
 
 @[expose] public section
 
@@ -60,7 +63,6 @@ namespace EtcdGrove
 namespace prometheus
 
 open Iris Iris.BI
-open _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib
 
 /-- prometheus's `BuildFQName(namespace, subsystem, name)` (`metric.go`): the non-empty parts
 joined by `_`, or empty if `name` is. -/
@@ -139,6 +141,17 @@ first, each followed by the separator byte `0xff`, `separatorByteSlice`; with no
 descriptor IDs: here that one ID), is already registered. -/
 def descId (n : GoString) : w64 := xxhash.sum64 (n ++ [255#8])
 
+/-- **The label-free descriptor IDs of the names `Ns` are pairwise distinct** (prometheus-id-
+collision, 2026-11-20): the decidable part of program start's claim on the names it hands out
+(`goose_adequacy_start`'s `hNsIds`, discharged by `decide +kernel` for each program's names). Two
+distinct names can have one ID (`descId_collision`), and then registering both panics although
+neither is registered twice (`examples/axiomcx/promidcollide`,
+`notes/axiom-review/prometheus-id-collision.md`). -/
+def descIdsDistinct (Ns : List GoString) : Prop := (Ns.map descId).Nodup
+
+instance (Ns : List GoString) : Decidable (descIdsDistinct Ns) := by
+  unfold descIdsDistinct; infer_instance
+
 /-- Two valid metric names whose label-free descriptors have the same ID (found by a
 distinguished-point collision search, 2026-11-20): registering counters of both with the default
 registry panics on the second (`examples/axiomcx/promidcollide`). -/
@@ -170,76 +183,21 @@ def histOpts (o : github_com.prometheus.client_golang.prometheus.HistogramOpts)
   o = { (zeroValDef : github_com.prometheus.client_golang.prometheus.HistogramOpts) with
         Namespace' := ns, Subsystem' := sub, Name' := name, Help' := help, Buckets' := s }
 
-/-- The descriptor `promreg.Desc` of the label-free descriptor named `n` (valid, its ID `descId n`),
-with the dim hash `dh`. -/
-def nameDesc (n : GoString) (dh : w64) : promreg.Desc :=
-  { ID' := descId n, FQName' := n, DimHash' := dh, Invalid' := false }
-
-end preds
-
-section descs
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-
-/-- **The collector `c` describes the descriptors `ds`** (prom-registry, notes/prom-registry.md §2):
-the model's `collectorDescs` (the trusted glue's one undefined operation: what `c.Describe` sends, as
-`Register` reads it) returns them in a new slice, in every instance of the logic. What a collector
-describes is what its constructor's spec says (a `New<Kind>` axiom's post, `collectorName`); the
-evidence is `examples/lib/promreg/model_test.go`'s `TestConstructorDescs`. -/
-def collectorDescsAre (c : GoInterfaceOk) (ds : List promreg.Desc) : Prop :=
-  ∀ (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics],
-  {{ (True : IProp GF) }}
-    (App (Val github_com.prometheus.client_golang.prometheus.collectorDescs.impl) (Val #(GoInterface.ok c)))
-  {{ (s : GoSlice), RET #s; s ↦* ds }}
-
 /-- The collector `c` describes exactly one descriptor: valid, of fully-qualified name `n`,
 without const labels (a counter `NewCounter` made; mustreg, 2026-11-20: or a metric vector
 `New<Kind>Vec` made, whose variable labels enter only the descriptor's `dimHash`, not its ID:
 `NewDesc` in client_golang v1.24.1's `desc.go` hashes the name and the const label values into
-`id`, the help and all label names into `dimHash`). (prom-registry) A definition: the model's
-`collectorDescs c` is that one descriptor, `nameDesc n dh` for some dim hash. -/
-def collectorName (c : GoInterfaceOk) (n : GoString) : Prop :=
-  ∃ dh : w64, collectorDescsAre c [nameDesc n dh]
+`id`, the help and all label names into `dimHash`). -/
+axiom collectorName (c : GoInterfaceOk) (n : GoString) : Prop
 
-/-- The glue's name for `Collector` (`TrustedCode/`, which the translation imports, so it writes the
-type out) is the translation's. -/
-theorem model_Collector_eq :
-    github_com.prometheus.client_golang.prometheus.model.Collector =
-      github_com.prometheus.client_golang.prometheus.Collector.ty := by
-  unfold github_com.prometheus.client_golang.prometheus.Collector.ty; rfl
+/-- **The right to register the name `n`** with prometheus's default registry (exclusive):
+no collector registered there, now or later by anyone but the holder, has a descriptor named
+`n`, or whose ID (or collector ID) is the ID of `n`'s label-free descriptor (`descId n`). Given at
+program start, once per name, for names whose IDs are pairwise distinct (`descIdsDistinct`: the
+holder of another name's right registers that name's ID). -/
+axiom nameFree {GF : BundledGFunctors} (n : GoString) : IProp GF
 
-
-/-- The glue's name for `Register` is the translation's. -/
-theorem model_Register_eq :
-    github_com.prometheus.client_golang.prometheus.model.Register =
-      github_com.prometheus.client_golang.prometheus.Register := rfl
-
-
-/-- The glue's name for `defaultRegistry` is the translation's. -/
-theorem model_defaultRegistry_eq :
-    github_com.prometheus.client_golang.prometheus.model.defaultRegistry =
-      github_com.prometheus.client_golang.prometheus.defaultRegistry := rfl
-
-
-end descs
-
-section rights
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-
-/-- **The right to register the name `n`** with prometheus's default registry (exclusive;
-prom-registry, notes/prom-registry.md §3): `n` is not a builtin's name, and the right to `n`'s
-label-free descriptor ID, `descId n` (`promreg.idTok`: an element of the run's ghost map, whose name
-the generation records under `promreg.regKey`; it is no builtin's ID). The registry's invariant holds
-the right of every registered ID that is no builtin's, so the holder knows `descId n` unregistered, as
-a descriptor and as a collector ID, and `n` unregistered (every registered name is a builtin's or has
-its ID registered). Allocated by each run's proof (`promreg.promReg_alloc`), so a crash's next run has
-new ones. -/
-def regFree (n : GoString) : IProp GF :=
-  iprop(⌜n ∉ promreg.builtinNames⌝ ∗ promreg.idTok (descId n))
-
-end rights
+end preds
 
 end prometheus
 end EtcdGrove
