@@ -4090,3 +4090,14 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Decision.** Made (coordinator's task 2, "narrow the law that way if needed"). `walRaftP_cloneHs` and
   `walRaftHsO_unmarshal` (`RaftModel/LawsHsPb.lean`) discharge `CloneHsLaw walRaftP` and `WalHsOwn.unmarshal` over
   `proto.ClonePb.wp_proof`/`proto.UnmarshalPb.wp_proof` (axioms already reached); both leave `TOpen`.
+
+## 2026-11-22: `io.CopyFiles.spec`'s size premise `m.size < 2^62` too weak (wal-safe, session 9)
+- **Spec.** `Spec/io/CopyFiles.lean` (`io.CopyFiles.spec`, a hypothesis of `wal.Repair.wp_proof`).
+- **Defect.** With a source of size in `[2^62 - 2^31, 2^62)` the triple is false of the model: the translated
+  dispatch reaches `model.pollCopyFileRange`, whose first round asks `min(remain, 0x7ffff000)` bytes at the
+  source's offset, and `model.copyFileRangeRound` panics when `offMax (= 2^62) ≤ soff + max`.
+- **Evidence.** `TrustedCode/os.lean`, `model.copyFileRangeRound`'s third check; `remain = 2^63 - 1`
+  (`tryLimitedReader` of a non-`LimitedReader`).
+- **Proposed change.** `m.size < 2 ^ 61` (then every round's `soff + max < 2^62`, and the fallback's `Read`/`Write`
+  of 32 KiB stay below `2^62`). `Repair` has `size ≤ Fs.maxBytes = 0xffffffff000`.
+- **Decision.** Made (the premise's own statement; no client but `Repair`, which supplies it).

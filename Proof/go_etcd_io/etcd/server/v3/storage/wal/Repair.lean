@@ -504,7 +504,8 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
       -- `io.Copy(bf, f)`
       have hbw : (openFd bi (wal.walOpenFlag true ||| W64 0x80000)).writable = true := by
         unfold openFd wal.walOpenFlag; simp only [↓reduceIte]; decide
-      have hm62 : gL.om.size < 2 ^ 62 := by omega
+      have hm62 : gL.om.size < 2 ^ 61 := by
+        have h2 : Fs.maxBytes = 0xffffffff000 := rfl; omega
       wp_apply (wp_Copy bf bfd (child dir (repBroken gL.name)) (openFd bi (wal.walOpenFlag true ||| W64 0x80000))
           lf f fd (child dir gL.name) ⟨gL.ino, true, true, lo, lk⟩ (W64 0) (DFrac.own (1 : Qp).half)
           (DFrac.own (1 : Qp).half) gL.om gL.bs hbw rfl hbfd hfd (by decide) (by simp) hSz.symm hm62)
