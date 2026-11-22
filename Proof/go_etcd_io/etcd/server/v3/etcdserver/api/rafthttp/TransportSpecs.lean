@@ -41,7 +41,8 @@ theorem rafthttp.Transport.Start_ok
     (hPeerStop : rafthttp.peer.stop.spec (GF := GF) (hG := hG))
     (hRemoteStop : rafthttp.remote.stop.spec (GF := GF) (hG := hG))
     (hSS : rafthttp.Transport.SendSnapshot.spec (GF := GF) (hG := hG))
-    (hAS : rafthttp.Transport.ActiveSince.spec (GF := GF) (hG := hG)) :
+    (hAS : rafthttp.Transport.ActiveSince.spec (GF := GF) (hG := hG))
+    (hAP : rafthttp.Transport.ActivePeers.spec (GF := GF) (hG := hG)) :
     rafthttp.Transport.Start.spec (GF := GF) (hG := hG) := by
   intro γn t tv R γd Rm sd uvs L
   wp_start_folded as ⟨Ht, #Hlgz, %Hpre, #Huvs, #Hraft, #Hss, #Hdir, #Hnet, #Hlsi, Hlsf, #HssI, HRL⟩
@@ -57,7 +58,7 @@ theorem rafthttp.Transport.Start_ok
   iexists c
   ihave #Hst : trState γn t c $$ [Hl]
   · iunfold trLive at Hl; icases Hl with ⟨#Hst, -⟩; iexact Hst
-  ihave ⟨#Hnet, #Htr⟩ := trState_net hSend hPeerStop hRemoteStop hSS hAS γn t c $$ [Hpkg Hst]
+  ihave ⟨#Hnet, #Htr⟩ := trState_net hSend hPeerStop hRemoteStop hSS hAS hAP γn t c $$ [Hpkg Hst]
   · iframe #
   iframe
   isplitr
@@ -65,7 +66,7 @@ theorem rafthttp.Transport.Start_ok
   iframe #
   imodintro
   iintro %rs #Hf
-  ihave ⟨#Hn, -⟩ := trFrozen_net hSend hPeerStop hRemoteStop hSS hAS γn t c rs $$ [Hpkg Hf]
+  ihave ⟨#Hn, -⟩ := trFrozen_net hSend hPeerStop hRemoteStop hSS hAS hAP γn t c rs $$ [Hpkg Hf]
   · iframe #
   iexact Hn
 

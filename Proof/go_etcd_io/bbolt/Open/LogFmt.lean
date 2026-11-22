@@ -92,11 +92,13 @@ theorem logArgOk_bool (R : IProp GF) (v : w8) (b : Bool) :
   · exact Or.inr (Or.inl rfl)
 
 omit hos in
-/-- **The options, under `%s`**, lending `optsAt` to their `String()`. -/
+/-- **The options, under `%s`**, lending `optsAt` to their `String()` (ps2 misc2, 2026-11-22: with
+the package's `isPkgInit`, which `String`'s spec now takes). -/
 theorem options_logArgOk (hStr : Options.String.spec (GF := GF) (hG := hG)) (l : Loc) (dq : DFrac)
     (o : OptsM) (ho : loggerPtrOk o.logger) :
-    ⊢ logArgOk (GF := GF) (optsAt l dq o) (W8 115)
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ⊢ logArgOk (GF := GF) (optsAt l dq o) (W8 115)
       (interface.mkOk (go.GoType.PointerType Options.ty) #l) := by
+  iintro #Hpkg
   simp only [logArgOk]
   iright; iright; ileft
   isplitr

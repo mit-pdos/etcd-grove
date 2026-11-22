@@ -41796,6 +41796,8 @@ later generation changes (h). So every ghost step takes the token: `ncfupd`,
 
 ## Protobuf stage 0': the schemas generated from `models/pbdesc`, a candidate wire semantics (2026-11-21 · proving session 2, #18 · branch `prove-ps2-pbwire/2026-11-21`; scoped by kaashoek's review, #20 item 2 (b))
 
+**Partly superseded (2026-11-22, proving session 2):** the candidate wire semantics (`PbWire.lean`, `PbWireVectors.lean`, `examples/pbwire`) is deleted. Upamanyu's plan is pbgen with no `reflect` semantics (#20, 2026-11-22), and phase 7 (#24) has no consumer for a descriptor-generic Lean semantics. The schema generation (`etc/gen-pbschema.py`, `PbSchema.lean`) stays: it ties the trusted schemas raft's and the WAL's specs use to the registered descriptors.
+
 - **The schemas** (`PbSchema.lean`: the `FieldSchema` constants and `pbSchemaOf`, trusted) are
   generated from the registered descriptors by `etc/gen-pbschema.py` (it runs `models/pbdesc` in
   `examples/`, the one descriptor source pbgen reads), between marker lines of the file, with
@@ -41851,6 +41853,31 @@ invariant or fragment meaning changed.
 
 **Also:** `statusOwn_hardState`, read access to `node.Status`'s hard state (`hsOpt`), without promising anything of
 the values, as `node.Status.spec` already says.
+
+## remote's slot library over a service; `Report`'s spec (2026-11-22 · branch `remote-report`)
+
+**Was:** every spec of `examples/lib/remote` (`attempt`, `serveConn`, `Serve`, `ServeClient`,
+`listen`, `Do`, `Run`, `Check`) took a far-side store `R : RBase` (a linearizable base store with
+`sysState`, `Eop`, `lin`, unknown outputs), and the slot handed the far side `slotUpd R i Φ`. `Report`
+(one attempt, no model: a client machine's loop answers its report) had no spec, and could not be an
+instance: a report's output is not a function of the input and a state (`B.step`), and its codec has
+no `IsRead`/`Unknown`/`IsUnknown` (`codecOk` needs them).
+
+**Now:** the wire and the slot's update are a **service** `RSvc GF I O` (`RWire` and `unkAns`, `upd`):
+the functions that only move bytes and the update (`attempt`, `serveConn`, `Serve`, `ServeClient`,
+`listen`, `Report`) are stated over any service, with the codec's wire part `wireOk` and the far
+side's `svcOp`; `Do`/`Run`/`Check`, which need the model, over a store, through `RBase.svc`
+(`remoteAddr R a` is `svcAddr R.svc a`; `codecOk_wireOk`, `opMaybe_svcOp`). A report is
+`reportSvc W P Q`: the update is `P i ∗ ∀ o, Q i o -∗ Φ o` (`P i` what the dialer established for the
+loop; `Q` may be persistent or transferable: the slot hands `Φ o` back once), with no unknown answers; its far side meets `reportOp W P Q tok op`
+(`reportOp_svcOp`). One spec per function: `Report.spec` is stated over any service, a report an
+instance (`unkAns = False` empties its last disjunct).
+
+**Why not** an `unk : I → Option GoInterface` or an output type `O ⊕ I` for the unknown answer: both
+touch `Do`'s proof and `Pend` (the read form's commit), where `unkAns i v := v = unk i` leaves them
+unchanged. **Departure** (TaDa, not HoCAP): `reportSvc`'s `Q` is a caller-provided predicate fixed in
+the address's protocol, as a store's `sysState` already is; the far side must know what it proves
+before any call, and the deployment fixes it once (`remote_start`, now for any service).
 
 ## The crash bridge for `[netExt, fsExt]`: obligations per local ghost state, the precondition chosen at start, the legacy file mode (2026-11-22 · etcd-dist D3 · branch `dist-crash-bridge`)
 
