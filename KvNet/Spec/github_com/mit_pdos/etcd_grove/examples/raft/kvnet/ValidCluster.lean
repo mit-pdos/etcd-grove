@@ -1,7 +1,7 @@
 /-
 `ValidCluster(addrs, voters, maxSizePerMsg, maxCommittedSizePerReady, maxInflightMsgs)`
 (addrs.go): `validCluster`: `ValidAddrs`, raft's size limits not both 0, `MaxInflightMsgs` a positive
-Go int.
+Go int below `2^62`.
 -/
 module
 

@@ -44,7 +44,7 @@ attribute [local instance] kdStorageModel
 
 /-- **The options raft's `RestartNode` takes** (kvdurable's `kdOptsOk`, without its replica bound): at
 least one voter, in-flight messages positive and within `RestartNode`'s `2^62`, and a size limit set.
-(`ValidCluster` checks only `MaxInflightMsgs < 2^63`: the top-level statement's premise gives the rest.) -/
+(`ValidCluster` checks `MaxInflightMsgs < 2^62` too.) -/
 def kvOptsOk (o : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Options) : Prop :=
   1 ≤ uint.Z o.Voters' ∧ uint.Z o.Voters' < 2 ^ 32 ∧
   0 < sint.Z o.MaxInflightMsgs' ∧ sint.Z o.MaxInflightMsgs' < 2 ^ 62 ∧

@@ -813,7 +813,7 @@ noncomputable def ValidAddrs.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- ValidCluster says whether the cluster is one the top-level theorem's premises allow: valid
     addresses and voters (ValidAddrs), raft's size limits not both 0, and MaxInflightMsgs a
-    positive Go int.
+    positive Go int below 2^62 (raft's RestartNode needs it).
 
     go: addrs.go:98:6 -/
 noncomputable def ValidCluster.impl [GooseExts] [GoGlobalContext] : val :=
@@ -831,7 +831,7 @@ noncomputable def ValidCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "addrs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "addrs"))
   (Let "$r0" (If (If (If (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "addrs"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "voters"))
-  (App (App (App (Val (GoInstruction (FuncResolve ValidAddrs []))) (Val #())) (Var "$a0")) (Var "$a1")))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "maxSizePerMsg")) (Val #(W64 0)))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "maxCommittedSizePerReady")) (Val #(W64 0)))) (Val #false))) (Val #false)) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (Val #(W64 0)) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "maxInflightMsgs")))) (Val #false)) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "maxInflightMsgs")) (Val #(W64 9223372036854775808)))) (Val #false))
+  (App (App (App (Val (GoInstruction (FuncResolve ValidAddrs []))) (Val #())) (Var "$a0")) (Var "$a1")))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "maxSizePerMsg")) (Val #(W64 0)))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "maxCommittedSizePerReady")) (Val #(W64 0)))) (Val #false))) (Val #false)) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (Val #(W64 0)) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "maxInflightMsgs")))) (Val #false)) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "maxInflightMsgs")) (Val #(W64 4611686018427387904)))) (Val #false))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))

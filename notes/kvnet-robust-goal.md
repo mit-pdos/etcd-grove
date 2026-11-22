@@ -22,11 +22,11 @@ structure ClusterConfig where
   maxSizePerMsg maxCommittedSizePerReady maxInflightMsgs : w64
 
 /-- Options raft and kvnet accept, for a cluster of `n` replicas (`raft.Config.validate`;
-`newRaft` refuses both size limits 0; `MaxInflightMsgs` is a Go `int`). -/
+`newRaft` refuses both size limits 0; `MaxInflightMsgs` below raft's `RestartNode`'s `2^62`). -/
 def ClusterConfig.Ok (cl : ClusterConfig) (n : Nat) : Prop :=
   1 ≤ cl.voters.toNat ∧ cl.voters.toNat ≤ n ∧
   ¬ (cl.maxSizePerMsg = 0 ∧ cl.maxCommittedSizePerReady = 0) ∧
-  0 < cl.maxInflightMsgs.toNat ∧ cl.maxInflightMsgs.toNat < 2 ^ 63
+  0 < cl.maxInflightMsgs.toNat ∧ cl.maxInflightMsgs.toNat < 2 ^ 62
 
 /-- Replica `id`'s process: kvnet's package initialization, then `RunNode`; `addrs` the replicas'
 addresses joined by commas (replica `i` at the `i`-th), `dir` the directory of its durable state. -/

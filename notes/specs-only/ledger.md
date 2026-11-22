@@ -4445,3 +4445,14 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   write lemma takes two later credits.
 - **Proposed change.** As above.
 - **Decision.** Applied (checked: `etc/lean-check.py` of every changed module, then `lake build KvNet`).
+
+## 2026-11-22: kvnet's `ValidCluster` checks `MaxInflightMsgs < 2^62` (KvNet, Go and Lean)
+
+- **Spec.** `ValidCluster.spec` (KvNet) through `validCluster` (`Addrs.lean`), and so `RunNode.spec`'s premise:
+  `mif < 2^63` becomes `mif < 2^62`. The Go `ValidCluster` (`examples/raft/kvnet/addrs.go`) the same.
+- **Defect.** Raft's `RestartNode` (and kvnet's `kvOptsOk`, `StartDefs.lean`) needs `MaxInflightMsgs < 2^62`;
+  `ValidCluster` allowed up to `2^63`, so `RunNode`'s premise did not give what `StartNode` needs.
+- **Evidence.** `notes/kvnet-part.md`, "The WIP checked and built", the gap noted with `kvOptsOk`.
+- **Proposed change.** Tighten the Go check (the design: validity is a Lean premise, mirrored by Go panicking on
+  an invalid configuration), retranslate, and the statement draft's `ClusterConfig.Ok` the same.
+- **Decision.** Applied (the coordinator's decision, 2026-11-22).
