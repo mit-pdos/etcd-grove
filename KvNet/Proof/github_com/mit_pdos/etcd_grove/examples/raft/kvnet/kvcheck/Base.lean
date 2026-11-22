@@ -12,6 +12,7 @@ public import KvNet.GeneratedProof.github_com.mit_pdos.etcd_grove.examples.raft.
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Base
 public import Proof.github_com.anishathalye.porcupine.Defs
 public import Perennial.Proof.github_com.goose_lang.primitive.Base
+public import Proof.github_com.mit_pdos.gokv.trusted_proph.Base
 public import Perennial.Proof.time.Base
 public import Perennial.Proof.sync
 

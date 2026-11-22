@@ -31,7 +31,7 @@ open Iris Iris.BI Iris.ProofMode Net raft_kvnet
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF] [NetProtoGS]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [NetProtoGS]
 variable [sem : go.Semantics]
 
 /-- The replicas' addresses, each valid, with kvnet's protocols for the replica `i + 1`. -/
@@ -51,10 +51,10 @@ instance connGlobals_persistent : Persistent (connGlobals (GF := GF)) := by
   unfold connGlobals; infer_instance
 
 /-- The checker at `c` over kvnet's protocols (see the file header). -/
-def isCheckerP (F : KvFacts GF) (c : Loc) (γ : CheckerNames) (ls : List GoString) : IProp GF :=
+def isCheckerP (F : KvFacts GF) (c : Loc) (γ : CheckerCnt GF) (ls : List GoString) : IProp GF :=
   iprop(isChecker c γ ls ∗ ⌜0 < ls.length ∧ ls.length < 2 ^ 32⌝ ∗ addrsProto F ls ∗ connGlobals)
 
-instance isCheckerP_persistent (F : KvFacts GF) (c : Loc) (γ : CheckerNames) (ls : List GoString) :
+instance isCheckerP_persistent (F : KvFacts GF) (c : Loc) (γ : CheckerCnt GF) (ls : List GoString) :
     Persistent (isCheckerP F c γ ls) := by
   unfold isCheckerP; infer_instance
 

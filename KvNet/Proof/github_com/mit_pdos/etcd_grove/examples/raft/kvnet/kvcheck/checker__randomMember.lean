@@ -26,7 +26,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.Assumptions]
 
@@ -46,15 +46,14 @@ theorem checker.randomMember.wp_proof (wp_randomID : checker.randomID.spec (GF :
   wp_auto
   wp_apply sync.Mutex.wp_Lock _ _ $$ [$Hmu] as ⟨Hlocked, HL⟩
   iunfold checkerInv at HL
-  icases HL with ⟨%a, %b, %Ma, %Mb, %lc, %cs, Hop, Hrd, Hlc, #Hcs, HMa, HMb, %HLe⟩
+  icases HL with ⟨%a, %b, %lc, %cs, Hop, Hrd, Hlc, #Hcs, HMa, HMb⟩
   wp_auto
   wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked Hop Hrd Hlc HMa HMb]
   · inext
     iunfold checkerInv
-    iexists a, b, Ma, Mb, lc, cs
+    iexists a, b, lc, cs
     iframe
     iframe Hcs
-    ipureintro; exact HLe
   try wp_auto
   wp_apply wp_GetVoters lc DFrac.discard cs $$ [$Hpb $Hcs] as %sv ⟨#Hsv, -⟩
   ihave Hnil := ownSlice_nil (V := w64) (GF := GF) (DFrac.own 1)
