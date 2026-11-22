@@ -57,14 +57,12 @@ theorem ContextError.wp_proof
       cases err1 with
       | nil => exact absurd rfl Hne1
       | ok e => exact ⟨e, rfl⟩
-    ihave #Herrs : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
-    · iPkgInit
     obtain ⟨Htarget, Hce'⟩ := Hc1
     obtain ⟨Hleaf, Htyped, -⟩ := Hce' e1 rfl
     ihave #Htree := errors.isErrorTree_leaf (GF := GF) e1 Hleaf Htyped
-    wp_apply errors.wp_As (T' := go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError)
+    wp_apply errors.wp_AsType (T' := go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError)
         (T := go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) (· = GoInterface.ok e1)
-        (GoInterface.ok e1) _ _ Htarget $$ [$Herrs $Htree $serverErr] as %b %v' HseA
+        (GoInterface.ok e1) $$ [$Htree] as %v' %b -
     · ipureintro; rfl
     have Hc1 : clientErr (GoInterface.ok e1) := ⟨Htarget, Hce'⟩
     have Hfin : ∀ e : GoInterface, e ≠ GoInterface.nil → clientErr e →

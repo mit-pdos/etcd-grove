@@ -168,6 +168,309 @@ noncomputable def Reservation.DelayFrom.impl [GooseExts] [GoGlobalContext] : val
   (Val #())))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "$res0"))))))
 
+/-- Reserve is shorthand for ReserveN(time.Now(), 1).
+
+    go: rate.go:207:21 -/
+noncomputable def Limiter.Reserve.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "lim"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Reservation.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Reservation.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "lim" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Limiter.ty)))) (Var "lim"))
+  (Let "$r0" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Now []))) (Val #())) (Val #()))
+  (Let "$a1" (Val #(W64 1))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Limiter.ty) go!"ReserveN"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (Var "lim"))) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Reservation.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reservation.ty)))) (Var "$res0"))))))
+
+/-- ReserveN returns a Reservation that indicates how long the caller must wait before n events happen.
+    The Limiter takes this Reservation into account when allowing future events.
+    The returned Reservation’s OK() method returns false if n exceeds the Limiter's burst size.
+    Usage example:
+
+    	r := lim.ReserveN(time.Now(), 1)
+    	if !r.OK() {
+    	  // Not allowed to act! Did you remember to set lim.burst to be > 0 ?
+    	  return
+    	}
+    	time.Sleep(r.Delay())
+    	Act()
+
+    Use this method if you wish to wait and slow down in accordance with the rate limit without dropping events.
+    If you need to respect a deadline or cancel the delay, use Wait instead.
+    To drop or skip events exceeding rate limit, use Allow instead.
+
+    go: rate.go:227:21 -/
+noncomputable def Limiter.ReserveN.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "lim"
+  (Lam "t"
+  (Lam "n"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Reservation.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Reservation.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "lim" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Limiter.ty)))) (Var "lim"))
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (Var "n"))
+  (Let "t" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (Var "t"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "t"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))
+  (Let "$a2" (Val InfDuration)
+  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Limiter.ty) go!"reserveN"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (Var "lim"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "r" (App (Val (GoInstruction (GoAlloc Reservation.ty))) (App (Val (GoInstruction (GoZeroVal Reservation.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Var "r")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Reservation.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Reservation.ty))) (Pair (Var "r") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reservation.ty)))) (Var "$res0")))))))
+
+/-- reserveN is a helper method for AllowN, ReserveN, and WaitN.
+    maxFutureReserve specifies the maximum reservation wait duration allowed.
+    reserveN returns Reservation, not *Reservation, to avoid allocation in AllowN and WaitN.
+
+    go: rate.go:337:21 -/
+noncomputable def Limiter.reserveN.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "lim"
+  (Lam "t"
+  (Lam "n"
+  (Lam "maxFutureReserve"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Reservation.ty))) (App (Val (GoInstruction (GoZeroVal Reservation.ty))) (Val #())))
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "lim" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Limiter.ty)))) (Var "lim"))
+  (Let "maxFutureReserve" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "maxFutureReserve"))
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (Var "n"))
+  (Let "t" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (Var "t"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "t"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Limiter.ty) go!"advance"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (Var "lim"))) (Var "$a0")))
+  (Let "tokens" (App (Val (GoInstruction (GoAlloc go.float64))) (App (Val (GoInstruction (GoZeroVal go.float64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "waitDuration" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (If (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Limiter.ty go!"burst"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (Var "lim")))))) (App (Val (GoInstruction (GoOp GoLe _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "waitDuration")) (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "maxFutureReserve")))) (Val #false))
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (Var "lim"))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad Limit.ty))) (App (Val (GoInstruction (StructFieldRef Limiter.ty go!"limit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (Var "lim"))))
+  (App (Val (GoInstruction (CompositeLiteral Reservation.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ok")) (ElementExpression go.bool (Var "$v0"))), (KeyedElement (some (KeyField go!"lim")) (ElementExpression (go.GoType.PointerType Limiter.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"limit")) (ElementExpression Limit.ty (Var "$v2")))])))))
+  (Let "r" (App (Val (GoInstruction (GoAlloc Reservation.ty))) (App (Val (GoInstruction (GoZeroVal Reservation.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Reservation.ty))) (Var "r"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Reservation.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "waitDuration"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"Add"))) (Var "t")) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "t"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.float64))) (Var "tokens"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (StructFieldRef Reservation.ty go!"timeToAct"))) (Var "r")))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Limiter.ty go!"lastEvent"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (Var "lim"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.float64))) (Pair (App (Val (GoInstruction (StructFieldRef Limiter.ty go!"tokens"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (Var "lim"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Limiter.ty go!"last"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (Var "lim"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Reservation.ty go!"timeToAct"))) (Var "r")) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef Reservation.ty go!"tokens"))) (Var "r")) (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Reservation.ty))) (Pair (Var "r") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.float64))) (Pair (App (Val (GoInstruction (GoLoad go.float64))) (Var "tokens")) (Val #(W64 0)))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoUnOp GoNeg go.float64))) (App (Val (GoInstruction (GoLoad go.float64))) (Var "tokens")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Limit.ty) go!"durationFromTokens"))) (App (Val (GoInstruction (StructFieldRef Limiter.ty go!"limit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (Var "lim")))) (Var "$a0")))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "waitDuration") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.float64))) (Pair (Var "tokens") (App (Val (GoInstruction (GoOp GoSub go.float64))) (Pair (App (Val (GoInstruction (GoLoad go.float64))) (Var "tokens")) (App (Val (GoInstruction (Convert go.int go.float64))) (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.float64))) (Pair (Var "tokens") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals Limit.ty))) (Pair (App (Val (GoInstruction (GoLoad Limit.ty))) (App (Val (GoInstruction (StructFieldRef Limiter.ty go!"limit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (Var "lim")))) (Val Inf))))
+  (Let "$r0" (Let "$v0" (Val #true)
+  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (Var "lim"))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))
+  (Let "$v3" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "t"))
+  (App (Val (GoInstruction (CompositeLiteral Reservation.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ok")) (ElementExpression go.bool (Var "$v0"))), (KeyedElement (some (KeyField go!"lim")) (ElementExpression (go.GoType.PointerType Limiter.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"tokens")) (ElementExpression go.int (Var "$v2"))), (KeyedElement (some (KeyField go!"timeToAct")) (ElementExpression _root_.Perennial.time.Time.ty (Var "$v3")))]))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Reservation.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef Limiter.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (Var "lim"))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Limiter.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (Var "lim")))) (Val #()))))))))))
+  (App (Val (GoInstruction (GoLoad Reservation.ty))) (Var "$res0"))))))))
+
+/-- advance calculates and returns an updated number of tokens for lim
+    resulting from the passage of time.
+    lim is not changed.
+    advance requires that lim.mu is held.
+
+    go: rate.go:387:21 -/
+noncomputable def Limiter.advance.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "lim"
+  (Lam "t"
+  (Let "newTokens" (App (Val (GoInstruction (GoAlloc go.float64))) (App (Val (GoInstruction (GoZeroVal go.float64))) (Val #())))
+  (Let "$res0" (Var "newTokens")
+  (Seq (App (Val exceptionDo)
+  (Let "lim" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Limiter.ty)))) (Var "lim"))
+  (Let "t" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (Var "t"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (StructFieldRef Limiter.ty go!"last"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (Var "lim"))))
+  (Let "last" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Time.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "last"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"Sub"))) (Var "t")) (Var "$a0")))
+  (Let "elapsed" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "elapsed"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Limit.ty) go!"tokensFromDuration"))) (App (Val (GoInstruction (StructFieldRef Limiter.ty go!"limit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (Var "lim")))) (Var "$a0")))
+  (Let "delta" (App (Val (GoInstruction (GoAlloc go.float64))) (App (Val (GoInstruction (GoZeroVal go.float64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.float64))) (Pair (App (Val (GoInstruction (GoLoad go.float64))) (App (Val (GoInstruction (StructFieldRef Limiter.ty go!"tokens"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (Var "lim")))) (App (Val (GoInstruction (GoLoad go.float64))) (Var "delta"))))
+  (Let "tokens" (App (Val (GoInstruction (GoAlloc go.float64))) (App (Val (GoInstruction (GoZeroVal go.float64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.float64))) (Var "tokens"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.float64))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.int go.float64))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Limiter.ty go!"burst"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (Var "lim")))))
+  (Let "burst" (App (Val (GoInstruction (GoAlloc go.float64))) (App (Val (GoInstruction (GoZeroVal go.float64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.float64))) (Pair (App (Val (GoInstruction (GoLoad go.float64))) (Var "tokens")) (App (Val (GoInstruction (GoLoad go.float64))) (Var "burst")))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.float64))) (Var "burst"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.float64))) (Pair (Var "tokens") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.float64))) (Pair (Var "burst") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.float64))) (Pair (Var "tokens") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.float64))) (Pair (Var "delta") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "elapsed") (Var "$r0")))))))))
+  (If (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "last"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"Before"))) (Var "t")) (Var "$a0")))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "t"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "last") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "last") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad go.float64))) (Var "$res0")))))))
+
+/-- durationFromTokens is a unit conversion function from the number of tokens to the duration
+    of time it takes to accumulate them at a rate of limit tokens per second.
+
+    go: rate.go:405:20 -/
+noncomputable def Limit.durationFromTokens.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "limit"
+  (Lam "tokens"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "limit" (App (Val (GoInstruction (GoAlloc Limit.ty))) (Var "limit"))
+  (Let "tokens" (App (Val (GoInstruction (GoAlloc go.float64))) (Var "tokens"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoMul go.float64))) (Pair (App (Val (GoInstruction (GoOp GoDiv go.float64))) (Pair (App (Val (GoInstruction (GoLoad go.float64))) (Var "tokens")) (App (Val (GoInstruction (GoLoad Limit.ty))) (Var "limit")))) (App (Val (GoInstruction (Convert _root_.Perennial.time.Duration.ty go.float64))) (Val #(W64 1000000000)))))
+  (Let "duration" (App (Val (GoInstruction (GoAlloc go.float64))) (App (Val (GoInstruction (GoZeroVal go.float64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.float64 _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoLoad go.float64))) (Var "duration")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.float64))) (Pair (App (Val (GoInstruction (GoLoad go.float64))) (Var "duration")) (Val #(W64 4890909195324358656)))))
+  (Let "$r0" (Val InfDuration)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.float64))) (Pair (Var "duration") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe Limit.ty))) (Pair (App (Val (GoInstruction (GoLoad Limit.ty))) (Var "limit")) (Val #(W64 0)))))
+  (Let "$r0" (Val InfDuration)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "$res0"))))))
+
+/-- tokensFromDuration is a unit conversion function from a time duration to the number of tokens
+    which could be accumulated during that duration at a rate of limit tokens per second.
+
+    go: rate.go:422:20 -/
+noncomputable def Limit.tokensFromDuration.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "limit"
+  (Lam "d"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.float64))) (App (Val (GoInstruction (GoZeroVal go.float64))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "limit" (App (Val (GoInstruction (GoAlloc Limit.ty))) (Var "limit"))
+  (Let "d" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "d"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoMul go.float64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Duration.ty) go!"Seconds"))) (Var "d")) (Val #())) (App (Val (GoInstruction (GoLoad Limit.ty))) (Var "limit"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.float64))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe Limit.ty))) (Pair (App (Val (GoInstruction (GoLoad Limit.ty))) (Var "limit")) (Val #(W64 0)))))
+  (Let "$r0" (Val #(W64 0))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.float64))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad go.float64))) (Var "$res0"))))))
+
 noncomputable instance info' : PkgInfo pkg_id.golang_org.x.time.rate where
   pkgImportedPkgs := [pkg_id.context, pkg_id.sync, pkg_id.time]
 
@@ -195,10 +498,20 @@ class Limit.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   underlying : go.UnderlyingDirectedEq Limit.ty Limit.underlying
   method_set : go.MethodSetIs Limit.ty [(go!"golang.org/x/time/rate.durationFromTokens", (some (go.signature.Signature [go.float64] false [_root_.Perennial.time.Duration.ty]))), (go!"golang.org/x/time/rate.tokensFromDuration", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [go.float64])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Limit.ty) [(go!"golang.org/x/time/rate.durationFromTokens", (some (go.signature.Signature [go.float64] false [_root_.Perennial.time.Duration.ty]))), (go!"golang.org/x/time/rate.tokensFromDuration", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [go.float64])))]
+  durationFromTokens_unfold : MethodUnfold Limit.ty go!"durationFromTokens" Limit.durationFromTokens.impl
+  tokensFromDuration_unfold : MethodUnfold Limit.ty go!"tokensFromDuration" Limit.tokensFromDuration.impl
+  ptr_durationFromTokens_unfold : MethodUnfold (go.GoType.PointerType Limit.ty) go!"durationFromTokens" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Limit.ty go!"durationFromTokens"))) (App (Val (GoInstruction (GoLoad Limit.ty))) (Var "$r"))))
+  ptr_tokensFromDuration_unfold : MethodUnfold (go.GoType.PointerType Limit.ty) go!"tokensFromDuration" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Limit.ty go!"tokensFromDuration"))) (App (Val (GoInstruction (GoLoad Limit.ty))) (Var "$r"))))
 
 attribute [instance] Limit.TypeAssumptions.underlying
   Limit.TypeAssumptions.method_set
   Limit.TypeAssumptions.ptr_method_set
+  Limit.TypeAssumptions.durationFromTokens_unfold
+  Limit.TypeAssumptions.tokensFromDuration_unfold
+  Limit.TypeAssumptions.ptr_durationFromTokens_unfold
+  Limit.TypeAssumptions.ptr_tokensFromDuration_unfold
 
 structure Limiter [GooseExts] where
   mk ::
@@ -247,6 +560,10 @@ class Limiter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   set_lastEvent : ∀ (x : Limiter) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet Limiter.underlying go!"lastEvent") (PairV #x #y) (Val #(({ x with lastEvent' := y } : Limiter)))
   method_set : go.MethodSetIs Limiter.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Limiter.ty) [(go!"Allow", (some (go.signature.Signature [] false [go.bool]))), (go!"AllowN", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, go.int] false [go.bool]))), (go!"Burst", (some (go.signature.Signature [] false [go.int]))), (go!"Limit", (some (go.signature.Signature [] false [Limit.ty]))), (go!"Reserve", (some (go.signature.Signature [] false [(go.GoType.PointerType Reservation.ty)]))), (go!"ReserveN", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, go.int] false [(go.GoType.PointerType Reservation.ty)]))), (go!"SetBurst", (some (go.signature.Signature [go.int] false []))), (go!"SetBurstAt", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, go.int] false []))), (go!"SetLimit", (some (go.signature.Signature [Limit.ty] false []))), (go!"SetLimitAt", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, Limit.ty] false []))), (go!"Tokens", (some (go.signature.Signature [] false [go.float64]))), (go!"TokensAt", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.float64]))), (go!"Wait", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"WaitN", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int] false [go.error]))), (go!"golang.org/x/time/rate.advance", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.float64]))), (go!"golang.org/x/time/rate.reserveN", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, go.int, _root_.Perennial.time.Duration.ty] false [Reservation.ty]))), (go!"golang.org/x/time/rate.wait", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int, _root_.Perennial.time.Time.ty, (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty), (go.GoType.FunctionType (go.signature.Signature [] false [go.bool])), (go.GoType.FunctionType (go.signature.Signature [] false []))]))] false [go.error])))]
+  ptr_Reserve_unfold : MethodUnfold (go.GoType.PointerType Limiter.ty) go!"Reserve" Limiter.Reserve.impl
+  ptr_ReserveN_unfold : MethodUnfold (go.GoType.PointerType Limiter.ty) go!"ReserveN" Limiter.ReserveN.impl
+  ptr_advance_unfold : MethodUnfold (go.GoType.PointerType Limiter.ty) go!"advance" Limiter.advance.impl
+  ptr_reserveN_unfold : MethodUnfold (go.GoType.PointerType Limiter.ty) go!"reserveN" Limiter.reserveN.impl
 
 attribute [instance] Limiter.TypeAssumptions.type_repr
   Limiter.TypeAssumptions.underlying
@@ -264,6 +581,10 @@ attribute [instance] Limiter.TypeAssumptions.type_repr
   Limiter.TypeAssumptions.set_lastEvent
   Limiter.TypeAssumptions.method_set
   Limiter.TypeAssumptions.ptr_method_set
+  Limiter.TypeAssumptions.ptr_Reserve_unfold
+  Limiter.TypeAssumptions.ptr_ReserveN_unfold
+  Limiter.TypeAssumptions.ptr_advance_unfold
+  Limiter.TypeAssumptions.ptr_reserveN_unfold
 
 structure Reservation [GooseExts] where
   mk ::
