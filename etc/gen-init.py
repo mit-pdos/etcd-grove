@@ -5016,6 +5016,10 @@ NET_PKGS = ['net', 'github_com.mit_pdos.etcd_grove.examples.net.wire'] + \
 NET_PKGS += ['models_lab.pbcodec', 'models_lab.jsoncodec']
 # (2026-11-22, notes/remote-port-plan.md) clients on machines of their own (`examples/lib/remote`).
 NET_PKGS += ['github_com.mit_pdos.etcd_grove.examples.lib.remote']
+# (2026-11-22) its counter instance (R4) and the instance's four commands, programs of the part.
+REMOTE_NODES = ['orch', 'client0', 'client1', 'server']
+NET_PKGS += ['github_com.mit_pdos.etcd_grove.examples.lib.remote.counter'] + \
+    [f'github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.cmd.{n}' for n in REMOTE_NODES]
 # Each example's nodes, a command each (`examples/net/<ex>/cmd/<node>`): the programs.
 NET_NODES = {'echo': ['server', 'client', 'junk'], 'framed': ['server', 'client', 'junk'],
             'acceptloop': ['server', 'client'], 'duplex': ['server', 'client'],
@@ -5028,6 +5032,9 @@ NET_PKGS += [f'github_com.mit_pdos.etcd_grove.examples.net.{ex}.cmd.{n}'
 NET_PROGRAMS = {f'github_com.mit_pdos.etcd_grove.examples.net.{ex}.cmd.{n}':
                f'Proof/github_com/mit_pdos/etcd_grove/examples/net/{ex}/cmd/{n}/PkgTable.lean'
                for ex, ns in NET_NODES.items() for n in ns}
+NET_PROGRAMS.update({f'github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.cmd.{n}':
+                     f'Proof/github_com/mit_pdos/etcd_grove/examples/lib/remote/counter/cmd/{n}/PkgTable.lean'
+                     for n in REMOTE_NODES})
 
 
 # The main tree's packages the part's `net` imports (`os`, and the packages `os` imports): their
@@ -5036,7 +5043,8 @@ NET_MAIN = ['os', 'syscall', 'internal.poll', 'io.fs', 'internal.syscall.unix']
 # (2026-11-22) and the main tree's packages `examples/lib/remote` imports: lintest's driver and
 # porcupine (their `Init.lean` import the main tree's `PkgInitExt`, which the part's replaces).
 NET_MAIN += ['github_com.anishathalye.porcupine', 'github_com.mit_pdos.etcd_grove.examples.lib.lintest',
-             'github_com.mit_pdos.etcd_grove.examples.lib.lintest.perclient']
+             'github_com.mit_pdos.etcd_grove.examples.lib.lintest.perclient',
+             'github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter']
 
 
 def net_prefix(txt, made=()):
