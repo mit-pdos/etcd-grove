@@ -119,7 +119,7 @@ func (n *NetNemesis) Step() (heal func() error, err error) {
 		}, nil
 	}
 	a, b, isolated := RandomPartition(n.Machines)
-	reset := rand.IntN(4) == 0
+	reset := n.Net.CanReset() && rand.IntN(4) == 0
 	var bs []Block
 	if rand.IntN(4) == 0 {
 		// one way: a's packets to b are lost, b's to a arrive
