@@ -556,6 +556,9 @@ PROJECTS = [
             "google.golang.org/grpc/status",
             # names only: the target of the alias grpc/status.Status (client/v3/leasing)
             "google.golang.org/grpc/internal/status",
+            # (phase 7 S2, 2026-11-22) types only: `grpcsync.Event`, the type of `grpc.Server`'s
+            # `quit`/`done` fields
+            "google.golang.org/grpc/internal/grpcsync",
             # the types of protobuf messages' fields (protoimpl.MessageState, ...)
             "google.golang.org/protobuf/runtime/protoimpl",
             "google.golang.org/protobuf/internal/impl",
