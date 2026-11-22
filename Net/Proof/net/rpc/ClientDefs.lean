@@ -56,7 +56,8 @@ namespace net.rpc
 
 /-- The ghost names of a client: its connection's (`Proto.lean`), the numbers issued (`sq`, a ghost
 variable, halves in `mutex`'s and `reqMutex`'s invariants), and whether it is shut down (`down`,
-halves in `mutex`'s invariant and with the reader while it runs). -/
+a half in `mutex`'s invariant, a quarter in `reqMutex`'s and one with the reader while it runs:
+the reader shuts the client down holding both locks, so the holder of either knows). -/
 structure ClientNames where
   conn : RpcConnNames
   sq : GName
@@ -194,6 +195,7 @@ def sendInv (γ : ClientNames) (c cc : Loc) (cn : Nat) (W : RpcWorld GF) (a : Go
     structFieldRef net.rpc.clientCodec go!"werr" cc ↦ w0 ∗
     sendTok (Gg := hG.goose_globalGS) cn false (reqProto W a) Wd ∗
     monoListAuthOwn γ.conn.reqs (1 : Qp).half L ∗ ghostVar γ.sq (1 : Qp).half n ∗
+    (∃ sd : Bool, ghostVar γ.down (1 : Qp).half.half sd) ∗
     ⌜(∀ r ∈ L, reqOk r) ∧ L.length ≤ n ∧ Wd <+: reqsWire L ∧
       (w0 = interface.nil → Wd = reqsWire L ∧ L.length = n)⌝)
 
@@ -223,7 +225,7 @@ the client is not shut down. -/
 def readerOwn (γ : ClientNames) (cn : Nat) (W : RpcWorld GF) (a : GoString) : IProp GF :=
   iprop(∃ C : List Ans,
     recvTok (Gg := hG.goose_globalGS) cn false (respProto W a) (framesOf (C.flatMap ansPls)) ∗
-    ghostVar γ.down (1 : Qp).half false ∗ ⌜∀ x ∈ C, ansOk x⌝)
+    ghostVar γ.down (1 : Qp).half.half false ∗ ⌜∀ x ∈ C, ansOk x⌝)
 
 instance clientAt_persistent (c : Loc) (W : RpcWorld GF) (a : GoString) (γ : ClientNames)
     (cc t : Loc) (cn : Nat) (la ra : GoInterface) : Persistent (clientAt c W a γ cc t cn la ra) := by

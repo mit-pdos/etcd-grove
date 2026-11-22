@@ -7,7 +7,7 @@ registered codec (`codecSet C`; `C.enc body Ψ0`, whose bytes are `eb`), and wri
 `Write`.
 
 The writer is the library's (`GooseLang/Ext/Net/Proto.lean`): the caller has written `W0` with the
-protocol `Pr` (`sendTok`), and its update `reqUpd` turns the encoding's `Ψ0 eb` into the protocol
+protocol `Pr` (`sendTok`), and its update `reqUpd` (needed only without a write error) turns the encoding's `Ψ0 eb` into the protocol
 fact of what it will have written (`□ Pr cn (W0 ++ reqWire seq sm eb)`) and its own `Ψ eb`: the
 place where a caller records the request it is about to send. It
 returns `nil` with the whole request written, or the `Write`'s error (`resErr`, an `*OpError`), the
@@ -56,13 +56,13 @@ abbrev clientCodec.WriteRequest.spec : Prop :=
       globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed ∗
       structFieldRef net.rpc.clientCodec go!"werr" c ↦ w0 ∗ r ↦ rv ∗ codecSet C ∗
       sendTok (Gg := hG.goose_globalGS) cn s Pr W0 ∗
-      C.enc body Ψ0 ∗ reqUpd cn Pr W0 rv.Seq' rv.ServiceMethod' Ψ0 Ψ }}
+      C.enc body Ψ0 ∗ (⌜w0 = interface.nil⌝ -∗ reqUpd cn Pr W0 rv.Seq' rv.ServiceMethod' Ψ0 Ψ) }}
     (App (App (Val (c @!! go.GoType.PointerType net.rpc.clientCodec.ty @!! go!"WriteRequest"))
       (Val #r)) (Val #body))
   {{ (err : GoInterface), RET #err; r ↦ rv ∗
       ((⌜w0 ≠ interface.nil ∧ err = w0⌝ ∗ structFieldRef net.rpc.clientCodec go!"werr" c ↦ w0 ∗
           sendTok (Gg := hG.goose_globalGS) cn s Pr W0 ∗
-          C.enc body Ψ0 ∗ reqUpd cn Pr W0 rv.Seq' rv.ServiceMethod' Ψ0 Ψ) ∨
+          C.enc body Ψ0) ∨
         (⌜w0 = interface.nil⌝ ∗ ∃ eb, Ψ eb ∗
           ((⌜err = interface.nil⌝ ∗ structFieldRef net.rpc.clientCodec go!"werr" c ↦ err ∗
               sendTok (Gg := hG.goose_globalGS) cn s Pr

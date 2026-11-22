@@ -60,7 +60,7 @@ theorem clientCodec.WriteRequest.wp_proof (wp_getCodec : getCodec.spec (GF := GF
     iapply HΦ
     iframe Hr
     ileft
-    iframe Hwerr Htok Henc Hupd
+    iframe Hwerr Htok Henc
     ipureintro; exact ⟨fun h => (by cases h), rfl⟩
   | nil =>
   wp_auto
@@ -88,6 +88,7 @@ theorem clientCodec.WriteRequest.wp_proof (wp_getCodec : getCodec.spec (GF := GF
     have := sint_nat_lt' h2.len
     simp [strEnc_length, u64Le_length] at Hh2l
     omega
+  ihave Hupd := Hupd $$ %trivial
   unfold reqUpd
   imod Hupd $$ %eb %hfit HΨ0 with ⟨#Hproto, HΨ⟩
   wp_apply wp_putFrame b1 _ sl (DFrac.own 1) eb $$ [$Hb1 $Hb1c $Hsl] as %b2 ⟨Hb2, Hb2c, Hsl⟩

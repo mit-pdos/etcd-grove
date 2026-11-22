@@ -40,6 +40,7 @@ theorem NewClientWithCodec.wp_proof (wp_input : Client.input.spec (GF := GF) (hG
   icases (ghostVar_split_half γsq 1 (0 : Nat)).1 $$ Hsq with ⟨Hsq1, Hsq2⟩
   imod ghostVar_alloc (GF := GF) false with ⟨%γd, Hd⟩
   icases (ghostVar_split_half γd 1 false).1 $$ Hd with ⟨Hd1, Hd2⟩
+  icases (ghostVar_split_half γd (1 : Qp).half false).1 $$ Hd2 with ⟨Hd2, Hd3⟩
   imod receipt_zero (GF := GF) with Hr0
   iunfold rpcDialed at Hdial
   icases Hdial with ⟨#Hrpc, Hreqs, Hnm, Hsend, Hrecv⟩
@@ -47,11 +48,13 @@ theorem NewClientWithCodec.wp_proof (wp_input : Client.input.spec (GF := GF) (hG
   let γc : ClientNames := ⟨γ, γsq, γd⟩
   imod sync.init_Mutex (sendInv γc «$r0_ptr» cc cn W a) ⊤
       (structFieldRef net.rpc.Client go!"reqMutex" «$r0_ptr») $$ reqMutex
-      [request Hwerr Hsend Hreqs Hsq1] with #Hsmu
+      [request Hwerr Hsend Hreqs Hsq1 Hd3] with #Hsmu
   · inext
     iunfold sendInv
     iexists zero_val net.rpc.Request, interface.nil, [], [], 0
     iframe request Hwerr Hsend Hreqs Hsq1
+    isplitl [Hd3]
+    · iexists false; iexact Hd3
     ipureintro
     simp [reqsWire]
   imod sync.init_Mutex (muInv γc «$r0_ptr») ⊤
