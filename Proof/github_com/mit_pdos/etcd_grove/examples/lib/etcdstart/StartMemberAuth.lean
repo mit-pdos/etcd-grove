@@ -173,7 +173,7 @@ theorem StartMemberAuth.wp_proof
     iapply isServerBuilt_of_gapM
     iframe
   iunfold srvMonitorCfg at Hmon
-  icases Hmon with ⟨#Hmc, #Hmd, #Hmf, Hlgm, #Hmw, #Hmie⟩
+  icases Hmon with ⟨#Hmc, #Hmd, #Hmf, Hlgm, #Hmw⟩
   ihave #Hoff : srvMonitorsOff srv $$ []
   · iunfold srvMonitorsOff
     isplitr; · iExactEq Hmc; rfl
@@ -182,9 +182,7 @@ theorem StartMemberAuth.wp_proof
     · iexists _
       iframe Hmf Hfgc
     -- (wal-link L2) no WAL purge: the literal leaves `MaxWALFiles` zero
-    isplitr; · iExactEq Hmw; rfl
-    -- (prove-ps2-srv) no initial election tick advance: the literal leaves it false
-    iExactEq Hmie; rfl
+    iExactEq Hmw; rfl
   iunfold srvServeBuilt at Hserve
   icases Hserve with ⟨#Hsf, Hbemu, Hlg1, Hlg2⟩
   -- `s.Start()` at the auth slot's `on γa`: the built part as the slot's row

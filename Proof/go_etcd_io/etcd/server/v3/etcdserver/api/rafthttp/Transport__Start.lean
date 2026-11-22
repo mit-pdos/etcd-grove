@@ -15,6 +15,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer__stop
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote__stop
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__SendSnapshot
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__ActiveSince
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__ActivePeers
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.TransportSpecs
 
 @[expose] public section
@@ -44,9 +45,10 @@ theorem rafthttp.Transport.Start.wp_proof
     (hPeerStop : rafthttp.peer.stop.spec (GF := GF) (hG := hG))
     (hRemoteStop : rafthttp.remote.stop.spec (GF := GF) (hG := hG))
     (hSS : rafthttp.Transport.SendSnapshot.spec (GF := GF) (hG := hG))
-    (hAS : rafthttp.Transport.ActiveSince.spec (GF := GF) (hG := hG)) :
+    (hAS : rafthttp.Transport.ActiveSince.spec (GF := GF) (hG := hG))
+    (hAP : rafthttp.Transport.ActivePeers.spec (GF := GF) (hG := hG)) :
     rafthttp.Transport.Start.spec (GF := GF) (hG := hG) :=
-  rafthttp.Transport.Start_ok hNSRT hNRT hNewProber hEvery hSend hPeerStop hRemoteStop hSS hAS
+  rafthttp.Transport.Start_ok hNSRT hNRT hNewProber hEvery hSend hPeerStop hRemoteStop hSS hAS hAP
 
 end proof
 
