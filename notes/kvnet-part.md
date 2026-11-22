@@ -785,7 +785,7 @@ Then `Run`/`RunNode` need no change (they are generic in `S`); the top level ins
 
 ## `StartNode` proved (2026-11-22, fourth session on `kvnet-proof`)
 
-`StartNode.wp_proof γ vs dir` (`StartNode.lean`): `StartNode.spec (kvFacts γ (fun _ => True)) (kvRep γ vs dir)
+`lake build KvNet` 3028 jobs green. `StartNode.wp_proof γ vs dir` (`StartNode.lean`): `StartNode.spec (kvFacts γ (fun _ => True)) (kvRep γ vs dir)
 kvConfRead (kvNodeStart γ vs dir)`, kvdurable's `Cluster.start` over the network, in the handoff's seven steps.
 No axiom or `sorry`. What changed on the way (each with a ledger entry of 2026-11-22):
 
@@ -807,7 +807,9 @@ No axiom or `sorry`. What changed on the way (each with a ledger entry of 2026-1
 
 **Next** (the session's tasks 3-4, unchanged): kvcheck's `checker.conf` (a `GetStatus` spec on any bytes, as
 `GetConfChange`'s: the protocol puts no obligation on a status answer, so it needs any-bytes variants of
-`getConfState`/`getIDs` and `getMap`/`getBytes`, as `getUint64.specAny`; `conf`'s caller only stores `s.Conf`), `reconfigure` (`PutConfChange`: the payload bound, `randomChange`'s post), `Check` over lintest
+`getConfState`/`getIDs` and `getMap`/`getBytes`, as `getUint64.specAny`; `conf`'s caller only stores `s.Conf`); done: `getBytes.specAny`, `getMap.specAny` (`getBytesAny.lean`, `getMapAny.lean`); left: `getIDs`,
+`getConfState`, then `GetStatus` (a shortcut: when the bytes decode, apply the valid-bytes spec, run only the failing
+paths by hand), `reconfigure` (`PutConfChange`: the payload bound, `randomChange`'s post), `Check` over lintest
 (kvdurable's `DriverLemmas`/`Run` are the template: the porcupine result from the lintest theory); then kvnet's
 `Link.lean`, the crash frame (the obligation's lemma: open `kdFileInvK` with `tk`, `durInv_crash`,
 `kd_boot_choose`, `kd_file_alloc`), `TopLevelRobustness`, the corollary, non-vacuity, a tcb collection.
