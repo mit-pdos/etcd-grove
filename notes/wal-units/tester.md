@@ -1119,3 +1119,47 @@ Remaining there, the `k = 0` exit:
   (`os.cfr_natZ`, `os.cfr_W64_addI`), not `rw` with `W64 ↑(o + j)`.
 - `word` inside a proof whose context has many `sint.Z` facts gave a kernel "application type mismatch". The
   arithmetic goes in standalone lemmas (`os.cfr_sumZ`, …).
+
+# Handoff (branch `wal-safe`, 2026-11-22, session 10 of etcd-grove-03's delegates): `io.CopyFiles.spec` proved
+
+**State:** no axiom and no `sorry` added. `copyFiles` is gone from `TOpen` and from the WAL and tester Links'
+hypotheses (`etc/gen-link.py --walfs`/`--wal-tester` regenerated: the WAL Link has `io.wp_CopyFiles`, from
+`io.CopyFiles.wp_proof` and `os.File.wp_WriteAtLong`). `Hinit_wp` and the other `TOpen` fields are unchanged.
+
+**The proof** (`Proof/io/`, all defs-tier lemmas but the last):
+- `CopyPoll.lean`, `os.wp_pollCFR`: `model.pollCopyFileRange`'s loop, now finished (the no-progress exit:
+  errno 0, `handleCopyFileRangeErr`'s six unhandled errnos, any other errno wrapped by `wrapSyscallError` into a
+  `*SyscallError`). Its post also says the error is `nil` or a `*SyscallError`. The fragile
+  `conv in (occs := 9)` is gone: the proof stops one `wp_pure` earlier, `wp_bind`s the loop's application and
+  names its two arguments with the lemma `os.wp_genArgs2`.
+- `CopyGeneric.lean`, `io.wp_copyGeneric`: `genericReadFrom`'s `io.Copy(fileWithoutReadFrom{bf},
+  fileWithoutWriteTo{f})`, `copyBuffer`'s 32 KiB loop over `os.File.Read.wp_eof` and `os.File.Write.wp_long`.
+  The copy's state over the `*File`s is `io.cpS` (at `j`), its end `io.cpFin` (the spec's post); `io.copyDst_open`
+  and `io.copyDst_wrote` carry the destination through a write at its end (success and failure,
+  `io.cpOk_pwPostE`).
+- `CopyFrom.lean`, `os.wp_ReadFrom_cp`: `bf.ReadFrom(fileWithoutWriteTo{f})`: `checkValid`, the trusted
+  `readFrom`/`copyFileRange` (`tryLimitedReader`, the type switch, `wp_pollCFR`), then either `wrapErr` (handled)
+  or `spliceToFile` (`getPollFDAndNetwork`: the source's `rawConn` has no `PollFD`) and `io.wp_copyGeneric`.
+- `CopyFiles.lean`, `io.CopyFiles.wp_proof (wp_WriteAt : os.File.WriteAt.specLong)`: the `*LockedFile`'s promoted
+  `WriteTo`, `File.writeTo` (`bf`'s `rawConn`: no `sendfile`), `genericWriteTo`, `copyBuffer`'s `ReaderFrom`
+  branch, `os.wp_ReadFrom_cp` at `j = 0` (the `O_TRUNC` destination is `io.copyDst (· = [])`, `io.trFile_copyDst`).
+
+**A package fact strengthened** (`etc/gen-init.py`, `Proof/internal/poll/PkgInit.lean`; Init files of every part
+and RaftTla's copies regenerated): `internal/poll`'s `ErrFileClosing` holds an `*errorString` (its translated
+`errors.New`), not just some error. `wrapErr` compares the `*SyscallError` with it; with an unknown interface of
+the same pointer type the comparison has no step (`GoOp GoEquals` on pointers needs two locations).
+
+**Interface type assertions:** `go_type_set` (Perennial's `TypeSet.lean`) decides `go.typeSetContains` from the
+method sets; `simp only [h, ↓reduceIte]` then lets `wp_auto` go on.
+
+**Pitfalls (new).**
+- `etc/lean-check.py` without `-a` can report errors of an earlier version of the file (and goals of the
+  wrong state): check with `-a` before trusting an error or a goal.
+- A `local macro` that names an Iris hypothesis must take it as an argument of category `pmTerm`
+  (`iapply $h`): hygiene renames a literal `HΦ`.
+- `⌜a' = a⌝ -∗ …` inside a Lean `∀` of a lemma statement elaborates as a `Prop` entailment; write
+  `∀ a' : T, ∀ b' : T, ⌜…⌝ -∗ …` (one binder per `∀`, as `wa_wp_call1_gen`).
+- `(by cases h, x)` inside an anonymous constructor: the tactic block swallows the comma; parenthesize.
+- `iframe` does not look inside `"name" ∷ P`: `unfold named` first.
+
+**Next:** the remaining `TOpen` fields and `Hinit_wp` wait on the user's decisions (sessions 8-9 above).
