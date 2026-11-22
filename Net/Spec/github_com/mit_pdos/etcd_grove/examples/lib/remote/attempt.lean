@@ -1,6 +1,6 @@
 /-
 `attempt(addr, req, d)`: one try of a call to the node at `addr` (`remoteAddr`): it dials, registers
-the connection's slot with the update `lin R i Φ` (`slot_register`), writes the request `req` (the
+the connection's slot with the update `slotUpd R i Φ` (`slot_register`), writes the request `req` (the
 bytes of `i`, at most `maxLen`), reads the reply and closes. It returns `true` only with the bytes of
 a value `v` the far side answered (`rep_read`): an output `ov o`, with `Φ o` taken from the slot
 (`slot_take`), or `i`'s unknown output. On a failure the update stays in the slot, which the far
@@ -35,7 +35,7 @@ abbrev attempt.spec : Prop :=
     (d : w64),
   (R.encIn i).length ≤ maxLen →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote ∗ mapCtx (Gg := hG.goose_globalGS) (I := I) ∗ remoteAddr (Gg := hG.goose_globalGS) R a ∗
-      req ↦*{dq} R.encIn i ∗ lin (Gg := hG.goose_globalGS) R i Φ }}
+      req ↦*{dq} R.encIn i ∗ slotUpd (Gg := hG.goose_globalGS) R i Φ }}
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.remote.attempt)) (Val #a)) (Val #req)) (Val #d))
   {{ (rep : GoSlice) (ok : Bool), RET (PairV #rep #ok); req ↦*{dq} R.encIn i ∗
       (⌜ok = false⌝ ∨ ∃ v, ⌜ok = true⌝ ∗ rep ↦* R.encOut v ∗

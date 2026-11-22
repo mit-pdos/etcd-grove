@@ -4439,8 +4439,9 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   firing leaves a later firing (whose output may differ) unable to produce its `Φ`; committing at the
   return is not a linearization point (other clients commit in between). "A read leaves the state
   unchanged" makes every firing a valid point, but the proof still has to pick the one whose output is
-  returned. txnlin's `Apply` picks it with its revision prophecy (`callInv`), which the user's rule (kv
-  through txnlin without prophecies) removes from the client machine. Also: `lin` (one-shot) cannot yield
+  returned. txnlin's `Apply` picks it with its revision prophecy (`callInv`), which `remote`'s design
+  (`notes/remote-port-plan.md` §3/§7: node 0's `Do` makes the prophecy, the client's `op` is txnlin's call
+  without its own) removes from the client machine. Also: `lin` (one-shot) cannot yield
   a persistent update, so "`lin` for a read yields the read form" holds only in the other direction (a
   read-form operation fired once meets the one-shot form).
 - **Evidence.** The argument above; no proof attempted. Separately, txnlin's `Call.spec` cannot be stated
@@ -4453,6 +4454,9 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   committed at o)`; with `codecOk` (decode of encode is the identity) the returned output's `Φ` is the
   commit. The slot body, `serveConn`, `attempt`, `Do`, `Pend` change; the counter's server (one firing) and
   client (a `Do`) meet the read form directly; `counter_remote_robust`'s statement is unchanged.
-  (B) keep the one-shot form and give `Call` a prophecy at the client machine (against the user's rule).
+  (B) keep the one-shot form and give `Call` a prophecy at the client machine (against `remote-port-plan.md` §3/§7's design).
   (C) an etcd-specific revision prophecy at node 0 (not generic).
-- **Decision.** Pending (asked of the coordinator, 2026-11-22); nothing edited.
+- **Decision.** 2026-11-22, kaashoek via etcd-grove-03: option A (the user's decision): `remote.Do` prophesies
+  the answered reply's bytes; a read commits lintest's update at the first firing whose output encodes to them.
+  Applied on `etcd-dist` (`Defs.slotUpd`, `Do.spec`'s choice over the bytes, `pend_choice`'s read commit
+  invariant; `Run.spec`/`Check.spec` gain the premise that distinct outputs have distinct bytes).

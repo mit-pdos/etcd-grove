@@ -5,8 +5,7 @@ literals, each against its part of `codecOk (cR γ)`. The inputs and outputs are
 (`u64Le_getElem`), at `1+i` of a fresh 9-byte slice; `DecOut` ors `uint64(b[1+i]) << (8*i)` into
 `n`, which is `leToU64` of the first `i` bytes (`leToU64_take_succ`), and `u64Le`'s decoding is the
 value back; both loops as `remote`'s `putU64`/`getU64` (their lemmas copied here: a proof imports
-no proof). An output's bytes are `encOutB` (`encOutV_outV`, as `Out` values determine their
-fields: `out_intoValInj`).
+no proof). An output's bytes are `encOutB` (`encOutV_outV`, in `Defs.lean`).
 -/
 module
 
@@ -27,52 +26,6 @@ namespace github_com.mit_pdos.etcd_grove.examples.lib.remote.counter
 
 open github_com.mit_pdos.etcd_grove.examples.lib.remote
 
-section inj
-variable [GooseExts] [go_gctx : GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
-variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Assumptions]
-
-/-- An `Out` value determines its fields (its fields' loads are deterministic). -/
-instance out_intoValInj : go.IntoValInj Out where
-  intoVal_inj x y h := by
-    have hu : ∀ z : Out, is_go_step_pure (StructFieldGet Out.underlying go!"Unknown")
-        #z = Eq (Val #(z.Unknown')) := fun z =>
-      (Out.TypeAssumptions.get_Unknown z).isGoStep_det_internal.isGoStep_pure_det
-    have hn : ∀ z : Out, is_go_step_pure (StructFieldGet Out.underlying go!"N")
-        #z = Eq (Val #(z.N')) := fun z =>
-      (Out.TypeAssumptions.get_N z).isGoStep_det_internal.isGoStep_pure_det
-    have e1 := hu x
-    rw [h, hu y] at e1
-    have e2 := hn x
-    rw [h, hn y] at e2
-    have f1 : Val #(x.Unknown') = Val #(y.Unknown') := by
-      have := congrFun e1 (Val #(x.Unknown')); simp only [eq_iff_iff, iff_true] at this
-      exact this.symm
-    have f2 : Val #(x.N') = Val #(y.N') := by
-      have := congrFun e2 (Val #(x.N')); simp only [eq_iff_iff, iff_true] at this; exact this.symm
-    injection f1 with f1
-    injection f2 with f2
-    cases x; cases y
-    simp only [Out.mk.injEq]
-    exact ⟨GoGlobalContext.intoVal_inj_bool f1, GoGlobalContext.intoVal_inj_w64 f2⟩
-
-theorem codec_outV_inj {u u' : Bool} {n n' : w64} (h : outV u n = outV u' n') : u = u' ∧ n = n' := by
-  simp only [outV, interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, true_and] at h
-  have h' := go.intoVal_inj h
-  simp only [Out.mk.injEq] at h'
-  exact h'
-
-/-- `Out{u, n}`'s bytes. -/
-theorem encOutV_outV (u : Bool) (n : w64) : encOutV (outV u n) = encOutB u n := by
-  unfold encOutV
-  split
-  · rename_i h
-    obtain ⟨h1, h2⟩ := codec_outV_inj h.choose_spec
-    rw [← h1, ← h2]
-  · rename_i h
-    exact absurd ⟨(u, n), rfl⟩ h
-
-end inj
 
 section lemmas
 

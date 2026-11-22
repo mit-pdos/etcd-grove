@@ -501,12 +501,15 @@ noncomputable def attempt.impl [GooseExts] [GoGlobalContext] : val :=
     node answered, or codec.Unknown(in) if no attempt got an answer that decodes. A request longer
     than MaxLen is never sent: Do then never returns.
 
-    The prophecy says which attempt answered with a known output (tries: none, or the answer was
-    the unknown output); it does nothing in Go, and the proof of the caller's linearizability needs
-    it (the commit of an operation whose outcome will be unknown is made before the operation is
-    sent, and the commit of one that will be answered by the far side's).
+    The prophecies do nothing in Go; the proof of the caller's linearizability needs them. p says
+    which attempt answered with a known output (tries: none, or the answer was the unknown output):
+    the commit of an operation whose outcome will be unknown is made before the operation is sent,
+    and the commit of one that will be answered by the far side's. q says the bytes of that answer
+    (their count, then each byte): the far side may fire a read's update several times, at
+    different states, and the read commits at the first firing whose output encodes to those bytes
+    (notes/specs-only/ledger.md, 2026-11-22, "remote.opMaybe's read form").
 
-    go: remote.go:157:6 -/
+    go: remote.go:160:6 -/
 noncomputable def Do.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Lam "in"
@@ -529,6 +532,9 @@ noncomputable def Do.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.goose_lang.primitive.NewProph []))) (Val #())) (Val #()))
   (Let "p" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.goose_lang.primitive.NewProph []))) (Val #())) (Val #()))
+  (Let "q" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -583,9 +589,29 @@ noncomputable def Do.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int go.uint64))) (App (Val (GoInstruction (GoLoad go.int))) (Var "tries")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (Var "p")) (Var "$a0"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 0))
+  (Let "j" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "j")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "rep"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))))))) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.byte go.uint64))) (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "rep")) (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (Var "q")) (Var "$a0"))))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "j") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "j")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "j") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.int go.uint64))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "rep"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (Var "q")) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int go.uint64))) (App (Val (GoInstruction (GoLoad go.int))) (Var "k")))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (Var "p")) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (Var "p")) (Var "$a0")))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -603,6 +629,8 @@ noncomputable def Do.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "k") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "k")) (Val #(W64 1)))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "k") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty))) (Pair (Var "q") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty))) (Pair (Var "p") (Var "$r0")))))))))
   (If (Let "$a0" (App (Val (GoInstruction (GoLoad go.any))) (Var "in"))
@@ -632,7 +660,7 @@ noncomputable def Do.impl [GooseExts] [GoGlobalContext] : val :=
     prophecy, no retry (the loop writes). codec.IsRead, Unknown and IsUnknown are not used. A request
     longer than MaxLen is never sent: Report then never returns.
 
-    go: remote.go:192:6 -/
+    go: remote.go:200:6 -/
 noncomputable def Report.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Lam "in"
@@ -706,7 +734,7 @@ noncomputable def Report.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- listen listens at addr, retrying a failed Listen.
 
-    go: remote.go:205:6 -/
+    go: remote.go:213:6 -/
 noncomputable def listen.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.net.Listener.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.net.Listener.ty))) (Val #())))
@@ -760,7 +788,7 @@ noncomputable def listen.impl [GooseExts] [GoGlobalContext] : val :=
     writes the reply (within d of op's end), then closes. A request that does not arrive whole, or
     does not decode, is not run; an output whose encoding is longer than MaxLen is not sent.
 
-    go: remote.go:217:6 -/
+    go: remote.go:225:6 -/
 noncomputable def serveConn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "sys"
@@ -846,7 +874,7 @@ noncomputable def serveConn.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Serve is a node that serves calls: it listens at addr (retrying a failed Listen) and serves the
     connections one at a time, each request with op(sys, in) (serveConn). It never returns.
 
-    go: remote.go:236:6 -/
+    go: remote.go:244:6 -/
 noncomputable def Serve.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Lam "sys"
@@ -897,7 +925,7 @@ noncomputable def Serve.impl [GooseExts] [GoGlobalContext] : val :=
 /-- ServeClient is client node c's program: sys := newClient(c) (its own client of the system),
     then Serve at addr with op.
 
-    go: remote.go:248:6 -/
+    go: remote.go:256:6 -/
 noncomputable def ServeClient.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "addr"
@@ -932,7 +960,7 @@ noncomputable def ServeClient.impl [GooseExts] [GoGlobalContext] : val :=
     Do, the history traced with a counter clock and checked by porcupine against model within
     timeout (none if timeout <= 0).
 
-    go: remote.go:258:6 -/
+    go: remote.go:266:6 -/
 noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "model"
   (Lam "addrs"
@@ -990,7 +1018,7 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Check is Run with no timeout: it panics unless porcupine accepts the history (the theorem:
     it never panics).
 
-    go: remote.go:268:6 -/
+    go: remote.go:276:6 -/
 noncomputable def Check.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "model"
   (Lam "addrs"

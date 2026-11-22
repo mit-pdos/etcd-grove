@@ -295,7 +295,7 @@ keep one machine. `client.Args` gains `Nodes`, `IsNode`, `Node`.
   `kvremote.Orch` = `remote.Run(txnlin.Model(), nodes, Codec(), txnlin.Gen, ops, Attempt, 2 min)`
   (porcupine's timeout: Unknown is an end, not a failure); client machine *c* is `kvremote.Node`:
   `remote.ServeClient` whose `op` is **`txnlin.Call`, txnlin's `call` without prophecies** (new,
-  exported, with `IsWrite`: the user's decision; `Do` makes the prophecy), through a clientv3
+  exported, with `IsWrite`: `remote-port-plan.md` §3/§7's design, `Do` makes the prophecy), through a clientv3
   client of `rotate(eps, c)` made (retried) at the machine's start. A write gets one attempt and is
   otherwise `Output{Err: true}`, a read up to `ReadTries` (the user's: clients do not retry but
   reads). `Attempt` is `RequestTimeout + 5 s`, longer than a call. The codec is every field of
@@ -357,8 +357,8 @@ in D1. No check failed; no bug found.
    global ghost state), shown timeless, with each member's `etcdKV` agreeing with it.
 3. Then, as the counter: `PendDec` for txnlin's model (its `isModel` against `pM` exists:
    `Proof/.../txnlin/PendModel.lean`), `codecOk` of the codec, `opMaybe` of `Call` (from `Call.spec`:
-   a write's update fired at most once, a read's persistent read update: `remote-port-plan.md` §7's
-   risk, "reads that fire more than once", likely needs `opMaybe`'s read form), the nodes' WPs.
+   a write's update fired at most once, a read's persistent read update: `opMaybe`'s read form, done
+   2026-11-22, below), the nodes' WPs.
    `Report` needs a spec (a report's postcondition, no model) for watch, cache and auth.
 
 **Handoff (2026-11-22, end of the D8 Go session).** Branch `etcd-dist` (pushed), worktree
@@ -370,10 +370,19 @@ has no proof yet, so `etc/verified-code.py` counts it unverified). The txnlin ch
 modules (`etc/importers.py --count`). Next, in order: `Report.spec` and its proof in `Net/` (one
 `attempt`, a report's postcondition handed through the slot as `Do`'s, with no model); then the kv
 instance once D2 and D7 allow (the three points above); the watch, cache and auth instances over
-`Report` after it. Open decisions: (a) `opMaybe`'s read form (approved by the user, 2026-11-22, as a persistent read
-update): as proposed it cannot be met by node 0 without knowing which firing's output is returned;
-ledger `notes/specs-only/ledger.md`, 2026-11-22, "`remote.opMaybe`'s read form", recommends a node-0
-prophecy of the answered output (option A); nothing edited until that is decided; (b) whether a
+`Report` after it. **`opMaybe`'s read form, done (2026-11-22, option A, the user's decision; ledger 2026-11-22,
+"`remote.opMaybe`'s read form").** The far side now gets `slotUpd R i Φ`: a write's one-shot `lin`, a
+read's `□ lin` (fired zero or more times). `remote.Do` has a second prophecy, resolved with the answered
+reply's length and bytes (prophecy-only Go: `NewProph`, and `ResolveU64` calls in a loop over the reply's
+bytes); `Do.spec`'s choice takes those bytes `bs` and, if an answer comes, returns a slot update and a way
+from `Φb o` of an output whose bytes are `bs` (and a credit) to `Φ o`. `pend_choice` gives a read a read
+commit invariant (`readN`, beside `pendCtx` at `pendCtxN`, both in `pendN`) that commits lintest's update
+at the first firing whose output's bytes are `bs`. `Run.spec`/`Check.spec` take one new premise: distinct
+outputs have distinct bytes (`cR_encOut_inj` for the counter). `counter_remote_robust`'s statement is
+unchanged and it builds (`#print axioms`: `propext`, `Classical.choice`, `Quot.sound`). `txnlin.Call`
+meets the read form in shape (its read update is `callUpd`'s persistent read update), but the statement
+`opMaybe … Call` cannot be written in `Net/` until D2 (its import closure reaches the main tree's `net`)
+and D7 (one store state). Other open decisions: (b) whether a
 writer without an answer should rather be retried as reads are (it is a write: no, by the user's
 rule; kept as "all tried, none succeeded").
 
@@ -552,7 +561,7 @@ For upamanyus:
 | D5 transport | phase 7 S1-S5 | 60-110k lines (option B's estimate) | upamanyus |
 | D6 server | one `NewServer` spec for both starts; `walFoRes`; C6; the backend after a crash; `TrustBoundary` discharged | weeks | D4 |
 | D7 cluster | global/local ghost split, the restart invariant | weeks | D6 |
-| D8 clients (**Go done** 2026-11-22, §2 "Stage D8"; `remote` ported: `counter_remote_robust`) | (seams: §2, "Stage D1") port dsverify's `Remote` orchestration (`RunRemote`, `ServeClient`, `remoteDistSafe`) onto the net extension in `examples/lib/remote`, over `lintest`/`kvcheck` and the verified porcupine; each workload's client operations as `Remote` calls. Left: the Lean kv instance (blocked on D2's `net` and D7's one KV state), `Report`'s spec, watch/cache/auth instances | ~2k lines + the port | D1; Lean: D2, D7 |
+| D8 clients (**Go done** 2026-11-22, §2 "Stage D8"; `remote` ported: `counter_remote_robust`) | (seams: §2, "Stage D1") port dsverify's `Remote` orchestration (`RunRemote`, `ServeClient`, `remoteDistSafe`) onto the net extension in `examples/lib/remote`, over `lintest`/`kvcheck` and the verified porcupine; each workload's client operations as `Remote` calls. Left: the Lean kv instance (blocked on D2's `net` and D7's one KV state; `opMaybe`'s read form done 2026-11-22), `Report`'s spec, watch/cache/auth instances | ~2k lines + the port | D1; Lean: D2, D7 |
 | D9 assembly | the theorem; `WellFormed` consumed; retire `etcd_safe`, leaseexpiryN's | ~2k lines | all |
 
 **Interim milestone (Q7)**: D1, D2, D5 (S1-S5), D7 without crashes, D8, D9 over `goose_dist_adequacy`:

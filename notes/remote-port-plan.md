@@ -576,3 +576,12 @@ The coordinator approved the statement and both bridge changes (2026-11-22). Don
 - `etc/tcb-collections/remote-counter.txt` (roots `^Net/Proof/.../lib/remote/`), baseline empty (as
   `#print axioms` shows). `etc/tcb-report.py --check --update` needs the whole repository built
   (`check_built` checks every root module, ~20k modules), which this worktree is not; to run at landing.
+
+## The read form (2026-11-22, branch `etcd-dist`)
+
+The far side may fire a read's update more than once (etcd's `read_ok_au`), so `opMaybe` hands it
+`slotUpd R i Φ`: a write's one-shot `lin`, a read's `□ lin`. Node 0 commits a read at the first firing
+whose output's bytes are the answered reply's, which a second prophecy in `Do` gives (the reply's length,
+then its bytes, `ResolveU64` each). `Run`/`Check` take the premise that distinct outputs have distinct
+bytes. Decision and reasons: `notes/specs-only/ledger.md`, 2026-11-22, "`remote.opMaybe`'s read form";
+the details: `notes/etcd-dist-plan.md` §2, "Stage D8".
