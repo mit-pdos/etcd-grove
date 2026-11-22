@@ -47,6 +47,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.wal.openAtIndexLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RepairLocked
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RepairBrokenOpen
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RepairReg
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.DecTerm
 
 @[expose] public section
 
@@ -325,7 +326,8 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
       · ihave #Hde2 := Hde
         iunfold decEnv at Hde2
         icases Hde2 with ⟨-, -, #Hfmt, -, -, -, -, -, -, ⟨%ecm, #Hcm, #Hcmok, #Hcmnot⟩, -⟩
-        wp_apply wp_Validate «$r0_ptr» r c1x ecm _ eof $$ [Hr] as %verr ⟨Hr, Hv⟩
+        ihave %heofT := decEnv_eof_target _ _ _ $$ Hde
+        wp_apply wp_Validate «$r0_ptr» r c1x ecm eof heofT $$ [Hr] as %verr ⟨Hr, Hv⟩
         · iframe Hr; iframe #
         icases Hv with (⟨%hv1, %hv2⟩ | ⟨%hne, %ei, %hei, -, -⟩)
         · subst hv1

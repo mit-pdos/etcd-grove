@@ -4115,3 +4115,28 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   reviewed by the `axiom` skill (`notes/axiom-review/time-format-broken.md`: survives).
 - **Decision.** Made (the user's approval of item (4), 2026-11-22). Closes the 2026-11-14 entry ("its result
   unconstrained").
+
+## 2026-11-22: `fmt.ErrorfErrsNot.spec`/`fmt.ErrorfErrsTerm.spec` -- premises no proof can use (wal-safe, session 11)
+- **Spec.** `Spec/fmt/ErrorfErrsNot.lean`, `Spec/fmt/ErrorfErrsTerm.lean` (hypotheses of the WAL's `decodeRecord`,
+  `Record.Validate`, `readWALNames(Absent)`, `openWALFiles`; `TOpen`'s `errorfErrsNot`/`errorfErrsTerm`).
+- **Defect.** The premises on each error argument `e` are `errIsNot e t`/`errIsTerm e`: triples of `errors.Is(e, _)`.
+  But `errors.Is` on `Errorf`'s result never calls `errors.Is` on the argument: Go's `Is` runs `is(err, target, c)`, a
+  loop that on a `*fmt.wrapError` calls `Unwrap()` and continues the loop at the child (and recurses through `is`,
+  not `Is`, for `Unwrap() []error`). So a proof of the result's triple needs facts about every error of the
+  argument's tree (its `==` with the target, its `Is` and `Unwrap` methods: Perennial's `errors.Is.spec` takes
+  `errorWalkTree S I U target`), and a triple of `Is(e, _)` gives none of them. True of Go, unprovable from its
+  premises: hypotheses that could never be discharged. Second gap: with no `%w`, `errIsNot`'s `err ≠ t` needs the
+  result `*errorString` to differ from `t` (also an `*errorString`), and Perennial's `fmt.errorfErr` gives only
+  `l.[errorString, "s"] ↦□ s` (persistent: no freshness against `t`'s pointer).
+- **Evidence.** Go 1.27.3 `errors/wrap.go` (`Is`, `is`); Perennial `Spec/errors/Is.lean`, `Proof/fmt/Args.lean`
+  (`errorfErr`); session 8's analysis (`notes/wal-units/tester.md`).
+- **Proposed change.** State both over error trees, as `errors.Is.spec` takes them: `errTreeNot e t` (`e ≠ t`, and an
+  `errorIsTree S M t` containing `e` in which no error is `t` and no `Is` method answers `true`, `TreeTyped S t`) and
+  `errTreeTerm e` (for every pointer target `u`, an `errorIsTree S M u` containing `e`, `TreeTyped S u`), in
+  `Spec/errors/ErrTree.lean`; `errIsNot`/`errIsTerm` follow from them (`errIsNot_of_tree`, `errIsTerm_of_tree`).
+  Narrow both specs to what the WAL calls: a format with at most one `%w` argument (`ErrorfErrsTerm`), exactly one
+  (`ErrorfErrsNot`, all five call sites), so that the result is a fresh `*fmt.wrapError` (or, for `Term`, a leaf
+  `*errorString`); `ErrorfErrsNot` takes a target that is not a `*fmt.wrapError` (`io.EOF`, an `*errorString`), so
+  `err ≠ t` follows from the types, without freshness. A `*fmt.wrapErrors` (two `%w`s) is left out: Perennial's
+  `errorfErr` says nothing of its `errs` field, so its `Unwrap` cannot be stepped.
+- **Decision.** Made (the user's approval of item (3), 2026-11-22).

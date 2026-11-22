@@ -18,6 +18,7 @@ public import Spec.go_etcd_io.etcd.pkg.v3.crc.digest__Sum32
 public import Spec.io.ReadFull
 public import Spec.encoding.binary.ReadInt64LE
 public import Spec.fmt.ErrorfErrsNot
+public import Proof.errors.ErrTree
 public import Spec.go_etcd_io.etcd.pkg.v3.crc.digest__Write
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.DecLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.DecTerm
@@ -185,6 +186,18 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
     ihave #HeokA : isEofOk IoE eof ueof $$ []
     · iexact Heok
     ihave #HU := errIsNot_ueof IoE eof ueof $$ Heok
+    ihave #Herrs : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
+    · iPkgInit
+    have heofT : ∀ tii, eof = interface.ok tii → errors.IsPointerError tii ∧
+        tii.ty ≠ go.GoType.PointerType fmt.wrapError.ty := by
+      rw [he]; exact errorString_target x1
+    ihave %hune := errIsNot_ne _ _ $$ HU
+    ihave #HUt : errTreeNot (GF := GF)
+        (interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x2) eof $$ []
+    · iapply (errTreeNot_errorString x2 eof (by rw [interface.mkOk, hu2]; exact hune))
+    ihave #HUtt : errTreeTerm (GF := GF)
+        (interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x2) $$ []
+    · iapply errTreeTerm_errorString
     iunfold isEofOk at Heok
     icases Heok with ⟨%Hneq, #Heok⟩
     ihave #Hrs := fbr_readerStream HRead IoE eof F fbr b fi GoInterface.nil $$ [Hf HF]
@@ -468,16 +481,17 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
           interface.mkOk go.int64 #(W64 F.bs.length), interface.mkOk go.int64 #(W64 off),
           interface.mkOk go.int64 #(W64 pad),
           interface.mkOk go.int64 #(W64 F.bs.length - W64 off - W64 pad)]
-          [⟨go.GoType.PointerType errors.errorString.ty, #x2⟩] _root_.Perennial.io.EOF eof ?wf $$ [Hasl] as %e1 ⟨-, #Hn1, #Ht1⟩
+          [⟨go.GoType.PointerType errors.errorString.ty, #x2⟩] ⟨go.GoType.PointerType errors.errorString.ty, #x2⟩
+          eof ?wf ?ww (by simp) heofT $$ [Hasl] as %e1 ⟨-, #Hn1T, #Ht1T⟩
       case wf => errargs_wf
+      case ww => wraps_err
       · iframe
-        iframe Heof
-        iapply (BigSepL.bigSepL_singleton
-          (Φ := fun _ e => iprop(errOk (GF := GF) e ∗ errIsNot (GoInterface.ok e) eof ∗
-            errIsTerm (GoInterface.ok e)))).2
-        iframe HUerr
-        rw [hu2]
-        iframe HU HtUeof
+        isplitl []
+        · iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
+          iexact HUerr
+        iframe HUt HUtt
+      ihave #Hn1 := errIsNot_of_tree _ eof (fun tii h => (heofT tii h).1) $$ Herrs Hn1T
+      ihave #Ht1 := errIsTerm_of_tree _ $$ Herrs Ht1T
       ihave %hn1 := errIsNot_ne _ _ $$ Hn1
       have hstep : decRecStep C fs.isEmpty F.bs off c = .stop .tooLarge c := by
         rw [hframe, ite_eq_left htl]
@@ -763,9 +777,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
       iframe Htab
     wp_apply HSum lc _ tab (DFrac.own 1) $$ Hlc as Hlc
     icases Hcm with ⟨%ecm, #Hecm, #Hecmok, #Hecmn, #Hecmt⟩
-    wp_apply HValidate rp r (hash.crc32.crc32c c r.data) ecm _root_.Perennial.io.EOF eof
+    wp_apply HValidate rp r (hash.crc32.crc32c c r.data) ecm eof heofT
       $$ [Hrv Hrdata] as %err4 ⟨Hrec, Hv⟩
-    · iframe Hecm Hecmok Heof Hecmn Hecmt
+    · iframe Hecm Hecmok Hecmn Hecmt
       iunfold ownRec
       iexists v
       iframe
@@ -827,27 +841,29 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
       iintro %asl ⟨Hasl, -⟩
     all_goals first
       | (wp_apply HErrorf _ _ [GoInterface.ok ei4, interface.mkOk go.string #nm,
-            interface.mkOk go.int64 #(W64 off)] [ei4] _root_.Perennial.io.EOF eof ?wf $$ [Hasl] as %e5 ⟨-, #Hn5, #Ht5⟩
+            interface.mkOk go.int64 #(W64 off)] [ei4] ei4 eof ?wf ?ww (by simp) heofT $$ [Hasl]
+            as %e5 ⟨-, #Hn5T, #Ht5T⟩
          case wf => errargs_wf
+         case ww => wraps_err
          · iframe
-           iframe Heof
-           iapply (BigSepL.bigSepL_singleton
-             (Φ := fun _ e => iprop(errOk (GF := GF) e ∗ errIsNot (GoInterface.ok e) eof ∗
-            errIsTerm (GoInterface.ok e)))).2
-           iframe Hei4 Hn4 Ht4)
+           isplitl []
+           · iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
+             iexact Hei4
+           iframe Hn4 Ht4)
       | (wp_apply HErrorf _ _ [interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x2,
             interface.mkOk go.string #nm, interface.mkOk go.int64 #(W64 off)]
-            [⟨go.GoType.PointerType errors.errorString.ty, #x2⟩] _root_.Perennial.io.EOF eof ?wf $$ [Hasl] as %e5 ⟨-, #Hn5, #Ht5⟩
+            [⟨go.GoType.PointerType errors.errorString.ty, #x2⟩] ⟨go.GoType.PointerType errors.errorString.ty, #x2⟩
+            eof ?wf ?ww (by simp) heofT $$ [Hasl] as %e5 ⟨-, #Hn5T, #Ht5T⟩
          case wf => errargs_wf
+         case ww => wraps_err
          · iframe
-           iframe Heof
-           iapply (BigSepL.bigSepL_singleton
-             (Φ := fun _ e => iprop(errOk (GF := GF) e ∗ errIsNot (GoInterface.ok e) eof ∗
-            errIsTerm (GoInterface.ok e)))).2
-           iframe HUerr
-           rw [hu2]
-           iframe HU HtUeof)
+           isplitl []
+           · iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
+             iexact HUerr
+           iframe HUt HUtt)
     all_goals
+      ihave #Hn5 := errIsNot_of_tree _ eof (fun tii h => (heofT tii h).1) $$ Herrs Hn5T
+      ihave #Ht5 := errIsTerm_of_tree _ $$ Herrs Ht5T
       ihave %hn5 := errIsNot_ne _ _ $$ Hn5
       iapply HΦ
       iapply decPost_mk
