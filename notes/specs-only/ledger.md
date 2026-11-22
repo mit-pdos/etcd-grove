@@ -4424,3 +4424,24 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** As above. The one caller, `newClient`, has `client/v3`'s initialization, which gives the
   credentials package's.
 - **Decision.** Applied (a premise every caller discharges; the user's rule of 2026-11-21).
+
+## 2026-11-22: kvnet's `StartNode`: the start resource indexed by the configuration; the file invariant from the generation's boot (KvNet)
+
+- **Spec.** `StartNode.spec`/`Run.spec`/`RunNode.spec` (KvNet): the start resource `S : IProp` becomes
+  `S : w64 → GoString → Options → GMap w64 GoString → IProp` (id, directory, options, address map); `StartNode`
+  takes `cfg.Addrs ↦$□ M ∗ S cfg.ID cfg.Dir cfg.Opts M`; `RunNode` gives `S id dir opts M` at every `M` with
+  `addrMapOk (splitAddrs addrs) M`. `newReplica.spec`: the file's names are one record `fl : KdFileNames`
+  (`durable`'s, the file, its roots, the writer's variable, the invariant's crash token, raft's arm), the file
+  invariant `kdFileInvK γ id fl` (no node) and `nodeArm n γ fl.x` in its precondition. `Replica.persist`'s specs
+  unchanged (the invariant's change is inside `isReplica`).
+- **Defect.** A constant `S` cannot name what `StartNode` needs from the configuration: the directory and id
+  (the file), the voters (`kdCluster γ vs`), every other address's protocol (`newTransport`). And the file
+  invariant, allocated after `RestartNode` in the old design, cannot be emptied by the generation's crash
+  obligation, which Perennial's crash adequacy takes at the generation's start (ledger 2026-11-22, raft's
+  `RestartNode`).
+- **Evidence.** `notes/kvnet-part.md`, "`StartNode` and the crash frame" and "The file invariant from the
+  generation's boot". The pending batch's record names its node existentially (a `NodeH` is in `Type 1`, so it
+  cannot be in the writer's ghost variable), recognized by the writer through a saved proposition; `persist`'s
+  write lemma takes two later credits.
+- **Proposed change.** As above.
+- **Decision.** Applied (checked: `etc/lean-check.py` of every changed module, then `lake build KvNet`).
