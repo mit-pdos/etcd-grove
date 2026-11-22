@@ -215,19 +215,51 @@ theorem Codec.wp_proof : Codec.spec (GF := GF) (hG := hG) := by
     have h0 : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z b.len := by rw [hb9]; decide
     simp only
     wp_if_destruct
-    · obtain ⟨hd, hhd, hL⟩ : ∃ hd : w8, encOutB false n = hd :: u64Le n ∧
+    -- the first byte: `0` (not unknown) or `1` (unknown); then the same loop
+    on_goal 1 =>
+      obtain ⟨hd, hhd, hL⟩ : ∃ hd : w8, encOutB false n = hd :: u64Le n ∧
           List.replicate 9 (zero_val w8) = hd :: List.replicate 8 (W8 0) := ⟨_, rfl, rfl⟩
       rw [hhd, hL]
-      sorry
-    · rw [ite_eq_left h0]
+    on_goal 2 =>
+      rw [ite_eq_left h0]
       wp_apply wp_store_slice_index b (sint.Z (W64 0)) _ (W8 1) $$ [Hb] as Hb
       · iframe Hb; ipureintro; simp only [List.length_replicate]; word
       wp_auto
       obtain ⟨hd, hhd, hL⟩ : ∃ hd : w8, encOutB true n = hd :: u64Le n ∧
-          (List.replicate 9 (zero_val w8)).set (sint.Z (W64 0)).toNat (W8 1) =
+          (List.replicate 9 (zero_val w8)).set 0 (W8 1) =
             hd :: List.replicate 8 (W8 0) := ⟨_, rfl, rfl⟩
       rw [hhd, hL]
-      sorry
+    all_goals
+      ihave HI : (∃ (j : w64), "i" ∷ i_ptr ↦ j ∗
+          "Hb" ∷ b ↦* (hd :: ((u64Le n).take (uint.nat j) ++
+            (List.replicate 8 (W8 0)).drop (uint.nat j))) ∗
+          "%Hj" ∷ ⌜uint.nat j ≤ 8⌝ : IProp GF) $$ [i Hb]
+      · iexists W64 0
+        iframe
+        ipureintro; simp
+      wp_for HI
+      wp_if_destruct
+      · have hj8 : uint.nat j < 8 := by word
+        have hs : 0 ≤ sint.Z (W64 1 + j) ∧ sint.Z (W64 1 + j) < sint.Z b.len := by
+          rw [hb9]; word
+        rw [ite_eq_left hs]
+        wp_apply wp_store_slice_index b (sint.Z (W64 1 + j)) _ (W8 (uint.Z (n >>> (W64 8 * j))))
+          $$ [Hb] as Hb
+        · iframe Hb; ipureintro; simp only [List.length_cons, List.length_append,
+            List.length_take, List.length_drop, u64Le_length, List.length_replicate]; word
+        wp_for_post
+        iframe
+        iexists j + W64 1
+        have hsn : (sint.Z (W64 1 + j)).toNat = uint.nat j + 1 := by word
+        rw [hsn, List.set_cons_succ, take_drop_set (u64Le_getElem n j hj8) (by simp; word),
+          show uint.nat (j + W64 1) = uint.nat j + 1 by word]
+        iframe
+        ipureintro; word
+      · have hj8 : uint.nat j = 8 := by word
+        rw [hj8, List.take_of_length_le (by simp [u64Le_length])]
+        wp_auto
+        iapply HΦ'
+        iexact Hb
   isplitr
   · -- DecOut
     sorry

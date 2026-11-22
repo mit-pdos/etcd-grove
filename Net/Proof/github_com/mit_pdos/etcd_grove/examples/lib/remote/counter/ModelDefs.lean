@@ -366,5 +366,129 @@ theorem stepG_pSeq (lo K : Nat) (hb : lo + K < 2 ^ 60) (b u : Bool) (n : w64) :
 
 end pure
 
+/-! ## The model spec -/
+
+section spec
+variable [GooseExts] [GoGlobalContext] {GF : BundledGFunctors}
+
+/-- A state value, boxed (`any` holding a `State`). -/
+abbrev boxS (s : State) : GoInterface := interface.mkOk State.ty #s
+
+/-- **The representation**: a value of index `k` is the boxed `State{lo, K}` of the set
+`cSet lo K`, with `lo + K ≤ k` (each step adds at most one to `lo + K`) and `lo + K ≤ 2^60` (so
+`step`'s `int64` arithmetic does not overflow, and equal `State`s are equal sets). -/
+def cRep (k : Nat) (v : GoInterface) (s : linkv.PSet w64 Bool) : Prop :=
+  ∃ lo K : Nat, lo + K ≤ k ∧ lo + K ≤ 2 ^ 60 ∧ v = boxS (stV lo K) ∧ s = cSet lo K
+
+/-- **The counter's porcupine model** (pending increments): `pSeq cB` through `cDec`; inputs
+boxed `bool`s, outputs boxed `Out`s. -/
+def cS : ModelSpec GF (linkv.PSet w64 Bool) where
+  M := linkv.pM cB cDec
+  rep k v s := iprop(⌜cRep k v s⌝)
+  ioOk i o := iprop(⌜(∃ b, i = boxB b) ∧ ∃ u n, o = outV u n⌝)
+  ioOk_pers _ _ := by infer_instance
+
+/-- The initial set: `State{0, 0}`'s. -/
+theorem cSet_init : cSet 0 0 = linkv.pInit cB := by
+  funext c
+  apply propext
+  constructor
+  · rintro ⟨j, hj, hst, hp⟩
+    have : j = 0 := by omega
+    subst this
+    cases c
+    simp only at hst hp
+    subst hst hp
+    rfl
+  · intro h
+    subst h
+    exact ⟨0, Nat.le_refl _, rfl, rfl⟩
+
+/-- Equal states of bounded `lo + K` are equal sets. -/
+theorem stV_inj {lo K lo' K' : Nat} (hb : lo + K ≤ 2 ^ 60) (hb' : lo' + K' ≤ 2 ^ 60)
+    (h : stV lo K = stV lo' K') : lo = lo' ∧ K = K' := by
+  simp only [stV, State.mk.injEq] at h
+  obtain ⟨h1, h2⟩ := h
+  have e1 := congrArg sint.Z h1
+  have e2 := congrArg sint.Z h2
+  rw [sZ_w64 _ (by omega), sZ_w64 _ (by omega)] at e1 e2
+  omega
+
+end spec
+
+section dec
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Assumptions]
+
+/-- `Out`'s values are injective (`N` and `Unknown` are read off by deterministic steps). -/
+theorem out_intoVal_inj {x y : Out} (h : (#x : val) = #y) : x = y := by
+  have hN := (Out.TypeAssumptions.get_N x).isGoStep_det_internal.isGoStep_pure_det
+  have hN' := (Out.TypeAssumptions.get_N y).isGoStep_det_internal.isGoStep_pure_det
+  have hU := (Out.TypeAssumptions.get_Unknown x).isGoStep_det_internal.isGoStep_pure_det
+  have hU' := (Out.TypeAssumptions.get_Unknown y).isGoStep_det_internal.isGoStep_pure_det
+  rw [h, hN'] at hN
+  rw [h, hU'] at hU
+  have eN : Val #x.N' = Val #y.N' := (congrFun hN (Val #y.N')) ▸ rfl
+  have eU : Val #x.Unknown' = Val #y.Unknown' := (congrFun hU (Val #y.Unknown')) ▸ rfl
+  injection eN with eN
+  injection eU with eU
+  have eN' := GoGlobalContext.intoVal_inj_w64 eN
+  have eU' := GoGlobalContext.intoVal_inj_bool eU
+  cases x; cases y
+  simp only at eN' eU'
+  subst eN' eU'
+  rfl
+
+theorem boxB_inj' (a b : Bool) (h : boxB a = boxB b) : a = b := by
+  simp only [boxB, interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq,
+    _root_.true_and] at h
+  exact GoGlobalContext.intoVal_inj_bool h
+
+theorem outV_inj {u n u' n'} (h : outV u n = outV u' n') : u = u' ∧ n = n' := by
+  simp only [outV, interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq,
+    _root_.true_and] at h
+  have := out_intoVal_inj h
+  simp only [Out.mk.injEq] at this
+  exact this
+
+/-- `cDec` on a boxed `bool` and a boxed `Out`. -/
+theorem cDec_box (b u : Bool) (n : w64) :
+    cDec (boxB b, outV u n) = some (b, if u then .err else .ok n) := by
+  have h : ∃ (b' u' : Bool) (n' : w64), (boxB b, outV u n) = (boxB b', outV u' n') :=
+    ⟨b, u, n, rfl⟩
+  unfold cDec
+  rw [dif_pos h]
+  have hs := Classical.choose_spec (Classical.choose_spec (Classical.choose_spec h))
+  simp only [Prod.mk.injEq] at hs
+  obtain ⟨h1, h2⟩ := hs
+  have e1 := boxB_inj' _ _ h1
+  obtain ⟨e2, e3⟩ := outV_inj h2
+  rw [← e1, ← e2, ← e3]
+
+/-- The model's step on porcupine's operation `(boxB b, outV u n)`. -/
+theorem cS_step {GF : BundledGFunctors} (S : linkv.PSet w64 Bool) (b u : Bool) (n : w64) :
+    (cS (GF := GF)).M.step S (boxB b, outV u n) =
+      (linkv.pSeq cB).step S (b, if u then .err else .ok n) :=
+  linkv.pM_step cB cDec S _ b _ (cDec_box b u n)
+
+/-- **porcupine's model is the pending-writes model** of the far side's store `cR γ`. -/
+theorem cS_pendDec {GF : BundledGFunctors} [AllG GF] (γ : GName) :
+    PendDec (cR (GF := GF) γ) (cS (GF := GF)) where
+  init := rfl
+  ok s i o := cS_step s i false o
+  err s i := cS_step s i true (W64 0)
+  ioOk_ok i o := by
+    iintro !>
+    ipureintro
+    exact ⟨⟨i, rfl⟩, false, o, rfl⟩
+  ioOk_err i := by
+    iintro !>
+    ipureintro
+    exact ⟨⟨i, rfl⟩, true, W64 0, rfl⟩
+  noObs _ := rfl
+
+end dec
+
 end github_com.mit_pdos.etcd_grove.examples.lib.remote.counter
 end Perennial
