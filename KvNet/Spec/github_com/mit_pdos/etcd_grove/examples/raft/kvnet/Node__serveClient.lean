@@ -33,7 +33,7 @@ variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 /-- See the file header. -/
 abbrev Node.serveClient.spec (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
     (cf : GoInterface → List w8 → IProp GF) : Prop :=
-  ∀ (nd : Loc) (γ : Cluster) (N : Namespace) (id : w64) (n : Loc)
+  ∀ (nd : Loc) (γ : Cluster) (N : Namespace) (id : w64) (n : NodeH)
     (c : GoInterface) (cn : Nat) (a : GoString) (eof ed : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet ∗
       isNodeS F rep nd γ N id n ∗ confLaw F rep cf γ N id ∗ net.isConn (GF := GF) c cn true a ∗

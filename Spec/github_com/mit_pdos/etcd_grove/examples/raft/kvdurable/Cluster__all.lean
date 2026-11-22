@@ -28,14 +28,14 @@ variable [go_gctx : GoGlobalContext] [go.IntoValInj GoString]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
 
 attribute [local instance] kdStorageModel
 
 /-- See the file header. -/
 abbrev Cluster.all.spec : Prop :=
   ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (c : Loc),
-  {{ isClusterC γ vs dir c }}
+  {{ isClusterC (GF := GF) γ vs dir c }}
     (App (Val (c @!! go.GoType.PointerType kClusterTy @!! go!"all")) (Val #()))
   {{ (sl : GoSlice), RET #sl; ∃ rs : List Loc, sl ↦* rs ∗ ⌜rs ≠ []⌝ ∗
       [∗list] r ∈ rs, ∃ id, isRep γ vs dir id r ∗ repKnown γ id }}
@@ -43,7 +43,7 @@ abbrev Cluster.all.spec : Prop :=
 /-- See the file header. -/
 abbrev Cluster.all.specStop : Prop :=
   ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (c : Loc),
-  {{ isClusterC γ vs dir c ∗ crasher γ }}
+  {{ isClusterC γ vs dir c ∗ crasher (GF := GF) γ }}
     (App (Val (c @!! go.GoType.PointerType kClusterTy @!! go!"all")) (Val #()))
   {{ (sl : GoSlice), RET #sl; ∃ rs : List Loc, sl ↦* rs ∗
       [∗list] r ∈ rs, ∃ id, repStop γ vs dir id r }}

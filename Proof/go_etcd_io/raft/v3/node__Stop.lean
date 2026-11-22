@@ -135,18 +135,18 @@ needed). -/
 private theorem node.wp_Stop_impl
     (hS : EtcdGrove.node.Stop.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.Stop.spec (GF := GF) (hG := hG) := by
-  unfold EtcdGrove.node.Stop.spec EtcdGrove.Cluster EtcdGrove.nodeRunning EtcdGrove.nodeStopped
+  unfold EtcdGrove.node.Stop.spec EtcdGrove.Cluster EtcdGrove.NodeH EtcdGrove.NodeH.loc EtcdGrove.nodeRunning EtcdGrove.nodeStopped
     EtcdGrove.isNode
   intro n γ N id
   iintro %Φ ⟨#Hinit, #Hnd, Hlive⟩ HΦ
   iunfold nodeRunning at Hlive
   icases Hlive with ⟨%γn, %id1, %Hok, #Hn, #Htb, Hl⟩
-  iapply (hS γn id1 n) $$ [Hl]
+  iapply (hS γn id1 n.loc) $$ [Hl]
   · iframe Hinit Hn Hl
   iintro !> ⟨#Hst, Hslot⟩
   iunfold isNode at Hnd
   icases Hnd with ⟨%γn2, %Hok2, #Hn2, -⟩
-  ihave %Hid := isNode_id_agree γn γn2 id1 id n $$ Hn Hn2
+  ihave %Hid := isNode_id_agree γn γn2 id1 id n.loc $$ Hn Hn2
   subst Hid
   iapply HΦ
   isplitr

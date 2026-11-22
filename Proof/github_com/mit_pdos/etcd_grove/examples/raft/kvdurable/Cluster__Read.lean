@@ -46,7 +46,7 @@ variable [go_gctx : GoGlobalContext] [go.IntoValInj GoString]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
 
 attribute [local instance] kdStorageModel
 
@@ -99,7 +99,7 @@ theorem Cluster.Read.wp_proof
     wp_apply +noauto wp_ResolveBytes p pvs sl v _ $$ [$Hp $Hsl] as %pvs' ⟨%Hpvs, -, -⟩
     have Hans : (⟨key, H0, ansOf pvs⟩ : ReadRec).ans = some v := by
       show ansOf pvs = some v
-      rw [Hpvs]; exact kd_ansOf_cons v pvs'
+      rw [Hpvs]; exact kd_ansOf_cons (GF := GF) v pvs'
     imod kd_read_take γ γΦ ⟨key, H0, ansOf pvs⟩ Ψ L v ⊤ CoPset.subseteq_top Hans HLv.1 HLv.2
       $$ Hinv Hel Hsp HL with HQ
     imod lc_fupd_elim_later $$ Hlc1 HQ with HQ

@@ -25,7 +25,7 @@ variable [go_gctx : GoGlobalContext] [go.IntoValInj GoString]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
 
 attribute [local instance] kdStorageModel
 
@@ -33,7 +33,7 @@ attribute [local instance] kdStorageModel
 abbrev Cluster.Crash.spec : Prop :=
   ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (c : Loc) (pause : time.Duration) (stop : Loc)
     (γst : ChanNames),
-  {{ isClusterC γ vs dir c ∗ crasher γ ∗ ownBroadcastChan stop γst iprop(True) .Unknown }}
+  {{ isClusterC γ vs dir c ∗ crasher (GF := GF) γ ∗ ownBroadcastChan stop γst iprop(True) .Unknown }}
     (App (App (Val (c @!! go.GoType.PointerType kClusterTy @!! go!"Crash")) (Val #pause)) (Val #stop))
   {{ RET #(); crasher γ }}
 

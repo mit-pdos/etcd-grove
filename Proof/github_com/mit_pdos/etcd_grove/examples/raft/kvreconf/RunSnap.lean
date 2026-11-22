@@ -36,7 +36,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KvrStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KvrStor GF]
 
 attribute [local instance] kvrStorageModel
 
@@ -151,7 +151,7 @@ theorem kvr_snapReceipt (st ms : Loc) (γs : MemStorNames) (l : SnapLoan) (es : 
 
 /-- The applier's view after a snapshot `Ready`'s `Advance`: at the snapshot's index, the end of
 the delivered log. -/
-theorem appNode_snap (γr : RNames) (n : Loc) (L : List LogEntry) (i : Nat) (m : Membership)
+theorem appNode_snap (γr : RNames) (n : NodeH) (L : List LogEntry) (i : Nat) (m : Membership)
     (h : L.length = i) :
     nodeConfig (GF := GF) n γr.cluster kvrRaftN ⟨i, m⟩ ∗ deliveredLogLb n γr.cluster kvrRaftN L ⊢
       appNode γr n L L.length m := by

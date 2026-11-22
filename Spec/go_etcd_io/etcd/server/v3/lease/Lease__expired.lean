@@ -1,9 +1,10 @@
 /-
 `(*Lease).expired()` (`server/lease/lease.go:51-53`): `l.Remaining() <= 0`. Lean-first (no Rocq
 counterpart). The spec the expiry loop uses (`findExpiredLeases`, `lessor.go:728-751`); a
-trust-boundary axiom (to be stated in `Proof/go_etcd_io/etcd/server/v3/lease/Lease__expired.lean` when `NewLessor` is proved: until then a hypothesis of the expiry loop's proofs), the one
-`NewLessor`'s proof rests on (prove-ps2-newlessor3, 2026-11-21: in place of `NewLessor`'s whole
-axiom; `notes/axiom-review/lease-expired-payload.md`).
+trust-boundary axiom (`Proof/go_etcd_io/etcd/server/v3/lease/Lease__expired.lean`, since
+prove-ps2-newlessor5, 2026-11-21, when `NewLessor` was proved over the real code: until then a
+hypothesis of the expiry loop's proofs), the one `NewLessor`'s proof rests on (in place of
+`NewLessor`'s whole axiom; `notes/axiom-review/lease-expired-payload.md`).
 -/
 module
 

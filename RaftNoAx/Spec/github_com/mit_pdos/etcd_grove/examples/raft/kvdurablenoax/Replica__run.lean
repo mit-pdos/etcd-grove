@@ -36,18 +36,18 @@ variable [go_gctx : GoGlobalContext] [go.IntoValInj GoString]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
 
 attribute [local instance] kdStorageModel
 
 /-- See the file header. -/
 abbrev Replica.run.spec : Prop :=
-  ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r n st sts sq : Loc)
+  ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r : Loc) (n : NodeH) (st sts sq : Loc)
     (ρ : KdRepNames) (f : GoFunc) (l ap : List LogEntry) (hs : HardStateM) (hsp : Loc)
     (S : RaftState) (m : Membership) (snapIndex rafted : w64),
   uint.nat rafted = l.length → ap.length ≤ uint.nat snapIndex ∨ snapIndex = W64 ap.length →
   {{ isReplicaR γ vs dir id r n st sts sq ρ ∗ runStart γ id r n st ρ l hs S ap m ∗
-      hsOpt hsp hs ∗ sendSpec γ id f }}
+      hsOpt (GF := GF) hsp hs ∗ sendSpec γ id f }}
     (App (App (App (App (Val (r @!! go.GoType.PointerType kReplicaTy @!! go!"run")) (Val #f)) (Val #snapIndex)) (Val #hsp))
       (Val #rafted))
   {{ RET #(); True }}

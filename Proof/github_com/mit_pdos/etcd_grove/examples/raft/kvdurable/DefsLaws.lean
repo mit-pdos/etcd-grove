@@ -29,7 +29,7 @@ variable [go_gctx : GoGlobalContext] [go.IntoValInj GoString]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
 
 attribute [local instance] kdStorageModel
 
@@ -84,14 +84,14 @@ instance isReadSeqs_persistent (γ : KdNames) (s : Loc) : Persistent (isReadSeqs
 set_option synthInstance.maxHeartbeats 400000 in
 set_option synthInstance.maxSize 4096 in
 instance isReplica_persistent (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64)
-    (r n st sts sq ms : Loc) (γs : MemStorNames) (ph : KdDmuNames) :
+    (r : Loc) (n : NodeH) (st sts sq ms : Loc) (γs : MemStorNames) (ph : KdDmuNames) :
     Persistent (isReplica (GF := GF) γ vs dir id r n st sts sq ms γs ph) := by
   unfold isReplica; infer_instance
 
 set_option synthInstance.maxHeartbeats 400000 in
 set_option synthInstance.maxSize 4096 in
 instance isReplicaR_persistent (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64)
-    (r n st sts sq : Loc) (ρ : KdRepNames) :
+    (r : Loc) (n : NodeH) (st sts sq : Loc) (ρ : KdRepNames) :
     Persistent (isReplicaR (GF := GF) γ vs dir id r n st sts sq ρ) := by
   unfold isReplicaR; infer_instance
 

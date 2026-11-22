@@ -26,8 +26,9 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 TraceSim
 
 section ghost
 variable [GooseExts]
-variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [CrashGS GF]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
+variable [CrashGS GF] in
 /-- **A heartbeat of a higher term than its receiver's carries commit `0`** (`heartbeat_commit_le_last`'s
 argument: the heartbeat's commit is at most the receiver's acknowledgement at its term, which is the
 trivial one, the receiver acknowledging only at its own term, `AcksTerm`). -/

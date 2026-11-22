@@ -117,8 +117,8 @@ abbrev RestartNode.spec : Prop :=
       restartStorage γ (interface.ok si) σ csm (uint.nat cv.Applied') F SV }}
     (App (Val #(functions RestartNode [])) (Val #c))
   {{ (nd : GoInterface), RET #nd;
-      ∃ (n : Loc) (S : RaftState) (l : List LogEntry) (K : GName),
-        ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
+      ∃ (n : NodeH) (S : RaftState) (l : List LogEntry) (K : GName),
+        ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n.loc⌝ ∗
         isNode n γ N cv.ID' ∗
         isCommittedLogLb γ l ∗ ⌜l.length = max σ.b (uint.nat cv.Applied')⌝ ∗
         -- (2026-11-01, durability stage II (k), addendum S1b) the delivered log is the stored

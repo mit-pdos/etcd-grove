@@ -171,12 +171,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 private theorem node.wp_TransferLeadership_impl
     (hT : EtcdGrove.node.TransferLeadership.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.TransferLeadership.spec (GF := GF) (hG := hG) := by
-  unfold EtcdGrove.node.TransferLeadership.spec EtcdGrove.Cluster EtcdGrove.isNode
+  unfold EtcdGrove.node.TransferLeadership.spec EtcdGrove.Cluster EtcdGrove.NodeH EtcdGrove.NodeH.loc EtcdGrove.isNode
   intro n γ N id lead transferee ctx cd Htr
   iintro %Φ ⟨#Hinit, #Hnode, #Hctx⟩ HΦ
   iunfold isNode at Hnode
   icases Hnode with ⟨%γn, %Hf, #Hrn, -⟩
-  iapply (hT γn id n lead transferee ctx cd (by rw [Hf.1]; exact Htr)) $$ []
+  iapply (hT γn id n.loc lead transferee ctx cd (by rw [Hf.1]; exact Htr)) $$ []
   · iframe Hinit Hrn Hctx
   iexact HΦ
 

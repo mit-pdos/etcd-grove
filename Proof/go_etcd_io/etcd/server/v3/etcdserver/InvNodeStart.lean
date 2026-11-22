@@ -344,7 +344,7 @@ def rnBootPre (γr : SrvRaft) (bv : bootstrappedRaft) (cv : Config) (lok : GoInt
 peers' membership: until then the spec's own conjuncts); at `restart σ cs S a m A₀`, `RestartNode`'s
 (the committed log `l` of the restored base, the driver at it with the restored hard state, the
 durable state `S` and the follower's role; the view at `(a, m)`). -/
-def rnBootPost (γr : SrvRaft) (n : Loc) (K : GName) (bv : bootstrappedRaft) (cv : Config)
+def rnBootPost (γr : SrvRaft) (n : NodeH) (K : GName) (bv : bootstrappedRaft) (cv : Config)
     (ps : List w64) (ctxs : List (List w8)) : RNBoot → IProp GF
   | .fresh =>
     letI := srvStor (GF := GF) γr

@@ -42,7 +42,7 @@ def RestartNode.spec : Prop :=
                                                   (▷
                                                       ∀ nd,
                                                         (∃ n S l K,
-                                                            ⌜nd = interface.mkOk node.ty.PointerType (intoVal n)⌝ ∗
+                                                            ⌜nd = interface.mkOk node.ty.PointerType (intoVal n.loc)⌝ ∗
                                                               isNode n γ N cv.ID' ∗
                                                                 isCommittedLogLb γ l ∗
                                                                   ⌜l.length = max σ.b (uint.nat cv.Applied')⌝ ∗

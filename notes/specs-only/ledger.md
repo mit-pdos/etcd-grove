@@ -25,6 +25,42 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-21: raft's node API -- `isCluster` holds one machine's heap (the node table), and the node predicates agree on a node's names only through it
+
+- **Spec.** `Spec/go_etcd_io/raft/v3/StartNode.lean`, `RestartNode.lean` and the `node.*` method specs;
+  `InvNode.lean`'s `isNode`, `nodeRunning`, `nodeDriver`, `nodeStopped`, `nodeConfig`, `nodeTagPin`,
+  `nodeArm`, the snapshot-source and ready-token facts; `InvNodeRule.lean`'s `isCluster`. SpecPlan's
+  raft node specs, likewise.
+- **Defect.** Not local enough for a distributed client. `isCluster` contains `nodeTabInv`, which keeps
+  `n ↦□` for every node, so it can be neither allocated in a distributed adequacy theorem's `Hstart`
+  (only `[GooseGlobalGS]`) nor held by another machine. Keyed by `Loc`, the table also breaks across
+  generations: a new heap can reuse a dead node's address.
+- **Evidence.** `notes/kvnet-proof-plan.md` gap 2 and decision B; `notes/raft-cluster-global.md` (a),
+  (b).
+- **Proposed change.** An opaque node handle `nh : NodeH` (location and names; `nh.loc` for code
+  values):
+  - the node predicates take `nh` in place of `n : Loc`;
+  - `StartNode`/`RestartNode` return `∃ nh, ⌜nd = … #nh.loc⌝ ∗ …`;
+  - the node table goes, and `isCluster` is global.
+  The shared predicates and the allocation lemmas are stated at `[GooseGlobalGS]` (their statements
+  unchanged). Clients: kv, kvreconf, kvdurable, the etcd server, etcdstart, the trace check.
+- **Decision.** Accepted (the coordinating session, 2026-11-21, option 3 of
+  `notes/raft-cluster-global.md`); applied on branches `raft-cluster-global` and
+  `raft-cluster-global-2` (2026-11-22). As applied:
+  - the shared predicates and laws are stated over `{GF} [AllG GF] [ReceiptGS GF] [InvGS GF]` (not
+    `[GooseGlobalGS]`: a fancy update's instance must be the caller's, `notes/raft-cluster-global.md`
+    (d)); the node-level predicates, `nodeBoot` and `cluster_alloc(_ns,_traced)` stay under `HeapGS`
+    (`bootMarshal` is a WP); the new `cluster_alloc_nb` is the global allocation without a bootstrap
+    log;
+  - `NodeH.installs` and `nodeInstalledIndex_installs` (`NodeInstalls.lean`): the etcd server pinned
+    its node's location in a ghost variable before `StartNode` returns it, and `NodeH` is not
+    `Pos.Countable` (it holds the cluster's names, functions among them); it pins the handle's
+    install record's name instead;
+  - kvdurable's store vocabulary (`rkvInv`, `opSlot`, `readSlot`, `kvCore`, `waitP`, `kvLb`,
+    `readAns`, `kdSnapInv`, `KdNames`) moved to `kvdurable/Store.lean`, global, statements unchanged;
+  - kvreconf's and kvdurable's sections lose their second `[AllG GF]` (`notes/decisions.md`, "One
+    `AllG`"), which made a client's terms differ from raft's global laws.
+
 ## 2026-11-21: `kvdurable.getEntry` -- reads only persistent bytes, so a caller holding owned bytes cannot use it
 
 - **Spec.** `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/getEntry.lean`, `getEntry.spec`
@@ -4137,6 +4173,21 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   (`statusErrOk_split`).
 - **Decision.** Applied (prove-metrics, 2026-11-21): both stay trust-boundary axioms (`Record` observes
   a float latency, `sinceInSeconds`; both are names-only over component-base's metrics).
+## 2026-11-21: `labels.Everything` needs `labels`' initialization (#25)
+
+- **Spec.** `Spec/k8s_io/apimachinery/pkg/labels/Everything.lean`, `labels.Everything.spec` (the trust-boundary
+  axiom `labels.Everything.wp_proof` until now).
+- **Defect.** The pre is `True`, but `Everything` returns the package variable `sharedEverythingSelector`
+  (`selector.go:93-98`), and its post's `MatchesNothing` triple reads `sharedNothingSelector`: no proof over the
+  code can load them without `labels`' initialization, whose fact said nothing of them.
+- **Evidence.** `Everything.impl` (`Code/k8s_io/apimachinery/pkg/labels.lean`, translated since #25): a `GoLoad` of
+  `GlobalVarAddr sharedEverythingSelector`.
+- **Proposed change.** The pre takes `isPkgInit pkg_id.k8s_io.apimachinery.pkg.labels`; `labels`' fact becomes
+  `labelsInit` (`storage/etcd3/Base.lean`: both shared selectors read-only, the everything selector an empty
+  `internalSelector`), established by its generated `Init.lean`. The post is unchanged. Callers
+  (`daemonSetLister.GetPodDaemonSets`/`GetHistoryDaemonSets`, `storage`'s initializer) hold `labels`' `isPkgInit`
+  through their own package's.
+- **Decision.** Applied (#25, 2026-11-21): an initialization premise every caller holds; no client-visible change.
 ## 2026-11-21: `lessorApplyOk` at a backend that has `Lease`; one put per batch lock (prove-ps2-newlessor5)
 
 - **Spec.** `lessorApplyOk` (`Proof/.../etcdserver/SnapRO.lean`, `lease.NewLessor.spec`'s post) and
@@ -4173,3 +4224,17 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   deleted. The exported `lessor_apply_contract` (`etcdserver/Results.lean`) keeps its statement text: its last premise
   (the triple) is kept, now unused, and its conclusion loses exactly the conjunct that premise restates. `apply.leaseIs`
   stays (that premise names it).
+
+## 2026-11-21: `lease.NewLessor` proved; `Lease.expired` the expiry payload's trust boundary (prove-ps2-newlessor5)
+
+- **Spec.** `lease.NewLessor.spec` (statement unchanged, now a theorem over `lease.newLessor.spec`, new);
+  `lease.Lease.expired.spec` (now an axiom, `Proof/.../lease/Lease__expired.lean`); `lease.lessor.runLoop.spec`
+  (post `True` to `levelTok leaseLvl`: the forked goroutine ends with its thread token).
+- **Defect.** None in the statements; the constructor's axiom covered code that is now proved, except the
+  expiry loop's payload `¬ leasesNoExpiry` (an opaque premise about the real clock; the model's `time.Now` is
+  arbitrary).
+- **Evidence.** `newLessor.lean`, `NewLessorAlloc.lean`, `NewLessorGhost.lean`, `etcdserver/LessorApplyReal.lean`;
+  `notes/axiom-review/lease-expired-payload.md`.
+- **Proposed change.** Replace `NewLessor`'s axiom by the narrower `Lease.expired` one (the user's choice (a),
+  prove-ps2-newlessor).
+- **Decision.** Approved (the user's (a); net 0 axioms), applied.

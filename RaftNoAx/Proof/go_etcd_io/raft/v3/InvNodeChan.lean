@@ -186,7 +186,7 @@ def budgetN : Namespace := nroot.@"raft_budget"
 section budget
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-- See the file header. The bound `M` is backed by time receipts (D19b, 2026-10-18): `k`
 receipts with `M ≤ k + 1` (the `+ 1` the bootstrap term), and the receipts' bound is at most

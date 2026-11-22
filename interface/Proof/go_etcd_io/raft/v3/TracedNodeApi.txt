@@ -3,7 +3,7 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def node.Step.tracedSpec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (src : w64) (st : MsgSt) (c : MsgC)
+  ∀ (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (src : w64) (st : MsgSt) (c : MsgC)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
     st.msg.To' = id →
       c.model = { msg := st.msg, ents := st.ents, snap := st.snap, ctx := st.ctx, resps := [] } →
@@ -19,7 +19,7 @@ def node.Step.tracedSpec : Prop :=
                             msgCredits γ N st ∗ snapLocalMsg γ id st ∗ trTok γ st -∗
                   (▷ ∀ err, nodeErrS n γ N cd err -∗ Φ (intoVal err)) -∗
                     WP
-                      (((intoVal (methods node.ty.PointerType go!"Step" (intoVal n)))
+                      (((intoVal (methods node.ty.PointerType go!"Step" (intoVal n.loc)))
                           (intoVal (GoInterface.ok ctx)))
                         (intoVal ml))
                       {{ Φ }}
@@ -46,7 +46,7 @@ theorem Cluster.traceSim_alloc [package_sem : Assumptions] (γ : Cluster) (N : N
     ∗ monoListAuthOwn tn.dn 1 [] ={E}=∗ γ.traceSim vs tn
 
 def isReadyChan_recvAu.tracedSpec : Prop :=
-  ∀ (n ch : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState) (Φ : Ready → Bool → IProp GF),
+  ∀ (n : NodeH) (ch : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState) (Φ : Ready → Bool → IProp GF),
     st.handling = none →
       ⊢
         isReadyChan n γ N ch -∗
@@ -144,7 +144,7 @@ def StartNode.tracedSpec : Prop :=
                                               (▷
                                                   ∀ nd,
                                                     (∃ n K,
-                                                        ⌜nd = interface.mkOk node.ty.PointerType (intoVal n)⌝ ∗
+                                                        ⌜nd = interface.mkOk node.ty.PointerType (intoVal n.loc)⌝ ∗
                                                           nodeStartedFresh n γ N vs ctxs cv.ID' ∗
                                                             isNode n γ N cv.ID' ∗
                                                               nodeDriver n γ N

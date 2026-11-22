@@ -169,7 +169,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions]
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
-variable [StorageModel GF] [AllG GF]
+variable [StorageModel GF]
 
 /-- The client's half of the history's ghost variable agrees with the invariant's. -/
 theorem rkvVal_agree (γr : RNames) (H : List (List w8)) (x : KVMap) :

@@ -22,7 +22,7 @@ open Iris Iris.BI GMap go_etcd_io.raft.v3
 
 section ghost
 variable [GooseExts]
-variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [CrashGS GF]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-- What a node at term `T` with commit index `c` knows of its full log `F`: its records,
 `commitIn γ F c T` and the committed prefix `F.take c` (D22 S-b; `SnapMint.lean`'s header). -/
@@ -104,6 +104,7 @@ theorem hsWit_of_phsWit (γ : RaftNames) (h : HardStateM) (n : Nat)
   · ileft; ipureintro; exact H
   · iright; iframe H; ipureintro; exact Hn
 
+variable [CrashGS GF] in
 /-- A witness bounds every shorter committed log. -/
 theorem hsWit_mono (γ : RaftNames) (h : HardStateM) (n m : Nat) (H : m ≤ n) :
     hsWit (GF := GF) γ h n ⊢ hsWit γ h m := by
@@ -112,6 +113,7 @@ theorem hsWit_mono (γ : RaftNames) (h : HardStateM) (n m : Nat) (H : m ≤ n) :
   · ileft; ipureintro; exact Hz
   · iright; iframe Hw; ipureintro; omega
 
+variable [CrashGS GF] in
 /-- Every node holds the witness of its own term and commit index. -/
 theorem ownRaftGhost_commitWit (γ : RaftNames) (id : w64) (s : PState) {md : Bool} :
     ⊢ ownRaftGhost (GF := GF) γ id s md -∗ commitWit γ s.term s.commit := by

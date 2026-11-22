@@ -178,14 +178,16 @@ end dyn
 
 section ghost
 variable [GooseExts]
-variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [CrashGS GF]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
+variable [CrashGS GF] in
 /-- A node's ghost state in the dynamic mode, with its reconfiguration state (see the file
 header). -/
 def ownRaftGhostR (γ : RaftNames) (dec : CCDec) (c0 : CCState) (id : w64) (r : RState) :
     IProp GF :=
   iprop(ownRaftGhost γ id r.p true ∗ ⌜RInv dec c0 r⌝ ∗ logRecs γ base0 r.fp)
 
+variable [CrashGS GF] in
 /-- The step environment, from `RInv`: the full prefix, I1, the configuration index (the
 commit index at a candidate, `RInv.cand_cfg`), I3 at a leader. (2026-10-28, stage U0: with no
 snapshot pending; since stage U3 the configuration is the fold of the full log's prefix also with
@@ -222,6 +224,7 @@ theorem ownRaftGhostR_env (γ : RaftNames) (dec : CCDec) (M : DecMap) (c0 : CCSt
     · rw [Hw]; exact cfgAt_of_fold HD HI.cfg
     · intro hl; rw [Hw]; exact HI.leader_drop_cidx hl
 
+variable [CrashGS GF] in
 /-- A node's log is well formed, with records (a persistent accessor). -/
 theorem ownRaftGhost_logRecs (γ : RaftNames) (id : w64) (s : PState) (md : Bool) :
     ⊢ ownRaftGhost (GF := GF) γ id s md -∗ ⌜PlogWf s.base s.log⌝ ∗ logRecs γ s.base s.log := by
@@ -233,6 +236,7 @@ theorem ownRaftGhost_logRecs (γ : RaftNames) (id : w64) (s : PState) (md : Bool
   iframe Hr
   ipureintro; exact Hw
 
+variable [CrashGS GF] in
 /-- What a received `MsgApp` tells the dynamic receiver (`AppKnow`), from its knowledge. -/
 theorem appKnow_of_msg (γ : RaftNames) (r : RState) (m : Msg) (Hty : m.ty = .app)
     (Hdyn : γ.reDyn ≠ none) (HwR : PlogWf base0 r.full) :
@@ -250,6 +254,8 @@ theorem appKnow_of_msg (γ : RaftNames) (r : RState) (m : Msg) (Hty : m.ty = .ap
     (by rw [← toNat_uZ]; exact HI1) HRA
 
 
+variable [CrashGS GF] in
+variable [CrashGS GF] in
 /-- The dynamic refinement (2026-10-14, stage B5): a `StepR` derivation at the dynamic
 configurations (`AdmS dec c0 S`: the fold of the prefix, among `S`) updates the node's
 dynamic ghost state, given the messages it consumed with their read credits and the records of
@@ -844,6 +850,7 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (decB : CCDec) (M : DecMap) (c0 
     iframe Hg Hfr
     ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.stepDown r h1) HB noApp0 HI)
 
+variable [CrashGS GF] in
 /-- The dynamic refinement (see `ownRaftGhostR_stepR_in`), at `⊤`, given one later credit
 (2026-10-14, stage R): the commit invariant's registry half opened around the step. -/
 theorem ownRaftGhostR_stepR (γ : RaftNames) (decB : CCDec) (M : DecMap) (c0 : CCState) (h0 : CfgOk c0)

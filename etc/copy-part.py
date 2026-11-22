@@ -84,6 +84,11 @@ RENAME = {k: v for k, v in [(lean_pkg(KVD_MAIN), lean_pkg(goose.KVDURABLE_NOAX_P
 # specs and proofs (and the pure codec, `Codec.lean`) from RaftNoAx's kvdurablenoax, the package
 # path and the proofs' namespace renamed; a module the part has a file of its own of (`Base.lean`:
 # kvnet's package initialization) is the part's.
+# KvNet's plain text edits of the copies taken from kvdurablenoax (after the renames): kvdurablenoax's
+# proofs take the durable extension `durableExt` as a section variable (its file was `durableExt`'s);
+# kvnet's file is fsExt's (kvnet's own `Defs`), so the variable goes.
+TEXT_FIXES_KVNET = [(" [HasExt durableExt]", "")]
+
 RENAME_KVNET = {lean_pkg(goose.KVDURABLE_NOAX_PKG): "github_com.mit_pdos.etcd_grove.examples.raft.kvnet",
                 "raft_kvdurable": "raft_kvnet"}
 
@@ -258,7 +263,17 @@ def raftnoax_roots(part):
 KVNET_PKG = "github_com.mit_pdos.etcd_grove.examples.raft.kvnet"
 KVNET_REUSED = [f"Proof.{KVNET_PKG}.{f}" for f in
                 ["putUint64", "getUint64", "putBytes", "getBytes", "putIDs", "getIDs", "putEntry",
-                 "getEntry", "putSnapshot", "getSnapshot", "withTimeout", "encode", "decode"]]
+                 "getEntry", "putSnapshot", "getSnapshot", "withTimeout", "encode", "decode",
+                 # storage.go and the codecs, the same Go text (notes/kvnet-part.md, the replica layer)
+                 "newStorage", "image__applySnapshot", "image__append", "image__createSnapshot",
+                 "image__compact", "Storage__ApplySnapshot", "Storage__Append",
+                 "Storage__CreateSnapshot", "Storage__Compact", "Storage__encode",
+                 "encodeState", "decodeState", "putMap", "getMap", "less", "sortStrings", "readCtx",
+                 "decodeReadCtx", "validConf", "fits", "oneIn", "below",
+                 # (2026-11-22) over kvnet's own Defs (kvdurablenoax's interface kept)
+                 "Storage__SetHardState", "Storage__snapIndex", "Storage__InitialState",
+                 "Storage__Snapshot", "openStorage",
+                 "Replica__request", "Replica__applyOp", "Replica__answer"]]
 
 
 def own_roots(part):
@@ -398,6 +413,9 @@ def compute(part):
         txt = txt[:s] + IMPORT_RE.sub(imp, head) + txt[s + len(head):]
         if part.renames:
             txt = rename(txt, part.renames)
+        if part.name == "KvNet" and src == "RaftNoAx":
+            for a, b in TEXT_FIXES_KVNET:
+                txt = txt.replace(a, b)
         if part.renames and not part.own_first:
             dst = os.path.join(P, rename(rel))
         else:

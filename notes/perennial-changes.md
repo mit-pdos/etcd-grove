@@ -1390,7 +1390,7 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Proposed.** Range over a string, stepping by `utf8` decoding (needs a model of
   `utf8.DecodeRuneInString`).
 - **Status.** Fixed on Perennial's `lean` (`474911152`, with `wp_string_for_range`; in the pin since
-  `edcadb1e5`); `isWellFormed` is still names only here.
+  `edcadb1e5`); `isWellFormed` is translated and proved here since 2026-11-21 (#25).
 
 ### Tactics: `wp_apply` after an atomic spec applied with `iapply` (2026-10-27, client-go consistency)
 
@@ -3609,3 +3609,16 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
 - **Worked around locally.** `lease.ownSliceCap_timeless'` (`Proof/go_etcd_io/etcd/server/v3/lease/NotifCell.lean`),
   by unsealing (`ownSliceCap_unseal`).
 - **Proposed (general).** `instance ownSliceCap_timeless` beside `ownSlice_timeless`. **Status.** Recorded only.
+
+## 2026-11-22: `wp_apply` turns a failed post-processing into a silent `sorry` (remote's `Serve`)
+
+- **The gap.** Inside a `wp_for` body, `wp_apply wp_serveConn R c cn a sys op cd d tok $$ […]` fails in
+  its post-processing (`wp_apply_post`) with "unknown free variable" (`tok`, a variable of the goal's
+  context). `wp_apply +noauto` and `wp_apply_core` report the error; plain `wp_apply` reports none: the
+  branch becomes a `sorry`, visible only as "declaration uses `sorry`" (and "this tactic is never
+  executed"). A proof can thus look finished in an editor that hides warnings; `lake build` and
+  `#print axioms` (`sorryAx`) still show it.
+- **Worked around locally.** `wp_apply_raw`, then the steps by hand
+  (`Net/Proof/.../lib/remote/Serve.lean`, with a comment).
+- **Proposed (general).** `wp_apply` re-raises its post-processing's error instead of admitting the
+  goal. **Status.** Recorded only.

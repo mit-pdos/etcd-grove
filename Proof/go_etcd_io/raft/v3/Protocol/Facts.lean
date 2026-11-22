@@ -39,7 +39,7 @@ open Iris Iris.BI GMap go_etcd_io.raft.v3
 
 section ghost
 variable [GooseExts]
-variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [CrashGS GF]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-! ### Protocol facts the code needs
 
@@ -56,6 +56,8 @@ is dropped by the preamble and needs none of them, except `app_recv_wf`, which h
 any `app` (`isMessage` carries it). All four are proved (the last two since 2026-10-02,
 from the acknowledgement invariant `acksOk` and from arithmetic). -/
 
+variable [CrashGS GF] in
+variable [CrashGS GF] in
 /-- `handleHeartbeat`'s `commitTo(m.Commit)` panics if `lastIndex() < m.Commit`. It does
 not: the leader sends `Commit ≤ pr.Match`, and `isMessage` carries the receiver's
 acknowledgement of `pr.Match` in `m.term`. The receiver acknowledges only at its own term
@@ -118,6 +120,7 @@ theorem heartbeat_commit_le_last (E : CoPset) (γ : RaftNames) (id : w64) (ps : 
       ipureintro; simp only at Hil; omega
     · ipureintro; omega
 
+variable [CrashGS GF] in
 /-- What `raftLog.maybeAppend` needs of a received `app`'s batch: carried by the message
 (`AppPayloadOk`). No premise on the terms: it is a fact of the message alone (until
 2026-10-02 it was stated for `m.term = ps.term`). -/
@@ -132,6 +135,8 @@ theorem app_recv_wf (γ : RaftNames) (id : w64) (ps : PState) (m : Msg) {md : Bo
   iintro - ⟨%Hpay, -⟩
   ipureintro; exact Hpay
 
+variable [CrashGS GF] in
+variable [CrashGS GF] in
 /-- `maybeAppend` panics if the first conflicting index is at or below the commit index
 (`ci ≤ l.committed`). Under `maybeAppend`'s caller's premise `committed ≤ m.Index` that is
 arithmetic: a conflict is the index of one of the batch's entries, which are at
@@ -178,6 +183,7 @@ prefix `fp` (determined by the base, `FullOk_unique`) followed by the stored ent
 is a prefix of the global committed log. This is what the implementation side reads off
 a node's ghost state (for `Ready`'s committed entries, ultimately). -/
 
+variable [CrashGS GF] in
 theorem ownRaftGhost_inv (γ : RaftNames) (id : w64) (s : PState) :
     ⊢ ownRaftGhost (GF := GF) γ id s -∗ raftCommitInv γ := by
   unfold ownRaftGhost
@@ -185,6 +191,7 @@ theorem ownRaftGhost_inv (γ : RaftNames) (id : w64) (s : PState) :
   iNamed H
   iapply ownLogGhost_inv $$ Hlg
 
+variable [CrashGS GF] in
 theorem ownRaftGhost_committed (γ : RaftNames) (id : w64) (s : PState) {md : Bool} :
     ⊢ ownRaftGhost (GF := GF) γ id s md -∗
       ∃ fp, ⌜FullOk s.base fp⌝ ∗
@@ -569,6 +576,7 @@ theorem prop_collect (γ : RaftNames) (E : CoPset) (d : List w8)
   imodintro
   iapply Hiff $$ HQ'
 
+variable [CrashGS GF] in
 /-- The data of a committed log's entries. -/
 theorem committed_data (γ : RaftNames) (E : CoPset) (l : List EntryM) :
     ↑(raftN γ) ⊆ E →
@@ -1741,13 +1749,15 @@ end ghost
 
 section lemmas
 variable [GooseExts]
-variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [CrashGS GF]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
+variable [CrashGS GF] in
 /-- No read credit (2026-10-13). -/
 theorem rdCred_zero (γ : RaftNames) : ⊢ |==> rdCred (GF := GF) γ 0 := by
   unfold rdCred
   exact own_unit _
 
+variable [CrashGS GF] in
 /-- Taking a step that consumes nothing. -/
 theorem ownRaftGhost_step_0 (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (id : w64)
     (HT : TrackedOk γ c id) (B : Int) (HB : B < 2 ^ 64)

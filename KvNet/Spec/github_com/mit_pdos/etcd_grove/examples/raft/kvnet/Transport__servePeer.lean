@@ -31,7 +31,7 @@ variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 
 /-- See the file header. -/
 abbrev Transport.servePeer.spec : Prop :=
-  ∀ (F : KvFacts GF) (t : Loc) (γ : Cluster) (N : Namespace) (id : w64) (n : Loc)
+  ∀ (F : KvFacts GF) (t : Loc) (γ : Cluster) (N : Namespace) (id : w64) (n : NodeH)
     (c : GoInterface) (cn : Nat) (a : GoString) (eof ed : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet ∗
       isTransportCore F t γ N id n ∗ net.isConn (GF := GF) c cn true a ∗

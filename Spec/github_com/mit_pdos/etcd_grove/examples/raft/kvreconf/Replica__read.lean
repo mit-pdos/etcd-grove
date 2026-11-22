@@ -24,7 +24,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KvrStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KvrStor GF]
 
 attribute [local instance] kvrStorageModel
 
@@ -36,7 +36,7 @@ abbrev Replica.read.spec : Prop :=
   {{ isRep γr vs id r ∗ kvLb γr L0 }}
     (App (App (Val (r @!! go.GoType.PointerType rReplicaTy @!! go!"read")) (Val #key)) (Val #tmo))
   {{ (v : List w8) (ok : Bool), RET (PairV #v #ok);
-      if ok then iprop(∃ L, kvLb γr L ∗ ⌜L0 <+: L ∧ v = kvFold L key⌝) else iprop(True) }}
+      if ok then iprop(∃ L, kvLb (GF := GF) γr L ∗ ⌜L0 <+: L ∧ v = kvFold L key⌝) else iprop(True) }}
 
 end spec
 

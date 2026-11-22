@@ -86,7 +86,7 @@ abbrev StartNode.spec : Prop :=
       peers ↦*{dq} pv ∗ peersCtx pv ctxs }}
     (App (App (Val #(functions StartNode [])) (Val #c)) (Val #peers))
   {{ (nd : GoInterface), RET #nd;
-      ∃ (n : Loc) (K : GName), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
+      ∃ (n : NodeH) (K : GName), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n.loc⌝ ∗
         -- (2026-11-05, the lease-expiry plan's E2 revision 5) made by `StartNode`
         nodeStartedFresh n γ N vs ctxs cv.ID' ∗
         isNode n γ N cv.ID' ∗ nodeDriver n γ N (NodeDriverState.init (interface.ok si) K) ∗

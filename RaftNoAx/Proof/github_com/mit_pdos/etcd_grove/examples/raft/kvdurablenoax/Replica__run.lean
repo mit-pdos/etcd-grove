@@ -76,7 +76,7 @@ variable [go_gctx : GoGlobalContext] [go.IntoValInj GoString]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
 
 attribute [local instance] kdStorageModel
 
@@ -129,7 +129,7 @@ private theorem ready_ents_wf_G20 (γc : Cluster) (N : Namespace) (id : w64) (rd
   exact ⟨Hty e he, Hd e he⟩
 
 /-- The applier's view at `i` from the node's configuration at `i` (nothing to skip). -/
-private theorem appNode_at (γr : KdNames) (n : Loc) (L : List LogEntry) (i : Nat) (m : Membership) :
+private theorem appNode_at (γr : KdNames) (n : NodeH) (L : List LogEntry) (i : Nat) (m : Membership) :
     nodeConfig (GF := GF) n γr.r.cluster kdRaftN ⟨i, m⟩ ∗ deliveredLogLb n γr.r.cluster kdRaftN L ⊢
       appNode γr n L i m := by
   iintro ⟨Hc, #Hd⟩

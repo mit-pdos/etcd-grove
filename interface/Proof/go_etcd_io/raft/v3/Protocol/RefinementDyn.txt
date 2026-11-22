@@ -61,11 +61,11 @@ def AdmS (dec : CCDec) (c0 : CCState) (S : List EntryM → Prop) (l : List Entry
 theorem ownRaftGhost_logRecs [ReceiptGS GF] [InvGS GF] [CrashGS GF] (γ : RaftNames) (id : w64) (s :
     PState) (md : Bool) : ⊢ ownRaftGhost γ id s md -∗ ⌜PlogWf s.base s.log⌝ ∗ logRecs γ s.base s.log
 
-theorem ownRaftGhostR_stepR_in [ReceiptGS GF] [InvGS GF] [CrashGS GF] (γ : RaftNames) (decB : CCDec)
-    (M : DecMap) (c0 : CCState) (h0 : CfgOk c0) (HD : γ.dyn = some (DynCfg.ofFold decB c0 h0)) (S :
-    List EntryM → Prop) (id : w64) (B : Int) (HB : B < 2 ^ 64) (r : RState) (recv : List Msg) (r' :
-    RState) : StepR (AdmS (effDec decB M) c0 S) (effDec decB M) id B r recv r' → ⊢ notCrashed -∗
-    ⧖(B.toNat - γ.reBoot.length) -∗ decLb γ M -∗ regsOwn γ -∗ (□ ∀ fp, ⌜S fp⌝ -∗ logRecs γ base0 fp)
-    -∗ ([∗list] m ∈ recv, isMessage γ m) -∗ rdCred γ (rdCount recv) -∗ msgsTks γ recv -∗
-    ownRaftGhostR γ (effDec decB M) c0 id r ={⊤ \ ↑(raftRegN γ)}=∗ regsOwn γ ∗ notCrashed ∗
+theorem ownRaftGhostR_stepR_in [ReceiptGS GF] [InvGS GF] [CrashGS GF] [CrashGS GF] (γ : RaftNames)
+    (decB : CCDec) (M : DecMap) (c0 : CCState) (h0 : CfgOk c0) (HD : γ.dyn = some (DynCfg.ofFold
+    decB c0 h0)) (S : List EntryM → Prop) (id : w64) (B : Int) (HB : B < 2 ^ 64) (r : RState) (recv
+    : List Msg) (r' : RState) : StepR (AdmS (effDec decB M) c0 S) (effDec decB M) id B r recv r' → ⊢
+    notCrashed -∗ ⧖(B.toNat - γ.reBoot.length) -∗ decLb γ M -∗ regsOwn γ -∗ (□ ∀ fp, ⌜S fp⌝ -∗
+    logRecs γ base0 fp) -∗ ([∗list] m ∈ recv, isMessage γ m) -∗ rdCred γ (rdCount recv) -∗ msgsTks γ
+    recv -∗ ownRaftGhostR γ (effDec decB M) c0 id r ={⊤ \ ↑(raftRegN γ)}=∗ regsOwn γ ∗ notCrashed ∗
     ownRaftGhostR γ (effDec decB M) c0 id r'

@@ -138,5 +138,86 @@ theorem robust_of_kitProto [lctx : GoLocalContext] (addrs : List GoString)
 
 end bridge
 
+
+/-! ## Over any ghost-state bundle, with the receipt bound (additive, 2026-11-22)
+
+The bridge above is at `netGF`. A kit whose proofs need ghost state `netGF` has no slot for (porcupine's
+non-atomic invariants: `remote`'s counter, `notes/remote-port-plan.md`, R4) states its machines' WPs
+over its own bundle `GF` (any with `GooseGpreS GF`); and a WP that needs the time receipts' bound
+(lintest's clock: `receiptBound GF ≤ 2^63`) gets it from the step bound: `goose_dist_adequacy`'s
+obligation has `receiptBound GF = n + 1` for an execution of `n < bound` steps. -/
+
+section bridgeGF
+variable [GoGlobalContext] {GF : BundledGFunctors} [hPre : GooseGpreS GF]
+
+/-- `KitBootWp` over the bundle `GF`. -/
+def KitBootWpG [lctx : GoLocalContext] [G : GooseGlobalGS .hasLC GF] (e : Expr)
+    (P : IProp GF) : Prop :=
+  ∀ hG : HeapGS .hasLC GF, hG.goose_globalGS = G →
+    hG.goose_localGS.goose_go_local_context = lctx →
+    P ⊢ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ -∗
+      WP e @ Stuckness.NotStuck; ⊤ {{ v, ⌜v = #()⌝ }}
+
+theorem nodeWp_of_kitBootG [lctx : GoLocalContext] [G : GooseGlobalGS .hasLC GF] (T : Nat)
+    (e : Expr) (σ : state) (P : IProp GF) (hf : Fresh lctx σ) (H : KitBootWpG e P) :
+    P ⊢ nodeWp T e σ (fun v => v = #()) := by
+  unfold nodeWp
+  iintro HP %L
+  unfold nodeWpBody
+  iintro %_ %hL Hls Hgs -
+  rw [hf.2.1]
+  imodintro
+  iapply H ⟨G, L⟩ rfl (hL.trans hf.1) $$ HP Hgs
+
+/-- `robust_of_kitBoot` over the bundle `GF`, the obligation given `receiptBound GF ≤ bound`. -/
+theorem robust_of_kitBootRB [lctx : GoLocalContext] (addrs : List GoString)
+    (nodes : List (Expr × state)) (g : GlobalState) (threads bound : Nat)
+    (Hstart : ∀ [GooseGlobalGS .hasLC GF], receiptBound GF ≤ bound →
+      ⊢ ([∗list] a ∈ addrs, addrUnset a) ={⊤}=∗
+        ∃ Ps : Nat → IProp GF,
+          ⌜∀ (i : Nat) (m : Expr × state), nodes[i]? = some m → KitBootWpG m.1 (Ps i)⌝ ∗
+          [∗list] i ↦ _m ∈ nodes, Ps i) :
+    KitDeploy addrs nodes g → Robust [] nodes g threads bound := by
+  rintro ⟨Hnd, Hok, Hconns, -⟩ hfresh _ _ n κs c hsteps hn i tp σ hi e he
+  simp only [List.map_nil, List.nil_append] at hfresh hsteps
+  have H := goose_dist_adequacy (GF := GF) (n + 1) (n + 2) nodes g (fun _ v => v = #())
+    (fun _ p h => intoVal_ne_PanicV () p h.symm) ⟨Hconns, trivial⟩ (fun _ _ => ⟨trivial, trivial⟩)
+    ?_ n κs c (distNsteps_of_crash_nil hsteps.nsteps) (Nat.lt_succ_self n)
+    (fun m hm => (hfresh m hm).2.2) (DistThreadsBelow.of_single ?_) i tp σ hi
+  · exact ⟨H.2.1 e he, H.2.2 e he⟩
+  · intro G HN
+    iintro Hg
+    ihave Hnet := net_globalStart g.globalWorld $$ Hg
+    ihave Hs := addrs_start (Gg := G) (extGlobal netExt g.globalWorld) addrs Hnd Hok $$ Hnet
+    imod Hstart (by omega) $$ Hs with ⟨%Ps, %HP, HPs⟩
+    imodintro
+    iapply BigSepL.bigSepL_mono ?_ $$ HPs
+    intro j m hm
+    exact nodeWp_of_kitBootG (n + 2) m.1 m.2 (Ps j) (hfresh m (List.mem_of_getElem? hm))
+      (HP j m hm)
+  · intro j tp' σ' hj
+    simp only [distInit, List.getElem?_map] at hj
+    obtain ⟨x, hx, hx'⟩ := Option.map_eq_some_iff.mp hj
+    simp only [Prod.mk.injEq] at hx'
+    obtain ⟨-, rfl⟩ := hx'
+    exact (hfresh x (List.mem_of_getElem? hx)).2.2
+
+/-- `robust_of_kitProto` over the bundle `GF`, the obligation given `receiptBound GF ≤ bound`. -/
+theorem robust_of_kitProtoRB [lctx : GoLocalContext] (addrs : List GoString)
+    (nodes : List (Expr × state)) (g : GlobalState) (threads bound : Nat)
+    (Hstart : ∀ [GooseGlobalGS .hasLC GF] [NetProtoGS], receiptBound GF ≤ bound →
+      ⊢ regCtx -∗ ([∗list] a ∈ addrs, addrUnset a) ={⊤}=∗
+        ∃ Ps : Nat → IProp GF,
+          ⌜∀ (i : Nat) (m : Expr × state), nodes[i]? = some m → KitBootWpG m.1 (Ps i)⌝ ∗
+          [∗list] i ↦ _m ∈ nodes, Ps i) :
+    KitDeploy addrs nodes g → Robust [] nodes g threads bound := by
+  refine robust_of_kitBootRB (GF := GF) addrs nodes g threads bound ?_
+  intro G hb
+  iintro Hs
+  imod netProto_alloc ⊤ with ⟨%π, #Hreg⟩
+  iapply @Hstart G π hb $$ Hreg Hs
+
+end bridgeGF
+
 end Net
 end Perennial

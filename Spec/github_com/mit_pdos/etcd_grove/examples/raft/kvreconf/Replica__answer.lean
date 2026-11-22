@@ -25,15 +25,15 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [StorageModel GF] [AllG GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [StorageModel GF]
 
 /-- See the file header. -/
 abbrev Replica.answer.spec : Prop :=
-  ∀ (γr : RNames) (vs : List w64) (id : w64) (r n st sts : Loc)
+  ∀ (γr : RNames) (vs : List w64) (id : w64) (r : Loc) (n : NodeH) (st sts : Loc)
     (ap : List LogEntry) (idx : w64) (csp : Loc) (m : Membership) (mA : Loc)
     (A : GMap (List w8) (List w8)) (psl : GoSlice) (ps : List ReadState) (dq : DFrac),
   uint.Z idx = (ap.length : Int) →
-  {{ isReplica γr vs id r n st sts ∗ repOwn γr r ap idx csp m mA A ∗
+  {{ isReplica (GF := GF) γr vs id r n st sts ∗ repOwn γr r ap idx csp m mA A ∗
       psl ↦*{dq} ps ∗ [∗list] v ∈ ps, rsOk γr.cluster v }}
     (App (Val (r @!! go.GoType.PointerType rReplicaTy @!! go!"answer")) (Val #psl))
   {{ (rest : GoSlice), RET #rest; repOwn γr r ap idx csp m mA A ∗

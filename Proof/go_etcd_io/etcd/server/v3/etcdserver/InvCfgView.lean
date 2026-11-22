@@ -330,7 +330,7 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The driver's view after the committed log `pre ++ L`** (see the file
 header): the node API's `nodeConfig` of the node `n` with `srvCfgOk` at the cluster's voters. -/
-def srvCfgView (γs : ServerRaftNames) (n : Loc) (pre L : List EntryModel) : IProp GF :=
+def srvCfgView (γs : ServerRaftNames) (n : NodeH) (pre L : List EntryModel) : IProp GF :=
   letI := srvStor (GF := GF) γs.raft
   iprop(∃ v : ConfigView, nodeConfig n γs.raft.cl srvClusterN v ∗
     ⌜srvCfgOk γs.raft.cfg (pre ++ L) v⌝)
@@ -344,7 +344,7 @@ driver's view and a share of the node's running token (the apply side's half, `d
 refutes raft's stopped answer, `nodeRunning_stopped`: etcd stops raft only after the scheduler is
 drained), it returns the new `*ConfState`, owned, of the membership `m'`, and the view at
 `⟨k + 1, m'⟩`. -/
-def raftApplyCC (γs : ServerRaftNames) (n : Loc) (nd : GoInterface) : IProp GF :=
+def raftApplyCC (γs : ServerRaftNames) (n : NodeH) (nd : GoInterface) : IProp GF :=
   letI := srvStor (GF := GF) γs.raft
   iprop(∃ ni : GoInterfaceOk, ⌜nd = GoInterface.ok ni⌝ ∗
     □ (∀ (c : GoInterface) (cm : ConfChangeM) (l : List LogEntry) (v : ConfigView)
@@ -359,7 +359,7 @@ def raftApplyCC (γs : ServerRaftNames) (n : Loc) (nd : GoInterface) : IProp GF 
           nodeConfig n γs.raft.cl srvClusterN ⟨k + 1, m'⟩ ∗
           nodeRunning n γs.raft.cl srvClusterN q }}))
 
-instance raftApplyCC_persistent (γs : ServerRaftNames) (n : Loc) (nd : GoInterface) :
+instance raftApplyCC_persistent (γs : ServerRaftNames) (n : NodeH) (nd : GoInterface) :
     Persistent (raftApplyCC (GF := GF) γs n nd) := by
   unfold raftApplyCC; infer_instance
 
@@ -374,15 +374,15 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The server `s`'s raft node, for its conf changes** (persistent; 2026-10-30, the repair: until
 then `srvRaftNodeDyn`, in a dynamic cluster): `s.r`'s `Node` (the node `n`) meets `raftApplyCC`. -/
-def srvRaftNodeCC (s : Loc) (γs : ServerRaftNames) (n : Loc) : IProp GF :=
+def srvRaftNodeCC (s : Loc) (γs : ServerRaftNames) (n : NodeH) : IProp GF :=
   iprop(∃ nd : GoInterface, srvNodeAddr s ↦□ nd ∗ raftApplyCC γs n nd)
 
-instance srvRaftNodeCC_persistent (s : Loc) (γs : ServerRaftNames) (n : Loc) :
+instance srvRaftNodeCC_persistent (s : Loc) (γs : ServerRaftNames) (n : NodeH) :
     Persistent (srvRaftNodeCC (GF := GF) s γs n) := by
   unfold srvRaftNodeCC; infer_instance
 
 /-- The contract reads only the cluster. -/
-theorem srvRaftNodeCC_congr (s : Loc) (γ1 γ2 : ServerRaftNames) (n : Loc) (h : γ1.raft = γ2.raft) :
+theorem srvRaftNodeCC_congr (s : Loc) (γ1 γ2 : ServerRaftNames) (n : NodeH) (h : γ1.raft = γ2.raft) :
     srvRaftNodeCC (GF := GF) s γ1 n = srvRaftNodeCC s γ2 n := by
   unfold srvRaftNodeCC raftApplyCC; rw [h]
 
@@ -399,21 +399,21 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 with no conf entry: the raft loop keeps the view; until the repair also a static cluster), or the
 view after the log
 `L` the apply thread has applied, of the node `n`. -/
-def dvView (γs : ServerRaftNames) (dv : Option Loc) (L : List EntryModel) : IProp GF :=
+def dvView (γs : ServerRaftNames) (dv : Option NodeH) (L : List EntryModel) : IProp GF :=
   match dv with
   | none => iprop(True)
   | some n => srvCfgView γs n γs.pre L
 
 /-- What the apply thread holds of the node for a batch with a view (persistent): the conf-change
 contract and the committed log delivered through the batch `L`. -/
-def dvRes (s : Loc) (γs : ServerRaftNames) (dv : Option Loc) (L : List EntryModel) :
+def dvRes (s : Loc) (γs : ServerRaftNames) (dv : Option NodeH) (L : List EntryModel) :
     IProp GF :=
   match dv with
   | none => iprop(True)
   | some n => letI := srvStor (GF := GF) γs.raft; iprop(srvRaftNodeCC s γs n ∗
       deliveredLogLb n γs.raft.cl srvClusterN (srvLE γs L))
 
-instance dvRes_persistent (s : Loc) (γs : ServerRaftNames) (dv : Option Loc)
+instance dvRes_persistent (s : Loc) (γs : ServerRaftNames) (dv : Option NodeH)
     (L : List EntryModel) : Persistent (dvRes (GF := GF) s γs dv L) := by
   unfold dvRes; split <;> infer_instance
 
@@ -422,7 +422,7 @@ until then also a static cluster); with one, no entry at or below the consistent
 replay: Go hands a replayed conf change to no one), the cluster at the server's rule (from the
 start's consistent index `kc0` and the boot log, D43 M5d), started at index `0` with nothing
 before. -/
-def dvOk (γs : ServerRaftNames) (kc0 : w64) (dv : Option Loc) (c f0 : w64)
+def dvOk (γs : ServerRaftNames) (kc0 : w64) (dv : Option NodeH) (c f0 : w64)
     (ms : List EntryModel) : Prop :=
   (dv = none → ∀ m, m ∈ ms → m.typ ≠ W32 1) ∧
   ∀ n, dv = some n → uint.Z c < uint.Z f0 ∧
@@ -431,7 +431,7 @@ def dvOk (γs : ServerRaftNames) (kc0 : w64) (dv : Option Loc) (c f0 : w64)
 /-- The node resources of `applyConfChange` (its precondition's): with a view, the node's
 conf-change contract, the driver's `nodeConfig` at `v` and the committed log `l` delivered, and
 (2026-10-30, the repair) the apply side's half of the running token (`dvRun`). -/
-def dvCCPre (s : Loc) (γs : ServerRaftNames) (dv : Option Loc) (v : ConfigView)
+def dvCCPre (s : Loc) (γs : ServerRaftNames) (dv : Option NodeH) (v : ConfigView)
     (l : List LogEntry) : IProp GF :=
   match dv with
   | none => iprop(True)
@@ -440,7 +440,7 @@ def dvCCPre (s : Loc) (γs : ServerRaftNames) (dv : Option Loc) (v : ConfigView)
 
 /-- `applyConfChange`'s node answer: with a view, `nodeConfig` at `⟨k + 1, m'⟩`, and (2026-10-30)
 the running token's half back. -/
-def dvCCPost (γs : ServerRaftNames) (dv : Option Loc) (k : Nat) (m' : Membership) :
+def dvCCPost (γs : ServerRaftNames) (dv : Option NodeH) (k : Nat) (m' : Membership) :
     IProp GF :=
   match dv with
   | none => iprop(True)
@@ -448,7 +448,7 @@ def dvCCPost (γs : ServerRaftNames) (dv : Option Loc) (k : Nat) (m' : Membershi
       iprop(nodeConfig n γs.raft.cl srvClusterN ⟨k + 1, m'⟩ ∗ nodeRunning n γs.raft.cl srvClusterN (1 : Qp).half)
 
 /-- A normal entry keeps the view. -/
-theorem dvView_normal (γs : ServerRaftNames) (dv : Option Loc) (L : List EntryModel)
+theorem dvView_normal (γs : ServerRaftNames) (dv : Option NodeH) (L : List EntryModel)
     (m : EntryModel) (hm : m.typ = W32 0) :
     dvView (GF := GF) γs dv L ⊢ dvView γs dv (L ++ [m]) := by
   unfold dvView
@@ -489,7 +489,7 @@ node resources of `applyConfChange`'s spec at `v`, its premise (the change etcd 
 `ccRaftEff` at the member buckets after `L` from `kc0`, at the entry's position `|pre ++ L|` of the
 committed log delivered; D43 M5d: with a `RemoveNode`, under the dynamic mode's positional policy),
 and back from its answer the view after the entry. -/
-theorem dvView_cc (s : Loc) (γs : ServerRaftNames) (dv : Option Loc) (kc0 lid : w64)
+theorem dvView_cc (s : Loc) (γs : ServerRaftNames) (dv : Option NodeH) (kc0 lid : w64)
     (L rest : List EntryModel) (m : EntryModel) (cm : ConfChangeM)
     (Hty : m.typ = W32 1) (Hdec : ccDecodeV1 m.data = some cm)
     (Hdyn : ∀ n, dv = some n → ccApplyOkR γs.raft cm ∧ lid ∈ γs.raft.cfg ∧

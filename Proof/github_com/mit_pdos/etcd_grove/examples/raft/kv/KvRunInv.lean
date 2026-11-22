@@ -44,7 +44,7 @@ variable [KVStor GF]
 
 /-- **`run`'s loop invariant** (see the file header); `rp`, `pp`, `ap`, `sp`, `cp` are its `rd`,
 `pending`, `applied`, `snapIndex` and `reconf`. -/
-def kvRunInv (γr : RKVNames) (id : w64) (K : GName) (r n st : Loc) (γs : MemStorNames)
+def kvRunInv (γr : RKVNames) (id : w64) (K : GName) (r : Loc) (n : NodeH) (st : Loc) (γs : MemStorNames)
     (rp pp ap sp cp : Loc) : IProp GF :=
   iprop(∃ (D : List LogEntry) (hd : HardStateM) (rdv : Ready) (pv : GoSlice) (ps : List ReadState)
       (a sI : w64) (c : Nat) (S : RaftState) (ro : StateType),

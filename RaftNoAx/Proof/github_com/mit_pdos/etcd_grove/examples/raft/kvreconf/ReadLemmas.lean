@@ -48,7 +48,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions]
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
-variable [StorageModel GF] [AllG GF]
+variable [StorageModel GF]
 
 /-- **A read state's context is the one minted where it decodes to** (see the file header). -/
 theorem kvr_read_minted (γr : RNames) (c c0 : List w8) (i : w64) (rp s : w64) (key : List w8)

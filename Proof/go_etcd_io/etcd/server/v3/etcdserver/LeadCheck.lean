@@ -75,7 +75,7 @@ theorem srvLeadCheckOk_of
   · iexists mu
     iframe Hmu Htp
   isplitr
-  · iexists n, ⟨go.GoType.PointerType go_etcd_io.raft.v3.node.ty, #γ.nl⟩
+  · iexists n, ⟨go.GoType.PointerType go_etcd_io.raft.v3.node.ty, #γ.nl.loc⟩
     iframe Hn
     isplitr
     · ipureintro; rw [Hnif]
