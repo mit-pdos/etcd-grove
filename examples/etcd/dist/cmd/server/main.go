@@ -1,9 +1,9 @@
 // Command server is an etcd member machine's binary (notes/etcd-dist-plan.md, §2): it reads its
 // server.Config as JSON from the file named by its one argument and runs server.Main. The Lean
 // statement's boot program is server.Main applied to the Config's Go value (the flag and JSON
-// parsing is not translated: a trusted gap, review F15; the harness writes the file from the same
+// parsing is not translated: a trusted gap, review F15; the test writes the file from the same
 // deployment the theorem quantifies over). With DIST_LOG set, the member logs to standard error
-// (server.MainLogger), for a harness's diagnosis.
+// (server.MainLogger), for the test's diagnosis.
 package main
 
 import (

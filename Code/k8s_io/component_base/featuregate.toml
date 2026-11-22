@@ -8,3 +8,42 @@ imports = ["!*", "context", "github.com/spf13/pflag", "k8s.io/apimachinery/pkg/u
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`; until 2026-11-22
+# their initializers were untranslated, `opaqueInitsOk`). goose refuses a reference to one from
+# translated code, so no verified code reads them; each reason says why not running the
+# initializer is unobservable.
+[[skip]]
+names = ["defaultFeatures"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values:
+`version.MustParse*`/`MajorMinor` of constants allocate a version (`MustParse*` panics only on an
+invalid constant, and these parse: Go runs the initializer at every start). So it terminates, cannot
+panic and has no effect beyond its variable."""
+
+[[skip]]
+names = ["specialFeatures", "internalPackages"]
+reason = """
+Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable."""
+
+[[skip]]
+names = ["_@feature_gate.go:286"]
+reason = """
+An interface check: `&featureGate{}` converted to `MutableVersionedFeatureGateWithLogger`. No call,
+no panic, no effect."""
+
+[[skip]]
+names = ["_@feature_gate.go:287"]
+reason = """
+An interface check: `&featureGate{}` converted to `MutableFeatureGateWithLogger`. No call, no panic,
+no effect."""
+
+[[skip]]
+names = ["_@feature_gate.go:318"]
+reason = """
+An interface check: `&featureGate{}` converted to `pflag.Value`. No call, no panic, no effect."""
+# --- end of skipped package variables ---

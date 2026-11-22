@@ -1,0 +1,243 @@
+-- The copy for the part `KvNet/` of `RaftNoAx/Proof/go_etcd_io/raft/v3/node__ProposeConfChange.lean` (etc/copy-part.py; rerun it, do not edit).
+/- Proof of `Spec/go_etcd_io/raft/v3/node__ProposeConfChange.lean`, Lean-first (2026-10-13). -/
+module
+
+public import KvNet.Spec.go_etcd_io.raft.v3.node__ProposeConfChange
+public import KvNet.Spec.go_etcd_io.raft.v3.confChangeToMsg
+public import KvNet.Spec.go_etcd_io.raft.v3.node__Step
+public import KvNet.Proof.go_etcd_io.raft.v3.InvRawnodeReady
+public import KvNet.Proof.go_etcd_io.raft.v3.InvApplyConf
+public import KvNet.Proof.go_etcd_io.raft.v3.InvBoot
+public import KvNet.Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange
+public import KvNet.Spec.go_etcd_io.raft.v3.NewRawNode
+public import KvNet.Proof.go_etcd_io.raft.v3.InvNodeCtx
+public import KvNet.Proof.go_etcd_io.raft.v3.InvNodeChan
+public import KvNet.Proof.go_etcd_io.raft.v3.ApiVocab
+public import Perennial.Proof.context
+import all KvNet.Proof.go_etcd_io.raft.v3.InvNode
+import KvNet.Proof.go_etcd_io.raft.v3.InvApi
+import KvNet.Proof.go_etcd_io.raft.v3.InvApiView
+
+@[expose] public section
+
+noncomputable section
+
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
+
+/-! ## The raw triple (internal: private to this file)
+
+What the proof over raft's internals shows, from which the wrapper (below) derives the spec. Its documentation, as when it was the spec (until 2026-10-28):
+-/
+
+/-! `node.ProposeConfChange` (node.go), Lean-first (2026-10-13, reconfiguration stage D).
+
+`ProposeConfChange(ctx, cc)` is `msg, err := confChangeToMsg(cc); if err != nil { return err };
+return n.Step(ctx, msg)`: the proposal goes on `propc` as a forwarded one (no result channel),
+and `run` steps it (`RawNode.ProposeConfChange`'s file header says what that does). The
+entry's data is recorded as proposed (`isPropData`, through the node's proposed slices'
+invariant, `node_read_register`), which makes the proposal a protocol message (`fwdP`).
+Partial correctness: whether the change is appended or refused is not visible.
+(2026-10-16, stage R7a, D10 gap (2)) The context is any `nodeCtx ctx cd` (`InvNodeCtx.lean`:
+`Done()` nil, or Perennial's `isContext`), and the error `nodeErr cd err`: `nil`, raft's
+`ErrStopped`, or the context's once its `Done()` fired (`ctxErr`).
+
+raft v3.7 (2026-10-16, stage R5, D6): the entry holds the conf change's bytes, so no recording
+(`isPropData`) is needed: the proposal is `fwdP` from `confChangeToMsg`'s owned message
+(`msgIn ml 1`), `ccEntsOk_cc`.
+
+**Logically atomic (2026-10-27).** As `node.Propose`: the conf change's entry is a tracked
+proposal, keyed by its type and bytes (`entKey`), and the caller hands in `ccPropArg γ.raft o` --
+once `o` is marshaled to bytes `bs`, the key's registration (`propIs`) and an update `propAu1` for
+it, which `ProposeConfChange` deposits before the proposal leaves the node (`cc_propose_ghost`),
+its ticket travelling with the proposal; or nothing, if the entry is a filler (an empty
+`ConfChangeV2`). The update fires at most once, when the entry commits, and never if a leader
+refuses the change (an empty normal entry, a filler, is appended in its place and the ticket
+dropped). Until 2026-10-27 a conf-change entry fired the standing `noopAu`, and the change had to
+be one the cluster's policy admits (`CCAllowed`).
+-/
+
+open Iris Iris.BI go_etcd_io.raft.v3
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- See the file header. -/
+private abbrev node.ProposeConfChange.specRaw : Prop :=
+  ∀ (γ : NodeNames) (id : w64) (n : ApiImpl.NodeH) (c : GoInterface) (o : ConfChangeIM) (cc : ConfChangeIC)
+    (dq : DFrac) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    -- (2026-10-28) the node in the API's cluster `γc`: what the clean `node.Step` takes
+    (γc : ApiImpl.Cluster) (N : Namespace),
+  ApiImpl.NodeOk γc γ →
+  -- (2026-11-12, trace-check implementation step 1) refused at a traced node
+  γ.raft.reTrace = none →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n.loc ∗
+      ApiImpl.isNode n γc N id ∗ nodeCtx ctx cd ∗
+      -- (out_size C3, P5) the change at its content, of model `o`, its encoding within the bound on
+      -- an entry's bytes when the cluster bounds proposed data
+      ccPtsCC c dq cc ∗
+      ⌜cc.model = o ∧ (γ.raft.maxData.isSome = true → ccSize cc + 64 ≤ entBytesMax)⌝ ∗
+      -- (2026-10-27) the proposal tracked under its key (`ccPropArg`; until then
+      -- `CCAllowed γ.raft o`, a change the cluster's policy admits)
+      ccPropArg γ.raft o }}
+    (App (App (Val (n.loc @!! go.GoType.PointerType node.ty @!! go!"ProposeConfChange"))
+      (Val #(interface.ok ctx))) (Val #c))
+  -- (raft-final, K5) `node.Step`'s answer, at the API's cluster
+  {{ (err : GoInterface), RET #err; ownConfChangeI c dq (some o) ∗ nodeErrS n γc N cd err }}
+
+end spec
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- `confChangeToMsg`, then `Step` of the proposal, forwarded (`fwdP`). (Raft v3.7, stage R5, D6:
+the message `msgIn ml 1` from `confChangeToMsg`, its entry `ccEntryM (some o) bs` holding the
+bytes, so no recording of the data is needed. 2026-10-27: the proposal tracked under its key,
+`cc_propose_ghost`. Stage R7a: any `nodeCtx`, the error
+`nodeErr`.) -/
+private theorem node.ProposeConfChange.wp_raw
+    (wp_confChangeToMsg : confChangeToMsg.spec (GF := GF) (hG := hG))
+    (wp_node_Step : node.Step.spec (GF := GF) (hG := hG)) :
+    node.ProposeConfChange.specRaw (GF := GF) (hG := hG) := by
+  intro γ id n c o cc dq ctx cd γc N HNo Htr
+  wp_start as ⟨#Hnode, #HnodeA, #Hctx, Hc, %Hcc, Harg⟩
+  obtain ⟨Ho, Hcsz⟩ := Hcc
+  wp_auto
+  ihave Hc : ccPtsCCo c dq (some cc) $$ [Hc]
+  · simp only [ccPtsCCo]; iexact Hc
+  wp_apply wp_confChangeToMsg c (some cc) dq γ.raft.maxData.isSome $$ [$Hc] as %ml %bs ⟨Hc, Hm, %Hbs⟩
+  · ipureintro; intro hs cc' h; cases h; exact Hcsz hs
+  ihave Hc := ccPtsCCo_own c dq (some cc) $$ Hc
+  simp only [Option.map_some, Ho] at Hbs ⊢
+  -- (2026-10-27) the proposal's ghost work: tracked under its key, its ticket on the entry
+  ihave #Hcinv := isNode_commitInv γ id n.loc $$ Hnode
+  imod cc_propose_ghost γ.raft o bs Hbs $$ Hcinv Harg with ⟨#Hent, Htk⟩
+  -- (2026-10-28) the clean `node.Step`: the forwarded proposal is a `stepIn` at every node names of
+  -- the cluster, whose `raft` is `γ`'s (`fwdP` reads only it)
+  have wpS := wp_node_Step
+  unfold EtcdGrove.node.Step.spec EtcdGrove.isNode EtcdGrove.stepIn EtcdGrove.Cluster at wpS
+  unfold EtcdGrove.NodeH.loc at wpS
+  icases msgInC_nn _ ml _ _ $$ Hm with ⟨%Hnn, Hm⟩
+  wp_apply wpS n γc N id ml ctx cd $$ [$HnodeA $Hctx Hm Htk]
+  · unfold ApiImpl.stepIn
+    isplitr; · ipureintro; exact Hnn
+    iintro %γn' %Hok' -
+    have Hr : γn'.raft = γ.raft := Hok'.1.trans HNo.1.symm
+    unfold stepP
+    iright
+    unfold fwdP
+    rw [Hr]
+    iexists ⟨propMsgM, [ccEntryM (some o) bs], none, [], []⟩
+    iframe Hm
+    isplitr
+    · ipureintro; exact ⟨rfl, rfl⟩
+    isplitr
+    · unfold isMessage absMsg absMsgFrom
+      isplitr
+      · ipureintro
+        exact ⟨rfl, List.cons_ne_nil _ _, by simp, fun e _ => TrNoConf.of_none Htr e⟩
+      iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => propData (GF := GF) γ.raft e)).2
+      iexact Hent
+    isplitl [Htk]
+    · iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => entTk (GF := GF) γ.raft e)).2
+      iexact Htk
+    -- (2026-11-12, trace-check implementation step 1) `fwdP`'s gate, untraced (the refusal)
+    iapply fwdGate_none _ _ Htr
+  iintro %err Herr
+  wp_auto
+  iapply HΦ
+  iframe Hc
+  iexact Herr
+
+end proof
+
+/-! ## The spec, from the raw triple -/
+
+namespace ApiImpl
+
+section wrap
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- `node.ProposeConfChange.spec` from the raw triple (`node`'s names hidden behind the API's). -/
+private theorem node.wp_ProposeConfChange_impl
+    (hP : EtcdGrove.node.ProposeConfChange.specRaw (GF := GF) (hG := hG)) :
+    EtcdGrove.node.ProposeConfChange.spec (GF := GF) (hG := hG) := by
+  unfold EtcdGrove.node.ProposeConfChange.spec EtcdGrove.Cluster EtcdGrove.NodeH EtcdGrove.NodeH.loc EtcdGrove.isNode EtcdGrove.ownCommittedOps
+    EtcdGrove.Cluster.dup
+  intro n γ N id c o cc dq ctx cd Htr
+  iintro %Φ ⟨#Hinit, #Hnode, #Hctx, Hcc, %Hmd, Hau⟩ HΦ
+  obtain ⟨Ho, Hmd⟩ := Hmd
+  ihave #HnodeA := Hnode
+  iunfold isNode at Hnode
+  icases Hnode with ⟨%γn, %Hf, #Hrn, -, #Hci, -⟩
+  have Hf0 := Hf
+  obtain ⟨Hγr, -⟩ := Hf
+  ihave #Hci' := Hci
+  iunfold clusterInv at Hci'
+  icases Hci' with ⟨%HNs, #Hcinv, #Hinv, -, %Hmb⟩
+  -- (out_size C3, P5) the change's size within `entBytesMax`: the cluster's bound, at most `2^31`
+  have Hcsz : γn.raft.maxData.isSome = true → ccSize cc + 64 ≤ entBytesMax := fun hs => by
+    rw [Hγr] at hs
+    obtain ⟨b, hb⟩ := Option.isSome_iff_exists.1 hs
+    have := Hmd b hb; have := (Hmb b hb).1
+    simp only [entBytesMax]; omega
+  iapply (hP γn id n c o cc dq ctx cd γ N Hf0 (by rw [Hγr]; exact Htr)) $$ [Hcc Hau]
+  · iframe Hinit Hrn HnodeA Hctx Hcc
+    isplitr
+    · ipureintro; exact ⟨Ho, Hcsz⟩
+    unfold ccPropArg
+    iintro %bs %Hm
+    by_cases Hf : Filler (confChangeEntryType (some o)) bs
+    · imodintro; ileft; ipureintro; exact Hf
+    imod api_key_register γ N ⊤ CoPset.subseteq_top
+      (entKey (confChangeEntryType (some o)) bs) $$ Hci with #Hpi
+    ihave Hau1 := intuitionisticallyIf_mono (p := γ.raft.dup)
+      (au_cc_fix γ N (confChangeEntryType (some o)) o bs Hm Hf) $$ Hau
+    ihave Hau1 := api_propAu1_if γ N (confChangeEntryType (some o)) bs Hf HNs $$ Hinv Hau1
+    imodintro
+    iright
+    iexists (fun _ => iprop(True))
+    rw [Hγr]
+    iframe Hpi Hau1
+  iintro !> %err ⟨Hcc, Herr⟩
+  iapply HΦ
+  iframe Hcc Herr
+
+end wrap
+
+end ApiImpl
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+theorem node.ProposeConfChange.wp_proof
+    (wp_confChangeToMsg : confChangeToMsg.spec (GF := GF) (hG := hG))
+    (wp_node_Step : node.Step.spec (GF := GF) (hG := hG)) :
+    node.ProposeConfChange.spec (GF := GF) (hG := hG) :=
+  ApiImpl.node.wp_ProposeConfChange_impl (node.ProposeConfChange.wp_raw wp_confChangeToMsg wp_node_Step)
+
+end proof
+
+end EtcdGrove
+end Perennial

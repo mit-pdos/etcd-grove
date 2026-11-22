@@ -38,7 +38,7 @@ public import Proof.path.filepath.Clean
 public import Proof.path.filepath.Dir
 public import Proof.path.filepath.Join
 public import Proof.path.filepath.join
-public import Spec.go_etcd_io.etcd.server.v3.storage.wal.ExistCallees
+public import Spec.errors.IsPathErrnoNotExist
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.lib.durable.Read
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.lib.durable.Write
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.lib.durable.tryRead

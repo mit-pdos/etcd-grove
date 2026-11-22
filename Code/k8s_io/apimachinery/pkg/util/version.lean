@@ -25,16 +25,6 @@ noncomputable def Version.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Version.ty
 
-noncomputable def versionMatchRE [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/util/version.versionMatchRE"
-
-opaque versionMatchRE.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def extraMatchRE [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/util/version.extraMatchRE"
-
-opaque extraMatchRE.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def parse [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/version.parse"
 
@@ -74,6 +64,24 @@ noncomputable def onlyZeros [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def Itoa [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/version.Itoa"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `versionMatchRE` (`var // versionMatchRE splits a version string into numeric and "extra" parts versionMatchRE = regexp.MustCompile('^\s*v? … [sha256:618fe57748181af2]`): Their initializers call, besides literals of constants and other variables' values:
+`regexp.MustCompile` of a constant pattern compiles it (it panics only on an invalid pattern, and
+these compile: Go runs the initializer at every start of every program importing the package);
+compilation terminates. So each terminates, cannot panic and has no effect beyond its variable.
+- `extraMatchRE` (`var // extraMatchRE splits the "extra" part of versionMatchRE into semver pre-release and build metadata; it does not va … [sha256:ce6ea31bde2d4f50]`): Their initializers call, besides literals of constants and other variables' values:
+`regexp.MustCompile` of a constant pattern compiles it (it panics only on an invalid pattern, and
+these compile: Go runs the initializer at every start of every program importing the package);
+compilation terminates. So each terminates, cannot panic and has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"k8s.io/apimachinery/pkg/util/version.versionMatchRE", "Their initializers call, besides literals of constants and other variables' values:\n`regexp.MustCompile` of a constant pattern compiles it (it panics only on an invalid pattern, and\nthese compile: Go runs the initializer at every start of every program importing the package);\ncompilation terminates. So each terminates, cannot panic and has no effect beyond its variable.", "var // versionMatchRE splits a version string into numeric and \"extra\" parts versionMatchRE = regexp.MustCompile(`^\\s*v? … [sha256:618fe57748181af2]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/util/version.extraMatchRE", "Their initializers call, besides literals of constants and other variables' values:\n`regexp.MustCompile` of a constant pattern compiles it (it panics only on an invalid pattern, and\nthese compile: Go runs the initializer at every start of every program importing the package);\ncompilation terminates. So each terminates, cannot panic and has no effect beyond its variable.", "var // extraMatchRE splits the \"extra\" part of versionMatchRE into semver pre-release and build metadata; it does not va … [sha256:ce6ea31bde2d4f50]"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.version where
   pkgImportedPkgs := []
 
@@ -83,11 +91,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apimachinery.pkg.util.version)) (Lam BAnon
   (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val extraMatchRE.init) (Val #())))))
-  (App (Val doExecute)
-  (App (Val versionMatchRE.init) (Val #()))))))))
+  (Val #()))))))
 
 structure Version [GooseExts] where
   mk ::

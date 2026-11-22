@@ -412,7 +412,11 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γm : GName) :
       (d.P.has mvcc.alarmBI ∧
         d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧ d.P.has mvcc.authRolesBI) ∧
       E.RO = srvRestOwnH E.authMode d.γB cl (srvObjsOn al ast lp cl d.be) ∧
-      receiptBound GF ≤ backend.wbInit - 6⌝ ∗
+      receiptBound GF ≤ backend.wbInit - 6 ∧
+      -- (bkarea, 2026-11-22) the data directory shorter than `2^60` bytes, which
+      -- `OpenSnapshotBackend`'s `BackendPath()` needs (`filepath.Join`'s premise): at a first start
+      -- from `bootCfgFresh`'s `DirFits`, at a restart from the image's WAL area (`srvFiles_dataDir_len`)
+      cfg.DataDir'.length < 2 ^ 60⌝ ∗
     -- the configuration's fields the snapshot path reads, its feature gate
     -- (premise-fixes-6: until then `cfg.Logger' ≠ null` in the pure part) a zap logger
     srvCfgFieldAddr s go!"Logger" ↦□ cfg.Logger' ∗ zapLoggerOk cfg.Logger' ∗
@@ -514,7 +518,7 @@ theorem srvSnapRO_succ {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (s ci : Loc)
   icombine Hcl H17 gives %e4
   simp only [auth.authIface, lease.lessorIface, interface_mkOk_inj] at e2 e3
   obtain ⟨hkb0, hdbo, hmm, hbuq, hsl, hdir, hsop, hbr, hci, hhk, hwf, hlim, hlp, halbi,
-    -, hrb⟩ := Hp
+    -, hrb, hdd⟩ := Hp
   rw [hkb] at hkb0
   obtain rfl := srvBkTie_inj d d0 hkb0
   have e2' : ast = ast0 := by
@@ -528,7 +532,7 @@ theorem srvSnapRO_succ {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (s ci : Loc)
   isplitr
   · ipureintro
     refine ⟨hkb', hdbo, hmm, hbuq, hsl, hdir, hsop, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
-      hRO, hrb⟩ <;> rw [hP] <;> assumption
+      hRO, hrb, hdd⟩ <;> rw [hP] <;> assumption
   have e5 : (E.onBe b P f c RO RW).authMode = E.authMode := rfl
   have e6 : (E.onBe b P f c RO RW).RD = E.RD := rfl
   have e7 : (E.onBe b P f c RO RW).γ = E.γ := rfl

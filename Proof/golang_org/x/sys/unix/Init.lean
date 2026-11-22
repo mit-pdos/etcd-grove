@@ -2,9 +2,8 @@
 Package initialization of `golang_org.x.sys.unix`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports and runs the untranslated
-initializers of its variables (`X.init`, axioms of the translation), which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking.
+Its fact is `True`. Its initializer initializes its imports (it has no initialized
+variable).
 -/
 module
 
@@ -28,34 +27,6 @@ local macro "mem_tac" : tactic =>
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
-section opaqueInits
-namespace golang_org.x.sys.unix
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- **The trust boundary: `golang_org.x.sys.unix`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([fcntl64Syscall.init,
-        Stdin.init,
-        Stdout.init,
-        Stderr.init,
-        errEAGAIN.init,
-        errEINVAL.init,
-        errENOENT.init,
-        mapper.init,
-        socketProtocol.init,
-        errorList.init,
-        signalList.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
-end golang_org.x.sys.unix
-end opaqueInits
-
 section init
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -77,17 +48,6 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   wp_apply (_root_.Perennial.syscall.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (opaqueInitsOk fcntl64Syscall.init (by mem_tac))
-  wp_apply (opaqueInitsOk Stdin.init (by mem_tac))
-  wp_apply (opaqueInitsOk Stdout.init (by mem_tac))
-  wp_apply (opaqueInitsOk Stderr.init (by mem_tac))
-  wp_apply (opaqueInitsOk errEAGAIN.init (by mem_tac))
-  wp_apply (opaqueInitsOk errEINVAL.init (by mem_tac))
-  wp_apply (opaqueInitsOk errENOENT.init (by mem_tac))
-  wp_apply (opaqueInitsOk mapper.init (by mem_tac))
-  wp_apply (opaqueInitsOk socketProtocol.init (by mem_tac))
-  wp_apply (opaqueInitsOk errorList.init (by mem_tac))
-  wp_apply (opaqueInitsOk signalList.init (by mem_tac))
   iframe Hown
   is_pkg_init_finish
 

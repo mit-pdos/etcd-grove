@@ -72,7 +72,7 @@ func TestCodec(t *testing.T) {
 }
 
 // TestOneMember: an in-process member, three client nodes on loopback addresses (goroutines here;
-// machines of their own in examples/etcd/dist/harness) and the orchestrator; porcupine says Ok.
+// machines of their own in examples/etcd/dist (its test)) and the orchestrator; porcupine says Ok.
 func TestOneMember(t *testing.T) {
 	name := fmt.Sprintf("kvremote%d", os.Getpid()%100000)
 	walarea.Reset(t, name)

@@ -108,6 +108,19 @@ func runChild(role, addr string) {
 		}
 		fmt.Println(ln.Addr().String())
 		block()
+	case "count-sockets": // print how many of this process's fds are sockets, at its start
+		ents, err := os.ReadDir("/proc/self/fd")
+		if err != nil {
+			childFail("readdir: %v", err)
+		}
+		n := 0
+		for _, e := range ents {
+			if l, err := os.Readlink("/proc/self/fd/" + e.Name()); err == nil && strings.HasPrefix(l, "socket:") {
+				n++
+			}
+		}
+		fmt.Println(n)
+		block()
 	default:
 		childFail("unknown role %q", role)
 	}

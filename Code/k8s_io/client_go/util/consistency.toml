@@ -6,3 +6,21 @@ translate = ["*", "!_"]
 imports = ["*"]
 
 translate_types = true
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`; until 2026-11-22
+# their initializers were untranslated, `opaqueInitsOk`). goose refuses a reference to one from
+# translated code, so no verified code reads them; each reason says why not running the
+# initializer is unobservable.
+[[skip]]
+names = ["_@consistency.go:64"]
+reason = """
+An interface check: `&consistencyStore{}` converted to `ConsistencyStore`. No call, no panic, no
+effect."""
+
+[[skip]]
+names = ["_@consistency.go:234"]
+reason = """
+An interface check: `&noopConsistencyStore{}` converted to `ConsistencyStore`. No call, no panic, no
+effect."""
+# --- end of skipped package variables ---

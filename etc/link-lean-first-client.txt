@@ -106,8 +106,8 @@ txn__Commit: retryKVClient__Txn ContextError
 # `isSafeRetry*` and `retryPolicy.String`), below grpc's boundary. Trust boundary: grpc's `Peer`,
 # `peer.Peer.String`, `ClientConn.Target`, `status.Code`, `errors.Is` of a status error
 # (`errors_IsStatusErr`), zap's `Uint`, `String`, `Error`, `Logger.Debug`/`Warn`; the client's
-# names-only `waitRetryBackoff` (timers), `withVersion` (grpc's metadata), `getToken` (the auth
-# client), `Endpoints` (an `RWMutex` read).
+# names-only `withVersion` (grpc's metadata), `getToken` (the auth client), `Endpoints` (an
+# `RWMutex` read).
 grpc_Peer:
 peer_Peer__String:
 grpc_ClientConn__Target:
@@ -121,7 +121,12 @@ zapcore_CheckedEntry__Write:
 zap_Logger__Debug: zap_Logger__check zapcore_CheckedEntry__Write
 zap_Logger__Warn: zap_Logger__check zapcore_CheckedEntry__Write
 errors_IsStatusErr:
-waitRetryBackoff:
+# (prove-ps2-wrb, 2026-11-22) `waitRetryBackoff` proved over the real code: its timer and `select`
+# (Perennial's `time`), and `contextErrToGRPCErr` over `errors.Is` (Perennial's, and the trust
+# boundary's `errors.IsDeadlineExceeded`) and `status.Error`
+errors_IsDeadlineExceeded:
+contextErrToGRPCErr: errors_IsDeadlineExceeded errors_Is status_Error
+waitRetryBackoff: contextErrToGRPCErr
 withVersion:
 # (the auth plan's C1, 2026-10-28) the token fetch: the credentials' token cell (its two methods
 # under the read/write lock, trust-boundary axioms: `notes/c1-plan.md`, finding 2) and
@@ -255,8 +260,9 @@ NewLeaseFromLeaseClient: WithRequireLeader Client__GetLogger
 # (`NewClient`, the option constructors, `insecure.NewCredentials`; `InvDial.lean`), the client's
 # `internal/resolver` (`New`, `SetEndpoints`, `Close`: proved over the translation since prove-grpc3,
 # 2026-11-21) and the names-only `internal/endpoint`
-# (`RequiresCredentials`), `streamClientInterceptor`, `roundRobinQuorumBackoff` (floats), the API
-# constructors `NewCluster`/`NewMaintenance` (`NewLease` proved since item 1, `NewAuth` since E2h), `strings.SplitN`,
+# (`RequiresCredentials`), `streamClientInterceptor` (the API
+# constructors proved: `NewLease` since item 1, `NewAuth` since E2h, `NewCluster`/`NewMaintenance` since
+# 2026-11-22, over the generated stubs' constructors), `strings.SplitN`,
 # `context.WithCancel(TODO())`, `fmt.Sprintf` with a `*Client`.
 grpc_NewClient:
 grpc_WithUnaryInterceptor:
@@ -280,11 +286,22 @@ fmt_SprintfClientPtr:
 context_TODO:
 context_WithCancelTodo:
 Client__streamClientInterceptor:
-Client__roundRobinQuorumBackoff:
-v3_NewCluster:
+# (prove-ps2-rqb, 2026-11-22) `roundRobinQuorumBackoff` proved over the real code: `jitterUp`'s
+# float arithmetic over `rand.Float64` (the trust boundary), zap's `Float64` over Perennial's
+# `math.Float64bits`; `backoffLinearWithJitter` (`defaultOptions`' backoff, in the package initializer)
+rand_Float64:
+jitterUp: rand_Float64
+backoffLinearWithJitter: jitterUp
+zap_Float64: =_root_.Perennial.math.wp_Float64bits
+Client__roundRobinQuorumBackoff: Client__Endpoints Client__GetLogger jitterUp zap_Uint zap_Duration zap_Float64 zap_Logger__Debug
+NewClusterClient:
+RetryClusterClient: NewClusterClient
+v3_NewCluster: RetryClusterClient
 v3_NewLease: RetryLeaseClient NewLeaseFromLeaseClient
 v3_NewAuth: RetryAuthClient
-v3_NewMaintenance:
+NewMaintenanceClient:
+RetryMaintenanceClient: NewMaintenanceClient
+v3_NewMaintenance: Client__GetLogger RetryMaintenanceClient
 Client__SetEndpoints: resolver_EtcdManualResolver__SetEndpoints
 Client__credentialsForEndpoint: endpoint_RequiresCredentials
 authority: strings_SplitN

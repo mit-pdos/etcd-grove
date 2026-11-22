@@ -3,21 +3,21 @@
 
 A deployment of `remote` is machines that never crash (the orchestrator, the client nodes, the
 servers), each serving or calling at addresses `addrs`, every one of which serves `remote`'s calls
-(`remoteAddr`: its protocols are `reqP`/`repP` of one far-side store `R`). Its statement is the
-kits' (`Robust []`, under `KitDeploy`: `Net/Statement/KitBridge.lean`), proved by
-`robust_of_kitProto`:
+(`remoteAddr`: its protocols are `reqP`/`repP` of one far-side store `R`). Its statement is a
+distributed deployment's (`Robust []`, under `DistDeploy`: `Net/Statement/DistBridge.lean`), proved by
+`robust_of_distProto`:
 
 - `remote_start`: from the protocol library's registry and the addresses unset, the slot map
   (`mapCtx`, `mapCtx_alloc`) and, for any service `S` chosen later (a store `R.svc`, once the
   instance has made the ghost state its `R.sysState` names; or a report), every address's protocols
   (`addrs_set_proto`, `svcAddr`).
 - `remote_robust`: for a store `R` (the counter's statement); the instance's obligation is an update from those to a share per machine, each
-  machine's boot program safe from its share (`KitBootWp`); the machines' WPs are the instance's,
+  machine's boot program safe from its share (`DistBootWp`); the machines' WPs are the instance's,
   from `Check.spec`, `ServeClient.spec` and `Serve.spec`.
 -/
 module
 
-public import Net.Statement.KitBridge
+public import Net.Statement.DistBridge
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Pend
 
 @[expose] public section
@@ -72,10 +72,10 @@ theorem remote_robust (addrs : List GoString) (nodes : List (Expr × state)) (g 
       ⊢ regCtx (Gg := G) -∗ mapCtx (Gg := G) (I := I) -∗
         (∀ R : RBase netGF St I O, |={⊤}=> [∗list] a ∈ addrs, remoteAddr (Gg := G) R a) ={⊤}=∗
         ∃ Ps : Nat → IProp netGF,
-          ⌜∀ (i : Nat) (m : Expr × state), nodes[i]? = some m → KitBootWp m.1 (Ps i)⌝ ∗
+          ⌜∀ (i : Nat) (m : Expr × state), nodes[i]? = some m → DistBootWp m.1 (Ps i)⌝ ∗
           [∗list] i ↦ _m ∈ nodes, Ps i) :
-    KitDeploy addrs nodes g → Robust [] nodes g threads bound := by
-  refine robust_of_kitProto addrs nodes g threads bound ?_
+    DistDeploy addrs nodes g → Robust [] nodes g threads bound := by
+  refine robust_of_distProto addrs nodes g threads bound ?_
   intro G π
   iintro #Hreg Hs
   imod remote_start (GF := netGF) (I := I) (O := O) addrs $$ Hreg Hs with ⟨%ρ, #Hm, Hset⟩
@@ -84,7 +84,7 @@ theorem remote_robust (addrs : List GoString) (nodes : List (Expr × state)) (g 
   iapply Hset
 
 /-- `remote_robust` over any ghost bundle `GF`, the obligation given the receipt bound
-(`robust_of_kitProtoRB`): what an instance whose machines need porcupine's non-atomic invariants or
+(`robust_of_distProtoRB`): what an instance whose machines need porcupine's non-atomic invariants or
 lintest's clock uses (the counter, R4). -/
 theorem remote_robustRB {GF : BundledGFunctors} [GooseGpreS GF] (addrs : List GoString)
     (nodes : List (Expr × state)) (g : GlobalState) (threads bound : Nat)
@@ -93,10 +93,10 @@ theorem remote_robustRB {GF : BundledGFunctors} [GooseGpreS GF] (addrs : List Go
       ⊢ regCtx (Gg := G) -∗ mapCtx (Gg := G) (I := I) -∗
         (∀ R : RBase GF St I O, |={⊤}=> [∗list] a ∈ addrs, remoteAddr (Gg := G) R a) ={⊤}=∗
         ∃ Ps : Nat → IProp GF,
-          ⌜∀ (i : Nat) (m : Expr × state), nodes[i]? = some m → KitBootWpG m.1 (Ps i)⌝ ∗
+          ⌜∀ (i : Nat) (m : Expr × state), nodes[i]? = some m → DistBootWpG m.1 (Ps i)⌝ ∗
           [∗list] i ↦ _m ∈ nodes, Ps i) :
-    KitDeploy addrs nodes g → Robust [] nodes g threads bound := by
-  refine robust_of_kitProtoRB (GF := GF) addrs nodes g threads bound ?_
+    DistDeploy addrs nodes g → Robust [] nodes g threads bound := by
+  refine robust_of_distProtoRB (GF := GF) addrs nodes g threads bound ?_
   intro G π hb
   iintro #Hreg Hs
   imod remote_start (GF := GF) (I := I) (O := O) addrs $$ Hreg Hs with ⟨%ρ, #Hm, Hset⟩

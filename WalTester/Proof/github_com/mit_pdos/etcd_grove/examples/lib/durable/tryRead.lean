@@ -12,7 +12,7 @@ module
 public import WalTester.Spec.github_com.mit_pdos.etcd_grove.examples.lib.durable.tryRead
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.lib.durable.Inv
 public import Proof.os.NsFileS
-public import Spec.go_etcd_io.etcd.server.v3.storage.wal.ExistCallees
+public import Spec.errors.IsPathErrnoNotExist
 public import Spec.os.File__Stat
 public import Spec.os.fileStat__Size
 public import Spec.os.File__ReadAt

@@ -5,7 +5,7 @@ Perennial's `goose_dist_mixed_crash_adequacy` (`DistAdequacy.lean`: machines wit
 crash and restart, and machines without, which never crash) to `Robust crashing stable g threads
 bound` (`Robustness/Statement.lean`), for machines over `[netExt, fsExt]` (`kvnetExts`,
 `GooseLang/Ext/NetFs/Adequacy.lean`), under `NetFsDeploy` (`NetFsDeploy.lean`). It is to crashes
-what `robust_of_kitBootRB` (`KitBridge.lean`) is to the kits' machines, none of which crashes.
+what `robust_of_distBootRB` (`DistBridge.lean`) is to deployments whose machines never crash.
 
 What a machine's proof is given:
 - every machine, at its first start: the file extension's start resources of its files (`fsStartRes`:
@@ -25,7 +25,7 @@ interpretation at a generation's start, needs the same from the distributed theo
 Perennial's does not give (`notes/perennial-changes.md`, "Extension state access at generation start,
 distributed"; `notes/dist-crash-bridge.md`).
 
-The step and thread bounds: as `robust_of_kitBootRB`, the adequacy theorem is used at the step
+The step and thread bounds: as `robust_of_distBootRB`, the adequacy theorem is used at the step
 bound `n + 1` and thread bound `n + 2` of an execution of `n < bound` steps, so the WPs get
 `receiptBound GF ≤ bound` (in `Hstart`, where the obligations are proved). Untrusted.
 -/
@@ -234,6 +234,27 @@ theorem robust_of_netFsBoot [lctx : GoLocalContext] (addrs : List GoString)
     iframe HQL'
     ipureintro
     exact HQ
+
+/-- **The bridge, from `Robust`'s own premises**: since the extensions state their initial states
+(2026-11-22: the net extension's no listener and no connection, `net_semantics`; the file
+extension's files as on disk, `fs_semantics`), `NetFsDeploy` follows from `Robust`'s premises and the
+address facts alone: `robust_of_netFsBoot` with only the addresses distinct and valid. -/
+theorem robust_of_netFsBoot_addrs [lctx : GoLocalContext] (addrs : List GoString)
+    (crashing stable : List (Expr × state)) (g : GlobalState) (threads bound : Nat)
+    (Hnd : addrs.Nodup) (Hok : ∀ a ∈ addrs, addrOk a = true)
+    (Hstart : ∀ [GooseGlobalGS .hasLC GF], receiptBound GF ≤ bound →
+      ⊢ ([∗list] a ∈ addrs, addrUnset a) ={⊤}=∗
+        ∃ (Pc : Nat → GooseLocalGS GF → IProp GF) (Ps : Nat → IProp GF),
+          ⌜∀ (i : Nat) (m : Expr × state), crashing[i]? = some m → CrashBootWp m.1 (Pc i)⌝ ∗
+          ⌜∀ (j : Nat) (m : Expr × state), stable[j]? = some m → StableBootWp m.1 m.2 (Ps j)⌝ ∗
+          ([∗list] i ↦ m ∈ crashing, ∀ L : GooseLocalGS GF,
+            ⌜L.goose_go_local_context = lctx⌝ -∗ fsStartRes L (extLocal Fs.fsExt m.2.world) -∗
+            ownGoState (hG := L.goose_go_stateGS) ∅ ={⊤}=∗ Pc i L) ∗
+          [∗list] j ↦ _m ∈ stable, Ps j) :
+    Robust crashing stable g threads bound := by
+  intro hfresh hig hil
+  exact robust_of_netFsBoot (GF := GF) addrs crashing stable g threads bound Hstart
+    ⟨⟨Hnd, Hok, hig.1, fun m hm => (hil m hm).1⟩, fun m hm => (hil m hm).2.1⟩ hfresh hig hil
 
 end bridge
 

@@ -12,6 +12,9 @@ public import Perennial.Proof.strings.Link
 public import Proof.github_com.Masterminds.semver.v3.Init
 public import Proof.github_com.Masterminds.semver.v3.New
 public import Proof.github_com.Masterminds.semver.v3.Version__String
+public import Proof.github_com.Masterminds.semver.v3.NewVersion
+public import Proof.github_com.Masterminds.semver.v3.Version__Major
+public import Proof.github_com.Masterminds.semver.v3.Version__Minor
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -124,7 +127,45 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sav ⟨Sav, -⟩
   try wp_auto
-  wp_apply (initFuncsOk init.«0» (by mem_tac))
+  -- the translated init.«0»
+  wp_func_call
+  wp_call
+  try wp_auto
+  wp_apply EtcdGrove.semver.NewVersion.wp_proof as %pv %err Hr
+  try wp_auto
+  wp_bind (If _ _ _)
+  iapply (wp_wand_r (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ ∃ s : GoString, globalAddr APIVersion ↦ s)))
+  isplitl [Hr HAPIVersion ver]
+  · icases Hr with (⟨%Hok, %x, #Hx, -⟩ | %Hbad)
+    · obtain ⟨-, -, Herr⟩ := Hok
+      subst Herr
+      wp_auto
+      wp_apply EtcdGrove.semver.Version.Major.wp_proof $$ [$Hx] as -
+      wp_apply EtcdGrove.semver.Version.Minor.wp_proof $$ [$Hx] as -
+      wp_apply (wp_slice_literal (l := [_, _]))
+      try (isplitr; (ipureintro; rfl))
+      iintro %sla ⟨Hargs, -⟩
+      try wp_auto
+      wp_apply (_root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ _
+        (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (_root_.Perennial.fmt.IntArgValue.uint64 _)
+          (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (_root_.Perennial.fmt.IntArgValue.uint64 _)
+            _root_.Perennial.fmt.ArgsWf.nil))) $$ [$Hargs] as %str -
+      try wp_auto
+      isplitr
+      · ipureintro; rfl
+      iexists _; iexact HAPIVersion
+    · obtain ⟨-, Herr⟩ := Hbad
+      cases err with
+      | nil => exact absurd rfl Herr
+      | ok i =>
+        simp only
+        try wp_auto
+        isplitr
+        · ipureintro; rfl
+        iexists _; iexact HAPIVersion
+  iintro %v ⟨%Hv, %s, HAPIVersion⟩
+  subst Hv
+  try wp_auto
   -- translated initializer of V4_0))
   -- translated initializer of V3_8))
   -- translated initializer of V3_7))

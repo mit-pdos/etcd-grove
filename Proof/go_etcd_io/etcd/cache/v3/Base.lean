@@ -33,6 +33,7 @@ public import Perennial.Proof.strings.Base
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.Init
 public import Spec.fmt.ErrorfWrap
 public import Proof.go_uber_org.zap.PkgInit
+public import Proof.math.rand.Base
 public import Proof.google_golang_org.grpc.status.StatusRO
 
 @[expose] public section
@@ -197,6 +198,24 @@ instance grpc_peer_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_
   define_is_pkg_init iprop(True)
 instance grpc_peer_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.peer :=
+  build_get_is_pkg_init_wf
+
+-- grpc's `serviceconfig`, `attributes` and `resolver` (types and names only; moved here, before
+-- `grpc`, which imports `resolver` since phase 7 S1's dial side, 2026-11-22: `dialOptions.resolvers`)
+instance grpc_serviceconfig_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.serviceconfig :=
+  define_is_pkg_init iprop(True)
+instance grpc_serviceconfig_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.serviceconfig :=
+  build_get_is_pkg_init_wf
+instance grpc_attributes_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.attributes :=
+  define_is_pkg_init iprop(True)
+instance grpc_attributes_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.attributes :=
+  build_get_is_pkg_init_wf
+instance grpc_resolver_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.resolver :=
+  define_is_pkg_init iprop(True)
+instance grpc_resolver_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.resolver :=
   build_get_is_pkg_init_wf
 
 -- grpc's `keepalive` and `stats` (types and names only), before `grpc`, which imports them since
@@ -878,21 +897,8 @@ instance clientv3_credentials_get_is_pkg_init_wf_inst :
 
 -- (prove-grpc3, 2026-11-21) what `internal/resolver`'s translated `New` and `SetEndpoints` import:
 -- grpc's manual resolver (no package variable), its resolver types and their field types.
-instance grpc_serviceconfig_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.serviceconfig :=
-  define_is_pkg_init iprop(True)
-instance grpc_serviceconfig_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.serviceconfig :=
-  build_get_is_pkg_init_wf
-instance grpc_attributes_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.attributes :=
-  define_is_pkg_init iprop(True)
-instance grpc_attributes_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.attributes :=
-  build_get_is_pkg_init_wf
-instance grpc_resolver_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.resolver :=
-  define_is_pkg_init iprop(True)
-instance grpc_resolver_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.resolver :=
-  build_get_is_pkg_init_wf
+-- (grpc's `serviceconfig`, `attributes` and `resolver`: before `grpc`, which imports `resolver`
+-- since phase 7 S1's dial side)
 instance grpc_manual_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.resolver.manual :=
   define_is_pkg_init iprop(True)
 instance grpc_manual_get_is_pkg_init_wf_inst :

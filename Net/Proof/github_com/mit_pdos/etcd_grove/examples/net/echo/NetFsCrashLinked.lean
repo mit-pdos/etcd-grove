@@ -7,7 +7,7 @@ premise `NetFsDeploy` is satisfiable is argued in `notes/dist-crash-bridge.md`, 
 
 Two machines: the crashing `[(boot_serverNF, σs)]` and the stable `[(boot_clientNF, σc)]` (echo's
 commands `cmd/server` and `cmd/client`, `TopLevelDefs.lean`), the address `[SrvAddr]` (valid:
-`decide`). The proof is `echo_kit_robust`'s (`RobustLinked.lean`), over `kvnetExts`: from `SrvAddr`
+`decide`). The proof is `echo_dist_robust`'s (`RobustLinked.lean`), over `kvnetExts`: from `SrvAddr`
 unset, echo's protocol (`echoInvs`, `Defs.lean`), which is global ghost state and so survives the
 server's crashes; the server's precondition in a generation is the protocol and its empty package
 state, which every crash gives back (the file system's crash rest is not needed: the server keeps

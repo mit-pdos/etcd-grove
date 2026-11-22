@@ -11,11 +11,8 @@
 roots ^Proof/go_etcd_io/etcd/client/v3/(Link|Results)\.lean$
 axiom Client.Close.wp_proof
 axiom Client.Endpoints.wp_proof
-axiom Client.roundRobinQuorumBackoff.wp_proof
 axiom Client.streamClientInterceptor.wp_proof
-axiom NewCluster.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
-axiom NewMaintenance.wp_proof
 axiom RangeRequest.String.wp_proof
 axiom WithRequireLeader.wp_proof
 axiom context.WithCancelTodo.wp_proof
@@ -35,16 +32,10 @@ axiom grpc.ClientConn.NewStream.wp_proof
 axiom grpc.ClientConn.Target.wp_proof
 axiom grpc.NewClient.wp_proof
 axiom grpc.WithKeepaliveParams.wp_proof
-axiom grpc.WithPerRPCCredentials.wp_proof
-axiom grpc.WithResolvers.wp_proof
-axiom grpc.WithStreamInterceptor.wp_proof
-axiom grpc.WithTransportCredentials.wp_proof
-axiom grpc.WithUnaryInterceptor.wp_proof
 axiom grpc.start
 axiom grpcAddrIsRaw
 axiom grpcConn
 axiom grpcConn_persistent
-axiom grpcDialOptIs
 axiom grpcResolverAt
 axiom grpcSrvCfgRaw
 axiom grpcSrvLink
@@ -94,6 +85,7 @@ axiom proto.Marshal.wp_proof
 axiom proto.MarshalIRR.wp_proof
 axiom proto.Size.wp_proof
 axiom proto.Unmarshal.wp_proof
+axiom rand.Float64.wp_proof
 axiom reflect.DeepEqual.wp_proof_pgidSet
 axiom reflect.ValueOf.wp_proof
 axiom sort.SliceIsSorted.wp_proof
@@ -108,7 +100,6 @@ axiom traceutil.Trace.LogWithStepThreshold.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
 axiom v3rpc.pbWatchRequestT_reg
 axiom v3rpc.pbWatchResponseT_reg
-axiom waitRetryBackoff.wp_proof
 axiom withVersion.wp_proof
 axiom zap.Logger.Fatal.wp_proof
 axiom zap.Logger.Panic.wp_proof

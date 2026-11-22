@@ -654,14 +654,22 @@ theorem errStrOk_nil : ⊢ errStrOk (GF := GF) GoInterface.nil := by
   unfold errStrOk
   ileft; ipureintro; rfl
 
+/-- **The `*bytes.Buffer` at `l` holds the unread bytes `bs`, for reading** (exclusive): its slice
+`buf` holds `all`, its read offset `off` is within it, and `bs = all[off:]`. It does not own `buf`'s
+spare capacity, which only a write grows into: `NewRequest` only reads a body. (Perennial's
+`bytes.ownBuffer` until mit-pdos/perennial#670, which added the spare capacity for `Write`.) -/
+def bufferHas (l : Loc) (bs : List w8) : IProp GF :=
+  iprop(∃ (b : _root_.Perennial.bytes.Buffer) (all : List w8), l ↦ b ∗ b.buf' ↦* all ∗
+    ⌜0 ≤ sint.Z b.off' ∧ sint.nat b.off' ≤ all.length ∧ bs = all.drop (sint.nat b.off')⌝)
+
 /-- **A reader holding exactly `bs`** (exclusive): what `NewRequest` takes as a fixed body, `nil`
-for an empty body or a `*bytes.Buffer` holding `bs` (Perennial's `bytes.ownBuffer`, what
-`bytes.NewBuffer(bs)` returns). (stdlib2, 2026-11-21: defined; until then opaque, with the axioms
-`NewBuffer_ok` and `readerHas_nil` producing it, now theorems.) -/
+for an empty body or a `*bytes.Buffer` holding `bs` (`bufferHas`, what `bytes.NewBuffer(bs)`
+returns). (stdlib2, 2026-11-21: defined; until then opaque, with the axioms `NewBuffer_ok` and
+`readerHas_nil` producing it, now theorems.) -/
 def readerHas (rd : GoInterface) (bs : List w8) : IProp GF :=
   iprop(⌜rd = GoInterface.nil ∧ bs = []⌝ ∨
     ∃ l : Loc, ⌜rd = interface.mkOk (go.GoType.PointerType _root_.Perennial.bytes.Buffer.ty) #l⌝ ∗
-      _root_.Perennial.bytes.ownBuffer l bs)
+      bufferHas l bs)
 
 /-- **A stream's prefixes** (D42): `Pre` holds of `[]` and of every prefix of what it holds of. -/
 def prefixClosed (Pre : List w8 → Prop) : Prop := Pre [] ∧ ∀ a b, Pre (a ++ b) → Pre a

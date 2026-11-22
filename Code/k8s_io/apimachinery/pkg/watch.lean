@@ -155,11 +155,6 @@ opaque internalRunFunctionMarker [GooseExts] [GoGlobalContext] : val
 @[reducible] noncomputable def Error [GooseExts] [GoGlobalContext] : val :=
   #(go!"ERROR")
 
-noncomputable def DefaultChanSize [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/watch.DefaultChanSize"
-
-opaque DefaultChanSize.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def Filter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/watch.Filter"
 
@@ -199,35 +194,38 @@ noncomputable def NewRaceFreeFakeWithLogger [GooseExts] [GoGlobalContext] : GoSt
 noncomputable def NewProxyWatcher [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/watch.NewProxyWatcher"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `_@filter.go:80` (`var _ Interface = &Recorder{}`): An interface check: `&Recorder{}` converted to `Interface`. No call, no panic, no effect.
+- `DefaultChanSize` (`var DefaultChanSize int32 = 100`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `_@watch.go:113` (`var _ Interface = &FakeWatcher{}`): An interface check: `&FakeWatcher{}` converted to `Interface`. No call, no panic, no effect.
+- `_@watch.go:199` (`var _ Interface = &RaceFreeFakeWatcher{}`): An interface check: `&RaceFreeFakeWatcher{}` converted to `Interface`. No call, no panic, no effect.
+- `_@watch.go:323` (`var _ Interface = &ProxyWatcher{}`): An interface check: `&ProxyWatcher{}` converted to `Interface`. No call, no panic, no effect.
+- `_@watch.go:367` (`var _ Interface = &MockWatcher{}`): An interface check: `&MockWatcher{}` converted to `Interface`. No call, no panic, no effect.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"k8s.io/apimachinery/pkg/watch._@filter.go:80", "An interface check: `&Recorder{}` converted to `Interface`. No call, no panic, no effect.", "var _ Interface = &Recorder{}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/watch.DefaultChanSize", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var DefaultChanSize int32 = 100"⟩,
+  ⟨"k8s.io/apimachinery/pkg/watch._@watch.go:113", "An interface check: `&FakeWatcher{}` converted to `Interface`. No call, no panic, no effect.", "var _ Interface = &FakeWatcher{}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/watch._@watch.go:199", "An interface check: `&RaceFreeFakeWatcher{}` converted to `Interface`. No call, no panic, no effect.", "var _ Interface = &RaceFreeFakeWatcher{}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/watch._@watch.go:323", "An interface check: `&ProxyWatcher{}` converted to `Interface`. No call, no panic, no effect.", "var _ Interface = &ProxyWatcher{}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/watch._@watch.go:367", "An interface check: `&MockWatcher{}` converted to `Interface`. No call, no panic, no effect.", "var _ Interface = &MockWatcher{}"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.watch where
   pkgImportedPkgs := [pkg_id.k8s_io.apimachinery.pkg.runtime]
-
-opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apimachinery.pkg.watch)) (Lam BAnon
   (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val «_».init) (Val #())))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val DefaultChanSize.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.k8s_io.apimachinery.pkg.runtime.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.k8s_io.apimachinery.pkg.runtime.initialize') (Val #())))))))
 
 abbrev FilterFunc [GooseExts] : Type := GoFunc
 

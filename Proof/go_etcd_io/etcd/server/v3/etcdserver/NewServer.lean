@@ -1792,7 +1792,8 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       isplitr
       · ipureintro
         refine ⟨trivial, Hdisk.1, Hmmap, Hbuq, ?_, Hdirps.1, Hdisk.2, HbP,
-          Hci0, HhP, HPwf, HPlim, HlP, ⟨HalB, HauB, HauUB, HauRB⟩, trivial, by omega⟩
+          Hci0, HhP, HPwf, HPlim, HlP, ⟨HalB, HauB, HauUB, HauRB⟩, trivial, by omega,
+          by have := Hbcf.2.2.2.1; omega⟩
         rw [HρRaft, Hid]; exact Hsloc
       isplitr
       · iExactEq Hsdir
@@ -2185,7 +2186,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · -- `#Hrunb`
     iexists ⟨errc, null, null, func.nil, cpv, sstats, null⟩
     unfold srvRunBuilt
-    iframe compactor errorc Hltg stats Herrb Hcpok
+    iframe compactor errorc Hltg stats HssI Herrb Hcpok
   isplitl [Hcpt HltC HtokC HlgC HRDC HwrC]
   · -- `Hcrun` (M2, S4): the compactor off, nothing to run; on, its run token and the run's
     -- precondition from the views `start` builds (`compactorRun`)

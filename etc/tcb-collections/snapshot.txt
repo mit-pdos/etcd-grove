@@ -24,7 +24,6 @@ axiom DescribeConfChange.wp_proof
 axiom apply.irrDecode_utf8
 axiom binary.WriteUint8.wp_proof
 axiom ccDecodeV2_nil
-axiom config.ServerConfig.BackendPath.wp_proof
 axiom context.WithValue.wp_proof
 axiom entryEncC_ok
 axiom envVerifyOffTok
@@ -79,7 +78,6 @@ axiom schema.MustUnsafeGetAllLeases.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
 axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
 axiom semver.NewVersion.wp_proof
-axiom semver.Version.LessThan.wp_proof
 axiom semver.Version.String.wp_proof
 axiom semver.semverValid_simple
 axiom snap.NewMessage.wp_proof

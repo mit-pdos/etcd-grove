@@ -111,28 +111,17 @@ func newClient(eps []string) (*clientv3.Client, error) {
 	return etcdstart.NewClients(eps, zap.NewNop())
 }
 
-// rotate is eps starting at its i-th (mod len) element: the clients of a workload prefer
-// different members (clientv3's balancer picks among the endpoints, the first first).
-func rotate(eps []string, i int) []string {
-	k := len(eps)
-	out := make([]string, k)
-	for j := 0; j < k; j++ {
-		out[j] = eps[(i+j)%k]
-	}
-	return out
-}
-
-// How many times, and how far apart, awaitCluster tries its read.
+// How many times, and how far apart, AwaitCluster tries its read.
 const (
 	readyTries = 60
 	readyPause = 500 * time.Millisecond
 )
 
-// awaitCluster waits until a linearizable read through a client of eps returns (a liveness wait,
+// AwaitCluster waits until a linearizable read through a client of eps returns (a liveness wait,
 // as restartN's wait for a leader: the members may still be starting, or down): a read writes
 // nothing, so trying it again is safe, where a workload's first write (auth's set-up) cannot be
 // retried after an unknown outcome. It reports whether one returned.
-func awaitCluster(eps []string) bool {
+func AwaitCluster(eps []string) bool {
 	cli, err := newClient(eps)
 	if err != nil {
 		return false
@@ -169,8 +158,8 @@ func hasSetUp(k Kind) bool {
 // does (review F8). A failed check is a panic inside the workload.
 //
 // ready is called once the workload's set-up is done (at once, after the cluster's first read, for
-// a workload with none), or not at all if the workload ends before: a harness may hold its faults
-// until then (examples/etcd/dist/harness). It is an observer only: nothing the workload does
+// a workload with none), or not at all if the workload ends before: the test may hold its faults
+// until then (examples/etcd/dist (its test)). It is an observer only: nothing the workload does
 // depends on it.
 func MainReady(w Workload, eps []string, nodes []string, ready func()) Result {
 	env.ClearProxy()
@@ -180,7 +169,7 @@ func MainReady(w Workload, eps []string, nodes []string, ready func()) Result {
 	if len(nodes) != NodeCount(w) {
 		return ended("not one client machine per client")
 	}
-	if !awaitCluster(eps) {
+	if !AwaitCluster(eps) {
 		return ended("the cluster never answered a read")
 	}
 	if !hasSetUp(w.Kind) {

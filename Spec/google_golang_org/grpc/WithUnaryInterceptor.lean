@@ -25,7 +25,7 @@ abbrev grpc.WithUnaryInterceptor.spec : Prop :=
   ∀ (f : GoFunc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc }}
     (App (Val (@! google_golang_org.grpc.WithUnaryInterceptor)) (Val #f))
-  {{ (o : GoInterface), RET #o; ⌜grpcDialOptIs o (.unaryInterceptor f)⌝ }}
+  {{ (o : GoInterface), RET #o; grpcDialOptIs o (.unaryInterceptor f) }}
 
 end spec
 

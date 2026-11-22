@@ -1,5 +1,6 @@
 /-
-`(*v2stats.ServerStats).RecvAppendReq(leader, reqSize)`: the trust boundary (v2stats is names-only;
+`(*v2stats.ServerStats).RecvAppendReq(leader, reqSize)` (with its body since prove-ps2-v2stats,
+2026-11-21; until then the trust boundary;
 `EtcdServer.Process` calls it for each received `MsgApp`). Lean-first (D21 M2, 2026-10-19, the
 user's D21h (A)).
 -/

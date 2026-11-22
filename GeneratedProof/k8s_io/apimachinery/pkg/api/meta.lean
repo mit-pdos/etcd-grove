@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.fmt
 public import GeneratedProof.k8s_io.apimachinery.pkg.apis.«meta».v1
 public import Perennial.Golang.Theory
 public import Code.k8s_io.apimachinery.pkg.api.«meta»

@@ -452,7 +452,7 @@ while [ $cet_try -lt 3 ]; do
       -run '^(TestClientErrorTypes|TestCredentialNilError)$' . > "$tmp/cet.log" 2>&1); then
     cet_ok=1; break
   fi
-  grep -q "StartCluster failed" "$tmp/cet.log" || break
+  grep -qi "startCluster failed" "$tmp/cet.log" || break  # the test prints "startCluster failed"
   cet_miss="$cet_miss attempt $cet_try: StartCluster failed;"
 done
 if [ $cet_ok = 1 ]; then

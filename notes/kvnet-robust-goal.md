@@ -164,7 +164,7 @@ extension's notes).
      moves into each proof (a ghost token per address, allocated at initialization). The soundness
      argument against Linux (EADDRNOTAVAIL is a failure; a real connection reaches the owner, one of
      the listeners the model allows) and the closed world are written in the extension's notes;
-   - update: the seven TCP examples (drop their plan-at-host premises), the kits and `KitDeploy`,
+   - update: the seven TCP examples (drop their plan-at-host premises), the kits and `DistDeploy`,
      `Tests.lean:500-510`, `Replay.lean:346`, `Decide.lean:283-296` (`listenAtB`),
      `Proto.lean:519-529` (`addrTok_listenAt`), the D6/D13/D20/D21 notes, `Net/TrustedCode/net.lean`.
 4. Fs extension: `init := FsInit`, `globalInit := True`.
@@ -222,3 +222,16 @@ extension's notes).
 Decided (the user's, 2026-11-20): the extensions are fixed in the statement, `kvnetExts` (net and
 fs, nothing else): the theorem names the extensions it trusts. Net changes needed are relayed to the
 agent working on net (2026-11-20).
+
+## Progress (2026-11-22, eighth session on `kvnet-proof`)
+
+- **Items 3-4, the extensions' initial states: done** (the coordinator's decision, option (a) on #22). The net
+  extension's semantics states `initLocal L _ := L.init`, `initGlobal g := g.init` (D26); the Linux file
+  extension's `initLocal st _ := FsInit st`. The interpretations accept them (`ExtInitCompat`). The plan's
+  item 3 otherwise (no plan and no hosts) was done in v3.4 (2026-11-20).
+- **The statement's trusted instances** (item 13): `[os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]`
+  added next to `net.FieldAssumptions` (approved by the coordinator; ledger 2026-11-22).
+- **`[log.NewModel]` and `dir.length < 2 ^ 39`: in the statement** (approved by the coordinator, 2026-11-22;
+  ledger 2026-11-22): the instance binder in both statements (raft's package initializer calls `log.New`), the
+  premise in the main one (`durable`'s `DFile.Ok`). `errors.IsPathErrnoNotExist.spec` (Perennial PR #677) stays a
+  hypothesis of `raft_kvnet_robust_of_errors`.

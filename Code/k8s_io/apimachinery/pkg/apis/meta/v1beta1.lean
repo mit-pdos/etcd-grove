@@ -25,23 +25,32 @@ noncomputable def PartialObjectMetadataList.ty [GooseExts] [GoGlobalContext] : g
 
 attribute [irreducible] PartialObjectMetadataList.ty
 
-opaque Table [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def Table.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Table" [])
 
-opaque TableColumnDefinition [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def TableColumnDefinition.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.TableColumnDefinition" [])
 
-opaque TableRow [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def TableRow.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.TableRow" [])
 
-opaque TableRowCondition [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def TableRowCondition.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.TableRowCondition" [])
 
-opaque RowConditionType [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def RowConditionType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.RowConditionType" [])
 
-opaque ConditionStatus [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def ConditionStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ConditionStatus" [])
 
-opaque IncludeObjectPolicy [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def IncludeObjectPolicy.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.IncludeObjectPolicy" [])
 
-opaque TableOptions [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def TableOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.TableOptions" [])
 
-opaque PartialObjectMetadata [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def PartialObjectMetadata.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.PartialObjectMetadata" [])
 
 opaque PartialObjectMetadataList.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
@@ -60,31 +69,6 @@ opaque IncludeNone [GooseExts] [GoGlobalContext] : val
 opaque IncludeMetadata [GooseExts] [GoGlobalContext] : val
 
 opaque IncludeObject [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrInvalidLengthGenerated [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1beta1.ErrInvalidLengthGenerated"
-
-opaque ErrInvalidLengthGenerated.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrIntOverflowGenerated [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1beta1.ErrIntOverflowGenerated"
-
-opaque ErrIntOverflowGenerated.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrUnexpectedEndOfGroupGenerated [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1beta1.ErrUnexpectedEndOfGroupGenerated"
-
-opaque ErrUnexpectedEndOfGroupGenerated.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def SchemeGroupVersion [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1beta1.SchemeGroupVersion"
-
-opaque SchemeGroupVersion.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PartialObjectMetadataList [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1beta1.map_PartialObjectMetadataList"
-
-opaque map_PartialObjectMetadataList.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Convert_Slice_string_To_v1beta1_IncludeObjectPolicy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1beta1.Convert_Slice_string_To_v1beta1_IncludeObjectPolicy"
@@ -122,6 +106,39 @@ noncomputable def RegisterConversions [GooseExts] [GoGlobalContext] : GoString :
 noncomputable def RegisterDefaults [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1beta1.RegisterDefaults"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `ErrInvalidLengthGenerated` (`var ErrInvalidLengthGenerated = fmt.Errorf("proto: negative length found during unmarshaling")`): Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of
+a constant format and constant arguments allocates the formatted error (fmt recovers a panic of a
+formatting method; the arguments have none). So each terminates, cannot panic and has no effect
+beyond its variable.
+- `ErrIntOverflowGenerated` (`var ErrIntOverflowGenerated = fmt.Errorf("proto: integer overflow")`): Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of
+a constant format and constant arguments allocates the formatted error (fmt recovers a panic of a
+formatting method; the arguments have none). So each terminates, cannot panic and has no effect
+beyond its variable.
+- `ErrUnexpectedEndOfGroupGenerated` (`var ErrUnexpectedEndOfGroupGenerated = fmt.Errorf("proto: unexpected end of group")`): Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of
+a constant format and constant arguments allocates the formatted error (fmt recovers a panic of a
+formatting method; the arguments have none). So each terminates, cannot panic and has no effect
+beyond its variable.
+- `SchemeGroupVersion` (`var SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1beta1"}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PartialObjectMetadataList` (`var map_PartialObjectMetadataList = map[string]string{ "": "PartialObjectMetadataList contains a list of objects contain … [sha256:b2de531ad8ea5af9]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1beta1.ErrInvalidLengthGenerated", "Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of\na constant format and constant arguments allocates the formatted error (fmt recovers a panic of a\nformatting method; the arguments have none). So each terminates, cannot panic and has no effect\nbeyond its variable.", "var ErrInvalidLengthGenerated = fmt.Errorf(\"proto: negative length found during unmarshaling\")"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1beta1.ErrIntOverflowGenerated", "Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of\na constant format and constant arguments allocates the formatted error (fmt recovers a panic of a\nformatting method; the arguments have none). So each terminates, cannot panic and has no effect\nbeyond its variable.", "var ErrIntOverflowGenerated = fmt.Errorf(\"proto: integer overflow\")"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1beta1.ErrUnexpectedEndOfGroupGenerated", "Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of\na constant format and constant arguments allocates the formatted error (fmt recovers a panic of a\nformatting method; the arguments have none). So each terminates, cannot panic and has no effect\nbeyond its variable.", "var ErrUnexpectedEndOfGroupGenerated = fmt.Errorf(\"proto: unexpected end of group\")"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1beta1.SchemeGroupVersion", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: \"v1beta1\"}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1beta1.map_PartialObjectMetadataList", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PartialObjectMetadataList = map[string]string{ \"\": \"PartialObjectMetadataList contains a list of objects contain … [sha256:b2de531ad8ea5af9]"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1beta1 where
   pkgImportedPkgs := []
 
@@ -131,20 +148,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1beta1)) (Lam BAnon
   (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val map_PartialObjectMetadataList.init) (Val #())))))
-  (App (Val doExecute)
-  (App (Val SchemeGroupVersion.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrUnexpectedEndOfGroupGenerated.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrIntOverflowGenerated.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrInvalidLengthGenerated.init) (Val #()))))))))
+  (Val #()))))))
 
 opaque PartialObjectMetadataList.nonempty_type : NonemptyType.{0}
 def PartialObjectMetadataList : Type := PartialObjectMetadataList.nonempty_type.type

@@ -256,7 +256,7 @@ counted by grep over `old/dsverify/harness/lean/Harness/Proof/`):
 |---|---|
 | `addrProto a P Q`, `addrProtoG` | `addrProto a P Q` (same shape; `cn : Nat`, not `cid : w64`) |
 | `addrTok a`, `addrTokG` (exclusive; `Listen` needs it) | `addrTok a` (persistent); `Listen.spec` needs `ListenAt`: `addrTok_listenAt` with the node's host |
-| `addrUnset a`, `addrUnsetG` | `addrUnset a`, from the start: `addrs_start` (the kits' bridge, `robust_of_kitBoot`) |
+| `addrUnset a`, `addrUnsetG` | `addrUnset a`, from the start: `addrs_start` (the kits' bridge, `robust_of_distBoot`) |
 | `addr_set_proto` (`==∗`), `addrs_set_proto` | `addr_set_proto`, `addrs_set_proto` (`={E}=∗`, with `regCtx`) |
 | `sendTok`, `recvTok`, `connEnd` | the same; a `Read` gives `recvTokL` (`recvTokL_later`, or a credit) |
 | `connFresh`, `connFresh_excl` | the same (timeless, `⊢ False`) |
@@ -266,7 +266,7 @@ counted by grep over `old/dsverify/harness/lean/Harness/Proof/`):
 | `connErr`, `opErr`, `opResult` (codes) | the specs' `resErr`/`ReadErr` (kinds `closed`, `timeout`, `sys`; EOF a `ReadRes`) |
 | `ownTCPConn c cid side` | `connAt t cn s a la ra`/`isConn c cn s a` (`Net/Proof/net/Base.lean`) with `connIs cn` |
 | `ownListener l lid a`, `listening` | `isListener`/`lisAt` with `netLisAt`, and `netLis` (owned) or `lisInv` (shared) |
-| `nodeIp ip` | the machine's host in `KitBootWp` (`Net/Statement/KitBridge.lean`) |
+| `nodeIp ip` | the machine's host in `DistBootWp` (`Net/Statement/DistBridge.lean`) |
 | `net.TCPConn.Read.wp_proof` | `net.Conn.Read.wp_proof` + `read_au` |
 | `net.TCPConn.Write.wp_proof` | `net.Conn.Write.wp_proof` + `writeP`, `writeP_init`, `write_acc` |
 | `net.TCPConn.Close.wp_proof` | `net.Conn.Close.wp_proof` + `close_au` |
@@ -278,7 +278,7 @@ counted by grep over `old/dsverify/harness/lean/Harness/Proof/`):
 | `net.Listen.wp_proof`, `ListenWild`, `ListenNet` | `net.Listen.wp_proof` (`ListenAt`: an address itself or a wildcard, D21) + `addrTok_listenAt` |
 | `isConnP`, `isListener`, `connEnd_isConnP`, `listening` (no visible use) | `connIs`, `sendTok_connIs` |
 | `ownSlice_take_acc` (`NetLib.lean`, netprobe) | not ported (a slice lemma: Perennial's, or the kit's) |
-| `safeDist_of_wp`, `safeDist_of_bootAt`, `NodeBootWpAt`, `addrs_set_proto` (`SafeDist.lean`) | `Net/Statement/KitBridge.lean`: `robust_of_kitBoot`, `robust_of_kitProto`, `KitBootWp` (the statement `Robust`, below) |
+| `safeDist_of_wp`, `safeDist_of_bootAt`, `NodeBootWpAt`, `addrs_set_proto` (`SafeDist.lean`) | `Net/Statement/DistBridge.lean`: `robust_of_distBoot`, `robust_of_distProto`, `DistBootWp` (the statement `Robust`, below) |
 
 The facts `NetConn` gives and the net extension does not: "a `Dial` succeeds only with an open
 listener" and "a read error only after the bytes are drained". The lab's exported specs do not
@@ -306,25 +306,25 @@ over a writer contract like `io.readerStream`.
 **The statement: `Robust`** (the user's decision, 2026-11-19: `SafeDist` replaced by this
 repository's `Robust`; `notes/decisions.md`, "The kits' statement is `Robust`"). A kit's theorem is
 
-    KitDeploy plan hosts nodes g → Robust [] nodes g bound
+    DistDeploy plan hosts nodes g → Robust [] nodes g bound
 
 `Robust` (`Robustness/Statement.lean`, unchanged) with every machine in `stable` (none crashes, Q4),
-under the **kit deployment premise** `KitDeploy` (`Net/Statement/KitDeploy.lean`, trusted, generic
+under the **kit deployment premise** `DistDeploy` (`Net/Statement/DistDeploy.lean`, trusted, generic
 over any extensions with the net extension, no etcd name): the plan is well formed
 (`PlanWellFormed`, D20) and is the network's plan, the network has no connection, machine `i` is
 on `hosts[i]` (its net-extension local state) with no listener. `Robust`'s own premise (each
 machine a fresh Go process, `Fresh`) is not repeated. `Robust` does not state the main thread's
 result (the lab's `SafeDist` did: `#()`); a kit's check is a panic.
 
-The bridge (`Net/Statement/KitBridge.lean`, proved): `distNsteps_of_crash_nil` (with no boot
+The bridge (`Net/Statement/DistBridge.lean`, proved): `distNsteps_of_crash_nil` (with no boot
 program, `DistCrashNsteps []` is `DistNsteps`), so `goose_dist_adequacy` proves `Robust [] …`;
-`robust_of_kitBoot` (from every plan address `addrUnset` and the ghost state's plan, a share per
-machine and its boot WP `KitBootWp`, under any ghost state whose Go context is `Robust`'s `lctx`)
-and `robust_of_kitProto` (the library's names made first). The bridge covers the all-stable case
-only (`notes/robustness.md`, "Next"). Not vacuous: `echo_kit_robust`
+`robust_of_distBoot` (from every plan address `addrUnset` and the ghost state's plan, a share per
+machine and its boot WP `DistBootWp`, under any ghost state whose Go context is `Robust`'s `lctx`)
+and `robust_of_distProto` (the library's names made first). The bridge covers the all-stable case
+only (`notes/robustness.md`, "Next"). Not vacuous: `echo_dist_robust`
 (`Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/echo/RobustLinked.lean`) is the three-node echo
 system in this form (plan `[(SrvAddr, "h")]`, `PlanWellFormed` by `decide`, every machine on `"h"`),
-through `robust_of_kitBoot`, closed, `#print axioms`: `propext`, `Classical.choice`, `Quot.sound`;
+through `robust_of_distBoot`, closed, `#print axioms`: `propext`, `Classical.choice`, `Quot.sound`;
 its proof keeps echo's own protocol (`echoInvs`), so the bridge serves a program that does not use
 the library too. (It also follows from `echo_crash_robust` by `Robust.of_all_crashing`: a run with
 no crashing machine is a run in which every machine may crash.) `Net/Statement/SafeDist.lean` and
@@ -842,16 +842,16 @@ tests kept as differential tests against the real library, a "not modelled" pani
 `lintest`/`kvcheck` and the verified porcupine, whose proof replaces the lab's porcupine axiom; the kits are
 ported onto it.)*
 
-- The statement: `KitDeploy plan hosts nodes g → Robust [] nodes g bound` (phase 4, above; the
-  user's decision, 2026-11-19, in place of the lab's `SafeDist`), proved through `robust_of_kitBoot`
-  or `robust_of_kitProto`; the lab's `driver_dist_safe`, goal template and checks follow (the lab's
+- The statement: `DistDeploy plan hosts nodes g → Robust [] nodes g bound` (phase 4, above; the
+  user's decision, 2026-11-19, in place of the lab's `SafeDist`), proved through `robust_of_distBoot`
+  or `robust_of_distProto`; the lab's `driver_dist_safe`, goal template and checks follow (the lab's
   change).
 - The kits' Go (the forks at their pins) and proofs, from the lab's `examples/<system>/` (above),
   copied into a part `Dsverify/` (modules `Dsverify.*`, nothing outside it imports it), with the lab's
   harness pieces they share (`clients`, `recorder`, `check`, `models`, `driver`, porcupine's axiom)
   merged into one copy, ported by editing (Q5), in order of transport: paxos (raw TCP), vr (JSON),
   rabia (bufio), epaxos and gryff (bufio, net/rpc master), craq (net/rpc over http), swiftpaxos
-  (net/rpc, gob, sha256), quepaxa (gRPC); each `goal` restated as `KitDeploy … → Robust [] …`,
+  (net/rpc, gob, sha256), quepaxa (gRPC); each `goal` restated as `DistDeploy … → Robust [] …`,
   `#print axioms` checked, a TCB collection per kit.
 - The lab's rig traces of the kits checked with this repository's certified conformance checker
   (`examples/net/conform`).

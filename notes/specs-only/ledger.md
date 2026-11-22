@@ -4021,6 +4021,26 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** `Promote.spec` takes the level-0 token (`levelTok lessorLvl`, given back) and the two bounds,
   as `Leases.spec` does; the server's callers (`LessorOk.lean`'s contract, `NewServer`'s promotion on becoming
   leader) supply them. Not applied: it changes the server's lessor contract.
+- **Decision.** Open (the axiom stays).
+
+## 2026-11-21: v2stats' `ServerStats.BecomeLeader` takes the stats' ownership (prove-ps2-v2stats)
+
+- **Spec.** `v2stats.ServerStats.BecomeLeader.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v2stats/`; a
+  trust-boundary axiom until this change: `ServerStats`' type has an unnamed struct field with tags,
+  `serverStats.LeaderInfo`, which Goose refused until mit-pdos/perennial#655).
+- **Defect.** Not provable over the real code: the premise was `st ≠ null` only, and `BecomeLeader` locks the stats'
+  mutex and writes its fields (`server.go:130-145`), which nothing in the premise owns.
+- **Evidence.** The translation (`Code/go_etcd_io/etcd/server/v3/etcdserver/api/v2stats.lean`,
+  `ServerStats.BecomeLeader.impl`, `ServerStats.becomeLeader.impl`).
+- **Proposed change.** The premise adds `v2stats.isServerStats st` (persistent: the stats' mutex owning the embedded
+  `serverStats`, the two rate queues with their `RWMutex`es), as `RecvAppendReq` and `SendAppendReq` already take
+  (the user's rule of 2026-11-21: a persistent ownership premise in place of `≠ null` alone, when every caller
+  discharges it). Its one caller, `EtcdServer.run`'s `updateLeadership` (`EtcdServer__run.lean`), has it from the
+  server's stats facts (`srvStatsAddr s ↦□ st ∗ v2stats.isServerStats st`, as `InvNet.lean`'s `srvProcOk`).
+  `SpecPlan`'s statement (`isServerStats p`) already has it. `isServerStats`, opaque until now, is defined
+  (`v2stats/Defs.lean`).
+- **Decision.** Applied (prove-ps2-v2stats, 2026-11-21): with `NewServerStats`, `RecvAppendReq`, `SendAppendReq`,
+  the four axioms retired, pending the Perennial pin bump to #655.
 - **Decision.** Applied (prove-ps2-promote, 2026-11-21; heads-up on #10, no objection): `Promote.spec` takes
   `levelTok lessorLvl` (given back) and the two bounds, and is proved over the real code (the axiom retired). The
   server's lessor contract (`lessorOk`, InvApplier.lean) has `Promote` take the caller's `threadTok` (given back; it
@@ -4583,6 +4603,29 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Decision.** Applied. Every caller discharges the new resources: `Start.spec`'s `srvMonitorRes` (one more
   transport slot than the `lgMu` slot it replaces) comes from `NewServer`'s `srvMonitorCfg`, through the
   examples' `memberBuilt`. `Start.spec` no longer needs the switch to be false.
+## 2026-11-22: `semver.Version.LessThan` takes its receivers' points-tos and returns `Compare(o) < 0`; the cluster's `Version()` returns a read-only version (prove-ps2-semver)
+
+- **Spec.** `semver.Version.LessThan.spec` (`Spec/github_com/Masterminds/semver/v3/Version__LessThan.lean`): the
+  premise `v ≠ null ∧ o ≠ null` becomes `v ↦{dv} x ∗ o ↦{dw} y` (any fractions, given back); the post, some
+  boolean, becomes `decide (semver.lessThan x y)` (`CompareModel.lean`: semver v3.5.0's `Compare`, line for
+  line). `apply.isCluster`'s `Version` law (`apply/Contracts.lean`, the names-only membership's trust
+  boundary): the post `True` becomes `⌜v = null⌝ ∨ ∃ x, v ↦□ x`.
+- **Defect.** The axiom was unprovable over the real code: `Compare` reads both structs, and a `≠ null` premise
+  gives no points-to (a concurrent writer races). The ownership-premise rule (the user's, 2026-11-21) applies:
+  `version.LessThan` passes its by-value copies (owned), `compareMajorMinorVersion` `New`'s results (`↦□`),
+  `ClusterVersionSet` `MustParse`'s result (`↦□`) and the cluster's `Version()`, for which the contract now says
+  what `cluster.go:580-587` does (nil, or `semver.MustParse(c.version.String())`: a fresh `NewVersion`
+  allocation nothing else holds). That law is a premise of the top-level results (through `clusterApplyOk`,
+  `bootOk`, `bootstrapContract`), so this is a stronger trusted premise, true of the Go code, in exchange for
+  the retired axiom.
+- **Evidence.** `Proof/github_com/Masterminds/semver/v3/{Version__LessThan,Version__Compare,comparePrerelease,
+  comparePrePart,compareSegment,Version__Patch,Version__Prerelease}.lean`, over `strings.Split` and
+  `strconv.ParseUint`; the callers' proofs (`version/LessThan`, `rafthttp/compareMajorMinorVersion`,
+  `apply/applierV3backend__ClusterVersionSet`).
+- **Proposed change.** As above. `SpecPlan`'s `Version.LessThan.spec` (`verAt`, `SemVer.ltb` with an opaque
+  `preLtb`) is the same shape; its `preLtb` could now be defined as `CompareModel`'s `cmpPre … = -1`.
+- **Decision.** Applied (the approved ownership-premise rule; the cluster contract's strengthening recorded
+  here and in the report to #18).
 ## 2026-11-22: kvcheck's `randomChange` bounds its changes (KvNet)
 
 - **Spec.** `checker.randomChange.spec`'s post (`kvcheck/checker__randomChange.lean`): `⌜ccTransOk o⌝` becomes
@@ -4659,3 +4702,51 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Decision.** Deferred to a follow-up of #30 (the server's proof, beyond step 2's backend-internal
   scope): decided by the agent, pending the user (`notes/step-bounds-questions.md`, Q2). The axiom
   stays false above `2 ^ 60` until then; no closed theorem reaches that.
+## 2026-11-22: kvnet's top-level statement takes `os`'s two field-assumption instances (KvNet)
+
+- **Spec.** `raft_kvnet_robust.spec` and `raft_kvnet_robust_example.spec`
+  (`KvNet/Spec/.../kvnet/TopLevelRobustness.lean`): two instance binders added next to `net.FieldAssumptions`,
+  `[os_file_sem : os.file.FieldAssumptions] [os_stat_sem : os.fileStat.FieldAssumptions]`; the header's list
+  of trusted instances names them.
+- **Defect.** `durable`'s proofs (`tryRead`, `tryWrite`, `WriteOpen`, through `StartNode` and `persist`) read
+  files through `os`'s models, which take these trusted struct-field facts (`TrustedCode/os.lean`, of the kind
+  of `net.FieldAssumptions`); `kvcheck.Assumptions` does not include them, so the agreed statement could not be
+  proved without them (found linking kvnet, 2026-11-22: `kvnet/Link.lean`'s section variables).
+- **Evidence.** `KvNet/Proof/.../lib/durable/{tryRead,tryWrite,WriteOpen}.lean`, `kvnet/Link.lean:196-197`;
+  reported on mit-pdos/etcd-grove#22 (gap 3).
+- **Proposed change.** As above.
+- **Decision.** Applied: approved by the coordinator (zeldovich-agent's session, relaying the decision on
+  #22), 2026-11-22.
+## 2026-11-22: kvnet's top-level statement takes `[log.NewModel]` and `dir.length < 2 ^ 39` (KvNet)
+
+- **Spec.** `raft_kvnet_robust.spec` and `raft_kvnet_robust_example.spec`
+  (`KvNet/Spec/.../kvnet/TopLevelRobustness.lean`): an instance binder `[log_sem : log.NewModel]` next to the
+  `os` ones (both statements); a premise `dir.length < 2 ^ 39` after `replicas.length < 2 ^ 32` (the main
+  statement; the example's `/var/lib/kvnet` meets it by computation). The header lists both.
+- **Defect.** (1) `kvnet.initialize'` initializes raft, whose initializer calls `log.New` (`defaultLogger`,
+  `discardLogger`), which Perennial translates names-only: raft's `wp_initialize'` takes the trusted class
+  `log.NewModel` (`Proof/log/NewModel.lean`), as kvdurable(-noax)'s closed theorem does. (2) Each replica's file
+  is `durable`'s `DFile ⟨dir, J, "replica-<id>"⟩`, and `StartNode`'s start resource needs `DFile.Ok`, which has
+  `f.d.length + f.tb.length < 2 ^ 40` (`WalTester/.../lib/durable/Defs.lean`, the path arithmetic of
+  `filepath`/`os`); `tb` is at most 27 bytes, and nothing in `FsInit`/`RootsOk` bounds a root's length.
+- **Evidence.** Reported on mit-pdos/etcd-grove#22 (gaps 4 and 5, with the exact texts).
+- **Proposed change.** As above.
+- **Decision.** Applied: approved by the coordinator (relayed to the kvnet-proof session, 2026-11-22).
+## 2026-11-22: `BackendPath`, `OpenSnapshotBackend`, `applySnapshot` take a data directory shorter than `2 ^ 60` bytes (bkarea)
+
+- **Spec.** `config.ServerConfig.BackendPath.spec`: a premise `d.length < 2 ^ 60` and `isPkgInit config` in
+  the pre (until now an axiom, now proved). `storage.OpenSnapshotBackend.spec`: a premise
+  `cfg.DataDir'.length < 2 ^ 60`. `EtcdServer.applySnapshot.specSnapM`: a premise `hdd` of the same text after
+  `hmmap`. `srvSnapRO`'s pure part: the same conjunct, last.
+- **Defect.** `BackendPath()` is `datadir.ToBackendFileName(c.DataDir)`, three `filepath.Join`s; `Join`'s spec
+  (proved) needs its elements' lengths to sum below `2 ^ 62` (Go strings are shorter than `2 ^ 63`, GooseLang's
+  are lists). `Clean` can shorten a path (`a/../a/../...`), so no bound on the backend path's length bounds the
+  data directory's: the premise is on `DataDir` itself.
+- **Evidence.** `Proof/go_etcd_io/etcd/server/v3/storage/datadir/*.lean`, `Proof/path/CleanIdem.lean`
+  (`joinModel_triple_length`).
+- **Proposed change.** As above. Every caller discharges it: `applySnapshot` from `srvSnapRO`; `srvSnapRO` at a
+  first start from `bootCfgFresh`'s `Fs.DirFits cfg.DataDir'` (under 3800 bytes, `NewServer`), at a restart from
+  the image's WAL area (`srvFiles_dataDir_len`: `WalA.fits` of `srvWalDirOf dd`, `NewServerR`), kept by
+  `srvSnapRO_succ`. No top-level statement changes.
+- **Decision.** Applied under the approved ownership-premise rule (an intermediate premise every caller
+  discharges; the user's 2026-11-21 rule), bkarea, 2026-11-22.

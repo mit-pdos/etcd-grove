@@ -18,8 +18,8 @@ consumes an export, phase 3).
 - **We never launch dsverify-lab runs**; kit proofs are ported by editing them.
 - **One canonical spec per Go function**: dsverify's Hoare triples for `net` are not added as second
   specs; its vocabulary is a library of laws over our specs (`GooseLang/Ext/Net/Proto.lean`).
-- **The kits' statement is `Robust`** (`Robustness/Statement.lean`): `KitDeploy … → Robust [] nodes g
-  bound`, every kit machine stable (no restart), proved through the bridge `Net/Statement/KitBridge.lean`
+- **The kits' statement is `Robust`** (`Robustness/Statement.lean`): `DistDeploy … → Robust [] nodes g
+  bound`, every kit machine stable (no restart), proved through the bridge `Net/Statement/DistBridge.lean`
   from Perennial's no-crash `goose_dist_adequacy`.
 - **Models are first-class Go packages in `models/`** (not patches of the real packages): the model of
   grpc-go is `models/grpc`, of net/http `models/net/http`, ...; the difference from upstream is a
@@ -43,7 +43,7 @@ consumes an export, phase 3).
 | net semantics v3.3 | `Impl.lean` D23 `"tcp4"`, D24 socket options, D25 write lock | review `notes/axiom-review/tcp-semantics.md` v3.3 |
 | net semantics v3.4 (for kvnet) | `Impl.lean`: no plan/hosts, `addrOk`/`listenOk`/`lisAccepts`, `NetLocal.init`, `NetGlobal.init`, `crash_init`; `netLisTok` (atomic update at `Listen`, lives in an invariant, survives crashes); `GooseLang/Ext/NetFs/Adequacy.lean` (`kvnetExts = [netExt, fsExt]`, `kvnet_dist_crash_adequacy`) | review v3.4; `notes/net-tcp.md` |
 | the kits' net library | `GooseLang/Ext/Net/Proto.lean` (+ `Stream.lean`) | the coverage table lab-name → our spec + law is in the plan, phase 4 |
-| the kits' statement | `Net/Statement/{KitDeploy,KitBridge}.lean`; echo's instance `…/examples/net/echo/RobustLinked.lean` (`echo_kit_robust`) | `KitDeploy` since v3.4: distinct valid addresses, no connections, no listeners |
+| the kits' statement | `Net/Statement/{DistDeploy,DistBridge}.lean`; echo's instance `…/examples/net/echo/RobustLinked.lean` (`echo_dist_robust`) | `DistDeploy` since v3.4: distinct valid addresses, no connections, no listeners |
 | codecs | `models/protobuf/` (`pbgen_core.py`, `pbdesc`, `pbgenrand`), `models/pbcodec`, `models/json/jsongen.py` (old form), `models/jsoncodec`; Go module `models.lab`; Lean `Net/*/models_lab/` | `models/README.md`; review `notes/axiom-review/pbgen.md` |
 | gate fix | `etc/gates.sh`: the k8s race control runs with `-count=1` | a cached pass had made every landing fail |
 
@@ -100,7 +100,7 @@ lands all three), push `lean`, delete the merged branches (`models-rpc-http`, `m
    Port into a part `Dsverify/`, merging the harness copies into one; order: paxos (raw TCP: needs
    nothing more), vr (JSON model), rabia (bufio law: blocked on Perennial, below), epaxos/gryff (bufio,
    net/rpc), craq (net/rpc over http), swiftpaxos (net/rpc, gob, sha256), quepaxa (gRPC). Each goal
-   becomes `KitDeploy … → Robust [] …`. `KitDeploy` changed in v3.4: re-check the plan's phase 6 text.
+   becomes `DistDeploy … → Robust [] …`. `DistDeploy` changed in v3.4: re-check the plan's phase 6 text.
 5. **Phase 3, the export** to dsverify-lab: a standalone Lake package of the net extension, `Net/`,
    `Robustness/Statement.lean`, `models/`, with a leak check (no etcd/raft names). Known leak: the
    proved stream library's remaining files under `Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/
@@ -117,7 +117,7 @@ lands all three), push `lean`, delete the merged branches (`models-rpc-http`, `m
   never: `19fd486f6`), per STATUS's kvnet entry of 2026-11-21; **etcd-grove's pin is not bumped yet**.
   At the bump: plug net's `NetLocal.init`/`NetGlobal.init` (standalone in `Impl.lean`, with
   `crash_init`) into the net extension's `ExtSemantics` instance, give fs its own, and revisit
-  `KitBridge` (the mixed adequacy also lets a kit's servers crash while its client does not).
+  `DistBridge` (the mixed adequacy also lets a kit's servers crash while its client does not).
 - **A stronger listening token** (held while the listener is open, returned by a crash) needs per-node
   ghost state that can refer to global ghost state. The invariant-based token suffices for kvnet.
 - `wp_slice_copy`'s count as `sint.Z` (blocks the bufio-over-connection law, hence rabia, epaxos, gryff).

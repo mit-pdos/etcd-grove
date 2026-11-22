@@ -259,6 +259,9 @@ public import Proof.context.TODO
 public import Proof.context.ValueStartTime
 public import Proof.context.WithCancelBackground
 public import Proof.context.WithValue
+public import Proof.go_etcd_io.etcd.server.v3.storage.datadir.ToBackendFileName
+public import Proof.go_etcd_io.etcd.server.v3.storage.datadir.ToMemberDir
+public import Proof.go_etcd_io.etcd.server.v3.storage.datadir.ToSnapDir
 public import Proof.errors.AsLeaf
 public import Proof.errors.AsLeafTy
 public import Proof.errors.AsNoMatch
@@ -272,6 +275,17 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.isConnectedToQuorumSinc
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.tickToDur
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest__String
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.exceedsRequestLimit
+public import Proof.path.filepath.Clean
+public import Proof.path.filepath.Join
+public import Proof.path.filepath.join
+public import Proof.internal.filepathlite.Clean
+public import Proof.internal.filepathlite.FromSlash
+public import Proof.internal.filepathlite.IsPathSeparator
+public import Proof.internal.filepathlite.lazybuf__append
+public import Proof.internal.filepathlite.lazybuf__index
+public import Proof.internal.filepathlite.lazybuf__string
+public import Proof.internal.filepathlite.postClean
+public import Proof.internal.filepathlite.volumeNameLen
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstCompareKey
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstOpKey
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstOpLease
@@ -613,11 +627,19 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.NewServerSt
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats__BecomeLeader
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats__RecvAppendReq
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats__SendAppendReq
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats__becomeLeader
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue__Insert
 public import Proof.github_com.Masterminds.semver.v3.MustParse
 public import Proof.github_com.Masterminds.semver.v3.NewVersion
+public import Proof.github_com.Masterminds.semver.v3.Version__Compare
 public import Proof.github_com.Masterminds.semver.v3.Version__LessThan
 public import Proof.github_com.Masterminds.semver.v3.Version__Major
 public import Proof.github_com.Masterminds.semver.v3.Version__Minor
+public import Proof.github_com.Masterminds.semver.v3.Version__Patch
+public import Proof.github_com.Masterminds.semver.v3.Version__Prerelease
+public import Proof.github_com.Masterminds.semver.v3.comparePrePart
+public import Proof.github_com.Masterminds.semver.v3.comparePrerelease
+public import Proof.github_com.Masterminds.semver.v3.compareSegment
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.NewAlarmStore
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.New
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic__Pause
@@ -1025,9 +1047,33 @@ theorem semver.Version.wp_Minor :
     semver.Version.Minor.spec (GF := GF) (hG := hG) :=
   semver.Version.Minor.wp_proof
 
+theorem semver.Version.wp_Patch :
+    semver.Version.Patch.spec (GF := GF) (hG := hG) :=
+  semver.Version.Patch.wp_proof
+
+theorem semver.Version.wp_Prerelease :
+    semver.Version.Prerelease.spec (GF := GF) (hG := hG) :=
+  semver.Version.Prerelease.wp_proof
+
+theorem semver.wp_compareSegment :
+    semver.compareSegment.spec (GF := GF) (hG := hG) :=
+  semver.compareSegment.wp_proof
+
+theorem semver.wp_comparePrePart :
+    semver.comparePrePart.spec (GF := GF) (hG := hG) :=
+  semver.comparePrePart.wp_proof _root_.Perennial.strconv.wp_ParseUint
+
+theorem semver.wp_comparePrerelease :
+    semver.comparePrerelease.spec (GF := GF) (hG := hG) :=
+  semver.comparePrerelease.wp_proof _root_.Perennial.strings.wp_Split semver.wp_comparePrePart
+
+theorem semver.Version.wp_Compare :
+    semver.Version.Compare.spec (GF := GF) (hG := hG) :=
+  semver.Version.Compare.wp_proof semver.Version.wp_Major semver.Version.wp_Minor semver.Version.wp_Patch semver.Version.wp_Prerelease semver.wp_compareSegment semver.wp_comparePrerelease
+
 theorem semver.Version.wp_LessThan :
     semver.Version.LessThan.spec (GF := GF) (hG := hG) :=
-  semver.Version.LessThan.wp_proof
+  semver.Version.LessThan.wp_proof semver.Version.wp_Compare
 
 theorem types.ID.wp_String_ptr :
     types.ID.String_ptr.spec (GF := GF) (hG := hG) :=
@@ -1141,9 +1187,65 @@ theorem os.wp_Rename :
     os.Rename.spec (GF := GF) (hG := hG) :=
   os.Rename.wp_proof
 
+theorem filepathlite.lazybuf.wp_index :
+    filepathlite.lazybuf.index.spec (GF := GF) (hG := hG) :=
+  filepathlite.lazybuf.index.wp_proof
+
+theorem filepathlite.lazybuf.wp_append :
+    filepathlite.lazybuf.append.spec (GF := GF) (hG := hG) :=
+  filepathlite.lazybuf.append.wp_proof
+
+theorem filepathlite.lazybuf.wp_string :
+    filepathlite.lazybuf.string.spec (GF := GF) (hG := hG) :=
+  filepathlite.lazybuf.string.wp_proof
+
+theorem filepathlite.wp_IsPathSeparator :
+    filepathlite.IsPathSeparator.spec (GF := GF) (hG := hG) :=
+  filepathlite.IsPathSeparator.wp_proof
+
+theorem filepathlite.wp_volumeNameLen :
+    filepathlite.volumeNameLen.spec (GF := GF) (hG := hG) :=
+  filepathlite.volumeNameLen.wp_proof
+
+theorem filepathlite.wp_postClean :
+    filepathlite.postClean.spec (GF := GF) (hG := hG) :=
+  filepathlite.postClean.wp_proof
+
+theorem filepathlite.wp_FromSlash :
+    filepathlite.FromSlash.spec (GF := GF) (hG := hG) :=
+  filepathlite.FromSlash.wp_proof
+
+theorem filepathlite.wp_Clean :
+    filepathlite.Clean.spec (GF := GF) (hG := hG) :=
+  filepathlite.Clean.wp_proof filepathlite.lazybuf.wp_index filepathlite.lazybuf.wp_append filepathlite.lazybuf.wp_string filepathlite.wp_IsPathSeparator filepathlite.wp_volumeNameLen filepathlite.wp_postClean filepathlite.wp_FromSlash
+
+theorem filepath.wp_Clean :
+    filepath.Clean.spec (GF := GF) (hG := hG) :=
+  filepath.Clean.wp_proof filepathlite.wp_Clean
+
+theorem filepath.wp_join :
+    filepath.join.spec (GF := GF) (hG := hG) :=
+  filepath.join.wp_proof filepath.wp_Clean
+
+theorem filepath.wp_Join :
+    filepath.Join.spec (GF := GF) (hG := hG) :=
+  filepath.Join.wp_proof filepath.wp_join
+
+theorem datadir.wp_ToMemberDir :
+    datadir.ToMemberDir.spec (GF := GF) (hG := hG) :=
+  datadir.ToMemberDir.wp_proof filepath.wp_Join
+
+theorem datadir.wp_ToSnapDir :
+    datadir.ToSnapDir.spec (GF := GF) (hG := hG) :=
+  datadir.ToSnapDir.wp_proof filepath.wp_Join datadir.wp_ToMemberDir
+
+theorem datadir.wp_ToBackendFileName :
+    datadir.ToBackendFileName.spec (GF := GF) (hG := hG) :=
+  datadir.ToBackendFileName.wp_proof filepath.wp_Join datadir.wp_ToSnapDir
+
 theorem config.ServerConfig.wp_BackendPath :
     config.ServerConfig.BackendPath.spec (GF := GF) (hG := hG) :=
-  config.ServerConfig.BackendPath.wp_proof
+  config.ServerConfig.BackendPath.wp_proof datadir.wp_ToBackendFileName
 
 theorem consistentIndex.wp_SetConsistentIndex :
     consistentIndex.SetConsistentIndex.spec (GF := GF) (hG := hG) :=
@@ -1504,10 +1606,6 @@ theorem auth.tokenSimple.wp_genTokenPrefix :
 theorem config.ServerConfig.wp_PeerDialTimeout :
     config.ServerConfig.PeerDialTimeout.spec (GF := GF) (hG := hG) :=
   config.ServerConfig.PeerDialTimeout.wp_proof
-
-theorem v2stats.wp_NewServerStats :
-    v2stats.NewServerStats.spec (GF := GF) (hG := hG) :=
-  v2stats.NewServerStats.wp_proof
 
 theorem v2stats.wp_NewLeaderStats :
     v2stats.NewLeaderStats.spec (GF := GF) (hG := hG) :=
@@ -2080,9 +2178,13 @@ theorem EtcdServer.wp_NextRequestID :
     EtcdServer.NextRequestID.spec (GF := GF) (hG := hG) :=
   EtcdServer.NextRequestID.wp_proof idutil.Generator.wp_Next
 
+theorem v2stats.statsQueue.wp_Insert :
+    v2stats.statsQueue.Insert.spec (GF := GF) (hG := hG) :=
+  v2stats.statsQueue.Insert.wp_proof
+
 theorem v2stats.ServerStats.wp_RecvAppendReq :
     v2stats.ServerStats.RecvAppendReq.spec (GF := GF) (hG := hG) :=
-  v2stats.ServerStats.RecvAppendReq.wp_proof
+  v2stats.ServerStats.RecvAppendReq.wp_proof _root_.Perennial.time.wp_Now v2stats.statsQueue.wp_Insert
 
 theorem EtcdServer.wp_Process :
     EtcdServer.Process.spec (GF := GF) (hG := hG) :=
@@ -2744,9 +2846,13 @@ theorem EtcdServer.wp_setLead :
     EtcdServer.setLead.spec (GF := GF) (hG := hG) :=
   EtcdServer.setLead.wp_proof
 
+theorem v2stats.ServerStats.wp_becomeLeader :
+    v2stats.ServerStats.becomeLeader.spec (GF := GF) (hG := hG) :=
+  v2stats.ServerStats.becomeLeader.wp_proof _root_.Perennial.time.wp_Now
+
 theorem v2stats.ServerStats.wp_BecomeLeader :
     v2stats.ServerStats.BecomeLeader.spec (GF := GF) (hG := hG) :=
-  v2stats.ServerStats.BecomeLeader.wp_proof
+  v2stats.ServerStats.BecomeLeader.wp_proof v2stats.ServerStats.wp_becomeLeader
 
 theorem EtcdServer.wp_setCommittedIndex :
     EtcdServer.setCommittedIndex.spec (GF := GF) (hG := hG) :=
@@ -3052,6 +3158,10 @@ theorem clockwork.wp_NewRealClock :
     clockwork.NewRealClock.spec (GF := GF) (hG := hG) :=
   clockwork.NewRealClock.wp_proof clockwork.realClock.wp_Now clockwork.realClock.wp_After
 
+theorem v2stats.wp_NewServerStats :
+    v2stats.NewServerStats.spec (GF := GF) (hG := hG) :=
+  v2stats.NewServerStats.wp_proof _root_.Perennial.time.wp_Now
+
 theorem membership.RaftCluster.wp_String :
     membership.RaftCluster.String.spec (GF := GF) (hG := hG) :=
   membership.RaftCluster.String.wp_proof
@@ -3194,7 +3304,7 @@ theorem rafthttp.remote.wp_send :
 
 theorem v2stats.ServerStats.wp_SendAppendReq :
     v2stats.ServerStats.SendAppendReq.spec (GF := GF) (hG := hG) :=
-  v2stats.ServerStats.SendAppendReq.wp_proof
+  v2stats.ServerStats.SendAppendReq.wp_proof v2stats.ServerStats.wp_becomeLeader _root_.Perennial.time.wp_Now v2stats.statsQueue.wp_Insert
 
 theorem rafthttp.Transport.wp_Send :
     rafthttp.Transport.Send.spec (GF := GF) (hG := hG) :=

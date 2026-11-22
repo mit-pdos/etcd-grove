@@ -29,6 +29,7 @@ public import SpecPlan.Spec.PkgInit.crypto.tls
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.metadata
 public import Perennial.Proof.io.Base
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.peer
+public import SpecPlan.Spec.PkgInit.math.rand
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.api.v3.mvccpb
 
 @[expose] public section

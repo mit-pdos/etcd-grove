@@ -63,110 +63,15 @@ opaque PointSentToClient [GooseExts] [GoGlobalContext] : val
 
 opaque numDispatchPoints [GooseExts] [GoGlobalContext] : val
 
-noncomputable def dispatchStages [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/cacher/metrics.dispatchStages"
-
-opaque dispatchStages.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def listCacheCount [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/cacher/metrics.listCacheCount"
-
-opaque listCacheCount.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def listCacheNumFetched [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/cacher/metrics.listCacheNumFetched"
-
-opaque listCacheNumFetched.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def listCacheNumReturned [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/cacher/metrics.listCacheNumReturned"
-
-opaque listCacheNumReturned.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def InitCounter [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/cacher/metrics.InitCounter"
-
-opaque InitCounter.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def EventsReceivedCounter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/metrics.EventsReceivedCounter"
 
 opaque EventsReceivedCounter.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def EventsCounter [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/cacher/metrics.EventsCounter"
-
-opaque EventsCounter.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def TerminatedWatchersCounter [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/cacher/metrics.TerminatedWatchersCounter"
-
-opaque TerminatedWatchersCounter.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def watchCacheResourceVersion [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/cacher/metrics.watchCacheResourceVersion"
-
-opaque watchCacheResourceVersion.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def watchCacheCapacityIncreaseTotal [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/cacher/metrics.watchCacheCapacityIncreaseTotal"
-
-opaque watchCacheCapacityIncreaseTotal.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def watchCacheCapacityDecreaseTotal [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/cacher/metrics.watchCacheCapacityDecreaseTotal"
-
-opaque watchCacheCapacityDecreaseTotal.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def WatchCacheCapacity [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/cacher/metrics.WatchCacheCapacity"
-
-opaque WatchCacheCapacity.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def WatchCacheInitializations [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/cacher/metrics.WatchCacheInitializations"
-
-opaque WatchCacheInitializations.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def WatchCacheInitializationErrors [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/cacher/metrics.WatchCacheInitializationErrors"
-
-opaque WatchCacheInitializationErrors.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def WatchCacheInitializationDuration [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/cacher/metrics.WatchCacheInitializationDuration"
-
-opaque WatchCacheInitializationDuration.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def WatchCacheReadWait [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/metrics.WatchCacheReadWait"
 
 opaque WatchCacheReadWait.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ConsistentReadTotal [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/cacher/metrics.ConsistentReadTotal"
-
-opaque ConsistentReadTotal.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def StorageConsistencyCheckTotal [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/cacher/metrics.StorageConsistencyCheckTotal"
-
-opaque StorageConsistencyCheckTotal.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def WatchShardsTotal [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/cacher/metrics.WatchShardsTotal"
-
-opaque WatchShardsTotal.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def WatchFilteredEventsTotal [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/cacher/metrics.WatchFilteredEventsTotal"
-
-opaque WatchFilteredEventsTotal.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def DispatchStageDuration [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/cacher/metrics.DispatchStageDuration"
-
-opaque DispatchStageDuration.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def registerMetrics [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/metrics.registerMetrics"
@@ -204,6 +109,127 @@ noncomputable def observe [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def NewNoopWatcherMetricsObservers [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/metrics.NewNoopWatcherMetricsObservers"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `dispatchStages` (`var dispatchStages = []struct { label string from, to DispatchPoint }{ {"storage_to_cache", PointStorageDecoded, PointCa … [sha256:1631b5915aa73b8d]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `listCacheCount` (`var listCacheCount = compbasemetrics.NewCounterVec( &compbasemetrics.CounterOpts{ Namespace: namespace, Name: "cache_lis … [sha256:1c6fb29689e503ed]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `listCacheNumFetched` (`var listCacheNumFetched = compbasemetrics.NewCounterVec( &compbasemetrics.CounterOpts{ Namespace: namespace, Name: "cach … [sha256:bbcefbca3fae2ed3]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `listCacheNumReturned` (`var listCacheNumReturned = compbasemetrics.NewCounterVec( &compbasemetrics.CounterOpts{ Namespace: namespace, Name: "cac … [sha256:55644e145c16e251]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `InitCounter` (`var InitCounter = compbasemetrics.NewCounterVec( &compbasemetrics.CounterOpts{ Namespace: namespace, Name: "init_events_ … [sha256:d0c3eaaa3af75f4d]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `EventsCounter` (`var EventsCounter = compbasemetrics.NewCounterVec( &compbasemetrics.CounterOpts{ Namespace: namespace, Subsystem: subsys … [sha256:a601dda9a9de811a]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `TerminatedWatchersCounter` (`var TerminatedWatchersCounter = compbasemetrics.NewCounterVec( &compbasemetrics.CounterOpts{ Namespace: namespace, Name: … [sha256:887936c4e35a4343]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `watchCacheResourceVersion` (`var watchCacheResourceVersion = compbasemetrics.NewGaugeVec( &compbasemetrics.GaugeOpts{ Namespace: namespace, Subsystem … [sha256:a52165bd6164e490]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `watchCacheCapacityIncreaseTotal` (`var watchCacheCapacityIncreaseTotal = compbasemetrics.NewCounterVec( &compbasemetrics.CounterOpts{ Subsystem: subsystem, … [sha256:1ac598b3d5a87f99]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `watchCacheCapacityDecreaseTotal` (`var watchCacheCapacityDecreaseTotal = compbasemetrics.NewCounterVec( &compbasemetrics.CounterOpts{ Subsystem: subsystem, … [sha256:750648fe1aecf70a]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `WatchCacheCapacity` (`var WatchCacheCapacity = compbasemetrics.NewGaugeVec( &compbasemetrics.GaugeOpts{ Subsystem: subsystem, Name: "capacity" … [sha256:611509f62f8d04fb]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `WatchCacheInitializations` (`var WatchCacheInitializations = compbasemetrics.NewCounterVec( &compbasemetrics.CounterOpts{ Namespace: namespace, Subsy … [sha256:09da6ada825e4f93]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `WatchCacheInitializationErrors` (`var WatchCacheInitializationErrors = compbasemetrics.NewCounterVec( &compbasemetrics.CounterOpts{ Namespace: namespace,  … [sha256:0218bc9db4fd9119]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `WatchCacheInitializationDuration` (`var WatchCacheInitializationDuration = compbasemetrics.NewHistogramVec( &compbasemetrics.HistogramOpts{ Namespace: names … [sha256:3630a605c18f9daf]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `ConsistentReadTotal` (`var ConsistentReadTotal = compbasemetrics.NewCounterVec( &compbasemetrics.CounterOpts{ Namespace: namespace, Subsystem:  … [sha256:cfc0d42c3e24ac6d]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `StorageConsistencyCheckTotal` (`var StorageConsistencyCheckTotal = compbasemetrics.NewCounterVec( &compbasemetrics.CounterOpts{ Namespace: namespace, Na … [sha256:ae55a2e96e838e8d]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `WatchShardsTotal` (`var WatchShardsTotal = compbasemetrics.NewGaugeVec( &compbasemetrics.GaugeOpts{ Namespace: namespace, Name: "watch_shard … [sha256:e82cd927eb700bfe]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `WatchFilteredEventsTotal` (`var WatchFilteredEventsTotal = compbasemetrics.NewCounterVec( &compbasemetrics.CounterOpts{ Namespace: namespace, Name:  … [sha256:7264fcc04779aae6]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `DispatchStageDuration` (`var DispatchStageDuration = compbasemetrics.NewHistogramVec( &compbasemetrics.HistogramOpts{ Namespace: namespace, Subsy … [sha256:971551f7dab9442a]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"k8s.io/apiserver/pkg/storage/cacher/metrics.dispatchStages", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var dispatchStages = []struct { label string from, to DispatchPoint }{ {\"storage_to_cache\", PointStorageDecoded, PointCa … [sha256:1631b5915aa73b8d]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/cacher/metrics.listCacheCount", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var listCacheCount = compbasemetrics.NewCounterVec( &compbasemetrics.CounterOpts{ Namespace: namespace, Name: \"cache_lis … [sha256:1c6fb29689e503ed]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/cacher/metrics.listCacheNumFetched", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var listCacheNumFetched = compbasemetrics.NewCounterVec( &compbasemetrics.CounterOpts{ Namespace: namespace, Name: \"cach … [sha256:bbcefbca3fae2ed3]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/cacher/metrics.listCacheNumReturned", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var listCacheNumReturned = compbasemetrics.NewCounterVec( &compbasemetrics.CounterOpts{ Namespace: namespace, Name: \"cac … [sha256:55644e145c16e251]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/cacher/metrics.InitCounter", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var InitCounter = compbasemetrics.NewCounterVec( &compbasemetrics.CounterOpts{ Namespace: namespace, Name: \"init_events_ … [sha256:d0c3eaaa3af75f4d]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/cacher/metrics.EventsCounter", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var EventsCounter = compbasemetrics.NewCounterVec( &compbasemetrics.CounterOpts{ Namespace: namespace, Subsystem: subsys … [sha256:a601dda9a9de811a]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/cacher/metrics.TerminatedWatchersCounter", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var TerminatedWatchersCounter = compbasemetrics.NewCounterVec( &compbasemetrics.CounterOpts{ Namespace: namespace, Name: … [sha256:887936c4e35a4343]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/cacher/metrics.watchCacheResourceVersion", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var watchCacheResourceVersion = compbasemetrics.NewGaugeVec( &compbasemetrics.GaugeOpts{ Namespace: namespace, Subsystem … [sha256:a52165bd6164e490]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/cacher/metrics.watchCacheCapacityIncreaseTotal", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var watchCacheCapacityIncreaseTotal = compbasemetrics.NewCounterVec( &compbasemetrics.CounterOpts{ Subsystem: subsystem, … [sha256:1ac598b3d5a87f99]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/cacher/metrics.watchCacheCapacityDecreaseTotal", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var watchCacheCapacityDecreaseTotal = compbasemetrics.NewCounterVec( &compbasemetrics.CounterOpts{ Subsystem: subsystem, … [sha256:750648fe1aecf70a]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/cacher/metrics.WatchCacheCapacity", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var WatchCacheCapacity = compbasemetrics.NewGaugeVec( &compbasemetrics.GaugeOpts{ Subsystem: subsystem, Name: \"capacity\" … [sha256:611509f62f8d04fb]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/cacher/metrics.WatchCacheInitializations", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var WatchCacheInitializations = compbasemetrics.NewCounterVec( &compbasemetrics.CounterOpts{ Namespace: namespace, Subsy … [sha256:09da6ada825e4f93]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/cacher/metrics.WatchCacheInitializationErrors", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var WatchCacheInitializationErrors = compbasemetrics.NewCounterVec( &compbasemetrics.CounterOpts{ Namespace: namespace,  … [sha256:0218bc9db4fd9119]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/cacher/metrics.WatchCacheInitializationDuration", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var WatchCacheInitializationDuration = compbasemetrics.NewHistogramVec( &compbasemetrics.HistogramOpts{ Namespace: names … [sha256:3630a605c18f9daf]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/cacher/metrics.ConsistentReadTotal", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var ConsistentReadTotal = compbasemetrics.NewCounterVec( &compbasemetrics.CounterOpts{ Namespace: namespace, Subsystem:  … [sha256:cfc0d42c3e24ac6d]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/cacher/metrics.StorageConsistencyCheckTotal", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var StorageConsistencyCheckTotal = compbasemetrics.NewCounterVec( &compbasemetrics.CounterOpts{ Namespace: namespace, Na … [sha256:ae55a2e96e838e8d]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/cacher/metrics.WatchShardsTotal", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var WatchShardsTotal = compbasemetrics.NewGaugeVec( &compbasemetrics.GaugeOpts{ Namespace: namespace, Name: \"watch_shard … [sha256:e82cd927eb700bfe]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/cacher/metrics.WatchFilteredEventsTotal", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var WatchFilteredEventsTotal = compbasemetrics.NewCounterVec( &compbasemetrics.CounterOpts{ Namespace: namespace, Name:  … [sha256:7264fcc04779aae6]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/cacher/metrics.DispatchStageDuration", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var DispatchStageDuration = compbasemetrics.NewHistogramVec( &compbasemetrics.HistogramOpts{ Namespace: namespace, Subsy … [sha256:971551f7dab9442a]"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.storage.cacher.metrics where
   pkgImportedPkgs := [pkg_id.k8s_io.component_base.metrics]
 
@@ -215,67 +241,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val DispatchStageDuration.init) (Val #())))))
-  (App (Val doExecute)
-  (App (Val WatchFilteredEventsTotal.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val WatchShardsTotal.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val StorageConsistencyCheckTotal.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ConsistentReadTotal.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val WatchCacheReadWait.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val WatchCacheInitializationDuration.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val WatchCacheInitializationErrors.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val WatchCacheInitializations.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val WatchCacheCapacity.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val watchCacheCapacityDecreaseTotal.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val watchCacheCapacityIncreaseTotal.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val watchCacheResourceVersion.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val TerminatedWatchersCounter.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val EventsCounter.init) (Val #()))))))
+  (App (Val WatchCacheReadWait.init) (Val #())))))
   (App (Val doExecute)
   (App (Val EventsReceivedCounter.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val InitCounter.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val listCacheNumReturned.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val listCacheNumFetched.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val listCacheCount.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val dispatchStages.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.k8s_io.component_base.metrics.initialize') (Val #()))))))))
 

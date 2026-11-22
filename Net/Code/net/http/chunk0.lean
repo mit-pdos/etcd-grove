@@ -757,9 +757,11 @@ opaque ioFS.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque ioFile.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque http2Server [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def http2Server.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"net/http/internal/http2.Server" [])
 
-opaque http2Transport [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def http2Transport.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"net/http/internal/http2.Transport" [])
 
 opaque http2ResponseWriter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
@@ -772,8 +774,6 @@ opaque Request.underlying [GooseExts] [GoGlobalContext] : go.GoType
 opaque Server.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque timeoutWriter.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque Transport.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque transportRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
@@ -8410,21 +8410,151 @@ noncomputable instance equals_unfold_bufioFlushWriter [GooseExts] [GoGlobalConte
 @[reducible] noncomputable def bufioFlushWriter.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType bufioFlushWriter.fields)
 
-opaque Transport.nonempty_type : NonemptyType.{0}
-def Transport : Type := Transport.nonempty_type.type
-instance Transport.nonempty : Nonempty Transport := Transport.nonempty_type.property
-opaque Transport.zero_val : ZeroVal Transport := ⟨Classical.ofNonempty⟩
-attribute [instance] Transport.zero_val
+opaque connLRU.nonempty_type : NonemptyType.{0}
+def connLRU : Type := connLRU.nonempty_type.type
+instance connLRU.nonempty : Nonempty connLRU := connLRU.nonempty_type.property
+opaque connLRU.zero_val : ZeroVal connLRU := ⟨Classical.ofNonempty⟩
+attribute [instance] connLRU.zero_val
+
+structure wantConnQueue [GooseExts] where
+  mk ::
+  head' : GoSlice
+  headPos' : w64
+  tail' : GoSlice
+
+noncomputable instance wantConnQueue.zero_val [GooseExts] : ZeroVal wantConnQueue :=
+  ⟨wantConnQueue.mk zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def wantConnQueue.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"head" (go.GoType.SliceType (go.GoType.PointerType wantConn.ty))),
+(go.field_decl.FieldDecl go!"headPos" go.int),
+(go.field_decl.FieldDecl go!"tail" (go.GoType.SliceType (go.GoType.PointerType wantConn.ty)))]
+
+@[irreducible] noncomputable def wantConnQueue.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  wantConnQueue.fieldsUnsealed
+
+noncomputable instance equals_unfold_wantConnQueue [GooseExts] [GoGlobalContext] :
+    EqualsUnfold wantConnQueue.fields wantConnQueue.fieldsUnsealed :=
+  ⟨by unfold wantConnQueue.fields; rfl⟩
+
+@[reducible] noncomputable def wantConnQueue.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType wantConnQueue.fields)
+
+abbrev closeIdleConnectionser [GooseExts] : Type := GoInterface
+
+@[reducible] noncomputable def closeIdleConnectionser.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"CloseIdleConnections" (go.signature.Signature [] false []))])
 
 abbrev dialClientConner [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def dialClientConner.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"DialClientConn" (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.PointerType _root_.Perennial.net.url.URL.ty), (go.GoType.FunctionType (go.signature.Signature [] false []))] false [RoundTripper.ty, go.error]))])
 
-abbrev closeIdleConnectionser [GooseExts] : Type := GoInterface
+structure Transport [GooseExts] where
+  mk ::
+  idleMu' : _root_.Perennial.sync.Mutex
+  closeIdle' : Bool
+  idleConn' : GoMap
+  idleConnWait' : GoMap
+  idleLRU' : connLRU
+  reqMu' : _root_.Perennial.sync.Mutex
+  reqCanceler' : GoMap
+  altMu' : _root_.Perennial.sync.Mutex
+  altProto' : _root_.Perennial.sync.atomic.Value
+  connsPerHostMu' : _root_.Perennial.sync.Mutex
+  connsPerHost' : GoMap
+  connsPerHostWait' : GoMap
+  dialsInProgress' : wantConnQueue
+  Proxy' : GoFunc
+  OnProxyConnectResponse' : GoFunc
+  DialContext' : GoFunc
+  Dial' : GoFunc
+  DialTLSContext' : GoFunc
+  DialTLS' : GoFunc
+  TLSClientConfig' : Loc
+  TLSHandshakeTimeout' : _root_.Perennial.time.Duration
+  DisableKeepAlives' : Bool
+  DisableCompression' : Bool
+  MaxIdleConns' : w64
+  MaxIdleConnsPerHost' : w64
+  MaxConnsPerHost' : w64
+  IdleConnTimeout' : _root_.Perennial.time.Duration
+  ResponseHeaderTimeout' : _root_.Perennial.time.Duration
+  ExpectContinueTimeout' : _root_.Perennial.time.Duration
+  TLSNextProto' : GoMap
+  ProxyConnectHeader' : Header
+  GetProxyConnectHeader' : GoFunc
+  MaxResponseHeaderBytes' : w64
+  WriteBufferSize' : w64
+  ReadBufferSize' : w64
+  nextProtoOnce' : _root_.Perennial.sync.Once
+  closeIdleFunc' : closeIdleConnectionser
+  h2Transport' : Loc
+  h2Config' : http2ExternalTransportConfig
+  h3Transport' : dialClientConner
+  tlsNextProtoWasNil' : Bool
+  ForceAttemptHTTP2' : Bool
+  HTTP2' : Loc
+  Protocols' : Loc
 
-@[reducible] noncomputable def closeIdleConnectionser.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"CloseIdleConnections" (go.signature.Signature [] false []))])
+noncomputable instance Transport.zero_val [GooseExts] : ZeroVal Transport :=
+  ⟨Transport.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def Transport.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"idleMu" _root_.Perennial.sync.Mutex.ty),
+(go.field_decl.FieldDecl go!"closeIdle" go.bool),
+(go.field_decl.FieldDecl go!"idleConn" (go.GoType.MapType connectMethodKey.ty (go.GoType.SliceType (go.GoType.PointerType persistConn.ty)))),
+(go.field_decl.FieldDecl go!"idleConnWait" (go.GoType.MapType connectMethodKey.ty wantConnQueue.ty)),
+(go.field_decl.FieldDecl go!"idleLRU" connLRU.ty),
+(go.field_decl.FieldDecl go!"reqMu" _root_.Perennial.sync.Mutex.ty),
+(go.field_decl.FieldDecl go!"reqCanceler" (go.GoType.MapType (go.GoType.PointerType Request.ty) _root_.Perennial.context.CancelCauseFunc.ty)),
+(go.field_decl.FieldDecl go!"altMu" _root_.Perennial.sync.Mutex.ty),
+(go.field_decl.FieldDecl go!"altProto" _root_.Perennial.sync.atomic.Value.ty),
+(go.field_decl.FieldDecl go!"connsPerHostMu" _root_.Perennial.sync.Mutex.ty),
+(go.field_decl.FieldDecl go!"connsPerHost" (go.GoType.MapType connectMethodKey.ty go.int)),
+(go.field_decl.FieldDecl go!"connsPerHostWait" (go.GoType.MapType connectMethodKey.ty wantConnQueue.ty)),
+(go.field_decl.FieldDecl go!"dialsInProgress" wantConnQueue.ty),
+(go.field_decl.FieldDecl go!"Proxy" (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType Request.ty)] false [(go.GoType.PointerType _root_.Perennial.net.url.URL.ty), go.error]))),
+(go.field_decl.FieldDecl go!"OnProxyConnectResponse" (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.net.url.URL.ty), (go.GoType.PointerType Request.ty), (go.GoType.PointerType Response.ty)] false [go.error]))),
+(go.field_decl.FieldDecl go!"DialContext" (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [_root_.Perennial.net.Conn.ty, go.error]))),
+(go.field_decl.FieldDecl go!"Dial" (go.GoType.FunctionType (go.signature.Signature [go.string, go.string] false [_root_.Perennial.net.Conn.ty, go.error]))),
+(go.field_decl.FieldDecl go!"DialTLSContext" (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [_root_.Perennial.net.Conn.ty, go.error]))),
+(go.field_decl.FieldDecl go!"DialTLS" (go.GoType.FunctionType (go.signature.Signature [go.string, go.string] false [_root_.Perennial.net.Conn.ty, go.error]))),
+(go.field_decl.FieldDecl go!"TLSClientConfig" (go.GoType.PointerType _root_.Perennial.crypto.tls.Config.ty)),
+(go.field_decl.FieldDecl go!"TLSHandshakeTimeout" _root_.Perennial.time.Duration.ty),
+(go.field_decl.FieldDecl go!"DisableKeepAlives" go.bool),
+(go.field_decl.FieldDecl go!"DisableCompression" go.bool),
+(go.field_decl.FieldDecl go!"MaxIdleConns" go.int),
+(go.field_decl.FieldDecl go!"MaxIdleConnsPerHost" go.int),
+(go.field_decl.FieldDecl go!"MaxConnsPerHost" go.int),
+(go.field_decl.FieldDecl go!"IdleConnTimeout" _root_.Perennial.time.Duration.ty),
+(go.field_decl.FieldDecl go!"ResponseHeaderTimeout" _root_.Perennial.time.Duration.ty),
+(go.field_decl.FieldDecl go!"ExpectContinueTimeout" _root_.Perennial.time.Duration.ty),
+(go.field_decl.FieldDecl go!"TLSNextProto" (go.GoType.MapType go.string (go.GoType.FunctionType (go.signature.Signature [go.string, (go.GoType.PointerType _root_.Perennial.crypto.tls.Conn.ty)] false [RoundTripper.ty])))),
+(go.field_decl.FieldDecl go!"ProxyConnectHeader" Header.ty),
+(go.field_decl.FieldDecl go!"GetProxyConnectHeader" (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.net.url.URL.ty), go.string] false [Header.ty, go.error]))),
+(go.field_decl.FieldDecl go!"MaxResponseHeaderBytes" go.int64),
+(go.field_decl.FieldDecl go!"WriteBufferSize" go.int),
+(go.field_decl.FieldDecl go!"ReadBufferSize" go.int),
+(go.field_decl.FieldDecl go!"nextProtoOnce" _root_.Perennial.sync.Once.ty),
+(go.field_decl.FieldDecl go!"closeIdleFunc" closeIdleConnectionser.ty),
+(go.field_decl.FieldDecl go!"h2Transport" (go.GoType.PointerType http2Transport.ty)),
+(go.field_decl.FieldDecl go!"h2Config" http2ExternalTransportConfig.ty),
+(go.field_decl.FieldDecl go!"h3Transport" dialClientConner.ty),
+(go.field_decl.FieldDecl go!"tlsNextProtoWasNil" go.bool),
+(go.field_decl.FieldDecl go!"ForceAttemptHTTP2" go.bool),
+(go.field_decl.FieldDecl go!"HTTP2" (go.GoType.PointerType HTTP2Config.ty)),
+(go.field_decl.FieldDecl go!"Protocols" (go.GoType.PointerType Protocols.ty))]
+
+@[irreducible] noncomputable def Transport.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  Transport.fieldsUnsealed
+
+noncomputable instance equals_unfold_Transport [GooseExts] [GoGlobalContext] :
+    EqualsUnfold Transport.fields Transport.fieldsUnsealed :=
+  ⟨by unfold Transport.fields; rfl⟩
+
+@[reducible] noncomputable def Transport.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType Transport.fields)
 
 opaque transportRequest.nonempty_type : NonemptyType.{0}
 def transportRequest : Type := transportRequest.nonempty_type.type
@@ -8589,30 +8719,6 @@ noncomputable instance equals_unfold_connOrError [GooseExts] [GoGlobalContext] :
 
 @[reducible] noncomputable def connOrError.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType connOrError.fields)
-
-structure wantConnQueue [GooseExts] where
-  mk ::
-  head' : GoSlice
-  headPos' : w64
-  tail' : GoSlice
-
-noncomputable instance wantConnQueue.zero_val [GooseExts] : ZeroVal wantConnQueue :=
-  ⟨wantConnQueue.mk zeroValDef zeroValDef zeroValDef⟩
-
-@[reducible] noncomputable def wantConnQueue.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
-  [(go.field_decl.FieldDecl go!"head" (go.GoType.SliceType (go.GoType.PointerType wantConn.ty))),
-(go.field_decl.FieldDecl go!"headPos" go.int),
-(go.field_decl.FieldDecl go!"tail" (go.GoType.SliceType (go.GoType.PointerType wantConn.ty)))]
-
-@[irreducible] noncomputable def wantConnQueue.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
-  wantConnQueue.fieldsUnsealed
-
-noncomputable instance equals_unfold_wantConnQueue [GooseExts] [GoGlobalContext] :
-    EqualsUnfold wantConnQueue.fields wantConnQueue.fieldsUnsealed :=
-  ⟨by unfold wantConnQueue.fields; rfl⟩
-
-@[reducible] noncomputable def wantConnQueue.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.StructType wantConnQueue.fields)
 
 abbrev erringRoundTripper [GooseExts] : Type := GoInterface
 
@@ -8968,12 +9074,6 @@ noncomputable instance equals_unfold_fakeLocker [GooseExts] [GoGlobalContext] :
 
 @[reducible] noncomputable def fakeLocker.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType fakeLocker.fields)
-
-opaque connLRU.nonempty_type : NonemptyType.{0}
-def connLRU : Type := connLRU.nonempty_type.type
-instance connLRU.nonempty : Nonempty connLRU := connLRU.nonempty_type.property
-opaque connLRU.zero_val : ZeroVal connLRU := ⟨Classical.ofNonempty⟩
-attribute [instance] connLRU.zero_val
 
 end net.http
 
