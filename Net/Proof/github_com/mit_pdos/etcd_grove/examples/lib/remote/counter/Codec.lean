@@ -160,7 +160,7 @@ theorem Codec.wp_proof : Codec.spec (GF := GF) (hG := hG) := by
   isplitr
   · -- EncIn
     iintro %i
-    iintro !> %Φ' _ HΦ'
+    iintro !> %Φ' - HΦ'
     wp_auto
     cases i <;>
     · simp only [Bool.false_eq_true, ↓reduceIte]
@@ -204,7 +204,7 @@ theorem Codec.wp_proof : Codec.spec (GF := GF) (hG := hG) := by
       rcases Hv with ⟨o, h⟩ | ⟨_, h⟩
       · exact ⟨_, _, h⟩
       · exact ⟨_, _, h⟩
-    iintro !> %Φ' _ HΦ'
+    iintro !> %Φ' - HΦ'
     rw [encOutV_outV]
     wp_auto
     wp_apply (wp_slice_make2 (V := w8) (W64 9)) as %b ⟨Hb, -⟩
@@ -216,19 +216,18 @@ theorem Codec.wp_proof : Codec.spec (GF := GF) (hG := hG) := by
     simp only
     wp_if_destruct
     -- the first byte: `0` (not unknown) or `1` (unknown); then the same loop
-    on_goal 1 =>
-      obtain ⟨hd, hhd, hL⟩ : ∃ hd : w8, encOutB false n = hd :: u64Le n ∧
-          List.replicate 9 (zero_val w8) = hd :: List.replicate 8 (W8 0) := ⟨_, rfl, rfl⟩
-      rw [hhd, hL]
-    on_goal 2 =>
-      rw [ite_eq_left h0]
-      wp_apply wp_store_slice_index b (sint.Z (W64 0)) _ (W8 1) $$ [Hb] as Hb
-      · iframe Hb; ipureintro; simp only [List.length_replicate]; word
-      wp_auto
-      obtain ⟨hd, hhd, hL⟩ : ∃ hd : w8, encOutB true n = hd :: u64Le n ∧
-          (List.replicate 9 (zero_val w8)).set 0 (W8 1) =
-            hd :: List.replicate 8 (W8 0) := ⟨_, rfl, rfl⟩
-      rw [hhd, hL]
+    obtain ⟨hd, hhd, hL⟩ : ∃ hd : w8, encOutB false n = hd :: u64Le n ∧
+        List.replicate 9 (zero_val w8) = hd :: List.replicate 8 (W8 0) := ⟨_, rfl, rfl⟩
+    rw [hhd, hL]
+    rotate_left
+    rw [ite_eq_left h0]
+    wp_apply wp_store_slice_index b (sint.Z (W64 0)) _ (W8 1) $$ [Hb] as Hb
+    · iframe Hb; ipureintro; simp only [List.length_replicate]; word
+    wp_auto
+    obtain ⟨hd, hhd, hL⟩ : ∃ hd : w8, encOutB true n = hd :: u64Le n ∧
+        (List.replicate 9 (zero_val w8)).set 0 (W8 1) =
+          hd :: List.replicate 8 (W8 0) := ⟨_, rfl, rfl⟩
+    rw [hhd, hL]
     all_goals
       ihave HI : (∃ (j : w64), "i" ∷ i_ptr ↦ j ∗
           "Hb" ∷ b ↦* (hd :: ((u64Le n).take (uint.nat j) ++
@@ -239,7 +238,9 @@ theorem Codec.wp_proof : Codec.spec (GF := GF) (hG := hG) := by
         ipureintro; simp
       wp_for HI
       wp_if_destruct
-      · have hj8 : uint.nat j < 8 := by word
+      · have hj8 : uint.nat j < 8 := by
+          have h : uint.Z j < uint.Z (W64 8) := Hif
+          clear Hif Hv; word
         have hs : 0 ≤ sint.Z (W64 1 + j) ∧ sint.Z (W64 1 + j) < sint.Z b.len := by
           rw [hb9]; word
         rw [ite_eq_left hs]
@@ -255,7 +256,9 @@ theorem Codec.wp_proof : Codec.spec (GF := GF) (hG := hG) := by
           show uint.nat (j + W64 1) = uint.nat j + 1 by word]
         iframe
         ipureintro; word
-      · have hj8 : uint.nat j = 8 := by word
+      · have hj8 : uint.nat j = 8 := by
+          have h : ¬ uint.Z j < uint.Z (W64 8) := Hif
+          clear Hif Hv; word
         rw [hj8, List.take_of_length_le (by simp [u64Le_length])]
         wp_auto
         iapply HΦ'
@@ -266,7 +269,7 @@ theorem Codec.wp_proof : Codec.spec (GF := GF) (hG := hG) := by
   isplitr
   · -- IsRead
     iintro %i
-    iintro !> %Φ' _ HΦ'
+    iintro !> %Φ' - HΦ'
     wp_auto
     simp only [cB]
     iapply HΦ'
@@ -274,7 +277,7 @@ theorem Codec.wp_proof : Codec.spec (GF := GF) (hG := hG) := by
   isplitr
   · -- Unknown
     iintro %i
-    iintro !> %Φ' _ HΦ'
+    iintro !> %Φ' - HΦ'
     wp_auto
     rw [show (0 : w64) = W64 0 from rfl]
     iapply HΦ'
@@ -282,13 +285,13 @@ theorem Codec.wp_proof : Codec.spec (GF := GF) (hG := hG) := by
   isplitr
   · -- IsUnknown, an output
     iintro %o
-    iintro !> %Φ' _ HΦ'
+    iintro !> %Φ' - HΦ'
     wp_auto
     iapply HΦ'
     itrivial
   · -- IsUnknown, an unknown output
     iintro %i
-    iintro !> %Φ' _ HΦ'
+    iintro !> %Φ' - HΦ'
     wp_auto
     iapply HΦ'
     itrivial

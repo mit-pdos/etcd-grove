@@ -417,7 +417,7 @@ theorem stV_inj {lo K lo' K' : Nat} (hb : lo + K ≤ 2 ^ 60) (hb' : lo' + K' ≤
 end spec
 
 section dec
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable [GooseExts] [go_gctx : GoGlobalContext] [lctx : GoLocalContext]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Assumptions]
 
@@ -455,16 +455,19 @@ theorem outV_inj {u n u' n'} (h : outV u n = outV u' n') : u = u' ∧ n = n' := 
 /-- `cDec` on a boxed `bool` and a boxed `Out`. -/
 theorem cDec_box (b u : Bool) (n : w64) :
     cDec (boxB b, outV u n) = some (b, if u then .err else .ok n) := by
-  have h : ∃ (b' u' : Bool) (n' : w64), (boxB b, outV u n) = (boxB b', outV u' n') :=
-    ⟨b, u, n, rfl⟩
   unfold cDec
-  rw [dif_pos h]
-  have hs := Classical.choose_spec (Classical.choose_spec (Classical.choose_spec h))
-  simp only [Prod.mk.injEq] at hs
-  obtain ⟨h1, h2⟩ := hs
-  have e1 := boxB_inj' _ _ h1
-  obtain ⟨e2, e3⟩ := outV_inj h2
-  rw [← e1, ← e2, ← e3]
+  split
+  · next h =>
+    have hs := Classical.choose_spec (Classical.choose_spec (Classical.choose_spec h))
+    obtain ⟨h1, h2⟩ := Prod.mk.inj hs
+    have e1 := boxB_inj' _ _ h1
+    obtain ⟨e2, e3⟩ := outV_inj h2
+    have e1' : Classical.choose h = b := e1.symm
+    have e2' : Classical.choose (Classical.choose_spec h) = u := e2.symm
+    have e3' : Classical.choose (Classical.choose_spec (Classical.choose_spec h)) = n := e3.symm
+    dsimp only
+    rw [e3', e2', e1']
+  · next hn => exact absurd ⟨b, u, n, rfl⟩ hn
 
 /-- The model's step on porcupine's operation `(boxB b, outV u n)`. -/
 theorem cS_step {GF : BundledGFunctors} (S : linkv.PSet w64 Bool) (b u : Bool) (n : w64) :
@@ -478,14 +481,8 @@ theorem cS_pendDec {GF : BundledGFunctors} [AllG GF] (γ : GName) :
   init := rfl
   ok s i o := cS_step s i false o
   err s i := cS_step s i true (W64 0)
-  ioOk_ok i o := by
-    iintro !>
-    ipureintro
-    exact ⟨⟨i, rfl⟩, false, o, rfl⟩
-  ioOk_err i := by
-    iintro !>
-    ipureintro
-    exact ⟨⟨i, rfl⟩, true, W64 0, rfl⟩
+  ioOk_ok i o := BI.pure_intro ⟨⟨i, rfl⟩, false, o, rfl⟩
+  ioOk_err i := BI.pure_intro ⟨⟨i, rfl⟩, true, W64 0, rfl⟩
   noObs _ := rfl
 
 end dec

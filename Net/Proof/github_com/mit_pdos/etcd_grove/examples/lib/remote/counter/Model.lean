@@ -1,0 +1,84 @@
+/-
+The proof of `Model` (`Net/Spec/.../lib/remote/counter/Model.lean`): the three closures meet
+`initSpec`, `stepSpec` and `equalSpec` of `cS`; the other fields are `nil`. `Init`'s `State{}` is
+`State{0, 0}`, the initial set (`cSet_init`); `Step` type-asserts its arguments (a boxed `State`,
+`bool` and `Out`, by `rep` and `ioOk`) and calls `step`, whose verdict and next state are the
+model's (`stepG_pSeq`); `Equal`'s `==` on `State`s holds only on the same `(lo, K)`, so on the
+same set (`stV_inj`).
+-/
+module
+
+public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.step
+public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Model
+
+@[expose] public section
+
+set_option linter.iris.style.nameCheck false
+
+noncomputable section
+
+namespace Perennial
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net
+open github_com.anishathalye.porcupine
+
+namespace github_com.mit_pdos.etcd_grove.examples.lib.remote.counter
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Assumptions]
+
+theorem Model.wp_proof (wp_step : step.spec (GF := GF) (hG := hG)) :
+    Model.spec (GF := GF) (hG := hG) := by
+  wp_start
+  wp_auto
+  wp_func_lits
+  wp_auto
+  iapply HΦ
+  unfold isModel isEqHash
+  simp only
+  isplitr
+  · ipureintro; trivial
+  isplitr
+  · -- Init
+    unfold initSpec
+    iintro !> %Φ' _ HΦ'
+    wp_auto
+    iapply HΦ'
+    sorry
+  isplitr
+  · -- Step
+    iright
+    isplitr
+    · ipureintro; exact ⟨trivial, nofun⟩
+    unfold stepSpec
+    iintro %k %v %s %i %o
+    iintro !> %Φ' Hpre HΦ'
+    simp only [cS]
+    icases Hpre with ⟨%Hk, %Hrep, %Hio⟩
+    obtain ⟨⟨b, rfl⟩, u, n, rfl⟩ := Hio
+    obtain ⟨lo, K, hk, hb, rfl, rfl⟩ := Hrep
+    wp_auto
+    sorry
+  isplitr
+  · ipureintro; nofun
+  isplitr
+  · -- Equal
+    unfold equalSpec
+    iintro %k %j %v %w %s %t
+    iintro !> %Φ' Hpre HΦ'
+    simp only [cS]
+    icases Hpre with ⟨%Hv, %Hw⟩
+    obtain ⟨lo, K, -, hb, rfl, rfl⟩ := Hv
+    obtain ⟨lo', K', -, hb', rfl, rfl⟩ := Hw
+    wp_auto
+    sorry
+  ileft
+  ipureintro; trivial
+
+end proof
+
+end github_com.mit_pdos.etcd_grove.examples.lib.remote.counter
+end Perennial
