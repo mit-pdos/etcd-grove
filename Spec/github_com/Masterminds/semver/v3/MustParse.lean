@@ -1,5 +1,6 @@
 /-
-`semver.MustParse`: the trust boundary (`github.com/Masterminds/semver/v3` is names-only). Lean-first (no Rocq counterpart).
+`semver.MustParse`: proved over `NewVersion`'s spec since 2026-11-22 (prove-ps2-client; until then the
+trust boundary). Lean-first (no Rocq counterpart).
 -/
 module
 

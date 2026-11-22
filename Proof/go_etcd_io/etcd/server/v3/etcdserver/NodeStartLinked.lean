@@ -70,7 +70,7 @@ theorem raftNode_of_StartNode
   iintro %Φ Hpre HΦ
   iNamed Hpre
   obtain ⟨Hcfg, Hhb, Hnodup, H0, Hpslen, Hvs, Hwal, Hfit, HtrC⟩ := Hraft
-  imod (dghostVar_alloc (GF := GF) (A := Loc) null) with ⟨%pin, HpinW⟩
+  imod (dghostVar_alloc (GF := GF) (A := GName) default) with ⟨%pin, HpinW⟩
   ihave Hbs := srvMem_bootStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
       wp_Entries γr bv.storage' γs E.γr.cursor pin
       (fun K => iprop(memStorInvT bv.storage' γs γr.cl K (srvStoredOrigin γr.cl E.γr.cursor pin 0) ∗
@@ -105,8 +105,8 @@ theorem raftNode_of_StartNode
   icases Hbpost with ⟨#Hsfresh, Hdrv, HrS, Hncfg⟩
   simp only [RNBoot.a0, RNBoot.t0, RNBoot.commit0, RNBoot.snap0] at Hnames
   obtain ⟨Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs, Hwwal, Hwss, Hwa0, Hwt0, Hwc0, Hws0⟩ := Hnames
-  imod dghostVar_update n pin null $$ HpinW with HpinW
-  imod dghostVar_persist pin 1 n $$ HpinW with #Hloc
+  imod dghostVar_update n.installs pin default $$ HpinW with HpinW
+  imod dghostVar_persist pin 1 n.installs $$ HpinW with #Hloc
   ihave #Hattach : srvAttachedMem bv.storage' γs γr.cl γw.key E.γr.cursor γw.nl γw.snap0 $$ []
   · rw [Hwnl, Hws0]
     iunfold srvAttachedMem
@@ -191,7 +191,7 @@ theorem raftNode_of_StartNode
     iexact Hfix
   have hn0 : ({ rv with raftNodeConfig' := { rv.raftNodeConfig' with transport' := tr } } :
       raftNode).raftNodeConfig'.Node' =
-      interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.node.ty) #γw.nl := by
+      interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.node.ty) #γw.nl.loc := by
     simp only [Hrvcfg, rnNodeIface, Hwnl]
   ihave #Hstate : rnReplayState γw rv.raftNodeConfig'.initialReplayTerms' γw.snap0 $$ []
   · rw [Hrvcfg]
@@ -295,7 +295,7 @@ theorem raftNode_of_RestartNode
     iapply srvFrozenTerms_restart γs (A₀.take σ.b) (memDummy (walSnapCS σ cs)) Hlt
     rw [hlen]
     iframe Hcp He0
-  imod (dghostVar_alloc (GF := GF) (A := Loc) null) with ⟨%pin, HpinW⟩
+  imod (dghostVar_alloc (GF := GF) (A := GName) default) with ⟨%pin, HpinW⟩
   ihave #Himage : isCommittedLogLb γr.cl (A₀.map EntryModel.toLE) $$ []
   · iunfold srvRLogLb at HA0
     icases HA0 with ⟨#Himage, -⟩
@@ -347,8 +347,8 @@ theorem raftNode_of_RestartNode
   icases Hbpost with ⟨%l, #Hl, %Hll, Hdrv, HrS, Hncfg⟩
   simp only [RNBoot.a0, RNBoot.t0, RNBoot.commit0, RNBoot.snap0] at Hnames
   obtain ⟨Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs, Hwwal, Hwss, Hwa0, Hwt0, Hwc0, Hws0⟩ := Hnames
-  imod dghostVar_update n pin null $$ HpinW with HpinW
-  imod dghostVar_persist pin 1 n $$ HpinW with #Hloc
+  imod dghostVar_update n.installs pin default $$ HpinW with HpinW
+  imod dghostVar_persist pin 1 n.installs $$ HpinW with #Hloc
   ihave #Hattach : srvAttachedMem bv.storage' γs γr.cl γw.key E.γr.cursor γw.nl γw.snap0 $$ []
   · rw [Hwnl, Hws0]
     iunfold srvAttachedMem
@@ -455,7 +455,7 @@ theorem raftNode_of_RestartNode
     iexact Hfix
   have hn0 : ({ rv with raftNodeConfig' := { rv.raftNodeConfig' with transport' := tr } } :
       raftNode).raftNodeConfig'.Node' =
-      interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.node.ty) #γw.nl := by
+      interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.node.ty) #γw.nl.loc := by
     simp only [Hrvcfg, rnNodeIface, Hwnl]
   ihave #Hstate : rnReplayState γw rv.raftNodeConfig'.initialReplayTerms' γw.snap0 $$ []
   · rw [Hrvcfg]

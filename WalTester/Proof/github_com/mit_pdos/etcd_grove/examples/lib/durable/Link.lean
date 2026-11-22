@@ -29,9 +29,9 @@ public import Proof.os.File__ReadAt
 public import Proof.os.File__Stat
 public import Proof.os.File__Sync
 public import Proof.os.File__SyncS
-public import Proof.os.File__WriteAt
 public import Proof.os.OpenFileTruncS
 public import Proof.os.RenameS
+public import Proof.os.WriteLong
 public import Proof.os.fileStat__Size
 public import Proof.path.filepath.Base
 public import Proof.path.filepath.Clean
@@ -159,9 +159,9 @@ theorem os.fileStat.wp_Size :
     _root_.Perennial.EtcdGrove.os.fileStat.Size.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.os.fileStat.Size.wp_proof
 
-theorem os.File.wp_ReadAt :
-    _root_.Perennial.EtcdGrove.os.File.ReadAt.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.os.File.ReadAt.wp_proof
+theorem os.File.wp_ReadAtLong :
+    _root_.Perennial.EtcdGrove.os.File.ReadAt.specLong (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.os.File.ReadAt.wp_proof_long
 
 theorem os.File.wp_Close :
     _root_.Perennial.EtcdGrove.os.File.Close.spec (GF := GF) (hG := hG) :=
@@ -171,9 +171,9 @@ theorem os.wp_OpenFileCreateTruncSnc :
     _root_.Perennial.EtcdGrove.os.OpenFile.specCreateTruncSnc (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.os.OpenFile.wp_proofCreateTruncSnc
 
-theorem os.File.wp_WriteAt :
-    _root_.Perennial.EtcdGrove.os.File.WriteAt.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.os.File.WriteAt.wp_proof
+theorem os.File.wp_WriteAtLong :
+    _root_.Perennial.EtcdGrove.os.File.WriteAt.specLong (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.os.File.WriteAt.wp_proof_long
 
 theorem os.File.wp_Sync :
     _root_.Perennial.EtcdGrove.os.File.Sync.spec (GF := GF) (hG := hG) :=
@@ -194,7 +194,7 @@ theorem github_com.mit_pdos.etcd_grove.examples.lib.durable.wp_tryWrite :
     _root_.Perennial.EtcdGrove.durable.filepath.wp_Base
     _root_.Perennial.EtcdGrove.durable.filepath.wp_Join
     _root_.Perennial.EtcdGrove.durable.os.wp_OpenFileCreateTruncSnc
-    _root_.Perennial.EtcdGrove.durable.os.File.wp_WriteAt
+    _root_.Perennial.EtcdGrove.durable.os.File.wp_WriteAtLong
     _root_.Perennial.EtcdGrove.durable.os.File.wp_Sync
     _root_.Perennial.EtcdGrove.durable.os.File.wp_SyncDirS
     _root_.Perennial.EtcdGrove.durable.os.File.wp_Close
@@ -229,7 +229,7 @@ theorem github_com.mit_pdos.etcd_grove.examples.lib.durable.wp_tryRead
   _root_.Perennial.EtcdGrove.github_com.mit_pdos.etcd_grove.examples.lib.durable.tryRead.wp_proof
     h_errors_IsPathErrnoNotExist _root_.Perennial.EtcdGrove.durable.os.File.wp_Stat
     _root_.Perennial.EtcdGrove.durable.os.fileStat.wp_Size
-    _root_.Perennial.EtcdGrove.durable.os.File.wp_ReadAt
+    _root_.Perennial.EtcdGrove.durable.os.File.wp_ReadAtLong
     _root_.Perennial.EtcdGrove.durable.os.File.wp_Close
 
 theorem github_com.mit_pdos.etcd_grove.examples.lib.durable.wp_Read

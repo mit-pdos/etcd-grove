@@ -36,7 +36,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions]
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
-variable [StorageModel GF] [AllG GF]
+variable [StorageModel GF]
 
 /-- `repOwn`'s configuration facts at `k` entries applied: the configuration `c` denotes `m`,
 raft's configuration there. -/
@@ -64,7 +64,7 @@ theorem cfgAt_wf (γr : RNames) (c : ConfStateM) (m : Membership) (k : Nat) :
   ipureintro; exact ⟨Hcs, H⟩
 
 /-- **A rejected conf entry** (see the file header). -/
-theorem conf_reject (γr : RNames) (vs : List w64) (n : Loc)
+theorem conf_reject (γr : RNames) (vs : List w64) (n : NodeH)
     (l : List LogEntry) (e : LogEntry) (o : ConfChangeIM) (c : ConfStateM)
     (m : Membership) (k : Nat) (E : CoPset) (hk : l[k]? = some e) (hd : ccDecode e = some o)
     (hno : ¬ ConfOk o m) (hE : ↑kvrConfN ⊆ E) :
@@ -96,13 +96,13 @@ theorem conf_reject (γr : RNames) (vs : List w64) (n : Loc)
 /-- **An accepted conf entry applied to the node** (see the file header): the applier's fraction
 of `nodeRunning` refutes the stopped answer. -/
 theorem wp_conf_apply (wp_ACC : node.ApplyConfChange.spec (GF := GF) (hG := hG)) (γr : RNames) (vs : List w64) (id : w64)
-    (n : Loc) (q : Qp) (l : List LogEntry) (e : LogEntry) (o : ConfChangeIM) (c : GoInterface)
+    (n : NodeH) (q : Qp) (l : List LogEntry) (e : LogEntry) (o : ConfChangeIM) (c : GoInterface)
     (cs0 : ConfStateM) (m : Membership) (k : Nat) (hk : l[k]? = some e)
     (hd : ccDecode e = some o) (hok : ConfOk o m) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γr.cluster kvrRaftN id ∗
         kvrCluster γr vs ∗ isCommittedLogLb γr.cluster l ∗ ownConfChangeI c DFrac.discard (some o) ∗
         cfgAt γr cs0 m k ∗ appNode γr n l k m ∗ nodeRunning n γr.cluster kvrRaftN q }}
-      (App (Val #(methods node.ty.PointerType go!"ApplyConfChange" #n)) (Val #c))
+      (App (Val #(methods node.ty.PointerType go!"ApplyConfChange" #n.loc)) (Val #c))
     {{ (csp' : Loc), RET #csp'; ∃ (m' : Membership) (c' : ConfStateM),
         ⌜GMap.size m'.ids < 2 ^ 61⌝ ∗ csOpt csp' DFrac.discard c' ∗ cfgAt γr c' m' (k + 1) ∗
         appNode γr n l (k + 1) m' ∗ nodeRunning n γr.cluster kvrRaftN q }} := by

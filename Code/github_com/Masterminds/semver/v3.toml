@@ -2,7 +2,9 @@
 # 2026-11-20: proved over the real code). The parser (`NewVersion`, a regular expression), `String`
 # (`fmt.Fprintf`) and `LessThan` stay the trust boundary. (The apply package's ClusterVersionSet
 # calls MustParse, Version.LessThan and Version.String.)
-translate = ["!*", "New", "Version.Major", "Version.Minor"]
+# (prove-ps2-client, 2026-11-22) `MustParse` with its body, over `NewVersion`'s spec (the trust
+# boundary in its place: `Spec/github_com/Masterminds/semver/v3/NewVersion.lean`).
+translate = ["!*", "New", "Version.Major", "Version.Minor", "MustParse"]
 imports = ["!*"]
 
 # translate the definitions of all type declarations goose supports

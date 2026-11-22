@@ -36,8 +36,12 @@ func readFull(c net.Conn, b []byte) bool {
 	return true
 }
 
-// writeFrame writes body to c as one frame: its length (8 bytes, little-endian), then body.
+// writeFrame writes body to c as one frame: its length (8 bytes, little-endian), then body. A body
+// longer than maxFrame, which readFrame would refuse, is not written: false, nothing written.
 func writeFrame(c net.Conn, body []byte) bool {
+	if len(body) > maxFrame {
+		return false
+	}
 	return writeAll(c, putBytes(make([]byte, 0, 8+len(body)), body))
 }
 

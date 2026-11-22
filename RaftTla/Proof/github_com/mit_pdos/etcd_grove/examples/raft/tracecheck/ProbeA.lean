@@ -396,7 +396,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 `rd.Messages`"): the messages `rd.Messages'` points to, each owned with its credits, the claim on the
 same list, *enter* (whose post gives their `sentMsg`s), the storage part, and the `Ready`'s loop state
 handling the batch (what `node.Advance`'s premise `st.handling = some (es, L)` reads). -/
-theorem probeA_readySplit (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState)
+theorem probeA_readySplit (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState)
     (rd : Ready) :
     readyGotT (GF := GF) n γ N id st rd ⊢
       ∃ (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan)
@@ -495,7 +495,7 @@ harness's `snapLoc` (`snapLocalMsg_noDir`), then `node.Step.spec`. -/
 theorem probeA_cloneStep
     (wp_Clone : proto.ClonePb.spec (GF := GF) (hG := hG))
     (wp_Step : node.Step.spec (GF := GF) (hG := hG))
-    (n : Loc) (γ : Cluster) (N : Namespace) (id src : w64) (q : QMsg) (ctx : GoInterfaceOk)
+    (n : NodeH) (γ : Cluster) (N : Namespace) (id src : w64) (q : QMsg) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (hto : q.st.msg.To' = id) (hsl : γ.snapLoc id = none)
     (hmd : γ.maxData = none) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto -∗
@@ -505,7 +505,7 @@ theorem probeA_cloneStep
       WP (App (Val (@! google_golang_org.protobuf.proto.Clone))
           (Val #(interface.mkOk (go.GoType.PointerType raftpb.Message.ty) #q.loc)))
         {{ v, ∃ l' : Loc, ⌜v = #(interface.mkOk (go.GoType.PointerType raftpb.Message.ty) #l')⌝ ∗
-            WP (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Step"))
+            WP (App (App (Val (n.loc @!! go.GoType.PointerType node.ty @!! go!"Step"))
                 (Val #(interface.ok ctx))) (Val #l'))
               {{ e, ∃ err : GoInterface, ⌜e = #err⌝ ∗ nodeErrS n γ N cd err }} }} := by
   iintro #Hpi #Hri #Hn #Hctx Hmo #Hs Hcr Htok

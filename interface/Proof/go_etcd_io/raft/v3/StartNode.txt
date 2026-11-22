@@ -47,7 +47,7 @@ theorem StartNode.wp_proof [package_sem : Assumptions] (wp_setupNode : setupNode
                                                     (▷
                                                         ∀ nd,
                                                           (∃ n K,
-                                                              ⌜nd = interface.mkOk node.ty.PointerType (intoVal n)⌝ ∗
+                                                              ⌜nd = interface.mkOk node.ty.PointerType (intoVal n.loc)⌝ ∗
                                                                 nodeStartedFresh n γ N vs ctxs cv.ID' ∗
                                                                   isNode n γ N cv.ID' ∗
                                                                     nodeDriver n γ N

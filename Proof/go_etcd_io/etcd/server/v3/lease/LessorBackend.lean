@@ -93,26 +93,30 @@ variable [sem : go.Semantics]
 
 /-- **The batch transaction `tx`** as the lessor's writes use it (persistent): `LockInsideApply()`
 under the critical-section contract (over mvcc's API's `hookRun`, `csContractA`, at the hook `g`
-whose value `f` is: strict M1, 2026-11-05, so that a `nil` hook is the caller's view shift) gives the lock's token `Lk Post`; `UnsafePut` into the
+whose value `f` is: strict M1, 2026-11-05, so that a `nil` hook is the caller's view shift) gives the lock's token `Lk false Post`; `UnsafePut` into the
 `Lease` bucket (the value of `schema.Lease`) of an 8-byte key (a lease's id: unit N4, 2026-10-17;
-an empty key is fatal in the real backend) keeps it and puts the entry into the tracked buckets
-`Rb` holds (L3c); `Unlock()` gives `Post`. -/
+an empty key is fatal in the real backend) takes the token of a session with no put yet (`Lk false`)
+and gives the token of one with its put (`Lk true`), putting the entry into the tracked buckets
+`Rb` holds (L3c); `Unlock()` takes either and gives `Post`. (prove-ps2-newlessor5, 2026-11-21: one
+put per lock, which is all the lessor does, `persistTo`'s one `MustUnsafePutLease`; until then any
+number of puts at no cost, which the real backend does not meet, its `UnsafePut` counting a pending
+operation each, `pend + 1 < 2 ^ 58`.) -/
 def leaseBatchTx (tx : GoInterfaceOk) (P : IProp GF) (f : val) (T R : IProp GF)
     (Rb : GMap GoString backend.BktData → IProp GF := fun _ => iprop(True)) : IProp GF :=
-  iprop(∃ Lk : IProp GF → IProp GF,
+  iprop(∃ Lk : Bool → IProp GF → IProp GF,
     □ (∀ (g : GoFunc) (Pre Q Post : IProp GF), ⌜f = #g⌝ →
       {{ srvApi.csContractA P g Pre Q Post ∗ T ∗ R }}
         (App (Val #(methods tx.ty go!"LockInsideApply" tx.v)) (Val #()))
-      {{ RET #(); Lk iprop(Post ∗ R) }}) ∗
+      {{ RET #(); Lk false iprop(Post ∗ R) }}) ∗
     □ (∀ (R : IProp GF) (bk : GoInterface) (key val : GoSlice) (kb vb : GoString)
         (r : GMap GoString backend.BktData),
-      {{ ⌜kb.length = 8⌝ ∗ Lk R ∗ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Lease ↦□ bk ∗
+      {{ ⌜kb.length = 8⌝ ∗ Lk false R ∗ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Lease ↦□ bk ∗
           key ↦*□ kb ∗ val ↦*□ vb ∗ Rb r }}
         (App (App (App (Val #(methods tx.ty go!"UnsafePut" tx.v)) (Val #bk)) (Val #key))
           (Val #val))
-      {{ RET #(); Lk R ∗ Rb (mvcc.rbSet r mvcc.leaseName kb vb) }}) ∗
-    □ (∀ (R : IProp GF),
-      {{ Lk R }} (App (Val #(methods tx.ty go!"Unlock" tx.v)) (Val #())) {{ RET #(); R }}))
+      {{ RET #(); Lk true R ∗ Rb (mvcc.rbSet r mvcc.leaseName kb vb) }}) ∗
+    □ (∀ (b : Bool) (R : IProp GF),
+      {{ Lk b R }} (App (Val #(methods tx.ty go!"Unlock" tx.v)) (Val #())) {{ RET #(); R }}))
 
 instance leaseBatchTx_persistent (tx : GoInterfaceOk) (P : IProp GF) (f : val) (T R : IProp GF)
     (Rb : GMap GoString backend.BktData → IProp GF) : Persistent (leaseBatchTx tx P f T R Rb) := by

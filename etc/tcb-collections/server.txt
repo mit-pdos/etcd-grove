@@ -43,7 +43,6 @@ axiom auth.redactToken.wp_proof
 axiom bcrypt.CompareHashAndPassword.wp_proof
 axiom bcrypt.GenerateFromPassword.wp_proof
 axiom binary.WriteUint8.wp_proof
-axiom bufferM.ownBuffer_new
 axiom bytes.Buffer.Write.wp_proof
 axiom ccDecodeV2_nil
 axiom config.ServerConfig.BackendPath.wp_proof
@@ -90,7 +89,7 @@ axiom httputil.GracefulClose.wp_proof
 axiom io.MultiReader.wp_proof
 axiom io.Pipe.wp_proof
 axiom io.PipeWriter.CloseWithError.wp_proof
-axiom lease.NewLessor.wp_proof
+axiom lease.Lease.expired.wp_proof
 axiom leasehttp.RenewHTTP.wp_proof
 axiom math.Ceil.wp_proof
 axiom membership.RaftCluster.Recover.wp_proof
@@ -152,7 +151,7 @@ axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
 axiom schema.membershipBackend.MustDeleteMemberFromBackend.wp_proof
 axiom schema.membershipBackend.MustReadMembersFromBackend.wp_proof
 axiom schema.membershipBackend.MustSaveMemberToBackend.wp_proof
-axiom semver.MustParse.wp_proof
+axiom semver.NewVersion.wp_proof
 axiom semver.Version.LessThan.wp_proof
 axiom semver.Version.String.wp_proof
 axiom semver.semverValid_simple
@@ -181,7 +180,6 @@ axiom v2stats.ServerStats.SendAppendReq.wp_proof
 axiom v3alarm.AlarmStore.restore.wp_proof
 axiom v3alarm.NewAlarmStore.wp_proof
 axiom v3rpc.wp_WithTimeout_weak
-axiom version.Cluster.wp_proof
 axiom zap.Logger.Fatal.wp_proof
 axiom zap.Logger.Panic.wp_proof
 axiom zap.Logger.check.wp_proof

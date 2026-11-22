@@ -41759,3 +41759,95 @@ later generation changes (h). So every ghost step takes the token: `ncfupd`,
 - A client with its own `[AllG GF]` (kvdurable) names the token by the notation `notCrashedG`,
   which is the state interpretation's `gooseAllG` instance. A bare `notCrashed` would resolve to the
   client's own instance and not match raft's.
+
+## Raft's cluster vocabulary independent of machine and generation (2026-11-21 · the coordinating session · branch `raft-cluster-global`)
+
+**Decision.** kvnet's decision B, option 3 of `notes/raft-cluster-global.md`:
+- The node-level predicates take an opaque node handle `nh : NodeH` (location and names), which
+  `StartNode`/`RestartNode` return.
+- The node table (`nodeTabInv`: a ghost map from node locations to names, with `n ↦□` for each)
+  leaves `isCluster` and goes away: the handle carries the names, so the descriptions of one node
+  agree by construction.
+- The shared predicates (`isCluster`, `sentMsg`, `msgCredits`, `raftState`, `nodeVacant`, `confAt`,
+  `isCommittedLogLb`, `snapshotCert`, `confPolicy`, the stores' invariants) and the allocation lemmas
+  are defined in sections with only `{GF} [AllG GF] [ReceiptGS GF] [InvGS GF]`, as the protocol
+  layer's. (First `[G : GooseGlobalGS]` with `gooseInvGS` a local instance; superseded 2026-11-22: a
+  fancy update concluded under `G.gooseInvGS` could not be eliminated by a caller under `HeapGS`,
+  `notes/raft-cluster-global.md` (d).) A client section must not declare its own `[AllG GF]` beside
+  `HeapGS` ("One `AllG`"): the global laws would take that instance and its hypotheses the heap's.
+- The etcd server's pin of its node (a `dghostVar` set after `StartNode`) holds `NodeH.installs`
+  (a `GName`), not the handle, which is not `Pos.Countable`; `nodeInstalledIndex_installs` transfers
+  the server's facts. *Rejected:* a saved predicate per node (another later at the use), and
+  `nodeInstalledIndex` keyed by the storage key (changes raft's snapshot-source laws).
+- `[CrashGS GF]` (per generation) is taken per declaration (`variable [CrashGS GF] in`), not per
+  section. A section variable made every lemma of its file take it.
+
+**Why.**
+- `isCluster` must be allocated in `goose_dist_mixed_crash_adequacy`'s `Hstart` and held by
+  kvnet's checking client on another machine.
+- A global node table cannot keep the heap facts its freshness needs: they are each generation's.
+  Keyed by address, it also breaks when a restarted heap reuses one.
+
+**Rejected.**
+- A registry keyed by a per-generation ghost name: freshness would need heap-name-parametric
+  points-to, a Perennial change.
+- A per-generation table: agreement would need a unique per-generation anchor, which is not
+  available.
+
+## Protobuf stage 0': the schemas generated from `models/pbdesc`, a candidate wire semantics (2026-11-21 · proving session 2, #18 · branch `prove-ps2-pbwire/2026-11-21`; scoped by kaashoek's review, #20 item 2 (b))
+
+- **The schemas** (`PbSchema.lean`: the `FieldSchema` constants and `pbSchemaOf`, trusted) are
+  generated from the registered descriptors by `etc/gen-pbschema.py` (it runs `models/pbdesc` in
+  `examples/`, the one descriptor source pbgen reads), between marker lines of the file, with
+  `--check` in `etc/gates.sh` (`goose` section). The header, the `pbSchemaOf_*` lemmas and the
+  `PbGoType` instances stay hand-written: they are proved, not trusted. Why a region, not a
+  generated module: the file's importers, its RaftNoAx copy (`etc/copy-part.py`) and
+  `etc/PbSchemaDump.lean` (which reads `pbSchemaOf`'s `if ty = X.ty` chain) are unchanged. The
+  generated schemas and `pbSchemaOf` are exactly the hand-written ones (definitions unchanged);
+  only the docstrings changed, from hand-written `raft.proto:LINES` citations to the descriptor's
+  facts (file, syntax, each field's number, name, cardinality and kind), since the dump has no
+  source lines. `etc/pbschema-check.py` stays: it checks the registrations' reach and D1's size
+  bound, which the generator does not.
+- **The candidate wire semantics** `Proof/google_golang_org/protobuf/proto/PbWire.lean`: total,
+  computable `encode`/`decode` of a message value against a descriptor (protobuf-go v1.36.12's
+  `proto.Marshal`/`Unmarshal`, cited per rule), structural recursion (small cases reduce by
+  `rfl`). **Nothing trusts it**: no axiom, spec or proof imports it; pbgen stays the trusted
+  protobuf implementation (2026-11-19) until upamanyus and kaashoek settle #20 item 2 (a). Two
+  protobuf-go facts the plan had not stated: a message's oneofs are written after all its other
+  fields, in the oneofs' declaration order, not by number (`codec_message.go:177-184`, "marshal
+  oneofs last"; found by the vectors: the first draft wrote a oneof at its first member's number);
+  the fast path does not check closed (proto2) enums' values on decode.
+- **Its evidence**: `examples/pbwire` (Go) builds random messages of 24 root types (raftpb,
+  walpb, etcdserverpb with its oneofs, mvccpb, authpb, leasepb, and `xpb`, a copy of
+  `models/internal/pbdifftest/xpb` for the kinds etcd lacks) on the real generated structs,
+  marshals them with protobuf-go and, for the types in pbgen's subset (its own
+  `protobuf.toml`), with pbgen's codec, which must agree; unmarshals the encodings, their
+  concatenations (merges), mutations and crafted records (every wire type at known and unknown
+  numbers, non-minimal tags and varints, overflow, groups, cut values, bad UTF-8); and writes
+  descriptors (from `models/pbdesc`), inputs and outcomes as `PbWireVectors.lean`, whose `#guard`s
+  compare the Lean semantics with every vector at each build, with the recursion limits (10000
+  messages, 10001 groups) as Lean-side constructions. The Go test fails if the committed module is
+  not what it writes (`PBWIRE_UPDATE=1` rewrites it); it runs in `etc/gates.sh`'s `models` section.
+
+## A crash may enter a pending batch: `readyEnter` as live ∧ crash (2026-11-22 · branch `raft-crash-enter`)
+
+**Need.** kvnet's write has two durability points, so after a crash in its window the restarted node may find
+the batch's state on disk. Raft must then let the crash enter the batch as well as discard it (`nodeCrash`).
+
+**Choice.** `readyEnter := readyEnterLive ∧ readyEnterCrash`, an additive conjunction over the hand-out's
+resources, and a law `readyCrashEnter` (`InvNode.lean`). Two alternatives were rejected:
+- a separate crash resource beside `readyEnter`: both halves need the batch's `pendBatch`, which is exclusive,
+  and splitting it would give the live *enter* a fraction it cannot update;
+- a sealed `readyEnter` with the law proved from the hand-out: it hides from the interface which half a client
+  fires, for no gain.
+
+The live half is the old wand, so live clients change by one `icases` and the old guarantees stay as they were.
+The law needs two premises beyond the requested statement: `nodeRunning n γ N q` (the node was not stopped, so the
+batch is of the current generation) and `nodeArm n γ x` (the token is the node's arm's). Without them it is
+false of the ghost model (`notes/raft-crash-law-design.md` (k)). At the protocol level, `raft_enter`'s proof is
+now `raft_enter_core`, generic in how the generation is checked. `raft_crash_enter` checks it against the slot's
+share kept in the arm's crash invariant, which the crash token keeps live, then runs `raft_crash`. No ghost state,
+invariant or fragment meaning changed.
+
+**Also:** `statusOwn_hardState`, read access to `node.Status`'s hard state (`hsOpt`), without promising anything of
+the values, as `node.Status.spec` already says.

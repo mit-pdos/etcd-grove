@@ -28,7 +28,7 @@ open Iris Iris.BI GMap go_etcd_io.raft.v3
 
 section ghost
 variable [GooseExts]
-variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [CrashGS GF]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-- What a committed log is made of, persistently: a prefix of the bootstrap log, or a full log
 with records. -/

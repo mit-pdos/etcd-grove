@@ -61,7 +61,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Assumptions]
 variable [durable_sem : github_com.mit_pdos.etcd_grove.examples.lib.durable.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
 
 attribute [local instance] kdStorageModel
 
@@ -445,6 +445,8 @@ theorem Cluster.start.wp_proof
   have HA : uint.nat cv.Applied' = uint.nat ap0 := by rw [HcAp]
   -- (2026-11-02, stage II (u)) `RestartNode` at the stored snapshot's configuration point (until
   -- then `kd_RestartNode_at`, `sorry` above the applied index, and `kd_confAt_lists_le`, `sorry`)
+  -- (2026-11-22) the update with the crash token (`restartAu_nc`)
+  ihave Hau := restartAu_nc _ _ _ _ _ $$ Hau
   wp_apply (wp_RestartNode γ.r.cluster kdRaftN cp cv qLogger
       ⟨go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Storage.ty, #s⟩
       (kdContents (some F)) (kdInitCS (raft_kvreconf.bootCS vs) F) (uint.nat F.snap.Metadata'.Index') m

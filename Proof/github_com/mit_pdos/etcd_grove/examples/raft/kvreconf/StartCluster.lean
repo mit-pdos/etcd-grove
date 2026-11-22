@@ -45,7 +45,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KvrStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KvrStor GF]
 
 attribute [local instance] kvrStorageModel
 
@@ -259,6 +259,8 @@ theorem StartCluster.wp_proof
     ihave #Hlogger := qLogger_isLogger wp_Debugf wp_Errorf wp_Infof wp_Warningf
     have Hiface : kvrStorIface «$r0_ptr» =
         GoInterface.ok ⟨go.GoType.PointerType rStorageTy, #«$r0_ptr»⟩ := rfl
+    -- (2026-11-22) the update with the crash token (`restartAu_nc`)
+    ihave Hau := restartAu_nc _ _ _ _ _ $$ Hau
     wp_apply (wp_RestartNode γr.cluster kvrRaftN cp cv qLogger
         ⟨go.GoType.PointerType rStorageTy, #«$r0_ptr»⟩ kvrBootContents
         (bootCS (bootVoters (uint.nat o.Voters'))) 0

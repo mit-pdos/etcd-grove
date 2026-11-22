@@ -89,14 +89,12 @@ axiom apply.memberEnc_id_learner
 axiom auth.NewAuthStore.wp_proof
 axiom auth.newTokenProviderJWT.wp_proof
 axiom binary.WriteUint8.wp_proof
-axiom bufferM.ownBuffer_new
 axiom bytes.Buffer.Write.wp_proof
 axiom ccDecodeV2_nil
 axiom config.ServerConfig.BackendPath.wp_proof
 axiom context.WithCancelTodo.wp_proof
 axiom context.WithValue.wp_proof
 axiom credentials.perRPCCredential.GetRequestMetadata.wp_proof
-axiom credentials.perRPCCredential.UpdateAuthToken.wp_proof
 axiom dataDirAbsent
 axiom dataDirFresh
 axiom dataDirsApart
@@ -114,15 +112,9 @@ axiom etcdserverpb.AlarmType.String.wp_proof
 axiom features.NewDefaultServerFeatureGate.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom goose_adequacy_start
-axiom grpc.ChainStreamInterceptor.wp_proof
-axiom grpc.ChainUnaryInterceptor.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.Target.wp_proof
 axiom grpc.CustomCodec.wp_proof
-axiom grpc.KeepaliveEnforcementPolicy.wp_proof
-axiom grpc.MaxConcurrentStreams.wp_proof
-axiom grpc.MaxRecvMsgSize.wp_proof
-axiom grpc.MaxSendMsgSize.wp_proof
 axiom grpc.NewClient.wp_proof
 axiom grpc.NewServer.wp_proof
 axiom grpc.Server.RegisterService.wp_proof
@@ -152,7 +144,6 @@ axiom grpcSrvCfgRaw
 axiom grpcSrvCfg_agree
 axiom grpcSrvLink
 axiom grpcSrvNew
-axiom grpcSrvOpt
 axiom grpcStatsHandlerOk
 axiom grpcWrotePeer
 axiom grpc_health_v1.HealthCheckResponse_ServingStatus.String.wp_proof
@@ -194,7 +185,7 @@ axiom httputil.GracefulClose.wp_proof
 axiom io.MultiReader.wp_proof
 axiom io.Pipe.wp_proof
 axiom io.PipeWriter.CloseWithError.wp_proof
-axiom lease.NewLessor.wp_proof
+axiom lease.Lease.expired.wp_proof
 axiom math.Ceil.wp_proof
 axiom membership.RaftCluster.Recover.wp_proof
 axiom membership.RaftCluster.SetBackend.wp_proof
@@ -286,7 +277,7 @@ axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
 axiom schema.membershipBackend.MustDeleteMemberFromBackend.wp_proof
 axiom schema.membershipBackend.MustReadMembersFromBackend.wp_proof
 axiom schema.membershipBackend.MustSaveMemberToBackend.wp_proof
-axiom semver.MustParse.wp_proof
+axiom semver.NewVersion.wp_proof
 axiom semver.Version.LessThan.wp_proof
 axiom semver.Version.String.wp_proof
 axiom semver.semverValid_simple
@@ -320,7 +311,6 @@ axiom v3rpc.codec_proto
 axiom v3rpc.ctxCauseOk_cancellable
 axiom v3rpc.logUnaryRequestStats.wp_proof
 axiom verifyEnvOff
-axiom version.Cluster.wp_proof
 axiom waitRetryBackoff.wp_proof
 axiom withVersion.wp_proof
 axiom zap.Logger.Fatal.wp_proof

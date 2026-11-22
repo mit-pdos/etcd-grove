@@ -1280,6 +1280,8 @@ local macro "watch_resp" : tactic => `(tactic| (
         wp_apply hSecP _ du $$ [totalDur] as %fs2 totalDur
         · iframe totalDur; try iframe #
         (try wp_auto)
+        wp_apply wp_float64_div as %_ -
+        (try wp_auto)
         observe hs2 Ho2
         (try wp_auto)
         obtain ⟨Dn, hDn⟩ : ∃ Dn : List v3rpc.WatchRespM, Dn = D ++ [v3rpc.mvccResp rcv.length x ⟨r.srv.cid, r.srv.mid, wv.Revision', tt, ll⟩ evs1] := ⟨_, rfl⟩

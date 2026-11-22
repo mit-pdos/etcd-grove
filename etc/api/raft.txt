@@ -222,3 +222,4 @@ importable Proof.go_etcd_io.raft.v3.InvPbCore
 importable Proof.go_etcd_io.raft.v3.PbContentCore
 importable Proof.go_etcd_io.raft.v3.PbContentOwnCore
 importable Proof.go_etcd_io.raft.v3.PbEntryTypeCore
+importable Proof.go_etcd_io.raft.v3.NodeInstalls

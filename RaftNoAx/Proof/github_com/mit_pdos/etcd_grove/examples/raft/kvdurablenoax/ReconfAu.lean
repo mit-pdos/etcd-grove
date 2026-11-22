@@ -33,7 +33,6 @@ section lemmas
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt durableExt]
 variable [go_gctx : GoGlobalContext] [go.IntoValInj GoString]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [AllG GF]
 
 /-- **The update `node.ProposeConfChange` takes** for a change `o` of a defined transition (see
 the file header). -/

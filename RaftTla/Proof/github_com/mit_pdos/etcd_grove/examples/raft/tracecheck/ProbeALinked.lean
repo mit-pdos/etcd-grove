@@ -41,7 +41,7 @@ loan refuted (`probeA_noSnap`), `handleReady`'s storage and apply work (abstract
 `Ready`'s storage part, the batch's receipt and the view with the skipped conf entries: not on the
 probe's list), then the linked `node.Advance.tracedSpec` with the claim. Its post: for each message,
 what `send` takes (`probeA_msgs`), or the node stopped. -/
-theorem probeA_round (n : Loc) (γ : Cluster) (N : Namespace) (id : w64)
+theorem probeA_round (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64)
     (st : NodeDriverState) (rd : Ready) (qr : Qp) (hN : ↑N ⊆ (⊤ : CoPset)) :
     ⊢ notCrashed -∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 -∗ isCluster γ N -∗ isNode n γ N id -∗
       tcSnapsInv γ -∗ readyGotT n γ N id st rd -∗
@@ -52,7 +52,7 @@ theorem probeA_round (n : Loc) (γ : Cluster) (N : Namespace) (id : w64)
           skippedIn γ (st.delivered ++ ce) v.applied (st.delivered ++ ce).length) -∗
       |={⊤}=> notCrashed ∗ ∃ (ms : List QMsg) (S : RaftState), rd.Messages' ↦* ms.map QMsg.loc ∗ raftState γ id S ∗
         nodeRunning n γ N qr ∗
-        WP (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
+        WP (App (Val (n.loc @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
           {{ v, ⌜v = #()⌝ ∗ ((∃ st', nodeDriver n γ N st' ∗
               [∗list] q ∈ ms, (msgOwn q.loc (readyDq q.st) q.st ∗ sentMsg γ N id q.st ∗
                 msgCredits γ N q.st) ∗ trTok γ q.st) ∨
@@ -67,6 +67,8 @@ theorem probeA_round (n : Loc) (γ : Cluster) (N : Namespace) (id : w64)
     exact Hf.elim
   | none =>
   iunfold readyEnter at Hent
+  icases Hent with ⟨Hent, -⟩
+  iunfold readyEnterLive at Hent
   imod Hent $$ %⊤ %qr %hN Hnc [Hrs Hrun] with ⟨Hnc, Hrs, Hrun, Hdrv, #Hsent⟩
   · iframe Hrs Hrun
   ihave ⟨Hrec, %v, Hv, #Hsk⟩ := Hwork $$ %ce %es Hsnap

@@ -25,6 +25,127 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-22: kvnet's `StartNode`/`Run`/`RunNode` -- the start resource `S` cannot name the node's configuration, and the file invariant cannot be allocated where the crash obligation needs it
+
+- **Spec.** `KvNet/Spec/.../kvnet/StartNode.lean` (`StartNode.spec F rep cf S`, `S : IProp GF`), `Run.lean`,
+  `RunNode.lean` (the same `S`); kvnet's `Defs.lean` (`kdFileInvK γ id n γd`, `kdWriter` over `γ.wr id`).
+- **Defect.** (1) Not provable: `StartNode`'s start resource is one proposition for every `cfg`, but
+  what the start needs names the configuration: the file of `cfg.Dir`/`cfg.ID`, raft's vacancy of
+  `cfg.ID`, the bootstrap voters `1..cfg.Opts.Voters` (`kdCluster γ vs`), every other address's protocol
+  (`newTransport`), raft's `Config` premises on `cfg.Opts`; and `newTransport` reads `cfg.Addrs`, which the
+  precondition does not own. (2) Not provable: the file invariant (which holds `raftState`) is allocated
+  after `RestartNode`, parameterized by its node; with a real crash (decision C) it must exist from the
+  generation's start, carrying a crashed side the crash obligation can take (`inv (… ∨ crashed ∗ tok)`),
+  so it cannot name the node; the writer's ghost variable `γ.wr id` is the store's, so the dead
+  generation's `dmu` and the next generation's writer would share it.
+- **Evidence.** `notes/kvnet-part.md`, "`StartNode` and the crash frame"; Perennial's crash adequacy
+  (`DistAdequacy.lean:555`: the obligation `crashed -∗ extsCrashStart L L' ={⊤}=∗ P i L'` is fixed at the
+  generation's start).
+- **Proposed change.** (1) `S : w64 → GoString → Options → GMap w64 GoString → IProp GF` (id, dir, options,
+  the address map), and `StartNode`'s precondition `cfg.Addrs' ↦$□ M ∗ S cfg.ID' cfg.Dir' cfg.Opts' M`;
+  `Run.spec`/`RunNode.spec` pass the same indexed `S` (RunNode at the options and map it builds). (2) The file
+  invariant `kdFileInvK γ id ph` over the incarnation's file names (`KdDmuNames` gains the writer variable
+  `wr`, the invariant's crash token `tk`, the arm `x`): `∃ S s pb, durSt ∗ ghostVar ph.wr ½ (S,s,pb) ∗
+  ((raftState S ∗ kdFileState γ id ph.x S s pb) ∨ crashed ∗ token ph.tk)`, the pending batch's record
+  holding its node existentially (`∃ n, nodeArm n γ x ∗ readyEnter n … ∗ nodeRunning n q ∗ …`), the share
+  `q` coming back to the writer through a saved proposition (`pb` gains its name); `kdWriter ph …`.
+  Internal to kvnet's part (no client outside it); the top level allocates the file invariant at each
+  generation's boot.
+- **Decision.** Accepted (the kvnet-proof session, 2026-11-22; kvnet's own seam, decision C's plan).
+
+## 2026-11-22: raft's `RestartNode` -- its client update cannot open a crash invariant (no crash token), so a client cannot keep `raftState` where a crash obligation can take it
+
+- **Spec.** `Spec/go_etcd_io/raft/v3/RestartNode.lean`, `RestartNode.spec`: the update
+  `AU <{ ∃∃ S, ▷ raftState γ cv.ID' S ∗ ⌜StorageHolds S σ⌝ }> @ ⊤ ∖ ↑N, ∅ <{ raftState γ cv.ID' S, COMM Q S }>`
+  (and the RaftNoAx/KvNet copies).
+- **Defect.** Too weak for a client whose process really crashes (kvnet, decision C). Perennial's crash
+  adequacy takes each generation's crash obligation at the generation's start
+  (`∀ L', crashed -∗ extsCrashStart … ={⊤}=∗ P i L'`), so the next generation's exclusive start resources
+  must sit, from that start on, in invariants the obligation can empty: `inv (body ∨ crashed ∗ tok)`. Raft's
+  `raftState γ id S` is one (exclusive; the next `RestartNode`'s update needs it). Every other opener of such
+  an invariant must refute `crashed ∗ tok` with the generation's `notCrashed`, which a thread holds only at a
+  step (`wp_ncfupd`, `wp_atomic_nc`, the channel updates' `ncfupd`). `RestartNode`'s update is a plain atomic
+  update fired inside `RestartNode`: the client has no token there, and on the crashed side it would have to
+  produce `raftState` (taken) and `StorageHolds S σ` of its own `σ`. Borrowing `raftState` out of the
+  invariant before the call loses it to a crash during `RestartNode`.
+- **Evidence.** `notes/kvnet-part.md`, "`StartNode` and the crash frame (2026-11-22)". The same problem was
+  met and solved for durable's sync update (`durWriteSync`, `notes/kvnet-part.md`, "`persist`", item 1).
+- **Proposed change.** `RestartNode`'s update given and returning the token, as `durWriteSync`:
+  `notCrashed -∗ AU <{ ∃∃ S, ▷ raftState γ cv.ID' S ∗ ⌜StorageHolds S σ⌝ }> @ ⊤ ∖ ↑N, ∅
+  <{ raftState γ cv.ID' S, COMM notCrashed ∗ Q S }>` (under `[CrashGS GF]`, as `nodeCrash`). Raft's proof fires
+  it before any step of `RestartNode`, where `wp_ncfupd` gives the token. Existing clients (kvdurable,
+  kvreconf, the server's start paths) pass a plain update through a lemma like `durWriteSync_of_au` (the token
+  unused). Raft's change, not kvnet's.
+- **Decision.** Accepted as proposed (the kvnet-proof session, 2026-11-22, on the coordinator's brief), after
+  checking the shape:
+  - *Sound, nothing trusted moves.* The token is the state interpretation's (`HeapGS`'s
+    `goose_crashGS`); raft's proof already ran the restart's ghost step under `wp_ncfupd` (the
+    vacancy's arm needs it, `armed_read`), so it only lends the token to the client's update and takes it
+    back (`raft_restart`'s accessor now `notCrashed -∗ |={…}=> … (… ={∅,…}=∗ notCrashed ∗ R S)`). No axiom,
+    no `Assumptions` field, no Perennial change.
+  - *Minimal.* The token appears once in the precondition's update and once in its `COMM`, nothing else in
+    the triple changes; the same shape as durable's `durWriteSync` and raft's own trace updates (`TraceFire`,
+    `TracedCap.lean`). A weaker alternative (the client update as an `ncfupd` around a plain AU) gives the
+    client nothing more and needs an atomic-update rule Perennial lacks.
+  - *Clients.* `restartAu_nc` (`InvNodeRule.lean`) makes a plain update one; kv, kvreconf (two), kvdurable
+    (and its RaftNoAx copy) and the server's `newRaftNode` wrap theirs before the call. RaftWitness keeps its
+    own (older) spec, untouched; RaftTla/RaftNoAx/KvNet copies regenerated.
+  - SpecPlan's `RestartNode` (and its `newRaft`/`NewRawNode` updates) not changed: its crash story is the
+    vacancy's `raftState_crash` law, to be reconciled when kvnet's form is ported back (open).
+
+## 2026-11-21: raft's node API -- `isCluster` holds one machine's heap (the node table), and the node predicates agree on a node's names only through it
+
+- **Spec.** `Spec/go_etcd_io/raft/v3/StartNode.lean`, `RestartNode.lean` and the `node.*` method specs;
+  `InvNode.lean`'s `isNode`, `nodeRunning`, `nodeDriver`, `nodeStopped`, `nodeConfig`, `nodeTagPin`,
+  `nodeArm`, the snapshot-source and ready-token facts; `InvNodeRule.lean`'s `isCluster`. SpecPlan's
+  raft node specs, likewise.
+- **Defect.** Not local enough for a distributed client. `isCluster` contains `nodeTabInv`, which keeps
+  `n ↦□` for every node, so it can be neither allocated in a distributed adequacy theorem's `Hstart`
+  (only `[GooseGlobalGS]`) nor held by another machine. Keyed by `Loc`, the table also breaks across
+  generations: a new heap can reuse a dead node's address.
+- **Evidence.** `notes/kvnet-proof-plan.md` gap 2 and decision B; `notes/raft-cluster-global.md` (a),
+  (b).
+- **Proposed change.** An opaque node handle `nh : NodeH` (location and names; `nh.loc` for code
+  values):
+  - the node predicates take `nh` in place of `n : Loc`;
+  - `StartNode`/`RestartNode` return `∃ nh, ⌜nd = … #nh.loc⌝ ∗ …`;
+  - the node table goes, and `isCluster` is global.
+  The shared predicates and the allocation lemmas are stated at `[GooseGlobalGS]` (their statements
+  unchanged). Clients: kv, kvreconf, kvdurable, the etcd server, etcdstart, the trace check.
+- **Decision.** Accepted (the coordinating session, 2026-11-21, option 3 of
+  `notes/raft-cluster-global.md`); applied on branches `raft-cluster-global` and
+  `raft-cluster-global-2` (2026-11-22). As applied:
+  - the shared predicates and laws are stated over `{GF} [AllG GF] [ReceiptGS GF] [InvGS GF]` (not
+    `[GooseGlobalGS]`: a fancy update's instance must be the caller's, `notes/raft-cluster-global.md`
+    (d)); the node-level predicates, `nodeBoot` and `cluster_alloc(_ns,_traced)` stay under `HeapGS`
+    (`bootMarshal` is a WP); the new `cluster_alloc_nb` is the global allocation without a bootstrap
+    log;
+  - `NodeH.installs` and `nodeInstalledIndex_installs` (`NodeInstalls.lean`): the etcd server pinned
+    its node's location in a ghost variable before `StartNode` returns it, and `NodeH` is not
+    `Pos.Countable` (it holds the cluster's names, functions among them); it pins the handle's
+    install record's name instead;
+  - kvdurable's store vocabulary (`rkvInv`, `opSlot`, `readSlot`, `kvCore`, `waitP`, `kvLb`,
+    `readAns`, `kdSnapInv`, `KdNames`) moved to `kvdurable/Store.lean`, global, statements unchanged;
+  - kvreconf's and kvdurable's sections lose their second `[AllG GF]` (`notes/decisions.md`, "One
+    `AllG`"), which made a client's terms differ from raft's global laws.
+
+## 2026-11-21: `kvdurable.getEntry` -- reads only persistent bytes, so a caller holding owned bytes cannot use it
+
+- **Spec.** `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/getEntry.lean`, `getEntry.spec`
+  (and its copies, RaftNoAx's kvdurablenoax and KvNet's kvnet, `etc/copy-part.py`). No SpecPlan counterpart.
+- **Defect.** Too strong a premise: the bytes must be persistent (`b ↦*□ (encEntry e ++ r)`, the rest given
+  back persistent). kvnet's `getMsg` (KvNet, issue #22) decodes the entries of a message and then its snapshot
+  from the same owned bytes, and `getSnapshot` needs the snapshot's bytes owned; with `getEntry` persisting them,
+  a message with both entries and a snapshot could not be decoded (`getMsg` took the premise
+  `st.ents = [] ∨ st.snap = none`).
+- **Evidence.** `KvNet/Proof/.../kvnet/getMsg.lean` (fork C's report, 2026-11-21). The Go only reads `b`
+  (`getUint64`, `getBytes`: subslices), so any fraction suffices; the entry's data, a subslice of `b`, must be
+  read-only for `entOwn`, which the proof gets by persisting that subslice alone.
+- **Proposed change.** `∀ b (dq : DFrac) e r, EntWf e → {{ … b ↦*{dq} (encEntry e ++ r) }} getEntry b
+  {{ l rest; entOwn l e ∗ rest ↦*{dq} r }}` (the data slice persisted inside the proof). The one main-tree caller,
+  `openStorage`, passes `dq := DFrac.discard` (its statement unchanged); kvnet's `getMsg` passes its own fraction
+  and drops its premise.
+- **Decision.** Accepted (the coordinator, issue #22, 2026-11-21).
 ## 2026-11-21: raft's node API -- no node of an id is restartable after a real crash (`nodeVacant` returns only from `node.Stop`)
 
 - **Spec.** `Spec/go_etcd_io/raft/v3/StartNode.lean`, `RestartNode.lean`, `node__Stop.lean`,
@@ -4099,3 +4220,207 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   with `⌜Pre r ∧ rd ≠ nil⌝` (Go's server request bodies are never nil); `ReadFull_stream_spec` takes `isPkgInit io`,
   and `bodyStream_readFullAt` takes it (the snapshot handler has it).
 - **Decision.** Applied (prove-http3, 2026-11-21): `ReadFull_stream_ok` is a theorem over Perennial's `io.ReadFull`.
+
+## 2026-11-21: the etcd3 store's latency tracker: `Record` of any tracker and error, `NewEtcdMetricsTracker` of any labels (prove-metrics)
+
+- **Spec.** `metrics.OperationLatencyTracker.Record.spec` and `metrics.NewEtcdMetricsTracker.spec`
+  (`Spec/k8s_io/apiserver/pkg/storage/etcd3/metrics/`; trust-boundary axioms in `k8s_robust`'s base).
+- **Defect.** Both false of Go. `Record` took any non-nil `t` and any `err`: a zero
+  `OperationLatencyTracker` panics (`t.latency.Observe` on a nil interface), and for every tracker a
+  typed-nil `*status.Error` panics in `errorReason` (`status.FromError` calls its `GRPCStatus`), whether
+  the metrics are registered or not (`RecordEtcdRequest`'s defect of premise fixes 3).
+  `NewEtcdMetricsTracker` took any group-resource: once `metrics.Register()` has run (the apiserver runs
+  it), `NewOperationLatencyTracker`'s `WithLabelValues` panics on a label that is not valid UTF-8 (the
+  recorders' R1, `nonissues/k8s-apiserver-metrics-negative-or-non-utf8-panic.md`).
+- **Evidence.** apiserver `9c4ec15b8038` `metrics.go:360-398`; `examples/premisefix/latencytracker`
+  (both panics, and the valid inputs' returns, registered and not).
+- **Proposed change.** `NewEtcdMetricsTracker` takes `utf8Valid` of the group and the resource and posts
+  `latencyTrackerOk lt` (opaque, `Proof/.../etcd3/metrics/Tracker.lean`: built by it) in place of
+  `lt ≠ null`; `Record` takes `latencyTrackerOk t` and `statusErrOk err`. `isStore` keeps
+  `latencyTrackerOk c.lt`; `New` passes its `utf8Valid` premises, `store.Get` `Client.Get`'s error
+  (`statusErrOk_split`).
+- **Decision.** Applied (prove-metrics, 2026-11-21): both stay trust-boundary axioms (`Record` observes
+  a float latency, `sinceInSeconds`; both are names-only over component-base's metrics).
+## 2026-11-21: `labels.Everything` needs `labels`' initialization (#25)
+
+- **Spec.** `Spec/k8s_io/apimachinery/pkg/labels/Everything.lean`, `labels.Everything.spec` (the trust-boundary
+  axiom `labels.Everything.wp_proof` until now).
+- **Defect.** The pre is `True`, but `Everything` returns the package variable `sharedEverythingSelector`
+  (`selector.go:93-98`), and its post's `MatchesNothing` triple reads `sharedNothingSelector`: no proof over the
+  code can load them without `labels`' initialization, whose fact said nothing of them.
+- **Evidence.** `Everything.impl` (`Code/k8s_io/apimachinery/pkg/labels.lean`, translated since #25): a `GoLoad` of
+  `GlobalVarAddr sharedEverythingSelector`.
+- **Proposed change.** The pre takes `isPkgInit pkg_id.k8s_io.apimachinery.pkg.labels`; `labels`' fact becomes
+  `labelsInit` (`storage/etcd3/Base.lean`: both shared selectors read-only, the everything selector an empty
+  `internalSelector`), established by its generated `Init.lean`. The post is unchanged. Callers
+  (`daemonSetLister.GetPodDaemonSets`/`GetHistoryDaemonSets`, `storage`'s initializer) hold `labels`' `isPkgInit`
+  through their own package's.
+- **Decision.** Applied (#25, 2026-11-21): an initialization premise every caller holds; no client-visible change.
+## 2026-11-21: `lessorApplyOk` at a backend that has `Lease`; one put per batch lock (prove-ps2-newlessor5)
+
+- **Spec.** `lessorApplyOk` (`Proof/.../etcdserver/SnapRO.lean`, `lease.NewLessor.spec`'s post) and
+  `lessorApplyOk_at` (`LessorApplyLaws.lean`); `lease.leaseBatchTx` (`Proof/.../lease/LessorBackend.lean`).
+- **Defect.** Not provable of the real backend: `lessorApplyOk` quantified over every backend `d`, but the real
+  backend's `UnsafePut` needs the bucket in its table (`batchTxBuffered.UnsafePut.spec`'s `P.has bi`; Go: a missing
+  bucket is a `Fatal`), which nothing in its premises gives (`isBackend` pins only the batch limit of `d.P`); and
+  `leaseBatchTx` allowed any number of puts under one lock at no cost, while each real `UnsafePut` counts a pending
+  operation (`pend + 1 < 2 ^ 58`, `Unlock`'s `pend + hookMax < 2 ^ 58`).
+- **Evidence.** `Spec/.../storage/backend/batchTxBuffered__UnsafePut.lean`, `batchTxBuffered__Unlock.lean`;
+  `/shared/tmp/ps2/newlessor/plan.md` ("Fifth session", Q1).
+- **Proposed change.** `lessorApplyOk` takes `⌜mvcc.leaseParams d.P⌝` (the bucket in the table, tracked, none of its
+  keys a hook's); `leaseBatchTx`'s lock token is indexed by whether the session's one put is done (`Lk false` from
+  `LockInsideApply`, `UnsafePut` from `Lk false` to `Lk true`, `Unlock` from either): all the lessor does
+  (`persistTo`'s one `MustUnsafePutLease`). Alternative (a receipt per put, as auth's) rejected: more churn
+  (`persistTo`, `Grant`, `Checkpoint` would take receipts).
+- **Decision.** Main session's decision under the user's rule (everything still proves), applied: every use already
+  has the fact (`snap_isApplyLessor`'s `hlp`, mvccrand's `rcP_lease`, mvccfull's `bkKeep` at `rcP`); the contract is
+  proved of the real backend (`lessorApplyOk_real`, `LessorApplyReal.lean`).
+
+## 2026-11-21: the token-free `Lookup` clause deleted (prove-ps2-newlessor5)
+
+- **Spec.** `lease.NewLessor.spec`'s post (its last clause), `lessorLookupOk` (`SnapRO.lean`, in `srvSnapRO` and
+  `EtcdServer.applySnapshot.spec`), `apply.isApplyLessor`'s last clause (`apply/Contracts.lean`), the last premise of
+  `apply.isApplyLessor_of_lessorInv`.
+- **Defect.** `{{ True }} lp.Lookup(id) {{ … }}` takes no reader slot and no token: `lessor.Lookup` read-locks `le.mu`,
+  which the model's `RWMutex` bounds by reader slots, so no proof over the real code gives it (true of Go only because no
+  process has `2 ^ 30` concurrent readers). Its `apply.leaseIs`'s `Keys()` likewise read-locks the lease's `mu`.
+- **Evidence.** `lessor.go` `Lookup`; `lessor.Lookup.spec` (takes `lessorRd`); every destructuring of
+  `isApplyLessor` dropped the clause (`-`): no proof used it; `/shared/tmp/ps2/newlessor/plan.md` ("Fifth session", Q2).
+- **Proposed change.** Delete the clause (alternative: give it a reader slot `lessorRdOf γl` in and out).
+- **Decision.** Main session's decision, applied: deleted from `NewLessor`'s post, `isApplyLessor`,
+  `isApplyLessor_of_lessorInv`, `srvSnapRO`, `applySnapshot`'s spec; `lessorLookupOk` and `UberOn.lookupOk_of_guard`
+  deleted. The exported `lessor_apply_contract` (`etcdserver/Results.lean`) keeps its statement text: its last premise
+  (the triple) is kept, now unused, and its conclusion loses exactly the conjunct that premise restates. `apply.leaseIs`
+  stays (that premise names it).
+
+## 2026-11-21: `lease.NewLessor` proved; `Lease.expired` the expiry payload's trust boundary (prove-ps2-newlessor5)
+
+- **Spec.** `lease.NewLessor.spec` (statement unchanged, now a theorem over `lease.newLessor.spec`, new);
+  `lease.Lease.expired.spec` (now an axiom, `Proof/.../lease/Lease__expired.lean`); `lease.lessor.runLoop.spec`
+  (post `True` to `levelTok leaseLvl`: the forked goroutine ends with its thread token).
+- **Defect.** None in the statements; the constructor's axiom covered code that is now proved, except the
+  expiry loop's payload `¬ leasesNoExpiry` (an opaque premise about the real clock; the model's `time.Now` is
+  arbitrary).
+- **Evidence.** `newLessor.lean`, `NewLessorAlloc.lean`, `NewLessorGhost.lean`, `etcdserver/LessorApplyReal.lean`;
+  `notes/axiom-review/lease-expired-payload.md`.
+- **Proposed change.** Replace `NewLessor`'s axiom by the narrower `Lease.expired` one (the user's choice (a),
+  prove-ps2-newlessor).
+- **Decision.** Approved (the user's (a); net 0 axioms), applied.
+
+## 2026-11-22: `slices.Concat`'s axiom takes the total length `< 2 ^ 63` (claim #26, fix-slices-concat)
+
+- **Spec.** `slices.Concat.spec` (`Spec/slices/Concat.lean`, the axiom `Proof/slices/Concat.lean`), and through its
+  one caller the decision vocabulary of `k8s.io/apiserver/pkg/authorization` (`Proof/.../authorizer/Defs.lean`):
+  `collectReasonsAndErrors.spec`, `ConditionsAwareDecisionUnion.Add/ToDecision.spec`,
+  `PartiallyEvaluateConditionsAwareDecision.spec`, `ConditionsAwareDecisionConditionsMap.spec`,
+  `partiallyEvaluateConditionsMapInternal.spec`, `AuthorizerFunc.ConditionsAwareAuthorize.spec`, `caaOk`,
+  `ownBuilder`, `Dec.WF`, and the driver's `arbDecision.spec`, `arbAuthorizer.ConditionsAwareAuthorize.spec`.
+- **Defect.** The axiom had no premise ("the address space bounds strings' total length"). Go's `Concat` sums
+  `len(s)` and panics with "len out of range" once the sum is negative (go1.27.3 `slices/slices.go:491-498`), before
+  `Grow`; aliased arguments reach it without the memory (`examples/premisefix/concatlen`: `TestBoundary`, 2^63-1
+  returns and 2^63 panics; `TestStringsOverflow`; `TestStrings32` under `GOARCH=386`). In the model a slice of
+  length `2 ^ 63 - 1` passed as `collectReasonsAndErrors`'s prefix made the axiom prove a slice of length `2 ^ 63`.
+- **Evidence.** The Go source; Perennial PR #670 proves `slices.Concat.spec` over the translated code with the premise
+  `(xss.map List.length).sum < 2 ^ 63` (its post adds that an empty result is `nil`).
+- **Proposed change.** The premise, as PR #670 states it (our statement is its string instance, so the axiom becomes
+  a theorem after the pin bump). The caller extends a path of names by one per union level, so it takes
+  `pre.length + m.depth < 2 ^ 63` (`Dec.depth`, new); `Dec.WF`'s union case adds `Dec.depthL ks + 1 < 2 ^ 63`; the
+  builder keeps its children below `2 ^ 63 - 1` (`ownBuilder`, `Add`'s premise), which `caaOk` gives
+  (`isWFDecisionLe (2 ^ 63 - 2)`, new predicate); producers report depths (`ToDecision`: at most its union's;
+  `PartiallyEvaluate...`: at most its input's; the leaf constructors and `AuthorizerFunc`: `0`); the driver's
+  `arbDecision(depth)` takes `uint.nat depth < 2 ^ 63`, `arbAuthorizer.ConditionsAwareAuthorize` `z.depth < 2 ^ 63 - 1`
+  (its closed program uses 2). A fixed bound in the invariant alone cannot work: a union of invariant decisions is
+  one level deeper, so the authorizers' decisions (`caaOk`) carry the tighter one.
+- **Decision.** Applied (fix-slices-concat/2026-11-22). `k8s_authz_robust`'s statement unchanged; no axiom added or
+  removed.
+## 2026-11-22: kvnet's answers' length bound weakened to what the reply frame needs (KvNet)
+
+- **Spec.** `Replica.read.spec`, `Replica.propose.spec`, `Node.handle.spec` (KvNet, Lean-first; no SpecPlan
+  counterpart): post `len(v) < 2^61` to `(len(v) : Int) + 9 < 2^63`. `Replica.install.spec`: new premises
+  `MapFits K'`, `MapFits A'`.
+- **Defect.** The `2^61` bound was not derivable (the store's `waitP`/`readAns` say nothing of lengths): the
+  proofs took it as two seams (`ansLen.law`, `waitLen.law`). The only consumer (`serveClient`, its `writeFrame`)
+  needs `len(v) + 9 < 2^63`.
+- **Evidence.** `notes/kvnet-part.md`, "The answers' lengths"; `Node__serveClient.lean` unchanged.
+- **Proposed change.** Weaken the posts; carry the bound in the replica's maps (`MapFits`, `Defs.lean`) and
+  waiters; drop the seams.
+- **Decision.** Applied (the coordinator's item 1: weaken locally before strengthening the store).
+
+## 2026-11-22: `durable.Write`'s sync update may use the crash token (WalTester, copied into KvNet)
+
+- **Spec.** `github_com.mit_pdos.etcd_grove.examples.lib.durable.Write.spec` (WalTester, Lean-first; no SpecPlan
+  counterpart): the second update `durWriteSync γ Ψ` is now `notCrashed -∗ AU <{∃∃ s, durSt γ s}> <{ durSt γ
+  ⟨s.cur, none⟩, COMM notCrashed ∗ Ψ }>`. This is weaker as the client's obligation: a plain update is one
+  (`durWriteSync_of_au`).
+- **Defect.** A client could not fire raft's *enter* (`readyEnter`, which takes `notCrashed`) at the sync, where
+  decision C (`notes/kvnet-proof-plan.md`) places it. Yet the proof holds the token there (`durInv_commit`).
+- **Evidence.** `notes/kvnet-part.md`, "`persist`" item 1; `WriteInv.lean`'s `durInv_commit`.
+- **Proposed change.** As above. `durInv_commit` passes the token; the tester's `storeOracle` gives a plain update.
+- **Decision.** Applied (needed for kvnet's `persist`, item 2 of the coordinator's 2026-11-22 decisions).
+
+## 2026-11-22: raft's node API -- a crash could only discard a batch cut and not entered; `statusOwn` gave no read access
+
+- **Spec.** `Proof/go_etcd_io/raft/v3/InvNode.lean`: `readyEnter` (in `node.Ready`'s post through `readyGot`),
+  `nodeCrash`, `statusOwn` (`node.Status.spec`'s post). No SpecPlan counterpart: the plan has no crash law, and
+  `node.Status` has no plan spec.
+- **Defect.** (1) Too weak for a durable client whose write has two durability points (`durable.Write`: rename,
+  then directory sync). After a crash between them the new file may survive. Then the restarted node's storage
+  holds the batch's state, while raft's durable state (`raftState`) is the old one, because `nodeCrash` discards
+  the batch. `RestartNode` cannot get `StorageHolds S σ`. (2) `statusOwn` gave heap ownership but no law to read
+  it, so kvnet's `Node.status` could not call `GetTerm`/`GetCommit` on `st.HardState`.
+- **Evidence.** kvnet's `persist`, `notes/kvnet-part.md` (branch `worktree-agent-a9b8a3f3fbe5852a9`),
+  "persist" item 3 and "`Node.status` (open)".
+- **Proposed change.** (1) `readyEnter := readyEnterLive ∧ readyEnterCrash`. The live half is the old wand.
+  The crash half gives the law `readyCrashEnter`: `crashed -∗ nodeCrashTok γ id x -∗ nodeArm n γ x -∗
+  nodeRunning n γ N q -∗ readyEnter … -∗ raftState γ id st.durable ={E}=∗ raftState γ id st'.durable ∗
+  nodeVacant γ id`. This is kvnet's requested statement with `nodeRunning` and `nodeArm` added and `isCluster`
+  dropped. Without the two additions the law is false: after a `node.Stop` the batch is of a dead generation
+  (`notes/raft-crash-law-design.md` (k)). Live clients take the conjunction's left half. (2)
+  `statusOwn_hardState : statusOwn st ⊢ statusOwn st ∗ ∃ hs, hsOpt st.BasicStatus'.HardState' hs`, read access
+  only.
+- **Decision.** Applied (branch `raft-crash-enter`; the coordinator's 2026-11-22 decision for (1), "raft adds a
+  variant of `nodeCrash`"). kvnet must adapt its `readyCrashEnter.law` hypothesis to the two added premises.
+## 2026-11-22: `durable.Write`/`tryWrite` and `os.File.ReadAt`: no 1 GiB bound (WalTester, main tree's `os`)
+
+- **Spec.** New `os.File.ReadAt.specLong` (`Spec/os/File__ReadAt.lean`): `spec` without `len(b) <= 2^30`, proved
+  (`wp_proof_long`; `wp_proof` is its instance, statement unchanged). WalTester's `durable.Write.spec` and
+  `tryWrite.spec`: `len(data) <= 2^30` to `len(data) < 2^63`; `DCand.Ok` and `durFound` likewise.
+- **Defect.** The bound came from using one `WriteAt`/`ReadAt` of at most `maxRW`. The model (and Go) loop in
+  chunks, and kvnet's image has no size bound.
+- **Evidence.** `notes/kvnet-part.md`, "`persist`" item 2. `tryWrite` now uses `WriteAt.specLong` (new lemmas
+  `TrOk.pwA` and `pw_wholeA`), and `tryRead` uses `ReadAt.specLong`.
+- **Proposed change.** As above. The tester's `storeOracle` keeps its own 1 GiB invariant (`tOrSmall`), which
+  implies the new premise.
+- **Decision.** Applied (the coordinator's item 2, 2026-11-22).
+
+## 2026-11-22: kvnet's `writeFrame` refuses an oversized body; the answers' length bounds dropped (KvNet)
+
+- **Spec.** `writeFrame.spec`: no premise on the body's length; new post conjunct `2^26 < len(xs) → w = []`.
+  `Replica.read.spec`, `Replica.propose.spec`: the post's `len(v) + 9 < 2^63` dropped. `Node.handle.spec`: post
+  `⌜good = true⌝` (was `∧ len(v) + 9 < 2^63`). `PutStatus.spec`: takes `s.Contents ↦${dq} M ∗ csOpt s.Conf □ c`
+  and gives the map back; no length promise (was nothing taken, `< 2^61` promised: unprovable).
+  `Node.status.spec`: post the fresh map and `csOpt` (was `True`), what `PutStatus` takes.
+- **Defect.** `serveClient` needed `len(v) + 9 < 2^63` for `writeFrame`'s `make([]byte, 0, 8+len(body))`, and no
+  invariant bounds a status encoding: `PutStatus` could not promise a bound.
+- **Evidence.** Go change `ab79c782b8` (option (a)): `writeFrame` returns `false` and writes nothing past
+  `maxFrame`, which `readFrame` refuses anyway; `notes/kvnet-part.md`, "`Replica.contents`, `PutStatus`,
+  `Node.status`".
+- **Proposed change.** As above. `serveClient` takes `len(v) < 2^63` (for `kvQ`) from the answer's slice.
+  `MapFits` stays for now (the waiters' handoffs still carry it); it is removable.
+- **Decision.** Applied (the coordinator's option (a), 2026-11-22). Unchecked: no `.lake` at the time.
+
+## 2026-11-22: `credentials.NewPerRPCCredentialBundle` takes its package's initialization; `credTokInv` over the lock (prove-ps2-client)
+
+- **Spec.** `credentials.NewPerRPCCredentialBundle.spec`: pre `True` to `isPkgInit
+  pkg_id.go_etcd_io.etcd.client.v3.credentials`. `credTokInv rc P` (the definition `tokenBundleInv`,
+  `UpdateAuthToken.spec` and `GetRequestMetadata.spec` are written in): a bare invariant over `rc.authToken` to
+  `rc.authTokenMu`'s `isRWMutexGuard` over `credTokR rc P` (the field at a fraction, `""` or a `□ P` token), the
+  lock's reader tokens in a thread pool, and `isPkgInit pkg_id.sync`; the bound `threadBound GF ≤ 2^30` kept.
+- **Defect.** None in the old statements: `UpdateAuthToken` was a trust-boundary axiom because its lock had no
+  ghost state; a writer needs only the persistent guard (`RWMutex.wp_Lock_guard`), and `Lock` needs `sync`'s
+  initialization, which nothing on `UpdateAuthToken`'s path had.
+- **Evidence.** `UpdateAuthToken.wp_proof` is now a theorem over its body. `GetRequestMetadata`'s axiom is as true
+  of the new `credTokInv` (its reads are under `RLock`; every write is `UpdateAuthToken`'s, under `Lock`).
+- **Proposed change.** As above. The one caller, `newClient`, has `client/v3`'s initialization, which gives the
+  credentials package's.
+- **Decision.** Applied (a premise every caller discharges; the user's rule of 2026-11-21).

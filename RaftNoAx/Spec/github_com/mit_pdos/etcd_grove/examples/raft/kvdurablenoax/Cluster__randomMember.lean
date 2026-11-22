@@ -24,7 +24,7 @@ variable [go_gctx : GoGlobalContext] [go.IntoValInj GoString]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
 
 attribute [local instance] kdStorageModel
 
@@ -33,7 +33,7 @@ abbrev Cluster.randomMember.spec : Prop :=
   ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (c : Loc),
   {{ isClusterC γ vs dir c }}
     (App (Val (c @!! go.GoType.PointerType kClusterTy @!! go!"randomMember")) (Val #()))
-  {{ (r : Loc), RET #r; ∃ id, isRep γ vs dir id r }}
+  {{ (r : Loc), RET #r; ∃ id, isRep (GF := GF) γ vs dir id r }}
 
 end spec
 

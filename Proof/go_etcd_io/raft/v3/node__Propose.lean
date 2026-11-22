@@ -182,7 +182,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 private theorem node.wp_Propose_impl
     (hP : EtcdGrove.node.Propose.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.Propose.spec (GF := GF) (hG := hG) := by
-  unfold EtcdGrove.node.Propose.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.ownCommittedOps
+  unfold EtcdGrove.node.Propose.spec EtcdGrove.Cluster EtcdGrove.NodeH EtcdGrove.NodeH.loc EtcdGrove.isNode EtcdGrove.ownCommittedOps
     EtcdGrove.Cluster.dup
   intro n γ N id data_sl data ctx cd
   iintro %Φ ⟨#Hinit, #Hnode, #Hctx, #Hd, %Hmd, Hau⟩ HΦ
@@ -199,7 +199,7 @@ private theorem node.wp_Propose_impl
     have := Hmd b hb; have := (Hmb b hb).1
     simp only [entBytesMax]; omega
   by_cases Hne : data = []
-  · iapply (hP γn id n data_sl data (fun _ => iprop(True)) ctx cd) $$ []
+  · iapply (hP γn id n.loc data_sl data (fun _ => iprop(True)) ctx cd) $$ []
     · iframe Hinit Hrn Hctx Hd
       isplitr
       · ipureintro; exact Hdsz
@@ -215,7 +215,7 @@ private theorem node.wp_Propose_impl
   icases Hci' with ⟨%HNs, #Hcinv, #Hinv, -⟩
   imod api_key_register γ N ⊤ CoPset.subseteq_top (entKey (W32 0) data) $$ Hci with #Hpi
   ihave Hau1 := api_propAu1_if γ N (W32 0) data Hnf HNs $$ Hinv Hau
-  iapply (hP γn id n data_sl data (fun _ => iprop(True)) ctx cd) $$ [Hau1]
+  iapply (hP γn id n.loc data_sl data (fun _ => iprop(True)) ctx cd) $$ [Hau1]
   · iframe Hinit Hrn Hctx Hd
     isplitr
     · ipureintro; exact Hdsz

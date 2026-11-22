@@ -3,7 +3,7 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def node.TransferLeadership.spec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id lead transferee : w64) (ctx : GoInterfaceOk)
+  ∀ (n : NodeH) (γ : Cluster) (N : Namespace) (id lead transferee : w64) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)),
     γ.trace = none →
       ⊢
@@ -14,7 +14,7 @@ def node.TransferLeadership.spec : Prop :=
                 ((((intoVal
                         (methods node.ty.PointerType
                           go!"TransferLeadership"
-                          (intoVal n)))
+                          (intoVal n.loc)))
                       (intoVal (GoInterface.ok ctx)))
                     (intoVal lead))
                   (intoVal transferee))

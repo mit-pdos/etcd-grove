@@ -6,7 +6,7 @@
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Base
-public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Base
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Pure
 
 @[expose] public section
 

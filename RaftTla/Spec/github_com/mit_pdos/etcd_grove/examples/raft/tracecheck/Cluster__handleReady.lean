@@ -37,7 +37,7 @@ attribute [local instance] memStorageModel
 
 /-- See the file header. -/
 abbrev Cluster.handleReady.spec : Prop :=
-  ∀ (c : Loc) (W : TcW) (r n ms : Loc) (γs : MemStorNames) (id : w64) (rd : Ready)
+  ∀ (c : Loc) (W : TcW) (r : Loc) (n : NodeH) (ms : Loc) (γs : MemStorNames) (id : w64) (rd : Ready)
     (D ce : List LogEntry) (es : List EntryM) (h hs0 : HardStateM) (v : ConfigView),
   ViewOk D v →
   (∀ e0, es.head? = some e0 →

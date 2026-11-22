@@ -100,8 +100,9 @@ if python3 etc/gen-raft-tla.py --check > "$tmp/tla.log" 2>&1; then
 else
   echo "gen-raft-tla: FAILED"; tail -10 "$tmp/tla.log"; fail=1
 fi
+# (the parts RaftNoAx/ and KvNet/: one summary line each)
 if python3 etc/copy-part.py --check > "$tmp/cp.log" 2>&1; then
-  echo "$(tail -1 "$tmp/cp.log")"
+  grep '^copy-part: [A-Za-z]*: ' "$tmp/cp.log"
 else
   echo "copy-part: FAILED"; tail -10 "$tmp/cp.log"; fail=1
 fi
@@ -202,6 +203,13 @@ if python3 etc/gen-k8s-deep.py --check > "$tmp/k8sdeep.log" 2>&1; then
 else
   echo "gen-k8s-deep: FAILED"; tail -5 "$tmp/k8sdeep.log"; fail=1
 fi
+# the trusted protobuf schemas (PbSchema.lean's generated region) are the registered descriptors'
+# (models/pbdesc, run in examples/; etc/gen-pbschema.py, protobuf stage 0')
+if python3 etc/gen-pbschema.py --check > "$tmp/pbschemagen.log" 2>&1; then
+  echo "$(tail -1 "$tmp/pbschemagen.log")"
+else
+  echo "gen-pbschema: FAILED"; tail -10 "$tmp/pbschemagen.log"; fail=1
+fi
 # every axiom returning holding an RWMutex reader slot charges a token (begin-tok; reads the sources,
 # and the Go sources in .lake/goose that goose.py above clones: so after it, in this section)
 python3 etc/reader-slot-check.py || fail=1
@@ -241,7 +249,8 @@ fi
 nm=0
 : > "$tmp/nm.log"
 pbinputs="models/internal/pbdifftest/protobuf.toml:models/internal/pbdifftest/codec:codec
-examples/models/pbetcd/protobuf.toml:examples/models/pbetcd:pbetcd"
+examples/models/pbetcd/protobuf.toml:examples/models/pbetcd:pbetcd
+examples/pbwire/protobuf.toml:examples/pbwire:pbwire"
 for x in $pbinputs; do
   IFS=: read -r t o p <<< "$x"
   python3 models/protobuf/pbgen.py "$t" "$o" --pkg "$p" --check >> "$tmp/nm.log" 2>&1 || nm=1
@@ -269,6 +278,10 @@ done
 # and against the models (an overlay of the toolchain's source, models/goroot.py)
 GOTOOLCHAIN=go1.27.3 models/internal/rpcdifftest/run.sh >> "$tmp/nm.log" 2>&1 || nm=1
 (cd examples && GOWORK=off gotest ./models/...) >> "$tmp/nm.log" 2>&1 || nm=1
+# the candidate Lean wire semantics' vectors (protobuf stage 0'; nothing trusts it yet): the vectors
+# module PbWireVectors.lean is what examples/pbwire writes from protobuf-go and pbgen (its #guards,
+# checked by the build, compare the Lean semantics with them)
+(cd examples && GOWORK=off gotest ./pbwire/) >> "$tmp/nm.log" 2>&1 || nm=1
 # the grpc model (models/grpc; phase 5.4): its differential test against grpc-go v1.84.0 and the
 # model, the model's invariants with its choices random, and examples/ built against the model
 models/internal/grpcdifftest/run.sh >> "$tmp/nm.log" 2>&1 || nm=1
@@ -276,6 +289,13 @@ models/internal/grpcdifftest/run.sh >> "$tmp/nm.log" 2>&1 || nm=1
 # golden transcripts, in the real build and in the model build (an overlay: goroot.py)
 models/internal/jsonstreamtest/run.sh >> "$tmp/nm.log" 2>&1 || nm=1
 if [ $nm = 0 ]; then echo "models: ok"; else echo "models: FAILED"; tail -20 "$tmp/nm.log"; fail=1; fi
+# clients on machines of their own (examples/lib/remote, notes/remote-port-plan.md): the library's and
+# its counter instance's tests over real sockets (fault proxy, the four commands as processes, a
+# double-apply control), and lintest's per-client driver
+nr=0
+( (cd examples/lib/remote && GOWORK=off go vet ./... && GOWORK=off gotest ./...) \
+  && (cd examples/lib/lintest && GOWORK=off gotest ./perclient) ) > "$tmp/remote.log" 2>&1 || nr=1
+if [ $nr = 0 ]; then echo "remote: ok"; else echo "remote: FAILED"; tail -20 "$tmp/remote.log"; fail=1; fi
 # the per-type stage's joint landing: stage A's restated swMsgBound_phys is gone (raft-entsize
 # deleted it); etc/joint-landing-check.py refuses it in the baselines (reads them only), with its
 # selftest

@@ -285,7 +285,14 @@ theorem lease.lessor.Promote.wp_proof
       iframe
       ipureintro; word
     (try wp_auto)
-    -- piled up: `delay`, a float converted to a `Duration` (any value), then the same refresh
+    -- piled up: `delay` (IEEE 754 float steps), a float converted to a `Duration` (any value),
+    -- then the same refresh
+    wp_apply wp_float64_div as %_ -
+    (try wp_auto)
+    wp_apply wp_float64_mul as %_ -
+    (try wp_auto)
+    wp_apply wp_float64_sub as %_ -
+    (try wp_auto)
     wp_apply wp_ArbitraryInt as %x -
     (try wp_auto)
     have hM : M.lookup a.2 = some a.1 := (Hpairs' a.2 a.1).1 (List.mem_of_getElem? Ha)

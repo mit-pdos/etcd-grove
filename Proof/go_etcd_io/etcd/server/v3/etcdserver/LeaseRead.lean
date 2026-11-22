@@ -93,9 +93,9 @@ first-start postconditions, as their own conjunct; a restart gives none. (Revisi
 the cluster `cl` is a server raft's `γ.cl`, whose storage model, `srvStor γ`, `nodeStartedFresh`,
 `isCommittedLogLb` and `confAt` are stated at; decided by the agent, 2026-11-05.) -/
 def leaseTTLRow (s : Loc) (γl : GName) : IProp GF :=
-  iprop(∃ (mid : w64) (n : Loc) (γ : SrvRaft) (ctxs : List (List w8)),
+  iprop(∃ (mid : w64) (n : NodeH) (γ : SrvRaft) (ctxs : List (List w8)),
     srvMemberIDAddr s ↦□ mid ∗
-    srvNodeAddr s ↦□ interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.node.ty) #n ∗
+    srvNodeAddr s ↦□ interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.node.ty) #n.loc ∗
     (letI := srvStor (GF := GF) γ; nodeStartedFresh n γ.cl srvClusterN [mid] ctxs mid) ∗
     □ (∀ (l : List LogEntry) (k : Nat), (letI := srvStor (GF := GF) γ; isCommittedLogLb γ.cl l) -∗
         ⌜k ≤ l.length⌝ ={⊤}=∗
@@ -110,9 +110,9 @@ without the lessor, what `NewServer`'s first start gives (its lessor's name is i
 server's existentials); with `vs = [x]` and the lessor's first snapshot, the row
 (`leaseTTLRow_intro`). -/
 def leaseTTLRowR (s : Loc) (vs : List w64) : IProp GF :=
-  iprop(∃ (mid : w64) (n : Loc) (γ : SrvRaft) (ctxs : List (List w8)), ⌜mid ∈ vs⌝ ∗
+  iprop(∃ (mid : w64) (n : NodeH) (γ : SrvRaft) (ctxs : List (List w8)), ⌜mid ∈ vs⌝ ∗
     srvMemberIDAddr s ↦□ mid ∗
-    srvNodeAddr s ↦□ interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.node.ty) #n ∗
+    srvNodeAddr s ↦□ interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.node.ty) #n.loc ∗
     (letI := srvStor (GF := GF) γ; nodeStartedFresh n γ.cl srvClusterN vs ctxs mid) ∗
     □ (∀ (l : List LogEntry) (k : Nat), (letI := srvStor (GF := GF) γ; isCommittedLogLb γ.cl l) -∗
         ⌜k ≤ l.length⌝ ={⊤}=∗

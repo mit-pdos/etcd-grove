@@ -31,10 +31,10 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.authz.Assump
 theorem arbAuthorizer.ConditionsAwareAuthorize.wp_proof
     (wp_arbDecision : EtcdGrove.k8s_authz.arbDecision.spec (GF := GF) (hG := hG)) :
     arbAuthorizer.ConditionsAwareAuthorize.spec (GF := GF) (hG := hG) := by
-  intro z ctx a
+  intro z ctx a hz
   wp_start
   wp_auto
-  wp_apply wp_arbDecision as %d #Hd
+  wp_apply (wp_arbDecision z.depth' (by omega)) as %d #Hd
   (try wp_auto)
   iapply HΦ
   iexact Hd

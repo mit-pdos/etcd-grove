@@ -43,7 +43,7 @@ private def pecadAt (m : Dec) : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.authorization.authorizer ∗ isDecision d m ∗ ⌜m.WF⌝ ∗ maybeEvalFnOk f }}
     (App (App (App (App (Val (@! PartiallyEvaluateConditionsAwareDecision)) (Val #ctx)) (Val #d))
       (Val #data)) (Val #f))
-  {{ (d' : ConditionsAwareDecision), RET #d'; isWFDecision d' }}
+  {{ (d' : ConditionsAwareDecision), RET #d'; isWFDecisionLe m.depth d' }}
 
 private theorem WFL_get : ∀ (ks : List Dec) (i : Nat) (m : Dec), Dec.WFL ks → ks[i]? = some m → m.WF
   | [], _, _, _, h => by simp at h
@@ -104,7 +104,10 @@ theorem PartiallyEvaluateConditionsAwareDecision.wp_proof
     · iframe #
     (try wp_auto)
     iapply HΦ
-    iexact Hd'
+    iapply isWFDecisionLe_weaken
+    isplitl []
+    · iexact Hd'
+    ipureintro; simp [Dec.depth]
   case union ks =>
     simp only [Dec.isCMap]
     wp_auto
@@ -126,11 +129,11 @@ theorem PartiallyEvaluateConditionsAwareDecision.wp_proof
     iunfold seq2Ok at Hrng
     ihave Hrun := Hrng $$ %y
       %(fun (_ : Nat) => iprop(Tok ∗ ∃ (ks' : List Dec) (c : Bool) (u : ConditionsAwareDecision)
-        (an : GoString), ownBuilder newDecisionChain_ptr ks' ∗
+        (an : GoString), ownBuilder newDecisionChain_ptr ks' ∗ ⌜Dec.depthL ks' ≤ Dec.depthL ks⌝ ∗
         collectTailAfterConditionalDecision_ptr ↦ c ∗ unevaluatedSubDecision_ptr ↦ u ∗
         authorizerName_ptr ↦ an ∗ «$res0_ptr» ↦ zero_val ConditionsAwareDecision ∗
         evaluateConditionFn_ptr ↦ f ∗ data_ptr ↦ data ∗ ctx_ptr ↦ ctx ∗
-        (∀ d', isWFDecision d' -∗ Φ #d')))
+        (∀ d', isWFDecisionLe (Dec.union ks).depth d' -∗ Φ #d')))
       %(iprop(∃ r, Done (returnVal r) ∗ K (returnVal r))) []
     · iintro !> %i %k %v %hkv
       have hv : (nds.map (·.d'))[i]? = some v := by
@@ -140,9 +143,11 @@ theorem PartiallyEvaluateConditionsAwareDecision.wp_proof
         | some nd => rw [h] at hkv; cases hkv; rfl
       icases isDecisionL_lookup _ ks i v hv $$ HL with ⟨%m', %hm', #Hv⟩
       have hwf' : m'.WF := WFL_get ks i m' (by simp only [Dec.WF] at Hwf; exact Hwf.1) hm'
+      have hdep' : m'.depth ≤ Dec.depthL ks := Dec.depth_le_depthL ks i m' hm'
+      have hdks : Dec.depthL ks + 1 < 2 ^ 63 := by simp only [Dec.WF] at Hwf; exact Hwf.2.2
       have hlt : sizeOf m' < n := by have := sizeOf_get ks i m' hm'; omega
       iunfold yield2Ok
-      iintro !> %Ψ ⟨HTok, %ks', %c, %u, %an, Hb, Hc, Hu, Han, Hres, Hev, Hdata, Hctx, HΦ⟩ HΨ
+      iintro !> %Ψ ⟨HTok, %ks', %c, %u, %an, Hb, %Hks', Hc, Hu, Han, Hres, Hev, Hdata, Hctx, HΦ⟩ HΨ
       iapply Hy $$ %#k %#v %Ψ [] HTok
       · ipureintro; exact ⟨by simp, by simp⟩
       wp_auto
@@ -152,11 +157,12 @@ theorem PartiallyEvaluateConditionsAwareDecision.wp_proof
         wp_apply (IH m' hlt ctx v data f) as %d' #Hd'
         · iframe #
           ipureintro; exact hwf'
-        iunfold isWFDecision at Hd'
+        iunfold isWFDecisionLe at Hd'
         icases Hd' with ⟨%m'', #Hd'', %hwf''⟩
+        have hks'' := Dec.depthL_add_le (Dec.cuadL ks') ks' m'' (Dec.depthL ks) Hks' (by omega)
         wp_apply (wp_ConditionsAwareDecisionUnion_Add newDecisionChain_ptr ks' k d' m'') $$ [$Hb] as Hb
         · iframe #
-          ipureintro; exact hwf''
+          ipureintro; exact ⟨hwf''.1, by omega⟩
         (try wp_auto)
         wp_apply (ConditionsAwareDecision.wp_ptr_ContainsUnconditionalAllowOrDeny_of
           wp_ConditionsAwareDecision_ContainsUnconditionalAllowOrDeny possiblyEvaluatedSubDecision_ptr
@@ -181,6 +187,7 @@ theorem PartiallyEvaluateConditionsAwareDecision.wp_proof
             iframe HTok
             iexists _, _, v, k
             iframe
+            ipureintro; exact hks''
           · rw [decide_eq_false hu]
             (try wp_auto)
             unfold forRangePostB4
@@ -193,6 +200,7 @@ theorem PartiallyEvaluateConditionsAwareDecision.wp_proof
             iframe HTok
             iexists _, _, v, k
             iframe
+            ipureintro; exact hks''
         · -- an unconditional Allow or Deny: the chain's decision is returned
           wp_auto
           wp_apply (wp_ConditionsAwareDecisionUnion_ToDecision newDecisionChain_ptr _) $$ [$Hb]
@@ -211,12 +219,16 @@ theorem PartiallyEvaluateConditionsAwareDecision.wp_proof
           dsimp only
           wp_auto
           iapply HΦ
-          iexact Hd2
+          iapply isWFDecisionLe_weaken
+          isplitl []
+          · iexact Hd2
+          ipureintro; simp only [Dec.depth]; omega
       · -- collecting the tail: the child as it is
         wp_auto
+        have hks'' := Dec.depthL_add_le (Dec.cuadL ks') ks' m' (Dec.depthL ks) Hks' hdep'
         wp_apply (wp_ConditionsAwareDecisionUnion_Add newDecisionChain_ptr ks' k v m') $$ [$Hb] as Hb
         · iframe #
-          ipureintro; exact hwf'
+          ipureintro; exact ⟨hwf', by omega⟩
         (try wp_auto)
         unfold forRangePostB4
         ileft
@@ -228,6 +240,7 @@ theorem PartiallyEvaluateConditionsAwareDecision.wp_proof
         iframe HTok
         iexists _, true, v, k
         iframe
+        ipureintro; exact hks''
     iunfold iterRunOk at Hrun
     iapply Hrun $$ [HTok Hb collectTailAfterConditionalDecision unevaluatedSubDecision authorizerName
       «$res0» evaluateConditionFn data ctx HΦ]
@@ -235,10 +248,11 @@ theorem PartiallyEvaluateConditionsAwareDecision.wp_proof
       iframe HTok
       iexists [], false, _, _
       iframe
+      ipureintro; simp [Dec.depthL]
     iintro !> HI
     isplitr
     · ipureintro; simp
-    icases HI with (⟨HTok, %ks', %c, %u, %an, Hb, Hc, Hu, Han, Hres, Hev, Hdata, Hctx, HΦ⟩ | ⟨%r, HD, HK⟩)
+    icases HI with (⟨HTok, %ks', %c, %u, %an, Hb, %Hks', Hc, Hu, Han, Hres, Hev, Hdata, Hctx, HΦ⟩ | ⟨%r, HD, HK⟩)
     · ileft
       iframe HTok
       rw [hK]
@@ -248,7 +262,10 @@ theorem PartiallyEvaluateConditionsAwareDecision.wp_proof
         as %d' ⟨#Hd', Hb⟩
       (try wp_auto)
       iapply HΦ
-      iexact Hd'
+      iapply isWFDecisionLe_weaken
+      isplitl []
+      · iexact Hd'
+      ipureintro; simp only [Dec.depth]; omega
     · iright; iright
       iexists r
       iframe
@@ -261,10 +278,10 @@ theorem PartiallyEvaluateConditionsAwareDecision.wp_proof
     simp only [Dec.isUnion]
     wp_auto
     iapply HΦ
-    unfold isWFDecision
+    unfold isWFDecisionLe
     iexists _
     iframe Hd
-    ipureintro; exact Hwf
+    ipureintro; exact ⟨Hwf, Nat.le_refl _⟩
 
 end proof
 

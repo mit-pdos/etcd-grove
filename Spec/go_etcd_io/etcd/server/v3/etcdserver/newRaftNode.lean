@@ -47,7 +47,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- See the file header. -/
 abbrev newRaftNode.spec : Prop :=
-  ∀ (E : RNEnv GF) (node : SrvRaft) (id : w64) (nl : Loc) (pre : List EntryModel)
+  ∀ (E : RNEnv GF) (node : SrvRaft) (id : w64) (nl : NodeH) (pre : List EntryModel)
     (ms : Loc) (γs : MemStorNames) (key : GName) (wal : WalNames GF) (ss : Loc) (cv : raftNodeConfig)
     -- (restart S3 item 6, r2db §4.1, review 4: the restart point's names, labels only: `newRaftNode`
     -- allocates `cum` at `[L₀]` and claims nothing of them; until then `[]`, `W64 0`, `0`, `0`)
