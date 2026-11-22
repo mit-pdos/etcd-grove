@@ -170,6 +170,152 @@ theorem tGen_wp (hAbs : AbsDiskGpreS GF) (wp_Main : Main.spec (GF := GF) (hG := 
 end gen
 
 
+section open_
+variable [GoGlobalContext] [go.BasicIntoValInj]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
+  [_root_.Perennial.internal.filepathlite.Assumptions] [_root_.Perennial.io.Assumptions]
+  [_root_.Perennial.time.Assumptions] [go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
+  [go_etcd_io.raft.v3.Assumptions]
+
+/-- **The specs the tester's proof takes that no proof discharges yet** (the tester Link's hypotheses
+but the model's laws, which are proved): the Perennial-gap specs, `WalDecEnvSupply`, the trust-boundary
+spec of `proto.Unmarshal` on a WAL record, and the raftpb hard-state laws pending the user
+(`CloneHsLaw`, `WalHsOwn`'s `unmarshal` and `reset`: `RaftModel/Laws.lean`). -/
+structure TOpen : Prop where
+  decEnv : WalDecEnvSupply (GF := GF)
+  cloneHs : WalPbIn.CloneHsLaw (walRaftP (GF := GF))
+  unmarshalHs : ∀ (d : GoSlice) (dq : DFrac) (bs : List w8) (h : HardStateM),
+      walRaftU.decState bs = some h →
+      {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ d ↦*{dq} bs }}
+        (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.MustUnmarshalState)) (Val #d))
+      {{ (p : Loc), RET #p; d ↦*{dq} bs ∗ walRaftHsO p h }}
+  resetHs : ∀ (p : Loc) (h : HardStateM),
+      {{ walRaftHsO (GF := GF) p h }}
+        (App (Val (p @!! go.GoType.PointerType go_etcd_io.raft.v3.raftpb.HardState.ty @!! go!"Reset"))
+          (Val #()))
+      {{ RET #(); walRaftHsO p hsZero }}
+  isErrno : errors.IsErrno.spec (GF := GF) (hG := hG)
+  isPathErrnoEof : errors.IsPathErrnoEof.spec (GF := GF) (hG := hG)
+  isPathErrnoNotExist : errors.IsPathErrnoNotExist.spec (GF := GF) (hG := hG)
+  isPathErrnoTerm : errors.IsPathErrnoTerm.spec (GF := GF) (hG := hG)
+  isAbs : filepathlite.IsAbs.spec (GF := GF) (hG := hG)
+  errorfErrsNot : fmt.ErrorfErrsNot.spec (GF := GF) (hG := hG)
+  errorfErrsTerm : fmt.ErrorfErrsTerm.spec (GF := GF) (hG := hG)
+  sprintfBroken : fmt.SprintfBroken.spec (GF := GF) (hG := hG)
+  copyFiles : io.CopyFiles.spec (GF := GF) (hG := hG)
+  unmarshalWalRecordE : proto.UnmarshalWalRecordE.spec (GF := GF) (hG := hG)
+  formatBroken : time.Time.Format.specBroken (GF := GF) (hG := hG)
+
+end open_
+
+section linked
+variable [GoGlobalContext] [go.BasicIntoValInj]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [_root_.Perennial.go_uber_org.zap.Assumptions]
+    [github_com.mit_pdos.etcd_grove.examples.etcd.wal.Assumptions] [os.Assumptions]
+    [os.fileStat.FieldAssumptions] [github_com.mit_pdos.etcd_grove.examples.lib.durable.Assumptions]
+    [os.file.FieldAssumptions] [_root_.Perennial.internal.filepathlite.Assumptions]
+    [_root_.Perennial.path.filepath.Assumptions] [syscall.Assumptions]
+    [go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions]
+    [go_etcd_io.etcd.server.v3.storage.wal.Assumptions] [go_etcd_io.raft.v3.Assumptions]
+    [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions] [_root_.Perennial.fmt.Assumptions]
+    [_root_.Perennial.errors.Assumptions] [_root_.Perennial.strings.Assumptions]
+    [go_etcd_io.etcd.pkg.v3.ioutil.Assumptions] [_root_.Perennial.encoding.binary.Assumptions]
+    [_root_.Perennial.bufio.Assumptions] [go_etcd_io.etcd.pkg.v3.crc.Assumptions]
+    [hash.crc32.Assumptions] [go_etcd_io.etcd.pkg.v3.pbutil.Assumptions] [go_uber_org.zap.Assumptions]
+    [_root_.Perennial.time.Assumptions] [_root_.Perennial.io.Assumptions]
+
+/-- **`Main.spec`, linked**: the tester Link's `wp_Main` at the raftpb model (`walRaftP`, `walRaftU`,
+`walRaftHsO`), its laws proved, the rest from `TOpen`. -/
+theorem tMain_linked (h : TOpen (GF := GF) (hG := hG)) : Main.spec (GF := GF) (hG := hG) :=
+  walTester.etcd_wal.wp_Main walRaftP walRaftU walRaftHsO walRaftU_ok walRaftU_snapCoh
+    h.decEnv (walRaftHsO_own h.unmarshalHs h.resetHs) (walRaftHsO_own h.unmarshalHs h.resetHs)
+    h.cloneHs walPb_laws.getIndex walPb_laws.getTerm walPb_laws.isEmpty walPb_laws.marshalEnt
+    (walRaftP_marshalHs proto.MarshalPb.wp_proof) walPb_laws.mustSync walPb_laws.nil walPb_laws.size
+    walPb_laws.unmarshalEnt walPb_laws.zero h.isErrno h.isPathErrnoEof h.isPathErrnoNotExist
+    h.isPathErrnoTerm h.isAbs h.errorfErrsNot h.errorfErrsTerm h.sprintfBroken h.copyFiles
+    h.unmarshalWalRecordE h.formatBroken
+
+end linked
+
+section bounded
+variable [GoGlobalContext] {GF : BundledGFunctors}
+
+/-- `hG` with the Go local context `lctx` (a closed theorem's hypotheses are stated at the program's). -/
+abbrev tHeapAt (hG : HeapGS .hasLC GF) (lctx : GoLocalContext) : HeapGS .hasLC GF :=
+  ⟨hG.goose_globalGS, { hG.goose_localGS with goose_go_local_context := lctx }⟩
+
+/-- **The tester's crash safety for executions of fewer than `N ≤ 2 ^ 62` steps along which fewer than
+`T` threads are live** (see the file header): from a state whose Go context satisfies the Go semantics
+and the packages' assumptions, with no package initialized, the main thread only, the file extension's
+state as on disk (`FsInit`), the area and the oracle directory two distinct roots, the first boot's facts
+(`tFirst`: no WAL in the area, no oracle file) and the WAL's paths fitting, every execution with crashes
+of `bootWal` returns `#()` if it returns, has no stuck thread and no unrecovered panic. Not the closed
+theorem: it takes the initializer's spec (`Hinit_wp`) and the open specs (`TOpen`). -/
+theorem etcd_wal_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics] [go.BasicIntoValInj]
+    [_root_.Perennial.go_uber_org.zap.Assumptions]
+    [github_com.mit_pdos.etcd_grove.examples.etcd.wal.Assumptions] [os.Assumptions]
+    [os.fileStat.FieldAssumptions] [github_com.mit_pdos.etcd_grove.examples.lib.durable.Assumptions]
+    [os.file.FieldAssumptions] [_root_.Perennial.internal.filepathlite.Assumptions]
+    [_root_.Perennial.path.filepath.Assumptions] [syscall.Assumptions]
+    [go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions]
+    [go_etcd_io.etcd.server.v3.storage.wal.Assumptions] [go_etcd_io.raft.v3.Assumptions]
+    [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions] [_root_.Perennial.fmt.Assumptions]
+    [_root_.Perennial.errors.Assumptions] [_root_.Perennial.strings.Assumptions]
+    [go_etcd_io.etcd.pkg.v3.ioutil.Assumptions] [_root_.Perennial.encoding.binary.Assumptions]
+    [_root_.Perennial.bufio.Assumptions] [go_etcd_io.etcd.pkg.v3.crc.Assumptions]
+    [hash.crc32.Assumptions] [go_etcd_io.etcd.pkg.v3.pbutil.Assumptions] [go_uber_org.zap.Assumptions]
+    [_root_.Perennial.time.Assumptions] [_root_.Perennial.io.Assumptions] [hPre : GooseGpreS GF] (hAbs : AbsDiskGpreS GF)
+    (Hinit_wp : ∀ hG : HeapGS .hasLC GF,
+      letI := tHeapAt hG lctx
+      {{ ownGoState (hG := (tHeapAt hG lctx).goose_localGS.goose_go_stateGS) ∅ }}
+        (App (Val initialize') (Val #()))
+      {{ RET #(); isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.wal }})
+    (Hopen : ∀ hG : HeapGS .hasLC GF, TOpen (GF := GF) (hG := tHeapAt hG lctx))
+    (N T : Nat) (hN : N ≤ 2 ^ 62) (σ : state) (g : GlobalState) (e : TEnv)
+    (Hlctx : σ.goState.goLctx = lctx) (Hpkgs : σ.goState.packageState = ∅)
+    (Hinit : FsInit (extLocal fsExt σ.world)) (hRe : (extLocal fsExt σ.world).fs.roots = e.R)
+    (hr : (e.area, e.jr) ∈ e.R) (ho : (e.orDir, e.jo) ∈ e.R) (hne : e.jo ≠ e.jr)
+    (hf : e.orFile.Ok) (hpaths : tWalPathsOk e.area)
+    (hfit : PathFits (tWalDir e.area ++ go!".tmp") ∧ PathFits (tWalDir e.area))
+    (Hfirst : tFirst e ((extLocal fsExt σ.world).fs.treeDur, []))
+    (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState) (b : Bool)
+    (Hsteps : RealCrashNsteps (bootWal e.area e.orDir) n
+      ([bootWal e.area e.orDir], ((σ, g) : CfgState)) κs (t2, σ2) b)
+    (Hbound : n < N) (Hthreads : σ.threads = 1)
+    (Hlive : RealCrashThreadsBelow (bootWal e.area e.orDir) T n
+      ([bootWal e.area e.orDir], ((σ, g) : CfgState))) :
+    (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
+      (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
+      (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
+  have hR : RootsOk e.R := hRe ▸ Hinit.2.2.2.1
+  refine fsSQ_crash_adequacyShared (GF := GF) tSQ tQ (noIoErr_noMapLockErr_keeps tIo tIo) N T
+    (bootWal e.area e.orDir) σ g (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) Hinit
+    (fun L V => tGenPre e L V) ?_ ?_ n κs t2 σ2 b Hsteps Hbound Hthreads Hlive
+  · -- the first generation: the tree as on disk
+    intro hG _ _ _
+    rw [Hpkgs]
+    iintro #Hos - Hgs
+    imodintro
+    unfold tGenPre
+    iframe Hgs
+    ileft; ipureintro; exact Hfirst
+  · -- every generation
+    intro hG HN _ Hlctx' V
+    rw [Hlctx] at Hlctx'
+    obtain ⟨G, ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩ := hG
+    subst Hlctx'
+    letI hG : HeapGS .hasLC GF := ⟨G, ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
+    have hrb : ReceiptBoundLe GF (2 ^ 62) := ⟨by rw [HN]; omega⟩
+    rw [hRe]
+    exact tGen_wp hAbs (tMain_linked (Hopen hG)) (Hinit_wp hG) e hR hr ho hne hf hpaths (tWalFsOk_of e.area hfit)
+      hrb V
+
+end bounded
+
 end etcd_wal
 end EtcdGrove
 end Perennial
