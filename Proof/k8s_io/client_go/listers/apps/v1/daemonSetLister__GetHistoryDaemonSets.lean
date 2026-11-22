@@ -79,6 +79,8 @@ theorem daemonSetLister.GetHistoryDaemonSets.wp_proof
   have hnz : W64 (GMap.size L) ≠ W64 0 := by intro h; apply hz; word
   simp only [hnz, decide_false]
   wp_auto
+  ihave #Hlbl : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.labels $$ []
+  · iPkgInit
   wp_apply wp_Everything as %sel #Hsel
   icases Hsel with ⟨%si, %hsi, #Hsn, #Hse⟩
   ihave #Hev : everySel sel $$ []

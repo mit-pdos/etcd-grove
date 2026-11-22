@@ -538,7 +538,7 @@ LEAN_FIRST = {
                     "client-go's work queue's proofs (`k8s.io/client-go/util/workqueue`)", [""]),
     # client-go's consistency store (k8s.io/client-go/util/consistency, notes/k8s-daemonset-plan.md
     # phase 2) and apimachinery's resource versions, over the trust boundary of
-    # `resourceversion.isWellFormed` (gap C1) and `schema.GroupResource.String`
+    # `schema.GroupResource.String`
     "--consistency": ("link-lean-first-consistency.txt",
                       "k8s_io.client_go.util.consistency k8s_io.apimachinery.pkg.util.resourceversion",
                       "k8s_io.client_go.util.consistency.Assumptions",

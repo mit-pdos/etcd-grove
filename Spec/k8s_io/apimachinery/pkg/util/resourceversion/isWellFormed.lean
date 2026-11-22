@@ -1,6 +1,6 @@
 /-
-`isWellFormed(s)` (`resourceversion.go`): **the trust boundary** (gap C1: Goose does not translate
-its `for i := range s`, so it is names only). The loop ranges over the rune start indices of `s`
+`isWellFormed(s)` (`resourceversion.go`), proved over the real code (until 2026-11-21 the trust
+boundary: Goose did not translate its `for i := range s`, gap C1). The loop ranges over the rune start indices of `s`
 and tests the byte there; a non-ASCII rune's first byte is not a digit, so it returns what the
 byte loop would: `true` iff `s` is non-empty, has no leading `0` and is all ASCII digits
 (`wellFormed`). Lean-first.

@@ -1432,8 +1432,8 @@ shard selector whose label and field selectors' `Empty()` is `true` (`everything
 specs' posts; k8s 7f-5b H2).
 Its initializer allocates its translated variables (`errors.go`, `feature.go`, `selection_predicate.go`:
 six `errors.New` errors, the map `errCodeToMessage`, three strings, and `Everything`, a
-`SelectionPredicate` of `labels.Everything()`, names-only, the trust-boundary axiom
-`labels.Everything.wp_proof`, and `fields.Everything()`, proved: `fields.Everything.wp_proof`), initializes
+`SelectionPredicate` of `labels.Everything()` and `fields.Everything()`, both proved:
+`labels.Everything.wp_proof` (#25, 2026-11-21), `fields.Everything.wp_proof`), initializes
 its imports and runs the translated initializers.''',
     imports=['Perennial.Proof.context.NewErrorString', 'Perennial.Proof.errors.NewVar', 'Proof.k8s_io.apimachinery.pkg.labels.Everything',
              'Proof.k8s_io.apimachinery.pkg.fields.Everything'],
@@ -3694,7 +3694,9 @@ value) and `var _ context.Context = channelContext{}`.''',
                                'try wp_auto', 'wp_func_call', 'wp_call', 'try wp_auto'],
             'NeverStop': ['try wp_auto', 'wp_apply chan.wp_make1 (V := Unit) as %ch %γ ⟨#His_ch, %Hcap, Hch⟩', 'try wp_auto']})
 _LB = 'k8s_io.apimachinery.pkg.labels'
-SPECIAL[_LB] = dict(doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+SPECIAL[_LB] = dict(doc='''Its fact (`labelsInit`, `storage/etcd3/Base.lean`; #25, 2026-11-21): its shared selectors,
+read-only for good, `sharedEverythingSelector` an empty `internalSelector` and `sharedNothingSelector`
+a `nothingSelector` (`Everything`, `MatchesNothing`). Its initializer initializes its imports, allocates its variables and runs
 their translated initializers (prove-k8s, 2026-11-20; until then the trust-boundary axiom
 `opaqueInitsOk`): the operator slices `unaryOperators`, `binaryOperators` (literals) and
 `validRequirementOperators` (their `append`), the shared selectors `sharedEverythingSelector` (an
@@ -3717,7 +3719,10 @@ literal `string2token` and `var _ Selector = ValidatedSetSelector{}` (an empty m
                 'try wp_auto'],
             'string2token': map_lit_steps('Hst', 'GoString', 'w64', 'go.string', f'{_LB}.Token.ty', 11),
             '$end': ['try wp_auto', f'wp_apply (wp_map_make1 (K := GoString) (V := GoString) go.string go.string) as %mvs Hvs',
-                     'try wp_auto']})
+                     'try wp_auto']},
+    finish=['ipersist HsharedEverythingSelector', 'ipersist HsharedNothingSelector'] + FIN_PRE[:6] +
+           ['imodintro', 'unfold k8s_io.apiserver.pkg.storage.etcd3.labelsInit', 'isplitl []',
+            '· iexists se; rw [show (W64 0 : w64) = W64 (go.arrayLiteralSize []) by rfl]; iexact HsharedEverythingSelector', '· iexists _; iexact HsharedNothingSelector'])
 SPECIAL['k8s_io.apimachinery.pkg.util.runtime'] = dict(doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
 their translated initializers (prove-k8s, 2026-11-20; until then the trust-boundary axiom
 `opaqueInitsOk`): `ReallyCrash` (`true`), `PanicHandlers` and `ErrorHandlers` (slice literals of
