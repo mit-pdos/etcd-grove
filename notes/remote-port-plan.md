@@ -12,7 +12,7 @@ This plan ports that design onto etcd-grove's net extension as a neutral library
 dsverify's kits (phase 6 of `notes/dsverify-net-port-plan.md`) can reuse it, and so can etcd-dist's
 workloads (`notes/etcd-dist-plan.md` §2, D8).
 
-**Status:** R0 reviewed 2026-11-22; this is revision 2, after the coordinator's decisions (§8). **R1 done** (2026-11-22, §5). R2 next.
+**Status:** R0 reviewed 2026-11-22; this is revision 2, after the coordinator's decisions (§8). **R1 done** (2026-11-22, §5). **R2, R3: see "R2 and R3" at the end** (2026-11-22). R4: the proposed statement is there, waiting for the coordinator.
 
 ## 1. The lab's pieces, mapped to ours
 
@@ -362,10 +362,13 @@ Risks:
 - **Q5** decided (the user: "clients in etcd don't retry, except for read ops"): a write that fails on
   the link is an unknown outcome, reported as the model's unknown output (`Codec.Unknown`), never
   retried. A read is retried, up to `ReadTries`. Done in §§2-4.
-- **Q6** (new, for etcd-dist): `remote` covers workloads whose clients' operations form one porcupine
-  history (kv). The watch/cache writers and auth's principals are per-client loops with their own
-  checks. Should they also go through `remote` (each loop on its client machine, node 0 collecting
-  results), or stay one machine per workload? Not needed for this branch.
+- **Q6** decided (coordinator, 2026-11-22): later, the non-porcupine workloads (the watch/cache
+  writers, auth's principals) also run through `remote`, by an operation "run the client's loop and
+  return its report" (each loop on its client machine, node 0 collecting the reports). Not in this
+  branch: future work (an `op` whose input names the loop and whose output is its report; `Do`'s
+  spec already covers it as a read-like operation with no model state, or a model of its own).
+- **Q1, Q2 confirmed** (coordinator, 2026-11-22): `perclient` stays a package of its own, lintest and
+  its proof untouched; no per-sender deduplication in `Serve`.
 
 ## R1, done (2026-11-22)
 
@@ -432,3 +435,98 @@ are committed. No Lean proofs yet. The translations build (`Net.GeneratedProof..
   before proving `Do`.
 - For etcd-dist: its `op` must be txnlin's call *without* its prophecies, and txnlin's reads may
   need a persistent read update (§7).
+
+## R2 and R3 (2026-11-22)
+
+**A design change: `Codec.IsUnknown`.** The far side may *answer* the unknown output (its own
+operation failed, e.g. a client node whose `Do` to the server got no answer). Then its update may
+have fired and its `Φ` been dropped, so node 0 cannot have handed it the update that commits
+lintest's operation with an answer: node 0 must know, before the call, whether `Do` will return a
+known output. The prophecy now says which attempt is answered **with a known output**
+(`ResolveU64(tries)` also when the answer is the unknown output), which `Do` tells by a new codec
+function `IsUnknown` (the counter's: `out.(Out).Unknown`). Go and its tests updated; translation
+regenerated. Without it R4's two hops are unprovable (a reply of `Out{Unknown}` from a client node
+whose write fired at the server).
+
+**Files** (`Net/Proof|Spec/github_com/mit_pdos/etcd_grove/examples/lib/remote/`):
+
+- `Base.lean`, `Init.lean` (generated: `etc/gen-init.py`, `remote` in `NET_PKGS`; lintest's, perclient's
+  and porcupine's `Init.lean` copied into the part through `NET_MAIN`, since the main tree's import
+  the main `PkgInitExt`), `Pkg.lean` (`io.EOF`, `ErrDeadlineExceeded`, `errTimeout` from `remote`'s
+  initialization).
+- `Wire.lean`: `frame`, `maxLen`, `frame_prefix_eq`.
+- `Defs.lean`, **the slot library**: `RBase` (the far side's store `B : linkv.PendSpec`, `sysState`,
+  `Eop`, the Go values `iv`/`ov`/`unk` and bytes `encIn`/`encOut`), `lin R i Φ` (the step's update,
+  a plain fancy update as lintest's), `slotOf`/`slotInv`/`runTok`/`doneLb`, `mapCtx` (the slot map,
+  holding every registered connection's dialer `connFresh`), `reqP`/`repP`/`remoteAddr`, `codecOk`,
+  `opMaybe`; laws `slot_register`, `slot_claim` (the acceptor's `connFresh` stays in the slot: at most
+  once), `slot_done`, `slot_take`, `req_read`, `rep_read`. Claim, done and take take a later credit.
+- `Pend.lean`, **node 0's pending writes**: `pendCtx R S γ` (global, allocated at the start:
+  `pend_alloc`), lintest's `libState` = `pendLib` (a history in a ghost variable: a model state is not
+  countable), `PendDec` (porcupine's model is `pSeq R.B` on `R`'s values), `readNoop`, `pend_fire`,
+  and `pend_choice`: lintest's update (with a credit) gives exactly `Do.spec`'s choice premise.
+- Specs and proofs: the frame helpers (`putU64`, `getU64`, `writeAll`, `readFull`, `writeFrame`,
+  `readFrame`; `FramesLinked.lean` closes them over the net package's proofs), `hang`, `deadline`,
+  `attempt`, `Do`, `listen`, `serveConn`, `Serve`, `ServeClient`, `Run`, `Check`.
+- `Do.spec`: the caller's choice `∀ known, |={⊤}=> if known then lin R i Φ else Ψ ∗ lin R i (λ _, True)`,
+  applied at `Do`'s prophecy; reads also take `□ lin R i (λ _, True)` (other attempts). Post:
+  `(∃ o, v = ov o ∗ Φ o) ∨ (v = unk i ∗ Ψ)`. A client node whose `op` is `Do` meets `opMaybe` from it
+  (`Ψ := True`).
+- `Run.spec`: lintest's conclusion under `PendDec`, `pendCtx`/`pendLib` at the model's start, the
+  masks `pendN ⊥ Eop`, `lintestN ⊥ Eop ∪ pendN`, `receiptBound GF ≤ 2^63` (lintest's clock).
+- `perclient` (main tree): `applySpecId`, `runClient`/`Run` proved, `Link.lean` (`etc/gen-link.py
+  --perclient`, list `etc/link-lean-first-perclient.txt`).
+- `Robust.lean` (R3): `remote_start` (slot map; every address's protocols for a store chosen
+  later) and `remote_robust`: `KitDeploy addrs nodes g → Robust [] nodes g threads bound` from the
+  instance's update (registry, slot map, the address-setting capability ⟹ a share per machine with
+  its `KitBootWp`), through `robust_of_kitProto`. All addresses are `remote`'s (R4's are); an
+  instance address of its own protocol is future work. No generic boot lemmas: each node's WP is the
+  instance's (`Check.spec`, `ServeClient.spec`, `Serve.spec` at its `main`).
+
+No axiom, no `sorry`, no change to the net extension or Perennial.
+
+## R4: the proposed statement (waiting for the coordinator)
+
+`Net/Spec/github_com/mit_pdos/etcd_grove/examples/lib/remote/counter/TopLevelRobustness.lean`:
+
+```lean
+/-- The deployment: the orchestrator, client nodes 0 and 1, the counter's server (`TopLevelDefs`). -/
+def counter_remote_robust.spec : Prop :=
+  ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
+    [orch_sem : cmd.orch.Assumptions] [c0_sem : cmd.client0.Assumptions]
+    [c1_sem : cmd.client1.Assumptions] [srv_sem : cmd.server.Assumptions]
+    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
+    (σo σ0 σ1 σs : state) (g : GlobalState) (threads : Nat),
+    KitDeploy counterAddrs (system σo σ0 σ1 σs) g →
+    Robust [] (system σo σ0 σ1 σs) g threads (bound := 2 ^ 63)
+```
+
+with, in `Proof/.../counter/TopLevelDefs.lean`, `counterAddrs := ["127.0.0.1:7302",
+"127.0.0.1:7303", "127.0.0.1:7301"]` (`ClientAddr0`, `ClientAddr1`, `ServerAddr`) and
+`system σo σ0 σ1 σs := [(boot orch, σo), (boot client0, σ0), (boot client1, σ1), (boot server, σs)]`
+(echo's `boot`: the command's initializer, then its `main`). Since `Orch` is `remote.Check`, "no
+thread has a top-level panic" includes "porcupine accepts the history" under every fault the net
+extension allows (cut connections, timeouts, abandoned dials), with unknown-outcome increments.
+`bound := 2^63`: lintest's clock (`CounterClock`) needs `receiptBound ≤ 2^63`, as lintest/counter's
+`counter_robust`.
+
+**Two changes it needs, outside `remote` (go-ahead asked):**
+
+1. **A ghost-state bundle with non-atomic invariants.** porcupine's linked result takes
+   `[NaInvG GF]` (`porcupine/Shared.lean`), and `netGF` (`GooseLang/Ext/Net/Adequacy.lean`) has no
+   slot for `NaInvF`; `KitBridge`'s theorems are stated at `netGF`. Proposal: generalize
+   `Net/Statement/KitBridge.lean` (`KitBootWp`, `nodeWp_of_kitBoot`, `robust_of_kitBoot`,
+   `robust_of_kitProto`) over any `GF` with `[GooseGpreS GF]` (`netGF` its instance, the existing
+   callers unchanged by an `abbrev` or explicit `(GF := netGF)`), and define `remoteGF` in remote's
+   files: `netGF` with slot 8 `NaInvF` (as lintest/counter's `counterGF`). Alternative: add the slot
+   to `netGF` itself (rebuilds every Net example; no statement changes).
+2. **The receipt bound in the bridge.** `goose_dist_adequacy` gives the obligation
+   `receiptBound GF = N` with `N = n + 1` (`n` the execution's length, `< bound`), and
+   `robust_of_kitBoot` drops it. Proposal: a variant (additive) whose obligation receives
+   `receiptBound GF ≤ bound`, so that the orchestrator's WP can call `Check.spec`.
+
+Both are proved code (no trust added). R4's remaining work after them: the counter's Go model's
+`isModel` against `pSeq` (state `(Lo, K)` standing for the configurations), `PendDec`, the codec
+(`codecOk`), `opMaybe` of the server's op (from `Counter.Apply`'s logically atomic spec) and of the
+client nodes' op (from `Do.spec`), the four `main`s' WPs, the start (`pend_alloc` over the counter's
+ghost state), `#print axioms`, `etc/tcb-collections/remote.txt`.
