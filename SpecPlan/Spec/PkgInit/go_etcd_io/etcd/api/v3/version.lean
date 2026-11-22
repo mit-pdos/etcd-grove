@@ -3,6 +3,8 @@ module
 
 public import GeneratedProof.go_etcd_io.etcd.api.v3.version
 public import SpecPlan.Spec.PkgInit.Base
+public import Perennial.Proof.fmt.Base
+public import Perennial.Proof.strings.Base
 public import SpecPlan.Spec.PkgInit.github_com.Masterminds.semver.v3
 
 @[expose] public section
