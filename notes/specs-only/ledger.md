@@ -4302,3 +4302,19 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** As above. The tester's `storeOracle` keeps its own 1 GiB invariant (`tOrSmall`), which
   implies the new premise.
 - **Decision.** Applied (the coordinator's item 2, 2026-11-22).
+
+## 2026-11-22: kvnet's `writeFrame` refuses an oversized body; the answers' length bounds dropped (KvNet)
+
+- **Spec.** `writeFrame.spec`: no premise on the body's length; new post conjunct `2^26 < len(xs) → w = []`.
+  `Replica.read.spec`, `Replica.propose.spec`: the post's `len(v) + 9 < 2^63` dropped. `Node.handle.spec`: post
+  `⌜good = true⌝` (was `∧ len(v) + 9 < 2^63`). `PutStatus.spec`: takes `s.Contents ↦${dq} M ∗ csOpt s.Conf □ c`
+  and gives the map back; no length promise (was nothing taken, `< 2^61` promised: unprovable).
+  `Node.status.spec`: post the fresh map and `csOpt` (was `True`), what `PutStatus` takes.
+- **Defect.** `serveClient` needed `len(v) + 9 < 2^63` for `writeFrame`'s `make([]byte, 0, 8+len(body))`, and no
+  invariant bounds a status encoding: `PutStatus` could not promise a bound.
+- **Evidence.** Go change `ab79c782b8` (option (a)): `writeFrame` returns `false` and writes nothing past
+  `maxFrame`, which `readFrame` refuses anyway; `notes/kvnet-part.md`, "`Replica.contents`, `PutStatus`,
+  `Node.status`".
+- **Proposed change.** As above. `serveClient` takes `len(v) < 2^63` (for `kvQ`) from the answer's slice.
+  `MapFits` stays for now (the waiters' handoffs still carry it); it is removable.
+- **Decision.** Applied (the coordinator's option (a), 2026-11-22). Unchecked: no `.lake` at the time.

@@ -145,7 +145,7 @@ theorem RequestVia.wp_proof (wp_putUint64 : putUint64.spec (GF := GF) (hG := hG)
     simp [reqBytes]
   rw [Hreq]
   wp_apply wp_writeFrame _ cn s a rq (reqBytes kind tmo pl) (DFrac.own 1) ed
-      (fun w _ => W cn s (W8 67 :: w)) (by simp [reqBytes, u64Le_length]; omega) $$ [HW1 Hrq]
+      (fun w _ => W cn s (W8 67 :: w)) $$ [HW1 Hrq]
     as %ok2 ⟨%w2, %res2, HW2, Hrq, %Hw2⟩
   · iframe Hc Hrq Hed HW1
     imodintro
@@ -174,7 +174,7 @@ theorem RequestVia.wp_proof (wp_putUint64 : putUint64.spec (GF := GF) (hG := hG)
     iexists cn, s, W8 67 :: w2, []
     iframe HW2 HR0
   -- the request written: the answer
-  have hw2 := Hw2.2 rfl
+  have hw2 := Hw2.2.1 rfl
   subst hw2
   try wp_auto
   wp_apply wp_readFrame _ cn s a (Rd cn s) eof ed $$ [HR0] as %b %ok3 ⟨%got, HR3, Hans⟩

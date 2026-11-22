@@ -83,7 +83,7 @@ theorem Node.handle.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
     | some r0 =>
     obtain ⟨i, k, key, v⟩ := r0
     try wp_auto
-    wp_apply wp_propose r id p pl dq tmo $$ [$Hpkg $Hrep $Hp $Hok] as %v %ok ⟨%Hvl, Hans⟩
+    wp_apply wp_propose r id p pl dq tmo $$ [$Hpkg $Hrep $Hp $Hok] as %v %ok Hans
     try wp_auto
     wp_apply wp_string_to_bytes v as %vb ⟨Hvb, -⟩
     try wp_auto
@@ -96,7 +96,7 @@ theorem Node.handle.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
     rw [ansOk_propose]
     simp only [if_true]
     iframe Hvb Hans
-    ipureintro; exact ⟨trivial, Hvl⟩
+    ipureintro; trivial
   wp_if_destruct
   · -- ReqRead
     rw [reqOk_read]
@@ -111,7 +111,7 @@ theorem Node.handle.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
     try wp_auto
     wp_apply wp_bytes_to_string $$ Hkv with Hkv
     try wp_auto
-    wp_apply wp_read r id seq key tmo $$ [$Hpkg $Hrep $Hro] as %v %ok ⟨%Hvl, Hans⟩
+    wp_apply wp_read r id seq key tmo $$ [$Hpkg $Hrep $Hro] as %v %ok Hans
     try wp_auto
     wp_apply wp_string_to_bytes v as %vb ⟨Hvb, -⟩
     try wp_auto
@@ -125,7 +125,7 @@ theorem Node.handle.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
     simp only [if_true]
     iframe Hvb
     isplitr
-    · ipureintro; exact ⟨trivial, Hvl⟩
+    · ipureintro; trivial
     iexists seq, key
     iframe Hans
     ipureintro; simp
@@ -165,7 +165,7 @@ theorem Node.handle.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
       rw [ansOk_other F id (W8 3) pl [] (by decide) (by decide)]
       ihave Hnil := ownSlice_nil (V := w8) (GF := GF) (DFrac.own 1)
       iframe Hnil
-      ipureintro; exact ⟨rfl, by simp⟩
+      ipureintro; rfl
     | ok i =>
       try wp_auto
       iapply HΦ
@@ -197,7 +197,7 @@ theorem Node.handle.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
       rw [ansOk_other F id (W8 4) _ [] (by decide) (by decide)]
       ihave Hnil := ownSlice_nil (V := w8) (GF := GF) (DFrac.own 1)
       iframe Hnil
-      ipureintro; exact ⟨rfl, by simp⟩
+      ipureintro; rfl
     wp_if_destruct
     · wp_apply wp_Campaign n γ N id ctx' cd $$ [$Hraft $Hn $Hnc] as %err -
       try wp_auto
@@ -209,7 +209,7 @@ theorem Node.handle.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
       rw [ansOk_other F id (W8 4) _ [] (by decide) (by decide)]
       ihave Hnil := ownSlice_nil (V := w8) (GF := GF) (DFrac.own 1)
       iframe Hnil
-      ipureintro; exact ⟨rfl, by simp⟩
+      ipureintro; rfl
     · wp_apply wp_ForgetLeader n γ N id ctx' cd Htr $$ [$Hraft $Hn $Hnc] as %err -
       try wp_auto
       wp_apply Hcancel
@@ -220,18 +220,18 @@ theorem Node.handle.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
       rw [ansOk_other F id (W8 4) _ [] (by decide) (by decide)]
       ihave Hnil := ownSlice_nil (V := w8) (GF := GF) (DFrac.own 1)
       iframe Hnil
-      ipureintro; exact ⟨rfl, by simp⟩
+      ipureintro; rfl
   wp_if_destruct
   · -- ReqStatus
-    wp_apply wp_status nd γ N id n $$ [$Hpkg $Hnd] as %s -
-    wp_apply wp_PutStatus s $$ [$Hpkg] as %sl ⟨%bs, Hbs, %Hbl⟩
+    wp_apply wp_status nd γ N id n $$ [$Hpkg $Hnd] as %s ⟨%M, %c, HM, #Hcs⟩
+    wp_apply wp_PutStatus s M (DFrac.own 1) c $$ [$Hpkg $HM $Hcs] as %sl ⟨%bs, Hbs, -⟩
     try wp_auto
     iapply HΦ
     iright
     iexists bs
     rw [ansOk_other F id (W8 5) _ bs (by decide) (by decide)]
     iframe Hbs
-    ipureintro; exact ⟨rfl, by omega⟩
+    ipureintro; rfl
   · -- another kind: no answer
     try wp_auto
     iapply HΦ

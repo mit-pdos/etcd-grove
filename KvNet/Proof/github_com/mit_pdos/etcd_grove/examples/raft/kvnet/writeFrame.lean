@@ -31,12 +31,22 @@ variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 theorem writeFrame.wp_proof (wp_putBytes : putBytes.spec (GF := GF) (hG := hG))
     (wp_writeAll : writeAll.spec (GF := GF) (hG := hG)) :
     writeFrame.spec (GF := GF) (hG := hG) := by
-  intro c cn s a body xs dq ed P hl
+  intro c cn s a body xs dq ed P
   wp_start as ⟨#Hc, Hb, #Hed, HP, #Hacc⟩
-  wp_auto
   ihave %Hbl := ownSlice_len $$ Hb
   have hbz : sint.Z body.len = xs.length := by
     rw [Hbl.1]; exact (Int.toNat_of_nonneg Hbl.2).symm
+  wp_auto
+  wp_if_destruct
+  · -- longer than `maxFrame`: nothing written
+    (try wp_auto)
+    iapply HΦ
+    iexists [], none
+    iframe HP Hb
+    ipureintro
+    exact ⟨List.nil_prefix, fun h => by cases h, fun _ => rfl⟩
+  -- the frame
+  have hlen : (xs.length : Int) ≤ 67108864 := by rw [← hbz]; word
   have h8 : sint.Z (W64 8 + body.len) = 8 + sint.Z body.len := by word
   have hcap : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) ≤ sint.Z (W64 8 + body.len) := by
     rw [h8, show sint.Z (W64 0) = 0 from rfl]; omega
@@ -52,7 +62,7 @@ theorem writeFrame.wp_proof (wp_putBytes : putBytes.spec (GF := GF) (hG := hG))
   iapply HΦ
   iexists w, res
   iframe HP Hb
-  ipureintro; exact Hw
+  ipureintro; exact ⟨Hw.1, Hw.2, fun h => by omega⟩
 
 end proof
 
