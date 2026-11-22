@@ -4,11 +4,10 @@
 # (KvNet/Proof/.../raft/kvnet/TopLevelRobustness.lean). The first two take, as named hypotheses (not
 # axioms), the statements of two Perennial pull requests not yet landed: `RobustOfNetFsBootG` (the
 # bridge over mit-pdos/perennial#683) and `errors.IsPathErrnoNotExist.spec` (#677). `#print axioms`:
-# Lean's three and `path.filepath.opaqueInitsOk` (filepath's untranslated variable initializers,
-# reached through the bodied `durable`'s initializer).
+# Lean's three only (2026-11-22, after `path.filepath.opaqueInitsOk`, which the bodied `durable`'s
+# initializer reached, was retired on `lean`).
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/kvnet.txt            what it rests on
 #   etc/tcb-report.py --collection etc/tcb-collections/kvnet.txt --check    against the lines below
 #   etc/tcb-report.py --collection etc/tcb-collections/kvnet.txt --check --update
 roots ^KvNet/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvnet/TopLevelRobustness\.lean$
-axiom Perennial.path.filepath.opaqueInitsOk

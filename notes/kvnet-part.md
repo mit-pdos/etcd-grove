@@ -1145,8 +1145,8 @@ fs component by `HasExt.localCtx_acc`) and drop the hypothesis; adjust `CrashBoo
 - `raft_kvnet_example_premises`: `exampleConfig.Ok 5`, the directory's length, the five addresses
   distinct and `addrOk`, and `exampleFs` (one root `/var/lib/kvnet` at inode 0, empty) satisfies `FsInit`
   with that root empty (`exampleFs_init`, `exampleFs_lookup`).
-- `#print axioms`: the first two, Lean's three and `path.filepath.opaqueInitsOk` (as `kvRep_gen`);
-  `raft_kvnet_example_premises`, Lean's three. `etc/tcb-collections/kvnet.txt` (roots: this file).
+- `#print axioms` (after the merge of `origin/lean` that retired `path.filepath.opaqueInitsOk`, which `kvRep_gen` reached): all three, Lean's three only.
+  `etc/tcb-collections/kvnet.txt` (roots: this file).
 
 How it is assembled (the handoff's steps): `Hb` at `kvnetGF`, `addrs := replicas.map (·.1)`; `Robust`'s
 premises are introduced first, so that the per-machine `FsInit` (`(hil m _).2.1`) is available to the
