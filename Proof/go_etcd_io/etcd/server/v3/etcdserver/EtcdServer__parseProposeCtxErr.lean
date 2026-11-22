@@ -37,7 +37,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 set_option hygiene false in
 local macro "ppce_exit" : tactic => `(tactic| (
-  iapply HΦ; iunfold srvLeadTimeReader; iframe Hrd; isplitr; · ipureintro; simp
+  iapply HΦ; iunfold srvLeadTimeReader; iunfold srvTrReader; iframe Hrd
+  isplitl [HRd]
+  · iexists v.tr; iexists Rd; iframe HRd; iframe #
+  isplitr; · ipureintro; simp
   first | iexact HaTOLF | iexact HaTOCL | iexact HaTO | iexact HaCan))
 
 set_option hygiene false in
@@ -58,12 +61,12 @@ local macro "ppce_tail" : tactic => `(tactic| (
       wp_apply (membership.RaftCluster.Members.spec_static hMem v.cluster) $$ [] as %msl ⟨%mms, Hmsl⟩
       · iframe #
       (try wp_auto)
-      wp_apply hQ _ _ _ _ mms $$ [Hmsl] as %bq -
-      · iframe #; iframe Hmsl
+      wp_apply hQ v.tr Rd _ _ _ mms $$ [HRd Hmsl] as %bq ⟨HRd, -⟩
+      · iframe #; iframe HRd Hmsl
       cases bq <;> (try wp_auto) <;> ppce_exit
     · (try wp_auto)
-      wp_apply hC $$ [] as %bc -
-      · iframe #
+      wp_apply hC v.tr Rd $$ [HRd] as %bc HRd
+      · iframe #; iframe HRd
       cases bc <;> (try wp_auto) <;> ppce_exit))
 
 set_option maxRecDepth 20000 in
@@ -85,7 +88,7 @@ theorem EtcdServer.parseProposeCtxErr.wp_proof
   icases Hv with ⟨-, -, -, -, -, -, -, -, -, #Het, #Htm, -, -, -, -, #Hmid, #Hlead, #Hcl, #Htr,
     #Hpeers, -, -, -, -⟩
   iunfold srvPeersOk at Hpeers
-  icases Hpeers with ⟨-, #Hrc, #Htri⟩
+  icases Hpeers with ⟨-, #Hrc, -⟩
   ihave #Perrors : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
   · iPkgInit
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
@@ -129,6 +132,12 @@ theorem EtcdServer.parseProposeCtxErr.wp_proof
         exact absurd (Hb2 h) (by simp)
     · (try wp_auto)
       iunfold srvLeadTimeReader at Hrd
+      icases Hrd with ⟨Hrd, HtrR⟩
+      -- (rdslot) the transport's reader slot, at the server's transport field's value
+      iunfold srvTrReader at HtrR
+      icases HtrR with ⟨%tr', %Rd, #Htrf', #Htri', HRd⟩
+      icombine Htr Htrf' gives %Htreq
+      subst Htreq
       wp_apply sync.RWMutex.wp_RLock _ _ $$ [Hrd] as ⟨Hrl, HP⟩
       · iframe #; iframe Hrd
       iunfold leadTimeP at HP

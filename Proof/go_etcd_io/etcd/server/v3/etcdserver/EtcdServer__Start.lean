@@ -66,6 +66,9 @@ theorem EtcdServer.Start.wp_proof
     EtcdServer.Start.spec (GF := GF) (hG := hG) := by
   intro s γ ci TM C E ρ γr Er γn b ai₀ at₀ c₀ x₀ N
   wp_start as ⟨%hC, Hb, Htok, Hlg, Hlgm, Hsv, #Hoff, Hlgd, Hrc⟩
+  -- (rdslot) `monitorDowngrade`'s `lgMu` slot; `adjustTicks`'s transport slot and switch
+  iunfold srvMonitorRes at Hlgd
+  icases Hlgd with ⟨Hlgd, HtrA, #Hie⟩
   obtain ⟨hm, hRB, Hrb, Hai0⟩ := hC
   -- (2026-11-02, the cluster-rows stage) the member id field, a voter: the monitors' permission
   icases isServerBuiltC_mid C s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N $$ Hb with ⟨Hb, #HmidS, %HmidcS⟩
@@ -106,15 +109,13 @@ theorem EtcdServer.Start.wp_proof
   iunfold srvGoAttachOk at Hgok'
   icases Hgok' with ⟨%gch, %gc, -, -, -, -, -, -, -, #HrP, -⟩
   -- `func() { s.adjustTicks() }`, with `GoAttach`'s `lgMu` pool and the goroutine's level 1
-  wp_apply wp_GoAttach_tokT hGA s γg _ iprop(True) $$ [Hgr] as Hgr
-  · iframe Hgr
-    isplitr
-    · itrivial
-    iintro !> %Φ' ⟨-, Hrun, Htf⟩ HΦ'
+  wp_apply wp_GoAttach_tokT hGA s γg _ (srvTrReader s) $$ [Hgr HtrA] as Hgr
+  · iframe Hgr HtrA
+    iintro !> %Φ' ⟨HtrA, Hrun, Htf⟩ HΦ'
     icases (threadTokFrom_succ (GF := GF) 1 (threadBound_gt (GF := GF))).1 $$ Htf with ⟨G1, Gt2⟩
     (try wp_auto)
-    wp_apply hAdj C.isOn s E { wait := γw, rd := ρ.rd } Er γn $$ [G1] as G1
-    · iframe #; iframe G1
+    wp_apply hAdj C.isOn s E { wait := γw, rd := ρ.rd } Er γn γg $$ [G1 HtrA] as ⟨G1, -⟩
+    · iframe #; iframe G1 HtrA
     iapply HΦ'
     iframe Hrun
     iapply (threadTokFrom_succ (GF := GF) 1 (threadBound_gt (GF := GF))).2
@@ -138,7 +139,7 @@ theorem EtcdServer.Start.wp_proof
   -- purge (`srvMonitorsOff`'s `MaxWALFiles`)
   ihave #Hoff' := Hoff
   iunfold srvMonitorsOff at Hoff'
-  icases Hoff' with ⟨-, -, -, #Hmwf, -⟩
+  icases Hoff' with ⟨-, -, -, #Hmwf⟩
   wp_apply wp_GoAttach_tokT hGA s γg _ iprop(True) $$ [Hgr] as Hgr
   · iframe Hgr
     isplitr
@@ -207,7 +208,7 @@ theorem EtcdServer.Start.wp_proof
   -- `s.monitorKVHash`, `s.monitorCompactHash`, `s.monitorDowngrade`
   -- (audit B4a) off: `srvMonitorsOff`
   iunfold srvMonitorsOff at Hoff
-  icases Hoff with ⟨#Hcct, #Hdct, ⟨%fg, #Hfgf, #Hfgo⟩, -, -⟩
+  icases Hoff with ⟨#Hcct, #Hdct, ⟨%fg, #Hfgf, #Hfgo⟩, -⟩
   wp_apply wp_GoAttach_tok hGA s γg _ iprop(True) $$ [Hgr] as Hgr
   · iframe Hgr
     isplitr
