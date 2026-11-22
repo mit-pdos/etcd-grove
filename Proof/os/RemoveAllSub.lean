@@ -8,7 +8,7 @@ induction hypothesis, on the claims but `J`'s (the pool, `os.rmPool`), which cov
 -/
 module
 
-public import Proof.os.RemoveAll
+public import Proof.os.RemoveAllTop
 public import Proof.os.RemoveAllCover
 
 @[expose] public section
