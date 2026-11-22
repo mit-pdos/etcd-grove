@@ -840,3 +840,66 @@ before the closed statement stands.
 `ihave H : P $$ [Hs]` then `· iapply lemma; iframe`. `ihave HΦ' : … $$ [HΦ]` consumes `HΦ` (no `iclear`).
 A Lean-level induction (on the claims' count) is simpler than `iloeb` for a recursion whose depth a datum
 bounds: the hypothesis is a plain triple for `wp_apply`.
+
+# Handoff (branch `wal-safe`, 2026-11-22, session 6 of etcd-grove-03's delegates): (FNE) decided; its `os` half done
+
+**Decision (coordinator, 2026-11-22): design (FNE), not (G).** `wal.Create.spec`/`specFresh` and the tester's
+`tWalFsOk` widen `FsNoErrOn (· = dir)` to `dir`, `dir.tmp` and the area `r` (= `filepath.Dir dir`: `InArea r
+dir nm` gives `dir = child r nm`; writing `r` avoids a pure `filepath.Dir` in the statement). Discharged at the
+closed theorem by `allIo` (`fsNoErrOn_of`), as `tWalFsOk` is now: no new closed premise. Then `TmpOk`,
+`CreateDirAll.specTmp`, `tmpClTouch`, `bootTmps` go, and `BootFoNmTmp`/`hfo` and `TCrashed`'s carried fact retire.
+
+**Done this session (the `os` half; no axiom, no `sorry`, no trusted file touched):**
+- `GooseLang/Ext/Fs/WpPostShared.lean`: **`wp_fs_postSh`**, `wp_ext_postS` for a shared-mode call: a spec proved
+  over any semantics gets a pure fact `Ψ` of its result from the semantics' own step (where `NoIoErr` lives),
+  given a fact `QP` of the state the caller's resources read through the claims' authority (`osSharedInv`,
+  opened for an instant). No step lemma has to be re-proved to witness an errno.
+- `GooseLang/Ext/Fs/NoErrRemoveSteps.lean`: `FsNoErrAt p := FsNoErrOn (· = p) ∧ PathFits p`; `unlink_noErrAt`
+  (file: 0; directory: `EISDIR`), `rmdir_noErrAt` (empty: 0; non-empty: `ENOTEMPTY`), `openDir_noErrAt`
+  (read-only open of a directory: 0 or `EINTR`).
+- `Proof/os/RemoveAllNE.lean`: `wp_osUnlinkSW`, `wp_osUnlinkS_noneW`, `wp_osRmdirS_nonemptyW`, `wp_osRmdirSGW`,
+  `wp_osOpenDirSW` (each the existing spec with its errno witnessed under `FsNoErrAt`).
+- `Proof/os/RemoveAllDir.lean`: `os.rmAllOutP … P` (`rmAllOut` whose first arm, `b` still there, also says `P`);
+  W variants `wp_unlinkLoop_dirStW`, `wp_rmdirLoop_dirStW`, `wp_openLoop_dirStW`, `wp_openLoop_spineW` (an open on
+  a spine never answers `ENOENT`: no premise), the old names restated over them; `wp_unlinkLoop_nofile`'s post
+  and `RemoveAllLeaf`'s `wp_unlinkLoop_leaf`/`wp_removeAllFrom_leaf` posts gain the witness in place.
+- `Proof/os/RemoveAllParts.lean`: `wp_pathErrorPtrN`/`_errnoN`/`_rdN` (the error pointer non-null).
+- **`os.RemoveAll.specSubS`'s post gains `err = interface.nil → FsNoErrAt (child d b) → FsNoErrAt d →
+  h'.cur !! b = none`** (`Spec/os/RemoveAll.lean`, proved in `RemoveAllSub.lean`: `rmSubOut … G`, `rmSubOut_ofP`;
+  every `nil` exit refuted or `b` gone; the directory read's `ENOENT` refuted with `wp_osDirReadNextGenS'`, the
+  directory being on a spine).
+- `GooseLang/Ext/Fs/FstatAny.lean`: `wp_osFstatAny`/`wp_osFstatAnyW` (no `OsMeta`; errno 0 under `FsNoErrIno`).
+- `Proof/os/StatNE.lean`: **`os.Stat.wp_dirSW`, `os.Stat.wp_fileAnySW`**: an error only when `¬ FsNoErrAt path`
+  (the file case needs no `OsMeta`, so `walAreaRes` need not hold a leftover `nm.tmp` file). With
+  `fileutil.Exist.spec` (`b = decide (err = nil)`): `Exist(dir.tmp)` of something there answers `true`.
+- Built: `Proof.os.RemoveAllSub`, `RemoveAll`, `RemoveAllAbsentN`, `StatNE` (and the WAL/tester Links, see the log).
+
+**Next: the WAL half** (no further `os` work expected):
+1. `CreateTmp.lean`: replace `tmpDirH` by a general `tmpAny jr b h := ∃ cl, osNames jr [b] 1 h ∗ osClaimsW cl ∗
+   ⌜SubCover cl (h.cur !! b) ∧ ClRanked cl⌝` (`tmpDirH ⊢ ∃ h, tmpAny`: `cl := [(J, except [], hJ)]`, rank `J ↦ 0`,
+   dropping the `.touch` file). `wp_existTmpNE`: cases `none` (`Stat.wp_absentS`), `file` (`wp_fileAnySW`),
+   `dir` (borrow the spine as `wp_existTmp` does, `wp_dirSW`); post `x = false → FsNoErrAt (child r b) → h.cur !!
+   b = none`. `wp_removeAllTmp` over `specSubS` (post `tmpAny` again, and `err = nil → … → none`).
+2. `Create.lean` (`wal.Create.wp_proof`, ~line 540-760, the error arms at ~95, 174, 212, 253, 415, 618, 709, 1313,
+   1352): `Exist(tmp)` false ⇒ absent ⇒ `CreateDirAll.spec` (proved, absent name) in place of `specTmp`;
+   `RemoveAll` nil ⇒ absent ⇒ the same; error arms through `tmpAny` + `specSubS`. Premise: `FsNoErrOn (fun p => p = dir
+   ∨ p = dir ++ ".tmp" ∨ p = r)`; `FsNoErrAt r` needs `PathFits r` from `PathFits dir` (a prefix: add the lemma in
+   `PathFitsLemmas.lean` if none). Drop `wp_CDA`/`wp_RmDir` hypotheses (`etc/gen-link.py --walfs` then drops
+   `CreateDirAll.specTmp` from the Link; delete `CreateDirAllTmp.lean` and, if unused, `TouchDirAll.specDir`).
+3. `walAreaRes` (`CreateDefs.lean`): `TmpOk` conjunct → `∀ nm, walNameOk nm → ClRanked (clOf cl (tmpName nm))`;
+   `areaCls` without `tmpClTouch`. Users: `CreateArea` (`area_takeTmp` gives `tmpAny`; `create_abortTmp` in
+   `CreateAbort.lean`/`CreateUnmint.lean` takes it back: `SubCover.of_sub`, `ClRanked.of_sub`), `CreateFree`,
+   `CreateAreaBack`, `CreateCleanup`, `openAtIndexLemmas`, `Boot0` (nothing at `nm.tmp`), `BootCrash*` (ClRanked
+   from `TreeWf`: `ClRanked.of_tree`; `bootTmps`/`tmpClTouch`/`bootFiles_split`'s tmp part go), `Crash.lean`.
+4. Tester: `tWalFsOk` widened (`RestartOk.lean`; `Boot`/`Main` specs); `tester_crash`'s `hfo`, `BootFoNmTmp`,
+   `TCrashed`'s carried fact removed (`WalTester/.../Crash.lean`, `BootCrash.lean`). Regenerate both Links.
+5. Ledger: `notes/specs-only/ledger.md` entry for `wal.Create.spec`'s widened premise and `CreateDirAll.specTmp`'s
+   removal (not written yet: write it before editing the spec, per CLAUDE.md).
+Then step 3 (the tester onto `fsSQ_crash_adequacyShared`) and the hard stop before the closed statement, as before.
+
+**Pitfalls (new).** `rw (occs := .pos [n])` counts occurrences in the whole Iris entailment, context included:
+a hypothesis whose type gains the pattern (here `HΦ'` mentioning `null`) shifts the index. An `iloeb` IH lists
+the context in the order it had at the `iloeb`; a lemma that returns a resource (`wp_osDirReadNextGenS'`'s `P`)
+moves it in the context, so the IH call's argument order changes. In a term, `⟨fun h => by cases h, x⟩` parses
+`, x` into the tactic block: parenthesize the `fun`. Without `simp only [IsFsStep] at h`, `rcases` cannot split an
+`IsFsStep "Open"`'s `let` body; with it, the main arm has ten components.

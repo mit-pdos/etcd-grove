@@ -4046,3 +4046,30 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `renameWAL.spec`, `wal.Create.spec`/`specFresh`; the error branch refuted, `errors.As` no longer reached
   (`h_errors_AsLinkError` left the Links too); `WAL__renameWALUnlock.lean` deleted; the tester's `Boot`/`Main`
   take `tWalFsOk area`. `renameWALPost`'s arm 2 is now dead but kept (its removal is a cleanup).
+
+## 2026-11-22: `wal.Create.spec`'s no-failure premise widened to `dir.tmp` and the area; `os.RemoveAll.specSubS` and `os.Stat` witness their errors (wal-safe, step 2 (D), design (FNE))
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/storage/wal/{Create,CreateFresh}.lean` (premise
+  `FsNoErrOn (· = dir) ∧ PathFits (dir ++ ".tmp") ∧ PathFits dir`, from the entry of 2026-11-21);
+  `Spec/go_etcd_io/etcd/server/v3/storage/wal/CreateCallees.lean`'s `fileutil.CreateDirAll.specTmp`; the WAL tester's
+  `tWalFsOk` (`WalTester/.../RestartOk.lean`); `Spec/os/RemoveAll.lean`'s `os.RemoveAll.specSubS`.
+- **Defect.** `Create` must cope with any leftover `dir.tmp` (a crash's): `RemoveAll` may return `nil` with it still
+  there (a spurious `ENOENT`, no effect) and `Exist` may miss it (a `Stat` error), so `CreateDirAll` can meet a
+  `dir.tmp` holding anything (a file, a directory with directories, a directory `.touch`). `specTmp` covers only a
+  directory of files, and the tester bridges the rest with the premise `BootFoNmTmp` on every crashed tree, which
+  no premise on the initial state can discharge.
+- **Evidence.** `TrustedCode/os.lean` (`RemoveAll.impl`, `model.removeAllFrom`, `model.stat`) and `NoIoErr`/`PathErrno`
+  (`GooseLang/Ext/Fs/Premises.lean`): with `dir.tmp` and its parent covered and fitting, every `nil` exit of
+  `RemoveAll(dir.tmp)` is an `unlink`/`rmdir` of `dir.tmp` answering 0 or `ENOENT`, the parent's `open`
+  answering `ENOENT`, or a read of `dir.tmp` answering `ENOENT`, each only with `dir.tmp` gone; `Stat` of an
+  existing covered path succeeds. Notes: `notes/wal-units/tester.md`, handoffs of sessions 5 and 6.
+- **Proposed change.** (FNE) `wal.Create.spec`/`specFresh` and `tWalFsOk` take `FsNoErrOn (fun p => p = dir ∨ p =
+  dir ++ ".tmp" ∨ p = r)` (`r` the area, `filepath.Dir dir`), `PathFits` unchanged; `specSubS`'s post gains
+  `err = nil → FsNoErrAt (child d b) → FsNoErrAt d → b gone`; `os.Stat.wp_dirSW`/`wp_fileAnySW` (new) witness
+  their error; `CreateDirAll.specTmp` is deleted (`Create` then calls `CreateDirAll` only on an absent `dir.tmp`:
+  `CreateDirAll.spec`, proved), and with it `walAreaRes`'s `TmpOk`/`tmpClTouch` and the tester's `BootFoNmTmp`.
+  The rejected alternative (G): make `TouchDirAll`/`CreateDirAll` cope with any leftover (3-4 sessions).
+- **Decision.** (FNE), the coordinator (etcd-grove-03, 2026-11-22). At the closed theorem the widened premise is
+  discharged by the semantics' `NoIoErr allIo` (every path), as `tWalFsOk` already is: no new closed premise.
+- **Made (2026-11-22, `wal-safe`, session 6).** The `os` half: `specSubS`'s post, `os.Stat.wp_dirSW`/`wp_fileAnySW`
+  (`Proof/os/StatNE.lean`), over `wp_fs_postSh` (`GooseLang/Ext/Fs/WpPostShared.lean`). The `wal.Create`/tester
+  half is not made yet (`notes/wal-units/tester.md`, last section).
