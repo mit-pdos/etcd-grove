@@ -4464,3 +4464,47 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   write lemma takes two later credits.
 - **Proposed change.** As above.
 - **Decision.** Applied (checked: `etc/lean-check.py` of every changed module, then `lake build KvNet`).
+
+## 2026-11-22: kvnet's `ValidCluster` checks `MaxInflightMsgs < 2^62` (KvNet, Go and Lean)
+
+- **Spec.** `ValidCluster.spec` (KvNet) through `validCluster` (`Addrs.lean`), and so `RunNode.spec`'s premise:
+  `mif < 2^63` becomes `mif < 2^62`. The Go `ValidCluster` (`examples/raft/kvnet/addrs.go`) the same.
+- **Defect.** Raft's `RestartNode` (and kvnet's `kvOptsOk`, `StartDefs.lean`) needs `MaxInflightMsgs < 2^62`;
+  `ValidCluster` allowed up to `2^63`, so `RunNode`'s premise did not give what `StartNode` needs.
+- **Evidence.** `notes/kvnet-part.md`, "The WIP checked and built", the gap noted with `kvOptsOk`.
+- **Proposed change.** Tighten the Go check (the design: validity is a Lean premise, mirrored by Go panicking on
+  an invalid configuration), retranslate, and the statement draft's `ClusterConfig.Ok` the same.
+- **Decision.** Applied (the coordinator's decision, 2026-11-22).
+
+## 2026-11-22: kvnet's transport takes no frame-length bound with a message; `newReplica` names its node (KvNet)
+
+- **Spec.** `Transport.Send.spec`'s `sendElem F m` and the queue's `qElem F pid m` (`TransportDefs.lean`, so
+  `Transport.enqueue.spec`, `isPeer`) lose the conjunct `(encMsg st).length + 8 < 2^63`. `newReplica.spec`'s
+  post names the node it was given: `∃ st' sts' sq' ρ, isReplicaR γ vs dir id r n st' sts' sq' ρ` (was `∃ n' …`).
+- **Defect.** The bound is not derivable where the messages come from (`run`'s send callback gets raft's
+  `Ready` messages, with no size bound: `MaxSizePerMsg` is any `uint64`), so `StartNode` could not give
+  `t.Send` as `run`'s callback. It is not needed either: `runPeer` encodes the message first (`putMsg`), and
+  the encoding's slice gives `(encMsg st).length < 2^63` (`ownSlice_len`), all the protocol needs. And
+  `StartNode`'s post (`isNodeS`) needs the replica's node to be the transport's: the old post forgot it.
+- **Evidence.** `Transport__runPeer.lean` (the bound's two uses, `peer_send` and the frames' bound, now from
+  the slice); `newReplica.lean`'s last step already named `n`.
+- **Proposed change.** As above.
+- **Decision.** Applied (weaker premises; a stronger post).
+
+## 2026-11-22: kvnet's wire reads a message's entries of any type (`getMsgEntry`; `MsgWf` weakened) (KvNet, Go and Lean)
+
+- **Spec.** `MsgWf` (`Wire.lean`, so `getMsg.spec`'s premise and `kvFacts`' `msgOkK`): a message's entries need
+  only `MsgEntWf` (data of a Go slice's length), no longer `EntWf` (also a type `≤ 2`). New `getMsgEntry.spec`
+  (wire.go's `getMsgEntry`, new): `getEntry.spec` with `MsgEntWf`.
+- **Defect.** `StartNode` must give `run`'s send callback (raft's `Ready` messages, `sentMsg`) to the transport,
+  whose protocol carries `MsgWf`. Nothing in raft's API says a sent message's entries are of raft's types (a
+  forwarded `MsgProp`'s are whatever `Propose` was given; `readyRest_ents_type` covers only the `Ready`'s
+  entries), so the type bound was not derivable. The Go decoder refused other types (`getEntry`'s `typ > 2`,
+  right for the storage file, not needed on the wire: an `EntryType` is an `int32`, written sign-extended,
+  truncated back).
+- **Evidence.** `examples/raft/kvnet/wire_test.go` (entries of types `-5` and `2^30` round-trip); the proofs
+  of `getMsgEntry` and `getMsg`.
+- **Proposed change.** `getMsg` decodes entries with `getMsgEntry` (no type check); `MsgWf` as above.
+  (Alternatively a raft API lemma `sentMsg ⊢ ∀ e ∈ st.ents, Type ≤ 2`, which needs raft's message invariant to
+  track forwarded proposals' entries: not taken.)
+- **Decision.** Applied.

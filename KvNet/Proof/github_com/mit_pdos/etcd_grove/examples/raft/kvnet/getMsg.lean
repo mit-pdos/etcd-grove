@@ -2,7 +2,7 @@
 Proof of `KvNet/Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvnet/getMsg.lean`: the eight
 words read into `f` (`getUint64`, a loop over the array), the type looked up in raftpb's
 `MessageType_name` (raftpb's package fact: `msgTypeNames`), reject, the hint, the context (`getBytes`,
-frozen: a message's context is read-only), the entries' number; then the entries (`getEntry`, on
+frozen: a message's context is read-only), the entries' number; then the entries (`getMsgEntry`, on
 the bytes frozen: the case with no snapshot) or none (the case with no entries: the bytes stay
 owned); the message built (`msgPtsC_of_struct`), then its snapshot (`getSnapshot`) or none.
 -/
@@ -11,7 +11,7 @@ module
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.getMsg
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.getUint64
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.getBytes
-public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.getEntry
+public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.getMsgEntry
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.getSnapshot
 public import KvNet.Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
 public import KvNet.Proof.go_etcd_io.raft.v3.InvPbMsg
@@ -143,7 +143,7 @@ private theorem msgPtsC_Snapshot_set (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms
 
 theorem getMsg.wp_proof (wp_getUint64 : getUint64.spec (GF := GF) (hG := hG))
     (wp_getBytes : getBytes.spec (GF := GF) (hG := hG))
-    (wp_getEntry : getEntry.spec (GF := GF) (hG := hG))
+    (wp_getMsgEntry : getMsgEntry.spec (GF := GF) (hG := hG))
     (wp_getSnapshot : getSnapshot.spec (GF := GF) (hG := hG))
     (wp_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     getMsg.spec (GF := GF) (hG := hG) := by
@@ -286,11 +286,11 @@ theorem getMsg.wp_proof (wp_getUint64 : getUint64.spec (GF := GF) (hG := hG))
         rw [List.drop_eq_getElem_cons Hin]
         rw [List.getElem?_eq_getElem Hin] at He0
         rw [Option.some.inj He0]
-      have Hwf0 : EntWf e0 := Hewf e0 (List.mem_of_getElem? He0)
+      have Hwf0 : MsgEntWf e0 := Hewf e0 (List.mem_of_getElem? He0)
       rw [Hdrop]
       simp only [encEntries, List.append_assoc]
       try wp_auto
-      wp_apply wp_getEntry rv (DFrac.own 1) e0 _ Hwf0 $$ [$Hrv] as %le %rest2 ⟨Hle, Hrest2⟩
+      wp_apply wp_getMsgEntry rv (DFrac.own 1) e0 _ Hwf0 $$ [$Hrv] as %le %rest2 ⟨Hle, Hrest2⟩
       try wp_auto
       imod entOwn_freeze _ _ $$ Hle with #Hle
       wp_apply wp_slice_literal (V := Loc) [le]
