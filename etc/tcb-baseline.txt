@@ -113,7 +113,6 @@ axiom auth.authStore.AuthInfoFromTLS.wp_proof
 axiom auth.newTokenProviderJWT.wp_proof
 axiom auth.redactToken.wp_proof
 axiom backend.newBoltLoggerZap.wp_proof
-axiom bbolt.Options.String.wp_proof
 axiom bcrypt.CompareHashAndPassword.wp_proof
 axiom bcrypt.GenerateFromPassword.wp_proof
 axiom binary.WriteUint8.wp_proof

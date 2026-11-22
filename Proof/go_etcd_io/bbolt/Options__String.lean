@@ -25,11 +25,11 @@ namespace bbolt
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 /-- `String`'s format. -/
-abbrev optsFmt : GoString :=
+private abbrev optsFmt : GoString :=
   go!"{Timeout: %s, NoGrowSync: %t, NoFreelistSync: %t, PreLoadFreelist: %t, FreelistType: %s, ReadOnly: %t, MmapFlags: %x, InitialMmapSize: %d, PageSize: %d, MaxSize: %d, NoSync: %t, OpenFile: %p, Mlock: %t, Logger: %p, NoStatistics: %t}"
 
 set_option maxRecDepth 20000 in
-theorem fmtDirectives_optsFmt :
+private theorem fmtDirectives_optsFmt :
     _root_.Perennial.fmt.fmtDirectives optsFmt =
       some [⟨W8 115, false⟩, ⟨W8 116, false⟩, ⟨W8 116, false⟩, ⟨W8 116, false⟩, ⟨W8 115, false⟩,
         ⟨W8 116, false⟩, ⟨W8 120, false⟩, ⟨W8 100, false⟩, ⟨W8 100, false⟩, ⟨W8 100, false⟩,
@@ -44,12 +44,12 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 open _root_.Perennial.fmt in
-theorem argOkAt_of_argWf' (mv : List w8) (d : Directive) (ii : GoInterfaceOk) (h : ArgWf ii) :
+private theorem argOkAt_of_argWf' (mv : List w8) (d : Directive) (ii : GoInterfaceOk) (h : ArgWf ii) :
     ⊢ argOkAt (GF := GF) mv d (.ok ii) := by
   unfold argOkAt; ileft; ipureintro; exact h
 
 open _root_.Perennial.fmt in
-theorem argWf_bool (b : Bool) : ArgWf (interface.mk go.bool #b) := by
+private theorem argWf_bool (b : Bool) : ArgWf (interface.mk go.bool #b) := by
   apply EtcdGrove.fmt.argWf_of_argsWf
   refine ArgsWf.cons_other go.bool #b _ ?_ ?_ ?_ .nil
   · simp [go.bool, go.string]
@@ -62,11 +62,11 @@ theorem argWf_bool (b : Bool) : ArgWf (interface.mk go.bool #b) := by
   · exact Or.inr (Or.inl rfl)
 
 open _root_.Perennial.fmt in
-theorem argWf_int (n : w64) : ArgWf (interface.mk go.int #n) :=
+private theorem argWf_int (n : w64) : ArgWf (interface.mk go.int #n) :=
   EtcdGrove.fmt.argWf_of_argsWf (ArgsWf.cons_int _ _ _ (.int n) .nil)
 
 open _root_.Perennial.fmt in
-theorem argWf_freelist (x : GoString) : ArgWf (interface.mk FreelistType.ty #x) := by
+private theorem argWf_freelist (x : GoString) : ArgWf (interface.mk FreelistType.ty #x) := by
   apply EtcdGrove.fmt.argWf_of_argsWf
   have hs : FreelistType.ty ≠ go.string := by simp [FreelistType.ty, go.string]
   have hi : ¬ IsIntType FreelistType.ty := by
@@ -77,7 +77,7 @@ theorem argWf_freelist (x : GoString) : ArgWf (interface.mk FreelistType.ty #x) 
 
 open _root_.Perennial.fmt in
 /-- `%s` of a `time.Duration`: its `String()`. -/
-theorem argOkAt_duration (hDur : _root_.Perennial.time.Duration.String.spec (GF := GF) (hG := hG))
+private theorem argOkAt_duration (hDur : _root_.Perennial.time.Duration.String.spec (GF := GF) (hG := hG))
     (x : time.Duration) :
     ⊢ argOkAt (GF := GF) methodVerbs ⟨W8 115, false⟩ (interface.mkOk time.Duration.ty #x) := by
   unfold argOkAt
@@ -103,7 +103,7 @@ theorem argOkAt_duration (hDur : _root_.Perennial.time.Duration.String.spec (GF 
 
 open _root_.Perennial.fmt in
 /-- `%p` of the `OpenFile` func. -/
-theorem argOkAt_openFile (f : GoFunc) :
+private theorem argOkAt_openFile (f : GoFunc) :
     ⊢ argOkAt (GF := GF) methodVerbs ⟨W8 112, false⟩
       (interface.mkOk (go.GoType.FunctionType (go.signature.Signature
         [go.string, go.int, _root_.Perennial.os.FileMode.ty] false
@@ -117,7 +117,7 @@ theorem argOkAt_openFile (f : GoFunc) :
 
 open _root_.Perennial.fmt in
 /-- `%p` of the logger: nil or of a pointer type (`loggerPtrOk`). -/
-theorem argOkAt_logger (lg : GoInterface) (h : loggerPtrOk lg) :
+private theorem argOkAt_logger (lg : GoInterface) (h : loggerPtrOk lg) :
     ⊢ argOkAt (GF := GF) methodVerbs ⟨W8 112, false⟩ lg := by
   cases lg with
   | nil => unfold argOkAt; itrivial
