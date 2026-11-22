@@ -108,6 +108,10 @@ whose specs promise the bound to the server (its reply frame). -/
 abbrev ansLen.law : Prop :=
   ∀ (γ : KdNames) (c v : List w8), readAns (GF := GF) γ c v ⊢ ⌜v.length < 2 ^ 61⌝
 
+/-- **The same law of an operation's answers** (a seam, as `ansLen.law`). -/
+abbrev waitLen.law : Prop :=
+  ∀ (γ : KdNames) (d v : List w8), waitP (GF := GF) γ d v ⊢ ⌜v.length < 2 ^ 61⌝
+
 end facts
 
 end raft_kvnet
