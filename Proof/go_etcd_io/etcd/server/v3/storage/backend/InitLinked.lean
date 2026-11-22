@@ -32,6 +32,8 @@ public import Proof.github_com.prometheus.client_golang.prometheus.NewCounterVec
 public import Proof.github_com.prometheus.client_golang.prometheus.NewGaugeVec
 public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogramVec
 public import Proof.github_com.prometheus.client_golang.prometheus.MustRegister
+public import Proof.github_com.prometheus.client_golang.prometheus.Registry__MustRegister
+public import Proof.github_com.prometheus.client_golang.prometheus.Registry__Register
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -56,6 +58,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
+variable [promreg_gs : EtcdGrove.prometheus.PromRegGS GF]
 variable [_root_.Perennial.errors.Assumptions]
 
 namespace go_etcd_io.etcd.server.v3.storage.backend
@@ -70,10 +73,13 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   iapply EtcdGrove.wp_package_init_resL_self (heq := Hinit.1) (L := EtcdGrove.regResL (GF := GF) regQs)
     (L1 := EtcdGrove.regResL (GF := GF) [])
     (L2 := EtcdGrove.regResL (GF := GF) [])
-    (L' := EtcdGrove.regResL (GF := GF) []) (R := EtcdGrove.prometheus.namesFree (GF := GF) regNames)
+    (L' := EtcdGrove.regResL (GF := GF) [])
+    (R := EtcdGrove.prometheus.idToks (GF := GF) (EtcdGrove.prometheus.PromRegGS.γ (GF := GF))
+      (regNames.map EtcdGrove.prometheus.descId ++ regKeys))
     (hL := rfl) (hL' := rfl) $$ [Hown] HΦ
   iframe Hown
   iintro ⟨Hown, HR⟩
+  iunfold _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.regNames at HR
   wp_auto
   iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := GoInterface) isDefragActive _ as HisDefragActive
@@ -144,7 +150,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of commitSec))
   wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bcommitSec BcommitSec
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BcommitSec as %ccommitSec ⟨#CcommitSec, %NcommitSec⟩
+  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BcommitSec as %ccommitSec ⟨#CcommitSec, #NcommitSec⟩
   try wp_auto
   ihave #EcommitSec : (go_etcd_io.etcd.server.v3.storage.backend.histSpec ccommitSec : IProp GF) $$ []
   · iunfold EtcdGrove.prometheus.metric.histSpec at CcommitSec
@@ -153,7 +159,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of rebalanceSec))
   wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %brebalanceSec BrebalanceSec
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BrebalanceSec as %crebalanceSec ⟨#CrebalanceSec, %NrebalanceSec⟩
+  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BrebalanceSec as %crebalanceSec ⟨#CrebalanceSec, #NrebalanceSec⟩
   try wp_auto
   ihave #ErebalanceSec : (go_etcd_io.etcd.server.v3.storage.backend.histSpec crebalanceSec : IProp GF) $$ []
   · iunfold EtcdGrove.prometheus.metric.histSpec at CrebalanceSec
@@ -162,7 +168,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of spillSec))
   wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bspillSec BspillSec
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BspillSec as %cspillSec ⟨#CspillSec, %NspillSec⟩
+  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BspillSec as %cspillSec ⟨#CspillSec, #NspillSec⟩
   try wp_auto
   ihave #EspillSec : (go_etcd_io.etcd.server.v3.storage.backend.histSpec cspillSec : IProp GF) $$ []
   · iunfold EtcdGrove.prometheus.metric.histSpec at CspillSec
@@ -171,7 +177,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of writeSec))
   wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bwriteSec BwriteSec
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BwriteSec as %cwriteSec ⟨#CwriteSec, %NwriteSec⟩
+  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BwriteSec as %cwriteSec ⟨#CwriteSec, #NwriteSec⟩
   try wp_auto
   ihave #EwriteSec : (go_etcd_io.etcd.server.v3.storage.backend.histSpec cwriteSec : IProp GF) $$ []
   · iunfold EtcdGrove.prometheus.metric.histSpec at CwriteSec
@@ -180,88 +186,118 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of defragSec))
   wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bdefragSec BdefragSec
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BdefragSec as %cdefragSec ⟨#CdefragSec, %NdefragSec⟩
+  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BdefragSec as %cdefragSec ⟨#CdefragSec, #NdefragSec⟩
   try wp_auto
   -- translated initializer of defragBlockingSec))
   wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bdefragBlockingSec BdefragBlockingSec
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BdefragBlockingSec as %cdefragBlockingSec ⟨#CdefragBlockingSec, %NdefragBlockingSec⟩
+  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BdefragBlockingSec as %cdefragBlockingSec ⟨#CdefragBlockingSec, #NdefragBlockingSec⟩
   try wp_auto
   -- translated initializer of snapshotTransferSec))
   wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bsnapshotTransferSec BsnapshotTransferSec
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BsnapshotTransferSec as %csnapshotTransferSec ⟨#CsnapshotTransferSec, %NsnapshotTransferSec⟩
+  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BsnapshotTransferSec as %csnapshotTransferSec ⟨#CsnapshotTransferSec, #NsnapshotTransferSec⟩
   try wp_auto
   ihave #EsnapshotTransferSec : (go_etcd_io.etcd.server.v3.storage.backend.histSpec csnapshotTransferSec : IProp GF) $$ []
   · iunfold EtcdGrove.prometheus.metric.histSpec at CsnapshotTransferSec
     unfold go_etcd_io.etcd.server.v3.storage.backend.histSpec
     iexact CsnapshotTransferSec
   -- translated initializer of isDefragActive))
-  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cisDefragActive ⟨#CisDefragActive, #DisDefragActive, %NisDefragActive⟩
+  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cisDefragActive ⟨#CisDefragActive, #DisDefragActive, #NisDefragActive⟩
   try wp_auto
   -- the translated init.«0»
   wp_func_call
   wp_call
   try wp_auto
-  iunfold EtcdGrove.prometheus.namesFree at HR
-  iunfold _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.regNames at HR
-  icases HR with ⟨HR1, HR2, HR3, HR4, HR5, HR6, HR7, HR8, -⟩
+  icases (EtcdGrove.prometheus.idToks_names_cons (GF := GF) _ _ _ _).1 $$ HR with ⟨HR1, HR⟩
   wp_apply wp_slice_literal (l := [GoInterface.ok ccommitSec])
   isplitr
   · ipureintro; rfl
   iintro %s1 ⟨S1, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NcommitSec $$ [S1 HR1] as S1
-  · iframe S1 HR1
+  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof (EtcdGrove.prometheus.Registry.MustRegister.wp_proof EtcdGrove.prometheus.Registry.Register.wp_proof))
+      _ _ _ (EtcdGrove.prometheus.fqName go!"etcd" go!"disk" go!"backend_commit_duration_seconds") (by decide +kernel) $$ [S1 HR1] as S1
+  · iframe S1 HR1 NcommitSec
+    try iframe #
+    try iPkgInit
+  icases (EtcdGrove.prometheus.idToks_names_cons (GF := GF) _ _ _ _).1 $$ HR with ⟨HR2, HR⟩
   wp_apply wp_slice_literal (l := [GoInterface.ok crebalanceSec])
   isplitr
   · ipureintro; rfl
   iintro %s2 ⟨S2, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NrebalanceSec $$ [S2 HR2] as S2
-  · iframe S2 HR2
+  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof (EtcdGrove.prometheus.Registry.MustRegister.wp_proof EtcdGrove.prometheus.Registry.Register.wp_proof))
+      _ _ _ (EtcdGrove.prometheus.fqName go!"etcd_debugging" go!"disk" go!"backend_commit_rebalance_duration_seconds") (by decide +kernel) $$ [S2 HR2] as S2
+  · iframe S2 HR2 NrebalanceSec
+    try iframe #
+    try iPkgInit
+  icases (EtcdGrove.prometheus.idToks_names_cons (GF := GF) _ _ _ _).1 $$ HR with ⟨HR3, HR⟩
   wp_apply wp_slice_literal (l := [GoInterface.ok cspillSec])
   isplitr
   · ipureintro; rfl
   iintro %s3 ⟨S3, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NspillSec $$ [S3 HR3] as S3
-  · iframe S3 HR3
+  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof (EtcdGrove.prometheus.Registry.MustRegister.wp_proof EtcdGrove.prometheus.Registry.Register.wp_proof))
+      _ _ _ (EtcdGrove.prometheus.fqName go!"etcd_debugging" go!"disk" go!"backend_commit_spill_duration_seconds") (by decide +kernel) $$ [S3 HR3] as S3
+  · iframe S3 HR3 NspillSec
+    try iframe #
+    try iPkgInit
+  icases (EtcdGrove.prometheus.idToks_names_cons (GF := GF) _ _ _ _).1 $$ HR with ⟨HR4, HR⟩
   wp_apply wp_slice_literal (l := [GoInterface.ok cwriteSec])
   isplitr
   · ipureintro; rfl
   iintro %s4 ⟨S4, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NwriteSec $$ [S4 HR4] as S4
-  · iframe S4 HR4
+  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof (EtcdGrove.prometheus.Registry.MustRegister.wp_proof EtcdGrove.prometheus.Registry.Register.wp_proof))
+      _ _ _ (EtcdGrove.prometheus.fqName go!"etcd_debugging" go!"disk" go!"backend_commit_write_duration_seconds") (by decide +kernel) $$ [S4 HR4] as S4
+  · iframe S4 HR4 NwriteSec
+    try iframe #
+    try iPkgInit
+  icases (EtcdGrove.prometheus.idToks_names_cons (GF := GF) _ _ _ _).1 $$ HR with ⟨HR5, HR⟩
   wp_apply wp_slice_literal (l := [GoInterface.ok cdefragSec])
   isplitr
   · ipureintro; rfl
   iintro %s5 ⟨S5, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NdefragSec $$ [S5 HR5] as S5
-  · iframe S5 HR5
+  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof (EtcdGrove.prometheus.Registry.MustRegister.wp_proof EtcdGrove.prometheus.Registry.Register.wp_proof))
+      _ _ _ (EtcdGrove.prometheus.fqName go!"etcd" go!"disk" go!"backend_defrag_duration_seconds") (by decide +kernel) $$ [S5 HR5] as S5
+  · iframe S5 HR5 NdefragSec
+    try iframe #
+    try iPkgInit
+  icases (EtcdGrove.prometheus.idToks_names_cons (GF := GF) _ _ _ _).1 $$ HR with ⟨HR6, HR⟩
   wp_apply wp_slice_literal (l := [GoInterface.ok cdefragBlockingSec])
   isplitr
   · ipureintro; rfl
   iintro %s6 ⟨S6, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NdefragBlockingSec $$ [S6 HR6] as S6
-  · iframe S6 HR6
+  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof (EtcdGrove.prometheus.Registry.MustRegister.wp_proof EtcdGrove.prometheus.Registry.Register.wp_proof))
+      _ _ _ (EtcdGrove.prometheus.fqName go!"etcd" go!"disk" go!"backend_defrag_blocking_duration_seconds") (by decide +kernel) $$ [S6 HR6] as S6
+  · iframe S6 HR6 NdefragBlockingSec
+    try iframe #
+    try iPkgInit
+  icases (EtcdGrove.prometheus.idToks_names_cons (GF := GF) _ _ _ _).1 $$ HR with ⟨HR7, HR⟩
   wp_apply wp_slice_literal (l := [GoInterface.ok csnapshotTransferSec])
   isplitr
   · ipureintro; rfl
   iintro %s7 ⟨S7, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NsnapshotTransferSec $$ [S7 HR7] as S7
-  · iframe S7 HR7
+  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof (EtcdGrove.prometheus.Registry.MustRegister.wp_proof EtcdGrove.prometheus.Registry.Register.wp_proof))
+      _ _ _ (EtcdGrove.prometheus.fqName go!"etcd" go!"disk" go!"backend_snapshot_duration_seconds") (by decide +kernel) $$ [S7 HR7] as S7
+  · iframe S7 HR7 NsnapshotTransferSec
+    try iframe #
+    try iPkgInit
+  icases (EtcdGrove.prometheus.idToks_names_cons (GF := GF) _ _ _ _).1 $$ HR with ⟨HR8, HR⟩
   wp_apply wp_slice_literal (l := [GoInterface.ok cisDefragActive])
   isplitr
   · ipureintro; rfl
   iintro %s8 ⟨S8, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NisDefragActive $$ [S8 HR8] as S8
-  · iframe S8 HR8
+  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof (EtcdGrove.prometheus.Registry.MustRegister.wp_proof EtcdGrove.prometheus.Registry.Register.wp_proof))
+      _ _ _ (EtcdGrove.prometheus.fqName go!"etcd" go!"disk" go!"defrag_inflight") (by decide +kernel) $$ [S8 HR8] as S8
+  · iframe S8 HR8 NisDefragActive
+    try iframe #
+    try iPkgInit
+  iclear HR
   ipersist HcommitSec
   ipersist HrebalanceSec
   ipersist HspillSec
@@ -293,7 +329,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
 from `wp_initialize'_res`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.storage.backend get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init ∗ EtcdGrove.prometheus.namesFree (GF := GF) initNames }}
+    {{ ownInitializing get_is_pkg_init ∗ EtcdGrove.prometheus.regsFree (GF := GF) regQs }}
       (App (Val initialize') (Val #()))
     {{ RET #(); ownInitializing get_is_pkg_init ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend }} :=

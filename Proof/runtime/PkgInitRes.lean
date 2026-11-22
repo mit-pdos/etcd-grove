@@ -12,8 +12,15 @@ names, `prometheus.nameFree`, decision D16).
   the rest on unchanged (`initResL_sub`): whatever the import initializes, the packages initialized
   before stay initialized (Perennial's monotone package map, `ownGoStateLb`), so the resources held
   for them stay held. An import with none of them uses its `_lb` form (`initResL_carry`).
-* `regResL qs`: the list of `(q, namesFree Ns)` of the packages `qs` with their metric names, and
-  `wp_init_of_regResL`, the standard form whose precondition is `namesFree` of all the names.
+* `regResL qs`: the list of `(q, idToks γ (Ns.map descId ++ Ks))` of the packages `qs` with their
+  metric names `Ns` and the other IDs `Ks` they register (descriptor and collector IDs of a collector of
+  several descriptors: `v3rpc`'s server metrics), at the run's registry name `γ` (`PromRegGS`); and
+  `wp_init_of_regResL`, the standard form whose precondition is all of them (`regsFree qs`).
+  (prom-registry, route (b), 2026-11-22: keyed by ID, the rights are elements of the run's ghost map,
+  which the default registry's invariant owns once registered; until then `namesFree Ns`, `nameFree`
+  of each name, an abstract resource.)
+* `regQsOk qs` (decidable): the packages' IDs pairwise distinct, none a built-in's, no name a built-in's:
+  what a closed proof decides of its program to allocate the rights (`regKeysOf qs`) itself.
 
 (`ownInitRes`, the one-package form, is what this generalizes; it is left in `PkgInit.lean`,
 unused since, because removing it would rebuild every module.)
@@ -22,6 +29,7 @@ module
 
 public import Proof.runtime.PkgInit
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry
+public import Proof.github_com.prometheus.client_golang.prometheus.RegInv
 
 @[expose] public section
 
@@ -54,9 +62,21 @@ def initResL (L : List (GoString × IProp GF)) (σ : GMap GoString Bool) : IProp
 def ownInitResL (g : GoString → IProp GF) (L : List (GoString × IProp GF)) : IProp GF :=
   iprop(∃ σ, ownGoState σ ∗ □ initsOk g σ ∗ initResL L σ)
 
-/-- The packages `qs` with their metric names, each with the rights to register its names. -/
-def regResL (qs : List (GoString × List GoString)) : List (GoString × IProp GF) :=
-  qs.map (fun e => (e.1, prometheus.namesFree e.2))
+/-- The rights of one registering package, `(q, Ns, Ks)`: the IDs of its metric names (label-free
+descriptors: `descId`) and its other IDs `Ks`, at the run's registry name. -/
+def prometheus.regRes [prometheus.PromRegGS GF] (e : GoString × List GoString × List w64) : IProp GF :=
+  prometheus.idToks (prometheus.PromRegGS.γ (GF := GF)) (e.2.1.map prometheus.descId ++ e.2.2)
+
+/-- **The registration rights of the packages `qs`** (each `(q, Ns, Ks)`: its metric names and its
+other IDs; prom-registry, 2026-11-22): `regRes` of each. -/
+def prometheus.regsFree [prometheus.PromRegGS GF] (qs : List (GoString × List GoString × List w64)) :
+    IProp GF :=
+  iprop([∗list] e ∈ qs, prometheus.regRes e)
+
+/-- The packages `qs` with their metric names and other IDs, each with the rights to register them. -/
+def regResL [prometheus.PromRegGS GF] (qs : List (GoString × List GoString × List w64)) :
+    List (GoString × IProp GF) :=
+  qs.map (fun e => (e.1, prometheus.regRes e))
 
 theorem initResL_mono (L : List (GoString × IProp GF)) {σ σ' : GMap GoString Bool}
     (h : initLe σ σ') : initResL L σ ⊢ initResL L σ' := by
@@ -362,33 +382,71 @@ theorem wp_init_of_resL (get_is_pkg_init : GoString → IProp GF) (L : List (GoS
   iframe Hg
   imodintro; iexact Hi'
 
-/-- `namesFree` of the names of the packages `qs` gives each package's (`regResL qs`). -/
-theorem namesFree_regResL (qs : List (GoString × List GoString)) :
-    prometheus.namesFree (GF := GF) (qs.flatMap (·.2)) ⊢ [∗list] e ∈ regResL (GF := GF) qs, e.2 := by
-  induction qs with
-  | nil => unfold regResL; exact BigSepL.bigSepL_nil_intro
-  | cons e qs ih =>
-    unfold regResL prometheus.namesFree
-    simp only [List.flatMap_cons, List.map_cons]
-    iintro H
-    ihave ⟨H1, H2⟩ := BigSepL.bigSepL_append.1 $$ H
-    iapply BigSepL.bigSepL_cons.2
-    iframe H1
-    unfold regResL prometheus.namesFree at ih
-    iapply ih $$ H2
+/-- `regsFree qs` gives each package's entry of `regResL qs`. -/
+theorem regsFree_regResL [prometheus.PromRegGS GF] (qs : List (GoString × List GoString × List w64)) :
+    prometheus.regsFree (GF := GF) qs ⊢ [∗list] e ∈ regResL (GF := GF) qs, e.2 := by
+  unfold regResL prometheus.regsFree
+  rw [BigSepL.bigSepL_map]
 
-/-- The standard form whose precondition is the rights to register every name of `qs`
+/-- The standard form whose precondition is the rights to register every name and ID of `qs`
 (`etc/gen-init.py`'s `wp_initialize'` of a package with registering packages in its closure). -/
-theorem wp_init_of_regResL (get_is_pkg_init : GoString → IProp GF)
-    (qs : List (GoString × List GoString)) (v : val) (Q : IProp GF)
+theorem wp_init_of_regResL [prometheus.PromRegGS GF] (get_is_pkg_init : GoString → IProp GF)
+    (qs : List (GoString × List GoString × List w64)) (v : val) (Q : IProp GF)
     (H : {{ ownInitResL get_is_pkg_init (regResL qs) }} (App (Val v) (Val #()))
       {{ RET #(); ownInitResL get_is_pkg_init (regResL qs) ∗ Q }}) :
-    {{ ownInitializing get_is_pkg_init ∗ prometheus.namesFree (qs.flatMap (·.2)) }}
+    {{ ownInitializing get_is_pkg_init ∗ prometheus.regsFree qs }}
       (App (Val v) (Val #()))
       {{ RET #(); ownInitializing get_is_pkg_init ∗ Q }} :=
-  wp_init_of_resL get_is_pkg_init _ _ (namesFree_regResL qs) v Q H
+  wp_init_of_resL get_is_pkg_init _ _ (regsFree_regResL qs) v Q H
 
 end package_init
+
+/-! ## A run's registration rights (prom-registry, route (b), 2026-11-22) -/
+
+/-- The IDs the packages `qs` register: each name's label-free descriptor ID and the other IDs. -/
+def prometheus.regKeysOf (qs : List (GoString × List GoString × List w64)) : List w64 :=
+  qs.flatMap (fun e => e.2.1.map prometheus.descId ++ e.2.2)
+
+/-- **The packages `qs` can have their rights**: their IDs pairwise distinct and none a built-in's, and
+no name a built-in's. Decidable: each program's closed proof decides it by the kernel, in a lemma of its
+own (`decide +kernel`, raised `maxHeartbeats`: it hashes every name; prometheus-id-collision's
+`descIdsDistinct` was its first part). -/
+def prometheus.regQsOk (qs : List (GoString × List GoString × List w64)) : Prop :=
+  (prometheus.regKeysOf qs).Nodup ∧ (∀ k ∈ prometheus.regKeysOf qs, k ∉ prometheus.builtinKeys) ∧
+    (∀ e ∈ qs, ∀ n ∈ e.2.1, n ∉ prometheus.builtinNames)
+
+instance (qs : List (GoString × List GoString × List w64)) : Decidable (prometheus.regQsOk qs) := by
+  unfold prometheus.regQsOk; infer_instance
+
+section alloc
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+/-- The rights to the IDs of `qs` are its packages' rights. -/
+theorem prometheus.idToks_regsFree [prometheus.PromRegGS GF]
+    (qs : List (GoString × List GoString × List w64)) :
+    prometheus.idToks (GF := GF) (prometheus.PromRegGS.γ (GF := GF)) (prometheus.regKeysOf qs) ⊢
+      prometheus.regsFree (GF := GF) qs := by
+  induction qs with
+  | nil => iintro -; unfold prometheus.regsFree; iapply BigSepL.bigSepL_nil.2; iempintro
+  | cons e qs ih =>
+    have hk : prometheus.regKeysOf (e :: qs) =
+        (e.2.1.map prometheus.descId ++ e.2.2) ++ prometheus.regKeysOf qs := by
+      simp [prometheus.regKeysOf]
+    rw [hk]
+    iintro H
+    icases (prometheus.idToks_app (GF := GF) _ (e.2.1.map prometheus.descId ++ e.2.2)
+      (prometheus.regKeysOf qs)).1 $$ H with ⟨He, Hqs⟩
+    unfold prometheus.regsFree
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [He]
+    · unfold prometheus.regRes; iexact He
+    · unfold prometheus.regsFree at ih
+      iapply ih $$ Hqs
+
+end alloc
 
 end EtcdGrove
 end Perennial

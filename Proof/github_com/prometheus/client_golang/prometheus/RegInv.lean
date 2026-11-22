@@ -46,6 +46,14 @@ def builtinKeys : List w64 := seed.descIDs ++ seed.collectorIDs
 /-- The names the built-in collectors registered (`init()`). -/
 def builtinNames : List GoString := seed.dims.map (·.1)
 
+/-- **The run's registry ghost name** (Option 4, notes/prom-registry.md): the ghost map `γ` whose
+elements are the registration rights (`idTok γ k`) and whose registered keys' elements the default
+registry's invariant owns. Chosen by the program's proof (each closed proof allocates it inside its
+run, `letI : PromRegGS GF := ⟨γ⟩`); prometheus's package fact is parameterized by it
+(`IsPkgInitParam`, `PkgInit.lean`). -/
+class PromRegGS (GF : BundledGFunctors) where
+  γ : GName
+
 /-! ## What a collector registers -/
 
 section pure
@@ -161,6 +169,39 @@ theorem insertList_unit_lookup (ks : List K) (M : GMap K Unit) (k : K) :
 
 end insertList
 
+/-- A map built by inserts into the empty map has only the pairs' keys. -/
+theorem insertList_empty_keys {K V : Type} [DecidableEq K] (ps : List (K × V)) (S : List K)
+    (h : ∀ p ∈ ps, p.1 ∈ S) : ∀ k v, insertList ps ∅ !! k = some v → k ∈ S := by
+  intro k v hk
+  rcases insertList_lookup_cases ps ∅ k v hk with hm | hm
+  · exact h _ hm
+  · simp at hm
+
+/-- The trusted `init()`'s maps hold only built-in keys and names (`isRegistry_init`'s premises). -/
+theorem seed_C_builtin [GooseExts] : ∀ k v,
+    insertList (seed.collectorIDs.map (fun id => (id, (interface.nil : GoInterface)))) ∅ !! k = some v →
+      k ∈ builtinKeys :=
+  insertList_empty_keys _ _ (by
+    intro p hp
+    simp only [List.mem_map] at hp
+    obtain ⟨id, hid, rfl⟩ := hp
+    exact List.mem_append_right _ hid)
+
+theorem seed_D_builtin : ∀ k v,
+    insertList (seed.descIDs.map (fun id => (id, ()))) ∅ !! k = some v → k ∈ builtinKeys :=
+  insertList_empty_keys _ _ (by
+    intro p hp
+    simp only [List.mem_map] at hp
+    obtain ⟨id, hid, rfl⟩ := hp
+    exact List.mem_append_left _ hid)
+
+theorem seed_N_builtin : ∀ n h,
+    insertList (seed.dims.map (fun nd => nd)) ∅ !! n = some h → n ∈ builtinNames :=
+  insertList_empty_keys _ _ (by
+    intro p hp
+    simp only [List.map_id'] at hp
+    exact List.mem_map_of_mem hp)
+
 /-- `f d` of the `k`-th element is not `f` of an earlier one (`f` injective on the list). -/
 theorem nodup_take_notin {α β : Type} (f : α → β) (ds : List α) (k : Nat) (d : α)
     (h : (ds.map f).Nodup) (hd : ds[k]? = some d) : f d ∉ (ds.take k).map f := by
@@ -180,7 +221,7 @@ instance unit_intoValInj [GooseExts] [GoGlobalContext] : go.IntoValInj Unit := �
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-! ## The rights -/
@@ -201,6 +242,31 @@ theorem idToks_app (γ : GName) (ks1 ks2 : List w64) :
     idToks (GF := GF) γ (ks1 ++ ks2) ⊣⊢ idToks γ ks1 ∗ idToks γ ks2 := by
   unfold idToks; exact BigSepL.bigSepL_append
 
+theorem idToks_singleton (γ : GName) (k : w64) : idToks (GF := GF) γ [k] ⊣⊢ idTok γ k := by
+  unfold idToks; exact BigSepL.bigSepL_singleton
+
+/-- The rights to the IDs of the names `n :: ns` and to the keys `ks`: those of `n`, then the rest
+(a registering package's initializer takes its names' rights one by one; the IDs are never computed). -/
+theorem idToks_names_cons (γ : GName) (n : GoString) (ns : List GoString) (ks : List w64) :
+    idToks (GF := GF) γ ((n :: ns).map descId ++ ks) ⊣⊢
+      idToks γ [descId n] ∗ idToks γ (ns.map descId ++ ks) := by
+  rw [List.map_cons, List.cons_append]
+  constructor
+  · iintro H
+    icases (idToks_cons (GF := GF) γ _ _).1 $$ H with ⟨H1, H2⟩
+    iframe H2
+    iapply (idToks_singleton (GF := GF) γ _).2
+    iexact H1
+  · iintro ⟨H1, H2⟩
+    icases (idToks_singleton (GF := GF) γ _).1 $$ H1 with H1
+    iapply (idToks_cons (GF := GF) γ _ _).2
+    iframe
+
+/-- The rights left once every name's is taken: the other keys'. -/
+theorem idToks_names_nil (γ : GName) (ks : List w64) :
+    idToks (GF := GF) γ (([] : List GoString).map descId ++ ks) ⊣⊢ idToks γ ks :=
+  ⟨.rfl, .rfl⟩
+
 /-- Two rights to one key are one too many. -/
 theorem idTok_excl (γ : GName) (k : w64) : idTok (GF := GF) γ k ∗ idTok γ k ⊢ False := by
   unfold idTok
@@ -208,7 +274,16 @@ theorem idTok_excl (γ : GName) (k : w64) : idTok (GF := GF) γ k ∗ idTok γ k
   ihave %H := ghostMapElem_ne _ k k _ () () $$ H1 H2
   exact (H rfl).elim
 
-/-! ## What a collector describes -/
+end defs
+
+/-! ## What a collector describes (SPSC channels: `HasLC.hasLC`) -/
+
+section describes
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
 
 /-- **`c` describes the descriptors `ps`** (persistent): `c.Describe(ch)`, on any SPSC channel of
 descriptor pointers (any protocol `P`, `R`) whose producer has sent `sent`, given `P` of each of `ps`
@@ -229,13 +304,21 @@ instance describes_persistent (c : GoInterfaceOk) (ps : List Loc) :
 /-- **The collector `c` describes exactly one descriptor**, named `n`, without const labels (its ID
 `descId n`), valid: what a metric or metric vector constructor returns (`New<Kind>`, `New<Kind>Vec`;
 their variable labels enter only the descriptor's `dimHash`). Persistent. -/
-def collectorNameI (c : GoInterfaceOk) (n : GoString) : IProp GF :=
+def collectorName (c : GoInterfaceOk) (n : GoString) : IProp GF :=
   iprop(∃ (p : Loc) (d : Desc), p ↦□ d ∗
     ⌜d.fqName' = n ∧ d.id' = descId n ∧ d.err' = (interface.nil : GoInterface)⌝ ∗ describes c [p])
 
-instance collectorNameI_persistent (c : GoInterfaceOk) (n : GoString) :
-    Persistent (collectorNameI (GF := GF) c n) := by
-  unfold collectorNameI; infer_instance
+instance collectorName_persistent (c : GoInterfaceOk) (n : GoString) :
+    Persistent (collectorName (GF := GF) c n) := by
+  unfold collectorName; infer_instance
+
+end describes
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
 
 /-! ## The registry -/
 
@@ -460,13 +543,21 @@ theorem isRegistry_init [sync.Assumptions] (γ : GName) (r mC mD mN : Loc) (C : 
   iexists mC, mD, mN
   iframe #
 
-/-- **A one-descriptor collector, as `Register`'s spec takes it**: `collectorNameI c n` of a name no
+end defs
+
+section describes
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **A one-descriptor collector, as `Register`'s spec takes it**: `collectorName c n` of a name no
 built-in has gives the descriptor `Register` reads, its points-to, `descsOk`, and its one key
 `descId n` (the rights a registration of `c` needs: `idToks γ [descId n]`). -/
-theorem collectorNameI_desc (c : GoInterfaceOk) (n : GoString) (hn : n ∉ builtinNames) :
-    collectorNameI (GF := GF) c n ⊢ ∃ (p : Loc) (d : Desc), describes c [p] ∗
+theorem collectorName_desc (c : GoInterfaceOk) (n : GoString) (hn : n ∉ builtinNames) :
+    collectorName (GF := GF) c n ⊢ ∃ (p : Loc) (d : Desc), describes c [p] ∗
       ([∗list] p;d ∈ [p];[d], p ↦□ d) ∗ ⌜descsOk [d] ∧ descKeys [d] = [descId n]⌝ := by
-  unfold collectorNameI
+  unfold collectorName
   iintro ⟨%p, %d, #Hp, %Hd, #Hdesc⟩
   obtain ⟨hname, hid, herr⟩ := Hd
   iexists p, d
@@ -483,7 +574,7 @@ theorem collectorNameI_desc (c : GoInterfaceOk) (n : GoString) (hn : n ∉ built
     exact ⟨herr, by rw [hid, hname], by rw [hname]; exact hn⟩
   · rw [descKeys_one, hid]
 
-end defs
+end describes
 
 /-! ## The registry after a registration -/
 

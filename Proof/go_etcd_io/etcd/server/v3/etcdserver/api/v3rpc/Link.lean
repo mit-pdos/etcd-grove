@@ -192,6 +192,7 @@ public import Proof.go_uber_org.zap.zapcore.CheckedEntry__Write
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base
 public import Perennial.Proof.errors.Link
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
+public import Proof.github_com.prometheus.client_golang.prometheus.Registry__Register
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Link
@@ -671,7 +672,7 @@ theorem grpc_prometheus.wp_WithServerHandlingTimeHistogram :
 
 theorem prometheus.wp_Register :
     EtcdGrove.prometheus.Register.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.prometheus.Register.wp_proof
+  EtcdGrove.prometheus.Register.wp_proof EtcdGrove.prometheus.Registry.Register.wp_proof
 
 theorem wp_getServerMetrics :
     EtcdGrove.v3rpc.getServerMetrics.spec (GF := GF) (hG := hG) :=

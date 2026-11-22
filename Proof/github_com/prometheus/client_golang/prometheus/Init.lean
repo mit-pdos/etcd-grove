@@ -2,14 +2,18 @@
 Package initialization of `github_com.prometheus.client_golang.prometheus`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports, runs the untranslated
-initializers of its variables (`X.init`, axioms of the translation), which the trust-boundary axiom
-`opaqueInitsOk` says run without panicking, and its translated ones: `defaultRegistry = NewRegistry()`
-(stepped into) and `DefaultRegisterer`/`DefaultGatherer`, `defaultRegistry` converted to an interface; then
-its `init()`, whose trusted model (route (b), notes/prom-registry.md) inserts the built-in collectors'
-descriptor IDs, names and collector IDs into the registry's maps (`EtcdGrove.prometheus.wp_seed_insertAll`).
-(Until 2026-11-22 `defaultRegistry.init`, `DefaultRegisterer.init` and `DefaultGatherer.init` were among
-`opaqueInitsOk`, and `init.«0»` was the trust-boundary axiom `initFuncsOk`.)
+Its fact (`promInit γ`, `PkgInit.lean`, at the run's registry ghost name `γ`, the parameter
+`PromRegGS` of the package's fact; route (b), Option 4, 2026-11-22, notes/prom-registry.md): `defaultRegistry`
+and `DefaultRegisterer` hold the default registry, read-only, a registry over `γ` (`isRegistry`). Its
+initializer initializes its imports, runs the untranslated initializers of its variables (`X.init`, axioms of
+the translation), which the trust-boundary axiom `opaqueInitsOk` says run without panicking, and its translated
+ones: `defaultRegistry = NewRegistry()` (stepped into) and `DefaultRegisterer`/`DefaultGatherer`,
+`defaultRegistry` converted to an interface; then its `init()`, whose trusted model inserts the built-in
+collectors' descriptor IDs, names and collector IDs into the registry's maps
+(`EtcdGrove.prometheus.wp_seed_insertAll`); the registry's lock is then made the guard of its invariant
+(`EtcdGrove.prometheus.isRegistry_init`: the built-ins need no right). (Until 2026-11-22 its fact was `True`;
+until step 1 of route (b) `defaultRegistry.init`, `DefaultRegisterer.init` and `DefaultGatherer.init` were
+among `opaqueInitsOk`, and `init.«0»` was the trust-boundary axiom `initFuncsOk`.)
 -/
 module
 
@@ -73,6 +77,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions]
+variable [promreg_gs : EtcdGrove.prometheus.PromRegGS GF]
 
 namespace github_com.prometheus.client_golang.prometheus
 
@@ -87,6 +92,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := GoInterface) DefaultGatherer _ as HDefaultGatherer
   wp_apply wp_GlobalAlloc (V := GoInterface) DefaultRegisterer _ as HDefaultRegisterer
   wp_apply wp_GlobalAlloc (V := Loc) defaultRegistry _ as HdefaultRegistry
@@ -135,9 +141,23 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   wp_apply (EtcdGrove.prometheus.wp_seed_insertAll (K := w64) (V := GoInterface) go.uint64 (fun id => (id, (interface.nil : GoInterface))) github_com.prometheus.client_golang.prometheus.seed.collectorIDs) $$ HmC as HmC
   try wp_auto
+  -- the registry: its fields, and its lock the guard of its invariant (`isRegistry`)
+  irename «$r0» => Hreg0
+  iStructNamed Hreg0
+  imod (EtcdGrove.prometheus.isRegistry_init (GF := GF) (EtcdGrove.prometheus.PromRegGS.γ (GF := GF)) _ mC mD mN _ _ _ EtcdGrove.prometheus.seed_C_builtin EtcdGrove.prometheus.seed_D_builtin EtcdGrove.prometheus.seed_N_builtin) $$ mtx collectorsByID descIDs dimHashesByName HmC HmD HmN with #Hreg
+  ipersist HdefaultRegistry
+  ipersist HDefaultRegisterer
   -- translated initializer of defaultRegistry))
   -- translated initializer of defaultRegistry))
+  ihave #Hfact : (github_com.prometheus.client_golang.prometheus.promInit (EtcdGrove.prometheus.PromRegGS.γ (GF := GF)) : IProp GF) $$ []
+  · iunfold github_com.prometheus.client_golang.prometheus.promInit
+    iexists _
+    iframe #
   iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
   is_pkg_init_finish
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/

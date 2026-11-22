@@ -17,9 +17,8 @@ one right.
 
 **What is axiomatized** (each true of prometheus's Go code, client_golang v1.24.1, the version
 etcd's `server/go.mod` pins):
-- `collectorName c n`: the collector `c` describes exactly one descriptor, valid, named `n`,
-  without const labels (what `NewCounter` makes; mustreg, 2026-11-20: also a vector
-  `New<Kind>Vec` makes, its variable labels outside the descriptor's ID);
+- (until 2026-11-22) `collectorName c n`, an opaque `Prop`: now a definition over the real
+  registry's descriptors (`RegInv.lean`, route (b), notes/prom-registry.md);
 - `nameFree n` (abstract resource): the right to register a collector whose one descriptor is
   `n`'s, without const labels, in the default registry: no collector registered there (now, or
   later by anyone but the holder) has a descriptor named `n`, nor one whose ID is that
@@ -182,13 +181,6 @@ def histOpts (o : github_com.prometheus.client_golang.prometheus.HistogramOpts)
     (ns sub name help : GoString) (s : GoSlice) : Prop :=
   o = { (zeroValDef : github_com.prometheus.client_golang.prometheus.HistogramOpts) with
         Namespace' := ns, Subsystem' := sub, Name' := name, Help' := help, Buckets' := s }
-
-/-- The collector `c` describes exactly one descriptor: valid, of fully-qualified name `n`,
-without const labels (a counter `NewCounter` made; mustreg, 2026-11-20: or a metric vector
-`New<Kind>Vec` made, whose variable labels enter only the descriptor's `dimHash`, not its ID:
-`NewDesc` in client_golang v1.24.1's `desc.go` hashes the name and the const label values into
-`id`, the help and all label names into `dimHash`). -/
-axiom collectorName (c : GoInterfaceOk) (n : GoString) : Prop
 
 /-- **The right to register the name `n`** with prometheus's default registry (exclusive):
 no collector registered there, now or later by anyone but the holder, has a descriptor named
