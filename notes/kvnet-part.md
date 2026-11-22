@@ -924,3 +924,83 @@ Proved (no axiom, no `sorry`; ledger 2026-11-22, "kvcheck's `fresh`/`do`/`read` 
    linking module), the example as a corollary (premises by computation: `addrOk` of the five addresses,
    `splitAddrs` of the joined string), a non-vacuity lemma (machine states with an empty root `dir`, `FsInit`),
    and `etc/tcb-collections/kvnet.txt` (roots `raft_kvnet_robust`; axioms only the existing trust base).
+
+## kvnet's `Link`; two blockers for the top-level theorem (2026-11-22, seventh session on `kvnet-proof`)
+
+**kvnet's `Link.lean`** (`KvNet/Proof/.../kvnet/Link.lean`, namespace `Perennial.EtcdGrove.kvnetLink`):
+`etc/gen-link.py --kvnet` (`etc/link_kvnet.py`, a new binder-reading generator: `link_walfs.py`'s
+rules did not fit, its parameters are WAL-specific and kvnet's specs are instantiated at different
+places). Every kvnet and kvcheck proof is linked (140 results), from its binders: callees are the part's
+own results (kvnet's, kvcheck's, `Net/`'s `net` proofs, copied; gokv's `ResolveBytes`, the main
+tree's) or the linked results of raft-noax's `Link`/`Linked`, `durable`'s `Link` (both copied into the
+part: `etc/copy-part.py` now copies a source part's `Link` when the part imports it, and takes the
+part's own generated `Link` as a root), lintest's, porcupine's and Perennial's `Link`s. The generic proofs
+(`Node.handle`/`serveClient`/`serve`, `Run`, `RunNode`) are linked at the store's parameters
+(`kvFacts γ (fun _ => True)`, `kvRep γ vs dir`, `kvConfRead`, `kvNodeStart γ vs dir`: `INST`); the
+applications pass `_` for parameters and Lean unifies them. The section has `[KdStor GF]` and
+`kdStorageModel` as its `StorageModel`.
+
+**The cost** (the coordinator's question): the raft closure is copied into the part (+773 modules, raft-noax's
+proofs). There is no cheaper correct route under the part rules: the linked results' proofs are in the
+cone of every theorem that uses them, and a part module cannot import `RaftNoAx.*` beside its own copies
+of the same names (the part was built by copying for that reason). Importing `RaftNoAx`'s raft directly
+would mean making the part's raft *be* `RaftNoAx`'s (no `KvNet.Code.go_etcd_io.raft`), a redesign of the
+part, not worth it for one build of ~800 modules.
+
+**`errors.IsPathErrnoNotExist.spec` moved** to its own module `Spec/errors/IsPathErrnoNotExist.lean`
+(with `errIsNotExist`, unchanged), out of the WAL's `ExistCallees.lean`, so that `durable`'s `tryRead` (and
+the part through it) does not import the WAL's `fileutil` specs (whose translation the part does not have).
+The WAL's, the tester's and `durable`'s `Link`s regenerated (one import each).
+
+**Blocker 1 (trusted semantics; reported on #22, 2026-11-22, with the exact text):** the agreed statement
+relies on `Robust`'s `extsInitGlobal`/`extsInitLocal` for "no connection" and "files as on disk", but
+`net_semantics`/`fs_semantics` set no `initLocal`/`initGlobal` (Perennial's defaults, `True`). Without them
+the statement is false (a starting connection at a replica's address carries forged raft messages).
+Option (a), preferred: items 3-4 of `kvnet-robust-goal.md` (`initLocal L _ := L.init`, `initGlobal g :=
+g.init` in `net_semantics`; `initLocal st _ := FsInit st` in `fs_semantics`; untrusted `ExtInitCompat`
+instances). Option (b): the two facts as premises of the statement. The user's decision.
+
+**Blocker 2 (Perennial; reported on #22):** `StartNode` calls `durable.Read`, whose `tryRead` takes
+`errors.IsPathErrnoNotExist.spec`, unproved (Perennial branch `errors-facts`, pending review since
+2026-11-14, plus translating `(*fs.PathError).Unwrap` and `syscall.Errno.Is`). kvnet's `Link` carries it as
+`h_errors_IsPathErrnoNotExist` in `section links_pending` (`StartNode`, `Run`, `RunNode`).
+
+**Gap 3 (the statement's trusted instances; reported on #22):** `durable`'s proofs need `os`'s trusted
+`[os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]` (`TrustedCode/os.lean`, struct-field facts as
+`net.FieldAssumptions`), which `kvcheck.Assumptions` does not include: the statement needs both as
+instance binders (proposed text on #22). Also: lintest's linked results take `[NaInvG GF]`, so the
+top-level's ghost state is `kvnetGF` plus a `NaInvG` slot (kvdurable's `durableGF` has it at slot 11).
+
+`#print axioms` (2026-11-22): `kvnetLink.raft_kvcheck.wp_Check` and `kvnetLink.raft_kvnet.wp_RunNode`
+(over `h_errors_IsPathErrnoNotExist`): `propext`, `Classical.choice`, `Quot.sound`.
+
+### Handoff: what is left for the top-level theorem (after the blockers)
+
+1. **Package initializers**: kvnet's and kvcheck's `wp_initialize'` (and their `PkgTable`, as kvdurable's:
+   `etc/gen-init.py`, `KVNET_INITS` gets `...raft.kvnet` and `...raft.kvnet.kvcheck`; RunNode's
+   precondition needs `isPkgInit kvnet`, `io.EOF`'s and `poll.ErrDeadlineExceeded`'s points-to and
+   `context.isClosedchanInit`; Check's `isPkgInit kvcheck`, `connGlobals`, `context.isClosedchanInit`).
+   Check that gen-init adds no axiom (`etc/tcb-report.py`).
+2. **The bridge**: `Net/Statement/NetFsBridge.lean`'s `robust_of_netFsBoot` (legacy file mode, which is
+   enough: each generation switches to the shared mode at its first step, `Fs.wp_osShareE`, as the WAL
+   tester's `tBoot0`/`tBootCrash` do) at `GF := kvnetGF` (every kvnet ghost state is `AllG`'s). It imports
+   only base modules, so the part can import it as it is (or `copy-part` copies it). Under blocker 1's
+   option (a) its `NetFsDeploy` premise follows from `Robust`'s own premises plus the statement's
+   (`Nodup`, `addrOk`); a variant without `NetFsDeploy` is a few lines.
+3. **The start** (`Hstart`, from `[∗list] a ∈ addrs, addrUnset a`): raft's cluster (`cluster_alloc_nb`,
+   global, no bootstrap log, `dup = true`), the store (`kvdurable`'s `kd_alloc` as the template), every
+   address's protocols (`addrs_set_proto` with `kvP (kvFacts γ (fun _ => True)) id`/`kvQ …`), the client's
+   `Check` resources (`rkvInv γ`, `rkvVal γ kvEmpty`, `kvCnt … false 0`, `kvCnt … true 0`, `addrsProto`).
+4. **A replica's generation** (`CrashBootWp`'s `P i L`): global facts (the store, the cluster, the
+   protocols) and the generation's files (first: `fsStartRes`; later: the crash's `osTree`), the boot's
+   choice (`kd_boot_choose`, done in the crash obligation) and the next file contents. Its WP: switch to
+   the shared mode (`wp_osShareE`), `durable`'s boot on the directory (`DurFs.durBoot`), `kd_file_alloc`,
+   a fresh `KdStor` registry (`kdStorInv`, per generation: it holds heap points-to), then
+   `kvnet.initialize'` and `wp_RunNode γ vs dir` with `kvNodeStart`.
+5. **The crash obligation** (`CrashBootWp`'s frame): as the WAL tester's `tester_crash`: open
+   `kdFileInvK` with its token, `DurFs.durInv_crash`, `crashRest_treeS` for the next tree,
+   `kd_boot_choose`.
+6. **The top-level module** (`TopLevelRobustness.lean`, linking): `raft_kvnet_robust` from the above, the
+   example by computation (`addrOk` of the five addresses, `splitAddrs` of the joined string), a
+   non-vacuity lemma, `#print axioms`, `etc/tcb-collections/kvnet.txt`; then remove
+   `Proof/.../raft/kvnet/Robust.lean` and CLAUDE.md's mention of it.

@@ -364,11 +364,16 @@ def main(root, perennial, argv0, check=False):
 
     # instances: the proofs' own `variable` lines'
     insts = []
+    ext_used = []
     for s in order:
-        for line in vars_of.get(own[s]["mod"], []):
+        for b in own[s]["binders"]:
+            if b[0] == "spec" and b[2] not in own and b[2] in ext and ext[b[2]][3] not in ext_used:
+                ext_used.append(ext[b[2]][3])
+    for mod in [own[s]["mod"] for s in order] + ext_used:
+        for line in vars_of.get(mod, []):
             for g in re.findall(r"\[([^\[\]]*)\]", line):
                 ty = g.split(":", 1)[1].strip() if re.match(r"\s*[\w']+\s*:", g) else g.strip()
-                if ty not in OWN_INSTS and ty not in insts:
+                if ty not in OWN_INSTS and ty not in insts and not re.search(r"\bhlc\b", ty):
                     insts.append(ty)
     imports = set(own[s]["mod"] for s in order)
     for s in order:
