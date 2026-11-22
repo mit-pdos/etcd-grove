@@ -3684,3 +3684,24 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
   outgoing metadata, `streamKeyOf`) is unprovable over it.
 - **Proposed (general).** `%v`/`%+v` of a map: Go prints `map[` then the entries sorted by key (`fmt`'s
   `internal/fmtsort`), `k:v` separated by spaces, then `]`. **Status.** Recorded only.
+
+## 2026-11-22: no per-generation ghost name a package fact can name (prometheus's default registry, branch `prom-registry`)
+
+- **The gap.** A package fact (`isPkgInit`) is a fixed proposition of a global instance, and the ghost names
+  a generation hands its program (`GooseLocalGS`: the heap, the package state, the thread and crash tokens,
+  the extensions') are all tied to their own contents: none has a free slot where a proof can record a ghost
+  name of the run that every later reader agrees on (`notes/prom-registry.md`, "Step A", with the
+  definitions cited). So a fact naming per-run ghost state needs a typeclass instance threaded through every
+  importer (`define_is_pkg_init` synthesizes the dependencies' instances: for prometheus, 52 packages and
+  2073 modules) or a trusted extension. Hit by prometheus's default registry on the Go heap (#15): its
+  fact `isRegistry γ l` and the rights `regFree n` (allocated before prometheus initializes) must agree
+  on `γ`.
+- **Worked around locally.** Not yet: stages 4–5 of `notes/prom-registry.md` wait; the opaque
+  `prometheus.nameFree` axiom stays.
+- **Proposed (general).** A per-generation name supply: `GooseLocalGS.goose_localNamesName : GName`, a
+  ghost map `GoString ⇀ GName` allocated by the three constructors of a generation (`goose_init`,
+  `goose_local_init`, `goose_crash_step`), its authority `ownLocalNames ∅` handed to the generation's program
+  by new variants of the adequacy theorems (the current statements kept as corollaries, so the change is
+  additive), with `localName k γ` (persistent), `localName_agree` and `localName_set`. Exact shape, the
+  theorems that change and the rejected variants: `notes/prom-registry.md`, "Option 2". **Status.** Design
+  only, for the user's decision (2026-11-22); no Perennial branch.

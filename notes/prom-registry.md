@@ -218,3 +218,150 @@ The registry and its proofs do not depend on the choice (they are generic in `Pr
 stage 4 (`collectorName`/`regFree` definitions, `MustRegister`/`Register`/the initializer as theorems,
 `NewServerMetrics`' clause) and stage 5 (gen-init, the closed proofs) wait; `collectorName` as a definition
 (§2) does not depend on it and could go first, but rebuilds everything above `Registry.lean`.
+
+## Step A (2026-11-22): Perennial's package machinery cannot supply the run's γ
+
+The user's decision (kaashoek, 2026-11-22): before any Perennial change, check whether Perennial's existing
+per-run package-state ghost machinery can record the registry's ghost name `γ` for the run, persistently and
+with agreement, readable by `isPkgInit prometheus` and by the rights, without a typeclass. **It cannot.**
+Read at the pin (`/shared/perennial-c14cca87a`, `c14cca87a`):
+
+* **What a generation hands the program.** Every adequacy theorem's WP premise receives
+  `extsGlobalStart`, `extsLocalStart`, `ownGoState σ.goState.packageState` (`∅`) and `threadTok`
+  (`InitAdequacy.lean` `goose_adequacy_init`; `CrashAdequacy.lean` `goose_crash_adequacy`'s `Hstart` and its
+  crash continuation, which gets `ownGoState (hG := L'.goose_go_stateGS) ∅`); this repository's
+  `goose_adequacy_start` adds `startRights`. The per-generation ghost names are the fields of `GooseLocalGS`
+  (`Lifting.lean:738`): the extensions' `LocalGS`, `goose_na_heapGS` (`naHeapName`), `goose_go_stateGS`
+  (`packageInitedName`, `packageMonoName`), `goose_threadGS` (`threadTokName`), `goose_crashGS` (`crashName`).
+  None has room for a client's entry:
+  - `packageInitedName`: `ghost_var` halves of the *physical* package state, the other half in the state
+    interpretation (`gooseStateInterp`: `ownGoStateCtx σ.1.goState.packageState`). An entry changes only by
+    the `PackageInitStart`/`PackageInitFinish` instructions (`ownGoState_update_start`/`_finish`,
+    `PostLifting.lean` `wp_GoInstruction'`), whose package names come from the program's code: a proof cannot
+    add a key "no Go package uses".
+  - `packageMonoName`: `ownGoState v` holds `ghostMapAuth packageMonoName 1 (initedOf v)`, its map pinned to
+    the `true` entries of that same physical map (`Lifting.lean:304`), its fragments `p ↪□ b` with `b : Bool`.
+    Even a key the proof could set would give no agreement on a `γ`: a name encoded in keys (`"γ:" ++ γ ↪□
+    true`) is a set of persistent facts, two of which never conflict, so nothing says "this γ and no other".
+  - `naHeapName`: the heap's points-to's, tied to the physical heap; no `meta` tokens (`Algebra/NaHeap.lean:9`:
+    "no per-location metadata"), so no ghost name attaches to a location. (And `globalAddr defaultRegistry`
+    is a static address, `GoSemanticsFunctions.globalAddr`, allocated only by prometheus's own
+    `GlobalAlloc` (`wp_GlobalAlloc`), after the rights must already exist.)
+  - `threadTokName`, `crashName`: fixed contents (`ThreadGS`: the slot tokens below `threadBound`;
+    `CrashGS`: `notCrashed`/`crashed`), their authorities in the state interpretation.
+* **The universal camera does not give a second slot at an existing name.** `own γ (a : A)` owns the
+  singleton `{[e := some a]}` of `∏ e, option (int e)` (`Ghost/All.lean`), so the other codes at
+  `packageMonoName` are logically free; but putting `some x` there from `ε` is frame-preserving only for an
+  `x` compatible with every frame, which an agreement (or exclusive) element is not. The update that is
+  frame-preserving (a fresh key of a `gmapUR`, as `own_alloc_strong`) chooses the key, which readers then
+  cannot name: the same problem one level down.
+* **`IsPkgInit` cannot carry a run-chosen value.** `isPkgInitDef prometheus` is a fixed proposition of a
+  global instance (`Pkg.lean:148`); `ownInitializing g` records `□ g pkg` for every initialized `pkg`, with
+  `g pkg = isPkgInit pkg` forced by `GetIsPkgInitProp` (`build_get_is_pkg_init_wf`). So the record holds
+  `∃ γ, P γ` at best, and two such facts agree on `γ` only if `P` contains an agreement at a name both sides
+  can write, which is the question again. With `P γ := globalAddr defaultRegistry ↦□ l ∗ isRegistry γ l` the
+  heap gives agreement on `l` (persistent points-to's), not on `γ` (two lock invariants on one mutex do not
+  identify their ghost names).
+* **Rights minted by prometheus's initializer do not get around it.** The rights could carry the registry
+  fact themselves (`regFree n := ∃ γ l, globalAddr defaultRegistry ↦□ l ∗ isRegistry γ l ∗ idTok γ (descId
+  n)`), which needs no agreement on `γ` (`MustRegister` uses the right's own `isRegistry`). But prometheus's
+  initializer would then have to hand each registering package `q` its rights, and the only route into
+  `q`'s initializer is `ownInitResL`'s entries, which the closed proof fixes at the start, before `γ`
+  exists. A claim from an invariant in prometheus's fact (`q`'s tokens, unclaimed or claimed) needs a
+  per-run, per-`q` exclusive witness that refutes a second claim; the package state offers only `σ !! q =
+  some false` (held by any proof holding `ownGoState` during `q`'s initialization, not persistent) and
+  `q ↪[packageMonoName]□ true` (only after `q` finishes, too late), so the claim lemma is not provable.
+
+**Crash soundness** is not the obstacle (every per-generation name above is fresh in each generation:
+`goose_crash_step` allocates the heap, the package state, the thread and crash tokens anew); the obstacle is
+that no per-generation ghost location is free for a client, and every agreement needs one.
+
+So option 1 (the instance everywhere), option 2 (Perennial) or option 3 (a new trusted extension) remain;
+the user's decision picks option 2 next. Its design follows; nothing is changed in Perennial.
+
+## Option 2: a per-generation ghost-name supply in Perennial (design, for review)
+
+**Lean shape** (Perennial, `GooseLang/Lifting.lean` and a new `GooseLang/LocalNames.lean`):
+
+```lean
+class GooseLocalGS (GF : BundledGFunctors) where
+  ...                                -- unchanged fields
+  /-- The generation's supply of ghost names for libraries: a ghost map from keys to names,
+  whose authority (`ownLocalNames ∅`) the adequacy theorems hand to the generation's program. -/
+  goose_localNamesName : GName
+
+variable [L : GooseLocalGS GF] [AllG GF]    -- under `HeapGS`, as `ownGoState`
+
+/-- The authority of the generation's name map (exclusive). -/
+def ownLocalNames (m : GMap GoString GName) : IProp GF :=
+  ghostMapAuth L.goose_localNamesName 1 m
+/-- The generation records `γ` under key `k` (persistent). -/
+def localName (k : GoString) (γ : GName) : IProp GF :=
+  k ↪[L.goose_localNamesName]□ γ
+
+instance : Persistent (localName k γ); instance : Timeless (localName k γ)
+instance : Timeless (ownLocalNames m)
+theorem localName_agree : ⊢ localName k γ -∗ localName k γ' -∗ ⌜γ = γ'⌝     -- ghostMapElem_agree
+theorem localName_set (h : m !! k = none) (γ : GName) :
+    ⊢ ownLocalNames m ==∗ ownLocalNames (<[k := γ]> m) ∗ localName k γ   -- ghost_map_insert_persist
+theorem localNames_init : ⊢ |==> ∃ γn, ghostMapAuth γn 1 (∅ : GMap GoString GName)  -- ghost_map_alloc_empty
+```
+
+(`GoString` and `GName = Nat` are `Pos.Countable`; the keys are strings so that a library names its entry
+by its package path, as the package state does.)
+
+**Which adequacy theorems change.** Every theorem that builds a `GooseLocalGS` allocates the name
+(`localNames_init`) beside the package state; there are three, `goose_init` (`Adequacy.lean:131`),
+`goose_local_init` (`DistAdequacy.lean:252`) and `goose_crash_step` (`CrashAdequacy.lean:162`), and each
+returns `ownLocalNames ∅` of the new generation with its `ownGoState`. The resource reaches the program in new variants whose WP premises take
+`ownLocalNames ∅` after `ownGoState …` (and the crash continuations `ownLocalNames (L := L') ∅` after
+`ownGoState (hG := L'.goose_go_stateGS) ∅`): `goose_adequacy`, `goose_adequacy_below`, `goose_invariance`,
+`goose_crash_adequacy`, `goose_dist_adequacy`, `goose_dist_crash_adequacy`,
+`goose_dist_mixed_crash_adequacy` and their `_init` wrappers. To spare every existing client, each keeps its
+statement and becomes a corollary of its variant (the extra premise dropped with `-∗`), so the change is
+additive: no client of Perennial or of this repository breaks. Field order in `GooseLocalGS` and the
+anonymous constructors in those proofs (`⟨hFL, …, ⟨γC⟩⟩`) change; nothing outside them builds one (this
+repository: none; `WalTester`'s boot lemmas only take an `L`).
+
+**In this repository** (after a pin bump that brings it): `goose_adequacy_start` (`Proof/runtime/Start.lean`,
+the trusted start model) gets `ownLocalNames ∅` in its WP premise, a resource Perennial's theorems now give
+(one more item for Upamanyu's sign-off on #15, `notes/prom-registry-start-change.md`), as do the crash
+wrappers (`fsSQ_crash_adequacyShared`, ...) that the WAL tester's crash proof uses. Then, with `promKey :=
+"github.com/prometheus/client_golang/prometheus"`:
+
+* `PromRegGS` goes; `isRegistry γ l`, `idTok γ`, `regInv γ` take `γ` explicitly (they already do inside).
+* `prometheus.regFree n := ⌜n ∉ builtinNames⌝ ∗ ∃ γ, localName promKey γ ∗ idTok γ (descId n)`.
+* `isPkgInitDef prometheus := ∃ l γ, globalAddr defaultRegistry ↦□ l ∗ localName promKey γ ∗ isRegistry γ l`.
+* `MustRegister`'s proof: the fact's `γ` and the right's `γ'` are equal by `localName_agree`, then
+  `Registry.Register`'s spec. No instance argument appears anywhere: `localName` reads the name from `hG`.
+* The closed proof, per run: `promReg_alloc` (fresh `γ`, `builtinToks γ ∗ idToks γ ks`), `localName_set
+  promKey γ` (from `ownLocalNames ∅`), and hands `builtinToks` to prometheus's initializer and the
+  `regFree`s to the registering packages through `ownInitResL`, as `startRights` hands `namesFree` today.
+
+**The crash argument.** `localName` reads `hG.goose_localGS.goose_localNamesName`, allocated fresh for each
+generation (`goose_crash_step`), and the generation's program alone holds its authority, `∅` at its start. A
+`regFree` or a prometheus fact carried through a crash frame is over the crashed generation's `L` (its
+`localName`, `idTok` and registry are the old ones) and is not the new generation's `regFree`, which every
+spec of the new run is stated over; the new run's `γ` is set once (`localName_set` needs the key absent, and
+the authority starts at `∅`), so every reader of the new run agrees on it.
+
+**Why it is general, not shaped by this proof.** It is the Lean port's missing counterpart of what Rocq's
+Iris gives through `gen_heap`'s `meta` tokens: a way to make per-generation ghost state that package-level
+facts (`isPkgInit`) can name. Without it, any package whose fact must name ghost state of the run
+(a package-level registry or table behind a global variable, a ghost model of a package variable whose
+resources are handed out before the package initializes) must either thread a typeclass instance through
+every importer's `isPkgInit` (`define_is_pkg_init` synthesizes the dependencies' instances, so the
+argument spreads to every package above it) or become a trusted extension. The supply is keyed by strings
+so that any number of packages use it, and it changes no existing statement. (`meta` tokens on the heap
+would not serve here: the registry's location is allocated by prometheus's initializer, after the rights
+must exist.)
+
+**Rejected variants.** The authority inside `ownGoState` (an existential map, so no adequacy statement
+changes): a proof could not know a key is unset at the start, so `localName_set` would have no premise to
+discharge. A name recorded per package at its `PackageInitStart` (the map's domain following the package
+state's): the rights must name `γ` before prometheus starts, so this would need the claim scheme above, with
+a per-package exclusive token deposited at the start; more machinery for the same result.
+
+**Status.** Design only; recorded in `notes/perennial-changes.md` (2026-11-22). Nothing changed in Perennial;
+the coordinator brings it to the user. Stages 4–5 wait for the decision (the registry and its proofs, stage
+3', do not depend on it: they are generic in the name).
