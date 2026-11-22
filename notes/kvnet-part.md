@@ -1053,3 +1053,31 @@ Both need a Perennial change or a copy of Perennial's adequacy. Per the task rul
 - `netProto_alloc` then `addrs_set_proto`.
 
 Also still to do: the package initializers (gen-init's `KVNET_INITS` plus kvnet's and kvcheck's `PkgTable`), the client's `Check` WP, the example (`splitAddrs` of the literal, `addrOk`, `validCluster`), and the non-vacuity lemma (dir an empty root, `FsInit`).
+
+## The boot at the generation's start; the crash with a later credit (2026-11-22, ninth session on `kvnet-proof`)
+
+The coordinator's decisions (posted on #22): `[log.NewModel]` and `dir.length < 2 ^ 39` are in the statement
+(ledger 2026-11-22); the adequacy blocker takes route (a): Perennial's branch `crash-genstart` (a PR, not landed)
+gives (1) each generation's obligation the node's extensions' local interpretation before its WP and (2) the
+crash obligation `£ 1`. kvnet's proof is written against those shapes.
+
+**Done:**
+- **Package initializers**: kvnet's and kvcheck's `Init.lean` and their programs' `PkgTable.lean`
+  (`etc/gen-init.py`: `KVNET_INITS` gets both, `KVNET_PROGRAMS`, kvnet's `SPECIAL` for `StatNames`); raft's
+  `Init.lean` copied into the part (copy-part, from RaftNoAx's). Built.
+- **`TopBoot.lean`** (defs), all proved:
+  - `kvGen γ id f R` (a generation before its boot: `osInv`, the whole legacy tree with nothing logged and well
+    formed, `raftState`, `nodeVacant`, `fileHolds`, `durFound`/`durFoundTmp`) and `kvCrashKeep γ id fl` (what the
+    crash keeps: the file invariant and its token, raft's arm token, `durInv` and its token, `osSharedInv`);
+  - `kvGen_boot`: at `Fs.fs_interp.localCtx … σ` (kept): `osShare_ctx`, the directory's claim, `durBoot`,
+    `nodeVacant_arm`, `kd_file_alloc`, `osCallPerms_root`; gives `kvStart γ vs dir id fl 1` and `kvCrashKeep`;
+  - `kvGen_crash`: with `£ 1`: `kdFileInvK` opened (the credit strips the later on its contents, so
+    `raftState`/`kdFileState` come out without one: **`kd_boot_choose` needs no new raft law**), `durInv_crash0`
+    inside it (masks disjoint: `ndot_sub_diff`), closed on its crashed side, `crashRest_treeWf`,
+    `crashRest_treeS`, `kd_boot_choose`: the next generation's `kvGen` (at the next local ghost state);
+  - `kvGen_first` (the first generation from `FsInit`'s start resources, the file's two names absent),
+    `fileHolds_init`, `kvGen_stor` (`kvGen` names no storage registry: the same at any `KdStor`),
+    `kdStor_alloc` (a generation's fresh registry: `KdStor` is per generation, its records name the heap).
+- **`TopBridge.lean`**: `CrashBootWpG` and `RobustOfNetFsBootG`, `Net.robust_of_netFsBoot_addrs` in the proposed
+  shape (the fs component of the local interpretation; `£ 1` in the crash obligation), as a `Prop` for
+  `raft_kvnet_robust_of_errors` to take until the Perennial PR lands.
