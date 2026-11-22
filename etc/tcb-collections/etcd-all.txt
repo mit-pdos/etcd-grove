@@ -75,7 +75,6 @@ axiom bridge.bridge.Unblackhole.wp_proof
 axiom bridge.bridgeAt
 axiom bytes.Buffer.Write.wp_proof
 axiom ccDecodeV2_nil
-axiom config.ServerConfig.BackendPath.wp_proof
 axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithValue.wp_proof

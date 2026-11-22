@@ -11,6 +11,7 @@ public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.client.pkg.v3.transport
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.client.pkg.v3.types
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.pkg.v3.featuregate
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery
+public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.storage.datadir
 
 @[expose] public section
 noncomputable section

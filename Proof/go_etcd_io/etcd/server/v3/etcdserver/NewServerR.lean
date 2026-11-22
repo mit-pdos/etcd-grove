@@ -270,6 +270,8 @@ theorem NewServer.wp_proofRG
   iunfold srvDiskImageAt at Himg
   icases Himg with ⟨Hvac, HrS, %Himr, #HA, %Himp, ⟨%u, #Hmvi⟩, %Hbl, #Hconf, %Hcsm, Hwsi, Hrauth,
     Hfiles, Hsdimg⟩
+  -- (bkarea, 2026-11-22) the data directory shorter than `2^60` bytes (`srvSnapRO`'s)
+  icases srvFiles_dataDir_len _ _ _ _ $$ Hfiles with ⟨%Hddl, Hfiles⟩
   rw [Hρo] at Himp
   ihave #HA0 : srvRLogLb ⟨γ, [], W64 0⟩ A $$ []
   · rw [← Hρo]; iexact HA
@@ -1782,7 +1784,7 @@ theorem NewServer.wp_proofRG
       isplitr
       · ipureintro
         refine ⟨trivial, Hdisk.1, Hmmap, Hbuq, ?_, Hdirps.1, Hdisk.2, HbP,
-          Hci0, HhP, HPwf, HPlim, HlP, ⟨HalB, HauB, HauUB, HauRB⟩, trivial, by omega⟩
+          Hci0, HhP, HPwf, HPlim, HlP, ⟨HalB, HauB, HauUB, HauRB⟩, trivial, by omega, Hddl⟩
         rw [HρRaft, Hid]; exact Hsloc
       isplitr
       · iExactEq Hsdir

@@ -4708,3 +4708,21 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Evidence.** Reported on mit-pdos/etcd-grove#22 (gaps 4 and 5, with the exact texts).
 - **Proposed change.** As above.
 - **Decision.** Applied: approved by the coordinator (relayed to the kvnet-proof session, 2026-11-22).
+## 2026-11-22: `BackendPath`, `OpenSnapshotBackend`, `applySnapshot` take a data directory shorter than `2 ^ 60` bytes (bkarea)
+
+- **Spec.** `config.ServerConfig.BackendPath.spec`: a premise `d.length < 2 ^ 60` and `isPkgInit config` in
+  the pre (until now an axiom, now proved). `storage.OpenSnapshotBackend.spec`: a premise
+  `cfg.DataDir'.length < 2 ^ 60`. `EtcdServer.applySnapshot.specSnapM`: a premise `hdd` of the same text after
+  `hmmap`. `srvSnapRO`'s pure part: the same conjunct, last.
+- **Defect.** `BackendPath()` is `datadir.ToBackendFileName(c.DataDir)`, three `filepath.Join`s; `Join`'s spec
+  (proved) needs its elements' lengths to sum below `2 ^ 62` (Go strings are shorter than `2 ^ 63`, GooseLang's
+  are lists). `Clean` can shorten a path (`a/../a/../...`), so no bound on the backend path's length bounds the
+  data directory's: the premise is on `DataDir` itself.
+- **Evidence.** `Proof/go_etcd_io/etcd/server/v3/storage/datadir/*.lean`, `Proof/path/CleanIdem.lean`
+  (`joinModel_triple_length`).
+- **Proposed change.** As above. Every caller discharges it: `applySnapshot` from `srvSnapRO`; `srvSnapRO` at a
+  first start from `bootCfgFresh`'s `Fs.DirFits cfg.DataDir'` (under 3800 bytes, `NewServer`), at a restart from
+  the image's WAL area (`srvFiles_dataDir_len`: `WalA.fits` of `srvWalDirOf dd`, `NewServerR`), kept by
+  `srvSnapRO_succ`. No top-level statement changes.
+- **Decision.** Applied under the approved ownership-premise rule (an intermediate premise every caller
+  discharges; the user's 2026-11-21 rule), bkarea, 2026-11-22.

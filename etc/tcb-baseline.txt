@@ -84,7 +84,6 @@ axiom bytes.Buffer.Write.wp_proof
 axiom cache.wp_Errorf_setArgs
 axiom ccDecodeV2_nil
 axiom cmp.Diff.wp_proof_eventRefs
-axiom config.ServerConfig.BackendPath.wp_proof
 axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithValue.wp_proof
