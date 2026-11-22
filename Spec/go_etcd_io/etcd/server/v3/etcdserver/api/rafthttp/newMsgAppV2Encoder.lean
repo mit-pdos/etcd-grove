@@ -20,12 +20,13 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **`newMsgAppV2Encoder(w, fs)`** of a writer and non-`nil` follower stats: an encoder at the zero
-state (`v2Codec`'s initial state). -/
+/-- **`newMsgAppV2Encoder(w, fs)`** of a writer and non-`nil` follower stats (with their mutex,
+`v2stats.isFollowerStats`; prove-ps2-succ, 2026-11-22, for `Succ`'s premise): an encoder at the
+zero state (`v2Codec`'s initial state). -/
 abbrev rafthttp.newMsgAppV2Encoder.spec : Prop :=
   ∀ (wi : GoInterfaceOk) (fs : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-      ⌜fs ≠ null⌝ }}
+      ⌜fs ≠ null⌝ ∗ v2stats.isFollowerStats fs }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.newMsgAppV2Encoder))
       (Val #(GoInterface.ok wi))) (Val #fs))
   {{ (enc : Loc), RET #enc; v2EncOwn enc wi fs ⟨W64 0, W64 0⟩ }}

@@ -30,7 +30,7 @@ theorem rafthttp.streamWriter.attach.wp_proof :
   wp_start as ⟨#Hf, Hconn⟩
   iunfold swFixed at Hf
   icases Hf with ⟨%lg, %ps, %fs, %r, %γd, %cc, %sc, %dc, %γc, %γs, %γdn, -, -, -, -, -, -, -, -,
-    -, -, -, #Hcc, #Hbag, -, -, #Hdc, #Hdone⟩
+    -, -, -, -, #Hcc, #Hbag, -, -, #Hdc, #Hdone⟩
   wp_auto_lc 2
   wp_apply_core chan.wp_select_blocking
   iapply BigAndL.bigAndL_cons.2

@@ -29,7 +29,7 @@ theorem rafthttp.startStreamWriter.wp_proof
     (hRun : rafthttp.streamWriter.run.spec (GF := GF) (hG := hG)) :
     rafthttp.startStreamWriter.spec (GF := GF) (hG := hG) := by
   intro Rh ty lid pid Rr lg ps fs r γd
-  wp_start as ⟨#Hlgz, #Hps, %Hfsnn, #Hraft⟩
+  wp_start as ⟨#Hlgz, #Hps, %Hfsnn, #Hfsi, #Hraft⟩
   ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   wp_auto
   wp_apply (chan.wp_make2 (V := Loc) (W64 4096))

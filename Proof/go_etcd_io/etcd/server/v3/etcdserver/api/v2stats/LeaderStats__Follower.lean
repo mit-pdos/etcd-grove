@@ -66,10 +66,11 @@ theorem v2stats.LeaderStats.Follower.wp_proof :
     (try wp_auto)
     ihave %Hr0 := typedPointsto_not_null $$ «$r0»
     iStructNamed «$r0»
-    iStructNamed Counts
-    imod sync.init_Mutex iprop(∃ c : w64, v2stats.fsFailAddr «$r0_ptr» ↦ c) ⊤
-      (v2stats.fsMutexAddr «$r0_ptr») $$ Mutex [Fail] with #Hnew
-    · inext; iexists _; iexact Fail
+    imod sync.init_Mutex iprop(∃ (c : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.CountsStats)
+        (l : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats),
+        v2stats.fsCountsAddr «$r0_ptr» ↦ c ∗ v2stats.fsLatencyAddr «$r0_ptr» ↦ l) ⊤
+      (v2stats.fsMutexAddr «$r0_ptr») $$ Mutex [Counts Latency] with #Hnew
+    · inext; iexists _, _; iframe
     ihave #Hnew' : v2stats.isFollowerStats «$r0_ptr» $$ []
     · iunfold v2stats.isFollowerStats; iexact Hnew
     wp_apply wp_mapInsert $$ [Hm] as Hm

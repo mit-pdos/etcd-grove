@@ -10,6 +10,7 @@ variable).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
+public import Perennial.Proof.math.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
 public import Proof.go_etcd_io.raft.v3.Init

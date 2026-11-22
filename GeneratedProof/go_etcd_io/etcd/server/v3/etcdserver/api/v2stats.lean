@@ -4,6 +4,7 @@ module
 public import Perennial.Proof.ProofPrelude
 public import GeneratedProof.go_etcd_io.raft.v3
 public import GeneratedProof.go_uber_org.zap
+public import Perennial.GeneratedProof.math
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory

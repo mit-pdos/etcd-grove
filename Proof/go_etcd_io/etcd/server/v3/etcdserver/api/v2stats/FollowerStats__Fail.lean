@@ -36,12 +36,12 @@ theorem v2stats.FollowerStats.Fail.wp_proof :
   (try wp_auto)
   wp_method_call
   wp_call
-  wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, %c, Hc⟩
+  wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, %c, %l, Hc, Hl⟩
   (try wp_auto)
   wp_method_call
   wp_call
-  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hc]
-  · inext; iexists _; iframe
+  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hc Hl]
+  · inext; iexists _, _; iframe
   (try wp_auto)
   iapply HΦ
   itrivial

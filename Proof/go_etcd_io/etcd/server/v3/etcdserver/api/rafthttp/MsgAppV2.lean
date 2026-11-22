@@ -24,6 +24,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Codec
 public import Proof.go_etcd_io.raft.v3.MsgRead
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.Defs
 
 @[expose] public section
 
@@ -601,13 +602,15 @@ variable [sem : go.Semantics]
 /-- `msgAppV2BufSize`. -/
 abbrev v2BufSize : Int := 1048576
 
-/-- **The msgappv2 encoder `enc`** writing to `wi`, with the follower stats `fs`, at the state `cs`
+/-- **The msgappv2 encoder `enc`** writing to `wi`, with the follower stats `fs` (with their mutex,
+`v2stats.isFollowerStats`: `encode` counts each frame into them), at the state `cs`
 (exclusive): its writer and stats fixed, its state, and its three buffers, owned (the entries'
 buffer `buf` of `msgAppV2BufSize` bytes, with its capacity: `MarshalAppend` writes into it). -/
 def v2EncOwn (enc : Loc) (wi : GoInterfaceOk) (fs : Loc) (cs : V2St) : IProp GF :=
   iprop(∃ (buf s8 s1 : GoSlice) (zs x8 x1 : List w8),
     "#Hw" ∷ enc.[go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.msgAppV2Encoder, go!"w"] ↦□ GoInterface.ok wi ∗
     "#Hfs" ∷ enc.[go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.msgAppV2Encoder, go!"fs"] ↦□ fs ∗ "%Hfsnn" ∷ ⌜fs ≠ null⌝ ∗
+    "#Hfsi" ∷ v2stats.isFollowerStats fs ∗
     "Hterm" ∷ enc.[go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.msgAppV2Encoder, go!"term"] ↦ cs.term ∗
     "Hindex" ∷ enc.[go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.msgAppV2Encoder, go!"index"] ↦ cs.index ∗
     "#Hbuf" ∷ enc.[go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.msgAppV2Encoder, go!"buf"] ↦□ buf ∗

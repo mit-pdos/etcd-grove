@@ -17,6 +17,19 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `math.Sqrt` names-only: translated over a trusted `sqrt` in mit-pdos/perennial#675 (2026-11-22, prove-ps2-succ)
+
+- **Limitation.** `math.Sqrt` had no body at the pin, so `v2stats.FollowerStats.Succ` (its standard deviation) stayed a
+  trust-boundary axiom after the IEEE 754 floats (perennial#654).
+- **Who needs it.** `v2stats.FollowerStats.Succ.wp_proof` (branch `prove-ps2-succ/2026-11-22`: proved, waiting on the
+  pin).
+- **Proposed change.** perennial#675 (in review, branch `math-sqrt`): `Sqrt`, `Float64bits`/`Float64frombits` (the
+  `unsafe.Pointer` views, under the plain-memory rules), `IsNaN`, `IsInf`, `Abs`, `NaN` translated with specs and
+  proofs; `sqrt` trusted as an arbitrary float, because gc compiles it to `SQRTSD` (a compiler intrinsic), whose NaNs
+  differ from the Go body's (measured: `Sqrt(-1)` is `0xfff8000000000000`, the body's `0x7ff8000000000001`), so
+  translating the body would be unfaithful.
+- **Status.** Open: the PR waits for review, then a pin bump (#9).
+
 ### The robustness theorems' standard-library leaf axioms: what the pinned Perennial lacks (2026-11-21, claim #26, branch `prove-stdlib-leaves/2026-11-21`)
 
 - **Done here, no Perennial change.** `bufferM.ownBuffer_new` is a theorem, `ownBuffer` a definition

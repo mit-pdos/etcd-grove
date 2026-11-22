@@ -180,7 +180,7 @@ theorem rafthttp.pipeline.handle.wp_proof
         wp_apply (time.Time.wp_ptr_Sub_of wp_Sub) $$ [$Hend] as %dd Hend
         (try wp_auto)
         wp_apply hSucc fs dd $$ []
-        ipureintro; assumption))
+        iapply HfsI; ipureintro; assumption))
       all_goals
         (try wp_auto)
         wp_apply hIsSnap ml st $$ [$Hm]

@@ -25,6 +25,27 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-22: `FollowerStats.Succ` takes the stats' mutex (prove-ps2-succ)
+
+- **Spec.** `v2stats.FollowerStats.Succ.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v2stats/`; a
+  trust-boundary axiom until this change, `leader.go` names-only for it); SpecPlan's `FollowerStats.Succ.spec` already
+  takes `isFollowerStats p`. Moved with it: `v2stats.isFollowerStats` (now guarding all of `Counts` and `Latency`),
+  `newMsgAppV2Encoder.spec` and `startStreamWriter.spec` (premise `v2stats.isFollowerStats fs` added beside
+  `fs ≠ null`), `v2EncOwn` and `swFixed` (which keep it).
+- **Defect.** Not provable over the real code: `Succ` locks the stats' embedded `sync.Mutex` and updates
+  `Counts.Success` and the six `Latency` fields (`leader.go:104-128`), and the premise (`fs ≠ null`) gave no mutex and no
+  points-to. True of Go by its type safety, not provable in the logic (as `Fail`'s, the entry of 2026-11-21).
+- **Evidence.** The translation (`Code/go_etcd_io/etcd/server/v3/etcdserver/api/v2stats.lean`, `FollowerStats.Succ.impl`).
+- **Proposed change.** As above: `isFollowerStats fs` owns `Counts` and `Latency` whole (`Follower` allocates them
+  with the mutex); `Succ` and `Fail` take it. Its callers discharge it: the pipeline from `pipeHandleOk` (as for
+  `Fail`), the msgappv2 encoder from `v2EncOwn`, which `newMsgAppV2Encoder` builds from its new premise, which
+  `streamWriter.run` takes from `swFixed`, which `startStreamWriter` builds from its new premise, which `startPeer`
+  has (its premise since 2026-11-21). The user's decision (2026-11-21): an ownership premise every caller discharges
+  may be added.
+- **Decision.** Applied (prove-ps2-succ, 2026-11-22): `Succ` translated and proved over Perennial's `math.Sqrt`
+  (mit-pdos/perennial#675, in review: `sqrt`, compiled to the square-root instruction, trusted as an arbitrary
+  float), the axiom retired once the pin includes #675.
+
 ## 2026-11-22: raft's `RestartNode` -- its client update cannot open a crash invariant (no crash token), so a client cannot keep `raftState` where a crash obligation can take it
 
 - **Spec.** `Spec/go_etcd_io/raft/v3/RestartNode.lean`, `RestartNode.spec`: the update
