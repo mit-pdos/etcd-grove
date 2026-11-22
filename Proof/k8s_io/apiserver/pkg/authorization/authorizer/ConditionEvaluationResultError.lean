@@ -43,7 +43,7 @@ theorem ConditionEvaluationResultError.wp_proof
     iexact He
   | nil =>
     wp_auto
-    wp_apply _root_.Perennial.errors.wp_New_errorString as %x #Hx
+    wp_apply _root_.Perennial.errors.wp_New_errorString as %x ⟨#_, #Hx⟩
     iapply HΦ
     iapply utilerrors.errorString_errTreeOrNil x _
     iexact Hx
