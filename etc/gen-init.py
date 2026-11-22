@@ -5253,6 +5253,58 @@ def kvnet_inits(ext_txt):
     return outs
 
 
+# The part `Dsverify/` (the dsverify kits ported onto the net extension, notes/dsv-paxos.md;
+# project dsv-paxos): its packages over the part `Net/`'s `net` and remote, and the main tree's
+# lintest and porcupine (`NET_MAIN`). Generated as `Net/`'s, from `Net/`'s translation and instances
+# with the part's added, the imports of the part's modules prefixed `Dsverify.` and of `Net/`'s
+# `Net.`; the programs' `PkgTable`s (`DSV_PROGRAMS`).
+DSV_ROOT = 'Dsverify'
+DSV_PAXOS = 'github_com.xiang90.paxos'
+DSV_NODES = ['orch'] + [f'client{c}' for c in range(4)] + [f'server{s}' for s in range(1, 6)]
+DSV_PKGS = [DSV_PAXOS, f'{DSV_PAXOS}.examples.paxosnet'] + \
+    [f'{DSV_PAXOS}.examples.paxosnet.cmd.{n}' for n in DSV_NODES]
+DSV_PROGRAMS = {f'{DSV_PAXOS}.examples.paxosnet.cmd.{n}':
+                f'Proof/{DSV_PAXOS.replace(".", "/")}/examples/paxosnet/cmd/{n}/PkgTable.lean'
+                for n in DSV_NODES}
+
+
+def dsv_inits():
+    """The part's `Init.lean` files and its programs' `PkgTable.lean`."""
+    global inv, inst, CFG_OVERRIDE
+    saved = inv, inst, CFG_OVERRIDE
+    try:
+        CFG_OVERRIDE = NET_SPECIAL
+        inv = inventory(f'{NET_ROOT}/Code')
+        inst = instances(f'{NET_ROOT}/Proof/')
+        for p in NET_MAIN:
+            inv[p] = saved[0][p]
+            inst[p] = saved[1][p]
+        for q, d in inventory(f'{DSV_ROOT}/Code').items():
+            if not d['perennial']:
+                inv[q] = d
+        inst.update(instances(f'{DSV_ROOT}/Proof/'))
+        raw = [(f'{DSV_ROOT}/{path}', txt) for p in DSV_PKGS
+               if os.path.exists(f'{DSV_ROOT}/Code/{dirof(p)}.lean')
+               for path, txt in gen(p, SPECIAL.get(p))]
+        made = {path for path, _ in raw}
+        for p, path in DSV_PROGRAMS.items():
+            path, txt = gen_table(p, path)
+            raw.append((f'{DSV_ROOT}/{path}', txt))
+    finally:
+        inv, inst, CFG_OVERRIDE = saved
+    made = {path for path, _ in raw}
+
+    def imp(m):
+        x = m.group(2)
+        f = x.replace('.', '/') + '.lean'
+        if os.path.exists(f'{DSV_ROOT}/{f}') or f'{DSV_ROOT}/{f}' in made:
+            x = f'{DSV_ROOT}.{x}'
+        elif os.path.exists(f'{NET_ROOT}/{f}') or x == 'Proof.runtime.PkgInitExt':
+            x = f'{NET_ROOT}.{x}'
+        return m.group(1) + x
+    return [(path, re.sub(r'(?m)^(public import )(\S+)', imp, txt)) for path, txt in raw]
+
+
 def main(argv):
     check = '--check' in argv
     pkgs = [a for a in argv if not a.startswith('--')] or packages()
@@ -5271,6 +5323,7 @@ def main(argv):
         outs += noax_inits()
         outs += net_inits(next(t for p, t in outs if p == 'Proof/runtime/PkgInitExt.lean'))
         outs += kvnet_inits(next(t for p, t in outs if p == 'Proof/runtime/PkgInitExt.lean'))
+        outs += dsv_inits()
     for path, txt in outs:
         old = open(path).read() if os.path.exists(path) else None
         if old == txt:
