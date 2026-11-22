@@ -47,6 +47,8 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
     `syscall.Getpagesize` = 4096 on linux/amd64);
   - `math.Ceil`: `math` translates only its tables (and `FloatOps` has no laws);
   - `rand.Int63n`: `math/rand` is names-only (`globalRand`, its lock and source);
+  - (2026-11-22, prove-ps2-rqb) `rand.Float64`, likewise (client/v3's `jitterUp`: the trust-boundary
+    axiom `rand.Float64.wp_proof`, `Proof/math/rand/Float64.lean`);
   - `sort.SliceIsSorted`: names-only, through `reflectlite.ValueOf(x).Len()` (the entry below);
   - `context.WithValue`: `context.toml` excludes it (`reflectlite.TypeOf(key).Comparable()`);
   - `context.WithCancelValCtx`: `WithCancel` of etcd's `valCtx` takes `propagateCancel`'s last

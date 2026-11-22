@@ -12,7 +12,6 @@
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/Results\.lean$
 axiom Client.Close.wp_proof
 axiom Client.Endpoints.wp_proof
-axiom Client.roundRobinQuorumBackoff.wp_proof
 axiom Client.streamClientInterceptor.wp_proof
 axiom DescribeConfChange.wp_proof
 axiom EtcdServer.leaseTimeToLive.wp_proof
@@ -30,7 +29,6 @@ axiom Perennial.go_etcd_io.etcd.api.v3.membershippb.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.api.v3.mvccpb.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.api.v3.version.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.opaqueInitsOk
-axiom Perennial.go_etcd_io.etcd.client.v3.defaultOptions_init
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Tracer_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.toGRPCErrorMap_init
@@ -237,6 +235,7 @@ axiom proto.UnmarshalConfChangeV2.wp_proof
 axiom proto.UnmarshalPb.wp_proof
 axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.netErrNotRemoved_ok
+axiom rand.Float64.wp_proof
 axiom rate.Limiter.Wait.wp_proof
 axiom recEncC_ok
 axiom reflect.DeepEqual.wp_proof_pgidSet
