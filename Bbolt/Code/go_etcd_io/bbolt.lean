@@ -171,13 +171,13 @@ attribute [irreducible] hexKvStringer.ty
   #(2147483646 : Int)
 
 @[reducible] noncomputable def minFillPercent [GooseExts] [GoGlobalContext] : val :=
-  #(W64 4591870180066957722)
+  #(mkRat (1 : Int) 10)
 
 @[reducible] noncomputable def maxFillPercent [GooseExts] [GoGlobalContext] : val :=
-  #(W64 4607182418800017408)
+  #(mkRat (1 : Int) 1)
 
 @[reducible] noncomputable def DefaultFillPercent [GooseExts] [GoGlobalContext] : val :=
-  #(W64 4602678819172646912)
+  #(mkRat (1 : Int) 2)
 
 @[reducible] noncomputable def flockRetryTimeout [GooseExts] [GoGlobalContext] : val :=
   #(W64 50000000)
@@ -574,7 +574,7 @@ noncomputable def newBucket.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Val exceptionDo)
   (Let "tx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Tx.ty)))) (Var "tx"))
   (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Tx.ty)))) (Var "tx"))
-  (Let "$v1" (App (Val (GoInstruction (Convert go.untypedFloat go.float64))) (Val DefaultFillPercent))
+  (Let "$v1" (Val #(W64 4602678819172646912))
   (App (Val (GoInstruction (CompositeLiteral Bucket.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"tx")) (ElementExpression (go.GoType.PointerType Tx.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"FillPercent")) (ElementExpression go.float64 (Var "$v1")))]))))
   (Let "b" (App (Val (GoInstruction (GoAlloc Bucket.ty))) (App (Val (GoInstruction (GoZeroVal Bucket.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -868,7 +868,7 @@ noncomputable def Bucket.CreateBucket.impl [GooseExts] [GoGlobalContext] : val :
   (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.bbolt.internal.common.InBucket.ty))) (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.bbolt.internal.common.InBucket.ty))) (LiteralValue [])))
   (Let "$v1" (App (Val (GoInstruction (GoAlloc node.ty))) (Let "$v0" (Val #true)
   (App (Val (GoInstruction (CompositeLiteral node.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"isLeaf")) (ElementExpression go.bool (Var "$v0")))]))))
-  (Let "$v2" (App (Val (GoInstruction (Convert go.untypedFloat go.float64))) (Val DefaultFillPercent))
+  (Let "$v2" (Val #(W64 4602678819172646912))
   (App (Val (GoInstruction (CompositeLiteral Bucket.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"InBucket")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.InBucket.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"rootNode")) (ElementExpression (go.GoType.PointerType node.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"FillPercent")) (ElementExpression go.float64 (Var "$v2")))])))))
   (Let "bucket" (App (Val (GoInstruction (GoAlloc Bucket.ty))) (App (Val (GoInstruction (GoZeroVal Bucket.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1057,7 +1057,7 @@ noncomputable def Bucket.CreateBucketIfNotExists.impl [GooseExts] [GoGlobalConte
   (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.bbolt.internal.common.InBucket.ty))) (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.bbolt.internal.common.InBucket.ty))) (LiteralValue [])))
   (Let "$v1" (App (Val (GoInstruction (GoAlloc node.ty))) (Let "$v0" (Val #true)
   (App (Val (GoInstruction (CompositeLiteral node.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"isLeaf")) (ElementExpression go.bool (Var "$v0")))]))))
-  (Let "$v2" (App (Val (GoInstruction (Convert go.untypedFloat go.float64))) (Val DefaultFillPercent))
+  (Let "$v2" (Val #(W64 4602678819172646912))
   (App (Val (GoInstruction (CompositeLiteral Bucket.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"InBucket")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.InBucket.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"rootNode")) (ElementExpression (go.GoType.PointerType node.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"FillPercent")) (ElementExpression go.float64 (Var "$v2")))])))))
   (Let "bucket" (App (Val (GoInstruction (GoAlloc Bucket.ty))) (App (Val (GoInstruction (GoZeroVal Bucket.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -10473,12 +10473,12 @@ noncomputable def node.splitTwo.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uintptr))) (Pair (Var "splitIndex") (Var "$r0")))))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "threshold") (Var "$r0")))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.float64))) (Pair (App (Val (GoInstruction (GoLoad go.float64))) (Var "fillPercent")) (App (Val (GoInstruction (Convert go.untypedFloat go.float64))) (Val minFillPercent)))))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedFloat go.float64))) (Val minFillPercent))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.float64))) (Pair (App (Val (GoInstruction (GoLoad go.float64))) (Var "fillPercent")) (Val #(W64 4591870180066957722)))))
+  (Let "$r0" (Val #(W64 4591870180066957722))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.float64))) (Pair (Var "fillPercent") (Var "$r0")))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.float64))) (Pair (App (Val (GoInstruction (GoLoad go.float64))) (Var "fillPercent")) (App (Val (GoInstruction (Convert go.untypedFloat go.float64))) (Val maxFillPercent)))))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedFloat go.float64))) (Val maxFillPercent))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.float64))) (Pair (App (Val (GoInstruction (GoLoad go.float64))) (Var "fillPercent")) (Val #(W64 4607182418800017408)))))
+  (Let "$r0" (Val #(W64 4607182418800017408))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.float64))) (Pair (Var "fillPercent") (Var "$r0")))))
   (App (Val doExecute)
@@ -14233,7 +14233,7 @@ noncomputable def Tx.recursivelyCheckBucketInPage.impl [GooseExts] [GoGlobalCont
   (Let "$r0" (Let "$v0" (Var "inBkt")
   (Let "$v1" (App (Val (GoInstruction (GoAlloc node.ty))) (Let "$v0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty) go!"IsLeafPage"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)))) (Var "p"))) (Val #()))
   (App (Val (GoInstruction (CompositeLiteral node.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"isLeaf")) (ElementExpression go.bool (Var "$v0")))]))))
-  (Let "$v2" (App (Val (GoInstruction (Convert go.untypedFloat go.float64))) (Val DefaultFillPercent))
+  (Let "$v2" (Val #(W64 4602678819172646912))
   (Let "$v3" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Tx.ty)))) (Var "tx"))
   (App (Val (GoInstruction (CompositeLiteral Bucket.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"InBucket")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.InBucket.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"rootNode")) (ElementExpression (go.GoType.PointerType node.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"FillPercent")) (ElementExpression go.float64 (Var "$v2"))), (KeyedElement (some (KeyField go!"tx")) (ElementExpression (go.GoType.PointerType Tx.ty) (Var "$v3")))]))))))
   (Let "tmpBucket" (App (Val (GoInstruction (GoAlloc Bucket.ty))) (App (Val (GoInstruction (GoZeroVal Bucket.ty))) (Val #())))
