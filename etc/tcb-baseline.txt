@@ -9,9 +9,7 @@ axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom EtcdServer.publishV3.wp_proof
 axiom EtcdServer.rangeStream.wp_proof
-axiom NewCluster.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
-axiom NewMaintenance.wp_proof
 axiom Perennial.bufio.opaqueInitsOk
 axiom Perennial.crypto.tls.opaqueInitsOk
 axiom Perennial.encoding.json.initFuncsOk
@@ -403,7 +401,6 @@ axiom schema.membershipBackend.MustDeleteMemberFromBackend.wp_proof
 axiom schema.membershipBackend.MustReadMembersFromBackend.wp_proof
 axiom schema.membershipBackend.MustSaveMemberToBackend.wp_proof
 axiom semver.NewVersion.wp_proof
-axiom semver.Version.LessThan.wp_proof
 axiom semver.Version.String.wp_proof
 axiom semver.semverValid_simple
 axiom slices.Clone.wp_proof

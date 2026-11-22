@@ -1024,7 +1024,14 @@ v3_Version__Minor:
 # (prove-ps2-client, 2026-11-22) `MustParse` proved over `NewVersion` (the trust boundary)
 v3_MustParse: v3_NewVersion
 v3_NewVersion:
-v3_Version__LessThan:
+# (prove-ps2-semver, 2026-11-22) `LessThan` proved over the real code
+v3_Version__Patch:
+v3_Version__Prerelease:
+v3_compareSegment:
+v3_comparePrePart: =_root_.Perennial.strconv.wp_ParseUint
+v3_comparePrerelease: =_root_.Perennial.strings.wp_Split v3_comparePrePart
+v3_Version__Compare: v3_Version__Major v3_Version__Minor v3_Version__Patch v3_Version__Prerelease v3_compareSegment v3_comparePrerelease
+v3_Version__LessThan: v3_Version__Compare
 binary_ReadUint64: =_root_.Perennial.encoding.binary.bigEndian.wp_Uint64
 proto_UnmarshalPb:
 proto_SizePb: @

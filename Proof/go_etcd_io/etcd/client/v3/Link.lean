@@ -37,9 +37,11 @@ public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesResponse__Get
 public import Proof.go_etcd_io.etcd.client.v3.LeaseOp__applyOpts
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse__GetHeader
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.NewAuthClient
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.NewClusterClient
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.NewKVClient
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.NewLeaseClient
 public import Proof.go_etcd_io.etcd.client.v3.NewLeaseFromLeaseClient
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.NewMaintenanceClient
 public import Proof.go_etcd_io.etcd.client.v3.NewOp
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.NewWatchClient
 public import Proof.go_etcd_io.etcd.client.v3.NewWatchFromWatchClient
@@ -57,8 +59,10 @@ public import Proof.go_etcd_io.etcd.client.v3.Op__toRequestOp
 public import Proof.go_etcd_io.etcd.client.v3.Op__toTxnRequest
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader__GetRevision
 public import Proof.go_etcd_io.etcd.client.v3.RetryAuthClient
+public import Proof.go_etcd_io.etcd.client.v3.RetryClusterClient
 public import Proof.go_etcd_io.etcd.client.v3.RetryKVClient
 public import Proof.go_etcd_io.etcd.client.v3.RetryLeaseClient
+public import Proof.go_etcd_io.etcd.client.v3.RetryMaintenanceClient
 public import Proof.go_etcd_io.etcd.client.v3.WatchResponse__Err
 public import Proof.go_etcd_io.etcd.client.v3.WatchResponse__IsProgressNotify
 public import Proof.go_etcd_io.etcd.client.v3.WithRequireLeader
@@ -676,6 +680,10 @@ theorem wp_NewAuthClient :
     EtcdGrove.NewAuthClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.NewAuthClient.wp_proof
 
+theorem wp_NewClusterClient :
+    EtcdGrove.NewClusterClient.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.NewClusterClient.wp_proof
+
 theorem wp_NewKVClient :
     EtcdGrove.NewKVClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.NewKVClient.wp_proof
@@ -691,6 +699,10 @@ theorem v3.wp_WithRequireLeader :
 theorem v3.wp_NewLeaseFromLeaseClient :
     EtcdGrove.NewLeaseFromLeaseClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.NewLeaseFromLeaseClient.wp_proof v3.wp_WithRequireLeader v3.Client.wp_GetLogger
+
+theorem wp_NewMaintenanceClient :
+    EtcdGrove.NewMaintenanceClient.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.NewMaintenanceClient.wp_proof
 
 theorem wp_NewWatchClient :
     EtcdGrove.NewWatchClient.spec (GF := GF) (hG := hG) :=
@@ -732,6 +744,10 @@ theorem v3.wp_RetryAuthClient :
     EtcdGrove.RetryAuthClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.RetryAuthClient.wp_proof wp_NewAuthClient
 
+theorem v3.wp_RetryClusterClient :
+    EtcdGrove.RetryClusterClient.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.RetryClusterClient.wp_proof wp_NewClusterClient
+
 theorem v3.wp_RetryKVClient :
     EtcdGrove.RetryKVClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.RetryKVClient.wp_proof wp_NewKVClient
@@ -739,6 +755,10 @@ theorem v3.wp_RetryKVClient :
 theorem v3.wp_RetryLeaseClient :
     EtcdGrove.RetryLeaseClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.RetryLeaseClient.wp_proof wp_NewLeaseClient
+
+theorem v3.wp_RetryMaintenanceClient :
+    EtcdGrove.RetryMaintenanceClient.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.RetryMaintenanceClient.wp_proof wp_NewMaintenanceClient
 
 theorem v3.blockLogger.wp_recordWait [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
     EtcdGrove.blockLogger.recordWait.spec (GF := GF) (hG := hG) :=
@@ -762,7 +782,7 @@ theorem resolver.EtcdManualResolver.wp_Close :
 
 theorem v3.wp_NewCluster :
     EtcdGrove.NewCluster.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.NewCluster.wp_proof
+  EtcdGrove.NewCluster.wp_proof v3.wp_RetryClusterClient
 
 theorem v3.wp_NewKV :
     EtcdGrove.NewKV.spec (GF := GF) (hG := hG) :=
@@ -778,7 +798,7 @@ theorem v3.wp_NewAuth :
 
 theorem v3.wp_NewMaintenance :
     EtcdGrove.NewMaintenance.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.NewMaintenance.wp_proof
+  EtcdGrove.NewMaintenance.wp_proof v3.Client.wp_GetLogger v3.wp_RetryMaintenanceClient
 
 theorem credentials.wp_NewPerRPCCredentialBundle :
     EtcdGrove.credentials.NewPerRPCCredentialBundle.spec (GF := GF) (hG := hG) :=

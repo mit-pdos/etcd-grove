@@ -2656,6 +2656,34 @@ noncomputable def canceledByCaller.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
+/-- go: cluster.go:60:6 -/
+noncomputable def NewCluster.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Cluster.ty))) (App (Val (GoInstruction (GoZeroVal Cluster.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Client.ty)))) (Var "c"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc cluster.ty))) (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))
+  (App (App (Val (GoInstruction (FuncResolve RetryClusterClient []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral cluster.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"remote")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ClusterClient.ty (Var "$v0")))]))))
+  (Let "api" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType cluster.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType cluster.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType cluster.ty) Cluster.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType cluster.ty)))) (Var "api")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Cluster.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Client.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Client.ty)))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"callOpts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef cluster.ty go!"callOpts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType cluster.ty)))) (Var "api"))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType cluster.ty)))) (Pair (Var "api") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad Cluster.ty))) (Var "$res0")))))
+
 /-- go: compact_op.go:30:22 -/
 noncomputable def CompactOp.applyCompactOpts.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "op"
@@ -4999,6 +5027,104 @@ noncomputable def keepAlive.close.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef keepAlive.ty go!"donec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType keepAlive.ty)))) (Var "ka"))))
   (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Var "$a0")))))))
   (Val #()))))
+
+/-- go: maintenance.go:114:6 -/
+noncomputable def NewMaintenance.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Maintenance.ty))) (App (Val (GoInstruction (GoZeroVal Maintenance.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Client.ty)))) (Var "c"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc maintenance.ty))) (Let "$v0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"GetLogger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))) (Val #()))
+  (Let "$v1" (Lam "endpoint"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MaintenanceClient.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MaintenanceClient.ty))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [] false []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [] false []))))) (Val #())))
+  (Let "$res2" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "endpoint" (App (Val (GoInstruction (GoAlloc go.string))) (Var "endpoint"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "endpoint"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"Dial"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "conn" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.ClientConn.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.ClientConn.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.ClientConn.ty) go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.ClientConn.ty)))) (Var "conn"))) (Val #()))))
+  (Val #())))
+  (Let "cancel" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [] false []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [] false []))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.ClientConn.ty)))) (Var "conn"))
+  (App (App (App (Val (GoInstruction (FuncResolve RetryMaintenanceClient []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [] false []))))) (Var "cancel"))
+  (Let "$r2" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [] false []))))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MaintenanceClient.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [] false []))))) (Pair (Var "cancel") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MaintenanceClient.ty))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.FunctionType (go.signature.Signature [] false []))))) (Val UntypedNil))
+  (Let "$r2" (Let "$a0" (Val #(go!"failed to dial endpoint %s with maintenance client: %w"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "endpoint")))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.error go.any))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [] false []))))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MaintenanceClient.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.ClientConn.ty)))) (Pair (Var "conn") (Var "$r0"))))))))))))))
+  (Pair (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MaintenanceClient.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [] false []))))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res2"))))))))
+  (Let "$v2" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.ClientConn.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"conn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))))
+  (App (App (App (Val (GoInstruction (FuncResolve RetryMaintenanceClient []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral maintenance.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"lg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"dial")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [go.string] false [_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MaintenanceClient.ty, (go.GoType.FunctionType (go.signature.Signature [] false [])), go.error])) (Var "$v1"))), (KeyedElement (some (KeyField go!"remote")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MaintenanceClient.ty (Var "$v2")))]))))))
+  (Let "api" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType maintenance.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType maintenance.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType maintenance.ty) Maintenance.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType maintenance.ty)))) (Var "api")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Maintenance.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Client.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Client.ty)))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"callOpts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef maintenance.ty go!"callOpts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType maintenance.ty)))) (Var "api"))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType maintenance.ty)))) (Pair (Var "api") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad Maintenance.ty))) (Var "$res0")))))
 
 /-- IsTxn returns true if the "Op" type is transaction.
 
@@ -7413,6 +7539,44 @@ noncomputable def retryLeaseClient.LeaseKeepAlive.impl [GooseExts] [GoGlobalCont
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Lease_LeaseKeepAliveClient.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Lease_LeaseKeepAliveClient.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))))
+
+/-- RetryClusterClient implements a ClusterClient.
+
+    go: retry.go:166:6 -/
+noncomputable def RetryClusterClient.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ClusterClient.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ClusterClient.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Client.ty)))) (Var "c"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType retryClusterClient.ty) _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ClusterClient.ty))) (App (Val (GoInstruction (GoAlloc retryClusterClient.ty))) (Let "$v0" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.ClientConn.ty) _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.ClientConn.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"conn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c")))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.NewClusterClient []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral retryClusterClient.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"cc")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ClusterClient.ty (Var "$v0")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ClusterClient.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ClusterClient.ty))) (Var "$res0")))))
+
+/-- RetryMaintenanceClient implements a Maintenance.
+
+    go: retry.go:197:6 -/
+noncomputable def RetryMaintenanceClient.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam "conn"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MaintenanceClient.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MaintenanceClient.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "conn" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.ClientConn.ty)))) (Var "conn"))
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Client.ty)))) (Var "c"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType retryMaintenanceClient.ty) _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MaintenanceClient.ty))) (App (Val (GoInstruction (GoAlloc retryMaintenanceClient.ty))) (Let "$v0" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.ClientConn.ty) _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.ClientConn.ty)))) (Var "conn")))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.NewMaintenanceClient []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral retryMaintenanceClient.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"mc")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MaintenanceClient.ty (Var "$v0")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MaintenanceClient.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MaintenanceClient.ty))) (Var "$res0"))))))
 
 /-- RetryAuthClient implements a AuthClient.
 

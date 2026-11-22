@@ -308,6 +308,11 @@ translate = [
   "retryLeaseClient.LeaseTimeToLive", "retryLeaseClient.LeaseLeases",
   # auth-lease S4 (2026-11-19): `WithAttachedKeys` (op.go), the option the authlease checks pass
   "WithAttachedKeys",
+  # (prove-ps2-client2, 2026-11-22) the API constructors `NewCluster` (cluster.go) and `NewMaintenance`
+  # (maintenance.go, its dial closure built, not called) with retry.go's `RetryClusterClient` and
+  # `RetryMaintenanceClient`: until then the trust-boundary axioms `NewCluster.wp_proof`,
+  # `NewMaintenance.wp_proof`
+  "NewCluster", "RetryClusterClient", "NewMaintenance", "RetryMaintenanceClient",
 ]
 imports = ["!*", "context", "sync", "time", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/authpb", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "google.golang.org/grpc/codes", "google.golang.org/grpc/status", "google.golang.org/grpc", "google.golang.org/grpc/credentials", "go.etcd.io/etcd/client/v3/internal/resolver", "go.etcd.io/etcd/client/v3/credentials", "go.uber.org/zap", "sync/atomic", "google.golang.org/protobuf/proto", "fmt", "errors", "google.golang.org/grpc/peer", "crypto/tls", "strings", "google.golang.org/grpc/keepalive", "google.golang.org/grpc/credentials/insecure", "go.etcd.io/etcd/client/v3/internal/endpoint", "go.etcd.io/etcd/client/pkg/v3/logutil", "io", "google.golang.org/grpc/metadata"]
 
