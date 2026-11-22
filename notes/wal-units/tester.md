@@ -1163,3 +1163,94 @@ method sets; `simp only [h, ↓reduceIte]` then lets `wp_auto` go on.
 - `iframe` does not look inside `"name" ∷ P`: `unfold named` first.
 
 **Next:** the remaining `TOpen` fields and `Hinit_wp` wait on the user's decisions (sessions 8-9 above).
+
+# Handoff (branch `wal-safe`, 2026-11-22, session 11 of etcd-grove-03's delegates): Reset, Format, the Errorf specs; `errors-facts-2`
+
+The user approved four items; done in order (Reset), (4), (3), (2).
+
+**(Reset) `WalHsOwn.reset` proved** (`bd7593e7a9`). `(*raftpb.HardState).Reset` is **trusted code** now:
+`Code/go_etcd_io/raft/v3/raftpb.toml` lists `HardState.Reset`, and `TrustedCode/go_etcd_io/raft/v3/raftpb.lean`'s
+`HardState.Reset.impl` stores the zero value (as `walpb`'s `Record.Reset.impl`; the message-state store left out,
+the docstring says why; the model's `state` is zero where Go's is not, harmless since `hsOwnC` quantifies it).
+`walRaftHsO_reset` (`RaftModel/LawsHs.lean`) proves the law; `walRaftHsO_own` no longer takes it; `resetHs` is out of
+`TOpen`. `Code/go_etcd_io/raft/v3/raftpb.lean` regenerated (`ptr_Reset_unfold`): this touches the main raft cone (every
+importer of raftpb), so a landing rebuilds raft, the server and the examples. The reviewer's report is kept as
+`notes/axiom-review/hsown-reset.md` (with a follow-up section).
+
+**(4) `time.Time.Format.specBroken` is a trust-boundary axiom** (`e2225cfac4`). What the WAL uses: one call site
+(`cleanupWAL`, wal.go: `fmt.Sprintf("%s.broken.%v", w.dir, time.Now().Format("20060102.150405.999999"))`), and of the
+result only `brokenName_nameOk` (no `/`, no NUL). The spec's post was weakened to exactly that (`timeStampOk s :=
+47 ∉ s ∧ 0 ∉ s`, `cleanupLaw`'s premise follows; `timeStampChars` deleted; ledger 2026-11-22), and the axiom is
+
+    axiom time.Time.Format.wp_proofBroken : time.Time.Format.specBroken (GF := GF) (hG := hG)
+    -- ∀ t, {{ True }} t.Format("20060102.150405.999999") {{ (s : GoString), RET #s; ⌜timeStampOk s⌝ }}
+
+in `Proof/time/Time__FormatBroken.lean`. Baselines edited **by hand** (`etc/tcb-baseline.txt`,
+`etc/tcb-collections/wal-fsext.txt`): no `etc/tcb-report.py` run this session; rerun `--check` after the next full
+build. The `axiom` skill (run by its author): **survives** (`notes/axiom-review/time-format-broken.md`, Go tests and
+log beside it; `notes/audit.md` row added).
+
+**(3) `fmt.ErrorfErrsNot`/`ErrorfErrsTerm` restated over error trees and proved** (`68e9aadaa7`). Ledger first
+(2026-11-22). `Spec/errors/ErrTree.lean`: `errTreeNot e t` (an `errorIsTree S M t` holding `e`, no node `t`, no `Is`
+answering true, `TreeTyped`), `errTreeTerm e` (such a tree at every pointer target); `Proof/errors/ErrTree.lean`:
+`errIsNot_of_tree`/`errIsTerm_of_tree` (to the old triples, over Perennial's `errors.wp_Is_tree`), the leaf
+`*errorString` (`errTreeNot_errorString`, `errTreeTerm_errorString`) and the `*fmt.wrapError` step
+(`errTreeNot_wrapError`, `errTreeTerm_wrapError`: `Unwrap` returns the `err` field, no `Is`). Narrowed to the WAL's
+calls: `ErrorfErrsNot` exactly one `%w` of an error argument (`fmt.wrapsErr`) and a target that is no
+`*fmt.wrapError` (so `err ≠ t` by type, **no freshness needed**); `ErrorfErrsTerm` at most one (`fmt.wrapsAtMostOne`).
+What freshness would be needed for the no-`%w` case of `Not`: Perennial's `fmt.errorfErr` gives only
+`l.[errorString, "s"] ↦□ s` (persistent), nothing that separates `l` from the target's pointer; an owned (or
+`↦{1}`-then-frozen) cell would. Both proofs: `Proof/fmt/ErrorfErrsNot.lean`, `Proof/fmt/ErrorfErrsTerm.lean`, over
+`fmt.wp_Errorf` (the argument lemmas moved to `Proof/fmt/ErrorfArgs.lean`). Restated with them (callers updated):
+`errors.IsPathErrnoTerm.spec` (now concludes `errTreeTerm`, still a hypothesis: item (2)), `fileutil.ReadDir.spec`/
+`specAbsent` (error arm `errTreeTerm`), `walpb.Record.Validate.spec` (trees; the target's variable `X` dropped; a
+target premise), `decEnv`'s `ErrCRCMismatch` conjunct (trees: **`WalDecEnvSupply`'s meaning changed**). `errIsNot`/
+`errIsTerm` stay as they were (the trust boundary `proto.UnmarshalWalRecordE` states them; untouched). Principle
+added to the spec skill (`PRINCIPLES.md`, "A premise about an argument is stated in the form the code consumes it").
+
+**`TOpen` now holds:** `decEnv` (`WalDecEnvSupply`), `isErrno`, `isPathErrnoEof`, `isPathErrnoNotExist`,
+`isPathErrnoTerm`, `hasPrefix`, `unmarshalWalRecordE`. Gone this session: `resetHs`, `formatBroken`, `errorfErrsNot`,
+`errorfErrsTerm`. `Hinit_wp` untouched (B-4).
+
+**(2) Perennial `errors-facts-2`** (worktree `/shared/perennial-errors-facts-2`, off Perennial `lean` `0e10295a1`, NOT
+pushed): `94d5c61e5` (= `58e04c5c0`, `newVar` keeps the `errorString` field; `errors` records `ErrUnsupported`) and
+`98a9ca318` (= `601b7fb5d`, `Is`/`is` at comparable targets; conflicts in `Base.lean`/`Results.lean` resolved by
+dropping the `errors.As` commit's `AsFirst`/`wp_As_first`). The touched modules build (32 modules and 10 package
+Links, 2107 jobs). The user pushes it; it then lands by Perennial's workflow (`etc/land.sh`), and the etcd-grove pin
+moves to it (issue #9: one pin writer). A local copy on `d648cfe22` (`errors-facts-2-d648`, worktree
+`/shared/perennial-errors-facts-2-d648`: `4866869ad`, `a40c07351`, the same two commits) exists only so that
+`wal-safe` (still at pin `d648`) can be built against the change: manifest `/shared/tmp/manifest-ef2d.json`.
+
+**`wal-safe-errors`** (worktree `/shared/etcd-grove-walsafe-errors`, off `wal-safe`; local only): see its own
+commits and the section after this one (written there).
+It is `wal-safe` (through `68e9aadaa7`) plus the adaptations the errors-facts commits need and the two translations
+(`0016527b07`, merge, later commits: see `git log wal-safe..wal-safe-errors`): `newVar`'s extra conjunct fixed in
+`etc/gen-init.py` (io/fs), `errOk_newVar`, `closeAll`; `Code/syscall.toml` translates `Errno.Is` (and `EACCES`, `EPERM`,
+`EEXIST`, `ENOTEMPTY`, `ENOTSUP`, `EOPNOTSUPP`; imports `errors`, `internal/oserror`; the generated initializers follow),
+`Code/io/fs.toml` `PathError.Unwrap`; `Proof/syscall/PkgInit.lean` imports the two packages' instances.
+**Not done: the proofs** of `errors.{IsErrno, IsPathErrnoEof, IsPathErrnoNotExist, IsPathErrnoTerm}.spec` and
+`WalDecEnvSupply`. Plan, all over Perennial's `errors.wp_Is` at the new statement (a client of the old pointer-target
+form uses `errors.wp_Is_ptr`; `errIsNot_of_tree`/`errIsTerm_of_tree` in `Proof/errors/ErrTree.lean` call
+`errors.wp_Is_tree`, unchanged by the branch):
+1. `syscall.Errno.Is`'s spec: at a target `t`, the `switch` compares `t` with `oserror.ErrPermission`, `ErrExist`,
+   `ErrNotExist` and `errors.ErrUnsupported` (four `newVar`s: `internal.oserror`'s facts and the branch's
+   `errUnsupported_of_init`), and answers `e == ...` only on a match: `false` for `io.EOF`/`io.ErrUnexpectedEOF`
+   (`newVar_ne`, different messages), `decide (e = ENOENT)` for `os.ErrNotExist`. An interface `==` of an `Errno`
+   target with those pointer errors needs the comparison of different dynamic types (check `GoOp GoEquals` on
+   interfaces).
+2. The two-node tree of `os.errnoPathErr err e`: the `*PathError` (no `Is`; `Unwrap` returns `errnoErr e` from its
+   `Err` cell `↦□`) and the `Errno` leaf (its `Is` by 1; no `Unwrap`). Then `IsPathErrnoTerm` (`errTreeTerm`: the tree at
+   any pointer target, `TreeTyped` since the `Errno` is no pointer type), `IsPathErrnoEof` (`errTreeNot`-style: neither
+   node is `eof`, the `Errno`'s `Is` false), `IsPathErrnoNotExist` (the walk's answer is the `Errno`'s).
+3. `IsErrno` (target an `Errno`, a comparable non-pointer: `comparableErr_uintptr` of the branch).
+4. `WalDecEnvSupply`: `decEnv` from the packages' facts: `eof ≠ ueof` and `ErrCRCMismatch ≠ io.EOF` by `newVar_ne`;
+   `isEofOk`'s `errors.Is` answers by `errors.wp_Is_leaf`; the `ErrCRCMismatch` trees by `errTreeNot_errorString`/
+   `errTreeTerm_errorString` (walpb's package fact must keep the `newVar` form, `walpb/PkgInit.lean`).
+Then regenerate the Links (the four and `h_WalDecEnvSupply` gone) and drop the fields from `TOpen`.
+
+**Pitfalls (new).**
+- A Perennial worktree builds standalone: copy a nearby build (`/shared/perennial-d648cfe22/.lake/build`) and symlink
+  `.lake/packages/{iris,batteries,Qq}` to `/shared/etcd-grove-walsafe/.lake/packages/`.
+- A second etcd-grove worktree against another Perennial keeps `wal-safe`'s build intact: copy `.lake/build` (4.2 GB).
+- `simp only [h]` (no `at`) rewrites the Iris context too; `simp ... at HIs` names a Lean hypothesis, not an Iris one.
+- An Iris triple whose pre is only a points-to needs `(… : IProp GF)` to fix the BI.

@@ -3622,3 +3622,18 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
   then goes.
 - **Status.** Worked around locally (2026-11-21); proposed only. The Perennial branch is for later (the
   coordinator's (b3)).
+
+## 2026-11-22: `errors-facts` re-cut as `errors-facts-2` (wal-safe session 11)
+
+- **What.** The two `errors` commits of the 2026-11-14 entries above (`58e04c5c0`: `newVar` keeps the `errorString`'s
+  field, `errors` records `ErrUnsupported`; `601b7fb5d`: `errors.Is`/`is` at comparable targets), cherry-picked onto
+  Perennial `lean` `0e10295a1` as branch `errors-facts-2` (`94d5c61e5`, `98a9ca318`; worktree
+  `/shared/perennial-errors-facts-2`), without the `errors.As` commit `7533cf64a` (#26/#29's area: the conflicts in
+  `Proof/errors/Base.lean`/`Results.lean` were resolved by dropping its `AsFirst`/`wp_As_first`). The touched modules
+  and the ten package Links that import them build (2107 jobs). **Not pushed** (the user pushes Perennial).
+- **What it costs here.** Against a d648-based copy of the same two commits (`errors-facts-2-d648`, local only,
+  manifest `/shared/tmp/manifest-ef2d.json`) the WAL cone breaks in three places, all `newVar`'s/`wp_New_errorString`'s
+  extra conjunct (`x.[errorString, "s"] ↦□ msg`): `etc/gen-init.py`'s io/fs initializer, `errOk_newVar`, `closeAll`.
+  Fixed on the local branch `wal-safe-errors`; the pin move must do the same across the tree (every `newVar`
+  destructuring and every `as %x #M` of `wp_New_errorString` that uses `#M` as the `Error()` WP).
+- **Status.** Branch ready for the user's push and Perennial's landing workflow; the pin move then goes through #9.
