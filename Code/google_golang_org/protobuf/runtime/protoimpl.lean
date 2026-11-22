@@ -26,15 +26,20 @@ noncomputable def EnforceVersion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] EnforceVersion.ty
 
-opaque DescBuilder [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def DescBuilder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/protobuf/internal/filedesc.Builder" [])
 
-opaque TypeBuilder [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def TypeBuilder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/protobuf/internal/filetype.Builder" [])
 
-opaque EnumInfo [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def EnumInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  _root_.Perennial.google_golang_org.protobuf.internal.impl.EnumInfo.ty
 
-opaque MessageInfo [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def MessageInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageInfo.ty
 
-opaque ExtensionInfo [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def ExtensionInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  _root_.Perennial.google_golang_org.protobuf.internal.impl.ExtensionInfo.ty
 
 @[reducible] noncomputable def MessageState.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState.ty
@@ -42,20 +47,26 @@ opaque ExtensionInfo [GooseExts] [GoGlobalContext] : go.GoType
 @[reducible] noncomputable def SizeCache.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int32
 
-opaque WeakFields [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def WeakFields.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.MapType go.int32 (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.ProtoMessage" []))
 
 @[reducible] noncomputable def UnknownFields.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType go.byte)
 
-opaque ExtensionFields [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def ExtensionFields.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.MapType go.int32 _root_.Perennial.google_golang_org.protobuf.internal.impl.ExtensionField.ty)
 
-opaque ExtensionFieldV1 [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def ExtensionFieldV1.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  _root_.Perennial.google_golang_org.protobuf.internal.impl.ExtensionField.ty
 
-opaque Pointer [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def Pointer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  _root_.Perennial.google_golang_org.protobuf.internal.impl.Pointer.ty
 
-opaque LazyUnmarshalInfo [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def LazyUnmarshalInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.PointerType (go.GoType.Named go!"google.golang.org/protobuf/internal/protolazy.XXX_lazyUnmarshalInfo" []))
 
-opaque RaceDetectHookData [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def RaceDetectHookData.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  _root_.Perennial.google_golang_org.protobuf.internal.impl.RaceDetectHookData.ty
 
 opaque EnforceVersion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 

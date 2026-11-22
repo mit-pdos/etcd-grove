@@ -36,44 +36,6 @@ noncomputable instance doNotImplement_into_val_typed :
 end def_
 end doNotImplement
 
-namespace FieldNumbers
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.protobuf.reflect.protoreflect.Assumptions]
-
-noncomputable instance FieldNumbers_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.protobuf.reflect.protoreflect.FieldNumbers :=
-  sorry -- axiomatized type
-
-noncomputable instance FieldNumbers_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.reflect.protoreflect.FieldNumbers google_golang_org.protobuf.reflect.protoreflect.FieldNumbers.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end FieldNumbers
-
-namespace FieldRanges
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.protobuf.reflect.protoreflect.Assumptions]
-
-noncomputable instance FieldRanges_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.protobuf.reflect.protoreflect.FieldRanges :=
-  sorry -- axiomatized type
-
-noncomputable instance FieldRanges_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.reflect.protoreflect.FieldRanges google_golang_org.protobuf.reflect.protoreflect.FieldRanges.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end FieldRanges
-
 namespace SourceLocation
 section def_
 
@@ -323,63 +285,6 @@ noncomputable instance FileImport_access_store_IsWeak (l : Loc) (v : google_gola
 
 end def_
 end FileImport
-
-namespace FieldDescriptor
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.protobuf.reflect.protoreflect.Assumptions]
-
-noncomputable instance FieldDescriptor_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor :=
-  sorry -- axiomatized type
-
-noncomputable instance FieldDescriptor_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end FieldDescriptor
-
-namespace FieldDescriptors
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.protobuf.reflect.protoreflect.Assumptions]
-
-noncomputable instance FieldDescriptors_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.protobuf.reflect.protoreflect.FieldDescriptors :=
-  sorry -- axiomatized type
-
-noncomputable instance FieldDescriptors_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.reflect.protoreflect.FieldDescriptors google_golang_org.protobuf.reflect.protoreflect.FieldDescriptors.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end FieldDescriptors
-
-namespace Message
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.protobuf.reflect.protoreflect.Assumptions]
-
-noncomputable instance Message_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.protobuf.reflect.protoreflect.Message :=
-  sorry -- axiomatized type
-
-noncomputable instance Message_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.reflect.protoreflect.Message google_golang_org.protobuf.reflect.protoreflect.Message.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Message
 
 namespace value
 section def_

@@ -38,8 +38,6 @@ noncomputable def client.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] client.ty
 
-opaque FeatureSupportChecker.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
 opaque defaultFeatureSupportChecker.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque rangeStreamRecheckInterval [GooseExts] [GoGlobalContext] : val
@@ -103,22 +101,17 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.k8s_io.apiserver.pkg.storage.initialize') (Val #()))))))))
 
-opaque FeatureSupportChecker.nonempty_type : NonemptyType.{0}
-def FeatureSupportChecker : Type := FeatureSupportChecker.nonempty_type.type
-instance FeatureSupportChecker.nonempty : Nonempty FeatureSupportChecker := FeatureSupportChecker.nonempty_type.property
-opaque FeatureSupportChecker.zero_val : ZeroVal FeatureSupportChecker := ⟨Classical.ofNonempty⟩
-attribute [instance] FeatureSupportChecker.zero_val
+abbrev FeatureSupportChecker [GooseExts] : Type := GoInterface
+
+@[reducible] noncomputable def FeatureSupportChecker.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"CheckClient" (go.signature.Signature [_root_.Perennial.context.Context.ty, client.ty, _root_.Perennial.k8s_io.apiserver.pkg.storage.Feature.ty] false [])), (go.InterfaceElem.MethodElem go!"MarkUnsupported" (go.signature.Signature [_root_.Perennial.k8s_io.apiserver.pkg.storage.Feature.ty] false [])), (go.InterfaceElem.MethodElem go!"Supports" (go.signature.Signature [_root_.Perennial.k8s_io.apiserver.pkg.storage.Feature.ty] false [go.bool]))])
 
 class FeatureSupportChecker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying FeatureSupportChecker.underlying FeatureSupportChecker
   underlying : go.UnderlyingDirectedEq FeatureSupportChecker.ty FeatureSupportChecker.underlying
-  isUnderlying : go.IsUnderlying FeatureSupportChecker.underlying FeatureSupportChecker.underlying
-  method_set : go.MethodSetIs FeatureSupportChecker.ty [(go!"CheckClient", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, client.ty, go.string] false []))), (go!"MarkUnsupported", (some (go.signature.Signature [go.string] false []))), (go!"Supports", (some (go.signature.Signature [go.string] false [go.bool])))]
+  method_set : go.MethodSetIs FeatureSupportChecker.ty [(go!"CheckClient", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, client.ty, _root_.Perennial.k8s_io.apiserver.pkg.storage.Feature.ty] false []))), (go!"MarkUnsupported", (some (go.signature.Signature [_root_.Perennial.k8s_io.apiserver.pkg.storage.Feature.ty] false []))), (go!"Supports", (some (go.signature.Signature [_root_.Perennial.k8s_io.apiserver.pkg.storage.Feature.ty] false [go.bool])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType FeatureSupportChecker.ty) []
 
-attribute [instance] FeatureSupportChecker.TypeAssumptions.type_repr
-  FeatureSupportChecker.TypeAssumptions.underlying
-  FeatureSupportChecker.TypeAssumptions.isUnderlying
+attribute [instance] FeatureSupportChecker.TypeAssumptions.underlying
   FeatureSupportChecker.TypeAssumptions.method_set
   FeatureSupportChecker.TypeAssumptions.ptr_method_set
 
@@ -133,7 +126,7 @@ class defaultFeatureSupportChecker.TypeAssumptions [GooseExts] [GoGlobalContext]
   underlying : go.UnderlyingDirectedEq defaultFeatureSupportChecker.ty defaultFeatureSupportChecker.underlying
   isUnderlying : go.IsUnderlying defaultFeatureSupportChecker.underlying defaultFeatureSupportChecker.underlying
   method_set : go.MethodSetIs defaultFeatureSupportChecker.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType defaultFeatureSupportChecker.ty) [(go!"CheckClient", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, client.ty, go.string] false []))), (go!"MarkUnsupported", (some (go.signature.Signature [go.string] false []))), (go!"Supports", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"k8s.io/apiserver/pkg/storage/feature.checkClient", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, client.ty] false []))), (go!"k8s.io/apiserver/pkg/storage/feature.clientSupportsRequestWatchProgress", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, client.ty, go.string] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType defaultFeatureSupportChecker.ty) [(go!"CheckClient", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, client.ty, _root_.Perennial.k8s_io.apiserver.pkg.storage.Feature.ty] false []))), (go!"MarkUnsupported", (some (go.signature.Signature [_root_.Perennial.k8s_io.apiserver.pkg.storage.Feature.ty] false []))), (go!"Supports", (some (go.signature.Signature [_root_.Perennial.k8s_io.apiserver.pkg.storage.Feature.ty] false [go.bool]))), (go!"k8s.io/apiserver/pkg/storage/feature.checkClient", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, client.ty] false []))), (go!"k8s.io/apiserver/pkg/storage/feature.clientSupportsRequestWatchProgress", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, client.ty, go.string] false [go.error])))]
 
 attribute [instance] defaultFeatureSupportChecker.TypeAssumptions.type_repr
   defaultFeatureSupportChecker.TypeAssumptions.underlying
