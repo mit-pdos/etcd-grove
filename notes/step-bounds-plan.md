@@ -96,3 +96,30 @@ translations: request path about 100-150 instructions before `Next`, `LeaseGrant
 (two ids), the read-index retry loop about 100-150 per iteration: `K = 2^6` safe. Then step 2's budget
 must exceed `2^54`, which A gives. The lessor's receipt premises (#20 item 7, left to us by proving
 session 2) are in this chain.
+
+### Step 2: Draft and proof (2026-11-22, option D; freeze approved in advance by the user)
+
+- **The check** (the first put with its receipt): `batchTxBuffered.UnsafePut` raises the buffers'
+  receipt at its own write-buffer `put` resolution (`wp_apply +noauto` on `batchTx.UnsafePut`, then
+  `wp_raise_receipt`). Passed; the rest followed without a stop.
+- **Design as built**: `bufFit st m` (each bucket's read plus write buffer at most `m`) and the
+  persistent `bufRc st` (`∃ m, ⧖ m ∗ ⌜bufFit st m ∧ receiptBound GF ≤ 2 ^ 60⌝`) in `batchGhostAt` and
+  `batchGhostW` (`InvBackend.lean`, `InvBatch.lean`). The four step lemmas take the new state's
+  `bufRc` (`batchGhost_step` restated as a wand); `UnsafePut`/`UnsafeSeqPut` raise it
+  (`bufRc_grow`), `UnsafeDelete`/`UnsafeCreateBucket`/`UnsafeDeleteBucket` carry it (`bufRc_congr`),
+  a commit (`bufRc_commitSt`, read buffer dropped) and a write-back (`bufRc_wbSt`, merge) keep it;
+  `bufRc_bufBound` replaces `bgOk_bufBound` (deleted); `backend_init` allocates `⧖ 0`
+  (`preceipt_zero`). `New`/`newBackend` take `[ReceiptBoundLe GF (2 ^ 60)]` (was `2 ^ 62`; bbolt's
+  `Open` still gets its `2 ^ 62`). Budget: `wbInit = 2 ^ 62 - 1`, `bgOk`'s `ver + n + k < 2 ^ 62`.
+  `hookMax`'s cap unchanged; `bootstrapContract` unchanged.
+- **Statements**: `etcd_robust`, `k8s_robust`, `leaseexpiryN`'s at `2 ^ 48` steps (was `2 ^ 40 - 11`),
+  their closed theorems at `n + 1 ≤ 2 ^ 48` (the receipt bound `NewServer` needs; the budget no
+  longer binds), per-`n` premises over the same range.
+- **Not raised (follow-up)**: `mvccrand`/`mvccfull` stay at `2 ^ 38`: their own operation count is
+  tied to `2 ^ 38` across about 30 spec files (`Ops < 2 ^ 38`, the store's receipt-paid supply); the
+  budget no longer limits them.
+- **Finding (trusted text, for the user)**: `storage.OpenBackend.wp_proof`'s spec takes no
+  `ReceiptBoundLe` premise, though the `backend.New` its post stands for requires one (`2 ^ 62`
+  before this change, `2 ^ 60` now). Harmless in every closed theorem (`receiptBound ≤ 2 ^ 48`), but
+  the axiom claims `New`'s post for any receipt bound. Fix: add `[ReceiptBoundLe GF (2 ^ 60)]` to its
+  spec (only weakens the axiom). Not done in this step (it touches the server's callers).
