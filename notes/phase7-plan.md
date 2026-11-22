@@ -96,10 +96,14 @@ collections' baselines saying what it removes.
   `wp_func_lits`, step into `newFuncServerOption`, then the closure; the chains through
   `wp_slice_append`). Still axioms, restated: `NewServer` (`[∗ list]` premise), `CustomCodec`,
   `StatsHandler` (`.stats h`). For `serverOptions` to be a translated struct, grpc's imports gained
-  `time`, `credentials`, `keepalive`, `stats`, `mem` (`mem` types-only: its two init axioms are new,
-  until S2 translates its pools), and the model's `binaryLogger`/`InTapHandle` options panic when
-  applied (they panicked in `NewServer` before; the fields are gone), so that `tap` and
-  `internal/binarylog` stay untranslated. Trust base: −7 (the six, `grpcSrvOpt`), +2 (`mem`).
+  `time`, `io` (the `Compressor`/`Decompressor` interfaces of its `cp`/`dc` fields), `credentials`,
+  `keepalive` and `stats`, and the model's `serverOptions` lost three fields whose types are other
+  packages': `binaryLogger` and `inTapHandle` (their options panic when `NewServer` applies them,
+  where the model's `NewServer` panicked on them before) and `bufferPool` (the server reads
+  `mem.DefaultBufferPool()`, grpc-go's default; the option setting another pool panics), so that
+  `tap`, `internal/binarylog` and `mem` stay untranslated, with no init axiom of theirs (a first
+  attempt translating `mem` types-only added its two init axioms, which the land queue's tcb gate
+  rightly refused; S2 translates `mem` with its pools). Trust base: −7 (the six, `grpcSrvOpt`).
   Users adjusted: v3rpc's `Server` spec (`[∗ list] v ∈ gvs, grpcSrvOpt v .neutral`) and proof, the
   `etcdstart`/`cluster3` callers. Next in S1: the dial side (`dialOptions` needs `internal/transport`,
   `channelz`, `internal/backoff` types), the model calling stats handlers (#24, U2), then

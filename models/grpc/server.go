@@ -149,14 +149,14 @@ type Server struct {
 }
 
 type serverOptions struct {
-	creds                 credentials.TransportCredentials
-	codec                 baseCodec
-	cp                    Compressor
-	dc                    Decompressor
-	unaryInt              UnaryServerInterceptor
-	streamInt             StreamServerInterceptor
-	chainUnaryInts        []UnaryServerInterceptor
-	chainStreamInts       []StreamServerInterceptor
+	creds           credentials.TransportCredentials
+	codec           baseCodec
+	cp              Compressor
+	dc              Decompressor
+	unaryInt        UnaryServerInterceptor
+	streamInt       StreamServerInterceptor
+	chainUnaryInts  []UnaryServerInterceptor
+	chainStreamInts []StreamServerInterceptor
 	// MODEL: no binaryLogger and inTapHandle fields (binary logging and tap handles are not
 	// modelled: their options panic when NewServer applies them, below).
 	statsHandlers         []stats.Handler
@@ -175,10 +175,12 @@ type serverOptions struct {
 	maxHeaderListSize     *uint32
 	headerTableSize       *uint32
 	numServerWorkers      uint32
-	bufferPool            mem.BufferPool
-	waitForHandlers       bool
-	staticWindowSize      bool
-	streamWrapper         func(ServerStream) (ServerStream, error)
+	// MODEL: no bufferPool field: the server's receive buffers come from mem.DefaultBufferPool()
+	// (grpc-go's default), and the option setting another pool is not modelled (bufferPool,
+	// below), so that the struct names no type of package mem.
+	waitForHandlers  bool
+	staticWindowSize bool
+	streamWrapper    func(ServerStream) (ServerStream, error)
 }
 
 var defaultServerOptions = serverOptions{
@@ -189,7 +191,6 @@ var defaultServerOptions = serverOptions{
 	writeBufferSize:       defaultWriteBufSize,
 	sharedWriteBuffer:     true,
 	readBufferSize:        defaultReadBufSize,
-	bufferPool:            mem.DefaultBufferPool(),
 }
 var globalServerOptions []ServerOption
 
@@ -655,8 +656,10 @@ func WaitForHandlers(w bool) ServerOption {
 }
 
 func bufferPool(bufferPool mem.BufferPool) ServerOption {
+	// MODEL: a server buffer pool other than the default is not modelled: the option panics when
+	// NewServer applies it (the field is gone; see serverOptions).
 	return newFuncServerOption(func(o *serverOptions) {
-		o.bufferPool = bufferPool
+		panic(notModelled("grpc: a server buffer pool"))
 	})
 }
 
@@ -1162,7 +1165,7 @@ func (s *Server) processRPC(ctx context.Context, stream *serverTransportStream, 
 	ss := &serverStream{
 		ctx:                   ctx,
 		s:                     stream,
-		p:                     parser{r: stream, bufferPool: s.opts.bufferPool},
+		p:                     parser{r: stream, bufferPool: mem.DefaultBufferPool()}, // MODEL: the default pool (serverOptions)
 		codec:                 s.getCodec(stream.ContentSubtype()),
 		desc:                  sd,
 		maxReceiveMessageSize: s.opts.maxReceiveMessageSize,

@@ -23,8 +23,8 @@ translate = ["!*", "EnableTracing", "WaitForReady", "MaxCallSendMsgSize", "MaxCa
   "MaxSendMsgSize", "MaxConcurrentStreams", "ChainUnaryInterceptor", "ChainStreamInterceptor"]
 imports = ["!*", "context", "google.golang.org/grpc/metadata", "google.golang.org/grpc/peer",
   # (phase 7 S1) the types of `serverOptions`' fields, so that the struct is translated
-  "time", "google.golang.org/grpc/credentials", "google.golang.org/grpc/keepalive",
-  "google.golang.org/grpc/stats", "google.golang.org/grpc/mem"]
+  "time", "io", "google.golang.org/grpc/credentials", "google.golang.org/grpc/keepalive",
+  "google.golang.org/grpc/stats"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

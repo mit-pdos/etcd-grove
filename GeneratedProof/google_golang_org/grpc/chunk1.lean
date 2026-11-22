@@ -6,10 +6,10 @@ public import ManualProof.google_golang_org.grpc
 public import Perennial.GeneratedProof.context
 public import GeneratedProof.google_golang_org.grpc.credentials
 public import GeneratedProof.google_golang_org.grpc.keepalive
-public import GeneratedProof.google_golang_org.grpc.mem
 public import GeneratedProof.google_golang_org.grpc.metadata
 public import GeneratedProof.google_golang_org.grpc.peer
 public import GeneratedProof.google_golang_org.grpc.stats
+public import Perennial.GeneratedProof.io
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.google_golang_org.grpc
@@ -121,6 +121,25 @@ noncomputable instance ClientConn_into_val_typed :
 
 end def_
 end ClientConn
+
+namespace baseCodec
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.grpc.Assumptions]
+
+noncomputable instance baseCodec_typed_pointsto :
+    TypedPointsto (GF := GF) google_golang_org.grpc.baseCodec :=
+  sorry -- axiomatized type
+
+noncomputable instance baseCodec_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.baseCodec google_golang_org.grpc.baseCodec.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end baseCodec
 
 namespace codecV0Bridge
 section def_
@@ -1150,7 +1169,7 @@ noncomputable instance recvMsg_access_store_err (l : Loc) (v : google_golang_org
 end def_
 end recvMsg
 
-namespace Compressor
+namespace PreparedMsg
 section def_
 
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
@@ -1158,16 +1177,16 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-noncomputable instance Compressor_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.Compressor :=
+noncomputable instance PreparedMsg_typed_pointsto :
+    TypedPointsto (GF := GF) google_golang_org.grpc.PreparedMsg :=
   sorry -- axiomatized type
 
-noncomputable instance Compressor_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.Compressor google_golang_org.grpc.Compressor.underlying :=
+noncomputable instance PreparedMsg_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.PreparedMsg google_golang_org.grpc.PreparedMsg.underlying :=
   sorry -- axiomatized type
 
 end def_
-end Compressor
+end PreparedMsg
 
 namespace gzipCompressor
 section def_
@@ -1187,25 +1206,6 @@ noncomputable instance gzipCompressor_into_val_typed :
 
 end def_
 end gzipCompressor
-
-namespace Decompressor
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
-
-noncomputable instance Decompressor_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.Decompressor :=
-  sorry -- axiomatized type
-
-noncomputable instance Decompressor_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.Decompressor google_golang_org.grpc.Decompressor.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Decompressor
 
 namespace gzipDecompressor
 section def_

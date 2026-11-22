@@ -605,9 +605,6 @@ PROJECTS = [
             # types and names only: grpc's stats handler interface, the type of otelgrpc's
             # `NewServerHandler`'s result (so that an implementation can return one: etcd-refimpl)
             "google.golang.org/grpc/stats",
-            # types and names only (phase 7 S1, notes/phase7-plan.md): the type of the model's
-            # `serverOptions.bufferPool`, so that the struct is translated
-            "google.golang.org/grpc/mem",
             # (and go.uber.org/zap, above)
             # names only: the types of rafthttp.Transport's fields, so that its struct is
             # translated (NewServer builds one; unit N4, 2026-10-17)

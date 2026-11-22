@@ -6,10 +6,10 @@ public import ManualProof.google_golang_org.grpc
 public import Perennial.GeneratedProof.context
 public import GeneratedProof.google_golang_org.grpc.credentials
 public import GeneratedProof.google_golang_org.grpc.keepalive
-public import GeneratedProof.google_golang_org.grpc.mem
 public import GeneratedProof.google_golang_org.grpc.metadata
 public import GeneratedProof.google_golang_org.grpc.peer
 public import GeneratedProof.google_golang_org.grpc.stats
+public import Perennial.GeneratedProof.io
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.google_golang_org.grpc
@@ -343,6 +343,25 @@ noncomputable instance MaxRetryRPCBufferSizeCallOption_access_store_MaxRetryRPCB
 end def_
 end MaxRetryRPCBufferSizeCallOption
 
+namespace streamReader
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.grpc.Assumptions]
+
+noncomputable instance streamReader_typed_pointsto :
+    TypedPointsto (GF := GF) google_golang_org.grpc.streamReader :=
+  sorry -- axiomatized type
+
+noncomputable instance streamReader_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.streamReader google_golang_org.grpc.streamReader.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end streamReader
+
 namespace noCopy
 section def_
 
@@ -366,6 +385,25 @@ noncomputable instance noCopy_into_val_typed :
 end def_
 end noCopy
 
+namespace parser
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.grpc.Assumptions]
+
+noncomputable instance parser_typed_pointsto :
+    TypedPointsto (GF := GF) google_golang_org.grpc.parser :=
+  sorry -- axiomatized type
+
+noncomputable instance parser_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.parser google_golang_org.grpc.parser.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end parser
+
 namespace payloadInfo
 section def_
 
@@ -375,50 +413,12 @@ variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
 noncomputable instance payloadInfo_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.payloadInfo where
-  typedPointstoDef l v dq := iprop(
-    "compressedLength" ∷ typedPointsto (structFieldRef google_golang_org.grpc.payloadInfo go!"compressedLength" l) v.compressedLength' dq ∗
-    "uncompressedBytes" ∷ typedPointsto (structFieldRef google_golang_org.grpc.payloadInfo go!"uncompressedBytes" l) v.uncompressedBytes' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
+    TypedPointsto (GF := GF) google_golang_org.grpc.payloadInfo :=
+  sorry -- axiomatized type
 
 noncomputable instance payloadInfo_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.payloadInfo google_golang_org.grpc.payloadInfo.underlying := by
-  solve_into_val_typed_struct
-
-noncomputable instance payloadInfo_access_load_compressedLength (l : Loc) (v : google_golang_org.grpc.payloadInfo) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.payloadInfo go!"compressedLength" l) v.compressedLength' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.payloadInfo go!"compressedLength" l) v.compressedLength' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance payloadInfo_access_store_compressedLength (l : Loc) (v : google_golang_org.grpc.payloadInfo) (compressedLength' : w64) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.payloadInfo go!"compressedLength" l) v.compressedLength' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.payloadInfo go!"compressedLength" l) compressedLength' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with compressedLength' := compressedLength' } : google_golang_org.grpc.payloadInfo) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance payloadInfo_access_load_uncompressedBytes (l : Loc) (v : google_golang_org.grpc.payloadInfo) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.payloadInfo go!"uncompressedBytes" l) v.uncompressedBytes' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.payloadInfo go!"uncompressedBytes" l) v.uncompressedBytes' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance payloadInfo_access_store_uncompressedBytes (l : Loc) (v : google_golang_org.grpc.payloadInfo) (uncompressedBytes' : google_golang_org.grpc.mem.BufferSlice) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.payloadInfo go!"uncompressedBytes" l) v.uncompressedBytes' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.payloadInfo go!"uncompressedBytes" l) uncompressedBytes' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with uncompressedBytes' := uncompressedBytes' } : google_golang_org.grpc.payloadInfo) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
+    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.payloadInfo google_golang_org.grpc.payloadInfo.underlying :=
+  sorry -- axiomatized type
 
 end def_
 end payloadInfo

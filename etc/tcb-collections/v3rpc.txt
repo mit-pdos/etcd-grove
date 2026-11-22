@@ -25,8 +25,6 @@ roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/(Link|Results)\.lean
 axiom EtcdServer.leaseTimeToLive.wp_proof
 axiom EtcdServer.rangeStream.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
-axiom Perennial.google_golang_org.grpc.mem.initFuncsOk
-axiom Perennial.google_golang_org.grpc.mem.opaqueInitsOk
 axiom RangeRequest.String.wp_proof
 axiom api.IsCapabilityEnabled.wp_proof
 axiom bcrypt.GenerateFromPassword.wp_proof

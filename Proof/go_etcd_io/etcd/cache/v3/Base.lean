@@ -216,14 +216,6 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.google_golang_
 
 end google_golang_org.grpc.stats
 
--- grpc's `mem` (types and names only; phase 7 S1, 2026-11-21: the type of the model's
--- `serverOptions.bufferPool`), before `grpc`, which imports it
-instance grpc_mem_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.mem :=
-  define_is_pkg_init iprop(True)
-instance grpc_mem_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.mem :=
-  build_get_is_pkg_init_wf
-
 -- `grpc` (names only; `etcdserverpb`'s streams are its generic interfaces, 2026-10-12: the
 -- request path's `RaftKV` names `KV_RangeStreamServer`), before `etcdserverpb`, which imports it
 /-- grpc's package fact (k8s 7e-1, 2026-11-10): `EnableTracing` (`var EnableTracing bool`, `trace.go:33`
