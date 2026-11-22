@@ -5,6 +5,7 @@ results (the paxos package's `Link.lean`, remote's `Link.lean`).
 module
 
 public import Dsverify.Proof.github_com.xiang90.paxos.examples.paxosnet.KitProof
+public import Dsverify.Proof.github_com.xiang90.paxos.examples.paxosnet.ModelProof
 public import Dsverify.Proof.github_com.xiang90.paxos.examples.paxosnet.Mains
 public import Dsverify.Proof.github_com.xiang90.paxos.Link
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Link

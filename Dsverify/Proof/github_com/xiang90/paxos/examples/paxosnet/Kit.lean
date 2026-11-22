@@ -172,7 +172,7 @@ its set is `woSet kn val pend`; `pend` has at most `k` entries (a step adds at m
 def woRep (k : Nat) (v : GoInterface) (s : linkv.PSet (Option GoString) BStr) : IProp GF :=
   iprop(∃ (kn : Bool) (val : GoString) (sl : GoSlice) (pend : List BStr),
     ⌜v = interface.mkOk State.ty #(State.mk kn val sl) ∧ s = woSet kn val pend ∧
-      pend.length ≤ k⌝ ∗ sl ↦*□ pend.map Subtype.val)
+      pend.length ≤ k ∧ (val.length : Int) < 2 ^ 48⌝ ∗ sl ↦*□ pend.map Subtype.val)
 
 /-- **The register's porcupine model** (pending proposals): `pSeq woB` through `woDec`. -/
 def woS : ModelSpec GF (linkv.PSet (Option GoString) BStr) where

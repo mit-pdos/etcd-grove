@@ -4,7 +4,7 @@ The proofs of the paxos kit's functions (`kit.go`, notes/dsv-paxos.md), from the
 -/
 module
 
-public import Dsverify.Proof.github_com.xiang90.paxos.examples.paxosnet.Kit
+public import Dsverify.Proof.github_com.xiang90.paxos.examples.paxosnet.ModelSet
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.lib.remote.Check
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.lib.remote.ServeClient
 public import Perennial.Spec.time.Sleep
@@ -28,68 +28,6 @@ open EtcdGrove github_com.mit_pdos.etcd_grove.examples.lib.remote
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
-section dec
-variable [GooseExts] [go_gctx : GoGlobalContext] [lctx : GoLocalContext] [GoSemanticsFunctions]
-variable [sem : go.Semantics] [bvi : go.BasicIntoValInj]
-variable [package_sem : github_com.xiang90.paxos.examples.paxosnet.Assumptions]
-
-/-- `Out`'s values are injective (`Unknown` and `V` are read off by deterministic steps). -/
-theorem out_intoVal_inj {x y : Out} (h : (#x : val) = #y) : x = y := by
-  have hV := (Out.TypeAssumptions.get_V x).isGoStep_det_internal.isGoStep_pure_det
-  have hV' := (Out.TypeAssumptions.get_V y).isGoStep_det_internal.isGoStep_pure_det
-  have hU := (Out.TypeAssumptions.get_Unknown x).isGoStep_det_internal.isGoStep_pure_det
-  have hU' := (Out.TypeAssumptions.get_Unknown y).isGoStep_det_internal.isGoStep_pure_det
-  rw [h, hV'] at hV
-  rw [h, hU'] at hU
-  have eV : Val #x.V' = Val #y.V' := (congrFun hV (Val #y.V')) ▸ rfl
-  have eU : Val #x.Unknown' = Val #y.Unknown' := (congrFun hU (Val #y.Unknown')) ▸ rfl
-  injection eV with eV
-  injection eU with eU
-  have eV' := go.intoVal_inj eV
-  have eU' := GoGlobalContext.intoVal_inj_bool eU
-  cases x; cases y
-  simp only at eV' eU'
-  subst eV' eU'
-  rfl
-
-theorem strV_inj {a b : GoString} (h : strV a = strV b) : a = b := by
-  simp only [strV, interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq,
-    _root_.true_and] at h
-  exact go.intoVal_inj h
-
-theorem outV_inj {u v u' v'} (h : outV u v = outV u' v') : u = u' ∧ v = v' := by
-  simp only [outV, interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq,
-    _root_.true_and] at h
-  have := out_intoVal_inj h
-  simp only [Out.mk.injEq] at this
-  exact this
-
-/-- `Out{u, w}`'s bytes. -/
-theorem encOutV_outV (u : Bool) (w : BStr) : encOutV (outV u w.1) = encOutB u w.1 := by
-  unfold encOutV
-  split
-  · rename_i h
-    obtain ⟨h1, h2⟩ := outV_inj h.choose_spec
-    rw [← h1, ← h2]
-  · rename_i h
-    exact absurd ⟨(u, w), rfl⟩ h
-
-/-- `woDec` on a boxed bounded `string` and a boxed bounded `Out`. -/
-theorem woDec_box (i : BStr) (u : Bool) (w : BStr) :
-    woDec (strV i.1, outV u w.1) = some (i, if u then .err else .ok w) := by
-  unfold woDec
-  split
-  · next h =>
-    have hs := Classical.choose_spec (Classical.choose_spec (Classical.choose_spec h))
-    obtain ⟨h1, h2⟩ := Prod.mk.inj hs
-    have e1 := Subtype.ext (strV_inj h1)
-    obtain ⟨e2, e3⟩ := outV_inj h2
-    have e3' := Subtype.ext e3
-    dsimp only
-    rw [← e3', ← e2, ← e1]
-  · next hn => exact absurd ⟨i, u, w, rfl⟩ hn
-
-end dec
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
@@ -150,8 +88,6 @@ theorem wp_attempt :
   iapply HΦ
   itrivial
 
-theorem Model.wp_proof : Model.spec (GF := GF) (hG := hG) := by
-  sorry
 
 theorem Codec.wp_proof : Codec.spec (GF := GF) (hG := hG) := by
   intro Γ
