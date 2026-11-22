@@ -32,7 +32,8 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 
 theorem Run.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
-    (cf : GoInterface → List w8 → IProp GF) (S : IProp GF)
+    (cf : GoInterface → List w8 → IProp GF)
+    (S : w64 → GoString → github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Options → GMap w64 GoString → IProp GF)
     (wp_listen : listen.spec (GF := GF) (hG := hG))
     (wp_StartNode : StartNode.spec (GF := GF) (hG := hG) F rep cf S)
     (wp_serve : Node.serve.spec (GF := GF) (hG := hG) F rep cf)
@@ -48,7 +49,7 @@ theorem Run.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
   try wp_auto
   wp_apply wp_listen a (kvP F cfg.ID') (kvQ F cfg.ID') $$ [$Hpkg $Ha] as %li ⟨%l, #Hli, Hlis, #Hla⟩
   try wp_auto
-  wp_apply wp_StartNode cfg $$ [$Hpkg $HS] as %nd ⟨%γ, %N, %n, #Hnd, #Hcl⟩
+  wp_apply wp_StartNode cfg M $$ [$Hpkg $HM $HS] as %nd ⟨%γ, %N, %n, #Hnd, #Hcl⟩
   try wp_auto
   unfold net.isListener
   icases Hli with ⟨%t, %xl, %Ht, #Hlt⟩

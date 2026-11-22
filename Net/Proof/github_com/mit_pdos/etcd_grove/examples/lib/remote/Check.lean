@@ -32,10 +32,10 @@ variable {St I O : Type} [DecidableEq I] [Pos.Countable I] [Pos.Countable O]
 theorem Check.wp_proof
     (wp_Run : Run.spec (GF := GF) (hG := hG) (St := St) (I := I) (O := O)) :
     Check.spec (GF := GF) (hG := hG) (St := St) (I := I) (O := O) := by
-  intro R S γ m addrs addrL cd gen ops d HpE HlE HS HT Hrb H31 Hops Hmul
+  intro R S γ m addrs addrL cd gen ops d HpE HlE HS Hinj HT Hrb H31 Hops Hmul
   wp_start as ⟨#Hcc, #Hm, #Hgen, #Haddrs, #Hra, #Hmap, #Hcd, #Hpend, Hlib⟩
   wp_auto
-  wp_apply wp_Run R S γ m addrs addrL cd gen ops d (W64 0) HpE HlE HS HT Hrb H31 Hops Hmul
+  wp_apply wp_Run R S γ m addrs addrL cd gen ops d (W64 0) HpE HlE HS Hinj HT Hrb H31 Hops Hmul
     $$ [Hlib] as %r %Hr
   · iframe
     iframe #

@@ -70,6 +70,13 @@ theorem Server.wp_proof
     unfold opMaybe
     iintro %sys %i %Φ
     iintro !> %Φr ⟨Htok, HL⟩ HΦr
+    ihave HL : lin (Gg := hG.goose_globalGS) (cR γs) i Φ $$ [HL]
+    · cases hw : (cR (GF := GF) γs).B.isWrite i
+      · rw [slotUpd_read _ hw]
+        icases HL with #HL
+        iexact HL
+      · rw [slotUpd_write _ hw]
+        iexact HL
     unfold srvTok
     icases Htok with ⟨%c', %γc', %Hsys, #Hc', #Hsync', #Hlc'⟩
     subst Hsys
