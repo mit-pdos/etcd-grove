@@ -1,5 +1,10 @@
 # prometheus's default registry as a trusted model on the Go heap (branch `prom-registry`)
 
+**Superseded in part (2026-11-22, route (b), the last section "Route (b)")**: the Go model
+`examples/lib/promreg`, its glue and its proofs are retired; client_golang's real `registry.go`/`desc.go` are
+translated and prometheus's `init()` is the only trusted code. The sections below are the record of
+route (a) and of the ghost-name question (Option 4 survives).
+
 The user's decision (kaashoek, 2026-11-22; mit-pdos/etcd-grove#15, the last two comments): replace
 the prometheus registration axioms by a trusted model of client_golang v1.24.1's default registry on
 the Go heap, so that a crash resetting the registry follows from the existing crash adequacy (each
@@ -672,3 +677,115 @@ Read at client_golang v1.24.1 (`prometheus/registry.go`, `desc.go`, `go_collecto
   package variables as untranslated initializers (`opaqueInitsOk`: they return without panicking). The
   trusted part would shrink to `init()`'s registrations; the cost is a proof of the real `Register`
   (goroutine and channel included) instead of the model's, and `Desc` as a translated type (#18's area).
+
+## Route (b) (2026-11-22): the real client_golang registry, `init()` the one trusted declaration
+
+**The decisions** (Upamanyu and kaashoek on #15, 2026-11-22): (b) translate client_golang v1.24.1's real
+`registry.go`/`desc.go` with their bodies, the untranslatable error paths left stuck; prometheus's `init()` the
+only trusted code (a `TrustedCode` replacement over the translated registry, the built-ins' 38 + 2 IDs as
+constants re-checked by a Go test on the pinned toolchain); the Go model retired (`examples/lib/promreg`, its
+proofs, the glue, `[promreg.Assumptions]`); `Gather`/`Collect` not translated; Option 4 (`IsPkgInitParam`/
+`isPkgInitSome`, untrusted Perennial machinery: another session, branch `pkg-init-param`); the closed proofs
+allocate the registry's ghost name inside their `Hwp` (`etcd_adequate_alloc` forms); `Start.lean` changes by
+removal only (no `ownLocalNames`). Kept from route (a), to be redone over the real registry: the ID-keyed rights
+(the keys component, `grpcKeys`, `v3rpc.metricsP` holding them), `NewServerMetrics`' descriptor clause, the
+deletion of `nameFree`/`namesUnclaimed`/`descIdsDistinct`/`readRegPerm`, §5's residue list.
+
+### Step 1 (done, commits `c7a5cf7876`..`8168da033b`)
+
+* **The branch was reset to `lean`'s code** (merge `c7a5cf7876`, then `lean`'s tree but for the notes): the
+  model, the glue, the `ownLocalNames` forms and every closed proof over them are gone from the tree (they stay
+  in the history: `249c42aa98`). `lean` had moved its Perennial pin to `101637598` (from `c14cca87a`), so the
+  branch builds against **`/shared/tmp/manifest-1016.json`** (a worktree `/shared/perennial-101637598`, made by
+  this session from `/shared/perennial-c14cca87a`'s repository, its `.lake` copied).
+* **Translation** (`Code/github_com/prometheus/client_golang/prometheus.toml`): `NewRegistry`, `(*Registry).Register`,
+  `(*Registry).MustRegister`, `Register`, `MustRegister`, `defaultRegistry`/`DefaultRegisterer`/
+  `DefaultGatherer` (their initializers), `capMetricChan`/`capDescChan`, `AlreadyRegisteredError.Error`,
+  `NewInvalidDesc`, `Desc.Err`; `Desc` and `Registry` are structs now. Imports `sync`, `fmt` and client_model's
+  `dto` (a new package of the etcd project, types and names only, `Code/github_com/prometheus/client_model/go.toml`;
+  its fact `True`, `Proof/github_com/prometheus/client_model/go/PkgInit.lean`; its initializer has no untranslated
+  part). `Register`'s error paths translate (goose now translates the type switch, `TypeAssert2`) but call
+  names-only functions (`fmt.Errorf` is Perennial's trusted model; `Desc.String` and
+  `wrappingCollector.unwrapRecursively` have no body), so a run reaching them is stuck. **Not translated**:
+  `NewDesc`, `V2.NewDesc`, `Desc.String`, `WithUnit` (they would import common/model, prometheus/internal and
+  xxhash, whose package variables compile regexps: more untranslated initializers in the trust base, for code
+  no verified program reaches: an open point for the sign-off), `Unregister`, `Gather`, `Collect`, `Describe`.
+* **The trusted `init()`** (`TrustedCode/github_com/prometheus/client_golang/prometheus.lean`): with `r :=
+  defaultRegistry` (already `NewRegistry()`), `seed.insertAll` of the built-in descriptor IDs into
+  `r.descIDs` (`struct{}{}`), of the names with their dim hashes into `r.dimHashesByName`, and of the two
+  collector IDs into `r.collectorsByID` (the nil `Collector` as value: a documented deviation, read only on
+  `Register`'s `AlreadyRegisteredError` path, `Unregister` and `Gather`). Constants `seed.descIDs`, `seed.dims`,
+  `seed.collectorIDs`; `examples/lib/prombuiltins/seed_test.go` (`TestSeedConstants`) parses them from the Lean
+  file and compares with the real default registry (and a new registry with the two collectors registered) on
+  `go1.27.3`, linux/amd64, client_golang v1.24.1 (it checks all three): `cd examples && GOTOOLCHAIN=go1.27.3 go
+  test ./lib/prombuiltins/` passes, and fails when a constant is changed.
+* **prometheus's initializer proved** (`etc/gen-init.py` `SPECIAL[prometheus]`): the three translated variable
+  initializers stepped (`NewRegistry`'s body inline: `wp_map_make1` thrice), the trusted `init.«0»` through
+  `EtcdGrove.prometheus.wp_seed_insertAll` (`Proof/.../prometheus/Seed.lean`, by induction on the list; with
+  `seed_Registry_eq`/`seed_Collector_eq`/`seed_defaultRegistry_eq`, the trusted file's literal names equal to
+  the translation's). **Axioms removed**: `initFuncsOk` (prometheus's `init.«0»`), and `defaultRegistry.init`,
+  `DefaultRegisterer.init`, `DefaultGatherer.init` out of `opaqueInitsOk`. **Added**: none. The fact is still
+  `True` (the maps are dropped at the end); step 2 makes it the registry.
+* **Hazard until step 2** (as route (a)'s glue had): `MustRegister.wp_proof` and `Register.wp_proof` are still
+  the trust-boundary axioms, and `MustRegister`/`Register` now have bodies (`prometheus.Assumptions` unfolds
+  them), so the axioms now claim triples of the real code; they are what step 2 proves.
+
+### Step 2 (not started: the design, for the next session)
+
+1. **The collector fact becomes a persistent `IProp`** (the one statement change to the constructors' specs, a
+   flag for #18): `Register` reads each `*Desc` its collector's `Describe` sends, so whoever states what a
+   collector describes must give the descriptors' points-to's, which a pure `Prop` cannot (a `⊢ p ↦□ d` is false;
+   a `Prop` that claims it makes the constructor axioms inconsistent). So `collectorName c n : IProp GF` :=
+   `∃ p d, p ↦□ d ∗ ⌜d.fqName' = n ∧ d.id' = descId n ∧ d.err' = interface.nil⌝ ∗ describes c [p]`, and the
+   constructors' posts `⌜collectorName c n⌝` become `collectorName c n` (`NewCounter`, `NewCounterVec`,
+   `NewGauge`, `NewGaugeFunc`, `NewGaugeVec`, `NewHistogram`, `NewHistogramVec`; 13 files name it), `MustRegister.spec`
+   takes it in its precondition. `describes c ps` (persistent): for every SPSC channel (Perennial's
+   `Chan/Idioms/Spsc.lean`: `isSpsc γ ch P R`, `spscProducer γ sent`), `[∗ list] i ↦ p ∈ ps, P (len sent + i) p -∗
+   WP (MethodResolve Collector.ty "Describe" #c) #ch {{ v, ⌜v = #()⌝ ∗ spscProducer γ (sent ++ ps) }}` (the
+   method call as `Register`'s goroutine makes it: the channel converted to send-only, the same location).
+   grpc-prometheus: `NewServerMetrics`' post gains `describes ⟨*ServerMetrics, m⟩ ps` of the server metrics'
+   descriptors (`srvDescs hist`: route (a)'s `providers/prometheus/Defs.lean`, `249c42aa98`).
+2. **The registry** (prometheus `Registry.lean`, defs): `idTok γ k := ⌜k ∉ builtinKeys⌝ ∗ k ↪[γ] ()` with
+   `builtinKeys := seed.descIDs ++ seed.collectorIDs`, `builtinNames := seed.dims.map (·.1)` (the trusted file's
+   constants, not copies); `regInv γ r` (the RWMutex's guarded resource at fraction 1): the maps `D N C` at the
+   field pointers (`ownMap`), `r.uncheckedCollectors` and its slice, the element `k ↪[γ] ()` of every registered
+   non-builtin descriptor ID and collector ID, and `∀ n ∈ dom N, n ∈ builtinNames ∨ descId n ∈ dom D`, builtin
+   keys and names registered; `isRegistry γ r` (persistent): the field pointers (read-only after `NewRegistry`)
+   and `isRWMutexGuard r.mtx (regInv γ r)` (Perennial `sync/RWMutexGuard.lean`: a writer needs only the guard).
+   prometheus's fact `promInit γ := ∃ r, globalAddr defaultRegistry ↦□ r ∗ globalAddr DefaultRegisterer ↦□
+   (interface of *Registry r) ∗ isRegistry γ r` (the gen-init steps above keep the maps instead of dropping them,
+   and allocate the guard after `init.«0»`).
+3. **`(*Registry).Register`'s proof** (the bulk): `make(chan *Desc, 10)` then `start_spsc` with `P i p := ⌜ps !! i =
+   some p⌝`, `R l := ⌜l = ps⌝`; the goroutine (`wp_fork`, no thread token needed) runs `describes` and
+   `wp_spsc_close`; `Lock` by the guard; the `chan.forRange` loop (`pure_wp_chan_for_range`, `wp_spsc_receive`)
+   with the pure loop state of route (a)'s `Registry__Register.lean` (`249c42aa98`: the prefix's IDs, their XOR,
+   the names seen); the tokens give each `desc.id ∉ dom D` (`idTok` against the invariant's element), the
+   collector ID's absence, and the names' absence (the invariant's name clause and `n ∉ builtinNames`); the
+   inserts, then the tokens go into the invariant; the deferred drain (the channel is closed and drained: the
+   loop ends on `ok = false`) and `Unlock`. Spec: `{{ isRegistry γ r ∗ describes c ps ∗ descs ps ds ∗ idToks γ
+   (descKeys ds) ∗ ⌜descsOk ds⌝ }} r.Register(c) {{ RET nil }}`. `MustRegister`: the loop over the slice, then
+   `prometheus.MustRegister`/`Register` through `DefaultRegisterer`'s interface (from the fact).
+   **Kernel pitfall** (route (a), "Stage 4 under option 1"): never let the kernel compare `(nameDesc n dh).ID'`
+   with `descId n` or build `idToks (descKeys …)` of a literal inside a big proof; `generalize` and go through a
+   one-descriptor lemma.
+4. **Option 4** once Perennial's `IsPkgInitParam` is available: `class PromRegGS (GF) where γ : GName`;
+   `instance : IsPkgInitParam (IProp GF) prometheus := ⟨PromRegGS GF, fun x => ⟨deps, promInit x.γ⟩⟩` (and the
+   local `[PromRegGS GF] → IsPkgInit` instance); `etc/gen-init.py`: `INST_HAND` for prometheus, the importers'
+   `GetIsPkgInitWf` instances with an explicit `[PromRegGS GF]` binder, the init and table files' variable; ~13
+   files from `isPkgInit prometheus` to `isPkgInitSome`. The keys component of the rights (route (a)'s
+   `PkgInitRes.lean`: `regResL` over `(q, names, keys)`, `regsFree`, `regKeysOf`, `regQsOk`, `REG_KEYS`) with `idTok
+   γ` at the instance's `γ`; `v3rpc.metricsP`'s `nil` case packs `∃ x : PromRegGS GF, isPkgInit (inst x)
+   prometheus ∗ idToks x.γ grpcKeys`.
+5. **The closed proofs** (`etcd_adequate_alloc` forms): in `Hwp`, `ghost_map_alloc` of `regKeysOf regQs` (decide
+   `regQsOk` once into a lemma with raised heartbeats: route (a)'s mvccrand hit the default), `letI : PromRegGS
+   GF := ⟨γ⟩`, the program's `getIsPkgInit_wf` at it; the WAL tester's crash proof the same per generation.
+   Then **`Start.lean`, removal only** (`nameFree` out of `startRights`, `Ns`/`hNs`/`hNsFree`/`hNsIds`,
+   `nameUnclaimed`/`namesUnclaimed` deleted), `descIdsDistinct`, `read.readRegPerm`, `nameFree`, the TopLevelDefs'
+   name lists; `notes/prom-registry-start-change.md` rewritten as the final trusted diff.
+
+**Blocked on the Perennial pin** (an open decision for the coordinator): the plan's
+`/shared/perennial-pkg-init-param-c14` (manifest `/shared/tmp/manifest-pip14.json`) is to be on `c14cca87a`, but
+`lean` (merged here) pins Perennial `101637598`; Lean's translations of `101637598`'s goose do not build on
+`c14cca87a` (326 files differ). The branch needs `pkg-init-param` on `101637598` (or on Perennial's `lean`, with a
+pin bump), as a manifest like `manifest-1016.json`. (`/shared/perennial-pkg-init-param` itself is on Perennial
+`lean`'s `74471ecd8`, a descendant of `101637598`.)
