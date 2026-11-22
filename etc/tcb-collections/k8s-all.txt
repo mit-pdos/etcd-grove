@@ -390,7 +390,6 @@ axiom v3rpc.pbWatchRequestT_reg
 axiom v3rpc.pbWatchResponseT_reg
 axiom verifyEnvOff
 axiom wait.Jitter.wp_proof
-axiom waitRetryBackoff.wp_proof
 axiom withVersion.wp_proof
 axiom zap.Logger.Fatal.wp_proof
 axiom zap.Logger.Panic.wp_proof
