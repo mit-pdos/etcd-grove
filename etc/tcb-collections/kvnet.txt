@@ -1,0 +1,13 @@
+# kvnet (examples/raft/kvnet, notes/kvnet-part.md; the part KvNet/): the top-level robustness theorem
+# `raft_kvnet_robust_of_errors`, its example `raft_kvnet_robust_example_of_errors` and the example's
+# premises' non-vacuity `raft_kvnet_example_premises`
+# (KvNet/Proof/.../raft/kvnet/TopLevelRobustness.lean). The first two take, as named hypotheses (not
+# axioms), the statements of two Perennial pull requests not yet landed: `RobustOfNetFsBootG` (the
+# bridge over mit-pdos/perennial#683) and `errors.IsPathErrnoNotExist.spec` (#677). `#print axioms`:
+# Lean's three and `path.filepath.opaqueInitsOk` (filepath's untranslated variable initializers,
+# reached through the bodied `durable`'s initializer).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/kvnet.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/kvnet.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/kvnet.txt --check --update
+roots ^KvNet/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvnet/TopLevelRobustness\.lean$
