@@ -41851,3 +41851,34 @@ invariant or fragment meaning changed.
 
 **Also:** `statusOwn_hardState`, read access to `node.Status`'s hard state (`hsOpt`), without promising anything of
 the values, as `node.Status.spec` already says.
+
+## prometheus's default registry as a Go model on the heap; `collectorName` over an opaque `collectorDescs`; `PromRegGS` per run (2026-11-22 · branch `prom-registry`; the user's decision on mit-pdos/etcd-grove#15)
+
+**Decided by the user:** replace the registration axioms (`nameFree`, `MustRegister`, `Register`, the
+start rights' names, D16/D19d) by a trusted model of client_golang's default registry on the Go heap,
+so that a crash resets it through the crash adequacy, with no new axiom. **The agent's choices within
+it** (`notes/prom-registry.md` is the full design and plan):
+
+- **The model is Go, translated and verified** (`examples/lib/promreg`, goose project `promreg`), and
+  only a thin glue is trusted (`TrustedCode/github_com/prometheus/client_golang/prometheus.lean`:
+  `Register`, `MustRegister`, `defaultRegistry`'s initializer, `init.0`). Alternatives: (1) a GooseLang
+  model written by hand in `TrustedCode` with a trusted struct layout (as `os`'s `file`): all of
+  `Register`'s logic trusted, and a layout class to state by hand; (2) a model in `models/` (module
+  `models.lab`): its Lean is the part `Net/`, which the main tree does not import. A package of the
+  examples' module, as `examples/lib/durable`, keeps the model in the main tree, testable against
+  the real client_golang in the same module (`model_test.go`).
+- **`collectorName` stays, as a definition over an opaque operation.** The collectors are made by
+  names-only constructors (axioms, which stay), and `Desc`, `Registry` and the collector types are
+  opaque in the translation, so no model can read a descriptor's ID from the heap: something must say
+  what a constructed collector describes, and the constructors' specs already do (`collectorName c n`).
+  The glue's `collectorDescs` (an `opaque val`) is the model's reading of `c.Describe`, and
+  `collectorName c n` becomes the pure statement that, in every instance of the logic, it returns `n`'s
+  one descriptor. Rejected: a trust-boundary spec of `Describe` (a new axiom, which the decision
+  excludes); translating `Desc` and the collectors (their fields name `client_model`'s types: the
+  constructors' axioms would then have to describe heap layouts).
+- **The ghost name is a typeclass instance of the run** (`PromRegGS`, as `WalGS`), allocated by the
+  closed theorem's proof in the universal camera (`AllG`): `nameFree n` cannot name a ghost name
+  stored with the registry (Perennial has no location metadata, `meta`), and a name allocated by the
+  initializer could not be the one the earlier-allocated rights (`ownInitResL`'s list) refer to.
+  The tokens are a ghost map's exclusive elements of the IDs (finite: only the program's names and the
+  builtins are allocated), so `descIdsDistinct` is what splitting them needs, as today.
