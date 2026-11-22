@@ -88,7 +88,8 @@ theorem schema.membershipBackend.MustCreateBackendBuckets.wp_proof
       show sint.Z (st.pend + W64 1 + W64 1 + W64 1) = _; word
     omega
   ihave ⟨#Hth, %Hnw⟩ := backend.viewSame_thin d.γB d.P _ hvs
-  wp_apply (backend.batchTxBuffered.Unlock.spec_free hUL d.γB d.P W Pk d.be t _ iprop(True) S r
+  wp_apply (backend.batchTxBuffered.Unlock.spec_free hUL d.γB d.P W Pk d.be t
+      (((st.create mvcc.membersBI).create mvcc.membersRemovedBI).create mvcc.clusterBI) iprop(True) S r
       Hfree.2.2.2.2.1 hroom) $$ [$Hbpkg $HB $Ht $Hl $Hwb $Hrb HW HPk] as ⟨-, Hrb⟩
   · ileft; iframe HW HPk Hth; ipureintro; exact Hnw
   (try wp_auto)
